@@ -109,6 +109,16 @@ const recipeAlternativeOptions = computed(() => {
     : []
 })
 const hasAlternativeRecipeOptions = computed(() => recipeAlternativeOptions.value.length > 1)
+const selectedAlternativeKey = ref('')
+const recipeAlternativeKey = (option: PublicItemRecipeTreeNode, index: number) => displayText(option.recipeId, option.itemId, nodeTitle(option), index)
+const activeAlternativeOption = computed(() => recipeAlternativeOptions.value.find((option, index) => recipeAlternativeKey(option, index) === selectedAlternativeKey.value) ?? recipeAlternativeOptions.value[0] ?? null)
+const visibleAlternativeOptions = computed(() => {
+  const option = activeAlternativeOption.value
+  if (!option) return []
+
+  const index = recipeAlternativeOptions.value.findIndex((candidate, candidateIndex) => recipeAlternativeKey(candidate, candidateIndex) === selectedAlternativeKey.value)
+  return [{ option, index: index >= 0 ? index : 0 }]
+})
 const recipeOptionLabel = (option: PublicItemRecipeTreeNode, index: number) => {
   const summary = recipeDifferenceSummary(option)
   return summary ? `方案 ${index + 1} · ${summary}` : `方案 ${index + 1}`
@@ -136,6 +146,20 @@ const displayRecipeNodeStations = computed(() => (
   expandedRecipeNode.value ? recipeNodeStations(expandedRecipeNode.value) : recipeNodeStations(props.node)
 ))
 const isWikiFlow = computed(() => props.layout === 'wiki')
+
+watch(recipeAlternativeOptions, (options) => {
+  if (!options.length) {
+    selectedAlternativeKey.value = ''
+    return
+  }
+
+  if (!options.some((option, index) => recipeAlternativeKey(option, index) === selectedAlternativeKey.value)) {
+    const firstOption = options[0]
+    if (firstOption) {
+      selectedAlternativeKey.value = recipeAlternativeKey(firstOption, 0)
+    }
+  }
+}, { immediate: true })
 </script>
 
 <template>
@@ -149,15 +173,28 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
     }"
   >
     <div v-if="hasAlternativeRecipeOptions" class="recipe-alternative-recipes" aria-label="可选配方">
+      <div class="recipe-alternative-tabs" aria-label="可选配方方案">
+        <button
+          v-for="(option, index) in recipeAlternativeOptions"
+          :key="displayText(option.recipeId, option.itemId, nodeTitle(option), index)"
+          class="recipe-alternative-tab"
+          :class="{ active: recipeAlternativeKey(option, index) === selectedAlternativeKey }"
+          type="button"
+          :aria-pressed="recipeAlternativeKey(option, index) === selectedAlternativeKey"
+          @click="selectedAlternativeKey = recipeAlternativeKey(option, index)"
+        >
+          {{ recipeOptionLabel(option, index) }}
+        </button>
+      </div>
+
       <template
-        v-for="(option, index) in recipeAlternativeOptions"
-        :key="displayText(option.recipeId, option.itemId, nodeTitle(option), index)"
+        v-for="entry in visibleAlternativeOptions"
+        :key="displayText(entry.option.recipeId, entry.option.itemId, nodeTitle(entry.option), 'visible-option')"
       >
-        <span v-if="index > 0" class="recipe-alternative-separator">或</span>
-        <section class="recipe-alternative-option" :aria-label="recipeOptionLabel(option, index)">
-          <span class="recipe-alternative-label">{{ recipeOptionLabel(option, index) }}</span>
+        <section class="recipe-alternative-option" :aria-label="recipeOptionLabel(entry.option, entry.index)">
+          <span class="recipe-alternative-label">{{ recipeOptionLabel(entry.option, entry.index) }}</span>
           <CraftingRecipeTreeNode
-            :node="option"
+            :node="entry.option"
             layout="wiki"
             :max-depth="props.maxDepth"
             class="recipe-alternative-expansion"

@@ -2051,8 +2051,9 @@ for (const path of scanFiles) {
       'isWikiFlow',
       'is-wiki-flow',
       'recipe-alternative-recipes',
+      'recipe-alternative-tabs',
+      'recipe-alternative-tab',
       'recipe-alternative-option',
-      'recipe-alternative-separator',
       'recipe-alternative-expansion',
       'recipe-ingredient-row',
       'recipe-ingredient-branch',
@@ -2461,8 +2462,9 @@ for (const path of scanFiles) {
 
     for (const selector of [
       '.recipe-alternative-recipes',
+      '.recipe-alternative-tabs',
+      '.recipe-alternative-tab',
       '.recipe-alternative-option',
-      '.recipe-alternative-separator',
       '.recipe-alternative-expansion > .recipe-tree-node',
     ]) {
       if (!content.includes(selector)) {
