@@ -357,6 +357,7 @@ export const normalizePublicNpcBuffRelation = (raw: PublicNpcBuffRelation): Publ
   sourceText: normalizeText(raw.sourceText ?? raw.source_text) || null,
   durationText: normalizeText(raw.durationText ?? raw.duration_text) || null,
   durationSeconds: toNumberOrNull(raw.durationSeconds ?? raw.duration_seconds),
+  durationTicks: toNumberOrNull(raw.durationTicks ?? raw.duration_ticks),
   chanceText: normalizeText(raw.chanceText ?? raw.chance_text) || null,
   chanceValue: toNumberOrNull(raw.chanceValue ?? raw.chance_value),
   conditions: normalizeText(raw.conditions) || null,

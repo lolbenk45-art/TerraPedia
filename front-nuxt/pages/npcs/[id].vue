@@ -150,6 +150,13 @@ const percentLabel = (value: unknown) => {
   return numberValue <= 1 ? `${Math.round(numberValue * 100)}%` : `${numberValue}%`
 }
 
+const formatDurationSeconds = (value: unknown) => {
+  const seconds = toNumberOrNull(value)
+  if (seconds == null || seconds <= 0) return ''
+  const label = Number.isInteger(seconds) ? String(seconds) : seconds.toFixed(1).replace(/\.0$/, '')
+  return `${label}秒`
+}
+
 const npcStatRows = computed(() => [
   { label: '编号', value: firstText(npc.value?.gameId, npc.value?.id) },
   { label: '生命值', value: firstText(npc.value?.lifeMax) },
@@ -295,7 +302,7 @@ const shopPriceTokens = (entry: PublicNpcShopEntry): TerrariaPriceToken[] => {
 }
 const shopPriceLabel = (entry: PublicNpcShopEntry) => formatTerrariaPriceTokens(shopPriceTokens(entry))
 const lootConditionLabel = (entry: PublicNpcLootEntry) => safeNpcDisplayText(entry.conditions, entry.notes)
-const buffConditionLabel = (entry: PublicNpcBuffRelation) => safeNpcDisplayText(entry.conditions, entry.notes, entry.sourceText)
+const buffConditionLabel = (entry: PublicNpcBuffRelation) => safeNpcDisplayText(entry.conditions, entry.notes)
 const npcMoneyCoinClass = (unit: unknown) => {
   const key = firstText(unit).toLowerCase()
   if (key === 'platinum' || key === 'pc' || key === 'platinum coin') return 'platinum'
@@ -409,8 +416,14 @@ const shopEntryGroups = computed(() => {
 
 const buffDurationLabel = (entry: PublicNpcBuffRelation) => safeNpcDisplayText(
   entry.durationText,
-  entry.durationSeconds != null ? `${entry.durationSeconds}s` : '',
+  formatDurationSeconds(entry.durationSeconds),
+  formatBuffTickDuration(entry.durationTicks ?? entry.duration_ticks),
 )
+const formatBuffTickDuration = (value: unknown) => {
+  const ticks = toNumberOrNull(value)
+  if (ticks == null || ticks <= 0) return ''
+  return ticks < 60 ? `${Math.trunc(ticks)}帧` : formatDurationSeconds(ticks / 60)
+}
 
 const relationTypeLabel = (value: unknown) => {
   const key = firstText(value).toLowerCase()
@@ -690,14 +703,21 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
               <h2>状态效果</h2>
               <span class="tag paper">{{ buffRelations.length }} 条</span>
             </div>
-            <div v-if="buffRelations.length" class="source-table dark-table">
-              <div v-for="entry in buffRelations" :key="String(entry.id ?? entry.buffId ?? entry.buffInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
-                <span class="sprite-frame detail-relation-icon">
-                  <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
+            <div v-if="buffRelations.length" class="npc-buff-card-grid">
+              <article v-for="entry in buffRelations" :key="String(entry.id ?? entry.buffId ?? entry.buffInternalName)" class="npc-buff-card">
+                <span class="npc-buff-media">
+                  <CommonPreviewImage
+                    :src="entryImage(entry)"
+                    :alt="entryTitle(entry)"
+                    :fallback="firstGlyph(entryTitle(entry))"
+                    :fallback-icon="entryFallbackIcon(entry)"
+                  />
                 </span>
-                <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [relationTypeLabel(entry.relationType), buffDurationLabel(entry), chanceLabel(entry), buffConditionLabel(entry)].filter(Boolean).join(' · ') || '状态效果资料' }}</span></div>
-                <strong class="detail-relation-meta">Buff</strong>
-              </div>
+                <span class="npc-buff-copy">
+                  <b>{{ entryTitle(entry) }}</b>
+                  <span class="npc-buff-meta">{{ [relationTypeLabel(entry.relationType), buffDurationLabel(entry), chanceLabel(entry), buffConditionLabel(entry)].filter(Boolean).join(' · ') || '状态效果资料' }}</span>
+                </span>
+              </article>
             </div>
             <p v-else class="tp-detail-empty">暂时没有整理到状态效果。</p>
           </article>
@@ -896,75 +916,80 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
 
 .npc-money-drops {
   display: grid;
-  gap: 8px;
-  margin: 0 0 12px;
-  border: 1px solid color-mix(in srgb, var(--gold) 36%, var(--index-line));
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 10px;
+  align-items: center;
+  margin: 0 0 8px;
+  border: 1px solid color-mix(in srgb, var(--gold) 18%, var(--index-line));
   border-radius: 8px;
-  background: color-mix(in srgb, var(--gold) 7%, var(--index-surface));
-  padding: 9px;
+  background: color-mix(in srgb, var(--gold) 3%, var(--index-surface));
+  padding: 5px 7px;
 }
 
 .npc-money-drops-heading {
   display: flex;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 5px;
   align-items: center;
   min-width: 0;
 }
 
 .npc-money-drops-heading b {
   color: var(--text-strong);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
+  white-space: nowrap;
 }
 
 .npc-money-drops-heading span {
   color: var(--text-subtle);
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 900;
+  white-space: nowrap;
 }
 
 .npc-money-drop-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(172px, 1fr));
-  gap: 7px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 6px;
+  min-width: 0;
 }
 
 .npc-money-drop-row {
-  display: grid;
+  display: inline-grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   min-width: 0;
-  border: 1px solid var(--index-line);
-  border-radius: 8px;
-  background: var(--index-surface);
-  padding: 6px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gold) 5%, transparent);
+  padding: 2px 5px;
 }
 
 .npc-money-drop-row > b {
   min-width: 0;
-  color: var(--text-strong);
-  font-size: 11.5px;
+  color: var(--text-subtle);
+  font-size: 10px;
   font-weight: 900;
   overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .npc-money-token-row {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 4px 8px;
+  gap: 2px 6px;
   min-width: 0;
 }
 
 .npc-money-token {
   display: inline-flex;
-  gap: 4px;
+  gap: 3px;
   align-items: center;
   min-width: 0;
   color: var(--text-strong);
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 900;
   line-height: 1.1;
   white-space: nowrap;
@@ -973,8 +998,8 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
 .npc-money-token-icon,
 .npc-money-token :deep(.npc-money-token-icon),
 .npc-money-token :deep(.item-art) {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
 }
 
 .npc-money-coin-mark {
@@ -983,9 +1008,9 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
   --coin-shine: rgba(255, 255, 255, 0.72);
   display: inline-grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
-  flex: 0 0 28px;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
   border: 2px solid var(--coin-rim);
   border-radius: 999px;
   background:
@@ -1030,6 +1055,65 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
 .npc-money-token-copy {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.npc-buff-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.npc-buff-card {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 62px;
+  border: 1px solid color-mix(in srgb, var(--index-line) 86%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--index-surface) 90%, transparent);
+  padding: 7px;
+}
+
+.npc-buff-media {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+}
+
+.npc-buff-media :deep(.item-art) {
+  width: 48px;
+  height: 48px;
+}
+
+.npc-buff-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.npc-buff-copy b {
+  min-width: 0;
+  color: var(--text-strong);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.npc-buff-meta {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-subtle);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .detail-relation-meta {

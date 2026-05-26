@@ -663,6 +663,8 @@ export type PublicNpcBuffRelation = {
   duration_text?: string | null
   durationSeconds?: number | string | null
   duration_seconds?: number | string | null
+  durationTicks?: number | string | null
+  duration_ticks?: number | string | null
   chanceText?: string | null
   chance_text?: string | null
   chanceValue?: number | string | null

@@ -1404,6 +1404,13 @@ for (const path of scanFiles) {
     if (livingPreferenceType.includes('sourceText') || livingPreferenceType.includes('source_text')) {
       violations.push(`${path}: PublicNpcLivingPreference must not expose raw sourceText fields`)
     }
+
+    const npcBuffRelationType = content.match(/export type PublicNpcBuffRelation = \{[\s\S]*?\n\}/)?.[0] ?? ''
+    for (const marker of ['durationTicks?', 'duration_ticks?']) {
+      if (!npcBuffRelationType.includes(marker)) {
+        violations.push(`${path}: PublicNpcBuffRelation must include API duration tick fields via marker ${marker}`)
+      }
+    }
   }
 
   if (path === 'composables/usePublicNpcs.ts') {
@@ -1433,6 +1440,13 @@ for (const path of scanFiles) {
     const rawPayload = content.match(/raw: \{[\s\S]*?\n    \},\n  \}/)?.[0] ?? ''
     if (rawPayload.includes('living_preferences') || rawPayload.includes('sourceText') || rawPayload.includes('source_text')) {
       violations.push(`${path}: normalizePublicNpcBase raw payload must not forward snake_case raw living_preferences`)
+    }
+
+    const npcBuffRelationNormalizer = content.match(/export const normalizePublicNpcBuffRelation = \(raw: PublicNpcBuffRelation\): PublicNpcBuffRelation => \(\{[\s\S]*?\n\}\)/)?.[0] ?? ''
+    for (const marker of ['durationTicks:', 'raw.durationTicks ?? raw.duration_ticks']) {
+      if (!npcBuffRelationNormalizer.includes(marker)) {
+        violations.push(`${path}: normalizePublicNpcBuffRelation must preserve API duration tick fields via marker ${marker}`)
+      }
     }
   }
 
@@ -1587,10 +1601,15 @@ for (const path of scanFiles) {
       'class="npc-money-token"',
       'class="npc-money-token-row"',
       'decorative',
+      '24px',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: NPC money drops must render compact Terraria coin tokens with controlled labels and optional backend icons via marker ${marker}`)
       }
+    }
+
+    if (content.includes('grid-template-columns: repeat(auto-fit, minmax(172px, 1fr))')) {
+      violations.push(`${path}: NPC money drops must not use the old full-width card grid; keep money rewards as compact strips`)
     }
 
     if (content.includes('label: safeNpcDisplayText(token.label)')) {
@@ -1612,6 +1631,35 @@ for (const path of scanFiles) {
 
     if (content.includes('npc-money-token-fallback')) {
       violations.push(`${path}: NPC money drops must use coin-specific visual marks instead of text glyph fallback when backend icons are missing`)
+    }
+
+    for (const marker of [
+      'npc-buff-card-grid',
+      'class="npc-buff-card"',
+      'class="npc-buff-media"',
+      'class="npc-buff-copy"',
+      'class="npc-buff-meta"',
+      ':src="entryImage(entry)"',
+      ':fallback-icon="entryFallbackIcon(entry)"',
+      'relationTypeLabel(entry.relationType)',
+      'buffConditionLabel(entry)',
+      'durationTicks',
+      'duration_ticks',
+      'formatBuffTickDuration',
+      '-webkit-line-clamp: 2',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: NPC buff relations must render as compact image-rich cards via marker ${marker}`)
+      }
+    }
+
+    const buffConditionHelper = content.match(/const buffConditionLabel = \(entry: PublicNpcBuffRelation\)[\s\S]*?(?=\nconst |\n\nconst |\nconst [a-zA-Z])/u)?.[0] ?? ''
+    if (buffConditionHelper.includes('sourceText') || buffConditionHelper.includes('source_text')) {
+      violations.push(`${path}: NPC buff condition labels must not use raw sourceText as public fallback copy`)
+    }
+
+    if (content.includes('class="source-table dark-table"') && content.includes('v-for="entry in buffRelations"')) {
+      violations.push(`${path}: NPC buff relations must not render as the old generic source-table rows`)
     }
 
     if (
