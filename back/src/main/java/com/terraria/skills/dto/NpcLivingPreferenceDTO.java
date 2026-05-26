@@ -9,4 +9,5 @@ public class NpcLivingPreferenceDTO {
     private Long targetId;
     private String targetName;
     private String targetNameZh;
+    private String targetImageUrl;
 }

@@ -78,6 +78,49 @@ const portraitImage = computed(() => dialoguePortraitImage.value || resolvePrevi
   npcWikiAssets.value?.map_icon_image,
   npc.value?.imageUrl,
 )))
+const npcAssetCards = computed(() => {
+  const seen = new Set<string>()
+  const cards = [
+    {
+      key: 'dialogPortrait',
+      label: '对话肖像',
+      meta: '新版城镇 NPC 对话头像',
+      image: resolvePreviewImageUrl(firstText(npcWikiAssets.value?.dialogPortraitImage, npcWikiAssets.value?.dialog_portrait_image)),
+      sourceImage: firstText(npcWikiAssets.value?.dialogPortraitImage, npcWikiAssets.value?.dialog_portrait_image),
+      fallbackIcon: 'icon-npc',
+    },
+    {
+      key: 'sprite',
+      label: 'NPC 立绘',
+      meta: '世界内角色外观',
+      image: resolvePreviewImageUrl(firstText(npcWikiAssets.value?.spriteImage, npcWikiAssets.value?.sprite_image)),
+      sourceImage: firstText(npcWikiAssets.value?.spriteImage, npcWikiAssets.value?.sprite_image),
+      fallbackIcon: 'icon-npc',
+    },
+    {
+      key: 'mapIcon',
+      label: '地图图标',
+      meta: '小地图识别图标',
+      image: resolvePreviewImageUrl(firstText(npcWikiAssets.value?.mapIconImage, npcWikiAssets.value?.map_icon_image)),
+      sourceImage: firstText(npcWikiAssets.value?.mapIconImage, npcWikiAssets.value?.map_icon_image),
+      fallbackIcon: 'icon-npc',
+    },
+    {
+      key: 'base',
+      label: '基础图片',
+      meta: '数据库原始图像',
+      image: resolvePreviewImageUrl(firstText(npc.value?.imageUrl)),
+      sourceImage: firstText(npc.value?.imageUrl),
+      fallbackIcon: 'icon-npc',
+    },
+  ]
+
+  return cards.filter((card) => {
+    if (!card.image || seen.has(card.image)) return false
+    seen.add(card.image)
+    return true
+  })
+})
 const portraitFallback = computed(() => firstGlyph(displayName.value || 'NPC'))
 const detailUpdatedAt = computed(() => {
   const value = firstText(aggregate.value?.aggregatedAt)
@@ -184,15 +227,47 @@ const preferenceMissingLinkLabel = (row: PublicNpcLivingPreference) => {
   return !preferenceTargetPath(row) && type !== 'biome' ? '未关联资料' : ''
 }
 
+const preferenceTargetRawName = (row: PublicNpcLivingPreference) => safeNpcDisplayText(
+  row.targetNameZh ?? row.target_name_zh,
+  row.targetName ?? row.target_name,
+)
+
+const preferenceTargetTitle = (row: PublicNpcLivingPreference) => preferenceTargetRawName(row) || '未命名偏好对象'
+
+const preferenceTargetImage = (row: PublicNpcLivingPreference) => resolvePreviewImageUrl(firstText(
+  row.targetImageUrl,
+  row.target_image_url,
+))
+
+const preferenceFallbackIcon = (row: PublicNpcLivingPreference) => {
+  const type = firstText(row.targetType ?? row.target_type).toLowerCase()
+  return type === 'biome' ? 'icon-biome' : 'icon-npc'
+}
+
+const hasPreferenceSignal = (row: PublicNpcLivingPreference) => Boolean(
+  preferenceTargetRawName(row)
+  || normalizedPreferenceValue(row.preference)
+  || firstText(row.targetType ?? row.target_type)
+  || firstText(row.targetId ?? row.target_id)
+  || preferenceTargetImage(row),
+)
+
 const livingPreferenceRows = computed(() => {
   const rows = npc.value?.livingPreferences ?? npc.value?.living_preferences ?? []
 
   return Array.isArray(rows)
-    ? rows.filter((row) => (
-      safeNpcDisplayText(row.targetNameZh ?? row.target_name_zh, row.targetName ?? row.target_name)
-    ))
+    ? rows.filter((row) => hasPreferenceSignal(row))
     : []
 })
+
+const preferenceOrder = ['love', 'like', 'dislike', 'hate', ''] as const
+const preferenceGroups = computed(() => preferenceOrder
+  .map((preference) => ({
+    key: preference || 'unknown',
+    label: preferenceLabel(preference),
+    rows: livingPreferenceRows.value.filter((row) => normalizedPreferenceValue(row.preference) === preference),
+  }))
+  .filter((group) => group.rows.length > 0))
 
 const npcBehaviorSummary = computed(() => safeNpcDisplayText(
   npc.value?.behaviorNotes,
@@ -382,6 +457,30 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
           </aside>
         </section>
 
+        <section v-if="npcAssetCards.length" class="npc-media-section">
+          <div class="module-title">
+            <h2>资料图像</h2>
+            <span class="tag paper">{{ npcAssetCards.length }} 张</span>
+          </div>
+          <div class="npc-media-band">
+            <article v-for="asset in npcAssetCards" :key="asset.key" class="npc-media-card">
+              <span class="npc-media-frame">
+                <CommonPreviewImage
+                  :src="asset.image"
+                  :source-image="asset.sourceImage"
+                  :alt="`${displayName} ${asset.label}`"
+                  :fallback="portraitFallback"
+                  :fallback-icon="asset.fallbackIcon"
+                />
+              </span>
+              <span class="npc-media-copy">
+                <b>{{ asset.label }}</b>
+                <em>{{ asset.meta }}</em>
+              </span>
+            </article>
+          </div>
+        </section>
+
         <section :class="['detail-grid npc-detail-grid', detailLayout.detailGridClass, detailLayout.detailDensityClass]">
           <div class="module-stack">
             <article :class="['detail-module dark-card', detailLayout.detailModuleClass]">
@@ -511,23 +610,42 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
           </aside>
         </section>
 
-        <section v-if="livingPreferenceRows.length" class="npc-related-grid">
+        <section v-if="preferenceGroups.length" class="npc-related-grid npc-preference-section">
           <article :class="['detail-module dark-card', detailLayout.detailModuleClass]">
             <div class="module-title">
               <h2>生活偏好</h2>
               <span class="tag paper">{{ livingPreferenceRows.length }} 条</span>
             </div>
-            <div class="signal-list">
-              <div v-for="row in livingPreferenceRows" :key="String(row.targetType ?? row.target_type ?? row.targetId ?? row.target_id ?? row.targetName ?? row.target_name)">
-                <b v-if="preferenceLabel(row.preference)">{{ preferenceLabel(row.preference) }}</b>
-                <NuxtLink v-if="preferenceTargetPath(row)" :to="preferenceTargetPath(row)">
-                  {{ preferenceTargetTypeLabel(row.targetType ?? row.target_type) }} · {{ safeNpcDisplayText(row.targetNameZh ?? row.target_name_zh, row.targetName ?? row.target_name) }}
-                </NuxtLink>
-                <span v-else>
-                  {{ preferenceTargetTypeLabel(row.targetType ?? row.target_type) }} · {{ safeNpcDisplayText(row.targetNameZh ?? row.target_name_zh, row.targetName ?? row.target_name) }}
-                </span>
-                <em v-if="preferenceMissingLinkLabel(row)">{{ preferenceMissingLinkLabel(row) }}</em>
-              </div>
+            <div class="preference-group-grid">
+              <section v-for="group in preferenceGroups" :key="group.key" class="preference-group-card">
+                <div class="preference-group-head">
+                  <b>{{ group.label }}</b>
+                  <span>{{ group.rows.length }} 项</span>
+                </div>
+                <div class="preference-card-list">
+                  <component
+                    :is="preferenceTargetPath(row) ? 'NuxtLink' : 'div'"
+                    v-for="row in group.rows"
+                    :key="String(row.targetType ?? row.target_type ?? row.targetId ?? row.target_id ?? row.targetName ?? row.target_name)"
+                    :to="preferenceTargetPath(row) || undefined"
+                    class="preference-target-card"
+                  >
+                    <span class="preference-target-media">
+                      <CommonPreviewImage
+                        :src="preferenceTargetImage(row)"
+                        :alt="preferenceTargetTitle(row)"
+                        :fallback="firstGlyph(preferenceTargetTitle(row))"
+                        :fallback-icon="preferenceFallbackIcon(row)"
+                      />
+                    </span>
+                    <span class="preference-target-copy">
+                      <b>{{ preferenceTargetTitle(row) }}</b>
+                      <span>{{ preferenceTargetTypeLabel(row.targetType ?? row.target_type) }}</span>
+                      <em v-if="preferenceMissingLinkLabel(row)">{{ preferenceMissingLinkLabel(row) }}</em>
+                    </span>
+                  </component>
+                </div>
+              </section>
             </div>
           </article>
         </section>
@@ -607,11 +725,183 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
   color: var(--gold);
 }
 
+.npc-media-section {
+  display: grid;
+  gap: 12px;
+  margin: var(--tp-detail-page-gap, 22px) 0;
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(13, 22, 16, 0.62);
+}
+
+.npc-media-band {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.npc-media-card {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(13, 22, 16, 0.78);
+}
+
+.npc-media-frame {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border: 1px solid rgba(222, 187, 95, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+
+.npc-media-frame .item-art {
+  width: 100%;
+  height: 100%;
+}
+
+.npc-media-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.npc-media-copy b,
+.npc-media-copy em {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.npc-media-copy b {
+  color: var(--text-strong);
+  font-size: 14px;
+}
+
+.npc-media-copy em {
+  color: var(--text-subtle);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
 .npc-related-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: var(--tp-detail-page-gap, 22px);
   min-width: 0;
+}
+
+.npc-preference-section {
+  grid-template-columns: 1fr;
+}
+
+.preference-group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.preference-group-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.preference-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.preference-group-head b {
+  color: var(--text-strong);
+  font-size: 14px;
+}
+
+.preference-group-head span {
+  color: var(--text-subtle);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.preference-card-list {
+  display: grid;
+  gap: 8px;
+}
+
+.preference-target-card {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px;
+  color: inherit;
+  text-decoration: none;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.preference-target-card:hover {
+  border-color: rgba(222, 187, 95, 0.38);
+  background: rgba(222, 187, 95, 0.08);
+}
+
+.preference-target-media {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+}
+
+.preference-target-media .item-art {
+  width: 48px;
+  height: 48px;
+}
+
+.preference-target-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.preference-target-copy b,
+.preference-target-copy span,
+.preference-target-copy em {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.preference-target-copy b {
+  color: var(--text-strong);
+  font-size: 13px;
+}
+
+.preference-target-copy span,
+.preference-target-copy em {
+  color: var(--text-subtle);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
 }
 
 .grouped-source-list,
@@ -659,6 +949,11 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
 }
 
 @media (max-width: 720px) {
+  .npc-media-band,
+  .preference-group-grid {
+    grid-template-columns: 1fr;
+  }
+
   .detail-relation-row {
     grid-template-columns: 44px minmax(0, 1fr);
   }

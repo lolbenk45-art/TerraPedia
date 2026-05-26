@@ -87,6 +87,7 @@ const normalizeNpcLivingPreference = (raw: PublicNpcLivingPreference): PublicNpc
   targetId: toNumberOrNull(raw.targetId ?? raw.target_id),
   targetName: normalizeText(raw.targetName ?? raw.target_name) || null,
   targetNameZh: normalizeText(raw.targetNameZh ?? raw.target_name_zh) || null,
+  targetImageUrl: resolvePreviewImageUrl(normalizeText(raw.targetImageUrl ?? raw.target_image_url)) || null,
 })
 
 const normalizePagination = (

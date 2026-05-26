@@ -84,9 +84,25 @@ export const buildItemFallback = (item: RefItem) => {
   return String(text).slice(0, 2)
 }
 
+export const normalizeTownNpcImageUrl = (value: unknown) => {
+  const text = String(value || '').trim()
+  if (!text) return ''
+
+  try {
+    const url = new URL(text)
+    if (url.pathname.startsWith('/terrapedia-images/')) {
+      return `${url.pathname}${url.search}${url.hash}`
+    }
+    return text
+  } catch {
+    if (text.startsWith('/')) return text
+    return ''
+  }
+}
+
 export const resolveTownNpcShopItemImage = (item: RefItem | null | undefined) => {
   if (!item) return ''
-  return String(item.itemImageUrl || item.itemImage || item.imageUrl || item.image || '').trim()
+  return normalizeTownNpcImageUrl(item.itemImageUrl || item.itemImage || item.imageUrl || item.image)
 }
 
 export const resolveTownNpcMainImage = (row: TownNpcRow | null | undefined) => {
@@ -99,7 +115,7 @@ export const resolveTownNpcMainImage = (row: TownNpcRow | null | undefined) => {
     row.wikiDetails?.dialogPortraitImage,
     row.wikiAssets?.mapIconImage,
     row.wikiDetails?.mapIconImage,
-  ].map(value => String(value || '').trim()).find(Boolean) || ''
+  ].map(value => normalizeTownNpcImageUrl(value)).find(Boolean) || ''
 }
 
 export const isGapRow = (row: TownNpcRow) =>
@@ -148,9 +164,9 @@ export const wikiAssetCards = (row: TownNpcRow | null | undefined): WikiAssetCar
     dialogPortraitImage: row.wikiDetails?.dialogPortraitImage,
   }
   return [
-    { key: 'sprite', label: 'NPC 立绘', src: String(assets.spriteImage || '') },
-    { key: 'mapIcon', label: '地图图标', src: String(assets.mapIconImage || '') },
-    { key: 'portrait', label: '对话肖像', src: String(assets.dialogPortraitImage || '') },
+    { key: 'sprite', label: 'NPC 立绘', src: normalizeTownNpcImageUrl(assets.spriteImage) },
+    { key: 'mapIcon', label: '地图图标', src: normalizeTownNpcImageUrl(assets.mapIconImage) },
+    { key: 'portrait', label: '对话肖像', src: normalizeTownNpcImageUrl(assets.dialogPortraitImage) },
   ].filter(item => item.src)
 }
 

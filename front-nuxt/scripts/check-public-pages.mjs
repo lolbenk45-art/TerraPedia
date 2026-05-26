@@ -1431,6 +1431,8 @@ for (const path of scanFiles) {
       'buffRelations',
       'materialStatus',
       'npcStatRows',
+      'npcAssetCards',
+      '资料图像',
       'lootConditionLabel(entry)',
       'buffConditionLabel(entry)',
       'shopConditionSummary(entry)',
@@ -1439,6 +1441,14 @@ for (const path of scanFiles) {
       'preferenceLabel',
       'normalizedPreferenceValue',
       'livingPreferenceRows',
+      'preferenceGroups',
+      'preferenceTargetImage',
+      'preferenceFallbackIcon',
+      'preferenceTargetTitle',
+      'preferenceTargetRawName',
+      'hasPreferenceSignal(row)',
+      '未命名偏好对象',
+      'preference-group-card',
       'preferenceTargetPath',
       'preferenceMissingLinkLabel',
       '偏好对象',
@@ -1573,6 +1583,14 @@ for (const path of scanFiles) {
 
     if (content.includes('v-for="entry in shopEntries"')) {
       violations.push(`${path}: NPC shop entries must not render as one flat ungrouped list`)
+    }
+
+    if (!/v-for="asset in npcAssetCards"/.test(content) || !/:source-image="asset\.sourceImage"/.test(content)) {
+      violations.push(`${path}: NPC detail page must render a dedicated media gallery for managed wiki assets and original base image`)
+    }
+
+    if (!/v-for="group in preferenceGroups"/.test(content) || !content.includes('<CommonPreviewImage') || !/preferenceTargetImage\(row\)/.test(content)) {
+      violations.push(`${path}: NPC living preferences must render grouped visual relation cards with target images or semantic visual fallbacks`)
     }
   }
 

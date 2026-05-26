@@ -216,6 +216,7 @@ class PublicNpcAggregateControllerTest {
         anglerPreference.setTargetId(369L);
         anglerPreference.setTargetName("Angler");
         anglerPreference.setTargetNameZh("渔夫");
+        anglerPreference.setTargetImageUrl("http://localhost:9000/terrapedia-images/npcs/angler-dialog.png");
 
         npc.setLivingPreferences(List.of(forestPreference, anglerPreference));
         publicNpcService.npcToReturn = npc;
@@ -226,7 +227,8 @@ class PublicNpcAggregateControllerTest {
             .andExpect(jsonPath("$.data.npc.wikiAssets.dialogPortraitImage").value("http://localhost:9000/terrapedia-images/npcs/merchant-dialog-portrait.png"))
             .andExpect(jsonPath("$.data.npc.livingPreferences[0].targetType").value("biome"))
             .andExpect(jsonPath("$.data.npc.livingPreferences[0].preference").value("like"))
-            .andExpect(jsonPath("$.data.npc.livingPreferences[1].targetNameZh").value("渔夫"));
+            .andExpect(jsonPath("$.data.npc.livingPreferences[1].targetNameZh").value("渔夫"))
+            .andExpect(jsonPath("$.data.npc.livingPreferences[1].targetImageUrl").value("http://localhost:9000/terrapedia-images/npcs/angler-dialog.png"));
     }
 
     @Test

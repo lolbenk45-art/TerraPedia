@@ -496,7 +496,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setBehaviorNotes(trimToNull(npc.getBehaviorNotes()));
         dto.setStatus(npc.getStatus());
         dto.setWikiAssets(parseWikiAssets(npc.getWikiAssetsJson()));
-        dto.setLivingPreferences(parseLivingPreferences(npc.getLivingPreferencesJson()));
+        dto.setLivingPreferences(enrichLivingPreferenceTargetImages(parseLivingPreferences(npc.getLivingPreferencesJson())));
         return dto;
     }
 
@@ -548,6 +548,60 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             log.warn("Failed to parse NPC living preferences JSON", exception);
             return List.of();
         }
+    }
+
+    private List<NpcLivingPreferenceDTO> enrichLivingPreferenceTargetImages(List<NpcLivingPreferenceDTO> preferences) {
+        if (preferences == null || preferences.isEmpty()) {
+            return List.of();
+        }
+        List<Long> targetIds = preferences.stream()
+            .filter(preference -> "npc".equalsIgnoreCase(trimToNull(preference.getTargetType())))
+            .map(NpcLivingPreferenceDTO::getTargetId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+        if (targetIds.isEmpty()) {
+            return preferences;
+        }
+
+        String placeholders = targetIds.stream().map(ignored -> "?").collect(Collectors.joining(","));
+        try {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT id, image_url AS imageUrl, wiki_assets_json AS wikiAssetsJson FROM npcs WHERE deleted = 0 AND id IN (" + placeholders + ")",
+                targetIds.toArray()
+            );
+            Map<Long, String> imageByTargetId = new LinkedHashMap<>();
+            for (Map<String, Object> row : rows) {
+                Long id = toLong(row.get("id"));
+                if (id == null) {
+                    continue;
+                }
+                String imageUrl = firstNonBlank(
+                    wikiAssetPreviewImage(toStringValue(row.get("wikiAssetsJson"))),
+                    managedDisplayImageUrl(toStringValue(row.get("imageUrl")))
+                );
+                if (imageUrl != null) {
+                    imageByTargetId.put(id, imageUrl);
+                }
+            }
+            for (NpcLivingPreferenceDTO preference : preferences) {
+                if (preference.getTargetId() != null) {
+                    preference.setTargetImageUrl(imageByTargetId.get(preference.getTargetId()));
+                }
+            }
+            return preferences;
+        } catch (Exception exception) {
+            log.warn("Failed to enrich NPC living preference target images", exception);
+            return preferences;
+        }
+    }
+
+    private String wikiAssetPreviewImage(String json) {
+        NpcWikiAssetsDTO assets = parseWikiAssets(json);
+        if (assets == null) {
+            return null;
+        }
+        return firstNonBlank(assets.getDialogPortraitImage(), assets.getSpriteImage(), assets.getMapIconImage());
     }
 
     private Map<Long, Integer> loadRelationCounts(String tableName, List<Npc> npcs, boolean npcDropOnly) {
@@ -908,8 +962,16 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         return Map.of();
     }
 
-    private static String firstNonBlank(String primary, String fallback) {
-        return primary != null && !primary.isBlank() ? primary : fallback;
+    private static String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
     }
 
     private static Boolean firstNonNullBoolean(Boolean primary, Boolean fallback) {

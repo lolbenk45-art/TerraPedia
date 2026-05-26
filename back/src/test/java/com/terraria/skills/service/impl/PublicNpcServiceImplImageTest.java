@@ -342,6 +342,14 @@ class PublicNpcServiceImplImageTest {
             [{"targetType":"biome","preference":"like","targetName":"Forest","targetNameZh":"森林"},{"targetType":"npc","preference":"hate","targetId":369,"targetName":"Angler","targetNameZh":"渔夫"},{"preference":"like","targetName":"Unknown neighbor","targetNameZh":"未知邻居"}]
             """);
         when(npcMapper.selectById(17L)).thenReturn(npc);
+        when(jdbcTemplate.queryForList(contains("FROM npcs WHERE deleted = 0 AND id IN (?)"), eq(369L)))
+            .thenReturn(List.of(Map.of(
+                "id", 369L,
+                "imageUrl", "http://localhost:9000/terrapedia-images/npcs/angler.png",
+                "wikiAssetsJson", """
+                    {"dialogPortraitImage":"http://localhost:9000/terrapedia-images/npcs/angler-dialog.png"}
+                    """
+            )));
 
         NpcDetailDTO detail = newService().getNpcById(npc.getId());
 
@@ -349,8 +357,26 @@ class PublicNpcServiceImplImageTest {
         assertEquals(3, detail.getLivingPreferences().size());
         assertEquals("biome", detail.getLivingPreferences().get(0).getTargetType());
         assertEquals("渔夫", detail.getLivingPreferences().get(1).getTargetNameZh());
+        assertEquals("http://localhost:9000/terrapedia-images/npcs/angler-dialog.png", detail.getLivingPreferences().get(1).getTargetImageUrl());
         assertNull(detail.getLivingPreferences().get(2).getTargetType());
         assertEquals("未知邻居", detail.getLivingPreferences().get(2).getTargetNameZh());
+    }
+
+    @Test
+    void shouldKeepLivingPreferencesWhenTargetImageLookupFails() {
+        Npc npc = npc(17L, 17L, "Merchant", "Merchant");
+        npc.setLivingPreferencesJson("""
+            [{"targetType":"npc","preference":"like","targetId":369,"targetName":"Angler","targetNameZh":"渔夫"}]
+            """);
+        when(npcMapper.selectById(17L)).thenReturn(npc);
+        when(jdbcTemplate.queryForList(contains("FROM npcs WHERE deleted = 0 AND id IN (?)"), eq(369L)))
+            .thenThrow(new RuntimeException("database unavailable"));
+
+        NpcDetailDTO detail = newService().getNpcById(npc.getId());
+
+        assertEquals(1, detail.getLivingPreferences().size());
+        assertEquals("渔夫", detail.getLivingPreferences().get(0).getTargetNameZh());
+        assertNull(detail.getLivingPreferences().get(0).getTargetImageUrl());
     }
 
     @Test

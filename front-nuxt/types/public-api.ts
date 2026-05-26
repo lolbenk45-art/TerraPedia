@@ -445,6 +445,8 @@ export type PublicNpcLivingPreference = {
   target_name?: string | null
   targetNameZh?: string | null
   target_name_zh?: string | null
+  targetImageUrl?: string | null
+  target_image_url?: string | null
 }
 
 export type PublicNpcListItem = {

@@ -49,6 +49,17 @@ test('town NPC main image resolver falls back through managed wiki assets', () =
   assert.match(townNpcComposable, /\.trim\(\)/)
 })
 
+test('town NPC admin image resolvers normalize managed MinIO urls to same-origin paths', () => {
+  assert.match(townNpcComposable, /export const normalizeTownNpcImageUrl/)
+  assert.match(townNpcComposable, /new URL\(text\)/)
+  assert.match(townNpcComposable, /pathname\.startsWith\('\/terrapedia-images\/'\)/)
+  assert.match(townNpcComposable, /return `\$\{url\.pathname\}\$\{url\.search\}\$\{url\.hash\}`/)
+  assert.match(townNpcComposable, /if \(text\.startsWith\('\/'\)\) return text/)
+  assert.match(townNpcComposable, /resolveTownNpcMainImage[\s\S]*?normalizeTownNpcImageUrl/)
+  assert.match(townNpcComposable, /resolveTownNpcShopItemImage[\s\S]*?normalizeTownNpcImageUrl/)
+  assert.match(townNpcComposable, /wikiAssetCards[\s\S]*?normalizeTownNpcImageUrl/)
+})
+
 test('town NPC detail portrait uses shared main image resolver', () => {
   assert.match(townNpcDetail, /resolveTownNpcMainImage/)
   assert.match(townNpcDetail, /const mainImageUrl = computed\(\(\) => resolveTownNpcMainImage\(selectedRow\.value\)\)/)
