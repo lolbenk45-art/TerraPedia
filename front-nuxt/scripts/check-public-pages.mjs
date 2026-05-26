@@ -5,6 +5,14 @@ import { inflateSync } from 'node:zlib'
 const root = new URL('..', import.meta.url)
 const file = (path) => join(root.pathname, path)
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const readCssRules = (content) => [...content.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((match) => ({
+  selector: match[1].trim(),
+  declarations: match[2],
+}))
+const lastCssDeclarationValue = (declarations, property) => {
+  const matches = [...declarations.matchAll(new RegExp(`${escapeRegExp(property)}\\s*:\\s*([^;]+)`, 'g'))]
+  return matches.at(-1)?.[1]?.trim() ?? ''
+}
 
 const assertApiPagedListBypassesLocalFilters = (violations, path, content, contract) => {
   for (const marker of contract.markers) {
@@ -2051,13 +2059,18 @@ for (const path of scanFiles) {
       'isWikiFlow',
       'is-wiki-flow',
       'recipe-alternative-recipes',
+      'recipe-alternative-tabs',
+      'recipe-alternative-tab',
       'recipe-alternative-option',
-      'recipe-alternative-separator',
       'recipe-alternative-expansion',
+      'has-child-expansion',
+      'has-multiple-ingredients',
       'recipe-ingredient-row',
       'recipe-ingredient-branch',
       'recipe-child-expansion',
       'recipe-ingredient-node',
+      'recipe-composed-ingredient',
+      'recipe-leaf-ingredient',
       '<CraftingRecipeTreeNode',
       'recipe-branch',
       'recipe-tree-node',
@@ -2071,6 +2084,18 @@ for (const path of scanFiles) {
 
     if (content.includes("displayText(station.requirementRole, station.stationType, '合成站')") || content.includes("displayText(station.requirementRole, '合成站')")) {
       violations.push(`${path}: crafting recipe tree node must translate station metadata instead of exposing raw stationType or requirementRole values`)
+    }
+
+    if (!/['"]has-multiple-ingredients['"]\s*:\s*displayRecipeNodeChildren\.length\s*>\s*1/m.test(content)) {
+      violations.push(`${path}: crafting wiki-flow material rows must only enable the multi-ingredient connector class when more than one direct material is visible`)
+    }
+
+    if (/>[\s\n]*<a class="recipe-tree-node recipe-ingredient-node"/m.test(content)) {
+      violations.push(`${path}: crafting wiki-flow composed ingredient branches must not render a duplicate ingredient card below a child recipe output`)
+    }
+
+    if (!/v-else[\s\S]{0,260}class="recipe-tree-node recipe-ingredient-node recipe-leaf-ingredient"/m.test(content)) {
+      violations.push(`${path}: crafting wiki-flow leaf ingredients must keep a direct ingredient card while composed ingredients use the child recipe output`)
     }
   }
 
@@ -2403,8 +2428,27 @@ for (const path of scanFiles) {
     const narrowRecipeChildrenLineRule = content.match(/@media \(max-width: 1180px\)\s*\{[\s\S]*?\.recipe-children::before\s*\{([^}]*)\}/m)?.[1] ?? ''
     const wikiFlowBranchRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*\{[^}]*\}/m)?.[0] ?? ''
     const wikiFlowChildrenRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-children\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiFlowChildrenBusRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-children::before\s*\{[^}]*\}/m)?.[0] ?? ''
     const wikiIngredientBranchRule = content.match(/^\.recipe-ingredient-branch\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiLeafIngredientRule = content.match(/^\.recipe-leaf-ingredient\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiIngredientConnectorRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-children\s*>\s*\.recipe-ingredient-branch::before\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiIngredientSegmentRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-children\.has-multiple-ingredients\s*>\s*\.recipe-ingredient-branch::before\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiFirstIngredientSegmentRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-children\.has-multiple-ingredients\s*>\s*\.recipe-ingredient-branch:first-child::before\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiLastIngredientSegmentRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-children\.has-multiple-ingredients\s*>\s*\.recipe-ingredient-branch:last-child::before\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiComposedSegmentRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-children\.has-multiple-ingredients\s*>\s*\.recipe-composed-ingredient::before\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiIngredientNodeConnectorRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-children\s*>\s*\.recipe-ingredient-branch\s*>\s*\.recipe-ingredient-node::before\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiComposedIngredientNodeConnectorRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-children\s*>\s*\.recipe-composed-ingredient\s*>\s*\.recipe-branch\s*>\s*\.recipe-tree-node::before\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiExpandedIngredientConnectorRule = content.match(/^\.recipe-ingredient-branch\.has-child-expansion\s*>\s*\.recipe-ingredient-node::before\s*\{[^}]*\}/m)?.[0] ?? ''
     const wikiFlowStationRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-station-row::before\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiFlowResultTopConnectorRule = content.match(/^\.recipe-branch\.is-wiki-flow:not\(\.is-leaf\)\s*>\s*\.recipe-tree-node::after\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiFlowConnectorBusRules = readCssRules(content).filter((rule) => (
+      rule.selector.includes('.is-wiki-flow')
+      && (
+        /\.recipe-children[^\s,{]*::before/.test(rule.selector)
+        || rule.selector.includes('.recipe-station-row::before')
+        || rule.selector.includes('.recipe-ingredient-branch::before')
+      )
+    ))
     const recipeFullTreeStageRule = content.match(/^\.crafting-layout\s*>\s*\.recipe-full-tree\s+\.recipe-tree-stage\s*\{[^}]*\}/m)?.[0] ?? ''
 
     if (!/width\s*:\s*max-content/m.test(recipeBranchRule)) {
@@ -2439,20 +2483,140 @@ for (const path of scanFiles) {
       violations.push(`${path}: crafting wiki-flow branches must stack materials above station chips and result nodes`)
     }
 
-    if (!/align-items\s*:\s*flex-end/m.test(wikiFlowChildrenRule) || !/padding-bottom\s*:\s*18px/m.test(wikiFlowChildrenRule) || /padding-top\s*:\s*18px/m.test(wikiFlowChildrenRule)) {
-      violations.push(`${path}: crafting wiki-flow child groups must bottom-align direct ingredients and reserve connector space below the ingredient row`)
+    if (!/align-items\s*:\s*flex-start/m.test(wikiFlowChildrenRule) || !/padding-top\s*:\s*22px/m.test(wikiFlowChildrenRule) || /padding-bottom\s*:\s*22px/m.test(wikiFlowChildrenRule)) {
+      violations.push(`${path}: crafting wiki-flow child groups must top-align direct recipe units below the parent collector line`)
     }
 
     if (!/flex-direction\s*:\s*column/m.test(wikiIngredientBranchRule) || !/align-items\s*:\s*center/m.test(wikiIngredientBranchRule)) {
       violations.push(`${path}: crafting wiki-flow ingredients must keep each direct material node below its own expanded sub-recipe`)
     }
 
-    if (/flex\s*:\s*0\s+0\s+172px/m.test(wikiIngredientBranchRule) || !/width\s*:\s*max-content/m.test(wikiIngredientBranchRule)) {
+    if (/flex\s*:\s*0\s+0\s+172px/m.test(wikiIngredientBranchRule) || !/width\s*:\s*max-content/m.test(wikiIngredientBranchRule) || !/gap\s*:\s*0/m.test(wikiIngredientBranchRule) || !/align-self\s*:\s*flex-start/m.test(wikiIngredientBranchRule)) {
       violations.push(`${path}: crafting wiki-flow ingredient branches must expand to the width of nested alternative recipe groups instead of overlapping sibling materials`)
     }
 
-    if (!/top\s*:\s*50%/m.test(wikiFlowStationRule)) {
-      violations.push(`${path}: crafting wiki-flow station row must draw the station chip on a horizontal connector line`)
+    if (!/z-index\s*:\s*4/m.test(wikiLeafIngredientRule)) {
+      violations.push(`${path}: crafting wiki-flow leaf ingredients must keep the same connector stacking as composed recipe outputs`)
+    }
+
+    if (
+      lastCssDeclarationValue(wikiFlowChildrenBusRule, 'content') !== 'none'
+      || /left\s*:\s*86px/m.test(wikiFlowChildrenBusRule)
+      || /right\s*:\s*86px/m.test(wikiFlowChildrenBusRule)
+    ) {
+      violations.push(`${path}: crafting wiki-flow ingredient rows must not draw a full-container collector line that stretches into empty nested recipe space`)
+    }
+
+    if (!/content\s*:\s*none/m.test(wikiIngredientConnectorRule)) {
+      violations.push(`${path}: crafting wiki-flow ingredient branch pseudo-connectors must stay disabled on the generic child selector so nested recipe groups do not draw duplicate long lines`)
+    }
+
+    if (
+      lastCssDeclarationValue(wikiIngredientSegmentRule, 'content') === 'none'
+      || !/var\(--recipe-collector-left,\s*96px\)/m.test(wikiIngredientSegmentRule)
+      || !/var\(--recipe-collector-right,\s*96px\)/m.test(wikiIngredientSegmentRule)
+      || !/top\s*:\s*-15px/m.test(wikiIngredientSegmentRule)
+      || !/height\s*:\s*2px/m.test(wikiIngredientSegmentRule)
+    ) {
+      violations.push(`${path}: crafting wiki-flow multi-material rows must draw local collector segments from each direct material branch instead of one container-wide line`)
+    }
+
+    if (lastCssDeclarationValue(wikiComposedSegmentRule, 'content') !== '""') {
+      violations.push(`${path}: crafting wiki-flow composed ingredient branches must participate in the same local material collector as leaf ingredients`)
+    }
+
+    if (!/--recipe-collector-left\s*:\s*0px/m.test(wikiFirstIngredientSegmentRule)) {
+      violations.push(`${path}: crafting wiki-flow first material segment must start at the first direct material center to avoid protruding into empty left space`)
+    }
+
+    if (!/--recipe-collector-right\s*:\s*0px/m.test(wikiLastIngredientSegmentRule)) {
+      violations.push(`${path}: crafting wiki-flow last material segment must stop at the last direct material center to avoid protruding into empty right space`)
+    }
+
+    if (
+      lastCssDeclarationValue(wikiFlowStationRule, 'content') === 'none'
+      || !/left\s*:\s*50%/m.test(wikiFlowStationRule)
+      || !/top\s*:\s*-14px/m.test(wikiFlowStationRule)
+      || !/width\s*:\s*2px/m.test(wikiFlowStationRule)
+      || !/height\s*:\s*14px/m.test(wikiFlowStationRule)
+      || /right\s*:/m.test(wikiFlowStationRule)
+    ) {
+      violations.push(`${path}: crafting wiki-flow station connector must be a solid vertical line from the ingredient collector to the station row`)
+    }
+
+    if (
+      lastCssDeclarationValue(wikiIngredientNodeConnectorRule, 'content') === 'none'
+      || !/left\s*:\s*50%/m.test(wikiIngredientNodeConnectorRule)
+      || !/top\s*:\s*-14px/m.test(wikiIngredientNodeConnectorRule)
+      || !/width\s*:\s*2px/m.test(wikiIngredientNodeConnectorRule)
+      || !/height\s*:\s*14px/m.test(wikiIngredientNodeConnectorRule)
+      || /right\s*:/m.test(wikiIngredientNodeConnectorRule)
+    ) {
+      violations.push(`${path}: crafting wiki-flow ingredient nodes must use solid up-connectors into the bounded material collector line`)
+    }
+
+    if (
+      lastCssDeclarationValue(wikiComposedIngredientNodeConnectorRule, 'content') === 'none'
+      || !/left\s*:\s*50%/m.test(wikiComposedIngredientNodeConnectorRule)
+      || !/top\s*:\s*-14px/m.test(wikiComposedIngredientNodeConnectorRule)
+      || !/width\s*:\s*2px/m.test(wikiComposedIngredientNodeConnectorRule)
+      || !/height\s*:\s*14px/m.test(wikiComposedIngredientNodeConnectorRule)
+      || /right\s*:/m.test(wikiComposedIngredientNodeConnectorRule)
+    ) {
+      violations.push(`${path}: crafting wiki-flow composed recipe outputs must use their result card as the material node connector`)
+    }
+
+    if (wikiExpandedIngredientConnectorRule && lastCssDeclarationValue(wikiExpandedIngredientConnectorRule, 'content') !== 'none') {
+      violations.push(`${path}: crafting wiki-flow expanded ingredient nodes must not draw standalone top stubs above item cards`)
+    }
+
+    if (
+      lastCssDeclarationValue(wikiFlowResultTopConnectorRule, 'content') === 'none'
+      || !/left\s*:\s*50%/m.test(wikiFlowResultTopConnectorRule)
+      || !/bottom\s*:\s*-14px/m.test(wikiFlowResultTopConnectorRule)
+      || !/width\s*:\s*2px/m.test(wikiFlowResultTopConnectorRule)
+      || !/height\s*:\s*14px/m.test(wikiFlowResultTopConnectorRule)
+    ) {
+      violations.push(`${path}: crafting wiki-flow result cards must draw a short down-connector toward stations or child material groups`)
+    }
+
+    for (const rule of readCssRules(content).filter((candidate) => (
+      candidate.selector.includes('.is-wiki-flow')
+      && /\.recipe-children[^\s,{]*::before/.test(candidate.selector)
+    ))) {
+      const finalContent = lastCssDeclarationValue(rule.declarations, 'content')
+      const drawsContainerCollector = finalContent !== 'none'
+        || /(?:^|\n)\s*(?:left|inset-inline-start)\s*:\s*(?:0|86px|14%|24%)/m.test(rule.declarations)
+        || /(?:^|\n)\s*(?:right|inset-inline-end)\s*:\s*(?:0|86px|14%|24%)/m.test(rule.declarations)
+        || /(?:^|\n)\s*(?:width|inline-size)\s*:\s*(?:100%|auto)/m.test(rule.declarations)
+
+      if (drawsContainerCollector) {
+        violations.push(`${path}: crafting wiki-flow recipe-children::before rules must stay disabled so higher-specificity selectors cannot reintroduce full-container collector lines: ${rule.selector}`)
+      }
+    }
+
+    for (const rule of wikiFlowConnectorBusRules) {
+      const finalContent = lastCssDeclarationValue(rule.declarations, 'content')
+      const isStationLocalConnector = rule.selector.includes('.recipe-station-row::before')
+        && finalContent !== 'none'
+        && /left\s*:\s*50%/m.test(rule.declarations)
+        && /top\s*:\s*-14px/m.test(rule.declarations)
+        && /width\s*:\s*2px/m.test(rule.declarations)
+        && /height\s*:\s*14px/m.test(rule.declarations)
+        && !/right\s*:/m.test(rule.declarations)
+      const isIngredientCollectorLine = rule.selector.includes('.recipe-children::before')
+        && finalContent === 'none'
+      const isIngredientLocalSegment = rule.selector.includes('.recipe-children.has-multiple-ingredients')
+        && rule.selector.includes('.recipe-ingredient-branch::before')
+        && finalContent !== 'none'
+        && /--recipe-collector-left/m.test(rule.declarations)
+        && /--recipe-collector-right/m.test(rule.declarations)
+        && /top\s*:\s*-15px/m.test(rule.declarations)
+        && /height\s*:\s*2px/m.test(rule.declarations)
+
+      if (finalContent !== 'none' && !isStationLocalConnector && !isIngredientCollectorLine && !isIngredientLocalSegment) {
+        violations.push(`${path}: crafting wiki-flow connector bus rule must stay disabled instead of drawing long lines: ${rule.selector}`)
+      }
     }
 
     if (/max-height\s*:\s*760px/m.test(recipeFullTreeStageRule) || /overflow\s*:\s*auto/m.test(recipeFullTreeStageRule)) {
@@ -2461,8 +2625,9 @@ for (const path of scanFiles) {
 
     for (const selector of [
       '.recipe-alternative-recipes',
+      '.recipe-alternative-tabs',
+      '.recipe-alternative-tab',
       '.recipe-alternative-option',
-      '.recipe-alternative-separator',
       '.recipe-alternative-expansion > .recipe-tree-node',
     ]) {
       if (!content.includes(selector)) {

@@ -26,6 +26,53 @@ for (const path of files) {
   }
 }
 
+const craftingPage = read('pages/crafting/index.vue')
+const recipeTreeNode = read('components/crafting/RecipeTreeNode.vue')
+
+for (const marker of [
+  'selectedRootKey',
+  'activeRoot',
+  'recipe-root-option-tabs',
+  'recipe-root-option-tab',
+  'visibleRecipeRoots',
+  'v-for="root in visibleRecipeRoots"',
+  ':aria-pressed="recipeRootKey(root, index) === selectedRootKey"',
+]) {
+  if (!craftingPage.includes(marker)) {
+    violations.push(`pages/crafting/index.vue: root-level alternative recipes must use selectable option tabs via marker ${marker}`)
+  }
+}
+
+if (/v-for="[^"]*activeRoots[^"]*"[\s\S]{0,500}<CraftingRecipeTreeNode/m.test(craftingPage)) {
+  violations.push('pages/crafting/index.vue: full recipe tree must render the selected root only instead of expanding every activeRoot')
+}
+
+for (const marker of [
+  'selectedAlternativeKey',
+  'activeAlternativeOption',
+  'visibleAlternativeOptions',
+  'v-for="entry in visibleAlternativeOptions"',
+  ':aria-pressed="recipeAlternativeKey(option, index) === selectedAlternativeKey"',
+  'recipe-composed-ingredient',
+  'recipe-leaf-ingredient',
+]) {
+  if (!recipeTreeNode.includes(marker)) {
+    violations.push(`components/crafting/RecipeTreeNode.vue: nested alternative recipes must render only the selected option via marker ${marker}`)
+  }
+}
+
+if (/v-for="\([^)]*option[^)]*index[^)]*\) in recipeAlternativeOptions"[\s\S]{0,500}<CraftingRecipeTreeNode/m.test(recipeTreeNode)) {
+  violations.push('components/crafting/RecipeTreeNode.vue: nested alternative recipes must not recursively render every recipeAlternativeOption')
+}
+
+if (/>[\s\n]*<a class="recipe-tree-node recipe-ingredient-node"/m.test(recipeTreeNode)) {
+  violations.push('components/crafting/RecipeTreeNode.vue: composed ingredient branches must not render a duplicate ingredient card after their child recipe output')
+}
+
+if (!/v-else[\s\S]{0,260}class="recipe-tree-node recipe-ingredient-node recipe-leaf-ingredient"/m.test(recipeTreeNode)) {
+  violations.push('components/crafting/RecipeTreeNode.vue: leaf ingredients must keep a direct ingredient card while composed ingredients use the child recipe output')
+}
+
 if (violations.length > 0) {
   console.error(`Crafting alternative summary contract failed:\n${violations.map((item) => `- ${item}`).join('\n')}`)
   process.exit(1)

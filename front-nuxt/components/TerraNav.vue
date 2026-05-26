@@ -130,12 +130,15 @@ onBeforeUnmount(closeMenu)
         <button
           class="nav-menu-text-trigger"
           type="button"
+          aria-label="打开资料菜单"
           aria-haspopup="true"
           :aria-expanded="activeMenu === 'resources'"
           :class="{ active: resourceLinks.some((link) => isActive(link.href)) || activeMenu === 'resources' }"
+          @click.stop="openMenu('resources')"
         >
           <span class="sprite-icon icon-codex mini" aria-hidden="true"></span>
-          资料 <span aria-hidden="true">▾</span>
+          <span class="nav-menu-label">资料</span>
+          <span class="nav-menu-caret" aria-hidden="true">▾</span>
         </button>
         <div class="nav-menu-hover-bridge" aria-hidden="true"></div>
         <div

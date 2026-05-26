@@ -39,9 +39,17 @@
   margin-bottom: 0;
 }
 
+.tp-detail-relation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+  align-items: stretch;
+  min-width: 0;
+}
+
 .tp-detail-relation-row {
   min-width: 0;
-  min-height: 62px;
+  min-height: 58px;
   gap: var(--tp-detail-row-gap);
 }
 
@@ -80,5 +88,10 @@
 
   .tp-detail-module {
     padding: var(--tp-detail-module-padding);
+  }
+
+  .tp-detail-relation-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 }

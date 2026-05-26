@@ -142,8 +142,9 @@ assertMarkers('pages/items/[id].vue', [
   '!detailClientReady.value || (detailPending.value && !detailItem.value)',
   'detailClientReady.value && !detailPending.value && !detailItem.value',
   ':src="itemImage"',
-  ':src="material.image"',
+  '<RecipeSummaryCard',
   ':src="source.image"',
+  ':fallback-icon="source.icon"',
 ])
 
 assertMarkers('pages/search-tool.vue', [

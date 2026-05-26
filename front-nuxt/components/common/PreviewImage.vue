@@ -3,6 +3,7 @@ const props = withDefaults(defineProps<{
   src?: string | null
   alt?: string
   fallback?: string | null
+  fallbackIcon?: string | null
   loading?: 'lazy' | 'eager'
   width?: number | string
   height?: number | string
@@ -19,6 +20,14 @@ const failed = ref(false)
 
 const normalizedSrc = computed(() => resolvePreviewImageUrl(props.src))
 const hasImage = computed(() => Boolean(normalizedSrc.value) && !failed.value)
+const fallbackIconClass = computed(() => {
+  const icon = String(props.fallbackIcon ?? '').trim()
+  if (!icon) return []
+
+  return icon
+    .split(/\s+/)
+    .filter((entry) => /^icon-[a-z0-9-]+$/i.test(entry))
+})
 const fallbackGlyph = computed(() => {
   const text = String(props.fallback || props.alt || 'TP').trim()
   return Array.from(text)[0] ?? '?'
@@ -148,7 +157,7 @@ onBeforeUnmount(() => {
   <span
     ref="rootElement"
     class="item-art tp-preview-image"
-    :class="{ 'is-fallback': !hasImage }"
+    :class="{ 'is-fallback': !hasImage, 'has-fallback-icon': !hasImage && fallbackIconClass.length > 0 }"
     :data-fallback="fallbackGlyph"
     :data-source-image="sourceMarker"
     :aria-hidden="decorative ? 'true' : undefined"
@@ -167,5 +176,10 @@ onBeforeUnmount(() => {
       @load="syncVisibleCenter"
       @error="markFailed"
     />
+    <span
+      v-else-if="fallbackIconClass.length"
+      :class="['sprite-icon', 'preview-fallback-icon', ...fallbackIconClass]"
+      aria-hidden="true"
+    ></span>
   </span>
 </template>

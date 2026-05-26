@@ -32,7 +32,11 @@ useSeoMeta({
 
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
 const displayText = (...values: unknown[]) => values.map((value) => String(value ?? '').trim()).find(Boolean) || ''
-const resourceImage = (value: { itemImage?: string | null }) => resolvePreviewImageUrl(value.itemImage || '')
+const biomeFallbackIcon = 'icon-biome'
+const biomeResourceFallbackIcon = 'icon-items'
+const resourceImage = (value: { itemImage?: string | null; item_image?: string | null; imageUrl?: string | null; image_url?: string | null; iconUrl?: string | null; icon_url?: string | null; image?: string | null; previewImage?: string | null; previewImageUrl?: string | null; preview_image?: string | null; preview_image_url?: string | null }) => (
+  resolvePreviewImageUrl(displayText(value.previewImage, value.previewImageUrl, value.preview_image, value.preview_image_url, value.itemImage, value.item_image, value.imageUrl, value.image_url, value.iconUrl, value.icon_url, value.image))
+)
 const resourceTitle = (resource: { resourceNameRaw?: string | null; itemName?: string | null; itemInternalName?: string | null }) => (
   displayText(resource.resourceNameRaw, resource.itemName, resource.itemInternalName, '未命名资源')
 )
@@ -112,6 +116,7 @@ onBeforeUnmount(clearBiomeDetailVisualLoadingTimer)
             :src="biomeTile?.image || ''"
             :alt="biomeTitle"
             :fallback="biomeTile?.fallback || firstGlyph(biomeTitle)"
+            :fallback-icon="biomeFallbackIcon"
             :source-image="biomeTile?.sourceImage || ''"
             width="96"
             height="96"
@@ -164,6 +169,7 @@ onBeforeUnmount(clearBiomeDetailVisualLoadingTimer)
               :src="resourceImage(resource)"
               :alt="resourceTitle(resource)"
               :fallback="firstGlyph(resourceTitle(resource))"
+              :fallback-icon="biomeResourceFallbackIcon"
               width="40"
               height="40"
             />

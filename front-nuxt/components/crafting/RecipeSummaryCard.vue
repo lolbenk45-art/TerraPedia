@@ -14,6 +14,8 @@ const recipeNodeChildren = (node: PublicItemRecipeTreeNode) => Array.isArray(nod
 const recipeNodeStations = (node: PublicItemRecipeTreeNode) => Array.isArray(node.stations) ? node.stations : []
 
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
+const recipeItemFallbackIcon = 'icon-items'
+const recipeStationFallbackIcon = 'icon-crafting'
 const displayText = (...values: unknown[]) => values.map((value) => String(value ?? '').trim()).find(Boolean) || ''
 const displayCount = (...values: unknown[]) => {
   const value = displayText(...values)
@@ -120,6 +122,7 @@ const recipeRootOptionLabel = (root: PublicItemRecipeTreeNode, index: number) =>
             :src="nodeImage(root)"
             :alt="nodeTitle(root)"
             :fallback="firstGlyph(nodeTitle(root))"
+            :fallback-icon="recipeItemFallbackIcon"
             width="64"
             height="64"
           />
@@ -137,6 +140,7 @@ const recipeRootOptionLabel = (root: PublicItemRecipeTreeNode, index: number) =>
               :src="recipeStationImage(station)"
               :alt="recipeStationTitle(station)"
               :fallback="firstGlyph(recipeStationTitle(station))"
+              :fallback-icon="recipeStationFallbackIcon"
               width="28"
               height="28"
             />
@@ -155,6 +159,7 @@ const recipeRootOptionLabel = (root: PublicItemRecipeTreeNode, index: number) =>
               :src="nodeImage(child)"
               :alt="nodeTitle(child)"
               :fallback="firstGlyph(nodeTitle(child))"
+              :fallback-icon="recipeItemFallbackIcon"
               width="36"
               height="36"
             />

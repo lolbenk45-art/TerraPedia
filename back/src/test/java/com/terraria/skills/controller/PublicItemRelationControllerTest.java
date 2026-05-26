@@ -29,12 +29,12 @@ class PublicItemRelationControllerTest {
     private static final ManagedImageUrlPolicy MANAGED_IMAGE_URL_POLICY = new ManagedImageUrlPolicy() {
         @Override
         public boolean isManagedImageUrl(String value) {
-            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/items/");
+            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/");
         }
 
         @Override
         public List<String> trustedManagedImageUrlPrefixes() {
-            return List.of("http://localhost:9000/terrapedia-images/items/");
+            return List.of("http://localhost:9000/terrapedia-images/");
         }
     };
 
@@ -121,6 +121,60 @@ class PublicItemRelationControllerTest {
             .andExpect(jsonPath("$.data[0].sourceProvider").doesNotExist())
             .andExpect(jsonPath("$.data[0].sourcePage").doesNotExist())
             .andExpect(jsonPath("$.data[0].sourceRevisionTimestamp").doesNotExist());
+
+        verify(itemSourceService).getSourcesByItemId(88L);
+    }
+
+    @Test
+    void shouldReturnOnlyManagedPublicSourceImages() throws Exception {
+        ItemSourceDTO managedNpcSource = new ItemSourceDTO();
+        managedNpcSource.setId(4L);
+        managedNpcSource.setItemId(88L);
+        managedNpcSource.setSourceType("shop");
+        managedNpcSource.setSourceRefType("npc");
+        managedNpcSource.setSourceRefName("Merchant");
+        managedNpcSource.setImageUrl("http://localhost:9000/terrapedia-images/npcs/merchant.png");
+        managedNpcSource.setSourceRefImageUrl("http://localhost:9000/terrapedia-images/npcs/merchant.png");
+        managedNpcSource.setNpcImageUrl("http://localhost:9000/terrapedia-images/npcs/merchant.png");
+
+        ItemSourceDTO managedItemSource = new ItemSourceDTO();
+        managedItemSource.setId(5L);
+        managedItemSource.setItemId(88L);
+        managedItemSource.setSourceType("craft");
+        managedItemSource.setSourceRefType("item");
+        managedItemSource.setSourceRefName("Wood");
+        managedItemSource.setImageUrl("http://localhost:9000/terrapedia-images/items/wood.png");
+        managedItemSource.setSourceRefImageUrl("http://localhost:9000/terrapedia-images/items/wood.png");
+        managedItemSource.setItemImageUrl("http://localhost:9000/terrapedia-images/items/wood.png");
+
+        ItemSourceDTO wikiSource = new ItemSourceDTO();
+        wikiSource.setId(6L);
+        wikiSource.setItemId(88L);
+        wikiSource.setSourceType("drop");
+        wikiSource.setSourceRefType("npc");
+        wikiSource.setSourceRefName("Zombie");
+        wikiSource.setImageUrl("https://terraria.wiki.gg/images/Zombie.png");
+        wikiSource.setSourceRefImageUrl("https://terraria.wiki.gg/images/Zombie.png");
+        wikiSource.setNpcImageUrl("https://terraria.wiki.gg/images/Zombie.png");
+
+        when(itemSourceService.getSourcesByItemId(88L)).thenReturn(List.of(managedNpcSource, managedItemSource, wikiSource));
+
+        mockMvc.perform(get("/public/items/88/sources"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.length()").value(3))
+            .andExpect(jsonPath("$.data[0].imageUrl").value("http://localhost:9000/terrapedia-images/npcs/merchant.png"))
+            .andExpect(jsonPath("$.data[0].sourceRefImageUrl").value("http://localhost:9000/terrapedia-images/npcs/merchant.png"))
+            .andExpect(jsonPath("$.data[0].npcImageUrl").value("http://localhost:9000/terrapedia-images/npcs/merchant.png"))
+            .andExpect(jsonPath("$.data[0].itemImageUrl").doesNotExist())
+            .andExpect(jsonPath("$.data[1].imageUrl").value("http://localhost:9000/terrapedia-images/items/wood.png"))
+            .andExpect(jsonPath("$.data[1].sourceRefImageUrl").value("http://localhost:9000/terrapedia-images/items/wood.png"))
+            .andExpect(jsonPath("$.data[1].itemImageUrl").value("http://localhost:9000/terrapedia-images/items/wood.png"))
+            .andExpect(jsonPath("$.data[1].npcImageUrl").doesNotExist())
+            .andExpect(jsonPath("$.data[2].imageUrl").doesNotExist())
+            .andExpect(jsonPath("$.data[2].sourceRefImageUrl").doesNotExist())
+            .andExpect(jsonPath("$.data[2].npcImageUrl").doesNotExist())
+            .andExpect(jsonPath("$.data[2].itemImageUrl").doesNotExist());
 
         verify(itemSourceService).getSourcesByItemId(88L);
     }

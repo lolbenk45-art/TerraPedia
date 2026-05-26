@@ -110,9 +110,17 @@ const entryTitle = (entry: PublicNpcLootEntry | PublicNpcShopEntry | PublicNpcBu
 
 const entryImage = (entry: PublicNpcLootEntry | PublicNpcShopEntry | PublicNpcBuffRelation) => resolvePreviewImageUrl(firstText(
   entry.imageUrl,
+  'image_url' in entry ? entry.image_url : undefined,
   'itemImage' in entry ? entry.itemImage : undefined,
+  'item_image' in entry ? entry.item_image : undefined,
   'buffImage' in entry ? entry.buffImage : undefined,
+  'buff_image' in entry ? entry.buff_image : undefined,
 ))
+const entryFallbackIcon = (entry: PublicNpcLootEntry | PublicNpcShopEntry | PublicNpcBuffRelation) => {
+  if ('buffId' in entry || 'buff_id' in entry || 'buffImage' in entry || 'buff_image' in entry) return 'icon-buff'
+  if ('priceText' in entry || 'price_text' in entry || 'buyPriceText' in entry || 'buy_price_text' in entry) return 'icon-npc'
+  return 'icon-items'
+}
 
 const quantityLabel = (entry: PublicNpcLootEntry) => {
   const text = safeNpcDisplayText(entry.quantityText)
@@ -286,7 +294,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
       <template v-else>
         <section class="npc-detail-hero">
           <div class="npc-detail-portrait">
-            <CommonPreviewImage :src="portraitImage" :alt="displayName" :fallback="portraitFallback" loading="eager" />
+            <CommonPreviewImage :src="portraitImage" :alt="displayName" :fallback="portraitFallback" fallback-icon="icon-npc" loading="eager" />
           </div>
           <div class="npc-detail-copy">
             <span class="eyebrow">NPC #{{ npc?.gameId ?? npc?.id }} · {{ secondaryName || '详情资料' }}</span>
@@ -318,10 +326,10 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
                 <h2>掉落物</h2>
                 <span class="tag moss">{{ trustedLoot.length + additionalLoot.length }} 条</span>
               </div>
-              <div v-if="trustedLoot.length" class="source-table dark-table">
+              <div v-if="trustedLoot.length" class="source-table dark-table tp-detail-relation-grid">
                 <div v-for="entry in trustedLootVisibleEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                   <span class="sprite-frame detail-relation-icon">
-                    <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
+                    <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
                   </span>
                   <div class="detail-relation-copy">
                     <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
@@ -333,10 +341,10 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
               </div>
               <details v-if="trustedLootRemainderEntries.length" class="detail-group-remainder">
                 <summary>展开其余 {{ trustedLootRemainderEntries.length }} 条</summary>
-                <div class="source-table dark-table">
+                <div class="source-table dark-table tp-detail-relation-grid">
                   <div v-for="entry in trustedLootRemainderEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                     <span class="sprite-frame detail-relation-icon">
-                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
+                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
                     </span>
                     <div class="detail-relation-copy">
                       <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
@@ -352,10 +360,10 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
                   <b>其他掉落记录</b>
                   <span>{{ additionalLoot.length }} 条 · 需结合来源记录查看</span>
                 </div>
-                <div class="source-table dark-table">
+                <div class="source-table dark-table tp-detail-relation-grid">
                   <div v-for="entry in additionalLoot.slice(0, 6)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                     <span class="sprite-frame detail-relation-icon">
-                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
+                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
                     </span>
                     <div class="detail-relation-copy">
                       <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
@@ -380,10 +388,10 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
                   <b>{{ group.title }}</b>
                   <span>{{ group.entries.length }} 项 · {{ group.meta }}</span>
                 </div>
-                <div class="source-table dark-table">
+                <div class="source-table dark-table tp-detail-relation-grid">
                   <div v-for="entry in group.entries.slice(0, 8)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                     <span class="sprite-frame detail-relation-icon">
-                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
+                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
                     </span>
                     <div class="detail-relation-copy">
                       <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
@@ -395,10 +403,10 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
                 </div>
                 <details v-if="group.entries.length > 8" class="detail-group-remainder">
                   <summary>展开其余 {{ group.entries.length - 8 }} 项</summary>
-                  <div class="source-table dark-table">
+                  <div class="source-table dark-table tp-detail-relation-grid">
                     <div v-for="entry in group.entries.slice(8)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                       <span class="sprite-frame detail-relation-icon">
-                        <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
+                        <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
                       </span>
                       <div class="detail-relation-copy">
                         <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
@@ -422,7 +430,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
             <div v-if="buffRelations.length" class="source-table dark-table">
               <div v-for="entry in buffRelations" :key="String(entry.id ?? entry.buffId ?? entry.buffInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                 <span class="sprite-frame detail-relation-icon">
-                  <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
+                  <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
                 </span>
                 <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [relationTypeLabel(entry.relationType), buffDurationLabel(entry), chanceLabel(entry), buffConditionLabel(entry)].filter(Boolean).join(' · ') || '状态效果资料' }}</span></div>
                 <strong class="detail-relation-meta">Buff</strong>
@@ -465,7 +473,8 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
 
 <style scoped>
 .detail-relation-row {
-  grid-template-columns: 52px minmax(0, 1fr) minmax(72px, auto);
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  padding: 10px;
 }
 
 .detail-relation-icon {
@@ -489,6 +498,17 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
 .detail-relation-copy span {
   display: block;
   line-height: 1.5;
+}
+
+.detail-relation-meta {
+  align-self: center;
+  border: 1px solid var(--index-line);
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .detail-relation-link,
@@ -556,7 +576,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
 
 @media (max-width: 720px) {
   .detail-relation-row {
-    grid-template-columns: 52px minmax(0, 1fr);
+    grid-template-columns: 44px minmax(0, 1fr);
   }
 
   .detail-subgroup-title {

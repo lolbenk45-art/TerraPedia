@@ -30,6 +30,8 @@ const isSameRecipeItem = (left: PublicItemRecipeTreeNode, right: PublicItemRecip
   return Boolean(leftInternalName && rightInternalName && leftInternalName === rightInternalName)
 }
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
+const recipeItemFallbackIcon = 'icon-items'
+const recipeStationFallbackIcon = 'icon-crafting'
 const displayText = (...values: unknown[]) => values.map((value) => String(value ?? '').trim()).find(Boolean) || ''
 const displayCount = (...values: unknown[]) => {
   const value = displayText(...values)
@@ -107,6 +109,16 @@ const recipeAlternativeOptions = computed(() => {
     : []
 })
 const hasAlternativeRecipeOptions = computed(() => recipeAlternativeOptions.value.length > 1)
+const selectedAlternativeKey = ref('')
+const recipeAlternativeKey = (option: PublicItemRecipeTreeNode, index: number) => displayText(option.recipeId, option.itemId, nodeTitle(option), index)
+const activeAlternativeOption = computed(() => recipeAlternativeOptions.value.find((option, index) => recipeAlternativeKey(option, index) === selectedAlternativeKey.value) ?? recipeAlternativeOptions.value[0] ?? null)
+const visibleAlternativeOptions = computed(() => {
+  const option = activeAlternativeOption.value
+  if (!option) return []
+
+  const index = recipeAlternativeOptions.value.findIndex((candidate, candidateIndex) => recipeAlternativeKey(candidate, candidateIndex) === selectedAlternativeKey.value)
+  return [{ option, index: index >= 0 ? index : 0 }]
+})
 const recipeOptionLabel = (option: PublicItemRecipeTreeNode, index: number) => {
   const summary = recipeDifferenceSummary(option)
   return summary ? `方案 ${index + 1} · ${summary}` : `方案 ${index + 1}`
@@ -134,6 +146,20 @@ const displayRecipeNodeStations = computed(() => (
   expandedRecipeNode.value ? recipeNodeStations(expandedRecipeNode.value) : recipeNodeStations(props.node)
 ))
 const isWikiFlow = computed(() => props.layout === 'wiki')
+
+watch(recipeAlternativeOptions, (options) => {
+  if (!options.length) {
+    selectedAlternativeKey.value = ''
+    return
+  }
+
+  if (!options.some((option, index) => recipeAlternativeKey(option, index) === selectedAlternativeKey.value)) {
+    const firstOption = options[0]
+    if (firstOption) {
+      selectedAlternativeKey.value = recipeAlternativeKey(firstOption, 0)
+    }
+  }
+}, { immediate: true })
 </script>
 
 <template>
@@ -147,15 +173,28 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
     }"
   >
     <div v-if="hasAlternativeRecipeOptions" class="recipe-alternative-recipes" aria-label="可选配方">
+      <div class="recipe-alternative-tabs" aria-label="可选配方方案">
+        <button
+          v-for="(option, index) in recipeAlternativeOptions"
+          :key="displayText(option.recipeId, option.itemId, nodeTitle(option), index)"
+          class="recipe-alternative-tab"
+          :class="{ active: recipeAlternativeKey(option, index) === selectedAlternativeKey }"
+          type="button"
+          :aria-pressed="recipeAlternativeKey(option, index) === selectedAlternativeKey"
+          @click="selectedAlternativeKey = recipeAlternativeKey(option, index)"
+        >
+          {{ recipeOptionLabel(option, index) }}
+        </button>
+      </div>
+
       <template
-        v-for="(option, index) in recipeAlternativeOptions"
-        :key="displayText(option.recipeId, option.itemId, nodeTitle(option), index)"
+        v-for="entry in visibleAlternativeOptions"
+        :key="displayText(entry.option.recipeId, entry.option.itemId, nodeTitle(entry.option), 'visible-option')"
       >
-        <span v-if="index > 0" class="recipe-alternative-separator">或</span>
-        <section class="recipe-alternative-option" :aria-label="recipeOptionLabel(option, index)">
-          <span class="recipe-alternative-label">{{ recipeOptionLabel(option, index) }}</span>
+        <section class="recipe-alternative-option" :aria-label="recipeOptionLabel(entry.option, entry.index)">
+          <span class="recipe-alternative-label">{{ recipeOptionLabel(entry.option, entry.index) }}</span>
           <CraftingRecipeTreeNode
-            :node="option"
+            :node="entry.option"
             layout="wiki"
             :max-depth="props.maxDepth"
             class="recipe-alternative-expansion"
@@ -164,11 +203,19 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
       </template>
     </div>
 
-    <div v-else-if="displayRecipeNodeChildren.length" class="recipe-children recipe-ingredient-row">
+    <div
+      v-else-if="displayRecipeNodeChildren.length"
+      class="recipe-children recipe-ingredient-row"
+      :class="{ 'has-multiple-ingredients': displayRecipeNodeChildren.length > 1 }"
+    >
       <div
         v-for="child in displayRecipeNodeChildren"
         :key="displayText(child.recipeId, child.itemId, nodeTitle(child), 'child')"
         class="recipe-ingredient-branch"
+        :class="{
+          'has-child-expansion': recipeNodeChildren(child).length || recipeNodeStations(child).length,
+          'recipe-composed-ingredient': recipeNodeChildren(child).length || recipeNodeStations(child).length,
+        }"
       >
         <CraftingRecipeTreeNode
           v-if="recipeNodeChildren(child).length || recipeNodeStations(child).length"
@@ -178,11 +225,12 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
           class="recipe-child-expansion"
         />
 
-        <a class="recipe-tree-node recipe-ingredient-node" :href="nodeHref(child)">
+        <a v-else class="recipe-tree-node recipe-ingredient-node recipe-leaf-ingredient" :href="nodeHref(child)">
           <CommonPreviewImage
             :src="nodeImage(child)"
             :alt="nodeTitle(child)"
             :fallback="firstGlyph(nodeTitle(child))"
+            :fallback-icon="recipeItemFallbackIcon"
             width="58"
             height="58"
           />
@@ -202,6 +250,7 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
           :src="recipeStationImage(station)"
           :alt="recipeStationTitle(station)"
           :fallback="firstGlyph(recipeStationTitle(station))"
+          :fallback-icon="recipeStationFallbackIcon"
           width="28"
           height="28"
         />
@@ -215,6 +264,7 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
         :src="nodeImage(node)"
         :alt="nodeTitle(node)"
         :fallback="firstGlyph(nodeTitle(node))"
+        :fallback-icon="recipeItemFallbackIcon"
         width="58"
         height="58"
       />
@@ -237,6 +287,7 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
         :src="nodeImage(node)"
         :alt="nodeTitle(node)"
         :fallback="firstGlyph(nodeTitle(node))"
+        :fallback-icon="recipeItemFallbackIcon"
         width="58"
         height="58"
       />
@@ -254,6 +305,7 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
           :src="recipeStationImage(station)"
           :alt="recipeStationTitle(station)"
           :fallback="firstGlyph(recipeStationTitle(station))"
+          :fallback-icon="recipeStationFallbackIcon"
           width="28"
           height="28"
         />

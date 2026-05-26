@@ -19,6 +19,10 @@ public class PublicItemSourceDTO implements Serializable {
     private Long sourceRefId;
     private String sourceRefName;
     private String sourceRefNameZh;
+    private String imageUrl;
+    private String sourceRefImageUrl;
+    private String itemImageUrl;
+    private String npcImageUrl;
     private Long biomeId;
     private Integer quantityMin;
     private Integer quantityMax;

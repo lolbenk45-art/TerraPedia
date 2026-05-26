@@ -11,6 +11,8 @@ const normalizeText = (value: unknown) => String(value ?? '').trim()
 const normalizeSearchText = (value: string) => value.toLocaleLowerCase('zh-CN')
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
 
+const firstImageCandidate = (...values: unknown[]) => values.map(normalizeText).find(Boolean) ?? ''
+
 const toNumberOrNull = (value: unknown) => {
   const numberValue = Number(value)
   return Number.isFinite(numberValue) ? numberValue : null
@@ -69,12 +71,25 @@ export const normalizePublicArmorSet = (raw: PublicArmorSetListItem, index = 0):
   const englishName = normalizeText(raw.nameEn)
   const textKey = normalizeText(raw.textKey)
   const sourceKey = normalizeText(raw.sourceKey)
-  const sourceImage = [
+  const sourceImage = firstImageCandidate(
+    raw.previewImage,
+    raw.previewImageUrl,
+    raw.preview_image,
+    raw.preview_image_url,
+    raw.iconUrl,
+    raw.icon_url,
+    raw.image,
+    raw.imageUrl,
+    raw.image_url,
     ...asStringArray(raw.maleImages),
+    ...asStringArray(raw.male_images),
     ...asStringArray(raw.femaleImages),
+    ...asStringArray(raw.female_images),
     ...asStringArray(raw.specialImages),
+    ...asStringArray(raw.special_images),
     ...asStringArray(raw.fallbackImages),
-  ][0] ?? ''
+    ...asStringArray(raw.fallback_images),
+  )
   const effects = asEffects(raw.effects)
   const parsedEffects = effects.filter((effect) => normalizeText(effect.parseStatus) === 'parsed')
   const benefitZh = normalizeText(raw.benefitZh)

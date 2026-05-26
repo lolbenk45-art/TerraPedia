@@ -88,6 +88,10 @@ public class PublicItemRelationController {
         BeanUtils.copyProperties(source, target);
         target.setConditions(publicText(itemId, source, "conditions", target.getConditions()));
         target.setNotes(publicText(itemId, source, "notes", target.getNotes()));
+        target.setImageUrl(publicSourceImage(itemId, source, "imageUrl", source.getImageUrl()));
+        target.setSourceRefImageUrl(publicSourceImage(itemId, source, "sourceRefImageUrl", source.getSourceRefImageUrl()));
+        target.setItemImageUrl(publicSourceImage(itemId, source, "itemImageUrl", source.getItemImageUrl()));
+        target.setNpcImageUrl(publicSourceImage(itemId, source, "npcImageUrl", source.getNpcImageUrl()));
         return target;
     }
 
@@ -119,6 +123,15 @@ public class PublicItemRelationController {
             return null;
         }
         return trimmed;
+    }
+
+    private String publicSourceImage(Long itemId, ItemSourceDTO source, String fieldName, String value) {
+        String imageUrl = managedImageUrl(value);
+        if (imageUrl == null && hasText(value)) {
+            log.warn("public item source dropped non-managed image itemId={} sourceId={} sourceType={} field={}",
+                itemId, source.getId(), source.getSourceType(), fieldName);
+        }
+        return imageUrl;
     }
 
     private static boolean hasText(String value) {
