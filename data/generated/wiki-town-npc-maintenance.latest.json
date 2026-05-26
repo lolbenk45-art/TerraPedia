@@ -1,15 +1,16 @@
 {
   "entity": "wiki_town_npc_maintenance",
-  "generatedAt": "2026-05-24T00:49:33.950860Z",
+  "generatedAt": "2026-05-26T09:51:42.148514Z",
   "sourceMode": "wiki_zh_page_html",
   "sourceOrigin": "https://terraria.wiki.gg/zh",
-  "sourceSeedPath": "/home/lolben/.config/superpowers/worktrees/TerraPedia/fix-domain-a-grade-source-evidence-2026-05-24/data/generated/npc-standardized-map.json",
+  "sourceSeedPath": "/home/lolben/TerraPedia/data/generated/npc-standardized-map.json",
   "totalTownNpcs": 39,
   "summary": {
     "recordCount": 39,
     "scrapedCount": 39,
     "errorCount": 0,
     "shopItemCount": 631,
+    "livingPreferenceCount": 191,
     "hardmodeSuggestions": 9,
     "prehardmodeSuggestions": 30
   },
@@ -248,6 +249,57 @@
         }
       ],
       "shopItemCount": 35,
+      "livingPreferences": [
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "森林",
+          "targetNameZh": null,
+          "sourceText": "喜欢 森林"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "高尔夫球手",
+          "targetNameZh": null,
+          "sourceText": "喜欢 高尔夫球手"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "护士",
+          "targetNameZh": null,
+          "sourceText": "喜欢 护士"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "沙漠",
+          "targetNameZh": null,
+          "sourceText": "反感 沙漠"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "税收官",
+          "targetNameZh": null,
+          "sourceText": "反感 税收官"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "渔夫",
+          "targetNameZh": null,
+          "sourceText": "讨厌 渔夫"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -266,11 +318,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Merchant.png?b4d9c3",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Merchant.png?8c6551",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Merchant_%28portrait%29.png/70px-Merchant_%28portrait%29.png?db6144"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/f907031f736b405d936c075c509e9f63.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/78c4d87e578c4a9da903bb1e5d0a0ee7.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/146b2b3d926b47118996874fed0fc85b.png"
       },
-      "fetchedAt": "2026-05-24T00:47:19.395764Z",
+      "fetchedAt": "2026-05-26T09:49:37.788989Z",
       "error": null
     },
     {
@@ -299,6 +351,64 @@
       "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
       "shopItems": [],
       "shopItemCount": 0,
+      "livingPreferences": [
+        {
+          "targetType": "npc",
+          "preference": "love",
+          "targetName": "军火商",
+          "targetNameZh": null,
+          "sourceText": "喜爱 军火商"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "神圣之地",
+          "targetNameZh": null,
+          "sourceText": "喜欢 神圣之地"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "巫师",
+          "targetNameZh": null,
+          "sourceText": "喜欢 巫师"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "雪原生物群系",
+          "targetNameZh": null,
+          "sourceText": "反感 雪原生物群系"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "派对女孩",
+          "targetNameZh": null,
+          "sourceText": "反感 派对女孩"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "树妖",
+          "targetNameZh": null,
+          "sourceText": "反感 树妖"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "动物学家",
+          "targetNameZh": null,
+          "sourceText": "讨厌 动物学家"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -315,11 +425,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Nurse.png?e2b17c",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Nurse.png?ce1038",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Nurse_%28portrait%29.png/70px-Nurse_%28portrait%29.png?503528"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/4baad5ae37a64281a0d55b53f3332a17.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/4691d82c19f74e78818dc37975b32a27.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/c6b78e0019244c9485f419b1084092ad.png"
       },
-      "fetchedAt": "2026-05-24T00:47:23.011373Z",
+      "fetchedAt": "2026-05-26T09:49:40.748833Z",
       "error": null
     },
     {
@@ -466,6 +576,57 @@
         }
       ],
       "shopItemCount": 20,
+      "livingPreferences": [
+        {
+          "targetType": "npc",
+          "preference": "love",
+          "targetName": "护士",
+          "targetNameZh": null,
+          "sourceText": "喜爱 护士"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "沙漠",
+          "targetNameZh": null,
+          "sourceText": "喜欢 沙漠"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "蒸汽朋克人",
+          "targetNameZh": null,
+          "sourceText": "喜欢 蒸汽朋克人"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "雪原生物群系",
+          "targetNameZh": null,
+          "sourceText": "反感 雪原生物群系"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "高尔夫球手",
+          "targetNameZh": null,
+          "sourceText": "反感 高尔夫球手"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "爆破专家",
+          "targetNameZh": null,
+          "sourceText": "讨厌 爆破专家"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -482,11 +643,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Arms_Dealer.png?c280c9",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Arms_Dealer.png?96c3d5",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Arms_Dealer_%28portrait%29.png/70px-Arms_Dealer_%28portrait%29.png?97e389"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/aafb5c117ce44a8190cf1f312200009a.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/6027e8729e744be7825f60705133eb84.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/09aa5a76f0474fa7987bb5c6f15ef022.png"
       },
-      "fetchedAt": "2026-05-24T00:47:26.252451Z",
+      "fetchedAt": "2026-05-26T09:49:44.109874Z",
       "error": null
     },
     {
@@ -831,6 +992,57 @@
         }
       ],
       "shopItemCount": 53,
+      "livingPreferences": [
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "丛林",
+          "targetNameZh": null,
+          "sourceText": "喜欢 丛林"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "巫医",
+          "targetNameZh": null,
+          "sourceText": "喜欢 巫医"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "松露人",
+          "targetNameZh": null,
+          "sourceText": "喜欢 松露人"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "沙漠",
+          "targetNameZh": null,
+          "sourceText": "反感 沙漠"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "渔夫",
+          "targetNameZh": null,
+          "sourceText": "反感 渔夫"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "高尔夫球手",
+          "targetNameZh": null,
+          "sourceText": "讨厌 高尔夫球手"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -848,11 +1060,11 @@
           "增益描述",
           "持续时间"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Dryad.png?de9350",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Dryad.png?21d3e9",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Dryad_%28portrait%29.png/70px-Dryad_%28portrait%29.png?6057d1"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/62be29c06bc045a2983fbe0934145cff.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/1e6bf79a0f6f4fc08891ec0f90559fdc.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/5c70f7ce40b84452a540b10c0f8d6d9c.png"
       },
-      "fetchedAt": "2026-05-24T00:47:28.941182Z",
+      "fetchedAt": "2026-05-26T09:49:47.109771Z",
       "error": null
     },
     {
@@ -871,6 +1083,57 @@
       "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
       "shopItems": [],
       "shopItemCount": 0,
+      "livingPreferences": [
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "森林",
+          "targetNameZh": null,
+          "sourceText": "喜欢 森林"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "服装商",
+          "targetNameZh": null,
+          "sourceText": "喜欢 服装商"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "动物学家",
+          "targetNameZh": null,
+          "sourceText": "喜欢 动物学家"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "海洋",
+          "targetNameZh": null,
+          "sourceText": "反感 海洋"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "蒸汽朋克人",
+          "targetNameZh": null,
+          "sourceText": "反感 蒸汽朋克人"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "油漆工",
+          "targetNameZh": null,
+          "sourceText": "讨厌 油漆工"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -889,11 +1152,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Guide.png?eebef6",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Guide.png?53b805",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Guide_%28portrait%29.png/70px-Guide_%28portrait%29.png?a8de1b"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/fb581256e552499c8db060be4a34219b.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/5b23a87e47d644cfb5ba0b7171b2d31d.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a70d05e4b5e24bae8063a490827c6dd9.png"
       },
-      "fetchedAt": "2026-05-24T00:47:32.757906Z",
+      "fetchedAt": "2026-05-26T09:49:50.289347Z",
       "error": null
     },
     {
@@ -912,6 +1175,7 @@
       "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
       "shopItems": [],
       "shopItemCount": 0,
+      "livingPreferences": [],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -930,9 +1194,9 @@
         ],
         "spriteImage": null,
         "mapIconImage": null,
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Old_Man_%28portrait%29.png/70px-Old_Man_%28portrait%29.png?bfc1c2"
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/3708de4e80f645c29909f8ce9417a8a7.png"
       },
-      "fetchedAt": "2026-05-24T00:47:35.479305Z",
+      "fetchedAt": "2026-05-26T09:49:53.012192Z",
       "error": null
     },
     {
@@ -1058,6 +1322,71 @@
         }
       ],
       "shopItemCount": 16,
+      "livingPreferences": [
+        {
+          "targetType": "npc",
+          "preference": "love",
+          "targetName": "酒馆老板",
+          "targetNameZh": null,
+          "sourceText": "喜爱 酒馆老板"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "地下",
+          "targetNameZh": null,
+          "sourceText": "喜欢 地下"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "洞穴",
+          "targetNameZh": null,
+          "sourceText": "喜欢 洞穴"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "地狱",
+          "targetNameZh": null,
+          "sourceText": "喜欢 地狱"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "机械师",
+          "targetNameZh": null,
+          "sourceText": "喜欢 机械师"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "海洋",
+          "targetNameZh": null,
+          "sourceText": "反感 海洋"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "哥布林工匠",
+          "targetNameZh": null,
+          "sourceText": "反感 哥布林工匠"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "军火商",
+          "targetNameZh": null,
+          "sourceText": "反感 军火商"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -1074,11 +1403,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Demolitionist.png?26c051",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Demolitionist.png?cd29a3",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Demolitionist_%28portrait%29.png/70px-Demolitionist_%28portrait%29.png?94bd7a"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/6922a39af05643c8a62acee108be0e75.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/9cf8f41bd2c3453c92d7da3cfc7932a2.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/8b8011e63fde4af7b0c0af836b25c52e.png"
       },
-      "fetchedAt": "2026-05-24T00:47:39.496070Z",
+      "fetchedAt": "2026-05-26T09:49:56.715440Z",
       "error": null
     },
     {
@@ -1597,6 +1926,71 @@
         }
       ],
       "shopItemCount": 82,
+      "livingPreferences": [
+        {
+          "targetType": "npc",
+          "preference": "love",
+          "targetName": "松露人",
+          "targetNameZh": null,
+          "sourceText": "喜爱 松露人"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "地下",
+          "targetNameZh": null,
+          "sourceText": "喜欢 地下"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "洞穴",
+          "targetNameZh": null,
+          "sourceText": "喜欢 洞穴"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "地狱",
+          "targetNameZh": null,
+          "sourceText": "喜欢 地狱"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "税收官",
+          "targetNameZh": null,
+          "sourceText": "喜欢 税收官"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "神圣之地",
+          "targetNameZh": null,
+          "sourceText": "反感 神圣之地"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "护士",
+          "targetNameZh": null,
+          "sourceText": "反感 护士"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "机械师",
+          "targetNameZh": null,
+          "sourceText": "讨厌 机械师"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -1613,11 +2007,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Clothier.png?5150e3",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Clothier.png?951cfa",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Clothier_%28portrait%29.png/70px-Clothier_%28portrait%29.png?453834"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/9f411e10fbe64897a01c9cd65d849ed5.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/64299944e516455a8e611cd003108200.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/4c65c945a4eb4027b346781e6c9e1719.png"
       },
-      "fetchedAt": "2026-05-24T00:47:43.054019Z",
+      "fetchedAt": "2026-05-26T09:49:59.678323Z",
       "error": null
     },
     {
@@ -1685,6 +2079,71 @@
         }
       ],
       "shopItemCount": 8,
+      "livingPreferences": [
+        {
+          "targetType": "npc",
+          "preference": "love",
+          "targetName": "机械师",
+          "targetNameZh": null,
+          "sourceText": "喜爱 机械师"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "地下",
+          "targetNameZh": null,
+          "sourceText": "喜欢 地下"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "洞穴",
+          "targetNameZh": null,
+          "sourceText": "喜欢 洞穴"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "地狱",
+          "targetNameZh": null,
+          "sourceText": "喜欢 地狱"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "染料商",
+          "targetNameZh": null,
+          "sourceText": "喜欢 染料商"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "丛林",
+          "targetNameZh": null,
+          "sourceText": "反感 丛林"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "服装商",
+          "targetNameZh": null,
+          "sourceText": "反感 服装商"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "发型师",
+          "targetNameZh": null,
+          "sourceText": "讨厌 发型师"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC",
@@ -1703,11 +2162,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Goblin_Tinkerer.png?f2d93b",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Goblin_Tinkerer.png?37a1bb",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Goblin_Tinkerer_%28portrait%29.png/70px-Goblin_Tinkerer_%28portrait%29.png?7a3f17"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/208274d1eec64a63866302d4287c8cf2.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/87ac9293402d4684ad535c3eba7a9d65.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/771ff26b021a4fc1bae3102747d2e812.png"
       },
-      "fetchedAt": "2026-05-24T00:47:45.815078Z",
+      "fetchedAt": "2026-05-26T09:50:02.668600Z",
       "error": null
     },
     {
@@ -1799,6 +2258,57 @@
         }
       ],
       "shopItemCount": 12,
+      "livingPreferences": [
+        {
+          "targetType": "npc",
+          "preference": "love",
+          "targetName": "高尔夫球手",
+          "targetNameZh": null,
+          "sourceText": "喜爱 高尔夫球手"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "神圣之地",
+          "targetNameZh": null,
+          "sourceText": "喜欢 神圣之地"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "商人",
+          "targetNameZh": null,
+          "sourceText": "喜欢 商人"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "海洋",
+          "targetNameZh": null,
+          "sourceText": "反感 海洋"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "巫医",
+          "targetNameZh": null,
+          "sourceText": "反感 巫医"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "机器侠",
+          "targetNameZh": null,
+          "sourceText": "讨厌 机器侠"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -1815,11 +2325,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Wizard.png?584906",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Wizard.png?191ab5",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Wizard_%28portrait%29.png/70px-Wizard_%28portrait%29.png?a89f30"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/1ed75eeed5d74d55ae9d3d4e8460579d.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/193607236cec44c6abc2b6c04a05f515.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/98d9596d18f8409d810846df5d23f358.png"
       },
-      "fetchedAt": "2026-05-24T00:47:49.395057Z",
+      "fetchedAt": "2026-05-26T09:50:06.261902Z",
       "error": null
     },
     {
@@ -2031,6 +2541,71 @@
         }
       ],
       "shopItemCount": 32,
+      "livingPreferences": [
+        {
+          "targetType": "npc",
+          "preference": "love",
+          "targetName": "哥布林工匠",
+          "targetNameZh": null,
+          "sourceText": "喜爱 哥布林工匠"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "雪原生物群系",
+          "targetNameZh": null,
+          "sourceText": "喜欢 雪原生物群系"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "机器侠",
+          "targetNameZh": null,
+          "sourceText": "喜欢 机器侠"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "地下",
+          "targetNameZh": null,
+          "sourceText": "反感 地下"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "洞穴",
+          "targetNameZh": null,
+          "sourceText": "反感 洞穴"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "地狱",
+          "targetNameZh": null,
+          "sourceText": "反感 地狱"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "军火商",
+          "targetNameZh": null,
+          "sourceText": "反感 军火商"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "服装商",
+          "targetNameZh": null,
+          "sourceText": "讨厌 服装商"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -2048,11 +2623,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Mechanic.png?a0843e",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Mechanic.png?19d5ba",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Mechanic_%28portrait%29.png/70px-Mechanic_%28portrait%29.png?688f54"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/9563c98b8273433b91eb9ce655855cae.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/7def3b19f70a4a8d81fbe7452c61b383.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/68eacc9d2ff748cd92e1ab520c17149b.png"
       },
-      "fetchedAt": "2026-05-24T00:47:52.750118Z",
+      "fetchedAt": "2026-05-26T09:50:09.178090Z",
       "error": null
     },
     {
@@ -2192,6 +2767,36 @@
         }
       ],
       "shopItemCount": 20,
+      "livingPreferences": [
+        {
+          "targetType": "biome",
+          "preference": "love",
+          "targetName": "雪原生物群系",
+          "targetNameZh": null,
+          "sourceText": "喜爱 雪原生物群系"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "biome",
+          "preference": "hate",
+          "targetName": "沙漠",
+          "targetNameZh": null,
+          "sourceText": "讨厌 沙漠"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "税收官",
+          "targetNameZh": null,
+          "sourceText": "讨厌 税收官"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -2208,11 +2813,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Santa_Claus.png?f439c6",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Santa_Claus.png?f3082a",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Santa_Claus_%28portrait%29.png/70px-Santa_Claus_%28portrait%29.png?399a20"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/13e50eb4b77a4e04a32b72ab4d727e3d.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/ccd67c527b9c47ec8a393d8ad44b3892.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/2495e70a99de4aa0a8c080e0f92b1383.png"
       },
-      "fetchedAt": "2026-05-24T00:47:55.879189Z",
+      "fetchedAt": "2026-05-26T09:50:11.997428Z",
       "error": null
     },
     {
@@ -2284,6 +2889,50 @@
         }
       ],
       "shopItemCount": 8,
+      "livingPreferences": [
+        {
+          "targetType": "npc",
+          "preference": "love",
+          "targetName": "向导",
+          "targetNameZh": null,
+          "sourceText": "喜爱 向导"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "发光蘑菇生物群系",
+          "targetNameZh": null,
+          "sourceText": "喜欢 发光蘑菇生物群系"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "树妖",
+          "targetNameZh": null,
+          "sourceText": "喜欢 树妖"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "服装商",
+          "targetNameZh": null,
+          "sourceText": "反感 服装商"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "巫医",
+          "targetNameZh": null,
+          "sourceText": "讨厌 巫医"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -2301,11 +2950,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Truffle.png?97c95f",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Truffle.png?8a42da",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Truffle_%28portrait%29.png/70px-Truffle_%28portrait%29.png?f259a2"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/bc8225059ede4f99b6ca3f4d49440232.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/c12b4775700446c3a914842179ddcf7b.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/04f101bde80d420ea3d0e55df0319a1c.png"
       },
-      "fetchedAt": "2026-05-24T00:47:59.237270Z",
+      "fetchedAt": "2026-05-26T09:50:15.194445Z",
       "error": null
     },
     {
@@ -2529,6 +3178,64 @@
         }
       ],
       "shopItemCount": 34,
+      "livingPreferences": [
+        {
+          "targetType": "npc",
+          "preference": "love",
+          "targetName": "机器侠",
+          "targetNameZh": null,
+          "sourceText": "喜爱 机器侠"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "沙漠",
+          "targetNameZh": null,
+          "sourceText": "喜欢 沙漠"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "油漆工",
+          "targetNameZh": null,
+          "sourceText": "喜欢 油漆工"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "丛林",
+          "targetNameZh": null,
+          "sourceText": "反感 丛林"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "派对女孩",
+          "targetNameZh": null,
+          "sourceText": "反感 派对女孩"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "巫师",
+          "targetNameZh": null,
+          "sourceText": "反感 巫师"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "树妖",
+          "targetNameZh": null,
+          "sourceText": "反感 树妖"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -2545,11 +3252,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Steampunker.png?62f1dc",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Steampunker.png?3240bc",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Steampunker_%28portrait%29.png/70px-Steampunker_%28portrait%29.png?d31c76"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/5062a127d59e4ff8b995303bdd325fe5.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/4669f9504caf4138a2b625c2c7660bad.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a21280f7c56a4e7ab0ad70a795ac8822.png"
       },
-      "fetchedAt": "2026-05-24T00:48:02.576731Z",
+      "fetchedAt": "2026-05-26T09:50:18.019145Z",
       "error": null
     },
     {
@@ -2645,6 +3352,57 @@
         }
       ],
       "shopItemCount": 11,
+      "livingPreferences": [
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "沙漠",
+          "targetNameZh": null,
+          "sourceText": "喜欢 沙漠"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "军火商",
+          "targetNameZh": null,
+          "sourceText": "喜欢 军火商"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "油漆工",
+          "targetNameZh": null,
+          "sourceText": "喜欢 油漆工"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "森林",
+          "targetNameZh": null,
+          "sourceText": "反感 森林"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "蒸汽朋克人",
+          "targetNameZh": null,
+          "sourceText": "反感 蒸汽朋克人"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "海盗",
+          "targetNameZh": null,
+          "sourceText": "讨厌 海盗"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -2661,11 +3419,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Dye_Trader.png?68dd4b",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Dye_Trader.png?376186",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Dye_Trader_%28portrait%29.png/70px-Dye_Trader_%28portrait%29.png?210531"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/42aaec7b93f844d8a92cb9f428fba8f5.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/c05dd3b3277e4c76a8a6b6f701b28026.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a05b604ebdcb41bca2376af5099ef729.png"
       },
-      "fetchedAt": "2026-05-24T00:48:05.472544Z",
+      "fetchedAt": "2026-05-26T09:50:25.057868Z",
       "error": null
     },
     {
@@ -2938,6 +3696,78 @@
         }
       ],
       "shopItemCount": 41,
+      "livingPreferences": [
+        {
+          "targetType": "npc",
+          "preference": "love",
+          "targetName": "巫师",
+          "targetNameZh": null,
+          "sourceText": "喜爱 巫师"
+        },
+        {
+          "targetType": "npc",
+          "preference": "love",
+          "targetName": "动物学家",
+          "targetNameZh": null,
+          "sourceText": "喜爱 动物学家"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "神圣之地",
+          "targetNameZh": null,
+          "sourceText": "喜欢 神圣之地"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "发型师",
+          "targetNameZh": null,
+          "sourceText": "喜欢 发型师"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "地下",
+          "targetNameZh": null,
+          "sourceText": "反感 地下"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "洞穴",
+          "targetNameZh": null,
+          "sourceText": "反感 洞穴"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "地狱",
+          "targetNameZh": null,
+          "sourceText": "反感 地狱"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "商人",
+          "targetNameZh": null,
+          "sourceText": "反感 商人"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "税收官",
+          "targetNameZh": null,
+          "sourceText": "讨厌 税收官"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -2954,11 +3784,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Party_Girl.png?30a9af",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Party_Girl.png?d29563",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Party_Girl_%28portrait%29.png/70px-Party_Girl_%28portrait%29.png?6439ef"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/dba8260afb5f41899852cabe4c3cc663.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/fec41fe5e089489fac45cfaccbf80167.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/6ffc786c4fa74b3eab7f089d7aaeb710.png"
       },
-      "fetchedAt": "2026-05-24T00:48:08.136445Z",
+      "fetchedAt": "2026-05-26T09:50:28.361178Z",
       "error": null
     },
     {
@@ -3098,6 +3928,64 @@
         }
       ],
       "shopItemCount": 20,
+      "livingPreferences": [
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "雪原生物群系",
+          "targetNameZh": null,
+          "sourceText": "喜欢 雪原生物群系"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "发型师",
+          "targetNameZh": null,
+          "sourceText": "喜欢 发型师"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "海盗",
+          "targetNameZh": null,
+          "sourceText": "喜欢 海盗"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "蒸汽朋克人",
+          "targetNameZh": null,
+          "sourceText": "喜欢 蒸汽朋克人"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "丛林",
+          "targetNameZh": null,
+          "sourceText": "反感 丛林"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "动物学家",
+          "targetNameZh": null,
+          "sourceText": "反感 动物学家"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "巫师",
+          "targetNameZh": null,
+          "sourceText": "讨厌 巫师"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -3114,11 +4002,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Cyborg.png?7a79f4",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Cyborg.png?5ef237",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Cyborg_%28portrait%29.png/70px-Cyborg_%28portrait%29.png?cb39e5"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/7057a040b7ab4f51b0a48c7444e834b4.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d4a953612576496ca4a56983f5782dc7.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/b9f58204f38444568aeec4a59dfe4570.png"
       },
-      "fetchedAt": "2026-05-24T00:48:11.900471Z",
+      "fetchedAt": "2026-05-26T09:50:31.752902Z",
       "error": null
     },
     {
@@ -3289,6 +4177,57 @@
         }
       ],
       "shopItemCount": 24,
+      "livingPreferences": [
+        {
+          "targetType": "npc",
+          "preference": "love",
+          "targetName": "树妖",
+          "targetNameZh": null,
+          "sourceText": "喜爱 树妖"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "丛林",
+          "targetNameZh": null,
+          "sourceText": "喜欢 丛林"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "派对女孩",
+          "targetNameZh": null,
+          "sourceText": "喜欢 派对女孩"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "森林",
+          "targetNameZh": null,
+          "sourceText": "反感 森林"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "机器侠",
+          "targetNameZh": null,
+          "sourceText": "反感 机器侠"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "松露人",
+          "targetNameZh": null,
+          "sourceText": "反感 松露人"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -3305,11 +4244,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Painter.png?da5141",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Painter.png?a2c441",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Painter_%28portrait%29.png/70px-Painter_%28portrait%29.png?334ae3"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/e9c521e1294d4f9ba608d2b4627a17bd.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/bfae06d6e9ce4f36b9feb1502d4e92b8.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/8aa4721a8f08423489a9d283f7d70b5a.png"
       },
-      "fetchedAt": "2026-05-24T00:48:14.388641Z",
+      "fetchedAt": "2026-05-26T09:50:34.901204Z",
       "error": null
     },
     {
@@ -3486,6 +4425,57 @@
         }
       ],
       "shopItemCount": 25,
+      "livingPreferences": [
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "丛林",
+          "targetNameZh": null,
+          "sourceText": "喜欢 丛林"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "树妖",
+          "targetNameZh": null,
+          "sourceText": "喜欢 树妖"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "向导",
+          "targetNameZh": null,
+          "sourceText": "喜欢 向导"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "神圣之地",
+          "targetNameZh": null,
+          "sourceText": "反感 神圣之地"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "护士",
+          "targetNameZh": null,
+          "sourceText": "反感 护士"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "松露人",
+          "targetNameZh": null,
+          "sourceText": "讨厌 松露人"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -3502,11 +4492,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Witch_Doctor.png?d79fd5",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Witch_Doctor.png?5663ad",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Witch_Doctor_%28portrait%29.png/70px-Witch_Doctor_%28portrait%29.png?c3154e"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/84b582d2836a48d7a7ace99a17e40dd1.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/cf857556d2fb43dbacbd9dbb523ab332.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/aa0a318b5cf84a3392e108bd21d9bcc3.png"
       },
-      "fetchedAt": "2026-05-24T00:48:21.679428Z",
+      "fetchedAt": "2026-05-26T09:50:38.702654Z",
       "error": null
     },
     {
@@ -3593,6 +4583,71 @@
         }
       ],
       "shopItemCount": 10,
+      "livingPreferences": [
+        {
+          "targetType": "npc",
+          "preference": "love",
+          "targetName": "渔夫",
+          "targetNameZh": null,
+          "sourceText": "喜爱 渔夫"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "海洋",
+          "targetNameZh": null,
+          "sourceText": "喜欢 海洋"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "酒馆老板",
+          "targetNameZh": null,
+          "sourceText": "喜欢 酒馆老板"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "地下",
+          "targetNameZh": null,
+          "sourceText": "反感 地下"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "洞穴",
+          "targetNameZh": null,
+          "sourceText": "反感 洞穴"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "地狱",
+          "targetNameZh": null,
+          "sourceText": "反感 地狱"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "发型师",
+          "targetNameZh": null,
+          "sourceText": "反感 发型师"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "向导",
+          "targetNameZh": null,
+          "sourceText": "讨厌 向导"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -3610,11 +4665,11 @@
           "被击杀",
           "被击杀 （微光形态）"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Pirate.png?20e5d3",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Pirate.png?dc1c70",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Pirate_%28portrait%29.png/70px-Pirate_%28portrait%29.png?3bdd5a"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/530f871b46874eac956150f4619f32a1.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/f079eba1b22f4f3bbe194b32697a4f60.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/402a2652fdb94b0d911a9101a80443d5.png"
       },
-      "fetchedAt": "2026-05-24T00:48:24.112399Z",
+      "fetchedAt": "2026-05-26T09:50:42.010825Z",
       "error": null
     },
     {
@@ -3731,6 +4786,57 @@
         }
       ],
       "shopItemCount": 15,
+      "livingPreferences": [
+        {
+          "targetType": "npc",
+          "preference": "love",
+          "targetName": "染料商",
+          "targetNameZh": null,
+          "sourceText": "喜爱 染料商"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "海洋",
+          "targetNameZh": null,
+          "sourceText": "喜欢 海洋"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "海盗",
+          "targetNameZh": null,
+          "sourceText": "喜欢 海盗"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "雪原生物群系",
+          "targetNameZh": null,
+          "sourceText": "反感 雪原生物群系"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "酒馆老板",
+          "targetNameZh": null,
+          "sourceText": "反感 酒馆老板"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "哥布林工匠",
+          "targetNameZh": null,
+          "sourceText": "讨厌 哥布林工匠"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -3748,11 +4854,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Stylist.png?fd2703",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Stylist.png?aba9a3",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Stylist_%28portrait%29.png/70px-Stylist_%28portrait%29.png?aed31e"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/ff8601a5438f4822b89e4613882ac84b.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/31ef8aa108ec4330a49f587e059ebd7c.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/dcac594ffa1c4b45b5bc29ff184f84c8.png"
       },
-      "fetchedAt": "2026-05-24T00:48:27.731342Z",
+      "fetchedAt": "2026-05-26T09:50:44.762432Z",
       "error": null
     },
     {
@@ -3982,6 +5088,7 @@
         }
       ],
       "shopItemCount": 35,
+      "livingPreferences": [],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -3996,11 +5103,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Traveling_Merchant.png?f09d0a",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Traveling_Merchant.png?faebe8",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Traveling_Merchant_%28portrait%29.png/70px-Traveling_Merchant_%28portrait%29.png?f24c9d"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/f65f55b0c392480b8f89b1b23a2b65a4.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/01454092d23e46bd80c2c0a2641536fc.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/7eb8d4afda074f8db8669210ffcc8a9e.png"
       },
-      "fetchedAt": "2026-05-24T00:48:30.875517Z",
+      "fetchedAt": "2026-05-26T09:50:48.463685Z",
       "error": null
     },
     {
@@ -4023,6 +5130,57 @@
       "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
       "shopItems": [],
       "shopItemCount": 0,
+      "livingPreferences": [
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "海洋",
+          "targetNameZh": null,
+          "sourceText": "喜欢 海洋"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "派对女孩",
+          "targetNameZh": null,
+          "sourceText": "喜欢 派对女孩"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "爆破专家",
+          "targetNameZh": null,
+          "sourceText": "喜欢 爆破专家"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "税收官",
+          "targetNameZh": null,
+          "sourceText": "喜欢 税收官"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "沙漠",
+          "targetNameZh": null,
+          "sourceText": "反感 沙漠"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "酒馆老板",
+          "targetNameZh": null,
+          "sourceText": "讨厌 酒馆老板"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -4040,11 +5198,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Angler.png?ce8e8c",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Angler.png?1f1ea1",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Angler_%28portrait%29.png/70px-Angler_%28portrait%29.png?40cf6d"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/5e8e00822461453b8518b43fd2c184b7.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/b07bdab5534445dea14f2302dfe19d8a.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/9cbba744135a4720bbcbd5422b716292.png"
       },
-      "fetchedAt": "2026-05-24T00:48:34.152154Z",
+      "fetchedAt": "2026-05-26T09:50:51.735649Z",
       "error": null
     },
     {
@@ -4063,6 +5221,64 @@
       "suggestedGamePeriodReason": "条件或说明中命中困难模式、机械 Boss、世纪之花等后期关键词。",
       "shopItems": [],
       "shopItemCount": 0,
+      "livingPreferences": [
+        {
+          "targetType": "npc",
+          "preference": "love",
+          "targetName": "商人",
+          "targetNameZh": null,
+          "sourceText": "喜爱 商人"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "雪原生物群系",
+          "targetNameZh": null,
+          "sourceText": "喜欢 雪原生物群系"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "派对女孩",
+          "targetNameZh": null,
+          "sourceText": "喜欢 派对女孩"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "神圣之地",
+          "targetNameZh": null,
+          "sourceText": "反感 神圣之地"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "爆破专家",
+          "targetNameZh": null,
+          "sourceText": "反感 爆破专家"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "机械师",
+          "targetNameZh": null,
+          "sourceText": "反感 机械师"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "圣诞老人",
+          "targetNameZh": null,
+          "sourceText": "讨厌 圣诞老人"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -4080,11 +5296,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Tax_Collector.png?906fec",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Tax_Collector.png?e3116c",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Tax_Collector_%28portrait%29.png/70px-Tax_Collector_%28portrait%29.png?58b567"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/c6d1e0222aa045229a7dfbb39a6e7f0d.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/986288acabe74607930c2645d4f4bae1.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/cac441c825084ddea5d2ef3f2aae6fe9.png"
       },
-      "fetchedAt": "2026-05-24T00:48:37.419742Z",
+      "fetchedAt": "2026-05-26T09:50:54.604591Z",
       "error": null
     },
     {
@@ -4212,6 +5428,57 @@
         }
       ],
       "shopItemCount": 18,
+      "livingPreferences": [
+        {
+          "targetType": "npc",
+          "preference": "love",
+          "targetName": "爆破专家",
+          "targetNameZh": null,
+          "sourceText": "喜爱 爆破专家"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "神圣之地",
+          "targetNameZh": null,
+          "sourceText": "喜欢 神圣之地"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "哥布林工匠",
+          "targetNameZh": null,
+          "sourceText": "喜欢 哥布林工匠"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "雪原生物群系",
+          "targetNameZh": null,
+          "sourceText": "反感 雪原生物群系"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "向导",
+          "targetNameZh": null,
+          "sourceText": "反感 向导"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "染料商",
+          "targetNameZh": null,
+          "sourceText": "讨厌 染料商"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -4228,11 +5495,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Tavernkeep.png?685c06",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Tavernkeep.png?c33f1d",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Tavernkeep_%28portrait%29.png/70px-Tavernkeep_%28portrait%29.png?2d1761"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/57f9c79c6b514373a8e2dbb50e2b2b71.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/6d9f6a6ecd6a4e638df9eb8f49d8c027.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/76ec6ddb5fef4bbbbca4e2a5ff49a230.png"
       },
-      "fetchedAt": "2026-05-24T00:48:40.883369Z",
+      "fetchedAt": "2026-05-26T09:50:57.771884Z",
       "error": null
     },
     {
@@ -4510,6 +5777,78 @@
         }
       ],
       "shopItemCount": 43,
+      "livingPreferences": [
+        {
+          "targetType": "npc",
+          "preference": "love",
+          "targetName": "渔夫",
+          "targetNameZh": null,
+          "sourceText": "喜爱 渔夫"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "森林",
+          "targetNameZh": null,
+          "sourceText": "喜欢 森林"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "油漆工",
+          "targetNameZh": null,
+          "sourceText": "喜欢 油漆工"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "动物学家",
+          "targetNameZh": null,
+          "sourceText": "喜欢 动物学家"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "地下",
+          "targetNameZh": null,
+          "sourceText": "反感 地下"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "洞穴",
+          "targetNameZh": null,
+          "sourceText": "反感 洞穴"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "地狱",
+          "targetNameZh": null,
+          "sourceText": "反感 地狱"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "海盗",
+          "targetNameZh": null,
+          "sourceText": "反感 海盗"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "商人",
+          "targetNameZh": null,
+          "sourceText": "讨厌 商人"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -4526,11 +5865,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Golfer.png?3be58a",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Golfer.png?c47064",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Golfer_%28portrait%29.png/70px-Golfer_%28portrait%29.png?26b263"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/040abf9fa04649988ff3f7a6530683cd.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/291ea6d3f94645d2a0fda321addca28b.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/fcc0ae7bb5ba4c0392326e14f9fde5c4.png"
       },
-      "fetchedAt": "2026-05-24T00:48:43.625617Z",
+      "fetchedAt": "2026-05-26T09:51:00.710548Z",
       "error": null
     },
     {
@@ -4785,6 +6124,57 @@
         }
       ],
       "shopItemCount": 38,
+      "livingPreferences": [
+        {
+          "targetType": "npc",
+          "preference": "love",
+          "targetName": "巫医",
+          "targetNameZh": null,
+          "sourceText": "喜爱 巫医"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "森林",
+          "targetNameZh": null,
+          "sourceText": "喜欢 森林"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "公主",
+          "targetNameZh": null,
+          "sourceText": "喜欢 公主"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "高尔夫球手",
+          "targetNameZh": null,
+          "sourceText": "喜欢 高尔夫球手"
+        },
+        {
+          "targetType": "biome",
+          "preference": "like",
+          "targetName": "沙漠",
+          "targetNameZh": null,
+          "sourceText": "反感 沙漠"
+        },
+        {
+          "targetType": "npc",
+          "preference": "like",
+          "targetName": "渔夫",
+          "targetNameZh": null,
+          "sourceText": "反感 渔夫"
+        },
+        {
+          "targetType": "npc",
+          "preference": "hate",
+          "targetName": "军火商",
+          "targetNameZh": null,
+          "sourceText": "讨厌 军火商"
+        }
+      ],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -4801,11 +6191,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Zoologist.png?4f185b",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Zoologist.png?d236e4",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Zoologist_%28portrait%29.png/70px-Zoologist_%28portrait%29.png?b8d165"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a69ff4f25bbf4da192c6d1ee860a5233.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/f99afe501efc4f598ab67a3e961c7627.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/26afbab596f1467a8bb485571e939643.png"
       },
-      "fetchedAt": "2026-05-24T00:48:46.641162Z",
+      "fetchedAt": "2026-05-26T09:51:03.932879Z",
       "error": null
     },
     {
@@ -4824,6 +6214,7 @@
       "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
       "shopItems": [],
       "shopItemCount": 0,
+      "livingPreferences": [],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -4838,11 +6229,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Town_Cat.gif?1fde52",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/85b7319cff7c4d6a848e53ba324b8426.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-24T00:48:50.246449Z",
+      "fetchedAt": "2026-05-26T09:51:07.100600Z",
       "error": null
     },
     {
@@ -4861,6 +6252,7 @@
       "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
       "shopItems": [],
       "shopItemCount": 0,
+      "livingPreferences": [],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -4875,11 +6267,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Town_Dog.gif?9507cc",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/91489daafb0e40efa5052bc24bf09b03.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-24T00:48:52.887887Z",
+      "fetchedAt": "2026-05-26T09:51:10.506680Z",
       "error": null
     },
     {
@@ -4898,6 +6290,7 @@
       "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
       "shopItems": [],
       "shopItemCount": 0,
+      "livingPreferences": [],
       "wikiDetails": {
         "types": [
           "制作材料"
@@ -4918,11 +6311,11 @@
           "击退 抗性",
           "敌怪旗"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Bunny.gif?e3efe5",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/83bc1fc54ed14df68f769ddae801b7bd.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-24T00:49:00.771310Z",
+      "fetchedAt": "2026-05-26T09:51:13.479846Z",
       "error": null
     },
     {
@@ -5135,6 +6528,7 @@
         }
       ],
       "shopItemCount": 31,
+      "livingPreferences": [],
       "wikiDetails": {
         "types": [
           "NPC"
@@ -5151,11 +6545,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Princess.png?552d12",
-        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Princess.png?408e31",
-        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Princess_%28portrait%29.png/70px-Princess_%28portrait%29.png?5efe1f"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/79fbe3ce74d04229a6617e2dce17d7d8.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/cb98f4868ab34829b364f6790e59c826.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a2d6c45dc37c42c1a62dd7db751fd233.png"
       },
-      "fetchedAt": "2026-05-24T00:49:03.857867Z",
+      "fetchedAt": "2026-05-26T09:51:16.482630Z",
       "error": null
     },
     {
@@ -5174,6 +6568,7 @@
       "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
       "shopItems": [],
       "shopItemCount": 0,
+      "livingPreferences": [],
       "wikiDetails": {
         "types": [
           "NPC",
@@ -5189,11 +6584,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d9e2c29ce93848fb934622d5f584fced.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-24T00:49:10.782923Z",
+      "fetchedAt": "2026-05-26T09:51:19.987862Z",
       "error": null
     },
     {
@@ -5212,6 +6607,7 @@
       "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
       "shopItems": [],
       "shopItemCount": 0,
+      "livingPreferences": [],
       "wikiDetails": {
         "types": [
           "NPC",
@@ -5227,11 +6623,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d9e2c29ce93848fb934622d5f584fced.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-24T00:49:13.769447Z",
+      "fetchedAt": "2026-05-26T09:51:22.830856Z",
       "error": null
     },
     {
@@ -5250,6 +6646,7 @@
       "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
       "shopItems": [],
       "shopItemCount": 0,
+      "livingPreferences": [],
       "wikiDetails": {
         "types": [
           "NPC",
@@ -5265,11 +6662,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d9e2c29ce93848fb934622d5f584fced.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-24T00:49:16.751388Z",
+      "fetchedAt": "2026-05-26T09:51:26.481542Z",
       "error": null
     },
     {
@@ -5288,6 +6685,7 @@
       "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
       "shopItems": [],
       "shopItemCount": 0,
+      "livingPreferences": [],
       "wikiDetails": {
         "types": [
           "NPC",
@@ -5303,11 +6701,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d9e2c29ce93848fb934622d5f584fced.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-24T00:49:20.333746Z",
+      "fetchedAt": "2026-05-26T09:51:29.897063Z",
       "error": null
     },
     {
@@ -5326,6 +6724,7 @@
       "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
       "shopItems": [],
       "shopItemCount": 0,
+      "livingPreferences": [],
       "wikiDetails": {
         "types": [
           "NPC",
@@ -5341,11 +6740,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d9e2c29ce93848fb934622d5f584fced.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-24T00:49:23.520573Z",
+      "fetchedAt": "2026-05-26T09:51:32.608830Z",
       "error": null
     },
     {
@@ -5364,6 +6763,7 @@
       "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
       "shopItems": [],
       "shopItemCount": 0,
+      "livingPreferences": [],
       "wikiDetails": {
         "types": [
           "NPC",
@@ -5379,11 +6779,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d9e2c29ce93848fb934622d5f584fced.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-24T00:49:27.530773Z",
+      "fetchedAt": "2026-05-26T09:51:36.190436Z",
       "error": null
     },
     {
@@ -5402,6 +6802,7 @@
       "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
       "shopItems": [],
       "shopItemCount": 0,
+      "livingPreferences": [],
       "wikiDetails": {
         "types": [
           "NPC",
@@ -5417,11 +6818,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d9e2c29ce93848fb934622d5f584fced.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-24T00:49:30.633669Z",
+      "fetchedAt": "2026-05-26T09:51:39.294986Z",
       "error": null
     },
     {
@@ -5440,6 +6841,7 @@
       "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
       "shopItems": [],
       "shopItemCount": 0,
+      "livingPreferences": [],
       "wikiDetails": {
         "types": [
           "NPC",
@@ -5455,11 +6857,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d9e2c29ce93848fb934622d5f584fced.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-24T00:49:33.950523Z",
+      "fetchedAt": "2026-05-26T09:51:42.148079Z",
       "error": null
     }
   ]
