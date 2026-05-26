@@ -168,8 +168,19 @@ export type PublicItemSource = {
   type?: string | null
   image?: string | null
   imageUrl?: string | null
+  image_url?: string | null
+  previewImageUrl?: string | null
   previewImage?: string | null
+  preview_image?: string | null
+  preview_image_url?: string | null
   iconUrl?: string | null
+  icon_url?: string | null
+  sourceRefImageUrl?: string | null
+  source_ref_image_url?: string | null
+  npcImageUrl?: string | null
+  npc_image_url?: string | null
+  itemImageUrl?: string | null
+  item_image_url?: string | null
 }
 
 export type PublicItemRecipeTreeStation = {
@@ -338,10 +349,23 @@ export type PublicArmorSetListItem = {
   primaryPart?: string | null
   setCount?: number | string | null
   uniqueItemCount?: number | string | null
+  previewImage?: string | null
+  previewImageUrl?: string | null
+  preview_image?: string | null
+  preview_image_url?: string | null
+  iconUrl?: string | null
+  icon_url?: string | null
+  image?: string | null
+  imageUrl?: string | null
+  image_url?: string | null
   maleImages?: string[] | null
+  male_images?: string[] | null
   femaleImages?: string[] | null
+  female_images?: string[] | null
   specialImages?: string[] | null
+  special_images?: string[] | null
   fallbackImages?: string[] | null
+  fallback_images?: string[] | null
   effects?: EquipmentEffectAttribute[] | null
 }
 
@@ -650,7 +674,15 @@ export type PublicBuffListItem = {
   internalName?: string | null
   name?: string | null
   nameZh?: string | null
+  previewImage?: string | null
+  previewImageUrl?: string | null
+  preview_image?: string | null
+  preview_image_url?: string | null
+  iconUrl?: string | null
+  icon_url?: string | null
+  image?: string | null
   imageUrl?: string | null
+  image_url?: string | null
   buffType?: string | null
   tooltipZh?: string | null
   sourceItemCount?: number | string | null
@@ -663,7 +695,15 @@ export type PublicBuffFactSummary = {
   internalName?: string | null
   name?: string | null
   nameZh?: string | null
+  previewImage?: string | null
+  previewImageUrl?: string | null
+  preview_image?: string | null
+  preview_image_url?: string | null
+  iconUrl?: string | null
+  icon_url?: string | null
+  image?: string | null
   imageUrl?: string | null
+  image_url?: string | null
   relationType?: string | null
   durationTicks?: number | string | null
   chanceText?: string | null
@@ -737,7 +777,15 @@ export type PublicProjectileListItem = {
   internalName?: string | null
   name?: string | null
   nameZh?: string | null
+  previewImage?: string | null
+  previewImageUrl?: string | null
+  preview_image?: string | null
+  preview_image_url?: string | null
+  iconUrl?: string | null
+  icon_url?: string | null
+  image?: string | null
   imageUrl?: string | null
+  image_url?: string | null
   aiStyle?: number | string | null
   damage?: number | string | null
   knockBack?: number | string | null
@@ -931,6 +979,16 @@ export type PublicBiomeResource = {
   itemName?: string | null
   itemInternalName?: string | null
   itemImage?: string | null
+  item_image?: string | null
+  previewImage?: string | null
+  previewImageUrl?: string | null
+  preview_image?: string | null
+  preview_image_url?: string | null
+  iconUrl?: string | null
+  icon_url?: string | null
+  image?: string | null
+  imageUrl?: string | null
+  image_url?: string | null
 }
 
 export type PublicBiomeRelation = {
@@ -963,7 +1021,15 @@ export type PublicBiomeListItem = {
   wikiSortOrder?: number | string | null
   wikiSectionAnchor?: string | null
   description?: string | null
+  previewImage?: string | null
+  previewImageUrl?: string | null
+  preview_image?: string | null
+  preview_image_url?: string | null
   iconUrl?: string | null
+  icon_url?: string | null
+  image?: string | null
+  imageUrl?: string | null
+  image_url?: string | null
   sourceProvider?: string | null
   sourcePage?: string | null
   sourceRevisionTimestamp?: string | null

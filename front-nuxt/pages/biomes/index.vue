@@ -265,6 +265,7 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
                 :src="biome.image"
                 :alt="biome.displayName"
                 :fallback="biome.fallback"
+                fallback-icon="icon-biome"
                 :source-image="biome.sourceImage"
                 decorative
                 width="360"
@@ -275,6 +276,7 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
                 :src="biome.image"
                 :alt="biome.displayName"
                 :fallback="biome.fallback"
+                fallback-icon="icon-biome"
                 :source-image="biome.sourceImage"
                 width="300"
                 height="132"
@@ -303,6 +305,7 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
                 :src="biome.image"
                 :alt="biome.displayName"
                 :fallback="biome.fallback"
+                fallback-icon="icon-biome"
                 :source-image="biome.sourceImage"
                 decorative
                 width="220"
@@ -313,6 +316,7 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
                 :src="biome.image"
                 :alt="biome.displayName"
                 :fallback="biome.fallback"
+                fallback-icon="icon-biome"
                 :source-image="biome.sourceImage"
                 width="160"
                 height="96"

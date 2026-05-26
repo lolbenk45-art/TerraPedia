@@ -18,6 +18,7 @@ const firstText = (...values: unknown[]) => {
 
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
 const firstImageUrl = (...values: unknown[]) => resolvePreviewImageUrl(firstText(...values))
+const buffFallbackIcon = 'icon-buff'
 
 const buffDetail = computed(() => buffDetailResult.value?.detail ?? null)
 const buffItem = computed(() => buffDetailResult.value?.item ?? null)
@@ -55,7 +56,17 @@ const factMeta = (fact: PublicBuffFactSummary) => firstText(
   '关联资料',
 )
 
-const factImage = (fact: PublicBuffFactSummary) => firstImageUrl(fact.imageUrl)
+const factImage = (fact: PublicBuffFactSummary) => firstImageUrl(
+  fact.previewImage,
+  fact.previewImageUrl,
+  fact.preview_image,
+  fact.preview_image_url,
+  fact.iconUrl,
+  fact.icon_url,
+  fact.image,
+  fact.imageUrl,
+  fact.image_url,
+)
 
 const relationItems = (items: PublicBuffFactSummary[]) => items.slice(0, 8).map((fact, index) => ({
   id: firstText(fact.id, fact.sourceId, fact.internalName, index),
@@ -63,6 +74,7 @@ const relationItems = (items: PublicBuffFactSummary[]) => items.slice(0, 8).map(
   meta: factMeta(fact),
   image: factImage(fact),
   fallback: firstGlyph(factName(fact, index)),
+  icon: buffFallbackIcon,
 }))
 
 const buffRelationSections = computed(() => [
@@ -123,7 +135,7 @@ onMounted(() => {
 
       <section v-else-if="buffNotFound" class="buff-detail-hero support-panel">
         <div class="buff-icon-stage">
-          <CommonPreviewImage src="" alt="效果缺失" fallback="?" />
+          <CommonPreviewImage src="" alt="效果缺失" fallback="?" :fallback-icon="buffFallbackIcon" />
         </div>
         <div>
           <span class="eyebrow">Buff #{{ buffId || '未知' }}</span>
@@ -143,6 +155,7 @@ onMounted(() => {
             :src="buffImage"
             :alt="buffName"
             :fallback="buffFallback"
+            :fallback-icon="buffFallbackIcon"
             loading="eager"
           />
         </div>
@@ -188,6 +201,7 @@ onMounted(() => {
               :src="item.image"
               :alt="item.name"
               :fallback="item.fallback"
+              :fallback-icon="item.icon"
               width="42"
               height="42"
             />

@@ -1082,6 +1082,15 @@
   display: grid;
 }
 
+.catalog-screen .item-art[data-fallback].is-fallback.has-fallback-icon::before {
+  display: none;
+}
+
+.catalog-screen .item-art[data-fallback] .preview-fallback-icon {
+  width: var(--tp-preview-fallback-icon-size, 62%);
+  height: var(--tp-preview-fallback-icon-size, 62%);
+}
+
 .preview-icon .item-art[data-fallback]::before {
   font-size: 26px;
 }

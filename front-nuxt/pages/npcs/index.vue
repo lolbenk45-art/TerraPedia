@@ -508,7 +508,7 @@ watch(() => route.query, hydrateNpcStateFromRoute)
               @mouseenter="setFocusedNpc(npc)"
             >
               <i>
-                <CommonPreviewImage :src="npc.image" :alt="npc.displayName" :fallback="npc.fallback" />
+                <CommonPreviewImage :src="npc.image" :alt="npc.displayName" :fallback="npc.fallback" fallback-icon="icon-npc" />
               </i>
               <div><b>{{ npc.displayName }}</b><span>{{ [npcKindLabel(npc), npc.categoryName, npcRelationCountLabel(npc)].filter(Boolean).join(' · ') }}</span></div>
               <em>详情</em>
@@ -534,6 +534,7 @@ watch(() => route.query, hydrateNpcStateFromRoute)
             :src="selectedNpc?.image"
             :alt="selectedNpc?.displayName || 'NPC'"
             :fallback="selectedNpc?.fallback || 'N'"
+            fallback-icon="icon-npc"
             loading="eager"
           />
         </div>

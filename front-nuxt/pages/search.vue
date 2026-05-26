@@ -245,7 +245,7 @@ useSeoMeta({
               <span class="eyebrow">{{ item.categoryGroup || item.category }}</span>
               <div class="result-title-line">
                 <i>
-                  <CommonPreviewImage :src="item.image" :alt="item.displayName" :fallback="item.fallback" />
+                  <CommonPreviewImage :src="item.image" :alt="item.displayName" :fallback="item.fallback" fallback-icon="icon-items" />
                 </i>
                 <div>
                   <h3>{{ item.displayName }}</h3>

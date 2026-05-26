@@ -1439,6 +1439,17 @@ h4,
   display: grid;
 }
 
+.item-art.tp-preview-image[data-fallback].is-fallback.has-fallback-icon::before {
+  display: none;
+}
+
+.item-art.tp-preview-image .preview-fallback-icon {
+  width: var(--tp-preview-fallback-icon-size, 62%);
+  height: var(--tp-preview-fallback-icon-size, 62%);
+  opacity: 0.84;
+  filter: saturate(0.92) brightness(0.95);
+}
+
 .item-art:empty::before {
   content: "TP";
   position: absolute;
@@ -3686,6 +3697,9 @@ img[data-preview-fallback] {
 }
 .detail-screen .item-art[data-fallback].is-fallback::before {
   display: grid;
+}
+.detail-screen .item-art[data-fallback].is-fallback.has-fallback-icon::before {
+  display: none;
 }
 .detail-main h1,
 .detail-main h2 { margin: 10px 0 0; font-size: 42px; }

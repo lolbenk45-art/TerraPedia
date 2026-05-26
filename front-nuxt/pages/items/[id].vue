@@ -185,6 +185,13 @@ const sourceGroupMeta = {
   world: { title: '环境与探索', meta: '群系、宝箱、钓鱼或世界来源' },
   other: { title: '其他来源', meta: '补充来源记录' },
 } as const
+const sourceFallbackIcon = (key: keyof typeof sourceGroupMeta) => ({
+  drop: 'icon-boss',
+  shop: 'icon-npc',
+  craft: 'icon-crafting',
+  world: 'icon-biome',
+  other: 'icon-codex',
+}[key])
 
 const sourceQuantityLabel = (source: PublicItemSource) => {
   const explicit = safeItemDisplayText(source.quantityText)
@@ -214,8 +221,25 @@ const sourceEntries = computed(() => rawBundle.value.sources.map((source: Public
   detail: safeItemDisplayText(source.conditions, source.condition, source.description, source.summary, '来源信息整理中'),
   note: safeItemDisplayText(source.notes, sourceBiomeLabel(source)),
   value: [sourceQuantityLabel(source), sourceChanceLabel(source)].filter(Boolean).join(' · '),
-  image: firstImageUrl(source.previewImage, source.imageUrl, source.iconUrl, source.image),
+  image: firstImageUrl(
+    source.previewImage,
+    source.previewImageUrl,
+    source.preview_image,
+    source.preview_image_url,
+    source.imageUrl,
+    source.image_url,
+    source.iconUrl,
+    source.icon_url,
+    source.sourceRefImageUrl,
+    source.source_ref_image_url,
+    source.npcImageUrl,
+    source.npc_image_url,
+    source.itemImageUrl,
+    source.item_image_url,
+    source.image,
+  ),
   fallback: Array.from(safeItemDisplayText(source.sourceRefNameZh, source.sourceRefName, source.name, source.displayName, source.sourceName) || '源')[0] ?? '源',
+  icon: sourceFallbackIcon(sourceGroupKey(source)),
 })))
 
 const sourceEntryGroups = computed(() => {
@@ -370,6 +394,7 @@ onMounted(() => {
             :src="itemImage"
             :alt="itemName"
             :fallback="itemFallbackGlyph"
+            fallback-icon="icon-items"
             loading="eager"
           />
         </div>
@@ -442,6 +467,7 @@ onMounted(() => {
                         :src="source.image"
                         :alt="source.name"
                         :fallback="source.fallback"
+                        :fallback-icon="source.icon"
                       />
                     </span>
                     <div class="detail-relation-copy">
@@ -469,6 +495,7 @@ onMounted(() => {
                     :src="image.url"
                     :alt="image.label"
                     :fallback="itemFallbackGlyph"
+                    fallback-icon="icon-items"
                   />
                 </span>
                 <figcaption>

@@ -110,9 +110,17 @@ const entryTitle = (entry: PublicNpcLootEntry | PublicNpcShopEntry | PublicNpcBu
 
 const entryImage = (entry: PublicNpcLootEntry | PublicNpcShopEntry | PublicNpcBuffRelation) => resolvePreviewImageUrl(firstText(
   entry.imageUrl,
+  'image_url' in entry ? entry.image_url : undefined,
   'itemImage' in entry ? entry.itemImage : undefined,
+  'item_image' in entry ? entry.item_image : undefined,
   'buffImage' in entry ? entry.buffImage : undefined,
+  'buff_image' in entry ? entry.buff_image : undefined,
 ))
+const entryFallbackIcon = (entry: PublicNpcLootEntry | PublicNpcShopEntry | PublicNpcBuffRelation) => {
+  if ('buffId' in entry || 'buff_id' in entry || 'buffImage' in entry || 'buff_image' in entry) return 'icon-buff'
+  if ('priceText' in entry || 'price_text' in entry || 'buyPriceText' in entry || 'buy_price_text' in entry) return 'icon-npc'
+  return 'icon-items'
+}
 
 const quantityLabel = (entry: PublicNpcLootEntry) => {
   const text = safeNpcDisplayText(entry.quantityText)
@@ -286,7 +294,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? 'Ë
       <template v-else>
         <section class="npc-detail-hero">
           <div class="npc-detail-portrait">
-            <CommonPreviewImage :src="portraitImage" :alt="displayName" :fallback="portraitFallback" loading="eager" />
+            <CommonPreviewImage :src="portraitImage" :alt="displayName" :fallback="portraitFallback" fallback-icon="icon-npc" loading="eager" />
           </div>
           <div class="npc-detail-copy">
             <span class="eyebrow">NPC #{{ npc?.gameId ?? npc?.id }} ¬∑ {{ secondaryName || 'ËØ¶ÊÉÖËµÑÊñô' }}</span>
@@ -321,7 +329,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? 'Ë
               <div v-if="trustedLoot.length" class="source-table dark-table tp-detail-relation-grid">
                 <div v-for="entry in trustedLootVisibleEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                   <span class="sprite-frame detail-relation-icon">
-                    <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
+                    <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
                   </span>
                   <div class="detail-relation-copy">
                     <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
@@ -336,7 +344,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? 'Ë
                 <div class="source-table dark-table tp-detail-relation-grid">
                   <div v-for="entry in trustedLootRemainderEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                     <span class="sprite-frame detail-relation-icon">
-                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
+                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
                     </span>
                     <div class="detail-relation-copy">
                       <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
@@ -355,7 +363,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? 'Ë
                 <div class="source-table dark-table tp-detail-relation-grid">
                   <div v-for="entry in additionalLoot.slice(0, 6)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                     <span class="sprite-frame detail-relation-icon">
-                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
+                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
                     </span>
                     <div class="detail-relation-copy">
                       <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
@@ -383,7 +391,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? 'Ë
                 <div class="source-table dark-table tp-detail-relation-grid">
                   <div v-for="entry in group.entries.slice(0, 8)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                     <span class="sprite-frame detail-relation-icon">
-                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
+                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
                     </span>
                     <div class="detail-relation-copy">
                       <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
@@ -398,7 +406,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? 'Ë
                   <div class="source-table dark-table tp-detail-relation-grid">
                     <div v-for="entry in group.entries.slice(8)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                       <span class="sprite-frame detail-relation-icon">
-                        <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
+                        <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
                       </span>
                       <div class="detail-relation-copy">
                         <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
@@ -422,7 +430,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? 'Ë
             <div v-if="buffRelations.length" class="source-table dark-table">
               <div v-for="entry in buffRelations" :key="String(entry.id ?? entry.buffId ?? entry.buffInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                 <span class="sprite-frame detail-relation-icon">
-                  <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
+                  <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
                 </span>
                 <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [relationTypeLabel(entry.relationType), buffDurationLabel(entry), chanceLabel(entry), buffConditionLabel(entry)].filter(Boolean).join(' ¬∑ ') || 'Áä∂ÊÄÅÊïàÊûúËµÑÊñô' }}</span></div>
                 <strong class="detail-relation-meta">Buff</strong>

@@ -232,6 +232,7 @@ onBeforeUnmount(() => {
               :src="buff.image"
               :alt="buff.displayName"
               :fallback="buff.fallback"
+              fallback-icon="icon-buff"
               :source-image="buff.sourceImage"
               width="64"
               height="64"

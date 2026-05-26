@@ -711,6 +711,7 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
                         :src="item.image"
                         :alt="item.displayName"
                         :fallback="item.fallback"
+                        fallback-icon="icon-items"
                         :source-image="item.sourceImage"
                         width="64"
                         height="64"

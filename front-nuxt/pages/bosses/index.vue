@@ -235,6 +235,7 @@ onBeforeUnmount(() => {
               :src="boss.image"
               :alt="boss.displayName"
               :fallback="boss.fallback"
+              fallback-icon="icon-boss"
               :source-image="boss.sourceImage"
               decorative
               width="180"
@@ -245,6 +246,7 @@ onBeforeUnmount(() => {
               :src="boss.image"
               :alt="boss.displayName"
               :fallback="boss.fallback"
+              fallback-icon="icon-boss"
               :source-image="boss.sourceImage"
               width="160"
               height="104"

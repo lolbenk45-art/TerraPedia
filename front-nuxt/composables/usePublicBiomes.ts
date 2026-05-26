@@ -8,6 +8,8 @@ const normalizeText = (value: unknown) => String(value ?? '').trim()
 const normalizeSearchText = (value: string) => value.toLocaleLowerCase('zh-CN')
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
 
+const firstImageCandidate = (...values: unknown[]) => values.map(normalizeText).find(Boolean) ?? ''
+
 const toNumberOrNull = (value: unknown) => {
   const numberValue = Number(value)
   return Number.isFinite(numberValue) ? numberValue : null
@@ -17,7 +19,17 @@ export const normalizePublicBiome = (raw: PublicBiomeListItem, index = 0): Biome
   const biomeId = toNumberOrNull(raw.id)
   const displayName = normalizeText(raw.nameZh) || normalizeText(raw.nameEn) || normalizeText(raw.code) || `群系 ${index + 1}`
   const englishName = normalizeText(raw.nameEn)
-  const sourceImage = normalizeText(raw.iconUrl)
+  const sourceImage = firstImageCandidate(
+    raw.previewImage,
+    raw.previewImageUrl,
+    raw.preview_image,
+    raw.preview_image_url,
+    raw.iconUrl,
+    raw.icon_url,
+    raw.image,
+    raw.imageUrl,
+    raw.image_url,
+  )
   const image = resolvePreviewImageUrl(sourceImage)
   const groupLabel = normalizeText(raw.wikiGroupNameZh) || normalizeText(raw.wikiGroupNameEn) || normalizeText(raw.biomeType) || '未分组'
   const description = normalizeText(raw.description) || normalizeText(raw.aliasZh) || normalizeText(raw.aliasEn) || '暂无群系描述'

@@ -65,6 +65,10 @@ useSeoMeta({
 
 const entryImage = (value: { itemImage?: string | null; imageUrl?: string | null }) => resolvePreviewImageUrl(value.itemImage || value.imageUrl || '')
 const memberImage = (value: { imageUrl?: string | null }) => resolvePreviewImageUrl(value.imageUrl || '')
+const bossFallbackIcon = 'icon-boss'
+const bossLootFallbackIcon = 'icon-items'
+const summonItemFallbackIcon = 'icon-crafting'
+const memberFallbackIcon = 'icon-npc'
 const lootTitle = (entry: { itemNameZh?: string | null; itemName?: string | null; itemInternalName?: string | null }) => (
   safeBossDisplayText(entry.itemNameZh, entry.itemName) || '未命名掉落'
 )
@@ -243,6 +247,7 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
             :src="bossCard?.image || ''"
             :alt="bossTitle"
             :fallback="bossCard?.fallback || firstGlyph(bossTitle)"
+            :fallback-icon="bossFallbackIcon"
             :source-image="bossCard?.sourceImage || ''"
             width="120"
             height="120"
@@ -331,6 +336,7 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
                     :src="entryImage(entry)"
                     :alt="lootTitle(entry)"
                     :fallback="firstGlyph(lootTitle(entry))"
+                    :fallback-icon="bossLootFallbackIcon"
                     width="44"
                     height="44"
                   />
@@ -352,6 +358,7 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
                       :src="entryImage(entry)"
                       :alt="lootTitle(entry)"
                       :fallback="firstGlyph(lootTitle(entry))"
+                      :fallback-icon="bossLootFallbackIcon"
                       width="44"
                       height="44"
                     />
@@ -387,6 +394,7 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
                   :src="summonItemImage(item)"
                   :alt="summonItemTitle(item)"
                   :fallback="firstGlyph(summonItemTitle(item))"
+                  :fallback-icon="summonItemFallbackIcon"
                   width="40"
                   height="40"
                 />
@@ -421,6 +429,7 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
                 :src="memberImage(member)"
                 :alt="safeBossDisplayText(member.nameZh, member.name) || '成员'"
                 :fallback="firstGlyph(safeBossDisplayText(member.nameZh, member.name) || '?')"
+                :fallback-icon="memberFallbackIcon"
                 width="40"
                 height="40"
               />

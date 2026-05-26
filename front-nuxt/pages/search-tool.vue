@@ -122,6 +122,7 @@ useSeoMeta({
             <CommonPreviewImage
               :src="suggestion.image"
               :fallback="suggestion.fallback"
+              fallback-icon="icon-items"
               decorative
             />
             <b>{{ suggestion.title }}</b>

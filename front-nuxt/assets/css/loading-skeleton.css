@@ -86,6 +86,16 @@
   display: grid;
 }
 
+.item-art.tp-preview-image[data-fallback].is-fallback.has-fallback-icon::before {
+  display: none;
+}
+
+.preview-fallback-icon {
+  width: var(--tp-preview-fallback-icon-size, 62%);
+  height: var(--tp-preview-fallback-icon-size, 62%);
+  opacity: 0.82;
+}
+
 .home-suggestion-row.is-loading {
   pointer-events: none;
 }

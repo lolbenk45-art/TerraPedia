@@ -30,6 +30,8 @@ const isSameRecipeItem = (left: PublicItemRecipeTreeNode, right: PublicItemRecip
   return Boolean(leftInternalName && rightInternalName && leftInternalName === rightInternalName)
 }
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
+const recipeItemFallbackIcon = 'icon-items'
+const recipeStationFallbackIcon = 'icon-crafting'
 const displayText = (...values: unknown[]) => values.map((value) => String(value ?? '').trim()).find(Boolean) || ''
 const displayCount = (...values: unknown[]) => {
   const value = displayText(...values)
@@ -183,6 +185,7 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
             :src="nodeImage(child)"
             :alt="nodeTitle(child)"
             :fallback="firstGlyph(nodeTitle(child))"
+            :fallback-icon="recipeItemFallbackIcon"
             width="58"
             height="58"
           />
@@ -202,6 +205,7 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
           :src="recipeStationImage(station)"
           :alt="recipeStationTitle(station)"
           :fallback="firstGlyph(recipeStationTitle(station))"
+          :fallback-icon="recipeStationFallbackIcon"
           width="28"
           height="28"
         />
@@ -215,6 +219,7 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
         :src="nodeImage(node)"
         :alt="nodeTitle(node)"
         :fallback="firstGlyph(nodeTitle(node))"
+        :fallback-icon="recipeItemFallbackIcon"
         width="58"
         height="58"
       />
@@ -237,6 +242,7 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
         :src="nodeImage(node)"
         :alt="nodeTitle(node)"
         :fallback="firstGlyph(nodeTitle(node))"
+        :fallback-icon="recipeItemFallbackIcon"
         width="58"
         height="58"
       />
@@ -254,6 +260,7 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
           :src="recipeStationImage(station)"
           :alt="recipeStationTitle(station)"
           :fallback="firstGlyph(recipeStationTitle(station))"
+          :fallback-icon="recipeStationFallbackIcon"
           width="28"
           height="28"
         />

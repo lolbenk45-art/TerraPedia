@@ -230,7 +230,7 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
             type="button"
             @click="selectTarget(item.itemId ?? item.id)"
           >
-            <CommonPreviewImage :src="item.image" :alt="item.displayName" :fallback="item.fallback" width="36" height="36" />
+            <CommonPreviewImage :src="item.image" :alt="item.displayName" :fallback="item.fallback" fallback-icon="icon-items" width="36" height="36" />
             <b>{{ item.displayName }}</b>
             <span>{{ item.category }}</span>
           </button>
