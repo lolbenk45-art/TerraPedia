@@ -8,7 +8,7 @@ import type {
   PublicNpcShopPriceToken,
   PublicNpcTraceableItemSummary,
 } from '~/types/public-api'
-import { buildTerrariaPriceTokens, formatTerrariaPriceTokens, resolveTerrariaPriceUnitLabel, type TerrariaPriceToken } from '~/utils/price'
+import { buildTerrariaPriceTokens, formatTerrariaPriceTokens, localizeTerrariaPriceShorthandText, resolveTerrariaPriceUnitLabel, type TerrariaPriceToken } from '~/utils/price'
 
 const route = useRoute()
 const detailLayout = useDetailLayout({ kind: 'npc', density: 'compact' })
@@ -50,7 +50,7 @@ const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
 const rawPublicCopyPattern = /{{|}}|<\/?[a-z][\s\S]*?>|https?:\/\/|wiki\.gg|iteminfo|eicons|internal|wiki\s*(?:page|path)|(?:^|[\s_-])shop[\s_/-]*\d+(?:[\s_/-]*\d+)*(?:$|[\s_-])/i
 const safeNpcDisplayText = (...values: unknown[]) => {
   for (const value of values) {
-    const text = firstText(value).replace(/\s+/g, ' ')
+    const text = localizeTerrariaPriceShorthandText(firstText(value)).replace(/\s+/g, ' ')
     if (text && !rawPublicCopyPattern.test(text)) return text
   }
 
@@ -567,8 +567,8 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
                   <b>{{ group.title }}</b>
                   <span>{{ group.entries.length }} 项 · {{ group.meta }}</span>
                 </div>
-                <div class="source-table dark-table tp-detail-relation-grid">
-                  <div v-for="entry in group.entries.slice(0, 8)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
+                <div class="source-table dark-table tp-detail-relation-grid npc-shop-grid">
+                  <div v-for="entry in group.entries.slice(0, 8)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row npc-shop-row', detailLayout.detailRelationRowClass]">
                     <span class="sprite-frame detail-relation-icon">
                       <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
                     </span>
@@ -581,20 +581,19 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
                             <span class="npc-shop-price-icon">
                               <CommonPreviewImage :src="token.iconUrl" :alt="token.label" :fallback="token.label" fallback-icon="icon-items" decorative />
                             </span>
-                            <span>{{ token.amount }}{{ token.label }}</span>
+                            <span class="npc-shop-price-text">{{ token.amount }}{{ token.label }}</span>
                           </span>
                         </span>
                         <span v-if="shopConditionSummary(entry)" class="npc-shop-condition">{{ shopConditionSummary(entry) }}</span>
                         <span v-if="!shopPriceTokens(entry).length && !shopConditionSummary(entry)">商店资料</span>
                       </span>
                     </div>
-                    <strong class="detail-relation-meta">商店</strong>
                   </div>
                 </div>
                 <details v-if="group.entries.length > 8" class="detail-group-remainder">
                   <summary>展开其余 {{ group.entries.length - 8 }} 项</summary>
-                  <div class="source-table dark-table tp-detail-relation-grid">
-                    <div v-for="entry in group.entries.slice(8)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
+                  <div class="source-table dark-table tp-detail-relation-grid npc-shop-grid">
+                    <div v-for="entry in group.entries.slice(8)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row npc-shop-row', detailLayout.detailRelationRowClass]">
                       <span class="sprite-frame detail-relation-icon">
                         <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
                       </span>
@@ -607,14 +606,13 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
                               <span class="npc-shop-price-icon">
                                 <CommonPreviewImage :src="token.iconUrl" :alt="token.label" :fallback="token.label" fallback-icon="icon-items" decorative />
                               </span>
-                              <span>{{ token.amount }}{{ token.label }}</span>
+                              <span class="npc-shop-price-text">{{ token.amount }}{{ token.label }}</span>
                             </span>
                           </span>
                           <span v-if="shopConditionSummary(entry)" class="npc-shop-condition">{{ shopConditionSummary(entry) }}</span>
                           <span v-if="!shopPriceTokens(entry).length && !shopConditionSummary(entry)">商店资料</span>
                         </span>
                       </div>
-                      <strong class="detail-relation-meta">商店</strong>
                     </div>
                   </div>
                 </details>
@@ -741,53 +739,95 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
   line-height: 1.5;
 }
 
-.npc-shop-meta {
+.npc-shop-grid {
+  grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+  gap: 7px;
+}
+
+.npc-shop-row {
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 8px;
+  min-height: 66px;
+  padding: 6px 7px;
+  align-items: center;
+}
+
+.npc-shop-row .detail-relation-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.npc-shop-row .detail-relation-icon .item-art {
+  width: 32px;
+  height: 32px;
+}
+
+.npc-shop-row .detail-relation-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.npc-shop-row .detail-relation-copy b {
+  line-height: 1.1;
+}
+
+.npc-shop-row .detail-relation-copy .npc-shop-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 10px;
+  gap: 2px 5px;
   min-width: 0;
+  line-height: 1.1;
 }
 
-.npc-shop-price {
+.npc-shop-row .detail-relation-copy .npc-shop-price {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 5px 8px;
+  gap: 2px 4px;
   min-width: 0;
+  line-height: 1.1;
 }
 
-.npc-shop-price-token {
+.npc-shop-row .detail-relation-copy .npc-shop-price-token {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
   border: 1px solid rgba(222, 187, 95, 0.24);
   border-radius: 999px;
-  padding: 2px 7px 2px 4px;
+  padding: 1px 5px 1px 2px;
   color: var(--text-strong);
-  font-size: 12px;
+  font-size: 10.5px;
   font-weight: 900;
-  line-height: 1.2;
+  line-height: 1.1;
   background: rgba(222, 187, 95, 0.1);
 }
 
-.npc-shop-price-icon {
+.npc-shop-row .detail-relation-copy .npc-shop-price-icon {
   display: grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
-  flex: 0 0 18px;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
   overflow: hidden;
 }
 
-.npc-shop-price-icon .item-art {
-  width: 18px;
-  height: 18px;
+.npc-shop-row .detail-relation-copy .npc-shop-price-icon .item-art {
+  width: 24px;
+  height: 24px;
 }
 
-.npc-shop-condition {
+.npc-shop-row .detail-relation-copy .npc-shop-price-text {
+  display: inline;
+  line-height: 1.1;
+}
+
+.npc-shop-row .detail-relation-copy .npc-shop-condition {
   color: var(--text-subtle);
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1.1;
 }
 
 .detail-relation-meta {
@@ -1044,6 +1084,15 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
 
   .detail-relation-row {
     grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .npc-shop-grid {
+    grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
+    gap: 7px;
+  }
+
+  .npc-shop-row {
+    grid-template-columns: 32px minmax(0, 1fr);
   }
 
   .detail-subgroup-title {

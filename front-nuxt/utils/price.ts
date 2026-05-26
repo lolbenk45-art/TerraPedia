@@ -83,6 +83,16 @@ export const formatTerrariaPriceTokens = (tokens: TerrariaPriceToken[]): string 
     .map(token => `${token.amount}${token.label}`)
     .join(' ')
 
+export const localizeTerrariaPriceShorthandText = (value: unknown): string => {
+  const text = String(value ?? '')
+  if (!text) return ''
+
+  return text.replace(/\b(\d+(?:\.\d+)?)\s*(PC|GC|SC|CC)\b/gi, (_match, amount: string, unit: string) => {
+    const label = resolveTerrariaPriceUnitLabel(unit)
+    return label ? `${amount}${label}` : `${amount}${unit}`
+  })
+}
+
 export const formatCatalogPrice = (buy: unknown, sell: unknown): string => {
   const buyValue = toPriceNumber(buy)
   if (buyValue != null && buyValue > 0) {

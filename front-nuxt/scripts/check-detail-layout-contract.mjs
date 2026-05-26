@@ -88,6 +88,15 @@ const assertPattern = (path, content, pattern, message) => {
   }
 }
 
+const countStaticClassAttributesWith = (content, requiredClasses) => {
+  return [...content.matchAll(/class="([^"]*)"/g)]
+    .filter((match) => {
+      const classes = new Set(match[1].trim().split(/\s+/).filter(Boolean))
+      return requiredClasses.every((className) => classes.has(className))
+    })
+    .length
+}
+
 for (const [path, templatePatterns] of Object.entries(detailPages)) {
   const content = read(path)
 
@@ -101,7 +110,7 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
 {
   const path = 'pages/npcs/[id].vue'
   const content = read(path)
-  const gridCount = (content.match(/class="source-table dark-table tp-detail-relation-grid"/g) ?? []).length
+  const gridCount = countStaticClassAttributesWith(content, ['source-table', 'dark-table', 'tp-detail-relation-grid'])
 
   if (gridCount < 5) {
     violations.push(`${path}: NPC loot/shop visible and remainder lists must all use compact relation grids, found ${gridCount}`)

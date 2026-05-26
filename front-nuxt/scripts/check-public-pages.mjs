@@ -636,6 +636,7 @@ const requiredPublicDataLayerMarkers = {
     'export const buildTerrariaPriceTokens',
     'export const formatTerrariaPriceTokens',
     'export const resolveTerrariaPriceUnitLabel',
+    'export const localizeTerrariaPriceShorthandText',
     '不可购买',
     '不可出售',
   ],
@@ -1534,6 +1535,14 @@ for (const path of scanFiles) {
       violations.push(`${path}: NPC shop price tokens must include fixed-size decorative coin images`)
     }
 
+    if (!content.includes('npc-shop-grid') || !content.includes('npc-shop-row')) {
+      violations.push(`${path}: NPC shop rows must use a dedicated compact shop grid instead of the generic relation row density`)
+    }
+
+    if (!content.includes('minmax(172px, 1fr)') || !content.includes('24px')) {
+      violations.push(`${path}: NPC shop layout must increase row density and render larger coin icons`)
+    }
+
     if (content.includes('[shopPriceLabel(entry), shopConditionSummary(entry)]')) {
       violations.push(`${path}: NPC shop rows must not concatenate raw price text into relation metadata`)
     }
@@ -1556,6 +1565,10 @@ for (const path of scanFiles) {
 
     if (content.includes('firstText(npc?.behaviorNotes') || content.includes('firstText(npc.value?.behaviorNotes')) {
       violations.push(`${path}: NPC hero behavior notes must use display-safe text before rendering`)
+    }
+
+    if (!content.includes('localizeTerrariaPriceShorthandText(firstText(value))')) {
+      violations.push(`${path}: NPC hero and relation copy must localize Terraria coin shorthand before rendering public text`)
     }
 
     if (!content.includes('trustedLootVisibleEntries') || !content.includes('trustedLootRemainderEntries') || !content.includes('trustedLoot.value.slice(0, 8)')) {
