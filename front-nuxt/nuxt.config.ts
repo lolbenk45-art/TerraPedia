@@ -24,7 +24,14 @@ export default defineNuxtConfig({
     host: 'localhost',
   },
 
-  css: ['~/assets/css/app.css', '~/assets/css/detail-layout.css'],
+  css: [
+    '~/assets/css/app.css',
+    '~/assets/css/detail-layout.css',
+    '~/assets/css/tokens.css',
+    '~/assets/css/primitives.css',
+    '~/assets/css/domains/index.css',
+    '~/assets/css/pages/exceptions.css',
+  ],
 
   vite: {
     plugins: [

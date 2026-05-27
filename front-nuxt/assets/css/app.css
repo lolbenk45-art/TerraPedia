@@ -1,5 +1,16 @@
 @import "tailwindcss";
 @import "@fontsource-variable/noto-sans-sc";
+
+/*
+  Public UI cascade contract:
+  1. app.css loads legacy framework and page-family CSS below;
+  2. nuxt.config.ts loads detail-layout.css as the final legacy page-family CSS;
+  3. nuxt.config.ts then loads tokens.css, primitives.css, domains/index.css,
+     and pages/exceptions.css in that order.
+
+  Existing detail-layout.css is treated as legacy page-family CSS until the
+  detail domain migration moves it under assets/css/domains/.
+*/
 @import "./loading-skeleton.css";
 @import "./hifi-preview.css";
 @import "./mobile-typography-fixes.css";
