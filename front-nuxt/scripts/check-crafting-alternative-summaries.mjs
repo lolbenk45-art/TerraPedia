@@ -4,8 +4,9 @@ const root = new URL('..', import.meta.url)
 const read = (path) => readFileSync(new URL(path, root), 'utf8')
 
 const files = [
-  'pages/crafting/index.vue',
-  'components/crafting/RecipeTreeNode.vue',
+  'composables/useCraftingRecipeModel.ts',
+  'components/crafting/RecipeOptionSelector.vue',
+  'components/crafting/RecipeCompareTable.vue',
 ]
 
 const violations = []
@@ -13,64 +14,55 @@ const violations = []
 for (const path of files) {
   const source = read(path)
 
-  if (!source.includes('recipeSummaryParts')) {
-    violations.push(`${path}: alternative recipe labels must compose material/station/output differences together`)
-  }
-
-  if (!/recipeSummaryParts[\s\S]*\.filter\(Boolean\)[\s\S]*\.join\('；'\)/.test(source)) {
-    violations.push(`${path}: alternative recipe labels must join available difference fields instead of choosing the first one`)
-  }
-
   if (/recipe(?:Alternative|Difference)Summary\s*=\s*\([^)]*\)\s*=>\s*displayText\(/.test(source)) {
     violations.push(`${path}: alternative recipe summary must not use displayText(...) because it hides station/output differences when materials exist`)
   }
 }
 
-const craftingPage = read('pages/crafting/index.vue')
-const recipeTreeNode = read('components/crafting/RecipeTreeNode.vue')
+const model = read('composables/useCraftingRecipeModel.ts')
+const optionSelector = read('components/crafting/RecipeOptionSelector.vue')
+const compareTable = read('components/crafting/RecipeCompareTable.vue')
 
 for (const marker of [
-  'selectedRootKey',
-  'activeRoot',
-  'recipe-root-option-tabs',
-  'recipe-root-option-tab',
-  'visibleRecipeRoots',
-  'v-for="root in visibleRecipeRoots"',
-  ':aria-pressed="recipeRootKey(root, index) === selectedRootKey"',
+  'summarizeMaterials',
+  'formatMaterialSummary',
+  'material.isAnyGroup',
+  '任选其一',
+  'material.members.map((member) => member.title).join(\'/\')',
+  'const stationSummary = stations.map((station) => station.title).join(\' / \')',
+  'summary: [materialSummary, stationSummary, output.quantity !== \'x1\' ? `产出 ${output.quantity}` : \'\'].filter(Boolean).join(\'；\')',
 ]) {
-  if (!craftingPage.includes(marker)) {
-    violations.push(`pages/crafting/index.vue: root-level alternative recipes must use selectable option tabs via marker ${marker}`)
+  if (!model.includes(marker)) {
+    violations.push(`composables/useCraftingRecipeModel.ts: option summaries must compose material/station/output differences via marker ${marker}`)
   }
 }
 
-if (/v-for="[^"]*activeRoots[^"]*"[\s\S]{0,500}<CraftingRecipeTreeNode/m.test(craftingPage)) {
-  violations.push('pages/crafting/index.vue: full recipe tree must render the selected root only instead of expanding every activeRoot')
-}
-
 for (const marker of [
-  'selectedAlternativeKey',
-  'activeAlternativeOption',
-  'visibleAlternativeOptions',
-  'v-for="entry in visibleAlternativeOptions"',
-  ':aria-pressed="recipeAlternativeKey(option, index) === selectedAlternativeKey"',
-  'recipe-composed-ingredient',
-  'recipe-leaf-ingredient',
+  '<b>{{ option.label }}</b>',
+  '<span>{{ option.summary || option.output.title }}</span>',
+  ':aria-pressed="option.key === activeKey"',
 ]) {
-  if (!recipeTreeNode.includes(marker)) {
-    violations.push(`components/crafting/RecipeTreeNode.vue: nested alternative recipes must render only the selected option via marker ${marker}`)
+  if (!optionSelector.includes(marker)) {
+    violations.push(`components/crafting/RecipeOptionSelector.vue: root-level alternatives must show selectable composed summaries via marker ${marker}`)
   }
 }
 
-if (/v-for="\([^)]*option[^)]*index[^)]*\) in recipeAlternativeOptions"[\s\S]{0,500}<CraftingRecipeTreeNode/m.test(recipeTreeNode)) {
-  violations.push('components/crafting/RecipeTreeNode.vue: nested alternative recipes must not recursively render every recipeAlternativeOption')
+for (const marker of [
+  'data-crafting-role="compare-material"',
+  'data-crafting-role="compare-station"',
+  'data-crafting-role="compare-output"',
+  'material.isAnyGroup',
+  'material.members',
+  'compare-any-members',
+  '<CommonPreviewImage',
+]) {
+  if (!compareTable.includes(marker)) {
+    violations.push(`components/crafting/RecipeCompareTable.vue: compare table must preserve material/station/output differences with images and any-material semantics via marker ${marker}`)
+  }
 }
 
-if (/>[\s\n]*<a class="recipe-tree-node recipe-ingredient-node"/m.test(recipeTreeNode)) {
-  violations.push('components/crafting/RecipeTreeNode.vue: composed ingredient branches must not render a duplicate ingredient card after their child recipe output')
-}
-
-if (!/v-else[\s\S]{0,260}class="recipe-tree-node recipe-ingredient-node recipe-leaf-ingredient"/m.test(recipeTreeNode)) {
-  violations.push('components/crafting/RecipeTreeNode.vue: leaf ingredients must keep a direct ingredient card while composed ingredients use the child recipe output')
+if (model.includes('recipeSummaryParts') || optionSelector.includes('recipe-root-option-tabs')) {
+  violations.push('crafting alternative contract: legacy tree/tab markers must not return in the new recipe option model')
 }
 
 if (violations.length > 0) {

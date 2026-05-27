@@ -1,9 +1,11 @@
 import { spawn } from 'node:child_process'
 
-const baseUrl = process.env.TERRAPEDIA_FRONT_NUXT_URL || 'http://localhost:5174'
+const baseUrl = process.env.TERRAPEDIA_FRONT_NUXT_URL || 'http://localhost:5176'
 const chromeBin = process.env.CHROMIUM_BIN || '/usr/bin/chromium-browser'
 const cdpCommandTimeoutMs = Number(process.env.CRAFTING_WIKI_CDP_TIMEOUT_MS || 15000)
 const routes = [
+  '/crafting?itemId=8&maxDepth=3',
+  '/crafting?itemId=556&maxDepth=3',
   '/crafting?itemId=675&maxDepth=3',
   '/crafting?itemId=757&maxDepth=3',
   '/crafting?itemId=5000&maxDepth=5',
@@ -94,25 +96,41 @@ const evaluateJson = async (browser, expression) => {
   return result?.result?.value
 }
 
-const waitForCraftingTree = async (browser, route) => evaluateJson(browser, `(() => new Promise((resolve) => {
+const waitForCraftingStructure = async (browser, route) => evaluateJson(browser, `(() => new Promise((resolve) => {
   const startedAt = Date.now();
   const tick = () => {
-    const stage = document.querySelector('.recipe-full-tree .recipe-tree-stage');
-    const root = stage?.querySelector('.recipe-branch.is-wiki-flow.is-root');
-    const loaded = document.querySelector('.crafting-layout')?.classList.contains('has-active-recipe');
-    if (loaded && stage && root && root.querySelectorAll('.recipe-tree-node').length > 0) {
-      resolve({ ready: true });
+    const page = document.querySelector('[data-crafting-role="page"]');
+    const sheet = document.querySelector('[data-crafting-role="recipe-sheet"]');
+    const target = document.querySelector('[data-crafting-role="target-bar"] .target-title');
+    const materials = document.querySelector('[data-crafting-role="recipe-materials"]');
+    const stations = document.querySelector('[data-crafting-role="recipe-stations"]');
+    const output = document.querySelector('[data-crafting-role="recipe-output"]');
+
+    if (
+      document.readyState !== 'loading'
+      && page
+      && sheet
+      && target
+      && materials
+      && stations
+      && output
+      && sheet.textContent.trim().length > 40
+    ) {
+      resolve({ ready: true, title: target.textContent.trim() });
       return;
     }
 
-    if (Date.now() - startedAt > 6000) {
+    if (Date.now() - startedAt > 7000) {
       resolve({
         ready: false,
         route: ${JSON.stringify(route)},
-        loaded,
-        hasStage: Boolean(stage),
-        hasRoot: Boolean(root),
-        nodeCount: root?.querySelectorAll('.recipe-tree-node').length ?? 0,
+        hasPage: Boolean(page),
+        hasSheet: Boolean(sheet),
+        hasTarget: Boolean(target),
+        hasMaterials: Boolean(materials),
+        hasStations: Boolean(stations),
+        hasOutput: Boolean(output),
+        bodyText: document.body.innerText.slice(0, 360),
       });
       return;
     }
@@ -122,92 +140,105 @@ const waitForCraftingTree = async (browser, route) => evaluateJson(browser, `(()
   tick();
 }))()`)
 
-const inspectCraftingTree = async (browser, route) => evaluateJson(browser, `(() => {
-  const roundRect = (rect) => ({
-    left: Math.round(rect.left),
-    top: Math.round(rect.top),
-    right: Math.round(rect.right),
-    bottom: Math.round(rect.bottom),
-    width: Math.round(rect.width),
-    height: Math.round(rect.height),
-  });
-  const stage = document.querySelector('.recipe-full-tree .recipe-tree-stage');
-  const root = stage?.querySelector('.recipe-branch.is-wiki-flow.is-root');
-  if (!stage || !root) {
-    return { route: ${JSON.stringify(route)}, issues: ['missing full recipe tree stage or root branch'] };
-  }
-
-  const visibleRect = (element) => {
+const inspectCraftingStructure = async (browser, route) => evaluateJson(browser, `(() => {
+  const text = (selector) => [...document.querySelectorAll(selector)].map((element) => element.textContent.trim().replace(/\\s+/g, ' '));
+  const visible = (element) => {
+    if (!element) return false;
     const rect = element.getBoundingClientRect();
-    const style = window.getComputedStyle(element);
-    return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+    const style = getComputedStyle(element);
+    return rect.width > 1 && rect.height > 1 && style.display !== 'none' && style.visibility !== 'hidden';
   };
-  const firstVisibleNodeRect = (container) => [...container.querySelectorAll('.recipe-tree-node')]
-    .map((node) => node.getBoundingClientRect())
-    .filter((rect) => rect.width > 0 && rect.height > 0)
-    .sort((left, right) => left.top - right.top || left.left - right.left)[0] ?? null;
-  const stageRect = stage.getBoundingClientRect();
-  const rootNodeRect = root.querySelector(':scope > .recipe-tree-node')?.getBoundingClientRect();
-  const nodeRects = [...stage.querySelectorAll('.recipe-tree-node')]
-    .filter(visibleRect)
-    .map((node) => node.getBoundingClientRect());
-  const firstTop = Math.min(...nodeRects.map((rect) => rect.top));
-  const topGap = Math.round(firstTop - stageRect.top);
-  const duplicateComposedCards = [...stage.querySelectorAll('.recipe-composed-ingredient')].filter((branch) => (
-    branch.matches(':scope > .recipe-child-expansion + .recipe-tree-node')
-    || branch.querySelector(':scope > .recipe-ingredient-node')
-  )).length;
-  const visibleAlternativeGroups = [...stage.querySelectorAll('.recipe-alternative-recipes')].map((group) => {
-    const rect = group.getBoundingClientRect();
-    const firstNode = firstVisibleNodeRect(group);
+  const visibleCount = (selector) => [...document.querySelectorAll(selector)].filter(visible).length;
+  const minBox = (selector) => {
+    const rects = [...document.querySelectorAll(selector)]
+      .filter(visible)
+      .map((element) => element.getBoundingClientRect());
+    if (!rects.length) return null;
     return {
-      rect: roundRect(rect),
-      firstNode: firstNode ? roundRect(firstNode) : null,
-      topInnerGap: firstNode ? Math.round(firstNode.top - rect.top) : null,
+      width: Math.round(Math.min(...rects.map((rect) => rect.width))),
+      height: Math.round(Math.min(...rects.map((rect) => rect.height))),
     };
-  });
-  const excessiveAlternativeTopGap = visibleAlternativeGroups.filter((group) => group.topInnerGap !== null && group.topInnerGap > 240).length;
-  const isTerrasparkRoute = ${JSON.stringify(route)}.includes('itemId=5000');
-  const floatingConnectors = [...stage.querySelectorAll('.recipe-branch.is-wiki-flow > .recipe-children')].filter((row) => {
-    const rowRect = row.getBoundingClientRect();
-    const firstNode = firstVisibleNodeRect(row);
-    return firstNode && Math.round(firstNode.top - rowRect.top) > 96;
-  }).length;
+  };
   const issues = [];
+  const isTorch = ${JSON.stringify(route)}.includes('itemId=8');
+  const isMechanicalWorm = ${JSON.stringify(route)}.includes('itemId=556');
+  const isTrueNightsEdge = ${JSON.stringify(route)}.includes('itemId=675');
+  const isTerrablade = ${JSON.stringify(route)}.includes('itemId=757');
+  const isTerraspark = ${JSON.stringify(route)}.includes('itemId=5000');
+  const anyGroups = text('[data-crafting-role="any-material-group"]');
+  const stationTexts = text('[data-crafting-role="station-options"]');
+  const oldTreeCount = document.querySelectorAll('.recipe-full-tree, .recipe-tree-stage, .recipe-root-option-tabs').length;
+  const nestedPanelCount = document.querySelectorAll('.tp-panel .tp-panel').length;
+  const rootSheets = [...document.querySelectorAll('[data-crafting-role="recipe-sheet"]')].filter((sheet) => !sheet.closest('.material-expansion-item')).length;
+  const childSheets = [...document.querySelectorAll('.material-expansion-item [data-crafting-role="recipe-sheet"]')];
+  const visibleChildSheets = childSheets.filter(visible);
+  const stationSummaryText = text('.station-option-summary').join(' ');
+  const pageOverflow = document.documentElement.scrollWidth - window.innerWidth;
+  const materialIconMin = minBox('[data-crafting-role="recipe-materials"] .material-slot-main .tp-preview-image');
+  const stationIconMin = minBox('[data-crafting-role="recipe-stations"] .station-option .tp-preview-image');
+  const outputIconMin = minBox('[data-crafting-role="recipe-output"] .tp-preview-image');
+  const anyMemberIconMin = minBox('[data-crafting-role="any-material-group"] .any-material-member .tp-preview-image');
 
-  if (topGap > 280) {
-    issues.push(\`full tree first node starts too low below the stage top: \${topGap}px\`);
+  if (oldTreeCount > 0) {
+    issues.push(\`legacy full-tree selectors are still rendered: \${oldTreeCount}\`);
   }
-  if (rootNodeRect && (rootNodeRect.left < stageRect.left || rootNodeRect.right > stageRect.right)) {
-    issues.push(\`root result node is not visible in the initial horizontal viewport: left=\${Math.round(rootNodeRect.left)} right=\${Math.round(rootNodeRect.right)} stageLeft=\${Math.round(stageRect.left)} stageRight=\${Math.round(stageRect.right)}\`);
+  if (nestedPanelCount > 0) {
+    issues.push(\`nested tp-panel surfaces are rendered: \${nestedPanelCount}\`);
   }
-  if (isTerrasparkRoute && visibleAlternativeGroups.length === 0) {
-    issues.push('item 5000 Terraspark Boots must render visible alternative recipe groups');
+  if (rootSheets !== 1) {
+    issues.push(\`expected exactly one active root recipe sheet, found \${rootSheets}\`);
   }
-  if (duplicateComposedCards > 0) {
-    issues.push(\`composed ingredient branches still render duplicate material cards: \${duplicateComposedCards}\`);
+  if (pageOverflow > 1) {
+    issues.push(\`page has horizontal overflow: \${pageOverflow}px\`);
   }
-  if (excessiveAlternativeTopGap > 0) {
-    issues.push(\`alternative recipe groups contain excessive top blank space: \${excessiveAlternativeTopGap}\`);
+  if (materialIconMin && (materialIconMin.width < 44 || materialIconMin.height < 44)) {
+    issues.push(\`material icons are too small: \${JSON.stringify(materialIconMin)}\`);
   }
-  if (floatingConnectors > 0) {
-    issues.push(\`ingredient rows contain floating blank connector space above material nodes: \${floatingConnectors}\`);
+  if (stationIconMin && (stationIconMin.width < 38 || stationIconMin.height < 38)) {
+    issues.push(\`station icons are too small: \${JSON.stringify(stationIconMin)}\`);
+  }
+  if (outputIconMin && (outputIconMin.width < 48 || outputIconMin.height < 48)) {
+    issues.push(\`output icons are too small: \${JSON.stringify(outputIconMin)}\`);
+  }
+  if (anyMemberIconMin && (anyMemberIconMin.width < 24 || anyMemberIconMin.height < 24)) {
+    issues.push(\`any-material member icons are too small: \${JSON.stringify(anyMemberIconMin)}\`);
+  }
+  if (isTorch) {
+    if (anyGroups.length !== 1 || !anyGroups[0].includes('任选其一') || !anyGroups[0].includes('任何木材')) {
+      issues.push(\`torch must show one visible any wood choice group: \${JSON.stringify(anyGroups)}\`);
+    }
+  }
+  if (isMechanicalWorm) {
+    if (!stationSummaryText.includes('秘银砧/山铜砧')) {
+      issues.push(\`mechanical worm must show compact station option text 秘银砧/山铜砧: \${stationSummaryText}\`);
+    }
+    if (stationTexts.some((stationText) => stationText.includes('或'))) {
+      issues.push('mechanical worm station UI must not render standalone 或');
+    }
+    if (visibleCount('[data-crafting-role="recipe-option-selector"] button') < 2) {
+      issues.push('mechanical worm must show two root recipe options');
+    }
+  }
+  if ((isTrueNightsEdge || isTerrablade || isTerraspark) && visibleChildSheets.length > 0) {
+    issues.push('child recipe sheets must be collapsed by default');
   }
 
   return {
     route: ${JSON.stringify(route)},
-    stage: roundRect(stageRect),
-    root: roundRect(root.getBoundingClientRect()),
-    rootNode: rootNodeRect ? roundRect(rootNodeRect) : null,
-    scrollLeft: Math.round(stage.scrollLeft),
-    scrollWidth: Math.round(stage.scrollWidth),
-    clientWidth: Math.round(stage.clientWidth),
-    topGap,
-    nodeCount: nodeRects.length,
-    composedIngredientCount: stage.querySelectorAll('.recipe-composed-ingredient').length,
-    duplicateComposedCards,
-    visibleAlternativeGroups,
-    floatingConnectors,
+    title: document.querySelector('[data-crafting-role="target-bar"] .target-title')?.textContent.trim(),
+    rootSheets,
+    childSheets: childSheets.length,
+    visibleChildSheets: visibleChildSheets.length,
+    anyGroups,
+    stationTexts,
+    stationSummaryText,
+    pageOverflow,
+    oldTreeCount,
+    nestedPanelCount,
+    materialIconMin,
+    stationIconMin,
+    outputIconMin,
+    anyMemberIconMin,
     issues,
   };
 })()`)
@@ -219,25 +250,28 @@ const main = async () => {
   const reports = []
 
   try {
-    await browser.send('Emulation.setDeviceMetricsOverride', {
-      width: 1600,
-      height: 2600,
-      deviceScaleFactor: 1,
-      mobile: false,
-    })
+    for (const viewport of [
+      { width: 1440, height: 1000, mobile: false },
+      { width: 390, height: 900, mobile: true },
+    ]) {
+      await browser.send('Emulation.setDeviceMetricsOverride', {
+        ...viewport,
+        deviceScaleFactor: 1,
+      })
 
-    for (const route of routes) {
-      await browser.send('Page.navigate', { url: `${baseUrl}${route}` })
-      const ready = await waitForCraftingTree(browser, route)
-      if (!ready?.ready) {
-        failures.push(`${route}: crafting tree did not become ready: ${JSON.stringify(ready)}`)
-        continue
-      }
+      for (const route of routes) {
+        await browser.send('Page.navigate', { url: `${baseUrl}${route}` })
+        const ready = await waitForCraftingStructure(browser, route)
+        if (!ready?.ready) {
+          failures.push(`${route}: crafting structure did not become ready: ${JSON.stringify(ready)}`)
+          continue
+        }
 
-      const report = await inspectCraftingTree(browser, route)
-      reports.push(report)
-      for (const issue of report.issues) {
-        failures.push(`${route}: ${issue}`)
+        const report = await inspectCraftingStructure(browser, route)
+        reports.push({ viewport, ...report })
+        for (const issue of report.issues) {
+          failures.push(`${route}: ${issue}`)
+        }
       }
     }
   } finally {
@@ -251,7 +285,7 @@ const main = async () => {
     process.exit(1)
   }
 
-  console.log(`Crafting wiki structure runtime checks passed for ${routes.length} routes.`)
+  console.log(`Crafting wiki structure runtime checks passed for ${routes.length} routes across desktop and mobile.`)
 }
 
 main().catch((error) => {

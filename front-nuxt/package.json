@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "nuxt dev --host 0.0.0.0 --port 5176",
     "build": "nuxt build",
-    "check": "pnpm run check:nav-layout && pnpm run check:detail-layout && pnpm run check:preview-images && pnpm run check:visual-system && nuxt typecheck",
+    "check": "pnpm run check:nav-layout && pnpm run check:detail-layout && pnpm run check:preview-images && pnpm run check:visual-system && pnpm run check:crafting-structure && pnpm run check:crafting-alternatives && nuxt typecheck",
     "check:crafting-alternatives": "node scripts/check-crafting-alternative-summaries.mjs",
+    "check:crafting-structure": "node scripts/check-crafting-structure-contract.mjs",
     "check:crafting-wiki-structure": "node scripts/check-crafting-wiki-structure-runtime.mjs",
     "check:loading-skeleton": "node scripts/check-loading-skeleton-contract.mjs",
     "check:public-pages": "node scripts/check-public-pages.mjs",

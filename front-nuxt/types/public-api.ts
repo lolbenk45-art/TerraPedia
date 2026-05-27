@@ -257,6 +257,10 @@ export type PublicItemRecipeTreeNode = {
   count?: number | string | null
   notes?: string | null
   depth?: number | string | null
+  expandable?: boolean | number | string | null
+  cycleDetected?: boolean | number | string | null
+  isReference?: boolean | number | string | null
+  referenceKey?: string | null
   stations?: PublicItemRecipeTreeStation[] | null
   children?: PublicItemRecipeTreeNode[] | null
 }

@@ -2,7 +2,6 @@
   Domain CSS imports live here after P0.
 
   Import order inside this file should remain page-family scoped, for example:
-  @import "./crafting.css";
   @import "./detail.css";
   @import "./catalog.css";
   @import "./entity.css";
@@ -10,3 +9,4 @@
 
   Do not add business selectors to hifi-preview.css during new domain work.
 */
+@import "./crafting.css";
