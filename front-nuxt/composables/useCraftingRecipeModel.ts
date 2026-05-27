@@ -267,6 +267,20 @@ const variantView = (variant: PublicItemRecipeTreeVariant, index: number): Craft
   }
 }
 
+const preferredVariantRank = (variant: CraftingRecipeVariantView, index: number) => {
+  const text = `${variant.key} ${variant.label} ${variant.meta}`.toLowerCase()
+  if (text.includes('desktop') || text.includes('mobile') || (text.includes('console') && !text.includes('old-gen'))) {
+    return index
+  }
+  if (text.includes('base') || text.includes('通用')) {
+    return 200 + index
+  }
+  if (text.includes('old-gen') || text.includes('3ds')) {
+    return 300 + index
+  }
+  return 100 + index
+}
+
 const targetView = (tree: PublicItemRecipeTree | null | undefined): CraftingEntityView | null => {
   const item = tree?.item
   if (!item && !tree) return null
@@ -291,7 +305,11 @@ export const buildCraftingRecipeModel = (
   selectedVariantKey = '',
   selectedRecipeKey = '',
 ): CraftingRecipeModel => {
-  const variants = (Array.isArray(tree?.variants) ? tree?.variants : []).map(variantView)
+  const variants = (Array.isArray(tree?.variants) ? tree?.variants : [])
+    .map(variantView)
+    .map((variant, index) => ({ variant, index }))
+    .sort((left, right) => preferredVariantRank(left.variant, left.index) - preferredVariantRank(right.variant, right.index))
+    .map((entry) => entry.variant)
   const activeVariant = variants.find((variant) => variant.key === selectedVariantKey) ?? variants[0] ?? null
   const activeRecipe = activeVariant?.options.find((option) => option.key === selectedRecipeKey) ?? activeVariant?.options[0] ?? null
 
