@@ -267,11 +267,27 @@
 
 .any-material-group summary {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(132px, auto);
   gap: var(--tp-space-2);
   align-items: center;
   cursor: pointer;
   padding: var(--tp-space-1);
+}
+
+.any-material-summary {
+  display: grid;
+  gap: var(--tp-space-1);
+  justify-items: end;
+  min-width: 0;
+  text-align: right;
+}
+
+.any-material-inline-summary {
+  max-width: 220px;
+  color: var(--tp-color-text-muted);
+  font-size: var(--tp-font-size-caption);
+  line-height: var(--tp-line-height-compact);
+  overflow-wrap: anywhere;
 }
 
 .any-material-members {
@@ -372,6 +388,11 @@
 .material-expansion-item .recipe-sheet {
   margin-top: var(--tp-space-3);
   box-shadow: none;
+}
+
+.material-child-recipe-list {
+  display: grid;
+  gap: var(--tp-space-3);
 }
 
 .recipe-sheet-compact {
@@ -522,6 +543,16 @@
 
   .target-summary-main {
     grid-template-columns: 56px minmax(0, 1fr);
+  }
+
+  .any-material-group summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .any-material-summary {
+    justify-items: start;
+    padding-inline-start: 64px;
+    text-align: left;
   }
 
   .target-title {

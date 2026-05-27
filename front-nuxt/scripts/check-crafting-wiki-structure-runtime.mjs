@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process'
 const baseUrl = process.env.TERRAPEDIA_FRONT_NUXT_URL || 'http://localhost:5176'
 const chromeBin = process.env.CHROMIUM_BIN || '/usr/bin/chromium-browser'
 const cdpCommandTimeoutMs = Number(process.env.CRAFTING_WIKI_CDP_TIMEOUT_MS || 15000)
+const expectedSourceMarker = process.env.TERRAPEDIA_FRONT_NUXT_SOURCE_MARKER || process.cwd()
 const routes = [
   '/crafting?itemId=8&maxDepth=3',
   '/crafting?itemId=556&maxDepth=3',
@@ -12,6 +13,25 @@ const routes = [
 ]
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const absoluteUrl = (route) => new URL(route, `${baseUrl.replace(/\/$/, '')}/`).toString()
+
+const verifyNuxtSource = async () => {
+  const probeUrl = absoluteUrl('/crafting?itemId=8&maxDepth=3')
+  const response = await fetch(probeUrl)
+  if (!response.ok) {
+    throw new Error(`Failed to verify Nuxt source for ${probeUrl}: HTTP ${response.status}`)
+  }
+
+  const html = await response.text()
+  if (!html.includes(expectedSourceMarker)) {
+    throw new Error([
+      `Crafting runtime check is not hitting the expected front-nuxt worktree.`,
+      `baseUrl=${baseUrl}`,
+      `expectedSourceMarker=${expectedSourceMarker}`,
+    ].join('\n'))
+  }
+}
 
 const waitFor = async (url, attempts = 80) => {
   for (let index = 0; index < attempts; index += 1) {
@@ -166,12 +186,14 @@ const inspectCraftingStructure = async (browser, route) => evaluateJson(browser,
   const isTerrablade = ${JSON.stringify(route)}.includes('itemId=757');
   const isTerraspark = ${JSON.stringify(route)}.includes('itemId=5000');
   const anyGroups = text('[data-crafting-role="any-material-group"]');
+  const anyInlineSummaries = text('.any-material-inline-summary');
   const stationTexts = text('[data-crafting-role="station-options"]');
   const oldTreeCount = document.querySelectorAll('.recipe-full-tree, .recipe-tree-stage, .recipe-root-option-tabs').length;
   const nestedPanelCount = document.querySelectorAll('.tp-panel .tp-panel').length;
   const rootSheets = [...document.querySelectorAll('[data-crafting-role="recipe-sheet"]')].filter((sheet) => !sheet.closest('.material-expansion-item')).length;
   const childSheets = [...document.querySelectorAll('.material-expansion-item [data-crafting-role="recipe-sheet"]')];
   const visibleChildSheets = childSheets.filter(visible);
+  const expansionDetails = [...document.querySelectorAll('.material-expansion-item')];
   const stationSummaryText = text('.station-option-summary').join(' ');
   const pageOverflow = document.documentElement.scrollWidth - window.innerWidth;
   const materialIconMin = minBox('[data-crafting-role="recipe-materials"] .material-slot-main .tp-preview-image');
@@ -207,6 +229,9 @@ const inspectCraftingStructure = async (browser, route) => evaluateJson(browser,
     if (anyGroups.length !== 1 || !anyGroups[0].includes('任选其一') || !anyGroups[0].includes('任何木材')) {
       issues.push(\`torch must show one visible any wood choice group: \${JSON.stringify(anyGroups)}\`);
     }
+    if (!anyInlineSummaries.join(' ').includes('木材') || !anyInlineSummaries.join(' ').includes('乌木')) {
+      issues.push(\`torch any wood summary must expose concrete member names without opening details: \${JSON.stringify(anyInlineSummaries)}\`);
+    }
   }
   if (isMechanicalWorm) {
     if (!stationSummaryText.includes('秘银砧/山铜砧')) {
@@ -223,13 +248,46 @@ const inspectCraftingStructure = async (browser, route) => evaluateJson(browser,
     issues.push('child recipe sheets must be collapsed by default');
   }
 
+  expansionDetails.forEach((details) => {
+    details.open = true;
+  });
+  const expandedText = text('[data-crafting-role="material-expansion-list"]').join(' ');
+  const expandedChildSheetCount = [...document.querySelectorAll('.material-expansion-item [data-crafting-role="recipe-sheet"]')]
+    .filter(visible)
+    .length;
+
+  if (isTrueNightsEdge) {
+    for (const expected of ['血腥屠刀', '魔光剑', '村正', '草剑', '火山']) {
+      if (!expandedText.includes(expected)) {
+        issues.push(\`true night's edge expanded child recipes must show material \${expected}: \${expandedText}\`);
+      }
+    }
+    if (expandedChildSheetCount < 2) {
+      issues.push(\`true night's edge must expose both night edge child recipe options, found \${expandedChildSheetCount}\`);
+    }
+  }
+
+  if (isTerraspark) {
+    for (const expected of ['闪电靴', '溜冰鞋', '熔火护身符', '黑曜石水上漂靴', '水上漂靴']) {
+      if (!expandedText.includes(expected)) {
+        issues.push(\`terraspark expanded child recipes must show material \${expected}: \${expandedText}\`);
+      }
+    }
+    if (expandedChildSheetCount < 6) {
+      issues.push(\`terraspark must expose all frostspark/lava boots child recipe options, found \${expandedChildSheetCount}\`);
+    }
+  }
+
   return {
     route: ${JSON.stringify(route)},
     title: document.querySelector('[data-crafting-role="target-bar"] .target-title')?.textContent.trim(),
     rootSheets,
     childSheets: childSheets.length,
     visibleChildSheets: visibleChildSheets.length,
+    expandedChildSheetCount,
     anyGroups,
+    anyInlineSummaries,
+    expandedText,
     stationTexts,
     stationSummaryText,
     pageOverflow,
@@ -244,6 +302,8 @@ const inspectCraftingStructure = async (browser, route) => evaluateJson(browser,
 })()`)
 
 const main = async () => {
+  await verifyNuxtSource()
+
   const port = 9400 + Math.floor(Math.random() * 400)
   const browser = await connectToChrome(port)
   const failures = []
@@ -260,7 +320,7 @@ const main = async () => {
       })
 
       for (const route of routes) {
-        await browser.send('Page.navigate', { url: `${baseUrl}${route}` })
+        await browser.send('Page.navigate', { url: absoluteUrl(route) })
         const ready = await waitForCraftingStructure(browser, route)
         if (!ready?.ready) {
           failures.push(`${route}: crafting structure did not become ready: ${JSON.stringify(ready)}`)

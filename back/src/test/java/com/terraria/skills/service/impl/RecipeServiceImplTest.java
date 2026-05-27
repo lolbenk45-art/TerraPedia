@@ -165,6 +165,223 @@ class RecipeServiceImplTest {
     }
 
     @Test
+    void shouldKeepComplementaryRecipesFromDifferentProviders() {
+        Recipe wikiGgRecipe = recipe(45L, "wiki_gg");
+        Recipe wikiZhRecipe = recipe(46L, "wiki_zh");
+        when(recipeMapper.selectList(any())).thenReturn(List.of(wikiGgRecipe, wikiZhRecipe));
+
+        RecipeIngredient wikiGgIngredient = new RecipeIngredient();
+        wikiGgIngredient.setRecipeId(45L);
+        wikiGgIngredient.setIngredientItemId(150L);
+        wikiGgIngredient.setIngredientInternalName("Cobweb");
+        wikiGgIngredient.setIngredientNameRaw("蛛网");
+        wikiGgIngredient.setIngredientGroupType("item");
+        wikiGgIngredient.setSortOrder(1);
+
+        RecipeIngredient wikiZhIngredient = new RecipeIngredient();
+        wikiZhIngredient.setRecipeId(46L);
+        wikiZhIngredient.setIngredientItemId(9L);
+        wikiZhIngredient.setIngredientInternalName("Wood");
+        wikiZhIngredient.setIngredientNameRaw("木材");
+        wikiZhIngredient.setIngredientGroupType("item");
+        wikiZhIngredient.setSortOrder(1);
+        when(recipeIngredientMapper.selectList(any())).thenReturn(List.of(wikiGgIngredient, wikiZhIngredient));
+
+        when(itemMapper.selectBatchIds(any())).thenReturn(List.of(
+            resultItem(),
+            item(150L, "Cobweb", "Cobweb", "蛛网", null),
+            item(9L, "Wood", "Wood", "木材", null)
+        ));
+
+        List<RecipeDTO> recipes = service.getRecipesByResultItemId(1L);
+
+        assertEquals(2, recipes.size());
+        assertEquals(List.of("wiki_gg", "wiki_zh"), recipes.stream().map(RecipeDTO::getSourceProvider).toList());
+        assertEquals(List.of("蛛网", "木材"), recipes.stream()
+            .map(recipe -> recipe.getIngredients().get(0).getItemNameZh())
+            .toList());
+    }
+
+    @Test
+    void shouldCollapseEquivalentRecipesAcrossProviderAliasesAndQuantityDefaults() {
+        Recipe legacyProviderRecipe = recipe(47L, "terraria.wiki.gg");
+        legacyProviderRecipe.setVersionScope("Desktop version Console version Mobile version only");
+        Recipe canonicalProviderRecipe = recipe(48L, "wiki_gg");
+        canonicalProviderRecipe.setVersionScope("电脑版 主机版 移动版 only");
+        when(recipeMapper.selectList(any())).thenReturn(List.of(legacyProviderRecipe, canonicalProviderRecipe));
+
+        RecipeIngredient legacyIngredient = new RecipeIngredient();
+        legacyIngredient.setRecipeId(47L);
+        legacyIngredient.setIngredientItemId(273L);
+        legacyIngredient.setIngredientInternalName("NightsEdge");
+        legacyIngredient.setIngredientNameRaw("永夜刃");
+        legacyIngredient.setIngredientGroupType("item");
+        legacyIngredient.setQuantityMin(0);
+        legacyIngredient.setQuantityMax(0);
+        legacyIngredient.setSortOrder(1);
+
+        RecipeIngredient canonicalIngredient = new RecipeIngredient();
+        canonicalIngredient.setRecipeId(48L);
+        canonicalIngredient.setIngredientItemId(273L);
+        canonicalIngredient.setIngredientInternalName("NightsEdge");
+        canonicalIngredient.setIngredientNameRaw("永夜刃");
+        canonicalIngredient.setIngredientGroupType("item");
+        canonicalIngredient.setSortOrder(1);
+        when(recipeIngredientMapper.selectList(any())).thenReturn(List.of(legacyIngredient, canonicalIngredient));
+
+        RecipeStation legacyStation = new RecipeStation();
+        legacyStation.setRecipeId(47L);
+        legacyStation.setStationId(17L);
+        legacyStation.setStationItemId(525L);
+        legacyStation.setStationInternalName("MythrilAnvil");
+        legacyStation.setStationNameRaw("秘银砧");
+
+        RecipeStation canonicalStation = new RecipeStation();
+        canonicalStation.setRecipeId(48L);
+        canonicalStation.setStationItemId(525L);
+        canonicalStation.setStationInternalName("MythrilAnvil");
+        canonicalStation.setStationNameRaw("秘银砧");
+        when(recipeStationMapper.selectList(any())).thenReturn(List.of(legacyStation, canonicalStation));
+
+        when(itemMapper.selectBatchIds(any())).thenReturn(List.of(
+            resultItem(),
+            item(273L, "NightsEdge", "Night's Edge", "永夜刃", null),
+            item(525L, "MythrilAnvil", "Mythril Anvil", "秘银砧", null)
+        ));
+
+        List<RecipeDTO> recipes = service.getRecipesByResultItemId(1L);
+
+        assertEquals(1, recipes.size());
+        assertEquals("terraria.wiki.gg", recipes.get(0).getSourceProvider());
+    }
+
+    @Test
+    void shouldCollapseEquivalentRecipesWhenCanonicalIdsHaveDifferentRawNames() {
+        Recipe englishRawRecipe = recipe(86L, "wiki_gg");
+        Recipe chineseRawRecipe = recipe(87L, "wiki_zh");
+        chineseRawRecipe.setVersionScope("电脑版 主机版 移动版 only");
+        when(recipeMapper.selectList(any())).thenReturn(List.of(englishRawRecipe, chineseRawRecipe));
+
+        RecipeIngredient englishIngredient = new RecipeIngredient();
+        englishIngredient.setRecipeId(86L);
+        englishIngredient.setIngredientItemId(9L);
+        englishIngredient.setIngredientInternalName("Wood");
+        englishIngredient.setIngredientNameRaw("Wood");
+        englishIngredient.setIngredientGroupType("item");
+        englishIngredient.setSortOrder(1);
+
+        RecipeIngredient chineseIngredient = new RecipeIngredient();
+        chineseIngredient.setRecipeId(87L);
+        chineseIngredient.setIngredientItemId(9L);
+        chineseIngredient.setIngredientInternalName("Wood");
+        chineseIngredient.setIngredientNameRaw("木材");
+        chineseIngredient.setIngredientGroupType("item");
+        chineseIngredient.setSortOrder(1);
+        when(recipeIngredientMapper.selectList(any())).thenReturn(List.of(englishIngredient, chineseIngredient));
+
+        RecipeStation englishStation = new RecipeStation();
+        englishStation.setRecipeId(86L);
+        englishStation.setStationItemId(75L);
+        englishStation.setStationInternalName("WorkBench");
+        englishStation.setStationNameRaw("Work Bench");
+
+        RecipeStation chineseStation = new RecipeStation();
+        chineseStation.setRecipeId(87L);
+        chineseStation.setStationItemId(75L);
+        chineseStation.setStationInternalName("WorkBench");
+        chineseStation.setStationNameRaw("工作台");
+        when(recipeStationMapper.selectList(any())).thenReturn(List.of(englishStation, chineseStation));
+
+        when(itemMapper.selectBatchIds(any())).thenReturn(List.of(
+            resultItem(),
+            item(9L, "Wood", "Wood", "木材", null),
+            item(75L, "WorkBench", "Work Bench", "工作台", null)
+        ));
+
+        List<RecipeDTO> recipes = service.getRecipesByResultItemId(1L);
+
+        assertEquals(1, recipes.size());
+        assertEquals("wiki_zh", recipes.get(0).getSourceProvider());
+    }
+
+    @Test
+    void shouldCollapseEquivalentAnyMaterialGroupQuantityDefaults() {
+        Recipe missingQuantityRecipe = recipe(88L, "wiki_gg");
+        Recipe zeroQuantityRecipe = recipe(89L, "wiki_zh");
+        zeroQuantityRecipe.setVersionScope("电脑版 主机版 移动版 only");
+        when(recipeMapper.selectList(any())).thenReturn(List.of(missingQuantityRecipe, zeroQuantityRecipe));
+
+        RecipeIngredient missingQuantityGroup = new RecipeIngredient();
+        missingQuantityGroup.setRecipeId(88L);
+        missingQuantityGroup.setIngredientNameRaw("任意木材");
+        missingQuantityGroup.setIngredientGroupType("group");
+        missingQuantityGroup.setSortOrder(1);
+
+        RecipeIngredient zeroQuantityGroup = new RecipeIngredient();
+        zeroQuantityGroup.setRecipeId(89L);
+        zeroQuantityGroup.setIngredientNameRaw("任意木材");
+        zeroQuantityGroup.setIngredientGroupType("group");
+        zeroQuantityGroup.setQuantityMin(0);
+        zeroQuantityGroup.setQuantityMax(0);
+        zeroQuantityGroup.setSortOrder(1);
+        when(recipeIngredientMapper.selectList(any())).thenReturn(List.of(missingQuantityGroup, zeroQuantityGroup));
+
+        List<RecipeDTO> recipes = service.getRecipesByResultItemId(1L);
+
+        assertEquals(1, recipes.size());
+        assertEquals("wiki_zh", recipes.get(0).getSourceProvider());
+        assertEquals("1", recipes.get(0).getIngredients().get(0).getQuantityText());
+    }
+
+    @Test
+    void shouldCollapseUnscopedDuplicateWhenScopedRecipeHasSameStructure() {
+        Recipe unscopedRecipe = recipe(49L, "wiki_gg");
+        Recipe scopedRecipe = recipe(50L, "wiki_zh");
+        scopedRecipe.setVersionScope("电脑版 主机版 移动版 only");
+        when(recipeMapper.selectList(any())).thenReturn(List.of(unscopedRecipe, scopedRecipe));
+
+        RecipeIngredient unscopedIngredient = new RecipeIngredient();
+        unscopedIngredient.setRecipeId(49L);
+        unscopedIngredient.setIngredientItemId(1862L);
+        unscopedIngredient.setIngredientInternalName("FrostsparkBoots");
+        unscopedIngredient.setIngredientNameRaw("霜花靴");
+        unscopedIngredient.setIngredientGroupType("item");
+
+        RecipeIngredient scopedIngredient = new RecipeIngredient();
+        scopedIngredient.setRecipeId(50L);
+        scopedIngredient.setIngredientItemId(1862L);
+        scopedIngredient.setIngredientInternalName("FrostsparkBoots");
+        scopedIngredient.setIngredientNameRaw("霜花靴");
+        scopedIngredient.setIngredientGroupType("item");
+        when(recipeIngredientMapper.selectList(any())).thenReturn(List.of(unscopedIngredient, scopedIngredient));
+
+        RecipeStation unscopedStation = new RecipeStation();
+        unscopedStation.setRecipeId(49L);
+        unscopedStation.setStationItemId(398L);
+        unscopedStation.setStationInternalName("TinkerersWorkshop");
+        unscopedStation.setStationNameRaw("工匠作坊");
+
+        RecipeStation scopedStation = new RecipeStation();
+        scopedStation.setRecipeId(50L);
+        scopedStation.setStationId(21L);
+        scopedStation.setStationItemId(398L);
+        scopedStation.setStationInternalName("TinkerersWorkshop");
+        scopedStation.setStationNameRaw("工匠作坊");
+        when(recipeStationMapper.selectList(any())).thenReturn(List.of(unscopedStation, scopedStation));
+
+        when(itemMapper.selectBatchIds(any())).thenReturn(List.of(
+            resultItem(),
+            item(1862L, "FrostsparkBoots", "Frostspark Boots", "霜花靴", null),
+            item(398L, "TinkerersWorkshop", "Tinkerer's Workshop", "工匠作坊", null)
+        ));
+
+        List<RecipeDTO> recipes = service.getRecipesByResultItemId(1L);
+
+        assertEquals(1, recipes.size());
+        assertEquals("wiki_zh", recipes.get(0).getSourceProvider());
+    }
+
+    @Test
     void shouldPreferCraftingStationDisplayWhenStationIdExists() {
         Recipe recipe = recipe(51L, "manual_admin");
         when(recipeMapper.selectList(any())).thenReturn(List.of(recipe));
@@ -444,6 +661,240 @@ class RecipeServiceImplTest {
 
         assertEquals(1, recipes.size());
         assertEquals("wiki_zh", recipes.get(0).getSourceProvider());
+    }
+
+    @Test
+    void shouldKeepRequiredAndAlternativeStationStructuresSeparateWhenStationsAreCanonical() {
+        Recipe requiredStations = recipe(81L, "wiki_zh");
+        Recipe alternativeStations = recipe(82L, "wiki_zh");
+        when(recipeMapper.selectList(any())).thenReturn(List.of(requiredStations, alternativeStations));
+
+        RecipeIngredient requiredIngredient = new RecipeIngredient();
+        requiredIngredient.setRecipeId(81L);
+        requiredIngredient.setIngredientItemId(150L);
+        requiredIngredient.setIngredientInternalName("Cobweb");
+        requiredIngredient.setIngredientNameRaw("蛛网");
+        requiredIngredient.setIngredientGroupType("item");
+        requiredIngredient.setSortOrder(1);
+
+        RecipeIngredient alternativeIngredient = new RecipeIngredient();
+        alternativeIngredient.setRecipeId(82L);
+        alternativeIngredient.setIngredientItemId(150L);
+        alternativeIngredient.setIngredientInternalName("Cobweb");
+        alternativeIngredient.setIngredientNameRaw("蛛网");
+        alternativeIngredient.setIngredientGroupType("item");
+        alternativeIngredient.setSortOrder(1);
+        when(recipeIngredientMapper.selectList(any())).thenReturn(List.of(requiredIngredient, alternativeIngredient));
+
+        RecipeStation requiredA = new RecipeStation();
+        requiredA.setRecipeId(81L);
+        requiredA.setStationItemId(525L);
+        requiredA.setStationInternalName("MythrilAnvil");
+        requiredA.setStationNameRaw("秘银砧");
+        requiredA.setIsAlternative(false);
+
+        RecipeStation requiredB = new RecipeStation();
+        requiredB.setRecipeId(81L);
+        requiredB.setStationItemId(1220L);
+        requiredB.setStationInternalName("OrichalcumAnvil");
+        requiredB.setStationNameRaw("山铜砧");
+        requiredB.setIsAlternative(false);
+
+        RecipeStation alternativeA = new RecipeStation();
+        alternativeA.setRecipeId(82L);
+        alternativeA.setStationItemId(525L);
+        alternativeA.setStationInternalName("MythrilAnvil");
+        alternativeA.setStationNameRaw("秘银砧");
+        alternativeA.setIsAlternative(false);
+
+        RecipeStation alternativeB = new RecipeStation();
+        alternativeB.setRecipeId(82L);
+        alternativeB.setStationItemId(1220L);
+        alternativeB.setStationInternalName("OrichalcumAnvil");
+        alternativeB.setStationNameRaw("山铜砧");
+        alternativeB.setIsAlternative(true);
+
+        when(recipeStationMapper.selectList(any())).thenReturn(List.of(requiredA, requiredB, alternativeA, alternativeB));
+
+        List<RecipeDTO> recipes = service.getRecipesByResultItemId(1L);
+
+        assertEquals(2, recipes.size());
+        assertEquals(List.of(List.of(false, false), List.of(false, true)), recipes.stream()
+            .map(recipe -> recipe.getStations().stream().map(RecipeStationDTO::getIsAlternative).toList())
+            .toList());
+    }
+
+    @Test
+    void shouldKeepRequiredAndAlternativeStationStructuresSeparateWhenOnlyStationIdExists() {
+        Recipe requiredStation = recipe(90L, "wiki_zh");
+        Recipe alternativeStation = recipe(91L, "wiki_zh");
+        when(recipeMapper.selectList(any())).thenReturn(List.of(requiredStation, alternativeStation));
+
+        RecipeIngredient requiredIngredient = new RecipeIngredient();
+        requiredIngredient.setRecipeId(90L);
+        requiredIngredient.setIngredientItemId(150L);
+        requiredIngredient.setIngredientInternalName("Cobweb");
+        requiredIngredient.setIngredientNameRaw("蛛网");
+        requiredIngredient.setIngredientGroupType("item");
+        requiredIngredient.setSortOrder(1);
+
+        RecipeIngredient alternativeIngredient = new RecipeIngredient();
+        alternativeIngredient.setRecipeId(91L);
+        alternativeIngredient.setIngredientItemId(150L);
+        alternativeIngredient.setIngredientInternalName("Cobweb");
+        alternativeIngredient.setIngredientNameRaw("蛛网");
+        alternativeIngredient.setIngredientGroupType("item");
+        alternativeIngredient.setSortOrder(1);
+        when(recipeIngredientMapper.selectList(any())).thenReturn(List.of(requiredIngredient, alternativeIngredient));
+
+        RecipeStation required = new RecipeStation();
+        required.setRecipeId(90L);
+        required.setStationId(14L);
+        required.setStationNameRaw("灵雾");
+        required.setIsAlternative(false);
+
+        RecipeStation alternative = new RecipeStation();
+        alternative.setRecipeId(91L);
+        alternative.setStationId(14L);
+        alternative.setStationNameRaw("灵雾");
+        alternative.setIsAlternative(true);
+        when(recipeStationMapper.selectList(any())).thenReturn(List.of(required, alternative));
+
+        CraftingStation craftingStation = new CraftingStation();
+        craftingStation.setId(14L);
+        craftingStation.setInternalName("EctoMist");
+        craftingStation.setNameZh("灵雾");
+        when(craftingStationMapper.selectBatchIds(any())).thenReturn(List.of(craftingStation));
+
+        List<RecipeDTO> recipes = service.getRecipesByResultItemId(1L);
+
+        assertEquals(2, recipes.size());
+        assertEquals(List.of(false, true), recipes.stream()
+            .map(recipe -> recipe.getStations().get(0).getIsAlternative())
+            .toList());
+    }
+
+    @Test
+    void shouldCollapseStationIdOnlyDuplicateWithCanonicalStationItem() {
+        Recipe stationIdOnlyRecipe = recipe(92L, "wiki_gg");
+        Recipe canonicalItemRecipe = recipe(93L, "wiki_zh");
+        canonicalItemRecipe.setVersionScope("电脑版 主机版 移动版 only");
+        when(recipeMapper.selectList(any())).thenReturn(List.of(stationIdOnlyRecipe, canonicalItemRecipe));
+
+        RecipeIngredient stationIdOnlyIngredient = new RecipeIngredient();
+        stationIdOnlyIngredient.setRecipeId(92L);
+        stationIdOnlyIngredient.setIngredientItemId(150L);
+        stationIdOnlyIngredient.setIngredientInternalName("Cobweb");
+        stationIdOnlyIngredient.setIngredientNameRaw("蛛网");
+        stationIdOnlyIngredient.setIngredientGroupType("item");
+        stationIdOnlyIngredient.setSortOrder(1);
+
+        RecipeIngredient canonicalIngredient = new RecipeIngredient();
+        canonicalIngredient.setRecipeId(93L);
+        canonicalIngredient.setIngredientItemId(150L);
+        canonicalIngredient.setIngredientInternalName("Cobweb");
+        canonicalIngredient.setIngredientNameRaw("蛛网");
+        canonicalIngredient.setIngredientGroupType("item");
+        canonicalIngredient.setSortOrder(1);
+        when(recipeIngredientMapper.selectList(any())).thenReturn(List.of(stationIdOnlyIngredient, canonicalIngredient));
+
+        RecipeStation stationIdOnly = new RecipeStation();
+        stationIdOnly.setRecipeId(92L);
+        stationIdOnly.setStationId(6L);
+        stationIdOnly.setStationNameRaw("工作台");
+        stationIdOnly.setIsAlternative(false);
+
+        RecipeStation canonical = new RecipeStation();
+        canonical.setRecipeId(93L);
+        canonical.setStationItemId(75L);
+        canonical.setStationInternalName("WorkBench");
+        canonical.setStationNameRaw("工作台");
+        canonical.setIsAlternative(false);
+        when(recipeStationMapper.selectList(any())).thenReturn(List.of(stationIdOnly, canonical));
+
+        CraftingStation craftingStation = new CraftingStation();
+        craftingStation.setId(6L);
+        craftingStation.setItemId(75L);
+        craftingStation.setInternalName("WorkBench");
+        craftingStation.setNameZh("工作台");
+        when(craftingStationMapper.selectBatchIds(any())).thenReturn(List.of(craftingStation));
+
+        when(itemMapper.selectBatchIds(any())).thenReturn(List.of(
+            resultItem(),
+            item(150L, "Cobweb", "Cobweb", "蛛网", null),
+            item(75L, "WorkBench", "Work Bench", "工作台", null)
+        ));
+
+        List<RecipeDTO> recipes = service.getRecipesByResultItemId(1L);
+
+        assertEquals(1, recipes.size());
+        assertEquals("wiki_zh", recipes.get(0).getSourceProvider());
+    }
+
+    @Test
+    void shouldPreferScopedModernRecipeOverUnscopedAutomaticDuplicate() {
+        Recipe unscoped = recipe(83L, "wiki_gg");
+        Recipe scoped = recipe(84L, "wiki_zh");
+        scoped.setVersionScope("电脑版 主机版 移动版 only");
+        when(recipeMapper.selectList(any())).thenReturn(List.of(unscoped, scoped));
+
+        RecipeIngredient unscopedIngredient = new RecipeIngredient();
+        unscopedIngredient.setRecipeId(83L);
+        unscopedIngredient.setIngredientItemId(150L);
+        unscopedIngredient.setIngredientInternalName("Cobweb");
+        unscopedIngredient.setIngredientNameRaw("蛛网");
+        unscopedIngredient.setIngredientGroupType("item");
+        unscopedIngredient.setSortOrder(1);
+
+        RecipeIngredient scopedIngredient = new RecipeIngredient();
+        scopedIngredient.setRecipeId(84L);
+        scopedIngredient.setIngredientItemId(150L);
+        scopedIngredient.setIngredientInternalName("Cobweb");
+        scopedIngredient.setIngredientNameRaw("蛛网");
+        scopedIngredient.setIngredientGroupType("item");
+        scopedIngredient.setSortOrder(1);
+        when(recipeIngredientMapper.selectList(any())).thenReturn(List.of(unscopedIngredient, scopedIngredient));
+
+        RecipeStation unscopedStation = new RecipeStation();
+        unscopedStation.setRecipeId(83L);
+        unscopedStation.setStationItemId(75L);
+        unscopedStation.setStationInternalName("WorkBench");
+        unscopedStation.setStationNameRaw("工作台");
+
+        RecipeStation scopedStation = new RecipeStation();
+        scopedStation.setRecipeId(84L);
+        scopedStation.setStationItemId(75L);
+        scopedStation.setStationInternalName("WorkBench");
+        scopedStation.setStationNameRaw("工作台");
+        when(recipeStationMapper.selectList(any())).thenReturn(List.of(unscopedStation, scopedStation));
+
+        List<RecipeDTO> recipes = service.getRecipesByResultItemId(1L);
+
+        assertEquals(1, recipes.size());
+        assertEquals("wiki_zh", recipes.get(0).getSourceProvider());
+        assertEquals("电脑版 主机版 移动版 only", recipes.get(0).getVersionScope());
+    }
+
+    @Test
+    void shouldDefaultAnyMaterialGroupQuantityToOneInRecipeDto() {
+        Recipe recipe = recipe(85L, "wiki_gg");
+        when(recipeMapper.selectList(any())).thenReturn(List.of(recipe));
+
+        RecipeIngredient groupIngredient = new RecipeIngredient();
+        groupIngredient.setRecipeId(85L);
+        groupIngredient.setIngredientNameRaw("任意木材");
+        groupIngredient.setIngredientGroupType("group");
+        groupIngredient.setQuantityMin(0);
+        groupIngredient.setQuantityMax(0);
+        groupIngredient.setSortOrder(1);
+        when(recipeIngredientMapper.selectList(any())).thenReturn(List.of(groupIngredient));
+
+        List<RecipeDTO> recipes = service.getRecipesByResultItemId(1L);
+
+        assertEquals(1, recipes.size());
+        assertEquals("1", recipes.get(0).getIngredients().get(0).getQuantityText());
+        assertEquals(1, recipes.get(0).getIngredients().get(0).getQuantityMin());
+        assertEquals(1, recipes.get(0).getIngredients().get(0).getQuantityMax());
     }
 
     @Test

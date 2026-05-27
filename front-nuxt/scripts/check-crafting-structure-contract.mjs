@@ -107,6 +107,14 @@ for (const path of [
   requireIncludes('composables/useCraftingRecipeModel.ts', source, 'canExpandChildRecipe', 'model must gate child recipe expansion through cycle/reference state')
   requireIncludes('composables/useCraftingRecipeModel.ts', source, '!state.cycleDetected', 'cycle-detected nodes must not recursively expand child recipes')
   requireIncludes('composables/useCraftingRecipeModel.ts', source, '!state.isReference', 'reference nodes must not recursively expand child recipes')
+  requireIncludes('composables/useCraftingRecipeModel.ts', source, 'childRecipes', 'model must preserve multiple child recipe options instead of collapsing them')
+  requireIncludes('composables/useCraftingRecipeModel.ts', source, 'childRecipeOptions', 'model must distinguish child recipe option nodes from material nodes')
+}
+
+{
+  const source = requireFile('components/crafting/MaterialExpansionList.vue')
+  requireIncludes('components/crafting/MaterialExpansionList.vue', source, 'material.childRecipes', 'material expansion must render all child recipe options')
+  requireIncludes('components/crafting/MaterialExpansionList.vue', source, 'material-child-recipe-list', 'material expansion must group multiple child recipe sheets')
 }
 
 {
@@ -121,6 +129,7 @@ for (const path of [
 {
   const source = requireFile('components/crafting/AnyMaterialGroupDisclosure.vue')
   requireIncludes('components/crafting/AnyMaterialGroupDisclosure.vue', source, '任选其一', 'any-material groups must render the visible choice label')
+  requireIncludes('components/crafting/AnyMaterialGroupDisclosure.vue', source, 'any-material-inline-summary', 'any-material summary must expose concrete member names before details are opened')
   forbidIncludes('components/crafting/AnyMaterialGroupDisclosure.vue', source, ' + ', 'any-material group members must not be joined with +')
 }
 

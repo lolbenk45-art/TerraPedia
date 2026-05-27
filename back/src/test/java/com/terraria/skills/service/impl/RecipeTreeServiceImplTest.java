@@ -117,9 +117,64 @@ class RecipeTreeServiceImplTest {
         RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(4745L, 4);
 
         RecipeTreeNodeDTO groupNode = response.getVariants().get(0).getRoots().get(0).getChildren().get(0);
-        assertEquals(2, groupNode.getGroupMembers().size());
-        assertNull(groupNode.getGroupMembers().get(0).getImage());
-        assertNull(groupNode.getGroupMembers().get(1).getImage());
+        assertEquals(9, groupNode.getGroupMembers().size());
+        assertTrue(groupNode.getGroupMembers().stream().allMatch(member -> member.getImage() == null));
+    }
+
+    @Test
+    void shouldExposeAllRecipeGroupMembersInsteadOfPreviewOnly() throws IOException {
+        String originalUserDir = System.getProperty("user.dir");
+        Path repoRoot = tempDir.resolve("repo-all-group-members");
+        Files.createDirectories(repoRoot.resolve("back"));
+        Files.createDirectories(repoRoot.resolve("data/generated"));
+        Files.writeString(repoRoot.resolve("data/generated/recipe-material-reference.json"), """
+            {
+              "groups": [
+                {
+                  "canonicalName": "Any Wood",
+                  "displayNameEn": "Any Wood",
+                  "displayNameZh": "任何木材",
+                  "members": [
+                    { "internalName": "Wood", "name": "Wood" },
+                    { "internalName": "Ebonwood", "name": "Ebonwood" },
+                    { "internalName": "RichMahogany", "name": "Rich Mahogany" },
+                    { "internalName": "Pearlwood", "name": "Pearlwood" }
+                  ]
+                }
+              ]
+            }
+            """);
+        try {
+            System.setProperty("user.dir", repoRoot.resolve("back").toString());
+            RecipeTreeServiceImpl service = newService();
+
+            ItemDTO item = recipeTreeItem(8L, "Torch", "Torch", "火把");
+            RecipeIngredientDTO groupIngredient = groupIngredient("任何木材", null);
+            RecipeDTO recipe = recipeWithIngredient(56363L, item, groupIngredient);
+
+            when(itemService.getItemById(8L)).thenReturn(item);
+            when(recipeService.getRecipesByResultItemId(8L)).thenReturn(List.of(recipe));
+            when(itemMapper.selectList(any())).thenReturn(List.of(
+                itemEntity(9L, "Wood", "Wood", "木材", "https://terraria.wiki.gg/images/Wood.png"),
+                itemEntity(619L, "Ebonwood", "Ebonwood", "乌木", "https://terraria.wiki.gg/images/Ebonwood.png"),
+                itemEntity(620L, "RichMahogany", "Rich Mahogany", "红木", "https://terraria.wiki.gg/images/Rich_Mahogany.png"),
+                itemEntity(621L, "Pearlwood", "Pearlwood", "珍珠木", "https://terraria.wiki.gg/images/Pearlwood.png")
+            ));
+
+            RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(8L, 3);
+
+            RecipeTreeNodeDTO groupNode = response.getVariants().get(0).getRoots().get(0).getChildren().get(0);
+            assertEquals(4, groupNode.getGroupMembers().size());
+            assertEquals(List.of("Wood", "Ebonwood", "RichMahogany", "Pearlwood"), groupNode.getGroupMembers().stream()
+                .map(member -> member.getInternalName())
+                .toList());
+        } finally {
+            if (originalUserDir == null) {
+                System.clearProperty("user.dir");
+            } else {
+                System.setProperty("user.dir", originalUserDir);
+            }
+        }
     }
 
     @Test

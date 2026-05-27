@@ -47,7 +47,6 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
 
     private static final int DEFAULT_MAX_DEPTH = 3;
     private static final int ABSOLUTE_MAX_DEPTH = 5;
-    private static final int GROUP_MEMBER_PREVIEW_LIMIT = 2;
     private static final Duration TREE_CACHE_TTL = Duration.ofMinutes(5);
     private static final Duration GROUP_REFERENCE_CACHE_TTL = Duration.ofMinutes(10);
     private final ItemService itemService;
@@ -240,7 +239,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
             node.setSecondaryName(reference == null ? null : firstNonBlank(reference.displayNameEn(), reference.canonicalName()));
             node.setGroupCanonicalName(reference == null ? fallbackGroupLabel : reference.canonicalName());
             node.setGroupMemberNames(reference == null ? Collections.emptyList() : reference.groupMemberNames());
-            node.setGroupMembers(reference == null ? Collections.emptyList() : previewGroupMembers(reference.groupMembers()));
+            node.setGroupMembers(reference == null ? Collections.emptyList() : reference.groupMembers());
         }
         boolean hasItemId = ingredient.getIngredientItemId() != null;
         String refKey = groupNode
@@ -759,15 +758,6 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
 
     private String resolveMemberLabel(RecipeGroupMemberDTO member) {
         return firstNonBlank(member.getNameZh(), member.getName(), member.getInternalName());
-    }
-
-    private List<RecipeGroupMemberDTO> previewGroupMembers(List<RecipeGroupMemberDTO> members) {
-        if (members == null || members.isEmpty()) {
-            return Collections.emptyList();
-        }
-        return members.stream()
-            .limit(GROUP_MEMBER_PREVIEW_LIMIT)
-            .toList();
     }
 
     private String resolveGroupMemberImage(

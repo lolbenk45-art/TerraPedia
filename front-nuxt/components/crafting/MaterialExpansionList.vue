@@ -13,17 +13,24 @@ defineProps<{
       <h3 id="material-expansion-title">材料展开</h3>
     </div>
 
-    <div v-if="materials.some((material) => material.childRecipe)" class="material-expansion-items">
+    <div v-if="materials.some((material) => material.childRecipes.length)" class="material-expansion-items">
       <details
-        v-for="material in materials.filter((entry) => entry.childRecipe)"
+        v-for="material in materials.filter((entry) => entry.childRecipes.length)"
         :key="material.key"
         class="tp-subsection material-expansion-item"
       >
         <summary>
           <CraftingMaterialSlot :material="material" />
-          <span class="tp-chip">子配方</span>
+          <span class="tp-chip">{{ material.childRecipes.length > 1 ? `${material.childRecipes.length} 个子配方` : '子配方' }}</span>
         </summary>
-        <CraftingRecipeSheet :recipe="material.childRecipe" compact />
+        <div class="material-child-recipe-list">
+          <CraftingRecipeSheet
+            v-for="childRecipe in material.childRecipes"
+            :key="childRecipe.key"
+            :recipe="childRecipe"
+            compact
+          />
+        </div>
       </details>
     </div>
     <p v-else class="crafting-muted">当前材料没有可展开的子配方。</p>

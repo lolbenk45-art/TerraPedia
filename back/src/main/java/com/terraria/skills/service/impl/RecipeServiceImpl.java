@@ -99,13 +99,15 @@ public class RecipeServiceImpl implements RecipeService {
             .collect(Collectors.groupingBy(RecipeStation::getRecipeId));
         Map<Long, List<RecipeContextRequirement>> conditionsByRecipeId = allConditions.stream()
             .collect(Collectors.groupingBy(RecipeContextRequirement::getRecipeId));
+        Map<Long, CraftingStation> allCraftingStationById = loadCraftingStations(allStations.stream().map(RecipeStation::getStationId));
 
-        List<Recipe> recipes = dedupeRecipesByStructure(selectPreferredProviderRecipes(
+        List<Recipe> recipes = dedupeRecipesByStructure(
             allRecipes,
             ingredientsByRecipeId,
             stationsByRecipeId,
-            conditionsByRecipeId
-        ), ingredientsByRecipeId, stationsByRecipeId, conditionsByRecipeId);
+            conditionsByRecipeId,
+            allCraftingStationById
+        );
         List<Long> recipeIds = recipes.stream().map(Recipe::getId).toList();
         List<RecipeIngredient> ingredients = recipeIds.isEmpty()
             ? Collections.emptyList()
@@ -116,7 +118,9 @@ public class RecipeServiceImpl implements RecipeService {
         List<RecipeContextRequirement> conditions = recipeIds.isEmpty()
             ? Collections.emptyList()
             : allConditions.stream().filter(condition -> recipeIds.contains(condition.getRecipeId())).toList();
-        Map<Long, CraftingStation> craftingStationById = loadCraftingStations(stations.stream().map(RecipeStation::getStationId));
+        Map<Long, CraftingStation> craftingStationById = allCraftingStationById.entrySet().stream()
+            .filter(entry -> stations.stream().anyMatch(station -> Objects.equals(station.getStationId(), entry.getKey())))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         Map<Long, Item> itemById = loadItems(
             recipes.stream().map(Recipe::getResultItemId),
@@ -283,47 +287,12 @@ public class RecipeServiceImpl implements RecipeService {
         return getRecipesByResultItemId(itemId);
     }
 
-    private List<Recipe> selectPreferredProviderRecipes(
-        List<Recipe> recipes,
-        Map<Long, List<RecipeIngredient>> ingredientsByRecipeId,
-        Map<Long, List<RecipeStation>> stationsByRecipeId,
-        Map<Long, List<RecipeContextRequirement>> conditionsByRecipeId
-    ) {
-        if (recipes == null || recipes.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        Map<String, List<Recipe>> byProvider = recipes.stream()
-            .filter(Objects::nonNull)
-            .collect(Collectors.groupingBy(
-                recipe -> normalizeRecipeProvider(recipe.getSourceProvider()),
-                LinkedHashMap::new,
-                Collectors.toList()
-            ));
-
-        String preferredProvider = byProvider.entrySet().stream()
-            .max(Comparator
-                .comparingInt((Map.Entry<String, List<Recipe>> entry) -> providerQualityScore(
-                    entry.getValue(),
-                    ingredientsByRecipeId,
-                    stationsByRecipeId,
-                    conditionsByRecipeId
-                ))
-                .thenComparing(entry -> normalizeRecipeProvider(entry.getKey()), this::compareRecipeProvidersInverse))
-            .map(Map.Entry::getKey)
-            .orElse("");
-
-        return recipes.stream()
-            .filter(Objects::nonNull)
-            .filter(recipe -> Objects.equals(normalizeRecipeProvider(recipe.getSourceProvider()), preferredProvider))
-            .toList();
-    }
-
     private List<Recipe> dedupeRecipesByStructure(
         List<Recipe> recipes,
         Map<Long, List<RecipeIngredient>> ingredientsByRecipeId,
         Map<Long, List<RecipeStation>> stationsByRecipeId,
-        Map<Long, List<RecipeContextRequirement>> conditionsByRecipeId
+        Map<Long, List<RecipeContextRequirement>> conditionsByRecipeId,
+        Map<Long, CraftingStation> craftingStationById
     ) {
         if (recipes == null || recipes.isEmpty()) {
             return Collections.emptyList();
@@ -338,78 +307,259 @@ public class RecipeServiceImpl implements RecipeService {
                 recipe,
                 ingredientsByRecipeId.getOrDefault(recipe.getId(), Collections.emptyList()),
                 stationsByRecipeId.getOrDefault(recipe.getId(), Collections.emptyList()),
-                conditionsByRecipeId.getOrDefault(recipe.getId(), Collections.emptyList())
+                conditionsByRecipeId.getOrDefault(recipe.getId(), Collections.emptyList()),
+                craftingStationById
             );
-            deduped.putIfAbsent(key, recipe);
+            Recipe existing = deduped.get(key);
+            if (existing == null || compareRecipePreference(recipe, existing, ingredientsByRecipeId, stationsByRecipeId, conditionsByRecipeId) > 0) {
+                deduped.put(key, recipe);
+            }
         }
         return new ArrayList<>(deduped.values());
     }
 
-    private int providerQualityScore(
-        List<Recipe> recipes,
+    private int compareRecipePreference(
+        Recipe candidate,
+        Recipe existing,
         Map<Long, List<RecipeIngredient>> ingredientsByRecipeId,
         Map<Long, List<RecipeStation>> stationsByRecipeId,
         Map<Long, List<RecipeContextRequirement>> conditionsByRecipeId
     ) {
-        int score = 0;
-        for (Recipe recipe : recipes) {
-            List<RecipeIngredient> ingredients = ingredientsByRecipeId.getOrDefault(recipe.getId(), Collections.emptyList());
-            List<RecipeStation> stations = stationsByRecipeId.getOrDefault(recipe.getId(), Collections.emptyList());
-            List<RecipeContextRequirement> conditions = conditionsByRecipeId.getOrDefault(recipe.getId(), Collections.emptyList());
-
-            score += ingredients.size();
-            score += conditions.size() * 2;
-            score += stations.size();
-            score += (int) stations.stream().filter(station -> station.getStationId() != null).count() * 4L;
-            score += (int) ingredients.stream().filter(ingredient -> ingredient.getIngredientItemId() != null).count();
+        int scopeComparison = Integer.compare(scopeSpecificityScore(candidate.getVersionScope()), scopeSpecificityScore(existing.getVersionScope()));
+        if (scopeComparison != 0) {
+            return scopeComparison;
         }
-        return score;
+
+        int candidateScore = recipeQualityScore(candidate, ingredientsByRecipeId, stationsByRecipeId, conditionsByRecipeId);
+        int existingScore = recipeQualityScore(existing, ingredientsByRecipeId, stationsByRecipeId, conditionsByRecipeId);
+        if (candidateScore != existingScore) {
+            return Integer.compare(candidateScore, existingScore);
+        }
+
+        int providerComparison = compareRecipeProviders(candidate.getSourceProvider(), existing.getSourceProvider());
+        if (providerComparison != 0) {
+            return -providerComparison;
+        }
+
+        int sortComparison = Integer.compare(
+            resolveSortOrder(existing.getSortOrder(), 0),
+            resolveSortOrder(candidate.getSortOrder(), 0)
+        );
+        if (sortComparison != 0) {
+            return sortComparison;
+        }
+
+        return Long.compare(
+            existing.getId() == null ? Long.MAX_VALUE : existing.getId(),
+            candidate.getId() == null ? Long.MAX_VALUE : candidate.getId()
+        );
     }
 
-    private int compareRecipeProvidersInverse(String left, String right) {
-        return -compareRecipeProviders(left, right);
+    private int recipeQualityScore(
+        Recipe recipe,
+        Map<Long, List<RecipeIngredient>> ingredientsByRecipeId,
+        Map<Long, List<RecipeStation>> stationsByRecipeId,
+        Map<Long, List<RecipeContextRequirement>> conditionsByRecipeId
+    ) {
+        if (recipe == null) {
+            return 0;
+        }
+
+        int score = 0;
+        List<RecipeIngredient> ingredients = ingredientsByRecipeId.getOrDefault(recipe.getId(), Collections.emptyList());
+        List<RecipeStation> stations = stationsByRecipeId.getOrDefault(recipe.getId(), Collections.emptyList());
+        List<RecipeContextRequirement> conditions = conditionsByRecipeId.getOrDefault(recipe.getId(), Collections.emptyList());
+
+        score += ingredients.size();
+        score += conditions.size() * 2;
+        score += stations.size();
+        score += (int) stations.stream().filter(station -> station.getStationId() != null).count() * 4L;
+        score += (int) ingredients.stream().filter(ingredient -> ingredient.getIngredientItemId() != null).count();
+        return score;
     }
 
     private String buildRecipeStructureSignature(
         Recipe recipe,
         List<RecipeIngredient> ingredients,
         List<RecipeStation> stations,
-        List<RecipeContextRequirement> conditions
+        List<RecipeContextRequirement> conditions,
+        Map<Long, CraftingStation> craftingStationById
     ) {
         return String.join("|",
             String.valueOf(recipe.getResultItemId()),
             String.valueOf(recipe.getResultQuantity()),
-            defaultIfBlank(recipe.getVersionScope(), ""),
+            recipeStructureScope(recipe.getVersionScope()),
             ingredients.stream()
                 .map(ingredient -> String.join("~",
-                    String.valueOf(ingredient.getIngredientItemId()),
-                    defaultIfBlank(ingredient.getIngredientInternalName(), ""),
-                    defaultIfBlank(ingredient.getIngredientNameRaw(), ""),
+                    ingredientIdentitySignature(ingredient),
                     defaultIfBlank(ingredient.getIngredientGroupType(), ""),
-                    defaultIfBlank(ingredient.getQuantityText(), ""),
-                    String.valueOf(resolveSortOrder(ingredient.getSortOrder(), 0))
+                    ingredientQuantitySignature(ingredient)
                 ))
+                .sorted()
                 .collect(Collectors.joining("||")),
             stations.stream()
                 .map(station -> String.join("~",
-                    String.valueOf(station.getStationId()),
-                    String.valueOf(station.getStationItemId()),
-                    defaultIfBlank(station.getStationInternalName(), ""),
-                    defaultIfBlank(station.getStationNameRaw(), ""),
-                    Boolean.TRUE.equals(station.getIsAlternative()) ? "1" : "0",
-                    String.valueOf(resolveSortOrder(station.getSortOrder(), 0))
+                    stationIdentitySignature(station, craftingStationById),
+                    stationAlternativeSignature(station)
                 ))
+                .sorted()
                 .collect(Collectors.joining("||")),
             conditions.stream()
                 .map(condition -> String.join("~",
                     defaultIfBlank(condition.getRefType(), ""),
                     String.valueOf(condition.getRefId()),
                     defaultIfBlank(condition.getRequirementRole(), ""),
-                    defaultIfBlank(condition.getNotes(), ""),
-                    String.valueOf(resolveSortOrder(condition.getSortOrder(), 0))
+                    defaultIfBlank(condition.getNotes(), "")
                 ))
+                .sorted()
                 .collect(Collectors.joining("||"))
         );
+    }
+
+    private String recipeStructureScope(String versionScope) {
+        String normalized = normalizeRecipeScope(versionScope);
+        if (normalized == null || isModernRecipeScope(normalized)) {
+            return "";
+        }
+        return normalized;
+    }
+
+    private int scopeSpecificityScore(String versionScope) {
+        return trimToNull(versionScope) == null ? 0 : 1;
+    }
+
+    private String ingredientQuantitySignature(RecipeIngredient ingredient) {
+        if (ingredient == null) {
+            return "1";
+        }
+
+        String quantityText = trimToNull(ingredient.getQuantityText());
+        Integer quantityMin = ingredient.getQuantityMin();
+        Integer quantityMax = ingredient.getQuantityMax();
+        boolean missingQuantity = quantityText == null && quantityMin == null && quantityMax == null;
+        boolean zeroQuantity = quantityText == null
+            && quantityMin != null
+            && quantityMax != null
+            && quantityMin == 0
+            && quantityMax == 0;
+        if (missingQuantity || zeroQuantity) {
+            return "1";
+        }
+        if (quantityText != null) {
+            return quantityText;
+        }
+        if (quantityMin != null && quantityMax != null && !quantityMin.equals(quantityMax)) {
+            return quantityMin + "-" + quantityMax;
+        }
+        if (quantityMin != null) {
+            return String.valueOf(quantityMin);
+        }
+        if (quantityMax != null) {
+            return String.valueOf(quantityMax);
+        }
+        return "";
+    }
+
+    private String ingredientIdentitySignature(RecipeIngredient ingredient) {
+        if (ingredient == null) {
+            return "";
+        }
+        if (ingredient.getIngredientItemId() != null) {
+            return "id:" + ingredient.getIngredientItemId();
+        }
+        String internalName = trimToNull(ingredient.getIngredientInternalName());
+        if (internalName != null) {
+            return "internal:" + internalName.toLowerCase();
+        }
+        return "raw:" + normalizeNameSignature(ingredient.getIngredientNameRaw());
+    }
+
+    private String stationIdentitySignature(RecipeStation station, Map<Long, CraftingStation> craftingStationById) {
+        if (station == null) {
+            return "";
+        }
+        CraftingStation craftingStation = station.getStationId() == null || craftingStationById == null
+            ? null
+            : craftingStationById.get(station.getStationId());
+        if (craftingStation != null && craftingStation.getItemId() != null) {
+            return "id:" + craftingStation.getItemId();
+        }
+        String stationInternalName = trimToNull(craftingStation == null ? null : craftingStation.getInternalName());
+        if (stationInternalName != null) {
+            return "internal:" + stationInternalName.toLowerCase();
+        }
+        if (station.getStationItemId() != null) {
+            return "id:" + station.getStationItemId();
+        }
+        String internalName = trimToNull(station.getStationInternalName());
+        if (internalName != null) {
+            return "internal:" + internalName.toLowerCase();
+        }
+        String stationName = firstNonBlank(
+            craftingStation == null ? null : craftingStation.getNameZh(),
+            craftingStation == null ? null : craftingStation.getNameEn(),
+            station.getStationNameRaw()
+        );
+        if (stationName != null) {
+            return "raw:" + normalizeNameSignature(stationName);
+        }
+        return station.getStationId() == null ? "" : "station:" + station.getStationId();
+    }
+
+    private String normalizeNameSignature(String value) {
+        return defaultIfBlank(value, "").replaceAll("\\s+", "").toLowerCase();
+    }
+
+    private String stationAlternativeSignature(RecipeStation station) {
+        if (station == null || !hasCanonicalStationIdentity(station)) {
+            return "";
+        }
+        return Boolean.TRUE.equals(station.getIsAlternative()) ? "1" : "";
+    }
+
+    private boolean hasCanonicalStationIdentity(RecipeStation station) {
+        return station.getStationId() != null
+            || station.getStationItemId() != null
+            || trimToNull(station.getStationInternalName()) != null;
+    }
+
+    private String normalizeRecipeScope(String versionScope) {
+        String raw = trimToNull(versionScope);
+        if (raw == null) {
+            return null;
+        }
+
+        List<String> labels = new ArrayList<>();
+        appendScopeIfContains(labels, raw, "Desktop version", "Desktop version");
+        appendScopeIfContains(labels, raw, "电脑版", "Desktop version");
+        appendScopeIfContains(labels, raw, "Console version", "Console version");
+        if (!raw.contains("前代主机版")) {
+            appendScopeIfContains(labels, raw, "主机版", "Console version");
+        }
+        appendScopeIfContains(labels, raw, "Mobile version", "Mobile version");
+        appendScopeIfContains(labels, raw, "移动版", "Mobile version");
+        appendScopeIfContains(labels, raw, "Old-gen console version", "Old-gen console version");
+        appendScopeIfContains(labels, raw, "前代主机版", "Old-gen console version");
+        appendScopeIfContains(labels, raw, "Nintendo 3DS version", "Nintendo 3DS version");
+        appendScopeIfContains(labels, raw, "任天堂3DS版", "Nintendo 3DS version");
+        appendScopeIfContains(labels, raw, "任天堂 3DS 版", "Nintendo 3DS version");
+
+        if (!labels.isEmpty()) {
+            boolean only = raw.contains("only") || raw.contains("仅");
+            return String.join(" ", labels) + (only ? " only" : "");
+        }
+        return raw;
+    }
+
+    private boolean isModernRecipeScope(String normalizedScope) {
+        return Objects.equals(normalizedScope, "Desktop version Console version Mobile version only")
+            || Objects.equals(normalizedScope, "Desktop version Console version Mobile version");
+    }
+
+    private void appendScopeIfContains(List<String> labels, String raw, String pattern, String label) {
+        if (raw.contains(pattern)) {
+            labels.add(label);
+        }
     }
 
     private boolean matchesScopeMode(String versionScope, String scopeMode) {
@@ -464,7 +614,7 @@ public class RecipeServiceImpl implements RecipeService {
     }
 
     private void applyDisplayQuantityDefaults(RecipeIngredientDTO dto) {
-        if (dto == null || "group".equalsIgnoreCase(dto.getIngredientGroupType())) {
+        if (dto == null) {
             return;
         }
 
@@ -676,7 +826,14 @@ public class RecipeServiceImpl implements RecipeService {
 
     private String normalizeRecipeProvider(String provider) {
         String trimmed = trimToNull(provider);
-        return trimmed == null ? "" : trimmed;
+        if (trimmed == null) {
+            return "";
+        }
+        String normalized = trimmed.toLowerCase();
+        if ("terraria.wiki.gg".equals(normalized) || "wiki.gg".equals(normalized)) {
+            return "wiki_gg";
+        }
+        return trimmed;
     }
 
     private Integer resolveSortOrder(Integer explicitSortOrder, int index) {

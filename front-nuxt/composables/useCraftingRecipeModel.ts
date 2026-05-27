@@ -42,6 +42,7 @@ export type CraftingMaterialView = CraftingEntityView & CraftingNodeState & {
   isAnyGroup: boolean
   members: CraftingEntityView[]
   childRecipe: CraftingRecipeOptionView | null
+  childRecipes: CraftingRecipeOptionView[]
 }
 
 export type CraftingRecipeOptionView = {
@@ -190,19 +191,35 @@ const formatMaterialSummary = (material: CraftingMaterialView) => {
 const summarizeMaterials = (materials: CraftingMaterialView[]) =>
   materials.slice(0, 4).map(formatMaterialSummary).join(' / ')
 
+const recipeNodeChildren = (node: PublicItemRecipeTreeNode) => Array.isArray(node.children) ? node.children : []
+
 const canExpandChildRecipe = (node: PublicItemRecipeTreeNode) => {
   const state = nodeState(node)
-  const childHasRecipe = Boolean((Array.isArray(node.children) && node.children.length) || (Array.isArray(node.stations) && node.stations.length))
+  const childHasRecipe = Boolean(recipeNodeChildren(node).length || (Array.isArray(node.stations) && node.stations.length))
   return childHasRecipe && !state.cycleDetected && !state.isReference
 }
 
+const isRecipeOptionNode = (node: PublicItemRecipeTreeNode) =>
+  node.nodeType === 'craft-result' && displayText(node.recipeId) !== ''
+
+const childRecipeOptions = (node: PublicItemRecipeTreeNode, childIndex: number) => {
+  if (!canExpandChildRecipe(node)) return []
+
+  const children = recipeNodeChildren(node)
+  if (children.length > 0 && children.every(isRecipeOptionNode)) {
+    return children.map((childRecipeRoot, optionIndex) => buildRecipeOption(childRecipeRoot, optionIndex))
+  }
+
+  return [buildRecipeOption(node, childIndex)]
+}
+
 const buildRecipeOption = (root: PublicItemRecipeTreeNode, index = 0): CraftingRecipeOptionView => {
-  const materials = (Array.isArray(root.children) ? root.children : []).map((child, childIndex) => {
+  const materials = recipeNodeChildren(root).map((child, childIndex) => {
     const members = (Array.isArray(child.groupMembers) ? child.groupMembers : []).map(memberView)
     const title = nodeTitle(child)
     const representative = members[0]
     const base = entityView(child, childIndex)
-    const childCanExpandRecipe = canExpandChildRecipe(child)
+    const childRecipeList = childRecipeOptions(child, childIndex)
 
 	    return {
 	      ...base,
@@ -211,7 +228,8 @@ const buildRecipeOption = (root: PublicItemRecipeTreeNode, index = 0): CraftingR
 	      fallback: firstGlyph(title),
 	      isAnyGroup: members.length > 0,
 	      members,
-	      childRecipe: childCanExpandRecipe ? buildRecipeOption(child, childIndex) : null,
+	      childRecipe: childRecipeList[0] ?? null,
+	      childRecipes: childRecipeList,
 	      ...nodeState(child),
 	    }
 	  })
