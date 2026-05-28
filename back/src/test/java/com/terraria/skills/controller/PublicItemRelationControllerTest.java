@@ -3,9 +3,11 @@ package com.terraria.skills.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.ItemImageDTO;
 import com.terraria.skills.dto.ItemSourceDTO;
+import com.terraria.skills.dto.PublicItemBuffEffectDTO;
 import com.terraria.skills.service.ItemImageService;
 import com.terraria.skills.service.ItemSourceService;
 import com.terraria.skills.service.ManagedImageUrlPolicy;
+import com.terraria.skills.service.PublicItemService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,12 +46,15 @@ class PublicItemRelationControllerTest {
     @Mock
     private ItemSourceService itemSourceService;
 
+    @Mock
+    private PublicItemService publicItemService;
+
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders
-            .standaloneSetup(new PublicItemRelationController(itemImageService, itemSourceService, MANAGED_IMAGE_URL_POLICY))
+            .standaloneSetup(new PublicItemRelationController(itemImageService, itemSourceService, publicItemService, MANAGED_IMAGE_URL_POLICY))
             .setMessageConverters(new MappingJackson2HttpMessageConverter(new ObjectMapper()))
             .build();
     }
@@ -177,5 +182,36 @@ class PublicItemRelationControllerTest {
             .andExpect(jsonPath("$.data[2].itemImageUrl").doesNotExist());
 
         verify(itemSourceService).getSourcesByItemId(88L);
+    }
+
+    @Test
+    void shouldReturnPublicItemBuffEffects() throws Exception {
+        PublicItemBuffEffectDTO effect = new PublicItemBuffEffectDTO();
+        effect.setId(301L);
+        effect.setBuffId(20L);
+        effect.setBuffSourceId(20);
+        effect.setBuffInternalName("Poisoned");
+        effect.setBuffNameZh("中毒");
+        effect.setRelationType("buff_source_item");
+        effect.setDurationTicks(300);
+
+        when(publicItemService.getPublicItemBuffEffects(77L)).thenReturn(List.of(effect));
+
+        mockMvc.perform(get("/public/items/77/buff-effects"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data[0].buffId").value(20))
+            .andExpect(jsonPath("$.data[0].buffSourceId").value(20))
+            .andExpect(jsonPath("$.data[0].buffInternalName").value("Poisoned"))
+            .andExpect(jsonPath("$.data[0].buffNameZh").value("中毒"))
+            .andExpect(jsonPath("$.data[0].relationType").value("buff_source_item"))
+            .andExpect(jsonPath("$.data[0].durationTicks").value(300))
+            .andExpect(jsonPath("$.data[0].chanceText").doesNotExist())
+            .andExpect(jsonPath("$.data[0].conditions").doesNotExist())
+            .andExpect(jsonPath("$.data[0].sourceProvider").doesNotExist())
+            .andExpect(jsonPath("$.data[0].sourcePage").doesNotExist())
+            .andExpect(jsonPath("$.data[0].sourceRevisionTimestamp").doesNotExist());
+
+        verify(publicItemService).getPublicItemBuffEffects(77L);
     }
 }

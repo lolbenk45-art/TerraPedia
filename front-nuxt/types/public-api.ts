@@ -205,6 +205,36 @@ export type PublicItemSource = {
   item_image_url?: string | null
 }
 
+export type PublicItemBuffEffect = {
+  id?: number | string | null
+  buffId?: number | string | null
+  buff_id?: number | string | null
+  buffSourceId?: number | string | null
+  buff_source_id?: number | string | null
+  buffInternalName?: string | null
+  buff_internal_name?: string | null
+  buffNameEn?: string | null
+  buff_name_en?: string | null
+  buffNameZh?: string | null
+  buff_name_zh?: string | null
+  imageUrl?: string | null
+  image_url?: string | null
+  relationType?: string | null
+  relation_type?: string | null
+  relationLabel?: string | null
+  relation_label?: string | null
+  durationTicks?: number | string | null
+  duration_ticks?: number | string | null
+  durationText?: string | null
+  duration_text?: string | null
+  chanceValue?: number | string | null
+  chance_value?: number | string | null
+  chanceText?: string | null
+  chance_text?: string | null
+  conditions?: string | null
+  notes?: string | null
+}
+
 export type PublicItemRecipeTreeStation = {
   stationItemId?: number | string | null
   stationInternalName?: string | null
@@ -243,10 +273,14 @@ export type PublicItemRecipeTreeNode = {
   itemNameZh?: string | null
   name?: string | null
   displayName?: string | null
+  secondaryName?: string | null
   itemImage?: string | null
   itemImageUrl?: string | null
   previewImage?: string | null
   image?: string | null
+  ingredientGroupType?: string | null
+  groupCanonicalName?: string | null
+  groupMemberNames?: string[] | null
   groupMembers?: PublicItemRecipeTreeGroupMember[] | null
   resultQuantity?: number | string | null
   quantityText?: string | null
@@ -298,6 +332,7 @@ export type PublicItemDetailBundle = {
   item: PublicItemDetail | null
   images: PublicItemImage[]
   sources: PublicItemSource[]
+  buffEffects: PublicItemBuffEffect[]
   recipeTree: PublicItemRecipeTree | null
   source: 'api' | 'missing'
 }

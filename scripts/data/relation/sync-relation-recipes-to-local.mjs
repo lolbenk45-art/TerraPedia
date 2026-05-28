@@ -9,9 +9,23 @@ import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 
 const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
-
 const repoRoot = getProjectRoot();
+let mysqlModule = null;
+
+function loadMysqlModule() {
+  if (mysqlModule) {
+    return mysqlModule;
+  }
+  try {
+    mysqlModule = require('mysql2/promise');
+  } catch (error) {
+    if (error?.code !== 'MODULE_NOT_FOUND') {
+      throw error;
+    }
+    mysqlModule = createRequire(path.join(repoRoot, 'data-query-app', 'package.json'))('mysql2/promise');
+  }
+  return mysqlModule;
+}
 
 function booleanOption(value, fallback = false) {
   if (value == null || value === '') return fallback;
@@ -25,6 +39,13 @@ function toNullableText(value) {
   if (value == null) return null;
   const text = String(value).trim();
   return text.length > 0 ? text : null;
+}
+
+function toNullableNumber(value) {
+  const text = toNullableText(value);
+  if (text == null) return null;
+  const number = Number(text);
+  return Number.isFinite(number) ? number : null;
 }
 
 function normalizeSqlDateTime(value) {
@@ -170,8 +191,8 @@ function toIngredientRow(row, itemMatch) {
     ingredientInternalName: toNullableText(row?.ingredient_internal_name) ?? toNullableText(itemMatch?.internal_name),
     ingredientNameRaw: toNullableText(row?.ingredient_name_raw),
     ingredientGroupType: toNullableText(row?.ingredient_group_type) ?? 'item',
-    quantityMin: Number.isFinite(Number(row?.quantity_min)) ? Number(row.quantity_min) : null,
-    quantityMax: Number.isFinite(Number(row?.quantity_max)) ? Number(row.quantity_max) : null,
+    quantityMin: toNullableNumber(row?.quantity_min),
+    quantityMax: toNullableNumber(row?.quantity_max),
     quantityText: toNullableText(row?.quantity_text),
     sortOrder: Number.isFinite(Number(row?.sort_order)) ? Number(row.sort_order) : 0
   };
@@ -316,6 +337,7 @@ async function defaultExecuteLocal(localDatabase, dependencies, fn) {
     password: config.database?.password ?? 'root',
     database: localDatabase
   };
+  const mysql = loadMysqlModule();
   const connection = await mysql.createConnection(mysqlOptions);
   try {
     return await fn(connection);

@@ -3,11 +3,13 @@ package com.terraria.skills.controller;
 import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.dto.ItemImageDTO;
 import com.terraria.skills.dto.ItemSourceDTO;
+import com.terraria.skills.dto.PublicItemBuffEffectDTO;
 import com.terraria.skills.dto.PublicItemImageDTO;
 import com.terraria.skills.dto.PublicItemSourceDTO;
 import com.terraria.skills.service.ItemImageService;
 import com.terraria.skills.service.ItemSourceService;
 import com.terraria.skills.service.ManagedImageUrlPolicy;
+import com.terraria.skills.service.PublicItemService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,7 @@ public class PublicItemRelationController {
 
     private final ItemImageService itemImageService;
     private final ItemSourceService itemSourceService;
+    private final PublicItemService publicItemService;
     private final ManagedImageUrlPolicy managedImageUrlPolicy;
 
     @GetMapping("/{id}/images")
@@ -56,6 +59,12 @@ public class PublicItemRelationController {
             .map(source -> toPublicSource(itemId, source))
             .toList();
         return ResponseEntity.ok(ApiResponse.success(sources));
+    }
+
+    @GetMapping("/{id}/buff-effects")
+    @Operation(summary = "Get public buff effects sourced from the item")
+    public ResponseEntity<ApiResponse<List<PublicItemBuffEffectDTO>>> getItemBuffEffects(@PathVariable("id") Long itemId) {
+        return ResponseEntity.ok(ApiResponse.success(publicItemService.getPublicItemBuffEffects(itemId)));
     }
 
     private PublicItemImageDTO toPublicImage(Long itemId, ItemImageDTO source) {

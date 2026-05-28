@@ -3,6 +3,7 @@ package com.terraria.skills.service.impl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.terraria.skills.common.PageQuery;
 import com.terraria.skills.dto.CategoryDTO;
+import com.terraria.skills.dto.PublicItemBuffEffectDTO;
 import com.terraria.skills.dto.PublicItemDetailDTO;
 import com.terraria.skills.dto.PublicItemListDTO;
 import com.terraria.skills.dto.PublicItemSuggestionDTO;
@@ -11,15 +12,24 @@ import com.terraria.skills.service.CategoryManagementService;
 import com.terraria.skills.service.ManagedImageUrlPolicy;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 
+import java.sql.ResultSet;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,6 +50,9 @@ class PublicItemServiceImplTest {
 
     @Mock
     private ManagedImageUrlPolicy managedImageUrlPolicy;
+
+    @Mock
+    private JdbcTemplate jdbcTemplate;
 
     @InjectMocks
     private PublicItemServiceImpl publicItemService;
@@ -158,5 +171,62 @@ class PublicItemServiceImplTest {
         assertEquals(item, result);
         verify(itemMapper).selectPublicItemDetailById(eq(77L), eq(TRUSTED_IMAGE_PREFIXES));
         verify(itemMapper, never()).selectItemDetailById(eq(77L));
+    }
+
+    @Test
+    void shouldUseProjectionBuffSourceIdJoinWithoutLocalItemSourceIdColumns() {
+        String sql = PublicItemServiceImpl.ITEM_BUFF_EFFECTS_SQL;
+
+        assertTrue(sql.contains("pb.source_id = ibr.buff_source_id"));
+        assertTrue(sql.contains("li.id = ibr.item_source_id"));
+        assertFalse(sql.contains("pb.id = ibr.buff_source_id"));
+        assertFalse(sql.contains("li." + "source_id"));
+        assertFalse(sql.contains("i." + "source_id"));
+        assertFalse(sql.contains("items." + "source_id"));
+    }
+
+    @Test
+    void shouldMapItemBuffEffectUsingProjectionSourceIdWhenProjectionIdDiffers() throws Exception {
+        ResultSet resultSet = mock(ResultSet.class);
+        when(resultSet.getLong("id")).thenReturn(301L);
+        when(resultSet.getLong("buffId")).thenReturn(999L);
+        when(resultSet.getInt("buffSourceId")).thenReturn(20);
+        when(resultSet.getString("buffInternalName")).thenReturn("Poisoned");
+        when(resultSet.getString("buffNameEn")).thenReturn("Poisoned");
+        when(resultSet.getString("buffNameZh")).thenReturn("中毒");
+        when(resultSet.getString("imageUrl")).thenReturn(" http://localhost:9000/terrapedia-images/buffs/poisoned.png ");
+        when(resultSet.getString("relationType")).thenReturn("buff_source_item");
+        when(resultSet.getInt("durationTicks")).thenReturn(300);
+        when(resultSet.getBigDecimal("chanceValue")).thenReturn(null);
+        when(resultSet.getString("chanceText")).thenReturn(null);
+        when(resultSet.getString("conditions")).thenReturn(null);
+        when(managedImageUrlPolicy.isManagedImageUrlForDomain("http://localhost:9000/terrapedia-images/buffs/poisoned.png", "buffs")).thenReturn(true);
+        doAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            RowMapper<PublicItemBuffEffectDTO> rowMapper = invocation.getArgument(1);
+            return List.of(rowMapper.mapRow(resultSet, 0));
+        }).when(jdbcTemplate).query(
+            eq(PublicItemServiceImpl.ITEM_BUFF_EFFECTS_SQL),
+            ArgumentMatchers.<RowMapper<PublicItemBuffEffectDTO>>any(),
+            eq(77L)
+        );
+
+        List<PublicItemBuffEffectDTO> result = publicItemService.getPublicItemBuffEffects(77L);
+
+        assertEquals(1, result.size());
+        PublicItemBuffEffectDTO effect = result.get(0);
+        assertEquals(999L, effect.getBuffId());
+        assertEquals(20, effect.getBuffSourceId());
+        assertEquals("Poisoned", effect.getBuffInternalName());
+        assertEquals("中毒", effect.getBuffNameZh());
+        assertEquals("buff_source_item", effect.getRelationType());
+        assertEquals("来源物品", effect.getRelationLabel());
+        assertEquals(300, effect.getDurationTicks());
+        assertEquals("5秒", effect.getDurationText());
+        assertEquals("http://localhost:9000/terrapedia-images/buffs/poisoned.png", effect.getImageUrl());
+        assertNull(effect.getChanceValue());
+        assertNull(effect.getChanceText());
+        assertNull(effect.getConditions());
+        verify(jdbcTemplate).query(eq(PublicItemServiceImpl.ITEM_BUFF_EFFECTS_SQL), ArgumentMatchers.<RowMapper<PublicItemBuffEffectDTO>>any(), eq(77L));
     }
 }

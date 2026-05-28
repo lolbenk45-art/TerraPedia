@@ -509,6 +509,35 @@ class RecipeServiceImplTest {
     }
 
     @Test
+    void shouldDefaultSingleGroupIngredientQuantityToOneInRecipeDto() {
+        Recipe recipe = recipe(60L, "wiki_gg");
+        recipe.setResultItemId(8L);
+        recipe.setResultInternalName("Torch");
+        recipe.setResultQuantity(3);
+        when(recipeMapper.selectList(any())).thenReturn(List.of(recipe));
+
+        RecipeIngredient anyWood = new RecipeIngredient();
+        anyWood.setRecipeId(60L);
+        anyWood.setIngredientNameRaw("任意木材");
+        anyWood.setIngredientGroupType("group");
+        anyWood.setQuantityMin(0);
+        anyWood.setQuantityMax(0);
+        anyWood.setSortOrder(1);
+        when(recipeIngredientMapper.selectList(any())).thenReturn(List.of(anyWood));
+
+        when(itemMapper.selectBatchIds(any())).thenReturn(List.of(
+            item(8L, "Torch", "Torch", "火把", null)
+        ));
+
+        List<RecipeDTO> recipes = service.getRecipesByResultItemId(8L);
+
+        assertEquals(1, recipes.size());
+        assertEquals("1", recipes.get(0).getIngredients().get(0).getQuantityText());
+        assertEquals(1, recipes.get(0).getIngredients().get(0).getQuantityMin());
+        assertEquals(1, recipes.get(0).getIngredients().get(0).getQuantityMax());
+    }
+
+    @Test
     void shouldUseManagedCraftingStationImageUrlWhenItemImageIsMissing() {
         Recipe recipe = recipe(57L, "manual_admin");
         when(recipeMapper.selectList(any())).thenReturn(List.of(recipe));

@@ -127,6 +127,47 @@ test('buildRecipeSyncPayload resolves recipes by internal name and unique locali
   assert.match(payload.unresolvedRecipes[0].reason, /result_item_not_found/);
 });
 
+test('buildRecipeSyncPayload preserves null ingredient quantities from relation rows', () => {
+  const payload = buildRecipeSyncPayload({
+    localItems: [
+      { id: 2, internal_name: 'Torch', name: 'Torch', name_zh: '火把' }
+    ],
+    recipeHeads: [
+      {
+        recipe_key: 'torch-any-wood',
+        result_internal_name: 'Torch',
+        result_name: 'Torch',
+        result_quantity: 3,
+        source_provider: 'wiki_gg',
+        review_status: 'resolved'
+      }
+    ],
+    recipeIngredients: [
+      {
+        recipe_key: 'torch-any-wood',
+        ingredient_internal_name: null,
+        ingredient_name_raw: 'Any Wood',
+        ingredient_group_type: 'group',
+        quantity_min: null,
+        quantity_max: null,
+        quantity_text: null,
+        sort_order: 0
+      }
+    ]
+  });
+
+  assert.deepEqual(payload.resolvedRecipes[0].ingredientRows[0], {
+    ingredientItemId: null,
+    ingredientInternalName: null,
+    ingredientNameRaw: 'Any Wood',
+    ingredientGroupType: 'group',
+    quantityMin: null,
+    quantityMax: null,
+    quantityText: null,
+    sortOrder: 0
+  });
+});
+
 test('runRelationRecipesToLocalSync dry-run writes a report without mutating local tables', async () => {
   const statements = [];
   let reportPayload = null;

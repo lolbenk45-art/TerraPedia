@@ -3,6 +3,7 @@ import RecipeSummaryCard from '~/components/crafting/RecipeSummaryCard.vue'
 import { usePublicItemDetail } from '~/composables/usePublicItemDetail'
 import { formatTerrariaPrice, toPriceNumber } from '~/utils/price'
 import type {
+  PublicItemBuffEffect,
   PublicItemDetail,
   PublicItemDetailBundle,
   PublicItemImage,
@@ -260,6 +261,60 @@ const sourceEntryGroups = computed(() => {
     .filter((group) => group.entries.length > 0)
 })
 
+const buffRelationLabel = (effect: PublicItemBuffEffect) => {
+  const explicit = safeItemDisplayText(effect.relationLabel, effect.relation_label)
+  if (explicit) return explicit
+
+  const relationType = firstText(effect.relationType, effect.relation_type).toLowerCase()
+  if (relationType === 'buff_source_item') return '来源物品'
+
+  return '关联状态效果'
+}
+
+const buffDurationLabel = (effect: PublicItemBuffEffect) => {
+  const explicit = safeItemDisplayText(effect.durationText, effect.duration_text)
+  if (explicit) return explicit
+
+  const durationTicks = Number(effect.durationTicks ?? effect.duration_ticks)
+  if (!Number.isFinite(durationTicks) || durationTicks <= 0) return ''
+
+  const seconds = durationTicks / 60
+  const secondsText = Number.isInteger(seconds) ? String(seconds) : seconds.toFixed(1).replace(/\.0$/, '')
+  return `${secondsText} 秒（${durationTicks} ticks）`
+}
+
+const buffChanceLabel = (effect: PublicItemBuffEffect) => {
+  const explicit = safeItemDisplayText(effect.chanceText, effect.chance_text)
+  if (explicit) return explicit
+
+  return percentLabel(effect.chanceValue ?? effect.chance_value)
+}
+
+const buffEffectEntries = computed(() => rawBundle.value.buffEffects.map((effect: PublicItemBuffEffect, index) => {
+  const name = safeItemDisplayText(
+    effect.buffNameZh,
+    effect.buff_name_zh,
+    effect.buffNameEn,
+    effect.buff_name_en,
+  )
+  const internalFallback = firstText(effect.buffInternalName, effect.buff_internal_name, effect.buffId, effect.buff_id, index + 1)
+  const meta = [
+    buffDurationLabel(effect),
+    buffChanceLabel(effect),
+    safeItemDisplayText(effect.conditions),
+  ].filter(Boolean)
+
+  return {
+    id: firstText(effect.id, effect.buffSourceId, effect.buff_source_id, effect.buffId, effect.buff_id, index),
+    name: name || '状态效果',
+    relation: buffRelationLabel(effect),
+    meta: meta.length ? meta.join(' · ') : '效果来源已确认',
+    notes: safeItemDisplayText(effect.notes),
+    image: firstImageUrl(effect.imageUrl, effect.image_url),
+    fallback: Array.from(name || internalFallback || '状')[0] ?? '状',
+  }
+}))
+
 const recipeTreeVariants = computed(() => {
   const tree: PublicItemRecipeTree | null = rawBundle.value.recipeTree
   const variants = Array.isArray(tree?.variants) ? tree.variants : []
@@ -356,6 +411,7 @@ const itemCoverageRows = computed(() => [
   { label: '游戏内提示', value: itemTooltipText.value ? '可查看' : '暂无提示' },
   { label: '价格', value: itemHasPrice.value ? '可查看' : '暂无价格' },
   { label: '来源', value: sourceEntries.value.length ? `${sourceEntries.value.length} 条来源记录` : '暂无来源' },
+  { label: '状态效果', value: buffEffectEntries.value.length ? `${buffEffectEntries.value.length} 条状态效果` : '暂无状态效果' },
   { label: '制作', value: recipeTreeSummary.value ? '可查看制作路线' : '暂无制作资料' },
   { label: '图片', value: imageEntries.value.length ? `${imageEntries.value.length} 张图片` : '暂无图片' },
 ])
@@ -483,6 +539,32 @@ onMounted(() => {
             <p v-else class="tp-detail-empty">还没有可展示的掉落、购买、制作或探索来源记录。</p>
           </section>
 
+          <section :class="['detail-module dark-card item-buff-effect-module', detailLayout.detailModuleClass]">
+            <div class="module-title">
+              <h2>状态效果</h2>
+              <span class="tag moss">{{ buffEffectEntries.length }} 条</span>
+            </div>
+            <div v-if="buffEffectEntries.length" class="tp-detail-relation-grid">
+              <div v-for="effect in buffEffectEntries" :key="String(effect.id)" :class="['detail-relation-row item-buff-effect-row', detailLayout.detailRelationRowClass]">
+                <span class="sprite-frame detail-relation-icon">
+                  <CommonPreviewImage
+                    :src="effect.image"
+                    :alt="effect.name"
+                    :fallback="effect.fallback"
+                    fallback-icon="icon-buff"
+                  />
+                </span>
+                <div class="detail-relation-copy">
+                  <b>{{ effect.name }}</b>
+                  <span>{{ effect.relation }}</span>
+                  <small v-if="effect.notes">{{ effect.notes }}</small>
+                </div>
+                <strong class="detail-relation-meta">{{ effect.meta }}</strong>
+              </div>
+            </div>
+            <p v-else class="tp-detail-empty">暂无状态效果。</p>
+          </section>
+
           <section v-if="imageEntries.length" :class="['detail-module dark-card', detailLayout.detailModuleClass]">
             <div class="module-title">
               <h2>图片画廊</h2>
@@ -587,10 +669,15 @@ onMounted(() => {
 }
 
 .item-source-module,
+.item-buff-effect-module,
 .grouped-source-list,
 .item-source-group {
   display: grid;
   gap: 12px;
+}
+
+.item-buff-effect-row {
+  min-height: 66px;
 }
 
 .detail-subgroup-title {

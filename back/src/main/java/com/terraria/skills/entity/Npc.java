@@ -85,6 +85,9 @@ public class Npc implements Serializable {
     @TableField(value = "value", updateStrategy = FieldStrategy.NEVER)
     private Integer value;
 
+    @TableField("buff_immune")
+    private String buffImmune;
+
     @TableField("loot_items_json")
     private String lootItemsJson;
 

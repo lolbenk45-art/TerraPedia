@@ -1,4 +1,5 @@
 import type {
+  PublicItemBuffEffect,
   PublicItemDetail,
   PublicItemDetailBundle,
   PublicItemImage,
@@ -10,6 +11,7 @@ const missingPublicItemDetailBundle = (): PublicItemDetailBundle => ({
   item: null,
   images: [],
   sources: [],
+  buffEffects: [],
   recipeTree: null,
   source: 'missing',
 })
@@ -57,9 +59,10 @@ export const fetchPublicItemDetailBundle = async (itemId: string | number): Prom
       return missingPublicItemDetailBundle()
     }
 
-    const [rawImages, rawSources, recipeTree] = await Promise.all([
+    const [rawImages, rawSources, rawBuffEffects, recipeTree] = await Promise.all([
       fetchOptionalPublicItemRelation<PublicItemImage[]>(`/public/items/${normalizedItemId}/images`, []),
       fetchOptionalPublicItemRelation<PublicItemSource[]>(`/public/items/${normalizedItemId}/sources`, []),
+      fetchOptionalPublicItemRelation<PublicItemBuffEffect[]>(`/public/items/${normalizedItemId}/buff-effects`, []),
       fetchOptionalPublicItemRelation<PublicItemRecipeTree | null>(`/public/items/${normalizedItemId}/recipe-tree`, null),
     ])
 
@@ -67,6 +70,7 @@ export const fetchPublicItemDetailBundle = async (itemId: string | number): Prom
       item,
       images: Array.isArray(rawImages) ? rawImages.map(normalizePublicItemImage) : [],
       sources: Array.isArray(rawSources) ? rawSources : [],
+      buffEffects: Array.isArray(rawBuffEffects) ? rawBuffEffects : [],
       recipeTree,
       source: 'api',
     }

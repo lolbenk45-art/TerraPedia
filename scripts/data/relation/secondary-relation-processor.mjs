@@ -312,6 +312,12 @@ function parseProjectileIdValues(value) {
   return values;
 }
 
+function parseBuffImmuneSourceIds(rawJson) {
+  const parsed = parseJsonObject(rawJson);
+  const directValues = parseProjectileIdValues(parsed.buffImmune);
+  return directValues.length > 0 ? directValues : parseProjectileIdValues(parsed.extras?.buffImmune);
+}
+
 function extractProjectileFields(rawJson, candidates) {
   const parsed = parseJsonObject(rawJson);
   for (const candidate of candidates) {
@@ -425,6 +431,7 @@ export function buildSecondaryRelations({
 } = {}) {
   const maintItemIndex = buildMaintIdentityIndex(maintItemRows);
   const maintNpcIndex = buildMaintIdentityIndex(maintNpcRows);
+  const maintBuffIndex = buildMaintIdentityIndex(maintBuffRows);
   const itemBiomeRelations = itemBiomeRows.map((row) => {
     const trace = normalizeTrace('maint_item_biomes', row);
     return {
@@ -511,7 +518,7 @@ export function buildSecondaryRelations({
   });
 
   const npcBuffFactIssues = [];
-  const npcBuffRelations = maintBuffRows.flatMap((row) => {
+  const inflictingNpcBuffRelations = maintBuffRows.flatMap((row) => {
     let parsed = {};
     try {
       parsed = typeof row.raw_json === 'string' ? JSON.parse(row.raw_json) : row.raw_json ?? {};
@@ -576,6 +583,47 @@ export function buildSecondaryRelations({
         }));
       });
   });
+
+  const immuneNpcBuffRelations = maintNpcRows.flatMap((row) => {
+    const buffSourceIds = parseBuffImmuneSourceIds(row.raw_json);
+    const trace = normalizeTrace('maint_npcs', row);
+    return buffSourceIds.flatMap((buffSourceId) => {
+      const buffIdentity = maintBuffIndex.bySourceId.get(buffSourceId) ?? null;
+      if (buffIdentity == null) {
+        return [];
+      }
+      const npcSourceId = toNullableNumber(row.source_id);
+      const npcInternalName = normalizeText(row.internal_name ?? row.npc_internal_name);
+      return [{
+        recordKey: createRecordKey({
+          type: 'npc_buff_relation',
+          relationType: 'immune',
+          npcSourceId,
+          npcInternalName,
+          buffSourceId: buffIdentity.sourceId
+        }),
+        npcSourceId,
+        npcInternalName,
+        npcName: normalizeText(row.english_name ?? row.name ?? row.npc_name),
+        buffSourceId: toNullableNumber(buffIdentity.sourceId),
+        buffInternalName: normalizeText(buffIdentity.internalName),
+        relationType: 'immune',
+        durationTicks: null,
+        chanceValue: null,
+        chanceText: null,
+        conditions: null,
+        reviewStatus: relationStatus.resolved,
+        confidence: confidence.high,
+        reason: 'maint_npc_buff_immune',
+        ...trace
+      }];
+    });
+  });
+
+  const npcBuffRelations = [
+    ...inflictingNpcBuffRelations,
+    ...immuneNpcBuffRelations
+  ];
 
   const projectilesBySourceId = new Map(
     maintProjectileRows

@@ -174,6 +174,123 @@ test('buildSecondaryRelations requires buff facts to resolve against maint item 
   );
 });
 
+test('buildSecondaryRelations promotes npc raw_json buffImmune as immune buff relations', () => {
+  const actual = buildSecondaryRelations({
+    maintBuffRows: [
+      { id: 11, source_id: 20, internal_name: 'Poisoned', raw_json: '{}' },
+      { id: 12, source_id: 375, internal_name: 'Hemorrhage', raw_json: '{}' },
+      { id: 13, source_id: 24, internal_name: 'OnFire', raw_json: '{}' }
+    ],
+    maintNpcRows: [
+      {
+        id: 21,
+        source_id: 473,
+        internal_name: 'BigMimicCorruption',
+        english_name: 'Corrupt Mimic',
+        raw_json: JSON.stringify({ buffImmune: '20, 375, 24' })
+      }
+    ]
+  });
+
+  assert.deepEqual(
+    actual.npcBuffRelations.map((relation) => ({
+      npcSourceId: relation.npcSourceId,
+      npcInternalName: relation.npcInternalName,
+      buffSourceId: relation.buffSourceId,
+      buffInternalName: relation.buffInternalName,
+      relationType: relation.relationType,
+      durationTicks: relation.durationTicks,
+      chanceValue: relation.chanceValue,
+      chanceText: relation.chanceText,
+      conditions: relation.conditions,
+      reviewStatus: relation.reviewStatus,
+      confidence: relation.confidence,
+      reason: relation.reason,
+      sourceMaintTable: relation.sourceMaintTable,
+      sourceMaintId: relation.sourceMaintId
+    })),
+    [
+      {
+        npcSourceId: 473,
+        npcInternalName: 'BigMimicCorruption',
+        buffSourceId: 20,
+        buffInternalName: 'Poisoned',
+        relationType: 'immune',
+        durationTicks: null,
+        chanceValue: null,
+        chanceText: null,
+        conditions: null,
+        reviewStatus: 'resolved',
+        confidence: 1,
+        reason: 'maint_npc_buff_immune',
+        sourceMaintTable: 'maint_npcs',
+        sourceMaintId: 21
+      },
+      {
+        npcSourceId: 473,
+        npcInternalName: 'BigMimicCorruption',
+        buffSourceId: 375,
+        buffInternalName: 'Hemorrhage',
+        relationType: 'immune',
+        durationTicks: null,
+        chanceValue: null,
+        chanceText: null,
+        conditions: null,
+        reviewStatus: 'resolved',
+        confidence: 1,
+        reason: 'maint_npc_buff_immune',
+        sourceMaintTable: 'maint_npcs',
+        sourceMaintId: 21
+      },
+      {
+        npcSourceId: 473,
+        npcInternalName: 'BigMimicCorruption',
+        buffSourceId: 24,
+        buffInternalName: 'OnFire',
+        relationType: 'immune',
+        durationTicks: null,
+        chanceValue: null,
+        chanceText: null,
+        conditions: null,
+        reviewStatus: 'resolved',
+        confidence: 1,
+        reason: 'maint_npc_buff_immune',
+        sourceMaintTable: 'maint_npcs',
+        sourceMaintId: 21
+      }
+    ]
+  );
+  assert.equal(new Set(actual.npcBuffRelations.map((relation) => relation.recordKey)).size, 3);
+  assert.equal(actual.summary.npcBuffRows, 3);
+});
+
+test('buildSecondaryRelations promotes npc raw_json extras buffImmune as immune buff relations', () => {
+  const actual = buildSecondaryRelations({
+    maintBuffRows: [
+      { id: 11, source_id: 20, internal_name: 'Poisoned', raw_json: '{}' },
+      { id: 12, source_id: 375, internal_name: 'Hemorrhage', raw_json: '{}' }
+    ],
+    maintNpcRows: [
+      {
+        id: 21,
+        source_id: 473,
+        internal_name: 'BigMimicCorruption',
+        english_name: 'Corrupt Mimic',
+        raw_json: JSON.stringify({ extras: { buffImmune: '20, 375' } })
+      }
+    ]
+  });
+
+  assert.deepEqual(
+    actual.npcBuffRelations.map((relation) => [relation.relationType, relation.buffSourceId, relation.reason]),
+    [
+      ['immune', 20, 'maint_npc_buff_immune'],
+      ['immune', 375, 'maint_npc_buff_immune']
+    ]
+  );
+  assert.equal(actual.summary.npcBuffRows, 2);
+});
+
 test('buildSecondaryRelations resolves buff facts with safe maint identity fallbacks only', () => {
   const actual = buildSecondaryRelations({
     maintBuffRows: [

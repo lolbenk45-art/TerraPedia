@@ -695,6 +695,197 @@ class PublicNpcServiceImplImageTest {
     }
 
     @Test
+    void shouldExposeNpcMoneyDropsFromValueAndDifficultyExtras() {
+        String goldIcon = "http://localhost:9000/terrapedia-images/items/wiki/coins/gold-coin.png";
+        String silverIcon = "http://localhost:9000/terrapedia-images/items/wiki/coins/silver-coin.png";
+        Npc npc = npc(473L, 473L, "BigMimicCorruption", "Corrupt Mimic");
+        npc.setValue(30000);
+        npc.setRawJson("""
+            {
+              "economy": {"value": 30000},
+              "extras": {"value_e": 75000, "value_m": 75000}
+            }
+            """);
+        npc.setIsFriendly(false);
+        npc.setIsTownNpc(false);
+        npc.setIsBoss(false);
+        when(npcMapper.selectById(473L)).thenReturn(npc);
+        when(jdbcTemplate.queryForList(contains("name IN ('Copper Coin', 'Silver Coin', 'Gold Coin', 'Platinum Coin')"))).thenReturn(List.of(
+            Map.of("name", "Gold Coin", "image", goldIcon),
+            Map.of("name", "Silver Coin", "image", silverIcon)
+        ));
+
+        NpcDetailDTO detail = newService().getNpcById(473L);
+
+        assertEquals(3, detail.getMoneyDrops().size());
+        assertEquals("normal", detail.getMoneyDrops().get(0).getMode());
+        assertEquals("普通", detail.getMoneyDrops().get(0).getLabel());
+        assertEquals(3, detail.getMoneyDrops().get(0).getTokens().get(0).getAmount());
+        assertEquals("gold", detail.getMoneyDrops().get(0).getTokens().get(0).getUnit());
+        assertEquals("expert", detail.getMoneyDrops().get(1).getMode());
+        assertEquals("专家", detail.getMoneyDrops().get(1).getLabel());
+        assertEquals(7, detail.getMoneyDrops().get(1).getTokens().get(0).getAmount());
+        assertEquals("gold", detail.getMoneyDrops().get(1).getTokens().get(0).getUnit());
+        assertEquals(50, detail.getMoneyDrops().get(1).getTokens().get(1).getAmount());
+        assertEquals("silver", detail.getMoneyDrops().get(1).getTokens().get(1).getUnit());
+        assertEquals("master", detail.getMoneyDrops().get(2).getMode());
+        assertEquals("大师", detail.getMoneyDrops().get(2).getLabel());
+        assertEquals(7, detail.getMoneyDrops().get(2).getTokens().get(0).getAmount());
+        assertEquals("gold", detail.getMoneyDrops().get(2).getTokens().get(0).getUnit());
+        assertEquals(50, detail.getMoneyDrops().get(2).getTokens().get(1).getAmount());
+        assertEquals("silver", detail.getMoneyDrops().get(2).getTokens().get(1).getUnit());
+    }
+
+    @Test
+    void shouldSynthesizeImmuneBuffRelationsFromNpcBuffImmune() {
+        Npc npc = npc(473L, 473L, "BigMimicCorruption", "Corrupt Mimic");
+        npc.setBuffImmune("20, 375, 24");
+        when(npcMapper.selectById(473L)).thenReturn(npc);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM buffs"), any(Object[].class))).thenReturn(List.of(
+            Map.of("id", 20L, "buffId", 20L, "buffSourceId", 20, "buffInternalName", "Poisoned", "buffNameEn", "Poisoned", "buffNameZh", "中毒", "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/poisoned.png"),
+            Map.of("id", 375L, "buffId", 375L, "buffSourceId", 375, "buffInternalName", "Hemorrhage", "buffNameEn", "Hemorrhage", "buffNameZh", "出血", "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/hemorrhage.png"),
+            Map.of("id", 24L, "buffId", 24L, "buffSourceId", 24, "buffInternalName", "OnFire", "buffNameEn", "On Fire!", "buffNameZh", "着火了！", "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/onfire.png")
+        ));
+
+        List<NpcBuffRelationDTO> result = newService().getNpcBuffRelations(473L);
+
+        assertEquals(3, result.size());
+        assertEquals("immune", result.get(0).getRelationType());
+        assertNull(result.get(0).getId());
+        assertEquals(20, result.get(0).getBuffSourceId());
+        assertEquals("中毒", result.get(0).getBuffNameZh());
+        assertEquals("http://localhost:9000/terrapedia-images/buffs/wiki/poisoned.png", result.get(0).getImageUrl());
+        assertEquals("immune", result.get(1).getRelationType());
+        assertNull(result.get(1).getId());
+        assertEquals(375, result.get(1).getBuffSourceId());
+        assertEquals("出血", result.get(1).getBuffNameZh());
+        assertEquals("immune", result.get(2).getRelationType());
+        assertNull(result.get(2).getId());
+        assertEquals(24, result.get(2).getBuffSourceId());
+        assertEquals("着火了！", result.get(2).getBuffNameZh());
+    }
+
+    @Test
+    void shouldSynthesizeImmuneBuffRelationsFromRawJsonWhenBuffImmuneColumnIsBlank() {
+        Npc npc = npc(473L, 473L, "BigMimicCorruption", "Corrupt Mimic");
+        npc.setBuffImmune(" ");
+        npc.setRawJson("""
+            {
+              "buffImmune": "20, 375"
+            }
+            """);
+        when(npcMapper.selectById(473L)).thenReturn(npc);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM buffs"), any(Object[].class))).thenReturn(List.of(
+            Map.of("id", 20L, "buffId", 20L, "buffSourceId", 20, "buffInternalName", "Poisoned", "buffNameEn", "Poisoned", "buffNameZh", "中毒", "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/poisoned.png"),
+            Map.of("id", 375L, "buffId", 375L, "buffSourceId", 375, "buffInternalName", "Hemorrhage", "buffNameEn", "Hemorrhage", "buffNameZh", "出血", "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/hemorrhage.png")
+        ));
+
+        List<NpcBuffRelationDTO> result = newService().getNpcBuffRelations(473L);
+
+        assertEquals(2, result.size());
+        assertEquals(20, result.get(0).getBuffSourceId());
+        assertEquals(375, result.get(1).getBuffSourceId());
+    }
+
+    @Test
+    void shouldSetNpcDetailBuffRelationCountFromRuntimeSynthesizedRelations() {
+        Npc npc = npc(473L, 473L, "BigMimicCorruption", "Corrupt Mimic");
+        npc.setBuffImmune("20, 375");
+        when(npcMapper.selectById(473L)).thenReturn(npc);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM buffs"), any(Object[].class))).thenReturn(List.of(
+            Map.of("id", 20L, "buffId", 20L, "buffSourceId", 20, "buffInternalName", "Poisoned", "buffNameEn", "Poisoned", "buffNameZh", "中毒", "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/poisoned.png"),
+            Map.of("id", 375L, "buffId", 375L, "buffSourceId", 375, "buffInternalName", "Hemorrhage", "buffNameEn", "Hemorrhage", "buffNameZh", "出血", "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/hemorrhage.png")
+        ));
+
+        NpcDetailDTO detail = newService().getNpcById(473L);
+
+        assertEquals(2, detail.getBuffRelationCount());
+    }
+
+    @Test
+    void shouldAppendOnlyMissingImmuneBuffRelationsAndKeepInflictsFilter() {
+        Npc npc = npc(473L, 473L, "BigMimicCorruption", "Corrupt Mimic");
+        npc.setBuffImmune("20, 375");
+        when(npcMapper.selectById(473L)).thenReturn(npc);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of(
+            Map.of(
+                "id", 1L,
+                "buffId", 24L,
+                "buffSourceId", 24,
+                "relationType", "inflicts",
+                "buffInternalName", "OnFire",
+                "buffNameEn", "On Fire!",
+                "buffNameZh", "着火了！",
+                "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/onfire.png"
+            ),
+            Map.of(
+                "id", 2L,
+                "buffId", 20L,
+                "buffSourceId", 20,
+                "relationType", "immune",
+                "buffInternalName", "Poisoned",
+                "buffNameEn", "Poisoned",
+                "buffNameZh", "中毒",
+                "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/poisoned.png"
+            )
+        ));
+        when(jdbcTemplate.queryForList(contains("FROM buffs"), any(Object[].class))).thenReturn(List.of(
+            Map.of("id", 20L, "buffId", 20L, "buffSourceId", 20, "buffInternalName", "Poisoned", "buffNameEn", "Poisoned", "buffNameZh", "中毒", "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/poisoned.png"),
+            Map.of("id", 375L, "buffId", 375L, "buffSourceId", 375, "buffInternalName", "Hemorrhage", "buffNameEn", "Hemorrhage", "buffNameZh", "出血", "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/hemorrhage.png")
+        ));
+
+        List<NpcBuffRelationDTO> result = newService().getNpcBuffRelations(473L);
+
+        assertEquals(3, result.size());
+        assertEquals("inflicts", result.get(0).getRelationType());
+        assertEquals(24, result.get(0).getBuffSourceId());
+        assertEquals("immune", result.get(1).getRelationType());
+        assertEquals(20, result.get(1).getBuffSourceId());
+        assertEquals("immune", result.get(2).getRelationType());
+        assertEquals(375, result.get(2).getBuffSourceId());
+        assertNull(result.get(2).getId());
+
+        verify(jdbcTemplate).queryForList(
+            contains("nbr.relation_type IN ('inflicts', 'immune')"),
+            any(Object[].class)
+        );
+        verify(jdbcTemplate).queryForList(
+            contains("FROM buffs"),
+            any(Object[].class)
+        );
+    }
+
+    @Test
+    void shouldKeepInflictingBuffRelationsWhenImmuneBuffLookupFails() {
+        Npc npc = npc(473L, 473L, "BigMimicCorruption", "Corrupt Mimic");
+        npc.setBuffImmune("20, 375");
+        when(npcMapper.selectById(473L)).thenReturn(npc);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of(
+            Map.of(
+                "id", 1L,
+                "buffId", 24L,
+                "buffSourceId", 24,
+                "relationType", "inflicts",
+                "buffInternalName", "OnFire",
+                "buffNameEn", "On Fire!",
+                "buffNameZh", "着火了！",
+                "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/onfire.png"
+            )
+        ));
+        when(jdbcTemplate.queryForList(contains("FROM buffs"), any(Object[].class)))
+            .thenThrow(new RuntimeException("buff lookup unavailable"));
+
+        List<NpcBuffRelationDTO> result = newService().getNpcBuffRelations(473L);
+
+        assertEquals(1, result.size());
+        assertEquals("inflicts", result.get(0).getRelationType());
+        assertEquals(24, result.get(0).getBuffSourceId());
+    }
+
+    @Test
     void shouldOmitMoneyDropsForNpcDetailWhenNpcIsNotEligible() {
         Npc friendly = npc(42L, 42L, "Bunny", "Bunny");
         friendly.setValue(10060);

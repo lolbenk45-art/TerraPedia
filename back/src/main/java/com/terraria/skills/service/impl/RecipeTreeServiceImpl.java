@@ -202,7 +202,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         node.setDepth(depth);
 
         boolean groupNode = "group".equalsIgnoreCase(node.getIngredientGroupType());
-        applyDisplayQuantity(node, ingredient, groupNode);
+        applyDisplayQuantity(node, ingredient);
         if (groupNode) {
             String fallbackGroupLabel = firstNonBlank(rawIngredientName, ingredient.getIngredientInternalName());
             RecipeGroupReference reference = groupReferences.get(normalizeKey(fallbackGroupLabel));
@@ -293,7 +293,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         return node;
     }
 
-    private void applyDisplayQuantity(RecipeTreeNodeDTO node, RecipeIngredientDTO ingredient, boolean groupNode) {
+    private void applyDisplayQuantity(RecipeTreeNodeDTO node, RecipeIngredientDTO ingredient) {
         String quantityText = trimToNull(ingredient.getQuantityText());
         Integer quantityMin = ingredient.getQuantityMin();
         Integer quantityMax = ingredient.getQuantityMax();
@@ -305,7 +305,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
             && quantityMin == 0
             && quantityMax == 0;
 
-        if (!groupNode && (missingQuantity || zeroQuantity)) {
+        if (missingQuantity || zeroQuantity) {
             node.setQuantityText("1");
             node.setQuantityMin(1);
             node.setQuantityMax(1);

@@ -559,6 +559,8 @@ const requiredPublicDataLayerMarkers = {
     '/public/items/${normalizedItemId}/images',
     '/public/items/${normalizedItemId}/sources',
     '/public/items/${normalizedItemId}/recipe-tree',
+    '/public/items/${normalizedItemId}/buff-effects',
+    'rawBuffEffects',
     'resolvePreviewImageUrl',
     'source: \'missing\'',
   ],
@@ -1519,6 +1521,15 @@ for (const path of scanFiles) {
   }
 
   if (path === 'types/public-api.ts') {
+    for (const marker of [
+      'export type PublicItemBuffEffect',
+      'buffEffects: PublicItemBuffEffect[]',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: item detail buff-effect consumption must expose public API contract marker ${marker}`)
+      }
+    }
+
     const livingPreferenceType = content.match(/export type PublicNpcLivingPreference = \{[\s\S]*?\n\}/)?.[0] ?? ''
     if (livingPreferenceType.includes('sourceText') || livingPreferenceType.includes('source_text')) {
       violations.push(`${path}: PublicNpcLivingPreference must not expose raw sourceText fields`)
@@ -1579,6 +1590,9 @@ for (const path of scanFiles) {
       'trustedLootRemainderEntries',
       'shopEntries',
       'buffRelations',
+      'inflictingBuffRelations',
+      'immuneBuffRelations',
+      'otherBuffRelations',
       'materialStatus',
       'npcStatRows',
       'npcAssetCards',
@@ -1611,6 +1625,9 @@ for (const path of scanFiles) {
       '出售物品',
       '掉落物',
       '状态效果',
+      '当前 NPC 会施加',
+      '当前 NPC 免疫',
+      '效果关系已确认',
       '加载 NPC 详情',
     ]) {
       if (!content.includes(marker)) {
@@ -1650,6 +1667,10 @@ for (const path of scanFiles) {
 
     if (content.includes('[entry.relationType,')) {
       violations.push(`${path}: NPC buff relation rows must not render raw relationType enums`)
+    }
+
+    if (content.includes("'资料未标注'") || content.includes('"资料未标注"')) {
+      violations.push(`${path}: NPC buff-effect fallback must not imply fake or unknown relation data`)
     }
 
     if (!content.includes('shopPriceTokens(entry)') || !content.includes('formatTerrariaPriceTokens(shopPriceTokens(entry))')) {
@@ -1714,17 +1735,29 @@ for (const path of scanFiles) {
 
     for (const marker of [
       'npc.value?.moneyDrops',
+      'mode = firstText(drop.mode)',
+      'label = safeNpcDisplayText(drop.label)',
       'formatTerrariaPriceTokens(drop.tokens)',
       'resolveTerrariaPriceUnitLabel(token.unit)',
       'token.iconUrl',
       'class="npc-money-token"',
       'class="npc-money-token-row"',
+      'class="npc-money-mode-badge"',
+      'npcMoneyModeMeta',
       'decorative',
-      '24px',
+      '32px',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: NPC money drops must render compact Terraria coin tokens with controlled labels and optional backend icons via marker ${marker}`)
       }
+    }
+
+    if (content.includes('<b>普通掉落</b>')) {
+      violations.push(`${path}: NPC money drops must render drop.label instead of hardcoded 普通掉落`)
+    }
+
+    if (content.includes('<span>普通敌怪</span>')) {
+      violations.push(`${path}: NPC money drop subtitle must use neutral mode copy instead of 普通敌怪`)
     }
 
     if (content.includes('grid-template-columns: repeat(auto-fit, minmax(172px, 1fr))')) {
@@ -1758,9 +1791,12 @@ for (const path of scanFiles) {
       'class="npc-buff-media"',
       'class="npc-buff-copy"',
       'class="npc-buff-meta"',
+      'class="npc-buff-title-line"',
+      'class="npc-buff-relation-badge"',
       ':src="entryImage(entry)"',
       ':fallback-icon="entryFallbackIcon(entry)"',
       'relationTypeLabel(entry.relationType)',
+      'buffRelationMeaningLabel(entry)',
       'buffConditionLabel(entry)',
       'durationTicks',
       'duration_ticks',
@@ -1779,6 +1815,10 @@ for (const path of scanFiles) {
 
     if (content.includes('class="source-table dark-table"') && content.includes('v-for="entry in buffRelations"')) {
       violations.push(`${path}: NPC buff relations must not render as the old generic source-table rows`)
+    }
+
+    if (content.includes('v-for="entry in buffRelations"') && content.includes('npc-buff-card-grid')) {
+      violations.push(`${path}: NPC buff relations must be grouped by inflicting and immune sections, not rendered as one mixed buffRelations list`)
     }
 
     if (
@@ -1849,6 +1889,7 @@ for (const path of scanFiles) {
       'recipeTreeSummary',
       'imageEntries',
       'sourceEntryGroups',
+      'buffEffectEntries',
       'itemCoverageRows',
       'itemDescriptionSourceText',
       'itemHasPrice',
@@ -1857,6 +1898,9 @@ for (const path of scanFiles) {
       'safeItemDisplayText(tree.note, tree.summary, tree.description)',
       '制作路线',
       '来源分组',
+      '状态效果',
+      '来源物品',
+      '效果来源已确认',
       '图片画廊',
       '资料概览',
       'sourceEntries',
@@ -1879,6 +1923,14 @@ for (const path of scanFiles) {
 
     if (content.includes('image.note || image.url')) {
       violations.push(`${path}: item detail image rows must not fall back to rendering raw image URLs`)
+    }
+
+    if (!content.includes('rawBundle.value.buffEffects') || !content.includes('buffEffectEntries.value.length')) {
+      violations.push(`${path}: item detail page must derive status-effect UI from public buffEffects bundle data`)
+    }
+
+    if (content.includes("'资料未标注'") || content.includes('"资料未标注"')) {
+      violations.push(`${path}: item buff-effect fallback must not imply fake or unknown relation data`)
     }
 
     if (

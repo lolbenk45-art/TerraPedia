@@ -36,11 +36,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -194,16 +196,23 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             return List.of();
         }
 
-        RelationNpcBuffLookupResult relationResult = loadRelationNpcBuffRelations(npcId);
-        if (relationResult.available()) {
-            return relationResult.rows();
+        Npc npc = npcMapper.selectById(npcId);
+        if (npc == null) {
+            return loadLocalNpcBuffRelations(npcId);
         }
 
-        return loadLocalNpcBuffRelations(npcId);
+        RelationNpcBuffLookupResult relationResult = loadRelationNpcBuffRelations(npc);
+        List<NpcBuffRelationDTO> rows;
+        if (relationResult.available()) {
+            rows = relationResult.rows();
+        } else {
+            rows = loadLocalNpcBuffRelations(npcId);
+        }
+
+        return appendSynthesizedImmuneBuffRelations(rows, npc);
     }
 
-    private RelationNpcBuffLookupResult loadRelationNpcBuffRelations(Long npcId) {
-        Npc npc = npcMapper.selectById(npcId);
+    private RelationNpcBuffLookupResult loadRelationNpcBuffRelations(Npc npc) {
         if (npc == null) {
             return RelationNpcBuffLookupResult.unavailable();
         }
@@ -249,7 +258,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
                   ON (nbr.buff_source_id IS NOT NULL AND pb.source_id = nbr.buff_source_id)
                   OR (nbr.buff_internal_name IS NOT NULL AND pb.internal_name = nbr.buff_internal_name)
                 WHERE nbr.deleted = 0
-                  AND nbr.relation_type = 'inflicts'
+                  AND nbr.relation_type IN ('inflicts', 'immune')
                   AND (""" + String.join(" OR ", predicates) + """
 )
                 ORDER BY nbr.id ASC
@@ -263,30 +272,156 @@ public class PublicNpcServiceImpl implements PublicNpcService {
     }
 
     private List<NpcBuffRelationDTO> loadLocalNpcBuffRelations(Long npcId) {
-        return jdbcTemplate.queryForList(
+        try {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                """
+                SELECT
+                  nbr.id,
+                  nbr.buff_id AS buffId,
+                  nbr.buff_source_id AS buffSourceId,
+                  nbr.relation_type AS relationType,
+                  nbr.duration_ticks AS durationTicks,
+                  nbr.chance_value AS chanceValue,
+                  nbr.chance_text AS chanceText,
+                  nbr.conditions,
+                  nbr.notes,
+                  nbr.sort_order AS sortOrder,
+                  b.internal_name AS buffInternalName,
+                  b.english_name AS buffNameEn,
+                  b.name_zh AS buffNameZh,
+                  COALESCE(NULLIF(TRIM(b.image_cached_url), ''), b.image) AS buffImage
+                FROM npc_buff_relations nbr
+                LEFT JOIN buffs b ON b.id = nbr.buff_id AND b.deleted = 0
+                WHERE nbr.npc_id = ? AND nbr.deleted = 0
+                ORDER BY nbr.sort_order ASC, nbr.id ASC
+                """,
+                npcId
+            );
+            return rows == null ? List.of() : rows.stream().map(this::toBuffRelationDto).toList();
+        } catch (DataAccessException exception) {
+            return List.of();
+        }
+    }
+
+    private List<NpcBuffRelationDTO> appendSynthesizedImmuneBuffRelations(List<NpcBuffRelationDTO> rows, Npc npc) {
+        List<Integer> buffSourceIds = resolveImmuneBuffSourceIds(npc);
+        if (buffSourceIds.isEmpty()) {
+            return rows == null ? List.of() : rows;
+        }
+
+        List<NpcBuffRelationDTO> result = new ArrayList<>(rows == null ? List.of() : rows);
+        Set<String> existingKeys = result.stream()
+            .map(row -> relationDedupKey(row.getRelationType(), row.getBuffSourceId()))
+            .filter(Objects::nonNull)
+            .collect(Collectors.toCollection(HashSet::new));
+
+        Map<Integer, NpcBuffRelationDTO> buffRowsBySourceId;
+        try {
+            buffRowsBySourceId = loadBuffRelationDtosBySourceId(buffSourceIds);
+        } catch (Exception ignored) {
+            return result;
+        }
+        int sortOrder = result.stream()
+            .map(NpcBuffRelationDTO::getSortOrder)
+            .filter(Objects::nonNull)
+            .max(Integer::compareTo)
+            .orElse(0);
+        for (Integer sourceId : buffSourceIds) {
+            String key = relationDedupKey("immune", sourceId);
+            if (key == null || existingKeys.contains(key)) {
+                continue;
+            }
+            NpcBuffRelationDTO dto = buffRowsBySourceId.getOrDefault(sourceId, new NpcBuffRelationDTO());
+            dto.setRelationType("immune");
+            dto.setBuffSourceId(sourceId);
+            dto.setSortOrder(dto.getSortOrder() == null ? ++sortOrder : dto.getSortOrder());
+            result.add(dto);
+            existingKeys.add(key);
+        }
+        return result;
+    }
+
+    private Map<Integer, NpcBuffRelationDTO> loadBuffRelationDtosBySourceId(List<Integer> sourceIds) {
+        if (sourceIds == null || sourceIds.isEmpty()) {
+            return Map.of();
+        }
+        String placeholders = sourceIds.stream().map(ignored -> "?").collect(Collectors.joining(","));
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
             """
             SELECT
-              nbr.id,
-              nbr.buff_id AS buffId,
-              nbr.buff_source_id AS buffSourceId,
-              nbr.relation_type AS relationType,
-              nbr.duration_ticks AS durationTicks,
-              nbr.chance_value AS chanceValue,
-              nbr.chance_text AS chanceText,
-              nbr.conditions,
-              nbr.notes,
-              nbr.sort_order AS sortOrder,
+              NULL AS id,
+              b.id AS buffId,
+              b.source_id AS buffSourceId,
               b.internal_name AS buffInternalName,
               b.english_name AS buffNameEn,
               b.name_zh AS buffNameZh,
               COALESCE(NULLIF(TRIM(b.image_cached_url), ''), b.image) AS buffImage
-            FROM npc_buff_relations nbr
-            LEFT JOIN buffs b ON b.id = nbr.buff_id AND b.deleted = 0
-            WHERE nbr.npc_id = ? AND nbr.deleted = 0
-            ORDER BY nbr.sort_order ASC, nbr.id ASC
+            FROM buffs b
+            WHERE b.deleted = 0
+              AND b.source_id IN (""" + placeholders + """
+)
             """,
-            npcId
-        ).stream().map(this::toBuffRelationDto).toList();
+            sourceIds.toArray()
+        );
+        Map<Integer, NpcBuffRelationDTO> result = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            NpcBuffRelationDTO dto = toBuffRelationDto(row);
+            dto.setId(null);
+            Integer sourceId = dto.getBuffSourceId();
+            if (sourceId != null && !result.containsKey(sourceId)) {
+                result.put(sourceId, dto);
+            }
+        }
+        return result;
+    }
+
+    private List<Integer> resolveImmuneBuffSourceIds(Npc npc) {
+        String text = firstNonBlank(npc == null ? null : npc.getBuffImmune(), rawJsonBuffImmune(npc == null ? null : npc.getRawJson()));
+        if (text == null) {
+            return List.of();
+        }
+        Matcher matcher = Pattern.compile("\\d+").matcher(text);
+        List<Integer> result = new ArrayList<>();
+        Set<Integer> seen = new HashSet<>();
+        while (matcher.find()) {
+            Integer sourceId = toInteger(matcher.group());
+            if (sourceId != null && seen.add(sourceId)) {
+                result.add(sourceId);
+            }
+        }
+        return result;
+    }
+
+    private String rawJsonBuffImmune(String rawJson) {
+        JsonNode root = parseJson(rawJson);
+        String direct = rawJsonValueText(root.path("buffImmune"));
+        if (direct != null) {
+            return direct;
+        }
+        JsonNode extrasValue = root.path("extras").path("buffImmune");
+        return rawJsonValueText(extrasValue);
+    }
+
+    private String rawJsonValueText(JsonNode value) {
+        if (value == null || value.isMissingNode() || value.isNull()) {
+            return null;
+        }
+        if (value.isArray()) {
+            List<String> ids = new ArrayList<>();
+            value.forEach(node -> {
+                String text = textOrNull(node);
+                if (text != null) {
+                    ids.add(text);
+                }
+            });
+            return ids.isEmpty() ? null : String.join(",", ids);
+        }
+        return textOrNull(value);
+    }
+
+    private String relationDedupKey(String relationType, Integer buffSourceId) {
+        String type = trimToNull(relationType);
+        return type == null || buffSourceId == null ? null : type + ":" + buffSourceId;
     }
 
     private LambdaQueryWrapper<Npc> buildListWrapper(PublicNpcQuery query, boolean multipartSearch) {
@@ -515,7 +650,8 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setStatus(npc.getStatus());
         dto.setWikiAssets(parseWikiAssets(npc.getWikiAssetsJson()));
         dto.setLivingPreferences(enrichLivingPreferenceTargetImages(parseLivingPreferences(npc.getLivingPreferencesJson())));
-        dto.setMoneyDrops(buildNpcMoneyDrops(npc.getValue(), dto));
+        dto.setMoneyDrops(buildNpcMoneyDrops(npc, dto));
+        dto.setBuffRelationCount(getNpcBuffRelations(npc.getId()).size());
         return dto;
     }
 
@@ -925,15 +1061,43 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         return tokens;
     }
 
-    private List<PublicNpcMoneyDropDTO> buildNpcMoneyDrops(Integer value, NpcDetailDTO dto) {
-        if (value == null || value <= 0 || !isNpcMoneyDropEligible(dto)) {
+    private List<PublicNpcMoneyDropDTO> buildNpcMoneyDrops(Npc npc, NpcDetailDTO dto) {
+        if (npc == null || !isNpcMoneyDropEligible(dto)) {
             return null;
         }
-        PublicNpcMoneyDropDTO drop = new PublicNpcMoneyDropDTO();
-        drop.setMode("normal");
-        drop.setLabel("普通");
-        drop.setTokens(buildMoneyDropTokens(value, loadCoinIcons()));
-        return List.of(drop);
+        List<MoneyDropValue> values = resolveNpcMoneyDropValues(npc);
+        if (values.isEmpty()) {
+            return null;
+        }
+
+        Map<String, String> coinIcons = loadCoinIcons();
+        List<PublicNpcMoneyDropDTO> drops = new ArrayList<>();
+        for (MoneyDropValue value : values) {
+            PublicNpcMoneyDropDTO drop = new PublicNpcMoneyDropDTO();
+            drop.setMode(value.mode());
+            drop.setLabel(value.label());
+            drop.setTokens(buildMoneyDropTokens(value.value(), coinIcons));
+            drops.add(drop);
+        }
+        return drops;
+    }
+
+    private List<MoneyDropValue> resolveNpcMoneyDropValues(Npc npc) {
+        List<MoneyDropValue> values = new ArrayList<>();
+        addMoneyDropValue(values, "normal", "普通", npc.getValue());
+
+        JsonNode rawJson = parseJson(npc.getRawJson());
+        JsonNode extras = rawJson.path("extras");
+        addMoneyDropValue(values, "expert", "专家", integerOrNull(extras.path("value_e")));
+        addMoneyDropValue(values, "master", "大师", integerOrNull(extras.path("value_m")));
+        return values;
+    }
+
+    private void addMoneyDropValue(List<MoneyDropValue> values, String mode, String label, Integer value) {
+        if (value == null || value <= 0) {
+            return;
+        }
+        values.add(new MoneyDropValue(mode, label, value));
     }
 
     private boolean isNpcMoneyDropEligible(NpcDetailDTO dto) {
@@ -1279,6 +1443,18 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         }
     }
 
+    private JsonNode parseJson(String text) {
+        String value = trimToNull(text);
+        if (value == null) {
+            return objectMapper.createObjectNode();
+        }
+        try {
+            return objectMapper.readTree(value);
+        } catch (Exception ignored) {
+            return objectMapper.createObjectNode();
+        }
+    }
+
     private static JsonNode firstExisting(JsonNode... nodes) {
         for (JsonNode node : nodes) {
             if (node != null && !node.isMissingNode() && !node.isNull()) {
@@ -1345,5 +1521,8 @@ public class PublicNpcServiceImpl implements PublicNpcService {
     }
 
     private record CoinSegment(String unit, int divider, String label) {
+    }
+
+    private record MoneyDropValue(String mode, String label, int value) {
     }
 }

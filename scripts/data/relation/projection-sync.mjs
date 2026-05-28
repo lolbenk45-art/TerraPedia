@@ -871,6 +871,10 @@ export function buildProjectionPayload({
 
   const inflictingNpcsByBuffKey = new Map();
   for (const relation of npcBuffRelations) {
+    const relationType = String(relation?.relationType ?? 'inflicts').trim().toLowerCase();
+    if (relationType !== 'inflicts') {
+      continue;
+    }
     const projectionNpc = projectionNpcForRelation(relation, projectionNpcIndexes);
     const summary = buildBuffInflictingNpcSummary(relation, projectionNpc);
     for (const key of buffRelationKeys(relation)) {

@@ -3,6 +3,7 @@ package com.terraria.skills.service.impl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.terraria.skills.common.PageQuery;
 import com.terraria.skills.dto.CategoryDTO;
+import com.terraria.skills.dto.PublicItemBuffEffectDTO;
 import com.terraria.skills.dto.PublicItemDetailDTO;
 import com.terraria.skills.dto.PublicItemListDTO;
 import com.terraria.skills.dto.PublicItemSuggestionDTO;
@@ -12,11 +13,15 @@ import com.terraria.skills.service.ManagedImageUrlPolicy;
 import com.terraria.skills.service.PublicItemService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -27,9 +32,48 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PublicItemServiceImpl implements PublicItemService {
 
+    static final String ITEM_BUFF_EFFECTS_SQL = """
+        SELECT
+            ibr.id AS id,
+            COALESCE(pb.id, lb.id) AS buffId,
+            COALESCE(pb.source_id, lb.source_id, ibr.buff_source_id) AS buffSourceId,
+            COALESCE(pb.internal_name, lb.internal_name, ibr.buff_internal_name) AS buffInternalName,
+            COALESCE(pb.english_name, lb.english_name, ibr.buff_internal_name) AS buffNameEn,
+            COALESCE(pb.name_zh, lb.name_zh) AS buffNameZh,
+            COALESCE(pb.image, lb.image) AS imageUrl,
+            ibr.relation_type AS relationType,
+            ibr.duration_ticks AS durationTicks,
+            ibr.chance_value AS chanceValue,
+            ibr.chance_text AS chanceText,
+            ibr.conditions AS conditions
+        FROM items li
+        JOIN `terria_v1_relation`.`item_buff_relations` ibr
+            ON (
+                (ibr.item_internal_name IS NOT NULL AND li.internal_name COLLATE utf8mb4_unicode_ci = ibr.item_internal_name COLLATE utf8mb4_unicode_ci)
+                OR (ibr.item_source_id IS NOT NULL AND li.id = ibr.item_source_id)
+            )
+        LEFT JOIN `terria_v1_relation`.`projection_buffs` pb
+            ON (
+                (ibr.buff_source_id IS NOT NULL AND pb.source_id = ibr.buff_source_id)
+                OR (ibr.buff_internal_name IS NOT NULL AND pb.internal_name = ibr.buff_internal_name)
+            )
+        LEFT JOIN buffs lb
+            ON lb.deleted = 0
+            AND (
+                (ibr.buff_source_id IS NOT NULL AND lb.source_id = ibr.buff_source_id)
+                OR (ibr.buff_internal_name IS NOT NULL AND lb.internal_name COLLATE utf8mb4_unicode_ci = ibr.buff_internal_name COLLATE utf8mb4_unicode_ci)
+            )
+        WHERE li.deleted = 0
+            AND li.id = ?
+            AND ibr.deleted = 0
+            AND ibr.relation_type = 'buff_source_item'
+        ORDER BY ibr.id ASC
+        """;
+
     private final ItemMapper itemMapper;
     private final CategoryManagementService categoryManagementService;
     private final ManagedImageUrlPolicy managedImageUrlPolicy;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     @Cacheable(cacheNames = "item:public:list", key = "#root.target.buildPublicListCacheKey(#pageQuery)", unless = "#result == null")
@@ -92,6 +136,14 @@ public class PublicItemServiceImpl implements PublicItemService {
         );
     }
 
+    @Override
+    public List<PublicItemBuffEffectDTO> getPublicItemBuffEffects(Long id) {
+        if (id == null) {
+            return List.of();
+        }
+        return jdbcTemplate.query(ITEM_BUFF_EFFECTS_SQL, this::mapPublicItemBuffEffect, id);
+    }
+
     public String buildPublicListCacheKey(PageQuery pageQuery) {
         int page = pageQuery == null || pageQuery.getPage() < 1 ? 1 : pageQuery.getPage();
         int limit = pageQuery == null || pageQuery.getLimit() < 1 ? 20 : pageQuery.getLimit();
@@ -133,6 +185,25 @@ public class PublicItemServiceImpl implements PublicItemService {
             trimToEmpty(keyword),
             String.valueOf(normalizeSuggestionLimit(limit))
         );
+    }
+
+    PublicItemBuffEffectDTO mapPublicItemBuffEffect(ResultSet resultSet, int rowNum) throws SQLException {
+        PublicItemBuffEffectDTO dto = new PublicItemBuffEffectDTO();
+        dto.setId(nullableLong(resultSet, "id"));
+        dto.setBuffId(nullableLong(resultSet, "buffId"));
+        dto.setBuffSourceId(nullableInteger(resultSet, "buffSourceId"));
+        dto.setBuffInternalName(trimToNull(resultSet.getString("buffInternalName")));
+        dto.setBuffNameEn(trimToNull(resultSet.getString("buffNameEn")));
+        dto.setBuffNameZh(trimToNull(resultSet.getString("buffNameZh")));
+        dto.setImageUrl(managedBuffImageUrl(resultSet.getString("imageUrl")));
+        dto.setRelationType(trimToNull(resultSet.getString("relationType")));
+        dto.setRelationLabel("buff_source_item".equals(dto.getRelationType()) ? "来源物品" : null);
+        dto.setDurationTicks(nullableInteger(resultSet, "durationTicks"));
+        dto.setDurationText(formatDurationText(dto.getDurationTicks()));
+        dto.setChanceValue(nullableBigDecimal(resultSet, "chanceValue"));
+        dto.setChanceText(trimToNull(resultSet.getString("chanceText")));
+        dto.setConditions(trimToNull(resultSet.getString("conditions")));
+        return dto;
     }
 
     private int normalizeSuggestionLimit(int limit) {
@@ -222,6 +293,47 @@ public class PublicItemServiceImpl implements PublicItemService {
 
     private String trimToEmpty(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private Long nullableLong(ResultSet resultSet, String columnLabel) throws SQLException {
+        long value = resultSet.getLong(columnLabel);
+        return resultSet.wasNull() ? null : value;
+    }
+
+    private Integer nullableInteger(ResultSet resultSet, String columnLabel) throws SQLException {
+        int value = resultSet.getInt(columnLabel);
+        return resultSet.wasNull() ? null : value;
+    }
+
+    private BigDecimal nullableBigDecimal(ResultSet resultSet, String columnLabel) throws SQLException {
+        return resultSet.getBigDecimal(columnLabel);
+    }
+
+    private String formatDurationText(Integer durationTicks) {
+        if (durationTicks == null || durationTicks <= 0) {
+            return null;
+        }
+        if (durationTicks < 60) {
+            return durationTicks + "帧";
+        }
+        double seconds = durationTicks / 60.0;
+        if (seconds == Math.rint(seconds)) {
+            return ((int) seconds) + "秒";
+        }
+        return String.format(java.util.Locale.ROOT, "%.1f秒", seconds);
+    }
+
+    private String managedBuffImageUrl(String value) {
+        String text = trimToNull(value);
+        return managedImageUrlPolicy.isManagedImageUrlForDomain(text, "buffs") ? text : null;
     }
 
     private List<String> managedImagePrefixes() {

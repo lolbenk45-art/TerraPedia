@@ -537,6 +537,29 @@ class RecipeTreeServiceImplTest {
     }
 
     @Test
+    void shouldDefaultSingleGroupIngredientsToOneInRecipeTree() {
+        RecipeTreeServiceImpl service = newService();
+
+        ItemDTO torch = recipeTreeItem(8L, "Torch", "Torch", "火把");
+        RecipeIngredientDTO anyWood = groupIngredient("Any Wood", null);
+        anyWood.setQuantityMin(0);
+        anyWood.setQuantityMax(0);
+        RecipeDTO recipe = recipeWithIngredient(1008L, torch, anyWood);
+
+        when(itemService.getItemById(8L)).thenReturn(torch);
+        when(recipeService.getRecipesByResultItemId(8L)).thenReturn(List.of(recipe));
+        when(itemMapper.selectList(any())).thenReturn(List.of());
+
+        RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(8L, 3);
+
+        RecipeTreeNodeDTO groupNode = response.getVariants().get(0).getRoots().get(0).getChildren().get(0);
+        assertEquals("group", groupNode.getIngredientGroupType());
+        assertEquals("1", groupNode.getQuantityText());
+        assertEquals(1, groupNode.getQuantityMin());
+        assertEquals(1, groupNode.getQuantityMax());
+    }
+
+    @Test
     void shouldResolveRecipeGroupFromCentralItemGroupOverride() throws IOException {
         String originalUserDir = System.getProperty("user.dir");
         Path repoRoot = tempDir.resolve("repo");

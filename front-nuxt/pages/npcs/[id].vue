@@ -48,6 +48,18 @@ const firstText = (...values: unknown[]) => {
   return ''
 }
 
+const normalizedBuffRelationType = (entry: PublicNpcBuffRelation) => firstText(entry.relationType, entry.relation_type).toLowerCase()
+const isInflictingBuffRelation = (entry: PublicNpcBuffRelation) => ['inflicts', 'inflict', 'applies'].includes(normalizedBuffRelationType(entry))
+const isImmuneBuffRelation = (entry: PublicNpcBuffRelation) => ['immune', 'immunity'].includes(normalizedBuffRelationType(entry))
+const inflictingBuffRelations = computed(() => buffRelations.value.filter(isInflictingBuffRelation))
+const immuneBuffRelations = computed(() => buffRelations.value.filter(isImmuneBuffRelation))
+const otherBuffRelations = computed(() => buffRelations.value.filter((entry) => !isInflictingBuffRelation(entry) && !isImmuneBuffRelation(entry)))
+const buffRelationSections = computed(() => [
+  { key: 'inflicts', title: '当前 NPC 会施加', entries: inflictingBuffRelations.value },
+  { key: 'immune', title: '当前 NPC 免疫', entries: immuneBuffRelations.value },
+  { key: 'other', title: '其他状态效果', entries: otherBuffRelations.value },
+].filter((section) => section.entries.length > 0))
+
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
 const rawPublicCopyPattern = /{{|}}|<\/?[a-z][\s\S]*?>|https?:\/\/|wiki\.gg|iteminfo|eicons|internal|wiki\s*(?:page|path)|(?:^|[\s_-])shop[\s_/-]*\d+(?:[\s_/-]*\d+)*(?:$|[\s_-])/i
 const safeNpcDisplayText = (...values: unknown[]) => {
@@ -328,11 +340,29 @@ const npcMoneyDropTokens = (drop: PublicNpcMoneyDrop): TerrariaPriceToken[] => {
     ? drop.tokens.map(normalizeNpcMoneyToken).filter((token): token is TerrariaPriceToken => Boolean(token))
     : []
 }
+const npcMoneyDropModeLabel = (value: unknown) => {
+  const key = firstText(value).toLowerCase()
+  if (key === 'normal') return '普通掉落'
+  if (key === 'expert') return '专家掉落'
+  if (key === 'master') return '大师掉落'
+  return '钱币掉落'
+}
+const npcMoneyModeMeta = (value: unknown) => {
+  const key = firstText(value).toLowerCase()
+  if (key === 'normal') return '普通模式'
+  if (key === 'expert') return '专家模式'
+  if (key === 'master') return '大师模式'
+  return '模式'
+}
 const npcMoneyDrops = computed(() => (Array.isArray(npc.value?.moneyDrops) ? npc.value?.moneyDrops : [])
   .map((drop, index) => {
     const tokens = npcMoneyDropTokens(drop)
+    const mode = firstText(drop.mode) || 'normal'
+    const label = safeNpcDisplayText(drop.label) || npcMoneyDropModeLabel(mode)
     return {
-      key: `normal-${index}-${formatTerrariaPriceTokens(tokens)}`,
+      key: `${mode}-${index}-${formatTerrariaPriceTokens(tokens)}`,
+      mode,
+      label,
       tokens,
     }
   })
@@ -435,6 +465,16 @@ const relationTypeLabel = (value: unknown) => {
   if (key === 'immune' || key === 'immunity') return '免疫'
   return ''
 }
+const buffRelationMeaningLabel = (entry: PublicNpcBuffRelation) => {
+  const key = normalizedBuffRelationType(entry)
+  if (key === 'immune' || key === 'immunity') return '免疫'
+  if (key === 'applies' || key === 'inflict' || key === 'inflicts') return '会施加'
+  return relationTypeLabel(entry.relationType) || '状态效果关系'
+}
+const buffRelationCardKey = (sectionKey: string, entry: PublicNpcBuffRelation, index: number) => [
+  sectionKey,
+  firstText(entry.id, entry.buffId, entry.buff_id, entryTitle(entry), index),
+].join('-')
 
 const relatedItemSections = computed(() => {
   const sections = [
@@ -557,11 +597,14 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
               <div v-if="npcMoneyDrops.length" class="npc-money-drops" aria-label="钱币掉落">
                 <div class="npc-money-drops-heading">
                   <b>钱币掉落</b>
-                  <span>普通敌怪</span>
+                  <span>模式掉落</span>
                 </div>
                 <div class="npc-money-drop-grid">
                   <div v-for="drop in npcMoneyDrops" :key="drop.key" class="npc-money-drop-row">
-                    <b>普通掉落</b>
+                    <span class="npc-money-mode-badge">
+                      <b>{{ drop.label }}</b>
+                      <em>{{ npcMoneyModeMeta(drop.mode) }}</em>
+                    </span>
                     <div class="npc-money-token-row" :aria-label="formatTerrariaPriceTokens(drop.tokens)">
                       <span v-for="token in drop.tokens" :key="`${drop.key}-${token.unit}`" class="npc-money-token">
                         <CommonPreviewImage
@@ -571,8 +614,8 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
                           :alt="resolveTerrariaPriceUnitLabel(token.unit)"
                           :fallback="firstGlyph(resolveTerrariaPriceUnitLabel(token.unit))"
                           fallback-icon="icon-items"
-                          width="28"
-                          height="28"
+                          width="32"
+                          height="32"
                           decorative
                         />
                         <span v-else :class="['npc-money-coin-mark', `is-${npcMoneyCoinClass(token.unit)}`]" aria-hidden="true"></span>
@@ -703,21 +746,32 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
               <h2>状态效果</h2>
               <span class="tag paper">{{ buffRelations.length }} 条</span>
             </div>
-            <div v-if="buffRelations.length" class="npc-buff-card-grid">
-              <article v-for="entry in buffRelations" :key="String(entry.id ?? entry.buffId ?? entry.buffInternalName)" class="npc-buff-card">
-                <span class="npc-buff-media">
-                  <CommonPreviewImage
-                    :src="entryImage(entry)"
-                    :alt="entryTitle(entry)"
-                    :fallback="firstGlyph(entryTitle(entry))"
-                    :fallback-icon="entryFallbackIcon(entry)"
-                  />
-                </span>
-                <span class="npc-buff-copy">
-                  <b>{{ entryTitle(entry) }}</b>
-                  <span class="npc-buff-meta">{{ [relationTypeLabel(entry.relationType), buffDurationLabel(entry), chanceLabel(entry), buffConditionLabel(entry)].filter(Boolean).join(' · ') || '状态效果资料' }}</span>
-                </span>
-              </article>
+            <div v-if="buffRelationSections.length" class="npc-buff-section-stack">
+              <section v-for="section in buffRelationSections" :key="section.key" class="detail-subgroup npc-buff-section">
+                <div class="detail-subgroup-title">
+                  <b>{{ section.title }}</b>
+                  <span>{{ section.entries.length }} 条</span>
+                </div>
+                <div class="npc-buff-card-grid">
+                  <article v-for="(entry, index) in section.entries" :key="buffRelationCardKey(section.key, entry, index)" class="npc-buff-card">
+                    <span class="npc-buff-media">
+                      <CommonPreviewImage
+                        :src="entryImage(entry)"
+                        :alt="entryTitle(entry)"
+                        :fallback="firstGlyph(entryTitle(entry))"
+                        :fallback-icon="entryFallbackIcon(entry)"
+                      />
+                    </span>
+                    <span class="npc-buff-copy">
+                      <span class="npc-buff-title-line">
+                        <b>{{ entryTitle(entry) }}</b>
+                        <em class="npc-buff-relation-badge">{{ buffRelationMeaningLabel(entry) }}</em>
+                      </span>
+                      <span class="npc-buff-meta">{{ [buffDurationLabel(entry), chanceLabel(entry), buffConditionLabel(entry)].filter(Boolean).join(' · ') || '效果关系已确认' }}</span>
+                    </span>
+                  </article>
+                </div>
+              </section>
             </div>
             <p v-else class="tp-detail-empty">暂时没有整理到状态效果。</p>
           </article>
@@ -916,14 +970,13 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
 
 .npc-money-drops {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 6px 10px;
-  align-items: center;
+  grid-template-columns: 1fr;
+  gap: 7px;
   margin: 0 0 8px;
   border: 1px solid color-mix(in srgb, var(--gold) 18%, var(--index-line));
   border-radius: 8px;
   background: color-mix(in srgb, var(--gold) 3%, var(--index-surface));
-  padding: 5px 7px;
+  padding: 7px;
 }
 
 .npc-money-drops-heading {
@@ -948,38 +1001,55 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
 }
 
 .npc-money-drop-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 4px 6px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(176px, 1fr));
+  gap: 6px;
   min-width: 0;
 }
 
 .npc-money-drop-row {
-  display: inline-grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 6px;
+  display: grid;
+  grid-template-columns: minmax(58px, auto) minmax(0, 1fr);
+  gap: 7px;
   align-items: center;
   min-width: 0;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--gold) 5%, transparent);
-  padding: 2px 5px;
+  border: 1px solid color-mix(in srgb, var(--gold) 18%, var(--index-line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--gold) 6%, rgba(0, 0, 0, 0.18));
+  padding: 5px 7px;
 }
 
-.npc-money-drop-row > b {
+.npc-money-mode-badge {
+  display: grid;
+  gap: 1px;
   min-width: 0;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--gold) 14%, transparent);
+  padding: 4px 6px;
+}
+
+.npc-money-mode-badge b {
   color: var(--text-subtle);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 900;
   overflow-wrap: anywhere;
+  white-space: nowrap;
+}
+
+.npc-money-mode-badge em {
+  color: var(--text-muted);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.1;
   white-space: nowrap;
 }
 
 .npc-money-token-row {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 2px 6px;
+  justify-content: flex-start;
+  gap: 3px 7px;
   min-width: 0;
 }
 
@@ -998,8 +1068,8 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
 .npc-money-token-icon,
 .npc-money-token :deep(.npc-money-token-icon),
 .npc-money-token :deep(.item-art) {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
 }
 
 .npc-money-coin-mark {
@@ -1008,9 +1078,9 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
   --coin-shine: rgba(255, 255, 255, 0.72);
   display: inline-grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
-  flex: 0 0 24px;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
   border: 2px solid var(--coin-rim);
   border-radius: 999px;
   background:
@@ -1057,10 +1127,26 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
   overflow-wrap: anywhere;
 }
 
+@media (max-width: 640px) {
+  .npc-money-drops {
+    grid-template-columns: 1fr;
+  }
+
+  .npc-money-drop-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .npc-buff-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 8px;
+}
+
+.npc-buff-section-stack,
+.npc-buff-section {
+  display: grid;
+  gap: 10px;
 }
 
 .npc-buff-card {
@@ -1094,6 +1180,14 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
   min-width: 0;
 }
 
+.npc-buff-title-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+  min-width: 0;
+}
+
 .npc-buff-copy b {
   min-width: 0;
   color: var(--text-strong);
@@ -1101,6 +1195,22 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
   font-weight: 900;
   line-height: 1.15;
   overflow-wrap: anywhere;
+}
+
+.npc-buff-relation-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  border: 1px solid color-mix(in srgb, var(--gold) 22%, var(--index-line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gold) 9%, transparent);
+  color: var(--gold);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1;
+  padding: 2px 7px;
+  white-space: nowrap;
 }
 
 .npc-buff-meta {

@@ -152,6 +152,16 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
         buffInternalName: 'ObsidianSkin',
         sourceProvider: 'terrapedia.generated',
         sourcePage: 'buffs.standardized'
+      },
+      {
+        npcSourceId: -65,
+        npcInternalName: 'BigHornetStingy',
+        npcName: 'Hornet',
+        relationType: 'immune',
+        buffSourceId: 1,
+        buffInternalName: 'ObsidianSkin',
+        sourceProvider: 'terrapedia.generated',
+        sourcePage: 'buffs.standardized'
       }
     ],
     relationBuffs: [
