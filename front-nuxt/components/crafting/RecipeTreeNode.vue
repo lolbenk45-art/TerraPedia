@@ -330,7 +330,7 @@ watch(recipeAlternativeOptions, (options) => {
   display: block;
   max-width: 164px;
   margin-bottom: 6px;
-  color: var(--gold-2);
+  color: color-mix(in srgb, var(--tp-color-positive) 42%, var(--tp-color-text-muted));
   font-size: 11px;
   font-weight: 900;
   line-height: 1.35;

@@ -1,6 +1,28 @@
+.crafting-screen {
+  --crafting-grid-minor-x: linear-gradient(90deg, color-mix(in srgb, var(--tp-color-text-muted) 2.2%, transparent) 1px, transparent 1px);
+  --crafting-grid-minor-y: linear-gradient(color-mix(in srgb, var(--tp-color-text-muted) 1.8%, transparent) 1px, transparent 1px);
+  --crafting-grid-major-x: linear-gradient(90deg, color-mix(in srgb, var(--tp-color-text-muted) 3.4%, transparent) 1px, transparent 1px);
+  --crafting-grid-major-y: linear-gradient(color-mix(in srgb, var(--tp-color-text-muted) 2.8%, transparent) 1px, transparent 1px);
+  --crafting-grid-wash: linear-gradient(180deg, color-mix(in srgb, var(--tp-color-page) 96%, #000), color-mix(in srgb, var(--tp-color-page-raised) 74%, #000));
+  --crafting-line-muted: color-mix(in srgb, var(--tp-color-text-muted) 13%, transparent);
+  --crafting-line-soft: color-mix(in srgb, var(--tp-color-text-muted) 18%, transparent);
+  --crafting-line-strong: color-mix(in srgb, var(--tp-color-positive) 28%, var(--crafting-line-soft));
+  --crafting-stage-shadow: inset 0 1px 0 color-mix(in srgb, var(--tp-color-text-strong) 4%, transparent), inset 0 0 0 1px var(--crafting-line-muted), 0 18px 54px rgba(0, 0, 0, 0.2);
+  --crafting-stage-ring: linear-gradient(90deg, transparent, var(--crafting-line-muted) 14%, color-mix(in srgb, var(--tp-color-text-strong) 5%, transparent) 50%, var(--crafting-line-soft) 86%, transparent);
+  --crafting-node-glow: inset 0 1px 0 color-mix(in srgb, var(--tp-color-text-strong) 4%, transparent), 0 8px 22px rgba(0, 0, 0, 0.16);
+}
+
 .crafting-page {
   gap: var(--tp-space-5);
   padding-block: var(--tp-space-6);
+  background:
+    var(--crafting-grid-major-x),
+    var(--crafting-grid-major-y),
+    var(--crafting-grid-minor-x),
+    var(--crafting-grid-minor-y),
+    var(--crafting-grid-wash);
+  background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px, 0 0;
+  background-size: 160px 160px, 160px 160px, 40px 40px, 40px 40px, auto;
 }
 
 .crafting-page .crafting-container {
@@ -8,11 +30,82 @@
   gap: var(--tp-space-4);
 }
 
+.crafting-screen + .breadcrumb-shell,
+.crafting-screen .breadcrumb-shell {
+  border-top-color: var(--crafting-line-muted);
+  border-bottom-color: var(--crafting-line-soft);
+}
+
+.crafting-screen + .breadcrumb-shell .breadcrumb-list li + li::before,
+.crafting-screen .breadcrumb-list li + li::before {
+  color: color-mix(in srgb, var(--tp-color-text-muted) 32%, transparent);
+}
+
+.crafting-screen .breadcrumb-link,
+.crafting-screen .breadcrumb-current {
+  color: var(--tp-color-text-muted);
+}
+
+.crafting-screen + .breadcrumb-shell :where(.breadcrumb-link:hover, .breadcrumb-current),
+.crafting-screen :where(.breadcrumb-link:hover, .breadcrumb-current) {
+  border-color: var(--crafting-line-soft);
+  background:
+    var(--crafting-grid-minor-x),
+    var(--crafting-grid-minor-y),
+    color-mix(in srgb, var(--tp-color-surface-soft) 48%, #000);
+  background-size: 40px 40px, 40px 40px, auto;
+  color: var(--tp-color-text-strong);
+}
+
 .crafting-target-bar {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
-  gap: var(--tp-space-5);
-  padding: var(--tp-space-5);
+  grid-template-columns: 220px minmax(0, 1fr) minmax(280px, 320px);
+  gap: var(--tp-space-6);
+  align-items: stretch;
+  min-height: 220px;
+  border-color: var(--crafting-line-soft);
+  padding: var(--tp-space-6);
+  background:
+    var(--crafting-grid-major-x),
+    var(--crafting-grid-major-y),
+    var(--crafting-grid-minor-x),
+    var(--crafting-grid-minor-y),
+    linear-gradient(180deg, color-mix(in srgb, var(--tp-color-surface) 82%, #000), color-mix(in srgb, var(--tp-color-surface-soft) 60%, #000));
+  background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px, 0 0;
+  background-size: 160px 160px, 160px 160px, 40px 40px, 40px 40px, auto;
+  box-shadow: var(--crafting-stage-shadow);
+  overflow: hidden;
+}
+
+.crafting-target-bar::before,
+.crafting-target-bar::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.crafting-target-bar::before {
+  inset: 0;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--tp-color-text-strong) 4%, transparent), transparent 20%, transparent 78%, color-mix(in srgb, #000 24%, transparent)),
+    linear-gradient(90deg, color-mix(in srgb, #000 24%, transparent), transparent 16%, transparent 84%, color-mix(in srgb, #000 22%, transparent));
+  opacity: 0.52;
+}
+
+.crafting-target-bar::after {
+  top: var(--tp-space-4);
+  right: var(--tp-space-6);
+  left: var(--tp-space-6);
+  height: 2px;
+  background: var(--crafting-stage-ring);
+}
+
+.crafting-target-art,
+.crafting-target-main,
+.crafting-target-facts {
+  position: relative;
+  z-index: 1;
 }
 
 .crafting-page .tp-preview-image {
@@ -23,9 +116,58 @@
   --tp-preview-fallback-icon-size: 100%;
 }
 
+.crafting-page .tp-dense-row {
+  border-color: var(--crafting-line-muted);
+  background: color-mix(in srgb, var(--tp-color-surface-soft) 54%, #000);
+}
+
+.crafting-page .tp-dense-row:hover,
+.crafting-page .tp-dense-row:focus-visible {
+  border-color: var(--crafting-line-strong);
+}
+
+.crafting-target-art,
+.crafting-target-main,
+.crafting-target-facts,
 .target-summary,
 .target-summary-main {
   min-width: 0;
+}
+
+.crafting-target-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  border: 1px solid var(--crafting-line-soft);
+  border-radius: var(--tp-radius-card);
+  background:
+    var(--crafting-grid-minor-x),
+    var(--crafting-grid-minor-y),
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-text-muted) 6%, transparent), transparent 54%),
+    color-mix(in srgb, var(--tp-color-surface-soft) 50%, #000);
+  background-size: 40px 40px, 40px 40px, auto, auto;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #000 30%, transparent);
+  padding: var(--tp-space-5);
+}
+
+.crafting-target-art .tp-preview-image {
+  width: 128px;
+  height: 128px;
+  --tp-preview-image-size: 100%;
+  --tp-preview-fallback-icon-size: 100%;
+}
+
+.crafting-target-art .sprite-icon {
+  width: 96px;
+  height: 96px;
+}
+
+.crafting-target-main {
+  display: grid;
+  align-content: start;
+  gap: var(--tp-space-3);
+  padding-block: var(--tp-space-2);
 }
 
 .target-summary {
@@ -51,15 +193,72 @@
   margin: 0;
   color: var(--tp-color-text-strong);
   font-family: var(--tp-font-display);
-  font-size: 42px;
+  font-size: 40px;
   font-weight: var(--tp-font-weight-heavy);
   line-height: var(--tp-line-height-heading);
 }
 
+.crafting-target-main p,
 .target-summary-main p {
   margin: 6px 0 0;
+  max-width: 68ch;
   color: var(--tp-color-text-muted);
-  font-size: var(--tp-font-size-body-sm);
+  font-size: var(--tp-font-size-body);
+  line-height: var(--tp-line-height-body);
+}
+
+.crafting-target-main .tp-token-list {
+  margin-top: var(--tp-space-1);
+}
+
+.crafting-page .eyebrow {
+  color: color-mix(in srgb, var(--tp-color-positive) 42%, var(--tp-color-text-muted));
+}
+
+.crafting-page .eyebrow::before {
+  background: color-mix(in srgb, var(--tp-color-positive) 44%, var(--tp-color-text-muted));
+}
+
+.crafting-page :where(.tp-token, .tp-chip) {
+  border-color: var(--crafting-line-soft);
+  background: color-mix(in srgb, var(--tp-color-positive) 7%, transparent);
+  color: color-mix(in srgb, var(--tp-color-positive) 38%, var(--tp-color-text-strong));
+}
+
+.crafting-target-facts {
+  display: grid;
+  align-content: start;
+  gap: var(--tp-space-3);
+  border: 1px solid var(--crafting-line-soft);
+  border-radius: var(--tp-radius-card);
+  background:
+    var(--crafting-grid-minor-x),
+    var(--crafting-grid-minor-y),
+    color-mix(in srgb, var(--tp-color-surface-soft) 54%, #000);
+  background-size: 40px 40px, 40px 40px, auto;
+  padding: var(--tp-space-4);
+}
+
+.crafting-target-fact-list {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 10px var(--tp-space-2);
+  margin: 0;
+  padding-bottom: var(--tp-space-3);
+  border-bottom: 1px solid var(--crafting-line-muted);
+}
+
+.crafting-target-fact-list dt {
+  color: var(--tp-color-text-muted);
+  font-size: var(--tp-font-size-caption);
+}
+
+.crafting-target-fact-list dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--tp-color-text-strong);
+  font-weight: var(--tp-font-weight-heavy);
+  overflow-wrap: anywhere;
 }
 
 .crafting-target-search,
@@ -75,7 +274,7 @@
 
 .crafting-target-search label,
 .recipe-section-label {
-  color: var(--tp-color-accent-strong);
+  color: color-mix(in srgb, var(--tp-color-positive) 44%, var(--tp-color-text-muted));
   font-size: var(--tp-font-size-caption);
   font-weight: var(--tp-font-weight-heavy);
   letter-spacing: 0;
@@ -90,29 +289,36 @@
 .crafting-target-input-row input {
   min-width: 0;
   min-height: var(--tp-touch-target);
-  border: 1px solid var(--tp-color-border);
+  border: 1px solid var(--crafting-line-soft);
   border-radius: var(--tp-radius-control);
-  background: rgba(244, 234, 208, 0.05);
+  background: color-mix(in srgb, var(--tp-color-page) 70%, #000);
   color: var(--tp-color-text-strong);
   padding: 0 var(--tp-space-3);
 }
 
 .crafting-suggestions {
   gap: var(--tp-space-2);
+  max-height: 260px;
+  overflow-y: auto;
 }
 
 .crafting-suggestion {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
+  grid-template-columns: 34px minmax(0, 1fr);
   gap: var(--tp-space-2);
   align-items: center;
   min-height: var(--tp-touch-target);
-  border: 1px solid var(--tp-color-border);
+  border: 1px solid var(--crafting-line-muted);
   border-radius: var(--tp-radius-card);
-  background: var(--tp-color-surface-soft);
+  background: color-mix(in srgb, var(--tp-color-surface) 72%, #000);
   color: var(--tp-color-text);
   padding: var(--tp-space-2);
   text-align: left;
+}
+
+.crafting-suggestion span {
+  color: var(--tp-color-text-muted);
+  font-size: var(--tp-font-size-caption);
 }
 
 .crafting-suggestion b,
@@ -121,29 +327,51 @@
   overflow-wrap: anywhere;
 }
 
+.crafting-page .small-button {
+  border-color: var(--crafting-line-soft);
+  background: color-mix(in srgb, var(--tp-color-page) 62%, #000);
+  color: var(--tp-color-text-muted);
+  box-shadow: var(--crafting-node-glow);
+}
+
+.crafting-page .small-button:hover,
+.crafting-page .small-button:focus-visible,
+.crafting-page .small-button.active {
+  border-color: var(--crafting-line-strong);
+  background: color-mix(in srgb, var(--tp-color-positive) 12%, var(--tp-color-page));
+  color: var(--tp-color-text-strong);
+}
+
 .recipe-variant-selector,
 .recipe-option-selector {
-  padding: var(--tp-space-2);
-  border: 1px solid var(--tp-color-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tp-space-2);
+  padding: var(--tp-space-3);
+  border: 1px solid var(--crafting-line-soft);
   border-radius: var(--tp-radius-panel);
-  background: var(--tp-color-surface-soft);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-text-muted) 6%, transparent), transparent 58%),
+    color-mix(in srgb, var(--tp-color-surface) 76%, #000);
 }
 
 .recipe-selector-button {
   display: grid;
   gap: 2px;
   justify-items: start;
-  border: 1px solid transparent;
+  border: 1px solid var(--crafting-line-muted);
   border-radius: var(--tp-radius-card);
-  background: transparent;
+  background: color-mix(in srgb, var(--tp-color-page) 46%, transparent);
   color: var(--tp-color-text);
   padding: var(--tp-space-2) var(--tp-space-3);
   text-align: left;
 }
 
 .recipe-selector-button.active {
-  border-color: var(--tp-color-border-strong);
-  background: color-mix(in srgb, var(--tp-color-accent) 14%, transparent);
+  border-color: var(--crafting-line-strong);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-positive) 7%, transparent), transparent 60%),
+    color-mix(in srgb, var(--tp-color-surface-soft) 72%, #000);
   color: var(--tp-color-text-strong);
 }
 
@@ -157,7 +385,26 @@
 .material-expansion-list,
 .recipe-compare-table,
 .crafting-legend {
+  --recipe-sheet-line: var(--crafting-line-muted);
   padding: var(--tp-space-5);
+}
+
+.recipe-sheet,
+.material-expansion-list,
+.recipe-compare-table,
+.crafting-legend {
+  position: relative;
+  border-color: var(--crafting-line-soft);
+  background:
+    var(--crafting-grid-major-x),
+    var(--crafting-grid-major-y),
+    var(--crafting-grid-minor-x),
+    var(--crafting-grid-minor-y),
+    linear-gradient(180deg, color-mix(in srgb, var(--tp-color-surface) 80%, #000), color-mix(in srgb, var(--tp-color-surface-soft) 58%, #000));
+  background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px, 0 0;
+  background-size: 160px 160px, 160px 160px, 40px 40px, 40px 40px, auto;
+  box-shadow: var(--crafting-stage-shadow);
+  overflow: hidden;
 }
 
 .recipe-sheet-head {
@@ -192,13 +439,22 @@
   display: grid;
   grid-template-columns: minmax(320px, 1.2fr) 28px minmax(230px, 0.8fr) 28px minmax(220px, 0.7fr);
   gap: var(--tp-space-3);
-  align-items: center;
+  align-items: stretch;
 }
 
 .recipe-sheet-section {
+  position: relative;
   display: grid;
+  align-content: start;
   gap: var(--tp-space-3);
   min-width: 0;
+  border: 1px solid var(--recipe-sheet-line);
+  border-radius: var(--tp-radius-card);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--tp-color-text-strong) 3%, transparent), transparent 42%),
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-text-muted) 5%, transparent), transparent 58%),
+    color-mix(in srgb, var(--tp-color-surface-soft) 52%, #000);
+  padding: var(--tp-space-3);
 }
 
 .recipe-flow-arrow {
@@ -206,12 +462,13 @@
   place-items: center;
   width: 28px;
   height: 28px;
-  border: 1px solid color-mix(in srgb, var(--tp-color-accent) 42%, var(--tp-color-border));
+  border: 1px solid var(--crafting-line-soft);
   border-radius: 999px;
-  color: var(--tp-color-accent-strong);
+  color: color-mix(in srgb, var(--tp-color-positive) 42%, var(--tp-color-text-muted));
   font-size: 18px;
   font-weight: var(--tp-font-weight-heavy);
   line-height: 1;
+  align-self: center;
 }
 
 .recipe-material-list,
@@ -261,9 +518,9 @@
 }
 
 .any-material-group {
-  border: 1px solid color-mix(in srgb, var(--tp-color-accent) 34%, var(--tp-color-border));
+  border: 1px solid var(--crafting-line-soft);
   border-radius: var(--tp-radius-card);
-  background: color-mix(in srgb, var(--tp-color-accent) 7%, transparent);
+  background: color-mix(in srgb, var(--tp-color-positive) 6%, transparent);
 }
 
 .any-material-group summary {
@@ -311,7 +568,7 @@
 }
 
 .any-material-separator {
-  color: var(--tp-color-accent-strong);
+  color: color-mix(in srgb, var(--tp-color-positive) 48%, var(--tp-color-text-muted));
   font-weight: var(--tp-font-weight-heavy);
 }
 
@@ -339,7 +596,7 @@
   gap: var(--tp-space-2);
   align-items: center;
   min-height: var(--tp-touch-target);
-  border: 1px solid var(--tp-color-border);
+  border: 1px solid var(--crafting-line-soft);
   border-radius: var(--tp-radius-card);
   background: var(--tp-color-surface-soft);
   padding: var(--tp-space-1) var(--tp-space-2);
@@ -365,9 +622,59 @@
 }
 
 .recipe-graph {
+  --recipe-graph-grid-line: var(--index-grid-x);
+  --recipe-graph-grid-subtle: var(--index-grid-y);
+  --recipe-muted-line: color-mix(in srgb, var(--tp-color-positive) 18%, transparent);
+  --recipe-soft-line: color-mix(in srgb, var(--tp-color-positive) 14%, transparent);
+  --recipe-focus-line: color-mix(in srgb, var(--tp-color-positive) 34%, transparent);
+  --recipe-output-line: color-mix(in srgb, var(--tp-color-positive) 30%, transparent);
+  --recipe-choice-line: color-mix(in srgb, var(--tp-color-positive) 22%, transparent);
+  --recipe-rail-line: color-mix(in srgb, var(--tp-color-positive) 24%, transparent);
+  --recipe-route-tint: color-mix(in srgb, var(--tp-color-positive) 5%, transparent);
+  --recipe-route-root-tint: color-mix(in srgb, var(--tp-color-positive) 7%, transparent);
+  --recipe-arrow-color: color-mix(in srgb, var(--tp-color-positive) 52%, var(--tp-color-text-muted));
+  position: relative;
   display: grid;
   gap: var(--tp-space-3);
   overflow: hidden;
+  border-color: var(--recipe-muted-line);
+  background:
+    var(--crafting-grid-major-x),
+    var(--crafting-grid-major-y),
+    var(--crafting-grid-minor-x),
+    var(--crafting-grid-minor-y),
+    linear-gradient(180deg, color-mix(in srgb, var(--tp-color-page) 88%, #000), color-mix(in srgb, var(--tp-color-page-raised) 70%, #000));
+  background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px, 0 0;
+  background-size: 160px 160px, 160px 160px, 40px 40px, 40px 40px, auto;
+  box-shadow: var(--crafting-stage-shadow);
+}
+
+.recipe-graph::before,
+.recipe-graph::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.recipe-graph::before {
+  inset: 0;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--tp-color-text-strong) 4%, transparent), transparent 18%, transparent 80%, color-mix(in srgb, #000 24%, transparent)),
+    linear-gradient(90deg, color-mix(in srgb, #000 22%, transparent), transparent 16%, transparent 84%, color-mix(in srgb, #000 20%, transparent));
+  opacity: 0.5;
+}
+
+.recipe-graph::after {
+  top: var(--tp-space-4);
+  right: var(--tp-space-5);
+  left: var(--tp-space-5);
+  height: 2px;
+  background: var(--crafting-stage-ring);
+}
+
+.recipe-graph > * {
+  position: relative;
+  z-index: 1;
 }
 
 .recipe-graph-head {
@@ -376,7 +683,7 @@
   gap: var(--tp-space-3);
   align-items: end;
   min-width: 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--tp-color-border) 72%, transparent);
+  border-bottom: 1px solid var(--crafting-line-muted);
   padding-bottom: var(--tp-space-3);
 }
 
@@ -401,18 +708,59 @@
 }
 
 .recipe-route-entry {
+  position: relative;
   display: grid;
   gap: var(--tp-space-2);
   margin-left: calc(var(--route-level, 0) * 28px);
-  border: 1px solid color-mix(in srgb, var(--tp-color-border) 82%, transparent);
+  border: 1px solid var(--recipe-muted-line);
   border-radius: var(--tp-radius-card);
-  background: rgba(8, 18, 13, 0.56);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--tp-color-text-strong) 3%, transparent), transparent 44%),
+    linear-gradient(90deg, var(--recipe-route-tint), transparent 24%),
+    color-mix(in srgb, var(--tp-color-surface-soft) 58%, #000);
   padding: var(--tp-space-3);
+  box-shadow: var(--crafting-node-glow);
+  overflow: hidden;
+}
+
+.recipe-route-entry::before,
+.recipe-route-entry::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.recipe-route-entry::before {
+  inset: 0;
+  background:
+    var(--crafting-grid-minor-x),
+    var(--crafting-grid-minor-y),
+    linear-gradient(180deg, color-mix(in srgb, var(--tp-color-text-strong) 3%, transparent), transparent 26%),
+    linear-gradient(90deg, var(--recipe-route-tint), transparent 18%);
+  background-size: 40px 40px, 40px 40px, auto, auto;
+  opacity: 0.46;
+}
+
+.recipe-route-entry::after {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--recipe-rail-line), color-mix(in srgb, var(--tp-color-positive) 10%, transparent));
+  box-shadow: 1px 0 0 color-mix(in srgb, #000 32%, transparent);
+}
+
+.recipe-route-entry > * {
+  position: relative;
+  z-index: 1;
 }
 
 .recipe-route-entry[data-route-level="0"] {
-  border-color: color-mix(in srgb, var(--tp-color-accent) 34%, var(--tp-color-border));
-  background: rgba(15, 27, 18, 0.72);
+  border-color: var(--recipe-focus-line);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--tp-color-text-strong) 4%, transparent), transparent 46%),
+    linear-gradient(135deg, var(--recipe-route-root-tint), transparent 54%),
+    color-mix(in srgb, var(--tp-color-surface-soft) 62%, #000);
 }
 
 .recipe-route-entry-head {
@@ -457,13 +805,19 @@
   align-items: center;
   width: max-content;
   min-height: 22px;
-  border: 1px solid color-mix(in srgb, var(--tp-color-accent) 20%, transparent);
+  border: 1px solid var(--recipe-soft-line);
   border-radius: var(--tp-radius-control);
-  background: rgba(10, 22, 15, 0.82);
+  background: color-mix(in srgb, var(--tp-color-page) 72%, #000);
   padding: 0 var(--tp-space-2);
 }
 
+.recipe-route-level {
+  border-color: var(--recipe-focus-line);
+  color: color-mix(in srgb, var(--tp-color-positive) 68%, var(--tp-color-text-strong));
+}
+
 .recipe-route-row {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(260px, 1.5fr) auto minmax(180px, 0.58fr) auto minmax(220px, 0.72fr);
   gap: var(--tp-space-3);
@@ -471,20 +825,49 @@
   min-width: 0;
 }
 
+.recipe-route-row::before {
+  content: "";
+  position: absolute;
+  right: var(--tp-space-4);
+  left: var(--tp-space-4);
+  grid-column: 1 / -1;
+  top: 50%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--recipe-rail-line) 12%, color-mix(in srgb, var(--tp-color-text-muted) 12%, transparent) 50%, var(--recipe-rail-line) 88%, transparent);
+  opacity: 0.52;
+  pointer-events: none;
+}
+
 .recipe-relation-step {
+  --recipe-step-tint: color-mix(in srgb, var(--tp-color-text-muted) 6%, transparent);
+  position: relative;
+  z-index: 1;
   display: grid;
   align-content: start;
   gap: var(--tp-space-2);
   min-width: 0;
-  border: 1px solid color-mix(in srgb, var(--tp-color-border) 76%, transparent);
+  border: 1px solid transparent;
   border-radius: var(--tp-radius-card);
-  background: rgba(5, 15, 10, 0.64);
-  padding: var(--tp-space-2);
+  background: transparent;
+  padding: 0;
+}
+
+.recipe-relation-step.is-materials {
+  --recipe-material-tint: color-mix(in srgb, var(--tp-color-text-muted) 6%, transparent);
+  --recipe-step-tint: var(--recipe-material-tint);
+  border-color: transparent;
+}
+
+.recipe-relation-step.is-stations {
+  --recipe-station-tint: color-mix(in srgb, var(--tp-color-positive) 5%, transparent);
+  --recipe-step-tint: var(--recipe-station-tint);
+  border-color: transparent;
 }
 
 .recipe-relation-step.is-output {
-  border-color: color-mix(in srgb, var(--tp-color-accent) 36%, var(--tp-color-border));
-  background: rgba(26, 29, 16, 0.72);
+  --recipe-output-tint: color-mix(in srgb, var(--tp-color-positive) 7%, transparent);
+  --recipe-step-tint: var(--recipe-output-tint);
+  border-color: transparent;
 }
 
 .recipe-route-item-list,
@@ -504,52 +887,96 @@
 }
 
 .recipe-route-item-chip {
+  --recipe-chip-rail-color: color-mix(in srgb, var(--tp-color-text-muted) 24%, transparent);
+  --recipe-chip-wash: color-mix(in srgb, var(--tp-color-text-muted) 4%, transparent);
+  --recipe-chip-shadow: inset 0 1px 0 color-mix(in srgb, var(--tp-color-text-strong) 4%, transparent), inset 0 -1px 0 color-mix(in srgb, #000 26%, transparent), 0 7px 18px rgba(0, 0, 0, 0.14);
+  position: relative;
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
   gap: var(--tp-space-2);
   align-items: center;
   min-width: 158px;
   max-width: 220px;
-  border: 1px solid rgba(214, 177, 90, 0.28);
-  border-radius: var(--tp-radius-card);
-  background: rgba(14, 26, 19, 0.88);
+  border: 0;
+  border-radius: 7px;
+  background:
+    linear-gradient(90deg, var(--recipe-chip-wash), transparent 52%),
+    color-mix(in srgb, var(--tp-color-surface) 62%, #000);
   color: inherit;
-  padding: 6px 8px;
+  padding: 7px 8px 7px 10px;
   text-decoration: none;
+  box-shadow: var(--recipe-chip-shadow);
+  overflow: hidden;
+}
+
+.recipe-route-item-chip::before {
+  content: "";
+  position: absolute;
+  inset: 7px auto 7px 0;
+  width: 2px;
+  border-radius: 0 999px 999px 0;
+  background: var(--recipe-chip-rail-color);
+  pointer-events: none;
+}
+
+.recipe-route-item-chip > * {
+  position: relative;
+  z-index: 1;
 }
 
 .recipe-route-item-chip:hover,
 .recipe-route-item-chip:focus-visible {
-  border-color: rgba(240, 207, 116, 0.58);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--recipe-chip-wash) 72%, var(--recipe-focus-line)), transparent 56%),
+    color-mix(in srgb, var(--tp-color-surface-soft) 68%, #000);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--tp-color-text-strong) 6%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, #000 28%, transparent),
+    0 9px 22px rgba(0, 0, 0, 0.18);
 }
 
 .recipe-route-item-chip:focus-visible {
-  outline: 2px solid rgba(240, 207, 116, 0.62);
+  outline: 2px solid color-mix(in srgb, var(--tp-color-positive) 34%, transparent);
   outline-offset: 2px;
 }
 
 .recipe-route-item-chip.is-choice {
-  border-style: dashed;
-  border-color: rgba(240, 207, 116, 0.48);
-  background: rgba(40, 31, 14, 0.74);
+  --recipe-choice-tint: color-mix(in srgb, var(--tp-color-positive) 6%, transparent);
+  --recipe-chip-rail-color: var(--recipe-choice-line);
+  --recipe-chip-wash: var(--recipe-choice-tint);
+  background:
+    linear-gradient(90deg, var(--recipe-chip-wash), transparent 54%),
+    color-mix(in srgb, var(--tp-color-surface) 62%, #000);
 }
 
 .recipe-route-item-chip.is-shared {
-  border-color: rgba(115, 181, 125, 0.42);
-  background: rgba(15, 34, 20, 0.68);
+  --recipe-chip-rail-color: color-mix(in srgb, var(--tp-color-text-muted) 24%, transparent);
+  --recipe-chip-wash: color-mix(in srgb, var(--tp-color-text-muted) 5%, transparent);
+  background:
+    linear-gradient(90deg, var(--recipe-chip-wash), transparent 56%),
+    color-mix(in srgb, var(--tp-color-surface) 60%, #000);
 }
 
 .recipe-route-item-chip.is-station {
+  --recipe-chip-rail-color: color-mix(in srgb, var(--tp-color-text-muted) 18%, transparent);
+  --recipe-chip-wash: color-mix(in srgb, var(--tp-color-text-muted) 3%, transparent);
+  --recipe-chip-shadow: inset 0 1px 0 color-mix(in srgb, var(--tp-color-text-strong) 3%, transparent), 0 5px 14px rgba(0, 0, 0, 0.1);
   min-width: 140px;
-  border-color: rgba(144, 171, 150, 0.34);
-  background: rgba(13, 25, 18, 0.72);
+  background:
+    linear-gradient(90deg, var(--recipe-chip-wash), transparent 58%),
+    color-mix(in srgb, var(--tp-color-page) 70%, #000);
+  opacity: 0.86;
 }
 
 .recipe-route-item-chip.is-output {
+  --recipe-chip-rail-color: var(--recipe-output-line);
+  --recipe-chip-wash: var(--recipe-output-tint);
+  --recipe-chip-shadow: inset 0 1px 0 color-mix(in srgb, var(--tp-color-text-strong) 5%, transparent), inset 0 -1px 0 color-mix(in srgb, #000 28%, transparent), 0 10px 24px rgba(0, 0, 0, 0.16);
   grid-template-columns: 42px minmax(0, 1fr);
   min-width: 186px;
-  border-color: rgba(240, 207, 116, 0.58);
-  background: rgba(38, 38, 20, 0.86);
+  background:
+    linear-gradient(90deg, var(--recipe-chip-wash), transparent 58%),
+    color-mix(in srgb, var(--tp-color-surface-strong) 62%, #000);
 }
 
 .recipe-route-item-chip .tp-preview-image {
@@ -560,6 +987,12 @@
 .recipe-route-item-chip.is-output .tp-preview-image {
   width: 42px;
   height: 42px;
+}
+
+.recipe-route-item-chip.is-station .tp-preview-image {
+  width: 30px;
+  height: 30px;
+  opacity: 0.88;
 }
 
 .recipe-route-item-copy {
@@ -584,7 +1017,7 @@
 }
 
 .recipe-route-item-copy small {
-  color: color-mix(in srgb, var(--tp-color-text-muted) 84%, var(--tp-color-accent-strong));
+  color: var(--tp-color-text-muted);
   font-size: var(--tp-font-size-caption);
   line-height: 1;
 }
@@ -592,10 +1025,13 @@
 .recipe-choice-stack,
 .recipe-shared-materials {
   flex-basis: 100%;
-  border: 1px solid color-mix(in srgb, var(--tp-color-accent) 22%, transparent);
-  border-radius: var(--tp-radius-card);
-  background: rgba(8, 17, 11, 0.58);
-  padding: var(--tp-space-2);
+  border: 0;
+  border-left: 2px solid color-mix(in srgb, var(--tp-color-text-muted) 18%, transparent);
+  border-radius: 0 7px 7px 0;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--tp-color-text-muted) 5%, transparent), transparent 60%),
+    color-mix(in srgb, var(--tp-color-page) 50%, #000);
+  padding: var(--tp-space-2) var(--tp-space-2) var(--tp-space-2) var(--tp-space-3);
 }
 
 .recipe-choice-group {
@@ -606,30 +1042,28 @@
 }
 
 .recipe-choice-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   width: 100%;
 }
 
 .recipe-choice-option {
   align-content: start;
-  border-left: 2px solid rgba(240, 207, 116, 0.42);
+  border-left: 2px solid var(--recipe-choice-line);
   padding-left: var(--tp-space-2);
 }
 
 .recipe-choice-option-label {
   flex-basis: 100%;
-  color: #f0cf74;
+  color: var(--tp-color-text-muted);
 }
 
 .recipe-shared-label {
-  border-color: rgba(115, 181, 125, 0.34);
-  color: #b8eba0;
+  border-color: var(--recipe-soft-line);
+  color: color-mix(in srgb, var(--tp-color-positive) 42%, var(--tp-color-text-muted));
 }
 
 .route-flow-arrow {
   align-self: center;
-  color: color-mix(in srgb, var(--tp-color-accent-strong) 76%, var(--tp-color-text-muted));
+  color: var(--recipe-arrow-color);
   font-size: 22px;
   font-weight: 900;
   line-height: 1;
@@ -686,7 +1120,7 @@
 }
 
 .recipe-sheet-compact {
-  border: 1px solid color-mix(in srgb, var(--tp-color-border) 64%, transparent);
+  border: 1px solid var(--crafting-line-muted);
   border-radius: var(--tp-radius-card);
   background: color-mix(in srgb, var(--tp-color-surface-soft) 48%, transparent);
   padding: var(--tp-space-4);
@@ -717,7 +1151,7 @@
 
 .recipe-compare-table th,
 .recipe-compare-table td {
-  border-bottom: 1px solid var(--tp-color-border);
+  border-bottom: 1px solid var(--crafting-line-muted);
   padding: var(--tp-space-2);
   color: var(--tp-color-text);
   font-size: var(--tp-font-size-body-sm);
@@ -775,6 +1209,21 @@
 .crafting-legend div {
   display: grid;
   gap: var(--tp-space-2);
+  align-content: start;
+  border: 1px solid var(--crafting-line-muted);
+  border-radius: var(--tp-radius-card);
+  background:
+    var(--crafting-grid-minor-x),
+    var(--crafting-grid-minor-y),
+    color-mix(in srgb, var(--tp-color-surface-soft) 56%, #000);
+  background-size: 40px 40px, 40px 40px, auto;
+  padding: var(--tp-space-3);
+}
+
+.crafting-legend strong {
+  color: var(--tp-color-text-strong);
+  font-size: var(--tp-font-size-body-sm);
+  font-weight: var(--tp-font-weight-heavy);
 }
 
 .crafting-legend p {
@@ -797,6 +1246,15 @@
   .recipe-sheet-grid,
   .crafting-legend {
     grid-template-columns: 1fr;
+  }
+
+  .crafting-target-bar {
+    gap: var(--tp-space-4);
+    min-height: 0;
+  }
+
+  .crafting-target-art {
+    min-height: 180px;
   }
 
   .target-title {
@@ -830,6 +1288,25 @@
   .crafting-target-input-row,
   .recipe-sheet-head {
     grid-template-columns: 1fr;
+  }
+
+  .crafting-target-art {
+    min-height: 148px;
+    padding: var(--tp-space-4);
+  }
+
+  .crafting-target-art .tp-preview-image {
+    width: 96px;
+    height: 96px;
+  }
+
+  .crafting-target-facts {
+    padding: var(--tp-space-3);
+  }
+
+  .crafting-target-fact-list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--tp-space-1);
   }
 
   .target-summary-main {

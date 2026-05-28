@@ -28,6 +28,40 @@ const forbidIncludes = (path, source, marker, message) => {
   }
 }
 
+const cssBlock = (path, source, selector) => {
+  const start = source.indexOf(`${selector} {`)
+  if (start === -1) {
+    violations.push(`${path}: missing CSS block ${selector}`)
+    return ''
+  }
+
+  const open = source.indexOf('{', start)
+  let depth = 0
+  for (let index = open; index < source.length; index += 1) {
+    const char = source[index]
+    if (char === '{') depth += 1
+    if (char === '}') {
+      depth -= 1
+      if (depth === 0) return source.slice(open + 1, index)
+    }
+  }
+
+  violations.push(`${path}: unterminated CSS block ${selector}`)
+  return ''
+}
+
+const requireBlockIncludes = (path, source, selector, marker, message) => {
+  if (!cssBlock(path, source, selector).includes(marker)) {
+    violations.push(`${path}: ${message}`)
+  }
+}
+
+const forbidBlockIncludes = (path, source, selector, marker, message) => {
+  if (cssBlock(path, source, selector).includes(marker)) {
+    violations.push(`${path}: ${message}`)
+  }
+}
+
 const page = requireFile('pages/crafting/index.vue')
 const hifiCss = requireFile('assets/css/hifi-preview.css')
 const domainCss = requireFile('assets/css/domains/crafting.css')
@@ -60,6 +94,7 @@ for (const marker of [
   '<CraftingRecipeCompareTable',
   '<CraftingLegend',
   'activeRecipeRawNode',
+  'crafting-screen',
   'data-crafting-role="page"',
 ]) {
   requireIncludes('pages/crafting/index.vue', page, marker, `missing new crafting architecture marker ${marker}`)
@@ -76,8 +111,13 @@ for (const marker of [
 }
 
 for (const marker of [
+  '.crafting-screen',
   '.crafting-page',
   '.crafting-target-bar',
+  '.crafting-target-art',
+  '.crafting-target-main',
+  '.crafting-target-facts',
+  '.crafting-target-fact-list',
   '.recipe-variant-selector',
   '.recipe-option-selector',
   '.recipe-sheet',
@@ -94,6 +134,88 @@ for (const marker of [
   '.station-options',
 ]) {
   requireIncludes('assets/css/domains/crafting.css', domainCss, marker, `missing crafting domain selector ${marker}`)
+}
+
+{
+  const source = requireFile('components/crafting/CraftingTargetBar.vue')
+  for (const marker of [
+    'crafting-target-art',
+    'crafting-target-main',
+    'crafting-target-facts',
+    'crafting-target-fact-list',
+    '路线档案',
+    '公开配方模型',
+    'data-crafting-role="target-art"',
+    'data-crafting-role="target-main"',
+    'data-crafting-role="target-facts"',
+  ]) {
+    requireIncludes('components/crafting/CraftingTargetBar.vue', source, marker, `target bar must mirror NPC detail hero marker ${marker}`)
+  }
+}
+
+{
+  const source = requireFile('assets/css/domains/crafting.css')
+  for (const marker of [
+    'grid-template-columns: 220px minmax(0, 1fr) minmax(280px, 320px);',
+    'var(--index-grid-x)',
+    'var(--index-grid-y)',
+    '.crafting-screen {',
+    'min-height: 220px',
+    '.crafting-target-art .tp-preview-image',
+    '.crafting-target-search',
+    '.crafting-target-facts',
+    '.recipe-variant-selector,',
+    '.recipe-option-selector {',
+    '.recipe-selector-button.active',
+    '.crafting-legend strong',
+    '--crafting-grid-minor-x',
+    '--crafting-grid-minor-y',
+    '--crafting-grid-major-x',
+    '--crafting-grid-major-y',
+    '--crafting-grid-wash',
+    '--crafting-line-muted',
+    '--crafting-line-soft',
+    '--crafting-line-strong',
+    '--crafting-stage-shadow',
+    '--crafting-stage-ring',
+    '--crafting-node-glow',
+    '.crafting-target-bar::before',
+    '.crafting-target-bar::after',
+    'background-size: 160px 160px, 160px 160px, 40px 40px, 40px 40px, auto;',
+    '--recipe-sheet-line',
+    'align-items: stretch;',
+    'border: 1px solid var(--recipe-sheet-line)',
+    'border-color: var(--crafting-line-soft);',
+    '.crafting-screen .breadcrumb-shell',
+    '.crafting-screen .breadcrumb-link',
+    '.crafting-page .eyebrow',
+    '.crafting-page :where(.tp-token, .tp-chip)',
+    '.crafting-page .tp-dense-row',
+    '.crafting-page .small-button',
+  ]) {
+    requireIncludes('assets/css/domains/crafting.css', source, marker, `crafting page must align overall layout with NPC page marker ${marker}`)
+  }
+  for (const marker of [
+    '--crafting-console-surface',
+    '--crafting-console-edge',
+    '--crafting-console-hairline',
+    '--crafting-etched-grid',
+    '--crafting-port-size',
+    'background-size: 128px 128px, 128px 128px, 32px 32px, 32px 32px, auto;',
+    'var(--tp-color-accent',
+    'var(--tp-color-accent-strong',
+    'var(--tp-color-border',
+    'var(--gold',
+    '#ffd765',
+    '#f0cf74',
+    '#d6b15a',
+    'rgba(217, 185, 91',
+    'rgba(214, 177, 90',
+    'rgba(222, 187, 95',
+    'rgba(240, 207, 116',
+  ]) {
+    forbidIncludes('assets/css/domains/crafting.css', source, marker, `crafting page must roll back rejected console/circuit or broad gold marker ${marker}`)
+  }
 }
 
 for (const path of [
@@ -156,6 +278,116 @@ for (const path of [
     requireIncludes('assets/css/domains/crafting.css', source, marker, `route tree CSS must visually distinguish relationship marker ${marker}`)
   }
   for (const marker of [
+    '--recipe-material-tint',
+    '--recipe-station-tint',
+    '--recipe-output-tint',
+    '--recipe-choice-tint',
+    '--recipe-graph-grid-line',
+    '--recipe-graph-grid-subtle',
+    'var(--index-grid-x)',
+    'var(--index-grid-y)',
+    'linear-gradient(135deg',
+    'color-mix(in srgb, var(--tp-color-surface)',
+    'color-mix(in srgb, var(--tp-color-text-muted)',
+    '--recipe-rail-line',
+    '--recipe-route-tint',
+    '--recipe-route-root-tint',
+    '--recipe-muted-line',
+    '--recipe-focus-line',
+    '--recipe-output-line',
+    '--recipe-arrow-color',
+    'border-color: var(--recipe-muted-line)',
+    'color-mix(in srgb, var(--tp-color-text-muted)',
+    'grid-template-columns: minmax(260px, 1.5fr) auto minmax(180px, 0.58fr) auto minmax(220px, 0.72fr);',
+    'align-items: stretch;',
+    '.recipe-route-row::before',
+    'position: absolute;',
+    'grid-column: 1 / -1;',
+    '.recipe-graph::before',
+    '.recipe-graph::after',
+    '.recipe-route-entry::before',
+    '.recipe-route-entry::after',
+    'box-shadow: var(--crafting-stage-shadow)',
+    'box-shadow: var(--crafting-node-glow)',
+    'border-color: transparent;',
+    'background: transparent;',
+    'padding: 0;',
+    'display: flex;',
+    'flex-wrap: wrap;',
+    '.recipe-route-item-list.is-compact',
+  ]) {
+    requireIncludes('assets/css/domains/crafting.css', source, marker, `route tree CSS must retain rolled-back lightweight relationship marker ${marker}`)
+  }
+  for (const marker of [
+    '--recipe-track-surface',
+    '--recipe-track-rail',
+    '--recipe-port-line',
+    '--recipe-node-surface',
+    '--recipe-node-surface-raised',
+    '.recipe-route-row::after',
+    '.recipe-route-item-chip::after',
+    '.route-flow-arrow::before',
+    '.route-flow-arrow::after',
+  ]) {
+    forbidIncludes('assets/css/domains/crafting.css', source, marker, `route tree CSS must roll back rejected console route marker ${marker}`)
+  }
+  for (const marker of [
+    '--recipe-chip-rail-color',
+    '--recipe-chip-wash',
+    '--recipe-chip-shadow',
+    'border: 0;',
+    'border-radius: 7px;',
+  ]) {
+    requireBlockIncludes('assets/css/domains/crafting.css', source, '.recipe-route-item-chip', marker, `route item chips must use quiet rail tokens instead of full bordered cards marker ${marker}`)
+  }
+  requireBlockIncludes('assets/css/domains/crafting.css', source, '.recipe-route-item-chip::before', 'inset: 7px auto 7px 0;', 'route item chips must use a short left rail instead of a full overlay')
+  requireBlockIncludes('assets/css/domains/crafting.css', source, '.recipe-route-item-chip::before', 'width: 2px;', 'route item chips must use a thin relation rail')
+  for (const marker of [
+    'border: 1px solid',
+    'border-color:',
+  ]) {
+    forbidBlockIncludes('assets/css/domains/crafting.css', source, '.recipe-route-item-chip', marker, `route item chips must not return to obvious full-card borders marker ${marker}`)
+  }
+  for (const selector of [
+    '.recipe-route-item-chip.is-choice',
+    '.recipe-route-item-chip.is-shared',
+    '.recipe-route-item-chip.is-station',
+    '.recipe-route-item-chip.is-output',
+  ]) {
+    forbidBlockIncludes('assets/css/domains/crafting.css', source, selector, 'border-color:', `${selector} must not restore full-card border coloring`)
+  }
+  forbidBlockIncludes('assets/css/domains/crafting.css', source, '.recipe-route-item-chip.is-choice', 'border-style: dashed;', 'choice chips must not use dashed card borders')
+  forbidBlockIncludes('assets/css/domains/crafting.css', source, '.recipe-route-item-chip:hover,\n.recipe-route-item-chip:focus-visible', 'border-color:', 'chip hover must not rely on border-color')
+  forbidBlockIncludes('assets/css/domains/crafting.css', source, '.recipe-route-item-chip::before', 'inset: 0;', 'chip pseudo element must not become a full-card overlay again')
+  for (const selector of [
+    '.recipe-choice-stack,\n.recipe-shared-materials',
+  ]) {
+    requireBlockIncludes('assets/css/domains/crafting.css', source, selector, 'border: 0;', 'choice/shared material groups must avoid nested full-card borders')
+    requireBlockIncludes('assets/css/domains/crafting.css', source, selector, 'border-left: 2px solid', 'choice/shared material groups must use a relation rail')
+    forbidBlockIncludes('assets/css/domains/crafting.css', source, selector, 'border: 1px solid', 'choice/shared material groups must not restore nested full-card borders')
+  }
+  for (const marker of [
+    '--recipe-focus-line: color-mix(in srgb, var(--tp-color-accent)',
+    '--recipe-output-line: color-mix(in srgb, var(--tp-color-accent',
+    '--recipe-choice-line: color-mix(in srgb, var(--tp-color-accent',
+    '--recipe-route-emphasis',
+    'color-mix(in srgb, var(--tp-color-accent) 18%, transparent)',
+    'color-mix(in srgb, var(--tp-color-accent) 24%, transparent)',
+    'color-mix(in srgb, var(--tp-color-accent) 10%, transparent)',
+    'color-mix(in srgb, var(--tp-color-accent-strong)',
+    '.recipe-route-entry {\n  --recipe-route-tint: color-mix(in srgb, var(--tp-color-accent) 5%, transparent);',
+    'border: 1px solid color-mix(in srgb, var(--tp-color-accent) 18%, transparent);',
+    'border-color: color-mix(in srgb, var(--tp-color-accent) 20%, transparent);',
+    'border-color: color-mix(in srgb, var(--tp-color-accent) 24%, transparent);',
+    'border-color: color-mix(in srgb, var(--tp-color-accent) 28%, transparent);',
+    'border-color: color-mix(in srgb, var(--tp-color-accent) 32%, transparent);',
+    'border-color: color-mix(in srgb, var(--tp-color-accent-strong) 34%, transparent);',
+    'border-color: color-mix(in srgb, var(--tp-color-accent-strong) 36%, transparent);',
+    'color: color-mix(in srgb, var(--tp-color-accent-strong) 52%, var(--tp-color-text-muted));',
+  ]) {
+    forbidIncludes('assets/css/domains/crafting.css', source, marker, `route tree CSS must avoid broad gold treatment marker ${marker}`)
+  }
+  for (const marker of [
     '.recipe-graph-svg',
     '.recipe-graph-edge',
     '.recipe-graph-group',
@@ -166,6 +398,37 @@ for (const path of [
     'drop-shadow',
   ]) {
     forbidIncludes('assets/css/domains/crafting.css', source, marker, `route tree visual style must stay simple and avoid coordinate/decorative marker ${marker}`)
+  }
+  for (const marker of [
+    '#b7c9bc',
+    '#6f8f8b',
+    '#7e958f',
+    '#718d8c',
+    '#879a92',
+    '#7d9089',
+    '#8f8d68',
+    '#9b986e',
+    '#6fa7a0',
+    '#8294ad',
+    '#c4bea0',
+    '#79aa84',
+    '#9bb7a0',
+  ]) {
+    forbidIncludes('assets/css/domains/crafting.css', source, marker, `route tree CSS must use existing site tokens instead of custom palette marker ${marker}`)
+  }
+}
+
+{
+  const source = requireFile('components/crafting/RecipeTreeNode.vue')
+  requireIncludes('components/crafting/RecipeTreeNode.vue', source, 'color-mix(in srgb, var(--tp-color-positive)', 'inline recipe tree labels must use the muted NPC-compatible accent')
+  for (const marker of [
+    'var(--gold',
+    'var(--tp-color-accent',
+    '#ffd765',
+    '#f0cf74',
+    '#d6b15a',
+  ]) {
+    forbidIncludes('components/crafting/RecipeTreeNode.vue', source, marker, `inline recipe tree labels must avoid broad gold marker ${marker}`)
   }
 }
 

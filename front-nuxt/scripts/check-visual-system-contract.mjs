@@ -43,6 +43,13 @@ const cssOrder = [
   const content = requireFile(path)
   let previousIndex = -1
 
+  requireIncludes(
+    path,
+    content,
+    'devtools: { enabled: process.env.NUXT_DEVTOOLS === \'true\' }',
+    'Nuxt DevTools must be opt-in so the white local debug overlay does not appear on public pages',
+  )
+
   for (const item of cssOrder) {
     const index = content.indexOf(item)
     if (index < 0) {

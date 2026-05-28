@@ -113,7 +113,7 @@ const clearRecipeTarget = async () => {
 </script>
 
 <template>
-  <section class="screen entity-screen active">
+  <section class="screen entity-screen crafting-screen active">
     <TerraNav />
     <TerraBreadcrumb />
 

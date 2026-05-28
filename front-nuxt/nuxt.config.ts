@@ -16,7 +16,7 @@ export default defineNuxtConfig({
     app: '.',
   },
   compatibilityDate: '2024-11-01',
-  devtools: { enabled: true },
+  devtools: { enabled: process.env.NUXT_DEVTOOLS === 'true' },
   modules: ['@pinia/nuxt'],
 
   devServer: {
