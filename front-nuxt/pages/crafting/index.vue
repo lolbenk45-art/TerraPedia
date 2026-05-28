@@ -2,6 +2,7 @@
 import { useCraftingRecipeModel } from '~/composables/useCraftingRecipeModel'
 import { usePublicItems } from '~/composables/usePublicItems'
 import { usePublicRecipeTree } from '~/composables/usePublicRecipeTree'
+import type { PublicItemRecipeTreeVariant } from '~/types/public-api'
 
 const route = useRoute()
 const router = useRouter()
@@ -50,6 +51,25 @@ const recipeModel = useCraftingRecipeModel(recipeTree, selectedVariantKey, selec
 const activeVariant = computed(() => recipeModel.value.activeVariant)
 const activeRecipe = computed(() => recipeModel.value.activeRecipe)
 const activeOptions = computed(() => activeVariant.value?.options ?? [])
+const rawVariantKey = (variant: PublicItemRecipeTreeVariant, index: number) =>
+  [variant.variantKey, variant.variantLabel, index].map((value) => String(value ?? '').trim()).find(Boolean) || `variant-${index}`
+const activeRawVariant = computed(() => {
+  const variants = Array.isArray(recipeTree.value?.variants) ? recipeTree.value?.variants ?? [] : []
+  return variants
+    .map((variant, index) => ({ variant, key: rawVariantKey(variant, index) }))
+    .find((entry) => entry.key === activeVariant.value?.key)?.variant
+    ?? variants[0]
+    ?? null
+})
+const activeRecipeRawNode = computed(() => {
+  const roots = Array.isArray(activeRawVariant.value?.roots) ? activeRawVariant.value?.roots ?? [] : []
+  const activeRecipeId = String(activeRecipe.value?.recipeId ?? '').trim()
+  if (activeRecipeId) {
+    return roots.find((root) => String(root.recipeId ?? '').trim() === activeRecipeId) ?? roots[0] ?? null
+  }
+
+  return roots[0] ?? null
+})
 const itemSuggestions = computed(() => itemResults.value?.source === 'api' ? itemResults.value.items : [])
 const showSearchUnavailable = computed(() => !itemSearchPending.value && recipeSearchQuery.value.trim().length > 0 && itemResults.value?.source !== 'api')
 
@@ -130,6 +150,8 @@ const clearRecipeTarget = async () => {
         />
 
         <CraftingRecipeSheet :recipe="activeRecipe" />
+
+        <CraftingRecipeCraftingGraph :root="activeRecipeRawNode" />
 
         <CraftingMaterialExpansionList
           v-if="activeRecipe"

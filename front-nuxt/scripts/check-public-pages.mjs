@@ -2347,9 +2347,11 @@ for (const path of scanFiles) {
       '<CraftingRecipeVariantSelector',
       '<CraftingRecipeOptionSelector',
       '<CraftingRecipeSheet',
+      '<CraftingRecipeCraftingGraph',
       '<CraftingMaterialExpansionList',
       '<CraftingRecipeCompareTable',
       '<CraftingLegend',
+      'activeRecipeRawNode',
       'data-crafting-role="page"',
       ':aria-busy="recipePending"',
       "itemResults.value?.source === 'api'",
@@ -2390,6 +2392,37 @@ for (const path of scanFiles) {
     ]) {
       if (content.includes(staticMarker)) {
         violations.push(`${path}: crafting page must not keep legacy or static preview-only recipe content (${staticMarker})`)
+      }
+    }
+  }
+
+  if (path === 'components/crafting/RecipeCraftingGraph.vue') {
+    for (const marker of [
+      'data-crafting-role="recipe-graph"',
+      'data-crafting-role="recipe-route-tree"',
+      'data-crafting-role="recipe-route-row"',
+      'data-crafting-role="recipe-relation-step"',
+      'data-crafting-role="recipe-choice-group"',
+      'data-crafting-role="recipe-shared-materials"',
+      'data-crafting-role="recipe-option-materials"',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: crafting graph must render the simplified route-tree marker ${marker}`)
+      }
+    }
+    for (const marker of [
+      'data-crafting-role="recipe-graph-canvas"',
+      'data-crafting-role="recipe-graph-svg"',
+      'data-graph-node-id',
+      'data-edge-from',
+      'data-graph-group-id',
+      '<svg',
+      '<line',
+      '<path',
+      'buildCraftingRecipeGraph',
+    ]) {
+      if (content.includes(marker)) {
+        violations.push(`${path}: simplified route tree must not keep coordinate graph marker ${marker}`)
       }
     }
   }

@@ -200,6 +200,52 @@ const inspectCraftingStructure = async (browser, route) => evaluateJson(browser,
   const stationIconMin = minBox('[data-crafting-role="recipe-stations"] .station-option .tp-preview-image');
   const outputIconMin = minBox('[data-crafting-role="recipe-output"] .tp-preview-image');
   const anyMemberIconMin = minBox('[data-crafting-role="any-material-group"] .any-material-member .tp-preview-image');
+  const sheet = document.querySelector('[data-crafting-role="recipe-sheet"]');
+  const graph = document.querySelector('[data-crafting-role="recipe-graph"]');
+  const routeTree = document.querySelector('[data-crafting-role="recipe-route-tree"]');
+  const routeRows = [...document.querySelectorAll('[data-crafting-role="recipe-route-row"]')].filter(visible);
+  const relationSteps = [...document.querySelectorAll('[data-crafting-role="recipe-relation-step"]')].filter(visible);
+  const choiceGroups = [...document.querySelectorAll('[data-crafting-role="recipe-choice-group"]')].filter(visible);
+  const sharedGroups = [...document.querySelectorAll('[data-crafting-role="recipe-shared-materials"]')].filter(visible);
+  const optionMaterialGroups = [...document.querySelectorAll('[data-crafting-role="recipe-option-materials"]')].filter(visible);
+  const oldCoordinateLayers = document.querySelectorAll('[data-crafting-role="recipe-graph-scroll"], [data-crafting-role="recipe-graph-canvas"], [data-crafting-role="recipe-graph-svg"], [data-graph-node-id], [data-edge-from], [data-graph-group-id]').length;
+  const routeTreeText = routeTree?.textContent.trim().replace(/\s+/g, ' ') || '';
+  const choiceGroupTexts = choiceGroups.map((group) => group.textContent.trim().replace(/\s+/g, ' '));
+  const sharedGroupTexts = sharedGroups.map((group) => group.textContent.trim().replace(/\s+/g, ' '));
+  const graphRect = graph?.getBoundingClientRect();
+  const sheetRect = sheet?.getBoundingClientRect();
+  const rowErrors = [];
+  for (const row of routeRows) {
+    const rowRect = row.getBoundingClientRect();
+    const steps = [...row.querySelectorAll('[data-crafting-role="recipe-relation-step"]')].filter(visible);
+    if (steps.length !== 3) {
+      rowErrors.push(\`row has \${steps.length} relationship steps\`);
+    }
+    if (rowRect.right > window.innerWidth + 1 && window.innerWidth < 760) {
+      rowErrors.push(\`mobile row overflows viewport by \${Math.round(rowRect.right - window.innerWidth)}px\`);
+    }
+    if (window.innerWidth < 760) {
+      for (const step of steps) {
+        const stepRect = step.getBoundingClientRect();
+        if (stepRect.left < 0 || stepRect.right > window.innerWidth + 1) {
+          rowErrors.push(\`mobile relation step is clipped: left \${Math.round(stepRect.left)}, right \${Math.round(stepRect.right)}\`);
+        }
+      }
+    }
+  }
+  const graphMetrics = {
+    routeRowCount: routeRows.length,
+    relationStepCount: relationSteps.length,
+    choiceGroupCount: choiceGroups.length,
+    sharedGroupCount: sharedGroups.length,
+    optionMaterialGroupCount: optionMaterialGroups.length,
+    choiceGroupTexts,
+    sharedGroupTexts,
+    oldCoordinateLayers,
+    sheetBottom: sheetRect ? Math.round(sheetRect.bottom) : null,
+    graphTop: graphRect ? Math.round(graphRect.top) : null,
+    rowErrors,
+  };
 
   if (oldTreeCount > 0) {
     issues.push(\`legacy full-tree selectors are still rendered: \${oldTreeCount}\`);
@@ -212,6 +258,27 @@ const inspectCraftingStructure = async (browser, route) => evaluateJson(browser,
   }
   if (pageOverflow > 1) {
     issues.push(\`page has horizontal overflow: \${pageOverflow}px\`);
+  }
+  if (!graph || !routeTree) {
+    issues.push('recipe relation tree must render graph shell and route tree');
+  }
+  if (oldCoordinateLayers > 0) {
+    issues.push(\`simplified relation tree must not render old coordinate graph layers: \${oldCoordinateLayers}\`);
+  }
+  if (sheetRect && graphRect && graphRect.top <= sheetRect.bottom) {
+    issues.push(\`recipe graph must appear below recipe sheet: sheet bottom \${Math.round(sheetRect.bottom)}, graph top \${Math.round(graphRect.top)}\`);
+  }
+  if (routeRows.length < 1) {
+    issues.push(\`recipe relation tree must render at least one route row, found \${routeRows.length}\`);
+  }
+  if (relationSteps.length < routeRows.length * 3) {
+    issues.push(\`each relation row must render materials/stations/output steps: rows \${routeRows.length}, steps \${relationSteps.length}\`);
+  }
+  if (rowErrors.length > 0) {
+    issues.push(\`recipe relation rows must be stable document-flow rows: \${rowErrors.join('; ')}\`);
+  }
+  if (isTerraspark && routeRows.length < 6) {
+    issues.push(\`terraspark relation tree must expose nested route rows, found \${routeRows.length}\`);
   }
   if (materialIconMin && (materialIconMin.width < 44 || materialIconMin.height < 44)) {
     issues.push(\`material icons are too small: \${JSON.stringify(materialIconMin)}\`);
@@ -261,9 +328,29 @@ const inspectCraftingStructure = async (browser, route) => evaluateJson(browser,
       if (!expandedText.includes(expected)) {
         issues.push(\`true night's edge expanded child recipes must show material \${expected}: \${expandedText}\`);
       }
+      if (!routeTreeText.includes(expected)) {
+        issues.push(\`true night's edge relation tree must show material \${expected}: \${routeTreeText}\`);
+      }
     }
     if (expandedChildSheetCount < 2) {
       issues.push(\`true night's edge must expose both night edge child recipe options, found \${expandedChildSheetCount}\`);
+    }
+    const bloodLightChoice = choiceGroupTexts.find((groupText) => groupText.includes('血腥屠刀') && groupText.includes('魔光剑')) || '';
+    const sharedText = sharedGroupTexts.join(' ');
+    if (!bloodLightChoice.includes('可替换材料') || !bloodLightChoice.includes('任选 1')) {
+      issues.push(\`true night's edge relation tree must render Blood Butcherer/Light's Bane as one explicit choose-one material group: \${JSON.stringify(choiceGroupTexts)}\`);
+    }
+    for (const expected of ['村正', '草剑', '火山']) {
+      if (!sharedText.includes(expected)) {
+        issues.push(\`true night's edge relation tree must separate shared material \${expected}: \${JSON.stringify(sharedGroupTexts)}\`);
+      }
+    }
+  }
+
+  if (isTerrablade) {
+    const alternativeGroupText = choiceGroupTexts.find((groupText) => groupText.includes('血腥屠刀') || groupText.includes('魔光剑')) || '';
+    if (!alternativeGroupText.includes('可替换材料') || !alternativeGroupText.includes('血腥屠刀') || !alternativeGroupText.includes('魔光剑') || alternativeGroupText.includes('ALT') || alternativeGroupText.includes('可选配方')) {
+      issues.push(\`terrablade relation tree must label Blood Butcherer/Light's Bane as substitute materials, not recipe alternatives: \${JSON.stringify(choiceGroupTexts)}\`);
     }
   }
 
@@ -297,6 +384,7 @@ const inspectCraftingStructure = async (browser, route) => evaluateJson(browser,
     stationIconMin,
     outputIconMin,
     anyMemberIconMin,
+    graphMetrics,
     issues,
   };
 })()`)

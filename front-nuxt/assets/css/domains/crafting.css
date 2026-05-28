@@ -153,6 +153,7 @@
 }
 
 .recipe-sheet,
+.recipe-graph,
 .material-expansion-list,
 .recipe-compare-table,
 .crafting-legend {
@@ -363,6 +364,295 @@
   height: 64px;
 }
 
+.recipe-graph {
+  display: grid;
+  gap: var(--tp-space-3);
+  overflow: hidden;
+}
+
+.recipe-graph-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--tp-space-3);
+  align-items: end;
+  min-width: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--tp-color-border) 72%, transparent);
+  padding-bottom: var(--tp-space-3);
+}
+
+.recipe-graph-head h2 {
+  margin: 0;
+  color: var(--tp-color-text-strong);
+  font-size: var(--tp-font-size-heading-md);
+  line-height: var(--tp-line-height-heading);
+}
+
+.recipe-graph-head small {
+  color: var(--tp-color-text-muted);
+  font-size: var(--tp-font-size-caption);
+  font-weight: var(--tp-font-weight-heavy);
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.recipe-route-tree {
+  display: grid;
+  gap: var(--tp-space-3);
+}
+
+.recipe-route-entry {
+  display: grid;
+  gap: var(--tp-space-2);
+  margin-left: calc(var(--route-level, 0) * 28px);
+  border: 1px solid color-mix(in srgb, var(--tp-color-border) 82%, transparent);
+  border-radius: var(--tp-radius-card);
+  background: rgba(8, 18, 13, 0.56);
+  padding: var(--tp-space-3);
+}
+
+.recipe-route-entry[data-route-level="0"] {
+  border-color: color-mix(in srgb, var(--tp-color-accent) 34%, var(--tp-color-border));
+  background: rgba(15, 27, 18, 0.72);
+}
+
+.recipe-route-entry-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--tp-space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.recipe-route-entry-head b,
+.recipe-route-entry-head small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recipe-route-entry-head b {
+  color: var(--tp-color-text-strong);
+  font-size: var(--tp-font-size-body);
+  line-height: var(--tp-line-height-compact);
+}
+
+.recipe-route-entry-head small,
+.recipe-route-level,
+.recipe-step-label,
+.recipe-choice-label,
+.recipe-choice-option-label,
+.recipe-shared-label {
+  color: var(--tp-color-text-muted);
+  font-size: var(--tp-font-size-caption);
+  font-weight: var(--tp-font-weight-heavy);
+  line-height: 1;
+}
+
+.recipe-route-level,
+.recipe-step-label,
+.recipe-choice-label,
+.recipe-shared-label {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  min-height: 22px;
+  border: 1px solid color-mix(in srgb, var(--tp-color-accent) 20%, transparent);
+  border-radius: var(--tp-radius-control);
+  background: rgba(10, 22, 15, 0.82);
+  padding: 0 var(--tp-space-2);
+}
+
+.recipe-route-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.5fr) auto minmax(180px, 0.58fr) auto minmax(220px, 0.72fr);
+  gap: var(--tp-space-3);
+  align-items: stretch;
+  min-width: 0;
+}
+
+.recipe-relation-step {
+  display: grid;
+  align-content: start;
+  gap: var(--tp-space-2);
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--tp-color-border) 76%, transparent);
+  border-radius: var(--tp-radius-card);
+  background: rgba(5, 15, 10, 0.64);
+  padding: var(--tp-space-2);
+}
+
+.recipe-relation-step.is-output {
+  border-color: color-mix(in srgb, var(--tp-color-accent) 36%, var(--tp-color-border));
+  background: rgba(26, 29, 16, 0.72);
+}
+
+.recipe-route-item-list,
+.recipe-choice-stack,
+.recipe-choice-options,
+.recipe-choice-option,
+.recipe-option-materials,
+.recipe-shared-materials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tp-space-2);
+  min-width: 0;
+}
+
+.recipe-route-item-list.is-compact {
+  align-content: start;
+}
+
+.recipe-route-item-chip {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: var(--tp-space-2);
+  align-items: center;
+  min-width: 158px;
+  max-width: 220px;
+  border: 1px solid rgba(214, 177, 90, 0.28);
+  border-radius: var(--tp-radius-card);
+  background: rgba(14, 26, 19, 0.88);
+  color: inherit;
+  padding: 6px 8px;
+  text-decoration: none;
+}
+
+.recipe-route-item-chip:hover,
+.recipe-route-item-chip:focus-visible {
+  border-color: rgba(240, 207, 116, 0.58);
+}
+
+.recipe-route-item-chip:focus-visible {
+  outline: 2px solid rgba(240, 207, 116, 0.62);
+  outline-offset: 2px;
+}
+
+.recipe-route-item-chip.is-choice {
+  border-style: dashed;
+  border-color: rgba(240, 207, 116, 0.48);
+  background: rgba(40, 31, 14, 0.74);
+}
+
+.recipe-route-item-chip.is-shared {
+  border-color: rgba(115, 181, 125, 0.42);
+  background: rgba(15, 34, 20, 0.68);
+}
+
+.recipe-route-item-chip.is-station {
+  min-width: 140px;
+  border-color: rgba(144, 171, 150, 0.34);
+  background: rgba(13, 25, 18, 0.72);
+}
+
+.recipe-route-item-chip.is-output {
+  grid-template-columns: 42px minmax(0, 1fr);
+  min-width: 186px;
+  border-color: rgba(240, 207, 116, 0.58);
+  background: rgba(38, 38, 20, 0.86);
+}
+
+.recipe-route-item-chip .tp-preview-image {
+  width: 34px;
+  height: 34px;
+}
+
+.recipe-route-item-chip.is-output .tp-preview-image {
+  width: 42px;
+  height: 42px;
+}
+
+.recipe-route-item-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.recipe-route-item-copy b,
+.recipe-route-item-copy small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recipe-route-item-copy b {
+  color: var(--tp-color-text-strong);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.recipe-route-item-copy small {
+  color: color-mix(in srgb, var(--tp-color-text-muted) 84%, var(--tp-color-accent-strong));
+  font-size: var(--tp-font-size-caption);
+  line-height: 1;
+}
+
+.recipe-choice-stack,
+.recipe-shared-materials {
+  flex-basis: 100%;
+  border: 1px solid color-mix(in srgb, var(--tp-color-accent) 22%, transparent);
+  border-radius: var(--tp-radius-card);
+  background: rgba(8, 17, 11, 0.58);
+  padding: var(--tp-space-2);
+}
+
+.recipe-choice-group {
+  display: grid;
+  gap: var(--tp-space-2);
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.recipe-choice-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  width: 100%;
+}
+
+.recipe-choice-option {
+  align-content: start;
+  border-left: 2px solid rgba(240, 207, 116, 0.42);
+  padding-left: var(--tp-space-2);
+}
+
+.recipe-choice-option-label {
+  flex-basis: 100%;
+  color: #f0cf74;
+}
+
+.recipe-shared-label {
+  border-color: rgba(115, 181, 125, 0.34);
+  color: #b8eba0;
+}
+
+.route-flow-arrow {
+  align-self: center;
+  color: color-mix(in srgb, var(--tp-color-accent-strong) 76%, var(--tp-color-text-muted));
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.recipe-route-empty {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--tp-color-text-muted);
+  font-size: var(--tp-font-size-body-sm);
+  font-weight: var(--tp-font-weight-heavy);
+}
+
+.recipe-route-empty-state {
+  display: grid;
+  place-content: center;
+  min-height: 180px;
+  gap: var(--tp-space-2);
+  color: var(--tp-color-text-muted);
+  text-align: center;
+}
+
 .recipe-section-head {
   display: grid;
   gap: var(--tp-space-1);
@@ -530,6 +820,7 @@
 
   .crafting-target-bar,
   .recipe-sheet,
+  .recipe-graph,
   .material-expansion-list,
   .recipe-compare-table,
   .crafting-legend {
@@ -573,5 +864,49 @@
   .recipe-output-inline .tp-preview-image {
     width: 58px;
     height: 58px;
+  }
+
+  .recipe-graph-head {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .recipe-graph-head small {
+    text-align: left;
+  }
+
+  .recipe-route-entry {
+    margin-left: calc(var(--route-level, 0) * 10px);
+    padding: var(--tp-space-2);
+  }
+
+  .recipe-route-entry-head {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .recipe-route-entry-head b,
+  .recipe-route-entry-head small {
+    white-space: normal;
+  }
+
+  .recipe-route-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--tp-space-2);
+  }
+
+  .route-flow-arrow {
+    justify-self: center;
+    transform: rotate(90deg);
+  }
+
+  .recipe-route-item-chip {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+
+  .recipe-choice-options {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

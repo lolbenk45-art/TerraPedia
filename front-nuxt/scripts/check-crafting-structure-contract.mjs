@@ -29,6 +29,7 @@ const forbidIncludes = (path, source, marker, message) => {
 }
 
 const page = requireFile('pages/crafting/index.vue')
+const hifiCss = requireFile('assets/css/hifi-preview.css')
 const domainCss = requireFile('assets/css/domains/crafting.css')
 
 for (const path of [
@@ -37,6 +38,7 @@ for (const path of [
   'components/crafting/RecipeVariantSelector.vue',
   'components/crafting/RecipeOptionSelector.vue',
   'components/crafting/RecipeSheet.vue',
+  'components/crafting/RecipeCraftingGraph.vue',
   'components/crafting/MaterialExpansionList.vue',
   'components/crafting/RecipeCompareTable.vue',
   'components/crafting/CraftingLegend.vue',
@@ -53,9 +55,11 @@ for (const marker of [
   '<CraftingRecipeVariantSelector',
   '<CraftingRecipeOptionSelector',
   '<CraftingRecipeSheet',
+  '<CraftingRecipeCraftingGraph',
   '<CraftingMaterialExpansionList',
   '<CraftingRecipeCompareTable',
   '<CraftingLegend',
+  'activeRecipeRawNode',
   'data-crafting-role="page"',
 ]) {
   requireIncludes('pages/crafting/index.vue', page, marker, `missing new crafting architecture marker ${marker}`)
@@ -77,6 +81,12 @@ for (const marker of [
   '.recipe-variant-selector',
   '.recipe-option-selector',
   '.recipe-sheet',
+  '.recipe-graph',
+  '.recipe-route-tree',
+  '.recipe-route-row',
+  '.recipe-route-item-chip',
+  '.recipe-choice-group',
+  '.recipe-shared-materials',
   '.material-expansion-list',
   '.recipe-compare-table',
   '.crafting-legend',
@@ -91,6 +101,7 @@ for (const path of [
   'components/crafting/RecipeVariantSelector.vue',
   'components/crafting/RecipeOptionSelector.vue',
   'components/crafting/RecipeSheet.vue',
+  'components/crafting/RecipeCraftingGraph.vue',
   'components/crafting/MaterialExpansionList.vue',
   'components/crafting/RecipeCompareTable.vue',
   'components/crafting/CraftingLegend.vue',
@@ -100,6 +111,75 @@ for (const path of [
 ]) {
   const source = requireFile(path)
   requireIncludes(path, source, 'data-crafting-role=', 'component must expose stable crafting role markers')
+}
+
+{
+  const source = requireFile('components/crafting/RecipeCraftingGraph.vue')
+  for (const marker of [
+    'data-crafting-role="recipe-graph"',
+    'data-crafting-role="recipe-route-tree"',
+    'data-crafting-role="recipe-route-row"',
+    'data-crafting-role="recipe-relation-step"',
+    'data-crafting-role="recipe-choice-group"',
+    'data-crafting-role="recipe-shared-materials"',
+    'data-crafting-role="recipe-option-materials"',
+    'route-flow-arrow',
+    'childRecipeOptions',
+  ]) {
+    requireIncludes('components/crafting/RecipeCraftingGraph.vue', source, marker, `route tree component must expose relationship clarity marker ${marker}`)
+  }
+  for (const marker of [
+    '<svg',
+    '<path',
+    'data-graph-node-id',
+    'data-edge-from',
+    'data-graph-group-id',
+    'buildCraftingRecipeGraph',
+  ]) {
+    forbidIncludes('components/crafting/RecipeCraftingGraph.vue', source, marker, `route tree must not keep coordinate graph marker ${marker}`)
+  }
+}
+
+{
+  const source = requireFile('assets/css/domains/crafting.css')
+  for (const marker of [
+    '.recipe-route-tree',
+    '.recipe-route-entry',
+    '.recipe-route-row',
+    '.recipe-relation-step',
+    '.recipe-route-item-chip',
+    '.recipe-choice-group',
+    '.recipe-shared-materials',
+    '.recipe-option-materials',
+    '.route-flow-arrow',
+  ]) {
+    requireIncludes('assets/css/domains/crafting.css', source, marker, `route tree CSS must visually distinguish relationship marker ${marker}`)
+  }
+  for (const marker of [
+    '.recipe-graph-svg',
+    '.recipe-graph-edge',
+    '.recipe-graph-group',
+    '.recipe-graph-node',
+    'content: "ALT"',
+    'repeating-linear-gradient',
+    'radial-gradient',
+    'drop-shadow',
+  ]) {
+    forbidIncludes('assets/css/domains/crafting.css', source, marker, `route tree visual style must stay simple and avoid coordinate/decorative marker ${marker}`)
+  }
+}
+
+{
+  for (const marker of [
+    'rgba(244,234,208,0.012)',
+    'rgba(244,234,208,0.009)',
+    'max-width: min(480px, 100%)',
+    '可替换材料 · 任选 1 个',
+    'content: none',
+    'rgba(217, 185, 91, 0.42)',
+  ]) {
+    requireIncludes('assets/css/hifi-preview.css', hifiCss, marker, `legacy recipe tree CSS must retain visual clarity marker ${marker}`)
+  }
 }
 
 {
