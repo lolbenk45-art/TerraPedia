@@ -560,6 +560,48 @@ class RecipeTreeServiceImplTest {
     }
 
     @Test
+    void shouldScaleNestedRecipeIngredientsByRequiredParentQuantity() {
+        RecipeTreeServiceImpl service = newService();
+
+        ItemDTO drillContainmentUnit = recipeTreeItem(2768L, "DrillContainmentUnit", "Drill Containment Unit", "钻头控制装置");
+        ItemDTO chlorophyteBar = recipeTreeItem(1006L, "ChlorophyteBar", "Chlorophyte Bar", "叶绿锭");
+
+        RecipeIngredientDTO requiredBars = simpleIngredient(1006L, "ChlorophyteBar", "Chlorophyte Bar");
+        requiredBars.setItemNameZh("叶绿锭");
+        requiredBars.setQuantityText("40");
+        requiredBars.setQuantityMin(40);
+        requiredBars.setQuantityMax(40);
+        RecipeDTO drillRecipe = recipeWithIngredient(276801L, drillContainmentUnit, requiredBars);
+
+        RecipeIngredientDTO requiredOre = simpleIngredient(947L, "ChlorophyteOre", "Chlorophyte Ore");
+        requiredOre.setItemNameZh("叶绿矿");
+        requiredOre.setQuantityText("5");
+        requiredOre.setQuantityMin(5);
+        requiredOre.setQuantityMax(5);
+        RecipeDTO barRecipe = recipeWithIngredient(100601L, chlorophyteBar, requiredOre);
+        barRecipe.setResultQuantity(1);
+
+        when(itemService.getItemById(2768L)).thenReturn(drillContainmentUnit);
+        when(recipeService.getRecipesByResultItemId(2768L)).thenReturn(List.of(drillRecipe));
+        when(recipeService.getRecipesByResultItemId(1006L)).thenReturn(List.of(barRecipe));
+        when(recipeService.getRecipesByResultItemId(947L)).thenReturn(List.of());
+        when(itemMapper.selectList(any())).thenReturn(List.of());
+
+        RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(2768L, 5);
+
+        RecipeTreeNodeDTO barIngredient = response.getVariants().get(0).getRoots().get(0).getChildren().get(0);
+        RecipeTreeNodeDTO expandedBarRecipe = barIngredient.getChildren().get(0);
+        RecipeTreeNodeDTO oreIngredient = expandedBarRecipe.getChildren().get(0);
+
+        assertEquals("40", expandedBarRecipe.getQuantityText());
+        assertEquals(40, expandedBarRecipe.getQuantityMin());
+        assertEquals(40, expandedBarRecipe.getQuantityMax());
+        assertEquals("200", oreIngredient.getQuantityText());
+        assertEquals(200, oreIngredient.getQuantityMin());
+        assertEquals(200, oreIngredient.getQuantityMax());
+    }
+
+    @Test
     void shouldResolveRecipeGroupFromCentralItemGroupOverride() throws IOException {
         String originalUserDir = System.getProperty("user.dir");
         Path repoRoot = tempDir.resolve("repo");
