@@ -451,7 +451,8 @@ onMounted(() => {
 }
 
 .armor-benefit {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 16px;
   padding-top: 16px;
@@ -459,6 +460,17 @@ onMounted(() => {
   color: var(--text);
   font-size: 13px;
   line-height: 1.7;
+}
+
+.armor-benefit span {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid rgba(244, 234, 208, 0.09);
+  border-radius: 999px;
+  background: rgba(244, 234, 208, 0.03);
+  overflow-wrap: anywhere;
 }
 
 .armor-analysis-layout {
@@ -471,6 +483,7 @@ onMounted(() => {
 .armor-stat-module,
 .armor-preview-module {
   min-width: 0;
+  align-content: start;
 }
 
 .armor-stat-groups {
@@ -620,6 +633,7 @@ onMounted(() => {
 
 .armor-image-groups {
   display: grid;
+  align-content: start;
   gap: 16px;
 }
 
@@ -627,6 +641,7 @@ onMounted(() => {
   display: grid;
   gap: 12px;
   min-width: 0;
+  align-content: start;
 }
 
 .armor-image-group-head {
@@ -645,13 +660,14 @@ onMounted(() => {
 
 .armor-image-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(92px, 92px));
+  justify-content: start;
   gap: 12px;
 }
 
 .armor-image-tile :deep(.item-art) {
-  width: 58px;
-  height: 58px;
+  width: 92px;
+  height: 92px;
   border-radius: 10px;
   overflow: hidden;
 }
