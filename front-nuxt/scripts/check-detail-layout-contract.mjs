@@ -184,8 +184,8 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       'armor set stat table must label the scope column',
     ],
     [
-      String.raw`<th>原始文本</th>`,
-      'armor set stat table must retain raw text for unparsed or ambiguous effects',
+      String.raw`<th>说明</th>`,
+      'armor set stat table must present player-facing effect descriptions',
     ],
     [
       String.raw`const armorBenefitFallbackEffects = computed`,
@@ -205,6 +205,35 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
 
   if (content.includes('armor-detail-icon-stage')) {
     violations.push(`${path}: armor set detail must not keep the previous image-led hero stage`)
+  }
+
+  for (const forbidden of [
+    'Armor Set #',
+    'sourceKey',
+    'textKey',
+    'rawText ||',
+    '未解析',
+    '<th>原始文本</th>',
+    '{{ item.internalName',
+    '{{ item.partRole',
+    '{{ item.slotType',
+  ]) {
+    if (content.includes(forbidden)) {
+      violations.push(`${path}: armor set detail must not expose backend/source fields via marker ${forbidden}`)
+    }
+  }
+}
+
+{
+  const path = 'pages/armor-sets/index.vue'
+  const content = read(path)
+  for (const forbidden of [
+    '{{ armor.englishName || armor.sourceKey || armor.textKey }}',
+    'aria-label="套装原始效果"',
+  ]) {
+    if (content.includes(forbidden)) {
+      violations.push(`${path}: armor set list must use player-facing labels instead of backend/source markers ${forbidden}`)
+    }
   }
 }
 

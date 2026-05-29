@@ -71,6 +71,10 @@ const armorHeroEyebrow = computed(() => {
 const armorLoadingSlotCount = computed(() => Math.min(armorPageSize.value, 24))
 const featuredArmor = computed(() => armorDisplayItems.value.find((item) => item.parsedEffects.length >= 3) ?? armorDisplayItems.value[0] ?? null)
 
+const armorSecondaryLabel = (armor: ArmorSetCatalogItem) => (
+  armor.englishName || '防具套装'
+)
+
 const clearArmorVisualLoadingTimer = () => {
   if (armorVisualLoadingTimer) {
     clearTimeout(armorVisualLoadingTimer)
@@ -324,10 +328,10 @@ onBeforeUnmount(() => {
             height="92"
           />
           <div class="armor-card-body">
-            <span>{{ armor.englishName || armor.sourceKey || armor.textKey }}</span>
+            <span>{{ armorSecondaryLabel(armor) }}</span>
             <h3>{{ armor.displayName }}</h3>
             <p>{{ armorSummary(armor) }}</p>
-            <div v-if="armor.benefitZh" class="armor-benefit-lines" aria-label="套装原始效果">
+            <div v-if="armor.benefitZh" class="armor-benefit-lines" aria-label="套装效果">
               <span v-for="line in benefitLines(armor)" :key="`${armor.id}-${line}`">{{ line }}</span>
             </div>
             <div v-if="shownEffects(armor).length" class="armor-effect-row">
@@ -358,10 +362,10 @@ onBeforeUnmount(() => {
             height="92"
           />
           <div class="armor-card-body">
-            <span>{{ armor.englishName || armor.sourceKey || armor.textKey }}</span>
+            <span>{{ armorSecondaryLabel(armor) }}</span>
             <h3>{{ armor.displayName }}</h3>
             <p>{{ armorSummary(armor) }}</p>
-            <div v-if="armor.benefitZh" class="armor-benefit-lines" aria-label="套装原始效果">
+            <div v-if="armor.benefitZh" class="armor-benefit-lines" aria-label="套装效果">
               <span v-for="line in benefitLines(armor)" :key="`${armor.id}-${line}`">{{ line }}</span>
             </div>
             <div v-if="shownEffects(armor).length" class="armor-effect-row">

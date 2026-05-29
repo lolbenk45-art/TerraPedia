@@ -15,7 +15,7 @@ const armorDetailVisualLoading = computed(() => !armorClientReady.value || (armo
 const armorNotFound = computed(() => armorClientReady.value && !armorDetailPending.value && !armorDetail.value)
 
 const armorTitle = computed(() => armorDetail.value?.displayName || `套装 ${armorSetId.value || '详情'}`)
-const armorSubtitle = computed(() => armorDetail.value?.englishName || armorDetail.value?.sourceKey || armorDetail.value?.textKey || '公开套装资料')
+const armorSubtitle = computed(() => armorDetail.value?.englishName || '公开套装资料')
 
 useSeoMeta({
   title: () => `TerraPedia · ${armorTitle.value}`,
@@ -86,6 +86,22 @@ const effectScopeLabel = (effect: EquipmentEffectAttribute) => {
     classScope && classScope !== 'all' ? classScope : '全职业',
     applyScope || '套装效果',
   ].join(' / ')
+}
+
+const playerEffectDescription = (effect: EquipmentEffectAttribute) => (
+  String(effect.conditionText ?? effect.variantLabel ?? effect.rawText ?? '').trim() || '套装效果'
+)
+
+const armorPieceName = (item: PublicArmorSetRelatedItem) => (
+  item.nameZh || item.name || '套装部件'
+)
+
+const armorPieceRole = (item: PublicArmorSetRelatedItem) => {
+  const value = String(item.partRole ?? item.slotType ?? '').trim()
+  if (/head/i.test(value)) return '头部'
+  if (/body|shirt|chest/i.test(value)) return '胸甲'
+  if (/leg|pants/i.test(value)) return '腿部'
+  return '防具部件'
 }
 
 const armorBenefitLines = computed(() => {
@@ -191,7 +207,7 @@ onMounted(() => {
 
       <section v-else-if="armorNotFound" class="support-panel armor-detail-hero">
         <div>
-          <span class="eyebrow">Armor Set #{{ armorSetId || '未知' }}</span>
+          <span class="eyebrow">套装资料</span>
           <component :is="'h1'" class="detail-missing-title">没有找到这个套装</component>
           <p>当前详情资料还没有可渲染内容。</p>
           <div class="tag-row">
@@ -204,7 +220,7 @@ onMounted(() => {
 
       <section v-else class="support-panel armor-detail-hero">
         <div>
-          <span class="eyebrow">Armor Set #{{ armorSetId }} · 数值总览 · {{ armorSubtitle }}</span>
+          <span class="eyebrow">数值总览 · {{ armorSubtitle }}</span>
           <h1>{{ armorTitle }}</h1>
           <p>{{ armorBenefitLines.length ? armorBenefitLines[0] : '该套装的数值资料正在整理中。' }}</p>
           <div class="tag-row">
@@ -239,15 +255,15 @@ onMounted(() => {
           <article v-for="item in armorRelatedItems" :key="`${item.itemId}-${item.internalName}`" class="armor-piece-card">
             <CommonPreviewImage
               :src="resolvePreviewImageUrl(item.image || '')"
-              :alt="item.nameZh || item.name || item.internalName || '套装部件'"
-              :fallback="(item.nameZh || item.name || item.internalName || '?').slice(0, 1)"
+              :alt="armorPieceName(item)"
+              :fallback="armorPieceName(item).slice(0, 1)"
               fallback-icon="icon-items"
               width="52"
               height="52"
             />
             <div>
-              <b>{{ item.nameZh || item.name || item.internalName || '未命名部件' }}</b>
-              <span>{{ item.partRole || item.slotType || 'armor piece' }}</span>
+              <b>{{ armorPieceName(item) }}</b>
+              <span>{{ armorPieceRole(item) }}</span>
             </div>
           </article>
         </div>
@@ -272,7 +288,7 @@ onMounted(() => {
                     <th>属性</th>
                     <th>数值</th>
                     <th>范围</th>
-                    <th>原始文本</th>
+                    <th>说明</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -280,9 +296,9 @@ onMounted(() => {
                     <td>
                       <span class="armor-stat-name" :class="effectToneClass(effect)">{{ statName(effect) }}</span>
                     </td>
-                    <td class="armor-stat-value">{{ formatEffectValue(effect) || '未解析' }}</td>
+                    <td class="armor-stat-value">{{ formatEffectValue(effect) || '见说明' }}</td>
                     <td>{{ effectScopeLabel(effect) }}</td>
-                    <td>{{ effect.rawText || effect.conditionText || '暂无原始文本' }}</td>
+                    <td>{{ playerEffectDescription(effect) }}</td>
                   </tr>
                 </tbody>
               </table>
