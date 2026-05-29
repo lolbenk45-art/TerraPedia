@@ -398,26 +398,46 @@ onMounted(() => {
 .armor-module-head {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 12px;
+  gap: 12px 16px;
   align-items: start;
   justify-content: space-between;
 }
 
+.armor-module-head > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.armor-module-head h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.armor-module-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
 .armor-benefit {
   display: grid;
-  gap: 6px;
-  margin-top: 14px;
-  padding-top: 14px;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
   border-top: 1px solid rgba(244, 234, 208, 0.1);
   color: var(--text);
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 .armor-analysis-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.85fr);
-  gap: 12px;
+  gap: 14px;
   align-items: start;
 }
 
@@ -428,12 +448,12 @@ onMounted(() => {
 
 .armor-stat-groups {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 .armor-stat-group {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -441,6 +461,7 @@ onMounted(() => {
   margin: 0;
   color: var(--text);
   font-size: 15px;
+  line-height: 1.35;
 }
 
 .armor-stat-table-wrap {
@@ -450,33 +471,52 @@ onMounted(() => {
 .armor-stat-table {
   width: 100%;
   min-width: 620px;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.6;
 }
 
 .armor-stat-table th,
 .armor-stat-table td {
-  padding: 9px 10px;
+  padding: 11px 12px;
   border-bottom: 1px solid rgba(244, 234, 208, 0.09);
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
+}
+
+.armor-stat-table th:nth-child(1),
+.armor-stat-table td:nth-child(1) {
+  width: 120px;
+}
+
+.armor-stat-table th:nth-child(2),
+.armor-stat-table td:nth-child(2) {
+  width: 88px;
+}
+
+.armor-stat-table th:nth-child(3),
+.armor-stat-table td:nth-child(3) {
+  width: 148px;
 }
 
 .armor-stat-table th {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
+  line-height: 1.4;
 }
 
 .armor-stat-table td {
   color: var(--text);
+  overflow-wrap: anywhere;
 }
 
 .armor-stat-name {
   display: inline-flex;
-  min-width: 72px;
+  min-width: 78px;
   font-weight: 700;
+  line-height: 1.35;
 }
 
 .armor-stat-value {
@@ -488,15 +528,15 @@ onMounted(() => {
 .armor-piece-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 .armor-piece-card {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   align-content: start;
   min-width: 0;
-  padding: 12px;
+  padding: 14px;
   border: 1px solid rgba(244, 234, 208, 0.09);
   border-radius: 8px;
 }
@@ -512,58 +552,74 @@ onMounted(() => {
 .armor-piece-card-head b {
   color: var(--text);
   font-size: 14px;
+  line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
 .armor-piece-card-head span {
   color: var(--muted);
   font-size: 12px;
+  line-height: 1.35;
   white-space: nowrap;
 }
 
 .armor-piece-options {
   display: grid;
-  gap: 8px;
+  gap: 9px;
 }
 
 .armor-piece-option {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr);
-  gap: 10px;
+  gap: 12px;
   align-items: center;
   min-width: 0;
+  padding: 8px 0;
+  border-top: 1px solid rgba(244, 234, 208, 0.07);
+}
+
+.armor-piece-option:first-child {
+  padding-top: 0;
+  border-top: 0;
 }
 
 .armor-piece-option span {
   color: var(--text);
   font-size: 13px;
   font-weight: 700;
+  line-height: 1.45;
   overflow-wrap: anywhere;
 }
 
 .armor-image-groups {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .armor-image-group {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
 }
 
 .armor-image-group-head {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px 10px;
   align-items: center;
   justify-content: space-between;
+}
+
+.armor-image-group-head b {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .armor-image-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .armor-image-tile :deep(.item-art) {
