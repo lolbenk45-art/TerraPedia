@@ -155,6 +155,47 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
   }
 }
 
+{
+  const path = 'pages/armor-sets/[id].vue'
+  const content = read(path)
+  for (const [pattern, message] of [
+    [
+      String.raw`const armorStatGroups = computed`,
+      'armor set detail must prioritize grouped numeric stat data',
+    ],
+    [
+      String.raw`class="armor-stat-table"`,
+      'armor set detail must render a numeric stat table instead of an image-led body',
+    ],
+    [
+      String.raw`v-for="group in armorStatGroups"`,
+      'armor set detail must render every grouped stat row set',
+    ],
+    [
+      String.raw`<th>属性</th>`,
+      'armor set stat table must label the stat column',
+    ],
+    [
+      String.raw`<th>数值</th>`,
+      'armor set stat table must label the value column',
+    ],
+    [
+      String.raw`<th>范围</th>`,
+      'armor set stat table must label the scope column',
+    ],
+    [
+      String.raw`<th>原始文本</th>`,
+      'armor set stat table must retain raw text for unparsed or ambiguous effects',
+    ],
+  ]) {
+    assertPattern(path, content, pattern, message)
+  }
+
+  if (content.includes('armor-detail-icon-stage')) {
+    violations.push(`${path}: armor set detail must not keep the previous image-led hero stage`)
+  }
+}
+
 if (violations.length) {
   console.error(violations.join('\n'))
   process.exit(1)

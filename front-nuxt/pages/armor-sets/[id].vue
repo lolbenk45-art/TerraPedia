@@ -45,20 +45,47 @@ const formatEffectValue = (effect: EquipmentEffectAttribute) => {
   return `${numeric > 0 ? '+' : ''}${numeric}`
 }
 
-const effectLabel = (effect: EquipmentEffectAttribute) => {
-  const key = String(effect.statKey ?? '')
-  const label = statLabels[key] ?? effect.statLabelZh ?? key
-  const value = formatEffectValue(effect)
-  const scope = effect.classScope && effect.classScope !== 'all' ? ` · ${effect.classScope}` : ''
-  return `${label}${value ? ` ${value}` : ''}${scope}`.trim()
-}
-
 const effectToneClass = (effect: EquipmentEffectAttribute) => {
   const key = String(effect.statKey ?? '')
   if (/damage|crit|melee|summon|ammo/.test(key)) return 'is-offense'
   if (/move|speed|dash|acceleration/.test(key)) return 'is-mobility'
   if (/defense|immunity/.test(key)) return 'is-defense'
   return 'is-special'
+}
+
+const statGroupLabels: Record<string, string> = {
+  offense: '攻击数值',
+  defense: '防御数值',
+  mobility: '移动与速度',
+  resource: '资源与消耗',
+  summon: '召唤与仆从',
+  special: '特殊效果',
+}
+
+const statGroupOrder = ['offense', 'defense', 'mobility', 'resource', 'summon', 'special']
+
+const effectStatGroup = (effect: EquipmentEffectAttribute) => {
+  const key = String(effect.statKey ?? '')
+  if (/summon|minion/.test(key)) return 'summon'
+  if (/damage|crit|melee|ammo/.test(key)) return 'offense'
+  if (/defense|immunity|regen|life/.test(key)) return 'defense'
+  if (/move|speed|dash|acceleration|flight/.test(key)) return 'mobility'
+  if (/mana|cost|resource/.test(key)) return 'resource'
+  return 'special'
+}
+
+const statName = (effect: EquipmentEffectAttribute) => {
+  const key = String(effect.statKey ?? '')
+  return statLabels[key] ?? effect.statLabelZh ?? (key || '未归类')
+}
+
+const effectScopeLabel = (effect: EquipmentEffectAttribute) => {
+  const classScope = String(effect.classScope ?? '').trim()
+  const applyScope = String(effect.applyScope ?? '').trim()
+  return [
+    classScope && classScope !== 'all' ? classScope : '全职业',
+    applyScope || '套装效果',
+  ].join(' / ')
 }
 
 const armorBenefitLines = computed(() => {
@@ -72,6 +99,23 @@ const armorShownEffects = computed(() => {
   const parsed = armorParsedEffects.value
   if (parsed.length) return parsed
   return (armorDetail.value?.effects ?? []).slice(0, 12)
+})
+
+const armorStatGroups = computed(() => {
+  const effects = armorShownEffects.value
+  const grouped = new Map<string, EquipmentEffectAttribute[]>()
+  for (const effect of effects) {
+    const groupKey = effectStatGroup(effect)
+    grouped.set(groupKey, [...(grouped.get(groupKey) ?? []), effect])
+  }
+
+  return statGroupOrder
+    .filter((key) => grouped.has(key))
+    .map((key) => ({
+      key,
+      label: statGroupLabels[key] ?? key,
+      effects: grouped.get(key) ?? [],
+    }))
 })
 
 const asStringArray = (value: unknown): string[] => Array.isArray(value) ? value.map((entry) => String(entry ?? '').trim()).filter(Boolean) : []
@@ -100,9 +144,6 @@ onMounted(() => {
 
     <main class="support-layout detail-support-layout" :class="detailLayout.detailShellClass" :aria-busy="armorDetailVisualLoading">
       <section v-if="armorDetailVisualLoading" class="support-panel armor-detail-hero">
-        <div class="armor-detail-icon-stage">
-          <CommonTpSkeleton type="icon" />
-        </div>
         <div>
           <span class="eyebrow"><CommonTpSkeleton type="pill" /></span>
           <component :is="'h1'" class="detail-missing-title"><CommonTpSkeleton type="line" /></component>
@@ -115,9 +156,6 @@ onMounted(() => {
       </section>
 
       <section v-else-if="armorNotFound" class="support-panel armor-detail-hero">
-        <div class="armor-detail-icon-stage">
-          <CommonPreviewImage src="" alt="套装缺失" fallback="?" fallback-icon="icon-armor" />
-        </div>
         <div>
           <span class="eyebrow">Armor Set #{{ armorSetId || '未知' }}</span>
           <component :is="'h1'" class="detail-missing-title">没有找到这个套装</component>
@@ -131,24 +169,14 @@ onMounted(() => {
       </section>
 
       <section v-else class="support-panel armor-detail-hero">
-        <div class="armor-detail-icon-stage">
-          <CommonPreviewImage
-            :src="armorDetail?.image || ''"
-            :alt="armorTitle"
-            :fallback="armorDetail?.fallback || '?'"
-            fallback-icon="icon-armor"
-            :source-image="armorDetail?.sourceImage || ''"
-            loading="eager"
-          />
-        </div>
         <div>
-          <span class="eyebrow">Armor Set #{{ armorSetId }} · {{ armorSubtitle }}</span>
+          <span class="eyebrow">Armor Set #{{ armorSetId }} · 数值总览 · {{ armorSubtitle }}</span>
           <h1>{{ armorTitle }}</h1>
-          <p>{{ armorBenefitLines.length ? armorBenefitLines[0] : '该套装的公开说明正在整理中。' }}</p>
+          <p>{{ armorBenefitLines.length ? armorBenefitLines[0] : '该套装的数值资料正在整理中。' }}</p>
           <div class="tag-row">
             <span class="tag gold">{{ armorDetail?.primaryPart || 'set' }}</span>
             <span class="tag moss">{{ armorDetail?.uniqueItemCount ?? 0 }} 个部件</span>
-            <span class="tag paper">{{ armorParsedEffects.length }} 条解析</span>
+            <span class="tag paper">{{ armorShownEffects.length }} 条数值</span>
           </div>
         </div>
       </section>
@@ -166,30 +194,47 @@ onMounted(() => {
         </article>
       </section>
 
-      <section class="support-panel armor-module" :class="detailLayout.detailModuleClass">
+      <section class="support-panel armor-module armor-stat-module" :class="detailLayout.detailModuleClass">
         <div class="armor-module-head">
           <div>
-            <h2>套装效果</h2>
-            <p>展示原始效果文本与解析词条。</p>
+            <h2>数值总览</h2>
+            <p>按属性分组展示当前套装的解析数值。</p>
           </div>
           <a class="small-button" href="/armor-sets">返回列表</a>
         </div>
 
+        <div v-if="armorStatGroups.length" class="armor-stat-groups">
+          <section v-for="group in armorStatGroups" :key="group.key" class="armor-stat-group">
+            <h3>{{ group.label }}</h3>
+            <div class="armor-stat-table-wrap">
+              <table class="armor-stat-table">
+                <thead>
+                  <tr>
+                    <th>属性</th>
+                    <th>数值</th>
+                    <th>范围</th>
+                    <th>原始文本</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="effect in group.effects" :key="`${group.key}-${effect.statKey}-${effect.rawText}`">
+                    <td>
+                      <span class="armor-stat-name" :class="effectToneClass(effect)">{{ statName(effect) }}</span>
+                    </td>
+                    <td class="armor-stat-value">{{ formatEffectValue(effect) || '未解析' }}</td>
+                    <td>{{ effectScopeLabel(effect) }}</td>
+                    <td>{{ effect.rawText || effect.conditionText || '暂无原始文本' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+        <p v-else class="tp-detail-empty">暂无可展示的解析数值。</p>
+
         <div v-if="armorBenefitLines.length" class="armor-benefit">
           <span v-for="line in armorBenefitLines" :key="`benefit-${line}`">{{ line }}</span>
         </div>
-        <p v-else class="tp-detail-empty">暂无可展示的套装效果文本。</p>
-
-        <div v-if="armorShownEffects.length" class="armor-effect-strip">
-          <span
-            v-for="effect in armorShownEffects"
-            :key="`${effect.statKey}-${effect.rawText}`"
-            :class="effectToneClass(effect)"
-          >
-            {{ effectLabel(effect) }}
-          </span>
-        </div>
-        <p v-else class="tp-detail-empty">暂无可展示的解析词条。</p>
       </section>
 
       <section v-if="imageGroups.length" class="support-panel armor-module" :class="detailLayout.detailModuleClass">
@@ -230,15 +275,7 @@ onMounted(() => {
 
 <style scoped>
 .armor-detail-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 90px) minmax(0, 1fr);
-  gap: 14px;
-  align-items: center;
-}
-
-.armor-detail-icon-stage :deep(.item-art) {
-  width: 78px;
-  height: 78px;
+  display: block;
 }
 
 .armor-detail-grid {
@@ -263,15 +300,71 @@ onMounted(() => {
 .armor-benefit {
   display: grid;
   gap: 6px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(244, 234, 208, 0.1);
   color: var(--text);
   font-size: 13px;
   line-height: 1.6;
 }
 
-.armor-effect-strip {
-  display: flex;
-  flex-wrap: wrap;
+.armor-stat-groups {
+  display: grid;
+  gap: 16px;
+}
+
+.armor-stat-group {
+  display: grid;
   gap: 8px;
+  min-width: 0;
+}
+
+.armor-stat-group h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.armor-stat-table-wrap {
+  overflow-x: auto;
+}
+
+.armor-stat-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.armor-stat-table th,
+.armor-stat-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid rgba(244, 234, 208, 0.09);
+  text-align: left;
+  vertical-align: top;
+}
+
+.armor-stat-table th {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.armor-stat-table td {
+  color: var(--text);
+}
+
+.armor-stat-name {
+  display: inline-flex;
+  min-width: 72px;
+  font-weight: 700;
+}
+
+.armor-stat-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .armor-image-groups {
@@ -295,19 +388,14 @@ onMounted(() => {
 
 .armor-image-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(58px, 72px));
   gap: 10px;
 }
 
 .armor-image-tile :deep(.item-art) {
+  width: 58px;
+  height: 58px;
   border-radius: 10px;
   overflow: hidden;
 }
-
-@media (max-width: 720px) {
-  .armor-detail-hero {
-    grid-template-columns: 1fr;
-  }
-}
 </style>
-
