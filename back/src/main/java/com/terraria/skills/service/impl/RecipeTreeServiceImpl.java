@@ -112,6 +112,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
                 roots.add(buildRecipeRoot(
                     recipe,
                     recipe.getVersionScope(),
+                    null,
                     0,
                     resolvedMaxDepth,
                     rootPath,
@@ -137,6 +138,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     private RecipeTreeNodeDTO buildRecipeRoot(
         RecipeDTO recipe,
         String variantScope,
+        QuantityRange requestedQuantity,
         int depth,
         int maxDepth,
         Set<String> currentPath,
@@ -154,6 +156,9 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         root.setItemImage(managedImageOrNull(recipe.getResultItemImage()));
         root.setResultQuantity(recipe.getResultQuantity());
         root.setDepth(depth);
+        if (requestedQuantity != null) {
+            applyQuantity(root, requestedQuantity);
+        }
         List<RecipeTreeStationDTO> relationEntries = new ArrayList<>();
         relationEntries.addAll(recipe.getStations() == null ? Collections.emptyList() : recipe.getStations().stream()
             .map(this::toTreeStation)
@@ -163,11 +168,13 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
             .toList());
         root.setStations(relationEntries);
 
+        QuantityRange recipeBatchMultiplier = recipeBatchMultiplier(requestedQuantity, recipe.getResultQuantity());
         List<RecipeTreeNodeDTO> children = new ArrayList<>();
         for (RecipeIngredientDTO ingredient : safeIngredients(recipe.getIngredients())) {
             children.add(buildIngredientNode(
                 ingredient,
                 variantScope,
+                recipeBatchMultiplier,
                 depth + 1,
                 maxDepth,
                 currentPath,
@@ -183,6 +190,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     private RecipeTreeNodeDTO buildIngredientNode(
         RecipeIngredientDTO ingredient,
         String variantScope,
+        QuantityRange recipeBatchMultiplier,
         int depth,
         int maxDepth,
         Set<String> currentPath,
@@ -203,6 +211,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
 
         boolean groupNode = "group".equalsIgnoreCase(node.getIngredientGroupType());
         applyDisplayQuantity(node, ingredient);
+        applyQuantityMultiplier(node, recipeBatchMultiplier);
         if (groupNode) {
             String fallbackGroupLabel = firstNonBlank(rawIngredientName, ingredient.getIngredientInternalName());
             RecipeGroupReference reference = groupReferences.get(normalizeKey(fallbackGroupLabel));
@@ -281,6 +290,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
             children.add(buildRecipeRoot(
                 recipe,
                 chooseVariantScope(variantScope, recipe),
+                nodeQuantity(node),
                 depth,
                 maxDepth,
                 nextPath,
@@ -315,6 +325,54 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         node.setQuantityText(quantityText);
         node.setQuantityMin(quantityMin);
         node.setQuantityMax(quantityMax);
+    }
+
+    private QuantityRange recipeBatchMultiplier(QuantityRange requestedQuantity, Integer resultQuantity) {
+        if (requestedQuantity == null) {
+            return QuantityRange.single(1);
+        }
+        int outputQuantity = resultQuantity == null || resultQuantity <= 0 ? 1 : resultQuantity;
+        return new QuantityRange(
+            requestedQuantity.min() == null ? null : ceilDivide(requestedQuantity.min(), outputQuantity),
+            requestedQuantity.max() == null ? null : ceilDivide(requestedQuantity.max(), outputQuantity)
+        ).normalized();
+    }
+
+    private QuantityRange nodeQuantity(RecipeTreeNodeDTO node) {
+        if (node == null) {
+            return null;
+        }
+        return new QuantityRange(node.getQuantityMin(), node.getQuantityMax()).normalized();
+    }
+
+    private void applyQuantityMultiplier(RecipeTreeNodeDTO node, QuantityRange multiplier) {
+        if (node == null || multiplier == null || multiplier.isOne()) {
+            return;
+        }
+        QuantityRange quantity = nodeQuantity(node);
+        if (quantity == null) {
+            return;
+        }
+        QuantityRange scaled = quantity.multiply(multiplier);
+        if (scaled != null) {
+            applyQuantity(node, scaled);
+        }
+    }
+
+    private void applyQuantity(RecipeTreeNodeDTO node, QuantityRange quantity) {
+        if (node == null || quantity == null) {
+            return;
+        }
+        node.setQuantityMin(quantity.min());
+        node.setQuantityMax(quantity.max());
+        node.setQuantityText(quantity.displayText());
+    }
+
+    private int ceilDivide(int value, int divisor) {
+        if (value <= 0) {
+            return 0;
+        }
+        return (value + divisor - 1) / divisor;
     }
 
     private List<RecipeDTO> resolveChildRecipes(Long itemId, String variantScope, Map<String, List<RecipeDTO>> recipeCache) {
@@ -834,6 +892,66 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         List<String> groupMemberNames,
         List<RecipeGroupMemberDTO> groupMembers
     ) {
+    }
+
+    private record QuantityRange(Integer min, Integer max) {
+        static QuantityRange single(int value) {
+            return new QuantityRange(value, value);
+        }
+
+        QuantityRange normalized() {
+            if (min == null && max == null) {
+                return null;
+            }
+            if (min == null) {
+                return new QuantityRange(max, max);
+            }
+            if (max == null) {
+                return new QuantityRange(min, min);
+            }
+            return this;
+        }
+
+        boolean isOne() {
+            return Objects.equals(min, 1) && Objects.equals(max, 1);
+        }
+
+        QuantityRange multiply(QuantityRange multiplier) {
+            QuantityRange normalizedQuantity = normalized();
+            QuantityRange normalizedMultiplier = multiplier == null ? null : multiplier.normalized();
+            if (normalizedQuantity == null || normalizedMultiplier == null) {
+                return null;
+            }
+            return new QuantityRange(
+                safeMultiply(normalizedQuantity.min(), normalizedMultiplier.min()),
+                safeMultiply(normalizedQuantity.max(), normalizedMultiplier.max())
+            ).normalized();
+        }
+
+        String displayText() {
+            QuantityRange normalized = normalized();
+            if (normalized == null) {
+                return null;
+            }
+            if (Objects.equals(normalized.min(), normalized.max())) {
+                return String.valueOf(normalized.min());
+            }
+            return normalized.min() + "-" + normalized.max();
+        }
+
+        private Integer safeMultiply(Integer left, Integer right) {
+            if (left == null || right == null) {
+                return null;
+            }
+            long product = (long) left * (long) right;
+            if (product > Integer.MAX_VALUE) {
+                return Integer.MAX_VALUE;
+            }
+            if (product < Integer.MIN_VALUE) {
+                return Integer.MIN_VALUE;
+            }
+            return (int) product;
+        }
     }
 
     private record TimedValue<T>(T value, long expiresAtMillis) {
