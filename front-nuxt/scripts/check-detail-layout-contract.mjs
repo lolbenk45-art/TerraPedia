@@ -196,8 +196,12 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       'armor set detail must expose armor piece data from related items',
     ],
     [
-      String.raw`v-for="item in armorRelatedItems"`,
-      'armor set detail must render every armor piece, not only set-level facts',
+      String.raw`const armorPieceGroups = computed`,
+      'armor set detail must group interchangeable armor pieces by slot instead of flattening every related item',
+    ],
+    [
+      String.raw`v-for="group in armorPieceGroups"`,
+      'armor set detail must render grouped armor piece slots',
     ],
   ]) {
     assertPattern(path, content, pattern, message)
@@ -214,6 +218,7 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
     'rawText ||',
     '未解析',
     '<th>原始文本</th>',
+    'v-for="item in armorRelatedItems"',
     '{{ item.internalName',
     '{{ item.partRole',
     '{{ item.slotType',

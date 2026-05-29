@@ -100,8 +100,15 @@ const armorPieceRole = (item: PublicArmorSetRelatedItem) => {
   const value = String(item.partRole ?? item.slotType ?? '').trim()
   if (/head/i.test(value)) return '头部'
   if (/body|shirt|chest/i.test(value)) return '胸甲'
-  if (/leg|pants/i.test(value)) return '腿部'
+  if (/leg|legs|pants/i.test(value)) return '腿部'
   return '防具部件'
+}
+
+const armorPieceRoleOrder = (role: string) => {
+  if (role === '头部') return 0
+  if (role === '胸甲') return 1
+  if (role === '腿部') return 2
+  return 3
 }
 
 const armorBenefitLines = computed(() => {
@@ -169,6 +176,23 @@ const asRelatedItems = (value: unknown): PublicArmorSetRelatedItem[] => Array.is
   ? value.filter((entry): entry is PublicArmorSetRelatedItem => Boolean(entry && typeof entry === 'object' && !Array.isArray(entry)))
   : []
 const armorRelatedItems = computed(() => asRelatedItems(armorRaw.value?.relatedItems ?? armorRaw.value?.related_items))
+const armorPieceGroups = computed(() => {
+  const groups = new Map<string, PublicArmorSetRelatedItem[]>()
+  const seen = new Set<string>()
+
+  for (const item of armorRelatedItems.value) {
+    const role = armorPieceRole(item)
+    const itemKey = String(item.itemId ?? item.sourceId ?? item.internalName ?? armorPieceName(item)).trim()
+    const uniqueKey = `${role}:${itemKey}`
+    if (seen.has(uniqueKey)) continue
+    seen.add(uniqueKey)
+    groups.set(role, [...(groups.get(role) ?? []), item])
+  }
+
+  return [...groups.entries()]
+    .map(([role, items]) => ({ role, items }))
+    .sort((left, right) => armorPieceRoleOrder(left.role) - armorPieceRoleOrder(right.role))
+})
 const imageGroups = computed(() => ([
   { key: 'male', label: '男', icon: 'icon-armor', images: asStringArray(armorRaw.value?.maleImages ?? armorRaw.value?.male_images) },
   { key: 'female', label: '女', icon: 'icon-armor', images: asStringArray(armorRaw.value?.femaleImages ?? armorRaw.value?.female_images) },
@@ -244,26 +268,31 @@ onMounted(() => {
         </article>
       </section>
 
-      <section v-if="armorRelatedItems.length" class="support-panel armor-module" :class="detailLayout.detailModuleClass">
+      <section v-if="armorPieceGroups.length" class="support-panel armor-module" :class="detailLayout.detailModuleClass">
         <div class="armor-module-head">
           <div>
             <h2>套装部件</h2>
-            <p>逐件展示组成这套防具的部件。</p>
+            <p>按装备部位展示，可替换部件收在同一组。</p>
           </div>
         </div>
         <div class="armor-piece-grid">
-          <article v-for="item in armorRelatedItems" :key="`${item.itemId}-${item.internalName}`" class="armor-piece-card">
-            <CommonPreviewImage
-              :src="resolvePreviewImageUrl(item.image || '')"
-              :alt="armorPieceName(item)"
-              :fallback="armorPieceName(item).slice(0, 1)"
-              fallback-icon="icon-items"
-              width="52"
-              height="52"
-            />
-            <div>
-              <b>{{ armorPieceName(item) }}</b>
-              <span>{{ armorPieceRole(item) }}</span>
+          <article v-for="group in armorPieceGroups" :key="group.role" class="armor-piece-card">
+            <div class="armor-piece-card-head">
+              <b>{{ group.role }}</b>
+              <span>{{ group.items.length > 1 ? `${group.items.length} 件可替换` : '固定部件' }}</span>
+            </div>
+            <div class="armor-piece-options">
+              <div v-for="item in group.items" :key="`${group.role}-${item.itemId}-${armorPieceName(item)}`" class="armor-piece-option">
+                <CommonPreviewImage
+                  :src="resolvePreviewImageUrl(item.image || '')"
+                  :alt="armorPieceName(item)"
+                  :fallback="armorPieceName(item).slice(0, 1)"
+                  fallback-icon="icon-items"
+                  width="44"
+                  height="44"
+                />
+                <span>{{ armorPieceName(item) }}</span>
+              </div>
             </div>
           </article>
         </div>
@@ -444,35 +473,58 @@ onMounted(() => {
 
 .armor-piece-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
 }
 
 .armor-piece-card {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
+  gap: 12px;
+  align-content: start;
   min-width: 0;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid rgba(244, 234, 208, 0.09);
   border-radius: 8px;
 }
 
-.armor-piece-card b,
-.armor-piece-card span {
-  display: block;
+.armor-piece-card-head {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.armor-piece-card-head b {
+  color: var(--text);
+  font-size: 14px;
   overflow-wrap: anywhere;
 }
 
-.armor-piece-card b {
-  color: var(--text);
-  font-size: 13px;
-}
-
-.armor-piece-card span {
+.armor-piece-card-head span {
   color: var(--muted);
   font-size: 12px;
+  white-space: nowrap;
+}
+
+.armor-piece-options {
+  display: grid;
+  gap: 8px;
+}
+
+.armor-piece-option {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.armor-piece-option span {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .armor-image-groups {
