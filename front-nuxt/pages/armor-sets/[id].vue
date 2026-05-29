@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { usePublicArmorSetDetail } from '~/composables/usePublicArmorSetDetail'
-import type { EquipmentEffectAttribute, PublicArmorSetListItem } from '~/types/public-api'
+import type { EquipmentEffectAttribute, PublicArmorSetListItem, PublicArmorSetRelatedItem } from '~/types/public-api'
 
 const route = useRoute()
 const detailLayout = useDetailLayout({ kind: 'armor-set', density: 'readable' })
@@ -91,14 +91,44 @@ const effectScopeLabel = (effect: EquipmentEffectAttribute) => {
 const armorBenefitLines = computed(() => {
   const benefit = String(armorRaw.value?.benefitZh ?? armorRaw.value?.benefitEn ?? '').trim()
   if (!benefit) return []
-  return benefit.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).slice(0, 8)
+  return benefit.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).slice(0, 20)
 })
+
+const fallbackStatKey = (line: string) => {
+  if (/防御/.test(line)) return 'defense'
+  if (/暴击/.test(line)) return 'crit_chance'
+  if (/移动|速度/.test(line)) return 'move_speed'
+  if (/召唤|仆从|哨兵/.test(line)) return 'summon_damage'
+  if (/魔力|魔耗|消耗/.test(line)) return 'mana_cost'
+  if (/伤害/.test(line)) return 'damage_bonus'
+  return 'special_effect'
+}
+
+const fallbackStatLabel = (line: string) => statLabels[fallbackStatKey(line)] ?? '特效'
+
+const armorBenefitFallbackEffects = computed<EquipmentEffectAttribute[]>(() => armorBenefitLines.value
+  .map((line) => {
+    const match = line.match(/([+\-−]?\d+(?:\.\d+)?)\s*(%?)\s*([^，、；;（）()]*)/)
+    const normalizedValue = match?.[1]?.replace('−', '-') ?? ''
+    const numeric = Number(normalizedValue)
+    return {
+      statKey: fallbackStatKey(line),
+      statLabelZh: fallbackStatLabel(line),
+      valueDecimal: Number.isFinite(numeric) ? numeric : null,
+      unit: match?.[2] === '%' ? 'percent' : 'flat',
+      classScope: 'all',
+      applyScope: 'set_bonus',
+      rawText: line,
+      parseStatus: match ? 'fallback' : 'unparsed',
+    }
+  })
+  .filter((effect) => effect.rawText))
 
 const armorParsedEffects = computed(() => (armorDetail.value?.parsedEffects ?? []).slice(0, 12))
 const armorShownEffects = computed(() => {
-  const parsed = armorParsedEffects.value
-  if (parsed.length) return parsed
-  return (armorDetail.value?.effects ?? []).slice(0, 12)
+  const effects = (armorDetail.value?.effects ?? []).slice(0, 20)
+  if (effects.length) return effects
+  return armorBenefitFallbackEffects.value
 })
 
 const armorStatGroups = computed(() => {
@@ -119,6 +149,10 @@ const armorStatGroups = computed(() => {
 })
 
 const asStringArray = (value: unknown): string[] => Array.isArray(value) ? value.map((entry) => String(entry ?? '').trim()).filter(Boolean) : []
+const asRelatedItems = (value: unknown): PublicArmorSetRelatedItem[] => Array.isArray(value)
+  ? value.filter((entry): entry is PublicArmorSetRelatedItem => Boolean(entry && typeof entry === 'object' && !Array.isArray(entry)))
+  : []
+const armorRelatedItems = computed(() => asRelatedItems(armorRaw.value?.relatedItems ?? armorRaw.value?.related_items))
 const imageGroups = computed(() => ([
   { key: 'male', label: '男', icon: 'icon-armor', images: asStringArray(armorRaw.value?.maleImages ?? armorRaw.value?.male_images) },
   { key: 'female', label: '女', icon: 'icon-armor', images: asStringArray(armorRaw.value?.femaleImages ?? armorRaw.value?.female_images) },
@@ -192,6 +226,31 @@ onMounted(() => {
           <h2>{{ armorDetailVisualLoading ? '...' : card.value }}</h2>
           <p>{{ card.meta }}</p>
         </article>
+      </section>
+
+      <section v-if="armorRelatedItems.length" class="support-panel armor-module" :class="detailLayout.detailModuleClass">
+        <div class="armor-module-head">
+          <div>
+            <h2>套装部件</h2>
+            <p>逐件展示组成这套防具的部件。</p>
+          </div>
+        </div>
+        <div class="armor-piece-grid">
+          <article v-for="item in armorRelatedItems" :key="`${item.itemId}-${item.internalName}`" class="armor-piece-card">
+            <CommonPreviewImage
+              :src="resolvePreviewImageUrl(item.image || '')"
+              :alt="item.nameZh || item.name || item.internalName || '套装部件'"
+              :fallback="(item.nameZh || item.name || item.internalName || '?').slice(0, 1)"
+              fallback-icon="icon-items"
+              width="52"
+              height="52"
+            />
+            <div>
+              <b>{{ item.nameZh || item.name || item.internalName || '未命名部件' }}</b>
+              <span>{{ item.partRole || item.slotType || 'armor piece' }}</span>
+            </div>
+          </article>
+        </div>
       </section>
 
       <section class="support-panel armor-module armor-stat-module" :class="detailLayout.detailModuleClass">
@@ -365,6 +424,39 @@ onMounted(() => {
   font-variant-numeric: tabular-nums;
   font-weight: 800;
   white-space: nowrap;
+}
+
+.armor-piece-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.armor-piece-card {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(244, 234, 208, 0.09);
+  border-radius: 8px;
+}
+
+.armor-piece-card b,
+.armor-piece-card span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.armor-piece-card b {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.armor-piece-card span {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .armor-image-groups {

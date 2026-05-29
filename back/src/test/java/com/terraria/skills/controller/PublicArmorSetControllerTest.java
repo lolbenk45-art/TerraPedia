@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.EquipmentEffectAttributeDTO;
 import com.terraria.skills.dto.PublicArmorSetListDTO;
 import com.terraria.skills.dto.PublicArmorSetQuery;
+import com.terraria.skills.dto.PublicArmorSetRelatedItemDTO;
 import com.terraria.skills.service.PublicArmorSetService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -158,6 +159,12 @@ class PublicArmorSetControllerTest {
         armorSet.setSetCount(3);
         armorSet.setUniqueItemCount(3);
         armorSet.setFallbackImages(List.of("http://localhost:9000/terrapedia-images/items/wiki/item-images/solar.png"));
+        PublicArmorSetRelatedItemDTO relatedItem = new PublicArmorSetRelatedItemDTO();
+        relatedItem.setItemId(1327L);
+        relatedItem.setNameZh("日耀头盔");
+        relatedItem.setImage("http://localhost:9000/terrapedia-images/items/wiki/item-images/solar-helmet.png");
+        relatedItem.setPartRole("head");
+        armorSet.setRelatedItems(List.of(relatedItem));
         EquipmentEffectAttributeDTO effect = new EquipmentEffectAttributeDTO();
         effect.setStatKey("defense");
         effect.setStatLabelZh("防御");
@@ -175,6 +182,8 @@ class PublicArmorSetControllerTest {
             .andExpect(jsonPath("$.data.textKey").value("ArmorSet.Solar"))
             .andExpect(jsonPath("$.data.nameZh").value("Solar Flare armor CN"))
             .andExpect(jsonPath("$.data.benefitZh").value("套装奖励：日耀护盾"))
+            .andExpect(jsonPath("$.data.relatedItems[0].nameZh").value("日耀头盔"))
+            .andExpect(jsonPath("$.data.relatedItems[0].partRole").value("head"))
             .andExpect(jsonPath("$.data.effects[0].statKey").value("defense"))
             .andExpect(jsonPath("$.data.fallbackImages[0]").value("http://localhost:9000/terrapedia-images/items/wiki/item-images/solar.png"));
 

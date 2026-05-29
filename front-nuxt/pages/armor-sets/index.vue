@@ -306,13 +306,13 @@ onBeforeUnmount(() => {
       </section>
 
       <section v-else-if="armorDisplayItems.length" class="armor-grid" aria-label="套装列表">
-        <component
-          :is="armor.armorSetId ? 'NuxtLink' : 'article'"
-          v-for="armor in armorDisplayItems"
+        <NuxtLink
+          v-for="armor in armorDisplayItems.filter((entry) => entry.armorSetId)"
           :key="armor.id"
-          class="armor-card armor-card-live"
-          :class="{ active: armor.id === featuredArmor?.id, 'armor-card-link': Boolean(armor.armorSetId) }"
-          v-bind="armor.armorSetId ? { to: `/armor-sets/${armor.armorSetId}`, 'aria-label': `查看套装 ${armor.displayName}` } : {}"
+          class="armor-card armor-card-live armor-card-link"
+          :class="{ active: armor.id === featuredArmor?.id }"
+          :to="`/armor-sets/${armor.armorSetId}`"
+          :aria-label="`查看套装 ${armor.displayName}`"
         >
           <CommonPreviewImage
             :src="armor.image"
@@ -341,7 +341,41 @@ onBeforeUnmount(() => {
             </div>
           </div>
           <em>{{ armor.setCount ?? 1 }} 组</em>
-        </component>
+        </NuxtLink>
+        <article
+          v-for="armor in armorDisplayItems.filter((entry) => !entry.armorSetId)"
+          :key="armor.id"
+          class="armor-card armor-card-live"
+          :class="{ active: armor.id === featuredArmor?.id }"
+        >
+          <CommonPreviewImage
+            :src="armor.image"
+            :alt="armor.displayName"
+            :fallback="armor.fallback"
+            fallback-icon="icon-armor"
+            :source-image="armor.sourceImage"
+            width="88"
+            height="92"
+          />
+          <div class="armor-card-body">
+            <span>{{ armor.englishName || armor.sourceKey || armor.textKey }}</span>
+            <h3>{{ armor.displayName }}</h3>
+            <p>{{ armorSummary(armor) }}</p>
+            <div v-if="armor.benefitZh" class="armor-benefit-lines" aria-label="套装原始效果">
+              <span v-for="line in benefitLines(armor)" :key="`${armor.id}-${line}`">{{ line }}</span>
+            </div>
+            <div v-if="shownEffects(armor).length" class="armor-effect-row">
+              <span
+                v-for="effect in shownEffects(armor)"
+                :key="`${armor.id}-${effect.statKey}-${effect.rawText}`"
+                :class="effectToneClass(effect)"
+              >
+                {{ effectLabel(effect) }}
+              </span>
+            </div>
+          </div>
+          <em>{{ armor.setCount ?? 1 }} 组</em>
+        </article>
       </section>
 
       <section v-else class="search-suggestion-band support-panel">

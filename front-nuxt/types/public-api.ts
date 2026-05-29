@@ -427,7 +427,21 @@ export type PublicArmorSetListItem = {
   special_images?: string[] | null
   fallbackImages?: string[] | null
   fallback_images?: string[] | null
+  relatedItems?: PublicArmorSetRelatedItem[] | null
+  related_items?: PublicArmorSetRelatedItem[] | null
   effects?: EquipmentEffectAttribute[] | null
+}
+
+export type PublicArmorSetRelatedItem = {
+  id?: number | string | null
+  itemId?: number | string | null
+  sourceId?: number | string | null
+  internalName?: string | null
+  name?: string | null
+  nameZh?: string | null
+  image?: string | null
+  partRole?: string | null
+  slotType?: string | null
 }
 
 export type ArmorSetCatalogItem = {

@@ -2564,6 +2564,8 @@ for (const path of scanFiles) {
       'armorVisualLoading',
       'armorLoadingSlotCount',
       'goToArmorPage',
+      '<NuxtLink',
+      ':to="`/armor-sets/${armor.armorSetId}`"',
       '<CommonPaginationDock',
       '<CommonTpSkeleton',
       '<CommonPreviewImage',

@@ -187,6 +187,18 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       String.raw`<th>原始文本</th>`,
       'armor set stat table must retain raw text for unparsed or ambiguous effects',
     ],
+    [
+      String.raw`const armorBenefitFallbackEffects = computed`,
+      'armor set detail must turn benefit text into fallback stat rows when parsed effects are missing',
+    ],
+    [
+      String.raw`const armorRelatedItems = computed`,
+      'armor set detail must expose armor piece data from related items',
+    ],
+    [
+      String.raw`v-for="item in armorRelatedItems"`,
+      'armor set detail must render every armor piece, not only set-level facts',
+    ],
   ]) {
     assertPattern(path, content, pattern, message)
   }
