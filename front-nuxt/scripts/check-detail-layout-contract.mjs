@@ -167,8 +167,8 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       'armor set detail must prioritize grouped numeric stat data',
     ],
     [
-      String.raw`class="armor-stat-table"`,
-      'armor set detail must render a numeric stat table instead of an image-led body',
+      String.raw`class="armor-stat-card-grid"`,
+      'armor set detail must render scan-friendly numeric stat cards instead of a dense table',
     ],
     [
       String.raw`class="armor-analysis-layout"`,
@@ -179,20 +179,20 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       'armor set detail must render every grouped stat row set',
     ],
     [
-      String.raw`<th>属性</th>`,
-      'armor set stat table must label the stat column',
+      String.raw`class="armor-effect-card"`,
+      'armor set detail must render individual effect cards',
     ],
     [
-      String.raw`<th>数值</th>`,
-      'armor set stat table must label the value column',
+      String.raw`class="armor-effect-card-value"`,
+      'armor set stat cards must make effect values visually prominent',
     ],
     [
-      String.raw`<th>范围</th>`,
-      'armor set stat table must label the scope column',
+      String.raw`class="armor-preview-strip"`,
+      'armor set detail must keep preview images compact beside stats',
     ],
     [
-      String.raw`<th>说明</th>`,
-      'armor set stat table must present player-facing effect descriptions',
+      String.raw`class="armor-pieces-layout"`,
+      'armor set detail must pair grouped pieces with compact page facts',
     ],
     [
       String.raw`const armorBenefitFallbackEffects = computed`,
@@ -225,6 +225,8 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
     'rawText ||',
     '未解析',
     '<th>原始文本</th>',
+    'class="armor-detail-grid"',
+    'class="armor-stat-table"',
     'v-for="item in armorRelatedItems"',
     '{{ item.internalName',
     '{{ item.partRole',

@@ -255,19 +255,6 @@ onMounted(() => {
         </div>
       </section>
 
-      <section class="armor-detail-grid">
-        <article
-          v-for="(card, index) in factCards"
-          :key="card.label"
-          class="support-panel armor-signal"
-          :class="{ active: index === 0 }"
-        >
-          <span>{{ card.label }}</span>
-          <h2>{{ armorDetailVisualLoading ? '...' : card.value }}</h2>
-          <p>{{ card.meta }}</p>
-        </article>
-      </section>
-
       <section v-if="armorPieceGroups.length" class="support-panel armor-module" :class="detailLayout.detailModuleClass">
         <div class="armor-module-head">
           <div>
@@ -275,26 +262,35 @@ onMounted(() => {
             <p>按装备部位展示，可替换部件收在同一组。</p>
           </div>
         </div>
-        <div class="armor-piece-grid">
-          <article v-for="group in armorPieceGroups" :key="group.role" class="armor-piece-card">
-            <div class="armor-piece-card-head">
-              <b>{{ group.role }}</b>
-              <span>{{ group.items.length > 1 ? `${group.items.length} 件可替换` : '固定部件' }}</span>
-            </div>
-            <div class="armor-piece-options">
-              <div v-for="item in group.items" :key="`${group.role}-${item.itemId}-${armorPieceName(item)}`" class="armor-piece-option">
-                <CommonPreviewImage
-                  :src="resolvePreviewImageUrl(item.image || '')"
-                  :alt="armorPieceName(item)"
-                  :fallback="armorPieceName(item).slice(0, 1)"
-                  fallback-icon="icon-items"
-                  width="44"
-                  height="44"
-                />
-                <span>{{ armorPieceName(item) }}</span>
+        <div class="armor-pieces-layout">
+          <div class="armor-piece-grid">
+            <article v-for="group in armorPieceGroups" :key="group.role" class="armor-piece-card">
+              <div class="armor-piece-card-head">
+                <b>{{ group.role }}</b>
+                <span>{{ group.items.length > 1 ? `${group.items.length} 件可替换` : '固定部件' }}</span>
               </div>
+              <div class="armor-piece-options">
+                <div v-for="item in group.items" :key="`${group.role}-${item.itemId}-${armorPieceName(item)}`" class="armor-piece-option">
+                  <CommonPreviewImage
+                    :src="resolvePreviewImageUrl(item.image || '')"
+                    :alt="armorPieceName(item)"
+                    :fallback="armorPieceName(item).slice(0, 1)"
+                    fallback-icon="icon-items"
+                    width="44"
+                    height="44"
+                  />
+                  <span>{{ armorPieceName(item) }}</span>
+                </div>
+              </div>
+            </article>
+          </div>
+          <aside class="armor-fact-panel">
+            <div v-for="card in factCards" :key="card.label" class="armor-fact-row">
+              <span>{{ card.label }}</span>
+              <strong>{{ armorDetailVisualLoading ? '...' : card.value }}</strong>
+              <small>{{ card.meta }}</small>
             </div>
-          </article>
+          </aside>
         </div>
       </section>
 
@@ -311,27 +307,15 @@ onMounted(() => {
           <div v-if="armorStatGroups.length" class="armor-stat-groups">
             <section v-for="group in armorStatGroups" :key="group.key" class="armor-stat-group">
               <h3>{{ group.label }}</h3>
-              <div class="armor-stat-table-wrap">
-                <table class="armor-stat-table">
-                  <thead>
-                    <tr>
-                      <th>属性</th>
-                      <th>数值</th>
-                      <th>范围</th>
-                      <th>说明</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="effect in group.effects" :key="`${group.key}-${effect.statKey}-${effect.rawText}`">
-                      <td>
-                        <span class="armor-stat-name" :class="effectToneClass(effect)">{{ statName(effect) }}</span>
-                      </td>
-                      <td class="armor-stat-value">{{ formatEffectValue(effect) || '见说明' }}</td>
-                      <td>{{ effectScopeLabel(effect) }}</td>
-                      <td>{{ playerEffectDescription(effect) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div class="armor-stat-card-grid">
+                <article v-for="effect in group.effects" :key="`${group.key}-${effect.statKey}-${effect.rawText}`" class="armor-effect-card">
+                  <div class="armor-effect-card-head">
+                    <span class="armor-stat-name" :class="effectToneClass(effect)">{{ statName(effect) }}</span>
+                    <strong class="armor-effect-card-value">{{ formatEffectValue(effect) || '见说明' }}</strong>
+                  </div>
+                  <p>{{ playerEffectDescription(effect) }}</p>
+                  <span class="armor-effect-scope">{{ effectScopeLabel(effect) }}</span>
+                </article>
               </div>
             </section>
           </div>
@@ -350,13 +334,13 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="armor-image-groups">
-            <section v-for="group in imageGroups" :key="group.key" class="armor-image-group">
-              <div class="armor-image-group-head">
+          <div class="armor-preview-strip">
+            <section v-for="group in imageGroups" :key="group.key" class="armor-preview-group">
+              <div class="armor-preview-group-head">
                 <b>{{ group.label }}</b>
                 <span class="tag paper">{{ group.images.length }} 张</span>
               </div>
-              <div class="armor-image-grid">
+              <div class="armor-preview-images">
                 <CommonPreviewImage
                   v-for="image in group.images.slice(0, 12)"
                   :key="`${group.key}-${image}`"
@@ -366,7 +350,7 @@ onMounted(() => {
                   :fallback-icon="group.icon"
                   width="92"
                   height="92"
-                  class="armor-image-tile"
+                  class="armor-preview-tile"
                 />
               </div>
             </section>
@@ -382,44 +366,6 @@ onMounted(() => {
 <style scoped>
 .armor-detail-hero {
   display: block;
-}
-
-.armor-detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 14px;
-}
-
-.armor-signal {
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: 10px;
-  min-height: 112px;
-  padding: 18px;
-}
-
-.armor-signal span {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.25;
-}
-
-.armor-signal h2 {
-  margin: 0;
-  color: var(--text);
-  font-size: 30px;
-  font-weight: 900;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.armor-signal p {
-  align-self: end;
-  margin: 0;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.45;
 }
 
 .armor-module-head {
@@ -475,7 +421,7 @@ onMounted(() => {
 
 .armor-analysis-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.85fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.75fr);
   gap: 14px;
   align-items: start;
 }
@@ -504,65 +450,105 @@ onMounted(() => {
   line-height: 1.35;
 }
 
-.armor-stat-table-wrap {
-  overflow-x: auto;
+.armor-stat-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
 }
 
-.armor-stat-table {
-  width: 100%;
-  min-width: 620px;
-  table-layout: fixed;
-  border-collapse: collapse;
-  font-size: 13px;
-  line-height: 1.6;
+.armor-effect-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(244, 234, 208, 0.09);
+  border-radius: 8px;
+  background: rgba(244, 234, 208, 0.025);
 }
 
-.armor-stat-table th,
-.armor-stat-table td {
-  padding: 11px 12px;
-  border-bottom: 1px solid rgba(244, 234, 208, 0.09);
-  text-align: left;
-  vertical-align: middle;
-}
-
-.armor-stat-table th:nth-child(1),
-.armor-stat-table td:nth-child(1) {
-  width: 120px;
-}
-
-.armor-stat-table th:nth-child(2),
-.armor-stat-table td:nth-child(2) {
-  width: 88px;
-}
-
-.armor-stat-table th:nth-child(3),
-.armor-stat-table td:nth-child(3) {
-  width: 148px;
-}
-
-.armor-stat-table th {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.4;
-}
-
-.armor-stat-table td {
-  color: var(--text);
-  overflow-wrap: anywhere;
+.armor-effect-card-head {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
 }
 
 .armor-stat-name {
   display: inline-flex;
-  min-width: 78px;
   font-weight: 700;
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
-.armor-stat-value {
+.armor-effect-card-value {
+  color: var(--text);
+  font-size: 18px;
   font-variant-numeric: tabular-nums;
-  font-weight: 800;
+  font-weight: 900;
+  line-height: 1;
   white-space: nowrap;
+}
+
+.armor-effect-card p {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.armor-effect-scope {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.armor-pieces-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 220px);
+  gap: 14px;
+  align-items: start;
+}
+
+.armor-fact-panel {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.armor-fact-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 10px;
+  align-items: baseline;
+  padding: 10px;
+  border: 1px solid rgba(244, 234, 208, 0.09);
+  border-radius: 8px;
+  background: rgba(244, 234, 208, 0.025);
+}
+
+.armor-fact-row span,
+.armor-fact-row small {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.armor-fact-row strong {
+  color: var(--text);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.armor-fact-row small {
+  grid-column: 1 / -1;
 }
 
 .armor-piece-grid {
@@ -631,20 +617,20 @@ onMounted(() => {
   overflow-wrap: anywhere;
 }
 
-.armor-image-groups {
+.armor-preview-strip {
   display: grid;
   align-content: start;
-  gap: 16px;
+  gap: 14px;
 }
 
-.armor-image-group {
+.armor-preview-group {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
   align-content: start;
 }
 
-.armor-image-group-head {
+.armor-preview-group-head {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 10px;
@@ -652,22 +638,22 @@ onMounted(() => {
   justify-content: space-between;
 }
 
-.armor-image-group-head b {
+.armor-preview-group-head b {
   color: var(--text);
   font-size: 13px;
   line-height: 1.4;
 }
 
-.armor-image-grid {
+.armor-preview-images {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(92px, 92px));
+  grid-template-columns: repeat(auto-fit, minmax(76px, 76px));
   justify-content: start;
-  gap: 12px;
+  gap: 10px;
 }
 
-.armor-image-tile :deep(.item-art) {
-  width: 92px;
-  height: 92px;
+.armor-preview-tile :deep(.item-art) {
+  width: 76px;
+  height: 76px;
   border-radius: 10px;
   overflow: hidden;
 }
@@ -676,9 +662,8 @@ onMounted(() => {
   .armor-analysis-layout {
     grid-template-columns: 1fr;
   }
-
-  .armor-stat-table {
-    min-width: 580px;
+  .armor-pieces-layout {
+    grid-template-columns: 1fr;
   }
 }
 </style>
