@@ -393,3 +393,64 @@ The navigation mentions chainsaws.
   assert.equal(result.categoryCode, 'TOOL_AXE');
   assert.equal(result.reason, 'type:tool');
 });
+
+test('classifyItem maps explicit wiki type taxonomy leaves ahead of material fallback', () => {
+  const categoryLookup = {
+    byCode: new Map([
+      ['MOUNT', { id: 1 }],
+      ['PET', { id: 2 }],
+      ['ACCESSORY_MISC', { id: 3 }],
+      ['AMMUNITION_ARROW', { id: 4 }],
+      ['CONSUMABLE_POTION', { id: 5 }],
+      ['CONSUMABLE_SUMMON', { id: 6 }],
+      ['CONSUMABLE_GRAB_BAG', { id: 7 }],
+      ['FURNITURE_CRAFTING_STATION', { id: 8 }],
+      ['FURNITURE_LIGHT', { id: 9 }],
+      ['MATERIAL_BAR', { id: 10 }],
+      ['TOOL_DRILL', { id: 11 }],
+      ['TOOL_PICKAXE', { id: 12 }],
+      ['TOOL_AXE', { id: 13 }],
+      ['TOOL_CHAINSAW', { id: 14 }],
+      ['ARMOR_PART_HEAD', { id: 15 }],
+      ['ARMOR_PART_BODY', { id: 16 }],
+      ['ARMOR_PART_LEGS', { id: 17 }],
+    ]),
+    depthByCode: new Map(),
+    parentCodeByCode: new Map(),
+  };
+
+  const samples = [
+    ['Drill Containment Unit', 'DrillContainmentUnit', 'Mount summon', 'MOUNT'],
+    ['Slimy Saddle', 'SlimySaddle', 'Mount summon', 'MOUNT'],
+    ['Fuzzy Carrot', 'FuzzyCarrot', 'Mount summon', 'MOUNT'],
+    ['Cosmic Car Key', 'CosmicCarKey', 'Mount summon', 'MOUNT'],
+    ["Witch's Broom", 'WitchBroom', 'Mount summon', 'MOUNT'],
+    ['Cursed Piper Flute', 'RatMountItem', 'Mount summon', 'MOUNT'],
+    ['Dog Whistle', 'DogWhistle', 'Pet summon', 'PET'],
+    ['Cloud in a Bottle', 'CloudinaBottle', 'Accessory', 'ACCESSORY_MISC'],
+    ['Wooden Arrow', 'WoodenArrow', 'Ammunition', 'AMMUNITION_ARROW'],
+    ['Ironskin Potion', 'IronskinPotion', 'Potion / Consumable', 'CONSUMABLE_POTION'],
+    ['Suspicious Looking Eye', 'SuspiciousLookingEye', 'Boss summon / Consumable', 'CONSUMABLE_SUMMON'],
+    ['Treasure Bag', 'KingSlimeBossBag', 'Grab bag / Consumable', 'CONSUMABLE_GRAB_BAG'],
+    ['Iron Anvil', 'IronAnvil', 'Furniture / Crafting station', 'FURNITURE_CRAFTING_STATION'],
+    ['Torch', 'Torch', 'Furniture / Light source', 'FURNITURE_LIGHT'],
+    ['Luminite Bar', 'LunarBar', 'Bar / Crafting material', 'MATERIAL_BAR'],
+  ];
+
+  for (const [name, internalName, type, expectedCategoryCode] of samples) {
+    const result = classifyItem({
+      item: { name, internal_name: internalName },
+      wiki: {
+        wikitext: `
+{{item infobox
+| type = ${type}
+}}
+        `
+      },
+      standardizedRecord: { categoryCode: 'MATERIAL' },
+      categoryLookup,
+    });
+
+    assert.equal(result.categoryCode, expectedCategoryCode, `${internalName} should classify from ${type}`);
+  }
+});

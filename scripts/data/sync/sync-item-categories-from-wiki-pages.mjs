@@ -499,6 +499,7 @@ function classifyByTypeTokens({ typeTokens, tagTokens, normalizedText, showFlags
   if (tokenSet.has('dye')) return 'DYE';
   if (tokenSet.has('shield')) return 'ACCESSORY_SHIELD';
   if (tokenSet.has('boots')) return 'ACCESSORY_BOOTS';
+  if (tokenSet.has('accessory')) return 'ACCESSORY_MISC';
   if (tokenSet.has('armor')) return 'ARMOR_OTHER';
 
   if (tokenSet.has('boss summon') || tokenSet.has('event summon')) return 'CONSUMABLE_SUMMON';
