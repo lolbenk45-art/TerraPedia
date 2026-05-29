@@ -298,79 +298,81 @@ onMounted(() => {
         </div>
       </section>
 
-      <section class="support-panel armor-module armor-stat-module" :class="detailLayout.detailModuleClass">
-        <div class="armor-module-head">
-          <div>
-            <h2>数值总览</h2>
-            <p>按属性分组展示当前套装的解析数值。</p>
+      <div class="armor-analysis-layout">
+        <section class="support-panel armor-module armor-stat-module" :class="detailLayout.detailModuleClass">
+          <div class="armor-module-head">
+            <div>
+              <h2>数值总览</h2>
+              <p>按属性分组展示当前套装的解析数值。</p>
+            </div>
+            <a class="small-button" href="/armor-sets">返回列表</a>
           </div>
-          <a class="small-button" href="/armor-sets">返回列表</a>
-        </div>
 
-        <div v-if="armorStatGroups.length" class="armor-stat-groups">
-          <section v-for="group in armorStatGroups" :key="group.key" class="armor-stat-group">
-            <h3>{{ group.label }}</h3>
-            <div class="armor-stat-table-wrap">
-              <table class="armor-stat-table">
-                <thead>
-                  <tr>
-                    <th>属性</th>
-                    <th>数值</th>
-                    <th>范围</th>
-                    <th>说明</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="effect in group.effects" :key="`${group.key}-${effect.statKey}-${effect.rawText}`">
-                    <td>
-                      <span class="armor-stat-name" :class="effectToneClass(effect)">{{ statName(effect) }}</span>
-                    </td>
-                    <td class="armor-stat-value">{{ formatEffectValue(effect) || '见说明' }}</td>
-                    <td>{{ effectScopeLabel(effect) }}</td>
-                    <td>{{ playerEffectDescription(effect) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </div>
-        <p v-else class="tp-detail-empty">暂无可展示的解析数值。</p>
-
-        <div v-if="armorBenefitLines.length" class="armor-benefit">
-          <span v-for="line in armorBenefitLines" :key="`benefit-${line}`">{{ line }}</span>
-        </div>
-      </section>
-
-      <section v-if="imageGroups.length" class="support-panel armor-module" :class="detailLayout.detailModuleClass">
-        <div class="armor-module-head">
-          <div>
-            <h2>图片分组</h2>
-            <p>按角色与来源展示套装图片。</p>
+          <div v-if="armorStatGroups.length" class="armor-stat-groups">
+            <section v-for="group in armorStatGroups" :key="group.key" class="armor-stat-group">
+              <h3>{{ group.label }}</h3>
+              <div class="armor-stat-table-wrap">
+                <table class="armor-stat-table">
+                  <thead>
+                    <tr>
+                      <th>属性</th>
+                      <th>数值</th>
+                      <th>范围</th>
+                      <th>说明</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="effect in group.effects" :key="`${group.key}-${effect.statKey}-${effect.rawText}`">
+                      <td>
+                        <span class="armor-stat-name" :class="effectToneClass(effect)">{{ statName(effect) }}</span>
+                      </td>
+                      <td class="armor-stat-value">{{ formatEffectValue(effect) || '见说明' }}</td>
+                      <td>{{ effectScopeLabel(effect) }}</td>
+                      <td>{{ playerEffectDescription(effect) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </div>
-        </div>
+          <p v-else class="tp-detail-empty">暂无可展示的解析数值。</p>
 
-        <div class="armor-image-groups">
-          <section v-for="group in imageGroups" :key="group.key" class="armor-image-group">
-            <div class="armor-image-group-head">
-              <b>{{ group.label }}</b>
-              <span class="tag paper">{{ group.images.length }} 张</span>
+          <div v-if="armorBenefitLines.length" class="armor-benefit">
+            <span v-for="line in armorBenefitLines" :key="`benefit-${line}`">{{ line }}</span>
+          </div>
+        </section>
+
+        <section v-if="imageGroups.length" class="support-panel armor-module armor-preview-module" :class="detailLayout.detailModuleClass">
+          <div class="armor-module-head">
+            <div>
+              <h2>展示图</h2>
+              <p>套装外观与部件图片。</p>
             </div>
-            <div class="armor-image-grid">
-              <CommonPreviewImage
-                v-for="image in group.images.slice(0, 12)"
-                :key="`${group.key}-${image}`"
-                :src="resolvePreviewImageUrl(image)"
-                :alt="`${armorTitle} ${group.label}`"
-                :fallback="armorDetail?.fallback || '?'"
-                :fallback-icon="group.icon"
-                width="92"
-                height="92"
-                class="armor-image-tile"
-              />
-            </div>
-          </section>
-        </div>
-      </section>
+          </div>
+
+          <div class="armor-image-groups">
+            <section v-for="group in imageGroups" :key="group.key" class="armor-image-group">
+              <div class="armor-image-group-head">
+                <b>{{ group.label }}</b>
+                <span class="tag paper">{{ group.images.length }} 张</span>
+              </div>
+              <div class="armor-image-grid">
+                <CommonPreviewImage
+                  v-for="image in group.images.slice(0, 12)"
+                  :key="`${group.key}-${image}`"
+                  :src="resolvePreviewImageUrl(image)"
+                  :alt="`${armorTitle} ${group.label}`"
+                  :fallback="armorDetail?.fallback || '?'"
+                  :fallback-icon="group.icon"
+                  width="92"
+                  height="92"
+                  class="armor-image-tile"
+                />
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
     </main>
 
     <TerraFooter />
@@ -412,6 +414,18 @@ onMounted(() => {
   line-height: 1.6;
 }
 
+.armor-analysis-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.85fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.armor-stat-module,
+.armor-preview-module {
+  min-width: 0;
+}
+
 .armor-stat-groups {
   display: grid;
   gap: 16px;
@@ -435,7 +449,7 @@ onMounted(() => {
 
 .armor-stat-table {
   width: 100%;
-  min-width: 720px;
+  min-width: 620px;
   border-collapse: collapse;
   font-size: 13px;
   line-height: 1.45;
@@ -548,7 +562,7 @@ onMounted(() => {
 
 .armor-image-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(58px, 72px));
+  grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
   gap: 10px;
 }
 
@@ -557,5 +571,15 @@ onMounted(() => {
   height: 58px;
   border-radius: 10px;
   overflow: hidden;
+}
+
+@media (max-width: 980px) {
+  .armor-analysis-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .armor-stat-table {
+    min-width: 580px;
+  }
 }
 </style>

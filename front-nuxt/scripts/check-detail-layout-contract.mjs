@@ -168,6 +168,10 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       'armor set detail must render a numeric stat table instead of an image-led body',
     ],
     [
+      String.raw`class="armor-analysis-layout"`,
+      'armor set detail must place stats and visual preview modules side by side',
+    ],
+    [
       String.raw`v-for="group in armorStatGroups"`,
       'armor set detail must render every grouped stat row set',
     ],
