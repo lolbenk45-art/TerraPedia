@@ -8,6 +8,12 @@ import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
 
 const props = defineProps<{
   root: PublicItemRecipeTreeNode | null
+  hoveredTargetKey?: string
+  activeTargetKey?: string
+}>()
+
+const emit = defineEmits<{
+  hoverTarget: [key: string]
 }>()
 
 type RouteItem = {
@@ -46,6 +52,7 @@ type RouteChoiceGroup = {
 
 type RouteEntry = {
   key: string
+  targetKey: string
   level: number
   label: string
   parentTitle: string
@@ -145,6 +152,8 @@ const itemSourceKey = (node: PublicItemRecipeTreeNode) => {
 
   return `item:${displayText(node.itemId, node.id, node.itemInternalName, node.itemName, nodeTitle(node))}`
 }
+
+const recipeTargetKey = (node: PublicItemRecipeTreeNode) => normalizeKey(itemSourceKey(node))
 
 const routeItem = (node: PublicItemRecipeTreeNode, index = 0, isOutput = false): RouteItem => {
   const members = (Array.isArray(node.groupMembers) ? node.groupMembers : []).map(memberItem)
@@ -263,6 +272,7 @@ const buildNormalEntry = (
 
   return {
     key: `recipe-${recipeKey(node, level)}-${index}`,
+    targetKey: recipeTargetKey(node),
     level,
     label: recipeId ? `配方 #${recipeId}` : '配方',
     parentTitle,
@@ -287,6 +297,7 @@ const buildChoiceEntry = (
 
   return {
     key: `choice-${recipeKey(source, level)}-${index}`,
+    targetKey: recipeTargetKey(source),
     level,
     label: `${options.length} 条路线 · 任选 1 条`,
     parentTitle,
@@ -351,6 +362,16 @@ const graphSummary = computed(() => {
   const choiceCount = routeEntries.value.reduce((total, entry) => total + entry.choiceGroups.length, 0)
   return `${routeEntries.value.length} 条关系 · ${materialCount} 个材料 · ${choiceCount} 个任选组`
 })
+const isHoveredEntry = (entry: RouteEntry) => Boolean(entry.targetKey && props.hoveredTargetKey === entry.targetKey)
+const isActiveEntry = (entry: RouteEntry) => Boolean(entry.targetKey && props.activeTargetKey === entry.targetKey)
+const handleEntryHover = (entry: RouteEntry) => {
+  if (!entry.targetKey) return
+  emit('hoverTarget', entry.targetKey)
+}
+const handleEntryLeave = (entry: RouteEntry) => {
+  if (!entry.targetKey || props.hoveredTargetKey !== entry.targetKey) return
+  emit('hoverTarget', '')
+}
 </script>
 
 <template>
@@ -368,8 +389,14 @@ const graphSummary = computed(() => {
         v-for="entry in routeEntries"
         :key="entry.key"
         class="recipe-route-entry"
+        :class="{ 'is-linked-hover': isHoveredEntry(entry), 'is-linked-active': isActiveEntry(entry) }"
         :style="{ '--route-level': entry.level }"
         :data-route-level="entry.level"
+        :data-recipe-target-key="entry.targetKey"
+        @mouseenter="handleEntryHover(entry)"
+        @mouseleave="handleEntryLeave(entry)"
+        @focusin="handleEntryHover(entry)"
+        @focusout="handleEntryLeave(entry)"
       >
         <header class="recipe-route-entry-head">
           <span class="recipe-route-level">{{ entry.level === 0 ? '目标配方' : `第 ${entry.level} 层` }}</span>

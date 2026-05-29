@@ -16,17 +16,20 @@ const defaultRecipeTarget = {
   itemId: '675',
   label: '真永夜刃',
 }
+const DEFAULT_RECIPE_MAX_DEPTH = 5
 
 const recipeSearchQuery = ref('')
 const selectedVariantKey = ref('')
 const selectedRecipeKey = ref('')
+const hoveredRecipeTargetKey = ref('')
+const activeRecipeTargetKey = ref('')
 
 const selectedItemId = computed(() => String(route.query.itemId ?? '').trim())
 const effectiveSelectedItemId = computed(() => selectedItemId.value || defaultRecipeTarget.itemId)
 const isDefaultRecipeTarget = computed(() => !selectedItemId.value)
 const maxDepth = computed(() => {
-  const parsed = Number(route.query.maxDepth ?? 3)
-  return Number.isFinite(parsed) && parsed > 0 ? Math.min(Math.floor(parsed), 5) : 3
+  const parsed = Number(route.query.maxDepth ?? DEFAULT_RECIPE_MAX_DEPTH)
+  return Number.isFinite(parsed) && parsed > 0 ? Math.min(Math.floor(parsed), DEFAULT_RECIPE_MAX_DEPTH) : DEFAULT_RECIPE_MAX_DEPTH
 })
 
 const {
@@ -101,6 +104,7 @@ const selectTarget = async (itemId: string | number) => {
 
   selectedVariantKey.value = ''
   selectedRecipeKey.value = ''
+  recipeSearchQuery.value = ''
   await router.replace({ query: { ...route.query, itemId: normalized, maxDepth: String(maxDepth.value) } })
 }
 
@@ -109,6 +113,19 @@ const clearRecipeTarget = async () => {
   selectedVariantKey.value = ''
   selectedRecipeKey.value = ''
   await router.replace({ query: { ...route.query, itemId: undefined } })
+}
+
+const setHoveredRecipeTarget = (key: string) => {
+  hoveredRecipeTargetKey.value = key
+}
+
+const selectRecipeTarget = async (key: string) => {
+  activeRecipeTargetKey.value = key
+  await nextTick()
+
+  const escapedKey = window.CSS?.escape ? window.CSS.escape(key) : key.replace(/"/g, '\\"')
+  const target = document.querySelector<HTMLElement>(`.recipe-route-entry[data-recipe-target-key="${escapedKey}"]`)
+  target?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
 }
 </script>
 
@@ -120,43 +137,76 @@ const clearRecipeTarget = async () => {
     <main class="tp-page-shell crafting-page" data-crafting-role="page" :aria-busy="recipePending">
       <h1 class="visually-hidden">制作路线</h1>
       <div class="tp-container is-wide crafting-container">
-        <CraftingTargetBar
+        <CraftingTargetSearch
           v-model:query="recipeSearchQuery"
-          :target="recipeModel.target"
-          :pending="recipePending"
-          :source="recipeBundle?.source"
-          :max-depth="maxDepth"
-          :is-default="isDefaultRecipeTarget"
+          :target-title="recipeModel.target?.title"
           :suggestions="itemSuggestions"
           :search-pending="itemSearchPending"
           :search-unavailable="showSearchUnavailable"
           @select="selectTarget"
-          @clear="clearRecipeTarget"
+          @clear="recipeSearchQuery = ''"
           @refresh-items="refreshPublicItems"
         />
 
-        <CraftingRecipeVariantSelector
-          v-if="recipeModel.variants.length > 1"
-          :variants="recipeModel.variants"
-          :active-key="selectedVariantKey"
-          @select="selectedVariantKey = $event"
-        />
+        <div class="crafting-stage-layout" data-crafting-role="stage-layout">
+          <aside class="crafting-stage-sidebar" data-crafting-role="stage-sidebar">
+            <CraftingTargetBar
+              :target="recipeModel.target"
+              :pending="recipePending"
+              :source="recipeBundle?.source"
+              :max-depth="maxDepth"
+              :is-default="isDefaultRecipeTarget"
+              @clear="clearRecipeTarget"
+            />
 
-        <CraftingRecipeOptionSelector
-          v-if="activeOptions.length > 1"
-          :options="activeOptions"
-          :active-key="selectedRecipeKey"
-          @select="selectedRecipeKey = $event"
-        />
+            <CraftingRecipeVariantSelector
+              v-if="recipeModel.variants.length > 1"
+              :variants="recipeModel.variants"
+              :active-key="selectedVariantKey"
+              @select="selectedVariantKey = $event"
+            />
+
+            <CraftingRecipeOptionSelector
+              v-if="activeOptions.length > 1"
+              :options="activeOptions"
+              :active-key="selectedRecipeKey"
+              @select="selectedRecipeKey = $event"
+            />
+          </aside>
+
+          <section class="crafting-route-stage" data-crafting-role="route-stage">
+            <section
+              v-if="activeRecipeRawNode"
+              class="tp-panel crafting-tree-section"
+              data-crafting-role="recipe-tree-section"
+              aria-labelledby="crafting-tree-title"
+            >
+              <header class="recipe-section-head">
+                <span class="eyebrow">合成树</span>
+                <h3 id="crafting-tree-title">合成树</h3>
+              </header>
+              <div class="crafting-tree-stage">
+                <CraftingRecipeHierarchyTree
+                  :root="activeRecipeRawNode"
+                  :max-depth="maxDepth"
+                  :hovered-target-key="hoveredRecipeTargetKey"
+                  :active-target-key="activeRecipeTargetKey"
+                  @hover-target="setHoveredRecipeTarget"
+                  @select-target="selectRecipeTarget"
+                />
+              </div>
+            </section>
+
+            <CraftingRecipeCraftingGraph
+              :root="activeRecipeRawNode"
+              :hovered-target-key="hoveredRecipeTargetKey"
+              :active-target-key="activeRecipeTargetKey"
+              @hover-target="setHoveredRecipeTarget"
+            />
+          </section>
+        </div>
 
         <CraftingRecipeSheet :recipe="activeRecipe" />
-
-        <CraftingRecipeCraftingGraph :root="activeRecipeRawNode" />
-
-        <CraftingMaterialExpansionList
-          v-if="activeRecipe"
-          :materials="activeRecipe.materials"
-        />
 
         <CraftingRecipeCompareTable
           v-if="activeOptions.length > 1"
