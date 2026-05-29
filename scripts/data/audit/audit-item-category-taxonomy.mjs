@@ -3,10 +3,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  inferCategoryFromStandardizedRecord,
+  loadMountAllowlist,
+  STANDARDIZED_INFERENCE_MODE,
+} from '../lib/item-category-inference.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const DEFAULT_RAW_ITEM_PAGES_DIR = path.resolve(process.cwd(), 'data', 'raw', 'wiki', 'item-pages');
 const DEFAULT_STANDARDIZED_PATH = path.resolve(process.cwd(), 'data', 'standardized', 'items.standardized.json');
+const DEFAULT_ITEM_PAGES_METADATA_PATH = path.resolve(process.cwd(), 'data', 'standardized', 'item_pages.standardized.json');
 const DEFAULT_VERIFIED_INTERNAL_NAMES = [
   'DrillContainmentUnit',
   'SlimySaddle',
@@ -31,17 +37,30 @@ const MATERIAL_ROOT_CODES = new Set([
 ]);
 
 export function auditItemCategoryTaxonomy({
+  fallbackMode = 'none',
   standardizedRecords,
+  itemPagesMetadataByInternal,
+  mountAllowlist,
   rawPagesByInternal,
   rawPagesDir,
   classifier,
   verifiedInternalNames = DEFAULT_VERIFIED_INTERNAL_NAMES,
 } = {}) {
   const blockers = [];
+  const useStandardizedInference = fallbackMode === STANDARDIZED_INFERENCE_MODE;
+  const sourceMode = useStandardizedInference ? STANDARDIZED_INFERENCE_MODE : 'raw_wiki';
   const records = normalizeRecords(standardizedRecords);
   let rawPages = rawPagesByInternal instanceof Map ? rawPagesByInternal : null;
+  const itemPagesMetadata = itemPagesMetadataByInternal instanceof Map
+    ? itemPagesMetadataByInternal
+    : null;
+  const allowlist = mountAllowlist instanceof Set ? mountAllowlist : new Set();
 
-  if (!rawPages) {
+  if (useStandardizedInference && !itemPagesMetadata) {
+    blockers.push({ reason: 'standardized_item_page_metadata_missing' });
+  }
+
+  if (!rawPages && !useStandardizedInference) {
     if (!rawPagesDir || !fs.existsSync(rawPagesDir)) {
       blockers.push({ reason: 'raw_item_pages_missing' });
     } else {
@@ -52,6 +71,7 @@ export function auditItemCategoryTaxonomy({
   if (blockers.length > 0) {
     return {
       status: 'blocked',
+      sourceMode,
       blockers,
       summary: {
         standardizedRecords: records.length,
@@ -76,14 +96,21 @@ export function auditItemCategoryTaxonomy({
   for (const record of records) {
     const internalName = getInternalName(record);
     if (!internalName) continue;
-    const wiki = rawPages.get(internalName);
-    if (!wiki) continue;
+    const wiki = rawPages?.get(internalName) || null;
+    const itemPage = itemPagesMetadata?.get(internalName) || null;
+    if (!useStandardizedInference && !wiki) continue;
 
-    const result = classify({
-      item: toClassifierItem(record),
-      wiki,
-      standardizedRecord: record,
-    }) || {};
+    const result = useStandardizedInference
+      ? inferCategoryFromStandardizedRecord({
+        item: record,
+        itemPage,
+        mountAllowlist: allowlist,
+      }) || {}
+      : classify({
+        item: toClassifierItem(record),
+        wiki,
+        standardizedRecord: record,
+      }) || {};
     const expectedCategoryCode = toCode(result.categoryCode);
     if (!expectedCategoryCode) continue;
 
@@ -101,6 +128,10 @@ export function auditItemCategoryTaxonomy({
       currentCategoryCode,
       reason: text(result.reason) || null,
     };
+    if (useStandardizedInference) {
+      sample.source = text(result.source) || STANDARDIZED_INFERENCE_MODE;
+      sample.confidence = text(result.confidence) || null;
+    }
     if (verifiedSet.has(internalName)) {
       verifiedSamples.push(sample);
     }
@@ -123,10 +154,11 @@ export function auditItemCategoryTaxonomy({
 
   return {
     status: hasSuspiciousMaterials || hasVerifiedMismatch ? 'warning' : 'pass',
+    sourceMode,
     blockers,
     summary: {
       standardizedRecords: records.length,
-      rawPages: rawPages.size,
+      rawPages: rawPages?.size || 0,
       classified,
       changedFromStandardized,
     },
@@ -152,13 +184,22 @@ async function main(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
   const standardizedPath = path.resolve(process.cwd(), args.standardized || DEFAULT_STANDARDIZED_PATH);
   const rawPagesDir = path.resolve(process.cwd(), args.rawItemPagesDir || DEFAULT_RAW_ITEM_PAGES_DIR);
+  const itemPagesMetadataPath = path.resolve(process.cwd(), args.itemPagesMetadata || DEFAULT_ITEM_PAGES_METADATA_PATH);
   const standardizedRecords = fs.existsSync(standardizedPath)
     ? normalizeRecords(JSON.parse(fs.readFileSync(standardizedPath, 'utf8')))
     : [];
+  const fallbackMode = args.fallbackMode || 'none';
+  const useStandardizedInference = fallbackMode === STANDARDIZED_INFERENCE_MODE;
+  const itemPagesMetadataByInternal = useStandardizedInference && fs.existsSync(itemPagesMetadataPath)
+    ? buildItemPagesMetadataIndex(JSON.parse(fs.readFileSync(itemPagesMetadataPath, 'utf8')))
+    : undefined;
   const classifier = await loadProjectClassifier();
 
   const audit = auditItemCategoryTaxonomy({
+    fallbackMode,
     standardizedRecords,
+    itemPagesMetadataByInternal,
+    mountAllowlist: useStandardizedInference ? loadMountAllowlist({ repoRoot: process.cwd() }) : undefined,
     rawPagesDir,
     classifier,
   });
@@ -214,6 +255,15 @@ function loadRawPages(rawPagesDir) {
     }
   }
   return pages;
+}
+
+function buildItemPagesMetadataIndex(input) {
+  const byInternal = new Map();
+  for (const record of normalizeRecords(input)) {
+    const internalName = text(record?.itemInternalName ?? record?.item_internal_name);
+    if (internalName) byInternal.set(internalName, record);
+  }
+  return byInternal;
 }
 
 function normalizeRecords(input) {

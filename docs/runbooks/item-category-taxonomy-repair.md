@@ -53,3 +53,38 @@ node scripts/data/sync/sync-item-categories-from-wiki-pages.mjs \
 Do not run the apply command from an investigation session. It is recorded here for an operator-controlled follow-up after audit and dry-run evidence are reviewed.
 
 After apply, restart or refresh public services only if the report shows public item cache clearing failed or if the running stack does not observe the updated categories.
+
+## No-Crawl Standardized Fallback
+
+Use this fallback only when raw item pages are unavailable, a full crawl is too risky, and the goal is to produce high-confidence dry-run evidence from existing standardized data.
+
+Do not use this fallback when raw pages are available, when broad taxonomy cleanup is needed, when non-`MATERIAL` categories need repair, or when the current task is to apply database writes.
+
+Audit:
+
+```bash
+node scripts/data/audit/audit-item-category-taxonomy.mjs \
+  --fallbackMode=standardized_inference \
+  --format=json
+```
+
+Dry run:
+
+```bash
+node scripts/data/sync/sync-item-categories-from-wiki-pages.mjs \
+  --fallbackMode=standardized_inference \
+  --apply=false \
+  --report=reports/items-standardized-inference-category-sync-$(date +%F).json
+```
+
+Review the output before taking any follow-up action:
+
+- No crawler output appears.
+- `sourceMode` or `fallbackMode` is `standardized_inference`.
+- `DrillContainmentUnit -> MOUNT` appears in verified or changed samples.
+- Inferred rows have `confidence: "high"` and evidence.
+- `changedSamples` contains no `reportOnly` or low-confidence rows.
+- `skippedNoWiki` counts missing raw pages only when fallback is disabled.
+- `skippedInsufficientEvidence` counts rows where fallback was attempted but evidence was insufficient.
+
+Do not run `--apply=true` for standardized inference from this runbook section. Applying inferred changes requires a separate operator-approved apply and rollback plan because the sync apply path can write `category`, `items`, and `item_category_rel`.

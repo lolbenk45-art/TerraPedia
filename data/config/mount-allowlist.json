@@ -1,0 +1,18 @@
+{
+  "version": "1.0.0",
+  "description": "Manual calibration input for standardized MOUNT inference. Includes mount-summoning items that function as mount items.",
+  "items": [
+    "SlimySaddle",
+    "HardySaddle",
+    "PaintedHorseSaddle",
+    "MajesticHorseSaddle",
+    "DarkHorseSaddle",
+    "FuzzyCarrot",
+    "LightningCarrot",
+    "CosmicCarKey",
+    "WitchBroom",
+    "DrillContainmentUnit",
+    "RatMountItem",
+    "RollerSkatesBlueMountItem"
+  ]
+}

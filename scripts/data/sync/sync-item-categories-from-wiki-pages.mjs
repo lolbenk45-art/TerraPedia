@@ -15,6 +15,8 @@ import {
 const require = createRequire(import.meta.url);
 
 const __filename = fileURLToPath(import.meta.url);
+const FALLBACK_MODE_NONE = 'none';
+const STANDARDIZED_INFERENCE_MODE_VALUE = 'standardized_inference';
 
 const PICKAXE_IDENTITY_KEYWORDS = ['pickaxe', 'drax', 'digging claw'];
 const DRILL_IDENTITY_KEYWORDS = ['drill', '钻头', '电钻'];
@@ -32,12 +34,18 @@ const VERIFIED_INTERNAL_NAMES = new Set([
 export async function runItemCategorySync(rawArgs = parseArgs(process.argv.slice(2)), dependencies = {}) {
   const repoRoot = path.resolve(dependencies.repoRoot || process.cwd());
   const apply = rawArgs.apply === true || rawArgs.apply === 'true';
+  const fallbackMode = toText(rawArgs.fallbackMode) || FALLBACK_MODE_NONE;
+  if (![FALLBACK_MODE_NONE, STANDARDIZED_INFERENCE_MODE_VALUE].includes(fallbackMode)) {
+    throw new Error(`Unsupported fallbackMode: ${fallbackMode}`);
+  }
+  const standardizedInferenceEnabled = fallbackMode === STANDARDIZED_INFERENCE_MODE_VALUE;
   const reportPath = rawArgs.report || path.join(repoRoot, 'reports', `items-wiki-category-sync-${new Date().toISOString().slice(0, 10)}.json`);
   const itemPagesDir = path.resolve(
     repoRoot,
     rawArgs.itemPagesDir || sharedDataPath('raw', 'wiki', 'item-pages')
   );
   const standardizedPath = path.join(repoRoot, 'data', 'standardized', 'items.standardized.json');
+  const standardizedItemPagesPath = path.join(repoRoot, 'data', 'standardized', 'item_pages.standardized.json');
   const db = dependencies.db || {
     host: process.env.TERRAPEDIA_DB_HOST || '127.0.0.1',
     port: Number(process.env.TERRAPEDIA_DB_PORT || '3306'),
@@ -47,17 +55,28 @@ export async function runItemCategorySync(rawArgs = parseArgs(process.argv.slice
   };
   const redis = dependencies.redis || resolveRedisConfigFromEnv(rawArgs);
 
-  if (!dependencies.wikiPagesByInternal && !fs.existsSync(itemPagesDir)) {
+  if (!dependencies.wikiPagesByInternal && !fs.existsSync(itemPagesDir) && !standardizedInferenceEnabled) {
     throw new Error(`Item pages directory not found: ${itemPagesDir}`);
   }
   if (!dependencies.standardizedByInternal && !fs.existsSync(standardizedPath)) {
     throw new Error(`Standardized items dataset not found: ${standardizedPath}`);
   }
+  const injectedItemPagesByInternal = dependencies.itemPagesByInternal || dependencies.itemPagesMetadataByInternal;
+  if (standardizedInferenceEnabled && !injectedItemPagesByInternal && !fs.existsSync(standardizedItemPagesPath)) {
+    throw new Error(`Standardized item page metadata dataset not found: ${standardizedItemPagesPath}`);
+  }
 
   const standardizedByInternal = dependencies.standardizedByInternal || buildStandardizedIndex(
     JSON.parse(fs.readFileSync(standardizedPath, 'utf8'))
   );
-  const wikiPagesByInternal = dependencies.wikiPagesByInternal || loadWikiPages(itemPagesDir);
+  const wikiPagesByInternal = dependencies.wikiPagesByInternal
+    || (fs.existsSync(itemPagesDir) ? loadWikiPages(itemPagesDir) : new Map());
+  const itemPagesByInternal = standardizedInferenceEnabled
+    ? injectedItemPagesByInternal || buildItemPageIndex(JSON.parse(fs.readFileSync(standardizedItemPagesPath, 'utf8')))
+    : new Map();
+  const standardizedInference = standardizedInferenceEnabled
+    ? await resolveStandardizedInference({ repoRoot, dependencies })
+    : null;
   const ownConnection = !dependencies.connection;
   const connection = dependencies.connection || await loadMysql(repoRoot).createConnection(db);
 
@@ -76,9 +95,12 @@ export async function runItemCategorySync(rawArgs = parseArgs(process.argv.slice
     let skippedInactive = 0;
     let skippedNoWiki = 0;
     let skippedNoCategory = 0;
+    let standardizedInferred = 0;
+    let skippedInsufficientEvidence = 0;
     const categoryDistribution = {};
     const changedSamples = [];
     const verifiedSamples = [];
+    const inferenceSamples = [];
     const samples = [];
 
     for (const item of items) {
@@ -90,19 +112,45 @@ export async function runItemCategorySync(rawArgs = parseArgs(process.argv.slice
 
       const internalName = toText(item.internal_name);
       const wiki = internalName ? wikiPagesByInternal.get(internalName) : null;
+      let result = null;
+      let inferenceResult = null;
       if (!wiki) {
-        skippedNoWiki += 1;
-        continue;
-      }
+        if (!standardizedInferenceEnabled) {
+          skippedNoWiki += 1;
+          continue;
+        }
 
-      wikiMatched += 1;
-      const standardizedRecord = internalName ? standardizedByInternal.get(internalName) : null;
-      const result = classifyItem({
-        item,
-        wiki,
-        standardizedRecord,
-        categoryLookup,
-      });
+        const standardizedRecord = internalName ? standardizedByInternal.get(internalName) : null;
+        const itemPage = internalName ? itemPagesByInternal.get(internalName) : null;
+        inferenceResult = standardizedInference.inferCategoryFromStandardizedRecord({
+          item: buildInferenceItemRecord(standardizedRecord, item),
+          itemPage,
+          mountAllowlist: standardizedInference.mountAllowlist,
+        });
+
+        if (!inferenceResult?.categoryCode) {
+          skippedInsufficientEvidence += 1;
+          continue;
+        }
+
+        result = {
+          categoryCode: inferenceResult.categoryCode,
+          reason: inferenceResult.reason,
+          source: inferenceResult.source,
+          confidence: inferenceResult.confidence,
+          evidence: inferenceResult.evidence,
+        };
+        standardizedInferred += 1;
+      } else {
+        wikiMatched += 1;
+        const standardizedRecord = internalName ? standardizedByInternal.get(internalName) : null;
+        result = classifyItem({
+          item,
+          wiki,
+          standardizedRecord,
+          categoryLookup,
+        });
+      }
 
       if (!result?.categoryCode) {
         skippedNoCategory += 1;
@@ -155,12 +203,18 @@ export async function runItemCategorySync(rawArgs = parseArgs(process.argv.slice
         reason: result.reason,
         willUpdate: shouldUpdate,
       };
+      if (result.source) sample.source = result.source;
+      if (result.confidence) sample.confidence = result.confidence;
+      if (result.evidence) sample.evidence = result.evidence;
 
       if (samples.length < 40) {
         samples.push(sample);
       }
       if (shouldUpdate && changedSamples.length < 80) {
         changedSamples.push(sample);
+      }
+      if (result.source === STANDARDIZED_INFERENCE_MODE_VALUE && inferenceSamples.length < 40) {
+        inferenceSamples.push(sample);
       }
       if (VERIFIED_INTERNAL_NAMES.has(internalName) && verifiedSamples.length < 40) {
         verifiedSamples.push(sample);
@@ -209,6 +263,7 @@ export async function runItemCategorySync(rawArgs = parseArgs(process.argv.slice
       apply,
       db,
       itemPagesDir,
+      fallbackMode,
       scanned,
       wikiMatched,
       classified,
@@ -216,9 +271,12 @@ export async function runItemCategorySync(rawArgs = parseArgs(process.argv.slice
       skippedInactive,
       skippedNoWiki,
       skippedNoCategory,
+      standardizedInferred,
+      skippedInsufficientEvidence,
       categoryDistribution,
       changedSamples,
       verifiedSamples,
+      inferenceSamples,
       publicItemCache,
       samples,
     };
@@ -259,6 +317,46 @@ function buildStandardizedIndex(standardized) {
     if (internalName) standardizedByInternal.set(internalName, record);
   }
   return standardizedByInternal;
+}
+
+function buildItemPageIndex(itemPages) {
+  const itemPagesByInternal = new Map();
+  for (const record of itemPages.records || []) {
+    const internalName = toText(record?.itemInternalName);
+    if (internalName) itemPagesByInternal.set(internalName, record);
+  }
+  return itemPagesByInternal;
+}
+
+function buildInferenceItemRecord(standardizedRecord, dbItem) {
+  if (!standardizedRecord) return null;
+  return {
+    ...standardizedRecord,
+    internalName: toText(standardizedRecord.internalName) || toText(dbItem?.internal_name),
+    currentCategoryCode: toText(dbItem?.current_category_code) || toText(standardizedRecord.currentCategoryCode) || toText(standardizedRecord.categoryCode),
+    stackSize: standardizedRecord.stackSize ?? standardizedRecord.stack?.stackSize,
+    damage: standardizedRecord.damage ?? standardizedRecord.stats?.damage,
+    defense: standardizedRecord.defense ?? standardizedRecord.stats?.defense,
+  };
+}
+
+async function resolveStandardizedInference({ repoRoot, dependencies }) {
+  if (dependencies.inferCategoryFromStandardizedRecord) {
+    return {
+      inferCategoryFromStandardizedRecord: dependencies.inferCategoryFromStandardizedRecord,
+      mountAllowlist: dependencies.mountAllowlist || new Set(),
+    };
+  }
+
+  const inferenceModule = await import('../lib/item-category-inference.mjs');
+  const mode = inferenceModule.STANDARDIZED_INFERENCE_MODE || STANDARDIZED_INFERENCE_MODE_VALUE;
+  if (mode !== STANDARDIZED_INFERENCE_MODE_VALUE) {
+    throw new Error(`Unsupported standardized inference mode from library: ${mode}`);
+  }
+  return {
+    inferCategoryFromStandardizedRecord: inferenceModule.inferCategoryFromStandardizedRecord,
+    mountAllowlist: dependencies.mountAllowlist || inferenceModule.loadMountAllowlist({ repoRoot }),
+  };
 }
 
 export async function ensureCategories(connection, applyChanges) {

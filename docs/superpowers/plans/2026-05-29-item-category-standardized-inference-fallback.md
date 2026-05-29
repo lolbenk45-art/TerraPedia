@@ -1,66 +1,101 @@
-# Item Category Standardized Inference Fallback Implementation Plan
+# Item Category Standardized Inference Fallback Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `subagent-driven-development` or `executing-plans` to implement this plan task by task. Use TDD for every code task.
 
-**Goal:** Add a no-crawl, dry-run-first fallback that can repair high-confidence item category mistakes such as `DrillContainmentUnit -> MOUNT` using only existing standardized datasets.
+## Goal
 
-**Architecture:** Raw wiki item pages remain authoritative and keep the existing default behavior. When raw pages are missing, an explicit `standardized_inference` mode uses a small shared inference library with strict allowlist/suffix rules, emits confidence/evidence, and keeps uncertain families report-only. Sync and audit both call the same library so their behavior cannot drift.
+Add a no-crawl, dry-run-first fallback that can detect and report high-confidence item category repairs such as:
 
-**Tech Stack:** Node.js ESM scripts, `node:test`, existing item category sync/audit scripts, no crawler execution, no automatic DB writes.
+```text
+DrillContainmentUnit: MATERIAL -> MOUNT
+```
 
----
+The fallback must use only data already present in the repository. It must not run the crawler, fetch wiki pages, or write the database during implementation validation.
 
-## Scope And Boundaries
+## Closure Definition
 
-- In scope:
-  - Add reusable standardized inference library.
-  - Add explicit `--fallbackMode=standardized_inference` to audit and sync.
-  - Produce dry-run evidence for high-confidence category changes.
-  - Keep manual apply gated behind existing `--apply=true`.
-- Out of scope:
-  - Do not run crawler.
-  - Do not fetch raw wiki pages.
-  - Do not write DB rows during implementation or plan validation.
-  - Do not broadly rewrite `MATERIAL`, `FURNITURE`, `CONSUMABLE`, `PET`, or `ACCESSORY` from weak name rules.
+This plan is complete when:
+
+- Default raw-wiki audit behavior is unchanged and still blocks when raw item pages are missing.
+- Opt-in `--fallbackMode=standardized_inference` audit works without raw item pages and reports `DrillContainmentUnit -> MOUNT`.
+- Opt-in sync dry-run works without raw item pages and reports high-confidence inferred changes without applying them.
+- Focused tests prove raw-wiki precedence, opt-in fallback behavior, and report counter semantics.
 
 ## Source Chain
 
-Default authoritative chain remains:
+Default authoritative chain remains unchanged:
 
 ```text
-raw/wiki/item-pages/*.latest.json -> wiki item classifier -> category rows -> dry-run/apply sync report
+data/raw/wiki/item-pages/*.latest.json
+-> wiki item classifier
+-> category rows
+-> sync/audit report
 ```
 
-No-crawl fallback chain is explicitly weaker:
+No-crawl fallback chain is explicitly weaker and opt-in:
 
 ```text
 data/standardized/items.standardized.json
 + data/standardized/item_pages.standardized.json metadata
--> standardized inference library
++ data/config/mount-allowlist.json manual calibration input
+-> standardized inference
 -> audit/sync dry-run report
--> manual apply only after report review
+-> manual review
 ```
+
+Conflict rule:
+
+- Raw wiki page data always wins when it exists.
+- Standardized inference is used only when the raw wiki page for that item is missing and `fallbackMode=standardized_inference` is set.
+- This plan does not compare raw wiki classifications against standardized inference when both are available.
+
+## Boundaries
+
+In scope:
+
+- Add reusable standardized category inference for high-confidence `MATERIAL -> MOUNT`.
+- Add explicit `--fallbackMode=standardized_inference` to audit and sync.
+- Keep default CLI behavior unchanged.
+- Add dry-run report fields that distinguish no fallback attempt from insufficient fallback evidence.
+- Document no-crawl commands and review criteria.
+
+Out of scope:
+
+- No crawler run.
+- No wiki fetch.
+- No DB apply validation in this plan.
+- No production/staging database write.
+- No automated rollback claim.
+- No broad repairs for `FURNITURE`, `CONSUMABLE`, `PET`, `ACCESSORY`, hooks, minecarts, dyes, music boxes, or non-`MATERIAL` miscategorizations.
+- No data freshness feature in this plan; freshness requires separate design and non-mutating tests.
+
+## Apply Safety Position
+
+`--apply=true` remains an existing operator-controlled sync mode, but this plan does not validate or recommend applying standardized inference results.
+
+Reason: the current apply path can write `category`, `items`, and `item_category_rel`. A narrow JSON item-category backup is not a complete rollback strategy. Any future apply plan must require a full database backup/restore procedure or a tested dedicated rollback tool.
 
 ## File Map
 
+- Create: `data/config/mount-allowlist.json`
+  - Manual calibration input for mount-summoning items that do not have a stable `MountItem`/`MountSaddle` suffix.
 - Create: `scripts/data/lib/item-category-inference.mjs`
-  - Owns pure no-I/O standardized inference rules.
+  - Exports a pure inference function.
+  - May also export a config loader, but the pure inference function must receive the allowlist explicitly and must not perform hidden file I/O.
 - Create: `scripts/data/lib/item-category-inference.test.mjs`
-  - Verifies high-confidence and false-positive boundary rules.
+  - Verifies mount inference, false positives, config validation, and boundary rules.
 - Modify: `scripts/data/sync/sync-item-categories-from-wiki-pages.mjs`
-  - Adds explicit fallback mode and sync report fields.
+  - Adds fallback mode, missing-raw-page bypass only for fallback mode, and dry-run report fields.
 - Modify: `scripts/data/sync/sync-item-categories-from-wiki-pages.test.mjs`
-  - Verifies default behavior remains raw-only and fallback mode is opt-in.
+  - Verifies default raw-only behavior, fallback dry-run behavior, and report counters.
 - Modify: `scripts/data/audit/audit-item-category-taxonomy.mjs`
-  - Adds explicit fallback mode for no-crawl audit output.
+  - Adds fallback audit mode while preserving blocked default behavior.
 - Modify: `scripts/data/audit/audit-item-category-taxonomy.test.mjs`
-  - Verifies blocked default mode and fallback audit mode.
-- Modify: `docs/runbooks/item-category-taxonomy-repair.md`
-  - Documents no-crawl fallback commands and manual review gate.
+  - Verifies default block and fallback audit output.
+- Modify/Create: `docs/runbooks/item-category-taxonomy-repair.md`
+  - Documents no-crawl audit/dry-run commands and manual review criteria.
 
 ## Inference Contract
-
-Create:
 
 ```js
 export const STANDARDIZED_INFERENCE_MODE = 'standardized_inference';
@@ -68,21 +103,27 @@ export const STANDARDIZED_INFERENCE_MODE = 'standardized_inference';
 export function inferCategoryFromStandardizedRecord({
   item,
   itemPage = null,
+  mountAllowlist = new Set(),
 } = {}) {
+  // Returns null when evidence is insufficient, otherwise:
   return {
     categoryCode,
     reason,
     confidence,
     source: 'standardized_inference',
     evidence,
-    reportOnly,
+    reportOnly: false,
   };
 }
 ```
 
-Rules must return `null` when evidence is insufficient.
+The inference function is pure:
 
-Required shared evidence for automatic changes:
+- It does not read files.
+- It does not cache process-global config.
+- It works with both camelCase standardized records and snake_case DB rows.
+
+Required evidence for automatic changes:
 
 ```js
 {
@@ -94,268 +135,76 @@ Required shared evidence for automatic changes:
 }
 ```
 
-Automatic high-confidence rules:
+Automatic high-confidence `MOUNT` rule:
 
-- `MOUNT`
-  - `currentCategoryCode === 'MATERIAL'`
-  - page metadata matches by `itemPage.itemInternalName === item.internalName`
-  - stack size is `1`
-  - damage and defense are `0`
-  - one of:
-    - `internalName` ends with `MountItem`
-    - `internalName` ends with `MountSaddle`
-    - `internalName` is in this allowlist:
+- `currentCategoryCode === 'MATERIAL'`.
+- `itemPage.entityType === 'item'`.
+- `itemPage.itemInternalName` exactly equals `item.internalName`.
+- `stackSize === 1`.
+- `damage === 0`.
+- `defense === 0`.
+- And one of:
+  - `internalName.endsWith('MountItem')`
+  - `internalName.endsWith('MountSaddle')`
+  - `mountAllowlist.has(internalName)`
 
-```js
-[
-  'SlimySaddle',
-  'HardySaddle',
-  'PaintedHorseSaddle',
-  'MajesticHorseSaddle',
-  'DarkHorseSaddle',
-  'FuzzyCarrot',
-  'LightningCarrot',
-  'CosmicCarKey',
-  'WitchBroom',
-  'DrillContainmentUnit',
-  'RatMountItem',
-  'RollerSkatesBlueMountItem',
-]
-```
+The match is case-sensitive by design. If source casing differs, the result is `null` rather than a risky automatic change.
 
-Report-only rules:
+Mount-summoning items such as `FuzzyCarrot`, `CosmicCarKey`, `WitchBroom`, and `DrillContainmentUnit` are treated as `MOUNT` category items in this project because they function as mount summon items, even if wiki wording describes them as consumable summon items.
 
-- `PET` / `LIGHT_PET`
-- `ACCESSORY`
-- broad `MATERIAL` cleanup
-- `FURNITURE` subtypes
-- `CONSUMABLE` subtypes
-- music boxes as subtype/tag only
-- hooks, minecarts, and dyes unless the execution owner explicitly extends taxonomy and tests for those new category codes first
+## Mount Allowlist Config
 
-## Task 1: Add Pure Standardized Inference Library
+Create `data/config/mount-allowlist.json`:
 
-**Files:**
-- Create: `scripts/data/lib/item-category-inference.mjs`
-- Create: `scripts/data/lib/item-category-inference.test.mjs`
-
-- [ ] **Step 1: Write failing tests for mount inference and false positives**
-
-Create `scripts/data/lib/item-category-inference.test.mjs`:
-
-```js
-import test from 'node:test';
-import assert from 'node:assert/strict';
-
-import {
-  inferCategoryFromStandardizedRecord,
-  STANDARDIZED_INFERENCE_MODE,
-} from './item-category-inference.mjs';
-
-function item(overrides = {}) {
-  return {
-    internalName: 'DrillContainmentUnit',
-    name: 'Drill Containment Unit',
-    categoryCode: 'MATERIAL',
-    stack: { stackSize: 1 },
-    stats: { damage: 0, defense: 0 },
-    ...overrides,
-  };
-}
-
-function page(overrides = {}) {
-  return {
-    entityType: 'item',
-    itemInternalName: 'DrillContainmentUnit',
-    pageTitle: 'Drill Containment Unit',
-    hasWikitext: true,
-    ...overrides,
-  };
-}
-
-test('STANDARDIZED_INFERENCE_MODE is explicit', () => {
-  assert.equal(STANDARDIZED_INFERENCE_MODE, 'standardized_inference');
-});
-
-test('infers DrillContainmentUnit as MOUNT from strict allowlist evidence', () => {
-  const actual = inferCategoryFromStandardizedRecord({
-    item: item(),
-    itemPage: page(),
-  });
-
-  assert.deepEqual(actual, {
-    categoryCode: 'MOUNT',
-    confidence: 'high',
-    source: 'standardized_inference',
-    reason: 'standardized_inference:mount_allowlist',
-    reportOnly: false,
-    evidence: {
-      internalName: 'DrillContainmentUnit',
-      itemPageMatch: true,
-      currentCategoryCode: 'MATERIAL',
-      stackSize: 1,
-      damage: 0,
-      defense: 0,
-      rule: 'mount_allowlist',
-    },
-  });
-});
-
-test('infers MountItem suffix as MOUNT with strict evidence', () => {
-  const actual = inferCategoryFromStandardizedRecord({
-    item: item({ internalName: 'RatMountItem', name: 'Cursed Piper Flute' }),
-    itemPage: page({ itemInternalName: 'RatMountItem', pageTitle: 'Cursed Piper Flute' }),
-  });
-
-  assert.equal(actual.categoryCode, 'MOUNT');
-  assert.equal(actual.reason, 'standardized_inference:mount_internal_suffix');
-  assert.equal(actual.confidence, 'high');
-});
-
-test('does not infer mount from plain carrot or skates names', () => {
-  assert.equal(
-    inferCategoryFromStandardizedRecord({
-      item: item({ internalName: 'Carrot', name: 'Carrot' }),
-      itemPage: page({ itemInternalName: 'Carrot', pageTitle: 'Carrot' }),
-    }),
-    null
-  );
-
-  assert.equal(
-    inferCategoryFromStandardizedRecord({
-      item: item({ internalName: 'IceSkates', name: 'Ice Skates' }),
-      itemPage: page({ itemInternalName: 'IceSkates', pageTitle: 'Ice Skates' }),
-    }),
-    null
-  );
-});
-
-test('requires matching item page metadata for automatic inference', () => {
-  assert.equal(
-    inferCategoryFromStandardizedRecord({
-      item: item(),
-      itemPage: page({ itemInternalName: 'OtherItem' }),
-    }),
-    null
-  );
-});
-
-test('requires stack and combat stats evidence for automatic inference', () => {
-  assert.equal(
-    inferCategoryFromStandardizedRecord({
-      item: item({ stack: { stackSize: 99 } }),
-      itemPage: page(),
-    }),
-    null
-  );
-
-  assert.equal(
-    inferCategoryFromStandardizedRecord({
-      item: item({ stats: { damage: 12, defense: 0 } }),
-      itemPage: page(),
-    }),
-    null
-  );
-});
-```
-
-- [ ] **Step 2: Run test to verify failure**
-
-Run:
-
-```bash
-node --test scripts/data/lib/item-category-inference.test.mjs
-```
-
-Expected: FAIL with module not found.
-
-- [ ] **Step 3: Implement minimal inference library**
-
-Create `scripts/data/lib/item-category-inference.mjs`:
-
-```js
-export const STANDARDIZED_INFERENCE_MODE = 'standardized_inference';
-
-const MOUNT_ALLOWLIST = new Set([
-  'SlimySaddle',
-  'HardySaddle',
-  'PaintedHorseSaddle',
-  'MajesticHorseSaddle',
-  'DarkHorseSaddle',
-  'FuzzyCarrot',
-  'LightningCarrot',
-  'CosmicCarKey',
-  'WitchBroom',
-  'DrillContainmentUnit',
-  'RatMountItem',
-  'RollerSkatesBlueMountItem',
-]);
-
-export function inferCategoryFromStandardizedRecord({ item, itemPage = null } = {}) {
-  const internalName = text(item?.internalName ?? item?.internal_name);
-  if (!internalName || !hasMatchingItemPage(internalName, itemPage)) return null;
-
-  const currentCategoryCode = code(item?.categoryCode ?? item?.category_code);
-  const stackSize = Number(item?.stack?.stackSize ?? item?.stack_size ?? 0);
-  const damage = Number(item?.stats?.damage ?? item?.damage ?? 0);
-  const defense = Number(item?.stats?.defense ?? item?.defense ?? 0);
-
-  const baseEvidence = {
-    internalName,
-    itemPageMatch: true,
-    currentCategoryCode,
-    stackSize,
-    damage,
-    defense,
-  };
-
-  if (
-    currentCategoryCode === 'MATERIAL'
-    && stackSize === 1
-    && damage === 0
-    && defense === 0
-  ) {
-    if (MOUNT_ALLOWLIST.has(internalName)) {
-      return result('MOUNT', 'mount_allowlist', baseEvidence);
-    }
-    if (internalName.endsWith('MountItem') || internalName.endsWith('MountSaddle')) {
-      return result('MOUNT', 'mount_internal_suffix', baseEvidence);
-    }
-  }
-
-  return null;
-}
-
-function result(categoryCode, rule, evidence) {
-  return {
-    categoryCode,
-    confidence: 'high',
-    source: STANDARDIZED_INFERENCE_MODE,
-    reason: `standardized_inference:${rule}`,
-    reportOnly: false,
-    evidence: { ...evidence, rule },
-  };
-}
-
-function hasMatchingItemPage(internalName, itemPage) {
-  if (!itemPage || itemPage.entityType !== 'item') return false;
-  return text(itemPage.itemInternalName) === internalName;
-}
-
-function text(value) {
-  if (value == null) return null;
-  const out = String(value).trim();
-  return out ? out : null;
-}
-
-function code(value) {
-  return text(value)?.toUpperCase() || null;
+```json
+{
+  "version": "1.0.0",
+  "description": "Manual calibration input for standardized MOUNT inference. Includes mount-summoning items that function as mount items.",
+  "items": [
+    "SlimySaddle",
+    "HardySaddle",
+    "PaintedHorseSaddle",
+    "MajesticHorseSaddle",
+    "DarkHorseSaddle",
+    "FuzzyCarrot",
+    "LightningCarrot",
+    "CosmicCarKey",
+    "WitchBroom",
+    "DrillContainmentUnit",
+    "RatMountItem",
+    "RollerSkatesBlueMountItem"
+  ]
 }
 ```
 
-- [ ] **Step 4: Run inference tests**
+Config loader requirements:
 
-Run:
+- Accept an explicit `configPath` or `repoRoot`.
+- Throw a descriptive error if the file is missing.
+- Throw a descriptive error for invalid JSON.
+- Throw a descriptive error if `items` is missing or contains non-strings.
+- Return a `Set`.
+
+## Task 1: Inference Library
+
+**Owner writes only:**
+
+- `data/config/mount-allowlist.json`
+- `scripts/data/lib/item-category-inference.mjs`
+- `scripts/data/lib/item-category-inference.test.mjs`
+
+Steps:
+
+- [ ] Add failing tests first.
+- [ ] Test `STANDARDIZED_INFERENCE_MODE`.
+- [ ] Test `DrillContainmentUnit` infers `MOUNT` from allowlist evidence.
+- [ ] Test `RatMountItem` infers `MOUNT` from suffix evidence.
+- [ ] Test false positives: plain `Carrot`, `IceSkates`, stackable items, damage items, defense items.
+- [ ] Test non-`MATERIAL` current category returns `null`.
+- [ ] Test page metadata mismatch returns `null`.
+- [ ] Test config loader missing file and invalid JSON using temp fixture paths.
+- [ ] Implement minimal library.
+- [ ] Run:
 
 ```bash
 node --test scripts/data/lib/item-category-inference.test.mjs
@@ -363,175 +212,39 @@ node --test scripts/data/lib/item-category-inference.test.mjs
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+## Task 2: Sync Fallback Dry-Run
 
-```bash
-git add scripts/data/lib/item-category-inference.mjs scripts/data/lib/item-category-inference.test.mjs
-git commit -m "feat(data): add standardized item category inference"
-```
+**Owner writes only:**
 
-## Task 2: Add No-Crawl Fallback To Sync Dry-Run
+- `scripts/data/sync/sync-item-categories-from-wiki-pages.mjs`
+- `scripts/data/sync/sync-item-categories-from-wiki-pages.test.mjs`
 
-**Files:**
-- Modify: `scripts/data/sync/sync-item-categories-from-wiki-pages.mjs`
-- Modify: `scripts/data/sync/sync-item-categories-from-wiki-pages.test.mjs`
+Safety constraints:
 
-- [ ] **Step 1: Write failing sync fallback tests**
+- Default mode still requires raw item pages.
+- Fallback mode may run when `itemPagesDir` is missing.
+- Fallback mode must require standardized items and item page metadata.
+- Do not add `--db=test`.
+- Do not add pre-apply backup.
+- Do not run `--apply=true` during implementation validation.
 
-Append tests to `scripts/data/sync/sync-item-categories-from-wiki-pages.test.mjs`:
-
-```js
-test('runItemCategorySync keeps missing wiki pages skipped by default', async () => {
-  const categoryRows = [
-    { id: 1, parent_id: 0, code: 'MATERIAL', name: '材料' },
-    { id: 2, parent_id: 0, code: 'MOUNT', name: '坐骑召唤' },
-  ];
-  const items = [
-    {
-      id: 100,
-      name: 'Drill Containment Unit',
-      internal_name: 'DrillContainmentUnit',
-      category_id: 1,
-      status: 1,
-      current_category_code: 'MATERIAL',
-    },
-  ];
-  const connection = {
-    query: async (sql) => {
-      if (/FROM\s+category/i.test(sql)) return [categoryRows];
-      if (/FROM\s+items/i.test(sql)) return [items];
-      throw new Error(`unexpected query: ${sql}`);
-    },
-    end: async () => {},
-  };
-
-  const { report } = await runItemCategorySync(
-    { apply: 'false' },
-    {
-      connection,
-      db: { database: 'terria_v1_local' },
-      repoRoot: process.cwd(),
-      standardizedByInternal: new Map([
-        ['DrillContainmentUnit', {
-          internalName: 'DrillContainmentUnit',
-          name: 'Drill Containment Unit',
-          categoryCode: 'MATERIAL',
-          stack: { stackSize: 1 },
-          stats: { damage: 0, defense: 0 },
-        }],
-      ]),
-      itemPagesMetadataByInternal: new Map([
-        ['DrillContainmentUnit', {
-          entityType: 'item',
-          itemInternalName: 'DrillContainmentUnit',
-          pageTitle: 'Drill Containment Unit',
-          hasWikitext: true,
-        }],
-      ]),
-      wikiPagesByInternal: new Map(),
-      skipWriteReport: true,
-    }
-  );
-
-  assert.equal(report.skippedNoWiki, 1);
-  assert.equal(report.standardizedInferred, 0);
-  assert.deepEqual(report.inferenceSamples, []);
-});
-
-test('runItemCategorySync fallbackMode standardized_inference dry-runs DrillContainmentUnit to MOUNT without raw wiki page', async () => {
-  const categoryRows = [
-    { id: 1, parent_id: 0, code: 'MATERIAL', name: '材料' },
-    { id: 2, parent_id: 0, code: 'MOUNT', name: '坐骑召唤' },
-  ];
-  const items = [
-    {
-      id: 100,
-      name: 'Drill Containment Unit',
-      internal_name: 'DrillContainmentUnit',
-      category_id: 1,
-      status: 1,
-      current_category_code: 'MATERIAL',
-    },
-  ];
-  const connection = {
-    query: async (sql) => {
-      if (/FROM\s+category/i.test(sql)) return [categoryRows];
-      if (/FROM\s+items/i.test(sql)) return [items];
-      throw new Error(`unexpected query: ${sql}`);
-    },
-    end: async () => {},
-  };
-
-  const { report } = await runItemCategorySync(
-    { apply: 'false', fallbackMode: 'standardized_inference' },
-    {
-      connection,
-      db: { database: 'terria_v1_local' },
-      repoRoot: process.cwd(),
-      standardizedByInternal: new Map([
-        ['DrillContainmentUnit', {
-          internalName: 'DrillContainmentUnit',
-          name: 'Drill Containment Unit',
-          categoryCode: 'MATERIAL',
-          stack: { stackSize: 1 },
-          stats: { damage: 0, defense: 0 },
-        }],
-      ]),
-      itemPagesMetadataByInternal: new Map([
-        ['DrillContainmentUnit', {
-          entityType: 'item',
-          itemInternalName: 'DrillContainmentUnit',
-          pageTitle: 'Drill Containment Unit',
-          hasWikitext: true,
-        }],
-      ]),
-      wikiPagesByInternal: new Map(),
-      skipWriteReport: true,
-    }
-  );
-
-  assert.equal(report.fallbackMode, 'standardized_inference');
-  assert.equal(report.skippedNoWiki, 0);
-  assert.equal(report.standardizedInferred, 1);
-  assert.deepEqual(report.categoryDistribution, { MOUNT: 1 });
-  assert.equal(report.changedSamples[0].internalName, 'DrillContainmentUnit');
-  assert.equal(report.changedSamples[0].nextCategoryCode, 'MOUNT');
-  assert.equal(report.changedSamples[0].source, 'standardized_inference');
-  assert.equal(report.inferenceSamples[0].confidence, 'high');
-});
-```
-
-- [ ] **Step 2: Run sync tests to verify failure**
-
-Run:
-
-```bash
-node --test scripts/data/sync/sync-item-categories-from-wiki-pages.test.mjs
-```
-
-Expected: FAIL because fallback mode and report fields are absent.
-
-- [ ] **Step 3: Implement sync fallback mode**
-
-In `scripts/data/sync/sync-item-categories-from-wiki-pages.mjs`:
-
-- Import `inferCategoryFromStandardizedRecord` and `STANDARDIZED_INFERENCE_MODE`.
-- Add `fallbackMode` with default `'none'`.
-- Load item page metadata from `data/standardized/item_pages.standardized.json` only when fallback is enabled and dependencies did not inject `itemPagesMetadataByInternal`.
-- When `wiki` is missing:
-  - if fallback mode is disabled, preserve current `skippedNoWiki += 1`.
-  - if enabled, call inference using standardized record and item page metadata.
-  - if inference returns null, count as `skippedNoWiki`.
-  - if inference returns a category, continue through the existing category lookup/update path with `source: 'standardized_inference'`.
-- Add report fields:
+Report fields:
 
 ```js
-fallbackMode,
-standardizedInferred,
-inferenceSamples,
+fallbackMode,                    // 'none' by default
+standardizedInferred,            // count of accepted fallback inferences
+skippedNoWiki,                   // missing raw page and fallback disabled
+skippedInsufficientEvidence,     // fallback attempted but returned null
+inferenceSamples                 // high-confidence inference sample evidence
 ```
 
-Sample objects from inferred rows must include:
+Counter rule:
+
+- If fallback is disabled and raw page is missing: increment `skippedNoWiki`.
+- If fallback is enabled and inference returns `null`: increment `skippedInsufficientEvidence`.
+- If fallback is enabled and inference succeeds: do not increment either skip counter.
+
+Changed/inference samples from inferred rows must include:
 
 ```js
 {
@@ -543,13 +256,18 @@ Sample objects from inferred rows must include:
   source: 'standardized_inference',
   confidence: 'high',
   evidence,
-  willUpdate,
+  willUpdate
 }
 ```
 
-- [ ] **Step 4: Run sync tests**
+Steps:
 
-Run:
+- [ ] Add failing tests for default missing raw pages behavior.
+- [ ] Add failing tests for fallback dry-run `DrillContainmentUnit -> MOUNT` without raw pages.
+- [ ] Add failing test for fallback insufficient evidence counter.
+- [ ] Add failing test that raw wiki page takes precedence over standardized inference.
+- [ ] Implement fallback mode and report fields.
+- [ ] Run:
 
 ```bash
 node --test scripts/data/sync/sync-item-categories-from-wiki-pages.test.mjs
@@ -557,110 +275,28 @@ node --test scripts/data/sync/sync-item-categories-from-wiki-pages.test.mjs
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+## Task 3: Audit Fallback
 
-```bash
-git add scripts/data/sync/sync-item-categories-from-wiki-pages.mjs scripts/data/sync/sync-item-categories-from-wiki-pages.test.mjs
-git commit -m "feat(data): add standardized inference category sync mode"
-```
+**Owner writes only:**
 
-## Task 3: Add No-Crawl Fallback To Audit
+- `scripts/data/audit/audit-item-category-taxonomy.mjs`
+- `scripts/data/audit/audit-item-category-taxonomy.test.mjs`
 
-**Files:**
-- Modify: `scripts/data/audit/audit-item-category-taxonomy.mjs`
-- Modify: `scripts/data/audit/audit-item-category-taxonomy.test.mjs`
+Behavior:
 
-- [ ] **Step 1: Write failing audit fallback tests**
+- Default audit behavior remains blocked when raw pages are missing.
+- `fallbackMode=standardized_inference` bypasses the missing raw page blocker.
+- Fallback audit uses standardized records plus item page metadata.
+- Fallback audit reports `sourceMode: 'standardized_inference'`.
+- Verified sample for `DrillContainmentUnit` includes `expectedCategoryCode: 'MOUNT'`.
 
-Append to `scripts/data/audit/audit-item-category-taxonomy.test.mjs`:
+Steps:
 
-```js
-test('auditItemCategoryTaxonomy keeps missing raw pages blocked by default', () => {
-  const audit = auditItemCategoryTaxonomy({
-    rawPagesDir: '/tmp/terrapedia-missing-item-pages-for-test',
-    standardizedRecords: [
-      {
-        name: 'Drill Containment Unit',
-        internalName: 'DrillContainmentUnit',
-        categoryCode: 'MATERIAL',
-        stack: { stackSize: 1 },
-        stats: { damage: 0, defense: 0 },
-      },
-    ],
-  });
-
-  assert.equal(audit.status, 'blocked');
-  assert.equal(audit.sourceMode, 'raw_wiki');
-  assert.deepEqual(audit.blockers, [{ reason: 'raw_item_pages_missing' }]);
-});
-
-test('auditItemCategoryTaxonomy fallbackMode standardized_inference reports DrillContainmentUnit without raw pages', () => {
-  const audit = auditItemCategoryTaxonomy({
-    fallbackMode: 'standardized_inference',
-    rawPagesDir: '/tmp/terrapedia-missing-item-pages-for-test',
-    standardizedRecords: [
-      {
-        name: 'Drill Containment Unit',
-        internalName: 'DrillContainmentUnit',
-        categoryCode: 'MATERIAL',
-        stack: { stackSize: 1 },
-        stats: { damage: 0, defense: 0 },
-      },
-    ],
-    itemPagesMetadataByInternal: new Map([
-      ['DrillContainmentUnit', {
-        entityType: 'item',
-        itemInternalName: 'DrillContainmentUnit',
-        pageTitle: 'Drill Containment Unit',
-        hasWikitext: true,
-      }],
-    ]),
-    verifiedInternalNames: ['DrillContainmentUnit'],
-  });
-
-  assert.equal(audit.status, 'warning');
-  assert.equal(audit.sourceMode, 'standardized_inference');
-  assert.equal(audit.summary.classified, 1);
-  assert.deepEqual(audit.distribution, { MOUNT: 1 });
-  assert.deepEqual(audit.verifiedSamples, [
-    {
-      internalName: 'DrillContainmentUnit',
-      expectedCategoryCode: 'MOUNT',
-      currentCategoryCode: 'MATERIAL',
-      reason: 'standardized_inference:mount_allowlist',
-      source: 'standardized_inference',
-      confidence: 'high',
-    },
-  ]);
-});
-```
-
-- [ ] **Step 2: Run audit tests to verify failure**
-
-Run:
-
-```bash
-node --test scripts/data/audit/audit-item-category-taxonomy.test.mjs
-```
-
-Expected: FAIL because fallback mode is absent.
-
-- [ ] **Step 3: Implement audit fallback mode**
-
-In `scripts/data/audit/audit-item-category-taxonomy.mjs`:
-
-- Import inference library.
-- Add `fallbackMode = 'none'` and `itemPagesMetadataByInternal`.
-- Default behavior remains blocked when raw pages are missing.
-- If `fallbackMode === 'standardized_inference'`, missing raw pages do not block the audit.
-- Use inference result shape to fill `distribution`, `verifiedSamples`, and `suspiciousMaterials`.
-- Add top-level `sourceMode`:
-  - `raw_wiki` in default mode.
-  - `standardized_inference` in fallback mode.
-
-- [ ] **Step 4: Run audit tests**
-
-Run:
+- [ ] Add failing test for default blocked behavior with `sourceMode: 'raw_wiki'`.
+- [ ] Add failing test for fallback audit without raw pages.
+- [ ] Add failing test for fallback insufficient evidence not being classified.
+- [ ] Implement audit fallback.
+- [ ] Run:
 
 ```bash
 node --test scripts/data/audit/audit-item-category-taxonomy.test.mjs
@@ -668,76 +304,45 @@ node --test scripts/data/audit/audit-item-category-taxonomy.test.mjs
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+## Task 4: Runbook
 
-```bash
-git add scripts/data/audit/audit-item-category-taxonomy.mjs scripts/data/audit/audit-item-category-taxonomy.test.mjs
-git commit -m "feat(data): audit standardized category inference"
-```
+**Owner writes only:**
 
-## Task 4: Update Runbook And Dry-Run Commands
+- `docs/runbooks/item-category-taxonomy-repair.md`
 
-**Files:**
-- Modify: `docs/runbooks/item-category-taxonomy-repair.md`
+Add or update a no-crawl fallback section:
 
-- [ ] **Step 1: Add no-crawl fallback section**
-
-Add a section:
-
-````md
-## No-Crawl Fallback
-
-Use this only when raw item pages are unavailable and full crawl risk is unacceptable.
-
-Audit:
+- When to use: raw item pages unavailable, full crawl risk is unacceptable, and high-confidence dry-run evidence is needed.
+- When not to use: raw pages available, broad taxonomy cleanup needed, non-`MATERIAL` categories need repair, or DB apply is being requested.
+- Commands:
 
 ```bash
 node scripts/data/audit/audit-item-category-taxonomy.mjs \
   --fallbackMode=standardized_inference \
   --format=json
-```
 
-Dry run:
-
-```bash
 node scripts/data/sync/sync-item-categories-from-wiki-pages.mjs \
   --fallbackMode=standardized_inference \
   --apply=false \
   --report=reports/items-standardized-inference-category-sync-$(date +%F).json
 ```
 
-Review required fields before any apply:
+Manual review criteria:
 
+- No crawler output appears.
 - `sourceMode` or `fallbackMode` is `standardized_inference`.
-- `standardizedInferred` is nonzero.
-- `verifiedSamples` includes `DrillContainmentUnit -> MOUNT`.
-- `inferenceSamples` include `confidence: "high"` and evidence.
-- No low-confidence/report-only rows are included in `changedSamples`.
-````
+- `DrillContainmentUnit -> MOUNT` appears in verified or changed samples.
+- Inferred rows have `confidence: "high"` and evidence.
+- `changedSamples` contains no `reportOnly` or low-confidence rows.
+- `skippedNoWiki` and `skippedInsufficientEvidence` match the counter rule.
 
-- [ ] **Step 2: Add manual apply warning**
+Apply warning:
 
-Add:
+- This runbook section must say that `--apply=true` for standardized inference is outside this plan and requires a separate operator-approved apply/rollback plan.
 
-```md
-Do not run `--apply=true` for standardized inference until the dry-run report has been reviewed. This mode is weaker than raw wiki classification and should only apply high-confidence rows.
-```
+## Task 5: Final Validation
 
-- [ ] **Step 3: Commit**
-
-```bash
-git add docs/runbooks/item-category-taxonomy-repair.md
-git commit -m "docs(data): document no-crawl category inference workflow"
-```
-
-## Task 5: Final Validation And Plan Closeout
-
-**Files:**
-- No planned code changes.
-
-- [ ] **Step 1: Run all focused tests**
-
-Run:
+Run focused tests:
 
 ```bash
 node --test \
@@ -747,21 +352,19 @@ node --test \
   scripts/data/audit/audit-item-category-taxonomy.test.mjs
 ```
 
-Expected: PASS.
-
-- [ ] **Step 2: Run default audit**
-
-Run:
+Run default audit in the current no-raw-pages workspace:
 
 ```bash
 node scripts/data/audit/audit-item-category-taxonomy.mjs --format=json
 ```
 
-Expected in current workspace: `status: "blocked"` with `raw_item_pages_missing`.
+Expected:
 
-- [ ] **Step 3: Run no-crawl fallback audit**
+- `status: "blocked"`
+- blocker includes `raw_item_pages_missing`
+- `sourceMode: "raw_wiki"`
 
-Run:
+Run no-crawl fallback audit:
 
 ```bash
 node scripts/data/audit/audit-item-category-taxonomy.mjs \
@@ -773,11 +376,9 @@ Expected:
 
 - `sourceMode: "standardized_inference"`
 - `distribution.MOUNT > 0`
-- `verifiedSamples` includes `DrillContainmentUnit` with `expectedCategoryCode: "MOUNT"`
+- `verifiedSamples` includes `DrillContainmentUnit -> MOUNT`
 
-- [ ] **Step 4: Run no-crawl fallback sync dry-run**
-
-Run:
+Run sync dry-run:
 
 ```bash
 node scripts/data/sync/sync-item-categories-from-wiki-pages.mjs \
@@ -793,25 +394,43 @@ Expected:
 - `fallbackMode` is `standardized_inference`.
 - `standardizedInferred > 0`.
 - `changedSamples` contains high-confidence rows only.
-- `inferenceSamples` include evidence and confidence.
+- No database rows are written.
 
-- [ ] **Step 5: Check git scope**
-
-Run:
+Check git scope:
 
 ```bash
 git status --short
 git log --oneline --max-count=8
 ```
 
-Expected: only focused no-crawl inference commits on the plan branch.
+Expected: only focused no-crawl inference changes on this branch.
+
+## Multi-Agent Split
+
+- Agent A: Task 1 only. Owns config and inference library files.
+- Agent B: Task 2 only. Owns sync script and sync tests.
+- Agent C: Task 3 only. Owns audit script and audit tests.
+- Controller or Agent D: Task 4 runbook after A/B/C interfaces are stable.
+
+No two agents may edit the same file.
 
 ## Self-Review
 
-**Spec coverage:** The plan answers the user's current constraint: no crawler, no DB write by default, high-confidence inference only from existing data. It preserves raw wiki as the stronger path.
+Spec coverage:
 
-**Placeholder scan:** No `TBD` or unspecified implementation steps remain. Every task names files, tests, commands, and expected outcomes.
+- The plan closes the user's current constraint: use existing data, do not crawl, do not write DB by default, and prove whether known mount rows are present but misclassified.
 
-**Risk controls:** Default audit still blocks on missing raw pages; fallback is opt-in. The only automatic first rule is strict `MOUNT` inference, with report-only boundaries for weak domains.
+Risk controls:
 
-**Residual risk:** Standardized inference cannot prove full taxonomy correctness. It is a pragmatic repair mode for high-confidence rows and must remain weaker than raw wiki classification.
+- Raw wiki remains authoritative.
+- Fallback is opt-in.
+- Automatic inference is limited to high-confidence `MATERIAL -> MOUNT`.
+- Apply and rollback are intentionally excluded from this implementation plan.
+
+Known limitations:
+
+- Non-`MATERIAL` miscategorizations are not repaired.
+- Case mismatches are rejected.
+- Suffix matching is intentionally exact and conservative.
+- The mount allowlist is a manual calibration input; changing it changes inference behavior and must be reviewed.
+- Standardized data may be stale; this plan reports evidence but does not solve data freshness.
