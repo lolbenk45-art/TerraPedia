@@ -1172,6 +1172,7 @@ export type BiomeCatalogTile = {
   layerType: string
   biomeType: string
   groupLabel: string
+  parentGroupLabel: string
   description: string
   resourceCount: number
   relationCount: number

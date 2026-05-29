@@ -2304,6 +2304,7 @@ for (const path of scanFiles) {
       'biomeGroups',
       'biomeGroupOptions',
       'selectedBiomeGroup',
+      'parentGroupLabel',
       'biomeFeaturedItems',
       'visibleBiomeGroups',
       'biomeVisualLoading',
@@ -2332,6 +2333,11 @@ for (const path of scanFiles) {
       if (!content.includes(marker)) {
         violations.push(`${path}: biomes page must render live public biome data with groups, preview images, and skeleton loading via marker ${marker}`)
       }
+    }
+
+    const biomeGroupOptionsBlock = content.match(/const biomeGroupOptions = computed\(\(\) => \{[\s\S]*?\n\}\)/)?.[0] || ''
+    if (biomeGroupOptionsBlock.includes('biome.groupLabel')) {
+      violations.push(`${path}: biome filter chips must use parentGroupLabel, not leaf groupLabel, to avoid one-item taxonomy chips`)
     }
 
     for (const staticMarker of [
