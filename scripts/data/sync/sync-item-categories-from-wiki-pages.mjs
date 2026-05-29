@@ -5,6 +5,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { sharedDataPath } from '../lib/wiki-item-utils.mjs';
+import { CATEGORY_DEFINITIONS } from '../lib/item-category-normalization.mjs';
 import {
   clearPublicItemCaches,
   resolveRedisConfigFromEnv,
@@ -12,50 +13,21 @@ import {
 } from '../lib/public-item-cache.mjs';
 
 const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
 
 const __filename = fileURLToPath(import.meta.url);
-
-const CATEGORY_DEFINITIONS = [
-  { code: 'ACCESSORY', name: '饰品', parentCode: null, topType: 'ACCESSORY', sort: 51 },
-  { code: 'ACCESSORY_SHIELD', name: '盾牌', parentCode: 'ACCESSORY', topType: 'ACCESSORY', sort: 50 },
-  { code: 'ACCESSORY_BOOTS', name: '靴子', parentCode: 'ACCESSORY', topType: 'ACCESSORY', sort: 49 },
-  { code: 'ACCESSORY_MISC', name: '其他饰品', parentCode: 'ACCESSORY', topType: 'ACCESSORY', sort: 48 },
-  { code: 'ACCESSORY_WINGS', name: '翅膀', parentCode: 'ACCESSORY', topType: 'ACCESSORY', sort: 47 },
-  { code: 'VANITY', name: '时装', parentCode: null, topType: 'VANITY', sort: 52 },
-  { code: 'DYE', name: '染料', parentCode: null, topType: 'DYE', sort: 53 },
-  { code: 'PET', name: '宠物召唤', parentCode: null, topType: 'PET', sort: 54 },
-  { code: 'MOUNT', name: '坐骑召唤', parentCode: null, topType: 'MOUNT', sort: 55 },
-  { code: 'CRITTER', name: '小动物', parentCode: null, topType: 'CRITTER', sort: 56 },
-  { code: 'MISC', name: '杂项', parentCode: null, topType: 'MISC', sort: 57 },
-  { code: 'CONSUMABLE_POTION', name: '药水', parentCode: 'CONSUMABLE', topType: 'CONSUMABLE', sort: 10 },
-  { code: 'CONSUMABLE_SUMMON', name: '召唤物品', parentCode: 'CONSUMABLE', topType: 'CONSUMABLE', sort: 9 },
-  { code: 'CONSUMABLE_GRAB_BAG', name: '抓包与宝匣', parentCode: 'CONSUMABLE', topType: 'CONSUMABLE', sort: 8 },
-  { code: 'CONSUMABLE_PERMANENT_BOOSTER', name: '永久增益', parentCode: 'CONSUMABLE', topType: 'CONSUMABLE', sort: 7 },
-  { code: 'CONSUMABLE_MISC', name: '其他消耗品', parentCode: 'CONSUMABLE', topType: 'CONSUMABLE', sort: 6 },
-  { code: 'CONSUMABLE_FOOD', name: '食物与饮品', parentCode: 'CONSUMABLE', topType: 'CONSUMABLE', sort: 5 },
-  { code: 'MATERIAL_ORE', name: '矿石', parentCode: 'MATERIAL', topType: 'MATERIAL', sort: 15 },
-  { code: 'MATERIAL_BAR', name: '锭', parentCode: 'MATERIAL', topType: 'MATERIAL', sort: 14 },
-  { code: 'MATERIAL_GEM', name: '宝石', parentCode: 'MATERIAL', topType: 'MATERIAL', sort: 13 },
-  { code: 'MATERIAL_SEED', name: '种子', parentCode: 'MATERIAL', topType: 'MATERIAL', sort: 12 },
-  { code: 'MATERIAL_POTION_INGREDIENT', name: '药水材料', parentCode: 'MATERIAL', topType: 'MATERIAL', sort: 11 },
-  { code: 'MATERIAL_BLOCK', name: '物块', parentCode: 'MATERIAL', topType: 'MATERIAL', sort: 10 },
-  { code: 'MATERIAL_BRICK', name: '砖块', parentCode: 'MATERIAL', topType: 'MATERIAL', sort: 9 },
-  { code: 'MATERIAL_WALL', name: '墙', parentCode: 'MATERIAL', topType: 'MATERIAL', sort: 8 },
-  { code: 'MATERIAL_MISC', name: '其他材料', parentCode: 'MATERIAL', topType: 'MATERIAL', sort: 7 },
-  { code: 'MATERIAL_CURRENCY', name: '货币', parentCode: 'MATERIAL', topType: 'MATERIAL', sort: 6 },
-  { code: 'MATERIAL_KEY', name: '钥匙', parentCode: 'MATERIAL', topType: 'MATERIAL', sort: 5 },
-  { code: 'TOOL_PICKAXE_DRILL', name: '采掘工具', parentCode: 'TOOL', topType: 'TOOL', sort: 29 },
-  { code: 'TOOL_PICKAXE', name: '镐类', parentCode: 'TOOL_PICKAXE_DRILL', topType: 'TOOL', sort: 28 },
-  { code: 'TOOL_DRILL', name: '钻头', parentCode: 'TOOL_PICKAXE_DRILL', topType: 'TOOL', sort: 27 },
-  { code: 'TOOL_AXE_CHAINSAW', name: '砍伐工具', parentCode: 'TOOL', topType: 'TOOL', sort: 26 },
-  { code: 'TOOL_AXE', name: '斧类', parentCode: 'TOOL_AXE_CHAINSAW', topType: 'TOOL', sort: 25 },
-  { code: 'TOOL_CHAINSAW', name: '链锯', parentCode: 'TOOL_AXE_CHAINSAW', topType: 'TOOL', sort: 24 },
-];
 
 const PICKAXE_IDENTITY_KEYWORDS = ['pickaxe', 'drax', 'digging claw'];
 const DRILL_IDENTITY_KEYWORDS = ['drill', '钻头', '电钻'];
 const CHAINSAW_IDENTITY_KEYWORDS = ['chainsaw', '链锯'];
+const VERIFIED_INTERNAL_NAMES = new Set([
+  'DrillContainmentUnit',
+  'SlimySaddle',
+  'FuzzyCarrot',
+  'CosmicCarKey',
+  'WitchBroom',
+  'RatMountItem',
+  'RollerSkatesBlueMountItem',
+]);
 
 export async function runItemCategorySync(rawArgs = parseArgs(process.argv.slice(2)), dependencies = {}) {
   const repoRoot = path.resolve(dependencies.repoRoot || process.cwd());
@@ -87,7 +59,7 @@ export async function runItemCategorySync(rawArgs = parseArgs(process.argv.slice
   );
   const wikiPagesByInternal = dependencies.wikiPagesByInternal || loadWikiPages(itemPagesDir);
   const ownConnection = !dependencies.connection;
-  const connection = dependencies.connection || await mysql.createConnection(db);
+  const connection = dependencies.connection || await loadMysql(repoRoot).createConnection(db);
 
   try {
     if (apply) {
@@ -104,6 +76,9 @@ export async function runItemCategorySync(rawArgs = parseArgs(process.argv.slice
     let skippedInactive = 0;
     let skippedNoWiki = 0;
     let skippedNoCategory = 0;
+    const categoryDistribution = {};
+    const changedSamples = [];
+    const verifiedSamples = [];
     const samples = [];
 
     for (const item of items) {
@@ -158,6 +133,7 @@ export async function runItemCategorySync(rawArgs = parseArgs(process.argv.slice
       }
 
       classified += 1;
+      categoryDistribution[result.categoryCode] = (categoryDistribution[result.categoryCode] || 0) + 1;
       const currentCode = toText(item.current_category_code);
       const relatedCategoryCodes = buildRelatedCategoryCodes({
         primaryCode: result.categoryCode,
@@ -171,15 +147,23 @@ export async function runItemCategorySync(rawArgs = parseArgs(process.argv.slice
         reason: result.reason,
       });
 
+      const sample = {
+        id: item.id,
+        internalName,
+        currentCategoryCode: currentCode,
+        nextCategoryCode: result.categoryCode,
+        reason: result.reason,
+        willUpdate: shouldUpdate,
+      };
+
       if (samples.length < 40) {
-        samples.push({
-          id: item.id,
-          internalName,
-          currentCategoryCode: currentCode,
-          nextCategoryCode: result.categoryCode,
-          reason: result.reason,
-          willUpdate: shouldUpdate,
-        });
+        samples.push(sample);
+      }
+      if (shouldUpdate && changedSamples.length < 80) {
+        changedSamples.push(sample);
+      }
+      if (VERIFIED_INTERNAL_NAMES.has(internalName) && verifiedSamples.length < 40) {
+        verifiedSamples.push(sample);
       }
 
       if (!shouldUpdate) {
@@ -232,6 +216,9 @@ export async function runItemCategorySync(rawArgs = parseArgs(process.argv.slice
       skippedInactive,
       skippedNoWiki,
       skippedNoCategory,
+      categoryDistribution,
+      changedSamples,
+      verifiedSamples,
       publicItemCache,
       samples,
     };
@@ -391,6 +378,20 @@ export function classifyItem({ item, wiki, standardizedRecord }) {
   const wikiCategories = extractWikiCategories(text);
   const standardizedCategory = normalizeCode(standardizedRecord?.categoryCode);
 
+  const byListcat = classifyByListcat(listcat);
+  if (byListcat) return { categoryCode: byListcat, reason: `listcat:${listcat}` };
+
+  const byExplicitType = classifyByTypeTokens({ typeTokens, tagTokens, normalizedText, showFlags, itemName: item.name });
+  if (byExplicitType && !shouldDeferToStandardizedCategory(standardizedCategory, byExplicitType)) {
+    return { categoryCode: byExplicitType, reason: `type:${typeTokens.join('|') || 'none'}` };
+  }
+
+  const byTemplate = classifyByTemplates({ showFlags, tagTokens, normalizedText, itemName: item.name });
+  if (byTemplate) return { categoryCode: byTemplate, reason: `template:${[...showFlags].join('|')}` };
+
+  const byWikiCategory = classifyByWikiCategories({ wikiCategories, normalizedText, itemName: item.name });
+  if (byWikiCategory) return { categoryCode: byWikiCategory, reason: `wiki_categories:${wikiCategories.slice(0, 4).join('|')}` };
+
   if (standardizedCategory === 'PICKAXE') return classifyStandardizedToolFamily({
     item,
     alternateCode: 'TOOL_DRILL',
@@ -410,18 +411,6 @@ export function classifyItem({ item, wiki, standardizedRecord }) {
   if (standardizedCategory === 'HELMET') return { categoryCode: 'ARMOR_PART_HEAD', reason: 'standardized_helmet' };
   if (standardizedCategory === 'CHESTPLATE') return { categoryCode: 'ARMOR_PART_BODY', reason: 'standardized_chestplate' };
   if (standardizedCategory === 'LEGGINGS') return { categoryCode: 'ARMOR_PART_LEGS', reason: 'standardized_leggings' };
-
-  const byListcat = classifyByListcat(listcat);
-  if (byListcat) return { categoryCode: byListcat, reason: `listcat:${listcat}` };
-
-  const byExplicitType = classifyByTypeTokens({ typeTokens, tagTokens, normalizedText, showFlags, itemName: item.name });
-  if (byExplicitType) return { categoryCode: byExplicitType, reason: `type:${typeTokens.join('|') || 'none'}` };
-
-  const byTemplate = classifyByTemplates({ showFlags, tagTokens, normalizedText, itemName: item.name });
-  if (byTemplate) return { categoryCode: byTemplate, reason: `template:${[...showFlags].join('|')}` };
-
-  const byWikiCategory = classifyByWikiCategories({ wikiCategories, normalizedText, itemName: item.name });
-  if (byWikiCategory) return { categoryCode: byWikiCategory, reason: `wiki_categories:${wikiCategories.slice(0, 4).join('|')}` };
 
   const byName = classifyByNameHeuristics({ normalizedText, itemName: item.name, standardizedCategory });
   if (byName) return { categoryCode: byName, reason: 'name_heuristic' };
@@ -447,6 +436,14 @@ function classifyStandardizedToolFamily({
     return { categoryCode: alternateCode, reason: alternateReason };
   }
   return { categoryCode: primaryCode, reason: primaryReason };
+}
+
+function shouldDeferToStandardizedCategory(standardizedCategory, rawCategoryCode) {
+  if (!standardizedCategory || !rawCategoryCode) return false;
+  if ((standardizedCategory === 'PICKAXE' || standardizedCategory === 'AXE') && rawCategoryCode.startsWith('TOOL_')) {
+    return true;
+  }
+  return false;
 }
 
 function buildItemIdentityText(item) {
@@ -931,6 +928,18 @@ function normalizeFreeText(value) {
 
 function normalizeCode(value) {
   return toText(value)?.toUpperCase() || null;
+}
+
+function loadMysql(repoRoot = process.cwd()) {
+  try {
+    return require('mysql2/promise');
+  } catch (error) {
+    try {
+      return createRequire(path.join(repoRoot, 'data-query-app', 'package.json'))('mysql2/promise');
+    } catch {
+      throw new Error(`mysql2/promise module unavailable; install data-query-app dependencies before DB sync: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
 }
 
 function containsAny(text, keywords) {

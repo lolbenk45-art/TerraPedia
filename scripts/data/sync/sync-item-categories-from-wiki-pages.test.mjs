@@ -6,6 +6,7 @@ import {
   classifyItem,
   ensureCategories,
   parseArgs,
+  runItemCategorySync,
   shouldApplyCategoryChange
 } from './sync-item-categories-from-wiki-pages.mjs';
 
@@ -453,4 +454,127 @@ test('classifyItem maps explicit wiki type taxonomy leaves ahead of material fal
 
     assert.equal(result.categoryCode, expectedCategoryCode, `${internalName} should classify from ${type}`);
   }
+});
+
+test('classifyItem lets explicit raw wiki type override stale standardized category', () => {
+  const result = classifyItem({
+    item: { name: 'Drill Containment Unit', internal_name: 'DrillContainmentUnit' },
+    wiki: {
+      wikitext: `
+{{item infobox
+| type = Mount summon
+}}
+      `,
+    },
+    standardizedRecord: {
+      categoryCode: 'PICKAXE',
+    },
+    categoryLookup: {
+      byCode: new Map([
+        ['MOUNT', { id: 1 }],
+        ['TOOL_PICKAXE', { id: 2 }],
+      ]),
+    },
+  });
+
+  assert.equal(result.categoryCode, 'MOUNT');
+  assert.equal(result.reason, 'type:mount summon');
+});
+
+test('runItemCategorySync rejects missing raw item pages before opening DB', async () => {
+  await assert.rejects(
+    () => runItemCategorySync(
+      {
+        apply: 'false',
+        itemPagesDir: '/tmp/terrapedia-missing-raw-item-pages-for-sync-test',
+      },
+      {
+        repoRoot: process.cwd(),
+        skipWriteReport: true,
+      }
+    ),
+    /Item pages directory not found:/
+  );
+});
+
+test('runItemCategorySync dry-run reports distribution and verified changed samples', async () => {
+  const categoryRows = [
+    { id: 1, parent_id: 0, code: 'MATERIAL', name: '材料' },
+    { id: 2, parent_id: 0, code: 'MOUNT', name: '坐骑召唤' },
+  ];
+  const items = [
+    {
+      id: 100,
+      name: 'Drill Containment Unit',
+      internal_name: 'DrillContainmentUnit',
+      category_id: 1,
+      status: 1,
+      current_category_code: 'MATERIAL',
+    },
+  ];
+  const connection = {
+    query: async (sql) => {
+      if (/FROM\s+category/i.test(sql)) return [categoryRows];
+      if (/FROM\s+items/i.test(sql)) return [items];
+      throw new Error(`unexpected query: ${sql}`);
+    },
+    end: async () => {},
+  };
+
+  const { report } = await runItemCategorySync(
+    {
+      apply: 'false',
+      itemPagesDir: '/tmp/not-used-with-injected-pages',
+    },
+    {
+      connection,
+      db: { database: 'terria_v1_local' },
+      repoRoot: process.cwd(),
+      standardizedByInternal: new Map([
+        ['DrillContainmentUnit', { internalName: 'DrillContainmentUnit', categoryCode: 'MATERIAL' }],
+      ]),
+      wikiPagesByInternal: new Map([
+        [
+          'DrillContainmentUnit',
+          {
+            itemInternalName: 'DrillContainmentUnit',
+            wikitext: `
+{{item infobox
+| type = Mount summon
+}}
+            `,
+          },
+        ],
+      ]),
+      skipWriteReport: true,
+    }
+  );
+
+  assert.equal(report.apply, false);
+  assert.equal(report.db.database, 'terria_v1_local');
+  assert.equal(report.scanned, 1);
+  assert.equal(report.wikiMatched, 1);
+  assert.equal(report.classified, 1);
+  assert.equal(report.updated, 1);
+  assert.deepEqual(report.categoryDistribution, { MOUNT: 1 });
+  assert.deepEqual(report.changedSamples, [
+    {
+      id: 100,
+      internalName: 'DrillContainmentUnit',
+      currentCategoryCode: 'MATERIAL',
+      nextCategoryCode: 'MOUNT',
+      reason: 'type:mount summon',
+      willUpdate: true,
+    },
+  ]);
+  assert.deepEqual(report.verifiedSamples, [
+    {
+      id: 100,
+      internalName: 'DrillContainmentUnit',
+      currentCategoryCode: 'MATERIAL',
+      nextCategoryCode: 'MOUNT',
+      reason: 'type:mount summon',
+      willUpdate: true,
+    },
+  ]);
 });
