@@ -1466,6 +1466,11 @@ h4,
   font-weight: 900;
 }
 
+.home-image-art:empty::before {
+  content: none;
+  display: none;
+}
+
 img[data-preview-fallback] {
   background:
     radial-gradient(circle at 50% 36%, rgba(240, 207, 116, 0.18), transparent 62%),
