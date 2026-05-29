@@ -39,6 +39,41 @@
   margin-bottom: 0;
 }
 
+.tp-detail-module .module-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: start;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.tp-detail-module .module-title > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tp-detail-module .module-title h2,
+.tp-detail-module .module-title b,
+.tp-detail-module .module-title span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.tp-detail-module .module-title h2 {
+  margin: 0;
+  color: var(--text-strong, var(--text));
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.tp-detail-module .module-title span:not(.tag) {
+  color: var(--text-subtle, var(--muted));
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .tp-detail-relation-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
@@ -51,11 +86,20 @@
   min-width: 0;
   min-height: 58px;
   gap: var(--tp-detail-row-gap);
+  line-height: 1.45;
 }
 
 .tp-detail-relation-row :where(b, span, small, em, strong, a) {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.tp-detail-relation-row :where(b, strong) {
+  line-height: 1.3;
+}
+
+.tp-detail-relation-row :where(span, small, em) {
+  line-height: 1.45;
 }
 
 .tp-detail-relation-row :where(a) {
@@ -72,6 +116,22 @@
   padding: 14px;
   font-size: 13px;
   line-height: var(--tp-detail-copy-leading);
+}
+
+.detail-group-remainder {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.detail-group-remainder summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 1180px) {

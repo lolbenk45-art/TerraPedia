@@ -64,8 +64,11 @@ try {
     '.tp-detail-shell',
     '.tp-detail-grid',
     '.tp-detail-module',
+    '.tp-detail-module .module-title',
     '.tp-detail-relation-grid',
     '.tp-detail-relation-row',
+    '.tp-detail-relation-row :where(b, span, small, em, strong, a)',
+    '.detail-group-remainder summary',
     '.tp-detail-density-compact',
     '.tp-detail-density-readable',
   ]) {
