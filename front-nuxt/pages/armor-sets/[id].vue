@@ -201,9 +201,9 @@ const imageGroups = computed(() => ([
 ]).filter((group) => group.images.length))
 
 const factCards = computed(() => ([
-  { label: '部件', value: armorDetail.value?.uniqueItemCount == null ? '未标记' : String(armorDetail.value.uniqueItemCount), meta: '可用部件数量' },
+  { label: '部件数', value: armorDetail.value?.uniqueItemCount == null ? '未标记' : String(armorDetail.value.uniqueItemCount), meta: '可用部件数量' },
   { label: '套装组', value: armorDetail.value?.setCount == null ? '未标记' : String(armorDetail.value.setCount), meta: '套装部件组数' },
-  { label: '解析', value: String(armorParsedEffects.value.length), meta: '已解析效果词条' },
+  { label: '解析数', value: String(armorParsedEffects.value.length), meta: '已解析效果词条' },
 ]))
 
 onMounted(() => {
@@ -386,13 +386,40 @@ onMounted(() => {
 
 .armor-detail-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
 }
 
 .armor-signal {
   display: grid;
-  gap: 8px;
+  grid-template-rows: auto 1fr auto;
+  gap: 10px;
+  min-height: 112px;
+  padding: 18px;
+}
+
+.armor-signal span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.armor-signal h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.armor-signal p {
+  align-self: end;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .armor-module-head {
