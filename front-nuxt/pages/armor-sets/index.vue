@@ -306,11 +306,13 @@ onBeforeUnmount(() => {
       </section>
 
       <section v-else-if="armorDisplayItems.length" class="armor-grid" aria-label="套装列表">
-        <article
+        <component
+          :is="armor.armorSetId ? 'NuxtLink' : 'article'"
           v-for="armor in armorDisplayItems"
           :key="armor.id"
           class="armor-card armor-card-live"
-          :class="{ active: armor.id === featuredArmor?.id }"
+          :class="{ active: armor.id === featuredArmor?.id, 'armor-card-link': Boolean(armor.armorSetId) }"
+          v-bind="armor.armorSetId ? { to: `/armor-sets/${armor.armorSetId}`, 'aria-label': `查看套装 ${armor.displayName}` } : {}"
         >
           <CommonPreviewImage
             :src="armor.image"
@@ -339,7 +341,7 @@ onBeforeUnmount(() => {
             </div>
           </div>
           <em>{{ armor.setCount ?? 1 }} 组</em>
-        </article>
+        </component>
       </section>
 
       <section v-else class="search-suggestion-band support-panel">

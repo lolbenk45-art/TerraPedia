@@ -71,6 +71,29 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         return result;
     }
 
+    @Override
+    public PublicArmorSetListDTO getPublicArmorSetById(Long id) {
+        if (id == null || id <= 0) {
+            return null;
+        }
+
+        String detailSql = """
+            SELECT id, text_key, source_key, name, name_zh, name_en, primary_part, set_count, unique_item_count,
+                   benefit_zh, benefit_en, male_images, female_images, special_images, related_items_json
+            FROM %s
+            WHERE id = ?
+            LIMIT 1
+            """.formatted(qualifiedProjectionTable());
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(detailSql, id);
+        if (rows.isEmpty()) {
+            return null;
+        }
+
+        Map<Long, String> fallbackImagesByItemId = resolveFallbackImagesByItemId(rows);
+        Map<Long, List<EquipmentEffectAttributeDTO>> effectsByArmorSetId = resolveEffectsByArmorSetId(rows);
+        return toListDto(rows.get(0), fallbackImagesByItemId, effectsByArmorSetId);
+    }
+
     private String buildWhereClause(String search, List<Object> args) {
         if (search == null || search.isBlank()) {
             return "";

@@ -21,6 +21,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -141,5 +142,43 @@ class PublicArmorSetControllerTest {
             .andExpect(jsonPath("$.data[0].maleImages").isArray())
             .andExpect(jsonPath("$.data[0].femaleImages").isArray())
             .andExpect(jsonPath("$.data[0].specialImages").isArray());
+    }
+
+    @Test
+    void shouldExposePublicArmorSetDetailById() throws Exception {
+        PublicArmorSetListDTO armorSet = new PublicArmorSetListDTO();
+        armorSet.setId(20L);
+        armorSet.setTextKey("ArmorSet.Solar");
+        armorSet.setSourceKey("ArmorSet.Solar");
+        armorSet.setName("Solar Flare armor CN");
+        armorSet.setNameZh("Solar Flare armor CN");
+        armorSet.setNameEn("Solar Flare armor");
+        armorSet.setBenefitZh("套装奖励：日耀护盾");
+        armorSet.setPrimaryPart("head");
+        armorSet.setSetCount(3);
+        armorSet.setUniqueItemCount(3);
+        armorSet.setFallbackImages(List.of("http://localhost:9000/terrapedia-images/items/wiki/item-images/solar.png"));
+        EquipmentEffectAttributeDTO effect = new EquipmentEffectAttributeDTO();
+        effect.setStatKey("defense");
+        effect.setStatLabelZh("防御");
+        effect.setValueDecimal(BigDecimal.valueOf(10));
+        effect.setUnit("flat");
+        effect.setParseStatus("parsed");
+        armorSet.setEffects(List.of(effect));
+
+        when(publicArmorSetService.getPublicArmorSetById(20L)).thenReturn(armorSet);
+
+        mockMvc.perform(get("/public/armor-sets/20"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.id").value(20))
+            .andExpect(jsonPath("$.data.textKey").value("ArmorSet.Solar"))
+            .andExpect(jsonPath("$.data.nameZh").value("Solar Flare armor CN"))
+            .andExpect(jsonPath("$.data.benefitZh").value("套装奖励：日耀护盾"))
+            .andExpect(jsonPath("$.data.effects[0].statKey").value("defense"))
+            .andExpect(jsonPath("$.data.fallbackImages[0]").value("http://localhost:9000/terrapedia-images/items/wiki/item-images/solar.png"));
+
+        verify(publicArmorSetService).getPublicArmorSetById(20L);
+        verify(publicArmorSetService, never()).getPublicArmorSets(any(PublicArmorSetQuery.class));
     }
 }

@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -51,5 +52,15 @@ public class PublicArmorSetController {
             (int) armorSetPage.getSize()
         ));
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get public armor set detail")
+    public ResponseEntity<ApiResponse<PublicArmorSetListDTO>> getPublicArmorSetDetail(@PathVariable Long id) {
+        PublicArmorSetListDTO armorSet = publicArmorSetService.getPublicArmorSetById(id);
+        if (armorSet == null) {
+            return ResponseEntity.ok(ApiResponse.success(null));
+        }
+        return ResponseEntity.ok(ApiResponse.success(armorSet));
     }
 }
