@@ -10,6 +10,15 @@ const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
 
 const firstImageCandidate = (...values: unknown[]) => values.map(normalizeText).find(Boolean) ?? ''
 
+const biomeParentGroupFallback = (raw: PublicBiomeListItem) => {
+  const layerType = normalizeText(raw.layerType)
+  const biomeType = normalizeText(raw.biomeType)
+
+  if (layerType === 'space' || biomeType === 'space') return '特殊层级'
+  if (layerType === 'underworld' || biomeType === 'underworld') return '特殊层级'
+  return '未分组'
+}
+
 const toNumberOrNull = (value: unknown) => {
   const numberValue = Number(value)
   return Number.isFinite(numberValue) ? numberValue : null
@@ -32,6 +41,9 @@ export const normalizePublicBiome = (raw: PublicBiomeListItem, index = 0): Biome
   )
   const image = resolvePreviewImageUrl(sourceImage)
   const groupLabel = normalizeText(raw.wikiGroupNameZh) || normalizeText(raw.wikiGroupNameEn) || normalizeText(raw.biomeType) || '未分组'
+  const parentGroupLabel = normalizeText(raw.wikiParentGroupNameZh)
+    || normalizeText(raw.wikiParentGroupNameEn)
+    || biomeParentGroupFallback(raw)
   const description = normalizeText(raw.description) || normalizeText(raw.aliasZh) || normalizeText(raw.aliasEn) || '暂无群系描述'
   const id = biomeId ? String(biomeId) : normalizeText(raw.code) || `${displayName}-${index + 1}`
   const resources = Array.isArray(raw.resources) ? raw.resources : []
@@ -51,10 +63,11 @@ export const normalizePublicBiome = (raw: PublicBiomeListItem, index = 0): Biome
     layerType: normalizeText(raw.layerType) || 'unknown',
     biomeType: normalizeText(raw.biomeType) || 'unknown',
     groupLabel,
+    parentGroupLabel,
     description,
     resourceCount: resources.length,
     relationCount: relations.length,
-    searchText: normalizeSearchText([displayName, englishName, raw.code, groupLabel, raw.layerType, raw.biomeType].join(' ')),
+    searchText: normalizeSearchText([displayName, englishName, raw.code, groupLabel, parentGroupLabel, raw.layerType, raw.biomeType].join(' ')),
   }
 }
 

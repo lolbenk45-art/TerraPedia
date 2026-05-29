@@ -1,4 +1,4 @@
-export type DetailLayoutKind = 'item' | 'npc' | 'boss'
+export type DetailLayoutKind = 'item' | 'npc' | 'boss' | 'armor-set'
 export type DetailLayoutDensity = 'compact' | 'readable'
 
 type DetailLayoutOptions = {

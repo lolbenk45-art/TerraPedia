@@ -30,7 +30,7 @@ defineProps<{
     <div class="stage-grid">
       <article class="featured-route">
         <div class="route-art">
-          <span class="item-art" :style="`background-image:url('${route.image}')`"></span>
+          <span class="item-art home-image-art" :style="`background-image:url('${route.image}')`"></span>
         </div>
         <h3>{{ route.title }}</h3>
         <p>{{ route.desc }}</p>
@@ -44,7 +44,7 @@ defineProps<{
 
       <div class="route-list">
         <div v-for="item in route.list" :key="item.title" class="route-list-row">
-          <span class="item-art" :style="`background-image:url('${item.image}')`"></span>
+          <span class="item-art home-image-art" :style="`background-image:url('${item.image}')`"></span>
           <div>
             <b>{{ item.title }}</b>
             <span>{{ item.desc }}</span>

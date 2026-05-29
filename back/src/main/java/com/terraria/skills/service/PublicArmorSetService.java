@@ -7,4 +7,6 @@ import com.terraria.skills.dto.PublicArmorSetQuery;
 public interface PublicArmorSetService {
 
     Page<PublicArmorSetListDTO> getPublicArmorSets(PublicArmorSetQuery query);
+
+    PublicArmorSetListDTO getPublicArmorSetById(Long id);
 }

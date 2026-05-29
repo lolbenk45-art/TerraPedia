@@ -71,6 +71,10 @@ const armorHeroEyebrow = computed(() => {
 const armorLoadingSlotCount = computed(() => Math.min(armorPageSize.value, 24))
 const featuredArmor = computed(() => armorDisplayItems.value.find((item) => item.parsedEffects.length >= 3) ?? armorDisplayItems.value[0] ?? null)
 
+const armorSecondaryLabel = (armor: ArmorSetCatalogItem) => (
+  armor.englishName || '防具套装'
+)
+
 const clearArmorVisualLoadingTimer = () => {
   if (armorVisualLoadingTimer) {
     clearTimeout(armorVisualLoadingTimer)
@@ -306,8 +310,44 @@ onBeforeUnmount(() => {
       </section>
 
       <section v-else-if="armorDisplayItems.length" class="armor-grid" aria-label="套装列表">
+        <NuxtLink
+          v-for="armor in armorDisplayItems.filter((entry) => entry.armorSetId)"
+          :key="armor.id"
+          class="armor-card armor-card-live armor-card-link"
+          :class="{ active: armor.id === featuredArmor?.id }"
+          :to="`/armor-sets/${armor.armorSetId}`"
+          :aria-label="`查看套装 ${armor.displayName}`"
+        >
+          <CommonPreviewImage
+            :src="armor.image"
+            :alt="armor.displayName"
+            :fallback="armor.fallback"
+            fallback-icon="icon-armor"
+            :source-image="armor.sourceImage"
+            width="88"
+            height="92"
+          />
+          <div class="armor-card-body">
+            <span>{{ armorSecondaryLabel(armor) }}</span>
+            <h3>{{ armor.displayName }}</h3>
+            <p>{{ armorSummary(armor) }}</p>
+            <div v-if="armor.benefitZh" class="armor-benefit-lines" aria-label="套装效果">
+              <span v-for="line in benefitLines(armor)" :key="`${armor.id}-${line}`">{{ line }}</span>
+            </div>
+            <div v-if="shownEffects(armor).length" class="armor-effect-row">
+              <span
+                v-for="effect in shownEffects(armor)"
+                :key="`${armor.id}-${effect.statKey}-${effect.rawText}`"
+                :class="effectToneClass(effect)"
+              >
+                {{ effectLabel(effect) }}
+              </span>
+            </div>
+          </div>
+          <em>{{ armor.setCount ?? 1 }} 组</em>
+        </NuxtLink>
         <article
-          v-for="armor in armorDisplayItems"
+          v-for="armor in armorDisplayItems.filter((entry) => !entry.armorSetId)"
           :key="armor.id"
           class="armor-card armor-card-live"
           :class="{ active: armor.id === featuredArmor?.id }"
@@ -322,10 +362,10 @@ onBeforeUnmount(() => {
             height="92"
           />
           <div class="armor-card-body">
-            <span>{{ armor.englishName || armor.sourceKey || armor.textKey }}</span>
+            <span>{{ armorSecondaryLabel(armor) }}</span>
             <h3>{{ armor.displayName }}</h3>
             <p>{{ armorSummary(armor) }}</p>
-            <div v-if="armor.benefitZh" class="armor-benefit-lines" aria-label="套装原始效果">
+            <div v-if="armor.benefitZh" class="armor-benefit-lines" aria-label="套装效果">
               <span v-for="line in benefitLines(armor)" :key="`${armor.id}-${line}`">{{ line }}</span>
             </div>
             <div v-if="shownEffects(armor).length" class="armor-effect-row">

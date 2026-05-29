@@ -28,7 +28,7 @@ defineProps<{
       :class="['map-node', node.className, { featured: node.featured }]"
       :href="node.href"
     >
-      <i><span class="item-art" :style="`background-image:url('${node.image}')`"></span></i>
+      <i><span class="item-art home-image-art" :style="`background-image:url('${node.image}')`"></span></i>
       <b>{{ node.title }}</b>
       <span>{{ node.desc }}</span>
     </a>

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.EquipmentEffectAttributeDTO;
 import com.terraria.skills.dto.PublicArmorSetListDTO;
 import com.terraria.skills.dto.PublicArmorSetQuery;
+import com.terraria.skills.dto.PublicArmorSetRelatedItemDTO;
 import com.terraria.skills.service.ManagedImageUrlPolicy;
 import com.terraria.skills.service.PublicArmorSetService;
 import lombok.RequiredArgsConstructor;
@@ -71,6 +72,29 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         return result;
     }
 
+    @Override
+    public PublicArmorSetListDTO getPublicArmorSetById(Long id) {
+        if (id == null || id <= 0) {
+            return null;
+        }
+
+        String detailSql = """
+            SELECT id, text_key, source_key, name, name_zh, name_en, primary_part, set_count, unique_item_count,
+                   benefit_zh, benefit_en, male_images, female_images, special_images, related_items_json
+            FROM %s
+            WHERE id = ?
+            LIMIT 1
+            """.formatted(qualifiedProjectionTable());
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(detailSql, id);
+        if (rows.isEmpty()) {
+            return null;
+        }
+
+        Map<Long, String> fallbackImagesByItemId = resolveFallbackImagesByItemId(rows);
+        Map<Long, List<EquipmentEffectAttributeDTO>> effectsByArmorSetId = resolveEffectsByArmorSetId(rows);
+        return toListDto(rows.get(0), fallbackImagesByItemId, effectsByArmorSetId);
+    }
+
     private String buildWhereClause(String search, List<Object> args) {
         if (search == null || search.isBlank()) {
             return "";
@@ -117,6 +141,7 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         if (dto.getMaleImages().isEmpty() && dto.getFemaleImages().isEmpty() && dto.getSpecialImages().isEmpty()) {
             dto.setFallbackImages(resolveFallbackImages(row, fallbackImagesByItemId));
         }
+        dto.setRelatedItems(parseRelatedItems(row.get("related_items_json")));
         dto.setEffects(effectsByArmorSetId.getOrDefault(dto.getId(), List.of()));
         return dto;
     }
@@ -252,6 +277,53 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         } catch (Exception ignored) {
         }
         return List.of();
+    }
+
+    private List<PublicArmorSetRelatedItemDTO> parseRelatedItems(Object raw) {
+        String text = trimToNull(raw);
+        if (text == null) {
+            return List.of();
+        }
+        try {
+            Object parsed = objectMapper.readValue(text, Object.class);
+            if (parsed instanceof List<?> list) {
+                List<PublicArmorSetRelatedItemDTO> items = new ArrayList<>();
+                for (Object entry : list) {
+                    if (!(entry instanceof Map<?, ?> map)) {
+                        continue;
+                    }
+                    PublicArmorSetRelatedItemDTO item = new PublicArmorSetRelatedItemDTO();
+                    item.setId(firstLong(map.get("id"), map.get("itemId"), map.get("item_id"), map.get("sourceId"), map.get("source_id")));
+                    item.setItemId(firstLong(map.get("itemId"), map.get("item_id"), map.get("id"), map.get("sourceId"), map.get("source_id")));
+                    item.setSourceId(firstLong(map.get("sourceId"), map.get("source_id"), map.get("itemId"), map.get("item_id"), map.get("id")));
+                    item.setInternalName(trimToNull(firstValue(map, "internalName", "internal_name")));
+                    item.setName(trimToNull(map.get("name")));
+                    item.setNameZh(trimToNull(firstValue(map, "nameZh", "name_zh")));
+                    item.setImage(managedImageOrNull(firstValue(map, "image", "imageUrl", "image_url", "cachedUrl", "cached_url")));
+                    item.setPartRole(trimToNull(firstValue(map, "partRole", "part_role")));
+                    item.setSlotType(trimToNull(firstValue(map, "slotType", "slot_type")));
+                    items.add(item);
+                }
+                return items;
+            }
+        } catch (Exception ignored) {
+        }
+        return List.of();
+    }
+
+    private Object firstValue(Map<?, ?> map, String... keys) {
+        for (String key : keys) {
+            Object value = map.get(key);
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private String managedImageOrNull(Object value) {
+        String imageUrl = trimToNull(value);
+        return imageUrl != null && managedImageUrlPolicy.isManagedImageUrl(imageUrl) ? imageUrl : null;
     }
 
     private List<String> filterManagedImages(List<String> values) {

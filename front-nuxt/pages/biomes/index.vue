@@ -31,7 +31,7 @@ const biomeGroupOptions = computed(() => {
   const grouped = new Map<string, number>()
 
   for (const biome of biomeItems.value) {
-    const group = biome.groupLabel || '未分组'
+    const group = biome.parentGroupLabel || '未分组'
     grouped.set(group, (grouped.get(group) ?? 0) + 1)
   }
 
@@ -46,7 +46,7 @@ const biomeDisplayItems = computed(() => {
   const query = normalizeSearchText(biomeSearchQuery.value.trim())
   const groupFilteredBiomes = selectedBiomeGroup.value === biomeAllGroupLabel
     ? biomeItems.value
-    : biomeItems.value.filter((biome) => (biome.groupLabel || '未分组') === selectedBiomeGroup.value)
+    : biomeItems.value.filter((biome) => (biome.parentGroupLabel || '未分组') === selectedBiomeGroup.value)
 
   if (!query) return groupFilteredBiomes
 
@@ -56,7 +56,7 @@ const biomeGroups = computed(() => {
   const grouped = new Map<string, typeof biomeDisplayItems.value>()
 
   for (const biome of biomeDisplayItems.value) {
-    const group = biome.groupLabel || '未分组'
+    const group = biome.parentGroupLabel || '未分组'
     grouped.set(group, [...(grouped.get(group) ?? []), biome])
   }
 
@@ -67,7 +67,7 @@ const biomeFeaturedItems = computed(() => {
   const usedGroups = new Set<string>()
 
   for (const biome of biomeDisplayItems.value) {
-    const group = biome.groupLabel || '未分组'
+    const group = biome.parentGroupLabel || '未分组'
     if (usedGroups.has(group)) continue
     highlighted.push(biome)
     usedGroups.add(group)
@@ -174,7 +174,7 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
         <div class="biome-command-copy">
           <span class="eyebrow">公开资料</span>
           <h2>生态图鉴</h2>
-          <p>先按生态分组定位，再用名称、英文名或分类收窄结果。</p>
+          <p>先按生态大类定位，再用名称、英文名或具体群系收窄结果。</p>
         </div>
 
         <div class="biome-command-tools">

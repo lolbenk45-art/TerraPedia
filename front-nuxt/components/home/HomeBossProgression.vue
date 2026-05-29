@@ -31,7 +31,7 @@ defineProps<{
     </div>
     <div class="loot-grid" aria-hidden="true">
       <span v-for="image in route.lootImages" :key="image">
-        <span class="item-art" :style="`background-image:url('${image}')`"></span>
+        <span class="item-art home-image-art" :style="`background-image:url('${image}')`"></span>
       </span>
     </div>
   </article>

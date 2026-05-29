@@ -64,8 +64,11 @@ try {
     '.tp-detail-shell',
     '.tp-detail-grid',
     '.tp-detail-module',
+    '.tp-detail-module .module-title',
     '.tp-detail-relation-grid',
     '.tp-detail-relation-row',
+    '.tp-detail-relation-row :where(b, span, small, em, strong, a)',
+    '.detail-group-remainder summary',
     '.tp-detail-density-compact',
     '.tp-detail-density-readable',
   ]) {
@@ -152,6 +155,99 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
     ],
   ]) {
     assertPattern(path, content, pattern, message)
+  }
+}
+
+{
+  const path = 'pages/armor-sets/[id].vue'
+  const content = read(path)
+  for (const [pattern, message] of [
+    [
+      String.raw`const armorStatGroups = computed`,
+      'armor set detail must prioritize grouped numeric stat data',
+    ],
+    [
+      String.raw`class="armor-stat-card-grid"`,
+      'armor set detail must render scan-friendly numeric stat cards instead of a dense table',
+    ],
+    [
+      String.raw`class="armor-analysis-layout"`,
+      'armor set detail must place stats and visual preview modules side by side',
+    ],
+    [
+      String.raw`v-for="group in armorStatGroups"`,
+      'armor set detail must render every grouped stat row set',
+    ],
+    [
+      String.raw`class="armor-effect-card"`,
+      'armor set detail must render individual effect cards',
+    ],
+    [
+      String.raw`class="armor-effect-card-value"`,
+      'armor set stat cards must make effect values visually prominent',
+    ],
+    [
+      String.raw`class="armor-preview-strip"`,
+      'armor set detail must keep preview images compact beside stats',
+    ],
+    [
+      String.raw`class="armor-pieces-layout"`,
+      'armor set detail must pair grouped pieces with compact page facts',
+    ],
+    [
+      String.raw`const armorBenefitFallbackEffects = computed`,
+      'armor set detail must turn benefit text into fallback stat rows when parsed effects are missing',
+    ],
+    [
+      String.raw`const armorRelatedItems = computed`,
+      'armor set detail must expose armor piece data from related items',
+    ],
+    [
+      String.raw`const armorPieceGroups = computed`,
+      'armor set detail must group interchangeable armor pieces by slot instead of flattening every related item',
+    ],
+    [
+      String.raw`v-for="group in armorPieceGroups"`,
+      'armor set detail must render grouped armor piece slots',
+    ],
+  ]) {
+    assertPattern(path, content, pattern, message)
+  }
+
+  if (content.includes('armor-detail-icon-stage')) {
+    violations.push(`${path}: armor set detail must not keep the previous image-led hero stage`)
+  }
+
+  for (const forbidden of [
+    'Armor Set #',
+    'sourceKey',
+    'textKey',
+    'rawText ||',
+    '未解析',
+    '<th>原始文本</th>',
+    'class="armor-detail-grid"',
+    'class="armor-stat-table"',
+    'v-for="item in armorRelatedItems"',
+    '{{ item.internalName',
+    '{{ item.partRole',
+    '{{ item.slotType',
+  ]) {
+    if (content.includes(forbidden)) {
+      violations.push(`${path}: armor set detail must not expose backend/source fields via marker ${forbidden}`)
+    }
+  }
+}
+
+{
+  const path = 'pages/armor-sets/index.vue'
+  const content = read(path)
+  for (const forbidden of [
+    '{{ armor.englishName || armor.sourceKey || armor.textKey }}',
+    'aria-label="套装原始效果"',
+  ]) {
+    if (content.includes(forbidden)) {
+      violations.push(`${path}: armor set list must use player-facing labels instead of backend/source markers ${forbidden}`)
+    }
   }
 }
 

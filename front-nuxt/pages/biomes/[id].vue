@@ -207,8 +207,9 @@ onBeforeUnmount(clearBiomeDetailVisualLoadingTimer)
   grid-template-columns: 50px minmax(0, 1fr);
   grid-template-rows: auto auto;
   align-items: center;
-  gap: 2px 12px;
-  min-height: 44px;
+  gap: 5px 12px;
+  min-height: 58px;
+  padding: 8px 0;
 }
 
 .detail-relation-link .item-art {
@@ -222,5 +223,17 @@ onBeforeUnmount(clearBiomeDetailVisualLoadingTimer)
 .detail-relation-link span {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.detail-relation-link b {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.detail-relation-link span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
 }
 </style>

@@ -227,6 +227,7 @@ const requiredRoutes = [
   'pages/buffs/[id].vue',
   'pages/projectiles/index.vue',
   'pages/armor-sets/index.vue',
+  'pages/armor-sets/[id].vue',
   'pages/user/index.vue',
   'pages/user/login.vue',
   'pages/user/register.vue',
@@ -257,6 +258,7 @@ const requiredSeoRoutes = [
   'pages/buffs/index.vue',
   'pages/biomes/index.vue',
   'pages/armor-sets/index.vue',
+  'pages/armor-sets/[id].vue',
   'pages/projectiles/index.vue',
   'pages/articles/index.vue',
   'pages/about.vue',
@@ -2304,6 +2306,7 @@ for (const path of scanFiles) {
       'biomeGroups',
       'biomeGroupOptions',
       'selectedBiomeGroup',
+      'parentGroupLabel',
       'biomeFeaturedItems',
       'visibleBiomeGroups',
       'biomeVisualLoading',
@@ -2332,6 +2335,11 @@ for (const path of scanFiles) {
       if (!content.includes(marker)) {
         violations.push(`${path}: biomes page must render live public biome data with groups, preview images, and skeleton loading via marker ${marker}`)
       }
+    }
+
+    const biomeGroupOptionsBlock = content.match(/const biomeGroupOptions = computed\(\(\) => \{[\s\S]*?\n\}\)/)?.[0] || ''
+    if (biomeGroupOptionsBlock.includes('biome.groupLabel')) {
+      violations.push(`${path}: biome filter chips must use parentGroupLabel, not leaf groupLabel, to avoid one-item taxonomy chips`)
     }
 
     for (const staticMarker of [
@@ -2556,6 +2564,8 @@ for (const path of scanFiles) {
       'armorVisualLoading',
       'armorLoadingSlotCount',
       'goToArmorPage',
+      '<NuxtLink',
+      ':to="`/armor-sets/${armor.armorSetId}`"',
       '<CommonPaginationDock',
       '<CommonTpSkeleton',
       '<CommonPreviewImage',
@@ -2565,6 +2575,30 @@ for (const path of scanFiles) {
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: armor sets page must render live public armor data with search, paging, preview images, skeleton loading, and fallback-safe heading via marker ${marker}`)
+      }
+    }
+  }
+
+  if (path === 'pages/armor-sets/[id].vue') {
+    for (const marker of [
+      'usePublicArmorSetDetail',
+      "useDetailLayout({ kind: 'armor-set', density: 'readable' })",
+      'armorSetId',
+      'armorDetailVisualLoading',
+      'armorNotFound',
+      'armorBenefitLines',
+      'armorShownEffects',
+      'imageGroups',
+      ':class="detailLayout.detailShellClass"',
+      ':aria-busy="armorDetailVisualLoading"',
+      '<CommonTpSkeleton',
+      '<CommonPreviewImage',
+      'v-for="effect in armorShownEffects"',
+      'v-for="group in imageGroups"',
+      'href="/armor-sets"',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: armor set detail page must render live public armor detail data with shared detail layout, loading/not-found states, effects, image groups, and list return controls via marker ${marker}`)
       }
     }
   }
