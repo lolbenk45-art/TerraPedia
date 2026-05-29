@@ -1,7 +1,6 @@
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { createClient } = require('redis');
 
 export const PUBLIC_ITEM_CACHE_PATTERNS = Object.freeze([
   'item:public:list::*',
@@ -29,6 +28,19 @@ export function skippedPublicItemCacheResult(reason) {
 }
 
 export async function clearPublicItemCaches(redisConfig, patterns = PUBLIC_ITEM_CACHE_PATTERNS) {
+  let createClient;
+  try {
+    ({ createClient } = require('redis'));
+  } catch (error) {
+    return {
+      attempted: true,
+      status: 'failed',
+      deletedKeys: 0,
+      keyPatterns: patterns,
+      error: `redis module unavailable: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+
   const client = createClient({
     socket: {
       host: redisConfig.host,

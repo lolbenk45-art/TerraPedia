@@ -6,6 +6,7 @@ import {
   classifyItem,
   ensureCategories,
   parseArgs,
+  runItemCategorySync,
   shouldApplyCategoryChange
 } from './sync-item-categories-from-wiki-pages.mjs';
 
@@ -392,4 +393,477 @@ The navigation mentions chainsaws.
 
   assert.equal(result.categoryCode, 'TOOL_AXE');
   assert.equal(result.reason, 'type:tool');
+});
+
+test('classifyItem maps explicit wiki type taxonomy leaves ahead of material fallback', () => {
+  const categoryLookup = {
+    byCode: new Map([
+      ['MOUNT', { id: 1 }],
+      ['PET', { id: 2 }],
+      ['ACCESSORY_MISC', { id: 3 }],
+      ['AMMUNITION_ARROW', { id: 4 }],
+      ['CONSUMABLE_POTION', { id: 5 }],
+      ['CONSUMABLE_SUMMON', { id: 6 }],
+      ['CONSUMABLE_GRAB_BAG', { id: 7 }],
+      ['FURNITURE_CRAFTING_STATION', { id: 8 }],
+      ['FURNITURE_LIGHT', { id: 9 }],
+      ['MATERIAL_BAR', { id: 10 }],
+      ['TOOL_DRILL', { id: 11 }],
+      ['TOOL_PICKAXE', { id: 12 }],
+      ['TOOL_AXE', { id: 13 }],
+      ['TOOL_CHAINSAW', { id: 14 }],
+      ['ARMOR_PART_HEAD', { id: 15 }],
+      ['ARMOR_PART_BODY', { id: 16 }],
+      ['ARMOR_PART_LEGS', { id: 17 }],
+    ]),
+    depthByCode: new Map(),
+    parentCodeByCode: new Map(),
+  };
+
+  const samples = [
+    ['Drill Containment Unit', 'DrillContainmentUnit', 'Mount summon', 'MOUNT'],
+    ['Slimy Saddle', 'SlimySaddle', 'Mount summon', 'MOUNT'],
+    ['Fuzzy Carrot', 'FuzzyCarrot', 'Mount summon', 'MOUNT'],
+    ['Cosmic Car Key', 'CosmicCarKey', 'Mount summon', 'MOUNT'],
+    ["Witch's Broom", 'WitchBroom', 'Mount summon', 'MOUNT'],
+    ['Cursed Piper Flute', 'RatMountItem', 'Mount summon', 'MOUNT'],
+    ['Dog Whistle', 'DogWhistle', 'Pet summon', 'PET'],
+    ['Cloud in a Bottle', 'CloudinaBottle', 'Accessory', 'ACCESSORY_MISC'],
+    ['Wooden Arrow', 'WoodenArrow', 'Ammunition', 'AMMUNITION_ARROW'],
+    ['Ironskin Potion', 'IronskinPotion', 'Potion / Consumable', 'CONSUMABLE_POTION'],
+    ['Suspicious Looking Eye', 'SuspiciousLookingEye', 'Boss summon / Consumable', 'CONSUMABLE_SUMMON'],
+    ['Treasure Bag', 'KingSlimeBossBag', 'Grab bag / Consumable', 'CONSUMABLE_GRAB_BAG'],
+    ['Iron Anvil', 'IronAnvil', 'Furniture / Crafting station', 'FURNITURE_CRAFTING_STATION'],
+    ['Torch', 'Torch', 'Furniture / Light source', 'FURNITURE_LIGHT'],
+    ['Luminite Bar', 'LunarBar', 'Bar / Crafting material', 'MATERIAL_BAR'],
+  ];
+
+  for (const [name, internalName, type, expectedCategoryCode] of samples) {
+    const result = classifyItem({
+      item: { name, internal_name: internalName },
+      wiki: {
+        wikitext: `
+{{item infobox
+| type = ${type}
+}}
+        `
+      },
+      standardizedRecord: { categoryCode: 'MATERIAL' },
+      categoryLookup,
+    });
+
+    assert.equal(result.categoryCode, expectedCategoryCode, `${internalName} should classify from ${type}`);
+  }
+});
+
+test('classifyItem lets explicit raw wiki type override stale standardized category', () => {
+  const result = classifyItem({
+    item: { name: 'Drill Containment Unit', internal_name: 'DrillContainmentUnit' },
+    wiki: {
+      wikitext: `
+{{item infobox
+| type = Mount summon
+}}
+      `,
+    },
+    standardizedRecord: {
+      categoryCode: 'PICKAXE',
+    },
+    categoryLookup: {
+      byCode: new Map([
+        ['MOUNT', { id: 1 }],
+        ['TOOL_PICKAXE', { id: 2 }],
+      ]),
+    },
+  });
+
+  assert.equal(result.categoryCode, 'MOUNT');
+  assert.equal(result.reason, 'type:mount summon');
+});
+
+test('runItemCategorySync rejects missing raw item pages before opening DB', async () => {
+  await assert.rejects(
+    () => runItemCategorySync(
+      {
+        apply: 'false',
+        itemPagesDir: '/tmp/terrapedia-missing-raw-item-pages-for-sync-test',
+      },
+      {
+        repoRoot: process.cwd(),
+        skipWriteReport: true,
+      }
+    ),
+    /Item pages directory not found:/
+  );
+});
+
+test('runItemCategorySync default fallback mode reports missing injected wiki pages as skippedNoWiki', async () => {
+  const categoryRows = [
+    { id: 1, parent_id: 0, code: 'MATERIAL', name: '材料' },
+    { id: 2, parent_id: 0, code: 'MOUNT', name: '坐骑召唤' },
+  ];
+  const items = [
+    {
+      id: 100,
+      name: 'Drill Containment Unit',
+      internal_name: 'DrillContainmentUnit',
+      category_id: 1,
+      status: 1,
+      current_category_code: 'MATERIAL',
+    },
+  ];
+  const connection = {
+    query: async (sql) => {
+      if (/FROM\s+category/i.test(sql)) return [categoryRows];
+      if (/FROM\s+items/i.test(sql)) return [items];
+      throw new Error(`unexpected query: ${sql}`);
+    },
+    end: async () => {},
+  };
+
+  const { report } = await runItemCategorySync(
+    {
+      apply: 'false',
+      itemPagesDir: '/tmp/not-used-with-injected-pages',
+    },
+    {
+      connection,
+      db: { database: 'terria_v1_local' },
+      repoRoot: process.cwd(),
+      standardizedByInternal: new Map([
+        ['DrillContainmentUnit', { internalName: 'DrillContainmentUnit', categoryCode: 'MATERIAL' }],
+      ]),
+      wikiPagesByInternal: new Map(),
+      skipWriteReport: true,
+    }
+  );
+
+  assert.equal(report.fallbackMode, 'none');
+  assert.equal(report.scanned, 1);
+  assert.equal(report.wikiMatched, 0);
+  assert.equal(report.classified, 0);
+  assert.equal(report.updated, 0);
+  assert.equal(report.skippedNoWiki, 1);
+  assert.equal(report.standardizedInferred, 0);
+  assert.equal(report.skippedInsufficientEvidence, 0);
+  assert.deepEqual(report.inferenceSamples, []);
+});
+
+test('runItemCategorySync fallback mode infers from standardized records when raw wiki page is missing', async () => {
+  const categoryRows = [
+    { id: 1, parent_id: 0, code: 'MATERIAL', name: '材料' },
+    { id: 2, parent_id: 0, code: 'MOUNT', name: '坐骑召唤' },
+  ];
+  const items = [
+    {
+      id: 100,
+      name: 'Drill Containment Unit',
+      internal_name: 'DrillContainmentUnit',
+      category_id: 1,
+      status: 1,
+      current_category_code: 'MATERIAL',
+    },
+  ];
+  const standardizedRecord = {
+    internalName: 'DrillContainmentUnit',
+    categoryCode: 'MATERIAL',
+    stack: {
+      stackSize: 1,
+    },
+    stats: {
+      damage: 0,
+      defense: 0,
+    },
+  };
+  const itemPage = {
+    entityType: 'item',
+    itemInternalName: 'DrillContainmentUnit',
+  };
+  const inference = {
+    categoryCode: 'MOUNT',
+    reason: 'mount_allowlist:DrillContainmentUnit',
+    confidence: 'high',
+    source: 'standardized_inference',
+    evidence: {
+      itemPageMatch: true,
+      currentCategoryCode: 'MATERIAL',
+      stackSize: 1,
+      damage: 0,
+      defense: 0,
+    },
+    reportOnly: false,
+  };
+  const connection = {
+    query: async (sql) => {
+      if (/FROM\s+category/i.test(sql)) return [categoryRows];
+      if (/FROM\s+items/i.test(sql)) return [items];
+      throw new Error(`unexpected query: ${sql}`);
+    },
+    end: async () => {},
+  };
+
+  const { report } = await runItemCategorySync(
+    {
+      apply: 'false',
+      fallbackMode: 'standardized_inference',
+      itemPagesDir: '/tmp/terrapedia-missing-raw-item-pages-for-fallback-test',
+    },
+    {
+      connection,
+      db: { database: 'terria_v1_local' },
+      repoRoot: process.cwd(),
+      standardizedByInternal: new Map([
+        ['DrillContainmentUnit', standardizedRecord],
+      ]),
+      itemPagesByInternal: new Map([
+        ['DrillContainmentUnit', itemPage],
+      ]),
+      inferCategoryFromStandardizedRecord: ({ item, itemPage: actualPage }) => {
+        assert.equal(item.internalName, 'DrillContainmentUnit');
+        assert.equal(item.currentCategoryCode, 'MATERIAL');
+        assert.equal(item.stackSize, 1);
+        assert.equal(item.damage, 0);
+        assert.equal(item.defense, 0);
+        assert.equal(actualPage, itemPage);
+        return inference;
+      },
+      mountAllowlist: new Set(['DrillContainmentUnit']),
+      wikiPagesByInternal: new Map(),
+      skipWriteReport: true,
+    }
+  );
+
+  assert.equal(report.fallbackMode, 'standardized_inference');
+  assert.equal(report.scanned, 1);
+  assert.equal(report.wikiMatched, 0);
+  assert.equal(report.classified, 1);
+  assert.equal(report.updated, 1);
+  assert.equal(report.skippedNoWiki, 0);
+  assert.equal(report.standardizedInferred, 1);
+  assert.equal(report.skippedInsufficientEvidence, 0);
+  assert.deepEqual(report.changedSamples, [
+    {
+      id: 100,
+      internalName: 'DrillContainmentUnit',
+      currentCategoryCode: 'MATERIAL',
+      nextCategoryCode: 'MOUNT',
+      reason: 'mount_allowlist:DrillContainmentUnit',
+      source: 'standardized_inference',
+      confidence: 'high',
+      evidence: inference.evidence,
+      willUpdate: true,
+    },
+  ]);
+  assert.deepEqual(report.inferenceSamples, report.changedSamples);
+});
+
+test('runItemCategorySync fallback mode counts missing inference evidence without skippedNoWiki', async () => {
+  const categoryRows = [
+    { id: 1, parent_id: 0, code: 'MATERIAL', name: '材料' },
+    { id: 2, parent_id: 0, code: 'MOUNT', name: '坐骑召唤' },
+  ];
+  const items = [
+    {
+      id: 101,
+      name: 'Plain Carrot',
+      internal_name: 'PlainCarrot',
+      category_id: 1,
+      status: 1,
+      current_category_code: 'MATERIAL',
+    },
+  ];
+  const connection = {
+    query: async (sql) => {
+      if (/FROM\s+category/i.test(sql)) return [categoryRows];
+      if (/FROM\s+items/i.test(sql)) return [items];
+      throw new Error(`unexpected query: ${sql}`);
+    },
+    end: async () => {},
+  };
+
+  const { report } = await runItemCategorySync(
+    {
+      apply: 'false',
+      fallbackMode: 'standardized_inference',
+      itemPagesDir: '/tmp/terrapedia-missing-raw-item-pages-for-fallback-test',
+    },
+    {
+      connection,
+      db: { database: 'terria_v1_local' },
+      repoRoot: process.cwd(),
+      standardizedByInternal: new Map([
+        ['PlainCarrot', { internalName: 'PlainCarrot', categoryCode: 'MATERIAL' }],
+      ]),
+      itemPagesByInternal: new Map([
+        ['PlainCarrot', { entityType: 'item', itemInternalName: 'PlainCarrot' }],
+      ]),
+      inferCategoryFromStandardizedRecord: () => null,
+      mountAllowlist: new Set(),
+      wikiPagesByInternal: new Map(),
+      skipWriteReport: true,
+    }
+  );
+
+  assert.equal(report.fallbackMode, 'standardized_inference');
+  assert.equal(report.scanned, 1);
+  assert.equal(report.wikiMatched, 0);
+  assert.equal(report.classified, 0);
+  assert.equal(report.updated, 0);
+  assert.equal(report.skippedNoWiki, 0);
+  assert.equal(report.standardizedInferred, 0);
+  assert.equal(report.skippedInsufficientEvidence, 1);
+  assert.deepEqual(report.inferenceSamples, []);
+});
+
+test('runItemCategorySync keeps raw wiki classification ahead of standardized inference fallback', async () => {
+  const categoryRows = [
+    { id: 1, parent_id: 0, code: 'MATERIAL', name: '材料' },
+    { id: 2, parent_id: 0, code: 'MOUNT', name: '坐骑召唤' },
+    { id: 3, parent_id: 0, code: 'CONSUMABLE_SUMMON', name: '召唤消耗品' },
+  ];
+  const items = [
+    {
+      id: 100,
+      name: 'Drill Containment Unit',
+      internal_name: 'DrillContainmentUnit',
+      category_id: 1,
+      status: 1,
+      current_category_code: 'MATERIAL',
+    },
+  ];
+  const connection = {
+    query: async (sql) => {
+      if (/FROM\s+category/i.test(sql)) return [categoryRows];
+      if (/FROM\s+items/i.test(sql)) return [items];
+      throw new Error(`unexpected query: ${sql}`);
+    },
+    end: async () => {},
+  };
+
+  const { report } = await runItemCategorySync(
+    {
+      apply: 'false',
+      fallbackMode: 'standardized_inference',
+      itemPagesDir: '/tmp/not-used-with-injected-pages',
+    },
+    {
+      connection,
+      db: { database: 'terria_v1_local' },
+      repoRoot: process.cwd(),
+      standardizedByInternal: new Map([
+        ['DrillContainmentUnit', { internalName: 'DrillContainmentUnit', categoryCode: 'MATERIAL' }],
+      ]),
+      itemPagesByInternal: new Map([
+        ['DrillContainmentUnit', { entityType: 'item', itemInternalName: 'DrillContainmentUnit' }],
+      ]),
+      inferCategoryFromStandardizedRecord: () => {
+        throw new Error('standardized inference should not run when raw wiki exists');
+      },
+      mountAllowlist: new Set(['DrillContainmentUnit']),
+      wikiPagesByInternal: new Map([
+        [
+          'DrillContainmentUnit',
+          {
+            itemInternalName: 'DrillContainmentUnit',
+            wikitext: `
+{{item infobox
+| type = Boss summon / Consumable
+}}
+            `,
+          },
+        ],
+      ]),
+      skipWriteReport: true,
+    }
+  );
+
+  assert.equal(report.wikiMatched, 1);
+  assert.equal(report.standardizedInferred, 0);
+  assert.equal(report.skippedNoWiki, 0);
+  assert.equal(report.skippedInsufficientEvidence, 0);
+  assert.deepEqual(report.inferenceSamples, []);
+  assert.equal(report.changedSamples[0].nextCategoryCode, 'CONSUMABLE_SUMMON');
+  assert.equal(report.changedSamples[0].reason, 'type:boss summon|consumable');
+});
+
+test('runItemCategorySync dry-run reports distribution and verified changed samples', async () => {
+  const categoryRows = [
+    { id: 1, parent_id: 0, code: 'MATERIAL', name: '材料' },
+    { id: 2, parent_id: 0, code: 'MOUNT', name: '坐骑召唤' },
+  ];
+  const items = [
+    {
+      id: 100,
+      name: 'Drill Containment Unit',
+      internal_name: 'DrillContainmentUnit',
+      category_id: 1,
+      status: 1,
+      current_category_code: 'MATERIAL',
+    },
+  ];
+  const connection = {
+    query: async (sql) => {
+      if (/FROM\s+category/i.test(sql)) return [categoryRows];
+      if (/FROM\s+items/i.test(sql)) return [items];
+      throw new Error(`unexpected query: ${sql}`);
+    },
+    end: async () => {},
+  };
+
+  const { report } = await runItemCategorySync(
+    {
+      apply: 'false',
+      itemPagesDir: '/tmp/not-used-with-injected-pages',
+    },
+    {
+      connection,
+      db: { database: 'terria_v1_local' },
+      repoRoot: process.cwd(),
+      standardizedByInternal: new Map([
+        ['DrillContainmentUnit', { internalName: 'DrillContainmentUnit', categoryCode: 'MATERIAL' }],
+      ]),
+      wikiPagesByInternal: new Map([
+        [
+          'DrillContainmentUnit',
+          {
+            itemInternalName: 'DrillContainmentUnit',
+            wikitext: `
+{{item infobox
+| type = Mount summon
+}}
+            `,
+          },
+        ],
+      ]),
+      skipWriteReport: true,
+    }
+  );
+
+  assert.equal(report.apply, false);
+  assert.equal(report.db.database, 'terria_v1_local');
+  assert.equal(report.scanned, 1);
+  assert.equal(report.wikiMatched, 1);
+  assert.equal(report.classified, 1);
+  assert.equal(report.updated, 1);
+  assert.deepEqual(report.categoryDistribution, { MOUNT: 1 });
+  assert.deepEqual(report.changedSamples, [
+    {
+      id: 100,
+      internalName: 'DrillContainmentUnit',
+      currentCategoryCode: 'MATERIAL',
+      nextCategoryCode: 'MOUNT',
+      reason: 'type:mount summon',
+      willUpdate: true,
+    },
+  ]);
+  assert.deepEqual(report.verifiedSamples, [
+    {
+      id: 100,
+      internalName: 'DrillContainmentUnit',
+      currentCategoryCode: 'MATERIAL',
+      nextCategoryCode: 'MOUNT',
+      reason: 'type:mount summon',
+      willUpdate: true,
+    },
+  ]);
 });
