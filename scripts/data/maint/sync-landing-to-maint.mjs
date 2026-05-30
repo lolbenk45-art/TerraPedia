@@ -728,16 +728,24 @@ function extractArmorSetImageMaintRows(landingRow, payload) {
 }
 
 function extractArmorAttributeMaintRows(landingRow, payload) {
-  return (Array.isArray(payload.records) ? payload.records : []).map((record) => ({
+  const identityCounts = new Map();
+  return (Array.isArray(payload.records) ? payload.records : []).map((record) => {
+    const identity = {
+      sectionCode: normalizeText(record.sectionCode),
+      slotGroup: normalizeText(record.slotGroup),
+      itemPageTitle: normalizeText(record.itemPageTitle),
+      itemHref: normalizeText(record.itemHref),
+    };
+    const identityKey = JSON.stringify(identity);
+    const variantIndex = identityCounts.get(identityKey) ?? 0;
+    identityCounts.set(identityKey, variantIndex + 1);
+    return ({
     scope: 'armor_attributes',
     tableName: 'maint_armor_attribute_rows',
     recordKey: createRecordKey({
       datasetType: landingRow.dataset_type,
-      sectionCode: record.sectionCode,
-      slotGroup: record.slotGroup,
-      itemPageTitle: record.itemPageTitle,
-      itemHref: record.itemHref,
-      contentHash: landingRow.content_hash,
+      ...identity,
+      variantIndex,
     }),
     sectionCode: normalizeText(record.sectionCode),
     slotGroup: normalizeText(record.slotGroup),
@@ -756,7 +764,8 @@ function extractArmorAttributeMaintRows(landingRow, payload) {
     landingFetchedAt: landingRow.fetched_at,
     landingParsedAt: landingRow.parsed_at,
     rawJson: JSON.stringify(record),
-  }));
+    });
+  });
 }
 
 function extractCategoryMaintRows(landingRow, payload) {
@@ -1385,6 +1394,10 @@ function shouldRetireStaleNpcItemSourceRows(scopes) {
   return Array.isArray(scopes) && scopes.includes('npcs');
 }
 
+function shouldRetireStaleArmorAttributeRows(scopes) {
+  return Array.isArray(scopes) && scopes.includes('armor_attributes');
+}
+
 async function retireStaleRecordKeyRows(connection, tableName, options = {}) {
   const filters = [];
   const params = [tableName];
@@ -1460,6 +1473,18 @@ async function retireStaleNpcItemSourceRows(connection, recordKeysByTable) {
   await insertActiveRecordKeys(connection, recordKeysByTable, ['maint_item_sources']);
   return retireStaleRecordKeyRows(connection, 'maint_item_sources', {
     landingSourceKey: 'generated.npc_item_relations_bundle'
+  });
+}
+
+async function retireStaleArmorAttributeRows(connection, recordKeysByTable) {
+  const activeArmorAttributeKeys = recordKeysByTable.get('maint_armor_attribute_rows') ?? new Set();
+  if (activeArmorAttributeKeys.size === 0) {
+    throw new Error('Refusing to retire stale armor attribute rows without active maint_armor_attribute_rows keys.');
+  }
+  await createActiveRecordKeyTempTable(connection);
+  await insertActiveRecordKeys(connection, recordKeysByTable, ['maint_armor_attribute_rows']);
+  return retireStaleRecordKeyRows(connection, 'maint_armor_attribute_rows', {
+    landingSourceKey: 'wiki.page.armor_attributes'
   });
 }
 
@@ -2609,6 +2634,9 @@ export async function runMaintSync(options, dependencies = {}) {
         if (shouldRetireStaleNpcItemSourceRows(scopes)) {
           summary.writes.retired += await retireStaleNpcItemSourceRows(connection, collectRecordKeysByTable(extracted));
         }
+        if (shouldRetireStaleArmorAttributeRows(scopes)) {
+          summary.writes.retired += await retireStaleArmorAttributeRows(connection, collectRecordKeysByTable(extracted));
+        }
         await connection.commit();
       } catch (error) {
         await connection.rollback();
@@ -2681,6 +2709,9 @@ export async function runMaintSync(options, dependencies = {}) {
       }
       if (shouldRetireStaleNpcItemSourceRows(scopes)) {
         summary.writes.retired += await retireStaleNpcItemSourceRows(writeConnection, recordKeysByTable);
+      }
+      if (shouldRetireStaleArmorAttributeRows(scopes)) {
+        summary.writes.retired += await retireStaleArmorAttributeRows(writeConnection, recordKeysByTable);
       }
       await writeConnection.commit();
     }
