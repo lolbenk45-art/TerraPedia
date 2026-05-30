@@ -235,6 +235,59 @@ export type PublicItemBuffEffect = {
   notes?: string | null
 }
 
+export type PublicItemArmorAttribute = {
+  id?: number | string | null
+  itemId?: number | string | null
+  item_id?: number | string | null
+  itemInternalName?: string | null
+  item_internal_name?: string | null
+  itemNameZh?: string | null
+  item_name_zh?: string | null
+  itemPageTitle?: string | null
+  item_page_title?: string | null
+  itemHref?: string | null
+  item_href?: string | null
+  sectionCode?: string | null
+  section_code?: string | null
+  slotGroup?: string | null
+  slot_group?: string | null
+  defenseValue?: number | string | null
+  defense_value?: number | string | null
+  rawCellsJson?: string | null
+  raw_cells_json?: string | null
+  sourceProvider?: string | null
+  source_provider?: string | null
+  sourcePage?: string | null
+  source_page?: string | null
+  sourceRevisionTimestamp?: string | null
+  source_revision_timestamp?: string | null
+}
+
+export type PublicItemEquipmentEffect = EquipmentEffectAttribute & {
+  id?: number | string | null
+  itemId?: number | string | null
+  item_id?: number | string | null
+  ownerKind?: string | null
+  owner_kind?: string | null
+  ownerKey?: string | null
+  owner_key?: string | null
+  sourceKind?: string | null
+  source_kind?: string | null
+  sourceLine?: string | null
+  source_line?: string | null
+  effectIndex?: number | string | null
+  effect_index?: number | string | null
+  apply_scope?: string | null
+  slot_type?: string | null
+  stat_key?: string | null
+  stat_label_zh?: string | null
+  class_scope?: string | null
+  value_decimal?: number | string | null
+  unit?: string | null
+  raw_text?: string | null
+  parse_status?: string | null
+}
+
 export type PublicItemRecipeTreeStation = {
   stationItemId?: number | string | null
   stationInternalName?: string | null
@@ -333,6 +386,8 @@ export type PublicItemDetailBundle = {
   images: PublicItemImage[]
   sources: PublicItemSource[]
   buffEffects: PublicItemBuffEffect[]
+  armorAttributes: PublicItemArmorAttribute[]
+  equipmentEffects: PublicItemEquipmentEffect[]
   recipeTree: PublicItemRecipeTree | null
   source: 'api' | 'missing'
 }

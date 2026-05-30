@@ -343,6 +343,58 @@ test('buildProjectionPayload maps equipment effect attributes into compact proje
   assert.equal(actual.projectionEquipmentEffectAttributes[1].statKey, 'move_speed');
 });
 
+test('buildProjectionPayload maps item armor attribute rows into item-owned projections', () => {
+  const actual = buildProjectionPayload({
+    relationArmorAttributeRows: [
+      {
+        recordKey: 'armor-attribute-hallowed-mask',
+        itemId: 559,
+        itemInternalName: 'HallowedMask',
+        itemNameZh: '神圣面具',
+        itemPageTitle: '神圣面具',
+        itemHref: '/zh/wiki/%E7%A5%9E%E5%9C%A3%E9%9D%A2%E5%85%B7',
+        sectionCode: 'hardmode',
+        slotGroup: 'head',
+        defenseValue: 24,
+        rawCellsJson: JSON.stringify({
+          meleeDamage: '10%',
+          meleeCritChance: '10%',
+          classSpecific: '10%'
+        }),
+        sourceProvider: 'terraria.wiki.gg',
+        sourcePage: '盔甲属性表',
+        sourceRevisionTimestamp: '2023-10-23T04:15:47Z',
+        reviewStatus: 'accepted'
+      }
+    ]
+  });
+
+  assert.deepEqual(actual.projectionItemArmorAttributes, [{
+    id: 1,
+    relationRecordKey: 'armor-attribute-hallowed-mask',
+    itemId: 559,
+    itemInternalName: 'HallowedMask',
+    itemNameZh: '神圣面具',
+    itemPageTitle: '神圣面具',
+    itemHref: '/zh/wiki/%E7%A5%9E%E5%9C%A3%E9%9D%A2%E5%85%B7',
+    sectionCode: 'hardmode',
+    slotGroup: 'head',
+    defenseValue: 24,
+    rawCellsJson: JSON.stringify({
+      meleeDamage: '10%',
+      meleeCritChance: '10%',
+      classSpecific: '10%'
+    }),
+    sourceProvider: 'terraria.wiki.gg',
+    sourcePage: '盔甲属性表',
+    sourceRevisionTimestamp: '2023-10-23T04:15:47Z',
+    status: 1,
+    deleted: 0,
+    createdAt: null,
+    updatedAt: null
+  }]);
+});
+
 test('buildProjectionPayload maps boss relations into a public-ready boss projection', () => {
   const actual = buildProjectionPayload({
     relationItems: [

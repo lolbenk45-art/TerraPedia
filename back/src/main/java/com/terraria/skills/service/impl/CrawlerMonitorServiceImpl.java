@@ -46,6 +46,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path WORLD_CONTEXT_FETCH_PROGRESS_FILE = Path.of("data", "generated", "wiki-world-contexts-progress.latest.json");
     private static final Path DOMAIN_SOURCE_BOSSES_PROGRESS_FILE = Path.of("data", "generated", "domain-source-bosses-progress.latest.json");
     private static final Path DOMAIN_SOURCE_ARMOR_SETS_PROGRESS_FILE = Path.of("data", "generated", "domain-source-armor-sets-progress.latest.json");
+    private static final Path DOMAIN_SOURCE_ARMOR_ATTRIBUTES_PROGRESS_FILE = Path.of("data", "generated", "domain-source-armor-attributes-progress.latest.json");
     private static final Path DOMAIN_SOURCE_SHIMMER_PROGRESS_FILE = Path.of("data", "generated", "domain-source-shimmer-progress.latest.json");
     private static final Path DOMAIN_SOURCE_TOWN_NPC_MAINTENANCE_PROGRESS_FILE = Path.of("data", "generated", "domain-source-town-npc-maintenance-progress.latest.json");
     private static final Path NPC_COVERAGE_REPORT = Path.of("data", "wiki-crawler", "report", "npc", "coverage-audit.latest.json");
@@ -754,6 +755,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         ReadResult worldContextFetchProgress = readProgressWithSharedFallback(repoRoot, WORLD_CONTEXT_FETCH_PROGRESS_FILE);
         ReadResult domainSourceBossesProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_BOSSES_PROGRESS_FILE).normalize());
         ReadResult domainSourceArmorSetsProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_ARMOR_SETS_PROGRESS_FILE).normalize());
+        ReadResult domainSourceArmorAttributesProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_ARMOR_ATTRIBUTES_PROGRESS_FILE).normalize());
         ReadResult domainSourceShimmerProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_SHIMMER_PROGRESS_FILE).normalize());
         ReadResult domainSourceTownNpcMaintenanceProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_TOWN_NPC_MAINTENANCE_PROGRESS_FILE).normalize());
         ReadResult npcCoverage = readJsonMap(repoRoot.resolve(NPC_COVERAGE_REPORT).normalize());
@@ -777,6 +779,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             DOMAIN_SOURCE_ARMOR_SETS_PROGRESS_FILE,
             "data/generated/wiki-armor-sets.latest.json",
             domainSourceArmorSetsProgress
+        ));
+        tasks.add(buildDomainSourceSnapshotTask(
+            repoRoot,
+            "domain-source-armor-attributes",
+            "Domain source: Armor attributes",
+            DOMAIN_SOURCE_ARMOR_ATTRIBUTES_PROGRESS_FILE,
+            "data/generated/wiki-armor-attributes.latest.json",
+            domainSourceArmorAttributesProgress
         ));
         tasks.add(buildDomainSourceSnapshotTask(
             repoRoot,

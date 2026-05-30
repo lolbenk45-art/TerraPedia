@@ -10,6 +10,7 @@ export const RELATION_TABLE_NAMES = [
   'relation_bosses',
   'relation_armor_sets',
   'relation_armor_set_items',
+  'relation_armor_attribute_rows',
   'relation_equipment_effect_attributes',
   'relation_item_rarities',
   'relation_item_images',
@@ -289,6 +290,25 @@ function buildTableStatements() {
   UNIQUE KEY \`uk_relation_armor_set_items_record_key\` (\`record_key\`),
   KEY \`idx_relation_armor_set_items_set\` (\`armor_set_record_key\`),
   KEY \`idx_relation_armor_set_items_item\` (\`item_source_id\`, \`item_internal_name\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+    `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`relation_armor_attribute_rows\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
+  \`item_id\` BIGINT DEFAULT NULL,
+  \`item_internal_name\` VARCHAR(255) DEFAULT NULL,
+  \`item_name_zh\` VARCHAR(255) DEFAULT NULL,
+  \`item_page_title\` VARCHAR(255) DEFAULT NULL,
+  \`item_href\` VARCHAR(1000) DEFAULT NULL,
+  \`section_code\` VARCHAR(64) DEFAULT NULL,
+  \`slot_group\` VARCHAR(64) DEFAULT NULL,
+  \`defense_value\` INT DEFAULT NULL,
+  \`raw_cells_json\` LONGTEXT,
+  ${TRACE_COLUMNS},
+  ${AUDIT_COLUMNS},
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_relation_armor_attribute_rows_record_key\` (\`record_key\`),
+  KEY \`idx_relation_armor_attribute_rows_item\` (\`item_id\`, \`item_internal_name\`),
+  KEY \`idx_relation_armor_attribute_rows_review\` (\`review_status\`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
     `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`relation_equipment_effect_attributes\` (
   \`id\` BIGINT NOT NULL AUTO_INCREMENT,

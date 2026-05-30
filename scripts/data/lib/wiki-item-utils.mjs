@@ -16,6 +16,27 @@ export const DEFAULT_SHARED_DATA_ROOT = resolveSharedDataRoot();
 const wikiRequestGate = createWikiRequestGate({
   userAgent: DEFAULT_WIKI_USER_AGENT
 });
+const BOOLEAN_CLI_OPTIONS = new Set([
+  'apply',
+  'allow-full-corpus',
+  'allow-local-item-image-fallback',
+  'allow-non-primary-db',
+  'allow-unsafe-empty-relation-input',
+  'clear-cooldown',
+  'create-database',
+  'dry-run',
+  'fail-on-blocked',
+  'fail-on-warning',
+  'keep-snapshot',
+  'print-checklist',
+  'print-sql',
+  'regenerate-bundle',
+  'resume',
+  'skip-buff-page-immunities',
+  'strict',
+  'with-recipes',
+  'write'
+]);
 
 export function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
@@ -32,14 +53,24 @@ export function sharedDataPath(...segments) {
 
 export function parseCliArgs(argv) {
   const options = {};
-  for (const arg of argv) {
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
     if (!arg.startsWith('--')) {
       continue;
     }
     const option = arg.slice(2);
     const separatorIndex = option.indexOf('=');
     if (separatorIndex === -1) {
-      options[option] = true;
+      const nextArg = argv[index + 1];
+      const booleanOptionKeepsNextArg = BOOLEAN_CLI_OPTIONS.has(option)
+        && nextArg != null
+        && !['true', 'false'].includes(String(nextArg).toLowerCase());
+      if (nextArg && !nextArg.startsWith('--') && !booleanOptionKeepsNextArg) {
+        options[option] = nextArg;
+        index += 1;
+      } else {
+        options[option] = true;
+      }
       continue;
     }
     const key = option.slice(0, separatorIndex);

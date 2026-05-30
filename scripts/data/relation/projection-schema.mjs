@@ -7,6 +7,7 @@ export const PROJECTION_TABLE_NAMES = [
   'projection_projectiles',
   'projection_buffs',
   'projection_armor_sets',
+  'projection_item_armor_attributes',
   'projection_equipment_effect_attributes'
 ];
 
@@ -217,6 +218,28 @@ function buildProjectionStatements() {
   \`updated_at\` DATETIME DEFAULT NULL,
   PRIMARY KEY (\`id\`),
   UNIQUE KEY \`uk_projection_armor_sets_text_key\` (\`text_key\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+    `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`projection_item_armor_attributes\` (
+  \`id\` BIGINT NOT NULL,
+  \`relation_record_key\` CHAR(64) COLLATE utf8mb4_bin DEFAULT NULL,
+  \`item_id\` BIGINT NOT NULL,
+  \`item_internal_name\` VARCHAR(255) DEFAULT NULL,
+  \`item_name_zh\` VARCHAR(255) DEFAULT NULL,
+  \`item_page_title\` VARCHAR(255) DEFAULT NULL,
+  \`item_href\` VARCHAR(1000) DEFAULT NULL,
+  \`section_code\` VARCHAR(64) DEFAULT NULL,
+  \`slot_group\` VARCHAR(64) DEFAULT NULL,
+  \`defense_value\` INT DEFAULT NULL,
+  \`raw_cells_json\` LONGTEXT,
+  \`source_provider\` VARCHAR(128) DEFAULT NULL,
+  \`source_page\` VARCHAR(255) DEFAULT NULL,
+  \`source_revision_timestamp\` DATETIME DEFAULT NULL,
+  \`status\` INT NOT NULL DEFAULT 1,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT NULL,
+  \`updated_at\` DATETIME DEFAULT NULL,
+  PRIMARY KEY (\`id\`),
+  KEY \`idx_projection_item_armor_attributes_item\` (\`item_id\`, \`item_internal_name\`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
     `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`projection_equipment_effect_attributes\` (
   \`id\` BIGINT NOT NULL,

@@ -50,6 +50,42 @@ test('item page plan passes explicit only-changed=false to fetch action', () => 
     assert.ok(!plan.actions[0].args.includes('--only-changed=true'));
 });
 
+test('armor attributes plan routes to the dedicated wiki armor attributes fetcher', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-sync-armor-attributes-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const manifestPath = path.join(tempDir, 'manifest.json');
+    const monitorStatePath = path.join(tempDir, 'monitor-state.json');
+    const planPath = path.join(tempDir, 'plan.json');
+    const progressPath = path.join(tempDir, 'progress.json');
+
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+    fs.writeFileSync(manifestPath, JSON.stringify({ records: [] }), 'utf8');
+    fs.writeFileSync(monitorStatePath, JSON.stringify({ sources: [{ key: 'seed' }] }), 'utf8');
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      '--mode=plan',
+      '--entity=armor_attributes',
+      `--manifest-path=${manifestPath}`,
+      `--monitor-state=${monitorStatePath}`,
+      `--plan-path=${planPath}`,
+      `--progress-path=${progressPath}`
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+      }
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const plan = JSON.parse(fs.readFileSync(planPath, 'utf8'));
+    assert.equal(plan.actions.length, 1);
+    assert.match(plan.actions[0].scriptPath, /fetch-wiki-armor-attributes\.mjs$/);
+    assert.deepEqual(plan.actions[0].titles, ['盔甲属性表']);
+});
+
 test('item page plan passes sample options to fetch action', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-sync-sample-'));
     const worktreeRoot = path.join(tempDir, 'feature-worktree');

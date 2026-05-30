@@ -2,8 +2,10 @@ package com.terraria.skills.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.terraria.skills.common.PageQuery;
+import com.terraria.skills.dto.PublicItemArmorAttributeDTO;
 import com.terraria.skills.dto.PublicItemBuffEffectDTO;
 import com.terraria.skills.dto.PublicItemDetailDTO;
+import com.terraria.skills.dto.PublicItemEquipmentEffectDTO;
 import com.terraria.skills.dto.PublicItemListDTO;
 import com.terraria.skills.dto.PublicItemSuggestionDTO;
 
@@ -18,4 +20,8 @@ public interface PublicItemService {
     List<PublicItemSuggestionDTO> searchSuggestions(String keyword, int limit);
 
     List<PublicItemBuffEffectDTO> getPublicItemBuffEffects(Long id);
+
+    List<PublicItemArmorAttributeDTO> getPublicItemArmorAttributes(Long id);
+
+    List<PublicItemEquipmentEffectDTO> getPublicItemEquipmentEffects(Long id);
 }

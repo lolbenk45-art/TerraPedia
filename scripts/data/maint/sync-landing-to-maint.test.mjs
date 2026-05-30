@@ -108,6 +108,86 @@ test('extractMaintEntitiesFromLandingRow preserves explicit zero-valued item fac
   assert.equal(row.majorValue, 0);
 });
 
+test('extractMaintEntitiesFromLandingRow expands armor attribute rows with linked item identity', async () => {
+  const landingRow = {
+    id: 51,
+    dataset_type: 'armor_attributes_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: '盔甲属性表',
+    source_key: 'wiki.page.armor_attributes',
+    source_revision_timestamp: '2023-10-23T04:15:47Z',
+    content_hash: 'g'.repeat(64),
+    fetched_at: '2026-05-30T10:00:00Z',
+    parsed_at: '2026-05-30T10:00:00Z',
+    payload_json: JSON.stringify({
+      sourcePageTitle: '盔甲属性表',
+      sourceRevisionTimestamp: '2023-10-23T04:15:47Z',
+      generatedAt: '2026-05-30T10:00:00Z',
+      records: [{
+        sectionCode: 'hardmode',
+        slotGroup: 'head',
+        itemPageTitle: '神圣面具',
+        itemHref: '/zh/wiki/%E7%A5%9E%E5%9C%A3%E9%9D%A2%E5%85%B7',
+        itemNameZh: '神圣面具',
+        defenseValue: 24,
+        rawCells: {
+          meleeDamage: '10%',
+          meleeCritChance: '10%',
+          classSpecific: '10%',
+          otherBonus: ''
+        },
+        sourceRevisionTimestamp: '2023-10-23T04:15:47Z'
+      }]
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+
+  assert.equal(actual.scope, 'armor_attributes');
+  assert.equal(actual.rows.length, 1);
+  assert.deepEqual(actual.rows[0], {
+    scope: 'armor_attributes',
+    tableName: 'maint_armor_attribute_rows',
+    recordKey: actual.rows[0].recordKey,
+    sectionCode: 'hardmode',
+    slotGroup: 'head',
+    itemPageTitle: '神圣面具',
+    itemHref: '/zh/wiki/%E7%A5%9E%E5%9C%A3%E9%9D%A2%E5%85%B7',
+    itemNameZh: '神圣面具',
+    defenseValue: 24,
+    rawCellsJson: JSON.stringify({
+      meleeDamage: '10%',
+      meleeCritChance: '10%',
+      classSpecific: '10%',
+      otherBonus: ''
+    }),
+    sourceProvider: 'terraria.wiki.gg',
+    sourcePage: '盔甲属性表',
+    sourceRevisionTimestamp: '2023-10-23T04:15:47Z',
+    landingSourceId: 51,
+    landingSourceKey: 'wiki.page.armor_attributes',
+    landingSourcePage: '盔甲属性表',
+    landingContentHash: 'g'.repeat(64),
+    landingFetchedAt: '2026-05-30T10:00:00Z',
+    landingParsedAt: '2026-05-30T10:00:00Z',
+    rawJson: JSON.stringify({
+      sectionCode: 'hardmode',
+      slotGroup: 'head',
+      itemPageTitle: '神圣面具',
+      itemHref: '/zh/wiki/%E7%A5%9E%E5%9C%A3%E9%9D%A2%E5%85%B7',
+      itemNameZh: '神圣面具',
+      defenseValue: 24,
+      rawCells: {
+        meleeDamage: '10%',
+        meleeCritChance: '10%',
+        classSpecific: '10%',
+        otherBonus: ''
+      },
+      sourceRevisionTimestamp: '2023-10-23T04:15:47Z'
+    }),
+  });
+});
+
 test('extractMaintEntitiesFromLandingRow expands parsed npc payload into maint npc rows', async () => {
   const npcLandingRow = {
     id: 21,

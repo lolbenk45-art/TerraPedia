@@ -3,9 +3,11 @@ import RecipeSummaryCard from '~/components/crafting/RecipeSummaryCard.vue'
 import { usePublicItemDetail } from '~/composables/usePublicItemDetail'
 import { formatTerrariaPrice, toPriceNumber } from '~/utils/price'
 import type {
+  PublicItemArmorAttribute,
   PublicItemBuffEffect,
   PublicItemDetail,
   PublicItemDetailBundle,
+  PublicItemEquipmentEffect,
   PublicItemImage,
   PublicItemRecipeTree,
   PublicItemRecipeTreeVariant,
@@ -315,6 +317,85 @@ const buffEffectEntries = computed(() => rawBundle.value.buffEffects.map((effect
   }
 }))
 
+const slotGroupLabel = (slotGroup: unknown) => {
+  const key = firstText(slotGroup).toLowerCase()
+  const labels: Record<string, string> = {
+    head: '头部',
+    body: '胸甲',
+    legs: '腿部',
+  }
+
+  return labels[key] || safeItemDisplayText(slotGroup) || '装备部位'
+}
+
+const classScopeLabel = (classScope: unknown) => {
+  const key = firstText(classScope).toLowerCase()
+  const labels: Record<string, string> = {
+    all: '全职业',
+    melee: '近战',
+    ranged: '远程',
+    magic: '魔法',
+    summon: '召唤',
+    sentry: '哨兵',
+    movement: '移动',
+    defense: '防御',
+  }
+
+  return labels[key] || safeItemDisplayText(classScope) || '装备'
+}
+
+const equipmentEffectValueLabel = (effect: PublicItemEquipmentEffect) => {
+  const raw = safeItemDisplayText(effect.rawText, effect.raw_text)
+  if (raw) return raw
+
+  const value = Number(effect.valueDecimal ?? effect.value_decimal)
+  if (!Number.isFinite(value)) return ''
+
+  const unit = firstText(effect.unit).toLowerCase()
+  const numberText = Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, '')
+
+  if (unit === 'percent') return `${numberText}%`
+  return numberText
+}
+
+const equipmentEffectLabel = (effect: PublicItemEquipmentEffect) => {
+  const explicit = safeItemDisplayText(effect.statLabelZh, effect.stat_label_zh)
+  if (explicit) return explicit
+
+  const key = firstText(effect.statKey, effect.stat_key).toLowerCase()
+  const labels: Record<string, string> = {
+    damage_bonus: '伤害',
+    crit_chance: '暴击率',
+    melee_speed: '近战速度',
+    move_speed: '移动速度',
+    defense: '防御',
+    mana_cost: '魔力消耗',
+    minion_capacity: '仆从上限',
+  }
+
+  return labels[key] || '装备加成'
+}
+
+const armorAttributeEntries = computed(() => rawBundle.value.armorAttributes.map((row: PublicItemArmorAttribute, index) => ({
+  id: firstText(row.id, row.itemId, row.item_id, index),
+  name: safeItemDisplayText(row.itemNameZh, row.item_name_zh, row.itemPageTitle, row.item_page_title) || itemName.value,
+  slot: slotGroupLabel(row.slotGroup ?? row.slot_group),
+  defense: firstNumberText(row.defenseValue, row.defense_value),
+})))
+
+const equipmentEffectEntries = computed(() => rawBundle.value.equipmentEffects
+  .filter((effect: PublicItemEquipmentEffect) => firstText(effect.parseStatus, effect.parse_status, 'parsed') === 'parsed')
+  .map((effect: PublicItemEquipmentEffect, index) => ({
+    id: firstText(effect.id, effect.effectIndex, effect.effect_index, index),
+    label: equipmentEffectLabel(effect),
+    scope: classScopeLabel(effect.classScope ?? effect.class_scope),
+    value: equipmentEffectValueLabel(effect),
+    raw: safeItemDisplayText(effect.rawText, effect.raw_text),
+  }))
+  .filter((effect) => effect.value || effect.raw))
+
+const itemEquipmentAttributeCount = computed(() => armorAttributeEntries.value.length + equipmentEffectEntries.value.length)
+
 const recipeTreeVariants = computed(() => {
   const tree: PublicItemRecipeTree | null = rawBundle.value.recipeTree
   const variants = Array.isArray(tree?.variants) ? tree.variants : []
@@ -395,7 +476,7 @@ const itemHasPrice = computed(() => (
 
 const statRows = computed(() => [
   { label: '伤害', value: firstNumberText(detailItem.value?.damage, detailItem.value?.baseDamage) },
-  { label: '防御', value: firstNumberText(detailItem.value?.defense) },
+  { label: '防御', value: firstNumberText(armorAttributeEntries.value[0]?.defense, detailItem.value?.defense) },
   { label: '击退', value: firstNumberText(detailItem.value?.knockback, detailItem.value?.knockBack) },
   { label: '使用时间', value: firstNumberText(detailItem.value?.useTime, detailItem.value?.useAnimation) },
   { label: '最大堆叠', value: firstNumberText(detailItem.value?.stackSize, detailItem.value?.maxStack) },
@@ -412,6 +493,7 @@ const itemCoverageRows = computed(() => [
   { label: '价格', value: itemHasPrice.value ? '可查看' : '暂无价格' },
   { label: '来源', value: sourceEntries.value.length ? `${sourceEntries.value.length} 条来源记录` : '暂无来源' },
   { label: '状态效果', value: buffEffectEntries.value.length ? `${buffEffectEntries.value.length} 条状态效果` : '暂无状态效果' },
+  { label: '装备属性', value: itemEquipmentAttributeCount.value ? `${itemEquipmentAttributeCount.value} 条装备属性` : '暂无装备属性' },
   { label: '制作', value: recipeTreeSummary.value ? '可查看制作路线' : '暂无制作资料' },
   { label: '图片', value: imageEntries.value.length ? `${imageEntries.value.length} 张图片` : '暂无图片' },
 ])
@@ -503,6 +585,28 @@ onMounted(() => {
             <p v-else class="tp-detail-empty">还没有可展示的配方、材料或制作站记录。</p>
             <p v-if="recipeTreeSummary?.note">{{ recipeTreeSummary.note }}</p>
             <a v-if="recipeTreeSummary" class="primary-button item-recipe-summary-link" :href="`/crafting?itemId=${itemId}&maxDepth=3`">查看完整制作树</a>
+          </section>
+
+          <section :class="['detail-module dark-card item-equipment-attribute-module', detailLayout.detailModuleClass]">
+            <div class="module-title">
+              <h2>装备属性</h2>
+              <span class="tag gold">{{ itemEquipmentAttributeCount }} 条</span>
+            </div>
+            <div v-if="armorAttributeEntries.length" class="armor-attribute-summary">
+              <div v-for="row in armorAttributeEntries" :key="String(row.id)" class="armor-attribute-row">
+                <span>{{ row.slot }}</span>
+                <b>{{ row.defense || '0' }}</b>
+                <small>{{ row.name }}</small>
+              </div>
+            </div>
+            <div v-if="equipmentEffectEntries.length" class="equipment-effect-grid">
+              <div v-for="effect in equipmentEffectEntries" :key="String(effect.id)" class="equipment-effect-chip">
+                <span>{{ effect.scope }}</span>
+                <b>{{ effect.value }}</b>
+                <small>{{ effect.label }}</small>
+              </div>
+            </div>
+            <p v-if="!itemEquipmentAttributeCount" class="tp-detail-empty">暂无装备属性。</p>
           </section>
 
           <section :class="['detail-module dark-card item-source-module', detailLayout.detailModuleClass]">
@@ -670,10 +774,56 @@ onMounted(() => {
 
 .item-source-module,
 .item-buff-effect-module,
+.item-equipment-attribute-module,
 .grouped-source-list,
 .item-source-group {
   display: grid;
   gap: 12px;
+}
+
+.armor-attribute-summary,
+.equipment-effect-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.armor-attribute-row,
+.equipment-effect-chip {
+  display: grid;
+  grid-template-columns: minmax(72px, 0.8fr) auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  background: var(--index-surface);
+  padding: 10px 12px;
+}
+
+.armor-attribute-row span,
+.equipment-effect-chip span {
+  color: var(--text-subtle);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.armor-attribute-row b,
+.equipment-effect-chip b {
+  color: var(--text-strong);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.armor-attribute-row small,
+.equipment-effect-chip small {
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .item-buff-effect-row {
@@ -760,6 +910,16 @@ onMounted(() => {
   .detail-relation-meta {
     grid-column: 2;
     justify-self: start;
+  }
+
+  .armor-attribute-row,
+  .equipment-effect-chip {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .armor-attribute-row small,
+  .equipment-effect-chip small {
+    grid-column: 1 / -1;
   }
 }
 </style>

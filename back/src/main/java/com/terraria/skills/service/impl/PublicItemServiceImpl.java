@@ -3,8 +3,10 @@ package com.terraria.skills.service.impl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.terraria.skills.common.PageQuery;
 import com.terraria.skills.dto.CategoryDTO;
+import com.terraria.skills.dto.PublicItemArmorAttributeDTO;
 import com.terraria.skills.dto.PublicItemBuffEffectDTO;
 import com.terraria.skills.dto.PublicItemDetailDTO;
+import com.terraria.skills.dto.PublicItemEquipmentEffectDTO;
 import com.terraria.skills.dto.PublicItemListDTO;
 import com.terraria.skills.dto.PublicItemSuggestionDTO;
 import com.terraria.skills.mapper.ItemMapper;
@@ -68,6 +70,52 @@ public class PublicItemServiceImpl implements PublicItemService {
             AND ibr.deleted = 0
             AND ibr.relation_type = 'buff_source_item'
         ORDER BY ibr.id ASC
+        """;
+
+    static final String ITEM_ARMOR_ATTRIBUTES_SQL = """
+        SELECT
+            id AS id,
+            item_id AS itemId,
+            item_internal_name AS itemInternalName,
+            item_name_zh AS itemNameZh,
+            item_page_title AS itemPageTitle,
+            item_href AS itemHref,
+            section_code AS sectionCode,
+            slot_group AS slotGroup,
+            defense_value AS defenseValue,
+            raw_cells_json AS rawCellsJson,
+            source_provider AS sourceProvider,
+            source_page AS sourcePage,
+            source_revision_timestamp AS sourceRevisionTimestamp
+        FROM `terria_v1_relation`.`projection_item_armor_attributes`
+        WHERE item_id = ?
+        ORDER BY slot_group ASC, id ASC
+        """;
+
+    static final String ITEM_EQUIPMENT_EFFECTS_SQL = """
+        SELECT
+            id AS id,
+            owner_id AS itemId,
+            item_internal_name AS itemInternalName,
+            owner_kind AS ownerKind,
+            owner_key AS ownerKey,
+            source_kind AS sourceKind,
+            source_line AS sourceLine,
+            effect_index AS effectIndex,
+            apply_scope AS applyScope,
+            slot_type AS slotType,
+            stat_key AS statKey,
+            stat_label_zh AS statLabelZh,
+            class_scope AS classScope,
+            operation AS operation,
+            value_decimal AS valueDecimal,
+            unit AS unit,
+            raw_text AS rawText,
+            parse_status AS parseStatus
+        FROM `terria_v1_relation`.`projection_equipment_effect_attributes`
+        WHERE owner_kind = 'item'
+            AND owner_id = ?
+        ORDER BY effect_index ASC, id ASC
         """;
 
     private final ItemMapper itemMapper;
@@ -144,6 +192,22 @@ public class PublicItemServiceImpl implements PublicItemService {
         return jdbcTemplate.query(ITEM_BUFF_EFFECTS_SQL, this::mapPublicItemBuffEffect, id);
     }
 
+    @Override
+    public List<PublicItemArmorAttributeDTO> getPublicItemArmorAttributes(Long id) {
+        if (id == null) {
+            return List.of();
+        }
+        return jdbcTemplate.query(ITEM_ARMOR_ATTRIBUTES_SQL, this::mapPublicItemArmorAttribute, id);
+    }
+
+    @Override
+    public List<PublicItemEquipmentEffectDTO> getPublicItemEquipmentEffects(Long id) {
+        if (id == null) {
+            return List.of();
+        }
+        return jdbcTemplate.query(ITEM_EQUIPMENT_EFFECTS_SQL, this::mapPublicItemEquipmentEffect, id);
+    }
+
     public String buildPublicListCacheKey(PageQuery pageQuery) {
         int page = pageQuery == null || pageQuery.getPage() < 1 ? 1 : pageQuery.getPage();
         int limit = pageQuery == null || pageQuery.getLimit() < 1 ? 20 : pageQuery.getLimit();
@@ -203,6 +267,47 @@ public class PublicItemServiceImpl implements PublicItemService {
         dto.setChanceValue(nullableBigDecimal(resultSet, "chanceValue"));
         dto.setChanceText(trimToNull(resultSet.getString("chanceText")));
         dto.setConditions(trimToNull(resultSet.getString("conditions")));
+        return dto;
+    }
+
+    PublicItemArmorAttributeDTO mapPublicItemArmorAttribute(ResultSet resultSet, int rowNum) throws SQLException {
+        PublicItemArmorAttributeDTO dto = new PublicItemArmorAttributeDTO();
+        dto.setId(nullableLong(resultSet, "id"));
+        dto.setItemId(nullableLong(resultSet, "itemId"));
+        dto.setItemInternalName(trimToNull(resultSet.getString("itemInternalName")));
+        dto.setItemNameZh(trimToNull(resultSet.getString("itemNameZh")));
+        dto.setItemPageTitle(trimToNull(resultSet.getString("itemPageTitle")));
+        dto.setItemHref(trimToNull(resultSet.getString("itemHref")));
+        dto.setSectionCode(trimToNull(resultSet.getString("sectionCode")));
+        dto.setSlotGroup(trimToNull(resultSet.getString("slotGroup")));
+        dto.setDefenseValue(nullableInteger(resultSet, "defenseValue"));
+        dto.setRawCellsJson(trimToNull(resultSet.getString("rawCellsJson")));
+        dto.setSourceProvider(trimToNull(resultSet.getString("sourceProvider")));
+        dto.setSourcePage(trimToNull(resultSet.getString("sourcePage")));
+        dto.setSourceRevisionTimestamp(trimToNull(resultSet.getString("sourceRevisionTimestamp")));
+        return dto;
+    }
+
+    PublicItemEquipmentEffectDTO mapPublicItemEquipmentEffect(ResultSet resultSet, int rowNum) throws SQLException {
+        PublicItemEquipmentEffectDTO dto = new PublicItemEquipmentEffectDTO();
+        dto.setId(nullableLong(resultSet, "id"));
+        dto.setItemId(nullableLong(resultSet, "itemId"));
+        dto.setItemInternalName(trimToNull(resultSet.getString("itemInternalName")));
+        dto.setOwnerKind(trimToNull(resultSet.getString("ownerKind")));
+        dto.setOwnerKey(trimToNull(resultSet.getString("ownerKey")));
+        dto.setSourceKind(trimToNull(resultSet.getString("sourceKind")));
+        dto.setSourceLine(trimToNull(resultSet.getString("sourceLine")));
+        dto.setEffectIndex(nullableInteger(resultSet, "effectIndex"));
+        dto.setApplyScope(trimToNull(resultSet.getString("applyScope")));
+        dto.setSlotType(trimToNull(resultSet.getString("slotType")));
+        dto.setStatKey(trimToNull(resultSet.getString("statKey")));
+        dto.setStatLabelZh(trimToNull(resultSet.getString("statLabelZh")));
+        dto.setClassScope(trimToNull(resultSet.getString("classScope")));
+        dto.setOperation(trimToNull(resultSet.getString("operation")));
+        dto.setValueDecimal(nullableBigDecimal(resultSet, "valueDecimal"));
+        dto.setUnit(trimToNull(resultSet.getString("unit")));
+        dto.setRawText(trimToNull(resultSet.getString("rawText")));
+        dto.setParseStatus(trimToNull(resultSet.getString("parseStatus")));
         return dto;
     }
 

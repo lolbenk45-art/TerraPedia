@@ -505,6 +505,8 @@ const requiredPublicDataLayerMarkers = {
     'export type PublicItemDetail',
     'export type PublicItemImage',
     'export type PublicItemSource',
+    'export type PublicItemArmorAttribute',
+    'export type PublicItemEquipmentEffect',
     'export type PublicItemRecipeTree',
     'export type PublicItemDetailBundle',
     'export type PublicItemQuery',
@@ -562,7 +564,11 @@ const requiredPublicDataLayerMarkers = {
     '/public/items/${normalizedItemId}/sources',
     '/public/items/${normalizedItemId}/recipe-tree',
     '/public/items/${normalizedItemId}/buff-effects',
+    '/public/items/${normalizedItemId}/armor-attributes',
+    '/public/items/${normalizedItemId}/equipment-effects',
     'rawBuffEffects',
+    'rawArmorAttributes',
+    'rawEquipmentEffects',
     'resolvePreviewImageUrl',
     'source: \'missing\'',
   ],
@@ -1892,6 +1898,9 @@ for (const path of scanFiles) {
       'imageEntries',
       'sourceEntryGroups',
       'buffEffectEntries',
+      'armorAttributeEntries',
+      'equipmentEffectEntries',
+      'itemEquipmentAttributeCount',
       'itemCoverageRows',
       'itemDescriptionSourceText',
       'itemHasPrice',
@@ -1901,6 +1910,7 @@ for (const path of scanFiles) {
       '制作路线',
       '来源分组',
       '状态效果',
+      '装备属性',
       '来源物品',
       '效果来源已确认',
       '图片画廊',
@@ -1929,6 +1939,10 @@ for (const path of scanFiles) {
 
     if (!content.includes('rawBundle.value.buffEffects') || !content.includes('buffEffectEntries.value.length')) {
       violations.push(`${path}: item detail page must derive status-effect UI from public buffEffects bundle data`)
+    }
+
+    if (!content.includes('rawBundle.value.armorAttributes') || !content.includes('rawBundle.value.equipmentEffects')) {
+      violations.push(`${path}: item detail page must derive equipment attribute UI from public armor/equipment bundle data`)
     }
 
     if (content.includes("'资料未标注'") || content.includes('"资料未标注"')) {

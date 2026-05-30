@@ -25,12 +25,14 @@ test('buildMaintSchemaSql creates all maint tables', () => {
     'maint_recipe_page_recipes',
     'maint_item_recipes',
     'maint_item_sources',
+    'maint_backfill_candidates',
     'maint_item_biomes',
     'maint_source_snapshots',
     'maint_bosses',
     'maint_biomes',
     'maint_armor_sets',
     'maint_armor_set_images',
+    'maint_armor_attribute_rows',
     'maint_categories',
     'maint_item_categories',
     'maint_category_nodes',
@@ -66,6 +68,11 @@ test('buildMaintSchemaSql creates all maint tables', () => {
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_biomes`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_armor_sets`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_armor_set_images`/);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_armor_attribute_rows`/);
+  assert.match(sql, /`item_page_title` VARCHAR\(255\) DEFAULT NULL/);
+  assert.match(sql, /`slot_group` VARCHAR\(64\) DEFAULT NULL/);
+  assert.match(sql, /`defense_value` INT DEFAULT NULL/);
+  assert.match(sql, /`raw_cells_json` LONGTEXT DEFAULT NULL/);
   assert.match(sql, /`image_role` VARCHAR\(64\) DEFAULT NULL/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_categories`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_categories`/);

@@ -641,6 +641,7 @@ export function buildProjectionPayload({
   relationArmorSets = [],
   relationArmorSetItems = [],
   relationArmorSetImages = [],
+  relationArmorAttributeRows = [],
   relationEquipmentEffectAttributes = [],
   managedImageUrlPrefixes = []
 } = {}) {
@@ -1222,6 +1223,35 @@ export function buildProjectionPayload({
       };
     });
 
+  const projectionItemArmorAttributes = relationArmorAttributeRows
+    .filter((row) => toNullableNumber(coalesceDefined(row.itemId, row.item_id)) != null)
+    .slice()
+    .sort((left, right) => {
+      const leftKey = String(coalesceDefined(left.recordKey, left.record_key) ?? '');
+      const rightKey = String(coalesceDefined(right.recordKey, right.record_key) ?? '');
+      return leftKey.localeCompare(rightKey);
+    })
+    .map((row, index) => ({
+      id: index + 1,
+      relationRecordKey: coalesceDefined(row.recordKey, row.record_key) ?? null,
+      itemId: toNullableNumber(coalesceDefined(row.itemId, row.item_id)),
+      itemInternalName: coalesceDefined(row.itemInternalName, row.item_internal_name) ?? null,
+      itemNameZh: coalesceDefined(row.itemNameZh, row.item_name_zh) ?? null,
+      itemPageTitle: coalesceDefined(row.itemPageTitle, row.item_page_title) ?? null,
+      itemHref: coalesceDefined(row.itemHref, row.item_href) ?? null,
+      sectionCode: coalesceDefined(row.sectionCode, row.section_code) ?? null,
+      slotGroup: coalesceDefined(row.slotGroup, row.slot_group) ?? null,
+      defenseValue: toNullableNumber(coalesceDefined(row.defenseValue, row.defense_value)),
+      rawCellsJson: coalesceDefined(row.rawCellsJson, row.raw_cells_json) ?? null,
+      sourceProvider: coalesceDefined(row.sourceProvider, row.source_provider) ?? null,
+      sourcePage: coalesceDefined(row.sourcePage, row.source_page) ?? null,
+      sourceRevisionTimestamp: coalesceDefined(row.sourceRevisionTimestamp, row.source_revision_timestamp) ?? null,
+      status: 1,
+      deleted: 0,
+      createdAt: null,
+      updatedAt: null
+    }));
+
   return {
     projectionItems,
     projectionNpcs,
@@ -1229,6 +1259,7 @@ export function buildProjectionPayload({
     projectionProjectiles,
     projectionBuffs,
     projectionArmorSets,
+    projectionItemArmorAttributes,
     projectionEquipmentEffectAttributes
   };
 }
