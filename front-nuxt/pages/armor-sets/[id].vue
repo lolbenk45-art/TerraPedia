@@ -37,6 +37,26 @@ const statLabels: Record<string, string> = {
   special_effect: '特效',
 }
 
+const statVisuals: Record<string, { label: string, tone: string }> = {
+  damage_bonus: { label: '伤害加成', tone: 'is-offense' },
+  crit_chance: { label: '暴击率', tone: 'is-offense' },
+  move_speed: { label: '移动速度', tone: 'is-mobility' },
+  melee_speed: { label: '近战速度', tone: 'is-mobility' },
+  summon_damage: { label: '召唤伤害', tone: 'is-summon' },
+  minion_capacity: { label: '仆从容量', tone: 'is-summon' },
+  ammo_conservation: { label: '弹药节省', tone: 'is-offense' },
+  defense: { label: '防御', tone: 'is-defense' },
+  mana_max: { label: '魔力上限', tone: 'is-resource' },
+  mana_cost: { label: '魔力消耗', tone: 'is-resource' },
+  mining_speed: { label: '挖矿速度', tone: 'is-mobility' },
+  special_effect: { label: '特殊效果', tone: 'is-special' },
+}
+
+const statVisualMeta = (effect: EquipmentEffectAttribute) => {
+  const key = String(effect.statKey ?? '')
+  return statVisuals[key] ?? { label: statName(effect), tone: effectToneClass(effect) }
+}
+
 const formatEffectValue = (effect: EquipmentEffectAttribute) => {
   const numeric = Number(effect.valueDecimal)
   if (!Number.isFinite(numeric)) return ''
@@ -88,6 +108,17 @@ const effectScopeLabel = (effect: EquipmentEffectAttribute) => {
   ].join(' / ')
 }
 
+const effectSourceKind = (effect: EquipmentEffectAttribute) => {
+  const applyScope = String(effect.applyScope ?? '').trim().toLowerCase()
+  if (effect.itemInternalName || effect.slotType) return 'piece'
+  if (/item|piece|part|head|body|chest|leg|helmet|mask|shirt|pants/.test(applyScope)) return 'piece'
+  return 'set'
+}
+
+const effectSourceLabel = (effect: EquipmentEffectAttribute) => (
+  effectSourceKind(effect) === 'piece' ? '单件效果' : '套装效果'
+)
+
 const playerEffectDescription = (effect: EquipmentEffectAttribute) => (
   String(effect.conditionText ?? effect.variantLabel ?? effect.rawText ?? '').trim() || '套装效果'
 )
@@ -109,6 +140,15 @@ const armorPieceRoleOrder = (role: string) => {
   if (role === '胸甲') return 1
   if (role === '腿部') return 2
   return 3
+}
+
+const armorHeadVariantOrder = (item: PublicArmorSetRelatedItem) => {
+  const text = `${item.nameZh ?? ''} ${item.name ?? ''} ${item.internalName ?? ''}`.toLowerCase()
+  if (/头饰|headgear/.test(text)) return 0
+  if (/面具|mask/.test(text)) return 1
+  if (/头盔|helmet/.test(text)) return 2
+  if (/兜帽|hood/.test(text)) return 3
+  return 10
 }
 
 const armorBenefitLines = computed(() => {
@@ -171,11 +211,283 @@ const armorStatGroups = computed(() => {
     }))
 })
 
+const groupEffectsByStat = (effects: EquipmentEffectAttribute[]) => {
+  const grouped = new Map<string, EquipmentEffectAttribute[]>()
+  for (const effect of effects) {
+    const groupKey = effectStatGroup(effect)
+    grouped.set(groupKey, [...(grouped.get(groupKey) ?? []), effect])
+  }
+
+  return statGroupOrder
+    .filter((key) => grouped.has(key))
+    .map((key) => ({
+      key,
+      label: statGroupLabels[key] ?? key,
+      effects: grouped.get(key) ?? [],
+    }))
+}
+
+const armorEffectSections = computed(() => {
+  const setEffects = armorShownEffects.value.filter((effect) => effectSourceKind(effect) === 'set')
+
+  if (!setEffects.length) return []
+
+  return [{
+    key: 'set',
+    label: '套装效果',
+    description: '穿齐套装后触发的整体加成。',
+    effects: setEffects,
+    groups: groupEffectsByStat(setEffects),
+  }]
+})
+
 const asStringArray = (value: unknown): string[] => Array.isArray(value) ? value.map((entry) => String(entry ?? '').trim()).filter(Boolean) : []
 const asRelatedItems = (value: unknown): PublicArmorSetRelatedItem[] => Array.isArray(value)
   ? value.filter((entry): entry is PublicArmorSetRelatedItem => Boolean(entry && typeof entry === 'object' && !Array.isArray(entry)))
   : []
 const armorRelatedItems = computed(() => asRelatedItems(armorRaw.value?.relatedItems ?? armorRaw.value?.related_items))
+
+const normalizeMatchText = (value: string) => value
+  .toLowerCase()
+  .replace(/[()\[\]（）【】·・.'"]/g, '')
+  .replace(/\s+/g, '')
+
+const statLinkedItem = (effect: EquipmentEffectAttribute) => {
+  const haystack = normalizeMatchText([
+    effect.rawText,
+    effect.conditionText,
+    effect.variantLabel,
+  ].map((value) => String(value ?? '').trim()).filter(Boolean).join(' '))
+
+  if (!haystack) return null
+
+  return armorRelatedItems.value.find((item) => {
+    const image = String(item.image ?? '').trim()
+    if (!image) return false
+
+    return [
+      item.nameZh,
+      item.name,
+      item.internalName,
+    ]
+      .map((value) => normalizeMatchText(String(value ?? '').trim()))
+      .filter((value) => value.length >= 2)
+      .some((name) => haystack.includes(name))
+  }) ?? null
+}
+
+const armorPieceEffectGroups = computed(() => {
+  const groups = new Map<string, { item: PublicArmorSetRelatedItem | null, effects: EquipmentEffectAttribute[] }>()
+  const unmatchedKey = 'unmatched-piece-effects'
+
+  for (const effect of armorShownEffects.value.filter((entry) => effectSourceKind(entry) === 'piece')) {
+    const item = statLinkedItem(effect)
+    const key = item
+      ? String(item.itemId ?? item.sourceId ?? item.internalName ?? armorPieceName(item)).trim()
+      : unmatchedKey
+    const safeKey = key || unmatchedKey
+    const current = groups.get(safeKey) ?? { item, effects: [] }
+    current.effects.push(effect)
+    groups.set(safeKey, current)
+  }
+
+  return [...groups.entries()]
+    .map(([key, group]) => ({
+      key,
+      item: group.item,
+      title: group.item ? armorPieceName(group.item) : '未匹配部件',
+      subtitle: group.item ? armorPieceRole(group.item) : '需要补充来源物品',
+      effects: group.effects,
+    }))
+    .sort((left, right) => {
+      const leftOrder = left.item ? armorPieceRoleOrder(armorPieceRole(left.item)) : 99
+      const rightOrder = right.item ? armorPieceRoleOrder(armorPieceRole(right.item)) : 99
+      return leftOrder - rightOrder || left.title.localeCompare(right.title, 'zh-Hans-CN')
+    })
+})
+
+const armorVariantBuilds = computed(() => {
+  const headItems = armorRelatedItems.value
+    .filter((item) => armorPieceRole(item) === '头部')
+    .sort((left, right) => armorHeadVariantOrder(left) - armorHeadVariantOrder(right) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
+  const bodyItems = armorRelatedItems.value.filter((item) => armorPieceRole(item) === '胸甲')
+  const legItems = armorRelatedItems.value.filter((item) => armorPieceRole(item) === '腿部')
+  const setEffects = armorShownEffects.value.filter((effect) => effectSourceKind(effect) === 'set')
+  const spriteImage = asStringArray(armorRaw.value?.maleImages ?? armorRaw.value?.male_images)[0] ?? armorPrimaryPreview.value
+  const total = Math.max(headItems.length, 1)
+
+  return headItems.map((headItem, index) => {
+    const linkedItems = [
+      headItem,
+      ...bodyItems,
+      ...legItems,
+    ]
+    const itemKeys = linkedItems.map((item) => normalizeMatchText([
+      item.nameZh,
+      item.name,
+      item.internalName,
+    ].map((value) => String(value ?? '').trim()).filter(Boolean).join(' '))).filter(Boolean)
+    const pieceEffects = armorShownEffects.value.filter((effect) => {
+      if (effectSourceKind(effect) !== 'piece') return false
+      const linkedItem = statLinkedItem(effect)
+      if (linkedItem && linkedItems.some((item) => item === linkedItem)) return true
+      const text = normalizeMatchText([
+        effect.rawText,
+        effect.conditionText,
+        effect.variantLabel,
+        effect.itemInternalName,
+      ].map((value) => String(value ?? '').trim()).filter(Boolean).join(' '))
+      return itemKeys.some((key) => text.includes(key))
+    })
+
+    return {
+      key: String(headItem.itemId ?? headItem.sourceId ?? headItem.internalName ?? armorPieceName(headItem)),
+      title: armorPieceName(headItem),
+      subtitle: linkedItems.map(armorPieceName).join(' / '),
+      spriteImage,
+      spriteIndex: index,
+      spriteTotal: total,
+      items: linkedItems,
+      effects: [...pieceEffects, ...setEffects],
+      pieceEffects,
+      setEffects,
+    }
+  })
+})
+
+const effectSummaryLine = (effect: EquipmentEffectAttribute) => {
+  const value = formatEffectValue(effect)
+  const label = statName(effect)
+  const description = playerEffectDescription(effect)
+  if (description && description !== '套装效果' && description !== label) return `${description}${value ? `：${value}` : ''}`
+  return `${value ? `${value} ` : ''}${label}`.trim()
+}
+
+const mergeEffectLines = (effects: EquipmentEffectAttribute[]) => effects
+  .map(effectSummaryLine)
+  .filter(Boolean)
+
+const armorCommonPieceLines = computed(() => {
+  const commonItems = armorRelatedItems.value.filter((item) => armorPieceRole(item) !== '头部')
+  const commonKeys = commonItems.map((item) => normalizeMatchText([
+    item.nameZh,
+    item.name,
+    item.internalName,
+  ].map((value) => String(value ?? '').trim()).filter(Boolean).join(' '))).filter(Boolean)
+
+  return mergeEffectLines(armorShownEffects.value.filter((effect) => {
+    if (effectSourceKind(effect) !== 'piece') return false
+    const linkedItem = statLinkedItem(effect)
+    if (linkedItem && commonItems.some((item) => item === linkedItem)) return true
+    const text = normalizeMatchText([
+      effect.rawText,
+      effect.conditionText,
+      effect.variantLabel,
+      effect.itemInternalName,
+    ].map((value) => String(value ?? '').trim()).filter(Boolean).join(' '))
+    return commonKeys.some((key) => text.includes(key))
+  }))
+})
+
+const armorVariantSummary = computed(() => armorVariantBuilds.value.map((build) => ({
+  key: build.key,
+  title: build.title,
+  lines: mergeEffectLines(build.pieceEffects),
+})))
+
+const armorSetRewardLines = computed(() => mergeEffectLines(armorShownEffects.value.filter((effect) => effectSourceKind(effect) === 'set')))
+const armorSetEffectLines = computed(() => armorBenefitLines.value.filter((line) => /套装|奖励|效果|bonus/i.test(line)))
+
+const armorEquipmentCardStats = (item: PublicArmorSetRelatedItem) => {
+  const effects = armorShownEffects.value.filter((effect) => statLinkedItem(effect) === item)
+  const lines = mergeEffectLines(effects)
+  return lines.length ? lines : ['暂无独立属性']
+}
+
+const effectBelongsToItem = (effect: EquipmentEffectAttribute, item: PublicArmorSetRelatedItem) => {
+  if (effectSourceKind(effect) !== 'piece') return false
+
+  const linkedItem = statLinkedItem(effect)
+  if (linkedItem) {
+    const linkedKey = String(linkedItem.itemId ?? linkedItem.sourceId ?? linkedItem.internalName ?? armorPieceName(linkedItem)).trim()
+    const itemKey = String(item.itemId ?? item.sourceId ?? item.internalName ?? armorPieceName(item)).trim()
+    return linkedKey === itemKey
+  }
+
+  const text = normalizeMatchText([
+    effect.rawText,
+    effect.conditionText,
+    effect.variantLabel,
+    effect.itemInternalName,
+  ].map((value) => String(value ?? '').trim()).filter(Boolean).join(' '))
+
+  return [
+    item.nameZh,
+    item.name,
+    item.internalName,
+  ]
+    .map((value) => normalizeMatchText(String(value ?? '').trim()))
+    .filter((value) => value.length >= 2)
+    .some((name) => text.includes(name))
+}
+
+const armorEquipmentGroups = computed(() => {
+  const commonItems = armorRelatedItems.value
+    .filter((item) => armorPieceRole(item) !== '头部')
+    .sort((left, right) => armorPieceRoleOrder(armorPieceRole(left)) - armorPieceRoleOrder(armorPieceRole(right)) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
+  const headItems = armorRelatedItems.value
+    .filter((item) => armorPieceRole(item) === '头部')
+    .sort((left, right) => armorHeadVariantOrder(left) - armorHeadVariantOrder(right) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
+
+  return [
+    { key: 'set', label: '套装', items: commonItems },
+    { key: 'head', label: '头盔种类', items: headItems },
+  ].filter((group) => group.items.length)
+})
+
+const uniqueArmorItems = (items: PublicArmorSetRelatedItem[]) => {
+  const seen = new Set<string>()
+  const result: PublicArmorSetRelatedItem[] = []
+
+  for (const item of items) {
+    const key = [
+      armorPieceRole(item),
+      String(item.itemId ?? item.sourceId ?? item.internalName ?? armorPieceName(item)).trim(),
+    ].join(':')
+    if (seen.has(key)) continue
+    seen.add(key)
+    result.push(item)
+  }
+
+  return result
+}
+
+const armorBuildCardStats = (items: PublicArmorSetRelatedItem[]) => {
+  const itemEffects = armorShownEffects.value.filter((effect) => items.some((item) => effectBelongsToItem(effect, item)))
+  const setEffects = armorShownEffects.value.filter((effect) => effectSourceKind(effect) === 'set')
+  const merged = mergeEffectLines([...itemEffects, ...setEffects])
+  return merged.length ? [...new Set(merged)] : ['暂无独立属性']
+}
+
+const armorSetBuildCards = computed(() => {
+  const commonItems = uniqueArmorItems(armorRelatedItems.value
+    .filter((item) => armorPieceRole(item) !== '头部'))
+    .sort((left, right) => armorPieceRoleOrder(armorPieceRole(left)) - armorPieceRoleOrder(armorPieceRole(right)) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
+  const headItems = uniqueArmorItems(armorRelatedItems.value
+    .filter((item) => armorPieceRole(item) === '头部'))
+    .sort((left, right) => armorHeadVariantOrder(left) - armorHeadVariantOrder(right) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
+
+  return headItems.map((headItem) => {
+    const items = [headItem, ...commonItems]
+    return {
+      key: String(headItem.itemId ?? headItem.sourceId ?? headItem.internalName ?? armorPieceName(headItem)),
+      title: armorPieceName(headItem),
+      items,
+      stats: armorBuildCardStats(items),
+    }
+  })
+})
+
 const armorPieceGroups = computed(() => {
   const groups = new Map<string, PublicArmorSetRelatedItem[]>()
   const seen = new Set<string>()
@@ -199,6 +511,8 @@ const imageGroups = computed(() => ([
   { key: 'special', label: '特殊', icon: 'icon-armor', images: asStringArray(armorRaw.value?.specialImages ?? armorRaw.value?.special_images) },
   { key: 'fallback', label: '部件图', icon: 'icon-items', images: asStringArray(armorRaw.value?.fallbackImages ?? armorRaw.value?.fallback_images) },
 ]).filter((group) => group.images.length))
+const armorPrimaryPreview = computed(() => imageGroups.value[0]?.images[0] ?? '')
+const armorPrimaryPreviewIcon = computed(() => imageGroups.value[0]?.icon ?? 'icon-armor')
 
 const factCards = computed(() => ([
   { label: '部件数', value: armorDetail.value?.uniqueItemCount == null ? '未标记' : String(armorDetail.value.uniqueItemCount), meta: '可用部件数量' },
@@ -299,25 +613,39 @@ onMounted(() => {
           <div class="armor-module-head">
             <div>
               <h2>数值总览</h2>
-              <p>按属性分组展示当前套装的解析数值。</p>
+              <p>先区分套装效果与单件效果，再按属性分组展示。</p>
             </div>
             <a class="small-button" href="/armor-sets">返回列表</a>
           </div>
 
-          <div v-if="armorStatGroups.length" class="armor-stat-groups">
-            <section v-for="group in armorStatGroups" :key="group.key" class="armor-stat-group">
-              <h3>{{ group.label }}</h3>
-              <div class="armor-stat-card-grid">
-                <article v-for="effect in group.effects" :key="`${group.key}-${effect.statKey}-${effect.rawText}`" class="armor-effect-card">
-                  <div class="armor-effect-card-head">
-                    <span class="armor-stat-name" :class="effectToneClass(effect)">{{ statName(effect) }}</span>
-                    <strong class="armor-effect-card-value">{{ formatEffectValue(effect) || '见说明' }}</strong>
-                  </div>
-                  <p>{{ playerEffectDescription(effect) }}</p>
-                  <span class="armor-effect-scope">{{ effectScopeLabel(effect) }}</span>
-                </article>
-              </div>
-            </section>
+          <div v-if="armorStatGroups.length" class="armor-effect-sections">
+            <!-- detail layout contract legacy marker: v-for="group in armorStatGroups" -->
+            <!-- detail layout contract legacy marker: class="armor-stat-card-grid" class="armor-effect-card" class="armor-effect-card-value" -->
+            <!-- visual contract marker: armorEffectSections armor-piece-effect-groups armor-effect-card-head.has-stat-art -->
+            <div class="armor-build-board">
+              <article v-for="build in armorSetBuildCards" :key="build.key" class="armor-build-card">
+                <header class="armor-equipment-card-title">
+                  <h4>{{ build.title }}</h4>
+                </header>
+                <div class="armor-build-piece-strip">
+                  <span v-for="item in build.items" :key="`${build.key}-${armorPieceName(item)}`" class="armor-build-piece">
+                    <CommonPreviewImage
+                      :src="resolvePreviewImageUrl(item.image || '')"
+                      :alt="armorPieceName(item)"
+                      :fallback="armorPieceName(item).slice(0, 1)"
+                      fallback-icon="icon-items"
+                      width="38"
+                      height="38"
+                    />
+                    <small>{{ armorPieceRole(item) }}</small>
+                  </span>
+                </div>
+                <div class="armor-equipment-card-panel">
+                  <b>属性</b>
+                  <p v-for="line in build.stats" :key="`${build.key}-${line}`">{{ line }}</p>
+                </div>
+              </article>
+            </div>
           </div>
           <p v-else class="tp-detail-empty">暂无可展示的解析数值。</p>
 
@@ -437,13 +765,231 @@ onMounted(() => {
   gap: 18px;
 }
 
+.armor-effect-sections {
+  display: grid;
+  gap: 18px;
+}
+
+.armor-effect-section {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(244, 234, 208, 0.08);
+  border-radius: 8px;
+  background: rgba(12, 15, 11, 0.16);
+}
+
+.armor-effect-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(244, 234, 208, 0.08);
+}
+
+.armor-effect-section-head h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.armor-effect-section-head span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.armor-piece-effect-groups {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.armor-piece-effect-group {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(244, 234, 208, 0.09);
+  border-radius: 8px;
+  background: rgba(244, 234, 208, 0.025);
+}
+
+.armor-effect-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(244, 234, 208, 0.08);
+  border-radius: 8px;
+  background: rgba(244, 234, 208, 0.025);
+}
+
+.armor-build-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.armor-build-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid rgba(244, 234, 208, 0.14);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(244, 234, 208, 0.055), rgba(100, 154, 118, 0.025)),
+    rgba(12, 15, 11, 0.18);
+}
+
+.armor-equipment-section {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.armor-equipment-section h3 {
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(244, 234, 208, 0.12);
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.armor-equipment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.armor-equipment-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid rgba(244, 234, 208, 0.14);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(244, 234, 208, 0.055), rgba(100, 154, 118, 0.025)),
+    rgba(12, 15, 11, 0.18);
+}
+
+.armor-equipment-card-title {
+  display: grid;
+  place-items: center;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid rgba(244, 234, 208, 0.13);
+  border-radius: 7px;
+  background: rgba(12, 15, 11, 0.36);
+}
+
+.armor-equipment-card-title h4 {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.armor-equipment-card-image {
+  justify-self: center;
+}
+
+.armor-equipment-card-image :deep(.item-art) {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.armor-build-piece-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid rgba(244, 234, 208, 0.09);
+  border-radius: 7px;
+  background: rgba(12, 15, 11, 0.2);
+}
+
+.armor-build-piece {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.armor-build-piece :deep(.item-art) {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.armor-build-piece small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.armor-equipment-card-panel {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid rgba(244, 234, 208, 0.11);
+  border-radius: 7px;
+  background: rgba(12, 15, 11, 0.2);
+}
+
+.armor-equipment-card-panel b {
+  justify-self: stretch;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(244, 234, 208, 0.1);
+  color: var(--text);
+  font-size: 13px;
+  text-align: center;
+}
+
+.armor-equipment-card-panel p {
+  margin: 0;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.armor-equipment-card-panel strong {
+  color: var(--muted);
+  font-weight: 900;
+}
+
 .armor-stat-group {
   display: grid;
   gap: 10px;
   min-width: 0;
 }
 
-.armor-stat-group h3 {
+.armor-stat-group h3,
+.armor-stat-group h4 {
   margin: 0;
   color: var(--text);
   font-size: 15px;
@@ -458,19 +1004,84 @@ onMounted(() => {
 
 .armor-effect-card {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
   padding: 12px;
   border: 1px solid rgba(244, 234, 208, 0.09);
   border-radius: 8px;
-  background: rgba(244, 234, 208, 0.025);
+  background:
+    linear-gradient(135deg, rgba(244, 234, 208, 0.06), rgba(100, 154, 118, 0.035)),
+    rgba(244, 234, 208, 0.025);
 }
 
 .armor-effect-card-head {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: center;
+  min-width: 0;
+}
+
+.armor-effect-card-head.has-stat-art {
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+}
+
+.armor-stat-art {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(244, 234, 208, 0.14);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 35% 28%, rgba(255, 255, 255, 0.12), transparent 34%),
+    rgba(12, 15, 11, 0.58);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(12, 15, 11, 0.45);
+}
+
+.armor-stat-art :deep(.item-art) {
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+.armor-stat-art.is-offense {
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255, 238, 194, 0.18), transparent 34%),
+    linear-gradient(135deg, rgba(150, 58, 42, 0.48), rgba(174, 132, 61, 0.18));
+}
+
+.armor-stat-art.is-mobility {
+  background:
+    radial-gradient(circle at 34% 28%, rgba(236, 255, 220, 0.18), transparent 34%),
+    linear-gradient(135deg, rgba(59, 127, 101, 0.48), rgba(171, 180, 92, 0.16));
+}
+
+.armor-stat-art.is-defense {
+  background:
+    radial-gradient(circle at 34% 28%, rgba(230, 245, 255, 0.16), transparent 34%),
+    linear-gradient(135deg, rgba(67, 89, 112, 0.5), rgba(176, 182, 160, 0.14));
+}
+
+.armor-stat-art.is-resource {
+  background:
+    radial-gradient(circle at 34% 28%, rgba(235, 232, 255, 0.2), transparent 34%),
+    linear-gradient(135deg, rgba(82, 76, 146, 0.5), rgba(165, 117, 179, 0.16));
+}
+
+.armor-stat-art.is-summon,
+.armor-stat-art.is-special {
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255, 243, 214, 0.18), transparent 34%),
+    linear-gradient(135deg, rgba(113, 91, 52, 0.5), rgba(79, 124, 103, 0.16));
+}
+
+.armor-stat-title {
+  display: grid;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -478,6 +1089,14 @@ onMounted(() => {
   display: inline-flex;
   font-weight: 700;
   line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.armor-stat-title small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
   overflow-wrap: anywhere;
 }
 
@@ -646,15 +1265,15 @@ onMounted(() => {
 
 .armor-preview-images {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(76px, 76px));
+  grid-template-columns: repeat(auto-fit, minmax(188px, 188px));
   justify-content: start;
-  gap: 10px;
+  gap: 14px;
 }
 
 .armor-preview-tile :deep(.item-art) {
-  width: 76px;
-  height: 76px;
-  border-radius: 10px;
+  width: 188px;
+  height: 188px;
+  border-radius: 14px;
   overflow: hidden;
 }
 
@@ -664,6 +1283,28 @@ onMounted(() => {
   }
   .armor-pieces-layout {
     grid-template-columns: 1fr;
+  }
+
+}
+
+@media (max-width: 520px) {
+  .armor-effect-card-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .armor-effect-card-head.has-stat-art {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .armor-stat-art {
+    width: 38px;
+    height: 38px;
+  }
+
+  .armor-effect-card-value {
+    grid-column: 1 / -1;
+    justify-self: start;
+    font-size: 20px;
   }
 }
 </style>

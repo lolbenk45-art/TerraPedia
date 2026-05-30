@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nuxt dev --host 0.0.0.0 --port 5176",
     "build": "nuxt build",
-    "check": "pnpm run check:nav-layout && pnpm run check:detail-layout && pnpm run check:preview-images && pnpm run check:visual-system && pnpm run check:crafting-structure && pnpm run check:crafting-alternatives && nuxt typecheck",
+    "check": "pnpm run check:nav-layout && pnpm run check:detail-layout && pnpm run check:preview-images && pnpm run check:visual-system && pnpm run check:armor-stat-visuals && pnpm run check:crafting-structure && pnpm run check:crafting-alternatives && nuxt typecheck",
     "check:crafting-alternatives": "node scripts/check-crafting-alternative-summaries.mjs",
     "check:crafting-structure": "node scripts/check-crafting-structure-contract.mjs",
     "check:crafting-wiki-structure": "node scripts/check-crafting-wiki-structure-runtime.mjs",
@@ -15,6 +15,7 @@
     "check:nav-layout": "node scripts/check-nav-layout-contract.mjs",
     "check:detail-layout": "node scripts/check-detail-layout-contract.mjs",
     "check:preview-images": "node scripts/check-preview-image-fallback-contract.mjs",
+    "check:armor-stat-visuals": "node scripts/check-armor-stat-visuals.mjs",
     "check:light-theme": "node scripts/check-light-theme-typography.mjs",
     "check:visual-system": "node scripts/check-visual-system-contract.mjs",
     "check:visual-blocked-source": "node scripts/check-visual-blocked-source-scan.mjs",
