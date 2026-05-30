@@ -71,6 +71,21 @@ test('listSourceDatasetLandingInputs locates single-file and multi-file landing 
     armorSetImages: [],
     warnings: [],
   });
+  await writeJson(path.join(repoRoot, 'data', 'generated', 'wiki-armor-attributes.latest.json'), {
+    source: 'terraria.wiki.gg/zh/wiki/盔甲属性表',
+    sourceApi: 'https://terraria.wiki.gg/zh/api.php',
+    sourcePageTitle: '盔甲属性表',
+    sourceRevisionTimestamp: '2026-05-30T00:00:00Z',
+    generatedAt: '2026-05-30T00:00:00Z',
+    total: 1,
+    records: [{
+      itemNameZh: '神圣面具',
+      itemPageTitle: '神圣面具',
+      slotGroup: 'head',
+      defenseValue: 24,
+      rawCells: { meleeDamage: '10%', meleeCritChance: '10%', classSpecific: '10%' },
+    }],
+  });
   await writeJson(path.join(repoRoot, 'data', 'generated', 'wiki-bosses.latest.json'), {
     generatedAt: '2026-04-23T02:00:00.000Z',
     records: [
@@ -126,6 +141,7 @@ test('listSourceDatasetLandingInputs locates single-file and multi-file landing 
   assert.equal(datasetCounts.item_pages_raw, 2);
   assert.equal(datasetCounts.biomes_raw, 1);
   assert.equal(datasetCounts.armor_set_images_raw, 1);
+  assert.equal(datasetCounts.armor_attributes_raw, 1);
   assert.equal(datasetCounts.bosses_raw, 2);
   assert.equal(datasetCounts.categories_raw, 2);
   assert.equal(datasetCounts.recipes_raw, 1);
@@ -143,6 +159,19 @@ test('listSourceDatasetLandingInputs locates single-file and multi-file landing 
   assert.equal(npcEntry.provider, 'terrapedia.generated');
   assert.equal(npcEntry.sourceKind, 'generated_standardized_bridge');
   assert.equal(npcEntry.sourceLocator, 'repo://data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json');
+
+  const armorAttributesEntry = actual.find((entry) => entry.datasetType === 'armor_attributes_raw');
+  assert.equal(armorAttributesEntry.provider, 'terraria.wiki.gg');
+  assert.equal(armorAttributesEntry.sourceKind, 'page_table');
+  assert.equal(armorAttributesEntry.sourceKey, 'wiki.page.armor_attributes');
+  assert.equal(armorAttributesEntry.sourcePage, '盔甲属性表');
+  assert.equal(armorAttributesEntry.sourceLocator, 'repo://data/generated/wiki-armor-attributes.latest.json');
+  assert.equal(armorAttributesEntry.sourceRevisionTimestamp, '2026-05-30T00:00:00Z');
+  assert.equal(armorAttributesEntry.fetchedAt, '2026-05-30T00:00:00Z');
+  assert.equal(armorAttributesEntry.parsedAt, '2026-05-30T00:00:00Z');
+  assert.equal(armorAttributesEntry.parseStatus, 'ok');
+  assert.equal(typeof armorAttributesEntry.contentHash, 'string');
+  assert.equal(armorAttributesEntry.contentHash.length, 64);
 });
 
 test('listSourceDatasetLandingInputs prefers standardized buff records for buffs_raw landing', async () => {

@@ -52,6 +52,7 @@ const SCOPE_TO_DATASETS = {
   bosses: ['bosses_raw'],
   biomes: ['biomes_raw'],
   armor_sets: ['armor_sets_raw'],
+  armor_attributes: ['armor_attributes_raw'],
   armor_set_images: ['armor_set_images_raw'],
   categories: ['categories_raw'],
   shimmer: ['shimmer_raw'],
@@ -73,6 +74,7 @@ const SCOPE_TO_TABLE = {
   bosses: 'maint_bosses',
   biomes: 'maint_biomes',
   armor_sets: 'maint_armor_sets',
+  armor_attributes: 'maint_armor_attribute_rows',
   armor_set_images: 'maint_armor_set_images',
   categories: 'maint_categories',
   shimmer: 'maint_shimmer_pages',
@@ -725,6 +727,47 @@ function extractArmorSetImageMaintRows(landingRow, payload) {
   }));
 }
 
+function extractArmorAttributeMaintRows(landingRow, payload) {
+  const identityCounts = new Map();
+  return (Array.isArray(payload.records) ? payload.records : []).map((record) => {
+    const identity = {
+      sectionCode: normalizeText(record.sectionCode),
+      slotGroup: normalizeText(record.slotGroup),
+      itemPageTitle: normalizeText(record.itemPageTitle),
+      itemHref: normalizeText(record.itemHref),
+    };
+    const identityKey = JSON.stringify(identity);
+    const variantIndex = identityCounts.get(identityKey) ?? 0;
+    identityCounts.set(identityKey, variantIndex + 1);
+    return ({
+    scope: 'armor_attributes',
+    tableName: 'maint_armor_attribute_rows',
+    recordKey: createRecordKey({
+      datasetType: landingRow.dataset_type,
+      ...identity,
+      variantIndex,
+    }),
+    sectionCode: normalizeText(record.sectionCode),
+    slotGroup: normalizeText(record.slotGroup),
+    itemPageTitle: normalizeText(record.itemPageTitle),
+    itemHref: normalizeText(record.itemHref),
+    itemNameZh: normalizeText(record.itemNameZh),
+    defenseValue: toNullableNumber(record.defenseValue),
+    rawCellsJson: JSON.stringify(record.rawCells ?? {}),
+    sourceProvider: landingRow.provider,
+    sourcePage: landingRow.source_page,
+    sourceRevisionTimestamp: record.sourceRevisionTimestamp ?? payload.sourceRevisionTimestamp ?? landingRow.source_revision_timestamp,
+    landingSourceId: Number(landingRow.id),
+    landingSourceKey: landingRow.source_key,
+    landingSourcePage: landingRow.source_page,
+    landingContentHash: landingRow.content_hash,
+    landingFetchedAt: landingRow.fetched_at,
+    landingParsedAt: landingRow.parsed_at,
+    rawJson: JSON.stringify(record),
+    });
+  });
+}
+
 function extractCategoryMaintRows(landingRow, payload) {
   const categoryRow = {
     scope: 'categories',
@@ -1202,6 +1245,10 @@ export async function extractMaintEntitiesFromLandingRow(landingRow, options = {
     const rows = extractArmorSetMaintRows(landingRow, payload);
     return { scope: 'armor_sets', rows };
   }
+  if (datasetType === 'armor_attributes_raw') {
+    const rows = extractArmorAttributeMaintRows(landingRow, payload);
+    return { scope: 'armor_attributes', rows };
+  }
   if (datasetType === 'armor_set_images_raw') {
     const rows = extractArmorSetImageMaintRows(landingRow, payload);
     return { scope: 'armor_set_images', rows };
@@ -1347,6 +1394,10 @@ function shouldRetireStaleNpcItemSourceRows(scopes) {
   return Array.isArray(scopes) && scopes.includes('npcs');
 }
 
+function shouldRetireStaleArmorAttributeRows(scopes) {
+  return Array.isArray(scopes) && scopes.includes('armor_attributes');
+}
+
 async function retireStaleRecordKeyRows(connection, tableName, options = {}) {
   const filters = [];
   const params = [tableName];
@@ -1422,6 +1473,18 @@ async function retireStaleNpcItemSourceRows(connection, recordKeysByTable) {
   await insertActiveRecordKeys(connection, recordKeysByTable, ['maint_item_sources']);
   return retireStaleRecordKeyRows(connection, 'maint_item_sources', {
     landingSourceKey: 'generated.npc_item_relations_bundle'
+  });
+}
+
+async function retireStaleArmorAttributeRows(connection, recordKeysByTable) {
+  const activeArmorAttributeKeys = recordKeysByTable.get('maint_armor_attribute_rows') ?? new Set();
+  if (activeArmorAttributeKeys.size === 0) {
+    throw new Error('Refusing to retire stale armor attribute rows without active maint_armor_attribute_rows keys.');
+  }
+  await createActiveRecordKeyTempTable(connection);
+  await insertActiveRecordKeys(connection, recordKeysByTable, ['maint_armor_attribute_rows']);
+  return retireStaleRecordKeyRows(connection, 'maint_armor_attribute_rows', {
+    landingSourceKey: 'wiki.page.armor_attributes'
   });
 }
 
@@ -1643,6 +1706,39 @@ async function upsertRecordKeyRow(connection, row) {
         row.originalUrl, row.cachedUrl, row.width, row.height, row.contentType, row.isPrimary ? 1 : 0, row.sortOrder,
         row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt),
         row.rawJson,
+      ],
+    );
+    return 'inserted';
+  }
+
+  if (row.tableName === 'maint_armor_attribute_rows') {
+    const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
+    const existing = existingRows[0] ?? null;
+    if (existing) {
+      await connection.execute(
+        `UPDATE \`${row.tableName}\`
+         SET section_code = ?, slot_group = ?, item_page_title = ?, item_href = ?, item_name_zh = ?, defense_value = ?, raw_cells_json = ?,
+             source_provider = ?, source_page = ?, source_revision_timestamp = ?, landing_source_id = ?, landing_source_key = ?, landing_source_page = ?,
+             landing_content_hash = ?, landing_fetched_at = ?, landing_parsed_at = ?, raw_json = ?, status = 1, deleted = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [
+          row.sectionCode, row.slotGroup, row.itemPageTitle, row.itemHref, row.itemNameZh, row.defenseValue, row.rawCellsJson,
+          row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp), row.landingSourceId, row.landingSourceKey, row.landingSourcePage,
+          row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.rawJson, Number(existing.id),
+        ],
+      );
+      return 'updated';
+    }
+    await connection.execute(
+      `INSERT INTO \`${row.tableName}\`
+       (\`record_key\`, \`section_code\`, \`slot_group\`, \`item_page_title\`, \`item_href\`, \`item_name_zh\`, \`defense_value\`, \`raw_cells_json\`,
+        \`source_provider\`, \`source_page\`, \`source_revision_timestamp\`, \`landing_source_id\`, \`landing_source_key\`, \`landing_source_page\`,
+        \`landing_content_hash\`, \`landing_fetched_at\`, \`landing_parsed_at\`, \`raw_json\`, \`status\`, \`deleted\`)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+      [
+        row.recordKey, row.sectionCode, row.slotGroup, row.itemPageTitle, row.itemHref, row.itemNameZh, row.defenseValue, row.rawCellsJson,
+        row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp), row.landingSourceId, row.landingSourceKey, row.landingSourcePage,
+        row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.rawJson,
       ],
     );
     return 'inserted';
@@ -2538,6 +2634,9 @@ export async function runMaintSync(options, dependencies = {}) {
         if (shouldRetireStaleNpcItemSourceRows(scopes)) {
           summary.writes.retired += await retireStaleNpcItemSourceRows(connection, collectRecordKeysByTable(extracted));
         }
+        if (shouldRetireStaleArmorAttributeRows(scopes)) {
+          summary.writes.retired += await retireStaleArmorAttributeRows(connection, collectRecordKeysByTable(extracted));
+        }
         await connection.commit();
       } catch (error) {
         await connection.rollback();
@@ -2610,6 +2709,9 @@ export async function runMaintSync(options, dependencies = {}) {
       }
       if (shouldRetireStaleNpcItemSourceRows(scopes)) {
         summary.writes.retired += await retireStaleNpcItemSourceRows(writeConnection, recordKeysByTable);
+      }
+      if (shouldRetireStaleArmorAttributeRows(scopes)) {
+        summary.writes.retired += await retireStaleArmorAttributeRows(writeConnection, recordKeysByTable);
       }
       await writeConnection.commit();
     }

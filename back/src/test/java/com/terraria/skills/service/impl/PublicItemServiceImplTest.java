@@ -3,8 +3,10 @@ package com.terraria.skills.service.impl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.terraria.skills.common.PageQuery;
 import com.terraria.skills.dto.CategoryDTO;
+import com.terraria.skills.dto.PublicItemArmorAttributeDTO;
 import com.terraria.skills.dto.PublicItemBuffEffectDTO;
 import com.terraria.skills.dto.PublicItemDetailDTO;
+import com.terraria.skills.dto.PublicItemEquipmentEffectDTO;
 import com.terraria.skills.dto.PublicItemListDTO;
 import com.terraria.skills.dto.PublicItemSuggestionDTO;
 import com.terraria.skills.mapper.ItemMapper;
@@ -228,5 +230,86 @@ class PublicItemServiceImplTest {
         assertNull(effect.getChanceText());
         assertNull(effect.getConditions());
         verify(jdbcTemplate).query(eq(PublicItemServiceImpl.ITEM_BUFF_EFFECTS_SQL), ArgumentMatchers.<RowMapper<PublicItemBuffEffectDTO>>any(), eq(77L));
+    }
+
+    @Test
+    void shouldQueryPublicItemArmorAttributesByLocalItemId() throws Exception {
+        ResultSet resultSet = mock(ResultSet.class);
+        when(resultSet.getLong("id")).thenReturn(1L);
+        when(resultSet.getLong("itemId")).thenReturn(559L);
+        when(resultSet.getString("itemInternalName")).thenReturn("HallowedMask");
+        when(resultSet.getString("itemNameZh")).thenReturn("神圣面具");
+        when(resultSet.getString("itemPageTitle")).thenReturn("神圣面具");
+        when(resultSet.getString("itemHref")).thenReturn("/zh/wiki/%E7%A5%9E%E5%9C%A3%E9%9D%A2%E5%85%B7");
+        when(resultSet.getString("sectionCode")).thenReturn("hardmode");
+        when(resultSet.getString("slotGroup")).thenReturn("head");
+        when(resultSet.getInt("defenseValue")).thenReturn(24);
+        when(resultSet.getString("rawCellsJson")).thenReturn("{\"meleeDamage\":\"10%\"}");
+        when(resultSet.getString("sourceProvider")).thenReturn("terraria.wiki.gg");
+        when(resultSet.getString("sourcePage")).thenReturn("盔甲属性表");
+        when(resultSet.getString("sourceRevisionTimestamp")).thenReturn("2023-10-23 04:15:47");
+        doAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            RowMapper<PublicItemArmorAttributeDTO> rowMapper = invocation.getArgument(1);
+            return List.of(rowMapper.mapRow(resultSet, 0));
+        }).when(jdbcTemplate).query(
+            eq(PublicItemServiceImpl.ITEM_ARMOR_ATTRIBUTES_SQL),
+            ArgumentMatchers.<RowMapper<PublicItemArmorAttributeDTO>>any(),
+            eq(559L)
+        );
+
+        List<PublicItemArmorAttributeDTO> result = publicItemService.getPublicItemArmorAttributes(559L);
+
+        assertEquals(1, result.size());
+        assertEquals(559L, result.get(0).getItemId());
+        assertEquals("HallowedMask", result.get(0).getItemInternalName());
+        assertEquals("神圣面具", result.get(0).getItemNameZh());
+        assertEquals("head", result.get(0).getSlotGroup());
+        assertEquals(24, result.get(0).getDefenseValue());
+        assertEquals("{\"meleeDamage\":\"10%\"}", result.get(0).getRawCellsJson());
+        verify(jdbcTemplate).query(eq(PublicItemServiceImpl.ITEM_ARMOR_ATTRIBUTES_SQL), ArgumentMatchers.<RowMapper<PublicItemArmorAttributeDTO>>any(), eq(559L));
+    }
+
+    @Test
+    void shouldQueryPublicItemEquipmentEffectsByLocalItemId() throws Exception {
+        ResultSet resultSet = mock(ResultSet.class);
+        when(resultSet.getLong("id")).thenReturn(1L);
+        when(resultSet.getLong("itemId")).thenReturn(559L);
+        when(resultSet.getString("itemInternalName")).thenReturn("HallowedMask");
+        when(resultSet.getString("ownerKind")).thenReturn("item");
+        when(resultSet.getString("ownerKey")).thenReturn("HallowedMask");
+        when(resultSet.getString("sourceKind")).thenReturn("armor_attribute_cell");
+        when(resultSet.getString("sourceLine")).thenReturn("神圣面具 meleeDamage: 10%");
+        when(resultSet.getInt("effectIndex")).thenReturn(0);
+        when(resultSet.getString("applyScope")).thenReturn("item_bonus");
+        when(resultSet.getString("slotType")).thenReturn("headSlot");
+        when(resultSet.getString("statKey")).thenReturn("damage_bonus");
+        when(resultSet.getString("statLabelZh")).thenReturn("近战伤害");
+        when(resultSet.getString("classScope")).thenReturn("melee");
+        when(resultSet.getString("operation")).thenReturn("add");
+        when(resultSet.getBigDecimal("valueDecimal")).thenReturn(java.math.BigDecimal.TEN);
+        when(resultSet.getString("unit")).thenReturn("percent");
+        when(resultSet.getString("rawText")).thenReturn("10%");
+        when(resultSet.getString("parseStatus")).thenReturn("parsed");
+        doAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            RowMapper<PublicItemEquipmentEffectDTO> rowMapper = invocation.getArgument(1);
+            return List.of(rowMapper.mapRow(resultSet, 0));
+        }).when(jdbcTemplate).query(
+            eq(PublicItemServiceImpl.ITEM_EQUIPMENT_EFFECTS_SQL),
+            ArgumentMatchers.<RowMapper<PublicItemEquipmentEffectDTO>>any(),
+            eq(559L)
+        );
+
+        List<PublicItemEquipmentEffectDTO> result = publicItemService.getPublicItemEquipmentEffects(559L);
+
+        assertEquals(1, result.size());
+        assertEquals(559L, result.get(0).getItemId());
+        assertEquals("HallowedMask", result.get(0).getItemInternalName());
+        assertEquals("item", result.get(0).getOwnerKind());
+        assertEquals("damage_bonus", result.get(0).getStatKey());
+        assertEquals("melee", result.get(0).getClassScope());
+        assertEquals(java.math.BigDecimal.TEN, result.get(0).getValueDecimal());
+        verify(jdbcTemplate).query(eq(PublicItemServiceImpl.ITEM_EQUIPMENT_EFFECTS_SQL), ArgumentMatchers.<RowMapper<PublicItemEquipmentEffectDTO>>any(), eq(559L));
     }
 }

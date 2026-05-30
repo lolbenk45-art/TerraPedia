@@ -26,8 +26,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Timestamp;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -52,6 +54,8 @@ public class AdminArmorSetController {
     private static final String RELATION_DATABASE_NAME = "terria_v1_relation";
     private static final String PROJECTION_ARMOR_SETS_TABLE = "projection_armor_sets";
     private static final String PROJECTION_ITEMS_TABLE = "projection_items";
+    private static final String PROJECTION_ITEM_ARMOR_ATTRIBUTES_TABLE = "projection_item_armor_attributes";
+    private static final String PROJECTION_EQUIPMENT_EFFECT_ATTRIBUTES_TABLE = "projection_equipment_effect_attributes";
     private static final Map<String, String> ARMOR_SET_IMAGE_ALIASES = Map.of(
         "ArmorSetBonus.HallowedSummoner", "ArmorSetBonus.Hallowed"
     );
@@ -810,9 +814,8 @@ public class AdminArmorSetController {
         }
 
         Map<Long, String> managedItemImagesById = loadManagedItemImagesById(localItemIds);
-        if (itemById.isEmpty() && managedItemImagesById.isEmpty()) {
-            return equipmentItems;
-        }
+        Map<Long, Map<String, Object>> armorAttributesByItemId = loadProjectionItemArmorAttributes(localItemIds);
+        Map<Long, List<Map<String, Object>>> armorAttributeEffectsByItemId = loadProjectionEquipmentEffectAttributes(localItemIds);
 
         List<Map<String, Object>> enriched = new ArrayList<>();
         for (Map<String, Object> item : equipmentItems) {
@@ -837,9 +840,170 @@ public class AdminArmorSetController {
                     managedItemImage
                 )
             );
+            Map<String, Object> armorAttribute = firstArmorAttributeForLookupIds(armorAttributesByItemId, armorEquipmentLookupIds(copy));
+            if (armorAttribute != null) {
+                copy.put("armorAttribute", armorAttribute);
+                List<Map<String, Object>> effects = firstArmorAttributeEffectsForLookupIds(
+                    armorAttributeEffectsByItemId,
+                    armorEquipmentLookupIds(copy)
+                );
+                copy.put("armorAttributeEffects", effects);
+            }
             enriched.add(copy);
         }
         return enriched;
+    }
+
+    private Map<Long, Map<String, Object>> loadProjectionItemArmorAttributes(List<Long> itemIds) {
+        if (itemIds == null || itemIds.isEmpty()) {
+            return Map.of();
+        }
+        String table = resolveProjectionTable(PROJECTION_ITEM_ARMOR_ATTRIBUTES_TABLE);
+        if (table == null) {
+            return Map.of();
+        }
+        String effectTable = resolveProjectionTable(PROJECTION_EQUIPMENT_EFFECT_ATTRIBUTES_TABLE);
+        String placeholders = String.join(",", itemIds.stream().map(id -> "?").toList());
+        String effectCountSelect = effectTable == null
+            ? "0 AS effect_count"
+            : "(SELECT COUNT(*) FROM " + effectTable + " e "
+                + "WHERE e.deleted = 0 AND e.owner_kind = 'item' "
+                + "AND e.source_kind = 'armor_attribute_cell' AND e.owner_id = a.item_id) AS effect_count";
+        try {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT a.id, a.item_id, a.item_internal_name, a.item_name_zh, a.item_page_title, a.item_href, "
+                    + "a.slot_group, a.section_code, a.defense_value, a.raw_cells_json, "
+                    + "a.source_provider, a.source_page, a.source_revision_timestamp, "
+                    + effectCountSelect + " "
+                    + "FROM " + table + " a "
+                    + "WHERE a.deleted = 0 AND a.item_id IN (" + placeholders + ") "
+                    + "ORDER BY a.item_id ASC, a.id ASC",
+                itemIds.toArray()
+            );
+            Map<Long, Map<String, Object>> byItemId = new LinkedHashMap<>();
+            for (Map<String, Object> row : rows) {
+                Long itemId = toLong(row.get("item_id"));
+                if (itemId != null && !byItemId.containsKey(itemId)) {
+                    byItemId.put(itemId, toProjectionArmorAttributePayload(row));
+                }
+            }
+            return byItemId;
+        } catch (Exception exception) {
+            log.debug("Failed to load projection item armor attributes", exception);
+            return Map.of();
+        }
+    }
+
+    private Map<Long, List<Map<String, Object>>> loadProjectionEquipmentEffectAttributes(List<Long> itemIds) {
+        if (itemIds == null || itemIds.isEmpty()) {
+            return Map.of();
+        }
+        String table = resolveProjectionTable(PROJECTION_EQUIPMENT_EFFECT_ATTRIBUTES_TABLE);
+        if (table == null) {
+            return Map.of();
+        }
+        String placeholders = String.join(",", itemIds.stream().map(id -> "?").toList());
+        try {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT id, owner_id, item_internal_name, owner_kind, owner_key, source_kind, source_line, "
+                    + "source_line_index, effect_index, apply_scope, slot_type, stat_key, stat_label_zh, "
+                    + "class_scope, operation, value_decimal, value_max_decimal, unit, condition_text, raw_text, parse_status "
+                    + "FROM " + table + " "
+                    + "WHERE deleted = 0 AND owner_kind = 'item' AND source_kind = 'armor_attribute_cell' "
+                    + "AND owner_id IN (" + placeholders + ") "
+                    + "ORDER BY owner_id ASC, effect_index ASC, id ASC",
+                itemIds.toArray()
+            );
+            Map<Long, List<Map<String, Object>>> byItemId = new LinkedHashMap<>();
+            for (Map<String, Object> row : rows) {
+                Long ownerId = toLong(row.get("owner_id"));
+                if (ownerId != null) {
+                    byItemId.computeIfAbsent(ownerId, ignored -> new ArrayList<>())
+                        .add(toProjectionArmorEffectPayload(row));
+                }
+            }
+            return byItemId;
+        } catch (Exception exception) {
+            log.debug("Failed to load projection equipment effect attributes", exception);
+            return Map.of();
+        }
+    }
+
+    private Map<String, Object> firstArmorAttributeForLookupIds(
+        Map<Long, Map<String, Object>> armorAttributesByItemId,
+        List<Long> itemIds
+    ) {
+        if (armorAttributesByItemId == null || armorAttributesByItemId.isEmpty() || itemIds == null || itemIds.isEmpty()) {
+            return null;
+        }
+        for (Long itemId : itemIds) {
+            Map<String, Object> attribute = armorAttributesByItemId.get(itemId);
+            if (attribute != null) {
+                return attribute;
+            }
+        }
+        return null;
+    }
+
+    private List<Map<String, Object>> firstArmorAttributeEffectsForLookupIds(
+        Map<Long, List<Map<String, Object>>> armorAttributeEffectsByItemId,
+        List<Long> itemIds
+    ) {
+        if (armorAttributeEffectsByItemId == null || armorAttributeEffectsByItemId.isEmpty() || itemIds == null || itemIds.isEmpty()) {
+            return List.of();
+        }
+        for (Long itemId : itemIds) {
+            List<Map<String, Object>> effects = armorAttributeEffectsByItemId.get(itemId);
+            if (effects != null) {
+                return effects;
+            }
+        }
+        return List.of();
+    }
+
+    private Map<String, Object> toProjectionArmorAttributePayload(Map<String, Object> row) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("id", toLong(row.get("id")));
+        payload.put("itemId", toLong(row.get("item_id")));
+        payload.put("itemInternalName", trimToNull(row.get("item_internal_name")));
+        payload.put("itemNameZh", trimToNull(row.get("item_name_zh")));
+        payload.put("itemPageTitle", trimToNull(row.get("item_page_title")));
+        payload.put("itemHref", trimToNull(row.get("item_href")));
+        payload.put("slotGroup", trimToNull(row.get("slot_group")));
+        payload.put("sectionCode", trimToNull(row.get("section_code")));
+        payload.put("defenseValue", toNullableInt(row.get("defense_value")));
+        payload.put("rawCells", parseJsonObject(row.get("raw_cells_json")));
+        payload.put("effectCount", firstNonNullLong(row.get("effect_count"), 0L));
+        payload.put("sourceProvider", trimToNull(row.get("source_provider")));
+        payload.put("sourcePage", trimToNull(row.get("source_page")));
+        payload.put("sourceRevisionTimestamp", timestampText(row.get("source_revision_timestamp")));
+        return payload;
+    }
+
+    private Map<String, Object> toProjectionArmorEffectPayload(Map<String, Object> row) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("id", toLong(row.get("id")));
+        payload.put("ownerId", toLong(row.get("owner_id")));
+        payload.put("itemInternalName", trimToNull(row.get("item_internal_name")));
+        payload.put("ownerKind", trimToNull(row.get("owner_kind")));
+        payload.put("ownerKey", trimToNull(row.get("owner_key")));
+        payload.put("sourceKind", trimToNull(row.get("source_kind")));
+        payload.put("sourceLine", trimToNull(row.get("source_line")));
+        payload.put("sourceLineIndex", toNullableInt(row.get("source_line_index")));
+        payload.put("effectIndex", toNullableInt(row.get("effect_index")));
+        payload.put("applyScope", trimToNull(row.get("apply_scope")));
+        payload.put("slotType", trimToNull(row.get("slot_type")));
+        payload.put("statKey", trimToNull(row.get("stat_key")));
+        payload.put("statLabelZh", trimToNull(row.get("stat_label_zh")));
+        payload.put("classScope", trimToNull(row.get("class_scope")));
+        payload.put("operation", trimToNull(row.get("operation")));
+        payload.put("valueDecimal", decimalObject(row.get("value_decimal")));
+        payload.put("valueMaxDecimal", decimalObject(row.get("value_max_decimal")));
+        payload.put("unit", trimToNull(row.get("unit")));
+        payload.put("conditionText", trimToNull(row.get("condition_text")));
+        payload.put("rawText", trimToNull(row.get("raw_text")));
+        payload.put("parseStatus", trimToNull(row.get("parse_status")));
+        return payload;
     }
 
     private List<Map<String, Object>> attachArmorEquipmentManagementRefs(List<Map<String, Object>> equipmentItems, Object rawSets) {
@@ -1000,11 +1164,15 @@ public class AdminArmorSetController {
     }
 
     private String resolveProjectionItemsTable() {
-        if (tableExistsInCurrentDatabase(PROJECTION_ITEMS_TABLE)) {
-            return PROJECTION_ITEMS_TABLE;
+        return resolveProjectionTable(PROJECTION_ITEMS_TABLE);
+    }
+
+    private String resolveProjectionTable(String tableName) {
+        if (tableExistsInCurrentDatabase(tableName)) {
+            return tableName;
         }
-        if (tableExists(RELATION_DATABASE_NAME, PROJECTION_ITEMS_TABLE)) {
-            return "`" + RELATION_DATABASE_NAME + "`.`" + PROJECTION_ITEMS_TABLE + "`";
+        if (tableExists(RELATION_DATABASE_NAME, tableName)) {
+            return "`" + RELATION_DATABASE_NAME + "`.`" + tableName + "`";
         }
         return null;
     }
@@ -1928,6 +2096,48 @@ public class AdminArmorSetController {
         } catch (Exception exception) {
             return List.of();
         }
+    }
+
+    private Map<String, Object> parseJsonObject(Object value) {
+        if (value == null) {
+            return Map.of();
+        }
+        try {
+            Object parsed = objectMapper.readValue(String.valueOf(value), Object.class);
+            if (parsed instanceof Map<?, ?> map) {
+                Map<String, Object> result = new LinkedHashMap<>();
+                for (Map.Entry<?, ?> entry : map.entrySet()) {
+                    if (entry.getKey() != null) {
+                        result.put(String.valueOf(entry.getKey()), entry.getValue());
+                    }
+                }
+                return result;
+            }
+            return Map.of();
+        } catch (Exception exception) {
+            log.debug("Failed to parse projection armor attribute raw cells JSON", exception);
+            return Map.of("parseError", true, "raw", String.valueOf(value));
+        }
+    }
+
+    private BigDecimal decimalObject(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof BigDecimal decimal) {
+            return decimal;
+        }
+        if (value instanceof Number number) {
+            return BigDecimal.valueOf(number.doubleValue());
+        }
+        return new BigDecimal(String.valueOf(value));
+    }
+
+    private String timestampText(Object value) {
+        if (value instanceof Timestamp timestamp) {
+            return timestamp.toInstant().toString().replace("Z", "");
+        }
+        return trimToNull(value);
     }
 
     private List<Long> extractLongList(Object value) {

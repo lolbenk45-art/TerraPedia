@@ -5,6 +5,7 @@ export const LANDING_DATASET_TYPES = [
   'npcs_raw',
   'projectiles_raw',
   'armor_sets_raw',
+  'armor_attributes_raw',
   'armor_set_images_raw',
   'buffs_raw',
   'bosses_raw',

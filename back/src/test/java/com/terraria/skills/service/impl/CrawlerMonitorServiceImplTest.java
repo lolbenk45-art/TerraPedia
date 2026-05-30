@@ -560,6 +560,21 @@ class CrawlerMonitorServiceImplTest {
             Map.entry("lastHeartbeatAt", "2026-05-24T00:55:00Z"),
             Map.entry("generatedAt", "2026-05-24T00:55:00Z")
         ));
+        writeJson(repoRoot.resolve("data/generated/domain-source-armor-attributes-progress.latest.json"), Map.ofEntries(
+            Map.entry("actionId", "domain-source-armor-attributes"),
+            Map.entry("status", "completed"),
+            Map.entry("phase", "write-output"),
+            Map.entry("message", "wrote armor attribute source snapshot"),
+            Map.entry("current", 220),
+            Map.entry("total", 220),
+            Map.entry("percent", 100),
+            Map.entry("outputPath", "data/generated/wiki-armor-attributes.latest.json"),
+            Map.entry("reportPath", "reports/domain/domain-source-armor-attributes-2026-05-24.json"),
+            Map.entry("nextStep", "Audit armor attribute row coverage."),
+            Map.entry("childStatusPath", "data/generated/domain-source-armor-attributes-progress.latest.json"),
+            Map.entry("lastHeartbeatAt", "2026-05-24T00:58:00Z"),
+            Map.entry("generatedAt", "2026-05-24T00:58:00Z")
+        ));
 
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
             new ObjectMapper(),
@@ -608,6 +623,22 @@ class CrawlerMonitorServiceImplTest {
         assertFalse(armorSets.isProgressStale());
         assertEquals("data/generated/wiki-armor-sets.latest.json", armorSets.getOutputPath());
         assertEquals("reports/domain/domain-source-armor-sets-2026-05-24.json", armorSets.getReportPath());
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO armorAttributes = taskById(overview.getRegisteredTasks(), "domain-source-armor-attributes");
+        assertEquals("Domain source: Armor attributes", armorAttributes.getLabel());
+        assertEquals("completed", armorAttributes.getStatus());
+        assertEquals("completed", armorAttributes.getProgressKind());
+        assertEquals("wiki domain source pages -> generated source snapshot", armorAttributes.getDataStage());
+        assertEquals("wrote armor attribute source snapshot", armorAttributes.getQueueState());
+        assertEquals(220, armorAttributes.getCurrent());
+        assertEquals(220, armorAttributes.getTotal());
+        assertEquals(100.0, armorAttributes.getPercent());
+        assertEquals("data/generated/domain-source-armor-attributes-progress.latest.json", armorAttributes.getProgressPath());
+        assertEquals("data/generated/domain-source-armor-attributes-progress.latest.json", armorAttributes.getProgressSource());
+        assertEquals("2026-05-24T00:58:00Z", armorAttributes.getProgressHeartbeatAt());
+        assertFalse(armorAttributes.isProgressStale());
+        assertEquals("data/generated/wiki-armor-attributes.latest.json", armorAttributes.getOutputPath());
+        assertEquals("reports/domain/domain-source-armor-attributes-2026-05-24.json", armorAttributes.getReportPath());
 
         CrawlerMonitorOverviewDTO.RegisteredTaskDTO shimmer = taskById(overview.getRegisteredTasks(), "domain-source-shimmer");
         assertEquals("Domain source: Shimmer", shimmer.getLabel());

@@ -108,3 +108,33 @@ test('armor set admin item detail actions use backend item detail refs before ra
   assert.doesNotMatch(page, /v-if="item\.itemId"/)
   assert.doesNotMatch(page, /@click="item\.itemId \? openLinkedItemDetail\(item\)/)
 })
+
+test('armor set admin detail renders structured equipment armor attributes from detail payload', () => {
+  const page = read('data-query-app/pages/entities/[type].vue')
+
+  for (const token of [
+    'armorAttribute',
+    'armorAttributeEffects',
+    'defenseValue',
+    'statKey',
+    'classScope',
+    'valueDecimal',
+    'getArmorItemAttributeSummary',
+    'getArmorItemAttributeEffects',
+    'formatArmorAttributeEffect',
+    '部件属性',
+    '防御',
+  ]) {
+    assert.match(page, new RegExp(escapeRegExp(token)))
+  }
+
+  assert.match(
+    page,
+    /<section v-if="armorSetVariantRows\.length"[\s\S]*?getArmorItemAttributeSummary\(item\)[\s\S]*?getArmorItemAttributeEffects\(item\)[\s\S]*?<section v-if="armorSetReplacementGroups\.length"/,
+  )
+  assert.match(
+    page,
+    /<section v-if="detailRelatedItemGroups\.length"[\s\S]*?getArmorItemAttributeSummary\(item\)[\s\S]*?getArmorItemAttributeEffects\(item\)[\s\S]*?<div v-else-if="detailRow && entityType === 'bosses'"/,
+  )
+  assert.doesNotMatch(page, /admin\/armor-attributes/)
+})

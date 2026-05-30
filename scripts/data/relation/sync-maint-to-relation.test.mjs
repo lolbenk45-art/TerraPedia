@@ -126,6 +126,125 @@ test('rewriteArmorSetRelatedItemImages rejects managed-like existing images when
   assert.equal(actual.items[0].image, null);
 });
 
+test('runSync creates item-owned armor attribute effects from wiki armor attribute rows', async () => {
+  const result = await runSync(
+    {
+      apply: false,
+      createDatabase: false,
+      maintDatabase: 'terria_v1_maint',
+      localDatabase: null,
+      relationDatabase: 'terria_v1_relation',
+      scopes: ['armor_attributes']
+    },
+    {
+      queryMaint: async (sql) => {
+        if (sql.includes('maint_items')) {
+          return [{
+            source_id: 559,
+            internal_name: 'HallowedMask',
+            english_name: 'Hallowed Mask',
+            name_zh: '神圣面具',
+            defense_value: 24,
+            raw_json: JSON.stringify({ internalName: 'HallowedMask', name: 'Hallowed Mask', nameZh: '神圣面具' }),
+            record_key: 'item-hallowed-mask'
+          }];
+        }
+        if (sql.includes('maint_armor_attribute_rows')) {
+          return [{
+            id: 1,
+            record_key: 'armor-attribute-hallowed-mask',
+            section_code: 'hardmode',
+            slot_group: 'head',
+            item_page_title: '神圣面具',
+            item_href: '/zh/wiki/%E7%A5%9E%E5%9C%A3%E9%9D%A2%E5%85%B7',
+            item_name_zh: '神圣面具',
+            defense_value: 24,
+            raw_cells_json: JSON.stringify({
+              meleeDamage: '10%',
+              meleeCritChance: '10%',
+              classSpecific: '10%'
+            }),
+            source_provider: 'terraria.wiki.gg',
+            source_page: '盔甲属性表',
+            source_revision_timestamp: '2023-10-23T04:15:47Z',
+            landing_source_id: 51,
+            landing_source_key: 'wiki.page.armor_attributes',
+            landing_content_hash: 'g'.repeat(64),
+            raw_json: '{}'
+          }];
+        }
+        return [];
+      },
+      writeReports: async () => ({
+        auditJsonPath: 'reports/relation/relation-audit-2026-05-30.json',
+        auditMdPath: 'reports/relation/relation-audit-2026-05-30.md',
+        conflictsPath: 'reports/relation/relation-conflicts-2026-05-30.json',
+        unresolvedPath: 'reports/relation/relation-unresolved-2026-05-30.json'
+      }),
+      loadInheritanceRules: () => [],
+      loadReviewedNonNpcSourceExclusions: () => [],
+      loadReviewedSourceOnlyItemExclusions: () => []
+    }
+  );
+
+  assert.equal(result.summary.domainSummary.armorAttribute, 1);
+  assert.equal(result.summary.domainSummary.equipmentEffect, 3);
+  assert.deepEqual(result.results.projectionItemArmorAttributes.map((row) => ({
+    itemId: row.itemId,
+    itemInternalName: row.itemInternalName,
+    defenseValue: row.defenseValue
+  })), [{
+    itemId: 559,
+    itemInternalName: 'HallowedMask',
+    defenseValue: 24
+  }]);
+  assert.deepEqual(result.results.relationEquipmentEffectAttributes.map((row) => ({
+    ownerKind: row.ownerKind,
+    ownerId: row.ownerId,
+    ownerKey: row.ownerKey,
+    itemInternalName: row.itemInternalName,
+    slotType: row.slotType,
+    statKey: row.statKey,
+    classScope: row.classScope,
+    valueDecimal: row.valueDecimal,
+    unit: row.unit
+  })), [
+    {
+      ownerKind: 'item',
+      ownerId: 559,
+      ownerKey: 'HallowedMask',
+      itemInternalName: 'HallowedMask',
+      slotType: 'headSlot',
+      statKey: 'damage_bonus',
+      classScope: 'melee',
+      valueDecimal: 10,
+      unit: 'percent'
+    },
+    {
+      ownerKind: 'item',
+      ownerId: 559,
+      ownerKey: 'HallowedMask',
+      itemInternalName: 'HallowedMask',
+      slotType: 'headSlot',
+      statKey: 'crit_chance',
+      classScope: 'all',
+      valueDecimal: 10,
+      unit: 'percent'
+    },
+    {
+      ownerKind: 'item',
+      ownerId: 559,
+      ownerKey: 'HallowedMask',
+      itemInternalName: 'HallowedMask',
+      slotType: 'headSlot',
+      statKey: 'melee_speed',
+      classScope: 'melee',
+      valueDecimal: 10,
+      unit: 'percent'
+    }
+  ]);
+});
+
 test('runSync dry-run reads maint only and does not write relation rows', async () => {
   const reads = [];
   const relationReads = [];

@@ -3,7 +3,9 @@ package com.terraria.skills.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.ItemImageDTO;
 import com.terraria.skills.dto.ItemSourceDTO;
+import com.terraria.skills.dto.PublicItemArmorAttributeDTO;
 import com.terraria.skills.dto.PublicItemBuffEffectDTO;
+import com.terraria.skills.dto.PublicItemEquipmentEffectDTO;
 import com.terraria.skills.service.ItemImageService;
 import com.terraria.skills.service.ItemSourceService;
 import com.terraria.skills.service.ManagedImageUrlPolicy;
@@ -213,5 +215,60 @@ class PublicItemRelationControllerTest {
             .andExpect(jsonPath("$.data[0].sourceRevisionTimestamp").doesNotExist());
 
         verify(publicItemService).getPublicItemBuffEffects(77L);
+    }
+
+    @Test
+    void shouldReturnPublicItemArmorAttributes() throws Exception {
+        PublicItemArmorAttributeDTO row = new PublicItemArmorAttributeDTO();
+        row.setId(1L);
+        row.setItemId(559L);
+        row.setItemInternalName("HallowedMask");
+        row.setItemNameZh("神圣面具");
+        row.setItemPageTitle("神圣面具");
+        row.setSlotGroup("head");
+        row.setDefenseValue(24);
+        row.setRawCellsJson("{\"meleeDamage\":\"10%\"}");
+
+        when(publicItemService.getPublicItemArmorAttributes(559L)).thenReturn(List.of(row));
+
+        mockMvc.perform(get("/public/items/559/armor-attributes"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data[0].itemId").value(559))
+            .andExpect(jsonPath("$.data[0].itemInternalName").value("HallowedMask"))
+            .andExpect(jsonPath("$.data[0].itemNameZh").value("神圣面具"))
+            .andExpect(jsonPath("$.data[0].slotGroup").value("head"))
+            .andExpect(jsonPath("$.data[0].defenseValue").value(24))
+            .andExpect(jsonPath("$.data[0].rawCellsJson").value("{\"meleeDamage\":\"10%\"}"));
+
+        verify(publicItemService).getPublicItemArmorAttributes(559L);
+    }
+
+    @Test
+    void shouldReturnPublicItemEquipmentEffects() throws Exception {
+        PublicItemEquipmentEffectDTO effect = new PublicItemEquipmentEffectDTO();
+        effect.setId(1L);
+        effect.setItemId(559L);
+        effect.setItemInternalName("HallowedMask");
+        effect.setOwnerKind("item");
+        effect.setStatKey("damage_bonus");
+        effect.setClassScope("melee");
+        effect.setSlotType("headSlot");
+        effect.setUnit("percent");
+
+        when(publicItemService.getPublicItemEquipmentEffects(559L)).thenReturn(List.of(effect));
+
+        mockMvc.perform(get("/public/items/559/equipment-effects"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data[0].itemId").value(559))
+            .andExpect(jsonPath("$.data[0].itemInternalName").value("HallowedMask"))
+            .andExpect(jsonPath("$.data[0].ownerKind").value("item"))
+            .andExpect(jsonPath("$.data[0].statKey").value("damage_bonus"))
+            .andExpect(jsonPath("$.data[0].classScope").value("melee"))
+            .andExpect(jsonPath("$.data[0].slotType").value("headSlot"))
+            .andExpect(jsonPath("$.data[0].unit").value("percent"));
+
+        verify(publicItemService).getPublicItemEquipmentEffects(559L);
     }
 }

@@ -246,6 +246,26 @@ export async function listSourceDatasetLandingInputs(options = {}) {
     }),
   );
 
+  await pushFileDescriptor(
+    'armor_attributes_raw',
+    path.join(repoRoot, 'data', 'generated', 'wiki-armor-attributes.latest.json'),
+    (filePath, payload) => buildFileDescriptor({
+      datasetType: 'armor_attributes_raw',
+      filePath,
+      payload,
+      provider: 'terraria.wiki.gg',
+      sourceKind: 'page_table',
+      sourceKey: 'wiki.page.armor_attributes',
+      sourcePage: payload.sourcePageTitle ?? '盔甲属性表',
+      sourceRevisionTimestamp: payload.sourceRevisionTimestamp ?? null,
+      fetchedAt: payload.fetchedAt ?? payload.generatedAt,
+      parsedAt: payload.generatedAt,
+      parseStatus: Array.isArray(payload.records) ? 'ok' : 'error',
+      repoRoot,
+      sharedDataRoot,
+    }),
+  );
+
   if (shouldInclude('buffs_raw')) {
     const standardizedBuffsPath = path.join(repoRoot, 'data', 'standardized', 'buffs.standardized.json');
     const rawTemplateBuffsPath = path.join(sharedDataRoot, 'raw', 'wiki', 'template__getbuffinfo.parsed.latest.json');

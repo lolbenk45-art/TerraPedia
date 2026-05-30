@@ -556,6 +556,15 @@
                     <strong>{{ item.nameZh || item.name || item.internalName || `Item ${getArmorItemSourceId(item) || '--'}` }}</strong>
                     <small>源 ID {{ getArmorItemSourceId(item) || '--' }}</small>
                     <small v-if="getArmorItemSlotLabel(item)">{{ getArmorItemSlotLabel(item) }}</small>
+                    <div v-if="getArmorItemAttributeSummary(item).length || getArmorItemAttributeEffects(item).length" class="armor-detail__attribute-box">
+                      <span class="armor-detail__attribute-title">部件属性</span>
+                      <div v-if="getArmorItemAttributeSummary(item).length" class="armor-detail__attribute-chips">
+                        <span v-for="entry in getArmorItemAttributeSummary(item)" :key="`${variant.setId}-${getArmorItemSourceId(item)}-${entry.label}`">{{ entry.label }} {{ entry.value }}</span>
+                      </div>
+                      <div v-if="getArmorItemAttributeEffects(item).length" class="armor-detail__attribute-effects">
+                        <span v-for="effect in getArmorItemAttributeEffects(item)" :key="`${variant.setId}-${getArmorItemSourceId(item)}-${effect.id ?? effect.effectIndex ?? effect.rawText}`">{{ formatArmorAttributeEffect(effect) }}</span>
+                      </div>
+                    </div>
                     <button v-if="canOpenLinkedItemDetail(item)" type="button" class="btn-link" @click="openLinkedItemDetail(item)">物品详情</button>
                   </div>
                   <span v-for="sourceId in variant.missingSourceIds" :key="`${variant.setId}-missing-${sourceId}`" class="armor-detail__variant-missing">源 ID {{ sourceId }}</span>
@@ -591,6 +600,15 @@
                       <div class="armor-detail__item-meta">
                         <span v-if="getArmorItemSourceId(item)">源 ID {{ getArmorItemSourceId(item) }}</span>
                         <span v-if="getArmorItemSlotLabel(item)">{{ getArmorItemSlotLabel(item) }}</span>
+                      </div>
+                      <div v-if="getArmorItemAttributeSummary(item).length || getArmorItemAttributeEffects(item).length" class="armor-detail__attribute-box">
+                        <span class="armor-detail__attribute-title">部件属性</span>
+                        <div v-if="getArmorItemAttributeSummary(item).length" class="armor-detail__attribute-chips">
+                          <span v-for="entry in getArmorItemAttributeSummary(item)" :key="`${group.partRole}-${getArmorItemSourceId(item)}-${entry.label}`">{{ entry.label }} {{ entry.value }}</span>
+                        </div>
+                        <div v-if="getArmorItemAttributeEffects(item).length" class="armor-detail__attribute-effects">
+                          <span v-for="effect in getArmorItemAttributeEffects(item)" :key="`${group.partRole}-${getArmorItemSourceId(item)}-${effect.id ?? effect.effectIndex ?? effect.rawText}`">{{ formatArmorAttributeEffect(effect) }}</span>
+                        </div>
                       </div>
                       <button v-if="canOpenLinkedItemDetail(item)" type="button" class="btn-link" @click="openLinkedItemDetail(item)">物品详情</button>
                     </div>
@@ -655,6 +673,15 @@
                         <span v-if="item.id != null">DB ID {{ item.id }}</span>
                         <span v-if="getArmorItemSourceId(item)">源 ID {{ getArmorItemSourceId(item) }}</span>
                         <span v-if="getArmorItemSlotLabel(item)">{{ getArmorItemSlotLabel(item) }}</span>
+                      </div>
+                      <div v-if="getArmorItemAttributeSummary(item).length || getArmorItemAttributeEffects(item).length" class="armor-detail__attribute-box">
+                        <span class="armor-detail__attribute-title">部件属性</span>
+                        <div v-if="getArmorItemAttributeSummary(item).length" class="armor-detail__attribute-chips">
+                          <span v-for="entry in getArmorItemAttributeSummary(item)" :key="`${group.key}-${getArmorItemSourceId(item) || item.id}-${entry.label}`">{{ entry.label }} {{ entry.value }}</span>
+                        </div>
+                        <div v-if="getArmorItemAttributeEffects(item).length" class="armor-detail__attribute-effects">
+                          <span v-for="effect in getArmorItemAttributeEffects(item)" :key="`${group.key}-${getArmorItemSourceId(item) || item.id}-${effect.id ?? effect.effectIndex ?? effect.rawText}`">{{ formatArmorAttributeEffect(effect) }}</span>
+                        </div>
                       </div>
                       <button v-if="canOpenLinkedItemDetail(item)" type="button" class="btn-link" @click="openLinkedItemDetail(item)">物品详情</button>
                     </div>
@@ -4398,6 +4425,54 @@ function getArmorItemSlotLabel(item: Record<string, any>) {
   return `${slotType || 'slot'} ${slotId}`
 }
 
+function getArmorItemAttributeSummary(item: Record<string, any>) {
+  const attribute = item?.armorAttribute
+  if (!attribute || typeof attribute !== 'object') return []
+  const entries: Array<{ label: string, value: string }> = []
+  if (attribute.defenseValue != null && attribute.defenseValue !== '') {
+    entries.push({ label: '防御', value: String(attribute.defenseValue) })
+  }
+  if (typeof attribute.slotGroup === 'string' && attribute.slotGroup.trim()) {
+    entries.push({ label: '部位', value: formatArmorPartRole(attribute.slotGroup) })
+  }
+  if (typeof attribute.sectionCode === 'string' && attribute.sectionCode.trim()) {
+    entries.push({ label: '阶段', value: attribute.sectionCode.trim() })
+  }
+  return entries
+}
+
+function getArmorItemAttributeEffects(item: Record<string, any>) {
+  if (!Array.isArray(item?.armorAttributeEffects)) return []
+  return item.armorAttributeEffects.filter(effect => effect && typeof effect === 'object')
+}
+
+function formatArmorAttributeEffect(effect: Record<string, any>) {
+  const stat = pickFirstString(effect.statLabelZh, effect.statKey, '效果')
+  const scope = formatArmorAttributeClassScope(effect.classScope)
+  const value = formatArmorAttributeValue(effect.valueDecimal, effect.unit)
+  const raw = typeof effect.rawText === 'string' ? effect.rawText.trim() : ''
+  return [scope, stat, value].filter(Boolean).join(' ') || raw || '效果'
+}
+
+function formatArmorAttributeClassScope(value: unknown) {
+  const scope = typeof value === 'string' ? value.trim().toLowerCase() : ''
+  if (!scope || scope === 'all') return '通用'
+  if (scope === 'melee') return '近战'
+  if (scope === 'ranged') return '远程'
+  if (scope === 'magic') return '魔法'
+  if (scope === 'summon') return '召唤'
+  return scope
+}
+
+function formatArmorAttributeValue(value: unknown, unit: unknown) {
+  if (value == null || value === '') return ''
+  const text = String(value).trim()
+  const unitText = typeof unit === 'string' ? unit.trim().toLowerCase() : ''
+  if (unitText === 'percent') return `+${text.replace(/\.0$/, '')}%`
+  if (unitText === 'count') return `+${text.replace(/\.0$/, '')}`
+  return unitText ? `+${text} ${unitText}` : `+${text}`
+}
+
 function formatArmorPartRole(value: unknown) {
   const role = typeof value === 'string' ? value.trim().toLowerCase() : ''
   if (role === 'head') return '头部'
@@ -4733,6 +4808,11 @@ function formatArmorPartRole(value: unknown) {
 .armor-detail__item-body span { color: var(--color-text-secondary); font-size: 0.82rem; }
 .armor-detail__item-meta { display: flex; flex-wrap: wrap; gap: 6px; }
 .armor-detail__item-meta span { padding: 3px 7px; border-radius: var(--radius-full); border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-tertiary) 88%, transparent); color: var(--color-text-muted); font-size: 0.72rem; line-height: 1.2; }
+.armor-detail__attribute-box { display: grid; gap: 6px; margin-top: 4px; padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--color-border) 76%, transparent); }
+.armor-detail__attribute-title { color: var(--color-text); font-size: 0.72rem; font-weight: 800; }
+.armor-detail__attribute-chips,.armor-detail__attribute-effects { display: flex; flex-wrap: wrap; gap: 5px; }
+.armor-detail__attribute-chips span,.armor-detail__attribute-effects span { padding: 3px 7px; border-radius: var(--radius-full); border: 1px solid color-mix(in srgb, var(--color-primary) 20%, var(--color-border)); background: color-mix(in srgb, var(--color-primary) 8%, var(--color-bg-secondary)); color: var(--color-text-secondary); font-size: 0.72rem; line-height: 1.25; overflow-wrap: anywhere; }
+.armor-detail__attribute-effects span { border-color: color-mix(in srgb, #0f766e 24%, var(--color-border)); background: color-mix(in srgb, #0f766e 8%, var(--color-bg-secondary)); }
 .projectile-detail--buff .armor-detail__item-grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
 .projectile-detail--buff .armor-detail__item-card { padding: 10px; gap: 8px; }
 .projectile-detail--buff .armor-detail__item-image,

@@ -14,13 +14,14 @@ test('PROJECTION_TABLE_NAMES stays ordered and complete', () => {
     'projection_projectiles',
     'projection_buffs',
     'projection_armor_sets',
+    'projection_item_armor_attributes',
     'projection_equipment_effect_attributes'
   ]);
 });
 
 test('buildProjectionSchemaStatements emits schema-qualified create statements', () => {
   const statements = buildProjectionSchemaStatements();
-  assert.equal(statements.length, 7);
+  assert.equal(statements.length, 8);
   for (const tableName of PROJECTION_TABLE_NAMES) {
     const statement = statements.find((sql) => sql.includes(`\`${tableName}\``));
     assert.ok(statement, `missing statement for ${tableName}`);
@@ -89,4 +90,16 @@ test('projection equipment effect schema includes owner and stat lookup fields',
   assert.match(effectStatement, /`parse_status` VARCHAR\(64\) NOT NULL/);
   assert.match(effectStatement, /KEY `idx_projection_equipment_effect_owner` \(`owner_kind`, `owner_id`\)/);
   assert.match(effectStatement, /KEY `idx_projection_equipment_effect_stat` \(`stat_key`, `class_scope`, `parse_status`\)/);
+});
+
+test('projection item armor attribute schema exposes row-level armor fields', () => {
+  const statements = buildProjectionSchemaStatements();
+  const armorAttributeStatement = statements.find((sql) => sql.includes('`projection_item_armor_attributes`'));
+
+  assert.match(armorAttributeStatement, /`item_id` BIGINT NOT NULL/);
+  assert.match(armorAttributeStatement, /`item_internal_name` VARCHAR\(255\) DEFAULT NULL/);
+  assert.match(armorAttributeStatement, /`slot_group` VARCHAR\(64\) DEFAULT NULL/);
+  assert.match(armorAttributeStatement, /`defense_value` INT DEFAULT NULL/);
+  assert.match(armorAttributeStatement, /`raw_cells_json` LONGTEXT/);
+  assert.match(armorAttributeStatement, /KEY `idx_projection_item_armor_attributes_item` \(`item_id`, `item_internal_name`\)/);
 });

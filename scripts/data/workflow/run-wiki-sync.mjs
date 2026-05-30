@@ -93,6 +93,16 @@ const ENTITY_CONFIG = {
     latestJsonPath: path.join(sharedRawWikiRoot, 'module__armorsetbonuses.latest.json'),
     estimatedRequests: 1
   },
+  armor_attributes: {
+    entityFamily: 'armor_attributes',
+    sourceKind: 'page',
+    sourceKeys: ['wiki.page.armor_attributes'],
+    titles: ['盔甲属性表'],
+    scriptPath: path.join(repoRoot, 'scripts', 'data', 'fetch', 'fetch-wiki-armor-attributes.mjs'),
+    scriptArgs: () => [],
+    latestJsonPath: path.join(generatedRoot, 'wiki-armor-attributes.latest.json'),
+    estimatedRequests: 1
+  },
   buffs: {
     entityFamily: 'buffs',
     sourceKind: 'template',
@@ -384,7 +394,9 @@ async function runPlan() {
       reason: hasSourceChange ? 'source_changed' : 'missing_local_snapshot',
       estimatedRequests: config.estimatedRequests,
       command: process.execPath,
+      scriptPath: config.scriptPath,
       args: [config.scriptPath, ...config.scriptArgs(options)],
+      titles: config.titles,
       sourceKeys: config.sourceKeys,
       status: 'pending'
     });

@@ -974,6 +974,7 @@ function flattenResults(category, recipe, itemSource, secondary, bossSeries, npc
     relationBosses: [],
     relationArmorSets: armorSet.relationArmorSets,
     relationArmorSetItems: armorSet.relationArmorSetItems,
+    relationArmorAttributeRows: armorSet.relationArmorAttributeRows ?? [],
     relationEquipmentEffectAttributes: [],
     relationArmorSetImages: armorSet.relationArmorSetImages,
     relationItemRarities: [],
@@ -1010,6 +1011,7 @@ function flattenResults(category, recipe, itemSource, secondary, bossSeries, npc
     projectionProjectiles: [],
     projectionBuffs: [],
     projectionArmorSets: [],
+    projectionItemArmorAttributes: [],
     projectionEquipmentEffectAttributes: [],
     issues: [
       ...category.issues,
@@ -1072,6 +1074,165 @@ function buildArmorSetEquipmentEffectAttributes(relationArmorSets = []) {
   return rows;
 }
 
+function normalizeLookupText(value) {
+  return String(value ?? '').trim().toLowerCase().replace(/\s+/g, '');
+}
+
+function parseJsonArrayOrObject(value, fallback = {}) {
+  if (value && typeof value === 'object') return value;
+  if (typeof value !== 'string' || value.trim() === '') return fallback;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+function buildArmorAttributeItemIndex(maintItems = []) {
+  const index = new Map();
+  for (const item of maintItems) {
+    const raw = parseJsonArrayOrObject(item.raw_json ?? item.rawJson, {});
+    for (const candidate of [
+      item.name_zh,
+      item.nameZh,
+      item.english_name,
+      item.englishName,
+      item.internal_name,
+      item.internalName,
+      raw.name,
+      raw.nameZh,
+      raw.internalName
+    ]) {
+      const key = normalizeLookupText(candidate);
+      if (key && !index.has(key)) {
+        index.set(key, item);
+      }
+    }
+  }
+  return index;
+}
+
+function slotGroupToSlotType(slotGroup) {
+  if (slotGroup === 'head') return 'headSlot';
+  if (slotGroup === 'body') return 'bodySlot';
+  if (slotGroup === 'legs') return 'legSlot';
+  return null;
+}
+
+function percentNumber(value) {
+  const match = String(value ?? '').match(/-?\d+(?:\.\d+)?/);
+  return match ? Number(match[0]) : null;
+}
+
+function buildArmorAttributeEffectRows(relationArmorAttributeRows = []) {
+  const rows = [];
+  const effectSpecs = [
+    ['meleeDamage', 'damage_bonus', '近战伤害', 'melee'],
+    ['rangedDamage', 'damage_bonus', '远程伤害', 'ranged'],
+    ['magicDamage', 'damage_bonus', '魔法伤害', 'magic'],
+    ['summonDamage', 'damage_bonus', '召唤伤害', 'summon'],
+    ['meleeCritChance', 'crit_chance', '暴击率', 'all'],
+    ['rangedCritChance', 'crit_chance', '暴击率', 'all'],
+    ['magicCritChance', 'crit_chance', '暴击率', 'all'],
+    ['classSpecific', 'melee_speed', '近战速度', 'melee']
+  ];
+  for (const armorRow of relationArmorAttributeRows) {
+    if (!armorRow.itemId || armorRow.reviewStatus === 'unresolved') {
+      continue;
+    }
+    const rawCells = parseJsonArrayOrObject(armorRow.rawCellsJson, {});
+    effectSpecs.forEach(([cellKey, statKey, statLabelZh, classScope], effectIndex) => {
+      const value = percentNumber(rawCells[cellKey]);
+      if (value == null || value === 0) {
+        return;
+      }
+      rows.push({
+        recordKey: createRecordKey([
+          'armor-attribute-effect',
+          armorRow.recordKey,
+          armorRow.itemId,
+          cellKey,
+          statKey,
+          classScope,
+          value
+        ]),
+        ownerKind: 'item',
+        ownerRecordKey: armorRow.recordKey,
+        ownerId: Number(armorRow.itemId),
+        ownerKey: armorRow.itemInternalName,
+        sourceKind: 'armor_attribute_cell',
+        sourceLocale: 'zh',
+        sourceLineIndex: 0,
+        sourceLine: `${armorRow.itemNameZh ?? armorRow.itemPageTitle ?? armorRow.itemInternalName} ${cellKey}: ${rawCells[cellKey]}`,
+        effectIndex,
+        applyScope: 'item_bonus',
+        variantLabel: armorRow.itemNameZh ?? armorRow.itemPageTitle ?? null,
+        itemInternalName: armorRow.itemInternalName,
+        slotType: slotGroupToSlotType(armorRow.slotGroup),
+        statKey,
+        statLabelZh,
+        classScope,
+        operation: 'add',
+        valueDecimal: value,
+        valueMaxDecimal: null,
+        unit: 'percent',
+        conditionText: null,
+        rawText: String(rawCells[cellKey]),
+        parseStatus: 'parsed',
+        sourceMaintTable: armorRow.sourceMaintTable,
+        sourceMaintRecordKey: armorRow.sourceMaintRecordKey,
+        sourceMaintId: armorRow.sourceMaintId,
+        landingSourceId: armorRow.landingSourceId,
+        landingSourceKey: armorRow.landingSourceKey,
+        landingContentHash: armorRow.landingContentHash,
+        sourceProvider: armorRow.sourceProvider,
+        sourcePage: armorRow.sourcePage,
+        sourceRevisionTimestamp: armorRow.sourceRevisionTimestamp,
+        confidence: 1,
+        reviewStatus: 'accepted',
+        reason: 'parsed_from_armor_attribute_cell',
+        rawJson: JSON.stringify({ cellKey, cellValue: rawCells[cellKey], armorAttributeRecordKey: armorRow.recordKey })
+      });
+    });
+  }
+  return rows;
+}
+
+function buildArmorAttributeRelations({ maintArmorAttributeRows = [], maintItems = [] } = {}) {
+  const itemIndex = buildArmorAttributeItemIndex(maintItems);
+  return maintArmorAttributeRows.map((row) => {
+    const item = itemIndex.get(normalizeLookupText(row.item_name_zh))
+      ?? itemIndex.get(normalizeLookupText(row.item_page_title))
+      ?? null;
+    const resolved = item != null;
+    return {
+      recordKey: row.record_key,
+      itemId: resolved ? Number(item.source_id) : null,
+      itemInternalName: resolved ? (item.internal_name ?? null) : null,
+      itemNameZh: row.item_name_zh ?? null,
+      itemPageTitle: row.item_page_title ?? null,
+      itemHref: row.item_href ?? null,
+      sectionCode: row.section_code ?? null,
+      slotGroup: row.slot_group ?? null,
+      defenseValue: row.defense_value == null ? null : Number(row.defense_value),
+      rawCellsJson: row.raw_cells_json ?? null,
+      sourceMaintTable: 'maint_armor_attribute_rows',
+      sourceMaintRecordKey: row.record_key ?? null,
+      sourceMaintId: row.id ?? null,
+      landingSourceId: row.landing_source_id ?? null,
+      landingSourceKey: row.landing_source_key ?? null,
+      landingContentHash: row.landing_content_hash ?? null,
+      sourceProvider: row.source_provider ?? null,
+      sourcePage: row.source_page ?? null,
+      sourceRevisionTimestamp: row.source_revision_timestamp ?? null,
+      confidence: resolved ? 1 : 0,
+      reason: resolved ? 'matched_maint_item_by_wiki_identity' : 'unresolved_maint_item_by_wiki_identity',
+      reviewStatus: resolved ? 'accepted' : 'unresolved',
+      rawJson: row.raw_json ?? JSON.stringify(row)
+    };
+  });
+}
+
 export async function runSync(options, dependencies = {}) {
   const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
   const managedImageUrlPrefixes = normalizeManagedImageUrlPrefixes(
@@ -1126,6 +1287,7 @@ export async function runSync(options, dependencies = {}) {
     maintItemTextOverrides,
     maintArmorSets,
     maintArmorSetImages,
+    maintArmorAttributeRows,
     existingRelationArmorSetImages,
     inheritanceRules,
     reviewedNonNpcSourceExclusions,
@@ -1154,6 +1316,7 @@ export async function runSync(options, dependencies = {}) {
     queryMaint('SELECT item_internal_name, tooltip_zh, description_zh FROM maint_item_text_overrides WHERE deleted = 0'),
     queryMaint('SELECT * FROM maint_armor_sets WHERE deleted = 0'),
     queryMaintOptional(queryMaint, 'SELECT * FROM maint_armor_set_images WHERE deleted = 0', []),
+    queryMaintOptional(queryMaint, 'SELECT * FROM maint_armor_attribute_rows WHERE deleted = 0', []),
     queryRelationOptional(queryRelation, 'SELECT * FROM relation_armor_set_images WHERE deleted = 0', []),
     loadInheritanceRules(),
     loadReviewedNonNpcSourceExclusions(),
@@ -1235,6 +1398,7 @@ export async function runSync(options, dependencies = {}) {
   });
 
   const results = flattenResults(category, recipe, itemSource, secondary, bossSeries, npcSeries, armorSet);
+  results.relationArmorAttributeRows = buildArmorAttributeRelations({ maintArmorAttributeRows, maintItems });
   results.relationItems = baseEntities.relationItems;
   results.relationNpcs = baseEntities.relationNpcs;
   results.relationProjectiles = baseEntities.relationProjectiles;
@@ -1246,7 +1410,10 @@ export async function runSync(options, dependencies = {}) {
   results.relationProjectileImages = imageEntities.relationProjectileImages;
   results.relationBuffImages = imageEntities.relationBuffImages;
   results.itemRecipeGroupExpansions = recipeExpansions.groupExpansions;
-  results.relationEquipmentEffectAttributes = buildArmorSetEquipmentEffectAttributes(results.relationArmorSets);
+  results.relationEquipmentEffectAttributes = [
+    ...buildArmorSetEquipmentEffectAttributes(results.relationArmorSets),
+    ...buildArmorAttributeEffectRows(results.relationArmorAttributeRows)
+  ];
   const projection = buildProjectionPayload({
     relationItems: results.relationItems,
     relationItemImages: results.relationItemImages,
@@ -1287,6 +1454,7 @@ export async function runSync(options, dependencies = {}) {
     relationArmorSets: results.relationArmorSets,
     relationArmorSetItems: results.relationArmorSetItems,
     relationArmorSetImages: results.relationArmorSetImages,
+    relationArmorAttributeRows: results.relationArmorAttributeRows,
     relationEquipmentEffectAttributes: results.relationEquipmentEffectAttributes,
     managedImageUrlPrefixes
   });
@@ -1296,6 +1464,7 @@ export async function runSync(options, dependencies = {}) {
   results.projectionProjectiles = projection.projectionProjectiles;
   results.projectionBuffs = projection.projectionBuffs;
   results.projectionArmorSets = projection.projectionArmorSets;
+  results.projectionItemArmorAttributes = projection.projectionItemArmorAttributes;
   results.projectionEquipmentEffectAttributes = projection.projectionEquipmentEffectAttributes;
   const armorSetProjectionConsistencyIssues = validateProjectionArmorSetConsistency(results.projectionArmorSets);
   const runKey = createRecordKey({
@@ -1336,6 +1505,7 @@ export async function runSync(options, dependencies = {}) {
       boss: results.relationBosses.length + results.bossItemRewardRelations.length + results.bossEffectRelations.length,
       npcSeries: results.npcSeriesNodes.length + results.npcSeriesMemberships.length + results.npcSeriesItemRelations.length,
       armorSet: results.relationArmorSets.length + results.relationArmorSetItems.length + results.relationArmorSetImages.length,
+      armorAttribute: results.relationArmorAttributeRows.length,
       equipmentEffect: results.relationEquipmentEffectAttributes.length
     },
     entityBreakdown: {
@@ -1446,6 +1616,7 @@ export async function runSync(options, dependencies = {}) {
         'npc_series_nodes',
         'relation_armor_set_images',
         'relation_equipment_effect_attributes',
+        'relation_armor_attribute_rows',
         'relation_armor_set_items',
         'relation_armor_sets',
         'relation_item_rarities',
@@ -1460,6 +1631,7 @@ export async function runSync(options, dependencies = {}) {
         'projection_projectiles',
         'projection_buffs',
         'projection_armor_sets',
+        'projection_item_armor_attributes',
         'projection_equipment_effect_attributes',
         'relation_items',
         'relation_npcs',
@@ -1474,6 +1646,7 @@ export async function runSync(options, dependencies = {}) {
       await upsertRows(connection, 'relation_bosses', results.relationBosses);
       await upsertRows(connection, 'relation_armor_sets', results.relationArmorSets);
       await upsertRows(connection, 'relation_armor_set_items', results.relationArmorSetItems);
+      await upsertRows(connection, 'relation_armor_attribute_rows', results.relationArmorAttributeRows);
       await upsertRows(connection, 'relation_equipment_effect_attributes', results.relationEquipmentEffectAttributes);
       await upsertRows(connection, 'relation_item_rarities', results.relationItemRarities);
       await upsertRows(connection, 'relation_item_images', results.relationItemImages);
@@ -1510,6 +1683,7 @@ export async function runSync(options, dependencies = {}) {
       await upsertRows(connection, 'projection_projectiles', results.projectionProjectiles);
       await upsertRows(connection, 'projection_buffs', results.projectionBuffs);
       await upsertRows(connection, 'projection_armor_sets', results.projectionArmorSets);
+      await upsertRows(connection, 'projection_item_armor_attributes', results.projectionItemArmorAttributes);
       await upsertRows(connection, 'projection_equipment_effect_attributes', results.projectionEquipmentEffectAttributes);
       await reconcileItemStackSizeFromMaint(connection, options.maintDatabase);
       summary.bridgeBreakdown.maintItemImageFillRows = await reconcileProjectionItemImageFromMaint(

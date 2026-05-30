@@ -18,6 +18,7 @@ const EXPECTED_TABLE_NAMES = [
   'relation_bosses',
   'relation_armor_sets',
   'relation_armor_set_items',
+  'relation_armor_attribute_rows',
   'relation_equipment_effect_attributes',
   'relation_item_rarities',
   'relation_item_images',
@@ -104,6 +105,7 @@ test('table-scoped relation run metadata columns are correct', () => {
   const relationBosses = extractTableDdl(sql, 'relation_bosses');
   const relationArmorSets = extractTableDdl(sql, 'relation_armor_sets');
   const relationArmorSetItems = extractTableDdl(sql, 'relation_armor_set_items');
+  const relationArmorAttributes = extractTableDdl(sql, 'relation_armor_attribute_rows');
   const relationEquipmentEffects = extractTableDdl(sql, 'relation_equipment_effect_attributes');
   const relationItemRarities = extractTableDdl(sql, 'relation_item_rarities');
   const relationItemImages = extractTableDdl(sql, 'relation_item_images');
@@ -166,6 +168,14 @@ test('table-scoped relation run metadata columns are correct', () => {
   assert.match(relationArmorSetItems, /`part_role` VARCHAR\(64\) DEFAULT NULL/);
   assert.match(relationArmorSetItems, /`equipment_slot_id` INT DEFAULT NULL/);
   assert.match(relationArmorSetItems, /KEY `idx_relation_armor_set_items_set` \(`armor_set_record_key`\)/);
+
+  assert.match(relationArmorAttributes, /`item_id` BIGINT DEFAULT NULL/);
+  assert.match(relationArmorAttributes, /`item_internal_name` VARCHAR\(255\) DEFAULT NULL/);
+  assert.match(relationArmorAttributes, /`item_page_title` VARCHAR\(255\) DEFAULT NULL/);
+  assert.match(relationArmorAttributes, /`defense_value` INT DEFAULT NULL/);
+  assert.match(relationArmorAttributes, /`raw_cells_json` LONGTEXT/);
+  assert.match(relationArmorAttributes, /`review_status` VARCHAR\(64\) NOT NULL DEFAULT 'accepted'/);
+  assert.match(relationArmorAttributes, /UNIQUE KEY `uk_relation_armor_attribute_rows_record_key` \(`record_key`\)/);
 
   assert.match(relationEquipmentEffects, /`owner_kind` VARCHAR\(32\) NOT NULL/);
   assert.match(relationEquipmentEffects, /`owner_record_key` CHAR\(64\) COLLATE utf8mb4_bin DEFAULT NULL/);

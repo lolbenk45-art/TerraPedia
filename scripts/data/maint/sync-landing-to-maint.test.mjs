@@ -108,6 +108,130 @@ test('extractMaintEntitiesFromLandingRow preserves explicit zero-valued item fac
   assert.equal(row.majorValue, 0);
 });
 
+test('extractMaintEntitiesFromLandingRow expands armor attribute rows with linked item identity', async () => {
+  const landingRow = {
+    id: 51,
+    dataset_type: 'armor_attributes_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: '盔甲属性表',
+    source_key: 'wiki.page.armor_attributes',
+    source_revision_timestamp: '2023-10-23T04:15:47Z',
+    content_hash: 'g'.repeat(64),
+    fetched_at: '2026-05-30T10:00:00Z',
+    parsed_at: '2026-05-30T10:00:00Z',
+    payload_json: JSON.stringify({
+      sourcePageTitle: '盔甲属性表',
+      sourceRevisionTimestamp: '2023-10-23T04:15:47Z',
+      generatedAt: '2026-05-30T10:00:00Z',
+      records: [{
+        sectionCode: 'hardmode',
+        slotGroup: 'head',
+        itemPageTitle: '神圣面具',
+        itemHref: '/zh/wiki/%E7%A5%9E%E5%9C%A3%E9%9D%A2%E5%85%B7',
+        itemNameZh: '神圣面具',
+        defenseValue: 24,
+        rawCells: {
+          meleeDamage: '10%',
+          meleeCritChance: '10%',
+          classSpecific: '10%',
+          otherBonus: ''
+        },
+        sourceRevisionTimestamp: '2023-10-23T04:15:47Z'
+      }]
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+
+  assert.equal(actual.scope, 'armor_attributes');
+  assert.equal(actual.rows.length, 1);
+  assert.deepEqual(actual.rows[0], {
+    scope: 'armor_attributes',
+    tableName: 'maint_armor_attribute_rows',
+    recordKey: actual.rows[0].recordKey,
+    sectionCode: 'hardmode',
+    slotGroup: 'head',
+    itemPageTitle: '神圣面具',
+    itemHref: '/zh/wiki/%E7%A5%9E%E5%9C%A3%E9%9D%A2%E5%85%B7',
+    itemNameZh: '神圣面具',
+    defenseValue: 24,
+    rawCellsJson: JSON.stringify({
+      meleeDamage: '10%',
+      meleeCritChance: '10%',
+      classSpecific: '10%',
+      otherBonus: ''
+    }),
+    sourceProvider: 'terraria.wiki.gg',
+    sourcePage: '盔甲属性表',
+    sourceRevisionTimestamp: '2023-10-23T04:15:47Z',
+    landingSourceId: 51,
+    landingSourceKey: 'wiki.page.armor_attributes',
+    landingSourcePage: '盔甲属性表',
+    landingContentHash: 'g'.repeat(64),
+    landingFetchedAt: '2026-05-30T10:00:00Z',
+    landingParsedAt: '2026-05-30T10:00:00Z',
+    rawJson: JSON.stringify({
+      sectionCode: 'hardmode',
+      slotGroup: 'head',
+      itemPageTitle: '神圣面具',
+      itemHref: '/zh/wiki/%E7%A5%9E%E5%9C%A3%E9%9D%A2%E5%85%B7',
+      itemNameZh: '神圣面具',
+      defenseValue: 24,
+      rawCells: {
+        meleeDamage: '10%',
+        meleeCritChance: '10%',
+        classSpecific: '10%',
+        otherBonus: ''
+      },
+      sourceRevisionTimestamp: '2023-10-23T04:15:47Z'
+    }),
+  });
+});
+
+test('extractMaintEntitiesFromLandingRow preserves duplicate armor attribute variants for the same item', async () => {
+  const landingRow = {
+    id: 52,
+    dataset_type: 'armor_attributes_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: '盔甲属性表',
+    source_key: 'wiki.page.armor_attributes',
+    source_revision_timestamp: '2023-10-23T04:15:47Z',
+    content_hash: 'h'.repeat(64),
+    fetched_at: '2026-05-30T10:00:00Z',
+    parsed_at: '2026-05-30T10:00:00Z',
+    payload_json: JSON.stringify({
+      sourcePageTitle: '盔甲属性表',
+      records: [
+        {
+          sectionCode: 'pre-hardmode',
+          slotGroup: 'head',
+          itemPageTitle: '挖矿头盔',
+          itemHref: '/zh/wiki/%E6%8C%96%E7%9F%BF%E5%A4%B4%E7%9B%94',
+          itemNameZh: '挖矿头盔',
+          defenseValue: null,
+          rawCells: { sentrySlots: '2' },
+        },
+        {
+          sectionCode: 'pre-hardmode',
+          slotGroup: 'head',
+          itemPageTitle: '挖矿头盔',
+          itemHref: '/zh/wiki/%E6%8C%96%E7%9F%BF%E5%A4%B4%E7%9B%94',
+          itemNameZh: '挖矿头盔',
+          defenseValue: 10,
+          rawCells: { sentrySlots: '1' },
+        },
+      ],
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+
+  assert.equal(actual.scope, 'armor_attributes');
+  assert.equal(actual.rows.length, 2);
+  assert.notEqual(actual.rows[0].recordKey, actual.rows[1].recordKey);
+  assert.deepEqual(actual.rows.map((row) => row.defenseValue), [null, 10]);
+});
+
 test('extractMaintEntitiesFromLandingRow expands parsed npc payload into maint npc rows', async () => {
   const npcLandingRow = {
     id: 21,
@@ -1534,6 +1658,70 @@ test('runMaintSync retires stale item page rows not produced by the current sour
   assert.equal(staleRecipeCleanup.params.length, 1);
   assert.equal(summary.writes.inserted, 2);
   assert.equal(summary.writes.retired, 3);
+});
+
+test('runMaintSync retires stale armor attribute rows not produced by the current source set', async () => {
+  const executeCalls = [];
+  const summary = await runMaintSync(
+    { apply: true, scopes: ['armor_attributes'] },
+    {
+      loadLandingRows: async () => [
+        {
+          id: 51,
+          dataset_type: 'armor_attributes_raw',
+          provider: 'terraria.wiki.gg',
+          source_page: '盔甲属性表',
+          source_key: 'wiki.page.armor_attributes',
+          source_revision_timestamp: '2023-10-23T04:15:47Z',
+          content_hash: 'g'.repeat(64),
+          fetched_at: '2026-05-30T10:00:00Z',
+          parsed_at: '2026-05-30T10:00:00Z',
+          payload_json: JSON.stringify({
+            sourcePageTitle: '盔甲属性表',
+            records: [{
+              sectionCode: 'hardmode',
+              slotGroup: 'head',
+              itemPageTitle: '神圣面具',
+              itemHref: '/zh/wiki/%E7%A5%9E%E5%9C%A3%E9%9D%A2%E5%85%B7',
+              itemNameZh: '神圣面具',
+              defenseValue: 24,
+              rawCells: { meleeDamage: '10%' },
+            }],
+          }),
+        },
+      ],
+      mysqlModule: {
+        async createConnection() {
+          return {
+            async beginTransaction() {},
+            async query() {},
+            async execute(sql, params) {
+              executeCalls.push({ sql, params });
+              if (sql.startsWith('SELECT id FROM') || sql.startsWith('SELECT id, status, deleted, landing_source_id, landing_content_hash FROM')) {
+                return [[]];
+              }
+              if (sql.startsWith('UPDATE `maint_armor_attribute_rows` AS target')) {
+                return [{ affectedRows: 1 }];
+              }
+              return [{}];
+            },
+            async commit() {},
+            async rollback() {},
+            async end() {},
+          };
+        },
+      },
+      writeReport: async () => {},
+    },
+  );
+
+  const staleCleanup = executeCalls.find((call) => call.sql.startsWith('UPDATE `maint_armor_attribute_rows` AS target'));
+  assert.ok(staleCleanup);
+  assert.match(staleCleanup.sql, /LEFT JOIN `tmp_maint_active_record_keys`/);
+  assert.match(staleCleanup.sql, /target\.landing_source_key = \?/);
+  assert.deepEqual(staleCleanup.params, ['maint_armor_attribute_rows', 'wiki.page.armor_attributes']);
+  assert.equal(summary.writes.inserted, 1);
+  assert.equal(summary.writes.retired, 1);
 });
 
 test('runMaintSync skips large item page rewrites when current record-key row is already active', async () => {

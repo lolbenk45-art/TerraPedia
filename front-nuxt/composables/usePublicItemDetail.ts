@@ -1,7 +1,9 @@
 import type {
+  PublicItemArmorAttribute,
   PublicItemBuffEffect,
   PublicItemDetail,
   PublicItemDetailBundle,
+  PublicItemEquipmentEffect,
   PublicItemImage,
   PublicItemRecipeTree,
   PublicItemSource,
@@ -12,6 +14,8 @@ const missingPublicItemDetailBundle = (): PublicItemDetailBundle => ({
   images: [],
   sources: [],
   buffEffects: [],
+  armorAttributes: [],
+  equipmentEffects: [],
   recipeTree: null,
   source: 'missing',
 })
@@ -59,10 +63,12 @@ export const fetchPublicItemDetailBundle = async (itemId: string | number): Prom
       return missingPublicItemDetailBundle()
     }
 
-    const [rawImages, rawSources, rawBuffEffects, recipeTree] = await Promise.all([
+    const [rawImages, rawSources, rawBuffEffects, rawArmorAttributes, rawEquipmentEffects, recipeTree] = await Promise.all([
       fetchOptionalPublicItemRelation<PublicItemImage[]>(`/public/items/${normalizedItemId}/images`, []),
       fetchOptionalPublicItemRelation<PublicItemSource[]>(`/public/items/${normalizedItemId}/sources`, []),
       fetchOptionalPublicItemRelation<PublicItemBuffEffect[]>(`/public/items/${normalizedItemId}/buff-effects`, []),
+      fetchOptionalPublicItemRelation<PublicItemArmorAttribute[]>(`/public/items/${normalizedItemId}/armor-attributes`, []),
+      fetchOptionalPublicItemRelation<PublicItemEquipmentEffect[]>(`/public/items/${normalizedItemId}/equipment-effects`, []),
       fetchOptionalPublicItemRelation<PublicItemRecipeTree | null>(`/public/items/${normalizedItemId}/recipe-tree`, null),
     ])
 
@@ -71,6 +77,8 @@ export const fetchPublicItemDetailBundle = async (itemId: string | number): Prom
       images: Array.isArray(rawImages) ? rawImages.map(normalizePublicItemImage) : [],
       sources: Array.isArray(rawSources) ? rawSources : [],
       buffEffects: Array.isArray(rawBuffEffects) ? rawBuffEffects : [],
+      armorAttributes: Array.isArray(rawArmorAttributes) ? rawArmorAttributes : [],
+      equipmentEffects: Array.isArray(rawEquipmentEffects) ? rawEquipmentEffects : [],
       recipeTree,
       source: 'api',
     }

@@ -10,6 +10,7 @@ import {
   buildWikiPageParseUrl,
   fetchWikiPagePayload,
   fetchWikiPageMetadataBatch,
+  parseCliArgs,
   reportHeartbeat,
 } from './wiki-item-utils.mjs';
 
@@ -29,6 +30,20 @@ test('buildWikiPageParseUrl enables redirect following for parse requests', () =
 
 test('reportHeartbeat is exposed from wiki item utilities for fetchers', () => {
   assert.equal(typeof reportHeartbeat, 'function');
+});
+
+test('parseCliArgs accepts equals and separated option values', () => {
+  assert.deepEqual(parseCliArgs([
+    '--output-dir=/tmp/generated',
+    '--progress-path',
+    '/tmp/progress.json',
+    '--keep-snapshot',
+    'ignored-positional',
+  ]), {
+    'output-dir': '/tmp/generated',
+    'progress-path': '/tmp/progress.json',
+    'keep-snapshot': true,
+  });
 });
 
 test('fetchWikiUrlJson preserves wiki gate API error handling', async () => {

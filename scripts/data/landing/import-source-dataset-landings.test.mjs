@@ -119,7 +119,7 @@ test('planLandingImportExecution returns dry-run summary without write actions',
   assert.equal(summary.database, 'terria_v1_local');
   assert.equal(summary.tableName, 'source_dataset_landings');
   assert.equal(summary.schema.willApply, false);
-  assert.equal(summary.schema.datasetTypes.length, 14);
+  assert.equal(summary.schema.datasetTypes.length, 15);
   assert.deepEqual(summary.datasets.requested, ['items_raw']);
   assert.equal(summary.datasets.located, 2);
   assert.equal(summary.datasets.byType.items_raw, 2);
@@ -394,6 +394,71 @@ test('runLandingImport retires stale current rows when dataset changes provider 
   ]);
   assert.equal(retireCalls.length, 1);
   assert.deepEqual(retireCalls[0].params, [12434]);
+  assert.equal(insertCalls.length, 1);
+  assert.equal(summary.rows.replaced, 1);
+});
+
+test('runLandingImport keeps armor attributes as a single current dataset snapshot', async () => {
+  const executeCalls = [];
+  const summary = await runLandingImport(
+    {
+      apply: true,
+      datasets: ['armor_attributes_raw'],
+      db: { database: 'terria_v1_local' },
+      reportPath: 'G:/ClaudeCode/TerraPedia-dev/reports/source-dataset-landing-schema-2026-05-30.json',
+    },
+    {
+      locateDatasetEntries: async () => [
+        {
+          datasetType: 'armor_attributes_raw',
+          provider: 'terraria.wiki.gg',
+          sourceKind: 'page_table',
+          sourceKey: 'wiki.page.armor_attributes',
+          sourcePage: '盔甲属性表',
+          sourceLocator: 'repo://data/generated/wiki-armor-attributes.latest.json',
+          sourceRevisionTimestamp: '2026-05-30T00:00:00Z',
+          contentHash: 'f'.repeat(64),
+          payload: { sourcePageTitle: '盔甲属性表', records: [{ itemNameZh: '神圣面具' }] },
+          fetchedAt: '2026-05-30T00:00:00.000Z',
+          parsedAt: '2026-05-30T00:00:01.000Z',
+          parseStatus: 'ok',
+        },
+      ],
+      mysqlModule: {
+        async createConnection() {
+          return {
+            async beginTransaction() {},
+            async commit() {},
+            async rollback() {},
+            async query() {},
+            async execute(sql, params) {
+              executeCalls.push({ sql, params });
+              if (sql.startsWith('SELECT id, content_hash') && sql.includes('WHERE dataset_type = ?')) {
+                return [[{
+                  id: 29005,
+                  content_hash: 'e'.repeat(64),
+                  source_page: '盔甲属性表',
+                  provider: 'terraria.wiki.gg',
+                  source_key: 'wiki.page.armor_attributes',
+                }]];
+              }
+              if (sql.startsWith('SELECT id, content_hash') && sql.includes('provider = ?')) {
+                return [[]];
+              }
+              return [{}];
+            },
+            async end() {},
+          };
+        },
+      },
+      writeReport: async () => {},
+    },
+  );
+
+  const retireCalls = executeCalls.filter((call) => call.sql.includes('SET is_current = 0'));
+  const insertCalls = executeCalls.filter((call) => call.sql.startsWith('INSERT INTO source_dataset_landings'));
+  assert.equal(retireCalls.length, 1);
+  assert.deepEqual(retireCalls[0].params, [29005]);
   assert.equal(insertCalls.length, 1);
   assert.equal(summary.rows.replaced, 1);
 });

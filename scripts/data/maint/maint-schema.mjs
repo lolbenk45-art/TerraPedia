@@ -21,6 +21,7 @@ export const MAINT_TABLE_NAMES = [
   'maint_biomes',
   'maint_armor_sets',
   'maint_armor_set_images',
+  'maint_armor_attribute_rows',
   'maint_categories',
   'maint_item_categories',
   'maint_category_nodes',
@@ -691,6 +692,36 @@ CREATE TABLE IF NOT EXISTS \`maint_armor_set_images\` (
   PRIMARY KEY (\`id\`),
   UNIQUE KEY \`uk_maint_armor_set_images_record_key\` (\`record_key\`),
   KEY \`idx_maint_armor_set_images_text_key\` (\`text_key\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS \`maint_armor_attribute_rows\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) NOT NULL,
+  \`section_code\` VARCHAR(64) DEFAULT NULL,
+  \`slot_group\` VARCHAR(64) DEFAULT NULL,
+  \`item_page_title\` VARCHAR(255) DEFAULT NULL,
+  \`item_href\` VARCHAR(1000) DEFAULT NULL,
+  \`item_name_zh\` VARCHAR(255) DEFAULT NULL,
+  \`defense_value\` INT DEFAULT NULL,
+  \`raw_cells_json\` LONGTEXT DEFAULT NULL,
+  \`source_provider\` VARCHAR(128) NOT NULL,
+  \`source_page\` VARCHAR(255) DEFAULT NULL,
+  \`source_revision_timestamp\` DATETIME DEFAULT NULL,
+  \`landing_source_id\` BIGINT NOT NULL,
+  \`landing_source_key\` VARCHAR(255) NOT NULL,
+  \`landing_source_page\` VARCHAR(255) DEFAULT NULL,
+  \`landing_content_hash\` CHAR(64) NOT NULL,
+  \`landing_fetched_at\` DATETIME DEFAULT NULL,
+  \`landing_parsed_at\` DATETIME DEFAULT NULL,
+  \`raw_json\` LONGTEXT NOT NULL,
+  \`status\` INT NOT NULL DEFAULT 1,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_maint_armor_attribute_rows_record_key\` (\`record_key\`),
+  KEY \`idx_maint_armor_attribute_rows_item_name_zh\` (\`item_name_zh\`),
+  KEY \`idx_maint_armor_attribute_rows_page_title\` (\`item_page_title\`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS \`maint_categories\` (
