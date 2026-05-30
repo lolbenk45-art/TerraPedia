@@ -10,6 +10,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.math.BigDecimal;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -251,6 +252,55 @@ class AdminArmorSetControllerTest {
             .findFirst()
             .orElseThrow();
         assertEquals(hoodDetailRef, firstVariantHood.get("itemDetailRef"));
+    }
+
+    @Test
+    void projectionDetailIncludesStructuredArmorAttributesForEquipmentItemsAndVariants() {
+        FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(true, "hallowedSummoner");
+        AdminArmorSetController controller = controller(jdbcTemplate);
+
+        ResponseEntity<ApiResponse<Map<String, Object>>> response = controller.getArmorSetById(303L);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        Map<String, Object> data = response.getBody().getData();
+
+        List<Map<String, Object>> equipmentItems = asMapList(data.get("equipmentItems"));
+        Map<String, Object> hood = equipmentItems.stream()
+            .filter(item -> Long.valueOf(4873L).equals(item.get("itemId")))
+            .findFirst()
+            .orElseThrow();
+        Map<String, Object> hoodAttribute = asMap(hood.get("armorAttribute"));
+        assertEquals(48730L, hoodAttribute.get("id"));
+        assertEquals(4873L, hoodAttribute.get("itemId"));
+        assertEquals("HallowedHood", hoodAttribute.get("itemInternalName"));
+        assertEquals("神圣兜帽", hoodAttribute.get("itemNameZh"));
+        assertEquals("head", hoodAttribute.get("slotGroup"));
+        assertEquals(1, hoodAttribute.get("defenseValue"));
+        assertEquals(2L, hoodAttribute.get("effectCount"));
+
+        List<Map<String, Object>> hoodEffects = asMapList(hood.get("armorAttributeEffects"));
+        assertEquals(2, hoodEffects.size());
+        assertTrue(hoodEffects.stream().anyMatch(effect ->
+            "damage_bonus".equals(effect.get("statKey"))
+                && "summon".equals(effect.get("classScope"))
+                && "percent".equals(effect.get("unit"))
+                && "10.0".equals(String.valueOf(effect.get("valueDecimal")))
+        ));
+        assertTrue(hoodEffects.stream().anyMatch(effect ->
+            "minion_capacity".equals(effect.get("statKey"))
+                && "all".equals(effect.get("classScope"))
+                && "count".equals(effect.get("unit"))
+                && "1".equals(String.valueOf(effect.get("valueDecimal")))
+        ));
+
+        List<Map<String, Object>> setVariants = asMapList(data.get("setVariants"));
+        Map<String, Object> firstVariantHood = asMapList(setVariants.get(0).get("items")).stream()
+            .filter(item -> Long.valueOf(4873L).equals(item.get("itemId")))
+            .findFirst()
+            .orElseThrow();
+        assertEquals(hoodAttribute, firstVariantHood.get("armorAttribute"));
+        assertEquals(hoodEffects, firstVariantHood.get("armorAttributeEffects"));
     }
 
     @Test
@@ -651,6 +701,10 @@ class AdminArmorSetControllerTest {
                 if (args.length >= 2 && "terria_v1_relation".equals(args[0]) && "projection_armor_sets".equals(args[1])) {
                     return relationProjectionExists ? 1L : 0L;
                 }
+                if (args.length >= 2 && "terria_v1_relation".equals(args[0])
+                    && ("projection_item_armor_attributes".equals(args[1]) || "projection_equipment_effect_attributes".equals(args[1]))) {
+                    return 1L;
+                }
                 return projectionExists ? 1L : 0L;
             }
             if (sql.contains("`terria_v1_relation`.`projection_armor_sets`")) {
@@ -692,6 +746,12 @@ class AdminArmorSetControllerTest {
             }
             if (sql.contains("projection_items")) {
                 return projectionItemRows(args);
+            }
+            if (sql.contains("projection_item_armor_attributes")) {
+                return projectionArmorAttributeRows(args);
+            }
+            if (sql.contains("projection_equipment_effect_attributes")) {
+                return projectionEquipmentEffectRows(args);
             }
             if (sql.contains("FROM item_images")) {
                 return itemImageRows(args);
@@ -928,6 +988,88 @@ class AdminArmorSetControllerTest {
                 row.put("internal_name", "WoodHelmet");
                 row.put("image", "http://localhost:9000/terrapedia-images/items/wood-helmet.png");
             }
+            return row;
+        }
+
+        private List<Map<String, Object>> projectionArmorAttributeRows(Object... args) {
+            if (!"hallowedSummoner".equals(projectionScenario)) {
+                return List.of();
+            }
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (Object arg : args) {
+                Long id = arg instanceof Number number ? number.longValue() : null;
+                if (id == null || id != 4873L) {
+                    continue;
+                }
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("id", 48730L);
+                row.put("item_id", 4873L);
+                row.put("item_internal_name", "HallowedHood");
+                row.put("item_name_zh", "神圣兜帽");
+                row.put("item_page_title", "神圣兜帽");
+                row.put("item_href", "/zh/wiki/神圣兜帽");
+                row.put("slot_group", "head");
+                row.put("section_code", "hardmode");
+                row.put("defense_value", 1);
+                row.put("raw_cells_json", "{\"防御\":\"1\",\"奖励\":\"召唤伤害 +10%；仆从上限 +1\"}");
+                row.put("source_provider", "wiki.gg");
+                row.put("source_page", "盔甲属性表");
+                row.put("source_revision_timestamp", null);
+                row.put("effect_count", 2L);
+                rows.add(row);
+            }
+            return rows;
+        }
+
+        private List<Map<String, Object>> projectionEquipmentEffectRows(Object... args) {
+            if (!"hallowedSummoner".equals(projectionScenario)) {
+                return List.of();
+            }
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (Object arg : args) {
+                Long id = arg instanceof Number number ? number.longValue() : null;
+                if (id == null || id != 4873L) {
+                    continue;
+                }
+                rows.add(projectionEquipmentEffectRow(9001L, id, 0, "damage_bonus", "召唤伤害", "summon", "percent", "10.0", "召唤伤害 +10%"));
+                rows.add(projectionEquipmentEffectRow(9002L, id, 1, "minion_capacity", "仆从上限", "all", "count", "1", "仆从上限 +1"));
+            }
+            return rows;
+        }
+
+        private Map<String, Object> projectionEquipmentEffectRow(
+            Long rowId,
+            Long itemId,
+            int effectIndex,
+            String statKey,
+            String statLabelZh,
+            String classScope,
+            String unit,
+            String valueDecimal,
+            String rawText
+        ) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", rowId);
+            row.put("owner_id", itemId);
+            row.put("item_internal_name", "HallowedHood");
+            row.put("owner_kind", "item");
+            row.put("owner_key", "HallowedHood");
+            row.put("source_kind", "armor_attribute_cell");
+            row.put("source_line", rawText);
+            row.put("source_line_index", 0);
+            row.put("effect_index", effectIndex);
+            row.put("apply_scope", "equipped");
+            row.put("slot_type", "head");
+            row.put("stat_key", statKey);
+            row.put("stat_label_zh", statLabelZh);
+            row.put("class_scope", classScope);
+            row.put("operation", "add");
+            row.put("value_decimal", new BigDecimal(valueDecimal));
+            row.put("value_max_decimal", null);
+            row.put("unit", unit);
+            row.put("condition_text", null);
+            row.put("raw_text", rawText);
+            row.put("parse_status", "parsed");
             return row;
         }
 
