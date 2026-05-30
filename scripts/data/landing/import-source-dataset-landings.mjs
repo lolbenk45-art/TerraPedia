@@ -20,6 +20,7 @@ import {
 const require = createRequire(import.meta.url);
 const defaultRepoRoot = resolveProjectPath();
 const SINGLE_CURRENT_DATASET_TYPES = new Set([
+  'armor_attributes_raw',
   'buffs_raw',
 ]);
 let mysqlModule = null;

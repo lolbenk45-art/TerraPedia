@@ -41,6 +41,7 @@ test('landing schema exports the planned dataset types and parse statuses', () =
     'npcs_raw',
     'projectiles_raw',
     'armor_sets_raw',
+    'armor_attributes_raw',
     'armor_set_images_raw',
     'buffs_raw',
     'bosses_raw',
@@ -58,6 +59,7 @@ test('landing schema exports the planned dataset types and parse statuses', () =
 test('validateLandingDatasetType only accepts registered dataset types', () => {
   assert.equal(validateLandingDatasetType('items_raw'), true);
   assert.equal(validateLandingDatasetType('recipes_raw'), true);
+  assert.equal(validateLandingDatasetType('armor_attributes_raw'), true);
   assert.equal(validateLandingDatasetType('npc_item_relations_bundle_raw'), true);
   assert.equal(validateLandingDatasetType('unknown_raw'), false);
   assert.equal(validateLandingDatasetType(''), false);
