@@ -429,6 +429,24 @@ const mergeEffectLines = (effects: EquipmentEffectAttribute[]) => dedupeEffectLi
   effects.map(effectSummaryLine),
 )
 
+const armorFixedBonusEntry = (effect: EquipmentEffectAttribute, index: number) => {
+  const value = formatEffectValue(effect)
+  const label = statName(effect)
+  const statKey = String(effect.statKey ?? '')
+  const description = String(effect.conditionText ?? '').trim()
+  const isPlainAttribute = Boolean(value && statKey !== 'special_effect')
+  const hasPlainDescription = Boolean(description && description !== label)
+
+  return {
+    key: `${normalizeEffectLine(effectSummaryLine(effect))}-${index}`,
+    type: isPlainAttribute ? 'attribute' : 'description',
+    value,
+    label,
+    text: isPlainAttribute ? label : effectSummaryLine(effect),
+    description: isPlainAttribute && hasPlainDescription ? description : '',
+  }
+}
+
 const armorCommonPieceLines = computed(() => {
   const commonItems = armorRelatedItems.value.filter((item) => armorPieceRole(item) !== '头部')
   const commonKeys = commonItems.map((item) => normalizeMatchText([
@@ -587,6 +605,33 @@ const armorFixedBonusLines = computed(() => {
     return commonItems.some((item) => effectBelongsToItem(effect, item))
   })
   return mergeEffectLines(fixedEffects)
+})
+
+const armorFixedBonusGroups = computed(() => {
+  const commonItems = uniqueArmorItems(armorRelatedItems.value
+    .filter((item) => armorPieceRole(item) !== '头部'))
+  const fixedEffects = armorShownEffects.value.filter((effect) => {
+    if (effectSourceKind(effect) === 'set') return true
+    if (effectVariantLabel(effect)) return false
+    return commonItems.some((item) => effectBelongsToItem(effect, item))
+  })
+  const entries = fixedEffects
+    .map(armorFixedBonusEntry)
+    .filter((entry) => entry.text)
+  const seen = new Set<string>()
+  const uniqueEntries = entries.filter((entry) => {
+    const key = normalizeEffectLine(`${entry.type}-${entry.value}-${entry.text}-${entry.description}`)
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+  const attributeEntries = uniqueEntries.filter((entry) => entry.type === 'attribute')
+  const descriptionEntries = uniqueEntries.filter((entry) => entry.type === 'description')
+
+  return [
+    { key: 'attribute', label: '属性加成', tone: 'is-attribute', entries: attributeEntries },
+    { key: 'description', label: '效果说明', tone: 'is-description', entries: descriptionEntries },
+  ].filter((group) => group.entries.length)
 })
 
 const armorBuildDefenseSummary = (buildItems: PublicArmorSetRelatedItem[]) => {
@@ -797,10 +842,14 @@ onMounted(() => {
                   <span>公共</span>
                 </div>
                 <div class="armor-build-cell armor-fixed-bonus-lines">
-                  <span v-for="(line, index) in armorFixedBonusLines" :key="`fixed-${line}`" class="armor-fixed-bonus-line">
-                    <small>{{ String(index + 1).padStart(2, '0') }}</small>
-                    <b>{{ line }}</b>
-                  </span>
+                  <div v-for="group in armorFixedBonusGroups" :key="`fixed-${group.key}`" class="armor-fixed-bonus-group" :class="group.tone">
+                    <strong class="armor-fixed-bonus-group-title">{{ group.label }}</strong>
+                    <span v-for="entry in group.entries" :key="`fixed-${group.key}-${entry.key}`" class="armor-fixed-bonus-line">
+                      <small v-if="entry.value">{{ entry.value }}</small>
+                      <b>{{ entry.text }}</b>
+                      <em v-if="entry.description">{{ entry.description }}</em>
+                    </span>
+                  </div>
                 </div>
               </section>
               <article v-for="build in armorSetBuildCards" :key="build.key" class="armor-build-row">
@@ -1220,27 +1269,62 @@ onMounted(() => {
 .armor-fixed-bonus-lines {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 5px 10px;
+  gap: 8px 10px;
   align-content: center;
   align-items: stretch;
 }
 
+.armor-fixed-bonus-group {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  align-content: start;
+}
+
+.armor-fixed-bonus-group-title {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: 2px;
+  padding: 2px 7px;
+  border: 1px solid rgba(244, 234, 208, 0.1);
+  border-radius: 999px;
+  background: rgba(244, 234, 208, 0.04);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.armor-fixed-bonus-group.is-attribute .armor-fixed-bonus-group-title {
+  color: rgba(219, 179, 93, 0.95);
+}
+
+.armor-fixed-bonus-group.is-description .armor-fixed-bonus-group-title {
+  color: rgba(166, 200, 176, 0.95);
+}
+
 .armor-fixed-bonus-line {
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
-  gap: 7px;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 5px 8px;
   align-items: start;
   min-width: 0;
-  padding: 4px 0;
+  padding: 5px 0;
   border-bottom: 1px solid rgba(244, 234, 208, 0.08);
 }
 
 .armor-fixed-bonus-line small {
   display: inline-grid;
   place-items: center;
-  min-height: 18px;
+  min-width: 36px;
+  min-height: 20px;
+  padding: 0 6px;
+  border: 1px solid rgba(219, 179, 93, 0.22);
+  border-radius: 999px;
+  background: rgba(219, 179, 93, 0.08);
   color: rgba(219, 179, 93, 0.9);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 900;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -1253,6 +1337,26 @@ onMounted(() => {
   font-weight: 760;
   line-height: 1.42;
   overflow-wrap: anywhere;
+}
+
+.armor-fixed-bonus-line em {
+  grid-column: 2;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.armor-fixed-bonus-group.is-description .armor-fixed-bonus-line {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.armor-fixed-bonus-group.is-description .armor-fixed-bonus-line b {
+  color: rgba(226, 236, 224, 0.92);
+  font-weight: 720;
 }
 
 .armor-equipment-card-panel {
