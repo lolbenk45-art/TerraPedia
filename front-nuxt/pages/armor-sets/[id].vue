@@ -669,15 +669,14 @@ const armorBenefitVariantLines = (variantItems: PublicArmorSetRelatedItem[]) => 
       item,
       aliases: armorItemIdentityAliases(item),
     }))
-  const allVariantItemAliases = uniqueArmorItems(armorRelatedItems.value)
-    .flatMap(armorItemIdentityAliases)
+  const allVariantAliases = armorKnownVariantAliases.value
   const result: string[] = []
   let collecting = false
 
   for (const line of lines) {
     const normalizedLine = normalizeMatchText(line)
     const startsMatchedVariant = variantMatches.some((match) => match.aliases.some((alias) => normalizedLine.startsWith(alias)))
-    const startsOtherVariant = !startsMatchedVariant && allVariantItemAliases.some((alias) => normalizedLine.startsWith(alias))
+    const startsOtherVariant = !startsMatchedVariant && allVariantAliases.some((alias) => normalizedLine.startsWith(alias))
 
     if (startsMatchedVariant) {
       collecting = true
@@ -697,8 +696,42 @@ const armorBenefitVariantLines = (variantItems: PublicArmorSetRelatedItem[]) => 
   return dedupeEffectLines(result)
 }
 
+const armorKnownVariantAliases = computed(() => dedupeEffectLines([
+  ...uniqueArmorItems(armorRelatedItems.value).flatMap(armorItemIdentityAliases),
+  ...armorShownEffects.value.flatMap((effect) => armorIdentityAliases(effectVariantLabel(effect))),
+].filter(Boolean)))
+
+const armorLineStartsKnownVariant = (line: string) => {
+  const normalizedLine = normalizeMatchText(line)
+  if (!normalizedLine) return false
+  return armorKnownVariantAliases.value
+    .some((alias) => normalizedLine.startsWith(alias))
+}
+
+const armorBenefitLinesWithoutVariantBlocks = () => {
+  const result: string[] = []
+  let skippingVariantBlock = false
+
+  for (const line of armorBenefitLines.value) {
+    const startsVariant = armorLineStartsKnownVariant(line)
+    if (startsVariant) {
+      skippingVariantBlock = true
+      continue
+    }
+
+    if (skippingVariantBlock && (/套装|奖励|效果|增益/.test(line))) {
+      continue
+    }
+
+    skippingVariantBlock = false
+    result.push(line)
+  }
+
+  return result
+}
+
 // Regression marker: 蜘蛛盔甲 keeps "套装奖励：+12% 召唤伤害（总共 +28%）" as readable text.
-const armorDefaultBenefitSetBonusLines = () => armorBenefitLines.value
+const armorDefaultBenefitSetBonusLines = () => armorBenefitLinesWithoutVariantBlocks()
   .filter((line) => !armorBenefitLineIsAttributeSummary(line))
 
 const armorCommonSetBonusLines = () => {
