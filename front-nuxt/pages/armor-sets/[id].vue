@@ -595,6 +595,7 @@ const armorBuildDefenseSummary = (buildItems: PublicArmorSetRelatedItem[]) => {
   return {
     total: parts.length ? total : null,
     parts,
+    formula: parts.map((part) => part.value).join(' + '),
   }
 }
 
@@ -752,45 +753,41 @@ onMounted(() => {
             <!-- detail layout contract legacy marker: v-for="group in armorStatGroups" -->
             <!-- detail layout contract legacy marker: class="armor-stat-card-grid" class="armor-effect-card" class="armor-effect-card-value" -->
             <!-- visual contract marker: armorEffectSections armor-piece-effect-groups armor-effect-card-head.has-stat-art -->
-            <div class="armor-build-board armor-structured-build-board">
-              <section v-if="armorFixedBonusLines.length" class="armor-fixed-bonus-panel">
-                <div>
-                  <b>固定加成</b>
-                  <span>胸甲、腿部与套装效果</span>
-                </div>
-                <div class="armor-fixed-bonus-list">
-                  <p v-for="line in armorFixedBonusLines" :key="`fixed-${line}`">{{ line }}</p>
-                </div>
+            <div class="armor-build-board armor-structured-build-board armor-build-matrix">
+              <section v-if="armorFixedBonusLines.length" class="armor-fixed-bonus-strip">
+                <b>固定加成</b>
+                <span v-for="line in armorFixedBonusLines" :key="`fixed-${line}`">{{ line }}</span>
               </section>
-              <article v-for="build in armorSetBuildCards" :key="build.key" class="armor-build-card">
-                <header class="armor-equipment-card-title">
-                  <h4>{{ build.title }}</h4>
-                </header>
-                <div class="armor-build-piece-strip">
-                  <span v-for="item in build.items" :key="`${build.key}-${armorPieceName(item)}`" class="armor-build-piece">
+              <div class="armor-build-row armor-build-row-head">
+                <b>构筑</b>
+                <b>部件</b>
+                <b>防御</b>
+                <b>头部差异</b>
+              </div>
+              <article v-for="build in armorSetBuildCards" :key="build.key" class="armor-build-row">
+                <div class="armor-build-cell armor-build-title-cell">
+                  <strong>{{ build.title }}</strong>
+                </div>
+                <div class="armor-build-cell armor-build-icons">
+                  <span v-for="item in build.items" :key="`${build.key}-${armorPieceName(item)}`" :title="armorPieceName(item)">
                     <CommonPreviewImage
                       :src="resolvePreviewImageUrl(item.image || '')"
                       :alt="armorPieceName(item)"
                       :fallback="armorPieceName(item).slice(0, 1)"
                       fallback-icon="icon-items"
-                      width="38"
-                      height="38"
+                      width="28"
+                      height="28"
                     />
                     <small>{{ armorPieceRole(item) }}</small>
                   </span>
                 </div>
-                <div v-if="build.defense.total != null" class="armor-build-defense-panel">
-                  <span>防御总计</span>
-                  <strong>{{ build.defense.total }}</strong>
-                  <div class="armor-build-defense-parts">
-                    <small v-for="part in build.defense.parts" :key="`${build.key}-${part.key}`">
-                      {{ part.role }} {{ part.value }}
-                    </small>
-                  </div>
+                <div class="armor-build-cell armor-build-defense-formula">
+                  <strong v-if="build.defense.total != null">{{ build.defense.total }}</strong>
+                  <small v-if="build.defense.formula">{{ build.defense.formula }}</small>
+                  <span v-else>--</span>
                 </div>
-                <div class="armor-equipment-card-panel">
-                  <b>头部差异</b>
-                  <p v-for="line in build.stats" :key="`${build.key}-${line}`">{{ line }}</p>
+                <div class="armor-build-cell armor-build-stat-lines">
+                  <span v-for="line in build.stats" :key="`${build.key}-${line}`">{{ line }}</span>
                 </div>
               </article>
             </div>
@@ -982,73 +979,81 @@ onMounted(() => {
 
 .armor-build-board {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
 }
 
-.armor-fixed-bonus-panel {
-  display: grid;
-  grid-column: 1 / -1;
-  gap: 10px;
+.armor-fixed-bonus-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
   min-width: 0;
-  padding: 12px;
+  padding: 8px 10px;
   border: 1px solid rgba(244, 234, 208, 0.12);
   border-radius: 8px;
   background: rgba(244, 234, 208, 0.035);
 }
 
-.armor-fixed-bonus-panel > div:first-child {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 10px;
-  align-items: baseline;
-  justify-content: space-between;
-  min-width: 0;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(244, 234, 208, 0.1);
-}
-
-.armor-fixed-bonus-panel b {
+.armor-fixed-bonus-strip b {
   color: var(--text);
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1.35;
+  white-space: nowrap;
 }
 
-.armor-fixed-bonus-panel span {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1.45;
-}
-
-.armor-fixed-bonus-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 7px 12px;
-  min-width: 0;
-}
-
-.armor-fixed-bonus-list p {
-  margin: 0;
+.armor-fixed-bonus-strip span {
   color: var(--text);
   font-size: 12px;
-  font-weight: 700;
-  line-height: 1.45;
+  font-weight: 750;
+  line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
-.armor-build-card {
+.armor-build-matrix {
   display: grid;
-  gap: 10px;
-  align-content: start;
+  gap: 6px;
   min-width: 0;
-  padding: 8px;
-  border: 1px solid rgba(244, 234, 208, 0.14);
+}
+
+.armor-build-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 0.7fr) minmax(132px, 0.85fr) minmax(92px, 0.48fr) minmax(220px, 1.45fr);
+  gap: 8px;
+  align-items: stretch;
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid rgba(244, 234, 208, 0.12);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(244, 234, 208, 0.055), rgba(100, 154, 118, 0.025)),
-    rgba(12, 15, 11, 0.18);
+    linear-gradient(135deg, rgba(244, 234, 208, 0.04), rgba(100, 154, 118, 0.02)),
+    rgba(12, 15, 11, 0.16);
+}
+
+.armor-build-row-head {
+  padding: 4px 7px;
+  border-color: rgba(244, 234, 208, 0.08);
+  background: rgba(244, 234, 208, 0.025);
+}
+
+.armor-build-row-head b {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.armor-build-cell {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.armor-build-title-cell strong {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .armor-equipment-section {
@@ -1116,81 +1121,70 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.armor-build-piece-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  min-width: 0;
-  padding: 8px;
-  border: 1px solid rgba(244, 234, 208, 0.09);
-  border-radius: 7px;
-  background: rgba(12, 15, 11, 0.2);
-}
-
-.armor-build-piece {
-  display: grid;
-  justify-items: center;
+.armor-build-icons {
+  display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   min-width: 0;
 }
 
-.armor-build-piece :deep(.item-art) {
-  width: 38px;
-  height: 38px;
-  border-radius: 8px;
+.armor-build-icons span {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+
+.armor-build-icons :deep(.item-art) {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   overflow: hidden;
 }
 
-.armor-build-piece small {
+.armor-build-icons small {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 1;
 }
 
-.armor-build-defense-panel {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 4px 10px;
+.armor-build-defense-formula {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 7px;
   align-items: center;
   min-width: 0;
-  padding: 8px;
-  border: 1px solid rgba(244, 234, 208, 0.12);
-  border-radius: 7px;
-  background: rgba(244, 234, 208, 0.035);
 }
 
-.armor-build-defense-panel span {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1.35;
-}
-
-.armor-build-defense-panel strong {
+.armor-build-defense-formula strong {
   color: var(--text);
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
-.armor-build-defense-parts {
-  display: flex;
-  grid-column: 1 / -1;
-  flex-wrap: wrap;
-  gap: 6px;
-  min-width: 0;
-}
-
-.armor-build-defense-parts small {
-  padding: 3px 6px;
-  border: 1px solid rgba(244, 234, 208, 0.1);
-  border-radius: 999px;
-  color: var(--text);
+.armor-build-defense-formula small,
+.armor-build-defense-formula span {
+  color: var(--muted);
   font-size: 11px;
   font-weight: 800;
-  line-height: 1.25;
-  background: rgba(12, 15, 11, 0.22);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.armor-build-stat-lines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 8px;
+  align-items: center;
+}
+
+.armor-build-stat-lines span {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .armor-equipment-card-panel {
