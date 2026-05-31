@@ -179,6 +179,11 @@ const armorHeadVariantOrder = (item: PublicArmorSetRelatedItem) => {
   return 10
 }
 
+const armorPieceDefense = (item: PublicArmorSetRelatedItem) => {
+  const value = Number(item.defenseValue ?? item.defense_value)
+  return Number.isFinite(value) ? value : null
+}
+
 const armorBenefitLines = computed(() => {
   const benefit = String(armorRaw.value?.benefitZh ?? armorRaw.value?.benefitEn ?? '').trim()
   if (!benefit) return []
@@ -577,6 +582,22 @@ const armorFixedBonusLines = computed(() => {
   return mergeEffectLines(fixedEffects)
 })
 
+const armorBuildDefenseSummary = (buildItems: PublicArmorSetRelatedItem[]) => {
+  const parts = buildItems
+    .map((item) => ({
+      key: `${armorPieceRole(item)}-${armorPieceName(item)}`,
+      role: armorPieceRole(item),
+      name: armorPieceName(item),
+      value: armorPieceDefense(item),
+    }))
+    .filter((part) => part.value != null)
+  const total = parts.reduce((sum, part) => sum + (part.value ?? 0), 0)
+  return {
+    total: parts.length ? total : null,
+    parts,
+  }
+}
+
 const armorSetBuildCards = computed(() => {
   const commonItems = uniqueArmorItems(armorRelatedItems.value
     .filter((item) => armorPieceRole(item) !== '头部'))
@@ -591,6 +612,7 @@ const armorSetBuildCards = computed(() => {
       key: buildGroup.key,
       title: buildGroup.title,
       items,
+      defense: armorBuildDefenseSummary(items),
       stats: armorBuildVariantStats(buildGroup),
     }
   })
@@ -756,6 +778,15 @@ onMounted(() => {
                     />
                     <small>{{ armorPieceRole(item) }}</small>
                   </span>
+                </div>
+                <div v-if="build.defense.total != null" class="armor-build-defense-panel">
+                  <span>防御总计</span>
+                  <strong>{{ build.defense.total }}</strong>
+                  <div class="armor-build-defense-parts">
+                    <small v-for="part in build.defense.parts" :key="`${build.key}-${part.key}`">
+                      {{ part.role }} {{ part.value }}
+                    </small>
+                  </div>
                 </div>
                 <div class="armor-equipment-card-panel">
                   <b>头部差异</b>
@@ -1115,6 +1146,51 @@ onMounted(() => {
   font-size: 11px;
   font-weight: 800;
   line-height: 1.2;
+}
+
+.armor-build-defense-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid rgba(244, 234, 208, 0.12);
+  border-radius: 7px;
+  background: rgba(244, 234, 208, 0.035);
+}
+
+.armor-build-defense-panel span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.armor-build-defense-panel strong {
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.armor-build-defense-parts {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.armor-build-defense-parts small {
+  padding: 3px 6px;
+  border: 1px solid rgba(244, 234, 208, 0.1);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+  background: rgba(12, 15, 11, 0.22);
 }
 
 .armor-equipment-card-panel {

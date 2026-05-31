@@ -26,6 +26,7 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
 
     private static final String RELATION_DATABASE_NAME = "terria_v1_relation";
     private static final String PROJECTION_ARMOR_SETS_TABLE = "projection_armor_sets";
+    private static final String PROJECTION_ITEM_ARMOR_ATTRIBUTES_TABLE = "projection_item_armor_attributes";
     private static final String PROJECTION_EQUIPMENT_EFFECT_ATTRIBUTES_TABLE = "projection_equipment_effect_attributes";
 
     private final JdbcTemplate jdbcTemplate;
@@ -67,8 +68,9 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
 
         Page<PublicArmorSetListDTO> result = new Page<>(page, limit, total == null ? 0 : total);
         Map<Long, String> fallbackImagesByItemId = resolveFallbackImagesByItemId(rows);
+        Map<Long, Integer> defenseByItemId = resolveDefenseByItemId(rows);
         Map<Long, List<EquipmentEffectAttributeDTO>> effectsByArmorSetId = resolveEffectsByArmorSetId(rows);
-        result.setRecords(rows.stream().map(row -> toListDto(row, fallbackImagesByItemId, effectsByArmorSetId)).toList());
+        result.setRecords(rows.stream().map(row -> toListDto(row, fallbackImagesByItemId, defenseByItemId, effectsByArmorSetId)).toList());
         return result;
     }
 
@@ -91,8 +93,9 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         }
 
         Map<Long, String> fallbackImagesByItemId = resolveFallbackImagesByItemId(rows);
+        Map<Long, Integer> defenseByItemId = resolveDefenseByItemId(rows);
         Map<Long, List<EquipmentEffectAttributeDTO>> effectsByArmorSetId = resolveEffectsByArmorSetId(rows);
-        return toListDto(rows.get(0), fallbackImagesByItemId, effectsByArmorSetId);
+        return toListDto(rows.get(0), fallbackImagesByItemId, defenseByItemId, effectsByArmorSetId);
     }
 
     private String buildWhereClause(String search, List<Object> args) {
@@ -118,9 +121,14 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         return "`" + RELATION_DATABASE_NAME + "`.`" + PROJECTION_EQUIPMENT_EFFECT_ATTRIBUTES_TABLE + "`";
     }
 
+    private String qualifiedItemArmorAttributeTable() {
+        return "`" + RELATION_DATABASE_NAME + "`.`" + PROJECTION_ITEM_ARMOR_ATTRIBUTES_TABLE + "`";
+    }
+
     private PublicArmorSetListDTO toListDto(
         Map<String, Object> row,
         Map<Long, String> fallbackImagesByItemId,
+        Map<Long, Integer> defenseByItemId,
         Map<Long, List<EquipmentEffectAttributeDTO>> effectsByArmorSetId
     ) {
         PublicArmorSetListDTO dto = new PublicArmorSetListDTO();
@@ -141,9 +149,62 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         if (dto.getMaleImages().isEmpty() && dto.getFemaleImages().isEmpty() && dto.getSpecialImages().isEmpty()) {
             dto.setFallbackImages(resolveFallbackImages(row, fallbackImagesByItemId));
         }
-        dto.setRelatedItems(parseRelatedItems(row.get("related_items_json")));
+        dto.setRelatedItems(parseRelatedItems(row.get("related_items_json"), defenseByItemId));
         dto.setEffects(effectsByArmorSetId.getOrDefault(dto.getId(), List.of()));
         return dto;
+    }
+
+    private Map<Long, Integer> resolveDefenseByItemId(List<Map<String, Object>> rows) {
+        Set<Long> itemIds = new LinkedHashSet<>();
+        for (Map<String, Object> row : rows) {
+            itemIds.addAll(extractRelatedItemIds(row.get("related_items_json")));
+        }
+        if (itemIds.isEmpty()) {
+            return Map.of();
+        }
+
+        String placeholders = String.join(",", itemIds.stream().map(id -> "?").toList());
+        Map<Long, Integer> result = new LinkedHashMap<>();
+
+        List<Map<String, Object>> itemRows = jdbcTemplate.queryForList(
+            """
+            SELECT id, defense
+            FROM items
+            WHERE deleted = 0
+              AND id IN (%s)
+              AND defense IS NOT NULL
+            ORDER BY id ASC
+            """.formatted(placeholders),
+            itemIds.toArray()
+        );
+        for (Map<String, Object> row : itemRows) {
+            Long itemId = toLong(row.get("id"));
+            Integer defense = toInteger(row.get("defense"));
+            if (itemId != null && defense != null) {
+                result.put(itemId, defense);
+            }
+        }
+
+        List<Map<String, Object>> armorAttributeRows = jdbcTemplate.queryForList(
+            """
+            SELECT item_id, defense_value
+            FROM %s
+            WHERE deleted = 0
+              AND item_id IN (%s)
+              AND defense_value IS NOT NULL
+            ORDER BY item_id ASC, id ASC
+            """.formatted(qualifiedItemArmorAttributeTable(), placeholders),
+            itemIds.toArray()
+        );
+        for (Map<String, Object> row : armorAttributeRows) {
+            Long itemId = toLong(row.get("item_id"));
+            Integer defense = toInteger(row.get("defense_value"));
+            if (itemId != null && defense != null) {
+                result.putIfAbsent(itemId, defense);
+            }
+        }
+
+        return result;
     }
 
     private Map<Long, List<EquipmentEffectAttributeDTO>> resolveEffectsByArmorSetId(List<Map<String, Object>> rows) {
@@ -279,7 +340,7 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         return List.of();
     }
 
-    private List<PublicArmorSetRelatedItemDTO> parseRelatedItems(Object raw) {
+    private List<PublicArmorSetRelatedItemDTO> parseRelatedItems(Object raw, Map<Long, Integer> defenseByItemId) {
         String text = trimToNull(raw);
         if (text == null) {
             return List.of();
@@ -302,6 +363,7 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
                     item.setImage(managedImageOrNull(firstValue(map, "image", "imageUrl", "image_url", "cachedUrl", "cached_url")));
                     item.setPartRole(trimToNull(firstValue(map, "partRole", "part_role")));
                     item.setSlotType(trimToNull(firstValue(map, "slotType", "slot_type")));
+                    item.setDefenseValue(defenseByItemId.get(item.getItemId()));
                     items.add(item);
                 }
                 return items;
