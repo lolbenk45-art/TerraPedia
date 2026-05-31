@@ -11,7 +11,8 @@ const requiredMarkers = [
   'armor-build-card',
   'armor-build-piece-strip',
   'armorSetBuildCards',
-  'armorBuildCardStats',
+  'armorBuildVariantStats',
+  'armorFixedBonusLines',
   'effectBelongsToItem',
   'uniqueArmorItems',
   'hasStructuredArmorEffects',
@@ -24,7 +25,9 @@ const requiredMarkers = [
   'armorIdentityAliases',
   'armorVariantBuildGroups',
   'armorVariantBuildGroups(headItems).map',
-  'armorBuildCardStats(buildGroup, commonItems)',
+  'armorBuildVariantStats(buildGroup)',
+  'armor-fixed-bonus-panel',
+  'armor-fixed-bonus-list',
   'buildGroup.headItems',
   '...buildGroup.headItems',
   'effectVariantAliases.some',
@@ -45,6 +48,8 @@ const forbiddenMarkers = [
   'class="armor-benefit"',
   'armorBenefitLines.length',
   'armorBuildCardStats(headItem, commonItems)',
+  'armorBuildCardStats',
+  'return items.some((item) => effectBelongsToItem(effect, item))',
 ]
 const presentForbidden = forbiddenMarkers.filter((marker) => source.includes(marker))
 

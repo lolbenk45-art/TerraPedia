@@ -557,20 +557,25 @@ const armorVariantBuildGroups = (headItems: PublicArmorSetRelatedItem[]) => {
   }).filter((buildGroup) => buildGroup.headItems.length)
 }
 
-const armorBuildCardStats = (buildGroup: { headItems: PublicArmorSetRelatedItem[] }, commonItems: PublicArmorSetRelatedItem[]) => {
-  const items = [...buildGroup.headItems, ...commonItems]
+const armorBuildVariantStats = (buildGroup: { headItems: PublicArmorSetRelatedItem[] }) => {
   const itemEffects = armorShownEffects.value.filter((effect) => {
     const variantLabel = effectVariantLabel(effect)
-    if (variantLabel) return buildGroup.headItems.some((headItem) => effectBelongsToItem(effect, headItem))
-    return items.some((item) => effectBelongsToItem(effect, item))
+    return variantLabel && buildGroup.headItems.some((headItem) => effectBelongsToItem(effect, headItem))
   })
-  const setEffects = armorShownEffects.value.filter((effect) => effectSourceKind(effect) === 'set')
-  const merged = dedupeEffectLines([
-    ...mergeEffectLines(itemEffects),
-    ...mergeEffectLines(setEffects),
-  ])
-  return merged.length ? merged : ['暂无独立属性']
+  const merged = mergeEffectLines(itemEffects)
+  return merged.length ? merged : ['暂无头部差异属性']
 }
+
+const armorFixedBonusLines = computed(() => {
+  const commonItems = uniqueArmorItems(armorRelatedItems.value
+    .filter((item) => armorPieceRole(item) !== '头部'))
+  const fixedEffects = armorShownEffects.value.filter((effect) => {
+    if (effectSourceKind(effect) === 'set') return true
+    if (effectVariantLabel(effect)) return false
+    return commonItems.some((item) => effectBelongsToItem(effect, item))
+  })
+  return mergeEffectLines(fixedEffects)
+})
 
 const armorSetBuildCards = computed(() => {
   const commonItems = uniqueArmorItems(armorRelatedItems.value
@@ -586,7 +591,7 @@ const armorSetBuildCards = computed(() => {
       key: buildGroup.key,
       title: buildGroup.title,
       items,
-      stats: armorBuildCardStats(buildGroup, commonItems),
+      stats: armorBuildVariantStats(buildGroup),
     }
   })
 })
@@ -726,6 +731,15 @@ onMounted(() => {
             <!-- detail layout contract legacy marker: class="armor-stat-card-grid" class="armor-effect-card" class="armor-effect-card-value" -->
             <!-- visual contract marker: armorEffectSections armor-piece-effect-groups armor-effect-card-head.has-stat-art -->
             <div class="armor-build-board armor-structured-build-board">
+              <section v-if="armorFixedBonusLines.length" class="armor-fixed-bonus-panel">
+                <div>
+                  <b>固定加成</b>
+                  <span>胸甲、腿部与套装效果</span>
+                </div>
+                <div class="armor-fixed-bonus-list">
+                  <p v-for="line in armorFixedBonusLines" :key="`fixed-${line}`">{{ line }}</p>
+                </div>
+              </section>
               <article v-for="build in armorSetBuildCards" :key="build.key" class="armor-build-card">
                 <header class="armor-equipment-card-title">
                   <h4>{{ build.title }}</h4>
@@ -744,7 +758,7 @@ onMounted(() => {
                   </span>
                 </div>
                 <div class="armor-equipment-card-panel">
-                  <b>属性</b>
+                  <b>头部差异</b>
                   <p v-for="line in build.stats" :key="`${build.key}-${line}`">{{ line }}</p>
                 </div>
               </article>
@@ -940,6 +954,57 @@ onMounted(() => {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
   min-width: 0;
+}
+
+.armor-fixed-bonus-panel {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(244, 234, 208, 0.12);
+  border-radius: 8px;
+  background: rgba(244, 234, 208, 0.035);
+}
+
+.armor-fixed-bonus-panel > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(244, 234, 208, 0.1);
+}
+
+.armor-fixed-bonus-panel b {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.armor-fixed-bonus-panel span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.armor-fixed-bonus-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 7px 12px;
+  min-width: 0;
+}
+
+.armor-fixed-bonus-list p {
+  margin: 0;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .armor-build-card {
