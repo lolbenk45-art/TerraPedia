@@ -38,6 +38,7 @@ const requiredMarkers = [
   'armorBuildTotalEntries',
   'armor-build-total-entries',
   'armor-build-total-entry',
+  'armor-build-difference-cell',
   'armorHasVariantBuilds',
   'armorBuildDefenseTotalValue',
   'armorAddDefenseBonusToValue',
@@ -106,6 +107,7 @@ const forbiddenMarkers = [
   'totalLines.map((line) => `合计加成：${line}`)',
   'return armorVariantRoles(uniqueItems).size > 0',
   'Number(defense.total)',
+  'grid-column: 4;',
 ]
 const presentForbidden = forbiddenMarkers.filter((marker) => source.includes(marker))
 

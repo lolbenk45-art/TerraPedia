@@ -1083,31 +1083,33 @@ onMounted(() => {
                   <small v-if="build.defense.formula">{{ build.defense.formula }}</small>
                   <span v-else>--</span>
                 </div>
-                <div class="armor-build-cell armor-build-effect-groups">
-                  <div v-for="group in build.statGroups" :key="`${build.key}-${group.key}`" class="armor-fixed-bonus-group" :class="group.tone">
-                    <strong class="armor-fixed-bonus-group-title">{{ group.label }}</strong>
-                    <span v-for="entry in group.entries" :key="`${build.key}-${group.key}-${entry.key}`" class="armor-fixed-bonus-line">
-                      <small v-if="entry.value">{{ entry.value }}</small>
-                      <b>{{ entry.text }}</b>
-                      <em v-if="entry.description">{{ entry.description }}</em>
-                    </span>
+                <div class="armor-build-cell armor-build-difference-cell">
+                  <div v-if="build.statGroups.length" class="armor-build-effect-groups">
+                    <div v-for="group in build.statGroups" :key="`${build.key}-${group.key}`" class="armor-fixed-bonus-group" :class="group.tone">
+                      <strong class="armor-fixed-bonus-group-title">{{ group.label }}</strong>
+                      <span v-for="entry in group.entries" :key="`${build.key}-${group.key}-${entry.key}`" class="armor-fixed-bonus-line">
+                        <small v-if="entry.value">{{ entry.value }}</small>
+                        <b>{{ entry.text }}</b>
+                        <em v-if="entry.description">{{ entry.description }}</em>
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div v-if="build.totalEntries.length || build.bonusLines.length" class="armor-set-bonus-lines">
-                  <strong>套装效果</strong>
-                  <div v-if="build.totalEntries.length" class="armor-build-total-entries" aria-label="合计加成">
-                    <span class="armor-build-total-title">合计加成</span>
-                    <span v-for="entry in build.totalEntries" :key="`${build.key}-total-${entry.key}`" class="armor-build-total-entry">
-                      <mark class="armor-highlight-number">{{ entry.value }}</mark>
-                      <b>{{ entry.label }}</b>
-                    </span>
+                  <div v-if="build.totalEntries.length || build.bonusLines.length" class="armor-set-bonus-lines">
+                    <strong>套装效果</strong>
+                    <div v-if="build.totalEntries.length" class="armor-build-total-entries" aria-label="合计加成">
+                      <span class="armor-build-total-title">合计加成</span>
+                      <span v-for="entry in build.totalEntries" :key="`${build.key}-total-${entry.key}`" class="armor-build-total-entry">
+                        <mark class="armor-highlight-number">{{ entry.value }}</mark>
+                        <b>{{ entry.label }}</b>
+                      </span>
+                    </div>
+                    <p v-for="line in build.bonusLines" :key="`${build.key}-bonus-${line}`" class="armor-set-bonus-line">
+                      <template v-for="segment in armorHighlightedTextSegments(line)" :key="`${build.key}-${line}-${segment.key}`">
+                        <mark v-if="segment.highlight" class="armor-highlight-number">{{ segment.text }}</mark>
+                        <span v-else>{{ segment.text }}</span>
+                      </template>
+                    </p>
                   </div>
-                  <p v-for="line in build.bonusLines" :key="`${build.key}-bonus-${line}`" class="armor-set-bonus-line">
-                    <template v-for="segment in armorHighlightedTextSegments(line)" :key="`${build.key}-${line}-${segment.key}`">
-                      <mark v-if="segment.highlight" class="armor-highlight-number">{{ segment.text }}</mark>
-                      <span v-else>{{ segment.text }}</span>
-                    </template>
-                  </p>
                 </div>
               </article>
             </div>
@@ -1506,6 +1508,14 @@ onMounted(() => {
   align-items: stretch;
 }
 
+.armor-build-difference-cell {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  align-items: stretch;
+  min-width: 0;
+}
+
 .armor-build-effect-groups {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -1515,11 +1525,9 @@ onMounted(() => {
 }
 
 .armor-set-bonus-lines {
-  grid-column: 4;
   display: grid;
   gap: 5px;
   min-width: 0;
-  margin-top: 8px;
   padding: 8px 10px;
   border: 1px solid rgba(100, 154, 118, 0.2);
   border-radius: 7px;
