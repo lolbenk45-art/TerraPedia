@@ -38,6 +38,42 @@ function item(sourceId, internalName, englishName, raw) {
   };
 }
 
+const hallowedItems = [
+  item(558, 'HallowedHeadgear', 'Hallowed Headgear', { headSlot: 56 }),
+  item(553, 'HallowedHelmet', 'Hallowed Helmet', { headSlot: 53 }),
+  item(559, 'HallowedMask', 'Hallowed Mask', { headSlot: 57 }),
+  item(4898, 'AncientHallowedHeadgear', 'Ancient Hallowed Headgear', { headSlot: 249 }),
+  item(4897, 'AncientHallowedHelmet', 'Ancient Hallowed Helmet', { headSlot: 248 }),
+  item(4896, 'AncientHallowedMask', 'Ancient Hallowed Mask', { headSlot: 247 }),
+  item(551, 'HallowedPlateMail', 'Hallowed Plate Mail', { bodySlot: 24 }),
+  item(4900, 'AncientHallowedPlateMail', 'Ancient Hallowed Plate Mail', { bodySlot: 250 }),
+  item(552, 'HallowedGreaves', 'Hallowed Greaves', { legSlot: 23 }),
+  item(4901, 'AncientHallowedGreaves', 'Ancient Hallowed Greaves', { legSlot: 250 })
+];
+
+function hallowedMaintSet() {
+  return {
+    id: 44,
+    record_key: 'hallowed-maint-key',
+    text_key: 'ArmorSetBonus.Hallowed',
+    benefit_expression: 'ArmorSetBonuses.Benefits.Hallowed',
+    primary_part: 'Head',
+    set_count: 24,
+    unique_item_count: 10,
+    sets_json: JSON.stringify([
+      [558, 551, 552], [558, 551, 4901], [558, 4900, 552], [558, 4900, 4901],
+      [553, 551, 552], [553, 551, 4901], [553, 4900, 552], [553, 4900, 4901],
+      [559, 551, 552], [559, 551, 4901], [559, 4900, 552], [559, 4900, 4901],
+      [4898, 551, 552], [4898, 551, 4901], [4898, 4900, 552], [4898, 4900, 4901],
+      [4897, 551, 552], [4897, 551, 4901], [4897, 4900, 552], [4897, 4900, 4901],
+      [4896, 551, 552], [4896, 551, 4901], [4896, 4900, 552], [4896, 4900, 4901]
+    ]),
+    unique_item_ids_json: JSON.stringify([558, 551, 552, 4901, 4900, 553, 559, 4898, 4897, 4896]),
+    raw_json: '{}',
+    ...baseTrace
+  };
+}
+
 test('buildArmorSetRelations expands armor set variants into slot-aware item rows', () => {
   const actual = buildArmorSetRelations({
     maintArmorSets: [
@@ -377,6 +413,210 @@ test('buildArmorSetRelations uses generated definition map for wiki alias armor 
   assert.deepEqual(JSON.parse(actual.relationArmorSets[0].setsJson), woodSets);
   assert.equal(actual.relationArmorSetItems.length, 6);
   assert.ok(actual.relationArmorSetItems.some((row) => row.itemSourceId === 727));
+});
+
+test('buildArmorSetRelations does not expand equivalent Hallowed ancient swaps into duplicate page builds', () => {
+  const actual = buildArmorSetRelations({
+    wikiArmorSets: [
+      {
+        pageTitle: 'Hallowed armor',
+        nameZh: '神圣盔甲',
+        section: 'hardmode',
+        compositionKind: 'traditional_set',
+        effectText: '+7% 伤害\n每个部件都可以和远古神圣盔甲的部件互换\n神圣头饰：+12% 魔法伤害\n神圣头盔：+15% 远程伤害\n神圣面具：+10% 近战伤害',
+        interchangeableSetTitles: ['Ancient Hallowed armor'],
+        images: [],
+        sourceRevisionTimestamp: '2026-04-04T07:46:03Z'
+      }
+    ],
+    armorSetDefinitionMap: {
+      records: {
+        286: {
+          name: '神圣盔甲',
+          internalCode: '神圣盔甲',
+          definition: { textKey: 'ArmorSetBonus.Hallowed' }
+        }
+      }
+    },
+    maintArmorSets: [
+      hallowedMaintSet()
+    ],
+    maintItems: hallowedItems
+  });
+
+  assert.equal(actual.relationArmorSets.length, 1);
+  assert.equal(actual.relationArmorSets[0].setCount, 3);
+  assert.deepEqual(JSON.parse(actual.relationArmorSets[0].setsJson), [
+    [558, 4898, 551, 4900, 552, 4901],
+    [553, 4897, 551, 4900, 552, 4901],
+    [559, 4896, 551, 4900, 552, 4901]
+  ]);
+  assert.equal(actual.relationArmorSetItems.length, 18);
+  assert.ok(actual.relationArmorSetItems.some((row) => row.itemSourceId === 551));
+  assert.ok(actual.relationArmorSetItems.some((row) => row.itemSourceId === 4900));
+  assert.ok(actual.relationArmorSetItems.some((row) => row.itemSourceId === 552));
+  assert.ok(actual.relationArmorSetItems.some((row) => row.itemSourceId === 4901));
+});
+
+test('buildArmorSetRelations does not expand equivalent Ancient Hallowed swaps into duplicate page builds', () => {
+  const actual = buildArmorSetRelations({
+    wikiArmorSets: [
+      {
+        pageTitle: 'Ancient Hallowed armor',
+        nameZh: '远古神圣盔甲',
+        section: 'hardmode',
+        compositionKind: 'traditional_set',
+        effectText: '+7% 伤害\n每个部件都可以和神圣盔甲的部件互换\n远古神圣头饰：+12% 魔法伤害',
+        interchangeableSetTitles: ['Hallowed armor'],
+        images: []
+      }
+    ],
+    armorSetDefinitionMap: {
+      records: {
+        287: {
+          name: '远古神圣盔甲',
+          internalCode: '远古神圣盔甲',
+          definition: { textKey: 'ArmorSetBonus.Hallowed' }
+        }
+      }
+    },
+    maintArmorSets: [hallowedMaintSet()],
+    maintItems: hallowedItems
+  });
+
+  assert.equal(actual.relationArmorSets.length, 1);
+  assert.equal(actual.relationArmorSets[0].setCount, 3);
+  assert.deepEqual(JSON.parse(actual.relationArmorSets[0].setsJson), [
+    [558, 4898, 551, 4900, 552, 4901],
+    [553, 4897, 551, 4900, 552, 4901],
+    [559, 4896, 551, 4900, 552, 4901]
+  ]);
+  assert.equal(actual.relationArmorSetItems.length, 18);
+  assert.ok(actual.relationArmorSetItems.some((row) => row.itemSourceId === 551));
+  assert.ok(actual.relationArmorSetItems.some((row) => row.itemSourceId === 4900));
+});
+
+test('buildArmorSetRelations does not expand fully equivalent two-set interchangeable families', () => {
+  const cases = [
+    {
+      pageTitle: 'Snow armor',
+      nameZh: '防雪盔甲',
+      interchangeableSetTitles: ['Pink Snow armor'],
+      effectText: '每个部件都可以和粉色防雪盔甲的部件互换\n套装奖励：免疫冰冻',
+      items: [
+        item(803, 'EskimoHood', 'Snow Hood', { headSlot: 74 }),
+        item(978, 'PinkEskimoHood', 'Pink Snow Hood', { headSlot: 74 }),
+        item(804, 'EskimoCoat', 'Snow Coat', { bodySlot: 44 }),
+        item(979, 'PinkEskimoCoat', 'Pink Snow Coat', { bodySlot: 44 }),
+        item(805, 'EskimoPants', 'Snow Pants', { legSlot: 43 }),
+        item(980, 'PinkEskimoPants', 'Pink Snow Pants', { legSlot: 43 })
+      ]
+    },
+    {
+      pageTitle: 'Jungle armor',
+      nameZh: '丛林盔甲',
+      interchangeableSetTitles: ['Ancient Cobalt armor'],
+      effectText: '每个部件都可以和远古钴盔甲的部件互换\n套装奖励：魔力消耗降低',
+      items: [
+        item(228, 'JungleHat', 'Jungle Hat', { headSlot: 41 }),
+        item(960, 'AncientCobaltHelmet', 'Ancient Cobalt Helmet', { headSlot: 41 }),
+        item(229, 'JungleShirt', 'Jungle Shirt', { bodySlot: 9 }),
+        item(961, 'AncientCobaltBreastplate', 'Ancient Cobalt Breastplate', { bodySlot: 9 }),
+        item(230, 'JunglePants', 'Jungle Pants', { legSlot: 8 }),
+        item(962, 'AncientCobaltLeggings', 'Ancient Cobalt Leggings', { legSlot: 8 })
+      ]
+    },
+    {
+      pageTitle: 'Ancient Shadow armor',
+      nameZh: '远古暗影盔甲',
+      interchangeableSetTitles: ['Shadow armor'],
+      effectText: '每个部件都可以和暗影盔甲的部件互换\n套装奖励：移动速度提高',
+      items: [
+        item(956, 'AncientShadowHelmet', 'Ancient Shadow Helmet', { headSlot: 39 }),
+        item(100, 'ShadowHelmet', 'Shadow Helmet', { headSlot: 39 }),
+        item(957, 'AncientShadowScalemail', 'Ancient Shadow Scalemail', { bodySlot: 7 }),
+        item(101, 'ShadowScalemail', 'Shadow Scalemail', { bodySlot: 7 }),
+        item(958, 'AncientShadowGreaves', 'Ancient Shadow Greaves', { legSlot: 6 }),
+        item(102, 'ShadowGreaves', 'Shadow Greaves', { legSlot: 6 })
+      ]
+    }
+  ];
+
+  for (const fixture of cases) {
+    const actual = buildArmorSetRelations({
+      wikiArmorSets: [
+        {
+          pageTitle: fixture.pageTitle,
+          nameZh: fixture.nameZh,
+          section: 'pre-hardmode',
+          compositionKind: 'traditional_set',
+          interchangeableSetTitles: fixture.interchangeableSetTitles,
+          effectText: fixture.effectText,
+          images: []
+        }
+      ],
+      maintItems: fixture.items
+    });
+
+    assert.equal(actual.relationArmorSets.length, 1, fixture.pageTitle);
+    assert.equal(actual.relationArmorSets[0].setCount, 1, fixture.pageTitle);
+    assert.equal(JSON.parse(actual.relationArmorSets[0].setsJson)[0].length, 6, fixture.pageTitle);
+    assert.equal(actual.relationArmorSetItems.length, 6, fixture.pageTitle);
+  }
+});
+
+test('buildArmorSetRelations collapses equivalent variants from a shared generated definition group', () => {
+  const actual = buildArmorSetRelations({
+    wikiArmorSets: [
+      {
+        pageTitle: 'Snow armor',
+        nameZh: '防雪盔甲',
+        section: 'pre-hardmode',
+        compositionKind: 'traditional_set',
+        effectText: '套装奖励：免疫冷冻和冰冻减益',
+        images: []
+      }
+    ],
+    armorSetDefinitionMap: {
+      records: {
+        261: {
+          name: '防雪盔甲',
+          internalCode: '防雪盔甲',
+          definition: { textKey: 'ArmorSetBonus.Snow' }
+        }
+      }
+    },
+    maintArmorSets: [
+      {
+        id: 46,
+        record_key: 'snow-maint-key',
+        text_key: 'ArmorSetBonus.Snow',
+        benefit_expression: 'ArmorSetBonuses.Benefits.Snow',
+        set_count: 8,
+        unique_item_count: 6,
+        sets_json: JSON.stringify([
+          [803, 804, 805], [803, 804, 980], [803, 979, 805], [803, 979, 980],
+          [978, 804, 805], [978, 804, 980], [978, 979, 805], [978, 979, 980]
+        ]),
+        unique_item_ids_json: JSON.stringify([803, 804, 805, 978, 979, 980]),
+        raw_json: '{}',
+        ...baseTrace
+      }
+    ],
+    maintItems: [
+      item(803, 'EskimoHood', 'Snow Hood', { headSlot: 74 }),
+      item(978, 'PinkEskimoHood', 'Pink Snow Hood', { headSlot: 74 }),
+      item(804, 'EskimoCoat', 'Snow Coat', { bodySlot: 44 }),
+      item(979, 'PinkEskimoCoat', 'Pink Snow Coat', { bodySlot: 44 }),
+      item(805, 'EskimoPants', 'Snow Pants', { legSlot: 43 }),
+      item(980, 'PinkEskimoPants', 'Pink Snow Pants', { legSlot: 43 })
+    ]
+  });
+
+  assert.equal(actual.relationArmorSets.length, 1);
+  assert.equal(actual.relationArmorSets[0].setCount, 1);
+  assert.deepEqual(JSON.parse(actual.relationArmorSets[0].setsJson), [[803, 978, 804, 979, 805, 980]]);
+  assert.equal(actual.relationArmorSetItems.length, 6);
 });
 
 test('buildArmorSetRelations reuses managed maint armor image cache for wiki armor page rows', () => {

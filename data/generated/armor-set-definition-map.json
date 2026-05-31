@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-04-21T20:09:17.247Z",
-  "total": 88,
-  "mapped": 71,
-  "placeholder": 17,
+  "generatedAt": "2026-05-31T09:32:20.575Z",
+  "total": 151,
+  "mapped": 115,
+  "placeholder": 36,
   "records": {
-    "236": {
-      "armorSetId": 236,
+    "1": {
+      "armorSetId": 1,
       "name": "挖矿盔甲",
       "internalCode": "挖矿盔甲",
       "itemIds": [
@@ -51,8 +51,8 @@
         ]
       }
     },
-    "237": {
-      "armorSetId": 237,
+    "2": {
+      "armorSetId": 2,
       "name": "木盔甲",
       "internalCode": "木盔甲",
       "itemIds": [
@@ -126,8 +126,8 @@
         ]
       }
     },
-    "238": {
-      "armorSetId": 238,
+    "3": {
+      "armorSetId": 3,
       "name": "红木盔甲",
       "internalCode": "红木盔甲",
       "itemIds": [
@@ -201,8 +201,8 @@
         ]
       }
     },
-    "239": {
-      "armorSetId": 239,
+    "4": {
+      "armorSetId": 4,
       "name": "针叶木盔甲",
       "internalCode": "针叶木盔甲",
       "itemIds": [
@@ -276,8 +276,8 @@
         ]
       }
     },
-    "240": {
-      "armorSetId": 240,
+    "5": {
+      "armorSetId": 5,
       "name": "棕榈木盔甲",
       "internalCode": "棕榈木盔甲",
       "itemIds": [
@@ -351,8 +351,8 @@
         ]
       }
     },
-    "241": {
-      "armorSetId": 241,
+    "6": {
+      "armorSetId": 6,
       "name": "乌木盔甲",
       "internalCode": "乌木盔甲",
       "itemIds": [
@@ -426,8 +426,8 @@
         ]
       }
     },
-    "242": {
-      "armorSetId": 242,
+    "7": {
+      "armorSetId": 7,
       "name": "暗影木盔甲",
       "internalCode": "暗影木盔甲",
       "itemIds": [
@@ -501,8 +501,8 @@
         ]
       }
     },
-    "243": {
-      "armorSetId": 243,
+    "8": {
+      "armorSetId": 8,
       "name": "灰烬木盔甲",
       "internalCode": "灰烬木盔甲",
       "itemIds": [
@@ -558,8 +558,8 @@
         ]
       }
     },
-    "244": {
-      "armorSetId": 244,
+    "9": {
+      "armorSetId": 9,
       "name": "雨具盔甲",
       "internalCode": "雨具盔甲",
       "itemIds": [
@@ -583,8 +583,8 @@
         ]
       }
     },
-    "245": {
-      "armorSetId": 245,
+    "10": {
+      "armorSetId": 10,
       "name": "防雪盔甲",
       "internalCode": "防雪盔甲",
       "itemIds": [
@@ -628,8 +628,8 @@
         ]
       }
     },
-    "246": {
-      "armorSetId": 246,
+    "11": {
+      "armorSetId": 11,
       "name": "粉色防雪盔甲",
       "internalCode": "粉色防雪盔甲",
       "itemIds": [
@@ -673,8 +673,8 @@
         ]
       }
     },
-    "247": {
-      "armorSetId": 247,
+    "12": {
+      "armorSetId": 12,
       "name": "渔夫盔甲",
       "internalCode": "渔夫盔甲",
       "itemIds": [
@@ -718,8 +718,8 @@
         ]
       }
     },
-    "248": {
-      "armorSetId": 248,
+    "13": {
+      "armorSetId": 13,
       "name": "仙人掌盔甲",
       "internalCode": "仙人掌盔甲",
       "itemIds": [
@@ -757,8 +757,8 @@
         ]
       }
     },
-    "249": {
-      "armorSetId": 249,
+    "14": {
+      "armorSetId": 14,
       "name": "铜盔甲",
       "internalCode": "铜盔甲",
       "itemIds": [
@@ -810,8 +810,8 @@
         ]
       }
     },
-    "250": {
-      "armorSetId": 250,
+    "15": {
+      "armorSetId": 15,
       "name": "锡盔甲",
       "internalCode": "锡盔甲",
       "itemIds": [
@@ -863,8 +863,8 @@
         ]
       }
     },
-    "251": {
-      "armorSetId": 251,
+    "16": {
+      "armorSetId": 16,
       "name": "南瓜盔甲",
       "internalCode": "南瓜盔甲",
       "itemIds": [
@@ -902,8 +902,8 @@
         ]
       }
     },
-    "252": {
-      "armorSetId": 252,
+    "17": {
+      "armorSetId": 17,
       "name": "忍者盔甲",
       "internalCode": "忍者盔甲",
       "itemIds": [
@@ -941,8 +941,8 @@
         ]
       }
     },
-    "253": {
-      "armorSetId": 253,
+    "18": {
+      "armorSetId": 18,
       "name": "铁盔甲",
       "internalCode": "铁盔甲",
       "itemIds": [
@@ -994,8 +994,8 @@
         ]
       }
     },
-    "254": {
-      "armorSetId": 254,
+    "19": {
+      "armorSetId": 19,
       "name": "铅盔甲",
       "internalCode": "铅盔甲",
       "itemIds": [
@@ -1053,8 +1053,8 @@
         ]
       }
     },
-    "255": {
-      "armorSetId": 255,
+    "20": {
+      "armorSetId": 20,
       "name": "银盔甲",
       "internalCode": "银盔甲",
       "itemIds": [
@@ -1112,8 +1112,8 @@
         ]
       }
     },
-    "256": {
-      "armorSetId": 256,
+    "21": {
+      "armorSetId": 21,
       "name": "钨盔甲",
       "internalCode": "钨盔甲",
       "itemIds": [
@@ -1171,8 +1171,8 @@
         ]
       }
     },
-    "257": {
-      "armorSetId": 257,
+    "22": {
+      "armorSetId": 22,
       "name": "金盔甲",
       "internalCode": "金盔甲",
       "itemIds": [
@@ -1230,8 +1230,8 @@
         ]
       }
     },
-    "258": {
-      "armorSetId": 258,
+    "23": {
+      "armorSetId": 23,
       "name": "铂金盔甲",
       "internalCode": "铂金盔甲",
       "itemIds": [
@@ -1279,8 +1279,8 @@
         ]
       }
     },
-    "259": {
-      "armorSetId": 259,
+    "24": {
+      "armorSetId": 24,
       "name": "化石盔甲",
       "internalCode": "化石盔甲",
       "itemIds": [
@@ -1318,8 +1318,8 @@
         ]
       }
     },
-    "260": {
-      "armorSetId": 260,
+    "25": {
+      "armorSetId": 25,
       "name": "蜜蜂盔甲",
       "internalCode": "蜜蜂盔甲",
       "itemIds": [
@@ -1357,8 +1357,8 @@
         ]
       }
     },
-    "261": {
-      "armorSetId": 261,
+    "26": {
+      "armorSetId": 26,
       "name": "黑曜石盔甲",
       "internalCode": "黑曜石盔甲",
       "itemIds": [
@@ -1396,8 +1396,8 @@
         ]
       }
     },
-    "262": {
-      "armorSetId": 262,
+    "27": {
+      "armorSetId": 27,
       "name": "角斗士盔甲",
       "internalCode": "角斗士盔甲",
       "itemIds": [
@@ -1435,8 +1435,8 @@
         ]
       }
     },
-    "263": {
-      "armorSetId": 263,
+    "28": {
+      "armorSetId": 28,
       "name": "流星盔甲",
       "internalCode": "流星盔甲",
       "itemIds": [
@@ -1474,8 +1474,8 @@
         ]
       }
     },
-    "264": {
-      "armorSetId": 264,
+    "29": {
+      "armorSetId": 29,
       "name": "丛林盔甲",
       "internalCode": "丛林盔甲",
       "itemIds": [
@@ -1519,8 +1519,8 @@
         ]
       }
     },
-    "265": {
-      "armorSetId": 265,
+    "30": {
+      "armorSetId": 30,
       "name": "远古钴盔甲",
       "internalCode": "远古钴盔甲",
       "itemIds": [
@@ -1564,8 +1564,8 @@
         ]
       }
     },
-    "266": {
-      "armorSetId": 266,
+    "31": {
+      "armorSetId": 31,
       "name": "死灵盔甲",
       "internalCode": "死灵盔甲",
       "itemIds": [
@@ -1605,8 +1605,8 @@
         ]
       }
     },
-    "267": {
-      "armorSetId": 267,
+    "32": {
+      "armorSetId": 32,
       "name": "暗影盔甲",
       "internalCode": "暗影盔甲",
       "itemIds": [
@@ -1680,8 +1680,8 @@
         ]
       }
     },
-    "268": {
-      "armorSetId": 268,
+    "33": {
+      "armorSetId": 33,
       "name": "远古暗影盔甲",
       "internalCode": "远古暗影盔甲",
       "itemIds": [
@@ -1725,8 +1725,8 @@
         ]
       }
     },
-    "269": {
-      "armorSetId": 269,
+    "34": {
+      "armorSetId": 34,
       "name": "猩红盔甲",
       "internalCode": "猩红盔甲",
       "itemIds": [
@@ -1764,8 +1764,8 @@
         ]
       }
     },
-    "270": {
-      "armorSetId": 270,
+    "35": {
+      "armorSetId": 35,
       "name": "熔岩盔甲",
       "internalCode": "熔岩盔甲",
       "itemIds": [
@@ -1803,8 +1803,8 @@
         ]
       }
     },
-    "271": {
-      "armorSetId": 271,
+    "36": {
+      "armorSetId": 36,
       "name": "珍珠木盔甲",
       "internalCode": "珍珠木盔甲",
       "itemIds": [
@@ -1878,8 +1878,8 @@
         ]
       }
     },
-    "272": {
-      "armorSetId": 272,
+    "37": {
+      "armorSetId": 37,
       "name": "蜘蛛盔甲",
       "internalCode": "蜘蛛盔甲",
       "itemIds": [
@@ -1917,8 +1917,8 @@
         ]
       }
     },
-    "273": {
-      "armorSetId": 273,
+    "38": {
+      "armorSetId": 38,
       "name": "钴盔甲",
       "internalCode": "钴盔甲",
       "itemIds": [
@@ -1944,8 +1944,8 @@
         ]
       }
     },
-    "274": {
-      "armorSetId": 274,
+    "39": {
+      "armorSetId": 39,
       "name": "钯金盔甲",
       "internalCode": "钯金盔甲",
       "itemIds": [
@@ -1987,8 +1987,8 @@
         ]
       }
     },
-    "275": {
-      "armorSetId": 275,
+    "40": {
+      "armorSetId": 40,
       "name": "秘银盔甲",
       "internalCode": "秘银盔甲",
       "itemIds": [
@@ -2014,8 +2014,8 @@
         ]
       }
     },
-    "276": {
-      "armorSetId": 276,
+    "41": {
+      "armorSetId": 41,
       "name": "山铜盔甲",
       "internalCode": "山铜盔甲",
       "itemIds": [
@@ -2057,8 +2057,8 @@
         ]
       }
     },
-    "277": {
-      "armorSetId": 277,
+    "42": {
+      "armorSetId": 42,
       "name": "精金盔甲",
       "internalCode": "精金盔甲",
       "itemIds": [
@@ -2084,8 +2084,8 @@
         ]
       }
     },
-    "278": {
-      "armorSetId": 278,
+    "43": {
+      "armorSetId": 43,
       "name": "钛金盔甲",
       "internalCode": "钛金盔甲",
       "itemIds": [
@@ -2127,8 +2127,8 @@
         ]
       }
     },
-    "279": {
-      "armorSetId": 279,
+    "44": {
+      "armorSetId": 44,
       "name": "水晶刺客盔甲",
       "internalCode": "水晶刺客盔甲",
       "itemIds": [
@@ -2166,8 +2166,8 @@
         ]
       }
     },
-    "280": {
-      "armorSetId": 280,
+    "45": {
+      "armorSetId": 45,
       "name": "寒霜盔甲",
       "internalCode": "寒霜盔甲",
       "itemIds": [
@@ -2205,8 +2205,8 @@
         ]
       }
     },
-    "281": {
-      "armorSetId": 281,
+    "46": {
+      "armorSetId": 46,
       "name": "禁戒盔甲",
       "internalCode": "禁戒盔甲",
       "itemIds": [
@@ -2244,8 +2244,8 @@
         ]
       }
     },
-    "282": {
-      "armorSetId": 282,
+    "47": {
+      "armorSetId": 47,
       "name": "侍卫盔甲",
       "internalCode": "侍卫盔甲",
       "itemIds": [
@@ -2283,8 +2283,8 @@
         ]
       }
     },
-    "283": {
-      "armorSetId": 283,
+    "48": {
+      "armorSetId": 48,
       "name": "武僧盔甲",
       "internalCode": "武僧盔甲",
       "itemIds": [
@@ -2322,8 +2322,8 @@
         ]
       }
     },
-    "284": {
-      "armorSetId": 284,
+    "49": {
+      "armorSetId": 49,
       "name": "女猎人盔甲",
       "internalCode": "女猎人盔甲",
       "itemIds": [
@@ -2361,8 +2361,8 @@
         ]
       }
     },
-    "285": {
-      "armorSetId": 285,
+    "50": {
+      "armorSetId": 50,
       "name": "学徒盔甲",
       "internalCode": "学徒盔甲",
       "itemIds": [
@@ -2400,8 +2400,8 @@
         ]
       }
     },
-    "286": {
-      "armorSetId": 286,
+    "51": {
+      "armorSetId": 51,
       "name": "神圣盔甲",
       "internalCode": "神圣盔甲",
       "itemIds": [
@@ -2409,52 +2409,26 @@
         552,
         559
       ],
-      "status": "mapped_manual",
-      "candidates": [
-        {
-          "textKey": "ArmorSetBonus.Hallowed",
-          "benefitExpression": "ArmorSetBonuses.Benefits.Hallowed",
-          "primaryPart": "Head",
-          "setCount": 24,
-          "uniqueItemIds": [
-            558,
-            551,
-            552,
-            4901,
-            4900,
-            553,
-            559,
-            4898,
-            4897,
-            4896
-          ]
-        }
-      ],
+      "status": "placeholder",
+      "candidates": [],
       "definition": {
-        "textKey": "ArmorSetBonus.Hallowed",
-        "textZh": null,
-        "textEn": "ArmorSetBonus.Hallowed",
-        "benefitExpression": "ArmorSetBonuses.Benefits.Hallowed",
+        "textKey": null,
+        "textZh": "神圣盔甲",
+        "textEn": "神圣盔甲",
+        "benefitExpression": null,
         "benefitZh": null,
-        "benefitEn": "ArmorSetBonuses.Benefits.Hallowed",
-        "primaryPart": "Head",
-        "setCount": 24,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
         "uniqueItemIds": [
-          558,
           551,
           552,
-          4901,
-          4900,
-          553,
-          559,
-          4898,
-          4897,
-          4896
+          559
         ]
       }
     },
-    "287": {
-      "armorSetId": 287,
+    "52": {
+      "armorSetId": 52,
       "name": "远古神圣盔甲",
       "internalCode": "远古神圣盔甲",
       "itemIds": [
@@ -2462,48 +2436,26 @@
         4900,
         4901
       ],
-      "status": "mapped_manual",
-      "candidates": [
-        {
-          "textKey": "ArmorSetBonus.HallowedSummoner",
-          "benefitExpression": "ArmorSetBonuses.Benefits.HallowedSummoner",
-          "primaryPart": "Head",
-          "setCount": 8,
-          "uniqueItemIds": [
-            4873,
-            551,
-            552,
-            4901,
-            4900,
-            4899
-          ]
-        }
-      ],
+      "status": "placeholder",
+      "candidates": [],
       "definition": {
-        "textKey": "ArmorSetBonus.Hallowed",
-        "textZh": null,
-        "textEn": "ArmorSetBonus.Hallowed",
-        "benefitExpression": "ArmorSetBonuses.Benefits.Hallowed",
+        "textKey": null,
+        "textZh": "远古神圣盔甲",
+        "textEn": "远古神圣盔甲",
+        "benefitExpression": null,
         "benefitZh": null,
-        "benefitEn": "ArmorSetBonuses.Benefits.Hallowed",
-        "primaryPart": "Head",
-        "setCount": 24,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
         "uniqueItemIds": [
-          558,
-          551,
-          552,
-          4901,
+          4899,
           4900,
-          553,
-          559,
-          4898,
-          4897,
-          4896
+          4901
         ]
       }
     },
-    "288": {
-      "armorSetId": 288,
+    "53": {
+      "armorSetId": 53,
       "name": "叶绿盔甲",
       "internalCode": "叶绿盔甲",
       "itemIds": [
@@ -2530,8 +2482,8 @@
         ]
       }
     },
-    "289": {
-      "armorSetId": 289,
+    "54": {
+      "armorSetId": 54,
       "name": "海龟盔甲",
       "internalCode": "海龟盔甲",
       "itemIds": [
@@ -2569,8 +2521,8 @@
         ]
       }
     },
-    "290": {
-      "armorSetId": 290,
+    "55": {
+      "armorSetId": 55,
       "name": "提基盔甲",
       "internalCode": "提基盔甲",
       "itemIds": [
@@ -2608,8 +2560,8 @@
         ]
       }
     },
-    "291": {
-      "armorSetId": 291,
+    "56": {
+      "armorSetId": 56,
       "name": "甲虫盔甲",
       "internalCode": "甲虫盔甲",
       "itemIds": [
@@ -2635,8 +2587,8 @@
         ]
       }
     },
-    "292": {
-      "armorSetId": 292,
+    "57": {
+      "armorSetId": 57,
       "name": "蘑菇矿盔甲",
       "internalCode": "蘑菇矿盔甲",
       "itemIds": [
@@ -2662,8 +2614,8 @@
         ]
       }
     },
-    "293": {
-      "armorSetId": 293,
+    "58": {
+      "armorSetId": 58,
       "name": "幽灵盔甲",
       "internalCode": "幽灵盔甲",
       "itemIds": [
@@ -2689,8 +2641,8 @@
         ]
       }
     },
-    "294": {
-      "armorSetId": 294,
+    "59": {
+      "armorSetId": 59,
       "name": "阴森盔甲",
       "internalCode": "阴森盔甲",
       "itemIds": [
@@ -2728,8 +2680,8 @@
         ]
       }
     },
-    "295": {
-      "armorSetId": 295,
+    "60": {
+      "armorSetId": 60,
       "name": "英灵殿骑士盔甲",
       "internalCode": "英灵殿骑士盔甲",
       "itemIds": [
@@ -2767,8 +2719,8 @@
         ]
       }
     },
-    "296": {
-      "armorSetId": 296,
+    "61": {
+      "armorSetId": 61,
       "name": "渗透忍者盔甲",
       "internalCode": "渗透忍者盔甲",
       "itemIds": [
@@ -2806,8 +2758,8 @@
         ]
       }
     },
-    "297": {
-      "armorSetId": 297,
+    "62": {
+      "armorSetId": 62,
       "name": "红色骑术盔甲",
       "internalCode": "红色骑术盔甲",
       "itemIds": [
@@ -2845,8 +2797,8 @@
         ]
       }
     },
-    "298": {
-      "armorSetId": 298,
+    "63": {
+      "armorSetId": 63,
       "name": "暗黑艺术家盔甲",
       "internalCode": "暗黑艺术家盔甲",
       "itemIds": [
@@ -2884,8 +2836,8 @@
         ]
       }
     },
-    "299": {
-      "armorSetId": 299,
+    "64": {
+      "armorSetId": 64,
       "name": "耀斑盔甲",
       "internalCode": "耀斑盔甲",
       "itemIds": [
@@ -2923,8 +2875,8 @@
         ]
       }
     },
-    "300": {
-      "armorSetId": 300,
+    "65": {
+      "armorSetId": 65,
       "name": "星旋盔甲",
       "internalCode": "星旋盔甲",
       "itemIds": [
@@ -2962,8 +2914,8 @@
         ]
       }
     },
-    "301": {
-      "armorSetId": 301,
+    "66": {
+      "armorSetId": 66,
       "name": "星云盔甲",
       "internalCode": "星云盔甲",
       "itemIds": [
@@ -3001,8 +2953,8 @@
         ]
       }
     },
-    "302": {
-      "armorSetId": 302,
+    "67": {
+      "armorSetId": 67,
       "name": "星尘盔甲",
       "internalCode": "星尘盔甲",
       "itemIds": [
@@ -3040,8 +2992,8 @@
         ]
       }
     },
-    "303": {
-      "armorSetId": 303,
+    "68": {
+      "armorSetId": 68,
       "name": "魔法帽",
       "internalCode": "魔法帽",
       "itemIds": [
@@ -3092,8 +3044,8 @@
         ]
       }
     },
-    "304": {
-      "armorSetId": 304,
+    "69": {
+      "armorSetId": 69,
       "name": "巫师帽",
       "internalCode": "巫师帽",
       "itemIds": [
@@ -3125,8 +3077,8 @@
         ]
       }
     },
-    "305": {
-      "armorSetId": 305,
+    "70": {
+      "armorSetId": 70,
       "name": "紫晶长袍",
       "internalCode": "紫晶长袍",
       "itemIds": [
@@ -3177,8 +3129,8 @@
         ]
       }
     },
-    "306": {
-      "armorSetId": 306,
+    "71": {
+      "armorSetId": 71,
       "name": "黄玉长袍",
       "internalCode": "黄玉长袍",
       "itemIds": [
@@ -3229,8 +3181,8 @@
         ]
       }
     },
-    "307": {
-      "armorSetId": 307,
+    "72": {
+      "armorSetId": 72,
       "name": "蓝玉长袍",
       "internalCode": "蓝玉长袍",
       "itemIds": [
@@ -3281,8 +3233,8 @@
         ]
       }
     },
-    "308": {
-      "armorSetId": 308,
+    "73": {
+      "armorSetId": 73,
       "name": "翡翠长袍",
       "internalCode": "翡翠长袍",
       "itemIds": [
@@ -3333,8 +3285,8 @@
         ]
       }
     },
-    "309": {
-      "armorSetId": 309,
+    "74": {
+      "armorSetId": 74,
       "name": "红玉长袍",
       "internalCode": "红玉长袍",
       "itemIds": [
@@ -3385,8 +3337,8 @@
         ]
       }
     },
-    "310": {
-      "armorSetId": 310,
+    "75": {
+      "armorSetId": 75,
       "name": "琥珀长袍",
       "internalCode": "琥珀长袍",
       "itemIds": [
@@ -3437,8 +3389,8 @@
         ]
       }
     },
-    "311": {
-      "armorSetId": 311,
+    "76": {
+      "armorSetId": 76,
       "name": "钻石长袍",
       "internalCode": "钻石长袍",
       "itemIds": [
@@ -3489,8 +3441,8 @@
         ]
       }
     },
-    "312": {
-      "armorSetId": 312,
+    "77": {
+      "armorSetId": 77,
       "name": "神秘长袍",
       "internalCode": "神秘长袍",
       "itemIds": [
@@ -3541,8 +3493,8 @@
         ]
       }
     },
-    "313": {
-      "armorSetId": 313,
+    "78": {
+      "armorSetId": 78,
       "name": "空桶",
       "internalCode": "空桶",
       "itemIds": [
@@ -3564,8 +3516,8 @@
         ]
       }
     },
-    "314": {
-      "armorSetId": 314,
+    "79": {
+      "armorSetId": 79,
       "name": "护目镜",
       "internalCode": "护目镜",
       "itemIds": [
@@ -3587,8 +3539,8 @@
         ]
       }
     },
-    "315": {
-      "armorSetId": 315,
+    "80": {
+      "armorSetId": 80,
       "name": "绿帽",
       "internalCode": "绿帽",
       "itemIds": [
@@ -3610,8 +3562,8 @@
         ]
       }
     },
-    "316": {
-      "armorSetId": 316,
+    "81": {
+      "armorSetId": 81,
       "name": "潜水头盔",
       "internalCode": "潜水头盔",
       "itemIds": [
@@ -3633,8 +3585,8 @@
         ]
       }
     },
-    "317": {
-      "armorSetId": 317,
+    "82": {
+      "armorSetId": 82,
       "name": "夜视头盔",
       "internalCode": "夜视头盔",
       "itemIds": [
@@ -3656,8 +3608,8 @@
         ]
       }
     },
-    "318": {
-      "armorSetId": 318,
+    "83": {
+      "armorSetId": 83,
       "name": "维京海盗头盔",
       "internalCode": "维京海盗头盔",
       "itemIds": [
@@ -3679,8 +3631,8 @@
         ]
       }
     },
-    "319": {
-      "armorSetId": 319,
+    "84": {
+      "armorSetId": 84,
       "name": "超亮头盔",
       "internalCode": "超亮头盔",
       "itemIds": [
@@ -3724,8 +3676,8 @@
         ]
       }
     },
-    "320": {
-      "armorSetId": 320,
+    "85": {
+      "armorSetId": 85,
       "name": "小雪怪皮毛外套",
       "internalCode": "小雪怪皮毛外套",
       "itemIds": [
@@ -3747,8 +3699,8 @@
         ]
       }
     },
-    "321": {
-      "armorSetId": 321,
+    "86": {
+      "armorSetId": 86,
       "name": "稽古衣",
       "internalCode": "稽古衣",
       "itemIds": [
@@ -3770,8 +3722,8 @@
         ]
       }
     },
-    "322": {
-      "armorSetId": 322,
+    "87": {
+      "armorSetId": 87,
       "name": "神灵诅咒",
       "internalCode": "神灵诅咒",
       "itemIds": [
@@ -3793,8 +3745,8 @@
         ]
       }
     },
-    "323": {
-      "armorSetId": 323,
+    "88": {
+      "armorSetId": 88,
       "name": "月亮领主腿",
       "internalCode": "月亮领主腿",
       "itemIds": [
@@ -3813,6 +3765,2494 @@
         "setCount": 1,
         "uniqueItemIds": [
           5001
+        ]
+      }
+    },
+    "89": {
+      "armorSetId": 89,
+      "name": "ArmorSetBonus.Wood",
+      "internalCode": "ArmorSetBonus.Wood",
+      "itemIds": [
+        727,
+        728,
+        729,
+        730,
+        731,
+        732,
+        733,
+        734,
+        735,
+        736,
+        737,
+        738,
+        924,
+        925,
+        926,
+        2509,
+        2510,
+        2511,
+        2512,
+        2513,
+        2514
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Wood",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+          "primaryPart": null,
+          "setCount": 7,
+          "uniqueItemIds": [
+            727,
+            728,
+            729,
+            733,
+            734,
+            735,
+            730,
+            731,
+            732,
+            736,
+            737,
+            738,
+            924,
+            925,
+            926,
+            2509,
+            2510,
+            2511,
+            2512,
+            2513,
+            2514
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Wood",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Wood",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Wood",
+        "primaryPart": null,
+        "setCount": 7,
+        "uniqueItemIds": [
+          727,
+          728,
+          729,
+          733,
+          734,
+          735,
+          730,
+          731,
+          732,
+          736,
+          737,
+          738,
+          924,
+          925,
+          926,
+          2509,
+          2510,
+          2511,
+          2512,
+          2513,
+          2514
+        ]
+      }
+    },
+    "90": {
+      "armorSetId": 90,
+      "name": "ArmorSetBonus.AshWood",
+      "internalCode": "ArmorSetBonus.AshWood",
+      "itemIds": [
+        5279,
+        5280,
+        5281
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.AshWood",
+          "benefitExpression": "ArmorSetBonuses.Benefits.AshWood",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            5279,
+            5280,
+            5281
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.AshWood",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.AshWood",
+        "benefitExpression": "ArmorSetBonuses.Benefits.AshWood",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.AshWood",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          5279,
+          5280,
+          5281
+        ]
+      }
+    },
+    "91": {
+      "armorSetId": 91,
+      "name": "ArmorSetBonus.MetalTier1",
+      "internalCode": "ArmorSetBonus.MetalTier1",
+      "itemIds": [
+        76,
+        77,
+        80,
+        81,
+        89,
+        90,
+        687,
+        688,
+        689,
+        954
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MetalTier1",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier1",
+          "primaryPart": null,
+          "setCount": 4,
+          "uniqueItemIds": [
+            89,
+            80,
+            76,
+            687,
+            688,
+            689,
+            90,
+            81,
+            77,
+            954
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MetalTier1",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MetalTier1",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier1",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MetalTier1",
+        "primaryPart": null,
+        "setCount": 4,
+        "uniqueItemIds": [
+          89,
+          80,
+          76,
+          687,
+          688,
+          689,
+          90,
+          81,
+          77,
+          954
+        ]
+      }
+    },
+    "92": {
+      "armorSetId": 92,
+      "name": "ArmorSetBonus.MetalTier2",
+      "internalCode": "ArmorSetBonus.MetalTier2",
+      "itemIds": [
+        78,
+        79,
+        82,
+        83,
+        91,
+        92,
+        690,
+        691,
+        692,
+        693,
+        694,
+        695,
+        955
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MetalTier2",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier2",
+          "primaryPart": null,
+          "setCount": 5,
+          "uniqueItemIds": [
+            91,
+            82,
+            78,
+            92,
+            83,
+            79,
+            955,
+            690,
+            691,
+            692,
+            693,
+            694,
+            695
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MetalTier2",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MetalTier2",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier2",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MetalTier2",
+        "primaryPart": null,
+        "setCount": 5,
+        "uniqueItemIds": [
+          91,
+          82,
+          78,
+          92,
+          83,
+          79,
+          955,
+          690,
+          691,
+          692,
+          693,
+          694,
+          695
+        ]
+      }
+    },
+    "93": {
+      "armorSetId": 93,
+      "name": "ArmorSetBonus.Platinum",
+      "internalCode": "ArmorSetBonus.Platinum",
+      "itemIds": [
+        696,
+        697,
+        698
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Platinum",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Platinum",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            696,
+            697,
+            698
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Platinum",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Platinum",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Platinum",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Platinum",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          696,
+          697,
+          698
+        ]
+      }
+    },
+    "94": {
+      "armorSetId": 94,
+      "name": "ArmorSetBonus.Pumpkin",
+      "internalCode": "ArmorSetBonus.Pumpkin",
+      "itemIds": [
+        1731,
+        1732,
+        1733
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Pumpkin",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Pumpkin",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            1731,
+            1732,
+            1733
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Pumpkin",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Pumpkin",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Pumpkin",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Pumpkin",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          1731,
+          1732,
+          1733
+        ]
+      }
+    },
+    "95": {
+      "armorSetId": 95,
+      "name": "ArmorSetBonus.Gladiator",
+      "internalCode": "ArmorSetBonus.Gladiator",
+      "itemIds": [
+        3187,
+        3188,
+        3189
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Gladiator",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Gladiator",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3187,
+            3188,
+            3189
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Gladiator",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Gladiator",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Gladiator",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Gladiator",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3187,
+          3188,
+          3189
+        ]
+      }
+    },
+    "96": {
+      "armorSetId": 96,
+      "name": "ArmorSetBonus.Ninja",
+      "internalCode": "ArmorSetBonus.Ninja",
+      "itemIds": [
+        256,
+        257,
+        258
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Ninja",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Ninja",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            256,
+            257,
+            258
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Ninja",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Ninja",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Ninja",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Ninja",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          256,
+          257,
+          258
+        ]
+      }
+    },
+    "97": {
+      "armorSetId": 97,
+      "name": "ArmorSetBonus.Fossil",
+      "internalCode": "ArmorSetBonus.Fossil",
+      "itemIds": [
+        3374,
+        3375,
+        3376
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Fossil",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Fossil",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3374,
+            3375,
+            3376
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Fossil",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Fossil",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Fossil",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Fossil",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3374,
+          3375,
+          3376
+        ]
+      }
+    },
+    "98": {
+      "armorSetId": 98,
+      "name": "ArmorSetBonus.Bone",
+      "internalCode": "ArmorSetBonus.Bone",
+      "itemIds": [
+        151,
+        152,
+        153,
+        959
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Bone",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Necro",
+          "primaryPart": null,
+          "setCount": 2,
+          "uniqueItemIds": [
+            151,
+            152,
+            153,
+            959
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Bone",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Bone",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Necro",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Necro",
+        "primaryPart": null,
+        "setCount": 2,
+        "uniqueItemIds": [
+          151,
+          152,
+          153,
+          959
+        ]
+      }
+    },
+    "99": {
+      "armorSetId": 99,
+      "name": "ArmorSetBonus.BeetleDamage",
+      "internalCode": "ArmorSetBonus.BeetleDamage",
+      "itemIds": [
+        0,
+        2199,
+        2200
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "ArmorSetBonus.BeetleDamage",
+        "textEn": "ArmorSetBonus.BeetleDamage",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          0,
+          2199,
+          2200
+        ]
+      }
+    },
+    "100": {
+      "armorSetId": 100,
+      "name": "ArmorSetBonus.BeetleDefense",
+      "internalCode": "ArmorSetBonus.BeetleDefense",
+      "itemIds": [
+        0,
+        2199,
+        2201
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "ArmorSetBonus.BeetleDefense",
+        "textEn": "ArmorSetBonus.BeetleDefense",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          0,
+          2199,
+          2201
+        ]
+      }
+    },
+    "101": {
+      "armorSetId": 101,
+      "name": "ArmorSetBonus.Wizard",
+      "internalCode": "ArmorSetBonus.Wizard",
+      "itemIds": [
+        0,
+        238,
+        1282,
+        1283,
+        1284,
+        1285,
+        1286,
+        1287,
+        2279,
+        4256
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "ArmorSetBonus.Wizard",
+        "textEn": "ArmorSetBonus.Wizard",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          0,
+          238,
+          1282,
+          1283,
+          1284,
+          1285,
+          1286,
+          1287,
+          2279,
+          4256
+        ]
+      }
+    },
+    "102": {
+      "armorSetId": 102,
+      "name": "ArmorSetBonus.MagicHat",
+      "internalCode": "ArmorSetBonus.MagicHat",
+      "itemIds": [
+        0,
+        1282,
+        1283,
+        1284,
+        1285,
+        1286,
+        1287,
+        2275,
+        2279,
+        4256
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "ArmorSetBonus.MagicHat",
+        "textEn": "ArmorSetBonus.MagicHat",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          0,
+          1282,
+          1283,
+          1284,
+          1285,
+          1286,
+          1287,
+          2275,
+          2279,
+          4256
+        ]
+      }
+    },
+    "103": {
+      "armorSetId": 103,
+      "name": "ArmorSetBonus.ShadowScale",
+      "internalCode": "ArmorSetBonus.ShadowScale",
+      "itemIds": [
+        100,
+        101,
+        102,
+        956,
+        957,
+        958
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.ShadowScale",
+          "benefitExpression": "ArmorSetBonuses.Benefits.ShadowScale",
+          "primaryPart": null,
+          "setCount": 8,
+          "uniqueItemIds": [
+            102,
+            101,
+            100,
+            958,
+            957,
+            956
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.ShadowScale",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.ShadowScale",
+        "benefitExpression": "ArmorSetBonuses.Benefits.ShadowScale",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.ShadowScale",
+        "primaryPart": null,
+        "setCount": 8,
+        "uniqueItemIds": [
+          102,
+          101,
+          100,
+          958,
+          957,
+          956
+        ]
+      }
+    },
+    "104": {
+      "armorSetId": 104,
+      "name": "ArmorSetBonus.Crimson",
+      "internalCode": "ArmorSetBonus.Crimson",
+      "itemIds": [
+        792,
+        793,
+        794
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Crimson",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Crimson",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            792,
+            793,
+            794
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Crimson",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Crimson",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Crimson",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Crimson",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          792,
+          793,
+          794
+        ]
+      }
+    },
+    "105": {
+      "armorSetId": 105,
+      "name": "ArmorSetBonus.SpectreHealing",
+      "internalCode": "ArmorSetBonus.SpectreHealing",
+      "itemIds": [
+        0,
+        1503,
+        1504
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "ArmorSetBonus.SpectreHealing",
+        "textEn": "ArmorSetBonus.SpectreHealing",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          0,
+          1503,
+          1504
+        ]
+      }
+    },
+    "106": {
+      "armorSetId": 106,
+      "name": "ArmorSetBonus.SpectreDamage",
+      "internalCode": "ArmorSetBonus.SpectreDamage",
+      "itemIds": [
+        0,
+        1504,
+        2189
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "ArmorSetBonus.SpectreDamage",
+        "textEn": "ArmorSetBonus.SpectreDamage",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          0,
+          1504,
+          2189
+        ]
+      }
+    },
+    "107": {
+      "armorSetId": 107,
+      "name": "ArmorSetBonus.Meteor",
+      "internalCode": "ArmorSetBonus.Meteor",
+      "itemIds": [
+        123,
+        124,
+        125
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Meteor",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Meteor",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            123,
+            124,
+            125
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Meteor",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Meteor",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Meteor",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Meteor",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          123,
+          124,
+          125
+        ]
+      }
+    },
+    "108": {
+      "armorSetId": 108,
+      "name": "ArmorSetBonus.Frost",
+      "internalCode": "ArmorSetBonus.Frost",
+      "itemIds": [
+        684,
+        685,
+        686
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Frost",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Frost",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            684,
+            685,
+            686
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Frost",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Frost",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Frost",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Frost",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          684,
+          685,
+          686
+        ]
+      }
+    },
+    "109": {
+      "armorSetId": 109,
+      "name": "ArmorSetBonus.Jungle",
+      "internalCode": "ArmorSetBonus.Jungle",
+      "itemIds": [
+        228,
+        229,
+        230,
+        960,
+        961,
+        962
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Jungle",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Jungle",
+          "primaryPart": null,
+          "setCount": 8,
+          "uniqueItemIds": [
+            228,
+            229,
+            230,
+            962,
+            961,
+            960
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Jungle",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Jungle",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Jungle",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Jungle",
+        "primaryPart": null,
+        "setCount": 8,
+        "uniqueItemIds": [
+          228,
+          229,
+          230,
+          962,
+          961,
+          960
+        ]
+      }
+    },
+    "110": {
+      "armorSetId": 110,
+      "name": "ArmorSetBonus.Molten",
+      "internalCode": "ArmorSetBonus.Molten",
+      "itemIds": [
+        231,
+        232,
+        233
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Molten",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Molten",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            231,
+            232,
+            233
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Molten",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Molten",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Molten",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Molten",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          231,
+          232,
+          233
+        ]
+      }
+    },
+    "111": {
+      "armorSetId": 111,
+      "name": "ArmorSetBonus.Snow",
+      "internalCode": "ArmorSetBonus.Snow",
+      "itemIds": [
+        803,
+        804,
+        805,
+        978,
+        979,
+        980
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Snow",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Snow",
+          "primaryPart": null,
+          "setCount": 8,
+          "uniqueItemIds": [
+            803,
+            804,
+            805,
+            980,
+            979,
+            978
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Snow",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Snow",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Snow",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Snow",
+        "primaryPart": null,
+        "setCount": 8,
+        "uniqueItemIds": [
+          803,
+          804,
+          805,
+          980,
+          979,
+          978
+        ]
+      }
+    },
+    "112": {
+      "armorSetId": 112,
+      "name": "ArmorSetBonus.Mining",
+      "internalCode": "ArmorSetBonus.Mining",
+      "itemIds": [
+        88,
+        410,
+        411,
+        4008,
+        5588,
+        5589,
+        5590
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Mining",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Mining",
+          "primaryPart": null,
+          "setCount": 12,
+          "uniqueItemIds": [
+            88,
+            410,
+            411,
+            5590,
+            5589,
+            5588,
+            4008
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Mining",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Mining",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Mining",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Mining",
+        "primaryPart": null,
+        "setCount": 12,
+        "uniqueItemIds": [
+          88,
+          410,
+          411,
+          5590,
+          5589,
+          5588,
+          4008
+        ]
+      }
+    },
+    "113": {
+      "armorSetId": 113,
+      "name": "ArmorSetBonus.ChlorophyteMelee",
+      "internalCode": "ArmorSetBonus.ChlorophyteMelee",
+      "itemIds": [
+        0,
+        1001,
+        1004
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "ArmorSetBonus.ChlorophyteMelee",
+        "textEn": "ArmorSetBonus.ChlorophyteMelee",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          0,
+          1001,
+          1004
+        ]
+      }
+    },
+    "114": {
+      "armorSetId": 114,
+      "name": "ArmorSetBonus.ChlorophyteSummon",
+      "internalCode": "ArmorSetBonus.ChlorophyteSummon",
+      "itemIds": [
+        0,
+        1004,
+        5524
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "ArmorSetBonus.ChlorophyteSummon",
+        "textEn": "ArmorSetBonus.ChlorophyteSummon",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          0,
+          1004,
+          5524
+        ]
+      }
+    },
+    "115": {
+      "armorSetId": 115,
+      "name": "ArmorSetBonus.Chlorophyte",
+      "internalCode": "ArmorSetBonus.Chlorophyte",
+      "itemIds": [
+        1002,
+        1003,
+        1004,
+        1005
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Chlorophyte",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Chlorophyte",
+          "primaryPart": "Head",
+          "setCount": 2,
+          "uniqueItemIds": [
+            1003,
+            1004,
+            1005,
+            1002
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Chlorophyte",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Chlorophyte",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Chlorophyte",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Chlorophyte",
+        "primaryPart": "Head",
+        "setCount": 2,
+        "uniqueItemIds": [
+          1003,
+          1004,
+          1005,
+          1002
+        ]
+      }
+    },
+    "116": {
+      "armorSetId": 116,
+      "name": "ArmorSetBonus.Angler",
+      "internalCode": "ArmorSetBonus.Angler",
+      "itemIds": [
+        2367,
+        2368,
+        2369,
+        5591,
+        5592,
+        5593
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Angler",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Angler",
+          "primaryPart": null,
+          "setCount": 8,
+          "uniqueItemIds": [
+            2367,
+            2368,
+            2369,
+            5593,
+            5592,
+            5591
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Angler",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Angler",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Angler",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Angler",
+        "primaryPart": null,
+        "setCount": 8,
+        "uniqueItemIds": [
+          2367,
+          2368,
+          2369,
+          5593,
+          5592,
+          5591
+        ]
+      }
+    },
+    "117": {
+      "armorSetId": 117,
+      "name": "ArmorSetBonus.Cactus",
+      "internalCode": "ArmorSetBonus.Cactus",
+      "itemIds": [
+        894,
+        895,
+        896
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Cactus",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Cactus",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            894,
+            895,
+            896
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Cactus",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Cactus",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Cactus",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Cactus",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          894,
+          895,
+          896
+        ]
+      }
+    },
+    "118": {
+      "armorSetId": 118,
+      "name": "ArmorSetBonus.Turtle",
+      "internalCode": "ArmorSetBonus.Turtle",
+      "itemIds": [
+        1316,
+        1317,
+        1318
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Turtle",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Turtle",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            1316,
+            1317,
+            1318
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Turtle",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Turtle",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Turtle",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Turtle",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          1316,
+          1317,
+          1318
+        ]
+      }
+    },
+    "119": {
+      "armorSetId": 119,
+      "name": "ArmorSetBonus.CobaltCaster",
+      "internalCode": "ArmorSetBonus.CobaltCaster",
+      "itemIds": [
+        0,
+        371,
+        374
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "ArmorSetBonus.CobaltCaster",
+        "textEn": "ArmorSetBonus.CobaltCaster",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          0,
+          371,
+          374
+        ]
+      }
+    },
+    "120": {
+      "armorSetId": 120,
+      "name": "ArmorSetBonus.CobaltMelee",
+      "internalCode": "ArmorSetBonus.CobaltMelee",
+      "itemIds": [
+        0,
+        372,
+        374
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "ArmorSetBonus.CobaltMelee",
+        "textEn": "ArmorSetBonus.CobaltMelee",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          0,
+          372,
+          374
+        ]
+      }
+    },
+    "121": {
+      "armorSetId": 121,
+      "name": "ArmorSetBonus.CobaltRanged",
+      "internalCode": "ArmorSetBonus.CobaltRanged",
+      "itemIds": [
+        0,
+        373,
+        374
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "ArmorSetBonus.CobaltRanged",
+        "textEn": "ArmorSetBonus.CobaltRanged",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          0,
+          373,
+          374
+        ]
+      }
+    },
+    "122": {
+      "armorSetId": 122,
+      "name": "ArmorSetBonus.MythrilCaster",
+      "internalCode": "ArmorSetBonus.MythrilCaster",
+      "itemIds": [
+        0,
+        376,
+        379
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "ArmorSetBonus.MythrilCaster",
+        "textEn": "ArmorSetBonus.MythrilCaster",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          0,
+          376,
+          379
+        ]
+      }
+    },
+    "123": {
+      "armorSetId": 123,
+      "name": "ArmorSetBonus.MythrilMelee",
+      "internalCode": "ArmorSetBonus.MythrilMelee",
+      "itemIds": [
+        0,
+        377,
+        379
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "ArmorSetBonus.MythrilMelee",
+        "textEn": "ArmorSetBonus.MythrilMelee",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          0,
+          377,
+          379
+        ]
+      }
+    },
+    "124": {
+      "armorSetId": 124,
+      "name": "ArmorSetBonus.MythrilRanged",
+      "internalCode": "ArmorSetBonus.MythrilRanged",
+      "itemIds": [
+        0,
+        378,
+        379
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "ArmorSetBonus.MythrilRanged",
+        "textEn": "ArmorSetBonus.MythrilRanged",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          0,
+          378,
+          379
+        ]
+      }
+    },
+    "125": {
+      "armorSetId": 125,
+      "name": "ArmorSetBonus.AdamantiteCaster",
+      "internalCode": "ArmorSetBonus.AdamantiteCaster",
+      "itemIds": [
+        0,
+        400,
+        403
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "ArmorSetBonus.AdamantiteCaster",
+        "textEn": "ArmorSetBonus.AdamantiteCaster",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          0,
+          400,
+          403
+        ]
+      }
+    },
+    "126": {
+      "armorSetId": 126,
+      "name": "ArmorSetBonus.AdamantiteMelee",
+      "internalCode": "ArmorSetBonus.AdamantiteMelee",
+      "itemIds": [
+        0,
+        401,
+        403
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "ArmorSetBonus.AdamantiteMelee",
+        "textEn": "ArmorSetBonus.AdamantiteMelee",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          0,
+          401,
+          403
+        ]
+      }
+    },
+    "127": {
+      "armorSetId": 127,
+      "name": "ArmorSetBonus.AdamantiteRanged",
+      "internalCode": "ArmorSetBonus.AdamantiteRanged",
+      "itemIds": [
+        0,
+        402,
+        403
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "ArmorSetBonus.AdamantiteRanged",
+        "textEn": "ArmorSetBonus.AdamantiteRanged",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          0,
+          402,
+          403
+        ]
+      }
+    },
+    "128": {
+      "armorSetId": 128,
+      "name": "ArmorSetBonus.Palladium",
+      "internalCode": "ArmorSetBonus.Palladium",
+      "itemIds": [
+        1205,
+        1206,
+        1207,
+        1208,
+        1209
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Palladium",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Palladium",
+          "primaryPart": null,
+          "setCount": 3,
+          "uniqueItemIds": [
+            1205,
+            1208,
+            1209,
+            1206,
+            1207
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Palladium",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Palladium",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Palladium",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Palladium",
+        "primaryPart": null,
+        "setCount": 3,
+        "uniqueItemIds": [
+          1205,
+          1208,
+          1209,
+          1206,
+          1207
+        ]
+      }
+    },
+    "129": {
+      "armorSetId": 129,
+      "name": "ArmorSetBonus.Orichalcum",
+      "internalCode": "ArmorSetBonus.Orichalcum",
+      "itemIds": [
+        1210,
+        1211,
+        1212,
+        1213,
+        1214
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Orichalcum",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Orichalcum",
+          "primaryPart": null,
+          "setCount": 3,
+          "uniqueItemIds": [
+            1210,
+            1213,
+            1214,
+            1211,
+            1212
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Orichalcum",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Orichalcum",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Orichalcum",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Orichalcum",
+        "primaryPart": null,
+        "setCount": 3,
+        "uniqueItemIds": [
+          1210,
+          1213,
+          1214,
+          1211,
+          1212
+        ]
+      }
+    },
+    "130": {
+      "armorSetId": 130,
+      "name": "ArmorSetBonus.Titanium",
+      "internalCode": "ArmorSetBonus.Titanium",
+      "itemIds": [
+        1215,
+        1216,
+        1217,
+        1218,
+        1219
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Titanium",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Titanium",
+          "primaryPart": null,
+          "setCount": 3,
+          "uniqueItemIds": [
+            1215,
+            1218,
+            1219,
+            1216,
+            1217
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Titanium",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Titanium",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Titanium",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Titanium",
+        "primaryPart": null,
+        "setCount": 3,
+        "uniqueItemIds": [
+          1215,
+          1218,
+          1219,
+          1216,
+          1217
+        ]
+      }
+    },
+    "131": {
+      "armorSetId": 131,
+      "name": "ArmorSetBonus.HallowedSummoner",
+      "internalCode": "ArmorSetBonus.HallowedSummoner",
+      "itemIds": [
+        551,
+        552,
+        4873,
+        4899,
+        4900,
+        4901
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.HallowedSummoner",
+          "benefitExpression": "ArmorSetBonuses.Benefits.HallowedSummoner",
+          "primaryPart": "Head",
+          "setCount": 8,
+          "uniqueItemIds": [
+            4873,
+            551,
+            552,
+            4901,
+            4900,
+            4899
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.HallowedSummoner",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.HallowedSummoner",
+        "benefitExpression": "ArmorSetBonuses.Benefits.HallowedSummoner",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.HallowedSummoner",
+        "primaryPart": "Head",
+        "setCount": 8,
+        "uniqueItemIds": [
+          4873,
+          551,
+          552,
+          4901,
+          4900,
+          4899
+        ]
+      }
+    },
+    "132": {
+      "armorSetId": 132,
+      "name": "ArmorSetBonus.Hallowed",
+      "internalCode": "ArmorSetBonus.Hallowed",
+      "itemIds": [
+        551,
+        552,
+        553,
+        558,
+        559,
+        4896,
+        4897,
+        4898,
+        4900,
+        4901
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Hallowed",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Hallowed",
+          "primaryPart": "Head",
+          "setCount": 24,
+          "uniqueItemIds": [
+            558,
+            551,
+            552,
+            4901,
+            4900,
+            553,
+            559,
+            4898,
+            4897,
+            4896
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Hallowed",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Hallowed",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Hallowed",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Hallowed",
+        "primaryPart": "Head",
+        "setCount": 24,
+        "uniqueItemIds": [
+          558,
+          551,
+          552,
+          4901,
+          4900,
+          553,
+          559,
+          4898,
+          4897,
+          4896
+        ]
+      }
+    },
+    "133": {
+      "armorSetId": 133,
+      "name": "ArmorSetBonus.CrystalNinja",
+      "internalCode": "ArmorSetBonus.CrystalNinja",
+      "itemIds": [
+        4982,
+        4983,
+        4984
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.CrystalNinja",
+          "benefitExpression": "ArmorSetBonuses.Benefits.CrystalAssassin",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            4982,
+            4983,
+            4984
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.CrystalNinja",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.CrystalNinja",
+        "benefitExpression": "ArmorSetBonuses.Benefits.CrystalAssassin",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.CrystalAssassin",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          4982,
+          4983,
+          4984
+        ]
+      }
+    },
+    "134": {
+      "armorSetId": 134,
+      "name": "ArmorSetBonus.Tiki",
+      "internalCode": "ArmorSetBonus.Tiki",
+      "itemIds": [
+        1159,
+        1160,
+        1161
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Tiki",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Tiki",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            1159,
+            1160,
+            1161
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Tiki",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Tiki",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Tiki",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Tiki",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          1159,
+          1160,
+          1161
+        ]
+      }
+    },
+    "135": {
+      "armorSetId": 135,
+      "name": "ArmorSetBonus.Spooky",
+      "internalCode": "ArmorSetBonus.Spooky",
+      "itemIds": [
+        1832,
+        1833,
+        1834
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Spooky",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Spooky",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            1832,
+            1833,
+            1834
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Spooky",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Spooky",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Spooky",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Spooky",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          1832,
+          1833,
+          1834
+        ]
+      }
+    },
+    "136": {
+      "armorSetId": 136,
+      "name": "ArmorSetBonus.Bee",
+      "internalCode": "ArmorSetBonus.Bee",
+      "itemIds": [
+        2361,
+        2362,
+        2363
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Bee",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Bee",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            2361,
+            2362,
+            2363
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Bee",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Bee",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Bee",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Bee",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          2361,
+          2362,
+          2363
+        ]
+      }
+    },
+    "137": {
+      "armorSetId": 137,
+      "name": "ArmorSetBonus.Spider",
+      "internalCode": "ArmorSetBonus.Spider",
+      "itemIds": [
+        2370,
+        2371,
+        2372
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Spider",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Spider",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            2370,
+            2371,
+            2372
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Spider",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Spider",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Spider",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Spider",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          2370,
+          2371,
+          2372
+        ]
+      }
+    },
+    "138": {
+      "armorSetId": 138,
+      "name": "ArmorSetBonus.Solar",
+      "internalCode": "ArmorSetBonus.Solar",
+      "itemIds": [
+        2763,
+        2764,
+        2765
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Solar",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Solar",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            2763,
+            2764,
+            2765
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Solar",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Solar",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Solar",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Solar",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          2763,
+          2764,
+          2765
+        ]
+      }
+    },
+    "139": {
+      "armorSetId": 139,
+      "name": "ArmorSetBonus.Vortex",
+      "internalCode": "ArmorSetBonus.Vortex",
+      "itemIds": [
+        2757,
+        2758,
+        2759
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Vortex",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Vortex",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            2757,
+            2758,
+            2759
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Vortex",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Vortex",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Vortex",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Vortex",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          2757,
+          2758,
+          2759
+        ]
+      }
+    },
+    "140": {
+      "armorSetId": 140,
+      "name": "ArmorSetBonus.Nebula",
+      "internalCode": "ArmorSetBonus.Nebula",
+      "itemIds": [
+        2760,
+        2761,
+        2762
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Nebula",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Nebula",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            2760,
+            2761,
+            2762
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Nebula",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Nebula",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Nebula",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Nebula",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          2760,
+          2761,
+          2762
+        ]
+      }
+    },
+    "141": {
+      "armorSetId": 141,
+      "name": "ArmorSetBonus.Stardust",
+      "internalCode": "ArmorSetBonus.Stardust",
+      "itemIds": [
+        3381,
+        3382,
+        3383
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Stardust",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Stardust",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3381,
+            3382,
+            3383
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Stardust",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Stardust",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Stardust",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Stardust",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3381,
+          3382,
+          3383
+        ]
+      }
+    },
+    "142": {
+      "armorSetId": 142,
+      "name": "ArmorSetBonus.Forbidden",
+      "internalCode": "ArmorSetBonus.Forbidden",
+      "itemIds": [
+        3776,
+        3777,
+        3778
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Forbidden",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Forbidden",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3776,
+            3777,
+            3778
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Forbidden",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Forbidden",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Forbidden",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Forbidden",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3776,
+          3777,
+          3778
+        ]
+      }
+    },
+    "143": {
+      "armorSetId": 143,
+      "name": "ArmorSetBonus.SquireTier2",
+      "internalCode": "ArmorSetBonus.SquireTier2",
+      "itemIds": [
+        3800,
+        3801,
+        3802
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.SquireTier2",
+          "benefitExpression": "ArmorSetBonuses.Benefits.SquireTier2",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3800,
+            3801,
+            3802
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.SquireTier2",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.SquireTier2",
+        "benefitExpression": "ArmorSetBonuses.Benefits.SquireTier2",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.SquireTier2",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3800,
+          3801,
+          3802
+        ]
+      }
+    },
+    "144": {
+      "armorSetId": 144,
+      "name": "ArmorSetBonus.ApprenticeTier2",
+      "internalCode": "ArmorSetBonus.ApprenticeTier2",
+      "itemIds": [
+        3797,
+        3798,
+        3799
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.ApprenticeTier2",
+          "benefitExpression": "ArmorSetBonuses.Benefits.ApprenticeTier2",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3797,
+            3798,
+            3799
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.ApprenticeTier2",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.ApprenticeTier2",
+        "benefitExpression": "ArmorSetBonuses.Benefits.ApprenticeTier2",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.ApprenticeTier2",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3797,
+          3798,
+          3799
+        ]
+      }
+    },
+    "145": {
+      "armorSetId": 145,
+      "name": "ArmorSetBonus.HuntressTier2",
+      "internalCode": "ArmorSetBonus.HuntressTier2",
+      "itemIds": [
+        3803,
+        3804,
+        3805
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.HuntressTier2",
+          "benefitExpression": "ArmorSetBonuses.Benefits.HuntressTier2",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3803,
+            3804,
+            3805
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.HuntressTier2",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.HuntressTier2",
+        "benefitExpression": "ArmorSetBonuses.Benefits.HuntressTier2",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.HuntressTier2",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3803,
+          3804,
+          3805
+        ]
+      }
+    },
+    "146": {
+      "armorSetId": 146,
+      "name": "ArmorSetBonus.MonkTier2",
+      "internalCode": "ArmorSetBonus.MonkTier2",
+      "itemIds": [
+        3806,
+        3807,
+        3808
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MonkTier2",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MonkTier2",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3806,
+            3807,
+            3808
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MonkTier2",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MonkTier2",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MonkTier2",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MonkTier2",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3806,
+          3807,
+          3808
+        ]
+      }
+    },
+    "147": {
+      "armorSetId": 147,
+      "name": "ArmorSetBonus.SquireTier3",
+      "internalCode": "ArmorSetBonus.SquireTier3",
+      "itemIds": [
+        3871,
+        3872,
+        3873
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.SquireTier3",
+          "benefitExpression": "ArmorSetBonuses.Benefits.SquireTier3",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3871,
+            3872,
+            3873
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.SquireTier3",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.SquireTier3",
+        "benefitExpression": "ArmorSetBonuses.Benefits.SquireTier3",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.SquireTier3",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3871,
+          3872,
+          3873
+        ]
+      }
+    },
+    "148": {
+      "armorSetId": 148,
+      "name": "ArmorSetBonus.ApprenticeTier3",
+      "internalCode": "ArmorSetBonus.ApprenticeTier3",
+      "itemIds": [
+        3874,
+        3875,
+        3876
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.ApprenticeTier3",
+          "benefitExpression": "ArmorSetBonuses.Benefits.ApprenticeTier3",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3874,
+            3875,
+            3876
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.ApprenticeTier3",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.ApprenticeTier3",
+        "benefitExpression": "ArmorSetBonuses.Benefits.ApprenticeTier3",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.ApprenticeTier3",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3874,
+          3875,
+          3876
+        ]
+      }
+    },
+    "149": {
+      "armorSetId": 149,
+      "name": "ArmorSetBonus.HuntressTier3",
+      "internalCode": "ArmorSetBonus.HuntressTier3",
+      "itemIds": [
+        3877,
+        3878,
+        3879
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.HuntressTier3",
+          "benefitExpression": "ArmorSetBonuses.Benefits.HuntressTier3",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3877,
+            3878,
+            3879
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.HuntressTier3",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.HuntressTier3",
+        "benefitExpression": "ArmorSetBonuses.Benefits.HuntressTier3",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.HuntressTier3",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3877,
+          3878,
+          3879
+        ]
+      }
+    },
+    "150": {
+      "armorSetId": 150,
+      "name": "ArmorSetBonus.MonkTier3",
+      "internalCode": "ArmorSetBonus.MonkTier3",
+      "itemIds": [
+        3880,
+        3881,
+        3882
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MonkTier3",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MonkTier3",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3880,
+            3881,
+            3882
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MonkTier3",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MonkTier3",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MonkTier3",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MonkTier3",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3880,
+          3881,
+          3882
+        ]
+      }
+    },
+    "151": {
+      "armorSetId": 151,
+      "name": "ArmorSetBonus.ObsidianOutlaw",
+      "internalCode": "ArmorSetBonus.ObsidianOutlaw",
+      "itemIds": [
+        3266,
+        3267,
+        3268
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.ObsidianOutlaw",
+          "benefitExpression": "ArmorSetBonuses.Benefits.ObsidianOutlaw",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3266,
+            3267,
+            3268
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.ObsidianOutlaw",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.ObsidianOutlaw",
+        "benefitExpression": "ArmorSetBonuses.Benefits.ObsidianOutlaw",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.ObsidianOutlaw",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3266,
+          3267,
+          3268
         ]
       }
     }

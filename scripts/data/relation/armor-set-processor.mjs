@@ -134,6 +134,237 @@ function normalizeArmorDefinitionKey(value) {
     .trim() ?? null;
 }
 
+function normalizeArmorFamilyToken(value) {
+  return normalizeNameKey(value)
+    ?.replace(/\s+armor$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim() ?? null;
+}
+
+function buildInterchangeableFamilyTitles(record) {
+  return stableUnique([
+    record?.pageTitle,
+    ...(Array.isArray(record?.interchangeableSetTitles) ? record.interchangeableSetTitles : [])
+  ])
+    .map((title) => ({
+      title,
+      baseTitle: armorSetBaseTitle(title),
+      token: normalizeArmorFamilyToken(title)
+    }))
+    .filter((entry) => entry.baseTitle && entry.token);
+}
+
+function findArmorItemFamily(entry, familyTitles) {
+  const itemName = normalizeText(
+    entry?.item?.english_name
+      ?? entry?.item?.englishName
+      ?? entry?.item?.name
+      ?? entry?.item?.internal_name
+      ?? entry?.item?.internalName
+  );
+  if (!itemName) {
+    return null;
+  }
+  return familyTitles.find((family) => isItemForArmorBase(itemName, family.baseTitle)) ?? null;
+}
+
+function removeWords(text, words) {
+  let result = ` ${text} `;
+  for (const word of words) {
+    if (!word) continue;
+    result = result.replace(new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g'), ' ');
+  }
+  return result.replace(/\s+/g, ' ').trim();
+}
+
+function armorItemVariantToken(entry, family) {
+  const itemName = normalizeNameKey(
+    entry?.item?.english_name
+      ?? entry?.item?.englishName
+      ?? entry?.item?.name
+      ?? entry?.item?.internal_name
+      ?? entry?.item?.internalName
+  );
+  if (!itemName) {
+    return `item-${entry?.sourceId ?? ''}`;
+  }
+  const familyWords = String(family?.token ?? '')
+    .split(/\s+/)
+    .filter(Boolean);
+  const token = removeWords(itemName, [...familyWords, 'ancient', 'pink']);
+  return token || itemName;
+}
+
+function armorItemStatSignature(entry) {
+  const raw = getRawItem(entry?.item);
+  const defense = toNullableNumber(
+    entry?.item?.defense_value
+      ?? entry?.item?.defenseValue
+      ?? entry?.item?.defense
+      ?? raw.defense
+      ?? raw.defenseValue
+  );
+  const effectText = normalizeNameKey(
+    raw.tooltip
+      ?? raw.tooltipZh
+      ?? raw.tooltip_zh
+      ?? raw.description
+      ?? raw.descriptionZh
+      ?? raw.description_zh
+      ?? raw.effect
+      ?? raw.effectText
+  );
+  return [
+    `def:${defense ?? 'unknown'}`,
+    `effect:${effectText ?? 'none'}`
+  ].join('|');
+}
+
+function mappedArmorItemVariantToken(entry) {
+  const itemName = normalizeNameKey(
+    entry?.item?.english_name
+      ?? entry?.item?.englishName
+      ?? entry?.item?.name
+      ?? entry?.item?.internal_name
+      ?? entry?.item?.internalName
+  );
+  if (!itemName) {
+    return `item-${entry?.sourceId ?? ''}`;
+  }
+  const token = removeWords(itemName, ['ancient', 'pink', 'snow']);
+  return token || itemName;
+}
+
+function buildMappedDefinitionEquivalenceContext(effectiveSetItems) {
+  const entriesByRole = new Map();
+  for (const entry of effectiveSetItems) {
+    const role = entry.slot?.partRole ?? 'unknown';
+    if (role === 'unknown') {
+      continue;
+    }
+    if (!entriesByRole.has(role)) {
+      entriesByRole.set(role, []);
+    }
+    entriesByRole.get(role).push(entry);
+  }
+  const multiRoleEntries = [...entriesByRole.values()].filter((entries) => entries.length > 1);
+  if (multiRoleEntries.length === 0) {
+    return { enabled: false, keyBySourceId: new Map(), entriesByKey: new Map() };
+  }
+
+  const keyBySourceId = new Map();
+  const entriesByKey = new Map();
+  for (const entry of effectiveSetItems) {
+    const role = entry.slot?.partRole ?? 'unknown';
+    const key = `${role}:${mappedArmorItemVariantToken(entry)}:${armorItemStatSignature(entry)}`;
+    keyBySourceId.set(entry.sourceId, key);
+    if (!entriesByKey.has(key)) {
+      entriesByKey.set(key, []);
+    }
+    entriesByKey.get(key).push(entry);
+  }
+  for (const entries of entriesByKey.values()) {
+    entries.sort((left, right) => left.sourceId - right.sourceId);
+  }
+  return { enabled: true, keyBySourceId, entriesByKey };
+}
+
+function buildArmorEquivalenceContext(record, effectiveSetItems, { hasMappedDefinition = false } = {}) {
+  const familyTitles = buildInterchangeableFamilyTitles(record);
+  const hasInterchangeable = familyTitles.length > 1;
+  if (!hasInterchangeable) {
+    return hasMappedDefinition
+      ? buildMappedDefinitionEquivalenceContext(effectiveSetItems)
+      : { enabled: false, keyBySourceId: new Map(), entriesByKey: new Map() };
+  }
+
+  const itemFamilyBySourceId = new Map();
+  const roleCountsByFamily = new Map();
+  for (const entry of effectiveSetItems) {
+    const family = findArmorItemFamily(entry, familyTitles);
+    if (!family) {
+      continue;
+    }
+    itemFamilyBySourceId.set(entry.sourceId, family);
+    const role = entry.slot?.partRole ?? 'unknown';
+    const familyRoleKey = `${family.token}|${role}`;
+    roleCountsByFamily.set(familyRoleKey, (roleCountsByFamily.get(familyRoleKey) ?? 0) + 1);
+  }
+
+  const maxRoleCount = new Map();
+  for (const [familyRoleKey, count] of roleCountsByFamily.entries()) {
+    const role = familyRoleKey.split('|').at(-1);
+    maxRoleCount.set(role, Math.max(maxRoleCount.get(role) ?? 0, count));
+  }
+
+  const keyBySourceId = new Map();
+  const entriesByKey = new Map();
+  for (const entry of effectiveSetItems) {
+    const role = entry.slot?.partRole ?? 'unknown';
+    const family = itemFamilyBySourceId.get(entry.sourceId);
+    const key = family
+      ? `${role}:${(maxRoleCount.get(role) ?? 0) > 1 ? armorItemVariantToken(entry, family) : 'equivalent'}:${armorItemStatSignature(entry)}`
+      : `${role}:source-${entry.sourceId}`;
+    keyBySourceId.set(entry.sourceId, key);
+    if (!entriesByKey.has(key)) {
+      entriesByKey.set(key, []);
+    }
+    entriesByKey.get(key).push(entry);
+  }
+
+  for (const entries of entriesByKey.values()) {
+    entries.sort((left, right) => left.sourceId - right.sourceId);
+  }
+
+  return { enabled: true, keyBySourceId, entriesByKey };
+}
+
+function collapseEquivalentCartesianVariants({ variants, equivalenceContext }) {
+  if (!equivalenceContext?.enabled || !Array.isArray(variants) || variants.length === 0) {
+    return variants;
+  }
+  const seen = new Set();
+  const collapsed = [];
+  for (const variant of variants) {
+    const signature = variant
+      .map((sourceId) => equivalenceContext.keyBySourceId.get(sourceId) ?? `source-${sourceId}`)
+      .join('|');
+    if (seen.has(signature)) {
+      continue;
+    }
+    seen.add(signature);
+    collapsed.push(variant);
+  }
+  return collapsed.length > 0 ? collapsed : variants;
+}
+
+function expandEquivalentVariantEntries(variant, equivalenceContext, itemBySourceId) {
+  if (!equivalenceContext?.enabled) {
+    return variant.map((sourceId, partIndex) => ({
+      sourceId,
+      partIndex,
+      entry: itemBySourceId.get(sourceId) ?? null
+    }));
+  }
+  const rows = [];
+  const emitted = new Set();
+  for (let partIndex = 0; partIndex < variant.length; partIndex += 1) {
+    const sourceId = variant[partIndex];
+    const key = equivalenceContext.keyBySourceId.get(sourceId);
+    const entries = key ? (equivalenceContext.entriesByKey.get(key) ?? []) : [];
+    const alternatives = entries.length > 0 ? entries : [itemBySourceId.get(sourceId)].filter(Boolean);
+    for (const entry of alternatives) {
+      const rowKey = `${partIndex}:${entry.sourceId}`;
+      if (emitted.has(rowKey)) {
+        continue;
+      }
+      emitted.add(rowKey);
+      rows.push({ sourceId: entry.sourceId, partIndex, entry });
+    }
+  }
+  return rows;
+}
+
 function armorDefinitionKeyFromBenefitExpression(value) {
   return normalizeText(value)
     ?.replace(/^ArmorSetBonuses\.Benefits\./i, '')
@@ -490,7 +721,23 @@ function buildWikiArmorSetRelations({
         })
         .filter((entry) => entry && entry.slot.partRole !== 'unknown')
       : setItems;
-    const armorSet = buildWikiArmorSetRecord(record, effectiveSetItems, variants, uniqueItemIds);
+    const equivalenceContext = compositionKind === 'traditional_set'
+      ? buildArmorEquivalenceContext(record, effectiveSetItems, { hasMappedDefinition: Boolean(mappedDefinition?.sets?.length) })
+      : { enabled: false, keyBySourceId: new Map(), entriesByKey: new Map() };
+    const effectiveVariants = collapseEquivalentCartesianVariants({ variants, equivalenceContext });
+    const expandedVariantEntries = effectiveVariants.map((variant) => expandEquivalentVariantEntries(
+      variant,
+      equivalenceContext,
+      new Map(effectiveSetItems.map((entry) => [entry.sourceId, entry]))
+    ));
+    const effectiveSets = expandedVariantEntries.map((entries) => stableUnique(
+      entries.map((row) => row.sourceId)
+    ));
+    const effectiveUniqueItemIds = stableUnique([
+      ...expandedVariantEntries.flat().map((row) => row.sourceId),
+      ...uniqueItemIds
+    ]);
+    const armorSet = buildWikiArmorSetRecord(record, effectiveSetItems, effectiveSets, effectiveUniqueItemIds);
     armorSet.rawPageTitle = pageTitle;
     relationArmorSets.push(armorSet);
 
@@ -502,19 +749,15 @@ function buildWikiArmorSetRelations({
       });
     }
 
-    const wikiItemBySourceId = new Map(effectiveSetItems.map((entry) => [entry.sourceId, entry]));
-    for (let setVariantIndex = 0; setVariantIndex < variants.length; setVariantIndex += 1) {
-      const variant = variants[setVariantIndex];
-      for (let partIndex = 0; partIndex < variant.length; partIndex += 1) {
-        const itemSourceId = variant[partIndex];
-        const entry = wikiItemBySourceId.get(itemSourceId);
+    for (let setVariantIndex = 0; setVariantIndex < expandedVariantEntries.length; setVariantIndex += 1) {
+      for (const row of expandedVariantEntries[setVariantIndex]) {
         const itemRecord = buildArmorSetItemRecord({
           armorSet,
           textKey: armorSet.textKey,
           setVariantIndex,
-          partIndex,
-          itemSourceId,
-          itemRow: entry?.item ?? null
+          partIndex: row.partIndex,
+          itemSourceId: row.sourceId,
+          itemRow: row.entry?.item ?? null
         });
         relationArmorSetItems.push(itemRecord);
       }
