@@ -216,6 +216,24 @@ const armorLineLooksLikePlainAttribute = (line: string) => (
   && !/套装|奖励|效果|增益|提供|触发|获得|召唤|免疫|闪避|不受|击中|每级|最高|降低/.test(line)
 )
 
+const armorHighlightedTextSegments = (line: string) => {
+  const segments: Array<{ key: string, text: string, highlight: boolean }> = []
+  const pattern = /([+\-−]?\d+(?:\.\d+)?\s*%?)/g
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = pattern.exec(line)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ key: `${lastIndex}-text`, text: line.slice(lastIndex, match.index), highlight: false })
+    }
+    segments.push({ key: `${match.index}-number`, text: match[0], highlight: true })
+    lastIndex = pattern.lastIndex
+  }
+
+  if (lastIndex < line.length) segments.push({ key: `${lastIndex}-text`, text: line.slice(lastIndex), highlight: false })
+  return segments.length ? segments : [{ key: 'plain', text: line, highlight: false }]
+}
+
 const armorBenefitFallbackEffects = computed<EquipmentEffectAttribute[]>(() => armorBenefitLines.value
   .map((line) => {
     const match = armorLineLooksLikePlainAttribute(line)
@@ -603,6 +621,11 @@ const armorBenefitVariantLines = (variantItems: PublicArmorSetRelatedItem[]) => 
   return dedupeEffectLines(result)
 }
 
+const armorBuildSetBonusLines = (variantItems: PublicArmorSetRelatedItem[]) => (
+  armorBenefitVariantLines(variantItems)
+    .filter((line) => !armorBenefitLineIsAttributeSummary(line))
+)
+
 const armorVariantBenefitLineKeys = computed(() => {
   const keys = new Set<string>()
   for (const item of uniqueArmorItems(armorRelatedItems.value)) {
@@ -629,6 +652,7 @@ const armorBuildVariantStats = (buildGroup: { variantItems: PublicArmorSetRelate
     return variantLabel && buildGroup.variantItems.some((variantItem) => effectBelongsToItem(effect, variantItem))
   }))
   const benefitLines = armorBenefitVariantLines(buildGroup.variantItems)
+    .filter((line) => armorBenefitLineIsAttributeSummary(line))
   const merged = dedupeEffectLines([...structuredLines, ...benefitLines])
   return merged.length ? merged : ['暂无构筑差异属性']
 }
@@ -733,6 +757,7 @@ const armorSetBuildCards = computed(() => {
       ...uniqueItems.filter((item) => !variantRoles.has(armorPieceRole(item))),
     ].sort((left, right) => armorPieceRoleOrder(armorPieceRole(left)) - armorPieceRoleOrder(armorPieceRole(right)) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
     const stats = armorBuildVariantStats(buildGroup)
+    const bonusLines = armorBuildSetBonusLines(buildGroup.variantItems)
     return {
       key: buildGroup.key,
       title: buildGroup.title,
@@ -741,6 +766,7 @@ const armorSetBuildCards = computed(() => {
       defense: armorBuildDefenseSummary(items),
       stats,
       statGroups: armorBuildVariantEffectGroups(stats),
+      bonusLines,
     }
   })
 })
@@ -938,6 +964,15 @@ onMounted(() => {
                       <em v-if="entry.description">{{ entry.description }}</em>
                     </span>
                   </div>
+                </div>
+                <div v-if="build.bonusLines.length" class="armor-set-bonus-lines">
+                  <strong>套装效果</strong>
+                  <p v-for="line in build.bonusLines" :key="`${build.key}-bonus-${line}`" class="armor-set-bonus-line">
+                    <template v-for="segment in armorHighlightedTextSegments(line)" :key="`${build.key}-${line}-${segment.key}`">
+                      <mark v-if="segment.highlight" class="armor-highlight-number">{{ segment.text }}</mark>
+                      <span v-else>{{ segment.text }}</span>
+                    </template>
+                  </p>
                 </div>
               </article>
             </div>
@@ -1342,6 +1377,42 @@ onMounted(() => {
   gap: 8px 10px;
   align-content: center;
   align-items: stretch;
+}
+
+.armor-set-bonus-lines {
+  grid-column: 4;
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(100, 154, 118, 0.2);
+  border-radius: 7px;
+  background: rgba(100, 154, 118, 0.055);
+}
+
+.armor-set-bonus-lines strong {
+  color: rgba(166, 200, 176, 0.95);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.armor-set-bonus-line {
+  margin: 0;
+  color: rgba(226, 236, 224, 0.94);
+  font-size: 12px;
+  font-weight: 730;
+  line-height: 1.48;
+  overflow-wrap: anywhere;
+}
+
+.armor-highlight-number {
+  padding: 0 3px;
+  border-radius: 4px;
+  background: rgba(219, 179, 93, 0.16);
+  color: rgba(242, 211, 132, 0.98);
+  font-weight: 930;
 }
 
 .armor-fixed-bonus-group {
