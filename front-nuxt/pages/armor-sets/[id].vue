@@ -19,6 +19,7 @@ type ArmorBuildGroup = {
 }
 type ArmorBuildDisplayItem = PublicArmorSetRelatedItem & {
   displayName?: string
+  alternatives?: PublicArmorSetRelatedItem[]
 }
 
 const route = useRoute()
@@ -423,19 +424,23 @@ const armorItemLooksAncient = (item: PublicArmorSetRelatedItem) => (
 const armorCurrentSetPrefersAncient = () => /^远古|^Ancient/i.test(armorTitle.value)
 
 const armorEquivalentDisplayName = (item: PublicArmorSetRelatedItem, candidates: PublicArmorSetRelatedItem[]) => {
+  const sameEquivalentItems = armorEquivalentAlternativeItems(item, candidates)
+  if (sameEquivalentItems.length <= 1) return armorPieceName(item)
+
+  return dedupeEffectLines(sameEquivalentItems.map(armorPieceName)).join(' / ') || armorPieceName(item)
+}
+
+const armorEquivalentAlternativeItems = (item: PublicArmorSetRelatedItem, candidates: PublicArmorSetRelatedItem[]) => {
   const sameEquivalentItems = candidates.filter((candidate) => (
     armorPieceRole(candidate) === armorPieceRole(item)
     && armorEquivalentItemKey(candidate) === armorEquivalentItemKey(item)
     && armorPieceDefense(candidate) === armorPieceDefense(item)
   ))
-  if (sameEquivalentItems.length <= 1) return armorPieceName(item)
-
   const ancientItems = sameEquivalentItems.filter(armorItemLooksAncient)
   const normalItems = sameEquivalentItems.filter((candidate) => !armorItemLooksAncient(candidate))
-  const orderedItems = armorCurrentSetPrefersAncient()
+  return armorCurrentSetPrefersAncient()
     ? [...ancientItems, ...normalItems]
     : [...normalItems, ...ancientItems]
-  return dedupeEffectLines(orderedItems.map(armorPieceName)).join(' / ') || armorPieceName(item)
 }
 
 const normalizeMatchText = (value: string) => value
@@ -785,12 +790,14 @@ const armorMergeEquivalentBuildGroups = (buildGroups: ArmorBuildGroup[]) => {
     if (!primary || group.length === 1) return primary
     const variantItems = primary.variantItems.map((item) => {
       const representative = armorRepresentativeEquivalentItem(item, allItems)
+      const alternatives = armorEquivalentAlternativeItems(item, allItems)
       const displayName = armorPieceRole(item) === '头部'
         ? armorPieceName(representative)
-        : armorEquivalentDisplayName(item, allItems)
+        : armorEquivalentDisplayName(item, alternatives)
       return {
         ...representative,
         displayName,
+        alternatives: armorPieceRole(item) === '头部' ? [] : alternatives,
       } as ArmorBuildDisplayItem
     })
     const variantItem = variantItems.find((item) => armorPieceRole(item) === primary.variantRole) ?? variantItems[0]
@@ -1286,6 +1293,23 @@ const armorBuildDefenseSummary = (buildItems: PublicArmorSetRelatedItem[]) => {
   }
 }
 
+const armorPieceDisplayAlternatives = (item: PublicArmorSetRelatedItem) => (
+  (item as ArmorBuildDisplayItem).alternatives ?? []
+)
+
+const armorPieceVisualItems = (item: PublicArmorSetRelatedItem) => {
+  const alternatives = armorPieceDisplayAlternatives(item)
+  return alternatives.length > 1 ? alternatives : [item]
+}
+
+const armorPieceOptionFacts = (item: PublicArmorSetRelatedItem) => armorPieceDisplayAlternatives(item)
+  .filter((alternative) => armorPieceName(alternative) !== armorPieceName(item))
+  .map((alternative) => ({
+    key: armorUniqueItemKey(alternative),
+    name: armorPieceName(alternative),
+    defense: armorPieceDefenseLabel(alternative),
+  }))
+
 const armorSetBuildCards = computed(() => {
   const relatedItems = armorRelatedItems.value
   const uniqueItems = uniqueArmorItems(relatedItems)
@@ -1310,6 +1334,8 @@ const armorSetBuildCards = computed(() => {
       pieceEvidence: items.map((item) => ({
         key: String(item.itemId ?? item.sourceId ?? item.internalName ?? armorPieceName(item)),
         item,
+        visualItems: armorPieceVisualItems(item),
+        optionFacts: armorPieceOptionFacts(item),
         name: armorPieceName(item),
         role: armorPieceRole(item),
         defense: armorPieceDefenseLabel(item),
@@ -1503,16 +1529,23 @@ onMounted(() => {
                 </div>
                 <div class="armor-build-cell armor-build-icons">
                   <span v-for="piece in build.pieceEvidence" :key="`${build.key}-${piece.key}`" class="armor-build-piece-evidence" :title="piece.name">
-                    <CommonPreviewImage
-                      :src="resolvePreviewImageUrl(piece.item.image || '')"
-                      :alt="piece.name"
-                      :fallback="piece.name.slice(0, 1)"
-                      fallback-icon="icon-items"
-                      width="28"
-                      height="28"
-                    />
+                    <span class="armor-build-piece-art-stack" :class="{ 'is-merged': piece.visualItems.length > 1 }">
+                      <CommonPreviewImage
+                        v-for="visualItem in piece.visualItems"
+                        :key="`${build.key}-${piece.key}-${armorPieceName(visualItem)}`"
+                        :src="resolvePreviewImageUrl(visualItem.image || '')"
+                        :alt="armorPieceName(visualItem)"
+                        :fallback="armorPieceName(visualItem).slice(0, 1)"
+                        fallback-icon="icon-items"
+                        width="28"
+                        height="28"
+                      />
+                    </span>
                     <b>{{ piece.name }}</b>
                     <small>{{ piece.role }}<template v-if="piece.defense"> · {{ piece.defense }}</template></small>
+                    <small v-for="option in piece.optionFacts" :key="`${build.key}-${piece.key}-${option.key}`" class="armor-build-piece-option-fact">
+                      {{ option.name }}<template v-if="option.defense"> · {{ option.defense }}</template>
+                    </small>
                     <em v-for="line in piece.effects" :key="`${build.key}-${piece.key}-${line}`">{{ line }}</em>
                   </span>
                 </div>
@@ -1890,11 +1923,31 @@ onMounted(() => {
   background: rgba(244, 234, 208, 0.025);
 }
 
+.armor-build-piece-art-stack {
+  grid-row: 1 / span 2;
+  display: grid;
+  grid-template-columns: repeat(2, 18px);
+  gap: 2px;
+  align-self: start;
+  width: 28px;
+  min-height: 28px;
+}
+
+.armor-build-piece-art-stack:not(.is-merged) {
+  display: block;
+}
+
 .armor-build-icons :deep(.item-art) {
   width: 28px;
   height: 28px;
   border-radius: 6px;
   overflow: hidden;
+}
+
+.armor-build-piece-art-stack.is-merged :deep(.item-art) {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
 }
 
 .armor-build-piece-evidence b {
@@ -1912,6 +1965,10 @@ onMounted(() => {
   font-size: 10px;
   font-weight: 800;
   line-height: 1.2;
+}
+
+.armor-build-piece-option-fact {
+  color: rgba(226, 236, 224, 0.68) !important;
 }
 
 .armor-build-piece-evidence em {
