@@ -110,6 +110,7 @@ const effectScopeLabel = (effect: EquipmentEffectAttribute) => {
 
 const effectSourceKind = (effect: EquipmentEffectAttribute) => {
   const applyScope = String(effect.applyScope ?? '').trim().toLowerCase()
+  if (effect.variantLabel) return 'piece'
   if (effect.itemInternalName || effect.slotType) return 'piece'
   if (/item|piece|part|head|body|chest|leg|helmet|mask|shirt|pants/.test(applyScope)) return 'piece'
   return 'set'
@@ -122,6 +123,32 @@ const effectSourceLabel = (effect: EquipmentEffectAttribute) => (
 const playerEffectDescription = (effect: EquipmentEffectAttribute) => (
   String(effect.conditionText ?? effect.variantLabel ?? effect.rawText ?? '').trim() || '套装效果'
 )
+
+const effectVariantLabel = (effect: EquipmentEffectAttribute) => String(effect.variantLabel ?? '').trim()
+
+const armorItemIdentityAliases = (item: PublicArmorSetRelatedItem) => {
+  const aliases = [
+    item.internalName,
+    item.nameZh,
+    item.name,
+  ]
+
+  if (/^Ancient/i.test(String(item.internalName ?? ''))) {
+    aliases.push(String(item.internalName ?? '').replace(/^Ancient/, ''))
+  }
+
+  if (/^远古/.test(String(item.nameZh ?? ''))) {
+    aliases.push(String(item.nameZh ?? '').replace(/^远古/, ''))
+  }
+
+  if (/^Ancient\s+/i.test(String(item.name ?? ''))) {
+    aliases.push(String(item.name ?? '').replace(/^Ancient\s+/i, ''))
+  }
+
+  return aliases
+    .map((value) => normalizeMatchText(String(value ?? '').trim()))
+    .filter((value) => value.length >= 2)
+}
 
 const armorPieceName = (item: PublicArmorSetRelatedItem) => (
   item.nameZh || item.name || '套装部件'
@@ -437,6 +464,17 @@ const armorEquipmentCardStats = (item: PublicArmorSetRelatedItem) => {
 const effectBelongsToItem = (effect: EquipmentEffectAttribute, item: PublicArmorSetRelatedItem) => {
   if (effectSourceKind(effect) !== 'piece') return false
 
+  return effectMatchesItemIdentity(effect, item)
+}
+
+const effectMatchesItemIdentity = (effect: EquipmentEffectAttribute, item: PublicArmorSetRelatedItem) => {
+  const itemNames = armorItemIdentityAliases(item)
+
+  const variantLabel = normalizeMatchText(effectVariantLabel(effect))
+  if (variantLabel) {
+    return itemNames.includes(variantLabel)
+  }
+
   const linkedItem = statLinkedItem(effect)
   if (linkedItem) {
     const linkedKey = String(linkedItem.itemId ?? linkedItem.sourceId ?? linkedItem.internalName ?? armorPieceName(linkedItem)).trim()
@@ -452,12 +490,8 @@ const effectBelongsToItem = (effect: EquipmentEffectAttribute, item: PublicArmor
   ].map((value) => String(value ?? '').trim()).filter(Boolean).join(' '))
 
   return [
-    item.nameZh,
-    item.name,
-    item.internalName,
+    ...itemNames,
   ]
-    .map((value) => normalizeMatchText(String(value ?? '').trim()))
-    .filter((value) => value.length >= 2)
     .some((name) => text.includes(name))
 }
 
@@ -492,8 +526,13 @@ const uniqueArmorItems = (items: PublicArmorSetRelatedItem[]) => {
   return result
 }
 
-const armorBuildCardStats = (items: PublicArmorSetRelatedItem[]) => {
-  const itemEffects = armorShownEffects.value.filter((effect) => items.some((item) => effectBelongsToItem(effect, item)))
+const armorBuildCardStats = (headItem: PublicArmorSetRelatedItem, commonItems: PublicArmorSetRelatedItem[]) => {
+  const items = [headItem, ...commonItems]
+  const itemEffects = armorShownEffects.value.filter((effect) => {
+    const variantLabel = effectVariantLabel(effect)
+    if (variantLabel) return effectBelongsToItem(effect, headItem)
+    return items.some((item) => effectBelongsToItem(effect, item))
+  })
   const setEffects = armorShownEffects.value.filter((effect) => effectSourceKind(effect) === 'set')
   const merged = dedupeEffectLines([
     ...mergeEffectLines(itemEffects),
@@ -516,7 +555,7 @@ const armorSetBuildCards = computed(() => {
       key: String(headItem.itemId ?? headItem.sourceId ?? headItem.internalName ?? armorPieceName(headItem)),
       title: armorPieceName(headItem),
       items,
-      stats: armorBuildCardStats(items),
+      stats: armorBuildCardStats(headItem, commonItems),
     }
   })
 })

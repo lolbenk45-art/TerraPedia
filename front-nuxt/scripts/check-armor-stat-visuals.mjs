@@ -18,6 +18,10 @@ const requiredMarkers = [
   'dedupeEffectLines',
   'armorFallbackBenefitLines',
   'armor-structured-build-board',
+  'effectVariantLabel',
+  'effectMatchesItemIdentity',
+  'armorItemIdentityAliases',
+  'armorBuildCardStats(headItem, commonItems)',
 ]
 
 const missing = requiredMarkers.filter((marker) => !source.includes(marker))
