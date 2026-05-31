@@ -184,6 +184,13 @@ const armorPieceDefense = (item: PublicArmorSetRelatedItem) => {
   return Number.isFinite(value) ? value : null
 }
 
+const armorDefenseValueLabel = (values: number[]) => {
+  const uniqueValues = [...new Set(values)].sort((left, right) => left - right)
+  if (!uniqueValues.length) return ''
+  if (uniqueValues.length === 1) return String(uniqueValues[0])
+  return `${uniqueValues[0]}-${uniqueValues[uniqueValues.length - 1]}`
+}
+
 const armorBenefitLines = computed(() => {
   const benefit = String(armorRaw.value?.benefitZh ?? armorRaw.value?.benefitEn ?? '').trim()
   if (!benefit) return []
@@ -583,19 +590,38 @@ const armorFixedBonusLines = computed(() => {
 })
 
 const armorBuildDefenseSummary = (buildItems: PublicArmorSetRelatedItem[]) => {
-  const parts = buildItems
-    .map((item) => ({
-      key: `${armorPieceRole(item)}-${armorPieceName(item)}`,
-      role: armorPieceRole(item),
-      name: armorPieceName(item),
-      value: armorPieceDefense(item),
-    }))
-    .filter((part) => part.value != null)
-  const total = parts.reduce((sum, part) => sum + (part.value ?? 0), 0)
+  const groups = new Map<string, number[]>()
+
+  for (const item of buildItems) {
+    const value = armorPieceDefense(item)
+    if (value == null) continue
+    const role = armorPieceRole(item)
+    groups.set(role, [...(groups.get(role) ?? []), value])
+  }
+
+  const armorDefenseRoleGroups = [...groups.entries()]
+    .map(([role, values]) => {
+      const uniqueValues = [...new Set(values)].sort((left, right) => left - right)
+      const min = uniqueValues[0]
+      const max = uniqueValues[uniqueValues.length - 1]
+      if (min == null || max == null) return null
+      return {
+        key: role,
+        role,
+        min,
+        max,
+        label: armorDefenseValueLabel(uniqueValues),
+      }
+    })
+    .filter((part): part is { key: string, role: string, min: number, max: number, label: string } => Boolean(part?.label))
+    .sort((left, right) => armorPieceRoleOrder(left.role) - armorPieceRoleOrder(right.role))
+  const minTotal = armorDefenseRoleGroups.reduce((sum, part) => sum + part.min, 0)
+  const maxTotal = armorDefenseRoleGroups.reduce((sum, part) => sum + part.max, 0)
+  const total = armorDefenseValueLabel(minTotal === maxTotal ? [minTotal] : [minTotal, maxTotal])
   return {
-    total: parts.length ? total : null,
-    parts,
-    formula: parts.map((part) => part.value).join(' + '),
+    total: armorDefenseRoleGroups.length ? total : null,
+    parts: armorDefenseRoleGroups,
+    formula: armorDefenseRoleGroups.map((part) => part.label).join(' + '),
   }
 }
 

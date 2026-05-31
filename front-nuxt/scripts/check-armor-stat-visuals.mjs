@@ -16,6 +16,7 @@ const requiredMarkers = [
   'armorBuildVariantStats',
   'armorFixedBonusLines',
   'armorBuildDefenseSummary',
+  'armorDefenseRoleGroups',
   'armor-build-defense-formula',
   'effectBelongsToItem',
   'uniqueArmorItems',
@@ -57,6 +58,7 @@ const forbiddenMarkers = [
   'armor-build-defense-panel',
   'armor-build-defense-parts',
   'armor-fixed-bonus-strip',
+  'parts.reduce((sum, part)',
   'return items.some((item) => effectBelongsToItem(effect, item))',
 ]
 const presentForbidden = forbiddenMarkers.filter((marker) => source.includes(marker))
