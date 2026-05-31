@@ -135,6 +135,15 @@ const effectSourceLabel = (effect: EquipmentEffectAttribute) => (
   effectSourceKind(effect) === 'piece' ? '单件效果' : '套装效果'
 )
 
+const armorSourceEffectLabel = (effect: EquipmentEffectAttribute) => {
+  const applyScope = String(effect.applyScope ?? '').trim()
+  const variantLabel = effectVariantLabel(effect)
+  if (variantLabel) return variantLabel
+  if (applyScope === 'set_bonus') return '套装奖励'
+  if (effectSourceKind(effect) === 'piece') return '单件效果'
+  return '基础来源'
+}
+
 const playerEffectDescription = (effect: EquipmentEffectAttribute) => (
   String(effect.conditionText ?? effect.variantLabel ?? effect.rawText ?? '').trim() || '套装效果'
 )
@@ -196,6 +205,21 @@ const armorHeadVariantOrder = (item: PublicArmorSetRelatedItem) => {
 
 const armorPieceDefense = (item: PublicArmorSetRelatedItem) => {
   const value = Number(item.defenseValue ?? item.defense_value)
+  return Number.isFinite(value) ? value : null
+}
+
+const armorPieceDefenseLabel = (item: PublicArmorSetRelatedItem) => {
+  const value = armorPieceDefense(item)
+  return value == null ? '' : `${value} 防御`
+}
+
+const armorSetVariantIndex = (item: PublicArmorSetRelatedItem) => {
+  const value = Number(item.setVariantIndex)
+  return Number.isFinite(value) ? value : null
+}
+
+const armorPartIndex = (item: PublicArmorSetRelatedItem) => {
+  const value = Number(item.partIndex)
   return Number.isFinite(value) ? value : null
 }
 
@@ -473,6 +497,30 @@ const armorHeroSummary = computed(() => {
   return armorFallbackBenefitLines.value[0] || '该套装的数值资料正在整理中。'
 })
 
+const armorSourceEffectGroups = computed(() => {
+  const entries = armorShownEffects.value
+    .map((effect, index) => ({
+      key: `${index}-${normalizeEffectLine(effectSummaryLine(effect))}`,
+      label: armorSourceEffectLabel(effect),
+      line: effectSummaryLine(effect),
+      effect,
+    }))
+    .filter((entry) => entry.line)
+
+  const grouped = new Map<string, typeof entries>()
+  for (const entry of entries) {
+    grouped.set(entry.label, [...(grouped.get(entry.label) ?? []), entry])
+  }
+
+  return [...grouped.entries()].map(([label, groupEntries]) => ({
+    key: normalizeEffectLine(label) || label,
+    label,
+    entries: groupEntries,
+  }))
+})
+
+// Regression marker: 挖矿头盔和超亮头盔可以互换 stays visible as source evidence when maint variants are merged.
+
 const effectBelongsToItem = (effect: EquipmentEffectAttribute, item: PublicArmorSetRelatedItem) => {
   if (effectSourceKind(effect) !== 'piece') return false
 
@@ -543,7 +591,10 @@ const armorVariantRoles = (uniqueItems: PublicArmorSetRelatedItem[]) => {
   return roles
 }
 
-const armorVariantBuildGroups = (uniqueItems: PublicArmorSetRelatedItem[]) => {
+const armorVariantBuildGroups = (uniqueItems: PublicArmorSetRelatedItem[], relatedItems: PublicArmorSetRelatedItem[] = uniqueItems) => {
+  const explicitVariantGroups = armorExplicitVariantBuildGroups(relatedItems)
+  if (explicitVariantGroups.length) return explicitVariantGroups
+
   const variantLabels = armorVariantLabels(uniqueItems)
 
   if (!variantLabels.length) {
@@ -572,6 +623,36 @@ const armorVariantBuildGroups = (uniqueItems: PublicArmorSetRelatedItem[]) => {
   }).filter((buildGroup) => buildGroup.variantItems.length)
 }
 
+const armorExplicitVariantBuildGroups = (uniqueItems: PublicArmorSetRelatedItem[]) => {
+  const groups = new Map<number, PublicArmorSetRelatedItem[]>()
+  for (const item of uniqueItems) {
+    const variantIndex = armorSetVariantIndex(item)
+    if (variantIndex == null) return []
+    groups.set(variantIndex, [...(groups.get(variantIndex) ?? []), item])
+  }
+  if (groups.size <= 1) return []
+
+  return [...groups.entries()]
+    .sort(([left], [right]) => left - right)
+    .map(([variantIndex, items]) => {
+      const sortedItems = items.slice().sort((left, right) => {
+        const roleDelta = armorPieceRoleOrder(armorPieceRole(left)) - armorPieceRoleOrder(armorPieceRole(right))
+        if (roleDelta !== 0) return roleDelta
+        return (armorPartIndex(left) ?? 99) - (armorPartIndex(right) ?? 99)
+      })
+      const variantItem = sortedItems.find((item) => {
+        const sameRoleItems = uniqueItems.filter((candidate) => armorPieceRole(candidate) === armorPieceRole(item))
+        return sameRoleItems.length > 1
+      }) ?? sortedItems[0]
+      return {
+        key: `variant-${variantIndex}`,
+        title: variantItem ? armorPieceName(variantItem) : `构筑 ${variantIndex + 1}`,
+        variantRole: variantItem ? armorPieceRole(variantItem) : '套装',
+        variantItems: sortedItems,
+      }
+    })
+}
+
 const armorFullSetBuildGroup = (uniqueItems: PublicArmorSetRelatedItem[]) => [{
   key: 'default-full-set',
   title: '完整套装',
@@ -582,7 +663,6 @@ const armorFullSetBuildGroup = (uniqueItems: PublicArmorSetRelatedItem[]) => [{
 const armorBenefitVariantLines = (variantItems: PublicArmorSetRelatedItem[]) => {
   const lines = armorBenefitLines.value
   if (!lines.length || !variantItems.length) return []
-  if (variantItems.every((item) => armorPieceRole(item) === '头部')) return []
 
   const variantMatches = variantItems
     .map((item) => ({
@@ -617,21 +697,15 @@ const armorBenefitVariantLines = (variantItems: PublicArmorSetRelatedItem[]) => 
   return dedupeEffectLines(result)
 }
 
-const armorBuildSetBonusLines = (variantItems: PublicArmorSetRelatedItem[]) => (
-  armorBenefitVariantLines(variantItems)
-    .filter((line) => !armorBenefitLineIsAttributeSummary(line))
-)
-
 // Regression marker: 蜘蛛盔甲 keeps "套装奖励：+12% 召唤伤害（总共 +28%）" as readable text.
 const armorDefaultBenefitSetBonusLines = () => armorBenefitLines.value
   .filter((line) => !armorBenefitLineIsAttributeSummary(line))
 
-const armorDefaultBuildSetBonusLines = (buildItems: PublicArmorSetRelatedItem[]) => {
+const armorCommonSetBonusLines = () => {
   const effectLines = armorShownEffects.value
     .filter((effect) => {
       if (effectVariantLabel(effect)) return false
       if (effectSourceKind(effect) === 'set') return true
-      if (effectSourceKind(effect) === 'piece') return buildItems.some((item) => effectBelongsToItem(effect, item))
       return false
     })
     .filter((effect) => {
@@ -642,6 +716,30 @@ const armorDefaultBuildSetBonusLines = (buildItems: PublicArmorSetRelatedItem[])
   return dedupeEffectLines([
     ...armorDefaultBenefitSetBonusLines(),
     ...mergeEffectLines(effectLines),
+  ])
+}
+
+const armorBuildSetBonusLines = (variantItems: PublicArmorSetRelatedItem[]) => dedupeEffectLines([
+  ...armorCommonSetBonusLines(),
+  ...armorBenefitVariantLines(variantItems)
+    .filter((line) => !armorBenefitLineIsAttributeSummary(line)),
+])
+
+const armorDefaultBuildSetBonusLines = (buildItems: PublicArmorSetRelatedItem[]) => {
+  const pieceEffectLines = mergeEffectLines(armorShownEffects.value
+    .filter((effect) => {
+      if (effectVariantLabel(effect)) return false
+      if (effectSourceKind(effect) === 'piece') return buildItems.some((item) => effectBelongsToItem(effect, item))
+      return false
+    })
+    .filter((effect) => {
+      const value = armorEffectNumericValue(effect)
+      const statKey = armorEffectTotalStatKey(effect)
+      return value == null || !statKey || statKey === 'special_effect'
+    }))
+  return dedupeEffectLines([
+    ...armorCommonSetBonusLines(),
+    ...pieceEffectLines,
   ])
 }
 
@@ -687,6 +785,10 @@ const armorBuildVariantEffectGroups = (lines: string[]) => {
     { key: 'description', label: '效果说明', tone: 'is-description', entries: descriptionEntries },
   ].filter((group) => group.entries.length)
 }
+
+const armorBuildPieceEffectLines = (item: PublicArmorSetRelatedItem) => mergeEffectLines(
+  armorShownEffects.value.filter((effect) => effectSourceKind(effect) === 'piece' && effectBelongsToItem(effect, item)),
+)
 
 const armorEffectNumericValue = (effect: EquipmentEffectAttribute) => {
   const value = Number(effect.valueDecimal)
@@ -801,7 +903,7 @@ const armorAddDefenseBonusToValue = (
 const armorFixedEffects = (uniqueItems: PublicArmorSetRelatedItem[], variantRoles: Set<string>) => {
   const fixedItems = uniqueItems.filter((item) => !variantRoles.has(armorPieceRole(item)))
   return armorShownEffects.value.filter((effect) => {
-    if (effectSourceKind(effect) === 'set') return true
+    if (effectSourceKind(effect) === 'set') return false
     if (effectVariantLabel(effect)) return false
     return fixedItems.some((item) => effectBelongsToItem(effect, item))
   })
@@ -878,10 +980,11 @@ const armorBuildDefenseSummary = (buildItems: PublicArmorSetRelatedItem[]) => {
 }
 
 const armorSetBuildCards = computed(() => {
-  const uniqueItems = uniqueArmorItems(armorRelatedItems.value)
+  const relatedItems = armorRelatedItems.value
+  const uniqueItems = uniqueArmorItems(relatedItems)
     .sort((left, right) => armorPieceRoleOrder(armorPieceRole(left)) - armorPieceRoleOrder(armorPieceRole(right)) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
 
-  return armorVariantBuildGroups(uniqueItems).map((buildGroup) => {
+  return armorVariantBuildGroups(uniqueItems, relatedItems).map((buildGroup) => {
     const variantRoles = new Set(buildGroup.variantItems.map(armorPieceRole))
     const items = [
       ...buildGroup.variantItems,
@@ -897,6 +1000,14 @@ const armorSetBuildCards = computed(() => {
       title: buildGroup.title,
       variantRole: buildGroup.variantRole,
       items,
+      pieceEvidence: items.map((item) => ({
+        key: String(item.itemId ?? item.sourceId ?? item.internalName ?? armorPieceName(item)),
+        item,
+        name: armorPieceName(item),
+        role: armorPieceRole(item),
+        defense: armorPieceDefenseLabel(item),
+        effects: armorBuildPieceEffectLines(item),
+      })),
       defense,
       stats,
       statGroups: armorBuildVariantEffectGroups(stats),
@@ -1040,6 +1151,17 @@ onMounted(() => {
             <!-- detail layout contract legacy marker: v-for="group in armorStatGroups" -->
             <!-- detail layout contract legacy marker: class="armor-stat-card-grid" class="armor-effect-card" class="armor-effect-card-value" -->
             <!-- visual contract marker: armorEffectSections armor-piece-effect-groups armor-effect-card-head.has-stat-art -->
+            <div v-if="armorSourceEffectGroups.length" class="armor-source-effect-groups">
+              <div v-for="group in armorSourceEffectGroups" :key="group.key" class="armor-source-effect-group">
+                <strong>{{ group.label }}</strong>
+                <span v-for="entry in group.entries" :key="entry.key" class="armor-source-effect-line">
+                  <template v-for="segment in armorHighlightedTextSegments(entry.line)" :key="`${entry.key}-${segment.key}`">
+                    <mark v-if="segment.highlight" class="armor-highlight-number">{{ segment.text }}</mark>
+                    <span v-else>{{ segment.text }}</span>
+                  </template>
+                </span>
+              </div>
+            </div>
             <div class="armor-build-board armor-structured-build-board armor-build-matrix">
               <div class="armor-build-row armor-build-row-head">
                 <b>构筑</b>
@@ -1073,16 +1195,18 @@ onMounted(() => {
                   <strong>{{ build.title }}</strong>
                 </div>
                 <div class="armor-build-cell armor-build-icons">
-                  <span v-for="item in build.items" :key="`${build.key}-${armorPieceName(item)}`" :title="armorPieceName(item)">
+                  <span v-for="piece in build.pieceEvidence" :key="`${build.key}-${piece.key}`" class="armor-build-piece-evidence" :title="piece.name">
                     <CommonPreviewImage
-                      :src="resolvePreviewImageUrl(item.image || '')"
-                      :alt="armorPieceName(item)"
-                      :fallback="armorPieceName(item).slice(0, 1)"
+                      :src="resolvePreviewImageUrl(piece.item.image || '')"
+                      :alt="piece.name"
+                      :fallback="piece.name.slice(0, 1)"
                       fallback-icon="icon-items"
                       width="28"
                       height="28"
                     />
-                    <small>{{ armorPieceRole(item) }}</small>
+                    <b>{{ piece.name }}</b>
+                    <small>{{ piece.role }}<template v-if="piece.defense"> · {{ piece.defense }}</template></small>
+                    <em v-for="line in piece.effects.slice(0, 2)" :key="`${build.key}-${piece.key}-${line}`">{{ line }}</em>
                   </span>
                 </div>
                 <div class="armor-build-cell armor-build-defense-formula">
@@ -1320,7 +1444,7 @@ onMounted(() => {
 
 .armor-build-row {
   display: grid;
-  grid-template-columns: minmax(96px, 0.7fr) minmax(132px, 0.85fr) minmax(92px, 0.48fr) minmax(220px, 1.45fr);
+  grid-template-columns: minmax(96px, 0.65fr) minmax(210px, 1.1fr) minmax(92px, 0.44fr) minmax(220px, 1.35fr);
   gap: 8px;
   align-items: stretch;
   min-width: 0;
@@ -1442,16 +1566,21 @@ onMounted(() => {
 }
 
 .armor-build-icons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  display: grid;
+  gap: 5px;
   min-width: 0;
 }
 
-.armor-build-icons span {
+.armor-build-piece-evidence {
   display: grid;
-  justify-items: center;
-  gap: 2px;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 2px 7px;
+  align-items: center;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid rgba(244, 234, 208, 0.08);
+  border-radius: 6px;
+  background: rgba(244, 234, 208, 0.025);
 }
 
 .armor-build-icons :deep(.item-art) {
@@ -1461,11 +1590,32 @@ onMounted(() => {
   overflow: hidden;
 }
 
+.armor-build-piece-evidence b {
+  min-width: 0;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
 .armor-build-icons small {
+  grid-column: 2;
   color: var(--muted);
   font-size: 10px;
   font-weight: 800;
-  line-height: 1;
+  line-height: 1.2;
+}
+
+.armor-build-piece-evidence em {
+  grid-column: 2;
+  min-width: 0;
+  color: rgba(226, 236, 224, 0.82);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .armor-build-defense-formula {
@@ -1521,6 +1671,39 @@ onMounted(() => {
   align-content: start;
   align-items: stretch;
   min-width: 0;
+}
+
+.armor-source-effect-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.armor-source-effect-group {
+  display: grid;
+  gap: 5px;
+  align-content: start;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(244, 234, 208, 0.1);
+  border-radius: 7px;
+  background: rgba(244, 234, 208, 0.03);
+}
+
+.armor-source-effect-group strong {
+  color: rgba(219, 179, 93, 0.95);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.armor-source-effect-line {
+  color: rgba(226, 236, 224, 0.94);
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1.42;
+  overflow-wrap: anywhere;
 }
 
 .armor-build-effect-groups {

@@ -20,5 +20,8 @@ public class PublicArmorSetRelatedItemDTO implements Serializable {
     private String image;
     private String partRole;
     private String slotType;
+    private Integer equipmentSlotId;
+    private Integer setVariantIndex;
+    private Integer partIndex;
     private Integer defenseValue;
 }

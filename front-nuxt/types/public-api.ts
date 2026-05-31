@@ -497,6 +497,9 @@ export type PublicArmorSetRelatedItem = {
   image?: string | null
   partRole?: string | null
   slotType?: string | null
+  equipmentSlotId?: number | string | null
+  setVariantIndex?: number | string | null
+  partIndex?: number | string | null
   defenseValue?: number | string | null
   defense_value?: number | string | null
 }

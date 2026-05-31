@@ -241,6 +241,144 @@ test('buildArmorSetRelations prefers wiki armor page sets over effect-key pseudo
   assert.deepEqual(actual.issues, []);
 });
 
+test('buildArmorSetRelations merges wiki page copy with mapped maint armor variants', () => {
+  const miningSets = [
+    [88, 410, 411],
+    [88, 410, 5590],
+    [88, 5589, 411],
+    [88, 5589, 5590],
+    [5588, 410, 411],
+    [5588, 410, 5590],
+    [5588, 5589, 411],
+    [5588, 5589, 5590],
+    [4008, 410, 411],
+    [4008, 410, 5590],
+    [4008, 5589, 411],
+    [4008, 5589, 5590]
+  ];
+  const miningItemIds = [88, 410, 411, 5590, 5589, 5588, 4008];
+  const actual = buildArmorSetRelations({
+    wikiArmorSets: [
+      {
+        pageTitle: 'Mining armor',
+        nameZh: '挖矿盔甲',
+        section: 'pre-hardmode',
+        effectText: '+20% 挖矿速度\n挖矿头盔和超亮头盔可以互换\n套装奖励：+10% 挖矿速度（总共 +30%）',
+        images: [],
+        sourceRevisionTimestamp: '2026-04-28T00:00:00Z'
+      }
+    ],
+    armorSetDefinitionMap: {
+      records: {
+        236: {
+          name: '挖矿盔甲',
+          internalCode: '挖矿盔甲',
+          definition: { textKey: 'ArmorSetBonus.Mining' }
+        }
+      }
+    },
+    maintArmorSets: [
+      {
+        id: 41,
+        record_key: 'mining-maint-key',
+        text_key: 'ArmorSetBonus.Mining',
+        benefit_expression: 'ArmorSetBonuses.Benefits.Mining',
+        set_count: 12,
+        unique_item_count: 7,
+        sets_json: JSON.stringify(miningSets),
+        unique_item_ids_json: JSON.stringify(miningItemIds),
+        raw_json: '{}',
+        ...baseTrace
+      }
+    ],
+    maintItems: [
+      item(88, 'MiningHelmet', 'Mining Helmet', { headSlot: 11 }),
+      item(4008, 'UltrabrightHelmet', 'Ultrabright Helmet', { headSlot: 11 }),
+      item(5588, 'UpgradedMiningHead', 'Prospector Helmet', { headSlot: 285 }),
+      item(410, 'MiningShirt', 'Mining Shirt', { bodySlot: 20 }),
+      item(5589, 'UpgradedMiningBody', 'Prospector Shirt', { bodySlot: 252 }),
+      item(411, 'MiningPants', 'Mining Pants', { legSlot: 19 }),
+      item(5590, 'UpgradedMiningLegs', 'Prospector Pants', { legSlot: 240 })
+    ]
+  });
+
+  assert.equal(actual.relationArmorSets.length, 1);
+  assert.equal(actual.relationArmorSets[0].textKey, 'WikiArmorSet.Mining armor');
+  assert.equal(actual.relationArmorSets[0].setCount, 12);
+  assert.equal(actual.relationArmorSets[0].uniqueItemCount, 7);
+  assert.deepEqual(JSON.parse(actual.relationArmorSets[0].setsJson), miningSets);
+  assert.deepEqual(JSON.parse(actual.relationArmorSets[0].uniqueItemIdsJson), miningItemIds);
+  assert.equal(JSON.parse(actual.relationArmorSets[0].rawJson).effectText, '+20% 挖矿速度\n挖矿头盔和超亮头盔可以互换\n套装奖励：+10% 挖矿速度（总共 +30%）');
+  assert.equal(actual.relationArmorSetItems.length, 36);
+  assert.deepEqual(actual.relationArmorSetItems.slice(0, 6).map((row) => [row.setVariantIndex, row.partIndex, row.itemSourceId, row.itemInternalName]), [
+    [0, 0, 88, 'MiningHelmet'],
+    [0, 1, 410, 'MiningShirt'],
+    [0, 2, 411, 'MiningPants'],
+    [1, 0, 88, 'MiningHelmet'],
+    [1, 1, 410, 'MiningShirt'],
+    [1, 2, 5590, 'UpgradedMiningLegs']
+  ]);
+  assert.ok(actual.relationArmorSetItems.some((row) => row.itemSourceId === 4008 && row.itemInternalName === 'UltrabrightHelmet'));
+  assert.ok(actual.relationArmorSetItems.some((row) => row.itemSourceId === 5588 && row.itemInternalName === 'UpgradedMiningHead'));
+});
+
+test('buildArmorSetRelations uses generated definition map for wiki alias armor pages', () => {
+  const woodSets = [
+    [727, 728, 729],
+    [733, 734, 735]
+  ];
+  const actual = buildArmorSetRelations({
+    wikiArmorSets: [
+      {
+        pageTitle: 'Rich Mahogany armor',
+        nameZh: '红木盔甲',
+        section: 'pre-hardmode',
+        effectText: '套装奖励：+1 防御',
+        images: [],
+        sourceRevisionTimestamp: '2026-04-28T00:00:00Z'
+      }
+    ],
+    armorSetDefinitionMap: {
+      records: {
+        238: {
+          name: '红木盔甲',
+          internalCode: '红木盔甲',
+          definition: { textKey: 'ArmorSetBonus.Wood' }
+        }
+      }
+    },
+    maintArmorSets: [
+      {
+        id: 42,
+        record_key: 'wood-maint-key',
+        text_key: 'ArmorSetBonus.Wood',
+        benefit_expression: 'ArmorSetBonuses.Benefits.Wood',
+        set_count: 2,
+        unique_item_count: 6,
+        sets_json: JSON.stringify(woodSets),
+        unique_item_ids_json: JSON.stringify([727, 728, 729, 733, 734, 735]),
+        raw_json: '{}',
+        ...baseTrace
+      }
+    ],
+    maintItems: [
+      item(727, 'WoodHelmet', 'Wood Helmet', { headSlot: 52 }),
+      item(728, 'WoodBreastplate', 'Wood Breastplate', { bodySlot: 32 }),
+      item(729, 'WoodGreaves', 'Wood Greaves', { legSlot: 31 }),
+      item(733, 'RichMahoganyHelmet', 'Rich Mahogany Helmet', { headSlot: 55 }),
+      item(734, 'RichMahoganyBreastplate', 'Rich Mahogany Breastplate', { bodySlot: 34 }),
+      item(735, 'RichMahoganyGreaves', 'Rich Mahogany Greaves', { legSlot: 33 })
+    ]
+  });
+
+  assert.equal(actual.relationArmorSets.length, 1);
+  assert.equal(actual.relationArmorSets[0].textKey, 'WikiArmorSet.Rich Mahogany armor');
+  assert.equal(actual.relationArmorSets[0].setCount, 2);
+  assert.deepEqual(JSON.parse(actual.relationArmorSets[0].setsJson), woodSets);
+  assert.equal(actual.relationArmorSetItems.length, 6);
+  assert.ok(actual.relationArmorSetItems.some((row) => row.itemSourceId === 727));
+});
+
 test('buildArmorSetRelations reuses managed maint armor image cache for wiki armor page rows', () => {
   const actual = buildArmorSetRelations({
     wikiArmorSets: [

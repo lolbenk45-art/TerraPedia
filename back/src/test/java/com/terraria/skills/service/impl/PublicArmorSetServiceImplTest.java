@@ -54,7 +54,7 @@ class PublicArmorSetServiceImplTest {
             entry("male_images", ""),
             entry("female_images", ""),
             entry("special_images", ""),
-            entry("related_items_json", "[{\"id\":2199,\"itemId\":2199,\"sourceId\":2199,\"internalName\":\"BeetleHelmet\",\"name\":\"Beetle Helmet\",\"nameZh\":\"甲虫头盔\",\"image\":\"" + MANAGED_ITEM_IMAGE + "\",\"partRole\":\"head\",\"slotType\":\"headSlot\"}]")
+            entry("related_items_json", "[{\"id\":2199,\"itemId\":2199,\"sourceId\":2199,\"internalName\":\"BeetleHelmet\",\"name\":\"Beetle Helmet\",\"nameZh\":\"甲虫头盔\",\"image\":\"" + MANAGED_ITEM_IMAGE + "\",\"partRole\":\"head\",\"slotType\":\"headSlot\",\"equipmentSlotId\":157,\"setVariantIndex\":1,\"partIndex\":0}]")
         )));
         when(jdbcTemplate.queryForList(contains("FROM item_images"), isA(Long.class))).thenReturn(List.of(Map.of(
             "item_id", 2199L,
@@ -109,7 +109,7 @@ class PublicArmorSetServiceImplTest {
             entry("male_images", ""),
             entry("female_images", ""),
             entry("special_images", ""),
-            entry("related_items_json", "[{\"id\":2199,\"itemId\":2199,\"sourceId\":2199,\"internalName\":\"BeetleHelmet\",\"name\":\"Beetle Helmet\",\"nameZh\":\"甲虫头盔\",\"image\":\"" + MANAGED_ITEM_IMAGE + "\",\"partRole\":\"head\",\"slotType\":\"headSlot\"}]")
+            entry("related_items_json", "[{\"id\":2199,\"itemId\":2199,\"sourceId\":2199,\"internalName\":\"BeetleHelmet\",\"name\":\"Beetle Helmet\",\"nameZh\":\"甲虫头盔\",\"image\":\"" + MANAGED_ITEM_IMAGE + "\",\"partRole\":\"head\",\"slotType\":\"headSlot\",\"equipmentSlotId\":157,\"setVariantIndex\":1,\"partIndex\":0}]")
         )));
         when(jdbcTemplate.queryForList(contains("FROM item_images"), isA(Long.class))).thenReturn(List.of(Map.of(
             "item_id", 2199L,
@@ -144,6 +144,9 @@ class PublicArmorSetServiceImplTest {
         assertEquals("甲虫头盔", armorSet.getRelatedItems().get(0).getNameZh());
         assertEquals(MANAGED_ITEM_IMAGE, armorSet.getRelatedItems().get(0).getImage());
         assertEquals("head", armorSet.getRelatedItems().get(0).getPartRole());
+        assertEquals(157, armorSet.getRelatedItems().get(0).getEquipmentSlotId());
+        assertEquals(1, armorSet.getRelatedItems().get(0).getSetVariantIndex());
+        assertEquals(0, armorSet.getRelatedItems().get(0).getPartIndex());
         assertEquals(30, armorSet.getRelatedItems().get(0).getDefenseValue());
         assertEquals(1, armorSet.getEffects().size());
         assertEquals("defense", armorSet.getEffects().get(0).getStatKey());

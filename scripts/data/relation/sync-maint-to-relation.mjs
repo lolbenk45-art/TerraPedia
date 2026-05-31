@@ -152,6 +152,13 @@ export function readWikiArmorSets(inputPath) {
   return [];
 }
 
+function readArmorSetDefinitionMap(inputPath = path.join(repoRoot, 'data', 'generated', 'armor-set-definition-map.json')) {
+  if (!inputPath || !fs.existsSync(inputPath)) {
+    return null;
+  }
+  return JSON.parse(fs.readFileSync(inputPath, 'utf8'));
+}
+
 function readInheritanceRules(inputPath = path.join(repoRoot, 'docs', 'contracts', 'npc-domain-loot-inheritance-contract.md')) {
   if (!inputPath || !fs.existsSync(inputPath)) {
     return [];
@@ -1327,6 +1334,7 @@ export async function runSync(options, dependencies = {}) {
   validateReviewedSourceOnlyItemExclusions(reviewedSourceOnlyItemExclusions);
 
   const wikiArmorSets = readWikiArmorSets(options.wikiArmorSetsInput);
+  const armorSetDefinitionMap = readArmorSetDefinitionMap();
   const itemIndex = buildItemIndex(maintItems);
   const itemSourceLookupIndex = buildItemSourceLookupIndex(maintItems);
   const npcIndex = buildNpcIndex(maintNpcs);
@@ -1391,6 +1399,7 @@ export async function runSync(options, dependencies = {}) {
   const armorSet = buildArmorSetRelations({
     wikiArmorSets,
     maintArmorSets,
+    armorSetDefinitionMap,
     maintItems,
     maintArmorSetImages,
     existingRelationArmorSetImages,

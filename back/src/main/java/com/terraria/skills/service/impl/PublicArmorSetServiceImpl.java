@@ -363,6 +363,9 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
                     item.setImage(managedImageOrNull(firstValue(map, "image", "imageUrl", "image_url", "cachedUrl", "cached_url")));
                     item.setPartRole(trimToNull(firstValue(map, "partRole", "part_role")));
                     item.setSlotType(trimToNull(firstValue(map, "slotType", "slot_type")));
+                    item.setEquipmentSlotId(toInteger(firstValue(map, "equipmentSlotId", "equipment_slot_id")));
+                    item.setSetVariantIndex(toInteger(firstValue(map, "setVariantIndex", "set_variant_index")));
+                    item.setPartIndex(toInteger(firstValue(map, "partIndex", "part_index")));
                     item.setDefenseValue(defenseByItemId.get(item.getItemId()));
                     items.add(item);
                 }

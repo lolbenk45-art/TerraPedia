@@ -164,6 +164,9 @@ class PublicArmorSetControllerTest {
         relatedItem.setNameZh("日耀头盔");
         relatedItem.setImage("http://localhost:9000/terrapedia-images/items/wiki/item-images/solar-helmet.png");
         relatedItem.setPartRole("head");
+        relatedItem.setEquipmentSlotId(10);
+        relatedItem.setSetVariantIndex(2);
+        relatedItem.setPartIndex(0);
         armorSet.setRelatedItems(List.of(relatedItem));
         EquipmentEffectAttributeDTO effect = new EquipmentEffectAttributeDTO();
         effect.setStatKey("defense");
@@ -184,6 +187,9 @@ class PublicArmorSetControllerTest {
             .andExpect(jsonPath("$.data.benefitZh").value("套装奖励：日耀护盾"))
             .andExpect(jsonPath("$.data.relatedItems[0].nameZh").value("日耀头盔"))
             .andExpect(jsonPath("$.data.relatedItems[0].partRole").value("head"))
+            .andExpect(jsonPath("$.data.relatedItems[0].equipmentSlotId").value(10))
+            .andExpect(jsonPath("$.data.relatedItems[0].setVariantIndex").value(2))
+            .andExpect(jsonPath("$.data.relatedItems[0].partIndex").value(0))
             .andExpect(jsonPath("$.data.effects[0].statKey").value("defense"))
             .andExpect(jsonPath("$.data.fallbackImages[0]").value("http://localhost:9000/terrapedia-images/items/wiki/item-images/solar.png"));
 

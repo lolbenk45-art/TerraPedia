@@ -124,6 +124,87 @@ function armorSetTextKey(pageTitle) {
   return `WikiArmorSet.${pageTitle}`;
 }
 
+function normalizeArmorDefinitionKey(value) {
+  return normalizeText(value)
+    ?.toLowerCase()
+    .replace(/\s+armor$/i, '')
+    .replace(/盔甲$/, '')
+    .replace(/[^a-z0-9\u4e00-\u9fff]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim() ?? null;
+}
+
+function armorDefinitionKeyFromBenefitExpression(value) {
+  return normalizeText(value)
+    ?.replace(/^ArmorSetBonuses\.Benefits\./i, '')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .toLowerCase()
+    .trim() ?? null;
+}
+
+function buildArmorDefinitionLookup(maintArmorSets = []) {
+  const byBaseTitle = new Map();
+  const byBenefitName = new Map();
+  const byTextKey = new Map();
+
+  for (const row of maintArmorSets) {
+    const sets = asSetList(row.sets_json ?? row.setsJson);
+    const uniqueItemIds = asNumberList(row.unique_item_ids_json ?? row.uniqueItemIdsJson);
+    if (!sets.length || !uniqueItemIds.length) continue;
+    const definition = { sets, uniqueItemIds };
+    const raw = parseJson(row.raw_json ?? row.rawJson, {});
+    const titleKey = normalizeArmorDefinitionKey(
+      raw?.nameEn
+        ?? raw?.pageTitle
+        ?? row.source_key
+        ?? row.sourceKey
+        ?? row.name
+        ?? row.name_zh
+    );
+    const benefitKey = armorDefinitionKeyFromBenefitExpression(row.benefit_expression ?? row.benefitExpression);
+    const textKey = normalizeText(row.text_key ?? row.textKey);
+
+    if (titleKey) byBaseTitle.set(titleKey, definition);
+    if (benefitKey) byBenefitName.set(benefitKey, definition);
+    if (textKey) byTextKey.set(textKey, definition);
+    if (textKey) {
+      const textName = textKey.replace(/^ArmorSetBonus\./, '');
+      const normalizedTextKey = normalizeNameKey(textName);
+      if (normalizedTextKey) byBenefitName.set(normalizedTextKey, definition);
+    }
+  }
+
+  return { byBaseTitle, byBenefitName, byTextKey };
+}
+
+function buildArmorDefinitionMapLookup(armorSetDefinitionMap = null) {
+  const byName = new Map();
+  const records = armorSetDefinitionMap?.records && typeof armorSetDefinitionMap.records === 'object'
+    ? Object.values(armorSetDefinitionMap.records)
+    : [];
+
+  for (const record of records) {
+    const textKey = normalizeText(record?.definition?.textKey);
+    if (!textKey) continue;
+    for (const candidate of [record.name, record.internalCode]) {
+      const key = normalizeArmorDefinitionKey(candidate);
+      if (key && !byName.has(key)) byName.set(key, textKey);
+    }
+  }
+
+  return byName;
+}
+
+function findArmorDefinitionForWikiRecord(record, definitionLookup, definitionMapLookup) {
+  const baseKey = normalizeArmorDefinitionKey(record.pageTitle);
+  const nameKey = normalizeArmorDefinitionKey(record.nameZh ?? record.pageTitle);
+  const mappedTextKey = (nameKey && definitionMapLookup.get(nameKey)) || (baseKey && definitionMapLookup.get(baseKey));
+  if (mappedTextKey && definitionLookup.byTextKey.has(mappedTextKey)) return definitionLookup.byTextKey.get(mappedTextKey);
+  if (baseKey && definitionLookup.byBaseTitle.has(baseKey)) return definitionLookup.byBaseTitle.get(baseKey);
+  if (baseKey && definitionLookup.byBenefitName.has(baseKey)) return definitionLookup.byBenefitName.get(baseKey);
+  return null;
+}
+
 function toMysqlDateTime(value) {
   const text = normalizeText(value);
   if (!text) {
@@ -344,12 +425,17 @@ function buildWikiArmorSetImageRecord({ armorSet, image, index, managedImageLook
 
 function buildWikiArmorSetRelations({
   wikiArmorSets = [],
+  maintArmorSets = [],
+  armorSetDefinitionMap = null,
   maintItems = [],
   maintArmorSetImages = [],
   existingRelationArmorSetImages = [],
   managedImageUrlPrefixes = []
 } = {}) {
   const slotItems = buildArmorSlotItems(maintItems);
+  const itemBySourceId = buildItemIndex(maintItems);
+  const definitionLookup = buildArmorDefinitionLookup(maintArmorSets);
+  const definitionMapLookup = buildArmorDefinitionMapLookup(armorSetDefinitionMap);
   const managedImageLookup = buildManagedArmorImageLookup(
     maintArmorSetImages,
     existingRelationArmorSetImages,
@@ -369,6 +455,9 @@ function buildWikiArmorSetRelations({
     const setItems = compositionKind === 'traditional_set'
       ? findWikiArmorItems(record, slotItems)
       : findWikiSinglePieceArmorSetItem(record, slotItems);
+    const mappedDefinition = compositionKind === 'traditional_set'
+      ? findArmorDefinitionForWikiRecord(record, definitionLookup, definitionMapLookup)
+      : null;
     const itemsByRole = new Map();
     for (const entry of setItems) {
       const role = entry.slot.partRole;
@@ -380,15 +469,32 @@ function buildWikiArmorSetRelations({
     const groups = ['head', 'body', 'legs']
       .map((role) => ({ role, items: itemsByRole.get(role) ?? [] }))
       .filter((group) => group.items.length > 0);
-    const variants = compositionKind === 'traditional_set'
-      ? cartesianArmorSets(groups)
-      : setItems.map((entry) => [entry.sourceId]);
-    const uniqueItemIds = stableUnique(setItems.map((entry) => entry.sourceId));
-    const armorSet = buildWikiArmorSetRecord(record, setItems, variants, uniqueItemIds);
+    const variants = mappedDefinition?.sets?.length
+      ? mappedDefinition.sets
+      : compositionKind === 'traditional_set'
+        ? cartesianArmorSets(groups)
+        : setItems.map((entry) => [entry.sourceId]);
+    const uniqueItemIds = mappedDefinition?.uniqueItemIds?.length
+      ? mappedDefinition.uniqueItemIds
+      : stableUnique(setItems.map((entry) => entry.sourceId));
+    const effectiveSetItems = mappedDefinition?.uniqueItemIds?.length
+      ? mappedDefinition.uniqueItemIds
+        .map((sourceId) => {
+          const itemRow = itemBySourceId.get(sourceId);
+          if (!itemRow) return null;
+          return {
+            item: itemRow,
+            sourceId,
+            slot: pickSlot(itemRow)
+          };
+        })
+        .filter((entry) => entry && entry.slot.partRole !== 'unknown')
+      : setItems;
+    const armorSet = buildWikiArmorSetRecord(record, effectiveSetItems, variants, uniqueItemIds);
     armorSet.rawPageTitle = pageTitle;
     relationArmorSets.push(armorSet);
 
-    if (setItems.length === 0) {
+    if (effectiveSetItems.length === 0) {
       issues.push({
         code: 'wiki_armor_set_items_missing',
         pageTitle,
@@ -396,12 +502,12 @@ function buildWikiArmorSetRelations({
       });
     }
 
-    const itemBySourceId = new Map(setItems.map((entry) => [entry.sourceId, entry]));
+    const wikiItemBySourceId = new Map(effectiveSetItems.map((entry) => [entry.sourceId, entry]));
     for (let setVariantIndex = 0; setVariantIndex < variants.length; setVariantIndex += 1) {
       const variant = variants[setVariantIndex];
       for (let partIndex = 0; partIndex < variant.length; partIndex += 1) {
         const itemSourceId = variant[partIndex];
-        const entry = itemBySourceId.get(itemSourceId);
+        const entry = wikiItemBySourceId.get(itemSourceId);
         const itemRecord = buildArmorSetItemRecord({
           armorSet,
           textKey: armorSet.textKey,
@@ -537,6 +643,7 @@ function buildArmorSetImageRecord(row, armorSetByTextKey, managedImageUrlPrefixe
 export function buildArmorSetRelations({
   wikiArmorSets = [],
   maintArmorSets = [],
+  armorSetDefinitionMap = null,
   maintItems = [],
   maintArmorSetImages = [],
   existingRelationArmorSetImages = [],
@@ -545,6 +652,8 @@ export function buildArmorSetRelations({
   if (Array.isArray(wikiArmorSets) && wikiArmorSets.length > 0) {
     return buildWikiArmorSetRelations({
       wikiArmorSets,
+      maintArmorSets,
+      armorSetDefinitionMap,
       maintItems,
       maintArmorSetImages,
       existingRelationArmorSetImages,
