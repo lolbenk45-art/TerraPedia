@@ -39,6 +39,9 @@ const requiredMarkers = [
   'armor-build-total-entries',
   'armor-build-total-entry',
   'armorHasVariantBuilds',
+  'armorBuildDefenseTotalValue',
+  'armorAddDefenseBonusToValue',
+  'armorSetBuildCards.value.length > 1',
   "v-if=\"armorHasVariantBuilds && armorFixedBonusLines.length\"",
   "label: '防御'",
   'armorFullSetBuildGroup',
@@ -101,6 +104,8 @@ const forbiddenMarkers = [
   'valueDecimal: Number.isFinite(numeric) ? numeric : null',
   'return items.some((item) => effectBelongsToItem(effect, item))',
   'totalLines.map((line) => `合计加成：${line}`)',
+  'return armorVariantRoles(uniqueItems).size > 0',
+  'Number(defense.total)',
 ]
 const presentForbidden = forbiddenMarkers.filter((marker) => source.includes(marker))
 

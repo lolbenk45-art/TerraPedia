@@ -755,18 +755,40 @@ const armorBuildTotalEntries = (
   const defenseBonus = combinedEntries
     .filter((entry) => entry.statKey === 'defense')
     .reduce((sum, entry) => sum + entry.rawValue, 0)
-  const pieceDefenseTotal = Number(defense.total)
-  if (Number.isFinite(pieceDefenseTotal)) {
-    const finalDefenseTotal = pieceDefenseTotal + defenseBonus
+  const pieceDefenseTotal = armorBuildDefenseTotalValue(defense.total)
+  if (pieceDefenseTotal) {
+    const finalDefenseTotal = armorAddDefenseBonusToValue(pieceDefenseTotal, defenseBonus)
     totalEntries.unshift({
       key: 'defense:flat:total',
       statKey: 'defense',
       label: '防御',
-      value: String(finalDefenseTotal),
-      rawValue: finalDefenseTotal,
+      value: finalDefenseTotal.label,
+      rawValue: finalDefenseTotal.rawValue,
     })
   }
   return totalEntries
+}
+
+const armorBuildDefenseTotalValue = (value: string | null) => {
+  const rawValue = String(value ?? '').trim()
+  if (!rawValue) return null
+  const values = rawValue.split('-').map((entry) => Number(entry.trim())).filter(Number.isFinite)
+  if (!values.length) return null
+  return {
+    values,
+    rawValue: values[values.length - 1] ?? 0,
+  }
+}
+
+const armorAddDefenseBonusToValue = (
+  defense: { values: number[], rawValue: number },
+  bonus: number,
+) => {
+  const values = defense.values.map((entry) => entry + bonus)
+  return {
+    label: armorDefenseValueLabel(values),
+    rawValue: defense.rawValue + bonus,
+  }
 }
 
 const armorFixedEffects = (uniqueItems: PublicArmorSetRelatedItem[], variantRoles: Set<string>) => {
@@ -809,8 +831,7 @@ const armorFixedBonusGroups = computed(() => {
 })
 
 const armorHasVariantBuilds = computed(() => {
-  const uniqueItems = uniqueArmorItems(armorRelatedItems.value)
-  return armorVariantRoles(uniqueItems).size > 0
+  return armorSetBuildCards.value.length > 1
 })
 
 const armorBuildDefenseSummary = (buildItems: PublicArmorSetRelatedItem[]) => {
