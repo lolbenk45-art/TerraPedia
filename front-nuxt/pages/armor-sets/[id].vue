@@ -622,6 +622,10 @@ const armorBuildSetBonusLines = (variantItems: PublicArmorSetRelatedItem[]) => (
     .filter((line) => !armorBenefitLineIsAttributeSummary(line))
 )
 
+// Regression marker: 蜘蛛盔甲 keeps "套装奖励：+12% 召唤伤害（总共 +28%）" as readable text.
+const armorDefaultBenefitSetBonusLines = () => armorBenefitLines.value
+  .filter((line) => !armorBenefitLineIsAttributeSummary(line))
+
 const armorDefaultBuildSetBonusLines = (buildItems: PublicArmorSetRelatedItem[]) => {
   const effectLines = armorShownEffects.value
     .filter((effect) => {
@@ -635,7 +639,10 @@ const armorDefaultBuildSetBonusLines = (buildItems: PublicArmorSetRelatedItem[])
       const statKey = armorEffectTotalStatKey(effect)
       return value == null || !statKey || statKey === 'special_effect'
     })
-  return mergeEffectLines(effectLines)
+  return dedupeEffectLines([
+    ...armorDefaultBenefitSetBonusLines(),
+    ...mergeEffectLines(effectLines),
+  ])
 }
 
 const armorVariantBenefitLineKeys = computed(() => {

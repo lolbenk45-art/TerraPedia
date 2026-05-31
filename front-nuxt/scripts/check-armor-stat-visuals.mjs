@@ -34,6 +34,7 @@ const requiredMarkers = [
   'armorBuildVariantEffectGroups',
   'armor-build-effect-groups',
   'armorBuildSetBonusLines',
+  'armorDefaultBenefitSetBonusLines',
   'armorCombinedBuildTotals',
   'armorBuildTotalEntries',
   'armor-build-total-entries',
@@ -71,6 +72,7 @@ const requiredMarkers = [
   'effectVariantAliases.some',
   'effectRawText',
   'if (rawText) return rawText',
+  '套装奖励：+12% 召唤伤害（总共 +28%）',
 ]
 
 const missing = requiredMarkers.filter((marker) => !source.includes(marker))
