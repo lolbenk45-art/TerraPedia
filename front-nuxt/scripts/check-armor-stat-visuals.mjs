@@ -30,7 +30,7 @@ const requiredMarkers = [
   'armorVariantBuildGroups',
   'armorVariantBuildGroups(headItems).map',
   'armorBuildVariantStats(buildGroup)',
-  'armor-fixed-bonus-strip',
+  'armor-fixed-bonus-row',
   'buildGroup.headItems',
   '...buildGroup.headItems',
   'effectVariantAliases.some',
@@ -56,6 +56,7 @@ const forbiddenMarkers = [
   'armor-build-piece-strip',
   'armor-build-defense-panel',
   'armor-build-defense-parts',
+  'armor-fixed-bonus-strip',
   'return items.some((item) => effectBelongsToItem(effect, item))',
 ]
 const presentForbidden = forbiddenMarkers.filter((marker) => source.includes(marker))
