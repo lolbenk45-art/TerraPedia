@@ -235,7 +235,7 @@ function mappedArmorItemVariantToken(entry) {
   return token || itemName;
 }
 
-function buildMappedDefinitionEquivalenceContext(effectiveSetItems) {
+function buildMappedDefinitionEquivalenceContext(effectiveSetItems, { forceEquivalentByRole = false } = {}) {
   const entriesByRole = new Map();
   for (const entry of effectiveSetItems) {
     const role = entry.slot?.partRole ?? 'unknown';
@@ -247,8 +247,12 @@ function buildMappedDefinitionEquivalenceContext(effectiveSetItems) {
     }
     entriesByRole.get(role).push(entry);
   }
-  const multiRoleEntries = [...entriesByRole.values()].filter((entries) => entries.length > 1);
-  if (multiRoleEntries.length === 0) {
+  const roleSignatureCounts = new Map();
+  for (const [role, entries] of entriesByRole.entries()) {
+    const signatures = new Set(entries.map((entry) => armorItemStatSignature(entry)));
+    roleSignatureCounts.set(role, signatures.size);
+  }
+  if (![...entriesByRole.values()].some((entries) => entries.length > 1)) {
     return { enabled: false, keyBySourceId: new Map(), entriesByKey: new Map() };
   }
 
@@ -256,7 +260,11 @@ function buildMappedDefinitionEquivalenceContext(effectiveSetItems) {
   const entriesByKey = new Map();
   for (const entry of effectiveSetItems) {
     const role = entry.slot?.partRole ?? 'unknown';
-    const key = `${role}:${mappedArmorItemVariantToken(entry)}:${armorItemStatSignature(entry)}`;
+    const statSignature = forceEquivalentByRole ? 'equivalent' : armorItemStatSignature(entry);
+    const variantToken = forceEquivalentByRole || (roleSignatureCounts.get(role) ?? 0) <= 1
+      ? 'equivalent'
+      : mappedArmorItemVariantToken(entry);
+    const key = `${role}:${variantToken}:${statSignature}`;
     keyBySourceId.set(entry.sourceId, key);
     if (!entriesByKey.has(key)) {
       entriesByKey.set(key, []);
@@ -269,12 +277,38 @@ function buildMappedDefinitionEquivalenceContext(effectiveSetItems) {
   return { enabled: true, keyBySourceId, entriesByKey };
 }
 
+function recordLooksLikeEquivalentArmorFamily(record) {
+  const text = normalizeText([
+    record?.pageTitle,
+    record?.nameZh,
+    record?.nameEn,
+    record?.effectText,
+    record?.benefitZh,
+    record?.benefitEn
+  ].filter(Boolean).join(' ')) ?? '';
+  return /互换|可替换|可以和|interchange|interchangeable|swap|equivalent/i.test(text);
+}
+
+function mappedDefinitionHasEquivalentItemTokens(effectiveSetItems) {
+  const tokensByRole = new Map();
+  for (const entry of effectiveSetItems) {
+    const role = entry.slot?.partRole ?? 'unknown';
+    if (role === 'unknown') continue;
+    tokensByRole.set(role, [...(tokensByRole.get(role) ?? []), mappedArmorItemVariantToken(entry)]);
+  }
+  return [...tokensByRole.values()].some((tokens) => tokens.length > new Set(tokens).size);
+}
+
 function buildArmorEquivalenceContext(record, effectiveSetItems, { hasMappedDefinition = false } = {}) {
   const familyTitles = buildInterchangeableFamilyTitles(record);
   const hasInterchangeable = familyTitles.length > 1;
   if (!hasInterchangeable) {
-    return hasMappedDefinition
-      ? buildMappedDefinitionEquivalenceContext(effectiveSetItems)
+    const forceEquivalentByRole = recordLooksLikeEquivalentArmorFamily(record);
+    return hasMappedDefinition && (
+      forceEquivalentByRole
+      || mappedDefinitionHasEquivalentItemTokens(effectiveSetItems)
+    )
+      ? buildMappedDefinitionEquivalenceContext(effectiveSetItems, { forceEquivalentByRole })
       : { enabled: false, keyBySourceId: new Map(), entriesByKey: new Map() };
   }
 

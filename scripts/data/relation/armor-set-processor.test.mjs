@@ -340,19 +340,20 @@ test('buildArmorSetRelations merges wiki page copy with mapped maint armor varia
 
   assert.equal(actual.relationArmorSets.length, 1);
   assert.equal(actual.relationArmorSets[0].textKey, 'WikiArmorSet.Mining armor');
-  assert.equal(actual.relationArmorSets[0].setCount, 12);
+  assert.equal(actual.relationArmorSets[0].setCount, 1);
   assert.equal(actual.relationArmorSets[0].uniqueItemCount, 7);
-  assert.deepEqual(JSON.parse(actual.relationArmorSets[0].setsJson), miningSets);
-  assert.deepEqual(JSON.parse(actual.relationArmorSets[0].uniqueItemIdsJson), miningItemIds);
+  assert.deepEqual(JSON.parse(actual.relationArmorSets[0].setsJson), [[88, 4008, 5588, 410, 5589, 411, 5590]]);
+  assert.deepEqual(JSON.parse(actual.relationArmorSets[0].uniqueItemIdsJson), [88, 4008, 5588, 410, 5589, 411, 5590]);
   assert.equal(JSON.parse(actual.relationArmorSets[0].rawJson).effectText, '+20% 挖矿速度\n挖矿头盔和超亮头盔可以互换\n套装奖励：+10% 挖矿速度（总共 +30%）');
-  assert.equal(actual.relationArmorSetItems.length, 36);
-  assert.deepEqual(actual.relationArmorSetItems.slice(0, 6).map((row) => [row.setVariantIndex, row.partIndex, row.itemSourceId, row.itemInternalName]), [
+  assert.equal(actual.relationArmorSetItems.length, 7);
+  assert.deepEqual(actual.relationArmorSetItems.map((row) => [row.setVariantIndex, row.partIndex, row.itemSourceId, row.itemInternalName]), [
     [0, 0, 88, 'MiningHelmet'],
+    [0, 0, 4008, 'UltrabrightHelmet'],
+    [0, 0, 5588, 'UpgradedMiningHead'],
     [0, 1, 410, 'MiningShirt'],
+    [0, 1, 5589, 'UpgradedMiningBody'],
     [0, 2, 411, 'MiningPants'],
-    [1, 0, 88, 'MiningHelmet'],
-    [1, 1, 410, 'MiningShirt'],
-    [1, 2, 5590, 'UpgradedMiningLegs']
+    [0, 2, 5590, 'UpgradedMiningLegs']
   ]);
   assert.ok(actual.relationArmorSetItems.some((row) => row.itemSourceId === 4008 && row.itemInternalName === 'UltrabrightHelmet'));
   assert.ok(actual.relationArmorSetItems.some((row) => row.itemSourceId === 5588 && row.itemInternalName === 'UpgradedMiningHead'));

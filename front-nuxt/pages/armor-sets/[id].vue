@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { usePublicArmorSetDetail } from '~/composables/usePublicArmorSetDetail'
 import type { EquipmentEffectAttribute, PublicArmorSetListItem, PublicArmorSetRelatedItem } from '~/types/public-api'
+import { createArmorSetBuildGroups } from '~/utils/armorSetBuilds.mjs'
 
 type ArmorBuildTotalEntry = {
   key: string
@@ -8,6 +9,7 @@ type ArmorBuildTotalEntry = {
   label: string
   value: string
   rawValue: number
+  isVariable?: boolean
 }
 
 type ArmorPieceEffectRecord = Record<string, EquipmentEffectAttribute[]>
@@ -16,9 +18,18 @@ type ArmorBuildGroup = {
   title: string
   variantRole: string
   variantItems: PublicArmorSetRelatedItem[]
+  displayItems?: PublicArmorSetRelatedItem[]
+  partGroups?: ArmorBuildPartGroup[]
 }
 type ArmorBuildDisplayItem = PublicArmorSetRelatedItem & {
   displayName?: string
+}
+type ArmorBuildPartGroup = {
+  key: string
+  partIndex: number | null
+  role: string
+  item: PublicArmorSetRelatedItem
+  alternatives: PublicArmorSetRelatedItem[]
 }
 
 const route = useRoute()
@@ -804,34 +815,8 @@ const armorMergeEquivalentBuildGroups = (buildGroups: ArmorBuildGroup[]) => {
 }
 
 const armorExplicitVariantBuildGroups = (uniqueItems: PublicArmorSetRelatedItem[]): ArmorBuildGroup[] => {
-  const groups = new Map<number, PublicArmorSetRelatedItem[]>()
-  for (const item of uniqueItems) {
-    const variantIndex = armorSetVariantIndex(item)
-    if (variantIndex == null) return []
-    groups.set(variantIndex, [...(groups.get(variantIndex) ?? []), item])
-  }
-  if (groups.size <= 1) return []
-
-  const buildGroups = [...groups.entries()]
-    .sort(([left], [right]) => left - right)
-    .map(([variantIndex, items]) => {
-      const sortedItems = items.slice().sort((left, right) => {
-        const roleDelta = armorPieceRoleOrder(armorPieceRole(left)) - armorPieceRoleOrder(armorPieceRole(right))
-        if (roleDelta !== 0) return roleDelta
-        return (armorPartIndex(left) ?? 99) - (armorPartIndex(right) ?? 99)
-      })
-      const variantItem = sortedItems.find((item) => {
-        const sameRoleItems = uniqueItems.filter((candidate) => armorPieceRole(candidate) === armorPieceRole(item))
-        return sameRoleItems.length > 1
-      }) ?? sortedItems[0]
-      return {
-        key: `variant-${variantIndex}`,
-        title: variantItem ? armorPieceName(variantItem) : `构筑 ${variantIndex + 1}`,
-        variantRole: variantItem ? armorPieceRole(variantItem) : '套装',
-        variantItems: sortedItems,
-      }
-    })
-  return armorMergeEquivalentBuildGroups(buildGroups)
+  const buildGroups = createArmorSetBuildGroups(uniqueItems) as ArmorBuildGroup[]
+  return buildGroups
 }
 
 const armorFullSetBuildGroup = (uniqueItems: PublicArmorSetRelatedItem[]) => [{
@@ -1161,12 +1146,171 @@ const armorCombinedBuildTotals = (buildItems: PublicArmorSetRelatedItem[], varia
     }))
 }
 
+const armorBuildTotalValueLabel = (values: number[], unit: string | null | undefined) => {
+  const uniqueValues = [...new Set(values)].sort((left, right) => left - right)
+  if (!uniqueValues.length) return ''
+  const minValue = uniqueValues[0]
+  const maxValue = uniqueValues[uniqueValues.length - 1]
+  if (minValue == null || maxValue == null) return ''
+  if (minValue === maxValue) return formatArmorTotalValue(minValue, unit)
+  return `${formatArmorTotalValue(minValue, unit)} - ${formatArmorTotalValue(maxValue, unit)}`
+}
+
+const armorBuildEffectTotalsForItems = (items: PublicArmorSetRelatedItem[], options: { includeSetEffects?: boolean } = {}) => {
+  const includeSetEffects = options.includeSetEffects !== false
+  const relevantEffects = armorShownEffects.value.filter((effect) => {
+    const variantLabel = effectVariantLabel(effect)
+    if (variantLabel) return items.some((item) => effectBelongsToItem(effect, item))
+    if (effectSourceKind(effect) === 'set') return includeSetEffects
+    return items.some((item) => effectBelongsToItem(effect, item))
+  })
+  const totals = new Map<string, {
+    key: string
+    statKey: string
+    label: string
+    unit: string | null | undefined
+    value: number
+  }>()
+
+  for (const effect of relevantEffects) {
+    const value = armorEffectNumericValue(effect)
+    if (value == null) continue
+    const statKey = armorEffectTotalStatKey(effect)
+    if (!statKey || statKey === 'special_effect') continue
+    const unit = effect.unit
+    const label = armorEffectTotalLabel(effect)
+    const key = `${statKey}:${unit ?? ''}:${normalizeEffectLine(label)}`
+    const current = totals.get(key)
+    totals.set(key, {
+      key,
+      statKey,
+      label,
+      unit,
+      value: (current?.value ?? 0) + value,
+    })
+  }
+
+  return totals
+}
+
+const armorBuildAddTotals = (
+  target: Map<string, {
+    key: string
+    statKey: string
+    label: string
+    unit: string | null | undefined
+    min: number
+    max: number
+  }>,
+  source: Map<string, {
+    key: string
+    statKey: string
+    label: string
+    unit: string | null | undefined
+    value: number
+  }>,
+) => {
+  for (const total of source.values()) {
+    const current = target.get(total.key)
+    target.set(total.key, {
+      key: total.key,
+      statKey: total.statKey,
+      label: total.label,
+      unit: total.unit,
+      min: (current?.min ?? 0) + total.value,
+      max: (current?.max ?? 0) + total.value,
+    })
+  }
+}
+
+const armorBuildPartGroupTotalEntries = (
+  buildItems: PublicArmorSetRelatedItem[],
+  partGroups: ArmorBuildPartGroup[] | undefined,
+) => {
+  if (!partGroups?.length) return armorCombinedBuildTotals(buildItems, buildItems)
+
+  const alternativeKeys = new Set(partGroups
+    .flatMap((part) => part.alternatives)
+    .map(armorUniqueItemKey))
+  const fixedItems = buildItems.filter((item) => !alternativeKeys.has(armorUniqueItemKey(item)))
+  const slotGroups = partGroups
+    .map((part) => uniqueArmorItems(part.alternatives))
+    .filter((alternatives) => alternatives.length)
+  if (!slotGroups.length) return armorCombinedBuildTotals(buildItems, buildItems)
+
+  const aggregate = new Map<string, {
+    key: string
+    statKey: string
+    label: string
+    unit: string | null | undefined
+    min: number
+    max: number
+  }>()
+
+  armorBuildAddTotals(aggregate, armorBuildEffectTotalsForItems(fixedItems, { includeSetEffects: true }))
+
+  for (const alternatives of slotGroups) {
+    const slotAggregate = new Map<string, {
+      key: string
+      statKey: string
+      label: string
+      unit: string | null | undefined
+      values: number[]
+    }>()
+    for (const item of alternatives) {
+      for (const total of armorBuildEffectTotalsForItems([item], { includeSetEffects: false }).values()) {
+        const current = slotAggregate.get(total.key)
+        slotAggregate.set(total.key, {
+          key: total.key,
+          statKey: total.statKey,
+          label: total.label,
+          unit: total.unit,
+          values: [...(current?.values ?? []), total.value],
+        })
+      }
+    }
+    for (const total of slotAggregate.values()) {
+      const current = aggregate.get(total.key)
+      const uniqueValues = [...new Set(total.values)].sort((left, right) => left - right)
+      const minValue = uniqueValues[0] ?? 0
+      const maxValue = uniqueValues[uniqueValues.length - 1] ?? 0
+      aggregate.set(total.key, {
+        key: total.key,
+        statKey: total.statKey,
+        label: total.label,
+        unit: total.unit,
+        min: (current?.min ?? 0) + minValue,
+        max: (current?.max ?? 0) + maxValue,
+      })
+    }
+  }
+
+  return [...aggregate.values()]
+    .map((entry) => {
+      const values = entry.min === entry.max ? [entry.min] : [entry.min, entry.max]
+      return {
+        key: entry.key,
+        statKey: entry.statKey,
+        label: entry.label,
+        value: armorBuildTotalValueLabel(values, entry.unit),
+        rawValue: entry.max,
+        isVariable: entry.min !== entry.max,
+      }
+    })
+    .filter((entry) => entry.rawValue !== 0 || entry.value !== formatArmorTotalValue(0, null))
+}
+
+const armorBuildSlotTotalEntries = (
+  buildItems: PublicArmorSetRelatedItem[],
+  partGroups: ArmorBuildPartGroup[] | undefined,
+) => armorBuildPartGroupTotalEntries(buildItems, partGroups)
+
 const armorBuildTotalEntries = (
   buildItems: PublicArmorSetRelatedItem[],
-  variantItems: PublicArmorSetRelatedItem[],
+  partGroups: ArmorBuildPartGroup[] | undefined,
   defense: ReturnType<typeof armorBuildDefenseSummary>,
 ) => {
-  const combinedEntries = armorCombinedBuildTotals(buildItems, variantItems)
+  const combinedEntries = armorBuildSlotTotalEntries(buildItems, partGroups)
   const totalEntries = combinedEntries.filter((entry) => entry.statKey !== 'defense')
   const defenseBonus = combinedEntries
     .filter((entry) => entry.statKey === 'defense')
@@ -1180,6 +1324,7 @@ const armorBuildTotalEntries = (
       label: '防御',
       value: finalDefenseTotal.label,
       rawValue: finalDefenseTotal.rawValue,
+      isVariable: finalDefenseTotal.values.length > 1 || totalEntries.some((entry) => entry.isVariable),
     })
   }
   return totalEntries
@@ -1202,6 +1347,7 @@ const armorAddDefenseBonusToValue = (
 ) => {
   const values = defense.values.map((entry) => entry + bonus)
   return {
+    values,
     label: armorDefenseValueLabel(values),
     rawValue: defense.rawValue + bonus,
   }
@@ -1286,6 +1432,11 @@ const armorBuildDefenseSummary = (buildItems: PublicArmorSetRelatedItem[]) => {
   }
 }
 
+const armorBuildDefenseSummaryFromPartGroups = (partGroups: ArmorBuildPartGroup[] | undefined, fallbackItems: PublicArmorSetRelatedItem[]) => {
+  if (!partGroups?.length) return armorBuildDefenseSummary(fallbackItems)
+  return armorBuildDefenseSummary(partGroups.flatMap((part) => part.alternatives))
+}
+
 const armorSetBuildCards = computed(() => {
   const relatedItems = armorRelatedItems.value
   const uniqueItems = uniqueArmorItems(relatedItems)
@@ -1294,14 +1445,14 @@ const armorSetBuildCards = computed(() => {
   return armorVariantBuildGroups(uniqueItems, relatedItems).map((buildGroup) => {
     const variantRoles = new Set(buildGroup.variantItems.map(armorPieceRole))
     const items = [
-      ...buildGroup.variantItems,
+      ...(buildGroup.displayItems ?? buildGroup.variantItems),
       ...uniqueItems.filter((item) => !variantRoles.has(armorPieceRole(item))),
     ].sort((left, right) => armorPieceRoleOrder(armorPieceRole(left)) - armorPieceRoleOrder(armorPieceRole(right)) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
     const stats = armorBuildVariantStats(buildGroup)
     const bonusLines = buildGroup.key === 'default-full-set'
       ? armorDefaultBuildSetBonusLines(items)
       : armorBuildSetBonusLines(buildGroup.variantItems)
-    const defense = armorBuildDefenseSummary(items)
+    const defense = armorBuildDefenseSummaryFromPartGroups(buildGroup.partGroups, items)
     return {
       key: buildGroup.key,
       title: buildGroup.title,
@@ -1315,10 +1466,27 @@ const armorSetBuildCards = computed(() => {
         defense: armorPieceDefenseLabel(item),
         effects: armorBuildPieceEffectLines(item),
       })),
+      partGroups: (buildGroup.partGroups ?? items.map((item) => ({
+        key: armorUniqueItemKey(item),
+        partIndex: armorPartIndex(item),
+        role: armorPieceRole(item),
+        item,
+        alternatives: [item],
+      }))).map((part) => ({
+        key: part.key,
+        role: part.role,
+        alternatives: part.alternatives.map((item) => ({
+          key: String(item.itemId ?? item.sourceId ?? item.internalName ?? armorPieceName(item)),
+          item,
+          name: armorPieceName(item),
+          defense: armorPieceDefenseLabel(item),
+          effects: armorBuildPieceEffectLines(item),
+        })),
+      })),
       defense,
       stats,
       statGroups: armorBuildVariantEffectGroups(stats),
-      totalEntries: armorBuildTotalEntries(items, buildGroup.variantItems, defense),
+      totalEntries: armorBuildTotalEntries(items, buildGroup.partGroups, defense),
       bonusLines,
     }
   })
@@ -1458,17 +1626,6 @@ onMounted(() => {
             <!-- detail layout contract legacy marker: v-for="group in armorStatGroups" -->
             <!-- detail layout contract legacy marker: class="armor-stat-card-grid" class="armor-effect-card" class="armor-effect-card-value" -->
             <!-- visual contract marker: armorEffectSections armor-piece-effect-groups armor-effect-card-head.has-stat-art -->
-            <div v-if="armorSourceEffectGroups.length" class="armor-source-effect-groups">
-              <div v-for="group in armorSourceEffectGroups" :key="group.key" class="armor-source-effect-group">
-                <strong>{{ group.label }}</strong>
-                <span v-for="entry in group.entries" :key="entry.key" class="armor-source-effect-line">
-                  <template v-for="segment in armorHighlightedTextSegments(entry.line)" :key="`${entry.key}-${segment.key}`">
-                    <mark v-if="segment.highlight" class="armor-highlight-number">{{ segment.text }}</mark>
-                    <span v-else>{{ segment.text }}</span>
-                  </template>
-                </span>
-              </div>
-            </div>
             <div class="armor-build-board armor-structured-build-board armor-build-matrix">
               <div class="armor-build-row armor-build-row-head">
                 <b>构筑</b>
@@ -1502,19 +1659,33 @@ onMounted(() => {
                   <strong>{{ build.title }}</strong>
                 </div>
                 <div class="armor-build-cell armor-build-icons">
-                  <span v-for="piece in build.pieceEvidence" :key="`${build.key}-${piece.key}`" class="armor-build-piece-evidence" :title="piece.name">
-                    <CommonPreviewImage
-                      :src="resolvePreviewImageUrl(piece.item.image || '')"
-                      :alt="piece.name"
-                      :fallback="piece.name.slice(0, 1)"
-                      fallback-icon="icon-items"
-                      width="28"
-                      height="28"
-                    />
-                    <b>{{ piece.name }}</b>
-                    <small>{{ piece.role }}<template v-if="piece.defense"> · {{ piece.defense }}</template></small>
-                    <em v-for="line in piece.effects" :key="`${build.key}-${piece.key}-${line}`">{{ line }}</em>
-                  </span>
+                  <section v-for="part in build.partGroups" :key="`${build.key}-${part.key}`" class="armor-build-part-group">
+                    <div class="armor-build-part-head">
+                      <b>{{ part.role }}</b>
+                      <small>{{ part.alternatives.length > 1 ? `${part.alternatives.length} 件可互换` : '固定' }}</small>
+                    </div>
+                    <div class="armor-build-part-alternatives">
+                      <span
+                        v-for="piece in part.alternatives"
+                        :key="`${build.key}-${part.key}-${piece.key}`"
+                        class="armor-build-piece-evidence"
+                        :class="{ 'has-alternatives': part.alternatives.length > 1 }"
+                        :title="piece.name"
+                      >
+                        <CommonPreviewImage
+                          :src="resolvePreviewImageUrl(piece.item.image || '')"
+                          :alt="piece.name"
+                          :fallback="piece.name.slice(0, 1)"
+                          fallback-icon="icon-items"
+                          width="28"
+                          height="28"
+                        />
+                        <b>{{ piece.name }}</b>
+                        <small v-if="piece.defense">{{ piece.defense }}</small>
+                        <em v-for="line in piece.effects" :key="`${build.key}-${part.key}-${piece.key}-${line}`">{{ line }}</em>
+                      </span>
+                    </div>
+                  </section>
                 </div>
                 <div class="armor-build-cell armor-build-defense-formula">
                   <strong v-if="build.defense.total != null">{{ build.defense.total }}</strong>
@@ -1534,11 +1705,17 @@ onMounted(() => {
                   </div>
                   <div v-if="build.totalEntries.length || build.bonusLines.length" class="armor-set-bonus-lines">
                     <strong>套装效果</strong>
-                    <div v-if="build.totalEntries.length" class="armor-build-total-entries" aria-label="合计加成">
-                      <span class="armor-build-total-title">合计加成</span>
-                      <span v-for="entry in build.totalEntries" :key="`${build.key}-total-${entry.key}`" class="armor-build-total-entry">
+                    <div v-if="build.totalEntries.length" class="armor-build-total-entries" aria-label="最终汇总">
+                      <span class="armor-build-total-title">最终汇总</span>
+                      <span
+                        v-for="entry in build.totalEntries"
+                        :key="`${build.key}-total-${entry.key}`"
+                        class="armor-build-total-entry"
+                        :class="{ 'is-variable': entry.isVariable }"
+                      >
                         <mark class="armor-highlight-number">{{ entry.value }}</mark>
                         <b>{{ entry.label }}</b>
+                        <em v-if="entry.isVariable">可变合计</em>
                       </span>
                     </div>
                     <p v-for="line in build.bonusLines" :key="`${build.key}-bonus-${line}`" class="armor-set-bonus-line">
@@ -1874,7 +2051,42 @@ onMounted(() => {
 
 .armor-build-icons {
   display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.armor-build-part-group {
+  display: grid;
   gap: 5px;
+  min-width: 0;
+}
+
+.armor-build-part-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 8px;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.armor-build-part-head b {
+  color: rgba(219, 179, 93, 0.95);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.armor-build-part-head small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.armor-build-part-alternatives {
+  display: grid;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -1888,6 +2100,11 @@ onMounted(() => {
   border: 1px solid rgba(244, 234, 208, 0.08);
   border-radius: 6px;
   background: rgba(244, 234, 208, 0.025);
+}
+
+.armor-build-piece-evidence.has-alternatives {
+  border-color: rgba(219, 179, 93, 0.16);
+  background: rgba(219, 179, 93, 0.04);
 }
 
 .armor-build-icons :deep(.item-art) {
@@ -1980,39 +2197,6 @@ onMounted(() => {
   min-width: 0;
 }
 
-.armor-source-effect-groups {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 8px;
-  min-width: 0;
-}
-
-.armor-source-effect-group {
-  display: grid;
-  gap: 5px;
-  align-content: start;
-  min-width: 0;
-  padding: 8px 10px;
-  border: 1px solid rgba(244, 234, 208, 0.1);
-  border-radius: 7px;
-  background: rgba(244, 234, 208, 0.03);
-}
-
-.armor-source-effect-group strong {
-  color: rgba(219, 179, 93, 0.95);
-  font-size: 10px;
-  font-weight: 900;
-  line-height: 1.2;
-}
-
-.armor-source-effect-line {
-  color: rgba(226, 236, 224, 0.94);
-  font-size: 12px;
-  font-weight: 760;
-  line-height: 1.42;
-  overflow-wrap: anywhere;
-}
-
 .armor-build-effect-groups {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -2060,7 +2244,7 @@ onMounted(() => {
   gap: 4px;
   align-items: center;
   min-width: 0;
-  padding: 2px 6px;
+  padding: 3px 7px;
   border: 1px solid rgba(244, 234, 208, 0.09);
   border-radius: 6px;
   background: rgba(244, 234, 208, 0.035);
@@ -2068,6 +2252,19 @@ onMounted(() => {
   font-size: 11px;
   font-weight: 850;
   line-height: 1.3;
+}
+
+.armor-build-total-entry.is-variable {
+  border-color: rgba(219, 179, 93, 0.24);
+  background: rgba(219, 179, 93, 0.055);
+}
+
+.armor-build-total-entry em {
+  color: rgba(219, 179, 93, 0.92);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1.2;
 }
 
 .armor-set-bonus-line {
