@@ -11,6 +11,12 @@ type ArmorBuildTotalEntry = {
 }
 
 type ArmorPieceEffectRecord = Record<string, EquipmentEffectAttribute[]>
+type ArmorBuildGroup = {
+  key: string
+  title: string
+  variantRole: string
+  variantItems: PublicArmorSetRelatedItem[]
+}
 
 const route = useRoute()
 const detailLayout = useDetailLayout({ kind: 'armor-set', density: 'readable' })
@@ -403,6 +409,14 @@ const armorItemEffectFetchKey = (item: PublicArmorSetRelatedItem) => String(
   item.itemId ?? item.sourceId ?? item.internalName ?? '',
 ).trim()
 
+const armorEquivalentItemKey = (item: PublicArmorSetRelatedItem) => normalizeMatchText(
+  armorPieceName(item).replace(/^远古/, '').replace(/^Ancient\s*/i, ''),
+)
+
+const armorItemLooksAncient = (item: PublicArmorSetRelatedItem) => (
+  /^远古/.test(armorPieceName(item)) || /^Ancient/i.test(String(item.name ?? item.internalName ?? ''))
+)
+
 const normalizeMatchText = (value: string) => value
   .toLowerCase()
   .replace(/[()\[\]（）【】·・.'"]/g, '')
@@ -672,7 +686,7 @@ const armorVariantRoles = (uniqueItems: PublicArmorSetRelatedItem[]) => {
   return roles
 }
 
-const armorVariantBuildGroups = (uniqueItems: PublicArmorSetRelatedItem[], relatedItems: PublicArmorSetRelatedItem[] = uniqueItems) => {
+const armorVariantBuildGroups = (uniqueItems: PublicArmorSetRelatedItem[], relatedItems: PublicArmorSetRelatedItem[] = uniqueItems): ArmorBuildGroup[] => {
   const explicitVariantGroups = armorExplicitVariantBuildGroups(relatedItems)
   if (explicitVariantGroups.length) return explicitVariantGroups
 
@@ -704,7 +718,59 @@ const armorVariantBuildGroups = (uniqueItems: PublicArmorSetRelatedItem[], relat
   }).filter((buildGroup) => buildGroup.variantItems.length)
 }
 
-const armorExplicitVariantBuildGroups = (uniqueItems: PublicArmorSetRelatedItem[]) => {
+const armorExplicitVariantBuildGroupKey = (items: PublicArmorSetRelatedItem[]) => items
+  .slice()
+  .sort((left, right) => armorPieceRoleOrder(armorPieceRole(left)) - armorPieceRoleOrder(armorPieceRole(right)))
+  .map((item) => [
+    armorPieceRole(item),
+    armorEquivalentItemKey(item),
+    armorPieceDefense(item) ?? '',
+  ].join(':'))
+  .join('||')
+
+const armorRepresentativeEquivalentItem = (
+  item: PublicArmorSetRelatedItem,
+  candidates: PublicArmorSetRelatedItem[],
+) => {
+  const sameEquivalentItems = candidates.filter((candidate) => (
+    armorPieceRole(candidate) === armorPieceRole(item)
+    && armorEquivalentItemKey(candidate) === armorEquivalentItemKey(item)
+    && armorPieceDefense(candidate) === armorPieceDefense(item)
+  ))
+  return sameEquivalentItems
+    .slice()
+    .sort((left, right) => {
+      const leftEffectCount = armorBuildPieceEffectLines(left).length
+      const rightEffectCount = armorBuildPieceEffectLines(right).length
+      if (leftEffectCount !== rightEffectCount) return rightEffectCount - leftEffectCount
+      if (armorItemLooksAncient(left) !== armorItemLooksAncient(right)) return armorItemLooksAncient(left) ? 1 : -1
+      return armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN')
+    })[0] ?? item
+}
+
+const armorMergeEquivalentBuildGroups = (buildGroups: ArmorBuildGroup[]) => {
+  const allItems = buildGroups.flatMap((buildGroup) => buildGroup.variantItems)
+  const groups = new Map<string, ArmorBuildGroup[]>()
+  for (const buildGroup of buildGroups) {
+    const key = armorExplicitVariantBuildGroupKey(buildGroup.variantItems)
+    groups.set(key, [...(groups.get(key) ?? []), buildGroup])
+  }
+
+  return [...groups.values()].map((group) => {
+    const primary = group[0]
+    if (!primary || group.length === 1) return primary
+    const variantItems = primary.variantItems.map((item) => armorRepresentativeEquivalentItem(item, allItems))
+    const variantItem = variantItems.find((item) => armorPieceRole(item) === primary.variantRole) ?? variantItems[0]
+    return {
+      ...primary,
+      key: `merged-${primary.key}`,
+      title: `${variantItem ? armorPieceName(variantItem) : primary.title}（可互换）`,
+      variantItems,
+    }
+  }).filter((group): group is ArmorBuildGroup => Boolean(group))
+}
+
+const armorExplicitVariantBuildGroups = (uniqueItems: PublicArmorSetRelatedItem[]): ArmorBuildGroup[] => {
   const groups = new Map<number, PublicArmorSetRelatedItem[]>()
   for (const item of uniqueItems) {
     const variantIndex = armorSetVariantIndex(item)
@@ -713,7 +779,7 @@ const armorExplicitVariantBuildGroups = (uniqueItems: PublicArmorSetRelatedItem[
   }
   if (groups.size <= 1) return []
 
-  return [...groups.entries()]
+  const buildGroups = [...groups.entries()]
     .sort(([left], [right]) => left - right)
     .map(([variantIndex, items]) => {
       const sortedItems = items.slice().sort((left, right) => {
@@ -732,6 +798,7 @@ const armorExplicitVariantBuildGroups = (uniqueItems: PublicArmorSetRelatedItem[
         variantItems: sortedItems,
       }
     })
+  return armorMergeEquivalentBuildGroups(buildGroups)
 }
 
 const armorFullSetBuildGroup = (uniqueItems: PublicArmorSetRelatedItem[]) => [{
@@ -932,6 +999,39 @@ const armorBenefitNamedPieceEffectLines = (item: PublicArmorSetRelatedItem) => {
   return dedupeEffectLines(result)
 }
 
+const armorCompactPieceEffectLines = (lines: string[]) => {
+  const dedupedLines = dedupeEffectLines(lines)
+  const critGroups = new Map<string, string[]>()
+  for (const line of dedupedLines) {
+    const match = line.match(/^\s*([+\-−]?\d+(?:\.\d+)?\s*%?)\s*(近战|远程|魔法)?暴击率\s*$/)
+    if (!match) continue
+    const value = normalizeEffectLine(match[1] ?? '')
+    if (!value) continue
+    critGroups.set(value, [...(critGroups.get(value) ?? []), line])
+  }
+
+  const dropLines = new Set<string>()
+  const addLines: string[] = []
+  for (const linesForValue of critGroups.values()) {
+    const specificLines = linesForValue.filter((line) => /近战|远程|魔法/.test(line))
+    const genericLines = linesForValue.filter((line) => !/近战|远程|魔法/.test(line))
+    if (specificLines.length >= 3) {
+      for (const line of linesForValue) dropLines.add(line)
+      const fallbackLine = specificLines[0]
+      if (fallbackLine) addLines.push(genericLines[0] ?? fallbackLine.replace(/(近战|远程|魔法)/, ''))
+      continue
+    }
+    if (specificLines.length && genericLines.length) {
+      for (const line of genericLines) dropLines.add(line)
+    }
+  }
+
+  return dedupeEffectLines([
+    ...dedupedLines.filter((line) => !dropLines.has(line)),
+    ...addLines,
+  ])
+}
+
 const armorFallbackLeadingFixedPieceEffectLines = (item: PublicArmorSetRelatedItem) => {
   if (armorHasVariantBuilds.value) return []
   const uniqueItems = uniqueArmorItems(armorRelatedItems.value)
@@ -956,7 +1056,7 @@ const armorBuildPieceEffectLines = (item: PublicArmorSetRelatedItem) => {
   const linkedLines = mergeEffectLines(
     armorShownEffects.value.filter((effect) => effectSourceKind(effect) === 'piece' && effectBelongsToItem(effect, item)),
   )
-  return dedupeEffectLines([
+  return armorCompactPieceEffectLines([
     ...itemEffectLines,
     ...linkedLines,
     ...armorBenefitNamedPieceEffectLines(item),
