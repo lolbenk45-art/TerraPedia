@@ -125,6 +125,7 @@ const playerEffectDescription = (effect: EquipmentEffectAttribute) => (
 )
 
 const effectVariantLabel = (effect: EquipmentEffectAttribute) => String(effect.variantLabel ?? '').trim()
+const effectRawText = (effect: EquipmentEffectAttribute) => String(effect.rawText ?? '').trim()
 
 const armorIdentityAliases = (value: string) => {
   const trimmed = String(value ?? '').trim()
@@ -383,6 +384,9 @@ const armorVariantBuilds = computed(() => {
 })
 
 const effectSummaryLine = (effect: EquipmentEffectAttribute) => {
+  const rawText = effectRawText(effect)
+  if (rawText) return rawText
+
   const value = formatEffectValue(effect)
   const label = statName(effect)
   const description = playerEffectDescription(effect)

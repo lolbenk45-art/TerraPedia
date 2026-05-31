@@ -28,6 +28,8 @@ const requiredMarkers = [
   'buildGroup.headItems',
   '...buildGroup.headItems',
   'effectVariantAliases.some',
+  'effectRawText',
+  'if (rawText) return rawText',
 ]
 
 const missing = requiredMarkers.filter((marker) => !source.includes(marker))
