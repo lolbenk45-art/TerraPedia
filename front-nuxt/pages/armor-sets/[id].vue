@@ -2,6 +2,14 @@
 import { usePublicArmorSetDetail } from '~/composables/usePublicArmorSetDetail'
 import type { EquipmentEffectAttribute, PublicArmorSetListItem, PublicArmorSetRelatedItem } from '~/types/public-api'
 
+type ArmorBuildTotalEntry = {
+  key: string
+  statKey: string
+  label: string
+  value: string
+  rawValue: number
+}
+
 const route = useRoute()
 const detailLayout = useDetailLayout({ kind: 'armor-set', density: 'readable' })
 const armorClientReady = ref(false)
@@ -614,6 +622,22 @@ const armorBuildSetBonusLines = (variantItems: PublicArmorSetRelatedItem[]) => (
     .filter((line) => !armorBenefitLineIsAttributeSummary(line))
 )
 
+const armorDefaultBuildSetBonusLines = (buildItems: PublicArmorSetRelatedItem[]) => {
+  const effectLines = armorShownEffects.value
+    .filter((effect) => {
+      if (effectVariantLabel(effect)) return false
+      if (effectSourceKind(effect) === 'set') return true
+      if (effectSourceKind(effect) === 'piece') return buildItems.some((item) => effectBelongsToItem(effect, item))
+      return false
+    })
+    .filter((effect) => {
+      const value = armorEffectNumericValue(effect)
+      const statKey = armorEffectTotalStatKey(effect)
+      return value == null || !statKey || statKey === 'special_effect'
+    })
+  return mergeEffectLines(effectLines)
+}
+
 const armorVariantBenefitLineKeys = computed(() => {
   const keys = new Set<string>()
   for (const item of uniqueArmorItems(armorRelatedItems.value)) {
@@ -683,14 +707,14 @@ const armorEffectTotalLabel = (effect: EquipmentEffectAttribute) => {
   return rawLabel || statName(effect)
 }
 
-const armorCombinedBuildTotals = (buildItems: PublicArmorSetRelatedItem[], variantItems: PublicArmorSetRelatedItem[]) => {
+const armorCombinedBuildTotals = (buildItems: PublicArmorSetRelatedItem[], variantItems: PublicArmorSetRelatedItem[]): ArmorBuildTotalEntry[] => {
   const relevantEffects = armorShownEffects.value.filter((effect) => {
     const variantLabel = effectVariantLabel(effect)
     if (variantLabel) return variantItems.some((item) => effectBelongsToItem(effect, item))
     if (effectSourceKind(effect) === 'set') return true
     return buildItems.some((item) => effectBelongsToItem(effect, item))
   })
-  const totals = new Map<string, { key: string, label: string, unit: string | null | undefined, value: number }>()
+  const totals = new Map<string, { key: string, statKey: string, label: string, unit: string | null | undefined, value: number }>()
 
   for (const effect of relevantEffects) {
     const value = armorEffectNumericValue(effect)
@@ -703,6 +727,7 @@ const armorCombinedBuildTotals = (buildItems: PublicArmorSetRelatedItem[], varia
     const current = totals.get(key)
     totals.set(key, {
       key,
+      statKey,
       label,
       unit,
       value: (current?.value ?? 0) + value,
@@ -711,7 +736,37 @@ const armorCombinedBuildTotals = (buildItems: PublicArmorSetRelatedItem[], varia
 
   return [...totals.values()]
     .filter((entry) => entry.value !== 0)
-    .map((entry) => `${formatArmorTotalValue(entry.value, entry.unit)} ${entry.label}`)
+    .map((entry) => ({
+      key: entry.key,
+      statKey: entry.statKey,
+      label: entry.label,
+      value: formatArmorTotalValue(entry.value, entry.unit),
+      rawValue: entry.value,
+    }))
+}
+
+const armorBuildTotalEntries = (
+  buildItems: PublicArmorSetRelatedItem[],
+  variantItems: PublicArmorSetRelatedItem[],
+  defense: ReturnType<typeof armorBuildDefenseSummary>,
+) => {
+  const combinedEntries = armorCombinedBuildTotals(buildItems, variantItems)
+  const totalEntries = combinedEntries.filter((entry) => entry.statKey !== 'defense')
+  const defenseBonus = combinedEntries
+    .filter((entry) => entry.statKey === 'defense')
+    .reduce((sum, entry) => sum + entry.rawValue, 0)
+  const pieceDefenseTotal = Number(defense.total)
+  if (Number.isFinite(pieceDefenseTotal)) {
+    const finalDefenseTotal = pieceDefenseTotal + defenseBonus
+    totalEntries.unshift({
+      key: 'defense:flat:total',
+      statKey: 'defense',
+      label: '防御',
+      value: String(finalDefenseTotal),
+      rawValue: finalDefenseTotal,
+    })
+  }
+  return totalEntries
 }
 
 const armorFixedEffects = (uniqueItems: PublicArmorSetRelatedItem[], variantRoles: Set<string>) => {
@@ -751,6 +806,11 @@ const armorFixedBonusGroups = computed(() => {
     { key: 'attribute', label: '属性加成', tone: 'is-attribute', entries: attributeEntries },
     { key: 'description', label: '效果说明', tone: 'is-description', entries: descriptionEntries },
   ].filter((group) => group.entries.length)
+})
+
+const armorHasVariantBuilds = computed(() => {
+  const uniqueItems = uniqueArmorItems(armorRelatedItems.value)
+  return armorVariantRoles(uniqueItems).size > 0
 })
 
 const armorBuildDefenseSummary = (buildItems: PublicArmorSetRelatedItem[]) => {
@@ -800,17 +860,20 @@ const armorSetBuildCards = computed(() => {
       ...uniqueItems.filter((item) => !variantRoles.has(armorPieceRole(item))),
     ].sort((left, right) => armorPieceRoleOrder(armorPieceRole(left)) - armorPieceRoleOrder(armorPieceRole(right)) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
     const stats = armorBuildVariantStats(buildGroup)
-    const bonusLines = armorBuildSetBonusLines(buildGroup.variantItems)
-    const totalLines = armorCombinedBuildTotals(items, buildGroup.variantItems)
+    const bonusLines = buildGroup.key === 'default-full-set'
+      ? armorDefaultBuildSetBonusLines(items)
+      : armorBuildSetBonusLines(buildGroup.variantItems)
+    const defense = armorBuildDefenseSummary(items)
     return {
       key: buildGroup.key,
       title: buildGroup.title,
       variantRole: buildGroup.variantRole,
       items,
-      defense: armorBuildDefenseSummary(items),
+      defense,
       stats,
       statGroups: armorBuildVariantEffectGroups(stats),
-      bonusLines: dedupeEffectLines([...totalLines.map((line) => `合计加成：${line}`), ...bonusLines]),
+      totalEntries: armorBuildTotalEntries(items, buildGroup.variantItems, defense),
+      bonusLines,
     }
   })
 })
@@ -956,7 +1019,7 @@ onMounted(() => {
                 <b>防御</b>
                 <b>构筑差异</b>
               </div>
-              <section v-if="armorFixedBonusLines.length" class="armor-build-row armor-fixed-bonus-row">
+              <section v-if="armorHasVariantBuilds && armorFixedBonusLines.length" class="armor-build-row armor-fixed-bonus-row">
                 <div class="armor-build-cell armor-build-title-cell">
                   <strong>全套固定</strong>
                 </div>
@@ -1009,8 +1072,15 @@ onMounted(() => {
                     </span>
                   </div>
                 </div>
-                <div v-if="build.bonusLines.length" class="armor-set-bonus-lines">
+                <div v-if="build.totalEntries.length || build.bonusLines.length" class="armor-set-bonus-lines">
                   <strong>套装效果</strong>
+                  <div v-if="build.totalEntries.length" class="armor-build-total-entries" aria-label="合计加成">
+                    <span class="armor-build-total-title">合计加成</span>
+                    <span v-for="entry in build.totalEntries" :key="`${build.key}-total-${entry.key}`" class="armor-build-total-entry">
+                      <mark class="armor-highlight-number">{{ entry.value }}</mark>
+                      <b>{{ entry.label }}</b>
+                    </span>
+                  </div>
                   <p v-for="line in build.bonusLines" :key="`${build.key}-bonus-${line}`" class="armor-set-bonus-line">
                     <template v-for="segment in armorHighlightedTextSegments(line)" :key="`${build.key}-${line}-${segment.key}`">
                       <mark v-if="segment.highlight" class="armor-highlight-number">{{ segment.text }}</mark>
@@ -1440,6 +1510,38 @@ onMounted(() => {
   font-size: 10px;
   font-weight: 900;
   line-height: 1.2;
+}
+
+.armor-build-total-entries {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+  min-width: 0;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(244, 234, 208, 0.08);
+}
+
+.armor-build-total-title {
+  color: rgba(166, 200, 176, 0.9);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.armor-build-total-entry {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+  padding: 2px 6px;
+  border: 1px solid rgba(244, 234, 208, 0.09);
+  border-radius: 6px;
+  background: rgba(244, 234, 208, 0.035);
+  color: rgba(226, 236, 224, 0.95);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.3;
 }
 
 .armor-set-bonus-line {
