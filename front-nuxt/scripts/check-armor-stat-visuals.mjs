@@ -33,6 +33,7 @@ const requiredMarkers = [
   'armorExplicitVariantBuildGroups',
   'armorMergeEquivalentBuildGroups',
   'armorEquivalentItemKey',
+  'armorEquivalentDisplayName',
   'armorCompactPieceEffectLines',
   'armorSetVariantIndex',
   'armorPartIndex',

@@ -17,6 +17,9 @@ type ArmorBuildGroup = {
   variantRole: string
   variantItems: PublicArmorSetRelatedItem[]
 }
+type ArmorBuildDisplayItem = PublicArmorSetRelatedItem & {
+  displayName?: string
+}
 
 const route = useRoute()
 const detailLayout = useDetailLayout({ kind: 'armor-set', density: 'readable' })
@@ -197,7 +200,7 @@ const armorItemIdentityAliases = (item: PublicArmorSetRelatedItem) => dedupeEffe
 ])
 
 const armorPieceName = (item: PublicArmorSetRelatedItem) => (
-  item.nameZh || item.name || '套装部件'
+  (item as ArmorBuildDisplayItem).displayName || item.nameZh || item.name || '套装部件'
 )
 
 const armorPieceRole = (item: PublicArmorSetRelatedItem) => {
@@ -416,6 +419,24 @@ const armorEquivalentItemKey = (item: PublicArmorSetRelatedItem) => normalizeMat
 const armorItemLooksAncient = (item: PublicArmorSetRelatedItem) => (
   /^远古/.test(armorPieceName(item)) || /^Ancient/i.test(String(item.name ?? item.internalName ?? ''))
 )
+
+const armorCurrentSetPrefersAncient = () => /^远古|^Ancient/i.test(armorTitle.value)
+
+const armorEquivalentDisplayName = (item: PublicArmorSetRelatedItem, candidates: PublicArmorSetRelatedItem[]) => {
+  const sameEquivalentItems = candidates.filter((candidate) => (
+    armorPieceRole(candidate) === armorPieceRole(item)
+    && armorEquivalentItemKey(candidate) === armorEquivalentItemKey(item)
+    && armorPieceDefense(candidate) === armorPieceDefense(item)
+  ))
+  if (sameEquivalentItems.length <= 1) return armorPieceName(item)
+
+  const ancientItems = sameEquivalentItems.filter(armorItemLooksAncient)
+  const normalItems = sameEquivalentItems.filter((candidate) => !armorItemLooksAncient(candidate))
+  const orderedItems = armorCurrentSetPrefersAncient()
+    ? [...ancientItems, ...normalItems]
+    : [...normalItems, ...ancientItems]
+  return dedupeEffectLines(orderedItems.map(armorPieceName)).join(' / ') || armorPieceName(item)
+}
 
 const normalizeMatchText = (value: string) => value
   .toLowerCase()
@@ -740,6 +761,9 @@ const armorRepresentativeEquivalentItem = (
   return sameEquivalentItems
     .slice()
     .sort((left, right) => {
+      if (armorPieceRole(left) === '头部' && armorItemLooksAncient(left) !== armorItemLooksAncient(right)) {
+        return armorCurrentSetPrefersAncient() === armorItemLooksAncient(left) ? -1 : 1
+      }
       const leftEffectCount = armorBuildPieceEffectLines(left).length
       const rightEffectCount = armorBuildPieceEffectLines(right).length
       if (leftEffectCount !== rightEffectCount) return rightEffectCount - leftEffectCount
@@ -759,7 +783,16 @@ const armorMergeEquivalentBuildGroups = (buildGroups: ArmorBuildGroup[]) => {
   return [...groups.values()].map((group) => {
     const primary = group[0]
     if (!primary || group.length === 1) return primary
-    const variantItems = primary.variantItems.map((item) => armorRepresentativeEquivalentItem(item, allItems))
+    const variantItems = primary.variantItems.map((item) => {
+      const representative = armorRepresentativeEquivalentItem(item, allItems)
+      const displayName = armorPieceRole(item) === '头部'
+        ? armorPieceName(representative)
+        : armorEquivalentDisplayName(item, allItems)
+      return {
+        ...representative,
+        displayName,
+      } as ArmorBuildDisplayItem
+    })
     const variantItem = variantItems.find((item) => armorPieceRole(item) === primary.variantRole) ?? variantItems[0]
     return {
       ...primary,
