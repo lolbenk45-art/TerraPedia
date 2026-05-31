@@ -407,16 +407,24 @@ function armorDefinitionKeyFromBenefitExpression(value) {
     .trim() ?? null;
 }
 
+function addArmorDefinitionIndexEntry(index, key, definition) {
+  if (!key) return;
+  if (!index.has(key)) {
+    index.set(key, []);
+  }
+  index.get(key).push(definition);
+}
+
 function buildArmorDefinitionLookup(maintArmorSets = []) {
   const byBaseTitle = new Map();
   const byBenefitName = new Map();
   const byTextKey = new Map();
+  const all = [];
 
   for (const row of maintArmorSets) {
     const sets = asSetList(row.sets_json ?? row.setsJson);
     const uniqueItemIds = asNumberList(row.unique_item_ids_json ?? row.uniqueItemIdsJson);
     if (!sets.length || !uniqueItemIds.length) continue;
-    const definition = { sets, uniqueItemIds };
     const raw = parseJson(row.raw_json ?? row.rawJson, {});
     const titleKey = normalizeArmorDefinitionKey(
       raw?.nameEn
@@ -428,18 +436,20 @@ function buildArmorDefinitionLookup(maintArmorSets = []) {
     );
     const benefitKey = armorDefinitionKeyFromBenefitExpression(row.benefit_expression ?? row.benefitExpression);
     const textKey = normalizeText(row.text_key ?? row.textKey);
+    const definition = { textKey, sets, uniqueItemIds, titleKey, benefitKey };
+    all.push(definition);
 
-    if (titleKey) byBaseTitle.set(titleKey, definition);
-    if (benefitKey) byBenefitName.set(benefitKey, definition);
-    if (textKey) byTextKey.set(textKey, definition);
+    addArmorDefinitionIndexEntry(byBaseTitle, titleKey, definition);
+    addArmorDefinitionIndexEntry(byBenefitName, benefitKey, definition);
+    addArmorDefinitionIndexEntry(byTextKey, textKey, definition);
     if (textKey) {
       const textName = textKey.replace(/^ArmorSetBonus\./, '');
       const normalizedTextKey = normalizeNameKey(textName);
-      if (normalizedTextKey) byBenefitName.set(normalizedTextKey, definition);
+      addArmorDefinitionIndexEntry(byBenefitName, normalizedTextKey, definition);
     }
   }
 
-  return { byBaseTitle, byBenefitName, byTextKey };
+  return { all, byBaseTitle, byBenefitName, byTextKey };
 }
 
 function buildArmorDefinitionMapLookup(armorSetDefinitionMap = null) {
@@ -460,14 +470,159 @@ function buildArmorDefinitionMapLookup(armorSetDefinitionMap = null) {
   return byName;
 }
 
-function findArmorDefinitionForWikiRecord(record, definitionLookup, definitionMapLookup) {
+function armorDefinitionPositiveIds(definition) {
+  return stableUnique((definition?.uniqueItemIds ?? []).filter((sourceId) => sourceId > 0));
+}
+
+function armorDefinitionOverlap(definition, sourceIds) {
+  const positiveIds = armorDefinitionPositiveIds(definition);
+  const overlapIds = positiveIds.filter((sourceId) => sourceIds.has(sourceId));
+  return { positiveIds, overlapIds };
+}
+
+function itemEntryForSourceId(sourceId, itemBySourceId) {
+  const itemRow = itemBySourceId.get(sourceId);
+  if (!itemRow) return null;
+  return {
+    item: itemRow,
+    sourceId,
+    slot: pickSlot(itemRow)
+  };
+}
+
+function sourceIdsForRoles(sourceIds, itemBySourceId, roles) {
+  const allowedRoles = new Set(roles);
+  const ids = new Set();
+  for (const sourceId of sourceIds) {
+    const entry = itemEntryForSourceId(sourceId, itemBySourceId);
+    if (entry && allowedRoles.has(entry.slot.partRole)) {
+      ids.add(sourceId);
+    }
+  }
+  return ids;
+}
+
+function armorDefinitionRoleIds(definition, itemBySourceId, roles) {
+  return sourceIdsForRoles(armorDefinitionPositiveIds(definition), itemBySourceId, roles);
+}
+
+function countSharedIds(left, right) {
+  let count = 0;
+  for (const value of left) {
+    if (right.has(value)) count += 1;
+  }
+  return count;
+}
+
+function uniqueDefinitions(definitions = []) {
+  const seen = new Set();
+  const result = [];
+  for (const definition of definitions) {
+    const key = definition?.textKey ?? JSON.stringify(definition?.uniqueItemIds ?? []);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    result.push(definition);
+  }
+  return result;
+}
+
+function definitionsFromIndex(index, key) {
+  return key && index.has(key) ? index.get(key) : [];
+}
+
+function findArmorDefinitionBundleForWikiRecord(record, definitionLookup, definitionMapLookup, setItems, itemBySourceId) {
   const baseKey = normalizeArmorDefinitionKey(record.pageTitle);
   const nameKey = normalizeArmorDefinitionKey(record.nameZh ?? record.pageTitle);
   const mappedTextKey = (nameKey && definitionMapLookup.get(nameKey)) || (baseKey && definitionMapLookup.get(baseKey));
-  if (mappedTextKey && definitionLookup.byTextKey.has(mappedTextKey)) return definitionLookup.byTextKey.get(mappedTextKey);
-  if (baseKey && definitionLookup.byBaseTitle.has(baseKey)) return definitionLookup.byBaseTitle.get(baseKey);
-  if (baseKey && definitionLookup.byBenefitName.has(baseKey)) return definitionLookup.byBenefitName.get(baseKey);
-  return null;
+  const candidateSourceIds = new Set(setItems.map((entry) => entry.sourceId));
+  const hasPageCandidates = candidateSourceIds.size > 0;
+  const seedDefinitions = [];
+  let hasDirectMappedSeed = false;
+
+  for (const definition of definitionsFromIndex(definitionLookup.byTextKey, mappedTextKey)) {
+    const { overlapIds } = armorDefinitionOverlap(definition, candidateSourceIds);
+    if (!hasPageCandidates || overlapIds.length > 0) {
+      seedDefinitions.push(definition);
+      hasDirectMappedSeed = true;
+    }
+  }
+  seedDefinitions.push(
+    ...definitionsFromIndex(definitionLookup.byBaseTitle, baseKey),
+    ...definitionsFromIndex(definitionLookup.byBenefitName, baseKey)
+  );
+
+  for (const definition of definitionLookup.all ?? []) {
+    const { positiveIds, overlapIds } = armorDefinitionOverlap(definition, candidateSourceIds);
+    if (positiveIds.length >= 3 && overlapIds.length >= Math.min(3, positiveIds.length)) {
+      seedDefinitions.push(definition);
+    }
+  }
+
+  const selected = uniqueDefinitions(seedDefinitions);
+  if (selected.length === 0) {
+    return null;
+  }
+
+  const selectedTextKeys = new Set(selected.map((definition) => definition.textKey).filter(Boolean));
+  const selectedBodyLegIds = () => {
+    const ids = new Set();
+    for (const definition of selected) {
+      for (const sourceId of armorDefinitionRoleIds(definition, itemBySourceId, ['body', 'legs'])) {
+        ids.add(sourceId);
+      }
+    }
+    return ids;
+  };
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const bodyLegIds = selectedBodyLegIds();
+    for (const definition of definitionLookup.all ?? []) {
+      if (!definition.textKey || selectedTextKeys.has(definition.textKey)) {
+        continue;
+      }
+      const { positiveIds, overlapIds } = armorDefinitionOverlap(definition, candidateSourceIds);
+      if (positiveIds.length < 3 || overlapIds.length === 0) {
+        continue;
+      }
+      const definitionBodyLegIds = armorDefinitionRoleIds(definition, itemBySourceId, ['body', 'legs']);
+      const sharedBodyLegCount = countSharedIds(definitionBodyLegIds, bodyLegIds);
+      if (sharedBodyLegCount >= 2 || (sharedBodyLegCount > 0 && overlapIds.length === positiveIds.length)) {
+        selected.push(definition);
+        selectedTextKeys.add(definition.textKey);
+        changed = true;
+      }
+    }
+  }
+
+  const sets = [];
+  const setSignatures = new Set();
+  const shouldFilterSets = !hasDirectMappedSeed
+    || recordLooksLikeEquivalentArmorFamily(record)
+    || buildInterchangeableFamilyTitles(record).length > 1;
+  for (const definition of selected) {
+    for (const set of definition.sets) {
+      const normalizedSet = set.map((sourceId) => toNullableNumber(sourceId) ?? 0);
+      const positiveSetIds = normalizedSet.filter((sourceId) => sourceId > 0);
+      if (positiveSetIds.length === 0) continue;
+      if (shouldFilterSets && hasPageCandidates && !positiveSetIds.some((sourceId) => candidateSourceIds.has(sourceId))) continue;
+      const signature = normalizedSet.join('|');
+      if (setSignatures.has(signature)) continue;
+      setSignatures.add(signature);
+      sets.push(normalizedSet);
+    }
+  }
+
+  const positiveUniqueItemIds = stableUnique(sets.flat().filter((sourceId) => sourceId > 0));
+  if (sets.length === 0 || positiveUniqueItemIds.length === 0) {
+    return null;
+  }
+  return {
+    definitions: selected,
+    sets,
+    uniqueItemIds: positiveUniqueItemIds
+  };
 }
 
 function toMysqlDateTime(value) {
@@ -720,8 +875,8 @@ function buildWikiArmorSetRelations({
     const setItems = compositionKind === 'traditional_set'
       ? findWikiArmorItems(record, slotItems)
       : findWikiSinglePieceArmorSetItem(record, slotItems);
-    const mappedDefinition = compositionKind === 'traditional_set'
-      ? findArmorDefinitionForWikiRecord(record, definitionLookup, definitionMapLookup)
+    const mappedDefinitionBundle = compositionKind === 'traditional_set'
+      ? findArmorDefinitionBundleForWikiRecord(record, definitionLookup, definitionMapLookup, setItems, itemBySourceId)
       : null;
     const itemsByRole = new Map();
     for (const entry of setItems) {
@@ -734,16 +889,16 @@ function buildWikiArmorSetRelations({
     const groups = ['head', 'body', 'legs']
       .map((role) => ({ role, items: itemsByRole.get(role) ?? [] }))
       .filter((group) => group.items.length > 0);
-    const variants = mappedDefinition?.sets?.length
-      ? mappedDefinition.sets
+    const variants = mappedDefinitionBundle?.sets?.length
+      ? mappedDefinitionBundle.sets
       : compositionKind === 'traditional_set'
         ? cartesianArmorSets(groups)
         : setItems.map((entry) => [entry.sourceId]);
-    const uniqueItemIds = mappedDefinition?.uniqueItemIds?.length
-      ? mappedDefinition.uniqueItemIds
+    const uniqueItemIds = mappedDefinitionBundle?.uniqueItemIds?.length
+      ? mappedDefinitionBundle.uniqueItemIds
       : stableUnique(setItems.map((entry) => entry.sourceId));
-    const effectiveSetItems = mappedDefinition?.uniqueItemIds?.length
-      ? mappedDefinition.uniqueItemIds
+    const effectiveSetItems = mappedDefinitionBundle?.uniqueItemIds?.length
+      ? mappedDefinitionBundle.uniqueItemIds
         .map((sourceId) => {
           const itemRow = itemBySourceId.get(sourceId);
           if (!itemRow) return null;
@@ -756,7 +911,7 @@ function buildWikiArmorSetRelations({
         .filter((entry) => entry && entry.slot.partRole !== 'unknown')
       : setItems;
     const equivalenceContext = compositionKind === 'traditional_set'
-      ? buildArmorEquivalenceContext(record, effectiveSetItems, { hasMappedDefinition: Boolean(mappedDefinition?.sets?.length) })
+      ? buildArmorEquivalenceContext(record, effectiveSetItems, { hasMappedDefinition: Boolean(mappedDefinitionBundle?.sets?.length) })
       : { enabled: false, keyBySourceId: new Map(), entriesByKey: new Map() };
     const effectiveVariants = collapseEquivalentCartesianVariants({ variants, equivalenceContext });
     const expandedVariantEntries = effectiveVariants.map((variant) => expandEquivalentVariantEntries(

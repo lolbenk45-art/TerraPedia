@@ -903,6 +903,101 @@ test('buildProjectionPayload maps armor set relations into projection armor sets
   assert.equal(JSON.parse(actual.projectionArmorSets[0].relatedItemsJson)[0].image, null);
 });
 
+test('buildProjectionPayload preserves Hallowed same-slot alternatives across projected build groups', () => {
+  const hallowedPieces = [
+    { id: 4873, internalName: 'HallowedHood', name: 'Hallowed Hood', nameZh: '神圣兜帽', role: 'head', slot: 'headSlot' },
+    { id: 4899, internalName: 'AncientHallowedHood', name: 'Ancient Hallowed Hood', nameZh: '远古神圣兜帽', role: 'head', slot: 'headSlot' },
+    { id: 558, internalName: 'HallowedHeadgear', name: 'Hallowed Headgear', nameZh: '神圣头饰', role: 'head', slot: 'headSlot' },
+    { id: 4898, internalName: 'AncientHallowedHeadgear', name: 'Ancient Hallowed Headgear', nameZh: '远古神圣头饰', role: 'head', slot: 'headSlot' },
+    { id: 553, internalName: 'HallowedHelmet', name: 'Hallowed Helmet', nameZh: '神圣头盔', role: 'head', slot: 'headSlot' },
+    { id: 4897, internalName: 'AncientHallowedHelmet', name: 'Ancient Hallowed Helmet', nameZh: '远古神圣头盔', role: 'head', slot: 'headSlot' },
+    { id: 559, internalName: 'HallowedMask', name: 'Hallowed Mask', nameZh: '神圣面具', role: 'head', slot: 'headSlot' },
+    { id: 4896, internalName: 'AncientHallowedMask', name: 'Ancient Hallowed Mask', nameZh: '远古神圣面具', role: 'head', slot: 'headSlot' },
+    { id: 551, internalName: 'HallowedPlateMail', name: 'Hallowed Plate Mail', nameZh: '神圣板甲', role: 'body', slot: 'bodySlot' },
+    { id: 4900, internalName: 'AncientHallowedPlateMail', name: 'Ancient Hallowed Plate Mail', nameZh: '远古神圣板甲', role: 'body', slot: 'bodySlot' },
+    { id: 552, internalName: 'HallowedGreaves', name: 'Hallowed Greaves', nameZh: '神圣护胫', role: 'legs', slot: 'legSlot' },
+    { id: 4901, internalName: 'AncientHallowedGreaves', name: 'Ancient Hallowed Greaves', nameZh: '远古神圣护胫', role: 'legs', slot: 'legSlot' }
+  ];
+  const pieceById = new Map(hallowedPieces.map((piece) => [piece.id, piece]));
+  const buildSets = [
+    [4873, 4899, 551, 4900, 552, 4901],
+    [558, 4898, 551, 4900, 552, 4901],
+    [553, 4897, 551, 4900, 552, 4901],
+    [559, 4896, 551, 4900, 552, 4901]
+  ];
+  const partIndexByRole = new Map([
+    ['head', 0],
+    ['body', 1],
+    ['legs', 2]
+  ]);
+
+  const actual = buildProjectionPayload({
+    relationItems: hallowedPieces.map((piece) => ({
+      sourceId: piece.id,
+      recordKey: `item-${piece.internalName}`,
+      internalName: piece.internalName,
+      englishName: piece.name,
+      nameZh: piece.nameZh,
+      rawJson: '{}'
+    })),
+    relationArmorSets: [
+      {
+        recordKey: 'wiki-hallowed-rk',
+        id: 2879750981,
+        textKey: 'WikiArmorSet.Hallowed armor',
+        benefitExpression: 'WikiArmorSet.Hallowed armor',
+        primaryPart: 'Head',
+        setCount: 4,
+        uniqueItemCount: 12,
+        setsJson: JSON.stringify(buildSets),
+        uniqueItemIdsJson: JSON.stringify([...new Set(buildSets.flat())]),
+        rawJson: JSON.stringify({
+          pageTitle: 'Hallowed armor',
+          nameEn: 'Hallowed armor',
+          nameZh: '神圣盔甲'
+        })
+      }
+    ],
+    relationArmorSetItems: buildSets.flatMap((set, setVariantIndex) => set.map((itemSourceId) => {
+      const piece = pieceById.get(itemSourceId);
+      return {
+        armorSetRecordKey: 'wiki-hallowed-rk',
+        itemSourceId,
+        itemInternalName: piece.internalName,
+        itemName: piece.name,
+        partRole: piece.role,
+        slotType: piece.slot,
+        equipmentSlotId: itemSourceId,
+        setVariantIndex,
+        partIndex: partIndexByRole.get(piece.role)
+      };
+    }))
+  });
+
+  const row = actual.projectionArmorSets[0];
+  const relatedItems = JSON.parse(row.relatedItemsJson);
+  const headItems = relatedItems.filter((item) => item.partRole === 'head');
+  const variants = new Map();
+  for (const item of relatedItems) {
+    const variant = variants.get(item.setVariantIndex) ?? new Map();
+    const part = variant.get(item.partIndex) ?? [];
+    part.push(item);
+    variant.set(item.partIndex, part);
+    variants.set(item.setVariantIndex, variant);
+  }
+
+  assert.equal(row.setCount, 4);
+  assert.equal(relatedItems.length, 24);
+  assert.equal(headItems.length, 8);
+  assert.deepEqual(JSON.parse(row.currentItemIdsJson), [4873, 4899, 551, 4900, 552, 4901, 558, 4898, 553, 4897, 559, 4896]);
+  assert.deepEqual(JSON.parse(row.setsJson), buildSets);
+  assert.equal(variants.size, 4);
+  for (const variant of variants.values()) {
+    assert.deepEqual([...variant.keys()], [0, 1, 2]);
+    assert.deepEqual([...variant.values()].map((part) => part.length), [2, 2, 2]);
+  }
+});
+
 test('validateProjectionArmorSetConsistency rejects related armor items outside set identity fields', () => {
   const issues = validateProjectionArmorSetConsistency([
     {

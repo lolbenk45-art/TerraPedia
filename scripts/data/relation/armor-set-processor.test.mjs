@@ -42,9 +42,12 @@ const hallowedItems = [
   item(558, 'HallowedHeadgear', 'Hallowed Headgear', { headSlot: 56 }),
   item(553, 'HallowedHelmet', 'Hallowed Helmet', { headSlot: 53 }),
   item(559, 'HallowedMask', 'Hallowed Mask', { headSlot: 57 }),
+  item(4873, 'HallowedHood', 'Hallowed Hood', { headSlot: 254 }),
   item(4898, 'AncientHallowedHeadgear', 'Ancient Hallowed Headgear', { headSlot: 249 }),
   item(4897, 'AncientHallowedHelmet', 'Ancient Hallowed Helmet', { headSlot: 248 }),
   item(4896, 'AncientHallowedMask', 'Ancient Hallowed Mask', { headSlot: 247 }),
+  item(4899, 'AncientHallowedHood', 'Ancient Hallowed Hood', { headSlot: 258 }),
+  item(5660, 'HallowedCrown', 'Hallowed Crown', { headSlot: 289 }),
   item(551, 'HallowedPlateMail', 'Hallowed Plate Mail', { bodySlot: 24 }),
   item(4900, 'AncientHallowedPlateMail', 'Ancient Hallowed Plate Mail', { bodySlot: 250 }),
   item(552, 'HallowedGreaves', 'Hallowed Greaves', { legSlot: 23 }),
@@ -73,6 +76,32 @@ function hallowedMaintSet() {
     ...baseTrace
   };
 }
+
+function hallowedSummonerMaintSet() {
+  return {
+    id: 45,
+    record_key: 'hallowed-summoner-maint-key',
+    text_key: 'ArmorSetBonus.HallowedSummoner',
+    benefit_expression: 'ArmorSetBonuses.Benefits.HallowedSummoner',
+    primary_part: 'Head',
+    set_count: 8,
+    unique_item_count: 6,
+    sets_json: JSON.stringify([
+      [4873, 551, 552], [4873, 551, 4901], [4873, 4900, 552], [4873, 4900, 4901],
+      [4899, 551, 552], [4899, 551, 4901], [4899, 4900, 552], [4899, 4900, 4901]
+    ]),
+    unique_item_ids_json: JSON.stringify([4873, 551, 552, 4901, 4900, 4899]),
+    raw_json: '{}',
+    ...baseTrace
+  };
+}
+
+const hallowedCompleteSets = [
+  [558, 4898, 551, 4900, 552, 4901],
+  [553, 4897, 551, 4900, 552, 4901],
+  [559, 4896, 551, 4900, 552, 4901],
+  [4873, 4899, 551, 4900, 552, 4901]
+];
 
 test('buildArmorSetRelations expands armor set variants into slot-aware item rows', () => {
   const actual = buildArmorSetRelations({
@@ -495,6 +524,302 @@ test('buildArmorSetRelations does not expand equivalent Ancient Hallowed swaps i
   assert.equal(actual.relationArmorSetItems.length, 18);
   assert.ok(actual.relationArmorSetItems.some((row) => row.itemSourceId === 551));
   assert.ok(actual.relationArmorSetItems.some((row) => row.itemSourceId === 4900));
+});
+
+test('buildArmorSetRelations bundles split Hallowed definitions and excludes nearby non-page armor items', () => {
+  const actual = buildArmorSetRelations({
+    wikiArmorSets: [
+      {
+        pageTitle: 'Hallowed armor',
+        nameZh: '神圣盔甲',
+        section: 'hardmode',
+        compositionKind: 'traditional_set',
+        effectText: [
+          '+7% 伤害',
+          '每个部件都可以和远古神圣盔甲的部件互换',
+          '神圣兜帽：+10% 召唤伤害、+1 仆从容量',
+          '神圣头饰：+12% 魔法伤害',
+          '神圣头盔：+15% 远程伤害',
+          '神圣面具：+10% 近战伤害'
+        ].join('\n'),
+        interchangeableSetTitles: ['Ancient Hallowed armor'],
+        images: []
+      }
+    ],
+    armorSetDefinitionMap: {
+      records: {
+        51: {
+          name: '神圣盔甲',
+          internalCode: '神圣盔甲',
+          definition: null
+        },
+        hallowed: {
+          name: 'ArmorSetBonus.Hallowed',
+          internalCode: 'ArmorSetBonus.Hallowed',
+          definition: { textKey: 'ArmorSetBonus.Hallowed' }
+        },
+        hallowedSummoner: {
+          name: 'ArmorSetBonus.HallowedSummoner',
+          internalCode: 'ArmorSetBonus.HallowedSummoner',
+          definition: { textKey: 'ArmorSetBonus.HallowedSummoner' }
+        }
+      }
+    },
+    maintArmorSets: [
+      hallowedMaintSet(),
+      hallowedSummonerMaintSet()
+    ],
+    maintItems: hallowedItems
+  });
+
+  assert.equal(actual.relationArmorSets.length, 1);
+  assert.equal(actual.relationArmorSets[0].setCount, 4);
+  assert.deepEqual(JSON.parse(actual.relationArmorSets[0].setsJson), hallowedCompleteSets);
+  assert.equal(actual.relationArmorSetItems.length, 24);
+  assert.ok(actual.relationArmorSetItems.some((row) => row.itemSourceId === 4873));
+  assert.ok(actual.relationArmorSetItems.some((row) => row.itemSourceId === 4899));
+  assert.ok(!actual.relationArmorSetItems.some((row) => row.itemSourceId === 5660));
+});
+
+test('buildArmorSetRelations bundles split Ancient Hallowed definitions and excludes nearby non-page armor items', () => {
+  const actual = buildArmorSetRelations({
+    wikiArmorSets: [
+      {
+        pageTitle: 'Ancient Hallowed armor',
+        nameZh: '远古神圣盔甲',
+        section: 'hardmode',
+        compositionKind: 'traditional_set',
+        effectText: [
+          '+7% 伤害',
+          '每个部件都可以和神圣盔甲的部件互换',
+          '远古神圣兜帽：+10% 召唤伤害、+1 仆从容量',
+          '远古神圣头饰：+12% 魔法伤害',
+          '远古神圣头盔：+15% 远程伤害',
+          '远古神圣面具：+10% 近战伤害'
+        ].join('\n'),
+        interchangeableSetTitles: ['Hallowed armor'],
+        images: []
+      }
+    ],
+    armorSetDefinitionMap: {
+      records: {
+        52: {
+          name: '远古神圣盔甲',
+          internalCode: '远古神圣盔甲',
+          definition: null
+        },
+        hallowed: {
+          name: 'ArmorSetBonus.Hallowed',
+          internalCode: 'ArmorSetBonus.Hallowed',
+          definition: { textKey: 'ArmorSetBonus.Hallowed' }
+        },
+        hallowedSummoner: {
+          name: 'ArmorSetBonus.HallowedSummoner',
+          internalCode: 'ArmorSetBonus.HallowedSummoner',
+          definition: { textKey: 'ArmorSetBonus.HallowedSummoner' }
+        }
+      }
+    },
+    maintArmorSets: [
+      hallowedMaintSet(),
+      hallowedSummonerMaintSet()
+    ],
+    maintItems: hallowedItems
+  });
+
+  assert.equal(actual.relationArmorSets.length, 1);
+  assert.equal(actual.relationArmorSets[0].setCount, 4);
+  assert.deepEqual(JSON.parse(actual.relationArmorSets[0].setsJson), hallowedCompleteSets);
+  assert.equal(actual.relationArmorSetItems.length, 24);
+  assert.ok(actual.relationArmorSetItems.some((row) => row.itemSourceId === 4873));
+  assert.ok(actual.relationArmorSetItems.some((row) => row.itemSourceId === 4899));
+  assert.ok(!actual.relationArmorSetItems.some((row) => row.itemSourceId === 5660));
+});
+
+test('buildArmorSetRelations rejects a mapped broad wood definition when wiki page candidates belong to Shadow armor', () => {
+  const actual = buildArmorSetRelations({
+    wikiArmorSets: [
+      {
+        pageTitle: 'Shadow armor',
+        nameZh: '暗影盔甲',
+        section: 'pre-hardmode',
+        compositionKind: 'traditional_set',
+        effectText: '+15% 暴击率\n每个部件都可以和远古暗影盔甲的部件互换',
+        interchangeableSetTitles: ['Ancient shadow armor'],
+        images: []
+      }
+    ],
+    armorSetDefinitionMap: {
+      records: {
+        20: {
+          name: '暗影盔甲',
+          internalCode: '暗影盔甲',
+          definition: { textKey: 'ArmorSetBonus.Wood' }
+        }
+      }
+    },
+    maintArmorSets: [
+      {
+        id: 42,
+        record_key: 'wood-maint-key',
+        text_key: 'ArmorSetBonus.Wood',
+        benefit_expression: 'ArmorSetBonuses.Benefits.Wood',
+        set_count: 2,
+        unique_item_count: 6,
+        sets_json: JSON.stringify([
+          [727, 728, 729],
+          [924, 925, 926]
+        ]),
+        unique_item_ids_json: JSON.stringify([727, 728, 729, 924, 925, 926]),
+        raw_json: '{}',
+        ...baseTrace
+      },
+      {
+        id: 43,
+        record_key: 'shadow-maint-key',
+        text_key: 'ArmorSetBonus.ShadowScale',
+        benefit_expression: 'ArmorSetBonuses.Benefits.ShadowScale',
+        set_count: 8,
+        unique_item_count: 6,
+        sets_json: JSON.stringify([
+          [102, 101, 100], [102, 101, 958], [102, 957, 100], [102, 957, 958],
+          [956, 101, 100], [956, 101, 958], [956, 957, 100], [956, 957, 958]
+        ]),
+        unique_item_ids_json: JSON.stringify([102, 101, 100, 958, 957, 956]),
+        raw_json: '{}',
+        ...baseTrace
+      }
+    ],
+    maintItems: [
+      item(727, 'WoodHelmet', 'Wood Helmet', { headSlot: 52 }),
+      item(728, 'WoodBreastplate', 'Wood Breastplate', { bodySlot: 32 }),
+      item(729, 'WoodGreaves', 'Wood Greaves', { legSlot: 31 }),
+      item(924, 'ShadewoodHelmet', 'Shadewood Helmet', { headSlot: 159 }),
+      item(925, 'ShadewoodBreastplate', 'Shadewood Breastplate', { bodySlot: 82 }),
+      item(926, 'ShadewoodGreaves', 'Shadewood Greaves', { legSlot: 75 }),
+      item(102, 'ShadowHelmet', 'Shadow Helmet', { headSlot: 38 }),
+      item(101, 'ShadowScalemail', 'Shadow Scalemail', { bodySlot: 7 }),
+      item(100, 'ShadowGreaves', 'Shadow Greaves', { legSlot: 6 }),
+      item(956, 'AncientShadowHelmet', 'Ancient Shadow Helmet', { headSlot: 39 }),
+      item(957, 'AncientShadowScalemail', 'Ancient Shadow Scalemail', { bodySlot: 7 }),
+      item(958, 'AncientShadowGreaves', 'Ancient Shadow Greaves', { legSlot: 6 })
+    ]
+  });
+
+  assert.equal(actual.relationArmorSets[0].setCount, 1);
+  assert.deepEqual(JSON.parse(actual.relationArmorSets[0].setsJson), [[102, 956, 101, 957, 100, 958]]);
+  assert.equal(actual.relationArmorSetItems.length, 6);
+  assert.ok(!actual.relationArmorSetItems.some((row) => row.itemSourceId === 727));
+  assert.ok(!actual.relationArmorSetItems.some((row) => row.itemSourceId === 924));
+});
+
+test('buildArmorSetRelations filters broad metal definitions to page family and ancient head alternatives', () => {
+  const cases = [
+    {
+      pageTitle: 'Gold armor',
+      nameZh: '金盔甲',
+      mappedTextKey: 'ArmorSetBonus.MetalTier2',
+      effectText: '套装奖励：+3 防御\n远古金头盔和金头盔可以互换',
+      maintSet: {
+        text_key: 'ArmorSetBonus.MetalTier2',
+        benefit_expression: 'ArmorSetBonuses.Benefits.MetalTier2',
+        sets_json: JSON.stringify([
+          [91, 82, 78],
+          [92, 83, 79],
+          [955, 83, 79],
+          [690, 691, 692],
+          [693, 694, 695]
+        ]),
+        unique_item_ids_json: JSON.stringify([91, 82, 78, 92, 83, 79, 955, 690, 691, 692, 693, 694, 695])
+      },
+      items: [
+        item(91, 'SilverHelmet', 'Silver Helmet', { headSlot: 15 }),
+        item(82, 'SilverChainmail', 'Silver Chainmail', { bodySlot: 3 }),
+        item(78, 'SilverGreaves', 'Silver Greaves', { legSlot: 2 }),
+        item(92, 'GoldHelmet', 'Gold Helmet', { headSlot: 16 }),
+        item(83, 'GoldChainmail', 'Gold Chainmail', { bodySlot: 4 }),
+        item(79, 'GoldGreaves', 'Gold Greaves', { legSlot: 3 }),
+        item(955, 'AncientGoldHelmet', 'Ancient Gold Helmet', { headSlot: 38 }),
+        item(690, 'LeadHelmet', 'Lead Helmet', { headSlot: 66 }),
+        item(691, 'LeadChainmail', 'Lead Chainmail', { bodySlot: 40 }),
+        item(692, 'LeadGreaves', 'Lead Greaves', { legSlot: 39 }),
+        item(693, 'TungstenHelmet', 'Tungsten Helmet', { headSlot: 67 }),
+        item(694, 'TungstenChainmail', 'Tungsten Chainmail', { bodySlot: 41 }),
+        item(695, 'TungstenGreaves', 'Tungsten Greaves', { legSlot: 40 })
+      ],
+      expectedSets: [[92, 955, 83, 79]]
+    },
+    {
+      pageTitle: 'Iron armor',
+      nameZh: '铁盔甲',
+      mappedTextKey: 'ArmorSetBonus.MetalTier1',
+      effectText: '套装奖励：+2 防御\n远古铁头盔和铁头盔可以互换',
+      maintSet: {
+        text_key: 'ArmorSetBonus.MetalTier1',
+        benefit_expression: 'ArmorSetBonuses.Benefits.MetalTier1',
+        sets_json: JSON.stringify([
+          [89, 80, 76],
+          [687, 688, 689],
+          [90, 81, 77],
+          [954, 81, 77]
+        ]),
+        unique_item_ids_json: JSON.stringify([89, 80, 76, 687, 688, 689, 90, 81, 77, 954])
+      },
+      items: [
+        item(89, 'CopperHelmet', 'Copper Helmet', { headSlot: 1 }),
+        item(80, 'CopperChainmail', 'Copper Chainmail', { bodySlot: 1 }),
+        item(76, 'CopperGreaves', 'Copper Greaves', { legSlot: 1 }),
+        item(687, 'TinHelmet', 'Tin Helmet', { headSlot: 62 }),
+        item(688, 'TinChainmail', 'Tin Chainmail', { bodySlot: 36 }),
+        item(689, 'TinGreaves', 'Tin Greaves', { legSlot: 35 }),
+        item(90, 'IronHelmet', 'Iron Helmet', { headSlot: 2 }),
+        item(81, 'IronChainmail', 'Iron Chainmail', { bodySlot: 2 }),
+        item(77, 'IronGreaves', 'Iron Greaves', { legSlot: 1 }),
+        item(954, 'AncientIronHelmet', 'Ancient Iron Helmet', { headSlot: 37 })
+      ],
+      expectedSets: [[90, 954, 81, 77]]
+    }
+  ];
+
+  for (const fixture of cases) {
+    const actual = buildArmorSetRelations({
+      wikiArmorSets: [
+        {
+          pageTitle: fixture.pageTitle,
+          nameZh: fixture.nameZh,
+          section: 'pre-hardmode',
+          compositionKind: 'traditional_set',
+          effectText: fixture.effectText,
+          images: []
+        }
+      ],
+      armorSetDefinitionMap: {
+        records: {
+          1: {
+            name: fixture.nameZh,
+            internalCode: fixture.nameZh,
+            definition: { textKey: fixture.mappedTextKey }
+          }
+        }
+      },
+      maintArmorSets: [
+        {
+          id: 50,
+          record_key: `${fixture.mappedTextKey}-key`,
+          set_count: JSON.parse(fixture.maintSet.sets_json).length,
+          unique_item_count: JSON.parse(fixture.maintSet.unique_item_ids_json).length,
+          raw_json: '{}',
+          ...fixture.maintSet,
+          ...baseTrace
+        }
+      ],
+      maintItems: fixture.items
+    });
+
+    assert.equal(actual.relationArmorSets[0].setCount, 1, fixture.pageTitle);
+    assert.deepEqual(JSON.parse(actual.relationArmorSets[0].setsJson), fixture.expectedSets, fixture.pageTitle);
+    assert.equal(actual.relationArmorSetItems.length, fixture.expectedSets[0].length, fixture.pageTitle);
+  }
 });
 
 test('buildArmorSetRelations does not expand fully equivalent two-set interchangeable families', () => {

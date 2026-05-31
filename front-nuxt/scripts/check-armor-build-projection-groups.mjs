@@ -16,14 +16,14 @@ const item = (name, role, variant, part, extra = {}) => ({
 })
 
 const hallowed = [
-  item('神圣头饰', '头部', 0, 0),
-  item('远古神圣头饰', '头部', 0, 0),
+  item('神圣兜帽', '头部', 0, 0),
+  item('远古神圣兜帽', '头部', 0, 0),
   item('神圣板甲', '身体', 0, 1),
   item('远古神圣板甲', '身体', 0, 1),
   item('神圣护胫', '腿部', 0, 2),
   item('远古神圣护胫', '腿部', 0, 2),
-  item('神圣面具', '头部', 1, 0),
-  item('远古神圣面具', '头部', 1, 0),
+  item('神圣头饰', '头部', 1, 0),
+  item('远古神圣头饰', '头部', 1, 0),
   item('神圣板甲', '身体', 1, 1),
   item('远古神圣板甲', '身体', 1, 1),
   item('神圣护胫', '腿部', 1, 2),
@@ -34,10 +34,22 @@ const hallowed = [
   item('远古神圣板甲', '身体', 2, 1),
   item('神圣护胫', '腿部', 2, 2),
   item('远古神圣护胫', '腿部', 2, 2),
+  item('神圣面具', '头部', 3, 0),
+  item('远古神圣面具', '头部', 3, 0),
+  item('神圣板甲', '身体', 3, 1),
+  item('远古神圣板甲', '身体', 3, 1),
+  item('神圣护胫', '腿部', 3, 2),
+  item('远古神圣护胫', '腿部', 3, 2),
 ]
 
 const hallowedGroups = createArmorSetBuildGroups(hallowed)
-assert.equal(hallowedGroups.length, 3, 'Hallowed should keep backend build count instead of expanding alternatives')
+assert.equal(hallowed.length, 24, 'Hallowed projection fixture should expose all relation rows')
+assert.equal(hallowedGroups.length, 4, 'Hallowed should keep backend build count instead of expanding alternatives')
+assert.equal(
+  hallowedGroups.flatMap((group) => group.partGroups.filter((part) => part.role === '头部').flatMap((part) => part.alternatives)).length,
+  8,
+  'Hallowed should expose two head alternatives for each of four projected builds',
+)
 for (const group of hallowedGroups) {
   assert.equal(group.partGroups.length, 3, 'each Hallowed build should have head/body/legs slots')
   assert.deepEqual(group.partGroups.map((part) => part.alternatives.length), [2, 2, 2], 'each Hallowed slot should expose normal/ancient alternatives')
