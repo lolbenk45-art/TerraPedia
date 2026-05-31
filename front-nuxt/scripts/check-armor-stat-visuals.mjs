@@ -21,7 +21,13 @@ const requiredMarkers = [
   'effectVariantLabel',
   'effectMatchesItemIdentity',
   'armorItemIdentityAliases',
-  'armorBuildCardStats(headItem, commonItems)',
+  'armorIdentityAliases',
+  'armorVariantBuildGroups',
+  'armorVariantBuildGroups(headItems).map',
+  'armorBuildCardStats(buildGroup, commonItems)',
+  'buildGroup.headItems',
+  '...buildGroup.headItems',
+  'effectVariantAliases.some',
 ]
 
 const missing = requiredMarkers.filter((marker) => !source.includes(marker))
@@ -36,6 +42,7 @@ const forbiddenMarkers = [
   'armor-equipment-board',
   'class="armor-benefit"',
   'armorBenefitLines.length',
+  'armorBuildCardStats(headItem, commonItems)',
 ]
 const presentForbidden = forbiddenMarkers.filter((marker) => source.includes(marker))
 

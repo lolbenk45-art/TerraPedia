@@ -126,29 +126,29 @@ const playerEffectDescription = (effect: EquipmentEffectAttribute) => (
 
 const effectVariantLabel = (effect: EquipmentEffectAttribute) => String(effect.variantLabel ?? '').trim()
 
-const armorItemIdentityAliases = (item: PublicArmorSetRelatedItem) => {
+const armorIdentityAliases = (value: string) => {
+  const trimmed = String(value ?? '').trim()
+  if (!trimmed) return []
+
   const aliases = [
-    item.internalName,
-    item.nameZh,
-    item.name,
+    trimmed,
   ]
 
-  if (/^Ancient/i.test(String(item.internalName ?? ''))) {
-    aliases.push(String(item.internalName ?? '').replace(/^Ancient/, ''))
-  }
-
-  if (/^远古/.test(String(item.nameZh ?? ''))) {
-    aliases.push(String(item.nameZh ?? '').replace(/^远古/, ''))
-  }
-
-  if (/^Ancient\s+/i.test(String(item.name ?? ''))) {
-    aliases.push(String(item.name ?? '').replace(/^Ancient\s+/i, ''))
-  }
+  aliases.push(trimmed.replace(/^Ancient\s*/i, ''))
+  aliases.push(trimmed.replace(/^远古/, ''))
+  if (!/^Ancient/i.test(trimmed) && /^[A-Z]/.test(trimmed)) aliases.push(`${trimmed.includes(' ') ? 'Ancient ' : 'Ancient'}${trimmed}`)
+  if (!/^远古/.test(trimmed) && /[\u4e00-\u9fff]/.test(trimmed)) aliases.push(`远古${trimmed}`)
 
   return aliases
     .map((value) => normalizeMatchText(String(value ?? '').trim()))
     .filter((value) => value.length >= 2)
 }
+
+const armorItemIdentityAliases = (item: PublicArmorSetRelatedItem) => dedupeEffectLines([
+  ...armorIdentityAliases(String(item.internalName ?? '')),
+  ...armorIdentityAliases(String(item.nameZh ?? '')),
+  ...armorIdentityAliases(String(item.name ?? '')),
+])
 
 const armorPieceName = (item: PublicArmorSetRelatedItem) => (
   item.nameZh || item.name || '套装部件'
@@ -470,9 +470,10 @@ const effectBelongsToItem = (effect: EquipmentEffectAttribute, item: PublicArmor
 const effectMatchesItemIdentity = (effect: EquipmentEffectAttribute, item: PublicArmorSetRelatedItem) => {
   const itemNames = armorItemIdentityAliases(item)
 
-  const variantLabel = normalizeMatchText(effectVariantLabel(effect))
+  const variantLabel = effectVariantLabel(effect)
   if (variantLabel) {
-    return itemNames.includes(variantLabel)
+    const effectVariantAliases = armorIdentityAliases(variantLabel)
+    return effectVariantAliases.some((alias) => itemNames.includes(alias))
   }
 
   const linkedItem = statLinkedItem(effect)
@@ -526,11 +527,37 @@ const uniqueArmorItems = (items: PublicArmorSetRelatedItem[]) => {
   return result
 }
 
-const armorBuildCardStats = (headItem: PublicArmorSetRelatedItem, commonItems: PublicArmorSetRelatedItem[]) => {
-  const items = [headItem, ...commonItems]
+const armorVariantBuildGroups = (headItems: PublicArmorSetRelatedItem[]) => {
+  const variantLabels = dedupeEffectLines(armorShownEffects.value
+    .map(effectVariantLabel)
+    .filter(Boolean))
+    .filter((label) => headItems.some((item) => effectMatchesItemIdentity({ variantLabel: label } as EquipmentEffectAttribute, item)))
+
+  if (!variantLabels.length) {
+    return headItems.map((headItem) => ({
+      key: String(headItem.itemId ?? headItem.sourceId ?? headItem.internalName ?? armorPieceName(headItem)),
+      title: armorPieceName(headItem),
+      headItems: [headItem],
+    }))
+  }
+
+  return variantLabels.map((variantLabel) => {
+    const matchingHeads = headItems.filter((item) => effectMatchesItemIdentity({ variantLabel } as EquipmentEffectAttribute, item))
+    const primaryHead = matchingHeads[0]
+
+    return {
+      key: normalizeMatchText(variantLabel),
+      title: primaryHead ? armorPieceName(primaryHead) : variantLabel,
+      headItems: matchingHeads,
+    }
+  }).filter((buildGroup) => buildGroup.headItems.length)
+}
+
+const armorBuildCardStats = (buildGroup: { headItems: PublicArmorSetRelatedItem[] }, commonItems: PublicArmorSetRelatedItem[]) => {
+  const items = [...buildGroup.headItems, ...commonItems]
   const itemEffects = armorShownEffects.value.filter((effect) => {
     const variantLabel = effectVariantLabel(effect)
-    if (variantLabel) return effectBelongsToItem(effect, headItem)
+    if (variantLabel) return buildGroup.headItems.some((headItem) => effectBelongsToItem(effect, headItem))
     return items.some((item) => effectBelongsToItem(effect, item))
   })
   const setEffects = armorShownEffects.value.filter((effect) => effectSourceKind(effect) === 'set')
@@ -549,13 +576,13 @@ const armorSetBuildCards = computed(() => {
     .filter((item) => armorPieceRole(item) === '头部'))
     .sort((left, right) => armorHeadVariantOrder(left) - armorHeadVariantOrder(right) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
 
-  return headItems.map((headItem) => {
-    const items = [headItem, ...commonItems]
+  return armorVariantBuildGroups(headItems).map((buildGroup) => {
+    const items = [...buildGroup.headItems, ...commonItems]
     return {
-      key: String(headItem.itemId ?? headItem.sourceId ?? headItem.internalName ?? armorPieceName(headItem)),
-      title: armorPieceName(headItem),
+      key: buildGroup.key,
+      title: buildGroup.title,
       items,
-      stats: armorBuildCardStats(headItem, commonItems),
+      stats: armorBuildCardStats(buildGroup, commonItems),
     }
   })
 })
