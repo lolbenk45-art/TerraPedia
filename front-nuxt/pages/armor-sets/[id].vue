@@ -66,6 +66,12 @@ const formatEffectValue = (effect: EquipmentEffectAttribute) => {
   return `${numeric > 0 ? '+' : ''}${numeric}`
 }
 
+const formatArmorTotalValue = (value: number, unit: string | null | undefined) => {
+  if (unit === 'percent') return `${value > 0 ? '+' : ''}${value}%`
+  if (unit === 'multiplier') return `×${value}`
+  return `${value > 0 ? '+' : ''}${value}`
+}
+
 const effectToneClass = (effect: EquipmentEffectAttribute) => {
   const key = String(effect.statKey ?? '')
   if (/damage|crit|melee|summon|ammo/.test(key)) return 'is-offense'
@@ -445,28 +451,6 @@ const armorFixedBonusEntry = (effect: EquipmentEffectAttribute, index: number) =
   }
 }
 
-const armorCommonPieceLines = computed(() => {
-  const commonItems = armorRelatedItems.value.filter((item) => armorPieceRole(item) !== '头部')
-  const commonKeys = commonItems.map((item) => normalizeMatchText([
-    item.nameZh,
-    item.name,
-    item.internalName,
-  ].map((value) => String(value ?? '').trim()).filter(Boolean).join(' '))).filter(Boolean)
-
-  return mergeEffectLines(armorShownEffects.value.filter((effect) => {
-    if (effectSourceKind(effect) !== 'piece') return false
-    const linkedItem = statLinkedItem(effect)
-    if (linkedItem && commonItems.some((item) => item === linkedItem)) return true
-    const text = normalizeMatchText([
-      effect.rawText,
-      effect.conditionText,
-      effect.variantLabel,
-      effect.itemInternalName,
-    ].map((value) => String(value ?? '').trim()).filter(Boolean).join(' '))
-    return commonKeys.some((key) => text.includes(key))
-  }))
-})
-
 const armorSetRewardLines = computed(() => mergeEffectLines(armorShownEffects.value.filter((effect) => effectSourceKind(effect) === 'set')))
 const armorSetEffectLines = computed(() => armorBenefitLines.value.filter((line) => /套装|奖励|效果|bonus/i.test(line)))
 const armorFallbackBenefitLines = computed(() => {
@@ -480,12 +464,6 @@ const armorHeroSummary = computed(() => {
   if (effectLines.length) return effectLines.join(' · ')
   return armorFallbackBenefitLines.value[0] || '该套装的数值资料正在整理中。'
 })
-
-const armorEquipmentCardStats = (item: PublicArmorSetRelatedItem) => {
-  const effects = armorShownEffects.value.filter((effect) => statLinkedItem(effect) === item)
-  const lines = mergeEffectLines(effects)
-  return lines.length ? lines : ['暂无独立属性']
-}
 
 const effectBelongsToItem = (effect: EquipmentEffectAttribute, item: PublicArmorSetRelatedItem) => {
   if (effectSourceKind(effect) !== 'piece') return false
@@ -522,20 +500,6 @@ const effectMatchesItemIdentity = (effect: EquipmentEffectAttribute, item: Publi
     .some((name) => text.includes(name))
 }
 
-const armorEquipmentGroups = computed(() => {
-  const commonItems = armorRelatedItems.value
-    .filter((item) => armorPieceRole(item) !== '头部')
-    .sort((left, right) => armorPieceRoleOrder(armorPieceRole(left)) - armorPieceRoleOrder(armorPieceRole(right)) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
-  const variableItems = armorRelatedItems.value
-    .filter((item) => armorPieceRole(item) === '头部')
-    .sort((left, right) => armorHeadVariantOrder(left) - armorHeadVariantOrder(right) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
-
-  return [
-    { key: 'set', label: '套装', items: commonItems },
-    { key: 'variant', label: '可替换部件', items: variableItems },
-  ].filter((group) => group.items.length)
-})
-
 const uniqueArmorItems = (items: PublicArmorSetRelatedItem[]) => {
   const seen = new Set<string>()
   const result: PublicArmorSetRelatedItem[] = []
@@ -553,14 +517,29 @@ const uniqueArmorItems = (items: PublicArmorSetRelatedItem[]) => {
   return result
 }
 
+const armorVariantLabels = (uniqueItems: PublicArmorSetRelatedItem[]) => dedupeEffectLines(armorShownEffects.value
+  .map(effectVariantLabel)
+  .filter(Boolean))
+  .filter((label) => uniqueItems.some((item) => effectMatchesItemIdentity({ variantLabel: label } as EquipmentEffectAttribute, item)))
+
+const armorVariantRoles = (uniqueItems: PublicArmorSetRelatedItem[]) => {
+  const roles = new Set<string>()
+  for (const label of armorVariantLabels(uniqueItems)) {
+    for (const item of uniqueItems) {
+      if (effectMatchesItemIdentity({ variantLabel: label } as EquipmentEffectAttribute, item)) roles.add(armorPieceRole(item))
+    }
+  }
+  for (const group of armorPieceGroups.value) {
+    if (group.items.length > 1) roles.add(group.role)
+  }
+  return roles
+}
+
 const armorVariantBuildGroups = (uniqueItems: PublicArmorSetRelatedItem[]) => {
-  const variantLabels = dedupeEffectLines(armorShownEffects.value
-    .map(effectVariantLabel)
-    .filter(Boolean))
-    .filter((label) => uniqueItems.some((item) => effectMatchesItemIdentity({ variantLabel: label } as EquipmentEffectAttribute, item)))
+  const variantLabels = armorVariantLabels(uniqueItems)
 
   if (!variantLabels.length) {
-    return armorPieceGroups.value
+    const variantGroups = armorPieceGroups.value
       .filter((group) => group.items.length > 1)
       .flatMap((group) => group.items.map((item) => ({
         key: String(item.itemId ?? item.sourceId ?? item.internalName ?? armorPieceName(item)),
@@ -568,6 +547,8 @@ const armorVariantBuildGroups = (uniqueItems: PublicArmorSetRelatedItem[]) => {
         variantRole: group.role,
         variantItems: [item],
       })))
+    if (variantGroups.length) return variantGroups
+    return armorFullSetBuildGroup(uniqueItems)
   }
 
   return variantLabels.map((variantLabel) => {
@@ -582,6 +563,13 @@ const armorVariantBuildGroups = (uniqueItems: PublicArmorSetRelatedItem[]) => {
     }
   }).filter((buildGroup) => buildGroup.variantItems.length)
 }
+
+const armorFullSetBuildGroup = (uniqueItems: PublicArmorSetRelatedItem[]) => [{
+  key: 'default-full-set',
+  title: '完整套装',
+  variantRole: '套装',
+  variantItems: uniqueItems,
+}]
 
 const armorBenefitVariantLines = (variantItems: PublicArmorSetRelatedItem[]) => {
   const lines = armorBenefitLines.value
@@ -653,8 +641,7 @@ const armorBuildVariantStats = (buildGroup: { variantItems: PublicArmorSetRelate
   }))
   const benefitLines = armorBenefitVariantLines(buildGroup.variantItems)
     .filter((line) => armorBenefitLineIsAttributeSummary(line))
-  const merged = dedupeEffectLines([...structuredLines, ...benefitLines])
-  return merged.length ? merged : ['暂无构筑差异属性']
+  return dedupeEffectLines([...structuredLines, ...benefitLines])
 }
 
 const armorBuildVariantEffectGroups = (lines: string[]) => {
@@ -670,26 +657,82 @@ const armorBuildVariantEffectGroups = (lines: string[]) => {
   ].filter((group) => group.entries.length)
 }
 
-const armorFixedBonusLines = computed(() => {
-  const commonItems = uniqueArmorItems(armorRelatedItems.value
-    .filter((item) => armorPieceRole(item) !== '头部'))
-  const fixedEffects = armorShownEffects.value.filter((effect) => {
+const armorEffectNumericValue = (effect: EquipmentEffectAttribute) => {
+  const value = Number(effect.valueDecimal)
+  if (Number.isFinite(value)) return value
+  const rawText = effectRawText(effect)
+  if (!armorLineLooksLikePlainAttribute(rawText)) return null
+  const match = rawText.match(/^\s*([+\-−]?\d+(?:\.\d+)?)\s*(%?)/)
+  const rawValue = Number(match?.[1]?.replace('−', '-') ?? '')
+  return Number.isFinite(rawValue) ? rawValue : null
+}
+
+const armorEffectTotalStatKey = (effect: EquipmentEffectAttribute) => {
+  const statKey = String(effect.statKey ?? '')
+  if (statKey && statKey !== 'special_effect') return statKey
+  const rawText = effectRawText(effect)
+  return armorLineLooksLikePlainAttribute(rawText) ? fallbackStatKey(rawText) : statKey
+}
+
+const armorEffectTotalLabel = (effect: EquipmentEffectAttribute) => {
+  const rawText = effectRawText(effect)
+  const rawLabel = rawText
+    .replace(/^[+\-−]?\d+(?:\.\d+)?\s*%?\s*/, '')
+    .replace(/[（(].*?[）)]/g, '')
+    .trim()
+  return rawLabel || statName(effect)
+}
+
+const armorCombinedBuildTotals = (buildItems: PublicArmorSetRelatedItem[], variantItems: PublicArmorSetRelatedItem[]) => {
+  const relevantEffects = armorShownEffects.value.filter((effect) => {
+    const variantLabel = effectVariantLabel(effect)
+    if (variantLabel) return variantItems.some((item) => effectBelongsToItem(effect, item))
+    if (effectSourceKind(effect) === 'set') return true
+    return buildItems.some((item) => effectBelongsToItem(effect, item))
+  })
+  const totals = new Map<string, { key: string, label: string, unit: string | null | undefined, value: number }>()
+
+  for (const effect of relevantEffects) {
+    const value = armorEffectNumericValue(effect)
+    if (value == null) continue
+    const statKey = armorEffectTotalStatKey(effect)
+    if (!statKey || statKey === 'special_effect') continue
+    const unit = effect.unit
+    const label = armorEffectTotalLabel(effect)
+    const key = `${statKey}:${unit ?? ''}:${normalizeEffectLine(label)}`
+    const current = totals.get(key)
+    totals.set(key, {
+      key,
+      label,
+      unit,
+      value: (current?.value ?? 0) + value,
+    })
+  }
+
+  return [...totals.values()]
+    .filter((entry) => entry.value !== 0)
+    .map((entry) => `${formatArmorTotalValue(entry.value, entry.unit)} ${entry.label}`)
+}
+
+const armorFixedEffects = (uniqueItems: PublicArmorSetRelatedItem[], variantRoles: Set<string>) => {
+  const fixedItems = uniqueItems.filter((item) => !variantRoles.has(armorPieceRole(item)))
+  return armorShownEffects.value.filter((effect) => {
     if (effectSourceKind(effect) === 'set') return true
     if (effectVariantLabel(effect)) return false
-    return commonItems.some((item) => effectBelongsToItem(effect, item))
+    return fixedItems.some((item) => effectBelongsToItem(effect, item))
   })
+}
+
+const armorFixedBonusLines = computed(() => {
+  const uniqueItems = uniqueArmorItems(armorRelatedItems.value)
+  const fixedEffects = armorFixedEffects(uniqueItems, armorVariantRoles(uniqueItems))
   return mergeEffectLines(fixedEffects)
     .filter((line) => !armorLineBelongsToVariantBenefit(line))
 })
 
 const armorFixedBonusGroups = computed(() => {
-  const commonItems = uniqueArmorItems(armorRelatedItems.value
-    .filter((item) => armorPieceRole(item) !== '头部'))
-  const fixedEffects = armorShownEffects.value.filter((effect) => {
-    if (effectSourceKind(effect) === 'set') return true
-    if (effectVariantLabel(effect)) return false
-    return commonItems.some((item) => effectBelongsToItem(effect, item))
-  })
+  const uniqueItems = uniqueArmorItems(armorRelatedItems.value)
+  const fixedEffects = armorFixedEffects(uniqueItems, armorVariantRoles(uniqueItems))
   const entries = fixedEffects
     .map(armorFixedBonusEntry)
     .filter((entry) => entry.text)
@@ -758,6 +801,7 @@ const armorSetBuildCards = computed(() => {
     ].sort((left, right) => armorPieceRoleOrder(armorPieceRole(left)) - armorPieceRoleOrder(armorPieceRole(right)) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
     const stats = armorBuildVariantStats(buildGroup)
     const bonusLines = armorBuildSetBonusLines(buildGroup.variantItems)
+    const totalLines = armorCombinedBuildTotals(items, buildGroup.variantItems)
     return {
       key: buildGroup.key,
       title: buildGroup.title,
@@ -766,7 +810,7 @@ const armorSetBuildCards = computed(() => {
       defense: armorBuildDefenseSummary(items),
       stats,
       statGroups: armorBuildVariantEffectGroups(stats),
-      bonusLines,
+      bonusLines: dedupeEffectLines([...totalLines.map((line) => `合计加成：${line}`), ...bonusLines]),
     }
   })
 })
@@ -917,7 +961,7 @@ onMounted(() => {
                   <strong>全套固定</strong>
                 </div>
                 <div class="armor-build-cell">
-                  <span>胸甲 / 腿部 / 套装</span>
+                  <span>固定部件 / 套装</span>
                 </div>
                 <div class="armor-build-cell armor-build-defense-formula">
                   <span>公共</span>
