@@ -31,6 +31,7 @@ const statLabels: Record<string, string> = {
   minion_capacity: '仆从',
   ammo_conservation: '弹药节省',
   defense: '防御',
+  threat: '仇恨',
   mana_max: '魔力',
   mana_cost: '魔耗',
   mining_speed: '挖矿',
@@ -203,6 +204,7 @@ const fallbackStatKey = (line: string) => {
   if (/移动|速度/.test(line)) return 'move_speed'
   if (/召唤|仆从|哨兵/.test(line)) return 'summon_damage'
   if (/魔力|魔耗|消耗/.test(line)) return 'mana_cost'
+  if (/仇恨/.test(line)) return 'threat'
   if (/伤害/.test(line)) return 'damage_bonus'
   return 'special_effect'
 }
@@ -211,7 +213,7 @@ const fallbackStatLabel = (line: string) => statLabels[fallbackStatKey(line)] ??
 
 const armorBenefitFallbackEffects = computed<EquipmentEffectAttribute[]>(() => armorBenefitLines.value
   .map((line) => {
-    const match = line.match(/([+\-−]?\d+(?:\.\d+)?)\s*(%?)\s*([^，、；;（）()]*)/)
+    const match = line.match(/^\s*([+\-−]?\d+(?:\.\d+)?)\s*(%?)\s*([^，、；;（）()]*)/)
     const normalizedValue = match?.[1]?.replace('−', '-') ?? ''
     const numeric = Number(normalizedValue)
     return {
@@ -226,6 +228,25 @@ const armorBenefitFallbackEffects = computed<EquipmentEffectAttribute[]>(() => a
     }
   })
   .filter((effect) => effect.rawText))
+
+const armorEffectFromLine = (line: string): EquipmentEffectAttribute => {
+  const match = line.match(/^\s*([+\-−]?\d+(?:\.\d+)?)\s*(%?)\s*([^，、；;（）()]*)/)
+  const normalizedValue = match?.[1]?.replace('−', '-') ?? ''
+  const numeric = Number(normalizedValue)
+  return {
+    statKey: fallbackStatKey(line),
+    statLabelZh: fallbackStatLabel(line),
+    valueDecimal: Number.isFinite(numeric) ? numeric : null,
+    unit: match?.[2] === '%' ? 'percent' : 'flat',
+    rawText: line,
+    parseStatus: match ? 'fallback' : 'unparsed',
+  }
+}
+
+const armorBenefitLineIsAttributeSummary = (line: string) => (
+  /^\s*[+\-−]?\d/.test(line)
+  && !/套装|奖励|效果|增益|提供|触发|获得|召唤|免疫|闪避|不受|击中|每\s*\d/.test(line)
+)
 
 const armorParsedEffects = computed(() => (armorDetail.value?.parsedEffects ?? []).slice(0, 12))
 const hasStructuredArmorEffects = computed(() => Boolean(armorDetail.value?.effects?.length))
@@ -346,55 +367,6 @@ const armorPieceEffectGroups = computed(() => {
     })
 })
 
-const armorVariantBuilds = computed(() => {
-  const headItems = armorRelatedItems.value
-    .filter((item) => armorPieceRole(item) === '头部')
-    .sort((left, right) => armorHeadVariantOrder(left) - armorHeadVariantOrder(right) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
-  const bodyItems = armorRelatedItems.value.filter((item) => armorPieceRole(item) === '胸甲')
-  const legItems = armorRelatedItems.value.filter((item) => armorPieceRole(item) === '腿部')
-  const setEffects = armorShownEffects.value.filter((effect) => effectSourceKind(effect) === 'set')
-  const spriteImage = asStringArray(armorRaw.value?.maleImages ?? armorRaw.value?.male_images)[0] ?? armorPrimaryPreview.value
-  const total = Math.max(headItems.length, 1)
-
-  return headItems.map((headItem, index) => {
-    const linkedItems = [
-      headItem,
-      ...bodyItems,
-      ...legItems,
-    ]
-    const itemKeys = linkedItems.map((item) => normalizeMatchText([
-      item.nameZh,
-      item.name,
-      item.internalName,
-    ].map((value) => String(value ?? '').trim()).filter(Boolean).join(' '))).filter(Boolean)
-    const pieceEffects = armorShownEffects.value.filter((effect) => {
-      if (effectSourceKind(effect) !== 'piece') return false
-      const linkedItem = statLinkedItem(effect)
-      if (linkedItem && linkedItems.some((item) => item === linkedItem)) return true
-      const text = normalizeMatchText([
-        effect.rawText,
-        effect.conditionText,
-        effect.variantLabel,
-        effect.itemInternalName,
-      ].map((value) => String(value ?? '').trim()).filter(Boolean).join(' '))
-      return itemKeys.some((key) => text.includes(key))
-    })
-
-    return {
-      key: String(headItem.itemId ?? headItem.sourceId ?? headItem.internalName ?? armorPieceName(headItem)),
-      title: armorPieceName(headItem),
-      subtitle: linkedItems.map(armorPieceName).join(' / '),
-      spriteImage,
-      spriteIndex: index,
-      spriteTotal: total,
-      items: linkedItems,
-      effects: [...pieceEffects, ...setEffects],
-      pieceEffects,
-      setEffects,
-    }
-  })
-})
-
 const effectSummaryLine = (effect: EquipmentEffectAttribute) => {
   const rawText = effectRawText(effect)
   if (rawText) return rawText
@@ -469,12 +441,6 @@ const armorCommonPieceLines = computed(() => {
   }))
 })
 
-const armorVariantSummary = computed(() => armorVariantBuilds.value.map((build) => ({
-  key: build.key,
-  title: build.title,
-  lines: mergeEffectLines(build.pieceEffects),
-})))
-
 const armorSetRewardLines = computed(() => mergeEffectLines(armorShownEffects.value.filter((effect) => effectSourceKind(effect) === 'set')))
 const armorSetEffectLines = computed(() => armorBenefitLines.value.filter((line) => /套装|奖励|效果|bonus/i.test(line)))
 const armorFallbackBenefitLines = computed(() => {
@@ -534,13 +500,13 @@ const armorEquipmentGroups = computed(() => {
   const commonItems = armorRelatedItems.value
     .filter((item) => armorPieceRole(item) !== '头部')
     .sort((left, right) => armorPieceRoleOrder(armorPieceRole(left)) - armorPieceRoleOrder(armorPieceRole(right)) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
-  const headItems = armorRelatedItems.value
+  const variableItems = armorRelatedItems.value
     .filter((item) => armorPieceRole(item) === '头部')
     .sort((left, right) => armorHeadVariantOrder(left) - armorHeadVariantOrder(right) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
 
   return [
     { key: 'set', label: '套装', items: commonItems },
-    { key: 'head', label: '头盔种类', items: headItems },
+    { key: 'variant', label: '可替换部件', items: variableItems },
   ].filter((group) => group.items.length)
 })
 
@@ -561,39 +527,115 @@ const uniqueArmorItems = (items: PublicArmorSetRelatedItem[]) => {
   return result
 }
 
-const armorVariantBuildGroups = (headItems: PublicArmorSetRelatedItem[]) => {
+const armorVariantBuildGroups = (uniqueItems: PublicArmorSetRelatedItem[]) => {
   const variantLabels = dedupeEffectLines(armorShownEffects.value
     .map(effectVariantLabel)
     .filter(Boolean))
-    .filter((label) => headItems.some((item) => effectMatchesItemIdentity({ variantLabel: label } as EquipmentEffectAttribute, item)))
+    .filter((label) => uniqueItems.some((item) => effectMatchesItemIdentity({ variantLabel: label } as EquipmentEffectAttribute, item)))
 
   if (!variantLabels.length) {
-    return headItems.map((headItem) => ({
-      key: String(headItem.itemId ?? headItem.sourceId ?? headItem.internalName ?? armorPieceName(headItem)),
-      title: armorPieceName(headItem),
-      headItems: [headItem],
-    }))
+    return armorPieceGroups.value
+      .filter((group) => group.items.length > 1)
+      .flatMap((group) => group.items.map((item) => ({
+        key: String(item.itemId ?? item.sourceId ?? item.internalName ?? armorPieceName(item)),
+        title: armorPieceName(item),
+        variantRole: group.role,
+        variantItems: [item],
+      })))
   }
 
   return variantLabels.map((variantLabel) => {
-    const matchingHeads = headItems.filter((item) => effectMatchesItemIdentity({ variantLabel } as EquipmentEffectAttribute, item))
-    const primaryHead = matchingHeads[0]
+    const variantItems = uniqueItems.filter((item) => effectMatchesItemIdentity({ variantLabel } as EquipmentEffectAttribute, item))
+    const primaryItem = variantItems[0]
 
     return {
       key: normalizeMatchText(variantLabel),
-      title: primaryHead ? armorPieceName(primaryHead) : variantLabel,
-      headItems: matchingHeads,
+      title: primaryItem ? armorPieceName(primaryItem) : variantLabel,
+      variantRole: primaryItem ? armorPieceRole(primaryItem) : '可替换部件',
+      variantItems,
     }
-  }).filter((buildGroup) => buildGroup.headItems.length)
+  }).filter((buildGroup) => buildGroup.variantItems.length)
 }
 
-const armorBuildVariantStats = (buildGroup: { headItems: PublicArmorSetRelatedItem[] }) => {
-  const itemEffects = armorShownEffects.value.filter((effect) => {
+const armorBenefitVariantLines = (variantItems: PublicArmorSetRelatedItem[]) => {
+  const lines = armorBenefitLines.value
+  if (!lines.length || !variantItems.length) return []
+  if (variantItems.every((item) => armorPieceRole(item) === '头部')) return []
+
+  const variantMatches = variantItems
+    .map((item) => ({
+      item,
+      aliases: armorItemIdentityAliases(item),
+    }))
+  const allVariantItemAliases = uniqueArmorItems(armorRelatedItems.value)
+    .flatMap(armorItemIdentityAliases)
+  const result: string[] = []
+  let collecting = false
+
+  for (const line of lines) {
+    const normalizedLine = normalizeMatchText(line)
+    const startsMatchedVariant = variantMatches.some((match) => match.aliases.some((alias) => normalizedLine.startsWith(alias)))
+    const startsOtherVariant = !startsMatchedVariant && allVariantItemAliases.some((alias) => normalizedLine.startsWith(alias))
+
+    if (startsMatchedVariant) {
+      collecting = true
+      const variantLine = line.replace(/^.*?[：:]\s*/, '').trim() || line
+      if (!armorBenefitLineIsAttributeSummary(variantLine)) result.push(variantLine)
+      continue
+    }
+
+    if (startsOtherVariant) {
+      collecting = false
+      continue
+    }
+
+    if (collecting && (/套装|奖励|效果|增益/.test(line))) result.push(line)
+  }
+
+  return dedupeEffectLines(result)
+}
+
+const armorVariantBenefitLineKeys = computed(() => {
+  const keys = new Set<string>()
+  for (const item of uniqueArmorItems(armorRelatedItems.value)) {
+    for (const line of armorBenefitVariantLines([item])) {
+      keys.add(normalizeEffectLine(line))
+    }
+  }
+  return keys
+})
+
+const armorLineBelongsToVariantBenefit = (line: string) => {
+  const normalizedLine = normalizeEffectLine(line)
+  if (!normalizedLine) return false
+  return [...armorVariantBenefitLineKeys.value].some((variantLine) => (
+    variantLine === normalizedLine
+    || variantLine.includes(normalizedLine)
+    || normalizedLine.includes(variantLine)
+  ))
+}
+
+const armorBuildVariantStats = (buildGroup: { variantItems: PublicArmorSetRelatedItem[] }) => {
+  const structuredLines = mergeEffectLines(armorShownEffects.value.filter((effect) => {
     const variantLabel = effectVariantLabel(effect)
-    return variantLabel && buildGroup.headItems.some((headItem) => effectBelongsToItem(effect, headItem))
-  })
-  const merged = mergeEffectLines(itemEffects)
-  return merged.length ? merged : ['暂无头部差异属性']
+    return variantLabel && buildGroup.variantItems.some((variantItem) => effectBelongsToItem(effect, variantItem))
+  }))
+  const benefitLines = armorBenefitVariantLines(buildGroup.variantItems)
+  const merged = dedupeEffectLines([...structuredLines, ...benefitLines])
+  return merged.length ? merged : ['暂无构筑差异属性']
+}
+
+const armorBuildVariantEffectGroups = (lines: string[]) => {
+  const entries = lines
+    .map((line, index) => armorFixedBonusEntry(armorEffectFromLine(line), index))
+    .filter((entry) => entry.text)
+  const attributeEntries = entries.filter((entry) => entry.type === 'attribute')
+  const descriptionEntries = entries.filter((entry) => entry.type === 'description')
+
+  return [
+    { key: 'attribute', label: '属性加成', tone: 'is-attribute', entries: attributeEntries },
+    { key: 'description', label: '效果说明', tone: 'is-description', entries: descriptionEntries },
+  ].filter((group) => group.entries.length)
 }
 
 const armorFixedBonusLines = computed(() => {
@@ -605,6 +647,7 @@ const armorFixedBonusLines = computed(() => {
     return commonItems.some((item) => effectBelongsToItem(effect, item))
   })
   return mergeEffectLines(fixedEffects)
+    .filter((line) => !armorLineBelongsToVariantBenefit(line))
 })
 
 const armorFixedBonusGroups = computed(() => {
@@ -618,6 +661,7 @@ const armorFixedBonusGroups = computed(() => {
   const entries = fixedEffects
     .map(armorFixedBonusEntry)
     .filter((entry) => entry.text)
+    .filter((entry) => !armorLineBelongsToVariantBenefit(entry.text))
   const seen = new Set<string>()
   const uniqueEntries = entries.filter((entry) => {
     const key = normalizeEffectLine(`${entry.type}-${entry.value}-${entry.text}-${entry.description}`)
@@ -671,21 +715,24 @@ const armorBuildDefenseSummary = (buildItems: PublicArmorSetRelatedItem[]) => {
 }
 
 const armorSetBuildCards = computed(() => {
-  const commonItems = uniqueArmorItems(armorRelatedItems.value
-    .filter((item) => armorPieceRole(item) !== '头部'))
+  const uniqueItems = uniqueArmorItems(armorRelatedItems.value)
     .sort((left, right) => armorPieceRoleOrder(armorPieceRole(left)) - armorPieceRoleOrder(armorPieceRole(right)) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
-  const headItems = uniqueArmorItems(armorRelatedItems.value
-    .filter((item) => armorPieceRole(item) === '头部'))
-    .sort((left, right) => armorHeadVariantOrder(left) - armorHeadVariantOrder(right) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
 
-  return armorVariantBuildGroups(headItems).map((buildGroup) => {
-    const items = [...buildGroup.headItems, ...commonItems]
+  return armorVariantBuildGroups(uniqueItems).map((buildGroup) => {
+    const variantRoles = new Set(buildGroup.variantItems.map(armorPieceRole))
+    const items = [
+      ...buildGroup.variantItems,
+      ...uniqueItems.filter((item) => !variantRoles.has(armorPieceRole(item))),
+    ].sort((left, right) => armorPieceRoleOrder(armorPieceRole(left)) - armorPieceRoleOrder(armorPieceRole(right)) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
+    const stats = armorBuildVariantStats(buildGroup)
     return {
       key: buildGroup.key,
       title: buildGroup.title,
+      variantRole: buildGroup.variantRole,
       items,
       defense: armorBuildDefenseSummary(items),
-      stats: armorBuildVariantStats(buildGroup),
+      stats,
+      statGroups: armorBuildVariantEffectGroups(stats),
     }
   })
 })
@@ -829,7 +876,7 @@ onMounted(() => {
                 <b>构筑</b>
                 <b>部件</b>
                 <b>防御</b>
-                <b>头部差异</b>
+                <b>构筑差异</b>
               </div>
               <section v-if="armorFixedBonusLines.length" class="armor-build-row armor-fixed-bonus-row">
                 <div class="armor-build-cell armor-build-title-cell">
@@ -874,8 +921,15 @@ onMounted(() => {
                   <small v-if="build.defense.formula">{{ build.defense.formula }}</small>
                   <span v-else>--</span>
                 </div>
-                <div class="armor-build-cell armor-build-stat-lines">
-                  <span v-for="line in build.stats" :key="`${build.key}-${line}`">{{ line }}</span>
+                <div class="armor-build-cell armor-build-effect-groups">
+                  <div v-for="group in build.statGroups" :key="`${build.key}-${group.key}`" class="armor-fixed-bonus-group" :class="group.tone">
+                    <strong class="armor-fixed-bonus-group-title">{{ group.label }}</strong>
+                    <span v-for="entry in group.entries" :key="`${build.key}-${group.key}-${entry.key}`" class="armor-fixed-bonus-line">
+                      <small v-if="entry.value">{{ entry.value }}</small>
+                      <b>{{ entry.text }}</b>
+                      <em v-if="entry.description">{{ entry.description }}</em>
+                    </span>
+                  </div>
                 </div>
               </article>
             </div>
@@ -1269,6 +1323,14 @@ onMounted(() => {
 .armor-fixed-bonus-lines {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px 10px;
+  align-content: center;
+  align-items: stretch;
+}
+
+.armor-build-effect-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 8px 10px;
   align-content: center;
   align-items: stretch;
