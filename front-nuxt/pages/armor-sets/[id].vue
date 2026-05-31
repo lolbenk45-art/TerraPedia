@@ -10,6 +10,8 @@ type ArmorBuildTotalEntry = {
   rawValue: number
 }
 
+type ArmorPieceEffectRecord = Record<string, EquipmentEffectAttribute[]>
+
 const route = useRoute()
 const detailLayout = useDetailLayout({ kind: 'armor-set', density: 'readable' })
 const armorClientReady = ref(false)
@@ -112,6 +114,19 @@ const effectStatGroup = (effect: EquipmentEffectAttribute) => {
 const statName = (effect: EquipmentEffectAttribute) => {
   const key = String(effect.statKey ?? '')
   return statLabels[key] ?? effect.statLabelZh ?? (key || '未归类')
+}
+
+const effectReadableStatName = (effect: EquipmentEffectAttribute) => {
+  const label = String(effect.statLabelZh ?? '').trim()
+  if (String(effect.statKey ?? '') === 'crit_chance' && (!label || label === '暴击率' || label === '暴击')) {
+    const sourceLine = String((effect as { sourceLine?: string | null, source_line?: string | null }).sourceLine ?? (effect as { source_line?: string | null }).source_line ?? '')
+    const classScope = String(effect.classScope ?? '').trim()
+    if (/meleeCritChance/i.test(sourceLine) || classScope === 'melee') return '近战暴击率'
+    if (/rangedCritChance/i.test(sourceLine) || classScope === 'ranged') return '远程暴击率'
+    if (/magicCritChance/i.test(sourceLine) || classScope === 'magic') return '魔法暴击率'
+  }
+  if (label) return label
+  return statName(effect)
 }
 
 const effectScopeLabel = (effect: EquipmentEffectAttribute) => {
@@ -370,7 +385,23 @@ const asStringArray = (value: unknown): string[] => Array.isArray(value) ? value
 const asRelatedItems = (value: unknown): PublicArmorSetRelatedItem[] => Array.isArray(value)
   ? value.filter((entry): entry is PublicArmorSetRelatedItem => Boolean(entry && typeof entry === 'object' && !Array.isArray(entry)))
   : []
+const asEquipmentEffects = (value: unknown): EquipmentEffectAttribute[] => Array.isArray(value)
+  ? value.filter((entry): entry is EquipmentEffectAttribute => Boolean(entry && typeof entry === 'object' && !Array.isArray(entry)))
+  : []
 const armorRelatedItems = computed(() => asRelatedItems(armorRaw.value?.relatedItems ?? armorRaw.value?.related_items))
+
+const armorItemKey = (item: PublicArmorSetRelatedItem) => String(
+  item.itemId ?? item.sourceId ?? item.internalName ?? armorPieceName(item),
+).trim()
+
+const armorUniqueItemKey = (item: PublicArmorSetRelatedItem) => [
+  armorPieceRole(item),
+  armorItemKey(item),
+].join(':')
+
+const armorItemEffectFetchKey = (item: PublicArmorSetRelatedItem) => String(
+  item.itemId ?? item.sourceId ?? item.internalName ?? '',
+).trim()
 
 const normalizeMatchText = (value: string) => value
   .toLowerCase()
@@ -432,11 +463,17 @@ const armorPieceEffectGroups = computed(() => {
 })
 
 const effectSummaryLine = (effect: EquipmentEffectAttribute) => {
+  if (String(effect.applyScope ?? '').trim() === 'item_bonus' && Number.isFinite(Number(effect.valueDecimal))) {
+    const value = formatEffectValue(effect)
+    const label = effectReadableStatName(effect)
+    return `${value ? `${value} ` : ''}${label}`.trim()
+  }
+
   const rawText = effectRawText(effect)
   if (rawText) return rawText
 
   const value = formatEffectValue(effect)
-  const label = statName(effect)
+  const label = effectReadableStatName(effect)
   const description = playerEffectDescription(effect)
   if (description && description !== '套装效果' && description !== label) return `${description}${value ? `：${value}` : ''}`
   return `${value ? `${value} ` : ''}${label}`.trim()
@@ -561,10 +598,7 @@ const uniqueArmorItems = (items: PublicArmorSetRelatedItem[]) => {
   const result: PublicArmorSetRelatedItem[] = []
 
   for (const item of items) {
-    const key = [
-      armorPieceRole(item),
-      String(item.itemId ?? item.sourceId ?? item.internalName ?? armorPieceName(item)).trim(),
-    ].join(':')
+    const key = armorUniqueItemKey(item)
     if (seen.has(key)) continue
     seen.add(key)
     result.push(item)
@@ -572,6 +606,53 @@ const uniqueArmorItems = (items: PublicArmorSetRelatedItem[]) => {
 
   return result
 }
+
+const armorUniqueRelatedItems = computed(() => uniqueArmorItems(armorRelatedItems.value))
+
+const armorPieceEffectRequestKeys = computed(() => dedupeEffectLines(
+  armorUniqueRelatedItems.value
+    .map(armorItemEffectFetchKey)
+    .filter(Boolean),
+))
+
+const fetchArmorPieceEquipmentEffects = async (items: PublicArmorSetRelatedItem[]) => {
+  const entries = await Promise.all(items.map(async (item) => {
+    const normalizedItemId = armorItemEffectFetchKey(item)
+    if (!normalizedItemId) return null
+
+    try {
+      const response = await usePublicApiFetch<EquipmentEffectAttribute[]>(
+        `/public/items/${normalizedItemId}/equipment-effects`,
+      )
+      return {
+        key: armorUniqueItemKey(item),
+        effects: asEquipmentEffects(unwrapApiResponse(response)),
+      }
+    } catch {
+      return {
+        key: armorUniqueItemKey(item),
+        effects: [],
+      }
+    }
+  }))
+
+  const result: ArmorPieceEffectRecord = {}
+  for (const entry of entries) {
+    if (!entry) continue
+    result[entry.key] = entry.effects
+  }
+  return result
+}
+
+const { data: armorPieceEquipmentEffectsByKey } = await useAsyncData(
+  () => `public-armor-set-piece-effects:${armorSetId.value || 'missing'}:${armorPieceEffectRequestKeys.value.join(',')}`,
+  () => fetchArmorPieceEquipmentEffects(armorUniqueRelatedItems.value),
+  {
+    server: false,
+    watch: [armorPieceEffectRequestKeys],
+    default: (): ArmorPieceEffectRecord => ({}),
+  },
+)
 
 const armorVariantLabels = (uniqueItems: PublicArmorSetRelatedItem[]) => dedupeEffectLines(armorShownEffects.value
   .map(effectVariantLabel)
@@ -819,9 +900,69 @@ const armorBuildVariantEffectGroups = (lines: string[]) => {
   ].filter((group) => group.entries.length)
 }
 
-const armorBuildPieceEffectLines = (item: PublicArmorSetRelatedItem) => mergeEffectLines(
-  armorShownEffects.value.filter((effect) => effectSourceKind(effect) === 'piece' && effectBelongsToItem(effect, item)),
+const armorLineLooksLikeLeadingPieceAttribute = (line: string) => (
+  /^\s*[+\-−]?\d+(?:\.\d+)?\s*%?\s*[^，、；;（）()]*/.test(line)
+  && !/套装|奖励|效果|增益|提供|触发|获得|免疫|闪避|不受|击中|每级|最高|降低/.test(line)
 )
+
+const armorLeadingAttributeLines = () => {
+  const result: string[] = []
+  for (const line of armorBenefitLines.value) {
+    if (!armorLineLooksLikeLeadingPieceAttribute(line)) break
+    result.push(line)
+  }
+  return result
+}
+
+const armorBenefitNamedPieceEffectLines = (item: PublicArmorSetRelatedItem) => {
+  const itemAliases = armorItemIdentityAliases(item)
+  const result: string[] = []
+
+  for (const line of armorBenefitLines.value) {
+    const normalizedLine = normalizeMatchText(line)
+    const matchedAlias = itemAliases.find((alias) => normalizedLine.startsWith(alias))
+    if (!matchedAlias) continue
+
+    const lineWithoutName = line.replace(/^.*?[：:]\s*/, '').trim()
+    for (const segment of lineWithoutName.split(/[、，；;]/).map((entry) => entry.trim()).filter(Boolean)) {
+      result.push(segment)
+    }
+  }
+
+  return dedupeEffectLines(result)
+}
+
+const armorFallbackLeadingFixedPieceEffectLines = (item: PublicArmorSetRelatedItem) => {
+  if (armorHasVariantBuilds.value) return []
+  const uniqueItems = uniqueArmorItems(armorRelatedItems.value)
+    .sort((left, right) => armorPieceRoleOrder(armorPieceRole(left)) - armorPieceRoleOrder(armorPieceRole(right)))
+  if (uniqueItems.length !== 3) return []
+  const itemIndex = uniqueItems.findIndex((candidate) => (
+    armorItemKey(candidate) === armorItemKey(item)
+  ))
+  if (itemIndex < 0) return []
+
+  const lines = armorLeadingAttributeLines()
+  if (lines.length < uniqueItems.length) return []
+  if (itemIndex === 0) return lines.slice(0, 1)
+  if (itemIndex === uniqueItems.length - 1) return lines.slice(-1)
+  return lines.slice(1, -1)
+}
+
+const armorBuildPieceEffectLines = (item: PublicArmorSetRelatedItem) => {
+  const itemEffectLines = mergeEffectLines(
+    armorPieceEquipmentEffectsByKey.value?.[armorUniqueItemKey(item)] ?? [],
+  )
+  const linkedLines = mergeEffectLines(
+    armorShownEffects.value.filter((effect) => effectSourceKind(effect) === 'piece' && effectBelongsToItem(effect, item)),
+  )
+  return dedupeEffectLines([
+    ...itemEffectLines,
+    ...linkedLines,
+    ...armorBenefitNamedPieceEffectLines(item),
+    ...armorFallbackLeadingFixedPieceEffectLines(item),
+  ])
+}
 
 const armorEffectNumericValue = (effect: EquipmentEffectAttribute) => {
   const value = Number(effect.valueDecimal)
@@ -1239,7 +1380,7 @@ onMounted(() => {
                     />
                     <b>{{ piece.name }}</b>
                     <small>{{ piece.role }}<template v-if="piece.defense"> · {{ piece.defense }}</template></small>
-                    <em v-for="line in piece.effects.slice(0, 2)" :key="`${build.key}-${piece.key}-${line}`">{{ line }}</em>
+                    <em v-for="line in piece.effects" :key="`${build.key}-${piece.key}-${line}`">{{ line }}</em>
                   </span>
                 </div>
                 <div class="armor-build-cell armor-build-defense-formula">
