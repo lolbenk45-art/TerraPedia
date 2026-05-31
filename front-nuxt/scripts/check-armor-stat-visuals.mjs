@@ -14,6 +14,10 @@ const requiredMarkers = [
   'armorBuildCardStats',
   'effectBelongsToItem',
   'uniqueArmorItems',
+  'hasStructuredArmorEffects',
+  'dedupeEffectLines',
+  'armorFallbackBenefitLines',
+  'armor-structured-build-board',
 ]
 
 const missing = requiredMarkers.filter((marker) => !source.includes(marker))
@@ -26,6 +30,8 @@ const forbiddenMarkers = [
   'armor-variant-card',
   'armor-summary-lines',
   'armor-equipment-board',
+  'class="armor-benefit"',
+  'armorBenefitLines.length',
 ]
 const presentForbidden = forbiddenMarkers.filter((marker) => source.includes(marker))
 

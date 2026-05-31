@@ -188,9 +188,9 @@ const armorBenefitFallbackEffects = computed<EquipmentEffectAttribute[]>(() => a
   .filter((effect) => effect.rawText))
 
 const armorParsedEffects = computed(() => (armorDetail.value?.parsedEffects ?? []).slice(0, 12))
+const hasStructuredArmorEffects = computed(() => Boolean(armorDetail.value?.effects?.length))
 const armorShownEffects = computed(() => {
-  const effects = (armorDetail.value?.effects ?? []).slice(0, 20)
-  if (effects.length) return effects
+  if (hasStructuredArmorEffects.value) return (armorDetail.value?.effects ?? []).slice(0, 40)
   return armorBenefitFallbackEffects.value
 })
 
@@ -363,9 +363,28 @@ const effectSummaryLine = (effect: EquipmentEffectAttribute) => {
   return `${value ? `${value} ` : ''}${label}`.trim()
 }
 
-const mergeEffectLines = (effects: EquipmentEffectAttribute[]) => effects
-  .map(effectSummaryLine)
-  .filter(Boolean)
+const normalizeEffectLine = (line: string) => line
+  .toLowerCase()
+  .replace(/[+\s:：，、；;（）()[\]·・.'"]/g, '')
+  .replace(/−/g, '-')
+
+const dedupeEffectLines = (lines: string[]) => {
+  const seen = new Set<string>()
+  const result: string[] = []
+
+  for (const line of lines.map((entry) => String(entry ?? '').trim()).filter(Boolean)) {
+    const key = normalizeEffectLine(line)
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    result.push(line)
+  }
+
+  return result
+}
+
+const mergeEffectLines = (effects: EquipmentEffectAttribute[]) => dedupeEffectLines(
+  effects.map(effectSummaryLine),
+)
 
 const armorCommonPieceLines = computed(() => {
   const commonItems = armorRelatedItems.value.filter((item) => armorPieceRole(item) !== '头部')
@@ -397,6 +416,17 @@ const armorVariantSummary = computed(() => armorVariantBuilds.value.map((build) 
 
 const armorSetRewardLines = computed(() => mergeEffectLines(armorShownEffects.value.filter((effect) => effectSourceKind(effect) === 'set')))
 const armorSetEffectLines = computed(() => armorBenefitLines.value.filter((line) => /套装|奖励|效果|bonus/i.test(line)))
+const armorFallbackBenefitLines = computed(() => {
+  if (hasStructuredArmorEffects.value) return []
+  const effectLines = new Set(mergeEffectLines(armorBenefitFallbackEffects.value).map(normalizeEffectLine))
+  return armorBenefitLines.value.filter((line) => !effectLines.has(normalizeEffectLine(line)))
+})
+
+const armorHeroSummary = computed(() => {
+  const effectLines = mergeEffectLines(armorShownEffects.value).slice(0, 3)
+  if (effectLines.length) return effectLines.join(' · ')
+  return armorFallbackBenefitLines.value[0] || '该套装的数值资料正在整理中。'
+})
 
 const armorEquipmentCardStats = (item: PublicArmorSetRelatedItem) => {
   const effects = armorShownEffects.value.filter((effect) => statLinkedItem(effect) === item)
@@ -465,8 +495,11 @@ const uniqueArmorItems = (items: PublicArmorSetRelatedItem[]) => {
 const armorBuildCardStats = (items: PublicArmorSetRelatedItem[]) => {
   const itemEffects = armorShownEffects.value.filter((effect) => items.some((item) => effectBelongsToItem(effect, item)))
   const setEffects = armorShownEffects.value.filter((effect) => effectSourceKind(effect) === 'set')
-  const merged = mergeEffectLines([...itemEffects, ...setEffects])
-  return merged.length ? [...new Set(merged)] : ['暂无独立属性']
+  const merged = dedupeEffectLines([
+    ...mergeEffectLines(itemEffects),
+    ...mergeEffectLines(setEffects),
+  ])
+  return merged.length ? merged : ['暂无独立属性']
 }
 
 const armorSetBuildCards = computed(() => {
@@ -560,7 +593,7 @@ onMounted(() => {
         <div>
           <span class="eyebrow">数值总览 · {{ armorSubtitle }}</span>
           <h1>{{ armorTitle }}</h1>
-          <p>{{ armorBenefitLines.length ? armorBenefitLines[0] : '该套装的数值资料正在整理中。' }}</p>
+          <p>{{ armorHeroSummary }}</p>
           <div class="tag-row">
             <span class="tag gold">{{ armorDetail?.primaryPart || 'set' }}</span>
             <span class="tag moss">{{ armorDetail?.uniqueItemCount ?? 0 }} 个部件</span>
@@ -622,7 +655,7 @@ onMounted(() => {
             <!-- detail layout contract legacy marker: v-for="group in armorStatGroups" -->
             <!-- detail layout contract legacy marker: class="armor-stat-card-grid" class="armor-effect-card" class="armor-effect-card-value" -->
             <!-- visual contract marker: armorEffectSections armor-piece-effect-groups armor-effect-card-head.has-stat-art -->
-            <div class="armor-build-board">
+            <div class="armor-build-board armor-structured-build-board">
               <article v-for="build in armorSetBuildCards" :key="build.key" class="armor-build-card">
                 <header class="armor-equipment-card-title">
                   <h4>{{ build.title }}</h4>
@@ -649,8 +682,8 @@ onMounted(() => {
           </div>
           <p v-else class="tp-detail-empty">暂无可展示的解析数值。</p>
 
-          <div v-if="armorBenefitLines.length" class="armor-benefit">
-            <span v-for="line in armorBenefitLines" :key="`benefit-${line}`">{{ line }}</span>
+          <div v-if="armorFallbackBenefitLines.length" class="armor-source-context">
+            <span v-for="line in armorFallbackBenefitLines" :key="`benefit-${line}`">{{ line }}</span>
           </div>
         </section>
 
@@ -724,7 +757,7 @@ onMounted(() => {
   line-height: 1.55;
 }
 
-.armor-benefit {
+.armor-source-context {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -736,7 +769,7 @@ onMounted(() => {
   line-height: 1.7;
 }
 
-.armor-benefit span {
+.armor-source-context span {
   display: inline-flex;
   align-items: center;
   max-width: 100%;
