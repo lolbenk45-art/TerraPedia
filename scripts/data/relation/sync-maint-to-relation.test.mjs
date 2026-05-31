@@ -245,6 +245,215 @@ test('runSync creates item-owned armor attribute effects from wiki armor attribu
   ]);
 });
 
+test('runSync prefers resolved maint item defense over misaligned armor attribute table cells', async () => {
+  const result = await runSync(
+    {
+      apply: false,
+      createDatabase: false,
+      maintDatabase: 'terria_v1_maint',
+      localDatabase: null,
+      relationDatabase: 'terria_v1_relation',
+      scopes: ['armor_attributes']
+    },
+    {
+      queryMaint: async (sql) => {
+        if (sql.includes('maint_items')) {
+          return [{
+            source_id: 552,
+            internal_name: 'HallowedGreaves',
+            english_name: 'Hallowed Greaves',
+            name_zh: '神圣护胫',
+            defense_value: 11,
+            raw_json: JSON.stringify({ internalName: 'HallowedGreaves', name: 'Hallowed Greaves', nameZh: '神圣护胫' }),
+            record_key: 'item-hallowed-greaves'
+          }];
+        }
+        if (sql.includes('maint_armor_attribute_rows')) {
+          return [{
+            id: 1,
+            record_key: 'armor-attribute-hallowed-greaves',
+            section_code: 'hardmode',
+            slot_group: 'legs',
+            item_page_title: '神圣护胫',
+            item_href: '/zh/wiki/%E7%A5%9E%E5%9C%A3%E6%8A%A4%E8%83%AB',
+            item_name_zh: '神圣护胫',
+            defense_value: 8,
+            raw_cells_json: JSON.stringify({ meleeDamage: '7%' }),
+            source_provider: 'terraria.wiki.gg',
+            source_page: '盔甲属性表',
+            source_revision_timestamp: '2026-05-31T00:00:00Z',
+            landing_source_id: 51,
+            landing_source_key: 'wiki.page.armor_attributes',
+            landing_content_hash: 'i'.repeat(64),
+            raw_json: '{}'
+          }];
+        }
+        return [];
+      },
+      writeReports: async () => ({
+        auditJsonPath: 'reports/relation/relation-audit-2026-05-31.json',
+        auditMdPath: 'reports/relation/relation-audit-2026-05-31.md',
+        conflictsPath: 'reports/relation/relation-conflicts-2026-05-31.json',
+        unresolvedPath: 'reports/relation/relation-unresolved-2026-05-31.json'
+      }),
+      loadInheritanceRules: () => [],
+      loadReviewedNonNpcSourceExclusions: () => [],
+      loadReviewedSourceOnlyItemExclusions: () => []
+    }
+  );
+
+  assert.deepEqual(result.results.projectionItemArmorAttributes.map((row) => ({
+    itemId: row.itemId,
+    itemInternalName: row.itemInternalName,
+    defenseValue: row.defenseValue
+  })), [{
+    itemId: 552,
+    itemInternalName: 'HallowedGreaves',
+    defenseValue: 11
+  }]);
+});
+
+test('runSync derives ancient hallowed armor attribute effects from hallowed wiki rows', async () => {
+  const maintItems = [
+    {
+      source_id: 559,
+      internal_name: 'HallowedMask',
+      english_name: 'Hallowed Mask',
+      name_zh: '神圣面具',
+      defense_value: 24,
+      raw_json: JSON.stringify({ internalName: 'HallowedMask', name: 'Hallowed Mask', nameZh: '神圣面具' }),
+      record_key: 'item-hallowed-mask'
+    },
+    {
+      source_id: 4896,
+      internal_name: 'AncientHallowedMask',
+      english_name: 'Ancient Hallowed Mask',
+      name_zh: '远古神圣面具',
+      defense_value: 24,
+      raw_json: JSON.stringify({ internalName: 'AncientHallowedMask', name: 'Ancient Hallowed Mask', nameZh: '远古神圣面具' }),
+      record_key: 'item-ancient-hallowed-mask'
+    }
+  ];
+  const result = await runSync(
+    {
+      apply: false,
+      createDatabase: false,
+      maintDatabase: 'terria_v1_maint',
+      localDatabase: null,
+      relationDatabase: 'terria_v1_relation',
+      scopes: ['armor_attributes']
+    },
+    {
+      queryMaint: async (sql) => {
+        if (sql.includes('maint_items')) {
+          return maintItems;
+        }
+        if (sql.includes('maint_armor_attribute_rows')) {
+          return [{
+            id: 1,
+            record_key: 'armor-attribute-hallowed-mask',
+            section_code: 'hardmode',
+            slot_group: 'head',
+            item_page_title: '神圣面具',
+            item_href: '/zh/wiki/%E7%A5%9E%E5%9C%A3%E9%9D%A2%E5%85%B7',
+            item_name_zh: '神圣面具',
+            defense_value: 24,
+            raw_cells_json: JSON.stringify({
+              meleeDamage: '10%',
+              meleeCritChance: '10%',
+              classSpecific: '10%'
+            }),
+            source_provider: 'terraria.wiki.gg',
+            source_page: '盔甲属性表',
+            source_revision_timestamp: '2026-05-31T00:00:00Z',
+            landing_source_id: 51,
+            landing_source_key: 'wiki.page.armor_attributes',
+            landing_content_hash: 'h'.repeat(64),
+            raw_json: '{}'
+          }];
+        }
+        return [];
+      },
+      writeReports: async () => ({
+        auditJsonPath: 'reports/relation/relation-audit-2026-05-31.json',
+        auditMdPath: 'reports/relation/relation-audit-2026-05-31.md',
+        conflictsPath: 'reports/relation/relation-conflicts-2026-05-31.json',
+        unresolvedPath: 'reports/relation/relation-unresolved-2026-05-31.json'
+      }),
+      loadInheritanceRules: () => [],
+      loadReviewedNonNpcSourceExclusions: () => [],
+      loadReviewedSourceOnlyItemExclusions: () => []
+    }
+  );
+
+  const effectSummary = result.results.projectionEquipmentEffectAttributes
+    .filter((row) => row.ownerKind === 'item' && row.sourceKind === 'armor_attribute_cell')
+    .map((row) => ({
+      ownerId: row.ownerId,
+      ownerKey: row.ownerKey,
+      itemInternalName: row.itemInternalName,
+      statKey: row.statKey,
+      classScope: row.classScope,
+      valueDecimal: row.valueDecimal
+    }))
+    .sort((left, right) => (
+      left.ownerId - right.ownerId
+      || left.statKey.localeCompare(right.statKey)
+      || left.classScope.localeCompare(right.classScope)
+    ));
+
+  assert.deepEqual(effectSummary, [
+    {
+      ownerId: 559,
+      ownerKey: 'HallowedMask',
+      itemInternalName: 'HallowedMask',
+      statKey: 'crit_chance',
+      classScope: 'all',
+      valueDecimal: 10
+    },
+    {
+      ownerId: 559,
+      ownerKey: 'HallowedMask',
+      itemInternalName: 'HallowedMask',
+      statKey: 'damage_bonus',
+      classScope: 'melee',
+      valueDecimal: 10
+    },
+    {
+      ownerId: 559,
+      ownerKey: 'HallowedMask',
+      itemInternalName: 'HallowedMask',
+      statKey: 'melee_speed',
+      classScope: 'melee',
+      valueDecimal: 10
+    },
+    {
+      ownerId: 4896,
+      ownerKey: 'AncientHallowedMask',
+      itemInternalName: 'AncientHallowedMask',
+      statKey: 'crit_chance',
+      classScope: 'all',
+      valueDecimal: 10
+    },
+    {
+      ownerId: 4896,
+      ownerKey: 'AncientHallowedMask',
+      itemInternalName: 'AncientHallowedMask',
+      statKey: 'damage_bonus',
+      classScope: 'melee',
+      valueDecimal: 10
+    },
+    {
+      ownerId: 4896,
+      ownerKey: 'AncientHallowedMask',
+      itemInternalName: 'AncientHallowedMask',
+      statKey: 'melee_speed',
+      classScope: 'melee',
+      valueDecimal: 10
+    }
+  ]);
+});
+
 test('runSync dry-run reads maint only and does not write relation rows', async () => {
   const reads = [];
   const relationReads = [];

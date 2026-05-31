@@ -1703,27 +1703,33 @@ onMounted(() => {
                       </span>
                     </div>
                   </div>
-                  <div v-if="build.totalEntries.length || build.bonusLines.length" class="armor-set-bonus-lines">
-                    <strong>套装效果</strong>
-                    <div v-if="build.totalEntries.length" class="armor-build-total-entries" aria-label="最终汇总">
-                      <span class="armor-build-total-title">最终汇总</span>
-                      <span
-                        v-for="entry in build.totalEntries"
-                        :key="`${build.key}-total-${entry.key}`"
-                        class="armor-build-total-entry"
-                        :class="{ 'is-variable': entry.isVariable }"
-                      >
-                        <mark class="armor-highlight-number">{{ entry.value }}</mark>
-                        <b>{{ entry.label }}</b>
-                        <em v-if="entry.isVariable">可变合计</em>
-                      </span>
+                  <div v-if="build.totalEntries.length || build.bonusLines.length" class="armor-build-summary-stack">
+                    <div v-if="build.totalEntries.length" class="armor-build-total-strip" aria-label="最终汇总">
+                      <span class="armor-build-total-label">最终汇总</span>
+                      <div class="armor-build-total-entries">
+                        <span
+                          v-for="entry in build.totalEntries"
+                          :key="`${build.key}-total-${entry.key}`"
+                          class="armor-build-total-entry"
+                          :class="{ 'is-variable': entry.isVariable }"
+                        >
+                          <mark class="armor-highlight-number">{{ entry.value }}</mark>
+                          <b>{{ entry.label }}</b>
+                          <em v-if="entry.isVariable">可变合计</em>
+                        </span>
+                      </div>
                     </div>
-                    <p v-for="line in build.bonusLines" :key="`${build.key}-bonus-${line}`" class="armor-set-bonus-line">
-                      <template v-for="segment in armorHighlightedTextSegments(line)" :key="`${build.key}-${line}-${segment.key}`">
-                        <mark v-if="segment.highlight" class="armor-highlight-number">{{ segment.text }}</mark>
-                        <span v-else>{{ segment.text }}</span>
-                      </template>
-                    </p>
+                    <div v-if="build.bonusLines.length" class="armor-set-bonus-lines">
+                      <strong class="armor-set-bonus-heading">套装效果</strong>
+                      <div class="armor-set-bonus-list">
+                        <p v-for="line in build.bonusLines" :key="`${build.key}-bonus-${line}`" class="armor-set-bonus-line">
+                          <template v-for="segment in armorHighlightedTextSegments(line)" :key="`${build.key}-${line}-${segment.key}`">
+                            <mark v-if="segment.highlight" class="armor-highlight-number">{{ segment.text }}</mark>
+                            <span v-else>{{ segment.text }}</span>
+                          </template>
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </article>
@@ -2205,58 +2211,75 @@ onMounted(() => {
   align-items: stretch;
 }
 
-.armor-set-bonus-lines {
+.armor-build-summary-stack {
   display: grid;
-  gap: 5px;
+  gap: 7px;
   min-width: 0;
-  padding: 8px 10px;
-  border: 1px solid rgba(100, 154, 118, 0.2);
-  border-radius: 7px;
-  background: rgba(100, 154, 118, 0.055);
 }
 
-.armor-set-bonus-lines strong {
+.armor-build-total-strip {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid rgba(100, 154, 118, 0.2);
+  border-radius: 7px;
+  background: rgba(100, 154, 118, 0.045);
+}
+
+.armor-build-total-label,
+.armor-set-bonus-heading {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
   color: rgba(166, 200, 176, 0.95);
   font-size: 10px;
   font-weight: 900;
   line-height: 1.2;
 }
 
+.armor-set-bonus-lines {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 0 1px;
+}
+
+.armor-set-bonus-list {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.armor-set-bonus-heading {
+  color: rgba(166, 200, 176, 0.95);
+}
+
 .armor-build-total-entries {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 3px 7px;
   align-items: center;
   min-width: 0;
-  padding-bottom: 5px;
-  border-bottom: 1px solid rgba(244, 234, 208, 0.08);
-}
-
-.armor-build-total-title {
-  color: rgba(166, 200, 176, 0.9);
-  font-size: 10px;
-  font-weight: 900;
-  line-height: 1.2;
 }
 
 .armor-build-total-entry {
   display: inline-flex;
-  gap: 4px;
+  gap: 3px;
   align-items: center;
   min-width: 0;
-  padding: 3px 7px;
-  border: 1px solid rgba(244, 234, 208, 0.09);
-  border-radius: 6px;
-  background: rgba(244, 234, 208, 0.035);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: rgba(226, 236, 224, 0.95);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 850;
-  line-height: 1.3;
+  line-height: 1.24;
 }
 
 .armor-build-total-entry.is-variable {
-  border-color: rgba(219, 179, 93, 0.24);
-  background: rgba(219, 179, 93, 0.055);
+  color: rgba(244, 234, 208, 0.98);
 }
 
 .armor-build-total-entry em {
@@ -2268,12 +2291,25 @@ onMounted(() => {
 }
 
 .armor-set-bonus-line {
+  position: relative;
   margin: 0;
+  padding-left: 10px;
   color: rgba(226, 236, 224, 0.94);
   font-size: 12px;
   font-weight: 730;
   line-height: 1.48;
   overflow-wrap: anywhere;
+}
+
+.armor-set-bonus-line::before {
+  position: absolute;
+  top: 0.72em;
+  left: 1px;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(166, 200, 176, 0.68);
+  content: '';
 }
 
 .armor-highlight-number {

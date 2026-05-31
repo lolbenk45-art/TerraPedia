@@ -1131,6 +1131,81 @@ function percentNumber(value) {
   return match ? Number(match[0]) : null;
 }
 
+const equivalentArmorAttributeItemGroups = [
+  ['HallowedMask', 'AncientHallowedMask'],
+  ['HallowedHelmet', 'AncientHallowedHelmet'],
+  ['HallowedHeadgear', 'AncientHallowedHeadgear'],
+  ['HallowedHood', 'AncientHallowedHood'],
+  ['HallowedPlateMail', 'AncientHallowedPlateMail'],
+  ['HallowedGreaves', 'AncientHallowedGreaves']
+];
+
+function buildEquivalentArmorAttributeLookup(maintItems = []) {
+  const byInternalName = new Map();
+  for (const item of maintItems) {
+    if (item.internal_name) {
+      byInternalName.set(String(item.internal_name), item);
+    }
+  }
+  const lookup = new Map();
+  for (const group of equivalentArmorAttributeItemGroups) {
+    const items = group.map((internalName) => byInternalName.get(internalName)).filter(Boolean);
+    for (const source of items) {
+      const equivalents = items.filter((item) => item !== source);
+      if (equivalents.length) {
+        lookup.set(String(source.internal_name), equivalents);
+      }
+    }
+  }
+  return lookup;
+}
+
+function deriveEquivalentArmorAttributeRows(rows = [], maintItems = []) {
+  const equivalentLookup = buildEquivalentArmorAttributeLookup(maintItems);
+  if (!equivalentLookup.size) return rows;
+
+  const existingItemIds = new Set(rows.filter((row) => row.itemId).map((row) => Number(row.itemId)));
+  const derivedRows = [];
+  for (const row of rows) {
+    if (!row.itemId || row.reviewStatus === 'unresolved' || !row.itemInternalName) {
+      continue;
+    }
+    const equivalents = equivalentLookup.get(String(row.itemInternalName)) ?? [];
+    for (const item of equivalents) {
+      const itemId = Number(item.source_id);
+      if (!itemId || existingItemIds.has(itemId)) {
+        continue;
+      }
+      derivedRows.push({
+        ...row,
+        recordKey: createRecordKey([
+          'derived-equivalent-armor-attribute',
+          row.recordKey,
+          itemId,
+          item.internal_name
+        ]),
+        itemId,
+        itemInternalName: item.internal_name ?? null,
+        itemNameZh: item.name_zh ?? null,
+        itemPageTitle: item.name_zh ?? item.english_name ?? item.internal_name ?? null,
+        itemHref: null,
+        defenseValue: item.defense_value == null ? row.defenseValue : Number(item.defense_value),
+        sourceMaintRecordKey: row.sourceMaintRecordKey,
+        confidence: Math.min(Number(row.confidence ?? 1), 0.95),
+        reason: 'derived_from_equivalent_armor_attribute_item',
+        reviewStatus: 'accepted',
+        rawJson: JSON.stringify({
+          derivedFromRecordKey: row.recordKey,
+          derivedFromItemInternalName: row.itemInternalName,
+          equivalentItemInternalName: item.internal_name,
+          source: 'wiki_identical_stats_equivalent_armor'
+        })
+      });
+    }
+  }
+  return [...rows, ...derivedRows];
+}
+
 function buildArmorAttributeEffectRows(relationArmorAttributeRows = []) {
   const rows = [];
   const effectSpecs = [
@@ -1207,7 +1282,7 @@ function buildArmorAttributeEffectRows(relationArmorAttributeRows = []) {
 
 function buildArmorAttributeRelations({ maintArmorAttributeRows = [], maintItems = [] } = {}) {
   const itemIndex = buildArmorAttributeItemIndex(maintItems);
-  return maintArmorAttributeRows.map((row) => {
+  const rows = maintArmorAttributeRows.map((row) => {
     const item = itemIndex.get(normalizeLookupText(row.item_name_zh))
       ?? itemIndex.get(normalizeLookupText(row.item_page_title))
       ?? null;
@@ -1221,7 +1296,7 @@ function buildArmorAttributeRelations({ maintArmorAttributeRows = [], maintItems
       itemHref: row.item_href ?? null,
       sectionCode: row.section_code ?? null,
       slotGroup: row.slot_group ?? null,
-      defenseValue: row.defense_value == null ? null : Number(row.defense_value),
+      defenseValue: resolved && item.defense_value != null ? Number(item.defense_value) : (row.defense_value == null ? null : Number(row.defense_value)),
       rawCellsJson: row.raw_cells_json ?? null,
       sourceMaintTable: 'maint_armor_attribute_rows',
       sourceMaintRecordKey: row.record_key ?? null,
@@ -1238,6 +1313,7 @@ function buildArmorAttributeRelations({ maintArmorAttributeRows = [], maintItems
       rawJson: row.raw_json ?? JSON.stringify(row)
     };
   });
+  return deriveEquivalentArmorAttributeRows(rows, maintItems);
 }
 
 export async function runSync(options, dependencies = {}) {
