@@ -32,6 +32,8 @@ const requiredMarkers = [
   'armorVariantBuildGroups(headItems).map',
   'armorBuildVariantStats(buildGroup)',
   'armor-fixed-bonus-row',
+  'armor-fixed-bonus-lines',
+  'armor-fixed-bonus-line',
   'buildGroup.headItems',
   '...buildGroup.headItems',
   'effectVariantAliases.some',

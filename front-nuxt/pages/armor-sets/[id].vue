@@ -796,8 +796,11 @@ onMounted(() => {
                 <div class="armor-build-cell armor-build-defense-formula">
                   <span>公共</span>
                 </div>
-                <div class="armor-build-cell armor-build-stat-lines">
-                  <span v-for="line in armorFixedBonusLines" :key="`fixed-${line}`">{{ line }}</span>
+                <div class="armor-build-cell armor-fixed-bonus-lines">
+                  <span v-for="(line, index) in armorFixedBonusLines" :key="`fixed-${line}`" class="armor-fixed-bonus-line">
+                    <small>{{ String(index + 1).padStart(2, '0') }}</small>
+                    <b>{{ line }}</b>
+                  </span>
                 </div>
               </section>
               <article v-for="build in armorSetBuildCards" :key="build.key" class="armor-build-row">
@@ -1211,6 +1214,44 @@ onMounted(() => {
   font-size: 12px;
   font-weight: 750;
   line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.armor-fixed-bonus-lines {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 5px 10px;
+  align-content: center;
+  align-items: stretch;
+}
+
+.armor-fixed-bonus-line {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 7px;
+  align-items: start;
+  min-width: 0;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(244, 234, 208, 0.08);
+}
+
+.armor-fixed-bonus-line small {
+  display: inline-grid;
+  place-items: center;
+  min-height: 18px;
+  color: rgba(219, 179, 93, 0.9);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.armor-fixed-bonus-line b {
+  min-width: 0;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1.42;
   overflow-wrap: anywhere;
 }
 
