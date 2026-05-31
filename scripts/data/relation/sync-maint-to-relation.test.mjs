@@ -454,6 +454,111 @@ test('runSync derives ancient hallowed armor attribute effects from hallowed wik
   ]);
 });
 
+test('runSync derives configured equivalent armor attribute rows for non-hallowed families', async () => {
+  const maintItems = [
+    { source_id: 100, internal_name: 'ShadowHelmet', english_name: 'Shadow Helmet', name_zh: '暗影头盔', defense_value: 6, raw_json: '{}', record_key: 'item-shadow-helmet' },
+    { source_id: 956, internal_name: 'AncientShadowHelmet', english_name: 'Ancient Shadow Helmet', name_zh: '远古暗影头盔', defense_value: 6, raw_json: '{}', record_key: 'item-ancient-shadow-helmet' },
+    { source_id: 101, internal_name: 'ShadowScalemail', english_name: 'Shadow Scalemail', name_zh: '暗影鳞甲', defense_value: 7, raw_json: '{}', record_key: 'item-shadow-scalemail' },
+    { source_id: 957, internal_name: 'AncientShadowScalemail', english_name: 'Ancient Shadow Scalemail', name_zh: '远古暗影鳞甲', defense_value: 7, raw_json: '{}', record_key: 'item-ancient-shadow-scalemail' },
+    { source_id: 102, internal_name: 'ShadowGreaves', english_name: 'Shadow Greaves', name_zh: '暗影护胫', defense_value: 6, raw_json: '{}', record_key: 'item-shadow-greaves' },
+    { source_id: 958, internal_name: 'AncientShadowGreaves', english_name: 'Ancient Shadow Greaves', name_zh: '远古暗影护胫', defense_value: 6, raw_json: '{}', record_key: 'item-ancient-shadow-greaves' },
+    { source_id: 228, internal_name: 'JungleHat', english_name: 'Jungle Hat', name_zh: '丛林帽', defense_value: 5, raw_json: '{}', record_key: 'item-jungle-hat' },
+    { source_id: 960, internal_name: 'AncientCobaltHelmet', english_name: 'Ancient Cobalt Helmet', name_zh: '远古钴头盔', defense_value: 5, raw_json: '{}', record_key: 'item-ancient-cobalt-helmet' },
+    { source_id: 229, internal_name: 'JungleShirt', english_name: 'Jungle Shirt', name_zh: '丛林衣', defense_value: 6, raw_json: '{}', record_key: 'item-jungle-shirt' },
+    { source_id: 961, internal_name: 'AncientCobaltBreastplate', english_name: 'Ancient Cobalt Breastplate', name_zh: '远古钴胸甲', defense_value: 6, raw_json: '{}', record_key: 'item-ancient-cobalt-breastplate' },
+    { source_id: 230, internal_name: 'JunglePants', english_name: 'Jungle Pants', name_zh: '丛林裤', defense_value: 6, raw_json: '{}', record_key: 'item-jungle-pants' },
+    { source_id: 962, internal_name: 'AncientCobaltLeggings', english_name: 'Ancient Cobalt Leggings', name_zh: '远古钴护腿', defense_value: 6, raw_json: '{}', record_key: 'item-ancient-cobalt-leggings' },
+    { source_id: 803, internal_name: 'EskimoHood', english_name: 'Snow Hood', name_zh: '防雪兜帽', defense_value: 3, raw_json: '{}', record_key: 'item-snow-hood' },
+    { source_id: 978, internal_name: 'PinkEskimoHood', english_name: 'Pink Snow Hood', name_zh: '粉色防雪兜帽', defense_value: 3, raw_json: '{}', record_key: 'item-pink-snow-hood' },
+    { source_id: 804, internal_name: 'EskimoCoat', english_name: 'Snow Coat', name_zh: '防雪大衣', defense_value: 3, raw_json: '{}', record_key: 'item-snow-coat' },
+    { source_id: 979, internal_name: 'PinkEskimoCoat', english_name: 'Pink Snow Coat', name_zh: '粉色防雪大衣', defense_value: 3, raw_json: '{}', record_key: 'item-pink-snow-coat' },
+    { source_id: 805, internal_name: 'EskimoPants', english_name: 'Snow Pants', name_zh: '防雪裤', defense_value: 3, raw_json: '{}', record_key: 'item-snow-pants' },
+    { source_id: 980, internal_name: 'PinkEskimoPants', english_name: 'Pink Snow Pants', name_zh: '粉色防雪裤', defense_value: 3, raw_json: '{}', record_key: 'item-pink-snow-pants' },
+    { source_id: 151, internal_name: 'NecroHelmet', english_name: 'Necro Helmet', name_zh: '死灵头盔', defense_value: 6, raw_json: '{}', record_key: 'item-necro-helmet' },
+    { source_id: 959, internal_name: 'AncientNecroHelmet', english_name: 'Ancient Necro Helmet', name_zh: '远古死灵头盔', defense_value: 6, raw_json: '{}', record_key: 'item-ancient-necro-helmet' },
+    { source_id: 2367, internal_name: 'AnglerHat', english_name: 'Angler Hat', name_zh: '渔夫帽', defense_value: 1, raw_json: '{}', record_key: 'item-angler-hat' },
+    { source_id: 5591, internal_name: 'UpgradedFishingHead', english_name: 'Captain Hat', name_zh: '船长帽', defense_value: 10, raw_json: '{}', record_key: 'item-captain-hat' }
+  ];
+  const sourceRows = [
+    ['armor-shadow-helmet', '暗影头盔', 'ShadowHelmet', 6, { meleeCritChance: '5%' }],
+    ['armor-shadow-scalemail', '暗影鳞甲', 'ShadowScalemail', 7, { meleeSpeed: '7%' }],
+    ['armor-shadow-greaves', '暗影护胫', 'ShadowGreaves', 6, { movementSpeed: '7%' }],
+    ['armor-jungle-hat', '丛林帽', 'JungleHat', 5, { magicDamage: '6%' }],
+    ['armor-jungle-shirt', '丛林衣', 'JungleShirt', 6, { magicCritChance: '6%' }],
+    ['armor-jungle-pants', '丛林裤', 'JunglePants', 6, { maxMana: '+40' }],
+    ['armor-snow-hood', '防雪兜帽', 'EskimoHood', 3, { otherBonus: 'immune to frozen' }],
+    ['armor-snow-coat', '防雪大衣', 'EskimoCoat', 3, { otherBonus: 'immune to chilled' }],
+    ['armor-snow-pants', '防雪裤', 'EskimoPants', 3, { otherBonus: 'snow movement' }],
+    ['armor-necro-helmet', '死灵头盔', 'NecroHelmet', 6, { rangedDamage: '5%' }],
+    ['armor-angler-hat', '渔夫帽', 'AnglerHat', 1, { otherBonus: '+5 fishing power' }]
+  ];
+
+  const result = await runSync(
+    {
+      apply: false,
+      createDatabase: false,
+      maintDatabase: 'terria_v1_maint',
+      localDatabase: null,
+      relationDatabase: 'terria_v1_relation',
+      scopes: ['armor_attributes']
+    },
+    {
+      queryMaint: async (sql) => {
+        if (sql.includes('maint_items')) return maintItems;
+        if (sql.includes('maint_armor_attribute_rows')) {
+          return sourceRows.map(([recordKey, nameZh, internalName, defenseValue, rawCells], index) => ({
+            id: index + 1,
+            record_key: recordKey,
+            section_code: 'pre-hardmode',
+            slot_group: 'head',
+            item_page_title: nameZh,
+            item_href: `/zh/wiki/${encodeURIComponent(nameZh)}`,
+            item_name_zh: nameZh,
+            defense_value: defenseValue,
+            raw_cells_json: JSON.stringify(rawCells),
+            source_provider: 'terraria.wiki.gg',
+            source_page: '盔甲属性表',
+            source_revision_timestamp: '2026-06-01T00:00:00Z',
+            landing_source_id: 51,
+            landing_source_key: 'wiki.page.armor_attributes',
+            landing_content_hash: String(index + 1).repeat(64).slice(0, 64),
+            raw_json: JSON.stringify({ internalName })
+          }));
+        }
+        return [];
+      },
+      writeReports: async () => ({
+        auditJsonPath: 'reports/relation/relation-audit-2026-06-01.json',
+        auditMdPath: 'reports/relation/relation-audit-2026-06-01.md',
+        conflictsPath: 'reports/relation/relation-conflicts-2026-06-01.json',
+        unresolvedPath: 'reports/relation/relation-unresolved-2026-06-01.json'
+      }),
+      loadInheritanceRules: () => [],
+      loadReviewedNonNpcSourceExclusions: () => [],
+      loadReviewedSourceOnlyItemExclusions: () => []
+    }
+  );
+
+  const derived = result.results.relationArmorAttributeRows
+    .filter((row) => row.reason === 'derived_from_equivalent_armor_attribute_item')
+    .map((row) => [row.itemInternalName, row.defenseValue])
+    .sort();
+
+  assert.deepEqual(derived, [
+    ['AncientCobaltBreastplate', 6],
+    ['AncientCobaltHelmet', 5],
+    ['AncientCobaltLeggings', 6],
+    ['AncientNecroHelmet', 6],
+    ['AncientShadowGreaves', 6],
+    ['AncientShadowHelmet', 6],
+    ['AncientShadowScalemail', 7],
+    ['PinkEskimoCoat', 3],
+    ['PinkEskimoHood', 3],
+    ['PinkEskimoPants', 3]
+  ]);
+  assert.equal(derived.some(([internalName]) => internalName === 'UpgradedFishingHead'), false);
+});
+
 test('runSync dry-run reads maint only and does not write relation rows', async () => {
   const reads = [];
   const relationReads = [];

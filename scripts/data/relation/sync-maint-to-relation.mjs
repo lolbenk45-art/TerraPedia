@@ -25,6 +25,7 @@ import { buildBossSeriesRelations } from './boss-series-processor.mjs';
 import { buildNpcSeriesRelations } from './npc-series-processor.mjs';
 import { buildRelationItemRarities } from './item-rarity-support-processor.mjs';
 import { buildArmorSetRelations } from './armor-set-processor.mjs';
+import { buildEquivalentArmorAttributeLookup } from './equivalent-armor-attribute-rules.mjs';
 import { parseEquipmentEffectLines } from './equipment-effect-parser.mjs';
 import { buildProjectionSchemaStatements } from './projection-schema.mjs';
 import {
@@ -1131,35 +1132,6 @@ function percentNumber(value) {
   return match ? Number(match[0]) : null;
 }
 
-const equivalentArmorAttributeItemGroups = [
-  ['HallowedMask', 'AncientHallowedMask'],
-  ['HallowedHelmet', 'AncientHallowedHelmet'],
-  ['HallowedHeadgear', 'AncientHallowedHeadgear'],
-  ['HallowedHood', 'AncientHallowedHood'],
-  ['HallowedPlateMail', 'AncientHallowedPlateMail'],
-  ['HallowedGreaves', 'AncientHallowedGreaves']
-];
-
-function buildEquivalentArmorAttributeLookup(maintItems = []) {
-  const byInternalName = new Map();
-  for (const item of maintItems) {
-    if (item.internal_name) {
-      byInternalName.set(String(item.internal_name), item);
-    }
-  }
-  const lookup = new Map();
-  for (const group of equivalentArmorAttributeItemGroups) {
-    const items = group.map((internalName) => byInternalName.get(internalName)).filter(Boolean);
-    for (const source of items) {
-      const equivalents = items.filter((item) => item !== source);
-      if (equivalents.length) {
-        lookup.set(String(source.internal_name), equivalents);
-      }
-    }
-  }
-  return lookup;
-}
-
 function deriveEquivalentArmorAttributeRows(rows = [], maintItems = []) {
   const equivalentLookup = buildEquivalentArmorAttributeLookup(maintItems);
   if (!equivalentLookup.size) return rows;
@@ -1198,7 +1170,8 @@ function deriveEquivalentArmorAttributeRows(rows = [], maintItems = []) {
           derivedFromRecordKey: row.recordKey,
           derivedFromItemInternalName: row.itemInternalName,
           equivalentItemInternalName: item.internal_name,
-          source: 'wiki_identical_stats_equivalent_armor'
+          equivalentArmorAttributeGroupId: item.equivalentArmorAttributeGroupId ?? null,
+          evidence: item.equivalentArmorAttributeEvidence ?? 'explicit_equivalent_armor_attribute_rule'
         })
       });
     }
