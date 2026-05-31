@@ -211,15 +211,22 @@ const fallbackStatKey = (line: string) => {
 
 const fallbackStatLabel = (line: string) => statLabels[fallbackStatKey(line)] ?? '特效'
 
+const armorLineLooksLikePlainAttribute = (line: string) => (
+  /^\s*[+\-−]?\d+(?:\.\d+)?\s*%?\s*[^，、；;（）()]*/.test(line)
+  && !/套装|奖励|效果|增益|提供|触发|获得|召唤|免疫|闪避|不受|击中|每级|最高|降低/.test(line)
+)
+
 const armorBenefitFallbackEffects = computed<EquipmentEffectAttribute[]>(() => armorBenefitLines.value
   .map((line) => {
-    const match = line.match(/^\s*([+\-−]?\d+(?:\.\d+)?)\s*(%?)\s*([^，、；;（）()]*)/)
+    const match = armorLineLooksLikePlainAttribute(line)
+      ? line.match(/^\s*([+\-−]?\d+(?:\.\d+)?)\s*(%?)\s*([^，、；;（）()]*)/)
+      : null
     const normalizedValue = match?.[1]?.replace('−', '-') ?? ''
     const numeric = Number(normalizedValue)
     return {
       statKey: fallbackStatKey(line),
       statLabelZh: fallbackStatLabel(line),
-      valueDecimal: Number.isFinite(numeric) ? numeric : null,
+      valueDecimal: match && Number.isFinite(numeric) ? numeric : null,
       unit: match?.[2] === '%' ? 'percent' : 'flat',
       classScope: 'all',
       applyScope: 'set_bonus',
@@ -230,13 +237,15 @@ const armorBenefitFallbackEffects = computed<EquipmentEffectAttribute[]>(() => a
   .filter((effect) => effect.rawText))
 
 const armorEffectFromLine = (line: string): EquipmentEffectAttribute => {
-  const match = line.match(/^\s*([+\-−]?\d+(?:\.\d+)?)\s*(%?)\s*([^，、；;（）()]*)/)
+  const match = armorLineLooksLikePlainAttribute(line)
+    ? line.match(/^\s*([+\-−]?\d+(?:\.\d+)?)\s*(%?)\s*([^，、；;（）()]*)/)
+    : null
   const normalizedValue = match?.[1]?.replace('−', '-') ?? ''
   const numeric = Number(normalizedValue)
   return {
     statKey: fallbackStatKey(line),
     statLabelZh: fallbackStatLabel(line),
-    valueDecimal: Number.isFinite(numeric) ? numeric : null,
+    valueDecimal: match && Number.isFinite(numeric) ? numeric : null,
     unit: match?.[2] === '%' ? 'percent' : 'flat',
     rawText: line,
     parseStatus: match ? 'fallback' : 'unparsed',
@@ -244,8 +253,7 @@ const armorEffectFromLine = (line: string): EquipmentEffectAttribute => {
 }
 
 const armorBenefitLineIsAttributeSummary = (line: string) => (
-  /^\s*[+\-−]?\d/.test(line)
-  && !/套装|奖励|效果|增益|提供|触发|获得|召唤|免疫|闪避|不受|击中|每\s*\d/.test(line)
+  armorLineLooksLikePlainAttribute(line)
 )
 
 const armorParsedEffects = computed(() => (armorDetail.value?.parsedEffects ?? []).slice(0, 12))

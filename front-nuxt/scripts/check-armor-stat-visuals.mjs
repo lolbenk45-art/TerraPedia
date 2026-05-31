@@ -33,6 +33,7 @@ const requiredMarkers = [
   'armorBuildVariantStats(buildGroup)',
   'armorBuildVariantEffectGroups',
   'armor-build-effect-groups',
+  'armorLineLooksLikePlainAttribute',
   '构筑差异',
   'buildGroup.variantItems',
   '...buildGroup.variantItems',
@@ -76,6 +77,7 @@ const forbiddenMarkers = [
   '暂无头部差异属性',
   'armor-fixed-bonus-strip',
   'parts.reduce((sum, part)',
+  'valueDecimal: Number.isFinite(numeric) ? numeric : null',
   'return items.some((item) => effectBelongsToItem(effect, item))',
 ]
 const presentForbidden = forbiddenMarkers.filter((marker) => source.includes(marker))
