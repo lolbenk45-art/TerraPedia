@@ -1992,17 +1992,69 @@ onMounted(() => {
     <TerraBreadcrumb />
 
     <main class="support-layout detail-support-layout" :class="detailLayout.detailShellClass" :aria-busy="armorDetailVisualLoading">
-      <section v-if="armorDetailVisualLoading" class="support-panel armor-detail-hero">
-        <div>
-          <span class="eyebrow"><CommonTpSkeleton type="pill" /></span>
-          <component :is="'h1'" class="detail-missing-title"><CommonTpSkeleton type="line" /></component>
-          <p><CommonTpSkeleton type="line" /></p>
-          <div class="tag-row">
-            <span class="tag paper"><CommonTpSkeleton type="pill" /></span>
-            <span class="tag paper"><CommonTpSkeleton type="pill" /></span>
+      <div v-if="armorDetailVisualLoading" class="armor-detail-loading-skeleton">
+        <section class="support-panel armor-detail-hero armor-detail-loading-hero">
+          <div>
+            <CommonTpSkeleton type="pill" class="armor-detail-loading-kicker" />
+            <CommonTpSkeleton type="line" class="armor-detail-loading-title" />
+            <CommonTpSkeleton type="line" class="armor-detail-loading-copy" />
+            <CommonTpSkeleton type="line" class="armor-detail-loading-copy short" short />
+            <div class="tag-row" aria-hidden="true">
+              <CommonTpSkeleton type="pill" />
+              <CommonTpSkeleton type="pill" />
+              <CommonTpSkeleton type="pill" />
+            </div>
           </div>
+        </section>
+
+        <div class="armor-analysis-layout armor-detail-loading-modules">
+          <section class="support-panel armor-module armor-stat-module" :class="detailLayout.detailModuleClass">
+            <div class="armor-module-head">
+              <div>
+                <CommonTpSkeleton type="line" class="armor-detail-loading-heading" />
+                <CommonTpSkeleton type="line" class="armor-detail-loading-subheading" />
+              </div>
+            </div>
+            <div class="armor-build-board armor-build-matrix">
+              <article v-for="slot in 3" :key="`armor-detail-loading-stat-${slot}`" class="armor-build-row armor-build-mobile-card-layout armor-detail-loading-stat">
+                <div class="armor-build-cell armor-build-title-cell">
+                  <CommonTpSkeleton type="line" />
+                </div>
+                <div class="armor-build-cell armor-build-icons">
+                  <span v-for="piece in 3" :key="`armor-detail-loading-stat-${slot}-${piece}`" class="armor-build-piece">
+                    <CommonTpSkeleton type="icon" />
+                    <CommonTpSkeleton type="line" />
+                  </span>
+                </div>
+                <div class="armor-build-cell armor-build-defense-formula">
+                  <CommonTpSkeleton type="line" />
+                </div>
+                <div class="armor-build-cell armor-build-difference-cell">
+                  <CommonTpSkeleton type="line" />
+                  <CommonTpSkeleton type="line" />
+                  <CommonTpSkeleton type="line" short />
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="support-panel armor-module armor-crafting-module" :class="detailLayout.detailModuleClass">
+            <div class="armor-module-head">
+              <div>
+                <CommonTpSkeleton type="line" class="armor-detail-loading-heading" />
+                <CommonTpSkeleton type="line" class="armor-detail-loading-subheading" />
+              </div>
+            </div>
+            <div class="armor-crafting-summary-list">
+              <div v-for="slot in 3" :key="`armor-detail-loading-recipe-${slot}`" class="armor-detail-loading-recipe-row">
+                <CommonTpSkeleton type="icon" />
+                <CommonTpSkeleton type="line" />
+                <CommonTpSkeleton type="line" />
+              </div>
+            </div>
+          </section>
         </div>
-      </section>
+      </div>
 
       <section v-else-if="armorNotFound" class="support-panel armor-detail-hero">
         <div>
@@ -2398,6 +2450,78 @@ onMounted(() => {
   gap: 18px;
   align-items: center;
   min-width: 0;
+}
+
+.armor-detail-loading-skeleton {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.armor-detail-loading-hero {
+  min-height: 176px;
+}
+
+.armor-detail-loading-hero > div,
+.armor-detail-loading-modules {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.armor-detail-loading-kicker {
+  width: min(180px, 58%);
+}
+
+.armor-detail-loading-title {
+  width: min(360px, 78%);
+  height: 30px;
+}
+
+.armor-detail-loading-copy {
+  width: min(560px, 100%);
+}
+
+.armor-detail-loading-copy.short,
+.armor-detail-loading-subheading {
+  width: min(360px, 72%);
+}
+
+.armor-detail-loading-heading {
+  width: min(220px, 66%);
+}
+
+.armor-detail-loading-stat,
+.armor-detail-loading-recipe-row {
+  pointer-events: none;
+}
+
+.armor-detail-loading-stat .armor-build-piece {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.armor-detail-loading-stat .tp-skeleton-icon {
+  width: 38px;
+  height: 38px;
+}
+
+.armor-detail-loading-recipe-row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) minmax(92px, 0.42fr);
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(244, 234, 208, 0.08);
+}
+
+.armor-detail-loading-recipe-row .tp-skeleton-icon {
+  width: 32px;
+  height: 32px;
 }
 
 .armor-hero-main {

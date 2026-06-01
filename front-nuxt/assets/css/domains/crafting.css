@@ -1067,15 +1067,17 @@
 
 .material-slot-main {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr);
-  gap: var(--tp-space-2);
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 8px;
   align-items: center;
   min-width: 0;
 }
 
 .material-slot-main .tp-preview-image {
-  width: 56px;
-  height: 56px;
+  width: 40px;
+  height: 40px;
+  --tp-preview-image-size: 34px;
+  --tp-preview-fallback-icon-size: 28px;
 }
 
 .material-slot-copy {
@@ -1800,8 +1802,8 @@
 
 .compare-entity {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: var(--tp-space-2);
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 6px;
   align-items: center;
   min-width: 0;
   color: inherit;
@@ -1809,8 +1811,10 @@
 }
 
 .compare-entity .tp-preview-image {
-  width: 34px;
-  height: 34px;
+  width: 24px;
+  height: 24px;
+  --tp-preview-image-size: 20px;
+  --tp-preview-fallback-icon-size: 17px;
 }
 
 .compare-entity span {
