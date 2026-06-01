@@ -112,9 +112,32 @@ if (!config.includes('~/assets/css/detail-layout.css')) {
       'armor-crafting-any-material',
       'armor-crafting-any-label',
       '任意可替换材料',
+      '<style scoped>',
     ]) {
       if (!component.includes(marker)) {
         violations.push(`${componentPath}: missing compact material rendering marker ${marker}`)
+      }
+    }
+    for (const [pattern, message] of [
+      [
+        String.raw`\.armor-crafting-chip-compact\s*\{[\s\S]*display:\s*inline-flex;`,
+        'compact material chip styles must live in the child component so scoped CSS applies',
+      ],
+      [
+        String.raw`\.armor-crafting-chip-art\s*:deep\(\.item-art\)\s*\{[\s\S]*width:\s*18px;[\s\S]*height:\s*18px;`,
+        'compact material image container must stay inside the compact material column',
+      ],
+      [
+        String.raw`\.armor-crafting-chip-art\s*:deep\(\.item-art img\)\s*\{[\s\S]*max-width:\s*18px;[\s\S]*max-height:\s*18px;`,
+        'compact material image internals must not overflow compact cells',
+      ],
+      [
+        String.raw`\.armor-crafting-chip-compact\s+small,[\s\S]*\.armor-crafting-any-label\s+small\s*\{[\s\S]*overflow:\s*visible;`,
+        'compact material quantity must not be hidden or ellipsized',
+      ],
+    ]) {
+      if (!new RegExp(pattern, 'm').test(component)) {
+        violations.push(`${componentPath}: ${message}`)
       }
     }
   } catch {
@@ -284,20 +307,8 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       'armor set recipe summary must use the shared compact station parser',
     ],
     [
-      String.raw`\.armor-crafting-chip-compact\s*\{[\s\S]*display:\s*inline-flex;`,
-      'armor set recipe material chip must reserve visible text width beside the material image',
-    ],
-    [
-      String.raw`\.armor-crafting-chip-compact\s+small\s*\{[\s\S]*overflow:\s*visible;`,
-      'armor set recipe material quantity must not be hidden or ellipsized',
-    ],
-    [
-      String.raw`\.armor-crafting-chip-compact\s*:deep\(\.item-art\)\s*\{[\s\S]*width:\s*18px;[\s\S]*height:\s*18px;`,
-      'armor set recipe material image must stay inside the compact material column',
-    ],
-    [
-      String.raw`\.armor-crafting-chip-compact\s*:deep\(\.item-art img\),[\s\S]*\.armor-crafting-station-text\s*:deep\(\.item-art img\)\s*\{[\s\S]*max-width:\s*18px;[\s\S]*max-height:\s*18px;`,
-      'armor set recipe material and station image internals must not overflow compact cells',
+      String.raw`\.armor-crafting-chip-line\s*\{[\s\S]*text-align:\s*center;`,
+      'armor set recipe material table cell must center the compact child component without flex sizing',
     ],
     [
       String.raw`class="armor-crafting-station-text"`,
