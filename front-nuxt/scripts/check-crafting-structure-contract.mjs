@@ -161,6 +161,33 @@ for (const marker of [
   requireIncludes('assets/css/domains/crafting.css', domainCss, marker, `missing crafting domain selector ${marker}`)
 }
 
+for (const [selector, markers] of [
+  ['.material-slot-main', [
+    'grid-template-columns: 40px minmax(0, 1fr);',
+    'gap: 8px;',
+  ]],
+  ['.material-slot-main .tp-preview-image', [
+    'width: 40px;',
+    'height: 40px;',
+    '--tp-preview-image-size: 34px;',
+    '--tp-preview-fallback-icon-size: 28px;',
+  ]],
+  ['.compare-entity', [
+    'grid-template-columns: 24px minmax(0, 1fr);',
+    'gap: 6px;',
+  ]],
+  ['.compare-entity .tp-preview-image', [
+    'width: 24px;',
+    'height: 24px;',
+    '--tp-preview-image-size: 20px;',
+    '--tp-preview-fallback-icon-size: 17px;',
+  ]],
+]) {
+  for (const marker of markers) {
+    requireBlockIncludes('assets/css/domains/crafting.css', domainCss, selector, marker, `${selector} must keep material icons compact with ${marker}`)
+  }
+}
+
 {
   const source = requireFile('components/crafting/CraftingTargetBar.vue')
   for (const marker of [

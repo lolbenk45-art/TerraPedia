@@ -6574,8 +6574,10 @@ img[data-preview-fallback] {
 }
 .recipe-top-materials .item-art {
   grid-row: 1 / 3;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
+  --tp-preview-image-size: 24px;
+  --tp-preview-fallback-icon-size: 20px;
 }
 .recipe-top-materials b,
 .recipe-top-materials span {

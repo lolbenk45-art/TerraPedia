@@ -147,6 +147,25 @@ assertMarkers('pages/items/[id].vue', [
   ':fallback-icon="source.icon"',
 ])
 
+assertMarkers('pages/armor-sets/[id].vue', [
+  'armorClientReady',
+  'armorDetailVisualLoading',
+  ':aria-busy="armorDetailVisualLoading"',
+  'armor-detail-loading-skeleton',
+  'armor-detail-loading-hero',
+  'armor-detail-loading-modules',
+  'armor-detail-loading-stat',
+  'armor-detail-loading-recipe-row',
+  '<CommonTpSkeleton type="icon"',
+  '<CommonTpSkeleton type="line"',
+  '<CommonTpSkeleton type="pill"',
+])
+
+assertNoMarkers('pages/armor-sets/[id].vue', [
+  '<section v-if="armorDetailVisualLoading" class="support-panel armor-detail-hero">',
+  'detail-missing-title"><CommonTpSkeleton',
+])
+
 assertMarkers('pages/search-tool.vue', [
   'suggestionsClientReady',
   'suggestionsVisualLoading',
