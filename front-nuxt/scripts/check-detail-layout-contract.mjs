@@ -283,6 +283,18 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       'armor set detail must render grouped armor piece slots as collapsible summaries',
     ],
     [
+      String.raw`class="armor-build-piece-detail-row"[\s\S]*<CommonPreviewImage[\s\S]*:src="resolvePreviewImageUrl\(piece\.item\.image \|\| ''\)"`,
+      'armor set detail must show images for expanded interchangeable armor pieces',
+    ],
+    [
+      String.raw`\.armor-build-piece-detail-row\s*\{[\s\S]*grid-template-columns:\s*32px minmax\(0,\s*1fr\);`,
+      'expanded interchangeable armor piece rows must reserve a compact image column',
+    ],
+    [
+      String.raw`\.armor-build-piece-detail-row\s*:deep\(\.item-art img\)\s*\{[\s\S]*max-width:\s*32px;[\s\S]*max-height:\s*32px;`,
+      'expanded interchangeable armor piece images must not overflow detail rows',
+    ],
+    [
       String.raw`const armorRecipeStationGroupKey`,
       'armor set recipe summary must compare station sets before merging station cells',
     ],

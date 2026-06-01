@@ -2189,8 +2189,18 @@ onMounted(() => {
                         <!-- armor-build-piece-details-expandable: detailed per-piece data is hidden until the summary is expanded. -->
                         <div v-if="part.expanded" class="armor-build-piece-details">
                           <div v-for="piece in part.alternatives" :key="`${build.key}-${part.key}-${piece.key}`" class="armor-build-piece-detail-row">
-                            <strong>{{ piece.name }}</strong>
-                            <small v-if="piece.defense">{{ piece.defense }}</small>
+                            <CommonPreviewImage
+                              :src="resolvePreviewImageUrl(piece.item.image || '')"
+                              :alt="piece.name"
+                              :fallback="piece.name.slice(0, 1)"
+                              fallback-icon="icon-items"
+                              width="32"
+                              height="32"
+                            />
+                            <span class="armor-build-piece-detail-copy">
+                              <strong>{{ piece.name }}</strong>
+                              <small v-if="piece.defense">{{ piece.defense }}</small>
+                            </span>
                             <em
                               v-for="effect in piece.effects"
                               :key="`${build.key}-${part.key}-${piece.key}-${effect.key}`"
@@ -3393,8 +3403,32 @@ onMounted(() => {
 
 .armor-build-piece-detail-row {
   display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 4px 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.armor-build-piece-detail-row :deep(.item-art) {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  overflow: hidden;
+  --tp-preview-visible-shift-x: 0px !important;
+  --tp-preview-visible-shift-y: 0px !important;
+}
+
+.armor-build-piece-detail-row :deep(.item-art img) {
+  max-width: 32px;
+  max-height: 32px;
+  object-fit: contain;
+}
+
+.armor-build-piece-detail-copy {
+  display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 3px 8px;
+  align-items: center;
   min-width: 0;
 }
 
@@ -3413,7 +3447,7 @@ onMounted(() => {
 
 .armor-build-piece-evidence em {
   position: relative;
-  grid-column: 1 / -1;
+  grid-column: 2;
   min-width: 0;
   color: rgba(226, 236, 224, 0.82);
   font-size: 10px;
