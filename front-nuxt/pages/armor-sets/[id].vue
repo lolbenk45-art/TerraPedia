@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { usePublicArmorSetDetail } from '~/composables/usePublicArmorSetDetail'
-import type { EquipmentEffectAttribute, PublicArmorSetListItem, PublicArmorSetRelatedItem } from '~/types/public-api'
+import type { EquipmentEffectAttribute, PublicArmorSetListItem, PublicArmorSetRelatedItem, PublicItemRecipeTree } from '~/types/public-api'
 import { createArmorSetBuildGroups } from '~/utils/armorSetBuilds.mjs'
+import { buildCompactRecipeMaterial, buildCompactRecipeStation, compactRecipeNodeChildren, compactRecipeNodeStations, compactRecipeRootNodes, type CompactRecipeMaterial, type CompactRecipeStation } from '~/utils/craftingRecipeCompact'
 
 type ArmorBuildTotalEntry = {
   key: string
@@ -31,10 +32,30 @@ type ArmorBuildPartGroup = {
   item: PublicArmorSetRelatedItem
   alternatives: PublicArmorSetRelatedItem[]
 }
+type ArmorSetRecipeSummary = {
+  key: string
+  itemId: string
+  name: string
+  role: string
+  image: string
+  fallback: string
+  href: string
+  recipeCount: number
+  materials: CompactRecipeMaterial[]
+  stations: CompactRecipeStation[]
+}
+type ArmorSetRecipeTableRow = ArmorSetRecipeSummary & {
+  stationGroupKey: string
+  stationRowspan: number
+  showStationCell: boolean
+}
+
+const ARMOR_VISIBLE_RECIPE_LIMIT = 8
 
 const route = useRoute()
 const detailLayout = useDetailLayout({ kind: 'armor-set', density: 'readable' })
 const armorClientReady = ref(false)
+const expandedArmorPartKeys = ref(new Set<string>())
 
 const armorSetId = computed(() => String(route.params.id ?? '').trim())
 const { data: armorDetailResult, pending: armorDetailPending, error: armorDetailError } = await usePublicArmorSetDetail(armorSetId)
@@ -59,7 +80,9 @@ const statLabels: Record<string, string> = {
   melee_speed: '近战速度',
   summon_damage: '召唤伤害',
   minion_capacity: '仆从',
+  sentry_capacity: '哨兵',
   ammo_conservation: '弹药节省',
+  knockback: '击退',
   defense: '防御',
   threat: '仇恨',
   mana_max: '魔力',
@@ -75,7 +98,9 @@ const statVisuals: Record<string, { label: string, tone: string }> = {
   melee_speed: { label: '近战速度', tone: 'is-mobility' },
   summon_damage: { label: '召唤伤害', tone: 'is-summon' },
   minion_capacity: { label: '仆从容量', tone: 'is-summon' },
+  sentry_capacity: { label: '哨兵容量', tone: 'is-summon' },
   ammo_conservation: { label: '弹药节省', tone: 'is-offense' },
+  knockback: { label: '击退', tone: 'is-offense' },
   defense: { label: '防御', tone: 'is-defense' },
   mana_max: { label: '魔力上限', tone: 'is-resource' },
   mana_cost: { label: '魔力消耗', tone: 'is-resource' },
@@ -123,8 +148,8 @@ const statGroupOrder = ['offense', 'defense', 'mobility', 'resource', 'summon', 
 
 const effectStatGroup = (effect: EquipmentEffectAttribute) => {
   const key = String(effect.statKey ?? '')
-  if (/summon|minion/.test(key)) return 'summon'
-  if (/damage|crit|melee|ammo/.test(key)) return 'offense'
+  if (/summon|minion|sentry/.test(key)) return 'summon'
+  if (/damage|crit|melee|ammo|knockback/.test(key)) return 'offense'
   if (/defense|immunity|regen|life/.test(key)) return 'defense'
   if (/move|speed|dash|acceleration|flight/.test(key)) return 'mobility'
   if (/mana|cost|resource/.test(key)) return 'resource'
@@ -229,6 +254,15 @@ const armorPieceRoleOrder = (role: string) => {
   return 3
 }
 
+const toggleArmorPieceEvidence = (key: string) => {
+  const next = new Set(expandedArmorPartKeys.value)
+  if (next.has(key)) next.delete(key)
+  else next.add(key)
+  expandedArmorPartKeys.value = next
+}
+
+const armorDomIdFragment = (value: string) => normalizeEffectLine(value) || 'part'
+
 const armorHeadVariantOrder = (item: PublicArmorSetRelatedItem) => {
   const text = `${item.nameZh ?? ''} ${item.name ?? ''} ${item.internalName ?? ''}`.toLowerCase()
   if (/头饰|headgear/.test(text)) return 0
@@ -258,6 +292,10 @@ const armorPartIndex = (item: PublicArmorSetRelatedItem) => {
   return Number.isFinite(value) ? value : null
 }
 
+const armorRecipeItemId = (item: PublicArmorSetRelatedItem) => String(item.itemId ?? item.sourceId ?? '').trim()
+
+const armorFirstGlyph = (value: string) => Array.from(String(value ?? '').trim())[0] ?? '?'
+
 const armorDefenseValueLabel = (values: number[]) => {
   const uniqueValues = [...new Set(values)].sort((left, right) => left - right)
   if (!uniqueValues.length) return ''
@@ -272,13 +310,20 @@ const armorBenefitLines = computed(() => {
 })
 
 const fallbackStatKey = (line: string) => {
+  if (/哨兵容量|sentry/i.test(line)) return 'sentry_capacity'
+  if (/仆从容量|仆从|minion/i.test(line)) return 'minion_capacity'
+  if (/召唤伤害/.test(line)) return 'summon_damage'
+  if (/弹药|ammo/i.test(line)) return 'ammo_conservation'
+  if (/击退|knockback/i.test(line)) return 'knockback'
   if (/防御/.test(line)) return 'defense'
   if (/暴击/.test(line)) return 'crit_chance'
-  if (/移动|速度/.test(line)) return 'move_speed'
-  if (/召唤|仆从|哨兵/.test(line)) return 'summon_damage'
-  if (/魔力|魔耗|消耗/.test(line)) return 'mana_cost'
+  if (/近战(?:攻击)?速度|melee speed/i.test(line)) return 'melee_speed'
+  if (/挖矿|采矿|mining/i.test(line)) return 'mining_speed'
+  if (/移动|移速|加速度|减速度|move|movement|speed/i.test(line)) return 'move_speed'
+  if (/最大魔力|魔力上限|max mana/i.test(line)) return 'mana_max'
+  if (/魔力花费|魔力消耗|魔耗|mana cost|消耗/.test(line)) return 'mana_cost'
   if (/仇恨/.test(line)) return 'threat'
-  if (/伤害/.test(line)) return 'damage_bonus'
+  if (/伤害|damage/i.test(line)) return 'damage_bonus'
   return 'special_effect'
 }
 
@@ -287,6 +332,21 @@ const fallbackStatLabel = (line: string) => statLabels[fallbackStatKey(line)] ??
 const armorLineLooksLikePlainAttribute = (line: string) => (
   /^\s*[+\-−]?\d+(?:\.\d+)?\s*%?\s*[^，、；;（）()]*/.test(line)
   && !/套装|奖励|效果|增益|提供|触发|获得|召唤|免疫|闪避|不受|击中|每级|最高|降低/.test(line)
+)
+
+const armorLineLooksLikeNumericSetAttribute = (line: string) => (
+  // Regression marker: "套装奖励：魔力消耗降低 17%" contributes "-17% 魔力消耗" to 最终汇总.
+  !/(?:每级|最高|持续|造成|召唤|生成|提供不断累积|基础伤害)/.test(line)
+  && (
+  /(?:降低|减少|减免|增加|提高)\s*[+\-−]?\d+(?:\.\d+)?\s*%?/.test(line)
+  || /[+\-−]?\d+(?:\.\d+)?\s*%?\s*[^，、；;（）()]*(?:降低|减少|减免|增加|提高|不消耗弹药|减少弹药消耗|哨兵容量|仆从容量|召唤伤害|近战伤害|远程伤害|魔法伤害|伤害|暴击|移动速度|移速|近战(?:攻击)?速度|仇恨|击退|魔力花费|魔力消耗|魔力上限|最大魔力|melee damage|melee speed|damage|crit|speed|mana|ammo|minion|sentry|knockback)/i.test(line)
+  )
+)
+
+const armorEffectLineNumericMatch = (line: string) => (
+  line.match(/^\s*([+\-−]?\d+(?:\.\d+)?)\s*(%?)/)
+  ?? line.match(/(?:降低|减少|减免|增加|提高)\s*([+\-−]?\d+(?:\.\d+)?)\s*(%?)/)
+  ?? line.match(/([+\-−]?\d+(?:\.\d+)?)\s*(%?)\s*[^，、；;（）()]*(?:降低|减少|减免|增加|提高|不消耗弹药|减少弹药消耗|哨兵容量|仆从容量|召唤伤害|近战伤害|远程伤害|魔法伤害|伤害|暴击|移动速度|移速|近战(?:攻击)?速度|仇恨|击退|魔力花费|魔力消耗|魔力上限|最大魔力|melee damage|melee speed|damage|crit|speed|mana|ammo|minion|sentry|knockback)/i)
 )
 
 const armorHighlightedTextSegments = (line: string) => {
@@ -308,28 +368,31 @@ const armorHighlightedTextSegments = (line: string) => {
 }
 
 const armorBenefitFallbackEffects = computed<EquipmentEffectAttribute[]>(() => armorBenefitLines.value
-  .map((line) => {
-    const match = armorLineLooksLikePlainAttribute(line)
-      ? line.match(/^\s*([+\-−]?\d+(?:\.\d+)?)\s*(%?)\s*([^，、；;（）()]*)/)
-      : null
-    const normalizedValue = match?.[1]?.replace('−', '-') ?? ''
-    const numeric = Number(normalizedValue)
-    return {
+  .flatMap((line) => {
+    const attributeLines = armorEffectLinesFromLine(line)
+    if (attributeLines.length) {
+      return attributeLines.map((attributeLine) => ({
+        ...armorEffectFromLine(attributeLine),
+        classScope: 'all',
+        applyScope: 'set_bonus',
+      }))
+    }
+    return [{
       statKey: fallbackStatKey(line),
       statLabelZh: fallbackStatLabel(line),
-      valueDecimal: match && Number.isFinite(numeric) ? numeric : null,
-      unit: match?.[2] === '%' ? 'percent' : 'flat',
+      valueDecimal: null,
+      unit: 'flat',
       classScope: 'all',
       applyScope: 'set_bonus',
       rawText: line,
-      parseStatus: match ? 'fallback' : 'unparsed',
-    }
+      parseStatus: 'unparsed',
+    } as EquipmentEffectAttribute]
   })
   .filter((effect) => effect.rawText))
 
 const armorEffectFromLine = (line: string): EquipmentEffectAttribute => {
-  const match = armorLineLooksLikePlainAttribute(line)
-    ? line.match(/^\s*([+\-−]?\d+(?:\.\d+)?)\s*(%?)\s*([^，、；;（）()]*)/)
+  const match = (armorLineLooksLikePlainAttribute(line) || armorLineLooksLikeNumericSetAttribute(line))
+    ? armorEffectLineNumericMatch(line)
     : null
   const normalizedValue = match?.[1]?.replace('−', '-') ?? ''
   const numeric = Number(normalizedValue)
@@ -343,8 +406,25 @@ const armorEffectFromLine = (line: string): EquipmentEffectAttribute => {
   }
 }
 
+const armorEffectLinesFromLine = (line: string) => {
+  const normalizedLine = String(line ?? '').trim()
+  if (!normalizedLine) return []
+  const prefixMatch = normalizedLine.match(/^(.*?套装(?:奖励|效果)?[：:]\s*)(.+)$/)
+  const prefix = prefixMatch?.[1] ?? ''
+  const body = prefixMatch?.[2] ?? normalizedLine
+  const segments = body
+    .split(/[、，；;]/)
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+  const candidateLines = segments.length > 1 ? segments.map((segment) => `${prefix}${segment}`) : [normalizedLine]
+  // Regression marker: "套装奖励：+20% 近战速度、+20% 移动速度" contributes two totals.
+  return candidateLines.filter((candidate) => (
+    armorLineLooksLikePlainAttribute(candidate) || armorLineLooksLikeNumericSetAttribute(candidate)
+  ))
+}
+
 const armorBenefitLineIsAttributeSummary = (line: string) => (
-  armorLineLooksLikePlainAttribute(line)
+  armorLineLooksLikePlainAttribute(line) || armorLineLooksLikeNumericSetAttribute(line) || armorEffectLinesFromLine(line).length > 0
 )
 
 const armorParsedEffects = computed(() => (armorDetail.value?.parsedEffects ?? []).slice(0, 12))
@@ -422,6 +502,21 @@ const armorUniqueItemKey = (item: PublicArmorSetRelatedItem) => [
 const armorItemEffectFetchKey = (item: PublicArmorSetRelatedItem) => String(
   item.itemId ?? item.sourceId ?? item.internalName ?? '',
 ).trim()
+
+const armorUniqueRecipeItems = computed(() => {
+  // armor-crafting-deduped-by-unique-item: recipe summaries are fetched once per unique armor piece, not once per build.
+  const seen = new Set<string>()
+  const result: PublicArmorSetRelatedItem[] = []
+  for (const item of armorRelatedItems.value) {
+    const itemId = armorRecipeItemId(item)
+    if (!itemId || seen.has(itemId)) continue
+    seen.add(itemId)
+    result.push(item)
+  }
+  return result.sort((left, right) => armorPieceRoleOrder(armorPieceRole(left)) - armorPieceRoleOrder(armorPieceRole(right)) || armorPieceName(left).localeCompare(armorPieceName(right), 'zh-Hans-CN'))
+})
+
+const armorRecipeFetchKey = computed(() => armorUniqueRecipeItems.value.map(armorRecipeItemId).join(','))
 
 const armorEquivalentItemKey = (item: PublicArmorSetRelatedItem) => normalizeMatchText(
   armorPieceName(item).replace(/^远古/, '').replace(/^Ancient\s*/i, ''),
@@ -826,6 +921,31 @@ const armorFullSetBuildGroup = (uniqueItems: PublicArmorSetRelatedItem[]) => [{
   variantItems: uniqueItems,
 }]
 
+const armorLineIsSetBonusHeading = (line: string) => /^套装(?:奖励|效果)?[：:]/.test(line)
+
+const armorReadableSetBonusLine = (line: string) => (
+  // Regression marker: set bonus text strips total parentheses because 最终汇总 owns totals.
+  String(line ?? '').replace(/[（(]\s*(?:总计|总共)\s*[+\-−]?\d+(?:\.\d+)?\s*%?\s*[）)]/g, '').trim()
+)
+
+const armorComparableSetBonusLine = (line: string) => normalizeEffectLine(
+  armorReadableSetBonusLine(line).replace(/^.*?套装(?:奖励|效果)?[：:]\s*/, ''),
+)
+
+const armorReadableSetBonusLines = (lines: string[]) => dedupeEffectLines(lines.map(armorReadableSetBonusLine))
+
+const armorPublicTrailingSetBonusLines = () => {
+  // Regression marker: trailing public set bonus applies to every build instead of the final variant only.
+  const lines = armorBenefitLines.value
+  const lastVariantIndex = lines.reduce((lastIndex, line, index) => (
+    armorLineStartsKnownVariant(line) ? index : lastIndex
+  ), -1)
+  if (lastVariantIndex < 0) return []
+  return armorReadableSetBonusLines(lines.slice(lastVariantIndex + 1)
+    .filter(armorLineIsSetBonusHeading)
+    .filter((line) => !armorBenefitLineIsAttributeSummary(line)))
+}
+
 const armorBenefitVariantLines = (variantItems: PublicArmorSetRelatedItem[]) => {
   const lines = armorBenefitLines.value
   if (!lines.length || !variantItems.length) return []
@@ -846,8 +966,8 @@ const armorBenefitVariantLines = (variantItems: PublicArmorSetRelatedItem[]) => 
 
     if (startsMatchedVariant) {
       collecting = true
-      const variantLine = line.replace(/^.*?[：:]\s*/, '').trim() || line
-      if (!armorBenefitLineIsAttributeSummary(variantLine)) result.push(variantLine)
+      const variantLine = line.replace(/^.*?[：:]\s*/, '').trim()
+      if (variantLine) result.push(variantLine)
       continue
     }
 
@@ -856,10 +976,10 @@ const armorBenefitVariantLines = (variantItems: PublicArmorSetRelatedItem[]) => 
       continue
     }
 
-    if (collecting && (/套装|奖励|效果|增益/.test(line))) result.push(line)
+    if (collecting) result.push(line)
   }
 
-  return dedupeEffectLines(result)
+  return armorReadableSetBonusLines(result)
 }
 
 const armorKnownVariantAliases = computed(() => dedupeEffectLines([
@@ -885,7 +1005,7 @@ const armorBenefitLinesWithoutVariantBlocks = () => {
       continue
     }
 
-    if (skippingVariantBlock && (/套装|奖励|效果|增益/.test(line))) {
+    if (skippingVariantBlock) {
       continue
     }
 
@@ -896,14 +1016,18 @@ const armorBenefitLinesWithoutVariantBlocks = () => {
   return result
 }
 
-// Regression marker: 蜘蛛盔甲 keeps "套装奖励：+12% 召唤伤害（总共 +28%）" as readable text.
+// Regression marker: 蜘蛛盔甲 keeps "套装奖励：+12% 召唤伤害" as readable text while dropping "总计 +25%" style suffixes.
 const armorDefaultBenefitSetBonusLines = () => armorBenefitLinesWithoutVariantBlocks()
   .filter((line) => !armorBenefitLineIsAttributeSummary(line))
+  .map(armorReadableSetBonusLine)
 
 const armorCommonSetBonusLines = () => {
+  const publicTrailingLines = armorPublicTrailingSetBonusLines()
   const effectLines = armorShownEffects.value
     .filter((effect) => {
       if (effectVariantLabel(effect)) return false
+      if (armorCommonSetEffectBelongsToVariantBlock(effect)) return false
+      if (armorEffectBelongsToPublicTrailingSetBonus(effect, publicTrailingLines)) return false
       if (effectSourceKind(effect) === 'set') return true
       return false
     })
@@ -914,15 +1038,76 @@ const armorCommonSetBonusLines = () => {
     })
   return dedupeEffectLines([
     ...armorDefaultBenefitSetBonusLines(),
+    ...publicTrailingLines,
     ...mergeEffectLines(effectLines),
-  ])
+  ].map(armorReadableSetBonusLine))
 }
 
-const armorBuildSetBonusLines = (variantItems: PublicArmorSetRelatedItem[]) => dedupeEffectLines([
+const armorEffectBelongsToPublicTrailingSetBonus = (effect: EquipmentEffectAttribute, publicTrailingLines: string[]) => {
+  const normalizedEffectLine = armorComparableSetBonusLine(effectSummaryLine(effect))
+  if (!normalizedEffectLine) return false
+  return publicTrailingLines.some((line) => {
+    const normalizedLine = armorComparableSetBonusLine(line)
+    return normalizedLine === normalizedEffectLine
+      || normalizedLine.includes(normalizedEffectLine)
+      || normalizedEffectLine.includes(normalizedLine)
+  })
+}
+
+const armorCommonSetEffectBelongsToVariantBlock = (effect: EquipmentEffectAttribute) => {
+  // Regression marker: Spectre Hood healing bonus stays out of Spectre Mask bonus text.
+  if (effectSourceKind(effect) !== 'set') return false
+  if (armorLineStartsKnownVariant(effectSummaryLine(effect))) return true
+  const normalizedEffectLine = armorComparableSetBonusLine(effectSummaryLine(effect))
+  if (!normalizedEffectLine) return false
+  return uniqueArmorItems(armorRelatedItems.value)
+    .some((item) => armorBenefitVariantLines([item])
+      .some((line) => {
+        const normalizedLine = armorComparableSetBonusLine(line)
+        return normalizedLine === normalizedEffectLine
+          || normalizedLine.includes(normalizedEffectLine)
+          || normalizedEffectLine.includes(normalizedLine)
+      }))
+}
+
+const armorBuildSetBonusLines = (variantItems: PublicArmorSetRelatedItem[]) => armorReadableSetBonusLines([
   ...armorCommonSetBonusLines(),
   ...armorBenefitVariantLines(variantItems)
     .filter((line) => !armorBenefitLineIsAttributeSummary(line)),
 ])
+
+const armorShownSetBonusLines = (variantItems: PublicArmorSetRelatedItem[]) => armorReadableSetBonusLines([
+  ...armorCommonSetBonusLines(),
+  // Regression marker: numeric set bonus remains readable in 套装效果 after contributing to 最终汇总.
+  ...armorBenefitVariantLines(variantItems)
+    .filter((line) => armorLineIsSetBonusHeading(line) || !armorBenefitLineIsAttributeSummary(line)),
+])
+
+const armorBuildVariantSetBonusEffects = (variantItems: PublicArmorSetRelatedItem[]) => {
+  const variantAttributeLines = armorBenefitVariantLines(variantItems)
+    .filter((line) => armorLineIsSetBonusHeading(line))
+    .flatMap(armorEffectLinesFromLine)
+  if (!variantAttributeLines.length) return []
+
+  return variantAttributeLines.map((line) => ({
+    ...armorEffectFromLine(line),
+    applyScope: 'set_bonus',
+    rawText: line,
+  } as EquipmentEffectAttribute))
+}
+
+const armorSetEffectBelongsToVariantBlock = (effect: EquipmentEffectAttribute) => {
+  if (effectSourceKind(effect) !== 'set') return false
+  const normalizedEffectLine = armorComparableSetBonusLine(effectSummaryLine(effect))
+  if (!normalizedEffectLine) return false
+  return armorBenefitVariantLines(uniqueArmorItems(armorRelatedItems.value))
+    .some((line) => {
+      const normalizedLine = armorComparableSetBonusLine(line)
+      return normalizedLine === normalizedEffectLine
+        || normalizedLine.includes(normalizedEffectLine)
+        || normalizedEffectLine.includes(normalizedLine)
+    })
+}
 
 const armorDefaultBuildSetBonusLines = (buildItems: PublicArmorSetRelatedItem[]) => {
   const pieceEffectLines = mergeEffectLines(armorShownEffects.value
@@ -1050,6 +1235,44 @@ const armorCompactPieceEffectLines = (lines: string[]) => {
   ])
 }
 
+const armorCompactPieceEffectEntries = (lines: string[]) => {
+  // Regression marker: four class damage lines collapse to generic damage only when all source lines exist.
+  const dedupedLines = armorCompactPieceEffectLines(lines)
+  const damageGroups = new Map<string, string[]>()
+  const entry = (text: string, title = '') => ({
+    key: `${normalizeEffectLine(text)}-${normalizeEffectLine(title)}`,
+    text,
+    title,
+  })
+
+  for (const line of dedupedLines) {
+    const match = line.match(/^\s*([+\-−]?\d+(?:\.\d+)?\s*%?)\s*(近战|远程|魔法|召唤)伤害\s*$/)
+    if (!match) continue
+    const value = normalizeEffectLine(match[1] ?? '')
+    if (!value) continue
+    damageGroups.set(value, [...(damageGroups.get(value) ?? []), line])
+  }
+
+  const dropLines = new Set<string>()
+  const addEntries: ReturnType<typeof entry>[] = []
+
+  for (const linesForValue of damageGroups.values()) {
+    const specificLines = linesForValue.filter((line) => /近战|远程|魔法|召唤/.test(line))
+    if (specificLines.length !== 4) continue
+    for (const line of linesForValue) dropLines.add(line)
+    const genericLine = specificLines[0]?.replace(/(近战|远程|魔法|召唤)伤害/, '伤害')
+    if (!genericLine) continue
+    addEntries.push(entry(genericLine, specificLines.join(' · ')))
+  }
+
+  return [
+    ...dedupedLines
+      .filter((line) => !dropLines.has(line))
+      .map((text) => entry(text)),
+    ...addEntries,
+  ]
+}
+
 const armorFallbackLeadingFixedPieceEffectLines = (item: PublicArmorSetRelatedItem) => {
   if (armorHasVariantBuilds.value) return []
   const uniqueItems = uniqueArmorItems(armorRelatedItems.value)
@@ -1082,30 +1305,68 @@ const armorBuildPieceEffectLines = (item: PublicArmorSetRelatedItem) => {
   ])
 }
 
+// armor-build-piece-summary-joined-names: collapsed groups show names like "神圣兜帽 / 远古神圣兜帽".
+const armorPartSummaryName = (items: PublicArmorSetRelatedItem[]) => dedupeEffectLines(items.map(armorPieceName)).join(' / ')
+
+// armor-build-piece-summary-numeric-tooltip: hover/focus text is derived from real piece values only.
+const armorPartSummaryTooltip = (items: Array<{
+  name: string
+  defense: string
+  effects: ReturnType<typeof armorCompactPieceEffectEntries>
+}>) => items
+  .map((item) => [
+    item.name,
+    item.defense,
+    item.effects.map((effect) => effect.title ? `${effect.text}（${effect.title}）` : effect.text).join('，'),
+  ].filter(Boolean).join('：'))
+  .filter(Boolean)
+  .join('；')
+
 const armorEffectNumericValue = (effect: EquipmentEffectAttribute) => {
   const value = Number(effect.valueDecimal)
   if (Number.isFinite(value)) return value
   const rawText = effectRawText(effect)
-  if (!armorLineLooksLikePlainAttribute(rawText)) return null
-  const match = rawText.match(/^\s*([+\-−]?\d+(?:\.\d+)?)\s*(%?)/)
+  if (!armorLineLooksLikePlainAttribute(rawText) && !armorLineLooksLikeNumericSetAttribute(rawText)) return null
+  const match = armorEffectLineNumericMatch(rawText)
   const rawValue = Number(match?.[1]?.replace('−', '-') ?? '')
   return Number.isFinite(rawValue) ? rawValue : null
+}
+
+const armorEffectTotalSignedValue = (effect: EquipmentEffectAttribute) => {
+  const value = armorEffectNumericValue(effect)
+  if (value == null) return null
+  const rawText = effectRawText(effect)
+  const statKey = armorEffectTotalStatKey(effect)
+  return statKey === 'mana_cost' && /(?:降低|减少|减免)/.test(rawText) && !/^\s*[-−]/.test(rawText)
+    ? -Math.abs(value)
+    : value
 }
 
 const armorEffectTotalStatKey = (effect: EquipmentEffectAttribute) => {
   const statKey = String(effect.statKey ?? '')
   if (statKey && statKey !== 'special_effect') return statKey
   const rawText = effectRawText(effect)
-  return armorLineLooksLikePlainAttribute(rawText) ? fallbackStatKey(rawText) : statKey
+  return (armorLineLooksLikePlainAttribute(rawText) || armorLineLooksLikeNumericSetAttribute(rawText))
+    ? fallbackStatKey(rawText)
+    : statKey
 }
 
 const armorEffectTotalLabel = (effect: EquipmentEffectAttribute) => {
   const rawText = effectRawText(effect)
+  const statKey = armorEffectTotalStatKey(effect)
   const rawLabel = rawText
+    .replace(/^.*?套装(?:奖励|效果)?[：:]\s*/, '')
+    .replace(/(?:降低|减少|减免|增加|提高)\s*[+\-−]?\d+(?:\.\d+)?\s*%?\s*/, '')
     .replace(/^[+\-−]?\d+(?:\.\d+)?\s*%?\s*/, '')
+    .replace(/[+\-−]?\d+(?:\.\d+)?\s*%?\s*/, '')
+    .replace(/(?:降低|减少|减免|增加|提高|的几率不消耗|减少)/g, '')
     .replace(/[（(].*?[）)]/g, '')
     .trim()
-  return rawLabel || statName(effect)
+  if (statKey === 'ammo_conservation' && /弹药|ammo/i.test(rawText)) return statLabels.ammo_conservation ?? '弹药节省'
+  if (statKey === 'mana_cost' && /魔力|魔耗|mana/i.test(rawText)) return statLabels.mana_cost ?? '魔耗'
+  if (statKey === 'sentry_capacity' && /哨兵|sentry/i.test(rawText)) return statLabels.sentry_capacity ?? '哨兵'
+  if (statKey === 'minion_capacity' && /仆从|minion/i.test(rawText)) return statLabels.minion_capacity ?? '仆从'
+  return rawLabel || statName(effect) || '未归类'
 }
 
 const armorCombinedBuildTotals = (buildItems: PublicArmorSetRelatedItem[], variantItems: PublicArmorSetRelatedItem[]): ArmorBuildTotalEntry[] => {
@@ -1118,7 +1379,7 @@ const armorCombinedBuildTotals = (buildItems: PublicArmorSetRelatedItem[], varia
   const totals = new Map<string, { key: string, statKey: string, label: string, unit: string | null | undefined, value: number }>()
 
   for (const effect of relevantEffects) {
-    const value = armorEffectNumericValue(effect)
+    const value = armorEffectTotalSignedValue(effect)
     if (value == null) continue
     const statKey = armorEffectTotalStatKey(effect)
     if (!statKey || statKey === 'special_effect') continue
@@ -1161,7 +1422,7 @@ const armorBuildEffectTotalsForItems = (items: PublicArmorSetRelatedItem[], opti
   const relevantEffects = armorShownEffects.value.filter((effect) => {
     const variantLabel = effectVariantLabel(effect)
     if (variantLabel) return items.some((item) => effectBelongsToItem(effect, item))
-    if (effectSourceKind(effect) === 'set') return includeSetEffects
+    if (effectSourceKind(effect) === 'set') return includeSetEffects && !armorSetEffectBelongsToVariantBlock(effect)
     return items.some((item) => effectBelongsToItem(effect, item))
   })
   const totals = new Map<string, {
@@ -1173,7 +1434,7 @@ const armorBuildEffectTotalsForItems = (items: PublicArmorSetRelatedItem[], opti
   }>()
 
   for (const effect of relevantEffects) {
-    const value = armorEffectNumericValue(effect)
+    const value = armorEffectTotalSignedValue(effect)
     if (value == null) continue
     const statKey = armorEffectTotalStatKey(effect)
     if (!statKey || statKey === 'special_effect') continue
@@ -1191,6 +1452,64 @@ const armorBuildEffectTotalsForItems = (items: PublicArmorSetRelatedItem[], opti
   }
 
   return totals
+}
+
+const armorBuildEffectTotalsFromEffects = (effects: EquipmentEffectAttribute[]) => {
+  const totals = new Map<string, {
+    key: string
+    statKey: string
+    label: string
+    unit: string | null | undefined
+    value: number
+  }>()
+
+  for (const effect of effects) {
+    const value = armorEffectTotalSignedValue(effect)
+    if (value == null) continue
+    const statKey = armorEffectTotalStatKey(effect)
+    if (!statKey || statKey === 'special_effect') continue
+    const unit = effect.unit
+    const label = armorEffectTotalLabel(effect)
+    const key = `${statKey}:${unit ?? ''}:${normalizeEffectLine(label)}`
+    const current = totals.get(key)
+    totals.set(key, {
+      key,
+      statKey,
+      label,
+      unit,
+      value: (current?.value ?? 0) + value,
+    })
+  }
+
+  return totals
+}
+
+const armorBuildAddTotalsFromEntries = (
+  target: ArmorBuildTotalEntry[],
+  source: Map<string, {
+    key: string
+    statKey: string
+    label: string
+    unit: string | null | undefined
+    value: number
+  }>,
+) => {
+  for (const total of source.values()) {
+    const current = target.find((entry) => entry.key === total.key)
+    if (current) {
+      const rawValue = current.rawValue + total.value
+      current.rawValue = rawValue
+      current.value = formatArmorTotalValue(rawValue, total.unit)
+      continue
+    }
+    target.push({
+      key: total.key,
+      statKey: total.statKey,
+      label: total.label,
+      value: formatArmorTotalValue(total.value, total.unit),
+      rawValue: total.value,
+    })
+  }
 }
 
 const armorBuildAddTotals = (
@@ -1305,13 +1624,51 @@ const armorBuildSlotTotalEntries = (
   partGroups: ArmorBuildPartGroup[] | undefined,
 ) => armorBuildPartGroupTotalEntries(buildItems, partGroups)
 
+const formatArmorTotalValueLikeEntry = (value: number, entry: ArmorBuildTotalEntry) => (
+  /%/.test(entry.value) ? formatArmorTotalValue(value, 'percent') : formatArmorTotalValue(value, null)
+)
+
+const armorBuildMergeGenericCombatTotals = (entries: ArmorBuildTotalEntry[]) => {
+  // Regression marker: generic damage/crit folds into variant class totals for wiki-style final summaries.
+  const result = [...entries]
+  const mergeForStat = (statKey: string, genericPattern: RegExp, specificPattern: RegExp) => {
+    const genericIndex = result.findIndex((entry) => entry.statKey === statKey && genericPattern.test(entry.label))
+    if (genericIndex < 0) return
+    const specificIndexes = result
+      .map((entry, index) => ({ entry, index }))
+      .filter(({ entry }) => entry.statKey === statKey && specificPattern.test(entry.label))
+      .map(({ index }) => index)
+    if (specificIndexes.length !== 1) return
+    const specificIndex = specificIndexes[0]
+    if (specificIndex == null) return
+    const genericEntry = result[genericIndex]
+    const specificEntry = result[specificIndex]
+    if (!genericEntry || !specificEntry || genericIndex === specificIndex) return
+    const rawValue = specificEntry.rawValue + genericEntry.rawValue
+    result[specificIndex] = {
+      ...specificEntry,
+      value: formatArmorTotalValueLikeEntry(rawValue, specificEntry),
+      rawValue,
+      isVariable: specificEntry.isVariable || genericEntry.isVariable,
+    }
+    result.splice(genericIndex, 1)
+  }
+
+  mergeForStat('damage_bonus', /^伤害(?:加成)?$/, /(?:近战|远程|魔法|召唤).*伤害/)
+  mergeForStat('crit_chance', /^暴击(?:率)?$/, /(?:近战|远程|魔法|召唤).*暴击/)
+  return result
+}
+
 const armorBuildTotalEntries = (
   buildItems: PublicArmorSetRelatedItem[],
   partGroups: ArmorBuildPartGroup[] | undefined,
   defense: ReturnType<typeof armorBuildDefenseSummary>,
+  variantItems: PublicArmorSetRelatedItem[] = buildItems,
 ) => {
   const combinedEntries = armorBuildSlotTotalEntries(buildItems, partGroups)
-  const totalEntries = combinedEntries.filter((entry) => entry.statKey !== 'defense')
+  const variantSetTotals = armorBuildEffectTotalsFromEffects(armorBuildVariantSetBonusEffects(variantItems))
+  armorBuildAddTotalsFromEntries(combinedEntries, variantSetTotals)
+  const totalEntries = armorBuildMergeGenericCombatTotals(combinedEntries.filter((entry) => entry.statKey !== 'defense'))
   const defenseBonus = combinedEntries
     .filter((entry) => entry.statKey === 'defense')
     .reduce((sum, entry) => sum + entry.rawValue, 0)
@@ -1451,7 +1808,7 @@ const armorSetBuildCards = computed(() => {
     const stats = armorBuildVariantStats(buildGroup)
     const bonusLines = buildGroup.key === 'default-full-set'
       ? armorDefaultBuildSetBonusLines(items)
-      : armorBuildSetBonusLines(buildGroup.variantItems)
+      : armorShownSetBonusLines(buildGroup.variantItems)
     const defense = armorBuildDefenseSummaryFromPartGroups(buildGroup.partGroups, items)
     return {
       key: buildGroup.key,
@@ -1464,7 +1821,7 @@ const armorSetBuildCards = computed(() => {
         name: armorPieceName(item),
         role: armorPieceRole(item),
         defense: armorPieceDefenseLabel(item),
-        effects: armorBuildPieceEffectLines(item),
+      effects: armorCompactPieceEffectEntries(armorBuildPieceEffectLines(item)),
       })),
       partGroups: (buildGroup.partGroups ?? items.map((item) => ({
         key: armorUniqueItemKey(item),
@@ -1475,18 +1832,26 @@ const armorSetBuildCards = computed(() => {
       }))).map((part) => ({
         key: part.key,
         role: part.role,
+        expanded: expandedArmorPartKeys.value.has(`${buildGroup.key}-${part.key}`),
+        summary: armorPartSummaryName(part.alternatives),
+        tooltipId: `armor-part-summary-tooltip-${armorDomIdFragment(buildGroup.key)}-${armorDomIdFragment(part.key)}`,
         alternatives: part.alternatives.map((item) => ({
           key: String(item.itemId ?? item.sourceId ?? item.internalName ?? armorPieceName(item)),
           item,
           name: armorPieceName(item),
           defense: armorPieceDefenseLabel(item),
-          effects: armorBuildPieceEffectLines(item),
+          effects: armorCompactPieceEffectEntries(armorBuildPieceEffectLines(item)),
         })),
+        tooltip: armorPartSummaryTooltip(part.alternatives.map((item) => ({
+          name: armorPieceName(item),
+          defense: armorPieceDefenseLabel(item),
+          effects: armorCompactPieceEffectEntries(armorBuildPieceEffectLines(item)),
+        }))),
       })),
       defense,
       stats,
       statGroups: armorBuildVariantEffectGroups(stats),
-      totalEntries: armorBuildTotalEntries(items, buildGroup.partGroups, defense),
+      totalEntries: armorBuildTotalEntries(items, buildGroup.partGroups, defense, buildGroup.variantItems),
       bonusLines,
     }
   })
@@ -1509,6 +1874,98 @@ const armorPieceGroups = computed(() => {
     .map(([role, items]) => ({ role, items }))
     .sort((left, right) => armorPieceRoleOrder(left.role) - armorPieceRoleOrder(right.role))
 })
+
+const armorBuildRecipeSummary = (item: PublicArmorSetRelatedItem, tree: PublicItemRecipeTree | null | undefined): ArmorSetRecipeSummary | null => {
+  const itemId = armorRecipeItemId(item)
+  if (!itemId) return null
+  const roots = compactRecipeRootNodes(tree)
+  const root = roots[0]
+  if (!root) return null
+  const name = armorPieceName(item)
+  const materials = compactRecipeNodeChildren(root).slice(0, 6).map((node, index) => buildCompactRecipeMaterial(node, index))
+  const stationSeen = new Set<string>()
+  const stations = compactRecipeNodeStations(root).map((station, index) => buildCompactRecipeStation(station, index)).filter((station) => {
+    const key = normalizeEffectLine(`${station.name}-${station.meta}`)
+    if (!key || stationSeen.has(key)) return false
+    stationSeen.add(key)
+    return true
+  }).slice(0, 4)
+  return {
+    key: itemId,
+    itemId,
+    name,
+    role: armorPieceRole(item),
+    image: resolvePreviewImageUrl(item.image || ''),
+    fallback: armorFirstGlyph(name),
+    href: `/crafting?itemId=${itemId}&maxDepth=3`,
+    recipeCount: roots.length,
+    materials,
+    stations,
+  }
+}
+
+const fetchArmorSetRecipeSummaries = async (items: PublicArmorSetRelatedItem[]) => {
+  const entries = await Promise.all(items.map(async (item) => {
+    const itemId = armorRecipeItemId(item)
+    if (!itemId) return null
+    try {
+      const response = await usePublicApiFetch<PublicItemRecipeTree>(`/public/items/${itemId}/recipe-tree`, {
+        query: { maxDepth: 1 },
+      })
+      return armorBuildRecipeSummary(item, unwrapApiResponse(response))
+    } catch {
+      return null
+    }
+  }))
+  return entries.filter((entry): entry is ArmorSetRecipeSummary => Boolean(entry))
+}
+
+const { data: armorSetRecipeSummaries } = await useAsyncData(
+  () => `public-armor-set-recipes:${armorSetId.value || 'missing'}:${armorRecipeFetchKey.value}`,
+  () => fetchArmorSetRecipeSummaries(armorUniqueRecipeItems.value),
+  {
+    server: false,
+    watch: [armorRecipeFetchKey],
+    default: (): ArmorSetRecipeSummary[] => [],
+  },
+)
+
+const armorVisibleRecipeSummaries = computed(() => armorSetRecipeSummaries.value.slice(0, ARMOR_VISIBLE_RECIPE_LIMIT))
+const armorHiddenRecipeSummaries = computed(() => armorSetRecipeSummaries.value.slice(ARMOR_VISIBLE_RECIPE_LIMIT))
+
+const armorRecipeStationGroupKey = (recipe: ArmorSetRecipeSummary) => {
+  const stationKey = recipe.stations
+    .map((station) => normalizeEffectLine(`${station.name}-${station.meta}`))
+    .filter(Boolean)
+    .join('|')
+  return stationKey || 'no-station'
+}
+
+const armorRecipeTableRows = (recipes: ArmorSetRecipeSummary[]): ArmorSetRecipeTableRow[] => {
+  return recipes.map((recipe, index) => {
+    const stationGroupKey = armorRecipeStationGroupKey(recipe)
+    const previousRecipe = recipes[index - 1]
+    const previousStationGroupKey = previousRecipe ? armorRecipeStationGroupKey(previousRecipe) : ''
+    let stationRowspan = 1
+    if (previousStationGroupKey !== stationGroupKey) {
+      for (let nextIndex = index + 1; nextIndex < recipes.length; nextIndex += 1) {
+        const nextRecipe = recipes[nextIndex]
+        if (!nextRecipe || armorRecipeStationGroupKey(nextRecipe) !== stationGroupKey) break
+        stationRowspan += 1
+      }
+    }
+    return {
+      ...recipe,
+      stationGroupKey,
+      stationRowspan,
+      showStationCell: previousStationGroupKey !== stationGroupKey,
+    }
+  })
+}
+
+const armorVisibleRecipeRows = computed(() => armorRecipeTableRows(armorVisibleRecipeSummaries.value))
+const armorHiddenRecipeRows = computed(() => armorRecipeTableRows(armorHiddenRecipeSummaries.value))
+
 const imageGroups = computed(() => ([
   { key: 'male', label: '男', icon: 'icon-armor', images: asStringArray(armorRaw.value?.maleImages ?? armorRaw.value?.male_images) },
   { key: 'female', label: '女', icon: 'icon-armor', images: asStringArray(armorRaw.value?.femaleImages ?? armorRaw.value?.female_images) },
@@ -1561,89 +2018,65 @@ onMounted(() => {
       </section>
 
       <section v-else class="support-panel armor-detail-hero">
-        <div>
-          <span class="eyebrow">数值总览 · {{ armorSubtitle }}</span>
-          <h1>{{ armorTitle }}</h1>
-          <p>{{ armorHeroSummary }}</p>
-          <div class="tag-row">
-            <span class="tag gold">{{ armorDetail?.primaryPart || 'set' }}</span>
-            <span class="tag moss">{{ armorDetail?.uniqueItemCount ?? 0 }} 个部件</span>
-            <span class="tag paper">{{ armorShownEffects.length }} 条数值</span>
-          </div>
-        </div>
-      </section>
-
-      <section v-if="armorPieceGroups.length" class="support-panel armor-module" :class="detailLayout.detailModuleClass">
-        <div class="armor-module-head">
-          <div>
-            <h2>套装部件</h2>
-            <p>按装备部位展示，可替换部件收在同一组。</p>
-          </div>
-        </div>
-        <div class="armor-pieces-layout">
-          <div class="armor-piece-grid">
-            <article v-for="group in armorPieceGroups" :key="group.role" class="armor-piece-card">
-              <div class="armor-piece-card-head">
-                <b>{{ group.role }}</b>
-                <span>{{ group.items.length > 1 ? `${group.items.length} 件可替换` : '固定部件' }}</span>
-              </div>
-              <div class="armor-piece-options">
-                <div v-for="item in group.items" :key="`${group.role}-${item.itemId}-${armorPieceName(item)}`" class="armor-piece-option">
-                  <CommonPreviewImage
-                    :src="resolvePreviewImageUrl(item.image || '')"
-                    :alt="armorPieceName(item)"
-                    :fallback="armorPieceName(item).slice(0, 1)"
-                    fallback-icon="icon-items"
-                    width="44"
-                    height="44"
-                  />
-                  <span>{{ armorPieceName(item) }}</span>
-                </div>
-              </div>
-            </article>
-          </div>
-          <aside class="armor-fact-panel">
-            <div v-for="card in factCards" :key="card.label" class="armor-fact-row">
-              <span>{{ card.label }}</span>
-              <strong>{{ armorDetailVisualLoading ? '...' : card.value }}</strong>
-              <small>{{ card.meta }}</small>
+        <div class="armor-hero-shell">
+          <div class="armor-hero-main">
+            <span class="armor-hero-eyebrow">数值总览 · {{ armorSubtitle }}</span>
+            <h1>{{ armorTitle }}</h1>
+            <p>{{ armorHeroSummary }}</p>
+            <div class="tag-row armor-hero-tags">
+              <span class="tag gold">{{ armorDetail?.primaryPart || 'set' }}</span>
+              <span class="tag moss">{{ armorDetail?.uniqueItemCount ?? 0 }} 个部件</span>
+              <span class="tag paper">{{ armorShownEffects.length }} 条数值</span>
             </div>
-          </aside>
+          </div>
+          <div v-if="armorPrimaryPreview" class="armor-hero-preview" aria-label="套装预览">
+            <CommonPreviewImage
+              :src="resolvePreviewImageUrl(armorPrimaryPreview)"
+              :alt="`${armorTitle} 预览`"
+              :fallback="armorDetail?.fallback || armorTitle.slice(0, 1)"
+              :fallback-icon="armorPrimaryPreviewIcon"
+              width="76"
+              height="76"
+            />
+            <span>展示预览</span>
+          </div>
         </div>
       </section>
 
       <div class="armor-analysis-layout">
-        <section class="support-panel armor-module armor-stat-module" :class="detailLayout.detailModuleClass">
-          <div class="armor-module-head">
-            <div>
-              <h2>数值总览</h2>
-              <p>先区分套装效果与单件效果，再按属性分组展示。</p>
+        <div class="armor-primary-layout">
+          <section class="support-panel armor-module armor-stat-module" :class="detailLayout.detailModuleClass">
+            <div class="armor-module-head">
+              <div>
+                <h2>数值总览</h2>
+                <p>先区分套装效果与单件效果，再按属性分组展示。</p>
+              </div>
+              <a class="small-button" href="/armor-sets">返回列表</a>
             </div>
-            <a class="small-button" href="/armor-sets">返回列表</a>
-          </div>
 
-          <div v-if="armorStatGroups.length" class="armor-effect-sections">
+            <div v-if="armorStatGroups.length" class="armor-effect-sections">
             <!-- detail layout contract legacy marker: v-for="group in armorStatGroups" -->
             <!-- detail layout contract legacy marker: class="armor-stat-card-grid" class="armor-effect-card" class="armor-effect-card-value" -->
             <!-- visual contract marker: armorEffectSections armor-piece-effect-groups armor-effect-card-head.has-stat-art -->
-            <div class="armor-build-board armor-structured-build-board armor-build-matrix">
-              <div class="armor-build-row armor-build-row-head">
+            <!-- armor-build-comparison-first-order: this comparison section is rendered before the full piece catalog. -->
+            <div class="armor-build-board armor-structured-build-board armor-build-matrix" role="table" aria-label="套装构筑对比">
+              <div class="armor-build-row armor-build-row-head armor-build-mobile-hidden-header" role="row">
                 <b>构筑</b>
                 <b>部件</b>
                 <b>防御</b>
                 <b>构筑差异</b>
               </div>
-              <section v-if="armorHasVariantBuilds && armorFixedBonusLines.length" class="armor-build-row armor-fixed-bonus-row">
-                <div class="armor-build-cell armor-build-title-cell">
+              <section v-if="armorHasVariantBuilds && armorFixedBonusLines.length" class="armor-build-row armor-fixed-bonus-row" role="row">
+                <div class="armor-build-cell armor-build-title-cell" role="cell">
                   <strong>全套固定</strong>
                 </div>
-                <div class="armor-build-cell">
+                <div class="armor-build-cell" role="cell">
                   <span>固定部件 / 套装</span>
                 </div>
-                <div class="armor-build-cell armor-build-defense-formula">
+                <div class="armor-build-cell armor-build-defense-formula" role="cell">
                   <span>公共</span>
                 </div>
-                <div class="armor-build-cell armor-fixed-bonus-lines">
+                <div class="armor-build-cell armor-fixed-bonus-lines" role="cell">
                   <div v-for="group in armorFixedBonusGroups" :key="`fixed-${group.key}`" class="armor-fixed-bonus-group" :class="group.tone">
                     <strong class="armor-fixed-bonus-group-title">{{ group.label }}</strong>
                     <span v-for="entry in group.entries" :key="`fixed-${group.key}-${entry.key}`" class="armor-fixed-bonus-line">
@@ -1654,45 +2087,83 @@ onMounted(() => {
                   </div>
                 </div>
               </section>
-              <article v-for="build in armorSetBuildCards" :key="build.key" class="armor-build-row">
-                <div class="armor-build-cell armor-build-title-cell">
+              <article v-for="build in armorSetBuildCards" :key="build.key" class="armor-build-row armor-build-mobile-card-layout" role="row">
+                <div class="armor-build-cell armor-build-title-cell" role="cell">
                   <strong>{{ build.title }}</strong>
                 </div>
-                <div class="armor-build-cell armor-build-icons">
+                <div class="armor-build-cell armor-build-icons" role="cell">
                   <section v-for="part in build.partGroups" :key="`${build.key}-${part.key}`" class="armor-build-part-group">
                     <div class="armor-build-part-head">
                       <b>{{ part.role }}</b>
                       <small>{{ part.alternatives.length > 1 ? `${part.alternatives.length} 件可互换` : '固定' }}</small>
                     </div>
                     <div class="armor-build-part-alternatives">
-                      <span
-                        v-for="piece in part.alternatives"
-                        :key="`${build.key}-${part.key}-${piece.key}`"
-                        class="armor-build-piece-evidence"
-                        :class="{ 'has-alternatives': part.alternatives.length > 1 }"
-                        :title="piece.name"
+                      <div
+                        class="armor-build-piece-evidence armor-build-piece-evidence-compact armor-build-piece-evidence-collapsible"
+                        :class="{ 'has-alternatives': part.alternatives.length > 1, 'is-expanded': part.expanded }"
                       >
-                        <CommonPreviewImage
-                          :src="resolvePreviewImageUrl(piece.item.image || '')"
-                          :alt="piece.name"
-                          :fallback="piece.name.slice(0, 1)"
-                          fallback-icon="icon-items"
-                          width="28"
-                          height="28"
-                        />
-                        <b>{{ piece.name }}</b>
-                        <small v-if="piece.defense">{{ piece.defense }}</small>
-                        <em v-for="line in piece.effects" :key="`${build.key}-${part.key}-${piece.key}-${line}`">{{ line }}</em>
-                      </span>
+                        <!-- armor-build-piece-group-summary-collapsible: each slot starts as one joined-name row and expands on demand. -->
+                        <button
+                          type="button"
+                          class="armor-build-piece-summary"
+                          :aria-describedby="part.tooltip ? part.tooltipId : undefined"
+                          :aria-expanded="part.expanded ? 'true' : 'false'"
+                          @click="toggleArmorPieceEvidence(`${build.key}-${part.key}`)"
+                        >
+                          <CommonPreviewImage
+                            :src="resolvePreviewImageUrl(part.alternatives[0]?.item.image || '')"
+                            :alt="part.summary"
+                            :fallback="part.summary.slice(0, 1)"
+                            fallback-icon="icon-items"
+                            width="42"
+                            height="42"
+                          />
+                          <span class="armor-build-piece-summary-text">
+                            <b>{{ part.summary }}</b>
+                            <small>{{ part.alternatives.length > 1 ? `${part.alternatives.length} 件可互换` : (part.alternatives[0]?.defense || '固定') }}</small>
+                          </span>
+                          <span class="armor-build-piece-summary-toggle" aria-hidden="true">
+                            {{ part.expanded ? '收起' : '展开' }}
+                          </span>
+                          <span
+                            v-if="part.tooltip"
+                            :id="part.tooltipId"
+                            class="armor-build-piece-summary-tooltip"
+                            role="tooltip"
+                          >
+                            {{ part.tooltip }}
+                          </span>
+                        </button>
+                        <!-- armor-build-piece-details-expandable: detailed per-piece data is hidden until the summary is expanded. -->
+                        <div v-if="part.expanded" class="armor-build-piece-details">
+                          <div v-for="piece in part.alternatives" :key="`${build.key}-${part.key}-${piece.key}`" class="armor-build-piece-detail-row">
+                            <strong>{{ piece.name }}</strong>
+                            <small v-if="piece.defense">{{ piece.defense }}</small>
+                            <em
+                              v-for="effect in piece.effects"
+                              :key="`${build.key}-${part.key}-${piece.key}-${effect.key}`"
+                              class="armor-build-piece-effect"
+                              :class="{ 'has-tooltip armor-build-tooltip-visible-affordance armor-build-tooltip-touch-affordance': effect.title }"
+                              tabindex="0"
+                            >
+                              {{ effect.text }}
+                              <span v-if="effect.title" class="armor-build-piece-effect-info" aria-hidden="true">i</span>
+                              <span v-if="effect.title" class="armor-build-piece-effect-tooltip" role="tooltip">
+                                {{ effect.title }}
+                              </span>
+                            </em>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </section>
                 </div>
-                <div class="armor-build-cell armor-build-defense-formula">
+                <div class="armor-build-cell armor-build-defense-formula armor-build-defense-emphasis" role="cell">
                   <strong v-if="build.defense.total != null">{{ build.defense.total }}</strong>
                   <small v-if="build.defense.formula">{{ build.defense.formula }}</small>
                   <span v-else>--</span>
                 </div>
-                <div class="armor-build-cell armor-build-difference-cell">
+                <div class="armor-build-cell armor-build-difference-cell" role="cell">
                   <div v-if="build.statGroups.length" class="armor-build-effect-groups">
                     <div v-for="group in build.statGroups" :key="`${build.key}-${group.key}`" class="armor-fixed-bonus-group" :class="group.tone">
                       <strong class="armor-fixed-bonus-group-title">{{ group.label }}</strong>
@@ -1705,7 +2176,7 @@ onMounted(() => {
                   </div>
                   <div v-if="build.totalEntries.length || build.bonusLines.length" class="armor-build-summary-stack">
                     <div v-if="build.totalEntries.length" class="armor-build-total-strip" aria-label="最终汇总">
-                      <span class="armor-build-total-label">最终汇总</span>
+                      <span class="armor-build-total-label armor-build-summary-title">最终汇总</span>
                       <div class="armor-build-total-entries">
                         <span
                           v-for="entry in build.totalEntries"
@@ -1734,14 +2205,145 @@ onMounted(() => {
                 </div>
               </article>
             </div>
-          </div>
-          <p v-else class="tp-detail-empty">暂无可展示的解析数值。</p>
+            </div>
+            <p v-else class="tp-detail-empty">暂无可展示的解析数值。</p>
 
-          <div v-if="armorFallbackBenefitLines.length" class="armor-source-context">
-            <span v-for="line in armorFallbackBenefitLines" :key="`benefit-${line}`">{{ line }}</span>
-          </div>
-        </section>
+            <div v-if="armorFallbackBenefitLines.length" class="armor-source-context">
+              <span v-for="line in armorFallbackBenefitLines" :key="`benefit-${line}`">{{ line }}</span>
+            </div>
+          </section>
 
+          <!-- armor-detail-right-fact-panel-not-primary: low-value fact cards are removed from the right rail. -->
+          <section v-if="armorSetRecipeSummaries.length" class="support-panel armor-module armor-crafting-module" :class="detailLayout.detailModuleClass">
+            <div class="armor-module-head">
+              <div>
+                <h2>制作配方</h2>
+                <p>相同制作站合并显示；不同制作站保留逐行归属。</p>
+              </div>
+              <span class="tag paper">{{ armorSetRecipeSummaries.length }} 个部件</span>
+            </div>
+
+            <div class="armor-crafting-summary-list">
+              <table class="armor-crafting-table">
+                <thead class="armor-crafting-table-head">
+                  <tr>
+                    <th>部件</th>
+                    <th>材料</th>
+                    <th>制作站</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="recipe in armorVisibleRecipeRows" :key="recipe.key" class="armor-crafting-summary-row">
+                    <td class="armor-crafting-piece-cell">
+                      <div class="armor-crafting-piece">
+                        <CommonPreviewImage
+                          :src="recipe.image"
+                          :alt="recipe.name"
+                          :fallback="recipe.fallback"
+                          fallback-icon="icon-items"
+                          width="32"
+                          height="32"
+                        />
+                        <span>
+                          <b>{{ recipe.name }}</b>
+                          <small>{{ recipe.role }} · {{ recipe.recipeCount }} 条</small>
+                        </span>
+                      </div>
+                    </td>
+
+                    <td class="armor-crafting-chip-line" aria-label="材料摘要">
+                      <CraftingCompactRecipeMaterials :materials="recipe.materials" />
+                    </td>
+
+                    <td
+                      v-if="recipe.showStationCell"
+                      class="armor-crafting-station-cell is-merged"
+                      :rowspan="recipe.stationRowspan"
+                    >
+                      <template v-if="recipe.stations.length">
+                        <span v-for="(station, index) in recipe.stations" :key="`${recipe.key}-station-${station.key}`" class="armor-crafting-station-text">
+                          <CommonPreviewImage
+                            :src="station.image"
+                            :alt="station.name"
+                            :fallback="station.fallback"
+                            fallback-icon="icon-crafting"
+                            width="18"
+                            height="18"
+                          />
+                          <b>{{ station.name }}</b>
+                          <em v-if="index < recipe.stations.length - 1">或</em>
+                        </span>
+                      </template>
+                      <span v-else class="armor-crafting-station is-empty">无需制作站</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <details v-if="armorHiddenRecipeSummaries.length" class="armor-crafting-overflow armor-crafting-overflow-collapsed">
+                <summary>展开其余 {{ armorHiddenRecipeSummaries.length }} 个部件配方</summary>
+                <div class="armor-crafting-overflow-list">
+                  <table class="armor-crafting-table">
+                    <thead class="armor-crafting-table-head">
+                      <tr>
+                        <th>部件</th>
+                        <th>材料</th>
+                        <th>制作站</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="recipe in armorHiddenRecipeRows" :key="`hidden-${recipe.key}`" class="armor-crafting-summary-row">
+                        <td class="armor-crafting-piece-cell">
+                          <div class="armor-crafting-piece">
+                            <CommonPreviewImage
+                              :src="recipe.image"
+                              :alt="recipe.name"
+                              :fallback="recipe.fallback"
+                              fallback-icon="icon-items"
+                              width="32"
+                              height="32"
+                            />
+                            <span>
+                              <b>{{ recipe.name }}</b>
+                              <small>{{ recipe.role }} · {{ recipe.recipeCount }} 条</small>
+                            </span>
+                          </div>
+                        </td>
+
+                        <td class="armor-crafting-chip-line" aria-label="材料摘要">
+                          <CraftingCompactRecipeMaterials :materials="recipe.materials" />
+                        </td>
+
+                        <td
+                          v-if="recipe.showStationCell"
+                          class="armor-crafting-station-cell is-merged"
+                          :rowspan="recipe.stationRowspan"
+                        >
+                          <template v-if="recipe.stations.length">
+                            <span v-for="(station, index) in recipe.stations" :key="`${recipe.key}-hidden-station-${station.key}`" class="armor-crafting-station-text">
+                              <CommonPreviewImage
+                                :src="station.image"
+                                :alt="station.name"
+                                :fallback="station.fallback"
+                                fallback-icon="icon-crafting"
+                                width="18"
+                                height="18"
+                              />
+                              <b>{{ station.name }}</b>
+                              <em v-if="index < recipe.stations.length - 1">或</em>
+                            </span>
+                          </template>
+                          <span v-else class="armor-crafting-station is-empty">无需制作站</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            </div>
+          </section>
+        </div>
+
+        <!-- armor-preview-promoted-after-stats: display images now sit immediately after build comparison. -->
         <section v-if="imageGroups.length" class="support-panel armor-module armor-preview-module" :class="detailLayout.detailModuleClass">
           <div class="armor-module-head">
             <div>
@@ -1781,7 +2383,106 @@ onMounted(() => {
 
 <style scoped>
 .armor-detail-hero {
-  display: block;
+  padding: 18px 20px;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(219, 179, 93, 0.11), rgba(100, 154, 118, 0.045) 42%, transparent),
+    var(--index-grid-x),
+    var(--index-grid-y),
+    rgba(11, 18, 13, 0.88);
+}
+
+.armor-hero-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  min-width: 0;
+}
+
+.armor-hero-main {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.armor-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  color: rgba(242, 211, 132, 0.95);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.armor-hero-eyebrow::before {
+  content: "";
+  width: 28px;
+  height: 3px;
+  border-radius: 999px;
+  background: currentColor;
+  flex: 0 0 auto;
+}
+
+.armor-detail-hero h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(26px, 3vw, 38px);
+  font-weight: 950;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+
+.armor-detail-hero p {
+  max-width: 900px;
+  margin: 0;
+  color: rgba(255, 248, 224, 0.94);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.armor-hero-tags {
+  margin-top: 2px;
+}
+
+.armor-hero-tags .tag {
+  min-height: 26px;
+  border-radius: 7px;
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.armor-hero-preview {
+  display: grid;
+  gap: 7px;
+  justify-items: center;
+  min-width: 96px;
+  padding: 10px;
+  border: 1px solid rgba(244, 234, 208, 0.11);
+  border-radius: 8px;
+  background: rgba(244, 234, 208, 0.04);
+}
+
+.armor-hero-preview :deep(.item-art) {
+  width: 76px;
+  height: 76px;
+  border-radius: 10px;
+  overflow: hidden;
+  --tp-preview-visible-shift-x: 0px !important;
+  --tp-preview-visible-shift-y: 0px !important;
+}
+
+.armor-hero-preview span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.2;
 }
 
 .armor-module-head {
@@ -1835,17 +2536,377 @@ onMounted(() => {
   overflow-wrap: anywhere;
 }
 
+.armor-crafting-summary-list {
+  display: grid;
+  min-width: 0;
+  border: 1px solid rgba(244, 234, 208, 0.13);
+  border-radius: 7px;
+  background: rgba(12, 15, 11, 0.2);
+  overflow-x: visible;
+  overflow-y: visible;
+}
+
+.armor-crafting-table {
+  width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.armor-crafting-table th,
+.armor-crafting-table td {
+  min-width: 0;
+  padding: 5px 4px;
+  border-top: 1px solid rgba(244, 234, 208, 0.08);
+  border-left: 1px solid rgba(244, 234, 208, 0.11);
+  vertical-align: middle;
+  text-align: center;
+}
+
+.armor-crafting-table th:first-child,
+.armor-crafting-table td:first-child {
+  border-left: 0;
+}
+
+.armor-crafting-table tbody tr:first-child td {
+  border-top: 0;
+}
+
+.armor-crafting-table th:nth-child(1),
+.armor-crafting-table td:nth-child(1) {
+  width: 38%;
+}
+
+.armor-crafting-table th:nth-child(2),
+.armor-crafting-table td:nth-child(2) {
+  width: 32%;
+}
+
+.armor-crafting-table th:nth-child(3),
+.armor-crafting-table td:nth-child(3) {
+  width: 30%;
+}
+
+.armor-crafting-table-head {
+  border-bottom: 1px solid rgba(244, 234, 208, 0.13);
+  background: rgba(244, 234, 208, 0.045);
+}
+
+.armor-crafting-table-head th {
+  min-width: 0;
+  color: rgba(242, 211, 132, 0.96);
+  font-size: 10px;
+  font-weight: 950;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.armor-crafting-summary-row {
+  background: rgba(244, 234, 208, 0.026);
+}
+
+.armor-crafting-piece-cell {
+  text-align: left;
+}
+
+.armor-crafting-piece {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.armor-crafting-piece :deep(.item-art),
+.armor-crafting-chip :deep(.item-art),
+.armor-crafting-station-text :deep(.item-art) {
+  border-radius: 7px;
+  overflow: hidden;
+  --tp-preview-visible-shift-x: 0px !important;
+  --tp-preview-visible-shift-y: 0px !important;
+}
+
+.armor-crafting-piece span {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.armor-crafting-piece b,
+.armor-crafting-chip-compact b {
+  min-width: 0;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.25;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+
+.armor-crafting-piece small,
+.armor-crafting-chip-compact small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.armor-crafting-chip-line {
+  min-width: 0;
+  text-align: center;
+}
+
+.armor-crafting-material-list {
+  display: grid;
+  gap: 5px;
+  justify-items: center;
+  min-width: 0;
+}
+
+.armor-crafting-material-row {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.armor-crafting-any-material {
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 3px 4px;
+  border-radius: 6px;
+  background: rgba(125, 229, 220, 0.045);
+}
+
+.armor-crafting-any-option {
+  display: inline-grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 3px;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.armor-crafting-any-option b {
+  min-width: 0;
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.armor-crafting-any-label {
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  min-width: 0;
+  padding: 2px 0;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 850;
+  line-height: 1.15;
+}
+
+.armor-crafting-any-label b,
+.armor-crafting-any-label small {
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.armor-crafting-chip-compact {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: center;
+}
+
+.armor-crafting-chip-art {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  overflow: hidden;
+}
+
+.armor-crafting-chip-compact :deep(.item-art) {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border-radius: 5px;
+  --tp-preview-image-size: 18px;
+  --tp-preview-fallback-icon-size: 14px;
+}
+
+.armor-crafting-chip-compact :deep(.item-art img),
+.armor-crafting-station-text :deep(.item-art img) {
+  width: 18px;
+  height: 18px;
+  max-width: 18px;
+  max-height: 18px;
+}
+
+.armor-crafting-chip-copy {
+  display: grid;
+  gap: 0;
+  min-width: 48px;
+  max-width: 76px;
+}
+
+.armor-crafting-chip-compact b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+}
+
+.armor-crafting-chip-compact small {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.armor-crafting-chip-line em {
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.armor-crafting-station-cell {
+  min-width: 0;
+  background: rgba(125, 229, 220, 0.025);
+}
+
+.armor-crafting-station-cell.is-merged {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.armor-crafting-station-text {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.armor-crafting-station-text + .armor-crafting-station-text {
+  margin-top: 4px;
+}
+
+.armor-crafting-station-text :deep(.item-art) {
+  width: 18px;
+  height: 18px;
+  --tp-preview-image-size: 18px;
+  --tp-preview-fallback-icon-size: 14px;
+}
+
+.armor-crafting-station-text b {
+  min-width: 0;
+  color: rgba(125, 229, 220, 0.95);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.25;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+
+.armor-crafting-station-text em {
+  display: block;
+  width: 100%;
+  grid-column: 1 / -1;
+  color: rgba(242, 211, 132, 0.95);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.armor-crafting-station.is-empty {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.armor-crafting-overflow {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+  border-top: 1px solid rgba(244, 234, 208, 0.08);
+}
+
+.armor-crafting-overflow summary {
+  width: fit-content;
+  max-width: 100%;
+  margin: 8px 10px;
+  padding: 7px 9px;
+  border: 1px solid rgba(219, 179, 93, 0.18);
+  border-radius: 6px;
+  background: rgba(219, 179, 93, 0.055);
+  color: rgba(242, 211, 132, 0.95);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.25;
+  list-style: none;
+}
+
+.armor-crafting-overflow summary::-webkit-details-marker {
+  display: none;
+}
+
+.armor-crafting-overflow-list {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+
 .armor-analysis-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.75fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   align-items: start;
 }
 
+.armor-primary-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2.35fr) minmax(300px, 1fr);
+  gap: 14px;
+  align-items: start;
+  min-width: 0;
+}
+
 .armor-stat-module,
-.armor-preview-module {
+.armor-preview-module,
+.armor-crafting-module {
   min-width: 0;
   align-content: start;
+}
+
+.armor-crafting-module {
+  position: sticky;
+  top: 14px;
 }
 
 .armor-stat-groups {
@@ -2098,11 +3159,9 @@ onMounted(() => {
 
 .armor-build-piece-evidence {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
-  gap: 2px 7px;
-  align-items: center;
+  gap: 5px;
   min-width: 0;
-  padding: 4px 6px;
+  padding: 6px 8px;
   border: 1px solid rgba(244, 234, 208, 0.08);
   border-radius: 6px;
   background: rgba(244, 234, 208, 0.025);
@@ -2113,14 +3172,39 @@ onMounted(() => {
   background: rgba(219, 179, 93, 0.04);
 }
 
-.armor-build-icons :deep(.item-art) {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  overflow: hidden;
+.armor-build-piece-summary {
+  position: relative;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 3px 9px;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
 }
 
-.armor-build-piece-evidence b {
+.armor-build-icons :deep(.item-art) {
+  justify-self: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 7px;
+  overflow: hidden;
+  --tp-preview-visible-shift-x: 0px !important;
+  --tp-preview-visible-shift-y: 0px !important;
+}
+
+.armor-build-piece-summary-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.armor-build-piece-summary-text b {
   min-width: 0;
   color: var(--text);
   font-size: 11px;
@@ -2129,16 +3213,83 @@ onMounted(() => {
   overflow-wrap: anywhere;
 }
 
+.armor-build-piece-summary-text small,
 .armor-build-icons small {
-  grid-column: 2;
   color: var(--muted);
   font-size: 10px;
   font-weight: 800;
   line-height: 1.2;
 }
 
+.armor-build-piece-summary-toggle {
+  justify-self: end;
+  padding: 2px 6px;
+  border: 1px solid rgba(219, 179, 93, 0.2);
+  border-radius: 999px;
+  color: rgba(219, 179, 93, 0.96);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.armor-build-piece-summary-tooltip {
+  position: absolute;
+  z-index: 24;
+  left: 0;
+  bottom: calc(100% + 7px);
+  display: none;
+  width: max-content;
+  max-width: min(360px, 74vw);
+  padding: 8px 10px;
+  border: 1px solid rgba(245, 193, 92, 0.36);
+  border-radius: 6px;
+  background: rgba(13, 16, 12, 0.97);
+  color: rgba(255, 248, 224, 0.95);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.38);
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.45;
+  white-space: normal;
+  pointer-events: none;
+}
+
+/* armor-build-piece-summary-tooltip-hover-focus: summary hover/focus reveals concrete values from real piece data. */
+.armor-build-piece-summary:hover .armor-build-piece-summary-tooltip,
+.armor-build-piece-summary:focus-visible .armor-build-piece-summary-tooltip {
+  display: block;
+}
+
+.armor-build-piece-details {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding-top: 5px;
+  border-top: 1px solid rgba(244, 234, 208, 0.08);
+}
+
+.armor-build-piece-detail-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 8px;
+  min-width: 0;
+}
+
+.armor-build-piece-detail-row strong {
+  min-width: 0;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.armor-build-piece-detail-row small {
+  justify-self: end;
+}
+
 .armor-build-piece-evidence em {
-  grid-column: 2;
+  position: relative;
+  grid-column: 1 / -1;
   min-width: 0;
   color: rgba(226, 236, 224, 0.82);
   font-size: 10px;
@@ -2146,6 +3297,60 @@ onMounted(() => {
   font-weight: 700;
   line-height: 1.25;
   overflow-wrap: anywhere;
+}
+
+.armor-build-piece-effect.has-tooltip {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  cursor: help;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.armor-build-piece-effect-info {
+  display: inline-grid;
+  place-items: center;
+  width: 13px;
+  height: 13px;
+  border: 1px solid rgba(219, 179, 93, 0.38);
+  border-radius: 999px;
+  color: rgba(242, 211, 132, 0.96);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+.armor-build-piece-effect-tooltip {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  bottom: calc(100% + 6px);
+  display: none;
+  width: max-content;
+  max-width: min(320px, 70vw);
+  padding: 7px 9px;
+  border: 1px solid rgba(245, 193, 92, 0.36);
+  border-radius: 6px;
+  background: rgba(13, 16, 12, 0.96);
+  color: rgba(255, 248, 224, 0.95);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.36);
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.45;
+  white-space: normal;
+  pointer-events: none;
+}
+
+.armor-build-piece-effect.has-tooltip:hover .armor-build-piece-effect-tooltip,
+.armor-build-piece-effect.has-tooltip:focus-visible .armor-build-piece-effect-tooltip {
+  display: block;
 }
 
 .armor-build-defense-formula {
@@ -2158,7 +3363,7 @@ onMounted(() => {
 
 .armor-build-defense-formula strong {
   color: var(--text);
-  font-size: 20px;
+  font-size: 24px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -2221,10 +3426,12 @@ onMounted(() => {
   display: grid;
   gap: 4px;
   min-width: 0;
-  padding: 6px 8px;
-  border: 1px solid rgba(100, 154, 118, 0.2);
+  padding: 8px 10px;
+  border: 1px solid rgba(100, 154, 118, 0.32);
   border-radius: 7px;
-  background: rgba(100, 154, 118, 0.045);
+  background:
+    linear-gradient(135deg, rgba(100, 154, 118, 0.12), rgba(219, 179, 93, 0.045)),
+    rgba(100, 154, 118, 0.055);
 }
 
 .armor-build-total-label,
@@ -2233,7 +3440,7 @@ onMounted(() => {
   width: fit-content;
   max-width: 100%;
   color: rgba(166, 200, 176, 0.95);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 900;
   line-height: 1.2;
 }
@@ -2273,7 +3480,7 @@ onMounted(() => {
   border-radius: 0;
   background: transparent;
   color: rgba(226, 236, 224, 0.95);
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 850;
   line-height: 1.24;
 }
@@ -2671,12 +3878,22 @@ onMounted(() => {
 
 .armor-piece-option {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-columns: 56px minmax(0, 1fr);
   gap: 12px;
   align-items: center;
   min-width: 0;
   padding: 8px 0;
   border-top: 1px solid rgba(244, 234, 208, 0.07);
+}
+
+.armor-piece-option :deep(.item-art) {
+  justify-self: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  overflow: hidden;
+  --tp-preview-visible-shift-x: 0px !important;
+  --tp-preview-visible-shift-y: 0px !important;
 }
 
 .armor-piece-option:first-child {
@@ -2734,6 +3951,14 @@ onMounted(() => {
 }
 
 @media (max-width: 980px) {
+  .armor-primary-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .armor-crafting-module {
+    position: static;
+  }
+
   .armor-analysis-layout {
     grid-template-columns: 1fr;
   }
@@ -2741,9 +3966,131 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
 
+  .armor-build-row {
+    grid-template-columns: minmax(0, 0.74fr) minmax(0, 1.26fr);
+  }
+
+  .armor-build-row-head {
+    display: none;
+  }
 }
 
 @media (max-width: 520px) {
+  .armor-detail-hero {
+    padding: 14px;
+  }
+
+  .armor-hero-shell {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .armor-hero-preview {
+    grid-template-columns: 52px minmax(0, 1fr);
+    justify-items: start;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    padding: 8px;
+  }
+
+  .armor-hero-preview :deep(.item-art) {
+    width: 52px;
+    height: 52px;
+    border-radius: 8px;
+  }
+
+  .armor-detail-hero h1 {
+    font-size: 24px;
+  }
+
+  .armor-detail-hero p {
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  .armor-crafting-summary-list {
+    overflow-x: auto;
+  }
+
+  .armor-crafting-table {
+    min-width: 420px;
+  }
+
+  .armor-crafting-table th,
+  .armor-crafting-table td {
+    padding: 7px 6px;
+  }
+
+  .armor-crafting-piece {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .armor-crafting-piece :deep(.item-art) {
+    width: 22px;
+    height: 22px;
+  }
+
+  .armor-build-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .armor-build-title-cell {
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(244, 234, 208, 0.1);
+  }
+
+  .armor-build-title-cell strong {
+    font-size: 15px;
+  }
+
+  .armor-build-defense-formula {
+    order: 1;
+    align-items: baseline;
+  }
+
+  .armor-build-difference-cell {
+    order: 2;
+  }
+
+  .armor-build-icons {
+    order: 3;
+  }
+
+  .armor-build-total-strip {
+    padding: 10px;
+  }
+
+  .armor-build-total-entry {
+    font-size: 12.5px;
+  }
+
+  .armor-build-part-alternatives {
+    grid-template-columns: 1fr;
+  }
+
+  .armor-build-piece-evidence {
+    grid-template-columns: 1fr;
+    padding: 6px 7px;
+  }
+
+  .armor-build-piece-evidence .armor-build-piece-effect {
+    display: none;
+  }
+
+  .armor-build-piece-evidence:focus-within .armor-build-piece-effect,
+  .armor-build-piece-evidence:hover .armor-build-piece-effect,
+  .armor-build-piece-evidence.is-expanded .armor-build-piece-effect {
+    display: inline-flex;
+  }
+
+  .armor-build-icons :deep(.item-art) {
+    width: 34px;
+    height: 34px;
+  }
+
   .armor-effect-card-head {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2761,6 +4108,42 @@ onMounted(() => {
     grid-column: 1 / -1;
     justify-self: start;
     font-size: 20px;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .armor-build-piece-effect.has-tooltip {
+    display: grid;
+    gap: 3px;
+    text-decoration: none;
+  }
+
+  .armor-build-piece-effect-info {
+    display: none;
+  }
+
+  .armor-build-piece-effect-tooltip {
+    position: static;
+    display: block;
+    width: auto;
+    max-width: 100%;
+    padding: 4px 6px;
+    border-color: rgba(219, 179, 93, 0.22);
+    background: rgba(219, 179, 93, 0.06);
+    box-shadow: none;
+    color: rgba(244, 234, 208, 0.9);
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .armor-build-piece-evidence .armor-build-piece-effect.has-tooltip {
+    display: none;
+  }
+
+  .armor-build-piece-evidence:focus-within .armor-build-piece-effect.has-tooltip,
+  .armor-build-piece-evidence:hover .armor-build-piece-effect.has-tooltip,
+  .armor-build-piece-evidence.is-expanded .armor-build-piece-effect.has-tooltip {
+    display: grid;
   }
 }
 </style>

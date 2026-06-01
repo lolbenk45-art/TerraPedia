@@ -85,6 +85,43 @@ if (!config.includes('~/assets/css/detail-layout.css')) {
   violations.push('nuxt.config.ts: must include shared detail layout stylesheet')
 }
 
+{
+  const helperPath = 'utils/craftingRecipeCompact.ts'
+  try {
+    const helper = read(helperPath)
+    for (const marker of [
+      'export type CompactRecipeMaterial',
+      'export type CompactRecipeStation',
+      'export const buildCompactRecipeMaterial',
+      'export const buildCompactRecipeStation',
+      'export const compactRecipeRootNodes',
+    ]) {
+      if (!helper.includes(marker)) {
+        violations.push(`${helperPath}: missing compact recipe helper marker ${marker}`)
+      }
+    }
+  } catch {
+    violations.push(`${helperPath}: compact recipe helper is required for shared recipe summary parsing`)
+  }
+
+  const componentPath = 'components/crafting/CompactRecipeMaterials.vue'
+  try {
+    const component = read(componentPath)
+    for (const marker of [
+      'CompactRecipeMaterial',
+      'armor-crafting-any-material',
+      'armor-crafting-any-label',
+      '任意可替换材料',
+    ]) {
+      if (!component.includes(marker)) {
+        violations.push(`${componentPath}: missing compact material rendering marker ${marker}`)
+      }
+    }
+  } catch {
+    violations.push(`${componentPath}: compact recipe material component is required`)
+  }
+}
+
 const assertPattern = (path, content, pattern, message) => {
   if (!new RegExp(pattern, 'm').test(content)) {
     violations.push(`${path}: ${message}`)
@@ -172,7 +209,15 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
     ],
     [
       String.raw`class="armor-analysis-layout"`,
-      'armor set detail must place stats and visual preview modules side by side',
+      'armor set detail must stack stats before the visual preview module',
+    ],
+    [
+      String.raw`class="armor-primary-layout"`,
+      'armor set detail must place stat overview and recipe summary in the primary 70/30 layout',
+    ],
+    [
+      String.raw`grid-template-columns:\s*minmax\(0,\s*2\.35fr\)\s*minmax\(300px,\s*1fr\)`,
+      'armor set detail primary layout must reserve enough width for the three-column recipe table',
     ],
     [
       String.raw`v-for="group in armorStatGroups"`,
@@ -191,8 +236,8 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       'armor set detail must keep preview images compact beside stats',
     ],
     [
-      String.raw`class="armor-pieces-layout"`,
-      'armor set detail must pair grouped pieces with compact page facts',
+      String.raw`armor-detail-right-fact-panel-not-primary`,
+      'armor set detail must keep low-value fact cards out of the primary right rail',
     ],
     [
       String.raw`const armorBenefitFallbackEffects = computed`,
@@ -207,8 +252,68 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       'armor set detail must group interchangeable armor pieces by slot instead of flattening every related item',
     ],
     [
-      String.raw`v-for="group in armorPieceGroups"`,
-      'armor set detail must render grouped armor piece slots',
+      String.raw`build\.partGroups`,
+      'armor set detail must render grouped armor piece slots inside each build row',
+    ],
+    [
+      String.raw`armor-build-piece-evidence-collapsible`,
+      'armor set detail must render grouped armor piece slots as collapsible summaries',
+    ],
+    [
+      String.raw`const armorRecipeStationGroupKey`,
+      'armor set recipe summary must compare station sets before merging station cells',
+    ],
+    [
+      String.raw`class="armor-crafting-station-cell is-merged"`,
+      'armor set recipe summary must merge identical station cells without removing the station column',
+    ],
+    [
+      String.raw`rowspan`,
+      'armor set recipe summary must use table semantics for merged identical stations',
+    ],
+    [
+      String.raw`<CraftingCompactRecipeMaterials`,
+      'armor set recipe summary must render compact material images and quantities through the shared component',
+    ],
+    [
+      String.raw`buildCompactRecipeMaterial\(node,\s*index\)`,
+      'armor set recipe summary must use the shared compact material parser',
+    ],
+    [
+      String.raw`buildCompactRecipeStation\(station,\s*index\)`,
+      'armor set recipe summary must use the shared compact station parser',
+    ],
+    [
+      String.raw`\.armor-crafting-chip-compact\s*\{[\s\S]*display:\s*inline-flex;`,
+      'armor set recipe material chip must reserve visible text width beside the material image',
+    ],
+    [
+      String.raw`\.armor-crafting-chip-compact\s+small\s*\{[\s\S]*overflow:\s*visible;`,
+      'armor set recipe material quantity must not be hidden or ellipsized',
+    ],
+    [
+      String.raw`\.armor-crafting-chip-compact\s*:deep\(\.item-art\)\s*\{[\s\S]*width:\s*18px;[\s\S]*height:\s*18px;`,
+      'armor set recipe material image must stay inside the compact material column',
+    ],
+    [
+      String.raw`\.armor-crafting-chip-compact\s*:deep\(\.item-art img\),[\s\S]*\.armor-crafting-station-text\s*:deep\(\.item-art img\)\s*\{[\s\S]*max-width:\s*18px;[\s\S]*max-height:\s*18px;`,
+      'armor set recipe material and station image internals must not overflow compact cells',
+    ],
+    [
+      String.raw`class="armor-crafting-station-text"`,
+      'armor set recipe summary must show the station image and label in the 25% rail',
+    ],
+    [
+      String.raw`\.armor-crafting-station-text\s*\{[\s\S]*display:\s*grid;`,
+      'armor set recipe stations must stack vertically so alternative separators stay centered',
+    ],
+    [
+      String.raw`overflow-x:\s*visible;`,
+      'armor set recipe summary must keep all three columns visible without horizontal scrolling on desktop',
+    ],
+    [
+      String.raw`word-break:\s*keep-all;`,
+      'armor set recipe summary must keep Chinese material and station names from wrapping one character per line',
     ],
   ]) {
     assertPattern(path, content, pattern, message)
@@ -216,6 +321,9 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
 
   if (content.includes('armor-detail-icon-stage')) {
     violations.push(`${path}: armor set detail must not keep the previous image-led hero stage`)
+  }
+  if (/\.armor-crafting-chip-line\s*\{[^}]*display:\s*flex;/.test(content)) {
+    violations.push(`${path}: armor set recipe material table cell must not use flex display because it breaks column width`)
   }
 
   for (const forbidden of [
