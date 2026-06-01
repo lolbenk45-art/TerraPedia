@@ -1,11 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import {
   auditEquivalentArmorAttributeRows,
   loadMysqlModule,
   parseArgs
 } from './audit-equivalent-armor-attributes.mjs';
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 test('auditEquivalentArmorAttributeRows flags missing target rows and effect mismatches', () => {
   const result = auditEquivalentArmorAttributeRows({
@@ -150,7 +154,7 @@ test('loadMysqlModule falls back to an app package resolver when root mysql2 is 
   assert.equal(result, mysqlModule);
   assert.deepEqual(attempts, [
     'root:mysql2/promise',
-    'fallback:/home/lolben/.config/superpowers/worktrees/TerraPedia/main-merge-crafting-graph/data-query-app/package.json',
+    `fallback:${path.join(repoRoot, 'data-query-app', 'package.json')}`,
     'fallback-require:mysql2/promise'
   ]);
 });
