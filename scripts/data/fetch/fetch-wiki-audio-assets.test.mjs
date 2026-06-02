@@ -516,6 +516,54 @@ test('audio asset download filters manifest assets by requested shard', () => {
   assert.equal(fs.existsSync(path.join(sharedRoot, 'media', 'audio', 'wiki', 'bgm', 'music-aether.mp3')), false);
 });
 
+test('audio asset download accepts existing latest metadata assets as manifest input', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-audio-assets-latest-manifest-'));
+  const sharedRoot = path.join(tempDir, 'shared');
+  const progressPath = path.join(tempDir, 'latest-manifest-progress.json');
+  const reportPath = path.join(tempDir, 'reports', 'workflow-audio-fetch.json');
+  const outputJsonPath = path.join(sharedRoot, 'generated', 'wiki-audio-assets.latest.json');
+  const manifestPath = path.join(tempDir, 'latest-metadata.json');
+  fs.writeFileSync(manifestPath, JSON.stringify({
+    assets: [{
+      assetId: 'bgm:music-aether',
+      scope: 'bgm',
+      shard: 'bgm',
+      prefix: 'Music',
+      kind: 'bgm_track',
+      sourceKey: 'Music-Aether',
+      fileTitle: 'File:Music-Aether.mp3',
+      sourceUrl: 'https://terraria.wiki.gg/images/Music-Aether.mp3?395a4d',
+      mime: 'audio/mpeg',
+      size: 12,
+      localPath: 'data/terraPedia/media/audio/wiki/bgm/music-aether.mp3',
+      absoluteLocalPath: path.join(sharedRoot, 'media', 'audio', 'wiki', 'bgm', 'music-aether.mp3'),
+      sha256: sha256(Buffer.from('music-aether'))
+    }]
+  }));
+  const mockApiPath = writeBgmNameMock(tempDir);
+
+  const result = runScript([
+    '--mode=download',
+    '--allow-full-audio-corpus=true',
+    '--skip-download=true',
+    '--fetch-bgm-display-names=true',
+    '--shards=bgm',
+    `--manifest-json=${manifestPath}`,
+    `--progress-path=${progressPath}`,
+    `--output-json=${outputJsonPath}`,
+    `--report-json=${reportPath}`
+  ], {
+    TERRAPEDIA_SHARED_DATA_ROOT: sharedRoot,
+    TERRAPEDIA_WIKI_AUDIO_MOCK_API_RESPONSE: mockApiPath
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const metadata = readJson(outputJsonPath);
+  assert.equal(metadata.assets[0].sourceKey, 'Music-Aether');
+  assert.equal(metadata.assets[0].displayNameZh, '以太');
+  assert.equal(metadata.assets[0].displayNameEn, 'Aether');
+});
+
 test('audio asset download records retry exhausted failures', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-audio-assets-retry-exhausted-'));
   const sharedRoot = path.join(tempDir, 'shared');
@@ -633,6 +681,57 @@ test('audio asset all mode requires explicit allow-full-audio-corpus', () => {
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /allow-full-audio-corpus/);
   assert.equal(readJson(progressPath).status, 'failed');
+});
+
+test('audio asset fetch can enrich BGM display names from zh music page table', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-audio-assets-bgm-names-'));
+  const sharedRoot = path.join(tempDir, 'shared');
+  const progressPath = path.join(tempDir, 'bgm-names-progress.json');
+  const reportPath = path.join(tempDir, 'reports', 'workflow-audio-bgm-names.json');
+  const outputJsonPath = path.join(sharedRoot, 'generated', 'wiki-audio-assets.latest.json');
+  const runOutputPath = path.join(sharedRoot, 'generated', 'wiki-audio-assets.runs', 'bgm-names-run.json');
+  const bgmDisplayNamePath = path.join(tempDir, 'generated', 'audio-bgm-display-names.latest.json');
+  const manifestPath = writeManifest(tempDir, [
+    manifestAsset('bgm:music-aether', 'bgm', 'Music-Aether.mp3', 'audio/mpeg', 'mock://audio/aether', 'music-aether'),
+    manifestAsset('bgm:music-boss-5', 'bgm', 'Music-Boss_5.mp3', 'audio/mpeg', 'mock://audio/boss5', 'boss-five')
+  ]);
+  const mockApiPath = writeBgmNameMock(tempDir);
+
+  const result = runScript([
+    '--mode=download',
+    '--allow-full-audio-corpus=true',
+    '--skip-download=true',
+    '--fetch-bgm-display-names=true',
+    `--manifest-json=${manifestPath}`,
+    `--progress-path=${progressPath}`,
+    `--output-json=${outputJsonPath}`,
+    `--run-output-json=${runOutputPath}`,
+    `--bgm-display-name-output-json=${bgmDisplayNamePath}`,
+    `--report-json=${reportPath}`
+  ], {
+    TERRAPEDIA_SHARED_DATA_ROOT: sharedRoot,
+    TERRAPEDIA_WIKI_AUDIO_MOCK_API_RESPONSE: mockApiPath
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const metadata = readJson(outputJsonPath);
+  const aether = metadata.assets.find((asset) => asset.assetId === 'bgm:music-aether');
+  const boss5 = metadata.assets.find((asset) => asset.assetId === 'bgm:music-boss-5');
+  assert.equal(aether.displayNameZh, '以太');
+  assert.equal(aether.displayNameEn, 'Aether');
+  assert.equal(boss5.displayNameZh, 'Boss 5');
+  assert.equal(boss5.displayNameEn, 'Boss 5');
+
+  const bgmMap = readJson(bgmDisplayNamePath);
+  assert.equal(bgmMap.summary.total, 2);
+  assert.equal(bgmMap.displayNames['Music-Aether'].displayNameZh, '以太');
+  assert.equal(bgmMap.displayNames['Music-Boss_5'].displayNameEn, 'Boss 5');
+  assertProgressContract(readJson(progressPath), {
+    status: 'completed',
+    childStatusPath: progressPath,
+    outputPath: outputJsonPath,
+    reportPath
+  });
 });
 
 test('audio asset fetch rejects full-sized run without allow-full-audio-corpus', () => {
@@ -844,6 +943,51 @@ function writeBinaryMock(tempDir, binary) {
   fs.writeFileSync(mockPath, JSON.stringify({
     allimages: {},
     binary
+  }), 'utf8');
+  return mockPath;
+}
+
+function writeBgmNameMock(tempDir) {
+  const mockPath = path.join(tempDir, 'mock-bgm-name-api.json');
+  fs.writeFileSync(mockPath, JSON.stringify({
+    allimages: {},
+    parse: {
+      '音乐': {
+        wikitext: `{| class="terraria lined"
+! # !! 曲名 !! 条件 !! 试听 !! 描述
+|-
+| 91
+| {{anchor|track 91}}{{anchor|Aether}}{{anchor|{{tr/music|Aether}}}}Aether
+|
+* [[以太]]
+| [[File:Music-Aether.mp3|300px]]
+| 空灵。
+|-
+| 25
+| {{anchor|track 25}}{{anchor|Boss 5}}Boss 5
+|
+* [[机械美杜莎]]
+| [[File:Music-Boss 5.mp3|300px]]
+| 疯狂而严肃。
+|}`,
+        html: `<table><tbody>
+<tr>
+<td>91</td>
+<td><span id="track_91"></span><span id="Aether"></span><span id="以太"></span>Aether</td>
+<td><a title="以太">以太</a></td>
+<td><audio data-mwtitle="Music-Aether.mp3"></audio></td>
+<td>空灵。</td>
+</tr>
+<tr>
+<td>25</td>
+<td><span id="track_25"></span><span id="Boss_5"></span>Boss 5</td>
+<td><a title="机械美杜莎">机械美杜莎</a></td>
+<td><audio data-mwtitle="Music-Boss_5.mp3"></audio></td>
+<td>疯狂而严肃。</td>
+</tr>
+</tbody></table>`
+      }
+    }
   }), 'utf8');
   return mockPath;
 }

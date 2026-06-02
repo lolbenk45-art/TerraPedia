@@ -153,15 +153,72 @@ test('buildAudioLinkRows marks ambiguous item matches', () => {
 });
 
 test('buildAudioAssetRows maps metadata fields to db rows', () => {
-  const rows = buildAudioAssetRows([asset({ assetId: 'items:item-1', sourceKey: 'Item_1' })], {
+  const rows = buildAudioAssetRows([asset({
+    assetId: 'items:item-1',
+    sourceKey: 'Item_1',
+    displayNameZh: '铁镐',
+    displayNameEn: 'Iron Pickaxe'
+  })], {
     reportPath: 'reports/audio-db-import.json'
   });
 
   assert.equal(rows[0].assetId, 'items:item-1');
+  assert.equal(rows[0].displayNameZh, '铁镐');
+  assert.equal(rows[0].displayNameEn, 'Iron Pickaxe');
   assert.equal(rows[0].sizeBytes, 8);
   assert.equal(rows[0].provider, 'wiki_gg');
   assert.equal(rows[0].status, 'active');
   assert.equal(rows[0].crawlReportPath, 'reports/audio-db-import.json');
+});
+
+test('buildAudioAssetRows can enrich item audio names from item rows', () => {
+  const rows = buildAudioAssetRows(
+    [asset({ assetId: 'items:item-1', shard: 'items', sourceKey: 'Item_1' })],
+    {
+      itemRows: [
+        { id: 1001, source_id: 1, internal_name: 'IronPickaxe', name: 'Iron Pickaxe', name_zh: '铁镐' }
+      ]
+    }
+  );
+
+  assert.equal(rows[0].displayNameZh, '铁镐');
+  assert.equal(rows[0].displayNameEn, 'Iron Pickaxe');
+});
+
+test('buildAudioAssetRows can enrich BGM names from BGM display name rows', () => {
+  const rows = buildAudioAssetRows(
+    [
+      asset({ assetId: 'bgm:music-aether', shard: 'bgm', sourceKey: 'Music-Aether' }),
+      asset({ assetId: 'bgm:music-boss-5', shard: 'bgm', sourceKey: 'Music-Boss_5' })
+    ],
+    {
+      bgmDisplayNameRows: [
+        { sourceKey: 'Music-Aether', displayNameZh: '以太', displayNameEn: 'Aether' },
+        { sourceKey: 'Music-Boss_5', displayNameZh: 'Boss 5', displayNameEn: 'Boss 5' }
+      ]
+    }
+  );
+
+  assert.equal(rows[0].displayNameZh, '以太');
+  assert.equal(rows[0].displayNameEn, 'Aether');
+  assert.equal(rows[1].displayNameZh, 'Boss 5');
+  assert.equal(rows[1].displayNameEn, 'Boss 5');
+});
+
+test('buildAudioAssetRows can enrich npc sound family display names from npc rows', () => {
+  const rows = buildAudioAssetRows(
+    [asset({ assetId: 'npc_hit:npc-hit-1', shard: 'npc_hit', sourceKey: 'NPC_Hit_1' })],
+    {
+      npcRows: [
+        { id: 2001, internal_name: 'Hornet', name: 'Hornet', name_zh: '黄蜂', raw_json: JSON.stringify({ extras: { HitSound: 'NPC_Hit_1' } }) },
+        { id: 2002, internal_name: 'RainZombie', name: 'Zombie', name_zh: '僵尸', raw_json: JSON.stringify({ extras: { HitSound: 'NPC_Hit_1' } }) },
+        { id: 2003, internal_name: 'BlueSlime', name: 'Blue Slime', name_zh: '蓝史莱姆', raw_json: JSON.stringify({ extras: { HitSound: 'NPC_Hit_1, NPC_Hit_2' } }) }
+      ]
+    }
+  );
+
+  assert.equal(rows[0].displayNameZh, '音效族：黄蜂、僵尸、蓝史莱姆 (3 NPC)');
+  assert.equal(rows[0].displayNameEn, 'Sound family: Hornet, Zombie, Blue Slime (3 NPC)');
 });
 
 test('runAudioAssetImport skips db connection in dry-run mode', async () => {
@@ -191,7 +248,43 @@ test('runAudioAssetImport skips db connection in dry-run mode', async () => {
   assert.equal(report.mode, 'dry-run');
   assert.equal(report.summary.total, 1);
   assert.equal(report.summary.wouldInsertAssets, 1);
+  assert.equal(report.summary.displayNameZhAssets, 1);
+  assert.equal(report.summary.displayNameEnAssets, 1);
   assert.equal(JSON.parse(fs.readFileSync(reportPath, 'utf8')).mode, 'dry-run');
+});
+
+test('runAudioAssetImport enriches dry-run display names from local standardized files', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'audio-db-import-local-data-'));
+  const filePath = path.join(tempDir, 'item.wav');
+  const inputPath = path.join(tempDir, 'metadata.json');
+  const reportPath = path.join(tempDir, 'report.json');
+  const itemStandardizedPath = path.join(tempDir, 'items.standardized.json');
+  const itemZhMapPath = path.join(tempDir, 'item-zh-map.json');
+  fs.writeFileSync(filePath, 'item-one');
+  fs.writeFileSync(inputPath, JSON.stringify({ assets: [asset({ absoluteLocalPath: filePath, sha256: sha256('item-one') })] }));
+  fs.writeFileSync(itemStandardizedPath, JSON.stringify({
+    records: [{ id: 1, internalName: 'IronPickaxe', name: 'Iron Pickaxe' }]
+  }));
+  fs.writeFileSync(itemZhMapPath, JSON.stringify({
+    records: { IronPickaxe: { internalName: 'IronPickaxe', nameZh: '铁镐' } }
+  }));
+
+  const report = await runAudioAssetImport({
+    apply: false,
+    inputJsonPath: inputPath,
+    reportPath,
+    db: { database: 'terria_v1_local' }
+  }, {
+    localDataOptions: {
+      items: { standardizedPath: itemStandardizedPath, zhMapPath: itemZhMapPath },
+      npcs: { standardizedPath: path.join(tempDir, 'missing-npcs.json'), zhMapPath: path.join(tempDir, 'missing-npc-zh.json') }
+    }
+  });
+
+  assert.equal(report.samples[0].displayNameZh, '铁镐');
+  assert.equal(report.samples[0].displayNameEn, 'Iron Pickaxe');
+  assert.equal(report.summary.displayNameZhAssets, 1);
+  assert.equal(report.summary.displayNameEnAssets, 1);
 });
 
 test('runAudioAssetImport applies idempotent upserts', async () => {
@@ -209,6 +302,8 @@ test('runAudioAssetImport applies idempotent upserts', async () => {
     reportPath: null,
     db: { database: 'terria_v1_local' }
   }, {
+    localItemRows: [],
+    localNpcRows: [],
     mysqlModule: {
       async createConnection() {
         return {
@@ -217,7 +312,10 @@ test('runAudioAssetImport applies idempotent upserts', async () => {
           async rollback() {},
           async execute(sql, params) {
             executeCalls.push({ sql, params });
-            if (sql.startsWith('SELECT id, source_id, internal_name FROM items')) {
+            if (sql.startsWith('SELECT id, source_id, internal_name, name, name_zh FROM items')) {
+              return [[{ id: 1001, source_id: 1, internal_name: 'IronPickaxe', name: 'Iron Pickaxe', name_zh: '铁镐' }]];
+            }
+            if (sql.startsWith('SELECT id, internal_name, name, name_zh, raw_json FROM npcs')) {
               return [[]];
             }
             if (sql.startsWith('SELECT id FROM audio_assets WHERE asset_id')) {
@@ -242,6 +340,10 @@ test('runAudioAssetImport applies idempotent upserts', async () => {
   assert.equal(report.summary.insertedAssets, 1);
   assert.equal(report.summary.insertedLinks, 1);
   assert.ok(executeCalls.some((call) => call.sql.startsWith('INSERT INTO audio_assets')));
+  const assetInsert = executeCalls.find((call) => call.sql.startsWith('INSERT INTO audio_assets'));
+  assert.match(assetInsert.sql, /display_name_zh, display_name_en/);
+  assert.ok(assetInsert.params.includes('铁镐'));
+  assert.ok(assetInsert.params.includes('Iron Pickaxe'));
   assert.ok(executeCalls.some((call) => call.sql.startsWith('INSERT INTO audio_asset_links')));
 });
 
@@ -259,6 +361,8 @@ test('runAudioAssetImport falls back when items source_id column is absent', asy
     reportPath: null,
     db: { database: 'terria_v1_local' }
   }, {
+    localItemRows: [{ id: 1, source_id: 1, internal_name: 'IronPickaxe', name: 'Iron Pickaxe', name_zh: '铁镐' }],
+    localNpcRows: [],
     mysqlModule: {
       async createConnection() {
         return {
@@ -267,13 +371,16 @@ test('runAudioAssetImport falls back when items source_id column is absent', asy
           async rollback() {},
           async execute(sql) {
             executeCalls.push(sql);
-            if (sql.startsWith('SELECT id, source_id, internal_name FROM items')) {
+            if (sql.startsWith('SELECT id, source_id, internal_name, name, name_zh FROM items')) {
               const error = new Error("Unknown column 'source_id' in 'field list'");
               error.code = 'ER_BAD_FIELD_ERROR';
               throw error;
             }
-            if (sql.startsWith('SELECT id, internal_name FROM items')) {
-              return [[{ id: 1001, internal_name: 'Item_1' }]];
+            if (sql.startsWith('SELECT id, internal_name, name, name_zh FROM items')) {
+              return [[{ id: 1001, internal_name: 'IronPickaxe', name: 'Iron Pickaxe', name_zh: null }]];
+            }
+            if (sql.startsWith('SELECT id, internal_name, name, name_zh, raw_json FROM npcs')) {
+              return [[]];
             }
             if (sql.startsWith('SELECT id FROM audio_assets WHERE asset_id')) {
               return [[]];
@@ -294,7 +401,8 @@ test('runAudioAssetImport falls back when items source_id column is absent', asy
 
   assert.equal(report.summary.insertedAssets, 1);
   assert.equal(report.summary.insertedLinks, 1);
-  assert.ok(executeCalls.some((sql) => sql.startsWith('SELECT id, internal_name FROM items')));
+  assert.ok(executeCalls.some((sql) => sql.startsWith('SELECT id, internal_name, name, name_zh FROM items')));
+  assert.equal(report.summary.matched, 1);
 });
 
 function asset(overrides = {}) {

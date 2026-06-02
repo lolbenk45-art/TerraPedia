@@ -10,6 +10,11 @@ const require = createRequire(import.meta.url);
 const repoRoot = getProjectRoot();
 const DEFAULT_INPUT_JSON = '/home/lolben/data/terraPedia/generated/wiki-audio-assets.latest.json';
 const PRIMARY_DB = 'terria_v1_local';
+const LOCAL_ITEM_STANDARDIZED_PATH = path.join(repoRoot, 'data', 'standardized', 'items.standardized.json');
+const LOCAL_ITEM_ZH_MAP_PATH = path.join(repoRoot, 'data', 'generated', 'item-zh-map.json');
+const LOCAL_NPC_STANDARDIZED_PATH = path.join(repoRoot, 'data', 'standardized', 'npcs.standardized.json');
+const LOCAL_NPC_ZH_MAP_PATH = path.join(repoRoot, 'data', 'generated', 'npc-zh-map.json');
+const LOCAL_BGM_DISPLAY_NAMES_PATH = path.join(repoRoot, 'data', 'generated', 'audio-bgm-display-names.latest.json');
 let mysqlModule = null;
 
 export function parseArgs(argv) {
@@ -110,11 +115,16 @@ export function validateAudioMetadata(metadata) {
 
 export function buildAudioAssetRows(assets = [], options = {}) {
   const verifiedAt = toMysqlDateTime(options.verifiedAt ?? new Date());
+  const itemLookup = buildItemLookup(options.itemRows ?? []);
+  const npcSoundLookup = buildNpcSoundLookup(options.npcRows ?? []);
+  const bgmDisplayNameLookup = buildBgmDisplayNameLookup(options.bgmDisplayNameRows ?? []);
   return assets.map((asset) => ({
     assetId: String(asset.assetId),
     shard: String(asset.shard ?? asset.scope ?? ''),
     kind: String(asset.kind ?? ''),
     sourceKey: nullable(asset.sourceKey),
+    displayNameZh: nullable(asset.displayNameZh ?? resolveDisplayName(asset, { itemLookup, npcSoundLookup, bgmDisplayNameLookup }, 'zh')),
+    displayNameEn: nullable(asset.displayNameEn ?? resolveDisplayName(asset, { itemLookup, npcSoundLookup, bgmDisplayNameLookup }, 'en')),
     fileTitle: nullable(asset.fileTitle),
     wikiFileUrl: nullable(asset.wikiFileUrl),
     sourceUrl: nullable(asset.sourceUrl),
@@ -182,8 +192,234 @@ function extractItemSourceId(sourceKey) {
   return match ? Number(match[1]) : null;
 }
 
+function buildItemLookup(itemRows = []) {
+  const bySourceId = new Map();
+  const byInternal = new Map();
+  for (const row of itemRows) {
+    const sourceId = row?.source_id ?? row?.sourceId ?? row?.game_id ?? row?.id;
+    if (sourceId != null) bySourceId.set(Number(sourceId), row);
+    const internalName = normalize(row?.internal_name ?? row?.internalName);
+    if (internalName) byInternal.set(internalName, row);
+  }
+  return { bySourceId, byInternal };
+}
+
+function resolveItemDisplayName(asset, itemLookup, locale) {
+  const shard = String(asset.shard ?? asset.scope ?? '');
+  if (shard !== 'items') return null;
+  const sourceKey = String(asset.sourceKey ?? '');
+  const sourceId = extractItemSourceId(sourceKey);
+  const row = (sourceId != null ? itemLookup.bySourceId.get(sourceId) : null)
+    ?? itemLookup.byInternal.get(normalize(sourceKey));
+  if (!row) return null;
+  return locale === 'zh'
+    ? nullable(row.name_zh ?? row.nameZh)
+    : nullable(row.name ?? row.name_en ?? row.nameEn ?? row.internal_name ?? row.internalName);
+}
+
+function resolveDisplayName(asset, lookups, locale) {
+  return resolveBgmDisplayName(asset, lookups.bgmDisplayNameLookup, locale)
+    ?? resolveItemDisplayName(asset, lookups.itemLookup, locale)
+    ?? resolveNpcSoundFamilyDisplayName(asset, lookups.npcSoundLookup, locale);
+}
+
+function buildBgmDisplayNameLookup(rows = []) {
+  const bySourceKey = new Map();
+  for (const row of rows) {
+    const sourceKey = normalizeMusicSourceKey(row?.sourceKey ?? row?.source_key);
+    if (!sourceKey) continue;
+    bySourceKey.set(sourceKey, row);
+  }
+  return bySourceKey;
+}
+
+function resolveBgmDisplayName(asset, bgmDisplayNameLookup, locale) {
+  const shard = String(asset.shard ?? asset.scope ?? '');
+  if (shard !== 'bgm') return null;
+  const sourceKey = normalizeMusicSourceKey(asset.sourceKey);
+  const row = bgmDisplayNameLookup.get(sourceKey);
+  if (!row) return null;
+  return locale === 'zh'
+    ? nullable(row.displayNameZh ?? row.display_name_zh)
+    : nullable(row.displayNameEn ?? row.display_name_en);
+}
+
+function buildNpcSoundLookup(npcRows = []) {
+  const bySoundKey = new Map();
+  for (const row of npcRows) {
+    const extras = npcExtras(row);
+    for (const key of soundKeys(extras.HitSound ?? extras.hitSound)) {
+      appendNpcSoundOwner(bySoundKey, key, row);
+    }
+    for (const key of soundKeys(extras.DeathSound ?? extras.deathSound ?? extras.KilledSound ?? extras.killedSound)) {
+      appendNpcSoundOwner(bySoundKey, key, row);
+    }
+  }
+  return bySoundKey;
+}
+
+function appendNpcSoundOwner(lookup, soundKey, row) {
+  if (!soundKey) return;
+  const owners = lookup.get(soundKey) ?? [];
+  owners.push({
+    nameZh: nullable(row.name_zh ?? row.nameZh),
+    nameEn: nullable(row.name ?? row.name_en ?? row.nameEn ?? row.internal_name ?? row.internalName)
+  });
+  lookup.set(soundKey, owners);
+}
+
+function resolveNpcSoundFamilyDisplayName(asset, npcSoundLookup, locale) {
+  const shard = String(asset.shard ?? asset.scope ?? '');
+  if (shard !== 'npc_hit' && shard !== 'npc_death') return null;
+  const sourceKey = String(asset.sourceKey ?? '');
+  const owners = npcSoundLookup.get(sourceKey) ?? [];
+  if (!owners.length) return null;
+  const names = uniqueNonEmpty(owners.map((owner) => locale === 'zh' ? owner.nameZh : owner.nameEn));
+  if (!names.length) return null;
+  const sample = names.slice(0, 3).join(locale === 'zh' ? '、' : ', ');
+  const suffix = owners.length === 1 ? '1 NPC' : `${owners.length} NPC`;
+  return locale === 'zh'
+    ? `音效族：${sample} (${suffix})`
+    : `Sound family: ${sample} (${suffix})`;
+}
+
+function npcExtras(row) {
+  if (row?.extras && typeof row.extras === 'object') return row.extras;
+  const raw = row?.raw_json ?? row?.rawJson;
+  if (!raw) return {};
+  try {
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return parsed?.extras && typeof parsed.extras === 'object' ? parsed.extras : {};
+  } catch {
+    return {};
+  }
+}
+
+function readJsonIfExists(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) return null;
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
+function loadLocalItemRows(options = {}) {
+  const standardizedPath = options.standardizedPath ?? LOCAL_ITEM_STANDARDIZED_PATH;
+  const zhMapPath = options.zhMapPath ?? LOCAL_ITEM_ZH_MAP_PATH;
+  const standardized = readJsonIfExists(standardizedPath);
+  const zhMap = readJsonIfExists(zhMapPath)?.records ?? {};
+  const records = Array.isArray(standardized?.records) ? standardized.records : [];
+  return records.map((record) => {
+    const internalName = nullable(record.internalName ?? record.internal_name);
+    const zhMeta = internalName ? zhMap[internalName] : null;
+    return {
+      id: record.id,
+      source_id: record.id,
+      internal_name: internalName,
+      name: nullable(record.name),
+      name_zh: nullable(record.name_zh ?? record.nameZh ?? zhMeta?.nameZh)
+    };
+  });
+}
+
+function loadLocalNpcRows(options = {}) {
+  const standardizedPath = options.standardizedPath ?? LOCAL_NPC_STANDARDIZED_PATH;
+  const zhMapPath = options.zhMapPath ?? LOCAL_NPC_ZH_MAP_PATH;
+  const standardized = readJsonIfExists(standardizedPath);
+  const zhMap = readJsonIfExists(zhMapPath)?.records ?? {};
+  const records = Array.isArray(standardized?.records) ? standardized.records : [];
+  return records.map((record) => {
+    const internalName = nullable(record.internalName ?? record.internal_name);
+    const zhMeta = internalName ? zhMap[internalName] : null;
+    return {
+      id: record.id,
+      source_id: record.id,
+      internal_name: internalName,
+      name: nullable(record.name),
+      name_zh: nullable(record.name_zh ?? record.nameZh ?? zhMeta?.nameZh),
+      extras: record.extras ?? {},
+      raw_json: JSON.stringify(record)
+    };
+  });
+}
+
+function loadLocalBgmDisplayNameRows(options = {}) {
+  const displayNamePath = options.displayNamePath ?? LOCAL_BGM_DISPLAY_NAMES_PATH;
+  const payload = readJsonIfExists(displayNamePath);
+  const displayNames = payload?.displayNames;
+  if (!displayNames || typeof displayNames !== 'object') return [];
+  return Object.entries(displayNames).map(([sourceKey, row]) => ({
+    sourceKey: row?.sourceKey ?? sourceKey,
+    displayNameZh: row?.displayNameZh ?? row?.display_name_zh,
+    displayNameEn: row?.displayNameEn ?? row?.display_name_en
+  }));
+}
+
+function mergeRowsByIdentity(primaryRows = [], fallbackRows = []) {
+  const result = [];
+  const bySourceId = new Map();
+  const byInternalName = new Map();
+  for (const row of [...primaryRows, ...fallbackRows]) {
+    const sourceId = row?.source_id ?? row?.sourceId ?? row?.game_id ?? row?.id;
+    const internalName = normalize(row?.internal_name ?? row?.internalName);
+    const sourceKey = sourceId == null ? null : String(sourceId);
+    const existing = (sourceKey ? bySourceId.get(sourceKey) : null)
+      ?? (internalName ? byInternalName.get(internalName) : null);
+    if (existing) {
+      mergeRowFields(existing, row);
+      const mergedSourceId = existing.source_id ?? existing.sourceId ?? existing.game_id ?? existing.id;
+      const mergedInternalName = normalize(existing.internal_name ?? existing.internalName);
+      if (mergedSourceId != null) bySourceId.set(String(mergedSourceId), existing);
+      if (mergedInternalName) byInternalName.set(mergedInternalName, existing);
+      continue;
+    }
+    const copy = { ...row };
+    result.push(copy);
+    if (sourceKey) bySourceId.set(sourceKey, copy);
+    if (internalName) byInternalName.set(internalName, copy);
+  }
+  return result;
+}
+
+function mergeRowFields(target, source) {
+  for (const [key, value] of Object.entries(source ?? {})) {
+    if (key === 'id' && target.id != null) continue;
+    if (target[key] == null || target[key] === '') {
+      target[key] = value;
+    }
+  }
+}
+
+function soundKeys(value) {
+  if (value == null) return [];
+  return String(value)
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function uniqueNonEmpty(values) {
+  const seen = new Set();
+  const result = [];
+  for (const value of values) {
+    const text = nullable(value);
+    if (!text || seen.has(text)) continue;
+    seen.add(text);
+    result.push(text);
+  }
+  return result;
+}
+
 function normalize(value) {
   return String(value ?? '').trim().toLowerCase();
+}
+
+function normalizeMusicSourceKey(value) {
+  const text = String(value ?? '')
+    .trim()
+    .replace(/^File:/, '')
+    .replace(/\.[^.]+$/, '')
+    .replace(/\s+/g, '_')
+    .replace(/^Music_/, 'Music-')
+    .replace(/^Music\s+/, 'Music-');
+  return text || null;
 }
 
 function nullable(value) {
@@ -196,6 +432,10 @@ function toMysqlDateTime(value) {
   const date = value instanceof Date ? value : new Date(value);
   if (!Number.isFinite(date.getTime())) return null;
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+}
+
+function firstResult(result) {
+  return Array.isArray(result?.[0]) ? result[0] : result;
 }
 
 function loadMysqlModule() {
@@ -217,15 +457,20 @@ async function writeReport(reportPath, report) {
 
 async function loadItemRows(connection) {
   try {
-    const [rows] = await connection.execute('SELECT id, source_id, internal_name FROM items WHERE deleted = 0');
+    const rows = firstResult(await connection.execute('SELECT id, source_id, internal_name, name, name_zh FROM items WHERE deleted = 0'));
     return rows;
   } catch (error) {
     if (error?.code !== 'ER_BAD_FIELD_ERROR' && !/Unknown column 'source_id'/i.test(String(error?.message ?? ''))) {
       throw error;
     }
-    const [rows] = await connection.execute('SELECT id, internal_name FROM items WHERE deleted = 0');
+    const rows = firstResult(await connection.execute('SELECT id, internal_name, name, name_zh FROM items WHERE deleted = 0'));
     return rows.map((row) => ({ ...row, source_id: null }));
   }
+}
+
+async function loadNpcRows(connection) {
+  const rows = firstResult(await connection.execute('SELECT id, internal_name, name, name_zh, raw_json FROM npcs WHERE deleted = 0'));
+  return rows;
 }
 
 async function loadExistingAssetIds(connection, assetIds) {
@@ -239,14 +484,16 @@ async function upsertAsset(connection, row) {
   const [existing] = await connection.execute('SELECT id FROM audio_assets WHERE asset_id = ?', [row.assetId]);
   await connection.execute(
     `INSERT INTO audio_assets (
-      asset_id, shard, kind, source_key, file_title, wiki_file_url, source_url,
+      asset_id, shard, kind, source_key, display_name_zh, display_name_en, file_title, wiki_file_url, source_url,
       local_path, absolute_local_path, mime, size_bytes, sha256, provider, status,
       last_verified_at, crawl_report_path, raw_json, deleted
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
     ON DUPLICATE KEY UPDATE
       shard = VALUES(shard),
       kind = VALUES(kind),
       source_key = VALUES(source_key),
+      display_name_zh = VALUES(display_name_zh),
+      display_name_en = VALUES(display_name_en),
       file_title = VALUES(file_title),
       wiki_file_url = VALUES(wiki_file_url),
       source_url = VALUES(source_url),
@@ -262,7 +509,7 @@ async function upsertAsset(connection, row) {
       raw_json = VALUES(raw_json),
       deleted = 0`,
     [
-      row.assetId, row.shard, row.kind, row.sourceKey, row.fileTitle, row.wikiFileUrl,
+      row.assetId, row.shard, row.kind, row.sourceKey, row.displayNameZh, row.displayNameEn, row.fileTitle, row.wikiFileUrl,
       row.sourceUrl, row.localPath, row.absoluteLocalPath, row.mime, row.sizeBytes,
       row.sha256, row.provider, row.status, row.lastVerifiedAt, row.crawlReportPath, row.rawJson
     ]
@@ -296,8 +543,12 @@ export async function runAudioAssetImport(options = {}, dependencies = {}) {
   const metadata = JSON.parse(fs.readFileSync(options.inputJsonPath, 'utf8'));
   const validation = validateAudioMetadata(metadata);
   const assets = metadata.assets ?? [];
-  const assetRows = buildAudioAssetRows(assets, { reportPath: options.reportPath });
-  let itemRows = dependencies.itemRows ?? [];
+  const localItemRows = dependencies.localItemRows ?? loadLocalItemRows(dependencies.localDataOptions?.items);
+  const localNpcRows = dependencies.localNpcRows ?? loadLocalNpcRows(dependencies.localDataOptions?.npcs);
+  const localBgmDisplayNameRows = dependencies.localBgmDisplayNameRows ?? loadLocalBgmDisplayNameRows(dependencies.localDataOptions?.bgm);
+  let itemRows = mergeRowsByIdentity(dependencies.itemRows ?? [], localItemRows);
+  let npcRows = mergeRowsByIdentity(dependencies.npcRows ?? [], localNpcRows);
+  const assetRows = buildAudioAssetRows(assets, { reportPath: options.reportPath, itemRows, npcRows, bgmDisplayNameRows: localBgmDisplayNameRows });
   let linkRows = buildAudioLinkRows(assets, itemRows);
   const report = {
     mode: options.apply ? 'apply' : 'dry-run',
@@ -317,10 +568,15 @@ export async function runAudioAssetImport(options = {}, dependencies = {}) {
       matched: linkRows.filter((row) => row.matchStatus === 'matched').length,
       unmatched: linkRows.filter((row) => row.matchStatus === 'unmatched').length,
       ambiguous: linkRows.filter((row) => row.matchStatus === 'ambiguous').length,
+      displayNameZhAssets: assetRows.filter((row) => row.displayNameZh).length,
+      displayNameEnAssets: assetRows.filter((row) => row.displayNameEn).length,
       applied: Boolean(options.apply)
     },
     failures: validation.failures,
-    samples: assetRows.slice(0, 8)
+    samples: [
+      ...assetRows.filter((row) => row.displayNameZh || row.displayNameEn).slice(0, 4),
+      ...assetRows.slice(0, 4)
+    ].slice(0, 8)
   };
   if (validation.failures.length > 0) {
     await writeReport(options.reportPath, report);
@@ -331,15 +587,17 @@ export async function runAudioAssetImport(options = {}, dependencies = {}) {
     const connection = await mysql.createConnection(options.db);
     try {
       if (typeof connection.beginTransaction === 'function') await connection.beginTransaction();
-      itemRows = dependencies.itemRows ?? await loadItemRows(connection);
+      itemRows = mergeRowsByIdentity(dependencies.itemRows ?? await loadItemRows(connection), localItemRows);
+      npcRows = mergeRowsByIdentity(dependencies.npcRows ?? await loadNpcRows(connection), localNpcRows);
+      const enrichedAssetRows = buildAudioAssetRows(assets, { reportPath: options.reportPath, itemRows, npcRows, bgmDisplayNameRows: localBgmDisplayNameRows });
       linkRows = buildAudioLinkRows(assets, itemRows);
-      for (const row of assetRows) {
+      for (const row of enrichedAssetRows) {
         const result = await upsertAsset(connection, row);
         report.summary[result === 'inserted' ? 'insertedAssets' : 'updatedAssets'] += 1;
       }
       const [assetIdRows] = await connection.execute(
-        `SELECT id, asset_id FROM audio_assets WHERE asset_id IN (${assetRows.map(() => '?').join(', ')})`,
-        assetRows.map((row) => row.assetId)
+        `SELECT id, asset_id FROM audio_assets WHERE asset_id IN (${enrichedAssetRows.map(() => '?').join(', ')})`,
+        enrichedAssetRows.map((row) => row.assetId)
       );
       const dbIdByAssetId = new Map(assetIdRows.map((row) => [String(row.asset_id), Number(row.id)]));
       for (const row of linkRows) {
@@ -351,6 +609,12 @@ export async function runAudioAssetImport(options = {}, dependencies = {}) {
       report.summary.matched = linkRows.filter((row) => row.matchStatus === 'matched').length;
       report.summary.unmatched = linkRows.filter((row) => row.matchStatus === 'unmatched').length;
       report.summary.ambiguous = linkRows.filter((row) => row.matchStatus === 'ambiguous').length;
+      report.summary.displayNameZhAssets = enrichedAssetRows.filter((row) => row.displayNameZh).length;
+      report.summary.displayNameEnAssets = enrichedAssetRows.filter((row) => row.displayNameEn).length;
+      report.samples = [
+        ...enrichedAssetRows.filter((row) => row.displayNameZh || row.displayNameEn).slice(0, 4),
+        ...enrichedAssetRows.slice(0, 4)
+      ].slice(0, 8);
       if (typeof connection.commit === 'function') await connection.commit();
     } catch (error) {
       if (typeof connection.rollback === 'function') await connection.rollback();

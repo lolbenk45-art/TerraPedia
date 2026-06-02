@@ -54,6 +54,18 @@ class AdminAuthenticationInterceptorTest {
     }
 
     @Test
+    void shouldRejectAdminAudioStreamWithoutToken() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/admin/audio-assets/1/stream");
+        request.setServletPath("/admin/audio-assets/1/stream");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        boolean allowed = interceptor.preHandle(request, response, new Object());
+
+        assertFalse(allowed);
+        assertEquals(401, response.getStatus());
+    }
+
+    @Test
     void shouldAllowProtectedWriteRequestWithValidToken() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/items");
         request.setServletPath("/items");
