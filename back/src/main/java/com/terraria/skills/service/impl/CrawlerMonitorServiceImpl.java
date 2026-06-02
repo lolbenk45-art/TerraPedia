@@ -49,6 +49,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path DOMAIN_SOURCE_ARMOR_ATTRIBUTES_PROGRESS_FILE = Path.of("data", "generated", "domain-source-armor-attributes-progress.latest.json");
     private static final Path DOMAIN_SOURCE_SHIMMER_PROGRESS_FILE = Path.of("data", "generated", "domain-source-shimmer-progress.latest.json");
     private static final Path DOMAIN_SOURCE_TOWN_NPC_MAINTENANCE_PROGRESS_FILE = Path.of("data", "generated", "domain-source-town-npc-maintenance-progress.latest.json");
+    private static final Path WIKI_AUDIO_ASSETS_PROGRESS_FILE = Path.of("data", "generated", "wiki-audio-assets-progress.latest.json");
     private static final Path NPC_COVERAGE_REPORT = Path.of("data", "wiki-crawler", "report", "npc", "coverage-audit.latest.json");
     private static final Path RAW_ITEM_PAGES_DIR = Path.of("raw", "wiki", "item-pages");
     private static final Path STANDARDIZED_DIR = Path.of("standardized");
@@ -758,6 +759,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         ReadResult domainSourceArmorAttributesProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_ARMOR_ATTRIBUTES_PROGRESS_FILE).normalize());
         ReadResult domainSourceShimmerProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_SHIMMER_PROGRESS_FILE).normalize());
         ReadResult domainSourceTownNpcMaintenanceProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_TOWN_NPC_MAINTENANCE_PROGRESS_FILE).normalize());
+        ReadResult wikiAudioAssetsProgress = readJsonMap(repoRoot.resolve(WIKI_AUDIO_ASSETS_PROGRESS_FILE).normalize());
         ReadResult npcCoverage = readJsonMap(repoRoot.resolve(NPC_COVERAGE_REPORT).normalize());
 
         List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> tasks = new ArrayList<>();
@@ -803,6 +805,17 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             DOMAIN_SOURCE_TOWN_NPC_MAINTENANCE_PROGRESS_FILE,
             "data/generated/wiki-town-npc-maintenance.latest.json",
             domainSourceTownNpcMaintenanceProgress
+        ));
+        tasks.add(buildDomainSourceSnapshotTask(
+            repoRoot,
+            "wiki-audio-assets-refresh",
+            "Wiki audio assets refresh",
+            WIKI_AUDIO_ASSETS_PROGRESS_FILE,
+            "data/terraPedia/generated/wiki-audio-assets.latest.json",
+            wikiAudioAssetsProgress,
+            "p1",
+            "wiki allimages/imageinfo -> shared audio metadata",
+            "Review audio metadata and keep DB/UI playback wiring in a separate task."
         ));
         tasks.add(buildItemPagesRefreshTask(repoRoot, itemProgress));
         tasks.add(buildStaticTask(
@@ -1131,12 +1144,36 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         String outputPath,
         ReadResult progress
     ) {
-        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask(id, label, "fetch", "p0");
+        return buildDomainSourceSnapshotTask(
+            repoRoot,
+            id,
+            label,
+            progressPath,
+            outputPath,
+            progress,
+            "p0",
+            "wiki domain source pages -> generated source snapshot",
+            "Review source snapshot output and report evidence before downstream domain gates."
+        );
+    }
+
+    private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildDomainSourceSnapshotTask(
+        Path repoRoot,
+        String id,
+        String label,
+        Path progressPath,
+        String outputPath,
+        ReadResult progress,
+        String priority,
+        String dataStage,
+        String defaultNextStep
+    ) {
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask(id, label, "fetch", priority);
         task.setProgressPath(toDisplayPath(repoRoot, repoRoot.resolve(progressPath).normalize()));
         applyProgressFileMetadata(task, repoRoot, progress);
         task.setInputPath("wiki domain source pages");
         task.setOutputPath(outputPath);
-        task.setDataStage("wiki domain source pages -> generated source snapshot");
+        task.setDataStage(dataStage);
 
         if (!progress.found()) {
             task.setStatus("missing");
@@ -1158,7 +1195,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         task.setQueueState(firstNonBlank(asString(payload.get("message")), firstNonBlank(asString(payload.get("phase")), task.getStatus())));
         task.setNextStep(firstNonBlank(
             asString(payload.get("nextStep")),
-            "Review source snapshot output and report evidence before downstream domain gates."
+            defaultNextStep
         ));
         task.setUpdatedAt(firstNonBlank(asString(payload.get("lastHeartbeatAt")), asString(payload.get("generatedAt"))));
         copyTaskProgressFromPayload(task, payload);

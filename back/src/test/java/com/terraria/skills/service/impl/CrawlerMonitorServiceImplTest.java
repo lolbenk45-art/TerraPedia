@@ -253,6 +253,49 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldSurfaceWikiAudioAssetProgressAsRegisteredTask() throws Exception {
+        Path progressPath = repoRoot.resolve("data/generated/wiki-audio-assets-progress.latest.json");
+        writeJson(progressPath, Map.ofEntries(
+            Map.entry("actionId", "wiki-audio-assets-refresh"),
+            Map.entry("status", "running"),
+            Map.entry("phase", "download"),
+            Map.entry("message", "processed 2/6 audio assets"),
+            Map.entry("current", 2),
+            Map.entry("total", 6),
+            Map.entry("overallCurrent", 2),
+            Map.entry("overallTotal", 6),
+            Map.entry("percent", 33.33),
+            Map.entry("reportPath", "reports/workflow-audio-fetch-2026-06-02.json"),
+            Map.entry("outputPath", "data/terraPedia/generated/wiki-audio-assets.latest.json"),
+            Map.entry("generatedAt", "2026-06-02T00:00:30Z"),
+            Map.entry("lastHeartbeatAt", "2026-06-02T00:00:30Z")
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-02T00:01:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO audioRefresh = taskById(
+            service.getOverview().getRegisteredTasks(),
+            "wiki-audio-assets-refresh"
+        );
+
+        assertEquals("running", audioRefresh.getStatus());
+        assertEquals("p1", audioRefresh.getPriority());
+        assertEquals("live", audioRefresh.getProgressKind());
+        assertEquals("data/generated/wiki-audio-assets-progress.latest.json", audioRefresh.getProgressSource());
+        assertEquals("data/generated/wiki-audio-assets-progress.latest.json", audioRefresh.getProgressPath());
+        assertEquals("processed 2/6 audio assets", audioRefresh.getQueueState());
+        assertEquals(2, audioRefresh.getCurrent());
+        assertEquals(6, audioRefresh.getTotal());
+        assertEquals("2026-06-02T00:00:30Z", audioRefresh.getProgressHeartbeatAt());
+        assertEquals("reports/workflow-audio-fetch-2026-06-02.json", audioRefresh.getReportPath());
+        assertEquals("data/terraPedia/generated/wiki-audio-assets.latest.json", audioRefresh.getOutputPath());
+    }
+
+    @Test
     void shouldAppendUnknownBackendRefreshActionsAsRegisteredTasks() throws Exception {
         Path outputPath = historyDir.resolve("backend-data-refresh-2026-05-15T08-00-00-000Z.json");
         Path childStatusPath = historyDir.resolve("backend-data-refresh-2026-05-15T08-00-00-000Z.runtime/new-domain-refresh.child-status.json");

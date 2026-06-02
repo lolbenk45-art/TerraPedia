@@ -96,6 +96,18 @@ export function buildBackendDataRefreshPlan(options = {}) {
         'scripts/data/pipeline/run-support-sync-pipeline.mjs',
         '--apply=true'
       ]
+    },
+    {
+      id: 'wiki-audio-assets-refresh',
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'scripts/data/fetch/fetch-wiki-audio-assets.mjs',
+        '--limit-per-scope=3',
+        '--max-api-pages-per-prefix=1',
+        '--max-total-files=12',
+        '--max-file-bytes=10485760'
+      ]
     }
   ];
 
