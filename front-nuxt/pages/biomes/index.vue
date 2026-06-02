@@ -52,16 +52,6 @@ const biomeDisplayItems = computed(() => {
 
   return groupFilteredBiomes.filter((biome) => biome.searchText.includes(query))
 })
-const biomeGroups = computed(() => {
-  const grouped = new Map<string, typeof biomeDisplayItems.value>()
-
-  for (const biome of biomeDisplayItems.value) {
-    const group = biome.parentGroupLabel || '未分组'
-    grouped.set(group, [...(grouped.get(group) ?? []), biome])
-  }
-
-  return Array.from(grouped.entries()).map(([label, items]) => ({ label, items }))
-})
 const biomeFeaturedItems = computed(() => {
   const highlighted = []
   const usedGroups = new Set<string>()
@@ -76,7 +66,20 @@ const biomeFeaturedItems = computed(() => {
 
   return highlighted.length ? highlighted : biomeDisplayItems.value.slice(0, 3)
 })
-const visibleBiomeGroups = computed(() => biomeGroups.value.slice(0, 9))
+const biomeIsDefaultBrowse = computed(() => (
+  !biomeSearchQuery.value.trim()
+  && selectedBiomeGroup.value === biomeAllGroupLabel
+))
+const biomeHeroBiome = computed(() => biomeFeaturedItems.value[0] ?? biomeDisplayItems.value[0] ?? biomeItems.value[0] ?? null)
+const biomeShowFeatured = computed(() => biomeIsDefaultBrowse.value && biomeFeaturedItems.value.length > 0)
+const biomeFeaturedIds = computed(() => new Set(
+  biomeShowFeatured.value ? biomeFeaturedItems.value.map((biome) => biome.id) : [],
+))
+const biomeHeroPrimary = computed(() => biomeHeroBiome.value ?? biomeDisplayItems.value[0] ?? biomeItems.value[0] ?? null)
+const biomeListItems = computed(() => {
+  if (!biomeIsDefaultBrowse.value) return biomeDisplayItems.value
+  return biomeDisplayItems.value.filter((biome) => !biomeFeaturedIds.value.has(biome.id))
+})
 const biomeStatusLabel = computed(() => {
   if (biomeVisualLoading.value) return '加载中'
   if (biomeApiUnavailable.value || biomesError.value) return '未载入'
@@ -158,14 +161,46 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
     <TerraNav />
     <TerraBreadcrumb />
 
-    <div class="page-head entity-head">
-      <div class="page-head-inner">
-        <div>
+    <div class="page-head entity-head biome-environment-hero">
+      <div class="page-head-inner biome-environment-hero-inner">
+        <div class="biome-environment-hero-copy">
           <span class="eyebrow">{{ biomeHeroEyebrow }}</span>
           <h1>生态索引</h1>
-          <p>按 Wiki 分类、层级和来源资料浏览群系，保留真实资料返回，不插入静态样例。</p>
+          <p>用真实群系环境图建立场景感，再按 Wiki 分类、层级和来源资料进入具体生态。</p>
+          <div class="biome-environment-hero-tags">
+            <span>{{ biomeHeroBiome?.groupLabel || '公开生态' }}</span>
+            <span>{{ biomeHeroBiome?.layerType ? normalizeBiomeFacet(biomeHeroBiome.layerType) : '环境图谱' }}</span>
+            <span>{{ biomeDisplayItems.length }} 个结果</span>
+          </div>
         </div>
-        <a class="primary-button" href="/items">查看资源</a>
+        <div class="biome-environment-preview">
+          <div class="biome-environment-map" aria-label="群系地图视图">
+            <div class="biome-environment-map-frame">
+              <CommonPreviewImage
+                v-if="!biomeVisualLoading && biomeHeroPrimary"
+                class="biome-environment-map-image"
+                :src="biomeHeroPrimary.image"
+                :alt="biomeHeroPrimary.displayName"
+                :fallback="biomeHeroPrimary.fallback"
+                fallback-icon="icon-biome"
+                :source-image="biomeHeroPrimary.sourceImage"
+                :auto-center-visible="false"
+                width="1600"
+                height="900"
+                loading="eager"
+              />
+              <CommonTpSkeleton v-else type="icon" />
+              <div class="biome-environment-map-grid" aria-hidden="true" />
+              <div class="biome-environment-map-ruler biome-environment-map-ruler-x" aria-hidden="true" />
+              <div class="biome-environment-map-ruler biome-environment-map-ruler-y" aria-hidden="true" />
+            </div>
+            <div class="biome-environment-map-stats">
+              <span>坐标视角</span>
+              <b>地图视角</b>
+              <em>{{ biomeHeroPrimary?.groupLabel || '公开生态' }}</em>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -252,7 +287,7 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
       </section>
 
       <template v-else-if="biomeDisplayItems.length">
-        <section class="biome-feature-grid" aria-label="重点群系">
+        <section v-if="biomeShowFeatured" class="biome-feature-grid" aria-label="重点群系">
           <a
             v-for="biome in biomeFeaturedItems"
             :key="`featured-${biome.id}`"
@@ -268,6 +303,7 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
                 fallback-icon="icon-biome"
                 :source-image="biome.sourceImage"
                 decorative
+                :auto-center-visible="false"
                 width="360"
                 height="160"
               />
@@ -278,6 +314,7 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
                 :fallback="biome.fallback"
                 fallback-icon="icon-biome"
                 :source-image="biome.sourceImage"
+                :auto-center-visible="false"
                 width="300"
                 height="132"
               />
@@ -294,23 +331,12 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
 
         <section class="biome-board biome-list-grid" aria-label="群系列表">
           <a
-            v-for="biome in biomeDisplayItems"
+            v-for="biome in biomeListItems"
             :key="biome.id"
             class="biome-tile"
             :href="biome.detailPath"
           >
             <div class="biome-tile-art">
-              <CommonPreviewImage
-                class="biome-tile-backdrop"
-                :src="biome.image"
-                :alt="biome.displayName"
-                :fallback="biome.fallback"
-                fallback-icon="icon-biome"
-                :source-image="biome.sourceImage"
-                decorative
-                width="220"
-                height="130"
-              />
               <CommonPreviewImage
                 class="biome-tile-thumb"
                 :src="biome.image"
@@ -318,6 +344,7 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
                 :fallback="biome.fallback"
                 fallback-icon="icon-biome"
                 :source-image="biome.sourceImage"
+                :auto-center-visible="false"
                 width="160"
                 height="96"
               />
@@ -349,23 +376,6 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
         <button v-else class="small-button active" type="button" @click="clearBiomeSearch">
           清空搜索
         </button>
-      </section>
-
-      <section v-if="visibleBiomeGroups.length" class="taxonomy-band biome-taxonomy-band" aria-label="群系分组">
-        <article v-for="group in visibleBiomeGroups" :key="group.label" class="support-panel">
-          <span class="eyebrow">生态分组</span>
-          <h2>{{ group.label }}</h2>
-          <p>{{ group.items.length }} 个群系 · {{ group.items.reduce((total, item) => total + item.resourceCount, 0) }} 项资源。</p>
-          <div class="biome-group-samples">
-            <a
-              v-for="biome in group.items.slice(0, 3)"
-              :key="`group-${group.label}-${biome.id}`"
-              :href="biome.detailPath"
-            >
-              {{ biome.displayName }}
-            </a>
-          </div>
-        </article>
       </section>
     </main>
 
