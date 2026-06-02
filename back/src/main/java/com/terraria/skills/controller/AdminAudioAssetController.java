@@ -3,19 +3,32 @@ package com.terraria.skills.controller;
 import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.common.Pagination;
 import com.terraria.skills.common.PaginationParams;
+import com.terraria.skills.service.AdminAudioAssetStreamService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpRange;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Timestamp;
+import java.nio.charset.StandardCharsets;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -32,6 +45,7 @@ import java.util.Map;
 public class AdminAudioAssetController {
 
     private final JdbcTemplate jdbcTemplate;
+    private final AdminAudioAssetStreamService audioAssetStreamService;
 
     @GetMapping("/summary")
     @Operation(summary = "Get audio asset import summary")
@@ -84,6 +98,8 @@ public class AdminAudioAssetController {
                    aa.shard,
                    aa.kind,
                    aa.source_key,
+                   aa.display_name_zh,
+                   aa.display_name_en,
                    aa.file_title,
                    aa.wiki_file_url,
                    aa.source_url,
@@ -100,7 +116,8 @@ public class AdminAudioAssetController {
             """
             + where
             + """
-             GROUP BY aa.id, aa.asset_id, aa.shard, aa.kind, aa.source_key, aa.file_title,
+             GROUP BY aa.id, aa.asset_id, aa.shard, aa.kind, aa.source_key,
+                      aa.display_name_zh, aa.display_name_en, aa.file_title,
                       aa.wiki_file_url, aa.source_url, aa.local_path, aa.mime, aa.size_bytes,
                       aa.sha256, aa.status, aa.last_verified_at
              ORDER BY aa.shard ASC, aa.kind ASC, aa.source_key ASC, aa.id ASC
@@ -113,6 +130,87 @@ public class AdminAudioAssetController {
             .toList());
         response.setPagination(new Pagination(total == null ? 0L : total, safePage, safeLimit));
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/stream")
+    @Operation(summary = "Stream a local wiki audio asset")
+    public ResponseEntity<StreamingResponseBody> stream(
+        @PathVariable Long id,
+        @RequestHeader(value = HttpHeaders.RANGE, required = false) String rangeHeader
+    ) {
+        AdminAudioAssetStreamService.AudioStreamPayload payload = audioAssetStreamService.loadStream(id);
+        HttpHeaders headers = streamHeaders(payload);
+        if (hasText(rangeHeader)) {
+            return partialStream(payload, headers, rangeHeader);
+        }
+        StreamingResponseBody body = outputStream -> {
+            try (InputStream inputStream = payload.resource().getInputStream()) {
+                inputStream.transferTo(outputStream);
+            }
+        };
+        return ResponseEntity.ok()
+            .headers(headers)
+            .contentType(MediaType.parseMediaType(payload.contentType()))
+            .contentLength(payload.contentLength())
+            .body(body);
+    }
+
+    private ResponseEntity<StreamingResponseBody> partialStream(
+        AdminAudioAssetStreamService.AudioStreamPayload payload,
+        HttpHeaders headers,
+        String rangeHeader
+    ) {
+        try {
+            List<HttpRange> ranges = HttpRange.parseRanges(rangeHeader);
+            if (ranges.size() != 1) {
+                throw new ResponseStatusException(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE);
+            }
+            long totalLength = payload.contentLength();
+            HttpRange range = ranges.get(0);
+            long start = range.getRangeStart(totalLength);
+            long end = range.getRangeEnd(totalLength);
+            if (start >= totalLength || end < start) {
+                throw new ResponseStatusException(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE);
+            }
+            long rangeLength = end - start + 1;
+            StreamingResponseBody body = outputStream -> {
+                try (InputStream inputStream = payload.resource().getInputStream()) {
+                    inputStream.skipNBytes(start);
+                    copyRange(inputStream, outputStream, rangeLength);
+                }
+            };
+            headers.set(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + totalLength);
+            return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                .headers(headers)
+                .contentType(MediaType.parseMediaType(payload.contentType()))
+                .contentLength(rangeLength)
+                .body(body);
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE);
+        }
+    }
+
+    private HttpHeaders streamHeaders(AdminAudioAssetStreamService.AudioStreamPayload payload) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.ACCEPT_RANGES, "bytes");
+        headers.setCacheControl("no-store");
+        headers.setContentDisposition(ContentDisposition.inline()
+            .filename(payload.filename(), StandardCharsets.UTF_8)
+            .build());
+        return headers;
+    }
+
+    private void copyRange(InputStream inputStream, java.io.OutputStream outputStream, long rangeLength) throws IOException {
+        byte[] buffer = new byte[8192];
+        long remaining = rangeLength;
+        while (remaining > 0) {
+            int read = inputStream.read(buffer, 0, (int) Math.min(buffer.length, remaining));
+            if (read == -1) {
+                return;
+            }
+            outputStream.write(buffer, 0, read);
+            remaining -= read;
+        }
     }
 
     private long scalar(String sql) {
@@ -140,8 +238,10 @@ public class AdminAudioAssetController {
         List<String> filters = new ArrayList<>();
         filters.add("aa.deleted = 0");
         if (hasText(search)) {
-            filters.add("(aa.asset_id LIKE ? OR aa.source_key LIKE ? OR aa.file_title LIKE ?)");
+            filters.add("(aa.asset_id LIKE ? OR aa.source_key LIKE ? OR aa.display_name_zh LIKE ? OR aa.display_name_en LIKE ? OR aa.file_title LIKE ?)");
             String keyword = "%" + search.trim() + "%";
+            args.add(keyword);
+            args.add(keyword);
             args.add(keyword);
             args.add(keyword);
             args.add(keyword);
@@ -172,6 +272,8 @@ public class AdminAudioAssetController {
         payload.put("shard", text(row.get("shard")));
         payload.put("kind", text(row.get("kind")));
         payload.put("sourceKey", text(row.get("source_key")));
+        payload.put("displayNameZh", text(row.get("display_name_zh")));
+        payload.put("displayNameEn", text(row.get("display_name_en")));
         payload.put("fileTitle", text(row.get("file_title")));
         payload.put("wikiFileUrl", text(row.get("wiki_file_url")));
         payload.put("sourceUrl", text(row.get("source_url")));

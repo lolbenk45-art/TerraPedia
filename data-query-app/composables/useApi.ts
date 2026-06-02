@@ -40,7 +40,7 @@ const requestInterceptor = (options: ApiFetchOptions = {}) => {
 
 const responseInterceptor = <T>(response: T) => response
 
-const errorHandler = (error: unknown) => {
+export const handleApiError = (error: unknown) => {
   const statusCode = Number(
     (error as any)?.statusCode ??
     (error as any)?.response?.status ??
@@ -88,7 +88,7 @@ const request = async <T = any>(url: string, options: ApiFetchOptions = {}) => {
     })
     return responseInterceptor(response)
   } catch (err) {
-    return errorHandler(err)
+    return handleApiError(err)
   }
 }
 
@@ -147,11 +147,11 @@ export const useApiFetch = <T = any>(url: string, options: ApiFetchOptions = {})
     },
     onRequestError(context: any) {
       callHook(onRequestError, context)
-      return errorHandler(context.error)
+      return handleApiError(context.error)
     },
     onResponseError(context: any) {
       callHook(onResponseError, context)
-      return errorHandler(context.error)
+      return handleApiError(context.error)
     }
   })
 }

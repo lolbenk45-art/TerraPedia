@@ -10,12 +10,17 @@ import {
   buildActionProgressPayload,
   writeJsonFile
 } from '../workflow/backend-refresh-runtime-state.mjs';
+import {
+  decodeHtmlEntities,
+  stripHtml
+} from '../lib/wiki-page-utils.mjs';
 
 const ACTION_ID = 'wiki-audio-assets-refresh';
 const API_URL = 'https://terraria.wiki.gg/api.php';
 const repoRoot = getProjectRoot();
 const DEFAULT_PROGRESS_PATH = path.join(repoRoot, 'data', 'generated', 'wiki-audio-assets-progress.latest.json');
 const DEFAULT_OUTPUT_JSON_PATH = resolveSharedDataRoot('generated', 'wiki-audio-assets.latest.json');
+const DEFAULT_BGM_DISPLAY_NAME_OUTPUT_JSON_PATH = path.join(repoRoot, 'data', 'generated', 'audio-bgm-display-names.latest.json');
 const DEFAULT_OUTPUT_DIR = resolveSharedDataRoot('media', 'audio', 'wiki');
 const DEFAULT_SCOPES = ['bgm', 'npcs', 'items'];
 const DEFAULT_LIMIT_PER_SCOPE = 3;
@@ -146,6 +151,9 @@ async function main(argv = process.argv.slice(2), env = process.env) {
     });
 
     const resumeAssets = loadResumeAssets(config);
+    const bgmDisplayNames = config.fetchBgmDisplayNames
+      ? await fetchBgmDisplayNames({ config, gate, mock, writeProgress, startedAt })
+      : new Map();
     const assets = [];
     const failures = [];
     for (let index = 0; index < candidates.length; index += 1) {
@@ -159,7 +167,7 @@ async function main(argv = process.argv.slice(2), env = process.env) {
       });
       try {
         const asset = await downloadAsset({ candidate, config, gate, mock, resumeAssets });
-        assets.push(asset);
+        assets.push(enrichAssetWithBgmDisplayName(asset, bgmDisplayNames));
       } catch (error) {
         failures.push({
           assetId: candidate.assetId,
@@ -222,6 +230,274 @@ async function main(argv = process.argv.slice(2), env = process.env) {
   } finally {
     releaseLock(lock);
   }
+}
+
+async function fetchBgmDisplayNames({ config, gate, mock, writeProgress, startedAt }) {
+  writeProgress({
+    status: 'running',
+    phase: 'bgm-display-names',
+    message: 'fetching zh music page BGM display names',
+    current: 0,
+    total: 1,
+    nextStep: 'parse zh music page table and merge BGM display names into audio metadata'
+  });
+  const page = await fetchWikiParsePage({
+    title: config.bgmDisplayNamePageTitle,
+    gate,
+    mock
+  });
+  const displayNames = parseBgmDisplayNamesFromMusicHtml(page.html);
+  const payload = {
+    generatedAt: new Date().toISOString(),
+    startedAt,
+    contractVersion: 1,
+    source: {
+      apiUrl: API_URL,
+      wiki: 'zh',
+      pageTitle: config.bgmDisplayNamePageTitle,
+      mode: 'zh-music-page-table'
+    },
+    summary: {
+      total: displayNames.size
+    },
+    displayNames: Object.fromEntries(displayNames)
+  };
+  writeJsonFile(config.bgmDisplayNameOutputJsonPath, payload);
+  writeProgress({
+    status: 'running',
+    phase: 'bgm-display-names',
+    message: `parsed ${displayNames.size} BGM display names from zh music page`,
+    current: 1,
+    total: 1
+  });
+  return displayNames;
+}
+
+async function fetchWikiParsePage({ title, gate, mock }) {
+  if (mock?.parse?.[title]) {
+    const entry = mock.parse[title];
+    return {
+      title,
+      wikitext: String(entry.wikitext ?? ''),
+      html: String(entry.html ?? '')
+    };
+  }
+
+  const url = new URL('https://terraria.wiki.gg/zh/api.php');
+  url.searchParams.set('action', 'parse');
+  url.searchParams.set('format', 'json');
+  url.searchParams.set('page', title);
+  url.searchParams.set('prop', 'wikitext|text');
+  url.searchParams.set('disablelimitreport', 'true');
+  const payload = await gate.runJsonRequest(url, {
+    profile: 'parse',
+    sourceKey: `zh:${title}:audio-bgm-display-names`
+  });
+  return {
+    title: payload.parse?.title ?? title,
+    wikitext: String(payload.parse?.wikitext?.['*'] ?? ''),
+    html: String(payload.parse?.text?.['*'] ?? '')
+  };
+}
+
+function enrichAssetWithBgmDisplayName(asset, bgmDisplayNames) {
+  if (!asset || asset.shard !== 'bgm' || bgmDisplayNames.size === 0) return asset;
+  const displayName = bgmDisplayNames.get(normalizeMusicSourceKey(asset.sourceKey))
+    ?? bgmDisplayNames.get(normalizeMusicSourceKey(asset.fileTitle?.replace(/^File:/, '').replace(/\.[^.]+$/, '')));
+  if (!displayName) return asset;
+  return {
+    ...asset,
+    displayNameZh: displayName.displayNameZh,
+    displayNameEn: displayName.displayNameEn
+  };
+}
+
+function parseBgmDisplayNamesFromMusicHtml(html) {
+  const map = new Map();
+  for (const rowMatch of String(html ?? '').matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const rowHtml = rowMatch[1];
+    const audioAttrs = rowHtml.match(/<audio\b([^>]*\bdata-mwtitle=(?:"[^"]+"|'[^']+')[^>]*)>/i)?.[1] ?? '';
+    const fileTitle = parseHtmlAttribute(audioAttrs, 'data-mwtitle');
+    if (!fileTitle || !fileTitle.toLowerCase().startsWith('music-')) continue;
+    const cells = [...rowHtml.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map((match) => match[1]);
+    if (cells.length < 4) continue;
+    const sourceKey = normalizeMusicSourceKey(fileTitle.replace(/\.[^.]+$/, ''));
+    const titleCell = cells[1] ?? '';
+    const displayNameEn = extractMusicEnglishNameFromHtml(titleCell);
+    const displayNameZh = extractMusicChineseNameFromHtml(titleCell) ?? displayNameEn;
+    if (!sourceKey || !displayNameEn) continue;
+    map.set(sourceKey, {
+      sourceKey,
+      fileTitle: `File:${fileTitle}`,
+      displayNameZh,
+      displayNameEn
+    });
+  }
+  return map;
+}
+
+function parseBgmDisplayNamesFromMusicWikitext(wikitext) {
+  const map = new Map();
+  const table = String(wikitext ?? '').match(/\{\|[\s\S]*?\|\}/)?.[0] ?? '';
+  if (!table) return map;
+
+  const rows = table
+    .split(/\n\|-\s*(?:\n|$)/)
+    .slice(1);
+  for (const row of rows) {
+    const cells = parseWikitextRowCells(row);
+    if (cells.length < 4) continue;
+    const titleCell = cells[1] ?? '';
+    const conditionCell = cells[2] ?? '';
+    const audioCell = cells[3] ?? '';
+    const fileTitle = extractAudioFileTitle(audioCell);
+    if (!fileTitle || !fileTitle.toLowerCase().startsWith('music-')) continue;
+
+    const sourceKey = normalizeMusicSourceKey(fileTitle.replace(/\.[^.]+$/, ''));
+    const displayNameEn = extractMusicEnglishName(titleCell);
+    const displayNameZh = extractMusicChineseName(titleCell, conditionCell, displayNameEn) ?? displayNameEn;
+    if (!sourceKey || !displayNameEn) continue;
+    map.set(sourceKey, {
+      sourceKey,
+      fileTitle: `File:${fileTitle}`,
+      displayNameZh,
+      displayNameEn
+    });
+  }
+  return map;
+}
+
+function parseHtmlAttribute(attrs, name) {
+  const match = String(attrs ?? '').match(new RegExp(`${name}=(?:"([^"]*)"|'([^']*)')`, 'i'));
+  return match ? decodeHtmlEntities(match[1] ?? match[2] ?? '') : null;
+}
+
+function extractMusicEnglishNameFromHtml(cellHtml) {
+  const withoutSpans = String(cellHtml ?? '').replace(/<span\b[^>]*><\/span>/gi, '');
+  return normalizeDisplayName(stripHtml(withoutSpans));
+}
+
+function extractMusicChineseNameFromHtml(cellHtml) {
+  const candidates = [];
+  for (const match of String(cellHtml ?? '').matchAll(/<span\b([^>]*)><\/span>/gi)) {
+    const id = parseHtmlAttribute(match[1], 'id');
+    const normalized = normalizeDisplayName(id);
+    if (normalized && hasCjk(normalized) && !/^track\s*\d+$/i.test(normalized)) {
+      candidates.push(normalized);
+    }
+  }
+  return candidates.at(-1) ?? null;
+}
+
+function parseWikitextRowCells(row) {
+  return String(row ?? '')
+    .split(/\n\|\s*/g)
+    .map((cell) => cell.trim())
+    .filter(Boolean)
+    .map((cell) => cell.replace(/^\|\s*/, '').trim());
+}
+
+function extractAudioFileTitle(cell) {
+  const match = String(cell ?? '').match(/\[\[\s*File:([^|\]]+)/i);
+  if (!match) return null;
+  return normalizeFileName(match[1]);
+}
+
+function extractMusicEnglishName(cell) {
+  let text = removeTemplates(String(cell ?? ''), ['anchor', 'note'])
+    .replace(/<br\s*\/?>/gi, '\n');
+  text = stripHtml(text)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .at(0) ?? '';
+  return normalizeDisplayName(text);
+}
+
+function extractMusicChineseName(cell, conditionCell = '', displayNameEn = '') {
+  const anchors = [];
+  for (const match of String(cell ?? '').matchAll(/\{\{anchor\|([^}]*)\}\}/g)) {
+    for (const rawPart of String(match[1] ?? '').split('|')) {
+      const part = normalizeDisplayName(rawPart);
+      if (part && hasCjk(part) && !/^track\s+\d+$/i.test(part)) {
+        anchors.push(part);
+      }
+    }
+  }
+  return anchors.at(-1) ?? inferChineseNameFromCondition(conditionCell, displayNameEn) ?? null;
+}
+
+function inferChineseNameFromCondition(cell, displayNameEn) {
+  const normalizedEn = normalizeDisplayName(displayNameEn).toLowerCase();
+  for (const match of String(cell ?? '').matchAll(/\[\[([^[\]|]+)(?:\|([^\]]+))?\]\]/g)) {
+    const display = normalizeDisplayName(match[2] ?? match[1]);
+    const target = normalizeDisplayName(match[1]);
+    if (hasCjk(display) && normalizedEn === 'aether' && /以太|aether/i.test(target)) return display;
+  }
+  for (const match of String(cell ?? '').matchAll(/\{\{tr\|([^}]*)\}\}/g)) {
+    const display = normalizeDisplayName(match[1]);
+    if (hasCjk(display) && normalizedEn === 'aether' && /以太|aether/i.test(display)) return display;
+  }
+  return null;
+}
+
+function removeTemplates(value, names) {
+  let text = String(value ?? '');
+  for (const name of names) {
+    const prefix = `{{${name}|`;
+    let start = text.indexOf(prefix);
+    while (start >= 0) {
+      let depth = 0;
+      let endExclusive = -1;
+      for (let index = start; index < text.length - 1; index += 1) {
+        const pair = text.slice(index, index + 2);
+        if (pair === '{{') {
+          depth += 1;
+          index += 1;
+          continue;
+        }
+        if (pair === '}}') {
+          depth -= 1;
+          if (depth === 0) {
+            endExclusive = index + 2;
+            break;
+          }
+          index += 1;
+        }
+      }
+      if (endExclusive < 0) break;
+      text = `${text.slice(0, start)}${text.slice(endExclusive)}`;
+      start = text.indexOf(prefix);
+    }
+  }
+  return text;
+}
+
+function normalizeDisplayName(value) {
+  return decodeHtmlEntities(String(value ?? ''))
+    .replace(/\{\{tr\/music\|([^}]*)\}\}/g, '$1')
+    .replace(/\{\{tr\|([^}]*)\}\}/g, '$1')
+    .replace(/\[\[([^|\]]+)\|([^\]]+)\]\]/g, '$2')
+    .replace(/\[\[([^\]]+)\]\]/g, '$1')
+    .replace(/[_\s]+/g, ' ')
+    .trim();
+}
+
+function hasCjk(value) {
+  return /[\u3400-\u9fff]/.test(String(value ?? ''));
+}
+
+function normalizeFileName(value) {
+  return decodeHtmlEntities(String(value ?? ''))
+    .trim()
+    .replace(/_/g, ' ');
+}
+
+function normalizeMusicSourceKey(value) {
+  return normalizeFileName(value)
+    .replace(/\s+/g, '_')
+    .replace(/^Music_/, 'Music-')
+    .replace(/^Music\s+/, 'Music-');
 }
 
 async function discoverCandidates({ config, gate, mock, writeProgress }) {
@@ -694,6 +970,9 @@ function resolveRunConfig(args, env, startedAt) {
     resume: booleanOption(args.resume, true),
     resumeFromJson: args['resume-from-json'] ? path.resolve(args['resume-from-json']) : null,
     publishPartial: booleanOption(args['publish-partial'], false),
+    fetchBgmDisplayNames: booleanOption(args['fetch-bgm-display-names'], false),
+    bgmDisplayNamePageTitle: String(args['bgm-display-name-page-title'] ?? '音乐'),
+    bgmDisplayNameOutputJsonPath: path.resolve(args['bgm-display-name-output-json'] ?? DEFAULT_BGM_DISPLAY_NAME_OUTPUT_JSON_PATH),
     allowFullAudioCorpus: booleanOption(args['allow-full-audio-corpus'], false),
     progressPath: path.resolve(args['progress-path'] ?? env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_PROGRESS_PATH),
     canonicalProgressPath: path.resolve(DEFAULT_PROGRESS_PATH),
@@ -715,7 +994,10 @@ function publicConfig(config) {
     limitPerScope: config.limitPerScope,
     maxApiPagesPerPrefix: config.maxApiPagesPerPrefix,
     maxTotalFiles: config.maxTotalFiles,
-    maxFileBytes: config.maxFileBytes
+    maxFileBytes: config.maxFileBytes,
+    fetchBgmDisplayNames: config.fetchBgmDisplayNames,
+    bgmDisplayNamePageTitle: config.bgmDisplayNamePageTitle,
+    bgmDisplayNameOutputJsonPath: config.bgmDisplayNameOutputJsonPath
   };
 }
 
@@ -804,11 +1086,16 @@ function resolveShardConfigs(config) {
 }
 
 function normalizeManifestCandidate(asset) {
+  const name = asset.name ?? String(asset.fileTitle ?? '').replace(/^File:/, '');
+  const sourceKey = asset.sourceKey ?? String(name ?? '').replace(/\.[^.]+$/, '');
   return {
     ...asset,
     scope: asset.scope ?? asset.shard,
     shard: asset.shard ?? asset.scope,
-    slug: asset.slug ?? slugify(asset.sourceKey ?? asset.name),
+    sourceKey,
+    name,
+    url: asset.url ?? asset.sourceUrl,
+    slug: asset.slug ?? slugify(sourceKey ?? name),
     size: Number(asset.size ?? 0),
     mime: String(asset.mime ?? '')
   };
