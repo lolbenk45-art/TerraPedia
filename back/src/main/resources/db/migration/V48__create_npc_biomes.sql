@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS `npc_biomes` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `npc_id` BIGINT NOT NULL,
+  `biome_id` BIGINT NOT NULL,
+  `relation_type` VARCHAR(32) NOT NULL DEFAULT 'appears_in',
+  `spawn_context` VARCHAR(255) NOT NULL DEFAULT '',
+  `notes` TEXT DEFAULT NULL,
+  `source_provider` VARCHAR(64) DEFAULT NULL,
+  `source_page` VARCHAR(255) DEFAULT NULL,
+  `source_revision_timestamp` DATETIME DEFAULT NULL,
+  `sort_order` INT NOT NULL DEFAULT 0,
+  `status` INT NOT NULL DEFAULT 1,
+  `deleted` TINYINT NOT NULL DEFAULT 0,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_npc_biomes_relation` (`npc_id`, `biome_id`, `relation_type`, `spawn_context`),
+  INDEX `idx_npc_biomes_npc_id` (`npc_id`),
+  INDEX `idx_npc_biomes_biome_id` (`biome_id`),
+  INDEX `idx_npc_biomes_source_page` (`source_page`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
