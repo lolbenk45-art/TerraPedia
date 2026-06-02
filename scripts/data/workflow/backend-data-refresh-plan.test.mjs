@@ -21,7 +21,8 @@ test('buildBackendDataRefreshPlan returns the default primary backend refresh ac
     'town-npc-sync',
     'independent-entity-sync',
     'shimmer-sync',
-    'support-sync'
+    'support-sync',
+    'wiki-audio-assets-refresh'
   ]);
 
   const wikiCore = plan.actions.find((action) => action.id === 'wiki-core-refresh');
@@ -70,6 +71,31 @@ test('buildBackendDataRefreshPlan returns the default primary backend refresh ac
   assert.ok(supportSync);
   assert.ok(supportSync.args.includes('scripts/data/pipeline/run-support-sync-pipeline.mjs'));
   assert.ok(supportSync.args.includes('--apply=true'));
+
+  const audioAssetsRefresh = plan.actions.find((action) => action.id === 'wiki-audio-assets-refresh');
+  assert.ok(audioAssetsRefresh);
+  assert.deepEqual(audioAssetsRefresh.args, [
+    'scripts/data/fetch/fetch-wiki-audio-assets.mjs',
+    '--limit-per-scope=3',
+    '--max-api-pages-per-prefix=1',
+    '--max-total-files=12',
+    '--max-file-bytes=10485760'
+  ]);
+  assert.ok(!audioAssetsRefresh.args.includes('--apply=true'));
+});
+
+test('buildBackendDataRefreshPlan can select bounded wiki audio asset refresh only', () => {
+  const plan = buildBackendDataRefreshPlan({ steps: 'wiki-audio-assets-refresh' });
+
+  assert.equal(plan.actions.length, 1);
+  assert.equal(plan.actions[0].id, 'wiki-audio-assets-refresh');
+  assert.deepEqual(plan.actions[0].args, [
+    'scripts/data/fetch/fetch-wiki-audio-assets.mjs',
+    '--limit-per-scope=3',
+    '--max-api-pages-per-prefix=1',
+    '--max-total-files=12',
+    '--max-file-bytes=10485760'
+  ]);
 });
 
 test('buildBackendDataRefreshPlan allows overriding item page limit', () => {
@@ -116,10 +142,10 @@ test('buildBackendDataRefreshReport summarizes action statuses', () => {
     { id: 'item-pages-refresh', status: 'failed', durationMs: 300 }
   ]);
 
-  assert.equal(report.totalActions, 10);
+  assert.equal(report.totalActions, 11);
   assert.equal(report.completedActions, 1);
   assert.equal(report.failedActions, 1);
-  assert.equal(report.pendingActions, 8);
+  assert.equal(report.pendingActions, 9);
   assert.equal(report.runningActions, 0);
   assert.equal(report.actions[0].status, 'completed');
   assert.equal(report.actions[0].childStatusPath, 'reports/backend-refresh/history/run.runtime/wiki-core-refresh.child-status.json');
@@ -171,7 +197,8 @@ test('resolvePendingBackendDataRefreshActions skips completed actions for resume
       'town-npc-sync',
       'independent-entity-sync',
       'shimmer-sync',
-      'support-sync'
+      'support-sync',
+      'wiki-audio-assets-refresh'
     ]
   );
 });

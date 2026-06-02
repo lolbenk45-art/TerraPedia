@@ -1,0 +1,25 @@
+{
+  "status": "pass",
+  "generatedAt": "2026-06-02T03:44:51.773Z",
+  "sourceMetadata": "/home/lolben/data/terraPedia/generated/wiki-audio-assets.latest.json",
+  "database": "terria_v1_local",
+  "summary": {
+    "metadataAssets": 428,
+    "dbAssets": 428,
+    "dbLinks": 428,
+    "missingDbAssets": 0,
+    "missingLocalFiles": 0,
+    "sizeMismatch": 0,
+    "hashMismatch": 0,
+    "matchedLinks": 0,
+    "unmatchedLinks": 428,
+    "ambiguousLinks": 0
+  },
+  "failures": [],
+  "warnings": [
+    {
+      "reason": "unmatched links remain for first milestone",
+      "count": 428
+    }
+  ]
+}
