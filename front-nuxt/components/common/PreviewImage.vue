@@ -9,11 +9,13 @@ const props = withDefaults(defineProps<{
   height?: number | string
   sourceImage?: string | null
   decorative?: boolean
+  autoCenterVisible?: boolean
 }>(), {
   alt: '',
   fallback: '?',
   loading: 'lazy',
   decorative: false,
+  autoCenterVisible: true,
 })
 
 const failed = ref(false)
@@ -53,6 +55,11 @@ const resetVisibleCenter = () => {
 }
 
 const syncVisibleCenter = () => {
+  if (!props.autoCenterVisible) {
+    resetVisibleCenter()
+    return
+  }
+
   const image = imageElement.value
   const root = rootElement.value
 
@@ -133,6 +140,14 @@ const markFailed = () => {
 watch(normalizedSrc, () => {
   failed.value = false
   resetVisibleCenter()
+})
+
+watch(() => props.autoCenterVisible, (enabled) => {
+  if (!enabled) {
+    resetVisibleCenter()
+  } else {
+    requestAnimationFrame(syncVisibleCenter)
+  }
 })
 
 onMounted(() => {

@@ -81,8 +81,21 @@ onBeforeUnmount(clearBiomeDetailVisualLoadingTimer)
     <TerraBreadcrumb />
 
     <main class="support-layout detail-support-layout" :aria-busy="biomeDetailVisualLoading">
-      <section class="biome-detail-hero support-panel">
-        <div>
+      <section class="biome-detail-hero support-panel biome-detail-environment-hero">
+        <CommonPreviewImage
+          v-if="!biomeDetailVisualLoading && biomeTile"
+          class="biome-detail-environment-bg"
+          :src="biomeTile.image"
+          :alt="biomeTitle"
+          :fallback="biomeTile.fallback || firstGlyph(biomeTitle)"
+          :fallback-icon="biomeFallbackIcon"
+          :source-image="biomeTile.sourceImage || ''"
+          decorative
+          :auto-center-visible="false"
+          width="1280"
+          height="420"
+        />
+        <div class="biome-detail-environment-copy">
           <span class="eyebrow">
             <CommonTpSkeleton v-if="biomeDetailVisualLoading" type="pill" />
             <template v-else>Biome · {{ biomeTile?.englishName || biomeTile?.code || biomeRouteId }}</template>
@@ -109,7 +122,7 @@ onBeforeUnmount(clearBiomeDetailVisualLoadingTimer)
             <span class="tag paper">{{ biomeTile?.biomeType || '类型未标注' }}</span>
           </div>
         </div>
-        <div class="biome-scan">
+        <div class="biome-scan biome-detail-environment-scan">
           <CommonTpSkeleton v-if="biomeDetailVisualLoading" type="icon" />
           <CommonPreviewImage
             v-else
@@ -118,8 +131,9 @@ onBeforeUnmount(clearBiomeDetailVisualLoadingTimer)
             :fallback="biomeTile?.fallback || firstGlyph(biomeTitle)"
             :fallback-icon="biomeFallbackIcon"
             :source-image="biomeTile?.sourceImage || ''"
-            width="96"
-            height="96"
+            :auto-center-visible="false"
+            width="320"
+            height="180"
           />
         </div>
       </section>

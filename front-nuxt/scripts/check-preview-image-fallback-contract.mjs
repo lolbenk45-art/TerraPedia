@@ -23,16 +23,78 @@ const assertContains = (path, content, markers) => {
   }
 }
 
+const assertBiomeCssPreservesImageProportions = (path, content) => {
+  const forbiddenDeclarations = [
+    [/scaleX\s*\(/, 'scaleX('],
+    [/scaleY\s*\(/, 'scaleY('],
+    [/object-fit\s*:\s*fill\b/, 'object-fit: fill'],
+    [/matrix\s*\(/, 'matrix('],
+  ]
+
+  const rules = content.matchAll(/([^{}]+)\{([^{}]*)\}/g)
+
+  for (const rule of rules) {
+    const selector = rule[1].trim()
+    const declarations = rule[2]
+
+    if (!selector.includes('biome')) {
+      continue
+    }
+
+    for (const [pattern, marker] of forbiddenDeclarations) {
+      if (pattern.test(declarations)) {
+        failures.push(`${path}: biome image CSS must preserve proportions and must not use ${marker} in selector ${selector}`)
+      }
+    }
+  }
+}
+
+const assertBiomeHeroUsesCoverCropping = (path, content) => {
+  const requiredRules = [
+    [
+      '.biome-environment-map-image img',
+      /\.biome-environment-map-image img\s*\{[^}]*object-fit\s*:\s*cover\b/s,
+    ],
+    [
+      '.biome-environment-map-image.item-art.tp-preview-image img',
+      /\.biome-environment-map-image\.item-art\.tp-preview-image img\s*\{[^}]*object-fit\s*:\s*cover\b/s,
+    ],
+  ]
+
+  for (const [selector, pattern] of requiredRules) {
+    if (!pattern.test(content)) {
+      failures.push(`${path}: ${selector} must use proportional cover cropping for the biome map hero`)
+    }
+  }
+}
+
 {
   const path = 'components/common/PreviewImage.vue'
   const content = read(path)
 
   assertContains(path, content, [
     'fallbackIcon?: string | null',
+    'autoCenterVisible?: boolean',
     'fallbackIconClass',
     "'has-fallback-icon'",
     'preview-fallback-icon',
   ])
+}
+
+for (const path of [
+  'pages/biomes/index.vue',
+  'pages/biomes/[id].vue',
+]) {
+  const content = read(path)
+  const environmentImageBlocks = content
+    .match(/<CommonPreviewImage\b[\s\S]*?\/>/g)
+    ?.filter((block) => /biome-(?:detail-)?environment|biome-tile-(?:backdrop|thumb)/.test(block)) ?? []
+
+  for (const [index, block] of environmentImageBlocks.entries()) {
+    if (!block.includes(':auto-center-visible="false"')) {
+      failures.push(`${path}: biome environment image #${index + 1} must disable visible-pixel auto centering`)
+    }
+  }
 }
 
 for (const path of [
@@ -45,6 +107,13 @@ for (const path of [
     '.has-fallback-icon',
     '.preview-fallback-icon',
   ])
+}
+
+{
+  const path = 'assets/css/hifi-preview.css'
+  const content = read(path)
+  assertBiomeCssPreservesImageProportions(path, content)
+  assertBiomeHeroUsesCoverCropping(path, content)
 }
 
 for (const path of [
