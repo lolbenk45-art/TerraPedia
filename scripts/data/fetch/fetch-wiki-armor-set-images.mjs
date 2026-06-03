@@ -13,8 +13,49 @@ import {
   shouldKeepSnapshot,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
+import { writeJsonFile } from '../workflow/backend-refresh-runtime-state.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
+const defaultProgressPath = 'data/generated/wiki-sync-progress.latest.json';
+const defaultActionId = 'armor-set-images';
+
+export function buildArmorSetImageProgressPayload({
+  status,
+  current,
+  total,
+  message,
+  progressPath = defaultProgressPath,
+  outputPath = null,
+  reportPath = null,
+  startedAt,
+  now = new Date().toISOString()
+} = {}) {
+  const generatedAt = typeof now === 'string' ? now : now.toISOString();
+  const payload = {
+    actionId: process.env.TERRAPEDIA_CRAWLER_ACTION_ID || defaultActionId,
+    status,
+    generatedAt,
+    lastHeartbeatAt: generatedAt,
+    childStatusPath: progressPath,
+    phase: 'fetch',
+    message,
+    current,
+    total,
+    percent: total > 0 ? Math.min(100, Math.max(0, (current / total) * 100)) : 0,
+    startedAt
+  };
+  if (outputPath) {
+    payload.outputPath = outputPath;
+  }
+  if (reportPath) {
+    payload.reportPath = reportPath;
+  }
+  return payload;
+}
+
+function writeProgress(progressPath, payload) {
+  writeJsonFile(path.resolve(process.cwd(), progressPath), payload);
+}
 
 function nullableString(value) {
   if (typeof value !== 'string') {
@@ -211,19 +252,35 @@ async function main(argv = process.argv.slice(2)) {
   const reportDir = path.resolve(process.cwd(), options['report-dir'] ?? sharedDataPath('reports', 'fetch'));
   const limit = Number(options.limit ?? 0);
   const keepSnapshot = shouldKeepSnapshot(options);
+  const progressPath = String(options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? defaultProgressPath);
+  const startedAt = new Date().toISOString();
 
   ensureDir(rawDir);
   ensureDir(reportDir);
+  const latestParsedPath = path.join(rawDir, 'armor_set_images.parsed.latest.json');
+  const reportPathPreview = path.join(reportDir, 'fetch-armor-set-images.latest.json');
 
   const armorSets = readArmorSets(inputPath)
     .filter((record) => deriveArmorSetPageTitle(record))
     .slice(0, Number.isFinite(limit) && limit > 0 ? limit : undefined);
 
+  writeProgress(progressPath, buildArmorSetImageProgressPayload({
+    status: 'running',
+    current: 0,
+    total: armorSets.length,
+    message: 'starting armor set image fetch',
+    progressPath,
+    outputPath: latestParsedPath,
+    reportPath: reportPathPreview,
+    startedAt
+  }));
+
   const pageImageTitlesByPageTitle = new Map();
   const imageInfoByFileTitle = new Map();
   const warnings = [];
 
-  for (const armorSet of armorSets) {
+  for (let index = 0; index < armorSets.length; index += 1) {
+    const armorSet = armorSets[index];
     const pageTitle = deriveArmorSetPageTitle(armorSet);
     try {
       const imageTitles = await fetchPageImageTitles({ pageTitle, apiUrl });
@@ -249,6 +306,16 @@ async function main(argv = process.argv.slice(2)) {
         message: error instanceof Error ? error.message : String(error)
       });
     }
+    writeProgress(progressPath, buildArmorSetImageProgressPayload({
+      status: 'running',
+      current: index + 1,
+      total: armorSets.length,
+      message: `fetched armor set image sources ${index + 1}/${armorSets.length}`,
+      progressPath,
+      outputPath: latestParsedPath,
+      reportPath: reportPathPreview,
+      startedAt
+    }));
   }
 
   const armorSetImages = buildArmorSetImageRows({
@@ -270,7 +337,6 @@ async function main(argv = process.argv.slice(2)) {
     warnings
   };
 
-  const latestParsedPath = path.join(rawDir, 'armor_set_images.parsed.latest.json');
   const snapshotParsedPath = path.join(rawDir, `armor_set_images.parsed.${timestamp}.json`);
   const reportPath = path.join(reportDir, `fetch-armor-set-images-${timestamp}.json`);
   writeJson(latestParsedPath, parsedPayload);
@@ -286,6 +352,16 @@ async function main(argv = process.argv.slice(2)) {
     warningCount: warnings.length,
     samples: armorSetImages.slice(0, 10)
   });
+  writeProgress(progressPath, buildArmorSetImageProgressPayload({
+    status: 'completed',
+    current: armorSets.length,
+    total: armorSets.length,
+    message: `finished armor set image fetch; images=${armorSetImages.length}; warnings=${warnings.length}`,
+    progressPath,
+    outputPath: latestParsedPath,
+    reportPath,
+    startedAt
+  }));
 
   console.log(`Armor sets: ${armorSets.length}`);
   console.log(`Armor set images: ${armorSetImages.length}`);

@@ -1,6 +1,6 @@
 {
   "entity": "wiki_town_npc_maintenance",
-  "generatedAt": "2026-05-26T10:08:00.275599Z",
+  "generatedAt": "2026-06-03T10:14:44.929862Z",
   "sourceMode": "wiki_zh_page_html",
   "sourceOrigin": "https://terraria.wiki.gg/zh",
   "sourceSeedPath": "/home/lolben/TerraPedia/data/generated/npc-standardized-map.json",
@@ -318,11 +318,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/3513d74db1d04015be4de3499e05baf5.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/803bdfaa3a4242cfb47f8183a0c2b1dd.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a509222d545f4522b784cd681a79359b.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Merchant.png?b4d9c3",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Merchant.png?8c6551",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Merchant_%28portrait%29.png/70px-Merchant_%28portrait%29.png?db6144"
       },
-      "fetchedAt": "2026-05-26T10:06:00.637952Z",
+      "fetchedAt": "2026-06-03T10:11:46.793690Z",
       "error": null
     },
     {
@@ -425,11 +425,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/5b25d073b82c4acc9d5a69fc5adcaaae.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/ac0b5bf08cb14e6ba7d3a9425993667c.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/b87d1bf10cd64056a6454eae9fa8f61e.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Nurse.png?e2b17c",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Nurse.png?ce1038",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Nurse_%28portrait%29.png/70px-Nurse_%28portrait%29.png?503528"
       },
-      "fetchedAt": "2026-05-26T10:06:04.047553Z",
+      "fetchedAt": "2026-06-03T10:11:50.333388Z",
       "error": null
     },
     {
@@ -643,11 +643,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/795dda144ec24ebe8a5659a5b84ce1f2.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/751b2d48f522423a808d0dc0955f7e88.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/10f3f543cc69482e867212c26185283b.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Arms_Dealer.png?c280c9",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Arms_Dealer.png?96c3d5",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Arms_Dealer_%28portrait%29.png/70px-Arms_Dealer_%28portrait%29.png?97e389"
       },
-      "fetchedAt": "2026-05-26T10:06:06.856346Z",
+      "fetchedAt": "2026-06-03T10:11:53.595734Z",
       "error": null
     },
     {
@@ -1060,11 +1060,11 @@
           "增益描述",
           "持续时间"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/fbdde59584944399957f2343967efa70.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/85ffc55bf92c45fd9e3ea4e60c723786.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/ea27f3db016a4b6ca1632fa1fa5cdae1.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Dryad.png?de9350",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Dryad.png?21d3e9",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Dryad_%28portrait%29.png/70px-Dryad_%28portrait%29.png?6057d1"
       },
-      "fetchedAt": "2026-05-26T10:06:10.564820Z",
+      "fetchedAt": "2026-06-03T10:11:56.869744Z",
       "error": null
     },
     {
@@ -1152,11 +1152,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/c9f64c342d154ea3bf2618570acca819.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/19c686f8b66a479196cf95e83510dfbb.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/75fef09ec9ea4f2984c2cf95c55ed59b.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Guide.png?eebef6",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Guide.png?53b805",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Guide_%28portrait%29.png/70px-Guide_%28portrait%29.png?a8de1b"
       },
-      "fetchedAt": "2026-05-26T10:06:13.538981Z",
+      "fetchedAt": "2026-06-03T10:12:00.383089Z",
       "error": null
     },
     {
@@ -1194,9 +1194,9 @@
         ],
         "spriteImage": null,
         "mapIconImage": null,
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/7c3c62510685487593dce15c44bec5e6.png"
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Old_Man_%28portrait%29.png/70px-Old_Man_%28portrait%29.png?bfc1c2"
       },
-      "fetchedAt": "2026-05-26T10:06:16.598129Z",
+      "fetchedAt": "2026-06-03T10:12:03.517135Z",
       "error": null
     },
     {
@@ -1403,11 +1403,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/57a2471076c54ac4bcc298d094e1789f.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/70871408d2944d70aa2e2fbbf0cfc44e.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/f28eeb711657444fa89ee54cdc7c2a4e.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Demolitionist.png?26c051",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Demolitionist.png?cd29a3",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Demolitionist_%28portrait%29.png/70px-Demolitionist_%28portrait%29.png?94bd7a"
       },
-      "fetchedAt": "2026-05-26T10:06:20.264074Z",
+      "fetchedAt": "2026-06-03T10:12:06.935395Z",
       "error": null
     },
     {
@@ -2007,11 +2007,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/cfbebc71b39c4943a93833eef29da978.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/62cdc214e17f4b8687a900781caee490.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/8dc65814eea747a1946185dcac902a2e.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Clothier.png?5150e3",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Clothier.png?951cfa",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Clothier_%28portrait%29.png/70px-Clothier_%28portrait%29.png?453834"
       },
-      "fetchedAt": "2026-05-26T10:06:23.150821Z",
+      "fetchedAt": "2026-06-03T10:12:16.735291Z",
       "error": null
     },
     {
@@ -2162,11 +2162,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/8ae589def2fa4fd19a8b9cc3944e64c8.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/9eb169870860412da565eac4f5e9dd51.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/edf276d3987642d8babc1c73b11d88ed.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Goblin_Tinkerer.png?f2d93b",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Goblin_Tinkerer.png?37a1bb",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Goblin_Tinkerer_%28portrait%29.png/70px-Goblin_Tinkerer_%28portrait%29.png?7a3f17"
       },
-      "fetchedAt": "2026-05-26T10:06:26.251652Z",
+      "fetchedAt": "2026-06-03T10:12:19.441023Z",
       "error": null
     },
     {
@@ -2325,11 +2325,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/e0f7c980f360452795538685f35990a6.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/f2bda37954c545cb9f5868208fa213f4.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/b83a2cb8db5b41809ead79edd2699c99.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Wizard.png?584906",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Wizard.png?191ab5",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Wizard_%28portrait%29.png/70px-Wizard_%28portrait%29.png?a89f30"
       },
-      "fetchedAt": "2026-05-26T10:06:29.225226Z",
+      "fetchedAt": "2026-06-03T10:12:23.618148Z",
       "error": null
     },
     {
@@ -2623,11 +2623,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d3e0e703284944c5910cc836dcae9ad9.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/dc5342d359794c15a460d4ba8a257993.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/dde3be1da07e4dd69c6102e17951c5dd.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Mechanic.png?a0843e",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Mechanic.png?19d5ba",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Mechanic_%28portrait%29.png/70px-Mechanic_%28portrait%29.png?688f54"
       },
-      "fetchedAt": "2026-05-26T10:06:31.623667Z",
+      "fetchedAt": "2026-06-03T10:12:26.309235Z",
       "error": null
     },
     {
@@ -2813,11 +2813,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/04a8aaa7cb6d43e0a19408ed49b69157.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/f1b76c071b9e470bbf9884097654811c.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/41fe2caa65e64dcda1e942e25774c13c.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Santa_Claus.png?f439c6",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Santa_Claus.png?f3082a",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Santa_Claus_%28portrait%29.png/70px-Santa_Claus_%28portrait%29.png?399a20"
       },
-      "fetchedAt": "2026-05-26T10:06:34.901141Z",
+      "fetchedAt": "2026-06-03T10:12:37.104673Z",
       "error": null
     },
     {
@@ -2950,11 +2950,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/202351902e8f47c28ea2162fbbb049cd.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/f112eb63b9384382a4629fe847bdef7b.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/6c5bbaf562c04d3db285b552750a1e83.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Truffle.png?97c95f",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Truffle.png?8a42da",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Truffle_%28portrait%29.png/70px-Truffle_%28portrait%29.png?f259a2"
       },
-      "fetchedAt": "2026-05-26T10:06:37.768137Z",
+      "fetchedAt": "2026-06-03T10:12:39.669816Z",
       "error": null
     },
     {
@@ -3252,11 +3252,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/c3e9dc93400d408f8ecdbb3a3f8adbf1.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/0ef6ad40af424b2c8822b03ff496e3fb.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d85dc99e561c451fb6ac49a7e3d5a135.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Steampunker.png?62f1dc",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Steampunker.png?3240bc",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Steampunker_%28portrait%29.png/70px-Steampunker_%28portrait%29.png?d31c76"
       },
-      "fetchedAt": "2026-05-26T10:06:41.670228Z",
+      "fetchedAt": "2026-06-03T10:12:48.874579Z",
       "error": null
     },
     {
@@ -3419,11 +3419,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/07152aa9a58344d8a3d5e2ab5593d994.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/39553a2db4c44fde87215c7db86baf85.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/b215d1581e8f4d44995d38dcdec75489.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Dye_Trader.png?68dd4b",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Dye_Trader.png?376186",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Dye_Trader_%28portrait%29.png/70px-Dye_Trader_%28portrait%29.png?210531"
       },
-      "fetchedAt": "2026-05-26T10:06:44.503480Z",
+      "fetchedAt": "2026-06-03T10:12:51.333498Z",
       "error": null
     },
     {
@@ -3784,11 +3784,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/60a9182897e740d49306166b4b467ea3.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a0def7818cff48b0bbf467bf61b5d80b.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/7af9d22f289b4240a404d8855e302958.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Party_Girl.png?30a9af",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Party_Girl.png?d29563",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Party_Girl_%28portrait%29.png/70px-Party_Girl_%28portrait%29.png?6439ef"
       },
-      "fetchedAt": "2026-05-26T10:06:47.601557Z",
+      "fetchedAt": "2026-06-03T10:12:58.970447Z",
       "error": null
     },
     {
@@ -4002,11 +4002,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/9521b79d233143e98459e204abe4e601.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/641fe475d61649e081844358f2aa14eb.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/45a4be76bcaa4edb89f2d40dbb036e3c.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Cyborg.png?7a79f4",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Cyborg.png?5ef237",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Cyborg_%28portrait%29.png/70px-Cyborg_%28portrait%29.png?cb39e5"
       },
-      "fetchedAt": "2026-05-26T10:06:51.291706Z",
+      "fetchedAt": "2026-06-03T10:13:04.971182Z",
       "error": null
     },
     {
@@ -4244,11 +4244,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/ab62f6dc5ea24a4db1c220950f55b1a3.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/773683c7ff364d5aa5486280c1667f48.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/8a1dba20f72a4b389de2887355269ecd.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Painter.png?da5141",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Painter.png?a2c441",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Painter_%28portrait%29.png/70px-Painter_%28portrait%29.png?334ae3"
       },
-      "fetchedAt": "2026-05-26T10:06:53.771773Z",
+      "fetchedAt": "2026-06-03T10:13:11.958523Z",
       "error": null
     },
     {
@@ -4492,11 +4492,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/1bf7e9caea87499ea800f79dc4fa2b12.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/96772db08fdc4af297ef5cd33aae7871.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/bd638bb1edad4f2486ed8026b2b0b879.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Witch_Doctor.png?d79fd5",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Witch_Doctor.png?5663ad",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Witch_Doctor_%28portrait%29.png/70px-Witch_Doctor_%28portrait%29.png?c3154e"
       },
-      "fetchedAt": "2026-05-26T10:06:57.396543Z",
+      "fetchedAt": "2026-06-03T10:13:15.218011Z",
       "error": null
     },
     {
@@ -4665,11 +4665,11 @@
           "被击杀",
           "被击杀 （微光形态）"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/86df131d14ae4396837458a7be033509.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/4d16d6e229f5487fb54e6f8019f6b976.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/b97ba6de9e34482fa75de31befe9f56b.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Pirate.png?20e5d3",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Pirate.png?dc1c70",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Pirate_%28portrait%29.png/70px-Pirate_%28portrait%29.png?3bdd5a"
       },
-      "fetchedAt": "2026-05-26T10:07:00.698420Z",
+      "fetchedAt": "2026-06-03T10:13:18.059746Z",
       "error": null
     },
     {
@@ -4854,11 +4854,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/281e49886bc445a3aaad47edeab2cfd2.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/adce0331dc044cb89dace9db30dcfe47.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/54363414289b40c082ef08a0e13970b1.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Stylist.png?fd2703",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Stylist.png?aba9a3",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Stylist_%28portrait%29.png/70px-Stylist_%28portrait%29.png?aed31e"
       },
-      "fetchedAt": "2026-05-26T10:07:03.258818Z",
+      "fetchedAt": "2026-06-03T10:13:22.454059Z",
       "error": null
     },
     {
@@ -5103,11 +5103,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/89e8f23046744e55a6a9b01913f8338f.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/f4abfcf81abd4ca1a85979fe2916ed18.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/6f9b18a91a1343acbb1eca4cef8fee65.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Traveling_Merchant.png?f09d0a",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Traveling_Merchant.png?faebe8",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Traveling_Merchant_%28portrait%29.png/70px-Traveling_Merchant_%28portrait%29.png?f24c9d"
       },
-      "fetchedAt": "2026-05-26T10:07:07.079246Z",
+      "fetchedAt": "2026-06-03T10:13:25.682943Z",
       "error": null
     },
     {
@@ -5198,11 +5198,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/0e95cb69e1bd488db229683d6cbb683b.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/0e9939bd6a4f47e0a52e429180ee3dbc.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/c7c5156bab344925b41fe306db2ec9a0.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Angler.png?ce8e8c",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Angler.png?1f1ea1",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Angler_%28portrait%29.png/70px-Angler_%28portrait%29.png?40cf6d"
       },
-      "fetchedAt": "2026-05-26T10:07:09.856902Z",
+      "fetchedAt": "2026-06-03T10:13:29.243044Z",
       "error": null
     },
     {
@@ -5296,11 +5296,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/77a5ba04236f48598e7c8b96fd28ee6d.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/c9fe2385b1da44febdf280efeb5fb81c.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/39f6d00c152246ef85a2e94beb66bdb1.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Tax_Collector.png?906fec",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Tax_Collector.png?e3116c",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Tax_Collector_%28portrait%29.png/70px-Tax_Collector_%28portrait%29.png?58b567"
       },
-      "fetchedAt": "2026-05-26T10:07:13.538060Z",
+      "fetchedAt": "2026-06-03T10:13:35.610529Z",
       "error": null
     },
     {
@@ -5495,11 +5495,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/33f167cbfd554697afa7b81c2789f9be.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/60964b5edec749f2800af70890c7e8a6.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/5b7701321b1e4f28a5b2994466ee0a75.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Tavernkeep.png?685c06",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Tavernkeep.png?c33f1d",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Tavernkeep_%28portrait%29.png/70px-Tavernkeep_%28portrait%29.png?2d1761"
       },
-      "fetchedAt": "2026-05-26T10:07:16.429792Z",
+      "fetchedAt": "2026-06-03T10:13:38.725558Z",
       "error": null
     },
     {
@@ -5865,11 +5865,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/b74e7c1afe0548248502bd0bb594568c.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/2a5cb093ea9b4023968ab0c7b21557d4.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/3b15364d6dd44910bd5bf3b239c4cee5.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Golfer.png?3be58a",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Golfer.png?c47064",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Golfer_%28portrait%29.png/70px-Golfer_%28portrait%29.png?26b263"
       },
-      "fetchedAt": "2026-05-26T10:07:19.990926Z",
+      "fetchedAt": "2026-06-03T10:13:45.455892Z",
       "error": null
     },
     {
@@ -6191,11 +6191,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/fa2d40419fa047028dd2896c4176c48b.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/012aa610f6b64eb094624befb0bbfe90.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/7745e18cfcf8429e82a36e6c044238d3.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Zoologist.png?4f185b",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Zoologist.png?d236e4",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Zoologist_%28portrait%29.png/70px-Zoologist_%28portrait%29.png?b8d165"
       },
-      "fetchedAt": "2026-05-26T10:07:22.514179Z",
+      "fetchedAt": "2026-06-03T10:13:48.396322Z",
       "error": null
     },
     {
@@ -6229,11 +6229,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/ac671d4314c74d7c84685a64c423ecf4.gif",
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Cat.gif?1fde52",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T10:07:26.035918Z",
+      "fetchedAt": "2026-06-03T10:13:57.630708Z",
       "error": null
     },
     {
@@ -6267,11 +6267,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/14bb025d2c36412ab99da159d99514ae.gif",
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Dog.gif?9507cc",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T10:07:28.756191Z",
+      "fetchedAt": "2026-06-03T10:14:03.522145Z",
       "error": null
     },
     {
@@ -6311,11 +6311,11 @@
           "击退 抗性",
           "敌怪旗"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a9f974b7d48648729c9afce23e41e313.gif",
+        "spriteImage": "https://terraria.wiki.gg/images/Bunny.gif?e3efe5",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T10:07:32.101044Z",
+      "fetchedAt": "2026-06-03T10:14:09.695147Z",
       "error": null
     },
     {
@@ -6470,55 +6470,55 @@
           "nameZh": "史莱姆法杖",
           "nameEn": "史莱姆法杖",
           "priceText": "10 GC",
-          "availability": "在 Celebrationmk10 (电脑版、主机版、和移动版) 世界中。"
+          "availability": "在 Celebrationmk10 世界中。"
         },
         {
           "nameZh": "红心灯笼",
           "nameEn": "红心灯笼",
           "priceText": "7 GC 50 SC",
-          "availability": "在 Celebrationmk10 (电脑版、主机版、和移动版) 世界中。"
+          "availability": "在 Celebrationmk10 世界中。"
         },
         {
           "nameZh": "派对药剂",
           "nameEn": "派对药剂",
           "priceText": "15 SC",
-          "availability": "在 Celebrationmk10 (电脑版、主机版、和移动版) 世界中。"
+          "availability": "在 Celebrationmk10 世界中。"
         },
         {
           "nameZh": "沙暴瓶",
           "nameEn": "沙暴瓶",
           "priceText": "5 GC",
-          "availability": "在 Celebrationmk10 (电脑版、主机版、和移动版) 世界中，在 沙漠 内与其交谈。"
+          "availability": "在 Celebrationmk10 世界中，在 沙漠 内与其交谈。"
         },
         {
           "nameZh": "泰拉魔刃",
           "nameEn": "泰拉魔刃",
           "priceText": "25 GC",
-          "availability": "在 Celebrationmk10 (电脑版、主机版、和移动版) 世界中， 血月 期间。"
+          "availability": "在 Celebrationmk10 世界中， 血月 期间。"
         },
         {
           "nameZh": "海盗法杖",
           "nameEn": "海盗法杖",
           "priceText": "5 GC",
-          "availability": "在 Celebrationmk10 (电脑版、主机版、和移动版) 世界中， 困难模式 中， 海盗入侵 已被打败，且在以下 月相 期间： 。"
+          "availability": "在 Celebrationmk10 世界中， 困难模式 中， 海盗入侵 已被打败，且在以下 月相 期间： 。"
         },
         {
           "nameZh": "优惠卡",
           "nameEn": "优惠卡",
           "priceText": "5 GC",
-          "availability": "在 Celebrationmk10 (电脑版、主机版、和移动版) 世界中， 困难模式 中， 海盗入侵 已被打败，且在以下 月相 期间： 。"
+          "availability": "在 Celebrationmk10 世界中， 困难模式 中， 海盗入侵 已被打败，且在以下 月相 期间： 。"
         },
         {
           "nameZh": "幸运币",
           "nameEn": "幸运币",
           "priceText": "5 GC",
-          "availability": "在 Celebrationmk10 (电脑版、主机版、和移动版) 世界中， 困难模式 中， 海盗入侵 已被打败，且在以下 月相 期间： 。"
+          "availability": "在 Celebrationmk10 世界中， 困难模式 中， 海盗入侵 已被打败，且在以下 月相 期间： 。"
         },
         {
           "nameZh": "钱币枪",
           "nameEn": "钱币枪",
           "priceText": "30 GC",
-          "availability": "在 Celebrationmk10 (电脑版、主机版、和移动版) 世界中， 困难模式 中， 海盗入侵 已被打败，且在以下 月相 期间： 。"
+          "availability": "在 Celebrationmk10 世界中， 困难模式 中， 海盗入侵 已被打败，且在以下 月相 期间： 。"
         },
         {
           "nameZh": "任何晶塔",
@@ -6545,11 +6545,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/6a6fcaafcf7c45e7aadf7a3e9f825614.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/37b6c59100f5449b804ebeebbb251ba8.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/4b957e50e02640b69294dc2a02fbacb5.png"
+        "spriteImage": "https://terraria.wiki.gg/images/Princess.png?552d12",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Princess.png?408e31",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Princess_%28portrait%29.png/70px-Princess_%28portrait%29.png?5efe1f"
       },
-      "fetchedAt": "2026-05-26T10:07:34.787519Z",
+      "fetchedAt": "2026-06-03T10:14:12.908107Z",
       "error": null
     },
     {
@@ -6584,11 +6584,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a6a12a72852b4170bea9934d26d1551c.gif",
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T10:07:37.917201Z",
+      "fetchedAt": "2026-06-03T10:14:15.808383Z",
       "error": null
     },
     {
@@ -6623,11 +6623,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a6a12a72852b4170bea9934d26d1551c.gif",
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T10:07:41.519735Z",
+      "fetchedAt": "2026-06-03T10:14:23.874664Z",
       "error": null
     },
     {
@@ -6662,11 +6662,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a6a12a72852b4170bea9934d26d1551c.gif",
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T10:07:44.095525Z",
+      "fetchedAt": "2026-06-03T10:14:27.094478Z",
       "error": null
     },
     {
@@ -6701,11 +6701,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a6a12a72852b4170bea9934d26d1551c.gif",
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T10:07:47.630695Z",
+      "fetchedAt": "2026-06-03T10:14:31.899084Z",
       "error": null
     },
     {
@@ -6740,11 +6740,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a6a12a72852b4170bea9934d26d1551c.gif",
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T10:07:50.632921Z",
+      "fetchedAt": "2026-06-03T10:14:35.149879Z",
       "error": null
     },
     {
@@ -6779,11 +6779,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a6a12a72852b4170bea9934d26d1551c.gif",
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T10:07:54.166895Z",
+      "fetchedAt": "2026-06-03T10:14:38.296221Z",
       "error": null
     },
     {
@@ -6818,11 +6818,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a6a12a72852b4170bea9934d26d1551c.gif",
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T10:07:56.630630Z",
+      "fetchedAt": "2026-06-03T10:14:41.439035Z",
       "error": null
     },
     {
@@ -6857,11 +6857,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a6a12a72852b4170bea9934d26d1551c.gif",
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T10:08:00.275223Z",
+      "fetchedAt": "2026-06-03T10:14:44.929388Z",
       "error": null
     }
   ]
