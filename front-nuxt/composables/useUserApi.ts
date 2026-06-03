@@ -81,6 +81,9 @@ export const extractUserApiError = (error: unknown, fallback = '请求失败，�
 export const sendRegisterCode = async (email: string): Promise<UserRegisterCodeResponse> =>
   unwrapApiResponse(await userFetch<UserRegisterCodeResponse>('/user-auth/register/code', { method: 'POST', body: { email } }))
 
+export const sendPasswordResetCode = async (email: string): Promise<UserRegisterCodeResponse> =>
+  unwrapApiResponse(await userFetch<UserRegisterCodeResponse>('/user-auth/password/reset/code', { method: 'POST', body: { email } }))
+
 export const registerUser = async (payload: { email: string, password: string, verificationCode: string, displayName?: string | null }): Promise<UserAuthResponse> =>
   unwrapApiResponse(await userFetch<UserAuthResponse>('/user-auth/register', { method: 'POST', body: payload }))
 
@@ -99,6 +102,10 @@ export const updateUserProfile = async (payload: { displayName: string }): Promi
 
 export const changeUserPassword = async (payload: { currentPassword: string, newPassword: string }): Promise<void> => {
   await userFetch<void>('/user-auth/password', { method: 'PATCH', body: payload })
+}
+
+export const resetUserPassword = async (payload: { email: string, verificationCode: string, newPassword: string }): Promise<void> => {
+  await userFetch<void>('/user-auth/password/reset', { method: 'POST', body: payload })
 }
 
 export const fetchUserArticles = async (page = 1, limit = 10, keyword = ''): Promise<UserArticleListResponse> => {

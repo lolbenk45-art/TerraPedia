@@ -59,6 +59,7 @@ const submit = async () => {
         </button>
         <div class="form-footnote">
           <a :href="`/user/register?redirect=${encodeURIComponent(redirectTarget)}`">注册账号</a>
+          <a href="/user/forgot-password">忘记密码</a>
           <a href="/user">返回用户中心</a>
         </div>
       </form>

@@ -68,6 +68,8 @@ const packageJson = read('package.json')
 
 for (const marker of [
   '/user-auth/register/code',
+  '/user-auth/password/reset/code',
+  '/user-auth/password/reset',
   '/user-auth/register',
   '/user-auth/login',
   '/user-auth/me',
@@ -117,6 +119,8 @@ for (const marker of [
   'login',
   'register',
   'requestRegisterCode',
+  'requestPasswordResetCode',
+  'resetPassword',
   'logout',
   'updateProfile',
   'changePassword',
@@ -157,13 +161,18 @@ assertNotIncludes(navPath, nav, 'Preview account', 'account navigation must not 
 const pageContracts = [
   {
     path: 'pages/user/login.vue',
-    required: ['definePageMeta({ guestOnly: true })', '@submit.prevent="submit"', 'authStore.login', 'buildUserPostAuthRedirectTarget', 'type="submit"', 'v-model.trim="form.email"', 'v-model="form.password"', 'user-form-status', 'user-form-error'],
+    required: ['definePageMeta({ guestOnly: true })', '@submit.prevent="submit"', 'authStore.login', 'buildUserPostAuthRedirectTarget', 'type="submit"', 'v-model.trim="form.email"', 'v-model="form.password"', '/user/forgot-password', 'user-form-status', 'user-form-error'],
     forbidden: ['readonly', '登录占位', 'preview-only'],
   },
   {
     path: 'pages/user/register.vue',
     required: ['definePageMeta({ guestOnly: true })', '@submit.prevent="submit"', 'authStore.requestRegisterCode', 'authStore.register', 'verificationCode', 'expiresInSeconds', 'pattern="[0-9]{4,8}"', 'type="submit"', 'user-form-status', 'user-form-error'],
     forbidden: ['readonly', '注册占位', 'preview-only'],
+  },
+  {
+    path: 'pages/user/forgot-password.vue',
+    required: ['definePageMeta({ guestOnly: true })', '@submit.prevent="submit"', 'authStore.requestPasswordResetCode', 'authStore.resetPassword', 'verificationCode', 'newPassword', 'expiresInSeconds', 'pattern="[0-9]{4,8}"', 'type="submit"', 'user-form-status', 'user-form-error'],
+    forbidden: ['readonly', '找回占位', 'preview-only'],
   },
   {
     path: 'pages/user/index.vue',

@@ -9,7 +9,9 @@ import {
   loginUser,
   logoutUser,
   registerUser,
+  resetUserPassword,
   sendRegisterCode,
+  sendPasswordResetCode,
   updateUserProfile,
 } from '~/composables/useUserApi'
 
@@ -112,6 +114,18 @@ export const useUserAuthStore = defineStore('user-auth', () => {
     }
   }
 
+  const requestPasswordResetCode = async (email: string) => {
+    submitting.value = true
+    lastError.value = ''
+    try {
+      return await sendPasswordResetCode(requireEmail(email))
+    } catch (error) {
+      throw new Error(setError(error, '重置验证码发送失败，请稍后重试。'))
+    } finally {
+      submitting.value = false
+    }
+  }
+
   const register = async (payload: { email: string, password: string, verificationCode: string, displayName?: string | null }) => {
     submitting.value = true
     lastError.value = ''
@@ -180,6 +194,22 @@ export const useUserAuthStore = defineStore('user-auth', () => {
     }
   }
 
+  const resetPassword = async (payload: { email: string, verificationCode: string, newPassword: string }) => {
+    submitting.value = true
+    lastError.value = ''
+    try {
+      await resetUserPassword({
+        email: requireEmail(payload.email),
+        verificationCode: requireVerificationCode(payload.verificationCode),
+        newPassword: requirePassword(payload.newPassword),
+      })
+    } catch (error) {
+      throw new Error(setError(error, '密码重置失败，请检查验证码和新密码。'))
+    } finally {
+      submitting.value = false
+    }
+  }
+
   const loadUserArticles = async (page = 1, limit = 10, keyword = '') => {
     articlesLoading.value = true
     lastError.value = ''
@@ -235,10 +265,12 @@ export const useUserAuthStore = defineStore('user-auth', () => {
     init,
     login,
     requestRegisterCode,
+    requestPasswordResetCode,
     register,
     logout,
     updateProfile,
     changePassword,
+    resetPassword,
     fetchUserArticles: loadUserArticles,
     createUserArticle: saveUserArticle,
   }
