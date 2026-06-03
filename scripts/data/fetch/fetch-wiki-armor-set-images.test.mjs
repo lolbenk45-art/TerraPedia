@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  buildArmorSetImageProgressPayload,
   buildArmorSetImageRows,
   classifyArmorSetImage,
   deriveArmorSetPageTitle
@@ -67,4 +68,29 @@ test('buildArmorSetImageRows builds maint-compatible armor_set_images_raw record
   assert.equal(actual[0].originalUrl, 'https://terraria.wiki.gg/images/Wood_armor.png');
   assert.equal(actual[0].isPrimary, true);
   assert.equal(actual[1].isPrimary, false);
+});
+
+test('buildArmorSetImageProgressPayload uses monitor-visible crawler fields', () => {
+  const payload = buildArmorSetImageProgressPayload({
+    status: 'running',
+    current: 3,
+    total: 151,
+    message: 'fetching armor set images',
+    progressPath: 'data/generated/wiki-sync-progress.latest.json',
+    outputPath: '/shared/raw/wiki/armor_set_images.parsed.latest.json',
+    reportPath: '/shared/reports/fetch/fetch-armor-set-images.json',
+    startedAt: '2026-06-03T00:00:00.000Z',
+    now: '2026-06-03T00:01:00.000Z'
+  });
+
+  assert.equal(payload.actionId, 'armor-set-images');
+  assert.equal(payload.status, 'running');
+  assert.equal(payload.phase, 'fetch');
+  assert.equal(payload.current, 3);
+  assert.equal(payload.total, 151);
+  assert.equal(payload.percent, 3 / 151 * 100);
+  assert.equal(payload.childStatusPath, 'data/generated/wiki-sync-progress.latest.json');
+  assert.equal(payload.outputPath, '/shared/raw/wiki/armor_set_images.parsed.latest.json');
+  assert.equal(payload.reportPath, '/shared/reports/fetch/fetch-armor-set-images.json');
+  assert.equal(payload.lastHeartbeatAt, '2026-06-03T00:01:00.000Z');
 });
