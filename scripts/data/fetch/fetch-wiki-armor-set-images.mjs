@@ -86,22 +86,88 @@ function splitPascalCase(value) {
     .trim();
 }
 
-export function deriveArmorSetPageTitle(record = {}) {
+const armorSetPageTitleOverrides = new Map([
+  ['ArmorSetBonus.MetalTier1', ['Copper armor', 'Tin armor', 'Iron armor']],
+  ['ArmorSetBonus.MetalTier2', ['Silver armor', 'Gold armor', 'Lead armor', 'Tungsten armor']],
+  ['ArmorSetBonus.BeetleDamage', ['Beetle armor']],
+  ['ArmorSetBonus.BeetleDefense', ['Beetle armor']],
+  ['ArmorSetBonus.Wizard', [
+    'Wizard Hat',
+    'Amethyst Robe',
+    'Topaz Robe',
+    'Sapphire Robe',
+    'Emerald Robe',
+    'Ruby Robe',
+    'Diamond Robe',
+    'Mystic Robe',
+    'Amber Robe'
+  ]],
+  ['ArmorSetBonus.MagicHat', [
+    'Magic Hat',
+    'Amethyst Robe',
+    'Topaz Robe',
+    'Sapphire Robe',
+    'Emerald Robe',
+    'Ruby Robe',
+    'Diamond Robe',
+    'Mystic Robe',
+    'Amber Robe'
+  ]],
+  ['ArmorSetBonus.SpectreHealing', ['Spectre armor']],
+  ['ArmorSetBonus.SpectreDamage', ['Spectre armor']],
+  ['ArmorSetBonus.ChlorophyteMelee', ['Chlorophyte armor']],
+  ['ArmorSetBonus.ChlorophyteSummon', ['Chlorophyte armor']],
+  ['ArmorSetBonus.CobaltCaster', ['Cobalt armor']],
+  ['ArmorSetBonus.CobaltMelee', ['Cobalt armor']],
+  ['ArmorSetBonus.CobaltRanged', ['Cobalt armor']],
+  ['ArmorSetBonus.MythrilCaster', ['Mythril armor']],
+  ['ArmorSetBonus.MythrilMelee', ['Mythril armor']],
+  ['ArmorSetBonus.MythrilRanged', ['Mythril armor']],
+  ['ArmorSetBonus.AdamantiteCaster', ['Adamantite armor']],
+  ['ArmorSetBonus.AdamantiteMelee', ['Adamantite armor']],
+  ['ArmorSetBonus.AdamantiteRanged', ['Adamantite armor']],
+  ['ArmorSetBonus.HallowedSummoner', ['Hallowed armor']],
+  ['ArmorSetBonus.CrystalNinja', ['Crystal Assassin armor']],
+  ['ArmorSetBonus.SquireTier2', ['Squire armor']],
+  ['ArmorSetBonus.ApprenticeTier2', ['Apprentice armor']],
+  ['ArmorSetBonus.HuntressTier2', ['Huntress armor']],
+  ['ArmorSetBonus.MonkTier2', ['Monk armor']],
+  ['ArmorSetBonus.SquireTier3', ['Valhalla Knight armor']],
+  ['ArmorSetBonus.ApprenticeTier3', ['Dark Artist armor']],
+  ['ArmorSetBonus.HuntressTier3', ['Red Riding armor']],
+  ['ArmorSetBonus.MonkTier3', ['Shinobi Infiltrator armor']],
+  ['ArmorSetBonus.ObsidianOutlaw', ['Obsidian armor']]
+]);
+
+function uniqueStrings(values) {
+  return [...new Set(values.map((value) => nullableString(value)).filter(Boolean))];
+}
+
+export function deriveArmorSetPageTitles(record = {}) {
   const explicit = nullableString(record.pageTitle ?? record.page_title);
   if (explicit) {
-    return explicit;
+    return [explicit];
   }
 
   const textKey = nullableString(record.textKey ?? record.text_key);
   if (!textKey) {
-    return null;
+    return [];
+  }
+
+  const overridden = armorSetPageTitleOverrides.get(textKey);
+  if (overridden) {
+    return uniqueStrings(overridden);
   }
   if (/\barmor$/i.test(textKey)) {
-    return textKey;
+    return [textKey];
   }
   const lastSegment = textKey.includes('.') ? textKey.slice(textKey.lastIndexOf('.') + 1) : textKey;
   const displayName = splitPascalCase(lastSegment);
-  return displayName ? `${displayName} armor` : null;
+  return displayName ? [`${displayName} armor`] : [];
+}
+
+export function deriveArmorSetPageTitle(record = {}) {
+  return deriveArmorSetPageTitles(record)[0] ?? null;
 }
 
 export function classifyArmorSetImage({ fileTitle, pageTitle } = {}) {
@@ -161,42 +227,45 @@ export function buildArmorSetImageRows({
 
   for (const armorSet of armorSets) {
     const textKey = nullableString(armorSet.textKey ?? armorSet.text_key);
-    const pageTitle = deriveArmorSetPageTitle(armorSet);
-    if (!textKey || !pageTitle) {
+    const pageTitles = deriveArmorSetPageTitles(armorSet);
+    if (!textKey || pageTitles.length === 0) {
       continue;
     }
 
-    const imageTitles = pageImageTitlesByPageTitle.get(pageTitle) ?? [];
-    const classified = imageTitles
-      .map((fileTitle) => ({
-        fileTitle: stripFilePrefix(fileTitle),
-        role: classifyArmorSetImage({ fileTitle, pageTitle })
-      }))
-      .filter((entry) => entry.role !== 'other')
-      .sort(sortImageTitle);
+    let sortOrder = 0;
+    for (const pageTitle of pageTitles) {
+      const imageTitles = pageImageTitlesByPageTitle.get(pageTitle) ?? [];
+      const classified = imageTitles
+        .map((fileTitle) => ({
+          fileTitle: stripFilePrefix(fileTitle),
+          role: classifyArmorSetImage({ fileTitle, pageTitle })
+        }))
+        .filter((entry) => entry.role !== 'other')
+        .sort(sortImageTitle);
 
-    for (let index = 0; index < classified.length; index += 1) {
-      const entry = classified[index];
-      const info = imageInfoByFileTitle.get(entry.fileTitle)
-        ?? imageInfoByFileTitle.get(`File:${entry.fileTitle}`)
-        ?? {};
-      rows.push({
-        textKey,
-        pageTitle,
-        imageRole: entry.role,
-        sourceFileTitle: entry.fileTitle,
-        originalUrl: nullableString(info.url),
-        cachedUrl: null,
-        width: toPositiveNumber(info.width),
-        height: toPositiveNumber(info.height),
-        contentType: nullableString(info.mime),
-        isPrimary: entry.role === 'male' && !rows.some((row) => row.textKey === textKey && row.imageRole === 'male'),
-        sortOrder: index,
-        sourceRevisionTimestamp: null,
-        raw: {
-          imageInfo: info
-        }
-      });
+      for (const entry of classified) {
+        const info = imageInfoByFileTitle.get(entry.fileTitle)
+          ?? imageInfoByFileTitle.get(`File:${entry.fileTitle}`)
+          ?? {};
+        rows.push({
+          textKey,
+          pageTitle,
+          imageRole: entry.role,
+          sourceFileTitle: entry.fileTitle,
+          originalUrl: nullableString(info.url),
+          cachedUrl: null,
+          width: toPositiveNumber(info.width),
+          height: toPositiveNumber(info.height),
+          contentType: nullableString(info.mime),
+          isPrimary: entry.role === 'male' && !rows.some((row) => row.textKey === textKey && row.imageRole === 'male'),
+          sortOrder,
+          sourceRevisionTimestamp: null,
+          raw: {
+            imageInfo: info
+          }
+        });
+        sortOrder += 1;
+      }
     }
   }
 
@@ -261,7 +330,7 @@ async function main(argv = process.argv.slice(2)) {
   const reportPathPreview = path.join(reportDir, 'fetch-armor-set-images.latest.json');
 
   const armorSets = readArmorSets(inputPath)
-    .filter((record) => deriveArmorSetPageTitle(record))
+    .filter((record) => deriveArmorSetPageTitles(record).length > 0)
     .slice(0, Number.isFinite(limit) && limit > 0 ? limit : undefined);
 
   writeProgress(progressPath, buildArmorSetImageProgressPayload({
@@ -281,30 +350,35 @@ async function main(argv = process.argv.slice(2)) {
 
   for (let index = 0; index < armorSets.length; index += 1) {
     const armorSet = armorSets[index];
-    const pageTitle = deriveArmorSetPageTitle(armorSet);
-    try {
-      const imageTitles = await fetchPageImageTitles({ pageTitle, apiUrl });
-      pageImageTitlesByPageTitle.set(pageTitle, imageTitles);
-
-      for (const fileTitle of imageTitles) {
-        const role = classifyArmorSetImage({ fileTitle, pageTitle });
-        if (role === 'other') {
-          continue;
-        }
-        const normalizedFileTitle = stripFilePrefix(fileTitle);
-        if (imageInfoByFileTitle.has(normalizedFileTitle)) {
-          continue;
-        }
-        const imageInfo = await fetchWikiImageInfo({ fileTitle: normalizedFileTitle, apiUrl });
-        if (imageInfo) {
-          imageInfoByFileTitle.set(normalizedFileTitle, imageInfo);
-        }
+    const pageTitles = deriveArmorSetPageTitles(armorSet);
+    for (const pageTitle of pageTitles) {
+      if (pageImageTitlesByPageTitle.has(pageTitle)) {
+        continue;
       }
-    } catch (error) {
-      warnings.push({
-        pageTitle,
-        message: error instanceof Error ? error.message : String(error)
-      });
+      try {
+        const imageTitles = await fetchPageImageTitles({ pageTitle, apiUrl });
+        pageImageTitlesByPageTitle.set(pageTitle, imageTitles);
+
+        for (const fileTitle of imageTitles) {
+          const role = classifyArmorSetImage({ fileTitle, pageTitle });
+          if (role === 'other') {
+            continue;
+          }
+          const normalizedFileTitle = stripFilePrefix(fileTitle);
+          if (imageInfoByFileTitle.has(normalizedFileTitle)) {
+            continue;
+          }
+          const imageInfo = await fetchWikiImageInfo({ fileTitle: normalizedFileTitle, apiUrl });
+          if (imageInfo) {
+            imageInfoByFileTitle.set(normalizedFileTitle, imageInfo);
+          }
+        }
+      } catch (error) {
+        warnings.push({
+          pageTitle,
+          message: error instanceof Error ? error.message : String(error)
+        });
+      }
     }
     writeProgress(progressPath, buildArmorSetImageProgressPayload({
       status: 'running',

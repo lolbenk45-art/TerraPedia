@@ -1,7 +1,34 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { runRefreshBuffPageEvidenceBatch } from './refresh-buff-page-evidence-batch.mjs';
+import {
+  buildBuffEvidenceProgressPayload,
+  runRefreshBuffPageEvidenceBatch
+} from './refresh-buff-page-evidence-batch.mjs';
+
+test('buildBuffEvidenceProgressPayload writes crawler progress contract fields', () => {
+  const payload = buildBuffEvidenceProgressPayload({
+    status: 'running',
+    current: 7,
+    total: 388,
+    message: 'refreshing buff evidence',
+    progressPath: '/tmp/fetch-wiki-buffs-progress.latest.json',
+    reportPath: '/tmp/report.json',
+    outputPath: '/tmp/buffs.standardized.json',
+    startedAt: '2026-06-04T00:00:00.000Z',
+    now: '2026-06-04T00:01:00.000Z'
+  });
+
+  assert.equal(payload.actionId, 'buff-evidence-refresh');
+  assert.equal(payload.status, 'running');
+  assert.equal(payload.phase, 'fetch');
+  assert.equal(payload.current, 7);
+  assert.equal(payload.total, 388);
+  assert.equal(payload.childStatusPath, '/tmp/fetch-wiki-buffs-progress.latest.json');
+  assert.equal(payload.lastHeartbeatAt, '2026-06-04T00:01:00.000Z');
+  assert.equal(payload.reportPath, '/tmp/report.json');
+  assert.equal(payload.outputPath, '/tmp/buffs.standardized.json');
+});
 
 test('runRefreshBuffPageEvidenceBatch dry-run fetches serially, writes report and progress, and does not write output', async () => {
   const writes = new Map();
@@ -67,6 +94,9 @@ test('runRefreshBuffPageEvidenceBatch dry-run fetches serially, writes report an
   assert.equal(writes.has('/tmp/buffs.out.json'), false);
   assert.equal(writes.get('/tmp/report.json').entries.length, 2);
   assert.equal(writes.get('/tmp/progress.json').status, 'completed');
+  assert.equal(writes.get('/tmp/progress.json').actionId, 'buff-evidence-refresh');
+  assert.equal(writes.get('/tmp/progress.json').phase, 'write');
+  assert.equal(writes.get('/tmp/progress.json').childStatusPath, '/tmp/progress.json');
 });
 
 test('runRefreshBuffPageEvidenceBatch supports cache hits, filters, and skipped_existing', async () => {

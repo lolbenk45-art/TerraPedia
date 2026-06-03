@@ -5,13 +5,34 @@ import {
   buildArmorSetImageProgressPayload,
   buildArmorSetImageRows,
   classifyArmorSetImage,
-  deriveArmorSetPageTitle
+  deriveArmorSetPageTitle,
+  deriveArmorSetPageTitles
 } from './fetch-wiki-armor-set-images.mjs';
 
 test('deriveArmorSetPageTitle derives common armor page titles from text keys', () => {
   assert.equal(deriveArmorSetPageTitle({ textKey: 'ArmorSetBonus.Wood' }), 'Wood armor');
   assert.equal(deriveArmorSetPageTitle({ textKey: 'ArmorSetBonus.AdamantiteMagic' }), 'Adamantite Magic armor');
   assert.equal(deriveArmorSetPageTitle({ textKey: 'Wood armor' }), 'Wood armor');
+});
+
+test('deriveArmorSetPageTitles expands split armor bonus text keys to real wiki pages', () => {
+  assert.deepEqual(deriveArmorSetPageTitles({ textKey: 'ArmorSetBonus.MetalTier1' }), [
+    'Copper armor',
+    'Tin armor',
+    'Iron armor'
+  ]);
+  assert.deepEqual(deriveArmorSetPageTitles({ textKey: 'ArmorSetBonus.MetalTier2' }), [
+    'Silver armor',
+    'Gold armor',
+    'Lead armor',
+    'Tungsten armor'
+  ]);
+  assert.deepEqual(deriveArmorSetPageTitles({ textKey: 'ArmorSetBonus.CobaltCaster' }), ['Cobalt armor']);
+  assert.deepEqual(deriveArmorSetPageTitles({ textKey: 'ArmorSetBonus.MythrilMelee' }), ['Mythril armor']);
+  assert.deepEqual(deriveArmorSetPageTitles({ textKey: 'ArmorSetBonus.AdamantiteRanged' }), ['Adamantite armor']);
+  assert.deepEqual(deriveArmorSetPageTitles({ textKey: 'ArmorSetBonus.SquireTier3' }), ['Valhalla Knight armor']);
+  assert.deepEqual(deriveArmorSetPageTitles({ textKey: 'ArmorSetBonus.CrystalNinja' }), ['Crystal Assassin armor']);
+  assert.deepEqual(deriveArmorSetPageTitles({ textKey: 'ArmorSetBonus.ObsidianOutlaw' }), ['Obsidian armor']);
 });
 
 test('classifyArmorSetImage distinguishes male female demo and part files', () => {
@@ -68,6 +89,52 @@ test('buildArmorSetImageRows builds maint-compatible armor_set_images_raw record
   assert.equal(actual[0].originalUrl, 'https://terraria.wiki.gg/images/Wood_armor.png');
   assert.equal(actual[0].isPrimary, true);
   assert.equal(actual[1].isPrimary, false);
+});
+
+test('buildArmorSetImageRows keeps images from all mapped pages under the source armor text key', () => {
+  const actual = buildArmorSetImageRows({
+    armorSets: [
+      {
+        textKey: 'ArmorSetBonus.MetalTier1'
+      }
+    ],
+    pageImageTitlesByPageTitle: new Map([
+      ['Copper armor', ['Copper armor.png']],
+      ['Tin armor', ['Tin armor.png']],
+      ['Iron armor', ['Iron armor.png']]
+    ]),
+    imageInfoByFileTitle: new Map([
+      ['Copper armor.png', {
+        fileTitle: 'File:Copper armor.png',
+        url: 'https://terraria.wiki.gg/images/Copper_armor.png',
+        mime: 'image/png',
+        width: 64,
+        height: 64
+      }],
+      ['Tin armor.png', {
+        fileTitle: 'File:Tin armor.png',
+        url: 'https://terraria.wiki.gg/images/Tin_armor.png',
+        mime: 'image/png',
+        width: 64,
+        height: 64
+      }],
+      ['Iron armor.png', {
+        fileTitle: 'File:Iron armor.png',
+        url: 'https://terraria.wiki.gg/images/Iron_armor.png',
+        mime: 'image/png',
+        width: 64,
+        height: 64
+      }]
+    ])
+  });
+
+  assert.deepEqual(actual.map((row) => row.pageTitle), ['Copper armor', 'Tin armor', 'Iron armor']);
+  assert.deepEqual(actual.map((row) => row.textKey), [
+    'ArmorSetBonus.MetalTier1',
+    'ArmorSetBonus.MetalTier1',
+    'ArmorSetBonus.MetalTier1'
+  ]);
+  assert.deepEqual(actual.map((row) => row.isPrimary), [true, false, false]);
 });
 
 test('buildArmorSetImageProgressPayload uses monitor-visible crawler fields', () => {
