@@ -6,11 +6,12 @@
   "scripts": {
     "dev": "nuxt dev --host 0.0.0.0 --port 5176",
     "build": "nuxt build",
-    "check": "pnpm run check:nav-layout && pnpm run check:detail-layout && pnpm run check:preview-images && pnpm run check:visual-system && pnpm run check:armor-stat-visuals && pnpm run check:armor-builds && pnpm run check:crafting-structure && pnpm run check:crafting-alternatives && nuxt typecheck",
+    "check": "pnpm run check:user-module && pnpm run check:nav-layout && pnpm run check:detail-layout && pnpm run check:preview-images && pnpm run check:visual-system && pnpm run check:armor-stat-visuals && pnpm run check:armor-builds && pnpm run check:crafting-structure && pnpm run check:crafting-alternatives && nuxt typecheck",
     "check:armor-builds": "node scripts/check-armor-build-projection-groups.mjs",
     "check:crafting-alternatives": "node scripts/check-crafting-alternative-summaries.mjs",
     "check:crafting-structure": "node scripts/check-crafting-structure-contract.mjs",
     "check:crafting-wiki-structure": "node scripts/check-crafting-wiki-structure-runtime.mjs",
+    "check:user-module": "node scripts/check-user-module-contract.mjs",
     "check:loading-skeleton": "node scripts/check-loading-skeleton-contract.mjs",
     "check:public-pages": "node scripts/check-public-pages.mjs",
     "check:nav-layout": "node scripts/check-nav-layout-contract.mjs",

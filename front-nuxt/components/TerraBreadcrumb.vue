@@ -39,6 +39,7 @@ const routeLabels: Record<string, string> = {
   '/user': '用户中心',
   '/user/login': '登录',
   '/user/register': '注册',
+  '/user/forgot-password': '找回密码',
   '/user/articles': '我的文章',
   '/user/articles/new': '新建文章',
   '/user/favorites': '收藏夹',
@@ -62,22 +63,11 @@ const segmentLabels: Record<string, string> = {
   user: '用户中心',
   login: '登录',
   register: '注册',
+  'forgot-password': '找回密码',
   favorites: '收藏夹',
   settings: '账号设置',
   new: '新建文章',
 }
-
-const unavailableAccountRoutes = [
-  '/user',
-  '/user/login',
-  '/user/register',
-  '/user/articles',
-  '/user/articles/new',
-  '/user/favorites',
-  '/user/settings',
-]
-
-const isUnavailableAccountRoute = (path: string) => unavailableAccountRoutes.includes(path)
 
 const formatSegment = (segment: string) => {
   return segmentLabels[segment] ?? segment
@@ -103,7 +93,7 @@ const crumbs = computed<Crumb[]>(() => {
     const label = routeLabels[currentPath] ?? formatSegment(segment)
     items.push({
       label,
-      href: currentPath === path || isUnavailableAccountRoute(currentPath) ? undefined : currentPath,
+      href: currentPath === path ? undefined : currentPath,
     })
   }
 

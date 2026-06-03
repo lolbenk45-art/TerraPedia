@@ -4,18 +4,17 @@ import { buildUserRedirectTarget } from '~/composables/useUserApi'
 definePageMeta({ guestOnly: true })
 
 useSeoMeta({
-  title: '注册 · TerraPedia',
-  description: '注册 TerraPedia 用户账号，开启账号设置和投稿草稿功能。',
+  title: '找回密码 · TerraPedia',
+  description: '通过邮箱验证码重置 TerraPedia 用户账号密码。',
 })
 
 const route = useRoute()
 const authStore = useUserAuthStore()
 
 const form = reactive({
-  displayName: '',
   email: '',
   verificationCode: '',
-  password: '',
+  newPassword: '',
   confirmPassword: '',
 })
 const info = ref('')
@@ -23,7 +22,6 @@ const error = ref('')
 const cooldown = ref(0)
 let cooldownTimer: ReturnType<typeof setInterval> | undefined
 
-const redirectTarget = computed(() => buildUserRedirectTarget(route.query.redirect, '/user'))
 const redirectQuery = computed(() => {
   const target = buildUserRedirectTarget(route.query.redirect, '')
   return target ? `?redirect=${encodeURIComponent(target)}` : ''
@@ -57,7 +55,7 @@ const sendCode = async () => {
     return
   }
   try {
-    const result = await authStore.requestRegisterCode(email)
+    const result = await authStore.requestPasswordResetCode(email)
     startCooldown(result.cooldownSeconds || 60)
     if (result.debugVerificationCode) {
       form.verificationCode = result.debugVerificationCode
@@ -73,7 +71,7 @@ const sendCode = async () => {
 const submit = async () => {
   info.value = ''
   error.value = ''
-  if (form.password !== form.confirmPassword) {
+  if (form.newPassword !== form.confirmPassword) {
     error.value = '两次输入的密码不一致。'
     return
   }
@@ -82,15 +80,14 @@ const submit = async () => {
     return
   }
   try {
-    await authStore.register({
+    await authStore.resetPassword({
       email: form.email,
-      password: form.password,
       verificationCode: form.verificationCode,
-      displayName: form.displayName || undefined,
+      newPassword: form.newPassword,
     })
-    await navigateTo(redirectTarget.value)
+    await navigateTo('/user/login')
   } catch (exception: unknown) {
-    error.value = exception instanceof Error ? exception.message : '注册失败，请稍后再试。'
+    error.value = exception instanceof Error ? exception.message : '密码重置失败。'
   }
 }
 
@@ -107,21 +104,17 @@ onUnmounted(() => {
     <main class="user-shell">
       <section class="user-grid">
         <div class="user-panel">
-          <span class="eyebrow">Create account</span>
-          <h1>注册账号</h1>
-          <p class="user-muted">使用邮箱验证码创建账号。注册完成后会自动进入用户中心。</p>
+          <span class="eyebrow">Password recovery</span>
+          <h1>找回密码</h1>
+          <p class="user-muted">通过邮箱验证码设置新密码。成功后请使用新密码重新登录。</p>
           <div class="user-action-grid">
-            <a class="user-action-card" href="/user/login"><b>已有账号</b><span>返回登录</span></a>
-            <a class="user-action-card" :href="`/user/forgot-password${redirectQuery}`"><b>忘记密码</b><span>通过邮箱重置</span></a>
+            <a class="user-action-card" :href="`/user/login${redirectQuery}`"><b>返回登录</b><span>使用新密码进入</span></a>
+            <a class="user-action-card" href="/user/register"><b>注册账号</b><span>创建新的用户账号</span></a>
           </div>
         </div>
 
         <form class="user-panel user-form" @submit.prevent="submit">
-          <h2>创建账号</h2>
-          <label class="user-field">
-            <span>显示名称</span>
-            <input v-model.trim="form.displayName" class="user-input" type="text" autocomplete="name" maxlength="120" />
-          </label>
+          <h2>重置密码</h2>
           <label class="user-field">
             <span>邮箱</span>
             <input v-model.trim="form.email" class="user-input" type="email" autocomplete="email" required />
@@ -136,20 +129,19 @@ onUnmounted(() => {
             </div>
           </label>
           <label class="user-field">
-            <span>密码</span>
-            <input v-model="form.password" class="user-input" type="password" autocomplete="new-password" required />
+            <span>新密码</span>
+            <input v-model="form.newPassword" class="user-input" type="password" autocomplete="new-password" required />
           </label>
           <label class="user-field">
-            <span>确认密码</span>
+            <span>确认新密码</span>
             <input v-model="form.confirmPassword" class="user-input" type="password" autocomplete="new-password" required />
           </label>
 
-          <p class="user-feedback">密码至少 10 位，并包含字母和数字。</p>
           <p v-if="info" class="user-feedback user-feedback--success" aria-live="polite">{{ info }}</p>
           <p v-if="error" class="user-feedback user-feedback--error" aria-live="polite">{{ error }}</p>
 
           <button class="user-primary-button" type="submit" :disabled="authStore.submitting">
-            {{ authStore.submitting ? '创建中...' : '创建账号' }}
+            {{ authStore.submitting ? '提交中...' : '重置密码' }}
           </button>
         </form>
       </section>

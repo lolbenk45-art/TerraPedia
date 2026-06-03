@@ -281,6 +281,7 @@ const accountUnavailablePageFiles = [
   'pages/user/index.vue',
   'pages/user/login.vue',
   'pages/user/register.vue',
+  'pages/user/forgot-password.vue',
   'pages/user/articles/index.vue',
   'pages/user/articles/new.vue',
   'pages/user/favorites.vue',
@@ -1184,12 +1185,6 @@ for (const path of scanFiles) {
       }
     }
 
-    for (const route of unfinishedAccountRoutes) {
-      if (content.includes(`href="${route}"`) || content.includes(`href='${route}'`)) {
-        violations.push(`TerraNav.vue: V0.1 public nav must not link to unfinished account surface ${route}`)
-      }
-    }
-
     if (!content.includes('/brand/terrapedia-emblem-centered.png') || !content.includes('brand-logo-image')) {
       violations.push(`${path}: shared navigation must use the centered TerraPedia emblem asset in the brand mark`)
     }
@@ -1272,18 +1267,14 @@ for (const path of scanFiles) {
   }
 
   if (path === 'components/TerraBreadcrumb.vue') {
-    for (const marker of ['unavailableAccountRoutes', 'isUnavailableAccountRoute(currentPath)', 'href: currentPath === path || isUnavailableAccountRoute(currentPath) ? undefined : currentPath']) {
-      if (!content.includes(marker)) {
-        violations.push(`${path}: V0.1 breadcrumb must not link to unfinished account surfaces via marker ${marker}`)
+    for (const marker of ['unavailableAccountRoutes', 'isUnavailableAccountRoute(currentPath)']) {
+      if (content.includes(marker)) {
+        violations.push(`${path}: breadcrumb must not keep unavailable-account suppression marker ${marker}`)
       }
     }
-  }
 
-  if (path === 'components/TerraFooter.vue') {
-    for (const route of unfinishedAccountRoutes) {
-      if (content.includes(`href="${route}"`) || content.includes(`href='${route}'`)) {
-        violations.push(`TerraFooter.vue: V0.1 public nav must not link to unfinished account surface ${route}`)
-      }
+    if (!content.includes('/user/forgot-password') || !content.includes('找回密码')) {
+      violations.push(`${path}: breadcrumb must label the opened forgot-password account route`)
     }
   }
 
@@ -3356,15 +3347,32 @@ for (const path of scanFiles) {
   }
 
   if (accountUnavailablePageFiles.includes(path)) {
-    for (const marker of ['账户功能暂未开放', 'TerraPedia V0.1 先作为只读资料站发布', '先浏览资料：物品图鉴 / 搜索 / 合成树', 'href="/items"', 'href="/search"', 'href="/crafting"']) {
-      if (!content.includes(marker)) {
-        violations.push(`${path}: V0.1 account routes must render the unified unavailable state via marker ${marker}`)
+    for (const marker of ['账户功能暂未开放', 'TerraPedia V0.1 先作为只读资料站发布', '先浏览资料：物品图鉴 / 搜索 / 合成树']) {
+      if (content.includes(marker)) {
+        violations.push(`${path}: opened account route must not keep unavailable placeholder marker ${marker}`)
       }
     }
 
     for (const forbiddenTerm of forbiddenAccountUnavailableTerms) {
       if (content.includes(forbiddenTerm)) {
         violations.push(`${path}: V0.1 account unavailable page must not contain unfinished account placeholder term ${forbiddenTerm}`)
+      }
+    }
+
+    const openedAccountMarkers = {
+      'pages/user/index.vue': ['authStore.displayName', '/user/articles', '/user/settings'],
+      'pages/user/login.vue': ['authStore.login', '/user/register', '/user/forgot-password'],
+      'pages/user/register.vue': ['authStore.requestRegisterCode', 'authStore.register'],
+      'pages/user/forgot-password.vue': ['authStore.requestPasswordResetCode', 'authStore.resetPassword'],
+      'pages/user/articles/index.vue': ['authStore.fetchUserArticles', 'user-article-list'],
+      'pages/user/articles/new.vue': ['authStore.createUserArticle', 'contentHtml'],
+      'pages/user/favorites.vue': ['收藏功能', '暂不接入新数据表'],
+      'pages/user/settings.vue': ['authStore.updateProfile', 'authStore.changePassword', 'authStore.deleteAccount'],
+    }
+
+    for (const marker of openedAccountMarkers[path] ?? []) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: opened account route must include marker ${marker}`)
       }
     }
   }
@@ -3692,11 +3700,12 @@ for (const path of scanFiles) {
 
   if (path === 'pages/about.vue') {
     for (const marker of [
-      'TerraPedia 先以只读公开资料站开放',
+      'TerraPedia 先以公开资料站开放',
       '非官方 Terraria 中文资料站',
       '基础资料以公开资料和项目维护数据为参考，并通过本项目的数据链路整理',
       'Terraria 及相关名称、图像和商标归其权利方所有',
       '页面内容会随数据维护状态持续校正',
+      '账户、投稿和账号设置已开放',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: about page must include V0.1 source/disclaimer marker ${marker}`)

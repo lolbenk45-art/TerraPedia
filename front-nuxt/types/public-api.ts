@@ -16,6 +16,57 @@ export type Pagination = {
   totalPages?: number
 }
 
+export type UserProfile = {
+  id: number
+  email: string
+  displayName?: string | null
+  status?: number | null
+}
+
+export type UserAuthResponse = {
+  user: UserProfile
+  tokenType?: string | null
+  expiresAt?: number | null
+}
+
+export type UserRegisterCodeResponse = {
+  expiresInSeconds: number
+  cooldownSeconds: number
+  debugVerificationCode?: string | null
+}
+
+export type UserArticleStatus = 'DRAFT' | 'PUBLISHED' | 'OFFLINE'
+export type UserArticleReviewStatus = 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'
+
+export type UserArticle = {
+  id: number
+  title: string
+  slug?: string | null
+  summary?: string | null
+  coverImage?: string | null
+  contentHtml: string
+  contentMarkdown?: string | null
+  status: UserArticleStatus
+  reviewStatus?: UserArticleReviewStatus | null
+  reviewComment?: string | null
+  submittedAt?: string | null
+  reviewedAt?: string | null
+  reviewerName?: string | null
+  publishedAt?: string | null
+  authorId?: number | null
+  authorDisplayName?: string | null
+  createdAt?: string | null
+  updatedAt?: string | null
+}
+
+export type UserArticleUpsertPayload = {
+  title: string
+  slug?: string
+  summary?: string
+  coverImage?: string
+  contentHtml: string
+}
+
 export type PublicItemQuery = {
   page?: number
   limit?: number

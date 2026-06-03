@@ -30,6 +30,7 @@ export default defineNuxtConfig({
     '~/assets/css/tokens.css',
     '~/assets/css/primitives.css',
     '~/assets/css/domains/index.css',
+    '~/assets/css/pages/user.css',
     '~/assets/css/pages/exceptions.css',
   ],
 
