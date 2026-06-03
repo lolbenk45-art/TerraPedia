@@ -67,6 +67,11 @@ const closeMenu = () => {
   activeMenu.value = null
 }
 
+const accountInitials = computed(() => {
+  const source = authStore.displayName || authStore.user?.email || 'TP'
+  return Array.from(source.trim()).slice(0, 2).join('').toUpperCase() || 'TP'
+})
+
 const logout = async () => {
   await authStore.logout()
   closeMenu()
@@ -196,12 +201,18 @@ onBeforeUnmount(closeMenu)
       >
         <a
           class="account-avatar-link"
-          :class="{ active: isActive('/user') || activeMenu === 'account' }"
+          :class="{
+            active: isActive('/user') || activeMenu === 'account',
+            'has-user-avatar': Boolean(authStore.user?.avatarUrl),
+          }"
           href="/user"
           aria-label="TP 用户中心"
           aria-haspopup="true"
           :aria-expanded="activeMenu === 'account'"
-        >TP</a>
+        >
+          <img v-if="authStore.user?.avatarUrl" :src="authStore.user.avatarUrl" :alt="`${authStore.displayName} 的头像`" />
+          <span v-else>{{ accountInitials }}</span>
+        </a>
         <div class="account-menu-hover-bridge" aria-hidden="true"></div>
         <div
           class="account-menu-panel"
@@ -216,7 +227,10 @@ onBeforeUnmount(closeMenu)
               'account-state-guest': !authStore.loading && !authStore.isAuthenticated,
             }"
           >
-            <span><span class="sprite-icon icon-user compact" aria-hidden="true"></span></span>
+            <span class="account-menu-avatar">
+              <img v-if="authStore.user?.avatarUrl" :src="authStore.user.avatarUrl" :alt="`${authStore.displayName} 的头像`" />
+              <span v-else class="sprite-icon icon-user compact" aria-hidden="true"></span>
+            </span>
             <div>
               <b>{{ authStore.loading ? '正在检查登录状态' : authStore.displayName }}</b>
               <em>{{ authStore.isAuthenticated ? authStore.user?.email : '访客账号' }}</em>
@@ -232,3 +246,27 @@ onBeforeUnmount(closeMenu)
     </div>
   </header>
 </template>
+
+<style scoped>
+.account-avatar-link {
+  overflow: hidden;
+}
+
+.account-avatar-link img,
+.account-menu-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.account-avatar-link span {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.account-menu-avatar {
+  overflow: hidden;
+}
+</style>

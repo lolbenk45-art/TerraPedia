@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@ConditionalOnProperty(prefix = "terraria.storage.minio", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "terraria.storage.minio", name = "enabled", havingValue = "true")
 public class MinioObjectStorageServiceImpl implements ObjectStorageService {
 
     private final MinioClient minioClient;
@@ -93,6 +93,43 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
         return result;
     }
 
+    @Override
+    public FileUploadResultDTO uploadUserAvatar(MultipartFile file, Long userId, String contentType, String extension) {
+        if (!connectionDetails.enabled()) {
+            throw new IllegalStateException("MinIO storage is disabled");
+        }
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Avatar file is required");
+        }
+        if (userId == null || userId <= 0) {
+            throw new IllegalArgumentException("Invalid user id");
+        }
+        ensureBucketReady();
+
+        String objectKey = buildAvatarObjectKey(userId, extension);
+        try (InputStream inputStream = file.getInputStream()) {
+            minioClient.putObject(
+                PutObjectArgs.builder()
+                    .bucket(connectionDetails.bucket())
+                    .object(objectKey)
+                    .stream(inputStream, file.getSize(), -1)
+                    .contentType(contentType)
+                    .build()
+            );
+        } catch (Exception e) {
+            throw new IllegalStateException("上传头像到 MinIO 失败: " + e.getMessage(), e);
+        }
+
+        FileUploadResultDTO result = new FileUploadResultDTO();
+        result.setBucket(connectionDetails.bucket());
+        result.setObjectKey(objectKey);
+        result.setUrl(buildPublicObjectUrl(objectKey));
+        result.setOriginalFilename(file.getOriginalFilename());
+        result.setContentType(contentType);
+        result.setSize(file.getSize());
+        return result;
+    }
+
     private void ensureBucketReady() {
         if (bucketReady.get()) {
             return;
@@ -144,6 +181,22 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
             + "/"
             + UUID.randomUUID().toString().replace("-", "")
             + extension;
+    }
+
+    private String buildAvatarObjectKey(Long userId, String extension) {
+        LocalDate today = LocalDate.now();
+        String normalizedExtension = StringUtils.hasText(extension) && extension.startsWith(".") ? extension : ".bin";
+        return "avatars/"
+            + userId
+            + "/"
+            + today.getYear()
+            + "/"
+            + String.format("%02d", today.getMonthValue())
+            + "/"
+            + String.format("%02d", today.getDayOfMonth())
+            + "/"
+            + UUID.randomUUID().toString().replace("-", "")
+            + normalizedExtension;
     }
 
     private String resolveObjectPrefix(String entityDomain) {

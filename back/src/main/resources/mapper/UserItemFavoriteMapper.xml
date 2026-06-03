@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.terraria.skills.mapper.UserItemFavoriteMapper">
+
+    <select id="selectByUserAndItemIncludeDeleted" resultType="com.terraria.skills.entity.UserItemFavorite">
+        SELECT id, user_id AS userId, item_id AS itemId, deleted, created_at AS createdAt, updated_at AS updatedAt
+        FROM user_item_favorites
+        WHERE user_id = #{userId}
+          AND item_id = #{itemId}
+        LIMIT 1
+    </select>
+
+    <update id="reactivate">
+        UPDATE user_item_favorites
+        SET deleted = 0,
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="softDelete">
+        UPDATE user_item_favorites
+        SET deleted = 1,
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND item_id = #{itemId}
+          AND deleted = 0
+    </update>
+
+    <select id="selectFavoritedItemIds" resultType="java.lang.Long">
+        SELECT item_id
+        FROM user_item_favorites
+        WHERE user_id = #{userId}
+          AND deleted = 0
+          <choose>
+              <when test="itemIds != null and itemIds.size() > 0">
+                  AND item_id IN
+                  <foreach collection="itemIds" item="itemId" open="(" separator="," close=")">
+                      #{itemId}
+                  </foreach>
+              </when>
+              <otherwise>
+                  AND 1 = 0
+              </otherwise>
+          </choose>
+    </select>
+
+    <select id="countActiveByUser" resultType="long">
+        SELECT COUNT(*)
+        FROM user_item_favorites uif
+        INNER JOIN items i ON i.id = uif.item_id AND i.deleted = 0 AND (i.status IS NULL OR i.status = 1)
+        WHERE uif.user_id = #{userId}
+          AND uif.deleted = 0
+    </select>
+
+    <select id="selectActiveFavoritesPage" resultType="com.terraria.skills.dto.UserFavoriteDTO">
+        SELECT
+            'ITEM' AS targetType,
+            i.id AS targetId,
+            COALESCE(NULLIF(i.name_zh, ''), i.name, i.internal_name) AS title,
+            COALESCE(
+                (
+                    SELECT ii.cached_url
+                    FROM item_images ii
+                    WHERE ii.item_id = i.id
+                      AND ii.deleted = 0
+                      AND ii.status = 1
+                      AND NULLIF(TRIM(ii.cached_url), '') IS NOT NULL
+                    ORDER BY
+                        CASE WHEN ii.is_primary = 1 THEN 0 ELSE 1 END,
+                        ii.sort_order ASC,
+                        ii.id ASC
+                    LIMIT 1
+                ),
+                NULLIF(TRIM(i.image), '')
+            ) AS imageUrl,
+            CONCAT('/items/', i.id) AS url,
+            uif.created_at AS createdAt
+        FROM user_item_favorites uif
+        INNER JOIN items i ON i.id = uif.item_id AND i.deleted = 0 AND (i.status IS NULL OR i.status = 1)
+        WHERE uif.user_id = #{userId}
+          AND uif.deleted = 0
+        ORDER BY uif.created_at DESC, uif.id DESC
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+
+</mapper>

@@ -7,18 +7,22 @@ import com.terraria.skills.auth.UserAuthProperties;
 import com.terraria.skills.auth.UserJwtService;
 import com.terraria.skills.auth.UserRefreshTokenStoreService;
 import com.terraria.skills.auth.UserTokenClaims;
+import com.terraria.skills.dto.FileUploadResultDTO;
 import com.terraria.skills.dto.UserProfileDTO;
 import com.terraria.skills.dto.UserRegisterCodeResponseDTO;
 import com.terraria.skills.dto.UserSessionDTO;
 import com.terraria.skills.entity.User;
 import com.terraria.skills.mapper.UserMapper;
+import com.terraria.skills.service.ObjectStorageService;
 import com.terraria.skills.service.SecurityAuditService;
 import com.terraria.skills.service.UserAuthService;
+import com.terraria.skills.service.UserAvatarValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -41,6 +45,7 @@ public class UserAuthServiceImpl implements UserAuthService {
     private final LoginRateLimitService loginRateLimitService;
     private final RegisterVerificationService registerVerificationService;
     private final SecurityAuditService securityAuditService;
+    private final ObjectStorageService objectStorageService;
 
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(12);
     private final SecureRandom secureRandom = new SecureRandom();
@@ -206,6 +211,39 @@ public class UserAuthServiceImpl implements UserAuthService {
     }
 
     @Override
+    public UserProfileDTO uploadAvatar(Long userId, MultipartFile file, String ipAddress) {
+        User user = requireActiveUser(userId);
+        UserAvatarValidator.AvatarImage avatarImage = UserAvatarValidator.validateAndResolve(file);
+        FileUploadResultDTO uploadResult = objectStorageService.uploadUserAvatar(
+            file,
+            userId,
+            avatarImage.contentType(),
+            avatarImage.extension()
+        );
+
+        LocalDateTime now = LocalDateTime.now();
+        userMapper.updateAvatar(userId, uploadResult.getUrl(), uploadResult.getObjectKey(), now);
+        user.setAvatarUrl(uploadResult.getUrl());
+        user.setAvatarObjectKey(uploadResult.getObjectKey());
+        user.setAvatarUpdatedAt(now);
+
+        securityAuditService.log("USER_AVATAR_UPDATED", "USER", userId, user.getEmail(), ipAddress, "objectKey=" + uploadResult.getObjectKey());
+        return toProfile(user);
+    }
+
+    @Override
+    public UserProfileDTO deleteAvatar(Long userId, String ipAddress) {
+        User user = requireActiveUser(userId);
+        userMapper.clearAvatar(userId);
+        user.setAvatarUrl(null);
+        user.setAvatarObjectKey(null);
+        user.setAvatarUpdatedAt(null);
+
+        securityAuditService.log("USER_AVATAR_REMOVED", "USER", userId, user.getEmail(), ipAddress, null);
+        return toProfile(user);
+    }
+
+    @Override
     public void changePassword(Long userId, String currentPassword, String newPassword, String ipAddress) {
         User user = requireActiveUser(userId);
         if (currentPassword == null || currentPassword.isBlank()) {
@@ -303,6 +341,7 @@ public class UserAuthServiceImpl implements UserAuthService {
             .id(user.getId())
             .email(user.getEmail())
             .displayName(user.getDisplayName())
+            .avatarUrl(user.getAvatarUrl())
             .status(user.getStatus())
             .build();
     }

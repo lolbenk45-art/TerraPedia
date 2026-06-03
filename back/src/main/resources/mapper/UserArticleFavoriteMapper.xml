@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.terraria.skills.mapper.UserArticleFavoriteMapper">
+
+    <select id="selectByUserAndArticleIncludeDeleted" resultType="com.terraria.skills.entity.UserArticleFavorite">
+        SELECT id, user_id AS userId, article_id AS articleId, deleted, created_at AS createdAt, updated_at AS updatedAt
+        FROM user_article_favorites
+        WHERE user_id = #{userId}
+          AND article_id = #{articleId}
+        LIMIT 1
+    </select>
+
+    <update id="reactivate">
+        UPDATE user_article_favorites
+        SET deleted = 0,
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="softDelete">
+        UPDATE user_article_favorites
+        SET deleted = 1,
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND article_id = #{articleId}
+          AND deleted = 0
+    </update>
+
+    <select id="selectFavoritedArticleIds" resultType="java.lang.Long">
+        SELECT article_id
+        FROM user_article_favorites
+        WHERE user_id = #{userId}
+          AND deleted = 0
+          <choose>
+              <when test="articleIds != null and articleIds.size() > 0">
+                  AND article_id IN
+                  <foreach collection="articleIds" item="articleId" open="(" separator="," close=")">
+                      #{articleId}
+                  </foreach>
+              </when>
+              <otherwise>
+                  AND 1 = 0
+              </otherwise>
+          </choose>
+    </select>
+
+    <select id="countActiveByUser" resultType="long">
+        SELECT COUNT(*)
+        FROM user_article_favorites uaf
+        INNER JOIN articles a ON a.id = uaf.article_id AND a.deleted = 0 AND a.status = 'PUBLISHED'
+        WHERE uaf.user_id = #{userId}
+          AND uaf.deleted = 0
+    </select>
+
+    <select id="selectActiveFavoritesPage" resultType="com.terraria.skills.dto.UserFavoriteDTO">
+        SELECT
+            'ARTICLE' AS targetType,
+            a.id AS targetId,
+            a.title AS title,
+            a.cover_image AS imageUrl,
+            CONCAT('/articles/', a.slug) AS url,
+            uaf.created_at AS createdAt
+        FROM user_article_favorites uaf
+        INNER JOIN articles a ON a.id = uaf.article_id AND a.deleted = 0 AND a.status = 'PUBLISHED'
+        WHERE uaf.user_id = #{userId}
+          AND uaf.deleted = 0
+        ORDER BY uaf.created_at DESC, uaf.id DESC
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+
+</mapper>

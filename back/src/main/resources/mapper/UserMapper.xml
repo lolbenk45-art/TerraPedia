@@ -8,6 +8,9 @@
             email,
             password_hash AS passwordHash,
             display_name AS displayName,
+            avatar_url AS avatarUrl,
+            avatar_object_key AS avatarObjectKey,
+            avatar_updated_at AS avatarUpdatedAt,
             status,
             last_login_at AS lastLoginAt,
             deleted,
@@ -25,6 +28,9 @@
             email,
             password_hash AS passwordHash,
             display_name AS displayName,
+            avatar_url AS avatarUrl,
+            avatar_object_key AS avatarObjectKey,
+            avatar_updated_at AS avatarUpdatedAt,
             status,
             last_login_at AS lastLoginAt,
             deleted,
@@ -40,11 +46,34 @@
         SET
             password_hash = #{passwordHash},
             display_name = #{displayName},
+            avatar_url = NULL,
+            avatar_object_key = NULL,
+            avatar_updated_at = NULL,
             status = #{status},
             deleted = 0,
             last_login_at = #{lastLoginAt},
             updated_at = NOW()
         WHERE id = #{id}
+    </update>
+
+    <update id="updateAvatar">
+        UPDATE users
+        SET avatar_url = #{avatarUrl},
+            avatar_object_key = #{avatarObjectKey},
+            avatar_updated_at = #{avatarUpdatedAt},
+            updated_at = NOW()
+        WHERE id = #{id}
+          AND deleted = 0
+    </update>
+
+    <update id="clearAvatar">
+        UPDATE users
+        SET avatar_url = NULL,
+            avatar_object_key = NULL,
+            avatar_updated_at = NULL,
+            updated_at = NOW()
+        WHERE id = #{id}
+          AND deleted = 0
     </update>
 
     <select id="selectAdminUsersPage" resultType="com.terraria.skills.dto.AdminUserListItemDTO">

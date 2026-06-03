@@ -1,9 +1,13 @@
 import type {
   ApiResponse,
   Pagination,
+  FavoriteTargetType,
   UserArticle,
   UserArticleUpsertPayload,
   UserAuthResponse,
+  UserFavorite,
+  UserFavoriteStatus,
+  UserFavoriteTypeFilter,
   UserProfile,
   UserRegisterCodeResponse,
 } from '~/types/public-api'
@@ -12,6 +16,11 @@ export { buildUserPostAuthRedirectTarget, buildUserRedirectTarget } from '~/lib/
 
 type UserArticleListResponse = {
   items: UserArticle[]
+  pagination: Pagination
+}
+
+type UserFavoriteListResponse = {
+  items: UserFavorite[]
   pagination: Pagination
 }
 
@@ -67,6 +76,74 @@ const toArticlePayload = (payload: UserArticleUpsertPayload) => ({
   contentHtml: payload.contentHtml.trim(),
 })
 
+const normalizeFavoriteTargetType = (value: unknown): FavoriteTargetType => {
+  const targetType = String(value ?? 'ITEM').toUpperCase()
+  return targetType === 'ARTICLE' ? 'ARTICLE' : 'ITEM'
+}
+
+const favoriteTypePathSegment = (targetType: FavoriteTargetType) => targetType === 'ARTICLE' ? 'articles' : 'items'
+
+const normalizeFavoriteStatus = (raw: Partial<UserFavoriteStatus> | boolean | null | undefined, targetType: FavoriteTargetType, targetId: number | string): UserFavoriteStatus => {
+  if (typeof raw === 'boolean') {
+    return { targetType, targetId, favorite: raw }
+  }
+
+  const rawRecord = raw ?? {}
+  const favorite = Boolean(rawRecord.favorite ?? rawRecord.favorited)
+  return {
+    targetType: normalizeFavoriteTargetType(rawRecord.targetType ?? targetType),
+    targetId: rawRecord.targetId ?? targetId,
+    favorite,
+    favorited: favorite,
+    createdAt: rawRecord.createdAt ?? null,
+  }
+}
+
+const normalizeFavorite = (raw: Partial<UserFavorite> | null | undefined): UserFavorite => {
+  const targetType = normalizeFavoriteTargetType(raw?.targetType)
+  const targetId = raw?.targetId ?? raw?.id ?? ''
+  const fallbackPath = `/${favoriteTypePathSegment(targetType)}/${targetId}`
+
+  return {
+    id: raw?.id ?? `${targetType}:${targetId}`,
+    targetType,
+    targetId,
+    title: String(raw?.title ?? ''),
+    imageUrl: raw?.imageUrl ?? null,
+    url: raw?.url || fallbackPath,
+    createdAt: raw?.createdAt ?? null,
+  }
+}
+
+const normalizeFavoriteStatuses = (
+  raw: Record<string, Partial<UserFavoriteStatus> | boolean> | Array<Partial<UserFavoriteStatus>> | null | undefined,
+  targetType: FavoriteTargetType,
+  ids: Array<number | string>,
+): Record<string, UserFavoriteStatus> => {
+  const statuses: Record<string, UserFavoriteStatus> = {}
+
+  for (const id of ids) {
+    statuses[String(id)] = normalizeFavoriteStatus(false, targetType, id)
+  }
+
+  if (Array.isArray(raw)) {
+    for (const status of raw) {
+      const targetId = status.targetId
+      if (targetId == null) continue
+      statuses[String(targetId)] = normalizeFavoriteStatus(status, targetType, targetId)
+    }
+    return statuses
+  }
+
+  if (raw && typeof raw === 'object') {
+    for (const [id, status] of Object.entries(raw)) {
+      statuses[id] = normalizeFavoriteStatus(status, targetType, id)
+    }
+  }
+
+  return statuses
+}
+
 export const extractUserApiError = (error: unknown, fallback = '请求失败，请稍后重试。') => {
   if (error && typeof error === 'object') {
     const data = (error as { data?: { message?: string, error?: string } }).data
@@ -92,6 +169,15 @@ export const loginUser = async (payload: { email: string, password: string }): P
 
 export const fetchCurrentUser = async (): Promise<UserProfile> =>
   unwrapApiResponse(await userFetch<UserProfile>('/user-auth/me'))
+
+export const uploadUserAvatar = async (file: File): Promise<UserProfile> => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return unwrapApiResponse(await userFetch<UserProfile>('/user-auth/avatar', { method: 'POST', body: formData }))
+}
+
+export const deleteUserAvatar = async (): Promise<UserProfile> =>
+  unwrapApiResponse(await userFetch<UserProfile>('/user-auth/avatar', { method: 'DELETE' }))
 
 export const logoutUser = async (): Promise<void> => {
   await userFetch<void>('/user-auth/logout', { method: 'POST' })
@@ -121,3 +207,42 @@ export const fetchUserArticles = async (page = 1, limit = 10, keyword = ''): Pro
 
 export const createUserArticle = async (payload: UserArticleUpsertPayload): Promise<UserArticle> =>
   normalizeUserArticle(unwrapApiResponse(await userFetch<UserArticle>('/user/articles', { method: 'POST', body: toArticlePayload(payload) })))
+
+export const fetchUserFavorites = async (params: { type?: UserFavoriteTypeFilter, page?: number, limit?: number } = {}): Promise<UserFavoriteListResponse> => {
+  const page = params.page ?? 1
+  const limit = params.limit ?? 20
+  const response = await userFetch<UserFavorite[]>('/user/favorites', {
+    query: { type: params.type ?? 'all', page, limit },
+  })
+  const data = response as ApiResponse<UserFavorite[]>
+  return {
+    items: Array.isArray(data.data) ? data.data.map(normalizeFavorite) : [],
+    pagination: data.pagination ?? { total: 0, page, limit, totalPages: 1 },
+  }
+}
+
+export const fetchUserFavoriteStatuses = async (
+  targetType: FavoriteTargetType,
+  ids: Array<number | string>,
+): Promise<Record<string, UserFavoriteStatus>> => {
+  const normalizedIds = ids.map((id) => String(id).trim()).filter(Boolean)
+  if (!normalizedIds.length) return {}
+
+  const response = await userFetch<Record<string, UserFavoriteStatus> | UserFavoriteStatus[]>(`/user/favorites/${favoriteTypePathSegment(targetType)}/status`, {
+    query: { ids: normalizedIds.join(',') },
+  })
+
+  return normalizeFavoriteStatuses(unwrapApiResponse(response), targetType, normalizedIds)
+}
+
+export const addItemFavorite = async (itemId: number | string): Promise<UserFavoriteStatus> =>
+  normalizeFavoriteStatus(unwrapApiResponse(await userFetch<UserFavoriteStatus>(`/user/favorites/items/${itemId}`, { method: 'PUT' })), 'ITEM', itemId)
+
+export const deleteItemFavorite = async (itemId: number | string): Promise<UserFavoriteStatus> =>
+  normalizeFavoriteStatus(unwrapApiResponse(await userFetch<UserFavoriteStatus>(`/user/favorites/items/${itemId}`, { method: 'DELETE' })), 'ITEM', itemId)
+
+export const addArticleFavorite = async (articleId: number | string): Promise<UserFavoriteStatus> =>
+  normalizeFavoriteStatus(unwrapApiResponse(await userFetch<UserFavoriteStatus>(`/user/favorites/articles/${articleId}`, { method: 'PUT' })), 'ARTICLE', articleId)
+
+export const deleteArticleFavorite = async (articleId: number | string): Promise<UserFavoriteStatus> =>
+  normalizeFavoriteStatus(unwrapApiResponse(await userFetch<UserFavoriteStatus>(`/user/favorites/articles/${articleId}`, { method: 'DELETE' })), 'ARTICLE', articleId)

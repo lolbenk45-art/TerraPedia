@@ -33,7 +33,10 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
 
@@ -143,6 +146,32 @@ public class UserAuthController {
             getClientIp(httpRequest)
         );
         return ResponseEntity.ok(ApiResponse.success(profile, "Profile updated"));
+    }
+
+    @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload current user avatar")
+    public ResponseEntity<ApiResponse<UserProfileDTO>> uploadAvatar(
+        @RequestPart("file") MultipartFile file,
+        HttpServletRequest httpRequest
+    ) {
+        UserTokenClaims claims = getRequiredClaims(httpRequest);
+        UserProfileDTO profile = userAuthService.uploadAvatar(
+            claims.getUserId(),
+            file,
+            getClientIp(httpRequest)
+        );
+        return ResponseEntity.ok(ApiResponse.success(profile, "Avatar updated"));
+    }
+
+    @DeleteMapping("/avatar")
+    @Operation(summary = "Remove current user avatar")
+    public ResponseEntity<ApiResponse<UserProfileDTO>> deleteAvatar(HttpServletRequest httpRequest) {
+        UserTokenClaims claims = getRequiredClaims(httpRequest);
+        UserProfileDTO profile = userAuthService.deleteAvatar(
+            claims.getUserId(),
+            getClientIp(httpRequest)
+        );
+        return ResponseEntity.ok(ApiResponse.success(profile, "Avatar removed"));
     }
 
     @PatchMapping("/password")

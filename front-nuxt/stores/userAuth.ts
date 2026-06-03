@@ -3,6 +3,7 @@ import type { UserArticle, UserArticleUpsertPayload, UserProfile } from '~/types
 import {
   changeUserPassword,
   createUserArticle,
+  deleteUserAvatar,
   extractUserApiError,
   fetchCurrentUser,
   fetchUserArticles,
@@ -12,6 +13,7 @@ import {
   resetUserPassword,
   sendRegisterCode,
   sendPasswordResetCode,
+  uploadUserAvatar,
   updateUserProfile,
 } from '~/composables/useUserApi'
 
@@ -194,6 +196,37 @@ export const useUserAuthStore = defineStore('user-auth', () => {
     }
   }
 
+  const uploadAvatar = async (file: File) => {
+    if (!file || file.size <= 0) {
+      throw new Error('请选择头像图片。')
+    }
+    submitting.value = true
+    lastError.value = ''
+    try {
+      user.value = await uploadUserAvatar(file)
+      initialized.value = true
+      return user.value
+    } catch (error) {
+      throw new Error(setError(error, '头像上传失败。'))
+    } finally {
+      submitting.value = false
+    }
+  }
+
+  const deleteAvatar = async () => {
+    submitting.value = true
+    lastError.value = ''
+    try {
+      user.value = await deleteUserAvatar()
+      initialized.value = true
+      return user.value
+    } catch (error) {
+      throw new Error(setError(error, '头像移除失败。'))
+    } finally {
+      submitting.value = false
+    }
+  }
+
   const resetPassword = async (payload: { email: string, verificationCode: string, newPassword: string }) => {
     submitting.value = true
     lastError.value = ''
@@ -269,6 +302,8 @@ export const useUserAuthStore = defineStore('user-auth', () => {
     register,
     logout,
     updateProfile,
+    uploadAvatar,
+    deleteAvatar,
     changePassword,
     resetPassword,
     fetchUserArticles: loadUserArticles,

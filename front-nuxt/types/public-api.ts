@@ -1278,12 +1278,37 @@ export type UserProfile = {
   email: string
   displayName: string | null
   status: number | null
+  avatarUrl?: string | null
+  avatarObjectKey?: string | null
+  avatarUpdatedAt?: string | null
 }
 
 export type UserAuthResponse = {
   user: UserProfile
   tokenType?: string | null
   expiresAt?: number | null
+}
+
+export type FavoriteTargetType = 'ITEM' | 'ARTICLE'
+
+export type UserFavoriteTypeFilter = 'all' | 'items' | 'articles'
+
+export type UserFavorite = {
+  id?: number | string | null
+  targetType: FavoriteTargetType
+  targetId: number | string
+  title: string
+  imageUrl?: string | null
+  url: string
+  createdAt?: string | null
+}
+
+export type UserFavoriteStatus = {
+  targetType: FavoriteTargetType
+  targetId: number | string
+  favorite: boolean
+  favorited?: boolean
+  createdAt?: string | null
 }
 
 export type UserRegisterCodeResponse = {

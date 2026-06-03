@@ -4,6 +4,7 @@ import com.terraria.skills.auth.UserTokenClaims;
 import com.terraria.skills.dto.UserProfileDTO;
 import com.terraria.skills.dto.UserRegisterCodeResponseDTO;
 import com.terraria.skills.dto.UserSessionDTO;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface UserAuthService {
 
@@ -20,6 +21,10 @@ public interface UserAuthService {
     UserSessionDTO buildSessionFromClaims(UserTokenClaims claims);
 
     UserProfileDTO updateProfile(Long userId, String displayName, String ipAddress);
+
+    UserProfileDTO uploadAvatar(Long userId, MultipartFile file, String ipAddress);
+
+    UserProfileDTO deleteAvatar(Long userId, String ipAddress);
 
     void changePassword(Long userId, String currentPassword, String newPassword, String ipAddress);
 

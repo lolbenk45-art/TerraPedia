@@ -9,5 +9,6 @@ public class UserProfileDTO {
     private Long id;
     private String email;
     private String displayName;
+    private String avatarUrl;
     private Integer status;
 }

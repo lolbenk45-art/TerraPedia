@@ -8,4 +8,6 @@ public interface ObjectStorageService {
     FileUploadResultDTO uploadItemImage(MultipartFile file);
 
     FileUploadResultDTO uploadItemImage(MultipartFile file, String entityDomain);
+
+    FileUploadResultDTO uploadUserAvatar(MultipartFile file, Long userId, String contentType, String extension);
 }

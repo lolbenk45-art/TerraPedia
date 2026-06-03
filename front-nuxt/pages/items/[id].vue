@@ -16,11 +16,14 @@ import type {
 
 const route = useRoute()
 const detailLayout = useDetailLayout({ kind: 'item', density: 'readable' })
+const authStore = useUserAuthStore()
+const favoritesStore = useUserFavoritesStore()
 
 const itemId = computed(() => String(route.params.id ?? '').trim())
 const { data: detailBundle, pending: detailPending, error: detailError } = await usePublicItemDetail(itemId)
 const detailClientReady = ref(false)
 const selectedRecipeVariantKey = ref('')
+const favoriteError = ref('')
 
 const firstText = (...values: unknown[]) => {
   for (const value of values) {
@@ -129,6 +132,9 @@ const itemImage = computed(() => firstImageUrl(
 ))
 
 const itemFallbackGlyph = computed(() => Array.from(itemName.value)[0] ?? '?')
+const itemFavoriteId = computed(() => firstText(detailItem.value?.id, detailItem.value?.itemId, itemId.value))
+const itemFavoriteStatus = computed(() => itemFavoriteId.value ? favoritesStore.getStatus('ITEM', itemFavoriteId.value) : null)
+const itemIsFavorite = computed(() => Boolean(itemFavoriteStatus.value?.favorite))
 const sourceLabel = computed(() => rawBundle.value?.source === 'api' ? '详情资料' : '资料整理中')
 const imageRoleLabel = (image: PublicItemImage, index?: number) => {
   const role = firstText(image.role, image.type).toLowerCase()
@@ -498,8 +504,36 @@ const itemCoverageRows = computed(() => [
   { label: '图片', value: imageEntries.value.length ? `${imageEntries.value.length} 张图片` : '暂无图片' },
 ])
 
+const loadItemFavoriteStatus = async () => {
+  if (!itemFavoriteId.value) return
+  favoriteError.value = ''
+  try {
+    await authStore.init()
+    if (authStore.isAuthenticated) {
+      await favoritesStore.loadStatuses('ITEM', [itemFavoriteId.value])
+    }
+  } catch {
+    favoriteError.value = '收藏状态暂时无法同步。'
+  }
+}
+
+const toggleItemFavorite = async () => {
+  if (!itemFavoriteId.value) return
+  favoriteError.value = ''
+  try {
+    await favoritesStore.toggleItemFavorite(itemFavoriteId.value)
+  } catch (exception: unknown) {
+    favoriteError.value = exception instanceof Error ? exception.message : '收藏操作失败。'
+  }
+}
+
+watch(itemFavoriteId, () => {
+  void loadItemFavoriteStatus()
+})
+
 onMounted(() => {
   detailClientReady.value = true
+  void loadItemFavoriteStatus()
 })
 </script>
 
@@ -546,6 +580,20 @@ onMounted(() => {
             <span class="tag moss">{{ itemPeriod }}</span>
             <span class="tag paper">{{ itemRarity }}</span>
             <span v-if="detailPending" class="tag paper">同步中</span>
+          </div>
+          <div class="item-favorite-actions">
+            <button
+              class="item-favorite-button"
+              :class="{ active: itemIsFavorite }"
+              type="button"
+              :disabled="favoritesStore.mutating || !itemFavoriteId"
+              :aria-pressed="itemIsFavorite"
+              @click="toggleItemFavorite"
+            >
+              <span class="sprite-icon icon-favorites compact" aria-hidden="true"></span>
+              <span>{{ itemIsFavorite ? '已收藏' : '收藏物品' }}</span>
+            </button>
+            <span v-if="favoriteError" class="item-favorite-error">{{ favoriteError }}</span>
           </div>
         </div>
         <aside class="detail-side">
@@ -770,6 +818,47 @@ onMounted(() => {
 
 .item-recipe-summary-link {
   width: fit-content;
+}
+
+.item-favorite-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.item-favorite-button {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  min-width: 116px;
+  min-height: 38px;
+  border: 1px solid color-mix(in srgb, var(--accent-gold) 36%, var(--index-line));
+  border-radius: 999px;
+  background: var(--index-surface);
+  color: var(--text-strong);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.item-favorite-button.active {
+  background: color-mix(in srgb, var(--accent-gold) 18%, var(--index-surface));
+}
+
+.item-favorite-button:disabled {
+  opacity: 0.62;
+  cursor: wait;
+}
+
+.item-favorite-error {
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .item-source-module,

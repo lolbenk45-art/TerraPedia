@@ -24,6 +24,15 @@ public interface UserMapper extends BaseMapper<User> {
         @Param("lastLoginAt") LocalDateTime lastLoginAt
     );
 
+    int updateAvatar(
+        @Param("id") Long id,
+        @Param("avatarUrl") String avatarUrl,
+        @Param("avatarObjectKey") String avatarObjectKey,
+        @Param("avatarUpdatedAt") LocalDateTime avatarUpdatedAt
+    );
+
+    int clearAvatar(@Param("id") Long id);
+
     Page<AdminUserListItemDTO> selectAdminUsersPage(
         Page<AdminUserListItemDTO> page,
         @Param("email") String email,

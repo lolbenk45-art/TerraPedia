@@ -34,7 +34,10 @@ const articleTotal = computed(() => Number(authStore.articlePagination.total ?? 
 
     <main class="user-layout">
       <section class="user-hero support-panel" :class="authStore.isAuthenticated ? 'account-state-authenticated' : 'account-state-guest'">
-        <div class="user-avatar"><span class="sprite-icon icon-user" aria-hidden="true"></span></div>
+        <div class="user-avatar">
+          <img v-if="authStore.user?.avatarUrl" :src="authStore.user.avatarUrl" :alt="`${authStore.displayName} 的头像`" />
+          <span v-else class="sprite-icon icon-user" aria-hidden="true"></span>
+        </div>
         <div>
           <span class="eyebrow">{{ authStore.isAuthenticated ? '已登录' : '访客视图' }}</span>
           <h2>{{ authStore.isAuthenticated ? authStore.displayName : '把个人资料动作收进一个清晰的控制台' }}</h2>
@@ -57,8 +60,8 @@ const articleTotal = computed(() => Number(authStore.articlePagination.total ?? 
         <a class="user-action-card support-panel active" href="/user/favorites">
           <span class="sprite-icon icon-favorites card-icon" aria-hidden="true"></span>
           <b>收藏夹</b>
-          <span>收藏接口暂未开放，先保留视觉入口</span>
-          <em>{{ authStore.isAuthenticated ? '待接入' : '登录后' }}</em>
+          <span>保存的物品和文章会集中显示在这里</span>
+          <em>{{ authStore.isAuthenticated ? '已接入' : '登录后' }}</em>
         </a>
         <a class="user-action-card support-panel" href="/user/articles">
           <span class="sprite-icon icon-article card-icon" aria-hidden="true"></span>
@@ -103,3 +106,15 @@ const articleTotal = computed(() => Number(authStore.articlePagination.total ?? 
     <TerraFooter />
   </section>
 </template>
+
+<style scoped>
+.user-avatar {
+  overflow: hidden;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+</style>

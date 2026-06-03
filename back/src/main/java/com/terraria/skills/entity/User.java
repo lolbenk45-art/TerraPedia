@@ -28,6 +28,15 @@ public class User implements Serializable {
     @TableField("display_name")
     private String displayName;
 
+    @TableField("avatar_url")
+    private String avatarUrl;
+
+    @TableField("avatar_object_key")
+    private String avatarObjectKey;
+
+    @TableField("avatar_updated_at")
+    private LocalDateTime avatarUpdatedAt;
+
     @TableField("status")
     private Integer status;
 
