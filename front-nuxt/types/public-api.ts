@@ -1272,3 +1272,51 @@ export type PublicRecipeTreeResult = {
   tree: PublicItemRecipeTree | null
   source: 'api' | 'missing'
 }
+
+export type UserProfile = {
+  id: number
+  email: string
+  displayName: string | null
+  status: number | null
+}
+
+export type UserAuthResponse = {
+  user: UserProfile
+  tokenType?: string | null
+  expiresAt?: number | null
+}
+
+export type UserRegisterCodeResponse = {
+  expiresInSeconds?: number | null
+  cooldownSeconds?: number | null
+  debugVerificationCode?: string | null
+}
+
+export type UserArticle = {
+  id: number
+  title: string
+  slug: string | null
+  summary: string | null
+  coverImage: string | null
+  contentHtml: string
+  contentMarkdown?: string | null
+  status: 'DRAFT' | 'PUBLISHED' | 'OFFLINE'
+  reviewStatus: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'
+  reviewComment: string | null
+  reviewedAt: string | null
+  submittedAt: string | null
+  reviewerName: string | null
+  publishedAt: string | null
+  authorId: number | null
+  authorDisplayName: string | null
+  createdAt: string | null
+  updatedAt: string | null
+}
+
+export type UserArticleUpsertPayload = {
+  title: string
+  slug?: string | null
+  summary?: string | null
+  coverImage?: string | null
+  contentHtml: string
+}

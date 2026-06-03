@@ -1132,6 +1132,7 @@ h4,
 .account-menu-head b {
   color: var(--paper);
   font-size: 14px;
+  overflow-wrap: anywhere;
 }
 
 .account-menu-head em {
@@ -1139,6 +1140,19 @@ h4,
   color: rgba(244, 234, 208, 0.5);
   font-size: 12px;
   font-style: normal;
+  overflow-wrap: anywhere;
+}
+
+.account-state-authenticated {
+  border-color: rgba(157, 184, 154, 0.34);
+}
+
+.account-state-guest {
+  border-color: var(--index-line);
+}
+
+.account-state-loading {
+  opacity: 0.82;
 }
 
 .account-menu-panel a {
@@ -7851,7 +7865,10 @@ img[data-preview-fallback] {
 
 .user-form-panel input,
 .settings-panel input,
-.settings-panel textarea {
+.settings-panel textarea,
+.editor-field input,
+.editor-field textarea,
+.editor-body-placeholder textarea {
   width: 100%;
   min-height: 48px;
   border: 1px solid var(--index-line);
@@ -7861,9 +7878,83 @@ img[data-preview-fallback] {
   padding: 12px 14px;
 }
 
+.user-form-panel input:disabled,
+.settings-panel input:disabled,
+.settings-panel textarea:disabled,
+.editor-field input:disabled,
+.editor-field textarea:disabled,
+.editor-body-placeholder textarea:disabled,
+.primary-button:disabled,
+.secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 .settings-panel textarea {
   min-height: 124px;
   resize: vertical;
+}
+
+.user-settings-form {
+  display: grid;
+  gap: 16px;
+}
+
+.user-settings-form + .user-settings-form {
+  margin-top: 10px;
+  border-top: 1px solid var(--index-line);
+  padding-top: 22px;
+}
+
+.user-field-hint,
+.user-form-status,
+.user-empty-state {
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  background: rgba(244,234,208,0.025);
+  color: rgba(244, 234, 208, 0.68);
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.user-field-hint {
+  border-style: dashed;
+}
+
+.user-form-error {
+  border-color: rgba(244, 103, 103, 0.42);
+  background: rgba(244, 103, 103, 0.08);
+  color: #ffc0b8;
+}
+
+.user-form-success {
+  border-color: rgba(157, 184, 154, 0.45);
+  background: rgba(157, 184, 154, 0.08);
+  color: #d6f2c9;
+}
+
+.user-empty-state {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.user-empty-state b {
+  color: var(--gold-2);
+  font-size: 18px;
+}
+
+.user-empty-state a {
+  justify-self: start;
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  color: #ffd765;
+  padding: 8px 10px;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .form-footnote {
@@ -7897,6 +7988,18 @@ img[data-preview-fallback] {
   padding: 18px;
 }
 
+.editor-field {
+  display: grid;
+  gap: 10px;
+}
+
+.editor-field > span,
+.editor-body-placeholder > b {
+  color: var(--gold-2);
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .editor-field.title {
   margin-top: 18px;
   font-size: 30px;
@@ -7911,10 +8014,9 @@ img[data-preview-fallback] {
 
 .editor-body-placeholder {
   display: grid;
-  place-items: center;
+  gap: 12px;
   min-height: 300px;
   margin-top: 14px;
-  text-align: center;
 }
 
 .editor-body-placeholder b {
@@ -7926,6 +8028,15 @@ img[data-preview-fallback] {
   max-width: 440px;
   color: rgba(244, 234, 208, 0.56);
   line-height: 1.6;
+}
+
+.editor-body-placeholder textarea {
+  min-height: 300px;
+  resize: vertical;
+}
+
+.editor-field textarea {
+  resize: vertical;
 }
 
 .editor-side {

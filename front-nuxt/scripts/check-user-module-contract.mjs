@@ -1,0 +1,245 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { buildUserPostAuthRedirectTarget, buildUserRedirectTarget } from '../lib/userRedirect.mjs'
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+const read = (path) => readFileSync(join(root, path), 'utf8')
+const exists = (path) => existsSync(join(root, path))
+
+const violations = []
+
+const assertFile = (path) => {
+  if (!exists(path)) {
+    violations.push(`${path}: missing required user module file`)
+    return ''
+  }
+  return read(path)
+}
+
+const assertIncludes = (path, content, marker, message) => {
+  if (!content.includes(marker)) {
+    violations.push(`${path}: ${message}`)
+  }
+}
+
+const assertNotIncludes = (path, content, marker, message) => {
+  if (content.includes(marker)) {
+    violations.push(`${path}: ${message}`)
+  }
+}
+
+const assertPattern = (path, content, pattern, message) => {
+  if (!pattern.test(content)) {
+    violations.push(`${path}: ${message}`)
+  }
+}
+
+const assertRedirectTarget = (input, expected) => {
+  const actual = buildUserRedirectTarget(input)
+  if (actual !== expected) {
+    violations.push(`scripts/check-user-module-contract.mjs: redirect sanitizer maps ${JSON.stringify(input)} to ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`)
+  }
+}
+
+const assertPostAuthRedirectTarget = (input, expected) => {
+  const actual = buildUserPostAuthRedirectTarget(input)
+  if (actual !== expected) {
+    violations.push(`scripts/check-user-module-contract.mjs: post-auth redirect sanitizer maps ${JSON.stringify(input)} to ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`)
+  }
+}
+
+const apiPath = 'composables/useUserApi.ts'
+const redirectUtilPath = 'lib/userRedirect.mjs'
+const storePath = 'stores/userAuth.ts'
+const middlewarePath = 'middleware/user-auth.global.ts'
+const typesPath = 'types/public-api.ts'
+const navPath = 'components/TerraNav.vue'
+const cssPath = 'assets/css/hifi-preview.css'
+
+const api = assertFile(apiPath)
+const redirectUtil = assertFile(redirectUtilPath)
+const store = assertFile(storePath)
+const middleware = assertFile(middlewarePath)
+const types = assertFile(typesPath)
+const nav = assertFile(navPath)
+const css = assertFile(cssPath)
+const packageJson = read('package.json')
+
+for (const marker of [
+  '/user-auth/register/code',
+  '/user-auth/register',
+  '/user-auth/login',
+  '/user-auth/me',
+  '/user-auth/logout',
+  '/user-auth/profile',
+  '/user-auth/password',
+  '/user/articles',
+]) {
+  assertIncludes(apiPath, api, marker, `user API must target ${marker}`)
+}
+
+for (const marker of [
+  "credentials: 'include'",
+  "useRequestHeaders(['cookie'])",
+  'buildUserRedirectTarget',
+  'buildUserPostAuthRedirectTarget',
+]) {
+  assertIncludes(apiPath, api, marker, `user API must include ${marker}`)
+}
+
+for (const marker of [
+  'buildUserRedirectTarget',
+  'buildUserPostAuthRedirectTarget',
+  "raw.startsWith('//')",
+  "raw.includes('\\\\')",
+  'decodeURIComponent',
+]) {
+  assertIncludes(redirectUtilPath, redirectUtil, marker, `redirect utility must include ${marker}`)
+}
+
+for (const marker of [
+  'type UserProfile',
+  'type UserAuthResponse',
+  'type UserRegisterCodeResponse',
+  'expiresInSeconds',
+  'type UserArticle',
+  'type UserArticleUpsertPayload',
+]) {
+  assertIncludes(typesPath, types, marker, `public API types must expose ${marker}`)
+}
+
+for (const marker of [
+  'useUserAuthStore',
+  'isAuthenticated',
+  'displayName',
+  'init',
+  'login',
+  'register',
+  'requestRegisterCode',
+  'logout',
+  'updateProfile',
+  'changePassword',
+  'fetchUserArticles',
+  'createUserArticle',
+]) {
+  assertIncludes(storePath, store, marker, `user auth store must expose ${marker}`)
+}
+
+for (const marker of [
+  'requiresUserAuth',
+  'guestOnly',
+  'buildUserRedirectTarget',
+  'buildUserPostAuthRedirectTarget',
+  'authStore.init()',
+]) {
+  assertIncludes(middlewarePath, middleware, marker, `user auth middleware must handle ${marker}`)
+}
+assertPattern(
+  middlewarePath,
+  middleware,
+  /navigateTo\([^)]*\/user\/login/,
+  'user auth middleware must navigate unauthenticated users to /user/login',
+)
+
+for (const marker of [
+  'authStore.loading',
+  'authStore.isAuthenticated',
+  'authStore.displayName',
+  '@click.prevent="logout"',
+  'account-state-authenticated',
+  'account-state-guest',
+]) {
+  assertIncludes(navPath, nav, marker, `account navigation must expose ${marker}`)
+}
+assertNotIncludes(navPath, nav, 'Preview account', 'account navigation must not retain preview account copy')
+
+const pageContracts = [
+  {
+    path: 'pages/user/login.vue',
+    required: ['definePageMeta({ guestOnly: true })', '@submit.prevent="submit"', 'authStore.login', 'buildUserPostAuthRedirectTarget', 'type="submit"', 'v-model.trim="form.email"', 'v-model="form.password"', 'user-form-status', 'user-form-error'],
+    forbidden: ['readonly', '登录占位', 'preview-only'],
+  },
+  {
+    path: 'pages/user/register.vue',
+    required: ['definePageMeta({ guestOnly: true })', '@submit.prevent="submit"', 'authStore.requestRegisterCode', 'authStore.register', 'verificationCode', 'expiresInSeconds', 'pattern="[0-9]{4,8}"', 'type="submit"', 'user-form-status', 'user-form-error'],
+    forbidden: ['readonly', '注册占位', 'preview-only'],
+  },
+  {
+    path: 'pages/user/index.vue',
+    required: ['authStore.init()', 'authStore.isAuthenticated', 'authStore.displayName', 'account-state-authenticated', 'account-state-guest', 'authStore.articlePagination'],
+    forbidden: ['静态占位', '<em>24</em>', '<em>6</em>'],
+  },
+  {
+    path: 'pages/user/settings.vue',
+    required: ['definePageMeta({ requiresUserAuth: true })', '@submit.prevent="submitProfile"', '@submit.prevent="submitPassword"', 'authStore.updateProfile', 'authStore.changePassword', 'user-form-success', 'user-form-error'],
+    forbidden: ['readonly', '保存占位'],
+  },
+  {
+    path: 'pages/user/articles/index.vue',
+    required: ['definePageMeta({ requiresUserAuth: true })', 'authStore.fetchUserArticles', 'articlesLoading', 'user-empty-state', 'formatReviewStatus'],
+    forbidden: ['近战装备路线补充', '克眼前准备清单'],
+  },
+  {
+    path: 'pages/user/articles/new.vue',
+    required: ['definePageMeta({ requiresUserAuth: true })', '@submit.prevent="submit"', 'authStore.createUserArticle', 'contentHtml', 'type="submit"', 'user-form-error'],
+    forbidden: ['保存占位', '正文编辑区占位'],
+  },
+]
+
+for (const contract of pageContracts) {
+  const content = assertFile(contract.path)
+  for (const marker of contract.required) {
+    assertIncludes(contract.path, content, marker, `page contract must include ${marker}`)
+  }
+  for (const marker of contract.forbidden) {
+    assertNotIncludes(contract.path, content, marker, `page must not remain preview-only with ${marker}`)
+  }
+}
+
+for (const marker of [
+  '.user-form-status',
+  '.user-form-error',
+  '.user-form-success',
+  '.user-field-hint',
+  '.user-empty-state',
+  '.account-state-authenticated',
+  '.account-state-guest',
+  '.account-state-loading',
+  ':disabled',
+]) {
+  assertIncludes(cssPath, css, marker, `user module CSS must define ${marker}`)
+}
+
+assertPattern(
+  'package.json',
+  packageJson,
+  /"check:user-module"\s*:\s*"node scripts\/check-user-module-contract\.mjs"/,
+  'package scripts must expose check:user-module',
+)
+assertPattern(
+  'package.json',
+  packageJson,
+  /"check"\s*:\s*"[^"]*check:user-module[^"]*"/,
+  'main check script must include check:user-module',
+)
+
+assertRedirectTarget('/user/settings?x=1', '/user/settings?x=1')
+assertRedirectTarget('//evil.example/path', '/user')
+assertRedirectTarget('http://evil.example', '/user')
+assertRedirectTarget('%00/user/settings', '/user')
+assertRedirectTarget('\\\\evil', '/user')
+assertRedirectTarget('/user/%00/settings', '/user')
+assertPostAuthRedirectTarget('/user/settings?x=1', '/user/settings?x=1')
+assertPostAuthRedirectTarget('/user/login', '/user')
+assertPostAuthRedirectTarget('/user/login?redirect=/user/settings', '/user')
+assertPostAuthRedirectTarget('/user/login/', '/user')
+assertPostAuthRedirectTarget('/user/register', '/user')
+assertPostAuthRedirectTarget('/user/register/', '/user')
+
+if (violations.length) {
+  console.error(violations.join('\n'))
+  process.exit(1)
+}
+
+console.log('User module contract checks passed.')

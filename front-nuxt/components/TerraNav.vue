@@ -4,6 +4,7 @@ import { useThemeStore } from '../stores/theme'
 const route = useRoute()
 const themeStore = useThemeStore()
 const themeOptions = themeStore.themeOptions
+const authStore = useUserAuthStore()
 
 type ActiveMenu = 'resources' | 'account' | null
 
@@ -65,6 +66,18 @@ const closeMenu = () => {
   clearCloseTimer()
   activeMenu.value = null
 }
+
+const logout = async () => {
+  await authStore.logout()
+  closeMenu()
+  if (route.path.startsWith('/user') && route.meta.requiresUserAuth) {
+    await navigateTo('/user/login')
+  }
+}
+
+onMounted(() => {
+  void authStore.init()
+})
 
 onBeforeUnmount(closeMenu)
 </script>
@@ -195,14 +208,25 @@ onBeforeUnmount(closeMenu)
           :class="{ 'is-open': activeMenu === 'account' }"
           :aria-hidden="activeMenu !== 'account'"
         >
-          <div class="account-menu-head">
+          <div
+            class="account-menu-head"
+            :class="{
+              'account-state-loading': authStore.loading,
+              'account-state-authenticated': authStore.isAuthenticated,
+              'account-state-guest': !authStore.loading && !authStore.isAuthenticated,
+            }"
+          >
             <span><span class="sprite-icon icon-user compact" aria-hidden="true"></span></span>
-            <div><b>访客用户</b><em>Preview account</em></div>
+            <div>
+              <b>{{ authStore.loading ? '正在检查登录状态' : authStore.displayName }}</b>
+              <em>{{ authStore.isAuthenticated ? authStore.user?.email : '访客账号' }}</em>
+            </div>
           </div>
           <a href="/user" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-user menu-icon" aria-hidden="true"></span><span><b>用户中心</b><span>收藏、投稿、设置入口</span></span></a>
           <a href="/user/favorites" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-favorites menu-icon" aria-hidden="true"></span><span><b>收藏夹</b><span>保存物品和路线</span></span></a>
           <a href="/user/articles" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-article menu-icon" aria-hidden="true"></span><span><b>我的文章</b><span>草稿和投稿状态</span></span></a>
           <a href="/user/settings" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-settings menu-icon" aria-hidden="true"></span><span><b>账号设置</b><span>显示偏好和公开资料</span></span></a>
+          <a v-if="authStore.isAuthenticated" href="/user/login" :tabindex="menuLinkTabIndex('account')" @click.prevent="logout"><span class="sprite-icon icon-close menu-icon" aria-hidden="true"></span><span><b>退出登录</b><span>清除当前用户会话</span></span></a>
         </div>
       </div>
     </div>
