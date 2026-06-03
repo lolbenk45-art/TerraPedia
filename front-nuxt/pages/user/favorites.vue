@@ -1,38 +1,31 @@
-<script setup lang="ts">
-definePageMeta({ requiresUserAuth: true })
-
-useSeoMeta({
-  title: '收藏夹 · TerraPedia',
-  description: 'TerraPedia 用户收藏功能规划入口。',
-})
-</script>
-
 <template>
   <section class="screen entity-screen active">
     <TerraNav />
     <TerraBreadcrumb />
 
-    <main class="user-shell">
-      <section class="user-panel">
-        <span class="eyebrow">Favorites</span>
-        <h1>收藏夹</h1>
-        <p class="user-muted">收藏功能已经作为登录用户入口保留，本阶段暂不接入新数据表；后续会把物品、文章和路线保存到个人收藏。</p>
-      </section>
+    <div class="page-head entity-head">
+      <div class="page-head-inner">
+        <div>
+          <span class="eyebrow">TerraPedia V0.1 · read-only launch</span>
+          <h1>账户功能暂未开放</h1>
+          <p>TerraPedia V0.1 先作为只读资料站发布，登录、收藏、设置和投稿入口会在后续版本评估。</p>
+        </div>
+      </div>
+    </div>
 
-      <section class="user-grid">
-        <div class="user-panel">
-          <h2>当前可用入口</h2>
-          <div class="user-action-grid">
-            <a class="user-action-card" href="/items"><b>物品图鉴</b><span>浏览并记录想关注的物品</span></a>
-            <a class="user-action-card" href="/articles"><b>资料手札</b><span>阅读公开文章</span></a>
-            <a class="user-action-card" href="/user/articles"><b>我的文章</b><span>管理个人草稿</span></a>
+    <main class="user-layout">
+      <section class="user-hero support-panel">
+        <div class="user-avatar"><span class="sprite-icon icon-user" aria-hidden="true"></span></div>
+        <div>
+          <span class="eyebrow">只读资料站</span>
+          <h2>先浏览资料</h2>
+          <p>先浏览资料：物品图鉴 / 搜索 / 合成树</p>
+          <div class="user-link-matrix single">
+            <a href="/items"><span class="sprite-icon icon-items card-icon" aria-hidden="true"></span><b>物品图鉴</b><span>浏览条目</span></a>
+            <a href="/search"><span class="sprite-icon icon-search card-icon" aria-hidden="true"></span><b>搜索</b><span>查找资料</span></a>
+            <a href="/crafting"><span class="sprite-icon icon-crafting card-icon" aria-hidden="true"></span><b>合成树</b><span>查看配方</span></a>
           </div>
         </div>
-
-        <aside class="user-panel">
-          <h2>后续范围</h2>
-          <p class="user-muted">收藏功能会优先支持物品和文章，再扩展到合成路线与 Boss 准备清单。</p>
-        </aside>
       </section>
     </main>
 

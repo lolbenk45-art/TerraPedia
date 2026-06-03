@@ -1,78 +1,31 @@
-<script setup lang="ts">
-import { buildUserRedirectTarget } from '~/composables/useUserApi'
-
-definePageMeta({ guestOnly: true })
-
-useSeoMeta({
-  title: '登录 · TerraPedia',
-  description: '登录 TerraPedia 用户中心，继续管理账号和投稿草稿。',
-})
-
-const route = useRoute()
-const authStore = useUserAuthStore()
-
-const form = reactive({
-  email: '',
-  password: '',
-})
-const error = ref('')
-
-const redirectTarget = computed(() => buildUserRedirectTarget(route.query.redirect, '/user'))
-const redirectQuery = computed(() => {
-  const target = buildUserRedirectTarget(route.query.redirect, '')
-  return target ? `?redirect=${encodeURIComponent(target)}` : ''
-})
-
-const submit = async () => {
-  error.value = ''
-  try {
-    await authStore.login(form.email, form.password)
-    await navigateTo(redirectTarget.value)
-  } catch (exception: unknown) {
-    error.value = exception instanceof Error ? exception.message : '登录失败，请检查邮箱和密码。'
-  }
-}
-</script>
-
 <template>
   <section class="screen entity-screen active">
     <TerraNav />
     <TerraBreadcrumb />
 
-    <main class="user-shell">
-      <section class="user-grid">
-        <div class="user-panel">
-          <span class="eyebrow">User login</span>
-          <h1>登录 TerraPedia</h1>
-          <p class="user-muted">登录后可以管理账号资料、维护自己的文章草稿，并进入投稿审核流程。</p>
-          <div class="user-action-grid">
-            <a class="user-action-card" href="/items"><b>物品图鉴</b><span>继续查询装备和材料</span></a>
-            <a class="user-action-card" href="/articles"><b>资料手札</b><span>浏览公开文章</span></a>
+    <div class="page-head entity-head">
+      <div class="page-head-inner">
+        <div>
+          <span class="eyebrow">TerraPedia V0.1 · read-only launch</span>
+          <h1>账户功能暂未开放</h1>
+          <p>TerraPedia V0.1 先作为只读资料站发布，登录、收藏、设置和投稿入口会在后续版本评估。</p>
+        </div>
+      </div>
+    </div>
+
+    <main class="user-layout">
+      <section class="user-hero support-panel">
+        <div class="user-avatar"><span class="sprite-icon icon-user" aria-hidden="true"></span></div>
+        <div>
+          <span class="eyebrow">只读资料站</span>
+          <h2>先浏览资料</h2>
+          <p>先浏览资料：物品图鉴 / 搜索 / 合成树</p>
+          <div class="user-link-matrix single">
+            <a href="/items"><span class="sprite-icon icon-items card-icon" aria-hidden="true"></span><b>物品图鉴</b><span>浏览条目</span></a>
+            <a href="/search"><span class="sprite-icon icon-search card-icon" aria-hidden="true"></span><b>搜索</b><span>查找资料</span></a>
+            <a href="/crafting"><span class="sprite-icon icon-crafting card-icon" aria-hidden="true"></span><b>合成树</b><span>查看配方</span></a>
           </div>
         </div>
-
-        <form class="user-panel user-form" @submit.prevent="submit">
-          <h2>账号登录</h2>
-          <label class="user-field">
-            <span>邮箱</span>
-            <input v-model.trim="form.email" class="user-input" type="email" autocomplete="email" required />
-          </label>
-          <label class="user-field">
-            <span>密码</span>
-            <input v-model="form.password" class="user-input" type="password" autocomplete="current-password" required />
-          </label>
-
-          <p v-if="error" class="user-feedback user-feedback--error" aria-live="polite">{{ error }}</p>
-
-          <button class="user-primary-button" type="submit" :disabled="authStore.submitting">
-            {{ authStore.submitting ? '登录中...' : '登录' }}
-          </button>
-
-          <div class="form-footnote">
-            <a :href="`/user/register${redirectQuery}`">注册账号</a>
-            <a :href="`/user/forgot-password${redirectQuery}`">找回密码</a>
-          </div>
-        </form>
       </section>
     </main>
 

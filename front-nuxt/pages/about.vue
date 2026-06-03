@@ -14,9 +14,9 @@ useSeoMeta({
       <section class="about-hero">
         <span class="eyebrow">TerraPedia · V0.1</span>
         <h1>非官方 Terraria 中文资料站</h1>
-        <p>TerraPedia 先以公开资料站开放，帮助玩家查询物品、NPC、Boss、Buff、生态、套装、射弹和合成路线。</p>
+        <p>TerraPedia 先以只读公开资料站开放，帮助玩家查询物品、NPC、Boss、Buff、生态、套装、射弹和合成路线。</p>
         <div class="about-proof">
-          <div><b>公开</b><span>资料查询</span></div>
+          <div><b>只读</b><span>公开资料</span></div>
           <div><b>非官方</b><span>项目定位</span></div>
           <div><b>可校正</b><span>资料维护</span></div>
           <div><b>V0.1</b><span>发布边界</span></div>
@@ -42,7 +42,7 @@ useSeoMeta({
         <article>
           <span>04</span>
           <h3>公开边界</h3>
-          <p>账户、投稿和账号设置已开放；收藏夹保留为已登录用户的规划入口，待后续接入持久化收藏数据。</p>
+          <p>V0.1 不开放账户、收藏、投稿或社区功能；相关页面只保留统一的暂未开放状态。</p>
         </article>
       </section>
 

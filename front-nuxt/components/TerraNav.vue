@@ -3,7 +3,6 @@ import { useThemeStore } from '../stores/theme'
 
 const route = useRoute()
 const themeStore = useThemeStore()
-const authStore = useUserAuthStore()
 const themeOptions = themeStore.themeOptions
 
 type ActiveMenu = 'resources' | null
@@ -67,15 +66,6 @@ const closeMenu = () => {
   activeMenu.value = null
 }
 
-const logoutUser = async () => {
-  await authStore.logout()
-  await navigateTo('/')
-}
-
-onMounted(() => {
-  void authStore.init()
-})
-
 onBeforeUnmount(closeMenu)
 </script>
 
@@ -104,19 +94,6 @@ onBeforeUnmount(closeMenu)
     <div class="site-actions">
       <a class="icon-button search-action" href="/search" aria-label="搜索">
         <span class="sprite-icon icon-search compact" aria-hidden="true"></span>
-      </a>
-
-      <span v-if="authStore.loading && !authStore.initialized" class="account-avatar-link" aria-label="账号状态载入中">
-        <span class="sprite-icon icon-user mini" aria-hidden="true"></span>
-      </span>
-      <template v-else-if="authStore.isAuthenticated">
-        <a class="account-avatar-link" href="/user" aria-label="用户中心" :class="{ active: isActive('/user') }">
-          <span class="sprite-icon icon-user mini" aria-hidden="true"></span>
-        </a>
-        <button class="icon-button" type="button" aria-label="退出登录" @click="logoutUser">退出</button>
-      </template>
-      <a v-else class="account-avatar-link" href="/user/login" aria-label="登录">
-        <span class="sprite-icon icon-user mini" aria-hidden="true"></span>
       </a>
 
       <div

@@ -1,157 +1,31 @@
-<script setup lang="ts">
-import { buildUserRedirectTarget } from '~/composables/useUserApi'
-
-definePageMeta({ guestOnly: true })
-
-useSeoMeta({
-  title: '注册 · TerraPedia',
-  description: '注册 TerraPedia 用户账号，开启账号设置和投稿草稿功能。',
-})
-
-const route = useRoute()
-const authStore = useUserAuthStore()
-
-const form = reactive({
-  displayName: '',
-  email: '',
-  verificationCode: '',
-  password: '',
-  confirmPassword: '',
-})
-const info = ref('')
-const error = ref('')
-const cooldown = ref(0)
-let cooldownTimer: ReturnType<typeof setInterval> | undefined
-
-const redirectTarget = computed(() => buildUserRedirectTarget(route.query.redirect, '/user'))
-const redirectQuery = computed(() => {
-  const target = buildUserRedirectTarget(route.query.redirect, '')
-  return target ? `?redirect=${encodeURIComponent(target)}` : ''
-})
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const isEmailValid = computed(() => emailPattern.test(form.email.trim()))
-const canSendCode = computed(() => cooldown.value <= 0 && !authStore.submitting && isEmailValid.value)
-
-const startCooldown = (seconds: number) => {
-  cooldown.value = Math.max(0, seconds)
-  if (cooldownTimer) {
-    clearInterval(cooldownTimer)
-    cooldownTimer = undefined
-  }
-  if (cooldown.value <= 0) return
-  cooldownTimer = setInterval(() => {
-    cooldown.value -= 1
-    if (cooldown.value <= 0 && cooldownTimer) {
-      clearInterval(cooldownTimer)
-      cooldownTimer = undefined
-    }
-  }, 1000)
-}
-
-const sendCode = async () => {
-  info.value = ''
-  error.value = ''
-  const email = form.email.trim()
-  if (!emailPattern.test(email)) {
-    error.value = '请填写有效邮箱。'
-    return
-  }
-  try {
-    const result = await authStore.requestRegisterCode(email)
-    startCooldown(result.cooldownSeconds || 60)
-    if (result.debugVerificationCode) {
-      form.verificationCode = result.debugVerificationCode
-      info.value = `本地调试验证码已自动填入，约 ${Math.max(1, Math.floor(result.expiresInSeconds / 60))} 分钟内有效。`
-    } else {
-      info.value = `验证码已发送，约 ${Math.max(1, Math.floor(result.expiresInSeconds / 60))} 分钟内有效。`
-    }
-  } catch (exception: unknown) {
-    error.value = exception instanceof Error ? exception.message : '验证码发送失败。'
-  }
-}
-
-const submit = async () => {
-  info.value = ''
-  error.value = ''
-  if (form.password !== form.confirmPassword) {
-    error.value = '两次输入的密码不一致。'
-    return
-  }
-  if (!form.verificationCode.trim()) {
-    error.value = '请填写验证码。'
-    return
-  }
-  try {
-    await authStore.register({
-      email: form.email,
-      password: form.password,
-      verificationCode: form.verificationCode,
-      displayName: form.displayName || undefined,
-    })
-    await navigateTo(redirectTarget.value)
-  } catch (exception: unknown) {
-    error.value = exception instanceof Error ? exception.message : '注册失败，请稍后再试。'
-  }
-}
-
-onUnmounted(() => {
-  if (cooldownTimer) clearInterval(cooldownTimer)
-})
-</script>
-
 <template>
   <section class="screen entity-screen active">
     <TerraNav />
     <TerraBreadcrumb />
 
-    <main class="user-shell">
-      <section class="user-grid">
-        <div class="user-panel">
-          <span class="eyebrow">Create account</span>
-          <h1>注册账号</h1>
-          <p class="user-muted">使用邮箱验证码创建账号。注册完成后会自动进入用户中心。</p>
-          <div class="user-action-grid">
-            <a class="user-action-card" href="/user/login"><b>已有账号</b><span>返回登录</span></a>
-            <a class="user-action-card" :href="`/user/forgot-password${redirectQuery}`"><b>忘记密码</b><span>通过邮箱重置</span></a>
+    <div class="page-head entity-head">
+      <div class="page-head-inner">
+        <div>
+          <span class="eyebrow">TerraPedia V0.1 · read-only launch</span>
+          <h1>账户功能暂未开放</h1>
+          <p>TerraPedia V0.1 先作为只读资料站发布，登录、收藏、设置和投稿入口会在后续版本评估。</p>
+        </div>
+      </div>
+    </div>
+
+    <main class="user-layout">
+      <section class="user-hero support-panel">
+        <div class="user-avatar"><span class="sprite-icon icon-user" aria-hidden="true"></span></div>
+        <div>
+          <span class="eyebrow">只读资料站</span>
+          <h2>先浏览资料</h2>
+          <p>先浏览资料：物品图鉴 / 搜索 / 合成树</p>
+          <div class="user-link-matrix single">
+            <a href="/items"><span class="sprite-icon icon-items card-icon" aria-hidden="true"></span><b>物品图鉴</b><span>浏览条目</span></a>
+            <a href="/search"><span class="sprite-icon icon-search card-icon" aria-hidden="true"></span><b>搜索</b><span>查找资料</span></a>
+            <a href="/crafting"><span class="sprite-icon icon-crafting card-icon" aria-hidden="true"></span><b>合成树</b><span>查看配方</span></a>
           </div>
         </div>
-
-        <form class="user-panel user-form" @submit.prevent="submit">
-          <h2>创建账号</h2>
-          <label class="user-field">
-            <span>显示名称</span>
-            <input v-model.trim="form.displayName" class="user-input" type="text" autocomplete="name" maxlength="120" />
-          </label>
-          <label class="user-field">
-            <span>邮箱</span>
-            <input v-model.trim="form.email" class="user-input" type="email" autocomplete="email" required />
-          </label>
-          <label class="user-field">
-            <span>验证码</span>
-            <div class="user-split-field">
-              <input v-model.trim="form.verificationCode" class="user-input" type="text" inputmode="numeric" maxlength="8" required />
-              <button class="user-secondary-button" type="button" :disabled="!canSendCode" @click="sendCode">
-                {{ cooldown > 0 ? `${cooldown}s` : '发送验证码' }}
-              </button>
-            </div>
-          </label>
-          <label class="user-field">
-            <span>密码</span>
-            <input v-model="form.password" class="user-input" type="password" autocomplete="new-password" required />
-          </label>
-          <label class="user-field">
-            <span>确认密码</span>
-            <input v-model="form.confirmPassword" class="user-input" type="password" autocomplete="new-password" required />
-          </label>
-
-          <p class="user-feedback">密码至少 10 位，并包含字母和数字。</p>
-          <p v-if="info" class="user-feedback user-feedback--success" aria-live="polite">{{ info }}</p>
-          <p v-if="error" class="user-feedback user-feedback--error" aria-live="polite">{{ error }}</p>
-
-          <button class="user-primary-button" type="submit" :disabled="authStore.submitting">
-            {{ authStore.submitting ? '创建中...' : '创建账号' }}
-          </button>
-        </form>
       </section>
     </main>
 
