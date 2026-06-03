@@ -14,6 +14,7 @@ load_runtime_config() {
   if [[ ! -f "$config_path" ]]; then
     config_path="$root/scripts/dev/config/local-stack.config.example.json"
   fi
+  load_root_env_file "$root" "$config_path"
 
   local exports
   exports="$(TP_REPO_ROOT="$root" TP_CONFIG_PATH="$config_path" node --input-type=module <<'NODE'
@@ -44,6 +45,7 @@ function shellQuote(value) {
 const dbHost = env('TERRAPEDIA_DB_HOST', get(['database', 'host'], '127.0.0.1'));
 const dbPort = env('TERRAPEDIA_DB_PORT', get(['database', 'port'], 3306));
 const dbName = env('TERRAPEDIA_DB_NAME', get(['database', 'name'], 'terria_v1_local'));
+const mailUsername = env('TERRAPEDIA_MAIL_USERNAME', get(['mail', 'username'], ''));
 
 const values = {
   TP_REPO_ROOT: root,
@@ -80,6 +82,16 @@ const values = {
   TP_FLARESOLVERR_URL: env('TERRAPEDIA_FLARESOLVERR_URL', get(['flaresolverr', 'url'], 'http://127.0.0.1:8191/v1')),
   TP_FLARESOLVERR_CONTAINER_NAME: env('TERRAPEDIA_FLARESOLVERR_CONTAINER_NAME', get(['flaresolverr', 'containerName'], 'terrapedia-flaresolverr')),
   TP_FLARESOLVERR_IMAGE: env('TERRAPEDIA_FLARESOLVERR_IMAGE', get(['flaresolverr', 'image'], 'ghcr.io/flaresolverr/flaresolverr')),
+  TP_MAIL_ENABLED: env('TERRAPEDIA_MAIL_ENABLED', get(['mail', 'enabled'], true)),
+  TP_MAIL_HOST: env('TERRAPEDIA_MAIL_HOST', get(['mail', 'host'], 'smtp.qq.com')),
+  TP_MAIL_PORT: env('TERRAPEDIA_MAIL_PORT', get(['mail', 'port'], 465)),
+  TP_MAIL_USERNAME: mailUsername,
+  TP_MAIL_PASSWORD: env('TERRAPEDIA_MAIL_PASSWORD', get(['mail', 'password'], '')),
+  TP_MAIL_FROM: env('TERRAPEDIA_MAIL_FROM', get(['mail', 'from'], mailUsername)),
+  TP_MAIL_FROM_NAME: env('TERRAPEDIA_MAIL_FROM_NAME', get(['mail', 'fromName'], 'TerraPedia')),
+  TP_MAIL_SUBJECT_PREFIX: env('TERRAPEDIA_MAIL_SUBJECT_PREFIX', get(['mail', 'subjectPrefix'], '[TerraPedia]')),
+  TP_MAIL_SSL_ENABLE: env('TERRAPEDIA_MAIL_SSL_ENABLE', get(['mail', 'sslEnable'], true)),
+  TP_MAIL_STARTTLS_ENABLE: env('TERRAPEDIA_MAIL_STARTTLS_ENABLE', get(['mail', 'starttlsEnable'], false)),
   TP_SPRING_PROFILE: env('SPRING_PROFILES_ACTIVE', get(['backend', 'springProfile'], 'legacy')),
   TP_SPRING_FLYWAY_OUT_OF_ORDER: env('SPRING_FLYWAY_OUT_OF_ORDER', get(['backend', 'flywayOutOfOrder'], true)),
 };
@@ -91,6 +103,72 @@ NODE
 )"
 
   eval "$exports"
+}
+
+load_root_env_file() {
+  local root="$1"
+  local config_path="$2"
+  local env_path="${TERRAPEDIA_ENV_FILE:-}"
+
+  if [[ -z "$env_path" ]]; then
+    if [[ -f "$root/.env" ]]; then
+      env_path="$root/.env"
+    else
+      local config_root
+      config_root="$(cd "$(dirname "$config_path")/../../.." && pwd -P)"
+      if [[ -f "$config_root/.env" ]]; then
+        env_path="$config_root/.env"
+      fi
+    fi
+  fi
+
+  if [[ -z "$env_path" || ! -f "$env_path" ]]; then
+    return 0
+  fi
+
+  local exports
+  exports="$(TP_ENV_PATH="$env_path" node --input-type=module <<'NODE'
+import fs from 'node:fs';
+
+const envPath = process.env.TP_ENV_PATH;
+const source = fs.readFileSync(envPath, 'utf8').replace(/^\uFEFF/, '');
+
+function shellQuote(value) {
+  return `'${String(value).replaceAll("'", "'\\''")}'`;
+}
+
+for (const rawLine of source.split(/\r?\n/)) {
+  const match = rawLine.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
+  if (!match) continue;
+  const [, key, rawValue] = match;
+  if (process.env[key] !== undefined) continue;
+
+  let value = rawValue.trim();
+  const quoted = value.match(/^(['"])(.*)\1$/s);
+  if (quoted) {
+    value = quoted[2];
+  }
+  console.log(`export ${key}=${shellQuote(value)}`);
+}
+NODE
+)"
+
+  eval "$exports"
+  if [[ -z "${TERRAPEDIA_MAIL_PASSWORD:-}" && -n "${QQ_SMTP:-}" ]]; then
+    export TERRAPEDIA_MAIL_PASSWORD="$QQ_SMTP"
+  fi
+  if [[ -z "${TERRAPEDIA_MAIL_USERNAME:-}" ]]; then
+    if [[ -n "${QQ_EMAIL:-}" ]]; then
+      export TERRAPEDIA_MAIL_USERNAME="$QQ_EMAIL"
+    elif [[ "${QQ_NUMBER:-}" =~ ^[0-9]+$ ]]; then
+      export TERRAPEDIA_MAIL_USERNAME="$QQ_NUMBER@qq.com"
+    elif [[ "${QQ:-}" =~ ^[0-9]+$ ]]; then
+      export TERRAPEDIA_MAIL_USERNAME="$QQ@qq.com"
+    fi
+  fi
+  if [[ -z "${TERRAPEDIA_MAIL_FROM:-}" && -n "${TERRAPEDIA_MAIL_USERNAME:-}" ]]; then
+    export TERRAPEDIA_MAIL_FROM="$TERRAPEDIA_MAIL_USERNAME"
+  fi
 }
 
 resolve_local_stack_config_path() {

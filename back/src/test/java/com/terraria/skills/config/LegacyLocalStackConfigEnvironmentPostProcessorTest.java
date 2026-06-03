@@ -116,6 +116,54 @@ class LegacyLocalStackConfigEnvironmentPostProcessorTest {
     }
 
     @Test
+    void shouldLoadLocalStackMailPropertiesWhenLegacyProfileIsActive() throws IOException {
+        Path repoRoot = createRepoRoot();
+        writeLocalStackConfig(repoRoot, """
+            {
+              "auth": {
+                "admin": {
+                  "password": "admin-pass",
+                  "tokenSecret": "admin-secret"
+                },
+                "user": {
+                  "tokenSecret": "user-secret"
+                }
+              },
+              "mail": {
+                "enabled": true,
+                "host": "smtp.qq.com",
+                "port": 465,
+                "username": "sender@example.com",
+                "password": "mail-pass",
+                "from": "sender@example.com",
+                "fromName": "TerraPedia",
+                "subjectPrefix": "[TerraPedia]",
+                "sslEnable": true,
+                "starttlsEnable": false
+              }
+            }
+            """);
+        System.setProperty("user.dir", repoRoot.resolve("back").toString());
+
+        MockEnvironment environment = new MockEnvironment();
+        environment.setActiveProfiles("legacy");
+
+        new LegacyLocalStackConfigEnvironmentPostProcessor(new NoopPortCleaner())
+            .postProcessEnvironment(environment, new SpringApplication(SkillsBackApplication.class));
+
+        assertEquals("true", environment.getProperty("TERRAPEDIA_MAIL_ENABLED"));
+        assertEquals("smtp.qq.com", environment.getProperty("TERRAPEDIA_MAIL_HOST"));
+        assertEquals("465", environment.getProperty("TERRAPEDIA_MAIL_PORT"));
+        assertEquals("sender@example.com", environment.getProperty("TERRAPEDIA_MAIL_USERNAME"));
+        assertEquals("mail-pass", environment.getProperty("TERRAPEDIA_MAIL_PASSWORD"));
+        assertEquals("sender@example.com", environment.getProperty("TERRAPEDIA_MAIL_FROM"));
+        assertEquals("TerraPedia", environment.getProperty("TERRAPEDIA_MAIL_FROM_NAME"));
+        assertEquals("[TerraPedia]", environment.getProperty("TERRAPEDIA_MAIL_SUBJECT_PREFIX"));
+        assertEquals("true", environment.getProperty("TERRAPEDIA_MAIL_SSL_ENABLE"));
+        assertEquals("false", environment.getProperty("TERRAPEDIA_MAIL_STARTTLS_ENABLE"));
+    }
+
+    @Test
     void shouldRequestPortCleanupWhenLegacyProfileIsActive() throws IOException {
         Path repoRoot = createRepoRoot();
         writeLocalStackConfig(repoRoot, """

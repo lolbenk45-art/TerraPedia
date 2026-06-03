@@ -11,7 +11,7 @@
 - `credentials.json`
   - Ignored local MinIO credential file referenced from `local-stack.config.json`
 
-Do not copy real local secrets into committed docs or reports. This includes DB passwords, Redis passwords, admin passwords, token secrets, bearer tokens, and MinIO keys.
+Do not copy real local secrets into committed docs or reports. This includes DB passwords, Redis passwords, admin passwords, token secrets, bearer tokens, MinIO keys, and SMTP authorization codes.
 
 Stable consumers:
 
@@ -39,6 +39,14 @@ Recommended setup:
 cp ./scripts/dev/config/local-stack.config.example.json ./scripts/dev/config/local-stack.config.json
 cp ./scripts/dev/config/credentials.example.json ./scripts/dev/config/credentials.json
 ```
+
+Mail notes:
+
+- Local stack reads project-root `.env` before resolving runtime config.
+- Preferred SMTP keys are `TERRAPEDIA_MAIL_USERNAME`, `TERRAPEDIA_MAIL_PASSWORD`, and `TERRAPEDIA_MAIL_FROM`.
+- `QQ_SMTP` is accepted as a local compatibility alias for `TERRAPEDIA_MAIL_PASSWORD` only.
+- `QQ_EMAIL`, `QQ_NUMBER`, or `QQ` can be used as local aliases for the sender mailbox.
+- QQ Mail requires both the sender email address and the SMTP authorization code; the authorization code alone is not enough.
 
 Scheduler notes:
 

@@ -260,6 +260,16 @@ export TERRAPEDIA_MINIO_OBJECT_PREFIX="$TP_MINIO_OBJECT_PREFIX"
 if is_truthy "$TP_FLARESOLVERR_ENABLED"; then
   export TERRAPEDIA_FLARESOLVERR_URL="$TP_FLARESOLVERR_URL"
 fi
+export TERRAPEDIA_MAIL_ENABLED="$TP_MAIL_ENABLED"
+export TERRAPEDIA_MAIL_HOST="$TP_MAIL_HOST"
+export TERRAPEDIA_MAIL_PORT="$TP_MAIL_PORT"
+export TERRAPEDIA_MAIL_USERNAME="$TP_MAIL_USERNAME"
+export TERRAPEDIA_MAIL_PASSWORD="$TP_MAIL_PASSWORD"
+export TERRAPEDIA_MAIL_FROM="$TP_MAIL_FROM"
+export TERRAPEDIA_MAIL_FROM_NAME="$TP_MAIL_FROM_NAME"
+export TERRAPEDIA_MAIL_SUBJECT_PREFIX="$TP_MAIL_SUBJECT_PREFIX"
+export TERRAPEDIA_MAIL_SSL_ENABLE="$TP_MAIL_SSL_ENABLE"
+export TERRAPEDIA_MAIL_STARTTLS_ENABLE="$TP_MAIL_STARTTLS_ENABLE"
 
 spring_profile="$TP_SPRING_PROFILE"
 export SPRING_PROFILES_ACTIVE="$spring_profile"
@@ -423,7 +433,7 @@ start_flaresolverr_if_needed
 if ! tcp_check 127.0.0.1 "$TP_BACKEND_PORT" 800; then
   start_background back "$REPO_ROOT/back" \
     "mvn -DskipTests -Dspring-boot.run.profiles=\"$spring_profile\" spring-boot:run" \
-    mvn -DskipTests -Dspring-boot.run.profiles="$spring_profile" "-Dspring-boot.run.jvmArguments=-DAPP_PORT=$TP_BACKEND_PORT -DTERRAPEDIA_MAIL_ENABLED=false -Dmanagement.health.mail.enabled=false" spring-boot:run
+    mvn -DskipTests -Dspring-boot.run.profiles="$spring_profile" "-Dspring-boot.run.jvmArguments=-DAPP_PORT=$TP_BACKEND_PORT -Dmanagement.health.mail.enabled=false" spring-boot:run
   wait_port 127.0.0.1 "$TP_BACKEND_PORT" 90 || {
     log_error "Backend failed to start on $TP_BACKEND_PORT. Check $(log_path back)"
     exit 1

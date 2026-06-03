@@ -94,6 +94,34 @@ test('start exports MinIO endpoint settings from local stack config', () => {
   assert.match(exampleConfig, /"publicEndpoint"/);
 });
 
+test('start loads local mail settings without hard-disabling backend mail', () => {
+  const runtimeConfig = fs.readFileSync('scripts/dev/lib/runtime-config.sh', 'utf8');
+  const source = startSource();
+  const exampleConfig = fs.readFileSync('scripts/dev/config/local-stack.config.example.json', 'utf8');
+  const readme = fs.readFileSync('scripts/dev/config/README.md', 'utf8');
+
+  assert.match(runtimeConfig, /load_root_env_file/);
+  assert.match(runtimeConfig, /QQ_SMTP/);
+  assert.match(runtimeConfig, /QQ_NUMBER/);
+  assert.match(runtimeConfig, /TP_MAIL_ENABLED/);
+  assert.match(runtimeConfig, /TP_MAIL_USERNAME/);
+  assert.match(runtimeConfig, /TP_MAIL_PASSWORD/);
+  assert.match(source, /export TERRAPEDIA_MAIL_ENABLED="\$TP_MAIL_ENABLED"/);
+  assert.match(source, /export TERRAPEDIA_MAIL_HOST="\$TP_MAIL_HOST"/);
+  assert.match(source, /export TERRAPEDIA_MAIL_PORT="\$TP_MAIL_PORT"/);
+  assert.match(source, /export TERRAPEDIA_MAIL_USERNAME="\$TP_MAIL_USERNAME"/);
+  assert.match(source, /export TERRAPEDIA_MAIL_PASSWORD="\$TP_MAIL_PASSWORD"/);
+  assert.match(source, /export TERRAPEDIA_MAIL_FROM="\$TP_MAIL_FROM"/);
+  assert.match(source, /export TERRAPEDIA_MAIL_SSL_ENABLE="\$TP_MAIL_SSL_ENABLE"/);
+  assert.match(source, /export TERRAPEDIA_MAIL_STARTTLS_ENABLE="\$TP_MAIL_STARTTLS_ENABLE"/);
+  assert.doesNotMatch(source, /-DTERRAPEDIA_MAIL_ENABLED=false/);
+  assert.match(source, /-Dmanagement\.health\.mail\.enabled=false/);
+  assert.match(exampleConfig, /"mail"/);
+  assert.match(exampleConfig, /"username": "your-qq-email@example\.com"/);
+  assert.match(readme, /TERRAPEDIA_MAIL_USERNAME/);
+  assert.match(readme, /QQ_SMTP/);
+});
+
 test('local stack front service starts the Nuxt frontend from front-nuxt on the configured port', () => {
   const source = startSource();
   const stop = stopSource();

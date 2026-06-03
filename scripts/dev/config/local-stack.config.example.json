@@ -49,6 +49,18 @@
     "containerName": "terrapedia-flaresolverr",
     "image": "ghcr.io/flaresolverr/flaresolverr"
   },
+  "mail": {
+    "enabled": true,
+    "host": "smtp.qq.com",
+    "port": 465,
+    "username": "your-qq-email@example.com",
+    "password": "set-your-smtp-authorization-code",
+    "from": "your-qq-email@example.com",
+    "fromName": "TerraPedia",
+    "subjectPrefix": "[TerraPedia]",
+    "sslEnable": true,
+    "starttlsEnable": false
+  },
   "dataRefresh": {
     "enabled": false,
     "mode": "apply",

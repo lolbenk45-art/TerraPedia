@@ -130,6 +130,16 @@ public class LegacyLocalStackConfigEnvironmentPostProcessor implements Environme
             putNodeValueIfPresent(properties, "TERRAPEDIA_MINIO_PUBLIC_ENDPOINT", root.path("minio").path("publicEndpoint"));
             putNodeValueIfPresent(properties, "TERRAPEDIA_MINIO_BUCKET", root.path("minio").path("bucket"));
             putNodeValueIfPresent(properties, "TERRAPEDIA_MINIO_OBJECT_PREFIX", root.path("minio").path("objectPrefix"));
+            putNodeValueIfPresent(properties, "TERRAPEDIA_MAIL_ENABLED", root.path("mail").path("enabled"));
+            putNodeValueIfPresent(properties, "TERRAPEDIA_MAIL_HOST", root.path("mail").path("host"));
+            putNodeValueIfPresent(properties, "TERRAPEDIA_MAIL_PORT", root.path("mail").path("port"));
+            putNodeValueIfPresent(properties, "TERRAPEDIA_MAIL_USERNAME", root.path("mail").path("username"));
+            putNodeValueIfPresent(properties, "TERRAPEDIA_MAIL_PASSWORD", root.path("mail").path("password"));
+            putNodeValueIfPresent(properties, "TERRAPEDIA_MAIL_FROM", root.path("mail").path("from"));
+            putNodeValueIfPresent(properties, "TERRAPEDIA_MAIL_FROM_NAME", root.path("mail").path("fromName"));
+            putNodeValueIfPresent(properties, "TERRAPEDIA_MAIL_SUBJECT_PREFIX", root.path("mail").path("subjectPrefix"));
+            putNodeValueIfPresent(properties, "TERRAPEDIA_MAIL_SSL_ENABLE", root.path("mail").path("sslEnable"));
+            putNodeValueIfPresent(properties, "TERRAPEDIA_MAIL_STARTTLS_ENABLE", root.path("mail").path("starttlsEnable"));
             putResolvedPathIfPresent(
                 properties,
                 "TERRAPEDIA_MINIO_CREDENTIALS_FILE",
