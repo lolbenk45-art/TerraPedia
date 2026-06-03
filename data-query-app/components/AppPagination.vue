@@ -9,7 +9,7 @@
       <button
         type="button"
         class="app-pagination__btn"
-        :disabled="currentPage <= 1"
+        :disabled="disabled || currentPage <= 1"
         @click="emitChange(1)"
       >
         首页
@@ -17,7 +17,7 @@
       <button
         type="button"
         class="app-pagination__btn"
-        :disabled="currentPage <= 1"
+        :disabled="disabled || currentPage <= 1"
         @click="emitChange(currentPage - 1)"
       >
         上一页
@@ -30,7 +30,7 @@
           type="button"
           class="app-pagination__page"
           :class="{ 'app-pagination__page--active': token.type === 'page' && token.value === currentPage }"
-          :disabled="token.type === 'ellipsis'"
+          :disabled="disabled || token.type === 'ellipsis'"
           @click="token.type === 'page' && emitChange(token.value)"
         >
           {{ token.type === 'page' ? token.value : '...' }}
@@ -40,7 +40,7 @@
       <button
         type="button"
         class="app-pagination__btn"
-        :disabled="currentPage >= normalizedTotalPages"
+        :disabled="disabled || currentPage >= normalizedTotalPages"
         @click="emitChange(currentPage + 1)"
       >
         下一页
@@ -48,7 +48,7 @@
       <button
         type="button"
         class="app-pagination__btn"
-        :disabled="currentPage >= normalizedTotalPages"
+        :disabled="disabled || currentPage >= normalizedTotalPages"
         @click="emitChange(normalizedTotalPages)"
       >
         末页
@@ -65,9 +65,10 @@
         :max="String(normalizedTotalPages)"
         class="app-pagination__jump-input"
         placeholder="页码"
+        :disabled="disabled"
       />
       <span class="app-pagination__jump-suffix">页</span>
-      <button type="submit" class="app-pagination__jump-btn">确定</button>
+      <button type="submit" class="app-pagination__jump-btn" :disabled="disabled">确定</button>
     </form>
   </div>
 </template>
@@ -82,8 +83,10 @@ const props = withDefaults(defineProps<{
   total: number
   totalPages: number
   windowSize?: number
+  disabled?: boolean
 }>(), {
-  windowSize: 2
+  windowSize: 2,
+  disabled: false
 })
 
 const emit = defineEmits<{
@@ -138,13 +141,14 @@ function clampPage(page: number) {
 }
 
 function emitChange(page: number) {
-  if (!normalizedTotalPages.value) return
+  if (props.disabled || !normalizedTotalPages.value) return
   const nextPage = clampPage(page)
   if (nextPage === currentPage.value) return
   emit('change', nextPage)
 }
 
 function submitJump() {
+  if (props.disabled) return
   if (!jumpInput.value.trim()) return
   const target = Number(jumpInput.value)
   if (!Number.isFinite(target)) {

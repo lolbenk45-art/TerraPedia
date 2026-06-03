@@ -472,23 +472,68 @@ public class ItemServiceImpl implements ItemService {
 
         Map<Long, CategoryDTO> categoryById = categoryManagementService.getCategoryMap();
 
-        itemCategoryRelMapper.delete(new LambdaQueryWrapper<ItemCategoryRel>().eq(ItemCategoryRel::getItemId, itemId));
+        List<ItemCategoryRel> existingRelations = itemCategoryRelMapper.selectByItemIdIncludingDeleted(itemId);
+        if (existingRelations == null) {
+            existingRelations = Collections.emptyList();
+        }
+        Map<Long, ItemCategoryRel> activeRelationByCategoryId = new HashMap<>();
+        Map<Long, ItemCategoryRel> deletedRelationByCategoryId = new HashMap<>();
+        for (ItemCategoryRel relation : existingRelations) {
+            if (relation == null || relation.getCategoryId() == null) {
+                continue;
+            }
+            if (Objects.equals(relation.getDeleted(), 0)) {
+                activeRelationByCategoryId.putIfAbsent(relation.getCategoryId(), relation);
+            } else {
+                deletedRelationByCategoryId.putIfAbsent(relation.getCategoryId(), relation);
+            }
+        }
 
         int sortOrder = 1;
+        LinkedHashSet<Long> syncedCategoryIds = new LinkedHashSet<>();
         for (Long categoryId : categoryIds) {
             if (!categoryById.containsKey(categoryId)) {
                 continue;
             }
-            ItemCategoryRel relation = new ItemCategoryRel();
-            relation.setItemId(itemId);
-            relation.setCategoryId(categoryId);
-            relation.setIsPrimary(Objects.equals(categoryId, itemDTO.getCategoryId()));
-            relation.setRelationType("manual_admin");
-            relation.setSortOrder(sortOrder++);
-            relation.setSourceProvider("admin");
-            relation.setStatus(1);
-            relation.setDeleted(0);
-            itemCategoryRelMapper.insert(relation);
+            syncedCategoryIds.add(categoryId);
+            ItemCategoryRel relation = activeRelationByCategoryId.get(categoryId);
+            if (relation == null) {
+                relation = deletedRelationByCategoryId.get(categoryId);
+            }
+            if (relation == null) {
+                relation = new ItemCategoryRel();
+                populateItemCategoryRelation(relation, itemId, categoryId, itemDTO.getCategoryId(), sortOrder++);
+                itemCategoryRelMapper.insert(relation);
+            } else {
+                populateItemCategoryRelation(relation, itemId, categoryId, itemDTO.getCategoryId(), sortOrder++);
+                itemCategoryRelMapper.restoreOrUpdateForSync(relation);
+            }
         }
+
+        for (ItemCategoryRel activeRelation : activeRelationByCategoryId.values()) {
+            Long categoryId = activeRelation.getCategoryId();
+            if (syncedCategoryIds.contains(categoryId) || activeRelation.getId() == null) {
+                continue;
+            }
+            itemCategoryRelMapper.deleteDeletedDuplicatesForCategory(itemId, categoryId, activeRelation.getId());
+            itemCategoryRelMapper.markDeletedById(activeRelation.getId());
+        }
+    }
+
+    private void populateItemCategoryRelation(
+        ItemCategoryRel relation,
+        Long itemId,
+        Long categoryId,
+        Long primaryCategoryId,
+        int sortOrder
+    ) {
+        relation.setItemId(itemId);
+        relation.setCategoryId(categoryId);
+        relation.setIsPrimary(Objects.equals(categoryId, primaryCategoryId));
+        relation.setRelationType("manual_admin");
+        relation.setSortOrder(sortOrder);
+        relation.setSourceProvider("admin");
+        relation.setStatus(1);
+        relation.setDeleted(0);
     }
 }

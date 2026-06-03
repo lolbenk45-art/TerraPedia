@@ -62,68 +62,81 @@
       </form>
     </section>
 
-    <section class="section-card table-card">
-      <div class="section-card__header">
-        <div>
-          <h2 class="section-card__title">单件装备字段</h2>
-          <p class="section-card__subtitle">默认不带关键词过滤，直接读取第一页盔甲属性投影。</p>
-        </div>
-        <div class="table-meta">
-          <span>{{ formatNumber(pagination.total) }} 条</span>
-          <span>第 {{ pagination.page }} 页</span>
-        </div>
-      </div>
+    <AdminTableShell
+      title="单件装备字段"
+      subtitle="默认不带关键词过滤，直接读取第一页盔甲属性投影。"
+      :loading="loading"
+      :error="loadError"
+      :empty="!rows.length"
+      empty-title="暂无盔甲属性数据"
+      empty-description="调整关键词、部位、阶段或字段筛选后再试。"
+    >
+      <template #meta>
+        <span>{{ formatNumber(rows.length) }} / {{ formatNumber(pagination.total) }} 条</span>
+        <span>第 {{ pagination.page }} 页</span>
+      </template>
 
-      <div v-if="loadError" class="state-panel state-panel--error" role="alert">{{ loadError }}</div>
-      <div v-else-if="loading" class="state-panel">加载中...</div>
-      <div v-else-if="!rows.length" class="state-panel">暂无盔甲属性数据</div>
-      <div v-else class="table-scroll">
-        <table class="data-table armor-attribute-table">
-          <thead>
-            <tr>
-              <th>装备</th>
-              <th>部位</th>
-              <th>阶段</th>
-              <th>防御</th>
-              <th>meleeDamage</th>
-              <th>meleeCritChance</th>
-              <th>classSpecific</th>
-              <th>效果数</th>
-              <th>来源修订</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in rows" :key="row.id">
-              <td>
-                <strong>{{ row.itemNameZh || row.itemPageTitle || '--' }}</strong>
-                <small>{{ row.itemInternalName || row.itemHref || '--' }}</small>
-              </td>
-              <td>{{ slotLabel(row.slotGroup) }}</td>
-              <td>{{ sectionLabel(row.sectionCode) }}</td>
-              <td>{{ valueOrDash(row.defenseValue) }}</td>
-              <td>{{ rawCell(row, 'meleeDamage') }}</td>
-              <td>{{ rawCell(row, 'meleeCritChance') }}</td>
-              <td>{{ rawCell(row, 'classSpecific') }}</td>
-              <td>{{ valueOrDash(row.effectCount) }}</td>
-              <td>
-                <span>{{ row.sourcePage || '--' }}</span>
-                <small>{{ row.sourceRevisionTimestamp || '--' }}</small>
-              </td>
-              <td>
-                <button type="button" class="btn-link" :disabled="!row.itemId" @click="openDetail(row)">详情</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <AdminDataTable
+        :columns="armorAttributeColumns"
+        :rows="rows"
+        row-key="id"
+        min-width="1120px"
+      >
+        <template #cell:item="{ row }">
+          <div class="admin-table-primary">
+            <strong>{{ armorRow(row).itemNameZh || armorRow(row).itemPageTitle || '--' }}</strong>
+            <span>{{ armorRow(row).itemInternalName || armorRow(row).itemHref || '--' }}</span>
+          </div>
+        </template>
 
-      <div class="pagination-row">
-        <button type="button" class="btn btn-secondary" :disabled="pagination.page <= 1 || loading" @click="goPage(pagination.page - 1)">上一页</button>
-        <span>第 {{ pagination.page }} / {{ pagination.totalPages || 1 }} 页</span>
-        <button type="button" class="btn btn-secondary" :disabled="pagination.page >= pagination.totalPages || loading" @click="goPage(pagination.page + 1)">下一页</button>
-      </div>
-    </section>
+        <template #cell:slotGroup="{ row }">
+          <span class="admin-table-badge">{{ slotLabel(armorRow(row).slotGroup) }}</span>
+        </template>
+
+        <template #cell:sectionCode="{ row }">
+          <span class="admin-table-badge">{{ sectionLabel(armorRow(row).sectionCode) }}</span>
+        </template>
+
+        <template #cell:defenseValue="{ row }">
+          {{ valueOrDash(armorRow(row).defenseValue) }}
+        </template>
+
+        <template #cell:meleeDamage="{ row }">
+          {{ rawCell(armorRow(row), 'meleeDamage') }}
+        </template>
+
+        <template #cell:meleeCritChance="{ row }">
+          {{ rawCell(armorRow(row), 'meleeCritChance') }}
+        </template>
+
+        <template #cell:classSpecific="{ row }">
+          {{ rawCell(armorRow(row), 'classSpecific') }}
+        </template>
+
+        <template #cell:sourceRevision="{ row }">
+          <div class="admin-table-primary">
+            <span>{{ armorRow(row).sourcePage || '--' }}</span>
+            <code class="admin-table-token">{{ armorRow(row).sourceRevisionTimestamp || '--' }}</code>
+          </div>
+        </template>
+
+        <template #cell:actions="{ row }">
+          <div class="row-actions">
+            <button type="button" class="btn-link" :disabled="!armorRow(row).itemId" @click="openDetail(armorRow(row))">详情</button>
+          </div>
+        </template>
+      </AdminDataTable>
+
+      <template #pagination>
+        <AppPagination
+          :page="pagination.page"
+          :total="pagination.total"
+          :total-pages="pagination.totalPages || 1"
+          :disabled="loading"
+          @change="goPage"
+        />
+      </template>
+    </AdminTableShell>
 
     <div v-if="detailOpen" class="detail-drawer" role="dialog" aria-modal="true" aria-labelledby="armor-attribute-detail-title">
       <div class="detail-drawer__panel">
@@ -197,6 +210,7 @@
 </template>
 
 <script setup lang="ts">
+import type { AdminTableColumn } from '~/types/admin-table'
 import { get } from '~/composables/useApi'
 
 definePageMeta({ title: '盔甲属性表', navSection: '/operations/armor-attributes', headerVariant: 'compact' })
@@ -296,6 +310,19 @@ const filters = reactive({
   hasDefense: '',
 })
 
+const armorAttributeColumns: AdminTableColumn[] = [
+  { key: 'item', label: '装备' },
+  { key: 'slotGroup', label: '部位' },
+  { key: 'sectionCode', label: '阶段' },
+  { key: 'defenseValue', label: '防御', class: 'admin-table-number' },
+  { key: 'meleeDamage', label: 'meleeDamage' },
+  { key: 'meleeCritChance', label: 'meleeCritChance' },
+  { key: 'classSpecific', label: 'classSpecific' },
+  { key: 'effectCount', label: '效果数', class: 'admin-table-number' },
+  { key: 'sourceRevision', label: '来源修订' },
+  { key: 'actions', label: '操作' },
+]
+
 const queryParams = computed(() => ({
   page: pagination.page,
   limit: pagination.limit,
@@ -378,6 +405,10 @@ async function goPage(page: number) {
   await fetchRows(Math.max(1, page))
 }
 
+function armorRow(row: unknown) {
+  return row as ArmorAttributeRow
+}
+
 function rawCell(row: ArmorAttributeRow, key: string) {
   const value = row.rawCells?.[key]
   return valueOrDash(value)
@@ -457,9 +488,7 @@ onMounted(async () => {
   padding: 9px 11px;
 }
 
-.filter-actions,
-.pagination-row,
-.table-meta {
+.filter-actions {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -469,35 +498,8 @@ onMounted(async () => {
   justify-content: flex-end;
 }
 
-.table-card {
-  overflow: hidden;
-}
-
-.table-meta {
-  color: var(--color-text-secondary);
-  font-size: 0.9rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.table-scroll {
-  overflow-x: auto;
-}
-
-.armor-attribute-table,
 .effect-table {
   min-width: 1080px;
-}
-
-.armor-attribute-table td strong,
-.armor-attribute-table td small,
-.armor-attribute-table td span {
-  display: block;
-}
-
-.armor-attribute-table td small {
-  color: var(--color-text-secondary);
-  margin-top: 4px;
 }
 
 .btn-link {
@@ -524,11 +526,6 @@ onMounted(async () => {
 
 .state-panel--error {
   color: var(--color-danger);
-}
-
-.pagination-row {
-  justify-content: flex-end;
-  margin-top: 16px;
 }
 
 .detail-drawer {
@@ -622,7 +619,6 @@ onMounted(async () => {
   }
 
   .filter-actions,
-  .pagination-row,
   .detail-drawer__head {
     align-items: stretch;
     flex-direction: column;
