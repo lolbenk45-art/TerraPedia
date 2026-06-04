@@ -47,4 +47,6 @@ public interface ArticleService {
     ArticleDTO deleteUserArticle(Long userId, Long articleId);
 
     ArticleDTO withdrawUserArticle(Long userId, Long articleId);
+
+    ArticleDTO offlineUserArticle(Long userId, Long articleId);
 }

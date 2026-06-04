@@ -11,6 +11,7 @@ import {
   fetchUserArticles,
   loginUser,
   logoutUser,
+  offlineUserArticle as offlineUserArticleRequest,
   refreshUserSession,
   registerUser,
   resetUserPassword,
@@ -399,6 +400,20 @@ export const useUserAuthStore = defineStore('user-auth', () => {
     }
   }
 
+  const offlineExistingUserArticle = async (id: number | string) => {
+    submitting.value = true
+    lastError.value = ''
+    try {
+      const article = await offlineUserArticleRequest(id)
+      upsertArticleInList(article)
+      return article
+    } catch (error) {
+      throw new Error(setError(error, '下架文章失败。'))
+    } finally {
+      submitting.value = false
+    }
+  }
+
   const deleteExistingUserArticle = async (id: number | string) => {
     submitting.value = true
     lastError.value = ''
@@ -441,6 +456,7 @@ export const useUserAuthStore = defineStore('user-auth', () => {
     updateUserArticle: updateExistingUserArticle,
     submitUserArticleForReview: submitExistingUserArticleForReview,
     withdrawUserArticle: withdrawExistingUserArticle,
+    offlineUserArticle: offlineExistingUserArticle,
     deleteUserArticle: deleteExistingUserArticle,
   }
 })

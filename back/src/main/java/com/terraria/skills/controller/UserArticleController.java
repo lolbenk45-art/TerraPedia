@@ -146,6 +146,19 @@ public class UserArticleController {
         ));
     }
 
+    @PostMapping("/{id}/offline")
+    @Operation(summary = "Take current user published article offline")
+    public ResponseEntity<ApiResponse<ArticleDTO>> offlineArticle(
+        @PathVariable Long id,
+        HttpServletRequest httpRequest
+    ) {
+        UserTokenClaims claims = getRequiredClaims(httpRequest);
+        return ResponseEntity.ok(ApiResponse.success(
+            articleService.offlineUserArticle(claims.getUserId(), id),
+            "Article taken offline"
+        ));
+    }
+
     private String getClientIp(HttpServletRequest request) {
         String forwarded = request.getHeader("X-Forwarded-For");
         if (forwarded != null && !forwarded.isBlank()) {

@@ -118,10 +118,12 @@ for (const marker of [
   'export const updateUserArticle =',
   'export const submitUserArticleForReview =',
   'export const withdrawUserArticle =',
+  'export const offlineUserArticle =',
   'export const deleteUserArticle =',
   '`/user/articles/${id}`',
   '`/user/articles/${id}/submit-review`',
   '`/user/articles/${id}/withdraw`',
+  '`/user/articles/${id}/offline`',
 ]) {
   assertIncludes(apiPath, api, marker, `user article API wrappers must include ${marker}`)
 }
@@ -186,6 +188,7 @@ for (const marker of [
   'updateUserArticle',
   'submitUserArticleForReview',
   'withdrawUserArticle',
+  'offlineUserArticle',
   'deleteUserArticle',
 ]) {
   assertIncludes(storePath, store, marker, `user auth store must expose ${marker}`)
@@ -318,7 +321,7 @@ const pageContracts = [
   },
   {
     path: 'pages/user/articles/index.vue',
-    required: ['definePageMeta({ requiresUserAuth: true })', 'authStore.fetchUserArticles', 'articlesLoading', 'user-empty-state', 'formatReviewStatus', 'articleActionLabel', 'reviewComment', '编辑', '查看状态', '查看公开页'],
+    required: ['definePageMeta({ requiresUserAuth: true })', 'authStore.fetchUserArticles', 'articlesLoading', 'user-empty-state', 'formatReviewStatus', 'articleActionLabel', 'reviewComment', '编辑', '查看状态', '管理', '查看公开页', '`/user/articles/${article.id}`'],
     forbidden: ['近战装备路线补充', '克眼前准备清单'],
   },
   {
@@ -328,7 +331,7 @@ const pageContracts = [
   },
   {
     path: 'pages/user/articles/[id].vue',
-    required: ['definePageMeta({ requiresUserAuth: true })', 'authStore.fetchUserArticle', 'authStore.updateUserArticle', 'authStore.submitUserArticleForReview', 'authStore.withdrawUserArticle', 'authStore.deleteUserArticle', 'window.confirm', 'contentHtml', 'user-form-success', 'user-form-error', '保存草稿', '提交审核', '撤回投稿', '删除草稿'],
+    required: ['definePageMeta({ requiresUserAuth: true })', 'authStore.fetchUserArticle', 'authStore.updateUserArticle', 'authStore.submitUserArticleForReview', 'authStore.withdrawUserArticle', 'authStore.offlineUserArticle', 'authStore.deleteUserArticle', 'window.confirm', 'contentHtml', 'user-form-success', 'user-form-error', '保存草稿', '提交审核', '撤回投稿', '下架文章', '删除文章', 'canOfflineArticle', 'canDeleteArticle'],
     forbidden: ['保存占位', '正文编辑区占位'],
   },
   {

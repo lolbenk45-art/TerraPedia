@@ -15,19 +15,24 @@ const formatReviewStatus = (status: string) => {
   return map[status] || status
 }
 
-const canEditArticle = (article: { reviewStatus: string }) => article.reviewStatus === 'DRAFT' || article.reviewStatus === 'REJECTED'
+const formatArticleState = (article: { status: string, reviewStatus: string }) => {
+  if (article.status === 'PUBLISHED') return '已发布'
+  if (article.status === 'OFFLINE') return '已下架'
+  return formatReviewStatus(article.reviewStatus)
+}
+
+const canEditArticle = (article: { status: string, reviewStatus: string }) =>
+  article.status === 'OFFLINE' || article.reviewStatus === 'DRAFT' || article.reviewStatus === 'REJECTED'
 
 const articleActionHref = (article: { id: number, slug: string | null, status: string, reviewStatus: string }) => {
-  if (canEditArticle(article) || article.reviewStatus === 'PENDING_REVIEW') return `/user/articles/${article.id}`
-  if (article.status === 'PUBLISHED' && article.slug) return `/articles/${article.slug}`
   return `/user/articles/${article.id}`
 }
 
 const articleActionLabel = (article: { slug: string | null, status: string, reviewStatus: string }) => {
   if (canEditArticle(article)) return '编辑'
   if (article.reviewStatus === 'PENDING_REVIEW') return '查看状态'
-  if (article.status === 'PUBLISHED' && article.slug) return '查看公开页'
-  return '查看状态'
+  if (article.status === 'PUBLISHED') return '管理'
+  return '管理'
 }
 
 const loadArticles = async () => {
@@ -85,9 +90,10 @@ const publishedCount = computed(() => authStore.articles.filter((article) => art
             class="user-article-row"
           >
             <b>{{ article.title }}</b>
-            <span>{{ formatReviewStatus(article.reviewStatus) }} · {{ article.updatedAt || article.createdAt || '未记录时间' }}</span>
+            <span>{{ formatArticleState(article) }} · {{ article.updatedAt || article.createdAt || '未记录时间' }}</span>
             <span v-if="article.reviewStatus === 'REJECTED' && article.reviewComment">退回意见：{{ article.reviewComment }}</span>
             <a :href="articleActionHref(article)">{{ articleActionLabel(article) }}</a>
+            <a v-if="article.status === 'PUBLISHED' && article.slug" :href="`/articles/${article.slug}`">查看公开页</a>
           </div>
         </article>
         <aside class="support-panel user-feed-panel">

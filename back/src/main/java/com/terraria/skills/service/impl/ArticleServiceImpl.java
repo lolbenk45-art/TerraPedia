@@ -39,6 +39,7 @@ public class ArticleServiceImpl implements ArticleService {
     private static final String ACTION_DIRECT_PUBLISH_COMPAT = "DIRECT_PUBLISH_COMPAT";
     private static final String ACTION_RESET_TO_DRAFT = "RESET_TO_DRAFT";
     private static final String ACTION_WITHDRAW_REVIEW = "WITHDRAW_REVIEW";
+    private static final String ACTION_USER_OFFLINE = "USER_OFFLINE";
 
     private final ArticleMapper articleMapper;
     private final ArticleReviewLogMapper articleReviewLogMapper;
@@ -451,8 +452,9 @@ public class ArticleServiceImpl implements ArticleService {
         if (ArticleReviewStatus.PENDING_REVIEW.equals(currentReviewStatus)) {
             throw new IllegalArgumentException("Article under review cannot be edited directly");
         }
-        if (!(ArticleReviewStatus.DRAFT.equals(currentReviewStatus) || ArticleReviewStatus.REJECTED.equals(currentReviewStatus))) {
-            throw new IllegalArgumentException("Only draft or rejected article can be edited");
+        boolean offlineOwnedArticle = ArticleStatus.OFFLINE.equals(article.getStatus());
+        if (!(ArticleReviewStatus.DRAFT.equals(currentReviewStatus) || ArticleReviewStatus.REJECTED.equals(currentReviewStatus) || offlineOwnedArticle)) {
+            throw new IllegalArgumentException("Only draft, rejected or offline article can be edited");
         }
 
         article.setTitle(request.getTitle().trim());
@@ -501,8 +503,9 @@ public class ArticleServiceImpl implements ArticleService {
         Long normalizedUserId = requireUserId(userId);
         Article article = requireUserOwnedArticle(articleId, normalizedUserId);
         String currentReviewStatus = normalizeReviewStatus(article.getReviewStatus());
-        if (!(ArticleReviewStatus.DRAFT.equals(currentReviewStatus) || ArticleReviewStatus.REJECTED.equals(currentReviewStatus))) {
-            throw new IllegalArgumentException("Only draft or rejected article can be deleted");
+        boolean offlineOwnedArticle = ArticleStatus.OFFLINE.equals(article.getStatus());
+        if (!(ArticleReviewStatus.DRAFT.equals(currentReviewStatus) || ArticleReviewStatus.REJECTED.equals(currentReviewStatus) || offlineOwnedArticle)) {
+            throw new IllegalArgumentException("Only draft, rejected or offline article can be deleted");
         }
         if (ArticleStatus.PUBLISHED.equals(article.getStatus())) {
             throw new IllegalArgumentException("Published article cannot be deleted");
@@ -532,6 +535,26 @@ public class ArticleServiceImpl implements ArticleService {
         String normalizedOperator = normalizeUserOperatorName(null);
         writeReviewLog(articleId, ACTION_WITHDRAW_REVIEW, currentReviewStatus, ArticleReviewStatus.DRAFT, null, normalizedOperator);
         auditUser("USER_ARTICLE_WITHDRAW_REVIEW", normalizedUserId, normalizedOperator, null, "articleId=" + articleId);
+        return getUserArticleById(normalizedUserId, articleId);
+    }
+
+    @Override
+    public ArticleDTO offlineUserArticle(Long userId, Long articleId) {
+        Long normalizedUserId = requireUserId(userId);
+        Article article = requireUserOwnedArticle(articleId, normalizedUserId);
+        if (!ArticleStatus.PUBLISHED.equals(article.getStatus())) {
+            throw new IllegalArgumentException("Only published article can be taken offline");
+        }
+
+        String currentReviewStatus = normalizeReviewStatus(article.getReviewStatus());
+        article.setStatus(ArticleStatus.OFFLINE);
+        article.setPublishedAt(null);
+        article.setUpdatedAt(LocalDateTime.now());
+        articleMapper.updateById(article);
+
+        String normalizedOperator = normalizeUserOperatorName(null);
+        writeReviewLog(articleId, ACTION_USER_OFFLINE, currentReviewStatus, currentReviewStatus, null, normalizedOperator);
+        auditUser("USER_ARTICLE_OFFLINE", normalizedUserId, normalizedOperator, null, "articleId=" + articleId);
         return getUserArticleById(normalizedUserId, articleId);
     }
 

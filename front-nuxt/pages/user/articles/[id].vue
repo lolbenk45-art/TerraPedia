@@ -22,7 +22,11 @@ const articleId = computed(() => String(route.params.id || ''))
 const hasRequiredFields = computed(() => Boolean(form.title.trim() && form.contentHtml.trim()))
 const isDraftLike = computed(() => article.value?.reviewStatus === 'DRAFT' || article.value?.reviewStatus === 'REJECTED')
 const isPendingReview = computed(() => article.value?.reviewStatus === 'PENDING_REVIEW')
-const canEditArticle = computed(() => isDraftLike.value)
+const isPublishedArticle = computed(() => article.value?.status === 'PUBLISHED')
+const isOfflineArticle = computed(() => article.value?.status === 'OFFLINE')
+const canEditArticle = computed(() => isDraftLike.value || isOfflineArticle.value)
+const canOfflineArticle = computed(() => isPublishedArticle.value)
+const canDeleteArticle = computed(() => isDraftLike.value || isOfflineArticle.value)
 const articleLoading = computed(() => authStore.articlesLoading || !initialArticleLoaded.value)
 
 const formatReviewStatus = (status: string) => {
@@ -31,6 +35,15 @@ const formatReviewStatus = (status: string) => {
     PENDING_REVIEW: '待审核',
     APPROVED: '已通过',
     REJECTED: '已退回',
+  }
+  return map[status] || status
+}
+
+const formatArticleStatus = (status: string) => {
+  const map: Record<string, string> = {
+    DRAFT: '草稿',
+    PUBLISHED: '已发布',
+    OFFLINE: '已下架',
   }
   return map[status] || status
 }
@@ -68,7 +81,7 @@ const saveDraft = async () => {
       coverImage: form.coverImage,
       contentHtml: form.contentHtml,
     }))
-    success.value = '草稿已保存。'
+    success.value = isOfflineArticle.value ? '文章已保存为草稿，可重新提交审核。' : '草稿已保存。'
   } catch (exception: unknown) {
     error.value = exception instanceof Error ? exception.message : '草稿保存失败。'
   }
@@ -96,8 +109,20 @@ const withdrawArticle = async () => {
   }
 }
 
+const offlineArticle = async () => {
+  if (!window.confirm('确定下架这篇已发布文章吗？下架后公开页将不可访问，可继续编辑后重新提交审核。')) return
+  error.value = ''
+  success.value = ''
+  try {
+    syncForm(await authStore.offlineUserArticle(articleId.value))
+    success.value = '文章已下架，可继续编辑。'
+  } catch (exception: unknown) {
+    error.value = exception instanceof Error ? exception.message : '下架文章失败。'
+  }
+}
+
 const deleteArticle = async () => {
-  if (!window.confirm('确定删除这篇草稿吗？删除后将返回我的文章列表。')) return
+  if (!window.confirm('确定删除这篇文章吗？删除后将返回我的文章列表。')) return
   error.value = ''
   success.value = ''
   try {
@@ -123,7 +148,7 @@ onMounted(() => {
         <div>
           <span class="eyebrow">/user/articles/{{ articleId }} · editor</span>
           <h1>{{ article?.title || '编辑文章' }}</h1>
-          <p>编辑当前账号下的文章草稿，或查看投稿审核状态。</p>
+          <p>管理当前账号下的文章。已发布文章需要先下架，再编辑内容并重新提交审核。</p>
         </div>
         <a class="secondary-button" href="/user/articles">返回我的文章</a>
       </div>
@@ -162,10 +187,14 @@ onMounted(() => {
         <span class="eyebrow">审核状态</span>
         <div class="material-row" :class="{ done: form.title.trim(), missing: !form.title.trim() }"><b>标题</b><span>{{ form.title.trim() ? '已填写' : '必填' }}</span></div>
         <div class="material-row" :class="{ done: form.contentHtml.trim(), missing: !form.contentHtml.trim() }"><b>正文</b><span>{{ form.contentHtml.trim() ? '已填写' : '必填' }}</span></div>
-        <div class="material-row"><b>状态</b><span>{{ article ? formatReviewStatus(article.reviewStatus) : '加载中' }}</span></div>
+        <div class="material-row"><b>发布状态</b><span>{{ article ? formatArticleStatus(article.status) : '加载中' }}</span></div>
+        <div class="material-row"><b>审核状态</b><span>{{ article ? formatReviewStatus(article.reviewStatus) : '加载中' }}</span></div>
         <div v-if="article?.submittedAt" class="material-row"><b>提交时间</b><span>{{ article.submittedAt }}</span></div>
         <div v-if="article?.reviewedAt" class="material-row"><b>审核时间</b><span>{{ article.reviewedAt }}</span></div>
         <div v-if="article?.reviewComment" class="material-row missing"><b>审核意见</b><span>{{ article.reviewComment }}</span></div>
+        <div v-if="article?.status === 'PUBLISHED' && article.slug" class="material-row done">
+          <b>公开页</b><a :href="`/articles/${article.slug}`">查看公开页</a>
+        </div>
 
         <button class="primary-button" type="submit" :disabled="authStore.submitting || articleLoading || !hasRequiredFields || !canEditArticle">
           {{ authStore.submitting ? '保存中...' : '保存草稿' }}
@@ -189,13 +218,22 @@ onMounted(() => {
           撤回投稿
         </button>
         <button
-          v-if="isDraftLike"
+          v-if="canOfflineArticle"
+          class="secondary-button"
+          type="button"
+          :disabled="authStore.submitting || articleLoading"
+          @click="offlineArticle"
+        >
+          下架文章
+        </button>
+        <button
+          v-if="canDeleteArticle"
           class="secondary-button"
           type="button"
           :disabled="authStore.submitting || articleLoading"
           @click="deleteArticle"
         >
-          删除草稿
+          删除文章
         </button>
       </aside>
     </form>

@@ -322,6 +322,9 @@ export const submitUserArticleForReview = async (id: number | string): Promise<U
 export const withdrawUserArticle = async (id: number | string): Promise<UserArticle> =>
   normalizeUserArticle(unwrapApiResponse(await userFetch<UserArticle>(`/user/articles/${id}/withdraw`, { method: 'POST' })))
 
+export const offlineUserArticle = async (id: number | string): Promise<UserArticle> =>
+  normalizeUserArticle(unwrapApiResponse(await userFetch<UserArticle>(`/user/articles/${id}/offline`, { method: 'POST' })))
+
 export const deleteUserArticle = async (id: number | string): Promise<UserArticle> =>
   normalizeUserArticle(unwrapApiResponse(await userFetch<UserArticle>(`/user/articles/${id}`, { method: 'DELETE' })))
 
