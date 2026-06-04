@@ -1724,6 +1724,70 @@ test('runMaintSync retires stale armor attribute rows not produced by the curren
   assert.equal(summary.writes.retired, 1);
 });
 
+test('runMaintSync retires stale biome rows not produced by the current source set', async () => {
+  const executeCalls = [];
+  const summary = await runMaintSync(
+    { apply: true, scopes: ['biomes'] },
+    {
+      loadLandingRows: async () => [
+        {
+          id: 82,
+          dataset_type: 'biomes_raw',
+          provider: 'terraria.wiki.gg',
+          source_page: 'Snow biome',
+          source_key: 'wiki.page.biome_detail:snow_biome',
+          source_revision_timestamp: '2026-04-07T02:49:49Z',
+          content_hash: '4'.repeat(64),
+          fetched_at: '2026-06-04T07:55:00.000Z',
+          parsed_at: '2026-06-04T07:55:00.000Z',
+          payload_json: JSON.stringify({
+            requestedPageTitle: 'Snow biome',
+            pageTitle: 'Snow biome',
+            pageId: 4079,
+            revisionTimestamp: '2026-04-07T02:49:49Z',
+            fetchedAt: '2026-06-04T07:55:00.000Z',
+            wikitext: 'wiki text',
+            html: '<p>Snow biome</p>',
+            entityType: 'biome',
+            biomeCode: 'snow_biome',
+          }),
+        },
+      ],
+      mysqlModule: {
+        async createConnection() {
+          return {
+            async beginTransaction() {},
+            async query() {},
+            async execute(sql, params) {
+              executeCalls.push({ sql, params });
+              if (sql.startsWith('SELECT id FROM') || sql.startsWith('SELECT id, status, deleted, landing_source_id, landing_content_hash FROM')) {
+                return [[]];
+              }
+              if (sql.startsWith('UPDATE `maint_biomes` AS target')) {
+                return [{ affectedRows: 1 }];
+              }
+              return [{}];
+            },
+            async commit() {},
+            async rollback() {},
+            async end() {},
+          };
+        },
+      },
+      writeReport: async () => {},
+    },
+  );
+
+  const staleCleanup = executeCalls.find((call) => call.sql.startsWith('UPDATE `maint_biomes` AS target'));
+  assert.ok(staleCleanup);
+  assert.match(staleCleanup.sql, /LEFT JOIN `tmp_maint_active_record_keys`/);
+  assert.match(staleCleanup.sql, /BINARY active\.record_key = BINARY target\.record_key/);
+  assert.equal(staleCleanup.params.length, 1);
+  assert.equal(staleCleanup.params[0], 'maint_biomes');
+  assert.equal(summary.writes.inserted, 1);
+  assert.equal(summary.writes.retired, 1);
+});
+
 test('runMaintSync skips large item page rewrites when current record-key row is already active', async () => {
   const executeCalls = [];
   const summary = await runMaintSync(
