@@ -58,6 +58,7 @@ const assertPostAuthRedirectTarget = (input, expected) => {
 const apiPath = 'composables/useUserApi.ts'
 const redirectUtilPath = 'lib/userRedirect.mjs'
 const storePath = 'stores/userAuth.ts'
+const favoritesStorePath = 'stores/userFavorites.ts'
 const middlewarePath = 'middleware/user-auth.global.ts'
 const typesPath = 'types/public-api.ts'
 const navPath = 'components/TerraNav.vue'
@@ -66,6 +67,7 @@ const cssPath = 'assets/css/hifi-preview.css'
 const api = assertFile(apiPath)
 const redirectUtil = assertFile(redirectUtilPath)
 const store = assertFile(storePath)
+const favoritesStore = assertFile(favoritesStorePath)
 const middleware = assertFile(middlewarePath)
 const types = assertFile(typesPath)
 const nav = assertFile(navPath)
@@ -155,6 +157,16 @@ for (const marker of [
 ]) {
   assertIncludes(storePath, store, marker, `user auth store must expose ${marker}`)
 }
+
+for (const marker of [
+  'pendingStatusLoads',
+  'clearUserFavoriteState',
+  'isUserApiUnauthorized',
+  'clearStatuses',
+]) {
+  assertIncludes(favoritesStorePath, favoritesStore, marker, `user favorites store must harden runtime state with ${marker}`)
+}
+assertIncludes(storePath, store, 'clearUserFavoriteState', 'user auth logout must clear favorite state')
 
 for (const marker of [
   'requiresUserAuth',
