@@ -223,6 +223,11 @@ const pageContracts = [
     required: ['definePageMeta({ requiresUserAuth: true })', 'authStore.fetchUserArticle', 'authStore.updateUserArticle', 'authStore.submitUserArticleForReview', 'authStore.withdrawUserArticle', 'authStore.deleteUserArticle', 'window.confirm', 'contentHtml', 'user-form-success', 'user-form-error', '保存草稿', '提交审核', '撤回投稿', '删除草稿'],
     forbidden: ['保存占位', '正文编辑区占位'],
   },
+  {
+    path: 'pages/articles/[slug].vue',
+    required: ['usePublicApiFetch<UserArticle>', '/articles/slug/', 'useUserFavoritesStore', "loadStatuses('ARTICLE'", 'toggleArticleFavorite', '收藏文章', '已收藏', 'article.id'],
+    forbidden: ['公开文章暂未开放', '真实文章待接入', '文章未载入', '没有真实发布数据'],
+  },
 ]
 
 for (const contract of pageContracts) {
@@ -234,6 +239,11 @@ for (const contract of pageContracts) {
     assertNotIncludes(contract.path, content, marker, `page must not remain preview-only with ${marker}`)
   }
 }
+
+const publicArticleDetail = assertFile('pages/articles/[slug].vue')
+assertPattern('pages/articles/[slug].vue', publicArticleDetail, /favoritesStore\.loadStatuses\('ARTICLE',\s*\[article\.value\.id\]\)/, 'article detail favorite status must load by returned article.id')
+assertPattern('pages/articles/[slug].vue', publicArticleDetail, /favoritesStore\.toggleArticleFavorite\(article\.value\.id\)/, 'article detail favorite toggle must use returned article.id')
+assertNotPattern('pages/articles/[slug].vue', publicArticleDetail, /v-html=/, 'article detail must not render user article HTML directly without sanitizer')
 
 const userSettings = assertFile('pages/user/settings.vue')
 for (const label of ['显示偏好', '通知', '公开身份']) {
