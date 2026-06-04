@@ -1311,6 +1311,21 @@ export type UserFavoriteStatus = {
   createdAt?: string | null
 }
 
+export type UserHistoryTargetType = 'ITEM' | 'ARTICLE'
+
+export type UserHistoryTypeFilter = 'all' | 'items' | 'articles'
+
+export type UserReadingHistory = {
+  id?: number | string | null
+  targetType: UserHistoryTargetType
+  targetId: number | string
+  title: string
+  imageUrl?: string | null
+  url: string
+  viewCount?: number
+  lastViewedAt?: string | null
+}
+
 export type UserRegisterCodeResponse = {
   expiresInSeconds?: number | null
   cooldownSeconds?: number | null

@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import type { UserReadingHistory } from '~/types/public-api'
+
 const authStore = useUserAuthStore()
+const historyStore = useUserHistoryStore()
 const articleError = ref('')
+const historyError = ref('')
 
 await authStore.init()
 
@@ -10,9 +14,23 @@ if (authStore.isAuthenticated) {
   } catch (exception: unknown) {
     articleError.value = exception instanceof Error ? exception.message : '文章状态加载失败。'
   }
+  try {
+    await historyStore.loadList('all', 1, 6)
+  } catch {
+    historyError.value = '阅读记录加载失败。'
+  }
 }
 
 const articleTotal = computed(() => Number(authStore.articlePagination.total ?? 0))
+const historyTypeLabel = (entry: UserReadingHistory) => entry.targetType === 'ARTICLE' ? '文章' : '物品'
+const removeHistoryEntry = async (entry: UserReadingHistory) => {
+  historyError.value = ''
+  try {
+    await historyStore.remove(entry)
+  } catch {
+    historyError.value = '阅读记录移除失败。'
+  }
+}
 </script>
 
 <template>
@@ -100,6 +118,36 @@ const articleTotal = computed(() => Number(authStore.articlePagination.total ?? 
             <a href="/about"><span class="sprite-icon icon-codex card-icon" aria-hidden="true"></span><b>项目</b><span>反馈合作</span></a>
           </div>
         </article>
+        <article class="support-panel user-feed-panel">
+          <span class="eyebrow">最近阅读</span>
+          <div v-if="historyError" class="user-form-status user-form-error">{{ historyError }}</div>
+          <div v-else-if="authStore.isAuthenticated && historyStore.items.length">
+            <div
+              v-for="entry in historyStore.items"
+              :key="`${entry.targetType}:${entry.targetId}`"
+              class="user-feed-row history-feed-row"
+            >
+              <b>{{ entry.title || '未命名条目' }}</b>
+              <span>{{ historyTypeLabel(entry) }} · {{ entry.viewCount || 1 }} 次</span>
+              <a :href="entry.url">打开</a>
+              <button
+                class="secondary-button history-remove-button"
+                type="button"
+                :disabled="historyStore.mutating"
+                @click="removeHistoryEntry(entry)"
+              >
+                移除
+              </button>
+            </div>
+          </div>
+          <div v-else-if="authStore.isAuthenticated" class="user-empty-state history-empty-state">
+            <b>还没有阅读记录。</b>
+            <span>打开文章或物品详情后，会显示最近访问过的条目。</span>
+          </div>
+          <div v-else class="user-feed-row">
+            <b>阅读记录</b><span>登录后显示真实阅读记录。</span><a href="/user/login">登录</a>
+          </div>
+        </article>
       </section>
     </main>
 
@@ -116,5 +164,24 @@ const articleTotal = computed(() => Number(authStore.articlePagination.total ?? 
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.history-feed-row {
+  grid-template-columns: minmax(0, 1fr) minmax(120px, auto) auto auto;
+}
+
+.history-remove-button {
+  min-height: 32px;
+  padding: 0 10px;
+}
+
+.history-empty-state {
+  padding: 12px;
+}
+
+@media (max-width: 640px) {
+  .history-feed-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

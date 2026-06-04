@@ -18,12 +18,14 @@ const route = useRoute()
 const detailLayout = useDetailLayout({ kind: 'item', density: 'readable' })
 const authStore = useUserAuthStore()
 const favoritesStore = useUserFavoritesStore()
+const historyStore = useUserHistoryStore()
 
 const itemId = computed(() => String(route.params.id ?? '').trim())
 const { data: detailBundle, pending: detailPending, error: detailError } = await usePublicItemDetail(itemId)
 const detailClientReady = ref(false)
 const selectedRecipeVariantKey = ref('')
 const favoriteError = ref('')
+const recordedItemHistoryIds = new Set<string>()
 
 const firstText = (...values: unknown[]) => {
   for (const value of values) {
@@ -134,6 +136,7 @@ const itemImage = computed(() => firstImageUrl(
 const itemFallbackGlyph = computed(() => Array.from(itemName.value)[0] ?? '?')
 const itemFavoriteId = computed(() => firstText(detailItem.value?.id, detailItem.value?.itemId, itemId.value))
 const itemFavoriteStatus = computed(() => itemFavoriteId.value ? favoritesStore.getStatus('ITEM', itemFavoriteId.value) : null)
+const itemHistoryId = computed(() => detailItem.value ? firstText(detailItem.value.id, detailItem.value.itemId) : '')
 const itemIsFavorite = computed(() => Boolean(itemFavoriteStatus.value?.favorite))
 const sourceLabel = computed(() => rawBundle.value?.source === 'api' ? '详情资料' : '资料整理中')
 const imageRoleLabel = (image: PublicItemImage, index?: number) => {
@@ -527,13 +530,30 @@ const toggleItemFavorite = async () => {
   }
 }
 
+const recordItemHistoryOnce = async () => {
+  if (!import.meta.client || !itemHistoryId.value) return
+  const id = String(itemHistoryId.value)
+  if (recordedItemHistoryIds.has(id)) return
+  recordedItemHistoryIds.add(id)
+  try {
+    await historyStore.record('ITEM', itemHistoryId.value)
+  } catch {
+    // Reading history must not block public item rendering.
+  }
+}
+
 watch(itemFavoriteId, () => {
   void loadItemFavoriteStatus()
 })
 
+watch(itemHistoryId, () => {
+  void recordItemHistoryOnce()
+}, { immediate: true })
+
 onMounted(() => {
   detailClientReady.value = true
   void loadItemFavoriteStatus()
+  void recordItemHistoryOnce()
 })
 </script>
 

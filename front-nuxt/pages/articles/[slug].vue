@@ -5,8 +5,10 @@ import { unwrapApiResponse, usePublicApiFetch } from '~/composables/usePublicApi
 const route = useRoute()
 const authStore = useUserAuthStore()
 const favoritesStore = useUserFavoritesStore()
+const historyStore = useUserHistoryStore()
 const favoriteError = ref('')
 const articleClientReady = ref(false)
+const recordedArticleHistoryIds = new Set<string>()
 
 const slug = computed(() => String(route.params.slug ?? '').trim())
 const articlePath = computed(() => `/articles/slug/${encodeURIComponent(slug.value)}`)
@@ -70,13 +72,27 @@ const toggleArticleFavorite = async () => {
   }
 }
 
+const recordArticleHistoryOnce = async () => {
+  if (!import.meta.client || !article.value?.id) return
+  const id = String(article.value.id)
+  if (recordedArticleHistoryIds.has(id)) return
+  recordedArticleHistoryIds.add(id)
+  try {
+    await historyStore.record('ARTICLE', article.value.id)
+  } catch {
+    // Reading history must not block public article rendering.
+  }
+}
+
 watch(() => article.value?.id, () => {
   void loadArticleFavoriteStatus()
-})
+  void recordArticleHistoryOnce()
+}, { immediate: true })
 
 onMounted(() => {
   articleClientReady.value = true
   void loadArticleFavoriteStatus()
+  void recordArticleHistoryOnce()
 })
 </script>
 

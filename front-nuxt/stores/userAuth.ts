@@ -204,7 +204,9 @@ export const useUserAuthStore = defineStore('user-auth', () => {
       // Local state is cleared even if the backend session already expired.
     } finally {
       const favoritesStore = useUserFavoritesStore()
+      const historyStore = useUserHistoryStore()
       favoritesStore.clearUserFavoriteState()
+      historyStore.clearUserHistoryState()
       user.value = null
       articles.value = []
       initialized.value = true

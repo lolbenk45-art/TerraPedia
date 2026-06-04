@@ -59,6 +59,7 @@ const apiPath = 'composables/useUserApi.ts'
 const redirectUtilPath = 'lib/userRedirect.mjs'
 const storePath = 'stores/userAuth.ts'
 const favoritesStorePath = 'stores/userFavorites.ts'
+const historyStorePath = 'stores/userHistory.ts'
 const middlewarePath = 'middleware/user-auth.global.ts'
 const typesPath = 'types/public-api.ts'
 const navPath = 'components/TerraNav.vue'
@@ -68,6 +69,7 @@ const api = assertFile(apiPath)
 const redirectUtil = assertFile(redirectUtilPath)
 const store = assertFile(storePath)
 const favoritesStore = assertFile(favoritesStorePath)
+const historyStore = assertFile(historyStorePath)
 const middleware = assertFile(middlewarePath)
 const types = assertFile(typesPath)
 const nav = assertFile(navPath)
@@ -86,6 +88,7 @@ for (const marker of [
   '/user-auth/profile',
   '/user-auth/password',
   '/user/articles',
+  '/user/history',
 ]) {
   assertIncludes(apiPath, api, marker, `user API must target ${marker}`)
 }
@@ -139,6 +142,9 @@ for (const marker of [
   'type UserRegisterCodeResponse',
   'expiresInSeconds',
   'type UserArticle',
+  'type UserReadingHistory',
+  'type UserHistoryTargetType',
+  'type UserHistoryTypeFilter',
   'type PublicUserArticle',
   'type PublicUserProfile',
   'type UserArticleUpsertPayload',
@@ -180,6 +186,23 @@ for (const marker of [
   assertIncludes(favoritesStorePath, favoritesStore, marker, `user favorites store must harden runtime state with ${marker}`)
 }
 assertIncludes(storePath, store, 'clearUserFavoriteState', 'user auth logout must clear favorite state')
+assertIncludes(storePath, store, 'clearUserHistoryState', 'user auth logout must clear history state')
+
+for (const marker of [
+  'pendingRecords',
+  'clearUserHistoryState',
+  'isUserApiUnauthorized',
+  'authStore.init()',
+  'if (!authStore.isAuthenticated) return null',
+  'recordUserHistory',
+  'fetchUserHistory',
+  'deleteUserHistory',
+]) {
+  assertIncludes(historyStorePath, historyStore, marker, `user history store must harden runtime state with ${marker}`)
+}
+for (const forbidden of ['localStorage', 'sessionStorage']) {
+  assertNotIncludes(historyStorePath, historyStore, forbidden, `user history store must not use ${forbidden}`)
+}
 
 for (const marker of [
   'requiresUserAuth',
@@ -227,8 +250,8 @@ const pageContracts = [
   },
   {
     path: 'pages/user/index.vue',
-    required: ['authStore.init()', 'authStore.isAuthenticated', 'authStore.displayName', 'account-state-authenticated', 'account-state-guest', 'authStore.articlePagination'],
-    forbidden: ['静态占位', '<em>24</em>', '<em>6</em>', '泰拉刃制作链', '克苏鲁之眼准备', '最近路径', '阅读路径', '路线记录', '保存进度', '偏好持久化'],
+    required: ['authStore.init()', 'authStore.isAuthenticated', 'authStore.displayName', 'account-state-authenticated', 'account-state-guest', 'authStore.articlePagination', 'useUserHistoryStore', "historyStore.loadList('all', 1, 6)", 'historyStore.items', 'historyStore.remove(entry)', 'historyStore.mutating', '最近阅读'],
+    forbidden: ['静态占位', '<em>24</em>', '<em>6</em>', '泰拉刃制作链', '克苏鲁之眼准备', '最近路径', '阅读路径', '路线记录', '保存进度', '偏好持久化', 'localStorage', 'sessionStorage'],
   },
   {
     path: 'pages/user/settings.vue',
@@ -252,7 +275,7 @@ const pageContracts = [
   },
   {
     path: 'pages/articles/[slug].vue',
-    required: ['usePublicApiFetch<UserArticle>', '/articles/slug/', 'useUserFavoritesStore', "loadStatuses('ARTICLE'", 'toggleArticleFavorite', '收藏文章', '已收藏', 'article.id', '/users/${article.authorId}', 'authorProfilePath'],
+    required: ['usePublicApiFetch<UserArticle>', '/articles/slug/', 'useUserFavoritesStore', 'useUserHistoryStore', "loadStatuses('ARTICLE'", 'toggleArticleFavorite', 'recordArticleHistoryOnce', 'recordedArticleHistoryIds', 'import.meta.client', "historyStore.record('ARTICLE'", '收藏文章', '已收藏', 'article.id', '/users/${article.authorId}', 'authorProfilePath'],
     forbidden: ['公开文章暂未开放', '真实文章待接入', '文章未载入', '没有真实发布数据'],
   },
   {
@@ -275,9 +298,23 @@ for (const contract of pageContracts) {
 const publicArticleDetail = assertFile('pages/articles/[slug].vue')
 assertPattern('pages/articles/[slug].vue', publicArticleDetail, /favoritesStore\.loadStatuses\('ARTICLE',\s*\[article\.value\.id\]\)/, 'article detail favorite status must load by returned article.id')
 assertPattern('pages/articles/[slug].vue', publicArticleDetail, /favoritesStore\.toggleArticleFavorite\(article\.value\.id\)/, 'article detail favorite toggle must use returned article.id')
+assertPattern('pages/articles/[slug].vue', publicArticleDetail, /const recordArticleHistoryOnce = async \(\) => \{[\s\S]*import\.meta\.client[\s\S]*historyStore\.record\('ARTICLE', article\.value\.id\)/, 'article detail history recording must be client-only inside recordArticleHistoryOnce')
+assertPattern('pages/articles/[slug].vue', publicArticleDetail, /watch\(\(\) => article\.value\?\.id,[\s\S]*recordArticleHistoryOnce[\s\S]*immediate: true/, 'article detail history recording must be watch-driven with immediate once guard')
 assertPattern('pages/articles/[slug].vue', publicArticleDetail, /v-if="article\.authorId"[\s\S]*:href="`\/users\/\$\{article\.authorId\}`"/, 'article detail author profile link must be conditional on article.authorId')
 assertPattern('pages/articles/[slug].vue', publicArticleDetail, /v-if="authorProfilePath"[\s\S]*:href="authorProfilePath"/, 'article detail side author link must be conditional on authorProfilePath')
 assertNotPattern('pages/articles/[slug].vue', publicArticleDetail, /v-html=/, 'article detail must not render user article HTML directly without sanitizer')
+
+const publicItemDetail = assertFile('pages/items/[id].vue')
+assertIncludes('pages/items/[id].vue', publicItemDetail, 'useUserHistoryStore', 'item detail must use user history store')
+assertIncludes('pages/items/[id].vue', publicItemDetail, 'recordItemHistoryOnce', 'item detail must define recordItemHistoryOnce')
+assertIncludes('pages/items/[id].vue', publicItemDetail, 'recordedItemHistoryIds', 'item detail must dedupe history records')
+assertPattern('pages/items/[id].vue', publicItemDetail, /const itemHistoryId = computed\(\(\) => detailItem\.value \? firstText\(detailItem\.value\.id, detailItem\.value\.itemId\) : ''\)/, 'item history id must come from loaded item entity only')
+assertPattern('pages/items/[id].vue', publicItemDetail, /const recordItemHistoryOnce = async \(\) => \{[\s\S]*import\.meta\.client[\s\S]*historyStore\.record\('ITEM', itemHistoryId\.value\)/, 'item detail history recording must be client-only inside recordItemHistoryOnce')
+assertPattern('pages/items/[id].vue', publicItemDetail, /watch\(itemHistoryId,[\s\S]*recordItemHistoryOnce[\s\S]*immediate: true/, 'item detail history recording must be watch-driven with immediate once guard')
+
+const userIndex = assertFile('pages/user/index.vue')
+assertPattern('pages/user/index.vue', userIndex, /v-for="entry in historyStore\.items"/, 'user center history rows must render from historyStore.items')
+assertNotPattern('pages/user/index.vue', userIndex, /exception instanceof Error \? exception\.message : '阅读记录/, 'user center must not surface raw history exception messages')
 
 const publicUserProfile = assertFile('pages/users/[id].vue')
 assertIncludes('pages/users/[id].vue', publicUserProfile, 'isValidUserId', 'public user page must validate route id before fetching')

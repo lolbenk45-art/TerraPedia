@@ -2,13 +2,16 @@ import type {
   ApiResponse,
   Pagination,
   FavoriteTargetType,
+  UserHistoryTargetType,
   UserArticle,
   UserArticleUpsertPayload,
   UserAuthResponse,
   UserFavorite,
   UserFavoriteStatus,
   UserFavoriteTypeFilter,
+  UserHistoryTypeFilter,
   UserProfile,
+  UserReadingHistory,
   UserRegisterCodeResponse,
 } from '~/types/public-api'
 import { unwrapApiResponse, usePublicApiFetch } from '~/composables/usePublicApi'
@@ -21,6 +24,11 @@ type UserArticleListResponse = {
 
 type UserFavoriteListResponse = {
   items: UserFavorite[]
+  pagination: Pagination
+}
+
+type UserHistoryListResponse = {
+  items: UserReadingHistory[]
   pagination: Pagination
 }
 
@@ -112,6 +120,30 @@ const normalizeFavorite = (raw: Partial<UserFavorite> | null | undefined): UserF
     imageUrl: raw?.imageUrl ?? null,
     url: raw?.url || fallbackPath,
     createdAt: raw?.createdAt ?? null,
+  }
+}
+
+const normalizeHistoryTargetType = (value: unknown): UserHistoryTargetType => {
+  const targetType = String(value ?? 'ITEM').toUpperCase()
+  return targetType === 'ARTICLE' ? 'ARTICLE' : 'ITEM'
+}
+
+const historyTypePathSegment = (targetType: UserHistoryTargetType) => targetType === 'ARTICLE' ? 'articles' : 'items'
+
+const normalizeHistory = (raw: Partial<UserReadingHistory> | null | undefined): UserReadingHistory => {
+  const targetType = normalizeHistoryTargetType(raw?.targetType)
+  const targetId = raw?.targetId ?? raw?.id ?? ''
+  const fallbackPath = targetType === 'ARTICLE' ? String(raw?.url ?? '') : `/${historyTypePathSegment(targetType)}/${targetId}`
+
+  return {
+    id: raw?.id ?? `${targetType}:${targetId}`,
+    targetType,
+    targetId,
+    title: String(raw?.title ?? ''),
+    imageUrl: raw?.imageUrl ?? null,
+    url: raw?.url || fallbackPath,
+    viewCount: Number(raw?.viewCount ?? 0),
+    lastViewedAt: raw?.lastViewedAt ?? null,
   }
 }
 
@@ -248,6 +280,25 @@ export const fetchUserFavorites = async (params: { type?: UserFavoriteTypeFilter
     pagination: data.pagination ?? { total: 0, page, limit, totalPages: 1 },
   }
 }
+
+export const fetchUserHistory = async (params: { type?: UserHistoryTypeFilter, page?: number, limit?: number } = {}): Promise<UserHistoryListResponse> => {
+  const page = params.page ?? 1
+  const limit = params.limit ?? 20
+  const response = await userFetch<UserReadingHistory[]>('/user/history', {
+    query: { type: params.type ?? 'all', page, limit },
+  })
+  const data = response as ApiResponse<UserReadingHistory[]>
+  return {
+    items: Array.isArray(data.data) ? data.data.map(normalizeHistory) : [],
+    pagination: data.pagination ?? { total: 0, page, limit, totalPages: 1 },
+  }
+}
+
+export const recordUserHistory = async (targetType: UserHistoryTargetType, targetId: number | string): Promise<UserReadingHistory> =>
+  normalizeHistory(unwrapApiResponse(await userFetch<UserReadingHistory>(`/user/history/${targetType}/${targetId}`, { method: 'POST' })))
+
+export const deleteUserHistory = async (targetType: UserHistoryTargetType, targetId: number | string): Promise<UserReadingHistory> =>
+  normalizeHistory(unwrapApiResponse(await userFetch<UserReadingHistory>(`/user/history/${targetType}/${targetId}`, { method: 'DELETE' })))
 
 export const fetchUserFavoriteStatuses = async (
   targetType: FavoriteTargetType,
