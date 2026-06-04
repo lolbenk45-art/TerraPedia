@@ -25,10 +25,51 @@ export const useUserFavoritesStore = defineStore('user-favorites', () => {
   const mutating = ref(false)
   const error = ref('')
   const statuses = ref<Record<string, UserFavoriteStatus>>({})
+  const pendingStatusLoads = new Map<string, Promise<Record<string, UserFavoriteStatus>>>()
 
   const setError = (exception: unknown, fallback: string) => {
     error.value = extractUserApiError(exception, fallback)
     return error.value
+  }
+
+  const isUserApiUnauthorized = (exception: unknown) => {
+    if (!exception || typeof exception !== 'object') return false
+    const record = exception as {
+      status?: number
+      statusCode?: number
+      response?: { status?: number, statusCode?: number }
+      data?: { status?: number, statusCode?: number, code?: number | string }
+    }
+    return record.status === 401
+      || record.statusCode === 401
+      || record.response?.status === 401
+      || record.response?.statusCode === 401
+      || record.data?.status === 401
+      || record.data?.statusCode === 401
+      || record.data?.code === 401
+      || record.data?.code === '401'
+  }
+
+  const clearStatuses = () => {
+    statuses.value = {}
+    pendingStatusLoads.clear()
+  }
+
+  const clearUserFavoriteState = () => {
+    items.value = []
+    pagination.value = { total: 0, page: 1, limit: 20, totalPages: 1 }
+    filter.value = 'all'
+    loading.value = false
+    mutating.value = false
+    error.value = ''
+    clearStatuses()
+  }
+
+  const handleUnauthorized = (exception: unknown) => {
+    if (!isUserApiUnauthorized(exception)) return false
+    clearUserFavoriteState()
+    error.value = '请先登录后再查看收藏。'
+    return true
   }
 
   const requireAuthOrRedirect = async () => {
@@ -64,6 +105,9 @@ export const useUserFavoritesStore = defineStore('user-favorites', () => {
       }
       return response
     } catch (exception) {
+      if (handleUnauthorized(exception)) {
+        throw new Error(error.value)
+      }
       throw new Error(setError(exception, '收藏列表加载失败。'))
     } finally {
       loading.value = false
@@ -73,16 +117,29 @@ export const useUserFavoritesStore = defineStore('user-favorites', () => {
   const loadStatuses = async (targetType: FavoriteTargetType, ids: Array<number | string>) => {
     const normalizedIds = ids.map((id) => String(id).trim()).filter(Boolean)
     if (!normalizedIds.length) return {}
+    const loadKey = `${targetType}:${[...new Set(normalizedIds)].sort().join(',')}`
+    const pending = pendingStatusLoads.get(loadKey)
+    if (pending) return await pending
 
-    try {
+    const loadPromise = (async () => {
       const response = await fetchUserFavoriteStatuses(targetType, normalizedIds)
       for (const status of Object.values(response)) {
         setStatus(status)
       }
       return response
+    })()
+    pendingStatusLoads.set(loadKey, loadPromise)
+
+    try {
+      return await loadPromise
     } catch (exception) {
+      if (handleUnauthorized(exception)) {
+        return {}
+      }
       setError(exception, '收藏状态加载失败。')
       return {}
+    } finally {
+      pendingStatusLoads.delete(loadKey)
     }
   }
 
@@ -99,6 +156,9 @@ export const useUserFavoritesStore = defineStore('user-favorites', () => {
       setStatus(status)
       return status
     } catch (exception) {
+      if (handleUnauthorized(exception)) {
+        throw new Error(error.value)
+      }
       throw new Error(setError(exception, '收藏操作失败。'))
     } finally {
       mutating.value = false
@@ -118,6 +178,9 @@ export const useUserFavoritesStore = defineStore('user-favorites', () => {
       setStatus(status)
       return status
     } catch (exception) {
+      if (handleUnauthorized(exception)) {
+        throw new Error(error.value)
+      }
       throw new Error(setError(exception, '收藏操作失败。'))
     } finally {
       mutating.value = false
@@ -138,6 +201,9 @@ export const useUserFavoritesStore = defineStore('user-favorites', () => {
       pagination.value.total = Math.max(0, Number(pagination.value.total ?? 0) - 1)
       return status
     } catch (exception) {
+      if (handleUnauthorized(exception)) {
+        throw new Error(error.value)
+      }
       throw new Error(setError(exception, '移除收藏失败。'))
     } finally {
       mutating.value = false
@@ -152,6 +218,9 @@ export const useUserFavoritesStore = defineStore('user-favorites', () => {
     mutating,
     error,
     statuses,
+    isUserApiUnauthorized,
+    clearStatuses,
+    clearUserFavoriteState,
     getStatus,
     loadList,
     loadStatuses,

@@ -12,5 +12,7 @@ public interface ObjectStorageService {
 
     FileUploadResultDTO uploadUserAvatar(MultipartFile file, Long userId, String contentType, String extension);
 
+    void deleteUserAvatarObject(Long userId, String objectKey);
+
     StoredObjectDTO getObject(String objectKey);
 }

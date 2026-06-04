@@ -6,6 +6,7 @@ import com.terraria.skills.auth.LoginRateLimitProperties;
 import com.terraria.skills.auth.RegisterVerificationProperties;
 import com.terraria.skills.auth.UserAuthProperties;
 import com.terraria.skills.auth.UserAuthenticationInterceptor;
+import com.terraria.skills.auth.UserWriteOriginInterceptor;
 import com.terraria.skills.mail.MailProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
@@ -26,17 +27,21 @@ public class WebConfig implements WebMvcConfigurer {
 
     private final AdminAuthenticationInterceptor adminAuthenticationInterceptor;
     private final UserAuthenticationInterceptor userAuthenticationInterceptor;
+    private final UserWriteOriginInterceptor userWriteOriginInterceptor;
 
     public WebConfig(
         AdminAuthenticationInterceptor adminAuthenticationInterceptor,
-        UserAuthenticationInterceptor userAuthenticationInterceptor
+        UserAuthenticationInterceptor userAuthenticationInterceptor,
+        UserWriteOriginInterceptor userWriteOriginInterceptor
     ) {
         this.adminAuthenticationInterceptor = adminAuthenticationInterceptor;
         this.userAuthenticationInterceptor = userAuthenticationInterceptor;
+        this.userWriteOriginInterceptor = userWriteOriginInterceptor;
     }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(userWriteOriginInterceptor).addPathPatterns("/**");
         registry.addInterceptor(adminAuthenticationInterceptor).addPathPatterns("/**");
         registry.addInterceptor(userAuthenticationInterceptor).addPathPatterns("/**");
     }

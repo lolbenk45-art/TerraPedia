@@ -162,6 +162,20 @@ public class UserAuthServiceImpl implements UserAuthService {
     }
 
     @Override
+    public UserSessionDTO refreshSession(String refreshToken, String ipAddress) {
+        Long userId = userRefreshTokenStoreService.consumeToken(refreshToken);
+        if (userId == null || userId <= 0) {
+            securityAuditService.log("USER_SESSION_REFRESH_FAILED", "USER", null, null, ipAddress, "invalid refresh token");
+            throw new IllegalArgumentException("Refresh session is invalid");
+        }
+
+        User user = requireActiveUser(userId);
+        UserSessionDTO session = createSession(user);
+        securityAuditService.log("USER_SESSION_REFRESHED", "USER", userId, user.getEmail(), ipAddress, null);
+        return session;
+    }
+
+    @Override
     public void logout(Long userId, String refreshToken, String ipAddress) {
         if (userId == null || userId <= 0) {
             return;
@@ -214,6 +228,7 @@ public class UserAuthServiceImpl implements UserAuthService {
     @Override
     public UserProfileDTO uploadAvatar(Long userId, MultipartFile file, String ipAddress) {
         User user = requireActiveUser(userId);
+        String previousAvatarObjectKey = user.getAvatarObjectKey();
         UserAvatarValidator.AvatarImage avatarImage = UserAvatarValidator.validateAndResolve(file);
         FileUploadResultDTO uploadResult = objectStorageService.uploadUserAvatar(
             file,
@@ -228,6 +243,7 @@ public class UserAuthServiceImpl implements UserAuthService {
         user.setAvatarObjectKey(uploadResult.getObjectKey());
         user.setAvatarUpdatedAt(now);
 
+        objectStorageService.deleteUserAvatarObject(userId, previousAvatarObjectKey);
         securityAuditService.log("USER_AVATAR_UPDATED", "USER", userId, user.getEmail(), ipAddress, "objectKey=" + uploadResult.getObjectKey());
         return toProfile(user);
     }
@@ -235,11 +251,13 @@ public class UserAuthServiceImpl implements UserAuthService {
     @Override
     public UserProfileDTO deleteAvatar(Long userId, String ipAddress) {
         User user = requireActiveUser(userId);
+        String previousAvatarObjectKey = user.getAvatarObjectKey();
         userMapper.clearAvatar(userId);
         user.setAvatarUrl(null);
         user.setAvatarObjectKey(null);
         user.setAvatarUpdatedAt(null);
 
+        objectStorageService.deleteUserAvatarObject(userId, previousAvatarObjectKey);
         securityAuditService.log("USER_AVATAR_REMOVED", "USER", userId, user.getEmail(), ipAddress, null);
         return toProfile(user);
     }

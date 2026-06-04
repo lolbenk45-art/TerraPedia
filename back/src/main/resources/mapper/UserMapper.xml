@@ -41,6 +41,19 @@
         LIMIT 1
     </select>
 
+    <select id="selectPublicUserById" resultType="com.terraria.skills.entity.User">
+        SELECT
+            id,
+            display_name AS displayName,
+            avatar_url AS avatarUrl,
+            created_at AS createdAt
+        FROM users
+        WHERE id = #{id}
+          AND deleted = 0
+          AND status = 1
+        LIMIT 1
+    </select>
+
     <update id="reactivateDeletedUser">
         UPDATE users
         SET

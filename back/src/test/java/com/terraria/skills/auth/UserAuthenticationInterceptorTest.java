@@ -62,4 +62,16 @@ class UserAuthenticationInterceptorTest {
         assertTrue(allowed);
         assertEquals(200, response.getStatus());
     }
+
+    @Test
+    void shouldAllowRefreshWithoutAccessToken() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/user-auth/refresh");
+        request.setServletPath("/user-auth/refresh");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        boolean allowed = interceptor.preHandle(request, response, new Object());
+
+        assertTrue(allowed);
+        assertEquals(200, response.getStatus());
+    }
 }

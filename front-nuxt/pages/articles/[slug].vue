@@ -36,6 +36,7 @@ const articleBodyText = computed(() => {
 
 const publishedDate = computed(() => article.value?.publishedAt || article.value?.updatedAt || article.value?.createdAt || '发布时间未记录')
 const authorLabel = computed(() => article.value?.authorDisplayName || 'TerraPedia 用户')
+const authorProfilePath = computed(() => article.value?.authorId ? `/users/${article.value.authorId}` : '')
 const articleFavoriteStatus = computed(() => article.value?.id ? favoritesStore.getStatus('ARTICLE', article.value.id) : null)
 const articleIsFavorite = computed(() => Boolean(articleFavoriteStatus.value?.favorite))
 const articleLoading = computed(() => !articleClientReady.value || (articlePending.value && !article.value))
@@ -110,7 +111,9 @@ onMounted(() => {
         <h1>{{ article.title }}</h1>
         <p>{{ article.summary || '这篇文章暂无摘要。' }}</p>
         <div class="article-meta">
-          <span>{{ authorLabel }}</span><span>{{ publishedDate }}</span><span>文章 #{{ article.id }}</span>
+          <a v-if="article.authorId" class="article-author-link" :href="`/users/${article.authorId}`">{{ authorLabel }}</a>
+          <span v-else>{{ authorLabel }}</span>
+          <span>{{ publishedDate }}</span><span>文章 #{{ article.id }}</span>
         </div>
         <div class="article-favorite-actions">
           <button
@@ -138,7 +141,14 @@ onMounted(() => {
           <span class="eyebrow">文章状态</span>
           <div class="toc-list">
             <div class="toc-item"><span class="toc-num">01</span><div><b>已发布</b><span>{{ publishedDate }}</span></div></div>
-            <div class="toc-item"><span class="toc-num">02</span><div><b>作者</b><span>{{ authorLabel }}</span></div></div>
+            <div class="toc-item">
+              <span class="toc-num">02</span>
+              <div>
+                <b>作者</b>
+                <a v-if="authorProfilePath" class="article-author-side-link" :href="authorProfilePath">{{ authorLabel }}</a>
+                <span v-else>{{ authorLabel }}</span>
+              </div>
+            </div>
             <div class="toc-item"><span class="toc-num">03</span><div><b>收藏</b><span>{{ articleIsFavorite ? '当前账号已收藏' : '可加入收藏夹' }}</span></div></div>
           </div>
         </aside>
@@ -193,6 +203,18 @@ onMounted(() => {
 
 .article-content-text {
   white-space: pre-wrap;
+}
+
+.article-author-link,
+.article-author-side-link {
+  color: #ffd765;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.article-author-link:hover,
+.article-author-side-link:hover {
+  text-decoration: underline;
 }
 
 .article-return-link {

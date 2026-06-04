@@ -125,6 +125,34 @@ public class UserAuthController {
         return ResponseEntity.ok(ApiResponse.success(response, "Login success"));
     }
 
+    @PostMapping("/refresh")
+    @Operation(summary = "Refresh current user session")
+    public ResponseEntity<ApiResponse<UserAuthResponseDTO>> refresh(
+        HttpServletRequest httpRequest,
+        HttpServletResponse httpResponse
+    ) {
+        String refreshToken = readCookie(httpRequest, userAuthProperties.getRefreshCookieName());
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error(HttpStatus.UNAUTHORIZED.value(), "Refresh session is missing"));
+        }
+
+        try {
+            UserSessionDTO session = userAuthService.refreshSession(refreshToken, getClientIp(httpRequest));
+            writeAuthCookies(httpResponse, session);
+            UserAuthResponseDTO response = UserAuthResponseDTO.builder()
+                .user(session.getUser())
+                .tokenType("Bearer")
+                .expiresAt(session.getExpiresAt())
+                .build();
+            return ResponseEntity.ok(ApiResponse.success(response, "Session refreshed"));
+        } catch (IllegalArgumentException exception) {
+            clearAuthCookies(httpResponse);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error(HttpStatus.UNAUTHORIZED.value(), "Refresh session is invalid"));
+        }
+    }
+
     @GetMapping("/me")
     @Operation(summary = "Get current user")
     public ResponseEntity<ApiResponse<UserProfileDTO>> me(HttpServletRequest request) {

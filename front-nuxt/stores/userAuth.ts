@@ -11,6 +11,7 @@ import {
   fetchUserArticles,
   loginUser,
   logoutUser,
+  refreshUserSession,
   registerUser,
   resetUserPassword,
   sendRegisterCode,
@@ -120,7 +121,12 @@ export const useUserAuthStore = defineStore('user-auth', () => {
       try {
         user.value = await fetchCurrentUser()
       } catch {
-        user.value = null
+        try {
+          const response = await refreshUserSession()
+          user.value = response.user
+        } catch {
+          user.value = null
+        }
       } finally {
         loading.value = false
         initialized.value = true
@@ -197,6 +203,8 @@ export const useUserAuthStore = defineStore('user-auth', () => {
     } catch {
       // Local state is cleared even if the backend session already expired.
     } finally {
+      const favoritesStore = useUserFavoritesStore()
+      favoritesStore.clearUserFavoriteState()
       user.value = null
       articles.value = []
       initialized.value = true

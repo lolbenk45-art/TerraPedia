@@ -1,7 +1,7 @@
 package com.terraria.skills.service.impl;
 
 import com.terraria.skills.config.MinioConnectionDetails;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriUtils;
@@ -9,15 +9,14 @@ import org.springframework.web.util.UriUtils;
 import java.nio.charset.StandardCharsets;
 
 @Component
-@ConditionalOnBean(MinioConnectionDetails.class)
 public class UserAvatarUrlResolver {
 
     private static final String PUBLIC_OBJECT_PROXY_PREFIX = "/api/files/objects/";
 
-    private final MinioConnectionDetails connectionDetails;
+    private final ObjectProvider<MinioConnectionDetails> connectionDetailsProvider;
 
-    public UserAvatarUrlResolver(MinioConnectionDetails connectionDetails) {
-        this.connectionDetails = connectionDetails;
+    public UserAvatarUrlResolver(ObjectProvider<MinioConnectionDetails> connectionDetailsProvider) {
+        this.connectionDetailsProvider = connectionDetailsProvider;
     }
 
     public String resolveProfileAvatarUrl(String avatarUrl, String avatarObjectKey) {
@@ -40,6 +39,10 @@ public class UserAvatarUrlResolver {
     }
 
     private String extractObjectKeyFromPublicUrl(String avatarUrl) {
+        MinioConnectionDetails connectionDetails = connectionDetailsProvider.getIfAvailable();
+        if (connectionDetails == null) {
+            return null;
+        }
         String publicPrefix = trimTrailingSlash(connectionDetails.publicEndpoint()) + "/" + connectionDetails.bucket() + "/";
         if (!avatarUrl.startsWith(publicPrefix)) {
             return null;
