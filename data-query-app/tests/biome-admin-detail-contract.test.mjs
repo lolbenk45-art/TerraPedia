@@ -27,6 +27,40 @@ test('generic biome admin detail renders structured description relations and re
   assert.match(entitiesPage, /const biomeResourceCards = computed/)
 })
 
+test('biome admin detail renders item relations npc appearances and source evidence sections', () => {
+  const biomeDetailSection = entitiesPage.match(/<div v-else-if="detailRow && entityType === 'biomes'"[\s\S]*?<div v-else-if="detailRow && entityType === 'projectiles'"/)?.[0] ?? ''
+
+  for (const heading of ['相关群系', '资源与物品', '物品关系', 'NPC 出现', '来源证据']) {
+    assert.match(biomeDetailSection, new RegExp(heading))
+  }
+
+  assert.match(biomeDetailSection, /biomeItemRelationCards\.length/)
+  assert.match(biomeDetailSection, /biomeNpcRelationCards\.length/)
+  assert.match(biomeDetailSection, /biomeItemSourceCards\.length/)
+  assert.match(biomeDetailSection, /v-for="relation in biomeItemRelationCards"/)
+  assert.match(biomeDetailSection, /v-for="npc in biomeNpcRelationCards"/)
+  assert.match(biomeDetailSection, /v-for="source in biomeItemSourceCards"/)
+  assert.match(biomeDetailSection, /getBiomeResourceImage\(relation\)/)
+  assert.match(biomeDetailSection, /getBiomeResourceRawFallback\(relation\)/)
+  assert.match(biomeDetailSection, /canOpenLinkedItemDetail\(relation\.raw\)/)
+  assert.match(biomeDetailSection, /getBiomeResourceImage\(npc\)/)
+  assert.match(biomeDetailSection, /getBiomeNpcRawFallback\(npc\)/)
+  assert.match(biomeDetailSection, /getBiomeResourceImage\(source\)/)
+  assert.match(biomeDetailSection, /getBiomeResourceRawFallback\(source\)/)
+  assert.match(biomeDetailSection, /canOpenLinkedItemDetail\(source\.raw\)/)
+  assert.match(biomeDetailSection, /暂无物品关系数据。/)
+  assert.match(biomeDetailSection, /暂无 NPC 出现数据。/)
+  assert.match(biomeDetailSection, /暂无来源证据数据。/)
+  assert.match(entitiesPage, /const biomeItemRelationCards = computed/)
+  assert.match(entitiesPage, /const biomeNpcRelationCards = computed/)
+  assert.match(entitiesPage, /const biomeItemSourceCards = computed/)
+  assert.match(entitiesPage, /function normalizeBiomeItemRelationCard/)
+  assert.match(entitiesPage, /function normalizeBiomeNpcRelationCard/)
+  assert.match(entitiesPage, /function normalizeBiomeItemSourceCard/)
+  assert.match(entitiesPage, /function getBiomeNpcRawFallback/)
+  assert.match(entitiesPage, /\.biome-detail \.armor-detail__item-body strong,\s*\.biome-detail \.armor-detail__item-body span,\s*\.biome-detail \.preview-note p\s*\{[^}]*overflow-wrap:\s*anywhere/)
+})
+
 test('biome list preview uses a landscape thumbnail instead of a square icon slot', () => {
   assert.match(entitiesPage, /thumb-wrap--biome/)
   assert.match(entitiesPage, /thumb--biome/)

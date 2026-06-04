@@ -1158,6 +1158,9 @@
                 <span class="preview-pill">{{ getBiomeLayerLabel(detailRow.layerType) }}</span>
                 <span class="preview-pill">关系 {{ biomeRelationCards.length }}</span>
                 <span class="preview-pill">资源 {{ biomeResourceCards.length }}</span>
+                <span class="preview-pill">物品 {{ biomeItemRelationCards.length }}</span>
+                <span class="preview-pill">NPC {{ biomeNpcRelationCards.length }}</span>
+                <span class="preview-pill">证据 {{ biomeItemSourceCards.length }}</span>
               </div>
               <h3>{{ detailTitle }}</h3>
               <p>{{ detailBiomeDescription }}</p>
@@ -1250,6 +1253,77 @@
               </article>
             </div>
             <p v-else class="projectile-detail__empty">暂无资源或物品数据。</p>
+          </section>
+
+          <section class="projectile-detail__section">
+            <div class="projectile-detail__section-head">
+              <h4>物品关系</h4>
+              <span>{{ biomeItemRelationCards.length }} 条</span>
+            </div>
+            <div v-if="biomeItemRelationCards.length" class="armor-detail__item-grid">
+              <article v-for="relation in biomeItemRelationCards" :key="relation.key" class="armor-detail__item-card biome-detail__resource-card">
+                <button type="button" class="armor-detail__item-media" @click="getBiomeResourceImage(relation) ? openImageLightbox(getBiomeResourceImage(relation), relation.title) : null">
+                  <img v-if="getBiomeResourceImage(relation)" :src="getBiomeResourceImage(relation)" class="armor-detail__item-image" alt="" @error="handleImageError" />
+                  <div v-else class="armor-detail__item-fallback">{{ getBiomeResourceRawFallback(relation) }}</div>
+                </button>
+                <div class="armor-detail__item-body">
+                  <strong>{{ relation.title }}</strong>
+                  <span>{{ relation.subtitle }}</span>
+                  <div class="armor-detail__item-meta">
+                    <span v-for="meta in relation.meta" :key="meta">{{ meta }}</span>
+                  </div>
+                  <button v-if="canOpenLinkedItemDetail(relation.raw)" type="button" class="btn-link" @click="openLinkedItemDetail(relation.raw)">物品详情</button>
+                </div>
+              </article>
+            </div>
+            <p v-else class="projectile-detail__empty">暂无物品关系数据。</p>
+          </section>
+
+          <section class="projectile-detail__section">
+            <div class="projectile-detail__section-head">
+              <h4>NPC 出现</h4>
+              <span>{{ biomeNpcRelationCards.length }} 条</span>
+            </div>
+            <div v-if="biomeNpcRelationCards.length" class="armor-detail__item-grid">
+              <article v-for="npc in biomeNpcRelationCards" :key="npc.key" class="armor-detail__item-card biome-detail__resource-card">
+                <button type="button" class="armor-detail__item-media" @click="getBiomeResourceImage(npc) ? openImageLightbox(getBiomeResourceImage(npc), npc.title) : null">
+                  <img v-if="getBiomeResourceImage(npc)" :src="getBiomeResourceImage(npc)" class="armor-detail__item-image" alt="" @error="handleImageError" />
+                  <div v-else class="armor-detail__item-fallback">{{ getBiomeNpcRawFallback(npc) }}</div>
+                </button>
+                <div class="armor-detail__item-body">
+                  <strong>{{ npc.title }}</strong>
+                  <span>{{ npc.subtitle }}</span>
+                  <div class="armor-detail__item-meta">
+                    <span v-for="meta in npc.meta" :key="meta">{{ meta }}</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+            <p v-else class="projectile-detail__empty">暂无 NPC 出现数据。</p>
+          </section>
+
+          <section class="projectile-detail__section">
+            <div class="projectile-detail__section-head">
+              <h4>来源证据</h4>
+              <span>{{ biomeItemSourceCards.length }} 条</span>
+            </div>
+            <div v-if="biomeItemSourceCards.length" class="armor-detail__item-grid">
+              <article v-for="source in biomeItemSourceCards" :key="source.key" class="armor-detail__item-card biome-detail__resource-card">
+                <button type="button" class="armor-detail__item-media" @click="getBiomeResourceImage(source) ? openImageLightbox(getBiomeResourceImage(source), source.title) : null">
+                  <img v-if="getBiomeResourceImage(source)" :src="getBiomeResourceImage(source)" class="armor-detail__item-image" alt="" @error="handleImageError" />
+                  <div v-else class="armor-detail__item-fallback">{{ getBiomeResourceRawFallback(source) }}</div>
+                </button>
+                <div class="armor-detail__item-body">
+                  <strong>{{ source.title }}</strong>
+                  <span>{{ source.subtitle }}</span>
+                  <div class="armor-detail__item-meta">
+                    <span v-for="meta in source.meta" :key="meta">{{ meta }}</span>
+                  </div>
+                  <button v-if="canOpenLinkedItemDetail(source.raw)" type="button" class="btn-link" @click="openLinkedItemDetail(source.raw)">物品详情</button>
+                </div>
+              </article>
+            </div>
+            <p v-else class="projectile-detail__empty">暂无来源证据数据。</p>
           </section>
         </div>
 
@@ -3140,6 +3214,9 @@ const detailStats = computed(() => {
     { label: '层级类型', value: getBiomeLayerLabel(detailRow.value.layerType) },
     { label: '相关群系', value: biomeRelationCards.value.length ? String(biomeRelationCards.value.length) : '--' },
     { label: '资源条目', value: biomeResourceCards.value.length ? String(biomeResourceCards.value.length) : '--' },
+    { label: '物品关系', value: biomeItemRelationCards.value.length ? String(biomeItemRelationCards.value.length) : '--' },
+    { label: 'NPC 出现', value: biomeNpcRelationCards.value.length ? String(biomeNpcRelationCards.value.length) : '--' },
+    { label: '来源证据', value: biomeItemSourceCards.value.length ? String(biomeItemSourceCards.value.length) : '--' },
     { label: '状态', value: detailRow.value.status != null ? formatStatusLabel(detailRow.value.status) : '--' },
     { label: '更新时间', value: formatDateTime(detailRow.value.updatedAt) },
   ]
@@ -3226,6 +3303,21 @@ const biomeResourceCards = computed(() => {
   if (!detailRow.value || entityType.value !== 'biomes') return []
   return getBiomeStructuredArray(detailRow.value.resources)
     .map((resource, index) => normalizeBiomeResourceCard(resource, index))
+})
+const biomeItemRelationCards = computed(() => {
+  if (!detailRow.value || entityType.value !== 'biomes') return []
+  return normalizeSourceEntries(detailRow.value.itemBiomes)
+    .map((relation, index) => normalizeBiomeItemRelationCard(relation, index))
+})
+const biomeNpcRelationCards = computed(() => {
+  if (!detailRow.value || entityType.value !== 'biomes') return []
+  return normalizeSourceEntries(detailRow.value.npcBiomes)
+    .map((npc, index) => normalizeBiomeNpcRelationCard(npc, index))
+})
+const biomeItemSourceCards = computed(() => {
+  if (!detailRow.value || entityType.value !== 'biomes') return []
+  return normalizeSourceEntries(detailRow.value.itemSources)
+    .map((source, index) => normalizeBiomeItemSourceCard(source, index))
 })
 
 function hasTextValue(value: unknown) {
@@ -3341,6 +3433,78 @@ function normalizeBiomeResourceCard(resource: Record<string, any>, index: number
   }
 }
 
+function normalizeBiomeItemRelationCard(relation: Record<string, any>, index: number) {
+  const raw = normalizeRow(relation)
+  const title = pickFirstString(raw.itemNameZh, raw.itemName, raw.itemInternalName)
+    || (raw.itemId != null ? `Item ID ${raw.itemId}` : `物品关系 ${index + 1}`)
+  const subtitle = pickFirstString(raw.itemInternalName, raw.relationType)
+    || (raw.itemId != null ? `Item ID ${raw.itemId}` : 'Item relation')
+  const meta = [
+    raw.relationType ? `关系 ${raw.relationType}` : '',
+    raw.itemId != null ? `Item ID ${raw.itemId}` : '',
+    raw.missingItem ? '缺少物品映射' : '',
+    raw.notes ? String(raw.notes) : '',
+  ].filter(Boolean)
+  return {
+    key: `item-biome-${raw.id ?? raw.itemId ?? raw.itemInternalName ?? index}`,
+    title,
+    subtitle,
+    meta,
+    image: getBiomeResourceImage(raw),
+    raw,
+  }
+}
+
+function normalizeBiomeNpcRelationCard(npc: Record<string, any>, index: number) {
+  const raw = normalizeRow(npc)
+  const title = pickFirstString(raw.npcNameZh, raw.npcName, raw.npcInternalName)
+    || (raw.npcId != null ? `NPC ID ${raw.npcId}` : `NPC ${index + 1}`)
+  const subtitle = pickFirstString(raw.npcInternalName, raw.spawnContext, raw.relationType)
+    || (raw.npcId != null ? `NPC ID ${raw.npcId}` : 'NPC relation')
+  const meta = [
+    raw.relationType ? `关系 ${raw.relationType}` : '',
+    raw.spawnContext ? `条件 ${raw.spawnContext}` : '',
+    raw.npcId != null ? `NPC ID ${raw.npcId}` : '',
+    raw.sourcePage ? `来源 ${raw.sourcePage}` : '',
+    raw.missingNpc ? '缺少 NPC 映射' : '',
+    raw.notes ? String(raw.notes) : '',
+  ].filter(Boolean)
+  return {
+    key: `npc-biome-${raw.id ?? raw.npcId ?? raw.npcInternalName ?? index}`,
+    title,
+    subtitle,
+    meta,
+    image: normalizeImageUrl(raw.npcImageUrl) || getBiomeResourceImage(raw),
+    raw,
+  }
+}
+
+function normalizeBiomeItemSourceCard(source: Record<string, any>, index: number) {
+  const raw = normalizeRow(source)
+  const title = pickFirstString(raw.itemNameZh, raw.itemName, raw.itemInternalName)
+    || (raw.itemId != null ? `Item ID ${raw.itemId}` : `来源证据 ${index + 1}`)
+  const subtitle = pickFirstString(raw.sourceRefName, raw.sourceType, raw.itemInternalName)
+    || (raw.itemId != null ? `Item ID ${raw.itemId}` : 'Source evidence')
+  const meta = [
+    raw.sourceType ? `类型 ${raw.sourceType}` : '',
+    raw.sourceRefType ? `证据 ${raw.sourceRefType}` : '',
+    raw.sourceRefName ? `来源 ${raw.sourceRefName}` : '',
+    raw.sourcePage ? `页面 ${raw.sourcePage}` : '',
+    raw.sourceProvider ? `提供方 ${raw.sourceProvider}` : '缺少来源提供方',
+    raw.itemId != null ? `Item ID ${raw.itemId}` : '',
+    raw.missingItem ? '缺少物品映射' : '',
+    raw.notes ? String(raw.notes) : '',
+  ].filter(Boolean)
+  return {
+    key: `item-source-${raw.id ?? raw.itemId ?? raw.sourceRefName ?? index}`,
+    title,
+    subtitle,
+    meta,
+    image: getBiomeResourceImage(raw),
+    raw,
+  }
+}
+
 function getBiomeResourceImage(resource: Record<string, any>) {
   return normalizeImageUrl(resource.image)
     || normalizeImageUrl(resource.itemImage)
@@ -3354,6 +3518,12 @@ function getBiomeResourceRawFallback(resource: Record<string, any>) {
   const label = pickFirstString(resource.resourceNameRaw, resource.itemInternalName, resource.internalName, resource.resourceType)
   return label ? label.slice(0, 2).toUpperCase() : 'IT'
 }
+
+function getBiomeNpcRawFallback(npc: Record<string, any>) {
+  const label = pickFirstString(npc.npcInternalName, npc.npcNameZh, npc.npcName, npc.title)
+  return label ? label.slice(0, 2).toUpperCase() : 'NP'
+}
+
 function normalizeSourceEntries(value: unknown): Array<Record<string, any>> {
   if (!Array.isArray(value)) return []
   return value
@@ -4821,6 +4991,10 @@ function formatArmorPartRole(value: unknown) {
 .projectile-detail--buff .armor-detail__item-body strong,
 .projectile-detail--buff .armor-detail__item-body span { overflow-wrap: anywhere; min-width: 0; }
 .projectile-detail--buff .armor-detail__item-body span { font-size: 0.78rem; line-height: 1.45; }
+.biome-detail .armor-detail__item-body { min-width: 0; }
+.biome-detail .armor-detail__item-body strong,
+.biome-detail .armor-detail__item-body span,
+.biome-detail .preview-note p { overflow-wrap: anywhere; min-width: 0; }
 .armor-detail__zoomable { cursor: zoom-in; }
 .armor-lightbox { display: grid; place-items: center; min-height: 70dvh; background: color-mix(in srgb, var(--color-bg) 94%, var(--color-bg-secondary)); }
 .armor-lightbox__image { width: 100%; max-width: 920px; max-height: 82dvh; object-fit: contain; }

@@ -35,4 +35,7 @@ public class BiomeDTO {
     private LocalDateTime lastSyncedAt;
     private List<BiomeRelationDTO> relations = new ArrayList<>();
     private List<BiomeResourceDTO> resources = new ArrayList<>();
+    private List<BiomeItemRelationDTO> itemBiomes = new ArrayList<>();
+    private List<BiomeNpcRelationDTO> npcBiomes = new ArrayList<>();
+    private List<BiomeItemSourceDTO> itemSources = new ArrayList<>();
 }
