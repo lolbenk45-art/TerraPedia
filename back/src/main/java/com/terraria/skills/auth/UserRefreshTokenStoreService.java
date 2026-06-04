@@ -38,6 +38,31 @@ public class UserRefreshTokenStoreService {
         }
     }
 
+    public Long consumeToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return null;
+        }
+
+        String hash = digest(refreshToken);
+        String tokenKey = tokenKey(hash);
+        try {
+            String userIdValue = redisTemplate.opsForValue().getAndDelete(tokenKey);
+            if (userIdValue == null || userIdValue.isBlank()) {
+                return null;
+            }
+            Long userId = Long.valueOf(userIdValue);
+            redisTemplate.delete(tokenKey);
+            redisTemplate.opsForSet().remove(userSetKey(userId), hash);
+            return userId;
+        } catch (NumberFormatException exception) {
+            redisTemplate.delete(tokenKey);
+            return null;
+        } catch (Exception exception) {
+            log.warn("Failed to consume refresh token in redis", exception);
+            return null;
+        }
+    }
+
     public void revokeToken(Long userId, String refreshToken) {
         if (userId == null || userId <= 0 || refreshToken == null || refreshToken.isBlank()) {
             return;

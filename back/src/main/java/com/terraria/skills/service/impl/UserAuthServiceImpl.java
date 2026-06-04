@@ -162,6 +162,20 @@ public class UserAuthServiceImpl implements UserAuthService {
     }
 
     @Override
+    public UserSessionDTO refreshSession(String refreshToken, String ipAddress) {
+        Long userId = userRefreshTokenStoreService.consumeToken(refreshToken);
+        if (userId == null || userId <= 0) {
+            securityAuditService.log("USER_SESSION_REFRESH_FAILED", "USER", null, null, ipAddress, "invalid refresh token");
+            throw new IllegalArgumentException("Refresh session is invalid");
+        }
+
+        User user = requireActiveUser(userId);
+        UserSessionDTO session = createSession(user);
+        securityAuditService.log("USER_SESSION_REFRESHED", "USER", userId, user.getEmail(), ipAddress, null);
+        return session;
+    }
+
+    @Override
     public void logout(Long userId, String refreshToken, String ipAddress) {
         if (userId == null || userId <= 0) {
             return;

@@ -16,6 +16,8 @@ public interface UserAuthService {
 
     UserSessionDTO login(String email, String password, String ipAddress);
 
+    UserSessionDTO refreshSession(String refreshToken, String ipAddress);
+
     void logout(Long userId, String refreshToken, String ipAddress);
 
     UserSessionDTO buildSessionFromClaims(UserTokenClaims claims);

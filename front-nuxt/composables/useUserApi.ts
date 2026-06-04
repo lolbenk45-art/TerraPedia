@@ -167,6 +167,9 @@ export const registerUser = async (payload: { email: string, password: string, v
 export const loginUser = async (payload: { email: string, password: string }): Promise<UserAuthResponse> =>
   unwrapApiResponse(await userFetch<UserAuthResponse>('/user-auth/login', { method: 'POST', body: payload }))
 
+export const refreshUserSession = async (): Promise<UserAuthResponse> =>
+  unwrapApiResponse(await userFetch<UserAuthResponse>('/user-auth/refresh', { method: 'POST' }))
+
 export const fetchCurrentUser = async (): Promise<UserProfile> =>
   unwrapApiResponse(await userFetch<UserProfile>('/user-auth/me'))
 
