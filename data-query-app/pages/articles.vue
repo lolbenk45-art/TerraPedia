@@ -90,10 +90,17 @@
                     <button
                       type="button"
                       class="action-link"
-                      :disabled="row.reviewStatus === 'PENDING_REVIEW'"
                       @click="openEdit(row.id)"
                     >
-                      Continue Writing
+                      {{ editorActionLabel(row) }}
+                    </button>
+                    <button
+                      type="button"
+                      class="action-link"
+                      :disabled="isActionLoading(row.id, 'content')"
+                      @click="openContentPreview(row)"
+                    >
+                      View Content
                     </button>
                     <button
                       v-if="canSubmitReview(row)"
@@ -138,7 +145,7 @@
                       :disabled="isActionLoading(row.id, 'offline')"
                       @click="offlineArticle(row)"
                     >
-                      {{ isActionLoading(row.id, 'offline') ? 'Offlining...' : 'Offline' }}
+                      {{ isActionLoading(row.id, 'offline') ? 'Unpublishing...' : 'Unpublish' }}
                     </button>
                     <button
                       type="button"
@@ -183,6 +190,20 @@
           {{ rejecting ? 'Submitting...' : 'Submit Reject' }}
         </button>
       </template>
+    </AppModal>
+
+    <AppModal v-model="contentPreviewVisible" title="Article Content" width="820px">
+      <div class="article-content-preview">
+        <div class="content-preview-head">
+          <h3>#{{ contentPreviewArticle?.id || '--' }} {{ contentPreviewArticle?.title || '' }}</h3>
+          <span v-if="contentPreviewArticle" class="badge" :class="`badge--review-${contentPreviewArticle.reviewStatus.toLowerCase()}`">
+            {{ reviewStatusLabel(contentPreviewArticle.reviewStatus) }}
+          </span>
+        </div>
+        <div v-if="contentPreviewLoading" class="empty-text empty-text--compact">Loading article content...</div>
+        <pre v-else-if="contentPreviewText" class="content-preview-text">{{ contentPreviewText }}</pre>
+        <p v-else class="empty-text empty-text--compact">No article content</p>
+      </div>
     </AppModal>
 
     <AppModal v-model="logsVisible" title="Review Logs" width="760px">
@@ -249,6 +270,9 @@ const rejecting = ref(false)
 const logsVisible = ref(false)
 const logsLoading = ref(false)
 const logsArticle = ref<AdminArticle | null>(null)
+const contentPreviewVisible = ref(false)
+const contentPreviewLoading = ref(false)
+const contentPreviewArticle = ref<AdminArticle | null>(null)
 const reviewLogs = ref<ArticleReviewLog[]>([])
 const reviewLogPagination = ref<PaginationState>({
   total: 0,
@@ -260,6 +284,24 @@ const reviewLogPagination = ref<PaginationState>({
 const getErrorMessage = (error: any, fallback: string) => error?.data?.message || error?.message || fallback
 const getActionKey = (id: number, action: string) => `${id}:${action}`
 const isActionLoading = (id: number, action: string) => actionKey.value === getActionKey(id, action)
+const contentPreviewText = computed(() => {
+  const article = contentPreviewArticle.value
+  if (!article) return ''
+  return stripArticleContentMarkup(article.contentHtml || article.contentMarkdown || '')
+})
+
+const stripArticleContentMarkup = (value: string) => String(value || '')
+  .replace(/<br\s*\/?>/gi, '\n')
+  .replace(/<\/(p|div|section|article|h[1-6]|li|blockquote|pre)>/gi, '\n')
+  .replace(/<[^>]+>/g, '')
+  .replace(/&nbsp;/g, ' ')
+  .replace(/&amp;/g, '&')
+  .replace(/&lt;/g, '<')
+  .replace(/&gt;/g, '>')
+  .replace(/&quot;/g, '"')
+  .replace(/&#39;/g, "'")
+  .replace(/\n{3,}/g, '\n\n')
+  .trim()
 
 const formatDateTime = (value?: string) => {
   if (!value) return '--'
@@ -280,6 +322,8 @@ const reviewStatusLabel = (value: string) => ({
   APPROVED: 'Approved',
   REJECTED: 'Rejected',
 }[value] || value)
+
+const editorActionLabel = (row: AdminArticle) => row.reviewStatus === 'PENDING_REVIEW' ? 'Read-only Editor' : 'Continue Writing'
 
 const reviewActionLabel = (value: string) => ({
   SUBMIT_REVIEW: 'Submit Review',
@@ -316,6 +360,21 @@ const openCreate = async () => {
 
 const openEdit = async (id: number) => {
   await router.push(`/article-editor/${id}`)
+}
+
+const openContentPreview = async (row: AdminArticle) => {
+  contentPreviewVisible.value = true
+  contentPreviewArticle.value = row
+  contentPreviewLoading.value = true
+  actionKey.value = getActionKey(row.id, 'content')
+  try {
+    contentPreviewArticle.value = await articlesStore.fetchArticleById(row.id)
+  } catch (error: any) {
+    showToast(getErrorMessage(error, 'Failed to load article content'), 'error')
+  } finally {
+    contentPreviewLoading.value = false
+    actionKey.value = ''
+  }
 }
 
 const runArticleAction = async (row: AdminArticle, action: string, executor: () => Promise<void>) => {
@@ -625,6 +684,40 @@ onMounted(async () => {
 
 .logs-head h3 {
   margin: 0 0 12px;
+}
+
+.article-content-preview {
+  display: grid;
+  gap: 16px;
+}
+
+.content-preview-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.content-preview-head h3 {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.content-preview-text {
+  max-height: min(62vh, 680px);
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+  font: inherit;
+  line-height: 1.7;
 }
 
 @media (max-width: 1024px) {
