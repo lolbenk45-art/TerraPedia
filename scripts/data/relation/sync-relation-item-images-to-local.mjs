@@ -88,12 +88,42 @@ function acceptableWikiUrlSql(expression) {
   `.trim();
 }
 
+function managedUrlSql(expression) {
+  return `
+        ${expression} LIKE '%/terrapedia-images/%'
+        AND LOWER(${expression}) NOT LIKE '%(demo)%'
+        AND LOWER(${expression}) NOT LIKE '%28demo%29%'
+        AND LOWER(TRIM(${expression})) NOT REGEXP '(^|[/_[:space:]-])demo([._?&#/-]|$)'
+        AND LOWER(${expression}) NOT LIKE '%(placed)%'
+        AND LOWER(${expression}) NOT LIKE '%28placed%29%'
+        AND LOWER(TRIM(${expression})) NOT REGEXP '(^|[/_[:space:]-])placed([._?&#/-]|$)'
+  `.trim();
+}
+
+function acceptableManagedUrlCondition(alias, column) {
+  const expression = `${alias}.\`${column}\``;
+  return `
+        ${expression} IS NOT NULL
+        AND TRIM(${expression}) <> ''
+        AND ${managedUrlSql(expression)}
+  `.trim();
+}
+
 function acceptableWikiUrlCondition(alias, column) {
   const expression = `${alias}.\`${column}\``;
   return `
         ${expression} IS NOT NULL
         AND TRIM(${expression}) <> ''
         AND ${acceptableWikiUrlSql(expression)}
+  `.trim();
+}
+
+function acceptableImageUrlCondition(alias, column) {
+  return `
+        (
+          ${acceptableManagedUrlCondition(alias, column)}
+          OR ${acceptableWikiUrlCondition(alias, column)}
+        )
   `.trim();
 }
 
@@ -125,6 +155,20 @@ function wikiUrlExpression(alias) {
   `.trim();
 }
 
+function displayUrlExpression(alias) {
+  return `
+    CASE
+      WHEN ${acceptableManagedUrlCondition(alias, 'cached_url')}
+        THEN TRIM(${alias}.\`cached_url\`)
+      WHEN ${acceptableWikiUrlCondition(alias, 'original_url')}
+        THEN TRIM(${alias}.\`original_url\`)
+      WHEN ${acceptableWikiUrlCondition(alias, 'cached_url')}
+        THEN TRIM(${alias}.\`cached_url\`)
+      ELSE NULL
+    END
+  `.trim();
+}
+
 function rankedRelationImagesSubquery(relationDatabase) {
   return `
     SELECT *
@@ -139,6 +183,8 @@ function rankedRelationImagesSubquery(relationDatabase) {
             COALESCE(NULLIF(TRIM(rii.\`original_url\`), ''), NULLIF(TRIM(rii.\`cached_url\`), ''))
           ORDER BY
             CASE
+              WHEN ${acceptableManagedUrlCondition('rii', 'cached_url')}
+                THEN 0
               WHEN ${acceptableWikiUrlCondition('rii', 'original_url')}
                 THEN 0
               ELSE 1
@@ -154,8 +200,8 @@ function rankedRelationImagesSubquery(relationDatabase) {
         AND TRIM(rii.\`item_internal_name\`) <> ''
         AND ${acceptableSourceTitleCondition('rii')}
         AND (
-          (${acceptableWikiUrlCondition('rii', 'original_url')})
-          OR (${acceptableWikiUrlCondition('rii', 'cached_url')})
+          (${acceptableImageUrlCondition('rii', 'original_url')})
+          OR (${acceptableImageUrlCondition('rii', 'cached_url')})
         )
     ) ranked
     WHERE ranked.relation_row_number = 1
@@ -164,6 +210,7 @@ function rankedRelationImagesSubquery(relationDatabase) {
 
 export function buildInsertLocalItemImagesSql({ localDatabase, relationDatabase }) {
   const wikiUrl = wikiUrlExpression('ranked');
+  const displayUrl = displayUrlExpression('ranked');
   return `
 INSERT INTO ${qualified(localDatabase, 'item_images')}
   (\`item_id\`, \`role\`, \`provider\`, \`source_file_title\`, \`source_page\`, \`source_revision_timestamp\`, \`original_url\`, \`cached_url\`, \`width\`, \`height\`, \`content_type\`, \`is_primary\`, \`sort_order\`, \`status\`, \`deleted\`)
@@ -179,7 +226,7 @@ SELECT
       THEN TRIM(ranked.\`original_url\`)
     ELSE ${wikiUrl}
   END AS \`original_url\`,
-  ${wikiUrl} AS \`cached_url\`,
+  ${displayUrl} AS \`cached_url\`,
   ranked.\`width\`,
   ranked.\`height\`,
   ranked.\`content_type\`,
@@ -191,13 +238,13 @@ FROM (${rankedRelationImagesSubquery(relationDatabase)}) ranked
 JOIN ${qualified(localDatabase, 'items')} i
   ON i.\`internal_name\` COLLATE utf8mb4_unicode_ci = ranked.\`item_internal_name\` COLLATE utf8mb4_unicode_ci
 WHERE i.\`deleted\` = 0
-  AND ${wikiUrl} IS NOT NULL
+  AND ${displayUrl} IS NOT NULL
 ORDER BY i.\`id\` ASC, ranked.\`is_primary\` DESC, COALESCE(ranked.\`sort_order\`, 0) ASC, ranked.\`id\` ASC
 `.trim();
 }
 
 export function buildUpdateLocalItemsImageSql({ localDatabase, relationDatabase }) {
-  const wikiUrl = wikiUrlExpression('ranked');
+  const displayUrl = displayUrlExpression('ranked');
   return `
 UPDATE ${qualified(localDatabase, 'items')} i
 JOIN (
@@ -205,7 +252,7 @@ JOIN (
   FROM (
     SELECT
       ranked.\`item_internal_name\`,
-      ${wikiUrl} AS \`wiki_url\`,
+      ${displayUrl} AS \`display_url\`,
       ROW_NUMBER() OVER (
         PARTITION BY ranked.\`item_internal_name\`
         ORDER BY
@@ -218,22 +265,14 @@ JOIN (
   WHERE preferred.preferred_row_number = 1
 ) best
   ON best.\`item_internal_name\` COLLATE utf8mb4_unicode_ci = i.\`internal_name\` COLLATE utf8mb4_unicode_ci
-SET i.\`image\` = best.\`wiki_url\`,
+SET i.\`image\` = best.\`display_url\`,
     i.\`updated_at\` = NOW()
 WHERE i.\`deleted\` = 0
-  AND best.\`wiki_url\` IS NOT NULL
-  AND best.\`wiki_url\` NOT LIKE '%/terrapedia-images/%'
-  AND LOWER(best.\`wiki_url\`) NOT LIKE '%(demo)%'
-  AND LOWER(best.\`wiki_url\`) NOT LIKE '%28demo%29%'
-  AND LOWER(TRIM(best.\`wiki_url\`)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&#/-]|$)'
-  AND LOWER(best.\`wiki_url\`) NOT LIKE '%(placed)%'
-  AND LOWER(best.\`wiki_url\`) NOT LIKE '%28placed%29%'
-  AND LOWER(TRIM(best.\`wiki_url\`)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&#/-]|$)'
+  AND best.\`display_url\` IS NOT NULL
   AND (
     i.\`image\` IS NULL
     OR TRIM(i.\`image\`) = ''
-    OR i.\`image\` LIKE '%/terrapedia-images/%'
-    OR i.\`image\` COLLATE utf8mb4_unicode_ci <> best.\`wiki_url\` COLLATE utf8mb4_unicode_ci
+    OR i.\`image\` COLLATE utf8mb4_unicode_ci <> best.\`display_url\` COLLATE utf8mb4_unicode_ci
   )
 `.trim();
 }
@@ -345,7 +384,6 @@ async function applySync(connection, options) {
     await connection.query(`DELETE FROM ${qualified(options.localDatabase, 'item_images')}`);
     await connection.query(buildInsertLocalItemImagesSql(options));
     await connection.query(buildUpdateLocalItemsImageSql(options));
-    await connection.query(buildClearLocalMinioItemImagesSql(options));
     await connection.query('COMMIT');
   } catch (error) {
     await connection.query('ROLLBACK');
