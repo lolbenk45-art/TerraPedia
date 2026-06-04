@@ -206,7 +206,8 @@ public class UserAuthController {
     @Operation(summary = "Change current user password")
     public ResponseEntity<ApiResponse<Void>> changePassword(
         @Valid @RequestBody UserChangePasswordRequestDTO request,
-        HttpServletRequest httpRequest
+        HttpServletRequest httpRequest,
+        HttpServletResponse httpResponse
     ) {
         UserTokenClaims claims = getRequiredClaims(httpRequest);
         userAuthService.changePassword(
@@ -215,6 +216,7 @@ public class UserAuthController {
             request.getNewPassword(),
             getClientIp(httpRequest)
         );
+        clearAuthCookies(httpResponse);
         return ResponseEntity.ok(ApiResponse.success(null, "Password changed successfully"));
     }
 
