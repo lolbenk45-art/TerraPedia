@@ -35,6 +35,13 @@ public interface UserMapper extends BaseMapper<User> {
 
     int clearAvatar(@Param("id") Long id);
 
+    int updatePreferences(
+        @Param("id") Long id,
+        @Param("themePreference") String themePreference,
+        @Param("detailDensity") String detailDensity,
+        @Param("defaultFavoritesFilter") String defaultFavoritesFilter
+    );
+
     Page<AdminUserListItemDTO> selectAdminUsersPage(
         Page<AdminUserListItemDTO> page,
         @Param("email") String email,

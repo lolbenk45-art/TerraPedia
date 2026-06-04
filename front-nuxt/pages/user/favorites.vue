@@ -4,6 +4,7 @@ import type { UserFavorite, UserFavoriteTypeFilter } from '~/types/public-api'
 definePageMeta({ requiresUserAuth: true })
 
 const favoritesStore = useUserFavoritesStore()
+const preferencesStore = useUserPreferencesStore()
 const loadError = ref('')
 
 const tabs: Array<{ value: UserFavoriteTypeFilter, label: string }> = [
@@ -50,7 +51,8 @@ const nextPage = () => {
   void loadFavorites(favoritesStore.filter, currentPage.value + 1)
 }
 
-await loadFavorites('all')
+await preferencesStore.load().catch(() => undefined)
+await loadFavorites(preferencesStore.preferences.defaultFavoritesFilter)
 </script>
 
 <template>

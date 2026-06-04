@@ -70,6 +70,28 @@ class UserAuthenticationInterceptorTest {
     }
 
     @Test
+    void shouldRejectRoutesNotificationsAndPreferencesWithoutToken() throws Exception {
+        for (String[] route : new String[][] {
+            {"GET", "/user/saved-routes"},
+            {"POST", "/user/saved-routes"},
+            {"DELETE", "/user/saved-routes/7"},
+            {"GET", "/user/notifications"},
+            {"PATCH", "/user/notifications/9/read"},
+            {"GET", "/user/preferences"},
+            {"PATCH", "/user/preferences"}
+        }) {
+            MockHttpServletRequest request = new MockHttpServletRequest(route[0], route[1]);
+            request.setServletPath(route[1]);
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            boolean allowed = interceptor.preHandle(request, response, new Object());
+
+            assertFalse(allowed);
+            assertEquals(401, response.getStatus());
+        }
+    }
+
+    @Test
     void shouldAllowPublicUserAuthRegistrationWithoutToken() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/user-auth/register");
         request.setServletPath("/user-auth/register");

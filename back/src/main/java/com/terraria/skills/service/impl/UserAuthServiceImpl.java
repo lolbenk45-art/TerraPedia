@@ -17,6 +17,7 @@ import com.terraria.skills.service.ObjectStorageService;
 import com.terraria.skills.service.SecurityAuditService;
 import com.terraria.skills.service.UserAuthService;
 import com.terraria.skills.service.UserAvatarValidator;
+import com.terraria.skills.service.UserNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -47,6 +48,7 @@ public class UserAuthServiceImpl implements UserAuthService {
     private final SecurityAuditService securityAuditService;
     private final ObjectStorageService objectStorageService;
     private final UserAvatarUrlResolver userAvatarUrlResolver;
+    private final UserNotificationService userNotificationService;
 
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(12);
     private final SecureRandom secureRandom = new SecureRandom();
@@ -245,6 +247,7 @@ public class UserAuthServiceImpl implements UserAuthService {
 
         objectStorageService.deleteUserAvatarObject(userId, previousAvatarObjectKey);
         securityAuditService.log("USER_AVATAR_UPDATED", "USER", userId, user.getEmail(), ipAddress, "objectKey=" + uploadResult.getObjectKey());
+        userNotificationService.createNotification(userId, "AVATAR_CHANGED", "头像已更新", "你的账号头像刚刚完成更新。", "/user/settings");
         return toProfile(user);
     }
 
@@ -259,6 +262,7 @@ public class UserAuthServiceImpl implements UserAuthService {
 
         objectStorageService.deleteUserAvatarObject(userId, previousAvatarObjectKey);
         securityAuditService.log("USER_AVATAR_REMOVED", "USER", userId, user.getEmail(), ipAddress, null);
+        userNotificationService.createNotification(userId, "AVATAR_CHANGED", "头像已移除", "你的账号头像已移除。", "/user/settings");
         return toProfile(user);
     }
 
@@ -280,6 +284,7 @@ public class UserAuthServiceImpl implements UserAuthService {
         userMapper.updateById(user);
         revokeAllRefreshTokens(userId);
         securityAuditService.log("USER_PASSWORD_CHANGED", "USER", userId, user.getEmail(), ipAddress, null);
+        userNotificationService.createNotification(userId, "PASSWORD_CHANGED", "密码已更新", "你的账号密码刚刚完成修改。", "/user/settings");
     }
 
     @Override

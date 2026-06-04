@@ -5,6 +5,8 @@ const route = useRoute()
 const themeStore = useThemeStore()
 const themeOptions = themeStore.themeOptions
 const authStore = useUserAuthStore()
+const notificationsStore = useUserNotificationsStore()
+const preferencesStore = useUserPreferencesStore()
 
 type ActiveMenu = 'resources' | 'account' | null
 
@@ -81,7 +83,12 @@ const logout = async () => {
 }
 
 onMounted(() => {
-  void authStore.init()
+  void authStore.init().then(() => {
+    if (authStore.isAuthenticated) {
+      void preferencesStore.load()
+      void notificationsStore.loadUnreadCount()
+    }
+  })
 })
 
 onBeforeUnmount(closeMenu)
@@ -212,6 +219,7 @@ onBeforeUnmount(closeMenu)
         >
           <img v-if="authStore.user?.avatarUrl" :src="authStore.user.avatarUrl" :alt="`${authStore.displayName} 的头像`" />
           <span v-else>{{ accountInitials }}</span>
+          <em v-if="notificationsStore.unreadCount" class="account-unread-badge">{{ notificationsStore.unreadCount }}</em>
         </a>
         <div class="account-menu-hover-bridge" aria-hidden="true"></div>
         <div
@@ -238,6 +246,8 @@ onBeforeUnmount(closeMenu)
           </div>
           <a href="/user" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-user menu-icon" aria-hidden="true"></span><span><b>用户中心</b><span>收藏、投稿、设置入口</span></span></a>
           <a href="/user/favorites" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-favorites menu-icon" aria-hidden="true"></span><span><b>收藏夹</b><span>保存物品和路线</span></span></a>
+          <a href="/user/routes" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-crafting menu-icon" aria-hidden="true"></span><span><b>保存路线</b><span>制作树路线记录</span></span></a>
+          <a href="/user/notifications" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-notification menu-icon" aria-hidden="true"></span><span><b>通知中心</b><span>{{ notificationsStore.unreadCount }} 条未读</span></span></a>
           <a href="/user/articles" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-article menu-icon" aria-hidden="true"></span><span><b>我的文章</b><span>草稿和投稿状态</span></span></a>
           <a href="/user/settings" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-settings menu-icon" aria-hidden="true"></span><span><b>账号设置</b><span>显示偏好和公开资料</span></span></a>
           <a v-if="authStore.isAuthenticated" href="/user/login" :tabindex="menuLinkTabIndex('account')" @click.prevent="logout"><span class="sprite-icon icon-close menu-icon" aria-hidden="true"></span><span><b>退出登录</b><span>清除当前用户会话</span></span></a>
@@ -249,7 +259,26 @@ onBeforeUnmount(closeMenu)
 
 <style scoped>
 .account-avatar-link {
+  position: relative;
   overflow: hidden;
+}
+
+.account-unread-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 1px solid var(--index-line);
+  border-radius: 999px;
+  background: var(--accent-gold);
+  color: #201607;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .account-avatar-link img,

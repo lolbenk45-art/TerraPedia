@@ -1326,6 +1326,55 @@ export type UserReadingHistory = {
   lastViewedAt?: string | null
 }
 
+export type UserSavedRoute = {
+  id?: number | string | null
+  targetType: 'CRAFTING_ITEM'
+  targetId: number | string
+  title: string
+  imageUrl?: string | null
+  routeMode: string
+  selectedVariant?: string | null
+  selectedRecipeKey?: string | null
+  maxDepth?: number | null
+  note?: string | null
+  url: string
+  snapshotJson?: string | null
+  createdAt?: string | null
+  updatedAt?: string | null
+}
+
+export type UserSavedRoutePayload = {
+  targetType: 'CRAFTING_ITEM'
+  targetId: number | string
+  title: string
+  routeMode?: string | null
+  selectedVariant?: string | null
+  selectedRecipeKey?: string | null
+  maxDepth?: number | null
+  note?: string | null
+  url: string
+  snapshotJson?: string | null
+}
+
+export type UserNotification = {
+  id?: number | string | null
+  type: string
+  title: string
+  body?: string | null
+  targetUrl?: string | null
+  read: boolean
+  readAt?: string | null
+  createdAt?: string | null
+}
+
+export type UserPreferences = {
+  themePreference: 'dark' | 'morning-paper' | 'warm-slate'
+  detailDensity: 'readable' | 'compact'
+  defaultFavoritesFilter: UserFavoriteTypeFilter
+}
+
+export type UserPreferencesPayload = Partial<UserPreferences>
+
 export type UserRegisterCodeResponse = {
   expiresInSeconds?: number | null
   cooldownSeconds?: number | null

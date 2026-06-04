@@ -13,6 +13,7 @@ import com.terraria.skills.entity.User;
 import com.terraria.skills.mapper.UserMapper;
 import com.terraria.skills.service.ObjectStorageService;
 import com.terraria.skills.service.SecurityAuditService;
+import com.terraria.skills.service.UserNotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
@@ -27,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -39,6 +41,7 @@ class UserAuthServiceImplTest {
     private UserRefreshTokenStoreService refreshTokenStore;
     private ObjectStorageService objectStorageService;
     private SecurityAuditService securityAuditService;
+    private UserNotificationService userNotificationService;
     private UserAuthServiceImpl service;
 
     @BeforeEach
@@ -52,6 +55,7 @@ class UserAuthServiceImplTest {
         refreshTokenStore = mock(UserRefreshTokenStoreService.class);
         objectStorageService = mock(ObjectStorageService.class);
         securityAuditService = mock(SecurityAuditService.class);
+        userNotificationService = mock(UserNotificationService.class);
 
         service = new UserAuthServiceImpl(
             userMapper,
@@ -62,7 +66,8 @@ class UserAuthServiceImplTest {
             mock(RegisterVerificationService.class),
             securityAuditService,
             objectStorageService,
-            new UserAvatarUrlResolver(emptyMinioConnectionDetailsProvider())
+            new UserAvatarUrlResolver(emptyMinioConnectionDetailsProvider()),
+            userNotificationService
         );
     }
 
@@ -114,6 +119,7 @@ class UserAuthServiceImplTest {
 
         verify(userMapper).updateAvatar(eq(42L), eq("http://localhost:9000/terrapedia-images/avatars/42/2026/06/04/new.png"), eq("avatars/42/2026/06/04/new.png"), org.mockito.ArgumentMatchers.any());
         verify(objectStorageService).deleteUserAvatarObject(42L, "avatars/42/2026/06/04/old.png");
+        verify(userNotificationService).createNotification(eq(42L), eq("AVATAR_CHANGED"), anyString(), anyString(), eq("/user/settings"));
     }
 
     @Test
@@ -126,6 +132,7 @@ class UserAuthServiceImplTest {
 
         verify(userMapper).clearAvatar(42L);
         verify(objectStorageService).deleteUserAvatarObject(42L, "avatars/42/2026/06/04/old.png");
+        verify(userNotificationService).createNotification(eq(42L), eq("AVATAR_CHANGED"), anyString(), anyString(), eq("/user/settings"));
     }
 
     private static User activeUser() {

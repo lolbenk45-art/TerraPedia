@@ -205,8 +205,14 @@ export const useUserAuthStore = defineStore('user-auth', () => {
     } finally {
       const favoritesStore = useUserFavoritesStore()
       const historyStore = useUserHistoryStore()
+      const savedRoutesStore = useUserSavedRoutesStore()
+      const notificationsStore = useUserNotificationsStore()
+      const preferencesStore = useUserPreferencesStore()
       favoritesStore.clearUserFavoriteState()
       historyStore.clearUserHistoryState()
+      savedRoutesStore.clearUserSavedRoutesState()
+      notificationsStore.clearUserNotificationsState()
+      preferencesStore.clearUserPreferencesState()
       user.value = null
       articles.value = []
       initialized.value = true

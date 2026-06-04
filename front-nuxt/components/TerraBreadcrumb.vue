@@ -42,6 +42,8 @@ const routeLabels: Record<string, string> = {
   '/user/articles': '我的文章',
   '/user/articles/new': '新建文章',
   '/user/favorites': '收藏夹',
+  '/user/routes': '保存路线',
+  '/user/notifications': '通知中心',
   '/user/settings': '账号设置',
 }
 
@@ -63,6 +65,8 @@ const segmentLabels: Record<string, string> = {
   login: '登录',
   register: '注册',
   favorites: '收藏夹',
+  routes: '保存路线',
+  notifications: '通知中心',
   settings: '账号设置',
   new: '新建文章',
 }
@@ -74,6 +78,8 @@ const unavailableAccountRoutes = [
   '/user/articles',
   '/user/articles/new',
   '/user/favorites',
+  '/user/routes',
+  '/user/notifications',
   '/user/settings',
 ]
 

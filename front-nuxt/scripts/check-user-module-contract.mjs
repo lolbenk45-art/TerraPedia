@@ -60,6 +60,9 @@ const redirectUtilPath = 'lib/userRedirect.mjs'
 const storePath = 'stores/userAuth.ts'
 const favoritesStorePath = 'stores/userFavorites.ts'
 const historyStorePath = 'stores/userHistory.ts'
+const savedRoutesStorePath = 'stores/userSavedRoutes.ts'
+const notificationsStorePath = 'stores/userNotifications.ts'
+const preferencesStorePath = 'stores/userPreferences.ts'
 const middlewarePath = 'middleware/user-auth.global.ts'
 const typesPath = 'types/public-api.ts'
 const navPath = 'components/TerraNav.vue'
@@ -70,6 +73,9 @@ const redirectUtil = assertFile(redirectUtilPath)
 const store = assertFile(storePath)
 const favoritesStore = assertFile(favoritesStorePath)
 const historyStore = assertFile(historyStorePath)
+const savedRoutesStore = assertFile(savedRoutesStorePath)
+const notificationsStore = assertFile(notificationsStorePath)
+const preferencesStore = assertFile(preferencesStorePath)
 const middleware = assertFile(middlewarePath)
 const types = assertFile(typesPath)
 const nav = assertFile(navPath)
@@ -89,6 +95,9 @@ for (const marker of [
   '/user-auth/password',
   '/user/articles',
   '/user/history',
+  '/user/saved-routes',
+  '/user/notifications',
+  '/user/preferences',
 ]) {
   assertIncludes(apiPath, api, marker, `user API must target ${marker}`)
 }
@@ -145,6 +154,11 @@ for (const marker of [
   'type UserReadingHistory',
   'type UserHistoryTargetType',
   'type UserHistoryTypeFilter',
+  'type UserSavedRoute',
+  'type UserSavedRoutePayload',
+  'type UserNotification',
+  'type UserPreferences',
+  'type UserPreferencesPayload',
   'type PublicUserArticle',
   'type PublicUserProfile',
   'type UserArticleUpsertPayload',
@@ -187,6 +201,9 @@ for (const marker of [
 }
 assertIncludes(storePath, store, 'clearUserFavoriteState', 'user auth logout must clear favorite state')
 assertIncludes(storePath, store, 'clearUserHistoryState', 'user auth logout must clear history state')
+assertIncludes(storePath, store, 'clearUserSavedRoutesState', 'user auth logout must clear saved route state')
+assertIncludes(storePath, store, 'clearUserNotificationsState', 'user auth logout must clear notification state')
+assertIncludes(storePath, store, 'clearUserPreferencesState', 'user auth logout must clear preference state')
 
 for (const marker of [
   'pendingRecords',
@@ -202,6 +219,37 @@ for (const marker of [
 }
 for (const forbidden of ['localStorage', 'sessionStorage']) {
   assertNotIncludes(historyStorePath, historyStore, forbidden, `user history store must not use ${forbidden}`)
+}
+
+for (const marker of [
+  'clearUserSavedRoutesState',
+  'fetchUserSavedRoutes',
+  'saveUserRoute',
+  'deleteUserSavedRoute',
+]) {
+  assertIncludes(savedRoutesStorePath, savedRoutesStore, marker, `saved routes store must expose ${marker}`)
+}
+
+for (const marker of [
+  'clearUserNotificationsState',
+  'loadUnreadCount',
+  'fetchUserNotifications',
+  'fetchUserNotificationUnreadCount',
+  'markUserNotificationRead',
+  'markAllUserNotificationsRead',
+]) {
+  assertIncludes(notificationsStorePath, notificationsStore, marker, `notifications store must expose ${marker}`)
+}
+
+for (const marker of [
+  'clearUserPreferencesState',
+  'fetchUserPreferences',
+  'updateUserPreferences',
+  'themePreference',
+  'detailDensity',
+  'defaultFavoritesFilter',
+]) {
+  assertIncludes(preferencesStorePath, preferencesStore, marker, `preferences store must expose ${marker}`)
 }
 
 for (const marker of [
@@ -250,13 +298,23 @@ const pageContracts = [
   },
   {
     path: 'pages/user/index.vue',
-    required: ['authStore.init()', 'authStore.isAuthenticated', 'authStore.displayName', 'account-state-authenticated', 'account-state-guest', 'authStore.articlePagination', 'useUserHistoryStore', "historyStore.loadList('all', 1, 6)", 'historyStore.items', 'historyStore.remove(entry)', 'historyStore.mutating', '最近阅读'],
-    forbidden: ['静态占位', '<em>24</em>', '<em>6</em>', '泰拉刃制作链', '克苏鲁之眼准备', '最近路径', '阅读路径', '路线记录', '保存进度', '偏好持久化', 'localStorage', 'sessionStorage'],
+    required: ['authStore.init()', 'authStore.isAuthenticated', 'authStore.displayName', 'account-state-authenticated', 'account-state-guest', 'authStore.articlePagination', 'useUserHistoryStore', "historyStore.loadList('all', 1, 6)", 'historyStore.items', 'historyStore.remove(entry)', 'historyStore.mutating', 'useUserSavedRoutesStore', 'routesStore.loadList(1, 3)', 'useUserNotificationsStore', 'notificationsStore.loadUnreadCount', '最近阅读', '保存路线', '通知中心'],
+    forbidden: ['静态占位', '<em>24</em>', '<em>6</em>', '泰拉刃制作链', '克苏鲁之眼准备', '最近路径', '阅读路径', '保存进度', '偏好持久化', 'localStorage', 'sessionStorage'],
   },
   {
     path: 'pages/user/settings.vue',
-    required: ['definePageMeta({ requiresUserAuth: true })', '@submit.prevent="submitProfile"', '@submit.prevent="submitPassword"', 'authStore.updateProfile', 'authStore.changePassword', 'user-form-success', 'user-form-error'],
+    required: ['definePageMeta({ requiresUserAuth: true })', '@submit.prevent="submitProfile"', '@submit.prevent="submitPassword"', '@submit.prevent="submitPreferences"', 'authStore.updateProfile', 'authStore.changePassword', 'preferencesStore.save', 'themePreference', 'detailDensity', 'defaultFavoritesFilter', 'user-form-success', 'user-form-error'],
     forbidden: ['readonly', '保存占位'],
+  },
+  {
+    path: 'pages/user/routes.vue',
+    required: ['definePageMeta({ requiresUserAuth: true })', 'useUserSavedRoutesStore', 'routesStore.loadList', 'routesStore.remove(route)', 'route.url', '保存路线'],
+    forbidden: ['preview-only', '占位'],
+  },
+  {
+    path: 'pages/user/notifications.vue',
+    required: ['definePageMeta({ requiresUserAuth: true })', 'useUserNotificationsStore', 'notificationsStore.loadList', 'notificationsStore.markRead(notification)', 'notificationsStore.markAllRead', 'notificationsStore.unreadCount', '通知中心'],
+    forbidden: ['preview-only', '占位'],
   },
   {
     path: 'pages/user/articles/index.vue',
@@ -322,10 +380,10 @@ assertPattern('pages/users/[id].vue', publicUserProfile, /\/\^\[1-9\]\\d\*\$\/\.
 assertPattern('pages/users/[id].vue', publicUserProfile, /v-for="article in linkablePublishedArticles"[\s\S]*:href="publicArticlePath\(article\.slug\)"/, 'public user article links must render only linkable slug-backed articles')
 
 const userSettings = assertFile('pages/user/settings.vue')
-for (const label of ['显示偏好', '通知', '公开身份']) {
-  assertPattern('pages/user/settings.vue', userSettings, new RegExp(`<[^>]+class="[^"]*disabled[^"]*"[^>]*>[\\s\\S]*?<b>${label}<\\/b>[\\s\\S]*?后续开放`), `${label} settings entry must be a disabled static row marked 后续开放`)
-  assertNotPattern('pages/user/settings.vue', userSettings, new RegExp(`<a\\b[^>]*href="/user/settings"[^>]*>(?:(?!<\\/a>)[\\s\\S])*<b>${label}<\\/b>(?:(?!<\\/a>)[\\s\\S])*<\\/a>`), `${label} settings entry must not be a fake self-link anchor`)
+for (const marker of ['#display-preferences', '/user/notifications', '`/users/${authStore.user.id}`']) {
+  assertIncludes('pages/user/settings.vue', userSettings, marker, `settings must link real user setting target ${marker}`)
 }
+assertNotIncludes('pages/user/settings.vue', userSettings, '后续开放', 'settings page must not describe opened user functions as future-only')
 
 for (const marker of [
   '.user-form-status',

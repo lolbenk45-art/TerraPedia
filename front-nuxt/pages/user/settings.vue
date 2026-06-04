@@ -2,7 +2,9 @@
 definePageMeta({ requiresUserAuth: true })
 
 const authStore = useUserAuthStore()
+const preferencesStore = useUserPreferencesStore()
 await authStore.init()
+await preferencesStore.load().catch(() => undefined)
 
 const profileForm = reactive({
   displayName: authStore.user?.displayName || '',
@@ -17,7 +19,14 @@ const avatarError = ref('')
 const avatarSuccess = ref('')
 const passwordError = ref('')
 const passwordSuccess = ref('')
+const preferencesError = ref('')
+const preferencesSuccess = ref('')
 const avatarInput = ref<HTMLInputElement | null>(null)
+const preferencesForm = reactive({
+  themePreference: preferencesStore.preferences.themePreference,
+  detailDensity: preferencesStore.preferences.detailDensity,
+  defaultFavoritesFilter: preferencesStore.preferences.defaultFavoritesFilter,
+})
 
 watch(
   () => authStore.user?.displayName,
@@ -89,6 +98,24 @@ const submitPassword = async () => {
     passwordError.value = exception instanceof Error ? exception.message : '密码修改失败。'
   }
 }
+
+const submitPreferences = async () => {
+  preferencesError.value = ''
+  preferencesSuccess.value = ''
+  try {
+    const preferences = await preferencesStore.save({
+      themePreference: preferencesForm.themePreference,
+      detailDensity: preferencesForm.detailDensity,
+      defaultFavoritesFilter: preferencesForm.defaultFavoritesFilter,
+    })
+    preferencesForm.themePreference = preferences.themePreference
+    preferencesForm.detailDensity = preferences.detailDensity
+    preferencesForm.defaultFavoritesFilter = preferences.defaultFavoritesFilter
+    preferencesSuccess.value = '显示偏好已保存。'
+  } catch (exception: unknown) {
+    preferencesError.value = exception instanceof Error ? exception.message : '显示偏好保存失败。'
+  }
+}
 </script>
 
 <template>
@@ -101,7 +128,7 @@ const submitPassword = async () => {
         <div>
           <span class="eyebrow">/user/settings · preferences</span>
           <h1>账号设置</h1>
-          <p>设置页接入当前用户资料、头像和密码接口；其他分组先作为后续开放项展示。</p>
+          <p>设置页接入当前用户资料、头像、密码和显示偏好接口。</p>
         </div>
         <a class="secondary-button" href="/user">返回用户中心</a>
       </div>
@@ -111,9 +138,9 @@ const submitPassword = async () => {
       <section class="settings-list support-panel">
         <span class="eyebrow">设置分组</span>
         <a class="active" href="/user/settings"><span class="sprite-icon icon-user menu-icon" aria-hidden="true"></span><span><b>个人资料</b><span>昵称、登录邮箱</span></span></a>
-        <div class="disabled" aria-disabled="true"><span class="sprite-icon icon-items menu-icon" aria-hidden="true"></span><span><b>显示偏好</b><span>后续开放</span></span></div>
-        <div class="disabled" aria-disabled="true"><span class="sprite-icon icon-notification menu-icon" aria-hidden="true"></span><span><b>通知</b><span>后续开放</span></span></div>
-        <div class="disabled" aria-disabled="true"><span class="sprite-icon icon-codex menu-icon" aria-hidden="true"></span><span><b>公开身份</b><span>后续开放</span></span></div>
+        <a href="#display-preferences"><span class="sprite-icon icon-items menu-icon" aria-hidden="true"></span><span><b>显示偏好</b><span>主题、密度、收藏筛选</span></span></a>
+        <a href="/user/notifications"><span class="sprite-icon icon-notification menu-icon" aria-hidden="true"></span><span><b>通知</b><span>审核与账号事件</span></span></a>
+        <a v-if="authStore.user?.id" :href="`/users/${authStore.user.id}`"><span class="sprite-icon icon-codex menu-icon" aria-hidden="true"></span><span><b>公开身份</b><span>查看公开主页</span></span></a>
       </section>
 
       <section class="settings-panel support-panel">
@@ -172,6 +199,37 @@ const submitPassword = async () => {
           <p v-if="passwordSuccess" class="user-form-status user-form-success">{{ passwordSuccess }}</p>
           <p v-if="passwordError" class="user-form-status user-form-error">{{ passwordError }}</p>
           <button class="secondary-button" type="submit" :disabled="authStore.submitting">修改密码</button>
+        </form>
+
+        <form id="display-preferences" class="user-settings-form" @submit.prevent="submitPreferences">
+          <span class="eyebrow">显示偏好</span>
+          <label>
+            <span>主题</span>
+            <select v-model="preferencesForm.themePreference">
+              <option value="dark">深色</option>
+              <option value="morning-paper">清晨纸质</option>
+              <option value="warm-slate">暖石板</option>
+            </select>
+          </label>
+          <label>
+            <span>详情密度</span>
+            <select v-model="preferencesForm.detailDensity">
+              <option value="readable">舒展</option>
+              <option value="compact">紧凑</option>
+            </select>
+          </label>
+          <label>
+            <span>收藏默认筛选</span>
+            <select v-model="preferencesForm.defaultFavoritesFilter">
+              <option value="all">全部</option>
+              <option value="items">物品</option>
+              <option value="articles">文章</option>
+            </select>
+          </label>
+          <p class="user-field-hint">偏好会保存到账号，下次登录后继续生效。</p>
+          <p v-if="preferencesSuccess" class="user-form-status user-form-success">{{ preferencesSuccess }}</p>
+          <p v-if="preferencesError || preferencesStore.error" class="user-form-status user-form-error">{{ preferencesError || preferencesStore.error }}</p>
+          <button class="primary-button" type="submit" :disabled="preferencesStore.mutating">保存偏好</button>
         </form>
       </section>
     </main>
@@ -235,12 +293,6 @@ const submitPassword = async () => {
   overflow: hidden;
   opacity: 0;
   pointer-events: none;
-}
-
-.settings-list .disabled {
-  cursor: not-allowed;
-  opacity: 0.62;
-  filter: grayscale(0.25);
 }
 
 @media (max-width: 640px) {

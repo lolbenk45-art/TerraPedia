@@ -37,6 +37,15 @@ public class User implements Serializable {
     @TableField("avatar_updated_at")
     private LocalDateTime avatarUpdatedAt;
 
+    @TableField("theme_preference")
+    private String themePreference;
+
+    @TableField("detail_density")
+    private String detailDensity;
+
+    @TableField("default_favorites_filter")
+    private String defaultFavoritesFilter;
+
     @TableField("status")
     private Integer status;
 

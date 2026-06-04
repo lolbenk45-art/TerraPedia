@@ -3,8 +3,11 @@ import type { UserReadingHistory } from '~/types/public-api'
 
 const authStore = useUserAuthStore()
 const historyStore = useUserHistoryStore()
+const routesStore = useUserSavedRoutesStore()
+const notificationsStore = useUserNotificationsStore()
 const articleError = ref('')
 const historyError = ref('')
+const routeError = ref('')
 
 await authStore.init()
 
@@ -19,9 +22,16 @@ if (authStore.isAuthenticated) {
   } catch {
     historyError.value = '阅读记录加载失败。'
   }
+  try {
+    await routesStore.loadList(1, 3)
+  } catch {
+    routeError.value = '保存路线加载失败。'
+  }
+  await notificationsStore.loadUnreadCount()
 }
 
 const articleTotal = computed(() => Number(authStore.articlePagination.total ?? 0))
+const routeTotal = computed(() => Number(routesStore.pagination.total ?? 0))
 const historyTypeLabel = (entry: UserReadingHistory) => entry.targetType === 'ARTICLE' ? '文章' : '物品'
 const removeHistoryEntry = async (entry: UserReadingHistory) => {
   historyError.value = ''
@@ -93,6 +103,18 @@ const removeHistoryEntry = async (entry: UserReadingHistory) => {
           <span>创建当前账号下的攻略草稿</span>
           <em>写作</em>
         </a>
+        <a class="user-action-card support-panel" href="/user/routes">
+          <span class="sprite-icon icon-crafting card-icon" aria-hidden="true"></span>
+          <b>保存路线</b>
+          <span>制作树保存后集中显示</span>
+          <em>{{ authStore.isAuthenticated ? routeTotal : '登录后' }}</em>
+        </a>
+        <a class="user-action-card support-panel" href="/user/notifications">
+          <span class="sprite-icon icon-notification card-icon" aria-hidden="true"></span>
+          <b>通知中心</b>
+          <span>审核结果和账号事件</span>
+          <em>{{ authStore.isAuthenticated ? notificationsStore.unreadCount : '登录后' }}</em>
+        </a>
         <a class="user-action-card support-panel" href="/user/settings">
           <span class="sprite-icon icon-settings card-icon" aria-hidden="true"></span>
           <b>账号设置</b>
@@ -107,6 +129,9 @@ const removeHistoryEntry = async (entry: UserReadingHistory) => {
           <div class="user-feed-row"><b>收藏夹</b><span>查看当前账号收藏的物品和文章</span><a href="/user/favorites">打开</a></div>
           <div v-if="articleError" class="user-form-status user-form-error">{{ articleError }}</div>
           <div v-else class="user-feed-row"><b>投稿草稿</b><span>{{ authStore.isAuthenticated ? `${articleTotal} 篇当前账号文章` : '登录后显示真实草稿' }}</span><a href="/user/articles">打开</a></div>
+          <div v-if="routeError" class="user-form-status user-form-error">{{ routeError }}</div>
+          <div v-else class="user-feed-row"><b>保存路线</b><span>{{ authStore.isAuthenticated ? `${routeTotal} 条制作路线` : '登录后显示保存路线' }}</span><a href="/user/routes">打开</a></div>
+          <div class="user-feed-row"><b>通知中心</b><span>{{ authStore.isAuthenticated ? `${notificationsStore.unreadCount} 条未读通知` : '登录后显示通知' }}</span><a href="/user/notifications">打开</a></div>
           <div class="user-feed-row"><b>账号设置</b><span>更新头像、昵称和密码</span><a href="/user/settings">打开</a></div>
         </article>
         <article class="support-panel user-feed-panel">

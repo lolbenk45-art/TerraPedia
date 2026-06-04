@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.terraria.skills.mapper.UserNotificationMapper">
+
+    <select id="countActiveNotifications" resultType="long">
+        SELECT COUNT(*)
+        FROM user_notifications un
+        WHERE un.user_id = #{userId}
+          AND un.deleted = 0
+          <if test="unreadOnly">
+            AND un.is_read = 0
+          </if>
+    </select>
+
+    <select id="countUnreadByUser" resultType="long">
+        SELECT COUNT(*)
+        FROM user_notifications un
+        WHERE un.user_id = #{userId}
+          AND un.deleted = 0
+          AND un.is_read = 0
+    </select>
+
+    <select id="selectActiveNotificationsPage" resultType="com.terraria.skills.dto.UserNotificationDTO">
+        SELECT
+            un.id AS id,
+            un.type AS type,
+            un.title AS title,
+            un.body AS body,
+            un.target_url AS targetUrl,
+            CASE WHEN un.is_read = 1 THEN TRUE ELSE FALSE END AS `read`,
+            un.read_at AS readAt,
+            un.created_at AS createdAt
+        FROM user_notifications un
+        WHERE un.user_id = #{userId}
+          AND un.deleted = 0
+          <if test="unreadOnly">
+            AND un.is_read = 0
+          </if>
+        ORDER BY un.created_at DESC, un.id DESC
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+
+    <select id="selectActiveNotificationById" resultType="com.terraria.skills.dto.UserNotificationDTO">
+        SELECT
+            un.id AS id,
+            un.type AS type,
+            un.title AS title,
+            un.body AS body,
+            un.target_url AS targetUrl,
+            CASE WHEN un.is_read = 1 THEN TRUE ELSE FALSE END AS `read`,
+            un.read_at AS readAt,
+            un.created_at AS createdAt
+        FROM user_notifications un
+        WHERE un.user_id = #{userId}
+          AND un.id = #{id}
+          AND un.deleted = 0
+        LIMIT 1
+    </select>
+
+    <update id="markRead">
+        UPDATE user_notifications
+        SET is_read = 1,
+            read_at = COALESCE(read_at, NOW()),
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND id = #{id}
+          AND deleted = 0
+    </update>
+
+    <update id="markAllRead">
+        UPDATE user_notifications
+        SET is_read = 1,
+            read_at = COALESCE(read_at, NOW()),
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND deleted = 0
+          AND is_read = 0
+    </update>
+</mapper>

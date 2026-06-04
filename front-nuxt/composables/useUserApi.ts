@@ -10,9 +10,14 @@ import type {
   UserFavoriteStatus,
   UserFavoriteTypeFilter,
   UserHistoryTypeFilter,
+  UserNotification,
   UserProfile,
   UserReadingHistory,
   UserRegisterCodeResponse,
+  UserSavedRoute,
+  UserSavedRoutePayload,
+  UserPreferences,
+  UserPreferencesPayload,
 } from '~/types/public-api'
 import { unwrapApiResponse, usePublicApiFetch } from '~/composables/usePublicApi'
 export { buildUserPostAuthRedirectTarget, buildUserRedirectTarget } from '~/lib/userRedirect.mjs'
@@ -29,6 +34,16 @@ type UserFavoriteListResponse = {
 
 type UserHistoryListResponse = {
   items: UserReadingHistory[]
+  pagination: Pagination
+}
+
+type UserSavedRouteListResponse = {
+  items: UserSavedRoute[]
+  pagination: Pagination
+}
+
+type UserNotificationListResponse = {
+  items: UserNotification[]
   pagination: Pagination
 }
 
@@ -144,6 +159,48 @@ const normalizeHistory = (raw: Partial<UserReadingHistory> | null | undefined): 
     url: raw?.url || fallbackPath,
     viewCount: Number(raw?.viewCount ?? 0),
     lastViewedAt: raw?.lastViewedAt ?? null,
+  }
+}
+
+const normalizeSavedRoute = (raw: Partial<UserSavedRoute> | null | undefined): UserSavedRoute => {
+  const targetId = raw?.targetId ?? raw?.id ?? ''
+  return {
+    id: raw?.id ?? `CRAFTING_ITEM:${targetId}`,
+    targetType: 'CRAFTING_ITEM',
+    targetId,
+    title: String(raw?.title ?? ''),
+    imageUrl: raw?.imageUrl ?? null,
+    routeMode: raw?.routeMode || 'crafting',
+    selectedVariant: raw?.selectedVariant ?? null,
+    selectedRecipeKey: raw?.selectedRecipeKey ?? null,
+    maxDepth: Number(raw?.maxDepth ?? 5),
+    note: raw?.note ?? null,
+    url: raw?.url || `/crafting?itemId=${targetId}&maxDepth=5`,
+    snapshotJson: raw?.snapshotJson ?? null,
+    createdAt: raw?.createdAt ?? null,
+    updatedAt: raw?.updatedAt ?? null,
+  }
+}
+
+const normalizeNotification = (raw: Partial<UserNotification> | null | undefined): UserNotification => ({
+  id: raw?.id ?? '',
+  type: String(raw?.type ?? ''),
+  title: String(raw?.title ?? ''),
+  body: raw?.body ?? null,
+  targetUrl: raw?.targetUrl ?? null,
+  read: Boolean(raw?.read),
+  readAt: raw?.readAt ?? null,
+  createdAt: raw?.createdAt ?? null,
+})
+
+const normalizePreferences = (raw: Partial<UserPreferences> | null | undefined): UserPreferences => {
+  const theme = raw?.themePreference
+  const density = raw?.detailDensity
+  const filter = raw?.defaultFavoritesFilter
+  return {
+    themePreference: theme === 'morning-paper' || theme === 'warm-slate' ? theme : 'dark',
+    detailDensity: density === 'compact' ? 'compact' : 'readable',
+    defaultFavoritesFilter: filter === 'items' || filter === 'articles' ? filter : 'all',
   }
 }
 
@@ -299,6 +356,57 @@ export const recordUserHistory = async (targetType: UserHistoryTargetType, targe
 
 export const deleteUserHistory = async (targetType: UserHistoryTargetType, targetId: number | string): Promise<UserReadingHistory> =>
   normalizeHistory(unwrapApiResponse(await userFetch<UserReadingHistory>(`/user/history/${targetType}/${targetId}`, { method: 'DELETE' })))
+
+export const fetchUserSavedRoutes = async (params: { page?: number, limit?: number } = {}): Promise<UserSavedRouteListResponse> => {
+  const page = params.page ?? 1
+  const limit = params.limit ?? 20
+  const response = await userFetch<UserSavedRoute[]>('/user/saved-routes', {
+    query: { page, limit },
+  })
+  const data = response as ApiResponse<UserSavedRoute[]>
+  return {
+    items: Array.isArray(data.data) ? data.data.map(normalizeSavedRoute) : [],
+    pagination: data.pagination ?? { total: 0, page, limit, totalPages: 1 },
+  }
+}
+
+export const saveUserRoute = async (payload: UserSavedRoutePayload): Promise<UserSavedRoute> =>
+  normalizeSavedRoute(unwrapApiResponse(await userFetch<UserSavedRoute>('/user/saved-routes', { method: 'POST', body: payload })))
+
+export const deleteUserSavedRoute = async (id: number | string): Promise<UserSavedRoute> =>
+  normalizeSavedRoute(unwrapApiResponse(await userFetch<UserSavedRoute>(`/user/saved-routes/${id}`, { method: 'DELETE' })))
+
+export const fetchUserNotifications = async (params: { unreadOnly?: boolean, page?: number, limit?: number } = {}): Promise<UserNotificationListResponse> => {
+  const page = params.page ?? 1
+  const limit = params.limit ?? 20
+  const response = await userFetch<UserNotification[]>('/user/notifications', {
+    query: { unreadOnly: params.unreadOnly || undefined, page, limit },
+  })
+  const data = response as ApiResponse<UserNotification[]>
+  return {
+    items: Array.isArray(data.data) ? data.data.map(normalizeNotification) : [],
+    pagination: data.pagination ?? { total: 0, page, limit, totalPages: 1 },
+  }
+}
+
+export const fetchUserNotificationUnreadCount = async (): Promise<number> => {
+  const data = unwrapApiResponse(await userFetch<{ unreadCount?: number | string }>('/user/notifications/unread-count'))
+  return Number(data?.unreadCount ?? 0)
+}
+
+export const markUserNotificationRead = async (id: number | string): Promise<UserNotification> =>
+  normalizeNotification(unwrapApiResponse(await userFetch<UserNotification>(`/user/notifications/${id}/read`, { method: 'PATCH' })))
+
+export const markAllUserNotificationsRead = async (): Promise<number> => {
+  const data = unwrapApiResponse(await userFetch<{ updated?: number | string }>('/user/notifications/read-all', { method: 'PATCH' }))
+  return Number(data?.updated ?? 0)
+}
+
+export const fetchUserPreferences = async (): Promise<UserPreferences> =>
+  normalizePreferences(unwrapApiResponse(await userFetch<UserPreferences>('/user/preferences')))
+
+export const updateUserPreferences = async (payload: UserPreferencesPayload): Promise<UserPreferences> =>
+  normalizePreferences(unwrapApiResponse(await userFetch<UserPreferences>('/user/preferences', { method: 'PATCH', body: payload })))
 
 export const fetchUserFavoriteStatuses = async (
   targetType: FavoriteTargetType,

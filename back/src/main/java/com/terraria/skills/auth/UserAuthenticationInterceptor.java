@@ -68,6 +68,9 @@ public class UserAuthenticationInterceptor implements HandlerInterceptor {
             || "/user-auth/avatar".equals(path)
             || path.startsWith("/user/favorites")
             || path.startsWith("/user/history")
+            || path.startsWith("/user/saved-routes")
+            || path.startsWith("/user/notifications")
+            || path.startsWith("/user/preferences")
             || path.startsWith("/user/articles");
     }
 

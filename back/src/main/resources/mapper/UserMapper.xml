@@ -11,6 +11,9 @@
             avatar_url AS avatarUrl,
             avatar_object_key AS avatarObjectKey,
             avatar_updated_at AS avatarUpdatedAt,
+            theme_preference AS themePreference,
+            detail_density AS detailDensity,
+            default_favorites_filter AS defaultFavoritesFilter,
             status,
             last_login_at AS lastLoginAt,
             deleted,
@@ -31,6 +34,9 @@
             avatar_url AS avatarUrl,
             avatar_object_key AS avatarObjectKey,
             avatar_updated_at AS avatarUpdatedAt,
+            theme_preference AS themePreference,
+            detail_density AS detailDensity,
+            default_favorites_filter AS defaultFavoritesFilter,
             status,
             last_login_at AS lastLoginAt,
             deleted,
@@ -84,6 +90,16 @@
         SET avatar_url = NULL,
             avatar_object_key = NULL,
             avatar_updated_at = NULL,
+            updated_at = NOW()
+        WHERE id = #{id}
+          AND deleted = 0
+    </update>
+
+    <update id="updatePreferences">
+        UPDATE users
+        SET theme_preference = #{themePreference},
+            detail_density = #{detailDensity},
+            default_favorites_filter = #{defaultFavoritesFilter},
             updated_at = NOW()
         WHERE id = #{id}
           AND deleted = 0

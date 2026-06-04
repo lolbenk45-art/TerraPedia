@@ -16,6 +16,7 @@ import com.terraria.skills.mapper.ArticleMapper;
 import com.terraria.skills.mapper.ArticleReviewLogMapper;
 import com.terraria.skills.service.ArticleService;
 import com.terraria.skills.service.SecurityAuditService;
+import com.terraria.skills.service.UserNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,7 @@ public class ArticleServiceImpl implements ArticleService {
     private final ArticleReviewLogMapper articleReviewLogMapper;
     private final SecurityAuditService securityAuditService;
     private final ArticleReviewProperties articleReviewProperties;
+    private final UserNotificationService userNotificationService;
 
     @Override
     public Page<ArticleDTO> getAdminArticles(int page, int limit, String keyword, String status) {
@@ -268,7 +270,31 @@ public class ArticleServiceImpl implements ArticleService {
 
         writeReviewLog(id, reviewLogAction, currentReviewStatus, toReviewStatus, normalizedComment, normalizedOperator);
         audit(eventType, normalizedOperator, ipAddress, "articleId=" + id);
+        notifyArticleReviewResult(article, normalizedAction, normalizedComment);
         return getAdminArticleById(id);
+    }
+
+    private void notifyArticleReviewResult(Article article, String normalizedAction, String normalizedComment) {
+        if (article.getAuthorId() == null || article.getAuthorId() <= 0) {
+            return;
+        }
+        if (ArticleReviewAction.APPROVE.equals(normalizedAction)) {
+            userNotificationService.createNotification(
+                article.getAuthorId(),
+                "ARTICLE_APPROVED",
+                "文章已通过审核",
+                "你的文章《" + article.getTitle() + "》已通过审核，可以发布或继续管理。",
+                "/user/articles/" + article.getId()
+            );
+            return;
+        }
+        userNotificationService.createNotification(
+            article.getAuthorId(),
+            "ARTICLE_REJECTED",
+            "文章未通过审核",
+            normalizedComment == null ? "你的文章《" + article.getTitle() + "》需要修改后重新提交。" : normalizedComment,
+            "/user/articles/" + article.getId()
+        );
     }
 
     @Override

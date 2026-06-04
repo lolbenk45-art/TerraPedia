@@ -6,6 +6,8 @@ import type { PublicItemRecipeTreeVariant } from '~/types/public-api'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useUserAuthStore()
+const savedRoutesStore = useUserSavedRoutesStore()
 
 useSeoMeta({
   title: 'TerraPedia · 合成',
@@ -73,6 +75,26 @@ const activeRecipeRawNode = computed(() => {
 
   return roots[0] ?? null
 })
+const saveRouteMessage = ref('')
+const saveRouteError = ref('')
+const canSaveResolvedRoute = computed(() => Boolean(recipeModel.value.target && activeRecipeRawNode.value && !recipePending.value))
+const routeSavePayload = computed(() => ({
+  targetType: 'CRAFTING_ITEM' as const,
+  targetId: Number(effectiveSelectedItemId.value),
+  title: recipeModel.value.target?.title || `物品 ${effectiveSelectedItemId.value}`,
+  routeMode: 'crafting',
+  selectedVariant: selectedVariantKey.value || null,
+  selectedRecipeKey: selectedRecipeKey.value || null,
+  maxDepth: maxDepth.value,
+  url: `/crafting?itemId=${effectiveSelectedItemId.value}&maxDepth=${maxDepth.value}`,
+  snapshotJson: JSON.stringify({
+    targetId: effectiveSelectedItemId.value,
+    title: recipeModel.value.target?.title || '',
+    variantKey: selectedVariantKey.value || null,
+    recipeKey: selectedRecipeKey.value || null,
+    maxDepth: maxDepth.value,
+  }),
+}))
 const itemSuggestions = computed(() => itemResults.value?.source === 'api' ? itemResults.value.items : [])
 const showSearchUnavailable = computed(() => !itemSearchPending.value && recipeSearchQuery.value.trim().length > 0 && itemResults.value?.source !== 'api')
 
@@ -127,6 +149,23 @@ const selectRecipeTarget = async (key: string) => {
   const target = document.querySelector<HTMLElement>(`.recipe-route-entry[data-recipe-target-key="${escapedKey}"]`)
   target?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
 }
+
+const saveCurrentRoute = async () => {
+  saveRouteMessage.value = ''
+  saveRouteError.value = ''
+  await authStore.init()
+  if (!authStore.isAuthenticated) {
+    await navigateTo(`/user/login?redirect=${encodeURIComponent(route.fullPath)}`)
+    return
+  }
+  if (!canSaveResolvedRoute.value) return
+  try {
+    await savedRoutesStore.save(routeSavePayload.value)
+    saveRouteMessage.value = '路线已保存到用户中心。'
+  } catch (exception: unknown) {
+    saveRouteError.value = exception instanceof Error ? exception.message : '路线保存失败。'
+  }
+}
 </script>
 
 <template>
@@ -172,6 +211,20 @@ const selectRecipeTarget = async (key: string) => {
               :active-key="selectedRecipeKey"
               @select="selectedRecipeKey = $event"
             />
+
+            <section class="tp-panel saved-route-panel" aria-label="保存制作路线">
+              <span class="eyebrow">用户路线</span>
+              <button
+                class="primary-button saved-route-button"
+                type="button"
+                :disabled="!canSaveResolvedRoute || savedRoutesStore.mutating"
+                @click="saveCurrentRoute"
+              >
+                {{ savedRoutesStore.mutating ? '保存中' : '保存路线' }}
+              </button>
+              <p v-if="saveRouteMessage" class="user-form-status user-form-success">{{ saveRouteMessage }}</p>
+              <p v-if="saveRouteError" class="user-form-status user-form-error">{{ saveRouteError }}</p>
+            </section>
           </aside>
 
           <section class="crafting-route-stage" data-crafting-role="route-stage">
@@ -226,3 +279,14 @@ const selectRecipeTarget = async (key: string) => {
     <TerraFooter />
   </section>
 </template>
+
+<style scoped>
+.saved-route-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.saved-route-button {
+  width: 100%;
+}
+</style>

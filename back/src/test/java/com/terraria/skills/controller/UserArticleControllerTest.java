@@ -12,6 +12,7 @@ import com.terraria.skills.mapper.ArticleMapper;
 import com.terraria.skills.mapper.ArticleReviewLogMapper;
 import com.terraria.skills.service.ArticleService;
 import com.terraria.skills.service.SecurityAuditService;
+import com.terraria.skills.service.UserNotificationService;
 import com.terraria.skills.service.impl.ArticleServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -97,6 +98,7 @@ class UserArticleControllerTest {
         private ArticleMapper articleMapper;
         private ArticleReviewLogMapper articleReviewLogMapper;
         private SecurityAuditService securityAuditService;
+        private UserNotificationService userNotificationService;
         private ArticleServiceImpl articleService;
 
         @BeforeEach
@@ -104,11 +106,13 @@ class UserArticleControllerTest {
             articleMapper = mock(ArticleMapper.class);
             articleReviewLogMapper = mock(ArticleReviewLogMapper.class);
             securityAuditService = mock(SecurityAuditService.class);
+            userNotificationService = mock(UserNotificationService.class);
             articleService = new ArticleServiceImpl(
                 articleMapper,
                 articleReviewLogMapper,
                 securityAuditService,
-                new ArticleReviewProperties()
+                new ArticleReviewProperties(),
+                userNotificationService
             );
         }
 
@@ -168,6 +172,25 @@ class UserArticleControllerTest {
                 && ArticleReviewStatus.PENDING_REVIEW.equals(log.getFromReviewStatus())
                 && ArticleReviewStatus.DRAFT.equals(log.getToReviewStatus())));
             verify(securityAuditService).log(eq("USER_ARTICLE_WITHDRAW_REVIEW"), eq("USER"), eq(CURRENT_USER_ID), isNull(), isNull(), anyString());
+        }
+
+        @Test
+        void shouldNotifyOwnerWhenArticleReviewApproved() {
+            Article article = article(ARTICLE_ID, CURRENT_USER_ID, ArticleStatus.DRAFT, ArticleReviewStatus.PENDING_REVIEW);
+            article.setTitle("Guide");
+            when(articleMapper.selectById(ARTICLE_ID)).thenReturn(article);
+            when(articleMapper.selectAdminArticleById(ARTICLE_ID))
+                .thenReturn(articleDto(ARTICLE_ID, CURRENT_USER_ID, ArticleStatus.DRAFT, ArticleReviewStatus.APPROVED));
+
+            articleService.reviewArticle(ARTICLE_ID, "APPROVE", null, "admin", "127.0.0.1");
+
+            verify(userNotificationService).createNotification(
+                eq(CURRENT_USER_ID),
+                eq("ARTICLE_APPROVED"),
+                anyString(),
+                anyString(),
+                eq("/user/articles/" + ARTICLE_ID)
+            );
         }
 
         @Test

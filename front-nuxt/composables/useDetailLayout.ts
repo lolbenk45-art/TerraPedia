@@ -12,13 +12,15 @@ const densityClassByValue: Record<DetailLayoutDensity, string> = {
 }
 
 export function useDetailLayout(options: DetailLayoutOptions) {
-  const density = options.density ?? 'readable'
+  const preferencesStore = useUserPreferencesStore()
+  const density = computed<DetailLayoutDensity>(() => preferencesStore.preferences.detailDensity ?? options.density ?? 'readable')
+  const detailDensityClass = computed(() => densityClassByValue[density.value])
 
   return {
-    detailShellClass: ['tp-detail-shell', `tp-detail-kind-${options.kind}`, densityClassByValue[density]].join(' '),
+    detailShellClass: computed(() => ['tp-detail-shell', `tp-detail-kind-${options.kind}`, detailDensityClass.value].join(' ')),
     detailGridClass: 'tp-detail-grid',
     detailModuleClass: 'tp-detail-module',
     detailRelationRowClass: 'tp-detail-relation-row',
-    detailDensityClass: densityClassByValue[density],
+    detailDensityClass,
   }
 }

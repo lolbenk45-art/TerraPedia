@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.terraria.skills.mapper.UserSavedRouteMapper">
+
+    <select id="selectByUserAndTargetIncludeDeleted" resultType="com.terraria.skills.entity.UserSavedRoute">
+        SELECT id, user_id AS userId, target_type AS targetType, target_id AS targetId,
+               route_mode AS routeMode, selected_variant AS selectedVariant, selected_recipe_key AS selectedRecipeKey,
+               max_depth AS maxDepth, title, note, url, snapshot_json AS snapshotJson,
+               deleted, created_at AS createdAt, updated_at AS updatedAt
+        FROM user_saved_routes
+        WHERE user_id = #{userId}
+          AND target_type = #{targetType}
+          AND target_id = #{targetId}
+          AND route_mode = #{routeMode}
+        LIMIT 1
+    </select>
+
+    <update id="updateExisting">
+        UPDATE user_saved_routes
+        SET title = #{route.title},
+            note = #{route.note},
+            url = #{route.url},
+            selected_variant = #{route.selectedVariant},
+            selected_recipe_key = #{route.selectedRecipeKey},
+            max_depth = #{route.maxDepth},
+            snapshot_json = #{route.snapshotJson},
+            deleted = 0,
+            updated_at = NOW()
+        WHERE id = #{route.id}
+          AND user_id = #{route.userId}
+    </update>
+
+    <update id="softDelete">
+        UPDATE user_saved_routes
+        SET deleted = 1,
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND id = #{id}
+          AND deleted = 0
+    </update>
+
+    <select id="countActiveByUser" resultType="long">
+        SELECT COUNT(*)
+        FROM user_saved_routes usr
+        INNER JOIN items i ON usr.target_type = 'CRAFTING_ITEM'
+            AND i.id = usr.target_id
+            AND i.deleted = 0
+            AND (i.status IS NULL OR i.status = 1)
+        WHERE usr.user_id = #{userId}
+          AND usr.target_type = 'CRAFTING_ITEM'
+          AND usr.deleted = 0
+    </select>
+
+    <select id="selectActiveRoutesPage" resultType="com.terraria.skills.dto.UserSavedRouteDTO">
+        SELECT
+            usr.id AS id,
+            usr.target_type AS targetType,
+            usr.target_id AS targetId,
+            COALESCE(NULLIF(usr.title, ''), NULLIF(i.name_zh, ''), i.name, i.internal_name) AS title,
+            (
+                SELECT ii.cached_url
+                FROM item_images ii
+                WHERE ii.item_id = i.id
+                  AND ii.deleted = 0
+                  AND ii.status = 1
+                  AND NULLIF(TRIM(ii.cached_url), '') IS NOT NULL
+                  AND LOWER(TRIM(ii.cached_url)) LIKE '%/terrapedia-images/%'
+                ORDER BY CASE WHEN ii.is_primary = 1 THEN 0 ELSE 1 END, ii.sort_order ASC, ii.id ASC
+                LIMIT 1
+            ) AS imageUrl,
+            usr.route_mode AS routeMode,
+            usr.selected_variant AS selectedVariant,
+            usr.selected_recipe_key AS selectedRecipeKey,
+            usr.max_depth AS maxDepth,
+            usr.note AS note,
+            usr.url AS url,
+            CAST(usr.snapshot_json AS CHAR) AS snapshotJson,
+            usr.created_at AS createdAt,
+            usr.updated_at AS updatedAt
+        FROM user_saved_routes usr
+        INNER JOIN items i ON usr.target_type = 'CRAFTING_ITEM'
+            AND i.id = usr.target_id
+            AND i.deleted = 0
+            AND (i.status IS NULL OR i.status = 1)
+        WHERE usr.user_id = #{userId}
+          AND usr.target_type = 'CRAFTING_ITEM'
+          AND usr.deleted = 0
+        ORDER BY usr.updated_at DESC, usr.id DESC
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+
+    <select id="selectActiveRouteById" resultType="com.terraria.skills.dto.UserSavedRouteDTO">
+        SELECT *
+        FROM (
+            <include refid="selectRouteProjection" />
+        ) route_row
+    </select>
+
+    <sql id="selectRouteProjection">
+        SELECT
+            usr.id AS id,
+            usr.target_type AS targetType,
+            usr.target_id AS targetId,
+            COALESCE(NULLIF(usr.title, ''), NULLIF(i.name_zh, ''), i.name, i.internal_name) AS title,
+            NULL AS imageUrl,
+            usr.route_mode AS routeMode,
+            usr.selected_variant AS selectedVariant,
+            usr.selected_recipe_key AS selectedRecipeKey,
+            usr.max_depth AS maxDepth,
+            usr.note AS note,
+            usr.url AS url,
+            CAST(usr.snapshot_json AS CHAR) AS snapshotJson,
+            usr.created_at AS createdAt,
+            usr.updated_at AS updatedAt
+        FROM user_saved_routes usr
+        INNER JOIN items i ON usr.target_type = 'CRAFTING_ITEM'
+            AND i.id = usr.target_id
+            AND i.deleted = 0
+            AND (i.status IS NULL OR i.status = 1)
+        WHERE usr.user_id = #{userId}
+          AND usr.id = #{id}
+          AND usr.target_type = 'CRAFTING_ITEM'
+          AND usr.deleted = 0
+        LIMIT 1
+    </sql>
+</mapper>
