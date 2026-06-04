@@ -6,6 +6,7 @@ import com.terraria.skills.auth.RegisterVerificationService;
 import com.terraria.skills.auth.UserAuthProperties;
 import com.terraria.skills.auth.UserJwtService;
 import com.terraria.skills.auth.UserRefreshTokenStoreService;
+import com.terraria.skills.dto.FileUploadResultDTO;
 import com.terraria.skills.dto.UserSessionDTO;
 import com.terraria.skills.entity.User;
 import com.terraria.skills.mapper.UserMapper;
@@ -13,12 +14,17 @@ import com.terraria.skills.service.ObjectStorageService;
 import com.terraria.skills.service.SecurityAuditService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Base64;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -29,6 +35,7 @@ class UserAuthServiceImplTest {
 
     private UserMapper userMapper;
     private UserRefreshTokenStoreService refreshTokenStore;
+    private ObjectStorageService objectStorageService;
     private SecurityAuditService securityAuditService;
     private UserAuthServiceImpl service;
 
@@ -41,6 +48,7 @@ class UserAuthServiceImplTest {
 
         userMapper = mock(UserMapper.class);
         refreshTokenStore = mock(UserRefreshTokenStoreService.class);
+        objectStorageService = mock(ObjectStorageService.class);
         securityAuditService = mock(SecurityAuditService.class);
 
         service = new UserAuthServiceImpl(
@@ -51,7 +59,7 @@ class UserAuthServiceImplTest {
             mock(LoginRateLimitService.class),
             mock(RegisterVerificationService.class),
             securityAuditService,
-            mock(ObjectStorageService.class),
+            objectStorageService,
             new UserAvatarUrlResolver(null)
         );
     }
@@ -86,6 +94,32 @@ class UserAuthServiceImplTest {
         verify(securityAuditService).log(eq("USER_SESSION_REFRESHED"), eq("USER"), eq(42L), eq("user@example.com"), eq("127.0.0.1"), eq(null));
     }
 
+    @Test
+    void shouldCleanPreviousAvatarObjectAfterSuccessfulReplacement() {
+        User user = activeUser();
+        user.setAvatarObjectKey("avatars/42/2026/06/04/old.png");
+        when(userMapper.selectById(42L)).thenReturn(user);
+        when(objectStorageService.uploadUserAvatar(any(MultipartFile.class), eq(42L), eq("image/png"), eq(".png")))
+            .thenReturn(uploadResult("avatars/42/2026/06/04/new.png"));
+
+        service.uploadAvatar(42L, onePixelPngFile(), "127.0.0.1");
+
+        verify(userMapper).updateAvatar(eq(42L), eq("http://localhost:9000/terrapedia-images/avatars/42/2026/06/04/new.png"), eq("avatars/42/2026/06/04/new.png"), org.mockito.ArgumentMatchers.any());
+        verify(objectStorageService).deleteUserAvatarObject(42L, "avatars/42/2026/06/04/old.png");
+    }
+
+    @Test
+    void shouldCleanPreviousAvatarObjectAfterDeleteAvatar() {
+        User user = activeUser();
+        user.setAvatarObjectKey("avatars/42/2026/06/04/old.png");
+        when(userMapper.selectById(42L)).thenReturn(user);
+
+        service.deleteAvatar(42L, "127.0.0.1");
+
+        verify(userMapper).clearAvatar(42L);
+        verify(objectStorageService).deleteUserAvatarObject(42L, "avatars/42/2026/06/04/old.png");
+    }
+
     private static User activeUser() {
         User user = new User();
         user.setId(42L);
@@ -94,5 +128,25 @@ class UserAuthServiceImplTest {
         user.setStatus(1);
         user.setDeleted(0);
         return user;
+    }
+
+    private static FileUploadResultDTO uploadResult(String objectKey) {
+        FileUploadResultDTO result = new FileUploadResultDTO();
+        result.setBucket("terrapedia-images");
+        result.setObjectKey(objectKey);
+        result.setUrl("http://localhost:9000/terrapedia-images/" + objectKey);
+        result.setContentType("image/png");
+        result.setSize(onePixelPng().length);
+        return result;
+    }
+
+    private static MockMultipartFile onePixelPngFile() {
+        return new MockMultipartFile("file", "avatar.png", "image/png", onePixelPng());
+    }
+
+    private static byte[] onePixelPng() {
+        return Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        );
     }
 }

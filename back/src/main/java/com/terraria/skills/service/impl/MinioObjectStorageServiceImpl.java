@@ -11,6 +11,7 @@ import io.minio.StatObjectArgs;
 import io.minio.StatObjectResponse;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 import io.minio.SetBucketPolicyArgs;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -159,6 +160,25 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
         return result;
     }
 
+    @Override
+    public void deleteUserAvatarObject(Long userId, String objectKey) {
+        String normalizedObjectKey = normalizeOwnedAvatarObjectKey(userId, objectKey);
+        if (normalizedObjectKey == null) {
+            return;
+        }
+
+        try {
+            minioClient.removeObject(
+                RemoveObjectArgs.builder()
+                    .bucket(connectionDetails.bucket())
+                    .object(normalizedObjectKey)
+                    .build()
+            );
+        } catch (Exception exception) {
+            log.warn("Failed to delete user avatar object userId={} objectKey={}", userId, normalizedObjectKey, exception);
+        }
+    }
+
     private void ensureBucketReady() {
         if (bucketReady.get()) {
             return;
@@ -248,6 +268,22 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
             + "/"
             + UUID.randomUUID().toString().replace("-", "")
             + normalizedExtension;
+    }
+
+    private String normalizeOwnedAvatarObjectKey(Long userId, String objectKey) {
+        if (userId == null || userId <= 0) {
+            return null;
+        }
+        String normalized = trimToNull(objectKey);
+        if (normalized == null) {
+            return null;
+        }
+        normalized = normalized.replace("\\", "/").replaceAll("^/+", "");
+        String ownedPrefix = "avatars/" + userId + "/";
+        if (normalized.contains("..") || !normalized.startsWith(ownedPrefix)) {
+            return null;
+        }
+        return normalized;
     }
 
     private String resolveObjectPrefix(String entityDomain) {

@@ -27,6 +27,11 @@ public class DisabledObjectStorageService implements ObjectStorageService {
     }
 
     @Override
+    public void deleteUserAvatarObject(Long userId, String objectKey) {
+        // Storage is disabled, so there is no remote avatar object to clean up.
+    }
+
+    @Override
     public StoredObjectDTO getObject(String objectKey) {
         throw disabled();
     }
