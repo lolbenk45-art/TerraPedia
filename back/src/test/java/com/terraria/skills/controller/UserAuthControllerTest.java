@@ -2,6 +2,8 @@ package com.terraria.skills.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.auth.UserAuthProperties;
+import com.terraria.skills.auth.UserAuthenticationInterceptor;
+import com.terraria.skills.auth.UserTokenClaims;
 import com.terraria.skills.dto.UserProfileDTO;
 import com.terraria.skills.dto.UserSessionDTO;
 import com.terraria.skills.service.UserAuthService;
@@ -18,6 +20,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -90,5 +93,27 @@ class UserAuthControllerTest {
             .andExpect(jsonPath("$.message").value("Refresh session is invalid"))
             .andExpect(cookie().maxAge("tp_user_access", 0))
             .andExpect(cookie().maxAge("tp_user_refresh", 0));
+    }
+
+    @Test
+    void shouldClearAuthCookiesAfterPasswordChangeRequiresFreshLogin() throws Exception {
+        mockMvc.perform(patch("/user-auth/password")
+                .requestAttr(UserAuthenticationInterceptor.USER_CLAIMS_ATTRIBUTE, UserTokenClaims.builder()
+                    .userId(42L)
+                    .email("user@example.com")
+                    .build())
+                .contentType("application/json")
+                .content("""
+                    {
+                      "currentPassword": "OldPassword123",
+                      "newPassword": "NewPassword123"
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(cookie().maxAge("tp_user_access", 0))
+            .andExpect(cookie().maxAge("tp_user_refresh", 0))
+            .andExpect(jsonPath("$.message").value("Password changed successfully"));
+
+        verify(userAuthService).changePassword(eq(42L), eq("OldPassword123"), eq("NewPassword123"), anyString());
     }
 }

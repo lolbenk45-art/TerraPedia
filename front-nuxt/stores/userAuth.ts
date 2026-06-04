@@ -108,6 +108,22 @@ export const useUserAuthStore = defineStore('user-auth', () => {
     articles.value = articles.value.filter((article) => article.id !== numericId)
   }
 
+  const clearAuthenticatedState = () => {
+    const favoritesStore = useUserFavoritesStore()
+    const historyStore = useUserHistoryStore()
+    const savedRoutesStore = useUserSavedRoutesStore()
+    const notificationsStore = useUserNotificationsStore()
+    const preferencesStore = useUserPreferencesStore()
+    favoritesStore.clearUserFavoriteState()
+    historyStore.clearUserHistoryState()
+    savedRoutesStore.clearUserSavedRoutesState()
+    notificationsStore.clearUserNotificationsState()
+    preferencesStore.clearUserPreferencesState()
+    user.value = null
+    articles.value = []
+    initialized.value = true
+  }
+
   const setError = (error: unknown, fallback?: string) => {
     lastError.value = extractUserApiError(error, fallback)
     return lastError.value
@@ -203,19 +219,7 @@ export const useUserAuthStore = defineStore('user-auth', () => {
     } catch {
       // Local state is cleared even if the backend session already expired.
     } finally {
-      const favoritesStore = useUserFavoritesStore()
-      const historyStore = useUserHistoryStore()
-      const savedRoutesStore = useUserSavedRoutesStore()
-      const notificationsStore = useUserNotificationsStore()
-      const preferencesStore = useUserPreferencesStore()
-      favoritesStore.clearUserFavoriteState()
-      historyStore.clearUserHistoryState()
-      savedRoutesStore.clearUserSavedRoutesState()
-      notificationsStore.clearUserNotificationsState()
-      preferencesStore.clearUserPreferencesState()
-      user.value = null
-      articles.value = []
-      initialized.value = true
+      clearAuthenticatedState()
       submitting.value = false
     }
   }
@@ -246,6 +250,7 @@ export const useUserAuthStore = defineStore('user-auth', () => {
     lastError.value = ''
     try {
       await changeUserPassword({ currentPassword, newPassword: requirePassword(newPassword) })
+      clearAuthenticatedState()
     } catch (error) {
       throw new Error(setError(error, '密码修改失败。'))
     } finally {

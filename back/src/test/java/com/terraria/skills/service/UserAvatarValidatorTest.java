@@ -3,6 +3,10 @@ package com.terraria.skills.service;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.Base64;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -23,6 +27,25 @@ class UserAvatarValidatorTest {
     }
 
     @Test
+    void shouldRejectEmptyAvatarFile() {
+        MockMultipartFile file = new MockMultipartFile("file", "avatar.png", "image/png", new byte[0]);
+
+        assertThrows(IllegalArgumentException.class, () -> UserAvatarValidator.validateAndResolve(file));
+    }
+
+    @Test
+    void shouldRejectAvatarLargerThanTwoMb() {
+        MockMultipartFile file = new MockMultipartFile(
+            "file",
+            "avatar.png",
+            "image/png",
+            new byte[(int) UserAvatarValidator.MAX_AVATAR_SIZE_BYTES + 1]
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> UserAvatarValidator.validateAndResolve(file));
+    }
+
+    @Test
     void shouldRejectPngBytesWithWrongContentType() {
         MockMultipartFile file = new MockMultipartFile(
             "file",
@@ -37,6 +60,13 @@ class UserAvatarValidatorTest {
     @Test
     void shouldAcceptValidPngWithPngContentType() {
         MockMultipartFile file = new MockMultipartFile("file", "avatar.png", "image/png", onePixelPng());
+
+        assertDoesNotThrow(() -> UserAvatarValidator.validateAndResolve(file));
+    }
+
+    @Test
+    void shouldAcceptValidJpegWithJpegContentType() {
+        MockMultipartFile file = new MockMultipartFile("file", "avatar.jpg", "image/jpeg", onePixelJpeg());
 
         assertDoesNotThrow(() -> UserAvatarValidator.validateAndResolve(file));
     }
@@ -74,5 +104,16 @@ class UserAvatarValidatorTest {
         return Base64.getDecoder().decode(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
         );
+    }
+
+    private byte[] onePixelJpeg() {
+        try {
+            BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            ImageIO.write(image, "jpg", output);
+            return output.toByteArray();
+        } catch (IOException exception) {
+            throw new IllegalStateException("Failed to create test JPEG", exception);
+        }
     }
 }

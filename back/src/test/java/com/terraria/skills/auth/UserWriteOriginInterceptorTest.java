@@ -65,6 +65,27 @@ class UserWriteOriginInterceptorTest {
     }
 
     @Test
+    void shouldProtectRoutesNotificationsAndPreferencesWritesFromUnknownOrigin() throws Exception {
+        for (String[] route : new String[][] {
+            {"POST", "/user/saved-routes"},
+            {"DELETE", "/user/saved-routes/7"},
+            {"PATCH", "/user/notifications/9/read"},
+            {"PATCH", "/user/notifications/read-all"},
+            {"PATCH", "/user/preferences"}
+        }) {
+            MockHttpServletRequest request = userWriteRequest(route[0], route[1]);
+            request.addHeader(HttpHeaders.ORIGIN, "https://evil.example");
+            request.setCookies(new Cookie("tp_user_access", "access-token"));
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            boolean allowed = interceptor.preHandle(request, response, new Object());
+
+            assertFalse(allowed, route[0] + " " + route[1]);
+            assertEquals(403, response.getStatus(), route[0] + " " + route[1]);
+        }
+    }
+
+    @Test
     void shouldAllowCookieAuthenticatedUserWriteFromLocalhostPreviewOrigin() throws Exception {
         MockHttpServletRequest request = userWriteRequest("PATCH", "/user-auth/profile");
         request.addHeader(HttpHeaders.ORIGIN, "http://localhost:5177");

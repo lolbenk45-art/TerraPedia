@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Base64;
@@ -36,6 +37,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class UserAuthServiceImplTest {
+
+    private static final BCryptPasswordEncoder PASSWORD_ENCODER = new BCryptPasswordEncoder(12);
 
     private UserMapper userMapper;
     private UserRefreshTokenStoreService refreshTokenStore;
@@ -133,6 +136,28 @@ class UserAuthServiceImplTest {
         verify(userMapper).clearAvatar(42L);
         verify(objectStorageService).deleteUserAvatarObject(42L, "avatars/42/2026/06/04/old.png");
         verify(userNotificationService).createNotification(eq(42L), eq("AVATAR_CHANGED"), anyString(), anyString(), eq("/user/settings"));
+    }
+
+    @Test
+    void shouldRevokeAllRefreshTokensAfterPasswordChange() {
+        User user = activeUser();
+        user.setPasswordHash(PASSWORD_ENCODER.encode("OldPassword123"));
+        when(userMapper.selectById(42L)).thenReturn(user);
+
+        service.changePassword(42L, "OldPassword123", "NewPassword123", "127.0.0.1");
+
+        verify(refreshTokenStore).revokeAllTokens(42L);
+        verify(userNotificationService).createNotification(eq(42L), eq("PASSWORD_CHANGED"), anyString(), anyString(), eq("/user/settings"));
+    }
+
+    @Test
+    void shouldRevokeAllRefreshTokensAfterPasswordReset() {
+        User user = activeUser();
+        when(userMapper.selectByEmail("user@example.com")).thenReturn(user);
+
+        service.resetPasswordByVerificationCode("USER@example.com", "123456", "NewPassword123", "127.0.0.1");
+
+        verify(refreshTokenStore).revokeAllTokens(42L);
     }
 
     private static User activeUser() {
