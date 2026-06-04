@@ -3,8 +3,10 @@ import type { UserArticle, UserArticleUpsertPayload, UserProfile } from '~/types
 import {
   changeUserPassword,
   createUserArticle,
+  deleteUserArticle as deleteUserArticleRequest,
   deleteUserAvatar,
   extractUserApiError,
+  fetchUserArticle as fetchUserArticleRequest,
   fetchCurrentUser,
   fetchUserArticles,
   loginUser,
@@ -13,8 +15,11 @@ import {
   resetUserPassword,
   sendRegisterCode,
   sendPasswordResetCode,
+  submitUserArticleForReview as submitUserArticleForReviewRequest,
   uploadUserAvatar,
+  updateUserArticle as updateUserArticleRequest,
   updateUserProfile,
+  withdrawUserArticle as withdrawUserArticleRequest,
 } from '~/composables/useUserApi'
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -52,6 +57,28 @@ const trimOptional = (value: string, max: number, label: string) => {
   return normalized || null
 }
 
+const normalizeArticleUpsertPayload = (payload: UserArticleUpsertPayload) => {
+  const title = payload.title.trim()
+  const contentHtml = payload.contentHtml.trim()
+  const slug = payload.slug?.trim() || null
+  const summary = payload.summary?.trim() || null
+  const coverImage = payload.coverImage?.trim() || null
+  if (!title) throw new Error('请输入文章标题。')
+  if (title.length > 255) throw new Error('标题不能超过 255 个字符。')
+  if (!contentHtml) throw new Error('请输入文章正文。')
+  if (slug && slug.length > 255) throw new Error('Slug 不能超过 255 个字符。')
+  if (summary && summary.length > 600) throw new Error('摘要不能超过 600 个字符。')
+  if (coverImage && coverImage.length > 500) throw new Error('封面地址不能超过 500 个字符。')
+
+  return {
+    title,
+    slug,
+    summary,
+    coverImage,
+    contentHtml,
+  }
+}
+
 export const useUserAuthStore = defineStore('user-auth', () => {
   const user = ref<UserProfile | null>(null)
   const loading = ref(false)
@@ -65,6 +92,20 @@ export const useUserAuthStore = defineStore('user-auth', () => {
 
   const isAuthenticated = computed(() => Boolean(user.value))
   const displayName = computed(() => user.value?.displayName || user.value?.email || '访客用户')
+
+  const upsertArticleInList = (article: UserArticle) => {
+    const index = articles.value.findIndex((item) => item.id === article.id)
+    if (index >= 0) {
+      articles.value.splice(index, 1, article)
+    } else {
+      articles.value.unshift(article)
+    }
+  }
+
+  const removeArticleFromList = (id: number | string) => {
+    const numericId = Number(id)
+    articles.value = articles.value.filter((article) => article.id !== numericId)
+  }
 
   const setError = (error: unknown, fallback?: string) => {
     lastError.value = extractUserApiError(error, fallback)
@@ -264,21 +305,88 @@ export const useUserAuthStore = defineStore('user-auth', () => {
   }
 
   const saveUserArticle = async (payload: UserArticleUpsertPayload) => {
-    const title = payload.title.trim()
-    const contentHtml = payload.contentHtml.trim()
-    if (!title) throw new Error('请输入文章标题。')
-    if (title.length > 255) throw new Error('标题不能超过 255 个字符。')
-    if (!contentHtml) throw new Error('请输入文章正文。')
-    if (payload.slug && payload.slug.length > 255) throw new Error('Slug 不能超过 255 个字符。')
-    if (payload.summary && payload.summary.length > 600) throw new Error('摘要不能超过 600 个字符。')
-    if (payload.coverImage && payload.coverImage.length > 500) throw new Error('封面地址不能超过 500 个字符。')
+    const normalized = normalizeArticleUpsertPayload(payload)
 
     submitting.value = true
     lastError.value = ''
     try {
-      return await createUserArticle({ ...payload, title, contentHtml })
+      const article = await createUserArticle(normalized)
+      upsertArticleInList(article)
+      return article
     } catch (error) {
       throw new Error(setError(error, '草稿保存失败。'))
+    } finally {
+      submitting.value = false
+    }
+  }
+
+  const loadUserArticle = async (id: number | string) => {
+    articlesLoading.value = true
+    lastError.value = ''
+    try {
+      const article = await fetchUserArticleRequest(id)
+      upsertArticleInList(article)
+      return article
+    } catch (error) {
+      throw new Error(setError(error, '文章加载失败。'))
+    } finally {
+      articlesLoading.value = false
+    }
+  }
+
+  const updateExistingUserArticle = async (id: number | string, payload: UserArticleUpsertPayload) => {
+    const normalized = normalizeArticleUpsertPayload(payload)
+
+    submitting.value = true
+    lastError.value = ''
+    try {
+      const article = await updateUserArticleRequest(id, normalized)
+      upsertArticleInList(article)
+      return article
+    } catch (error) {
+      throw new Error(setError(error, '草稿保存失败。'))
+    } finally {
+      submitting.value = false
+    }
+  }
+
+  const submitExistingUserArticleForReview = async (id: number | string) => {
+    submitting.value = true
+    lastError.value = ''
+    try {
+      const article = await submitUserArticleForReviewRequest(id)
+      upsertArticleInList(article)
+      return article
+    } catch (error) {
+      throw new Error(setError(error, '提交审核失败。'))
+    } finally {
+      submitting.value = false
+    }
+  }
+
+  const withdrawExistingUserArticle = async (id: number | string) => {
+    submitting.value = true
+    lastError.value = ''
+    try {
+      const article = await withdrawUserArticleRequest(id)
+      upsertArticleInList(article)
+      return article
+    } catch (error) {
+      throw new Error(setError(error, '撤回投稿失败。'))
+    } finally {
+      submitting.value = false
+    }
+  }
+
+  const deleteExistingUserArticle = async (id: number | string) => {
+    submitting.value = true
+    lastError.value = ''
+    try {
+      const article = await deleteUserArticleRequest(id)
+      removeArticleFromList(id)
+      return article
+    } catch (error) {
+      throw new Error(setError(error, '删除草稿失败。'))
     } finally {
       submitting.value = false
     }
@@ -308,5 +416,10 @@ export const useUserAuthStore = defineStore('user-auth', () => {
     resetPassword,
     fetchUserArticles: loadUserArticles,
     createUserArticle: saveUserArticle,
+    fetchUserArticle: loadUserArticle,
+    updateUserArticle: updateExistingUserArticle,
+    submitUserArticleForReview: submitExistingUserArticleForReview,
+    withdrawUserArticle: withdrawExistingUserArticle,
+    deleteUserArticle: deleteExistingUserArticle,
   }
 })

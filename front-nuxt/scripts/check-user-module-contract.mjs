@@ -88,6 +88,19 @@ for (const marker of [
 }
 
 for (const marker of [
+  'export const fetchUserArticle =',
+  'export const updateUserArticle =',
+  'export const submitUserArticleForReview =',
+  'export const withdrawUserArticle =',
+  'export const deleteUserArticle =',
+  '`/user/articles/${id}`',
+  '`/user/articles/${id}/submit-review`',
+  '`/user/articles/${id}/withdraw`',
+]) {
+  assertIncludes(apiPath, api, marker, `user article API wrappers must include ${marker}`)
+}
+
+for (const marker of [
   "credentials: 'include'",
   "useRequestHeaders(['cookie'])",
   'buildUserRedirectTarget',
@@ -132,6 +145,11 @@ for (const marker of [
   'changePassword',
   'fetchUserArticles',
   'createUserArticle',
+  'fetchUserArticle',
+  'updateUserArticle',
+  'submitUserArticleForReview',
+  'withdrawUserArticle',
+  'deleteUserArticle',
 ]) {
   assertIncludes(storePath, store, marker, `user auth store must expose ${marker}`)
 }
@@ -192,12 +210,17 @@ const pageContracts = [
   },
   {
     path: 'pages/user/articles/index.vue',
-    required: ['definePageMeta({ requiresUserAuth: true })', 'authStore.fetchUserArticles', 'articlesLoading', 'user-empty-state', 'formatReviewStatus'],
+    required: ['definePageMeta({ requiresUserAuth: true })', 'authStore.fetchUserArticles', 'articlesLoading', 'user-empty-state', 'formatReviewStatus', 'articleActionLabel', 'reviewComment', '编辑', '查看状态', '查看公开页'],
     forbidden: ['近战装备路线补充', '克眼前准备清单'],
   },
   {
     path: 'pages/user/articles/new.vue',
     required: ['definePageMeta({ requiresUserAuth: true })', '@submit.prevent="submit"', 'authStore.createUserArticle', 'contentHtml', 'type="submit"', 'user-form-error'],
+    forbidden: ['保存占位', '正文编辑区占位'],
+  },
+  {
+    path: 'pages/user/articles/[id].vue',
+    required: ['definePageMeta({ requiresUserAuth: true })', 'authStore.fetchUserArticle', 'authStore.updateUserArticle', 'authStore.submitUserArticleForReview', 'authStore.withdrawUserArticle', 'authStore.deleteUserArticle', 'window.confirm', 'contentHtml', 'user-form-success', 'user-form-error', '保存草稿', '提交审核', '撤回投稿', '删除草稿'],
     forbidden: ['保存占位', '正文编辑区占位'],
   },
 ]

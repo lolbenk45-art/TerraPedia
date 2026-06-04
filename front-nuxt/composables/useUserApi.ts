@@ -208,6 +208,21 @@ export const fetchUserArticles = async (page = 1, limit = 10, keyword = ''): Pro
 export const createUserArticle = async (payload: UserArticleUpsertPayload): Promise<UserArticle> =>
   normalizeUserArticle(unwrapApiResponse(await userFetch<UserArticle>('/user/articles', { method: 'POST', body: toArticlePayload(payload) })))
 
+export const fetchUserArticle = async (id: number | string): Promise<UserArticle> =>
+  normalizeUserArticle(unwrapApiResponse(await userFetch<UserArticle>(`/user/articles/${id}`)))
+
+export const updateUserArticle = async (id: number | string, payload: UserArticleUpsertPayload): Promise<UserArticle> =>
+  normalizeUserArticle(unwrapApiResponse(await userFetch<UserArticle>(`/user/articles/${id}`, { method: 'PUT', body: toArticlePayload(payload) })))
+
+export const submitUserArticleForReview = async (id: number | string): Promise<UserArticle> =>
+  normalizeUserArticle(unwrapApiResponse(await userFetch<UserArticle>(`/user/articles/${id}/submit-review`, { method: 'POST' })))
+
+export const withdrawUserArticle = async (id: number | string): Promise<UserArticle> =>
+  normalizeUserArticle(unwrapApiResponse(await userFetch<UserArticle>(`/user/articles/${id}/withdraw`, { method: 'POST' })))
+
+export const deleteUserArticle = async (id: number | string): Promise<UserArticle> =>
+  normalizeUserArticle(unwrapApiResponse(await userFetch<UserArticle>(`/user/articles/${id}`, { method: 'DELETE' })))
+
 export const fetchUserFavorites = async (params: { type?: UserFavoriteTypeFilter, page?: number, limit?: number } = {}): Promise<UserFavoriteListResponse> => {
   const page = params.page ?? 1
   const limit = params.limit ?? 20
