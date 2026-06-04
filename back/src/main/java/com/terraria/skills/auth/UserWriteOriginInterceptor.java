@@ -55,6 +55,7 @@ public class UserWriteOriginInterceptor implements HandlerInterceptor {
             || "/user-auth/logout".equals(path)
             || "/user-auth/refresh".equals(path)
             || path.startsWith("/user/articles")
+            || path.startsWith("/user/history")
             || path.startsWith("/user/favorites");
     }
 

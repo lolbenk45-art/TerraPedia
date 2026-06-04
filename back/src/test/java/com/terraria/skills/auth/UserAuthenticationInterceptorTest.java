@@ -52,6 +52,24 @@ class UserAuthenticationInterceptorTest {
     }
 
     @Test
+    void shouldRejectHistoryWithoutToken() throws Exception {
+        for (String[] route : new String[][] {
+            {"GET", "/user/history"},
+            {"POST", "/user/history/ARTICLE/77"},
+            {"DELETE", "/user/history/ITEM/88"}
+        }) {
+            MockHttpServletRequest request = new MockHttpServletRequest(route[0], route[1]);
+            request.setServletPath(route[1]);
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            boolean allowed = interceptor.preHandle(request, response, new Object());
+
+            assertFalse(allowed);
+            assertEquals(401, response.getStatus());
+        }
+    }
+
+    @Test
     void shouldAllowPublicUserAuthRegistrationWithoutToken() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/user-auth/register");
         request.setServletPath("/user-auth/register");

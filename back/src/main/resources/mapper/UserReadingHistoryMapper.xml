@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.terraria.skills.mapper.UserReadingHistoryMapper">
+
+    <select id="selectByUserAndTargetIncludeDeleted" resultType="com.terraria.skills.entity.UserReadingHistory">
+        SELECT id, user_id AS userId, target_type AS targetType, target_id AS targetId,
+               view_count AS viewCount, last_viewed_at AS lastViewedAt,
+               deleted, created_at AS createdAt, updated_at AS updatedAt
+        FROM user_reading_history
+        WHERE user_id = #{userId}
+          AND target_type = #{targetType}
+          AND target_id = #{targetId}
+        LIMIT 1
+    </select>
+
+    <update id="reactivateAndIncrement">
+        UPDATE user_reading_history
+        SET deleted = 0,
+            view_count = view_count + 1,
+            last_viewed_at = NOW(),
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="incrementExisting">
+        UPDATE user_reading_history
+        SET view_count = view_count + 1,
+            last_viewed_at = NOW(),
+            updated_at = NOW()
+        WHERE id = #{id}
+          AND deleted = 0
+    </update>
+
+    <update id="softDelete">
+        UPDATE user_reading_history
+        SET deleted = 1,
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND target_type = #{targetType}
+          AND target_id = #{targetId}
+          AND deleted = 0
+    </update>
+
+    <select id="countActiveByUserAndType" resultType="long">
+        SELECT COUNT(*)
+        FROM user_reading_history urh
+        LEFT JOIN items i ON urh.target_type = 'ITEM' AND i.id = urh.target_id
+        LEFT JOIN articles a ON urh.target_type = 'ARTICLE' AND a.id = urh.target_id
+        WHERE urh.user_id = #{userId}
+          AND urh.target_type = #{targetType}
+          AND urh.deleted = 0
+          AND (
+            (urh.target_type = 'ITEM' AND i.deleted = 0 AND (i.status IS NULL OR i.status = 1))
+            OR
+            (urh.target_type = 'ARTICLE' AND a.deleted = 0 AND a.status = 'PUBLISHED' AND NULLIF(TRIM(a.slug), '') IS NOT NULL)
+          )
+    </select>
+
+    <select id="countActiveByUser" resultType="long">
+        SELECT COALESCE(SUM(row_count), 0)
+        FROM (
+            SELECT COUNT(*) AS row_count
+            FROM user_reading_history urh
+            INNER JOIN items i ON i.id = urh.target_id AND i.deleted = 0 AND (i.status IS NULL OR i.status = 1)
+            WHERE urh.user_id = #{userId}
+              AND urh.target_type = 'ITEM'
+              AND urh.deleted = 0
+            UNION ALL
+            SELECT COUNT(*) AS row_count
+            FROM user_reading_history urh
+            INNER JOIN articles a ON a.id = urh.target_id AND a.deleted = 0 AND a.status = 'PUBLISHED' AND NULLIF(TRIM(a.slug), '') IS NOT NULL
+            WHERE urh.user_id = #{userId}
+              AND urh.target_type = 'ARTICLE'
+              AND urh.deleted = 0
+        ) history_counts
+    </select>
+
+    <select id="selectActiveHistoryPage" resultType="com.terraria.skills.dto.UserReadingHistoryDTO">
+        SELECT
+            urh.id AS id,
+            urh.target_type AS targetType,
+            urh.target_id AS targetId,
+            CASE
+                WHEN urh.target_type = 'ITEM' THEN COALESCE(NULLIF(i.name_zh, ''), i.name, i.internal_name)
+                ELSE a.title
+            END AS title,
+            CASE
+                WHEN urh.target_type = 'ITEM' THEN (
+                    SELECT ii.cached_url
+                    FROM item_images ii
+                    WHERE ii.item_id = i.id
+                      AND ii.deleted = 0
+                      AND ii.status = 1
+                      AND NULLIF(TRIM(ii.cached_url), '') IS NOT NULL
+                      AND LOWER(TRIM(ii.cached_url)) LIKE '%/terrapedia-images/%'
+                    ORDER BY CASE WHEN ii.is_primary = 1 THEN 0 ELSE 1 END, ii.sort_order ASC, ii.id ASC
+                    LIMIT 1
+                )
+                WHEN LOWER(TRIM(a.cover_image)) LIKE 'http%' AND LOWER(TRIM(a.cover_image)) NOT LIKE '%token=%' THEN a.cover_image
+                ELSE NULL
+            END AS imageUrl,
+            CASE
+                WHEN urh.target_type = 'ITEM' THEN CONCAT('/items/', i.id)
+                ELSE CONCAT('/articles/', a.slug)
+            END AS url,
+            urh.view_count AS viewCount,
+            urh.last_viewed_at AS lastViewedAt
+        FROM user_reading_history urh
+        LEFT JOIN items i ON urh.target_type = 'ITEM' AND i.id = urh.target_id
+        LEFT JOIN articles a ON urh.target_type = 'ARTICLE' AND a.id = urh.target_id
+        WHERE urh.user_id = #{userId}
+          AND urh.target_type = #{targetType}
+          AND urh.deleted = 0
+          AND (
+            (urh.target_type = 'ITEM' AND i.deleted = 0 AND (i.status IS NULL OR i.status = 1))
+            OR
+            (urh.target_type = 'ARTICLE' AND a.deleted = 0 AND a.status = 'PUBLISHED' AND NULLIF(TRIM(a.slug), '') IS NOT NULL)
+          )
+        ORDER BY urh.last_viewed_at DESC, urh.id DESC
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+
+    <select id="selectActiveHistoryPageAll" resultType="com.terraria.skills.dto.UserReadingHistoryDTO">
+        SELECT *
+        FROM (
+            SELECT
+                urh.id AS id,
+                'ITEM' AS targetType,
+                i.id AS targetId,
+                COALESCE(NULLIF(i.name_zh, ''), i.name, i.internal_name) AS title,
+                (
+                    SELECT ii.cached_url
+                    FROM item_images ii
+                    WHERE ii.item_id = i.id
+                      AND ii.deleted = 0
+                      AND ii.status = 1
+                      AND NULLIF(TRIM(ii.cached_url), '') IS NOT NULL
+                      AND LOWER(TRIM(ii.cached_url)) LIKE '%/terrapedia-images/%'
+                    ORDER BY CASE WHEN ii.is_primary = 1 THEN 0 ELSE 1 END, ii.sort_order ASC, ii.id ASC
+                    LIMIT 1
+                ) AS imageUrl,
+                CONCAT('/items/', i.id) AS url,
+                urh.view_count AS viewCount,
+                urh.last_viewed_at AS lastViewedAt
+            FROM user_reading_history urh
+            INNER JOIN items i ON i.id = urh.target_id AND i.deleted = 0 AND (i.status IS NULL OR i.status = 1)
+            WHERE urh.user_id = #{userId}
+              AND urh.target_type = 'ITEM'
+              AND urh.deleted = 0
+            UNION ALL
+            SELECT
+                urh.id AS id,
+                'ARTICLE' AS targetType,
+                a.id AS targetId,
+                a.title AS title,
+                CASE
+                    WHEN LOWER(TRIM(a.cover_image)) LIKE 'http%' AND LOWER(TRIM(a.cover_image)) NOT LIKE '%token=%' THEN a.cover_image
+                    ELSE NULL
+                END AS imageUrl,
+                CONCAT('/articles/', a.slug) AS url,
+                urh.view_count AS viewCount,
+                urh.last_viewed_at AS lastViewedAt
+            FROM user_reading_history urh
+            INNER JOIN articles a ON a.id = urh.target_id AND a.deleted = 0 AND a.status = 'PUBLISHED' AND NULLIF(TRIM(a.slug), '') IS NOT NULL
+            WHERE urh.user_id = #{userId}
+              AND urh.target_type = 'ARTICLE'
+              AND urh.deleted = 0
+        ) history_rows
+        ORDER BY lastViewedAt DESC, id DESC
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+
+</mapper>

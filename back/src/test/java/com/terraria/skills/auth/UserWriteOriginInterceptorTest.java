@@ -39,6 +39,32 @@ class UserWriteOriginInterceptorTest {
     }
 
     @Test
+    void shouldBlockCookieAuthenticatedHistoryWriteFromUnknownOrigin() throws Exception {
+        MockHttpServletRequest request = userWriteRequest("POST", "/user/history/ARTICLE/77");
+        request.addHeader(HttpHeaders.ORIGIN, "https://evil.example");
+        request.setCookies(new Cookie("tp_user_access", "access-token"));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        boolean allowed = interceptor.preHandle(request, response, new Object());
+
+        assertFalse(allowed);
+        assertEquals(403, response.getStatus());
+    }
+
+    @Test
+    void shouldProtectCookieAuthenticatedHistoryDeleteFromUnknownOrigin() throws Exception {
+        MockHttpServletRequest request = userWriteRequest("DELETE", "/user/history/ITEM/88");
+        request.addHeader(HttpHeaders.ORIGIN, "https://evil.example");
+        request.setCookies(new Cookie("tp_user_access", "access-token"));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        boolean allowed = interceptor.preHandle(request, response, new Object());
+
+        assertFalse(allowed);
+        assertEquals(403, response.getStatus());
+    }
+
+    @Test
     void shouldAllowCookieAuthenticatedUserWriteFromLocalhostPreviewOrigin() throws Exception {
         MockHttpServletRequest request = userWriteRequest("PATCH", "/user-auth/profile");
         request.addHeader(HttpHeaders.ORIGIN, "http://localhost:5177");
