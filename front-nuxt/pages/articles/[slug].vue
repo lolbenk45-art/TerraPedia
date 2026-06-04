@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { UserArticle } from '~/types/public-api'
+import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
 import { unwrapApiResponse, usePublicApiFetch } from '~/composables/usePublicApi'
 
 const route = useRoute()
@@ -25,20 +26,205 @@ const article = computed<UserArticle | null>(() => {
   return nextArticle?.id ? nextArticle : null
 })
 
-const articleBodyText = computed(() => {
-  const raw = String(article.value?.contentHtml ?? article.value?.contentMarkdown ?? '').trim()
-  if (!raw) return '这篇文章暂时没有正文内容。'
-  return raw
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n\n')
-    .replace(/<[^>]+>/g, '')
+const escapeArticleHtml = (value: string) => value
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;')
+
+const sanitizeArticleUrl = (value: string, type: 'href' | 'src') => {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  if (type === 'src') {
+    const resolved = resolvePreviewImageUrl(trimmed)
+    if (/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(resolved)) return resolved
+    if (/^(https?:|\/)/i.test(resolved) && !resolved.startsWith('//')) return resolved
+    return ''
+  }
+  if (/^(https?:|mailto:|tel:|\/|#)/i.test(trimmed)) return trimmed
+  return ''
+}
+
+const sanitizeArticleAttributes = (tagName: string, rawAttributes: string) => {
+  const allowedAttributes: Record<string, string[]> = {
+    a: ['href', 'title'],
+    img: ['src', 'alt', 'title'],
+  }
+  const allowed = allowedAttributes[tagName] ?? []
+  if (!allowed.length) return ''
+
+  const attributes: string[] = []
+  const attributePattern = /([:@\w-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g
+  let match: RegExpExecArray | null
+  while ((match = attributePattern.exec(rawAttributes)) !== null) {
+    const rawName = match[1]
+    if (!rawName) continue
+    const name = rawName.toLowerCase()
+    if (!allowed.includes(name)) continue
+    const rawValue = match[2] ?? match[3] ?? match[4] ?? ''
+    const safeValue = name === 'href'
+      ? sanitizeArticleUrl(rawValue, 'href')
+      : name === 'src'
+        ? sanitizeArticleUrl(rawValue, 'src')
+        : rawValue.trim()
+    if (!safeValue && (name === 'href' || name === 'src')) continue
+    attributes.push(`${name}="${escapeArticleHtml(safeValue)}"`)
+  }
+
+  if (tagName === 'a' && attributes.some((attribute) => attribute.startsWith('href='))) {
+    attributes.push('rel="noopener noreferrer"')
+  }
+  if (tagName === 'img' && attributes.some((attribute) => attribute.startsWith('src='))) {
+    attributes.push('loading="lazy"', 'decoding="async"')
+  }
+  return attributes.length ? ` ${attributes.join(' ')}` : ''
+}
+
+const renderInlineArticleText = (value: string) => escapeArticleHtml(value.trim())
+  .replace(/`([^`]+)`/g, '<code>$1</code>')
+  .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+  .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+
+const renderPlainArticleText = (value: string) => {
+  const lines = value.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').split('\n')
+  const blocks: string[] = []
+  let paragraph: string[] = []
+  let listType: 'ul' | 'ol' | '' = ''
+  let listItems: string[] = []
+
+  const flushParagraph = () => {
+    if (!paragraph.length) return
+    blocks.push(`<p>${paragraph.map(renderInlineArticleText).join('<br>')}</p>`)
+    paragraph = []
+  }
+
+  const flushList = () => {
+    if (!listType || !listItems.length) return
+    blocks.push(`<${listType}>${listItems.map((item) => `<li>${renderInlineArticleText(item)}</li>`).join('')}</${listType}>`)
+    listType = ''
+    listItems = []
+  }
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed) {
+      flushParagraph()
+      flushList()
+      continue
+    }
+
+    const heading = trimmed.match(/^(#{1,4})\s+(.+)$/)
+    if (heading?.[1] && heading[2]) {
+      flushParagraph()
+      flushList()
+      const level = Math.min(4, Math.max(2, heading[1].length + 1))
+      blocks.push(`<h${level}>${renderInlineArticleText(heading[2])}</h${level}>`)
+      continue
+    }
+
+    const unordered = trimmed.match(/^[-*]\s+(.+)$/)
+    if (unordered?.[1]) {
+      flushParagraph()
+      if (listType && listType !== 'ul') flushList()
+      listType = 'ul'
+      listItems.push(unordered[1])
+      continue
+    }
+
+    const ordered = trimmed.match(/^\d+[.)]\s+(.+)$/)
+    if (ordered?.[1]) {
+      flushParagraph()
+      if (listType && listType !== 'ol') flushList()
+      listType = 'ol'
+      listItems.push(ordered[1])
+      continue
+    }
+
+    const quote = trimmed.match(/^>\s+(.+)$/)
+    if (quote?.[1]) {
+      flushParagraph()
+      flushList()
+      blocks.push(`<blockquote><p>${renderInlineArticleText(quote[1])}</p></blockquote>`)
+      continue
+    }
+
+    flushList()
+    paragraph.push(trimmed)
+  }
+
+  flushParagraph()
+  flushList()
+
+  return blocks.join('\n') || '<p>这篇文章暂时没有正文内容。</p>'
+}
+
+const sanitizeArticleHtml = (value: string) => {
+  const source = value.trim()
+  if (!source) return '<p>这篇文章暂时没有正文内容。</p>'
+  if (!/<\s*\/?\s*[a-zA-Z][\w:-]*(?:\s|>|\/)/.test(source)) return renderPlainArticleText(source)
+  const stripped = source
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<\s*(script|style|template|iframe|object|embed|form|svg|math)\b[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+  const allowedTags = new Set(['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'code', 'pre', 'blockquote', 'ul', 'ol', 'li', 'h2', 'h3', 'h4', 'a', 'img'])
+  const voidTags = new Set(['br', 'img'])
+  let result = ''
+  let cursor = 0
+  const tagPattern = /<\/?([a-zA-Z][\w:-]*)([^>]*)>/g
+  let match: RegExpExecArray | null
+  while ((match = tagPattern.exec(stripped)) !== null) {
+    result += escapeArticleHtml(stripped.slice(cursor, match.index))
+    const rawTagName = match[1]
+    if (!rawTagName) {
+      cursor = tagPattern.lastIndex
+      continue
+    }
+    const tagName = rawTagName.toLowerCase()
+    const rawTag = match[0]
+    if (allowedTags.has(tagName)) {
+      const isClosing = /^<\s*\//.test(rawTag)
+      if (isClosing) {
+        if (!voidTags.has(tagName)) result += `</${tagName}>`
+      } else {
+        const attributes = sanitizeArticleAttributes(tagName, match[2] ?? '')
+        result += voidTags.has(tagName) ? `<${tagName}${attributes}>` : `<${tagName}${attributes}>`
+      }
+    }
+    cursor = tagPattern.lastIndex
+  }
+  result += escapeArticleHtml(stripped.slice(cursor))
+
+  const normalized = result
     .replace(/\n{3,}/g, '\n\n')
     .trim()
+  return normalized || '<p>这篇文章暂时没有正文内容。</p>'
+}
+
+const sanitizedArticleHtml = computed(() => {
+  const raw = String(article.value?.contentHtml ?? article.value?.contentMarkdown ?? '').trim()
+  return sanitizeArticleHtml(raw)
 })
 
-const publishedDate = computed(() => article.value?.publishedAt || article.value?.updatedAt || article.value?.createdAt || '发布时间未记录')
+const formatArticleDate = (raw?: string | null) => {
+  if (!raw) return '发布时间未记录'
+  const date = new Date(raw)
+  if (Number.isNaN(date.getTime())) return raw
+  return new Intl.DateTimeFormat('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date)
+}
+
+const publishedDate = computed(() => formatArticleDate(article.value?.publishedAt || article.value?.updatedAt || article.value?.createdAt))
 const authorLabel = computed(() => article.value?.authorDisplayName || 'TerraPedia 用户')
 const authorProfilePath = computed(() => article.value?.authorId ? `/users/${article.value.authorId}` : '')
+const resolveArticleCoverUrl = (article: UserArticle | null) => article ? resolvePreviewImageUrl(article.coverImage || '') : ''
+const articleCoverUrl = computed(() => resolveArticleCoverUrl(article.value))
+const articleCoverFallback = computed(() => {
+  const source = String(article.value?.title || article.value?.slug || 'TP').trim()
+  return source.slice(0, 2).toUpperCase() || 'TP'
+})
 const articleFavoriteStatus = computed(() => article.value?.id ? favoritesStore.getStatus('ARTICLE', article.value.id) : null)
 const articleIsFavorite = computed(() => Boolean(articleFavoriteStatus.value?.favorite))
 const articleLoading = computed(() => !articleClientReady.value || (articlePending.value && !article.value))
@@ -126,6 +312,18 @@ onMounted(() => {
         <span class="eyebrow">资料手札 · {{ article.slug }}</span>
         <h1>{{ article.title }}</h1>
         <p>{{ article.summary || '这篇文章暂无摘要。' }}</p>
+        <div class="article-detail-cover-frame">
+          <img
+            v-if="articleCoverUrl"
+            class="article-detail-cover"
+            :src="articleCoverUrl"
+            :alt="article.title"
+            loading="eager"
+          />
+          <div v-else class="article-detail-cover article-detail-cover-fallback" aria-hidden="true">
+            <span>{{ articleCoverFallback }}</span>
+          </div>
+        </div>
         <div class="article-meta">
           <a v-if="article.authorId" class="article-author-link" :href="`/users/${article.authorId}`">{{ authorLabel }}</a>
           <span v-else>{{ authorLabel }}</span>
@@ -150,7 +348,7 @@ onMounted(() => {
       <div class="article-detail-grid">
         <section class="article-body-panel">
           <h2>正文</h2>
-          <p class="article-content-text">{{ articleBodyText }}</p>
+          <div class="article-content-text" v-html="sanitizedArticleHtml"></div>
         </section>
 
         <aside class="article-route-panel">
@@ -190,7 +388,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   min-width: 118px;
-  min-height: 38px;
+  min-height: 44px;
   border: 1px solid color-mix(in srgb, var(--accent-gold) 36%, var(--index-line));
   border-radius: 999px;
   background: var(--index-surface);
@@ -217,8 +415,142 @@ onMounted(() => {
   font-weight: 800;
 }
 
+.article-detail-cover-frame {
+  width: min(100%, 760px);
+  margin-top: 22px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent-gold) 22%, var(--index-line));
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent-gold) 14%, transparent), transparent 54%),
+    var(--index-surface);
+  aspect-ratio: 16 / 7;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
+}
+
+.article-detail-cover {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.article-detail-cover-fallback {
+  display: grid;
+  place-items: center;
+  color: color-mix(in srgb, var(--accent-gold) 86%, #ffffff);
+  font-size: clamp(48px, 12vw, 112px);
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.article-detail-hero h1 {
+  overflow-wrap: anywhere;
+}
+
+.article-detail-hero p {
+  overflow-wrap: anywhere;
+}
+
+.article-body-panel {
+  min-width: 0;
+}
+
 .article-content-text {
-  white-space: pre-wrap;
+  max-width: 76ch;
+  margin: 0;
+  color: var(--text-main);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.82;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.article-content-text :deep(p),
+.article-content-text :deep(ul),
+.article-content-text :deep(ol),
+.article-content-text :deep(blockquote),
+.article-content-text :deep(pre) {
+  margin: 0 0 18px;
+}
+
+.article-content-text :deep(h2),
+.article-content-text :deep(h3),
+.article-content-text :deep(h4) {
+  margin: 30px 0 12px;
+  color: var(--text-strong);
+  font-family: var(--font-display);
+  line-height: 1.28;
+  overflow-wrap: anywhere;
+}
+
+.article-content-text :deep(h2) {
+  font-size: 24px;
+}
+
+.article-content-text :deep(h3) {
+  font-size: 20px;
+}
+
+.article-content-text :deep(h4) {
+  font-size: 17px;
+}
+
+.article-content-text :deep(a) {
+  color: #ffd765;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.article-content-text :deep(ul),
+.article-content-text :deep(ol) {
+  padding-left: 1.4em;
+}
+
+.article-content-text :deep(li + li) {
+  margin-top: 6px;
+}
+
+.article-content-text :deep(blockquote) {
+  padding: 2px 0 2px 16px;
+  border-left: 3px solid color-mix(in srgb, var(--accent-gold) 55%, var(--index-line));
+  color: var(--text-muted);
+}
+
+.article-content-text :deep(pre),
+.article-content-text :deep(code) {
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--index-surface) 78%, #030712);
+}
+
+.article-content-text :deep(pre) {
+  max-width: 100%;
+  padding: 14px;
+  overflow-x: auto;
+}
+
+.article-content-text :deep(code) {
+  padding: 2px 5px;
+  font-size: 0.92em;
+}
+
+.article-content-text :deep(pre code) {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.article-content-text :deep(img) {
+  display: block;
+  width: min(100%, 720px);
+  height: auto;
+  margin: 20px 0;
+  border: 1px solid var(--index-line);
+  border-radius: 12px;
 }
 
 .article-author-link,
@@ -236,5 +568,19 @@ onMounted(() => {
 .article-return-link {
   width: fit-content;
   margin-top: 18px;
+}
+
+@media (max-width: 720px) {
+  .article-detail-cover-frame {
+    margin-top: 18px;
+    border-radius: 14px;
+    aspect-ratio: 4 / 3;
+  }
+
+  .article-content-text {
+    max-width: none;
+    font-size: 15.5px;
+    line-height: 1.78;
+  }
 }
 </style>
