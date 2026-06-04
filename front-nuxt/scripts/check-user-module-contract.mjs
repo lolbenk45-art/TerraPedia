@@ -342,6 +342,13 @@ const pageContracts = [
       '`/articles/${article.slug}`',
       'article.title',
       'article.summary',
+      'resolvePreviewImageUrl',
+      'articleCoverUrl',
+      'articleCoverFallback',
+      'article.coverImage',
+      'public-article-cover',
+      'public-article-cover-fallback',
+      'loading="lazy"',
     ],
     forbidden: [
       '公开文章暂未开放',
@@ -352,7 +359,7 @@ const pageContracts = [
   },
   {
     path: 'pages/articles/[slug].vue',
-    required: ['usePublicApiFetch<UserArticle>', '/articles/slug/', 'useUserFavoritesStore', 'useUserHistoryStore', "loadStatuses('ARTICLE'", 'toggleArticleFavorite', 'recordArticleHistoryOnce', 'recordedArticleHistoryIds', 'import.meta.client', "historyStore.record('ARTICLE'", '收藏文章', '已收藏', 'article.id', '/users/${article.authorId}', 'authorProfilePath'],
+    required: ['usePublicApiFetch<UserArticle>', '/articles/slug/', 'useUserFavoritesStore', 'useUserHistoryStore', "loadStatuses('ARTICLE'", 'toggleArticleFavorite', 'recordArticleHistoryOnce', 'recordedArticleHistoryIds', 'import.meta.client', "historyStore.record('ARTICLE'", '收藏文章', '已收藏', 'article.id', '/users/${article.authorId}', 'authorProfilePath', 'resolvePreviewImageUrl', 'articleCoverUrl', 'articleCoverFallback', 'article.coverImage', 'article-detail-cover', 'article-detail-cover-fallback', 'sanitizeArticleHtml', 'renderPlainArticleText', 'sanitizedArticleHtml'],
     forbidden: ['公开文章暂未开放', '真实文章待接入', '文章未载入', '没有真实发布数据'],
   },
   {
@@ -379,7 +386,10 @@ assertPattern('pages/articles/[slug].vue', publicArticleDetail, /const recordArt
 assertPattern('pages/articles/[slug].vue', publicArticleDetail, /watch\(\(\) => article\.value\?\.id,[\s\S]*recordArticleHistoryOnce[\s\S]*immediate: true/, 'article detail history recording must be watch-driven with immediate once guard')
 assertPattern('pages/articles/[slug].vue', publicArticleDetail, /v-if="article\.authorId"[\s\S]*:href="`\/users\/\$\{article\.authorId\}`"/, 'article detail author profile link must be conditional on article.authorId')
 assertPattern('pages/articles/[slug].vue', publicArticleDetail, /v-if="authorProfilePath"[\s\S]*:href="authorProfilePath"/, 'article detail side author link must be conditional on authorProfilePath')
-assertNotPattern('pages/articles/[slug].vue', publicArticleDetail, /v-html=/, 'article detail must not render user article HTML directly without sanitizer')
+assertPattern('pages/articles/[slug].vue', publicArticleDetail, /v-html="sanitizedArticleHtml"/, 'article detail HTML rendering must bind only sanitizedArticleHtml')
+assertNotPattern('pages/articles/[slug].vue', publicArticleDetail, /v-html="article\./, 'article detail must not render raw article HTML fields directly')
+assertIncludes('pages/articles/[slug].vue', publicArticleDetail, 'if (/^data:image\\/(png|jpe?g|webp|gif);base64,/i.test(resolved)) return resolved', 'article detail sanitizer must restrict inline image data URLs to common raster formats')
+assertIncludes('pages/articles/[slug].vue', publicArticleDetail, "if (/^(https?:|\\/)/i.test(resolved) && !resolved.startsWith('//')) return resolved", 'article detail sanitizer must restrict image src URLs to http(s) or root-relative paths')
 
 const publicItemDetail = assertFile('pages/items/[id].vue')
 assertIncludes('pages/items/[id].vue', publicItemDetail, 'useUserHistoryStore', 'item detail must use user history store')
