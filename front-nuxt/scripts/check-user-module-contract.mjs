@@ -228,6 +228,11 @@ const pageContracts = [
     required: ['usePublicApiFetch<UserArticle>', '/articles/slug/', 'useUserFavoritesStore', "loadStatuses('ARTICLE'", 'toggleArticleFavorite', '收藏文章', '已收藏', 'article.id'],
     forbidden: ['公开文章暂未开放', '真实文章待接入', '文章未载入', '没有真实发布数据'],
   },
+  {
+    path: 'pages/articles/index.vue',
+    required: ['usePublicApiFetch<UserArticle[]>', "'/articles'", 'articlePagination', 'articleError', 'articleLoading', '`/articles/${article.slug}`', 'article.title', 'article.summary'],
+    forbidden: ['公开文章暂未开放', '真实文章待接入', '后续接入真实内容', '等公开文章来源和发布状态接入后'],
+  },
 ]
 
 for (const contract of pageContracts) {
