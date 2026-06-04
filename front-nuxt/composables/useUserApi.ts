@@ -144,13 +144,23 @@ const normalizeFavoriteStatuses = (
   return statuses
 }
 
+const sensitiveUserErrorPattern = /(smtp|redis|auth:user:refresh|password_hash|passwordHash|objectKey|avatarObjectKey|tp_user_|bearer|token|cookie|secret|jdbc|mysql|minio|stack trace|exception|localhost:\d+)/i
+
+export const sanitizeUserApiError = (message: unknown, fallback = '请求失败，请稍后重试。') => {
+  const normalized = String(message ?? '').trim()
+  if (!normalized) return fallback
+  if (sensitiveUserErrorPattern.test(normalized)) return fallback
+  if (normalized.length > 140) return fallback
+  return normalized
+}
+
 export const extractUserApiError = (error: unknown, fallback = '请求失败，请稍后重试。') => {
   if (error && typeof error === 'object') {
     const data = (error as { data?: { message?: string, error?: string } }).data
-    if (data?.message) return data.message
-    if (data?.error) return data.error
+    if (data?.message) return sanitizeUserApiError(data.message, fallback)
+    if (data?.error) return sanitizeUserApiError(data.error, fallback)
     const message = (error as { message?: string }).message
-    if (message) return message
+    if (message) return sanitizeUserApiError(message, fallback)
   }
   return fallback
 }

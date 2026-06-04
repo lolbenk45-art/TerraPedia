@@ -91,6 +91,17 @@ for (const marker of [
 }
 
 for (const marker of [
+  'sensitiveUserErrorPattern',
+  'sanitizeUserApiError',
+  'auth:user:refresh',
+  'password_hash',
+  'objectKey',
+  'tp_user_',
+]) {
+  assertIncludes(apiPath, api, marker, `user API error handling must guard sensitive diagnostics with ${marker}`)
+}
+
+for (const marker of [
   'export const fetchUserArticle =',
   'export const updateUserArticle =',
   'export const submitUserArticleForReview =',
