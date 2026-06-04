@@ -2477,6 +2477,132 @@ function getBiomeTypeLabel(value: unknown) {
   return labels[normalized] ?? String(value || '--')
 }
 
+function formatBiomeRelationTypeLabel(value: unknown) {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : ''
+  const labels: Record<string, string> = {
+    found_in: '发现于',
+    drop: '掉落',
+    resource: '资源',
+    fishing: '钓鱼',
+    for_sale: '出售',
+    appears_in: '出现于',
+    contains: '包含',
+    related: '相关',
+  }
+  return labels[normalized] ?? stringifyBiomeValue(value)
+}
+
+function formatBiomeSourceTypeLabel(value: unknown) {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : ''
+  const labels: Record<string, string> = {
+    drop: '掉落',
+    resource: '资源',
+    fishing: '钓鱼',
+    for_sale: '出售',
+  }
+  return labels[normalized] ?? stringifyBiomeValue(value)
+}
+
+function formatBiomeSourceRefTypeLabel(value: unknown) {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : ''
+  const labels: Record<string, string> = {
+    biome_wikitext: '群系 Wiki 详情',
+  }
+  return labels[normalized] ?? stringifyBiomeValue(value)
+}
+
+function formatBiomeSpawnContextLabel(value: unknown) {
+  const text = stringifyBiomeValue(value)
+  const labels: Record<string, string> = {
+    'Pre-Hardmode': '困难模式前',
+    Hardmode: '困难模式',
+    Critters: '小动物',
+    'Rare Critters': '稀有小动物',
+    'During Hardmode': '困难模式期间',
+    'In Hardmode': '困难模式中',
+    'During Hardmode night': '困难模式夜晚',
+    'During the day': '白天',
+    Common: '常见',
+    'On the outer sixths of the world': '世界外侧六分之一',
+    Bosses: 'Boss',
+    'After defeating any mechanical boss': '击败任意机械 Boss 后',
+    'Hardmode post-Plantera': '困难模式世纪之花后',
+    'Hardmode post-Golem': '困难模式石巨人后',
+    'During the night': '夜晚',
+    'At night': '夜晚',
+    'During Rain': '雨天',
+    Enemies: '敌怪',
+    'After Golem is defeated': '击败石巨人后',
+    'In pre-Hardmode': '困难模式前',
+    'Crimson Desert': '猩红沙漠',
+    'Corrupted Desert': '腐化沙漠',
+    'Hallowed Desert': '神圣沙漠',
+  }
+  return labels[text] ?? text
+}
+
+function formatBiomeSourceRefNameLabel(value: unknown) {
+  const text = stringifyBiomeValue(value)
+  const labels: Record<string, string> = {
+    'From terrain': '来自地形',
+    'From the terrain': '来自地形',
+    'From fishing': '来自钓鱼',
+    'From vegetation': '来自植被',
+    'From terrain/vegetation': '来自地形/植被',
+    'From Angler Quests': '来自渔夫任务',
+    'From Queen Bee': '来自蜂王',
+    'From Painter': '来自油漆工',
+    'From Plantera': '来自世纪之花',
+    'From Pigrons': '来自猪龙',
+    'From Chests': '来自宝箱',
+    'From Empress of Light': '来自光之女皇',
+    'From Wall of Flesh': '来自血肉墙',
+    'From any enemy in Hardmode': '来自困难模式任意敌怪',
+    'From Golem': '来自石巨人',
+    'From Deerclops': '来自鹿角怪',
+    'Through plundering': '来自掠夺',
+    'From Skyware Chests': '来自天域箱',
+    'From shaking trees': '来自摇树',
+    'From the King Slime': '来自史莱姆王',
+    'From Duke Fishron': '来自猪龙鱼公爵',
+    'From Locked Gold Chests': '来自上锁金箱',
+    'From Clothier': '来自服装商',
+    'From Shadow Chests': '来自暗影箱',
+    'From Sandstone Chests': '来自砂岩箱',
+    'From Queen Slime': '来自史莱姆皇后',
+    'Any Happy NPC Shop': '任意快乐 NPC 商店',
+    'From Hoplites': '来自重装步兵',
+    'From Corrupt Mimics': '来自腐化宝箱怪',
+    'From Brain of Cthulhu': '来自克苏鲁之脑',
+    'From any enemy': '来自任意敌怪',
+    'From the structure': '来自结构',
+    'From Truffle': '来自松露人',
+    'From Eater of Worlds': '来自世界吞噬怪',
+    'From Zombies': '来自僵尸',
+    'From Crimson Mimics': '来自猩红宝箱怪',
+    'Hardmode post-Plantera from Biome Chests': '困难模式世纪之花后来自群系宝箱',
+    'From Steampunker': '来自蒸汽朋克人',
+    'From Goblin Scouts': '来自哥布林侦察兵',
+  }
+  return labels[text] ?? formatBiomeSpawnContextLabel(text)
+}
+
+function formatBiomeSourcePageLabel(value: unknown) {
+  const text = stringifyBiomeValue(value)
+  const labels: Record<string, string> = {
+    Forest: '森林',
+    Desert: '沙漠',
+    Snow: '雪原',
+    Jungle: '丛林',
+    Ocean: '海洋',
+    Dungeon: '地牢',
+    Underworld: '地狱',
+    Cavern: '洞穴',
+    Space: '太空',
+  }
+  return labels[text] ?? text
+}
+
 function normalizeBossType(value: unknown) {
   const normalized = typeof value === 'string' ? value.trim().toUpperCase() : ''
   if (normalized === 'PRE_HARDMODE' || normalized === 'HARDMODE' || normalized === 'EVENT' || normalized === 'SPECIAL_SEED') {
@@ -3374,6 +3500,7 @@ function stringifyBiomeValue(value: unknown) {
 
 function normalizeBiomeRelationCard(relation: Record<string, any>, index: number) {
   const relationType = pickFirstString(relation.relationType, relation.type, relation.kind) || 'related'
+  const relationTypeLabel = formatBiomeRelationTypeLabel(relationType)
   const title = pickFirstString(
     relation.relatedBiomeNameZh,
     relation.relatedNameZh,
@@ -3389,12 +3516,12 @@ function normalizeBiomeRelationCard(relation: Record<string, any>, index: number
   const meta = [
     relation.relatedBiomeId != null ? `Biome ID ${relation.relatedBiomeId}` : '',
     relation.relatedBiomeCode || relation.code ? `Code ${relation.relatedBiomeCode || relation.code}` : '',
-    relation.sourcePage ? `来源 ${relation.sourcePage}` : '',
+    relation.sourcePage ? `来源 ${formatBiomeSourcePageLabel(relation.sourcePage)}` : '',
   ].filter(Boolean)
   return {
     key: `${relationType}-${relation.relatedBiomeId ?? relation.relatedBiomeCode ?? relation.code ?? index}`,
     title,
-    relationType,
+    relationType: relationTypeLabel || relationType,
     description,
     meta,
     raw: relation,
@@ -3414,10 +3541,10 @@ function normalizeBiomeResourceCard(resource: Record<string, any>, index: number
     raw.itemInternalName,
     raw.internalName,
   ) || `资源 ${index + 1}`
-  const subtitle = pickFirstString(raw.itemInternalName, raw.internalName, raw.resourceType, raw.category, raw.resourceNameRaw)
+  const subtitle = pickFirstString(raw.itemInternalName, raw.internalName, formatBiomeSourceTypeLabel(raw.resourceType), raw.category, raw.resourceNameRaw)
     || (raw.itemId != null ? `Item ID ${raw.itemId}` : 'Raw resource fallback')
   const meta = [
-    raw.resourceType ? `类型 ${raw.resourceType}` : '',
+    raw.resourceType ? `类型 ${formatBiomeSourceTypeLabel(raw.resourceType)}` : '',
     raw.itemId != null ? `Item ID ${raw.itemId}` : '',
     raw.sourceItemId != null ? `Source ID ${raw.sourceItemId}` : '',
     raw.rarity ? `稀有度 ${raw.rarity}` : '',
@@ -3435,12 +3562,13 @@ function normalizeBiomeResourceCard(resource: Record<string, any>, index: number
 
 function normalizeBiomeItemRelationCard(relation: Record<string, any>, index: number) {
   const raw = normalizeRow(relation)
+  const relationTypeLabel = formatBiomeRelationTypeLabel(raw.relationType)
   const title = pickFirstString(raw.itemNameZh, raw.itemName, raw.itemInternalName)
     || (raw.itemId != null ? `Item ID ${raw.itemId}` : `物品关系 ${index + 1}`)
-  const subtitle = pickFirstString(raw.itemInternalName, raw.relationType)
+  const subtitle = pickFirstString(raw.itemInternalName, relationTypeLabel)
     || (raw.itemId != null ? `Item ID ${raw.itemId}` : 'Item relation')
   const meta = [
-    raw.relationType ? `关系 ${raw.relationType}` : '',
+    raw.relationType ? `关系 ${relationTypeLabel}` : '',
     raw.itemId != null ? `Item ID ${raw.itemId}` : '',
     raw.missingItem ? '缺少物品映射' : '',
     raw.notes ? String(raw.notes) : '',
@@ -3457,15 +3585,17 @@ function normalizeBiomeItemRelationCard(relation: Record<string, any>, index: nu
 
 function normalizeBiomeNpcRelationCard(npc: Record<string, any>, index: number) {
   const raw = normalizeRow(npc)
+  const relationTypeLabel = formatBiomeRelationTypeLabel(raw.relationType)
+  const spawnContextLabel = formatBiomeSpawnContextLabel(raw.spawnContext)
   const title = pickFirstString(raw.npcNameZh, raw.npcName, raw.npcInternalName)
     || (raw.npcId != null ? `NPC ID ${raw.npcId}` : `NPC ${index + 1}`)
-  const subtitle = pickFirstString(raw.npcInternalName, raw.spawnContext, raw.relationType)
+  const subtitle = pickFirstString(raw.npcInternalName, spawnContextLabel, relationTypeLabel)
     || (raw.npcId != null ? `NPC ID ${raw.npcId}` : 'NPC relation')
   const meta = [
-    raw.relationType ? `关系 ${raw.relationType}` : '',
-    raw.spawnContext ? `条件 ${raw.spawnContext}` : '',
+    raw.relationType ? `关系 ${relationTypeLabel}` : '',
+    raw.spawnContext ? `条件 ${spawnContextLabel}` : '',
     raw.npcId != null ? `NPC ID ${raw.npcId}` : '',
-    raw.sourcePage ? `来源 ${raw.sourcePage}` : '',
+    raw.sourcePage ? `来源 ${formatBiomeSourcePageLabel(raw.sourcePage)}` : '',
     raw.missingNpc ? '缺少 NPC 映射' : '',
     raw.notes ? String(raw.notes) : '',
   ].filter(Boolean)
@@ -3481,15 +3611,18 @@ function normalizeBiomeNpcRelationCard(npc: Record<string, any>, index: number) 
 
 function normalizeBiomeItemSourceCard(source: Record<string, any>, index: number) {
   const raw = normalizeRow(source)
+  const sourceTypeLabel = formatBiomeSourceTypeLabel(raw.sourceType)
+  const sourceRefTypeLabel = formatBiomeSourceRefTypeLabel(raw.sourceRefType)
+  const sourceRefNameLabel = formatBiomeSourceRefNameLabel(raw.sourceRefName)
   const title = pickFirstString(raw.itemNameZh, raw.itemName, raw.itemInternalName)
     || (raw.itemId != null ? `Item ID ${raw.itemId}` : `来源证据 ${index + 1}`)
-  const subtitle = pickFirstString(raw.sourceRefName, raw.sourceType, raw.itemInternalName)
+  const subtitle = pickFirstString(sourceRefNameLabel, sourceTypeLabel, raw.itemInternalName)
     || (raw.itemId != null ? `Item ID ${raw.itemId}` : 'Source evidence')
   const meta = [
-    raw.sourceType ? `类型 ${raw.sourceType}` : '',
-    raw.sourceRefType ? `证据 ${raw.sourceRefType}` : '',
-    raw.sourceRefName ? `来源 ${raw.sourceRefName}` : '',
-    raw.sourcePage ? `页面 ${raw.sourcePage}` : '',
+    raw.sourceType ? `类型 ${sourceTypeLabel}` : '',
+    raw.sourceRefType ? `证据 ${sourceRefTypeLabel}` : '',
+    raw.sourceRefName ? `来源 ${sourceRefNameLabel}` : '',
+    raw.sourcePage ? `页面 ${formatBiomeSourcePageLabel(raw.sourcePage)}` : '',
     raw.sourceProvider ? `提供方 ${raw.sourceProvider}` : '缺少来源提供方',
     raw.itemId != null ? `Item ID ${raw.itemId}` : '',
     raw.missingItem ? '缺少物品映射' : '',

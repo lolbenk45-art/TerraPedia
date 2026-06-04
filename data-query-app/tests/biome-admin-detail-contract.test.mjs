@@ -61,6 +61,23 @@ test('biome admin detail renders item relations npc appearances and source evide
   assert.match(entitiesPage, /\.biome-detail \.armor-detail__item-body strong,\s*\.biome-detail \.armor-detail__item-body span,\s*\.biome-detail \.preview-note p\s*\{[^}]*overflow-wrap:\s*anywhere/)
 })
 
+test('biome admin detail localizes relation source and spawn evidence labels', () => {
+  assert.match(entitiesPage, /function formatBiomeRelationTypeLabel/)
+  assert.match(entitiesPage, /function formatBiomeSourceTypeLabel/)
+  assert.match(entitiesPage, /function formatBiomeSourceRefTypeLabel/)
+  assert.match(entitiesPage, /function formatBiomeSpawnContextLabel/)
+  assert.match(entitiesPage, /function formatBiomeSourceRefNameLabel/)
+  assert.match(entitiesPage, /found_in:\s*'发现于'/)
+  assert.match(entitiesPage, /appears_in:\s*'出现于'/)
+  assert.match(entitiesPage, /biome_wikitext:\s*'群系 Wiki 详情'/)
+  assert.match(entitiesPage, /During the day['"]?:\s*'白天'/)
+  assert.match(entitiesPage, /From Goblin Scouts['"]?:\s*'来自哥布林侦察兵'/)
+  assert.match(entitiesPage, /formatBiomeRelationTypeLabel\(raw\.relationType\)/)
+  assert.match(entitiesPage, /formatBiomeSourceRefTypeLabel\(raw\.sourceRefType\)/)
+  assert.match(entitiesPage, /formatBiomeSpawnContextLabel\(raw\.spawnContext\)/)
+  assert.match(entitiesPage, /formatBiomeSourceRefNameLabel\(raw\.sourceRefName\)/)
+})
+
 test('biome list preview uses a landscape thumbnail instead of a square icon slot', () => {
   assert.match(entitiesPage, /thumb-wrap--biome/)
   assert.match(entitiesPage, /thumb--biome/)
