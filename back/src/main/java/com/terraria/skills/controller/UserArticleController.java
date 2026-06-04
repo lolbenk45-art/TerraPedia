@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -116,6 +117,32 @@ public class UserArticleController {
                 getClientIp(httpRequest)
             ),
             "Article submitted for review"
+        ));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete current user draft or rejected article")
+    public ResponseEntity<ApiResponse<ArticleDTO>> deleteArticle(
+        @PathVariable Long id,
+        HttpServletRequest httpRequest
+    ) {
+        UserTokenClaims claims = getRequiredClaims(httpRequest);
+        return ResponseEntity.ok(ApiResponse.success(
+            articleService.deleteUserArticle(claims.getUserId(), id),
+            "Article deleted"
+        ));
+    }
+
+    @PostMapping("/{id}/withdraw")
+    @Operation(summary = "Withdraw current user article from review")
+    public ResponseEntity<ApiResponse<ArticleDTO>> withdrawArticle(
+        @PathVariable Long id,
+        HttpServletRequest httpRequest
+    ) {
+        UserTokenClaims claims = getRequiredClaims(httpRequest);
+        return ResponseEntity.ok(ApiResponse.success(
+            articleService.withdrawUserArticle(claims.getUserId(), id),
+            "Article withdrawn"
         ));
     }
 

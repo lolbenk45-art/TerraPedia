@@ -43,4 +43,8 @@ public interface ArticleService {
     ArticleDTO updateUserArticle(Long userId, Long id, UserArticleUpsertRequestDTO request, String operatorName, String ipAddress);
 
     ArticleDTO submitUserArticleReview(Long userId, Long id, String operatorName, String ipAddress);
+
+    ArticleDTO deleteUserArticle(Long userId, Long articleId);
+
+    ArticleDTO withdrawUserArticle(Long userId, Long articleId);
 }

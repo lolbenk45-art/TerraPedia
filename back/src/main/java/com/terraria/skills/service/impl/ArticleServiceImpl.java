@@ -37,6 +37,7 @@ public class ArticleServiceImpl implements ArticleService {
     private static final String ACTION_OFFLINE = "OFFLINE";
     private static final String ACTION_DIRECT_PUBLISH_COMPAT = "DIRECT_PUBLISH_COMPAT";
     private static final String ACTION_RESET_TO_DRAFT = "RESET_TO_DRAFT";
+    private static final String ACTION_WITHDRAW_REVIEW = "WITHDRAW_REVIEW";
 
     private final ArticleMapper articleMapper;
     private final ArticleReviewLogMapper articleReviewLogMapper;
@@ -469,6 +470,45 @@ public class ArticleServiceImpl implements ArticleService {
         return getUserArticleById(normalizedUserId, id);
     }
 
+    @Override
+    public ArticleDTO deleteUserArticle(Long userId, Long articleId) {
+        Long normalizedUserId = requireUserId(userId);
+        Article article = requireUserOwnedArticle(articleId, normalizedUserId);
+        String currentReviewStatus = normalizeReviewStatus(article.getReviewStatus());
+        if (!(ArticleReviewStatus.DRAFT.equals(currentReviewStatus) || ArticleReviewStatus.REJECTED.equals(currentReviewStatus))) {
+            throw new IllegalArgumentException("Only draft or rejected article can be deleted");
+        }
+        if (ArticleStatus.PUBLISHED.equals(article.getStatus())) {
+            throw new IllegalArgumentException("Published article cannot be deleted");
+        }
+
+        article.setDeleted(1);
+        article.setUpdatedAt(LocalDateTime.now());
+        articleMapper.updateById(article);
+
+        auditUser("USER_ARTICLE_DELETED", normalizedUserId, normalizeUserOperatorName(null), null, "articleId=" + articleId);
+        return toArticleDTO(article);
+    }
+
+    @Override
+    public ArticleDTO withdrawUserArticle(Long userId, Long articleId) {
+        Long normalizedUserId = requireUserId(userId);
+        Article article = requireUserOwnedArticle(articleId, normalizedUserId);
+        String currentReviewStatus = normalizeReviewStatus(article.getReviewStatus());
+        if (!ArticleReviewStatus.PENDING_REVIEW.equals(currentReviewStatus)) {
+            throw new IllegalArgumentException("Only pending review article can be withdrawn");
+        }
+
+        resetToDraft(article);
+        article.setUpdatedAt(LocalDateTime.now());
+        articleMapper.updateById(article);
+
+        String normalizedOperator = normalizeUserOperatorName(null);
+        writeReviewLog(articleId, ACTION_WITHDRAW_REVIEW, currentReviewStatus, ArticleReviewStatus.DRAFT, null, normalizedOperator);
+        auditUser("USER_ARTICLE_WITHDRAW_REVIEW", normalizedUserId, normalizedOperator, null, "articleId=" + articleId);
+        return getUserArticleById(normalizedUserId, articleId);
+    }
+
     private Article requireArticle(Long id) {
         if (id == null || id <= 0) {
             throw new IllegalArgumentException("Invalid article id");
@@ -704,5 +744,26 @@ public class ArticleServiceImpl implements ArticleService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private ArticleDTO toArticleDTO(Article article) {
+        ArticleDTO dto = new ArticleDTO();
+        dto.setId(article.getId());
+        dto.setTitle(article.getTitle());
+        dto.setSlug(article.getSlug());
+        dto.setSummary(article.getSummary());
+        dto.setCoverImage(article.getCoverImage());
+        dto.setContentHtml(article.getContentHtml());
+        dto.setStatus(article.getStatus());
+        dto.setReviewStatus(article.getReviewStatus());
+        dto.setReviewComment(article.getReviewComment());
+        dto.setReviewedAt(article.getReviewedAt());
+        dto.setSubmittedAt(article.getSubmittedAt());
+        dto.setReviewerName(article.getReviewerName());
+        dto.setPublishedAt(article.getPublishedAt());
+        dto.setAuthorId(article.getAuthorId());
+        dto.setCreatedAt(article.getCreatedAt());
+        dto.setUpdatedAt(article.getUpdatedAt());
+        return dto;
     }
 }
