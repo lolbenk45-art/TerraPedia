@@ -46,6 +46,7 @@ public class UserAuthServiceImpl implements UserAuthService {
     private final RegisterVerificationService registerVerificationService;
     private final SecurityAuditService securityAuditService;
     private final ObjectStorageService objectStorageService;
+    private final UserAvatarUrlResolver userAvatarUrlResolver;
 
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(12);
     private final SecureRandom secureRandom = new SecureRandom();
@@ -341,7 +342,7 @@ public class UserAuthServiceImpl implements UserAuthService {
             .id(user.getId())
             .email(user.getEmail())
             .displayName(user.getDisplayName())
-            .avatarUrl(user.getAvatarUrl())
+            .avatarUrl(userAvatarUrlResolver.resolveProfileAvatarUrl(user.getAvatarUrl(), user.getAvatarObjectKey()))
             .status(user.getStatus())
             .build();
     }

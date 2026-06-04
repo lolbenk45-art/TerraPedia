@@ -2,9 +2,13 @@ package com.terraria.skills.service.impl;
 
 import com.terraria.skills.config.MinioConnectionDetails;
 import com.terraria.skills.dto.FileUploadResultDTO;
+import com.terraria.skills.dto.StoredObjectDTO;
 import com.terraria.skills.service.ObjectStorageService;
 import io.minio.BucketExistsArgs;
+import io.minio.GetObjectArgs;
 import io.minio.MakeBucketArgs;
+import io.minio.StatObjectArgs;
+import io.minio.StatObjectResponse;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.SetBucketPolicyArgs;
@@ -41,6 +45,31 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
 
         if (connectionDetails.autoCreateBucket()) {
             ensureBucketReady();
+        }
+    }
+
+    @Override
+    public StoredObjectDTO getObject(String objectKey) {
+        String normalizedObjectKey = normalizeReadableObjectKey(objectKey);
+        try {
+            StatObjectResponse stat = minioClient.statObject(
+                StatObjectArgs.builder()
+                    .bucket(connectionDetails.bucket())
+                    .object(normalizedObjectKey)
+                    .build()
+            );
+            return StoredObjectDTO.builder()
+                .inputStream(minioClient.getObject(
+                    GetObjectArgs.builder()
+                        .bucket(connectionDetails.bucket())
+                        .object(normalizedObjectKey)
+                        .build()
+                ))
+                .contentType(stat.contentType())
+                .size(stat.size())
+                .build();
+        } catch (Exception e) {
+            throw new IllegalArgumentException("图片文件不存在或不可读取");
         }
     }
 
@@ -181,6 +210,28 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
             + "/"
             + UUID.randomUUID().toString().replace("-", "")
             + extension;
+    }
+
+    private String normalizeReadableObjectKey(String objectKey) {
+        String normalized = trimToNull(objectKey);
+        if (normalized == null) {
+            throw new IllegalArgumentException("Object key is required");
+        }
+        normalized = normalized.replace("\\", "/").replaceAll("^/+", "");
+        if (normalized.contains("..")) {
+            throw new IllegalArgumentException("Invalid object key");
+        }
+        if (
+            !normalized.startsWith("avatars/")
+                && !normalized.startsWith("items/")
+                && !normalized.startsWith("npcs/")
+                && !normalized.startsWith("projectiles/")
+                && !normalized.startsWith("buffs/")
+                && !normalized.startsWith("bosses/")
+        ) {
+            throw new IllegalArgumentException("Unsupported object key");
+        }
+        return normalized;
     }
 
     private String buildAvatarObjectKey(Long userId, String extension) {

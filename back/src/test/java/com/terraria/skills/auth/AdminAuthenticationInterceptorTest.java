@@ -66,6 +66,30 @@ class AdminAuthenticationInterceptorTest {
     }
 
     @Test
+    void shouldAllowPublicObjectReadWithoutToken() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/files/objects/avatars/3/avatar.png");
+        request.setServletPath("/files/objects/avatars/3/avatar.png");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        boolean allowed = interceptor.preHandle(request, response, new Object());
+
+        assertTrue(allowed);
+        assertEquals(200, response.getStatus());
+    }
+
+    @Test
+    void shouldStillRejectFileUploadWithoutToken() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/files/images");
+        request.setServletPath("/files/images");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        boolean allowed = interceptor.preHandle(request, response, new Object());
+
+        assertFalse(allowed);
+        assertEquals(401, response.getStatus());
+    }
+
+    @Test
     void shouldAllowProtectedWriteRequestWithValidToken() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/items");
         request.setServletPath("/items");

@@ -68,6 +68,9 @@ public class AdminAuthenticationInterceptor implements HandlerInterceptor {
         if (path.startsWith("/admin/")) {
             return true;
         }
+        if (path.startsWith("/files/objects/")) {
+            return !HttpMethod.GET.matches(method) && !HttpMethod.HEAD.matches(method);
+        }
         if (path.startsWith("/files/")) {
             return true;
         }

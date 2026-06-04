@@ -1,6 +1,7 @@
 package com.terraria.skills.service.impl;
 
 import com.terraria.skills.dto.FileUploadResultDTO;
+import com.terraria.skills.dto.StoredObjectDTO;
 import com.terraria.skills.service.ObjectStorageService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,11 @@ public class DisabledObjectStorageService implements ObjectStorageService {
 
     @Override
     public FileUploadResultDTO uploadUserAvatar(MultipartFile file, Long userId, String contentType, String extension) {
+        throw disabled();
+    }
+
+    @Override
+    public StoredObjectDTO getObject(String objectKey) {
         throw disabled();
     }
 
