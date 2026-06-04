@@ -139,6 +139,8 @@ for (const marker of [
   'type UserRegisterCodeResponse',
   'expiresInSeconds',
   'type UserArticle',
+  'type PublicUserArticle',
+  'type PublicUserProfile',
   'type UserArticleUpsertPayload',
 ]) {
   assertIncludes(typesPath, types, marker, `public API types must expose ${marker}`)
@@ -250,8 +252,13 @@ const pageContracts = [
   },
   {
     path: 'pages/articles/[slug].vue',
-    required: ['usePublicApiFetch<UserArticle>', '/articles/slug/', 'useUserFavoritesStore', "loadStatuses('ARTICLE'", 'toggleArticleFavorite', '收藏文章', '已收藏', 'article.id'],
+    required: ['usePublicApiFetch<UserArticle>', '/articles/slug/', 'useUserFavoritesStore', "loadStatuses('ARTICLE'", 'toggleArticleFavorite', '收藏文章', '已收藏', 'article.id', '/users/${article.authorId}', 'authorProfilePath'],
     forbidden: ['公开文章暂未开放', '真实文章待接入', '文章未载入', '没有真实发布数据'],
+  },
+  {
+    path: 'pages/users/[id].vue',
+    required: ['usePublicApiFetch<PublicUserProfile>', '`/users/${userId.value}`', 'publishedArticles', 'publishedArticleCount', 'user-empty-state', '返回文章入口', 'publicArticlePath'],
+    forbidden: ['email', 'token', 'role', 'roles', 'deleted', 'passwordHash', 'avatarObjectKey', 'preview-only', '占位'],
   },
 ]
 
@@ -268,7 +275,14 @@ for (const contract of pageContracts) {
 const publicArticleDetail = assertFile('pages/articles/[slug].vue')
 assertPattern('pages/articles/[slug].vue', publicArticleDetail, /favoritesStore\.loadStatuses\('ARTICLE',\s*\[article\.value\.id\]\)/, 'article detail favorite status must load by returned article.id')
 assertPattern('pages/articles/[slug].vue', publicArticleDetail, /favoritesStore\.toggleArticleFavorite\(article\.value\.id\)/, 'article detail favorite toggle must use returned article.id')
+assertPattern('pages/articles/[slug].vue', publicArticleDetail, /v-if="article\.authorId"[\s\S]*:href="`\/users\/\$\{article\.authorId\}`"/, 'article detail author profile link must be conditional on article.authorId')
+assertPattern('pages/articles/[slug].vue', publicArticleDetail, /v-if="authorProfilePath"[\s\S]*:href="authorProfilePath"/, 'article detail side author link must be conditional on authorProfilePath')
 assertNotPattern('pages/articles/[slug].vue', publicArticleDetail, /v-html=/, 'article detail must not render user article HTML directly without sanitizer')
+
+const publicUserProfile = assertFile('pages/users/[id].vue')
+assertIncludes('pages/users/[id].vue', publicUserProfile, 'isValidUserId', 'public user page must validate route id before fetching')
+assertPattern('pages/users/[id].vue', publicUserProfile, /\/\^\[1-9\]\\d\*\$\/\.test\(userId\.value\)/, 'public user page must only accept positive integer ids')
+assertPattern('pages/users/[id].vue', publicUserProfile, /v-for="article in linkablePublishedArticles"[\s\S]*:href="publicArticlePath\(article\.slug\)"/, 'public user article links must render only linkable slug-backed articles')
 
 const userSettings = assertFile('pages/user/settings.vue')
 for (const label of ['显示偏好', '通知', '公开身份']) {

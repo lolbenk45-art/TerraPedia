@@ -3,6 +3,7 @@ package com.terraria.skills.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.terraria.skills.dto.ArticleDTO;
+import com.terraria.skills.dto.PublicUserArticleDTO;
 import com.terraria.skills.entity.Article;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -25,6 +26,11 @@ public interface ArticleMapper extends BaseMapper<Article> {
         Page<ArticleDTO> page,
         @Param("authorId") Long authorId,
         @Param("keyword") String keyword
+    );
+
+    Page<PublicUserArticleDTO> selectPublishedArticlesByAuthor(
+        Page<PublicUserArticleDTO> page,
+        @Param("authorId") Long authorId
     );
 
     ArticleDTO selectAdminArticleById(@Param("id") Long id);

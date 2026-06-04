@@ -1338,6 +1338,26 @@ export type UserArticle = {
   updatedAt: string | null
 }
 
+export type PublicUserArticle = {
+  id: number
+  title: string
+  slug: string | null
+  summary: string | null
+  coverImage: string | null
+  publishedAt: string | null
+  authorId: number | null
+  authorDisplayName: string | null
+}
+
+export type PublicUserProfile = {
+  id: number
+  displayName: string | null
+  avatarUrl: string | null
+  joinedAt: string | null
+  publishedArticleCount: number
+  publishedArticles: PublicUserArticle[]
+}
+
 export type UserArticleUpsertPayload = {
   title: string
   slug?: string | null

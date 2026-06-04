@@ -16,6 +16,8 @@ public interface UserMapper extends BaseMapper<User> {
 
     User selectByEmailIncludeDeleted(@Param("email") String email);
 
+    User selectPublicUserById(@Param("id") Long id);
+
     int reactivateDeletedUser(
         @Param("id") Long id,
         @Param("passwordHash") String passwordHash,

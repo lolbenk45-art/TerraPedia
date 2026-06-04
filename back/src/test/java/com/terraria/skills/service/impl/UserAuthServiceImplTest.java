@@ -1,6 +1,7 @@
 package com.terraria.skills.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.terraria.skills.config.MinioConnectionDetails;
 import com.terraria.skills.auth.LoginRateLimitService;
 import com.terraria.skills.auth.RegisterVerificationService;
 import com.terraria.skills.auth.UserAuthProperties;
@@ -14,6 +15,7 @@ import com.terraria.skills.service.ObjectStorageService;
 import com.terraria.skills.service.SecurityAuditService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -60,8 +62,14 @@ class UserAuthServiceImplTest {
             mock(RegisterVerificationService.class),
             securityAuditService,
             objectStorageService,
-            new UserAvatarUrlResolver(null)
+            new UserAvatarUrlResolver(emptyMinioConnectionDetailsProvider())
         );
+    }
+
+    private ObjectProvider<MinioConnectionDetails> emptyMinioConnectionDetailsProvider() {
+        ObjectProvider<MinioConnectionDetails> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(null);
+        return provider;
     }
 
     @Test

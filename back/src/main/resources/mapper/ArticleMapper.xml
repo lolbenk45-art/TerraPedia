@@ -97,6 +97,24 @@
         ORDER BY a.updated_at DESC, a.id DESC
     </select>
 
+    <select id="selectPublishedArticlesByAuthor" resultType="com.terraria.skills.dto.PublicUserArticleDTO">
+        SELECT
+            a.id,
+            a.title,
+            a.slug,
+            a.summary,
+            a.cover_image AS coverImage,
+            a.published_at AS publishedAt,
+            a.author_id AS authorId,
+            u.display_name AS authorDisplayName
+        FROM articles a
+        LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
+        WHERE a.deleted = 0
+          AND a.status = 'PUBLISHED'
+          AND a.author_id = #{authorId}
+        ORDER BY a.published_at DESC, a.id DESC
+    </select>
+
     <select id="selectAdminArticleById" resultType="com.terraria.skills.dto.ArticleDTO">
         SELECT
             a.id,
