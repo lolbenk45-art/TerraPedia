@@ -25,7 +25,7 @@ const articleTotal = computed(() => Number(authStore.articlePagination.total ?? 
         <div>
           <span class="eyebrow">/user · public account</span>
           <h1>用户中心</h1>
-          <p>{{ authStore.isAuthenticated ? '继续管理你的资料路径、投稿草稿和账号偏好。' : '用户页整理收藏、投稿、阅读路径和账号入口；登录后会显示真实账号状态。' }}</p>
+          <p>{{ authStore.isAuthenticated ? '继续管理你的收藏、投稿草稿和账号设置。' : '用户页整理收藏、投稿和账号入口；登录后会显示真实账号状态。' }}</p>
         </div>
         <a v-if="!authStore.isAuthenticated" class="primary-button" href="/user/login">进入登录页</a>
         <a v-else class="secondary-button" href="/user/settings">账号设置</a>
@@ -41,11 +41,11 @@ const articleTotal = computed(() => Number(authStore.articlePagination.total ?? 
         <div>
           <span class="eyebrow">{{ authStore.isAuthenticated ? '已登录' : '访客视图' }}</span>
           <h2>{{ authStore.isAuthenticated ? authStore.displayName : '把个人资料动作收进一个清晰的控制台' }}</h2>
-          <p>{{ authStore.isAuthenticated ? authStore.user?.email : '不在首页塞用户功能，用户中心单独承载收藏、文章草稿、账号设置和路线记录。' }}</p>
+          <p>{{ authStore.isAuthenticated ? authStore.user?.email : '不在首页塞用户功能，用户中心单独承载收藏、文章草稿和账号设置。' }}</p>
           <div class="tag-row">
             <span class="tag gold">{{ authStore.isAuthenticated ? '真实会话' : '登录后启用' }}</span>
             <span class="tag moss">前台页面</span>
-            <span class="tag paper">{{ authStore.isAuthenticated ? `${articleTotal} 篇文章` : '功能待接入' }}</span>
+            <span class="tag paper">{{ authStore.isAuthenticated ? `${articleTotal} 篇文章` : '登录查看' }}</span>
           </div>
         </div>
         <aside class="user-status-card">
@@ -78,18 +78,18 @@ const articleTotal = computed(() => Number(authStore.articlePagination.total ?? 
         <a class="user-action-card support-panel" href="/user/settings">
           <span class="sprite-icon icon-settings card-icon" aria-hidden="true"></span>
           <b>账号设置</b>
-          <span>资料、密码、显示偏好</span>
+          <span>资料、头像和密码</span>
           <em>设置</em>
         </a>
       </section>
 
       <section class="user-dashboard-grid">
         <article class="support-panel user-feed-panel">
-          <span class="eyebrow">最近路径</span>
-          <div class="user-feed-row"><b>泰拉刃制作链</b><span>来自制作路线</span><a href="/crafting">打开</a></div>
-          <div class="user-feed-row"><b>克苏鲁之眼准备</b><span>来自 Boss 路线</span><a href="/bosses/eye-of-cthulhu">打开</a></div>
+          <span class="eyebrow">账号工作区</span>
+          <div class="user-feed-row"><b>收藏夹</b><span>查看当前账号收藏的物品和文章</span><a href="/user/favorites">打开</a></div>
           <div v-if="articleError" class="user-form-status user-form-error">{{ articleError }}</div>
           <div v-else class="user-feed-row"><b>投稿草稿</b><span>{{ authStore.isAuthenticated ? `${articleTotal} 篇当前账号文章` : '登录后显示真实草稿' }}</span><a href="/user/articles">打开</a></div>
+          <div class="user-feed-row"><b>账号设置</b><span>更新头像、昵称和密码</span><a href="/user/settings">打开</a></div>
         </article>
         <article class="support-panel user-feed-panel">
           <span class="eyebrow">页面入口</span>

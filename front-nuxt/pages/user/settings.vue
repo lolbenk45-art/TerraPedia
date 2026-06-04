@@ -101,7 +101,7 @@ const submitPassword = async () => {
         <div>
           <span class="eyebrow">/user/settings · preferences</span>
           <h1>账号设置</h1>
-          <p>设置页接入当前用户资料和密码接口；显示偏好、通知和公开身份先保留为前台入口。</p>
+          <p>设置页接入当前用户资料、头像和密码接口；其他分组先作为后续开放项展示。</p>
         </div>
         <a class="secondary-button" href="/user">返回用户中心</a>
       </div>
@@ -111,9 +111,9 @@ const submitPassword = async () => {
       <section class="settings-list support-panel">
         <span class="eyebrow">设置分组</span>
         <a class="active" href="/user/settings"><span class="sprite-icon icon-user menu-icon" aria-hidden="true"></span><span><b>个人资料</b><span>昵称、登录邮箱</span></span></a>
-        <a href="/user/settings"><span class="sprite-icon icon-items menu-icon" aria-hidden="true"></span><span><b>显示偏好</b><span>列表密度、默认入口</span></span></a>
-        <a href="/user/settings"><span class="sprite-icon icon-notification menu-icon" aria-hidden="true"></span><span><b>通知</b><span>投稿状态、资料更新</span></span></a>
-        <a href="/user/settings"><span class="sprite-icon icon-codex menu-icon" aria-hidden="true"></span><span><b>公开身份</b><span>贡献展示、署名方式</span></span></a>
+        <div class="disabled" aria-disabled="true"><span class="sprite-icon icon-items menu-icon" aria-hidden="true"></span><span><b>显示偏好</b><span>后续开放</span></span></div>
+        <div class="disabled" aria-disabled="true"><span class="sprite-icon icon-notification menu-icon" aria-hidden="true"></span><span><b>通知</b><span>后续开放</span></span></div>
+        <div class="disabled" aria-disabled="true"><span class="sprite-icon icon-codex menu-icon" aria-hidden="true"></span><span><b>公开身份</b><span>后续开放</span></span></div>
       </section>
 
       <section class="settings-panel support-panel">
@@ -235,6 +235,12 @@ const submitPassword = async () => {
   overflow: hidden;
   opacity: 0;
   pointer-events: none;
+}
+
+.settings-list .disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+  filter: grayscale(0.25);
 }
 
 @media (max-width: 640px) {

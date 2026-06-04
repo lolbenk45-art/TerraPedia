@@ -35,6 +35,12 @@ const assertPattern = (path, content, pattern, message) => {
   }
 }
 
+const assertNotPattern = (path, content, pattern, message) => {
+  if (pattern.test(content)) {
+    violations.push(`${path}: ${message}`)
+  }
+}
+
 const assertRedirectTarget = (input, expected) => {
   const actual = buildUserRedirectTarget(input)
   if (actual !== expected) {
@@ -177,7 +183,7 @@ const pageContracts = [
   {
     path: 'pages/user/index.vue',
     required: ['authStore.init()', 'authStore.isAuthenticated', 'authStore.displayName', 'account-state-authenticated', 'account-state-guest', 'authStore.articlePagination'],
-    forbidden: ['静态占位', '<em>24</em>', '<em>6</em>'],
+    forbidden: ['静态占位', '<em>24</em>', '<em>6</em>', '泰拉刃制作链', '克苏鲁之眼准备', '最近路径', '阅读路径', '路线记录', '保存进度', '偏好持久化'],
   },
   {
     path: 'pages/user/settings.vue',
@@ -204,6 +210,12 @@ for (const contract of pageContracts) {
   for (const marker of contract.forbidden) {
     assertNotIncludes(contract.path, content, marker, `page must not remain preview-only with ${marker}`)
   }
+}
+
+const userSettings = assertFile('pages/user/settings.vue')
+for (const label of ['显示偏好', '通知', '公开身份']) {
+  assertPattern('pages/user/settings.vue', userSettings, new RegExp(`<[^>]+class="[^"]*disabled[^"]*"[^>]*>[\\s\\S]*?<b>${label}<\\/b>[\\s\\S]*?后续开放`), `${label} settings entry must be a disabled static row marked 后续开放`)
+  assertNotPattern('pages/user/settings.vue', userSettings, new RegExp(`<a\\b[^>]*href="/user/settings"[^>]*>(?:(?!<\\/a>)[\\s\\S])*<b>${label}<\\/b>(?:(?!<\\/a>)[\\s\\S])*<\\/a>`), `${label} settings entry must not be a fake self-link anchor`)
 }
 
 for (const marker of [
