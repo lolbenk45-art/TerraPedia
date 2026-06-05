@@ -65,6 +65,27 @@ class UserWriteOriginInterceptorTest {
     }
 
     @Test
+    void shouldProtectArticleCommentWritesFromUnknownOrigin() throws Exception {
+        for (String[] route : new String[][] {
+            {"POST", "/articles/77/comments"},
+            {"DELETE", "/articles/77/comments/9"},
+            {"POST", "/articles/77/comments/9/replies"},
+            {"POST", "/articles/77/comments/9/like"},
+            {"DELETE", "/articles/77/comments/9/like"}
+        }) {
+            MockHttpServletRequest request = userWriteRequest(route[0], route[1]);
+            request.addHeader(HttpHeaders.ORIGIN, "https://evil.example");
+            request.setCookies(new Cookie("tp_user_access", "access-token"));
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            boolean allowed = interceptor.preHandle(request, response, new Object());
+
+            assertFalse(allowed, route[0] + " " + route[1]);
+            assertEquals(403, response.getStatus(), route[0] + " " + route[1]);
+        }
+    }
+
+    @Test
     void shouldProtectRoutesNotificationsAndPreferencesWritesFromUnknownOrigin() throws Exception {
         for (String[] route : new String[][] {
             {"POST", "/user/saved-routes"},

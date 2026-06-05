@@ -53,6 +53,16 @@ const articleCoverFallback = (article: UserArticle) => {
   return source.slice(0, 2).toUpperCase()
 }
 
+const articleAuthorLabel = (article: UserArticle) => article.authorDisplayName || 'TerraPedia 用户'
+
+const articleAuthorPath = (article: UserArticle) => article.authorId ? `/users/${article.authorId}` : ''
+
+const articleAuthorFallback = (article: UserArticle) => articleAuthorLabel(article).trim().slice(0, 1).toUpperCase() || 'T'
+
+const articleViewCount = (article: UserArticle) => Math.max(0, Number(article.viewCount ?? 0))
+
+const articleFavoriteCount = (article: UserArticle) => Math.max(0, Number(article.favoriteCount ?? 0))
+
 const articlePublishedLabel = (article: UserArticle) => {
   const raw = article.publishedAt || article.updatedAt || article.createdAt
   if (!raw) return '发布时间未记录'
@@ -152,7 +162,27 @@ useSeoMeta({
               </h2>
               <p>{{ article.summary || '这篇文章暂无摘要。' }}</p>
               <div class="public-article-meta">
-                <span>{{ article.authorDisplayName || 'TerraPedia 用户' }}</span>
+                <NuxtLink
+                  v-if="articleAuthorPath(article)"
+                  class="public-article-author"
+                  :to="articleAuthorPath(article)"
+                  :aria-label="`查看 ${articleAuthorLabel(article)} 的主页`"
+                >
+                  <span class="public-article-author-avatar">
+                    <img v-if="article.authorAvatarUrl" :src="article.authorAvatarUrl" :alt="`${articleAuthorLabel(article)} 的头像`" loading="lazy" />
+                    <b v-else>{{ articleAuthorFallback(article) }}</b>
+                  </span>
+                  <span>{{ articleAuthorLabel(article) }}</span>
+                </NuxtLink>
+                <span v-else class="public-article-author">
+                  <span class="public-article-author-avatar">
+                    <img v-if="article.authorAvatarUrl" :src="article.authorAvatarUrl" :alt="`${articleAuthorLabel(article)} 的头像`" loading="lazy" />
+                    <b v-else>{{ articleAuthorFallback(article) }}</b>
+                  </span>
+                  <span>{{ articleAuthorLabel(article) }}</span>
+                </span>
+                <span>{{ articleViewCount(article) }} 浏览</span>
+                <span>{{ articleFavoriteCount(article) }} 收藏</span>
                 <NuxtLink class="public-article-read-link" :to="`/articles/${article.slug}`">阅读全文</NuxtLink>
               </div>
             </div>
@@ -252,6 +282,43 @@ useSeoMeta({
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 800;
+}
+
+.public-article-author {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  min-height: 30px;
+  color: var(--text-main);
+  text-decoration: none;
+}
+
+.public-article-author:hover {
+  color: #ffd765;
+}
+
+.public-article-author-avatar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent-gold) 34%, var(--index-line));
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent-gold) 14%, var(--index-surface));
+  color: var(--text-strong);
+  flex: 0 0 auto;
+}
+
+.public-article-author-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.public-article-author-avatar b {
+  font-size: 11px;
+  line-height: 1;
 }
 
 .public-article-card h2 {

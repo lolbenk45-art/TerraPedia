@@ -395,6 +395,47 @@ CREATE TABLE IF NOT EXISTS `article_review_log` (
   INDEX `idx_article_review_log_article_created` (`article_id`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS `article_comments` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `article_id` BIGINT NOT NULL,
+  `parent_id` BIGINT DEFAULT NULL,
+  `root_id` BIGINT DEFAULT NULL,
+  `author_id` BIGINT NOT NULL,
+  `reply_to_user_id` BIGINT DEFAULT NULL,
+  `content` VARCHAR(1000) NOT NULL,
+  `like_count` INT NOT NULL DEFAULT 0,
+  `reply_count` INT NOT NULL DEFAULT 0,
+  `status` VARCHAR(20) NOT NULL DEFAULT 'PUBLISHED',
+  `deleted` TINYINT NOT NULL DEFAULT 0,
+  `deleted_by_type` VARCHAR(20) DEFAULT NULL,
+  `deleted_by_id` BIGINT DEFAULT NULL,
+  `deleted_by_name` VARCHAR(120) DEFAULT NULL,
+  `deleted_reason` VARCHAR(300) DEFAULT NULL,
+  `deleted_at` DATETIME DEFAULT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_article_comments_article_created` (`article_id`, `deleted`, `created_at`, `id`),
+  INDEX `idx_article_comments_article_root_created` (`article_id`, `root_id`, `deleted`, `status`, `created_at`, `id`),
+  INDEX `idx_article_comments_article_parent_created` (`article_id`, `parent_id`, `deleted`, `status`, `created_at`, `id`),
+  INDEX `idx_article_comments_author` (`author_id`, `deleted`, `created_at`),
+  INDEX `idx_article_comments_reply_user` (`reply_to_user_id`, `deleted`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `article_comment_likes` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `comment_id` BIGINT NOT NULL,
+  `article_id` BIGINT NOT NULL,
+  `user_id` BIGINT NOT NULL,
+  `deleted` TINYINT NOT NULL DEFAULT 0,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_article_comment_likes_comment_user` (`comment_id`, `user_id`),
+  KEY `idx_comment_likes_article_user` (`article_id`, `user_id`, `deleted`),
+  KEY `idx_comment_likes_comment` (`comment_id`, `deleted`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS `security_audit_log` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `event_type` VARCHAR(64) NOT NULL,

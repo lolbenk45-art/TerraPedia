@@ -46,11 +46,12 @@ public class ArticleServiceImpl implements ArticleService {
     private final SecurityAuditService securityAuditService;
     private final ArticleReviewProperties articleReviewProperties;
     private final UserNotificationService userNotificationService;
+    private final UserAvatarUrlResolver userAvatarUrlResolver;
 
     @Override
     public Page<ArticleDTO> getAdminArticles(int page, int limit, String keyword, String status) {
         Page<ArticleDTO> mpPage = new Page<>(Math.max(1, page), Math.max(1, Math.min(limit, 100)));
-        return articleMapper.selectAdminArticlesPage(mpPage, trimToNull(keyword), normalizeStatusAllowNull(status));
+        return normalizeArticlePage(articleMapper.selectAdminArticlesPage(mpPage, trimToNull(keyword), normalizeStatusAllowNull(status)));
     }
 
     @Override
@@ -62,7 +63,7 @@ public class ArticleServiceImpl implements ArticleService {
         if (article == null) {
             throw new IllegalArgumentException("Article not found");
         }
-        return article;
+        return normalizeArticleResponse(article);
     }
 
     @Override
@@ -358,7 +359,7 @@ public class ArticleServiceImpl implements ArticleService {
     @Override
     public Page<ArticleDTO> getPublishedArticles(int page, int limit, String keyword) {
         Page<ArticleDTO> mpPage = new Page<>(Math.max(1, page), Math.max(1, Math.min(limit, 100)));
-        return articleMapper.selectPublishedArticlesPage(mpPage, trimToNull(keyword));
+        return normalizeArticlePage(articleMapper.selectPublishedArticlesPage(mpPage, trimToNull(keyword)));
     }
 
     @Override
@@ -371,7 +372,7 @@ public class ArticleServiceImpl implements ArticleService {
         if (article == null) {
             throw new IllegalArgumentException("Article not found");
         }
-        return article;
+        return normalizeArticleResponse(article);
     }
 
     @Override
@@ -385,14 +386,14 @@ public class ArticleServiceImpl implements ArticleService {
         if (article == null) {
             throw new IllegalArgumentException("Article not found");
         }
-        return article;
+        return normalizeArticleResponse(article);
     }
 
     @Override
     public Page<ArticleDTO> getUserArticles(Long userId, int page, int limit, String keyword) {
         Long normalizedUserId = requireUserId(userId);
         Page<ArticleDTO> mpPage = new Page<>(Math.max(1, page), Math.max(1, Math.min(limit, 100)));
-        return articleMapper.selectUserArticlesPage(mpPage, normalizedUserId, trimToNull(keyword));
+        return normalizeArticlePage(articleMapper.selectUserArticlesPage(mpPage, normalizedUserId, trimToNull(keyword)));
     }
 
     @Override
@@ -405,6 +406,31 @@ public class ArticleServiceImpl implements ArticleService {
         ArticleDTO article = articleMapper.selectUserArticleById(id, normalizedUserId);
         if (article == null) {
             throw new IllegalArgumentException("Article not found");
+        }
+        return normalizeArticleResponse(article);
+    }
+
+    private Page<ArticleDTO> normalizeArticlePage(Page<ArticleDTO> page) {
+        if (page == null || page.getRecords() == null) {
+            return page;
+        }
+        page.getRecords().forEach(this::normalizeArticleResponse);
+        return page;
+    }
+
+    private ArticleDTO normalizeArticleResponse(ArticleDTO article) {
+        if (article == null) {
+            return null;
+        }
+        article.setAuthorAvatarUrl(userAvatarUrlResolver.resolveProfileAvatarUrl(
+            article.getAuthorAvatarUrl(),
+            article.getAuthorAvatarObjectKey()
+        ));
+        if (article.getViewCount() == null) {
+            article.setViewCount(0L);
+        }
+        if (article.getFavoriteCount() == null) {
+            article.setFavoriteCount(0L);
         }
         return article;
     }

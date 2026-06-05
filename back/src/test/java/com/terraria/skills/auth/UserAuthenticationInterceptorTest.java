@@ -70,6 +70,33 @@ class UserAuthenticationInterceptorTest {
     }
 
     @Test
+    void shouldRequireTokenForArticleCommentWritesButNotReads() throws Exception {
+        MockHttpServletRequest readRequest = new MockHttpServletRequest("GET", "/articles/77/comments");
+        readRequest.setServletPath("/articles/77/comments");
+        MockHttpServletResponse readResponse = new MockHttpServletResponse();
+
+        assertTrue(interceptor.preHandle(readRequest, readResponse, new Object()));
+        assertEquals(200, readResponse.getStatus());
+
+        for (String[] route : new String[][] {
+            {"POST", "/articles/77/comments"},
+            {"DELETE", "/articles/77/comments/9"},
+            {"POST", "/articles/77/comments/9/replies"},
+            {"POST", "/articles/77/comments/9/like"},
+            {"DELETE", "/articles/77/comments/9/like"}
+        }) {
+            MockHttpServletRequest request = new MockHttpServletRequest(route[0], route[1]);
+            request.setServletPath(route[1]);
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            boolean allowed = interceptor.preHandle(request, response, new Object());
+
+            assertFalse(allowed);
+            assertEquals(401, response.getStatus());
+        }
+    }
+
+    @Test
     void shouldRejectRoutesNotificationsAndPreferencesWithoutToken() throws Exception {
         for (String[] route : new String[][] {
             {"GET", "/user/saved-routes"},

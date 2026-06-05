@@ -1326,6 +1326,27 @@ export type UserReadingHistory = {
   lastViewedAt?: string | null
 }
 
+export type ArticleComment = {
+  id: number
+  articleId: number
+  parentId: number | null
+  rootId: number | null
+  authorId: number
+  authorDisplayName: string
+  authorAvatarUrl?: string | null
+  replyToUserId?: number | null
+  replyToDisplayName?: string | null
+  content: string
+  status?: 'PUBLISHED' | 'HIDDEN' | 'DELETED'
+  deleted?: boolean
+  likeCount: number
+  likedByCurrentUser: boolean
+  replyCount: number
+  replies: ArticleComment[]
+  createdAt: string | null
+  updatedAt: string | null
+}
+
 export type UserSavedRoute = {
   id?: number | string | null
   targetType: 'CRAFTING_ITEM'
@@ -1398,6 +1419,9 @@ export type UserArticle = {
   publishedAt: string | null
   authorId: number | null
   authorDisplayName: string | null
+  authorAvatarUrl?: string | null
+  viewCount?: number | null
+  favoriteCount?: number | null
   createdAt: string | null
   updatedAt: string | null
 }
@@ -1411,6 +1435,9 @@ export type PublicUserArticle = {
   publishedAt: string | null
   authorId: number | null
   authorDisplayName: string | null
+  authorAvatarUrl?: string | null
+  viewCount?: number | null
+  favoriteCount?: number | null
 }
 
 export type PublicUserProfile = {
@@ -1428,4 +1455,13 @@ export type UserArticleUpsertPayload = {
   summary?: string | null
   coverImage?: string | null
   contentHtml: string
+}
+
+export type UserArticleUploadedImage = {
+  bucket: string
+  objectKey: string
+  url: string
+  originalFilename?: string | null
+  contentType?: string | null
+  size: number
 }

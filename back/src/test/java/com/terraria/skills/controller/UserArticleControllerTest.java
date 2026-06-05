@@ -7,21 +7,26 @@ import com.terraria.skills.config.ArticleReviewProperties;
 import com.terraria.skills.dto.ArticleDTO;
 import com.terraria.skills.dto.ArticleReviewStatus;
 import com.terraria.skills.dto.ArticleStatus;
+import com.terraria.skills.dto.FileUploadResultDTO;
 import com.terraria.skills.dto.UserArticleUpsertRequestDTO;
 import com.terraria.skills.entity.Article;
 import com.terraria.skills.mapper.ArticleMapper;
 import com.terraria.skills.mapper.ArticleReviewLogMapper;
 import com.terraria.skills.service.ArticleService;
+import com.terraria.skills.service.ObjectStorageService;
 import com.terraria.skills.service.SecurityAuditService;
 import com.terraria.skills.service.UserNotificationService;
 import com.terraria.skills.service.impl.ArticleServiceImpl;
+import com.terraria.skills.service.impl.UserAvatarUrlResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.multipart.MultipartFile;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -37,6 +42,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -51,11 +57,12 @@ class UserArticleControllerTest {
     class ControllerRoutes {
 
         private final ArticleService articleService = mock(ArticleService.class);
+        private final ObjectStorageService objectStorageService = mock(ObjectStorageService.class);
         private MockMvc mockMvc;
 
         @BeforeEach
         void setUp() {
-            mockMvc = MockMvcBuilders.standaloneSetup(new UserArticleController(articleService))
+            mockMvc = MockMvcBuilders.standaloneSetup(new UserArticleController(articleService, objectStorageService))
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(new ObjectMapper()))
                 .build();
         }
@@ -108,6 +115,28 @@ class UserArticleControllerTest {
             verify(articleService).offlineUserArticle(userIdCaptor.capture(), eq(ARTICLE_ID));
             assertEquals(CURRENT_USER_ID, userIdCaptor.getValue());
         }
+
+        @Test
+        void shouldUploadArticleImageForCurrentUserThroughUserRoute() throws Exception {
+            FileUploadResultDTO uploadResult = new FileUploadResultDTO();
+            uploadResult.setBucket("terrapedia-images");
+            uploadResult.setObjectKey("articles/2026/06/04/image.png");
+            uploadResult.setUrl("http://localhost:9000/terrapedia-images/articles/2026/06/04/image.png");
+            uploadResult.setContentType("image/png");
+            uploadResult.setSize(4);
+            when(objectStorageService.uploadItemImage(any(MultipartFile.class), eq("articles"))).thenReturn(uploadResult);
+
+            MockMultipartFile file = new MockMultipartFile("file", "image.png", "image/png", new byte[] {1, 2, 3, 4});
+
+            mockMvc.perform(multipart("/user/articles/images")
+                    .file(file)
+                    .requestAttr(UserAuthenticationInterceptor.USER_CLAIMS_ATTRIBUTE, claims(CURRENT_USER_ID)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.objectKey").value("articles/2026/06/04/image.png"))
+                .andExpect(jsonPath("$.data.url").value("http://localhost:9000/terrapedia-images/articles/2026/06/04/image.png"));
+
+            verify(objectStorageService).uploadItemImage(any(MultipartFile.class), eq("articles"));
+        }
     }
 
     @Nested
@@ -117,6 +146,7 @@ class UserArticleControllerTest {
         private ArticleReviewLogMapper articleReviewLogMapper;
         private SecurityAuditService securityAuditService;
         private UserNotificationService userNotificationService;
+        private UserAvatarUrlResolver userAvatarUrlResolver;
         private ArticleServiceImpl articleService;
 
         @BeforeEach
@@ -125,12 +155,14 @@ class UserArticleControllerTest {
             articleReviewLogMapper = mock(ArticleReviewLogMapper.class);
             securityAuditService = mock(SecurityAuditService.class);
             userNotificationService = mock(UserNotificationService.class);
+            userAvatarUrlResolver = mock(UserAvatarUrlResolver.class);
             articleService = new ArticleServiceImpl(
                 articleMapper,
                 articleReviewLogMapper,
                 securityAuditService,
                 new ArticleReviewProperties(),
-                userNotificationService
+                userNotificationService,
+                userAvatarUrlResolver
             );
         }
 

@@ -24,9 +24,26 @@ assertIncludes(
 assertIncludes(navPath, nav, 'class="nav-menu-label"', 'resource menu label must be wrapped for narrow viewport control')
 assertIncludes(navPath, nav, 'class="nav-menu-caret"', 'resource menu caret must be wrapped for narrow viewport control')
 assertIncludes(navPath, nav, '@click.stop="openMenu(\'resources\')"', 'resource menu trigger must open on touch/click, not only hover')
+assertIncludes(navPath, nav, 'class="nav-notification-link"', 'top navigation must expose notifications outside the account dropdown')
+assertIncludes(navPath, nav, 'class="nav-notification-count"', 'top navigation notification link must show unread count without opening the account menu')
+assertIncludes(navPath, nav, 'class="nav-user-article-link"', 'top navigation must expose the current user article workspace')
+assertIncludes(navPath, nav, 'class="account-theme-switcher"', 'theme controls must move into the account menu instead of occupying primary nav space')
+
+const siteActionsStart = nav.indexOf('<div class="site-actions">')
+const accountMenuStart = nav.indexOf('<div\n        class="account-menu"')
+if (siteActionsStart < 0 || accountMenuStart < 0) {
+  violations.push(`${navPath}: navigation must keep recognizable site-actions and account-menu sections`)
+} else {
+  const visibleActions = nav.slice(siteActionsStart, accountMenuStart)
+  if (visibleActions.includes('class="theme-toggle theme-selector"')) {
+    violations.push(`${navPath}: primary nav actions must not keep the multi-choice theme selector inline`)
+  }
+}
 
 const cssPath = 'assets/css/mobile-typography-fixes.css'
 const css = read(cssPath)
+const lightCssPath = 'assets/css/light-theme-contrast-fixes.css'
+const lightCss = read(lightCssPath)
 
 for (const [marker, message] of [
   [
@@ -38,12 +55,12 @@ for (const [marker, message] of [
     'narrow mobile header must hide the brand copy to keep actions aligned',
   ],
   [
-    '.site-actions .theme-toggle {\n    width: 136px;\n    min-width: 136px;',
-    'narrow mobile theme selector must keep its labels without squeezing the resource menu',
+    '.site-actions .nav-notification-link {\n    max-width: 92px;',
+    'narrow mobile notification link must stay visible without consuming the user menu space',
   ],
   [
-    '.site-actions .theme-choice {\n    grid-template-columns: 10px auto;',
-    'narrow mobile theme choices must remain readable labeled swatches',
+    '.site-actions .nav-user-article-link {\n    display: none;',
+    'narrow mobile header must hide the article workspace text link before hiding notifications',
   ],
   [
     '.site-actions .nav-menu-text-trigger {\n    min-width: 64px;',
@@ -72,6 +89,35 @@ for (const [marker, message] of [
 if (css.includes('.site-actions .nav-menu-label {\n    display: none;')) {
   violations.push(`${cssPath}: narrow mobile resource trigger must keep the visible label; compact the theme selector instead`)
 }
+
+for (const marker of [
+  ']) .nav-notification-link.has-unread {',
+  ']) .nav-notification-link.has-unread b {',
+  ']) .nav-notification-link.has-unread .nav-notification-count {',
+  '--nav-unread-bg',
+  '--nav-unread-fg',
+  '--nav-unread-count-bg',
+]) {
+  assertIncludes(
+    lightCssPath,
+    lightCss,
+    marker,
+    'light theme contrast fixes must explicitly protect unread notification color from generic link/text rules',
+  )
+}
+
+for (const forbidden of ['#2f4f25', '#172915']) {
+  if (lightCss.includes(forbidden)) {
+    violations.push(`${lightCssPath}: unread notification must use theme-specific nav tokens instead of hard-coded green ${forbidden}`)
+  }
+}
+
+assertIncludes(
+  'assets/css/hifi-preview.css',
+  read('assets/css/hifi-preview.css'),
+  '.nav-notification-link b,\n.nav-user-article-link b {\n  display: block;',
+  'notification label must reset generic b badge styling so unread text stays clean and readable',
+)
 
 if (violations.length) {
   console.error(violations.join('\n'))

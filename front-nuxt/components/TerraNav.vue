@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useThemeStore } from '../stores/theme'
+import type { SiteTheme } from '../stores/theme'
 
 const route = useRoute()
 const themeStore = useThemeStore()
@@ -74,11 +75,30 @@ const accountInitials = computed(() => {
   return Array.from(source.trim()).slice(0, 2).join('').toUpperCase() || 'TP'
 })
 
+const unreadNotificationCount = computed(() => Number(notificationsStore.unreadCount || 0))
+const navNotificationLabel = computed(() => unreadNotificationCount.value > 0 ? '新回复' : '消息')
+
 const logout = async () => {
   await authStore.logout()
   closeMenu()
   if (route.path.startsWith('/user') && route.meta.requiresUserAuth) {
     await navigateTo('/user/login')
+  }
+}
+
+const selectThemePreference = async (nextTheme: SiteTheme) => {
+  themeStore.setTheme(nextTheme)
+
+  if (!authStore.isAuthenticated) {
+    return
+  }
+
+  try {
+    await preferencesStore.save({
+      themePreference: nextTheme,
+    })
+  } catch {
+    // Keep the immediate local theme switch; the preferences store exposes the save error.
   }
 }
 
@@ -121,28 +141,26 @@ onBeforeUnmount(closeMenu)
         <span class="sprite-icon icon-search compact" aria-hidden="true"></span>
       </a>
 
-      <div
-        class="theme-toggle theme-selector"
-        :class="{ 'is-switching': themeStore.isSwitching }"
-        role="radiogroup"
-        aria-label="主题"
+      <a
+        class="nav-notification-link"
+        :class="{ active: isActive('/user/notifications'), 'has-unread': unreadNotificationCount > 0 }"
+        href="/user/notifications"
+        :aria-label="unreadNotificationCount > 0 ? `通知中心，${unreadNotificationCount} 条未读消息` : '通知中心'"
       >
-        <button
-          v-for="option in themeOptions"
-          :key="option.value"
-          class="theme-choice"
-          :class="[`theme-choice-${option.value}`, { active: themeStore.theme === option.value }]"
-          type="button"
-          role="radio"
-          :aria-checked="themeStore.theme === option.value"
-          :aria-label="`切换到${option.label}主题`"
-          @click="themeStore.setTheme(option.value)"
-          @dblclick="themeStore.cycleTheme"
-        >
-          <span aria-hidden="true"></span>
-          <b>{{ option.shortLabel }}</b>
-        </button>
-      </div>
+        <span class="sprite-icon icon-notification compact" aria-hidden="true"></span>
+        <b>{{ navNotificationLabel }}</b>
+        <em v-if="unreadNotificationCount" class="nav-notification-count">{{ unreadNotificationCount }}</em>
+      </a>
+
+      <a
+        class="nav-user-article-link"
+        :class="{ active: isActive('/user/articles') }"
+        href="/user/articles"
+        aria-label="我的文章"
+      >
+        <span class="sprite-icon icon-article compact" aria-hidden="true"></span>
+        <b>我的文章</b>
+      </a>
 
       <div
         class="nav-menu"
@@ -244,13 +262,62 @@ onBeforeUnmount(closeMenu)
               <em>{{ authStore.isAuthenticated ? authStore.user?.email : '访客账号' }}</em>
             </div>
           </div>
-          <a href="/user" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-user menu-icon" aria-hidden="true"></span><span><b>用户中心</b><span>收藏、投稿、设置入口</span></span></a>
-          <a href="/user/favorites" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-favorites menu-icon" aria-hidden="true"></span><span><b>收藏夹</b><span>保存物品和路线</span></span></a>
-          <a href="/user/routes" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-crafting menu-icon" aria-hidden="true"></span><span><b>保存路线</b><span>制作树路线记录</span></span></a>
-          <a href="/user/notifications" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-notification menu-icon" aria-hidden="true"></span><span><b>通知中心</b><span>{{ notificationsStore.unreadCount }} 条未读</span></span></a>
-          <a href="/user/articles" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-article menu-icon" aria-hidden="true"></span><span><b>我的文章</b><span>草稿和投稿状态</span></span></a>
-          <a href="/user/settings" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-settings menu-icon" aria-hidden="true"></span><span><b>账号设置</b><span>显示偏好和公开资料</span></span></a>
-          <a v-if="authStore.isAuthenticated" href="/user/login" :tabindex="menuLinkTabIndex('account')" @click.prevent="logout"><span class="sprite-icon icon-close menu-icon" aria-hidden="true"></span><span><b>退出登录</b><span>清除当前用户会话</span></span></a>
+          <div class="account-menu-grid" aria-label="用户快捷入口">
+            <a href="/user" :tabindex="menuLinkTabIndex('account')" aria-label="用户中心" @click="closeMenu">
+              <span class="sprite-icon icon-user menu-icon" aria-hidden="true"></span><b>用户中心</b>
+            </a>
+            <a href="/user/favorites" :tabindex="menuLinkTabIndex('account')" aria-label="收藏夹" @click="closeMenu">
+              <span class="sprite-icon icon-favorites menu-icon" aria-hidden="true"></span><b>收藏夹</b>
+            </a>
+            <a href="/user/routes" :tabindex="menuLinkTabIndex('account')" aria-label="保存路线" @click="closeMenu">
+              <span class="sprite-icon icon-crafting menu-icon" aria-hidden="true"></span><b>保存路线</b>
+            </a>
+            <a href="/user/notifications" :tabindex="menuLinkTabIndex('account')" aria-label="通知中心" @click="closeMenu">
+              <span class="sprite-icon icon-notification menu-icon" aria-hidden="true"></span>
+              <b>通知中心</b>
+              <em v-if="notificationsStore.unreadCount">{{ notificationsStore.unreadCount }}</em>
+            </a>
+            <a href="/user/articles" :tabindex="menuLinkTabIndex('account')" aria-label="我的文章" @click="closeMenu">
+              <span class="sprite-icon icon-article menu-icon" aria-hidden="true"></span><b>我的文章</b>
+            </a>
+            <a href="/user/settings" :tabindex="menuLinkTabIndex('account')" aria-label="账号设置" @click="closeMenu">
+              <span class="sprite-icon icon-settings menu-icon" aria-hidden="true"></span><b>账号设置</b>
+            </a>
+          </div>
+          <div class="account-theme-switcher">
+            <span>主题</span>
+            <div
+              class="theme-toggle theme-selector account-theme-toggle"
+              :class="{ 'is-switching': themeStore.isSwitching }"
+              role="radiogroup"
+              aria-label="主题"
+            >
+              <button
+                v-for="option in themeOptions"
+                :key="option.value"
+                class="theme-choice"
+                :class="[`theme-choice-${option.value}`, { active: themeStore.theme === option.value }]"
+                type="button"
+                role="radio"
+                :aria-checked="themeStore.theme === option.value"
+                :aria-label="`切换到${option.label}主题`"
+                :disabled="preferencesStore.mutating"
+                @click="selectThemePreference(option.value)"
+              >
+                <span aria-hidden="true"></span>
+                <b>{{ option.shortLabel }}</b>
+              </button>
+            </div>
+          </div>
+          <a
+            v-if="authStore.isAuthenticated"
+            class="account-menu-logout"
+            href="/user/login"
+            :tabindex="menuLinkTabIndex('account')"
+            @click.prevent="logout"
+          >
+            <span class="sprite-icon icon-close menu-icon" aria-hidden="true"></span><b>退出登录</b>
+          </a>
         </div>
       </div>
     </div>

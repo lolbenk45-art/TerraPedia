@@ -1,9 +1,11 @@
 import type {
   ApiResponse,
+  ArticleComment,
   Pagination,
   FavoriteTargetType,
   UserHistoryTargetType,
   UserArticle,
+  UserArticleUploadedImage,
   UserArticleUpsertPayload,
   UserAuthResponse,
   UserFavorite,
@@ -45,6 +47,59 @@ type UserSavedRouteListResponse = {
 type UserNotificationListResponse = {
   items: UserNotification[]
   pagination: Pagination
+}
+
+type ArticleCommentListResult = {
+  records: ArticleComment[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+const normalizeArticleCommentPagination = (raw: Pagination | null | undefined, page: number, limit: number, recordCount: number): ArticleCommentListResult['pagination'] => {
+  const normalizedLimit = Number(raw?.limit ?? raw?.size ?? limit)
+  const total = Number(raw?.total ?? recordCount)
+  const totalPages = Number(raw?.totalPages ?? Math.max(1, Math.ceil(total / Math.max(1, normalizedLimit))))
+  return {
+    total,
+    page: Number(raw?.page ?? page),
+    limit: normalizedLimit,
+    totalPages,
+  }
+}
+
+const normalizeArticleComment = (raw: Partial<ArticleComment> | null | undefined): ArticleComment => ({
+  id: Number(raw?.id ?? 0),
+  articleId: Number(raw?.articleId ?? 0),
+  parentId: raw?.parentId == null ? null : Number(raw.parentId),
+  rootId: raw?.rootId == null ? null : Number(raw.rootId),
+  authorId: Number(raw?.authorId ?? 0),
+  authorDisplayName: raw?.authorDisplayName || 'TerraPedia 用户',
+  authorAvatarUrl: raw?.authorAvatarUrl ?? null,
+  replyToUserId: raw?.replyToUserId == null ? null : Number(raw.replyToUserId),
+  replyToDisplayName: raw?.replyToDisplayName ?? null,
+  content: String(raw?.content ?? ''),
+  status: raw?.status ?? 'PUBLISHED',
+  deleted: Boolean(raw?.deleted ?? false),
+  likeCount: Number(raw?.likeCount ?? 0),
+  likedByCurrentUser: Boolean(raw?.likedByCurrentUser ?? false),
+  replyCount: Number(raw?.replyCount ?? 0),
+  replies: Array.isArray(raw?.replies) ? raw.replies.map(normalizeArticleComment).filter(item => item.id > 0) : [],
+  createdAt: raw?.createdAt ?? null,
+  updatedAt: raw?.updatedAt ?? null,
+})
+
+const normalizeArticleCommentListResult = (response: ApiResponse<ArticleComment[]>, page: number, limit: number): ArticleCommentListResult => {
+  const records = Array.isArray(response.data)
+    ? response.data.map(normalizeArticleComment).filter(item => item.id > 0)
+    : []
+  return {
+    records,
+    pagination: normalizeArticleCommentPagination(response.pagination, page, limit, records.length),
+  }
 }
 
 const userFetch = async <T>(path: string, options: Record<string, unknown> = {}) => {
@@ -98,6 +153,49 @@ const toArticlePayload = (payload: UserArticleUpsertPayload) => ({
   coverImage: payload.coverImage?.trim() || null,
   contentHtml: payload.contentHtml.trim(),
 })
+
+const toAbsoluteUploadUrl = (value: unknown): string => {
+  const raw = String(value ?? '').trim()
+  if (!raw) return ''
+  if (raw.includes('/terrapedia-images/')) {
+    return `/preview-assets/terrapedia-images/${raw.split('/terrapedia-images/')[1]}`
+  }
+  if (/^https?:/i.test(raw)) return raw
+  if (raw.startsWith('//')) return `https:${raw}`
+  if (/^[a-z0-9.-]+(?::\d+)?\/.+/i.test(raw)) return `http://${raw}`
+  if (import.meta.client) {
+    try {
+      return new URL(raw, window.location.origin).toString()
+    } catch {
+      return raw
+    }
+  }
+  return raw
+}
+
+const normalizeUserArticleUploadedImage = (raw: Partial<UserArticleUploadedImage> | null | undefined): UserArticleUploadedImage => ({
+  bucket: String(raw?.bucket ?? ''),
+  objectKey: String(raw?.objectKey ?? ''),
+  url: toAbsoluteUploadUrl(raw?.url),
+  originalFilename: raw?.originalFilename ?? null,
+  contentType: raw?.contentType ?? null,
+  size: Number(raw?.size ?? 0),
+})
+
+const dataUrlToUserArticleImageFile = (dataUrl: string, index: number) => {
+  const match = dataUrl.match(/^data:(image\/(?:png|jpe?g|webp|gif));base64,([a-z0-9+/=]+)$/i)
+  if (!match?.[1] || !match[2]) {
+    throw new Error('正文包含无法保存的本地图片。')
+  }
+  const mimeType = match[1].toLowerCase()
+  const binary = atob(match[2])
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  const extension = mimeType === 'image/jpeg' ? '.jpg' : `.${mimeType.split('/')[1]}`
+  return new File([bytes], `user-article-inline-${Date.now()}-${index}${extension}`, { type: mimeType })
+}
 
 const normalizeFavoriteTargetType = (value: unknown): FavoriteTargetType => {
   const targetType = String(value ?? 'ITEM').toUpperCase()
@@ -328,6 +426,40 @@ export const offlineUserArticle = async (id: number | string): Promise<UserArtic
 export const deleteUserArticle = async (id: number | string): Promise<UserArticle> =>
   normalizeUserArticle(unwrapApiResponse(await userFetch<UserArticle>(`/user/articles/${id}`, { method: 'DELETE' })))
 
+export const uploadUserArticleImage = async (file: File): Promise<UserArticleUploadedImage> => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return normalizeUserArticleUploadedImage(unwrapApiResponse(await userFetch<UserArticleUploadedImage>('/user/articles/images', { method: 'POST', body: formData })))
+}
+
+export const uploadUserArticleEmbeddedImages = async (contentHtml: string): Promise<string> => {
+  if (!import.meta.client || !contentHtml.includes('data:image/')) return contentHtml
+  const root = document.createElement('div')
+  root.innerHTML = contentHtml
+  const imageNodes = Array.from(root.querySelectorAll('img[src^="data:image/"]'))
+  if (!imageNodes.length) return contentHtml
+
+  const uploadedUrlMap = new Map<string, string>()
+  let index = 0
+  for (const imageNode of imageNodes) {
+    const src = String(imageNode.getAttribute('src') || '').trim()
+    if (!src) continue
+    let uploadedUrl = uploadedUrlMap.get(src)
+    if (!uploadedUrl) {
+      const uploaded = await uploadUserArticleImage(dataUrlToUserArticleImageFile(src, index))
+      index += 1
+      if (!uploaded.url) throw new Error('正文图片上传失败。')
+      uploadedUrl = uploaded.url
+      uploadedUrlMap.set(src, uploadedUrl)
+    }
+    imageNode.setAttribute('src', uploadedUrl)
+    imageNode.setAttribute('loading', 'lazy')
+    imageNode.setAttribute('decoding', 'async')
+  }
+
+  return root.innerHTML
+}
+
 export const fetchUserFavorites = async (params: { type?: UserFavoriteTypeFilter, page?: number, limit?: number } = {}): Promise<UserFavoriteListResponse> => {
   const page = params.page ?? 1
   const limit = params.limit ?? 20
@@ -410,6 +542,49 @@ export const fetchUserPreferences = async (): Promise<UserPreferences> =>
 
 export const updateUserPreferences = async (payload: UserPreferencesPayload): Promise<UserPreferences> =>
   normalizePreferences(unwrapApiResponse(await userFetch<UserPreferences>('/user/preferences', { method: 'PATCH', body: payload })))
+
+export const fetchArticleComments = async (articleId: number | string, page = 1, limit = 10): Promise<ArticleCommentListResult> => {
+  const response = await userFetch<ArticleComment[]>(`/articles/${articleId}/comments`, {
+    query: { page, limit },
+  })
+  return normalizeArticleCommentListResult(response as ApiResponse<ArticleComment[]>, page, limit)
+}
+
+export const fetchArticleCommentReplies = async (articleId: number | string, commentId: number | string, page = 1, limit = 10): Promise<ArticleCommentListResult> => {
+  const response = await userFetch<ArticleComment[]>(`/articles/${articleId}/comments/${commentId}/replies`, {
+    query: { page, limit },
+  })
+  return normalizeArticleCommentListResult(response as ApiResponse<ArticleComment[]>, page, limit)
+}
+
+export const createArticleComment = async (articleId: number | string, content: string): Promise<ArticleComment> =>
+  normalizeArticleComment(unwrapApiResponse(await userFetch<ArticleComment>(`/articles/${articleId}/comments`, {
+    method: 'POST',
+    body: { content },
+  })))
+
+export const createArticleCommentReply = async (
+  articleId: number | string,
+  commentId: number | string,
+  content: string,
+  replyToCommentId?: number | string,
+): Promise<ArticleComment> =>
+  normalizeArticleComment(unwrapApiResponse(await userFetch<ArticleComment>(`/articles/${articleId}/comments/${commentId}/replies`, {
+    method: 'POST',
+    body: {
+      content,
+      replyToCommentId,
+    },
+  })))
+
+export const deleteOwnArticleComment = async (articleId: number | string, commentId: number | string): Promise<ArticleComment> =>
+  normalizeArticleComment(unwrapApiResponse(await userFetch<ArticleComment>(`/articles/${articleId}/comments/${commentId}`, { method: 'DELETE' })))
+
+export const likeArticleComment = async (articleId: number | string, commentId: number | string): Promise<ArticleComment> =>
+  normalizeArticleComment(unwrapApiResponse(await userFetch<ArticleComment>(`/articles/${articleId}/comments/${commentId}/like`, { method: 'POST' })))
+
+export const unlikeArticleComment = async (articleId: number | string, commentId: number | string): Promise<ArticleComment> =>
+  normalizeArticleComment(unwrapApiResponse(await userFetch<ArticleComment>(`/articles/${articleId}/comments/${commentId}/like`, { method: 'DELETE' })))
 
 export const fetchUserFavoriteStatuses = async (
   targetType: FavoriteTargetType,

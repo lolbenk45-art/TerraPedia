@@ -2,6 +2,8 @@
 definePageMeta({ requiresUserAuth: true })
 
 import type { UserArticle } from '~/types/public-api'
+import UserArticleRichEditor from '~/components/user/UserArticleRichEditor.vue'
+import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
 
 const route = useRoute()
 const authStore = useUserAuthStore()
@@ -9,6 +11,10 @@ const article = ref<UserArticle | null>(null)
 const error = ref('')
 const success = ref('')
 const initialArticleLoaded = ref(false)
+const coverInputRef = ref<HTMLInputElement | null>(null)
+const pendingCoverFile = ref<File | null>(null)
+const coverPreviewUrl = ref('')
+const uploadingCover = ref(false)
 
 const form = reactive({
   title: '',
@@ -28,6 +34,7 @@ const canEditArticle = computed(() => isDraftLike.value || isOfflineArticle.valu
 const canOfflineArticle = computed(() => isPublishedArticle.value)
 const canDeleteArticle = computed(() => isDraftLike.value || isOfflineArticle.value)
 const articleLoading = computed(() => authStore.articlesLoading || !initialArticleLoaded.value)
+const coverPreviewSrc = computed(() => coverPreviewUrl.value || resolvePreviewImageUrl(form.coverImage))
 
 const formatReviewStatus = (status: string) => {
   const map: Record<string, string> = {
@@ -55,6 +62,61 @@ const syncForm = (nextArticle: UserArticle) => {
   form.summary = nextArticle.summary || ''
   form.coverImage = nextArticle.coverImage || ''
   form.contentHtml = nextArticle.contentHtml || nextArticle.contentMarkdown || ''
+  pendingCoverFile.value = null
+  coverPreviewUrl.value = ''
+}
+
+const reportEditorError = (message: string) => {
+  error.value = message
+}
+
+const validateCoverImage = (file: File) => {
+  if (!file.type.startsWith('image/')) {
+    error.value = '请选择图片文件。'
+    return false
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    error.value = '封面图片不能超过 5MB。'
+    return false
+  }
+  return true
+}
+
+const openCoverPicker = () => {
+  if (!canEditArticle.value) return
+  coverInputRef.value?.click()
+}
+
+const readCoverImageAsDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader()
+  reader.onload = () => resolve(String(reader.result || ''))
+  reader.onerror = () => reject(new Error('封面读取失败。'))
+  reader.readAsDataURL(file)
+})
+
+const handleCoverSelected = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  error.value = ''
+  success.value = ''
+  if (!validateCoverImage(file)) {
+    input.value = ''
+    return
+  }
+  uploadingCover.value = true
+  try {
+    pendingCoverFile.value = file
+    coverPreviewUrl.value = await readCoverImageAsDataUrl(file)
+    success.value = '封面已选择，保存草稿后上传生效。'
+  } catch (exception: unknown) {
+    pendingCoverFile.value = null
+    coverPreviewUrl.value = ''
+    error.value = exception instanceof Error ? exception.message : '封面读取失败。'
+  } finally {
+    uploadingCover.value = false
+    input.value = ''
+  }
 }
 
 const loadArticle = async () => {
@@ -73,15 +135,18 @@ const saveDraft = async () => {
   if (!canEditArticle.value) return
   error.value = ''
   success.value = ''
+  const wasOffline = isOfflineArticle.value
   try {
+    const uploadedCover = pendingCoverFile.value ? await uploadUserArticleImage(pendingCoverFile.value) : null
+    const contentHtml = await uploadUserArticleEmbeddedImages(form.contentHtml)
     syncForm(await authStore.updateUserArticle(articleId.value, {
       title: form.title,
       slug: form.slug,
       summary: form.summary,
-      coverImage: form.coverImage,
-      contentHtml: form.contentHtml,
+      coverImage: uploadedCover?.url || form.coverImage,
+      contentHtml,
     }))
-    success.value = isOfflineArticle.value ? '文章已保存为草稿，可重新提交审核。' : '草稿已保存。'
+    success.value = wasOffline ? '文章已保存为草稿，可重新提交审核。' : '草稿已保存。'
   } catch (exception: unknown) {
     error.value = exception instanceof Error ? exception.message : '草稿保存失败。'
   }
@@ -175,12 +240,19 @@ onMounted(() => {
         </label>
         <label class="editor-field">
           <span>封面地址</span>
-          <input v-model.trim="form.coverImage" type="url" maxlength="500" placeholder="https://..." :disabled="!canEditArticle" />
+          <input v-model.trim="form.coverImage" type="url" maxlength="500" placeholder="https://..." :disabled="!canEditArticle" @input="pendingCoverFile = null; coverPreviewUrl = ''" />
         </label>
-        <label class="editor-body-placeholder">
+        <div class="article-cover-actions">
+          <button class="secondary-button" type="button" :disabled="authStore.submitting || articleLoading || uploadingCover || !canEditArticle" @click="openCoverPicker">
+            {{ uploadingCover ? '封面读取中...' : '选择封面图片' }}
+          </button>
+          <input ref="coverInputRef" class="article-hidden-file" type="file" accept="image/*" @change="handleCoverSelected" />
+        </div>
+        <img v-if="coverPreviewSrc" class="article-cover-preview" :src="coverPreviewSrc" alt="封面预览" />
+        <div class="editor-body-placeholder">
           <b>正文</b>
-          <textarea v-model="form.contentHtml" rows="14" required placeholder="输入 HTML 或后端兼容的正文内容" :disabled="!canEditArticle"></textarea>
-        </label>
+          <UserArticleRichEditor v-model="form.contentHtml" :disabled="!canEditArticle" @error="reportEditorError" />
+        </div>
       </section>
 
       <aside class="editor-side support-panel">
@@ -241,3 +313,25 @@ onMounted(() => {
     <TerraFooter />
   </section>
 </template>
+
+<style scoped>
+.article-cover-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.article-hidden-file {
+  display: none;
+}
+
+.article-cover-preview {
+  display: block;
+  width: min(100%, 520px);
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid color-mix(in srgb, var(--accent-gold) 22%, var(--index-line));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--index-surface) 88%, #101827);
+}
+</style>

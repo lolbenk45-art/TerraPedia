@@ -71,7 +71,18 @@ public class UserAuthenticationInterceptor implements HandlerInterceptor {
             || path.startsWith("/user/saved-routes")
             || path.startsWith("/user/notifications")
             || path.startsWith("/user/preferences")
-            || path.startsWith("/user/articles");
+            || path.startsWith("/user/articles")
+            || isArticleCommentWrite(path, method);
+    }
+
+    private boolean isArticleCommentWrite(String path, String method) {
+        if (!(HttpMethod.POST.matches(method) || HttpMethod.DELETE.matches(method))) {
+            return false;
+        }
+        return path.matches("^/articles/[1-9]\\d*/comments$")
+            || path.matches("^/articles/[1-9]\\d*/comments/[1-9]\\d*$")
+            || path.matches("^/articles/[1-9]\\d*/comments/[1-9]\\d*/replies$")
+            || path.matches("^/articles/[1-9]\\d*/comments/[1-9]\\d*/like$");
     }
 
     private String resolveToken(HttpServletRequest request) {
