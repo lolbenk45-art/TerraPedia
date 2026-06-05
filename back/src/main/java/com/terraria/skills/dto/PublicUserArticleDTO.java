@@ -1,6 +1,7 @@
 package com.terraria.skills.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Builder;
 import lombok.Data;
 
@@ -22,4 +23,9 @@ public class PublicUserArticleDTO implements Serializable {
     private LocalDateTime publishedAt;
     private Long authorId;
     private String authorDisplayName;
+    private String authorAvatarUrl;
+    @JsonIgnore
+    private String authorAvatarObjectKey;
+    private Long viewCount;
+    private Long favoriteCount;
 }

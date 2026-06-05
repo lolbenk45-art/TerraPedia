@@ -44,6 +44,9 @@ class PublicUserControllerTest {
             .summary("Published route article")
             .authorId(42L)
             .authorDisplayName("Guide Writer")
+            .authorAvatarUrl("/api/files/objects/avatars/42/avatar.png")
+            .viewCount(18L)
+            .favoriteCount(5L)
             .publishedAt(LocalDateTime.of(2026, 6, 1, 12, 0))
             .build();
 
@@ -68,6 +71,9 @@ class PublicUserControllerTest {
             .andExpect(jsonPath("$.data.publishedArticleCount").value(3))
             .andExpect(jsonPath("$.data.publishedArticles[0].id").value(7))
             .andExpect(jsonPath("$.data.publishedArticles[0].slug").value("boss-route-notes"))
+            .andExpect(jsonPath("$.data.publishedArticles[0].authorAvatarUrl").value("/api/files/objects/avatars/42/avatar.png"))
+            .andExpect(jsonPath("$.data.publishedArticles[0].viewCount").value(18))
+            .andExpect(jsonPath("$.data.publishedArticles[0].favoriteCount").value(5))
             .andExpect(jsonPath("$.data.publishedArticles[0].reviewStatus").doesNotExist())
             .andExpect(jsonPath("$.data.publishedArticles[0].reviewComment").doesNotExist())
             .andExpect(jsonPath("$.data.publishedArticles[0].contentHtml").doesNotExist())

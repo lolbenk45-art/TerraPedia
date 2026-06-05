@@ -1,6 +1,7 @@
 package com.terraria.skills.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -22,6 +23,11 @@ public class ArticleDTO {
     private LocalDateTime publishedAt;
     private Long authorId;
     private String authorDisplayName;
+    private String authorAvatarUrl;
+    @JsonIgnore
+    private String authorAvatarObjectKey;
+    private Long viewCount;
+    private Long favoriteCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

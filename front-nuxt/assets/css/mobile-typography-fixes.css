@@ -192,26 +192,36 @@ textarea {
 
   .site-actions .secondary-button,
   .site-actions .primary-button,
-  .site-actions .theme-toggle,
+  .site-actions .nav-notification-link,
+  .site-actions .nav-user-article-link,
   .site-actions .nav-menu-text-trigger,
   .site-actions .icon-button,
   .site-actions .account-avatar-link {
     min-height: 44px;
   }
 
-  .site-actions .theme-toggle,
+  .site-actions .nav-notification-link,
+  .site-actions .nav-user-article-link,
   .site-actions .nav-menu-text-trigger,
   .site-actions .icon-button,
   .site-actions .account-avatar-link {
     flex: 0 0 auto;
   }
 
-  .site-actions .theme-toggle {
-    min-width: 82px;
+  .site-actions .nav-notification-link {
+    max-width: 92px;
+    padding-right: 8px;
+    padding-left: 8px;
   }
 
-  .site-actions .theme-choice {
-    min-width: 24px;
+  .site-actions .nav-notification-link b {
+    max-width: 40px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .site-actions .nav-user-article-link {
+    display: none;
   }
 
   .site-actions .secondary-button,
@@ -284,7 +294,7 @@ textarea {
     top: 116px;
     right: 14px;
     left: auto;
-    width: min(286px, calc(100vw - 28px));
+    width: min(300px, calc(100vw - 28px));
   }
 
   .hero {
@@ -509,18 +519,6 @@ textarea {
     gap: 4px;
   }
 
-  .site-actions .theme-toggle {
-    width: 136px;
-    min-width: 136px;
-  }
-
-  .site-actions .theme-choice {
-    grid-template-columns: 10px auto;
-    min-width: 40px;
-    padding-left: 5px;
-    padding-right: 5px;
-  }
-
   .site-actions .nav-menu-text-trigger {
     min-width: 64px;
     padding-left: 8px;
@@ -536,7 +534,8 @@ textarea {
     width: auto;
   }
 
-  .site-actions .theme-toggle,
+  .site-actions .nav-notification-link,
+  .site-actions .nav-user-article-link,
   .site-actions .nav-menu-text-trigger,
   .site-actions .primary-button,
   .site-actions .secondary-button {

@@ -248,6 +248,7 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
                 && !normalized.startsWith("projectiles/")
                 && !normalized.startsWith("buffs/")
                 && !normalized.startsWith("bosses/")
+                && !normalized.startsWith("articles/")
         ) {
             throw new IllegalArgumentException("Unsupported object key");
         }
@@ -290,7 +291,7 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
         String normalizedDomain = trimToNull(entityDomain);
         if (normalizedDomain != null) {
             String lowered = normalizedDomain.toLowerCase(Locale.ROOT);
-            if ("items".equals(lowered) || "npcs".equals(lowered) || "projectiles".equals(lowered) || "buffs".equals(lowered) || "bosses".equals(lowered)) {
+            if ("items".equals(lowered) || "npcs".equals(lowered) || "projectiles".equals(lowered) || "buffs".equals(lowered) || "bosses".equals(lowered) || "articles".equals(lowered)) {
                 return lowered;
             }
         }

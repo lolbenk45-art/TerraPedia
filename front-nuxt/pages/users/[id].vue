@@ -29,6 +29,8 @@ const joinedLabel = computed(() => formatDate(profile.value?.joinedAt) || '加�
 const articleCountLabel = computed(() => `${Number(profile.value?.publishedArticleCount ?? 0)} 篇已发布文章`)
 const loading = computed(() => pending.value && !profile.value)
 const notFound = computed(() => !isValidUserId.value || (!pending.value && (!profile.value || error.value)))
+const articleViewCount = (article: { viewCount?: number | null }) => Math.max(0, Number(article.viewCount ?? 0))
+const articleFavoriteCount = (article: { favoriteCount?: number | null }) => Math.max(0, Number(article.favoriteCount ?? 0))
 
 useSeoMeta({
   title: () => `TerraPedia · ${displayName.value}`,
@@ -122,6 +124,7 @@ function publicArticlePath(slug?: string | null) {
               <div>
                 <b>{{ article.title }}</b>
                 <span>{{ article.summary || '这篇文章暂无摘要。' }}</span>
+                <small>{{ articleViewCount(article) }} 浏览 · {{ articleFavoriteCount(article) }} 收藏</small>
               </div>
               <span>{{ formatDate(article.publishedAt) || '发布时间未记录' }}</span>
               <em>查看</em>
@@ -165,5 +168,14 @@ function publicArticlePath(slug?: string | null) {
   font-size: 12px;
   font-style: normal;
   font-weight: 900;
+}
+
+.public-user-article-row small {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
 }
 </style>

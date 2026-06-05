@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.terraria.skills.mapper.ArticleCommentMapper">
+
+    <select id="countPublishedArticleComments" resultType="long">
+        SELECT COUNT(*)
+        FROM article_comments ac
+        INNER JOIN articles a ON a.id = ac.article_id
+            AND a.deleted = 0
+            AND a.status = 'PUBLISHED'
+        WHERE ac.article_id = #{articleId}
+          AND ac.deleted = 0
+          AND ac.status = 'PUBLISHED'
+          AND ac.parent_id IS NULL
+    </select>
+
+    <select id="selectPublishedArticleCommentsPage" resultType="com.terraria.skills.dto.ArticleCommentDTO">
+        SELECT
+            ac.id,
+            ac.article_id AS articleId,
+            ac.parent_id AS parentId,
+            ac.root_id AS rootId,
+            ac.author_id AS authorId,
+            u.display_name AS authorDisplayName,
+            u.avatar_url AS authorAvatarUrl,
+            u.avatar_object_key AS authorAvatarObjectKey,
+            ac.reply_to_user_id AS replyToUserId,
+            ru.display_name AS replyToDisplayName,
+            ac.content,
+            ac.like_count AS likeCount,
+            ac.reply_count AS replyCount,
+            ac.status,
+            (ac.deleted = 1) AS deleted,
+            ac.deleted_by_type AS deletedByType,
+            ac.deleted_by_id AS deletedById,
+            ac.deleted_by_name AS deletedByName,
+            ac.deleted_reason AS deletedReason,
+            ac.deleted_at AS deletedAt,
+            <choose>
+                <when test="currentUserId != null">
+                    CASE WHEN acl.id IS NULL THEN FALSE ELSE TRUE END AS likedByCurrentUser,
+                </when>
+                <otherwise>
+                    FALSE AS likedByCurrentUser,
+                </otherwise>
+            </choose>
+            ac.created_at AS createdAt,
+            ac.updated_at AS updatedAt
+        FROM article_comments ac
+        INNER JOIN articles a ON a.id = ac.article_id
+            AND a.deleted = 0
+            AND a.status = 'PUBLISHED'
+        LEFT JOIN users u ON u.id = ac.author_id AND u.deleted = 0
+        LEFT JOIN users ru ON ru.id = ac.reply_to_user_id AND ru.deleted = 0
+        <if test="currentUserId != null">
+            LEFT JOIN article_comment_likes acl ON acl.comment_id = ac.id
+                AND acl.user_id = #{currentUserId}
+                AND acl.deleted = 0
+        </if>
+        WHERE ac.article_id = #{articleId}
+          AND ac.deleted = 0
+          AND ac.status = 'PUBLISHED'
+          AND ac.parent_id IS NULL
+        ORDER BY ac.created_at DESC, ac.id DESC
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+
+    <select id="countPublishedArticleReplies" resultType="long">
+        SELECT COUNT(*)
+        FROM article_comments ac
+        INNER JOIN articles a ON a.id = ac.article_id
+            AND a.deleted = 0
+            AND a.status = 'PUBLISHED'
+        WHERE ac.article_id = #{articleId}
+          AND ac.root_id = #{rootCommentId}
+          AND ac.parent_id IS NOT NULL
+          AND ac.deleted = 0
+          AND ac.status = 'PUBLISHED'
+    </select>
+
+    <select id="selectPublishedArticleRepliesPage" resultType="com.terraria.skills.dto.ArticleCommentDTO">
+        SELECT
+            ac.id,
+            ac.article_id AS articleId,
+            ac.parent_id AS parentId,
+            ac.root_id AS rootId,
+            ac.author_id AS authorId,
+            u.display_name AS authorDisplayName,
+            u.avatar_url AS authorAvatarUrl,
+            u.avatar_object_key AS authorAvatarObjectKey,
+            ac.reply_to_user_id AS replyToUserId,
+            ru.display_name AS replyToDisplayName,
+            ac.content,
+            ac.like_count AS likeCount,
+            ac.reply_count AS replyCount,
+            ac.status,
+            (ac.deleted = 1) AS deleted,
+            ac.deleted_by_type AS deletedByType,
+            ac.deleted_by_id AS deletedById,
+            ac.deleted_by_name AS deletedByName,
+            ac.deleted_reason AS deletedReason,
+            ac.deleted_at AS deletedAt,
+            <choose>
+                <when test="currentUserId != null">
+                    CASE WHEN acl.id IS NULL THEN FALSE ELSE TRUE END AS likedByCurrentUser,
+                </when>
+                <otherwise>
+                    FALSE AS likedByCurrentUser,
+                </otherwise>
+            </choose>
+            ac.created_at AS createdAt,
+            ac.updated_at AS updatedAt
+        FROM article_comments ac
+        INNER JOIN articles a ON a.id = ac.article_id
+            AND a.deleted = 0
+            AND a.status = 'PUBLISHED'
+        LEFT JOIN users u ON u.id = ac.author_id AND u.deleted = 0
+        LEFT JOIN users ru ON ru.id = ac.reply_to_user_id AND ru.deleted = 0
+        <if test="currentUserId != null">
+            LEFT JOIN article_comment_likes acl ON acl.comment_id = ac.id
+                AND acl.user_id = #{currentUserId}
+                AND acl.deleted = 0
+        </if>
+        WHERE ac.article_id = #{articleId}
+          AND ac.root_id = #{rootCommentId}
+          AND ac.parent_id IS NOT NULL
+          AND ac.deleted = 0
+          AND ac.status = 'PUBLISHED'
+        ORDER BY ac.created_at ASC, ac.id ASC
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+
+    <select id="selectCommentById" resultType="com.terraria.skills.dto.ArticleCommentDTO">
+        SELECT
+            ac.id,
+            ac.article_id AS articleId,
+            ac.parent_id AS parentId,
+            ac.root_id AS rootId,
+            ac.author_id AS authorId,
+            u.display_name AS authorDisplayName,
+            u.avatar_url AS authorAvatarUrl,
+            u.avatar_object_key AS authorAvatarObjectKey,
+            ac.reply_to_user_id AS replyToUserId,
+            ru.display_name AS replyToDisplayName,
+            ac.content,
+            ac.like_count AS likeCount,
+            ac.reply_count AS replyCount,
+            ac.status,
+            (ac.deleted = 1) AS deleted,
+            ac.deleted_by_type AS deletedByType,
+            ac.deleted_by_id AS deletedById,
+            ac.deleted_by_name AS deletedByName,
+            ac.deleted_reason AS deletedReason,
+            ac.deleted_at AS deletedAt,
+            FALSE AS likedByCurrentUser,
+            ac.created_at AS createdAt,
+            ac.updated_at AS updatedAt
+        FROM article_comments ac
+        LEFT JOIN users u ON u.id = ac.author_id AND u.deleted = 0
+        LEFT JOIN users ru ON ru.id = ac.reply_to_user_id AND ru.deleted = 0
+        WHERE ac.id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="selectCommentByArticleAndId" resultType="com.terraria.skills.dto.ArticleCommentDTO">
+        SELECT
+            ac.id,
+            ac.article_id AS articleId,
+            ac.parent_id AS parentId,
+            ac.root_id AS rootId,
+            ac.author_id AS authorId,
+            u.display_name AS authorDisplayName,
+            u.avatar_url AS authorAvatarUrl,
+            u.avatar_object_key AS authorAvatarObjectKey,
+            ac.reply_to_user_id AS replyToUserId,
+            ru.display_name AS replyToDisplayName,
+            ac.content,
+            ac.like_count AS likeCount,
+            ac.reply_count AS replyCount,
+            ac.status,
+            (ac.deleted = 1) AS deleted,
+            ac.deleted_by_type AS deletedByType,
+            ac.deleted_by_id AS deletedById,
+            ac.deleted_by_name AS deletedByName,
+            ac.deleted_reason AS deletedReason,
+            ac.deleted_at AS deletedAt,
+            FALSE AS likedByCurrentUser,
+            ac.created_at AS createdAt,
+            ac.updated_at AS updatedAt
+        FROM article_comments ac
+        LEFT JOIN users u ON u.id = ac.author_id AND u.deleted = 0
+        LEFT JOIN users ru ON ru.id = ac.reply_to_user_id AND ru.deleted = 0
+        WHERE ac.id = #{id}
+          AND ac.article_id = #{articleId}
+        LIMIT 1
+    </select>
+
+    <update id="updateRootId">
+        UPDATE article_comments
+        SET root_id = #{rootId},
+            updated_at = NOW()
+        WHERE id = #{id}
+          AND article_id = #{articleId}
+    </update>
+
+    <update id="softDeleteOwnComment">
+        UPDATE article_comments
+        SET status = 'DELETED',
+            deleted = 1,
+            deleted_by_type = 'USER',
+            deleted_by_id = #{authorId},
+            deleted_at = NOW(),
+            updated_at = NOW()
+        WHERE id = #{id}
+          AND article_id = #{articleId}
+          AND author_id = #{authorId}
+          AND deleted = 0
+    </update>
+
+    <update id="incrementReplyCount">
+        UPDATE article_comments
+        SET reply_count = reply_count + 1,
+            updated_at = NOW()
+        WHERE id = #{id}
+          AND article_id = #{articleId}
+          AND deleted = 0
+          AND status = 'PUBLISHED'
+    </update>
+
+    <update id="decrementReplyCount">
+        UPDATE article_comments
+        SET reply_count = GREATEST(reply_count - 1, 0),
+            updated_at = NOW()
+        WHERE id = #{id}
+          AND article_id = #{articleId}
+    </update>
+
+    <insert id="insertLikeIgnore">
+        INSERT IGNORE INTO article_comment_likes (comment_id, article_id, user_id, deleted, created_at, updated_at)
+        VALUES (#{commentId}, #{articleId}, #{userId}, 0, NOW(), NOW())
+    </insert>
+
+    <update id="reactivateLike">
+        UPDATE article_comment_likes
+        SET deleted = 0,
+            updated_at = NOW()
+        WHERE comment_id = #{commentId}
+          AND article_id = #{articleId}
+          AND user_id = #{userId}
+          AND deleted = 1
+    </update>
+
+    <update id="deactivateLike">
+        UPDATE article_comment_likes
+        SET deleted = 1,
+            updated_at = NOW()
+        WHERE comment_id = #{commentId}
+          AND article_id = #{articleId}
+          AND user_id = #{userId}
+          AND deleted = 0
+    </update>
+
+    <update id="incrementLikeCount">
+        UPDATE article_comments
+        SET like_count = like_count + 1,
+            updated_at = NOW()
+        WHERE id = #{id}
+          AND article_id = #{articleId}
+          AND deleted = 0
+          AND status = 'PUBLISHED'
+    </update>
+
+    <update id="decrementLikeCount">
+        UPDATE article_comments
+        SET like_count = GREATEST(like_count - 1, 0),
+            updated_at = NOW()
+        WHERE id = #{id}
+          AND article_id = #{articleId}
+    </update>
+
+    <sql id="AdminCommentColumns">
+        ac.id,
+        ac.article_id AS articleId,
+        ac.parent_id AS parentId,
+        ac.root_id AS rootId,
+        ac.author_id AS authorId,
+        u.display_name AS authorDisplayName,
+        u.avatar_url AS authorAvatarUrl,
+        u.avatar_object_key AS authorAvatarObjectKey,
+        ac.reply_to_user_id AS replyToUserId,
+        ru.display_name AS replyToDisplayName,
+        ac.content,
+        ac.like_count AS likeCount,
+        ac.reply_count AS replyCount,
+        ac.status,
+        (ac.deleted = 1) AS deleted,
+        ac.deleted_by_type AS deletedByType,
+        ac.deleted_by_id AS deletedById,
+        ac.deleted_by_name AS deletedByName,
+        ac.deleted_reason AS deletedReason,
+        ac.deleted_at AS deletedAt,
+        FALSE AS likedByCurrentUser,
+        ac.created_at AS createdAt,
+        ac.updated_at AS updatedAt
+    </sql>
+
+    <sql id="AdminCommentJoins">
+        FROM article_comments ac
+        LEFT JOIN users u ON u.id = ac.author_id AND u.deleted = 0
+        LEFT JOIN users ru ON ru.id = ac.reply_to_user_id AND ru.deleted = 0
+    </sql>
+
+    <sql id="AdminCommentFilters">
+        WHERE ac.article_id = #{articleId}
+        <if test="status != null and status != ''">
+            AND ac.status = #{status}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (
+                ac.content LIKE CONCAT('%', #{keyword}, '%')
+                OR u.display_name LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        <if test="authorId != null">
+            AND ac.author_id = #{authorId}
+        </if>
+    </sql>
+
+    <select id="countAdminArticleComments" resultType="long">
+        SELECT COUNT(*)
+        <include refid="AdminCommentJoins"/>
+        <include refid="AdminCommentFilters"/>
+          AND ac.parent_id IS NULL
+    </select>
+
+    <select id="selectAdminArticleCommentsPage" resultType="com.terraria.skills.dto.AdminArticleCommentDTO">
+        SELECT
+            <include refid="AdminCommentColumns"/>
+        <include refid="AdminCommentJoins"/>
+        <include refid="AdminCommentFilters"/>
+          AND ac.parent_id IS NULL
+        ORDER BY ac.created_at DESC, ac.id DESC
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+
+    <select id="countAdminArticleCommentReplies" resultType="long">
+        SELECT COUNT(*)
+        FROM article_comments ac
+        WHERE ac.article_id = #{articleId}
+          AND ac.root_id = #{rootCommentId}
+          AND ac.parent_id IS NOT NULL
+        <if test="status != null and status != ''">
+          AND ac.status = #{status}
+        </if>
+    </select>
+
+    <select id="selectAdminArticleCommentRepliesPage" resultType="com.terraria.skills.dto.AdminArticleCommentDTO">
+        SELECT
+            <include refid="AdminCommentColumns"/>
+        <include refid="AdminCommentJoins"/>
+        WHERE ac.article_id = #{articleId}
+          AND ac.root_id = #{rootCommentId}
+          AND ac.parent_id IS NOT NULL
+        <if test="status != null and status != ''">
+          AND ac.status = #{status}
+        </if>
+        ORDER BY ac.created_at ASC, ac.id ASC
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+
+    <select id="selectAdminCommentByArticleAndId" resultType="com.terraria.skills.dto.AdminArticleCommentDTO">
+        SELECT
+            <include refid="AdminCommentColumns"/>
+        <include refid="AdminCommentJoins"/>
+        WHERE ac.article_id = #{articleId}
+          AND ac.id = #{id}
+        LIMIT 1
+    </select>
+
+    <update id="updateAdminCommentStatus">
+        UPDATE article_comments
+        <choose>
+            <when test="status == 'PUBLISHED'">
+                SET status = 'PUBLISHED',
+                    deleted = 0,
+                    deleted_by_type = NULL,
+                    deleted_by_id = NULL,
+                    deleted_by_name = NULL,
+                    deleted_reason = NULL,
+                    deleted_at = NULL,
+                    updated_at = NOW()
+            </when>
+            <otherwise>
+                SET status = #{status},
+                    deleted = 1,
+                    deleted_by_type = 'ADMIN',
+                    deleted_by_name = #{operator},
+                    deleted_reason = #{reason},
+                    deleted_at = NOW(),
+                    updated_at = NOW()
+            </otherwise>
+        </choose>
+        WHERE article_id = #{articleId}
+          AND id = #{id}
+    </update>
+</mapper>

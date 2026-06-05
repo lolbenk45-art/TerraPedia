@@ -64,13 +64,19 @@ class ArticleControllerTest {
 
     @Test
     void shouldReturnPublishedArticleBySlugWithContent() throws Exception {
-        when(articleService.getPublishedArticleBySlug("guide"))
-            .thenReturn(article(7L, "Guide", "guide", null, "<p>Body</p>", "PUBLISHED", "APPROVED"));
+        ArticleDTO article = article(7L, "Guide", "guide", null, "<p>Body</p>", "PUBLISHED", "APPROVED");
+        article.setAuthorAvatarUrl("/api/files/objects/avatars/7/avatar.png");
+        article.setViewCount(12L);
+        article.setFavoriteCount(3L);
+        when(articleService.getPublishedArticleBySlug("guide")).thenReturn(article);
 
         mockMvc.perform(get("/articles/slug/guide"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.slug").value("guide"))
-            .andExpect(jsonPath("$.data.contentHtml").value("<p>Body</p>"));
+            .andExpect(jsonPath("$.data.contentHtml").value("<p>Body</p>"))
+            .andExpect(jsonPath("$.data.authorAvatarUrl").value("/api/files/objects/avatars/7/avatar.png"))
+            .andExpect(jsonPath("$.data.viewCount").value(12))
+            .andExpect(jsonPath("$.data.favoriteCount").value(3));
 
         verify(articleService).getPublishedArticleBySlug(eq("guide"));
     }

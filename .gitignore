@@ -15,6 +15,8 @@ front-nuxt/.output/
 front-nuxt/coverage/
 front-nuxt/.vite/
 front-nuxt/.turbo/
+front-nuxt/tmp/
+tmp/
 data-query-app/.nuxt/
 data-query-app/.output/
 data-query-app/coverage/

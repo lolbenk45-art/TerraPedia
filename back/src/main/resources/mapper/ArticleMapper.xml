@@ -19,8 +19,23 @@
             a.published_at AS publishedAt,
             a.author_id AS authorId,
             u.display_name AS authorDisplayName,
+            u.avatar_url AS authorAvatarUrl,
+            u.avatar_object_key AS authorAvatarObjectKey,
             a.created_at AS createdAt,
-            a.updated_at AS updatedAt
+            a.updated_at AS updatedAt,
+            COALESCE((
+                SELECT SUM(urh.view_count)
+                FROM user_reading_history urh
+                WHERE urh.target_type = 'ARTICLE'
+                  AND urh.target_id = a.id
+                  AND urh.deleted = 0
+            ), 0) AS viewCount,
+            COALESCE((
+                SELECT COUNT(*)
+                FROM user_article_favorites uaf
+                WHERE uaf.article_id = a.id
+                  AND uaf.deleted = 0
+            ), 0) AS favoriteCount
         FROM articles a
         LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
         <where>
@@ -52,8 +67,23 @@
             a.published_at AS publishedAt,
             a.author_id AS authorId,
             u.display_name AS authorDisplayName,
+            u.avatar_url AS authorAvatarUrl,
+            u.avatar_object_key AS authorAvatarObjectKey,
             a.created_at AS createdAt,
-            a.updated_at AS updatedAt
+            a.updated_at AS updatedAt,
+            COALESCE((
+                SELECT SUM(urh.view_count)
+                FROM user_reading_history urh
+                WHERE urh.target_type = 'ARTICLE'
+                  AND urh.target_id = a.id
+                  AND urh.deleted = 0
+            ), 0) AS viewCount,
+            COALESCE((
+                SELECT COUNT(*)
+                FROM user_article_favorites uaf
+                WHERE uaf.article_id = a.id
+                  AND uaf.deleted = 0
+            ), 0) AS favoriteCount
         FROM articles a
         LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
         <where>
@@ -83,8 +113,23 @@
             a.published_at AS publishedAt,
             a.author_id AS authorId,
             u.display_name AS authorDisplayName,
+            u.avatar_url AS authorAvatarUrl,
+            u.avatar_object_key AS authorAvatarObjectKey,
             a.created_at AS createdAt,
-            a.updated_at AS updatedAt
+            a.updated_at AS updatedAt,
+            COALESCE((
+                SELECT SUM(urh.view_count)
+                FROM user_reading_history urh
+                WHERE urh.target_type = 'ARTICLE'
+                  AND urh.target_id = a.id
+                  AND urh.deleted = 0
+            ), 0) AS viewCount,
+            COALESCE((
+                SELECT COUNT(*)
+                FROM user_article_favorites uaf
+                WHERE uaf.article_id = a.id
+                  AND uaf.deleted = 0
+            ), 0) AS favoriteCount
         FROM articles a
         LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
         <where>
@@ -106,7 +151,22 @@
             a.cover_image AS coverImage,
             a.published_at AS publishedAt,
             a.author_id AS authorId,
-            u.display_name AS authorDisplayName
+            u.display_name AS authorDisplayName,
+            u.avatar_url AS authorAvatarUrl,
+            u.avatar_object_key AS authorAvatarObjectKey,
+            COALESCE((
+                SELECT SUM(urh.view_count)
+                FROM user_reading_history urh
+                WHERE urh.target_type = 'ARTICLE'
+                  AND urh.target_id = a.id
+                  AND urh.deleted = 0
+            ), 0) AS viewCount,
+            COALESCE((
+                SELECT COUNT(*)
+                FROM user_article_favorites uaf
+                WHERE uaf.article_id = a.id
+                  AND uaf.deleted = 0
+            ), 0) AS favoriteCount
         FROM articles a
         LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
         WHERE a.deleted = 0
@@ -132,8 +192,23 @@
             a.published_at AS publishedAt,
             a.author_id AS authorId,
             u.display_name AS authorDisplayName,
+            u.avatar_url AS authorAvatarUrl,
+            u.avatar_object_key AS authorAvatarObjectKey,
             a.created_at AS createdAt,
-            a.updated_at AS updatedAt
+            a.updated_at AS updatedAt,
+            COALESCE((
+                SELECT SUM(urh.view_count)
+                FROM user_reading_history urh
+                WHERE urh.target_type = 'ARTICLE'
+                  AND urh.target_id = a.id
+                  AND urh.deleted = 0
+            ), 0) AS viewCount,
+            COALESCE((
+                SELECT COUNT(*)
+                FROM user_article_favorites uaf
+                WHERE uaf.article_id = a.id
+                  AND uaf.deleted = 0
+            ), 0) AS favoriteCount
         FROM articles a
         LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
         WHERE a.id = #{id}
@@ -158,8 +233,23 @@
             a.published_at AS publishedAt,
             a.author_id AS authorId,
             u.display_name AS authorDisplayName,
+            u.avatar_url AS authorAvatarUrl,
+            u.avatar_object_key AS authorAvatarObjectKey,
             a.created_at AS createdAt,
-            a.updated_at AS updatedAt
+            a.updated_at AS updatedAt,
+            COALESCE((
+                SELECT SUM(urh.view_count)
+                FROM user_reading_history urh
+                WHERE urh.target_type = 'ARTICLE'
+                  AND urh.target_id = a.id
+                  AND urh.deleted = 0
+            ), 0) AS viewCount,
+            COALESCE((
+                SELECT COUNT(*)
+                FROM user_article_favorites uaf
+                WHERE uaf.article_id = a.id
+                  AND uaf.deleted = 0
+            ), 0) AS favoriteCount
         FROM articles a
         LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
         WHERE a.id = #{id}
@@ -185,8 +275,23 @@
             a.published_at AS publishedAt,
             a.author_id AS authorId,
             u.display_name AS authorDisplayName,
+            u.avatar_url AS authorAvatarUrl,
+            u.avatar_object_key AS authorAvatarObjectKey,
             a.created_at AS createdAt,
-            a.updated_at AS updatedAt
+            a.updated_at AS updatedAt,
+            COALESCE((
+                SELECT SUM(urh.view_count)
+                FROM user_reading_history urh
+                WHERE urh.target_type = 'ARTICLE'
+                  AND urh.target_id = a.id
+                  AND urh.deleted = 0
+            ), 0) AS viewCount,
+            COALESCE((
+                SELECT COUNT(*)
+                FROM user_article_favorites uaf
+                WHERE uaf.article_id = a.id
+                  AND uaf.deleted = 0
+            ), 0) AS favoriteCount
         FROM articles a
         LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
         WHERE a.id = #{id}
@@ -212,8 +317,23 @@
             a.published_at AS publishedAt,
             a.author_id AS authorId,
             u.display_name AS authorDisplayName,
+            u.avatar_url AS authorAvatarUrl,
+            u.avatar_object_key AS authorAvatarObjectKey,
             a.created_at AS createdAt,
-            a.updated_at AS updatedAt
+            a.updated_at AS updatedAt,
+            COALESCE((
+                SELECT SUM(urh.view_count)
+                FROM user_reading_history urh
+                WHERE urh.target_type = 'ARTICLE'
+                  AND urh.target_id = a.id
+                  AND urh.deleted = 0
+            ), 0) AS viewCount,
+            COALESCE((
+                SELECT COUNT(*)
+                FROM user_article_favorites uaf
+                WHERE uaf.article_id = a.id
+                  AND uaf.deleted = 0
+            ), 0) AS favoriteCount
         FROM articles a
         LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
         WHERE a.slug = #{slug}

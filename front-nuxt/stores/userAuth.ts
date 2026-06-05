@@ -18,6 +18,7 @@ import {
   sendRegisterCode,
   sendPasswordResetCode,
   submitUserArticleForReview as submitUserArticleForReviewRequest,
+  uploadUserArticleImage as uploadUserArticleImageRequest,
   uploadUserAvatar,
   updateUserArticle as updateUserArticleRequest,
   updateUserProfile,
@@ -428,6 +429,18 @@ export const useUserAuthStore = defineStore('user-auth', () => {
     }
   }
 
+  const uploadArticleImage = async (file: File) => {
+    if (!file || file.size <= 0) {
+      throw new Error('请选择文章图片。')
+    }
+    lastError.value = ''
+    try {
+      return await uploadUserArticleImageRequest(file)
+    } catch (error) {
+      throw new Error(setError(error, '文章图片上传失败。'))
+    }
+  }
+
   return {
     user,
     loading,
@@ -458,5 +471,6 @@ export const useUserAuthStore = defineStore('user-auth', () => {
     withdrawUserArticle: withdrawExistingUserArticle,
     offlineUserArticle: offlineExistingUserArticle,
     deleteUserArticle: deleteExistingUserArticle,
+    uploadUserArticleImage: uploadArticleImage,
   }
 })

@@ -63,6 +63,32 @@ export interface ArticleUploadedImage {
   size: number
 }
 
+export type AdminArticleCommentStatus = 'PUBLISHED' | 'HIDDEN' | 'DELETED'
+
+export interface AdminArticleComment {
+  id: number
+  articleId: number
+  parentId?: number | null
+  rootId?: number | null
+  authorId: number
+  authorDisplayName: string
+  authorAvatarUrl?: string
+  replyToUserId?: number | null
+  replyToDisplayName?: string | null
+  content: string
+  status: AdminArticleCommentStatus
+  deleted: boolean
+  deletedByType?: string
+  deletedById?: number
+  deletedByName?: string
+  deletedReason?: string
+  deletedAt?: string
+  likeCount: number
+  replyCount: number
+  createdAt?: string
+  updatedAt?: string
+}
+
 export type PaginationState = {
   total: number
   page: number
@@ -144,6 +170,44 @@ const normalizeReviewLogs = (raw: any): ArticleReviewLog[] => {
       createdAt: item?.createdAt ?? undefined,
     }))
     .filter(item => item.id > 0)
+}
+
+const toCommentStatus = (value: unknown): AdminArticleCommentStatus => {
+  const status = String(value ?? 'PUBLISHED').toUpperCase()
+  if (status === 'HIDDEN' || status === 'DELETED') {
+    return status
+  }
+  return 'PUBLISHED'
+}
+
+const normalizeArticleComment = (item: any): AdminArticleComment => ({
+  id: Number(item?.id ?? 0),
+  articleId: Number(item?.articleId ?? 0),
+  parentId: item?.parentId == null ? null : Number(item.parentId),
+  rootId: item?.rootId == null ? null : Number(item.rootId),
+  authorId: Number(item?.authorId ?? 0),
+  authorDisplayName: String(item?.authorDisplayName ?? 'TerraPedia 用户'),
+  authorAvatarUrl: item?.authorAvatarUrl ?? undefined,
+  replyToUserId: item?.replyToUserId == null ? null : Number(item.replyToUserId),
+  replyToDisplayName: item?.replyToDisplayName ?? undefined,
+  content: String(item?.content ?? ''),
+  status: toCommentStatus(item?.status),
+  deleted: Boolean(item?.deleted ?? false),
+  deletedByType: item?.deletedByType ?? undefined,
+  deletedById: item?.deletedById == null ? undefined : Number(item.deletedById),
+  deletedByName: item?.deletedByName ?? undefined,
+  deletedReason: item?.deletedReason ?? undefined,
+  deletedAt: item?.deletedAt ?? undefined,
+  likeCount: Number(item?.likeCount ?? 0),
+  replyCount: Number(item?.replyCount ?? 0),
+  createdAt: item?.createdAt ?? undefined,
+  updatedAt: item?.updatedAt ?? undefined,
+})
+
+const normalizeArticleComments = (raw: any): AdminArticleComment[] => {
+  const list = raw?.data ?? raw?.list ?? raw ?? []
+  if (!Array.isArray(list)) return []
+  return list.map(normalizeArticleComment).filter(item => item.id > 0 && item.articleId > 0)
 }
 
 const toPagination = (raw: any, page: number, size: number, fallbackTotal: number): PaginationState => {
@@ -297,6 +361,51 @@ export const useArticlesStore = defineStore('articles', () => {
     return { records, pagination: meta }
   }
 
+  const fetchArticleComments = async (
+    articleId: number,
+    page = 1,
+    size = 20,
+    filters?: { status?: string; keyword?: string; authorId?: number }
+  ) => {
+    const response: any = await get(`/admin/articles/${articleId}/comments`, {
+      page,
+      limit: size,
+      status: filters?.status || undefined,
+      keyword: filters?.keyword || undefined,
+      authorId: filters?.authorId || undefined,
+    })
+    const records = normalizeArticleComments(response)
+    return { records, pagination: toPagination(response, page, size, records.length) }
+  }
+
+  const fetchArticleCommentReplies = async (
+    articleId: number,
+    commentId: number,
+    page = 1,
+    size = 20,
+    status?: string
+  ) => {
+    const response: any = await get(`/admin/articles/${articleId}/comments/${commentId}/replies`, {
+      page,
+      limit: size,
+      status: status || undefined,
+    })
+    const records = normalizeArticleComments(response)
+    return { records, pagination: toPagination(response, page, size, records.length) }
+  }
+
+  const updateArticleCommentStatus = async (
+    articleId: number,
+    commentId: number,
+    status: AdminArticleCommentStatus,
+    reason?: string
+  ) => {
+    const response: any = await patch(`/admin/articles/${articleId}/comments/${commentId}/status`, { status, reason })
+    const updated = normalizeArticleComment(unwrapData(response))
+    showToast('Comment status updated', 'success')
+    return updated
+  }
+
   const uploadArticleImage = async (file: File, options?: ImageUploadOptions) => {
     try {
       const formData = new FormData()
@@ -344,6 +453,9 @@ export const useArticlesStore = defineStore('articles', () => {
     publishArticle,
     offlineArticle,
     fetchReviewLogs,
+    fetchArticleComments,
+    fetchArticleCommentReplies,
+    updateArticleCommentStatus,
     uploadArticleImage,
   }
 })

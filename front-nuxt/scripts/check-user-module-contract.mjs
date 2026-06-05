@@ -120,12 +120,31 @@ for (const marker of [
   'export const withdrawUserArticle =',
   'export const offlineUserArticle =',
   'export const deleteUserArticle =',
+  'export const uploadUserArticleImage =',
+  'export const uploadUserArticleEmbeddedImages =',
   '`/user/articles/${id}`',
   '`/user/articles/${id}/submit-review`',
   '`/user/articles/${id}/withdraw`',
   '`/user/articles/${id}/offline`',
+  "'/user/articles/images'",
 ]) {
   assertIncludes(apiPath, api, marker, `user article API wrappers must include ${marker}`)
+}
+
+for (const marker of [
+  'fetchArticleComments',
+  'fetchArticleCommentReplies',
+  'createArticleCommentReply',
+  'likeArticleComment',
+  'unlikeArticleComment',
+  'normalizeArticleComment',
+  'normalizeArticleCommentListResult',
+  '`/articles/${articleId}/comments`',
+  '`/articles/${articleId}/comments/${commentId}/replies`',
+  '`/articles/${articleId}/comments/${commentId}/like`',
+  'replyToCommentId',
+]) {
+  assertIncludes(apiPath, api, marker, `article comment API wrappers must include ${marker}`)
 }
 
 for (const marker of [
@@ -164,6 +183,17 @@ for (const marker of [
   'type PublicUserArticle',
   'type PublicUserProfile',
   'type UserArticleUpsertPayload',
+  'authorAvatarUrl',
+  'viewCount',
+  'favoriteCount',
+  'parentId',
+  'rootId',
+  'replyToUserId',
+  'replyToDisplayName',
+  'likeCount',
+  'likedByCurrentUser',
+  'replyCount',
+  'replies',
 ]) {
   assertIncludes(typesPath, types, marker, `public API types must expose ${marker}`)
 }
@@ -190,6 +220,7 @@ for (const marker of [
   'withdrawUserArticle',
   'offlineUserArticle',
   'deleteUserArticle',
+  'uploadUserArticleImage',
 ]) {
   assertIncludes(storePath, store, marker, `user auth store must expose ${marker}`)
 }
@@ -276,12 +307,20 @@ for (const marker of [
   'authStore.isAuthenticated',
   'authStore.displayName',
   '@click.prevent="logout"',
+  'selectThemePreference',
+  'preferencesStore.save',
   'account-state-authenticated',
   'account-state-guest',
 ]) {
   assertIncludes(navPath, nav, marker, `account navigation must expose ${marker}`)
 }
 assertNotIncludes(navPath, nav, 'Preview account', 'account navigation must not retain preview account copy')
+assertNotIncludes(
+  navPath,
+  nav,
+  '@click="themeStore.setTheme(option.value)"',
+  'account theme selector must persist authenticated user theme preference instead of only changing the local cookie',
+)
 
 const pageContracts = [
   {
@@ -326,13 +365,13 @@ const pageContracts = [
   },
   {
     path: 'pages/user/articles/new.vue',
-    required: ['definePageMeta({ requiresUserAuth: true })', '@submit.prevent="submit"', 'authStore.createUserArticle', 'contentHtml', 'type="submit"', 'user-form-error'],
-    forbidden: ['保存占位', '正文编辑区占位'],
+    required: ['definePageMeta({ requiresUserAuth: true })', '@submit.prevent="submit"', 'authStore.createUserArticle', 'contentHtml', 'UserArticleRichEditor', 'user-form-error'],
+    forbidden: ['保存占位', '正文编辑区占位', '输入 HTML', '<textarea v-model="form.contentHtml"'],
   },
   {
     path: 'pages/user/articles/[id].vue',
-    required: ['definePageMeta({ requiresUserAuth: true })', 'authStore.fetchUserArticle', 'authStore.updateUserArticle', 'authStore.submitUserArticleForReview', 'authStore.withdrawUserArticle', 'authStore.offlineUserArticle', 'authStore.deleteUserArticle', 'window.confirm', 'contentHtml', 'user-form-success', 'user-form-error', '保存草稿', '提交审核', '撤回投稿', '下架文章', '删除文章', 'canOfflineArticle', 'canDeleteArticle'],
-    forbidden: ['保存占位', '正文编辑区占位'],
+    required: ['definePageMeta({ requiresUserAuth: true })', 'authStore.fetchUserArticle', 'authStore.updateUserArticle', 'authStore.submitUserArticleForReview', 'authStore.withdrawUserArticle', 'authStore.offlineUserArticle', 'authStore.deleteUserArticle', 'window.confirm', 'contentHtml', 'UserArticleRichEditor', 'user-form-success', 'user-form-error', '保存草稿', '提交审核', '撤回投稿', '下架文章', '删除文章', 'canOfflineArticle', 'canDeleteArticle'],
+    forbidden: ['保存占位', '正文编辑区占位', '输入 HTML', '<textarea v-model="form.contentHtml"'],
   },
   {
     path: 'pages/articles/index.vue',
@@ -362,8 +401,8 @@ const pageContracts = [
   },
   {
     path: 'pages/articles/[slug].vue',
-    required: ['usePublicApiFetch<UserArticle>', '/articles/slug/', 'useUserFavoritesStore', 'useUserHistoryStore', "loadStatuses('ARTICLE'", 'toggleArticleFavorite', 'recordArticleHistoryOnce', 'recordedArticleHistoryIds', 'import.meta.client', "historyStore.record('ARTICLE'", '收藏文章', '已收藏', 'article.id', '/users/${article.authorId}', 'authorProfilePath', 'resolvePreviewImageUrl', 'articleCoverUrl', 'articleCoverFallback', 'article.coverImage', 'article-detail-cover', 'article-detail-cover-fallback', 'sanitizeArticleHtml', 'renderPlainArticleText', 'sanitizedArticleHtml'],
-    forbidden: ['公开文章暂未开放', '真实文章待接入', '文章未载入', '没有真实发布数据'],
+    required: ['usePublicApiFetch<UserArticle>', '/articles/slug/', 'useUserFavoritesStore', 'useUserHistoryStore', "loadStatuses('ARTICLE'", 'toggleArticleFavorite', 'recordArticleHistoryOnce', 'recordedArticleHistoryIds', 'import.meta.client', "historyStore.record('ARTICLE'", '收藏文章', '已收藏', 'article.id', '/users/${article.authorId}', 'authorProfilePath', 'resolvePreviewImageUrl', 'articleCoverUrl', 'article.coverImage', 'sanitizeArticleHtml', 'renderPlainArticleText', 'sanitizedArticleHtml', 'article-inline-header', 'article-section-title', 'article-recommendations', 'articleSearchPath', '/crafting', '/user/articles', 'article-author-card', 'authorAvatarUrl', 'authorAvatarFallback', 'article-stat-grid', 'viewCount', 'favoriteCount', 'recommendedArticles', 'article-related-articles', '推荐文章', 'article-toc', 'article-comments', 'articleCommentText', 'loadArticleComments', 'submitArticleComment', 'deleteArticleComment', '/comments'],
+    forbidden: ['公开文章暂未开放', '真实文章待接入', '文章未载入', '没有真实发布数据', 'article-detail-cover-frame', 'article-detail-cover-fallback'],
   },
   {
     path: 'pages/users/[id].vue',
@@ -383,6 +422,114 @@ for (const contract of pageContracts) {
 }
 
 const publicArticleDetail = assertFile('pages/articles/[slug].vue')
+const userArticleRichEditor = assertFile('components/user/UserArticleRichEditor.vue')
+for (const marker of [
+  'article-comment-replies',
+  'article-comment-reply-form',
+  'toggleArticleCommentLike',
+  'aria-pressed',
+  'replyToDisplayName',
+  'loadMoreArticleComments',
+  '#article-comments',
+  'appendArticleComments',
+  'appendArticleCommentReplies',
+]) {
+  assertIncludes('pages/articles/[slug].vue', publicArticleDetail, marker, `public article comments UI must include ${marker}`)
+}
+for (const marker of ['sanitizeEditorHtml', 'sanitizeEditorElement', 'isSafeEditorUrl', "src.startsWith('file:')", "src.startsWith('blob:')", 'readUserArticleImageAsDataUrl']) {
+  assertIncludes('components/user/UserArticleRichEditor.vue', userArticleRichEditor, marker, `user article rich editor must sanitize saved HTML via ${marker}`)
+}
+for (const marker of [
+  'userArticleEditorDom.mjs',
+  'buildUserArticleInlineStyle',
+  'buildUserArticleTypingSpanHtml',
+  'buildUserArticleLinkHtml',
+  'normalizeUserArticleLinkHref',
+  'isSafeUserArticleLinkHref',
+  'sanitizeUserArticlePastedHtml',
+  'setUserArticleBlockTag',
+  'setUserArticleOrderedList',
+  'unwrapUserArticleTypingPlaceholders',
+  'fontSizeOptions',
+  'lineHeightOptions',
+  'textIndentOptions',
+  'applyFontSize',
+  'applyLineHeight',
+  'applyTextIndent',
+  'applyTextColor',
+  'colorMenuOpen',
+  'textColorPresets',
+  'user-rich-editor__color-trigger',
+  'user-rich-editor__color-popover',
+  'user-rich-editor__color-current',
+  'user-rich-editor__link-trigger',
+  'user-rich-editor__link-popover',
+  'linkTitleValue',
+  'applyLink',
+  'removeLink',
+  'openEditorLink',
+  'selectedImage',
+  'selectEditorImage',
+  'setSelectedImageWidth',
+  'setSelectedImageAlign',
+  'removeSelectedImage',
+  'user-rich-editor__image-tools',
+  'user-rich-editor__selected-image',
+  'user-rich-editor__image-tool-group',
+  'user-rich-editor__image-alt',
+  'user-rich-editor__image-remove',
+  'getData(\'text/html\')',
+  '@click="openEditorLink"',
+  'type="color"',
+  'clearFormatting',
+  "exec('justifyLeft')",
+  "exec('justifyCenter')",
+  "exec('justifyRight')",
+  "exec('justifyFull')",
+  "property === 'font-size'",
+  "property === 'color'",
+  "property === 'line-height'",
+  "property === 'text-indent'",
+]) {
+  assertIncludes('components/user/UserArticleRichEditor.vue', userArticleRichEditor, marker, `user article rich editor must include word-style editing support via ${marker}`)
+}
+assertPattern('components/user/UserArticleRichEditor.vue', userArticleRichEditor, /emit\('update:modelValue', sanitizeEditorHtml\(editor\.innerHTML\)\)/, 'user article rich editor must emit sanitized HTML instead of raw contenteditable HTML')
+assertNotPattern('components/user/UserArticleRichEditor.vue', userArticleRichEditor, /emit\('update:modelValue', editor\.innerHTML\)/, 'user article rich editor must not emit raw contenteditable HTML')
+assertNotIncludes('components/user/UserArticleRichEditor.vue', userArticleRichEditor, 'uploadUserArticleImage(file)', 'user article rich editor must not upload images before draft save')
+assertNotIncludes('components/user/UserArticleRichEditor.vue', userArticleRichEditor, '<figcaption>${alt}</figcaption>', 'user article rich editor must not auto-render pasted image filenames as captions')
+assertNotIncludes('components/user/UserArticleRichEditor.vue', userArticleRichEditor, 'sanitizeImageAlt(file.name)', 'user article rich editor must not display local image filenames in the editing surface')
+assertNotIncludes('components/user/UserArticleRichEditor.vue', userArticleRichEditor, 'user-rich-editor__colors', 'user article rich editor must collapse default color swatches behind a single color menu trigger')
+
+for (const marker of [
+  'sanitizeArticleStyle',
+  "style: ['style']",
+  "property === 'font-size'",
+  "property === 'color'",
+  "property === 'line-height'",
+  "property === 'text-indent'",
+  "img: ['src', 'alt', 'title', 'style']",
+  "property === 'width'",
+  "property === 'max-width'",
+  "property === 'height'",
+  "property === 'display'",
+  "property === 'margin-left'",
+  "property === 'margin-right'",
+  "'span'",
+  "'div'",
+]) {
+  assertIncludes('pages/articles/[slug].vue', publicArticleDetail, marker, `public article sanitizer must preserve safe word-style markup via ${marker}`)
+}
+assertNotIncludes('pages/articles/[slug].vue', publicArticleDetail, 'articleHeroImageUrl', 'article detail page must not render a large hero cover before the article body')
+assertNotIncludes('pages/articles/[slug].vue', publicArticleDetail, 'firstArticleImageUrl', 'article detail page must not promote body images into a large hero cover')
+
+for (const path of ['pages/user/articles/new.vue', 'pages/user/articles/[id].vue']) {
+  const content = assertFile(path)
+  assertIncludes(path, content, 'pendingCoverFile', 'user article page must defer cover uploads until save')
+  assertIncludes(path, content, 'uploadUserArticleEmbeddedImages', 'user article page must upload embedded images during save')
+  assertIncludes(path, content, 'resolvePreviewImageUrl', 'user article cover preview must resolve backend preview image paths')
+  assertNotIncludes(path, content, 'authStore.uploadUserArticleImage(file)', 'user article page must not upload selected cover immediately')
+}
+
 assertPattern('pages/articles/[slug].vue', publicArticleDetail, /favoritesStore\.loadStatuses\('ARTICLE',\s*\[article\.value\.id\]\)/, 'article detail favorite status must load by returned article.id')
 assertPattern('pages/articles/[slug].vue', publicArticleDetail, /favoritesStore\.toggleArticleFavorite\(article\.value\.id\)/, 'article detail favorite toggle must use returned article.id')
 assertPattern('pages/articles/[slug].vue', publicArticleDetail, /const recordArticleHistoryOnce = async \(\) => \{[\s\S]*import\.meta\.client[\s\S]*historyStore\.record\('ARTICLE', article\.value\.id\)/, 'article detail history recording must be client-only inside recordArticleHistoryOnce')

@@ -7,14 +7,17 @@ import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.common.Pagination;
 import com.terraria.skills.common.PaginationParams;
 import com.terraria.skills.dto.ArticleDTO;
+import com.terraria.skills.dto.FileUploadResultDTO;
 import com.terraria.skills.dto.UserArticleUpsertRequestDTO;
 import com.terraria.skills.service.ArticleService;
+import com.terraria.skills.service.ObjectStorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,7 +27,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -35,6 +40,7 @@ import java.util.List;
 public class UserArticleController {
 
     private final ArticleService articleService;
+    private final ObjectStorageService objectStorageService;
 
     @GetMapping
     @Operation(summary = "Get current user articles")
@@ -80,6 +86,17 @@ public class UserArticleController {
             ),
             "Article created"
         ));
+    }
+
+    @PostMapping(value = "/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload current user article image")
+    public ResponseEntity<ApiResponse<FileUploadResultDTO>> uploadArticleImage(
+        @RequestPart("file") MultipartFile file,
+        HttpServletRequest httpRequest
+    ) {
+        getRequiredClaims(httpRequest);
+        FileUploadResultDTO result = objectStorageService.uploadItemImage(file, "articles");
+        return ResponseEntity.ok(ApiResponse.success(result, "Article image uploaded"));
     }
 
     @PutMapping("/{id}")

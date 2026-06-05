@@ -59,7 +59,15 @@ public class UserWriteOriginInterceptor implements HandlerInterceptor {
             || path.startsWith("/user/saved-routes")
             || path.startsWith("/user/notifications")
             || path.startsWith("/user/preferences")
-            || path.startsWith("/user/favorites");
+            || path.startsWith("/user/favorites")
+            || isArticleCommentWrite(path);
+    }
+
+    private boolean isArticleCommentWrite(String path) {
+        return path.matches("^/articles/[1-9]\\d*/comments$")
+            || path.matches("^/articles/[1-9]\\d*/comments/[1-9]\\d*$")
+            || path.matches("^/articles/[1-9]\\d*/comments/[1-9]\\d*/replies$")
+            || path.matches("^/articles/[1-9]\\d*/comments/[1-9]\\d*/like$");
     }
 
     private boolean isWriteMethod(String method) {
