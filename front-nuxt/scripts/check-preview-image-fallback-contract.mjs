@@ -75,6 +75,8 @@ const assertBiomeHeroUsesCoverCropping = (path, content) => {
   assertContains(path, content, [
     "'/api/files/objects/'",
     "'/preview-assets/terrapedia-images/'",
+    '/^https?:/i',
+    "imageUrl.startsWith('//')",
   ])
 }
 

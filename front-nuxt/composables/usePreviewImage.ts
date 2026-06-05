@@ -8,6 +8,10 @@ export const resolvePreviewImageUrl = (value?: string | null): string => {
   const objectProxyPrefix = '/api/files/objects/'
   const previewImagePrefix = '/preview-assets/terrapedia-images/'
 
+  if (/^data:image\//i.test(imageUrl)) {
+    return imageUrl
+  }
+
   if (imageUrl.startsWith('/preview-assets/')) {
     return imageUrl
   }
@@ -18,6 +22,10 @@ export const resolvePreviewImageUrl = (value?: string | null): string => {
 
   if (imageUrl.includes('/terrapedia-images/')) {
     return `${previewImagePrefix}${imageUrl.split('/terrapedia-images/')[1]}`
+  }
+
+  if (/^https?:/i.test(imageUrl) || imageUrl.startsWith('//')) {
+    return ''
   }
 
   return imageUrl
