@@ -243,6 +243,17 @@ test('smoke script checks MinIO public endpoint when MinIO is enabled', () => {
   assert.match(source, /SMOKE_MINIO_PUBLIC_ENDPOINT/i);
 });
 
+test('smoke script verifies admin article images through the admin proxy', () => {
+  const source = smokeSource();
+
+  assert.match(source, /smoke_admin_article_images/i);
+  assert.match(source, /admin\.articles\.imageProxy/i);
+  assert.match(source, /\/api\/admin\/articles\?page=1&limit=10/i);
+  assert.match(source, /\/api\/admin\/articles\/\$\{article\.id\}/i);
+  assert.match(source, /content-type/i);
+  assert.match(source, /\^image\\\//i);
+});
+
 test('smoke script does not persist login tokens in reports', () => {
   const source = smokeSource();
 
