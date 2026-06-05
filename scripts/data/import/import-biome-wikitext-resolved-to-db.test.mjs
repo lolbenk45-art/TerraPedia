@@ -5,6 +5,7 @@ import {
   assertPrimaryDb,
   buildBiomeWikitextResolvedImportPlan,
   buildConnectionConfig,
+  buildBiomeLookupMap,
   buildItemInsertRows,
   buildNpcInsertRows,
   parseArgs,
@@ -88,6 +89,18 @@ test('buildItemInsertRows resolves biome and item IDs and skips unresolved rows'
   assert.equal(rows.valid[0].itemId, 20);
   assert.equal(rows.valid[0].notes, 'From Goblin Scouts');
   assert.equal(rows.skipped[0].reason, 'missing_item');
+});
+
+test('buildBiomeLookupMap resolves maint-style biome aliases from local biome names', () => {
+  const biomeByCode = buildBiomeLookupMap([
+    { id: 96, code: 'ice', name_en: 'Ice biome' },
+    { id: 95, code: 'glowing_mushroom', name_en: 'Glowing Mushroom biome' },
+  ]);
+
+  assert.equal(biomeByCode.get('ice'), 96);
+  assert.equal(biomeByCode.get('ice_biome'), 96);
+  assert.equal(biomeByCode.get('glowing_mushroom'), 95);
+  assert.equal(biomeByCode.get('glowing_mushroom_biome'), 95);
 });
 
 test('buildNpcInsertRows resolves biome and npc IDs and skips unresolved rows', () => {

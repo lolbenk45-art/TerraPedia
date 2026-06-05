@@ -106,6 +106,30 @@ export function buildNpcInsertRows({ candidates, biomeByCode, npcByInternalName 
   return { valid, skipped };
 }
 
+export function buildBiomeLookupMap(rows) {
+  const map = new Map();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const id = Number(row?.id);
+    if (!id) continue;
+    const normalizedCode = normalizeBiomeCode(row?.code);
+    const normalizedName = normalizeBiomeCode(row?.name_en ?? row?.nameEn ?? row?.name);
+    for (const value of [
+      row?.code,
+      row?.name_en,
+      row?.nameEn,
+      row?.name,
+      normalizedCode,
+      normalizedName,
+      normalizedCode ? `${normalizedCode}_biome` : null,
+      normalizedName ? `${normalizedName}_biome` : null,
+    ]) {
+      const key = normalizeKey(value);
+      if (key && !map.has(key)) map.set(key, id);
+    }
+  }
+  return map;
+}
+
 export function assertPrimaryDb(database, allowNonPrimaryDb) {
   if (String(database || '').trim() === DEFAULT_DB_NAME) return;
   if (allowNonPrimaryDb) return;
@@ -114,6 +138,15 @@ export function assertPrimaryDb(database, allowNonPrimaryDb) {
 
 export function normalizeKey(value) {
   return toNullableText(value)?.toLowerCase() ?? null;
+}
+
+function normalizeBiomeCode(value) {
+  return toNullableText(value)
+    ?.toLowerCase()
+    .replace(/\bbiomes?\b/g, '')
+    .replace(/^the\s+/, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '') ?? null;
 }
 
 export function joinNotes(source, note) {
@@ -311,11 +344,11 @@ function addUpsertStats(stats, result) {
 }
 
 async function loadDbLookups(connection) {
-  const [biomeRows] = await connection.query('SELECT id, code FROM biomes WHERE deleted = 0');
+  const [biomeRows] = await connection.query('SELECT id, code, name_en FROM biomes WHERE deleted = 0');
   const [itemRows] = await connection.query('SELECT id, internal_name FROM items WHERE deleted = 0 AND status = 1');
   const [npcRows] = await connection.query('SELECT id, internal_name FROM npcs WHERE status = 1');
   return {
-    biomeByCode: buildLookupMap(biomeRows, 'code'),
+    biomeByCode: buildBiomeLookupMap(biomeRows),
     itemByInternalName: buildLookupMap(itemRows, 'internal_name'),
     npcByInternalName: buildLookupMap(npcRows, 'internal_name'),
   };
