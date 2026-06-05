@@ -31861,13 +31861,13 @@
       "imageUrl": "http://localhost:9000/terrapedia-images/projectiles/2026/05/08/4e48e876f2f744f7a8f4a4d71d29bf0a.png",
       "localized": {
         "zh": {
-          "name": "{$ProjectileName.DD2JavelinHostile}",
+          "name": "标枪",
           "namesub": null,
           "page": null,
           "tooltip": null
         }
       },
-      "nameZh": "{$ProjectileName.DD2JavelinHostile}"
+      "nameZh": "标枪"
     },
     {
       "aiStyle": 1,
@@ -33294,13 +33294,13 @@
       "imageUrl": "http://localhost:9000/terrapedia-images/projectiles/2026/05/08/9ef5315d820a41e391bf5ed3aef9f49a.png",
       "localized": {
         "zh": {
-          "name": "{$ProjectileName.Celeb2Weapon}",
+          "name": "喜庆弹射器Mk2",
           "namesub": null,
           "page": null,
           "tooltip": null
         }
       },
-      "nameZh": "{$ProjectileName.Celeb2Weapon}"
+      "nameZh": "喜庆弹射器Mk2"
     },
     {
       "aiStyle": 147,
@@ -33340,13 +33340,13 @@
       "imageUrl": "http://localhost:9000/terrapedia-images/projectiles/2026/05/08/9ef5315d820a41e391bf5ed3aef9f49a.png",
       "localized": {
         "zh": {
-          "name": "{$ProjectileName.Celeb2Weapon}",
+          "name": "喜庆弹射器Mk2",
           "namesub": null,
           "page": null,
           "tooltip": null
         }
       },
-      "nameZh": "{$ProjectileName.Celeb2Weapon}"
+      "nameZh": "喜庆弹射器Mk2"
     },
     {
       "aiStyle": 147,
@@ -33386,13 +33386,13 @@
       "imageUrl": "http://localhost:9000/terrapedia-images/projectiles/2026/05/08/9ef5315d820a41e391bf5ed3aef9f49a.png",
       "localized": {
         "zh": {
-          "name": "{$ProjectileName.Celeb2Weapon}",
+          "name": "喜庆弹射器Mk2",
           "namesub": null,
           "page": null,
           "tooltip": null
         }
       },
-      "nameZh": "{$ProjectileName.Celeb2Weapon}"
+      "nameZh": "喜庆弹射器Mk2"
     },
     {
       "aiStyle": 147,
@@ -33432,13 +33432,13 @@
       "imageUrl": "http://localhost:9000/terrapedia-images/projectiles/2026/05/08/9ef5315d820a41e391bf5ed3aef9f49a.png",
       "localized": {
         "zh": {
-          "name": "{$ProjectileName.Celeb2Weapon}",
+          "name": "喜庆弹射器Mk2",
           "namesub": null,
           "page": null,
           "tooltip": null
         }
       },
-      "nameZh": "{$ProjectileName.Celeb2Weapon}"
+      "nameZh": "喜庆弹射器Mk2"
     },
     {
       "aiStyle": 1,
@@ -43779,13 +43779,13 @@
       "imageUrl": "http://localhost:9000/terrapedia-images/projectiles/2026/05/08/45c80e24f5684aa4aea3b3a8ba282a94.png",
       "localized": {
         "zh": {
-          "name": "{$ProjectileName.Spark}",
+          "name": "火花",
           "namesub": null,
           "page": null,
           "tooltip": null
         }
       },
-      "nameZh": "{$ProjectileName.Spark}"
+      "nameZh": "火花"
     },
     {
       "aiStyle": 5,
@@ -43826,13 +43826,13 @@
       "imageUrl": "http://localhost:9000/terrapedia-images/projectiles/2026/05/08/d07a496a425547739c0bc6cc2c12f047.png",
       "localized": {
         "zh": {
-          "name": "{$ProjectileName.FallingStar}",
+          "name": "陨星",
           "namesub": null,
           "page": null,
           "tooltip": null
         }
       },
-      "nameZh": "{$ProjectileName.FallingStar}"
+      "nameZh": "陨星"
     },
     {
       "aiStyle": 26,
@@ -50796,13 +50796,13 @@
       "imageUrl": "http://localhost:9000/terrapedia-images/projectiles/2026/05/08/d5556429d74f4e50a7ffcd72f1056168.png",
       "localized": {
         "zh": {
-          "name": "{$ProjectileName.ObsidianFire}",
+          "name": "黑曜石之火",
           "namesub": null,
           "page": null,
           "tooltip": null
         }
       },
-      "nameZh": "{$ProjectileName.ObsidianFire}"
+      "nameZh": "黑曜石之火"
     },
     {
       "aiStyle": 14,
@@ -50842,13 +50842,13 @@
       "imageUrl": "http://localhost:9000/terrapedia-images/projectiles/2026/05/08/44fac8d1b12d4993b94dcbb536507e15.png",
       "localized": {
         "zh": {
-          "name": "{$ProjectileName.ObsidianFire}",
+          "name": "黑曜石之火",
           "namesub": null,
           "page": null,
           "tooltip": null
         }
       },
-      "nameZh": "{$ProjectileName.ObsidianFire}"
+      "nameZh": "黑曜石之火"
     },
     {
       "aiStyle": 77,
@@ -50888,13 +50888,13 @@
       "imageUrl": "http://localhost:9000/terrapedia-images/projectiles/2026/05/08/77b748e622ff41a0b0a14b3770d85a2e.gif",
       "localized": {
         "zh": {
-          "name": "{$ProjectileName.Electrosphere}",
+          "name": "电圈",
           "namesub": null,
           "page": null,
           "tooltip": null
         }
       },
-      "nameZh": "{$ProjectileName.Electrosphere}"
+      "nameZh": "电圈"
     }
   ],
   "schemaVersion": "1.0.0",

@@ -1398,6 +1398,10 @@ function shouldRetireStaleArmorAttributeRows(scopes) {
   return Array.isArray(scopes) && scopes.includes('armor_attributes');
 }
 
+function shouldRetireStaleBiomeRows(scopes) {
+  return Array.isArray(scopes) && scopes.includes('biomes');
+}
+
 async function retireStaleRecordKeyRows(connection, tableName, options = {}) {
   const filters = [];
   const params = [tableName];
@@ -1486,6 +1490,16 @@ async function retireStaleArmorAttributeRows(connection, recordKeysByTable) {
   return retireStaleRecordKeyRows(connection, 'maint_armor_attribute_rows', {
     landingSourceKey: 'wiki.page.armor_attributes'
   });
+}
+
+async function retireStaleBiomeRows(connection, recordKeysByTable) {
+  const activeBiomeKeys = recordKeysByTable.get('maint_biomes') ?? new Set();
+  if (activeBiomeKeys.size === 0) {
+    throw new Error('Refusing to retire stale biome rows without active maint_biomes keys.');
+  }
+  await createActiveRecordKeyTempTable(connection);
+  await insertActiveRecordKeys(connection, recordKeysByTable, ['maint_biomes']);
+  return retireStaleRecordKeyRows(connection, 'maint_biomes');
 }
 
 async function defaultLoadLandingRows(scopes, connection) {
@@ -2637,6 +2651,9 @@ export async function runMaintSync(options, dependencies = {}) {
         if (shouldRetireStaleArmorAttributeRows(scopes)) {
           summary.writes.retired += await retireStaleArmorAttributeRows(connection, collectRecordKeysByTable(extracted));
         }
+        if (shouldRetireStaleBiomeRows(scopes)) {
+          summary.writes.retired += await retireStaleBiomeRows(connection, collectRecordKeysByTable(extracted));
+        }
         await connection.commit();
       } catch (error) {
         await connection.rollback();
@@ -2712,6 +2729,9 @@ export async function runMaintSync(options, dependencies = {}) {
       }
       if (shouldRetireStaleArmorAttributeRows(scopes)) {
         summary.writes.retired += await retireStaleArmorAttributeRows(writeConnection, recordKeysByTable);
+      }
+      if (shouldRetireStaleBiomeRows(scopes)) {
+        summary.writes.retired += await retireStaleBiomeRows(writeConnection, recordKeysByTable);
       }
       await writeConnection.commit();
     }

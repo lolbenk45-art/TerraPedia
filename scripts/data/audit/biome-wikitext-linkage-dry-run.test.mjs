@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   buildBiomePageLookup,
+  buildMaintBiomeWikitextPayloads,
   buildNameLookup,
   buildResolvedOnlyCandidates,
   matchBiomeWikitextEntries,
@@ -103,6 +104,58 @@ test('buildBiomePageLookup maps standardized biome page titles and codes', () =>
   assert.deepEqual(lookup.get('snow biome'), { code: 'snow', pageTitle: 'Snow biome' });
 });
 
+test('buildBiomePageLookup maps maint biome suffix aliases back to standardized codes', () => {
+  const lookup = buildBiomePageLookup([
+    { code: 'ice', pageTitle: 'Ice biome' },
+    { code: 'glowing_mushroom', pageTitle: 'Glowing Mushroom biome' }
+  ]);
+
+  assert.deepEqual(lookup.get('ice_biome'), { code: 'ice', pageTitle: 'Ice biome' });
+  assert.deepEqual(lookup.get('glowing_mushroom_biome'), { code: 'glowing_mushroom', pageTitle: 'Glowing Mushroom biome' });
+});
+
+test('buildMaintBiomeWikitextPayloads maps active maint rows into parser payloads', () => {
+  const payloads = buildMaintBiomeWikitextPayloads([
+    {
+      id: 37,
+      biome_code: 'snow_biome',
+      requested_page_title: 'Snow biome',
+      page_title: 'Snow biome',
+      page_id: 4079,
+      source_revision_timestamp: '2026-04-07T02:49:49Z',
+      landing_fetched_at: '2026-06-04T07:55:00.000Z',
+      landing_source_key: 'wiki.page.biome_detail:snow_biome',
+      wikitext: 'wiki text',
+      raw_json: JSON.stringify({
+        fetchedAt: '2026-06-04T07:55:00.000Z',
+        sections: [{ level: '2', line: 'Characters' }]
+      })
+    },
+    {
+      id: 5,
+      biome_code: 'snow',
+      page_title: 'Snow biome',
+      wikitext: '',
+      raw_json: '{bad json'
+    }
+  ]);
+
+  assert.deepEqual(payloads, [
+    {
+      biomeCode: 'snow_biome',
+      requestedPageTitle: 'Snow biome',
+      pageTitle: 'Snow biome',
+      pageId: 4079,
+      revisionTimestamp: '2026-04-07T02:49:49Z',
+      fetchedAt: '2026-06-04T07:55:00.000Z',
+      source: 'maint_biomes',
+      sourceKey: 'wiki.page.biome_detail:snow_biome',
+      wikitext: 'wiki text',
+      sections: [{ level: '2', line: 'Characters' }]
+    }
+  ]);
+});
+
 test('buildResolvedOnlyCandidates emits only uniquely matched rows', () => {
   const entries = parseBiomeInfocardEntries({ biomeCode: 'forest', pageTitle: 'Forest', wikitext: sampleWikitext });
   const itemLookup = buildNameLookup([
@@ -153,4 +206,29 @@ test('buildResolvedOnlyCandidates emits only uniquely matched rows', () => {
       sourcePage: 'Forest'
     }
   ]);
+});
+
+test('buildResolvedOnlyCandidates prefers matched standardized biome code over raw maint code', () => {
+  const entries = parseBiomeInfocardEntries({
+    biomeCode: 'ice_biome',
+    pageTitle: 'Ice biome',
+    wikitext: `
+{{infocard/start}}
+{{infocard/mainheading|Unique Drops}}
+{{infocard/box|title=From [[Ice Slime]]s:}}
+{{dotlist|{{item|Gel}}}}
+{{infocard/end}}
+`
+  });
+  const itemLookup = buildNameLookup([{ id: 23, internalName: 'Gel', name: 'Gel' }], { entityType: 'item' });
+  const result = matchBiomeWikitextEntries({
+    biome: { code: 'ice', pageTitle: 'Ice biome' },
+    entries,
+    itemLookup,
+    npcLookup: buildNameLookup([], { entityType: 'npc' })
+  });
+
+  const candidates = buildResolvedOnlyCandidates([result]);
+
+  assert.deepEqual(candidates.itemBiomeCandidates.map((candidate) => candidate.biomeCode), ['ice']);
 });

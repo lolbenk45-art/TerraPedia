@@ -106,6 +106,54 @@ test('armor_set_images scope dry-run counts unmanaged raw armor set images witho
   assert.deepEqual(JSON.parse(fs.readFileSync(filePath, 'utf8')), originalPayload);
 });
 
+test('armor_item_images scope dry-run counts report candidates without mutating evidence report', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-run-image-sync-armor-items-'));
+  const reportsDir = path.join(tempDir, 'reports');
+  fs.mkdirSync(reportsDir, { recursive: true });
+  fs.mkdirSync(path.join(tempDir, 'scripts', 'dev', 'config'), { recursive: true });
+  fs.writeFileSync(
+    path.join(tempDir, 'scripts', 'dev', 'config', 'local-stack.config.json'),
+    JSON.stringify({
+      minio: {
+        publicEndpoint: 'http://localhost:9000',
+        endpoint: 'http://localhost:9000',
+        bucket: 'terrapedia-images',
+        objectPrefix: 'items',
+      },
+    }),
+    'utf8'
+  );
+  const filePath = path.join(reportsDir, 'armor-item-image-evidence-test.json');
+  const originalPayload = {
+    candidates: [
+      {
+        internalName: 'CopperHelmet',
+        name: 'Copper Helmet',
+        imageFileTitle: 'Copper Helmet.png',
+        sourceUrl: 'https://terraria.wiki.gg/images/Copper_Helmet.png',
+      },
+    ],
+  };
+  fs.writeFileSync(filePath, JSON.stringify(originalPayload, null, 2), 'utf8');
+
+  const result = spawnSync(process.execPath, [
+    scriptPath,
+    '--apply=false',
+    '--scopes=armor_item_images',
+    `--input=${filePath}`,
+  ], {
+    cwd: tempDir,
+    encoding: 'utf8',
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.modules.armor_item_images.total, 1);
+  assert.equal(payload.modules.armor_item_images.candidates, 1);
+  assert.equal(payload.modules.armor_item_images.changed, 1);
+  assert.deepEqual(JSON.parse(fs.readFileSync(filePath, 'utf8')), originalPayload);
+});
+
 test('town_npc_maintenance scope dry-run counts wiki detail images without mutating file', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-run-image-sync-town-npc-'));
   const generatedDir = path.join(tempDir, 'data', 'generated');

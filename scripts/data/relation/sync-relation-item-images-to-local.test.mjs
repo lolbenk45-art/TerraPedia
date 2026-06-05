@@ -20,7 +20,7 @@ test('parseArgs defaults relation item image sync to dry-run', () => {
   });
 });
 
-test('buildInsertLocalItemImagesSql maps relation images to local items by internal_name and writes wiki URLs', () => {
+test('buildInsertLocalItemImagesSql maps relation images to local items and prefers managed cached URLs', () => {
   const sql = buildInsertLocalItemImagesSql({
     localDatabase: 'terria_v1_local',
     relationDatabase: 'terria_v1_relation'
@@ -29,10 +29,11 @@ test('buildInsertLocalItemImagesSql maps relation images to local items by inter
   assert.match(sql, /JOIN `terria_v1_local`\.`items` i\s+ON i\.`internal_name` COLLATE utf8mb4_unicode_ci = ranked\.`item_internal_name` COLLATE utf8mb4_unicode_ci/);
   assert.match(sql, /`original_url`, `cached_url`/);
   assert.match(sql, /CASE\s+WHEN ranked\.`original_url` IS NOT NULL/i);
-  assert.doesNotMatch(sql, /\/terrapedia-images\/'%\s+THEN\s+ranked\.`cached_url`/i);
+  assert.match(sql, /WHEN\s+ranked\.`cached_url` IS NOT NULL[\s\S]+ranked\.`cached_url` LIKE '%\/terrapedia-images\/%'/i);
+  assert.match(sql, /THEN TRIM\(ranked\.`cached_url`\)/i);
 });
 
-test('buildUpdateLocalItemsImageSql updates items.image from relation wiki URLs by internal_name', () => {
+test('buildUpdateLocalItemsImageSql updates items.image from relation display URLs by internal_name', () => {
   const sql = buildUpdateLocalItemsImageSql({
     localDatabase: 'terria_v1_local',
     relationDatabase: 'terria_v1_relation'
@@ -40,8 +41,8 @@ test('buildUpdateLocalItemsImageSql updates items.image from relation wiki URLs 
 
   assert.match(sql, /UPDATE `terria_v1_local`\.`items` i/);
   assert.match(sql, /ON best\.`item_internal_name` COLLATE utf8mb4_unicode_ci = i\.`internal_name` COLLATE utf8mb4_unicode_ci/);
-  assert.match(sql, /SET i\.`image` = best\.`wiki_url`/);
-  assert.match(sql, /best\.`wiki_url` NOT LIKE '%\/terrapedia-images\/%'/);
+  assert.match(sql, /SET i\.`image` = best\.`display_url`/);
+  assert.doesNotMatch(sql, /best\.`display_url` NOT LIKE '%\/terrapedia-images\/%'/);
 });
 
 test('relation item image sync rejects demo and placed wiki images as preferred item icons', () => {
@@ -59,6 +60,7 @@ test('relation item image sync rejects demo and placed wiki images as preferred 
   assert.match(combinedSql, /LOWER\(rii\.`source_file_title`\) NOT LIKE '%\(placed\)%'/i);
   assert.match(combinedSql, /LOWER\(rii\.`original_url`\) NOT LIKE '%28demo%29%'/i);
   assert.match(combinedSql, /LOWER\(rii\.`cached_url`\) NOT LIKE '%28placed%29%'/i);
+  assert.match(combinedSql, /rii\.`cached_url` LIKE '%\/terrapedia-images\/%'/i);
 });
 
 test('relation item image sync treats demo and placed underscores as literals', () => {
@@ -132,7 +134,7 @@ test('runRelationItemImagesToLocalSync dry-run writes report without mutating lo
   assert.ok(statements.every((sql) => !/DELETE FROM|INSERT INTO|UPDATE `terria_v1_local`\.`items`|CREATE TABLE/i.test(sql)));
 });
 
-test('runRelationItemImagesToLocalSync apply backs up image tables and removes legacy MinIO item images', async () => {
+test('runRelationItemImagesToLocalSync apply backs up image tables and preserves managed item images', async () => {
   const statements = [];
 
   await runRelationItemImagesToLocalSync(
@@ -169,7 +171,7 @@ test('runRelationItemImagesToLocalSync apply backs up image tables and removes l
   assert.ok(statements.some((sql) => sql.includes('DELETE FROM `terria_v1_local`.`item_images`')));
   assert.ok(statements.some((sql) => sql.includes('INSERT INTO `terria_v1_local`.`item_images`')));
   assert.ok(statements.some((sql) => sql.includes('UPDATE `terria_v1_local`.`items` i')));
-  assert.ok(statements.some((sql) => sql.includes('SET `image` = NULL')));
+  assert.ok(statements.every((sql) => !sql.includes('SET `image` = NULL')));
   assert.ok(statements.every((sql) => !sql.includes('DELETE FROM `terria_v1_local`.`items`')));
 });
 

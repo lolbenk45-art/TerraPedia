@@ -12,10 +12,13 @@ import {
   toText
 } from '../lib/minio-image-upload.mjs';
 import { resolveManagedImageUrlPrefixes } from '../relation/managed-image-url-policy.mjs';
+import { writeJsonFile } from './backend-refresh-runtime-state.mjs';
 
 const options = parseCliArgs(process.argv.slice(2));
 const apply = booleanOption(options.apply, false);
 const scopes = resolveScopes(options.scopes ?? options.scope ?? 'projectiles,buffs');
+const progressPath = path.resolve(process.cwd(), options.progressPath ?? options['progress-path'] ?? path.join('data', 'generated', 'wiki-sync-progress.latest.json'));
+const startedAt = new Date().toISOString();
 const standardizedRoot = path.resolve(process.cwd(), 'data', 'standardized');
 const managedUrlPrefixes = Array.isArray(options.managedUrlPrefix)
   ? options.managedUrlPrefix
@@ -47,6 +50,15 @@ const summary = {
   scopes
 };
 
+writeProgress(buildImageSyncProgressPayload({
+  status: 'running',
+  phase: 'initializing',
+  message: `starting image sync scopes=${scopes.join(',')}`,
+  current: 0,
+  total: scopes.length || 1,
+  outputPath: reportPath
+}));
+
 for (const scope of scopes) {
   if (scope === 'items') {
     summary.modules.items = await syncItems();
@@ -56,6 +68,8 @@ for (const scope of scopes) {
     summary.modules.projectiles = await syncProjectiles();
   } else if (scope === 'buffs') {
     summary.modules.buffs = await syncBuffs();
+  } else if (scope === 'armor_item_images') {
+    summary.modules.armor_item_images = await syncArmorItemImages();
   } else if (scope === 'armor_set_images') {
     summary.modules.armor_set_images = await syncArmorSetImages();
   } else if (scope === 'town_npc_maintenance') {
@@ -64,6 +78,14 @@ for (const scope of scopes) {
 }
 
 writeJson(reportPath, summary);
+writeProgress(buildImageSyncProgressPayload({
+  status: 'completed',
+  phase: 'completed',
+  message: `finished image sync scopes=${scopes.join(',')}`,
+  current: scopes.length || 1,
+  total: scopes.length || 1,
+  outputPath: reportPath
+}));
 console.log(JSON.stringify(summary, null, 2));
 
 async function syncItems() {
@@ -145,6 +167,26 @@ async function syncBuffs() {
   });
 }
 
+async function syncArmorItemImages() {
+  const filePath = path.resolve(
+    options.input ?? path.join(process.cwd(), 'reports', `armor-item-image-evidence-${new Date().toISOString().slice(0, 10)}.json`)
+  );
+  const payload = readJson(filePath);
+  const records = Array.isArray(payload?.candidates) ? payload.candidates : [];
+  return syncRecordImages({
+    entityDomain: 'items',
+    filePath,
+    payload,
+    records,
+    sourceUrlAccessor: (record) => toText(record?.cachedUrl) || toText(record?.sourceUrl),
+    targetUrlWriter: (record, url) => {
+      record.cachedUrl = url;
+    },
+    fileNameHint: (record, url) => `${slugify(record?.internalName || record?.name || record?.imageFileTitle || 'armor-item')}${guessExtension(url)}`,
+    nameHint: (record) => record?.internalName || record?.name || record?.imageFileTitle || 'armor-item'
+  });
+}
+
 async function syncArmorSetImages() {
   const filePath = sharedDataPath('raw', 'wiki', 'armor_set_images.parsed.latest.json');
   const payload = readJson(filePath);
@@ -213,7 +255,18 @@ async function syncRecordImages({
   let uploaded = 0;
   const entityManagedUrlPrefixes = resolveEntityManagedUrlPrefixes(entityDomain, managedUrlPrefixes);
 
-  for (const record of records) {
+  writeProgress(buildImageSyncProgressPayload({
+    status: 'running',
+    phase: 'syncing_images',
+    message: `syncing image records 0/${records.length}`,
+    current: 0,
+    total: records.length,
+    outputPath: reportPath
+  }));
+
+  for (let index = 0; index < records.length; index += 1) {
+    const record = records[index];
+    const current = index + 1;
     const directSourceUrl = sourceUrlAccessor(record);
     let sourceUrl = directSourceUrl;
     if (!sourceUrl && fallbackSourceUrlResolver) {
@@ -221,15 +274,39 @@ async function syncRecordImages({
     }
     if (!sourceUrl) {
       missingSource += 1;
+      writeProgress(buildImageSyncProgressPayload({
+        status: 'running',
+        phase: 'syncing_images',
+        message: `syncing image records ${current}/${records.length}`,
+        current,
+        total: records.length,
+        outputPath: reportPath
+      }));
       continue;
     }
     candidates += 1;
     if (isManagedUrl(sourceUrl, entityManagedUrlPrefixes)) {
       alreadyManaged += 1;
+      writeProgress(buildImageSyncProgressPayload({
+        status: 'running',
+        phase: 'syncing_images',
+        message: `syncing image records ${current}/${records.length}`,
+        current,
+        total: records.length,
+        outputPath: reportPath
+      }));
       continue;
     }
     if (!apply || !uploader) {
       changed += 1;
+      writeProgress(buildImageSyncProgressPayload({
+        status: 'running',
+        phase: 'syncing_images',
+        message: `syncing image records ${current}/${records.length}`,
+        current,
+        total: records.length,
+        outputPath: reportPath
+      }));
       continue;
     }
 
@@ -249,11 +326,27 @@ async function syncRecordImages({
       }
     }
     if (!managedUrl) {
+      writeProgress(buildImageSyncProgressPayload({
+        status: 'running',
+        phase: 'syncing_images',
+        message: `syncing image records ${current}/${records.length}`,
+        current,
+        total: records.length,
+        outputPath: reportPath
+      }));
       continue;
     }
     targetUrlWriter(record, managedUrl);
     changed += 1;
     uploaded += 1;
+    writeProgress(buildImageSyncProgressPayload({
+      status: 'running',
+      phase: 'syncing_images',
+      message: `syncing image records ${current}/${records.length}`,
+      current,
+      total: records.length,
+      outputPath: reportPath
+    }));
   }
 
   if (apply && uploaded > 0) {
@@ -270,6 +363,36 @@ async function syncRecordImages({
     total: records.length,
     uploaded
   };
+}
+
+export function buildImageSyncProgressPayload({
+  status,
+  phase,
+  message,
+  current,
+  total,
+  outputPath,
+  now = new Date().toISOString()
+} = {}) {
+  const generatedAt = typeof now === 'string' ? now : now.toISOString();
+  return {
+    actionId: process.env.TERRAPEDIA_CRAWLER_ACTION_ID || 'image-sync',
+    status,
+    generatedAt,
+    lastHeartbeatAt: generatedAt,
+    childStatusPath: path.relative(process.cwd(), progressPath) || progressPath,
+    phase,
+    message,
+    current,
+    total,
+    percent: total > 0 ? Math.min(100, Math.max(0, current / total * 100)) : 0,
+    startedAt,
+    outputPath
+  };
+}
+
+function writeProgress(payload) {
+  writeJsonFile(progressPath, payload);
 }
 
 async function resolveWikiImageUrlFromFileTitle(fileTitle) {
@@ -306,7 +429,7 @@ function resolveScopes(rawValue) {
       .split(',')
       .map((entry) => entry.trim())
       .filter(Boolean)
-  )].filter((scope) => ['items', 'npcs', 'projectiles', 'buffs', 'armor_set_images', 'town_npc_maintenance'].includes(scope));
+  )].filter((scope) => ['items', 'npcs', 'projectiles', 'buffs', 'armor_item_images', 'armor_set_images', 'town_npc_maintenance'].includes(scope));
 }
 
 function guessExtension(sourceUrl) {

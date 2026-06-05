@@ -9,7 +9,6 @@ import { createMinioImageUploader, guessExtensionFromUrl } from '../lib/minio-im
 import { resolveProjectileZhFromRecord } from '../lib/projectile-name-resolver.mjs';
 
 const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
 
 const standardizedNpcPath = path.join(process.cwd(), 'data', 'standardized', 'npcs.standardized.json');
 const standardizedProjectilePath = path.join(process.cwd(), 'data', 'standardized', 'projectiles.standardized.json');
@@ -24,6 +23,7 @@ export const __test__ = {
   resolveNpcLocalizedFields,
   buildGeneratedNpcRecord,
   loadNpcZhMapFromPayload,
+  loadMysqlModule,
 };
 
 async function main() {
@@ -44,7 +44,7 @@ async function main() {
     database: process.env.TERRAPEDIA_DB_NAME || 'terria_v1_local',
   };
 
-  const connection = await mysql.createConnection(db);
+  const connection = await loadMysqlModule().createConnection(db);
   const { uploadImageUrl } = await createMinioImageUploader({
     apiBase,
     adminUsername,
@@ -420,6 +420,34 @@ function loadNpcZhMapFromPayload(payload) {
       ])
       .filter(([internalName, zh]) => internalName && (zh?.nameZh || zh?.subNameZh))
   );
+}
+
+function loadMysqlModule({
+  repoRoot = process.cwd(),
+  createRequireImpl = createRequire,
+  rootRequireImpl = require,
+} = {}) {
+  const packagePaths = [
+    path.join(repoRoot, 'data-query-app', 'package.json'),
+    path.join(repoRoot, 'back', 'package.json'),
+    path.join(repoRoot, 'front-nuxt', 'package.json'),
+    path.join(repoRoot, 'front', 'package.json'),
+  ];
+
+  let firstError = null;
+  for (const packagePath of packagePaths) {
+    try {
+      return createRequireImpl(packagePath)('mysql2/promise');
+    } catch (error) {
+      firstError ??= error;
+    }
+  }
+
+  try {
+    return rootRequireImpl('mysql2/promise');
+  } catch (error) {
+    throw firstError ?? error;
+  }
 }
 
 function stripNpcVariantPrefix(internalName) {

@@ -35,6 +35,22 @@ test('standalone monitor builds read-only item page state from progress, request
     successCount: 1937,
     failureCount: 46
   });
+  await writeJson(path.join(repoRoot, 'data/generated/buff-evidence-refresh-progress.latest.json'), {
+    actionId: 'buff-evidence-refresh',
+    status: 'running',
+    current: 12,
+    total: 48,
+    lastHeartbeatAt: '2026-06-03T03:58:32.480Z',
+    message: 'refreshed buff evidence 12/48'
+  });
+  await writeJson(path.join(sharedDataRoot, 'generated/fetch-wiki-buffs-progress.latest.json'), {
+    actionId: 'fetch-wiki-buffs',
+    status: 'completed',
+    current: 388,
+    total: 388,
+    lastHeartbeatAt: '2026-05-15T03:58:32.480Z',
+    message: 'finished old buff fetch'
+  });
   await fs.promises.mkdir(path.join(sharedDataRoot, 'raw/wiki/item-pages'), { recursive: true });
   await fs.promises.writeFile(path.join(sharedDataRoot, 'raw/wiki/item-pages/ironpickaxe.latest.json'), '{}');
   await writeJson(path.join(sharedDataRoot, 'reports/fetch/fetch-item-pages-2026.json'), {
@@ -48,6 +64,9 @@ test('standalone monitor builds read-only item page state from progress, request
   assert.equal(state.progress.payload.actionId, 'item-pages-batch-0020');
   assert.equal(state.itemPages.rawCount, 1);
   assert.equal(state.itemPages.latestReport.successCount, 50);
+  assert.equal(state.buffProgress.payload.actionId, 'buff-evidence-refresh');
+  assert.equal(state.buffProgress.path, path.join(repoRoot, 'data/generated/buff-evidence-refresh-progress.latest.json'));
+  assert.equal(state.buffProgressSources.length, 2);
   assert.equal(state.requestGate.cooldownActive, false);
   assert.equal(state.files.some((file) => file.label === 'Item page progress' && file.found), true);
 });

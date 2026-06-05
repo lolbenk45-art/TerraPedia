@@ -18,14 +18,19 @@ export async function buildStandaloneMonitorState({
 } = {}) {
   const progressPath = path.join(repoRoot, 'data/generated/wiki-sync-progress.latest.json');
   const requestGatePath = path.join(sharedDataRoot, 'generated/wiki-request-gate.latest.json');
-  const buffProgressPath = path.join(sharedDataRoot, 'generated/fetch-wiki-buffs-progress.latest.json');
+  const repoBuffProgressPath = path.join(repoRoot, 'data/generated/buff-evidence-refresh-progress.latest.json');
+  const sharedBuffProgressPath = path.join(sharedDataRoot, 'generated/fetch-wiki-buffs-progress.latest.json');
   const itemPagesRawDir = path.join(sharedDataRoot, 'raw/wiki/item-pages');
   const fetchReportDir = path.join(sharedDataRoot, 'reports/fetch');
   const crawlerReportDir = path.join(repoRoot, 'reports/crawler-monitor');
 
   const progress = await readJsonFile(progressPath);
   const requestGate = await readJsonFile(requestGatePath);
-  const buffProgress = await readJsonFile(buffProgressPath);
+  const buffProgressSources = [
+    { path: repoBuffProgressPath, ...(await readJsonFile(repoBuffProgressPath)) },
+    { path: sharedBuffProgressPath, ...(await readJsonFile(sharedBuffProgressPath)) }
+  ];
+  const buffProgress = selectProgressSource(buffProgressSources);
   const rawCount = await countFiles(itemPagesRawDir, (name) => name.endsWith('.latest.json'));
   const latestReport = await readLatestJsonReport(fetchReportDir, /^fetch-item-pages-.*\.json$/);
   const recentReports = [
@@ -48,18 +53,28 @@ export async function buildStandaloneMonitorState({
     },
     buffProgress: {
       ...buffProgress,
-      path: buffProgressPath
+      path: buffProgress.path
     },
+    buffProgressSources,
     requestGate: buildRequestGateState(requestGate),
     files: [
       fileSummary('Item page progress', progressPath, progress),
       fileSummary('Wiki request gate', requestGatePath, requestGate),
-      fileSummary('Buff progress', buffProgressPath, buffProgress),
+      ...buffProgressSources.map((source) => fileSummary(source.path.endsWith('buff-evidence-refresh-progress.latest.json') ? 'Buff evidence progress' : 'Buff source progress', source.path, source)),
       dirSummary('Raw item pages', itemPagesRawDir, rawCount),
       dirSummary('Fetch reports', fetchReportDir, recentReports.length)
     ],
     recentReports
   };
+}
+
+function selectProgressSource(sources) {
+  const found = sources.filter((source) => source.found && source.readable);
+  const running = found.find((source) => source.payload?.status === 'running');
+  if (running) return running;
+  return found.sort((left, right) => String(right.updatedAt || '').localeCompare(String(left.updatedAt || '')))[0]
+    ?? sources[0]
+    ?? { found: false, readable: false, payload: null, path: null };
 }
 
 export function renderStandaloneMonitorHtml() {

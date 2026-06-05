@@ -62,6 +62,65 @@ test('biome fetch writes monitor progress to explicit and canonical paths', () =
   assert.equal(output.records[0].iconUrl, 'https://terraria.wiki.gg/images/Forest_biome.png');
 });
 
+test('biome fetch writes raw detail page payloads for landing import', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-biome-raw-'));
+  const worktreeRoot = path.join(tempDir, 'feature-worktree');
+  const progressPath = path.join(tempDir, 'progress.json');
+  const rawDir = path.join(tempDir, 'raw', 'wiki', 'biomes');
+  const mockApiPath = writeBiomeRawDetailMock(tempDir);
+
+  fs.mkdirSync(worktreeRoot, { recursive: true });
+
+  const result = spawnSync(process.execPath, [
+    scriptPath,
+    `--progress-path=${progressPath}`,
+    `--raw-dir=${rawDir}`
+  ], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      WORKTREE_ROOT: worktreeRoot,
+      TERRAPEDIA_CRAWLER_ACTION_ID: 'test-biome-detail-pages',
+      NODE_ENV: 'test',
+      TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
+    }
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+
+  const forest = JSON.parse(fs.readFileSync(path.join(rawDir, 'forest.latest.json'), 'utf8'));
+  assert.equal(forest.entityType, 'biome');
+  assert.equal(forest.biomeCode, 'forest');
+  assert.equal(forest.requestedPageTitle, 'Forest');
+  assert.equal(forest.pageTitle, 'Forest');
+  assert.equal(forest.pageId, 101);
+  assert.equal(forest.revisionTimestamp, '2026-05-20T00:00:00Z');
+  assert.equal(forest.wikitext, "'''Forest''' detail wikitext.");
+  assert.match(forest.html, /Forest detail html/);
+  assert.deepEqual(forest.sections, [{ level: '2', line: 'Contents', anchor: 'Contents', index: '1' }]);
+  assert.match(forest.fetchedAt, /^\d{4}-\d{2}-\d{2}T/);
+
+  const flowerPatch = JSON.parse(fs.readFileSync(path.join(rawDir, 'flower_patch.latest.json'), 'utf8'));
+  assert.equal(flowerPatch.entityType, 'biome');
+  assert.equal(flowerPatch.biomeCode, 'flower_patch');
+  assert.equal(flowerPatch.sourceType, 'overview_section');
+  assert.equal(flowerPatch.requestedPageTitle, 'Flower patch');
+  assert.equal(flowerPatch.pageTitle, 'Flower patch');
+  assert.equal(flowerPatch.pageId, 303);
+  assert.equal(flowerPatch.revisionTimestamp, '2026-05-20T00:00:00Z');
+  assert.equal(flowerPatch.sourcePageTitle, 'Biomes');
+  assert.equal(flowerPatch.sourceSectionAnchor, 'Flower_patch');
+  assert.equal(flowerPatch.wikitext, 'mock biomes overview wikitext');
+  assert.match(flowerPatch.html, /A flower patch is a tiny surface micro-biome/);
+  assert.deepEqual(flowerPatch.sections, [{ level: '3', line: 'Flower patch', anchor: 'Flower_patch', index: '38' }]);
+
+  const output = JSON.parse(fs.readFileSync(path.join(worktreeRoot, 'data', 'generated', 'wiki-biomes.latest.json'), 'utf8'));
+  assert.equal(output.rawDetailDir, rawDir);
+  assert.equal(output.records.find(record => record.requestedTitle === 'Forest')?.rawDetailPath, path.join(rawDir, 'forest.latest.json'));
+  assert.equal(output.records.find(record => record.requestedTitle === 'Flower patch')?.rawDetailPath, path.join(rawDir, 'flower_patch.latest.json'));
+});
+
 test('default biome fetch progress path follows WORKTREE_ROOT when omitted', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-biomes-default-'));
   const worktreeRoot = path.join(tempDir, 'feature-worktree');
@@ -299,6 +358,77 @@ function writeBiomeMock(tempDir) {
           </table>
           <p>The Forest is the central surface biome.</p>
         </div>`
+    }
+  }), 'utf8');
+  return mockPath;
+}
+
+function writeBiomeRawDetailMock(tempDir) {
+  const mockPath = path.join(tempDir, 'mock-raw-detail-api.json');
+  const biomesRevision = {
+    query: {
+      pages: [{
+        pageid: 303,
+        title: 'Biomes',
+        revisions: [{
+          revid: 404,
+          timestamp: '2026-05-20T00:00:00Z',
+          content: 'mock biomes overview wikitext'
+        }]
+      }]
+    }
+  };
+  const biomesParse = {
+    parse: {
+      title: 'Biomes',
+      pageid: 303,
+      sections: [
+        { level: '2', line: 'Surface and Underground', anchor: 'Surface_and_Underground', index: '2' },
+        { level: '3', line: 'Forest', anchor: 'Forest', index: '3' },
+        { level: '2', line: 'Micro-biomes', anchor: 'Micro-biomes', index: '37' },
+        { level: '3', line: 'Flower patch', anchor: 'Flower_patch', index: '38' },
+      ],
+      text: `
+        <div class="mw-parser-output">
+          <h2><span id="Surface_and_Underground">Surface and Underground</span></h2>
+          <h3><span id="Forest">Forest</span></h3><p>Forest overview text.</p><img src="/images/Forest_biome.png" width="260" height="120">
+          <h2><span id="Micro-biomes">Micro-biomes</span></h2>
+          <h3><span id="Flower_patch">Flower patch</span></h3><p>A flower patch is a tiny surface micro-biome.</p>
+        </div>`
+    }
+  };
+  fs.writeFileSync(mockPath, JSON.stringify({
+    __byRequest: {
+      'query:revisions:Biomes': biomesRevision,
+      'parse:text:Biomes': biomesParse,
+      'parse:sections:Biomes': biomesParse,
+      'query:revisions:Forest': {
+        query: { pages: [{ pageid: 101, title: 'Forest', revisions: [{ revid: 202, timestamp: '2026-05-20T00:00:00Z', content: "'''Forest''' detail wikitext." }] }] }
+      },
+      'parse:text:Forest': {
+        parse: {
+          title: 'Forest',
+          pageid: 101,
+          text: '<div class="mw-parser-output"><p>Forest detail html.</p><img src="/images/Forest_biome.png" width="260" height="120"></div>'
+        }
+      },
+      'parse:wikitext|text|sections:Forest': {
+        parse: {
+          title: 'Forest',
+          pageid: 101,
+          wikitext: "'''Forest''' detail wikitext.",
+          sections: [{ level: '2', line: 'Contents', anchor: 'Contents', index: '1' }],
+          text: '<div class="mw-parser-output"><p>Forest detail html.</p><img src="/images/Forest_biome.png" width="260" height="120"></div>'
+        }
+      },
+      'parse:sections:Forest': {
+        parse: {
+          title: 'Forest',
+          pageid: 101,
+          sections: [{ level: '2', line: 'Contents', anchor: 'Contents', index: '1' }]
+        }
+      },
+      'query:revisions:Flower patch': biomesRevision
     }
   }), 'utf8');
   return mockPath;

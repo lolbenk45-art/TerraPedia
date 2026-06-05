@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { getProjectRoot } from '../lib/project-root.mjs';
+import { getProjectRoot, resolveSharedDataRoot } from '../lib/project-root.mjs';
 import {
   fetchWikiApiJson,
   parseCliArgs
@@ -18,10 +18,13 @@ const API_URL = 'https://terraria.wiki.gg/api.php';
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = getProjectRoot();
 const DEFAULT_WIKI_SYNC_PROGRESS_PATH = path.join(repoRoot, 'data', 'generated', 'wiki-sync-progress.latest.json');
+const DEFAULT_RAW_DIR = resolveSharedDataRoot('raw', 'wiki', 'biomes');
 
 let progressPath = null;
 let progressActionId = 'biomes-refresh';
 let progressStartedAt = null;
+let rawDir = null;
+let fetchGeneratedAt = null;
 
 const sectionTitleOverrides = new Map([
   ['Underworld', ['The Underworld']],
@@ -94,9 +97,11 @@ const containerOnlyTopLevelGroups = new Set([
 async function main(argv = process.argv.slice(2)) {
   const options = parseCliArgs(argv);
   const generatedAt = new Date().toISOString();
+  fetchGeneratedAt = generatedAt;
   const dateTag = generatedAt.slice(0, 10);
   const outputJsonPath = path.resolve(process.cwd(), options['output-json'] ?? path.join(repoRoot, 'data', 'generated', 'wiki-biomes.latest.json'));
   const outputMdPath = path.resolve(process.cwd(), options['report-md'] ?? path.join(repoRoot, 'reports', `wiki-biomes-summary-${dateTag}.md`));
+  rawDir = path.resolve(process.cwd(), options['raw-dir'] ?? DEFAULT_RAW_DIR);
   progressPath = path.resolve(process.cwd(), options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_WIKI_SYNC_PROGRESS_PATH);
   progressActionId = process.env.TERRAPEDIA_CRAWLER_ACTION_ID ?? 'biomes-refresh';
   progressStartedAt = generatedAt;
@@ -159,10 +164,18 @@ async function main(argv = process.argv.slice(2)) {
     try {
       const page = await fetchPageRevision(entry.fetchPageTitle ?? entry.pageTitle);
       if (shouldUseOverviewSectionRecord(entry, page.title)) {
-        records.push(buildOverviewSectionRecord(entry, overview, overviewRendered));
+        const record = buildOverviewSectionRecord(entry, overview, overviewRendered);
+        record.rawDetailPath = writeRawBiomeDetail(record, {
+          sourceType: 'overview_section',
+          html: extractSectionHtml(overviewRendered, entry.sectionAnchor, Number(entry.sectionLevel || 3)) ?? '',
+          sections: overviewSections.filter(section => String(section.anchor ?? toWikiAnchor(section.line)) === String(entry.sectionAnchor)),
+          wikitext: overview.content
+        });
+        records.push(record);
       } else {
         const rendered = await fetchRenderedHtml(page.title);
-        records.push({
+        const pageSections = await fetchOptionalPageSections(page.title);
+        const record = {
           topGroup: entry.topGroup,
           sectionGroup: entry.sectionGroup,
           ...pickWikiTaxonomy(entry),
@@ -177,11 +190,28 @@ async function main(argv = process.argv.slice(2)) {
           intro: extractIntro(rendered),
           iconUrl: extractRepresentativeImageUrl(rendered),
           aliases: buildAliases(entry.pageTitle, page.title),
+        };
+        record.rawDetailPath = writeRawBiomeDetail(record, {
+          requestedPageTitle: entry.fetchPageTitle ?? entry.pageTitle,
+          pageTitle: page.title,
+          pageId: page.pageId,
+          revisionTimestamp: page.revisionTimestamp,
+          wikitext: page.content,
+          html: rendered,
+          sections: pageSections
         });
+        records.push(record);
       }
     } catch (error) {
       if (isMissingWikiPageError(error) && canBuildOverviewSectionRecord(entry, overviewRendered)) {
-        records.push(buildOverviewSectionRecord(entry, overview, overviewRendered));
+        const record = buildOverviewSectionRecord(entry, overview, overviewRendered);
+        record.rawDetailPath = writeRawBiomeDetail(record, {
+          sourceType: 'overview_section',
+          html: extractSectionHtml(overviewRendered, entry.sectionAnchor, Number(entry.sectionLevel || 3)) ?? '',
+          sections: overviewSections.filter(section => String(section.anchor ?? toWikiAnchor(section.line)) === String(entry.sectionAnchor)),
+          wikitext: overview.content
+        });
+        records.push(record);
         writeBiomeFetchProgress({
           status: 'running',
           phase: 'fetch',
@@ -213,6 +243,7 @@ async function main(argv = process.argv.slice(2)) {
     generatedAt,
     schemaVersion: '1.0.0',
     sourceApi: API_URL,
+    rawDetailDir: rawDir,
     overview: {
       title: overview.title,
       pageId: overview.pageId,
@@ -457,8 +488,65 @@ function buildOverviewSectionRecord(entry, overview, overviewRendered) {
   };
 }
 
+function writeRawBiomeDetail(record, detail = {}) {
+  if (!rawDir || !record) {
+    return null;
+  }
+  const biomeCode = buildBiomeCode(record.requestedTitle ?? record.title);
+  const outputPath = path.join(rawDir, `${biomeCode}.latest.json`);
+  const payload = {
+    entityType: 'biome',
+    biomeCode,
+    requestedPageTitle: detail.requestedPageTitle ?? record.requestedTitle ?? record.title,
+    pageTitle: detail.pageTitle ?? record.title,
+    pageId: detail.pageId ?? record.pageId ?? null,
+    revisionTimestamp: detail.revisionTimestamp ?? record.revisionTimestamp ?? null,
+    fetchedAt: detail.fetchedAt ?? fetchGeneratedAt ?? new Date().toISOString(),
+    sourceType: detail.sourceType ?? record.sourceType ?? 'page',
+    sourcePageTitle: record.sourcePageTitle ?? detail.pageTitle ?? record.title,
+    sourceSectionTitle: record.sourceSectionTitle ?? record.sectionGroup ?? record.topGroup ?? null,
+    sourceSectionAnchor: record.sourceSectionAnchor ?? null,
+    sourceUrl: record.sourceUrl ?? null,
+    wikitext: detail.wikitext ?? null,
+    html: detail.html ?? '',
+    sections: Array.isArray(detail.sections) ? detail.sections : [],
+    rawSummary: {
+      intro: record.intro ?? null,
+      iconUrl: record.iconUrl ?? null,
+      aliases: Array.isArray(record.aliases) ? record.aliases : [],
+      wikiSectionPath: Array.isArray(record.wikiSectionPath) ? record.wikiSectionPath : [],
+      wikiTopGroup: record.wikiTopGroup ?? record.topGroup ?? null,
+      wikiParentGroup: record.wikiParentGroup ?? null,
+      wikiSectionLevel: record.wikiSectionLevel ?? null,
+      wikiSortOrder: record.wikiSortOrder ?? null,
+    }
+  };
+
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+  return outputPath;
+}
+
+function buildBiomeCode(value) {
+  const normalized = String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/^the\s+/, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return normalized || 'unknown_biome';
+}
+
 function canBuildOverviewSectionRecord(entry, overviewRendered) {
   return Boolean(entry.sectionAnchor && extractSectionHtml(overviewRendered, entry.sectionAnchor, Number(entry.sectionLevel || 3)));
+}
+
+async function fetchOptionalPageSections(title) {
+  try {
+    return await fetchPageSections(title);
+  } catch {
+    return [];
+  }
 }
 
 function isMissingWikiPageError(error) {

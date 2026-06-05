@@ -2,6 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
 import {
   buildResolvedProjectileZhEntries,
@@ -9,146 +10,223 @@ import {
   resolveProjectileZhName,
 } from '../lib/projectile-name-resolver.mjs';
 import { fetchWikiUrlJson, fetchWikiUrlResponse, isTerrariaWikiUrl } from '../lib/wiki-item-utils.mjs';
+import { writeJsonFile } from '../workflow/backend-refresh-runtime-state.mjs';
 
-const args = parseArgs(process.argv.slice(2));
-const apply = args.apply === 'true';
-const apiBase = trimTrailingSlash(resolveBackendApiBase(args));
-const skipUpload = args.skipUpload === 'true';
-const { username: adminUsername, password: adminPassword } = resolveAdminAuth(args, {
-  usernameKey: 'adminUsername',
-  passwordKey: 'adminPassword',
-  requiredPassword: !skipUpload,
-});
-const managedUrlPrefix = trimTrailingSlash(args.managedUrlPrefix || 'http://localhost:9000/terrapedia-images') + '/';
-const limit = Math.max(0, Number(args.limit || '0'));
-const standardizedPath = path.join(process.cwd(), 'data', 'standardized', 'projectiles.standardized.json');
-const generatedMapPath = path.join(process.cwd(), 'data', 'generated', 'projectile-zh-map.json');
-const output = args.output || path.join(process.cwd(), 'reports', `projectile-zh-image-backfill-${new Date().toISOString().slice(0, 10)}.json`);
+const DEFAULT_PROGRESS_PATH = path.join(process.cwd(), 'data', 'generated', 'wiki-sync-progress.latest.json');
+const ACTION_ID = 'projectile-zh-image-backfill';
 
-if (!fs.existsSync(standardizedPath)) {
-  throw new Error(`Missing standardized projectiles file: ${standardizedPath}`);
+export function buildProjectileBackfillProgressPayload({
+  status,
+  current,
+  total,
+  message,
+  progressPath,
+  reportPath = null,
+  outputPath = null,
+  startedAt,
+  phase = 'backfill',
+  now = new Date().toISOString()
+} = {}) {
+  const generatedAt = typeof now === 'string' ? now : now.toISOString();
+  const payload = {
+    actionId: process.env.TERRAPEDIA_CRAWLER_ACTION_ID || ACTION_ID,
+    status,
+    generatedAt,
+    lastHeartbeatAt: generatedAt,
+    childStatusPath: progressPath,
+    phase,
+    message,
+    current,
+    total,
+    percent: total > 0 ? Math.min(100, Math.max(0, (current / total) * 100)) : 0,
+    startedAt
+  };
+  if (reportPath) payload.reportPath = reportPath;
+  if (outputPath) payload.outputPath = outputPath;
+  return payload;
 }
 
-const payload = JSON.parse(fs.readFileSync(standardizedPath, 'utf8'));
-const allRecords = Array.isArray(payload?.records) ? payload.records : [];
-const records = limit > 0 ? allRecords.slice(0, limit) : allRecords;
-const zhMap = await fetchProjectileZhMap();
-const uploadCache = new Map();
-const authHeader = skipUpload ? null : await loginAndBuildAuthHeader();
+async function main(argv = process.argv.slice(2)) {
+  const args = parseArgs(argv);
+  const apply = args.apply === 'true';
+  const apiBase = trimTrailingSlash(resolveBackendApiBase(args));
+  const skipUpload = args.skipUpload === 'true';
+  const { username: adminUsername, password: adminPassword } = resolveAdminAuth(args, {
+    usernameKey: 'adminUsername',
+    passwordKey: 'adminPassword',
+    requiredPassword: !skipUpload,
+  });
+  const managedUrlPrefix = trimTrailingSlash(args.managedUrlPrefix || 'http://localhost:9000/terrapedia-images') + '/';
+  const limit = Math.max(0, Number(args.limit || '0'));
+  const standardizedPath = path.join(process.cwd(), 'data', 'standardized', 'projectiles.standardized.json');
+  const generatedMapPath = path.join(process.cwd(), 'data', 'generated', 'projectile-zh-map.json');
+  const output = args.output || path.join(process.cwd(), 'reports', `projectile-zh-image-backfill-${new Date().toISOString().slice(0, 10)}.json`);
+  const progressPath = args.progressPath || args['progress-path'] || process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH || DEFAULT_PROGRESS_PATH;
+  const startedAt = new Date().toISOString();
 
-const summary = {
-  generatedAt: new Date().toISOString(),
-  apply,
-  apiBase,
-  managedUrlPrefix,
-  skipUpload,
-  standardizedPath,
-  languageSourceTitle: 'Terraria Wiki:语言包/.Projectiles.json/ProjectileName',
-  sourceMapCount: zhMap.size,
-  total: records.length,
-  totalAvailable: allRecords.length,
-  zhMatched: 0,
-  zhUpdated: 0,
-  imageResolved: 0,
-  imageUploadedToMinio: 0,
-  imageAlreadyManaged: 0,
-  recordsChanged: 0,
-  unresolvedZh: 0,
-  unresolvedImage: 0,
-  samples: [],
-};
-
-for (const record of records) {
-  const internalName = toText(record?.internalName);
-  if (!internalName) continue;
-
-  let changed = false;
-  const zhEntry = zhMap.get(internalName) ?? null;
-  const existingZh = toText(record?.localized?.zh?.name ?? record?.nameZh);
-  const normalizedExistingZh = isProjectileNamePlaceholder(existingZh) ? null : existingZh;
-  const nextZh = resolveProjectileZhName(
-    zhEntry?.nameZh,
-    (key) => zhMap.get(key)?.nameZh ?? null
-  ) ?? normalizedExistingZh;
-  if (zhEntry?.nameZh) {
-    summary.zhMatched += 1;
-  } else if (!normalizedExistingZh) {
-    summary.unresolvedZh += 1;
+  if (!fs.existsSync(standardizedPath)) {
+    throw new Error(`Missing standardized projectiles file: ${standardizedPath}`);
   }
-  if (nextZh && nextZh !== existingZh) {
-    if (!record.localized || typeof record.localized !== 'object' || Array.isArray(record.localized)) {
-      record.localized = {};
+
+  const payload = JSON.parse(fs.readFileSync(standardizedPath, 'utf8'));
+  const allRecords = Array.isArray(payload?.records) ? payload.records : [];
+  const records = limit > 0 ? allRecords.slice(0, limit) : allRecords;
+  writeProgress(progressPath, buildProjectileBackfillProgressPayload({
+    status: 'running',
+    current: 0,
+    total: records.length,
+    message: 'fetching projectile zh map',
+    progressPath,
+    reportPath: output,
+    outputPath: apply ? standardizedPath : null,
+    startedAt
+  }));
+  const zhMap = await fetchProjectileZhMap();
+  const uploadCache = new Map();
+  const authHeader = skipUpload ? null : await loginAndBuildAuthHeader({ apiBase, adminUsername, adminPassword });
+
+  const summary = {
+    generatedAt: new Date().toISOString(),
+    apply,
+    apiBase,
+    managedUrlPrefix,
+    skipUpload,
+    standardizedPath,
+    languageSourceTitle: 'Terraria Wiki:语言包/.Projectiles.json/ProjectileName',
+    sourceMapCount: zhMap.size,
+    total: records.length,
+    totalAvailable: allRecords.length,
+    zhMatched: 0,
+    zhUpdated: 0,
+    imageResolved: 0,
+    imageUploadedToMinio: 0,
+    imageAlreadyManaged: 0,
+    recordsChanged: 0,
+    unresolvedZh: 0,
+    unresolvedImage: 0,
+    samples: [],
+  };
+
+  for (let index = 0; index < records.length; index += 1) {
+    const record = records[index];
+    const internalName = toText(record?.internalName);
+    if (!internalName) continue;
+
+    let changed = false;
+    const zhEntry = zhMap.get(internalName) ?? null;
+    const existingZh = toText(record?.localized?.zh?.name ?? record?.nameZh);
+    const normalizedExistingZh = isProjectileNamePlaceholder(existingZh) ? null : existingZh;
+    const nextZh = resolveProjectileZhName(
+      zhEntry?.nameZh,
+      (key) => zhMap.get(key)?.nameZh ?? null
+    ) ?? normalizedExistingZh;
+    if (zhEntry?.nameZh) {
+      summary.zhMatched += 1;
+    } else if (!normalizedExistingZh) {
+      summary.unresolvedZh += 1;
     }
-    const localizedZh = record.localized.zh && typeof record.localized.zh === 'object' && !Array.isArray(record.localized.zh)
-      ? record.localized.zh
-      : {};
-    localizedZh.name = nextZh;
-    localizedZh.namesub = localizedZh.namesub ?? null;
-    localizedZh.page = localizedZh.page ?? null;
-    localizedZh.tooltip = localizedZh.tooltip ?? null;
-    record.localized.zh = localizedZh;
-    record.nameZh = nextZh;
-    summary.zhUpdated += 1;
-    changed = true;
-  } else if (nextZh && record.nameZh !== nextZh) {
-    record.nameZh = nextZh;
-    changed = true;
-  }
+    if (nextZh && nextZh !== existingZh) {
+      if (!record.localized || typeof record.localized !== 'object' || Array.isArray(record.localized)) {
+        record.localized = {};
+      }
+      const localizedZh = record.localized.zh && typeof record.localized.zh === 'object' && !Array.isArray(record.localized.zh)
+        ? record.localized.zh
+        : {};
+      localizedZh.name = nextZh;
+      localizedZh.namesub = localizedZh.namesub ?? null;
+      localizedZh.page = localizedZh.page ?? null;
+      localizedZh.tooltip = localizedZh.tooltip ?? null;
+      record.localized.zh = localizedZh;
+      record.nameZh = nextZh;
+      summary.zhUpdated += 1;
+      changed = true;
+    } else if (nextZh && record.nameZh !== nextZh) {
+      record.nameZh = nextZh;
+      changed = true;
+    }
 
-  const sourceImageUrl = resolveProjectileImageSourceUrl(record);
-  if (!sourceImageUrl) {
-    summary.unresolvedImage += 1;
-  } else {
-    summary.imageResolved += 1;
-    const currentImageUrl = toText(record?.imageUrl);
-    if (isManagedUrl(currentImageUrl, managedUrlPrefix)) {
-      summary.imageAlreadyManaged += 1;
-    } else if (skipUpload) {
+    const sourceImageUrl = resolveProjectileImageSourceUrl(record, managedUrlPrefix);
+    if (!sourceImageUrl) {
+      summary.unresolvedImage += 1;
+    } else {
+      summary.imageResolved += 1;
+      const currentImageUrl = toText(record?.imageUrl);
+      if (isManagedUrl(currentImageUrl, managedUrlPrefix)) {
+        summary.imageAlreadyManaged += 1;
+      } else if (skipUpload) {
+        pushSample(summary.samples, {
+          internalName,
+          name: toText(record?.name),
+          nameZh: toText(record?.nameZh ?? record?.localized?.zh?.name),
+          imageUrl: currentImageUrl,
+          pendingImageSourceUrl: sourceImageUrl,
+        });
+      } else {
+        const uploaded = await uploadFromUrl(buildProjectileImageUploadRequest({
+          sourceImageUrl,
+          internalName,
+          managedUrlPrefix,
+          apiBase,
+          authHeader
+        }));
+        if (uploaded?.url) {
+          if (uploaded.url !== currentImageUrl) {
+            record.imageUrl = uploaded.url;
+            changed = true;
+          }
+          summary.imageUploadedToMinio += 1;
+        } else if (!currentImageUrl) {
+          summary.unresolvedImage += 1;
+        }
+      }
+    }
+
+    if (changed) {
+      summary.recordsChanged += 1;
       pushSample(summary.samples, {
         internalName,
         name: toText(record?.name),
         nameZh: toText(record?.nameZh ?? record?.localized?.zh?.name),
-        imageUrl: currentImageUrl,
-        pendingImageSourceUrl: sourceImageUrl,
+        imageUrl: toText(record?.imageUrl),
       });
-    } else {
-      const uploaded = await uploadFromUrl(sourceImageUrl, internalName);
-      if (uploaded?.url) {
-        if (uploaded.url !== currentImageUrl) {
-          record.imageUrl = uploaded.url;
-          changed = true;
-        }
-        summary.imageUploadedToMinio += 1;
-      } else if (!currentImageUrl) {
-        summary.unresolvedImage += 1;
-      }
     }
+    writeProgress(progressPath, buildProjectileBackfillProgressPayload({
+      status: 'running',
+      current: index + 1,
+      total: records.length,
+      message: `processed projectile ${index + 1}/${records.length}`,
+      progressPath,
+      reportPath: output,
+      outputPath: apply ? standardizedPath : null,
+      startedAt
+    }));
   }
 
-  if (changed) {
-    summary.recordsChanged += 1;
-    pushSample(summary.samples, {
-      internalName,
-      name: toText(record?.name),
-      nameZh: toText(record?.nameZh ?? record?.localized?.zh?.name),
-      imageUrl: toText(record?.imageUrl),
-    });
+  if (apply) {
+    fs.writeFileSync(standardizedPath, JSON.stringify(payload, null, 2), 'utf8');
   }
-}
 
-if (apply) {
-  fs.writeFileSync(standardizedPath, JSON.stringify(payload, null, 2), 'utf8');
+  writeJson(generatedMapPath, {
+    generatedAt: new Date().toISOString(),
+    count: zhMap.size,
+    records: Object.fromEntries(
+      [...zhMap.entries()].map(([internalName, value]) => [internalName, value])
+    ),
+  });
+  writeJson(output, summary);
+  writeProgress(progressPath, buildProjectileBackfillProgressPayload({
+    status: 'completed',
+    current: records.length,
+    total: records.length,
+    message: 'finished projectile zh/image backfill evidence',
+    progressPath,
+    reportPath: output,
+    outputPath: apply ? standardizedPath : null,
+    startedAt,
+    phase: 'write'
+  }));
+  console.log(JSON.stringify(summary, null, 2));
 }
-
-writeJson(generatedMapPath, {
-  generatedAt: new Date().toISOString(),
-  count: zhMap.size,
-  records: Object.fromEntries(
-    [...zhMap.entries()].map(([internalName, value]) => [internalName, value])
-  ),
-});
-writeJson(output, summary);
-console.log(JSON.stringify(summary, null, 2));
 
 async function fetchProjectileZhMap() {
   const apiUrl = new URL('https://terraria.wiki.gg/zh/api.php');
@@ -213,7 +291,7 @@ function decodeHtmlEntities(value) {
     .replace(/&gt;/g, '>');
 }
 
-function resolveProjectileImageSourceUrl(record) {
+function resolveProjectileImageSourceUrl(record, managedUrlPrefix) {
   const current = toText(record?.imageUrl);
   if (current && !isManagedUrl(current, managedUrlPrefix)) return current;
 
@@ -233,10 +311,23 @@ function isManagedUrl(value, prefix) {
   return Boolean(text && text.startsWith(prefix));
 }
 
-async function uploadFromUrl(sourceUrl, nameHint) {
-  if (skipUpload) {
-    return null;
-  }
+export function buildProjectileImageUploadRequest({
+  sourceImageUrl,
+  internalName,
+  managedUrlPrefix,
+  apiBase,
+  authHeader
+} = {}) {
+  return {
+    sourceUrl: sourceImageUrl,
+    nameHint: internalName,
+    managedUrlPrefix,
+    apiBase,
+    authHeader
+  };
+}
+
+async function uploadFromUrl({ sourceUrl, nameHint, apiBase, authHeader }) {
   if (uploadCache.has(sourceUrl)) {
     return uploadCache.get(sourceUrl);
   }
@@ -281,7 +372,7 @@ async function uploadFromUrl(sourceUrl, nameHint) {
   return result;
 }
 
-async function loginAndBuildAuthHeader() {
+async function loginAndBuildAuthHeader({ apiBase, adminUsername, adminPassword }) {
   const response = await fetch(`${apiBase}/auth/login`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -362,4 +453,12 @@ function pushSample(samples, sample) {
 function writeJson(filePath, data) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+}
+
+function writeProgress(filePath, payload) {
+  writeJsonFile(path.resolve(process.cwd(), filePath), payload);
+}
+
+if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) {
+  await main();
 }

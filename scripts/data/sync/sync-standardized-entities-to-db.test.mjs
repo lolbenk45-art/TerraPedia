@@ -63,3 +63,34 @@ test('buildGeneratedNpcRecord keeps zh supplement fields for public npc fallback
     }
   );
 });
+
+test('buildMysqlModuleRequire tries app package resolver before root resolver fallback', () => {
+  const calls = [];
+  const repoRoot = '/repo';
+  const createRequireImpl = (fromPath) => {
+    calls.push(['createRequire', fromPath]);
+    if (fromPath.endsWith('/data-query-app/package.json')) {
+      return (moduleName) => {
+        calls.push(['appRequire', moduleName]);
+        return { from: 'data-query-app' };
+      };
+    }
+    throw new Error(`unexpected resolver: ${fromPath}`);
+  };
+  const rootRequireImpl = (moduleName) => {
+    calls.push(['rootRequire', moduleName]);
+    return { from: 'root' };
+  };
+
+  const mysql = __test__.loadMysqlModule({
+    repoRoot,
+    createRequireImpl,
+    rootRequireImpl,
+  });
+
+  assert.deepEqual(mysql, { from: 'data-query-app' });
+  assert.deepEqual(calls, [
+    ['createRequire', '/repo/data-query-app/package.json'],
+    ['appRequire', 'mysql2/promise'],
+  ]);
+});

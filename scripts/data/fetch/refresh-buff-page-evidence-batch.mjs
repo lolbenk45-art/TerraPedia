@@ -25,6 +25,7 @@ const CATEGORY_NAMES = [
   'patched',
   'skipped_existing'
 ];
+const ACTION_ID = 'buff-evidence-refresh';
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -153,6 +154,45 @@ function hasExistingEvidence(record) {
   return true;
 }
 
+export function buildBuffEvidenceProgressPayload({
+  status,
+  current,
+  total,
+  message,
+  progressPath,
+  reportPath = null,
+  outputPath = null,
+  startedAt,
+  lastBuffId = null,
+  phase = 'fetch',
+  now = new Date().toISOString()
+} = {}) {
+  const generatedAt = typeof now === 'string' ? now : now.toISOString();
+  const payload = {
+    actionId: process.env.TERRAPEDIA_CRAWLER_ACTION_ID || ACTION_ID,
+    status,
+    generatedAt,
+    lastHeartbeatAt: generatedAt,
+    childStatusPath: progressPath,
+    phase,
+    message,
+    current,
+    total,
+    percent: total > 0 ? Math.min(100, Math.max(0, (current / total) * 100)) : 0,
+    startedAt
+  };
+  if (lastBuffId != null) {
+    payload.lastBuffId = lastBuffId;
+  }
+  if (reportPath) {
+    payload.reportPath = reportPath;
+  }
+  if (outputPath) {
+    payload.outputPath = outputPath;
+  }
+  return payload;
+}
+
 export async function runRefreshBuffPageEvidenceBatch(rawOptions = {}, dependencies = {}) {
   const inputPath = resolvePath(rawOptions.input, path.join(repoRoot, 'data', 'standardized', 'buffs.standardized.json'));
   const itemsPath = resolvePath(rawOptions.items, path.join(repoRoot, 'data', 'standardized', 'items.standardized.json'));
@@ -190,12 +230,16 @@ export async function runRefreshBuffPageEvidenceBatch(rawOptions = {}, dependenc
   let patchedPayload = standardizedPayload;
   const startedAt = new Date().toISOString();
 
-  writeJsonImpl(progressPath, {
+  writeJsonImpl(progressPath, buildBuffEvidenceProgressPayload({
     status: 'running',
     current: resumeFromIndex,
     total: initialSelectedRecords.length,
+    message: 'starting buff evidence refresh',
+    progressPath,
+    reportPath,
+    outputPath,
     startedAt
-  });
+  }));
 
   for (let index = 0; index < selectedRecords.length; index += 1) {
     const record = selectedRecords[index];
@@ -278,13 +322,17 @@ export async function runRefreshBuffPageEvidenceBatch(rawOptions = {}, dependenc
     }
 
     entries.push(entry);
-    writeJsonImpl(progressPath, {
+    writeJsonImpl(progressPath, buildBuffEvidenceProgressPayload({
       status: 'running',
 	      current: resumeFromIndex + index + 1,
 	      total: initialSelectedRecords.length,
+      message: `refreshed buff evidence ${resumeFromIndex + index + 1}/${initialSelectedRecords.length}`,
+      progressPath,
+      reportPath,
+      outputPath,
       startedAt,
       lastBuffId: record.id
-    });
+    }));
   }
 
   if (!dryRun) {
@@ -307,14 +355,17 @@ export async function runRefreshBuffPageEvidenceBatch(rawOptions = {}, dependenc
     entries
   };
   writeJsonImpl(reportPath, report);
-  writeJsonImpl(progressPath, {
+  writeJsonImpl(progressPath, buildBuffEvidenceProgressPayload({
     status: 'completed',
     current: initialSelectedRecords.length,
     total: initialSelectedRecords.length,
-    startedAt,
+    message: 'finished buff evidence refresh',
+    progressPath,
     reportPath,
-    outputPath: dryRun ? null : outputPath
-  });
+    outputPath: dryRun ? null : outputPath,
+    startedAt,
+    phase: 'write'
+  }));
   return summary;
 }
 

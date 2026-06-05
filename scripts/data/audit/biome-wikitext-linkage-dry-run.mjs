@@ -2,14 +2,17 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 import { getProjectRoot } from '../lib/project-root.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
+const moduleRequire = createRequire(import.meta.url);
 const repoRoot = getProjectRoot();
 const DEFAULT_API_URL = 'https://terraria.wiki.gg/api.php';
 const DEFAULT_PAGES = ['Forest', 'Desert', 'Jungle', 'The Underworld', 'Snow biome'];
+const DEFAULT_MAINT_DB_NAME = 'terria_v1_maint';
 const CHARACTER_SECTION = 'Characters';
 const ITEM_SECTIONS = new Set(['Unique Drops', 'Unique Treasures', 'For Sale']);
 
@@ -73,12 +76,34 @@ export function buildBiomePageLookup(records) {
     const pageTitle = toNullableText(raw?.pageTitle ?? raw?.title ?? raw?.nameEn ?? raw?.name_en);
     if (!code && !pageTitle) continue;
     const biome = { code: code ?? normalizeBiomeCode(pageTitle), pageTitle };
-    for (const value of [code, pageTitle]) {
+    for (const value of [code, pageTitle, normalizeBiomeCode(pageTitle), code ? `${code}_biome` : null]) {
       const key = normalizeNameKey(value);
       if (key) lookup.set(key, biome);
     }
   }
   return lookup;
+}
+
+export function buildMaintBiomeWikitextPayloads(rows) {
+  return (Array.isArray(rows) ? rows : [])
+    .map((row) => {
+      const wikitext = toNullableText(row?.wikitext);
+      if (!wikitext) return null;
+      const rawJson = parseJsonObject(row?.raw_json);
+      return {
+        biomeCode: toNullableText(row?.biome_code),
+        requestedPageTitle: toNullableText(row?.requested_page_title ?? rawJson?.requestedPageTitle ?? row?.page_title),
+        pageTitle: toNullableText(row?.page_title ?? rawJson?.pageTitle),
+        pageId: Number(row?.page_id ?? rawJson?.pageId ?? 0) || null,
+        revisionTimestamp: toNullableText(row?.source_revision_timestamp ?? rawJson?.revisionTimestamp),
+        fetchedAt: toNullableText(row?.landing_fetched_at ?? rawJson?.fetchedAt),
+        source: 'maint_biomes',
+        sourceKey: toNullableText(row?.landing_source_key),
+        wikitext,
+        sections: Array.isArray(rawJson?.sections) ? rawJson.sections : []
+      };
+    })
+    .filter(Boolean);
 }
 
 export function matchBiomeWikitextEntries({ biome, entries, itemLookup, npcLookup }) {
@@ -89,7 +114,7 @@ export function matchBiomeWikitextEntries({ biome, entries, itemLookup, npcLooku
     const matchStatus = matches.length === 0 ? 'missing' : matches.length === 1 ? 'resolved' : 'ambiguous';
     return {
       ...entry,
-      biomeCode: entry.biomeCode ?? biome?.code ?? null,
+      biomeCode: biome?.code ?? entry.biomeCode ?? null,
       pageTitle: entry.pageTitle ?? biome?.pageTitle ?? null,
       matchType,
       matchStatus,
@@ -173,6 +198,7 @@ function makeStatusBucket() {
 
 async function main(argv = process.argv.slice(2)) {
   const options = parseCliArgs(argv);
+  const source = String(options.source ?? 'wiki').trim().toLowerCase();
   const apiUrl = String(options['api-url'] ?? DEFAULT_API_URL);
   const pages = String(options.pages ?? DEFAULT_PAGES.join(','))
     .split(',')
@@ -191,14 +217,19 @@ async function main(argv = process.argv.slice(2)) {
   const itemLookup = buildNameLookup(items, { entityType: 'item' });
   const npcLookup = buildNameLookup(npcs, { entityType: 'npc' });
 
+  const payloads = source === 'maint'
+    ? await loadMaintBiomeWikitextPayloads(resolveMaintOptions(options))
+    : await loadWikiBiomeWikitextPayloads({ apiUrl, pages });
+
   const results = [];
-  for (const pageTitle of pages) {
-    const payload = await fetchWikiWikitext({ apiUrl, pageTitle });
+  for (const payload of payloads) {
+    const pageTitle = payload.requestedPageTitle ?? payload.pageTitle;
     const biome = biomeLookup.get(normalizeNameKey(payload.pageTitle))
       ?? biomeLookup.get(normalizeNameKey(pageTitle))
-      ?? { code: normalizeBiomeCode(pageTitle), pageTitle: payload.pageTitle };
+      ?? biomeLookup.get(normalizeNameKey(payload.biomeCode))
+      ?? { code: normalizeBiomeCode(payload.biomeCode ?? pageTitle), pageTitle: payload.pageTitle };
     const entries = parseBiomeInfocardEntries({
-      biomeCode: biome.code,
+      biomeCode: biome.code ?? payload.biomeCode,
       pageTitle: payload.pageTitle,
       wikitext: payload.wikitext
     });
@@ -210,7 +241,11 @@ async function main(argv = process.argv.slice(2)) {
         pageTitle: payload.pageTitle,
         pageId: payload.pageId,
         fetchedAt: payload.fetchedAt,
-        sourceApi: apiUrl
+        sourceApi: payload.sourceApi ?? null,
+        source: payload.source ?? 'wiki',
+        sourceKey: payload.sourceKey ?? null,
+        revisionTimestamp: payload.revisionTimestamp ?? null,
+        sectionCount: Array.isArray(payload.sections) ? payload.sections.length : 0
       }
     });
   }
@@ -218,12 +253,14 @@ async function main(argv = process.argv.slice(2)) {
   const report = {
     entity: 'biome_wikitext_linkage_dry_run',
     generatedAt: new Date().toISOString(),
-    sourceApi: apiUrl,
-    pages,
+    source,
+    sourceApi: source === 'wiki' ? apiUrl : null,
+    pages: payloads.map((payload) => payload.requestedPageTitle ?? payload.pageTitle).filter(Boolean),
     localSources: {
       biomes: 'data/standardized/biomes.standardized.json',
       items: 'data/standardized/items.standardized.json',
-      npcs: 'data/standardized/npcs.standardized.json'
+      npcs: 'data/standardized/npcs.standardized.json',
+      maintBiomes: source === 'maint' ? `${options.database ?? process.env.TERRAPEDIA_DB_NAME ?? DEFAULT_MAINT_DB_NAME}.maint_biomes` : null
     },
     summary: summarizeResults(results),
     resolvedOnly: buildResolvedOnlyCandidates(results),
@@ -233,6 +270,43 @@ async function main(argv = process.argv.slice(2)) {
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
   console.log(JSON.stringify({ outputPath, summary: report.summary }, null, 2));
+}
+
+async function loadWikiBiomeWikitextPayloads({ apiUrl, pages }) {
+  const payloads = [];
+  for (const pageTitle of pages) {
+    payloads.push(await fetchWikiWikitext({ apiUrl, pageTitle }));
+  }
+  return payloads;
+}
+
+async function loadMaintBiomeWikitextPayloads(options) {
+  const mysql = resolveMysql();
+  const connection = await mysql.createConnection(buildConnectionConfig(options));
+  try {
+    const [rows] = await connection.query(
+      `SELECT id, biome_code, requested_page_title, page_title, page_id, source_revision_timestamp,
+              landing_fetched_at, landing_source_key, wikitext, raw_json
+         FROM maint_biomes
+        WHERE deleted = 0
+          AND wikitext IS NOT NULL
+          AND wikitext <> ''
+        ORDER BY biome_code`
+    );
+    return buildMaintBiomeWikitextPayloads(rows);
+  } finally {
+    await connection.end();
+  }
+}
+
+function resolveMaintOptions(options) {
+  return {
+    host: options.host,
+    port: options.port,
+    user: options.user,
+    password: options.password,
+    database: options.database ?? process.env.TERRAPEDIA_DB_NAME ?? DEFAULT_MAINT_DB_NAME
+  };
 }
 
 function inferItemBiomeRelationType(entry) {
@@ -286,9 +360,12 @@ async function fetchWikiWikitext({ apiUrl, pageTitle }) {
   }
   return {
     pageTitle: body.parse?.title ?? pageTitle,
+    requestedPageTitle: pageTitle,
     pageId: body.parse?.pageid ?? null,
     wikitext: String(body.parse?.wikitext ?? ''),
-    fetchedAt: new Date().toISOString()
+    fetchedAt: new Date().toISOString(),
+    source: 'wiki',
+    sourceApi: apiUrl
   };
 }
 
@@ -455,6 +532,15 @@ function loadStandardizedRecords(filePath, fallbackKey) {
   return [];
 }
 
+function parseJsonObject(value) {
+  try {
+    const parsed = JSON.parse(String(value ?? '{}'));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 function parseCliArgs(argv) {
   const options = {};
   for (const arg of argv) {
@@ -482,6 +568,38 @@ function toNullableText(value) {
   if (value == null) return null;
   const text = String(value).trim();
   return text === '' ? null : text;
+}
+
+function resolveMysql() {
+  const candidates = [
+    'mysql2/promise',
+    path.join(repoRoot, 'back', 'node_modules', 'mysql2', 'promise'),
+  ];
+  for (const candidate of candidates) {
+    try {
+      return moduleRequire(candidate);
+    } catch {
+      // try next candidate
+    }
+  }
+  try {
+    return createRequire(path.join(repoRoot, 'data-query-app', 'package.json'))('mysql2/promise');
+  } catch {
+    // fall through to clear error
+  }
+  throw new Error('Unable to resolve mysql2/promise. Install dependencies before running biome wikitext dry-run.');
+}
+
+function buildConnectionConfig(options = {}, env = process.env) {
+  return {
+    host: options.host ?? env.TERRAPEDIA_DB_HOST ?? '127.0.0.1',
+    port: Number(options.port ?? env.TERRAPEDIA_DB_PORT ?? 3306),
+    user: options.user ?? env.TERRAPEDIA_DB_USER ?? env.TERRAPEDIA_DB_USERNAME ?? 'root',
+    password: options.password ?? env.TERRAPEDIA_DB_PASSWORD ?? env.MYSQL_PWD ?? '',
+    database: options.database ?? env.TERRAPEDIA_DB_NAME ?? DEFAULT_MAINT_DB_NAME,
+    charset: 'utf8mb4',
+    multipleStatements: false
+  };
 }
 
 if (process.argv[1] === __filename) {
