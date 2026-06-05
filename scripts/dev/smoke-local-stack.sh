@@ -197,6 +197,113 @@ const fs = require('node:fs');
 NODE
 }
 
+smoke_admin_article_images() {
+  local auth_bearer="$1"
+
+  SMOKE_BACKEND_BASE_URL="$backend_base_url" SMOKE_ADMIN_BASE_URL="$admin_base_url" SMOKE_AUTH_BEARER_TOKEN="$auth_bearer" SMOKE_RESULTS_PATH="$results_path" node <<'NODE'
+const fs = require('node:fs');
+
+function joinUrl(base, path) {
+  return `${String(base || '').replace(/\/+$/, '')}${path}`;
+}
+
+function unwrapData(raw) {
+  return raw?.data ?? raw;
+}
+
+function normalizeImageUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (/^(data:|blob:)/i.test(raw)) return '';
+  if (raw.startsWith('/preview-assets/terrapedia-images/')) {
+    return raw.replace('/preview-assets/terrapedia-images/', '/terrapedia-images/');
+  }
+  if (raw.startsWith('/')) return raw;
+
+  const candidate = raw.startsWith('//')
+    ? `https:${raw}`
+    : /^[a-z0-9.-]+(?::\d+)?\/.+/i.test(raw)
+      ? `http://${raw}`
+      : raw;
+
+  try {
+    const url = new URL(candidate);
+    if (url.pathname.startsWith('/preview-assets/terrapedia-images/')) {
+      return `${url.pathname.replace('/preview-assets/terrapedia-images/', '/terrapedia-images/')}${url.search}${url.hash}`;
+    }
+    if (url.pathname.startsWith('/terrapedia-images/')) {
+      return `${url.pathname}${url.search}${url.hash}`;
+    }
+  } catch {
+    return raw.startsWith('/terrapedia-images/') ? raw : '';
+  }
+  return '';
+}
+
+function imageUrlsFromHtml(value) {
+  return [...String(value || '').matchAll(/<img[^>]+src=["']([^"']+)["']/gi)]
+    .map((match) => normalizeImageUrl(match[1]))
+    .filter(Boolean);
+}
+
+async function fetchJson(url, token) {
+  const response = await fetch(url, {
+    headers: { authorization: `Bearer ${token}` },
+  });
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(`${response.status} ${text.slice(0, 160)}`);
+  }
+  return JSON.parse(text);
+}
+
+(async () => {
+  const entry = {
+    name: 'admin.articles.imageProxy',
+    method: 'GET',
+    url: joinUrl(process.env.SMOKE_ADMIN_BASE_URL, '/terrapedia-images/...'),
+    ok: false,
+    status: null,
+    preview: null,
+  };
+
+  try {
+    const token = process.env.SMOKE_AUTH_BEARER_TOKEN || '';
+    const listUrl = joinUrl(process.env.SMOKE_ADMIN_BASE_URL, '/api/admin/articles?page=1&limit=10');
+    const rawList = unwrapData(await fetchJson(listUrl, token));
+    const articles = rawList?.records ?? rawList?.list ?? rawList?.items ?? rawList?.data ?? rawList ?? [];
+    const candidates = Array.isArray(articles) ? articles : [];
+
+    for (const article of candidates) {
+      const detailUrl = joinUrl(process.env.SMOKE_ADMIN_BASE_URL, `/api/admin/articles/${article.id}`);
+      const detail = unwrapData(await fetchJson(detailUrl, token));
+      const imagePath = normalizeImageUrl(detail?.coverImage ?? detail?.cover_image ?? article?.coverImage ?? article?.cover_image)
+        || imageUrlsFromHtml(detail?.contentHtml ?? detail?.content_html ?? detail?.content ?? detail?.contentMarkdown)[0];
+
+      if (!imagePath) continue;
+
+      const imageUrl = joinUrl(process.env.SMOKE_ADMIN_BASE_URL, imagePath);
+      const response = await fetch(imageUrl, { method: 'GET' });
+      const contentType = response.headers.get('content-type') || '';
+      entry.url = imageUrl;
+      entry.status = response.status;
+      entry.ok = response.ok && /^image\//i.test(contentType);
+      entry.preview = `content-type=${contentType}`;
+      break;
+    }
+
+    if (entry.status === null) {
+      entry.preview = 'no article image candidate found in first page';
+    }
+  } catch (error) {
+    entry.preview = error.message;
+  }
+
+  fs.appendFileSync(process.env.SMOKE_RESULTS_PATH, `${JSON.stringify(entry)}\n`);
+})();
+NODE
+}
+
 smoke_request backend.items GET "$(join_url "$backend_base_url" '/api/items?page=1&limit=1')"
 smoke_request backend.categories GET "$(join_url "$backend_base_url" '/api/categories')"
 smoke_request admin.root GET "$(join_url "$admin_base_url" '/')"
@@ -211,6 +318,7 @@ if ! $skip_auth && [[ -n "$TP_ADMIN_USERNAME" && -n "$TP_ADMIN_PASSWORD" ]]; the
     smoke_request auth.me GET "$(join_url "$backend_base_url" '/api/auth/me')" '{}' "$bearer_token"
     smoke_request admin.acceptance.dataSource GET "$(join_url "$backend_base_url" '/api/admin/data-source-acceptance/overview')" '{}' "$bearer_token"
     smoke_request admin.acceptance.domain GET "$(join_url "$backend_base_url" '/api/admin/domain-acceptance/overview')" '{}' "$bearer_token"
+    smoke_admin_article_images "$bearer_token"
   fi
 fi
 

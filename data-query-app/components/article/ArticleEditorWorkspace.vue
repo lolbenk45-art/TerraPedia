@@ -1,5 +1,5 @@
 <template>
-  <div class="editor-page">
+  <div class="editor-page editor-page--readable">
     <div v-if="editor.loading" class="editor-loading">
       <div class="editor-loading__card">
         <h2>正在载入文章工作台</h2>
@@ -8,23 +8,23 @@
     </div>
 
     <template v-else>
-      <header class="editor-topbar">
-        <div class="editor-topbar__left">
+      <header class="editor-workbar">
+        <div class="editor-workbar__identity">
           <button type="button" class="ghost-btn" @click="editor.goBack">返回文章列表</button>
-          <div class="editor-topbar__title">
-            <p class="editor-topbar__eyebrow">{{ editor.editorCaption }}</p>
+          <div class="editor-workbar__title">
+            <p class="editor-workbar__eyebrow">{{ editor.editorCaption }}</p>
             <h1>{{ editor.editorTitle }}</h1>
           </div>
         </div>
 
-        <div class="editor-topbar__status">
+        <div class="editor-workbar__metrics">
           <span class="status-pill" :class="statusToneClass">{{ editor.statusLabel }}</span>
           <span class="status-meta">字数 {{ editor.wordCount }}</span>
           <span class="status-meta">图片 {{ editor.imageCount }}</span>
           <span class="status-meta">段落 {{ editor.paragraphCount }}</span>
         </div>
 
-        <div class="editor-topbar__actions">
+        <div class="editor-workbar__actions">
           <button
             type="button"
             class="ghost-btn"
@@ -69,98 +69,30 @@
         文章当前处于审核中，暂时只能查看，不能直接修改正文。
       </section>
 
-      <div class="editor-shell">
-        <aside class="editor-shell__meta">
-          <section class="editor-card">
-            <div class="editor-card__head">
-              <div>
-                <p class="editor-card__eyebrow">文章信息</p>
-                <h2>封面与摘要</h2>
-              </div>
-              <span class="mini-badge">{{ statusText }}</span>
-            </div>
-
-            <label class="field">
-              <span>标题</span>
-              <input v-model.trim="editor.form.title" class="field__control" type="text" placeholder="输入文章标题" />
-            </label>
-
-            <label class="field">
-              <span>摘要</span>
-              <textarea
-                v-model.trim="editor.form.summary"
-                class="field__control field__control--textarea"
-                rows="4"
-                placeholder="一句话概括文章亮点"
-              />
-            </label>
-
-            <label class="field">
-              <span>Slug</span>
-              <input v-model.trim="editor.form.slug" class="field__control" type="text" placeholder="例如 terraria-boss-guide" />
-            </label>
-
-            <div
-              class="cover-dropzone"
-              :class="{ 'cover-dropzone--active': editor.coverDragActive }"
-              @dragenter.prevent="editor.handleCoverDragEnter"
-              @dragover.prevent="editor.handleCoverDragOver"
-              @dragleave.prevent="editor.handleCoverDragLeave"
-              @drop.prevent="editor.handleCoverDrop"
-            >
-              <div class="cover-dropzone__copy">
-                <strong>封面图</strong>
-                <p>推荐 16:9，支持拖拽、选择和裁剪。</p>
-              </div>
-              <input
-                ref="coverFileInput"
-                type="file"
-                accept="image/*"
-                class="hidden-input"
-                @change="editor.handleCoverSelected"
-              />
-              <button type="button" class="ghost-btn" @click="editor.openCoverFileDialog">选择封面</button>
-            </div>
-
-            <div v-if="editor.coverPreviewSrc" class="cover-preview">
-              <img :src="editor.coverPreviewSrc" alt="封面预览" />
-              <small>{{ editor.form.coverImage || '本地封面将在保存后上传' }}</small>
-            </div>
-          </section>
-
-          <section class="editor-card">
-            <div class="editor-card__head">
-              <div>
-                <p class="editor-card__eyebrow">写作检查</p>
-                <h2>完成度</h2>
-              </div>
-            </div>
-
-            <ul class="checklist">
-              <li v-for="item in editor.checklist" :key="item.id" class="checklist__item">
-                <span class="checklist__dot" :class="{ 'checklist__dot--done': item.done }" />
-                <div>
-                  <strong>{{ item.label }}</strong>
-                  <p>{{ item.hint }}</p>
-                </div>
-              </li>
-            </ul>
-          </section>
-        </aside>
-
+      <div
+        class="editor-shell document-first-workspace"
+        :class="{ 'editor-shell--no-inspector': editor.sidePanelCollapsed }"
+      >
         <main class="editor-shell__main">
-          <section class="editor-card editor-card--main">
-            <div
-              class="editor-toolbar"
-              :class="{
-                'editor-toolbar--readonly': editor.isReadOnly,
-                'editor-toolbar--overflow-open': toolbarOverflowOpen,
-              }"
-              role="toolbar"
-              aria-label="文章编辑工具栏"
-              @mousedown.prevent="editor.handleToolbarMouseDown"
-            >
-              <div class="toolbar-group" role="group" aria-label="历史操作">
+          <section class="editor-card editor-card--writing document-editor-surface">
+            <div class="document-paper-rail">
+              <div class="document-title-panel">
+                <label class="field document-title-field">
+                  <span>标题</span>
+                  <input v-model.trim="editor.form.title" class="document-title-field__control" type="text" placeholder="输入文章标题" />
+                </label>
+              </div>
+
+              <div
+                class="editor-toolbar document-toolbar-band"
+                :class="{
+                  'editor-toolbar--readonly': editor.isReadOnly,
+                }"
+                role="toolbar"
+                aria-label="文章编辑工具栏"
+                @mousedown.prevent="editor.handleToolbarMouseDown"
+              >
+              <div class="toolbar-group toolbar-group--common" role="group" aria-label="历史操作">
                 <button
                   type="button"
                   class="toolbar-tool toolbar-tool--icon"
@@ -257,7 +189,7 @@
                     @change="editor.applyTextColor"
                   >
                     <option v-for="option in editor.textColorOptions" :key="option.value" :value="option.value">
-                      閺傚洤鐡?{{ option.label }}
+                      颜色 {{ option.label }}
                     </option>
                   </select>
                 </label>
@@ -328,80 +260,7 @@
 
               <span class="toolbar-separator" aria-hidden="true" />
 
-              <div class="toolbar-group" role="group" aria-label="对齐方式">
-                <button
-                  type="button"
-                  class="toolbar-tool toolbar-tool--icon"
-                  :class="{ 'toolbar-tool--active': editor.toolbarState.justifyLeft }"
-                  title="左对齐"
-                  aria-label="左对齐"
-                  :aria-pressed="editor.toolbarState.justifyLeft"
-                  :disabled="editor.isReadOnly"
-                  @click="editor.execEditorCommand('justifyLeft')"
-                >
-                  <svg class="toolbar-icon" viewBox="0 0 16 16" aria-hidden="true">
-                    <path d="M3 4h10" />
-                    <path d="M3 7h7" />
-                    <path d="M3 10h10" />
-                    <path d="M3 13h8" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  class="toolbar-tool toolbar-tool--icon"
-                  :class="{ 'toolbar-tool--active': editor.toolbarState.justifyCenter }"
-                  title="居中"
-                  aria-label="居中"
-                  :aria-pressed="editor.toolbarState.justifyCenter"
-                  :disabled="editor.isReadOnly"
-                  @click="editor.execEditorCommand('justifyCenter')"
-                >
-                  <svg class="toolbar-icon" viewBox="0 0 16 16" aria-hidden="true">
-                    <path d="M3.5 4h9" />
-                    <path d="M5 7h6" />
-                    <path d="M3 10h10" />
-                    <path d="M4.5 13h7" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  class="toolbar-tool toolbar-tool--icon"
-                  :class="{ 'toolbar-tool--active': editor.toolbarState.justifyRight }"
-                  title="右对齐"
-                  aria-label="右对齐"
-                  :aria-pressed="editor.toolbarState.justifyRight"
-                  :disabled="editor.isReadOnly"
-                  @click="editor.execEditorCommand('justifyRight')"
-                >
-                  <svg class="toolbar-icon" viewBox="0 0 16 16" aria-hidden="true">
-                    <path d="M3 4h10" />
-                    <path d="M6 7h7" />
-                    <path d="M3 10h10" />
-                    <path d="M5 13h8" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  class="toolbar-tool toolbar-tool--icon"
-                  :class="{ 'toolbar-tool--active': editor.toolbarState.justifyFull }"
-                  title="两端对齐"
-                  aria-label="两端对齐"
-                  :aria-pressed="editor.toolbarState.justifyFull"
-                  :disabled="editor.isReadOnly"
-                  @click="editor.execEditorCommand('justifyFull')"
-                >
-                  <svg class="toolbar-icon" viewBox="0 0 16 16" aria-hidden="true">
-                    <path d="M3 4h10" />
-                    <path d="M3 7h10" />
-                    <path d="M3 10h10" />
-                    <path d="M3 13h10" />
-                  </svg>
-                </button>
-              </div>
-
-              <span class="toolbar-separator" aria-hidden="true" />
-
-              <div class="toolbar-group" role="group" aria-label="结构与素材">
+              <div class="toolbar-group document-toolbar-actions" role="group" aria-label="结构与素材">
                 <button
                   type="button"
                   class="toolbar-tool toolbar-tool--icon"
@@ -488,75 +347,6 @@
                   </svg>
                 </button>
               </div>
-              <span class="toolbar-separator toolbar-separator--advanced" aria-hidden="true" />
-              <div class="toolbar-group toolbar-group--advanced" role="group" aria-label="高级工具">
-                <button
-                  type="button"
-                  class="toolbar-tool toolbar-tool--text toolbar-tool--wide"
-                  title="插入代码块"
-                  aria-label="插入代码块"
-                  :disabled="editor.isReadOnly"
-                  @click="editor.insertCodeBlock(); closeToolbarOverflow()"
-                >
-                  <span class="toolbar-tool__label" aria-hidden="true">{ }</span>
-                </button>
-                <label class="toolbar-mini-field">
-                  <span>R</span>
-                  <input
-                    v-model.number="tableRows"
-                    class="toolbar-number"
-                    type="number"
-                    min="1"
-                    max="12"
-                    title="表格行数"
-                    :disabled="editor.isReadOnly"
-                  />
-                </label>
-                <label class="toolbar-mini-field">
-                  <span>C</span>
-                  <input
-                    v-model.number="tableCols"
-                    class="toolbar-number"
-                    type="number"
-                    min="1"
-                    max="8"
-                    title="表格列数"
-                    :disabled="editor.isReadOnly"
-                  />
-                </label>
-                <button
-                  type="button"
-                  class="toolbar-tool toolbar-tool--text toolbar-tool--wide"
-                  title="插入表格模板"
-                  aria-label="插入表格模板"
-                  :disabled="editor.isReadOnly"
-                  @click="editor.insertTable(tableRows, tableCols); closeToolbarOverflow()"
-                >
-                  <span class="toolbar-tool__label" aria-hidden="true">Tbl</span>
-                </button>
-                <button
-                  type="button"
-                  class="toolbar-tool toolbar-tool--text toolbar-tool--wide"
-                  title="移除链接"
-                  aria-label="移除链接"
-                  :disabled="editor.isReadOnly"
-                  @click="editor.removeLink(); closeToolbarOverflow()"
-                >
-                  <span class="toolbar-tool__label" aria-hidden="true">Unlink</span>
-                </button>
-              </div>
-              <div class="toolbar-group toolbar-group--more" role="group" aria-label="切换高级工具">
-                <button
-                  type="button"
-                  class="toolbar-tool toolbar-tool--text toolbar-tool--wide"
-                  :aria-expanded="toolbarOverflowOpen"
-                  :disabled="editor.isReadOnly"
-                  :title="toolbarOverflowOpen ? '收起高级工具' : '展开高级工具'"
-                  @click="toggleToolbarOverflow"
-                >
-                  <span class="toolbar-tool__label" aria-hidden="true">{{ toolbarOverflowOpen ? 'Less' : 'More' }}</span>
-                </button>
-              </div>
               <input
                 ref="inlineImageInput"
                 type="file"
@@ -567,93 +357,165 @@
               />
             </div>
 
-            <div class="editor-stage">
-              <div
-                ref="editorRef"
-                class="rich-editor"
-                :class="{ 'rich-editor--readonly': editor.isReadOnly }"
-                :contenteditable="!editor.isReadOnly"
-                role="textbox"
-                aria-label="Article content editor"
-                @input="editor.handleEditorInput"
-                @paste="editor.handleEditorPaste"
-                @dragover.prevent="editor.handleEditorDragOver"
-                @drop.prevent="editor.handleEditorDrop"
-                @keyup="editor.saveSelection"
-                @mouseup="editor.saveSelection"
-                @blur="editor.saveSelection"
-              />
-            </div>
+              <div class="editor-stage document-writing-stage">
+                <div
+                  ref="editorRef"
+                  class="rich-editor"
+                  :class="{ 'rich-editor--readonly': editor.isReadOnly }"
+                  :contenteditable="!editor.isReadOnly"
+                  role="textbox"
+                  aria-label="Article content editor"
+                  @input="editor.handleEditorInput"
+                  @paste="editor.handleEditorPaste"
+                  @dragover.prevent="editor.handleEditorDragOver"
+                  @drop.prevent="editor.handleEditorDrop"
+                  @keyup="editor.saveSelection"
+                  @mouseup="editor.saveSelection"
+                  @blur="editor.saveSelection"
+                />
+              </div>
 
-            <div class="editor-stage__tips">
-              <span>支持直接粘贴或拖拽图片到正文中。</span>
-              <span>建议使用“标题 2 / 标题 3”组织长文结构。</span>
+              <div class="editor-stage__tips">
+                <span>支持直接粘贴或拖拽图片到正文中。</span>
+                <span>建议使用“标题 2 / 标题 3”组织长文结构。</span>
+              </div>
             </div>
           </section>
         </main>
 
         <aside v-if="!editor.sidePanelCollapsed" class="editor-shell__side">
-          <section class="editor-card editor-card--side">
-            <div class="side-tabs">
-              <button
-                v-for="item in sideTabs"
-                :key="item.id"
-                type="button"
-                class="side-tabs__item"
-                :class="{ 'side-tabs__item--active': editor.sidePanel === item.id }"
-                @click="editor.sidePanel = item.id"
-              >
-                {{ item.label }}
-              </button>
-            </div>
+          <section class="inspector-panel">
+            <section class="document-inspector__setup">
+              <div class="document-inspector__head">
+                <div>
+                  <p class="editor-card__eyebrow">Article Setup</p>
+                  <h2>基础信息</h2>
+                </div>
+                <span class="setup-ready-summary">{{ setupReadyText }}</span>
+              </div>
+              <label class="field">
+                <span>摘要</span>
+                <textarea
+                  v-model.trim="editor.form.summary"
+                  class="field__control field__control--textarea"
+                  rows="3"
+                  placeholder="一句话概括文章亮点"
+                />
+              </label>
+              <label class="field">
+                <span>Slug</span>
+                <input v-model.trim="editor.form.slug" class="field__control" type="text" placeholder="例如 terraria-boss-guide" />
+              </label>
+            </section>
 
-            <div v-if="editor.sidePanel === 'preview'" ref="previewRef" class="preview-panel">
-              <article class="article-preview">
-                <header class="article-preview__head">
-                  <p class="article-preview__label">读者预览</p>
-                  <h2>{{ editor.form.title || '文章标题' }}</h2>
-                  <p>{{ editor.form.summary || '这里会展示摘要，方便你检查列表卡片和导语语气。' }}</p>
-                </header>
-                <img v-if="editor.coverPreviewSrc" :src="editor.coverPreviewSrc" alt="Cover" class="article-preview__cover" />
-                <div class="article-preview__body" v-html="editor.previewHtml" />
-              </article>
-            </div>
+            <section
+              class="document-inspector__cover"
+              :class="{ 'document-inspector__cover--active': editor.coverDragActive }"
+              @dragenter.prevent="editor.handleCoverDragEnter"
+              @dragover.prevent="editor.handleCoverDragOver"
+              @dragleave.prevent="editor.handleCoverDragLeave"
+              @drop.prevent="editor.handleCoverDrop"
+            >
+              <div class="document-inspector__head">
+                <div>
+                  <p class="editor-card__eyebrow">Cover</p>
+                  <h2>封面</h2>
+                </div>
+                <button type="button" class="ghost-btn" @click="editor.openCoverFileDialog">更换</button>
+              </div>
+              <div class="document-cover-preview">
+                <img v-if="editor.coverPreviewSrc" :src="editor.coverPreviewSrc" alt="封面预览" />
+                <span v-else>No cover</span>
+              </div>
+              <input
+                ref="coverFileInput"
+                type="file"
+                accept="image/*"
+                class="hidden-input"
+                @change="editor.handleCoverSelected"
+              />
+            </section>
 
-            <div v-else-if="editor.sidePanel === 'outline'" class="outline-panel">
-              <div v-if="editor.outline.length" class="outline-list">
+            <section class="document-inspector__quality">
+              <div class="document-inspector__head">
+                <div>
+                  <p class="editor-card__eyebrow">Quality</p>
+                  <h2>完成度</h2>
+                </div>
+              </div>
+              <ul class="quality-panel__checklist checklist" aria-label="文章完成度清单">
+                <li v-for="item in editor.checklist" :key="item.id" class="checklist__item">
+                  <span class="checklist__dot" :class="{ 'checklist__dot--done': item.done }" aria-hidden="true" />
+                  <div>
+                    <strong>{{ item.label }}</strong>
+                    <p>{{ item.hint }}</p>
+                  </div>
+                </li>
+              </ul>
+            </section>
+
+            <section class="document-inspector__tools">
+              <div class="side-tabs">
                 <button
-                  v-for="item in editor.outline"
+                  v-for="item in sideTabs"
                   :key="item.id"
                   type="button"
-                  class="outline-list__item"
-                  :style="{ paddingLeft: `${(item.level - 1) * 14 + 12}px` }"
-                  @click="editor.scrollToOutlineItem(item.id)"
+                  class="side-tabs__item"
+                  :class="{ 'side-tabs__item--active': editor.sidePanel === item.id }"
+                  @click="editor.sidePanel = item.id"
                 >
-                  <span class="outline-list__level">H{{ item.level }}</span>
-                  <span>{{ item.text }}</span>
+                  {{ item.label }}
                 </button>
               </div>
-              <p v-else class="empty-copy">还没有识别到小标题，长文建议补充结构层级。</p>
-            </div>
 
-            <div v-else class="quality-panel">
-              <div class="quality-panel__metric">
-                <strong>{{ editor.wordCount }}</strong>
-                <span>总字数</span>
+              <div v-if="editor.sidePanel === 'preview'" ref="previewRef" class="preview-panel">
+                <article class="article-preview">
+                  <header class="article-preview__head">
+                    <p class="article-preview__label">读者预览</p>
+                    <h2>{{ editor.form.title || '文章标题' }}</h2>
+                    <p>{{ editor.form.summary || '这里会展示摘要，方便你检查列表卡片和导语语气。' }}</p>
+                  </header>
+                  <img v-if="editor.coverPreviewSrc" :src="editor.coverPreviewSrc" alt="Cover" class="article-preview__cover" />
+                  <div class="article-preview__body" v-html="editor.previewHtml" />
+                </article>
               </div>
-              <div class="quality-panel__metric">
-                <strong>{{ editor.imageCount }}</strong>
-                <span>正文图片</span>
+
+              <div v-else-if="editor.sidePanel === 'outline'" class="outline-panel">
+                <div v-if="editor.outline.length" class="outline-list">
+                  <button
+                    v-for="item in editor.outline"
+                    :key="item.id"
+                    type="button"
+                    class="outline-list__item"
+                    :style="{ paddingLeft: `${(item.level - 1) * 14 + 12}px` }"
+                    @click="editor.scrollToOutlineItem(item.id)"
+                  >
+                    <span class="outline-list__level">H{{ item.level }}</span>
+                    <span>{{ item.text }}</span>
+                  </button>
+                </div>
+                <p v-else class="empty-copy">还没有识别到小标题，长文建议补充结构层级。</p>
               </div>
-              <div class="quality-panel__metric">
-                <strong>{{ editor.outline.length }}</strong>
-                <span>小标题</span>
+
+              <div v-else class="quality-panel">
+                <div class="quality-panel__metric">
+                  <strong>{{ editor.wordCount }}</strong>
+                  <span>总字数</span>
+                </div>
+                <div class="quality-panel__metric">
+                  <strong>{{ editor.imageCount }}</strong>
+                  <span>正文图片</span>
+                </div>
+                <div class="quality-panel__metric">
+                  <strong>{{ editor.outline.length }}</strong>
+                  <span>小标题</span>
+                </div>
+                <div class="quality-panel__metric">
+                  <strong>{{ editor.formatEditorTime(editor.lastServerSavedAt) }}</strong>
+                  <span>上次保存</span>
+                </div>
               </div>
-              <div class="quality-panel__metric">
-                <strong>{{ editor.formatEditorTime(editor.lastServerSavedAt) }}</strong>
-                <span>上次保存</span>
-              </div>
-            </div>
+            </section>
           </section>
         </aside>
       </div>
@@ -723,10 +585,6 @@ const sideTabs = [
   { id: 'quality', label: '质检' },
 ] as const
 
-const toolbarOverflowOpen = ref(false)
-const tableRows = ref(3)
-const tableCols = ref(3)
-
 const blockStyle = computed<'p' | 'h1' | 'h2' | 'h3' | 'blockquote'>({
   get: () => editor.toolbarState.blockStyle,
   set: (value) => {
@@ -738,32 +596,34 @@ const applyToolbarBlockStyle = () => {
   editor.applyBlockStyle(blockStyle.value)
 }
 
-const closeToolbarOverflow = () => {
-  toolbarOverflowOpen.value = false
-}
-
-const toggleToolbarOverflow = () => {
-  toolbarOverflowOpen.value = !toolbarOverflowOpen.value
-}
-
 const statusToneClass = computed(() => ({
   'status-pill--danger': editor.saveStatus === 'error',
   'status-pill--warning': editor.isDirty || editor.saveStatus === 'autosaved',
 }))
 
-const statusText = computed(() => {
-  const reviewStatus = editor.article?.reviewStatus
-  if (reviewStatus === 'PENDING_REVIEW') return '审核中'
-  if (reviewStatus === 'APPROVED') return '已通过'
-  if (reviewStatus === 'REJECTED') return '已驳回'
-  return '草稿'
+const setupReadyText = computed(() => {
+  const total = editor.checklist.length
+  const done = editor.checklist.filter((item) => item.done).length
+  return `${done}/${total} 已完成`
 })
+
 </script>
 
 <style scoped>
 .editor-page {
+  --editor-paper: #ffffff;
+  --editor-paper-soft: #f8fafc;
+  --editor-paper-muted: #f1f5f9;
+  --editor-ink: #111827;
+  --editor-ink-muted: #475569;
+  --editor-border: #d7dee8;
+  --editor-border-strong: #b6c2d2;
+  --editor-accent: #0f766e;
+  --editor-accent-soft: #e6fffb;
+
   display: grid;
   gap: 20px;
+  color: var(--editor-ink);
 }
 
 .editor-loading {
@@ -776,17 +636,10 @@ const statusText = computed(() => {
 .readonly-banner,
 .recovery-banner,
 .editor-card {
-  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
-  border-radius: 20px;
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--color-bg-secondary) 88%, black 12%) 0%,
-      color-mix(in srgb, var(--color-bg) 94%, black 6%) 100%
-    );
-  box-shadow:
-    0 14px 28px rgb(0 0 0 / 0.18),
-    inset 0 1px 0 rgb(255 255 255 / 0.04);
+  border: 1px solid var(--editor-border);
+  border-radius: 14px;
+  background: var(--editor-paper);
+  box-shadow: 0 10px 24px -20px rgba(15, 23, 42, 0.24);
 }
 
 .editor-loading__card {
@@ -795,7 +648,7 @@ const statusText = computed(() => {
 }
 
 .editor-loading__card h2,
-.editor-topbar__title h1,
+.editor-workbar__title h1,
 .editor-card__head h2 {
   margin: 0;
   font-family: var(--font-display);
@@ -807,35 +660,28 @@ const statusText = computed(() => {
 .field span,
 .status-meta,
 .article-preview__label {
-  color: var(--color-text-secondary);
+  color: var(--editor-ink-muted);
 }
 
-.editor-topbar {
+.editor-workbar {
   position: sticky;
   top: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 16px;
+  grid-template-columns: minmax(260px, 1fr) minmax(260px, auto) auto;
+  gap: 14px;
   align-items: center;
-  padding: 18px 20px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 14%, var(--color-border));
-  border-radius: 24px;
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--color-primary) 6%, var(--color-bg-secondary)) 0%,
-      color-mix(in srgb, var(--color-bg) 94%, black 6%) 100%
-    );
-  backdrop-filter: blur(14px);
-  box-shadow:
-    0 20px 40px rgb(0 0 0 / 0.22),
-    inset 0 1px 0 rgb(255 255 255 / 0.03);
+  padding: 14px 16px;
+  border: 1px solid var(--editor-border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 24px -20px rgba(15, 23, 42, 0.28);
 }
 
-.editor-topbar__left,
-.editor-topbar__actions,
-.editor-topbar__status,
+.editor-workbar__identity,
+.editor-workbar__actions,
+.editor-workbar__metrics,
 .editor-card__head,
 .recovery-banner,
 .recovery-banner__actions,
@@ -845,12 +691,21 @@ const statusText = computed(() => {
   gap: 12px;
 }
 
-.editor-topbar__title {
-  display: grid;
-  gap: 4px;
+.editor-workbar__identity {
+  min-width: 0;
 }
 
-.editor-topbar__eyebrow,
+.editor-workbar__title {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.editor-workbar__title h1 {
+  overflow-wrap: anywhere;
+}
+
+.editor-workbar__eyebrow,
 .editor-card__eyebrow {
   margin: 0;
   font-size: 0.78rem;
@@ -859,9 +714,14 @@ const statusText = computed(() => {
   text-transform: uppercase;
 }
 
-.editor-topbar__status {
+.editor-workbar__metrics {
   flex-wrap: wrap;
   justify-content: center;
+}
+
+.editor-workbar__actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .status-pill,
@@ -873,8 +733,8 @@ const statusText = computed(() => {
   padding: 6px 12px;
   font-size: 0.8rem;
   font-weight: 700;
-  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
-  color: var(--color-primary-dark);
+  background: var(--editor-accent-soft);
+  color: var(--editor-accent);
 }
 
 .status-pill--warning {
@@ -891,7 +751,7 @@ const statusText = computed(() => {
 .primary-btn,
 .field__control {
   border-radius: 14px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--editor-border);
   font: inherit;
 }
 
@@ -903,8 +763,8 @@ const statusText = computed(() => {
 
 .ghost-btn {
   padding: 10px 14px;
-  background: color-mix(in srgb, var(--color-bg-secondary) 76%, black 24%);
-  color: var(--color-text);
+  background: var(--editor-paper-soft);
+  color: var(--editor-ink);
 }
 
 .primary-btn {
@@ -940,17 +800,20 @@ const statusText = computed(() => {
 
 .readonly-banner {
   color: #92400e;
-  background: color-mix(in srgb, #f59e0b 12%, var(--color-bg-secondary));
+  background: #fff7ed;
 }
 
 .editor-shell {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   gap: 20px;
   align-items: start;
 }
 
-.editor-shell__meta,
+.editor-shell--no-inspector {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .editor-shell__main,
 .editor-shell__side {
   display: grid;
@@ -963,9 +826,151 @@ const statusText = computed(() => {
   min-width: 0;
 }
 
-.editor-card--main,
-.editor-card--side {
+.document-editor-surface {
+  display: grid;
+  align-content: start;
+  overflow: hidden;
+  padding: 0;
+  background: #eef2f7;
+}
+
+.document-paper-rail {
+  display: grid;
+  width: min(100%, 920px);
+  margin: 0 auto;
+  padding: 22px 20px 20px;
+  align-content: start;
+}
+
+.setup-ready-summary {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  color: var(--editor-accent);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.document-title-panel {
+  padding: 20px 24px 16px;
+  border: 1px solid var(--editor-border);
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+  background: var(--editor-paper);
+}
+
+.document-title-field {
+  margin-bottom: 0;
+}
+
+.document-title-field__control {
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  background: transparent;
+  color: var(--editor-ink);
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 1.1rem + 1vw, 2rem);
+  font-weight: 800;
+  line-height: 1.2;
+  outline: none;
+}
+
+.document-title-field__control::placeholder {
+  color: color-mix(in srgb, var(--editor-ink-muted) 72%, transparent);
+}
+
+.document-inspector__setup,
+.document-inspector__cover,
+.document-inspector__quality,
+.document-inspector__tools {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--editor-border);
+  border-radius: 12px;
+  background: var(--editor-paper-soft);
+}
+
+.document-inspector__tools {
+  background: var(--editor-paper);
+}
+
+.document-inspector__quality .checklist {
+  gap: 8px;
+}
+
+.document-inspector__quality .checklist__item {
+  gap: 10px;
+}
+
+.document-inspector__quality .checklist__item strong {
+  font-size: 0.9rem;
+}
+
+.document-inspector__quality .checklist__item p {
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.document-inspector__cover {
+  border-style: dashed;
+}
+
+.document-inspector__cover--active {
+  border-color: var(--color-primary);
+  background: var(--editor-accent-soft);
+}
+
+.document-inspector__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.document-inspector__head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+.document-cover-preview {
+  display: grid;
+  aspect-ratio: 16 / 9;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--editor-border);
+  border-radius: 10px;
+  background: var(--editor-paper-muted);
+  color: var(--editor-ink-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.document-cover-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.editor-card--writing,
+.inspector-panel {
   min-height: 72vh;
+}
+
+.inspector-panel {
+  position: sticky;
+  top: 86px;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 16px;
 }
 
 .editor-card__head {
@@ -987,51 +992,26 @@ const statusText = computed(() => {
 .field__control {
   width: 100%;
   padding: 12px 14px;
-  background: color-mix(in srgb, var(--color-bg) 82%, black 18%);
-  color: var(--color-text);
+  background: var(--editor-paper);
+  color: var(--editor-ink);
 }
 
 .field__control--textarea {
   resize: vertical;
-  min-height: 112px;
+  min-height: 74px;
 }
 
-.cover-dropzone {
-  display: grid;
-  gap: 12px;
-  padding: 16px;
-  border: 1px dashed color-mix(in srgb, var(--color-primary) 22%, var(--color-border));
-  border-radius: 18px;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-primary) 6%, var(--color-bg-secondary)) 0%,
-    color-mix(in srgb, var(--color-bg) 90%, black 10%) 100%
-  );
-}
-
-.cover-dropzone--active {
-  border-color: var(--color-primary);
-}
-
-.cover-dropzone__copy p,
-.cover-preview small,
 .checklist__item p,
 .editor-stage__tips,
 .empty-copy {
   margin: 0;
-  color: var(--color-text-secondary);
+  color: var(--editor-ink-muted);
 }
 
-.cover-preview {
-  display: grid;
-  gap: 10px;
-}
-
-.cover-preview img,
 .article-preview__cover {
   width: 100%;
   border-radius: 18px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--editor-border);
   object-fit: cover;
 }
 
@@ -1068,18 +1048,16 @@ const statusText = computed(() => {
   gap: 10px;
   overflow: visible;
   padding: 10px 12px;
-  margin-bottom: 16px;
-  border: 1px solid color-mix(in srgb, var(--color-border) 84%, rgb(255 255 255 / 0.06));
-  border-radius: 16px;
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--color-bg-secondary) 84%, white 6%) 0%,
-      color-mix(in srgb, var(--color-bg) 92%, black 8%) 100%
-    );
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.06),
-    0 14px 28px rgb(0 0 0 / 0.16);
+  margin-bottom: 0;
+  border: 1px solid var(--editor-border);
+  border-radius: 0;
+  background: var(--editor-paper-soft);
+  box-shadow: inset 0 -1px 0 rgba(15, 23, 42, 0.04);
+}
+
+.document-toolbar-band {
+  border-right: 1px solid var(--editor-border);
+  border-left: 1px solid var(--editor-border);
 }
 
 .editor-toolbar--readonly {
@@ -1094,24 +1072,10 @@ const statusText = computed(() => {
   gap: 4px;
   min-height: 38px;
   padding: 4px;
-  border: 1px solid color-mix(in srgb, var(--color-border) 74%, transparent);
-  border-radius: 12px;
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--color-bg-secondary) 80%, white 5%) 0%,
-      color-mix(in srgb, var(--color-bg) 88%, black 12%) 100%
-    );
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
-}
-
-.toolbar-group--advanced,
-.toolbar-group--more {
-  margin-left: auto;
-}
-
-.toolbar-group--more {
-  display: none;
+  border: 1px solid var(--editor-border);
+  border-radius: 10px;
+  background: var(--editor-paper);
+  box-shadow: none;
 }
 
 .toolbar-group--select {
@@ -1119,15 +1083,15 @@ const statusText = computed(() => {
   padding-inline: 8px;
 }
 
+.document-toolbar-actions {
+  margin-left: auto;
+}
+
 .toolbar-separator {
   width: 1px;
   flex: 0 0 auto;
   height: 28px;
-  background: color-mix(in srgb, var(--color-border) 58%, transparent);
-}
-
-.toolbar-separator--advanced {
-  display: none;
+  background: var(--editor-border);
 }
 
 .toolbar-select-wrap {
@@ -1156,13 +1120,13 @@ const statusText = computed(() => {
   padding: 0 28px 0 10px;
   border: 1px solid transparent;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--color-bg-secondary) 86%, white 4%);
-  color: var(--color-text);
+  background: var(--editor-paper);
+  color: var(--editor-ink);
   font-size: 0.8rem;
   font-weight: 600;
   line-height: 1;
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.02);
 }
 
 .toolbar-select-wrap--style .toolbar-select {
@@ -1194,7 +1158,7 @@ const statusText = computed(() => {
   border: 1px solid transparent;
   border-radius: 7px;
   background: transparent;
-  color: var(--color-text-secondary);
+  color: var(--editor-ink-muted);
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
 }
@@ -1240,15 +1204,10 @@ const statusText = computed(() => {
 }
 
 .toolbar-tool--active {
-  border-color: color-mix(in srgb, var(--color-primary) 34%, var(--color-border));
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--color-primary) 18%, var(--color-bg-secondary)) 0%,
-      color-mix(in srgb, var(--color-primary) 10%, var(--color-bg)) 100%
-    );
-  color: var(--color-text);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+  border-color: var(--editor-accent);
+  background: var(--editor-accent-soft);
+  color: var(--editor-ink);
+  box-shadow: none;
 }
 
 .toolbar-tool:hover:not(:disabled),
@@ -1256,10 +1215,9 @@ const statusText = computed(() => {
 .toolbar-select:hover:not(:disabled),
 .toolbar-select:focus-visible {
   border-color: color-mix(in srgb, var(--color-primary) 20%, var(--color-border));
-  background: color-mix(in srgb, var(--color-bg-secondary) 92%, white 8%);
-  color: var(--color-text);
+  background: var(--editor-paper-muted);
+  color: var(--editor-ink);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.08),
     0 0 0 2px color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 
@@ -1275,7 +1233,7 @@ const statusText = computed(() => {
   gap: 6px;
   min-height: 32px;
   padding: 0 4px;
-  color: var(--color-text-secondary);
+  color: var(--editor-ink-muted);
   font-size: 0.76rem;
   font-weight: 700;
 }
@@ -1286,8 +1244,8 @@ const statusText = computed(() => {
   padding: 0 8px;
   border: 1px solid transparent;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--color-bg-secondary) 86%, white 4%);
-  color: var(--color-text);
+  background: var(--editor-paper);
+  color: var(--editor-ink);
   font: inherit;
 }
 
@@ -1296,35 +1254,32 @@ const statusText = computed(() => {
   border-color: color-mix(in srgb, var(--color-primary) 20%, var(--color-border));
   outline: none;
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.08),
     0 0 0 2px color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 
 .editor-stage {
-  padding-top: 16px;
+  padding: 0 18px 18px;
   min-width: 0;
+}
+
+.document-writing-stage {
+  padding: 0;
 }
 
 .rich-editor {
   min-height: 58vh;
   padding: 24px 26px;
-  border-radius: 22px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 10%, var(--color-border));
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--color-bg-secondary) 88%, black 12%) 0%,
-      color-mix(in srgb, var(--color-bg) 86%, black 14%) 100%
-    );
-  color: var(--color-text);
+  border-radius: 0 0 12px 12px;
+  border: 1px solid var(--editor-border-strong);
+  border-top: 0;
+  background: var(--editor-paper);
+  color: var(--editor-ink);
   font-size: 17px;
   line-height: 1.85;
   overflow-wrap: anywhere;
   word-break: break-word;
   outline: none;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.04),
-    inset 0 0 0 1px rgb(255 255 255 / 0.02);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.02);
 }
 
 .rich-editor :deep(p),
@@ -1356,14 +1311,14 @@ const statusText = computed(() => {
 
 .rich-editor:empty::before {
   content: '从这里开始写正文，像在公众号后台写一篇新文章。';
-  color: var(--color-text-secondary);
+  color: var(--editor-ink-muted);
 }
 
 .editor-stage__tips {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  padding-top: 12px;
+  padding: 0 18px 16px;
   font-size: 0.82rem;
 }
 
@@ -1371,33 +1326,33 @@ const statusText = computed(() => {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 
 .side-tabs__item {
   padding: 10px 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--editor-border);
   border-radius: 14px;
-  background: color-mix(in srgb, var(--color-bg) 82%, black 18%);
-  color: var(--color-text-secondary);
+  background: var(--editor-paper-soft);
+  color: var(--editor-ink-muted);
   cursor: pointer;
 }
 
 .side-tabs__item--active {
   border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
-  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg));
-  color: var(--color-text);
+  background: var(--editor-accent-soft);
+  color: var(--editor-ink);
 }
 
 .preview-panel,
 .outline-panel,
 .quality-panel {
-  min-height: 60vh;
+  min-height: 0;
 }
 
 .preview-panel {
-  overflow: auto;
-  padding-right: 6px;
+  overflow: hidden;
+  padding-right: 0;
   min-width: 0;
 }
 
@@ -1415,17 +1370,14 @@ const statusText = computed(() => {
 .article-preview__body {
   display: grid;
   gap: 12px;
-  color: var(--color-text);
+  max-height: 320px;
+  overflow: auto;
+  color: var(--editor-ink);
   line-height: 1.85;
   padding: 18px 18px 20px;
   border: 1px solid color-mix(in srgb, var(--color-border) 68%, transparent);
   border-radius: 18px;
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--color-bg-secondary) 84%, black 16%) 0%,
-      color-mix(in srgb, var(--color-bg) 88%, black 12%) 100%
-    );
+  background: var(--editor-paper);
   min-width: 0;
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -1449,7 +1401,7 @@ const statusText = computed(() => {
 .article-preview__body :deep(blockquote) {
   padding: 10px 14px;
   border-left: 3px solid var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-bg));
+  background: var(--editor-accent-soft);
   border-radius: 12px;
 }
 
@@ -1483,9 +1435,9 @@ const statusText = computed(() => {
   gap: 10px;
   width: 100%;
   padding: 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--editor-border);
   border-radius: 14px;
-  background: color-mix(in srgb, var(--color-bg) 82%, black 18%);
+  background: var(--editor-paper-soft);
   text-align: left;
   cursor: pointer;
 }
@@ -1493,7 +1445,7 @@ const statusText = computed(() => {
 .outline-list__level {
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--color-primary-dark);
+  color: var(--editor-accent);
 }
 
 .quality-panel {
@@ -1506,9 +1458,9 @@ const statusText = computed(() => {
   display: grid;
   gap: 6px;
   padding: 16px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--editor-border);
   border-radius: 16px;
-  background: color-mix(in srgb, var(--color-bg) 82%, black 18%);
+  background: var(--editor-paper-soft);
 }
 
 .quality-panel__metric strong {
@@ -1566,40 +1518,42 @@ const statusText = computed(() => {
 
 @media (max-width: 1440px) {
   .editor-shell {
-    grid-template-columns: 280px minmax(0, 1fr) 320px;
+    grid-template-columns: minmax(0, 1fr) 320px;
   }
 }
 
 @media (max-width: 1100px) {
-  .editor-topbar {
+  .editor-workbar {
     grid-template-columns: 1fr;
   }
 
-  .editor-topbar__status {
+  .editor-workbar__metrics {
     justify-content: flex-start;
   }
 
-  .editor-shell {
+  .editor-shell,
+  .editor-shell--no-inspector {
     grid-template-columns: 1fr;
   }
 
-  .editor-card--main,
-  .editor-card--side {
+  .editor-card--writing,
+  .inspector-panel {
+    position: static;
     min-height: auto;
   }
 }
 
 @media (max-width: 768px) {
-  .editor-topbar,
+  .editor-workbar,
   .editor-card,
   .recovery-banner,
   .readonly-banner {
     border-radius: 18px;
   }
 
-  .editor-topbar__left,
-  .editor-topbar__status,
-  .editor-topbar__actions,
+  .editor-workbar__identity,
+  .editor-workbar__metrics,
+  .editor-workbar__actions,
   .recovery-banner {
     flex-direction: column;
     align-items: stretch;
@@ -1613,7 +1567,10 @@ const statusText = computed(() => {
 
   .editor-toolbar {
     padding: 10px;
-    border-radius: 14px;
+  }
+
+  .document-paper-rail {
+    padding: 12px;
   }
 
   .toolbar-group {
@@ -1624,25 +1581,7 @@ const statusText = computed(() => {
     display: none;
   }
 
-  .toolbar-group--advanced,
-  .toolbar-separator--advanced {
-    display: none;
-  }
-
-  .toolbar-group--more {
-    display: inline-flex;
-  }
-
-  .editor-toolbar--overflow-open .toolbar-separator--advanced {
-    display: block;
-    flex-basis: 100%;
-    width: 100%;
-    height: 1px;
-  }
-
-  .editor-toolbar--overflow-open .toolbar-group--advanced {
-    display: inline-flex;
-    flex-basis: 100%;
+  .document-toolbar-actions {
     margin-left: 0;
   }
 

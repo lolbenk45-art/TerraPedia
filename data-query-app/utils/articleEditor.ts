@@ -62,7 +62,7 @@ const hasDomParser = () => typeof DOMParser !== 'undefined'
 
 const isSafeUrl = (value: string) => {
   const next = value.trim().replace(/&amp;/g, '&')
-  return /^https?:\/\//i.test(next) || /^data:image\//i.test(next) || /^blob:/i.test(next)
+  return /^https?:\/\//i.test(next) || /^data:image\//i.test(next) || /^blob:/i.test(next) || next.startsWith('/terrapedia-images/')
 }
 
 const sanitizeInlineStyle = (styleText: string) => {

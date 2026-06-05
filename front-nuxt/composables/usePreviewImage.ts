@@ -5,12 +5,27 @@ export const resolvePreviewImageUrl = (value?: string | null): string => {
     return ''
   }
 
+  const objectProxyPrefix = '/api/files/objects/'
+  const previewImagePrefix = '/preview-assets/terrapedia-images/'
+
+  if (/^data:image\//i.test(imageUrl)) {
+    return imageUrl
+  }
+
   if (imageUrl.startsWith('/preview-assets/')) {
     return imageUrl
   }
 
+  if (imageUrl.includes(objectProxyPrefix)) {
+    return `${previewImagePrefix}${imageUrl.split(objectProxyPrefix)[1]}`
+  }
+
   if (imageUrl.includes('/terrapedia-images/')) {
-    return `/preview-assets/terrapedia-images/${imageUrl.split('/terrapedia-images/')[1]}`
+    return `${previewImagePrefix}${imageUrl.split('/terrapedia-images/')[1]}`
+  }
+
+  if (/^https?:/i.test(imageUrl) || imageUrl.startsWith('//')) {
+    return ''
   }
 
   return imageUrl

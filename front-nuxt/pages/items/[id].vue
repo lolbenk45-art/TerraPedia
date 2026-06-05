@@ -583,6 +583,7 @@ onMounted(() => {
       <section class="detail-hero dark-card">
         <div class="detail-icon-stage">
           <CommonPreviewImage
+            class="item-detail-primary-preview"
             :src="itemImage"
             :alt="itemName"
             :fallback="itemFallbackGlyph"

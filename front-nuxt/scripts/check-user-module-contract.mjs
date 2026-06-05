@@ -152,6 +152,10 @@ for (const marker of [
   "useRequestHeaders(['cookie'])",
   'buildUserRedirectTarget',
   'buildUserPostAuthRedirectTarget',
+  'normalizeUserProfile',
+  'normalizeUserImageUrl',
+  'avatarUrl: normalizeUserImageUrl',
+  'authorAvatarUrl: normalizeUserImageUrl',
 ]) {
   assertIncludes(apiPath, api, marker, `user API must include ${marker}`)
 }
@@ -391,6 +395,7 @@ const pageContracts = [
       'public-article-cover',
       'public-article-cover-fallback',
       'loading="lazy"',
+      'articleAuthorAvatarUrl',
     ],
     forbidden: [
       '公开文章暂未开放',
@@ -401,12 +406,12 @@ const pageContracts = [
   },
   {
     path: 'pages/articles/[slug].vue',
-    required: ['usePublicApiFetch<UserArticle>', '/articles/slug/', 'useUserFavoritesStore', 'useUserHistoryStore', "loadStatuses('ARTICLE'", 'toggleArticleFavorite', 'recordArticleHistoryOnce', 'recordedArticleHistoryIds', 'import.meta.client', "historyStore.record('ARTICLE'", '收藏文章', '已收藏', 'article.id', 'authorProfilePath', 'resolvePreviewImageUrl', 'articleCoverUrl', 'article.coverImage', 'article-cover-figure', 'article-primary-meta', 'sanitizeArticleHtml', 'renderPlainArticleText', 'sanitizedArticleHtml', 'article-inline-header', 'article-section-title', 'viewCount', 'favoriteCount', 'recommendedArticles', 'article-related-articles', 'article-related-cover', 'article-related-copy', '推荐文章', 'article-toc', 'article-comments', 'sortedArticleComments', 'articleCommentText', 'loadArticleComments', 'submitArticleComment', 'deleteArticleComment', '/comments'],
+    required: ['usePublicApiFetch<UserArticle>', '/articles/slug/', 'useUserFavoritesStore', 'useUserHistoryStore', "loadStatuses('ARTICLE'", 'toggleArticleFavorite', 'recordArticleHistoryOnce', 'recordedArticleHistoryIds', 'import.meta.client', "historyStore.record('ARTICLE'", '收藏文章', '已收藏', 'article.id', 'authorProfilePath', 'resolvePreviewImageUrl', 'articleCoverUrl', 'article.coverImage', 'authorAvatarUrl', 'commentAvatarUrl', 'article-cover-figure', 'article-primary-meta', 'sanitizeArticleHtml', 'renderPlainArticleText', 'sanitizedArticleHtml', 'article-inline-header', 'article-section-title', 'viewCount', 'favoriteCount', 'recommendedArticles', 'article-related-articles', 'article-related-cover', 'article-related-copy', '推荐文章', 'article-toc', 'article-comments', 'sortedArticleComments', 'articleCommentText', 'loadArticleComments', 'submitArticleComment', 'deleteArticleComment', '/comments'],
     forbidden: ['公开文章暂未开放', '真实文章待接入', '文章未载入', '没有真实发布数据', 'article-detail-cover-frame', 'article-detail-cover-fallback', '<span class="eyebrow">文章状态</span>', '<span class="eyebrow">推荐跳转</span>'],
   },
   {
     path: 'pages/users/[id].vue',
-    required: ['usePublicApiFetch<PublicUserProfile>', '`/users/${userId.value}`', 'publishedArticles', 'publishedArticleCount', 'user-empty-state', '返回文章入口', 'publicArticlePath'],
+    required: ['usePublicApiFetch<PublicUserProfile>', '`/users/${userId.value}`', 'publishedArticles', 'publishedArticleCount', 'user-empty-state', '返回文章入口', 'publicArticlePath', 'profileAvatarUrl'],
     forbidden: ['email', 'token', 'role', 'roles', 'deleted', 'passwordHash', 'avatarObjectKey', 'preview-only', '占位'],
   },
 ]

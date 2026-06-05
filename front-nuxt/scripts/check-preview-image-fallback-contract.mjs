@@ -69,6 +69,18 @@ const assertBiomeHeroUsesCoverCropping = (path, content) => {
 }
 
 {
+  const path = 'composables/usePreviewImage.ts'
+  const content = read(path)
+
+  assertContains(path, content, [
+    "'/api/files/objects/'",
+    "'/preview-assets/terrapedia-images/'",
+    '/^https?:/i',
+    "imageUrl.startsWith('//')",
+  ])
+}
+
+{
   const path = 'components/common/PreviewImage.vue'
   const content = read(path)
 
@@ -147,6 +159,7 @@ for (const path of [
 
 for (const [path, markers] of Object.entries({
   'pages/items/[id].vue': [
+    'item-detail-primary-preview',
     'sourceFallbackIcon',
     ':fallback-icon="source.icon"',
   ],
