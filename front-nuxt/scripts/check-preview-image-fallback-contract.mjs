@@ -159,6 +159,7 @@ for (const path of [
 
 for (const [path, markers] of Object.entries({
   'pages/items/[id].vue': [
+    'item-detail-primary-preview',
     'sourceFallbackIcon',
     ':fallback-icon="source.icon"',
   ],
