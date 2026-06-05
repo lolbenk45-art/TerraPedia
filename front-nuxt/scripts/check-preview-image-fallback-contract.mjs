@@ -69,6 +69,16 @@ const assertBiomeHeroUsesCoverCropping = (path, content) => {
 }
 
 {
+  const path = 'composables/usePreviewImage.ts'
+  const content = read(path)
+
+  assertContains(path, content, [
+    "'/api/files/objects/'",
+    "'/preview-assets/terrapedia-images/'",
+  ])
+}
+
+{
   const path = 'components/common/PreviewImage.vue'
   const content = read(path)
 
