@@ -1,7 +1,9 @@
 <template>
-  <ClientOnly>
-    <ArticleEditorWorkspace />
-  </ClientOnly>
+  <div class="article-editor-route">
+    <ClientOnly>
+      <ArticleEditorWorkspace />
+    </ClientOnly>
+  </div>
 </template>
 
 <script setup lang="ts">

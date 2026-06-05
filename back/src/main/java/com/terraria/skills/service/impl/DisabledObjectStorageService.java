@@ -3,12 +3,12 @@ package com.terraria.skills.service.impl;
 import com.terraria.skills.dto.FileUploadResultDTO;
 import com.terraria.skills.dto.StoredObjectDTO;
 import com.terraria.skills.service.ObjectStorageService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
-@ConditionalOnMissingBean(ObjectStorageService.class)
+@ConditionalOnProperty(prefix = "terraria.storage.minio", name = "enabled", havingValue = "false", matchIfMissing = true)
 public class DisabledObjectStorageService implements ObjectStorageService {
 
     @Override
