@@ -355,8 +355,8 @@ const pageContracts = [
   },
   {
     path: 'pages/user/notifications.vue',
-    required: ['definePageMeta({ requiresUserAuth: true })', 'useUserNotificationsStore', 'notificationsStore.loadList', 'notificationsStore.markRead(notification)', 'notificationsStore.markAllRead', 'notificationsStore.unreadCount', '通知中心'],
-    forbidden: ['preview-only', '占位'],
+    required: ['definePageMeta({ requiresUserAuth: true })', 'useUserNotificationsStore', 'notificationsStore.loadList(true', 'notificationsStore.loadList(false', 'historyVisible', 'handleNotificationOpen', 'notificationsStore.markRead(notification)', 'notificationsStore.unreadCount', 'notification-inbox-shell', 'notification-filter-rail', 'notification-view-switch', 'notification-inbox-row', 'notification-unread-dot', 'notification-row-copy', 'notification-title', 'notification-body', '历史通知', '通知中心'],
+    forbidden: ['preview-only', '占位', 'markAllRead', '全部已读', 'notification-status-rail'],
   },
   {
     path: 'pages/user/articles/index.vue',
