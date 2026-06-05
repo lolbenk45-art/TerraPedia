@@ -150,9 +150,8 @@ const PRODUCT_DOMAIN_CONFIG = {
         optionalText('back/src/main/java/com/terraria/skills/controller/PublicItemController.java'),
         optionalText('back/src/main/java/com/terraria/skills/controller/PublicItemAggregateController.java'),
         optionalText('back/src/main/java/com/terraria/skills/controller/PublicItemRecipeController.java'),
-        optionalText('front/src/router/routes.ts'),
-        optionalText('front/src/views/HomeView.vue'),
-        optionalText('front/src/views/ItemDetailView.vue'),
+        optionalText('front-nuxt/pages/index.vue'),
+        optionalText('front-nuxt/pages/items/[id].vue'),
       ],
     },
     unresolvedAuditTrend: {
@@ -188,9 +187,8 @@ const PRODUCT_DOMAIN_CONFIG = {
       fileKey: 'public-readiness',
       evidence: [
         optionalText('back/src/main/java/com/terraria/skills/controller/PublicNpcAggregateController.java'),
-        optionalText('front/src/router/routes.ts'),
-        optionalText('front/src/views/NpcListView.vue'),
-        optionalText('front/src/views/NpcDetailView.vue'),
+        optionalText('front-nuxt/pages/npcs/index.vue'),
+        optionalText('front-nuxt/pages/npcs/[id].vue'),
       ],
     },
     unresolvedAuditTrend: {
@@ -265,8 +263,8 @@ const PRODUCT_DOMAIN_CONFIG = {
       evidence: [
         requiredText('back/src/main/java/com/terraria/skills/controller/PublicBuffController.java'),
         requiredText('back/src/test/java/com/terraria/skills/controller/PublicBuffControllerTest.java'),
-        optionalText('front/src/router/routes.ts'),
-        optionalDirectory('front/src/views'),
+        optionalText('front-nuxt/pages/buffs/index.vue'),
+        optionalDirectory('front-nuxt/pages'),
       ],
     },
     unresolvedAuditTrend: {
@@ -303,8 +301,8 @@ const PRODUCT_DOMAIN_CONFIG = {
       evidence: [
         requiredText('back/src/main/java/com/terraria/skills/controller/PublicProjectileController.java'),
         requiredText('back/src/test/java/com/terraria/skills/controller/PublicProjectileControllerTest.java'),
-        optionalText('front/src/router/routes.ts'),
-        optionalDirectory('front/src/views'),
+        optionalText('front-nuxt/pages/projectiles/index.vue'),
+        optionalDirectory('front-nuxt/pages'),
       ],
     },
     unresolvedAuditTrend: {
@@ -342,8 +340,8 @@ const PRODUCT_DOMAIN_CONFIG = {
       evidence: [
         requiredText('back/src/main/java/com/terraria/skills/controller/PublicArmorSetController.java'),
         requiredText('back/src/test/java/com/terraria/skills/controller/PublicArmorSetControllerTest.java'),
-        optionalText('front/src/router/routes.ts'),
-        optionalDirectory('front/src/views'),
+        optionalText('front-nuxt/pages/armor-sets/index.vue'),
+        optionalDirectory('front-nuxt/pages'),
       ],
     },
     unresolvedAuditTrend: {
@@ -402,7 +400,7 @@ const SUPPORT_DOMAIN_CONFIG = {
     blockingGate: {
       fileKey: 'blocking-gate',
       evidence: [
-        optionalText('front/src/services/categoryManagement.ts'),
+        optionalText('front-nuxt/pages/categories/index.vue'),
         optionalText('data-query-app/pages/categories.vue'),
         optionalLatestText('reports/relation/category-recipe-cutover-verification*.md'),
       ],

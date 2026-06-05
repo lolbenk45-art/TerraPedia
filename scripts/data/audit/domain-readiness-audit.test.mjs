@@ -161,16 +161,16 @@ test('buildDomainReadinessReport blocks product public readiness when public con
   assert.equal(report.status, 'blocked');
   assert.ok(report.blockingReasons.includes('Missing required evidence: back/src/main/java/com/terraria/skills/controller/PublicArmorSetController.java'));
   assert.ok(report.blockingReasons.includes('Missing required evidence: back/src/test/java/com/terraria/skills/controller/PublicArmorSetControllerTest.java'));
-  assert.ok(report.warningReasons.includes('Missing optional evidence: front/src/router/routes.ts'));
-  assert.ok(report.warningReasons.includes('Missing optional evidence: front/src/views'));
+  assert.ok(report.warningReasons.includes('Missing optional evidence: front-nuxt/pages/armor-sets/index.vue'));
+  assert.ok(report.warningReasons.includes('Missing optional evidence: front-nuxt/pages'));
 });
 
 test('buildDomainReadinessReport passes public readiness for buffs with public controller evidence', () => {
   const repoRoot = createTempRepo();
   writeText(repoRoot, 'back/src/main/java/com/terraria/skills/controller/PublicBuffController.java', '@RequestMapping("/public/buffs")\nclass PublicBuffController {}');
   writeText(repoRoot, 'back/src/test/java/com/terraria/skills/controller/PublicBuffControllerTest.java', 'class PublicBuffControllerTest {}');
-  writeText(repoRoot, 'front/src/router/routes.ts', 'path: "/buffs"');
-  fs.mkdirSync(path.join(repoRoot, 'front/src/views'), { recursive: true });
+  writeText(repoRoot, 'front-nuxt/pages/buffs/index.vue', '<template />');
+  fs.mkdirSync(path.join(repoRoot, 'front-nuxt/pages'), { recursive: true });
 
   const report = buildDomainReadinessReport({
     repoRoot,
@@ -186,8 +186,8 @@ test('buildDomainReadinessReport passes public readiness for projectiles with pu
   const repoRoot = createTempRepo();
   writeText(repoRoot, 'back/src/main/java/com/terraria/skills/controller/PublicProjectileController.java', '@RequestMapping("/public/projectiles")\nclass PublicProjectileController {}');
   writeText(repoRoot, 'back/src/test/java/com/terraria/skills/controller/PublicProjectileControllerTest.java', 'class PublicProjectileControllerTest {}');
-  writeText(repoRoot, 'front/src/router/routes.ts', 'path: "/projectiles"');
-  fs.mkdirSync(path.join(repoRoot, 'front/src/views'), { recursive: true });
+  writeText(repoRoot, 'front-nuxt/pages/projectiles/index.vue', '<template />');
+  fs.mkdirSync(path.join(repoRoot, 'front-nuxt/pages'), { recursive: true });
 
   const report = buildDomainReadinessReport({
     repoRoot,
@@ -203,8 +203,8 @@ test('buildDomainReadinessReport passes public readiness for armor sets with pub
   const repoRoot = createTempRepo();
   writeText(repoRoot, 'back/src/main/java/com/terraria/skills/controller/PublicArmorSetController.java', '@RequestMapping("/public/armor-sets")\nclass PublicArmorSetController {}');
   writeText(repoRoot, 'back/src/test/java/com/terraria/skills/controller/PublicArmorSetControllerTest.java', 'class PublicArmorSetControllerTest {}');
-  writeText(repoRoot, 'front/src/router/routes.ts', 'path: "/armor-sets"');
-  fs.mkdirSync(path.join(repoRoot, 'front/src/views'), { recursive: true });
+  writeText(repoRoot, 'front-nuxt/pages/armor-sets/index.vue', '<template />');
+  fs.mkdirSync(path.join(repoRoot, 'front-nuxt/pages'), { recursive: true });
 
   const report = buildDomainReadinessReport({
     repoRoot,
@@ -1126,7 +1126,7 @@ test('buildDomainReadinessReport warns when armor image parsed snapshot totals d
 
 test('buildDomainReadinessReport accepts latest markdown category recipe cutover verification', () => {
   const repoRoot = createTempRepo();
-  writeText(repoRoot, 'front/src/services/categoryManagement.ts', 'export {};');
+  writeText(repoRoot, 'front-nuxt/pages/categories/index.vue', '<template />');
   writeText(repoRoot, 'data-query-app/pages/categories.vue', '<template />');
   writeText(repoRoot, 'reports/relation/category-recipe-cutover-verification-2026-04-26.md', [
     '# Category / Recipe Cutover Verification',

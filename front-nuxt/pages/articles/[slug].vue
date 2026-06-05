@@ -350,11 +350,12 @@ const viewCount = computed(() => Math.max(0, Number(article.value?.viewCount ?? 
 const favoriteCountBase = computed(() => Math.max(0, Number(article.value?.favoriteCount ?? 0)))
 const resolveArticleCoverUrl = (article: UserArticle | null) => article ? resolvePreviewImageUrl(article.coverImage || '') : ''
 const articleCoverUrl = computed(() => resolveArticleCoverUrl(article.value))
-const articleSearchPath = computed(() => {
-  const keyword = String(article.value?.title || article.value?.slug || '').trim()
-  return keyword ? `/search?q=${encodeURIComponent(keyword)}` : '/search'
-})
 const recommendedArticlePath = (targetArticle: UserArticle) => `/articles/${targetArticle.slug}`
+const recommendedArticleCoverUrl = (targetArticle: UserArticle) => resolvePreviewImageUrl(targetArticle.coverImage || '')
+const recommendedArticleCoverFallback = (targetArticle: UserArticle) => {
+  const source = String(targetArticle.title || targetArticle.slug || 'TP').trim()
+  return source.slice(0, 2).toUpperCase()
+}
 const recommendedArticleSummary = (targetArticle: UserArticle) => targetArticle.summary || '这篇文章暂无摘要。'
 const recommendedArticleViewCount = (targetArticle: UserArticle) => Math.max(0, Number(targetArticle.viewCount ?? 0))
 const recommendedArticleFavoriteCount = (targetArticle: UserArticle) => Math.max(0, Number(targetArticle.favoriteCount ?? 0))
@@ -382,6 +383,18 @@ const commentAuthorLabel = (comment: ArticleComment) => comment.authorDisplayNam
 const commentAvatarFallback = (comment: ArticleComment) => commentAuthorLabel(comment).trim().slice(0, 1).toUpperCase() || 'T'
 const canDeleteComment = (comment: ArticleComment) => Boolean(authStore.user?.id && Number(authStore.user.id) === Number(comment.authorId))
 const commentContent = (comment: ArticleComment) => comment.deleted ? '该评论已删除' : comment.content
+const commentTimeValue = (comment: ArticleComment) => {
+  const value = new Date(comment.createdAt || '').getTime()
+  return Number.isFinite(value) ? value : 0
+}
+const compareArticleComments = (a: ArticleComment, b: ArticleComment) => {
+  const likeDelta = Number(b.likeCount ?? 0) - Number(a.likeCount ?? 0)
+  if (likeDelta !== 0) return likeDelta
+  const timeDelta = commentTimeValue(b) - commentTimeValue(a)
+  if (timeDelta !== 0) return timeDelta
+  return Number(b.id ?? 0) - Number(a.id ?? 0)
+}
+const sortedArticleComments = computed(() => [...articleComments.value].sort(compareArticleComments))
 const isArticleCommentReplyLoading = (commentId: number) => articleCommentReplyLoadingIds.value.has(commentId)
 const isArticleCommentLikeMutating = (commentId: number) => articleCommentLikeMutatingIds.value.has(commentId)
 const articleCommentRepliesPagination = (commentId: number) => articleCommentReplyPagination.value[String(commentId)] ?? {
@@ -456,7 +469,6 @@ const appendArticleCommentReplies = (rootId: number, records: ArticleComment[], 
 }
 const articleFavoriteStatus = computed(() => article.value?.id ? favoritesStore.getStatus('ARTICLE', article.value.id) : null)
 const articleIsFavorite = computed(() => Boolean(articleFavoriteStatus.value?.favorite))
-const currentFavoriteLabel = computed(() => authStore.isAuthenticated ? (articleIsFavorite.value ? '已收藏' : '未收藏') : '登录后')
 const displayedFavoriteCount = computed(() => {
   const serverFavorite = favoriteCountBase.value
   const articleId = article.value?.id == null ? '' : String(article.value.id)
@@ -722,31 +734,35 @@ onMounted(() => {
       <div class="article-detail-grid">
         <section class="article-body-panel">
           <header class="article-inline-header">
+            <figure class="article-cover-figure">
+              <img v-if="articleCoverUrl" :src="articleCoverUrl" :alt="article.title" loading="eager">
+              <span v-else class="article-cover-fallback" aria-hidden="true">{{ String(article.title || article.slug || 'TP').slice(0, 2).toUpperCase() }}</span>
+            </figure>
             <span class="eyebrow">资料手札 · {{ article.slug }}</span>
             <h1>{{ article.title }}</h1>
             <p>{{ article.summary || '这篇文章暂无摘要。' }}</p>
-            <div class="article-author-card">
-              <a v-if="authorProfilePath" class="article-author-avatar" :href="authorProfilePath" :aria-label="`${authorLabel} 的主页`">
-                <img v-if="authorAvatarUrl" :src="authorAvatarUrl" :alt="`${authorLabel} 的头像`">
-                <span v-else>{{ authorAvatarFallback }}</span>
+
+            <div class="article-primary-meta" aria-label="文章信息">
+              <a v-if="authorProfilePath" class="article-primary-author" :href="authorProfilePath" :aria-label="`${authorLabel} 的主页`">
+                <span class="article-author-avatar compact">
+                  <img v-if="authorAvatarUrl" :src="authorAvatarUrl" :alt="`${authorLabel} 的头像`" loading="lazy">
+                  <span v-else>{{ authorAvatarFallback }}</span>
+                </span>
+                <span>{{ authorLabel }}</span>
               </a>
-              <span v-else class="article-author-avatar" aria-hidden="true">
-                <img v-if="authorAvatarUrl" :src="authorAvatarUrl" :alt="`${authorLabel} 的头像`">
-                <span v-else>{{ authorAvatarFallback }}</span>
+              <span v-else class="article-primary-author">
+                <span class="article-author-avatar compact">
+                  <img v-if="authorAvatarUrl" :src="authorAvatarUrl" :alt="`${authorLabel} 的头像`" loading="lazy">
+                  <span v-else>{{ authorAvatarFallback }}</span>
+                </span>
+                <span>{{ authorLabel }}</span>
               </span>
-              <div>
-                <a v-if="article.authorId" class="article-author-link" :href="`/users/${article.authorId}`">{{ authorLabel }}</a>
-                <span v-else class="article-author-name">{{ authorLabel }}</span>
-                <div class="article-meta">
-                  <span>{{ publishedDate }}</span><span>文章 #{{ article.id }}</span>
-                </div>
-              </div>
+              <span>{{ publishedDate }}</span>
+              <span>文章 #{{ article.id }}</span>
+              <span>{{ viewCount }} 浏览</span>
+              <span>{{ displayedFavoriteCount }} 收藏</span>
             </div>
-            <div class="article-stat-grid" aria-label="文章统计">
-              <div><b>{{ viewCount }}</b><span>浏览</span></div>
-              <div><b>{{ displayedFavoriteCount }}</b><span>收藏</span></div>
-              <div><b>{{ currentFavoriteLabel }}</b><span>当前账号</span></div>
-            </div>
+
             <div class="article-favorite-actions">
               <button
                 class="article-favorite-button"
@@ -799,7 +815,7 @@ onMounted(() => {
             <div v-if="articleCommentsLoading && !articleComments.length" class="article-comment-empty">评论加载中...</div>
             <div v-else-if="!articleComments.length" class="article-comment-empty">暂无评论，成为第一条评论。</div>
             <div v-else class="article-comment-list">
-              <article v-for="comment in articleComments" :key="comment.id" class="article-comment-item">
+              <article v-for="comment in sortedArticleComments" :key="comment.id" class="article-comment-item">
                 <div class="article-comment-avatar">
                   <img v-if="comment.authorAvatarUrl" :src="comment.authorAvatarUrl" :alt="`${commentAuthorLabel(comment)} 的头像`" loading="lazy">
                   <span v-else>{{ commentAvatarFallback(comment) }}</span>
@@ -924,20 +940,6 @@ onMounted(() => {
         </section>
 
         <aside class="article-route-panel">
-          <span class="eyebrow">文章状态</span>
-          <div class="toc-list">
-            <div class="toc-item"><span class="toc-num">01</span><div><b>已发布</b><span>{{ publishedDate }}</span></div></div>
-            <div class="toc-item">
-              <span class="toc-num">02</span>
-              <div>
-                <b>作者</b>
-                <a v-if="authorProfilePath" class="article-author-side-link" :href="authorProfilePath">{{ authorLabel }}</a>
-                <span v-else>{{ authorLabel }}</span>
-              </div>
-            </div>
-            <div class="toc-item"><span class="toc-num">03</span><div><b>浏览</b><span>{{ viewCount }} 次</span></div></div>
-            <div class="toc-item"><span class="toc-num">04</span><div><b>收藏</b><span>{{ displayedFavoriteCount }} 人收藏</span></div></div>
-          </div>
           <nav v-if="articleToc.length" class="article-toc" aria-label="文章目录">
             <span class="eyebrow">文章目录</span>
             <a
@@ -950,29 +952,7 @@ onMounted(() => {
             </a>
             <a class="article-toc-link comments-link" href="#article-comments">评论区</a>
           </nav>
-          <nav class="article-recommendations" aria-label="推荐跳转">
-            <span class="eyebrow">推荐跳转</span>
-            <a class="article-recommendation-link" :href="articleSearchPath">
-              <b>搜索相关资料</b>
-              <span>按当前标题查找物品、攻略和路线</span>
-            </a>
-            <a class="article-recommendation-link" href="/articles">
-              <b>更多文章</b>
-              <span>返回资料手札列表</span>
-            </a>
-            <a class="article-recommendation-link" href="/crafting">
-              <b>制作路线</b>
-              <span>查看合成树和材料链路</span>
-            </a>
-            <a class="article-recommendation-link" href="/user/articles">
-              <b>我的文章</b>
-              <span>管理草稿、投稿和已发布内容</span>
-            </a>
-            <a v-if="authorProfilePath" class="article-recommendation-link" :href="authorProfilePath">
-              <b>作者主页</b>
-              <span>查看作者公开资料和文章</span>
-            </a>
-          </nav>
+
           <section v-if="recommendedArticles.length" class="article-related-articles" aria-label="推荐文章">
             <span class="eyebrow">推荐文章</span>
             <a
@@ -981,11 +961,24 @@ onMounted(() => {
               class="article-related-link"
               :href="recommendedArticlePath(recommendedArticle)"
             >
-              <b>{{ recommendedArticle.title }}</b>
-              <span>{{ recommendedArticleSummary(recommendedArticle) }}</span>
-              <small>{{ recommendedArticleViewCount(recommendedArticle) }} 浏览 · {{ recommendedArticleFavoriteCount(recommendedArticle) }} 收藏</small>
+              <span class="article-related-cover">
+                <img
+                  v-if="recommendedArticleCoverUrl(recommendedArticle)"
+                  :src="recommendedArticleCoverUrl(recommendedArticle)"
+                  :alt="recommendedArticle.title"
+                  loading="lazy"
+                >
+                <b v-else>{{ recommendedArticleCoverFallback(recommendedArticle) }}</b>
+              </span>
+              <span class="article-related-copy">
+                <b>{{ recommendedArticle.title }}</b>
+                <span>{{ recommendedArticleSummary(recommendedArticle) }}</span>
+                <small>{{ recommendedArticleViewCount(recommendedArticle) }} 浏览 · {{ recommendedArticleFavoriteCount(recommendedArticle) }} 收藏</small>
+              </span>
             </a>
           </section>
+
+          <a class="article-more-link" href="/articles">更多文章</a>
         </aside>
       </div>
     </main>
@@ -1054,8 +1047,40 @@ onMounted(() => {
   border-bottom: 1px solid color-mix(in srgb, var(--index-line) 78%, transparent);
 }
 
+.article-cover-figure {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  margin: 0 0 22px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent-gold) 22%, var(--index-line));
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent-gold) 12%, transparent), transparent 44%),
+    color-mix(in srgb, var(--index-surface) 84%, #101827);
+  aspect-ratio: 16 / 7;
+}
+
+.article-cover-figure img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.article-cover-fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--accent-gold);
+  font-family: var(--font-display);
+  font-size: clamp(42px, 8vw, 88px);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
 .article-inline-header h1 {
-  max-width: 16ch;
+  max-width: 24ch;
   margin: 8px 0 12px;
   color: var(--text-strong);
   font-family: var(--font-display);
@@ -1071,6 +1096,29 @@ onMounted(() => {
   font-size: 15.5px;
   line-height: 1.72;
   overflow-wrap: anywhere;
+}
+
+.article-primary-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  margin-top: 16px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.article-primary-author {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  color: var(--text-strong);
+  text-decoration: none;
+}
+
+.article-primary-author:hover {
+  color: var(--accent-gold);
 }
 
 .article-author-card {
@@ -1100,6 +1148,12 @@ onMounted(() => {
   font-size: 19px;
   font-weight: 900;
   text-decoration: none;
+}
+
+.article-author-avatar.compact {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
 }
 
 .article-author-avatar img {
@@ -1609,8 +1663,9 @@ onMounted(() => {
 
 .article-related-link {
   display: grid;
-  gap: 6px;
-  min-height: 76px;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 10px;
+  min-height: 92px;
   padding: 12px;
   border: 1px solid color-mix(in srgb, var(--index-line) 82%, transparent);
   border-radius: 8px;
@@ -1621,14 +1676,40 @@ onMounted(() => {
   text-decoration: none;
 }
 
-.article-related-link b {
+.article-related-cover {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent-gold) 20%, var(--index-line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-gold) 10%, var(--index-surface));
+  color: var(--accent-gold);
+  font-family: var(--font-display);
+  font-weight: 900;
+}
+
+.article-related-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.article-related-copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.article-related-copy b {
   color: var(--text-strong);
   font-size: 13px;
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
 
-.article-related-link span {
+.article-related-copy span {
   display: -webkit-box;
   overflow: hidden;
   color: var(--text-muted);
@@ -1638,7 +1719,7 @@ onMounted(() => {
   -webkit-line-clamp: 2;
 }
 
-.article-related-link small {
+.article-related-copy small {
   color: color-mix(in srgb, var(--accent-gold) 76%, var(--text-muted));
   font-size: 11px;
   font-weight: 900;
@@ -1648,6 +1729,26 @@ onMounted(() => {
 .article-related-link:hover,
 .article-related-link:focus-visible {
   border-color: color-mix(in srgb, var(--accent-gold) 52%, var(--index-line));
+}
+
+.article-more-link {
+  display: grid;
+  place-items: center;
+  min-height: 42px;
+  margin-top: 14px;
+  border: 1px solid color-mix(in srgb, var(--index-line) 82%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--index-surface) 78%, transparent);
+  color: var(--text-strong);
+  font-size: 12px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.article-more-link:hover,
+.article-more-link:focus-visible {
+  border-color: color-mix(in srgb, var(--accent-gold) 50%, var(--index-line));
+  color: var(--accent-gold);
 }
 
 .article-toc {
@@ -1701,13 +1802,12 @@ onMounted(() => {
     font-size: 28px;
   }
 
-  .article-author-card,
-  .article-stat-grid {
-    max-width: none;
+  .article-cover-figure {
+    aspect-ratio: 16 / 10;
   }
 
-  .article-stat-grid {
-    grid-template-columns: 1fr;
+  .article-primary-meta {
+    gap: 8px;
   }
 
   .article-content-text {
@@ -1728,6 +1828,14 @@ onMounted(() => {
   .article-comment-avatar {
     width: 36px;
     height: 36px;
+  }
+
+  .article-related-link {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .article-related-cover {
+    width: 64px;
   }
 }
 </style>
