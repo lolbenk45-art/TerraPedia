@@ -2,7 +2,7 @@
   "generatedAt": "2026-05-24T16:16:05.002Z",
   "domainId": "buffs",
   "panelId": "unresolvedAuditTrend",
-  "status": "warning",
+  "status": "pass",
   "reportPath": "reports/domain/buffs/unresolved-audit-trend-2026-05-24.json",
   "requiresDatabase": false,
   "writesDatabase": false,
@@ -13,12 +13,10 @@
     "presentEvidenceCount": 1,
     "missingEvidenceCount": 0,
     "blockedCount": 0,
-    "warningCount": 1
+    "warningCount": 0
   },
   "blockingReasons": [],
-  "warningReasons": [
-    "reports/relation/reresolve-candidates-2026-05-23.json: historical baseline is unavailable for unresolved audit trend"
-  ],
+  "warningReasons": [],
   "checks": [
     {
       "id": "reports_relation_reresolve_candidateslatest_json",
@@ -26,11 +24,11 @@
       "required": true,
       "found": true,
       "readable": true,
-      "evidencePath": "reports/relation/reresolve-candidates-2026-05-23.json",
-      "latestReportPath": "reports/relation/reresolve-candidates-2026-05-23.json",
+      "evidencePath": "reports/relation/reresolve-candidates-2026-05-24.json",
+      "latestReportPath": "reports/relation/reresolve-candidates-2026-05-24.json",
       "recordCount": null,
-      "status": "warning",
-      "message": "reports/relation/reresolve-candidates-2026-05-23.json: historical baseline is unavailable for unresolved audit trend"
+      "status": "pass",
+      "message": "unresolved audit trend is stable in reports/relation/reresolve-candidates-2026-05-24.json"
     }
   ]
 }

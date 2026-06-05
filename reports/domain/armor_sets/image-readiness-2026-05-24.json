@@ -2,7 +2,7 @@
   "generatedAt": "2026-05-24T16:16:05.002Z",
   "domainId": "armor_sets",
   "panelId": "imageReadiness",
-  "status": "warning",
+  "status": "pass",
   "reportPath": "reports/domain/armor_sets/image-readiness-2026-05-24.json",
   "requiresDatabase": false,
   "writesDatabase": false,
@@ -10,28 +10,25 @@
     "checkCount": 2,
     "requiredEvidenceCount": 0,
     "optionalEvidenceCount": 2,
-    "presentEvidenceCount": 0,
-    "missingEvidenceCount": 2,
+    "presentEvidenceCount": 1,
+    "missingEvidenceCount": 1,
     "blockedCount": 0,
-    "warningCount": 2
+    "warningCount": 0
   },
   "blockingReasons": [],
-  "warningReasons": [
-    "Missing optional evidence: shared-data/raw/wiki/armor_set_images.parsed.latest.json",
-    "Missing optional evidence: reports/fetch/fetch-armor-set-images*.json"
-  ],
+  "warningReasons": [],
   "checks": [
     {
       "id": "shared_data_raw_wiki_armor_set_images_parsed_latest_json",
       "type": "json",
       "required": false,
-      "found": false,
-      "readable": false,
+      "found": true,
+      "readable": true,
       "evidencePath": "shared-data/raw/wiki/armor_set_images.parsed.latest.json",
       "latestReportPath": null,
       "recordCount": null,
-      "status": "warning",
-      "message": "Missing optional evidence: shared-data/raw/wiki/armor_set_images.parsed.latest.json"
+      "status": "pass",
+      "message": "Evidence present: shared-data/raw/wiki/armor_set_images.parsed.latest.json"
     },
     {
       "id": "reports_fetch_fetch_armor_set_imageslatest_json",
@@ -42,7 +39,7 @@
       "evidencePath": "reports/fetch/fetch-armor-set-images*.json",
       "latestReportPath": null,
       "recordCount": null,
-      "status": "warning",
+      "status": "pass",
       "message": "Missing optional evidence: reports/fetch/fetch-armor-set-images*.json"
     }
   ]
