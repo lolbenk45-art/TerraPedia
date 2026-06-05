@@ -121,14 +121,54 @@ const toReviewStatus = (value: unknown): ArticleReviewStatus => {
   return 'DRAFT'
 }
 
+export const normalizeAdminArticleImageUrl = (value: unknown): string => {
+  const raw = String(value ?? '').trim()
+  if (!raw) return ''
+  if (/^(data:|blob:)/i.test(raw)) return raw
+
+  if (raw.startsWith('/preview-assets/terrapedia-images/')) {
+    return raw.replace('/preview-assets/terrapedia-images/', '/terrapedia-images/')
+  }
+
+  if (raw.startsWith('/')) return raw
+
+  const candidate = raw.startsWith('//')
+    ? `https:${raw}`
+    : /^[a-z0-9.-]+(?::\d+)?\/.+/i.test(raw)
+      ? `http://${raw}`
+      : raw
+
+  try {
+    const url = new URL(candidate)
+    if (url.pathname.startsWith('/preview-assets/terrapedia-images/')) {
+      return `${url.pathname.replace('/preview-assets/terrapedia-images/', '/terrapedia-images/')}${url.search}${url.hash}`
+    }
+    if (url.pathname.startsWith('/terrapedia-images/')) {
+      return `${url.pathname}${url.search}${url.hash}`
+    }
+    return candidate
+  } catch {
+    return raw
+  }
+}
+
+const normalizeAdminArticleHtmlImages = (value: unknown): string => {
+  const html = String(value ?? '')
+  if (!html) return ''
+  return html.replace(/src=(["'])([^"']+)\1/gi, (full, quote: string, src: string) => {
+    const normalized = normalizeAdminArticleImageUrl(src)
+    return normalized ? `src=${quote}${normalized}${quote}` : full
+  })
+}
+
 const normalizeArticle = (item: any): AdminArticle => ({
   id: Number(item?.id ?? 0),
   title: String(item?.title ?? ''),
   slug: item?.slug ?? undefined,
   summary: item?.summary ?? undefined,
-  coverImage: item?.coverImage ?? undefined,
-  contentHtml: String(item?.contentHtml ?? item?.contentMarkdown ?? ''),
-  contentMarkdown: item?.contentMarkdown != null ? String(item.contentMarkdown) : undefined,
+  coverImage: normalizeAdminArticleImageUrl(item?.coverImage ?? item?.cover_image) || undefined,
+  contentHtml: normalizeAdminArticleHtmlImages(item?.contentHtml ?? item?.contentMarkdown ?? ''),
+  contentMarkdown: item?.contentMarkdown != null ? normalizeAdminArticleHtmlImages(item.contentMarkdown) : undefined,
   status: toArticleStatus(item?.status),
   reviewStatus: toReviewStatus(item?.reviewStatus),
   reviewComment: item?.reviewComment ?? undefined,
@@ -424,7 +464,7 @@ export const useArticlesStore = defineStore('articles', () => {
       return {
         bucket: String(raw?.bucket ?? ''),
         objectKey: String(raw?.objectKey ?? ''),
-        url: normalizedUrl,
+        url: normalizeAdminArticleImageUrl(normalizedUrl),
         originalFilename: raw?.originalFilename ? String(raw.originalFilename) : undefined,
         contentType: raw?.contentType ? String(raw.contentType) : undefined,
         size: Number(raw?.size ?? 0),

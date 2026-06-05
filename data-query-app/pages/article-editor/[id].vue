@@ -1,7 +1,9 @@
 <template>
-  <ClientOnly>
-    <ArticleEditorWorkspace :article-id="articleId" />
-  </ClientOnly>
+  <div class="article-editor-route">
+    <ClientOnly>
+      <ArticleEditorWorkspace :article-id="articleId" />
+    </ClientOnly>
+  </div>
 </template>
 
 <script setup lang="ts">

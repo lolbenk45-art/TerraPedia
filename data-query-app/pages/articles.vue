@@ -1,47 +1,34 @@
 <template>
   <div class="page-wrap articles-page">
-    <div class="page-head">
-      <div>
+    <section class="section-card articles-command-bar">
+      <div class="articles-command-bar__summary">
         <h1 class="page-head__title">Article Management</h1>
-        <p class="page-head__subtitle">列表负责管理流程，正文写作进入独立工作台完成。</p>
+        <p class="page-head__subtitle">
+          <span class="articles-count">{{ pagination.total }} articles</span>
+          <span>Manage review, publishing, and quick content inspection.</span>
+        </p>
       </div>
-      <button type="button" class="page-btn page-btn--primary" @click="openCreate">Write Article</button>
-    </div>
 
-    <section class="section-card overview-grid">
-      <article class="overview-card">
-        <p>Editor Mode</p>
-        <strong>独立工作台</strong>
-        <span>标题、封面、正文、大纲和预览分区完成。</span>
-      </article>
-      <article class="overview-card">
-        <p>Review Flow</p>
-        <strong>保留原流程</strong>
-        <span>送审、审批、发布、下线仍然在管理页执行。</span>
-      </article>
-      <article class="overview-card">
-        <p>Draft Safety</p>
-        <strong>本地草稿保护</strong>
-        <span>误刷新或切换页面后仍可恢复最近一次编辑内容。</span>
-      </article>
-    </section>
-
-    <section class="section-card">
-      <form class="toolbar" @submit.prevent="handleSearch">
-        <input
-          v-model.trim="keyword"
-          class="toolbar-input"
-          type="text"
-          placeholder="Search by title or summary"
-        />
-        <select v-model="status" class="toolbar-input">
-          <option value="">All article status</option>
-          <option value="DRAFT">Draft</option>
-          <option value="PUBLISHED">Published</option>
-          <option value="OFFLINE">Offline</option>
-        </select>
-        <button type="submit" class="page-btn page-btn--primary">Search</button>
-        <button type="button" class="page-btn" @click="handleReset">Reset</button>
+      <form class="toolbar articles-command-bar__filters" @submit.prevent="handleSearch">
+        <div class="toolbar__fields">
+          <input
+            v-model.trim="keyword"
+            class="toolbar-input toolbar-input--search"
+            type="text"
+            placeholder="Search by title or summary"
+          />
+          <select v-model="status" class="toolbar-input toolbar-input--status">
+            <option value="">All article status</option>
+            <option value="DRAFT">Draft</option>
+            <option value="PUBLISHED">Published</option>
+            <option value="OFFLINE">Offline</option>
+          </select>
+        </div>
+        <div class="toolbar__actions">
+          <button type="submit" class="page-btn">Search</button>
+          <button type="button" class="page-btn page-btn--ghost" @click="handleReset">Reset</button>
+          <button type="button" class="page-btn page-btn--primary" @click="openCreate">Write Article</button>
+        </div>
       </form>
     </section>
 
@@ -52,109 +39,140 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Review</th>
-                <th>Submitted</th>
-                <th>Published</th>
-                <th>Updated</th>
+                <th>Cover</th>
+                <th>Article</th>
+                <th>State</th>
+                <th>Timeline</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="row in articles" :key="row.id">
-                <td>#{{ row.id }}</td>
+                <td>
+                  <div class="article-cover-cell">
+                    <img
+                      v-if="row.coverImage"
+                      :src="row.coverImage"
+                      :alt="`${row.title} cover`"
+                      class="article-cover-thumb"
+                      loading="lazy"
+                      @error="handleCoverImageError"
+                    />
+                    <span v-else class="article-cover-empty">No cover</span>
+                  </div>
+                </td>
                 <td>
                   <div class="title-cell">
-                    <strong>{{ row.title }}</strong>
+                    <div class="title-cell__head">
+                      <span class="article-id">#{{ row.id }}</span>
+                      <strong>{{ row.title }}</strong>
+                    </div>
                     <small v-if="row.summary">{{ row.summary }}</small>
                     <small v-if="row.reviewComment" class="comment-text">Review: {{ row.reviewComment }}</small>
                   </div>
                 </td>
                 <td>
-                  <span class="badge" :class="`badge--status-${row.status.toLowerCase()}`">
-                    {{ articleStatusLabel(row.status) }}
-                  </span>
+                  <div class="article-state-stack">
+                    <span class="badge" :class="`badge--status-${row.status.toLowerCase()}`">
+                      {{ articleStatusLabel(row.status) }}
+                    </span>
+                    <span class="badge" :class="`badge--review-${row.reviewStatus.toLowerCase()}`">
+                      {{ reviewStatusLabel(row.reviewStatus) }}
+                    </span>
+                  </div>
                 </td>
                 <td>
-                  <span class="badge" :class="`badge--review-${row.reviewStatus.toLowerCase()}`">
-                    {{ reviewStatusLabel(row.reviewStatus) }}
-                  </span>
+                  <div class="article-timeline">
+                    <span>
+                      <small>Submitted</small>
+                      <strong>{{ formatDateTime(row.submittedAt) }}</strong>
+                    </span>
+                    <span>
+                      <small>Published</small>
+                      <strong>{{ formatDateTime(row.publishedAt) }}</strong>
+                    </span>
+                    <span>
+                      <small>Updated</small>
+                      <strong>{{ formatDateTime(row.updatedAt || row.createdAt) }}</strong>
+                    </span>
+                  </div>
                 </td>
-                <td>{{ formatDateTime(row.submittedAt) }}</td>
-                <td>{{ formatDateTime(row.publishedAt) }}</td>
-                <td>{{ formatDateTime(row.updatedAt || row.createdAt) }}</td>
                 <td>
                   <div class="actions-cell">
-                    <button
-                      type="button"
-                      class="action-link"
-                      @click="openEdit(row.id)"
-                    >
-                      {{ editorActionLabel(row) }}
-                    </button>
-                    <button
-                      type="button"
-                      class="action-link"
-                      :disabled="isActionLoading(row.id, 'content')"
-                      @click="openContentPreview(row)"
-                    >
-                      View Content
-                    </button>
-                    <button
-                      v-if="canSubmitReview(row)"
-                      type="button"
-                      class="action-link"
-                      :disabled="isActionLoading(row.id, 'submit-review')"
-                      @click="submitReview(row)"
-                    >
-                      {{ isActionLoading(row.id, 'submit-review') ? 'Submitting...' : 'Send for Review' }}
-                    </button>
-                    <button
-                      v-if="canReview(row)"
-                      type="button"
-                      class="action-link"
-                      :disabled="isActionLoading(row.id, 'approve')"
-                      @click="approveReview(row)"
-                    >
-                      {{ isActionLoading(row.id, 'approve') ? 'Approving...' : 'Approve' }}
-                    </button>
-                    <button
-                      v-if="canReview(row)"
-                      type="button"
-                      class="action-link action-link--danger"
-                      :disabled="isActionLoading(row.id, 'reject')"
-                      @click="openReject(row)"
-                    >
-                      Reject
-                    </button>
-                    <button
-                      v-if="canPublish(row)"
-                      type="button"
-                      class="action-link action-link--strong"
-                      :disabled="isActionLoading(row.id, 'publish')"
-                      @click="publishArticle(row)"
-                    >
-                      {{ isActionLoading(row.id, 'publish') ? 'Publishing...' : 'Publish' }}
-                    </button>
-                    <button
-                      v-if="canOffline(row)"
-                      type="button"
-                      class="action-link action-link--danger"
-                      :disabled="isActionLoading(row.id, 'offline')"
-                      @click="offlineArticle(row)"
-                    >
-                      {{ isActionLoading(row.id, 'offline') ? 'Unpublishing...' : 'Unpublish' }}
-                    </button>
-                    <button
-                      type="button"
-                      class="action-link"
-                      :disabled="isActionLoading(row.id, 'logs')"
-                      @click="openReviewLogs(row)"
-                    >
-                      Logs
-                    </button>
+                    <div class="actions-group actions-group--primary">
+                      <button
+                        type="button"
+                        class="action-link action-link--strong"
+                        @click="openEdit(row.id)"
+                      >
+                        {{ editorActionLabel(row) }}
+                      </button>
+                      <button
+                        type="button"
+                        class="action-link"
+                        :disabled="isActionLoading(row.id, 'content')"
+                        @click="openContentPreview(row)"
+                      >
+                        View Content
+                      </button>
+                    </div>
+                    <div class="actions-group actions-group--workflow">
+                      <button
+                        v-if="canSubmitReview(row)"
+                        type="button"
+                        class="action-link"
+                        :disabled="isActionLoading(row.id, 'submit-review')"
+                        @click="submitReview(row)"
+                      >
+                        {{ isActionLoading(row.id, 'submit-review') ? 'Submitting...' : 'Send for Review' }}
+                      </button>
+                      <button
+                        v-if="canReview(row)"
+                        type="button"
+                        class="action-link"
+                        :disabled="isActionLoading(row.id, 'approve')"
+                        @click="approveReview(row)"
+                      >
+                        {{ isActionLoading(row.id, 'approve') ? 'Approving...' : 'Approve' }}
+                      </button>
+                      <button
+                        v-if="canReview(row)"
+                        type="button"
+                        class="action-link action-link--danger"
+                        :disabled="isActionLoading(row.id, 'reject')"
+                        @click="openReject(row)"
+                      >
+                        Reject
+                      </button>
+                      <button
+                        v-if="canPublish(row)"
+                        type="button"
+                        class="action-link action-link--success"
+                        :disabled="isActionLoading(row.id, 'publish')"
+                        @click="publishArticle(row)"
+                      >
+                        {{ isActionLoading(row.id, 'publish') ? 'Publishing...' : 'Publish' }}
+                      </button>
+                      <button
+                        v-if="canOffline(row)"
+                        type="button"
+                        class="action-link action-link--danger"
+                        :disabled="isActionLoading(row.id, 'offline')"
+                        @click="offlineArticle(row)"
+                      >
+                        {{ isActionLoading(row.id, 'offline') ? 'Unpublishing...' : 'Unpublish' }}
+                      </button>
+                    </div>
+                    <div class="actions-group actions-group--secondary">
+                      <button
+                        type="button"
+                        class="action-link action-link--muted"
+                        :disabled="isActionLoading(row.id, 'logs')"
+                        @click="openReviewLogs(row)"
+                      >
+                        Logs
+                      </button>
+                    </div>
                   </div>
                 </td>
               </tr>
@@ -201,7 +219,7 @@
           </span>
         </div>
         <div v-if="contentPreviewLoading" class="empty-text empty-text--compact">Loading article content...</div>
-        <pre v-else-if="contentPreviewText" class="content-preview-text">{{ contentPreviewText }}</pre>
+        <div v-else-if="contentPreviewHtml" class="content-preview-rich" v-html="contentPreviewHtml"></div>
         <p v-else class="empty-text empty-text--compact">No article content</p>
       </div>
     </AppModal>
@@ -256,6 +274,7 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { showToast } from '~/composables/useToast'
+import { sanitizeArticleHtml } from '~/utils/articleEditor'
 import type { AdminArticle, ArticleReviewLog, PaginationState } from '~/stores/articles'
 
 const router = useRouter()
@@ -284,24 +303,11 @@ const reviewLogPagination = ref<PaginationState>({
 const getErrorMessage = (error: any, fallback: string) => error?.data?.message || error?.message || fallback
 const getActionKey = (id: number, action: string) => `${id}:${action}`
 const isActionLoading = (id: number, action: string) => actionKey.value === getActionKey(id, action)
-const contentPreviewText = computed(() => {
+const contentPreviewHtml = computed(() => {
   const article = contentPreviewArticle.value
   if (!article) return ''
-  return stripArticleContentMarkup(article.contentHtml || article.contentMarkdown || '')
+  return sanitizeArticleHtml(article.contentHtml || article.contentMarkdown || '')
 })
-
-const stripArticleContentMarkup = (value: string) => String(value || '')
-  .replace(/<br\s*\/?>/gi, '\n')
-  .replace(/<\/(p|div|section|article|h[1-6]|li|blockquote|pre)>/gi, '\n')
-  .replace(/<[^>]+>/g, '')
-  .replace(/&nbsp;/g, ' ')
-  .replace(/&amp;/g, '&')
-  .replace(/&lt;/g, '<')
-  .replace(/&gt;/g, '>')
-  .replace(/&quot;/g, '"')
-  .replace(/&#39;/g, "'")
-  .replace(/\n{3,}/g, '\n\n')
-  .trim()
 
 const formatDateTime = (value?: string) => {
   if (!value) return '--'
@@ -324,6 +330,10 @@ const reviewStatusLabel = (value: string) => ({
 }[value] || value)
 
 const editorActionLabel = (row: AdminArticle) => row.reviewStatus === 'PENDING_REVIEW' ? 'Read-only Editor' : 'Continue Writing'
+const handleCoverImageError = (event: Event) => {
+  const image = event.currentTarget as HTMLImageElement | null
+  image?.classList.add('article-cover-thumb--hidden')
+}
 
 const reviewActionLabel = (value: string) => ({
   SUBMIT_REVIEW: 'Submit Review',
@@ -487,53 +497,93 @@ onMounted(async () => {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.overview-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.overview-card {
-  display: grid;
-  gap: 8px;
-  padding: 18px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--color-border));
-  border-radius: 18px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 8%, var(--color-bg)) 0%, var(--color-bg-secondary) 100%);
-}
-
-.overview-card p,
-.overview-card span,
 .title-cell small,
 .reject-modal__title {
   margin: 0;
   color: var(--color-text-secondary);
 }
 
-.overview-card strong {
-  font-size: 1.05rem;
-  font-family: var(--font-display);
+.articles-command-bar {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.72fr) minmax(520px, 1.28fr);
+  gap: 18px;
+  align-items: end;
+}
+
+.articles-command-bar__summary {
+  display: grid;
+  gap: 6px;
+}
+
+.articles-command-bar__summary .page-head__title,
+.articles-command-bar__summary .page-head__subtitle {
+  margin: 0;
+}
+
+.articles-command-bar__summary .page-head__subtitle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.articles-count {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 3px 10px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 20%, var(--color-border));
+  border-radius: 999px;
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-bg-secondary));
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .toolbar {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 12px;
+}
+
+.articles-command-bar__filters {
+  justify-self: stretch;
+}
+
+.toolbar__fields,
+.toolbar__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.toolbar__fields {
+  align-items: center;
+}
+
+.toolbar__actions {
+  justify-content: flex-end;
   align-items: center;
 }
 
 .toolbar-input,
 .page-btn {
-  border-radius: 12px;
+  min-height: 40px;
+  border-radius: 8px;
   border: 1px solid var(--color-border);
   font: inherit;
 }
 
 .toolbar-input {
-  min-width: 200px;
   padding: 10px 12px;
   background: var(--color-bg);
   color: var(--color-text);
+}
+
+.toolbar-input--search {
+  flex: 1 1 320px;
+}
+
+.toolbar-input--status {
+  flex: 0 0 188px;
 }
 
 .page-btn {
@@ -549,19 +599,24 @@ onMounted(async () => {
   color: #fff;
 }
 
+.page-btn--ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
 .table-wrap {
   overflow-x: auto;
 }
 
 .data-table {
   width: 100%;
-  min-width: 1180px;
+  min-width: 980px;
   border-collapse: collapse;
 }
 
 .data-table th,
 .data-table td {
-  padding: 12px 14px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--color-border);
   text-align: left;
   vertical-align: top;
@@ -577,10 +632,102 @@ onMounted(async () => {
   min-width: 900px;
 }
 
+.data-table tbody tr {
+  transition: background-color .16s ease;
+}
+
+.data-table tbody tr:hover {
+  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
+}
+
 .title-cell {
   display: grid;
-  gap: 4px;
-  min-width: 260px;
+  gap: 6px;
+  min-width: 300px;
+  max-width: 520px;
+}
+
+.title-cell__head {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.title-cell__head strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.article-id {
+  flex: 0 0 auto;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.article-cover-cell {
+  display: grid;
+  width: 112px;
+  min-height: 64px;
+  place-items: center;
+}
+
+.article-cover-thumb {
+  width: 112px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-tertiary);
+}
+
+.article-cover-thumb--hidden {
+  display: none;
+}
+
+.article-cover-empty {
+  width: 112px;
+  padding: 8px;
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  text-align: center;
+  font-size: 0.75rem;
+  background: var(--color-bg-secondary);
+}
+
+.article-state-stack {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-width: 112px;
+}
+
+.article-timeline {
+  display: grid;
+  gap: 8px;
+  min-width: 178px;
+}
+
+.article-timeline span {
+  display: grid;
+  gap: 2px;
+}
+
+.article-timeline small {
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.article-timeline strong {
+  color: var(--color-text);
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.35;
 }
 
 .comment-text {
@@ -621,33 +768,64 @@ onMounted(async () => {
 }
 
 .actions-cell {
+  display: grid;
+  gap: 10px;
+  min-width: 240px;
+}
+
+.actions-group {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  min-width: 280px;
+  align-items: center;
+}
+
+.actions-group--workflow {
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+}
+
+.actions-group--secondary {
+  padding-top: 2px;
 }
 
 .action-link {
-  padding: 0;
-  border: none;
-  background: none;
+  min-height: 30px;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
   color: var(--color-primary);
   font: inherit;
   font-size: 0.83rem;
+  line-height: 1.2;
   cursor: pointer;
 }
 
 .action-link--danger {
+  border-color: color-mix(in srgb, #dc2626 20%, transparent);
+  background: color-mix(in srgb, #dc2626 7%, transparent);
   color: #dc2626;
 }
 
 .action-link--strong {
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-primary) 16%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 34%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
   color: var(--color-text);
   font-weight: 700;
+}
+
+.action-link--success {
+  border-color: color-mix(in srgb, #16a34a 24%, transparent);
+  background: color-mix(in srgb, #16a34a 10%, transparent);
+  color: #166534;
+  font-weight: 700;
+}
+
+.action-link--muted {
+  border-color: var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
 }
 
 .action-link:disabled {
@@ -705,29 +883,46 @@ onMounted(async () => {
   overflow-wrap: anywhere;
 }
 
-.content-preview-text {
+.content-preview-rich {
   max-height: min(62vh, 680px);
   margin: 0;
   overflow: auto;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
   border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 16px;
   background: var(--color-bg-secondary);
   color: var(--color-text);
-  font: inherit;
   line-height: 1.7;
 }
 
-@media (max-width: 1024px) {
-  .overview-grid {
+.content-preview-rich :deep(img) {
+  display: block;
+  max-width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  border-radius: 8px;
+  margin: 12px 0;
+  background: var(--color-bg-tertiary);
+}
+
+.content-preview-rich :deep(p) {
+  margin: 0 0 12px;
+}
+
+@media (max-width: 1100px) {
+  .articles-command-bar {
     grid-template-columns: 1fr;
+  }
+
+  .toolbar__actions {
+    justify-content: flex-start;
   }
 }
 
 @media (max-width: 768px) {
-  .toolbar {
+  .toolbar__fields,
+  .toolbar__actions {
     flex-direction: column;
     align-items: stretch;
   }
