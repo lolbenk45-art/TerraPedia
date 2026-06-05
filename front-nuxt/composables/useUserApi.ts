@@ -21,6 +21,7 @@ import type {
   UserPreferences,
   UserPreferencesPayload,
 } from '~/types/public-api'
+import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
 import { unwrapApiResponse, usePublicApiFetch } from '~/composables/usePublicApi'
 export { buildUserPostAuthRedirectTarget, buildUserRedirectTarget } from '~/lib/userRedirect.mjs'
 
@@ -59,6 +60,27 @@ type ArticleCommentListResult = {
   }
 }
 
+const normalizeUserImageUrl = (value?: string | null): string | null => {
+  const normalized = resolvePreviewImageUrl(value)
+  return normalized || null
+}
+
+const normalizeUserProfile = (raw: Partial<UserProfile> | null | undefined): UserProfile => ({
+  id: Number(raw?.id ?? 0),
+  email: String(raw?.email ?? ''),
+  displayName: raw?.displayName ?? null,
+  status: raw?.status == null ? null : Number(raw.status),
+  avatarUrl: normalizeUserImageUrl(raw?.avatarUrl),
+  avatarObjectKey: raw?.avatarObjectKey ?? null,
+  avatarUpdatedAt: raw?.avatarUpdatedAt ?? null,
+})
+
+const normalizeUserAuthResponse = (raw: Partial<UserAuthResponse> | null | undefined): UserAuthResponse => ({
+  user: normalizeUserProfile(raw?.user),
+  tokenType: raw?.tokenType ?? null,
+  expiresAt: raw?.expiresAt ?? null,
+})
+
 const normalizeArticleCommentPagination = (raw: Pagination | null | undefined, page: number, limit: number, recordCount: number): ArticleCommentListResult['pagination'] => {
   const normalizedLimit = Number(raw?.limit ?? raw?.size ?? limit)
   const total = Number(raw?.total ?? recordCount)
@@ -78,7 +100,7 @@ const normalizeArticleComment = (raw: Partial<ArticleComment> | null | undefined
   rootId: raw?.rootId == null ? null : Number(raw.rootId),
   authorId: Number(raw?.authorId ?? 0),
   authorDisplayName: raw?.authorDisplayName || 'TerraPedia 用户',
-  authorAvatarUrl: raw?.authorAvatarUrl ?? null,
+  authorAvatarUrl: normalizeUserImageUrl(raw?.authorAvatarUrl),
   replyToUserId: raw?.replyToUserId == null ? null : Number(raw.replyToUserId),
   replyToDisplayName: raw?.replyToDisplayName ?? null,
   content: String(raw?.content ?? ''),
@@ -142,6 +164,7 @@ const normalizeUserArticle = (raw: Partial<UserArticle> | null | undefined): Use
   publishedAt: raw?.publishedAt ?? null,
   authorId: raw?.authorId ?? null,
   authorDisplayName: raw?.authorDisplayName ?? null,
+  authorAvatarUrl: normalizeUserImageUrl(raw?.authorAvatarUrl),
   createdAt: raw?.createdAt ?? null,
   updatedAt: raw?.updatedAt ?? null,
 })
@@ -230,7 +253,7 @@ const normalizeFavorite = (raw: Partial<UserFavorite> | null | undefined): UserF
     targetType,
     targetId,
     title: String(raw?.title ?? ''),
-    imageUrl: raw?.imageUrl ?? null,
+    imageUrl: normalizeUserImageUrl(raw?.imageUrl),
     url: raw?.url || fallbackPath,
     createdAt: raw?.createdAt ?? null,
   }
@@ -253,7 +276,7 @@ const normalizeHistory = (raw: Partial<UserReadingHistory> | null | undefined): 
     targetType,
     targetId,
     title: String(raw?.title ?? ''),
-    imageUrl: raw?.imageUrl ?? null,
+    imageUrl: normalizeUserImageUrl(raw?.imageUrl),
     url: raw?.url || fallbackPath,
     viewCount: Number(raw?.viewCount ?? 0),
     lastViewedAt: raw?.lastViewedAt ?? null,
@@ -267,7 +290,7 @@ const normalizeSavedRoute = (raw: Partial<UserSavedRoute> | null | undefined): U
     targetType: 'CRAFTING_ITEM',
     targetId,
     title: String(raw?.title ?? ''),
-    imageUrl: raw?.imageUrl ?? null,
+    imageUrl: normalizeUserImageUrl(raw?.imageUrl),
     routeMode: raw?.routeMode || 'crafting',
     selectedVariant: raw?.selectedVariant ?? null,
     selectedRecipeKey: raw?.selectedRecipeKey ?? null,
@@ -359,32 +382,32 @@ export const sendPasswordResetCode = async (email: string): Promise<UserRegister
   unwrapApiResponse(await userFetch<UserRegisterCodeResponse>('/user-auth/password/reset/code', { method: 'POST', body: { email } }))
 
 export const registerUser = async (payload: { email: string, password: string, verificationCode: string, displayName?: string | null }): Promise<UserAuthResponse> =>
-  unwrapApiResponse(await userFetch<UserAuthResponse>('/user-auth/register', { method: 'POST', body: payload }))
+  normalizeUserAuthResponse(unwrapApiResponse(await userFetch<UserAuthResponse>('/user-auth/register', { method: 'POST', body: payload })))
 
 export const loginUser = async (payload: { email: string, password: string }): Promise<UserAuthResponse> =>
-  unwrapApiResponse(await userFetch<UserAuthResponse>('/user-auth/login', { method: 'POST', body: payload }))
+  normalizeUserAuthResponse(unwrapApiResponse(await userFetch<UserAuthResponse>('/user-auth/login', { method: 'POST', body: payload })))
 
 export const refreshUserSession = async (): Promise<UserAuthResponse> =>
-  unwrapApiResponse(await userFetch<UserAuthResponse>('/user-auth/refresh', { method: 'POST' }))
+  normalizeUserAuthResponse(unwrapApiResponse(await userFetch<UserAuthResponse>('/user-auth/refresh', { method: 'POST' })))
 
 export const fetchCurrentUser = async (): Promise<UserProfile> =>
-  unwrapApiResponse(await userFetch<UserProfile>('/user-auth/me'))
+  normalizeUserProfile(unwrapApiResponse(await userFetch<UserProfile>('/user-auth/me')))
 
 export const uploadUserAvatar = async (file: File): Promise<UserProfile> => {
   const formData = new FormData()
   formData.append('file', file)
-  return unwrapApiResponse(await userFetch<UserProfile>('/user-auth/avatar', { method: 'POST', body: formData }))
+  return normalizeUserProfile(unwrapApiResponse(await userFetch<UserProfile>('/user-auth/avatar', { method: 'POST', body: formData })))
 }
 
 export const deleteUserAvatar = async (): Promise<UserProfile> =>
-  unwrapApiResponse(await userFetch<UserProfile>('/user-auth/avatar', { method: 'DELETE' }))
+  normalizeUserProfile(unwrapApiResponse(await userFetch<UserProfile>('/user-auth/avatar', { method: 'DELETE' })))
 
 export const logoutUser = async (): Promise<void> => {
   await userFetch<void>('/user-auth/logout', { method: 'POST' })
 }
 
 export const updateUserProfile = async (payload: { displayName: string }): Promise<UserProfile> =>
-  unwrapApiResponse(await userFetch<UserProfile>('/user-auth/profile', { method: 'PATCH', body: payload }))
+  normalizeUserProfile(unwrapApiResponse(await userFetch<UserProfile>('/user-auth/profile', { method: 'PATCH', body: payload })))
 
 export const changeUserPassword = async (payload: { currentPassword: string, newPassword: string }): Promise<void> => {
   await userFetch<void>('/user-auth/password', { method: 'PATCH', body: payload })

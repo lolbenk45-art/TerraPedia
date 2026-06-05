@@ -59,6 +59,8 @@ const articleAuthorPath = (article: UserArticle) => article.authorId ? `/users/$
 
 const articleAuthorFallback = (article: UserArticle) => articleAuthorLabel(article).trim().slice(0, 1).toUpperCase() || 'T'
 
+const articleAuthorAvatarUrl = (article: UserArticle) => resolvePreviewImageUrl(article.authorAvatarUrl || '')
+
 const articleViewCount = (article: UserArticle) => Math.max(0, Number(article.viewCount ?? 0))
 
 const articleFavoriteCount = (article: UserArticle) => Math.max(0, Number(article.favoriteCount ?? 0))
@@ -169,14 +171,14 @@ useSeoMeta({
                   :aria-label="`查看 ${articleAuthorLabel(article)} 的主页`"
                 >
                   <span class="public-article-author-avatar">
-                    <img v-if="article.authorAvatarUrl" :src="article.authorAvatarUrl" :alt="`${articleAuthorLabel(article)} 的头像`" loading="lazy" />
+                    <img v-if="articleAuthorAvatarUrl(article)" :src="articleAuthorAvatarUrl(article)" :alt="`${articleAuthorLabel(article)} 的头像`" loading="lazy" />
                     <b v-else>{{ articleAuthorFallback(article) }}</b>
                   </span>
                   <span>{{ articleAuthorLabel(article) }}</span>
                 </NuxtLink>
                 <span v-else class="public-article-author">
                   <span class="public-article-author-avatar">
-                    <img v-if="article.authorAvatarUrl" :src="article.authorAvatarUrl" :alt="`${articleAuthorLabel(article)} 的头像`" loading="lazy" />
+                    <img v-if="articleAuthorAvatarUrl(article)" :src="articleAuthorAvatarUrl(article)" :alt="`${articleAuthorLabel(article)} 的头像`" loading="lazy" />
                     <b v-else>{{ articleAuthorFallback(article) }}</b>
                   </span>
                   <span>{{ articleAuthorLabel(article) }}</span>

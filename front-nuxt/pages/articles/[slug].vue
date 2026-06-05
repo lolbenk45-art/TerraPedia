@@ -344,7 +344,7 @@ const formatArticleDate = (raw?: string | null) => {
 const publishedDate = computed(() => formatArticleDate(article.value?.publishedAt || article.value?.updatedAt || article.value?.createdAt))
 const authorLabel = computed(() => article.value?.authorDisplayName || 'TerraPedia 用户')
 const authorProfilePath = computed(() => article.value?.authorId ? `/users/${article.value.authorId}` : '')
-const authorAvatarUrl = computed(() => String(article.value?.authorAvatarUrl || '').trim())
+const authorAvatarUrl = computed(() => resolvePreviewImageUrl(article.value?.authorAvatarUrl || ''))
 const authorAvatarFallback = computed(() => authorLabel.value.trim().slice(0, 1).toUpperCase() || 'T')
 const viewCount = computed(() => Math.max(0, Number(article.value?.viewCount ?? 0)))
 const favoriteCountBase = computed(() => Math.max(0, Number(article.value?.favoriteCount ?? 0)))
@@ -381,6 +381,7 @@ const formatCommentDate = (raw?: string | null) => {
 }
 const commentAuthorLabel = (comment: ArticleComment) => comment.authorDisplayName || 'TerraPedia 用户'
 const commentAvatarFallback = (comment: ArticleComment) => commentAuthorLabel(comment).trim().slice(0, 1).toUpperCase() || 'T'
+const commentAvatarUrl = (comment: ArticleComment) => resolvePreviewImageUrl(comment.authorAvatarUrl || '')
 const canDeleteComment = (comment: ArticleComment) => Boolean(authStore.user?.id && Number(authStore.user.id) === Number(comment.authorId))
 const commentContent = (comment: ArticleComment) => comment.deleted ? '该评论已删除' : comment.content
 const commentTimeValue = (comment: ArticleComment) => {
@@ -817,7 +818,7 @@ onMounted(() => {
             <div v-else class="article-comment-list">
               <article v-for="comment in sortedArticleComments" :key="comment.id" class="article-comment-item">
                 <div class="article-comment-avatar">
-                  <img v-if="comment.authorAvatarUrl" :src="comment.authorAvatarUrl" :alt="`${commentAuthorLabel(comment)} 的头像`" loading="lazy">
+                  <img v-if="commentAvatarUrl(comment)" :src="commentAvatarUrl(comment)" :alt="`${commentAuthorLabel(comment)} 的头像`" loading="lazy">
                   <span v-else>{{ commentAvatarFallback(comment) }}</span>
                 </div>
                 <div class="article-comment-body">
@@ -853,7 +854,7 @@ onMounted(() => {
                   <div v-if="comment.replies.length || comment.replyCount > 0" class="article-comment-replies">
                     <article v-for="reply in comment.replies" :key="reply.id" class="article-comment-reply-item">
                       <div class="article-comment-avatar small">
-                        <img v-if="reply.authorAvatarUrl" :src="reply.authorAvatarUrl" :alt="`${commentAuthorLabel(reply)} 的头像`" loading="lazy">
+                        <img v-if="commentAvatarUrl(reply)" :src="commentAvatarUrl(reply)" :alt="`${commentAuthorLabel(reply)} 的头像`" loading="lazy">
                         <span v-else>{{ commentAvatarFallback(reply) }}</span>
                       </div>
                       <div class="article-comment-body">

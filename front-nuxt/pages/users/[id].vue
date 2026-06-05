@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PublicUserProfile } from '~/types/public-api'
+import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
 import { unwrapApiResponse, usePublicApiFetch } from '~/composables/usePublicApi'
 
 const route = useRoute()
@@ -27,6 +28,7 @@ const publishedArticles = computed(() => profile.value?.publishedArticles ?? [])
 const linkablePublishedArticles = computed(() => publishedArticles.value.filter((item) => publicArticlePath(item.slug)))
 const joinedLabel = computed(() => formatDate(profile.value?.joinedAt) || '加入时间未记录')
 const articleCountLabel = computed(() => `${Number(profile.value?.publishedArticleCount ?? 0)} 篇已发布文章`)
+const profileAvatarUrl = computed(() => resolvePreviewImageUrl(profile.value?.avatarUrl || ''))
 const loading = computed(() => pending.value && !profile.value)
 const notFound = computed(() => !isValidUserId.value || (!pending.value && (!profile.value || error.value)))
 const articleViewCount = (article: { viewCount?: number | null }) => Math.max(0, Number(article.viewCount ?? 0))
@@ -88,7 +90,7 @@ function publicArticlePath(slug?: string | null) {
     <main v-else-if="profile" class="user-layout">
       <section class="user-hero support-panel account-state-authenticated">
         <div class="user-avatar public-user-avatar">
-          <img v-if="profile.avatarUrl" :src="profile.avatarUrl" :alt="`${displayName} 的头像`" />
+          <img v-if="profileAvatarUrl" :src="profileAvatarUrl" :alt="`${displayName} 的头像`" />
           <span v-else class="sprite-icon icon-user" aria-hidden="true"></span>
         </div>
         <div>
