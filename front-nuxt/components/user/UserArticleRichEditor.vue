@@ -1481,26 +1481,7 @@ onBeforeUnmount(() => {
       <input ref="imageInputRef" class="user-rich-editor__file" type="file" accept="image/*" multiple @change="handleImageSelected">
     </div>
 
-    <div class="user-rich-editor__stage">
-      <div
-        ref="editorRef"
-        class="user-rich-editor__surface"
-        :contenteditable="!disabled"
-        role="textbox"
-        aria-label="文章正文"
-        @input="emitEditorValue"
-        @paste="handlePaste"
-        @click="openEditorLink"
-        @keydown="handleEditorKeydown"
-        @dragstart="handleEditorDragStart"
-        @dragend="handleEditorDragEnd"
-        @dragover.prevent
-        @drop="handleDrop"
-        @keyup="saveSelection"
-        @mouseup="saveSelection"
-        @blur="saveSelection"
-      />
-
+    <div class="user-rich-editor__insert-bar" aria-label="插入内容">
       <div class="user-rich-editor__reference-menu">
         <button
           type="button"
@@ -1521,7 +1502,8 @@ onBeforeUnmount(() => {
             aria-hidden="true"
             @error="pickaxeImageFailed = true"
           >
-          <span v-else aria-hidden="true">镐</span>
+          <span v-else class="user-rich-editor__reference-icon-fallback" aria-hidden="true">镐</span>
+          <span class="user-rich-editor__reference-fab-label">资料引用</span>
         </button>
         <div v-if="referenceMenuOpen" class="user-rich-editor__reference-popover" role="dialog" aria-label="资料引用">
           <div class="user-rich-editor__reference-tabs" role="tablist">
@@ -1565,6 +1547,27 @@ onBeforeUnmount(() => {
           <button type="button" :disabled="disabled" @click="closeReferenceMenu">关闭</button>
         </div>
       </div>
+    </div>
+
+    <div class="user-rich-editor__stage">
+      <div
+        ref="editorRef"
+        class="user-rich-editor__surface"
+        :contenteditable="!disabled"
+        role="textbox"
+        aria-label="文章正文"
+        @input="emitEditorValue"
+        @paste="handlePaste"
+        @click="openEditorLink"
+        @keydown="handleEditorKeydown"
+        @dragstart="handleEditorDragStart"
+        @dragend="handleEditorDragEnd"
+        @dragover.prevent
+        @drop="handleDrop"
+        @keyup="saveSelection"
+        @mouseup="saveSelection"
+        @blur="saveSelection"
+      />
     </div>
 
     <div v-if="selectedImage" class="user-rich-editor__image-tools" role="group" aria-label="图片设置">
@@ -1822,13 +1825,14 @@ onBeforeUnmount(() => {
 }
 
 .user-rich-editor__reference-popover {
-  position: absolute;
-  z-index: 32;
-  bottom: calc(100% + 10px);
-  right: 0;
+  position: static;
+  z-index: 1;
   display: grid;
-  width: min(360px, calc(100vw - 32px));
+  width: min(420px, 100%);
+  max-height: min(58dvh, 460px);
   gap: 9px;
+  overflow: auto;
+  margin-top: 10px;
   padding: 10px;
   border: 1px solid color-mix(in srgb, var(--index-line) 82%, transparent);
   border-radius: 8px;
@@ -1965,6 +1969,16 @@ onBeforeUnmount(() => {
   display: none;
 }
 
+.user-rich-editor__insert-bar {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+  padding: 10px 12px;
+  border-right: 1px solid color-mix(in srgb, var(--index-line) 42%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--index-line) 42%, transparent);
+  background: color-mix(in srgb, var(--index-surface) 82%, transparent);
+}
+
 .user-rich-editor__stage {
   position: relative;
   isolation: isolate;
@@ -1972,7 +1986,7 @@ onBeforeUnmount(() => {
 
 .user-rich-editor__surface {
   min-height: 380px;
-  padding: 22px 86px 92px 22px;
+  padding: 22px;
   border-right: 1px solid color-mix(in srgb, var(--index-line) 42%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--index-line) 42%, transparent);
   border-left: 1px solid color-mix(in srgb, var(--index-line) 42%, transparent);
@@ -1985,22 +1999,23 @@ onBeforeUnmount(() => {
 }
 
 .user-rich-editor__reference-menu {
-  position: absolute;
-  right: 18px;
-  bottom: 18px;
-  z-index: 18;
-  display: inline-flex;
+  position: relative;
+  z-index: 20;
+  display: grid;
+  justify-items: end;
+  width: 100%;
 }
 
 .user-rich-editor__reference-fab {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
+  min-width: 132px;
+  min-height: 44px;
+  gap: 8px;
   padding: 7px;
   border: 2px solid color-mix(in srgb, var(--accent-gold) 82%, #fff);
-  border-radius: 12px;
+  border-radius: 8px;
   background:
     radial-gradient(circle at 30% 20%, rgba(255,255,255,.4), transparent 38%),
     linear-gradient(180deg, #ffe08a, #c89424);
@@ -2011,17 +2026,25 @@ onBeforeUnmount(() => {
 
 .user-rich-editor__reference-fab img {
   display: block;
-  width: 100%;
-  height: 100%;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
   image-rendering: pixelated;
   pointer-events: none;
 }
 
-.user-rich-editor__reference-fab span {
+.user-rich-editor__reference-icon-fallback {
   font-size: 1.18rem;
   font-weight: 1000;
   line-height: 1;
+}
+
+.user-rich-editor__reference-fab-label {
+  color: currentColor;
+  font-size: .88rem;
+  font-weight: 1000;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .user-rich-editor__reference-fab:hover:not(:disabled),
@@ -2298,25 +2321,21 @@ onBeforeUnmount(() => {
 @media (max-width: 720px) {
   .user-rich-editor__surface {
     min-height: 320px;
-    padding: 16px 76px 92px 16px;
+    padding: 16px;
   }
 
-  .user-rich-editor__reference-menu {
-    right: 12px;
-    bottom: 12px;
+  .user-rich-editor__insert-bar {
+    padding: 10px;
   }
 
   .user-rich-editor__reference-fab {
-    width: 48px;
-    height: 48px;
+    min-width: 100%;
+    min-height: 44px;
   }
 
   .user-rich-editor__reference-popover {
-    right: 0;
-    bottom: calc(100% + 10px + env(safe-area-inset-bottom, 0px));
-    width: min(340px, calc(100vw - 48px));
-    max-height: min(70dvh, calc(100% - 24px));
-    overflow: auto;
+    width: 100%;
+    max-height: min(70dvh, 480px);
   }
 
   .user-rich-editor__reference-results {

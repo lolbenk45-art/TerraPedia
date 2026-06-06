@@ -26,6 +26,7 @@ const editorDomSource = readFileSync(join(root, 'lib/userArticleEditorDom.mjs'),
   .replace(/\bexport\s+/g, '')
 const editorComponentSource = readFileSync(join(root, 'components/user/UserArticleRichEditor.vue'), 'utf8')
 const nuxtConfigSource = readFileSync(join(root, 'nuxt.config.ts'), 'utf8')
+const editorStyleSource = editorComponentSource.match(/<style[^>]*>([\s\S]*?)<\/style>/)?.[1] || ''
 
 if (!editorComponentSource.includes('draggedReferenceElement')) throw new Error('editor must track dragged content references')
 if (!editorComponentSource.includes('application/x-terrapedia-reference')) throw new Error('editor must use a reference-specific drag payload')
@@ -37,12 +38,16 @@ if (!editorComponentSource.includes('applyInlineStyleToReference')) throw new Er
 if (!editorComponentSource.includes('applyUserArticleInlineStyleToSelectedRange')) throw new Error('editor must use selection-aware inline styling for selected content')
 if (!editorComponentSource.includes('width: 1.875em')) throw new Error('editor reference image size must scale with font size')
 if (!editorComponentSource.includes('user-rich-editor__stage')) throw new Error('editor must wrap the editable surface in a non-contenteditable overlay stage')
-if (!editorComponentSource.includes('user-rich-editor__reference-fab')) throw new Error('reference picker must use a right-bottom floating action button')
-if (!editorComponentSource.includes('IRON_PICKAXE_REFERENCE_IMAGE')) throw new Error('reference floating button must use a verified iron pickaxe image source')
-if (!/const IRON_PICKAXE_REFERENCE_IMAGE = '\/terrapedia-images\/[^']*iron-pickaxe[^']*\.png'/.test(editorComponentSource)) throw new Error('reference floating button must use the proxied iron pickaxe image')
+if (!editorComponentSource.includes('user-rich-editor__insert-bar')) throw new Error('reference picker must live in a visible insert bar above the editor surface')
+if (!editorComponentSource.includes('user-rich-editor__reference-fab')) throw new Error('reference picker must use a prominent trigger button')
+if (!editorComponentSource.includes('user-rich-editor__reference-fab-label')) throw new Error('reference picker trigger must include a visible text label')
+if (!editorComponentSource.includes('IRON_PICKAXE_REFERENCE_IMAGE')) throw new Error('reference picker trigger must use a verified iron pickaxe image source')
+if (!/const IRON_PICKAXE_REFERENCE_IMAGE = '\/terrapedia-images\/[^']*iron-pickaxe[^']*\.png'/.test(editorComponentSource)) throw new Error('reference picker trigger must use the proxied iron pickaxe image')
 if (!nuxtConfigSource.includes("'/terrapedia-images'") || !nuxtConfigSource.includes('target: `${terrapediaImageOrigin}/terrapedia-images`')) throw new Error('front app must proxy terrapedia image assets for the reference floating button')
-if (!editorComponentSource.includes('@mousedown.prevent="saveSelection"')) throw new Error('reference floating button must preserve the editor selection before opening')
-if (!/<div class="user-rich-editor__stage">[\s\S]*ref="editorRef"[\s\S]*class="user-rich-editor__surface"[\s\S]*\/>[\s\S]*<div class="user-rich-editor__reference-menu">/.test(editorComponentSource)) throw new Error('reference floating button must be outside the contenteditable editor surface')
+if (!editorComponentSource.includes('@mousedown.prevent="saveSelection"')) throw new Error('reference picker trigger must preserve the editor selection before opening')
+if (!/<div class="user-rich-editor__insert-bar"[\s\S]*<div class="user-rich-editor__reference-menu">[\s\S]*<div class="user-rich-editor__stage">[\s\S]*ref="editorRef"[\s\S]*class="user-rich-editor__surface"/.test(editorComponentSource)) throw new Error('reference picker must be outside and above the contenteditable editor stage')
+if (/\.user-rich-editor__reference-menu \{[\s\S]*position: absolute;[\s\S]*bottom:/.test(editorComponentSource)) throw new Error('reference picker must not be positioned as a bottom overlay on the editor surface')
+if (/\.user-rich-editor__reference-popover \{[\s\S]*position: absolute;/.test(editorComponentSource)) throw new Error('reference picker panel must be inline, not an overlay over the editor surface')
 if (!/const openReferenceMenu = \(\) => \{[\s\S]*referenceMenuOpen\.value = true[\s\S]*void runReferenceSearch\(\)/.test(editorComponentSource)) throw new Error('reference picker must load default references when opened')
 if (/if \(!q\) \{[\s\S]*referenceSearchResults\.value = \[\]/.test(editorComponentSource)) throw new Error('reference search must not clear results for blank queries because blank queries load defaults')
 if (!editorComponentSource.includes('class="user-rich-editor__reference-copy"')) throw new Error('reference picker result text must use a dedicated copy column')
@@ -63,8 +68,45 @@ writeFileSync(htmlPath, `<!doctype html>
   <head>
     <meta charset="utf-8">
     <title>User Article Editor Runtime Check</title>
+    <style>
+      :root {
+        --index-line: #40506a;
+        --index-surface: #162033;
+        --index-bg: #0f172a;
+        --index-text: #f8fafc;
+        --index-muted: #94a3b8;
+        --panel: #111827;
+        --accent-gold: #ffd765;
+        --danger: #ef4444;
+      }
+      ${editorStyleSource.replace(/<\/style/gi, '<\\/style')}
+      .layout-check-root {
+        width: 720px;
+        margin: 0;
+      }
+      .layout-check-root .user-rich-editor__surface {
+        box-sizing: border-box;
+        min-height: 160px;
+      }
+    </style>
   </head>
   <body>
+    <div class="layout-check-root">
+      <div class="user-rich-editor__toolbar"></div>
+      <div class="user-rich-editor__insert-bar">
+        <div class="user-rich-editor__reference-menu">
+          <button class="user-rich-editor__reference-fab" type="button">
+            <span class="user-rich-editor__reference-fab-label">资料引用</span>
+          </button>
+          <div class="user-rich-editor__reference-popover">
+            <div class="user-rich-editor__reference-results"><p>默认资料</p></div>
+          </div>
+        </div>
+      </div>
+      <div class="user-rich-editor__stage">
+        <div class="user-rich-editor__surface"></div>
+      </div>
+    </div>
     <div id="editor" contenteditable="true"><p><br></p></div>
     <pre id="result">pending</pre>
     <script>
@@ -72,6 +114,12 @@ writeFileSync(htmlPath, `<!doctype html>
       const assert = (condition, message) => {
         if (!condition) throw new Error(message);
       };
+
+      const insertBarRect = document.querySelector('.layout-check-root .user-rich-editor__insert-bar').getBoundingClientRect();
+      const surfaceRect = document.querySelector('.layout-check-root .user-rich-editor__surface').getBoundingClientRect();
+      const popoverRect = document.querySelector('.layout-check-root .user-rich-editor__reference-popover').getBoundingClientRect();
+      assert(insertBarRect.bottom <= surfaceRect.top + 0.5, 'reference insert bar must sit above the editor surface');
+      assert(popoverRect.bottom <= surfaceRect.top + 0.5, 'open reference panel must not overlap the editor surface');
 
       const history = createUserArticleEditorHistory('<p>初始</p>', { limit: 4 });
       assert(!history.canUndo(), 'fresh editor history should not be undoable');
