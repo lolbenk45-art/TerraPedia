@@ -1,4 +1,5 @@
 import { useDebounceFn } from '@vueuse/core'
+import { get } from '~/composables/useApi'
 import { showToast } from '~/composables/useToast'
 import type { AdminArticle, ArticlePayload } from '~/stores/articles'
 import {
@@ -13,11 +14,24 @@ import {
   sanitizeImageAlt,
 } from '~/utils/articleEditor'
 
-type EditorPanel = 'preview' | 'outline' | 'quality'
+type EditorPanel = 'preview' | 'outline' | 'quality' | 'references'
 type SaveStatus = 'idle' | 'dirty' | 'autosaved' | 'saving' | 'saved' | 'error'
 type EditorBlockStyle = 'p' | 'h1' | 'h2' | 'h3' | 'blockquote'
 type EditorLineHeight = '1.5' | '1.75' | '2'
 type EditorTextIndent = '0' | '2em' | '4em'
+type ContentReferenceType = 'item' | 'npc'
+type ContentReferenceSearchType = ContentReferenceType | 'all'
+type ContentReferenceDisplayMode = 'image' | 'text'
+
+type ArticleContentReference = {
+  key: string
+  type: ContentReferenceType
+  id: string
+  label: string
+  imageUrl: string
+  categoryName: string
+  summary: string
+}
 
 type LocalDraftSnapshot = Pick<ArticlePayload, 'title' | 'slug' | 'summary' | 'coverImage' | 'contentHtml' | 'status'>
 
@@ -34,6 +48,8 @@ const CROP_VIEWPORT_HEIGHT = 315
 const CROP_OUTPUT_WIDTH = 1280
 const CROP_OUTPUT_HEIGHT = 720
 const BLOCK_SELECTOR = 'p,h1,h2,h3,h4,blockquote,li'
+const SUPPORTED_REFERENCE_TYPES: ContentReferenceType[] = ['item', 'npc']
+const MAX_REFERENCE_LABEL_LENGTH = 80
 
 const normalizeSnapshot = (snapshot: LocalDraftSnapshot) => ({
   title: snapshot.title.trim(),
@@ -77,6 +93,70 @@ const formatEditorStatusTime = (value?: string | null) => {
   return formatEditorTime(value)
 }
 
+const normalizeReferenceText = (value: unknown) => String(value ?? '').replace(/\s+/g, ' ').trim()
+
+const normalizeReferenceType = (value: unknown): ContentReferenceType | '' => {
+  const next = normalizeReferenceText(value).toLowerCase()
+  return SUPPORTED_REFERENCE_TYPES.includes(next as ContentReferenceType) ? next as ContentReferenceType : ''
+}
+
+const normalizeReferenceId = (value: unknown) => {
+  const next = normalizeReferenceText(value)
+  return /^\d{1,12}$/.test(next) ? next : ''
+}
+
+const isSafeReferenceImageUrl = (value: string) => {
+  const next = value.trim().replace(/&amp;/g, '&')
+  if (!next) return false
+  return /^https?:\/\//i.test(next)
+    || next.startsWith('/terrapedia-images/')
+    || next.startsWith('/preview-assets/terrapedia-images/')
+    || /^data:image\/(?:png|jpe?g|webp|gif);base64,/i.test(next)
+}
+
+const extractReferenceResponseList = (response: any): any[] => {
+  if (Array.isArray(response)) return response
+  if (Array.isArray(response?.data)) return response.data
+  if (Array.isArray(response?.items)) return response.items
+  if (Array.isArray(response?.data?.items)) return response.data.items
+  if (Array.isArray(response?.data?.records)) return response.data.records
+  return []
+}
+
+const normalizeArticleContentReference = (raw: any): ArticleContentReference | null => {
+  const type = normalizeReferenceType(raw?.type)
+  const id = normalizeReferenceId(raw?.id)
+  const label = normalizeReferenceText(raw?.label || raw?.name || raw?.displayName)
+  if (!type || !id || !label || label.length > MAX_REFERENCE_LABEL_LENGTH) return null
+  const rawImage = normalizeReferenceText(raw?.imageUrl ?? raw?.image_url ?? raw?.previewImage ?? raw?.image)
+  const imageUrl = rawImage && isSafeReferenceImageUrl(rawImage) ? rawImage.replace(/&amp;/g, '&') : ''
+  return {
+    key: `${type}:${id}`,
+    type,
+    id,
+    label,
+    imageUrl,
+    categoryName: normalizeReferenceText(raw?.categoryName ?? raw?.category_name),
+    summary: normalizeReferenceText(raw?.summary),
+  }
+}
+
+const buildContentReferenceHtml = (reference: ArticleContentReference, displayMode: ContentReferenceDisplayMode) => {
+  const normalized = normalizeArticleContentReference(reference)
+  if (!normalized) return ''
+  const safeDisplayMode = displayMode === 'text' ? 'text' : 'image'
+  const imageAttribute = normalized.imageUrl
+    ? ` data-tp-ref-image="${encodeAttributeValue(normalized.imageUrl)}"`
+    : ''
+  if (safeDisplayMode === 'text') {
+    return `<span class="tp-content-ref" contenteditable="false" data-tp-ref-type="${normalized.type}" data-tp-ref-id="${encodeAttributeValue(normalized.id)}" data-tp-ref-label="${encodeAttributeValue(normalized.label)}"${imageAttribute} data-tp-ref-display="text">${escapeHtml(normalized.label)}</span>`
+  }
+  const innerHtml = normalized.imageUrl
+    ? `<img src="${encodeAttributeValue(normalized.imageUrl)}" alt="" loading="lazy" decoding="async" aria-hidden="true">`
+    : '<span class="tp-content-ref-fallback" aria-hidden="true">图</span>'
+  return `<span class="tp-content-ref" contenteditable="false" data-tp-ref-type="${normalized.type}" data-tp-ref-id="${encodeAttributeValue(normalized.id)}" data-tp-ref-label="${encodeAttributeValue(normalized.label)}"${imageAttribute} data-tp-ref-display="image">${innerHtml}</span>`
+}
+
 export const useArticleEditor = (initialArticleId: number | null) => {
   const router = useRouter()
   const articlesStore = useArticlesStore()
@@ -91,6 +171,14 @@ export const useArticleEditor = (initialArticleId: number | null) => {
   const savedSelection = ref<Range | null>(null)
   const sidePanel = ref<EditorPanel>('preview')
   const sidePanelCollapsed = ref(false)
+  const referencePanelOpen = ref(false)
+  const referenceSearchText = ref('')
+  const referenceSearchType = ref<ContentReferenceSearchType>('all')
+  const referenceDisplayMode = ref<ContentReferenceDisplayMode>('image')
+  const referenceSearchResults = ref<ArticleContentReference[]>([])
+  const referenceSearchLoading = ref(false)
+  const referenceSearchError = ref('')
+  let referenceSearchSequence = 0
   const saveStatus = ref<SaveStatus>('idle')
   const submittingReview = ref(false)
   const pendingRecovery = ref<LocalDraftPayload | null>(null)
@@ -471,6 +559,66 @@ export const useArticleEditor = (initialArticleId: number | null) => {
     document.execCommand('insertHTML', false, html)
     saveSelection()
     syncFormFromEditor()
+  }
+
+  const setSidePanel = (panel: EditorPanel) => {
+    if (panel === 'references' && isReadOnly.value) return
+    sidePanel.value = panel
+    referencePanelOpen.value = panel === 'references'
+  }
+
+  const searchArticleContentReferences = async () => {
+    if (isReadOnly.value) return
+    const sequence = ++referenceSearchSequence
+    referenceSearchLoading.value = true
+    referenceSearchError.value = ''
+    const types = referenceSearchType.value === 'all' ? 'item,npc' : referenceSearchType.value
+    try {
+      const response = await get('/public/content-references', {
+        q: referenceSearchText.value.trim(),
+        types,
+        limit: 20,
+      })
+      if (sequence !== referenceSearchSequence) return
+      referenceSearchResults.value = extractReferenceResponseList(response)
+        .map(normalizeArticleContentReference)
+        .filter((item): item is ArticleContentReference => Boolean(item))
+    } catch (error: any) {
+      if (sequence !== referenceSearchSequence) return
+      referenceSearchResults.value = []
+      referenceSearchError.value = error?.data?.message || error?.message || '资料引用加载失败'
+    } finally {
+      if (sequence === referenceSearchSequence) {
+        referenceSearchLoading.value = false
+      }
+    }
+  }
+
+  const openReferencePanel = () => {
+    if (isReadOnly.value) return
+    saveSelection()
+    sidePanelCollapsed.value = false
+    setSidePanel('references')
+    if (!referenceSearchLoading.value && !referenceSearchResults.value.length) {
+      void searchArticleContentReferences()
+    }
+  }
+
+  const closeReferencePanel = () => {
+    referencePanelOpen.value = false
+    if (sidePanel.value === 'references') {
+      sidePanel.value = 'preview'
+    }
+  }
+
+  const insertContentReference = (reference: ArticleContentReference) => {
+    if (isReadOnly.value) return
+    const html = buildContentReferenceHtml(reference, referenceDisplayMode.value)
+    if (!html) {
+      showToast('当前资料不能插入正文', 'warning')
+      return
+    }
+    insertHtmlAtCaret(html)
   }
 
   const normalizeEditorFontTags = (targetPx: number) => {
@@ -1386,6 +1534,14 @@ export const useArticleEditor = (initialArticleId: number | null) => {
     textColorValue,
     sidePanel,
     sidePanelCollapsed,
+    setSidePanel,
+    referencePanelOpen,
+    referenceSearchText,
+    referenceSearchType,
+    referenceDisplayMode,
+    referenceSearchResults,
+    referenceSearchLoading,
+    referenceSearchError,
     statusLabel,
     saveStatus,
     submittingReview,
@@ -1422,6 +1578,10 @@ export const useArticleEditor = (initialArticleId: number | null) => {
     submitForReview,
     restorePendingRecovery,
     discardPendingRecovery,
+    openReferencePanel,
+    closeReferencePanel,
+    searchArticleContentReferences,
+    insertContentReference,
     handleToolbarMouseDown,
     saveSelection,
     applyFontSize,

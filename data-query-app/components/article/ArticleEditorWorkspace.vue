@@ -108,6 +108,18 @@
                 </button>
                 <button
                   type="button"
+                  class="toolbar-tool toolbar-tool--reference"
+                  :class="{ 'toolbar-tool--active': editor.sidePanel === 'references' }"
+                  title="资料引用"
+                  aria-label="资料引用"
+                  :aria-pressed="editor.sidePanel === 'references'"
+                  :disabled="editor.isReadOnly"
+                  @click="editor.openReferencePanel"
+                >
+                  <span class="toolbar-tool__label" aria-hidden="true">资料引用</span>
+                </button>
+                <button
+                  type="button"
                   class="toolbar-tool toolbar-tool--icon"
                   title="重做"
                   aria-label="重做"
@@ -462,7 +474,9 @@
                   type="button"
                   class="side-tabs__item"
                   :class="{ 'side-tabs__item--active': editor.sidePanel === item.id }"
-                  @click="editor.sidePanel = item.id"
+                  :disabled="item.id === 'references' && editor.isReadOnly"
+                  @mousedown.prevent="item.id === 'references' ? editor.saveSelection() : undefined"
+                  @click="item.id === 'references' ? editor.openReferencePanel() : editor.setSidePanel(item.id)"
                 >
                   {{ item.label }}
                 </button>
@@ -495,6 +509,86 @@
                   </button>
                 </div>
                 <p v-else class="empty-copy">还没有识别到小标题，长文建议补充结构层级。</p>
+              </div>
+
+              <div v-else-if="editor.sidePanel === 'references'" class="reference-panel">
+                <section v-if="editor.referencePanelOpen" class="document-inspector__references" aria-label="资料引用">
+                  <div class="document-inspector__head">
+                    <div>
+                      <p class="editor-card__eyebrow">资料引用</p>
+                      <h2>插入资料</h2>
+                    </div>
+                    <button type="button" class="ghost-btn ghost-btn--compact" @click="editor.closeReferencePanel">关闭</button>
+                  </div>
+
+                  <div class="reference-controls" role="group" aria-label="资料类型">
+                    <button
+                      type="button"
+                      :class="{ active: editor.referenceSearchType === 'all' }"
+                      @click="editor.referenceSearchType = 'all'; editor.searchArticleContentReferences()"
+                    >
+                      全部
+                    </button>
+                    <button
+                      type="button"
+                      :class="{ active: editor.referenceSearchType === 'item' }"
+                      @click="editor.referenceSearchType = 'item'; editor.searchArticleContentReferences()"
+                    >
+                      物品
+                    </button>
+                    <button
+                      type="button"
+                      :class="{ active: editor.referenceSearchType === 'npc' }"
+                      @click="editor.referenceSearchType = 'npc'; editor.searchArticleContentReferences()"
+                    >
+                      NPC
+                    </button>
+                  </div>
+
+                  <div class="reference-display" role="group" aria-label="显示方式">
+                    <span>显示</span>
+                    <button type="button" :class="{ active: editor.referenceDisplayMode === 'image' }" @click="editor.referenceDisplayMode = 'image'">图片</button>
+                    <button type="button" :class="{ active: editor.referenceDisplayMode === 'text' }" @click="editor.referenceDisplayMode = 'text'">文字</button>
+                  </div>
+
+                  <label class="field reference-search">
+                    <span>搜索资料</span>
+                    <input
+                      v-model.trim="editor.referenceSearchText"
+                      class="field__control"
+                      type="search"
+                      placeholder="搜索物品或 NPC"
+                      @keydown.enter.prevent="editor.searchArticleContentReferences"
+                    />
+                  </label>
+
+                  <button type="button" class="primary-btn reference-search__button" :disabled="editor.isReadOnly || editor.referenceSearchLoading" @click="editor.searchArticleContentReferences">
+                    {{ editor.referenceSearchLoading ? '搜索中...' : '搜索资料' }}
+                  </button>
+
+                  <div class="reference-results" aria-label="资料引用结果">
+                    <button
+                      v-for="reference in editor.referenceSearchResults"
+                      :key="reference.key"
+                      type="button"
+                      class="reference-result"
+                      @mousedown.prevent
+                      @click="editor.insertContentReference(reference)"
+                    >
+                      <span class="reference-result__thumb" aria-hidden="true">
+                        <img v-if="reference.imageUrl" :src="reference.imageUrl" :alt="reference.label" loading="lazy" decoding="async" />
+                        <span v-else>{{ reference.label.slice(0, 1) }}</span>
+                      </span>
+                      <span class="reference-result__copy">
+                        <strong>{{ reference.label }}</strong>
+                        <small>{{ reference.summary || reference.categoryName || reference.type }}</small>
+                      </span>
+                    </button>
+                    <p v-if="editor.referenceSearchLoading" class="empty-copy">资料加载中...</p>
+                    <p v-else-if="editor.referenceSearchError" class="empty-copy empty-copy--error">{{ editor.referenceSearchError }}</p>
+                    <p v-else-if="!editor.referenceSearchResults.length" class="empty-copy">暂无可插入资料。</p>
+                  </div>
+                </section>
               </div>
 
               <div v-else class="quality-panel">
@@ -583,6 +677,7 @@ const sideTabs = [
   { id: 'preview', label: '预览' },
   { id: 'outline', label: '大纲' },
   { id: 'quality', label: '质检' },
+  { id: 'references', label: '资料引用' },
 ] as const
 
 const blockStyle = computed<'p' | 'h1' | 'h2' | 'h3' | 'blockquote'>({
@@ -778,6 +873,12 @@ const setupReadyText = computed(() => {
   box-shadow: 0 12px 24px color-mix(in srgb, var(--color-primary) 28%, transparent);
 }
 
+.ghost-btn--compact {
+  padding: 7px 10px;
+  border-radius: 10px;
+  font-size: 0.78rem;
+}
+
 .ghost-btn:hover,
 .primary-btn:hover {
   transform: translateY(-1px);
@@ -890,6 +991,7 @@ const setupReadyText = computed(() => {
 .document-inspector__setup,
 .document-inspector__cover,
 .document-inspector__quality,
+.document-inspector__references,
 .document-inspector__tools {
   display: grid;
   gap: 12px;
@@ -1176,6 +1278,14 @@ const setupReadyText = computed(() => {
   min-width: 36px;
 }
 
+.toolbar-tool--reference {
+  min-width: 88px;
+  padding-inline: 10px;
+  border-color: color-mix(in srgb, var(--color-primary) 18%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 9%, transparent);
+  color: var(--editor-ink);
+}
+
 .toolbar-tool--icon {
   padding: 0 7px;
 }
@@ -1327,7 +1437,7 @@ const setupReadyText = computed(() => {
 
 .side-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 0;
 }
@@ -1341,6 +1451,11 @@ const setupReadyText = computed(() => {
   cursor: pointer;
 }
 
+.side-tabs__item:disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
 .side-tabs__item--active {
   border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
   background: var(--editor-accent-soft);
@@ -1349,7 +1464,8 @@ const setupReadyText = computed(() => {
 
 .preview-panel,
 .outline-panel,
-.quality-panel {
+.quality-panel,
+.reference-panel {
   min-height: 0;
 }
 
@@ -1519,6 +1635,134 @@ const setupReadyText = computed(() => {
 
 .quality-panel__metric strong {
   font-size: 1.1rem;
+}
+
+.reference-panel,
+.document-inspector__references {
+  min-width: 0;
+}
+
+.reference-controls,
+.reference-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.reference-controls button,
+.reference-display button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--editor-border);
+  border-radius: 10px;
+  background: var(--editor-paper);
+  color: var(--editor-ink-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.reference-controls button.active,
+.reference-display button.active {
+  border-color: color-mix(in srgb, var(--color-primary) 38%, var(--editor-border));
+  background: var(--editor-accent-soft);
+  color: var(--editor-ink);
+}
+
+.reference-display span {
+  color: var(--editor-ink-muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.reference-search {
+  margin-bottom: 0;
+}
+
+.reference-search__button {
+  width: 100%;
+  min-height: 38px;
+}
+
+.reference-results {
+  display: grid;
+  max-height: min(360px, 46vh);
+  gap: 8px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.reference-result {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 7px 9px;
+  border: 1px solid var(--editor-border);
+  border-radius: 12px;
+  background: var(--editor-paper);
+  color: var(--editor-ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.reference-result:hover,
+.reference-result:focus-visible {
+  border-color: color-mix(in srgb, var(--color-primary) 34%, var(--editor-border));
+  background: var(--editor-accent-soft);
+  outline: none;
+}
+
+.reference-result__thumb {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--editor-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--editor-paper));
+  color: var(--editor-accent);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.reference-result__thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.reference-result__copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.reference-result__copy strong,
+.reference-result__copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reference-result__copy strong {
+  font-size: 0.88rem;
+}
+
+.reference-result__copy small {
+  color: var(--editor-ink-muted);
+  font-size: 0.76rem;
+}
+
+.empty-copy--error {
+  color: var(--color-danger);
 }
 
 .hidden-input {
