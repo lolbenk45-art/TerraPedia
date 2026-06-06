@@ -30,7 +30,7 @@ const allowedAttrs: Record<string, Set<string>> = {
   h4: new Set(['style']),
   h5: new Set(['style']),
   h6: new Set(['style']),
-  span: new Set(['style', 'class', 'aria-hidden', 'data-tp-ref-type', 'data-tp-ref-id', 'data-tp-ref-label', 'data-tp-ref-image', 'data-tp-ref-display']),
+  span: new Set(['style', 'class', 'aria-hidden', 'contenteditable', 'data-tp-ref-type', 'data-tp-ref-id', 'data-tp-ref-label', 'data-tp-ref-image', 'data-tp-ref-display']),
   div: new Set(['style']),
   pre: new Set(['style']),
   code: new Set(['style']),
@@ -149,6 +149,7 @@ const normalizeReferenceDisplayMode = (value: string | null) => {
 
 const stripContentReferenceAttributes = (element: Element) => {
   element.removeAttribute('class')
+  element.removeAttribute('contenteditable')
   for (const attribute of Array.from(element.attributes)) {
     const attrName = attribute.name.toLowerCase()
     if (attrName.startsWith('data-tp-ref-')) {
@@ -190,6 +191,7 @@ const normalizeContentReferenceElement = (element: Element) => {
   element.setAttribute('data-tp-ref-id', id)
   element.setAttribute('data-tp-ref-label', label)
   element.setAttribute('data-tp-ref-display', displayMode)
+  element.setAttribute('contenteditable', 'false')
   if (image) {
     element.setAttribute('data-tp-ref-image', image)
   } else {
@@ -239,6 +241,7 @@ const normalizeSpanClass = (element: Element) => {
   }
   if (classes.includes('tp-content-ref-fallback')) {
     element.setAttribute('class', 'tp-content-ref-fallback')
+    element.removeAttribute('contenteditable')
     return
   }
   element.removeAttribute('class')
@@ -315,6 +318,7 @@ const sanitizeElement = (element: Element) => {
         }
       }
       element.removeAttribute('aria-hidden')
+      element.removeAttribute('contenteditable')
     }
   }
 }
