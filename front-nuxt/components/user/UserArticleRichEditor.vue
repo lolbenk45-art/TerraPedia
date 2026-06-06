@@ -5,7 +5,7 @@ import {
   buildUserArticleInlineStyle,
   buildUserArticleReferenceHtml,
   buildUserArticleTypingSpanHtml,
-  applyUserArticleInlineStyleToRange,
+  applyUserArticleInlineStyleToSelectedRange,
   isSafeUserArticleReferenceElement,
   isSafeUserArticleLinkHref,
   normalizeUserArticleReferenceDisplayMode,
@@ -604,7 +604,7 @@ const applyInlineStyleToSelection = () => {
     return
   }
 
-  applyUserArticleInlineStyleToRange({
+  const styleResult = applyUserArticleInlineStyleToSelectedRange({
     editor,
     range,
     fontSizePx: fontSizePx.value,
@@ -612,6 +612,9 @@ const applyInlineStyleToSelection = () => {
   })
   for (const reference of selectedReferences) {
     if (editor.contains(reference)) applyInlineStyleToReference(reference)
+  }
+  if (styleResult.mode === 'inline' && styleResult.element instanceof HTMLElement) {
+    setCaretAtEnd(styleResult.element)
   }
   saveSelection()
 }

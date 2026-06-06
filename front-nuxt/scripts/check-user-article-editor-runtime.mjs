@@ -33,9 +33,7 @@ if (!editorComponentSource.includes('@dragend="handleEditorDragEnd"')) throw new
 if (!editorComponentSource.includes('handleReferenceDrop')) throw new Error('editor drop path must move reference atoms before file drops')
 if (!editorComponentSource.includes('collectSelectedReferences')) throw new Error('editor inline styling must include selected content references')
 if (!editorComponentSource.includes('applyInlineStyleToReference')) throw new Error('editor inline styling must apply font size and color to content references')
-if (!editorComponentSource.includes('applyUserArticleInlineStyleToRange')) throw new Error('editor must use range-level inline styling for selected content')
-if (editorComponentSource.includes('isMultiBlockEditorRange(range)')) throw new Error('editor must not limit range-level inline styling to multi-block selections')
-if (editorComponentSource.includes('range.extractContents()')) throw new Error('editor inline styling must not wrap selected styled spans in an outer span')
+if (!editorComponentSource.includes('applyUserArticleInlineStyleToSelectedRange')) throw new Error('editor must use selection-aware inline styling for selected content')
 if (!editorComponentSource.includes('width: 1.875em')) throw new Error('editor reference image size must scale with font size')
 
 writeFileSync(htmlPath, `<!doctype html>
@@ -374,7 +372,7 @@ writeFileSync(htmlPath, `<!doctype html>
         singleRange.selectNodeContents(mixedParagraph);
         selection.removeAllRanges();
         selection.addRange(singleRange);
-        applyUserArticleInlineStyleToRange({
+        applyUserArticleInlineStyleToSelectedRange({
           editor,
           range: singleRange,
           fontSizePx: 22,
@@ -385,10 +383,36 @@ writeFileSync(htmlPath, `<!doctype html>
         assert(!singleStyledHtml.includes('rgb(125, 211, 252)'), 'single-block selection should replace stale blue inline color');
         assert(!singleStyledHtml.includes('font-size:16px'), 'single-block selection should replace stale inline font size');
         assert(/color:\\s*rgb\\(255,\\s*215,\\s*101\\)|color:\\s*#ffd765/.test(singleStyledHtml), 'single-block selection should apply unified selected color');
+        assert(mixedParagraph.style.fontSize === '', 'single-block selection should not force the whole paragraph font size');
+        assert(mixedParagraph.style.color === '', 'single-block selection should not force the whole paragraph color');
+        const mixedWrapper = mixedParagraph.querySelector('span');
+        assert(mixedWrapper?.textContent.includes('FWFWFW状态：干净，基于本地 main'), 'single-block selection should wrap the selected mixed content');
+        assert(mixedWrapper?.style.fontSize === '22px', 'single-block selection should apply unified font size to the selected wrapper for bare text');
+        assert(mixedWrapper?.style.color === 'rgb(255, 215, 101)' || mixedWrapper?.style.color === '#ffd765', 'single-block selection should apply unified color to the selected wrapper for bare text');
         for (const reference of Array.from(editor.querySelectorAll('.tp-content-ref'))) {
           assert(reference.style.fontSize === '22px', 'single-block selected reference should receive unified font size');
           assert(reference.style.color === 'rgb(255, 215, 101)' || reference.style.color === '#ffd765', 'single-block selected reference should receive unified color');
         }
+
+        editor.innerHTML = '<p>开头中间结尾</p>';
+        const partialParagraph = editor.querySelector('p');
+        const partialText = partialParagraph.firstChild;
+        const partialRange = document.createRange();
+        partialRange.setStart(partialText, 2);
+        partialRange.setEnd(partialText, 4);
+        applyUserArticleInlineStyleToSelectedRange({
+          editor,
+          range: partialRange,
+          fontSizePx: 26,
+          textColor: '#a78bfa',
+        });
+        assert(partialParagraph.style.fontSize === '', 'partial plain-text selection must not apply font size to the whole paragraph');
+        assert(partialParagraph.style.color === '', 'partial plain-text selection must not apply color to the whole paragraph');
+        const partialSpan = partialParagraph.querySelector('span');
+        assert(partialParagraph.textContent === '开头中间结尾', 'partial plain-text styling must preserve paragraph text');
+        assert(partialSpan?.textContent === '中间', 'partial plain-text styling should wrap only the selected text');
+        assert(partialSpan?.style.fontSize === '26px', 'partial plain-text selected span should receive unified font size');
+        assert(partialSpan?.style.color === 'rgb(167, 139, 250)' || partialSpan?.style.color === '#a78bfa', 'partial plain-text selected span should receive unified color');
 
         document.querySelector('#result').textContent = 'PASS';
       } catch (error) {
