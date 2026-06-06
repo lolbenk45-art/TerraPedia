@@ -38,20 +38,34 @@ if (!editorComponentSource.includes('applyInlineStyleToReference')) throw new Er
 if (!editorComponentSource.includes('applyUserArticleInlineStyleToSelectedRange')) throw new Error('editor must use selection-aware inline styling for selected content')
 if (!editorComponentSource.includes('width: 1.875em')) throw new Error('editor reference image size must scale with font size')
 if (!editorComponentSource.includes('user-rich-editor__stage')) throw new Error('editor must wrap the editable surface in a non-contenteditable overlay stage')
-if (!editorComponentSource.includes('user-rich-editor__insert-bar')) throw new Error('reference picker must live in a visible insert bar above the editor surface')
+if (!editorComponentSource.includes('referencePanelTarget')) throw new Error('editor must accept an external reference panel target')
+if (!editorComponentSource.includes("referencePanelOpen: []")) throw new Error('editor must emit when the reference panel opens so the page can enter writing mode')
 if (!editorComponentSource.includes('user-rich-editor__reference-fab')) throw new Error('reference picker must use a prominent trigger button')
 if (!editorComponentSource.includes('user-rich-editor__reference-fab-label')) throw new Error('reference picker trigger must include a visible text label')
 if (!editorComponentSource.includes('IRON_PICKAXE_REFERENCE_IMAGE')) throw new Error('reference picker trigger must use a verified iron pickaxe image source')
 if (!/const IRON_PICKAXE_REFERENCE_IMAGE = '\/terrapedia-images\/[^']*iron-pickaxe[^']*\.png'/.test(editorComponentSource)) throw new Error('reference picker trigger must use the proxied iron pickaxe image')
 if (!nuxtConfigSource.includes("'/terrapedia-images'") || !nuxtConfigSource.includes('target: `${terrapediaImageOrigin}/terrapedia-images`')) throw new Error('front app must proxy terrapedia image assets for the reference floating button')
 if (!editorComponentSource.includes('@mousedown.prevent="saveSelection"')) throw new Error('reference picker trigger must preserve the editor selection before opening')
-if (!/<div class="user-rich-editor__insert-bar"[\s\S]*<div class="user-rich-editor__reference-menu">[\s\S]*<div class="user-rich-editor__stage">[\s\S]*ref="editorRef"[\s\S]*class="user-rich-editor__surface"/.test(editorComponentSource)) throw new Error('reference picker must be outside and above the contenteditable editor stage')
+if (editorComponentSource.includes('user-rich-editor__insert-bar')) throw new Error('reference picker must not render inside the editor insert bar anymore')
+if (!/<Teleport\s+v-if="referencePanelTarget"[\s\S]*:to="referencePanelTarget"[\s\S]*class="user-rich-editor__reference-menu"/.test(editorComponentSource)) throw new Error('reference picker panel must teleport to the external page target')
+if (/<div class="user-rich-editor__reference-menu">[\s\S]*<div class="user-rich-editor__stage">[\s\S]*ref="editorRef"[\s\S]*class="user-rich-editor__surface"/.test(editorComponentSource)) throw new Error('reference picker must not sit inside or above the contenteditable editor stage')
 if (/\.user-rich-editor__reference-menu \{[\s\S]*position: absolute;[\s\S]*bottom:/.test(editorComponentSource)) throw new Error('reference picker must not be positioned as a bottom overlay on the editor surface')
 if (/\.user-rich-editor__reference-popover \{[\s\S]*position: absolute;/.test(editorComponentSource)) throw new Error('reference picker panel must be inline, not an overlay over the editor surface')
-if (!/const openReferenceMenu = \(\) => \{[\s\S]*referenceMenuOpen\.value = true[\s\S]*void runReferenceSearch\(\)/.test(editorComponentSource)) throw new Error('reference picker must load default references when opened')
+if (!/const openReferenceMenu = \(\) => \{[\s\S]*referenceMenuOpen\.value = true[\s\S]*emit\('referencePanelOpen'\)[\s\S]*void runReferenceSearch\(\)/.test(editorComponentSource)) throw new Error('reference picker must enter page writing mode and load default references when opened')
 if (/if \(!q\) \{[\s\S]*referenceSearchResults\.value = \[\]/.test(editorComponentSource)) throw new Error('reference search must not clear results for blank queries because blank queries load defaults')
 if (!editorComponentSource.includes('class="user-rich-editor__reference-copy"')) throw new Error('reference picker result text must use a dedicated copy column')
 if (!/\.user-rich-editor__reference-result \{[\s\S]*display: grid !important;[\s\S]*grid-template-columns: 32px minmax\(0, 1fr\);[\s\S]*min-width: 0;/.test(editorComponentSource)) throw new Error('reference picker rows must reserve separate thumbnail and text columns')
+const newArticlePageSource = readFileSync(join(root, 'pages/user/articles/new.vue'), 'utf8')
+const editArticlePageSource = readFileSync(join(root, 'pages/user/articles/[id].vue'), 'utf8')
+for (const [pageName, pageSource] of [['new', newArticlePageSource], ['edit', editArticlePageSource]]) {
+  if (!pageSource.includes('id="user-article-reference-panel-target"')) throw new Error(`${pageName} article page must expose an external reference panel target in the side status area`)
+  if (!pageSource.includes('reference-panel-target="#user-article-reference-panel-target"')) throw new Error(`${pageName} article page must pass the external reference panel target to the editor`)
+  if (!pageSource.includes('@reference-panel-open="writingModeEnabled = true"')) throw new Error(`${pageName} article page must enter writing mode when the reference picker opens`)
+  if (!/<aside[\s\S]*class="article-focus-status"[\s\S]*id="user-article-reference-panel-target"[\s\S]*<section class="article-status-card"/.test(pageSource)) throw new Error(`${pageName} article page must place the reference panel target before the status card inside article-focus-status`)
+  if (/article-focus-shell--writing\s+\.article-focus-rail,\s*\.article-focus-shell--writing\s+\.article-focus-status/.test(pageSource)) throw new Error(`${pageName} article page must not hide the side status area in writing mode`)
+  if (/article-focus-shell--writing\s+\.article-focus-status\s*\{[\s\S]*display:\s*none/.test(pageSource)) throw new Error(`${pageName} article page must keep the external reference panel visible in writing mode`)
+  if (!/\.article-focus-shell--writing\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*980px\)\s+320px/.test(pageSource)) throw new Error(`${pageName} article page writing mode must keep a side column for references`)
+}
 if (editorComponentSource.includes('@click="exec(\'undo\')"') || editorComponentSource.includes('@click="exec(\'redo\')"')) throw new Error('undo and redo buttons must use the editor history stack')
 if (!editorComponentSource.includes('undoEditorHistory') || !editorComponentSource.includes('redoEditorHistory')) throw new Error('editor must expose explicit undo and redo history handlers')
 if (!editorComponentSource.includes('@keydown="handleEditorKeydown"')) throw new Error('editor must handle undo and redo keyboard shortcuts inside the editor')
@@ -93,11 +107,8 @@ writeFileSync(htmlPath, `<!doctype html>
   <body>
     <div class="layout-check-root">
       <div class="user-rich-editor__toolbar"></div>
-      <div class="user-rich-editor__insert-bar">
+      <div id="user-article-reference-panel-target" class="article-reference-side-target">
         <div class="user-rich-editor__reference-menu">
-          <button class="user-rich-editor__reference-fab" type="button">
-            <span class="user-rich-editor__reference-fab-label">资料引用</span>
-          </button>
           <div class="user-rich-editor__reference-popover">
             <div class="user-rich-editor__reference-results"><p>默认资料</p></div>
           </div>
@@ -115,11 +126,9 @@ writeFileSync(htmlPath, `<!doctype html>
         if (!condition) throw new Error(message);
       };
 
-      const insertBarRect = document.querySelector('.layout-check-root .user-rich-editor__insert-bar').getBoundingClientRect();
       const surfaceRect = document.querySelector('.layout-check-root .user-rich-editor__surface').getBoundingClientRect();
       const popoverRect = document.querySelector('.layout-check-root .user-rich-editor__reference-popover').getBoundingClientRect();
-      assert(insertBarRect.bottom <= surfaceRect.top + 0.5, 'reference insert bar must sit above the editor surface');
-      assert(popoverRect.bottom <= surfaceRect.top + 0.5, 'open reference panel must not overlap the editor surface');
+      assert(popoverRect.right <= surfaceRect.left || popoverRect.left >= surfaceRect.right || popoverRect.bottom <= surfaceRect.top || popoverRect.top >= surfaceRect.bottom, 'open reference panel must live outside the editor surface');
 
       const history = createUserArticleEditorHistory('<p>初始</p>', { limit: 4 });
       assert(!history.canUndo(), 'fresh editor history should not be undoable');

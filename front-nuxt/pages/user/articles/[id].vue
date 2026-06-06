@@ -251,7 +251,13 @@ onMounted(() => {
               <h2>正文</h2>
             </div>
           </div>
-          <UserArticleRichEditor v-model="form.contentHtml" :disabled="!canEditArticle" @error="reportEditorError" />
+          <UserArticleRichEditor
+            v-model="form.contentHtml"
+            :disabled="!canEditArticle"
+            reference-panel-target="#user-article-reference-panel-target"
+            @reference-panel-open="writingModeEnabled = true"
+            @error="reportEditorError"
+          />
         </section>
 
         <section id="article-settings" class="article-settings-workspace">
@@ -324,6 +330,7 @@ onMounted(() => {
       </section>
 
       <aside id="article-submit" class="article-focus-status">
+        <div id="user-article-reference-panel-target" class="article-reference-side-target" aria-live="polite"></div>
         <section class="article-status-card">
           <span class="eyebrow">审核状态</span>
           <div class="material-row" :class="{ done: form.title.trim(), missing: !form.title.trim() }"><b>标题</b><span>{{ form.title.trim() ? '已填写' : '必填' }}</span></div>
@@ -472,13 +479,12 @@ onMounted(() => {
 }
 
 .article-focus-shell--writing {
-  grid-template-columns: minmax(0, 980px);
+  grid-template-columns: minmax(0, 980px) 320px;
   justify-content: center;
   --user-article-toolbar-top: 88px;
 }
 
-.article-focus-shell--writing .article-focus-rail,
-.article-focus-shell--writing .article-focus-status {
+.article-focus-shell--writing .article-focus-rail {
   display: none;
 }
 
@@ -662,6 +668,13 @@ onMounted(() => {
 .article-focus-status {
   position: sticky;
   top: 96px;
+  display: grid;
+  gap: 14px;
+}
+
+.article-reference-side-target {
+  display: grid;
+  min-width: 0;
 }
 
 .article-status-card {
