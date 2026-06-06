@@ -496,6 +496,18 @@ onMounted(() => {
   opacity: .72;
 }
 
+.article-focus-shell--writing .article-focus-status {
+  position: fixed;
+  top: 104px;
+  right: max(16px, calc((100vw - 1500px) / 2 + 16px));
+  z-index: 35;
+  width: 320px;
+}
+
+.article-focus-shell--writing .article-status-card {
+  display: none;
+}
+
 .article-focus-rail {
   position: sticky;
   top: 96px;
@@ -763,6 +775,11 @@ onMounted(() => {
   .article-focus-rail,
   .article-focus-status {
     position: static;
+  }
+
+  .article-focus-shell--writing .article-focus-status {
+    position: static;
+    width: 100%;
   }
 
   .article-focus-rail {
