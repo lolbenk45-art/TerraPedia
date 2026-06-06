@@ -27,6 +27,8 @@ public class PublicContentReferenceServiceImpl implements PublicContentReference
     private static final Set<String> SUPPORTED_TYPES = Set.of("item", "npc");
     private static final int MAX_SEARCH_LIMIT = 50;
     private static final int MAX_RESOLVE_LIMIT = 100;
+    private static final String DEFAULT_ITEM_SEARCH_QUERY = "铁";
+    private static final String DEFAULT_NPC_SEARCH_QUERY = "商";
 
     private final PublicItemService publicItemService;
     private final PublicNpcService publicNpcService;
@@ -34,17 +36,14 @@ public class PublicContentReferenceServiceImpl implements PublicContentReference
     @Override
     public List<PublicContentReferenceDTO> search(Set<String> types, String query, int limit) {
         String keyword = normalizeText(query);
-        if (keyword.isEmpty()) {
-            return List.of();
-        }
-
         Set<String> resolvedTypes = normalizeTypes(types);
         int resolvedLimit = clamp(limit, 1, MAX_SEARCH_LIMIT);
         int perTypeLimit = Math.max(1, resolvedLimit / Math.max(1, resolvedTypes.size()));
         List<PublicContentReferenceDTO> results = new ArrayList<>();
 
         if (resolvedTypes.contains("item")) {
-            List<PublicItemSuggestionDTO> items = publicItemService.searchSuggestions(keyword, perTypeLimit);
+            String itemKeyword = keyword.isEmpty() ? DEFAULT_ITEM_SEARCH_QUERY : keyword;
+            List<PublicItemSuggestionDTO> items = publicItemService.searchSuggestions(itemKeyword, perTypeLimit);
             if (items != null) {
                 for (PublicItemSuggestionDTO item : items) {
                     if (item != null) {
@@ -55,10 +54,11 @@ public class PublicContentReferenceServiceImpl implements PublicContentReference
         }
 
         if (resolvedTypes.contains("npc")) {
+            String npcKeyword = keyword.isEmpty() ? DEFAULT_NPC_SEARCH_QUERY : keyword;
             PublicNpcQuery npcQuery = new PublicNpcQuery();
             npcQuery.setPage(1);
             npcQuery.setLimit(perTypeLimit);
-            npcQuery.setSearch(keyword);
+            npcQuery.setSearch(npcKeyword);
             Page<NpcListItemDTO> npcPage = publicNpcService.getNpcs(npcQuery);
             if (npcPage != null && npcPage.getRecords() != null) {
                 for (NpcListItemDTO npc : npcPage.getRecords()) {
