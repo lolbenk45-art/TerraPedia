@@ -24,6 +24,16 @@ const tempDir = mkdtempSync(join(tempRoot, 'user-editor-'))
 const htmlPath = join(tempDir, 'editor-runtime.html')
 const editorDomSource = readFileSync(join(root, 'lib/userArticleEditorDom.mjs'), 'utf8')
   .replace(/\bexport\s+/g, '')
+const editorComponentSource = readFileSync(join(root, 'components/user/UserArticleRichEditor.vue'), 'utf8')
+
+if (!editorComponentSource.includes('draggedReferenceElement')) throw new Error('editor must track dragged content references')
+if (!editorComponentSource.includes('application/x-terrapedia-reference')) throw new Error('editor must use a reference-specific drag payload')
+if (!editorComponentSource.includes('@dragstart="handleEditorDragStart"')) throw new Error('editor surface must handle reference dragstart')
+if (!editorComponentSource.includes('@dragend="handleEditorDragEnd"')) throw new Error('editor surface must handle reference dragend')
+if (!editorComponentSource.includes('handleReferenceDrop')) throw new Error('editor drop path must move reference atoms before file drops')
+if (!editorComponentSource.includes('collectSelectedReferences')) throw new Error('editor inline styling must include selected content references')
+if (!editorComponentSource.includes('applyInlineStyleToReference')) throw new Error('editor inline styling must apply font size and color to content references')
+if (!editorComponentSource.includes('width: 1.875em')) throw new Error('editor reference image size must scale with font size')
 
 writeFileSync(htmlPath, `<!doctype html>
 <html>
@@ -274,6 +284,62 @@ writeFileSync(htmlPath, `<!doctype html>
         });
         assert(uriListLinkHtml.includes('href="https://member.bilibili.com/platform/upload/video/frame"'), 'URI-list clipboard links should be insertable as anchors');
         assert(uriListLinkHtml.includes('>创作中心 - 哔哩哔哩弹幕视频网站</a>'), 'URI-list clipboard links should use the available title text');
+
+        const referenceHtml = buildUserArticleReferenceHtml({
+          type: 'item',
+          id: 77,
+          label: '泰拉刃',
+          imageUrl: '/preview-assets/terrapedia-images/items/terra-blade.png'
+        });
+        assert(referenceHtml.includes('data-tp-ref-type="item"'), 'reference helper did not build item type');
+        editor.innerHTML = '<p>使用 ' + referenceHtml + ' 过渡。</p>';
+        const ref = editor.querySelector('.tp-content-ref');
+        assert(ref?.getAttribute('data-tp-ref-id') === '77', 'editor reference span did not keep id');
+        assert(ref?.getAttribute('draggable') === 'true', 'editor reference span should be draggable');
+        assert(ref?.getAttribute('data-tp-ref-display') === 'image', 'editor reference span should default to image mode');
+        assert(ref?.querySelector('img')?.getAttribute('src') === '/preview-assets/terrapedia-images/items/terra-blade.png', 'editor reference span should render image by default');
+        assert(ref?.textContent.trim() === '', 'image-mode editor reference span should not render label text');
+
+        const referenceTextHtml = buildUserArticleReferenceHtml({ type: 'item', id: 77, label: '泰拉刃', displayMode: 'text' });
+        editor.innerHTML = '<p>使用 ' + referenceTextHtml + ' 过渡。</p>';
+        const textRef = editor.querySelector('.tp-content-ref');
+        assert(textRef?.getAttribute('data-tp-ref-display') === 'text', 'text-mode editor reference span should keep display mode');
+        assert(textRef?.textContent === '泰拉刃', 'text-mode editor reference span should keep label text');
+
+        const legacyReferenceHtml = '<span class="tp-content-ref" data-tp-ref-type="item" data-tp-ref-id="77" data-tp-ref-label="泰拉刃" data-tp-ref-image="/preview-assets/terrapedia-images/items/terra-blade.png">泰拉刃</span>';
+        const normalizedLegacyReferenceHtml = sanitizeUserArticleEditorLoadedHtml('<p>使用 ' + legacyReferenceHtml + ' 过渡。</p>');
+        const legacyRoot = document.createElement('div');
+        legacyRoot.innerHTML = normalizedLegacyReferenceHtml;
+        const legacyRef = legacyRoot.querySelector('.tp-content-ref');
+        assert(legacyRef?.getAttribute('data-tp-ref-display') === 'image', 'legacy editor reference should normalize to image mode on load');
+        assert(legacyRef?.querySelector('img')?.getAttribute('src') === '/preview-assets/terrapedia-images/items/terra-blade.png', 'legacy editor reference should render saved image on load');
+        assert(legacyRef?.textContent.trim() === '', 'legacy image reference should not keep stale label text on load');
+
+        const insertReferenceLikeComponent = () => {
+          editor.innerHTML = '<p>使用 </p>';
+          const paragraph = editor.querySelector('p');
+          setCaretAtEnd(paragraph);
+          const range = window.getSelection().getRangeAt(0);
+          const template = document.createElement('template');
+          template.innerHTML = referenceHtml;
+          const node = template.content.firstElementChild;
+          node.setAttribute('contenteditable', 'false');
+          const space = document.createTextNode('\\u00a0');
+          range.deleteContents();
+          range.insertNode(node);
+          node.after(space);
+          const nextRange = document.createRange();
+          nextRange.setStart(space, space.data.length);
+          nextRange.collapse(true);
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(nextRange);
+          document.execCommand('insertText', false, '继续');
+        };
+        insertReferenceLikeComponent();
+        assert(editor.querySelector('.tp-content-ref')?.querySelector('img'), 'typing after image reference must not remove chip image');
+        assert(editor.querySelector('.tp-content-ref')?.textContent.trim() === '', 'typing after image reference must not mutate chip text');
+        assert(editor.innerHTML.includes('</span>&nbsp;继续') || editor.innerHTML.includes('</span>\\u00a0继续'), 'caret should land after reference trailing text node');
 
         document.querySelector('#result').textContent = 'PASS';
       } catch (error) {

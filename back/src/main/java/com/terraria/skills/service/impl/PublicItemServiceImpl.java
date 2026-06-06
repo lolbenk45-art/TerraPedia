@@ -239,12 +239,12 @@ public class PublicItemServiceImpl implements PublicItemService {
     }
 
     public String buildPublicDetailCacheKey(Long id) {
-        return String.join("|", "v3", managedImagePrefixFingerprint(), id == null ? "" : String.valueOf(id));
+        return String.join("|", "v4", managedImagePrefixFingerprint(), id == null ? "" : String.valueOf(id));
     }
 
     public String buildPublicSuggestionsCacheKey(String keyword, int limit) {
         return String.join("|",
-            "v3",
+            "v4",
             managedImagePrefixFingerprint(),
             trimToEmpty(keyword),
             String.valueOf(normalizeSuggestionLimit(limit))

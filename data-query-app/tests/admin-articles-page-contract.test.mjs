@@ -97,9 +97,22 @@ test('admin articles content preview renders sanitized rich html so inline image
   assert.match(page, /v-html="contentPreviewHtml"/)
   assert.match(page, /class="content-preview-rich"/)
   assert.match(page, /\.content-preview-rich :deep\(img\)/)
+  assert.match(page, /\.content-preview-rich :deep\(\.tp-content-ref\)/)
+  assert.match(page, /width: 1\.875em/)
   assert.doesNotMatch(page, /<pre v-else-if="contentPreviewText"/)
   assert.doesNotMatch(page, /stripArticleContentMarkup/)
   assert.match(articleEditor, /next\.startsWith\('\/terrapedia-images\/'\)/)
+  assert.match(articleEditor, /data-tp-ref-display/)
+  assert.match(articleEditor, /isSafeContentReferenceImageUrl/)
+  assert.match(articleEditor, /setAttribute\('class', 'tp-content-ref'\)/)
+  assert.match(articleEditor, /tp-content-ref-fallback/)
+})
+
+test('admin article editor preview renders content references like the public article renderer', () => {
+  assert.match(editorWorkspace, /\.article-preview__body :deep\(\.tp-content-ref\)/)
+  assert.match(editorWorkspace, /width: 1\.875em/)
+  assert.match(editorWorkspace, /\.article-preview__body :deep\(\.tp-content-ref\[data-tp-ref-display="text"\]\)/)
+  assert.match(editorWorkspace, /\.article-preview__body :deep\(\.tp-content-ref-fallback\)/)
 })
 
 test('admin article editor uses a focused detail workspace layout without garbled toolbar copy', () => {
@@ -275,6 +288,7 @@ test('admin article store normalizes article image urls through the admin origin
 test('admin article store rewrites inline article image srcs for admin preview and editor', () => {
   assert.match(articlesStore, /const normalizeAdminArticleHtmlImages/)
   assert.match(articlesStore, /src=\(\["'\]\)\(\[\^"'\]\+\)\\1/ )
+  assert.match(articlesStore, /data-tp-ref-image=\(\["'\]\)\(\[\^"'\]\+\)\\1/)
   assert.match(articlesStore, /normalizeAdminArticleImageUrl\(src\)/)
   assert.match(articlesStore, /contentHtml: normalizeAdminArticleHtmlImages\(/)
 })

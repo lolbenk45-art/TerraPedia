@@ -155,10 +155,15 @@ export const normalizeAdminArticleImageUrl = (value: unknown): string => {
 const normalizeAdminArticleHtmlImages = (value: unknown): string => {
   const html = String(value ?? '')
   if (!html) return ''
-  return html.replace(/src=(["'])([^"']+)\1/gi, (full, quote: string, src: string) => {
-    const normalized = normalizeAdminArticleImageUrl(src)
-    return normalized ? `src=${quote}${normalized}${quote}` : full
-  })
+  return html
+    .replace(/src=(["'])([^"']+)\1/gi, (full, quote: string, src: string) => {
+      const normalized = normalizeAdminArticleImageUrl(src)
+      return normalized ? `src=${quote}${normalized}${quote}` : full
+    })
+    .replace(/data-tp-ref-image=(["'])([^"']+)\1/gi, (full, quote: string, src: string) => {
+      const normalized = normalizeAdminArticleImageUrl(src)
+      return normalized ? `data-tp-ref-image=${quote}${normalized}${quote}` : full
+    })
 }
 
 const normalizeArticle = (item: any): AdminArticle => ({

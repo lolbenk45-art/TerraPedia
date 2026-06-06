@@ -838,6 +838,55 @@ onMounted(async () => {
   background: var(--color-bg-tertiary);
 }
 
+.content-preview-rich :deep(.tp-content-ref) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875em;
+  height: 1.875em;
+  padding: 2px;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 78%, rgba(245, 158, 11, .16));
+  color: var(--color-primary);
+  line-height: 1;
+  vertical-align: -7px;
+}
+
+.content-preview-rich :deep(.tp-content-ref[data-tp-ref-display="text"]) {
+  justify-content: flex-start;
+  width: auto;
+  height: auto;
+  max-width: min(100%, 22em);
+  padding: 0 .42em;
+  font-weight: 700;
+  line-height: 1.45;
+  vertical-align: .04em;
+}
+
+.content-preview-rich :deep(.tp-content-ref img) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  flex: 0 0 100%;
+  margin: 0;
+  border: 0;
+  object-fit: contain;
+  border-radius: 3px;
+  background: transparent;
+}
+
+.content-preview-rich :deep(.tp-content-ref-fallback) {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .content-preview-rich :deep(p) {
   margin: 0 0 12px;
 }
