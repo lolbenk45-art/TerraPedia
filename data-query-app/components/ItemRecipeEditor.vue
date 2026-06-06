@@ -60,7 +60,7 @@
           <div v-if="isRecipeMetaOpen(recipe._key)" class="recipe-card__grid recipe-card__grid--meta">
             <label class="field">
               <span class="field__label">版本范围</span>
-              <input v-model="recipe.versionScope" type="text" class="input" placeholder="例如：Desktop version only" />
+              <input v-model="recipe.versionScope" type="text" class="input" placeholder="例如：仅桌面版" />
             </label>
             <label class="field">
               <span class="field__label">来源提供方</span>
@@ -123,7 +123,7 @@
                   </label>
                   <label class="field field--quantity">
                     <span class="field__label">显示数量</span>
-                    <input v-model="ingredient.quantityText" type="text" class="input" placeholder="例如：10 / Any Wood" />
+                    <input v-model="ingredient.quantityText" type="text" class="input" placeholder="例如：10 / 任意木材" />
                   </label>
                 </div>
                 <div v-if="isIngredientAdvancedOpen(ingredient._key)" class="recipe-line__grid recipe-line__grid--advanced">
@@ -133,7 +133,7 @@
                   </label>
                   <label class="field">
                     <span class="field__label">原料名称</span>
-                    <input v-model="ingredient.ingredientNameRaw" type="text" class="input" placeholder="例如：Iron Bar" />
+                    <input v-model="ingredient.ingredientNameRaw" type="text" class="input" placeholder="例如：铁锭" />
                   </label>
                   <label class="field">
                     <span class="field__label">类型</span>
@@ -189,8 +189,8 @@
                   </div>
                   <div class="recipe-line__chips">
                     <span class="recipe-chip">{{ station.stationItemId ? `ID ${station.stationItemId}` : '未绑定 ID' }}</span>
-                    <span v-if="station.stationType === 'environment'" class="recipe-chip">Environment</span>
-                    <span v-if="station.isAlternative" class="recipe-chip recipe-chip--accent">Alternative</span>
+                    <span v-if="station.stationType === 'environment'" class="recipe-chip">环境</span>
+                    <span v-if="station.isAlternative" class="recipe-chip recipe-chip--accent">替代工作台</span>
                   </div>
                 </div>
                 <div class="recipe-line__grid recipe-line__grid--station">
@@ -243,13 +243,13 @@
                       type="text"
                       class="input"
                       :disabled="Boolean(station.stationId)"
-                      placeholder="例如：Iron Anvil"
+                      placeholder="例如：铁砧 / Iron Anvil"
                     />
                   </label>
                 </div>
                 <div class="recipe-line__actions">
                   <button type="button" class="btn-link" @click="toggleStationAdvanced(station._key)">
-                    {{ isStationAdvancedOpen(station._key) ? '收起高级项' : '手动 / Legacy' }}
+                    {{ isStationAdvancedOpen(station._key) ? '收起高级项' : '手动 / 旧版' }}
                   </button>
                   <button type="button" class="btn-link btn-link--danger" @click="removeStation(recipeIndex, stationIndex)">删除工作台</button>
                 </div>
@@ -275,7 +275,7 @@
                   </div>
                   <div class="recipe-line__chips">
                     <span class="recipe-chip">{{ condition.refType || '未选类型' }}</span>
-                    <span class="recipe-chip recipe-chip--accent">{{ condition.requirementRole || 'required' }}</span>
+                    <span class="recipe-chip recipe-chip--accent">{{ getRequirementRoleLabel(condition.requirementRole) }}</span>
                   </div>
                 </div>
                 <div class="recipe-line__grid recipe-line__grid--condition">
@@ -299,8 +299,8 @@
                   <label class="field">
                     <span class="field__label">角色</span>
                     <select v-model="condition.requirementRole" class="input">
-                      <option value="required">required</option>
-                      <option value="optional">optional</option>
+                      <option value="required">必需</option>
+                      <option value="optional">可选</option>
                     </select>
                   </label>
                   <label class="field field--full">
@@ -802,6 +802,12 @@ const getConditionSubLabel = (condition: EditableRecipeCondition) => {
   ].filter(Boolean).join(' · ')
 }
 
+const getRequirementRoleLabel = (role?: string | null) => {
+  if (role === 'optional') return '可选'
+  if (role === 'required' || !role) return '必需'
+  return role
+}
+
 onMounted(async () => {
   try {
     const [biomesResponse] = await Promise.all([
@@ -1021,4 +1027,3 @@ onMounted(async () => {
   .recipe-line__chips { justify-content: flex-start; }
 }
 </style>
-

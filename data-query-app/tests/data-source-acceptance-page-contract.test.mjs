@@ -13,6 +13,8 @@ test('data source acceptance page consumes the read-only overview API', () => {
   const page = read('data-query-app/pages/operations/data-source-acceptance.vue')
 
   assert.match(page, /definePageMeta\(\{\s*title:\s*'数据源验收'/)
+  assert.match(page, />数据源验收</)
+  assert.doesNotMatch(page, />DATA SOURCE ACCEPTANCE</)
   assert.match(page, /get<.*DataSourceAcceptanceOverview/)
   assert.match(page, /\/admin\/data-source-acceptance\/overview/)
   assert.match(page, /overallStatus/)
@@ -94,6 +96,8 @@ test('data source acceptance page renders generator command guidance without wri
   assert.match(page, /writesDatabase/)
   assert.match(page, /notes/)
   assert.match(page, /generator-command/)
+  assert.match(page, />执行策略</)
+  assert.doesNotMatch(page, />Execution policy</)
   assert.doesNotMatch(page, /navigator\.clipboard/)
   assert.doesNotMatch(page, /document\.execCommand/)
 })

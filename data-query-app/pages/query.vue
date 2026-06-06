@@ -30,7 +30,7 @@
             @click="selectTable(table.name)"
           >
             <span class="table-list__name">{{ table.name }}</span>
-            <span class="table-list__count">{{ table.columns.length }} columns</span>
+            <span class="table-list__count">{{ table.columns.length }} 列</span>
           </button>
         </div>
         <AppEmptyState
@@ -93,8 +93,8 @@
               <div>
                 <h3 class="section-card__title">查询结果</h3>
                 <p class="query-result__meta">
-                  <span>Rows: {{ result.rowCount }}</span>
-                  <span>Time: {{ result.queryTime }} ms</span>
+                  <span>行数：{{ result.rowCount }}</span>
+                  <span>耗时：{{ result.queryTime }} ms</span>
                 </p>
               </div>
             </div>
@@ -200,9 +200,9 @@ const result = ref<QueryResultState>({
 })
 
 const presets = [
-  { label: 'Items Top 10', sql: 'SELECT id, name, category_id, created_at FROM items LIMIT 10' },
-  { label: 'Show Tables', sql: 'SHOW TABLES' },
-  { label: 'Describe Items', sql: 'DESCRIBE items' }
+  { label: 'Items 前 10 条', sql: 'SELECT id, name, category_id, created_at FROM items LIMIT 10' },
+  { label: '显示数据表', sql: 'SHOW TABLES' },
+  { label: '描述 Items 表', sql: 'DESCRIBE items' }
 ]
 
 const selectedColumns = computed(() => structureColumns.value[selectedTable.value] ?? [])

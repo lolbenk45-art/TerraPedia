@@ -13,6 +13,8 @@ test('domain acceptance page consumes the read-only domain overview API', () => 
   const page = read('data-query-app/pages/operations/domain-acceptance.vue')
 
   assert.match(page, /definePageMeta\(\{\s*title:\s*'B 档域验收'/)
+  assert.match(page, />B 档域验收</)
+  assert.doesNotMatch(page, />DOMAIN ACCEPTANCE</)
   assert.match(page, /get<.*DomainAcceptanceOverview/)
   assert.match(page, /\/admin\/domain-acceptance\/overview/)
   assert.match(page, /overallStatus/)
@@ -90,6 +92,9 @@ test('domain acceptance page renders domains, panels, evidence status, and next 
   assert.match(page, /domain-card/)
   assert.match(page, /domain-panel/)
   assert.match(page, /accepted-warning-block/)
+  assert.match(page, /已接受警告 accepted-warning/)
+  assert.match(page, /仅用于就绪评审 readiness-only/)
+  assert.match(page, /不能作为路由可上线证据 route-ready/)
   assert.match(page, /readinessOnly/)
   assert.match(page, /route-ready/)
   assert.match(page, /next-evidence-command/)

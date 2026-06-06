@@ -21,7 +21,7 @@ const articleEditorComposable = read('composables/useArticleEditor.ts')
 
 test('admin articles page exposes content preview from article detail', () => {
   assert.match(page, /@click="openContentPreview\(row\)"/)
-  assert.match(page, />\s*View Content\s*</)
+  assert.match(page, />\s*查看正文\s*</)
   assert.match(page, /articlesStore\.fetchArticleById\(row\.id\)/)
   assert.match(page, /contentPreviewVisible/)
   assert.match(page, /contentPreviewLoading/)
@@ -37,7 +37,7 @@ test('admin articles page exposes content preview from article detail', () => {
 test('admin articles page keeps review operations and pending rows editor-accessible', () => {
   assert.doesNotMatch(page, /:disabled="row\.reviewStatus === 'PENDING_REVIEW'"/)
   assert.match(page, /editorActionLabel\(row\)/)
-  assert.match(page, /row\.reviewStatus === 'PENDING_REVIEW'\s*\?\s*'Read-only Editor'\s*:\s*'Continue Writing'/)
+  assert.match(page, /row\.reviewStatus === 'PENDING_REVIEW'\s*\?\s*'只读编辑器'\s*:\s*'继续写作'/)
   assert.match(page, /canSubmitReview\(row\)/)
   assert.match(page, /canReview\(row\)/)
   assert.match(page, /canPublish\(row\)/)
@@ -46,13 +46,13 @@ test('admin articles page keeps review operations and pending rows editor-access
 })
 
 test('admin articles page labels offline action as unpublish', () => {
-  assert.match(page, /isActionLoading\(row\.id,\s*'offline'\)\s*\?\s*'Unpublishing\.\.\.'\s*:\s*'Unpublish'/)
+  assert.match(page, /isActionLoading\(row\.id,\s*'offline'\)\s*\?\s*'取消发布中\.\.\.'\s*:\s*'取消发布'/)
   assert.doesNotMatch(page, /Offlining\.\.\./)
   assert.doesNotMatch(page, /isActionLoading\(row\.id,\s*'offline'\)\s*\?\s*'Offlining\.\.\.'\s*:\s*'Offline'/)
 })
 
 test('admin articles page renders cover thumbnails from normalized image urls', () => {
-  assert.match(page, /<th>Cover<\/th>/)
+  assert.match(page, /<th>封面<\/th>/)
   assert.match(page, /v-if="row\.coverImage"/)
   assert.match(page, /:src="row\.coverImage"/)
   assert.match(page, /class="article-cover-thumb"/)
@@ -62,9 +62,9 @@ test('admin articles page renders cover thumbnails from normalized image urls', 
 test('admin articles page uses a compact operations layout instead of broad explainer cards', () => {
   assert.match(page, /class="[^"]*articles-command-bar[^"]*"/)
   assert.match(page, /class="articles-count"/)
-  assert.match(page, /<th>Article<\/th>/)
-  assert.match(page, /<th>State<\/th>/)
-  assert.match(page, /<th>Timeline<\/th>/)
+  assert.match(page, /<th>文章<\/th>/)
+  assert.match(page, /<th>状态<\/th>/)
+  assert.match(page, /<th>时间线<\/th>/)
   assert.match(page, /class="article-state-stack"/)
   assert.match(page, /class="article-timeline"/)
   assert.match(page, /class="[^"]*actions-group--primary[^"]*"/)
@@ -171,9 +171,9 @@ test('admin article editor design board exposes concrete layout drafts on a stan
   assert.match(articleEditorDesign, /activeArticle/)
   assert.match(articleEditorDesign, /design-real-data/)
   assert.doesNotMatch(articleEditorDesign, /这页只看结构稿，不接真实保存、审核或上传逻辑。/)
-  assert.match(articleEditorDesign, /Document First/)
-  assert.match(articleEditorDesign, /Production Desk/)
-  assert.match(articleEditorDesign, /Review Studio/)
+  assert.match(articleEditorDesign, /正文优先/)
+  assert.match(articleEditorDesign, /生产工作台/)
+  assert.match(articleEditorDesign, /审核工作室/)
   assert.match(articleEditorDesign, /design-board__tabs/)
   assert.match(articleEditorDesign, /v-for="option in designOptions"/)
   assert.match(articleEditorDesign, /activeOption\.id === option\.id/)

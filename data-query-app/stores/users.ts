@@ -80,7 +80,7 @@ export const useUsersStore = defineStore('users', () => {
     } catch (error: any) {
       users.value = []
       pagination.value = defaultPagination()
-      showToast(error?.data?.message || error?.message || 'Failed to load users', 'error')
+      showToast(error?.data?.message || error?.message || '用户加载失败', 'error')
     } finally {
       loading.value = false
     }
@@ -90,13 +90,13 @@ export const useUsersStore = defineStore('users', () => {
     await patch(`/admin/users/${id}/status`, { status: nextStatus })
     const target = users.value.find(user => user.id === id)
     if (target) target.status = nextStatus
-    showToast('User status updated', 'success')
+    showToast('用户状态已更新', 'success')
   }
 
   const resetPassword = async (id: number, newPassword: string) => {
     const response: any = await post(`/admin/users/${id}/reset-password`, { newPassword })
     const data = response?.data ?? response
-    showToast('Password reset success', 'success')
+    showToast('密码已重置', 'success')
     return {
       userId: Number(data?.userId ?? id),
       email: String(data?.email ?? ''),
@@ -113,9 +113,9 @@ export const useUsersStore = defineStore('users', () => {
     })
     const created = normalizeSingleUser(response?.data ?? response)
     if (!created) {
-      throw new Error('Failed to create user')
+      throw new Error('创建用户失败')
     }
-    showToast('User created', 'success')
+    showToast('用户已创建', 'success')
     return created
   }
 

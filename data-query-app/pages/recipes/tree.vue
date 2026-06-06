@@ -3,7 +3,7 @@
     <section class="workspace-shell workspace-shell--unified recipe-tree-hero">
       <div class="workspace-hero workspace-hero--unified hero">
         <div class="workspace-hero__copy">
-          <p class="eyebrow">RECIPE FLOW</p>
+          <p class="eyebrow">配方路径</p>
           <h1 class="page-head__title">合成路径</h1>
           <p class="page-head__subtitle">缩略卡在上，详情直接在当前页面展开，不再弹窗。</p>
         </div>
@@ -78,7 +78,7 @@
             v-else-if="treeData && visibleVariants.length === 0"
             icon="IT"
             title="当前物品没有可展示的路径"
-            description="请先确认这个物品存在 Desktop 配方。"
+            description="请先确认这个物品存在桌面版配方。"
           />
 
           <template v-else-if="treeData">
@@ -117,7 +117,7 @@
                   </div>
                   <div class="detail__meta">
                     <span v-if="group.activeRoot.resultQuantity">产出 ×{{ group.activeRoot.resultQuantity }}</span>
-                    <span v-if="group.activeRoot.recipeId">Recipe #{{ group.activeRoot.recipeId }}</span>
+                    <span v-if="group.activeRoot.recipeId">配方 #{{ group.activeRoot.recipeId }}</span>
                   </div>
                 </div>
                 <AdminRecipeTreeBranch :node="group.activeRoot" compact @open-item="openRecipeItem" @navigate-item="openAdminItemWorkspace" @open-station="openStationWorkspace" />
@@ -196,7 +196,7 @@ function formatDateTime(value?: string) {
 }
 
 function getRootLabel(root: ItemRecipeTreeNode) {
-  return root.itemNameZh || root.itemName || root.itemInternalName || `Recipe #${root.recipeId || '--'}`
+  return root.itemNameZh || root.itemName || root.itemInternalName || `配方 #${root.recipeId || '--'}`
 }
 
 function getRootImage(root: ItemRecipeTreeNode) {

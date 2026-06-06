@@ -2,7 +2,7 @@
   <div class="page-wrap dashboard">
     <section class="page-head dashboard__head">
       <div class="dashboard__head-copy">
-        <p class="dashboard__eyebrow">Overview</p>
+        <p class="dashboard__eyebrow">概览</p>
         <h1 class="page-head__title">仪表盘</h1>
         <p class="page-head__subtitle">欢迎使用数据管理后台，快速查看词条、分类与制作流的最新状态。</p>
       </div>

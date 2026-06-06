@@ -3,8 +3,8 @@
     <section class="workspace-shell workspace-shell--unified">
       <div class="workspace-hero workspace-hero--unified test-hero">
         <div class="workspace-hero__copy">
-          <p class="eyebrow">CRAWLER MONITOR TEST</p>
-          <h1 class="page-head__title">Monitor Test State</h1>
+          <p class="eyebrow">爬取监控测试</p>
+          <h1 class="page-head__title">监控测试状态</h1>
           <p class="page-head__subtitle">{{ filePath }}</p>
           <div class="workspace-summary-grid">
             <article v-for="stat in summaryCards" :key="stat.label" class="summary-mini">
@@ -17,11 +17,11 @@
         <div class="toolbar-top action-cluster toolbar-top--hero test-actions">
           <button type="button" class="btn btn-secondary" :disabled="loading" @click="loadState">
             <RefreshCw :size="16" :class="{ spin: loading }" />
-            <span>{{ loading ? 'Refreshing' : 'Refresh' }}</span>
+            <span>{{ loading ? '刷新中' : '刷新' }}</span>
           </button>
           <button type="button" class="btn btn-secondary" :disabled="saving || simulationRunning" @click="resetState">
             <RotateCcw :size="16" />
-            <span>Reset</span>
+            <span>重置</span>
           </button>
           <button
             type="button"
@@ -33,7 +33,7 @@
             <span>{{ autoRefreshLabel }}</span>
           </button>
           <label class="refresh-interval-control">
-            <span>Interval</span>
+            <span>间隔</span>
             <input
               v-model="refreshIntervalInput"
               type="number"
@@ -41,11 +41,11 @@
               :min="MIN_REFRESH_INTERVAL_SECONDS"
               :max="MAX_REFRESH_INTERVAL_SECONDS"
               step="1"
-              aria-label="Auto refresh interval in seconds"
+              aria-label="自动刷新间隔秒数"
               @blur="commitRefreshInterval"
               @change="commitRefreshInterval"
             >
-            <span>s</span>
+            <span>秒</span>
           </label>
         </div>
       </div>
@@ -67,14 +67,14 @@
     <section class="section-card simulation-panel">
       <div class="section-head">
         <div>
-          <h2 class="section-card__title">Timed Simulation</h2>
-          <p class="section-card__subtitle">Continuously writes a running payload, then finishes as completed or failed.</p>
+          <h2 class="section-card__title">定时模拟</h2>
+          <p class="section-card__subtitle">持续写入 running payload，然后以 completed 或 failed 结束。</p>
         </div>
-        <span v-if="simulationRunning" class="status-pill info">running {{ simulationElapsedSeconds }}s</span>
+        <span v-if="simulationRunning" class="status-pill info">运行中 {{ simulationElapsedSeconds }}s</span>
       </div>
       <div class="simulation-controls">
         <label class="field-control">
-          <span>Duration</span>
+          <span>持续时间</span>
           <input
             v-model="simulationDurationInput"
             type="number"
@@ -83,24 +83,24 @@
             :max="MAX_SIMULATION_DURATION_SECONDS"
             step="1"
             :disabled="simulationRunning"
-            aria-label="Mock task duration in seconds"
+            aria-label="模拟任务持续秒数"
             @blur="commitSimulationDuration"
             @change="commitSimulationDuration"
           >
-          <small>seconds</small>
+          <small>秒</small>
         </label>
 
         <label class="field-control">
-          <span>Final Result</span>
-          <select v-model="simulationResult" :disabled="simulationRunning" aria-label="Mock task final result">
-            <option value="completed">completed</option>
-            <option value="failed">failed</option>
+          <span>最终结果</span>
+          <select v-model="simulationResult" :disabled="simulationRunning" aria-label="模拟任务最终结果">
+            <option value="completed">完成 completed</option>
+            <option value="failed">失败 failed</option>
           </select>
         </label>
 
         <div class="simulation-progress" aria-live="polite">
           <div class="simulation-progress__meta">
-            <span>{{ simulationRunning ? 'In progress' : 'Ready' }}</span>
+            <span>{{ simulationRunning ? '进行中' : '就绪' }}</span>
             <strong>{{ simulationProgressLabel }}</strong>
           </div>
           <div class="progress-track">
@@ -112,11 +112,11 @@
           type="button"
           class="btn btn-primary"
           :disabled="saving || loading || simulationRunning || editorDirty"
-          :title="editorDirty ? 'Save or reset JSON edits before starting simulation' : ''"
+          :title="editorDirty ? '开始模拟前请保存或重置 JSON 编辑' : ''"
           @click="startTimedSimulation"
         >
           <Play :size="16" />
-          <span>Start</span>
+          <span>开始</span>
         </button>
         <button
           type="button"
@@ -125,17 +125,17 @@
           @click="finishTimedSimulation()"
         >
           <CheckCircle2 :size="16" />
-          <span>Finish Now</span>
+          <span>立即结束</span>
         </button>
-        <small v-if="editorDirty" class="simulation-warning">Save or reset JSON edits before starting.</small>
+        <small v-if="editorDirty" class="simulation-warning">开始前请保存或重置 JSON 编辑。</small>
       </div>
     </section>
 
     <section class="section-card scenario-panel">
       <div class="section-head">
         <div>
-          <h2 class="section-card__title">Scenarios</h2>
-          <p class="section-card__subtitle">Write a fixed payload to the test-state file.</p>
+          <h2 class="section-card__title">场景</h2>
+          <p class="section-card__subtitle">向 test-state 文件写入固定 payload。</p>
         </div>
       </div>
       <div class="scenario-grid">
@@ -158,36 +158,36 @@
         <section class="section-card monitor-panel">
           <div class="section-head">
             <div>
-              <h2 class="section-card__title">Actions</h2>
-              <p class="section-card__subtitle">Compact view of latest-run action state from the test payload.</p>
+              <h2 class="section-card__title">动作</h2>
+              <p class="section-card__subtitle">紧凑查看测试 payload 中的 latest-run action 状态。</p>
             </div>
-            <span class="status-pill" :class="statusTone(latestRunStatus)">{{ latestRunStatus }}</span>
+            <span class="status-pill" :class="statusTone(latestRunStatus)">{{ statusLabel(latestRunStatus) }}</span>
           </div>
 
           <div class="table-scroll">
             <table class="monitor-table">
               <thead>
                 <tr>
-                  <th>Action</th>
-                  <th>Runner</th>
-                  <th>Status</th>
-                  <th>Duration</th>
-                  <th>Updated</th>
+                  <th>动作</th>
+                  <th>执行器</th>
+                  <th>状态</th>
+                  <th>持续时间</th>
+                  <th>更新时间</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="action in actions" :key="action.id || action.runner || 'action'">
                   <td>
-                    <strong>{{ action.id || 'unknown-action' }}</strong>
+                    <strong>{{ action.id || '未知动作' }}</strong>
                     <small>{{ shortArgs(action.args) }}</small>
                   </td>
                   <td>{{ action.runner || '--' }}</td>
-                  <td><span class="status-pill" :class="statusTone(action.status)">{{ action.status || 'unknown' }}</span></td>
+                  <td><span class="status-pill" :class="statusTone(action.status)">{{ statusLabel(action.status) }}</span></td>
                   <td>{{ formatDuration(action.durationMs) }}</td>
                   <td>{{ formatDate(action.updatedAt) }}</td>
                 </tr>
                 <tr v-if="!actions.length">
-                  <td colspan="5" class="table-empty">No action rows</td>
+                  <td colspan="5" class="table-empty">暂无动作行</td>
                 </tr>
               </tbody>
             </table>
@@ -200,7 +200,7 @@
           <div class="section-head">
             <div>
               <h2 class="section-card__title">JSON Payload</h2>
-              <p class="section-card__subtitle">Edit the payload object sent to PUT /admin/crawler-monitor/test-state.</p>
+              <p class="section-card__subtitle">编辑发送到 PUT /admin/crawler-monitor/test-state 的 payload 对象。</p>
             </div>
           </div>
           <textarea
@@ -214,7 +214,7 @@
             <span class="editor-meta">{{ formatDate(testState?.updatedAt || testState?.generatedAt) }}</span>
             <button type="button" class="btn btn-primary" :disabled="saving || simulationRunning" @click="saveEditor">
               <Save :size="16" />
-              <span>{{ saving ? 'Saving' : 'Save' }}</span>
+              <span>{{ saving ? '保存中' : '保存' }}</span>
             </button>
           </div>
         </section>
@@ -303,7 +303,7 @@ const latestRun = computed<CrawlerMonitorRun>(() => overview.value?.latestRun ||
 const actions = computed<CrawlerMonitorAction[]>(() => Array.isArray(latestRun.value.actions) ? latestRun.value.actions : [])
 const refreshStale = computed(() => Boolean(overview.value?.refreshStale))
 const filePath = computed(() => testState.value?.filePath || testState.value?.path || 'reports/backend-refresh/manual-monitor-test.json')
-const autoRefreshLabel = computed(() => autoRefresh.value ? `Auto ${refreshIntervalSeconds.value}s` : 'Auto Off')
+const autoRefreshLabel = computed(() => autoRefresh.value ? `自动刷新 ${refreshIntervalSeconds.value}s` : '自动刷新关闭')
 const simulationProgressWidth = computed(() => {
   const percent = simulationDurationSeconds.value > 0
     ? (simulationElapsedSeconds.value / simulationDurationSeconds.value) * 100
@@ -312,10 +312,10 @@ const simulationProgressWidth = computed(() => {
 })
 const simulationProgressLabel = computed(() => {
   if (!simulationRunning.value && simulationFinished.value) {
-    return `${simulationElapsedSeconds.value}s elapsed / 0s remaining`
+    return `已用 ${simulationElapsedSeconds.value}s / 剩余 0s`
   }
   const remaining = Math.max(0, simulationDurationSeconds.value - simulationElapsedSeconds.value)
-  return `${simulationElapsedSeconds.value}s elapsed / ${remaining}s remaining`
+  return `已用 ${simulationElapsedSeconds.value}s / 剩余 ${remaining}s`
 })
 const latestRunStatus = computed(() => {
   if (!latestRun.value.found) return 'missing'
@@ -326,54 +326,54 @@ const latestRunStatus = computed(() => {
 })
 
 const scenarios: Array<{ key: ScenarioKey; label: string; icon: Component }> = [
-  { key: 'idle', label: 'Idle / Current', icon: CheckCircle2 },
-  { key: 'running', label: 'Running', icon: Activity },
-  { key: 'failed', label: 'Failed', icon: XCircle },
-  { key: 'completed', label: 'Completed', icon: CheckCircle2 },
-  { key: 'locked', label: 'Locked', icon: LockKeyhole },
-  { key: 'stale', label: 'Stale', icon: AlertTriangle },
+  { key: 'idle', label: '空闲 / 当前', icon: CheckCircle2 },
+  { key: 'running', label: '运行中', icon: Activity },
+  { key: 'failed', label: '失败', icon: XCircle },
+  { key: 'completed', label: '已完成', icon: CheckCircle2 },
+  { key: 'locked', label: '已锁定', icon: LockKeyhole },
+  { key: 'stale', label: '已过期', icon: AlertTriangle },
 ]
 
 const summaryCards = computed(() => [
-  { label: 'TOTAL', value: formatNumber(latestRun.value.totalActions) },
-  { label: 'DONE', value: formatNumber(latestRun.value.completedActions) },
-  { label: 'FAILED', value: formatNumber(latestRun.value.failedActions) },
-  { label: 'RUNNING', value: formatNumber(latestRun.value.runningActions) },
+  { label: '总数', value: formatNumber(latestRun.value.totalActions) },
+  { label: '已完成', value: formatNumber(latestRun.value.completedActions) },
+  { label: '失败', value: formatNumber(latestRun.value.failedActions) },
+  { label: '运行中', value: formatNumber(latestRun.value.runningActions) },
 ])
 
 const statusCards = computed<StatusCard[]>(() => [
   {
-    label: 'Refresh State',
-    value: refreshStale.value ? 'stale' : 'current',
-    detail: `last ${formatDate(overview.value?.refreshLastActivityAt || overview.value?.generatedAt)}`,
+    label: '刷新状态',
+    value: refreshStale.value ? '已过期 stale' : '当前 current',
+    detail: `最后活动 ${formatDate(overview.value?.refreshLastActivityAt || overview.value?.generatedAt)}`,
     icon: AlertTriangle,
     tone: refreshStale.value ? 'danger' : 'success',
   },
   {
-    label: 'Daemon',
-    value: payloadValue(daemon.value, 'status') || fileStateText(daemon.value),
-    detail: `heartbeat ${formatDate(payloadValue(daemon.value, 'generatedAt') || daemon.value?.updatedAt)}`,
+    label: '守护进程 Daemon',
+    value: statusLabel(payloadValue(daemon.value, 'status') || fileStateText(daemon.value)),
+    detail: `心跳 ${formatDate(payloadValue(daemon.value, 'generatedAt') || daemon.value?.updatedAt)}`,
     icon: ServerCog,
     tone: statusTone(payloadValue(daemon.value, 'status')),
   },
   {
-    label: 'Scheduler',
-    value: payloadValue(scheduler.value, 'status') || fileStateText(scheduler.value),
-    detail: `next ${formatDate(payloadValue(scheduler.value, 'nextPlannedAt'))}`,
+    label: '调度器 Scheduler',
+    value: statusLabel(payloadValue(scheduler.value, 'status') || fileStateText(scheduler.value)),
+    detail: `下次 ${formatDate(payloadValue(scheduler.value, 'nextPlannedAt'))}`,
     icon: Clock3,
     tone: statusTone(payloadValue(scheduler.value, 'status')),
   },
   {
-    label: 'Lock',
-    value: lockFile.value?.found ? 'locked' : 'free',
-    detail: lockFile.value?.found ? (lockFile.value.path || 'lock file found') : 'no lock file',
+    label: '锁 Lock',
+    value: lockFile.value?.found ? '已锁定 locked' : '空闲 free',
+    detail: lockFile.value?.found ? (lockFile.value.path || '已发现锁文件') : '无锁文件',
     icon: LockKeyhole,
     tone: lockFile.value?.found ? 'warning' : 'success',
   },
   {
-    label: 'Latest Run',
-    value: latestRunStatus.value,
-    detail: `${formatNumber(latestRun.value.completedActions)} completed / ${formatNumber(latestRun.value.failedActions)} failed`,
+    label: '最近运行',
+    value: statusLabel(latestRunStatus.value),
+    detail: `${formatNumber(latestRun.value.completedActions)} 已完成 / ${formatNumber(latestRun.value.failedActions)} 失败`,
     icon: FileJson,
     tone: statusTone(latestRunStatus.value),
   },
@@ -414,13 +414,13 @@ async function loadState() {
     }
   } catch (error: any) {
     console.error('Failed to load crawler monitor test state:', error)
-    showToast(error?.data?.message || error?.message || 'Failed to load test state', 'error')
+    showToast(error?.data?.message || error?.message || '加载测试状态失败', 'error')
   } finally {
     loading.value = false
   }
 }
 
-async function savePayload(nextPayload: Record<string, any>, message = 'Test state saved') {
+async function savePayload(nextPayload: Record<string, any>, message = '测试状态已保存') {
   saving.value = true
   try {
     const response: any = await put('/admin/crawler-monitor/test-state', nextPayload)
@@ -437,7 +437,7 @@ async function savePayload(nextPayload: Record<string, any>, message = 'Test sta
     return true
   } catch (error: any) {
     console.error('Failed to save crawler monitor test state:', error)
-    showToast(error?.data?.message || error?.message || 'Failed to save test state', 'error')
+    showToast(error?.data?.message || error?.message || '保存测试状态失败', 'error')
     return false
   } finally {
     saving.value = false
@@ -448,17 +448,17 @@ async function saveEditor() {
   try {
     const parsed = JSON.parse(editorText.value)
     if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
-      showToast('JSON payload must be an object', 'error')
+      showToast('JSON payload 必须是对象', 'error')
       return
     }
     await savePayload(parsed)
   } catch {
-    showToast('Invalid JSON payload', 'error')
+    showToast('JSON payload 格式无效', 'error')
   }
 }
 
 async function applyScenario(key: ScenarioKey) {
-  await savePayload(buildScenarioPayload(key), `Scenario saved: ${key}`)
+  await savePayload(buildScenarioPayload(key), `场景已保存：${key}`)
 }
 
 async function resetState() {
@@ -468,10 +468,10 @@ async function resetState() {
     testState.value = (response?.data ?? response) || null
     editorText.value = JSON.stringify(testState.value?.payload || {}, null, 2)
     editorDirty.value = false
-    showToast('Test state reset')
+    showToast('测试状态已重置')
   } catch (error: any) {
     console.error('Failed to reset crawler monitor test state:', error)
-    showToast(error?.data?.message || error?.message || 'Failed to reset test state', 'error')
+    showToast(error?.data?.message || error?.message || '重置测试状态失败', 'error')
   } finally {
     saving.value = false
   }
@@ -533,7 +533,7 @@ function sanitizeSimulationDuration(value: number | string | null | undefined) {
 
 async function startTimedSimulation() {
   if (editorDirty.value) {
-    showToast('Save or reset JSON edits before starting simulation', 'error')
+    showToast('开始模拟前请保存或重置 JSON 编辑', 'error')
     return
   }
   if (loading.value || saving.value || simulationRunning.value) return
@@ -577,7 +577,7 @@ async function finishTimedSimulation(silent = false) {
   try {
     const saved = await savePayload(
       buildTimedSimulationPayload(simulationResult.value, simulationDurationSeconds.value, elapsedSeconds),
-      silent ? '' : `Timed simulation finished: ${simulationResult.value}`,
+      silent ? '' : `定时模拟已结束：${statusLabel(simulationResult.value)}`,
     )
     if (token === simulationToken) {
       simulationRunning.value = false
@@ -823,6 +823,22 @@ function payloadValue(file: CrawlerMonitorFile | null, key: string) {
 function fileStateText(file: CrawlerMonitorFile | null) {
   if (!file?.found) return 'missing'
   return file.readable ? 'readable' : 'read error'
+}
+
+function statusLabel(status?: string | null) {
+  const normalized = String(status || '').toLowerCase()
+  if (normalized === 'completed') return '已完成 completed'
+  if (normalized === 'failed') return '失败 failed'
+  if (normalized === 'running') return '运行中 running'
+  if (normalized === 'pending') return '等待中 pending'
+  if (normalized === 'missing') return '缺失 missing'
+  if (normalized === 'readable') return '可读取 readable'
+  if (normalized === 'read error') return '读取错误 read error'
+  if (normalized === 'stale') return '已过期 stale'
+  if (normalized === 'current') return '当前 current'
+  if (normalized === 'locked') return '已锁定 locked'
+  if (normalized === 'free') return '空闲 free'
+  return normalized || '未知'
 }
 
 function statusTone(status?: string | null) {

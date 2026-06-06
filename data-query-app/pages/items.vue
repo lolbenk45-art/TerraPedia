@@ -3,21 +3,21 @@
     <section class="workspace-shell workspace-shell--unified">
       <div class="workspace-hero workspace-hero--unified items-hero">
         <div class="items-hero__copy workspace-hero__copy">
-        <p class="items-hero__eyebrow">ITEM CATALOG</p>
+        <p class="items-hero__eyebrow">物品目录</p>
         <h1 class="page-head__title items-hero__title">物品管理</h1>
         <p class="page-head__subtitle items-hero__subtitle">搜索、筛选并维护物品数据，保持和独立实体页一致的预览优先工作流。</p>
       </div>
       <div class="hero-stats items-hero__stats workspace-summary-grid">
         <article class="hero-stat">
-          <span class="hero-stat__label">Total Items</span>
+          <span class="hero-stat__label">物品总数</span>
           <strong class="hero-stat__value">{{ pagination.total || items.length }}</strong>
         </article>
         <article class="hero-stat">
-          <span class="hero-stat__label">Visible</span>
+          <span class="hero-stat__label">当前可见</span>
           <strong class="hero-stat__value">{{ items.length }}</strong>
         </article>
         <article class="hero-stat">
-          <span class="hero-stat__label">Selection</span>
+          <span class="hero-stat__label">已选择</span>
           <strong class="hero-stat__value">{{ selectedCount }}</strong>
         </article>
       </div>
@@ -26,7 +26,7 @@
       <div class="workspace-controls workspace-controls--integrated">
         <form class="items-toolbar" @submit.prevent="handleSearch">
         <label class="field field--search">
-          <span class="field__label">Keyword</span>
+          <span class="field__label">关键词</span>
           <div class="search-wrap">
             <span class="search-wrap__icon">
               <Search :size="16" />
@@ -36,7 +36,7 @@
         </label>
 
         <label class="field">
-          <span class="field__label">Rarity</span>
+          <span class="field__label">品质</span>
           <select v-model="searchForm.rarity" class="input">
             <option value="">全部稀有度</option>
             <option v-for="option in rarityOptions" :key="option" :value="option">{{ option }}</option>
@@ -44,7 +44,7 @@
         </label>
 
         <label class="field">
-          <span class="field__label">Period</span>
+          <span class="field__label">时期</span>
           <select v-model.number="searchForm.gamePeriodId" class="input">
             <option :value="null">全部时期</option>
             <option v-for="option in gamePeriodFilterOptions" :key="`filter-${option.value}`" :value="option.value">{{ option.label }}</option>
@@ -52,7 +52,7 @@
         </label>
 
         <div class="field field--full">
-          <span class="field__label">Category</span>
+          <span class="field__label">分类</span>
           <AppCategoryPicker
             v-model="searchForm.categoryId"
             :categories="categoriesStore.itemCategoryTree"
@@ -75,7 +75,7 @@
     <section class="section-card workspace-content table-card">
       <div class="table-card__head">
         <div>
-          <h2 class="section-card__title">Collection</h2>
+          <h2 class="section-card__title">收藏</h2>
           <p class="section-card__subtitle">预览优先的物品列表，支持批量操作和即时详情查看。</p>
         </div>
         <div v-if="items.length" class="table-card__summary">
@@ -180,7 +180,7 @@
       <div class="editor-layout">
         <section class="editor-pane">
           <div class="editor-pane__head">
-            <h3>Editor</h3>
+            <h3>编辑器</h3>
             <p>更大的表单、更清晰的分组和即时预览。</p>
           </div>
           <form class="form-grid" @submit.prevent="handleFormSubmit">
@@ -304,7 +304,7 @@
             </div>
             <div class="preview-card__body">
               <div class="preview-pills">
-                <span class="preview-pill preview-pill--accent">ITEM CATALOG</span>
+                <span class="preview-pill preview-pill--accent">物品目录</span>
                 <span class="preview-pill">{{ previewStatus }}</span>
               </div>
               <h3>{{ previewTitle }}</h3>
@@ -318,7 +318,7 @@
             </div>
           </section>
           <section v-if="previewNarratives.length" class="preview-card">
-            <div class="preview-card__head"><h4>Content Preview</h4><span>{{ previewNarratives.length }} blocks</span></div>
+            <div class="preview-card__head"><h4>内容预览</h4><span>{{ previewNarratives.length }} 个区块</span></div>
             <article v-for="note in previewNarratives" :key="note.label" class="preview-note">
               <strong>{{ note.label }}</strong>
               <p>{{ note.value }}</p>
@@ -383,12 +383,12 @@ const previewSubtitle = computed(() => {
 })
 const previewStatus = computed(() => getStatusLabel(form.status))
 const previewStats = computed(() => [
-  { label: 'Rarity', value: String(form.rarity || '白色') },
-  { label: 'Damage', value: form.damage != null ? String(form.damage) : '--' },
-  { label: 'Defense', value: form.defense != null ? String(form.defense) : '--' },
-  { label: 'Stack', value: getStackLabel(form.isStackable, form.stackSize) },
-  { label: 'Buy', value: formatCurrency(form.buy) },
-  { label: 'Sell', value: formatCurrency(form.sell) },
+  { label: '品质', value: String(form.rarity || '白色') },
+  { label: '伤害', value: form.damage != null ? String(form.damage) : '--' },
+  { label: '防御', value: form.defense != null ? String(form.defense) : '--' },
+  { label: '堆叠', value: getStackLabel(form.isStackable, form.stackSize) },
+  { label: '买价', value: formatCurrency(form.buy) },
+  { label: '卖价', value: formatCurrency(form.sell) },
 ])
 const previewNarratives = computed(() => ([
   ['描述', form.description],
@@ -819,4 +819,3 @@ watch(items, currentItems => {
 @media (max-width: 1080px) { .items-hero,.items-toolbar,.editor-layout { grid-template-columns: 1fr; } }
 @media (max-width: 820px) { .items-hero__stats,.form-grid,.preview-stats { grid-template-columns: 1fr; } .toolbar-actions,.table-card__head,.preview-card__head { flex-direction: column; align-items: flex-start; } }
 </style>
-

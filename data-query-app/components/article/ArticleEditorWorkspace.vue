@@ -364,7 +364,7 @@
                   :class="{ 'rich-editor--readonly': editor.isReadOnly }"
                   :contenteditable="!editor.isReadOnly"
                   role="textbox"
-                  aria-label="Article content editor"
+                  aria-label="文章正文编辑器"
                   @input="editor.handleEditorInput"
                   @paste="editor.handleEditorPaste"
                   @dragover.prevent="editor.handleEditorDragOver"
@@ -388,7 +388,7 @@
             <section class="document-inspector__setup">
               <div class="document-inspector__head">
                 <div>
-                  <p class="editor-card__eyebrow">Article Setup</p>
+                  <p class="editor-card__eyebrow">文章设置</p>
                   <h2>基础信息</h2>
                 </div>
                 <span class="setup-ready-summary">{{ setupReadyText }}</span>
@@ -403,7 +403,7 @@
                 />
               </label>
               <label class="field">
-                <span>Slug</span>
+                <span>访问路径 slug</span>
                 <input v-model.trim="editor.form.slug" class="field__control" type="text" placeholder="例如 terraria-boss-guide" />
               </label>
             </section>
@@ -418,14 +418,14 @@
             >
               <div class="document-inspector__head">
                 <div>
-                  <p class="editor-card__eyebrow">Cover</p>
+                  <p class="editor-card__eyebrow">封面</p>
                   <h2>封面</h2>
                 </div>
                 <button type="button" class="ghost-btn" @click="editor.openCoverFileDialog">裁剪/放大封面</button>
               </div>
               <div class="document-cover-preview">
                 <img v-if="editor.coverPreviewSrc" :src="editor.coverPreviewSrc" alt="封面预览" />
-                <span v-else>No cover</span>
+                <span v-else>暂无封面</span>
               </div>
               <input
                 ref="coverFileInput"
@@ -439,7 +439,7 @@
             <section class="document-inspector__quality">
               <div class="document-inspector__head">
                 <div>
-                  <p class="editor-card__eyebrow">Quality</p>
+                  <p class="editor-card__eyebrow">质检</p>
                   <h2>完成度</h2>
                 </div>
               </div>
@@ -475,7 +475,7 @@
                     <h2>{{ editor.form.title || '文章标题' }}</h2>
                     <p>{{ editor.form.summary || '这里会展示摘要，方便你检查列表卡片和导语语气。' }}</p>
                   </header>
-                  <img v-if="editor.coverPreviewSrc" :src="editor.coverPreviewSrc" alt="Cover" class="article-preview__cover" />
+                  <img v-if="editor.coverPreviewSrc" :src="editor.coverPreviewSrc" alt="封面预览" class="article-preview__cover" />
                   <div class="article-preview__body" v-html="editor.previewHtml" />
                 </article>
               </div>
@@ -549,7 +549,7 @@
             <img
               v-if="editor.cropSourceUrl"
               :src="editor.cropSourceUrl"
-              alt="Crop source"
+              alt="裁剪源图"
               :style="editor.cropImageStyle"
               class="cropper-image"
               draggable="false"

@@ -2,7 +2,7 @@
   <div class="page-wrap article-editor-design-page">
     <header class="design-page-head">
       <div>
-        <p class="design-page-head__eyebrow">Article Editor Structure Drafts</p>
+        <p class="design-page-head__eyebrow">文章编辑结构稿</p>
         <h1 class="page-head__title">文章编辑设计稿</h1>
         <p class="page-head__subtitle">已接后台文章接口，使用真实文章数据检查编辑页结构。</p>
       </div>
@@ -12,7 +12,7 @@
     <section class="design-board">
       <section class="design-real-data">
         <div>
-          <p class="design-real-data__eyebrow">Live Article Data</p>
+          <p class="design-real-data__eyebrow">真实文章数据</p>
           <h2>{{ activeArticleTitle }}</h2>
           <p>{{ activeArticleSummary }}</p>
         </div>
@@ -106,7 +106,7 @@
             <aside class="document-inspector">
               <section>
                 <h3>基础信息</h3>
-                <div class="mini-field">Slug: {{ activeArticleSlug }}</div>
+                <div class="mini-field">访问路径 slug: {{ activeArticleSlug }}</div>
                 <div class="mini-field">摘要: {{ activeArticleSummary.length }} 字</div>
               </section>
               <section>
@@ -128,8 +128,8 @@
         <div v-else-if="activeOption.id === 'production'" class="mockup mockup--production-desk">
           <header class="production-command">
             <div>
-              <span>Article #{{ activeArticleIdText }}</span>
-              <strong>Production Desk</strong>
+              <span>文章 #{{ activeArticleIdText }}</span>
+              <strong>生产工作台</strong>
             </div>
             <nav>
               <button type="button">编辑</button>
@@ -189,7 +189,7 @@
             <button type="button">返回</button>
             <div>
               <span>审核视角</span>
-              <strong>Review Studio</strong>
+              <strong>审核工作室</strong>
             </div>
             <div class="review-header__actions">
               <button type="button">退回修改</button>
@@ -260,7 +260,7 @@ definePageMeta({
 const designOptions: DesignOption[] = [
   {
     id: 'document',
-    name: 'Document First',
+    name: '正文优先',
     title: '正文优先结构',
     intent: '把正文编辑区作为唯一主角，基础信息、封面、质检都降级到右侧检查栏。',
     primary: '标题 -> 工具栏 -> 正文',
@@ -269,7 +269,7 @@ const designOptions: DesignOption[] = [
   },
   {
     id: 'production',
-    name: 'Production Desk',
+    name: '生产工作台',
     title: '三栏生产台结构',
     intent: '左侧编辑元信息，中间写正文，右侧看大纲和质检，所有工作区同时可见。',
     primary: '左侧设置 -> 中间正文 -> 右侧状态',
@@ -278,7 +278,7 @@ const designOptions: DesignOption[] = [
   },
   {
     id: 'review',
-    name: 'Review Studio',
+    name: '审核工作室',
     title: '审核预览结构',
     intent: '以读者预览为中心，旁边放审核意见和发布检查，用于发布前把关。',
     primary: '读者预览 -> 审核意见 -> 发布动作',

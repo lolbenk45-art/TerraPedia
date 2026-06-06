@@ -2,10 +2,10 @@
   <div class="page-wrap articles-page">
     <section class="section-card articles-command-bar">
       <div class="articles-command-bar__summary">
-        <h1 class="page-head__title">Article Management</h1>
+        <h1 class="page-head__title">文章管理</h1>
         <p class="page-head__subtitle">
-          <span class="articles-count">{{ pagination.total }} articles</span>
-          <span>Manage review, publishing, and quick content inspection.</span>
+          <span class="articles-count">{{ pagination.total }} 篇文章</span>
+          <span>管理审核、发布与正文快速检查。</span>
         </p>
       </div>
 
@@ -15,35 +15,35 @@
             v-model.trim="keyword"
             class="toolbar-input toolbar-input--search"
             type="text"
-            placeholder="Search by title or summary"
+            placeholder="搜索标题或摘要"
           />
           <select v-model="status" class="toolbar-input toolbar-input--status">
-            <option value="">All article status</option>
-            <option value="DRAFT">Draft</option>
-            <option value="PUBLISHED">Published</option>
-            <option value="OFFLINE">Offline</option>
+            <option value="">全部文章状态</option>
+            <option value="DRAFT">草稿</option>
+            <option value="PUBLISHED">已发布</option>
+            <option value="OFFLINE">已下线</option>
           </select>
         </div>
         <div class="toolbar__actions">
-          <button type="submit" class="page-btn">Search</button>
-          <button type="button" class="page-btn page-btn--ghost" @click="handleReset">Reset</button>
-          <button type="button" class="page-btn page-btn--primary" @click="openCreate">Write Article</button>
+          <button type="submit" class="page-btn">搜索</button>
+          <button type="button" class="page-btn page-btn--ghost" @click="handleReset">重置</button>
+          <button type="button" class="page-btn page-btn--primary" @click="openCreate">写文章</button>
         </div>
       </form>
     </section>
 
     <section class="section-card">
-      <div v-if="loading" class="empty-text">Loading...</div>
+      <div v-if="loading" class="empty-text">加载中...</div>
       <template v-else>
         <div v-if="articles.length" class="table-wrap">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Cover</th>
-                <th>Article</th>
-                <th>State</th>
-                <th>Timeline</th>
-                <th>Actions</th>
+                <th>封面</th>
+                <th>文章</th>
+                <th>状态</th>
+                <th>时间线</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -53,12 +53,12 @@
                     <img
                       v-if="row.coverImage"
                       :src="row.coverImage"
-                      :alt="`${row.title} cover`"
+                      :alt="`${row.title} 封面`"
                       class="article-cover-thumb"
                       loading="lazy"
                       @error="handleCoverImageError"
                     />
-                    <span v-else class="article-cover-empty">No cover</span>
+                    <span v-else class="article-cover-empty">暂无封面</span>
                   </div>
                 </td>
                 <td>
@@ -68,7 +68,7 @@
                       <strong>{{ row.title }}</strong>
                     </div>
                     <small v-if="row.summary">{{ row.summary }}</small>
-                    <small v-if="row.reviewComment" class="comment-text">Review: {{ row.reviewComment }}</small>
+                    <small v-if="row.reviewComment" class="comment-text">审核备注：{{ row.reviewComment }}</small>
                   </div>
                 </td>
                 <td>
@@ -84,15 +84,15 @@
                 <td>
                   <div class="article-timeline">
                     <span>
-                      <small>Submitted</small>
+                      <small>提交</small>
                       <strong>{{ formatDateTime(row.submittedAt) }}</strong>
                     </span>
                     <span>
-                      <small>Published</small>
+                      <small>发布</small>
                       <strong>{{ formatDateTime(row.publishedAt) }}</strong>
                     </span>
                     <span>
-                      <small>Updated</small>
+                      <small>更新</small>
                       <strong>{{ formatDateTime(row.updatedAt || row.createdAt) }}</strong>
                     </span>
                   </div>
@@ -113,7 +113,7 @@
                         :disabled="isActionLoading(row.id, 'content')"
                         @click="openContentPreview(row)"
                       >
-                        View Content
+                        查看正文
                       </button>
                     </div>
                     <div class="actions-group actions-group--workflow">
@@ -124,7 +124,7 @@
                         :disabled="isActionLoading(row.id, 'submit-review')"
                         @click="submitReview(row)"
                       >
-                        {{ isActionLoading(row.id, 'submit-review') ? 'Submitting...' : 'Send for Review' }}
+                        {{ isActionLoading(row.id, 'submit-review') ? '提交中...' : '提交审核' }}
                       </button>
                       <button
                         v-if="canReview(row)"
@@ -133,7 +133,7 @@
                         :disabled="isActionLoading(row.id, 'approve')"
                         @click="approveReview(row)"
                       >
-                        {{ isActionLoading(row.id, 'approve') ? 'Approving...' : 'Approve' }}
+                        {{ isActionLoading(row.id, 'approve') ? '通过中...' : '通过' }}
                       </button>
                       <button
                         v-if="canReview(row)"
@@ -142,7 +142,7 @@
                         :disabled="isActionLoading(row.id, 'reject')"
                         @click="openReject(row)"
                       >
-                        Reject
+                        驳回
                       </button>
                       <button
                         v-if="canPublish(row)"
@@ -151,7 +151,7 @@
                         :disabled="isActionLoading(row.id, 'publish')"
                         @click="publishArticle(row)"
                       >
-                        {{ isActionLoading(row.id, 'publish') ? 'Publishing...' : 'Publish' }}
+                        {{ isActionLoading(row.id, 'publish') ? '发布中...' : '发布' }}
                       </button>
                       <button
                         v-if="canOffline(row)"
@@ -160,7 +160,7 @@
                         :disabled="isActionLoading(row.id, 'offline')"
                         @click="offlineArticle(row)"
                       >
-                        {{ isActionLoading(row.id, 'offline') ? 'Unpublishing...' : 'Unpublish' }}
+                        {{ isActionLoading(row.id, 'offline') ? '取消发布中...' : '取消发布' }}
                       </button>
                     </div>
                     <div class="actions-group actions-group--secondary">
@@ -170,7 +170,7 @@
                         :disabled="isActionLoading(row.id, 'logs')"
                         @click="openReviewLogs(row)"
                       >
-                        Logs
+                        审核记录
                       </button>
                     </div>
                   </div>
@@ -179,7 +179,7 @@
             </tbody>
           </table>
         </div>
-        <p v-else class="empty-text">No articles found</p>
+        <p v-else class="empty-text">暂无文章</p>
       </template>
 
       <div v-if="pagination.totalPages > 1" class="pagination-wrap">
@@ -192,25 +192,25 @@
       </div>
     </section>
 
-    <AppModal v-model="rejectVisible" title="Reject Article Review" width="560px">
+    <AppModal v-model="rejectVisible" title="驳回文章审核" width="560px">
       <div class="reject-modal">
-        <p class="reject-modal__title">Article: <strong>{{ rejectTarget?.title || '--' }}</strong></p>
+        <p class="reject-modal__title">文章：<strong>{{ rejectTarget?.title || '--' }}</strong></p>
         <textarea
           v-model.trim="rejectComment"
           class="toolbar-input reject-modal__textarea"
           rows="5"
-          placeholder="Please enter reject reason"
+          placeholder="请输入驳回原因"
         />
       </div>
       <template #footer>
-        <button type="button" class="page-btn" :disabled="rejecting" @click="rejectVisible = false">Cancel</button>
+        <button type="button" class="page-btn" :disabled="rejecting" @click="rejectVisible = false">取消</button>
         <button type="button" class="page-btn page-btn--primary" :disabled="rejecting" @click="rejectReview">
-          {{ rejecting ? 'Submitting...' : 'Submit Reject' }}
+          {{ rejecting ? '提交中...' : '提交驳回' }}
         </button>
       </template>
     </AppModal>
 
-    <AppModal v-model="contentPreviewVisible" title="Article Content" width="820px">
+    <AppModal v-model="contentPreviewVisible" title="文章正文" width="820px">
       <div class="article-content-preview">
         <div class="content-preview-head">
           <h3>#{{ contentPreviewArticle?.id || '--' }} {{ contentPreviewArticle?.title || '' }}</h3>
@@ -218,37 +218,37 @@
             {{ reviewStatusLabel(contentPreviewArticle.reviewStatus) }}
           </span>
         </div>
-        <div v-if="contentPreviewLoading" class="empty-text empty-text--compact">Loading article content...</div>
+        <div v-if="contentPreviewLoading" class="empty-text empty-text--compact">正文加载中...</div>
         <div v-else-if="contentPreviewHtml" class="content-preview-rich" v-html="contentPreviewHtml"></div>
-        <p v-else class="empty-text empty-text--compact">No article content</p>
+        <p v-else class="empty-text empty-text--compact">暂无正文</p>
       </div>
     </AppModal>
 
-    <AppModal v-model="logsVisible" title="Review Logs" width="760px">
+    <AppModal v-model="logsVisible" title="审核记录" width="760px">
       <div class="logs-head">
         <h3>#{{ logsArticle?.id || '--' }} {{ logsArticle?.title || '' }}</h3>
       </div>
-      <div v-if="logsLoading" class="empty-text empty-text--compact">Loading review logs...</div>
+      <div v-if="logsLoading" class="empty-text empty-text--compact">审核记录加载中...</div>
       <template v-else>
         <div v-if="reviewLogs.length" class="table-wrap">
           <table class="data-table data-table--logs">
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Action</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Reviewer</th>
-                <th>Comment</th>
-                <th>Created At</th>
+                <th>操作</th>
+                <th>原状态</th>
+                <th>新状态</th>
+                <th>审核人</th>
+                <th>备注</th>
+                <th>创建时间</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="item in reviewLogs" :key="item.id">
                 <td>#{{ item.id }}</td>
                 <td>{{ reviewActionLabel(item.action) }}</td>
-                <td>{{ item.fromReviewStatus || '--' }}</td>
-                <td>{{ item.toReviewStatus || '--' }}</td>
+                <td>{{ item.fromReviewStatus ? reviewStatusLabel(item.fromReviewStatus) : '--' }}</td>
+                <td>{{ item.toReviewStatus ? reviewStatusLabel(item.toReviewStatus) : '--' }}</td>
                 <td>{{ item.reviewerName || '--' }}</td>
                 <td>{{ item.comment || '--' }}</td>
                 <td>{{ formatDateTime(item.createdAt) }}</td>
@@ -256,7 +256,7 @@
             </tbody>
           </table>
         </div>
-        <p v-else class="empty-text empty-text--compact">No review logs</p>
+        <p v-else class="empty-text empty-text--compact">暂无审核记录</p>
       </template>
 
       <div v-if="reviewLogPagination.totalPages > 1" class="pagination-wrap">
@@ -317,32 +317,32 @@ const formatDateTime = (value?: string) => {
 }
 
 const articleStatusLabel = (value: string) => ({
-  DRAFT: 'Draft',
-  PUBLISHED: 'Published',
-  OFFLINE: 'Offline',
+  DRAFT: '草稿',
+  PUBLISHED: '已发布',
+  OFFLINE: '已下线',
 }[value] || value)
 
 const reviewStatusLabel = (value: string) => ({
-  DRAFT: 'Draft',
-  PENDING_REVIEW: 'Pending',
-  APPROVED: 'Approved',
-  REJECTED: 'Rejected',
+  DRAFT: '草稿',
+  PENDING_REVIEW: '待审核',
+  APPROVED: '已通过',
+  REJECTED: '已驳回',
 }[value] || value)
 
-const editorActionLabel = (row: AdminArticle) => row.reviewStatus === 'PENDING_REVIEW' ? 'Read-only Editor' : 'Continue Writing'
+const editorActionLabel = (row: AdminArticle) => row.reviewStatus === 'PENDING_REVIEW' ? '只读编辑器' : '继续写作'
 const handleCoverImageError = (event: Event) => {
   const image = event.currentTarget as HTMLImageElement | null
   image?.classList.add('article-cover-thumb--hidden')
 }
 
 const reviewActionLabel = (value: string) => ({
-  SUBMIT_REVIEW: 'Submit Review',
-  REVIEW_APPROVE: 'Review Approve',
-  REVIEW_REJECT: 'Review Reject',
-  PUBLISH: 'Publish',
-  OFFLINE: 'Offline',
-  DIRECT_PUBLISH_COMPAT: 'Legacy Direct Publish',
-  RESET_TO_DRAFT: 'Reset To Draft',
+  SUBMIT_REVIEW: '提交审核',
+  REVIEW_APPROVE: '审核通过',
+  REVIEW_REJECT: '审核驳回',
+  PUBLISH: '发布',
+  OFFLINE: '取消发布',
+  DIRECT_PUBLISH_COMPAT: '历史直接发布',
+  RESET_TO_DRAFT: '重置为草稿',
 }[value] || value)
 
 const canSubmitReview = (row: AdminArticle) => (row.reviewStatus === 'DRAFT' || row.reviewStatus === 'REJECTED') && row.status !== 'PUBLISHED'
@@ -380,7 +380,7 @@ const openContentPreview = async (row: AdminArticle) => {
   try {
     contentPreviewArticle.value = await articlesStore.fetchArticleById(row.id)
   } catch (error: any) {
-    showToast(getErrorMessage(error, 'Failed to load article content'), 'error')
+    showToast(getErrorMessage(error, '正文加载失败'), 'error')
   } finally {
     contentPreviewLoading.value = false
     actionKey.value = ''
@@ -392,7 +392,7 @@ const runArticleAction = async (row: AdminArticle, action: string, executor: () 
   try {
     await executor()
   } catch (error: any) {
-    showToast(getErrorMessage(error, 'Action failed'), 'error')
+    showToast(getErrorMessage(error, '操作失败'), 'error')
   } finally {
     actionKey.value = ''
   }
@@ -419,7 +419,7 @@ const openReject = (row: AdminArticle) => {
 const rejectReview = async () => {
   if (!rejectTarget.value) return
   if (!rejectComment.value.trim()) {
-    showToast('Reject reason is required', 'warning')
+    showToast('请输入驳回原因', 'warning')
     return
   }
 
@@ -432,7 +432,7 @@ const rejectReview = async () => {
     rejectTarget.value = null
     rejectComment.value = ''
   } catch (error: any) {
-    showToast(getErrorMessage(error, 'Reject failed'), 'error')
+    showToast(getErrorMessage(error, '驳回失败'), 'error')
   } finally {
     rejecting.value = false
     actionKey.value = ''
@@ -460,7 +460,7 @@ const loadReviewLogs = async (articleId: number, page = 1) => {
   } catch (error: any) {
     reviewLogs.value = []
     reviewLogPagination.value = { total: 0, page: 1, size: reviewLogPagination.value.size, totalPages: 1 }
-    showToast(getErrorMessage(error, 'Failed to load review logs'), 'error')
+    showToast(getErrorMessage(error, '审核记录加载失败'), 'error')
   } finally {
     logsLoading.value = false
   }

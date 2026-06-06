@@ -25,7 +25,7 @@
           </span>
           <span v-if="!desktopCollapsed" class="sidebar__brand-copy">
             <strong>数据管理</strong>
-            <small>TerraPedia Admin</small>
+            <small>TerraPedia 管理端</small>
           </span>
         </NuxtLink>
 
@@ -42,7 +42,7 @@
       </div>
 
       <div v-if="!desktopCollapsed" class="sidebar__summary">
-        <span class="sidebar__summary-label">Workspace</span>
+        <span class="sidebar__summary-label">工作台</span>
         <strong>{{ authStore.displayName }}</strong>
         <small>统一管理词条、配方与内容发布。</small>
       </div>
@@ -80,7 +80,7 @@
         <div class="sidebar__status">
           <span class="sidebar__status-dot" />
           <div v-if="!desktopCollapsed" class="sidebar__status-copy">
-            <strong>Admin Workspace</strong>
+            <strong>管理工作台</strong>
             <span>v1.0.0</span>
           </div>
         </div>
@@ -236,7 +236,7 @@ type HeaderVariant = 'default' | 'compact'
 
 const menuSections: MenuSection[] = [
   {
-    label: 'Catalog',
+    label: '资料目录',
     items: [
       { name: '仪表盘', path: '/', hint: '概览与快捷入口', icon: LayoutDashboard },
       { name: '物品管理', path: '/items', hint: '维护物品主数据', icon: Package },
@@ -246,27 +246,27 @@ const menuSections: MenuSection[] = [
     ],
   },
   {
-    label: 'Crafting',
+    label: '制作管理',
     items: [
       { name: '配方管理', path: '/recipes', hint: '编辑制作流程', icon: Hammer },
       { name: '制作站管理', path: '/recipes/stations', hint: '管理工作台与站点', icon: Factory },
       { name: '任意物品组', path: '/item-groups', hint: '维护 Any 类型来源组', icon: Shapes },
       { name: '中文配方导入', path: '/recipes/wiki-zh-import', hint: '查看 wiki_zh 导入状态', icon: Globe2 },
-      { name: 'Shimmer Data', path: '/recipes/shimmer', hint: '管理微光转化与拆解规则', icon: Sparkles },
+      { name: 'Shimmer 数据', path: '/recipes/shimmer', hint: '管理微光转化与拆解规则', icon: Sparkles },
     ],
   },
   {
-    label: 'Entities',
+    label: '实体管理',
     items: [
       { name: '城镇 NPC 维护', path: '/entities/town-npcs', hint: '聚焦时期、功能与商店维护', icon: Users },
       { name: 'NPC 管理', path: '/entities/npcs', hint: '角色档案与分类', icon: Users },
       { name: 'Boss 管理', path: '/entities/bosses', hint: 'Boss 归组与阶段', icon: Crown },
       { name: 'Buff 管理', path: '/entities/buffs', hint: '效果与条件筛选', icon: FlaskConical },
-      { name: 'Projectile 管理', path: '/entities/projectiles', hint: '射弹数据与行为', icon: Crosshair },
+      { name: '射弹 / Projectile 管理', path: '/entities/projectiles', hint: '射弹数据与行为', icon: Crosshair },
     ],
   },
   {
-    label: 'World',
+    label: '世界数据',
     items: [
       { name: '群系管理', path: '/entities/biomes', hint: '环境与区域信息', icon: Trees },
       { name: '世界条件', path: '/entities/world-contexts', hint: '时间与环境上下文', icon: Globe2 },
@@ -274,7 +274,7 @@ const menuSections: MenuSection[] = [
     ],
   },
   {
-    label: 'Operations',
+    label: '运营维护',
     items: [
       { name: '爬取监控', path: '/operations/crawler-monitor', hint: '查看刷新进度与运行日志', icon: Activity },
       { name: '数据源验收', path: '/operations/data-source-acceptance', hint: '查看数据源替换准入状态', icon: ShieldCheck },

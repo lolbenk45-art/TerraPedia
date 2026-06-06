@@ -3,7 +3,7 @@
     <section class="workspace-shell workspace-shell--unified">
       <div class="workspace-hero workspace-hero--unified workspace-hero--compact npc-hero">
         <div class="workspace-hero__copy">
-          <p class="eyebrow">TOWN NPC WORKBENCH</p>
+          <p class="eyebrow">城镇 NPC 工作台</p>
           <h1 class="page-head__title">城镇 NPC 维护台</h1>
           <p class="page-head__subtitle">
             这里负责扫视维护状态、售卖概况和缺口。详情与编辑不再跳转独立页面，统一在卡片式工作台内完成。
@@ -226,13 +226,13 @@ const coinIcons = computed(() => coinIconsFromOverview(overview.value))
 const importSummary = computed(() => importSummaryFromOverview(overview.value))
 const maintenanceSummary = computed(() => maintenanceSummaryFromOverview(overview.value))
 const summaryCards = computed(() => [
-  { label: 'TOWN NPC', value: formatNumber(maintenanceSummary.value.totalTownNpcs), help: '城镇 NPC 总数' },
-  { label: 'GAPS', value: formatNumber(rows.value.filter(row => isGapRow(row)).length), help: '时期 / 描述 / 售卖缺口' },
-  { label: 'REVIEW', value: formatNumber(maintenanceSummary.value.rowsNeedingAttentionCount), help: '待复核 NPC' },
-  { label: 'UNMATCHED', value: formatNumber(maintenanceSummary.value.unmatchedShopItemCount), help: '未匹配售卖物' },
-  { label: 'NO SOURCE', value: formatNumber(maintenanceSummary.value.missingScrapeCount), help: '缺少抓取源的 NPC' },
-  { label: 'LINKS', value: formatNumber(importSummary.value.insertedShopEntryCount), help: '最近导入的 shop 关系' },
-  { label: 'REBUILT', value: formatNumber(importSummary.value.replacedShopNpcCount), help: '最近重建的 NPC 数' },
+  { label: '城镇 NPC', value: formatNumber(maintenanceSummary.value.totalTownNpcs), help: '城镇 NPC 总数' },
+  { label: '缺口', value: formatNumber(rows.value.filter(row => isGapRow(row)).length), help: '时期 / 描述 / 售卖缺口' },
+  { label: '待复核', value: formatNumber(maintenanceSummary.value.rowsNeedingAttentionCount), help: '待复核 NPC' },
+  { label: '未匹配', value: formatNumber(maintenanceSummary.value.unmatchedShopItemCount), help: '未匹配售卖物' },
+  { label: '缺少来源', value: formatNumber(maintenanceSummary.value.missingScrapeCount), help: '缺少抓取源的 NPC' },
+  { label: '导入关系', value: formatNumber(importSummary.value.insertedShopEntryCount), help: '最近导入的 shop 关系' },
+  { label: '已重建', value: formatNumber(importSummary.value.replacedShopNpcCount), help: '最近重建的 NPC 数' },
 ])
 
 const filteredRows = computed(() => {

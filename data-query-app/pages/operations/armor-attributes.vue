@@ -3,7 +3,7 @@
     <section class="workspace-shell workspace-shell--unified">
       <div class="workspace-hero workspace-hero--unified armor-attributes-hero">
         <div class="workspace-hero__copy">
-          <p class="eyebrow">WIKI ARMOR ATTRIBUTE AUDIT</p>
+          <p class="eyebrow">Wiki 盔甲属性审计</p>
           <h1 class="page-head__title">盔甲属性表</h1>
           <p class="page-head__subtitle">按单件装备核验防御、职业加成、暴击与结构化效果字段。</p>
           <div class="workspace-summary-grid">
@@ -142,7 +142,7 @@
       <div class="detail-drawer__panel">
         <header class="detail-drawer__head">
           <div>
-            <p class="eyebrow">ARMOR ATTRIBUTE DETAIL</p>
+            <p class="eyebrow">盔甲属性详情</p>
             <h2 id="armor-attribute-detail-title">{{ detail?.attribute.itemNameZh || activeRow?.itemNameZh || '装备详情' }}</h2>
             <p>{{ detail?.attribute.itemInternalName || activeRow?.itemInternalName || 'HallowedMask' }}</p>
           </div>
@@ -166,7 +166,7 @@
           </section>
 
           <section class="detail-section">
-            <h3>Raw Cells</h3>
+            <h3>原始单元格</h3>
             <div class="raw-cell-grid">
               <div v-for="[key, value] in rawCellEntries(detail.attribute)" :key="key" class="raw-cell">
                 <span>{{ key }}</span>
@@ -182,12 +182,12 @@
             <table class="data-table effect-table">
               <thead>
                 <tr>
-                  <th>statKey</th>
-                  <th>classScope</th>
-                  <th>valueDecimal</th>
-                  <th>unit</th>
-                  <th>rawText</th>
-                  <th>parseStatus</th>
+                  <th>属性键 statKey</th>
+                  <th>职业范围 classScope</th>
+                  <th>数值 valueDecimal</th>
+                  <th>单位 unit</th>
+                  <th>原始文本 rawText</th>
+                  <th>解析状态 parseStatus</th>
                 </tr>
               </thead>
               <tbody>
@@ -315,9 +315,9 @@ const armorAttributeColumns: AdminTableColumn[] = [
   { key: 'slotGroup', label: '部位' },
   { key: 'sectionCode', label: '阶段' },
   { key: 'defenseValue', label: '防御', class: 'admin-table-number' },
-  { key: 'meleeDamage', label: 'meleeDamage' },
-  { key: 'meleeCritChance', label: 'meleeCritChance' },
-  { key: 'classSpecific', label: 'classSpecific' },
+  { key: 'meleeDamage', label: '近战伤害 meleeDamage' },
+  { key: 'meleeCritChance', label: '近战暴击 meleeCritChance' },
+  { key: 'classSpecific', label: '职业限定 classSpecific' },
   { key: 'effectCount', label: '效果数', class: 'admin-table-number' },
   { key: 'sourceRevision', label: '来源修订' },
   { key: 'actions', label: '操作' },

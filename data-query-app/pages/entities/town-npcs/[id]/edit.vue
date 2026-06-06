@@ -4,7 +4,7 @@
       <div class="workspace-hero workspace-hero--unified edit-hero">
         <div class="workspace-hero__copy">
           <NuxtLink :to="detailPath" class="back-link">返回详情页</NuxtLink>
-          <p class="eyebrow">TOWN NPC EDITOR</p>
+          <p class="eyebrow">城镇 NPC 编辑器</p>
           <h1 class="page-head__title">{{ pageTitle }}</h1>
           <p class="page-head__subtitle">
             独立维护时期、功能描述和 shop 关联。编辑页只保留维护必需信息，避免列表页和详情页承担编辑负担。
@@ -53,7 +53,7 @@
 
               <label class="field field--full">
                 <div class="field__topline">
-                  <span class="field__label">Shop Entries JSON</span>
+                  <span class="field__label">商店条目 JSON shopEntries</span>
                   <div class="field__action-group">
                     <button type="button" class="field__action" @click="applySuggestedShopEntries">导入抓取骨架</button>
                     <button type="button" class="field__action" @click="formatShopEntries">格式化 JSON</button>
@@ -68,7 +68,7 @@
             <section class="section-card workspace-panel">
               <div class="section-head">
                 <div>
-                  <h2 class="section-card__title">当前关联售卖物</h2>
+                  <h2 class="section-card__title">当前商店物品</h2>
                   <p class="section-card__subtitle">{{ formatNumber(selectedRow?.currentShopItems?.length || 0) }} 件物品已在库中关联。</p>
                 </div>
               </div>
@@ -97,7 +97,7 @@
             <section class="section-card workspace-panel">
               <div class="section-head">
                 <div>
-                  <h2 class="section-card__title">编辑参考</h2>
+                  <h2 class="section-card__title">Wiki 建议</h2>
                   <p class="section-card__subtitle">这里保留维护时真正需要的 Wiki 线索，不再夹带大图资源。</p>
                 </div>
               </div>
@@ -223,12 +223,12 @@ async function saveRow() {
   try {
     const parsed = JSON.parse(form.shopEntriesText || '[]')
     if (!Array.isArray(parsed)) {
-      showToast('Shop Entries JSON 必须是数组', 'warning')
+      showToast('商店条目 JSON shopEntries 必须是数组', 'warning')
       return
     }
     shopEntries = parsed
   } catch {
-    showToast('Shop Entries JSON 不是合法 JSON', 'warning')
+    showToast('商店条目 JSON shopEntries 不是合法 JSON', 'warning')
     return
   }
 

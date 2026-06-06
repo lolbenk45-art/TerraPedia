@@ -8,8 +8,8 @@
         <p class="page-head__subtitle hero-card__subtitle">{{ currentConfig.subtitle }}</p>
         <div v-if="entityType === 'projectiles'" class="hero-inline-notes">
           <span class="hero-inline-note">中文名优先展示</span>
-          <span class="hero-inline-note">English name retained</span>
-          <span class="hero-inline-note">Internal name preserved</span>
+          <span class="hero-inline-note">保留英文名</span>
+          <span class="hero-inline-note">保留内部标识</span>
         </div>
       </div>
       <div class="hero-stats entity-hero__stats workspace-summary-grid">
@@ -341,7 +341,7 @@
                 <label class="field" :class="field.span === 'full' ? 'field--full' : ''">
                   <div class="field__topline">
                     <span class="field__label">{{ field.label }}<span v-if="field.required" class="field__required">*</span></span>
-                    <button v-if="field.format === 'json'" type="button" class="field__action" @click="formatJsonField(field.key)">Format JSON</button>
+                    <button v-if="field.format === 'json'" type="button" class="field__action" @click="formatJsonField(field.key)">格式化 JSON</button>
                   </div>
                   <textarea v-if="field.type === 'textarea'" v-model="form[field.key]" class="input textarea" :class="{ 'textarea--code': field.format === 'json' }" :rows="field.rows || 4" :placeholder="field.placeholder || field.label" />
                   <select v-else-if="field.type === 'boolean'" v-model="form[field.key]" class="input">
@@ -364,7 +364,7 @@
                   <label class="field" :class="field.span === 'full' ? 'field--full' : ''">
                     <div class="field__topline">
                       <span class="field__label">{{ field.label }}</span>
-                      <button v-if="field.format === 'json'" type="button" class="field__action" @click="formatJsonField(field.key)">Format JSON</button>
+                      <button v-if="field.format === 'json'" type="button" class="field__action" @click="formatJsonField(field.key)">格式化 JSON</button>
                     </div>
                     <textarea v-model="form[field.key]" class="input textarea textarea--code" :rows="field.rows || 6" :placeholder="field.placeholder || field.label" />
                     <span v-if="field.helper" class="field__hint">{{ field.helper }}</span>
@@ -500,7 +500,7 @@
             </div>
             <div class="armor-detail__hero-body">
               <div class="preview-pills">
-                <span class="preview-pill preview-pill--accent">SET COMPOSER</span>
+                <span class="preview-pill preview-pill--accent">套装编排</span>
                 <span class="preview-pill">穿戴主图</span>
                 <span class="preview-pill">{{ getArmorSetCompositionKindLabel(detailRow.compositionKind) }}</span>
                 <span class="preview-pill">记录 ID {{ detailRow.id ?? '--' }}</span>
@@ -700,7 +700,7 @@
             </div>
             <div class="boss-detail__body">
               <div class="preview-pills">
-                <span class="preview-pill preview-pill--accent">BOSS ARCHIVE</span>
+                <span class="preview-pill preview-pill--accent">Boss 档案</span>
                 <span class="preview-pill">{{ getBossTypeLabel(detailRow.bossType) }}</span>
                 <span class="preview-pill">{{ bossMemberSourceLabel }}</span>
               </div>
@@ -760,15 +760,15 @@
                 <p v-else-if="bossSummonContractEmpty" class="boss-detail__summon-empty">契约暂未提供结构化召唤、条件、机制或难度事实。</p>
               </article>
               <article class="boss-detail__feature-card">
-                <span class="boss-detail__feature-label">Boss Notes</span>
+                <span class="boss-detail__feature-label">Boss 备注 notes</span>
                 <p>{{ detailRow.notes || '当前还没有补充档案说明。' }}</p>
               </article>
               <article v-if="detailRow.sourcePage" class="boss-detail__meta-card">
-                <span class="boss-detail__feature-label">Source Page</span>
+                <span class="boss-detail__feature-label">来源页 sourcePage</span>
                 <p>{{ detailRow.sourcePage }}</p>
               </article>
               <article v-if="detailRow.sourceRevisionTimestamp" class="boss-detail__meta-card">
-                <span class="boss-detail__feature-label">Source Revision</span>
+                <span class="boss-detail__feature-label">来源修订时间 sourceRevisionTimestamp</span>
                 <p>{{ formatDateTime(detailRow.sourceRevisionTimestamp) }}</p>
               </article>
             </div>
@@ -805,7 +805,7 @@
                       </div>
                       <strong>{{ member.nameZh || member.name || member.internalName || `NPC ${member.gameId ?? member.id ?? '--'}` }}</strong>
                       <span>{{ member.name && member.nameZh ? member.name : member.internalName || '--' }}</span>
-                      <span>Game ID {{ member.gameId ?? '--' }}</span>
+                      <span>游戏 ID {{ member.gameId ?? '--' }}</span>
                     </div>
                   </article>
                 </div>
@@ -883,7 +883,7 @@
             </div>
             <div class="projectile-detail__body">
               <div class="preview-pills">
-                <span class="preview-pill preview-pill--accent">NPC DIRECTORY</span>
+                <span class="preview-pill preview-pill--accent">NPC 目录</span>
                 <span class="preview-pill">{{ detailRow.categoryName || '未分类' }}</span>
                 <span class="preview-pill">结构化掉落 {{ npcLootEntries.length }}</span>
                 <span v-if="npcInheritedLootCount" class="preview-pill">原型掉落 {{ npcInheritedLootCount }}</span>
@@ -898,11 +898,11 @@
                   <strong>{{ detailRow.nameZh || '--' }}</strong>
                 </article>
                 <article class="projectile-detail__lang-card">
-                  <span>English Name</span>
+                  <span>英文名 nameEn</span>
                   <strong>{{ detailRow.nameEn || detailRow.name || '--' }}</strong>
                 </article>
                 <article class="projectile-detail__lang-card">
-                  <span>Internal Name</span>
+                  <span>内部标识 internalName</span>
                   <strong>{{ detailRow.internalName || '--' }}</strong>
                 </article>
               </div>
@@ -1127,16 +1127,16 @@
           <section v-if="detailRow.behaviorNotes || detailRow.rawJson" class="projectile-detail__section">
             <div class="projectile-detail__section-head">
               <h4>补充说明</h4>
-              <span>{{ detailRow.rawJson ? 'Raw JSON' : 'Notes' }}</span>
+              <span>{{ detailRow.rawJson ? '原始 JSON rawJson' : '备注 notes' }}</span>
             </div>
             <div class="projectile-detail__note-grid">
               <article v-if="detailRow.behaviorNotes" class="preview-note">
-                <strong>Behavior Notes</strong>
+                <strong>行为备注 behaviorNotes</strong>
                 <p>{{ detailRow.behaviorNotes }}</p>
               </article>
               <article v-if="detailRow.rawJson" class="preview-json">
                 <div class="preview-json__head">
-                  <strong>Raw JSON</strong>
+                  <strong>原始 JSON rawJson</strong>
                   <span>原始结构</span>
                 </div>
                 <pre>{{ formatPrettyJson(detailRow.rawJson) }}</pre>
@@ -1153,7 +1153,7 @@
             </div>
             <div class="projectile-detail__body">
               <div class="preview-pills">
-                <span class="preview-pill preview-pill--accent">BIOME ATLAS</span>
+                <span class="preview-pill preview-pill--accent">群系图谱</span>
                 <span class="preview-pill">{{ getBiomeTypeLabel(detailRow.biomeType) }}</span>
                 <span class="preview-pill">{{ getBiomeLayerLabel(detailRow.layerType) }}</span>
                 <span class="preview-pill">关系 {{ biomeRelationCards.length }}</span>
@@ -1170,11 +1170,11 @@
                   <strong>{{ detailRow.nameZh || '--' }}</strong>
                 </article>
                 <article class="projectile-detail__lang-card">
-                  <span>English Name</span>
+                  <span>英文名 nameEn</span>
                   <strong>{{ detailRow.nameEn || '--' }}</strong>
                 </article>
                 <article class="projectile-detail__lang-card">
-                  <span>Code</span>
+                  <span>编码 code</span>
                   <strong>{{ detailRow.code || '--' }}</strong>
                 </article>
               </div>
@@ -1203,7 +1203,7 @@
           <section class="projectile-detail__section">
             <div class="projectile-detail__section-head">
               <h4>群系描述</h4>
-              <span>Description</span>
+              <span>描述</span>
             </div>
             <article class="preview-note biome-detail__description">
               <strong>{{ detailTitle }}</strong>
@@ -1335,7 +1335,7 @@
             </div>
             <div class="projectile-detail__body">
               <div class="preview-pills">
-                <span class="preview-pill preview-pill--accent">WORLD CONTEXT</span>
+                <span class="preview-pill preview-pill--accent">世界条件</span>
                 <span class="preview-pill">{{ formatWorldContextTypeLabel(detailRow.contextType) }}</span>
                 <span class="preview-pill">{{ detailRow.sourceProvider || '未标注来源' }}</span>
                 <span class="preview-pill">{{ detailRow.lastSyncedAt ? '已同步' : '待同步' }}</span>
@@ -1348,11 +1348,11 @@
                   <strong>{{ detailRow.nameZh || '--' }}</strong>
                 </article>
                 <article class="projectile-detail__lang-card">
-                  <span>English Name</span>
+                  <span>英文名 nameEn</span>
                   <strong>{{ detailRow.nameEn || '--' }}</strong>
                 </article>
                 <article class="projectile-detail__lang-card">
-                  <span>Code</span>
+                  <span>编码 code</span>
                   <strong>{{ detailRow.code || '--' }}</strong>
                 </article>
               </div>
@@ -1393,7 +1393,7 @@
 
           <section v-if="detailRow.rawJson" class="projectile-detail__section">
             <div class="projectile-detail__section-head">
-              <h4>Raw JSON</h4>
+              <h4>原始 JSON rawJson</h4>
               <span>Evidence</span>
             </div>
             <pre class="projectile-detail__code">{{ formatPrettyJson(detailRow.rawJson) }}</pre>
@@ -1422,11 +1422,11 @@
                   <strong>{{ getProjectileNameZh(detailRow) || '待补充' }}</strong>
                 </article>
                 <article class="projectile-detail__lang-card">
-                  <span>English Name</span>
+                  <span>英文名 nameEn</span>
                   <strong>{{ getProjectileNameEn(detailRow) }}</strong>
                 </article>
                 <article class="projectile-detail__lang-card">
-                  <span>Internal Name</span>
+                  <span>内部标识 internalName</span>
                   <strong>{{ detailRow.internalName || '--' }}</strong>
                 </article>
               </div>
@@ -1480,8 +1480,8 @@
                 </div>
                 <article v-else-if="projectileSourceItemsJsonFallback" class="preview-json projectile-source-json">
                   <div class="preview-json__head">
-                    <strong>Source Items JSON</strong>
-                    <span>array fallback</span>
+                    <strong>来源物品 JSON sourceItemsJson</strong>
+                    <span>数组回退</span>
                   </div>
                   <pre>{{ projectileSourceItemsJsonFallback }}</pre>
                 </article>
@@ -1510,8 +1510,8 @@
                 </div>
                 <article v-else-if="projectileSourceNpcsJsonFallback" class="preview-json projectile-source-json">
                   <div class="preview-json__head">
-                    <strong>Source NPCs JSON</strong>
-                    <span>array fallback</span>
+                    <strong>来源 NPC JSON sourceNpcs</strong>
+                    <span>数组回退</span>
                   </div>
                   <pre>{{ projectileSourceNpcsJsonFallback }}</pre>
                 </article>
@@ -1523,7 +1523,7 @@
 
           <section v-if="projectileRawJsonHighlights.length" class="projectile-detail__section">
             <div class="projectile-detail__section-head">
-              <h4>Raw JSON 摘要</h4>
+              <h4>原始 JSON rawJson 摘要</h4>
               <span>{{ projectileRawJsonHighlights.length }} 项</span>
             </div>
             <div class="projectile-detail__note-grid">
@@ -1537,7 +1537,7 @@
           <section v-if="detailRow.rawJson" class="projectile-detail__section">
             <div class="projectile-detail__section-head">
               <h4>原始数据</h4>
-              <span>Raw JSON</span>
+              <span>原始 JSON rawJson</span>
             </div>
             <pre class="projectile-detail__code">{{ formatPrettyJson(detailRow.rawJson) }}</pre>
           </section>
@@ -1565,11 +1565,11 @@
                   <strong>{{ detailRow.nameZh || '--' }}</strong>
                 </article>
                 <article class="projectile-detail__lang-card">
-                  <span>English Name</span>
+                  <span>英文名 englishName</span>
                   <strong>{{ detailRow.englishName || '--' }}</strong>
                 </article>
                 <article class="projectile-detail__lang-card">
-                  <span>Internal Name</span>
+                  <span>内部标识 internalName</span>
                   <strong>{{ detailRow.internalName || '--' }}</strong>
                 </article>
               </div>
@@ -1608,7 +1608,7 @@
                 </button>
                 <div class="armor-detail__item-body">
                   <strong>{{ item.nameZh || item.name || item.nameEn || item.internalName || `Item ${item.itemId ?? index + 1}` }}</strong>
-                  <span>{{ item.internalName || `Source ID ${item.itemId ?? '--'}` }}</span>
+                  <span>{{ item.internalName || `来源 ID ${item.itemId ?? '--'}` }}</span>
                   <span v-if="item.buffTime != null">持续 {{ item.buffTime }}</span>
                   <span v-if="item.sourcePage">来源页 {{ item.sourcePage }}</span>
                   <button v-if="canOpenLinkedItemDetail(item)" type="button" class="btn-link" @click="openLinkedItemDetail(item)">物品详情</button>
@@ -1914,7 +1914,7 @@ const worldContextTypeOptions = [
 ] as const
 const configs: Record<string, EntityConfig> = {
   buffs: {
-    badge: 'BUFF SYSTEM', title: 'Buff 管理', shortLabel: 'Buff', fallback: 'BF', endpoint: '/admin/buffs', primaryColumn: 'nameZh', secondaryColumn: 'englishName',
+    badge: 'Buff 系统', title: 'Buff 管理', shortLabel: 'Buff', fallback: 'BF', endpoint: '/admin/buffs', primaryColumn: 'nameZh', secondaryColumn: 'englishName',
     subtitle: '中文优先展示 Buff 名称和提示文本，同时保留英文原始字段与内部标识。',
     searchPlaceholder: '搜索 Buff 中文名、英文名或内部标识',
     displayTitleKeys: ['nameZh', 'englishName', 'internalName'],
@@ -1932,24 +1932,24 @@ const configs: Record<string, EntityConfig> = {
       { key: 'buffType', label: '类型' }, { key: 'sourceItemCount', label: '来源物品数' }, { key: 'updatedAt', label: '更新时间' },
     ],
     fields: [
-      { key: 'sourceId', label: 'Source ID', type: 'number', required: true },
-      { key: 'internalName', label: 'Internal Name', type: 'text', required: true },
-      { key: 'englishName', label: 'English Name', type: 'text' },
-      { key: 'nameZh', label: 'Chinese Name', type: 'text' },
-      { key: 'buffType', label: 'Buff Type', type: 'text', placeholder: 'buff / debuff' },
-      { key: 'status', label: 'Status', type: 'number', helper: '1 = enabled, 0 = disabled.' },
-      { key: 'image', label: 'Image URL', type: 'text', span: 'full', helper: '仅填写 MinIO 或可直接访问的图片地址。' },
-      { key: 'sourceItemCount', label: 'Source Item Count', type: 'number' },
-      { key: 'immuneNpcCount', label: 'Immune NPC Count', type: 'number' },
-      { key: 'tooltipEn', label: 'Tooltip (EN)', type: 'textarea', rows: 4 },
-      { key: 'tooltipZh', label: 'Tooltip (ZH)', type: 'textarea', rows: 4 },
+      { key: 'sourceId', label: '源 ID sourceId', type: 'number', required: true },
+      { key: 'internalName', label: '内部标识 internalName', type: 'text', required: true },
+      { key: 'englishName', label: '英文名 englishName', type: 'text' },
+      { key: 'nameZh', label: '中文名 nameZh', type: 'text' },
+      { key: 'buffType', label: 'Buff 类型 buffType', type: 'text', placeholder: 'buff / debuff' },
+      { key: 'status', label: '状态 status', type: 'number', helper: '1 = 启用，0 = 禁用。' },
+      { key: 'image', label: '图片 URL image', type: 'text', span: 'full', helper: '仅填写 MinIO 或可直接访问的图片地址。' },
+      { key: 'sourceItemCount', label: '来源物品数 sourceItemCount', type: 'number' },
+      { key: 'immuneNpcCount', label: '免疫 NPC 数 immuneNpcCount', type: 'number' },
+      { key: 'tooltipEn', label: '英文提示 tooltipEn', type: 'textarea', rows: 4 },
+      { key: 'tooltipZh', label: '中文提示 tooltipZh', type: 'textarea', rows: 4 },
       { key: 'linkedSourceItems', label: '关联物品（数据库写回）', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: '主编辑字段。优先写回 buff_source_items，可传 sourceItemId / itemId / internalName / buffTime / sortOrder。' },
-      { key: 'sourceItemsJson', label: 'Source Items JSON', type: 'textarea', span: 'full', rows: 7, format: 'json', helper: '参考字段。未提供 linkedSourceItems 时才作为回退输入。' },
-      { key: 'immuneNpcSampleJson', label: 'Immune NPC Sample JSON', type: 'textarea', span: 'full', rows: 6, format: 'json', helper: 'QA-friendly structured sample.' },
+      { key: 'sourceItemsJson', label: '来源物品 JSON sourceItemsJson', type: 'textarea', span: 'full', rows: 7, format: 'json', helper: '参考字段。未提供 linkedSourceItems 时才作为回退输入。' },
+      { key: 'immuneNpcSampleJson', label: '免疫 NPC 样例 JSON immuneNpcSampleJson', type: 'textarea', span: 'full', rows: 6, format: 'json', helper: 'QA 友好的结构化样例。' },
     ],
   },
   biomes: {
-    badge: 'BIOME ATLAS', title: '群系管理', shortLabel: '群系', fallback: 'BM', endpoint: '/admin/biomes', primaryColumn: 'nameZh', secondaryColumn: 'nameEn',
+    badge: '群系图谱', title: '群系管理', shortLabel: '群系', fallback: 'BM', endpoint: '/admin/biomes', primaryColumn: 'nameZh', secondaryColumn: 'nameEn',
     subtitle: '中文优先展示群系名称，编辑时保留 code、来源页面和来源提供方等原子信息。',
     searchPlaceholder: '搜索群系 code、中文名或英文名',
     displayTitleKeys: ['nameZh', 'nameEn', 'code'],
@@ -1963,35 +1963,35 @@ const configs: Record<string, EntityConfig> = {
       { key: 'code', label: 'code' },
     ],
     columns: [
-      { key: '__imageUrl', label: '预览' }, { key: 'id', label: 'ID' }, { key: 'code', label: 'Code' }, { key: 'nameZh', label: '展示名称' },
+      { key: '__imageUrl', label: '预览' }, { key: 'id', label: 'ID' }, { key: 'code', label: '编码 code' }, { key: 'nameZh', label: '展示名称' },
       { key: 'wikiCategoryPathZh', label: 'Wiki 分类' }, { key: 'biomeType', label: '群系类型' }, { key: 'layerType', label: '层级类型' }, { key: 'updatedAt', label: '更新时间' },
     ],
     fields: [
-      { key: 'code', label: 'Code', type: 'text', required: true },
-      { key: 'nameZh', label: 'Chinese Name', type: 'text' },
-      { key: 'nameEn', label: 'English Name', type: 'text' },
-      { key: 'aliasZh', label: 'Chinese Alias', type: 'text' },
-      { key: 'aliasEn', label: 'English Alias', type: 'text' },
-      { key: 'biomeType', label: 'Biome Type', type: 'text' },
-      { key: 'layerType', label: 'Layer Type', type: 'text' },
-      { key: 'wikiGroupCode', label: 'Wiki Group Code', type: 'text' },
-      { key: 'wikiGroupNameZh', label: 'Wiki Group Name ZH', type: 'text' },
-      { key: 'wikiParentGroupCode', label: 'Wiki Parent Group Code', type: 'text' },
-      { key: 'wikiParentGroupNameZh', label: 'Wiki Parent Group Name ZH', type: 'text' },
-      { key: 'wikiSectionLevel', label: 'Wiki Section Level', type: 'number' },
-      { key: 'wikiSortOrder', label: 'Wiki Sort Order', type: 'number' },
-      { key: 'wikiSectionAnchor', label: 'Wiki Section Anchor', type: 'text' },
-      { key: 'status', label: 'Status', type: 'number', helper: '1 = enabled, 0 = disabled.' },
-      { key: 'iconUrl', label: 'Icon URL', type: 'text', span: 'full', helper: 'Supports direct image preview.' },
-      { key: 'sourceProvider', label: 'Source Provider', type: 'text' },
-      { key: 'sourcePage', label: 'Source Page', type: 'text' },
-      { key: 'description', label: 'Description', type: 'textarea', span: 'full', rows: 6 },
-      { key: 'relations', label: 'Relations JSON', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: '群系关系数组，至少填写 relatedBiomeId 和 relationType。' },
-      { key: 'resources', label: 'Resources JSON', type: 'textarea', span: 'full', rows: 10, format: 'json', helper: '群系资源数组，支持 itemId 或 resourceNameRaw。' },
+      { key: 'code', label: '编码 code', type: 'text', required: true },
+      { key: 'nameZh', label: '中文名 nameZh', type: 'text' },
+      { key: 'nameEn', label: '英文名 nameEn', type: 'text' },
+      { key: 'aliasZh', label: '中文别名 aliasZh', type: 'text' },
+      { key: 'aliasEn', label: '英文别名 aliasEn', type: 'text' },
+      { key: 'biomeType', label: '群系类型 biomeType', type: 'text' },
+      { key: 'layerType', label: '层级类型 layerType', type: 'text' },
+      { key: 'wikiGroupCode', label: 'Wiki 分组编码 wikiGroupCode', type: 'text' },
+      { key: 'wikiGroupNameZh', label: 'Wiki 中文分组 wikiGroupNameZh', type: 'text' },
+      { key: 'wikiParentGroupCode', label: 'Wiki 父分组编码 wikiParentGroupCode', type: 'text' },
+      { key: 'wikiParentGroupNameZh', label: 'Wiki 中文父分组 wikiParentGroupNameZh', type: 'text' },
+      { key: 'wikiSectionLevel', label: 'Wiki 章节层级 wikiSectionLevel', type: 'number' },
+      { key: 'wikiSortOrder', label: 'Wiki 排序 wikiSortOrder', type: 'number' },
+      { key: 'wikiSectionAnchor', label: 'Wiki 章节锚点 wikiSectionAnchor', type: 'text' },
+      { key: 'status', label: '状态 status', type: 'number', helper: '1 = 启用，0 = 禁用。' },
+      { key: 'iconUrl', label: '图标 URL iconUrl', type: 'text', span: 'full', helper: '支持直接图片预览。' },
+      { key: 'sourceProvider', label: '来源提供方 sourceProvider', type: 'text' },
+      { key: 'sourcePage', label: '来源页 sourcePage', type: 'text' },
+      { key: 'description', label: '描述 description', type: 'textarea', span: 'full', rows: 6 },
+      { key: 'relations', label: '群系关系 JSON relations', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: '群系关系数组，至少填写 relatedBiomeId 和 relationType。' },
+      { key: 'resources', label: '群系资源 JSON resources', type: 'textarea', span: 'full', rows: 10, format: 'json', helper: '群系资源数组，支持 itemId 或 resourceNameRaw。' },
     ],
   },
   npcs: {
-    badge: 'NPC DIRECTORY', title: 'NPC 管理', shortLabel: 'NPC', fallback: 'NP', endpoint: '/admin/npcs', primaryColumn: 'nameZh', secondaryColumn: 'internalName',
+    badge: 'NPC 目录', title: 'NPC 管理', shortLabel: 'NPC', fallback: 'NP', endpoint: '/admin/npcs', primaryColumn: 'nameZh', secondaryColumn: 'internalName',
     subtitle: '中文名优先展示，编辑时保留英文别名与内部字段以支持映射校对。',
     searchPlaceholder: '按中文/英文名、游戏 ID 或内部标识搜索 NPC',
     displayTitleKeys: ['nameZh', 'name', 'nameEn', 'internalName'],
@@ -2002,12 +2002,12 @@ const configs: Record<string, EntityConfig> = {
     ],
     atomicFields: [
       { key: 'internalName', label: 'internalName' },
-      { key: 'gameId', label: 'Game ID' },
+      { key: 'gameId', label: '游戏 ID' },
     ],
     columns: [
       { key: '__imageUrl', label: '预览' },
       { key: 'id', label: 'ID' },
-      { key: 'gameId', label: 'Game ID' },
+      { key: 'gameId', label: '游戏 ID' },
       { key: 'internalName', label: 'internalName' },
       { key: 'nameZh', label: '中文名' },
       { key: 'subNameZh', label: '中文别名' },
@@ -2019,35 +2019,35 @@ const configs: Record<string, EntityConfig> = {
       { key: 'updatedAt', label: '更新时间' },
     ],
     fields: [
-      { key: 'sourceId', label: 'Game ID / Source ID', type: 'number', required: true, helper: '填写 Terraria NPC 的唯一 gameId（API 中的 sourceId）。' },
-      { key: 'internalName', label: 'Internal Name', type: 'text', required: true },
+      { key: 'sourceId', label: '游戏 ID sourceId', type: 'number', required: true, helper: '填写 Terraria NPC 的唯一 gameId（API 中的 sourceId）。' },
+      { key: 'internalName', label: '内部标识 internalName', type: 'text', required: true },
       { key: 'nameZh', label: '中文名', type: 'text', placeholder: '如：黄蜂' },
       { key: 'subNameZh', label: '中文别名/子名', type: 'text', placeholder: '如：大毒刺黄蜂' },
-      { key: 'categoryId', label: 'Category ID', type: 'number', helper: '对应 NPC 分类节点。' },
-      { key: 'gamePeriodId', label: 'Game Period ID', type: 'number' },
-      { key: 'gameModelId', label: 'Game Model ID', type: 'number' },
-      { key: 'isBoss', label: 'Is Boss', type: 'boolean' },
-      { key: 'bossGroupId', label: 'Boss Group ID', type: 'number' },
-      { key: 'bossRole', label: 'Boss Role', type: 'text', placeholder: 'primary / phase / part / clone' },
-      { key: 'isFriendly', label: 'Is Friendly', type: 'boolean' },
-      { key: 'isTownNpc', label: 'Is Town NPC', type: 'boolean' },
-      { key: 'behaviorNotes', label: 'Behavior Notes', type: 'textarea', span: 'full', rows: 4, helper: '补充 AI、阶段、召唤、部件等行为说明。' },
-      { key: 'status', label: 'Status', type: 'number', helper: '1=启用, 0=禁用' },
-      { key: 'bannerSourceItemId', label: 'Banner Source Item ID', type: 'number' },
-      { key: 'bannerItemId', label: 'Banner Item DB ID', type: 'number' },
-      { key: 'catchSourceItemId', label: 'Catch Source Item ID', type: 'number' },
-      { key: 'catchItemId', label: 'Catch Item DB ID', type: 'number' },
-      { key: 'lootEntries', label: 'Loot Entries JSON', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: '结构化掉落数据。支持 itemId/sourceItemId、dropSourceKind、数量、概率、条件等。' },
-      { key: 'lootItemsJson', label: 'Projection Loot Items JSON', type: 'textarea', span: 'full', rows: 7, format: 'json', helper: '只读校对字段：来自关系投影的掉落物品摘要，保留 sourceFactKey 和来源页。' },
-      { key: 'buffRelations', label: 'Buff Relations JSON', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: 'NPC 附加或关联 Buff 的结构化关系。' },
-      { key: 'shopEntries', label: 'Shop Entries JSON', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: 'NPC 售卖骨架，条件数组支持 BIOME / WORLD_CONTEXT / GAME_PERIOD / ITEM。' },
-      { key: 'shopItemsJson', label: 'Projection Shop Items JSON', type: 'textarea', span: 'full', rows: 7, format: 'json', helper: '只读校对字段：来自关系投影的售卖物品摘要，保留 sourceFactKey 和来源页。' },
-      { key: 'sourceItemsJson', label: 'Projection Source Items JSON', type: 'textarea', span: 'full', rows: 7, format: 'json', helper: '只读校对字段：来自 NPC 标准化来源的 banner/catch/summon 物品摘要。' },
-      { key: 'rawJson', label: 'Raw JSON Payload', type: 'textarea', span: 'full', rows: 10, format: 'json', helper: '标准化补充数据预览字段，通常由同步脚本生成；手工编辑不会直接写回数据库结构化列。' },
+      { key: 'categoryId', label: '分类 ID categoryId', type: 'number', helper: '对应 NPC 分类节点。' },
+      { key: 'gamePeriodId', label: '游戏时期 ID gamePeriodId', type: 'number' },
+      { key: 'gameModelId', label: '游戏模式 ID gameModelId', type: 'number' },
+      { key: 'isBoss', label: '是否 Boss isBoss', type: 'boolean' },
+      { key: 'bossGroupId', label: 'Boss 组 ID bossGroupId', type: 'number' },
+      { key: 'bossRole', label: 'Boss 角色 bossRole', type: 'text', placeholder: 'primary / phase / part / clone' },
+      { key: 'isFriendly', label: '是否友好 isFriendly', type: 'boolean' },
+      { key: 'isTownNpc', label: '是否城镇 NPC isTownNpc', type: 'boolean' },
+      { key: 'behaviorNotes', label: '行为备注 behaviorNotes', type: 'textarea', span: 'full', rows: 4, helper: '补充 AI、阶段、召唤、部件等行为说明。' },
+      { key: 'status', label: '状态 status', type: 'number', helper: '1=启用, 0=禁用' },
+      { key: 'bannerSourceItemId', label: '旗帜源物品 ID bannerSourceItemId', type: 'number' },
+      { key: 'bannerItemId', label: '旗帜物品 DB ID bannerItemId', type: 'number' },
+      { key: 'catchSourceItemId', label: '捕捉源物品 ID catchSourceItemId', type: 'number' },
+      { key: 'catchItemId', label: '捕捉物品 DB ID catchItemId', type: 'number' },
+      { key: 'lootEntries', label: '掉落条目 JSON lootEntries', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: '结构化掉落数据。支持 itemId/sourceItemId、dropSourceKind、数量、概率、条件等。' },
+      { key: 'lootItemsJson', label: '投影掉落物品 JSON lootItemsJson', type: 'textarea', span: 'full', rows: 7, format: 'json', helper: '只读校对字段：来自关系投影的掉落物品摘要，保留 sourceFactKey 和来源页。' },
+      { key: 'buffRelations', label: 'Buff 关系 JSON buffRelations', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: 'NPC 附加或关联 Buff 的结构化关系。' },
+      { key: 'shopEntries', label: '商店条目 JSON shopEntries', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: 'NPC 售卖骨架，条件数组支持 BIOME / WORLD_CONTEXT / GAME_PERIOD / ITEM。' },
+      { key: 'shopItemsJson', label: '投影商店物品 JSON shopItemsJson', type: 'textarea', span: 'full', rows: 7, format: 'json', helper: '只读校对字段：来自关系投影的售卖物品摘要，保留 sourceFactKey 和来源页。' },
+      { key: 'sourceItemsJson', label: '投影来源物品 JSON sourceItemsJson', type: 'textarea', span: 'full', rows: 7, format: 'json', helper: '只读校对字段：来自 NPC 标准化来源的 banner/catch/summon 物品摘要。' },
+      { key: 'rawJson', label: '原始 JSON rawJson', type: 'textarea', span: 'full', rows: 10, format: 'json', helper: '标准化补充数据预览字段，通常由同步脚本生成；手工编辑不会直接写回数据库结构化列。' },
     ],
   },
   bosses: {
-    badge: 'BOSS ARCHIVE', title: 'Boss 管理', shortLabel: 'Boss', fallback: 'BS', endpoint: '/admin/bosses', primaryColumn: 'name', secondaryColumn: 'code',
+    badge: 'Boss 档案', title: 'Boss 管理', shortLabel: 'Boss', fallback: 'BS', endpoint: '/admin/bosses', primaryColumn: 'name', secondaryColumn: 'code',
     subtitle: '按 Boss 档案聚合成员 NPC，并查看本体掉落与宝藏袋掉落的后台归属。',
     searchPlaceholder: '搜索 Boss 中文名、英文名或 code',
     displayTitleKeys: ['nameZh', 'nameEn', 'name', 'code'],
@@ -2074,21 +2074,21 @@ const configs: Record<string, EntityConfig> = {
       { key: 'code', label: 'Code', type: 'text', required: true },
       { key: 'nameZh', label: '中文名', type: 'text' },
       { key: 'nameEn', label: '英文名', type: 'text', required: true },
-      { key: 'bossType', label: 'Boss Type', type: 'text', placeholder: 'PRE_HARDMODE / HARDMODE / EVENT / SPECIAL_SEED' },
-      { key: 'imageUrl', label: 'Image URL', type: 'text', span: 'full' },
-      { key: 'progressionOrder', label: 'Progression Order', type: 'number' },
-      { key: 'status', label: 'Status', type: 'number' },
+      { key: 'bossType', label: 'Boss 类型 bossType', type: 'text', placeholder: 'PRE_HARDMODE / HARDMODE / EVENT / SPECIAL_SEED' },
+      { key: 'imageUrl', label: '图片 URL imageUrl', type: 'text', span: 'full' },
+      { key: 'progressionOrder', label: '进度序 progressionOrder', type: 'number' },
+      { key: 'status', label: '状态 status', type: 'number' },
       { key: 'summonMethod', label: '召唤方式', type: 'textarea', span: 'full', rows: 4, helper: '可直接补充召唤物、触发条件和事件波次；留空时页面会按 Boss Code 使用内置规则兜底。' },
-      { key: 'notes', label: 'Notes', type: 'textarea', span: 'full', rows: 4 },
-      { key: 'sourcePage', label: 'Source Page', type: 'text', span: 'full' },
-      { key: 'sourceRevisionTimestamp', label: 'Source Revision Timestamp', type: 'text', span: 'full' },
-      { key: 'memberNpcIds', label: 'Member NPC IDs JSON', type: 'textarea', span: 'full', rows: 6, format: 'json', helper: '填写 NPC 数据库 ID 数组，用于归组 Boss 成员。' },
+      { key: 'notes', label: '备注 notes', type: 'textarea', span: 'full', rows: 4 },
+      { key: 'sourcePage', label: '来源页 sourcePage', type: 'text', span: 'full' },
+      { key: 'sourceRevisionTimestamp', label: '来源修订时间 sourceRevisionTimestamp', type: 'text', span: 'full' },
+      { key: 'memberNpcIds', label: '成员 NPC ID JSON memberNpcIds', type: 'textarea', span: 'full', rows: 6, format: 'json', helper: '填写 NPC 数据库 ID 数组，用于归组 Boss 成员。' },
     ],
   },
   projectiles: {
-    badge: 'PROJECTILE LAB', title: '射弹 / Projectile 管理', shortLabel: '射弹', fallback: 'PJ', endpoint: '/admin/projectiles', primaryColumn: 'name', secondaryColumn: 'internalName',
+    badge: '射弹实验室', title: '射弹 / Projectile 管理', shortLabel: '射弹', fallback: 'PJ', endpoint: '/admin/projectiles', primaryColumn: 'name', secondaryColumn: 'internalName',
     subtitle: '列表按中文名、英文名、内部名三层展示，便于快速校对射弹词条与行为数据。',
-    searchPlaceholder: '搜索中文名、English name 或 internalName',
+    searchPlaceholder: '搜索中文名、英文名或 internalName',
     displayTitleKeys: ['nameZh', 'name', 'nameEn', 'internalName'],
     displaySubtitleKeys: ['nameEn', 'internalName'],
     referenceFields: [
@@ -2100,20 +2100,20 @@ const configs: Record<string, EntityConfig> = {
     ],
     columns: [
       { key: '__imageUrl', label: '预览' }, { key: 'id', label: 'ID' }, { key: 'sourceId', label: '源 ID' }, { key: 'name', label: '中英名称' },
-      { key: 'aiStyle', label: 'AI Style' }, { key: 'damage', label: '伤害' }, { key: 'timeLeft', label: '持续时间' }, { key: 'updatedAt', label: '更新时间' },
+      { key: 'aiStyle', label: 'AI 样式 aiStyle' }, { key: 'damage', label: '伤害' }, { key: 'timeLeft', label: '持续时间' }, { key: 'updatedAt', label: '更新时间' },
     ],
     fields: [
-      { key: 'sourceId', label: 'Source ID', type: 'number', required: true }, { key: 'internalName', label: 'Internal Name', type: 'text', required: true },
-      { key: 'nameZh', label: 'Chinese Name / 中文名', type: 'text' }, { key: 'name', label: 'English Name / 展示名', type: 'text', helper: '当前后端结构仍以英文名字段落库，中文名在页面侧优先展示。' }, { key: 'aiStyle', label: 'AI Style', type: 'number' }, { key: 'damage', label: 'Damage', type: 'number' },
-      { key: 'knockBack', label: 'Knockback', type: 'number' }, { key: 'penetrate', label: 'Penetrate', type: 'number' }, { key: 'timeLeft', label: 'Time Left', type: 'number' },
-      { key: 'width', label: 'Width', type: 'number' }, { key: 'height', label: 'Height', type: 'number' }, { key: 'scale', label: 'Scale', type: 'number' },
-      { key: 'friendly', label: 'Friendly', type: 'boolean' }, { key: 'hostile', label: 'Hostile', type: 'boolean' }, { key: 'tileCollide', label: 'Tile Collide', type: 'boolean' },
-      { key: 'status', label: 'Status', type: 'number' },
-      { key: 'rawJson', label: 'Raw JSON Payload', type: 'textarea', span: 'full', rows: 10, format: 'json', helper: '仅保留可直接访问的 imageUrl，避免使用 wiki 文件名回退。' },
+      { key: 'sourceId', label: '源 ID sourceId', type: 'number', required: true }, { key: 'internalName', label: '内部标识 internalName', type: 'text', required: true },
+      { key: 'nameZh', label: '中文名 nameZh', type: 'text' }, { key: 'name', label: '英文名 name', type: 'text', helper: '当前后端结构仍以英文名字段落库，中文名在页面侧优先展示。' }, { key: 'aiStyle', label: 'AI 样式 aiStyle', type: 'number' }, { key: 'damage', label: '伤害 damage', type: 'number' },
+      { key: 'knockBack', label: '击退 knockBack', type: 'number' }, { key: 'penetrate', label: '穿透 penetrate', type: 'number' }, { key: 'timeLeft', label: '持续时间 timeLeft', type: 'number' },
+      { key: 'width', label: '宽度 width', type: 'number' }, { key: 'height', label: '高度 height', type: 'number' }, { key: 'scale', label: '缩放 scale', type: 'number' },
+      { key: 'friendly', label: '友好 friendly', type: 'boolean' }, { key: 'hostile', label: '敌对 hostile', type: 'boolean' }, { key: 'tileCollide', label: '碰撞 tileCollide', type: 'boolean' },
+      { key: 'status', label: '状态 status', type: 'number' },
+      { key: 'rawJson', label: '原始 JSON rawJson', type: 'textarea', span: 'full', rows: 10, format: 'json', helper: '仅保留可直接访问的 imageUrl，避免使用 wiki 文件名回退。' },
     ],
   },
   'armor-sets': {
-    badge: 'SET COMPOSER', title: 'Armor Set 管理', shortLabel: 'Armor Set', fallback: 'AS', endpoint: '/admin/armor-sets', primaryColumn: 'name', secondaryColumn: 'sourceKey',
+    badge: '套装编排', title: 'Armor Set 管理', shortLabel: 'Armor Set', fallback: 'AS', endpoint: '/admin/armor-sets', primaryColumn: 'name', secondaryColumn: 'sourceKey',
     subtitle: '同一条记录同时维护穿戴套装图片与套装加成定义，并展示对应物品图片。',
     searchPlaceholder: '搜索套装名、sourceKey、textKey 或效果描述',
     displayTitleKeys: ['nameZh', 'name', 'textZh', 'textKey', 'sourceKey'],
@@ -2128,24 +2128,24 @@ const configs: Record<string, EntityConfig> = {
       { key: 'primaryPart', label: 'primaryPart' },
     ],
     columns: [
-      { key: '__imageUrl', label: '穿戴主图' }, { key: 'id', label: 'ID' }, { key: 'nameZh', label: '穿戴套装' }, { key: 'textZh', label: '加成定义' }, { key: 'sourceKey', label: 'Source Key' }, { key: 'benefitZh', label: '效果描述' },
+      { key: '__imageUrl', label: '穿戴主图' }, { key: 'id', label: 'ID' }, { key: 'nameZh', label: '穿戴套装' }, { key: 'textZh', label: '加成定义' }, { key: 'sourceKey', label: '来源键 sourceKey' }, { key: 'benefitZh', label: '效果描述' },
       { key: 'compositionKind', label: '套装分类' }, { key: 'setCount', label: '套装数' }, { key: 'uniqueItemCount', label: '唯一物品数' }, { key: 'updatedAt', label: '更新时间' },
     ],
     fields: [
-      { key: 'name', label: 'Wear Set Name', type: 'text' },
-      { key: 'sourceKey', label: 'Source Key', type: 'text', required: true }, { key: 'textKey', label: 'Text Key', type: 'text' },
-      { key: 'benefitExpression', label: 'Benefit Expression', type: 'text', span: 'full' }, { key: 'primaryPart', label: 'Primary Part', type: 'text' },
-      { key: 'setCount', label: 'Set Count', type: 'number' }, { key: 'uniqueItemCount', label: 'Unique Item Count', type: 'number' }, { key: 'status', label: 'Status', type: 'number' },
-      { key: 'maleImages', label: 'Male Wear Images', type: 'textarea', span: 'full', rows: 4, helper: 'CSV，多张穿戴图。' },
-      { key: 'femaleImages', label: 'Female Wear Images', type: 'textarea', span: 'full', rows: 4, helper: 'CSV，多张穿戴图。' },
-      { key: 'specialImages', label: 'Special Wear Images', type: 'textarea', span: 'full', rows: 4, helper: 'CSV，多张特殊图。' },
-      { key: 'currentItemIdsJson', label: 'Current Item IDs JSON', type: 'textarea', span: 'full', rows: 6, format: 'json', helper: '套装部件的数据库 ID 列表，会同步写入 armor_set_items。' },
-      { key: 'setsJson', label: 'Sets JSON', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: 'Nested set combinations grouped by variant.' },
-      { key: 'uniqueItemIdsJson', label: 'Unique Item IDs JSON', type: 'textarea', span: 'full', rows: 6, format: 'json', helper: 'Canonical item list used to build the set.' },
+      { key: 'name', label: '穿戴套装名 name', type: 'text' },
+      { key: 'sourceKey', label: '来源键 sourceKey', type: 'text', required: true }, { key: 'textKey', label: '文本键 textKey', type: 'text' },
+      { key: 'benefitExpression', label: '效果表达式 benefitExpression', type: 'text', span: 'full' }, { key: 'primaryPart', label: '主部件 primaryPart', type: 'text' },
+      { key: 'setCount', label: '套装数 setCount', type: 'number' }, { key: 'uniqueItemCount', label: '唯一物品数 uniqueItemCount', type: 'number' }, { key: 'status', label: '状态 status', type: 'number' },
+      { key: 'maleImages', label: '男性穿戴图 maleImages', type: 'textarea', span: 'full', rows: 4, helper: 'CSV，多张穿戴图。' },
+      { key: 'femaleImages', label: '女性穿戴图 femaleImages', type: 'textarea', span: 'full', rows: 4, helper: 'CSV，多张穿戴图。' },
+      { key: 'specialImages', label: '特殊穿戴图 specialImages', type: 'textarea', span: 'full', rows: 4, helper: 'CSV，多张特殊图。' },
+      { key: 'currentItemIdsJson', label: '当前物品 ID JSON currentItemIdsJson', type: 'textarea', span: 'full', rows: 6, format: 'json', helper: '套装部件的数据库 ID 列表，会同步写入 armor_set_items。' },
+      { key: 'setsJson', label: '套装组合 JSON setsJson', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: '按变体分组的嵌套套装组合。' },
+      { key: 'uniqueItemIdsJson', label: '唯一物品 ID JSON uniqueItemIdsJson', type: 'textarea', span: 'full', rows: 6, format: 'json', helper: '用于构建套装的标准物品列表。' },
     ],
   },
   'world-contexts': {
-    badge: 'WORLD CONTEXT', title: '世界条件管理', shortLabel: 'Context', fallback: 'WC', endpoint: '/admin/world-contexts', primaryColumn: 'nameZh', secondaryColumn: 'code',
+    badge: '世界条件', title: '世界条件管理', shortLabel: '世界条件', fallback: 'WC', endpoint: '/admin/world-contexts', primaryColumn: 'nameZh', secondaryColumn: 'code',
     subtitle: '维护 wiki-backed world states：时间、环境、事件、月相和天气。组合型本地条件词汇已拆到独立入口。',
     searchPlaceholder: '搜索 code、中文名、英文名或说明',
     displayTitleKeys: ['nameZh', 'nameEn', 'code'],
@@ -2176,16 +2176,16 @@ const configs: Record<string, EntityConfig> = {
       { key: 'code', label: 'Code', type: 'text', required: true },
       { key: 'nameZh', label: '中文名', type: 'text' },
       { key: 'nameEn', label: '英文名', type: 'text', required: true },
-      { key: 'contextType', label: 'Context Type', type: 'text', required: true, placeholder: 'ENVIRONMENT / MOON_PHASE' },
-      { key: 'sortOrder', label: 'Sort Order', type: 'number' },
-      { key: 'status', label: 'Status', type: 'number' },
-      { key: 'iconUrl', label: 'Icon URL', type: 'text', span: 'full' },
-      { key: 'description', label: 'Description', type: 'textarea', span: 'full', rows: 6 },
-      { key: 'sourceProvider', label: 'Source Provider', type: 'text' },
-      { key: 'sourcePage', label: 'Source Page', type: 'text' },
-      { key: 'sourceRevisionTimestamp', label: 'Source Revision Timestamp', type: 'text', span: 'full' },
-      { key: 'lastSyncedAt', label: 'Last Synced At', type: 'text', span: 'full' },
-      { key: 'rawJson', label: 'Raw JSON Evidence', type: 'textarea', span: 'full', rows: 10, format: 'json', helper: '保留抓取来源、修订版本、候选片段和转换依据。' },
+      { key: 'contextType', label: '条件类型 contextType', type: 'text', required: true, placeholder: 'ENVIRONMENT / MOON_PHASE' },
+      { key: 'sortOrder', label: '排序 sortOrder', type: 'number' },
+      { key: 'status', label: '状态 status', type: 'number' },
+      { key: 'iconUrl', label: '图标 URL iconUrl', type: 'text', span: 'full' },
+      { key: 'description', label: '描述 description', type: 'textarea', span: 'full', rows: 6 },
+      { key: 'sourceProvider', label: '来源提供方 sourceProvider', type: 'text' },
+      { key: 'sourcePage', label: '来源页 sourcePage', type: 'text' },
+      { key: 'sourceRevisionTimestamp', label: '来源修订时间 sourceRevisionTimestamp', type: 'text', span: 'full' },
+      { key: 'lastSyncedAt', label: '最后同步时间 lastSyncedAt', type: 'text', span: 'full' },
+      { key: 'rawJson', label: '原始 JSON rawJson', type: 'textarea', span: 'full', rows: 10, format: 'json', helper: '保留抓取来源、修订版本、候选片段和转换依据。' },
     ],
   },
   'condition-terms': {
@@ -2197,7 +2197,7 @@ const configs: Record<string, EntityConfig> = {
     referenceFields: [
       { key: 'nameEn', label: '英文名' },
       { key: 'code', label: 'Code' },
-      { key: 'termType', label: 'Term Type' },
+      { key: 'termType', label: '词汇类型 termType' },
       { key: 'sourceProvider', label: '来源提供方' },
       { key: 'sourcePage', label: '来源页面' },
     ],
@@ -2219,13 +2219,13 @@ const configs: Record<string, EntityConfig> = {
       { key: 'code', label: 'Code', type: 'text', required: true },
       { key: 'nameZh', label: '中文名', type: 'text' },
       { key: 'nameEn', label: '英文名', type: 'text', required: true },
-      { key: 'termType', label: 'Term Type', type: 'text', required: true, placeholder: 'MOON_PHASE_RANGE / EVENT_COMPLETED / BOSS_PROGRESS' },
-      { key: 'sortOrder', label: 'Sort Order', type: 'number' },
-      { key: 'status', label: 'Status', type: 'number' },
-      { key: 'sourceProvider', label: 'Source Provider', type: 'text' },
-      { key: 'sourcePage', label: 'Source Page', type: 'text' },
-      { key: 'description', label: 'Description', type: 'textarea', span: 'full', rows: 6 },
-      { key: 'rawJson', label: 'Raw JSON Evidence', type: 'textarea', span: 'full', rows: 10, format: 'json', helper: '记录本地条件词汇定义、归一化依据和人工维护说明。' },
+      { key: 'termType', label: '词汇类型 termType', type: 'text', required: true, placeholder: 'MOON_PHASE_RANGE / EVENT_COMPLETED / BOSS_PROGRESS' },
+      { key: 'sortOrder', label: '排序 sortOrder', type: 'number' },
+      { key: 'status', label: '状态 status', type: 'number' },
+      { key: 'sourceProvider', label: '来源提供方 sourceProvider', type: 'text' },
+      { key: 'sourcePage', label: '来源页 sourcePage', type: 'text' },
+      { key: 'description', label: '描述 description', type: 'textarea', span: 'full', rows: 6 },
+      { key: 'rawJson', label: '原始 JSON rawJson', type: 'textarea', span: 'full', rows: 10, format: 'json', helper: '记录本地条件词汇定义、归一化依据和人工维护说明。' },
     ],
   },
 }
@@ -2828,7 +2828,7 @@ async function fetchRows(page = pagination.page) {
     bossSourceRows.value = []
     pagination.total = 0
     pagination.totalPages = 0
-    showToast(error?.data?.message || error?.message || 'Failed to load data', 'error')
+    showToast(error?.data?.message || error?.message || '加载数据失败', 'error')
   } finally {
     loading.value = false
   }
@@ -2944,7 +2944,7 @@ async function handleSubmit() {
   if (!currentConfig.value) return
   const requiredField = currentConfig.value.fields.find(field => field.required)
   if (requiredField && (form[requiredField.key] == null || String(form[requiredField.key]).trim() === '')) {
-    showToast(`${requiredField.label} is required`, 'warning')
+    showToast(`请填写 ${requiredField.label}`, 'warning')
     return
   }
   submitting.value = true
@@ -2952,15 +2952,15 @@ async function handleSubmit() {
     const payload = buildPayload()
     if (isEdit.value && editingId.value) {
       await put(`${currentConfig.value.endpoint}/${editingId.value}`, payload)
-      showToast('Updated', 'success')
+      showToast('已更新', 'success')
     } else {
       await post(currentConfig.value.endpoint, payload)
-      showToast('Created', 'success')
+      showToast('已创建', 'success')
     }
     dialogVisible.value = false
     await fetchRows(isEdit.value ? pagination.page : 1)
   } catch (error: any) {
-    showToast(error?.data?.message || error?.message || 'Submit failed', 'error')
+    showToast(error?.data?.message || error?.message || '提交失败', 'error')
   } finally {
     submitting.value = false
   }
@@ -2968,13 +2968,13 @@ async function handleSubmit() {
 
 async function handleDelete(row: Record<string, any>) {
   if (!currentConfig.value) return
-  if (!window.confirm(`Confirm delete #${row.id}?`)) return
+  if (!window.confirm(`确认删除 #${row.id}？`)) return
   try {
     await del(`${currentConfig.value.endpoint}/${row.id}`)
-    showToast('Deleted', 'success')
+    showToast('已删除', 'success')
     await fetchRows(pagination.page)
   } catch (error: any) {
-    showToast(error?.data?.message || error?.message || 'Delete failed', 'error')
+    showToast(error?.data?.message || error?.message || '删除失败', 'error')
   }
 }
 
@@ -3100,7 +3100,7 @@ function formatStatusLabel(statusValue: unknown) {
 }
 
 function formatCell(row: Record<string, any>, key: string) {
-  if (key === '__imageUrl') return row.__imageUrl ? 'Preview available' : '--'
+  if (key === '__imageUrl') return row.__imageUrl ? '可预览' : '--'
   if (key === 'bossType') return getBossTypeLabel(row[key])
   if (key === 'compositionKind') return getArmorSetCompositionKindLabel(row[key])
   if (entityType.value === 'biomes' && key === 'wikiCategoryPathZh') return getBiomeWikiCategoryPath(row)
@@ -3217,8 +3217,8 @@ function fieldClass(field: FieldConfig) { return field.span === 'full' ? 'field-
 function isJsonField(field: FieldConfig) { return field.format === 'json' }
 function formatJsonField(key: string) {
   const value = form[key]
-  if (typeof value !== 'string' || !value.trim()) { showToast('No JSON content to format', 'warning'); return }
-  try { form[key] = JSON.stringify(JSON.parse(value), null, 2); showToast('JSON formatted', 'success') } catch { showToast('Invalid JSON, unable to format', 'error') }
+  if (typeof value !== 'string' || !value.trim()) { showToast('没有可格式化的 JSON 内容', 'warning'); return }
+  try { form[key] = JSON.stringify(JSON.parse(value), null, 2); showToast('JSON 已格式化', 'success') } catch { showToast('JSON 格式无效，无法格式化', 'error') }
 }
 
 const previewRow = computed<Record<string, any>>(() => {
@@ -3273,9 +3273,9 @@ const armorSetEffectRows = computed(() => {
   return [
     { label: '中文效果', value: detailRow.value.benefitZh },
     { label: '英文效果', value: detailRow.value.benefitEn },
-    { label: 'Benefit Expression', value: detailRow.value.benefitExpression },
-    { label: 'Primary Part', value: detailRow.value.primaryPart },
-    { label: 'Mapping Status', value: detailRow.value.definitionMappingStatus },
+    { label: '效果表达式 benefitExpression', value: detailRow.value.benefitExpression },
+    { label: '主部件 primaryPart', value: detailRow.value.primaryPart },
+    { label: '映射状态 definitionMappingStatus', value: detailRow.value.definitionMappingStatus },
   ].filter(row => typeof row.value === 'string' && row.value.trim()).map(row => ({ label: row.label, value: String(row.value).trim() }))
 })
 const armorSetVariantRows = computed(() => {
@@ -3542,11 +3542,11 @@ function normalizeBiomeResourceCard(resource: Record<string, any>, index: number
     raw.internalName,
   ) || `资源 ${index + 1}`
   const subtitle = pickFirstString(raw.itemInternalName, raw.internalName, formatBiomeSourceTypeLabel(raw.resourceType), raw.category, raw.resourceNameRaw)
-    || (raw.itemId != null ? `Item ID ${raw.itemId}` : 'Raw resource fallback')
+    || (raw.itemId != null ? `物品 ID ${raw.itemId}` : '原始资源回退')
   const meta = [
     raw.resourceType ? `类型 ${formatBiomeSourceTypeLabel(raw.resourceType)}` : '',
-    raw.itemId != null ? `Item ID ${raw.itemId}` : '',
-    raw.sourceItemId != null ? `Source ID ${raw.sourceItemId}` : '',
+    raw.itemId != null ? `物品 ID ${raw.itemId}` : '',
+    raw.sourceItemId != null ? `来源 ID ${raw.sourceItemId}` : '',
     raw.rarity ? `稀有度 ${raw.rarity}` : '',
     raw.note || raw.notes ? String(raw.note || raw.notes) : '',
   ].filter(Boolean)
@@ -3615,9 +3615,9 @@ function normalizeBiomeItemSourceCard(source: Record<string, any>, index: number
   const sourceRefTypeLabel = formatBiomeSourceRefTypeLabel(raw.sourceRefType)
   const sourceRefNameLabel = formatBiomeSourceRefNameLabel(raw.sourceRefName)
   const title = pickFirstString(raw.itemNameZh, raw.itemName, raw.itemInternalName)
-    || (raw.itemId != null ? `Item ID ${raw.itemId}` : `来源证据 ${index + 1}`)
+    || (raw.itemId != null ? `物品 ID ${raw.itemId}` : `来源证据 ${index + 1}`)
   const subtitle = pickFirstString(sourceRefNameLabel, sourceTypeLabel, raw.itemInternalName)
-    || (raw.itemId != null ? `Item ID ${raw.itemId}` : 'Source evidence')
+    || (raw.itemId != null ? `物品 ID ${raw.itemId}` : '来源证据')
   const meta = [
     raw.sourceType ? `类型 ${sourceTypeLabel}` : '',
     raw.sourceRefType ? `证据 ${sourceRefTypeLabel}` : '',
@@ -3866,17 +3866,17 @@ function formatNpcBuffRelationType(entry: Record<string, any>) {
 
 function getProjectileSourceItemMeta(item: Record<string, any>) {
   return [
-    formatSourceMeta('Item ID', item.itemId ?? item.sourceItemId),
-    formatSourceMeta('DB ID', item.id),
-    formatSourceMeta('Source ID', item.sourceId),
+    formatSourceMeta('物品 ID', item.itemId ?? item.sourceItemId),
+    formatSourceMeta('数据库 ID', item.id),
+    formatSourceMeta('来源 ID', item.sourceId),
   ].filter(Boolean)
 }
 
 function getProjectileSourceNpcMeta(npc: Record<string, any>) {
   return [
     formatSourceMeta('NPC ID', npc.npcId ?? npc.gameId ?? npc.sourceId),
-    formatSourceMeta('DB ID', npc.id),
-    formatSourceMeta('Type', npc.npcType),
+    formatSourceMeta('数据库 ID', npc.id),
+    formatSourceMeta('类型', npc.npcType),
   ].filter(Boolean)
 }
 const detailSourceItems = computed(() => {
@@ -3936,13 +3936,13 @@ const detailBuffSourceJsonBlocks = computed(() => {
   return [
     {
       key: 'sourceItemsJson',
-      label: 'Source Items JSON',
+      label: '来源物品 JSON sourceItemsJson',
       summary: `${detailSourceItems.value.length} items`,
       raw: detailRow.value.sourceItemsJson || JSON.stringify(detailRow.value.sourceItems || []),
     },
     {
       key: 'immuneNpcSampleJson',
-      label: 'Immune NPC Sample JSON',
+      label: '免疫 NPC 样例 JSON immuneNpcSampleJson',
       summary: `${detailImmuneNpcSamples.value.length} items`,
       raw: detailRow.value.immuneNpcSampleJson || JSON.stringify(detailRow.value.immuneNpcs || []),
     },
@@ -4194,7 +4194,7 @@ const npcAdvancedSectionHelper = computed(() => {
   if (!npcAdvancedDetails.value.hasContent) {
     return '当前没有可展示的 Wiki 扩展属性。'
   }
-  return '这里展示的是从 Raw JSON 的 extras/combat/economy 派生出的高级属性，标签采用“友好标签 + 原键名”的保守方式，便于和 Wiki 对照。'
+  return '这里展示的是从原始 JSON rawJson 的 extras/combat/economy 派生出的高级属性，标签采用“友好标签 + 原键名”的保守方式，便于和 Wiki 对照。'
 })
 const npcLootSectionHelper = computed(() => {
   if (!detailRow.value || entityType.value !== 'npcs') return ''
@@ -4290,7 +4290,7 @@ const bossSummonContractEmpty = computed(() => {
 const bossLootOwnerLabel = computed(() => {
   if (!bossLootOwner.value) return '--'
   const title = [bossLootOwner.value.nameZh || bossLootOwner.value.name || bossLootOwner.value.internalName || '--']
-  const meta = [bossLootOwner.value.internalName, bossLootOwner.value.gameId != null ? `Game ID ${bossLootOwner.value.gameId}` : '']
+  const meta = [bossLootOwner.value.internalName, bossLootOwner.value.gameId != null ? `游戏 ID ${bossLootOwner.value.gameId}` : '']
     .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
   return meta.length ? `${title[0]} · ${meta.join(' · ')}` : title[0]
 })
@@ -4382,7 +4382,7 @@ const previewStats = computed(() => {
     { label: '伤害', value: previewRow.value.damage ? String(previewRow.value.damage) : '--' },
     { label: '防御', value: previewRow.value.defense ? String(previewRow.value.defense) : '--' },
     { label: '生命', value: previewRow.value.lifeMax ? String(previewRow.value.lifeMax) : '--' },
-    { label: 'AI Style', value: previewRow.value.aiStyle ? String(previewRow.value.aiStyle) : '--' },
+    { label: 'AI 样式 aiStyle', value: previewRow.value.aiStyle ? String(previewRow.value.aiStyle) : '--' },
   ]
   if (entityType.value === 'projectiles') return [
     { label: '中文名', value: getProjectileNameZh(previewRow.value) || '--' },
@@ -4390,7 +4390,7 @@ const previewStats = computed(() => {
     { label: '伤害', value: previewRow.value.damage != null ? String(previewRow.value.damage) : '--' },
     { label: '穿透', value: previewRow.value.penetrate != null ? String(previewRow.value.penetrate) : '--' },
     { label: '持续', value: previewRow.value.timeLeft != null ? String(previewRow.value.timeLeft) : '--' },
-    { label: 'AI Style', value: previewRow.value.aiStyle != null ? String(previewRow.value.aiStyle) : '--' },
+    { label: 'AI 样式 aiStyle', value: previewRow.value.aiStyle != null ? String(previewRow.value.aiStyle) : '--' },
   ]
   if (entityType.value === 'biomes') return [
     { label: 'Code', value: previewRow.value.code || '--' },
@@ -4427,12 +4427,12 @@ const previewStats = computed(() => {
 const previewNotes = computed(() => {
   const entries = [
     ['召唤方式', entityType.value === 'bosses' ? getBossSummonMethod(previewRow.value) : ''],
-    ['Boss Notes', entityType.value === 'bosses' ? previewRow.value.notes : ''],
+    ['Boss 备注', entityType.value === 'bosses' ? previewRow.value.notes : ''],
     ['中文名', entityType.value === 'projectiles' ? getProjectileNameZh(previewRow.value) : ''],
-    ['English Name', entityType.value === 'projectiles' ? getProjectileNameEn(previewRow.value) : ''],
+    ['英文名', entityType.value === 'projectiles' ? getProjectileNameEn(previewRow.value) : ''],
     ['英文提示', previewRow.value.tooltipEn],
     ['中文提示', previewRow.value.tooltipZh],
-    ['Buff Immune', previewRow.value.buffImmune],
+    ['Buff 免疫', previewRow.value.buffImmune],
     ['效果描述', previewRow.value.benefitExpression],
     ['英文效果定义', previewRow.value.benefitEn],
     ['条件描述', entityType.value === 'world-contexts' ? previewRow.value.description : ''],
@@ -4446,7 +4446,7 @@ const jsonPreviewBlocks = computed(() => [...advancedFields.value, ...coreFields
   .map(field => {
     const raw = String(form[field.key]).trim()
     const parsed = tryParseJson(raw)
-    const summary = Array.isArray(parsed) ? `${parsed.length} items` : parsed && typeof parsed === 'object' ? `${Object.keys(parsed).length} keys` : 'Invalid JSON'
+    const summary = Array.isArray(parsed) ? `${parsed.length} items` : parsed && typeof parsed === 'object' ? `${Object.keys(parsed).length} keys` : 'JSON 格式无效'
     return { label: field.label, summary, preview: raw.split('\n').slice(0, 8).join('\n') }
   }))
 const projectileBehaviorNotes = computed(() => {
@@ -4456,7 +4456,7 @@ const projectileBehaviorNotes = computed(() => {
     { label: '敌对判定', value: formatBooleanLabel(detailRow.value.hostile, '敌对 / Hostile', '否') },
     { label: '地形碰撞', value: formatBooleanLabel(detailRow.value.tileCollide, '开启 / On', '关闭 / Off') },
     { label: '穿透', value: detailRow.value.penetrate != null ? String(detailRow.value.penetrate) : '--' },
-    { label: 'AI Style', value: detailRow.value.aiStyle != null ? String(detailRow.value.aiStyle) : '--' },
+    { label: 'AI 样式 aiStyle', value: detailRow.value.aiStyle != null ? String(detailRow.value.aiStyle) : '--' },
     { label: '更新时间', value: formatDateTime(detailRow.value.updatedAt) },
   ]
 })
@@ -4479,7 +4479,7 @@ const projectileDetailSummary = computed(() => {
   const zh = getProjectileNameZh(detailRow.value)
   const en = getProjectileNameEn(detailRow.value)
   const size = detailRow.value.width && detailRow.value.height ? `${detailRow.value.width} × ${detailRow.value.height}` : '--'
-  return `${zh || '中文名待补充'} / ${en}，AI Style ${detailRow.value.aiStyle ?? '--'}，尺寸 ${size}，用于快速核对中英命名与行为参数。`
+  return `${zh || '中文名待补充'} / ${en}，AI 样式 aiStyle ${detailRow.value.aiStyle ?? '--'}，尺寸 ${size}，用于快速核对中英命名与行为参数。`
 })
 
 watch(() => entityType.value, async () => {

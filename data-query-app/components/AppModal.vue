@@ -12,7 +12,7 @@
         <div class="app-modal" :style="{ width, maxHeight }">
           <div class="app-modal__header">
             <div class="app-modal__heading">
-              <span class="app-modal__eyebrow">Workspace</span>
+              <span class="app-modal__eyebrow">工作台</span>
               <h2 :id="titleId" class="app-modal__title">{{ title }}</h2>
             </div>
             <button
