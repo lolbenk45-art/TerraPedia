@@ -567,20 +567,6 @@ const collectSelectedReferences = (range: Range) => {
   return Array.from(references)
 }
 
-const isMultiBlockEditorRange = (range: Range) => {
-  const editor = editorRef.value
-  if (!editor) return false
-  const blocks = new Set<Element>()
-  for (const block of Array.from(editor.querySelectorAll('p,h1,h2,h3,h4,blockquote,li,figcaption'))) {
-    try {
-      if (range.intersectsNode(block)) blocks.add(block)
-    } catch {
-      continue
-    }
-  }
-  return blocks.size > 1
-}
-
 const applyInlineStyleToSelection = () => {
   if (props.disabled) return
   const editor = editorRef.value
@@ -618,29 +604,15 @@ const applyInlineStyleToSelection = () => {
     return
   }
 
-  if (isMultiBlockEditorRange(range)) {
-    applyUserArticleInlineStyleToRange({
-      editor,
-      range,
-      fontSizePx: fontSizePx.value,
-      textColor: textColorValue.value,
-    })
-    saveSelection()
-    return
-  }
-
-  const span = document.createElement('span')
-  setInlineStyle(span)
-  const contents = range.extractContents()
-  span.appendChild(contents)
-  range.insertNode(span)
-  for (const reference of Array.from(span.querySelectorAll<HTMLElement>('.tp-content-ref'))) {
-    applyInlineStyleToReference(reference)
-  }
+  applyUserArticleInlineStyleToRange({
+    editor,
+    range,
+    fontSizePx: fontSizePx.value,
+    textColor: textColorValue.value,
+  })
   for (const reference of selectedReferences) {
     if (editor.contains(reference)) applyInlineStyleToReference(reference)
   }
-  setCaretAtEnd(span)
   saveSelection()
 }
 

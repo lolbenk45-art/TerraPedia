@@ -33,7 +33,9 @@ if (!editorComponentSource.includes('@dragend="handleEditorDragEnd"')) throw new
 if (!editorComponentSource.includes('handleReferenceDrop')) throw new Error('editor drop path must move reference atoms before file drops')
 if (!editorComponentSource.includes('collectSelectedReferences')) throw new Error('editor inline styling must include selected content references')
 if (!editorComponentSource.includes('applyInlineStyleToReference')) throw new Error('editor inline styling must apply font size and color to content references')
-if (!editorComponentSource.includes('applyUserArticleInlineStyleToRange')) throw new Error('editor must use range-level inline styling for multi-block selections')
+if (!editorComponentSource.includes('applyUserArticleInlineStyleToRange')) throw new Error('editor must use range-level inline styling for selected content')
+if (editorComponentSource.includes('isMultiBlockEditorRange(range)')) throw new Error('editor must not limit range-level inline styling to multi-block selections')
+if (editorComponentSource.includes('range.extractContents()')) throw new Error('editor inline styling must not wrap selected styled spans in an outer span')
 if (!editorComponentSource.includes('width: 1.875em')) throw new Error('editor reference image size must scale with font size')
 
 writeFileSync(htmlPath, `<!doctype html>
@@ -364,6 +366,28 @@ writeFileSync(htmlPath, `<!doctype html>
         }
         for (const paragraph of Array.from(editor.querySelectorAll('p'))) {
           assert(/font-size:\\s*18px/.test(paragraph.getAttribute('style') || ''), 'selected paragraph should receive unified font size for bare text');
+        }
+
+        editor.innerHTML = '<p>FW<span style="font-size:16px;color:rgb(34, 197, 94)">FWFWFW状态：</span>' + referenceHtml + '干<span style="font-size:16px;color:rgb(125, 211, 252)">净，基于本地 m</span>ain</p>';
+        const mixedParagraph = editor.querySelector('p');
+        const singleRange = document.createRange();
+        singleRange.selectNodeContents(mixedParagraph);
+        selection.removeAllRanges();
+        selection.addRange(singleRange);
+        applyUserArticleInlineStyleToRange({
+          editor,
+          range: singleRange,
+          fontSizePx: 22,
+          textColor: '#ffd765',
+        });
+        const singleStyledHtml = editor.innerHTML.toLowerCase();
+        assert(!singleStyledHtml.includes('rgb(34, 197, 94)'), 'single-block selection should replace stale green inline color');
+        assert(!singleStyledHtml.includes('rgb(125, 211, 252)'), 'single-block selection should replace stale blue inline color');
+        assert(!singleStyledHtml.includes('font-size:16px'), 'single-block selection should replace stale inline font size');
+        assert(/color:\\s*rgb\\(255,\\s*215,\\s*101\\)|color:\\s*#ffd765/.test(singleStyledHtml), 'single-block selection should apply unified selected color');
+        for (const reference of Array.from(editor.querySelectorAll('.tp-content-ref'))) {
+          assert(reference.style.fontSize === '22px', 'single-block selected reference should receive unified font size');
+          assert(reference.style.color === 'rgb(255, 215, 101)' || reference.style.color === '#ffd765', 'single-block selected reference should receive unified color');
         }
 
         document.querySelector('#result').textContent = 'PASS';
