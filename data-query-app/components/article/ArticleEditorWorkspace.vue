@@ -611,15 +611,18 @@ const setupReadyText = computed(() => {
 
 <style scoped>
 .editor-page {
-  --editor-paper: #ffffff;
-  --editor-paper-soft: #f8fafc;
-  --editor-paper-muted: #f1f5f9;
-  --editor-ink: #111827;
-  --editor-ink-muted: #475569;
-  --editor-border: #d7dee8;
-  --editor-border-strong: #b6c2d2;
-  --editor-accent: #0f766e;
-  --editor-accent-soft: #e6fffb;
+  --editor-paper: var(--color-surface-2);
+  --editor-paper-soft: color-mix(in srgb, var(--color-bg-secondary) 88%, var(--color-bg));
+  --editor-paper-muted: var(--color-bg-tertiary);
+  --editor-rail: color-mix(in srgb, var(--color-bg-tertiary) 78%, var(--color-bg));
+  --editor-ink: var(--color-text);
+  --editor-ink-muted: var(--color-text-secondary);
+  --editor-border: color-mix(in srgb, var(--color-border) 92%, transparent);
+  --editor-border-strong: color-mix(in srgb, var(--color-border) 82%, var(--color-text-muted));
+  --editor-accent: var(--color-primary);
+  --editor-accent-soft: color-mix(in srgb, var(--color-primary) 11%, var(--color-bg-secondary));
+  --editor-warning-soft: color-mix(in srgb, var(--color-warning) 14%, var(--color-bg-secondary));
+  --editor-danger-soft: color-mix(in srgb, var(--color-danger) 12%, var(--color-bg-secondary));
 
   display: grid;
   gap: 20px;
@@ -639,7 +642,7 @@ const setupReadyText = computed(() => {
   border: 1px solid var(--editor-border);
   border-radius: 14px;
   background: var(--editor-paper);
-  box-shadow: 0 10px 24px -20px rgba(15, 23, 42, 0.24);
+  box-shadow: var(--shadow-surface-1);
 }
 
 .editor-loading__card {
@@ -674,9 +677,9 @@ const setupReadyText = computed(() => {
   padding: 14px 16px;
   border: 1px solid var(--editor-border);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.96);
+  background: color-mix(in srgb, var(--color-bg-elevated) 94%, transparent);
   backdrop-filter: blur(10px);
-  box-shadow: 0 10px 24px -20px rgba(15, 23, 42, 0.28);
+  box-shadow: var(--shadow-surface-1);
 }
 
 .editor-workbar__identity,
@@ -738,13 +741,13 @@ const setupReadyText = computed(() => {
 }
 
 .status-pill--warning {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--editor-warning-soft);
+  color: var(--color-warning);
 }
 
 .status-pill--danger {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--editor-danger-soft);
+  color: var(--color-danger);
 }
 
 .ghost-btn,
@@ -771,7 +774,7 @@ const setupReadyText = computed(() => {
   padding: 10px 16px;
   border-color: transparent;
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
-  color: #fff;
+  color: var(--color-text-inverse);
   box-shadow: 0 12px 24px color-mix(in srgb, var(--color-primary) 28%, transparent);
 }
 
@@ -799,8 +802,8 @@ const setupReadyText = computed(() => {
 }
 
 .readonly-banner {
-  color: #92400e;
-  background: #fff7ed;
+  color: var(--color-warning);
+  background: var(--editor-warning-soft);
 }
 
 .editor-shell {
@@ -831,7 +834,7 @@ const setupReadyText = computed(() => {
   align-content: start;
   overflow: hidden;
   padding: 0;
-  background: #eef2f7;
+  background: var(--editor-rail);
 }
 
 .document-paper-rail {
@@ -1034,7 +1037,7 @@ const setupReadyText = computed(() => {
   height: 12px;
   margin-top: 6px;
   border-radius: 999px;
-  background: #d6d3d1;
+  background: color-mix(in srgb, var(--color-text-muted) 36%, var(--color-bg-tertiary));
 }
 
 .checklist__dot--done {
@@ -1052,7 +1055,7 @@ const setupReadyText = computed(() => {
   border: 1px solid var(--editor-border);
   border-radius: 0;
   background: var(--editor-paper-soft);
-  box-shadow: inset 0 -1px 0 rgba(15, 23, 42, 0.04);
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--color-border) 60%, transparent);
 }
 
 .document-toolbar-band {
@@ -1107,8 +1110,8 @@ const setupReadyText = computed(() => {
   top: 50%;
   width: 7px;
   height: 7px;
-  border-right: 1.5px solid color-mix(in srgb, var(--color-text-secondary) 82%, white 10%);
-  border-bottom: 1.5px solid color-mix(in srgb, var(--color-text-secondary) 82%, white 10%);
+  border-right: 1.5px solid color-mix(in srgb, var(--color-text-secondary) 82%, transparent);
+  border-bottom: 1.5px solid color-mix(in srgb, var(--color-text-secondary) 82%, transparent);
   transform: translateY(-62%) rotate(45deg);
   pointer-events: none;
 }
@@ -1126,7 +1129,7 @@ const setupReadyText = computed(() => {
   font-weight: 600;
   line-height: 1;
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.02);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border) 40%, transparent);
 }
 
 .toolbar-select-wrap--style .toolbar-select {
@@ -1279,7 +1282,7 @@ const setupReadyText = computed(() => {
   overflow-wrap: anywhere;
   word-break: break-word;
   outline: none;
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.02);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border) 40%, transparent);
 }
 
 .rich-editor :deep(p),
@@ -1488,7 +1491,7 @@ const setupReadyText = computed(() => {
   margin: 0 auto;
   border-radius: 18px;
   overflow: hidden;
-  background: #111827;
+  background: var(--color-bg-sidebar);
   position: relative;
   touch-action: none;
   cursor: grab;
