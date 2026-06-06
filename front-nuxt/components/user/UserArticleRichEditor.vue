@@ -26,13 +26,16 @@ import { searchPublicContentReferences } from '~/composables/usePublicContentRef
 const props = withDefaults(defineProps<{
   modelValue: string
   disabled?: boolean
+  referencePanelTarget?: string
 }>(), {
   disabled: false,
+  referencePanelTarget: '',
 })
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
   error: [message: string]
+  referencePanelOpen: []
 }>()
 
 const editorRef = ref<HTMLDivElement | null>(null)
@@ -810,6 +813,7 @@ const openReferenceMenu = () => {
   if (props.disabled) return
   saveSelection()
   referenceMenuOpen.value = true
+  emit('referencePanelOpen')
   colorMenuOpen.value = false
   linkMenuOpen.value = false
   if (!referenceSearchLoading.value && !referenceSearchResults.value.length) void runReferenceSearch()
@@ -1479,74 +1483,28 @@ onBeforeUnmount(() => {
       </div>
       <button type="button" title="插入图片" :disabled="disabled || uploading" @click="openImagePicker">{{ uploading ? '上传中' : '图片' }}</button>
       <input ref="imageInputRef" class="user-rich-editor__file" type="file" accept="image/*" multiple @change="handleImageSelected">
-    </div>
-
-    <div class="user-rich-editor__insert-bar" aria-label="插入内容">
-      <div class="user-rich-editor__reference-menu">
-        <button
-          type="button"
-          class="user-rich-editor__reference-fab"
-          title="插入资料引用"
-          aria-label="插入资料引用"
-          :aria-expanded="referenceMenuOpen"
-          :disabled="disabled"
-          @mousedown.prevent="saveSelection"
-          @click="openReferenceMenu"
+      <button
+        type="button"
+        class="user-rich-editor__reference-fab"
+        title="插入资料引用"
+        aria-label="插入资料引用"
+        :aria-expanded="referenceMenuOpen"
+        :disabled="disabled"
+        @mousedown.prevent="saveSelection"
+        @click="openReferenceMenu"
+      >
+        <img
+          v-if="!pickaxeImageFailed"
+          :src="IRON_PICKAXE_REFERENCE_IMAGE"
+          alt=""
+          loading="lazy"
+          decoding="async"
+          aria-hidden="true"
+          @error="pickaxeImageFailed = true"
         >
-          <img
-            v-if="!pickaxeImageFailed"
-            :src="IRON_PICKAXE_REFERENCE_IMAGE"
-            alt=""
-            loading="lazy"
-            decoding="async"
-            aria-hidden="true"
-            @error="pickaxeImageFailed = true"
-          >
-          <span v-else class="user-rich-editor__reference-icon-fallback" aria-hidden="true">镐</span>
-          <span class="user-rich-editor__reference-fab-label">资料引用</span>
-        </button>
-        <div v-if="referenceMenuOpen" class="user-rich-editor__reference-popover" role="dialog" aria-label="资料引用">
-          <div class="user-rich-editor__reference-tabs" role="tablist">
-            <button type="button" :class="{ active: referenceSearchType === 'all' }" @click="referenceSearchType = 'all'">全部</button>
-            <button type="button" :class="{ active: referenceSearchType === 'item' }" @click="referenceSearchType = 'item'">物品</button>
-            <button type="button" :class="{ active: referenceSearchType === 'npc' }" @click="referenceSearchType = 'npc'">NPC</button>
-          </div>
-          <div class="user-rich-editor__reference-display" role="group" aria-label="引用显示方式">
-            <span>显示</span>
-            <button type="button" :class="{ active: referenceDisplayMode === 'image' }" @click="referenceDisplayMode = 'image'">图片</button>
-            <button type="button" :class="{ active: referenceDisplayMode === 'text' }" @click="referenceDisplayMode = 'text'">文字</button>
-          </div>
-          <input
-            v-model="referenceSearchText"
-            type="search"
-            placeholder="搜索物品或 NPC"
-            :disabled="disabled"
-            @keydown.enter.prevent="runReferenceSearch"
-          >
-          <div class="user-rich-editor__reference-results">
-            <button
-              v-for="reference in referenceSearchResults"
-              :key="reference.key"
-              type="button"
-              class="user-rich-editor__reference-result"
-              @click="insertContentReference(reference)"
-            >
-              <span class="user-rich-editor__reference-thumb">
-                <img v-if="reference.imageUrl" :src="reference.imageUrl" :alt="reference.label" loading="lazy" decoding="async">
-                <span v-else>{{ reference.label.slice(0, 1) }}</span>
-              </span>
-              <span class="user-rich-editor__reference-copy">
-                <strong>{{ reference.label }}</strong>
-                <small>{{ reference.summary || reference.categoryName || reference.type }}</small>
-              </span>
-            </button>
-            <p v-if="referenceSearchLoading">搜索中...</p>
-            <p v-else-if="referenceSearchError">{{ referenceSearchError }}</p>
-            <p v-else-if="!referenceSearchResults.length">{{ referenceSearchText ? '没有找到可引用数据。' : '暂无可引用数据。' }}</p>
-          </div>
-          <button type="button" :disabled="disabled" @click="closeReferenceMenu">关闭</button>
-        </div>
-      </div>
+        <span v-else class="user-rich-editor__reference-icon-fallback" aria-hidden="true">镐</span>
+        <span class="user-rich-editor__reference-fab-label">资料引用</span>
+      </button>
     </div>
 
     <div class="user-rich-editor__stage">
@@ -1631,6 +1589,53 @@ onBeforeUnmount(() => {
       <span>图片 {{ imageCount }}</span>
     </div>
   </section>
+
+  <Teleport v-if="referencePanelTarget" :to="referencePanelTarget" defer>
+    <div v-if="referenceMenuOpen" class="user-rich-editor__reference-menu" aria-label="资料引用外部面板">
+      <div class="user-rich-editor__reference-popover" role="dialog" aria-label="资料引用">
+        <div class="user-rich-editor__reference-tabs" role="tablist">
+          <button type="button" :class="{ active: referenceSearchType === 'all' }" @click="referenceSearchType = 'all'">全部</button>
+          <button type="button" :class="{ active: referenceSearchType === 'item' }" @click="referenceSearchType = 'item'">物品</button>
+          <button type="button" :class="{ active: referenceSearchType === 'npc' }" @click="referenceSearchType = 'npc'">NPC</button>
+        </div>
+        <div class="user-rich-editor__reference-display" role="group" aria-label="引用显示方式">
+          <span>显示</span>
+          <button type="button" :class="{ active: referenceDisplayMode === 'image' }" @click="referenceDisplayMode = 'image'">图片</button>
+          <button type="button" :class="{ active: referenceDisplayMode === 'text' }" @click="referenceDisplayMode = 'text'">文字</button>
+        </div>
+        <input
+          v-model="referenceSearchText"
+          type="search"
+          placeholder="搜索物品或 NPC"
+          :disabled="disabled"
+          @keydown.enter.prevent="runReferenceSearch"
+        >
+        <div class="user-rich-editor__reference-results">
+          <button
+            v-for="reference in referenceSearchResults"
+            :key="reference.key"
+            type="button"
+            class="user-rich-editor__reference-result"
+            @mousedown.prevent
+            @click="insertContentReference(reference)"
+          >
+            <span class="user-rich-editor__reference-thumb">
+              <img v-if="reference.imageUrl" :src="reference.imageUrl" :alt="reference.label" loading="lazy" decoding="async">
+              <span v-else>{{ reference.label.slice(0, 1) }}</span>
+            </span>
+            <span class="user-rich-editor__reference-copy">
+              <strong>{{ reference.label }}</strong>
+              <small>{{ reference.summary || reference.categoryName || reference.type }}</small>
+            </span>
+          </button>
+          <p v-if="referenceSearchLoading">搜索中...</p>
+          <p v-else-if="referenceSearchError">{{ referenceSearchError }}</p>
+          <p v-else-if="!referenceSearchResults.length">{{ referenceSearchText ? '没有找到可引用数据。' : '暂无可引用数据。' }}</p>
+        </div>
+        <button type="button" :disabled="disabled" @click="closeReferenceMenu">关闭</button>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -1969,16 +1974,6 @@ onBeforeUnmount(() => {
   display: none;
 }
 
-.user-rich-editor__insert-bar {
-  display: grid;
-  justify-items: end;
-  gap: 10px;
-  padding: 10px 12px;
-  border-right: 1px solid color-mix(in srgb, var(--index-line) 42%, transparent);
-  border-left: 1px solid color-mix(in srgb, var(--index-line) 42%, transparent);
-  background: color-mix(in srgb, var(--index-surface) 82%, transparent);
-}
-
 .user-rich-editor__stage {
   position: relative;
   isolation: isolate;
@@ -1987,6 +1982,7 @@ onBeforeUnmount(() => {
 .user-rich-editor__surface {
   min-height: 380px;
   padding: 22px;
+  border-top: 1px solid color-mix(in srgb, var(--index-line) 42%, transparent);
   border-right: 1px solid color-mix(in srgb, var(--index-line) 42%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--index-line) 42%, transparent);
   border-left: 1px solid color-mix(in srgb, var(--index-line) 42%, transparent);
@@ -2002,7 +1998,7 @@ onBeforeUnmount(() => {
   position: relative;
   z-index: 20;
   display: grid;
-  justify-items: end;
+  justify-items: stretch;
   width: 100%;
 }
 
@@ -2322,10 +2318,6 @@ onBeforeUnmount(() => {
   .user-rich-editor__surface {
     min-height: 320px;
     padding: 16px;
-  }
-
-  .user-rich-editor__insert-bar {
-    padding: 10px;
   }
 
   .user-rich-editor__reference-fab {
