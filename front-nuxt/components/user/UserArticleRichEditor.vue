@@ -891,7 +891,6 @@ const insertContentReference = (reference: NormalizedContentReference) => {
   range.insertNode(node)
   node.after(trailingSpace)
   setCaretAfterNode(trailingSpace)
-  closeReferenceMenu()
   emitEditorValue()
 }
 
