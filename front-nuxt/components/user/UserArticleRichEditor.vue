@@ -5,6 +5,7 @@ import {
   buildUserArticleInlineStyle,
   buildUserArticleReferenceHtml,
   buildUserArticleTypingSpanHtml,
+  createUserArticleEditorHistory,
   applyUserArticleInlineStyleToSelectedRange,
   isSafeUserArticleReferenceElement,
   isSafeUserArticleLinkHref,
@@ -58,6 +59,10 @@ const selectedImage = ref<HTMLImageElement | null>(null)
 const selectedImageWidth = ref('100')
 const selectedImageAlign = ref('center')
 const selectedImageAlt = ref('')
+const canUndoHistory = ref(false)
+const canRedoHistory = ref(false)
+const isRestoringHistory = ref(false)
+const pickaxeImageFailed = ref(false)
 
 const fontSizeOptions = [14, 16, 18, 20, 24, 28]
 const lineHeightOptions = [
@@ -79,10 +84,13 @@ const textColorPresets = [
   { value: '#c4b5fd', label: '紫色' },
 ]
 const BLOCK_SELECTOR = 'p,h2,h3,h4,blockquote,li'
+const IRON_PICKAXE_REFERENCE_IMAGE = '/terrapedia-images/items/wiki/item-images/2f/2f394ee0d8c4d96e83b933355bfd93d65f101c4b-iron-pickaxe-png.png'
 let referenceSearchTimer: ReturnType<typeof setTimeout> | null = null
 let referenceSearchSequence = 0
 let draggedReferenceElement: HTMLElement | null = null
+let lastEmittedEditorHtml = ''
 const REFERENCE_DRAG_MIME = 'application/x-terrapedia-reference'
+const editorHistory = createUserArticleEditorHistory('', { limit: 80 })
 
 const allowedEditorTags = new Set([
   'p', 'br', 'hr', 'h2', 'h3', 'h4',
@@ -346,10 +354,19 @@ const sanitizeEditorHtml = (value: string) => {
   return root.innerHTML.trim()
 }
 
+const updateHistoryButtons = () => {
+  canUndoHistory.value = editorHistory.canUndo()
+  canRedoHistory.value = editorHistory.canRedo()
+}
+
 const emitEditorValue = () => {
-  if (syncingFromModel.value) return
+  if (syncingFromModel.value || isRestoringHistory.value) return
   const editor = editorRef.value
   if (!editor) return
+  const nextHtml = sanitizeEditorHtml(editor.innerHTML)
+  editorHistory.commit(nextHtml)
+  updateHistoryButtons()
+  lastEmittedEditorHtml = nextHtml
   emit('update:modelValue', sanitizeEditorHtml(editor.innerHTML))
 }
 
@@ -358,11 +375,23 @@ const syncEditorFromModel = async () => {
   const editor = editorRef.value
   if (!editor) return
   const nextHtml = sanitizeUserArticleEditorLoadedHtml(props.modelValue || '<p><br></p>') || '<p><br></p>'
-  if (editor.innerHTML === nextHtml || sanitizeEditorHtml(editor.innerHTML) === sanitizeEditorHtml(nextHtml)) return
+  const normalizedNextHtml = sanitizeEditorHtml(nextHtml)
+  const normalizedCurrentHtml = sanitizeEditorHtml(editor.innerHTML)
+  if (normalizedNextHtml === lastEmittedEditorHtml && normalizedCurrentHtml === normalizedNextHtml) {
+    updateHistoryButtons()
+    return
+  }
+  if (editor.innerHTML === nextHtml || sanitizeEditorHtml(editor.innerHTML) === normalizedNextHtml) {
+    editorHistory.reset(normalizedNextHtml)
+    updateHistoryButtons()
+    return
+  }
   syncingFromModel.value = true
   editor.innerHTML = nextHtml
   await nextTick()
   syncingFromModel.value = false
+  editorHistory.reset(normalizedNextHtml)
+  updateHistoryButtons()
 }
 
 watch(() => props.modelValue, () => {
@@ -407,6 +436,59 @@ const setCaretAfterNode = (node: Node) => {
   selection.removeAllRanges()
   selection.addRange(range)
   savedRange.value = range.cloneRange()
+}
+
+const clearEditorTransientState = () => {
+  savedRange.value = null
+  colorMenuOpen.value = false
+  linkMenuOpen.value = false
+  referenceMenuOpen.value = false
+  selectEditorImage(null)
+  handleEditorDragEnd()
+}
+
+const restoreEditorHistoryHtml = (html: string) => {
+  const editor = editorRef.value
+  if (!editor) return
+  isRestoringHistory.value = true
+  clearEditorTransientState()
+  editor.innerHTML = sanitizeUserArticleEditorLoadedHtml(html || '<p><br></p>') || '<p><br></p>'
+  setCaretAtEnd(editor)
+  isRestoringHistory.value = false
+  updateHistoryButtons()
+  lastEmittedEditorHtml = sanitizeEditorHtml(editor.innerHTML)
+  emit('update:modelValue', lastEmittedEditorHtml)
+}
+
+const undoEditorHistory = () => {
+  if (props.disabled || !editorHistory.canUndo()) return
+  restoreEditorHistoryHtml(editorHistory.undo())
+}
+
+const redoEditorHistory = () => {
+  if (props.disabled || !editorHistory.canRedo()) return
+  restoreEditorHistoryHtml(editorHistory.redo())
+}
+
+const handleEditorKeydown = (event: KeyboardEvent) => {
+  if (props.disabled) return
+  const key = event.key.toLowerCase()
+  const isModifierPressed = event.ctrlKey || event.metaKey
+  if (!isModifierPressed) return
+  if (key === 'z' && event.shiftKey) {
+    event.preventDefault()
+    redoEditorHistory()
+    return
+  }
+  if (key === 'z') {
+    event.preventDefault()
+    undoEditorHistory()
+    return
+  }
+  if (key === 'y') {
+    event.preventDefault()
+    redoEditorHistory()
+  }
 }
 
 const ensureEditorRange = () => {
@@ -1302,8 +1384,8 @@ onBeforeUnmount(() => {
 <template>
   <section class="user-rich-editor" :class="{ 'user-rich-editor--disabled': disabled }">
     <div class="user-rich-editor__toolbar" role="toolbar" aria-label="文章正文工具栏" @mousedown="handleToolbarMouseDown">
-      <button type="button" title="撤销" :disabled="disabled" @click="exec('undo')">↶</button>
-      <button type="button" title="重做" :disabled="disabled" @click="exec('redo')">↷</button>
+      <button type="button" title="撤销" :disabled="disabled || !canUndoHistory" @click="undoEditorHistory">↶</button>
+      <button type="button" title="重做" :disabled="disabled || !canRedoHistory" @click="redoEditorHistory">↷</button>
       <span class="user-rich-editor__separator" aria-hidden="true"></span>
       <button type="button" title="正文" :disabled="disabled" @click="formatBlock('p')">正文</button>
       <button type="button" title="二级标题" :disabled="disabled" @click="formatBlock('h2')">H2</button>
@@ -1369,17 +1451,82 @@ onBeforeUnmount(() => {
       <button type="button" title="有序列表" :disabled="disabled" @click="insertOrderedList">1.</button>
       <button type="button" title="插入分割线" :disabled="disabled" @click="exec('insertHorizontalRule')">—</button>
       <button type="button" title="清除格式" :disabled="disabled" @click="clearFormatting">清</button>
+      <div class="user-rich-editor__link-menu">
+        <button
+          type="button"
+          class="user-rich-editor__link-trigger"
+          title="插入链接"
+          aria-label="插入链接"
+          :aria-expanded="linkMenuOpen"
+          :disabled="disabled"
+          @click="openLinkMenu"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1" />
+            <path d="M14 11a5 5 0 0 0-7.1 0l-2 2A5 5 0 0 0 12 20.1l1.1-1.1" />
+          </svg>
+        </button>
+        <div v-if="linkMenuOpen" class="user-rich-editor__link-popover" role="group" aria-label="链接设置">
+          <label>
+            <span>链接地址</span>
+            <input v-model="linkUrlValue" type="url" inputmode="url" placeholder="https://example.com" :disabled="disabled">
+          </label>
+          <label>
+            <span>显示标题</span>
+            <input v-model="linkTitleValue" type="text" placeholder="可选，不填显示链接地址" :disabled="disabled" @keydown.enter.prevent="applyLink">
+          </label>
+          <div class="user-rich-editor__link-actions">
+            <button type="button" :disabled="disabled" @click="applyLink">应用</button>
+            <button type="button" :disabled="disabled" @click="removeLink">取消链接</button>
+            <button type="button" :disabled="disabled" @click="closeLinkMenu">关闭</button>
+          </div>
+        </div>
+      </div>
+      <button type="button" title="插入图片" :disabled="disabled || uploading" @click="openImagePicker">{{ uploading ? '上传中' : '图片' }}</button>
+      <input ref="imageInputRef" class="user-rich-editor__file" type="file" accept="image/*" multiple @change="handleImageSelected">
+    </div>
+
+    <div class="user-rich-editor__stage">
+      <div
+        ref="editorRef"
+        class="user-rich-editor__surface"
+        :contenteditable="!disabled"
+        role="textbox"
+        aria-label="文章正文"
+        @input="emitEditorValue"
+        @paste="handlePaste"
+        @click="openEditorLink"
+        @keydown="handleEditorKeydown"
+        @dragstart="handleEditorDragStart"
+        @dragend="handleEditorDragEnd"
+        @dragover.prevent
+        @drop="handleDrop"
+        @keyup="saveSelection"
+        @mouseup="saveSelection"
+        @blur="saveSelection"
+      />
+
       <div class="user-rich-editor__reference-menu">
         <button
           type="button"
-          class="user-rich-editor__reference-trigger"
+          class="user-rich-editor__reference-fab"
           title="插入资料引用"
           aria-label="插入资料引用"
           :aria-expanded="referenceMenuOpen"
           :disabled="disabled"
+          @mousedown.prevent="saveSelection"
           @click="openReferenceMenu"
         >
-          资料引用
+          <img
+            v-if="!pickaxeImageFailed"
+            :src="IRON_PICKAXE_REFERENCE_IMAGE"
+            alt=""
+            loading="lazy"
+            decoding="async"
+            aria-hidden="true"
+            @error="pickaxeImageFailed = true"
+          >
+          <span v-else aria-hidden="true">镐</span>
         </button>
         <div v-if="referenceMenuOpen" class="user-rich-editor__reference-popover" role="dialog" aria-label="资料引用">
           <div class="user-rich-editor__reference-tabs" role="tablist">
@@ -1423,58 +1570,7 @@ onBeforeUnmount(() => {
           <button type="button" :disabled="disabled" @click="closeReferenceMenu">关闭</button>
         </div>
       </div>
-      <div class="user-rich-editor__link-menu">
-        <button
-          type="button"
-          class="user-rich-editor__link-trigger"
-          title="插入链接"
-          aria-label="插入链接"
-          :aria-expanded="linkMenuOpen"
-          :disabled="disabled"
-          @click="openLinkMenu"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1" />
-            <path d="M14 11a5 5 0 0 0-7.1 0l-2 2A5 5 0 0 0 12 20.1l1.1-1.1" />
-          </svg>
-        </button>
-        <div v-if="linkMenuOpen" class="user-rich-editor__link-popover" role="group" aria-label="链接设置">
-          <label>
-            <span>链接地址</span>
-            <input v-model="linkUrlValue" type="url" inputmode="url" placeholder="https://example.com" :disabled="disabled">
-          </label>
-          <label>
-            <span>显示标题</span>
-            <input v-model="linkTitleValue" type="text" placeholder="可选，不填显示链接地址" :disabled="disabled" @keydown.enter.prevent="applyLink">
-          </label>
-          <div class="user-rich-editor__link-actions">
-            <button type="button" :disabled="disabled" @click="applyLink">应用</button>
-            <button type="button" :disabled="disabled" @click="removeLink">取消链接</button>
-            <button type="button" :disabled="disabled" @click="closeLinkMenu">关闭</button>
-          </div>
-        </div>
-      </div>
-      <button type="button" title="插入图片" :disabled="disabled || uploading" @click="openImagePicker">{{ uploading ? '上传中' : '图片' }}</button>
-      <input ref="imageInputRef" class="user-rich-editor__file" type="file" accept="image/*" multiple @change="handleImageSelected">
     </div>
-
-    <div
-      ref="editorRef"
-      class="user-rich-editor__surface"
-      :contenteditable="!disabled"
-      role="textbox"
-      aria-label="文章正文"
-      @input="emitEditorValue"
-      @paste="handlePaste"
-      @click="openEditorLink"
-      @dragstart="handleEditorDragStart"
-      @dragend="handleEditorDragEnd"
-      @dragover.prevent
-      @drop="handleDrop"
-      @keyup="saveSelection"
-      @mouseup="saveSelection"
-      @blur="saveSelection"
-    />
 
     <div v-if="selectedImage" class="user-rich-editor__image-tools" role="group" aria-label="图片设置">
       <div class="user-rich-editor__image-tool-group">
@@ -1601,40 +1697,15 @@ onBeforeUnmount(() => {
 }
 
 .user-rich-editor__color-menu,
-.user-rich-editor__link-menu,
-.user-rich-editor__reference-menu {
+.user-rich-editor__link-menu {
   position: relative;
   display: inline-flex;
 }
 
-.user-rich-editor__reference-menu {
-  order: -1;
-  margin-right: 6px;
-}
-
 .user-rich-editor__color-trigger,
-.user-rich-editor__link-trigger,
-.user-rich-editor__reference-trigger {
+.user-rich-editor__link-trigger {
   gap: 5px;
   min-width: 48px;
-}
-
-.user-rich-editor__reference-trigger {
-  min-width: 132px;
-  min-height: 42px !important;
-  padding: 0 14px;
-  border: 2px solid color-mix(in srgb, var(--accent-gold) 82%, #fff);
-  background: linear-gradient(180deg, #ffe08a, #c89424);
-  color: #201706;
-  font-size: .92rem;
-  font-weight: 900;
-  box-shadow: 0 0 0 2px rgba(255, 215, 101, .22), 0 10px 24px rgba(0,0,0,.34);
-}
-
-.user-rich-editor__reference-trigger:hover:not(:disabled),
-.user-rich-editor__reference-trigger:focus-visible {
-  background: linear-gradient(180deg, #fff0b8, #dba434);
-  color: #140e03;
 }
 
 .user-rich-editor__color-current,
@@ -1758,7 +1829,7 @@ onBeforeUnmount(() => {
 .user-rich-editor__reference-popover {
   position: absolute;
   z-index: 32;
-  top: calc(100% + 8px);
+  bottom: calc(100% + 10px);
   right: 0;
   display: grid;
   width: min(360px, calc(100vw - 32px));
@@ -1893,9 +1964,14 @@ onBeforeUnmount(() => {
   display: none;
 }
 
+.user-rich-editor__stage {
+  position: relative;
+  isolation: isolate;
+}
+
 .user-rich-editor__surface {
   min-height: 380px;
-  padding: 22px;
+  padding: 22px 86px 92px 22px;
   border-right: 1px solid color-mix(in srgb, var(--index-line) 42%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--index-line) 42%, transparent);
   border-left: 1px solid color-mix(in srgb, var(--index-line) 42%, transparent);
@@ -1905,6 +1981,60 @@ onBeforeUnmount(() => {
   outline: none;
   line-height: 1.78;
   word-break: break-word;
+}
+
+.user-rich-editor__reference-menu {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 18;
+  display: inline-flex;
+}
+
+.user-rich-editor__reference-fab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  padding: 7px;
+  border: 2px solid color-mix(in srgb, var(--accent-gold) 82%, #fff);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,.4), transparent 38%),
+    linear-gradient(180deg, #ffe08a, #c89424);
+  color: #201706;
+  cursor: pointer;
+  box-shadow: 0 0 0 2px rgba(255, 215, 101, .22), 0 14px 30px rgba(0,0,0,.34);
+}
+
+.user-rich-editor__reference-fab img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.user-rich-editor__reference-fab span {
+  font-size: 1.18rem;
+  font-weight: 1000;
+  line-height: 1;
+}
+
+.user-rich-editor__reference-fab:hover:not(:disabled),
+.user-rich-editor__reference-fab:focus-visible {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,.48), transparent 38%),
+    linear-gradient(180deg, #fff0b8, #dba434);
+  color: #140e03;
+  transform: translateY(-1px);
+}
+
+.user-rich-editor__reference-fab:disabled {
+  cursor: not-allowed;
+  opacity: .5;
 }
 
 .user-rich-editor__surface:empty::before {
@@ -2167,7 +2297,29 @@ onBeforeUnmount(() => {
 @media (max-width: 720px) {
   .user-rich-editor__surface {
     min-height: 320px;
-    padding: 16px;
+    padding: 16px 76px 92px 16px;
+  }
+
+  .user-rich-editor__reference-menu {
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .user-rich-editor__reference-fab {
+    width: 48px;
+    height: 48px;
+  }
+
+  .user-rich-editor__reference-popover {
+    right: 0;
+    bottom: calc(100% + 10px + env(safe-area-inset-bottom, 0px));
+    width: min(340px, calc(100vw - 48px));
+    max-height: min(70dvh, calc(100% - 24px));
+    overflow: auto;
+  }
+
+  .user-rich-editor__reference-results {
+    max-height: min(260px, 38dvh);
   }
 
   .user-rich-editor__image-tools {

@@ -25,6 +25,7 @@ const htmlPath = join(tempDir, 'editor-runtime.html')
 const editorDomSource = readFileSync(join(root, 'lib/userArticleEditorDom.mjs'), 'utf8')
   .replace(/\bexport\s+/g, '')
 const editorComponentSource = readFileSync(join(root, 'components/user/UserArticleRichEditor.vue'), 'utf8')
+const nuxtConfigSource = readFileSync(join(root, 'nuxt.config.ts'), 'utf8')
 
 if (!editorComponentSource.includes('draggedReferenceElement')) throw new Error('editor must track dragged content references')
 if (!editorComponentSource.includes('application/x-terrapedia-reference')) throw new Error('editor must use a reference-specific drag payload')
@@ -35,6 +36,23 @@ if (!editorComponentSource.includes('collectSelectedReferences')) throw new Erro
 if (!editorComponentSource.includes('applyInlineStyleToReference')) throw new Error('editor inline styling must apply font size and color to content references')
 if (!editorComponentSource.includes('applyUserArticleInlineStyleToSelectedRange')) throw new Error('editor must use selection-aware inline styling for selected content')
 if (!editorComponentSource.includes('width: 1.875em')) throw new Error('editor reference image size must scale with font size')
+if (!editorComponentSource.includes('user-rich-editor__stage')) throw new Error('editor must wrap the editable surface in a non-contenteditable overlay stage')
+if (!editorComponentSource.includes('user-rich-editor__reference-fab')) throw new Error('reference picker must use a right-bottom floating action button')
+if (!editorComponentSource.includes('IRON_PICKAXE_REFERENCE_IMAGE')) throw new Error('reference floating button must use a verified iron pickaxe image source')
+if (!/const IRON_PICKAXE_REFERENCE_IMAGE = '\/terrapedia-images\/[^']*iron-pickaxe[^']*\.png'/.test(editorComponentSource)) throw new Error('reference floating button must use the proxied iron pickaxe image')
+if (!nuxtConfigSource.includes("'/terrapedia-images'") || !nuxtConfigSource.includes('target: `${terrapediaImageOrigin}/terrapedia-images`')) throw new Error('front app must proxy terrapedia image assets for the reference floating button')
+if (!editorComponentSource.includes('@mousedown.prevent="saveSelection"')) throw new Error('reference floating button must preserve the editor selection before opening')
+if (!/<div class="user-rich-editor__stage">[\s\S]*ref="editorRef"[\s\S]*class="user-rich-editor__surface"[\s\S]*\/>[\s\S]*<div class="user-rich-editor__reference-menu">/.test(editorComponentSource)) throw new Error('reference floating button must be outside the contenteditable editor surface')
+if (editorComponentSource.includes('@click="exec(\'undo\')"') || editorComponentSource.includes('@click="exec(\'redo\')"')) throw new Error('undo and redo buttons must use the editor history stack')
+if (!editorComponentSource.includes('undoEditorHistory') || !editorComponentSource.includes('redoEditorHistory')) throw new Error('editor must expose explicit undo and redo history handlers')
+if (!editorComponentSource.includes('@keydown="handleEditorKeydown"')) throw new Error('editor must handle undo and redo keyboard shortcuts inside the editor')
+if (!/const handleEditorKeydown = \(event: KeyboardEvent\) => \{[\s\S]*event\.ctrlKey \|\| event\.metaKey[\s\S]*key === 'z' && event\.shiftKey[\s\S]*event\.preventDefault\(\)[\s\S]*redoEditorHistory\(\)[\s\S]*key === 'z'[\s\S]*event\.preventDefault\(\)[\s\S]*undoEditorHistory\(\)[\s\S]*key === 'y'[\s\S]*event\.preventDefault\(\)[\s\S]*redoEditorHistory\(\)/.test(editorComponentSource)) throw new Error('editor keyboard handler must map Ctrl/Cmd+Z, Ctrl/Cmd+Y, and Ctrl/Cmd+Shift+Z to custom history')
+if (!/@click="undoEditorHistory"[\s\S]*@click="redoEditorHistory"/.test(editorComponentSource)) throw new Error('toolbar undo and redo buttons must call editor history handlers')
+if (!/:disabled="disabled \|\| !canUndoHistory"[\s\S]*:disabled="disabled \|\| !canRedoHistory"/.test(editorComponentSource)) throw new Error('toolbar undo and redo buttons must reflect custom history availability')
+if (!/const emitEditorValue = \(\) => \{[\s\S]*editorHistory\.commit\(nextHtml\)[\s\S]*updateHistoryButtons\(\)[\s\S]*lastEmittedEditorHtml = nextHtml[\s\S]*emit\('update:modelValue', sanitizeEditorHtml\(editor\.innerHTML\)\)/.test(editorComponentSource)) throw new Error('editor input must commit to history before emitting sanitized modelValue')
+if (!/normalizedNextHtml === lastEmittedEditorHtml && normalizedCurrentHtml === normalizedNextHtml[\s\S]*updateHistoryButtons\(\)[\s\S]*return[\s\S]*editorHistory\.reset\(normalizedNextHtml\)/.test(editorComponentSource)) throw new Error('modelValue sync must guard emitted HTML loops before resetting editor history')
+if (!/const clearEditorTransientState = \(\) => \{[\s\S]*savedRange\.value = null[\s\S]*colorMenuOpen\.value = false[\s\S]*linkMenuOpen\.value = false[\s\S]*referenceMenuOpen\.value = false[\s\S]*selectEditorImage\(null\)[\s\S]*handleEditorDragEnd\(\)/.test(editorComponentSource)) throw new Error('history restore must be able to clear selection, menus, image tools, and drag state')
+if (!/const restoreEditorHistoryHtml = \(html: string\) => \{[\s\S]*isRestoringHistory\.value = true[\s\S]*clearEditorTransientState\(\)[\s\S]*sanitizeUserArticleEditorLoadedHtml[\s\S]*setCaretAtEnd\(editor\)[\s\S]*isRestoringHistory\.value = false[\s\S]*updateHistoryButtons\(\)[\s\S]*emit\('update:modelValue', lastEmittedEditorHtml\)/.test(editorComponentSource)) throw new Error('history restore must sanitize HTML, clear transient state, restore caret, and emit the restored modelValue')
 
 writeFileSync(htmlPath, `<!doctype html>
 <html>
@@ -50,6 +68,20 @@ writeFileSync(htmlPath, `<!doctype html>
       const assert = (condition, message) => {
         if (!condition) throw new Error(message);
       };
+
+      const history = createUserArticleEditorHistory('<p>初始</p>', { limit: 4 });
+      assert(!history.canUndo(), 'fresh editor history should not be undoable');
+      history.commit('<p>第一步</p>');
+      history.commit('<p>第二步</p>');
+      assert(history.canUndo(), 'editor history should be undoable after committed changes');
+      assert(history.undo() === '<p>第一步</p>', 'first undo should restore the previous html snapshot');
+      assert(history.undo() === '<p>初始</p>', 'second undo should restore the initial html snapshot');
+      assert(!history.canUndo(), 'editor history should stop at the initial snapshot');
+      assert(history.redo() === '<p>第一步</p>', 'redo should restore the next html snapshot');
+      history.commit('<p>分支</p>');
+      assert(!history.canRedo(), 'new edits after undo should clear redo history');
+      history.commit('<p>分支</p>');
+      assert(history.undo() === '<p>第一步</p>', 'duplicate commits must not pollute undo history');
 
       const editor = document.querySelector('#editor');
       const setCaretAtEnd = (element) => {
