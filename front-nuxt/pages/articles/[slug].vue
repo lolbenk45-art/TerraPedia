@@ -40,6 +40,25 @@ const articleContentRef = ref<HTMLElement | null>(null)
 const articleReferences = ref<Record<string, NormalizedContentReference>>({})
 const articleReferenceError = ref('')
 const articleReferenceLabels = ref<Record<string, string>>({})
+const ARTICLE_REFERENCE_PREVIEW_ID = 'article-reference-preview'
+const ARTICLE_REFERENCE_PREVIEW_WIDTH = 280
+const ARTICLE_REFERENCE_PREVIEW_HEIGHT = 128
+const ARTICLE_REFERENCE_PREVIEW_MARGIN = 12
+const articleReferencePreview = ref<{
+  key: string
+  label: string
+  type: 'item' | 'npc'
+  typeLabel: string
+  id: string
+  imageUrl: string
+  categoryName: string
+  summary: string
+  detailPath: string
+  available: boolean
+  x: number
+  y: number
+  placement: 'top' | 'bottom'
+} | null>(null)
 let articleReferenceLoadSequence = 0
 const recordedArticleHistoryIds = new Set<string>()
 
@@ -438,6 +457,76 @@ const collectArticleReferenceInputs = (): ContentReferenceResolveInput[] => {
   return refs
 }
 
+const formatArticleReferenceTypeLabel = (type: 'item' | 'npc' | '') => {
+  if (type === 'item') return '物品'
+  if (type === 'npc') return 'NPC'
+  return '资料'
+}
+
+const computeArticleReferencePreviewPosition = (node: HTMLElement, event?: MouseEvent | FocusEvent) => {
+  const rect = node.getBoundingClientRect()
+  const viewportWidth = window.innerWidth || document.documentElement.clientWidth || ARTICLE_REFERENCE_PREVIEW_WIDTH
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight || ARTICLE_REFERENCE_PREVIEW_HEIGHT
+  const previewWidth = Math.min(ARTICLE_REFERENCE_PREVIEW_WIDTH, Math.max(0, viewportWidth - ARTICLE_REFERENCE_PREVIEW_MARGIN * 2))
+  const minX = ARTICLE_REFERENCE_PREVIEW_MARGIN + previewWidth / 2
+  const maxX = Math.max(minX, viewportWidth - ARTICLE_REFERENCE_PREVIEW_MARGIN - previewWidth / 2)
+  const preferredX = event instanceof MouseEvent ? event.clientX : rect.left + rect.width / 2
+  const x = Math.min(Math.max(preferredX, minX), maxX)
+  const hasTopSpace = rect.top >= ARTICLE_REFERENCE_PREVIEW_HEIGHT + ARTICLE_REFERENCE_PREVIEW_MARGIN * 2
+  const y = hasTopSpace
+    ? Math.max(ARTICLE_REFERENCE_PREVIEW_MARGIN, rect.top)
+    : Math.min(viewportHeight - ARTICLE_REFERENCE_PREVIEW_MARGIN, rect.bottom)
+  return { x, y, placement: hasTopSpace ? 'top' as const : 'bottom' as const }
+}
+
+const showArticleReferencePreview = (node: HTMLElement, event?: MouseEvent | FocusEvent) => {
+  const key = contentReferenceKey(node.dataset.tpRefType, node.dataset.tpRefId)
+  const reference = key ? articleReferences.value[key] : null
+  const type = node.dataset.tpRefType === 'npc' ? 'npc' : node.dataset.tpRefType === 'item' ? 'item' : ''
+  const id = String(node.dataset.tpRefId || '').trim()
+  if (!key || !type || !id) return
+  const position = computeArticleReferencePreviewPosition(node, event)
+  const label = articleReferenceLabels.value[key] || reference?.label || String(node.dataset.tpRefLabel || node.textContent || '').trim()
+  articleReferencePreview.value = {
+    key,
+    label: label || `${formatArticleReferenceTypeLabel(type)} #${id}`,
+    type,
+    typeLabel: formatArticleReferenceTypeLabel(type),
+    id,
+    imageUrl: reference?.imageUrl || sanitizeArticleUrl(String(node.dataset.tpRefImage || ''), 'src'),
+    categoryName: reference?.categoryName || '',
+    summary: reference?.summary || '',
+    detailPath: reference?.detailPath || node.dataset.tpHref || (type === 'item' ? `/items/${id}` : `/npcs/${id}`),
+    available: reference?.available !== false,
+    ...position,
+  }
+  node.setAttribute('aria-describedby', ARTICLE_REFERENCE_PREVIEW_ID)
+}
+
+const moveArticleReferencePreview = (event: MouseEvent) => {
+  if (!articleReferencePreview.value) return
+  const node = event.currentTarget instanceof HTMLElement ? event.currentTarget : null
+  if (!node) return
+  articleReferencePreview.value = {
+    ...articleReferencePreview.value,
+    ...computeArticleReferencePreviewPosition(node, event),
+  }
+}
+
+const hideArticleReferencePreview = (node?: HTMLElement, key?: string) => {
+  node?.removeAttribute('aria-describedby')
+  if (!key || articleReferencePreview.value?.key === key) {
+    articleReferencePreview.value = null
+  }
+}
+
+const clearArticleReferencePreview = () => {
+  articleContentRef.value
+    ?.querySelectorAll<HTMLElement>('.tp-content-ref[aria-describedby]')
+    .forEach(node => node.removeAttribute('aria-describedby'))
+  articleReferencePreview.value = null
+}
+
 const enhanceArticleReferenceNodes = () => {
   const root = articleContentRef.value
   if (!root || !import.meta.client) return
@@ -473,7 +562,7 @@ const enhanceArticleReferenceNodes = () => {
     node.setAttribute('role', 'link')
     node.setAttribute('tabindex', '0')
     if (label) {
-      node.setAttribute('title', label)
+      node.removeAttribute('title')
       node.setAttribute('aria-label', `${label}，打开详情`)
     } else {
       node.removeAttribute('title')
@@ -490,6 +579,11 @@ const enhanceArticleReferenceNodes = () => {
       event.preventDefault()
       if (detailPath) navigateTo(detailPath)
     }
+    node.onmouseenter = (event: MouseEvent) => showArticleReferencePreview(node, event)
+    node.onmousemove = moveArticleReferencePreview
+    node.onmouseleave = () => hideArticleReferencePreview(node, key || undefined)
+    node.onfocus = (event: FocusEvent) => showArticleReferencePreview(node, event)
+    node.onblur = () => hideArticleReferencePreview(node, key || undefined)
   }
 }
 
@@ -497,6 +591,7 @@ const loadArticleReferences = async () => {
   if (!import.meta.client) return
   const sequence = ++articleReferenceLoadSequence
   const articleId = article.value?.id == null ? '' : String(article.value.id)
+  clearArticleReferencePreview()
   await nextTick()
   const refs = collectArticleReferenceInputs()
   articleReferenceError.value = ''
@@ -1051,6 +1146,30 @@ onMounted(() => {
           </header>
           <h2 class="article-section-title">正文</h2>
           <div ref="articleContentRef" class="article-content-text" v-html="sanitizedArticleHtml"></div>
+          <div
+            v-if="articleReferencePreview"
+            :id="ARTICLE_REFERENCE_PREVIEW_ID"
+            class="article-reference-preview"
+            :class="`article-reference-preview--${articleReferencePreview.placement}`"
+            :style="{ left: `${articleReferencePreview.x}px`, top: `${articleReferencePreview.y}px` }"
+            role="tooltip"
+          >
+            <span class="article-reference-preview__thumb" aria-hidden="true">
+              <img
+                v-if="articleReferencePreview.imageUrl"
+                :src="articleReferencePreview.imageUrl"
+                :alt="articleReferencePreview.label"
+                loading="lazy"
+                decoding="async"
+              >
+              <span v-else>图</span>
+            </span>
+            <span class="article-reference-preview__body">
+              <strong>{{ articleReferencePreview.label }}</strong>
+              <small>{{ articleReferencePreview.typeLabel }} · {{ articleReferencePreview.categoryName || articleReferencePreview.summary || `ID ${articleReferencePreview.id}` }}</small>
+              <em>{{ articleReferencePreview.available ? '点击打开详情' : '资料暂不可用' }}</em>
+            </span>
+          </div>
           <p v-if="articleReferenceError" class="article-reference-error">{{ articleReferenceError }}</p>
 
           <section id="article-comments" class="article-comments" aria-label="评论区" data-comment-endpoint="/comments">
@@ -1636,6 +1755,85 @@ onMounted(() => {
   border-color: color-mix(in srgb, var(--danger) 46%, var(--index-line));
   color: var(--text-muted);
   cursor: default;
+}
+
+.article-reference-preview {
+  position: fixed;
+  z-index: 80;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  width: min(280px, calc(100vw - 24px));
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent-gold) 42%, var(--index-line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel) 96%, #111111);
+  box-shadow: 0 16px 34px rgba(0,0,0,.36);
+  pointer-events: none;
+}
+
+.article-reference-preview--top {
+  transform: translate(-50%, calc(-100% - 12px));
+}
+
+.article-reference-preview--bottom {
+  transform: translate(-50%, 12px);
+}
+
+.article-reference-preview__thumb {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid color-mix(in srgb, var(--accent-gold) 34%, var(--index-line));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent-gold) 12%, transparent);
+  color: var(--accent-gold);
+  font-size: 13px;
+  font-weight: 900;
+  overflow: hidden;
+}
+
+.article-reference-preview__thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.article-reference-preview__body {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  line-height: 1.35;
+}
+
+.article-reference-preview__body strong,
+.article-reference-preview__body small,
+.article-reference-preview__body em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.article-reference-preview__body strong {
+  color: var(--text-main);
+  font-size: .92rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.article-reference-preview__body small {
+  color: var(--text-muted);
+  font-size: .78rem;
+  font-weight: 760;
+}
+
+.article-reference-preview__body em {
+  color: var(--accent-gold);
+  font-size: .76rem;
+  font-style: normal;
+  font-weight: 900;
 }
 
 .article-reference-error {

@@ -43,8 +43,17 @@ const toBrowserJs = (source) => source
   .replace(/: string/g, '')
   .replace(/: 'href' \| 'src'/g, '')
   .replace(/: 'ul' \| 'ol' \| ''/g, '')
+  .replace(/: 'item' \| 'npc' \| ''/g, '')
+  .replace(/: 'top' \| 'bottom'/g, '')
+  .replace(/: HTMLElement/g, '')
+  .replace(/: HTMLElement \| null/g, '')
+  .replace(/: MouseEvent \| FocusEvent/g, '')
+  .replace(/: MouseEvent/g, '')
+  .replace(/: FocusEvent/g, '')
+  .replace(/\b(event|node|key)\?/g, '$1')
   .replace(/: RegExpExecArray \| null/g, '')
   .replace(/: KeyboardEvent/g, '')
+  .replace(/ as const/g, '')
   .replace(/new Map<string, string>\(\)/g, 'new Map()')
   .replace(/querySelectorAll<HTMLElement>/g, 'querySelectorAll')
   .replace(/import\.meta\.client/g, 'true')
@@ -58,6 +67,11 @@ const requiredPageSymbols = [
   'sanitizeArticleHtml',
   'sanitizeArticleAttributes',
   'collectArticleReferenceInputs',
+  'formatArticleReferenceTypeLabel',
+  'computeArticleReferencePreviewPosition',
+  'showArticleReferencePreview',
+  'moveArticleReferencePreview',
+  'hideArticleReferencePreview',
   'enhanceArticleReferenceNodes',
   'loadArticleReferences',
 ]
@@ -72,6 +86,8 @@ if (!articlePageSource.includes('nextTick')) throw new Error('article reference 
 if (!articlePageSource.includes("document.createElement('img')")) throw new Error('article reference enhancement must create inline chip images from resolved references')
 if (!articlePageSource.includes('node.replaceChildren(img)')) throw new Error('article reference enhancement must render image-only references in article body')
 if (!articlePageSource.includes("node.setAttribute('role', 'link')")) throw new Error('article reference enhancement must expose references as links')
+if (!articlePageSource.includes("node.removeAttribute('title')")) throw new Error('article reference enhancement must use custom preview instead of native title tooltip')
+if (!articlePageSource.includes('ARTICLE_REFERENCE_PREVIEW_ID')) throw new Error('article page must expose a stable tooltip id for reference previews')
 if (!articlePageSource.includes('width: 1.875em')) throw new Error('article reference image size must scale with saved font size')
 if (!composableSource.includes('import { resolvePreviewImageUrl }')) throw new Error('content reference composable must import resolvePreviewImageUrl')
 if (!composableSource.includes('detailPath: detailPathFromTypeId(type, id)')) throw new Error('content reference normalizer must derive detail paths from type/id')
@@ -85,7 +101,14 @@ const sanitizerHelpers = toBrowserJs([
   extractFunction(articlePageSource, 'renderPlainArticleText'),
   extractFunction(articlePageSource, 'sanitizeArticleHtml'),
 ].join('\n'))
-const enhancementHelpers = toBrowserJs(extractFunction(articlePageSource, 'enhanceArticleReferenceNodes'))
+const enhancementHelpers = toBrowserJs([
+  extractFunction(articlePageSource, 'formatArticleReferenceTypeLabel'),
+  extractFunction(articlePageSource, 'computeArticleReferencePreviewPosition'),
+  extractFunction(articlePageSource, 'showArticleReferencePreview'),
+  extractFunction(articlePageSource, 'moveArticleReferencePreview'),
+  extractFunction(articlePageSource, 'hideArticleReferencePreview'),
+  extractFunction(articlePageSource, 'enhanceArticleReferenceNodes'),
+].join('\n'))
 
 writeFileSync(htmlPath, `<!doctype html>
 <html>
@@ -107,6 +130,10 @@ writeFileSync(htmlPath, `<!doctype html>
         const id = normalizeText(value);
         return /^\\d{1,12}$/.test(id) ? id : '';
       };
+      const ARTICLE_REFERENCE_PREVIEW_ID = 'article-reference-preview';
+      const ARTICLE_REFERENCE_PREVIEW_WIDTH = 280;
+      const ARTICLE_REFERENCE_PREVIEW_HEIGHT = 128;
+      const ARTICLE_REFERENCE_PREVIEW_MARGIN = 12;
       const contentReferenceKey = (type, id) => {
         const normalizedType = normalizeType(type);
         const normalizedId = normalizeId(id);
@@ -181,6 +208,12 @@ writeFileSync(htmlPath, `<!doctype html>
         assert(!output.includes('onerror'), name + ' should strip nested img onerror');
         assert(!output.includes('data-tp-owned'), name + ' should strip unexpected data-tp-*');
       }
+      const runtimePolluted = sanitize('<p><span class="tp-content-ref" data-tp-ref-type="item" data-tp-ref-id="77" data-tp-ref-label="泰拉刃" data-tp-href="/items/77" data-tp-resolved="ready" aria-describedby="article-reference-preview" onmouseenter="alert(1)">泰拉刃</span><span class="article-reference-preview">bad</span></p>');
+      assert(!runtimePolluted.includes('data-tp-href'), 'sanitizer must strip runtime href data');
+      assert(!runtimePolluted.includes('data-tp-resolved'), 'sanitizer must strip runtime resolved data');
+      assert(!runtimePolluted.includes('aria-describedby'), 'sanitizer must strip runtime aria-describedby');
+      assert(!runtimePolluted.includes('onmouseenter'), 'sanitizer must strip hover event handlers');
+      assert(!runtimePolluted.includes('article-reference-preview'), 'sanitizer must strip runtime preview markup');
 
       const normalized = normalizeContentReference({
         type: 'item',
@@ -207,6 +240,7 @@ writeFileSync(htmlPath, `<!doctype html>
       const articleReferences = { value: { 'item:77': normalized } };
       const articleReferenceLabels = { value: { 'item:77': '泰拉刃', 'npc:22': '向导' } };
       const articleReferenceError = { value: '' };
+      const articleReferencePreview = { value: null };
       const navigations = [];
       const navigateTo = (path) => {
         navigations.push(path);
@@ -227,11 +261,35 @@ writeFileSync(htmlPath, `<!doctype html>
       const ref = article.querySelector('.tp-content-ref');
       assert(ref.getAttribute('role') === 'link', 'enhancement should add link role');
       assert(ref.getAttribute('tabindex') === '0', 'enhancement should add keyboard focus');
-      assert(ref.getAttribute('title') === '泰拉刃', 'enhancement should expose reference label on hover');
+      assert(!ref.hasAttribute('title'), 'enhancement should avoid native title when custom preview exists');
       assert(ref.getAttribute('aria-label') === '泰拉刃，打开详情', 'enhancement should expose accessible link label');
       assert(ref.dataset.tpHref === '/items/77', 'enhancement should store derived detail path');
       assert(ref.querySelector('img')?.getAttribute('src') === '/images/item.png', 'enhancement should render resolved reference image inside article body');
       assert(ref.textContent.trim() === '', 'enhancement should not render reference name in article body');
+      const beforePreviewNavigationCount = navigations.length;
+      ref.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, clientX: 120, clientY: 80 }));
+      assert(navigations.length === beforePreviewNavigationCount, 'hover must not navigate');
+      assert(articleReferencePreview.value?.label === '泰拉刃', 'hover preview should include reference label');
+      assert(articleReferencePreview.value?.typeLabel === '物品', 'hover preview should include type label');
+      assert(articleReferencePreview.value?.detailPath === '/items/77', 'hover preview should include detail path');
+      assert(articleReferencePreview.value?.imageUrl === '/images/item.png', 'hover preview should include resolved image');
+      assert(articleReferencePreview.value?.placement === 'bottom', 'top-edge reference should flip preview below the chip');
+      assert(ref.getAttribute('aria-describedby') === ARTICLE_REFERENCE_PREVIEW_ID, 'hover preview should connect aria-describedby');
+      const expectedPreviewWidth = Math.min(ARTICLE_REFERENCE_PREVIEW_WIDTH, window.innerWidth - ARTICLE_REFERENCE_PREVIEW_MARGIN * 2);
+      ref.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 1, clientY: 10 }));
+      assert(articleReferencePreview.value.x >= ARTICLE_REFERENCE_PREVIEW_MARGIN + expectedPreviewWidth / 2, 'preview x should clamp away from the left viewport edge');
+      ref.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 9999, clientY: 10 }));
+      assert(articleReferencePreview.value.x <= window.innerWidth - ARTICLE_REFERENCE_PREVIEW_MARGIN - expectedPreviewWidth / 2, 'preview x should clamp away from the right viewport edge');
+      ref.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
+      assert(articleReferencePreview.value === null, 'mouseleave should hide hover preview');
+      assert(!ref.hasAttribute('aria-describedby'), 'mouseleave should clear aria-describedby');
+      ref.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
+      assert(navigations.length === beforePreviewNavigationCount, 'focus must not navigate');
+      assert(articleReferencePreview.value?.label === '泰拉刃', 'focus should show preview');
+      ref.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+      assert(navigations.length === beforePreviewNavigationCount, 'non-activation key must not navigate');
+      ref.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
+      assert(articleReferencePreview.value === null, 'blur should hide preview');
       ref.click();
       assert(navigations.at(-1) === '/items/77', 'click should navigate to item detail');
       ref.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
