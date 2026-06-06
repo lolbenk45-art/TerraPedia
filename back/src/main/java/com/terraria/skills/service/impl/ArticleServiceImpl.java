@@ -429,6 +429,12 @@ public class ArticleServiceImpl implements ArticleService {
         if (article.getViewCount() == null) {
             article.setViewCount(0L);
         }
+        if (article.getLikeCount() == null) {
+            article.setLikeCount(0L);
+        }
+        if (article.getCommentCount() == null) {
+            article.setCommentCount(0L);
+        }
         if (article.getFavoriteCount() == null) {
             article.setFavoriteCount(0L);
         }

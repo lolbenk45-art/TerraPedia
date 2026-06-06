@@ -1175,20 +1175,25 @@ onMounted(() => {
 .user-rich-editor {
   display: grid;
   gap: 0;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid color-mix(in srgb, var(--accent-gold) 22%, var(--index-line));
   border-radius: 14px;
-  background: color-mix(in srgb, var(--index-surface) 88%, #101827);
+  background: color-mix(in srgb, var(--index-surface) 92%, var(--panel));
 }
 
 .user-rich-editor__toolbar {
+  position: sticky;
+  top: var(--user-article-toolbar-top, 72px);
+  z-index: 8;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
   padding: 10px;
-  border-bottom: 1px solid color-mix(in srgb, var(--index-line) 78%, transparent);
-  background: color-mix(in srgb, var(--index-surface) 92%, #172033);
+  border: 1px solid color-mix(in srgb, var(--index-line) 78%, transparent);
+  border-radius: 14px 14px 0 0;
+  background: color-mix(in srgb, var(--index-surface) 96%, var(--panel));
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--index-bg) 24%, transparent);
 }
 
 .user-rich-editor__toolbar button {
@@ -1264,7 +1269,7 @@ onMounted(() => {
   padding: 8px;
   border: 1px solid color-mix(in srgb, var(--index-line) 82%, transparent);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--index-surface) 96%, #101827);
+  background: color-mix(in srgb, var(--index-surface) 96%, var(--panel));
   box-shadow: 0 12px 28px rgba(0,0,0,.28);
 }
 
@@ -1321,7 +1326,7 @@ onMounted(() => {
   padding: 10px;
   border: 1px solid color-mix(in srgb, var(--index-line) 82%, transparent);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--index-surface) 96%, #101827);
+  background: color-mix(in srgb, var(--index-surface) 96%, var(--panel));
   box-shadow: 0 12px 28px rgba(0,0,0,.28);
 }
 
@@ -1387,7 +1392,12 @@ onMounted(() => {
 .user-rich-editor__surface {
   min-height: 380px;
   padding: 22px;
+  border-right: 1px solid color-mix(in srgb, var(--index-line) 42%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--index-line) 42%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--index-line) 42%, transparent);
+  border-radius: 0 0 14px 14px;
   color: var(--index-text);
+  background: color-mix(in srgb, var(--index-surface) 88%, transparent);
   outline: none;
   line-height: 1.78;
   word-break: break-word;
@@ -1475,7 +1485,7 @@ onMounted(() => {
   align-items: center;
   padding: 10px;
   border-top: 1px solid color-mix(in srgb, var(--index-line) 72%, transparent);
-  background: color-mix(in srgb, var(--index-surface) 94%, #111827);
+  background: color-mix(in srgb, var(--index-surface) 94%, var(--panel));
 }
 
 .user-rich-editor__image-tool-group {

@@ -81,6 +81,18 @@ const assertBiomeHeroUsesCoverCropping = (path, content) => {
 }
 
 {
+  const path = 'nuxt.config.ts'
+  const content = read(path)
+
+  assertContains(path, content, [
+    'terrapediaImageOrigin',
+    "'/terrapedia-images'",
+    'target: `${terrapediaImageOrigin}/terrapedia-images`',
+    'changeOrigin: true',
+  ])
+}
+
+{
   const path = 'components/common/PreviewImage.vue'
   const content = read(path)
 

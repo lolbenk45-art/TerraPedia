@@ -35,7 +35,16 @@
                 FROM user_article_favorites uaf
                 WHERE uaf.article_id = a.id
                   AND uaf.deleted = 0
-            ), 0) AS favoriteCount
+            ), 0) AS favoriteCount,
+            0 AS likeCount,
+            COALESCE((
+                SELECT COUNT(*)
+                FROM article_comments ac
+                WHERE ac.article_id = a.id
+                  AND ac.deleted = 0
+                  AND ac.status = 'PUBLISHED'
+                  AND ac.parent_id IS NULL
+            ), 0) AS commentCount
         FROM articles a
         LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
         <where>
@@ -83,7 +92,16 @@
                 FROM user_article_favorites uaf
                 WHERE uaf.article_id = a.id
                   AND uaf.deleted = 0
-            ), 0) AS favoriteCount
+            ), 0) AS favoriteCount,
+            0 AS likeCount,
+            COALESCE((
+                SELECT COUNT(*)
+                FROM article_comments ac
+                WHERE ac.article_id = a.id
+                  AND ac.deleted = 0
+                  AND ac.status = 'PUBLISHED'
+                  AND ac.parent_id IS NULL
+            ), 0) AS commentCount
         FROM articles a
         LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
         <where>
@@ -129,7 +147,16 @@
                 FROM user_article_favorites uaf
                 WHERE uaf.article_id = a.id
                   AND uaf.deleted = 0
-            ), 0) AS favoriteCount
+            ), 0) AS favoriteCount,
+            0 AS likeCount,
+            COALESCE((
+                SELECT COUNT(*)
+                FROM article_comments ac
+                WHERE ac.article_id = a.id
+                  AND ac.deleted = 0
+                  AND ac.status = 'PUBLISHED'
+                  AND ac.parent_id IS NULL
+            ), 0) AS commentCount
         FROM articles a
         LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
         <where>
@@ -166,7 +193,16 @@
                 FROM user_article_favorites uaf
                 WHERE uaf.article_id = a.id
                   AND uaf.deleted = 0
-            ), 0) AS favoriteCount
+            ), 0) AS favoriteCount,
+            0 AS likeCount,
+            COALESCE((
+                SELECT COUNT(*)
+                FROM article_comments ac
+                WHERE ac.article_id = a.id
+                  AND ac.deleted = 0
+                  AND ac.status = 'PUBLISHED'
+                  AND ac.parent_id IS NULL
+            ), 0) AS commentCount
         FROM articles a
         LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
         WHERE a.deleted = 0
@@ -208,7 +244,16 @@
                 FROM user_article_favorites uaf
                 WHERE uaf.article_id = a.id
                   AND uaf.deleted = 0
-            ), 0) AS favoriteCount
+            ), 0) AS favoriteCount,
+            0 AS likeCount,
+            COALESCE((
+                SELECT COUNT(*)
+                FROM article_comments ac
+                WHERE ac.article_id = a.id
+                  AND ac.deleted = 0
+                  AND ac.status = 'PUBLISHED'
+                  AND ac.parent_id IS NULL
+            ), 0) AS commentCount
         FROM articles a
         LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
         WHERE a.id = #{id}
@@ -249,7 +294,16 @@
                 FROM user_article_favorites uaf
                 WHERE uaf.article_id = a.id
                   AND uaf.deleted = 0
-            ), 0) AS favoriteCount
+            ), 0) AS favoriteCount,
+            0 AS likeCount,
+            COALESCE((
+                SELECT COUNT(*)
+                FROM article_comments ac
+                WHERE ac.article_id = a.id
+                  AND ac.deleted = 0
+                  AND ac.status = 'PUBLISHED'
+                  AND ac.parent_id IS NULL
+            ), 0) AS commentCount
         FROM articles a
         LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
         WHERE a.id = #{id}
@@ -291,7 +345,16 @@
                 FROM user_article_favorites uaf
                 WHERE uaf.article_id = a.id
                   AND uaf.deleted = 0
-            ), 0) AS favoriteCount
+            ), 0) AS favoriteCount,
+            0 AS likeCount,
+            COALESCE((
+                SELECT COUNT(*)
+                FROM article_comments ac
+                WHERE ac.article_id = a.id
+                  AND ac.deleted = 0
+                  AND ac.status = 'PUBLISHED'
+                  AND ac.parent_id IS NULL
+            ), 0) AS commentCount
         FROM articles a
         LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
         WHERE a.id = #{id}
@@ -333,7 +396,16 @@
                 FROM user_article_favorites uaf
                 WHERE uaf.article_id = a.id
                   AND uaf.deleted = 0
-            ), 0) AS favoriteCount
+            ), 0) AS favoriteCount,
+            0 AS likeCount,
+            COALESCE((
+                SELECT COUNT(*)
+                FROM article_comments ac
+                WHERE ac.article_id = a.id
+                  AND ac.deleted = 0
+                  AND ac.status = 'PUBLISHED'
+                  AND ac.parent_id IS NULL
+            ), 0) AS commentCount
         FROM articles a
         LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
         WHERE a.slug = #{slug}

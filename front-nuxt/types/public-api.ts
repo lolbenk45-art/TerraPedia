@@ -1421,6 +1421,8 @@ export type UserArticle = {
   authorDisplayName: string | null
   authorAvatarUrl?: string | null
   viewCount?: number | null
+  likeCount?: number | null
+  commentCount?: number | null
   favoriteCount?: number | null
   createdAt: string | null
   updatedAt: string | null
@@ -1437,6 +1439,8 @@ export type PublicUserArticle = {
   authorDisplayName: string | null
   authorAvatarUrl?: string | null
   viewCount?: number | null
+  likeCount?: number | null
+  commentCount?: number | null
   favoriteCount?: number | null
 }
 

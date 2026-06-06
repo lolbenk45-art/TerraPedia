@@ -87,7 +87,7 @@ class ArticleCommentServiceImplTest {
             eq("ARTICLE_COMMENTED"),
             eq("文章收到新评论"),
             eq("你的文章《真永夜教程》收到一条新评论。"),
-            eq("/articles/true-night-guide#article-comments")
+            eq("/articles/true-night-guide?commentId=9#article-comments")
         );
     }
 
@@ -165,14 +165,14 @@ class ArticleCommentServiceImplTest {
             eq("ARTICLE_COMMENT_REPLIED"),
             eq("文章收到新回复"),
             eq("你的文章《真永夜教程》收到一条新回复。"),
-            eq("/articles/true-night-guide#article-comments")
+            eq("/articles/true-night-guide?commentId=9&replyId=12#article-comments")
         );
         verify(userNotificationService).createNotification(
             eq(42L),
             eq("ARTICLE_COMMENT_REPLIED_TO_YOU"),
             eq("评论收到回复"),
             eq("你在《真永夜教程》下的评论收到一条回复。"),
-            eq("/articles/true-night-guide#article-comments")
+            eq("/articles/true-night-guide?commentId=9&replyId=12#article-comments")
         );
     }
 
@@ -205,7 +205,7 @@ class ArticleCommentServiceImplTest {
             eq("ARTICLE_COMMENT_REPLIED"),
             eq("文章收到新回复"),
             eq("你的文章《真永夜教程》收到一条新回复。"),
-            eq("/articles/true-night-guide#article-comments")
+            eq("/articles/true-night-guide?commentId=9&replyId=12#article-comments")
         );
     }
 

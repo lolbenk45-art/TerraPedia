@@ -67,7 +67,9 @@ class ArticleControllerTest {
         ArticleDTO article = article(7L, "Guide", "guide", null, "<p>Body</p>", "PUBLISHED", "APPROVED");
         article.setAuthorAvatarUrl("/api/files/objects/avatars/7/avatar.png");
         article.setViewCount(12L);
+        article.setLikeCount(2L);
         article.setFavoriteCount(3L);
+        article.setCommentCount(4L);
         when(articleService.getPublishedArticleBySlug("guide")).thenReturn(article);
 
         mockMvc.perform(get("/articles/slug/guide"))
@@ -76,7 +78,9 @@ class ArticleControllerTest {
             .andExpect(jsonPath("$.data.contentHtml").value("<p>Body</p>"))
             .andExpect(jsonPath("$.data.authorAvatarUrl").value("/api/files/objects/avatars/7/avatar.png"))
             .andExpect(jsonPath("$.data.viewCount").value(12))
-            .andExpect(jsonPath("$.data.favoriteCount").value(3));
+            .andExpect(jsonPath("$.data.likeCount").value(2))
+            .andExpect(jsonPath("$.data.favoriteCount").value(3))
+            .andExpect(jsonPath("$.data.commentCount").value(4));
 
         verify(articleService).getPublishedArticleBySlug(eq("guide"));
     }

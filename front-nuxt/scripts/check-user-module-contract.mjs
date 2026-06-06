@@ -364,12 +364,12 @@ const pageContracts = [
   },
   {
     path: 'pages/user/articles/index.vue',
-    required: ['definePageMeta({ requiresUserAuth: true })', 'authStore.fetchUserArticles', 'articlesLoading', 'user-empty-state', 'formatReviewStatus', 'articleActionLabel', 'reviewComment', '编辑', '查看状态', '管理', '查看公开页', '`/user/articles/${article.id}`'],
-    forbidden: ['近战装备路线补充', '克眼前准备清单'],
+    required: ['definePageMeta({ requiresUserAuth: true })', 'authStore.fetchUserArticles', 'articlesLoading', 'user-empty-state', 'formatReviewStatus', 'articleActionLabel', 'reviewComment', '编辑', '查看状态', '管理', '查看公开页', '`/user/articles/${article.id}`', 'article-table-shell', 'article-table-panel', 'article-table-row', 'article-cover-thumb', 'resolvePreviewImageUrl', '封面', '文章', '状态', '内容量', '时间', '下一步', '操作', 'article-category-filter', 'selectedArticleCategory', 'articleEngagementStats', '浏览', '评论', '点赞', '收藏'],
+    forbidden: ['近战装备路线补充', '克眼前准备清单', 'overflow-x: auto', 'min-width: 1380px'],
   },
   {
     path: 'pages/user/articles/new.vue',
-    required: ['definePageMeta({ requiresUserAuth: true })', '@submit.prevent="submit"', 'authStore.createUserArticle', 'contentHtml', 'UserArticleRichEditor', 'user-form-error'],
+    required: ['definePageMeta({ requiresUserAuth: true })', '@submit.prevent="submit"', 'authStore.createUserArticle', 'authStore.submitUserArticleForReview', 'contentHtml', 'UserArticleRichEditor', 'user-form-error', '保存并提交管理员审核'],
     forbidden: ['保存占位', '正文编辑区占位', '输入 HTML', '<textarea v-model="form.contentHtml"'],
   },
   {
@@ -406,7 +406,7 @@ const pageContracts = [
   },
   {
     path: 'pages/articles/[slug].vue',
-    required: ['usePublicApiFetch<UserArticle>', '/articles/slug/', 'useUserFavoritesStore', 'useUserHistoryStore', "loadStatuses('ARTICLE'", 'toggleArticleFavorite', 'recordArticleHistoryOnce', 'recordedArticleHistoryIds', 'import.meta.client', "historyStore.record('ARTICLE'", '收藏文章', '已收藏', 'article.id', 'authorProfilePath', 'resolvePreviewImageUrl', 'articleCoverUrl', 'article.coverImage', 'authorAvatarUrl', 'commentAvatarUrl', 'article-cover-figure', 'article-primary-meta', 'sanitizeArticleHtml', 'renderPlainArticleText', 'sanitizedArticleHtml', 'article-inline-header', 'article-section-title', 'viewCount', 'favoriteCount', 'recommendedArticles', 'article-related-articles', 'article-related-cover', 'article-related-copy', '推荐文章', 'article-toc', 'article-comments', 'sortedArticleComments', 'articleCommentText', 'loadArticleComments', 'submitArticleComment', 'deleteArticleComment', '/comments'],
+    required: ['usePublicApiFetch<UserArticle>', '/articles/slug/', 'useUserFavoritesStore', 'useUserHistoryStore', "loadStatuses('ARTICLE'", 'toggleArticleFavorite', 'recordArticleHistoryOnce', 'recordedArticleHistoryIds', 'import.meta.client', "historyStore.record('ARTICLE'", '收藏文章', '已收藏', 'article.id', 'authorProfilePath', 'resolvePreviewImageUrl', 'articleCoverUrl', 'article.coverImage', 'authorAvatarUrl', 'commentAvatarUrl', 'article-cover-figure', 'article-primary-meta', 'sanitizeArticleHtml', 'renderPlainArticleText', 'sanitizedArticleHtml', 'article-inline-header', 'article-section-title', 'viewCount', 'favoriteCount', 'recommendedArticles', 'article-related-articles', 'article-related-cover', 'article-related-copy', '推荐文章', 'article-toc', 'article-comments', 'articleCommentTargetId', 'focusArticleCommentTarget', 'article-comment-item--targeted', 'articleCommentText', 'loadArticleComments', 'submitArticleComment', 'deleteArticleComment', '/comments'],
     forbidden: ['公开文章暂未开放', '真实文章待接入', '文章未载入', '没有真实发布数据', 'article-detail-cover-frame', 'article-detail-cover-fallback', '<span class="eyebrow">文章状态</span>', '<span class="eyebrow">推荐跳转</span>'],
   },
   {
@@ -428,6 +428,7 @@ for (const contract of pageContracts) {
 
 const publicArticleDetail = assertFile('pages/articles/[slug].vue')
 const userArticleRichEditor = assertFile('components/user/UserArticleRichEditor.vue')
+const userArticleCoverCropper = assertFile('composables/useUserArticleCoverCropper.ts')
 for (const marker of [
   'article-comment-replies',
   'article-comment-reply-form',
@@ -504,6 +505,8 @@ assertNotIncludes('components/user/UserArticleRichEditor.vue', userArticleRichEd
 assertNotIncludes('components/user/UserArticleRichEditor.vue', userArticleRichEditor, '<figcaption>${alt}</figcaption>', 'user article rich editor must not auto-render pasted image filenames as captions')
 assertNotIncludes('components/user/UserArticleRichEditor.vue', userArticleRichEditor, 'sanitizeImageAlt(file.name)', 'user article rich editor must not display local image filenames in the editing surface')
 assertNotIncludes('components/user/UserArticleRichEditor.vue', userArticleRichEditor, 'user-rich-editor__colors', 'user article rich editor must collapse default color swatches behind a single color menu trigger')
+assertPattern('components/user/UserArticleRichEditor.vue', userArticleRichEditor, /\.user-rich-editor__toolbar\s*\{[\s\S]*position:\s*sticky[\s\S]*top:\s*var\(--user-article-toolbar-top/, 'user article rich editor toolbar must stick while scrolling the body')
+assertIncludes('components/user/UserArticleRichEditor.vue', userArticleRichEditor, '--user-article-toolbar-top', 'user article rich editor sticky toolbar offset must be controlled by a theme/layout variable')
 
 for (const marker of [
   'sanitizeArticleStyle',
@@ -529,10 +532,49 @@ assertNotIncludes('pages/articles/[slug].vue', publicArticleDetail, 'firstArticl
 
 for (const path of ['pages/user/articles/new.vue', 'pages/user/articles/[id].vue']) {
   const content = assertFile(path)
+  assertIncludes(path, content, 'writingModeEnabled', 'user article page must expose the selected immersive writing mode toggle')
+  assertIncludes(path, content, 'article-focus-shell--writing', 'user article page must apply the immersive writing layout class')
+  assertIncludes(path, content, 'article-writing-toggle', 'user article page must render a button to control writing mode')
+  assertNotIncludes(path, content, '#08110c', 'user article writing mode must not hard-code the dark design draft background')
+  assertNotIncludes(path, content, '#0f1912', 'user article writing mode must follow theme variables instead of fixed dark surface colors')
+  assertIncludes(path, content, 'useUserArticleCoverCropper', 'user article page must use the shared cover cropper')
   assertIncludes(path, content, 'pendingCoverFile', 'user article page must defer cover uploads until save')
   assertIncludes(path, content, 'uploadUserArticleEmbeddedImages', 'user article page must upload embedded images during save')
   assertIncludes(path, content, 'resolvePreviewImageUrl', 'user article cover preview must resolve backend preview image paths')
+  assertIncludes(path, content, 'cropScale', 'user article page must support zooming selected cover before save')
+  assertIncludes(path, content, 'confirmCoverCrop', 'user article page must apply the cropped cover before save')
+  assertIncludes(path, content, 'user-cover-cropper', 'user article page must render the cover cropper controls')
   assertNotIncludes(path, content, 'authStore.uploadUserArticleImage(file)', 'user article page must not upload selected cover immediately')
+  assertIncludes(path, content, 'article-focus-shell', 'user article editor must use the selected focus-writing layout shell')
+  assertIncludes(path, content, 'article-focus-rail', 'user article editor must expose a compact left anchor rail')
+  assertIncludes(path, content, 'article-writing-surface', 'user article editor must prioritize the central writing surface')
+  assertIncludes(path, content, 'article-focus-status', 'user article editor must keep publish checks in a right status column')
+  assertIncludes(path, content, 'article-settings-workspace', 'user article editor must move cover and slug controls into a secondary settings section')
+  assertIncludes(path, content, 'article-settings-panel', 'user article editor settings must use a visible optimized settings panel')
+  assertNotIncludes(path, content, '<details>', 'user article editor settings must not hide slug and cover controls in a default details block')
+  assertIncludes(path, content, '公开链接地址', 'user article editor must explain slug as the public link path')
+  assertIncludes(path, content, '选择封面', 'user article cover action must be labeled as choosing a cover')
+  assertNotIncludes(path, content, '裁剪/放大封面', 'user article cover action label must not lead with crop and zoom')
+  assertIncludes(path, content, 'article-review-action', 'user article editor must expose the admin review action in the top action area')
+  assertIncludes(path, content, '提交管理员审核', 'user article editor must label the review action as submitting to admin review')
+  assertPattern(path, content, /id="article-body"[\s\S]*id="article-settings"/, 'user article editor must place the writing body before secondary cover and slug settings')
+  assertIncludes(path, content, 'article-compact-head', 'user article editor must replace the large page head with the selected compact toolbar')
+  assertNotIncludes(path, content, 'page-head entity-head', 'user article editor must not keep the large page head block')
+}
+
+const userArticleEditPage = assertFile('pages/user/articles/[id].vue')
+assertPattern('pages/user/articles/[id].vue', userArticleEditPage, /const canSubmitReview = computed\(\(\) => .*isDraftLike\.value.*isOfflineArticle\.value/s, 'offline user articles must expose the admin review action after the author takes them offline')
+assertNotPattern('pages/user/articles/[id].vue', userArticleEditPage, /if \(!isDraftLike\.value \|\| !canEditArticle\.value\) return/, 'offline user articles must not be blocked by a draft-only submitReview guard')
+assertPattern('pages/user/articles/[id].vue', userArticleEditPage, /v-if="canSubmitReview"[\s\S]*提交管理员审核/, 'top admin review action must remain visible for offline editable articles')
+
+for (const marker of [
+  'cropScale',
+  'const CROP_OUTPUT_WIDTH = 1280',
+  'const CROP_OUTPUT_HEIGHT = 720',
+  'renderCroppedCoverBlob',
+  'confirmCoverCrop',
+]) {
+  assertIncludes('composables/useUserArticleCoverCropper.ts', userArticleCoverCropper, marker, `user article cover cropper must include ${marker}`)
 }
 
 assertPattern('pages/articles/[slug].vue', publicArticleDetail, /favoritesStore\.loadStatuses\('ARTICLE',\s*\[article\.value\.id\]\)/, 'article detail favorite status must load by returned article.id')

@@ -94,7 +94,7 @@ public class ArticleCommentServiceImpl implements ArticleCommentService {
         articleCommentMapper.updateRootId(comment.getId(), articleId, comment.getId());
 
         securityAuditService.log("ARTICLE_COMMENT_CREATED", "USER", userId, null, ipAddress, "articleId=" + articleId + ",commentId=" + comment.getId());
-        notifyRootCommentCreated(article, userId);
+        notifyRootCommentCreated(article, comment.getId(), userId);
         return normalizeComment(articleCommentMapper.selectCommentByArticleAndId(articleId, comment.getId()));
     }
 
@@ -136,7 +136,7 @@ public class ArticleCommentServiceImpl implements ArticleCommentService {
 
         securityAuditService.log("ARTICLE_COMMENT_REPLY_CREATED", "USER", userId, null, ipAddress,
             "articleId=" + articleId + ",commentId=" + comment.getId() + ",rootId=" + rootCommentId + ",parentId=" + rootCommentId);
-        notifyReplyCreated(article, replyTarget, userId);
+        notifyReplyCreated(article, rootCommentId, comment.getId(), replyTarget, userId);
         return normalizeComment(articleCommentMapper.selectCommentByArticleAndId(articleId, comment.getId()));
     }
 
@@ -215,7 +215,7 @@ public class ArticleCommentServiceImpl implements ArticleCommentService {
         return article;
     }
 
-    private void notifyRootCommentCreated(Article article, Long actorUserId) {
+    private void notifyRootCommentCreated(Article article, Long commentId, Long actorUserId) {
         Long authorId = article.getAuthorId();
         if (shouldSkipNotification(authorId, actorUserId)) {
             return;
@@ -225,11 +225,11 @@ public class ArticleCommentServiceImpl implements ArticleCommentService {
             "ARTICLE_COMMENTED",
             "文章收到新评论",
             "你的文章《" + articleTitle(article) + "》收到一条新评论。",
-            articleCommentTargetUrl(article)
+            articleCommentTargetUrl(article, commentId, null)
         );
     }
 
-    private void notifyReplyCreated(Article article, ArticleCommentDTO replyTarget, Long actorUserId) {
+    private void notifyReplyCreated(Article article, Long rootCommentId, Long replyId, ArticleCommentDTO replyTarget, Long actorUserId) {
         Long articleAuthorId = article.getAuthorId();
         if (!shouldSkipNotification(articleAuthorId, actorUserId)) {
             userNotificationService.createNotification(
@@ -237,7 +237,7 @@ public class ArticleCommentServiceImpl implements ArticleCommentService {
                 "ARTICLE_COMMENT_REPLIED",
                 "文章收到新回复",
                 "你的文章《" + articleTitle(article) + "》收到一条新回复。",
-                articleCommentTargetUrl(article)
+                articleCommentTargetUrl(article, rootCommentId, replyId)
             );
         }
 
@@ -248,7 +248,7 @@ public class ArticleCommentServiceImpl implements ArticleCommentService {
                 "ARTICLE_COMMENT_REPLIED_TO_YOU",
                 "评论收到回复",
                 "你在《" + articleTitle(article) + "》下的评论收到一条回复。",
-                articleCommentTargetUrl(article)
+                articleCommentTargetUrl(article, rootCommentId, replyId)
             );
         }
     }
@@ -262,12 +262,22 @@ public class ArticleCommentServiceImpl implements ArticleCommentService {
         return title.isBlank() ? "未命名文章" : title;
     }
 
-    private String articleCommentTargetUrl(Article article) {
+    private String articleCommentTargetUrl(Article article, Long commentId, Long replyId) {
         String slug = article.getSlug() == null ? "" : article.getSlug().trim();
+        StringBuilder target = new StringBuilder();
         if (!slug.isBlank()) {
-            return "/articles/" + slug + "#article-comments";
+            target.append("/articles/").append(slug);
+        } else {
+            target.append("/articles/").append(article.getId());
         }
-        return "/articles/" + article.getId() + "#article-comments";
+        if (commentId != null && commentId > 0) {
+            target.append("?commentId=").append(commentId);
+            if (replyId != null && replyId > 0) {
+                target.append("&replyId=").append(replyId);
+            }
+        }
+        target.append("#article-comments");
+        return target.toString();
     }
 
     private void requireUserId(Long userId) {

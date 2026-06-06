@@ -90,7 +90,7 @@
                 }"
                 role="toolbar"
                 aria-label="文章编辑工具栏"
-                @mousedown.prevent="editor.handleToolbarMouseDown"
+                @mousedown="editor.handleToolbarMouseDown"
               >
               <div class="toolbar-group toolbar-group--common" role="group" aria-label="历史操作">
                 <button
@@ -421,7 +421,7 @@
                   <p class="editor-card__eyebrow">Cover</p>
                   <h2>封面</h2>
                 </div>
-                <button type="button" class="ghost-btn" @click="editor.openCoverFileDialog">更换</button>
+                <button type="button" class="ghost-btn" @click="editor.openCoverFileDialog">裁剪/放大封面</button>
               </div>
               <div class="document-cover-preview">
                 <img v-if="editor.coverPreviewSrc" :src="editor.coverPreviewSrc" alt="封面预览" />
