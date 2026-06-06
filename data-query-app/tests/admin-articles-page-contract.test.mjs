@@ -16,6 +16,8 @@ const articleEditorDetailPage = read('pages/article-editor/[id].vue')
 const articlesStore = read('stores/articles.ts')
 const articleEditor = read('utils/articleEditor.ts')
 const articleEditorDesign = read('pages/article-editor-design.vue')
+const nuxtConfig = read('nuxt.config.ts')
+const articleEditorComposable = read('composables/useArticleEditor.ts')
 
 test('admin articles page exposes content preview from article detail', () => {
   assert.match(page, /@click="openContentPreview\(row\)"/)
@@ -134,6 +136,28 @@ test('admin article editor routes keep a single element root for Nuxt page trans
   assert.match(articleEditorNewPage, /<\/ClientOnly>\s*<\/div>\s*<\/template>/)
   assert.match(articleEditorDetailPage, /<template>\s*<div class="article-editor-route">\s*<ClientOnly>/)
   assert.match(articleEditorDetailPage, /<\/ClientOnly>\s*<\/div>\s*<\/template>/)
+})
+
+test('admin article editor pre-bundles client-only editor dependencies', () => {
+  assert.match(nuxtConfig, /vite:\s*\{[\s\S]*optimizeDeps:\s*\{[\s\S]*include:\s*\[[^\]]*'@vueuse\/core'[^\]]*'lucide-vue-next'[^\]]*\]/)
+})
+
+test('admin article editor toolbar preserves native select interactions', () => {
+  assert.match(editorWorkspace, /@mousedown="editor\.handleToolbarMouseDown"/)
+  assert.doesNotMatch(editorWorkspace, /@mousedown\.prevent="editor\.handleToolbarMouseDown"/)
+})
+
+test('admin article editor normalizes selected font size to explicit pixels', () => {
+  assert.match(articleEditorComposable, /fontSize\s*===\s*'xxx-large'/)
+  assert.match(articleEditorComposable, /style\.fontSize\s*=\s*`\$\{targetPx\}px`/)
+})
+
+test('admin article editor exposes cover crop and zoom controls', () => {
+  assert.match(editorWorkspace, /裁剪\/放大封面/)
+  assert.match(editorWorkspace, /v-model="editor\.cropVisible"/)
+  assert.match(editorWorkspace, /v-model\.number="editor\.cropScale"/)
+  assert.match(articleEditorComposable, /const renderCroppedBlob/)
+  assert.match(articleEditorComposable, /const confirmCrop/)
 })
 
 test('admin article editor design board exposes concrete layout drafts on a standalone route', () => {

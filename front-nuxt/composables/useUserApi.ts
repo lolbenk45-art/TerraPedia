@@ -165,6 +165,10 @@ const normalizeUserArticle = (raw: Partial<UserArticle> | null | undefined): Use
   authorId: raw?.authorId ?? null,
   authorDisplayName: raw?.authorDisplayName ?? null,
   authorAvatarUrl: normalizeUserImageUrl(raw?.authorAvatarUrl),
+  viewCount: Number(raw?.viewCount ?? 0),
+  likeCount: Number(raw?.likeCount ?? 0),
+  commentCount: Number(raw?.commentCount ?? 0),
+  favoriteCount: Number(raw?.favoriteCount ?? 0),
   createdAt: raw?.createdAt ?? null,
   updatedAt: raw?.updatedAt ?? null,
 })

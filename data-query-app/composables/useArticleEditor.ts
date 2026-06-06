@@ -483,6 +483,12 @@ export const useArticleEditor = (initialArticleId: number | null) => {
       span.innerHTML = node.innerHTML
       node.replaceWith(span)
     }
+    const fontSizeNodes = Array.from(editor.querySelectorAll<HTMLElement>('[style*="font-size"]'))
+    for (const node of fontSizeNodes) {
+      if (node.style.fontSize === 'xxx-large') {
+        node.style.fontSize = `${targetPx}px`
+      }
+    }
   }
 
   const execEditorCommand = (command: string, value?: string) => {

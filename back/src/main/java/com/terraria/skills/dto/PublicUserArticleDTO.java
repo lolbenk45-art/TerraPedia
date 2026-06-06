@@ -27,5 +27,7 @@ public class PublicUserArticleDTO implements Serializable {
     @JsonIgnore
     private String authorAvatarObjectKey;
     private Long viewCount;
+    private Long likeCount;
+    private Long commentCount;
     private Long favoriteCount;
 }

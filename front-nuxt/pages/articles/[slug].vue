@@ -33,6 +33,8 @@ const articleCommentReplySubmitting = ref(false)
 const articleCommentReplyLoadingIds = ref<Set<number>>(new Set())
 const articleCommentReplyPagination = ref<Record<string, { total: number, page: number, limit: number, totalPages: number }>>({})
 const articleCommentLikeMutatingIds = ref<Set<number>>(new Set())
+const articleCommentTargetHighlightId = ref<number | null>(null)
+const articleCommentTargetFocusing = ref(false)
 const recordedArticleHistoryIds = new Set<string>()
 
 const slug = computed(() => String(route.params.slug ?? '').trim())
@@ -364,6 +366,16 @@ const articleCommentRedirectTarget = computed(() => {
   const path = route.fullPath.split('#')[0] || route.fullPath
   return `${path}#article-comments`
 })
+const articleCommentTargetId = computed(() => {
+  const raw = Array.isArray(route.query.commentId) ? route.query.commentId[0] : route.query.commentId
+  const id = Number(raw)
+  return Number.isFinite(id) && id > 0 ? id : null
+})
+const articleCommentTargetReplyId = computed(() => {
+  const raw = Array.isArray(route.query.replyId) ? route.query.replyId[0] : route.query.replyId
+  const id = Number(raw)
+  return Number.isFinite(id) && id > 0 ? id : null
+})
 const articleCommentLoginPath = computed(() => `/user/login?redirect=${encodeURIComponent(articleCommentRedirectTarget.value)}`)
 const articleCommentCanSubmit = computed(() => articleCommentText.value.trim().length > 0 && articleCommentText.value.trim().length <= 1000 && !articleCommentSubmitting.value)
 const articleCommentReplyCanSubmit = computed(() => articleCommentReplyText.value.trim().length > 0 && articleCommentReplyText.value.trim().length <= 1000 && !articleCommentReplySubmitting.value)
@@ -384,18 +396,6 @@ const commentAvatarFallback = (comment: ArticleComment) => commentAuthorLabel(co
 const commentAvatarUrl = (comment: ArticleComment) => resolvePreviewImageUrl(comment.authorAvatarUrl || '')
 const canDeleteComment = (comment: ArticleComment) => Boolean(authStore.user?.id && Number(authStore.user.id) === Number(comment.authorId))
 const commentContent = (comment: ArticleComment) => comment.deleted ? '该评论已删除' : comment.content
-const commentTimeValue = (comment: ArticleComment) => {
-  const value = new Date(comment.createdAt || '').getTime()
-  return Number.isFinite(value) ? value : 0
-}
-const compareArticleComments = (a: ArticleComment, b: ArticleComment) => {
-  const likeDelta = Number(b.likeCount ?? 0) - Number(a.likeCount ?? 0)
-  if (likeDelta !== 0) return likeDelta
-  const timeDelta = commentTimeValue(b) - commentTimeValue(a)
-  if (timeDelta !== 0) return timeDelta
-  return Number(b.id ?? 0) - Number(a.id ?? 0)
-}
-const sortedArticleComments = computed(() => [...articleComments.value].sort(compareArticleComments))
 const isArticleCommentReplyLoading = (commentId: number) => articleCommentReplyLoadingIds.value.has(commentId)
 const isArticleCommentLikeMutating = (commentId: number) => articleCommentLikeMutatingIds.value.has(commentId)
 const articleCommentRepliesPagination = (commentId: number) => articleCommentReplyPagination.value[String(commentId)] ?? {
@@ -410,6 +410,16 @@ const canLoadMoreArticleCommentReplies = (comment: ArticleComment) => {
   const total = Math.max(Number(comment.replyCount ?? 0), pagination.total)
   return loadedCount < total || pagination.page < pagination.totalPages
 }
+const articleCommentRepliesTotal = (comment: ArticleComment) => {
+  const pagination = articleCommentRepliesPagination(comment.id)
+  return Math.max(Number(comment.replyCount ?? 0), pagination.total, comment.replies.length)
+}
+const articleCommentRepliesLoadedLabel = (comment: ArticleComment) => `${comment.replies.length} / ${articleCommentRepliesTotal(comment)}`
+const nextArticleCommentRepliesPage = (comment: ArticleComment) => {
+  const pagination = articleCommentReplyPagination.value[String(comment.id)]
+  if (!pagination) return 1
+  return pagination.page + 1
+}
 const setCommentReplyLoading = (commentId: number, loading: boolean) => {
   const next = new Set(articleCommentReplyLoadingIds.value)
   if (loading) next.add(commentId)
@@ -421,6 +431,22 @@ const setCommentLikeMutating = (commentId: number, mutating: boolean) => {
   if (mutating) next.add(commentId)
   else next.delete(commentId)
   articleCommentLikeMutatingIds.value = next
+}
+const findArticleComment = (commentId: number | null) => {
+  if (!commentId) return null
+  for (const comment of articleComments.value) {
+    if (comment.id === commentId) return { root: comment, comment }
+    const reply = comment.replies.find(item => item.id === commentId)
+    if (reply) return { root: comment, comment: reply }
+  }
+  return null
+}
+const scrollArticleCommentIntoView = async (commentId: number | null) => {
+  if (!import.meta.client) return
+  await nextTick()
+  const selector = commentId ? `[data-comment-id="${commentId}"]` : '#article-comments'
+  const target = document.querySelector(selector) || document.querySelector('#article-comments')
+  target?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 const updateCommentInTree = (commentId: number, updater: (comment: ArticleComment) => ArticleComment) => {
   articleComments.value = articleComments.value.map((comment) => {
@@ -515,15 +541,17 @@ const toggleArticleFavorite = async () => {
 }
 
 const loadArticleComments = async (page = 1) => {
-  if (!article.value?.id) return
+  if (!article.value?.id) return false
   articleCommentsLoading.value = true
   articleCommentError.value = ''
   try {
     const result = await fetchArticleComments(article.value.id, page, articleCommentPagination.value.limit)
     appendArticleComments(result.records, page <= 1)
     articleCommentPagination.value = result.pagination
+    return true
   } catch (exception) {
     articleCommentError.value = extractUserApiError(exception, '评论加载失败。')
+    return false
   } finally {
     articleCommentsLoading.value = false
   }
@@ -534,8 +562,41 @@ const loadMoreArticleComments = async () => {
   await loadArticleComments(articleCommentPagination.value.page + 1)
 }
 
+const focusArticleCommentTarget = async () => {
+  const rootTargetId = articleCommentTargetId.value
+  const replyTargetId = articleCommentTargetReplyId.value
+  if (!rootTargetId || !article.value?.id || articleCommentTargetFocusing.value) {
+    if (!rootTargetId) await scrollArticleCommentIntoView(null)
+    return
+  }
+  articleCommentTargetFocusing.value = true
+  try {
+    while (!findArticleComment(rootTargetId) && canLoadMoreArticleComments.value) {
+      const nextPage = articleCommentPagination.value.page + 1
+      const loaded = await loadArticleComments(nextPage)
+      if (!loaded || articleCommentPagination.value.page < nextPage) break
+    }
+    const rootTarget = findArticleComment(rootTargetId)
+    if (rootTarget?.root && replyTargetId) {
+      while (!findArticleComment(replyTargetId) && canLoadMoreArticleCommentReplies(rootTarget.root)) {
+        const nextPage = nextArticleCommentRepliesPage(rootTarget.root)
+        const loaded = await loadArticleCommentReplies(rootTarget.root, nextPage)
+        if (!loaded || articleCommentRepliesPagination(rootTarget.root.id).page < nextPage) break
+      }
+    }
+    const highlightId = replyTargetId || rootTargetId
+    articleCommentTargetHighlightId.value = highlightId
+    await scrollArticleCommentIntoView(highlightId)
+    window.setTimeout(() => {
+      if (articleCommentTargetHighlightId.value === highlightId) articleCommentTargetHighlightId.value = null
+    }, 4200)
+  } finally {
+    articleCommentTargetFocusing.value = false
+  }
+}
+
 const loadArticleCommentReplies = async (comment: ArticleComment, page = 1) => {
-  if (!article.value?.id) return
+  if (!article.value?.id) return false
   setCommentReplyLoading(comment.id, true)
   articleCommentError.value = ''
   try {
@@ -546,8 +607,10 @@ const loadArticleCommentReplies = async (comment: ArticleComment, page = 1) => {
       ...articleCommentReplyPagination.value,
       [String(comment.id)]: result.pagination,
     }
+    return true
   } catch (exception) {
     articleCommentError.value = extractUserApiError(exception, '回复加载失败。')
+    return false
   } finally {
     setCommentReplyLoading(comment.id, false)
   }
@@ -555,8 +618,7 @@ const loadArticleCommentReplies = async (comment: ArticleComment, page = 1) => {
 
 const loadMoreArticleCommentReplies = async (comment: ArticleComment) => {
   if (isArticleCommentReplyLoading(comment.id)) return
-  const pagination = articleCommentRepliesPagination(comment.id)
-  await loadArticleCommentReplies(comment, pagination.page + 1)
+  await loadArticleCommentReplies(comment, nextArticleCommentRepliesPage(comment))
 }
 
 const requireArticleCommentLogin = async () => {
@@ -695,14 +757,20 @@ watch(() => article.value?.id, () => {
   initialArticleFavorite.value = null
   void loadArticleFavoriteStatus()
   void recordArticleHistoryOnce()
-  void loadArticleComments()
+  void loadArticleComments().then(() => {
+    if (route.hash === '#article-comments' || articleCommentTargetId.value) void focusArticleCommentTarget()
+  })
 }, { immediate: true })
+
+watch(() => [route.query.commentId, route.query.replyId, route.hash], () => {
+  if (route.hash === '#article-comments' || articleCommentTargetId.value) void focusArticleCommentTarget()
+})
 
 onMounted(() => {
   articleClientReady.value = true
   void loadArticleFavoriteStatus()
   void recordArticleHistoryOnce()
-  void loadArticleComments()
+  if (route.hash === '#article-comments' || articleCommentTargetId.value) void focusArticleCommentTarget()
 })
 </script>
 
@@ -816,7 +884,13 @@ onMounted(() => {
             <div v-if="articleCommentsLoading && !articleComments.length" class="article-comment-empty">评论加载中...</div>
             <div v-else-if="!articleComments.length" class="article-comment-empty">暂无评论，成为第一条评论。</div>
             <div v-else class="article-comment-list">
-              <article v-for="comment in sortedArticleComments" :key="comment.id" class="article-comment-item">
+              <article
+                v-for="comment in articleComments"
+                :key="comment.id"
+                class="article-comment-item"
+                :class="{ 'article-comment-item--targeted': articleCommentTargetHighlightId === comment.id }"
+                :data-comment-id="comment.id"
+              >
                 <div class="article-comment-avatar">
                   <img v-if="commentAvatarUrl(comment)" :src="commentAvatarUrl(comment)" :alt="`${commentAuthorLabel(comment)} 的头像`" loading="lazy">
                   <span v-else>{{ commentAvatarFallback(comment) }}</span>
@@ -851,8 +925,40 @@ onMounted(() => {
                     </button>
                   </div>
 
+                  <form
+                    v-if="articleCommentReplyTarget?.rootId === comment.id && articleCommentReplyTarget.replyToCommentId === comment.id"
+                    class="article-comment-reply-form article-comment-reply-form--inline"
+                    @submit.prevent="submitArticleCommentReply(comment)"
+                  >
+                    <label :for="`article-comment-reply-root-${comment.id}`">
+                      回复 @{{ commentAuthorLabel(comment) }}
+                    </label>
+                    <textarea
+                      :id="`article-comment-reply-root-${comment.id}`"
+                      v-model="articleCommentReplyText"
+                      maxlength="1000"
+                      rows="3"
+                      placeholder="写下你的补充或问题。"
+                    ></textarea>
+                    <div class="article-comment-form-actions">
+                      <span>{{ articleCommentReplyText.trim().length }} / 1000</span>
+                      <div class="article-comment-reply-buttons">
+                        <button class="article-comment-delete" type="button" @click="cancelArticleCommentReply">取消</button>
+                        <button class="article-comment-submit" type="submit" :disabled="!articleCommentReplyCanSubmit">
+                          {{ articleCommentReplySubmitting ? '回复中' : '发布回复' }}
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+
                   <div v-if="comment.replies.length || comment.replyCount > 0" class="article-comment-replies">
-                    <article v-for="reply in comment.replies" :key="reply.id" class="article-comment-reply-item">
+                    <article
+                      v-for="reply in comment.replies"
+                      :key="reply.id"
+                      class="article-comment-reply-item"
+                      :class="{ 'article-comment-item--targeted': articleCommentTargetHighlightId === reply.id }"
+                      :data-comment-id="reply.id"
+                    >
                       <div class="article-comment-avatar small">
                         <img v-if="commentAvatarUrl(reply)" :src="commentAvatarUrl(reply)" :alt="`${commentAuthorLabel(reply)} 的头像`" loading="lazy">
                         <span v-else>{{ commentAvatarFallback(reply) }}</span>
@@ -887,44 +993,46 @@ onMounted(() => {
                             {{ articleCommentDeletingId === reply.id ? '删除中' : '删除' }}
                           </button>
                         </div>
+                        <form
+                          v-if="articleCommentReplyTarget?.rootId === comment.id && articleCommentReplyTarget.replyToCommentId === reply.id"
+                          class="article-comment-reply-form article-comment-reply-form--inline"
+                          @submit.prevent="submitArticleCommentReply(comment)"
+                        >
+                          <label :for="`article-comment-reply-${reply.id}`">
+                            回复 @{{ commentAuthorLabel(reply) }}
+                          </label>
+                          <textarea
+                            :id="`article-comment-reply-${reply.id}`"
+                            v-model="articleCommentReplyText"
+                            maxlength="1000"
+                            rows="3"
+                            placeholder="写下你的补充或问题。"
+                          ></textarea>
+                          <div class="article-comment-form-actions">
+                            <span>{{ articleCommentReplyText.trim().length }} / 1000</span>
+                            <div class="article-comment-reply-buttons">
+                              <button class="article-comment-delete" type="button" @click="cancelArticleCommentReply">取消</button>
+                              <button class="article-comment-submit" type="submit" :disabled="!articleCommentReplyCanSubmit">
+                                {{ articleCommentReplySubmitting ? '回复中' : '发布回复' }}
+                              </button>
+                            </div>
+                          </div>
+                        </form>
                       </div>
                     </article>
-                    <button
-                      v-if="canLoadMoreArticleCommentReplies(comment)"
-                      class="article-comment-load-more article-comment-replies-more"
-                      type="button"
-                      :disabled="isArticleCommentReplyLoading(comment.id)"
-                      @click="loadMoreArticleCommentReplies(comment)"
-                    >
-                      {{ isArticleCommentReplyLoading(comment.id) ? '加载中' : '加载更多回复' }}
-                    </button>
-                  </div>
-
-                  <form
-                    v-if="articleCommentReplyTarget?.rootId === comment.id"
-                    class="article-comment-reply-form"
-                    @submit.prevent="submitArticleCommentReply(comment)"
-                  >
-                    <label :for="`article-comment-reply-${comment.id}`">
-                      {{ articleCommentReplyTarget.replyToDisplayName ? `回复 @${articleCommentReplyTarget.replyToDisplayName}` : '回复评论' }}
-                    </label>
-                    <textarea
-                      :id="`article-comment-reply-${comment.id}`"
-                      v-model="articleCommentReplyText"
-                      maxlength="1000"
-                      rows="3"
-                      placeholder="写下你的补充或问题。"
-                    ></textarea>
-                    <div class="article-comment-form-actions">
-                      <span>{{ articleCommentReplyText.trim().length }} / 1000</span>
-                      <div class="article-comment-reply-buttons">
-                        <button class="article-comment-delete" type="button" @click="cancelArticleCommentReply">取消</button>
-                        <button class="article-comment-submit" type="submit" :disabled="!articleCommentReplyCanSubmit">
-                          {{ articleCommentReplySubmitting ? '回复中' : '发布回复' }}
-                        </button>
-                      </div>
+                    <div class="article-comment-replies-footer">
+                      <span>已显示 {{ articleCommentRepliesLoadedLabel(comment) }} 条回复</span>
+                      <button
+                        v-if="canLoadMoreArticleCommentReplies(comment)"
+                        class="article-comment-load-more article-comment-replies-more"
+                        type="button"
+                        :disabled="isArticleCommentReplyLoading(comment.id)"
+                        @click="loadMoreArticleCommentReplies(comment)"
+                      >
+                        {{ isArticleCommentReplyLoading(comment.id) ? '加载中' : '加载更多回复' }}
+                      </button>
                     </div>
-                  </form>
+                  </div>
                 </div>
               </article>
             </div>
@@ -1361,6 +1469,10 @@ onMounted(() => {
   background: color-mix(in srgb, var(--accent-gold) 8%, var(--index-surface));
 }
 
+.article-comment-reply-form--inline {
+  margin: 10px 0 2px;
+}
+
 .article-comment-form label {
   color: var(--text-strong);
   font-size: 13px;
@@ -1472,6 +1584,14 @@ onMounted(() => {
   border: 1px solid color-mix(in srgb, var(--index-line) 82%, transparent);
   border-radius: 8px;
   background: color-mix(in srgb, var(--index-surface) 80%, transparent);
+}
+
+.article-comment-item--targeted {
+  border-color: color-mix(in srgb, var(--accent-gold) 72%, var(--index-line));
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent-gold) 16%, transparent), transparent 42%),
+    color-mix(in srgb, var(--index-surface) 84%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-gold) 14%, transparent);
 }
 
 .article-comment-avatar {
@@ -1597,6 +1717,21 @@ onMounted(() => {
 .article-comment-replies-more {
   margin: 0;
   min-height: 32px;
+}
+
+.article-comment-replies-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.article-comment-replies-footer > span {
+  color: var(--text-subtle);
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .article-author-link,

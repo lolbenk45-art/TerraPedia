@@ -27,6 +27,8 @@ public class ArticleDTO {
     @JsonIgnore
     private String authorAvatarObjectKey;
     private Long viewCount;
+    private Long likeCount;
+    private Long commentCount;
     private Long favoriteCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

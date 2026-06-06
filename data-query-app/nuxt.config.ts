@@ -17,6 +17,12 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/variables.css', '~/assets/css/main.css'],
 
+  vite: {
+    optimizeDeps: {
+      include: ['@vueuse/core', 'lucide-vue-next'],
+    },
+  },
+
   runtimeConfig: {
     public: {
       apiBase: '/api',

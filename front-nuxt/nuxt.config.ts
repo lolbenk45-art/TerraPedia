@@ -54,6 +54,10 @@ export default defineNuxtConfig({
         target: `${terrapediaBackendOrigin}/api`,
         changeOrigin: true,
       },
+      '/terrapedia-images': {
+        target: `${terrapediaImageOrigin}/terrapedia-images`,
+        changeOrigin: true,
+      },
     },
   },
 
