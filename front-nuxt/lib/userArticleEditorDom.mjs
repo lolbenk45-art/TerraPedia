@@ -30,6 +30,50 @@ export const unwrapUserArticleTypingPlaceholders = (html) => {
   return String(html || '').replaceAll(USER_ARTICLE_EDITOR_PLACEHOLDER, '')
 }
 
+export const createUserArticleEditorHistory = (initialHtml = '', options = {}) => {
+  const limit = Number.isInteger(options.limit) && options.limit > 0 ? options.limit : 80
+  let currentHtml = String(initialHtml || '')
+  const undoStack = []
+  const redoStack = []
+
+  const trimUndoStack = () => {
+    while (undoStack.length > limit) undoStack.shift()
+  }
+
+  return {
+    current: () => currentHtml,
+    reset: (html = '') => {
+      currentHtml = String(html || '')
+      undoStack.length = 0
+      redoStack.length = 0
+    },
+    commit: (html = '') => {
+      const nextHtml = String(html || '')
+      if (nextHtml === currentHtml) return false
+      undoStack.push(currentHtml)
+      trimUndoStack()
+      currentHtml = nextHtml
+      redoStack.length = 0
+      return true
+    },
+    canUndo: () => undoStack.length > 0,
+    canRedo: () => redoStack.length > 0,
+    undo: () => {
+      if (!undoStack.length) return currentHtml
+      redoStack.push(currentHtml)
+      currentHtml = undoStack.pop()
+      return currentHtml
+    },
+    redo: () => {
+      if (!redoStack.length) return currentHtml
+      undoStack.push(currentHtml)
+      trimUndoStack()
+      currentHtml = redoStack.pop()
+      return currentHtml
+    },
+  }
+}
+
 export const normalizeUserArticleLinkHref = (value) => {
   const raw = String(value || '').trim().replace(/&amp;/g, '&')
   if (!raw) return ''
