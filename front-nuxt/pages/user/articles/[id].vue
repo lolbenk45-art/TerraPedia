@@ -498,10 +498,13 @@ onMounted(() => {
 
 .article-focus-shell--writing .article-focus-status {
   position: fixed;
-  top: 104px;
-  right: max(16px, calc((100vw - 1500px) / 2 + 16px));
+  --article-reference-panel-top: clamp(104px, 13dvh, 132px);
+  --user-article-reference-panel-max-height: calc(100dvh - var(--article-reference-panel-top) - 16px);
+  top: var(--article-reference-panel-top);
+  right: max(12px, calc((100vw - 1500px) / 2 + 16px));
   z-index: 35;
-  width: 320px;
+  width: min(320px, calc(100vw - 24px));
+  max-height: var(--user-article-reference-panel-max-height);
 }
 
 .article-focus-shell--writing .article-status-card {
@@ -778,8 +781,13 @@ onMounted(() => {
   }
 
   .article-focus-shell--writing .article-focus-status {
-    position: static;
-    width: 100%;
+    position: fixed;
+    --article-reference-panel-top: 96px;
+    --user-article-reference-panel-max-height: calc(100dvh - 112px);
+    top: var(--article-reference-panel-top);
+    right: 12px;
+    width: min(320px, calc(100vw - 24px));
+    max-height: var(--user-article-reference-panel-max-height);
   }
 
   .article-focus-rail {
