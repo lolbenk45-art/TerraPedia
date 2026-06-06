@@ -347,14 +347,16 @@ watch(() => props.articleId, () => {
 
 <style scoped>
 .article-review-workspace {
-  --review-bg: #f3f6fa;
-  --review-surface: #ffffff;
-  --review-surface-muted: #f8fafc;
-  --review-ink: #111827;
-  --review-muted: #526173;
-  --review-border: #d7dee8;
-  --review-accent: #0f766e;
-  --review-danger: #b42318;
+  --review-bg: color-mix(in srgb, var(--color-bg-tertiary) 78%, var(--color-bg));
+  --review-surface: var(--color-surface-2);
+  --review-surface-muted: color-mix(in srgb, var(--color-bg-secondary) 88%, var(--color-bg));
+  --review-ink: var(--color-text);
+  --review-muted: var(--color-text-secondary);
+  --review-border: color-mix(in srgb, var(--color-border) 92%, transparent);
+  --review-accent: var(--color-primary);
+  --review-accent-soft: color-mix(in srgb, var(--color-primary) 11%, var(--color-bg-secondary));
+  --review-danger: var(--color-danger);
+  --review-danger-soft: color-mix(in srgb, var(--color-danger) 11%, var(--color-bg-secondary));
 
   display: grid;
   gap: 18px;
@@ -417,13 +419,13 @@ watch(() => props.articleId, () => {
   gap: 14px;
   align-items: center;
   padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.97);
+  background: color-mix(in srgb, var(--color-bg-elevated) 94%, transparent);
   backdrop-filter: blur(10px);
 }
 
 .review-status-note {
   padding: 12px 14px;
-  background: #f8fafc;
+  background: var(--review-surface-muted);
   color: var(--review-muted);
   line-height: 1.6;
 }
@@ -469,7 +471,7 @@ watch(() => props.articleId, () => {
   justify-content: center;
   border-radius: 999px;
   padding: 6px 10px;
-  background: #eef6f3;
+  background: var(--review-accent-soft);
   color: var(--review-accent);
   font-size: 0.8rem;
   font-weight: 800;
@@ -489,12 +491,12 @@ watch(() => props.articleId, () => {
 .review-btn--primary {
   border-color: var(--review-accent);
   background: var(--review-accent);
-  color: #fff;
+  color: var(--color-text-inverse);
 }
 
 .review-btn--danger {
-  border-color: #f1b8b0;
-  background: #fff1f0;
+  border-color: color-mix(in srgb, var(--color-danger) 34%, var(--review-border));
+  background: var(--review-danger-soft);
   color: var(--review-danger);
 }
 
@@ -615,7 +617,7 @@ watch(() => props.articleId, () => {
   height: 12px;
   margin-top: 5px;
   border-radius: 999px;
-  background: #d6d3d1;
+  background: color-mix(in srgb, var(--color-text-muted) 36%, var(--color-bg-tertiary));
 }
 
 .review-checklist__dot--done {
