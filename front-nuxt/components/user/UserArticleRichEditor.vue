@@ -5,6 +5,7 @@ import {
   buildUserArticleInlineStyle,
   buildUserArticleReferenceHtml,
   buildUserArticleTypingSpanHtml,
+  applyUserArticleInlineStyleToRange,
   isSafeUserArticleReferenceElement,
   isSafeUserArticleLinkHref,
   normalizeUserArticleReferenceDisplayMode,
@@ -566,6 +567,20 @@ const collectSelectedReferences = (range: Range) => {
   return Array.from(references)
 }
 
+const isMultiBlockEditorRange = (range: Range) => {
+  const editor = editorRef.value
+  if (!editor) return false
+  const blocks = new Set<Element>()
+  for (const block of Array.from(editor.querySelectorAll('p,h1,h2,h3,h4,blockquote,li,figcaption'))) {
+    try {
+      if (range.intersectsNode(block)) blocks.add(block)
+    } catch {
+      continue
+    }
+  }
+  return blocks.size > 1
+}
+
 const applyInlineStyleToSelection = () => {
   if (props.disabled) return
   const editor = editorRef.value
@@ -600,6 +615,17 @@ const applyInlineStyleToSelection = () => {
     setCaretInTypingNode(placeholder)
     saveSelection()
     void buildUserArticleTypingSpanHtml(styleText)
+    return
+  }
+
+  if (isMultiBlockEditorRange(range)) {
+    applyUserArticleInlineStyleToRange({
+      editor,
+      range,
+      fontSizePx: fontSizePx.value,
+      textColor: textColorValue.value,
+    })
+    saveSelection()
     return
   }
 
@@ -1927,9 +1953,11 @@ onBeforeUnmount(() => {
   background: color-mix(in srgb, var(--accent-gold) 13%, transparent);
   color: var(--accent-gold);
   line-height: 1;
-  vertical-align: -7px;
+  vertical-align: -0.38em;
   cursor: grab;
   user-select: none;
+  white-space: nowrap;
+  break-inside: avoid;
 }
 
 .user-rich-editor__surface :deep(.tp-content-ref:active) {
@@ -1951,6 +1979,7 @@ onBeforeUnmount(() => {
   font-weight: 650;
   line-height: 1.45;
   vertical-align: .04em;
+  white-space: nowrap;
 }
 
 .user-rich-editor__surface :deep(.tp-content-ref img) {

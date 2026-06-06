@@ -1432,7 +1432,9 @@ const setupReadyText = computed(() => {
   background: color-mix(in srgb, var(--editor-paper) 78%, rgba(245, 158, 11, .16));
   color: var(--color-primary);
   line-height: 1;
-  vertical-align: -7px;
+  vertical-align: -0.38em;
+  white-space: nowrap;
+  break-inside: avoid;
 }
 
 .article-preview__body :deep(.tp-content-ref[data-tp-ref-display="text"]) {
@@ -1444,6 +1446,7 @@ const setupReadyText = computed(() => {
   font-weight: 700;
   line-height: 1.45;
   vertical-align: .04em;
+  white-space: nowrap;
 }
 
 .article-preview__body :deep(.tp-content-ref img) {

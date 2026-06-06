@@ -146,6 +146,79 @@ export const buildUserArticleReferenceHtml = ({ type, id, label, imageUrl, displ
   return span.outerHTML
 }
 
+const USER_ARTICLE_INLINE_STYLE_TARGETS = [
+  'p',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'blockquote',
+  'li',
+  'figcaption',
+  'span',
+  'a',
+  'strong',
+  'b',
+  'em',
+  'i',
+  'u',
+  's',
+  'del',
+  'code',
+].join(',')
+
+const rangeIntersectsElement = (range, element) => {
+  try {
+    return range.intersectsNode(element)
+  } catch {
+    return false
+  }
+}
+
+const setUserArticleInlineStyleOnElement = (element, { fontSizePx, textColor }) => {
+  if (!element || !element.style) return
+  const nextPx = Number(fontSizePx)
+  if (Number.isFinite(nextPx) && nextPx > 0) {
+    element.style.fontSize = `${nextPx}px`
+  }
+  const nextColor = sanitizeUserArticleEditorColor(textColor, '')
+  if (nextColor) {
+    element.style.color = nextColor
+  }
+}
+
+export const applyUserArticleStyleToReference = (element, options) => {
+  setUserArticleInlineStyleOnElement(element, options)
+  if (element?.dataset?.tpRefDisplay !== 'text') {
+    element.style.lineHeight = '1'
+  }
+}
+
+export const applyUserArticleInlineStyleToRange = ({ editor, range, fontSizePx, textColor }) => {
+  if (!editor || !range || range.collapsed) return false
+  const references = new Set()
+
+  for (const element of Array.from(editor.querySelectorAll(USER_ARTICLE_INLINE_STYLE_TARGETS))) {
+    if (!rangeIntersectsElement(range, element)) continue
+    if (element.classList?.contains('tp-content-ref')) {
+      references.add(element)
+      continue
+    }
+    if (element.closest?.('.tp-content-ref')) continue
+    setUserArticleInlineStyleOnElement(element, { fontSizePx, textColor })
+  }
+
+  for (const reference of Array.from(editor.querySelectorAll('.tp-content-ref'))) {
+    if (rangeIntersectsElement(range, reference)) references.add(reference)
+  }
+
+  for (const reference of references) {
+    applyUserArticleStyleToReference(reference, { fontSizePx, textColor })
+  }
+
+  return true
+}
+
 export const sanitizeUserArticleEditorLoadedHtml = (html) => {
   const source = String(html || '').trim()
   if (!globalThis.document || !source) return source
