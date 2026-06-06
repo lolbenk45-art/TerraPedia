@@ -1834,7 +1834,7 @@ onBeforeUnmount(() => {
   z-index: 1;
   display: grid;
   width: min(420px, 100%);
-  max-height: min(58dvh, 460px);
+  max-height: min(var(--user-article-reference-panel-max-height, 58dvh), 460px);
   gap: 9px;
   overflow: auto;
   margin-top: 10px;
@@ -1886,7 +1886,7 @@ onBeforeUnmount(() => {
 
 .user-rich-editor__reference-results {
   display: grid;
-  max-height: 280px;
+  max-height: max(150px, min(280px, calc(var(--user-article-reference-panel-max-height, 58dvh) - 170px)));
   gap: 6px;
   overflow: auto;
 }
@@ -2327,11 +2327,11 @@ onBeforeUnmount(() => {
 
   .user-rich-editor__reference-popover {
     width: 100%;
-    max-height: min(70dvh, 480px);
+    max-height: min(var(--user-article-reference-panel-max-height, 70dvh), 480px);
   }
 
   .user-rich-editor__reference-results {
-    max-height: min(260px, 38dvh);
+    max-height: max(150px, min(260px, calc(var(--user-article-reference-panel-max-height, 70dvh) - 170px)));
   }
 
   .user-rich-editor__image-tools {
