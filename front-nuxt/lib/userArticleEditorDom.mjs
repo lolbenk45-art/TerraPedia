@@ -167,6 +167,17 @@ const USER_ARTICLE_INLINE_STYLE_TARGETS = [
   'code',
 ].join(',')
 
+const USER_ARTICLE_BLOCK_STYLE_TARGETS = [
+  'p',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'blockquote',
+  'li',
+  'figcaption',
+].join(',')
+
 const rangeIntersectsElement = (range, element) => {
   try {
     return range.intersectsNode(element)
@@ -194,6 +205,29 @@ export const applyUserArticleStyleToReference = (element, options) => {
   }
 }
 
+const collectUserArticleRangeBlocks = (editor, range) => {
+  const blocks = new Set()
+  for (const block of Array.from(editor.querySelectorAll(USER_ARTICLE_BLOCK_STYLE_TARGETS))) {
+    if (rangeIntersectsElement(range, block)) blocks.add(block)
+  }
+  return blocks
+}
+
+const applyUserArticleInlineStyleWithin = (root, options) => {
+  if (!root) return
+  for (const element of Array.from(root.querySelectorAll(USER_ARTICLE_INLINE_STYLE_TARGETS))) {
+    if (element.classList?.contains('tp-content-ref')) {
+      applyUserArticleStyleToReference(element, options)
+      continue
+    }
+    if (element.closest?.('.tp-content-ref')) continue
+    setUserArticleInlineStyleOnElement(element, options)
+  }
+  for (const reference of Array.from(root.querySelectorAll('.tp-content-ref'))) {
+    applyUserArticleStyleToReference(reference, options)
+  }
+}
+
 export const applyUserArticleInlineStyleToRange = ({ editor, range, fontSizePx, textColor }) => {
   if (!editor || !range || range.collapsed) return false
   const references = new Set()
@@ -217,6 +251,23 @@ export const applyUserArticleInlineStyleToRange = ({ editor, range, fontSizePx, 
   }
 
   return true
+}
+
+export const applyUserArticleInlineStyleToSelectedRange = ({ editor, range, fontSizePx, textColor }) => {
+  if (!editor || !range || range.collapsed || !globalThis.document) return { applied: false, mode: 'none', element: null }
+  const blocks = collectUserArticleRangeBlocks(editor, range)
+  if (blocks.size > 1) {
+    applyUserArticleInlineStyleToRange({ editor, range, fontSizePx, textColor })
+    return { applied: true, mode: 'block', element: null }
+  }
+
+  const span = globalThis.document.createElement('span')
+  setUserArticleInlineStyleOnElement(span, { fontSizePx, textColor })
+  const contents = range.extractContents()
+  span.appendChild(contents)
+  range.insertNode(span)
+  applyUserArticleInlineStyleWithin(span, { fontSizePx, textColor })
+  return { applied: true, mode: 'inline', element: span }
 }
 
 export const sanitizeUserArticleEditorLoadedHtml = (html) => {
