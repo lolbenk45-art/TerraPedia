@@ -850,7 +850,9 @@ onMounted(async () => {
   background: color-mix(in srgb, var(--color-bg-secondary) 78%, rgba(245, 158, 11, .16));
   color: var(--color-primary);
   line-height: 1;
-  vertical-align: -7px;
+  vertical-align: -0.38em;
+  white-space: nowrap;
+  break-inside: avoid;
 }
 
 .content-preview-rich :deep(.tp-content-ref[data-tp-ref-display="text"]) {
@@ -862,6 +864,7 @@ onMounted(async () => {
   font-weight: 700;
   line-height: 1.45;
   vertical-align: .04em;
+  white-space: nowrap;
 }
 
 .content-preview-rich :deep(.tp-content-ref img) {

@@ -33,6 +33,7 @@ if (!editorComponentSource.includes('@dragend="handleEditorDragEnd"')) throw new
 if (!editorComponentSource.includes('handleReferenceDrop')) throw new Error('editor drop path must move reference atoms before file drops')
 if (!editorComponentSource.includes('collectSelectedReferences')) throw new Error('editor inline styling must include selected content references')
 if (!editorComponentSource.includes('applyInlineStyleToReference')) throw new Error('editor inline styling must apply font size and color to content references')
+if (!editorComponentSource.includes('applyUserArticleInlineStyleToRange')) throw new Error('editor must use range-level inline styling for multi-block selections')
 if (!editorComponentSource.includes('width: 1.875em')) throw new Error('editor reference image size must scale with font size')
 
 writeFileSync(htmlPath, `<!doctype html>
@@ -340,6 +341,30 @@ writeFileSync(htmlPath, `<!doctype html>
         assert(editor.querySelector('.tp-content-ref')?.querySelector('img'), 'typing after image reference must not remove chip image');
         assert(editor.querySelector('.tp-content-ref')?.textContent.trim() === '', 'typing after image reference must not mutate chip text');
         assert(editor.innerHTML.includes('</span>&nbsp;继续') || editor.innerHTML.includes('</span>\\u00a0继续'), 'caret should land after reference trailing text node');
+
+        editor.innerHTML = '<p><span style="font-size:28px;color:rgb(245, 230, 184)">' + referenceHtml + '&nbsp;</span><br></p><p><span style="font-size:16px;color:rgb(252, 165, 165)">FWFW状态：</span>干<span style="font-size:16px;color:rgb(125, 211, 252)">净，基于本地 m</span>ain</p><p>232311111111111111</p>';
+        const allRange = document.createRange();
+        allRange.selectNodeContents(editor);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(allRange);
+        applyUserArticleInlineStyleToRange({
+          editor,
+          range: allRange,
+          fontSizePx: 18,
+          textColor: '#f5e6b8',
+        });
+        const styledHtml = editor.innerHTML.toLowerCase();
+        assert(!styledHtml.includes('font-size:28px'), 'multi-block selection should remove stale larger reference wrapper font size');
+        assert(!styledHtml.includes('font-size:16px'), 'multi-block selection should remove stale inline text font sizes');
+        assert(!styledHtml.includes('<span style="font-size:18px;color:#f5e6b8"><p'), 'multi-block selection must not wrap block nodes in an inline span');
+        for (const reference of Array.from(editor.querySelectorAll('.tp-content-ref'))) {
+          assert(reference.style.fontSize === '18px', 'selected reference should receive the unified font size');
+          assert(reference.style.color === 'rgb(245, 230, 184)' || reference.style.color === '#f5e6b8', 'selected reference should receive the unified color');
+        }
+        for (const paragraph of Array.from(editor.querySelectorAll('p'))) {
+          assert(/font-size:\\s*18px/.test(paragraph.getAttribute('style') || ''), 'selected paragraph should receive unified font size for bare text');
+        }
 
         document.querySelector('#result').textContent = 'PASS';
       } catch (error) {

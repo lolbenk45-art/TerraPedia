@@ -1582,8 +1582,10 @@ onMounted(() => {
   color: var(--accent-gold);
   line-height: 1;
   text-decoration: none;
-  vertical-align: -7px;
+  vertical-align: -0.38em;
   cursor: pointer;
+  white-space: nowrap;
+  break-inside: avoid;
   box-shadow: 0 2px 8px rgba(0,0,0,.22);
   transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
 }
@@ -1597,6 +1599,7 @@ onMounted(() => {
   font-weight: 850;
   line-height: 1.45;
   vertical-align: .04em;
+  white-space: nowrap;
 }
 
 .article-content-text :deep(.tp-content-ref img) {
