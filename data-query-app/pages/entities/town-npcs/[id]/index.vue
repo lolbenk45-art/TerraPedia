@@ -4,22 +4,22 @@
       <div class="workspace-hero workspace-hero--unified detail-hero">
         <div class="workspace-hero__copy">
           <NuxtLink to="/entities/town-npcs" class="back-link">返回城镇 NPC 总览</NuxtLink>
-          <p class="eyebrow">TOWN NPC DETAIL</p>
+          <p class="eyebrow">城镇 NPC 详情</p>
           <h1 class="page-head__title">{{ selectedRow?.nameZh || selectedRow?.name || selectedRow?.internalName || '城镇 NPC 详情' }}</h1>
           <p class="page-head__subtitle">
             这里集中承接 Wiki 肖像、地图图标、对话肖像、完整售卖清单和抓取结果，不再让这些信息挤进总览列表。
           </p>
           <div v-if="selectedRow" class="workspace-summary-grid">
             <article class="summary-mini">
-              <span class="summary-mini__label">SHOP ITEMS</span>
+              <span class="summary-mini__label">商店物品</span>
               <strong class="summary-mini__value">{{ formatNumber(selectedRow.shopEntryCount || 0) }}</strong>
             </article>
             <article class="summary-mini">
-              <span class="summary-mini__label">MATCHED</span>
+              <span class="summary-mini__label">已匹配</span>
               <strong class="summary-mini__value">{{ formatNumber(selectedRow.currentShopItems?.length || 0) }}</strong>
             </article>
             <article class="summary-mini">
-              <span class="summary-mini__label">UNMATCHED</span>
+              <span class="summary-mini__label">未匹配</span>
               <strong class="summary-mini__value">{{ formatNumber(selectedRow.unmatchedShopItems?.length || 0) }}</strong>
             </article>
           </div>

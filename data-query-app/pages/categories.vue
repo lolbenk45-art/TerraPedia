@@ -3,21 +3,21 @@
     <section class="workspace-shell workspace-shell--unified categories-shell">
         <div class="workspace-hero workspace-hero--unified categories-hero">
           <div class="workspace-hero__copy">
-            <p class="categories-hero__eyebrow">CATEGORY CONTROL</p>
+            <p class="categories-hero__eyebrow">分类控制台</p>
             <h1 class="page-head__title categories-hero__title">分类管理</h1>
             <p class="page-head__subtitle categories-hero__subtitle">管理分类层级、代码、类型与说明，支持快速检索和新增子分类。</p>
           </div>
           <div class="categories-hero__stats workspace-summary-grid">
             <article class="hero-stat">
-              <span class="hero-stat__label">Total</span>
+              <span class="hero-stat__label">总数</span>
               <strong class="hero-stat__value">{{ totalCategoryCount }}</strong>
             </article>
             <article class="hero-stat">
-              <span class="hero-stat__label">Roots</span>
+              <span class="hero-stat__label">根分类</span>
               <strong class="hero-stat__value">{{ rootCategoryCount }}</strong>
             </article>
             <article class="hero-stat">
-              <span class="hero-stat__label">Visible</span>
+              <span class="hero-stat__label">当前可见</span>
               <strong class="hero-stat__value">{{ visibleCategoryCount }}</strong>
             </article>
           </div>
@@ -150,7 +150,7 @@
           />
         </label>
         <label class="field">
-          <span class="field__label">Top Type</span>
+          <span class="field__label">顶级类型 topType</span>
           <input v-model="form.topType" type="text" class="input" placeholder="例如：NPC / ROOT / MATERIAL" />
         </label>
         <label class="field">

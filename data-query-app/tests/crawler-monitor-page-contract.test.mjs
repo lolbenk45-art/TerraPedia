@@ -52,6 +52,52 @@ test('crawler monitor renders registered task progress as the primary progress r
   assert.match(page, /progressKind/)
 })
 
+test('crawler monitor operation labels are Chinese-first while keeping raw status values', () => {
+  for (const label of [
+    '爬取监控',
+    '实时刷新',
+    '活动任务',
+    '进度',
+    '待处理',
+    '预计剩余',
+    '队列',
+    '最近运行',
+    '刷新状态',
+    '任务',
+    '运行中',
+    '队列中',
+    '失败',
+    '可读取 readable',
+    '读取错误 read error',
+    '缺失 missing',
+    '暂无进度消息。',
+    '暂无活动队列状态。',
+    '已完成 /',
+  ]) {
+    assert.match(page, new RegExp(label))
+  }
+
+  for (const staleCopy of [
+    'CRAWLER MONITOR',
+    'live refresh',
+    'Active task',
+    'No progress message yet.',
+    'No active queue state yet.',
+    'Refresh State',
+  ]) {
+    assert.doesNotMatch(page, new RegExp(staleCopy.replaceAll('.', '\\.')))
+  }
+
+  assert.match(page, /task\.status/)
+  assert.match(page, /rowStatus\(row\)/)
+  assert.match(page, /function statusLabel/)
+  assert.match(page, /architectureFileStateLabel/)
+  assert.match(page, /文件组/)
+  assert.doesNotMatch(page, />File group</)
+  assert.doesNotMatch(page, />readable</)
+  assert.doesNotMatch(page, />read error</)
+})
+
 test('crawler monitor no longer treats latestRun actions as the only progress source', () => {
   assert.doesNotMatch(page, /v-if="actions\.length" class="action-rail"/)
   assert.match(page, /progressRows\.length/)

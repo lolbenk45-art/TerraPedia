@@ -3,7 +3,7 @@
     <section class="workspace-shell workspace-shell--unified page-workspace">
       <div class="workspace-hero workspace-hero--unified item-groups-hero">
         <div class="workspace-hero__copy">
-          <p class="eyebrow">SOURCE-BACKED GROUPS</p>
+          <p class="eyebrow">来源支撑物品组</p>
           <h1 class="page-head__title">任意物品组管理</h1>
           <p class="page-head__subtitle">统一维护 Any 类物品集合，记录来源、适用域和成员，配方、NPC 商店和关系链都从这里读取可追溯数据。</p>
           <div class="workspace-summary-grid">
@@ -82,7 +82,7 @@
               <div class="group-row__meta">
                 <span v-for="domain in group.domains" :key="domain" class="pill">{{ domain }}</span>
                 <span class="pill" :class="{ 'pill--warn': !hasTraceableSource(group) }">{{ getSourceStatus(group) }}</span>
-                <span v-if="getUnresolvedMemberCount(group)" class="pill pill--warn">UNRESOLVED {{ getUnresolvedMemberCount(group) }}</span>
+                <span v-if="getUnresolvedMemberCount(group)" class="pill pill--warn">未解析 UNRESOLVED {{ getUnresolvedMemberCount(group) }}</span>
               </div>
             </article>
 
@@ -112,7 +112,7 @@
           <div v-if="draft" class="group-editor">
             <section class="summary-strip">
               <article class="summary-tile">
-                <span>Canonical</span>
+                <span>标准名称</span>
                 <strong>{{ draft.canonicalName || '未填写' }}</strong>
               </article>
               <article class="summary-tile">
@@ -128,14 +128,14 @@
                 <strong>{{ hasTraceableSource(draft) ? '可追溯' : '缺来源' }}</strong>
               </article>
               <article class="summary-tile" :class="{ 'summary-tile--warn': getUnresolvedMemberCount(draft) > 0 }">
-                <span>UNRESOLVED</span>
+                <span>未解析</span>
                 <strong>{{ getUnresolvedMemberCount(draft) }}</strong>
               </article>
             </section>
 
             <section class="form-grid">
               <label class="field">
-                <span class="field__label">Canonical Name</span>
+                <span class="field__label">标准名称 Canonical Name</span>
                 <input v-model.trim="draft.canonicalName" type="text" class="input" :disabled="!isCreating" placeholder="Any Pylon">
               </label>
               <label class="field">
@@ -170,27 +170,27 @@
               </div>
               <div class="form-grid form-grid--source">
                 <label class="field">
-                  <span class="field__label">sourceProvider</span>
+                  <span class="field__label">来源提供方 sourceProvider</span>
                   <input v-model.trim="draft.sourceProvider" type="text" class="input" placeholder="wiki_gg">
                 </label>
                 <label class="field">
-                  <span class="field__label">sourcePage</span>
+                  <span class="field__label">来源页 sourcePage</span>
                   <input v-model.trim="draft.sourcePage" type="text" class="input" placeholder="https://terraria.wiki.gg/wiki/Pylons">
                 </label>
                 <label class="field">
-                  <span class="field__label">sourceRevisionTimestamp</span>
-                  <input v-model.trim="draft.sourceRevisionTimestamp" type="text" class="input" placeholder="wiki revision timestamp">
+                  <span class="field__label">来源修订时间 sourceRevisionTimestamp</span>
+                  <input v-model.trim="draft.sourceRevisionTimestamp" type="text" class="input" placeholder="Wiki 修订时间戳">
                 </label>
                 <label class="field">
-                  <span class="field__label">sourceLabel</span>
-                  <input v-model.trim="draft.sourceLabel" type="text" class="input" placeholder="Pylon group validated from wiki.gg">
+                  <span class="field__label">来源说明 sourceLabel</span>
+                  <input v-model.trim="draft.sourceLabel" type="text" class="input" placeholder="例如：wiki.gg 校验的 Pylon 分组">
                 </label>
                 <label class="field">
-                  <span class="field__label">sourceFile</span>
+                  <span class="field__label">来源文件 sourceFile</span>
                   <input v-model.trim="draft.sourceFile" type="text" class="input" placeholder="data/generated/item-group-overrides.json">
                 </label>
                 <label class="field">
-                  <span class="field__label">sourceUrls</span>
+                  <span class="field__label">来源 URL sourceUrls</span>
                   <textarea v-model.trim="sourceUrlsText" class="input textarea" rows="3" placeholder="每行一个来源 URL" @change="syncSourceUrlsFromText" />
                 </label>
               </div>
@@ -228,7 +228,7 @@
                     <small v-if="member.name && member.name !== member.nameZh">{{ member.name }}</small>
                     <small v-if="member.internalName">{{ member.internalName }}</small>
                     <small v-if="isUnresolvedMember(member)" class="member-card__warning">
-                      UNRESOLVED · {{ member.resolutionReason || member.resolutionStatus || 'item not resolved' }}
+                      未解析 UNRESOLVED · {{ member.resolutionReason || member.resolutionStatus || '物品未解析' }}
                     </small>
                   </div>
                   <button type="button" class="member-card__remove" @click="removeMember(index)">移除</button>
@@ -296,11 +296,11 @@ const isDirty = computed(() => JSON.stringify(draft.value || null) !== JSON.stri
 const canDeleteActiveGroup = computed(() => activeGroup.value?.sourceFile === 'data/generated/item-group-overrides.json')
 const activeDomainLabel = computed(() => domainOptions.find((option) => option.value === activeDomain.value)?.label || activeDomain.value)
 const summaryCards = computed(() => [
-  { label: 'GROUPS', value: String(groups.value.length) },
-  { label: 'DOMAIN', value: activeDomainLabel.value },
-  { label: 'SOURCE GAPS', value: String(groups.value.filter((group) => !hasTraceableSource(group)).length) },
-  { label: 'UNRESOLVED', value: String(groups.value.reduce((sum, group) => sum + getUnresolvedMemberCount(group), 0)) },
-  { label: 'MEMBERS', value: String(groups.value.reduce((sum, group) => sum + group.members.length, 0)) },
+  { label: '组数量', value: String(groups.value.length) },
+  { label: '当前域', value: activeDomainLabel.value },
+  { label: '来源缺口', value: String(groups.value.filter((group) => !hasTraceableSource(group)).length) },
+  { label: '未解析', value: String(groups.value.reduce((sum, group) => sum + getUnresolvedMemberCount(group), 0)) },
+  { label: '成员数', value: String(groups.value.reduce((sum, group) => sum + group.members.length, 0)) },
 ])
 
 function resolveInitialDomain() {
@@ -463,7 +463,7 @@ async function saveGroup() {
   syncAliasesFromText()
   syncSourceUrlsFromText()
   if (!draft.value.canonicalName.trim()) {
-    showToast('Canonical Name 不能为空', 'error')
+    showToast('标准名称 Canonical Name 不能为空', 'error')
     return
   }
   if (!draft.value.members.length) {

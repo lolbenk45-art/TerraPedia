@@ -3,7 +3,7 @@
     <section class="workspace-shell workspace-shell--unified">
       <div class="workspace-hero workspace-hero--unified domain-hero">
         <div class="workspace-hero__copy">
-          <p class="eyebrow">DOMAIN ACCEPTANCE</p>
+          <p class="eyebrow">B 档域验收</p>
           <h1 class="page-head__title">B 档域验收</h1>
           <p class="page-head__subtitle">
             Boss、Buff、Projectile、Armor Set 与支撑域的自动维护证据。
@@ -136,7 +136,7 @@
         </article>
       </section>
 
-      <section class="domain-grid" aria-label="Domain acceptance overview">
+      <section class="domain-grid" aria-label="域验收概览">
         <article v-for="domain in overview?.domains || []" :key="domain.domainId || 'domain'" class="domain-card">
           <div class="domain-card__head">
             <span class="domain-card__icon" :class="statusTone(domain.status)">
@@ -292,11 +292,11 @@
 
               <div v-if="acceptedWarningForPanel(panel, domain)" class="accepted-warning-block">
                 <div class="accepted-warning-block__head">
-                  <span>accepted-warning</span>
-                  <strong>readiness-only</strong>
+                  <span>已接受警告 accepted-warning</span>
+                  <strong>仅用于就绪评审 readiness-only</strong>
                 </div>
                 <small>
-                  Stale public-blocking evidence is accepted for readiness-only review only; it is not route-ready evidence.
+                  过期的公开阻断证据只允许用于就绪评审，不能作为路由可上线证据 route-ready。
                 </small>
                 <dl v-if="acceptedWarningRows(acceptedWarningForPanel(panel, domain)).length" class="accepted-warning-list">
                   <div v-for="row in acceptedWarningRows(acceptedWarningForPanel(panel, domain))" :key="`${domain.domainId}-${panel.panelId}-accepted-warning-${row.key}`">

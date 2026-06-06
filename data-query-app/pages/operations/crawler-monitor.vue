@@ -3,7 +3,7 @@
     <section class="workspace-shell workspace-shell--unified">
       <div class="workspace-hero workspace-hero--unified monitor-hero">
         <div class="workspace-hero__copy">
-          <p class="eyebrow">CRAWLER MONITOR</p>
+          <p class="eyebrow">爬取监控</p>
           <h1 class="page-head__title">爬取监控</h1>
           <p class="page-head__subtitle">
             读取 backend refresh 的 heartbeat、scheduler state、lock、run report 和 history summary，集中查看当前数据刷新链路。
@@ -58,7 +58,7 @@
       </div>
     </section>
 
-    <section class="source-progress-panel" aria-label="Source snapshot live progress">
+    <section class="source-progress-panel" aria-label="源快照实时进度">
       <div class="source-progress-panel__head">
         <div>
           <h2 class="section-card__title">源快照实时进度</h2>
@@ -66,7 +66,7 @@
         </div>
         <div class="source-progress-panel__meta">
           <span class="status-pill" :class="liveSourceSnapshotActive ? 'info' : 'muted'">
-            {{ liveSourceSnapshotActive ? 'live refresh' : 'idle' }}
+            {{ liveSourceSnapshotActive ? '实时刷新' : '空闲' }}
           </span>
           <span>刷新 {{ formatDate(lastOverviewRefreshAt) }}</span>
           <code>{{ overview?.repoRoot || '--' }}</code>
@@ -82,25 +82,25 @@
         >
           <div class="source-progress-row__main">
             <div class="source-progress-row__title">
-              <strong>{{ row.label || row.id || 'unknown source task' }}</strong>
-              <span class="status-pill" :class="statusTone(rowStatus(row))">{{ rowStatus(row) || 'unknown' }}</span>
+              <strong>{{ row.label || row.id || '未知源任务' }}</strong>
+              <span class="status-pill" :class="statusTone(rowStatus(row))">{{ rowStatus(row) || '未知' }}</span>
             </div>
-            <p>{{ row.queueState || row.action?.message || row.progressStaleReason || 'No progress message yet.' }}</p>
+            <p>{{ row.queueState || row.action?.message || row.progressStaleReason || '暂无进度消息。' }}</p>
             <div class="progress-track">
               <span :style="{ width: rowProgress(row) }" :class="statusTone(rowStatus(row))" />
             </div>
           </div>
           <div class="source-progress-row__metrics">
             <span>
-              <small>Progress</small>
+              <small>进度</small>
               <strong>{{ rowProgressLabel(row) }}</strong>
             </span>
             <span>
-              <small>Heartbeat</small>
+              <small>心跳</small>
               <strong>{{ rowHeartbeatLabel(row) }}</strong>
             </span>
             <span>
-              <small>Pending</small>
+              <small>待处理</small>
               <strong>{{ rowPendingLabel(row) }}</strong>
             </span>
           </div>
@@ -119,27 +119,27 @@
       </div>
     </section>
 
-    <section class="operations-grid" aria-label="Crawler operation snapshot">
+    <section class="operations-grid" aria-label="爬取操作快照">
       <article class="ops-card ops-card--primary">
         <div class="ops-card__head">
-          <span class="ops-card__label">Active task</span>
+          <span class="ops-card__label">活动任务</span>
           <span class="status-pill" :class="statusTone(rowStatus(activeProgressRow))">
-            {{ rowStatus(activeProgressRow) || latestRunStatus }}
+            {{ statusLabel(rowStatus(activeProgressRow) || latestRunStatus) }}
           </span>
         </div>
-        <strong class="ops-card__title">{{ activeProgressRow?.label || activeProgressRow?.id || 'No registered task' }}</strong>
-        <p class="ops-card__text">{{ activeProgressRow?.queueState || activeProgressRow?.action?.message || 'No active queue state yet.' }}</p>
+        <strong class="ops-card__title">{{ activeProgressRow?.label || activeProgressRow?.id || '暂无注册任务' }}</strong>
+        <p class="ops-card__text">{{ activeProgressRow?.queueState || activeProgressRow?.action?.message || '暂无活动队列状态。' }}</p>
         <div class="ops-metrics">
           <span>
-            <small>Progress</small>
+            <small>进度</small>
             <strong>{{ activeProgressRow ? rowProgressLabel(activeProgressRow) : '--' }}</strong>
           </span>
           <span>
-            <small>Pending</small>
+            <small>待处理</small>
             <strong>{{ activeProgressRow ? rowPendingLabel(activeProgressRow) : '--' }}</strong>
           </span>
           <span>
-            <small>ETA</small>
+            <small>预计剩余</small>
             <strong>{{ activeProgressRow ? rowEtaLabel(activeProgressRow) : '--' }}</strong>
           </span>
         </div>
@@ -150,46 +150,46 @@
 
       <article class="ops-card">
         <div class="ops-card__head">
-          <span class="ops-card__label">Queue</span>
+          <span class="ops-card__label">队列</span>
           <strong>{{ formatNumber(queuedTasks.length) }}</strong>
         </div>
         <div class="task-list">
           <div v-for="task in queuedTasks" :key="task.id || task.label || 'queue-task'" class="task-row">
             <span class="status-pill" :class="statusTone(task.status)">{{ task.priority || task.status || '--' }}</span>
             <div>
-              <strong>{{ task.label || task.id || 'unknown task' }}</strong>
-              <small>{{ taskPendingLabel(task) }} pending / {{ task.status || 'pending' }}</small>
+              <strong>{{ task.label || task.id || '未知任务' }}</strong>
+              <small>{{ taskPendingLabel(task) }} 待处理 / {{ task.status || 'pending' }}</small>
             </div>
           </div>
-          <div v-if="!queuedTasks.length" class="empty-line">No queued task.</div>
+          <div v-if="!queuedTasks.length" class="empty-line">暂无队列任务。</div>
         </div>
       </article>
 
       <article class="ops-card">
         <div class="ops-card__head">
-          <span class="ops-card__label">Next step</span>
+          <span class="ops-card__label">下一步</span>
           <strong>{{ formatNumber(nextStepTasks.length) }}</strong>
         </div>
         <div class="task-list task-list--steps">
           <div v-for="task in nextStepTasks" :key="task.id || task.label || 'next-task'" class="task-row">
             <span class="status-pill" :class="statusTone(task.status)">{{ task.lane || '--' }}</span>
             <div>
-              <strong>{{ task.label || task.id || 'unknown task' }}</strong>
+              <strong>{{ task.label || task.id || '未知任务' }}</strong>
               <small>{{ task.nextStep }}</small>
             </div>
           </div>
-          <div v-if="!nextStepTasks.length" class="empty-line">No pending next step.</div>
+          <div v-if="!nextStepTasks.length" class="empty-line">暂无待处理下一步。</div>
         </div>
       </article>
 
       <article class="ops-card ops-card--paths">
         <div class="ops-card__head">
-          <span class="ops-card__label">Data stages / paths</span>
+          <span class="ops-card__label">数据阶段 / 路径</span>
           <strong>{{ formatNumber(pathTasks.length) }}</strong>
         </div>
         <div class="path-list">
           <div v-for="task in pathTasks" :key="task.id || task.label || 'path-task'" class="path-row">
-            <strong>{{ task.label || task.id || 'unknown task' }}</strong>
+            <strong>{{ task.label || task.id || '未知任务' }}</strong>
             <small>{{ task.dataStage || task.status || '--' }}</small>
             <span v-for="path in taskPaths(task)" :key="path" class="path-token">
               <code>{{ path }}</code>
@@ -205,7 +205,7 @@
               </button>
             </span>
           </div>
-          <div v-if="!pathTasks.length" class="empty-line">No registered path.</div>
+          <div v-if="!pathTasks.length" class="empty-line">暂无注册路径。</div>
         </div>
       </article>
     </section>
@@ -229,7 +229,7 @@
 
       <div class="image-normalization-meta">
         <div>
-          <span class="ops-card__label">Latest lineage</span>
+          <span class="ops-card__label">最新 lineage 报告</span>
           <code>{{ imageNormalizationReportPath || '--' }}</code>
         </div>
         <button
@@ -245,7 +245,7 @@
       </div>
     </section>
 
-    <section v-if="architectureLayers.length" class="architecture-layers" aria-label="Three layer file status">
+    <section v-if="architectureLayers.length" class="architecture-layers" aria-label="三层文件状态">
       <article v-for="layer in architectureLayers" :key="layer.id || layer.label || 'architecture-layer'" class="architecture-layer">
         <div class="architecture-layer__head">
           <span class="architecture-layer__icon" :class="statusTone(layer.status)">
@@ -253,23 +253,23 @@
           </span>
           <div>
             <span class="ops-card__label">{{ layer.id || 'layer' }}</span>
-            <strong>{{ layer.label || 'Data layer' }}</strong>
-            <small>{{ layer.summary || `${architectureLayerCount(layer)} readable` }}</small>
+            <strong>{{ layer.label || '数据层' }}</strong>
+            <small>{{ layer.summary || `${architectureLayerCount(layer)} 可读` }}</small>
           </div>
-          <span class="status-pill" :class="statusTone(layer.status)">{{ layer.status || 'unknown' }}</span>
+          <span class="status-pill" :class="statusTone(layer.status)">{{ layer.status || '未知' }}</span>
         </div>
 
         <div class="architecture-layer__metrics">
           <span>
-            <small>Readable</small>
+            <small>可读</small>
             <strong>{{ architectureLayerCount(layer) }}</strong>
           </span>
           <span>
-            <small>Missing</small>
+            <small>缺失</small>
             <strong>{{ formatNumber(layer.missingCount) }}</strong>
           </span>
           <span>
-            <small>Updated</small>
+            <small>更新时间</small>
             <strong>{{ formatDate(layer.updatedAt) }}</strong>
           </span>
         </div>
@@ -285,11 +285,11 @@
             :class="`architecture-file-row--${architectureFileTone(file)}`"
           >
             <div class="architecture-file-row__top">
-              <strong>{{ file.label || 'File group' }}</strong>
-              <span class="status-pill" :class="statusTone(architectureFileState(file))">{{ architectureFileState(file) }}</span>
+              <strong>{{ file.label || '文件组' }}</strong>
+              <span class="status-pill" :class="statusTone(architectureFileState(file))">{{ architectureFileStateLabel(file) }}</span>
             </div>
             <div class="architecture-file-row__meta">
-              <span>{{ architectureFileCountLabel(file) }} count</span>
+              <span>{{ architectureFileCountLabel(file) }} 个文件</span>
               <span>{{ formatDate(file.updatedAt) }}</span>
               <span>{{ formatBytes(file.sizeBytes) }}</span>
             </div>
@@ -318,17 +318,17 @@
               <h2 class="section-card__title">阶段进度</h2>
               <p class="section-card__subtitle">从 registered tasks 动态渲染；latest run action 只补充运行文件和耗时。</p>
             </div>
-            <span class="status-pill" :class="statusTone(latestRunStatus)">{{ latestRunStatus }}</span>
+            <span class="status-pill" :class="statusTone(latestRunStatus)">{{ statusLabel(latestRunStatus) }}</span>
           </div>
 
           <div v-if="progressRows.length" class="action-rail">
             <article v-for="row in progressRows" :key="row.rowKey" class="action-card">
               <div class="action-card__head">
-                <strong>{{ row.label || row.id || 'unknown-task' }}</strong>
-                <span class="status-pill" :class="statusTone(rowStatus(row))">{{ rowStatus(row) || 'unknown' }}</span>
+                <strong>{{ row.label || row.id || '未知任务' }}</strong>
+                <span class="status-pill" :class="statusTone(rowStatus(row))">{{ rowStatus(row) || '未知' }}</span>
               </div>
               <div class="action-card__meta">
-                <span>{{ row.lane || row.action?.runner || 'runner unknown' }}</span>
+                <span>{{ row.lane || row.action?.runner || '未知执行器' }}</span>
                 <span>{{ rowProgressLabel(row) }}</span>
               </div>
               <p v-if="row.action?.phase || row.queueState || row.action?.message" class="action-card__message">
@@ -340,15 +340,15 @@
               </p>
               <div class="action-card__queue">
                 <span>
-                  <small>Pending</small>
+                  <small>待处理</small>
                   <strong>{{ rowPendingLabel(row) }}</strong>
                 </span>
                 <span>
-                  <small>Speed</small>
+                  <small>速度</small>
                   <strong>{{ rowSpeedLabel(row) }}</strong>
                 </span>
                 <span>
-                  <small>ETA</small>
+                  <small>预计剩余</small>
                   <strong>{{ rowEtaLabel(row) }}</strong>
                 </span>
               </div>
@@ -369,8 +369,8 @@
         <section class="section-card monitor-panel">
           <div class="section-head">
             <div>
-              <h2 class="section-card__title">Recent runs</h2>
-              <p class="section-card__subtitle">Compact latest history, kept out of the narrow sidebar so paths and counters stay readable.</p>
+              <h2 class="section-card__title">最近运行</h2>
+              <p class="section-card__subtitle">最新历史摘要独立显示，便于核对路径与计数。</p>
             </div>
           </div>
 
@@ -383,7 +383,7 @@
               <span>{{ formatNumber(run.completedActions) }}/{{ formatNumber(run.totalActions) }}</span>
               <span>{{ formatDuration(run.totalDurationMs) }}</span>
               <span class="status-pill" :class="run.failedActions ? 'danger' : 'success'">
-                {{ run.failedActions ? `${run.failedActions} failed` : 'ok' }}
+                {{ run.failedActions ? `${run.failedActions} 失败` : '正常' }}
               </span>
               <button
                 v-if="isPreviewableReportPath(run.summaryPath || run.path)"
@@ -398,7 +398,7 @@
             </article>
             <div v-if="!history.length" class="empty-block empty-block--compact">
               <FileJson :size="20" />
-              <span>No history summary.</span>
+              <span>暂无历史摘要。</span>
             </div>
           </div>
         </section>
@@ -415,21 +415,21 @@
             <table class="monitor-table">
               <thead>
                 <tr>
-                  <th>Task</th>
-                  <th>Lane</th>
-                  <th>Status</th>
-                  <th>Progress</th>
-                  <th>Pending</th>
-                  <th>Speed</th>
-                  <th>ETA</th>
-                  <th>Heartbeat</th>
-                  <th>Runtime Files</th>
+                  <th>任务</th>
+                  <th>通道</th>
+                  <th>状态</th>
+                  <th>进度</th>
+                  <th>待处理</th>
+                  <th>速度</th>
+                  <th>预计剩余</th>
+                  <th>心跳</th>
+                  <th>运行文件</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="row in progressRows" :key="`row-${row.rowKey}`">
                   <td>
-                    <strong>{{ row.label || row.id || 'unknown-task' }}</strong>
+                    <strong>{{ row.label || row.id || '未知任务' }}</strong>
                     <small>{{ row.id || shortArgs(row.action?.args) }}</small>
                   </td>
                   <td>{{ row.lane || row.action?.runner || '--' }}</td>
@@ -556,11 +556,11 @@
         </div>
 
         <div class="report-preview__meta">
-          <span class="status-pill" :class="reportTone(reportPreview?.category)">{{ reportPreview?.category || 'report' }}</span>
+          <span class="status-pill" :class="reportTone(reportPreview?.category)">{{ reportPreview?.category || '报告' }}</span>
           <span class="status-pill" :class="reportPreview?.readable ? 'success' : reportPreviewError ? 'danger' : 'muted'">
-            {{ reportPreviewLoading ? 'loading' : reportPreview?.readable ? 'readable' : reportPreviewError ? 'error' : 'pending' }}
+            {{ reportPreviewLoading ? '加载中' : reportPreview?.readable ? '可读' : reportPreviewError ? '错误' : '待处理' }}
           </span>
-          <span v-if="reportPreview?.truncated" class="status-pill warning">truncated {{ formatBytes(reportPreview.maxBytes) }}</span>
+          <span v-if="reportPreview?.truncated" class="status-pill warning">已截断 {{ formatBytes(reportPreview.maxBytes) }}</span>
         </div>
 
         <pre v-if="reportPreview?.readable" class="report-preview__content">{{ reportPreview.content || '' }}</pre>
@@ -708,12 +708,12 @@ const pathTasks = computed<CrawlerMonitorRegisteredTask[]>(() => {
 })
 
 const summaryCards = computed(() => [
-  { label: 'TASKS', value: formatNumber(registeredTasks.value.length || latestRun.value.totalActions) },
-  { label: 'RUNNING', value: formatNumber(registeredTasks.value.filter((task) => String(task.status || '').toLowerCase() === 'running').length || latestRun.value.runningActions) },
-  { label: 'QUEUED', value: formatNumber(queuedTasks.value.length || latestRun.value.pendingActions) },
-  { label: 'FAILED', value: formatNumber(latestRun.value.failedActions) },
-  { label: 'SPEED', value: primaryProgressAction.value ? actionSpeedLabel(primaryProgressAction.value) : '--' },
-  { label: 'ETA', value: primaryProgressAction.value ? actionEtaLabel(primaryProgressAction.value) : '--' },
+  { label: '任务', value: formatNumber(registeredTasks.value.length || latestRun.value.totalActions) },
+  { label: '运行中', value: formatNumber(registeredTasks.value.filter((task) => String(task.status || '').toLowerCase() === 'running').length || latestRun.value.runningActions) },
+  { label: '队列中', value: formatNumber(queuedTasks.value.length || latestRun.value.pendingActions) },
+  { label: '失败', value: formatNumber(latestRun.value.failedActions) },
+  { label: '速度', value: primaryProgressAction.value ? actionSpeedLabel(primaryProgressAction.value) : '--' },
+  { label: '预计剩余', value: primaryProgressAction.value ? actionEtaLabel(primaryProgressAction.value) : '--' },
 ])
 
 const imageNormalizationVisible = computed(() => {
@@ -749,39 +749,39 @@ const imageNormalizationHeadline = computed(() => {
     + (finiteNumber(imageNormalization.value?.projectileWrongPrefixCount) ?? 0)
   const wikiOnlyTotal = (finiteNumber(imageNormalization.value?.npcWikiOnlyCount) ?? 0)
     + (finiteNumber(imageNormalization.value?.projectileWikiOnlyCount) ?? 0)
-  if (wrongPrefixTotal > 0) return 'wrong-prefix detected'
-  if (wikiOnlyTotal > 0) return 'source gap remains'
-  return 'contract aligned'
+  if (wrongPrefixTotal > 0) return '检测到 wrong-prefix'
+  if (wikiOnlyTotal > 0) return '仍有来源缺口'
+  return '契约已对齐'
 })
 
 const imageNormalizationCards = computed(() => [
   {
-    label: 'NPC Wrong Prefix',
+    label: 'NPC 错误前缀',
     value: formatNumber(imageNormalization.value?.npcWrongPrefixCount),
     detail: 'relation/projection 仍指向错误 managed 前缀的 NPC 图片数',
   },
   {
-    label: 'Projectile Wrong Prefix',
+    label: 'Projectile 错误前缀',
     value: formatNumber(imageNormalization.value?.projectileWrongPrefixCount),
     detail: 'relation/projection 仍指向错误 managed 前缀的 Projectile 图片数',
   },
   {
-    label: 'NPC Non-Managed',
+    label: 'NPC 未托管',
     value: formatNumber(imageNormalization.value?.npcWikiOnlyCount),
     detail: '投影层仍有图但未进入 managed 链路的 NPC 数',
   },
   {
-    label: 'Projectile Non-Managed',
+    label: 'Projectile 未托管',
     value: formatNumber(imageNormalization.value?.projectileWikiOnlyCount),
     detail: '投影层仍有图但未进入 managed 链路的 Projectile 数',
   },
   {
-    label: 'Canonical Sync',
+    label: 'Canonical 同步',
     value: formatDate(imageNormalization.value?.lastCanonicalSyncAt),
     detail: '最近一次覆盖 NPC / Projectile 的 apply 时间',
   },
   {
-    label: 'Legacy Exemptions',
+    label: 'Legacy 豁免',
     value: formatNumber(imageNormalization.value?.legacyExemptionCount),
     detail: '当前显式保留的 legacy 豁免数量',
   },
@@ -789,50 +789,50 @@ const imageNormalizationCards = computed(() => [
 
 const statusCards = computed<StatusCard[]>(() => [
   {
-    label: 'Refresh State',
+    label: '刷新状态',
     value: refreshStale.value ? 'stale' : 'current',
-    detail: `last ${formatDate(overview.value?.refreshLastActivityAt)}`,
+    detail: `最后活动 ${formatDate(overview.value?.refreshLastActivityAt)}`,
     icon: AlertTriangle,
     tone: refreshStale.value ? 'danger' : 'success',
   },
   {
-    label: 'Daemon',
-    value: payloadValue(daemon.value, 'status') || fileStateText(daemon.value),
-    detail: `heartbeat ${formatDate(payloadValue(daemon.value, 'generatedAt') || daemon.value?.updatedAt)}`,
+    label: '守护进程 Daemon',
+    value: statusLabel(payloadValue(daemon.value, 'status') || fileStateText(daemon.value)),
+    detail: `心跳 ${formatDate(payloadValue(daemon.value, 'generatedAt') || daemon.value?.updatedAt)}`,
     icon: ServerCog,
     tone: statusTone(payloadValue(daemon.value, 'status')),
   },
   {
-    label: 'Scheduler',
-    value: payloadValue(scheduler.value, 'status') || fileStateText(scheduler.value),
-    detail: `next ${formatDate(payloadValue(scheduler.value, 'nextPlannedAt'))}`,
+    label: '调度器 Scheduler',
+    value: statusLabel(payloadValue(scheduler.value, 'status') || fileStateText(scheduler.value)),
+    detail: `下次 ${formatDate(payloadValue(scheduler.value, 'nextPlannedAt'))}`,
     icon: Clock3,
     tone: statusTone(payloadValue(scheduler.value, 'status')),
   },
   {
-    label: 'Latest Run',
-    value: latestRunStatus.value,
-    detail: `${formatNumber(latestRun.value.completedActions)} completed / ${formatNumber(latestRun.value.failedActions)} failed`,
+    label: '最近运行',
+    value: statusLabel(latestRunStatus.value),
+    detail: `${formatNumber(latestRun.value.completedActions)} 已完成 / ${formatNumber(latestRun.value.failedActions)} 失败`,
     icon: Activity,
     tone: statusTone(latestRunStatus.value),
   },
   {
-    label: 'Lock',
+    label: '锁 Lock',
     value: lockFile.value?.found ? 'locked' : 'free',
-    detail: lockFile.value?.found ? (lockFile.value.path || 'lock file found') : 'no lock file',
+    detail: lockFile.value?.found ? (lockFile.value.path || '已发现锁文件') : '无锁文件',
     icon: LockKeyhole,
     tone: lockFile.value?.found ? 'warning' : 'success',
   },
 ])
 
 const fileCards = computed(() => [
-  fileCard('Daemon heartbeat', daemon.value, ServerCog),
-  fileCard('Scheduler state', scheduler.value, Clock3),
-  fileCard('Lock file', lockFile.value, LockKeyhole),
+  fileCard('Daemon 心跳', daemon.value, ServerCog),
+  fileCard('Scheduler 状态', scheduler.value, Clock3),
+  fileCard('锁文件', lockFile.value, LockKeyhole),
   {
-    label: 'Latest report',
+    label: '最新报告',
     path: latestRun.value.path || latestRun.value.summaryPath || null,
-    status: latestRun.value.found ? (latestRun.value.readable ? 'readable' : 'read error') : 'missing',
+    status: statusLabel(latestRun.value.found ? (latestRun.value.readable ? 'readable' : 'read error') : 'missing'),
     error: latestRun.value.errorMessage || null,
     icon: FileJson,
     tone: latestRun.value.found ? (latestRun.value.readable ? 'success' : 'danger') : 'muted',
@@ -887,7 +887,7 @@ async function openReportPreview(path?: string | null) {
   } catch (error: any) {
     console.error('Failed to load crawler monitor report preview:', error)
     reportPreview.value = null
-    reportPreviewError.value = error?.data?.message || error?.message || 'Failed to load report preview'
+    reportPreviewError.value = error?.data?.message || error?.message || '加载报告预览失败'
     showToast(reportPreviewError.value, 'error')
   } finally {
     reportPreviewLoading.value = false
@@ -933,6 +933,23 @@ function fileStateText(file: CrawlerMonitorFile | null) {
   return file.readable ? 'readable' : 'read error'
 }
 
+function statusLabel(status?: string | null) {
+  const normalized = String(status || '').toLowerCase()
+  if (normalized === 'completed') return '已完成 completed'
+  if (normalized === 'failed') return '失败 failed'
+  if (normalized === 'running') return '运行中 running'
+  if (normalized === 'pending') return '等待中 pending'
+  if (normalized === 'queued') return '队列中 queued'
+  if (normalized === 'stalled') return '停滞 stalled'
+  if (normalized === 'missing') return '缺失 missing'
+  if (normalized === 'readable') return '可读取 readable'
+  if (normalized === 'read error') return '读取错误 read error'
+  if (normalized === 'report-only') return '仅报告 report-only'
+  if (normalized === 'free') return '空闲 free'
+  if (normalized === 'locked') return '已锁定 locked'
+  return normalized || '未知'
+}
+
 function fileCard(label: string, file: CrawlerMonitorFile | null, icon: Component) {
   const path = file?.path || null
   return {
@@ -972,6 +989,11 @@ function architectureFiles(layer: CrawlerMonitorArchitectureLayer) {
 function architectureFileState(file: CrawlerMonitorArchitectureFile) {
   if (!file.found) return 'missing'
   return file.readable ? 'readable' : 'read error'
+}
+
+function architectureFileStateLabel(file: CrawlerMonitorArchitectureFile) {
+  if (!file.found) return '缺失'
+  return file.readable ? '可读取' : '读取错误'
 }
 
 function architectureFileTone(file: CrawlerMonitorArchitectureFile) {

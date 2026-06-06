@@ -2,39 +2,39 @@
   <div class="page-wrap users-page">
     <div class="page-head">
       <div>
-        <h1 class="page-head__title">User Management</h1>
-        <p class="page-head__subtitle">View users, enable/disable accounts, reset passwords, and create new users.</p>
+        <h1 class="page-head__title">用户管理</h1>
+        <p class="page-head__subtitle">查看用户、启用或停用账号、重置密码并创建新用户。</p>
       </div>
     </div>
 
     <section class="section-card">
       <form class="toolbar" @submit.prevent="handleSearch">
-        <input v-model.trim="keyword" class="input" type="text" placeholder="Search by email" />
+        <input v-model.trim="keyword" class="input" type="text" placeholder="按邮箱搜索" />
         <select v-model="statusFilter" class="input">
-          <option value="">All Status</option>
-          <option value="1">Enabled</option>
-          <option value="0">Disabled</option>
+          <option value="">全部状态</option>
+          <option value="1">已启用</option>
+          <option value="0">已停用</option>
         </select>
-        <button type="submit" class="btn btn-secondary">Search</button>
-        <button type="button" class="btn btn-secondary" @click="handleReset">Reset</button>
-        <button type="button" class="btn btn-primary" @click="openCreateDialog">Add User</button>
+        <button type="submit" class="btn btn-secondary">搜索</button>
+        <button type="button" class="btn btn-secondary" @click="handleReset">重置</button>
+        <button type="button" class="btn btn-primary" @click="openCreateDialog">新增用户</button>
       </form>
     </section>
 
     <section class="section-card">
-      <div v-if="loading" class="empty-text">Loading...</div>
+      <div v-if="loading" class="empty-text">加载中...</div>
       <template v-else>
         <div v-if="users.length" class="table-wrap">
           <table class="data-table">
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Email</th>
-                <th>Display Name</th>
-                <th>Status</th>
-                <th>Last Login</th>
-                <th>Created At</th>
-                <th>Actions</th>
+                <th>邮箱</th>
+                <th>显示名</th>
+                <th>状态</th>
+                <th>上次登录</th>
+                <th>创建时间</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -44,7 +44,7 @@
                 <td>{{ row.displayName || '--' }}</td>
                 <td>
                   <span class="status" :class="row.status === 1 ? 'status--enabled' : 'status--disabled'">
-                    {{ row.status === 1 ? 'Enabled' : 'Disabled' }}
+                    {{ row.status === 1 ? '已启用' : '已停用' }}
                   </span>
                 </td>
                 <td>{{ formatDateTime(row.lastLoginAt) }}</td>
@@ -52,16 +52,16 @@
                 <td>
                   <div class="row-actions">
                     <button type="button" class="btn-link" @click="toggleStatus(row)">
-                      {{ row.status === 1 ? 'Disable' : 'Enable' }}
+                      {{ row.status === 1 ? '停用' : '启用' }}
                     </button>
-                    <button type="button" class="btn-link" @click="handleResetPassword(row)">Reset Password</button>
+                    <button type="button" class="btn-link" @click="handleResetPassword(row)">重置密码</button>
                   </div>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-        <p v-else class="empty-text">No users found</p>
+        <p v-else class="empty-text">暂无用户</p>
       </template>
 
       <div v-if="pagination.totalPages > 1" class="pagination-wrap">
@@ -74,26 +74,26 @@
       </div>
     </section>
 
-    <AppModal v-model="createDialogVisible" title="Add User" width="420px">
+    <AppModal v-model="createDialogVisible" title="新增用户" width="420px">
       <form class="form-stack" @submit.prevent="handleCreateUser">
-        <input v-model.trim="createForm.email" class="input" type="email" placeholder="Email" autocomplete="off" />
-        <input v-model.trim="createForm.displayName" class="input" type="text" placeholder="Display Name (optional)" autocomplete="off" />
+        <input v-model.trim="createForm.email" class="input" type="email" placeholder="邮箱" autocomplete="off" />
+        <input v-model.trim="createForm.displayName" class="input" type="text" placeholder="显示名（可选）" autocomplete="off" />
         <input
           v-model="createForm.password"
           class="input"
           type="password"
-          placeholder="Password (10-64 chars, letters+numbers)"
+          placeholder="密码（10-64 位，需包含字母和数字）"
           autocomplete="new-password"
         />
         <select v-model.number="createForm.status" class="input">
-          <option :value="1">Enabled</option>
-          <option :value="0">Disabled</option>
+          <option :value="1">已启用</option>
+          <option :value="0">已停用</option>
         </select>
       </form>
       <template #footer>
-        <button type="button" class="btn btn-secondary" @click="createDialogVisible = false">Cancel</button>
+        <button type="button" class="btn btn-secondary" @click="createDialogVisible = false">取消</button>
         <button type="button" class="btn btn-primary" :disabled="creatingUser" @click="handleCreateUser">
-          {{ creatingUser ? 'Creating...' : 'Create' }}
+          {{ creatingUser ? '创建中...' : '创建' }}
         </button>
       </template>
     </AppModal>
@@ -160,21 +160,21 @@ const toggleStatus = async (row: AdminUser) => {
 }
 
 const handleResetPassword = async (row: AdminUser) => {
-  const nextPassword = window.prompt(`Enter a new password for ${row.email} (10-64 chars, letters+numbers)`)
+  const nextPassword = window.prompt(`请输入 ${row.email} 的新密码（10-64 位，需包含字母和数字）`)
   if (!nextPassword) return
   const result = await usersStore.resetPassword(row.id, nextPassword)
   if (result.temporaryPassword) {
-    showToast(`Password reset: ${result.temporaryPassword}`, 'success')
+    showToast(`密码已重置：${result.temporaryPassword}`, 'success')
   }
 }
 
 const handleCreateUser = async () => {
   if (!createForm.email) {
-    showToast('Email is required', 'warning')
+    showToast('请输入邮箱', 'warning')
     return
   }
   if (!createForm.password) {
-    showToast('Password is required', 'warning')
+    showToast('请输入密码', 'warning')
     return
   }
 
@@ -189,7 +189,7 @@ const handleCreateUser = async () => {
     createDialogVisible.value = false
     await usersStore.fetchUsers(1, pagination.value.size)
   } catch (error: any) {
-    showToast(error?.data?.message || error?.message || 'Failed to create user', 'error')
+    showToast(error?.data?.message || error?.message || '创建用户失败', 'error')
   } finally {
     creatingUser.value = false
   }

@@ -3,7 +3,7 @@
     <section class="workspace-shell workspace-shell--unified">
       <div class="workspace-hero workspace-hero--unified audio-assets-hero">
         <div class="workspace-hero__copy">
-          <p class="eyebrow">WIKI AUDIO ASSET AUDIT</p>
+          <p class="eyebrow">Wiki 音频资产审计</p>
           <h1 class="page-head__title">音频资产</h1>
           <p class="page-head__subtitle">查看本地已入库音频、链接匹配状态与授权预听链路；页面只读，不触发爬取或写入。</p>
           <div class="workspace-summary-grid audio-summary-grid">
@@ -57,17 +57,17 @@
           <span class="field__label">资产状态</span>
           <select v-model="filters.status" class="input">
             <option value="">全部</option>
-            <option value="downloaded">downloaded</option>
-            <option value="active">active</option>
-            <option value="missing">missing</option>
+            <option value="downloaded">已下载 downloaded</option>
+            <option value="active">可用 active</option>
+            <option value="missing">缺失 missing</option>
           </select>
         </label>
         <label class="field">
           <span class="field__label">匹配状态</span>
           <select v-model="filters.matchStatus" class="input">
             <option value="">全部</option>
-            <option value="unmatched">unmatched</option>
-            <option value="matched">matched</option>
+            <option value="unmatched">未匹配 unmatched</option>
+            <option value="matched">已匹配 matched</option>
           </select>
         </label>
         <div class="filter-actions">
@@ -98,7 +98,7 @@
         <section class="audio-profile__hero">
           <div class="audio-profile__media">
             <div class="audio-profile__fallback" aria-hidden="true">
-              <span>AUDIO</span>
+              <span>音频</span>
               <strong>{{ selectedAudioRow.shard || '--' }}</strong>
             </div>
             <div class="audio-profile__media-meta">
@@ -118,9 +118,9 @@
 
           <div class="audio-profile__body">
             <div class="preview-pills">
-              <span class="preview-pill preview-pill--accent">AUDIO PROFILE</span>
-              <span class="preview-pill">{{ selectedAudioRow.shard || 'unknown shard' }}</span>
-              <span class="preview-pill">{{ selectedAudioRow.kind || 'unknown kind' }}</span>
+              <span class="preview-pill preview-pill--accent">音频档案</span>
+              <span class="preview-pill">{{ selectedAudioRow.shard || '未知分片' }}</span>
+              <span class="preview-pill">{{ selectedAudioRow.kind || '未知类型' }}</span>
               <span class="preview-pill">{{ statusLabel(selectedAudioRow.status) }}</span>
               <span class="preview-pill">{{ matchStatusLabel(selectedAudioRow.matchStatuses) }}</span>
             </div>
@@ -133,11 +133,11 @@
                 <strong>{{ selectedAudioRow.displayNameZh || '--' }}</strong>
               </article>
               <article class="audio-profile__fact-card">
-                <span>English Name</span>
+                <span>英文名</span>
                 <strong>{{ selectedAudioRow.displayNameEn || '--' }}</strong>
               </article>
               <article class="audio-profile__fact-card">
-                <span>Source Key</span>
+                <span>来源键 Source Key</span>
                 <strong>{{ selectedAudioRow.sourceKey || '--' }}</strong>
               </article>
             </div>
@@ -168,7 +168,7 @@
       <div v-else class="audio-profile audio-profile--empty">
         <div>
           <div class="preview-pills">
-            <span class="preview-pill preview-pill--accent">AUDIO PROFILE</span>
+            <span class="preview-pill preview-pill--accent">音频档案</span>
             <span class="preview-pill">等待选择</span>
           </div>
           <h2 id="audio-player-title" class="section-card__title">从表格选择一条音频加载预听</h2>
@@ -250,7 +250,7 @@
               </td>
               <td class="number-cell">
                 <strong>{{ formatNumber(row.linkCount) }}</strong>
-                <small>links</small>
+                <small>链接</small>
               </td>
               <td class="path-cell"><code class="path-token">{{ row.localPath || '--' }}</code></td>
               <td class="time-cell">{{ formatDateTime(row.lastVerifiedAt) }}</td>
@@ -594,16 +594,16 @@ function matchStatusTone(status?: string | null) {
 
 function statusLabel(status?: string | null) {
   const normalized = String(status || '').toLowerCase()
-  if (normalized === 'active') return 'active'
-  if (normalized === 'downloaded') return 'downloaded'
-  if (normalized === 'missing') return 'missing'
+  if (normalized === 'active') return '可用 active'
+  if (normalized === 'downloaded') return '已下载 downloaded'
+  if (normalized === 'missing') return '缺失 missing'
   return normalized || '--'
 }
 
 function matchStatusLabel(status?: string | null) {
   const normalized = String(status || '').toLowerCase()
-  if (normalized.includes('unmatched')) return 'unmatched'
-  if (normalized.includes('matched')) return 'matched'
+  if (normalized.includes('unmatched')) return '未匹配 unmatched'
+  if (normalized.includes('matched')) return '已匹配 matched'
   return normalized || '--'
 }
 

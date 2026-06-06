@@ -314,7 +314,7 @@ export const useArticlesStore = defineStore('articles', () => {
     } catch (error: any) {
       articles.value = []
       pagination.value = defaultPagination(pagination.value.size)
-      showToast(error?.data?.message || error?.message || 'Failed to load articles', 'error')
+      showToast(error?.data?.message || error?.message || '文章加载失败', 'error')
     } finally {
       loading.value = false
     }
@@ -331,7 +331,7 @@ export const useArticlesStore = defineStore('articles', () => {
     const response: any = await post('/admin/articles', toArticleRequestPayload(payload))
     const created = normalizeArticle(unwrapData(response))
     if (!options?.silent) {
-      showToast('Article created', 'success')
+      showToast('文章已创建', 'success')
     }
     if (options?.refreshList !== false) {
       await fetchArticles(1, pagination.value.size)
@@ -344,7 +344,7 @@ export const useArticlesStore = defineStore('articles', () => {
     const updated = normalizeArticle(unwrapData(response))
     syncArticle(updated)
     if (!options?.silent) {
-      showToast('Article updated', 'success')
+      showToast('文章已更新', 'success')
     }
     if (options?.refreshList !== false) {
       await fetchArticles(pagination.value.page, pagination.value.size)
@@ -357,7 +357,7 @@ export const useArticlesStore = defineStore('articles', () => {
     const updated = normalizeArticle(unwrapData(response))
     syncArticle(updated)
     if (!options?.silent) {
-      showToast('Article status updated', 'success')
+      showToast('文章状态已更新', 'success')
     }
     return updated
   }
@@ -366,7 +366,7 @@ export const useArticlesStore = defineStore('articles', () => {
     const response: any = await post(`/admin/articles/${id}/submit-review`)
     const updated = normalizeArticle(unwrapData(response))
     syncArticle(updated)
-    showToast('Article submitted for review', 'success')
+    showToast('文章已提交审核', 'success')
     return updated
   }
 
@@ -374,7 +374,7 @@ export const useArticlesStore = defineStore('articles', () => {
     const response: any = await post(`/admin/articles/${id}/review`, { action, comment })
     const updated = normalizeArticle(unwrapData(response))
     syncArticle(updated)
-    showToast(action === 'APPROVE' ? 'Article approved' : 'Article rejected', 'success')
+    showToast(action === 'APPROVE' ? '文章已通过' : '文章已驳回', 'success')
     return updated
   }
 
@@ -382,7 +382,7 @@ export const useArticlesStore = defineStore('articles', () => {
     const response: any = await post(`/admin/articles/${id}/publish`)
     const updated = normalizeArticle(unwrapData(response))
     syncArticle(updated)
-    showToast('Article published', 'success')
+    showToast('文章已发布', 'success')
     return updated
   }
 
@@ -390,7 +390,7 @@ export const useArticlesStore = defineStore('articles', () => {
     const response: any = await post(`/admin/articles/${id}/offline`)
     const updated = normalizeArticle(unwrapData(response))
     syncArticle(updated)
-    showToast('Article taken offline', 'success')
+    showToast('文章已取消发布', 'success')
     return updated
   }
 
@@ -442,7 +442,7 @@ export const useArticlesStore = defineStore('articles', () => {
   ) => {
     const response: any = await patch(`/admin/articles/${articleId}/comments/${commentId}/status`, { status, reason })
     const updated = normalizeArticleComment(unwrapData(response))
-    showToast('Comment status updated', 'success')
+    showToast('评论状态已更新', 'success')
     return updated
   }
 
@@ -455,11 +455,11 @@ export const useArticlesStore = defineStore('articles', () => {
       const raw = unwrapData(response)
       const normalizedUrl = toAbsoluteUploadUrl(raw?.url)
       if (!normalizedUrl) {
-        throw new Error('Upload response missing public URL')
+        throw new Error('上传响应缺少公开 URL')
       }
 
       if (!options?.silent) {
-        showToast('Image uploaded', 'success')
+        showToast('图片已上传', 'success')
       }
       return {
         bucket: String(raw?.bucket ?? ''),
@@ -471,7 +471,7 @@ export const useArticlesStore = defineStore('articles', () => {
       } as ArticleUploadedImage
     } catch (error: any) {
       if (!options?.silent) {
-        showToast(error?.data?.message || error?.message || 'Image upload failed', 'error')
+        showToast(error?.data?.message || error?.message || '图片上传失败', 'error')
       }
       return null
     }

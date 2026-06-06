@@ -14,8 +14,12 @@ test('item groups page exists as an independent source-backed management route',
 
   assert.match(page, /definePageMeta\(\{\s*title:\s*'任意物品组管理'/)
   assert.match(page, /fetchItemGroups/)
-  assert.match(page, /sourceProvider/)
-  assert.match(page, /sourcePage/)
+  assert.match(page, /来源提供方 sourceProvider/)
+  assert.match(page, /来源页 sourcePage/)
+  assert.match(page, /来源修订时间 sourceRevisionTimestamp/)
+  assert.match(page, /来源 URL sourceUrls/)
+  assert.doesNotMatch(page, />sourceProvider</)
+  assert.doesNotMatch(page, />sourcePage</)
   assert.match(page, /domains/)
   assert.match(page, /AdminItemLookupInput/)
 })
@@ -62,6 +66,15 @@ test('item groups page exposes API load failures instead of showing a false empt
   assert.match(page, /加载失败/)
   assert.doesNotMatch(fetchItemGroups, /catch[\s\S]*return \[\]/)
   assert.match(fetchItemGroups, /throw error/)
+})
+
+test('item groups page uses Chinese-first canonical name copy', () => {
+  const page = read('data-query-app/pages/item-groups.vue')
+
+  assert.match(page, /标准名称 Canonical Name/)
+  assert.match(page, /标准名称 Canonical Name 不能为空/)
+  assert.doesNotMatch(page, />Canonical Name</)
+  assert.doesNotMatch(page, /'Canonical Name 不能为空'/)
 })
 
 test('recipe group navigation points at the unified item group page in recipe scope', () => {

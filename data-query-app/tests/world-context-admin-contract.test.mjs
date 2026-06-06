@@ -39,14 +39,35 @@ test('world context admin renders traceability fields and raw evidence editor', 
 
   for (const token of [
     "{ key: '__imageUrl', label: '预览' }",
-    "{ key: 'sourceProvider', label: 'Source Provider'",
-    "{ key: 'sourcePage', label: 'Source Page'",
-    "{ key: 'sourceRevisionTimestamp', label: 'Source Revision Timestamp'",
-    "{ key: 'lastSyncedAt', label: 'Last Synced At'",
-    "{ key: 'rawJson', label: 'Raw JSON Evidence'",
+    "{ key: 'sourceProvider', label: '来源提供方 sourceProvider'",
+    "{ key: 'sourcePage', label: '来源页 sourcePage'",
+    "{ key: 'sourceRevisionTimestamp', label: '来源修订时间 sourceRevisionTimestamp'",
+    "{ key: 'lastSyncedAt', label: '最后同步时间 lastSyncedAt'",
+    "{ key: 'rawJson', label: '原始 JSON rawJson'",
     "format: 'json'",
   ]) {
     assert.match(worldContextConfig, new RegExp(escapeRegExp(token)))
+  }
+})
+
+test('entity workspace operator copy is Chinese-first for JSON and source controls', () => {
+  for (const token of [
+    '保留英文名',
+    '保留内部标识',
+    '格式化 JSON',
+    '原始 JSON rawJson',
+    'JSON 格式无效',
+    '提交失败',
+    '确认删除 #',
+    '删除失败',
+    '可预览',
+    '来源页 sourcePage',
+    '来源提供方 sourceProvider',
+    '来源修订时间 sourceRevisionTimestamp',
+    'AI 样式 aiStyle',
+    '来源物品 JSON sourceItemsJson',
+  ]) {
+    assert.match(entitiesPage, new RegExp(escapeRegExp(token)))
   }
 })
 

@@ -3,7 +3,7 @@
     <section class="workspace-shell workspace-shell--unified">
       <div class="workspace-hero workspace-hero--unified acceptance-hero">
         <div class="workspace-hero__copy">
-          <p class="eyebrow">DATA SOURCE ACCEPTANCE</p>
+          <p class="eyebrow">数据源验收</p>
           <h1 class="page-head__title">数据源验收</h1>
           <p class="page-head__subtitle">
             A/B 可信数据链当前状态。
@@ -85,7 +85,7 @@
         </article>
       </section>
 
-      <section class="panel-grid" aria-label="Data source acceptance panels">
+      <section class="panel-grid" aria-label="数据源验收面板">
         <article v-for="item in panelItems" :key="item.key" class="acceptance-panel">
           <div class="acceptance-panel__head">
             <span class="acceptance-panel__icon" :class="statusTone(item.panel?.status)">
@@ -151,7 +151,7 @@
           </div>
 
           <div v-if="item.panel?.executeMode || item.panel?.executionPolicy" class="execution-policy">
-            <span>Execution policy</span>
+            <span>执行策略</span>
             <strong>{{ executionMeta(item.panel) }}</strong>
           </div>
 

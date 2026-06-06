@@ -13,7 +13,7 @@
             <img
               v-if="resolveTownNpcMainImage(row)"
               :src="resolveTownNpcMainImage(row)"
-              :alt="row.nameZh || row.name || row.internalName || 'Town NPC'"
+              :alt="row.nameZh || row.name || row.internalName || '城镇 NPC'"
               class="npc-badge__portrait-image"
             >
             <div v-else class="npc-badge__portrait-fallback">{{ buildFallback(row) }}</div>
@@ -22,7 +22,7 @@
           <div class="npc-badge__copy">
             <div class="npc-badge__title-row">
               <div class="npc-badge__title-box">
-                <h2>{{ row.nameZh || row.name || row.internalName || 'Town NPC' }}</h2>
+                <h2>{{ row.nameZh || row.name || row.internalName || '城镇 NPC' }}</h2>
                 <p>{{ row.name || row.internalName || '未同步英文名' }}</p>
               </div>
 
@@ -52,7 +52,7 @@
         <div class="hero-side">
           <div class="hero-side__stats">
             <article class="hero-metric">
-              <span>数据库关联</span>
+              <span>当前商店物品</span>
               <strong>{{ shopEntryDrafts.length }}</strong>
             </article>
             <article class="hero-metric">
@@ -297,7 +297,7 @@
               </div>
 
               <div v-if="itemSearchLoading" class="empty-inline">正在搜索物品...</div>
-              <div v-else-if="itemSearch.trim() && !itemSearchResults.length" class="empty-inline">未找到匹配物品。</div>
+              <div v-else-if="itemSearch.trim() && !itemSearchResults.length" class="empty-inline">暂无匹配物品。</div>
               <div v-else class="suggestion-list">
                 <article v-for="item in itemSearchResults" :key="item.id" class="suggestion-card">
                   <div class="suggestion-card__media">
@@ -357,7 +357,7 @@
                   </div>
                 </article>
               </div>
-              <div v-else class="empty-inline">该 NPC 还没有命中的 Wiki 建议售卖物。</div>
+              <div v-else class="empty-inline">暂无匹配物品。</div>
             </article>
 
             <article class="panel">
@@ -565,7 +565,7 @@ const wikiBindingLabel = computed(() => {
 })
 
 const modalTitle = computed(() => {
-  const base = props.row?.nameZh || props.row?.name || props.row?.internalName || 'Town NPC'
+  const base = props.row?.nameZh || props.row?.name || props.row?.internalName || '城镇 NPC'
   return `${base} 维护工作台`
 })
 

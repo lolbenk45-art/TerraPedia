@@ -181,3 +181,18 @@ test('admin item detail labels parsed source NPC cards as summaries, not raw JSO
   assert.match(itemDetail, /来源 NPC 摘要/)
   assert.doesNotMatch(itemDetail, /来源 NPC JSON/)
 })
+
+test('town NPC workbench visible operator copy is Chinese-first', () => {
+  for (const [source, tokens] of [
+    [townNpcIndex, ['城镇 NPC 工作台', '未匹配']],
+    [townNpcDetail, ['城镇 NPC 详情', '商店物品', '已匹配', '未匹配']],
+    [townNpcEdit, ['城镇 NPC 编辑器', '当前商店物品', 'Wiki 建议']],
+    [townNpcWorkbench, ['当前商店物品', 'Wiki 建议', '暂无匹配物品']],
+  ]) {
+    for (const token of tokens) assert.match(source, new RegExp(token))
+  }
+
+  for (const source of [townNpcIndex, townNpcDetail, townNpcEdit, townNpcWorkbench]) {
+    assert.doesNotMatch(source, /TOWN NPC WORKBENCH|TOWN NPC EDITOR|TOWN NPC DETAIL|SHOP ITEMS|MATCHED|UNMATCHED|Current Shop Items|Wiki Suggestions|No matched items/)
+  }
+})

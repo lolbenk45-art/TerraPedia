@@ -7,7 +7,7 @@
       <div class="login-card__brand">
         <span class="login-card__logo">📦</span>
         <div>
-          <p class="login-card__eyebrow">TerraPedia Admin</p>
+          <p class="login-card__eyebrow">TerraPedia 管理端</p>
           <h1 class="login-card__title">后台登录</h1>
         </div>
       </div>

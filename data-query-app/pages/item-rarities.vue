@@ -3,7 +3,7 @@
     <section class="workspace-shell workspace-shell--unified">
       <div class="workspace-hero workspace-hero--unified hero-card">
       <div class="workspace-hero__copy">
-        <p class="hero-card__eyebrow">RARITY MANAGER</p>
+        <p class="hero-card__eyebrow">品质管理</p>
         <h1 class="page-head__title hero-card__title">品质管理</h1>
         <p class="page-head__subtitle hero-card__subtitle">维护物品品质字典，供 `items.rarity_id` 引用，并显示当前被多少物品使用。</p>
       </div>

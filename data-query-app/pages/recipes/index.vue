@@ -3,7 +3,7 @@
     <section class="workspace-shell workspace-shell--unified recipes-hero-shell page-workspace">
       <div class="workspace-hero workspace-hero--unified recipes-hero">
         <div class="recipes-hero__copy workspace-hero__copy">
-          <p class="eyebrow">RECIPE WORKSPACE</p>
+          <p class="eyebrow">配方工作区</p>
           <h1 class="page-head__title">配方管理</h1>
           <p class="page-head__subtitle">默认先看缩略卡，点中后直接在当前页面下方查看路径，不再弹窗。</p>
           <div class="recipes-hero__summary-grid workspace-summary-grid">
@@ -114,7 +114,7 @@
                 @click="activeDesktopRootIndex = index"
               >
                 <div class="thumb-card__meta-row">
-                  <span class="thumb-card__recipe-id">{{ root.recipeId ? `Recipe #${root.recipeId}` : `路径 ${index + 1}` }}</span>
+                  <span class="thumb-card__recipe-id">{{ root.recipeId ? `配方 #${root.recipeId}` : `路径 ${index + 1}` }}</span>
                   <span class="thumb-card__yield">产出 ×{{ root.resultQuantity || 1 }}</span>
                 </div>
                 <img v-if="getRootImage(root)" :src="getRootImage(root)" alt="" class="thumb-card__image">
@@ -182,7 +182,7 @@
                 </div>
                 <div class="detail__meta">
                   <span v-if="activeDesktopRoot.resultQuantity">产出 ×{{ activeDesktopRoot.resultQuantity }}</span>
-                  <span v-if="activeDesktopRoot.recipeId">Recipe #{{ activeDesktopRoot.recipeId }}</span>
+                  <span v-if="activeDesktopRoot.recipeId">配方 #{{ activeDesktopRoot.recipeId }}</span>
                 </div>
               </div>
               <AdminRecipeTreeBranch :node="activeDesktopRoot" compact @open-item="openRecipeItem" @navigate-item="openAdminItemWorkspace" @open-station="openStationWorkspace" />
@@ -191,8 +191,8 @@
             <AppEmptyState
               v-if="!desktopTreeVariant || !desktopTreeVariant.roots.length"
               icon="IT"
-              title="当前物品没有可展示的 Desktop 路径"
-              description="先补充 Desktop 配方，再回到这里查看缩略卡路径。"
+              title="当前物品没有可展示的桌面版路径"
+              description="先补充桌面版配方，再回到这里查看缩略卡路径。"
             />
           </div>
 
@@ -200,7 +200,7 @@
             v-else
             icon="IT"
             title="先选择一个物品"
-            description="从左侧搜索并选中物品后，这里会加载它的 Desktop 配方和缩略路径。"
+            description="从左侧搜索并选中物品后，这里会加载它的桌面版配方和缩略路径。"
           />
         </section>
       </section>
@@ -239,17 +239,17 @@ const totalIngredients = computed(() => recipeDrafts.value.reduce((sum, recipe) 
 const totalStations = computed(() => recipeDrafts.value.reduce((sum, recipe) => sum + (recipe.stations?.length || 0), 0))
 const isDirty = computed(() => JSON.stringify(recipeDrafts.value) !== JSON.stringify(loadedRecipes.value))
 function getCompactItemLabel(item: Item | null) {
-  const label = item ? getItemLabel(item) : 'Select item'
+  const label = item ? getItemLabel(item) : '选择物品'
   return label.length > 18 ? `${label.slice(0, 18)}...` : label
 }
 
 const recipeHeroStats = computed(() => [
-  { key: 'item', label: 'ITEM', value: getCompactItemLabel(selectedItem.value) },
-  { key: 'recipes', label: 'RECIPES', value: String(recipeDrafts.value.length) },
-  { key: 'ingredients', label: 'INGREDIENTS', value: String(totalIngredients.value) },
-  { key: 'stations', label: 'STATIONS', value: String(totalStations.value) },
-  { key: 'mode', label: 'MODE', value: contentMode.value === 'editor' ? 'Editor' : 'Flow' },
-  { key: 'state', label: 'STATE', value: isDirty.value ? 'Unsaved changes' : 'Synced' },
+  { key: 'item', label: '物品', value: getCompactItemLabel(selectedItem.value) },
+  { key: 'recipes', label: '配方数', value: String(recipeDrafts.value.length) },
+  { key: 'ingredients', label: '原料数', value: String(totalIngredients.value) },
+  { key: 'stations', label: '制作站', value: String(totalStations.value) },
+  { key: 'mode', label: '模式', value: contentMode.value === 'editor' ? '编辑' : '路径' },
+  { key: 'state', label: '状态', value: isDirty.value ? '未保存修改' : '已同步' },
 ])
 
 const desktopTreeVariant = computed<ItemRecipeTreeVariant | null>(() => {
@@ -338,7 +338,7 @@ function resolvePreviewImage(value?: string | null) {
 }
 
 function getRootLabel(root: ItemRecipeTreeNode) {
-  return root.itemNameZh || root.itemName || root.itemInternalName || `Recipe #${root.recipeId || '--'}`
+  return root.itemNameZh || root.itemName || root.itemInternalName || `配方 #${root.recipeId || '--'}`
 }
 
 function getRootImage(root: ItemRecipeTreeNode) {

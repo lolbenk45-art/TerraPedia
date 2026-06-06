@@ -3,7 +3,7 @@
     <section class="workspace-shell workspace-shell--unified recipes-workspace-hero">
       <div class="workspace-hero workspace-hero--unified stations-hero">
       <div class="stations-hero__copy workspace-hero__copy">
-        <p class="stations-hero__eyebrow">CRAFTING STATIONS</p>
+        <p class="stations-hero__eyebrow">制作站管理</p>
         <h1 class="page-head__title">制作站管理</h1>
         <p class="page-head__subtitle">把工作台、熔炉、铁砧等制作站独立维护，供配方统一引用。</p>
         <div class="stations-hero__stats workspace-summary-grid">
@@ -79,7 +79,7 @@
               />
               <div v-else class="binding-panel__current-station-image binding-panel__current-station-image--fallback">ST</div>
               <div class="binding-panel__current-station-copy">
-                <span class="binding-panel__current-station-label">Current station</span>
+                <span class="binding-panel__current-station-label">当前制作站</span>
                 <strong>{{ getStationLabel(editingStation) }}</strong>
                 <small>{{ editingStation.internalName || `ID ${editingStation.id}` }}</small>
                 <small v-if="editingStation.itemId">关联物品 #{{ editingStation.itemId }}</small>
@@ -188,7 +188,7 @@
             />
             <div v-else class="binding-panel__current-station-image binding-panel__current-station-image--fallback">ST</div>
             <div class="binding-panel__current-station-copy">
-              <span class="binding-panel__current-station-label">Current station</span>
+              <span class="binding-panel__current-station-label">当前制作站</span>
               <strong>{{ getStationLabel(editingStation) }}</strong>
               <small>{{ editingStation.internalName || `ID ${editingStation.id}` }}</small>
             </div>
@@ -314,7 +314,7 @@
                 <h3>建议合成流程</h3>
                 <p>给出当前目标物品的简要制作信息，包括建议路径、使用制作站和基础环境信息。</p>
               </div>
-              <span>{{ desktopBindingVariant?.versionScope || '主版本 / Desktop 优先' }}</span>
+              <span>{{ desktopBindingVariant?.versionScope || '主版本 / 桌面版优先' }}</span>
             </div>
 
             <div class="binding-flow-summary__meta">
@@ -437,7 +437,7 @@
             <div class="station-card__copy">
               <div class="station-card__title-row">
                 <strong>{{ getStationLabel(station) }}</strong>
-                <span v-if="editingId === station.id" class="station-card__active-pill">Current</span>
+                <span v-if="editingId === station.id" class="station-card__active-pill">当前</span>
               </div>
               <span>{{ station.internalName || '无 internalName' }}</span>
               <div v-if="station.itemId" class="station-card__binding">
@@ -610,10 +610,10 @@ const bindingIsDirty = computed(() => JSON.stringify(bindingRecipes.value) !== J
 const stationHeroStats = computed(() => {
   const usedCount = stations.value.filter((station) => (station.usageRecipeCount ?? 0) > 0).length
   return [
-    { label: 'STATIONS', value: String(stationsPagination.value.total || stations.value.length) },
-    { label: 'USED', value: String(usedCount) },
-    { label: 'EDITOR', value: editingStation.value ? getStationLabel(editingStation.value) : 'Create mode' },
-    { label: 'STATE', value: isDirty.value || bindingIsDirty.value ? 'Unsaved changes' : 'Synced' },
+    { label: '制作站', value: String(stationsPagination.value.total || stations.value.length) },
+    { label: '已使用', value: String(usedCount) },
+    { label: '编辑器', value: editingStation.value ? getStationLabel(editingStation.value) : '新建模式' },
+    { label: '状态', value: isDirty.value || bindingIsDirty.value ? '未保存修改' : '已同步' },
   ]
 })
 const showDeprecatedFlowPreview = false
@@ -902,7 +902,7 @@ function getSuggestedStations(root: ItemRecipeTreeNode) {
 }
 
 function getSuggestedRootLabel(root: ItemRecipeTreeNode) {
-  return root.itemNameZh || root.itemName || root.itemInternalName || `Recipe #${root.recipeId ?? '--'}`
+  return root.itemNameZh || root.itemName || root.itemInternalName || `配方 #${root.recipeId ?? '--'}`
 }
 
 function getSuggestedRootMeta(root: ItemRecipeTreeNode) {

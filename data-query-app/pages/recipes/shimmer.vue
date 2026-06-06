@@ -3,9 +3,9 @@
     <section class="workspace-shell workspace-shell--unified page-workspace">
       <div class="workspace-hero workspace-hero--unified shimmer-hero">
         <div class="workspace-hero__copy">
-          <p class="eyebrow">SHIMMER DATA</p>
-          <h1 class="page-head__title">Shimmer Data</h1>
-          <p class="page-head__subtitle">Manage imported shimmer transforms, decraft rules, entity transforms, NPC shimmer variants, and the shimmer world context.</p>
+          <p class="eyebrow">微光数据 Shimmer</p>
+          <h1 class="page-head__title">微光数据</h1>
+          <p class="page-head__subtitle">维护已导入的微光转换、拆解规则、实体转换、NPC 微光变体和微光世界条件。</p>
           <div class="workspace-summary-grid">
             <article v-for="stat in summaryCards" :key="stat.label" class="summary-mini">
               <span class="summary-mini__label">{{ stat.label }}</span>
@@ -15,23 +15,23 @@
         </div>
         <div class="toolbar-top action-cluster toolbar-top--hero">
           <button type="button" class="btn btn-secondary" :disabled="loadingOverview" @click="loadOverview">
-            {{ loadingOverview ? 'Refreshing...' : 'Refresh Overview' }}
+            {{ loadingOverview ? '刷新中...' : '刷新概览' }}
           </button>
           <button type="button" class="btn btn-secondary" :disabled="loadingRows" @click="loadRows()">
-            {{ loadingRows ? 'Loading...' : 'Reload Rows' }}
+            {{ loadingRows ? '加载中...' : '重新加载记录' }}
           </button>
-          <button type="button" class="btn btn-strong" @click="openCreateDialog">Create Row</button>
+          <button type="button" class="btn btn-strong" @click="openCreateDialog">新增记录</button>
         </div>
       </div>
 
       <div class="workspace-controls workspace-controls--integrated">
-        <nav class="view-switch" aria-label="Recipe workspace view switch">
-          <NuxtLink to="/recipes" class="view-switch__link">Recipe Editor</NuxtLink>
-          <NuxtLink to="/recipes/tree" class="view-switch__link">Recipe Tree</NuxtLink>
-          <NuxtLink to="/recipes/stations" class="view-switch__link">Stations</NuxtLink>
-          <NuxtLink :to="{ path: '/item-groups', query: { domain: 'recipe' } }" class="view-switch__link">Recipe Groups</NuxtLink>
-          <NuxtLink to="/recipes/wiki-zh-import" class="view-switch__link">Wiki Zh Import</NuxtLink>
-          <NuxtLink to="/recipes/shimmer" class="view-switch__link view-switch__link--active">Shimmer Data</NuxtLink>
+        <nav class="view-switch" aria-label="配方模块视图切换">
+          <NuxtLink to="/recipes" class="view-switch__link">配方编辑</NuxtLink>
+          <NuxtLink to="/recipes/tree" class="view-switch__link">合成路径</NuxtLink>
+          <NuxtLink to="/recipes/stations" class="view-switch__link">制作站管理</NuxtLink>
+          <NuxtLink :to="{ path: '/item-groups', query: { domain: 'recipe' } }" class="view-switch__link">任意物品组</NuxtLink>
+          <NuxtLink to="/recipes/wiki-zh-import" class="view-switch__link">中文配方导入</NuxtLink>
+          <NuxtLink to="/recipes/shimmer" class="view-switch__link view-switch__link--active">微光数据</NuxtLink>
         </nav>
       </div>
     </section>
@@ -41,49 +41,49 @@
         <section class="section-card workspace-panel">
           <div class="section-head">
             <div>
-              <h2 class="section-card__title">Shimmer Context</h2>
-              <p class="section-card__subtitle">Edit the primary world context row used by the shimmer dataset import.</p>
+              <h2 class="section-card__title">微光环境</h2>
+              <p class="section-card__subtitle">编辑微光数据导入所使用的主世界条件记录。</p>
             </div>
             <div class="meta-pills">
               <span class="meta-pill" :class="{ 'meta-pill--ok': manifest.parseStatus === 'parsed' }">{{ manifest.parseStatus || 'missing' }}</span>
-              <span class="meta-pill">Unresolved {{ manifest.unresolvedCount }}</span>
+              <span class="meta-pill">未解析 {{ manifest.unresolvedCount }}</span>
             </div>
           </div>
 
           <div v-if="context" class="context-grid">
             <label class="field">
-              <span class="field__label">Code</span>
+              <span class="field__label">编码 Code</span>
               <input v-model.trim="contextForm.code" class="input" type="text" disabled />
             </label>
             <label class="field">
-              <span class="field__label">Name EN</span>
+              <span class="field__label">英文名 Name EN</span>
               <input v-model.trim="contextForm.nameEn" class="input" type="text" />
             </label>
             <label class="field">
-              <span class="field__label">Name ZH</span>
+              <span class="field__label">中文名 Name ZH</span>
               <input v-model.trim="contextForm.nameZh" class="input" type="text" />
             </label>
             <label class="field">
-              <span class="field__label">Context Type</span>
+              <span class="field__label">条件类型 Context Type</span>
               <input v-model.trim="contextForm.contextType" class="input" type="text" />
             </label>
             <label class="field">
-              <span class="field__label">Sort Order</span>
+              <span class="field__label">排序 Sort Order</span>
               <input v-model.number="contextForm.sortOrder" class="input" type="number" />
             </label>
             <label class="field">
-              <span class="field__label">Status</span>
+              <span class="field__label">状态</span>
               <select v-model.number="contextForm.status" class="input">
-                <option :value="1">Enabled</option>
-                <option :value="0">Disabled</option>
+                <option :value="1">启用</option>
+                <option :value="0">禁用</option>
               </select>
             </label>
             <label class="field field--full">
-              <span class="field__label">Description</span>
+              <span class="field__label">描述</span>
               <textarea v-model.trim="contextForm.description" class="input textarea" rows="4" />
             </label>
             <label class="field field--full">
-              <span class="field__label">Icon URL</span>
+              <span class="field__label">图标 URL</span>
               <input v-model.trim="contextForm.iconUrl" class="input" type="text" />
               <div class="context-preview">
                 <div class="shimmer-thumb shimmer-thumb--context">
@@ -98,16 +98,16 @@
                 </div>
                 <div class="context-preview__copy">
                   <strong>{{ contextForm.nameZh || contextForm.nameEn || 'Shimmer' }}</strong>
-                  <code>{{ contextForm.iconUrl || 'No icon URL' }}</code>
+                  <code>{{ contextForm.iconUrl || '未填写图标 URL' }}</code>
                 </div>
               </div>
             </label>
           </div>
 
           <div class="toolbar-top toolbar-top--section">
-            <button type="button" class="btn btn-secondary" @click="resetContextForm">Reset</button>
+            <button type="button" class="btn btn-secondary" @click="resetContextForm">重置</button>
             <button type="button" class="btn btn-strong" :disabled="savingContext" @click="saveContext">
-              {{ savingContext ? 'Saving...' : 'Save Context' }}
+              {{ savingContext ? '保存中...' : '保存环境' }}
             </button>
           </div>
         </section>
@@ -115,12 +115,12 @@
         <section class="section-card workspace-panel">
           <div class="section-head">
             <div>
-              <h2 class="section-card__title">Dataset Browser</h2>
-              <p class="section-card__subtitle">Use tabs to switch between the four shimmer datasets now stored in dedicated tables.</p>
+              <h2 class="section-card__title">数据集浏览器</h2>
+              <p class="section-card__subtitle">通过标签切换当前存入专用表的四类微光数据集。</p>
             </div>
           </div>
 
-          <div class="dataset-tabs" role="tablist" aria-label="Shimmer datasets">
+          <div class="dataset-tabs" role="tablist" aria-label="微光数据集">
             <button
               v-for="tab in datasetTabs"
               :key="tab.key"
@@ -137,7 +137,7 @@
 
           <form class="toolbar shimmer-toolbar" @submit.prevent="loadRows()">
             <label class="field field--search">
-              <span class="field__label">Search</span>
+              <span class="field__label">搜索</span>
               <div class="search-wrap">
                 <span class="search-wrap__icon">
                   <Search :size="16" />
@@ -146,20 +146,20 @@
               </div>
             </label>
             <div class="toolbar__actions">
-              <button type="submit" class="btn btn-primary">Search</button>
-              <button type="button" class="btn btn-secondary" @click="resetSearch">Reset</button>
-              <button type="button" class="btn btn-strong" @click="openCreateDialog">Create Row</button>
+              <button type="submit" class="btn btn-primary">搜索</button>
+              <button type="button" class="btn btn-secondary" @click="resetSearch">重置</button>
+              <button type="button" class="btn btn-strong" @click="openCreateDialog">新增记录</button>
             </div>
           </form>
 
-          <div v-if="loadingRows" class="empty-text">Loading rows...</div>
+          <div v-if="loadingRows" class="empty-text">记录加载中...</div>
           <template v-else>
             <div v-if="rows.length" class="table-wrap">
               <table class="data-table">
                 <thead>
                   <tr>
                     <th v-for="column in currentConfig.columns" :key="column.key">{{ column.label }}</th>
-                    <th>Actions</th>
+                    <th>操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -220,8 +220,8 @@
                     </td>
                     <td>
                       <div class="row-actions">
-                        <button type="button" class="btn-link" @click="openEditDialog(row)">Edit</button>
-                        <button type="button" class="btn-link btn-link--danger" @click="handleDelete(row)">Delete</button>
+                        <button type="button" class="btn-link" @click="openEditDialog(row)">编辑</button>
+                        <button type="button" class="btn-link btn-link--danger" @click="handleDelete(row)">删除</button>
                       </div>
                     </td>
                   </tr>
@@ -231,9 +231,9 @@
             <AppEmptyState
               v-else
               icon="SH"
-              :title="search ? 'No matching shimmer rows' : 'No shimmer rows yet'"
-              :description="search ? 'Try a different keyword or clear the filter.' : 'Create the first row for this dataset.'"
-              :primary-text="search ? 'Clear Search' : 'Create Row'"
+              :title="search ? '没有匹配的微光记录' : '当前还没有微光记录'"
+              :description="search ? '换一个关键词或清空筛选后再试。' : '为当前数据集新增第一条记录。'"
+              :primary-text="search ? '清空搜索' : '新增记录'"
               @primary="search ? resetSearch() : openCreateDialog()"
             />
           </template>
@@ -245,7 +245,7 @@
       </section>
     </section>
 
-    <AppModal v-model="dialogVisible" :title="isEdit ? `Edit ${currentConfig.label}` : `Create ${currentConfig.label}`" width="min(920px, calc(100vw - 32px))">
+    <AppModal v-model="dialogVisible" :title="isEdit ? `编辑${currentConfig.label}` : `新增${currentConfig.label}`" width="min(920px, calc(100vw - 32px))">
       <div v-if="dialogPreviewCards.length" class="shimmer-dialog-preview">
         <article v-for="card in dialogPreviewCards" :key="card.key" class="shimmer-dialog-preview__item">
           <div class="shimmer-thumb shimmer-thumb--dialog">
@@ -271,7 +271,7 @@
           <label class="field" :class="field.span === 'full' ? 'field--full' : ''">
             <div class="field__topline">
               <span class="field__label">{{ field.label }}<span v-if="field.required" class="field__required">*</span></span>
-              <button v-if="field.format === 'json'" type="button" class="field__action" @click="formatJsonField(field.key)">Format JSON</button>
+              <button v-if="field.format === 'json'" type="button" class="field__action" @click="formatJsonField(field.key)">格式化 JSON</button>
             </div>
             <textarea
               v-if="field.type === 'textarea'"
@@ -281,8 +281,8 @@
               :rows="field.rows || 4"
             />
             <select v-else-if="field.type === 'status'" v-model.number="form[field.key]" class="input">
-              <option :value="1">Enabled</option>
-              <option :value="0">Disabled</option>
+              <option :value="1">启用</option>
+              <option :value="0">禁用</option>
             </select>
             <input v-else v-model="form[field.key]" class="input" :type="field.type === 'number' ? 'number' : 'text'" />
             <span v-if="field.helper" class="field__hint">{{ field.helper }}</span>
@@ -290,9 +290,9 @@
         </template>
       </div>
       <template #footer>
-        <button type="button" class="btn btn-secondary" @click="dialogVisible = false">Cancel</button>
+        <button type="button" class="btn btn-secondary" @click="dialogVisible = false">取消</button>
         <button type="button" class="btn btn-strong" :disabled="submitting" @click="handleSubmit">
-          {{ submitting ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Row' }}
+          {{ submitting ? '保存中...' : isEdit ? '保存更改' : '新增记录' }}
         </button>
       </template>
     </AppModal>
@@ -306,7 +306,7 @@ import { del, get, post, put } from '~/composables/useApi'
 import { showToast } from '~/composables/useToast'
 
 definePageMeta({
-  title: 'Shimmer Data',
+  title: '微光数据',
   navSection: '/recipes',
   headerVariant: 'compact',
 })
@@ -351,117 +351,117 @@ type DatasetConfig = {
 const datasetConfigs: Record<string, DatasetConfig> = {
   'item-transforms': {
     key: 'item-transforms',
-    label: 'Item Transforms',
+    label: '物品转换',
     endpoint: '/admin/shimmer/datasets/item-transforms',
-    searchPlaceholder: 'Search input, output, internal name, or notes',
+    searchPlaceholder: '搜索输入、输出、internalName 或备注',
     primaryColumn: 'inputNameZh',
     secondaryColumn: 'outputNameZh',
     columns: [
-      { key: 'inputNameZh', label: 'Input' },
-      { key: 'outputNameZh', label: 'Output' },
-      { key: 'inputKind', label: 'Input Kind' },
-      { key: 'outputKind', label: 'Output Kind' },
-      { key: 'sortOrder', label: 'Sort' },
-      { key: 'status', label: 'Status' },
+      { key: 'inputNameZh', label: '输入' },
+      { key: 'outputNameZh', label: '输出' },
+      { key: 'inputKind', label: '输入类型 inputKind' },
+      { key: 'outputKind', label: '输出类型 outputKind' },
+      { key: 'sortOrder', label: '排序' },
+      { key: 'status', label: '状态' },
     ],
     fields: [
-      { key: 'inputKind', label: 'Input Kind', required: true },
-      { key: 'inputNameZh', label: 'Input Name ZH', required: true },
-      { key: 'inputNameEn', label: 'Input Name EN' },
-      { key: 'inputInternalName', label: 'Input Internal Name' },
-      { key: 'outputKind', label: 'Output Kind', required: true },
-      { key: 'outputNameZh', label: 'Output Name ZH', required: true },
-      { key: 'outputNameEn', label: 'Output Name EN' },
-      { key: 'outputInternalName', label: 'Output Internal Name' },
-      { key: 'conditionsJson', label: 'Conditions JSON', type: 'textarea', span: 'full', format: 'json', rows: 6 },
-      { key: 'notes', label: 'Notes', type: 'textarea', span: 'full', rows: 4 },
-      { key: 'sortOrder', label: 'Sort Order', type: 'number' },
-      { key: 'status', label: 'Status', type: 'status' },
+      { key: 'inputKind', label: '输入类型 inputKind', required: true },
+      { key: 'inputNameZh', label: '输入中文名 inputNameZh', required: true },
+      { key: 'inputNameEn', label: '输入英文名 inputNameEn' },
+      { key: 'inputInternalName', label: '输入内部名 inputInternalName' },
+      { key: 'outputKind', label: '输出类型 outputKind', required: true },
+      { key: 'outputNameZh', label: '输出中文名 outputNameZh', required: true },
+      { key: 'outputNameEn', label: '输出英文名 outputNameEn' },
+      { key: 'outputInternalName', label: '输出内部名 outputInternalName' },
+      { key: 'conditionsJson', label: '条件 JSON conditionsJson', type: 'textarea', span: 'full', format: 'json', rows: 6 },
+      { key: 'notes', label: '备注 notes', type: 'textarea', span: 'full', rows: 4 },
+      { key: 'sortOrder', label: '排序 sortOrder', type: 'number' },
+      { key: 'status', label: '状态 status', type: 'status' },
     ],
   },
   'decraft-rules': {
     key: 'decraft-rules',
-    label: 'Decraft Rules',
+    label: '拆解规则',
     endpoint: '/admin/shimmer/datasets/decraft-rules',
-    searchPlaceholder: 'Search rule type, input, group label, or notes',
+    searchPlaceholder: '搜索规则类型、输入、组标签或备注',
     primaryColumn: 'inputNameZh',
     secondaryColumn: 'ruleType',
     columns: [
-      { key: 'inputNameZh', label: 'Input' },
-      { key: 'outputsPreview', label: 'Outputs' },
-      { key: 'ruleType', label: 'Rule Type' },
-      { key: 'groupLabel', label: 'Group' },
-      { key: 'sortOrder', label: 'Sort' },
-      { key: 'status', label: 'Status' },
+      { key: 'inputNameZh', label: '输入' },
+      { key: 'outputsPreview', label: '输出' },
+      { key: 'ruleType', label: '规则类型 ruleType' },
+      { key: 'groupLabel', label: '组标签 groupLabel' },
+      { key: 'sortOrder', label: '排序' },
+      { key: 'status', label: '状态' },
     ],
     fields: [
-      { key: 'ruleType', label: 'Rule Type', required: true },
-      { key: 'groupLabel', label: 'Group Label' },
-      { key: 'inputKind', label: 'Input Kind', required: true },
-      { key: 'inputNameZh', label: 'Input Name ZH', required: true },
-      { key: 'inputNameEn', label: 'Input Name EN' },
-      { key: 'inputInternalName', label: 'Input Internal Name' },
-      { key: 'outputsJson', label: 'Outputs JSON', type: 'textarea', span: 'full', format: 'json', rows: 8 },
-      { key: 'conditionsJson', label: 'Conditions JSON', type: 'textarea', span: 'full', format: 'json', rows: 6 },
-      { key: 'notes', label: 'Notes', type: 'textarea', span: 'full', rows: 4 },
-      { key: 'sortOrder', label: 'Sort Order', type: 'number' },
-      { key: 'status', label: 'Status', type: 'status' },
+      { key: 'ruleType', label: '规则类型 ruleType', required: true },
+      { key: 'groupLabel', label: '组标签 groupLabel' },
+      { key: 'inputKind', label: '输入类型 inputKind', required: true },
+      { key: 'inputNameZh', label: '输入中文名 inputNameZh', required: true },
+      { key: 'inputNameEn', label: '输入英文名 inputNameEn' },
+      { key: 'inputInternalName', label: '输入内部名 inputInternalName' },
+      { key: 'outputsJson', label: '输出 JSON outputsJson', type: 'textarea', span: 'full', format: 'json', rows: 8 },
+      { key: 'conditionsJson', label: '条件 JSON conditionsJson', type: 'textarea', span: 'full', format: 'json', rows: 6 },
+      { key: 'notes', label: '备注 notes', type: 'textarea', span: 'full', rows: 4 },
+      { key: 'sortOrder', label: '排序 sortOrder', type: 'number' },
+      { key: 'status', label: '状态 status', type: 'status' },
     ],
   },
   'entity-transforms': {
     key: 'entity-transforms',
-    label: 'Entity Transforms',
+    label: '实体转换',
     endpoint: '/admin/shimmer/datasets/entity-transforms',
-    searchPlaceholder: 'Search transform group, input, output, or internal name',
+    searchPlaceholder: '搜索转换组、输入、输出或 internalName',
     primaryColumn: 'inputNameZh',
     secondaryColumn: 'outputNameZh',
     columns: [
-      { key: 'inputNameZh', label: 'Input' },
-      { key: 'outputNameZh', label: 'Output' },
-      { key: 'transformGroup', label: 'Transform Group' },
-      { key: 'sortOrder', label: 'Sort' },
-      { key: 'status', label: 'Status' },
+      { key: 'inputNameZh', label: '输入' },
+      { key: 'outputNameZh', label: '输出' },
+      { key: 'transformGroup', label: '转换组 transformGroup' },
+      { key: 'sortOrder', label: '排序' },
+      { key: 'status', label: '状态' },
     ],
     fields: [
-      { key: 'transformGroup', label: 'Transform Group', required: true },
-      { key: 'inputEntityType', label: 'Input Entity Type' },
-      { key: 'inputNameZh', label: 'Input Name ZH', required: true },
-      { key: 'inputNameEn', label: 'Input Name EN' },
-      { key: 'inputInternalName', label: 'Input Internal Name' },
-      { key: 'outputEntityType', label: 'Output Entity Type' },
-      { key: 'outputNameZh', label: 'Output Name ZH', required: true },
-      { key: 'outputNameEn', label: 'Output Name EN' },
-      { key: 'outputInternalName', label: 'Output Internal Name' },
-      { key: 'sortOrder', label: 'Sort Order', type: 'number' },
-      { key: 'status', label: 'Status', type: 'status' },
+      { key: 'transformGroup', label: '转换组 transformGroup', required: true },
+      { key: 'inputEntityType', label: '输入实体类型 inputEntityType' },
+      { key: 'inputNameZh', label: '输入中文名 inputNameZh', required: true },
+      { key: 'inputNameEn', label: '输入英文名 inputNameEn' },
+      { key: 'inputInternalName', label: '输入内部名 inputInternalName' },
+      { key: 'outputEntityType', label: '输出实体类型 outputEntityType' },
+      { key: 'outputNameZh', label: '输出中文名 outputNameZh', required: true },
+      { key: 'outputNameEn', label: '输出英文名 outputNameEn' },
+      { key: 'outputInternalName', label: '输出内部名 outputInternalName' },
+      { key: 'sortOrder', label: '排序 sortOrder', type: 'number' },
+      { key: 'status', label: '状态 status', type: 'status' },
     ],
   },
   'npc-transforms': {
     key: 'npc-transforms',
-    label: 'NPC Transforms',
+    label: 'NPC 转换',
     endpoint: '/admin/shimmer/datasets/npc-transforms',
-    searchPlaceholder: 'Search NPC names, internal names, notes, or variant info',
+    searchPlaceholder: '搜索 NPC 名称、internalName、备注或变体信息',
     primaryColumn: 'npcNameZh',
     secondaryColumn: 'appearanceVariant',
     columns: [
       { key: 'npcNameZh', label: 'NPC' },
-      { key: 'appearanceVariant', label: 'Variant' },
-      { key: 'variantImageUrl', label: 'Variant Image' },
-      { key: 'effectType', label: 'Effect Type' },
-      { key: 'sortOrder', label: 'Sort' },
-      { key: 'status', label: 'Status' },
+      { key: 'appearanceVariant', label: '变体' },
+      { key: 'variantImageUrl', label: '变体图片' },
+      { key: 'effectType', label: '效果类型 effectType' },
+      { key: 'sortOrder', label: '排序' },
+      { key: 'status', label: '状态' },
     ],
     fields: [
-      { key: 'npcNameZh', label: 'NPC Name ZH', required: true },
-      { key: 'npcNameEn', label: 'NPC Name EN' },
-      { key: 'npcInternalName', label: 'NPC Internal Name' },
-      { key: 'appearanceVariant', label: 'Appearance Variant' },
-      { key: 'effectType', label: 'Effect Type' },
-      { key: 'variantImageUrl', label: 'Variant Image URL', span: 'full' },
-      { key: 'variantImageAlt', label: 'Variant Image Alt', span: 'full' },
-      { key: 'notes', label: 'Notes', type: 'textarea', span: 'full', rows: 4 },
-      { key: 'sortOrder', label: 'Sort Order', type: 'number' },
-      { key: 'status', label: 'Status', type: 'status' },
+      { key: 'npcNameZh', label: 'NPC 中文名 npcNameZh', required: true },
+      { key: 'npcNameEn', label: 'NPC 英文名 npcNameEn' },
+      { key: 'npcInternalName', label: 'NPC 内部名 npcInternalName' },
+      { key: 'appearanceVariant', label: '外观变体 appearanceVariant' },
+      { key: 'effectType', label: '效果类型 effectType' },
+      { key: 'variantImageUrl', label: '变体图片 URL variantImageUrl', span: 'full' },
+      { key: 'variantImageAlt', label: '变体图片说明 variantImageAlt', span: 'full' },
+      { key: 'notes', label: '备注 notes', type: 'textarea', span: 'full', rows: 4 },
+      { key: 'sortOrder', label: '排序 sortOrder', type: 'number' },
+      { key: 'status', label: '状态 status', type: 'status' },
     ],
   },
 }
@@ -499,19 +499,19 @@ const contextForm = reactive({
 const form = reactive<Record<string, any>>({})
 
 const summaryCards = computed(() => [
-  { label: 'ITEM TRANSFORMS', value: datasetCount('item-transforms') },
-  { label: 'DECRAFT RULES', value: datasetCount('decraft-rules') },
-  { label: 'ENTITY TRANSFORMS', value: datasetCount('entity-transforms') },
-  { label: 'NPC TRANSFORMS', value: datasetCount('npc-transforms') },
-  { label: 'UNRESOLVED', value: manifest.value.unresolvedCount ?? 0 },
-  { label: 'STATUS', value: manifest.value.parseStatus || 'missing' },
+  { label: '物品转换', value: datasetCount('item-transforms') },
+  { label: '拆解规则', value: datasetCount('decraft-rules') },
+  { label: '实体转换', value: datasetCount('entity-transforms') },
+  { label: 'NPC 转换', value: datasetCount('npc-transforms') },
+  { label: '未解析', value: manifest.value.unresolvedCount ?? 0 },
+  { label: '状态', value: manifest.value.parseStatus || 'missing' },
 ])
 
 const dialogPreviewCards = computed<DialogPreviewCard[]>(() => {
   const cards: DialogPreviewCard[] = []
   if (hasAnyValue(form.inputNameZh, form.inputNameEn, form.inputInternalName, form.inputImageUrl)) {
-    cards.push(buildDialogCard('input', 'Input', {
-      title: firstText(form.inputImageNameZh, form.inputNameZh, form.inputImageName, form.inputNameEn, form.inputInternalName, 'Input'),
+    cards.push(buildDialogCard('input', '输入', {
+      title: firstText(form.inputImageNameZh, form.inputNameZh, form.inputImageName, form.inputNameEn, form.inputInternalName, '输入'),
       subtitle: firstText(form.inputNameEn, form.inputImageName, form.inputKind),
       meta: firstText(form.inputInternalName, form.inputKind),
       imageUrl: firstText(form.inputImageUrl),
@@ -519,8 +519,8 @@ const dialogPreviewCards = computed<DialogPreviewCard[]>(() => {
     }))
   }
   if (hasAnyValue(form.outputNameZh, form.outputNameEn, form.outputInternalName, form.outputImageUrl)) {
-    cards.push(buildDialogCard('output', 'Output', {
-      title: firstText(form.outputImageNameZh, form.outputNameZh, form.outputImageName, form.outputNameEn, form.outputInternalName, 'Output'),
+    cards.push(buildDialogCard('output', '输出', {
+      title: firstText(form.outputImageNameZh, form.outputNameZh, form.outputImageName, form.outputNameEn, form.outputInternalName, '输出'),
       subtitle: firstText(form.outputNameEn, form.outputImageName, form.outputKind),
       meta: firstText(form.outputInternalName, form.outputKind),
       imageUrl: firstText(form.outputImageUrl),
@@ -537,8 +537,8 @@ const dialogPreviewCards = computed<DialogPreviewCard[]>(() => {
     }))
   }
   if (hasAnyValue(form.variantImageUrl, form.variantImageAlt)) {
-    cards.push(buildDialogCard('variant', 'Variant', {
-      title: firstText(form.variantImageAlt, form.appearanceVariant, form.npcNameZh, form.npcNameEn, 'Variant'),
+    cards.push(buildDialogCard('variant', '变体', {
+      title: firstText(form.variantImageAlt, form.appearanceVariant, form.npcNameZh, form.npcNameEn, '变体'),
       subtitle: firstText(form.appearanceVariant, form.effectType),
       meta: firstText(form.variantImageUrl),
       imageUrl: firstText(form.variantImageUrl),
@@ -563,7 +563,7 @@ async function loadOverview() {
     datasetCounts.value = Object.fromEntries((payload.datasets || []).map((entry: DatasetCount) => [entry.dataset, Number(entry.count || 0)]))
     resetContextForm()
   } catch (error: any) {
-    showToast(error?.data?.message || error?.message || 'Failed to load shimmer overview', 'error')
+    showToast(error?.data?.message || error?.message || '微光概览加载失败', 'error')
   } finally {
     loadingOverview.value = false
   }
@@ -586,7 +586,7 @@ async function loadRows(page = pagination.value.page) {
       totalPages: Number(nextPagination.totalPages || 1),
     }
   } catch (error: any) {
-    showToast(error?.data?.message || error?.message || 'Failed to load shimmer rows', 'error')
+    showToast(error?.data?.message || error?.message || '微光记录加载失败', 'error')
   } finally {
     loadingRows.value = false
   }
@@ -618,10 +618,10 @@ async function saveContext() {
   savingContext.value = true
   try {
     await put('/admin/shimmer/context', { ...contextForm })
-    showToast('Shimmer context updated', 'success')
+    showToast('微光环境已更新', 'success')
     await loadOverview()
   } catch (error: any) {
-    showToast(error?.data?.message || error?.message || 'Failed to save shimmer context', 'error')
+    showToast(error?.data?.message || error?.message || '微光环境保存失败', 'error')
   } finally {
     savingContext.value = false
   }
@@ -656,14 +656,14 @@ async function openEditDialog(row: DatasetRow) {
     assignDisplayFields(payload)
     dialogVisible.value = true
   } catch (error: any) {
-    showToast(error?.data?.message || error?.message || 'Failed to load shimmer row detail', 'error')
+    showToast(error?.data?.message || error?.message || '微光记录详情加载失败', 'error')
   }
 }
 
 async function handleSubmit() {
   const missingField = currentConfig.value.fields.find((field) => field.required && !String(form[field.key] ?? '').trim())
   if (missingField) {
-    showToast(`${missingField.label} is required`, 'warning')
+    showToast(`${missingField.label} 为必填项`, 'warning')
     return
   }
   submitting.value = true
@@ -671,32 +671,32 @@ async function handleSubmit() {
     const payload = Object.fromEntries(currentConfig.value.fields.map((field) => [field.key, form[field.key]]))
     if (isEdit.value && editingId.value != null) {
       await put(`${currentConfig.value.endpoint}/${editingId.value}`, payload)
-      showToast('Shimmer row updated', 'success')
+      showToast('微光记录已更新', 'success')
     } else {
       await post(currentConfig.value.endpoint, payload)
-      showToast('Shimmer row created', 'success')
+      showToast('微光记录已创建', 'success')
     }
     dialogVisible.value = false
     await loadRows(pagination.value.page)
     await loadOverview()
   } catch (error: any) {
-    showToast(error?.data?.message || error?.message || 'Failed to save shimmer row', 'error')
+    showToast(error?.data?.message || error?.message || '微光记录保存失败', 'error')
   } finally {
     submitting.value = false
   }
 }
 
 async function handleDelete(row: DatasetRow) {
-  if (!window.confirm(`Delete row #${row.id}?`)) {
+  if (!window.confirm(`确定删除记录 #${row.id} 吗？`)) {
     return
   }
   try {
     await del(`${currentConfig.value.endpoint}/${row.id}`)
-    showToast('Shimmer row deleted', 'success')
+    showToast('微光记录已删除', 'success')
     await loadRows(Math.max(1, pagination.value.page))
     await loadOverview()
   } catch (error: any) {
-    showToast(error?.data?.message || error?.message || 'Failed to delete shimmer row', 'error')
+    showToast(error?.data?.message || error?.message || '微光记录删除失败', 'error')
   }
 }
 
@@ -721,7 +721,7 @@ function formatJsonField(key: string) {
   try {
     form[key] = JSON.stringify(JSON.parse(String(form[key] || '[]')), null, 2)
   } catch {
-    showToast('Invalid JSON', 'warning')
+    showToast('JSON 格式无效', 'warning')
   }
 }
 
@@ -764,7 +764,7 @@ function getEntityImage(row: DatasetRow, columnKey: string) {
 function getEntityLabel(row: DatasetRow, columnKey: string) {
   const role = getEntityColumnRole(columnKey)
   if (role === 'variant') {
-    return firstText(row.variantImageAlt, row.appearanceVariant, row.npcNameZh, row.npcNameEn, 'Variant')
+    return firstText(row.variantImageAlt, row.appearanceVariant, row.npcNameZh, row.npcNameEn, '变体')
   }
   if (role === 'npc') {
     return firstText(row.npcImageNameZh, row.npcNameZh, row.npcImageName, row.npcNameEn, row.npcInternalName, '--')

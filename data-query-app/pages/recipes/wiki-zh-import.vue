@@ -3,7 +3,7 @@
     <section class="workspace-shell workspace-shell--unified page-workspace">
       <div class="workspace-hero workspace-hero--unified import-hero">
         <div class="workspace-hero__copy">
-          <p class="eyebrow">WIKI_ZH RECIPE IMPORT</p>
+          <p class="eyebrow">中文配方导入 WIKI_ZH</p>
           <h1 class="page-head__title">中文配方导入</h1>
           <p class="page-head__subtitle">查看 `wiki_zh` 配方入库状态、provider 优先级、gap-only 覆盖和制作站补齐情况，作为当前 recipe canonical 的后台验收面。</p>
           <div class="workspace-summary-grid">
@@ -384,13 +384,13 @@ const placeholderItems = computed(() => Array.isArray(overview.value?.placeholde
 const createdStations = computed(() => Array.isArray(report.value?.createdStations) ? report.value.createdStations : [])
 
 const summaryCards = computed(() => [
-  { label: 'ACTIVE RECIPES', value: formatNumber(database.value.activeRecipeCount) },
-  { label: 'ACTIVE RESULTS', value: formatNumber(database.value.activeResultItemCount) },
-  { label: 'GAP-ONLY', value: formatNumber(database.value.gapOnlyActiveResultItemCount) },
-  { label: 'OVERLAP', value: formatNumber(database.value.suppressedOverlapRecipeCount) },
-  { label: 'PLACEHOLDERS', value: formatNumber(database.value.placeholderItemCount) },
-  { label: 'CONDITIONS', value: formatNumber(database.value.conditionRowCount) },
-  { label: 'UNRESOLVED', value: formatNumber(database.value.unresolvedIngredientRows + database.value.unresolvedStationRows) },
+  { label: '活跃配方', value: formatNumber(database.value.activeRecipeCount) },
+  { label: '活跃结果物', value: formatNumber(database.value.activeResultItemCount) },
+  { label: '仅补缺口', value: formatNumber(database.value.gapOnlyActiveResultItemCount) },
+  { label: '被覆盖', value: formatNumber(database.value.suppressedOverlapRecipeCount) },
+  { label: '占位物品', value: formatNumber(database.value.placeholderItemCount) },
+  { label: '条件行', value: formatNumber(database.value.conditionRowCount) },
+  { label: '未解析', value: formatNumber(database.value.unresolvedIngredientRows + database.value.unresolvedStationRows) },
 ])
 
 onMounted(() => {
