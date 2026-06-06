@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import type { ApiResponse, ArticleComment, UserArticle } from '~/types/public-api'
+import type { ApiResponse, ArticleComment, ContentReferenceResolveInput, NormalizedContentReference, UserArticle } from '~/types/public-api'
 import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
 import { unwrapApiResponse, usePublicApiFetch } from '~/composables/usePublicApi'
+import { contentReferenceKey, resolvePublicContentReferences } from '~/composables/usePublicContentReferences'
 import {
   createArticleComment,
   createArticleCommentReply,
@@ -35,6 +36,11 @@ const articleCommentReplyPagination = ref<Record<string, { total: number, page: 
 const articleCommentLikeMutatingIds = ref<Set<number>>(new Set())
 const articleCommentTargetHighlightId = ref<number | null>(null)
 const articleCommentTargetFocusing = ref(false)
+const articleContentRef = ref<HTMLElement | null>(null)
+const articleReferences = ref<Record<string, NormalizedContentReference>>({})
+const articleReferenceError = ref('')
+const articleReferenceLabels = ref<Record<string, string>>({})
+let articleReferenceLoadSequence = 0
 const recordedArticleHistoryIds = new Set<string>()
 
 const slug = computed(() => String(route.params.slug ?? '').trim())
@@ -136,7 +142,7 @@ const sanitizeArticleAttributes = (tagName: string, rawAttributes: string) => {
     ul: style,
     ol: style,
     li: style,
-    span: style,
+    span: ['style', 'class', 'data-tp-ref-type', 'data-tp-ref-id', 'data-tp-ref-label', 'data-tp-ref-image', 'data-tp-ref-display'],
     div: style,
     figure: style,
     figcaption: style,
@@ -150,12 +156,66 @@ const sanitizeArticleAttributes = (tagName: string, rawAttributes: string) => {
   const attributes: string[] = []
   const attributePattern = /([:@\w-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g
   let match: RegExpExecArray | null
+  const rawAttributeValues = new Map<string, string>()
+  let hasEventAttribute = false
+  let hasUnexpectedDataTp = false
   while ((match = attributePattern.exec(rawAttributes)) !== null) {
     const rawName = match[1]
     if (!rawName) continue
     const name = rawName.toLowerCase()
-    if (!allowed.includes(name)) continue
     const rawValue = match[2] ?? match[3] ?? match[4] ?? ''
+    rawAttributeValues.set(name, rawValue)
+    if (name.startsWith('on')) hasEventAttribute = true
+    if (name.startsWith('data-tp-') && !['data-tp-ref-type', 'data-tp-ref-id', 'data-tp-ref-label', 'data-tp-ref-image', 'data-tp-ref-display'].includes(name)) {
+      hasUnexpectedDataTp = true
+    }
+  }
+
+  const referenceClasses = String(rawAttributeValues.get('class') || '').trim().split(/\s+/).filter(Boolean)
+  const hasReferenceClass = tagName === 'span' && referenceClasses.includes('tp-content-ref')
+  const referenceType = String(rawAttributeValues.get('data-tp-ref-type') || '').trim().toLowerCase()
+  const referenceId = String(rawAttributeValues.get('data-tp-ref-id') || '').trim()
+  const referenceLabel = String(rawAttributeValues.get('data-tp-ref-label') || '').trim()
+  const referenceImage = rawAttributeValues.has('data-tp-ref-image')
+    ? sanitizeArticleUrl(String(rawAttributeValues.get('data-tp-ref-image') || ''), 'src')
+    : ''
+  const referenceDisplay = String(rawAttributeValues.get('data-tp-ref-display') || 'image').trim().toLowerCase()
+  const referenceStyle = rawAttributeValues.has('style') ? sanitizeArticleStyle(String(rawAttributeValues.get('style') || '')) : ''
+  const isAtomicReferenceValid = hasReferenceClass
+    && referenceClasses.length === 1
+    && ['item', 'npc'].includes(referenceType)
+    && /^\d{1,12}$/.test(referenceId)
+    && referenceLabel.length > 0
+    && referenceLabel.length <= 80
+    && (!rawAttributeValues.has('data-tp-ref-image') || Boolean(referenceImage))
+    && ['image', 'text'].includes(referenceDisplay)
+    && !hasEventAttribute
+    && !hasUnexpectedDataTp
+    && (!rawAttributeValues.has('style') || Boolean(referenceStyle))
+    && rawAttributeValues.has('data-tp-ref-type')
+    && rawAttributeValues.has('data-tp-ref-id')
+    && rawAttributeValues.has('data-tp-ref-label')
+
+  for (const [name, rawValue] of rawAttributeValues) {
+    if (!allowed.includes(name)) continue
+    if (tagName === 'span' && (name === 'class' || name.startsWith('data-tp-ref-'))) {
+      if (!isAtomicReferenceValid) continue
+      if (name === 'class') {
+        attributes.push('class="tp-content-ref"')
+        continue
+      }
+      const safeReferenceValue = name === 'data-tp-ref-type'
+        ? referenceType
+        : name === 'data-tp-ref-id'
+          ? referenceId
+          : name === 'data-tp-ref-image'
+            ? referenceImage
+            : name === 'data-tp-ref-display'
+              ? referenceDisplay
+            : referenceLabel
+      attributes.push(`${name}="${escapeArticleHtml(safeReferenceValue)}"`)
+      continue
+    }
     const safeValue = name === 'href'
       ? sanitizeArticleUrl(rawValue, 'href')
       : name === 'src'
@@ -173,6 +233,9 @@ const sanitizeArticleAttributes = (tagName: string, rawAttributes: string) => {
   }
   if (tagName === 'img' && attributes.some((attribute) => attribute.startsWith('src='))) {
     attributes.push('loading="lazy"', 'decoding="async"')
+  }
+  if (hasReferenceClass && isAtomicReferenceValid && !attributes.some(attribute => attribute.startsWith('data-tp-ref-display='))) {
+    attributes.push('data-tp-ref-display="image"')
   }
   return attributes.length ? ` ${attributes.join(' ')}` : ''
 }
@@ -262,6 +325,31 @@ const sanitizeArticleHtml = (value: string) => {
   const stripped = source
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/<\s*(script|style|template|iframe|object|embed|form|svg|math)\b[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+    .replace(/<span\b([^>]*)>([\s\S]*?)<\/span>/gi, (full, rawAttributes, content) => {
+      if (!/\btp-content-ref\b/i.test(rawAttributes)) return full
+      if (/\s(on\w+)\s*=/i.test(content) || /\sdata-tp-(?!ref-type|ref-id|ref-label)[\w-]*\s*=/i.test(content)) {
+        const strippedAttributes = String(rawAttributes)
+          .replace(/\sclass\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+)/gi, '')
+          .replace(/\sdata-tp-[\w-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+)/gi, '')
+        return `<span${strippedAttributes}>${content}</span>`
+      }
+      const safeAttributes = sanitizeArticleAttributes('span', rawAttributes)
+      if (!/\bclass="tp-content-ref"/.test(safeAttributes)) {
+        return full
+      }
+      const imageMatch = safeAttributes.match(/\sdata-tp-ref-image="([^"]+)"/)
+      const displayMatch = safeAttributes.match(/\sdata-tp-ref-display="([^"]+)"/)
+      const imageUrl = imageMatch?.[1] || ''
+      const displayMode = displayMatch?.[1] === 'text' ? 'text' : 'image'
+      const labelMatch = safeAttributes.match(/\sdata-tp-ref-label="([^"]+)"/)
+      const label = labelMatch?.[1] || ''
+      const inner = displayMode === 'text'
+        ? escapeArticleHtml(label)
+        : imageUrl
+        ? `<img src="${imageUrl}" alt="" loading="lazy" decoding="async" aria-hidden="true">`
+        : '<span class="tp-content-ref-fallback" aria-hidden="true">图</span>'
+      return `<span${safeAttributes}>${inner}</span>`
+    })
   const allowedTags = new Set(['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'code', 'pre', 'blockquote', 'ul', 'ol', 'li', 'h2', 'h3', 'h4', 'a', 'img', 'span', 'div', 'figure', 'figcaption'])
   const voidTags = new Set(['br', 'img'])
   let result = ''
@@ -331,6 +419,113 @@ const sanitizedArticleHtml = computed(() => {
     return `<h${level}${attributes} id="article-section-${index}">${content}</h${level}>`
   })
 })
+
+const collectArticleReferenceInputs = (): ContentReferenceResolveInput[] => {
+  const root = articleContentRef.value
+  if (!root || !import.meta.client) return []
+  const labels: Record<string, string> = {}
+  const refs = Array.from(root.querySelectorAll<HTMLElement>('.tp-content-ref'))
+    .map((node): ContentReferenceResolveInput | null => {
+      const type = node.dataset.tpRefType === 'npc' ? 'npc' : node.dataset.tpRefType === 'item' ? 'item' : ''
+      const id = String(node.dataset.tpRefId || '').trim()
+      const label = String(node.dataset.tpRefLabel || node.textContent || '').trim()
+      if (!type || !/^\d{1,12}$/.test(id)) return null
+      labels[`${type}:${id}`] = label
+      return { type, id, label }
+    })
+    .filter((ref): ref is ContentReferenceResolveInput => Boolean(ref))
+  articleReferenceLabels.value = labels
+  return refs
+}
+
+const enhanceArticleReferenceNodes = () => {
+  const root = articleContentRef.value
+  if (!root || !import.meta.client) return
+  for (const node of Array.from(root.querySelectorAll<HTMLElement>('.tp-content-ref'))) {
+    const key = contentReferenceKey(node.dataset.tpRefType, node.dataset.tpRefId)
+    const reference = key ? articleReferences.value[key] : null
+    const authorLabel = key ? articleReferenceLabels.value[key] || reference?.label || '' : ''
+    const label = authorLabel || reference?.label || String(node.dataset.tpRefLabel || node.textContent || '').trim()
+    const type = node.dataset.tpRefType === 'npc' ? 'npc' : node.dataset.tpRefType === 'item' ? 'item' : ''
+    const id = String(node.dataset.tpRefId || '').trim()
+    const imageUrl = reference?.imageUrl || sanitizeArticleUrl(String(node.dataset.tpRefImage || ''), 'src')
+    const detailPath = reference?.detailPath || (type === 'item' ? `/items/${id}` : type === 'npc' ? `/npcs/${id}` : '')
+    const displayMode = node.dataset.tpRefDisplay === 'text' ? 'text' : 'image'
+    node.replaceChildren()
+    if (displayMode === 'text') {
+      node.textContent = label
+    } else if (imageUrl) {
+      const img = document.createElement('img')
+      img.src = imageUrl
+      img.alt = ''
+      img.loading = 'lazy'
+      img.decoding = 'async'
+      img.setAttribute('aria-hidden', 'true')
+      node.replaceChildren(img)
+    } else {
+      const fallback = document.createElement('span')
+      fallback.className = 'tp-content-ref-fallback'
+      fallback.textContent = '图'
+      fallback.setAttribute('aria-hidden', 'true')
+      node.replaceChildren(fallback)
+    }
+    node.dataset.tpRefDisplay = displayMode
+    node.setAttribute('role', 'link')
+    node.setAttribute('tabindex', '0')
+    if (label) {
+      node.setAttribute('title', label)
+      node.setAttribute('aria-label', `${label}，打开详情`)
+    } else {
+      node.removeAttribute('title')
+      node.setAttribute('aria-label', '打开引用详情')
+    }
+    node.dataset.tpHref = detailPath
+    node.dataset.tpHasImage = imageUrl ? 'true' : 'false'
+    node.dataset.tpResolved = reference?.available === false ? 'missing' : reference ? 'ready' : 'loading'
+    node.onclick = () => {
+      if (detailPath) navigateTo(detailPath)
+    }
+    node.onkeydown = (event: KeyboardEvent) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return
+      event.preventDefault()
+      if (detailPath) navigateTo(detailPath)
+    }
+  }
+}
+
+const loadArticleReferences = async () => {
+  if (!import.meta.client) return
+  const sequence = ++articleReferenceLoadSequence
+  const articleId = article.value?.id == null ? '' : String(article.value.id)
+  await nextTick()
+  const refs = collectArticleReferenceInputs()
+  articleReferenceError.value = ''
+  enhanceArticleReferenceNodes()
+  if (!refs.length) {
+    if (sequence !== articleReferenceLoadSequence || articleId !== (article.value?.id == null ? '' : String(article.value.id))) return
+    articleReferences.value = {}
+    enhanceArticleReferenceNodes()
+    return
+  }
+  try {
+    const resolved = await resolvePublicContentReferences(refs)
+    if (sequence !== articleReferenceLoadSequence || articleId !== (article.value?.id == null ? '' : String(article.value.id))) return
+    const authorLabels = articleReferenceLabels.value
+    articleReferences.value = Object.fromEntries(Object.entries(resolved).map(([key, reference]) => [
+      key,
+      {
+        ...reference,
+        label: authorLabels[key] || reference.label,
+      },
+    ]))
+  } catch {
+    if (sequence !== articleReferenceLoadSequence || articleId !== (article.value?.id == null ? '' : String(article.value.id))) return
+    articleReferences.value = {}
+    articleReferenceError.value = '正文引用暂时无法加载。'
+  }
+  await nextTick()
+  enhanceArticleReferenceNodes()
+}
 
 const formatArticleDate = (raw?: string | null) => {
   if (!raw) return '发布时间未记录'
@@ -762,6 +957,12 @@ watch(() => article.value?.id, () => {
   })
 }, { immediate: true })
 
+watch([sanitizedArticleHtml, () => article.value?.id], async () => {
+  if (!import.meta.client || !articleClientReady.value) return
+  await nextTick()
+  void loadArticleReferences()
+})
+
 watch(() => [route.query.commentId, route.query.replyId, route.hash], () => {
   if (route.hash === '#article-comments' || articleCommentTargetId.value) void focusArticleCommentTarget()
 })
@@ -770,6 +971,7 @@ onMounted(() => {
   articleClientReady.value = true
   void loadArticleFavoriteStatus()
   void recordArticleHistoryOnce()
+  void loadArticleReferences()
   if (route.hash === '#article-comments' || articleCommentTargetId.value) void focusArticleCommentTarget()
 })
 </script>
@@ -848,7 +1050,8 @@ onMounted(() => {
             </div>
           </header>
           <h2 class="article-section-title">正文</h2>
-          <div class="article-content-text" v-html="sanitizedArticleHtml"></div>
+          <div ref="articleContentRef" class="article-content-text" v-html="sanitizedArticleHtml"></div>
+          <p v-if="articleReferenceError" class="article-reference-error">{{ articleReferenceError }}</p>
 
           <section id="article-comments" class="article-comments" aria-label="评论区" data-comment-endpoint="/comments">
             <header class="article-comments-head">
@@ -1364,6 +1567,80 @@ onMounted(() => {
   font-weight: 800;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.article-content-text :deep(.tp-content-ref) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875em;
+  height: 1.875em;
+  padding: 2px;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--panel) 80%, rgba(255, 215, 101, .16));
+  color: var(--accent-gold);
+  line-height: 1;
+  text-decoration: none;
+  vertical-align: -7px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.22);
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.article-content-text :deep(.tp-content-ref[data-tp-ref-display="text"]) {
+  justify-content: flex-start;
+  width: auto;
+  height: auto;
+  max-width: min(100%, 22em);
+  padding: 0 .42em;
+  font-weight: 850;
+  line-height: 1.45;
+  vertical-align: .04em;
+}
+
+.article-content-text :deep(.tp-content-ref img) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  flex: 0 0 100%;
+  margin: 0;
+  border: 0;
+  object-fit: contain;
+  border-radius: 3px;
+}
+
+.article-content-text :deep(.tp-content-ref-fallback) {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--accent-gold);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.article-content-text :deep(.tp-content-ref:hover),
+.article-content-text :deep(.tp-content-ref:focus-visible) {
+  outline: 2px solid color-mix(in srgb, var(--accent-gold) 52%, transparent);
+  outline-offset: 2px;
+  border-color: color-mix(in srgb, var(--accent-gold) 78%, var(--index-line));
+  box-shadow: 0 4px 12px rgba(0,0,0,.28);
+  transform: translateY(-1px);
+}
+
+.article-content-text :deep(.tp-content-ref[data-tp-resolved="missing"]) {
+  border-color: color-mix(in srgb, var(--danger) 46%, var(--index-line));
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.article-reference-error {
+  max-width: 76ch;
+  margin: 12px 0 0;
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .article-content-text :deep(ul),

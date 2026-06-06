@@ -2,7 +2,9 @@ import assert from 'node:assert/strict'
 import {
   USER_ARTICLE_EDITOR_PLACEHOLDER,
   buildUserArticleInlineStyle,
+  buildUserArticleReferenceHtml,
   buildUserArticleTypingSpanHtml,
+  isSafeUserArticleReferenceElement,
   sanitizeUserArticleEditorColor,
   setUserArticleBlockTag,
   setUserArticleOrderedList,
@@ -33,5 +35,43 @@ assert.equal(setUserArticleUnorderedList('<p>项目</p>'), '<ul><li>项目</li><
 
 assert.equal(sanitizeUserArticleEditorColor('#ABCDEF'), '#abcdef')
 assert.equal(sanitizeUserArticleEditorColor('red', '#f5e6b8'), '#f5e6b8')
+
+const referenceHtml = buildUserArticleReferenceHtml({
+  type: 'item',
+  id: 77,
+  label: '泰拉刃',
+  imageUrl: '/preview-assets/terrapedia-images/items/terra-blade.png',
+})
+assertIncludes(referenceHtml, 'class="tp-content-ref"', 'reference span must include stable class')
+assertIncludes(referenceHtml, 'data-tp-ref-type="item"', 'reference span must include type')
+assertIncludes(referenceHtml, 'data-tp-ref-id="77"', 'reference span must include id')
+assertIncludes(referenceHtml, 'data-tp-ref-label="泰拉刃"', 'reference span must include label')
+assertIncludes(referenceHtml, 'data-tp-ref-image="/preview-assets/terrapedia-images/items/terra-blade.png"', 'reference span must persist safe preview image')
+assertIncludes(referenceHtml, 'data-tp-ref-display="image"', 'reference span must default to image display mode')
+assertIncludes(referenceHtml, 'draggable="true"', 'reference span must be draggable as an editor reference atom')
+assertIncludes(referenceHtml, '<img', 'image-mode reference must render an inline image by default')
+assertIncludes(referenceHtml, 'src="/preview-assets/terrapedia-images/items/terra-blade.png"', 'image-mode reference must use the safe preview image')
+assert.ok(!referenceHtml.includes('>泰拉刃</span>'), `image-mode reference must not render label text by default\nactual: ${referenceHtml}`)
+
+const referenceTextHtml = buildUserArticleReferenceHtml({
+  type: 'item',
+  id: 77,
+  label: '泰拉刃',
+  imageUrl: '/preview-assets/terrapedia-images/items/terra-blade.png',
+  displayMode: 'text',
+})
+assertIncludes(referenceTextHtml, 'data-tp-ref-display="text"', 'text-mode reference must persist display mode')
+assertIncludes(referenceTextHtml, '>泰拉刃</span>', 'text-mode reference must render the label')
+assert.ok(!referenceTextHtml.includes('<img'), `text-mode reference must not render inline image\nactual: ${referenceTextHtml}`)
+
+assert.equal(isSafeUserArticleReferenceElement({ type: 'npc', id: '1', label: '向导' }), true)
+assert.equal(isSafeUserArticleReferenceElement({ type: 'npc', id: '1', label: '向导', imageUrl: '/preview-assets/terrapedia-images/npcs/guide.gif' }), true)
+assert.equal(isSafeUserArticleReferenceElement({ type: 'npc', id: '1', label: '向导', displayMode: 'text' }), true)
+assert.equal(isSafeUserArticleReferenceElement({ type: 'npc', id: '1', label: '向导', displayMode: 'card' }), false)
+assert.equal(isSafeUserArticleReferenceElement({ type: 'npc', id: '1', label: '向导', imageUrl: 'javascript:alert(1)' }), false)
+assert.equal(isSafeUserArticleReferenceElement({ type: 'boss', id: '1', label: '克苏鲁之眼' }), false)
+assert.equal(isSafeUserArticleReferenceElement({ type: 'item', id: 'bad id', label: '坏引用' }), false)
+assert.equal(isSafeUserArticleReferenceElement({ type: 'item', id: '77', label: '' }), false)
+assert.equal(isSafeUserArticleReferenceElement({ type: 'item', id: '77', label: 'x'.repeat(81) }), false)
 
 console.log('user article editor DOM checks passed')

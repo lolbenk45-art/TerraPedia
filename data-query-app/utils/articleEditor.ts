@@ -22,7 +22,7 @@ const allowedTags = new Set([
 
 const allowedAttrs: Record<string, Set<string>> = {
   a: new Set(['href', 'target', 'rel']),
-  img: new Set(['src', 'alt', 'loading']),
+  img: new Set(['src', 'alt', 'loading', 'decoding', 'aria-hidden']),
   p: new Set(['style']),
   h1: new Set(['style']),
   h2: new Set(['style']),
@@ -30,7 +30,7 @@ const allowedAttrs: Record<string, Set<string>> = {
   h4: new Set(['style']),
   h5: new Set(['style']),
   h6: new Set(['style']),
-  span: new Set(['style']),
+  span: new Set(['style', 'class', 'aria-hidden', 'data-tp-ref-type', 'data-tp-ref-id', 'data-tp-ref-label', 'data-tp-ref-image', 'data-tp-ref-display']),
   div: new Set(['style']),
   pre: new Set(['style']),
   code: new Set(['style']),
@@ -39,6 +39,14 @@ const allowedAttrs: Record<string, Set<string>> = {
   li: new Set(['style']),
   blockquote: new Set(['style']),
 }
+
+const contentReferenceDataAttrs = new Set([
+  'data-tp-ref-type',
+  'data-tp-ref-id',
+  'data-tp-ref-label',
+  'data-tp-ref-image',
+  'data-tp-ref-display',
+])
 
 export const escapeHtml = (value: string) => value
   .replace(/&/g, '&amp;')
@@ -62,7 +70,19 @@ const hasDomParser = () => typeof DOMParser !== 'undefined'
 
 const isSafeUrl = (value: string) => {
   const next = value.trim().replace(/&amp;/g, '&')
-  return /^https?:\/\//i.test(next) || /^data:image\//i.test(next) || /^blob:/i.test(next) || next.startsWith('/terrapedia-images/')
+  return /^https?:\/\//i.test(next)
+    || /^data:image\/(?:png|jpe?g|webp|gif);base64,/i.test(next)
+    || /^blob:/i.test(next)
+    || next.startsWith('/terrapedia-images/')
+    || next.startsWith('/preview-assets/terrapedia-images/')
+}
+
+const isSafeContentReferenceImageUrl = (value: string) => {
+  const next = value.trim().replace(/&amp;/g, '&')
+  return /^https?:\/\//i.test(next)
+    || /^data:image\/(?:png|jpe?g|webp|gif);base64,/i.test(next)
+    || next.startsWith('/terrapedia-images/')
+    || next.startsWith('/preview-assets/terrapedia-images/')
 }
 
 const sanitizeInlineStyle = (styleText: string) => {
@@ -122,6 +142,108 @@ const createRichRoot = (source: string) => {
   return documentNode.body.firstElementChild as HTMLElement | null
 }
 
+const normalizeReferenceDisplayMode = (value: string | null) => {
+  const next = (value || 'image').trim().toLowerCase()
+  return next === 'text' ? 'text' : 'image'
+}
+
+const stripContentReferenceAttributes = (element: Element) => {
+  element.removeAttribute('class')
+  for (const attribute of Array.from(element.attributes)) {
+    const attrName = attribute.name.toLowerCase()
+    if (attrName.startsWith('data-tp-ref-')) {
+      element.removeAttribute(attribute.name)
+    }
+  }
+}
+
+const normalizeContentReferenceElement = (element: Element) => {
+  const classes = (element.getAttribute('class') || '').split(/\s+/).filter(Boolean)
+  if (!classes.includes('tp-content-ref')) return false
+
+  const type = (element.getAttribute('data-tp-ref-type') || '').trim().toLowerCase()
+  const id = (element.getAttribute('data-tp-ref-id') || '').trim()
+  const label = (element.getAttribute('data-tp-ref-label') || '').replace(/\s+/g, ' ').trim()
+  const rawImage = (element.getAttribute('data-tp-ref-image') || '').trim()
+  const image = rawImage && isSafeContentReferenceImageUrl(rawImage) ? rawImage.replace(/&amp;/g, '&') : ''
+  const displayMode = normalizeReferenceDisplayMode(element.getAttribute('data-tp-ref-display'))
+  const styleValue = element.getAttribute('style')
+  const style = styleValue ? sanitizeInlineStyle(styleValue) : ''
+  const hasUnexpectedDataAttr = Array.from(element.attributes).some(attribute => {
+    const attrName = attribute.name.toLowerCase()
+    return attrName.startsWith('data-tp-') && !contentReferenceDataAttrs.has(attrName)
+  })
+  const isValid = ['item', 'npc'].includes(type)
+    && /^\d{1,12}$/.test(id)
+    && label.length > 0
+    && label.length <= 80
+    && (!rawImage || Boolean(image))
+    && !hasUnexpectedDataAttr
+
+  if (!isValid) {
+    stripContentReferenceAttributes(element)
+    return false
+  }
+
+  element.setAttribute('class', 'tp-content-ref')
+  element.setAttribute('data-tp-ref-type', type)
+  element.setAttribute('data-tp-ref-id', id)
+  element.setAttribute('data-tp-ref-label', label)
+  element.setAttribute('data-tp-ref-display', displayMode)
+  if (image) {
+    element.setAttribute('data-tp-ref-image', image)
+  } else {
+    element.removeAttribute('data-tp-ref-image')
+  }
+  if (style) {
+    element.setAttribute('style', style)
+  } else {
+    element.removeAttribute('style')
+  }
+  element.removeAttribute('aria-hidden')
+
+  while (element.firstChild) {
+    element.removeChild(element.firstChild)
+  }
+
+  if (displayMode === 'text') {
+    element.appendChild(element.ownerDocument.createTextNode(label))
+    return true
+  }
+
+  if (image) {
+    const imageNode = element.ownerDocument.createElement('img')
+    imageNode.setAttribute('src', image)
+    imageNode.setAttribute('alt', '')
+    imageNode.setAttribute('loading', 'lazy')
+    imageNode.setAttribute('decoding', 'async')
+    imageNode.setAttribute('aria-hidden', 'true')
+    element.appendChild(imageNode)
+    return true
+  }
+
+  const fallback = element.ownerDocument.createElement('span')
+  fallback.setAttribute('class', 'tp-content-ref-fallback')
+  fallback.setAttribute('aria-hidden', 'true')
+  fallback.textContent = '图'
+  element.appendChild(fallback)
+  return true
+}
+
+const normalizeSpanClass = (element: Element) => {
+  const classes = (element.getAttribute('class') || '').split(/\s+/).filter(Boolean)
+  if (!classes.length) return
+  if (classes.includes('tp-content-ref')) {
+    normalizeContentReferenceElement(element)
+    return
+  }
+  if (classes.includes('tp-content-ref-fallback')) {
+    element.setAttribute('class', 'tp-content-ref-fallback')
+    return
+  }
+  element.removeAttribute('class')
+}
+
 const sanitizeElement = (element: Element) => {
   const tagName = element.tagName.toLowerCase()
   if (!allowedTags.has(tagName)) {
@@ -176,8 +298,23 @@ const sanitizeElement = (element: Element) => {
 
   if (tagName === 'img') {
     element.setAttribute('loading', 'lazy')
+    element.setAttribute('decoding', 'async')
     if (!element.getAttribute('alt')) {
       element.setAttribute('alt', '')
+    }
+  }
+
+  if (tagName === 'span') {
+    normalizeSpanClass(element)
+    const isReference = (element.getAttribute('class') || '').split(/\s+/).includes('tp-content-ref')
+    const isReferenceFallback = (element.getAttribute('class') || '').split(/\s+/).includes('tp-content-ref-fallback')
+    if (!isReference && !isReferenceFallback) {
+      for (const attribute of Array.from(element.attributes)) {
+        if (attribute.name.toLowerCase().startsWith('data-tp-ref-')) {
+          element.removeAttribute(attribute.name)
+        }
+      }
+      element.removeAttribute('aria-hidden')
     }
   }
 }

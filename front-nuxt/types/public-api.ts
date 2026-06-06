@@ -90,6 +90,50 @@ export type PublicItemSuggestion = {
   rarity?: string | null
 }
 
+export type PublicContentReferenceType = 'item' | 'npc' | 'boss' | 'biome' | 'buff' | 'projectile' | 'armor_set'
+
+export type PublicContentReference = {
+  type?: PublicContentReferenceType | string | null
+  id?: string | number | null
+  label?: string | null
+  name?: string | null
+  internalName?: string | null
+  imageUrl?: string | null
+  image_url?: string | null
+  categoryName?: string | null
+  category_name?: string | null
+  summary?: string | null
+  detailPath?: string | null
+  detail_path?: string | null
+  available?: boolean | null
+}
+
+export type ContentReferenceSearchQuery = {
+  q?: string
+  types?: Array<'item' | 'npc'> | string
+  limit?: number
+}
+
+export type ContentReferenceResolveInput = {
+  type: 'item' | 'npc'
+  id: string | number
+  label?: string | null
+}
+
+export type NormalizedContentReference = {
+  key: string
+  type: 'item' | 'npc'
+  id: string
+  label: string
+  name: string
+  internalName: string
+  imageUrl: string
+  categoryName: string
+  summary: string
+  detailPath: string
+  available: boolean
+}
+
 export type PublicItemDetail = PublicItemListItem & {
   gameModelId?: number | string | null
   isStackable?: boolean | number | string | null

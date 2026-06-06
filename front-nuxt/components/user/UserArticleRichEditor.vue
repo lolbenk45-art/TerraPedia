@@ -3,16 +3,23 @@ import {
   USER_ARTICLE_EDITOR_PLACEHOLDER,
   buildUserArticleLinkHtml,
   buildUserArticleInlineStyle,
+  buildUserArticleReferenceHtml,
   buildUserArticleTypingSpanHtml,
+  isSafeUserArticleReferenceElement,
   isSafeUserArticleLinkHref,
+  normalizeUserArticleReferenceDisplayMode,
+  normalizeUserArticleReferenceImage,
   normalizeUserArticleLinkHref,
   sanitizeUserArticleEditorColor,
+  sanitizeUserArticleEditorLoadedHtml,
   sanitizeUserArticlePastedHtml,
   setUserArticleBlockTag,
   setUserArticleOrderedList,
   setUserArticleUnorderedList,
   unwrapUserArticleTypingPlaceholders,
 } from '~/lib/userArticleEditorDom.mjs'
+import type { NormalizedContentReference } from '~/types/public-api'
+import { searchPublicContentReferences } from '~/composables/usePublicContentReferences'
 
 const props = withDefaults(defineProps<{
   modelValue: string
@@ -39,6 +46,13 @@ const colorMenuOpen = ref(false)
 const linkMenuOpen = ref(false)
 const linkUrlValue = ref('')
 const linkTitleValue = ref('')
+const referenceMenuOpen = ref(false)
+const referenceSearchText = ref('')
+const referenceSearchType = ref<'item' | 'npc' | 'all'>('all')
+const referenceDisplayMode = ref<'image' | 'text'>('image')
+const referenceSearchLoading = ref(false)
+const referenceSearchError = ref('')
+const referenceSearchResults = ref<NormalizedContentReference[]>([])
 const selectedImage = ref<HTMLImageElement | null>(null)
 const selectedImageWidth = ref('100')
 const selectedImageAlign = ref('center')
@@ -64,6 +78,10 @@ const textColorPresets = [
   { value: '#c4b5fd', label: '紫色' },
 ]
 const BLOCK_SELECTOR = 'p,h2,h3,h4,blockquote,li'
+let referenceSearchTimer: ReturnType<typeof setTimeout> | null = null
+let referenceSearchSequence = 0
+let draggedReferenceElement: HTMLElement | null = null
+const REFERENCE_DRAG_MIME = 'application/x-terrapedia-reference'
 
 const allowedEditorTags = new Set([
   'p', 'br', 'hr', 'h2', 'h3', 'h4',
@@ -79,7 +97,7 @@ const allowedEditorAttributes: Record<string, Set<string>> = {
   h2: new Set(['style']),
   h3: new Set(['style']),
   h4: new Set(['style']),
-  span: new Set(['style']),
+  span: new Set(['style', 'class', 'data-tp-ref-type', 'data-tp-ref-id', 'data-tp-ref-label', 'data-tp-ref-image', 'data-tp-ref-display']),
   div: new Set(['style']),
   pre: new Set(['style']),
   code: new Set(['style']),
@@ -150,6 +168,64 @@ const sanitizeEditorStyle = (styleText: string) => {
   return allowed.join(';')
 }
 
+const isAtomicEditorReferenceSpan = (element: Element) => {
+  if (element.tagName.toLowerCase() !== 'span') return false
+  const classValue = element.getAttribute('class') || ''
+  const classes = classValue.trim().split(/\s+/).filter(Boolean)
+  if (classes.length !== 1 || classes[0] !== 'tp-content-ref') return false
+  for (const attribute of Array.from(element.attributes)) {
+    const name = attribute.name.toLowerCase()
+    if (name.startsWith('data-tp-') && !['data-tp-ref-type', 'data-tp-ref-id', 'data-tp-ref-label', 'data-tp-ref-image', 'data-tp-ref-display'].includes(name)) return false
+  }
+  const styleValue = element.getAttribute('style')
+  if (styleValue != null && !sanitizeEditorStyle(styleValue)) return false
+  return isSafeUserArticleReferenceElement({
+    type: element.getAttribute('data-tp-ref-type'),
+    id: element.getAttribute('data-tp-ref-id'),
+    label: element.getAttribute('data-tp-ref-label'),
+    imageUrl: element.getAttribute('data-tp-ref-image'),
+    displayMode: element.getAttribute('data-tp-ref-display'),
+  })
+}
+
+const renderEditorReferenceElement = (element: Element) => {
+  const label = String(element.getAttribute('data-tp-ref-label') || '').trim()
+  const imageUrl = normalizeUserArticleReferenceImage(element.getAttribute('data-tp-ref-image'))
+  const displayMode = normalizeUserArticleReferenceDisplayMode(element.getAttribute('data-tp-ref-display')) || 'image'
+  element.setAttribute('data-tp-ref-display', displayMode)
+  element.setAttribute('contenteditable', 'false')
+  element.setAttribute('draggable', 'true')
+  element.replaceChildren()
+  if (displayMode === 'text') {
+    element.textContent = label
+    return
+  }
+  if (imageUrl) {
+    const img = document.createElement('img')
+    img.src = imageUrl
+    img.alt = ''
+    img.loading = 'lazy'
+    img.decoding = 'async'
+    img.setAttribute('aria-hidden', 'true')
+    element.replaceChildren(img)
+    return
+  }
+  const fallback = document.createElement('span')
+  fallback.className = 'tp-content-ref-fallback'
+  fallback.textContent = '图'
+  fallback.setAttribute('aria-hidden', 'true')
+  element.replaceChildren(fallback)
+}
+
+const stripEditorReferenceAttributes = (element: Element) => {
+  const classes = (element.getAttribute('class') || '').split(/\s+/).filter(value => value && value !== 'tp-content-ref')
+  if (classes.length) element.setAttribute('class', classes.join(' '))
+  else element.removeAttribute('class')
+  for (const attribute of Array.from(element.attributes)) {
+    if (attribute.name.toLowerCase().startsWith('data-tp-')) element.removeAttribute(attribute.name)
+  }
+}
+
 const sanitizeEditorElement = (element: Element) => {
   const tagName = element.tagName.toLowerCase()
   if (!allowedEditorTags.has(tagName)) {
@@ -171,6 +247,14 @@ const sanitizeEditorElement = (element: Element) => {
     const tagAllowedAttributes = allowedEditorAttributes[tagName]
     if (!tagAllowedAttributes?.has(attrName)) {
       element.removeAttribute(attribute.name)
+      continue
+    }
+
+    if (tagName === 'span' && attrName === 'class') {
+      continue
+    }
+
+    if (tagName === 'span' && attrName.startsWith('data-tp-ref-')) {
       continue
     }
 
@@ -199,6 +283,27 @@ const sanitizeEditorElement = (element: Element) => {
     }
   }
 
+  if (tagName === 'span') {
+    if ((element.getAttribute('class') || '').split(/\s+/).includes('tp-content-ref')) {
+      if (isAtomicEditorReferenceSpan(element)) {
+        element.setAttribute('class', 'tp-content-ref')
+        element.setAttribute('data-tp-ref-type', String(element.getAttribute('data-tp-ref-type') || '').trim().toLowerCase())
+    element.setAttribute('data-tp-ref-id', String(element.getAttribute('data-tp-ref-id') || '').trim())
+        element.setAttribute('data-tp-ref-label', String(element.getAttribute('data-tp-ref-label') || '').trim())
+        const imageUrl = normalizeUserArticleReferenceImage(element.getAttribute('data-tp-ref-image'))
+        if (imageUrl) element.setAttribute('data-tp-ref-image', imageUrl)
+        else element.removeAttribute('data-tp-ref-image')
+        const displayMode = normalizeUserArticleReferenceDisplayMode(element.getAttribute('data-tp-ref-display')) || 'image'
+        element.setAttribute('data-tp-ref-display', displayMode)
+        renderEditorReferenceElement(element)
+      } else {
+        stripEditorReferenceAttributes(element)
+      }
+    } else {
+      stripEditorReferenceAttributes(element)
+    }
+  }
+
   if (tagName === 'img') {
     if (!element.getAttribute('src')) {
       element.remove()
@@ -207,6 +312,11 @@ const sanitizeEditorElement = (element: Element) => {
     element.setAttribute('loading', 'lazy')
     element.setAttribute('decoding', 'async')
     if (!element.getAttribute('alt')) element.setAttribute('alt', '')
+    if (element.closest('.tp-content-ref')) {
+      element.removeAttribute('style')
+      element.setAttribute('aria-hidden', 'true')
+      return
+    }
     if (!element.getAttribute('style')) {
       ;(element as HTMLElement).style.display = 'block'
       ;(element as HTMLElement).style.maxWidth = '100%'
@@ -246,7 +356,7 @@ const syncEditorFromModel = async () => {
   await nextTick()
   const editor = editorRef.value
   if (!editor) return
-  const nextHtml = props.modelValue || '<p><br></p>'
+  const nextHtml = sanitizeUserArticleEditorLoadedHtml(props.modelValue || '<p><br></p>') || '<p><br></p>'
   if (editor.innerHTML === nextHtml || sanitizeEditorHtml(editor.innerHTML) === sanitizeEditorHtml(nextHtml)) return
   syncingFromModel.value = true
   editor.innerHTML = nextHtml
@@ -276,6 +386,21 @@ const setCaretAtEnd = (element: HTMLElement) => {
   const range = document.createRange()
   range.selectNodeContents(element)
   range.collapse(false)
+  const selection = window.getSelection()
+  if (!selection) return
+  selection.removeAllRanges()
+  selection.addRange(range)
+  savedRange.value = range.cloneRange()
+}
+
+const setCaretAfterNode = (node: Node) => {
+  const range = document.createRange()
+  if (node.nodeType === Node.TEXT_NODE) {
+    range.setStart(node, node.textContent?.length || 0)
+  } else {
+    range.setStartAfter(node)
+  }
+  range.collapse(true)
   const selection = window.getSelection()
   if (!selection) return
   selection.removeAllRanges()
@@ -412,6 +537,35 @@ const setInlineStyle = (element: HTMLElement) => {
   element.style.color = sanitizeUserArticleEditorColor(textColorValue.value)
 }
 
+const applyInlineStyleToReference = (element: HTMLElement) => {
+  setInlineStyle(element)
+  if (element.dataset.tpRefDisplay !== 'text') {
+    element.style.lineHeight = '1'
+  }
+}
+
+const collectSelectedReferences = (range: Range) => {
+  const editor = editorRef.value
+  if (!editor) return [] as HTMLElement[]
+  const references = new Set<HTMLElement>()
+  for (const reference of Array.from(editor.querySelectorAll<HTMLElement>('.tp-content-ref'))) {
+    try {
+      if (range.intersectsNode(reference)) references.add(reference)
+    } catch {
+      continue
+    }
+  }
+  const startReference = (range.startContainer.nodeType === Node.ELEMENT_NODE
+    ? range.startContainer as Element
+    : range.startContainer.parentElement)?.closest('.tp-content-ref') as HTMLElement | null
+  const endReference = (range.endContainer.nodeType === Node.ELEMENT_NODE
+    ? range.endContainer as Element
+    : range.endContainer.parentElement)?.closest('.tp-content-ref') as HTMLElement | null
+  if (startReference && editor.contains(startReference)) references.add(startReference)
+  if (endReference && editor.contains(endReference)) references.add(endReference)
+  return Array.from(references)
+}
+
 const applyInlineStyleToSelection = () => {
   if (props.disabled) return
   const editor = editorRef.value
@@ -419,6 +573,7 @@ const applyInlineStyleToSelection = () => {
   editor.focus()
   const range = ensureEditorRange()
   if (!range || !isEditorRange(range)) return
+  const selectedReferences = collectSelectedReferences(range)
 
   const styleText = buildUserArticleInlineStyle({
     fontSizePx: fontSizePx.value,
@@ -441,6 +596,7 @@ const applyInlineStyleToSelection = () => {
     const placeholder = document.createTextNode(USER_ARTICLE_EDITOR_PLACEHOLDER)
     span.appendChild(placeholder)
     range.insertNode(span)
+    for (const reference of selectedReferences) applyInlineStyleToReference(reference)
     setCaretInTypingNode(placeholder)
     saveSelection()
     void buildUserArticleTypingSpanHtml(styleText)
@@ -452,6 +608,12 @@ const applyInlineStyleToSelection = () => {
   const contents = range.extractContents()
   span.appendChild(contents)
   range.insertNode(span)
+  for (const reference of Array.from(span.querySelectorAll<HTMLElement>('.tp-content-ref'))) {
+    applyInlineStyleToReference(reference)
+  }
+  for (const reference of selectedReferences) {
+    if (editor.contains(reference)) applyInlineStyleToReference(reference)
+  }
   setCaretAtEnd(span)
   saveSelection()
 }
@@ -554,10 +716,101 @@ const openLinkMenu = () => {
   linkTitleValue.value = link?.textContent?.trim() || getSelectedEditorText()
   linkMenuOpen.value = true
   colorMenuOpen.value = false
+  referenceMenuOpen.value = false
 }
 
 const closeLinkMenu = () => {
   linkMenuOpen.value = false
+}
+
+const openReferenceMenu = () => {
+  if (props.disabled) return
+  saveSelection()
+  referenceMenuOpen.value = true
+  colorMenuOpen.value = false
+  linkMenuOpen.value = false
+}
+
+const closeReferenceMenu = () => {
+  referenceMenuOpen.value = false
+  referenceSearchError.value = ''
+}
+
+const clearReferenceSearchTimer = () => {
+  if (!referenceSearchTimer) return
+  clearTimeout(referenceSearchTimer)
+  referenceSearchTimer = null
+}
+
+const runReferenceSearch = async () => {
+  const q = referenceSearchText.value.trim()
+  const sequence = ++referenceSearchSequence
+  if (!q) {
+    referenceSearchResults.value = []
+    referenceSearchLoading.value = false
+    referenceSearchError.value = ''
+    return
+  }
+  referenceSearchLoading.value = true
+  referenceSearchError.value = ''
+  try {
+    const results = await searchPublicContentReferences({
+      q,
+      types: referenceSearchType.value === 'all' ? 'item,npc' : referenceSearchType.value,
+      limit: 20,
+    })
+    if (sequence === referenceSearchSequence) referenceSearchResults.value = results
+  } catch {
+    if (sequence === referenceSearchSequence) {
+      referenceSearchError.value = '引用搜索失败，请稍后重试。'
+      referenceSearchResults.value = []
+    }
+  } finally {
+    if (sequence === referenceSearchSequence) referenceSearchLoading.value = false
+  }
+}
+
+const scheduleReferenceSearch = () => {
+  clearReferenceSearchTimer()
+  referenceSearchTimer = setTimeout(() => {
+    void runReferenceSearch()
+  }, 180)
+}
+
+watch([referenceSearchText, referenceSearchType], scheduleReferenceSearch)
+
+const insertContentReference = (reference: NormalizedContentReference) => {
+  if (props.disabled) return
+  const editor = editorRef.value
+  if (!editor) return
+  editor.focus()
+  restoreSelection()
+  const range = ensureEditorRange()
+  if (!range || !isEditorRange(range)) return
+  const html = buildUserArticleReferenceHtml({
+    type: reference.type,
+    id: reference.id,
+    label: reference.label,
+    imageUrl: reference.imageUrl,
+    displayMode: referenceDisplayMode.value,
+  })
+  if (!html) {
+    emit('error', '引用插入失败。')
+    return
+  }
+  const template = document.createElement('template')
+  template.innerHTML = html
+  const node = template.content.firstElementChild
+  if (!node) return
+  node.setAttribute('contenteditable', 'false')
+  node.setAttribute('draggable', 'true')
+  const trailingSpace = document.createTextNode('\u00a0')
+  range.deleteContents()
+  range.insertNode(node)
+  node.after(trailingSpace)
+  setCaretAfterNode(trailingSpace)
+  closeReferenceMenu()
+  emitEditorValue()
 }
 
 const buildLinkAnchor = (href: string, title: string) => {
@@ -772,6 +1025,13 @@ const removeSelectedImage = () => {
 
 const openEditorLink = (event: MouseEvent) => {
   const target = event.target as HTMLElement | null
+  const reference = target?.closest('.tp-content-ref') as HTMLElement | null
+  if (reference && editorRef.value?.contains(reference)) {
+    event.preventDefault()
+    selectEditorImage(null)
+    saveSelection()
+    return
+  }
   const image = target?.closest('img') as HTMLImageElement | null
   const editor = editorRef.value
   if (image && editor?.contains(image)) {
@@ -971,8 +1231,54 @@ const setCaretFromPoint = (clientX: number, clientY: number) => {
   savedRange.value = range.cloneRange()
 }
 
+const handleEditorDragStart = (event: DragEvent) => {
+  if (props.disabled) return
+  const editor = editorRef.value
+  const target = event.target as HTMLElement | null
+  const reference = target?.closest('.tp-content-ref') as HTMLElement | null
+  if (!editor || !reference || !editor.contains(reference)) return
+  draggedReferenceElement = reference
+  reference.classList.add('is-dragging')
+  event.dataTransfer?.setData(REFERENCE_DRAG_MIME, reference.outerHTML)
+  event.dataTransfer?.setData('text/plain', reference.getAttribute('data-tp-ref-label') || '')
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
+}
+
+const handleEditorDragEnd = () => {
+  draggedReferenceElement?.classList.remove('is-dragging')
+  draggedReferenceElement = null
+}
+
+const prepareEditorReferenceNode = (node: Element) => {
+  node.setAttribute('contenteditable', 'false')
+  node.setAttribute('draggable', 'true')
+  return node
+}
+
+const handleReferenceDrop = (event: DragEvent) => {
+  const editor = editorRef.value
+  if (!editor || !draggedReferenceElement || !editor.contains(draggedReferenceElement)) return false
+  event.preventDefault()
+  const movingReference = draggedReferenceElement
+  setCaretFromPoint(event.clientX, event.clientY)
+  const selection = window.getSelection()
+  if (!selection || selection.rangeCount === 0) return true
+  const range = selection.getRangeAt(0)
+  if (!editor.contains(range.commonAncestorContainer)) return true
+  if (movingReference.contains(range.commonAncestorContainer)) return true
+  movingReference.remove()
+  const trailingSpace = document.createTextNode('\u00a0')
+  range.insertNode(prepareEditorReferenceNode(movingReference))
+  movingReference.after(trailingSpace)
+  setCaretAfterNode(trailingSpace)
+  emitEditorValue()
+  handleEditorDragEnd()
+  return true
+}
+
 const handleDrop = async (event: DragEvent) => {
   if (props.disabled) return
+  if (handleReferenceDrop(event)) return
   const files = Array.from(event.dataTransfer?.files || []).filter(file => file.type.startsWith('image/'))
   if (!files.length) return
   event.preventDefault()
@@ -984,6 +1290,11 @@ const handleDrop = async (event: DragEvent) => {
 
 onMounted(() => {
   void syncEditorFromModel()
+})
+
+onBeforeUnmount(() => {
+  clearReferenceSearchTimer()
+  referenceSearchSequence += 1
 })
 </script>
 
@@ -1057,6 +1368,60 @@ onMounted(() => {
       <button type="button" title="有序列表" :disabled="disabled" @click="insertOrderedList">1.</button>
       <button type="button" title="插入分割线" :disabled="disabled" @click="exec('insertHorizontalRule')">—</button>
       <button type="button" title="清除格式" :disabled="disabled" @click="clearFormatting">清</button>
+      <div class="user-rich-editor__reference-menu">
+        <button
+          type="button"
+          class="user-rich-editor__reference-trigger"
+          title="插入资料引用"
+          aria-label="插入资料引用"
+          :aria-expanded="referenceMenuOpen"
+          :disabled="disabled"
+          @click="openReferenceMenu"
+        >
+          资料引用
+        </button>
+        <div v-if="referenceMenuOpen" class="user-rich-editor__reference-popover" role="dialog" aria-label="资料引用">
+          <div class="user-rich-editor__reference-tabs" role="tablist">
+            <button type="button" :class="{ active: referenceSearchType === 'all' }" @click="referenceSearchType = 'all'">全部</button>
+            <button type="button" :class="{ active: referenceSearchType === 'item' }" @click="referenceSearchType = 'item'">物品</button>
+            <button type="button" :class="{ active: referenceSearchType === 'npc' }" @click="referenceSearchType = 'npc'">NPC</button>
+          </div>
+          <div class="user-rich-editor__reference-display" role="group" aria-label="引用显示方式">
+            <span>显示</span>
+            <button type="button" :class="{ active: referenceDisplayMode === 'image' }" @click="referenceDisplayMode = 'image'">图片</button>
+            <button type="button" :class="{ active: referenceDisplayMode === 'text' }" @click="referenceDisplayMode = 'text'">文字</button>
+          </div>
+          <input
+            v-model="referenceSearchText"
+            type="search"
+            placeholder="搜索物品或 NPC"
+            :disabled="disabled"
+            @keydown.enter.prevent="runReferenceSearch"
+          >
+          <div class="user-rich-editor__reference-results">
+            <button
+              v-for="reference in referenceSearchResults"
+              :key="reference.key"
+              type="button"
+              class="user-rich-editor__reference-result"
+              @click="insertContentReference(reference)"
+            >
+              <span class="user-rich-editor__reference-thumb">
+                <img v-if="reference.imageUrl" :src="reference.imageUrl" :alt="reference.label" loading="lazy" decoding="async">
+                <span v-else>{{ reference.label.slice(0, 1) }}</span>
+              </span>
+              <span>
+                <strong>{{ reference.label }}</strong>
+                <small>{{ reference.summary || reference.categoryName || reference.type }}</small>
+              </span>
+            </button>
+            <p v-if="referenceSearchLoading">搜索中...</p>
+            <p v-else-if="referenceSearchError">{{ referenceSearchError }}</p>
+            <p v-else-if="referenceSearchText && !referenceSearchResults.length">没有找到可引用数据。</p>
+          </div>
+          <button type="button" :disabled="disabled" @click="closeReferenceMenu">关闭</button>
+        </div>
+      </div>
       <div class="user-rich-editor__link-menu">
         <button
           type="button"
@@ -1101,6 +1466,8 @@ onMounted(() => {
       @input="emitEditorValue"
       @paste="handlePaste"
       @click="openEditorLink"
+      @dragstart="handleEditorDragStart"
+      @dragend="handleEditorDragEnd"
       @dragover.prevent
       @drop="handleDrop"
       @keyup="saveSelection"
@@ -1233,15 +1600,40 @@ onMounted(() => {
 }
 
 .user-rich-editor__color-menu,
-.user-rich-editor__link-menu {
+.user-rich-editor__link-menu,
+.user-rich-editor__reference-menu {
   position: relative;
   display: inline-flex;
 }
 
+.user-rich-editor__reference-menu {
+  order: -1;
+  margin-right: 6px;
+}
+
 .user-rich-editor__color-trigger,
-.user-rich-editor__link-trigger {
+.user-rich-editor__link-trigger,
+.user-rich-editor__reference-trigger {
   gap: 5px;
   min-width: 48px;
+}
+
+.user-rich-editor__reference-trigger {
+  min-width: 132px;
+  min-height: 42px !important;
+  padding: 0 14px;
+  border: 2px solid color-mix(in srgb, var(--accent-gold) 82%, #fff);
+  background: linear-gradient(180deg, #ffe08a, #c89424);
+  color: #201706;
+  font-size: .92rem;
+  font-weight: 900;
+  box-shadow: 0 0 0 2px rgba(255, 215, 101, .22), 0 10px 24px rgba(0,0,0,.34);
+}
+
+.user-rich-editor__reference-trigger:hover:not(:disabled),
+.user-rich-editor__reference-trigger:focus-visible {
+  background: linear-gradient(180deg, #fff0b8, #dba434);
+  color: #140e03;
 }
 
 .user-rich-editor__color-current,
@@ -1362,6 +1754,117 @@ onMounted(() => {
   padding: 0 10px;
 }
 
+.user-rich-editor__reference-popover {
+  position: absolute;
+  z-index: 32;
+  top: calc(100% + 8px);
+  right: 0;
+  display: grid;
+  width: min(360px, calc(100vw - 32px));
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--index-line) 82%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--index-surface) 96%, var(--panel));
+  box-shadow: 0 12px 28px rgba(0,0,0,.28);
+}
+
+.user-rich-editor__reference-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.user-rich-editor__reference-tabs button,
+.user-rich-editor__reference-display button {
+  min-width: auto;
+  min-height: 30px;
+  padding: 0 10px;
+}
+
+.user-rich-editor__reference-tabs button.active,
+.user-rich-editor__reference-display button.active {
+  border-color: color-mix(in srgb, var(--accent-gold) 62%, var(--index-line));
+  color: var(--accent-gold);
+}
+
+.user-rich-editor__reference-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--index-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.user-rich-editor__reference-popover input {
+  min-width: 0;
+  min-height: 36px;
+  padding: 7px 9px;
+  border: 1px solid color-mix(in srgb, var(--index-line) 82%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--index-bg) 70%, transparent);
+  color: var(--index-text);
+  font: inherit;
+  font-size: .86rem;
+}
+
+.user-rich-editor__reference-results {
+  display: grid;
+  max-height: 280px;
+  gap: 6px;
+  overflow: auto;
+}
+
+.user-rich-editor__reference-result {
+  justify-content: flex-start !important;
+  width: 100%;
+  min-height: 44px !important;
+  gap: 8px;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.user-rich-editor__reference-result > span:last-child {
+  display: grid;
+  min-width: 0;
+}
+
+.user-rich-editor__reference-result strong,
+.user-rich-editor__reference-result small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-rich-editor__reference-result small,
+.user-rich-editor__reference-results p {
+  margin: 0;
+  color: var(--index-muted);
+  font-size: .78rem;
+}
+
+.user-rich-editor__reference-thumb {
+  display: inline-flex;
+  flex: 0 0 28px;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid color-mix(in srgb, var(--accent-gold) 36%, var(--index-line));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent-gold) 14%, transparent);
+  color: var(--accent-gold);
+  font-size: .82rem;
+  font-weight: 900;
+  overflow: hidden;
+}
+
+.user-rich-editor__reference-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .user-rich-editor__select {
   min-height: 34px;
   max-width: 118px;
@@ -1410,6 +1913,67 @@ onMounted(() => {
 
 .user-rich-editor__surface :deep(p) {
   margin: 0 0 1em;
+}
+
+.user-rich-editor__surface :deep(.tp-content-ref) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875em;
+  height: 1.875em;
+  padding: 2px;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent-gold) 13%, transparent);
+  color: var(--accent-gold);
+  line-height: 1;
+  vertical-align: -7px;
+  cursor: grab;
+  user-select: none;
+}
+
+.user-rich-editor__surface :deep(.tp-content-ref:active) {
+  cursor: grabbing;
+}
+
+.user-rich-editor__surface :deep(.tp-content-ref.is-dragging) {
+  opacity: .52;
+  outline: 2px solid color-mix(in srgb, var(--accent-gold) 62%, transparent);
+  outline-offset: 2px;
+}
+
+.user-rich-editor__surface :deep(.tp-content-ref[data-tp-ref-display="text"]) {
+  justify-content: flex-start;
+  width: auto;
+  height: auto;
+  max-width: min(100%, 22em);
+  padding: 0 .42em;
+  font-weight: 650;
+  line-height: 1.45;
+  vertical-align: .04em;
+}
+
+.user-rich-editor__surface :deep(.tp-content-ref img) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  object-fit: contain;
+  border-radius: 3px;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.user-rich-editor__surface :deep(.tp-content-ref-fallback) {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--accent-gold);
+  font-size: 13px;
+  font-weight: 900;
 }
 
 .user-rich-editor__surface :deep(ul),

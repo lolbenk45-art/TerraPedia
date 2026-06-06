@@ -63,6 +63,119 @@ export const buildUserArticleLinkHtml = ({ href, title }) => {
   return anchor.outerHTML
 }
 
+export const normalizeUserArticleReferenceImage = (value) => {
+  const imageUrl = String(value || '').trim()
+  if (!imageUrl) return ''
+  if (imageUrl.startsWith('/preview-assets/') || imageUrl.startsWith('/terrapedia-images/') || /^data:image\/(png|jpe?g|webp|gif);base64,/i.test(imageUrl)) return imageUrl
+  return ''
+}
+
+export const normalizeUserArticleReferenceDisplayMode = (value) => {
+  const mode = String(value || '').trim().toLowerCase()
+  return mode === 'text' ? 'text' : mode === 'image' || !mode ? 'image' : ''
+}
+
+export const isSafeUserArticleReferenceElement = ({ type, id, label, imageUrl, displayMode }) => {
+  const nextType = String(type || '').trim().toLowerCase()
+  const nextId = String(id || '').trim()
+  const nextLabel = String(label || '').trim()
+  const nextImageUrl = normalizeUserArticleReferenceImage(imageUrl)
+  const nextDisplayMode = normalizeUserArticleReferenceDisplayMode(displayMode)
+  return ['item', 'npc'].includes(nextType)
+    && /^\d{1,12}$/.test(nextId)
+    && nextLabel.length > 0
+    && nextLabel.length <= 80
+    && (!imageUrl || Boolean(nextImageUrl))
+    && Boolean(nextDisplayMode)
+}
+
+const escapeUserArticleReferenceAttribute = (value) => String(value || '')
+  .replace(/&/g, '&amp;')
+  .replace(/"/g, '&quot;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+
+const escapeUserArticleReferenceText = (value) => String(value || '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+
+export const buildUserArticleReferenceHtml = ({ type, id, label, imageUrl, displayMode }) => {
+  const nextType = String(type || '').trim().toLowerCase()
+  const nextId = String(id || '').trim()
+  const nextLabel = String(label || '').trim()
+  const nextImageUrl = normalizeUserArticleReferenceImage(imageUrl)
+  const nextDisplayMode = normalizeUserArticleReferenceDisplayMode(displayMode)
+  if (!isSafeUserArticleReferenceElement({ type: nextType, id: nextId, label: nextLabel, imageUrl: nextImageUrl, displayMode: nextDisplayMode })) return ''
+  const imageAttribute = nextImageUrl ? ` data-tp-ref-image="${escapeUserArticleReferenceAttribute(nextImageUrl)}"` : ''
+  const displayAttribute = ` data-tp-ref-display="${escapeUserArticleReferenceAttribute(nextDisplayMode)}"`
+  const innerHtml = nextDisplayMode === 'text'
+    ? escapeUserArticleReferenceText(nextLabel)
+    : nextImageUrl
+      ? `<img src="${escapeUserArticleReferenceAttribute(nextImageUrl)}" alt="" loading="lazy" decoding="async" aria-hidden="true">`
+      : '<span class="tp-content-ref-fallback" aria-hidden="true">图</span>'
+  if (!globalThis.document) {
+    return `<span class="tp-content-ref" contenteditable="false" draggable="true" data-tp-ref-type="${escapeUserArticleReferenceAttribute(nextType)}" data-tp-ref-id="${escapeUserArticleReferenceAttribute(nextId)}" data-tp-ref-label="${escapeUserArticleReferenceAttribute(nextLabel)}"${imageAttribute}${displayAttribute}>${innerHtml}</span>`
+  }
+  const span = globalThis.document.createElement('span')
+  span.className = 'tp-content-ref'
+  span.contentEditable = 'false'
+  span.draggable = true
+  span.setAttribute('data-tp-ref-type', nextType)
+  span.setAttribute('data-tp-ref-id', nextId)
+  span.setAttribute('data-tp-ref-label', nextLabel)
+  if (nextImageUrl) span.setAttribute('data-tp-ref-image', nextImageUrl)
+  span.setAttribute('data-tp-ref-display', nextDisplayMode)
+  if (nextDisplayMode === 'text') {
+    span.textContent = nextLabel
+  } else if (nextImageUrl) {
+    const img = globalThis.document.createElement('img')
+    img.src = nextImageUrl
+    img.alt = ''
+    img.loading = 'lazy'
+    img.decoding = 'async'
+    img.setAttribute('aria-hidden', 'true')
+    span.replaceChildren(img)
+  } else {
+    const fallback = globalThis.document.createElement('span')
+    fallback.className = 'tp-content-ref-fallback'
+    fallback.textContent = '图'
+    fallback.setAttribute('aria-hidden', 'true')
+    span.replaceChildren(fallback)
+  }
+  return span.outerHTML
+}
+
+export const sanitizeUserArticleEditorLoadedHtml = (html) => {
+  const source = String(html || '').trim()
+  if (!globalThis.document || !source) return source
+  const root = globalThis.document.createElement('div')
+  root.innerHTML = source
+
+  for (const element of Array.from(root.querySelectorAll('.tp-content-ref'))) {
+    const safeHtml = buildUserArticleReferenceHtml({
+      type: element.getAttribute('data-tp-ref-type'),
+      id: element.getAttribute('data-tp-ref-id'),
+      label: element.getAttribute('data-tp-ref-label'),
+      imageUrl: element.getAttribute('data-tp-ref-image'),
+      displayMode: element.getAttribute('data-tp-ref-display') || 'image',
+    })
+    if (safeHtml) {
+      const template = globalThis.document.createElement('template')
+      template.innerHTML = safeHtml
+      const safeElement = template.content.firstElementChild
+      if (safeElement) element.replaceWith(safeElement)
+      continue
+    }
+    element.classList.remove('tp-content-ref')
+    for (const attribute of Array.from(element.attributes)) {
+      if (attribute.name.toLowerCase().startsWith('data-tp-')) element.removeAttribute(attribute.name)
+    }
+  }
+
+  return root.innerHTML.trim()
+}
+
 export const sanitizeUserArticlePastedHtml = (html) => {
   if (!globalThis.document) return ''
   const root = globalThis.document.createElement('div')
