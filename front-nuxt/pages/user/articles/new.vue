@@ -308,7 +308,7 @@ const submitForAdminReview = async () => {
 .article-compact-head--writing {
   position: sticky;
   top: 10px;
-  z-index: 12;
+  z-index: 60;
 }
 
 .article-writing-toggle {
@@ -344,7 +344,7 @@ const submitForAdminReview = async () => {
 
 .article-focus-shell--writing .article-focus-status {
   position: fixed;
-  --article-reference-panel-top: clamp(104px, 13dvh, 132px);
+  --article-reference-panel-top: clamp(152px, 18dvh, 188px);
   --user-article-reference-panel-max-height: calc(100dvh - var(--article-reference-panel-top) - 16px);
   top: var(--article-reference-panel-top);
   right: max(12px, calc((100vw - 1500px) / 2 + 16px));
@@ -628,8 +628,8 @@ const submitForAdminReview = async () => {
 
   .article-focus-shell--writing .article-focus-status {
     position: fixed;
-    --article-reference-panel-top: 96px;
-    --user-article-reference-panel-max-height: calc(100dvh - 112px);
+    --article-reference-panel-top: 150px;
+    --user-article-reference-panel-max-height: calc(100dvh - 166px);
     top: var(--article-reference-panel-top);
     right: 12px;
     width: min(320px, calc(100vw - 24px));
