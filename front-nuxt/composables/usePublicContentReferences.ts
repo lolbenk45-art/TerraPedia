@@ -54,7 +54,6 @@ export const searchPublicContentReferences = async (
   query: ContentReferenceSearchQuery = {},
 ): Promise<NormalizedContentReference[]> => {
   const q = normalizeText(query.q)
-  if (!q) return []
   const types = Array.isArray(query.types) ? query.types.join(',') : normalizeText(query.types) || 'item,npc'
   const response = await usePublicApiFetch<PublicContentReference[]>('/public/content-references', {
     query: {

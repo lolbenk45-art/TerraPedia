@@ -92,13 +92,41 @@ class PublicContentReferenceServiceImplTest {
     }
 
     @Test
-    void searchShouldReturnEmptyListForBlankQueryWithoutCallingSourceServices() {
+    void searchShouldReturnDefaultReferencesForBlankQuery() {
+        PublicItemSuggestionDTO item = new PublicItemSuggestionDTO();
+        item.setId(1L);
+        item.setName("Iron Pickaxe");
+        item.setNameZh("铁镐");
+        item.setInternalName("IronPickaxe");
+
+        NpcListItemDTO npc = new NpcListItemDTO();
+        npc.setId(17L);
+        npc.setName("Merchant");
+        npc.setNameZh("商人");
+        npc.setInternalName("Merchant");
+        npc.setIsTownNpc(true);
+
+        Page<NpcListItemDTO> npcPage = new Page<>(1, 10);
+        npcPage.setRecords(List.of(npc));
+        npcPage.setTotal(1);
+
+        when(publicItemService.searchSuggestions("铁", 10)).thenReturn(List.of(item));
+        when(publicNpcService.getNpcs(any(PublicNpcQuery.class))).thenReturn(npcPage);
+
         PublicContentReferenceServiceImpl service = new PublicContentReferenceServiceImpl(publicItemService, publicNpcService);
 
         List<PublicContentReferenceDTO> results = service.search(Set.of("item", "npc"), "   ", 20);
 
-        assertTrue(results.isEmpty());
-        verifyNoInteractions(publicItemService, publicNpcService);
+        assertEquals(2, results.size());
+        assertEquals("item", results.get(0).getType());
+        assertEquals("铁镐", results.get(0).getLabel());
+        assertEquals("npc", results.get(1).getType());
+        assertEquals("商人", results.get(1).getLabel());
+
+        ArgumentCaptor<PublicNpcQuery> npcQuery = ArgumentCaptor.forClass(PublicNpcQuery.class);
+        verify(publicNpcService).getNpcs(npcQuery.capture());
+        assertEquals("商", npcQuery.getValue().getSearch());
+        assertEquals(10, npcQuery.getValue().getLimit());
     }
 
     @Test

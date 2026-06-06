@@ -812,6 +812,7 @@ const openReferenceMenu = () => {
   referenceMenuOpen.value = true
   colorMenuOpen.value = false
   linkMenuOpen.value = false
+  if (!referenceSearchLoading.value && !referenceSearchResults.value.length) void runReferenceSearch()
 }
 
 const closeReferenceMenu = () => {
@@ -828,12 +829,6 @@ const clearReferenceSearchTimer = () => {
 const runReferenceSearch = async () => {
   const q = referenceSearchText.value.trim()
   const sequence = ++referenceSearchSequence
-  if (!q) {
-    referenceSearchResults.value = []
-    referenceSearchLoading.value = false
-    referenceSearchError.value = ''
-    return
-  }
   referenceSearchLoading.value = true
   referenceSearchError.value = ''
   try {
@@ -1558,14 +1553,14 @@ onBeforeUnmount(() => {
                 <img v-if="reference.imageUrl" :src="reference.imageUrl" :alt="reference.label" loading="lazy" decoding="async">
                 <span v-else>{{ reference.label.slice(0, 1) }}</span>
               </span>
-              <span>
+              <span class="user-rich-editor__reference-copy">
                 <strong>{{ reference.label }}</strong>
                 <small>{{ reference.summary || reference.categoryName || reference.type }}</small>
               </span>
             </button>
             <p v-if="referenceSearchLoading">搜索中...</p>
             <p v-else-if="referenceSearchError">{{ referenceSearchError }}</p>
-            <p v-else-if="referenceSearchText && !referenceSearchResults.length">没有找到可引用数据。</p>
+            <p v-else-if="!referenceSearchResults.length">{{ referenceSearchText ? '没有找到可引用数据。' : '暂无可引用数据。' }}</p>
           </div>
           <button type="button" :disabled="disabled" @click="closeReferenceMenu">关闭</button>
         </div>
@@ -1888,17 +1883,23 @@ onBeforeUnmount(() => {
 }
 
 .user-rich-editor__reference-result {
+  display: grid !important;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center;
   justify-content: flex-start !important;
   width: 100%;
+  min-width: 0;
   min-height: 44px !important;
   gap: 8px;
   padding: 6px 8px;
   text-align: left;
 }
 
-.user-rich-editor__reference-result > span:last-child {
+.user-rich-editor__reference-copy {
   display: grid;
   min-width: 0;
+  gap: 2px;
+  line-height: 1.25;
 }
 
 .user-rich-editor__reference-result strong,
