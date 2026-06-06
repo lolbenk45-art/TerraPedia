@@ -9,8 +9,14 @@ function read(relativePath) {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n')
 }
 
+function readIfExists(relativePath) {
+  const fullPath = path.join(repoRoot, relativePath)
+  return fs.existsSync(fullPath) ? fs.readFileSync(fullPath, 'utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n') : ''
+}
+
 const page = read('pages/articles.vue')
 const editorWorkspace = read('components/article/ArticleEditorWorkspace.vue')
+const articleReviewWorkspace = readIfExists('components/article/ArticleReviewWorkspace.vue')
 const articleEditorNewPage = read('pages/article-editor/new.vue')
 const articleEditorDetailPage = read('pages/article-editor/[id].vue')
 const articlesStore = read('stores/articles.ts')
@@ -37,12 +43,22 @@ test('admin articles page exposes content preview from article detail', () => {
 test('admin articles page keeps review operations and pending rows editor-accessible', () => {
   assert.doesNotMatch(page, /:disabled="row\.reviewStatus === 'PENDING_REVIEW'"/)
   assert.match(page, /editorActionLabel\(row\)/)
-  assert.match(page, /row\.reviewStatus === 'PENDING_REVIEW'\s*\?\s*'只读编辑器'\s*:\s*'继续写作'/)
+  assert.match(page, /row\.reviewStatus === 'PENDING_REVIEW'\s*\?\s*'审核文章'\s*:\s*'继续写作'/)
+  assert.doesNotMatch(page, /只读编辑器/)
   assert.match(page, /canSubmitReview\(row\)/)
-  assert.match(page, /canReview\(row\)/)
   assert.match(page, /canPublish\(row\)/)
   assert.match(page, /canOffline\(row\)/)
   assert.match(page, /openReviewLogs\(row\)/)
+})
+
+test('admin articles page does not bypass the review workbench for pending articles', () => {
+  assert.doesNotMatch(page, /@click="approveReview\(row\)"/)
+  assert.doesNotMatch(page, /@click="openReject\(row\)"/)
+  assert.doesNotMatch(page, /const approveReview = async/)
+  assert.doesNotMatch(page, /const rejectReview = async/)
+  assert.doesNotMatch(page, /articlesStore\.reviewArticle\(row\.id/)
+  assert.doesNotMatch(page, /title="驳回文章审核"/)
+  assert.match(page, /待审核文章请进入审核工作台处理/)
 })
 
 test('admin articles page labels offline action as unpublish', () => {
@@ -136,6 +152,44 @@ test('admin article editor routes keep a single element root for Nuxt page trans
   assert.match(articleEditorNewPage, /<\/ClientOnly>\s*<\/div>\s*<\/template>/)
   assert.match(articleEditorDetailPage, /<template>\s*<div class="article-editor-route">\s*<ClientOnly>/)
   assert.match(articleEditorDetailPage, /<\/ClientOnly>\s*<\/div>\s*<\/template>/)
+})
+
+test('admin pending article detail route uses the review workbench before the editor', () => {
+  assert.match(articleEditorDetailPage, /ArticleReviewWorkspace/)
+  assert.match(articleEditorDetailPage, /ArticleEditorWorkspace/)
+  assert.match(articleEditorDetailPage, /reviewStatus\s*===\s*'PENDING_REVIEW'/)
+  assert.match(articleEditorDetailPage, /articlesStore\.fetchArticleById\(articleId\.value\)/)
+  assert.match(articleEditorDetailPage, /watch\(articleId,\s*\(\)\s*=>\s*\{/)
+  assert.match(articleEditorDetailPage, /reviewMode\.value\s*=\s*article\.value\?\.reviewStatus\s*===\s*'PENDING_REVIEW'/)
+  assert.match(articleEditorDetailPage, /@reviewed="handleArticleReviewed"/)
+})
+
+test('admin article review workbench keeps review as the primary task', () => {
+  assert.match(articleReviewWorkspace, /class="article-review-workspace"/)
+  assert.match(articleReviewWorkspace, /读者预览/)
+  assert.match(articleReviewWorkspace, /审核检查/)
+  assert.match(articleReviewWorkspace, /问题位置/)
+  assert.match(articleReviewWorkspace, /问题类型/)
+  assert.match(articleReviewWorkspace, /打回说明/)
+  assert.match(articleReviewWorkspace, /通过审核/)
+  assert.match(articleReviewWorkspace, /打回修改/)
+  assert.match(articleReviewWorkspace, /reviewArticle\(article\.value\.id,\s*'APPROVE'/)
+  assert.match(articleReviewWorkspace, /reviewArticle\(article\.value\.id,\s*'REJECT'/)
+  assert.match(articleReviewWorkspace, /fetchReviewLogs\(article\.value\.id/)
+  assert.match(articleReviewWorkspace, /sanitizeArticleHtml/)
+  assert.match(articleReviewWorkspace, /buildArticlePresentation/)
+  assert.doesNotMatch(articleReviewWorkspace, /contenteditable=/)
+})
+
+test('admin article review workbench only enables review actions for pending articles', () => {
+  assert.match(articleReviewWorkspace, /canReviewCurrent/)
+  assert.match(articleReviewWorkspace, /article\.value\?\.reviewStatus\s*===\s*'PENDING_REVIEW'/)
+  assert.match(articleReviewWorkspace, /:disabled="reviewing \|\| !canReviewCurrent"/)
+  assert.match(articleReviewWorkspace, /当前状态不是待审核/)
+  assert.match(articleReviewWorkspace, /watch\(\(\)\s*=>\s*props\.articleId/)
+  assert.match(articleReviewWorkspace, /defineEmits/)
+  assert.match(articleReviewWorkspace, /emit\('reviewed',\s*article\.value\)/)
+  assert.match(articleReviewWorkspace, /initialArticle/)
 })
 
 test('admin article editor pre-bundles client-only editor dependencies', () => {

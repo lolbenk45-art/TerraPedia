@@ -127,22 +127,12 @@
                         {{ isActionLoading(row.id, 'submit-review') ? '提交中...' : '提交审核' }}
                       </button>
                       <button
-                        v-if="canReview(row)"
+                        v-if="row.reviewStatus === 'PENDING_REVIEW'"
                         type="button"
-                        class="action-link"
-                        :disabled="isActionLoading(row.id, 'approve')"
-                        @click="approveReview(row)"
+                        class="action-link action-link--muted"
+                        @click="openEdit(row.id)"
                       >
-                        {{ isActionLoading(row.id, 'approve') ? '通过中...' : '通过' }}
-                      </button>
-                      <button
-                        v-if="canReview(row)"
-                        type="button"
-                        class="action-link action-link--danger"
-                        :disabled="isActionLoading(row.id, 'reject')"
-                        @click="openReject(row)"
-                      >
-                        驳回
+                        待审核文章请进入审核工作台处理
                       </button>
                       <button
                         v-if="canPublish(row)"
@@ -191,24 +181,6 @@
         />
       </div>
     </section>
-
-    <AppModal v-model="rejectVisible" title="驳回文章审核" width="560px">
-      <div class="reject-modal">
-        <p class="reject-modal__title">文章：<strong>{{ rejectTarget?.title || '--' }}</strong></p>
-        <textarea
-          v-model.trim="rejectComment"
-          class="toolbar-input reject-modal__textarea"
-          rows="5"
-          placeholder="请输入驳回原因"
-        />
-      </div>
-      <template #footer>
-        <button type="button" class="page-btn" :disabled="rejecting" @click="rejectVisible = false">取消</button>
-        <button type="button" class="page-btn page-btn--primary" :disabled="rejecting" @click="rejectReview">
-          {{ rejecting ? '提交中...' : '提交驳回' }}
-        </button>
-      </template>
-    </AppModal>
 
     <AppModal v-model="contentPreviewVisible" title="文章正文" width="820px">
       <div class="article-content-preview">
@@ -282,10 +254,6 @@ const articlesStore = useArticlesStore()
 const { articles, loading, pagination, keyword, status } = storeToRefs(articlesStore)
 
 const actionKey = ref('')
-const rejectVisible = ref(false)
-const rejectTarget = ref<AdminArticle | null>(null)
-const rejectComment = ref('')
-const rejecting = ref(false)
 const logsVisible = ref(false)
 const logsLoading = ref(false)
 const logsArticle = ref<AdminArticle | null>(null)
@@ -329,7 +297,7 @@ const reviewStatusLabel = (value: string) => ({
   REJECTED: '已驳回',
 }[value] || value)
 
-const editorActionLabel = (row: AdminArticle) => row.reviewStatus === 'PENDING_REVIEW' ? '只读编辑器' : '继续写作'
+const editorActionLabel = (row: AdminArticle) => row.reviewStatus === 'PENDING_REVIEW' ? '审核文章' : '继续写作'
 const handleCoverImageError = (event: Event) => {
   const image = event.currentTarget as HTMLImageElement | null
   image?.classList.add('article-cover-thumb--hidden')
@@ -346,7 +314,6 @@ const reviewActionLabel = (value: string) => ({
 }[value] || value)
 
 const canSubmitReview = (row: AdminArticle) => (row.reviewStatus === 'DRAFT' || row.reviewStatus === 'REJECTED') && row.status !== 'PUBLISHED'
-const canReview = (row: AdminArticle) => row.reviewStatus === 'PENDING_REVIEW'
 const canPublish = (row: AdminArticle) => row.reviewStatus === 'APPROVED' && row.status !== 'PUBLISHED'
 const canOffline = (row: AdminArticle) => row.status === 'PUBLISHED'
 
@@ -402,41 +369,6 @@ const submitReview = async (row: AdminArticle) => {
   await runArticleAction(row, 'submit-review', async () => {
     await articlesStore.submitReview(row.id)
   })
-}
-
-const approveReview = async (row: AdminArticle) => {
-  await runArticleAction(row, 'approve', async () => {
-    await articlesStore.reviewArticle(row.id, 'APPROVE')
-  })
-}
-
-const openReject = (row: AdminArticle) => {
-  rejectTarget.value = row
-  rejectComment.value = ''
-  rejectVisible.value = true
-}
-
-const rejectReview = async () => {
-  if (!rejectTarget.value) return
-  if (!rejectComment.value.trim()) {
-    showToast('请输入驳回原因', 'warning')
-    return
-  }
-
-  rejecting.value = true
-  const row = rejectTarget.value
-  actionKey.value = getActionKey(row.id, 'reject')
-  try {
-    await articlesStore.reviewArticle(row.id, 'REJECT', rejectComment.value.trim())
-    rejectVisible.value = false
-    rejectTarget.value = null
-    rejectComment.value = ''
-  } catch (error: any) {
-    showToast(getErrorMessage(error, '驳回失败'), 'error')
-  } finally {
-    rejecting.value = false
-    actionKey.value = ''
-  }
 }
 
 const publishArticle = async (row: AdminArticle) => {

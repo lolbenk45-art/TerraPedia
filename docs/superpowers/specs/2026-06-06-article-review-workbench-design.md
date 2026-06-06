@@ -31,7 +31,7 @@ The administrator normally does not rewrite user content. The default task is to
 
 1. Admin opens `文章管理`.
 2. A pending article primary action reads `审核文章`.
-3. Admin enters `/article-editor/:id`.
+3. Admin enters `/article-editor/:id`. The list page does not expose direct approve or reject actions for pending rows.
 4. If the article is `PENDING_REVIEW`, the page renders the review workbench.
 5. The workbench loads article detail and review logs.
 6. Admin reads sanitized rich preview and checks article metadata, outline, images, and word count.
@@ -40,6 +40,7 @@ The administrator normally does not rewrite user content. The default task is to
    - chooses problem categories/scopes, writes rejection feedback, and rejects it.
 8. The action uses the existing `reviewArticle` store method.
 9. The page refreshes local detail state and review logs after review action.
+10. After approve or reject, the workbench remains visible in a completed read-only state with review actions disabled.
 
 ## Layout
 
@@ -93,6 +94,8 @@ Free text is still required before submitting so the user receives an actionable
 
 - `PENDING_REVIEW`: render review workbench.
 - `DRAFT`, `REJECTED`, `APPROVED`, or other states: render the existing editor workspace.
+- If an article entered the page as pending review, keep the review workbench visible after the review action so the admin can see final status and logs.
+- React to route article ID changes so the page cannot show stale review/editor state when navigating between article details.
 - The review workbench does not expose rich-text editing.
 - Any future administrator editing must be an explicit "接管编辑" path with audit trail. It is intentionally omitted from this implementation.
 
@@ -100,6 +103,8 @@ Free text is still required before submitting so the user receives an actionable
 
 - Unit contract tests must verify:
   - pending detail route renders `ArticleReviewWorkspace`.
+  - pending rows cannot be approved or rejected directly from the list.
+  - route and workbench respond to article ID changes.
   - new route still renders `ArticleEditorWorkspace`.
   - review workspace includes read-only preview, approve/reject actions, problem scopes/types, review logs, and existing store calls.
   - article list primary pending action label is `审核文章`.

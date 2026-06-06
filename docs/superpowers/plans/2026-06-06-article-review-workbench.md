@@ -4,7 +4,7 @@
 
 **Goal:** Build a review-first admin article detail page for pending user-submitted articles.
 
-**Architecture:** Add a focused `ArticleReviewWorkspace.vue` component that fetches an article, renders sanitized read-only preview, and uses existing store review/log APIs. Update the detail route to choose review workspace only for pending articles while preserving the existing writing editor for new and non-pending articles.
+**Architecture:** Add a focused `ArticleReviewWorkspace.vue` component that renders sanitized read-only preview, uses existing store review/log APIs, and syncs reviewed state back to the route. Update the detail route to choose review workspace for pending articles while preserving the existing writing editor for new and non-pending articles, and remove list-level pending approve/reject bypasses.
 
 **Tech Stack:** Nuxt 4, Vue 3 Composition API, Pinia store `useArticlesStore`, existing `sanitizeArticleHtml` and `buildArticlePresentation` utilities, Node built-in test runner contract tests.
 
@@ -12,10 +12,10 @@
 
 ## File Structure
 
-- Modify `data-query-app/tests/admin-articles-page-contract.test.mjs`: add failing contract tests for the new review workbench, pending route switch, and article list action label.
+- Modify `data-query-app/tests/admin-articles-page-contract.test.mjs`: add failing contract tests for the new review workbench, pending route switch, article list action label, no list-level review bypass, and route/component article ID refresh.
 - Create `data-query-app/components/article/ArticleReviewWorkspace.vue`: review-first UI and behavior.
-- Modify `data-query-app/pages/article-editor/[id].vue`: load article status and choose `ArticleReviewWorkspace` for `PENDING_REVIEW`.
-- Modify `data-query-app/pages/articles.vue`: change pending row primary label from `只读编辑器` to `审核文章`; keep non-pending writing labels.
+- Modify `data-query-app/pages/article-editor/[id].vue`: load article status, react to article ID changes, choose `ArticleReviewWorkspace` for `PENDING_REVIEW`, and keep review mode visible after a review action.
+- Modify `data-query-app/pages/articles.vue`: change pending row primary label from `只读编辑器` to `审核文章`, remove direct pending approve/reject actions from the list, and keep non-pending writing labels.
 
 ## Task 1: Contract Tests
 
@@ -34,6 +34,8 @@ test('admin pending article detail route uses the review workbench before the ed
   assert.match(articleEditorDetailPage, /ArticleEditorWorkspace/)
   assert.match(articleEditorDetailPage, /reviewStatus\s*===\s*'PENDING_REVIEW'/)
   assert.match(articleEditorDetailPage, /articlesStore\.fetchArticleById\(articleId\.value\)/)
+  assert.match(articleEditorDetailPage, /watch\(articleId,\s*\(\)\s*=>\s*\{/)
+  assert.match(articleEditorDetailPage, /@reviewed="handleArticleReviewed"/)
 })
 
 test('admin article review workbench keeps review as the primary task', () => {
@@ -50,7 +52,16 @@ test('admin article review workbench keeps review as the primary task', () => {
   assert.match(articleReviewWorkspace, /fetchReviewLogs\(article\.value\.id/)
   assert.match(articleReviewWorkspace, /sanitizeArticleHtml/)
   assert.match(articleReviewWorkspace, /buildArticlePresentation/)
+  assert.match(articleReviewWorkspace, /watch\(\(\)\s*=>\s*props\.articleId/)
+  assert.match(articleReviewWorkspace, /defineEmits/)
   assert.doesNotMatch(articleReviewWorkspace, /contenteditable=/)
+})
+
+test('admin articles page does not bypass the review workbench for pending articles', () => {
+  assert.doesNotMatch(page, /@click="approveReview\(row\)"/)
+  assert.doesNotMatch(page, /@click="openReject\(row\)"/)
+  assert.doesNotMatch(page, /articlesStore\.reviewArticle\(row\.id/)
+  assert.match(page, /待审核文章请进入审核工作台处理/)
 })
 
 test('admin articles page labels pending primary action as article review', () => {
@@ -80,12 +91,15 @@ Expected: FAIL because `ArticleReviewWorkspace.vue` does not exist and the route
 Create a Vue component with:
 
 - `articleId` prop.
+- optional initial article prop to avoid duplicate detail fetch when the route already loaded the article.
+- `reviewed` event to sync the reviewed article back to the route.
 - `fetchArticleById`, `reviewArticle`, and `fetchReviewLogs` store calls.
 - sanitized read-only article preview.
 - completion checks from title, summary, cover, body, outline, images.
 - lightweight scope/type checkboxes.
 - rejection textarea.
 - approve and reject methods.
+- guard that disables approve/reject once the article is no longer `PENDING_REVIEW`.
 
 - [ ] **Step 2: Run the targeted unit test**
 
@@ -106,11 +120,11 @@ Expected: still FAIL until the route and list are updated.
 
 - [ ] **Step 1: Route pending articles to review workbench**
 
-In `[id].vue`, fetch the article detail through `useArticlesStore`, render loading/error states, render `ArticleReviewWorkspace` when `article.reviewStatus === 'PENDING_REVIEW'`, otherwise render `ArticleEditorWorkspace`.
+In `[id].vue`, fetch the article detail through `useArticlesStore`, render loading/error states, render `ArticleReviewWorkspace` when `article.reviewStatus === 'PENDING_REVIEW'`, otherwise render `ArticleEditorWorkspace`. Watch `articleId` and reload when navigating between detail routes.
 
-- [ ] **Step 2: Rename the pending list primary action**
+- [ ] **Step 2: Rename the pending list primary action and remove review bypass**
 
-Change `editorActionLabel` in `articles.vue` so pending rows show `审核文章` instead of `只读编辑器`.
+Change `editorActionLabel` in `articles.vue` so pending rows show `审核文章` instead of `只读编辑器`. Remove list-level direct `通过` and `驳回` actions for pending rows and replace them with a muted hint that sends admins into the review workbench.
 
 - [ ] **Step 3: Run the targeted unit test**
 
