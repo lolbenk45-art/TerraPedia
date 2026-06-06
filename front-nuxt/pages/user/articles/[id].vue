@@ -12,6 +12,8 @@ const error = ref('')
 const success = ref('')
 const initialArticleLoaded = ref(false)
 const writingModeEnabled = ref(false)
+const compactHeadRef = ref<HTMLElement | null>(null)
+const referencePanelTop = ref(152)
 
 const form = reactive({
   title: '',
@@ -32,6 +34,53 @@ const canSubmitReview = computed(() => isDraftLike.value || isOfflineArticle.val
 const canOfflineArticle = computed(() => isPublishedArticle.value)
 const canDeleteArticle = computed(() => isDraftLike.value || isOfflineArticle.value)
 const articleLoading = computed(() => authStore.articlesLoading || !initialArticleLoaded.value)
+const referencePanelShellStyle = computed(() => (
+  writingModeEnabled.value
+    ? { '--article-reference-panel-top': `${referencePanelTop.value}px` }
+    : undefined
+))
+
+let referencePanelResizeObserver: ResizeObserver | null = null
+let referencePanelOffsetFrame = 0
+
+const syncReferencePanelOffset = () => {
+  referencePanelOffsetFrame = 0
+  const compactHead = compactHeadRef.value
+  if (!compactHead) return
+  referencePanelTop.value = Math.max(96, Math.ceil(compactHead.getBoundingClientRect().bottom + 12))
+}
+
+const scheduleReferencePanelOffset = () => {
+  if (referencePanelOffsetFrame) return
+  referencePanelOffsetFrame = window.requestAnimationFrame(syncReferencePanelOffset)
+}
+
+watch(writingModeEnabled, async (enabled) => {
+  if (!enabled) return
+  await nextTick()
+  scheduleReferencePanelOffset()
+})
+
+onMounted(() => {
+  window.addEventListener('resize', scheduleReferencePanelOffset)
+  window.addEventListener('scroll', scheduleReferencePanelOffset, { passive: true })
+  if ('ResizeObserver' in window) {
+    referencePanelResizeObserver = new ResizeObserver(scheduleReferencePanelOffset)
+    if (compactHeadRef.value) referencePanelResizeObserver.observe(compactHeadRef.value)
+  }
+  scheduleReferencePanelOffset()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', scheduleReferencePanelOffset)
+  window.removeEventListener('scroll', scheduleReferencePanelOffset)
+  if (referencePanelOffsetFrame) {
+    window.cancelAnimationFrame(referencePanelOffsetFrame)
+    referencePanelOffsetFrame = 0
+  }
+  referencePanelResizeObserver?.disconnect()
+})
+
 const coverCropper = useUserArticleCoverCropper({
   canEdit: canEditArticle,
   onError: (message) => {
@@ -190,7 +239,7 @@ onMounted(() => {
     <TerraNav />
     <TerraBreadcrumb />
 
-    <div class="article-compact-head" :class="{ 'article-compact-head--writing': writingModeEnabled }">
+    <div ref="compactHeadRef" class="article-compact-head" :class="{ 'article-compact-head--writing': writingModeEnabled }">
       <div class="article-compact-head__title">
         <span class="article-compact-head__dot"></span>
         <div>
@@ -218,7 +267,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <form id="edit-user-article-form" class="article-focus-shell" :class="{ 'article-focus-shell--writing': writingModeEnabled }" @submit.prevent="saveDraft">
+    <form id="edit-user-article-form" class="article-focus-shell" :class="{ 'article-focus-shell--writing': writingModeEnabled }" :style="referencePanelShellStyle" @submit.prevent="saveDraft">
       <nav class="article-focus-rail" aria-label="文章编辑区块">
         <a href="/user/articles">我的文章</a>
         <a href="#article-meta">标题摘要</a>
@@ -481,7 +530,8 @@ onMounted(() => {
 .article-focus-shell--writing {
   grid-template-columns: minmax(0, 980px) 320px;
   justify-content: center;
-  --user-article-toolbar-top: 88px;
+  --article-reference-panel-top: clamp(152px, 18dvh, 188px);
+  --user-article-toolbar-top: var(--article-reference-panel-top);
 }
 
 .article-focus-shell--writing .article-focus-rail {
@@ -498,7 +548,6 @@ onMounted(() => {
 
 .article-focus-shell--writing .article-focus-status {
   position: fixed;
-  --article-reference-panel-top: clamp(152px, 18dvh, 188px);
   --user-article-reference-panel-max-height: calc(100dvh - var(--article-reference-panel-top) - 16px);
   top: var(--article-reference-panel-top);
   right: max(12px, calc((100vw - 1500px) / 2 + 16px));
@@ -782,8 +831,7 @@ onMounted(() => {
 
   .article-focus-shell--writing .article-focus-status {
     position: fixed;
-    --article-reference-panel-top: 150px;
-    --user-article-reference-panel-max-height: calc(100dvh - 166px);
+    --user-article-reference-panel-max-height: calc(100dvh - var(--article-reference-panel-top) - 16px);
     top: var(--article-reference-panel-top);
     right: 12px;
     width: min(320px, calc(100vw - 24px));
