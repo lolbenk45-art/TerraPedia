@@ -1,0 +1,112 @@
+{
+  "generatedAt": "2026-06-04T01:46:08.074Z",
+  "apply": true,
+  "evidencePath": "/home/lolben/TerraPedia/reports/armor-item-image-evidence-2026-06-04.json",
+  "maintDatabase": "terria_v1_maint",
+  "evidenceCandidateCount": 578,
+  "existingMaintImageCount": 4310,
+  "insertedCandidateCount": 478,
+  "sampleRows": [
+    {
+      "itemInternalName": "EmptyBucket",
+      "sourceFileTitle": "Empty Bucket.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/b41c88f19ad2475e84d892df3a982b2d.png"
+    },
+    {
+      "itemInternalName": "PharaohsRobe",
+      "sourceFileTitle": "Pharaoh's Robe.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/decbe9c4ff6441f48ef343a2f1609f85.png"
+    },
+    {
+      "itemInternalName": "GolfHat",
+      "sourceFileTitle": "Country Club set (cap).png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/742d77237c2e4694ac9cbbce60b3b5a6.png"
+    },
+    {
+      "itemInternalName": "GolfVisor",
+      "sourceFileTitle": "Country Club set (visor).png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/c74352ee6f2941b6b70bb6f3d23aefd9.png"
+    },
+    {
+      "itemInternalName": "GoldGoldfishBowl",
+      "sourceFileTitle": "Gold Fish Bowl.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/3166f83b87d24347b5538c4183ec5965.png"
+    },
+    {
+      "itemInternalName": "CapricornLegs",
+      "sourceFileTitle": "Capricorn set Hooves.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/fc993c9421204719b9fb69177a8cc716.png"
+    },
+    {
+      "itemInternalName": "CapricornTail",
+      "sourceFileTitle": "Capricorn set Tail.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/0d0f384093344fe6b2f0e2900783af92.png"
+    },
+    {
+      "itemInternalName": "ClownHat",
+      "sourceFileTitle": "Clown Hat.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/5ae853c0cf5e4d51b595c9f688e28cc6.png"
+    },
+    {
+      "itemInternalName": "ClownShirt",
+      "sourceFileTitle": "Clown Shirt.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/1d201f979fc74d0ebc36394c0c14236c.png"
+    },
+    {
+      "itemInternalName": "ClownPants",
+      "sourceFileTitle": "Clown Pants.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/505aadf724bb422183ab210e6b57c816.png"
+    },
+    {
+      "itemInternalName": "HallowedPlateMail",
+      "sourceFileTitle": "Hallowed Plate Mail.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/119ae5428f7f47d9a22372a31dcea073.png"
+    },
+    {
+      "itemInternalName": "HallowedGreaves",
+      "sourceFileTitle": "Hallowed Greaves.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/a0bee714d6c447e9ac1c6ccf44730653.png"
+    },
+    {
+      "itemInternalName": "HallowedHelmet",
+      "sourceFileTitle": "Hallowed Helmet.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/b7fe6df4d89544768a48b5acdbc4009d.png"
+    },
+    {
+      "itemInternalName": "HallowedHeadgear",
+      "sourceFileTitle": "Hallowed Headgear.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/97355c6ccae1443ebbfbc2abfa829eeb.png"
+    },
+    {
+      "itemInternalName": "HallowedMask",
+      "sourceFileTitle": "Hallowed Mask.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/e6b3533fdf6d47cfb7b0599b21e02a72.png"
+    },
+    {
+      "itemInternalName": "SantaHat",
+      "sourceFileTitle": "Santa Hat.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/25e504c7f691451ebce4e57c222a9f98.png"
+    },
+    {
+      "itemInternalName": "SantaShirt",
+      "sourceFileTitle": "Santa Shirt.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/8810f2f2d1b44ba29e8f90b074a2fe6c.png"
+    },
+    {
+      "itemInternalName": "SantaPants",
+      "sourceFileTitle": "Santa Pants.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/3e9702fe166d4e6ea2bf6784fff408c2.png"
+    },
+    {
+      "itemInternalName": "RedsHelmet",
+      "sourceFileTitle": "Red's Helmet.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/71e663ca096d44e3b1dec6c4b1de1403.png"
+    },
+    {
+      "itemInternalName": "RedsBreastplate",
+      "sourceFileTitle": "Red's Breastplate.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/d58039a25e9c4e1391918f4f22002cf6.png"
+    }
+  ],
+  "upsertedCount": 478
+}
