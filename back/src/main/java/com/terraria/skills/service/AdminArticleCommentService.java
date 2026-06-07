@@ -5,7 +5,7 @@ import com.terraria.skills.dto.AdminArticleCommentDTO;
 
 public interface AdminArticleCommentService {
 
-    Page<AdminArticleCommentDTO> getArticleComments(Long articleId, int page, int limit, String status, String keyword, Long authorId);
+    Page<AdminArticleCommentDTO> getArticleComments(Long articleId, int page, int limit, String status, String keyword, Long authorId, String sortBy, String sortOrder);
 
     Page<AdminArticleCommentDTO> getArticleCommentReplies(Long articleId, Long rootCommentId, int page, int limit, String status);
 

@@ -103,6 +103,8 @@ public interface ArticleCommentMapper extends BaseMapper<ArticleComment> {
         @Param("status") String status,
         @Param("keyword") String keyword,
         @Param("authorId") Long authorId,
+        @Param("sortBy") String sortBy,
+        @Param("sortOrder") String sortOrder,
         @Param("limit") long limit,
         @Param("offset") long offset
     );

@@ -114,10 +114,16 @@
             <option value="DELETED">已删除</option>
           </select>
           <input v-model.trim="commentFilters.authorId" class="comment-input" inputmode="numeric" pattern="[0-9]*" placeholder="作者 ID" />
-          <input v-model.trim="commentFilters.keyword" class="comment-input" type="text" placeholder="搜索评论内容" />
-          <select v-model="commentFilters.sortMode" class="comment-input">
-            <option value="REPLY_COUNT_DESC">回复量优先</option>
-            <option value="CREATED_AT_DESC">最新优先</option>
+          <input v-model.trim="commentFilters.keyword" class="comment-input" type="text" placeholder="搜索评论内容或作者" />
+          <select v-model="commentFilters.sortBy" class="comment-input">
+            <option value="replyCount">回复量</option>
+            <option value="likeCount">点赞数</option>
+            <option value="createdAt">创建时间</option>
+            <option value="id">评论 ID</option>
+          </select>
+          <select v-model="commentFilters.sortOrder" class="comment-input">
+            <option value="desc">降序</option>
+            <option value="asc">升序</option>
           </select>
           <button type="submit" class="page-btn page-btn--primary" :disabled="loading">
             {{ loading ? '刷新中...' : '筛选评论' }}

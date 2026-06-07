@@ -3,7 +3,8 @@ import { get, patch } from '~/composables/useApi'
 import { showToast } from '~/composables/useToast'
 
 export type GlobalArticleCommentStatus = 'PUBLISHED' | 'HIDDEN' | 'DELETED' | 'UNKNOWN'
-export type ArticleCommentSortMode = 'REPLY_COUNT_DESC' | 'CREATED_AT_DESC'
+export type ArticleCommentSortBy = 'replyCount' | 'createdAt' | 'likeCount' | 'id'
+export type ArticleCommentSortOrder = 'desc' | 'asc'
 
 export interface ManagedArticleSummary {
   id: number
@@ -46,7 +47,8 @@ export interface ArticleCommentFilters {
   keyword: string
   status: GlobalArticleCommentStatus | ''
   authorId: string
-  sortMode: ArticleCommentSortMode
+  sortBy: ArticleCommentSortBy
+  sortOrder: ArticleCommentSortOrder
 }
 
 export interface GlobalArticleCommentPagination {
@@ -122,18 +124,6 @@ const normalizeCommentList = (raw: any, article?: ManagedArticleSummary | null):
   return list.map(item => normalizeComment(item, article)).filter(item => item.id > 0)
 }
 
-const sortComments = (records: GlobalArticleComment[], sortMode: ArticleCommentSortMode) => {
-  const next = [...records]
-  if (sortMode === 'CREATED_AT_DESC') {
-    return next.sort((left, right) => new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime())
-  }
-  return next.sort((left, right) => {
-    const byReplyCount = right.replyCount - left.replyCount
-    if (byReplyCount !== 0) return byReplyCount
-    return new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime()
-  })
-}
-
 const toPagination = (raw: any, page: number, size: number, fallbackTotal: number): GlobalArticleCommentPagination => {
   const pagination = raw?.data?.pagination ?? raw?.data?.page ?? raw?.pagination ?? raw?.page ?? {}
   const total = Number(pagination.total ?? raw?.total ?? fallbackTotal)
@@ -158,7 +148,8 @@ export const useArticleCommentsStore = defineStore('articleComments', () => {
     keyword: '',
     status: '',
     authorId: '',
-    sortMode: 'REPLY_COUNT_DESC',
+    sortBy: 'replyCount',
+    sortOrder: 'desc',
   })
 
   const requireCurrentArticle = () => {
@@ -189,7 +180,8 @@ export const useArticleCommentsStore = defineStore('articleComments', () => {
       keyword: '',
       status: '',
       authorId: '',
-      sortMode: 'REPLY_COUNT_DESC',
+      sortBy: 'replyCount',
+      sortOrder: 'desc',
     }
     pagination.value = defaultPagination(pagination.value.size)
   }
@@ -205,11 +197,11 @@ export const useArticleCommentsStore = defineStore('articleComments', () => {
         keyword: filters.value.keyword || undefined,
         status: filters.value.status || undefined,
         authorId: filters.value.authorId || undefined,
-        sortBy: filters.value.sortMode === 'REPLY_COUNT_DESC' ? 'replyCount' : 'createdAt',
-        sortOrder: 'desc',
+        sortBy: filters.value.sortBy,
+        sortOrder: filters.value.sortOrder,
       })
       const records = normalizeCommentList(response, article)
-      comments.value = sortComments(records, filters.value.sortMode)
+      comments.value = records
       pagination.value = toPagination(response, page, size, records.length)
       return { records, pagination: pagination.value }
     } catch (error: any) {

@@ -341,7 +341,20 @@
         <include refid="AdminCommentJoins"/>
         <include refid="AdminCommentFilters"/>
           AND ac.parent_id IS NULL
-        ORDER BY ac.created_at DESC, ac.id DESC
+        ORDER BY
+        <choose>
+            <when test="sortBy == 'replyCount'">ac.reply_count</when>
+            <when test="sortBy == 'likeCount'">ac.like_count</when>
+            <when test="sortBy == 'id'">ac.id</when>
+            <otherwise>ac.created_at</otherwise>
+        </choose>
+        <choose>
+            <when test="sortOrder == 'asc'">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>
+        <if test="sortBy != 'id'">
+            , ac.id DESC
+        </if>
         LIMIT #{limit}
         OFFSET #{offset}
     </select>

@@ -50,7 +50,7 @@ class AdminArticleCommentControllerTest {
     void shouldListCommentsForExactArticleId() throws Exception {
         Page<AdminArticleCommentDTO> page = new Page<>(1, 20, 1);
         page.setRecords(List.of(comment(9L, 77L, "PUBLISHED")));
-        when(adminArticleCommentService.getArticleComments(77L, 1, 20, "PUBLISHED", "guide", 42L)).thenReturn(page);
+        when(adminArticleCommentService.getArticleComments(77L, 1, 20, "PUBLISHED", "guide", 42L, "replyCount", "desc")).thenReturn(page);
 
         mockMvc.perform(get("/admin/articles/77/comments")
                 .param("page", "1")
@@ -58,6 +58,8 @@ class AdminArticleCommentControllerTest {
                 .param("status", "PUBLISHED")
                 .param("keyword", "guide")
                 .param("authorId", "42")
+                .param("sortBy", "replyCount")
+                .param("sortOrder", "desc")
                 .requestAttr(AdminAuthenticationInterceptor.ADMIN_CLAIMS_ATTRIBUTE, claims()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
@@ -66,7 +68,7 @@ class AdminArticleCommentControllerTest {
             .andExpect(jsonPath("$.data[0].articleId").value(77))
             .andExpect(jsonPath("$.data[0].status").value("PUBLISHED"));
 
-        verify(adminArticleCommentService).getArticleComments(77L, 1, 20, "PUBLISHED", "guide", 42L);
+        verify(adminArticleCommentService).getArticleComments(77L, 1, 20, "PUBLISHED", "guide", 42L, "replyCount", "desc");
     }
 
     @Test

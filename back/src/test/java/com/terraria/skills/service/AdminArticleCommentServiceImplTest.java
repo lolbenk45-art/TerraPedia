@@ -48,14 +48,27 @@ class AdminArticleCommentServiceImplTest {
         offlineArticle.setStatus("OFFLINE");
         when(articleMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(offlineArticle);
         when(articleCommentMapper.countAdminArticleComments(77L, "PUBLISHED", "guide", 42L)).thenReturn(1L);
-        when(articleCommentMapper.selectAdminArticleCommentsPage(77L, "PUBLISHED", "guide", 42L, 20L, 0L))
+        when(articleCommentMapper.selectAdminArticleCommentsPage(77L, "PUBLISHED", "guide", 42L, "replyCount", "desc", 20L, 0L))
             .thenReturn(List.of(comment(9L, "PUBLISHED")));
 
-        Page<AdminArticleCommentDTO> page = service.getArticleComments(77L, 1, 20, "published", "guide", 42L);
+        Page<AdminArticleCommentDTO> page = service.getArticleComments(77L, 1, 20, "published", "guide", 42L, "replyCount", "desc");
 
         assertEquals(1L, page.getTotal());
         assertEquals(9L, page.getRecords().get(0).getId());
-        verify(articleCommentMapper).selectAdminArticleCommentsPage(77L, "PUBLISHED", "guide", 42L, 20L, 0L);
+        verify(articleCommentMapper).selectAdminArticleCommentsPage(77L, "PUBLISHED", "guide", 42L, "replyCount", "desc", 20L, 0L);
+    }
+
+    @Test
+    void shouldFallbackToCreatedAtDescForInvalidSortValues() {
+        when(articleMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(article());
+        when(articleCommentMapper.countAdminArticleComments(77L, null, null, null)).thenReturn(1L);
+        when(articleCommentMapper.selectAdminArticleCommentsPage(77L, null, null, null, "createdAt", "desc", 20L, 0L))
+            .thenReturn(List.of(comment(9L, "PUBLISHED")));
+
+        Page<AdminArticleCommentDTO> page = service.getArticleComments(77L, 1, 20, null, null, null, "deletedReason", "sideways");
+
+        assertEquals(1L, page.getTotal());
+        verify(articleCommentMapper).selectAdminArticleCommentsPage(77L, null, null, null, "createdAt", "desc", 20L, 0L);
     }
 
     @Test
@@ -63,7 +76,7 @@ class AdminArticleCommentServiceImplTest {
         when(articleMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
 
         assertThrows(IllegalArgumentException.class, () ->
-            service.getArticleComments(77L, 1, 20, null, null, null)
+            service.getArticleComments(77L, 1, 20, null, null, null, null, null)
         );
 
         verify(articleCommentMapper, never()).countAdminArticleComments(any(), any(), any(), any());

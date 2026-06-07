@@ -24,17 +24,19 @@ public class AdminArticleCommentServiceImpl implements AdminArticleCommentServic
     private final UserAvatarUrlResolver userAvatarUrlResolver;
 
     @Override
-    public Page<AdminArticleCommentDTO> getArticleComments(Long articleId, int page, int limit, String status, String keyword, Long authorId) {
+    public Page<AdminArticleCommentDTO> getArticleComments(Long articleId, int page, int limit, String status, String keyword, Long authorId, String sortBy, String sortOrder) {
         requireExistingArticle(articleId);
         int resolvedPage = Math.max(1, page);
         int resolvedLimit = Math.max(1, Math.min(limit, 100));
         long offset = (long) (resolvedPage - 1) * resolvedLimit;
         String normalizedStatus = normalizeOptionalStatus(status);
         String normalizedKeyword = trimToNull(keyword);
+        String normalizedSortBy = normalizeSortBy(sortBy);
+        String normalizedSortOrder = normalizeSortOrder(sortOrder);
 
         Page<AdminArticleCommentDTO> result = new Page<>(resolvedPage, resolvedLimit);
         result.setTotal(articleCommentMapper.countAdminArticleComments(articleId, normalizedStatus, normalizedKeyword, authorId));
-        List<AdminArticleCommentDTO> records = articleCommentMapper.selectAdminArticleCommentsPage(articleId, normalizedStatus, normalizedKeyword, authorId, resolvedLimit, offset);
+        List<AdminArticleCommentDTO> records = articleCommentMapper.selectAdminArticleCommentsPage(articleId, normalizedStatus, normalizedKeyword, authorId, normalizedSortBy, normalizedSortOrder, resolvedLimit, offset);
         records.forEach(this::normalizeComment);
         result.setRecords(records);
         return result;
@@ -143,6 +145,25 @@ public class AdminArticleCommentServiceImpl implements AdminArticleCommentServic
             throw new IllegalArgumentException("Invalid comment status");
         }
         return normalized;
+    }
+
+    private String normalizeSortBy(String sortBy) {
+        String normalized = trimToNull(sortBy);
+        if (normalized == null) {
+            return "createdAt";
+        }
+        return switch (normalized) {
+            case "createdAt", "replyCount", "likeCount", "id" -> normalized;
+            default -> "createdAt";
+        };
+    }
+
+    private String normalizeSortOrder(String sortOrder) {
+        String normalized = trimToNull(sortOrder);
+        if ("asc".equalsIgnoreCase(normalized)) {
+            return "asc";
+        }
+        return "desc";
     }
 
     private AdminArticleCommentDTO normalizeComment(AdminArticleCommentDTO comment) {

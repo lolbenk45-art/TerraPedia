@@ -44,11 +44,13 @@ public class AdminArticleCommentController {
         @RequestParam(required = false) Integer size,
         @RequestParam(required = false) String status,
         @RequestParam(required = false) String keyword,
-        @RequestParam(required = false) Long authorId
+        @RequestParam(required = false) Long authorId,
+        @RequestParam(required = false) String sortBy,
+        @RequestParam(required = false) String sortOrder
     ) {
         int resolvedPage = PaginationParams.resolvePage(page);
         int resolvedLimit = PaginationParams.resolveLimit(limit, size, 20, 100);
-        Page<AdminArticleCommentDTO> commentPage = adminArticleCommentService.getArticleComments(articleId, resolvedPage, resolvedLimit, status, keyword, authorId);
+        Page<AdminArticleCommentDTO> commentPage = adminArticleCommentService.getArticleComments(articleId, resolvedPage, resolvedLimit, status, keyword, authorId, sortBy, sortOrder);
         ApiResponse<List<AdminArticleCommentDTO>> response = ApiResponse.success(commentPage.getRecords());
         response.setPagination(new Pagination(commentPage.getTotal(), (int) commentPage.getCurrent(), (int) commentPage.getSize()));
         return ResponseEntity.ok(response);
