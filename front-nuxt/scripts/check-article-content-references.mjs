@@ -89,6 +89,9 @@ if (!articlePageSource.includes("node.setAttribute('role', 'link')")) throw new 
 if (!articlePageSource.includes("node.removeAttribute('title')")) throw new Error('article reference enhancement must use custom preview instead of native title tooltip')
 if (!articlePageSource.includes('ARTICLE_REFERENCE_PREVIEW_ID')) throw new Error('article page must expose a stable tooltip id for reference previews')
 if (!articlePageSource.includes('width: 1.875em')) throw new Error('article reference image size must scale with saved font size')
+if (!articlePageSource.includes('internalName: reference?.internalName')) throw new Error('hover preview must expose resolved internal names')
+if (!articlePageSource.includes('shouldPreviewArticleReferenceOnTap')) throw new Error('article references must support tap-to-preview on coarse pointers')
+if (!articlePageSource.includes('<Teleport to="body">')) throw new Error('article reference preview must teleport to body so fixed positioning is not affected by transformed article panels')
 if (!composableSource.includes('import { resolvePreviewImageUrl }')) throw new Error('content reference composable must import resolvePreviewImageUrl')
 if (!composableSource.includes('detailPath: detailPathFromTypeId(type, id)')) throw new Error('content reference normalizer must derive detail paths from type/id')
 
@@ -107,6 +110,7 @@ const enhancementHelpers = toBrowserJs([
   extractFunction(articlePageSource, 'showArticleReferencePreview'),
   extractFunction(articlePageSource, 'moveArticleReferencePreview'),
   extractFunction(articlePageSource, 'hideArticleReferencePreview'),
+  extractFunction(articlePageSource, 'shouldPreviewArticleReferenceOnTap'),
   extractFunction(articlePageSource, 'enhanceArticleReferenceNodes'),
 ].join('\n'))
 
@@ -132,7 +136,7 @@ writeFileSync(htmlPath, `<!doctype html>
       };
       const ARTICLE_REFERENCE_PREVIEW_ID = 'article-reference-preview';
       const ARTICLE_REFERENCE_PREVIEW_WIDTH = 280;
-      const ARTICLE_REFERENCE_PREVIEW_HEIGHT = 128;
+      const ARTICLE_REFERENCE_PREVIEW_HEIGHT = 148;
       const ARTICLE_REFERENCE_PREVIEW_MARGIN = 12;
       const contentReferenceKey = (type, id) => {
         const normalizedType = normalizeType(type);
@@ -219,6 +223,7 @@ writeFileSync(htmlPath, `<!doctype html>
         type: 'item',
         id: '77',
         label: '泰拉刃',
+        internalName: 'TerraBlade',
         imageUrl: '/images/item.png',
         detailPath: 'javascript:alert(1)',
         available: true
@@ -235,12 +240,15 @@ writeFileSync(htmlPath, `<!doctype html>
       assert(contentReferenceKey('npc', '1') === 'npc:1', 'content reference key should normalize supported types');
 
       const article = document.querySelector('#article');
+      article.style.margin = '180px 0 0 180px';
       article.innerHTML = valid;
       const articleContentRef = { value: article };
       const articleReferences = { value: { 'item:77': normalized } };
       const articleReferenceLabels = { value: { 'item:77': '泰拉刃', 'npc:22': '向导' } };
       const articleReferenceError = { value: '' };
       const articleReferencePreview = { value: null };
+      const windowMatchMedia = window.matchMedia;
+      window.matchMedia = () => ({ matches: false });
       const navigations = [];
       const navigateTo = (path) => {
         navigations.push(path);
@@ -271,15 +279,20 @@ writeFileSync(htmlPath, `<!doctype html>
       assert(navigations.length === beforePreviewNavigationCount, 'hover must not navigate');
       assert(articleReferencePreview.value?.label === '泰拉刃', 'hover preview should include reference label');
       assert(articleReferencePreview.value?.typeLabel === '物品', 'hover preview should include type label');
+      assert(articleReferencePreview.value?.internalName === 'TerraBlade', 'hover preview should include resolved internal name');
+      assert(articleReferencePreview.value?.id === '77', 'hover preview should include reference id');
       assert(articleReferencePreview.value?.detailPath === '/items/77', 'hover preview should include detail path');
       assert(articleReferencePreview.value?.imageUrl === '/images/item.png', 'hover preview should include resolved image');
-      assert(articleReferencePreview.value?.placement === 'bottom', 'top-edge reference should flip preview below the chip');
+      assert(articleReferencePreview.value?.placement === 'right', 'reference preview should prefer the side nearest the chip');
       assert(ref.getAttribute('aria-describedby') === ARTICLE_REFERENCE_PREVIEW_ID, 'hover preview should connect aria-describedby');
       const expectedPreviewWidth = Math.min(ARTICLE_REFERENCE_PREVIEW_WIDTH, window.innerWidth - ARTICLE_REFERENCE_PREVIEW_MARGIN * 2);
+      const refRect = ref.getBoundingClientRect();
+      assert(articleReferencePreview.value.x >= refRect.right, 'preview should be anchored after the chip when right placement fits');
+      assert(Math.abs((articleReferencePreview.value.y + ARTICLE_REFERENCE_PREVIEW_HEIGHT / 2) - (refRect.top + refRect.height / 2)) <= ARTICLE_REFERENCE_PREVIEW_MARGIN + 1, 'preview should stay vertically aligned with the chip');
       ref.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 1, clientY: 10 }));
-      assert(articleReferencePreview.value.x >= ARTICLE_REFERENCE_PREVIEW_MARGIN + expectedPreviewWidth / 2, 'preview x should clamp away from the left viewport edge');
+      assert(articleReferencePreview.value.x >= ARTICLE_REFERENCE_PREVIEW_MARGIN, 'preview x should clamp away from the left viewport edge');
       ref.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 9999, clientY: 10 }));
-      assert(articleReferencePreview.value.x <= window.innerWidth - ARTICLE_REFERENCE_PREVIEW_MARGIN - expectedPreviewWidth / 2, 'preview x should clamp away from the right viewport edge');
+      assert(articleReferencePreview.value.x <= window.innerWidth - ARTICLE_REFERENCE_PREVIEW_MARGIN - expectedPreviewWidth, 'preview x should clamp away from the right viewport edge');
       ref.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
       assert(articleReferencePreview.value === null, 'mouseleave should hide hover preview');
       assert(!ref.hasAttribute('aria-describedby'), 'mouseleave should clear aria-describedby');
@@ -292,6 +305,15 @@ writeFileSync(htmlPath, `<!doctype html>
       assert(articleReferencePreview.value === null, 'blur should hide preview');
       ref.click();
       assert(navigations.at(-1) === '/items/77', 'click should navigate to item detail');
+      window.matchMedia = (query) => ({ matches: query.includes('hover: none') || query.includes('pointer: coarse') });
+      const tapNavigationCount = navigations.length;
+      ref.click();
+      assert(navigations.length === tapNavigationCount, 'first coarse pointer tap should show preview instead of navigating');
+      assert(articleReferencePreview.value?.key === 'item:77', 'first coarse pointer tap should show preview for tapped reference');
+      ref.click();
+      assert(navigations.length === tapNavigationCount + 1, 'second coarse pointer tap on the same reference should navigate');
+      assert(navigations.at(-1) === '/items/77', 'second coarse pointer tap should navigate to item detail');
+      window.matchMedia = () => ({ matches: false });
       ref.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
       assert(navigations.at(-1) === '/items/77', 'Enter key should navigate to item detail');
       ref.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
@@ -318,6 +340,7 @@ writeFileSync(htmlPath, `<!doctype html>
       assert(npcRef.textContent.trim() === '图', 'npc without image should render only image placeholder text');
       npcRef.click();
       assert(navigations.at(-1) === '/npcs/22', 'click should navigate to npc detail');
+      window.matchMedia = windowMatchMedia;
       document.querySelector('#result').textContent = 'PASS';
       } catch (error) {
         document.querySelector('#result').textContent = 'FAIL: ' + (error && error.message ? error.message : error);

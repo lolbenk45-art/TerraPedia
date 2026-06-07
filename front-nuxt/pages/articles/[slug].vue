@@ -42,7 +42,7 @@ const articleReferenceError = ref('')
 const articleReferenceLabels = ref<Record<string, string>>({})
 const ARTICLE_REFERENCE_PREVIEW_ID = 'article-reference-preview'
 const ARTICLE_REFERENCE_PREVIEW_WIDTH = 280
-const ARTICLE_REFERENCE_PREVIEW_HEIGHT = 128
+const ARTICLE_REFERENCE_PREVIEW_HEIGHT = 148
 const ARTICLE_REFERENCE_PREVIEW_MARGIN = 12
 const articleReferencePreview = ref<{
   key: string
@@ -53,11 +53,12 @@ const articleReferencePreview = ref<{
   imageUrl: string
   categoryName: string
   summary: string
+  internalName: string
   detailPath: string
   available: boolean
   x: number
   y: number
-  placement: 'top' | 'bottom'
+  placement: 'right' | 'left' | 'bottom'
 } | null>(null)
 let articleReferenceLoadSequence = 0
 const recordedArticleHistoryIds = new Set<string>()
@@ -468,15 +469,25 @@ const computeArticleReferencePreviewPosition = (node: HTMLElement, event?: Mouse
   const viewportWidth = window.innerWidth || document.documentElement.clientWidth || ARTICLE_REFERENCE_PREVIEW_WIDTH
   const viewportHeight = window.innerHeight || document.documentElement.clientHeight || ARTICLE_REFERENCE_PREVIEW_HEIGHT
   const previewWidth = Math.min(ARTICLE_REFERENCE_PREVIEW_WIDTH, Math.max(0, viewportWidth - ARTICLE_REFERENCE_PREVIEW_MARGIN * 2))
-  const minX = ARTICLE_REFERENCE_PREVIEW_MARGIN + previewWidth / 2
-  const maxX = Math.max(minX, viewportWidth - ARTICLE_REFERENCE_PREVIEW_MARGIN - previewWidth / 2)
-  const preferredX = event instanceof MouseEvent ? event.clientX : rect.left + rect.width / 2
-  const x = Math.min(Math.max(preferredX, minX), maxX)
-  const hasTopSpace = rect.top >= ARTICLE_REFERENCE_PREVIEW_HEIGHT + ARTICLE_REFERENCE_PREVIEW_MARGIN * 2
-  const y = hasTopSpace
-    ? Math.max(ARTICLE_REFERENCE_PREVIEW_MARGIN, rect.top)
-    : Math.min(viewportHeight - ARTICLE_REFERENCE_PREVIEW_MARGIN, rect.bottom)
-  return { x, y, placement: hasTopSpace ? 'top' as const : 'bottom' as const }
+  const maxX = Math.max(ARTICLE_REFERENCE_PREVIEW_MARGIN, viewportWidth - ARTICLE_REFERENCE_PREVIEW_MARGIN - previewWidth)
+  const maxY = Math.max(ARTICLE_REFERENCE_PREVIEW_MARGIN, viewportHeight - ARTICLE_REFERENCE_PREVIEW_MARGIN - ARTICLE_REFERENCE_PREVIEW_HEIGHT)
+  const anchorGap = 10
+  const centeredY = rect.top + rect.height / 2 - ARTICLE_REFERENCE_PREVIEW_HEIGHT / 2
+  const y = Math.min(Math.max(centeredY, ARTICLE_REFERENCE_PREVIEW_MARGIN), maxY)
+  const rightX = rect.right + anchorGap
+  const leftX = rect.left - previewWidth - anchorGap
+
+  if (rightX <= maxX) {
+    return { x: rightX, y, placement: 'right' as const }
+  }
+  if (leftX >= ARTICLE_REFERENCE_PREVIEW_MARGIN) {
+    return { x: leftX, y, placement: 'left' as const }
+  }
+
+  const centeredX = rect.left + rect.width / 2 - previewWidth / 2
+  const x = Math.min(Math.max(centeredX, ARTICLE_REFERENCE_PREVIEW_MARGIN), maxX)
+  const bottomY = Math.min(Math.max(rect.bottom + anchorGap, ARTICLE_REFERENCE_PREVIEW_MARGIN), maxY)
+  return { x, y: bottomY, placement: 'bottom' as const }
 }
 
 const showArticleReferencePreview = (node: HTMLElement, event?: MouseEvent | FocusEvent) => {
@@ -496,6 +507,7 @@ const showArticleReferencePreview = (node: HTMLElement, event?: MouseEvent | Foc
     imageUrl: reference?.imageUrl || sanitizeArticleUrl(String(node.dataset.tpRefImage || ''), 'src'),
     categoryName: reference?.categoryName || '',
     summary: reference?.summary || '',
+    internalName: reference?.internalName || '',
     detailPath: reference?.detailPath || node.dataset.tpHref || (type === 'item' ? `/items/${id}` : `/npcs/${id}`),
     available: reference?.available !== false,
     ...position,
@@ -525,6 +537,17 @@ const clearArticleReferencePreview = () => {
     ?.querySelectorAll<HTMLElement>('.tp-content-ref[aria-describedby]')
     .forEach(node => node.removeAttribute('aria-describedby'))
   articleReferencePreview.value = null
+}
+
+const shouldPreviewArticleReferenceOnTap = (node: HTMLElement, event: MouseEvent) => {
+  const isCoarsePointer = window.matchMedia?.('(hover: none), (pointer: coarse)').matches === true
+  if (!isCoarsePointer) return false
+  const key = contentReferenceKey(node.dataset.tpRefType, node.dataset.tpRefId)
+  if (!key) return false
+  if (articleReferencePreview.value?.key === key) return false
+  event.preventDefault()
+  showArticleReferencePreview(node, event)
+  return true
 }
 
 const enhanceArticleReferenceNodes = () => {
@@ -571,7 +594,8 @@ const enhanceArticleReferenceNodes = () => {
     node.dataset.tpHref = detailPath
     node.dataset.tpHasImage = imageUrl ? 'true' : 'false'
     node.dataset.tpResolved = reference?.available === false ? 'missing' : reference ? 'ready' : 'loading'
-    node.onclick = () => {
+    node.onclick = (event: MouseEvent) => {
+      if (shouldPreviewArticleReferenceOnTap(node, event)) return
       if (detailPath) navigateTo(detailPath)
     }
     node.onkeydown = (event: KeyboardEvent) => {
@@ -1146,30 +1170,34 @@ onMounted(() => {
           </header>
           <h2 class="article-section-title">正文</h2>
           <div ref="articleContentRef" class="article-content-text" v-html="sanitizedArticleHtml"></div>
-          <div
-            v-if="articleReferencePreview"
-            :id="ARTICLE_REFERENCE_PREVIEW_ID"
-            class="article-reference-preview"
-            :class="`article-reference-preview--${articleReferencePreview.placement}`"
-            :style="{ left: `${articleReferencePreview.x}px`, top: `${articleReferencePreview.y}px` }"
-            role="tooltip"
-          >
-            <span class="article-reference-preview__thumb" aria-hidden="true">
-              <img
-                v-if="articleReferencePreview.imageUrl"
-                :src="articleReferencePreview.imageUrl"
-                :alt="articleReferencePreview.label"
-                loading="lazy"
-                decoding="async"
-              >
-              <span v-else>图</span>
-            </span>
-            <span class="article-reference-preview__body">
-              <strong>{{ articleReferencePreview.label }}</strong>
-              <small>{{ articleReferencePreview.typeLabel }} · {{ articleReferencePreview.categoryName || articleReferencePreview.summary || `ID ${articleReferencePreview.id}` }}</small>
-              <em>{{ articleReferencePreview.available ? '点击打开详情' : '资料暂不可用' }}</em>
-            </span>
-          </div>
+          <Teleport to="body">
+            <div
+              v-if="articleReferencePreview"
+              :id="ARTICLE_REFERENCE_PREVIEW_ID"
+              class="article-reference-preview"
+              :class="`article-reference-preview--${articleReferencePreview.placement}`"
+              :style="{ left: `${articleReferencePreview.x}px`, top: `${articleReferencePreview.y}px` }"
+              role="tooltip"
+            >
+              <span class="article-reference-preview__thumb" aria-hidden="true">
+                <img
+                  v-if="articleReferencePreview.imageUrl"
+                  :src="articleReferencePreview.imageUrl"
+                  :alt="articleReferencePreview.label"
+                  loading="lazy"
+                  decoding="async"
+                >
+                <span v-else>图</span>
+              </span>
+              <span class="article-reference-preview__body">
+                <strong>{{ articleReferencePreview.label }}</strong>
+                <small>{{ articleReferencePreview.typeLabel }} · {{ articleReferencePreview.categoryName || articleReferencePreview.summary || `ID ${articleReferencePreview.id}` }}</small>
+                <small v-if="articleReferencePreview.internalName" class="article-reference-preview__code">{{ articleReferencePreview.internalName }} · #{{ articleReferencePreview.id }}</small>
+                <small v-else class="article-reference-preview__code">#{{ articleReferencePreview.id }}</small>
+                <em>{{ articleReferencePreview.available ? '点击打开详情' : '资料暂不可用' }}</em>
+              </span>
+            </div>
+          </Teleport>
           <p v-if="articleReferenceError" class="article-reference-error">{{ articleReferenceError }}</p>
 
           <section id="article-comments" class="article-comments" aria-label="评论区" data-comment-endpoint="/comments">
@@ -1757,7 +1785,7 @@ onMounted(() => {
   cursor: default;
 }
 
-.article-reference-preview {
+:global(.article-reference-preview) {
   position: fixed;
   z-index: 80;
   display: grid;
@@ -1772,15 +1800,38 @@ onMounted(() => {
   pointer-events: none;
 }
 
-.article-reference-preview--top {
-  transform: translate(-50%, calc(-100% - 12px));
+:global(.article-reference-preview::before) {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: inherit;
+  background: inherit;
+  transform: rotate(45deg);
 }
 
-.article-reference-preview--bottom {
-  transform: translate(-50%, 12px);
+:global(.article-reference-preview--right::before) {
+  left: -5px;
+  top: 18px;
+  border-right: 0;
+  border-top: 0;
 }
 
-.article-reference-preview__thumb {
+:global(.article-reference-preview--left::before) {
+  right: -5px;
+  top: 18px;
+  border-left: 0;
+  border-bottom: 0;
+}
+
+:global(.article-reference-preview--bottom::before) {
+  left: 18px;
+  top: -5px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+:global(.article-reference-preview__thumb) {
   display: grid;
   place-items: center;
   width: 42px;
@@ -1794,42 +1845,49 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.article-reference-preview__thumb img {
+:global(.article-reference-preview__thumb img) {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
 
-.article-reference-preview__body {
+:global(.article-reference-preview__body) {
   display: grid;
   min-width: 0;
   gap: 3px;
   line-height: 1.35;
 }
 
-.article-reference-preview__body strong,
-.article-reference-preview__body small,
-.article-reference-preview__body em {
+:global(.article-reference-preview__body strong),
+:global(.article-reference-preview__body small),
+:global(.article-reference-preview__body em) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.article-reference-preview__body strong {
+:global(.article-reference-preview__body strong) {
   color: var(--text-main);
   font-size: .92rem;
   font-style: normal;
   font-weight: 900;
 }
 
-.article-reference-preview__body small {
+:global(.article-reference-preview__body small) {
   color: var(--text-muted);
   font-size: .78rem;
   font-weight: 760;
 }
 
-.article-reference-preview__body em {
+:global(.article-reference-preview__body .article-reference-preview__code) {
+  color: color-mix(in srgb, var(--text-muted) 74%, var(--accent-gold));
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: .72rem;
+  font-weight: 760;
+}
+
+:global(.article-reference-preview__body em) {
   color: var(--accent-gold);
   font-size: .76rem;
   font-style: normal;
