@@ -710,6 +710,10 @@ const commentAvatarFallback = (comment: ArticleComment) => commentAuthorLabel(co
 const commentAvatarUrl = (comment: ArticleComment) => resolvePreviewImageUrl(comment.authorAvatarUrl || '')
 const canDeleteComment = (comment: ArticleComment) => Boolean(authStore.user?.id && Number(authStore.user.id) === Number(comment.authorId))
 const commentContent = (comment: ArticleComment) => comment.deleted ? '该评论已删除' : comment.content
+const shouldShowArticleCommentReplyTarget = (rootComment: ArticleComment, reply: ArticleComment) => {
+  if (!reply.replyToDisplayName || reply.replyToUserId == null) return false
+  return Number(reply.replyToUserId) !== Number(rootComment.authorId)
+}
 const isArticleCommentReplyLoading = (commentId: number) => articleCommentReplyLoadingIds.value.has(commentId)
 const isArticleCommentLikeMutating = (commentId: number) => articleCommentLikeMutatingIds.value.has(commentId)
 const articleCommentRepliesPagination = (commentId: number) => articleCommentReplyPagination.value[String(commentId)] ?? {
@@ -1281,7 +1285,7 @@ onMounted(() => {
                     @submit.prevent="submitArticleCommentReply(comment)"
                   >
                     <label :for="`article-comment-reply-root-${comment.id}`">
-                      回复 @{{ commentAuthorLabel(comment) }}
+                      回复这条评论
                     </label>
                     <textarea
                       :id="`article-comment-reply-root-${comment.id}`"
@@ -1316,7 +1320,7 @@ onMounted(() => {
                       <div class="article-comment-body">
                         <header>
                           <b>{{ commentAuthorLabel(reply) }}</b>
-                          <span v-if="reply.replyToDisplayName" class="article-comment-reply-to">回复 @{{ reply.replyToDisplayName }}</span>
+                          <span v-if="shouldShowArticleCommentReplyTarget(comment, reply)" class="article-comment-reply-to">回复 @{{ reply.replyToDisplayName }}</span>
                           <span>{{ formatCommentDate(reply.createdAt) }}</span>
                         </header>
                         <p>{{ commentContent(reply) }}</p>
