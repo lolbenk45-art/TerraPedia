@@ -9,6 +9,7 @@ const authStore = useUserAuthStore()
 const error = ref('')
 const initialArticlesLoaded = ref(false)
 const selectedArticleCategory = ref('all')
+const articleTableLoadingSlotCount = 4
 
 const articleCategoryOptions = [
   { key: 'all', label: '全部' },
@@ -190,7 +191,54 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
           </button>
         </div>
 
-        <p v-if="articlesLoading" class="user-form-status">文章加载中...</p>
+        <div v-if="articlesLoading" class="article-table-scroll tp-scroll-region" aria-live="polite" aria-label="文章列表加载中">
+          <div class="article-table-grid article-table-grid--head" role="row">
+            <span>封面</span>
+            <span>文章</span>
+            <span>状态</span>
+            <span>内容量</span>
+            <span>时间</span>
+            <span>下一步</span>
+            <span>操作</span>
+          </div>
+
+          <article
+            v-for="slot in articleTableLoadingSlotCount"
+            :key="`article-table-loading-${slot}`"
+            class="article-table-grid article-table-row article-table-row--loading"
+            role="row"
+          >
+            <div class="article-cover-thumb" aria-hidden="true">
+              <CommonTpSkeleton type="icon" />
+            </div>
+            <div class="article-title-cell">
+              <b><CommonTpSkeleton type="line" /></b>
+              <p>
+                <CommonTpSkeleton type="line" />
+                <CommonTpSkeleton type="line" short />
+              </p>
+            </div>
+            <div class="article-status-cell">
+              <CommonTpSkeleton type="pill" />
+              <small><CommonTpSkeleton type="line" short /></small>
+            </div>
+            <div class="article-metric-cell">
+              <CommonTpSkeleton type="line" />
+              <CommonTpSkeleton type="line" short />
+            </div>
+            <div class="article-time-cell">
+              <CommonTpSkeleton type="line" />
+              <CommonTpSkeleton type="line" short />
+            </div>
+            <div class="article-next-step">
+              <span><CommonTpSkeleton type="pill" /></span>
+              <strong><CommonTpSkeleton type="line" /></strong>
+            </div>
+            <div class="article-row-actions">
+              <CommonTpSkeleton type="pill" />
+            </div>
+          </article>
+        </div>
         <p v-else-if="error" class="user-form-status user-form-error">{{ error }}</p>
         <div v-else-if="!authStore.articles.length" class="user-empty-state">
           <b>还没有文章草稿</b>
@@ -203,7 +251,7 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
           <span>切换其它分类，或新建一篇文章继续投稿。</span>
         </div>
 
-        <div v-else class="article-table-scroll">
+        <div v-else class="article-table-scroll tp-scroll-region">
           <div class="article-table-grid article-table-grid--head" role="row">
             <span>封面</span>
             <span>文章</span>
@@ -371,7 +419,6 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
 .article-table-scroll {
   display: grid;
   gap: 10px;
-  overflow: visible;
 }
 
 .article-table-grid {
@@ -394,6 +441,19 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
   min-height: 108px;
   padding: 10px;
   background: color-mix(in srgb, var(--index-surface) 76%, transparent);
+}
+
+.article-table-row--loading {
+  pointer-events: none;
+}
+
+.article-table-row--loading .article-cover-thumb {
+  place-items: center;
+}
+
+.article-table-row--loading .article-title-cell p {
+  display: grid;
+  gap: 8px;
 }
 
 .article-cover-thumb {

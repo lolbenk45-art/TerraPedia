@@ -1,5 +1,5 @@
 <template>
-  <div class="page-wrap audio-assets-admin">
+  <div class="page-wrap page-workspace audio-assets-admin">
     <section class="workspace-shell workspace-shell--unified">
       <div class="workspace-hero workspace-hero--unified audio-assets-hero">
         <div class="workspace-hero__copy">

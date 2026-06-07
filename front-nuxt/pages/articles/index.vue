@@ -42,6 +42,7 @@ const articlePagination = computed<Pagination>(() => (
 ))
 
 const articleLoading = computed(() => articlePending.value)
+const articleLoadingSlotCount = 4
 const totalPages = computed(() => Math.max(1, Number(articlePagination.value.totalPages ?? 1)))
 
 const articleCoverUrl = (article: UserArticle) => resolvePreviewImageUrl(article.coverImage || '')
@@ -119,9 +120,36 @@ useSeoMeta({
       </div>
     </div>
 
-    <div class="article-layout discovery-articles-page">
+    <main class="tp-page-shell article-layout discovery-articles-page">
       <section class="article-panel article-route-system">
-        <div v-if="articleLoading" class="support-panel user-form-status">文章加载中...</div>
+        <div v-if="articleLoading" class="public-article-list" aria-live="polite" aria-label="文章列表加载中">
+          <article
+            v-for="slot in articleLoadingSlotCount"
+            :key="`article-loading-${slot}`"
+            class="support-panel public-article-card public-article-card--loading"
+          >
+            <span class="public-article-cover public-article-cover-loading" aria-hidden="true">
+              <CommonTpSkeleton type="icon" />
+            </span>
+
+            <div class="public-article-copy">
+              <div class="public-article-kicker">
+                <CommonTpSkeleton type="pill" />
+                <CommonTpSkeleton type="pill" />
+              </div>
+              <h2><CommonTpSkeleton type="line" /></h2>
+              <p>
+                <CommonTpSkeleton type="line" />
+                <CommonTpSkeleton type="line" short />
+              </p>
+              <div class="public-article-meta">
+                <CommonTpSkeleton type="pill" />
+                <CommonTpSkeleton type="pill" />
+                <CommonTpSkeleton type="pill" />
+              </div>
+            </div>
+          </article>
+        </div>
 
         <div v-else-if="articleError" class="support-panel user-form-status user-form-error">
           <span>{{ articleError }}</span>
@@ -209,7 +237,7 @@ useSeoMeta({
           <div class="toc-item"><span class="toc-num">03</span><div><b>详情页收藏</b><span>登录后可收藏公开文章</span></div></div>
         </div>
       </aside>
-    </div>
+    </main>
 
     <TerraFooter />
   </section>
@@ -253,6 +281,15 @@ useSeoMeta({
   place-items: center;
   gap: 6px;
   text-align: center;
+}
+
+.public-article-cover-loading {
+  display: grid;
+  place-items: center;
+}
+
+.public-article-card--loading {
+  pointer-events: none;
 }
 
 .public-article-cover-fallback b {

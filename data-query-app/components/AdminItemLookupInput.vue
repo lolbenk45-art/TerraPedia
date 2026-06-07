@@ -401,7 +401,7 @@ onBeforeUnmount(() => {
 }
 
 .lookup__menu {
-  z-index: 1200;
+  z-index: var(--z-page-popover);
   max-height: 280px;
   overflow-y: auto;
   padding: 10px;

@@ -1,5 +1,5 @@
 <template>
-  <div class="page-wrap domain-acceptance">
+  <div class="page-wrap page-workspace domain-acceptance">
     <section class="workspace-shell workspace-shell--unified">
       <div class="workspace-hero workspace-hero--unified domain-hero">
         <div class="workspace-hero__copy">
@@ -25,7 +25,7 @@
       </div>
     </section>
 
-    <section v-if="isInitialLoading" class="loading-panel" role="status" aria-live="polite">
+    <section v-if="isInitialLoading" class="section-card loading-panel" role="status" aria-live="polite">
       <RefreshCw :size="20" class="spin" />
       <div>
         <strong>加载中</strong>
@@ -41,13 +41,13 @@
       </div>
     </section>
 
-    <section v-else-if="!overview" class="empty-panel">
+    <section v-else-if="!overview" class="section-card empty-panel">
       <strong>暂无域验收数据</strong>
       <small>后端未返回域级验收总览。</small>
     </section>
 
     <template v-else>
-      <section class="acceptance-status" :class="`acceptance-status--${statusTone(overview?.overallStatus)}`">
+      <section class="section-card acceptance-status" :class="`acceptance-status--${statusTone(overview?.overallStatus)}`">
         <span class="acceptance-status__icon">
           <component :is="statusIcon(overview?.overallStatus)" :size="24" />
         </span>
@@ -58,14 +58,14 @@
         </div>
       </section>
 
-      <section v-if="overview?.refreshPlanSummary" class="refresh-plan-summary">
+      <section v-if="overview?.refreshPlanSummary" class="section-card refresh-plan-summary">
         <article v-for="stat in refreshPlanSummaryCards" :key="stat.label" class="summary-mini">
           <span class="summary-mini__label">{{ stat.label }}</span>
           <strong class="summary-mini__value">{{ stat.value }}</strong>
         </article>
       </section>
 
-      <section v-if="overview?.actionQueue?.length" class="action-queue">
+      <section v-if="overview?.actionQueue?.length" class="section-card action-queue">
         <div class="action-queue__head">
           <strong>下一步手动动作</strong>
           <small>{{ overview?.actionQueue?.length }} 项</small>
@@ -115,7 +115,7 @@
       </section>
 
       <section v-if="hasReasons" class="acceptance-reasons">
-        <article v-if="blockingReasons.length" class="reason-panel reason-panel--blocked">
+        <article v-if="blockingReasons.length" class="section-card reason-panel reason-panel--blocked">
           <div class="reason-panel__head">
             <XCircle :size="18" />
             <strong>阻断原因</strong>
@@ -125,7 +125,7 @@
           </ul>
         </article>
 
-        <article v-if="warningReasons.length" class="reason-panel reason-panel--warning">
+        <article v-if="warningReasons.length" class="section-card reason-panel reason-panel--warning">
           <div class="reason-panel__head">
             <AlertTriangle :size="18" />
             <strong>警告原因</strong>
@@ -137,7 +137,7 @@
       </section>
 
       <section class="domain-grid" aria-label="域验收概览">
-        <article v-for="domain in overview?.domains || []" :key="domain.domainId || 'domain'" class="domain-card">
+        <article v-for="domain in overview?.domains || []" :key="domain.domainId || 'domain'" class="section-card domain-card">
           <div class="domain-card__head">
             <span class="domain-card__icon" :class="statusTone(domain.status)">
               <component :is="statusIcon(domain.status)" :size="18" />
@@ -212,7 +212,7 @@
           </div>
 
           <div class="domain-panel-list">
-            <article v-for="panel in domain.panels || []" :key="`${domain.domainId}-${panel.panelId}`" class="domain-panel">
+            <article v-for="panel in domain.panels || []" :key="`${domain.domainId}-${panel.panelId}`" class="section-card domain-panel">
               <div class="domain-panel__head">
                 <div>
                   <span>{{ panel.panelId || panel.id || 'panel' }}</span>

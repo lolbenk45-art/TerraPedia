@@ -1,5 +1,5 @@
 <template>
-  <div class="page-wrap armor-attributes-admin">
+  <div class="page-wrap page-workspace armor-attributes-admin">
     <section class="workspace-shell workspace-shell--unified">
       <div class="workspace-hero workspace-hero--unified armor-attributes-hero">
         <div class="workspace-hero__copy">
@@ -530,8 +530,8 @@ onMounted(async () => {
 
 .detail-drawer {
   position: fixed;
-  inset: 0;
-  z-index: 60;
+  inset: var(--header-height) 0 0 var(--sidebar-width);
+  z-index: var(--z-page-popover);
   display: flex;
   justify-content: flex-end;
   background: color-mix(in srgb, var(--color-text) 38%, transparent);
@@ -603,6 +603,10 @@ onMounted(async () => {
 }
 
 @media (max-width: 1100px) {
+  .detail-drawer {
+    inset: var(--header-height) 0 0 0;
+  }
+
   .filter-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

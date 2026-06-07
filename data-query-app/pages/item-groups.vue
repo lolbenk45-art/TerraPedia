@@ -582,7 +582,7 @@ onMounted(async () => {
 
 .side-panel {
   position: sticky;
-  top: 16px;
+  top: var(--admin-sticky-top);
 }
 
 .side-panel__summary,

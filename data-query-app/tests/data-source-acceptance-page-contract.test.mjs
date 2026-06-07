@@ -63,6 +63,12 @@ test('data source acceptance page separates API errors from missing evidence', (
 test('data source acceptance page separates loading from missing evidence', () => {
   const page = read('data-query-app/pages/operations/data-source-acceptance.vue')
 
+  assert.match(page, /class="page-wrap page-workspace data-source-acceptance"/)
+  assert.match(page, /class="section-card loading-panel"/)
+  assert.match(page, /class="section-card empty-panel"/)
+  assert.match(page, /class="section-card acceptance-status/)
+  assert.match(page, /class="section-card reason-panel/)
+  assert.match(page, /class="section-card acceptance-panel"/)
   assert.match(page, /hasLoaded/)
   assert.match(page, /isInitialLoading/)
   assert.match(page, /加载中/)

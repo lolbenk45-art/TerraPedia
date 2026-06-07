@@ -43,7 +43,7 @@ const toastLabel = computed(() => {
   position: fixed;
   top: 22px;
   left: 50%;
-  z-index: 3000;
+  z-index: var(--z-toast);
   display: inline-flex;
   align-items: center;
   gap: 14px;

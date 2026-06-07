@@ -1,7 +1,7 @@
 <template>
-  <div class="page-wrap article-comments-page">
+  <div class="page-wrap page-workspace article-comments-page">
     <template v-if="!currentArticle">
-      <section class="section-card article-comments-command-bar article-list-command-bar">
+      <section class="workspace-shell workspace-shell--unified section-card article-comments-command-bar article-list-command-bar">
         <div>
           <h1 class="page-head__title">文章评论管理</h1>
           <p class="page-head__subtitle">按文章进入评论区，集中处理根评论、回复链与状态。</p>
@@ -100,7 +100,7 @@
     </template>
 
     <template v-else>
-      <section class="section-card article-comments-command-bar">
+      <section class="workspace-shell workspace-shell--unified section-card article-comments-command-bar">
         <div>
           <h1 class="page-head__title">单文章评论区管理</h1>
           <p class="page-head__subtitle">#{{ currentArticle.id }} {{ currentArticle.title }}</p>
@@ -1203,7 +1203,7 @@ onMounted(async () => {
 
 .comment-list-inspector {
   position: sticky;
-  top: 16px;
+  top: var(--admin-sticky-top);
   display: grid;
   gap: 12px;
 }

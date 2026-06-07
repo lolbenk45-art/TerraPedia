@@ -1,5 +1,5 @@
 <template>
-  <div class="page-wrap crawler-monitor-test">
+  <div class="page-wrap page-workspace crawler-monitor-test">
     <section class="workspace-shell workspace-shell--unified">
       <div class="workspace-hero workspace-hero--unified test-hero">
         <div class="workspace-hero__copy">
@@ -51,7 +51,7 @@
       </div>
     </section>
 
-    <section class="status-grid">
+    <section class="section-card status-grid">
       <article v-for="card in statusCards" :key="card.label" class="status-card">
         <span class="status-card__icon" :class="card.tone">
           <component :is="card.icon" :size="18" />

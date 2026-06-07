@@ -232,9 +232,9 @@ test('admin article editor and review workspace inherit global theme colors', ()
 })
 
 test('admin article editor routes keep a single element root for Nuxt page transitions', () => {
-  assert.match(articleEditorNewPage, /<template>\s*<div class="article-editor-route">\s*<ClientOnly>/)
+  assert.match(articleEditorNewPage, /<template>\s*<div class="page-wrap page-workspace article-editor-route">\s*<ClientOnly>/)
   assert.match(articleEditorNewPage, /<\/ClientOnly>\s*<\/div>\s*<\/template>/)
-  assert.match(articleEditorDetailPage, /<template>\s*<div class="article-editor-route">\s*<ClientOnly>/)
+  assert.match(articleEditorDetailPage, /<template>\s*<div class="page-wrap page-workspace article-editor-route">\s*<ClientOnly>/)
   assert.match(articleEditorDetailPage, /<\/ClientOnly>\s*<\/div>\s*<\/template>/)
 })
 
@@ -300,7 +300,11 @@ test('admin article editor exposes cover crop and zoom controls', () => {
 
 test('admin article editor design board exposes concrete layout drafts on a standalone route', () => {
   assert.match(articleEditorDesign, /definePageMeta\(\{\s*title: '文章编辑设计稿'/)
-  assert.match(articleEditorDesign, /article-editor-design-page/)
+  assert.match(articleEditorDesign, /class="page-wrap page-workspace article-editor-design-page"/)
+  assert.match(articleEditorDesign, /class="section-card design-page-head"/)
+  assert.match(articleEditorDesign, /class="workspace-shell workspace-shell--unified design-board"/)
+  assert.match(articleEditorDesign, /class="section-card design-real-data"/)
+  assert.match(articleEditorDesign, /class="section-card design-board__frame/)
   assert.match(articleEditorDesign, /const articlesStore = useArticlesStore\(\)/)
   assert.match(articleEditorDesign, /storeToRefs\(articlesStore\)/)
   assert.match(articleEditorDesign, /articlesStore\.fetchArticles\(/)

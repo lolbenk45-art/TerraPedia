@@ -441,7 +441,7 @@ onUnmounted(() => {
 .sidebar {
   position: fixed;
   inset: 0 auto 0 0;
-  z-index: 120;
+  z-index: var(--z-sidebar);
   width: var(--sidebar-width);
   display: flex;
   flex-direction: column;
@@ -796,7 +796,7 @@ onUnmounted(() => {
 .header {
   position: sticky;
   top: 0;
-  z-index: 90;
+  z-index: var(--z-header);
   min-height: var(--header-height);
   display: flex;
   align-items: center;
@@ -1014,7 +1014,7 @@ onUnmounted(() => {
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 110;
+  z-index: var(--z-mobile-scrim);
   border: 0;
   background: var(--color-bg-sidebar-scrim);
   cursor: pointer;

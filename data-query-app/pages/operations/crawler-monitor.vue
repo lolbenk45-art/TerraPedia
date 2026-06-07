@@ -1,5 +1,5 @@
 <template>
-  <div class="page-wrap crawler-monitor">
+  <div class="page-wrap page-workspace crawler-monitor">
     <section class="workspace-shell workspace-shell--unified">
       <div class="workspace-hero workspace-hero--unified monitor-hero">
         <div class="workspace-hero__copy">
@@ -34,7 +34,7 @@
       </div>
     </section>
 
-    <section class="status-grid">
+    <section class="section-card status-grid">
       <article v-for="card in statusCards" :key="card.label" class="status-card">
         <span class="status-card__icon" :class="card.tone">
           <component :is="card.icon" :size="18" />
@@ -47,7 +47,7 @@
       </article>
     </section>
 
-    <section v-if="refreshStale" class="stale-alert">
+    <section v-if="refreshStale" class="section-card stale-alert">
       <span class="stale-alert__icon">
         <AlertTriangle :size="20" />
       </span>
@@ -58,7 +58,7 @@
       </div>
     </section>
 
-    <section class="source-progress-panel" aria-label="源快照实时进度">
+    <section class="section-card source-progress-panel" aria-label="源快照实时进度">
       <div class="source-progress-panel__head">
         <div>
           <h2 class="section-card__title">源快照实时进度</h2>
@@ -2282,8 +2282,8 @@ function shortArgs(args?: string[]) {
 
 .report-preview-shell {
   position: fixed;
-  inset: 0;
-  z-index: 80;
+  inset: var(--header-height) 0 0 var(--sidebar-width);
+  z-index: var(--z-page-popover);
   display: flex;
   justify-content: flex-end;
   background: rgb(15 23 42 / 42%);
@@ -2297,7 +2297,7 @@ function shortArgs(args?: string[]) {
 
 .report-preview-drawer {
   width: min(760px, calc(100vw - 24px));
-  height: 100dvh;
+  height: 100%;
   grid-template-rows: auto auto minmax(0, 1fr);
   padding: 20px;
   border-left: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
@@ -2419,6 +2419,10 @@ function shortArgs(args?: string[]) {
 }
 
 @media (max-width: 980px) {
+  .report-preview-shell {
+    inset: var(--header-height) 0 0 0;
+  }
+
   .source-progress-panel__head {
     display: grid;
   }

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-definePageMeta({ layout: false })
-
 const versions = [
   { id: 'canvas', label: 'A 纯写作画布' },
   { id: 'immersive', label: 'B 沉浸写作' },
@@ -31,24 +29,28 @@ const paragraphs = [
 </script>
 
 <template>
-  <main class="writing-design-page">
-    <header class="design-topbar">
-      <div>
-        <p>TerraPedia · Writing Mode Drafts</p>
-        <h1>文章编辑页写作模式三版设计稿</h1>
-      </div>
-      <nav aria-label="设计稿版本">
-        <button
-          v-for="version in versions"
-          :key="version.id"
-          type="button"
-          :class="{ active: activeVersion === version.id }"
-          @click="activeVersion = version.id"
-        >
-          {{ version.label }}
-        </button>
-      </nav>
-    </header>
+  <section class="screen entity-screen active">
+    <TerraNav />
+    <TerraBreadcrumb />
+
+    <main class="tp-page-shell writing-design-page">
+      <header class="design-topbar">
+        <div>
+          <p>TerraPedia · Writing Mode Drafts</p>
+          <h1>文章编辑页写作模式三版设计稿</h1>
+        </div>
+        <nav aria-label="设计稿版本">
+          <button
+            v-for="version in versions"
+            :key="version.id"
+            type="button"
+            :class="{ active: activeVersion === version.id }"
+            @click="activeVersion = version.id"
+          >
+            {{ version.label }}
+          </button>
+        </nav>
+      </header>
 
     <section v-if="activeVersion === 'canvas'" class="draft-shell canvas-shell" :class="{ 'is-writing': writingMode }">
       <header class="compact-editor-head">
@@ -190,7 +192,10 @@ const paragraphs = [
         </aside>
       </section>
     </section>
-  </main>
+    </main>
+
+    <TerraFooter />
+  </section>
 </template>
 
 <style scoped>

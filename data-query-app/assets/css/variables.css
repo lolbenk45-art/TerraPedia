@@ -79,6 +79,14 @@
   --header-height: 72px;
   --content-max-width: 1400px;
   --content-gutter: clamp(18px, 2vw, 30px);
+  --admin-sticky-top: calc(var(--header-height) + 12px);
+  --z-page-sticky: 20;
+  --z-page-popover: 70;
+  --z-header: 90;
+  --z-mobile-scrim: 110;
+  --z-sidebar: 120;
+  --z-modal: 2000;
+  --z-toast: 3000;
 
   --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-emphasis: cubic-bezier(0.16, 1, 0.3, 1);

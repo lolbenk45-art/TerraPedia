@@ -16,6 +16,7 @@ function escapeRegExp(value) {
 test('armor attributes admin page consumes read-only admin APIs', () => {
   const page = read('data-query-app/pages/operations/armor-attributes.vue')
 
+  assert.match(page, /class="page-wrap page-workspace armor-attributes-admin"/)
   assert.match(page, /definePageMeta\(\{\s*title:\s*'盔甲属性表'/)
   assert.match(page, /navSection:\s*'\/operations\/armor-attributes'/)
   assert.match(page, /get<ArmorAttributeSummaryResponse>\('\/admin\/armor-attributes\/summary'\)/)

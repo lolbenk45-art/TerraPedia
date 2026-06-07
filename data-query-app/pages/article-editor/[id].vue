@@ -1,5 +1,5 @@
 <template>
-  <div class="article-editor-route">
+  <div class="page-wrap page-workspace article-editor-route">
     <ClientOnly>
       <div v-if="loading" class="article-editor-route__state">正在载入文章...</div>
       <div v-else-if="loadError" class="article-editor-route__state article-editor-route__state--error">
