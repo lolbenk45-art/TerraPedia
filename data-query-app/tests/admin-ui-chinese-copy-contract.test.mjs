@@ -71,6 +71,17 @@ test('admin sidebar keeps current visual style while separating crowded operatio
   assert.doesNotMatch(assetTools, /name: '评论管理'/)
 })
 
+test('admin sidebar sections can collapse without changing the current link style', () => {
+  assert.match(layout, /<button[\s\S]*class="sidebar__section-toggle"/)
+  assert.match(layout, /:aria-expanded="!isMenuSectionCollapsed\(section\.label\)"/)
+  assert.match(layout, /@click="toggleMenuSection\(section\.label\)"/)
+  assert.match(layout, /<div[\s\S]*class="sidebar__section-items"[\s\S]*v-show="desktopCollapsed \|\| !isMenuSectionCollapsed\(section\.label\)"/)
+  assert.match(layout, /const collapsedMenuSections = ref<Set<string>>\(new Set\(\)\)/)
+  assert.match(layout, /function toggleMenuSection\(label: string\)/)
+  assert.match(layout, /function isMenuSectionCollapsed\(label: string\)/)
+  assert.match(layout, /class="sidebar__link"/)
+})
+
 test('shared admin pages keep Chinese-first visible operator copy', () => {
   assert.match(indexPage, /概览/)
   assert.match(login, /TerraPedia 管理端/)

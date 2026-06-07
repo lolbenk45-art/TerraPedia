@@ -49,30 +49,48 @@
 
       <nav class="sidebar__nav" aria-label="后台导航">
         <section v-for="section in menuSections" :key="section.label" class="sidebar__section">
-          <p v-if="!desktopCollapsed" class="sidebar__section-label">{{ section.label }}</p>
-
-          <NuxtLink
-            v-for="item in section.items"
-            :key="item.path"
-            :to="item.path"
-            class="sidebar__link"
-            :class="{ 'sidebar__link--active': isActive(item.path) }"
-            :aria-current="isActive(item.path) ? 'page' : undefined"
-            @click="handleNavClick"
+          <button
+            v-if="!desktopCollapsed"
+            type="button"
+            class="sidebar__section-toggle"
+            :aria-expanded="!isMenuSectionCollapsed(section.label)"
+            @click="toggleMenuSection(section.label)"
           >
-            <span class="sidebar__link-icon">
-              <component :is="item.icon" :size="18" />
-            </span>
+            <span>{{ section.label }}</span>
+            <ChevronDown
+              class="sidebar__section-toggle-icon"
+              :class="{ 'sidebar__section-toggle-icon--collapsed': isMenuSectionCollapsed(section.label) }"
+              :size="14"
+            />
+          </button>
 
-            <span v-if="!desktopCollapsed" class="sidebar__link-copy">
-              <span class="sidebar__link-text">{{ item.name }}</span>
-              <small class="sidebar__link-hint">{{ item.hint }}</small>
-            </span>
+          <div
+            class="sidebar__section-items"
+            v-show="desktopCollapsed || !isMenuSectionCollapsed(section.label)"
+          >
+            <NuxtLink
+              v-for="item in section.items"
+              :key="item.path"
+              :to="item.path"
+              class="sidebar__link"
+              :class="{ 'sidebar__link--active': isActive(item.path) }"
+              :aria-current="isActive(item.path) ? 'page' : undefined"
+              @click="handleNavClick"
+            >
+              <span class="sidebar__link-icon">
+                <component :is="item.icon" :size="18" />
+              </span>
 
-            <ChevronRight v-if="!desktopCollapsed" class="sidebar__link-chevron" :size="16" />
+              <span v-if="!desktopCollapsed" class="sidebar__link-copy">
+                <span class="sidebar__link-text">{{ item.name }}</span>
+                <small class="sidebar__link-hint">{{ item.hint }}</small>
+              </span>
 
-            <span v-if="desktopCollapsed" class="sidebar__link-tooltip">{{ item.name }}</span>
-          </NuxtLink>
+              <ChevronRight v-if="!desktopCollapsed" class="sidebar__link-chevron" :size="16" />
+
+              <span v-if="desktopCollapsed" class="sidebar__link-tooltip">{{ item.name }}</span>
+            </NuxtLink>
+          </div>
         </section>
       </nav>
 
@@ -213,6 +231,7 @@ const isDesktopCollapsed = ref(false)
 const isMobile = ref(false)
 const isMobileNavOpen = ref(false)
 const userOpen = ref(false)
+const collapsedMenuSections = ref<Set<string>>(new Set())
 const userMenuRef = ref<HTMLElement | null>(null)
 
 type BreadcrumbItem = {
@@ -306,6 +325,22 @@ const flatMenuItems = menuSections.flatMap((section) => section.items)
 const desktopCollapsed = computed(() => !isMobile.value && isDesktopCollapsed.value)
 const headerVariant = computed<HeaderVariant>(() => (route.meta.headerVariant === 'compact' ? 'compact' : 'default'))
 const sidebarToggleLabel = computed(() => (desktopCollapsed.value ? '展开侧栏' : '折叠侧栏'))
+
+function toggleMenuSection(label: string) {
+  const next = new Set(collapsedMenuSections.value)
+
+  if (next.has(label)) {
+    next.delete(label)
+  } else {
+    next.add(label)
+  }
+
+  collapsedMenuSections.value = next
+}
+
+function isMenuSectionCollapsed(label: string) {
+  return collapsedMenuSections.value.has(label)
+}
 
 const currentPageTitle = computed(() => {
   if (typeof route.meta.title === 'string' && route.meta.title.trim()) {
@@ -587,14 +622,49 @@ onUnmounted(() => {
   gap: 6px;
 }
 
-.sidebar__section-label {
+.sidebar__section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   margin: 0;
   padding: 0 12px;
+  border: 0;
+  background: transparent;
   color: var(--color-text-sidebar-muted);
   font-size: 0.72rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   font-weight: 800;
+  cursor: pointer;
+  transition:
+    color var(--transition-fast) var(--ease-standard),
+    opacity var(--transition-fast) var(--ease-standard);
+}
+
+.sidebar__section-toggle:hover,
+.sidebar__section-toggle:focus-visible {
+  color: var(--color-text-inverse);
+}
+
+.sidebar__section-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-text-inverse) 42%, transparent);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+.sidebar__section-toggle-icon {
+  flex: 0 0 auto;
+  transition: transform var(--transition-fast) var(--ease-standard);
+}
+
+.sidebar__section-toggle-icon--collapsed {
+  transform: rotate(-90deg);
+}
+
+.sidebar__section-items {
+  display: grid;
+  gap: 6px;
 }
 
 .sidebar__link {
