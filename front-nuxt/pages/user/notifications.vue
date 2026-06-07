@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { UserNotification } from '~/types/public-api'
+import { formatDisplayDateTime } from '~/lib/displayDateTime.mjs'
 
 definePageMeta({ requiresUserAuth: true })
 
@@ -136,7 +137,7 @@ await loadNotifications()
             <span class="notification-unread-dot" :class="{ read: notification.read }" aria-hidden="true"></span>
             <div class="notification-row-copy">
               <div class="notification-row-meta">
-                <time :datetime="notification.createdAt || undefined">{{ notification.createdAt || '刚刚' }}</time>
+                <time :datetime="notification.createdAt || undefined">{{ formatDisplayDateTime(notification.createdAt) || '刚刚' }}</time>
               </div>
               <b class="notification-title">{{ notification.title }}</b>
               <p class="notification-body">{{ notification.body || '账号事件已更新。' }}</p>

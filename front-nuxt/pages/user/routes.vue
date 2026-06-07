@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { UserSavedRoute } from '~/types/public-api'
+import { formatDisplayDateTime } from '~/lib/displayDateTime.mjs'
 
 definePageMeta({ requiresUserAuth: true })
 
@@ -80,7 +81,7 @@ await loadRoutes()
             </span>
             <span v-else class="sprite-icon card-icon icon-crafting" aria-hidden="true"></span>
             <b>{{ route.title || `路线 ${route.targetId}` }}</b>
-            <span>{{ route.updatedAt ? `更新于 ${route.updatedAt}` : '已保存制作路线' }}</span>
+            <span>{{ route.updatedAt ? `更新于 ${formatDisplayDateTime(route.updatedAt)}` : '已保存制作路线' }}</span>
             <em>制作</em>
           </a>
           <button class="favorite-remove-button" type="button" :disabled="routesStore.mutating" @click="removeRoute(route)">

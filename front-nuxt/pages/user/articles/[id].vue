@@ -4,6 +4,7 @@ definePageMeta({ requiresUserAuth: true })
 import type { UserArticle } from '~/types/public-api'
 import UserArticleRichEditor from '~/components/user/UserArticleRichEditor.vue'
 import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
+import { formatDisplayDateTime } from '~/lib/displayDateTime.mjs'
 
 const route = useRoute()
 const authStore = useUserAuthStore()
@@ -386,8 +387,8 @@ onMounted(() => {
           <div class="material-row" :class="{ done: form.contentHtml.trim(), missing: !form.contentHtml.trim() }"><b>正文</b><span>{{ form.contentHtml.trim() ? '已填写' : '必填' }}</span></div>
           <div class="material-row"><b>发布状态</b><span>{{ article ? formatArticleStatus(article.status) : '加载中' }}</span></div>
           <div class="material-row"><b>审核状态</b><span>{{ article ? formatReviewStatus(article.reviewStatus) : '加载中' }}</span></div>
-          <div v-if="article?.submittedAt" class="material-row"><b>提交时间</b><span>{{ article.submittedAt }}</span></div>
-          <div v-if="article?.reviewedAt" class="material-row"><b>审核时间</b><span>{{ article.reviewedAt }}</span></div>
+          <div v-if="article?.submittedAt" class="material-row"><b>提交时间</b><span>{{ formatDisplayDateTime(article.submittedAt) }}</span></div>
+          <div v-if="article?.reviewedAt" class="material-row"><b>审核时间</b><span>{{ formatDisplayDateTime(article.reviewedAt) }}</span></div>
           <div v-if="article?.reviewComment" class="material-row missing"><b>审核意见</b><span>{{ article.reviewComment }}</span></div>
           <div v-if="article?.status === 'PUBLISHED' && article.slug" class="material-row done">
             <b>公开页</b><a :href="`/articles/${article.slug}`">查看公开页</a>

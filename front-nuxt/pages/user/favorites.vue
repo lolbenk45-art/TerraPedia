@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { UserFavorite, UserFavoriteTypeFilter } from '~/types/public-api'
+import { formatDisplayDateTime } from '~/lib/displayDateTime.mjs'
 
 definePageMeta({ requiresUserAuth: true })
 
@@ -123,7 +124,7 @@ await loadFavorites(preferencesStore.preferences.defaultFavoritesFilter)
             </span>
             <span v-else class="sprite-icon card-icon" :class="favorite.targetType === 'ARTICLE' ? 'icon-article' : 'icon-items'" aria-hidden="true"></span>
             <b>{{ favorite.title || `收藏 ${favorite.targetId}` }}</b>
-            <span>{{ favorite.createdAt ? `收藏于 ${favorite.createdAt}` : '已加入当前账号收藏' }}</span>
+            <span>{{ favorite.createdAt ? `收藏于 ${formatDisplayDateTime(favorite.createdAt)}` : '已加入当前账号收藏' }}</span>
             <em>{{ favoriteTypeLabel(favorite) }}</em>
           </a>
           <button class="favorite-remove-button" type="button" :disabled="favoritesStore.mutating" @click="removeFavorite(favorite)">

@@ -3,6 +3,7 @@ definePageMeta({ requiresUserAuth: true })
 
 import type { UserArticle } from '~/types/public-api'
 import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
+import { formatDisplayDateTime } from '~/lib/displayDateTime.mjs'
 
 const authStore = useUserAuthStore()
 const error = ref('')
@@ -59,7 +60,7 @@ const stripArticleText = (value: string) => value
 const articleWordCount = (article: UserArticle) => stripArticleText(article.contentHtml || article.contentMarkdown || '').length
 const articleImageCount = (article: UserArticle) => (article.contentHtml.match(/<img\b/gi) || []).length
 const articleCoverUrl = (article: UserArticle) => resolvePreviewImageUrl(article.coverImage)
-const articleTimestamp = (article: UserArticle) => article.updatedAt || article.createdAt || '未记录时间'
+const articleTimestamp = (article: UserArticle) => formatDisplayDateTime(article.updatedAt || article.createdAt) || '未记录时间'
 
 const articleSummary = (article: UserArticle) => {
   const summary = article.summary?.trim()
@@ -249,8 +250,8 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
 
             <div class="article-time-cell">
               <span>更新 {{ articleTimestamp(article) }}</span>
-              <span v-if="article.submittedAt">提交 {{ article.submittedAt }}</span>
-              <span v-if="article.publishedAt">发布 {{ article.publishedAt }}</span>
+              <span v-if="article.submittedAt">提交 {{ formatDisplayDateTime(article.submittedAt) }}</span>
+              <span v-if="article.publishedAt">发布 {{ formatDisplayDateTime(article.publishedAt) }}</span>
             </div>
 
             <div class="article-next-step">
