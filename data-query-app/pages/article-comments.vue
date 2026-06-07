@@ -20,6 +20,16 @@
             <option value="PUBLISHED">已发布</option>
             <option value="OFFLINE">已下线</option>
           </select>
+          <select v-model="articleListSortBy" class="comment-input" @change="handleArticleListSearch">
+            <option value="commentCount">评论数</option>
+            <option value="viewCount">浏览数</option>
+            <option value="updatedAt">更新时间</option>
+            <option value="id">文章 ID</option>
+          </select>
+          <select v-model="articleListSortOrder" class="comment-input" @change="handleArticleListSearch">
+            <option value="desc">降序</option>
+            <option value="asc">升序</option>
+          </select>
           <button type="submit" class="page-btn page-btn--primary" :disabled="articleListLoading">
             {{ articleListLoading ? '搜索中...' : '搜索文章' }}
           </button>
@@ -457,6 +467,8 @@ const {
   pagination: articleListPagination,
   keyword: articleKeyword,
   status: articleStatus,
+  sortBy: articleListSortBy,
+  sortOrder: articleListSortOrder,
 } = storeToRefs(articlesStore)
 const {
   currentArticle,
@@ -647,6 +659,8 @@ const handleArticleListSearch = async () => {
 const handleArticleListReset = async () => {
   articleKeyword.value = ''
   articleStatus.value = ''
+  articleListSortBy.value = 'commentCount'
+  articleListSortOrder.value = 'desc'
   await articlesStore.fetchArticles(1, articleListPagination.value.size)
   await refreshVisibleArticleCommentCounts()
 }
@@ -762,6 +776,8 @@ onMounted(async () => {
   clearDetail()
   articleKeyword.value = ''
   articleStatus.value = ''
+  articleListSortBy.value = 'commentCount'
+  articleListSortOrder.value = 'desc'
   await articlesStore.fetchArticles(1, articleListPagination.value.size)
   await refreshVisibleArticleCommentCounts()
 })
@@ -800,7 +816,7 @@ onMounted(async () => {
 }
 
 .article-list-toolbar {
-  grid-template-columns: minmax(260px, 1fr) 160px max-content max-content;
+  grid-template-columns: minmax(220px, 1fr) 150px 130px 100px max-content max-content;
 }
 
 .comment-filter-toolbar {

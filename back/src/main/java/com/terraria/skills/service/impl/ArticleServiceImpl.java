@@ -49,9 +49,15 @@ public class ArticleServiceImpl implements ArticleService {
     private final UserAvatarUrlResolver userAvatarUrlResolver;
 
     @Override
-    public Page<ArticleDTO> getAdminArticles(int page, int limit, String keyword, String status) {
+    public Page<ArticleDTO> getAdminArticles(int page, int limit, String keyword, String status, String sortBy, String sortOrder) {
         Page<ArticleDTO> mpPage = new Page<>(Math.max(1, page), Math.max(1, Math.min(limit, 100)));
-        return normalizeArticlePage(articleMapper.selectAdminArticlesPage(mpPage, trimToNull(keyword), normalizeStatusAllowNull(status)));
+        return normalizeArticlePage(articleMapper.selectAdminArticlesPage(
+            mpPage,
+            trimToNull(keyword),
+            normalizeStatusAllowNull(status),
+            normalizeAdminArticleSortBy(sortBy),
+            normalizeSortOrder(sortOrder)
+        ));
     }
 
     @Override
@@ -777,6 +783,22 @@ public class ArticleServiceImpl implements ArticleService {
             return null;
         }
         return normalizeStatus(trimmed);
+    }
+
+    private String normalizeAdminArticleSortBy(String value) {
+        String normalized = trimToNull(value);
+        if (normalized == null) {
+            return "commentCount";
+        }
+        if ("commentCount".equals(normalized) || "viewCount".equals(normalized) || "updatedAt".equals(normalized) || "id".equals(normalized)) {
+            return normalized;
+        }
+        return "commentCount";
+    }
+
+    private String normalizeSortOrder(String value) {
+        String normalized = trimToNull(value);
+        return "asc".equalsIgnoreCase(normalized) ? "asc" : "desc";
     }
 
     private String normalizeStatus(String value) {

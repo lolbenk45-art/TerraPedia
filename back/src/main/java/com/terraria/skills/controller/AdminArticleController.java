@@ -48,11 +48,13 @@ public class AdminArticleController {
         @RequestParam(required = false) Integer limit,
         @RequestParam(required = false) Integer size,
         @RequestParam(required = false) String keyword,
-        @RequestParam(required = false) String status
+        @RequestParam(required = false) String status,
+        @RequestParam(required = false) String sortBy,
+        @RequestParam(required = false) String sortOrder
     ) {
         int resolvedPage = PaginationParams.resolvePage(page);
         int resolvedLimit = PaginationParams.resolveLimit(limit, size, 20);
-        Page<ArticleDTO> articlePage = articleService.getAdminArticles(resolvedPage, resolvedLimit, keyword, status);
+        Page<ArticleDTO> articlePage = articleService.getAdminArticles(resolvedPage, resolvedLimit, keyword, status, sortBy, sortOrder);
         ApiResponse<List<ArticleDTO>> response = ApiResponse.success(articlePage.getRecords());
         response.setPagination(new Pagination(articlePage.getTotal(), (int) articlePage.getCurrent(), (int) articlePage.getSize()));
         return ResponseEntity.ok(response);

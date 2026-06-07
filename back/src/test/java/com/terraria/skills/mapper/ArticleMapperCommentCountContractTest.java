@@ -20,6 +20,19 @@ class ArticleMapperCommentCountContractTest {
     }
 
     @Test
+    void adminArticleListUsesWhitelistedSortBranches() throws IOException {
+        String query = selectSql(Files.readString(Path.of("src/main/resources/mapper/ArticleMapper.xml")), "selectAdminArticlesPage");
+
+        assertTrue(query.contains("<when test=\"sortBy == 'commentCount'\">commentCount</when>"));
+        assertTrue(query.contains("<when test=\"sortBy == 'viewCount'\">viewCount</when>"));
+        assertTrue(query.contains("<when test=\"sortBy == 'updatedAt'\">a.updated_at</when>"));
+        assertTrue(query.contains("<when test=\"sortBy == 'id'\">a.id</when>"));
+        assertTrue(query.contains("<when test=\"sortOrder == 'asc'\">ASC</when>"));
+        assertFalse(query.contains("${sortBy}"));
+        assertFalse(query.contains("${sortOrder}"));
+    }
+
+    @Test
     void publicArticleQueriesCountOnlyVisibleRootComments() throws IOException {
         String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ArticleMapper.xml"));
 

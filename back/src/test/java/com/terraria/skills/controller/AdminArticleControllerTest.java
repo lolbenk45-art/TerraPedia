@@ -49,6 +49,19 @@ class AdminArticleControllerTest {
     }
 
     @Test
+    void shouldPassArticleListSortOptionsToService() throws Exception {
+        when(articleService.getAdminArticles(1, 20, null, null, "commentCount", "desc"))
+            .thenReturn(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, 20));
+
+        mockMvc.perform(get("/admin/articles")
+                .param("sortBy", "commentCount")
+                .param("sortOrder", "desc"))
+            .andExpect(status().isOk());
+
+        verify(articleService).getAdminArticles(1, 20, null, null, "commentCount", "desc");
+    }
+
+    @Test
     void shouldOfflinePublishedArticleThroughAdminAction() throws Exception {
         when(articleService.offlineArticle(eq(7L), eq("admin"), anyString()))
             .thenReturn(article(7L, "Guide", null, "OFFLINE", "APPROVED"));

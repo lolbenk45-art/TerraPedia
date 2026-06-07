@@ -54,7 +54,19 @@
                 AND a.status = #{status}
             </if>
         </where>
-        ORDER BY a.id DESC
+        ORDER BY
+        <choose>
+            <when test="sortBy == 'commentCount'">commentCount</when>
+            <when test="sortBy == 'viewCount'">viewCount</when>
+            <when test="sortBy == 'updatedAt'">a.updated_at</when>
+            <when test="sortBy == 'id'">a.id</when>
+            <otherwise>commentCount</otherwise>
+        </choose>
+        <choose>
+            <when test="sortOrder == 'asc'">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>,
+        a.id DESC
     </select>
 
     <select id="selectPublishedArticlesPage" resultType="com.terraria.skills.dto.ArticleDTO">

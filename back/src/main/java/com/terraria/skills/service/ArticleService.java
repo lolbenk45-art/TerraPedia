@@ -8,7 +8,7 @@ import com.terraria.skills.dto.UserArticleUpsertRequestDTO;
 
 public interface ArticleService {
 
-    Page<ArticleDTO> getAdminArticles(int page, int limit, String keyword, String status);
+    Page<ArticleDTO> getAdminArticles(int page, int limit, String keyword, String status, String sortBy, String sortOrder);
 
     ArticleDTO getAdminArticleById(Long id);
 

@@ -5,6 +5,8 @@ import { showToast } from '~/composables/useToast'
 export type ArticleStatus = 'DRAFT' | 'PUBLISHED' | 'OFFLINE'
 export type ArticleReviewStatus = 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'
 export type ArticleReviewAction = 'APPROVE' | 'REJECT'
+export type AdminArticleListSortBy = 'commentCount' | 'viewCount' | 'updatedAt' | 'id'
+export type AdminArticleListSortOrder = 'desc' | 'asc'
 
 export interface AdminArticle {
   id: number
@@ -335,6 +337,8 @@ export const useArticlesStore = defineStore('articles', () => {
   const pagination = ref<PaginationState>(defaultPagination())
   const keyword = ref('')
   const status = ref<ArticleStatus | ''>('')
+  const sortBy = ref<AdminArticleListSortBy>('commentCount')
+  const sortOrder = ref<AdminArticleListSortOrder>('desc')
 
   const syncArticle = (nextArticle: AdminArticle) => {
     const index = articles.value.findIndex(item => item.id === nextArticle.id)
@@ -351,6 +355,8 @@ export const useArticlesStore = defineStore('articles', () => {
         limit: size,
         keyword: keyword.value || undefined,
         status: status.value || undefined,
+        sortBy: sortBy.value,
+        sortOrder: sortOrder.value,
       })
 
       const nextArticles = normalizeArticles(response)
@@ -594,6 +600,8 @@ export const useArticlesStore = defineStore('articles', () => {
     pagination,
     keyword,
     status,
+    sortBy,
+    sortOrder,
     fetchArticles,
     fetchArticleById,
     createArticle,

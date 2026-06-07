@@ -14,7 +14,9 @@ public interface ArticleMapper extends BaseMapper<Article> {
     Page<ArticleDTO> selectAdminArticlesPage(
         Page<ArticleDTO> page,
         @Param("keyword") String keyword,
-        @Param("status") String status
+        @Param("status") String status,
+        @Param("sortBy") String sortBy,
+        @Param("sortOrder") String sortOrder
     );
 
     Page<ArticleDTO> selectPublishedArticlesPage(
