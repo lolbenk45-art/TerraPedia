@@ -1,0 +1,23 @@
+{
+  "generatedAt": "2026-06-04T02:04:51.801Z",
+  "dateTag": "2026-06-04",
+  "apply": true,
+  "localDatabase": "terria_v1_local",
+  "relationDatabase": "terria_v1_relation",
+  "backupSuffix": "20260604020451",
+  "backups": {
+    "itemImagesBackupTable": "item_images_relation_backup_20260604020451",
+    "itemsBackupTable": "items_relation_backup_20260604020451"
+  },
+  "summary": {
+    "localItems": 6159,
+    "localItemImagesBefore": 12323,
+    "localItemImagesAfter": 4101,
+    "relationItemImages": 4788,
+    "relationImagesMatchedToLocalItems": 4101,
+    "localItemsWithWikiImageBefore": 2,
+    "localItemsWithWikiImageAfter": 2354,
+    "localItemsWithMinioImageBefore": 6131,
+    "localItemsWithMinioImageAfter": 3782
+  }
+}

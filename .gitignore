@@ -69,6 +69,7 @@ reports/db-backup/
 scripts/dev/local-stack.config.json
 scripts/dev/config/local-stack.config.json
 scripts/dev/config/credentials.json
+scripts/dev/config/test_user.json
 scripts/tooling/powershell/start-vs2022-codex-devshells.config.json
 scripts/tooling/image-2/xlab.json
 scripts/tooling/image-2/generated/

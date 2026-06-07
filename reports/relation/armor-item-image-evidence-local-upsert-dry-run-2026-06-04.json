@@ -1,0 +1,135 @@
+{
+  "generatedAt": "2026-06-04T02:08:12.601Z",
+  "apply": false,
+  "evidencePath": "/home/lolben/TerraPedia/reports/armor-item-image-evidence-2026-06-04.json",
+  "localDatabase": "terria_v1_local",
+  "evidenceCandidateCount": 578,
+  "plannedUpsertCount": 578,
+  "skippedCount": 0,
+  "skipped": [],
+  "insertedCount": 0,
+  "updatedCount": 0,
+  "itemImageUpdatedCount": 0,
+  "sampleRows": [
+    {
+      "itemId": 205,
+      "internalName": "EmptyBucket",
+      "sourceFileTitle": "Empty Bucket.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/b41c88f19ad2475e84d892df3a982b2d.png"
+    },
+    {
+      "itemId": 250,
+      "internalName": "FishBowl",
+      "sourceFileTitle": "Fish Bowl.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/85a90f3a8f0643dfbcf416f8a029bfc5.png"
+    },
+    {
+      "itemId": 403,
+      "internalName": "AdamantiteBreastplate",
+      "sourceFileTitle": "Adamantite Breastplate.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/36b8b184db144067bc0c86ee26769d71.png"
+    },
+    {
+      "itemId": 866,
+      "internalName": "PharaohsRobe",
+      "sourceFileTitle": "Pharaoh's Robe.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/decbe9c4ff6441f48ef343a2f1609f85.png"
+    },
+    {
+      "itemId": 4135,
+      "internalName": "GolfHat",
+      "sourceFileTitle": "Country Club set (cap).png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/742d77237c2e4694ac9cbbce60b3b5a6.png"
+    },
+    {
+      "itemId": 4138,
+      "internalName": "GolfVisor",
+      "sourceFileTitle": "Country Club set (visor).png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/c74352ee6f2941b6b70bb6f3d23aefd9.png"
+    },
+    {
+      "itemId": 4275,
+      "internalName": "GoldGoldfishBowl",
+      "sourceFileTitle": "Gold Fish Bowl.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/3166f83b87d24347b5538c4183ec5965.png"
+    },
+    {
+      "itemId": 5059,
+      "internalName": "CapricornLegs",
+      "sourceFileTitle": "Capricorn set Hooves.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/fc993c9421204719b9fb69177a8cc716.png"
+    },
+    {
+      "itemId": 5060,
+      "internalName": "CapricornTail",
+      "sourceFileTitle": "Capricorn set Tail.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/0d0f384093344fe6b2f0e2900783af92.png"
+    },
+    {
+      "itemId": 76,
+      "internalName": "CopperGreaves",
+      "sourceFileTitle": "Copper Greaves.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/52b0f922a55e4f97bca2a914a6babb62.png"
+    },
+    {
+      "itemId": 77,
+      "internalName": "IronGreaves",
+      "sourceFileTitle": "Iron Greaves.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/2315d5ade92e4c57b934889d5b08e753.png"
+    },
+    {
+      "itemId": 78,
+      "internalName": "SilverGreaves",
+      "sourceFileTitle": "Silver Greaves.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/92c3fea5c86846eb834b27cb48a66eb9.png"
+    },
+    {
+      "itemId": 79,
+      "internalName": "GoldGreaves",
+      "sourceFileTitle": "Gold Greaves.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/83902211bcaf44dfa692321a42dc5325.png"
+    },
+    {
+      "itemId": 80,
+      "internalName": "CopperChainmail",
+      "sourceFileTitle": "Copper Chainmail.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/685fb998ae004c0388999e77a5d7befd.png"
+    },
+    {
+      "itemId": 81,
+      "internalName": "IronChainmail",
+      "sourceFileTitle": "Iron Chainmail.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/38564ef05c404c748e2cc1ad33749760.png"
+    },
+    {
+      "itemId": 82,
+      "internalName": "SilverChainmail",
+      "sourceFileTitle": "Silver Chainmail.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/651cbb154cf548a4bec31dec664076e4.png"
+    },
+    {
+      "itemId": 83,
+      "internalName": "GoldChainmail",
+      "sourceFileTitle": "Gold Chainmail.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/ed66efbde7744768b8859cfc9134a38b.png"
+    },
+    {
+      "itemId": 88,
+      "internalName": "MiningHelmet",
+      "sourceFileTitle": "Mining Helmet.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/4bdfd86f03ea445ca64a1dc29dcc4bc9.png"
+    },
+    {
+      "itemId": 89,
+      "internalName": "CopperHelmet",
+      "sourceFileTitle": "Copper Helmet.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/c6ca8e14ba1c4d97ad5677c211171e28.png"
+    },
+    {
+      "itemId": 90,
+      "internalName": "IronHelmet",
+      "sourceFileTitle": "Iron Helmet.png",
+      "cachedUrl": "http://localhost:9000/terrapedia-images/items/2026/06/04/0cbcbf21095844eabf4cc8bba0a97fb6.png"
+    }
+  ]
+}
