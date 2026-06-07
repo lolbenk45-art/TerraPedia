@@ -9,9 +9,9 @@ import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
 
 const normalizeText = (value: unknown) => String(value ?? '').trim()
 
-const normalizeType = (value: unknown): 'item' | 'npc' | '' => {
+const normalizeType = (value: unknown): 'item' | 'npc' | 'boss' | '' => {
   const type = normalizeText(value).toLowerCase()
-  return type === 'item' || type === 'npc' ? type : ''
+  return type === 'item' || type === 'npc' || type === 'boss' ? type : ''
 }
 
 const normalizeId = (value: unknown) => {
@@ -19,8 +19,10 @@ const normalizeId = (value: unknown) => {
   return /^\d{1,12}$/.test(id) ? id : ''
 }
 
-const detailPathFromTypeId = (type: 'item' | 'npc', id: string) => {
-  return type === 'item' ? `/items/${id}` : `/npcs/${id}`
+const detailPathFromTypeId = (type: 'item' | 'npc' | 'boss', id: string) => {
+  if (type === 'item') return `/items/${id}`
+  if (type === 'npc') return `/npcs/${id}`
+  return `/bosses/${id}`
 }
 
 export const contentReferenceKey = (type: unknown, id: unknown) => {
@@ -54,7 +56,7 @@ export const searchPublicContentReferences = async (
   query: ContentReferenceSearchQuery = {},
 ): Promise<NormalizedContentReference[]> => {
   const q = normalizeText(query.q)
-  const types = Array.isArray(query.types) ? query.types.join(',') : normalizeText(query.types) || 'item,npc'
+  const types = Array.isArray(query.types) ? query.types.join(',') : normalizeText(query.types) || 'item,npc,boss'
   const response = await usePublicApiFetch<PublicContentReference[]>('/public/content-references', {
     query: {
       q,
@@ -73,7 +75,7 @@ export const resolvePublicContentReferences = async (
   const deduped = Array.from(new Map(
     refs
       .map(ref => ({ type: normalizeType(ref.type), id: normalizeId(ref.id) }))
-      .filter((ref): ref is { type: 'item' | 'npc', id: string } => Boolean(ref.type && ref.id))
+      .filter((ref): ref is { type: 'item' | 'npc' | 'boss', id: string } => Boolean(ref.type && ref.id))
       .map(ref => [`${ref.type}:${ref.id}`, ref]),
   ).values())
 

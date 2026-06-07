@@ -110,19 +110,19 @@ export type PublicContentReference = {
 
 export type ContentReferenceSearchQuery = {
   q?: string
-  types?: Array<'item' | 'npc'> | string
+  types?: Array<'item' | 'npc' | 'boss'> | string
   limit?: number
 }
 
 export type ContentReferenceResolveInput = {
-  type: 'item' | 'npc'
+  type: 'item' | 'npc' | 'boss'
   id: string | number
   label?: string | null
 }
 
 export type NormalizedContentReference = {
   key: string
-  type: 'item' | 'npc'
+  type: 'item' | 'npc' | 'boss'
   id: string
   label: string
   name: string

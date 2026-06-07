@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import type { ApiResponse, ArticleComment, ContentReferenceResolveInput, NormalizedContentReference, UserArticle } from '~/types/public-api'
+import type { ApiResponse, ArticleComment, ContentReferenceResolveInput, NormalizedContentReference, PublicItemRecipeTree, PublicItemRecipeTreeNode, PublicItemRecipeTreeVariant, UserArticle } from '~/types/public-api'
 import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
 import { unwrapApiResponse, usePublicApiFetch } from '~/composables/usePublicApi'
 import { contentReferenceKey, resolvePublicContentReferences } from '~/composables/usePublicContentReferences'
+import { fetchPublicRecipeTree } from '~/composables/usePublicRecipeTree'
 import {
   createArticleComment,
   createArticleCommentReply,
@@ -47,7 +48,7 @@ const ARTICLE_REFERENCE_PREVIEW_MARGIN = 12
 const articleReferencePreview = ref<{
   key: string
   label: string
-  type: 'item' | 'npc'
+  type: 'item' | 'npc' | 'boss'
   typeLabel: string
   id: string
   imageUrl: string
@@ -61,6 +62,7 @@ const articleReferencePreview = ref<{
   placement: 'right' | 'left' | 'bottom'
 } | null>(null)
 let articleReferenceLoadSequence = 0
+let articleRecipeTreeLoadSequence = 0
 const recordedArticleHistoryIds = new Set<string>()
 
 const slug = computed(() => String(route.params.slug ?? '').trim())
@@ -149,6 +151,32 @@ const sanitizeArticleStyle = (styleText: string) => {
   return allowed.join(';')
 }
 
+type ArticleReferenceType = 'item' | 'npc' | 'boss'
+
+const normalizeArticleReferenceType = (value: unknown): ArticleReferenceType | '' => {
+  const type = String(value ?? '').trim().toLowerCase()
+  return type === 'item' || type === 'npc' || type === 'boss' ? type : ''
+}
+
+const articleReferenceDetailPath = (type: ArticleReferenceType, id: string) => {
+  if (type === 'item') return `/items/${id}`
+  if (type === 'npc') return `/npcs/${id}`
+  return `/bosses/${id}`
+}
+
+const normalizeRecipeTreeDepth = (value: unknown) => {
+  const parsed = parseRecipeTreeDepth(value)
+  return parsed ?? 3
+}
+
+const parseRecipeTreeDepth = (value: unknown) => {
+  const text = String(value ?? '').trim()
+  if (!/^\d+$/.test(text)) return null
+  const depth = Number(value)
+  if (!Number.isInteger(depth) || depth < 1 || depth > 5) return null
+  return depth
+}
+
 const sanitizeArticleAttributes = (tagName: string, rawAttributes: string) => {
   const style = ['style']
   const allowedAttributes: Record<string, string[]> = {
@@ -163,7 +191,7 @@ const sanitizeArticleAttributes = (tagName: string, rawAttributes: string) => {
     ol: style,
     li: style,
     span: ['style', 'class', 'data-tp-ref-type', 'data-tp-ref-id', 'data-tp-ref-label', 'data-tp-ref-image', 'data-tp-ref-display'],
-    div: style,
+    div: ['style', 'class', 'data-tp-embed-type', 'data-tp-item-id', 'data-tp-max-depth', 'data-tp-label'],
     figure: style,
     figcaption: style,
     pre: style,
@@ -186,7 +214,7 @@ const sanitizeArticleAttributes = (tagName: string, rawAttributes: string) => {
     const rawValue = match[2] ?? match[3] ?? match[4] ?? ''
     rawAttributeValues.set(name, rawValue)
     if (name.startsWith('on')) hasEventAttribute = true
-    if (name.startsWith('data-tp-') && !['data-tp-ref-type', 'data-tp-ref-id', 'data-tp-ref-label', 'data-tp-ref-image', 'data-tp-ref-display'].includes(name)) {
+    if (name.startsWith('data-tp-') && !['data-tp-ref-type', 'data-tp-ref-id', 'data-tp-ref-label', 'data-tp-ref-image', 'data-tp-ref-display', 'data-tp-embed-type', 'data-tp-item-id', 'data-tp-max-depth', 'data-tp-label'].includes(name)) {
       hasUnexpectedDataTp = true
     }
   }
@@ -203,7 +231,7 @@ const sanitizeArticleAttributes = (tagName: string, rawAttributes: string) => {
   const referenceStyle = rawAttributeValues.has('style') ? sanitizeArticleStyle(String(rawAttributeValues.get('style') || '')) : ''
   const isAtomicReferenceValid = hasReferenceClass
     && referenceClasses.length === 1
-    && ['item', 'npc'].includes(referenceType)
+    && Boolean(normalizeArticleReferenceType(referenceType))
     && /^\d{1,12}$/.test(referenceId)
     && referenceLabel.length > 0
     && referenceLabel.length <= 80
@@ -215,9 +243,42 @@ const sanitizeArticleAttributes = (tagName: string, rawAttributes: string) => {
     && rawAttributeValues.has('data-tp-ref-type')
     && rawAttributeValues.has('data-tp-ref-id')
     && rawAttributeValues.has('data-tp-ref-label')
+  const embedClasses = String(rawAttributeValues.get('class') || '').trim().split(/\s+/).filter(Boolean)
+  const hasRecipeTreeEmbedClass = tagName === 'div' && embedClasses.includes('tp-recipe-tree')
+  const recipeTreeItemId = String(rawAttributeValues.get('data-tp-item-id') || '').trim()
+  const recipeTreeDepth = parseRecipeTreeDepth(rawAttributeValues.get('data-tp-max-depth'))
+  const recipeTreeLabel = String(rawAttributeValues.get('data-tp-label') || '').trim()
+  const isRecipeTreeEmbedValid = hasRecipeTreeEmbedClass
+    && embedClasses.length === 2
+    && embedClasses[0] === 'tp-article-embed'
+    && embedClasses[1] === 'tp-recipe-tree'
+    && String(rawAttributeValues.get('data-tp-embed-type') || '').trim() === 'recipe-tree'
+    && /^\d{1,12}$/.test(recipeTreeItemId)
+    && recipeTreeDepth !== null
+    && recipeTreeLabel.length > 0
+    && recipeTreeLabel.length <= 80
+    && !hasEventAttribute
+    && !hasUnexpectedDataTp
 
   for (const [name, rawValue] of rawAttributeValues) {
     if (!allowed.includes(name)) continue
+    if (tagName === 'div' && hasRecipeTreeEmbedClass && name === 'style') continue
+    if (tagName === 'div' && (name === 'class' || name.startsWith('data-tp-'))) {
+      if (!isRecipeTreeEmbedValid) continue
+      if (name === 'class') {
+        attributes.push('class="tp-article-embed tp-recipe-tree"')
+        continue
+      }
+      const safeEmbedValue = name === 'data-tp-embed-type'
+        ? 'recipe-tree'
+        : name === 'data-tp-item-id'
+          ? recipeTreeItemId
+          : name === 'data-tp-max-depth'
+            ? String(recipeTreeDepth ?? 3)
+            : recipeTreeLabel
+      attributes.push(`${name}="${escapeArticleHtml(safeEmbedValue)}"`)
+      continue
+    }
     if (tagName === 'span' && (name === 'class' || name.startsWith('data-tp-ref-'))) {
       if (!isAtomicReferenceValid) continue
       if (name === 'class') {
@@ -345,6 +406,12 @@ const sanitizeArticleHtml = (value: string) => {
   const stripped = source
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/<\s*(script|style|template|iframe|object|embed|form|svg|math)\b[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+    .replace(/<div\b([^>]*)>([\s\S]*?)<\/div>/gi, (full, rawAttributes) => {
+      if (!/\btp-recipe-tree\b/i.test(rawAttributes)) return full
+      const safeAttributes = sanitizeArticleAttributes('div', rawAttributes)
+      if (!/\bclass="tp-article-embed tp-recipe-tree"/.test(safeAttributes)) return ''
+      return `<div${safeAttributes}></div>`
+    })
     .replace(/<span\b([^>]*)>([\s\S]*?)<\/span>/gi, (full, rawAttributes, content) => {
       if (!/\btp-content-ref\b/i.test(rawAttributes)) return full
       if (/\s(on\w+)\s*=/i.test(content) || /\sdata-tp-(?!ref-type|ref-id|ref-label)[\w-]*\s*=/i.test(content)) {
@@ -404,6 +471,878 @@ const sanitizeArticleHtml = (value: string) => {
   return normalized || '<p>这篇文章暂时没有正文内容。</p>'
 }
 
+const normalizeRecipeTreeText = (value: unknown) => String(value ?? '').trim()
+
+const firstRecipeTreeText = (...values: unknown[]) => {
+  for (const value of values) {
+    const text = normalizeRecipeTreeText(value)
+    if (text) return text
+  }
+  return ''
+}
+
+const recipeTreeItemName = (tree: PublicItemRecipeTree | null | undefined, fallback = '') => firstRecipeTreeText(
+  tree?.item?.displayName,
+  tree?.item?.nameZh,
+  tree?.item?.name,
+  tree?.displayName,
+  tree?.resultName,
+  tree?.name,
+  fallback,
+)
+
+const recipeTreeItemImage = (tree: PublicItemRecipeTree | null | undefined) => sanitizeArticleUrl(firstRecipeTreeText(
+  tree?.item?.previewImage,
+  tree?.item?.imageUrl,
+  tree?.item?.image,
+  tree?.item?.iconUrl,
+), 'src')
+
+const isDefaultRecipeTreeVariant = (variant: PublicItemRecipeTreeVariant) => {
+  const text = firstRecipeTreeText(variant.versionScope, variant.variantKey, variant.variantLabel).toLowerCase()
+  return /(^|[^a-z])(pc|desktop|default|电脑版|电脑|默认)([^a-z]|$)/i.test(text)
+}
+
+const recipeTreeRootNodes = (tree: PublicItemRecipeTree | null | undefined): PublicItemRecipeTreeNode[] => {
+  if (!tree) return []
+  const variants = Array.isArray(tree.variants) ? tree.variants : []
+  const preferredVariant = variants.find(variant => isDefaultRecipeTreeVariant(variant) && Array.isArray(variant.roots) && variant.roots.length > 0)
+    || variants.find(variant => Array.isArray(variant.roots) && variant.roots.length > 0)
+  const preferredRoots = Array.isArray(preferredVariant?.roots) ? preferredVariant.roots : []
+  if (preferredRoots.length) return preferredRoots.slice(0, 1)
+  for (const nodes of [tree.materials, tree.ingredients, tree.children, tree.nodes]) {
+    if (Array.isArray(nodes) && nodes.length) return nodes.slice(0, 1)
+  }
+  return []
+}
+
+const recipeTreeStationCount = (tree: PublicItemRecipeTree | null | undefined) => {
+  if (!tree) return 0
+  const stationKeys = new Set<string>()
+  const addStation = (station: { stationItemId?: number | string | null, stationName?: string | null, stationNameZh?: string | null, name?: string | null, displayName?: string | null } | null | undefined) => {
+    if (!station) return
+    const key = firstRecipeTreeText(station.stationItemId, station.stationNameZh, station.stationName, station.displayName, station.name)
+    if (key) stationKeys.add(key)
+  }
+  for (const station of tree.stations || []) addStation(station)
+  for (const station of tree.craftingStations || []) addStation(station)
+  for (const root of recipeTreeRootNodes(tree)) {
+    for (const station of root.stations || []) addStation(station)
+  }
+  return stationKeys.size
+}
+
+const recipeTreeNodeName = (node: PublicItemRecipeTreeNode) => firstRecipeTreeText(
+  node.displayName,
+  node.itemNameZh,
+  node.itemName,
+  node.name,
+  node.itemInternalName,
+  '材料',
+)
+
+const recipeTreeNodeQuantity = (node: PublicItemRecipeTreeNode, isRoot = false) => {
+  const quantityText = firstRecipeTreeText(node.quantityText)
+  if (quantityText) return `x${quantityText.replace(/^x/i, '')}`
+  if (node.quantityMin && node.quantityMax && node.quantityMin !== node.quantityMax) return `x${node.quantityMin}-${node.quantityMax}`
+  const directQuantity = firstRecipeTreeText(node.quantityMin, node.quantity, node.amount, node.count)
+  if (directQuantity) return `x${directQuantity.replace(/^x/i, '')}`
+  const resultQuantity = Number(node.resultQuantity)
+  return isRoot && Number.isFinite(resultQuantity) && resultQuantity > 0 && resultQuantity <= 99 ? `x${resultQuantity}` : 'x1'
+}
+
+const recipeTreeNodeImage = (node: PublicItemRecipeTreeNode) => sanitizeArticleUrl(firstRecipeTreeText(
+  node.itemImage,
+  node.itemImageUrl,
+  node.image,
+  node.previewImage,
+  Array.isArray(node.groupMembers) ? node.groupMembers[0]?.image : '',
+  Array.isArray(node.groupMembers) ? node.groupMembers[0]?.imageUrl : '',
+), 'src')
+
+const recipeTreeStationName = (station: { stationName?: string | null, stationNameZh?: string | null, name?: string | null, displayName?: string | null, stationInternalName?: string | null } | null | undefined) => firstRecipeTreeText(
+  station?.displayName,
+  station?.stationNameZh,
+  station?.stationName,
+  station?.name,
+  station?.stationInternalName,
+)
+
+const recipeTreeStationImage = (station: { stationImage?: string | null, itemImage?: string | null, itemImageUrl?: string | null, image?: string | null } | null | undefined) => sanitizeArticleUrl(firstRecipeTreeText(
+  station?.stationImage,
+  station?.itemImage,
+  station?.itemImageUrl,
+  station?.image,
+), 'src')
+
+const recipeTreeNodeChildren = (node: PublicItemRecipeTreeNode) => Array.isArray(node.children) ? node.children : []
+
+const recipeTreeNodeKey = (node: PublicItemRecipeTreeNode) => firstRecipeTreeText(
+  node.itemId,
+  node.id,
+  node.itemInternalName,
+  node.itemName,
+  node.displayName,
+  node.name,
+)
+
+const recipeTreeGroupMemberName = (member: NonNullable<PublicItemRecipeTreeNode['groupMembers']>[number]) => firstRecipeTreeText(
+  member.nameZh,
+  member.name,
+  member.internalName,
+  '可替代材料',
+)
+
+const recipeTreeGroupMemberImage = (member: NonNullable<PublicItemRecipeTreeNode['groupMembers']>[number]) => sanitizeArticleUrl(firstRecipeTreeText(
+  member.image,
+  member.imageUrl,
+), 'src')
+
+const recipeTreeNodeGroupMember = (node: PublicItemRecipeTreeNode) => ({
+  itemId: node.itemId,
+  internalName: node.itemInternalName || node.itemName || node.name || null,
+  name: node.itemName || node.name || node.displayName || null,
+  nameZh: node.displayName || node.itemNameZh || node.name || null,
+  image: node.itemImage || node.image || node.previewImage || null,
+  imageUrl: node.itemImageUrl || null,
+})
+
+const mergeArticleRecipeTreeAlternativeChildren = (options: PublicItemRecipeTreeNode[]): PublicItemRecipeTreeNode[] => {
+  if (options.length > 1 && options.every(option => recipeTreeNodeChildren(option).length > 0)) {
+    const firstOption = options[0]
+    if (firstOption) {
+      return [{
+        ...firstOption,
+        displayName: recipeTreeNodeName(firstOption),
+        children: [{
+          nodeType: 'recipe_options',
+          displayName: `${recipeTreeNodeName(firstOption)} · ${options.length} 条配方来源`,
+          secondaryName: '多配方来源',
+          children: [],
+          recipeOptions: options.map(option => mergeArticleRecipeTreeSameItemSiblings(recipeTreeNodeChildren(option))),
+        } as PublicItemRecipeTreeNode & { recipeOptions: PublicItemRecipeTreeNode[][] }],
+      }]
+    }
+  }
+
+  const optionChildren = options.map(option => recipeTreeNodeChildren(option))
+  const counts = new Map<string, number>()
+  for (const children of optionChildren) {
+    const uniqueKeys = new Set(children.map(recipeTreeNodeKey).filter(Boolean))
+    for (const key of uniqueKeys) counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  const sharedKeys = new Set([...counts.entries()].filter(([, count]) => count === options.length).map(([key]) => key))
+  const shared = new Map<string, PublicItemRecipeTreeNode>()
+  const alternatives: PublicItemRecipeTreeNode[] = []
+
+  for (const children of optionChildren) {
+    for (const child of children) {
+      const key = recipeTreeNodeKey(child)
+      if (key && sharedKeys.has(key)) {
+        if (!shared.has(key)) shared.set(key, child)
+      } else {
+        alternatives.push(child)
+      }
+    }
+  }
+
+  const ordered: PublicItemRecipeTreeNode[] = []
+  let alternativeInserted = false
+  for (const child of optionChildren[0] ?? []) {
+    const key = recipeTreeNodeKey(child)
+    if (key && sharedKeys.has(key)) {
+      const sharedChild = shared.get(key)
+      if (sharedChild && !ordered.some(entry => recipeTreeNodeKey(entry) === key)) ordered.push(sharedChild)
+    } else if (!alternativeInserted && alternatives.length > 0) {
+      const firstAlternative = alternatives[0]
+      if (firstAlternative) {
+        ordered.push({
+          ...firstAlternative,
+          displayName: alternatives.map(recipeTreeNodeName).join(' 或 '),
+          secondaryName: '可替代材料',
+          itemInternalName: alternatives.map(node => firstRecipeTreeText(node.itemInternalName, node.itemName, node.name)).filter(Boolean).join(' / '),
+          groupMembers: alternatives.map(recipeTreeNodeGroupMember),
+          children: [],
+        })
+        alternativeInserted = true
+      }
+    }
+  }
+
+  for (const [key, child] of shared) {
+    if (!ordered.some(entry => recipeTreeNodeKey(entry) === key)) ordered.push(child)
+  }
+  if (!alternativeInserted && alternatives.length > 0) {
+    const firstAlternative = alternatives[0]
+    if (firstAlternative) {
+      ordered.unshift({
+        ...firstAlternative,
+        displayName: alternatives.map(recipeTreeNodeName).join(' 或 '),
+        secondaryName: '可替代材料',
+        itemInternalName: alternatives.map(node => firstRecipeTreeText(node.itemInternalName, node.itemName, node.name)).filter(Boolean).join(' / '),
+        groupMembers: alternatives.map(recipeTreeNodeGroupMember),
+        children: [],
+      })
+    }
+  }
+  return ordered
+}
+
+const mergeArticleRecipeTreeSameItemSiblings = (nodes: PublicItemRecipeTreeNode[]): PublicItemRecipeTreeNode[] => {
+  const groups = new Map<string, PublicItemRecipeTreeNode[]>()
+  const order: string[] = []
+  for (const node of nodes) {
+    const key = `${recipeTreeNodeKey(node)}:${firstRecipeTreeText(node.quantityText, node.quantityMin, node.quantityMax, node.quantity, node.amount, node.count)}`
+    if (!key.trim()) {
+      const uniqueKey = `unique:${order.length}`
+      order.push(uniqueKey)
+      groups.set(uniqueKey, [node])
+      continue
+    }
+    if (!groups.has(key)) {
+      groups.set(key, [])
+      order.push(key)
+    }
+    groups.get(key)?.push(node)
+  }
+  return order.flatMap((key) => {
+    const group = groups.get(key) ?? []
+    const first = group[0]
+    if (group.length <= 1 || !first) return group
+    return [{
+      ...first,
+      children: mergeArticleRecipeTreeAlternativeChildren(group),
+    }]
+  })
+}
+
+const recipeTreeNodeStations = (node: PublicItemRecipeTreeNode) => {
+  const stations = (Array.isArray(node.stations) ? node.stations : []).filter(station => station?.stationType !== 'condition')
+  if (stations.length) return stations
+  const sameItemChild = recipeTreeNodeChildren(node).find(child => isSameRecipeTreeItem(node, child) && Array.isArray(child.stations) && child.stations.length > 0)
+  return (Array.isArray(sameItemChild?.stations) ? sameItemChild.stations : []).filter(station => station?.stationType !== 'condition')
+}
+
+const isSameRecipeTreeItem = (left: PublicItemRecipeTreeNode, right: PublicItemRecipeTreeNode) => {
+  const leftId = firstRecipeTreeText(left.itemId, left.id)
+  const rightId = firstRecipeTreeText(right.itemId, right.id)
+  if (leftId && rightId) return leftId === rightId
+  const leftName = firstRecipeTreeText(left.itemInternalName, left.itemName, left.name, left.displayName)
+  const rightName = firstRecipeTreeText(right.itemInternalName, right.itemName, right.name, right.displayName)
+  return Boolean(leftName && rightName && leftName === rightName)
+}
+
+const recipeTreeGraphChildren = (node: PublicItemRecipeTreeNode, depth: number, maxDepth: number): PublicItemRecipeTreeNode[] => {
+  if (depth >= maxDepth) return []
+  let candidates = recipeTreeNodeChildren(node)
+  while (candidates.length === 1 && candidates[0] && isSameRecipeTreeItem(node, candidates[0])) {
+    const nextChildren = recipeTreeNodeChildren(candidates[0])
+    if (!nextChildren.length) break
+    candidates = nextChildren
+  }
+  if (candidates.length > 1 && candidates.every(child => isSameRecipeTreeItem(node, child))) {
+    return mergeArticleRecipeTreeAlternativeChildren(candidates).slice(0, 18)
+  }
+  return mergeArticleRecipeTreeSameItemSiblings(candidates).slice(0, 18)
+}
+
+const ARTICLE_RECIPE_GRAPH_CARD_WIDTH = 102
+const ARTICLE_RECIPE_GRAPH_OPTION_SOURCE_WIDTH = 150
+const ARTICLE_RECIPE_GRAPH_CARD_HEIGHT = 54
+const ARTICLE_RECIPE_GRAPH_X_GAP = 6
+const ARTICLE_RECIPE_GRAPH_Y_GAP = 10
+const ARTICLE_RECIPE_GRAPH_PADDING = 14
+const ARTICLE_RECIPE_GRAPH_MIN_SCALE = 0.48
+const ARTICLE_RECIPE_GRAPH_MAX_SCALE = 1
+const ARTICLE_RECIPE_GRAPH_MIN_MANUAL_SCALE = 0.6
+const ARTICLE_RECIPE_GRAPH_MAX_MANUAL_SCALE = 1.8
+const ARTICLE_RECIPE_GRAPH_MANUAL_SCALE_STEP = 0.1
+
+const buildArticleRecipeTreeGraphLayout = (node: PublicItemRecipeTreeNode, depth: number, maxDepth: number, indexPath = '0', isRoot = false): any => {
+  let normalizedNode = node
+  let graphChildren = recipeTreeGraphChildren(normalizedNode, depth, maxDepth)
+  while (graphChildren.length === 1 && graphChildren[0] && isSameRecipeTreeItem(normalizedNode, graphChildren[0])) {
+    normalizedNode = graphChildren[0]
+    graphChildren = recipeTreeGraphChildren(normalizedNode, depth, maxDepth)
+  }
+  const children = graphChildren
+    .map((child, index) => buildArticleRecipeTreeGraphLayout(child, depth + 1, maxDepth, `${indexPath}-${index}`, false))
+  const itemKey = firstRecipeTreeText(normalizedNode.recipeId, normalizedNode.itemId, normalizedNode.id, normalizedNode.itemInternalName, normalizedNode.itemName, normalizedNode.displayName, normalizedNode.name, indexPath)
+  const width = recipeTreeNodeCardWidth(normalizedNode)
+  const height = recipeTreeNodeCardHeight(normalizedNode)
+  return {
+    id: `${depth}-${indexPath}-${itemKey}`,
+    node: normalizedNode,
+    depth,
+    isRoot,
+    x: 0,
+    y: 0,
+    width,
+    height,
+    anchorX: width / 2,
+    subtreeWidth: width,
+    children,
+  }
+}
+
+const measureArticleRecipeTreeGraphLayout = (layoutNode: any): number => {
+  if (!layoutNode.children.length) {
+    layoutNode.subtreeWidth = layoutNode.width
+    return layoutNode.subtreeWidth
+  }
+  const childWidth = layoutNode.children.reduce((total: number, child: any, index: number) =>
+    total + measureArticleRecipeTreeGraphLayout(child) + (index === 0 ? 0 : ARTICLE_RECIPE_GRAPH_X_GAP), 0)
+  layoutNode.subtreeWidth = Math.max(layoutNode.width, childWidth)
+  return layoutNode.subtreeWidth
+}
+
+const placeArticleRecipeTreeGraphLayout = (layoutNode: any, left: number, levelY: number[], nodes: any[], edges: any[]) => {
+  layoutNode.x = left + layoutNode.subtreeWidth / 2 - layoutNode.anchorX
+  layoutNode.y = levelY[layoutNode.depth] ?? 0
+  nodes.push(layoutNode)
+  if (!layoutNode.children.length) return
+
+  const childWidth = layoutNode.children.reduce((total: number, child: any, index: number) =>
+    total + child.subtreeWidth + (index === 0 ? 0 : ARTICLE_RECIPE_GRAPH_X_GAP), 0)
+  let childLeft = left + (layoutNode.subtreeWidth - childWidth) / 2
+  for (const child of layoutNode.children) {
+    placeArticleRecipeTreeGraphLayout(child, childLeft, levelY, nodes, edges)
+    edges.push({
+      id: `${layoutNode.id}-${child.id}`,
+      fromX: layoutNode.x + layoutNode.anchorX,
+      fromY: layoutNode.y + layoutNode.height,
+      toX: child.x + child.anchorX,
+      toY: child.y,
+    })
+    childLeft += child.subtreeWidth + ARTICLE_RECIPE_GRAPH_X_GAP
+  }
+}
+
+const layoutArticleRecipeTreeGraphForest = (roots: PublicItemRecipeTreeNode[], maxDepth: number) => {
+  const rootLayouts = roots.slice(0, 1).map((root, index) => buildArticleRecipeTreeGraphLayout(root, 0, maxDepth, String(index), true))
+  const nodes: any[] = []
+  const edges: any[] = []
+  const levelHeights: number[] = []
+  const collectLevelHeights = (layoutNode: any) => {
+    levelHeights[layoutNode.depth] = Math.max(levelHeights[layoutNode.depth] ?? 0, layoutNode.height)
+    for (const child of layoutNode.children) collectLevelHeights(child)
+  }
+  for (const rootLayout of rootLayouts) collectLevelHeights(rootLayout)
+  const levelY = levelHeights.reduce<number[]>((offsets, height, index) => {
+    offsets[index] = index === 0 ? 0 : (offsets[index - 1] ?? 0) + (levelHeights[index - 1] ?? ARTICLE_RECIPE_GRAPH_CARD_HEIGHT) + ARTICLE_RECIPE_GRAPH_Y_GAP
+    return offsets
+  }, [])
+  let left = 0
+  for (const rootLayout of rootLayouts) {
+    measureArticleRecipeTreeGraphLayout(rootLayout)
+    placeArticleRecipeTreeGraphLayout(rootLayout, left, levelY, nodes, edges)
+    left += rootLayout.subtreeWidth + ARTICLE_RECIPE_GRAPH_X_GAP * 2
+  }
+  if (!nodes.length) return { nodes, edges, width: 0, height: 0 }
+
+  const minX = Math.min(...nodes.map(node => node.x))
+  const maxX = Math.max(...nodes.map(node => node.x + node.width))
+  const minY = Math.min(...nodes.map(node => node.y))
+  const maxY = Math.max(...nodes.map(node => node.y + node.height))
+  const offsetX = ARTICLE_RECIPE_GRAPH_PADDING - minX
+  const offsetY = ARTICLE_RECIPE_GRAPH_PADDING - minY
+  for (const node of nodes) {
+    node.x += offsetX
+    node.y += offsetY
+  }
+  for (const edge of edges) {
+    edge.fromX += offsetX
+    edge.toX += offsetX
+    edge.fromY += offsetY
+    edge.toY += offsetY
+  }
+  return {
+    nodes,
+    edges,
+    width: maxX - minX + ARTICLE_RECIPE_GRAPH_PADDING * 2,
+    height: maxY - minY + ARTICLE_RECIPE_GRAPH_PADDING * 2,
+  }
+}
+
+const articleRecipeTreeGroupMembers = (node: PublicItemRecipeTreeNode) => Array.isArray(node.groupMembers) ? node.groupMembers : []
+
+const articleRecipeTreeOptionGroups = (node: PublicItemRecipeTreeNode) =>
+  node.nodeType === 'recipe_options' && Array.isArray((node as PublicItemRecipeTreeNode & { recipeOptions?: PublicItemRecipeTreeNode[][] }).recipeOptions)
+    ? (node as PublicItemRecipeTreeNode & { recipeOptions: PublicItemRecipeTreeNode[][] }).recipeOptions
+    : []
+
+const recipeTreeNodeCardWidth = (node: PublicItemRecipeTreeNode) =>
+  articleRecipeTreeOptionGroups(node).length > 0 ? ARTICLE_RECIPE_GRAPH_OPTION_SOURCE_WIDTH : ARTICLE_RECIPE_GRAPH_CARD_WIDTH
+
+const recipeTreeNodeCardHeight = (node: PublicItemRecipeTreeNode) => {
+  const optionRows = articleRecipeTreeOptionGroups(node).length
+  if (optionRows > 0) return Math.max(ARTICLE_RECIPE_GRAPH_CARD_HEIGHT, 12 + optionRows * 24)
+  const members = articleRecipeTreeGroupMembers(node).length
+  if (members <= 1) return ARTICLE_RECIPE_GRAPH_CARD_HEIGHT
+  return Math.max(ARTICLE_RECIPE_GRAPH_CARD_HEIGHT, 20 + Math.ceil(members / 2) * 22 + 14)
+}
+
+const articleRecipeTreeRelationLabel = (node: PublicItemRecipeTreeNode, depth: number, isRoot = false) => {
+  if (articleRecipeTreeOptionGroups(node).length > 0) return ''
+  if (isRoot) return 'ROOT'
+  const members = articleRecipeTreeGroupMembers(node)
+  if (members.length > 1) return `任选 ${members.length}`
+  return recipeTreeGraphChildren(node, depth, depth + 1).length > 0 ? '子配方' : '材料'
+}
+
+const articleRecipeTreeStationSummary = (node: PublicItemRecipeTreeNode) => {
+  const stations = recipeTreeNodeStations(node)
+  if (!stations.length) return ''
+  const label = stations.map(recipeTreeStationName).filter(Boolean).join(' / ')
+  return stations.length > 2 ? `${label} +${stations.length - 2}` : label
+}
+
+const articleRecipeTreeChildNameSummary = (node: PublicItemRecipeTreeNode, depth: number) => {
+  const children = recipeTreeGraphChildren(node, depth, depth + 1)
+  if (!children.length) return ''
+  const names = children.map(recipeTreeNodeName).filter(Boolean)
+  const visibleNames = names.slice(0, 4).join(' / ')
+  return names.length > 4 ? `${visibleNames} +${names.length - 4}` : visibleNames
+}
+
+const articleRecipeTreeNodeDetailRows = (node: PublicItemRecipeTreeNode, depth: number, relation: string, quantity: string) => {
+  const rows: Array<{ label: string, value: string }> = []
+  const optionGroups = articleRecipeTreeOptionGroups(node)
+  if (optionGroups.length) {
+    rows.push({ label: '类型', value: '多配方来源' })
+    rows.push({ label: '概况', value: `${optionGroups.length} 条配方 · ${optionGroups.reduce((total, option) => total + option.length, 0)} 个材料项` })
+    return rows
+  }
+
+  rows.push({ label: '类型', value: relation || '材料' })
+  if (quantity) rows.push({ label: '数量', value: quantity })
+  const stations = articleRecipeTreeStationSummary(node)
+  if (stations) rows.push({ label: '制作站', value: stations })
+  const children = recipeTreeGraphChildren(node, depth, depth + 1)
+  if (children.length) rows.push({ label: '下级', value: `${children.length} 个节点` })
+  const childNames = articleRecipeTreeChildNameSummary(node, depth)
+  if (childNames) rows.push({ label: '包含', value: childNames })
+  const groupMembers = articleRecipeTreeGroupMembers(node)
+  if (groupMembers.length > 1) rows.push({ label: '任选', value: groupMembers.map(recipeTreeGroupMemberName).filter(Boolean).join(' / ') })
+  return rows
+}
+
+const articleRecipeTreeFirstGlyph = (value: string) => Array.from(String(value || '').trim())[0] ?? '?'
+
+const createArticleRecipeTreePreviewImage = (imageUrl: string, label: string, width: number, height: number) => {
+  const preview = document.createElement('span')
+  preview.className = `item-art tp-preview-image${imageUrl ? '' : ' is-fallback'}`
+  preview.setAttribute('data-fallback', articleRecipeTreeFirstGlyph(label))
+  if (imageUrl) {
+    const img = document.createElement('img')
+    img.src = imageUrl
+    img.alt = label
+    img.width = width
+    img.height = height
+    img.loading = 'lazy'
+    img.decoding = 'async'
+    preview.append(img)
+  } else {
+    preview.setAttribute('role', 'img')
+    preview.setAttribute('aria-label', label)
+  }
+  return preview
+}
+
+const createArticleRecipeTreeGraphLineCanvas = (layout: any) => {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.setAttribute('class', 'recipe-overview-lines')
+  svg.setAttribute('viewBox', `0 0 ${layout.width} ${layout.height}`)
+  svg.setAttribute('width', String(layout.width))
+  svg.setAttribute('height', String(layout.height))
+  svg.setAttribute('aria-hidden', 'true')
+  for (const edge of layout.edges) {
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+    const midY = (edge.fromY + edge.toY) / 2
+    path.setAttribute('class', 'recipe-overview-edge')
+    path.setAttribute('d', `M ${edge.fromX} ${edge.fromY} V ${midY} H ${edge.toX} V ${edge.toY}`)
+    svg.append(path)
+  }
+  return svg
+}
+
+const positionArticleRecipeTreePopover = (holder: HTMLElement, popover: HTMLElement) => {
+  const anchor = holder.querySelector<HTMLElement>('.recipe-hierarchy-card') || holder
+  const rect = anchor.getBoundingClientRect()
+  const margin = 12
+  const gap = 8
+  const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 320
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 320
+  const maxWidth = Math.max(160, Math.min(240, viewportWidth - margin * 2))
+  const popoverWidth = Math.min(popover.offsetWidth || maxWidth, maxWidth)
+  const popoverHeight = Math.min(popover.offsetHeight || 132, viewportHeight - margin * 2)
+  const aboveSpace = rect.top - margin - gap
+  const belowSpace = viewportHeight - rect.bottom - margin - gap
+  const placement = aboveSpace >= popoverHeight || aboveSpace >= belowSpace ? 'above' : 'below'
+  const preferredTop = placement === 'above' ? rect.top - popoverHeight - gap : rect.bottom + gap
+  const top = Math.max(margin, Math.min(preferredTop, viewportHeight - popoverHeight - margin))
+  const left = Math.max(margin, Math.min(rect.left + rect.width / 2 - popoverWidth / 2, viewportWidth - popoverWidth - margin))
+
+  popover.dataset.placement = placement
+  popover.style.left = `${Math.round(left)}px`
+  popover.style.top = `${Math.round(top)}px`
+  popover.style.maxWidth = `${Math.round(maxWidth)}px`
+  popover.style.setProperty('--recipe-popover-max-height', `${Math.round(viewportHeight - margin * 2)}px`)
+}
+
+const showArticleRecipeTreePopover = (holder: HTMLElement, popover: HTMLElement) => {
+  holder.dataset.popoverActive = 'true'
+  popover.dataset.articleRecipeTreePopover = 'true'
+  if (popover.parentElement !== document.body) document.body.append(popover)
+  popover.classList.add('is-visible')
+  positionArticleRecipeTreePopover(holder, popover)
+  requestAnimationFrame(() => positionArticleRecipeTreePopover(holder, popover))
+}
+
+const hideArticleRecipeTreePopover = (holder: HTMLElement, popover: HTMLElement) => {
+  delete holder.dataset.popoverActive
+  delete popover.dataset.articleRecipeTreePopover
+  popover.classList.remove('is-visible')
+  holder.append(popover)
+}
+
+const createArticleRecipeTreeGraphPositionedNode = (layoutNode: any) => {
+  const holder = document.createElement('div')
+  holder.className = `recipe-hierarchy-node recipe-overview-node${layoutNode.isRoot ? ' is-root' : ''}${layoutNode.children.length ? ' has-children' : ''}`
+  holder.style.setProperty('--node-x', `${layoutNode.x}px`)
+  holder.style.setProperty('--node-y', `${layoutNode.y}px`)
+  holder.style.setProperty('--node-card-width', `${layoutNode.width}px`)
+  holder.style.setProperty('--node-card-height', `${layoutNode.height}px`)
+
+  const relation = document.createElement('span')
+  relation.className = 'recipe-hierarchy-label'
+  const relationText = articleRecipeTreeRelationLabel(layoutNode.node, layoutNode.depth, layoutNode.isRoot)
+  relation.textContent = relationText
+  holder.append(relation)
+
+  const card = document.createElement('span')
+  const optionGroups = articleRecipeTreeOptionGroups(layoutNode.node)
+  if (optionGroups.length) holder.classList.add('has-recipe-options')
+  const stations = recipeTreeNodeStations(layoutNode.node).slice(0, 2)
+  card.className = `recipe-hierarchy-card${stations.length && !optionGroups.length ? ' has-stations' : ''}${optionGroups.length ? ' has-recipe-options' : ''}`
+  card.title = `${recipeTreeNodeName(layoutNode.node)} ${recipeTreeNodeQuantity(layoutNode.node, layoutNode.isRoot)}`
+  card.setAttribute('aria-label', card.title)
+
+  const main = document.createElement('span')
+  main.className = 'recipe-hierarchy-main'
+  main.title = recipeTreeNodeName(layoutNode.node)
+
+  if (optionGroups.length) {
+    const source = document.createElement('span')
+    source.className = 'recipe-hierarchy-option-source'
+    source.title = recipeTreeNodeName(layoutNode.node)
+    source.setAttribute('aria-label', '多配方来源')
+    const rows = document.createElement('span')
+    rows.className = 'recipe-hierarchy-option-groups'
+    for (const [optionIndex, option] of optionGroups.entries()) {
+      const row = document.createElement('span')
+      row.className = 'recipe-hierarchy-option-row'
+      row.title = option.map(recipeTreeNodeName).join(' + ')
+      row.setAttribute('data-recipe-option-index', String(optionIndex + 1))
+      for (const material of option.slice(0, 5)) {
+        const materialNode = document.createElement('span')
+        materialNode.className = 'recipe-hierarchy-option-material'
+        materialNode.title = `${recipeTreeNodeName(material)} ${recipeTreeNodeQuantity(material)}`
+        materialNode.append(createArticleRecipeTreePreviewImage(recipeTreeNodeImage(material), recipeTreeNodeName(material), 18, 18))
+        const quantity = document.createElement('span')
+        quantity.className = 'recipe-hierarchy-option-quantity'
+        quantity.textContent = recipeTreeNodeQuantity(material)
+        materialNode.append(quantity)
+        row.append(materialNode)
+      }
+      rows.append(row)
+    }
+    source.append(rows)
+    main.append(source)
+  } else if (articleRecipeTreeGroupMembers(layoutNode.node).length > 1) {
+    const alternatives = document.createElement('span')
+    alternatives.className = 'recipe-hierarchy-alt-images'
+    alternatives.title = articleRecipeTreeGroupMembers(layoutNode.node).map(recipeTreeGroupMemberName).filter(Boolean).join(' / ')
+    alternatives.setAttribute('aria-label', '可替代材料')
+    for (const member of articleRecipeTreeGroupMembers(layoutNode.node).slice(0, 4)) {
+      alternatives.append(createArticleRecipeTreePreviewImage(recipeTreeGroupMemberImage(member), recipeTreeGroupMemberName(member), 22, 22))
+    }
+    main.append(alternatives)
+  } else {
+    main.append(createArticleRecipeTreePreviewImage(recipeTreeNodeImage(layoutNode.node), recipeTreeNodeName(layoutNode.node), layoutNode.isRoot ? 34 : 30, layoutNode.isRoot ? 34 : 30))
+    const quantity = document.createElement('span')
+    quantity.className = 'recipe-hierarchy-quantity'
+    quantity.textContent = recipeTreeNodeQuantity(layoutNode.node, layoutNode.isRoot)
+    main.append(quantity)
+  }
+
+  card.append(main)
+  if (stations.length && !optionGroups.length) {
+    const stationRail = document.createElement('span')
+    stationRail.className = 'recipe-hierarchy-station-rail'
+    stationRail.title = stations.map(recipeTreeStationName).filter(Boolean).join(' / ')
+    stationRail.setAttribute('aria-label', '制作站')
+    for (const station of stations) {
+      const badge = document.createElement('span')
+      badge.className = 'recipe-hierarchy-station-badge'
+      badge.title = recipeTreeStationName(station)
+      badge.append(createArticleRecipeTreePreviewImage(recipeTreeStationImage(station), recipeTreeStationName(station), 18, 18))
+      stationRail.append(badge)
+    }
+    card.append(stationRail)
+  }
+  holder.append(card)
+
+  const popover = document.createElement('aside')
+  popover.className = 'recipe-hierarchy-popover crafting-screen'
+  popover.setAttribute('role', 'tooltip')
+  const popoverHead = document.createElement('span')
+  popoverHead.className = 'recipe-hierarchy-popover-head'
+  const popoverImages = document.createElement('span')
+  popoverImages.className = 'recipe-hierarchy-popover-images'
+  const optionImages = optionGroups.length ? optionGroups.flat().slice(0, 4) : []
+  if (optionImages.length) {
+    for (const material of optionImages) {
+      popoverImages.append(createArticleRecipeTreePreviewImage(recipeTreeNodeImage(material), recipeTreeNodeName(material), 26, 26))
+    }
+  } else if (articleRecipeTreeGroupMembers(layoutNode.node).length > 1) {
+    for (const member of articleRecipeTreeGroupMembers(layoutNode.node).slice(0, 4)) {
+      popoverImages.append(createArticleRecipeTreePreviewImage(recipeTreeGroupMemberImage(member), recipeTreeGroupMemberName(member), 26, 26))
+    }
+  } else {
+    popoverImages.append(createArticleRecipeTreePreviewImage(recipeTreeNodeImage(layoutNode.node), recipeTreeNodeName(layoutNode.node), 26, 26))
+  }
+  const popoverTitle = document.createElement('span')
+  popoverTitle.className = 'recipe-hierarchy-popover-title'
+  const title = document.createElement('b')
+  title.textContent = recipeTreeNodeName(layoutNode.node)
+  const subtitle = document.createElement('span')
+  subtitle.textContent = articleRecipeTreeGroupMembers(layoutNode.node).length > 1 ? '可替代材料' : firstRecipeTreeText(layoutNode.node.secondaryName, layoutNode.node.itemInternalName, layoutNode.node.itemName)
+  popoverTitle.append(title)
+  if (subtitle.textContent) popoverTitle.append(subtitle)
+  popoverHead.append(popoverImages, popoverTitle)
+  const detailList = document.createElement('dl')
+  for (const row of articleRecipeTreeNodeDetailRows(layoutNode.node, layoutNode.depth, relationText, recipeTreeNodeQuantity(layoutNode.node, layoutNode.isRoot))) {
+    const term = document.createElement('dt')
+    term.textContent = row.label
+    const description = document.createElement('dd')
+    description.textContent = row.value
+    detailList.append(term, description)
+  }
+  popover.append(popoverHead, detailList)
+  holder.append(popover)
+  holder.onmouseenter = () => showArticleRecipeTreePopover(holder, popover)
+  holder.onmouseleave = () => hideArticleRecipeTreePopover(holder, popover)
+  holder.addEventListener('focusin', () => showArticleRecipeTreePopover(holder, popover))
+  holder.addEventListener('focusout', () => hideArticleRecipeTreePopover(holder, popover))
+  return holder
+}
+
+const updateArticleRecipeTreeZoom = (graph: HTMLElement) => {
+  const baseScale = Number(graph.dataset.baseScale || '1')
+  const manualScale = Number(graph.dataset.manualScale || '1')
+  const layoutHeight = Number(graph.dataset.layoutHeight || '0')
+  const scale = Math.max(ARTICLE_RECIPE_GRAPH_MIN_SCALE, Math.min(ARTICLE_RECIPE_GRAPH_MAX_MANUAL_SCALE, baseScale * manualScale))
+  graph.style.setProperty('--recipe-overview-scale', String(scale))
+  graph.style.setProperty('--recipe-overview-pan-x', `${Number(graph.dataset.panX || '0')}px`)
+  graph.style.setProperty('--recipe-overview-pan-y', `${Number(graph.dataset.panY || '0')}px`)
+  graph.style.minHeight = `${Math.ceil(layoutHeight * baseScale)}px`
+  const activeHolder = graph.querySelector<HTMLElement>('.recipe-overview-node[data-popover-active="true"]')
+  const activePopover = activeHolder?.querySelector<HTMLElement>('.recipe-hierarchy-popover') || document.body.querySelector<HTMLElement>('.recipe-hierarchy-popover[data-article-recipe-tree-popover="true"]')
+  if (activeHolder && activePopover) requestAnimationFrame(() => positionArticleRecipeTreePopover(activeHolder, activePopover))
+}
+
+const changeArticleRecipeTreeZoomFromWheel = (graph: HTMLElement, event: WheelEvent) => {
+  event.preventDefault()
+  const current = Number(graph.dataset.manualScale || '1')
+  const delta = event.deltaY > 0 ? -ARTICLE_RECIPE_GRAPH_MANUAL_SCALE_STEP : ARTICLE_RECIPE_GRAPH_MANUAL_SCALE_STEP
+  graph.dataset.manualScale = String(Math.max(ARTICLE_RECIPE_GRAPH_MIN_MANUAL_SCALE, Math.min(ARTICLE_RECIPE_GRAPH_MAX_MANUAL_SCALE, Number((current + delta).toFixed(2)))))
+  updateArticleRecipeTreeZoom(graph)
+}
+
+const startArticleRecipeTreePan = (graph: HTMLElement, event: PointerEvent) => {
+  if ((event.target as HTMLElement | null)?.closest('.recipe-overview-node')) return
+  graph.dataset.panPointerId = String(event.pointerId)
+  graph.dataset.panStartX = String(event.clientX)
+  graph.dataset.panStartY = String(event.clientY)
+  graph.dataset.panOriginX = graph.dataset.panX || '0'
+  graph.dataset.panOriginY = graph.dataset.panY || '0'
+  graph.classList.add('is-panning')
+  graph.setPointerCapture(event.pointerId)
+}
+
+const moveArticleRecipeTreePan = (graph: HTMLElement, event: PointerEvent) => {
+  if (graph.dataset.panPointerId !== String(event.pointerId)) return
+  graph.dataset.panX = String(Number(graph.dataset.panOriginX || '0') + event.clientX - Number(graph.dataset.panStartX || '0'))
+  graph.dataset.panY = String(Number(graph.dataset.panOriginY || '0') + event.clientY - Number(graph.dataset.panStartY || '0'))
+  updateArticleRecipeTreeZoom(graph)
+}
+
+const endArticleRecipeTreePan = (graph: HTMLElement, event: PointerEvent) => {
+  if (graph.dataset.panPointerId !== String(event.pointerId)) return
+  if (graph.hasPointerCapture?.(event.pointerId)) graph.releasePointerCapture(event.pointerId)
+  delete graph.dataset.panPointerId
+  graph.classList.remove('is-panning')
+}
+
+const enableArticleRecipeTreeInteractions = (graph: HTMLElement) => {
+  graph.addEventListener('wheel', event => changeArticleRecipeTreeZoomFromWheel(graph, event), { passive: false })
+  graph.addEventListener('pointerdown', event => startArticleRecipeTreePan(graph, event))
+  graph.addEventListener('pointermove', event => moveArticleRecipeTreePan(graph, event))
+  graph.addEventListener('pointerup', event => endArticleRecipeTreePan(graph, event))
+  graph.addEventListener('pointercancel', event => endArticleRecipeTreePan(graph, event))
+}
+
+const appendArticleRecipeTreeGraph = (container: HTMLElement, roots: PublicItemRecipeTreeNode[], maxDepth: number) => {
+  if (!roots.length) return
+  const layout = layoutArticleRecipeTreeGraphForest(roots, maxDepth)
+  if (!layout.nodes.length) return
+  const graph = document.createElement('div')
+  graph.className = 'article-recipe-tree__graph crafting-screen recipe-hierarchy-tree recipe-overview-tree'
+  graph.setAttribute('data-crafting-role', 'recipe-hierarchy-tree')
+  const availableWidth = Math.max(280, container.clientWidth ? container.clientWidth - 2 : 720)
+  const widthScale = availableWidth / Math.max(layout.width, 1)
+  const heightScale = 520 / Math.max(layout.height, 1)
+  const scale = Math.max(ARTICLE_RECIPE_GRAPH_MIN_SCALE, Math.min(ARTICLE_RECIPE_GRAPH_MAX_SCALE, widthScale, heightScale))
+  graph.style.setProperty('--recipe-overview-width', `${layout.width}px`)
+  graph.style.setProperty('--recipe-overview-height', `${layout.height}px`)
+  graph.dataset.baseScale = String(scale)
+  graph.dataset.manualScale = '1'
+  graph.dataset.layoutHeight = String(layout.height)
+  graph.dataset.panX = '0'
+  graph.dataset.panY = '0'
+  const canvas = document.createElement('div')
+  canvas.className = 'recipe-overview-canvas'
+  canvas.append(createArticleRecipeTreeGraphLineCanvas(layout))
+  for (const layoutNode of layout.nodes) canvas.append(createArticleRecipeTreeGraphPositionedNode(layoutNode))
+  graph.append(canvas)
+  const link = container.querySelector('.article-recipe-tree__link')
+  updateArticleRecipeTreeZoom(graph)
+  enableArticleRecipeTreeInteractions(graph)
+  if (link) container.insertBefore(graph, link)
+  else container.append(graph)
+}
+
+const renderArticleRecipeTreeShell = (node: HTMLElement, state: 'loading' | 'ready' | 'missing' | 'error', title: string, description: string, options: { imageUrl?: string, href?: string, stats?: string[] } = {}) => {
+  const imageUrl = sanitizeArticleUrl(options.imageUrl || '', 'src')
+  const href = sanitizeArticleUrl(options.href || '', 'href')
+  node.dataset.tpResolved = state
+  node.setAttribute('role', 'group')
+  node.setAttribute('aria-label', `${title} 合成树`)
+  node.replaceChildren()
+
+  const header = document.createElement('div')
+  header.className = 'article-recipe-tree__header'
+  const thumb = document.createElement('span')
+  thumb.className = 'article-recipe-tree__thumb'
+  thumb.setAttribute('aria-hidden', 'true')
+  if (imageUrl) {
+    const img = document.createElement('img')
+    img.src = imageUrl
+    img.alt = ''
+    img.loading = 'lazy'
+    img.decoding = 'async'
+    thumb.append(img)
+  } else {
+    thumb.textContent = '合'
+  }
+
+  const copy = document.createElement('span')
+  copy.className = 'article-recipe-tree__copy'
+  const strong = document.createElement('strong')
+  strong.textContent = title
+  const small = document.createElement('small')
+  small.textContent = description
+  copy.append(strong, small)
+  header.append(thumb, copy)
+  node.append(header)
+
+  if (options.stats?.length) {
+    const stats = document.createElement('div')
+    stats.className = 'article-recipe-tree__stats'
+    for (const statText of options.stats) {
+      const stat = document.createElement('span')
+      stat.textContent = statText
+      stats.append(stat)
+    }
+    node.append(stats)
+  }
+
+  if (href) {
+    const link = document.createElement('a')
+    link.className = 'article-recipe-tree__link'
+    link.href = href
+    link.textContent = '打开完整合成树'
+    node.append(link)
+  }
+}
+
+const renderArticleRecipeTreeResult = (node: HTMLElement, tree: PublicItemRecipeTree | null, itemId: string, maxDepth: number, label: string) => {
+  const title = recipeTreeItemName(tree, label) || label || `物品 #${itemId}`
+  const href = `/crafting?itemId=${encodeURIComponent(itemId)}&maxDepth=${maxDepth}`
+  if (!tree) {
+    renderArticleRecipeTreeShell(node, 'missing', title, '合成树暂不可用', {
+      href,
+      stats: [`深度 ${maxDepth}`],
+    })
+    return
+  }
+  const roots = recipeTreeRootNodes(tree)
+  const variantCount = Array.isArray(tree.variants) ? tree.variants.length : 0
+  const stationCount = recipeTreeStationCount(tree)
+  renderArticleRecipeTreeShell(node, 'ready', title, '文章嵌入的合成树摘要', {
+    imageUrl: recipeTreeItemImage(tree),
+    href,
+    stats: [
+      variantCount ? `${variantCount} 个版本` : '默认版本',
+      '默认路线',
+      stationCount ? `${stationCount} 个制作站` : '制作站未记录',
+      `深度 ${maxDepth}`,
+    ],
+  })
+  appendArticleRecipeTreeGraph(node, roots, maxDepth)
+}
+
+const loadArticleRecipeTreeEmbeds = async () => {
+  if (!import.meta.client) return
+  const sequence = ++articleRecipeTreeLoadSequence
+  const articleId = article.value?.id == null ? '' : String(article.value.id)
+  await nextTick()
+  const root = articleContentRef.value
+  if (!root) return
+  const embeds = Array.from(root.querySelectorAll<HTMLElement>('.tp-recipe-tree'))
+    .map((node) => {
+      const itemId = String(node.dataset.tpItemId || '').trim()
+      const maxDepth = parseRecipeTreeDepth(node.dataset.tpMaxDepth)
+      const label = String(node.dataset.tpLabel || '').trim()
+      if (!/^\d{1,12}$/.test(itemId) || maxDepth === null || !label || label.length > 80) return null
+      return { node, itemId, maxDepth, label }
+    })
+    .filter((embed): embed is { node: HTMLElement, itemId: string, maxDepth: number, label: string } => Boolean(embed))
+
+  if (!embeds.length) return
+  for (const embed of embeds) {
+    renderArticleRecipeTreeShell(embed.node, 'loading', embed.label, '合成树加载中...', {
+      href: `/crafting?itemId=${encodeURIComponent(embed.itemId)}&maxDepth=${embed.maxDepth}`,
+      stats: [`深度 ${embed.maxDepth}`],
+    })
+  }
+
+  await Promise.all(embeds.map(async (embed) => {
+    try {
+      const result = await fetchPublicRecipeTree(embed.itemId, embed.maxDepth)
+      if (sequence !== articleRecipeTreeLoadSequence || articleId !== (article.value?.id == null ? '' : String(article.value.id))) return
+      renderArticleRecipeTreeResult(embed.node, result.tree, embed.itemId, embed.maxDepth, embed.label)
+    } catch {
+      if (sequence !== articleRecipeTreeLoadSequence || articleId !== (article.value?.id == null ? '' : String(article.value.id))) return
+      renderArticleRecipeTreeShell(embed.node, 'error', embed.label, '合成树加载失败', {
+        href: `/crafting?itemId=${encodeURIComponent(embed.itemId)}&maxDepth=${embed.maxDepth}`,
+        stats: [`深度 ${embed.maxDepth}`],
+      })
+    }
+  }))
+}
+
 const baseSanitizedArticleHtml = computed(() => {
   const raw = String(article.value?.contentHtml ?? article.value?.contentMarkdown ?? '').trim()
   return sanitizeArticleHtml(raw)
@@ -446,7 +1385,7 @@ const collectArticleReferenceInputs = (): ContentReferenceResolveInput[] => {
   const labels: Record<string, string> = {}
   const refs = Array.from(root.querySelectorAll<HTMLElement>('.tp-content-ref'))
     .map((node): ContentReferenceResolveInput | null => {
-      const type = node.dataset.tpRefType === 'npc' ? 'npc' : node.dataset.tpRefType === 'item' ? 'item' : ''
+      const type = normalizeArticleReferenceType(node.dataset.tpRefType)
       const id = String(node.dataset.tpRefId || '').trim()
       const label = String(node.dataset.tpRefLabel || node.textContent || '').trim()
       if (!type || !/^\d{1,12}$/.test(id)) return null
@@ -458,9 +1397,10 @@ const collectArticleReferenceInputs = (): ContentReferenceResolveInput[] => {
   return refs
 }
 
-const formatArticleReferenceTypeLabel = (type: 'item' | 'npc' | '') => {
+const formatArticleReferenceTypeLabel = (type: ArticleReferenceType | '') => {
   if (type === 'item') return '物品'
   if (type === 'npc') return 'NPC'
+  if (type === 'boss') return 'Boss'
   return '资料'
 }
 
@@ -493,7 +1433,7 @@ const computeArticleReferencePreviewPosition = (node: HTMLElement, event?: Mouse
 const showArticleReferencePreview = (node: HTMLElement, event?: MouseEvent | FocusEvent) => {
   const key = contentReferenceKey(node.dataset.tpRefType, node.dataset.tpRefId)
   const reference = key ? articleReferences.value[key] : null
-  const type = node.dataset.tpRefType === 'npc' ? 'npc' : node.dataset.tpRefType === 'item' ? 'item' : ''
+  const type = normalizeArticleReferenceType(node.dataset.tpRefType)
   const id = String(node.dataset.tpRefId || '').trim()
   if (!key || !type || !id) return
   const position = computeArticleReferencePreviewPosition(node, event)
@@ -508,7 +1448,7 @@ const showArticleReferencePreview = (node: HTMLElement, event?: MouseEvent | Foc
     categoryName: reference?.categoryName || '',
     summary: reference?.summary || '',
     internalName: reference?.internalName || '',
-    detailPath: reference?.detailPath || node.dataset.tpHref || (type === 'item' ? `/items/${id}` : `/npcs/${id}`),
+    detailPath: reference?.detailPath || node.dataset.tpHref || articleReferenceDetailPath(type, id),
     available: reference?.available !== false,
     ...position,
   }
@@ -558,10 +1498,10 @@ const enhanceArticleReferenceNodes = () => {
     const reference = key ? articleReferences.value[key] : null
     const authorLabel = key ? articleReferenceLabels.value[key] || reference?.label || '' : ''
     const label = authorLabel || reference?.label || String(node.dataset.tpRefLabel || node.textContent || '').trim()
-    const type = node.dataset.tpRefType === 'npc' ? 'npc' : node.dataset.tpRefType === 'item' ? 'item' : ''
+    const type = normalizeArticleReferenceType(node.dataset.tpRefType)
     const id = String(node.dataset.tpRefId || '').trim()
     const imageUrl = reference?.imageUrl || sanitizeArticleUrl(String(node.dataset.tpRefImage || ''), 'src')
-    const detailPath = reference?.detailPath || (type === 'item' ? `/items/${id}` : type === 'npc' ? `/npcs/${id}` : '')
+    const detailPath = type && id ? reference?.detailPath || articleReferenceDetailPath(type, id) : ''
     const displayMode = node.dataset.tpRefDisplay === 'text' ? 'text' : 'image'
     node.replaceChildren()
     if (displayMode === 'text') {
@@ -1084,6 +2024,7 @@ watch([sanitizedArticleHtml, () => article.value?.id], async () => {
   if (!import.meta.client || !articleClientReady.value) return
   await nextTick()
   void loadArticleReferences()
+  void loadArticleRecipeTreeEmbeds()
 })
 
 watch(() => [route.query.commentId, route.query.replyId, route.hash], () => {
@@ -1095,6 +2036,7 @@ onMounted(() => {
   void loadArticleFavoriteStatus()
   void recordArticleHistoryOnce()
   void loadArticleReferences()
+  void loadArticleRecipeTreeEmbeds()
   if (route.hash === '#article-comments' || articleCommentTargetId.value) void focusArticleCommentTarget()
 })
 </script>
@@ -1787,6 +2729,218 @@ onMounted(() => {
   border-color: color-mix(in srgb, var(--danger) 46%, var(--index-line));
   color: var(--text-muted);
   cursor: default;
+}
+
+.article-content-text :deep(.tp-recipe-tree) {
+  display: grid;
+  width: min(100%, 720px);
+  min-height: 112px;
+  margin: 24px 0;
+  padding: 14px;
+  gap: 12px;
+  overflow-x: auto;
+  border: 1px solid color-mix(in srgb, var(--accent-gold) 30%, var(--index-line));
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--text-strong) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(color-mix(in srgb, var(--text-strong) 3%, transparent) 1px, transparent 1px),
+    color-mix(in srgb, var(--index-bg) 92%, var(--panel));
+  background-size: 32px 32px, 32px 32px, auto;
+  line-height: 1.35;
+}
+
+.article-content-text :deep(.tp-recipe-tree[data-tp-resolved="loading"]) {
+  border-style: dashed;
+  color: var(--text-muted);
+}
+
+.article-content-text :deep(.tp-recipe-tree[data-tp-resolved="missing"]),
+.article-content-text :deep(.tp-recipe-tree[data-tp-resolved="error"]) {
+  border-color: color-mix(in srgb, var(--danger) 38%, var(--index-line));
+}
+
+.article-content-text :deep(.article-recipe-tree__header) {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-width: 260px;
+}
+
+.article-content-text :deep(.article-recipe-tree__thumb) {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent-gold) 34%, var(--index-line));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent-gold) 12%, transparent);
+  color: var(--accent-gold);
+  font-weight: 900;
+}
+
+.article-content-text :deep(.article-recipe-tree__thumb img) {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  object-fit: contain;
+}
+
+.article-content-text :deep(.article-recipe-tree__copy) {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.article-content-text :deep(.article-recipe-tree__copy strong) {
+  color: var(--text-strong);
+  font-size: 16px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.article-content-text :deep(.article-recipe-tree__copy small) {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.article-content-text :deep(.article-recipe-tree__stats) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 260px;
+}
+
+.article-content-text :deep(.article-recipe-tree__stats span) {
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--index-line) 82%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--panel) 42%, transparent);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.article-content-text :deep(.article-recipe-tree__graph) {
+  --article-recipe-graph-node-size: 56px;
+  --article-recipe-graph-line: color-mix(in srgb, var(--accent-gold) 58%, var(--index-line));
+  --recipe-overview-pan-x: 0px;
+  --recipe-overview-pan-y: 0px;
+  position: relative;
+  flex: 0 0 auto;
+  min-width: max-content;
+  margin: 2px auto 0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.article-content-text :deep(.article-recipe-tree__graph.is-panning) {
+  cursor: grabbing;
+}
+
+.article-content-text :deep(.article-recipe-tree__graph-lines) {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.article-content-text :deep(.article-recipe-tree__graph-edge) {
+  fill: none;
+  stroke: var(--article-recipe-graph-line);
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.article-content-text :deep(.article-recipe-tree__graph-node-position) {
+  position: absolute;
+  display: grid;
+  place-items: center;
+}
+
+.article-content-text :deep(.article-recipe-tree__graph-node) {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: var(--article-recipe-graph-node-size);
+  height: var(--article-recipe-graph-node-size);
+  overflow: visible;
+  border: 1px solid color-mix(in srgb, var(--accent-gold) 42%, var(--index-line));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--panel) 86%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text-strong) 8%, transparent),
+    0 8px 20px color-mix(in srgb, var(--index-bg) 54%, transparent);
+}
+
+.article-content-text :deep(.article-recipe-tree__graph-node img) {
+  display: block;
+  width: 38px;
+  height: 38px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  object-fit: contain;
+}
+
+.article-content-text :deep(.article-recipe-tree__graph-fallback) {
+  color: var(--accent-gold);
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.article-content-text :deep(.article-recipe-tree__graph-quantity) {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  min-width: 20px;
+  padding: 2px 4px;
+  border: 1px solid color-mix(in srgb, var(--accent-gold) 52%, var(--index-line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--index-bg) 96%, transparent);
+  color: var(--text-strong);
+  font-size: 10px;
+  font-weight: 950;
+  line-height: 1;
+  text-align: center;
+}
+
+.article-content-text :deep(.article-recipe-tree__graph-stations) {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  gap: 2px;
+}
+
+.article-content-text :deep(.article-recipe-tree__graph-station) {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+}
+
+.article-content-text :deep(.article-recipe-tree__graph-station img) {
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 0;
+  object-fit: contain;
+}
+
+.article-content-text :deep(.article-recipe-tree__link) {
+  justify-self: start;
+  min-width: 0;
+  font-size: 13px;
 }
 
 :global(.article-reference-preview) {

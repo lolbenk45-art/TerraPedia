@@ -47,10 +47,11 @@ class PublicContentReferenceControllerTest {
     void shouldSearchContentReferencesWithTypesAndQuery() throws Exception {
         PublicContentReferenceDTO item = row("item", "77", "泰拉刃", "/items/77", true);
         PublicContentReferenceDTO npc = row("npc", "1", "向导", "/npcs/1", true);
-        when(publicContentReferenceService.search(any(), any(), anyInt())).thenReturn(List.of(item, npc));
+        PublicContentReferenceDTO boss = row("boss", "34", "史莱姆王", "/bosses/34", true);
+        when(publicContentReferenceService.search(any(), any(), anyInt())).thenReturn(List.of(item, npc, boss));
 
         mockMvc.perform(get("/public/content-references")
-                .param("types", "item,npc")
+                .param("types", "item,npc,boss")
                 .param("q", " 泰 ")
                 .param("limit", "20"))
             .andExpect(status().isOk())
@@ -61,13 +62,16 @@ class PublicContentReferenceControllerTest {
             .andExpect(jsonPath("$.data[0].detailPath").value("/items/77"))
             .andExpect(jsonPath("$.data[0].available").value(true))
             .andExpect(jsonPath("$.data[1].type").value("npc"))
-            .andExpect(jsonPath("$.data[1].id").value("1"));
+            .andExpect(jsonPath("$.data[1].id").value("1"))
+            .andExpect(jsonPath("$.data[2].type").value("boss"))
+            .andExpect(jsonPath("$.data[2].id").value("34"))
+            .andExpect(jsonPath("$.data[2].detailPath").value("/bosses/34"));
 
         ArgumentCaptor<Set<String>> typeCaptor = ArgumentCaptor.forClass(Set.class);
         ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Integer> limitCaptor = ArgumentCaptor.forClass(Integer.class);
         verify(publicContentReferenceService).search(typeCaptor.capture(), queryCaptor.capture(), limitCaptor.capture());
-        assertEquals(Set.of("item", "npc"), typeCaptor.getValue());
+        assertEquals(Set.of("item", "npc", "boss"), typeCaptor.getValue());
         assertEquals("泰", queryCaptor.getValue());
         assertEquals(20, limitCaptor.getValue());
     }
@@ -93,7 +97,8 @@ class PublicContentReferenceControllerTest {
     void shouldResolveReferencesFromRequestBody() throws Exception {
         when(publicContentReferenceService.resolve(any())).thenReturn(List.of(
             row("npc", "1", "向导", "/npcs/1", true),
-            row("item", "77", "泰拉刃", "/items/77", true)
+            row("item", "77", "泰拉刃", "/items/77", true),
+            row("boss", "34", "史莱姆王", "/bosses/34", true)
         ));
 
         mockMvc.perform(post("/public/content-references/resolve")
@@ -102,7 +107,8 @@ class PublicContentReferenceControllerTest {
                     {
                       "refs": [
                         { "type": "npc", "id": "1" },
-                        { "type": "item", "id": "77" }
+                        { "type": "item", "id": "77" },
+                        { "type": "boss", "id": "34" }
                       ]
                     }
                     """))
@@ -111,13 +117,17 @@ class PublicContentReferenceControllerTest {
             .andExpect(jsonPath("$.data[0].type").value("npc"))
             .andExpect(jsonPath("$.data[0].id").value("1"))
             .andExpect(jsonPath("$.data[1].type").value("item"))
-            .andExpect(jsonPath("$.data[1].id").value("77"));
+            .andExpect(jsonPath("$.data[1].id").value("77"))
+            .andExpect(jsonPath("$.data[2].type").value("boss"))
+            .andExpect(jsonPath("$.data[2].id").value("34"));
 
         ArgumentCaptor<List<PublicContentReferenceResolveItemDTO>> refsCaptor = ArgumentCaptor.forClass(List.class);
         verify(publicContentReferenceService).resolve(refsCaptor.capture());
-        assertEquals(2, refsCaptor.getValue().size());
+        assertEquals(3, refsCaptor.getValue().size());
         assertEquals("npc", refsCaptor.getValue().get(0).getType());
         assertEquals("1", refsCaptor.getValue().get(0).getId());
+        assertEquals("boss", refsCaptor.getValue().get(2).getType());
+        assertEquals("34", refsCaptor.getValue().get(2).getId());
     }
 
     @Test

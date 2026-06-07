@@ -3,8 +3,10 @@ import {
   USER_ARTICLE_EDITOR_PLACEHOLDER,
   buildUserArticleInlineStyle,
   buildUserArticleReferenceHtml,
+  buildUserArticleRecipeTreeEmbedHtml,
   buildUserArticleTypingSpanHtml,
   isSafeUserArticleReferenceElement,
+  isSafeUserArticleRecipeTreeEmbed,
   sanitizeUserArticleEditorColor,
   setUserArticleBlockTag,
   setUserArticleOrderedList,
@@ -69,9 +71,36 @@ assert.equal(isSafeUserArticleReferenceElement({ type: 'npc', id: '1', label: '�
 assert.equal(isSafeUserArticleReferenceElement({ type: 'npc', id: '1', label: '向导', displayMode: 'text' }), true)
 assert.equal(isSafeUserArticleReferenceElement({ type: 'npc', id: '1', label: '向导', displayMode: 'card' }), false)
 assert.equal(isSafeUserArticleReferenceElement({ type: 'npc', id: '1', label: '向导', imageUrl: 'javascript:alert(1)' }), false)
-assert.equal(isSafeUserArticleReferenceElement({ type: 'boss', id: '1', label: '克苏鲁之眼' }), false)
+assert.equal(isSafeUserArticleReferenceElement({ type: 'boss', id: '1', label: '克苏鲁之眼' }), true)
 assert.equal(isSafeUserArticleReferenceElement({ type: 'item', id: 'bad id', label: '坏引用' }), false)
 assert.equal(isSafeUserArticleReferenceElement({ type: 'item', id: '77', label: '' }), false)
 assert.equal(isSafeUserArticleReferenceElement({ type: 'item', id: '77', label: 'x'.repeat(81) }), false)
+
+const bossReferenceHtml = buildUserArticleReferenceHtml({
+  type: 'boss',
+  id: 34,
+  label: '克苏鲁之眼',
+  displayMode: 'text',
+})
+assertIncludes(bossReferenceHtml, 'data-tp-ref-type="boss"', 'boss reference span must include boss type')
+assertIncludes(bossReferenceHtml, 'data-tp-ref-id="34"', 'boss reference span must include boss id')
+assertIncludes(bossReferenceHtml, '>克苏鲁之眼</span>', 'boss text reference must render the label')
+
+const recipeTreeHtml = buildUserArticleRecipeTreeEmbedHtml({
+  itemId: 77,
+  maxDepth: 5,
+  label: '泰拉刃',
+})
+assert.equal(isSafeUserArticleRecipeTreeEmbed({ itemId: '77', maxDepth: 5, label: '泰拉刃' }), true)
+assertIncludes(recipeTreeHtml, 'class="tp-article-embed tp-recipe-tree"', 'recipe tree embed must include stable classes')
+assertIncludes(recipeTreeHtml, 'data-tp-embed-type="recipe-tree"', 'recipe tree embed must include embed type')
+assertIncludes(recipeTreeHtml, 'data-tp-item-id="77"', 'recipe tree embed must include item id')
+assertIncludes(recipeTreeHtml, 'data-tp-max-depth="5"', 'recipe tree embed must include max depth')
+assertIncludes(recipeTreeHtml, 'data-tp-label="泰拉刃"', 'recipe tree embed must include label')
+assert.ok(!recipeTreeHtml.includes('contenteditable'), `recipe tree embed must not persist editor runtime attrs\nactual: ${recipeTreeHtml}`)
+assert.equal(buildUserArticleRecipeTreeEmbedHtml({ itemId: '77', maxDepth: 0, label: '泰拉刃' }), '')
+assert.equal(buildUserArticleRecipeTreeEmbedHtml({ itemId: '77', maxDepth: 6, label: '泰拉刃' }), '')
+assert.equal(buildUserArticleRecipeTreeEmbedHtml({ itemId: 'bad', maxDepth: 5, label: '泰拉刃' }), '')
+assert.equal(buildUserArticleRecipeTreeEmbedHtml({ itemId: '77', maxDepth: 5, label: '' }), '')
 
 console.log('user article editor DOM checks passed')

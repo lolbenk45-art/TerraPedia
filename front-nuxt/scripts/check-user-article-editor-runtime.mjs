@@ -27,6 +27,27 @@ const editorDomSource = readFileSync(join(root, 'lib/userArticleEditorDom.mjs'),
 const editorComponentSource = readFileSync(join(root, 'components/user/UserArticleRichEditor.vue'), 'utf8')
 const nuxtConfigSource = readFileSync(join(root, 'nuxt.config.ts'), 'utf8')
 const editorStyleSource = editorComponentSource.match(/<style[^>]*>([\s\S]*?)<\/style>/)?.[1] || ''
+const extractCssBlocks = (source, selector) => {
+  const blocks = []
+  let searchIndex = 0
+  while (searchIndex < source.length) {
+    const selectorIndex = source.indexOf(selector, searchIndex)
+    if (selectorIndex === -1) break
+    const openIndex = source.indexOf('{', selectorIndex)
+    if (openIndex === -1) break
+    let depth = 0
+    for (let index = openIndex; index < source.length; index += 1) {
+      if (source[index] === '{') depth += 1
+      if (source[index] === '}') depth -= 1
+      if (depth === 0) {
+        blocks.push(source.slice(openIndex + 1, index))
+        searchIndex = index + 1
+        break
+      }
+    }
+  }
+  return blocks
+}
 
 if (!editorComponentSource.includes('draggedReferenceElement')) throw new Error('editor must track dragged content references')
 if (!editorComponentSource.includes('application/x-terrapedia-reference')) throw new Error('editor must use a reference-specific drag payload')
@@ -49,37 +70,39 @@ if (!editorComponentSource.includes('@mousedown.prevent="saveSelection"')) throw
 if (editorComponentSource.includes('user-rich-editor__insert-bar')) throw new Error('reference picker must not render inside the editor insert bar anymore')
 if (!/<Teleport\s+v-if="referencePanelTarget"[\s\S]*:to="referencePanelTarget"[\s\S]*class="user-rich-editor__reference-menu"/.test(editorComponentSource)) throw new Error('reference picker panel must teleport to the external page target')
 if (/<div class="user-rich-editor__reference-menu">[\s\S]*<div class="user-rich-editor__stage">[\s\S]*ref="editorRef"[\s\S]*class="user-rich-editor__surface"/.test(editorComponentSource)) throw new Error('reference picker must not sit inside or above the contenteditable editor stage')
-if (/\.user-rich-editor__reference-menu \{[\s\S]*position: absolute;[\s\S]*bottom:/.test(editorComponentSource)) throw new Error('reference picker must not be positioned as a bottom overlay on the editor surface')
-if (/\.user-rich-editor__reference-popover \{[\s\S]*position: absolute;/.test(editorComponentSource)) throw new Error('reference picker panel must be inline, not an overlay over the editor surface')
+for (const block of extractCssBlocks(editorStyleSource, '.user-rich-editor__reference-menu')) {
+  if (/position:\s*absolute;/.test(block) && /bottom:/.test(block)) throw new Error('reference picker must not be positioned as a bottom overlay on the editor surface')
+}
+for (const block of extractCssBlocks(editorStyleSource, '.user-rich-editor__reference-popover')) {
+  if (/position:\s*absolute;/.test(block)) throw new Error('reference picker panel must be inline, not an overlay over the editor surface')
+}
 if (!/const openReferenceMenu = \(\) => \{[\s\S]*referenceMenuOpen\.value = true[\s\S]*emit\('referencePanelOpen'\)[\s\S]*void runReferenceSearch\(\)/.test(editorComponentSource)) throw new Error('reference picker must enter page writing mode and load default references when opened')
 if (/const insertContentReference = \(reference: NormalizedContentReference\) => \{[\s\S]*closeReferenceMenu\(\)[\s\S]*\n\}/.test(editorComponentSource)) throw new Error('reference picker must stay open after inserting a reference')
 if (/if \(!q\) \{[\s\S]*referenceSearchResults\.value = \[\]/.test(editorComponentSource)) throw new Error('reference search must not clear results for blank queries because blank queries load defaults')
 if (!editorComponentSource.includes('class="user-rich-editor__reference-copy"')) throw new Error('reference picker result text must use a dedicated copy column')
-if (!/\.user-rich-editor__reference-result \{[\s\S]*display: grid !important;[\s\S]*grid-template-columns: 32px minmax\(0, 1fr\);[\s\S]*min-width: 0;/.test(editorComponentSource)) throw new Error('reference picker rows must reserve separate thumbnail and text columns')
+if (!/\.user-rich-editor__reference-result \{[\s\S]*display: grid;[\s\S]*grid-template-columns: 32px minmax\(0, 1fr\) auto;[\s\S]*min-width: 0;/.test(editorComponentSource)) throw new Error('reference picker rows must reserve thumbnail, text, and action columns')
+if (!editorComponentSource.includes('user-rich-editor__reference-actions')) throw new Error('reference picker rows must expose separate reference action buttons')
+if (!editorComponentSource.includes('insertRecipeTreeEmbed(reference)')) throw new Error('item reference rows must expose recipe tree insertion')
+if (!editorComponentSource.includes('loadEditorRecipeTreeEmbeds')) throw new Error('editor recipe tree embeds must hydrate into relationship previews')
+if (!editorComponentSource.includes('fetchPublicRecipeTree(embed.itemId, embed.maxDepth)')) throw new Error('editor recipe tree embeds must fetch recipe tree data from saved item id and depth')
+if (/\.user-rich-editor__surface :deep\(\.tp-recipe-tree::before\)/.test(editorComponentSource)) throw new Error('editor recipe tree embeds must not rely on a placeholder pseudo-element')
+if (!editorStyleSource.includes('.editor-recipe-tree__graph')) throw new Error('editor recipe tree graph must define hierarchy graph styles')
+if (!editorComponentSource.includes("document.createElementNS('http://www.w3.org/2000/svg', 'svg')")) throw new Error('editor recipe tree graph must use an SVG line canvas like the crafting page')
+if (!editorComponentSource.includes('recipe-overview-tree') || !editorComponentSource.includes('recipe-hierarchy-card')) throw new Error('editor recipe tree graph must reuse the crafting overview tree DOM classes')
+if (!editorComponentSource.includes('recipe-hierarchy-option-row')) throw new Error('editor recipe tree graph must reuse crafting page compact recipe option rows')
+if (!editorComponentSource.includes('recipe-hierarchy-popover') || !editorComponentSource.includes('editorRecipeTreeNodeDetailRows')) throw new Error('editor recipe tree graph must expose crafting-style hover basic info popovers')
+if (!editorComponentSource.includes('positionEditorRecipeTreePopover') || !editorComponentSource.includes('showEditorRecipeTreePopover') || !editorComponentSource.includes('hideEditorRecipeTreePopover')) throw new Error('editor recipe tree graph popovers must use viewport-bounded fixed positioning')
+if (!editorComponentSource.includes('changeEditorRecipeTreeZoomFromWheel') || !editorComponentSource.includes('startEditorRecipeTreePan') || !editorComponentSource.includes('moveEditorRecipeTreePan') || !editorComponentSource.includes('endEditorRecipeTreePan')) throw new Error('editor recipe tree graph must expose invisible wheel zoom and drag pan controls')
+if (editorComponentSource.includes('editor-recipe-tree__zoom') || editorComponentSource.includes('createEditorRecipeTreeZoomControls')) throw new Error('editor recipe tree graph must not render visible zoom controls')
+if (editorComponentSource.includes('filter(child => !isSameEditorRecipeTreeItem(node, child))')) throw new Error('editor recipe tree graph must not filter away same-item recipe sources before layout normalization')
+if (editorStyleSource.includes('.editor-recipe-tree__graph-children::before') || editorStyleSource.includes('.editor-recipe-tree__graph-branch::before')) throw new Error('editor recipe tree graph must not use flow-layout pseudo-element connector lines')
+if (!editorStyleSource.includes('background-size: 32px 32px, 32px 32px')) throw new Error('editor recipe tree graph must use a visible grid background')
+if (editorStyleSource.includes('.editor-recipe-tree__relations') || editorStyleSource.includes('.editor-recipe-tree__relation-row')) throw new Error('editor recipe tree graph must not keep old relation-row styles')
+if (!editorStyleSource.includes('--recipe-overview-pan-x') || !editorStyleSource.includes('touch-action: none')) throw new Error('editor recipe tree graph must style invisible drag pan interaction')
+if (!/const editorRecipeTreeNodeStations =[\s\S]*sameItemChild[\s\S]*isSameEditorRecipeTreeItem/.test(editorComponentSource)) throw new Error('editor recipe tree station lookup must preserve stations from folded same-item recipe nodes')
 const newArticlePageSource = readFileSync(join(root, 'pages/user/articles/new.vue'), 'utf8')
 const editArticlePageSource = readFileSync(join(root, 'pages/user/articles/[id].vue'), 'utf8')
 const extractStyleSource = source => source.match(/<style[^>]*>([\s\S]*?)<\/style>/)?.[1] || ''
-const extractCssBlocks = (source, selector) => {
-  const blocks = []
-  let searchIndex = 0
-  while (searchIndex < source.length) {
-    const selectorIndex = source.indexOf(selector, searchIndex)
-    if (selectorIndex === -1) break
-    const openIndex = source.indexOf('{', selectorIndex)
-    if (openIndex === -1) break
-    let depth = 0
-    for (let index = openIndex; index < source.length; index += 1) {
-      if (source[index] === '{') depth += 1
-      if (source[index] === '}') depth -= 1
-      if (depth === 0) {
-        blocks.push(source.slice(openIndex + 1, index))
-        searchIndex = index + 1
-        break
-      }
-    }
-  }
-  return blocks
-}
 const articlePageStyleSources = {
   new: extractStyleSource(newArticlePageSource),
   edit: extractStyleSource(editArticlePageSource),
@@ -540,6 +563,13 @@ writeFileSync(htmlPath, `<!doctype html>
         assert(textRef?.getAttribute('data-tp-ref-display') === 'text', 'text-mode editor reference span should keep display mode');
         assert(textRef?.textContent === '泰拉刃', 'text-mode editor reference span should keep label text');
 
+        const bossReferenceHtml = buildUserArticleReferenceHtml({ type: 'boss', id: 34, label: '克苏鲁之眼', displayMode: 'text' });
+        editor.innerHTML = '<p>挑战 ' + bossReferenceHtml + '。</p>';
+        const bossRef = editor.querySelector('.tp-content-ref');
+        assert(bossRef?.getAttribute('data-tp-ref-type') === 'boss', 'boss editor reference should keep boss type');
+        assert(bossRef?.getAttribute('data-tp-ref-id') === '34', 'boss editor reference should keep id');
+        assert(bossRef?.textContent === '克苏鲁之眼', 'boss text reference should keep label text');
+
         const legacyReferenceHtml = '<span class="tp-content-ref" data-tp-ref-type="item" data-tp-ref-id="77" data-tp-ref-label="泰拉刃" data-tp-ref-image="/preview-assets/terrapedia-images/items/terra-blade.png">泰拉刃</span>';
         const normalizedLegacyReferenceHtml = sanitizeUserArticleEditorLoadedHtml('<p>使用 ' + legacyReferenceHtml + ' 过渡。</p>');
         const legacyRoot = document.createElement('div');
@@ -548,6 +578,46 @@ writeFileSync(htmlPath, `<!doctype html>
         assert(legacyRef?.getAttribute('data-tp-ref-display') === 'image', 'legacy editor reference should normalize to image mode on load');
         assert(legacyRef?.querySelector('img')?.getAttribute('src') === '/preview-assets/terrapedia-images/items/terra-blade.png', 'legacy editor reference should render saved image on load');
         assert(legacyRef?.textContent.trim() === '', 'legacy image reference should not keep stale label text on load');
+
+        const recipeTreeHtml = buildUserArticleRecipeTreeEmbedHtml({ itemId: 77, maxDepth: 5, label: '泰拉刃' });
+        assert(recipeTreeHtml.includes('class="tp-article-embed tp-recipe-tree"'), 'recipe tree helper must build stable embed classes');
+        assert(!recipeTreeHtml.includes('contenteditable'), 'recipe tree helper must not persist editor runtime attrs');
+        const pollutedRecipeTreeHtml = '<div class="tp-article-embed tp-recipe-tree" contenteditable="false" style="width:100%" data-tp-embed-type="recipe-tree" data-tp-item-id="77" data-tp-max-depth="5" data-tp-label="泰拉刃" data-tp-resolved="ready"><section data-api-payload="bad">payload</section></div>';
+        const normalizedRecipeTreeHtml = sanitizeUserArticleEditorLoadedHtml(pollutedRecipeTreeHtml);
+        assert(normalizedRecipeTreeHtml === '<div class="tp-article-embed tp-recipe-tree" data-tp-embed-type="recipe-tree" data-tp-item-id="77" data-tp-max-depth="5" data-tp-label="泰拉刃"></div>', 'loaded recipe tree embed must preserve only identity/config attrs');
+        assert(sanitizeUserArticleEditorLoadedHtml('<div class="tp-article-embed tp-recipe-tree" data-tp-item-id="77" data-tp-max-depth="5" data-tp-label="泰拉刃"></div>') === '', 'loaded recipe tree embed without embed type must be rejected');
+        assert(sanitizeUserArticleEditorLoadedHtml('<div class="tp-article-embed tp-recipe-tree" data-tp-embed-type="item-card" data-tp-item-id="77" data-tp-max-depth="5" data-tp-label="泰拉刃"></div>') === '', 'loaded recipe tree embed with bad embed type must be rejected');
+        assert(sanitizeUserArticleEditorLoadedHtml('<div class="tp-article-embed tp-recipe-tree" data-tp-embed-type="recipe-tree" data-tp-item-id="77" data-tp-label="泰拉刃"></div>') === '', 'loaded recipe tree embed without depth must be rejected');
+
+        const insertRecipeTreeLikeComponent = () => {
+          editor.innerHTML = '<p>前文后文</p>';
+          const paragraph = editor.querySelector('p');
+          const text = paragraph.firstChild;
+          const range = document.createRange();
+          range.setStart(text, 2);
+          range.collapse(true);
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          const template = document.createElement('template');
+          template.innerHTML = recipeTreeHtml + '<p><br></p>';
+          const fragment = template.content;
+          const embedNode = fragment.querySelector('.tp-recipe-tree');
+          const caretBlock = fragment.querySelector('p');
+          embedNode.setAttribute('contenteditable', 'false');
+          const afterRange = document.createRange();
+          afterRange.selectNodeContents(paragraph);
+          afterRange.setStart(range.startContainer, range.startOffset);
+          const afterFragment = afterRange.extractContents();
+          const afterBlock = document.createElement('p');
+          afterBlock.append(afterFragment);
+          paragraph.after(embedNode, afterBlock, caretBlock);
+        };
+        insertRecipeTreeLikeComponent();
+        assert(editor.children[0]?.tagName === 'P' && editor.children[0].textContent === '前文', 'recipe tree insertion should preserve text before the caret');
+        assert(editor.children[1]?.classList.contains('tp-recipe-tree'), 'recipe tree insertion should place embed as a top-level block');
+        assert(editor.children[2]?.tagName === 'P' && editor.children[2].textContent === '后文', 'recipe tree insertion should preserve text after the caret');
+        assert(!editor.querySelector('p .tp-recipe-tree'), 'recipe tree insertion must not nest block embed inside a paragraph');
 
         const insertReferenceLikeComponent = () => {
           editor.innerHTML = '<p>使用 </p>';

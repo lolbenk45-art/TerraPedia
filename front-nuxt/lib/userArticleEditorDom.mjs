@@ -125,7 +125,7 @@ export const isSafeUserArticleReferenceElement = ({ type, id, label, imageUrl, d
   const nextLabel = String(label || '').trim()
   const nextImageUrl = normalizeUserArticleReferenceImage(imageUrl)
   const nextDisplayMode = normalizeUserArticleReferenceDisplayMode(displayMode)
-  return ['item', 'npc'].includes(nextType)
+  return ['item', 'npc', 'boss'].includes(nextType)
     && /^\d{1,12}$/.test(nextId)
     && nextLabel.length > 0
     && nextLabel.length <= 80
@@ -188,6 +188,38 @@ export const buildUserArticleReferenceHtml = ({ type, id, label, imageUrl, displ
     span.replaceChildren(fallback)
   }
   return span.outerHTML
+}
+
+export const normalizeUserArticleRecipeTreeDepth = (value) => {
+  const depth = Number(value)
+  if (!Number.isFinite(depth)) return 3
+  return Math.min(5, Math.max(1, Math.floor(depth)))
+}
+
+const parseUserArticleRecipeTreeDepth = (value) => {
+  const text = String(value ?? '').trim()
+  if (!/^\d+$/.test(text)) return null
+  const depth = Number(text)
+  if (!Number.isInteger(depth) || depth < 1 || depth > 5) return null
+  return depth
+}
+
+export const isSafeUserArticleRecipeTreeEmbed = ({ itemId, maxDepth, label }) => {
+  const nextItemId = String(itemId || '').trim()
+  const nextLabel = String(label || '').trim()
+  const nextDepth = parseUserArticleRecipeTreeDepth(maxDepth)
+  return /^\d{1,12}$/.test(nextItemId)
+    && nextDepth !== null
+    && nextLabel.length > 0
+    && nextLabel.length <= 80
+}
+
+export const buildUserArticleRecipeTreeEmbedHtml = ({ itemId, maxDepth = 5, label }) => {
+  const nextItemId = String(itemId || '').trim()
+  const nextDepth = parseUserArticleRecipeTreeDepth(maxDepth)
+  const nextLabel = String(label || '').trim()
+  if (!isSafeUserArticleRecipeTreeEmbed({ itemId: nextItemId, maxDepth: nextDepth, label: nextLabel })) return ''
+  return `<div class="tp-article-embed tp-recipe-tree" data-tp-embed-type="recipe-tree" data-tp-item-id="${escapeUserArticleReferenceAttribute(nextItemId)}" data-tp-max-depth="${nextDepth}" data-tp-label="${escapeUserArticleReferenceAttribute(nextLabel)}"></div>`
 }
 
 const USER_ARTICLE_INLINE_STYLE_TARGETS = [
@@ -339,6 +371,26 @@ export const sanitizeUserArticleEditorLoadedHtml = (html) => {
     for (const attribute of Array.from(element.attributes)) {
       if (attribute.name.toLowerCase().startsWith('data-tp-')) element.removeAttribute(attribute.name)
     }
+  }
+
+  for (const element of Array.from(root.querySelectorAll('.tp-recipe-tree'))) {
+    if (String(element.getAttribute('data-tp-embed-type') || '').trim() !== 'recipe-tree') {
+      element.replaceWith(...Array.from(element.childNodes))
+      continue
+    }
+    const safeHtml = buildUserArticleRecipeTreeEmbedHtml({
+      itemId: element.getAttribute('data-tp-item-id'),
+      maxDepth: element.getAttribute('data-tp-max-depth'),
+      label: element.getAttribute('data-tp-label'),
+    })
+    if (safeHtml) {
+      const template = globalThis.document.createElement('template')
+      template.innerHTML = safeHtml
+      const safeElement = template.content.firstElementChild
+      if (safeElement) element.replaceWith(safeElement)
+      continue
+    }
+    element.replaceWith(...Array.from(element.childNodes))
   }
 
   return root.innerHTML.trim()

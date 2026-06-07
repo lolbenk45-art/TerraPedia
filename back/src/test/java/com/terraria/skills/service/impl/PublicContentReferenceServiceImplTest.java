@@ -3,11 +3,15 @@ package com.terraria.skills.service.impl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.terraria.skills.dto.NpcDetailDTO;
 import com.terraria.skills.dto.NpcListItemDTO;
+import com.terraria.skills.dto.PublicBossDetailDTO;
+import com.terraria.skills.dto.PublicBossListDTO;
+import com.terraria.skills.dto.PublicBossQuery;
 import com.terraria.skills.dto.PublicContentReferenceDTO;
 import com.terraria.skills.dto.PublicContentReferenceResolveItemDTO;
 import com.terraria.skills.dto.PublicItemDetailDTO;
 import com.terraria.skills.dto.PublicItemSuggestionDTO;
 import com.terraria.skills.dto.PublicNpcQuery;
+import com.terraria.skills.service.PublicBossService;
 import com.terraria.skills.service.PublicItemService;
 import com.terraria.skills.service.PublicNpcService;
 import org.junit.jupiter.api.Test;
@@ -39,6 +43,9 @@ class PublicContentReferenceServiceImplTest {
     @Mock
     private PublicNpcService publicNpcService;
 
+    @Mock
+    private PublicBossService publicBossService;
+
     @Test
     void searchShouldMergeItemAndNpcResultsIntoUnifiedContract() {
         PublicItemSuggestionDTO item = new PublicItemSuggestionDTO();
@@ -66,7 +73,7 @@ class PublicContentReferenceServiceImplTest {
         when(publicItemService.searchSuggestions("泰", 10)).thenReturn(List.of(item));
         when(publicNpcService.getNpcs(any(PublicNpcQuery.class))).thenReturn(npcPage);
 
-        PublicContentReferenceServiceImpl service = new PublicContentReferenceServiceImpl(publicItemService, publicNpcService);
+        PublicContentReferenceServiceImpl service = newService();
         List<PublicContentReferenceDTO> results = service.search(Set.of("item", "npc"), " 泰 ", 20);
 
         assertEquals(2, results.size());
@@ -92,6 +99,36 @@ class PublicContentReferenceServiceImplTest {
     }
 
     @Test
+    void searchShouldMergeBossResultsIntoUnifiedContract() {
+        PublicBossListDTO boss = bossList(34L);
+        Page<PublicBossListDTO> bossPage = new Page<>(1, 20);
+        bossPage.setRecords(List.of(boss));
+        bossPage.setTotal(1);
+
+        when(publicBossService.getPublicBosses(any(PublicBossQuery.class))).thenReturn(bossPage);
+
+        PublicContentReferenceServiceImpl service = newService();
+        List<PublicContentReferenceDTO> results = service.search(Set.of("boss"), "史莱姆", 20);
+
+        assertEquals(1, results.size());
+        assertEquals("boss", results.get(0).getType());
+        assertEquals("34", results.get(0).getId());
+        assertEquals("史莱姆王", results.get(0).getLabel());
+        assertEquals("King Slime", results.get(0).getName());
+        assertEquals("KING_SLIME", results.get(0).getInternalName());
+        assertEquals("http://localhost:9000/bosses/king-slime.png", results.get(0).getImageUrl());
+        assertEquals("PRE_HARDMODE", results.get(0).getCategoryName());
+        assertEquals("Boss · PRE_HARDMODE · 顺序 1", results.get(0).getSummary());
+        assertEquals("/bosses/34", results.get(0).getDetailPath());
+        assertEquals(Boolean.TRUE, results.get(0).getAvailable());
+
+        ArgumentCaptor<PublicBossQuery> bossQuery = ArgumentCaptor.forClass(PublicBossQuery.class);
+        verify(publicBossService).getPublicBosses(bossQuery.capture());
+        assertEquals("史莱姆", bossQuery.getValue().getSearch());
+        assertEquals(20, bossQuery.getValue().getLimit());
+    }
+
+    @Test
     void searchShouldReturnDefaultReferencesForBlankQuery() {
         PublicItemSuggestionDTO item = new PublicItemSuggestionDTO();
         item.setId(1L);
@@ -113,7 +150,7 @@ class PublicContentReferenceServiceImplTest {
         when(publicItemService.searchSuggestions("铁", 10)).thenReturn(List.of(item));
         when(publicNpcService.getNpcs(any(PublicNpcQuery.class))).thenReturn(npcPage);
 
-        PublicContentReferenceServiceImpl service = new PublicContentReferenceServiceImpl(publicItemService, publicNpcService);
+        PublicContentReferenceServiceImpl service = newService();
 
         List<PublicContentReferenceDTO> results = service.search(Set.of("item", "npc"), "   ", 20);
 
@@ -130,6 +167,28 @@ class PublicContentReferenceServiceImplTest {
     }
 
     @Test
+    void searchShouldReturnDefaultBossReferencesForBlankQuery() {
+        PublicBossListDTO boss = bossList(34L);
+        Page<PublicBossListDTO> bossPage = new Page<>(1, 20);
+        bossPage.setRecords(List.of(boss));
+        bossPage.setTotal(1);
+
+        when(publicBossService.getPublicBosses(any(PublicBossQuery.class))).thenReturn(bossPage);
+
+        PublicContentReferenceServiceImpl service = newService();
+        List<PublicContentReferenceDTO> results = service.search(Set.of("boss"), "   ", 20);
+
+        assertEquals(1, results.size());
+        assertEquals("boss", results.get(0).getType());
+        assertEquals("史莱姆王", results.get(0).getLabel());
+
+        ArgumentCaptor<PublicBossQuery> bossQuery = ArgumentCaptor.forClass(PublicBossQuery.class);
+        verify(publicBossService).getPublicBosses(bossQuery.capture());
+        assertEquals("王", bossQuery.getValue().getSearch());
+        assertEquals(20, bossQuery.getValue().getLimit());
+    }
+
+    @Test
     void resolveShouldPreserveOrderAndMarkMissingReferencesUnavailable() {
         PublicItemDetailDTO item = itemDetail(77L);
         NpcDetailDTO npc = npcDetail(1L);
@@ -138,7 +197,7 @@ class PublicContentReferenceServiceImplTest {
         when(publicNpcService.getNpcById(1L)).thenReturn(npc);
         when(publicNpcService.getNpcById(999L)).thenReturn(null);
 
-        PublicContentReferenceServiceImpl service = new PublicContentReferenceServiceImpl(publicItemService, publicNpcService);
+        PublicContentReferenceServiceImpl service = newService();
         List<PublicContentReferenceDTO> results = service.resolve(List.of(
             ref("npc", "1"),
             ref("item", "77"),
@@ -158,11 +217,44 @@ class PublicContentReferenceServiceImplTest {
     }
 
     @Test
+    void resolveShouldResolveBossReference() {
+        PublicBossDetailDTO boss = bossDetail(34L);
+        when(publicBossService.getPublicBossById(34L)).thenReturn(boss);
+
+        PublicContentReferenceServiceImpl service = newService();
+        List<PublicContentReferenceDTO> results = service.resolve(List.of(ref("boss", "34")));
+
+        assertEquals(1, results.size());
+        assertEquals("boss", results.get(0).getType());
+        assertEquals("34", results.get(0).getId());
+        assertEquals("史莱姆王", results.get(0).getLabel());
+        assertEquals("King Slime", results.get(0).getName());
+        assertEquals("KING_SLIME", results.get(0).getInternalName());
+        assertEquals("/bosses/34", results.get(0).getDetailPath());
+        assertTrue(results.get(0).getAvailable());
+    }
+
+    @Test
+    void resolveShouldMarkMissingBossReferenceUnavailableWithBossPath() {
+        when(publicBossService.getPublicBossById(999L)).thenReturn(null);
+
+        PublicContentReferenceServiceImpl service = newService();
+        List<PublicContentReferenceDTO> results = service.resolve(List.of(ref("boss", "999")));
+
+        assertEquals(1, results.size());
+        assertEquals("boss", results.get(0).getType());
+        assertEquals("999", results.get(0).getId());
+        assertEquals("boss #999", results.get(0).getLabel());
+        assertEquals("/bosses/999", results.get(0).getDetailPath());
+        assertFalse(results.get(0).getAvailable());
+    }
+
+    @Test
     void resolveShouldPreserveRequestedNpcIdWhenServiceReturnsRepresentativeNpc() {
         NpcDetailDTO npc = npcDetail(454L);
         when(publicNpcService.getNpcById(455L)).thenReturn(npc);
 
-        PublicContentReferenceServiceImpl service = new PublicContentReferenceServiceImpl(publicItemService, publicNpcService);
+        PublicContentReferenceServiceImpl service = newService();
         List<PublicContentReferenceDTO> results = service.resolve(List.of(ref("npc", "455")));
 
         assertEquals(1, results.size());
@@ -174,11 +266,11 @@ class PublicContentReferenceServiceImplTest {
 
     @Test
     void resolveShouldSkipNullEntriesAndReturnUnavailableRowsForInvalidRefs() {
-        PublicContentReferenceServiceImpl service = new PublicContentReferenceServiceImpl(publicItemService, publicNpcService);
+        PublicContentReferenceServiceImpl service = newService();
 
         List<PublicContentReferenceDTO> results = service.resolve(Arrays.asList(
             null,
-            ref("boss", "1"),
+            ref("biome", "1"),
             ref("item", "abc"),
             ref("item", "-1"),
             ref("npc", "1234567890123"),
@@ -186,7 +278,7 @@ class PublicContentReferenceServiceImplTest {
         ));
 
         assertEquals(5, results.size());
-        assertEquals("boss", results.get(0).getType());
+        assertEquals("biome", results.get(0).getType());
         assertEquals("1", results.get(0).getId());
         assertFalse(results.get(0).getAvailable());
         assertEquals("item", results.get(1).getType());
@@ -201,14 +293,14 @@ class PublicContentReferenceServiceImplTest {
         assertEquals("unknown", results.get(4).getType());
         assertEquals("", results.get(4).getId());
         assertFalse(results.get(4).getAvailable());
-        verifyNoInteractions(publicItemService, publicNpcService);
+        verifyNoInteractions(publicItemService, publicNpcService, publicBossService);
     }
 
     @Test
     void resolveShouldDeduplicateReferencesBeforeCallingSourceServices() {
         when(publicItemService.getPublicItemById(77L)).thenReturn(itemDetail(77L));
 
-        PublicContentReferenceServiceImpl service = new PublicContentReferenceServiceImpl(publicItemService, publicNpcService);
+        PublicContentReferenceServiceImpl service = newService();
         List<PublicContentReferenceDTO> results = service.resolve(List.of(
             ref("item", "77"),
             ref(" item ", " 77 "),
@@ -232,7 +324,7 @@ class PublicContentReferenceServiceImplTest {
             refs.add(ref("item", String.valueOf(id)));
         }
 
-        PublicContentReferenceServiceImpl service = new PublicContentReferenceServiceImpl(publicItemService, publicNpcService);
+        PublicContentReferenceServiceImpl service = newService();
         List<PublicContentReferenceDTO> results = service.resolve(refs);
 
         assertEquals(100, results.size());
@@ -249,7 +341,7 @@ class PublicContentReferenceServiceImplTest {
         }
         refs.add(ref("boss", "bad-1"));
 
-        PublicContentReferenceServiceImpl service = new PublicContentReferenceServiceImpl(publicItemService, publicNpcService);
+        PublicContentReferenceServiceImpl service = newService();
         List<PublicContentReferenceDTO> results = service.resolve(refs);
 
         assertEquals(100, results.size());
@@ -257,7 +349,11 @@ class PublicContentReferenceServiceImplTest {
         assertEquals("bad-0", results.get(0).getId());
         assertFalse(results.get(0).getAvailable());
         assertEquals("bad-99", results.get(99).getId());
-        verifyNoInteractions(publicItemService, publicNpcService);
+        verifyNoInteractions(publicItemService, publicNpcService, publicBossService);
+    }
+
+    private PublicContentReferenceServiceImpl newService() {
+        return new PublicContentReferenceServiceImpl(publicItemService, publicNpcService, publicBossService);
     }
 
     private static PublicItemDetailDTO itemDetail(Long id) {
@@ -282,6 +378,32 @@ class PublicContentReferenceServiceImplTest {
         npc.setCategoryName("Town NPC");
         npc.setIsTownNpc(true);
         return npc;
+    }
+
+    private static PublicBossListDTO bossList(Long id) {
+        PublicBossListDTO boss = new PublicBossListDTO();
+        boss.setId(id);
+        boss.setCode("KING_SLIME");
+        boss.setName("King Slime");
+        boss.setNameZh("史莱姆王");
+        boss.setNameEn("King Slime");
+        boss.setImageUrl("http://localhost:9000/bosses/king-slime.png");
+        boss.setBossType("PRE_HARDMODE");
+        boss.setProgressionOrder(1);
+        return boss;
+    }
+
+    private static PublicBossDetailDTO bossDetail(Long id) {
+        PublicBossDetailDTO boss = new PublicBossDetailDTO();
+        boss.setId(id);
+        boss.setCode("KING_SLIME");
+        boss.setName("King Slime");
+        boss.setNameZh("史莱姆王");
+        boss.setNameEn("King Slime");
+        boss.setImageUrl("http://localhost:9000/bosses/king-slime.png");
+        boss.setBossType("PRE_HARDMODE");
+        boss.setProgressionOrder(1);
+        return boss;
     }
 
     private static PublicContentReferenceResolveItemDTO ref(String type, String id) {

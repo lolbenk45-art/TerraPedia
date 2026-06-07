@@ -3,11 +3,15 @@ package com.terraria.skills.service.impl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.terraria.skills.dto.NpcDetailDTO;
 import com.terraria.skills.dto.NpcListItemDTO;
+import com.terraria.skills.dto.PublicBossDetailDTO;
+import com.terraria.skills.dto.PublicBossListDTO;
+import com.terraria.skills.dto.PublicBossQuery;
 import com.terraria.skills.dto.PublicContentReferenceDTO;
 import com.terraria.skills.dto.PublicContentReferenceResolveItemDTO;
 import com.terraria.skills.dto.PublicItemDetailDTO;
 import com.terraria.skills.dto.PublicItemSuggestionDTO;
 import com.terraria.skills.dto.PublicNpcQuery;
+import com.terraria.skills.service.PublicBossService;
 import com.terraria.skills.service.PublicContentReferenceService;
 import com.terraria.skills.service.PublicItemService;
 import com.terraria.skills.service.PublicNpcService;
@@ -24,14 +28,16 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class PublicContentReferenceServiceImpl implements PublicContentReferenceService {
 
-    private static final Set<String> SUPPORTED_TYPES = Set.of("item", "npc");
+    private static final Set<String> SUPPORTED_TYPES = Set.of("item", "npc", "boss");
     private static final int MAX_SEARCH_LIMIT = 50;
     private static final int MAX_RESOLVE_LIMIT = 100;
     private static final String DEFAULT_ITEM_SEARCH_QUERY = "铁";
     private static final String DEFAULT_NPC_SEARCH_QUERY = "商";
+    private static final String DEFAULT_BOSS_SEARCH_QUERY = "王";
 
     private final PublicItemService publicItemService;
     private final PublicNpcService publicNpcService;
+    private final PublicBossService publicBossService;
 
     @Override
     public List<PublicContentReferenceDTO> search(Set<String> types, String query, int limit) {
@@ -64,6 +70,22 @@ public class PublicContentReferenceServiceImpl implements PublicContentReference
                 for (NpcListItemDTO npc : npcPage.getRecords()) {
                     if (npc != null) {
                         results.add(fromNpc(npc, stringId(npc.getId())));
+                    }
+                }
+            }
+        }
+
+        if (resolvedTypes.contains("boss")) {
+            String bossKeyword = keyword.isEmpty() ? DEFAULT_BOSS_SEARCH_QUERY : keyword;
+            PublicBossQuery bossQuery = new PublicBossQuery();
+            bossQuery.setPage(1);
+            bossQuery.setLimit(perTypeLimit);
+            bossQuery.setSearch(bossKeyword);
+            Page<PublicBossListDTO> bossPage = publicBossService.getPublicBosses(bossQuery);
+            if (bossPage != null && bossPage.getRecords() != null) {
+                for (PublicBossListDTO boss : bossPage.getRecords()) {
+                    if (boss != null) {
+                        results.add(fromBoss(boss, stringId(boss.getId())));
                     }
                 }
             }
@@ -112,8 +134,14 @@ public class PublicContentReferenceServiceImpl implements PublicContentReference
                 continue;
             }
 
-            NpcDetailDTO npc = publicNpcService.getNpcById(numericId);
-            results.add(npc == null ? missing(requestedType, requestedId) : fromNpc(npc, requestedId));
+            if ("npc".equals(requestedType)) {
+                NpcDetailDTO npc = publicNpcService.getNpcById(numericId);
+                results.add(npc == null ? missing(requestedType, requestedId) : fromNpc(npc, requestedId));
+                continue;
+            }
+
+            PublicBossDetailDTO boss = publicBossService.getPublicBossById(numericId);
+            results.add(boss == null ? missing(requestedType, requestedId) : fromBoss(boss, requestedId));
         }
 
         return results;
@@ -166,6 +194,20 @@ public class PublicContentReferenceServiceImpl implements PublicContentReference
         return dto;
     }
 
+    private PublicContentReferenceDTO fromBoss(PublicBossListDTO boss, String requestedId) {
+        PublicContentReferenceDTO dto = base("boss", requestedId, boss.getNameZh(), firstText(boss.getNameEn(), boss.getName()), boss.getCode());
+        dto.setImageUrl(normalizeNullableText(boss.getImageUrl()));
+        dto.setCategoryName(normalizeNullableText(boss.getBossType()));
+        dto.setSummary(joinSummary(
+            "Boss",
+            boss.getBossType(),
+            boss.getProgressionOrder() == null ? "" : "顺序 " + boss.getProgressionOrder()
+        ));
+        dto.setDetailPath("/bosses/" + requestedId);
+        dto.setAvailable(true);
+        return dto;
+    }
+
     private PublicContentReferenceDTO base(String type, String id, String label, String name, String internalName) {
         PublicContentReferenceDTO dto = new PublicContentReferenceDTO();
         dto.setType(type);
@@ -181,7 +223,11 @@ public class PublicContentReferenceServiceImpl implements PublicContentReference
         dto.setType(type);
         dto.setId(id);
         dto.setLabel(type + " #" + id);
-        dto.setDetailPath("/" + ("npc".equals(type) ? "npcs" : "items"));
+        dto.setDetailPath(switch (type) {
+            case "npc" -> "/npcs";
+            case "boss" -> "/bosses/" + id;
+            default -> "/items";
+        });
         dto.setAvailable(false);
         return dto;
     }

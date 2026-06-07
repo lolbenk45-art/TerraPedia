@@ -489,7 +489,7 @@
 
 .crafting-tree-stage {
   min-width: 0;
-  overflow: visible;
+  overflow: hidden;
   padding: 8px;
 }
 
@@ -514,15 +514,17 @@
 }
 
 .recipe-hierarchy-popover {
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 8px);
-  z-index: 6;
+  position: fixed;
+  left: 12px;
+  top: 12px;
+  z-index: 80;
   display: grid;
   gap: 6px;
-  width: max-content;
-  max-width: 220px;
+  width: min(220px, calc(100vw - 24px));
+  max-width: min(240px, calc(100vw - 24px));
+  max-height: min(var(--recipe-popover-max-height, calc(100dvh - 24px)), calc(100dvh - 24px));
   min-width: 160px;
+  box-sizing: border-box;
   border: 1px solid var(--crafting-gold-line);
   border-radius: 8px;
   background:
@@ -537,15 +539,19 @@
   opacity: 0;
   padding: 8px;
   pointer-events: none;
+  overflow: auto;
+  overscroll-behavior: contain;
   text-align: left;
-  transform: translate(-50%, 4px);
+  transform: translateY(4px);
   transition: opacity 140ms ease, transform 140ms ease;
 }
 
 .recipe-hierarchy-node.is-root .recipe-hierarchy-popover {
-  top: calc(100% + 8px);
-  bottom: auto;
-  transform: translate(-50%, -4px);
+  transform: translateY(-4px);
+}
+
+.recipe-hierarchy-popover[data-placement="below"] {
+  transform: translateY(-4px);
 }
 
 .recipe-hierarchy-popover-head {
@@ -619,9 +625,10 @@
 }
 
 .recipe-overview-node:hover .recipe-hierarchy-popover,
-.recipe-overview-node:focus-within .recipe-hierarchy-popover {
+.recipe-overview-node:focus-within .recipe-hierarchy-popover,
+.recipe-hierarchy-popover.is-visible {
   opacity: 1;
-  transform: translate(-50%, 0);
+  transform: translateY(0);
 }
 
 .recipe-hierarchy-node::before {
@@ -934,6 +941,14 @@
 
 .recipe-overview-tree {
   display: block;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.recipe-overview-tree.is-panning {
+  cursor: grabbing;
 }
 
 .recipe-overview-canvas {
@@ -942,7 +957,7 @@
   left: 50%;
   width: var(--recipe-overview-width);
   height: var(--recipe-overview-height);
-  transform: translateX(-50%) scale(var(--recipe-overview-scale));
+  transform: translateX(calc(-50% + var(--recipe-overview-pan-x, 0px))) translateY(var(--recipe-overview-pan-y, 0px)) scale(var(--recipe-overview-scale));
   transform-origin: top center;
 }
 

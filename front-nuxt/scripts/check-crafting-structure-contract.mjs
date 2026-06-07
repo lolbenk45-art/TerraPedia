@@ -374,6 +374,15 @@ for (const path of [
   for (const marker of [
     'layoutTree',
     'treeScale',
+    'manualScale',
+    'effectiveTreeScale',
+    'overview.value.height * treeScale.value',
+    'changeTreeZoomFromWheel',
+    'startTreePan',
+    'moveTreePan',
+    'endTreePan',
+    'panX',
+    'panY',
     'recipe-overview-tree',
     'recipe-overview-lines',
     'recipe-overview-edge',
@@ -391,6 +400,8 @@ for (const path of [
     'data-recipe-target-key',
     'selectTarget',
     'recipe-hierarchy-popover',
+    'positionRecipeHierarchyPopover',
+    'data-placement',
     'nodeDetailRows',
     'optionSourceSummary',
   ]) {
@@ -399,9 +410,24 @@ for (const path of [
   for (const marker of [
     '<CraftingRecipeHierarchyNode',
     '__recipeOptions',
+    'recipe-hierarchy-zoom',
+    'overview.value.height * effectiveTreeScale.value',
   ]) {
     forbidIncludes('components/crafting/RecipeHierarchyTree.vue', source, marker, `hierarchy overview must not return to scroll-heavy recursive flex marker ${marker}`)
   }
+  for (const marker of [
+    '--recipe-overview-pan-x',
+    '--recipe-overview-pan-y',
+    'touch-action: none',
+  ]) {
+    requireIncludes('assets/css/domains/crafting.css', domainCss, marker, `hierarchy overview must support invisible pan/zoom marker ${marker}`)
+  }
+  requireBlockIncludes('assets/css/domains/crafting.css', domainCss, '.crafting-tree-stage', 'overflow: hidden;', 'crafting tree stage must clip panned or zoomed graph inside its panel')
+  requireBlockIncludes('assets/css/domains/crafting.css', domainCss, '.recipe-overview-tree', 'overflow: hidden;', 'overview tree must be a clipped viewport for panned or zoomed graph')
+  requireBlockIncludes('assets/css/domains/crafting.css', domainCss, '.recipe-overview-tree', 'touch-action: none;', 'overview tree must own drag and wheel interaction gestures')
+  requireBlockIncludes('assets/css/domains/crafting.css', domainCss, '.recipe-overview-tree.is-panning', 'cursor: grabbing;', 'overview tree must expose panning cursor only while panning')
+  forbidBlockIncludes('assets/css/domains/crafting.css', domainCss, '.recipe-hierarchy-tree', 'touch-action: none;', 'base hierarchy tree styles must not own overview-only gestures')
+  forbidBlockIncludes('assets/css/domains/crafting.css', domainCss, '.recipe-hierarchy-tree', 'cursor: grab;', 'base hierarchy tree styles must not apply panning cursor to non-overview trees')
 }
 
 {
@@ -410,6 +436,11 @@ for (const path of [
     '.recipe-hierarchy-popover',
     '.recipe-overview-node:hover .recipe-hierarchy-popover',
     '.recipe-overview-node:focus-within .recipe-hierarchy-popover',
+    'position: fixed;',
+    'calc(100vw - 24px)',
+    'calc(100dvh - 24px)',
+    '--recipe-popover-max-height',
+    '[data-placement="below"]',
   ]) {
     requireIncludes('assets/css/domains/crafting.css', source, marker, `hierarchy popover CSS must keep basic recipe info marker ${marker}`)
   }

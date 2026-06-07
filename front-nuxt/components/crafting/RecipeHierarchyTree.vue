@@ -57,10 +57,23 @@ const Y_GAP = 10
 const PADDING = 12
 const MIN_SCALE = 0.48
 const MAX_SCALE = 1
+const MIN_MANUAL_SCALE = 0.6
+const MAX_MANUAL_SCALE = 1.8
+const MANUAL_SCALE_STEP = 0.1
 
 const treeHost = ref<HTMLElement | null>(null)
+const popoverElement = ref<HTMLElement | null>(null)
 const hostWidth = ref(0)
 const hostHeightLimit = ref(520)
+const manualScale = ref(1)
+const panX = ref(0)
+const panY = ref(0)
+const isPanning = ref(false)
+const activePopoverNode = ref<OverviewNode | null>(null)
+const activePopoverPlacement = ref<'above' | 'below'>('above')
+const activePopoverStyle = ref<Record<string, string>>({})
+let panStart: { pointerId: number, clientX: number, clientY: number, panX: number, panY: number } | null = null
+let activePopoverTarget: HTMLElement | null = null
 let resizeObserver: ResizeObserver | null = null
 
 const displayText = (...values: unknown[]) => values.map((value) => String(value ?? '').trim()).find(Boolean) || ''
@@ -551,13 +564,53 @@ const overview = computed(() => layoutTree(props.root ? buildOverviewTree(props.
 const isLinkedNode = (node: OverviewNode) => Boolean(node.targetKey)
 const isHoveredNode = (node: OverviewNode) => Boolean(node.targetKey && props.hoveredTargetKey === node.targetKey)
 const isActiveNode = (node: OverviewNode) => Boolean(node.targetKey && props.activeTargetKey === node.targetKey)
-const handleNodeHover = (node: OverviewNode) => {
+const positionRecipeHierarchyPopover = (target: HTMLElement) => {
+  const anchor = target.querySelector<HTMLElement>('.recipe-hierarchy-card') ?? target
+  const rect = anchor.getBoundingClientRect()
+  const margin = 12
+  const gap = 8
+  const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 320
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 320
+  const maxWidth = Math.max(160, Math.min(240, viewportWidth - margin * 2))
+  const popoverWidth = Math.min(popoverElement.value?.offsetWidth || maxWidth, maxWidth)
+  const popoverHeight = Math.min(popoverElement.value?.offsetHeight || 132, viewportHeight - margin * 2)
+  const aboveSpace = rect.top - margin - gap
+  const belowSpace = viewportHeight - rect.bottom - margin - gap
+  const placement = aboveSpace >= popoverHeight || aboveSpace >= belowSpace ? 'above' : 'below'
+  const preferredTop = placement === 'above' ? rect.top - popoverHeight - gap : rect.bottom + gap
+  const top = Math.max(margin, Math.min(preferredTop, viewportHeight - popoverHeight - margin))
+  const left = Math.max(margin, Math.min(rect.left + rect.width / 2 - popoverWidth / 2, viewportWidth - popoverWidth - margin))
+
+  activePopoverPlacement.value = placement
+  activePopoverStyle.value = {
+    left: `${Math.round(left)}px`,
+    top: `${Math.round(top)}px`,
+    maxWidth: `${Math.round(maxWidth)}px`,
+    '--recipe-popover-max-height': `${Math.round(viewportHeight - margin * 2)}px`,
+  }
+}
+const showRecipeHierarchyPopover = async (node: OverviewNode, target: HTMLElement) => {
+  activePopoverNode.value = node
+  activePopoverTarget = target
+  positionRecipeHierarchyPopover(target)
+  await nextTick()
+  if (activePopoverTarget === target) positionRecipeHierarchyPopover(target)
+}
+const hideRecipeHierarchyPopover = (node: OverviewNode) => {
+  if (activePopoverNode.value?.id === node.id) {
+    activePopoverNode.value = null
+    activePopoverTarget = null
+  }
+}
+const handleNodeHover = (node: OverviewNode, event: MouseEvent | FocusEvent) => {
   if (!node.targetKey) return
   emit('hoverTarget', node.targetKey)
+  showRecipeHierarchyPopover(node, event.currentTarget as HTMLElement)
 }
 const handleNodeLeave = (node: OverviewNode) => {
   if (!node.targetKey || props.hoveredTargetKey !== node.targetKey) return
   emit('hoverTarget', '')
+  hideRecipeHierarchyPopover(node)
 }
 const handleNodeSelect = (node: OverviewNode) => {
   if (!node.targetKey) return
@@ -570,12 +623,47 @@ const treeScale = computed(() => {
   const heightScale = hostHeightLimit.value / Math.max(overview.value.height, 1)
   return Math.max(MIN_SCALE, Math.min(MAX_SCALE, widthScale, heightScale))
 })
+const effectiveTreeScale = computed(() => Math.max(MIN_SCALE, Math.min(MAX_MANUAL_SCALE, treeScale.value * manualScale.value)))
 const viewportStyle = computed(() => ({
   '--recipe-overview-width': `${overview.value.width}px`,
   '--recipe-overview-height': `${overview.value.height}px`,
-  '--recipe-overview-scale': String(treeScale.value),
-  minHeight: `${Math.ceil(overview.value.height * treeScale.value)}px`,
+  '--recipe-overview-scale': String(effectiveTreeScale.value),
+  '--recipe-overview-pan-x': `${panX.value}px`,
+  '--recipe-overview-pan-y': `${panY.value}px`,
+  height: `${Math.ceil(overview.value.height * treeScale.value)}px`,
 }))
+const changeTreeZoom = (delta: number) => {
+  manualScale.value = Math.max(MIN_MANUAL_SCALE, Math.min(MAX_MANUAL_SCALE, Number((manualScale.value + delta).toFixed(2))))
+}
+const changeTreeZoomFromWheel = (event: WheelEvent) => {
+  event.preventDefault()
+  changeTreeZoom(event.deltaY > 0 ? -MANUAL_SCALE_STEP : MANUAL_SCALE_STEP)
+  if (activePopoverTarget) requestAnimationFrame(() => activePopoverTarget && positionRecipeHierarchyPopover(activePopoverTarget))
+}
+const startTreePan = (event: PointerEvent) => {
+  if ((event.target as HTMLElement | null)?.closest('.recipe-overview-node')) return
+  panStart = {
+    pointerId: event.pointerId,
+    clientX: event.clientX,
+    clientY: event.clientY,
+    panX: panX.value,
+    panY: panY.value,
+  }
+  isPanning.value = true
+  treeHost.value?.setPointerCapture(event.pointerId)
+}
+const moveTreePan = (event: PointerEvent) => {
+  if (!panStart || panStart.pointerId !== event.pointerId) return
+  panX.value = panStart.panX + event.clientX - panStart.clientX
+  panY.value = panStart.panY + event.clientY - panStart.clientY
+}
+const endTreePan = (event: PointerEvent) => {
+  if (panStart?.pointerId === event.pointerId) {
+    if (treeHost.value?.hasPointerCapture(event.pointerId)) treeHost.value.releasePointerCapture(event.pointerId)
+    panStart = null
+    isPanning.value = false
+  }
+}
 
 onMounted(() => {
   if (!treeHost.value) return
@@ -591,7 +679,17 @@ onMounted(() => {
   resizeObserver = new ResizeObserver(updateSize)
   resizeObserver.observe(treeHost.value)
   window.addEventListener('resize', updateSize)
-  onBeforeUnmount(() => window.removeEventListener('resize', updateSize))
+  const handleViewportChange = () => {
+    updateSize()
+    if (activePopoverTarget) positionRecipeHierarchyPopover(activePopoverTarget)
+  }
+  window.addEventListener('resize', handleViewportChange)
+  window.addEventListener('scroll', handleViewportChange, true)
+  onBeforeUnmount(() => {
+    window.removeEventListener('resize', updateSize)
+    window.removeEventListener('resize', handleViewportChange)
+    window.removeEventListener('scroll', handleViewportChange, true)
+  })
 })
 
 onBeforeUnmount(() => {
@@ -605,8 +703,14 @@ onBeforeUnmount(() => {
     v-if="root"
     ref="treeHost"
     class="recipe-hierarchy-tree recipe-overview-tree"
+    :class="{ 'is-panning': isPanning }"
     :style="viewportStyle"
     data-crafting-role="recipe-hierarchy-tree"
+    @wheel="changeTreeZoomFromWheel"
+    @pointerdown="startTreePan"
+    @pointermove="moveTreePan"
+    @pointerup="endTreePan"
+    @pointercancel="endTreePan"
   >
     <div class="recipe-overview-canvas">
       <svg
@@ -633,9 +737,9 @@ onBeforeUnmount(() => {
         :style="{ '--node-x': `${node.x}px`, '--node-y': `${node.y}px`, '--node-card-width': `${node.width}px`, '--node-card-height': `${node.height}px` }"
         :data-recipe-target-key="node.targetKey || undefined"
         data-crafting-role="recipe-hierarchy-node"
-        @mouseenter="handleNodeHover(node)"
+        @mouseenter="handleNodeHover(node, $event)"
         @mouseleave="handleNodeLeave(node)"
-        @focusin="handleNodeHover(node)"
+        @focusin="handleNodeHover(node, $event)"
         @focusout="handleNodeLeave(node)"
       >
         <span class="recipe-hierarchy-label">{{ node.relation }}</span>
@@ -717,34 +821,41 @@ onBeforeUnmount(() => {
             </span>
           </span>
         </button>
-        <aside class="recipe-hierarchy-popover" role="tooltip">
-          <span class="recipe-hierarchy-popover-head">
-            <span class="recipe-hierarchy-popover-images">
-              <CommonPreviewImage
-                v-for="image in popoverImages(node.node)"
-                :key="image.key || image.title"
-                :src="image.image"
-                :alt="image.title"
-                :fallback="firstGlyph(image.title)"
-                fallback-icon="icon-items"
-                width="26"
-                height="26"
-              />
-            </span>
-            <span class="recipe-hierarchy-popover-title">
-              <b>{{ node.title }}</b>
-              <span v-if="node.subtitle">{{ node.subtitle }}</span>
-            </span>
-          </span>
-          <dl>
-            <template v-for="row in node.detailRows" :key="`${row.label}-${row.value}`">
-              <dt>{{ row.label }}</dt>
-              <dd>{{ row.value }}</dd>
-            </template>
-          </dl>
-        </aside>
       </article>
     </div>
+    <aside
+      v-if="activePopoverNode"
+      ref="popoverElement"
+      class="recipe-hierarchy-popover is-visible"
+      role="tooltip"
+      :data-placement="activePopoverPlacement"
+      :style="activePopoverStyle"
+    >
+      <span class="recipe-hierarchy-popover-head">
+        <span class="recipe-hierarchy-popover-images">
+          <CommonPreviewImage
+            v-for="image in popoverImages(activePopoverNode.node)"
+            :key="image.key || image.title"
+            :src="image.image"
+            :alt="image.title"
+            :fallback="firstGlyph(image.title)"
+            fallback-icon="icon-items"
+            width="26"
+            height="26"
+          />
+        </span>
+        <span class="recipe-hierarchy-popover-title">
+          <b>{{ activePopoverNode.title }}</b>
+          <span v-if="activePopoverNode.subtitle">{{ activePopoverNode.subtitle }}</span>
+        </span>
+      </span>
+      <dl>
+        <template v-for="row in activePopoverNode.detailRows" :key="`${row.label}-${row.value}`">
+          <dt>{{ row.label }}</dt>
+          <dd>{{ row.value }}</dd>
+        </template>
+      </dl>
+    </aside>
   </div>
   <p v-else class="recipe-route-empty-state">暂无合成树。</p>
 </template>
