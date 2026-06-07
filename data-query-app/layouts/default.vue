@@ -275,17 +275,27 @@ const menuSections: MenuSection[] = [
     ],
   },
   {
-    label: '运营维护',
+    label: '内容运营',
     items: [
-      { name: '爬取监控', path: '/operations/crawler-monitor', hint: '查看刷新进度与运行日志', icon: Activity },
-      { name: '数据源验收', path: '/operations/data-source-acceptance', hint: '查看数据源替换准入状态', icon: ShieldCheck },
-      { name: '盔甲属性表', path: '/operations/armor-attributes', hint: '核验单件装备字段', icon: FileSearch },
-      { name: '音频资产', path: '/operations/audio-assets', hint: '查看 BGM 与 NPC 音效入库状态', icon: Music },
-      { name: 'B 档域验收', path: '/operations/domain-acceptance', hint: '查看 B 档域自动维护证据', icon: ShieldCheck },
-      { name: '监控测试页', path: '/operations/crawler-monitor-test', hint: '手动观察测试状态', icon: Beaker },
       { name: '用户管理', path: '/users', hint: '账号与权限', icon: UserRound },
       { name: '文章管理', path: '/articles', hint: '内容工作台', icon: Newspaper },
       { name: '评论管理', path: '/article-comments', hint: '单文章评论区审核', icon: MessageSquareText },
+    ],
+  },
+  {
+    label: '数据运维',
+    items: [
+      { name: '爬取监控', path: '/operations/crawler-monitor', hint: '查看刷新进度与运行日志', icon: Activity },
+      { name: '数据源验收', path: '/operations/data-source-acceptance', hint: '查看数据源替换准入状态', icon: ShieldCheck },
+      { name: 'B 档域验收', path: '/operations/domain-acceptance', hint: '查看 B 档域自动维护证据', icon: ShieldCheck },
+      { name: '监控测试页', path: '/operations/crawler-monitor-test', hint: '手动观察测试状态', icon: Beaker },
+    ],
+  },
+  {
+    label: '资产工具',
+    items: [
+      { name: '盔甲属性表', path: '/operations/armor-attributes', hint: '核验单件装备字段', icon: FileSearch },
+      { name: '音频资产', path: '/operations/audio-assets', hint: '查看 BGM 与 NPC 音效入库状态', icon: Music },
       { name: '数据查询', path: '/query', hint: '调试与只读查询', icon: FileSearch },
     ],
   },
