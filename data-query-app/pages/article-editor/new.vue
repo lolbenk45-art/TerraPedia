@@ -1,5 +1,5 @@
 <template>
-  <div class="article-editor-route">
+  <div class="page-wrap page-workspace article-editor-route">
     <ClientOnly>
       <ArticleEditorWorkspace />
     </ClientOnly>

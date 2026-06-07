@@ -52,6 +52,8 @@ const {
 } = await usePublicRecipeTree(effectiveSelectedItemId, maxDepth)
 
 const recipeTree = computed(() => recipeBundle.value?.tree ?? null)
+const craftingVisualLoading = computed(() => recipePending.value && !recipeTree.value)
+const craftingLoadingSlotCount = 5
 const recipeModel = useCraftingRecipeModel(recipeTree, selectedVariantKey, selectedRecipeKey)
 const activeVariant = computed(() => recipeModel.value.activeVariant)
 const activeRecipe = computed(() => recipeModel.value.activeRecipe)
@@ -198,6 +200,17 @@ const saveCurrentRoute = async () => {
               @clear="clearRecipeTarget"
             />
 
+            <section v-if="craftingVisualLoading" class="tp-panel crafting-loading-panel crafting-loading-panel--sidebar" aria-live="polite" aria-label="制作路线加载中">
+              <span class="eyebrow"><CommonTpSkeleton type="pill" /></span>
+              <CommonTpSkeleton type="line" />
+              <CommonTpSkeleton type="line" short />
+              <div class="crafting-loading-token-list">
+                <CommonTpSkeleton type="pill" />
+                <CommonTpSkeleton type="pill" />
+                <CommonTpSkeleton type="pill" />
+              </div>
+            </section>
+
             <CraftingRecipeVariantSelector
               v-if="recipeModel.variants.length > 1"
               :variants="recipeModel.variants"
@@ -229,7 +242,33 @@ const saveCurrentRoute = async () => {
 
           <section class="crafting-route-stage" data-crafting-role="route-stage">
             <section
-              v-if="activeRecipeRawNode"
+              v-if="craftingVisualLoading"
+              class="tp-panel crafting-tree-section crafting-loading-stage"
+              data-crafting-role="recipe-tree-section"
+              aria-labelledby="crafting-loading-tree-title"
+              aria-live="polite"
+            >
+              <header class="recipe-section-head">
+                <span class="eyebrow"><CommonTpSkeleton type="pill" /></span>
+                <h3 id="crafting-loading-tree-title"><CommonTpSkeleton type="line" /></h3>
+              </header>
+              <div class="crafting-tree-stage crafting-loading-tree-stage">
+                <article
+                  v-for="slot in craftingLoadingSlotCount"
+                  :key="`crafting-loading-node-${slot}`"
+                  class="crafting-loading-node"
+                >
+                  <CommonTpSkeleton type="icon" />
+                  <div>
+                    <CommonTpSkeleton type="line" />
+                    <CommonTpSkeleton type="line" short />
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section
+              v-else-if="activeRecipeRawNode"
               class="tp-panel crafting-tree-section"
               data-crafting-role="recipe-tree-section"
               aria-labelledby="crafting-tree-title"
@@ -251,6 +290,7 @@ const saveCurrentRoute = async () => {
             </section>
 
             <CraftingRecipeCraftingGraph
+              v-if="!craftingVisualLoading"
               :root="activeRecipeRawNode"
               :hovered-target-key="hoveredRecipeTargetKey"
               :active-target-key="activeRecipeTargetKey"
@@ -259,7 +299,42 @@ const saveCurrentRoute = async () => {
           </section>
         </div>
 
-        <CraftingRecipeSheet :recipe="activeRecipe" />
+        <section v-if="craftingVisualLoading" class="recipe-sheet tp-panel crafting-loading-sheet" aria-live="polite" aria-label="配方表加载中">
+          <header class="recipe-sheet-head">
+            <div>
+              <span class="eyebrow"><CommonTpSkeleton type="pill" /></span>
+              <h2><CommonTpSkeleton type="line" /></h2>
+              <p><CommonTpSkeleton type="line" short /></p>
+            </div>
+          </header>
+          <div class="recipe-sheet-grid">
+            <section class="recipe-sheet-section">
+              <span class="recipe-section-label"><CommonTpSkeleton type="pill" /></span>
+              <div class="crafting-loading-material-list">
+                <CommonTpSkeleton type="icon" />
+                <CommonTpSkeleton type="line" />
+                <CommonTpSkeleton type="line" short />
+              </div>
+            </section>
+            <span class="recipe-flow-arrow" aria-hidden="true">→</span>
+            <section class="recipe-sheet-section">
+              <span class="recipe-section-label"><CommonTpSkeleton type="pill" /></span>
+              <div class="crafting-loading-material-list">
+                <CommonTpSkeleton type="icon" />
+                <CommonTpSkeleton type="line" />
+              </div>
+            </section>
+            <span class="recipe-flow-arrow" aria-hidden="true">→</span>
+            <section class="recipe-sheet-section">
+              <span class="recipe-section-label"><CommonTpSkeleton type="pill" /></span>
+              <div class="crafting-loading-material-list">
+                <CommonTpSkeleton type="icon" />
+                <CommonTpSkeleton type="line" />
+              </div>
+            </section>
+          </div>
+        </section>
+        <CraftingRecipeSheet v-else :recipe="activeRecipe" />
 
         <CraftingRecipeCompareTable
           v-if="activeOptions.length > 1"
@@ -288,5 +363,59 @@ const saveCurrentRoute = async () => {
 
 .saved-route-button {
   width: 100%;
+}
+
+.crafting-loading-panel,
+.crafting-loading-stage,
+.crafting-loading-sheet {
+  pointer-events: none;
+}
+
+.crafting-loading-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.crafting-loading-token-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.crafting-loading-tree-stage {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  min-height: 260px;
+  align-content: center;
+}
+
+.crafting-loading-node {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 78px;
+  border: 1px solid var(--crafting-line-muted);
+  border-radius: 8px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--index-surface) 78%, transparent);
+}
+
+.crafting-loading-node > div,
+.crafting-loading-material-list {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.crafting-loading-material-list {
+  align-content: start;
+}
+
+@media (max-width: 780px) {
+  .crafting-loading-tree-stage {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

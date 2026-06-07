@@ -268,17 +268,23 @@ onMounted(() => {
       </div>
     </div>
 
-    <form id="edit-user-article-form" class="article-focus-shell" :class="{ 'article-focus-shell--writing': writingModeEnabled }" :style="referencePanelShellStyle" @submit.prevent="saveDraft">
-      <nav class="article-focus-rail" aria-label="文章编辑区块">
-        <a href="/user/articles">我的文章</a>
-        <a href="#article-meta">标题摘要</a>
-        <a href="#article-body">正文</a>
-        <a href="#article-settings">文章设置</a>
-        <a href="#article-submit">审核状态</a>
-      </nav>
+    <main class="tp-page-shell user-article-editor-page">
+      <form id="edit-user-article-form" class="article-focus-shell" :class="{ 'article-focus-shell--writing': writingModeEnabled }" :style="referencePanelShellStyle" @submit.prevent="saveDraft">
+        <nav class="article-focus-rail" aria-label="文章编辑区块">
+          <a href="/user/articles">我的文章</a>
+          <a href="#article-meta">标题摘要</a>
+          <a href="#article-body">正文</a>
+          <a href="#article-settings">文章设置</a>
+          <a href="#article-submit">审核状态</a>
+        </nav>
 
       <section class="article-writing-surface">
-        <p v-if="articleLoading" class="user-form-status">文章加载中...</p>
+        <section v-if="articleLoading" class="article-editor-loading" aria-live="polite" aria-label="文章编辑页加载中">
+          <CommonTpSkeleton type="pill" />
+          <CommonTpSkeleton type="line" />
+          <CommonTpSkeleton type="line" short />
+          <CommonTpSkeleton type="line" />
+        </section>
         <p v-if="success" class="user-form-status user-form-success">{{ success }}</p>
         <p v-if="error" class="user-form-status user-form-error">{{ error }}</p>
 
@@ -435,7 +441,8 @@ onMounted(() => {
           </button>
         </section>
       </aside>
-    </form>
+      </form>
+    </main>
 
     <TerraFooter />
   </section>
@@ -599,6 +606,18 @@ onMounted(() => {
   display: grid;
   gap: 18px;
   padding: 24px;
+}
+
+.article-editor-loading {
+  display: grid;
+  gap: 12px;
+  min-height: 148px;
+  align-content: center;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--index-line) 70%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--index-surface) 70%, transparent);
+  pointer-events: none;
 }
 
 .article-document-head {

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-definePageMeta({ layout: false })
-
 const options = [
   { id: 'table', label: 'A 信息表格' },
   { id: 'cards', label: 'B 卡片工作台' },
@@ -95,24 +93,28 @@ const boardColumns = [
 </script>
 
 <template>
-  <main class="article-list-design-page">
-    <header class="design-topbar">
-      <div>
-        <p>TerraPedia · User Articles</p>
-        <h1>我的文章列表三版设计稿</h1>
-      </div>
-      <nav aria-label="设计稿版本">
-        <button
-          v-for="option in options"
-          :key="option.id"
-          type="button"
-          :class="{ active: activeOption === option.id }"
-          @click="activeOption = option.id"
-        >
-          {{ option.label }}
-        </button>
-      </nav>
-    </header>
+  <section class="screen entity-screen active">
+    <TerraNav />
+    <TerraBreadcrumb />
+
+    <main class="tp-page-shell article-list-design-page">
+      <header class="design-topbar">
+        <div>
+          <p>TerraPedia · User Articles</p>
+          <h1>我的文章列表三版设计稿</h1>
+        </div>
+        <nav aria-label="设计稿版本">
+          <button
+            v-for="option in options"
+            :key="option.id"
+            type="button"
+            :class="{ active: activeOption === option.id }"
+            @click="activeOption = option.id"
+          >
+            {{ option.label }}
+          </button>
+        </nav>
+      </header>
 
     <section class="draft-shell">
       <section class="summary-strip" aria-label="状态汇总">
@@ -254,7 +256,10 @@ const boardColumns = [
         </section>
       </template>
     </section>
-  </main>
+    </main>
+
+    <TerraFooter />
+  </section>
 </template>
 
 <style scoped>

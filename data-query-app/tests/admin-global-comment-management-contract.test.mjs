@@ -14,6 +14,8 @@ const store = read('stores/articleComments.ts')
 const layout = read('layouts/default.vue')
 
 test('single article comment management page defaults to article list entry', () => {
+  assert.match(page, /class="page-wrap page-workspace article-comments-page"/)
+  assert.match(page, /class="workspace-shell workspace-shell--unified section-card article-comments-command-bar article-list-command-bar"/)
   assert.match(page, /definePageMeta\(\{[\s\S]*title:\s*'评论管理'/)
   assert.match(page, /文章评论管理/)
   assert.match(page, /useArticlesStore\(\)/)
@@ -74,6 +76,7 @@ test('article list store preserves quick location fields for comment management'
 })
 
 test('single article comment management page exposes B-version workspace controls', () => {
+  assert.match(page, /class="workspace-shell workspace-shell--unified section-card article-comments-command-bar"/)
   assert.match(page, /单文章评论区管理/)
   assert.match(page, /currentArticle/)
   assert.match(page, /commentFilters\.keyword/)

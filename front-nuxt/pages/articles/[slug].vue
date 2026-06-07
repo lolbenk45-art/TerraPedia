@@ -25,6 +25,7 @@ const initialArticleFavorite = ref<{ id: string, favorite: boolean } | null>(nul
 const articleComments = ref<ArticleComment[]>([])
 const articleCommentPagination = ref({ total: 0, page: 1, limit: 10, totalPages: 1 })
 const articleCommentsLoading = ref(false)
+const articleCommentLoadingSlotCount = 3
 const articleCommentText = ref('')
 const articleCommentSubmitting = ref(false)
 const articleCommentDeletingId = ref<number | null>(null)
@@ -2046,12 +2047,41 @@ onMounted(() => {
     <TerraNav />
     <TerraBreadcrumb />
 
-    <main v-if="articleLoading" class="article-detail-layout">
-      <article class="article-detail-hero">
-        <span class="eyebrow">资料手札 · 正在载入</span>
-        <h1>文章加载中</h1>
-        <p>正在读取已发布文章内容。</p>
-      </article>
+    <main v-if="articleLoading" class="article-detail-layout article-detail-loading" aria-live="polite">
+      <div class="article-detail-grid">
+        <section class="article-body-panel article-detail-loading-body">
+          <header class="article-inline-header">
+            <div class="article-cover-figure article-cover-figure--loading" aria-hidden="true">
+              <CommonTpSkeleton type="icon" />
+            </div>
+            <span class="eyebrow"><CommonTpSkeleton type="pill" /></span>
+            <h1><CommonTpSkeleton type="line" /></h1>
+            <p>
+              <CommonTpSkeleton type="line" />
+              <CommonTpSkeleton type="line" short />
+            </p>
+            <div class="article-primary-meta">
+              <span><CommonTpSkeleton type="pill" /></span>
+              <span><CommonTpSkeleton type="pill" /></span>
+              <span><CommonTpSkeleton type="pill" /></span>
+            </div>
+          </header>
+          <h2 class="article-section-title"><CommonTpSkeleton type="line" /></h2>
+          <div class="article-content-text article-detail-loading-copy">
+            <CommonTpSkeleton type="line" />
+            <CommonTpSkeleton type="line" />
+            <CommonTpSkeleton type="line" short />
+            <CommonTpSkeleton type="line" />
+            <CommonTpSkeleton type="line" short />
+          </div>
+        </section>
+        <aside class="article-route-panel article-detail-loading-sidebar">
+          <CommonTpSkeleton type="pill" />
+          <CommonTpSkeleton type="line" />
+          <CommonTpSkeleton type="line" short />
+          <CommonTpSkeleton type="line" />
+        </aside>
+      </div>
     </main>
 
     <main v-else-if="notFoundState" class="article-detail-layout">
@@ -2177,7 +2207,27 @@ onMounted(() => {
             </div>
 
             <p v-if="articleCommentError" class="article-comment-error">{{ articleCommentError }}</p>
-            <div v-if="articleCommentsLoading && !articleComments.length" class="article-comment-empty">评论加载中...</div>
+            <div v-if="articleCommentsLoading && !articleComments.length" class="article-comment-list article-comment-list--loading" aria-live="polite" aria-label="评论加载中">
+              <article
+                v-for="slot in articleCommentLoadingSlotCount"
+                :key="`article-comment-loading-${slot}`"
+                class="article-comment-item article-comment-item--loading"
+              >
+                <div class="article-comment-avatar" aria-hidden="true">
+                  <CommonTpSkeleton type="icon" />
+                </div>
+                <div class="article-comment-body">
+                  <header>
+                    <b><CommonTpSkeleton type="line" /></b>
+                    <span><CommonTpSkeleton type="pill" /></span>
+                  </header>
+                  <p>
+                    <CommonTpSkeleton type="line" />
+                    <CommonTpSkeleton type="line" short />
+                  </p>
+                </div>
+              </article>
+            </div>
             <div v-else-if="!articleComments.length" class="article-comment-empty">暂无评论，成为第一条评论。</div>
             <div v-else class="article-comment-list">
               <article
@@ -2444,6 +2494,11 @@ onMounted(() => {
 
 .article-body-panel {
   min-width: 0;
+}
+
+.article-detail-loading-body,
+.article-detail-loading-sidebar {
+  pointer-events: none;
 }
 
 .article-inline-header {
@@ -2945,7 +3000,7 @@ onMounted(() => {
 
 :global(.article-reference-preview) {
   position: fixed;
-  z-index: 80;
+  z-index: var(--tp-z-page-popover);
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr);
   width: min(280px, calc(100vw - 24px));
@@ -3058,6 +3113,21 @@ onMounted(() => {
   color: var(--danger);
   font-size: 12px;
   font-weight: 900;
+}
+
+.article-cover-figure--loading {
+  min-height: 260px;
+}
+
+.article-detail-loading-copy {
+  display: grid;
+  gap: 12px;
+}
+
+.article-detail-loading-sidebar {
+  display: grid;
+  align-content: start;
+  gap: 12px;
 }
 
 .article-content-text :deep(ul),
@@ -3278,6 +3348,19 @@ onMounted(() => {
   border: 1px solid color-mix(in srgb, var(--index-line) 82%, transparent);
   border-radius: 8px;
   background: color-mix(in srgb, var(--index-surface) 80%, transparent);
+}
+
+.article-comment-item--loading {
+  pointer-events: none;
+}
+
+.article-comment-item--loading .article-comment-avatar {
+  overflow: hidden;
+}
+
+.article-comment-item--loading .article-comment-body p {
+  display: grid;
+  gap: 8px;
 }
 
 .article-comment-item--targeted {

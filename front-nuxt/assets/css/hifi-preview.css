@@ -718,7 +718,7 @@ h4,
 .site-nav {
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: var(--tp-z-nav);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 24px;
@@ -983,7 +983,7 @@ h4,
   position: absolute;
   right: 0;
   top: calc(100% + 10px);
-  z-index: 40;
+  z-index: var(--tp-z-nav-popover);
   display: grid;
   gap: 12px;
   width: 420px;
@@ -1136,7 +1136,7 @@ h4,
   position: absolute;
   right: 0;
   top: calc(100% + 10px);
-  z-index: 42;
+  z-index: var(--tp-z-nav-popover);
   display: grid;
   gap: 7px;
   width: 300px;

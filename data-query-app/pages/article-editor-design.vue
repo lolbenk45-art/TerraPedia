@@ -1,6 +1,6 @@
 <template>
-  <div class="page-wrap article-editor-design-page">
-    <header class="design-page-head">
+  <div class="page-wrap page-workspace article-editor-design-page">
+    <header class="section-card design-page-head">
       <div>
         <p class="design-page-head__eyebrow">文章编辑结构稿</p>
         <h1 class="page-head__title">文章编辑设计稿</h1>
@@ -9,8 +9,8 @@
       <div class="design-page-head__route">/article-editor-design</div>
     </header>
 
-    <section class="design-board">
-      <section class="design-real-data">
+    <section class="workspace-shell workspace-shell--unified design-board">
+      <section class="section-card design-real-data">
         <div>
           <p class="design-real-data__eyebrow">真实文章数据</p>
           <h2>{{ activeArticleTitle }}</h2>
@@ -45,7 +45,7 @@
         </button>
       </div>
 
-      <div class="design-board__frame" :class="`design-board__frame--${activeOption.id}`">
+      <div class="section-card design-board__frame" :class="`design-board__frame--${activeOption.id}`">
         <aside class="design-brief">
           <p class="design-brief__kicker">{{ activeOption.name }}</p>
           <h2>{{ activeOption.title }}</h2>

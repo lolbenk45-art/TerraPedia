@@ -58,7 +58,10 @@
 
   --tp-z-base: 0;
   --tp-z-raised: 10;
+  --tp-z-page-popover: 80;
+  --tp-z-nav: 100;
   --tp-z-sticky: 100;
+  --tp-z-nav-popover: 400;
   --tp-z-popover: 400;
   --tp-z-modal: 800;
   --tp-z-toast: 1000;

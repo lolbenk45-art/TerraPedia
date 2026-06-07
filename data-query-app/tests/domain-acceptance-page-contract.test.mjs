@@ -118,6 +118,15 @@ test('domain acceptance page labels refresh action statuses explicitly', () => {
 test('domain acceptance page separates API errors from missing evidence', () => {
   const page = read('data-query-app/pages/operations/domain-acceptance.vue')
 
+  assert.match(page, /class="page-wrap page-workspace domain-acceptance"/)
+  assert.match(page, /class="section-card loading-panel"/)
+  assert.match(page, /class="section-card empty-panel"/)
+  assert.match(page, /class="section-card acceptance-status/)
+  assert.match(page, /class="section-card refresh-plan-summary"/)
+  assert.match(page, /class="section-card action-queue"/)
+  assert.match(page, /class="section-card reason-panel/)
+  assert.match(page, /class="section-card domain-card"/)
+  assert.match(page, /class="section-card domain-panel"/)
   assert.match(page, /v-else-if="loadError && !overview"/)
   assert.match(page, /role="alert"/)
   assert.match(page, /v-else-if="!overview"/)

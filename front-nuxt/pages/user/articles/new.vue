@@ -156,14 +156,15 @@ const submitForAdminReview = async () => {
       </div>
     </div>
 
-    <form id="new-user-article-form" class="article-focus-shell" :class="{ 'article-focus-shell--writing': writingModeEnabled }" :style="referencePanelShellStyle" @submit.prevent="submit">
-      <nav class="article-focus-rail" aria-label="文章编辑区块">
-        <a href="/user/articles">我的文章</a>
-        <a href="#article-meta">标题摘要</a>
-        <a href="#article-body">正文</a>
-        <a href="#article-settings">文章设置</a>
-        <a href="#article-submit">发布检查</a>
-      </nav>
+    <main class="tp-page-shell user-article-editor-page">
+      <form id="new-user-article-form" class="article-focus-shell" :class="{ 'article-focus-shell--writing': writingModeEnabled }" :style="referencePanelShellStyle" @submit.prevent="submit">
+        <nav class="article-focus-rail" aria-label="文章编辑区块">
+          <a href="/user/articles">我的文章</a>
+          <a href="#article-meta">标题摘要</a>
+          <a href="#article-body">正文</a>
+          <a href="#article-settings">文章设置</a>
+          <a href="#article-submit">发布检查</a>
+        </nav>
 
       <section class="article-writing-surface">
         <section id="article-meta" class="article-document-head">
@@ -279,7 +280,8 @@ const submitForAdminReview = async () => {
           </button>
         </section>
       </aside>
-    </form>
+      </form>
+    </main>
 
     <TerraFooter />
   </section>

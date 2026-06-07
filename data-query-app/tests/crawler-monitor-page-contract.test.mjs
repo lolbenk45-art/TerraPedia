@@ -17,6 +17,7 @@ function read(relativePath) {
 }
 
 const page = read('pages/operations/crawler-monitor.vue')
+const testPage = read('pages/operations/crawler-monitor-test.vue')
 const types = read('types/crawlerMonitor.ts')
 const typecheck = read('types/crawlerMonitor.typecheck.ts')
 const registeredTasksOnlyFixture = {
@@ -50,6 +51,16 @@ test('crawler monitor renders registered task progress as the primary progress r
   assert.match(page, /taskProgressLabel/)
   assert.match(page, /progressHeartbeatAt/)
   assert.match(page, /progressKind/)
+})
+
+test('crawler monitor pages use the shared admin workspace skeleton', () => {
+  assert.match(page, /class="page-wrap page-workspace crawler-monitor"/)
+  assert.match(page, /class="section-card status-grid"/)
+  assert.match(page, /class="section-card stale-alert"/)
+  assert.match(page, /class="section-card source-progress-panel"/)
+
+  assert.match(testPage, /class="page-wrap page-workspace crawler-monitor-test"/)
+  assert.match(testPage, /class="section-card status-grid"/)
 })
 
 test('crawler monitor operation labels are Chinese-first while keeping raw status values', () => {

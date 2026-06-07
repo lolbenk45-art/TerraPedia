@@ -1,5 +1,5 @@
 <template>
-  <div class="page-wrap data-source-acceptance">
+  <div class="page-wrap page-workspace data-source-acceptance">
     <section class="workspace-shell workspace-shell--unified">
       <div class="workspace-hero workspace-hero--unified acceptance-hero">
         <div class="workspace-hero__copy">
@@ -25,7 +25,7 @@
       </div>
     </section>
 
-    <section v-if="isInitialLoading" class="loading-panel" role="status" aria-live="polite">
+    <section v-if="isInitialLoading" class="section-card loading-panel" role="status" aria-live="polite">
       <RefreshCw :size="20" class="spin" />
       <div>
         <strong>加载中</strong>
@@ -41,13 +41,13 @@
       </div>
     </section>
 
-    <section v-else-if="!overview" class="empty-panel">
+    <section v-else-if="!overview" class="section-card empty-panel">
       <strong>暂无验收数据</strong>
       <small>后端未返回数据源验收概览。</small>
     </section>
 
     <template v-else>
-      <section class="acceptance-status" :class="`acceptance-status--${statusTone(overview?.overallStatus)}`">
+      <section class="section-card acceptance-status" :class="`acceptance-status--${statusTone(overview?.overallStatus)}`">
         <span class="acceptance-status__icon">
           <component :is="statusIcon(overview?.overallStatus)" :size="24" />
         </span>
@@ -64,7 +64,7 @@
       </section>
 
       <section v-if="hasReasons" class="acceptance-reasons">
-        <article v-if="blockingReasons.length" class="reason-panel reason-panel--blocked">
+        <article v-if="blockingReasons.length" class="section-card reason-panel reason-panel--blocked">
           <div class="reason-panel__head">
             <XCircle :size="18" />
             <strong>阻断原因</strong>
@@ -74,7 +74,7 @@
           </ul>
         </article>
 
-        <article v-if="warningReasons.length" class="reason-panel reason-panel--warning">
+        <article v-if="warningReasons.length" class="section-card reason-panel reason-panel--warning">
           <div class="reason-panel__head">
             <AlertTriangle :size="18" />
             <strong>警告原因</strong>
@@ -86,7 +86,7 @@
       </section>
 
       <section class="panel-grid" aria-label="数据源验收面板">
-        <article v-for="item in panelItems" :key="item.key" class="acceptance-panel">
+        <article v-for="item in panelItems" :key="item.key" class="section-card acceptance-panel">
           <div class="acceptance-panel__head">
             <span class="acceptance-panel__icon" :class="statusTone(item.panel?.status)">
               <component :is="statusIcon(item.panel?.status)" :size="18" />

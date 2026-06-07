@@ -763,8 +763,8 @@ const setupReadyText = computed(() => {
 
 .editor-workbar {
   position: sticky;
-  top: 0;
-  z-index: 20;
+  top: var(--admin-sticky-top);
+  z-index: var(--z-page-sticky);
   display: grid;
   grid-template-columns: minmax(260px, 1fr) minmax(260px, auto) auto;
   gap: 14px;
@@ -1071,7 +1071,7 @@ const setupReadyText = computed(() => {
 
 .inspector-panel {
   position: sticky;
-  top: 86px;
+  top: calc(var(--admin-sticky-top) + 74px);
   display: grid;
   align-content: start;
   gap: 14px;

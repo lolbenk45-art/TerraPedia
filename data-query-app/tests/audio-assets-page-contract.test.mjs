@@ -32,6 +32,7 @@ function functionBody(name) {
 }
 
 test('audio assets page exposes a current-player workbench instead of row audio controls', () => {
+  assert.match(page, /class="page-wrap page-workspace audio-assets-admin"/)
   assert.match(page, /<th[^>]*class="playback-column-header"[^>]*>播放<\/th>/)
   assert.match(page, /class="playback-cell"/)
   assert.match(page, /@click="loadAudio\(row\)"/)

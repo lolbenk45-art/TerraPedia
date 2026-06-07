@@ -366,7 +366,7 @@ onMounted(async () => {
 .query-side {
   align-self: start;
   position: sticky;
-  top: 24px;
+  top: var(--admin-sticky-top);
 }
 
 .query-main {

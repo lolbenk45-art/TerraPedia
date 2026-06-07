@@ -1,6 +1,4 @@
 <script setup lang="ts">
-definePageMeta({ layout: false })
-
 const options = [
   { id: 'compact', label: 'A 单行工具栏' },
   { id: 'context', label: 'B 上下文条' },
@@ -12,24 +10,28 @@ const activeOption = ref('compact')
 </script>
 
 <template>
-  <main class="head-design-page">
-    <header class="head-design-top">
-      <div>
-        <p>TerraPedia · Page Head Optimization</p>
-        <h1>页面头部压缩设计稿</h1>
-      </div>
-      <nav aria-label="设计稿版本">
-        <button
-          v-for="option in options"
-          :key="option.id"
-          type="button"
-          :class="{ active: activeOption === option.id }"
-          @click="activeOption = option.id"
-        >
-          {{ option.label }}
-        </button>
-      </nav>
-    </header>
+  <section class="screen entity-screen active">
+    <TerraNav />
+    <TerraBreadcrumb />
+
+    <main class="tp-page-shell head-design-page">
+      <header class="head-design-top">
+        <div>
+          <p>TerraPedia · Page Head Optimization</p>
+          <h1>页面头部压缩设计稿</h1>
+        </div>
+        <nav aria-label="设计稿版本">
+          <button
+            v-for="option in options"
+            :key="option.id"
+            type="button"
+            :class="{ active: activeOption === option.id }"
+            @click="activeOption = option.id"
+          >
+            {{ option.label }}
+          </button>
+        </nav>
+      </header>
 
     <section class="preview-frame">
       <div class="mock-nav">
@@ -133,7 +135,10 @@ const activeOption = ref('compact')
         </aside>
       </section>
     </section>
-  </main>
+    </main>
+
+    <TerraFooter />
+  </section>
 </template>
 
 <style scoped>
