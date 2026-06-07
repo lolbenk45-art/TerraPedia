@@ -56,12 +56,15 @@
             :aria-expanded="!isMenuSectionCollapsed(section.label)"
             @click="toggleMenuSection(section.label)"
           >
-            <span>{{ section.label }}</span>
-            <ChevronDown
-              class="sidebar__section-toggle-icon"
-              :class="{ 'sidebar__section-toggle-icon--collapsed': isMenuSectionCollapsed(section.label) }"
-              :size="12"
-            />
+            <span class="sidebar__section-title">{{ section.label }}</span>
+            <span class="sidebar__section-meta">
+              <span class="sidebar__section-count">{{ section.items.length }}</span>
+              <ChevronDown
+                class="sidebar__section-toggle-icon"
+                :class="{ 'sidebar__section-toggle-icon--collapsed': isMenuSectionCollapsed(section.label) }"
+                :size="14"
+              />
+            </span>
           </button>
 
           <div
@@ -611,50 +614,85 @@ onUnmounted(() => {
 
 .sidebar__nav {
   flex: 1;
-  padding: 14px 12px 18px;
+  padding: 12px 12px 18px;
   overflow-y: auto;
   display: grid;
   align-content: start;
   grid-auto-rows: max-content;
-  gap: 16px;
+  gap: 10px;
 }
 
 .sidebar__section {
   display: grid;
-  gap: 6px;
+  gap: 7px;
+  padding: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .sidebar__section-toggle {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 5px;
-  width: fit-content;
-  min-height: 18px;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
   margin: 0;
-  padding: 0 12px;
+  padding: 0 10px;
   border: 0;
+  border-radius: 8px;
   background: transparent;
-  color: var(--color-text-sidebar-muted);
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-weight: 800;
+  color: color-mix(in srgb, var(--color-text-sidebar) 84%, var(--color-text-inverse));
+  font-size: 0.82rem;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 850;
   cursor: pointer;
   transition:
     color var(--transition-fast) var(--ease-standard),
-    opacity var(--transition-fast) var(--ease-standard);
+    background-color var(--transition-fast) var(--ease-standard);
 }
 
 .sidebar__section-toggle:hover,
 .sidebar__section-toggle:focus-visible {
   color: var(--color-text-inverse);
+  background: rgba(255, 255, 255, 0.035);
 }
 
 .sidebar__section-toggle:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--color-text-inverse) 42%, transparent);
-  outline-offset: 3px;
+  outline-offset: 2px;
   border-radius: 8px;
+}
+
+.sidebar__section-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__section-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  color: var(--color-text-sidebar-muted);
+}
+
+.sidebar__section-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-sidebar-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .sidebar__section-toggle-icon {
@@ -669,6 +707,12 @@ onUnmounted(() => {
 .sidebar__section-items {
   display: grid;
   gap: 6px;
+}
+
+.sidebar--collapsed .sidebar__section {
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .sidebar__link {
