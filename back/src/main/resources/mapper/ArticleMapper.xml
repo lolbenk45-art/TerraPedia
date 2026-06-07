@@ -41,8 +41,6 @@
                 SELECT COUNT(*)
                 FROM article_comments ac
                 WHERE ac.article_id = a.id
-                  AND ac.deleted = 0
-                  AND ac.status = 'PUBLISHED'
                   AND ac.parent_id IS NULL
             ), 0) AS commentCount
         FROM articles a
@@ -250,8 +248,6 @@
                 SELECT COUNT(*)
                 FROM article_comments ac
                 WHERE ac.article_id = a.id
-                  AND ac.deleted = 0
-                  AND ac.status = 'PUBLISHED'
                   AND ac.parent_id IS NULL
             ), 0) AS commentCount
         FROM articles a

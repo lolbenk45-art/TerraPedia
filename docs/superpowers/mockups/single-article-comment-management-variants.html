@@ -1,0 +1,879 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>单文章评论区管理 - 三版设计稿</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7fb;
+      --surface: #ffffff;
+      --surface-2: #f8fafc;
+      --surface-3: #eef4f8;
+      --line: #d9e2ea;
+      --line-strong: #b8c7d3;
+      --text: #17212b;
+      --muted: #647386;
+      --muted-2: #8a98a8;
+      --primary: #0f766e;
+      --primary-2: #0d9488;
+      --blue: #2563eb;
+      --green: #15803d;
+      --amber: #b45309;
+      --red: #b91c1c;
+      --red-bg: #fee2e2;
+      --amber-bg: #fef3c7;
+      --green-bg: #dcfce7;
+      --blue-bg: #dbeafe;
+      --shadow: 0 14px 35px rgba(22, 33, 43, .08);
+      --radius: 8px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100dvh;
+      padding: 24px;
+    }
+
+    .shell {
+      max-width: 1480px;
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 18px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 22px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin-top: 6px;
+      color: var(--muted);
+    }
+
+    .tabs {
+      display: inline-flex;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .tab {
+      min-height: 36px;
+      border: 0;
+      border-radius: 7px;
+      padding: 0 14px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .tab.active {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .panel {
+      display: none;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) 140px 130px 130px max-content max-content;
+      gap: 8px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .field,
+    .btn {
+      min-height: 38px;
+      border-radius: 7px;
+      border: 1px solid var(--line);
+      padding: 8px 10px;
+      background: #fff;
+      color: var(--text);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .btn.primary {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn.ghost {
+      background: var(--surface-2);
+      color: var(--muted);
+    }
+
+    .btn.danger {
+      border-color: #fecaca;
+      background: #fff5f5;
+      color: var(--red);
+    }
+
+    .btn.success {
+      border-color: #bbf7d0;
+      background: #f0fdf4;
+      color: var(--green);
+    }
+
+    .article-strip {
+      display: grid;
+      grid-template-columns: 1fr max-content;
+      gap: 14px;
+      align-items: center;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+    }
+
+    .article-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      font-weight: 800;
+    }
+
+    .article-title span {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .stats {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      color: var(--muted);
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 8px;
+      background: var(--surface-2);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .badge.pub {
+      background: var(--green-bg);
+      color: var(--green);
+    }
+
+    .badge.hidden {
+      background: var(--amber-bg);
+      color: var(--amber);
+    }
+
+    .badge.deleted {
+      background: var(--red-bg);
+      color: var(--red);
+    }
+
+    .badge.info {
+      background: var(--blue-bg);
+      color: var(--blue);
+    }
+
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      cursor: pointer;
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    .variant-note {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 10px;
+      align-items: start;
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      border: 1px solid #bfdbfe;
+      border-radius: var(--radius);
+      background: #eff6ff;
+      color: #1e3a8a;
+      font-size: 13px;
+    }
+
+    .variant-note strong {
+      white-space: nowrap;
+    }
+
+    /* A */
+    .workbench-a {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 12px;
+      min-height: 650px;
+    }
+
+    .comment-tree {
+      padding: 8px;
+      overflow: hidden;
+    }
+
+    .tree-row {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr) 108px 76px 96px 146px;
+      gap: 10px;
+      align-items: start;
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .tree-row.header {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .tree-row.reply {
+      margin-left: 34px;
+      grid-template-columns: 34px minmax(0, 1fr) 108px 76px 96px 146px;
+      background: var(--surface-2);
+    }
+
+    .comment-main {
+      min-width: 0;
+    }
+
+    .comment-line {
+      overflow-wrap: anywhere;
+      font-weight: 650;
+    }
+
+    .comment-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .side-panel {
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      min-height: 650px;
+    }
+
+    .side-head {
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .side-head h2 {
+      font-size: 16px;
+    }
+
+    .side-section {
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 76px 1fr;
+      gap: 7px 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .kv strong {
+      color: var(--text);
+    }
+
+    .textarea {
+      width: 100%;
+      min-height: 92px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 9px;
+    }
+
+    .side-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      padding: 14px;
+    }
+
+    /* B */
+    .layout-b {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 380px;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .dense-table-wrap {
+      overflow: auto;
+    }
+
+    .dense-table {
+      width: 100%;
+      min-width: 980px;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 13px;
+    }
+
+    .dense-table th,
+    .dense-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .dense-table th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--surface-3);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .dense-table .id {
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .dense-table .content {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      overflow-wrap: anywhere;
+      font-weight: 650;
+    }
+
+    .dense-table .reply-indent {
+      padding-left: 18px;
+      border-left: 3px solid var(--line-strong);
+      color: var(--muted);
+    }
+
+    .drawer {
+      position: sticky;
+      top: 16px;
+      overflow: hidden;
+    }
+
+    .drawer-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface-2);
+    }
+
+    .drawer-body {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .quote {
+      border-left: 3px solid var(--primary);
+      padding: 10px 12px;
+      background: var(--surface-2);
+      border-radius: 0 7px 7px 0;
+      overflow-wrap: anywhere;
+    }
+
+    .reply-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .reply-chip {
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+    }
+
+    /* C */
+    .article-layout {
+      display: grid;
+      grid-template-columns: 330px minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    .article-preview {
+      padding: 14px;
+    }
+
+    .article-preview h2 {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .article-preview p {
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .priority-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .priority-item {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 10px;
+      background: var(--surface-2);
+    }
+
+    .comment-feed {
+      padding: 10px;
+    }
+
+    .feed-item {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr) 170px;
+      gap: 10px;
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--surface-3);
+      color: var(--primary);
+      font-weight: 900;
+    }
+
+    .feed-item.reply {
+      margin-left: 44px;
+      background: var(--surface-2);
+    }
+
+    .feed-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      align-items: flex-start;
+    }
+
+    @media (max-width: 1100px) {
+      .toolbar,
+      .workbench-a,
+      .layout-b,
+      .article-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .drawer {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="shell">
+      <header class="topbar">
+        <div>
+          <h1>单文章评论区管理 - 三版设计稿</h1>
+          <p class="subtitle">目标：先选定一篇文章，再管理该文章下的评论、回复链和状态处理。这里是静态 HTML mockup，不接接口。</p>
+        </div>
+        <nav class="tabs" aria-label="设计稿版本">
+          <button class="tab active" data-target="a">A 评论树工作台</button>
+          <button class="tab" data-target="b">B 高密度表格</button>
+          <button class="tab" data-target="c">C 文章内嵌审核</button>
+        </nav>
+      </header>
+
+      <section class="card toolbar">
+        <input class="field" value="#318 NPC 幸福度和晶塔配置" aria-label="文章" />
+        <select class="field" aria-label="状态">
+          <option>全部状态</option>
+          <option>公开</option>
+          <option>已隐藏</option>
+          <option>已删除</option>
+        </select>
+        <input class="field" value="" placeholder="作者 ID" aria-label="作者 ID" />
+        <input class="field" value="" placeholder="关键词" aria-label="关键词" />
+        <button class="btn primary">加载文章</button>
+        <button class="btn ghost">刷新评论</button>
+      </section>
+
+      <section class="card article-strip">
+        <div>
+          <div class="article-title"><span>#318</span> NPC 幸福度和晶塔配置</div>
+          <p class="subtitle">单文章评论区审核，当前文章 38 条评论，其中 5 条需要处理。</p>
+        </div>
+        <div class="stats">
+          <span class="stat">公开 31</span>
+          <span class="stat">隐藏 4</span>
+          <span class="stat">删除 3</span>
+          <span class="stat">回复 18</span>
+        </div>
+      </section>
+
+      <section id="panel-a" class="panel active">
+        <div class="variant-note"><strong>A 版</strong><span>更像评论区本身，左侧保留楼层和回复结构，右侧固定处理面板。适合需要看上下文再判断的审核。</span></div>
+        <div class="workbench-a">
+          <div class="card comment-tree">
+            <div class="tree-row header">
+              <span>ID</span><span>评论内容</span><span>作者</span><span>状态</span><span>互动</span><span>操作</span>
+            </div>
+            <div class="tree-row">
+              <span class="id">#1248</span>
+              <div class="comment-main">
+                <div class="comment-line">森林晶塔这一节可以加一张组合表，方便对比商人、护士和高尔夫球手的摆放。</div>
+                <div class="comment-meta"><span>2026/6/7 10:24</span><span>根评论</span></div>
+              </div>
+              <span>晶塔搬运工<br><small>#3044</small></span>
+              <span class="badge pub">公开</span>
+              <span>31 赞<br>2 回复</span>
+              <span><button class="btn ghost">选中</button></span>
+            </div>
+            <div class="tree-row reply">
+              <span class="id">#1250</span>
+              <div class="comment-main">
+                <div class="comment-line">这个建议适合做成折叠表，先保留在待处理评论里。</div>
+                <div class="comment-meta"><span>回复 #1248</span><span>2026/6/7 10:51</span></div>
+              </div>
+              <span>资料审核员<br><small>#3008</small></span>
+              <span class="badge pub">公开</span>
+              <span>4 赞</span>
+              <span><button class="btn ghost">选中</button></span>
+            </div>
+            <div class="tree-row reply">
+              <span class="id">#1253</span>
+              <div class="comment-main">
+                <div class="comment-line">重复刷屏内容，和当前文章没有关系。</div>
+                <div class="comment-meta"><span>回复 #1248</span><span>管理员已处理</span></div>
+              </div>
+              <span>游客用户<br><small>#3112</small></span>
+              <span class="badge hidden">已隐藏</span>
+              <span>0 赞</span>
+              <span><button class="btn success">恢复</button></span>
+            </div>
+            <div class="tree-row">
+              <span class="id">#1260</span>
+              <div class="comment-main">
+                <div class="comment-line">这里混入了一条无关广告内容，建议管理员删除。</div>
+                <div class="comment-meta"><span>2026/6/7 11:02</span><span>举报 2 次</span></div>
+              </div>
+              <span>夜行蘑菇<br><small>#3020</small></span>
+              <span class="badge deleted">已删除</span>
+              <span>0 赞</span>
+              <span><button class="btn success">恢复</button></span>
+            </div>
+          </div>
+
+          <aside class="card side-panel">
+            <div class="side-head">
+              <h2>处理面板</h2>
+              <p class="subtitle">当前选中 #1248</p>
+            </div>
+            <div class="side-section kv">
+              <span>作者</span><strong>晶塔搬运工 #3044</strong>
+              <span>状态</span><strong>公开</strong>
+              <span>时间</span><strong>2026/6/7 10:24</strong>
+              <span>互动</span><strong>31 赞 / 2 回复</strong>
+            </div>
+            <div class="side-section">
+              <p class="quote">森林晶塔这一节可以加一张组合表，方便对比商人、护士和高尔夫球手的摆放。</p>
+              <p class="subtitle" style="margin-top:12px;">处理原因</p>
+              <textarea class="textarea" placeholder="隐藏或删除时必须填写原因"></textarea>
+            </div>
+            <div class="side-actions">
+              <button class="btn ghost">隐藏</button>
+              <button class="btn danger">删除</button>
+              <button class="btn success">恢复</button>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="panel-b" class="panel">
+        <div class="variant-note"><strong>B 版</strong><span>推荐方向。主区高密度表格快速扫单篇文章评论，右侧抽屉显示完整内容、回复链和处理原因。信息密度最高，也最稳定。</span></div>
+        <div class="layout-b">
+          <div class="card dense-table-wrap">
+            <table class="dense-table">
+              <colgroup>
+                <col style="width:72px" />
+                <col style="width:36%" />
+                <col style="width:130px" />
+                <col style="width:86px" />
+                <col style="width:90px" />
+                <col style="width:128px" />
+                <col style="width:108px" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>ID</th><th>评论摘要</th><th>作者</th><th>状态</th><th>互动</th><th>创建时间</th><th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="id">#1248</td>
+                  <td><div class="content">森林晶塔这一节可以加一张组合表，方便对比商人、护士和高尔夫球手的摆放。</div></td>
+                  <td>晶塔搬运工<br><span class="subtitle">#3044</span></td>
+                  <td><span class="badge pub">公开</span></td>
+                  <td>31 赞<br>2 回复</td>
+                  <td>06-07<br>10:24</td>
+                  <td><button class="btn primary">详情</button></td>
+                </tr>
+                <tr>
+                  <td class="id">#1250</td>
+                  <td><div class="content reply-indent">回复 #1248：这个建议适合做成折叠表，先保留在待处理评论里。</div></td>
+                  <td>资料审核员<br><span class="subtitle">#3008</span></td>
+                  <td><span class="badge pub">公开</span></td>
+                  <td>4 赞<br>0 回复</td>
+                  <td>06-07<br>10:51</td>
+                  <td><button class="btn ghost">详情</button></td>
+                </tr>
+                <tr>
+                  <td class="id">#1253</td>
+                  <td><div class="content reply-indent">回复 #1248：重复刷屏内容，和当前文章没有关系。</div></td>
+                  <td>游客用户<br><span class="subtitle">#3112</span></td>
+                  <td><span class="badge hidden">已隐藏</span></td>
+                  <td>0 赞<br>0 回复</td>
+                  <td>06-07<br>11:00</td>
+                  <td><button class="btn ghost">详情</button></td>
+                </tr>
+                <tr>
+                  <td class="id">#1260</td>
+                  <td><div class="content">这里混入了一条无关广告内容，建议管理员删除。</div></td>
+                  <td>夜行蘑菇<br><span class="subtitle">#3020</span></td>
+                  <td><span class="badge deleted">已删除</span></td>
+                  <td>0 赞<br>0 回复</td>
+                  <td>06-07<br>11:02</td>
+                  <td><button class="btn ghost">详情</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <aside class="card drawer">
+            <div class="drawer-head">
+              <div>
+                <h2>#1248 评论详情</h2>
+                <p class="subtitle">根评论 / 公开 / 2 条回复</p>
+              </div>
+              <span class="badge info">选中</span>
+            </div>
+            <div class="drawer-body">
+              <div class="kv">
+                <span>作者</span><strong>晶塔搬运工 #3044</strong>
+                <span>文章</span><strong>#318 NPC 幸福度和晶塔配置</strong>
+                <span>时间</span><strong>2026/6/7 10:24</strong>
+              </div>
+              <p class="quote">森林晶塔这一节可以加一张组合表，方便对比商人、护士和高尔夫球手的摆放。</p>
+              <div>
+                <p class="subtitle">回复链</p>
+                <div class="reply-list">
+                  <div class="reply-chip"><strong>#1250 资料审核员：</strong>这个建议适合做成折叠表，先保留在待处理评论里。</div>
+                  <div class="reply-chip"><strong>#1253 游客用户：</strong>重复刷屏内容，和当前文章没有关系。 <span class="badge hidden">已隐藏</span></div>
+                </div>
+              </div>
+              <div>
+                <p class="subtitle">处理原因</p>
+                <textarea class="textarea" placeholder="隐藏或删除时必须填写原因"></textarea>
+              </div>
+              <div class="side-actions" style="padding:0;">
+                <button class="btn ghost">隐藏</button>
+                <button class="btn danger">删除</button>
+                <button class="btn success">恢复</button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="panel-c" class="panel">
+        <div class="variant-note"><strong>C 版</strong><span>把评论管理嵌入文章详情/审核语境。适合需要边看文章内容边判断评论是否准确，但纯评论处理效率低于 B 版。</span></div>
+        <div class="article-layout">
+          <aside class="card article-preview">
+            <h2>#318 NPC 幸福度和晶塔配置</h2>
+            <p>文章状态：已发布。评论区共 38 条评论，待处理 5 条。</p>
+            <p>摘要：说明 NPC 喜好、邻居搭配、地形晶塔启用条件，以及常见布置方案。</p>
+            <div class="stats">
+              <span class="stat">待处理 5</span>
+              <span class="stat">隐藏 4</span>
+              <span class="stat">删除 3</span>
+            </div>
+            <div class="priority-list">
+              <div class="priority-item">
+                <span class="badge hidden">待复核</span>
+                <p style="margin-top:6px;">#1253 重复刷屏内容，需要确认是否继续隐藏。</p>
+              </div>
+              <div class="priority-item">
+                <span class="badge deleted">已删除</span>
+                <p style="margin-top:6px;">#1260 广告内容，可在需要时恢复。</p>
+              </div>
+            </div>
+          </aside>
+
+          <div class="card comment-feed">
+            <div class="feed-item">
+              <div class="avatar">晶</div>
+              <div>
+                <strong>晶塔搬运工 <span class="subtitle">#3044</span></strong>
+                <p style="margin-top:5px;">森林晶塔这一节可以加一张组合表，方便对比商人、护士和高尔夫球手的摆放。</p>
+                <div class="comment-meta"><span>31 赞</span><span>2 回复</span><span>2026/6/7 10:24</span></div>
+              </div>
+              <div class="feed-actions">
+                <span class="badge pub">公开</span>
+                <button class="btn ghost">隐藏</button>
+                <button class="btn danger">删除</button>
+              </div>
+            </div>
+            <div class="feed-item reply">
+              <div class="avatar">审</div>
+              <div>
+                <strong>资料审核员 <span class="subtitle">#3008</span></strong>
+                <p style="margin-top:5px;">这个建议适合做成折叠表，先保留在待处理评论里。</p>
+              </div>
+              <div class="feed-actions">
+                <span class="badge pub">公开</span>
+                <button class="btn ghost">隐藏</button>
+              </div>
+            </div>
+            <div class="feed-item reply">
+              <div class="avatar">游</div>
+              <div>
+                <strong>游客用户 <span class="subtitle">#3112</span></strong>
+                <p style="margin-top:5px;">重复刷屏内容，和当前文章没有关系。</p>
+                <div class="comment-meta"><span>处理人：admin</span><span>原因：重复内容</span></div>
+              </div>
+              <div class="feed-actions">
+                <span class="badge hidden">已隐藏</span>
+                <button class="btn success">恢复</button>
+              </div>
+            </div>
+            <div class="feed-item">
+              <div class="avatar">夜</div>
+              <div>
+                <strong>夜行蘑菇 <span class="subtitle">#3020</span></strong>
+                <p style="margin-top:5px;">这里混入了一条无关广告内容，建议管理员删除。</p>
+                <div class="comment-meta"><span>处理人：admin</span><span>原因：广告内容</span></div>
+              </div>
+              <div class="feed-actions">
+                <span class="badge deleted">已删除</span>
+                <button class="btn success">恢复</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script>
+    const tabs = document.querySelectorAll('.tab')
+    const panels = {
+      a: document.querySelector('#panel-a'),
+      b: document.querySelector('#panel-b'),
+      c: document.querySelector('#panel-c'),
+    }
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(item => item.classList.remove('active'))
+        Object.values(panels).forEach(panel => panel.classList.remove('active'))
+        tab.classList.add('active')
+        panels[tab.dataset.target].classList.add('active')
+      })
+    })
+  </script>
+</body>
+</html>
