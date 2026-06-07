@@ -60,7 +60,7 @@
             <ChevronDown
               class="sidebar__section-toggle-icon"
               :class="{ 'sidebar__section-toggle-icon--collapsed': isMenuSectionCollapsed(section.label) }"
-              :size="14"
+              :size="12"
             />
           </button>
 
@@ -625,8 +625,10 @@ onUnmounted(() => {
 .sidebar__section-toggle {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 5px;
+  width: fit-content;
+  min-height: 18px;
   margin: 0;
   padding: 0 12px;
   border: 0;

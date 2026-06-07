@@ -80,6 +80,9 @@ test('admin sidebar sections can collapse without changing the current link styl
   assert.match(layout, /function toggleMenuSection\(label: string\)/)
   assert.match(layout, /function isMenuSectionCollapsed\(label: string\)/)
   assert.match(layout, /class="sidebar__link"/)
+  assert.match(layout, /\.sidebar__section-toggle \{[\s\S]*width: fit-content/)
+  assert.match(layout, /\.sidebar__section-toggle \{[\s\S]*min-height: 18px/)
+  assert.match(layout, /\.sidebar__section-toggle \{[\s\S]*justify-content: flex-start/)
 })
 
 test('shared admin pages keep Chinese-first visible operator copy', () => {
