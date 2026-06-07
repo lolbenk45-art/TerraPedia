@@ -43,8 +43,6 @@ const articlePagination = computed<Pagination>(() => (
 
 const articleLoading = computed(() => articlePending.value)
 const totalPages = computed(() => Math.max(1, Number(articlePagination.value.totalPages ?? 1)))
-const hasPreviousPage = computed(() => currentPage.value > 1)
-const hasNextPage = computed(() => currentPage.value < totalPages.value)
 
 const articleCoverUrl = (article: UserArticle) => resolvePreviewImageUrl(article.coverImage || '')
 
@@ -191,11 +189,16 @@ useSeoMeta({
           </article>
         </div>
 
-        <div v-if="totalPages > 1" class="article-pagination support-panel">
-          <button class="secondary-button" type="button" :disabled="!hasPreviousPage" @click="goToPage(currentPage - 1)">上一页</button>
-          <span>第 {{ currentPage }} / {{ totalPages }} 页</span>
-          <button class="secondary-button" type="button" :disabled="!hasNextPage" @click="goToPage(currentPage + 1)">下一页</button>
-        </div>
+        <CommonPaginationDock
+          v-if="totalPages > 1"
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :disabled="articleLoading"
+          aria-label="文章分页"
+          jump-id="article-page-jump"
+          show-boundary-controls
+          @page-change="goToPage"
+        />
       </section>
 
       <aside class="article-side article-route-side">
@@ -358,14 +361,6 @@ useSeoMeta({
 
 .public-article-read-link:hover {
   text-decoration: underline;
-}
-
-.article-pagination {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-top: 16px;
 }
 
 @media (max-width: 820px) {

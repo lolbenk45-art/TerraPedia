@@ -396,12 +396,16 @@ const pageContracts = [
       'public-article-cover-fallback',
       'loading="lazy"',
       'articleAuthorAvatarUrl',
+      'CommonPaginationDock',
+      '@page-change="goToPage"',
+      'jump-id="article-page-jump"',
     ],
     forbidden: [
       '公开文章暂未开放',
       '真实文章待接入',
       '后续接入真实内容',
       '等公开文章来源和发布状态接入后',
+      'class="article-pagination support-panel"',
     ],
   },
   {
