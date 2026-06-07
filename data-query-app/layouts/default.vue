@@ -614,6 +614,8 @@ onUnmounted(() => {
   padding: 14px 12px 18px;
   overflow-y: auto;
   display: grid;
+  align-content: start;
+  grid-auto-rows: max-content;
   gap: 16px;
 }
 

@@ -16,6 +16,13 @@ function menuSectionBlock(label) {
   return layout.slice(start, next > start ? next : layout.indexOf('\n]', start))
 }
 
+function cssBlock(selector) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = layout.match(new RegExp(`${escapedSelector} \\{([\\s\\S]*?)\\n\\}`))
+  assert.ok(match, `${selector} style block should exist`)
+  return match[1]
+}
+
 const layout = read('layouts/default.vue')
 const indexPage = read('pages/index.vue')
 const login = read('pages/login.vue')
@@ -72,6 +79,9 @@ test('admin sidebar keeps current visual style while separating crowded operatio
 })
 
 test('admin sidebar sections can collapse without changing the current link style', () => {
+  const sidebarNav = cssBlock('.sidebar__nav')
+  const sectionToggle = cssBlock('.sidebar__section-toggle')
+
   assert.match(layout, /<button[\s\S]*class="sidebar__section-toggle"/)
   assert.match(layout, /:aria-expanded="!isMenuSectionCollapsed\(section\.label\)"/)
   assert.match(layout, /@click="toggleMenuSection\(section\.label\)"/)
@@ -80,9 +90,14 @@ test('admin sidebar sections can collapse without changing the current link styl
   assert.match(layout, /function toggleMenuSection\(label: string\)/)
   assert.match(layout, /function isMenuSectionCollapsed\(label: string\)/)
   assert.match(layout, /class="sidebar__link"/)
-  assert.match(layout, /\.sidebar__section-toggle \{[\s\S]*width: fit-content/)
-  assert.match(layout, /\.sidebar__section-toggle \{[\s\S]*min-height: 18px/)
-  assert.match(layout, /\.sidebar__section-toggle \{[\s\S]*justify-content: flex-start/)
+  assert.match(sectionToggle, /width:\s*fit-content;/)
+  assert.match(sectionToggle, /min-height:\s*18px;/)
+  assert.match(sectionToggle, /justify-content:\s*flex-start;/)
+  assert.match(sidebarNav, /display:\s*grid;/)
+  assert.match(sidebarNav, /align-content:\s*start;/)
+  assert.match(sidebarNav, /grid-auto-rows:\s*max-content;/)
+  assert.doesNotMatch(sidebarNav, /align-content:\s*(stretch|space-between|space-around|space-evenly);/)
+  assert.doesNotMatch(sidebarNav, /grid-auto-rows:\s*(auto|1fr);/)
 })
 
 test('shared admin pages keep Chinese-first visible operator copy', () => {
