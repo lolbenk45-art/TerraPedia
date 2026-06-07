@@ -49,30 +49,51 @@
 
       <nav class="sidebar__nav" aria-label="后台导航">
         <section v-for="section in menuSections" :key="section.label" class="sidebar__section">
-          <p v-if="!desktopCollapsed" class="sidebar__section-label">{{ section.label }}</p>
-
-          <NuxtLink
-            v-for="item in section.items"
-            :key="item.path"
-            :to="item.path"
-            class="sidebar__link"
-            :class="{ 'sidebar__link--active': isActive(item.path) }"
-            :aria-current="isActive(item.path) ? 'page' : undefined"
-            @click="handleNavClick"
+          <button
+            v-if="!desktopCollapsed"
+            type="button"
+            class="sidebar__section-toggle"
+            :aria-expanded="!isMenuSectionCollapsed(section.label)"
+            @click="toggleMenuSection(section.label)"
           >
-            <span class="sidebar__link-icon">
-              <component :is="item.icon" :size="18" />
+            <span class="sidebar__section-title">{{ section.label }}</span>
+            <span class="sidebar__section-meta">
+              <span class="sidebar__section-count">{{ section.items.length }}</span>
+              <ChevronDown
+                class="sidebar__section-toggle-icon"
+                :class="{ 'sidebar__section-toggle-icon--collapsed': isMenuSectionCollapsed(section.label) }"
+                :size="14"
+              />
             </span>
+          </button>
 
-            <span v-if="!desktopCollapsed" class="sidebar__link-copy">
-              <span class="sidebar__link-text">{{ item.name }}</span>
-              <small class="sidebar__link-hint">{{ item.hint }}</small>
-            </span>
+          <div
+            class="sidebar__section-items"
+            v-show="desktopCollapsed || !isMenuSectionCollapsed(section.label)"
+          >
+            <NuxtLink
+              v-for="item in section.items"
+              :key="item.path"
+              :to="item.path"
+              class="sidebar__link"
+              :class="{ 'sidebar__link--active': isActive(item.path) }"
+              :aria-current="isActive(item.path) ? 'page' : undefined"
+              @click="handleNavClick"
+            >
+              <span class="sidebar__link-icon">
+                <component :is="item.icon" :size="18" />
+              </span>
 
-            <ChevronRight v-if="!desktopCollapsed" class="sidebar__link-chevron" :size="16" />
+              <span v-if="!desktopCollapsed" class="sidebar__link-copy">
+                <span class="sidebar__link-text">{{ item.name }}</span>
+                <small class="sidebar__link-hint">{{ item.hint }}</small>
+              </span>
 
-            <span v-if="desktopCollapsed" class="sidebar__link-tooltip">{{ item.name }}</span>
-          </NuxtLink>
+              <ChevronRight v-if="!desktopCollapsed" class="sidebar__link-chevron" :size="16" />
+
+              <span v-if="desktopCollapsed" class="sidebar__link-tooltip">{{ item.name }}</span>
+            </NuxtLink>
+          </div>
         </section>
       </nav>
 
@@ -213,6 +234,7 @@ const isDesktopCollapsed = ref(false)
 const isMobile = ref(false)
 const isMobileNavOpen = ref(false)
 const userOpen = ref(false)
+const collapsedMenuSections = ref<Set<string>>(new Set())
 const userMenuRef = ref<HTMLElement | null>(null)
 
 type BreadcrumbItem = {
@@ -275,17 +297,27 @@ const menuSections: MenuSection[] = [
     ],
   },
   {
-    label: '运营维护',
+    label: '内容运营',
     items: [
-      { name: '爬取监控', path: '/operations/crawler-monitor', hint: '查看刷新进度与运行日志', icon: Activity },
-      { name: '数据源验收', path: '/operations/data-source-acceptance', hint: '查看数据源替换准入状态', icon: ShieldCheck },
-      { name: '盔甲属性表', path: '/operations/armor-attributes', hint: '核验单件装备字段', icon: FileSearch },
-      { name: '音频资产', path: '/operations/audio-assets', hint: '查看 BGM 与 NPC 音效入库状态', icon: Music },
-      { name: 'B 档域验收', path: '/operations/domain-acceptance', hint: '查看 B 档域自动维护证据', icon: ShieldCheck },
-      { name: '监控测试页', path: '/operations/crawler-monitor-test', hint: '手动观察测试状态', icon: Beaker },
       { name: '用户管理', path: '/users', hint: '账号与权限', icon: UserRound },
       { name: '文章管理', path: '/articles', hint: '内容工作台', icon: Newspaper },
       { name: '评论管理', path: '/article-comments', hint: '单文章评论区审核', icon: MessageSquareText },
+    ],
+  },
+  {
+    label: '数据运维',
+    items: [
+      { name: '爬取监控', path: '/operations/crawler-monitor', hint: '查看刷新进度与运行日志', icon: Activity },
+      { name: '数据源验收', path: '/operations/data-source-acceptance', hint: '查看数据源替换准入状态', icon: ShieldCheck },
+      { name: 'B 档域验收', path: '/operations/domain-acceptance', hint: '查看 B 档域自动维护证据', icon: ShieldCheck },
+      { name: '监控测试页', path: '/operations/crawler-monitor-test', hint: '手动观察测试状态', icon: Beaker },
+    ],
+  },
+  {
+    label: '资产工具',
+    items: [
+      { name: '盔甲属性表', path: '/operations/armor-attributes', hint: '核验单件装备字段', icon: FileSearch },
+      { name: '音频资产', path: '/operations/audio-assets', hint: '查看 BGM 与 NPC 音效入库状态', icon: Music },
       { name: '数据查询', path: '/query', hint: '调试与只读查询', icon: FileSearch },
     ],
   },
@@ -296,6 +328,22 @@ const flatMenuItems = menuSections.flatMap((section) => section.items)
 const desktopCollapsed = computed(() => !isMobile.value && isDesktopCollapsed.value)
 const headerVariant = computed<HeaderVariant>(() => (route.meta.headerVariant === 'compact' ? 'compact' : 'default'))
 const sidebarToggleLabel = computed(() => (desktopCollapsed.value ? '展开侧栏' : '折叠侧栏'))
+
+function toggleMenuSection(label: string) {
+  const next = new Set(collapsedMenuSections.value)
+
+  if (next.has(label)) {
+    next.delete(label)
+  } else {
+    next.add(label)
+  }
+
+  collapsedMenuSections.value = next
+}
+
+function isMenuSectionCollapsed(label: string) {
+  return collapsedMenuSections.value.has(label)
+}
 
 const currentPageTitle = computed(() => {
   if (typeof route.meta.title === 'string' && route.meta.title.trim()) {
@@ -566,25 +614,105 @@ onUnmounted(() => {
 
 .sidebar__nav {
   flex: 1;
-  padding: 14px 12px 18px;
+  padding: 12px 12px 18px;
   overflow-y: auto;
   display: grid;
-  gap: 16px;
+  align-content: start;
+  grid-auto-rows: max-content;
+  gap: 10px;
 }
 
 .sidebar__section {
   display: grid;
+  gap: 7px;
+  padding: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.sidebar__section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
+  margin: 0;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: color-mix(in srgb, var(--color-text-sidebar) 84%, var(--color-text-inverse));
+  font-size: 0.82rem;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 850;
+  cursor: pointer;
+  transition:
+    color var(--transition-fast) var(--ease-standard),
+    background-color var(--transition-fast) var(--ease-standard);
+}
+
+.sidebar__section-toggle:hover,
+.sidebar__section-toggle:focus-visible {
+  color: var(--color-text-inverse);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.sidebar__section-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-text-inverse) 42%, transparent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.sidebar__section-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__section-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  color: var(--color-text-sidebar-muted);
+}
+
+.sidebar__section-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-sidebar-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.sidebar__section-toggle-icon {
+  flex: 0 0 auto;
+  transition: transform var(--transition-fast) var(--ease-standard);
+}
+
+.sidebar__section-toggle-icon--collapsed {
+  transform: rotate(-90deg);
+}
+
+.sidebar__section-items {
+  display: grid;
   gap: 6px;
 }
 
-.sidebar__section-label {
-  margin: 0;
-  padding: 0 12px;
-  color: var(--color-text-sidebar-muted);
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-weight: 800;
+.sidebar--collapsed .sidebar__section {
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .sidebar__link {
