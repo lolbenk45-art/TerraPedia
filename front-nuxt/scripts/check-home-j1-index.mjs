@@ -43,6 +43,14 @@ if (!existsSync(file(pagePath))) {
   const homeHero = readFileSync(file(homeHeroPath), 'utf8')
   const homeData = readFileSync(file(homeDataPath), 'utf8')
   const homeAuditContent = `${page}\n${homeHero}\n${homeData}`
+  const assertOrder = (content, earlier, later, message) => {
+    const earlierIndex = content.indexOf(earlier)
+    const laterIndex = content.indexOf(later)
+
+    if (earlierIndex === -1 || laterIndex === -1 || earlierIndex > laterIndex) {
+      failures.push(`${pagePath}: ${message}`)
+    }
+  }
 
   for (const marker of [
     'await useHomeData()',
@@ -75,9 +83,51 @@ if (!existsSync(file(pagePath))) {
   }
 
   const heroPanelIndex = homeHero.indexOf('class="hero-j1-panel"')
-  const indexPanelIndex = homeHero.indexOf('class="hero-left"')
+  const indexPanelIndex = homeHero.indexOf('class="hero-left')
   if (heroPanelIndex === -1 || indexPanelIndex === -1 || heroPanelIndex > indexPanelIndex) {
     failures.push(`${pagePath}: selected J1 homepage must use the left-right swapped version with J1 before the index device`)
+  }
+
+  assertOrder(homeHero, 'class="hero-j1-lede"', 'class="hero-j1-search"', 'home search must appear directly after title and lede content')
+  assertOrder(homeHero, 'class="hero-j1-search"', 'class="hero-j1-grid"', 'home search must come before the four primary entry cards')
+  assertOrder(homeHero, 'class="hero-j1-grid"', 'class="tag-row hero-stage-chips"', 'primary entries must come before stage navigation')
+  assertOrder(homeHero, 'class="tag-row hero-stage-chips"', 'class="hero-j1-paths"', 'stage navigation must come before secondary shortcuts')
+
+  if (homeHero.indexOf('class="hero-status-line"') !== -1 && homeHero.indexOf('class="hero-status-line"') < homeHero.indexOf('class="hero-j1-search"')) {
+    failures.push(`${pagePath}: status signals must not appear before the primary search control`)
+  }
+
+  if (homeHero.indexOf('class="hero-left') !== -1 && homeHero.indexOf('class="hero-left') < homeHero.indexOf('class="hero-j1-search"')) {
+    failures.push(`${pagePath}: atlas index must not precede the primary search control`)
+  }
+
+  const primaryEntriesBlock = homeData.match(/const primaryEntries = computed\(\(\) => \[([\s\S]*?)\]\)/)?.[1] ?? ''
+  const primaryEntryRoutes = [...primaryEntriesBlock.matchAll(/href:\s*'([^']+)'/g)].map((match) => match[1])
+  if (primaryEntryRoutes.length !== 4 || new Set(primaryEntryRoutes).size !== 4 || !['/items', '/bosses', '/npcs', '/articles'].every((route) => primaryEntryRoutes.includes(route))) {
+    failures.push(`${homeDataPath}: home primary entries must contain exactly four core channels`)
+  }
+
+  const secondaryRouteCount = ['/categories', '/crafting', '/biomes', '/buffs', '/armor-sets', '/projectiles']
+    .filter((route) => homeAuditContent.includes(route))
+    .length
+  if (secondaryRouteCount !== 6) {
+    failures.push(`${pagePath}: home secondary shortcuts must keep all six low-priority resource routes`)
+  }
+
+  const publicFetchTargets = [...homeData.matchAll(/usePublicApiFetch<[^>]+>\('([^']+)'\)/g)].map((match) => match[1])
+  if (publicFetchTargets.length !== 1 || publicFetchTargets[0] !== '/statistics/overview') {
+    failures.push(`${homeDataPath}: home A plan must keep /statistics/overview as the only dynamic home API source`)
+  }
+
+  const bossProgressionPath = 'components/home/HomeBossProgression.vue'
+  const bossProgression = readFileSync(file(bossProgressionPath), 'utf8')
+
+  if (!bossProgression.includes('class="boss-route-cta"') || !bossProgression.includes(':href="route.href"')) {
+    failures.push(`${bossProgressionPath}: home Boss strip must render an auditable CTA bound to route.href`)
+  }
+
+  if (!homeData.includes("href: '/bosses'")) {
+    failures.push(`${homeDataPath}: bossRoute must expose href: '/bosses' for the home Boss CTA`)
   }
 
   for (const route of ['/categories', '/crafting', '/biomes', '/buffs', '/armor-sets', '/projectiles']) {

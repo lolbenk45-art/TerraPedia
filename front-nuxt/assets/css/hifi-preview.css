@@ -1948,8 +1948,8 @@ img[data-preview-fallback] {
 .hero {
   position: relative;
   overflow: hidden;
-  min-height: 720px;
-  padding: 30px 42px 72px;
+  min-height: auto;
+  padding: 30px 42px 56px;
   background:
     linear-gradient(180deg, rgba(9, 16, 11, 0.08), rgba(9, 16, 11, 0.84) 70%),
     var(--index-grid-x),
@@ -1997,7 +1997,7 @@ img[data-preview-fallback] {
   gap: 42px;
   align-items: center;
   max-width: 1360px;
-  min-height: 620px;
+  min-height: min(620px, calc(100dvh - 96px));
   margin: 0 auto;
 }
 .hero-left {
@@ -2042,6 +2042,11 @@ img[data-preview-fallback] {
     0 36px 86px rgba(0, 0, 0, 0.42),
     inset 0 1px 0 rgba(255,255,255,0.06);
   padding: 28px;
+}
+.home-atlas-secondary .atlas-index {
+  box-shadow:
+    0 20px 52px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255,255,255,0.05);
 }
 .atlas-index::before {
   content: "";
@@ -2329,14 +2334,15 @@ img[data-preview-fallback] {
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 14px;
   align-items: center;
-  min-height: 56px;
-  border: 1px solid rgba(244, 234, 208, 0.1);
+  min-height: 60px;
+  border: 1px solid rgba(240, 207, 116, 0.2);
   border-radius: 8px;
   background:
+    linear-gradient(90deg, rgba(217, 185, 91, 0.075), transparent 64%),
     var(--index-grid-x),
     var(--index-grid-y),
-    rgba(3, 9, 5, 0.5);
-  background-size: 40px 40px, 40px 40px, auto;
+    rgba(3, 9, 5, 0.56);
+  background-size: auto, 40px 40px, 40px 40px, auto;
   box-shadow: inset 0 1px 0 rgba(244, 234, 208, 0.035);
   padding: 10px 12px 10px 18px;
   transition: border-color 180ms ease-out, box-shadow 180ms ease-out, background 180ms ease-out;
@@ -2344,10 +2350,11 @@ img[data-preview-fallback] {
 .hero-j1-search:focus-within {
   border-color: rgba(240, 207, 116, 0.48);
   background:
+    linear-gradient(90deg, rgba(217, 185, 91, 0.11), transparent 64%),
     var(--index-grid-x),
     var(--index-grid-y),
     rgba(5, 12, 7, 0.68);
-  background-size: 40px 40px, 40px 40px, auto;
+  background-size: auto, 40px 40px, 40px 40px, auto;
   box-shadow:
     inset 0 1px 0 rgba(244, 234, 208, 0.05),
     0 0 0 3px rgba(240, 207, 116, 0.12),
@@ -2401,7 +2408,7 @@ img[data-preview-fallback] {
   grid-template-columns: 18px minmax(0, auto) minmax(0, 1fr);
   gap: 8px;
   align-items: center;
-  min-height: 38px;
+  min-height: 44px;
   border: 1px solid rgba(244, 234, 208, 0.08);
   border-radius: 7px;
   background:
@@ -2410,6 +2417,7 @@ img[data-preview-fallback] {
     rgba(244, 234, 208, 0.018);
   background-size: 40px 40px, 40px 40px, auto;
   color: rgba(244, 234, 208, 0.58);
+  opacity: 0.88;
   padding: 8px 10px;
   text-decoration: none;
   transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
@@ -3244,6 +3252,33 @@ img[data-preview-fallback] {
   color: #9db89a;
   font-size: 11px;
   font-weight: 900;
+}
+.boss-route-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: start;
+  min-height: 44px;
+  margin-top: 18px;
+  border: 1px solid rgba(240, 207, 116, 0.34);
+  border-radius: 7px;
+  background:
+    linear-gradient(90deg, rgba(217, 185, 91, 0.12), rgba(224, 126, 85, 0.055)),
+    rgba(5, 10, 6, 0.48);
+  color: var(--gold-2);
+  font-size: 13px;
+  font-weight: 900;
+  padding: 10px 14px;
+  text-decoration: none;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+.boss-route-cta:hover {
+  border-color: rgba(240, 207, 116, 0.52);
+  background:
+    linear-gradient(90deg, rgba(217, 185, 91, 0.18), rgba(224, 126, 85, 0.08)),
+    rgba(7, 14, 8, 0.62);
+  color: #fff0ad;
+  transform: translateY(-1px);
 }
 .loot-grid {
   display: grid;
@@ -4626,10 +4661,11 @@ img[data-preview-fallback] {
   .footer-bottom {
     grid-template-columns: 1fr;
   }
-  .hero { min-height: auto; padding: 56px 18px 64px; }
+  .hero { min-height: auto; padding: 34px 18px 42px; }
   .hero::after { height: 1px; }
-  .hero-grid { min-height: auto; gap: 24px; }
-  .hero-left { min-height: 390px; }
+  .hero-grid { min-height: auto; gap: 18px; }
+  .home-atlas-secondary { display: none; }
+  .hero-left { min-height: auto; }
   .hero-j1-panel {
     min-height: auto;
     gap: 18px;
@@ -8608,12 +8644,16 @@ img[data-preview-fallback] {
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-search {
-  border-color: rgba(var(--theme-border-rgb), 0.14);
+  border-color: rgba(var(--theme-gold-rgb), 0.24);
   background:
+    linear-gradient(90deg, rgba(var(--theme-gold-rgb), 0.09), transparent 64%),
     var(--index-grid-x),
     var(--index-grid-y),
-    rgba(var(--theme-panel-rgb), 0.56);
-  background-size: 40px 40px, 40px 40px, auto;
+    rgba(var(--theme-panel-rgb), 0.68);
+  background-size: auto, 40px 40px, 40px 40px, auto;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.66),
+    0 12px 26px rgba(var(--theme-border-rgb), 0.065);
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-search:focus-within,
@@ -8668,12 +8708,28 @@ img[data-preview-fallback] {
   color: var(--button-primary-fg);
 }
 
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-route-cta {
+  border-color: rgba(var(--theme-gold-rgb), 0.3);
+  background:
+    linear-gradient(90deg, rgba(var(--theme-gold-rgb), 0.1), rgba(var(--theme-panel-rgb), 0.48)),
+    rgba(var(--theme-panel-rgb), 0.42);
+  color: var(--text-link);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-route-cta:hover {
+  border-color: rgba(var(--theme-gold-rgb), 0.44);
+  background:
+    linear-gradient(90deg, rgba(var(--theme-gold-rgb), 0.15), rgba(var(--theme-panel-rgb), 0.62)),
+    rgba(var(--theme-panel-rgb), 0.56);
+  color: var(--text-strong);
+}
+
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-path-link {
   border-color: rgba(var(--theme-border-rgb), 0.1);
   background:
     var(--index-grid-x),
     var(--index-grid-y),
-    rgba(var(--theme-panel-rgb), 0.34);
+    rgba(var(--theme-panel-rgb), 0.28);
   background-size: 40px 40px, 40px 40px, auto;
   color: var(--text-muted);
 }

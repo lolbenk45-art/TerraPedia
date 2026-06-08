@@ -332,6 +332,10 @@ textarea {
     place-items: stretch;
   }
 
+  .home-atlas-secondary {
+    display: none;
+  }
+
   .hero-left::before {
     inset: 12px 0;
   }

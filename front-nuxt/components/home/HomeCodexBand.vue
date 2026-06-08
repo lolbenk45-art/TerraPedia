@@ -25,7 +25,7 @@ defineProps<{
   <div class="codex-band">
     <article class="codex-scroll">
       <div class="codex-feature">
-        <span class="eyebrow">资料手札</span>
+        <span class="eyebrow">攻略专题</span>
         <h2>{{ codex.title }}</h2>
         <p>{{ codex.desc }}</p>
         <div class="codex-actions">

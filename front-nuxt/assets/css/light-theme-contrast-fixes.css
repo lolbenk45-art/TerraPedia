@@ -478,6 +478,12 @@
   box-shadow: var(--theme-surface-shadow-raised);
 }
 
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-atlas-secondary .atlas-index {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    0 14px 32px rgba(var(--theme-border-rgb), 0.08);
+}
+
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell {
   border-color: rgba(var(--entry-accent), 0.28);
   border-left-color: rgba(var(--entry-accent), 0.62);

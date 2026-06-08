@@ -14,11 +14,11 @@ defineProps<{
 <template>
   <section class="exploration-map home-section-band" aria-labelledby="exploration-map-title">
     <div class="map-head">
-      <span class="eyebrow">探索地图</span>
+      <span class="eyebrow">进度路径</span>
       <h2 id="exploration-map-title">
-        按游戏阶段浏览资料
+        不知道下一步时，按阶段浏览
       </h2>
-      <p>从开荒、图鉴、困难模式、生态到攻略入口，按当前进度找到下一步。</p>
+      <p>从开荒、装备成型、困难模式到专题路线，把资料入口按游玩进度排好。</p>
     </div>
     <div class="map-path"></div>
     <a

@@ -38,10 +38,10 @@ export const useHomeData = async () => {
   const categoryTotalLabel = computed(() => formatCount(homeStats.value?.totalCategories, '分类'))
 
   const primaryEntries = computed(() => [
-    { label: '物品', href: '/items', icon: 'icon-items', desc: '装备材料掉落', count: itemTotalLabel.value, hex: '255,215,101' },
-    { label: 'Boss', href: '/bosses', icon: 'icon-boss', desc: '阶段战斗路线', count: '路线化', hex: '224,126,85' },
-    { label: 'NPC', href: '/npcs', icon: 'icon-npc', desc: '城镇敌怪图鉴', count: '762', hex: '126,178,120' },
-    { label: '攻略', href: '/articles', icon: 'icon-article', desc: '专题和机制', count: '精选', hex: '217,185,91' },
+    { label: '物品', href: '/items', icon: 'icon-items', desc: '查装备、材料、掉落', count: itemTotalLabel.value, hex: '255,215,101' },
+    { label: 'Boss', href: '/bosses', icon: 'icon-boss', desc: '看前置、阶段、战利品', count: '路线', hex: '224,126,85' },
+    { label: 'NPC', href: '/npcs', icon: 'icon-npc', desc: '找城镇角色和敌怪', count: '图鉴', hex: '126,178,120' },
+    { label: '攻略', href: '/articles', icon: 'icon-article', desc: '按阶段和机制阅读', count: '专题', hex: '217,185,91' },
   ])
 
   const primaryStats = computed(() => [
@@ -83,10 +83,10 @@ export const useHomeData = async () => {
       ],
       secondaryLinks: [
         { label: '分类', href: '/categories', icon: 'icon-category', desc: '类型索引' },
-        { label: '制作', href: '/crafting', icon: 'icon-crafting', desc: '合成路线' },
+        { label: '制作', href: '/crafting', icon: 'icon-crafting', desc: '合成链路' },
         { label: '生态', href: '/biomes', icon: 'icon-biome', desc: '群落资源' },
         { label: 'Buff', href: '/buffs', icon: 'icon-buff', desc: '状态效果' },
-        { label: '套装', href: '/armor-sets', icon: 'icon-armor', desc: '防具推进' },
+        { label: '套装', href: '/armor-sets', icon: 'icon-armor', desc: '防具路线' },
         { label: '射弹', href: '/projectiles', icon: 'icon-projectile', desc: '弹道行为' },
       ],
       primaryStats: primaryStats.value,
@@ -113,8 +113,8 @@ export const useHomeData = async () => {
         className: 'two',
         href: '/items',
         image: '/preview-assets/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png',
-        title: '物品图鉴',
-        desc: '泰拉刃为中心入口，牵出主线路径和合成方向。',
+        title: '装备成型',
+        desc: '围绕核心武器、合成材料和战前准备整理路线。',
         featured: true,
       },
       {
@@ -128,15 +128,15 @@ export const useHomeData = async () => {
         className: 'four',
         href: '/biomes',
         image: '/preview-assets/terrapedia-images/items/2026/04/08/179b4aea3cc74ae989a9eb86db6f50ec.png',
-        title: '生态地图',
-        desc: '群落、资源与地形入口在同一层表达。',
+        title: '生态探索',
+        desc: '按群落、资源与地形线索决定下一步探索。',
       },
       {
         className: 'five',
         href: '/articles',
         image: '/preview-assets/terrapedia-images/items/2026/04/08/6ef1b719169348b595c93654cbf60c1c.png',
-        title: '资料手札',
-        desc: '攻略和专题从这里向外分叉。',
+        title: '专题路线',
+        desc: '攻略和机制专题作为阶段路线的补充入口。',
       },
     ],
     featuredRoute: {
@@ -172,8 +172,9 @@ export const useHomeData = async () => {
       ],
     },
     bossRoute: {
+      href: '/bosses',
       title: 'Boss 推进路线',
-      desc: 'Boss 战前置 · 掉落清单 · 推进路线',
+      desc: '从战前准备、触发条件到关键掉落，按阶段进入 Boss 资料。',
       stages: [
         { index: '01', label: '战前准备' },
         { index: '02', label: '事件触发' },
