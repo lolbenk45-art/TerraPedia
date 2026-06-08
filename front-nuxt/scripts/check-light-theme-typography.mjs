@@ -147,9 +147,19 @@ const auditExpression = `(() => {
   const parseColor = (value) => {
     const text = String(value || '').trim();
     if (text === 'transparent') return [0, 0, 0, 0];
-    const match = text.match(/rgba?\\(([^)]+)\\)/);
-    if (!match) return [0, 0, 0, 1];
-    const parts = match[1].split(',').map((part) => Number.parseFloat(part.trim()));
+    const rgbMatch = text.match(/rgba?\\(([^)]+)\\)/);
+    if (rgbMatch) {
+      const parts = rgbMatch[1].split(',').map((part) => Number.parseFloat(part.trim()));
+      return [parts[0] || 0, parts[1] || 0, parts[2] || 0, parts.length > 3 ? parts[3] : 1];
+    }
+
+    const srgbMatch = text.match(/color\\(srgb\\s+([^\\s)]+)\\s+([^\\s)]+)\\s+([^\\s)]+)(?:\\s+\\/\\s+([^\\s)]+))?\\)/);
+    if (!srgbMatch) return [0, 0, 0, 1];
+    const parts = srgbMatch.slice(1, 5).map((part, index) => {
+      if (part === undefined) return index === 3 ? 1 : 0;
+      const parsed = Number.parseFloat(part);
+      return index === 3 ? parsed : parsed * 255;
+    });
     return [parts[0] || 0, parts[1] || 0, parts[2] || 0, parts.length > 3 ? parts[3] : 1];
   };
   const temp = document.createElement('span');
@@ -183,7 +193,9 @@ const auditExpression = `(() => {
     const style = getComputedStyle(element);
     return rect.width > 1 && rect.height > 1 && style.visibility !== 'hidden' && style.display !== 'none' && Number(style.opacity) > 0.05;
   };
-  const extractRgbColors = (value) => [...String(value || '').matchAll(/rgba?\\(([^)]+)\\)/g)].map((match) => {
+  const extractRgbColors = (value) => [
+    ...String(value || '').matchAll(/rgba?\\(([^)]+)\\)/g),
+  ].map((match) => {
     const parts = match[1].split(',').map((part) => Number.parseFloat(part.trim()));
     return [parts[0] || 0, parts[1] || 0, parts[2] || 0, parts.length > 3 ? parts[3] : 1];
   });
@@ -304,6 +316,12 @@ const themeAppliedExpression = (theme) => `(() => {
     && style.colorScheme.includes('light');
 })()`
 
+const applyThemeExpression = (theme) => `(() => {
+  document.cookie = 'terrapedia-theme=${theme}; Path=/; SameSite=Lax';
+  document.documentElement.setAttribute('data-theme', ${JSON.stringify(theme)});
+  return true;
+})()`
+
 const pollRuntimeBoolean = async (browser, expression, attempts = 50) => {
   for (let index = 0; index < attempts; index += 1) {
     const result = await browser.send('Runtime.evaluate', {
@@ -352,6 +370,10 @@ try {
       const loaded = browser.once('Page.loadEventFired')
       await browser.send('Page.navigate', { url: `${baseUrl}${route}` })
       await withTimeout(loaded, 5000, `load event for ${route}`).catch(() => {})
+      await browser.send('Runtime.evaluate', {
+        expression: applyThemeExpression(targetTheme),
+        returnByValue: true,
+      })
       await withTimeout(
         pollRuntimeBoolean(browser, themeAppliedExpression(targetTheme)),
         5000,

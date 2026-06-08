@@ -94,6 +94,29 @@
   color: var(--button-control-fg);
 }
 
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .nav-menu-text-trigger .nav-menu-label {
+  color: var(--button-control-hover-fg);
+  font-size: var(--tp-font-size-caption);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero .eyebrow,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy h1,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy p,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-tags span,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-map-stats span,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-map-stats em {
+  color: #fffaf1;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-tags span {
+  border-color: rgba(255, 250, 241, 0.28);
+  background: rgba(7, 11, 8, 0.58);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero .eyebrow::before {
+  background: #fffaf1;
+}
+
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .small-button.active,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .theme-choice.active,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .detail-tab.active,

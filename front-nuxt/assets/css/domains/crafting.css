@@ -2,7 +2,7 @@
   --crafting-text-strong: var(--tp-color-text-strong);
   --crafting-text-main: var(--tp-color-text);
   --crafting-text-muted: var(--tp-color-text-muted);
-  --crafting-text-subtle: var(--tp-color-text-subtle);
+  --crafting-text-subtle: var(--tp-readable-subtle);
   --crafting-positive: var(--tp-color-positive);
   --crafting-surface: var(--tp-color-surface-soft);
   --crafting-surface-strong: var(--tp-color-surface-raised);
@@ -237,7 +237,7 @@
   margin: 6px 0 0;
   max-width: 68ch;
   color: var(--crafting-text-subtle);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.7;
 }
 
@@ -284,7 +284,8 @@
 
 .crafting-target-fact-list dt {
   color: var(--crafting-text-subtle);
-  font-size: 12px;
+  font-size: 13px;
+  line-height: var(--tp-line-height-body);
 }
 
 .crafting-target-fact-list dd {

@@ -169,7 +169,7 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
         </article>
       </section>
 
-      <section class="support-panel article-table-panel">
+      <section class="support-panel tp-data-panel article-table-panel">
         <div class="article-table-headline">
           <div>
             <span class="eyebrow">Submission Queue</span>
@@ -191,8 +191,8 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
           </button>
         </div>
 
-        <div v-if="articlesLoading" class="article-table-scroll tp-scroll-region" aria-live="polite" aria-label="文章列表加载中">
-          <div class="article-table-grid article-table-grid--head" role="row">
+        <div v-if="articlesLoading" class="article-table-scroll tp-data-table tp-scroll-region" aria-live="polite" aria-label="文章列表加载中">
+          <div class="article-table-grid tp-data-table-head article-table-grid--head" role="row">
             <span>封面</span>
             <span>文章</span>
             <span>状态</span>
@@ -205,7 +205,7 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
           <article
             v-for="slot in articleTableLoadingSlotCount"
             :key="`article-table-loading-${slot}`"
-            class="article-table-grid article-table-row article-table-row--loading"
+            class="article-table-grid tp-data-table-row article-table-row article-table-row--loading"
             role="row"
           >
             <div class="article-cover-thumb" aria-hidden="true">
@@ -251,8 +251,8 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
           <span>切换其它分类，或新建一篇文章继续投稿。</span>
         </div>
 
-        <div v-else class="article-table-scroll tp-scroll-region">
-          <div class="article-table-grid article-table-grid--head" role="row">
+        <div v-else class="article-table-scroll tp-data-table tp-scroll-region">
+          <div class="article-table-grid tp-data-table-head article-table-grid--head" role="row">
             <span>封面</span>
             <span>文章</span>
             <span>状态</span>
@@ -262,7 +262,7 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
             <span>操作</span>
           </div>
 
-          <article v-for="article in visibleArticles" :key="article.id" class="article-table-grid article-table-row" role="row">
+          <article v-for="article in visibleArticles" :key="article.id" class="article-table-grid tp-data-table-row article-table-row" role="row">
             <div
               class="article-cover-thumb"
               :class="`is-${articleTone(article)}`"
@@ -276,34 +276,34 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
             <div class="article-title-cell">
               <b>{{ article.title }}</b>
               <p>{{ articleSummary(article) }}</p>
-              <span v-if="article.reviewStatus === 'REJECTED' && article.reviewComment">退回意见：{{ article.reviewComment }}</span>
+              <span v-if="article.reviewStatus === 'REJECTED' && article.reviewComment" class="tp-data-meta">退回意见：{{ article.reviewComment }}</span>
             </div>
 
             <div class="article-status-cell">
               <span class="article-status-pill" :class="`is-${articleTone(article)}`">{{ formatArticleState(article) }}</span>
-              <small>{{ formatReviewStatus(article.reviewStatus) }}</small>
+              <small class="tp-data-meta">{{ formatReviewStatus(article.reviewStatus) }}</small>
             </div>
 
             <div class="article-metric-cell">
               <div class="article-content-stats">
-                <span>{{ articleWordCount(article) }} 字</span>
-                <span>{{ articleImageCount(article) }} 图</span>
+                <span class="tp-data-meta">{{ articleWordCount(article) }} 字</span>
+                <span class="tp-data-meta">{{ articleImageCount(article) }} 图</span>
               </div>
               <div class="article-engagement-stats">
-                <span v-for="stat in articleEngagementStats(article)" :key="stat.label">
+                <span v-for="stat in articleEngagementStats(article)" :key="stat.label" class="tp-data-meta">
                   <b>{{ stat.value }}</b>{{ stat.label }}
                 </span>
               </div>
             </div>
 
             <div class="article-time-cell">
-              <span>更新 {{ articleTimestamp(article) }}</span>
-              <span v-if="article.submittedAt">提交 {{ formatDisplayDateTime(article.submittedAt) }}</span>
-              <span v-if="article.publishedAt">发布 {{ formatDisplayDateTime(article.publishedAt) }}</span>
+              <span class="tp-data-meta">更新 {{ articleTimestamp(article) }}</span>
+              <span v-if="article.submittedAt" class="tp-data-meta">提交 {{ formatDisplayDateTime(article.submittedAt) }}</span>
+              <span v-if="article.publishedAt" class="tp-data-meta">发布 {{ formatDisplayDateTime(article.publishedAt) }}</span>
             </div>
 
             <div class="article-next-step">
-              <span>下一步</span>
+              <span class="tp-data-meta">下一步</span>
               <strong>{{ articleNextAction(article) }}</strong>
             </div>
 
@@ -358,12 +358,12 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
 }
 
 .article-table-summary small {
-  color: var(--text-faint);
+  color: var(--tp-readable-subtle);
 }
 
 .article-table-panel {
   display: grid;
-  gap: 16px;
+  gap: var(--tp-data-panel-gap);
 }
 
 .article-table-headline {
@@ -387,16 +387,16 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
 
 .article-category-filter button {
   display: inline-flex;
-  min-height: 36px;
+  min-height: var(--tp-touch-target);
   align-items: center;
   border: 1px solid var(--index-line);
   border-radius: 999px;
-  padding: 0 11px;
+  padding: 0 var(--tp-chip-padding-x);
   color: var(--text-muted);
   background: color-mix(in srgb, var(--index-surface) 76%, transparent);
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--tp-chip-font-size);
   font-weight: 900;
   gap: 7px;
 }
@@ -418,28 +418,27 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
 
 .article-table-scroll {
   display: grid;
-  gap: 10px;
+  gap: var(--tp-data-table-gap);
 }
 
 .article-table-grid {
   display: grid;
   grid-template-columns: minmax(72px, .5fr) minmax(220px, 2.1fr) minmax(82px, .7fr) minmax(72px, .58fr) minmax(150px, 1.12fr) minmax(168px, 1.26fr) minmax(96px, .76fr);
-  gap: 10px;
+  gap: var(--tp-data-table-grid-gap);
   align-items: center;
   width: 100%;
 }
 
 .article-table-grid--head {
-  padding: 0 10px;
-  color: var(--text-faint);
-  font-size: 12px;
+  color: var(--tp-readable-subtle);
+  font-size: var(--tp-data-meta-font-size);
   font-weight: 900;
+  line-height: var(--tp-data-meta-line-height);
   text-transform: uppercase;
 }
 
 .article-table-row {
-  min-height: 108px;
-  padding: 10px;
+  min-height: var(--tp-data-row-min-height);
   background: color-mix(in srgb, var(--index-surface) 76%, transparent);
 }
 
@@ -510,13 +509,13 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
 .article-time-cell,
 .article-next-step {
   display: grid;
-  gap: 8px;
+  gap: var(--tp-data-cell-gap);
   min-width: 0;
 }
 
 .article-metric-cell {
   display: grid;
-  gap: 7px;
+  gap: var(--tp-data-cell-gap);
   min-width: 0;
 }
 
@@ -543,9 +542,9 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
 .article-status-cell small,
 .article-metric-cell,
 .article-time-cell {
-  color: var(--text-faint);
-  font-size: 12px;
-  line-height: 1.35;
+  color: var(--tp-readable-subtle);
+  font-size: var(--tp-data-meta-font-size);
+  line-height: var(--tp-data-meta-line-height);
 }
 
 .article-content-stats,
@@ -604,16 +603,16 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
   min-height: 38px;
   border: 1px solid color-mix(in srgb, var(--index-line) 70%, transparent);
   border-radius: 8px;
-  padding: 7px 8px;
-  color: var(--text-faint);
+  padding: var(--tp-space-2) var(--tp-space-3);
+  color: var(--tp-readable-subtle);
   background: color-mix(in srgb, var(--panel) 62%, transparent);
-  font-size: 12px;
-  line-height: 1.3;
+  font-size: var(--tp-data-meta-font-size);
+  line-height: var(--tp-data-meta-line-height);
 }
 
 .article-next-step span {
-  color: var(--text-faint);
-  font-size: 12px;
+  color: var(--tp-readable-subtle);
+  font-size: var(--tp-data-meta-font-size);
   font-weight: 900;
   text-transform: uppercase;
 }
