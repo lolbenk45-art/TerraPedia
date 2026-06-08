@@ -1447,9 +1447,24 @@ for (const path of scanFiles) {
       'width: min(calc(100% - var(--tp-container-gutter) - var(--tp-container-gutter)), var(--tp-container-wide))',
       'max-width: none',
       'padding-inline: 0',
+      '.page-head:not(.biome-environment-hero)',
+      '.page-head:not(.biome-environment-hero) .page-head-inner',
+      'min-height: 0',
+      'display: grid',
+      'border: 1px solid var(--tp-color-border)',
+      'border-radius: var(--tp-radius-panel)',
+      'box-shadow: none',
+      '.page-head:not(.biome-environment-hero) h1',
+      '.page-head:not(.biome-environment-hero) h2',
+      '.page-head:not(.biome-environment-hero) p',
+      'color: var(--tp-color-text-muted)',
+      'text-overflow: ellipsis',
+      '-webkit-line-clamp: 2',
+      'line-clamp: 2',
+      '@media (max-width: 720px)',
     ]) {
       if (!content.includes(marker)) {
-        violations.push(`${path}: non-home public pages need a shared width shell so page proportions stay consistent via marker ${marker}`)
+        violations.push(`${path}: non-home public pages need shared shell and compact header governance so page proportions stay consistent via marker ${marker}`)
       }
     }
   }
