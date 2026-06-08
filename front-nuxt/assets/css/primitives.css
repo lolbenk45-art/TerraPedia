@@ -37,6 +37,68 @@
   padding-inline: 0;
 }
 
+/* Normal public page heads are compact by default; visual hero variants must opt out with their own class. */
+.page-head:not(.biome-environment-hero) {
+  box-sizing: border-box;
+  width: min(calc(100% - var(--tp-container-gutter) - var(--tp-container-gutter)), var(--tp-container-wide));
+  min-height: 0;
+  margin-inline: auto;
+  border-bottom: 0;
+  background: transparent;
+  padding: var(--tp-space-4) 0 var(--tp-space-3);
+}
+
+.page-head:not(.biome-environment-hero) .page-head-inner {
+  box-sizing: border-box;
+  display: grid;
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--tp-space-3);
+  align-items: center;
+  border: 1px solid var(--tp-color-border);
+  border-radius: var(--tp-radius-panel);
+  background: var(--tp-color-surface-soft);
+  box-shadow: none;
+  padding: var(--tp-space-2) var(--tp-space-4);
+}
+
+.page-head:not(.biome-environment-hero) .page-head-inner > * {
+  min-width: 0;
+}
+
+.page-head:not(.biome-environment-hero) .page-head-inner > :where(a, button, .primary-button, .secondary-button) {
+  justify-self: end;
+  max-width: 100%;
+}
+
+.page-head:not(.biome-environment-hero) h1,
+.page-head:not(.biome-environment-hero) h2 {
+  margin: var(--tp-space-1) 0 0;
+  color: var(--tp-color-text-strong);
+  font-family: var(--tp-font-display);
+  font-size: var(--tp-font-size-title-sm);
+  font-weight: var(--tp-font-weight-heavy);
+  line-height: var(--tp-line-height-heading);
+  letter-spacing: 0;
+}
+
+.page-head:not(.biome-environment-hero) p {
+  display: -webkit-box;
+  overflow: hidden;
+  max-width: 72ch;
+  margin: var(--tp-space-2) 0 0;
+  color: var(--tp-color-text-muted);
+  font-size: var(--tp-font-size-body-sm);
+  line-height: var(--tp-line-height-body);
+  text-overflow: ellipsis;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
 .tp-page-head {
   display: grid;
   gap: var(--tp-space-3);
@@ -216,6 +278,20 @@
   .tp-page-shell {
     gap: var(--tp-space-4);
     font-size: var(--tp-mobile-core-font-min);
+  }
+
+  .page-head:not(.biome-environment-hero) {
+    padding-block: var(--tp-space-3) var(--tp-space-2);
+  }
+
+  .page-head:not(.biome-environment-hero) .page-head-inner {
+    grid-template-columns: 1fr;
+    padding: var(--tp-space-3);
+  }
+
+  .page-head:not(.biome-environment-hero) .page-head-inner > :where(a, button, .primary-button, .secondary-button) {
+    justify-self: start;
+    width: fit-content;
   }
 
   .tp-page-head :where(p),
