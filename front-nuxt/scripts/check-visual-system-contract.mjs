@@ -218,6 +218,40 @@ const cssOrder = [
       violations.push(`${path}: new visual-system marker ${marker} must not be added to hifi-preview.css`)
     }
   }
+
+  for (const blocked of [
+    /--button-control-active-bg:\s*linear-gradient\(180deg,\s*rgba\([^;]*0\.96\)/,
+    /--button-primary-bg:\s*linear-gradient\(180deg,\s*#2e5c24,\s*#183318\)/,
+    /--button-primary-bg:\s*linear-gradient\(180deg,\s*#293241,\s*#1d2430\)/,
+    /--theme-active-bg:\s*rgba\((?:122,\s*90,\s*33|41,\s*50,\s*65),\s*0\.(?:09|11)\)/,
+  ]) {
+    if (blocked.test(content)) {
+      violations.push(`${path}: light theme active and primary controls must use theme-aware surfaces, not solid dark block highlights (${blocked})`)
+    }
+  }
+
+  requireIncludes(
+    path,
+    content,
+    '--button-control-active-shadow:',
+    'light theme active controls must define a dedicated active shadow token',
+  )
+}
+
+{
+  const path = 'assets/css/light-theme-contrast-fixes.css'
+  const content = requireFile(path)
+
+  requireIncludes(
+    path,
+    content,
+    'box-shadow: var(--button-control-active-shadow);',
+    'light theme active control overrides must use the dedicated active shadow token',
+  )
+
+  if (content.includes('box-shadow: var(--button-control-shadow);')) {
+    violations.push(`${path}: light theme active control overrides must not fall back to the base control shadow`)
+  }
 }
 
 if (violations.length > 0) {

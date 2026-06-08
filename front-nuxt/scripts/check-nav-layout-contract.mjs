@@ -94,6 +94,8 @@ for (const marker of [
   ']) .nav-notification-link.has-unread {',
   ']) .nav-notification-link.has-unread b {',
   ']) .nav-notification-link.has-unread .nav-notification-count {',
+  ']) .nav-user-article-link.active,',
+  'box-shadow: var(--button-control-active-shadow);',
   '--nav-unread-bg',
   '--nav-unread-fg',
   '--nav-unread-count-bg',
@@ -118,6 +120,42 @@ assertIncludes(
   '.nav-notification-link b,\n.nav-user-article-link b {\n  display: block;',
   'notification label must reset generic b badge styling so unread text stays clean and readable',
 )
+
+const hifiCss = read('assets/css/hifi-preview.css')
+assertIncludes(
+  'assets/css/hifi-preview.css',
+  hifiCss,
+  '.nav-notification-link {\n  overflow: visible;',
+  'notification link must allow unread badge to sit outside the button without affecting label layout',
+)
+assertIncludes(
+  'assets/css/hifi-preview.css',
+  hifiCss,
+  '.nav-notification-count {\n  position: absolute;',
+  'notification unread count must be an absolute corner badge instead of inline text',
+)
+
+assertIncludes(
+  navPath,
+  nav,
+  '.account-avatar-link {\n  position: relative;\n  overflow: visible;',
+  'account avatar trigger must allow unread badge to sit outside the avatar instead of clipping into it',
+)
+assertIncludes(
+  navPath,
+  nav,
+  '.account-unread-badge {\n  position: absolute;',
+  'account unread count must remain an absolute corner badge',
+)
+assertIncludes(
+  'assets/css/hifi-preview.css',
+  hifiCss,
+  '.account-unread-badge {\n  position: absolute;',
+  'account unread count must be globally styled because runtime and hydrated badges must share the same corner placement',
+)
+if (nav.includes('.account-avatar-link {\n  position: relative;\n  overflow: hidden;')) {
+  violations.push(`${navPath}: account avatar trigger must not clip unread badge into the avatar content`)
+}
 
 if (violations.length) {
   console.error(violations.join('\n'))

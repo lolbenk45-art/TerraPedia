@@ -117,6 +117,62 @@
   background: #fffaf1;
 }
 
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-hero {
+  border-color: rgba(var(--theme-border-rgb), 0.18);
+  background:
+    linear-gradient(90deg, rgba(var(--theme-panel-rgb), 0.28), rgba(var(--theme-bg-2-rgb), 0.14) 58%, rgba(var(--theme-panel-rgb), 0.06)),
+    var(--index-grid-x),
+    var(--index-grid-y),
+    rgba(var(--theme-panel-rgb), 0.24);
+  background-size: auto, 40px 40px, 40px 40px, auto;
+  color: var(--text-main);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-hero::before {
+  background:
+    linear-gradient(180deg, rgba(var(--theme-panel-rgb), 0.03), rgba(var(--theme-panel-rgb), 0.18)),
+    linear-gradient(90deg, rgba(var(--theme-panel-rgb), 0.22), rgba(var(--theme-bg-2-rgb), 0.1) 54%, rgba(var(--theme-panel-rgb), 0.04));
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy {
+  max-width: 580px;
+  border-color: rgba(var(--theme-border-rgb), 0.18);
+  background:
+    linear-gradient(135deg, rgba(var(--theme-panel-rgb), 0.72), rgba(var(--theme-bg-2-rgb), 0.58)),
+    rgba(var(--theme-panel-rgb), 0.64);
+  color: var(--text-main);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    0 16px 34px rgba(var(--theme-text-rgb), 0.1);
+  backdrop-filter: blur(1px);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy .eyebrow,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy h1,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy h2 {
+  color: var(--text-strong);
+  text-shadow: none;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy p {
+  color: var(--text-main);
+  text-shadow: none;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy .eyebrow::before {
+  background: var(--text-strong);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-hero .tag {
+  border-color: rgba(var(--theme-border-rgb), 0.18);
+  background:
+    var(--index-grid-x),
+    var(--index-grid-y),
+    rgba(var(--theme-panel-rgb), 0.54);
+  background-size: 40px 40px, 40px 40px, auto;
+  color: var(--text-strong);
+}
+
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .small-button.active,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .theme-choice.active,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .detail-tab.active,
@@ -132,12 +188,38 @@
   color: var(--text-strong);
 }
 
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .biome-detail-environment-hero .tag,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .biome-detail-environment-hero .tag.gold,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .biome-detail-environment-hero .tag.moss,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .biome-detail-environment-hero .tag.paper {
+  border-color: rgba(var(--theme-border-rgb), 0.18);
+  background:
+    var(--index-grid-x),
+    var(--index-grid-y),
+    rgba(var(--theme-panel-rgb), 0.54);
+  background-size: 40px 40px, 40px 40px, auto;
+  color: var(--text-strong);
+}
+
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .small-button.active :where(span, b, em),
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .theme-choice.active :where(span, b, em),
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .detail-tab.active :where(span, b, em),
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .filter-option.active :where(span, b, em),
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .entity-filter.active :where(span, b, em) {
   color: var(--button-control-active-fg);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-notification-link.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-user-article-link.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .small-button.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .theme-choice.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .detail-tab.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .filter-option.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .entity-filter.active {
+  border-color: var(--button-control-active-border);
+  background: var(--button-control-active-bg);
+  color: var(--button-control-active-fg);
+  box-shadow: var(--button-control-active-shadow);
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .site-logo strong,
@@ -254,8 +336,8 @@
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stat-card span,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-path-link em,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .breadcrumb-list li,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .breadcrumb-current,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .page-trail-item,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .page-trail-current,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-lede,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell-copy em,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-search strong,

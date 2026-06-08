@@ -24,6 +24,11 @@ const biomeRelations = computed(() => biomeBundle.value?.relations ?? [])
 const biomeRawLoading = computed(() => !biomeClientReady.value || biomePending.value)
 const biomeMissing = computed(() => biomeClientReady.value && !biomePending.value && !biomeDetail.value)
 const biomeTitle = computed(() => biomeTile.value?.displayName || biomeDetail.value?.nameZh || biomeDetail.value?.nameEn || '群系详情')
+const biomeTrailItems = computed(() => [
+  { label: '首页', href: '/' },
+  { label: '生态索引', href: '/biomes' },
+  { label: biomeTitle.value },
+])
 
 useSeoMeta({
   title: () => `TerraPedia · ${biomeTitle.value}`,
@@ -78,7 +83,7 @@ onBeforeUnmount(clearBiomeDetailVisualLoadingTimer)
 <template>
   <section class="screen entity-screen active">
     <TerraNav />
-    <TerraBreadcrumb />
+    <TerraBreadcrumb :items="biomeTrailItems" />
 
     <main class="support-layout detail-support-layout" :aria-busy="biomeDetailVisualLoading">
       <section class="biome-detail-hero support-panel biome-detail-environment-hero">
