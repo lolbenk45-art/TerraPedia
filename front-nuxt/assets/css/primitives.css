@@ -27,6 +27,16 @@
   width: min(calc(100% - var(--tp-container-gutter) - var(--tp-container-gutter)), var(--tp-container-wide));
 }
 
+.tp-public-page-shell,
+:is(.catalog-layout, .catalog-pixel-stage, .detail-layout, .article-layout, .entity-layout, .entity-detail-layout, .boss-page-shell, .effect-layout, .projectile-layout, .armor-layout, .about-layout, .support-layout, .article-detail-layout, .boss-detail-shell, .crafting-layout, .crafting-page, .user-layout, .user-auth-layout, .editor-layout, .settings-layout) {
+  box-sizing: border-box;
+  width: min(calc(100% - var(--tp-container-gutter) - var(--tp-container-gutter)), var(--tp-container-wide));
+  max-width: none;
+  min-width: 0;
+  margin-inline: auto;
+  padding-inline: 0;
+}
+
 .tp-page-head {
   display: grid;
   gap: var(--tp-space-3);

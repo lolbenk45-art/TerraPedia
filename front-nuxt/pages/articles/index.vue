@@ -120,7 +120,7 @@ useSeoMeta({
       </div>
     </div>
 
-    <main class="tp-container is-wide article-layout discovery-articles-page article-route-shell tp-page-shell">
+    <main class="tp-public-page-shell article-layout discovery-articles-page article-route-shell tp-page-shell">
       <section class="article-panel article-route-system">
         <div v-if="articleLoading" class="public-article-list article-list-layout-balanced" aria-live="polite" aria-label="文章列表加载中">
           <article
@@ -247,9 +247,6 @@ useSeoMeta({
 .article-route-shell {
   grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
   align-items: start;
-  max-width: none;
-  padding-right: 0;
-  padding-left: 0;
 }
 
 .public-article-list {
