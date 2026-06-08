@@ -137,10 +137,10 @@ requireRegex(
   'crafting loading sheet must use shared skeleton primitives',
 )
 
-requireIncludes(
+requireRegex(
   'pages/articles/index.vue',
   articlePage,
-  '<main class="tp-page-shell article-layout discovery-articles-page">',
+  /<main class="(?=[^"]*\btp-page-shell\b)(?=[^"]*\barticle-layout\b)(?=[^"]*\bdiscovery-articles-page\b)[^"]*"/,
   'article list content must use the shared page shell main region',
 )
 requireIncludes(
@@ -196,13 +196,13 @@ requireRegex(
 requireRegex(
   'pages/user/articles/index.vue',
   userArticleListPage,
-  /v-for="slot in articleTableLoadingSlotCount"[\s\S]*class="article-table-grid article-table-row article-table-row--loading"/,
+  /v-for="slot in articleTableLoadingSlotCount"[\s\S]*class="[^"]*\barticle-table-grid\b[^"]*\barticle-table-row\b[^"]*\barticle-table-row--loading\b[^"]*"/,
   'user article list loading state must reserve table rows with skeleton cells',
 )
-requireIncludes(
+requireRegex(
   'pages/user/articles/index.vue',
   userArticleListPage,
-  'class="article-table-scroll tp-scroll-region"',
+  /class="(?=[^"]*\barticle-table-scroll\b)(?=[^"]*\btp-scroll-region\b)[^"]*"/,
   'user article list table must use the shared horizontal scroll primitive',
 )
 requireBlockNotIncludes(
