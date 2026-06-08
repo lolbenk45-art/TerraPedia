@@ -341,7 +341,7 @@ useSeoMeta({
 }
 
 .public-article-author:hover {
-  color: #ffd765;
+  color: var(--text-link);
 }
 
 .public-article-author-avatar {
@@ -383,7 +383,7 @@ useSeoMeta({
 }
 
 .public-article-card h2 a:hover {
-  color: #ffd765;
+  color: var(--text-link);
 }
 
 .public-article-card p {
@@ -396,7 +396,7 @@ useSeoMeta({
 }
 
 .public-article-read-link {
-  color: #ffd765;
+  color: var(--text-link);
   font-weight: 900;
   text-decoration: none;
 }

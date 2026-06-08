@@ -134,6 +134,13 @@
   box-shadow: var(--tp-shadow-surface);
 }
 
+.tp-data-panel {
+  display: grid;
+  gap: var(--tp-data-panel-gap);
+  min-width: 0;
+  padding: var(--tp-data-panel-padding);
+}
+
 .tp-card {
   min-width: 0;
   border: 1px solid var(--tp-color-border);
@@ -257,6 +264,18 @@
   min-width: 0;
 }
 
+.tp-readable-muted {
+  color: var(--tp-readable-muted);
+}
+
+.tp-readable-subtle {
+  color: var(--tp-readable-subtle);
+}
+
+.tp-readable-faint {
+  color: var(--tp-readable-faint);
+}
+
 .tp-dense-row {
   display: flex;
   gap: var(--tp-dense-row-gap);
@@ -272,6 +291,41 @@
 
 .tp-dense-row > * {
   min-width: 0;
+}
+
+.tp-data-table {
+  display: grid;
+  gap: var(--tp-data-table-gap);
+  min-width: 0;
+}
+
+.tp-data-table-head,
+.tp-data-table-row {
+  gap: var(--tp-data-table-grid-gap);
+}
+
+.tp-data-table-head {
+  padding: var(--tp-data-table-head-padding-y) var(--tp-data-table-head-padding-x);
+  color: var(--tp-readable-subtle);
+  font-size: var(--tp-data-meta-font-size);
+  font-weight: var(--tp-font-weight-strong);
+  line-height: var(--tp-data-meta-line-height);
+}
+
+.tp-data-table-row {
+  min-width: 0;
+  min-height: var(--tp-data-row-min-height);
+  padding: var(--tp-data-row-padding-y) var(--tp-data-row-padding-x);
+}
+
+.tp-data-table-row > * {
+  min-width: 0;
+}
+
+.tp-data-meta {
+  color: var(--tp-readable-subtle);
+  font-size: var(--tp-data-meta-font-size);
+  line-height: var(--tp-data-meta-line-height);
 }
 
 @media (max-width: 720px) {
@@ -304,5 +358,34 @@
 
   .tp-relation-grid {
     grid-template-columns: 1fr;
+  }
+
+  .tp-data-panel {
+    gap: var(--tp-space-3);
+  }
+
+  .tp-data-table {
+    gap: var(--tp-space-3);
+  }
+
+  .user-action-card span,
+  .user-action-card small,
+  .user-action-card em,
+  .favorite-card span,
+  .favorite-card small,
+  .favorite-card em,
+  .user-feed-row span,
+  .user-feed-row small,
+  .user-feed-row em,
+  .user-article-row span,
+  .user-article-row small,
+  .user-article-row em,
+  .settings-list span,
+  .settings-list small,
+  .settings-list em,
+  .settings-toggle-row span,
+  .settings-toggle-row small,
+  .settings-toggle-row em {
+    font-size: var(--tp-data-meta-font-size);
   }
 }

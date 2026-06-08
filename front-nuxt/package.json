@@ -25,6 +25,7 @@
     "check:preview-images": "node scripts/check-preview-image-fallback-contract.mjs",
     "check:armor-stat-visuals": "node scripts/check-armor-stat-visuals.mjs",
     "check:light-theme": "node scripts/check-light-theme-typography.mjs",
+    "check:typography-spacing": "node scripts/check-typography-spacing.mjs",
     "check:visual-system": "node scripts/check-visual-system-contract.mjs",
     "check:visual-blocked-source": "node scripts/check-visual-blocked-source-scan.mjs",
     "check:visual": "node scripts/check-visual-regression.mjs",

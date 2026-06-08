@@ -172,8 +172,8 @@
   --text-strong: #1a1f18;
   --text-main: rgba(26, 31, 24, 0.86);
   --text-muted: rgba(26, 31, 24, 0.68);
-  --text-subtle: rgba(26, 31, 24, 0.58);
-  --text-faint: rgba(26, 31, 24, 0.46);
+  --text-subtle: rgba(26, 31, 24, 0.64);
+  --text-faint: rgba(26, 31, 24, 0.58);
   --text-accent: #7a5a21;
   --text-positive: #2e5c24;
   --text-link: #7a5a21;
@@ -265,7 +265,7 @@
   --text-main: rgba(29, 36, 48, 0.86);
   --text-muted: rgba(29, 36, 48, 0.78);
   --text-subtle: rgba(29, 36, 48, 0.72);
-  --text-faint: rgba(29, 36, 48, 0.62);
+  --text-faint: rgba(29, 36, 48, 0.66);
   --text-accent: #293241;
   --text-positive: #2f5b25;
   --text-link: #293241;
@@ -6541,6 +6541,19 @@ img[data-preview-fallback] {
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-group-samples a,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-tile-meta {
   color: var(--text-link);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero .eyebrow,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy h1,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy p,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-tags span,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-map-stats span,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-map-stats em {
+  color: var(--paper-3);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero .eyebrow::before {
+  background: var(--paper-3);
 }
 .biome-tile.forest { background-color: rgba(62, 96, 50, 0.16); }
 .biome-tile.desert { background-color: rgba(143, 114, 55, 0.14); }
