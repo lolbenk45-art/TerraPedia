@@ -191,7 +191,7 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
           </button>
         </div>
 
-        <div v-if="articlesLoading" class="article-table-scroll tp-data-table tp-scroll-region" aria-live="polite" aria-label="文章列表加载中">
+        <div v-if="articlesLoading" class="article-table-scroll tp-scroll-region" aria-live="polite" aria-label="文章列表加载中">
           <div class="article-table-grid tp-data-table-head article-table-grid--head" role="row">
             <span>封面</span>
             <span>文章</span>
@@ -205,7 +205,7 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
           <article
             v-for="slot in articleTableLoadingSlotCount"
             :key="`article-table-loading-${slot}`"
-            class="article-table-grid tp-data-table-row article-table-row article-table-row--loading"
+            class="article-table-grid article-table-row article-table-row--loading"
             role="row"
           >
             <div class="article-cover-thumb" aria-hidden="true">
@@ -251,7 +251,7 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
           <span>切换其它分类，或新建一篇文章继续投稿。</span>
         </div>
 
-        <div v-else class="article-table-scroll tp-data-table tp-scroll-region">
+        <div v-else class="article-table-scroll tp-scroll-region">
           <div class="article-table-grid tp-data-table-head article-table-grid--head" role="row">
             <span>封面</span>
             <span>文章</span>

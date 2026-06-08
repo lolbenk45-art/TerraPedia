@@ -120,7 +120,7 @@ useSeoMeta({
       </div>
     </div>
 
-    <main class="tp-public-page-shell article-layout discovery-articles-page article-route-shell tp-page-shell">
+    <main class="tp-page-shell article-layout discovery-articles-page">
       <section class="article-panel article-route-system">
         <div v-if="articleLoading" class="public-article-list article-list-layout-balanced" aria-live="polite" aria-label="文章列表加载中">
           <article
