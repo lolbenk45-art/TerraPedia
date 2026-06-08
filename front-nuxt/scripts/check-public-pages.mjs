@@ -1331,7 +1331,7 @@ for (const path of scanFiles) {
     }
 
     const heroPanelIndex = homeTemplateContent.indexOf('class="hero-j1-panel"')
-    const indexPanelIndex = homeTemplateContent.indexOf('class="hero-left"')
+    const indexPanelIndex = homeTemplateContent.indexOf('class="hero-left')
     if (heroPanelIndex === -1 || indexPanelIndex === -1 || heroPanelIndex > indexPanelIndex) {
       violations.push(`${path}: home hero must use the selected J1 left-right swapped layout with J1 before the index device`)
     }
@@ -1352,6 +1352,41 @@ for (const path of scanFiles) {
 
     if (!homeTemplateContent.includes('hero-j1-search') || !homeTemplateContent.includes('/search')) {
       violations.push(`${path}: home J1 hero must include the full-width search entry`)
+    }
+
+    const assertHomeOrder = (earlier, later, message) => {
+      const earlierIndex = homeTemplateContent.indexOf(earlier)
+      const laterIndex = homeTemplateContent.indexOf(later)
+
+      if (earlierIndex === -1 || laterIndex === -1 || earlierIndex > laterIndex) {
+        violations.push(`${path}: ${message}`)
+      }
+    }
+
+    assertHomeOrder('class="hero-j1-lede"', 'class="hero-j1-search"', 'home search must appear directly after title and lede content')
+    assertHomeOrder('class="hero-j1-search"', 'class="hero-j1-grid"', 'home search must come before the four primary entry cards')
+    assertHomeOrder('class="hero-j1-grid"', 'class="tag-row hero-stage-chips"', 'primary entries must come before stage navigation')
+    assertHomeOrder('class="tag-row hero-stage-chips"', 'class="hero-j1-paths"', 'stage navigation must come before secondary shortcuts')
+
+    if (homeTemplateContent.indexOf('class="hero-status-line"') !== -1 && homeTemplateContent.indexOf('class="hero-status-line"') < homeTemplateContent.indexOf('class="hero-j1-search"')) {
+      violations.push(`${path}: status signals must not appear before the primary search control`)
+    }
+
+    if (homeTemplateContent.indexOf('class="hero-left') !== -1 && homeTemplateContent.indexOf('class="hero-left') < homeTemplateContent.indexOf('class="hero-j1-search"')) {
+      violations.push(`${path}: atlas index must not precede the primary search control`)
+    }
+
+    if (!homeTemplateContent.includes('home-atlas-secondary')) {
+      violations.push(`${path}: home atlas must be marked as secondary for mobile first-screen priority`)
+    }
+
+    if (!homeTemplateContent.includes('class="boss-route-cta"') || !homeTemplateContent.includes(':href="route.href"')) {
+      violations.push(`${path}: home Boss strip must render an auditable CTA bound to route.href`)
+    }
+
+    const homePublicFetchTargets = [...homeDataContent.matchAll(/usePublicApiFetch<[^>]+>\('([^']+)'\)/g)].map((match) => match[1])
+    if (homePublicFetchTargets.length !== 1 || homePublicFetchTargets[0] !== '/statistics/overview') {
+      violations.push(`${path}: home A plan must keep /statistics/overview as the only dynamic home API source`)
     }
 
     if (!homeTemplateContent.includes('hero-status-line') || !homeTemplateContent.includes('hero-status-pill') || homeTemplateContent.includes('hero-trust-band-desktop')) {
@@ -3451,7 +3486,6 @@ for (const path of scanFiles) {
     }
 
     for (const marker of [
-      'min-height: 720px',
       'grid-template-columns: minmax(420px, 1fr) minmax(400px, 0.9fr)',
       'width: min(560px, 100%)',
       '.home-section-band',
@@ -3462,10 +3496,20 @@ for (const path of scanFiles) {
       '.codex-actions a',
       '@media (max-width: 1080px)',
       '.hero-j1-title { font-size: 64px;',
+      '.hero-j1-search',
+      '.hero-j1-grid',
+      '.hero-stage-chips',
+      '.hero-j1-paths',
+      '.boss-route-cta',
+      '.home-atlas-secondary',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: home page CSS must address homepage review layout, accessibility, and interaction markers via ${marker}`)
       }
+    }
+
+    if (content.includes('.hero { min-height: 720px;') || content.includes('min-height: 720px')) {
+      violations.push(`${path}: home A search-first layout must not keep the old fixed 720px hero lockup`)
     }
 
     if (content.includes('.hero {\n  position: relative;\n  overflow: hidden;\n  min-height: 850px')) {

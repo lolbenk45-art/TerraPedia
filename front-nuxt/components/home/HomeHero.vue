@@ -89,15 +89,21 @@ const submitHomeSearch = () => {
             {{ lede }}
           </p>
 
-          <div class="hero-status-line" aria-label="站点维护状态">
-            <span
-              v-for="signal in trustSignals"
-              :key="signal.label"
-              class="hero-status-pill"
-            >
-              {{ signal.label }}
-            </span>
-          </div>
+          <form class="hero-j1-search" role="search" aria-label="首页资料检索" @submit.prevent="submitHomeSearch">
+            <span class="search-glyph" aria-hidden="true"></span>
+            <label class="visually-hidden" for="home-hero-search">搜索物品、Boss、NPC 或路线</label>
+            <input
+              id="home-hero-search"
+              v-model="homeSearchQuery"
+              type="search"
+              name="keyword"
+              autocomplete="off"
+              placeholder="物品、Boss、NPC、路线..."
+            />
+            <button type="submit" class="hero-j1-search-btn">
+              检索
+            </button>
+          </form>
         </div>
 
         <nav class="hero-j1-grid" aria-label="核心资料入口">
@@ -117,7 +123,7 @@ const submitHomeSearch = () => {
           </a>
         </nav>
 
-        <nav class="tag-row hero-stage-chips" aria-label="按游玩阶段浏览">
+        <nav class="tag-row hero-stage-chips" aria-label="按游戏进度找下一步">
           <a
             v-for="stage in progressionStages"
             :key="stage.href"
@@ -128,22 +134,6 @@ const submitHomeSearch = () => {
             {{ stage.label }}
           </a>
         </nav>
-
-        <form class="hero-j1-search" role="search" aria-label="首页资料检索" @submit.prevent="submitHomeSearch">
-          <span class="search-glyph" aria-hidden="true"></span>
-          <label class="visually-hidden" for="home-hero-search">搜索物品、Boss、NPC 或路线</label>
-          <input
-            id="home-hero-search"
-            v-model="homeSearchQuery"
-            type="search"
-            name="keyword"
-            autocomplete="off"
-            placeholder="物品、Boss、NPC、路线..."
-          />
-          <button type="submit" class="hero-j1-search-btn">
-            检索
-          </button>
-        </form>
 
         <nav class="hero-j1-paths" aria-label="辅助资料快捷路径">
           <a
@@ -157,9 +147,19 @@ const submitHomeSearch = () => {
             <em>{{ link.desc }}</em>
           </a>
         </nav>
+
+        <div class="hero-status-line" aria-label="站点维护状态">
+          <span
+            v-for="signal in trustSignals"
+            :key="signal.label"
+            class="hero-status-pill"
+          >
+            {{ signal.label }}
+          </span>
+        </div>
       </section>
 
-      <aside class="hero-left" aria-label="公共资料索引概览">
+      <aside class="hero-left home-atlas-secondary" aria-label="公共资料索引概览">
         <div class="atlas-index">
           <div class="index-head">
             <div>

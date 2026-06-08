@@ -7,10 +7,12 @@ defineProps<{
   source?: string
   maxDepth: number
   isDefault?: boolean
+  searchUnavailable?: boolean
 }>()
 
 defineEmits<{
   clear: []
+  refreshItems: []
 }>()
 </script>
 

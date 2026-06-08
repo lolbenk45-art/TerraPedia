@@ -1,6 +1,7 @@
 <script setup lang="ts">
 defineProps<{
   route: {
+    href: string
     title: string
     desc: string
     stages: Array<{
@@ -28,6 +29,7 @@ defineProps<{
           <b>{{ stage.index }}</b>{{ stage.label }}
         </span>
       </div>
+      <a class="boss-route-cta" :href="route.href">查看 Boss 路线</a>
     </div>
     <div class="loot-grid" aria-hidden="true">
       <span v-for="image in route.lootImages" :key="image">

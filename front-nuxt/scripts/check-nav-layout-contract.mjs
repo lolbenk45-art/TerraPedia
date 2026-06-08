@@ -92,7 +92,9 @@ if (css.includes('.site-actions .nav-menu-label {\n    display: none;')) {
 
 for (const marker of [
   ']) .nav-notification-link.has-unread {',
+  ']) .site-actions .nav-notification-link.has-unread {',
   ']) .nav-notification-link.has-unread b {',
+  ']) .site-actions .nav-notification-link.has-unread b {',
   ']) .nav-notification-link.has-unread .nav-notification-count {',
   ']) .nav-user-article-link.active,',
   'box-shadow: var(--button-control-active-shadow);',
@@ -107,6 +109,21 @@ for (const marker of [
     'light theme contrast fixes must explicitly protect unread notification color from generic link/text rules',
   )
 }
+if (/--nav-unread-bg:\s*linear-gradient\(180deg,\s*rgba\([^)]*,\s*0\.9[0-9]\)/.test(lightCss)) {
+  violations.push(`${lightCssPath}: light theme unread notification must use a light wash instead of an opaque filled block`)
+}
+assertIncludes(
+  lightCssPath,
+  lightCss,
+  '--nav-unread-bg:\n    linear-gradient(180deg, rgba(var(--theme-panel-rgb), 0.58), rgba(var(--theme-bg-2-rgb), 0.34)),\n    rgba(var(--theme-gold-rgb), 0.025);',
+  'light and paper unread notification must keep a translucent surface instead of a heavy filled block',
+)
+assertIncludes(
+  lightCssPath,
+  lightCss,
+  '--nav-unread-bg:\n    linear-gradient(180deg, rgba(var(--theme-panel-rgb), 0.6), rgba(var(--theme-bg-2-rgb), 0.36)),\n    rgba(var(--theme-gold-rgb), 0.02);',
+  'warm slate unread notification must keep a translucent surface instead of a heavy filled block',
+)
 
 for (const forbidden of ['#2f4f25', '#172915']) {
   if (lightCss.includes(forbidden)) {
@@ -134,6 +151,21 @@ assertIncludes(
   '.nav-notification-count {\n  position: absolute;',
   'notification unread count must be an absolute corner badge instead of inline text',
 )
+assertIncludes(
+  'assets/css/hifi-preview.css',
+  hifiCss,
+  '.site-link.active::after {',
+  'primary nav active state must use a thin underline instead of a filled color block',
+)
+assertIncludes(
+  'assets/css/hifi-preview.css',
+  hifiCss,
+  '.site-link.active {\n  background: transparent;',
+  'primary nav active state must avoid a solid background block',
+)
+if (hifiCss.includes(']) .site-link.active,\n:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .site-link:hover {\n  background: var(--theme-active-bg);')) {
+  violations.push('assets/css/hifi-preview.css: light-theme primary nav active state must not reuse the filled theme active background')
+}
 
 assertIncludes(
   navPath,

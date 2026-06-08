@@ -13,6 +13,7 @@ front-nuxt/node_modules/
 front-nuxt/.nuxt/
 front-nuxt/.output/
 front-nuxt/coverage/
+front-nuxt/test-results/
 front-nuxt/.vite/
 front-nuxt/.turbo/
 front-nuxt/tmp/
