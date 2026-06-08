@@ -3,7 +3,35 @@ import { spawn } from 'node:child_process'
 const baseUrl = process.env.TERRAPEDIA_FRONT_NUXT_URL || 'http://localhost:5176'
 const chromeBin = process.env.CHROMIUM_BIN || '/usr/bin/chromium-browser'
 const targetThemes = ['dark', 'morning-paper', 'warm-slate']
-const routes = ['/', '/articles', '/user', '/user/articles', '/user/favorites', '/user/notifications', '/user/settings']
+const verbose = process.env.TERRAPEDIA_TYPOGRAPHY_VERBOSE === '1'
+const routes = [
+  { path: '/', label: 'home' },
+  { path: '/items', label: 'items index' },
+  { path: '/items/terra-blade', label: 'item detail' },
+  { path: '/articles', label: 'articles index' },
+  { path: '/articles/melee-progression', label: 'article detail' },
+  { path: '/search', label: 'search' },
+  { path: '/crafting', label: 'crafting' },
+  { path: '/categories', label: 'categories index' },
+  { path: '/categories/weapons', label: 'category detail' },
+  { path: '/biomes', label: 'biomes index' },
+  { path: '/biomes/jungle', label: 'biome detail' },
+  { path: '/npcs', label: 'npcs index' },
+  { path: '/npcs/guide', label: 'npc detail' },
+  { path: '/bosses', label: 'bosses index' },
+  { path: '/bosses/eye-of-cthulhu', label: 'boss detail' },
+  { path: '/buffs', label: 'buffs index' },
+  { path: '/buffs/ironskin', label: 'buff detail' },
+  { path: '/projectiles', label: 'projectiles index' },
+  { path: '/armor-sets', label: 'armor sets index' },
+  { path: '/user', label: 'user public shell' },
+  { path: '/user/login', label: 'login' },
+  { path: '/user/register', label: 'register' },
+  { path: '/user/articles', label: 'user articles auth redirect', expectedPath: '/user/login', authRedirect: true },
+  { path: '/user/favorites', label: 'favorites auth redirect', expectedPath: '/user/login', authRedirect: true },
+  { path: '/user/notifications', label: 'notifications auth redirect', expectedPath: '/user/login', authRedirect: true },
+  { path: '/user/settings', label: 'settings auth redirect', expectedPath: '/user/login', authRedirect: true },
+]
 const viewports = [
   { label: 'desktop', width: 1440, height: 1100, mobile: false },
   { label: 'mobile', width: 390, height: 844, mobile: true },
@@ -108,7 +136,54 @@ const applyThemeExpression = (theme) => `(() => {
   return true;
 })()`
 
+const pageReadyExpression = (expectedPath) => `(() => {
+  return document.readyState !== 'loading'
+    && location.pathname === ${JSON.stringify(expectedPath)}
+    && !!document.body;
+})()`
+
+const pollRuntimeBoolean = async (browser, expression, attempts = 50) => {
+  let lastError
+
+  for (let index = 0; index < attempts; index += 1) {
+    try {
+      const result = await browser.send('Runtime.evaluate', {
+        expression,
+        returnByValue: true,
+      })
+
+      if (result.result.value === true) return
+    } catch (error) {
+      lastError = error
+    }
+
+    await sleep(100)
+  }
+
+  throw lastError || new Error('Runtime condition did not become true')
+}
+
+const navigateAndWait = async (browser, route) => {
+  const expectedPath = route.expectedPath || route.path
+  const loaded = browser.once('Page.loadEventFired')
+
+  await browser.send('Page.navigate', { url: `${baseUrl}${route.path}` })
+  await withTimeout(loaded, 5000, `load event for ${route.path}`).catch(() => {})
+  await withTimeout(
+    pollRuntimeBoolean(browser, pageReadyExpression(expectedPath), 70),
+    7000,
+    `${route.path} ready at ${expectedPath}`,
+  )
+}
+
 const auditExpression = `(() => {
+  const parseColor = (value) => {
+    const text = String(value || '').trim();
+    const rgbMatch = text.match(/rgba?\\(([^)]+)\\)/);
+    if (!rgbMatch) return [0, 0, 0, 1];
+    const parts = rgbMatch[1].split(',').map((part) => Number.parseFloat(part.trim()));
+    return [parts[0] || 0, parts[1] || 0, parts[2] || 0, parts.length > 3 ? parts[3] : 1];
+  };
   const isVisible = (element) => {
     const rect = element.getBoundingClientRect();
     const style = getComputedStyle(element);
@@ -121,6 +196,7 @@ const auditExpression = `(() => {
   const textFor = (element) => (element.innerText || element.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 80);
   const issues = [];
   const viewportWidth = document.documentElement.clientWidth;
+  const isMobile = viewportWidth < 720;
 
   if (document.documentElement.scrollWidth > viewportWidth + 2) {
     issues.push({
@@ -130,8 +206,50 @@ const auditExpression = `(() => {
     });
   }
 
-  for (const element of document.querySelectorAll('.tp-data-panel, .support-panel.article-table-panel, .article-table-row, .favorite-card, .user-feed-row, .notification-inbox-row, .settings-panel')) {
+  const pageHeadInner = document.querySelector('.page-head:not(.biome-environment-hero) .page-head-inner');
+  if (pageHeadInner && isVisible(pageHeadInner)) {
+    const style = getComputedStyle(pageHeadInner);
+    const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
+    const paddingRight = Number.parseFloat(style.paddingRight) || 0;
+    const paddingTop = Number.parseFloat(style.paddingTop) || 0;
+    const paddingBottom = Number.parseFloat(style.paddingBottom) || 0;
+    const minInline = isMobile ? 12 : 14;
+    const minBlock = isMobile ? 10 : 8;
+
+    if (paddingLeft < minInline || paddingRight < minInline || paddingTop < minBlock || paddingBottom < minBlock) {
+      issues.push({
+        type: 'page-head-cramped-padding',
+        element: nameFor(pageHeadInner),
+        text: textFor(pageHeadInner),
+        padding: [paddingTop, paddingRight, paddingBottom, paddingLeft].map((value) => Math.round(value)).join('/'),
+      });
+    }
+  }
+
+  for (const element of document.querySelectorAll([
+    '.tp-data-panel',
+    '.support-panel.article-table-panel',
+    '.article-table-row',
+    '.public-article-card',
+    '.favorite-card',
+    '.user-feed-row',
+    '.notification-inbox-row',
+    '.settings-panel',
+    '.catalog-card',
+    '.catalog-item-card',
+    '.catalog-panel',
+    '.search-result-card',
+    '.category-cluster',
+    '.entity-card',
+    '.npc-card',
+    '.boss-node',
+    '.effect-card',
+    '.biome-tile',
+    '.crafting-target-card',
+    '.crafting-suggestion-card',
+  ].join(', '))) {
     if (!isVisible(element)) continue;
+    if (!textFor(element)) continue;
 
     const style = getComputedStyle(element);
     const rect = element.getBoundingClientRect();
@@ -151,13 +269,51 @@ const auditExpression = `(() => {
     }
   }
 
-  for (const element of document.querySelectorAll('.tp-data-meta, .article-table-grid--head span, .article-time-cell span, .article-status-cell small, .article-next-step span, .favorite-card span, .user-feed-row span, .notification-inbox-row span, .settings-list span')) {
+  for (const element of document.querySelectorAll([
+    '.tp-data-meta',
+    '.article-table-grid--head span',
+    '.article-time-cell span',
+    '.article-status-cell small',
+    '.article-next-step span',
+    '.public-article-kicker',
+    '.public-article-meta',
+    '.public-article-cover-fallback em',
+    '.favorite-card span',
+    '.user-feed-row span',
+    '.notification-inbox-row span',
+    '.settings-list span',
+    '.catalog-status-row span',
+    '.catalog-screen .item-cell em',
+    '.catalog-category-chip',
+    '.catalog-density-chip',
+    '.search-type-tabs a',
+    '.search-suggestion-rows span',
+    '.route-stage-timeline em',
+    '.category-cluster-label',
+    '.entity-filter em',
+    '.entity-stat-strip span',
+    '.npc-card span',
+    '.npc-card em',
+    '.boss-node span',
+    '.boss-node p',
+    '.node-meta em',
+    '.effect-card dt',
+    '.effect-card dd',
+    '.biome-tile-subtitle',
+    '.biome-chip',
+    '.crafting-target-summary',
+    '.crafting-fact dt',
+    '.crafting-suggestion span',
+    '.crafting-selector span',
+  ].join(', '))) {
     if (!isVisible(element)) continue;
+    if (!textFor(element)) continue;
 
     const style = getComputedStyle(element);
     const fontSize = Number.parseFloat(style.fontSize) || 0;
     const lineHeight = Number.parseFloat(style.lineHeight) || fontSize;
     const minFontSize = viewportWidth < 720 ? 13 : 12;
+    const color = parseColor(style.color);
 
     if (fontSize < minFontSize || lineHeight < fontSize * 1.3) {
       issues.push({
@@ -168,9 +324,19 @@ const auditExpression = `(() => {
         lineHeight: style.lineHeight,
       });
     }
+
+    if (fontSize < 14 && color[3] > 0 && color[3] < 0.6) {
+      issues.push({
+        type: 'weak-meta-color',
+        element: nameFor(element),
+        text: textFor(element),
+        fontSize: style.fontSize,
+        lineHeight: style.color,
+      });
+    }
   }
 
-  for (const control of document.querySelectorAll('.article-category-filter button, .article-row-actions .secondary-button, .favorite-tab, .favorite-page-button, .notification-view-switch button')) {
+  for (const control of document.querySelectorAll('.article-category-filter button, .article-row-actions .secondary-button, .favorite-tab, .favorite-page-button, .notification-view-switch button, .search-type-tabs a, .entity-filter, .small-button, .catalog-density-chip')) {
     if (!isVisible(control)) continue;
 
     const rect = control.getBoundingClientRect();
@@ -186,6 +352,7 @@ const auditExpression = `(() => {
 
   return {
     path: location.pathname,
+    href: location.href,
     theme: document.documentElement.getAttribute('data-theme'),
     issues,
   };
@@ -220,9 +387,10 @@ try {
       })
 
       for (const route of routes) {
-        const loaded = browser.once('Page.loadEventFired')
-        await browser.send('Page.navigate', { url: `${baseUrl}${route}` })
-        await withTimeout(loaded, 5000, `load event for ${route}`).catch(() => {})
+        if (verbose) {
+          console.error(`Checking typography spacing route=${route.path} viewport=${viewport.label} theme=${targetTheme}`)
+        }
+        await navigateAndWait(browser, route)
         await browser.send('Runtime.evaluate', {
           expression: applyThemeExpression(targetTheme),
           returnByValue: true,
@@ -230,17 +398,19 @@ try {
         await withTimeout(
           (async () => {
             for (let index = 0; index < 50; index += 1) {
-              const result = await browser.send('Runtime.evaluate', {
-                expression: themeAppliedExpression(targetTheme),
-                returnByValue: true,
-              })
-              if (result.result.value === true) return
+              try {
+                const result = await browser.send('Runtime.evaluate', {
+                  expression: themeAppliedExpression(targetTheme),
+                  returnByValue: true,
+                })
+                if (result.result.value === true) return
+              } catch {}
               await sleep(100)
             }
             throw new Error('theme did not apply')
           })(),
           5000,
-          `${targetTheme} applied on ${route}`,
+          `${targetTheme} applied on ${route.path}`,
         )
 
         const result = await browser.send('Runtime.evaluate', {
@@ -249,8 +419,32 @@ try {
         })
         const value = result.result.value
 
+        if (value.path !== (route.expectedPath || route.path)) {
+          failures.push({
+            ...value,
+            viewport: viewport.label,
+            requestedPath: route.path,
+            expectedTheme: targetTheme,
+            issues: [{
+              type: 'wrong-route',
+              element: 'location.pathname',
+              text: `expected ${route.expectedPath || route.path}, received ${value.path}`,
+            }],
+          })
+          continue
+        }
+
+        if (route.authRedirect) {
+          continue
+        }
+
         if (value.issues.length > 0) {
-          failures.push({ ...value, viewport: viewport.label, expectedTheme: targetTheme })
+          failures.push({
+            ...value,
+            viewport: viewport.label,
+            requestedPath: route.path,
+            expectedTheme: targetTheme,
+          })
         }
       }
     }
@@ -264,7 +458,10 @@ if (failures.length > 0) {
   console.error('Typography spacing audit failed')
 
   for (const failure of failures) {
-    console.error(`- ${failure.path} viewport=${failure.viewport} theme=${failure.theme} expected=${failure.expectedTheme}`)
+    const requested = failure.requestedPath && failure.requestedPath !== failure.path
+      ? ` requested=${failure.requestedPath}`
+      : ''
+    console.error(`- ${failure.path}${requested} viewport=${failure.viewport} theme=${failure.theme} expected=${failure.expectedTheme}`)
     for (const issue of failure.issues.slice(0, 12)) {
       const detail = issue.padding
         ? ` padding=${issue.padding}`

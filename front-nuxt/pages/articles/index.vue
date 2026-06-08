@@ -327,7 +327,7 @@ useSeoMeta({
   gap: 8px;
   align-items: center;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -421,7 +421,7 @@ useSeoMeta({
 
 @media (max-width: 520px) {
   .public-article-card {
-    padding: 12px;
+    padding: 16px;
   }
 
   .public-article-card h2 {
