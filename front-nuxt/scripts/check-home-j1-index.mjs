@@ -10,6 +10,68 @@ const cssPath = 'assets/css/hifi-preview.css'
 const lightContrastCssPath = 'assets/css/light-theme-contrast-fixes.css'
 const failures = []
 
+const extractRuleBlocks = (css, selector) => {
+  const blocks = []
+  let index = 0
+
+  while ((index = css.indexOf(selector, index)) !== -1) {
+    const brace = css.indexOf('{', index)
+
+    if (brace === -1) {
+      break
+    }
+
+    let depth = 0
+    for (let cursor = brace; cursor < css.length; cursor += 1) {
+      if (css[cursor] === '{') {
+        depth += 1
+      } else if (css[cursor] === '}') {
+        depth -= 1
+      }
+
+      if (depth === 0) {
+        blocks.push(css.slice(index, cursor + 1))
+        index = cursor + 1
+        break
+      }
+    }
+  }
+
+  return blocks
+}
+
+const maxAccentAlpha = (block) => {
+  const backgroundOnly = [...block.matchAll(/(?:^|\n)\s*background\s*:[\s\S]*?;/g)]
+    .map((match) => match[0])
+    .join('\n')
+  const matches = [
+    ...backgroundOnly.matchAll(/rgba\(var\(--(?:entry-accent|theme-gold-rgb)\),\s*([0-9.]+)\)/g),
+    ...backgroundOnly.matchAll(/rgba\((?:217,\s*185,\s*91|240,\s*207,\s*116|255,\s*215,\s*101),\s*([0-9.]+)\)/g),
+  ]
+
+  return matches.reduce((max, match) => Math.max(max, Number(match[1])), 0)
+}
+
+const assertMaxAccentAlpha = (blocks, limit, label, path) => {
+  const max = blocks.reduce((value, block) => Math.max(value, maxAccentAlpha(block)), 0)
+
+  if (max > limit) {
+    failures.push(`${path}: ${label} dominant accent alpha must be <= ${limit}, found ${max}`)
+  }
+}
+
+const assertNoSolidEntryFill = (blocks, label, path) => {
+  for (const block of blocks) {
+    if (block.includes('background: var(--theme-active-bg)')) {
+      failures.push(`${path}: ${label} must not use the filled theme active background`)
+    }
+
+    if (/background\s*:\s*(#[0-9a-f]{3,8}|rgb\()/i.test(block)) {
+      failures.push(`${path}: ${label} must not use a single opaque background color`)
+    }
+  }
+}
+
 const requiredPageMarkers = [
   'primaryEntries',
   'secondaryLinks',
@@ -182,6 +244,22 @@ if (!existsSync(file(cssPath))) {
   if (!darkHeroGridRule.test(css)) {
     failures.push(`${cssPath}: dark hero must keep the high-fidelity grid background behind the J1 layout`)
   }
+
+  const darkCellBlocks = extractRuleBlocks(css, '\n.hero-j1-cell {')
+  const darkCellHoverBlocks = extractRuleBlocks(css, '\n.hero-j1-cell:hover')
+  const lightCellBlocks = extractRuleBlocks(css, ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell {')
+  const lightCellHoverBlocks = extractRuleBlocks(css, ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell:hover')
+
+  assertMaxAccentAlpha(darkCellBlocks, 0.10, 'dark home primary entries', cssPath)
+  assertMaxAccentAlpha(darkCellHoverBlocks, 0.14, 'dark home primary entry hover', cssPath)
+  assertMaxAccentAlpha(lightCellBlocks, 0.08, 'light home primary entries', cssPath)
+  assertMaxAccentAlpha(lightCellHoverBlocks, 0.10, 'light home primary entry hover', cssPath)
+  assertNoSolidEntryFill([...darkCellBlocks, ...darkCellHoverBlocks, ...lightCellBlocks, ...lightCellHoverBlocks], 'home primary entries', cssPath)
+
+  const stageChipBlocks = extractRuleBlocks(css, '\n.hero-stage-chip {')
+  if (!stageChipBlocks.some((block) => /min-height\s*:\s*44px/.test(block))) {
+    failures.push(`${cssPath}: home stage chips must keep a 44px touch target`)
+  }
 }
 
 if (!existsSync(file(lightContrastCssPath))) {
@@ -212,6 +290,13 @@ if (!existsSync(file(lightContrastCssPath))) {
   if (!slateHomeGridRule.test(lightCss)) {
     failures.push(`${lightContrastCssPath}: Warm Slate home screen must use the high-fidelity 52px grid background`)
   }
+
+  const lightCellBlocks = extractRuleBlocks(lightCss, ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell {')
+  const lightCellHoverBlocks = extractRuleBlocks(lightCss, ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell:hover')
+
+  assertMaxAccentAlpha(lightCellBlocks, 0.08, 'light home primary entries', lightContrastCssPath)
+  assertMaxAccentAlpha(lightCellHoverBlocks, 0.10, 'light home primary entry hover', lightContrastCssPath)
+  assertNoSolidEntryFill([...lightCellBlocks, ...lightCellHoverBlocks], 'home primary entries', lightContrastCssPath)
 }
 
 if (failures.length > 0) {

@@ -485,30 +485,30 @@
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell {
-  border-color: rgba(var(--entry-accent), 0.28);
-  border-left-color: rgba(var(--entry-accent), 0.62);
+  border-color: rgba(var(--theme-border-rgb), 0.16);
+  border-left-color: rgba(var(--entry-accent), 0.38);
   background:
-    linear-gradient(90deg, rgba(var(--entry-accent), 0.16), rgba(var(--theme-panel-rgb), 0.6) 64%),
+    linear-gradient(90deg, rgba(var(--entry-accent), 0.06), transparent 58%),
     var(--index-grid-x),
     var(--index-grid-y),
-    rgba(var(--theme-panel-rgb), 0.58);
+    rgba(var(--theme-panel-rgb), 0.5);
   background-size: auto, 40px 40px, 40px 40px, auto;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.7),
-    0 12px 28px rgba(var(--entry-accent), 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.56),
+    0 10px 24px rgba(var(--theme-border-rgb), 0.055);
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell:hover {
-  border-color: rgba(var(--entry-accent), 0.42);
+  border-color: rgba(var(--entry-accent), 0.26);
   background:
-    linear-gradient(90deg, rgba(var(--entry-accent), 0.22), rgba(var(--theme-panel-rgb), 0.7) 64%),
+    linear-gradient(90deg, rgba(var(--entry-accent), 0.095), transparent 58%),
     var(--index-grid-x),
     var(--index-grid-y),
-    rgba(var(--theme-panel-rgb), 0.68);
+    rgba(var(--theme-panel-rgb), 0.62);
   background-size: auto, 40px 40px, 40px 40px, auto;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.78),
-    0 16px 36px rgba(var(--entry-accent), 0.12);
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    0 12px 26px rgba(var(--theme-border-rgb), 0.08);
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-icon {

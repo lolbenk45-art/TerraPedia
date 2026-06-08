@@ -2266,14 +2266,14 @@ img[data-preview-fallback] {
   align-items: center;
   min-height: 92px;
   overflow: hidden;
-  border: 1px solid rgba(217, 185, 91, 0.28);
-  border-left: 3px solid rgba(240, 207, 116, 0.58);
+  border: 1px solid rgba(217, 185, 91, 0.2);
+  border-left: 3px solid rgba(240, 207, 116, 0.54);
   border-radius: 0 8px 8px 0;
   background:
-    linear-gradient(90deg, rgba(217, 185, 91, 0.11), transparent 62%),
+    linear-gradient(90deg, rgba(217, 185, 91, 0.075), transparent 58%),
     var(--index-grid-x),
     var(--index-grid-y),
-    rgba(4, 10, 6, 0.52);
+    rgba(4, 10, 6, 0.44);
   background-size: auto, 40px 40px, 40px 40px, auto;
   color: rgba(244, 234, 208, 0.86);
   padding: 14px 16px;
@@ -2282,17 +2282,17 @@ img[data-preview-fallback] {
   transition: border-color 180ms ease-out, background 180ms ease-out, transform 180ms ease-out, box-shadow 180ms ease-out;
 }
 .hero-j1-cell:hover {
-  border-color: rgba(240, 207, 116, 0.5);
+  border-color: rgba(240, 207, 116, 0.34);
   background:
-    linear-gradient(90deg, rgba(217, 185, 91, 0.16), rgba(var(--entry-accent), 0.05) 64%, transparent),
+    linear-gradient(90deg, rgba(217, 185, 91, 0.12), rgba(var(--entry-accent), 0.035) 64%, transparent),
     var(--index-grid-x),
     var(--index-grid-y),
-    rgba(5, 12, 7, 0.68);
+    rgba(5, 12, 7, 0.54);
   background-size: auto, 40px 40px, 40px 40px, auto;
   box-shadow:
     inset 0 1px 0 rgba(244, 234, 208, 0.055),
-    0 18px 38px rgba(0, 0, 0, 0.24),
-    0 0 24px rgba(217, 185, 91, 0.1);
+    0 14px 30px rgba(0, 0, 0, 0.18),
+    0 0 18px rgba(217, 185, 91, 0.075);
   transform: translateY(-2px);
 }
 .hero-j1-icon {
@@ -2757,15 +2757,15 @@ img[data-preview-fallback] {
   --stage-accent: 217, 185, 91;
   display: inline-flex;
   align-items: center;
-  min-height: 34px;
+  min-height: 44px;
   max-width: 100%;
-  border: 1px solid rgba(217, 185, 91, 0.22);
+  border: 1px solid rgba(217, 185, 91, 0.14);
   border-radius: 8px;
   background:
-    linear-gradient(90deg, rgba(217, 185, 91, 0.08), rgba(var(--stage-accent), 0.035)),
-    rgba(4, 10, 6, 0.48);
+    linear-gradient(90deg, rgba(217, 185, 91, 0.035), rgba(var(--stage-accent), 0.018)),
+    rgba(4, 10, 6, 0.38);
   color: rgba(244, 234, 208, 0.78);
-  padding: 7px 10px;
+  padding: 8px 12px;
   font-size: var(--type-eyebrow);
   font-weight: 900;
   line-height: 1.2;
@@ -2785,10 +2785,10 @@ img[data-preview-fallback] {
   color: rgba(244, 234, 208, 0.82);
 }
 .hero-stage-chip:hover {
-  border-color: rgba(240, 207, 116, 0.42);
+  border-color: rgba(240, 207, 116, 0.28);
   background:
-    linear-gradient(90deg, rgba(217, 185, 91, 0.14), rgba(var(--stage-accent), 0.05)),
-    rgba(5, 12, 7, 0.64);
+    linear-gradient(90deg, rgba(217, 185, 91, 0.08), rgba(var(--stage-accent), 0.032)),
+    rgba(5, 12, 7, 0.5);
   color: var(--paper);
   transform: translateY(-2px);
 }
@@ -8599,29 +8599,31 @@ img[data-preview-fallback] {
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell {
-  border-color: rgba(var(--theme-gold-rgb), 0.3);
-  border-left-color: rgba(var(--theme-gold-rgb), 0.55);
+  border-color: rgba(var(--theme-border-rgb), 0.16);
+  border-left-color: rgba(var(--entry-accent), 0.38);
   background:
-    linear-gradient(90deg, rgba(var(--theme-gold-rgb), 0.13), rgba(var(--theme-panel-rgb), 0.42) 62%),
+    linear-gradient(90deg, rgba(var(--entry-accent), 0.06), transparent 58%),
     var(--index-grid-x),
     var(--index-grid-y),
-    rgba(var(--theme-panel-rgb), 0.44);
+    rgba(var(--theme-panel-rgb), 0.5);
   background-size: auto, 40px 40px, 40px 40px, auto;
   color: var(--text-main);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.56),
+    0 10px 24px rgba(var(--theme-border-rgb), 0.055);
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell:hover {
-  border-color: rgba(var(--theme-gold-rgb), 0.46);
+  border-color: rgba(var(--entry-accent), 0.26);
   background:
-    linear-gradient(90deg, rgba(var(--theme-gold-rgb), 0.18), rgba(var(--entry-accent), 0.05) 62%),
+    linear-gradient(90deg, rgba(var(--entry-accent), 0.095), transparent 58%),
     var(--index-grid-x),
     var(--index-grid-y),
-    rgba(var(--theme-panel-rgb), 0.58);
+    rgba(var(--theme-panel-rgb), 0.62);
   background-size: auto, 40px 40px, 40px 40px, auto;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.58),
-    0 16px 34px rgba(var(--theme-border-rgb), 0.12),
-    0 0 22px rgba(var(--theme-gold-rgb), 0.1);
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    0 12px 26px rgba(var(--theme-border-rgb), 0.08);
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-icon {
@@ -8644,9 +8646,9 @@ img[data-preview-fallback] {
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-search {
-  border-color: rgba(var(--theme-gold-rgb), 0.24);
+  border-color: rgba(var(--theme-gold-rgb), 0.18);
   background:
-    linear-gradient(90deg, rgba(var(--theme-gold-rgb), 0.09), transparent 64%),
+    linear-gradient(90deg, rgba(var(--theme-gold-rgb), 0.045), transparent 60%),
     var(--index-grid-x),
     var(--index-grid-y),
     rgba(var(--theme-panel-rgb), 0.68);
@@ -8666,11 +8668,10 @@ img[data-preview-fallback] {
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stage-chip {
-  border-color: rgba(var(--theme-gold-rgb), 0.24);
-  background:
-    linear-gradient(90deg, rgba(var(--theme-gold-rgb), 0.1), rgba(var(--stage-accent), 0.035)),
-    rgba(var(--theme-panel-rgb), 0.42);
-  color: var(--text-main);
+  border-color: rgba(var(--theme-border-rgb), 0.16);
+  background: rgba(var(--theme-panel-rgb), 0.42);
+  box-shadow: none;
+  color: var(--text-muted);
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stage-chip.moss {
@@ -8689,10 +8690,8 @@ img[data-preview-fallback] {
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stage-chip:hover {
-  border-color: rgba(var(--theme-gold-rgb), 0.42);
-  background:
-    linear-gradient(90deg, rgba(var(--theme-gold-rgb), 0.16), rgba(var(--stage-accent), 0.05)),
-    rgba(var(--theme-panel-rgb), 0.62);
+  border-color: rgba(var(--theme-border-rgb), 0.24);
+  background: rgba(var(--theme-panel-rgb), 0.58);
   color: var(--text-strong);
 }
 

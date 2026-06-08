@@ -19,6 +19,7 @@
     "check:crafting-wiki-structure": "node scripts/check-crafting-wiki-structure-runtime.mjs",
     "check:loading-skeleton": "node scripts/check-loading-skeleton-contract.mjs",
     "check:public-pages": "node scripts/check-public-pages.mjs",
+    "check:home-visual-lightweight": "node scripts/check-home-visual-lightweight-runtime.mjs",
     "check:nav-layout": "node scripts/check-nav-layout-contract.mjs",
     "check:front-layout-layering": "node scripts/check-front-layout-layering-contract.mjs",
     "check:detail-layout": "node scripts/check-detail-layout-contract.mjs",
