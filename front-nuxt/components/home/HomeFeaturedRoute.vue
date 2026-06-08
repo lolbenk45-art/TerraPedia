@@ -10,6 +10,7 @@ defineProps<{
       tone: string
     }>
     list: Array<{
+      href?: string
       title: string
       desc: string
       badge: string
@@ -43,14 +44,24 @@ defineProps<{
       </article>
 
       <div class="route-list">
-        <div v-for="item in route.list" :key="item.title" class="route-list-row">
-          <span class="item-art home-image-art" :style="`background-image:url('${item.image}')`"></span>
-          <div>
-            <b>{{ item.title }}</b>
-            <span>{{ item.desc }}</span>
+        <template v-for="item in route.list" :key="item.href || item.title">
+          <a v-if="item.href" class="route-list-row" :href="item.href">
+            <span class="item-art home-image-art" :style="`background-image:url('${item.image}')`"></span>
+            <div>
+              <b>{{ item.title }}</b>
+              <span>{{ item.desc }}</span>
+            </div>
+            <strong>{{ item.badge }}</strong>
+          </a>
+          <div v-else class="route-list-row">
+            <span class="item-art home-image-art" :style="`background-image:url('${item.image}')`"></span>
+            <div>
+              <b>{{ item.title }}</b>
+              <span>{{ item.desc }}</span>
+            </div>
+            <strong>{{ item.badge }}</strong>
           </div>
-          <strong>{{ item.badge }}</strong>
-        </div>
+        </template>
       </div>
     </div>
   </section>

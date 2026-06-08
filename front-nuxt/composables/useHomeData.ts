@@ -1,11 +1,25 @@
 export type HomeStats = {
   totalItems?: number | null
   totalCategories?: number | null
+  totalBosses?: number | null
+  totalNpcs?: number | null
+  totalBuffs?: number | null
+  totalBiomes?: number | null
+  totalArmorSets?: number | null
+  totalProjectiles?: number | null
+  totalPublishedArticles?: number | null
 }
 
 const fallbackHomeStats: HomeStats = {
-  totalItems: 6131,
-  totalCategories: 0,
+  totalItems: null,
+  totalCategories: null,
+  totalBosses: null,
+  totalNpcs: null,
+  totalBuffs: null,
+  totalBiomes: null,
+  totalArmorSets: null,
+  totalProjectiles: null,
+  totalPublishedArticles: null,
 }
 
 const formatCount = (value: number | null | undefined, fallback: string) => {
@@ -34,14 +48,21 @@ export const useHomeData = async () => {
     },
   )
 
-  const itemTotalLabel = computed(() => formatCount(homeStats.value?.totalItems, '6,131'))
+  const itemTotalLabel = computed(() => formatCount(homeStats.value?.totalItems, '图鉴'))
   const categoryTotalLabel = computed(() => formatCount(homeStats.value?.totalCategories, '分类'))
+  const bossTotalLabel = computed(() => formatCount(homeStats.value?.totalBosses, '路线'))
+  const npcTotalLabel = computed(() => formatCount(homeStats.value?.totalNpcs, '图鉴'))
+  const buffTotalLabel = computed(() => formatCount(homeStats.value?.totalBuffs, '状态'))
+  const biomeTotalLabel = computed(() => formatCount(homeStats.value?.totalBiomes, '生态'))
+  const armorSetTotalLabel = computed(() => formatCount(homeStats.value?.totalArmorSets, '套装'))
+  const projectileTotalLabel = computed(() => formatCount(homeStats.value?.totalProjectiles, '射弹'))
+  const articleTotalLabel = computed(() => formatCount(homeStats.value?.totalPublishedArticles, '专题'))
 
   const primaryEntries = computed(() => [
     { label: '物品', href: '/items', icon: 'icon-items', desc: '查装备、材料、掉落', count: itemTotalLabel.value, hex: '255,215,101' },
-    { label: 'Boss', href: '/bosses', icon: 'icon-boss', desc: '看前置、阶段、战利品', count: '路线', hex: '224,126,85' },
-    { label: 'NPC', href: '/npcs', icon: 'icon-npc', desc: '找城镇角色和敌怪', count: '图鉴', hex: '126,178,120' },
-    { label: '攻略', href: '/articles', icon: 'icon-article', desc: '按阶段和机制阅读', count: '专题', hex: '217,185,91' },
+    { label: 'Boss', href: '/bosses', icon: 'icon-boss', desc: '看前置、阶段、战利品', count: bossTotalLabel.value, hex: '224,126,85' },
+    { label: 'NPC', href: '/npcs', icon: 'icon-npc', desc: '找城镇角色和敌怪', count: npcTotalLabel.value, hex: '126,178,120' },
+    { label: '攻略', href: '/articles', icon: 'icon-article', desc: '按阶段和机制阅读', count: articleTotalLabel.value, hex: '217,185,91' },
   ])
 
   const primaryStats = computed(() => [
@@ -64,9 +85,9 @@ export const useHomeData = async () => {
     ],
     rows: [
       { index: '01', label: '物品图鉴', href: '/items', value: itemTotalLabel.value },
-      { index: '02', label: '合成链路', href: '/crafting', value: '14,746' },
-      { index: '03', label: 'Boss 进度', href: '/bosses', value: '路线化' },
-      { index: '04', label: '攻略专题', href: '/articles', value: '精选' },
+      { index: '02', label: '合成链路', href: '/crafting', value: '合成路线' },
+      { index: '03', label: 'Boss 进度', href: '/bosses', value: bossTotalLabel.value },
+      { index: '04', label: '已发布文章', href: '/articles', value: articleTotalLabel.value },
     ],
   }))
 
@@ -76,18 +97,18 @@ export const useHomeData = async () => {
       lede: '按物品、Boss、NPC 和攻略路线进入资料，开局、战前、困难模式和月后整理都能直接找到下一步。',
       primaryEntries: primaryEntries.value,
       progressionStages: [
-        { label: '新手开荒', href: '/articles?stage=early', tone: 'moss' },
-        { label: 'Boss 前置', href: '/articles?stage=boss-prep', tone: 'gold' },
-        { label: '困难模式', href: '/articles?stage=hardmode', tone: 'paper' },
-        { label: '月后整理', href: '/articles?stage=post-moon', tone: 'paper' },
+        { label: '新手开荒', href: '/articles?keyword=开荒', tone: 'moss' },
+        { label: 'Boss 前置', href: '/articles?keyword=Boss', tone: 'gold' },
+        { label: '困难模式', href: '/articles?keyword=困难模式', tone: 'paper' },
+        { label: '月后整理', href: '/articles?keyword=月亮领主', tone: 'paper' },
       ],
       secondaryLinks: [
         { label: '分类', href: '/categories', icon: 'icon-category', desc: '类型索引' },
         { label: '制作', href: '/crafting', icon: 'icon-crafting', desc: '合成链路' },
-        { label: '生态', href: '/biomes', icon: 'icon-biome', desc: '群落资源' },
-        { label: 'Buff', href: '/buffs', icon: 'icon-buff', desc: '状态效果' },
-        { label: '套装', href: '/armor-sets', icon: 'icon-armor', desc: '防具路线' },
-        { label: '射弹', href: '/projectiles', icon: 'icon-projectile', desc: '弹道行为' },
+        { label: '生态', href: '/biomes', icon: 'icon-biome', desc: `${biomeTotalLabel.value}资料` },
+        { label: 'Buff', href: '/buffs', icon: 'icon-buff', desc: `${buffTotalLabel.value}效果` },
+        { label: '套装', href: '/armor-sets', icon: 'icon-armor', desc: `${armorSetTotalLabel.value}路线` },
+        { label: '射弹', href: '/projectiles', icon: 'icon-projectile', desc: `${projectileTotalLabel.value}行为` },
       ],
       primaryStats: primaryStats.value,
       trustSignals: [
@@ -104,69 +125,72 @@ export const useHomeData = async () => {
     explorationNodes: [
       {
         className: 'one',
-        href: '/items?gamePeriod=early',
+        href: '/articles/ac-home-starting-route-2026-06-08',
         image: '/preview-assets/terrapedia-images/items/2026/04/08/3a43bd1521b5418fade0c386891cc047.png',
         title: '开荒入口',
-        desc: '铜短剑、木弓、火把，形成第一条路径。',
+        desc: '生命水晶、向导与护士，整理新档前两小时。',
       },
       {
         className: 'two',
-        href: '/items',
+        href: '/articles/ac-home-gear-foundation-route-2026-06-08',
         image: '/preview-assets/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png',
         title: '装备成型',
-        desc: '围绕核心武器、合成材料和战前准备整理路线。',
+        desc: '防具选择先看打法，再看防御与材料风险。',
         featured: true,
       },
       {
         className: 'three',
-        href: '/items?gamePeriod=hardmode',
+        href: '/articles/ac-home-hardmode-first-hour-mining-2026-06-08',
         image: '/preview-assets/terrapedia-images/items/2026/04/08/c626dfb6e7bc4139b099b81ffc4680d1.png',
         title: '困难模式',
-        desc: '神圣锭、机械 Boss、阶段性推进。',
+        desc: '三层矿物按工具链推进，不只看颜色。',
       },
       {
         className: 'four',
-        href: '/biomes',
+        href: '/articles/ac-home-biome-exploration-route-2026-06-08',
         image: '/preview-assets/terrapedia-images/items/2026/04/08/179b4aea3cc74ae989a9eb86db6f50ec.png',
         title: '生态探索',
-        desc: '按群落、资源与地形线索决定下一步探索。',
+        desc: '按风险、资源和返回点规划群落探索。',
       },
       {
         className: 'five',
-        href: '/articles',
+        href: '/articles/ac-home-event-workshop-route-2026-06-08',
         image: '/preview-assets/terrapedia-images/items/2026/04/08/6ef1b719169348b595c93654cbf60c1c.png',
         title: '专题路线',
-        desc: '攻略和机制专题作为阶段路线的补充入口。',
+        desc: '把事件、工坊和配件升级整理成路线。',
       },
     ],
     featuredRoute: {
-      href: '/articles/melee-progression',
+      href: '/articles/ac-home-gear-foundation-route-2026-06-08',
       image: '/preview-assets/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png',
-      title: '从机械 Boss 到月亮领主：近战装备推进路线',
-      desc: '按材料、事件和 Boss 顺序整理困难模式后期路线，每一步都能跳回对应图鉴。',
+      title: '装备成型不是堆防御：先确定你的打法',
+      desc: '按武器距离、材料风险和战斗目标选择防具与配件，把下一步战斗变得可重复。',
       tags: [
         { label: '开荒', tone: 'moss' },
-        { label: 'Boss 前', tone: 'gold' },
-        { label: '困难模式', tone: 'paper' },
-        { label: '月前装备', tone: 'paper' },
+        { label: '装备路线', tone: 'gold' },
+        { label: 'Boss 前', tone: 'paper' },
+        { label: '职业打法', tone: 'paper' },
       ],
       list: [
         {
-          title: '真永夜刃',
-          desc: '合成材料 · 路线主轴',
-          badge: '合成',
+          href: '/articles/ac-home-hardmode-first-hour-mining-2026-06-08',
+          title: '困难模式开矿顺序',
+          desc: '三层矿物 · 工具链推进',
+          badge: '采矿',
           image: '/preview-assets/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png',
         },
         {
-          title: '真断钢剑',
-          desc: '合成材料 · 战前推进',
-          badge: '合成',
+          href: '/articles/ac-home-boss-prep-route-2026-06-08',
+          title: 'Boss 前置准备',
+          desc: '场地恢复 · 输出窗口',
+          badge: '战前',
           image: '/preview-assets/terrapedia-images/items/2026/04/08/5495725121204ede9da25ddf678ca246.png',
         },
         {
-          title: '英雄断剑',
-          desc: '掉落来源 · 日食事件',
-          badge: '来源',
+          href: '/articles/ac-home-underworld-checklist-2026-06-08',
+          title: '地狱层探索清单',
+          desc: '熔岩环境 · 工具优先',
+          badge: '探索',
           image: '/preview-assets/terrapedia-images/items/2026/04/08/77203300926f489fb82ae1072a8623d4.png',
         },
       ],
@@ -194,19 +218,19 @@ export const useHomeData = async () => {
       title: '攻略 · 专题 · 机制文档',
       desc: '按游玩阶段、装备目标和机制解释组织内容，和图鉴数据互相跳转。',
       links: [
-        { label: '攻略', href: '/articles?type=guide' },
-        { label: '专题', href: '/articles?type=topic' },
-        { label: '机制', href: '/articles?type=mechanic' },
+        { label: '开荒', href: '/articles/ac-home-starting-route-2026-06-08' },
+        { label: '装备', href: '/articles/ac-home-mobility-upgrade-route-2026-06-08' },
+        { label: '机制', href: '/articles/ac-home-resource-loop-fishing-2026-06-08' },
       ],
       routes: [
-        { index: '01', title: '阶段专题', desc: '开荒 / 困难模式 / 月后整理' },
-        { index: '02', title: '装备目标', desc: '近战、射手、法师和召唤路线' },
-        { index: '03', title: '机制解释', desc: '事件、生态、掉落与刷新规则' },
+        { index: '01', title: '阶段专题', desc: '新档节奏 / 困难模式开矿 / 地狱探索', href: '/articles/ac-home-starting-route-2026-06-08' },
+        { index: '02', title: '装备目标', desc: '防具选择 / 移动升级 / 材料风险', href: '/articles/ac-home-mobility-upgrade-route-2026-06-08' },
+        { index: '03', title: '机制解释', desc: '事件入口 / 资源循环 / 探索风险', href: '/articles/ac-home-event-workshop-route-2026-06-08' },
       ],
       notes: [
-        { mark: 'A', title: '专题索引', desc: '按阶段、职业和事件组织入口' },
-        { mark: 'B', title: '路线信号', desc: '把装备和事件拆成可走的流程' },
-        { mark: 'C', title: '阅读手札', desc: '文章卡片以专题化摘要呈现' },
+        { mark: 'A', title: '生态资源', desc: '群落探索按风险和返回点推进', href: '/articles/ac-home-biome-exploration-route-2026-06-08' },
+        { mark: 'B', title: '资源循环', desc: '钓鱼药水和目标水域纳入中期规划', href: '/articles/ac-home-resource-loop-fishing-2026-06-08' },
+        { mark: 'C', title: '事件规划', desc: '陨石落地后的采集和转化路线', href: '/articles/ac-home-meteorite-planning-2026-06-08' },
       ],
     },
   }

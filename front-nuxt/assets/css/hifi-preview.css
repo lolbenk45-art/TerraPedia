@@ -3123,6 +3123,8 @@ img[data-preview-fallback] {
   background: var(--index-surface);
   padding: 20px 22px;
   box-shadow: inset 0 1px 0 rgba(244,234,208,0.035);
+  color: inherit;
+  text-decoration: none;
 }
 .route-list-row:nth-child(2) { margin-left: 22px; }
 .route-list-row:nth-child(3) { margin-left: 44px; }
@@ -3368,7 +3370,8 @@ img[data-preview-fallback] {
   gap: 10px;
   align-self: center;
 }
-.codex-route-list div {
+.codex-route-list div,
+.codex-route-list a {
   display: grid;
   grid-template-columns: 42px 1fr;
   gap: 12px;
@@ -3378,6 +3381,8 @@ img[data-preview-fallback] {
   border-radius: 8px;
   background: rgba(244,234,208,0.02);
   padding: 10px 12px;
+  color: inherit;
+  text-decoration: none;
 }
 .codex-route-list span {
   color: #9db89a;
@@ -3413,6 +3418,8 @@ img[data-preview-fallback] {
   border-radius: 8px;
   background: var(--index-surface);
   padding: 14px;
+  color: inherit;
+  text-decoration: none;
 }
 .codex-note i {
   display: grid;
@@ -3429,6 +3436,12 @@ img[data-preview-fallback] {
 }
 .codex-note b { display: block; font-size: 13px; }
 .codex-note span { color: rgba(244, 234, 208, 0.54); font-size: 12px; }
+.route-list-row:focus-visible,
+.codex-route-list a:focus-visible,
+.codex-note:focus-visible {
+  outline: 2px solid rgba(240, 207, 116, 0.58);
+  outline-offset: 3px;
+}
 .index-plinth {
   display: grid;
   grid-template-columns: 250px repeat(4, 1fr);
@@ -9560,6 +9573,7 @@ img[data-preview-fallback] {
 .armor-card-link,
 .about-grid article,
 .route-list-row,
+.codex-route-list a,
 .codex-note,
 .map-node,
 .support-panel,
@@ -9592,6 +9606,7 @@ img[data-preview-fallback] {
 .armor-card-link:hover,
 .about-grid article:hover,
 .route-list-row:hover,
+.codex-route-list a:hover,
 .codex-note:hover,
 .map-node:hover,
 .support-panel:hover,

@@ -8,6 +8,9 @@ const homeHeroPath = 'components/home/HomeHero.vue'
 const homeDataPath = 'composables/useHomeData.ts'
 const cssPath = 'assets/css/hifi-preview.css'
 const lightContrastCssPath = 'assets/css/light-theme-contrast-fixes.css'
+const acHomeArticleSourcePath = '../scripts/content/ac-home-articles.mjs'
+const acHomeArticleSeedPath = '../scripts/content/seed-ac-home-articles.mjs'
+const acHomeArticleSqlSeedPath = '../back/src/main/resources/db/migration/V55__seed_ac_home_original_articles.sql'
 const failures = []
 
 const extractRuleBlocks = (css, selector) => {
@@ -94,6 +97,38 @@ const forbiddenPageMarkers = [
   'class="quick-entry-chip"',
 ]
 
+if (existsSync(file(acHomeArticleSqlSeedPath))) {
+  failures.push(`${acHomeArticleSqlSeedPath}: AC home articles must be maintained through article APIs, not SQL seeds`)
+}
+
+if (!existsSync(file(acHomeArticleSourcePath))) {
+  failures.push(`${acHomeArticleSourcePath}: missing API-managed AC home rich article source`)
+} else {
+  const source = readFileSync(file(acHomeArticleSourcePath), 'utf8')
+  const usesRichReferences = source.includes('class="tp-content-ref"')
+    && (source.includes('data-tp-ref-type="item"') || source.includes("ref('item'"))
+    && (source.includes('data-tp-ref-type="boss"') || source.includes("ref('boss'"))
+    && (source.includes('data-tp-ref-type="npc"') || source.includes("ref('npc'"))
+  if (!usesRichReferences) {
+    failures.push(`${acHomeArticleSourcePath}: AC home articles must use rich item, boss and npc content references`)
+  }
+  if (!source.includes('class="tp-article-embed tp-recipe-tree"')) {
+    failures.push(`${acHomeArticleSourcePath}: AC home articles must include a recipe-tree embed`)
+  }
+}
+
+if (!existsSync(file(acHomeArticleSeedPath))) {
+  failures.push(`${acHomeArticleSeedPath}: missing admin API upsert script for AC home articles`)
+} else {
+  const seed = readFileSync(file(acHomeArticleSeedPath), 'utf8')
+  if (!seed.includes('/auth/login') || !seed.includes('/admin/articles') || !seed.includes('/status') || !seed.includes('Authorization')) {
+    failures.push(`${acHomeArticleSeedPath}: AC home article seed must login and use admin article APIs`)
+  }
+  if (/\bmysql\b|\bINSERT\s+INTO\s+`?articles`?|\bUPDATE\s+`?articles`?\b/i.test(seed)) {
+    failures.push(`${acHomeArticleSeedPath}: AC home article seed must not use raw DB writes`)
+  }
+}
+
 if (!existsSync(file(pagePath))) {
   failures.push(`${pagePath}: missing public home page`)
 } else if (!existsSync(file(homeHeroPath))) {
@@ -179,6 +214,240 @@ if (!existsSync(file(pagePath))) {
   const publicFetchTargets = [...homeData.matchAll(/usePublicApiFetch<[^>]+>\('([^']+)'\)/g)].map((match) => match[1])
   if (publicFetchTargets.length !== 1 || publicFetchTargets[0] !== '/statistics/overview') {
     failures.push(`${homeDataPath}: home A plan must keep /statistics/overview as the only dynamic home API source`)
+  }
+
+  const unsupportedHomeLinkMarkers = [
+    '/articles?stage=',
+    '/articles?type=',
+    '/items?gamePeriod=',
+  ]
+
+  for (const marker of unsupportedHomeLinkMarkers) {
+    if (homeData.includes(marker)) {
+      failures.push(`${homeDataPath}: home links must not use unsupported query marker ${marker}`)
+    }
+  }
+
+  for (const marker of ['14,746', 'totalItems: 6131', "'6,131'"]) {
+    if (homeData.includes(marker)) {
+      failures.push(`${homeDataPath}: home must not show hard-coded fallback count ${marker}`)
+    }
+  }
+
+  for (const expected of [
+    'totalBosses',
+    'totalNpcs',
+    'totalBuffs',
+    'totalBiomes',
+    'totalArmorSets',
+    'totalProjectiles',
+    'totalPublishedArticles',
+  ]) {
+    if (!homeData.includes(expected)) {
+      failures.push(`${homeDataPath}: home stats must expose ${expected}`)
+    }
+  }
+
+  for (const marker of [
+    'bossTotalLabel',
+    'npcTotalLabel',
+    'articleTotalLabel',
+  ]) {
+    if (!homeData.includes(marker)) {
+      failures.push(`${homeDataPath}: primary home entries must use computed ${marker}`)
+    }
+  }
+
+  const requiredHomeArticleSlugs = [
+    'ac-home-starting-route-2026-06-08',
+    'ac-home-gear-foundation-route-2026-06-08',
+    'ac-home-hardmode-first-hour-mining-2026-06-08',
+    'ac-home-biome-exploration-route-2026-06-08',
+    'ac-home-event-workshop-route-2026-06-08',
+    'ac-home-boss-prep-route-2026-06-08',
+    'ac-home-underworld-checklist-2026-06-08',
+    'ac-home-mobility-upgrade-route-2026-06-08',
+    'ac-home-resource-loop-fishing-2026-06-08',
+    'ac-home-meteorite-planning-2026-06-08',
+  ]
+
+  for (const slug of requiredHomeArticleSlugs) {
+    if (!homeData.includes(`/articles/${slug}`)) {
+      failures.push(`${homeDataPath}: lower AC home article entries must link to published article slug /articles/${slug}`)
+    }
+  }
+
+  const assertHomeDataRangeIncludes = (label, startMarker, endMarker, expected) => {
+    const startIndex = homeData.indexOf(startMarker)
+    const endIndex = endMarker ? homeData.indexOf(endMarker, startIndex + startMarker.length) : homeData.length
+
+    if (startIndex === -1 || endIndex === -1 || endIndex <= startIndex) {
+      failures.push(`${homeDataPath}: cannot locate ${label} block for article link validation`)
+      return
+    }
+
+    const block = homeData.slice(startIndex, endIndex)
+    if (!block.includes(expected)) {
+      failures.push(`${homeDataPath}: ${label} must include published article link ${expected}`)
+    }
+  }
+
+  for (const entry of [
+    {
+      label: 'progress node 开荒入口',
+      start: "className: 'one'",
+      end: "className: 'two'",
+      href: "href: '/articles/ac-home-starting-route-2026-06-08'",
+    },
+    {
+      label: 'progress node 装备成型',
+      start: "className: 'two'",
+      end: "className: 'three'",
+      href: "href: '/articles/ac-home-gear-foundation-route-2026-06-08'",
+    },
+    {
+      label: 'progress node 困难模式',
+      start: "className: 'three'",
+      end: "className: 'four'",
+      href: "href: '/articles/ac-home-hardmode-first-hour-mining-2026-06-08'",
+    },
+    {
+      label: 'progress node 生态探索',
+      start: "className: 'four'",
+      end: "className: 'five'",
+      href: "href: '/articles/ac-home-biome-exploration-route-2026-06-08'",
+    },
+    {
+      label: 'progress node 专题路线',
+      start: "className: 'five'",
+      end: 'featuredRoute:',
+      href: "href: '/articles/ac-home-event-workshop-route-2026-06-08'",
+    },
+    {
+      label: 'featured route main card',
+      start: 'featuredRoute:',
+      end: 'bossRoute:',
+      href: "href: '/articles/ac-home-gear-foundation-route-2026-06-08'",
+    },
+    {
+      label: 'featured route row 困难模式开矿顺序',
+      start: "href: '/articles/ac-home-hardmode-first-hour-mining-2026-06-08'",
+      end: "title: 'Boss 前置准备'",
+      href: "title: '困难模式开矿顺序'",
+    },
+    {
+      label: 'featured route row Boss 前置准备',
+      start: "href: '/articles/ac-home-boss-prep-route-2026-06-08'",
+      end: "title: '地狱层探索清单'",
+      href: "title: 'Boss 前置准备'",
+    },
+    {
+      label: 'featured route row 地狱层探索清单',
+      start: "href: '/articles/ac-home-underworld-checklist-2026-06-08'",
+      end: 'bossRoute:',
+      href: "title: '地狱层探索清单'",
+    },
+    {
+      label: 'codex action 开荒',
+      start: "label: '开荒'",
+      end: "label: '装备'",
+      href: "href: '/articles/ac-home-starting-route-2026-06-08'",
+    },
+    {
+      label: 'codex action 装备',
+      start: "label: '装备'",
+      end: "label: '机制'",
+      href: "href: '/articles/ac-home-mobility-upgrade-route-2026-06-08'",
+    },
+    {
+      label: 'codex action 机制',
+      start: "label: '机制'",
+      end: 'routes:',
+      href: "href: '/articles/ac-home-resource-loop-fishing-2026-06-08'",
+    },
+    {
+      label: 'codex route 阶段专题',
+      start: "title: '阶段专题'",
+      end: "title: '装备目标'",
+      href: "href: '/articles/ac-home-starting-route-2026-06-08'",
+    },
+    {
+      label: 'codex route 装备目标',
+      start: "title: '装备目标'",
+      end: "title: '机制解释'",
+      href: "href: '/articles/ac-home-mobility-upgrade-route-2026-06-08'",
+    },
+    {
+      label: 'codex route 机制解释',
+      start: "title: '机制解释'",
+      end: 'notes:',
+      href: "href: '/articles/ac-home-event-workshop-route-2026-06-08'",
+    },
+    {
+      label: 'codex note 生态资源',
+      start: "title: '生态资源'",
+      end: "title: '资源循环'",
+      href: "href: '/articles/ac-home-biome-exploration-route-2026-06-08'",
+    },
+    {
+      label: 'codex note 资源循环',
+      start: "title: '资源循环'",
+      end: "title: '事件规划'",
+      href: "href: '/articles/ac-home-resource-loop-fishing-2026-06-08'",
+    },
+    {
+      label: 'codex note 事件规划',
+      start: "title: '事件规划'",
+      end: null,
+      href: "href: '/articles/ac-home-meteorite-planning-2026-06-08'",
+    },
+  ]) {
+    assertHomeDataRangeIncludes(entry.label, entry.start, entry.end, entry.href)
+  }
+
+  for (const forbiddenArticleMarker of [
+    '/articles?keyword=近战',
+    '/articles?keyword=攻略',
+    '/articles?keyword=专题',
+    '/articles?keyword=机制',
+    'guide-true-nights-edge-demo',
+    'wechat-writer-opt-20260324161901',
+    'starter-life-crystal-guide-npc-flow-2026-06-07',
+    'pre-hardmode-armor-choice-by-role-2026-06-07',
+    'hardmode-ore-tier-mining-route-2026-06-07',
+    'queen-bee-jungle-boss-resource-loop-2026-06-07',
+    'goblin-army-tinkerer-unlock-2026-06-07',
+    'boots-upgrade-route-frostspark-2026-06-07',
+    'fishing-resource-loop-potion-bobber-2026-06-07',
+    'early-boss-prep-slime-cthulhu-2026-06-07',
+    'meteorite-resource-planning-2026-06-07',
+    'underworld-lava-preparation-checklist-2026-06-07',
+  ]) {
+    if (homeData.includes(forbiddenArticleMarker)) {
+      failures.push(`${homeDataPath}: lower AC home article entries must not use unsupported or non-editorial article marker ${forbiddenArticleMarker}`)
+    }
+  }
+
+  const featuredRoutePath = 'components/home/HomeFeaturedRoute.vue'
+  const featuredRoute = readFileSync(file(featuredRoutePath), 'utf8')
+
+  if (!featuredRoute.includes('href?: string')) {
+    failures.push(`${featuredRoutePath}: route.list entries must accept optional href for published article links`)
+  }
+
+  if (!featuredRoute.includes(':href="item.href"') || !featuredRoute.includes('v-if="item.href"') || !featuredRoute.includes('class="route-list-row"')) {
+    failures.push(`${featuredRoutePath}: recommended route rows must render row-level anchors bound to item.href`)
+  }
+
+  const codexBandPath = 'components/home/HomeCodexBand.vue'
+  const codexBand = readFileSync(file(codexBandPath), 'utf8')
+
+  if (!codexBand.includes('href: string')) {
+    failures.push(`${codexBandPath}: codex routes and notes must accept href fields for published article links`)
+  }
+
+  if (!codexBand.includes(':href="route.href"') || !codexBand.includes(':href="note.href"')) {
+    failures.push(`${codexBandPath}: codex route rows and notes must render anchors bound to their href fields`)
   }
 
   const bossProgressionPath = 'components/home/HomeBossProgression.vue'
@@ -297,6 +566,10 @@ if (!existsSync(file(lightContrastCssPath))) {
   assertMaxAccentAlpha(lightCellBlocks, 0.08, 'light home primary entries', lightContrastCssPath)
   assertMaxAccentAlpha(lightCellHoverBlocks, 0.10, 'light home primary entry hover', lightContrastCssPath)
   assertNoSolidEntryFill([...lightCellBlocks, ...lightCellHoverBlocks], 'home primary entries', lightContrastCssPath)
+
+  if (!lightCss.includes(':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-route-list a')) {
+    failures.push(`${lightContrastCssPath}: light AC codex route anchors must keep explicit link surface styling`)
+  }
 }
 
 if (failures.length > 0) {

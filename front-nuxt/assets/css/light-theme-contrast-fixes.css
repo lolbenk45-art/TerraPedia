@@ -384,6 +384,12 @@
   color: var(--text-positive);
 }
 
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-route-list a {
+  background: rgba(var(--theme-panel-rgb), 0.36);
+  color: var(--text-main);
+  text-decoration: none;
+}
+
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .item-cell:hover,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-card:hover,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-node:hover,
@@ -392,6 +398,7 @@
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-card:hover,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .about-grid article:hover,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .route-list-row:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-route-list a:hover,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-note:hover,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .map-node:hover,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .support-panel:hover,

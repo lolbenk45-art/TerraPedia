@@ -15,6 +15,13 @@ import java.util.Map;
 public class CatalogStatisticsDTO {
     private long totalItems;
     private long totalCategories;
+    private long totalBosses;
+    private long totalNpcs;
+    private long totalBuffs;
+    private long totalBiomes;
+    private long totalArmorSets;
+    private long totalProjectiles;
+    private long totalPublishedArticles;
     private List<CategoryCountDTO> rootCategoryCounts;
     private Map<Long, Long> categoryItemCounts;
 
