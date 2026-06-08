@@ -6,6 +6,17 @@ type Crumb = {
   href?: string
 }
 
+const props = withDefaults(defineProps<{
+  items?: Crumb[]
+  mode?: 'trail' | 'back'
+  backHref?: string
+  backLabel?: string
+  ariaLabel?: string
+}>(), {
+  mode: 'trail',
+  ariaLabel: '当前位置',
+})
+
 const routeLabels: Record<string, string> = {
   '/': '首页',
   '/home-hero-options': '首页首屏',
@@ -39,6 +50,7 @@ const routeLabels: Record<string, string> = {
   '/user': '用户中心',
   '/user/login': '登录',
   '/user/register': '注册',
+  '/user/forgot-password': '找回密码',
   '/user/articles': '我的文章',
   '/user/articles/new': '新建文章',
   '/user/favorites': '收藏夹',
@@ -61,9 +73,11 @@ const segmentLabels: Record<string, string> = {
   projectiles: '射弹行为',
   'armor-sets': '套装路线',
   about: '项目说明',
+  users: '用户主页',
   user: '用户中心',
   login: '登录',
   register: '注册',
+  'forgot-password': '找回密码',
   favorites: '收藏夹',
   routes: '保存路线',
   notifications: '通知中心',
@@ -71,10 +85,40 @@ const segmentLabels: Record<string, string> = {
   new: '新建文章',
 }
 
+const hiddenTrailRoutes = new Set([
+  '/',
+  '/home-hero-options',
+  '/about',
+  '/search',
+  '/crafting',
+  '/items',
+  '/articles',
+  '/categories',
+  '/biomes',
+  '/bosses',
+  '/buffs',
+  '/npcs',
+  '/projectiles',
+  '/armor-sets',
+  '/user',
+  '/user/login',
+  '/user/register',
+  '/user/forgot-password',
+  '/user/articles',
+  '/user/favorites',
+  '/user/routes',
+  '/user/notifications',
+  '/user/settings',
+  '/user/article-editor-designs',
+  '/user/article-list-designs',
+  '/user/page-head-designs',
+])
+
 const unavailableAccountRoutes = [
   '/user',
   '/user/login',
   '/user/register',
+  '/user/forgot-password',
   '/user/articles',
   '/user/articles/new',
   '/user/favorites',
@@ -93,8 +137,10 @@ const formatSegment = (segment: string) => {
     .join(' ')
 }
 
-const crumbs = computed<Crumb[]>(() => {
-  const path = route.path.replace(/\/+$/, '') || '/'
+const normalizePath = (path: string) => path.replace(/\/+$/, '') || '/'
+
+const routeCrumbs = computed<Crumb[]>(() => {
+  const path = normalizePath(route.path)
 
   if (path === '/') {
     return [{ label: '首页' }]
@@ -115,14 +161,63 @@ const crumbs = computed<Crumb[]>(() => {
 
   return items
 })
+
+const compactCrumbs = computed<Crumb[]>(() => {
+  return props.items?.length ? props.items : routeCrumbs.value
+})
+
+const shouldHideRouteTrail = computed(() => {
+  if (props.items?.length || props.mode === 'back') {
+    return false
+  }
+
+  return hiddenTrailRoutes.has(normalizePath(route.path))
+})
+
+const shouldRenderTrail = computed(() => {
+  if (shouldHideRouteTrail.value) {
+    return false
+  }
+
+  if (props.mode === 'back') {
+    return Boolean(props.backHref)
+  }
+
+  return compactCrumbs.value.length > 1
+})
 </script>
 
 <template>
-  <nav class="breadcrumb-shell" aria-label="当前位置">
-    <ol class="breadcrumb-list">
-      <li v-for="(crumb, index) in crumbs" :key="`${crumb.label}-${index}`">
-        <a v-if="crumb.href" class="breadcrumb-link" :href="crumb.href">{{ crumb.label }}</a>
-        <span v-else class="breadcrumb-current">{{ crumb.label }}</span>
+  <nav
+    v-if="shouldRenderTrail"
+    class="page-trail"
+    :aria-label="ariaLabel"
+    data-page-trail-role="shell"
+  >
+    <a
+      v-if="mode === 'back' && backHref"
+      class="page-trail-back"
+      :href="backHref"
+      data-page-trail-role="link"
+    >
+      {{ backLabel || '返回上级' }}
+    </a>
+
+    <ol v-else class="page-trail-list" data-page-trail-role="list">
+      <li
+        v-for="(crumb, index) in compactCrumbs"
+        :key="`${crumb.label}-${index}`"
+        class="page-trail-item"
+      >
+        <a
+          v-if="crumb.href"
+          class="page-trail-link"
+          :href="crumb.href"
+          data-page-trail-role="link"
+        >
+          {{ crumb.label }}
+        </a>
+        <span v-else class="page-trail-current" data-page-trail-role="current">{{ crumb.label }}</span>
       </li>
     </ol>
   </nav>

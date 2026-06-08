@@ -25,8 +25,8 @@ textarea {
 .site-actions,
 .nav-menu,
 .nav-card-copy,
-.breadcrumb-shell,
-.breadcrumb-list,
+.page-trail,
+.page-trail-list,
 .hero,
 .hero-j1-panel,
 .hero-left,
@@ -51,8 +51,9 @@ textarea {
 .nav-menu-text-trigger,
 .nav-search-link,
 .nav-resource-link,
-.breadcrumb-link,
-.breadcrumb-current,
+.page-trail-link,
+.page-trail-current,
+.page-trail-back,
 .footer-links a,
 .footer-contact-list span,
 .catalog-page-dock,
@@ -274,17 +275,20 @@ textarea {
     min-height: 64px;
   }
 
-  .breadcrumb-shell {
+  .page-trail {
+    max-width: calc(100% - 28px);
+    margin-top: 10px;
     padding-right: 14px;
     padding-left: 14px;
   }
 
-  .breadcrumb-list {
+  .page-trail-list {
     gap: 4px 0;
   }
 
-  .breadcrumb-link,
-  .breadcrumb-current {
+  .page-trail-link,
+  .page-trail-current,
+  .page-trail-back {
     max-width: min(68vw, 30ch);
     font-size: 12px;
   }

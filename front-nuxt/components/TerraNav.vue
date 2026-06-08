@@ -327,16 +327,17 @@ onBeforeUnmount(closeMenu)
 <style scoped>
 .account-avatar-link {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .account-unread-badge {
   position: absolute;
-  top: -3px;
-  right: -3px;
+  top: -5px;
+  right: -5px;
   display: grid;
-  min-width: 18px;
-  height: 18px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
   place-items: center;
   border: 1px solid var(--index-line);
   border-radius: 999px;
@@ -346,6 +347,11 @@ onBeforeUnmount(closeMenu)
   font-style: normal;
   font-weight: 900;
   line-height: 1;
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 4px 10px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .account-avatar-link img,
@@ -353,6 +359,12 @@ onBeforeUnmount(closeMenu)
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.account-avatar-link img,
+.account-avatar-link > span:not(.account-unread-badge) {
+  border-radius: calc(var(--control-radius-lg) - 2px);
+  overflow: hidden;
 }
 
 .account-avatar-link span {

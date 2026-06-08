@@ -2,9 +2,16 @@ import { spawn } from 'node:child_process'
 
 const baseUrl = process.env.TERRAPEDIA_FRONT_NUXT_URL || 'http://localhost:5176'
 const chromeBin = process.env.CHROMIUM_BIN || '/usr/bin/chromium-browser'
-const targetThemes = ['morning-paper', 'warm-slate']
+const targetThemes = ['light', 'morning-paper', 'warm-slate']
 
 const expectedThemeTokens = {
+  light: {
+    '--paper': '#1a1f18',
+    '--text-strong': '#1a1f18',
+    '--text-main': 'rgba(26, 31, 24, 0.86)',
+    '--text-muted': 'rgba(26, 31, 24, 0.68)',
+    '--theme-text-rgb': '26, 31, 24',
+  },
   'morning-paper': {
     '--paper': '#1a1f18',
     '--text-strong': '#1a1f18',
@@ -33,6 +40,10 @@ const routes = [
   '/categories/weapons',
   '/biomes',
   '/biomes/jungle',
+  '/biomes/4',
+  '/biomes/7',
+  '/biomes/92',
+  '/biomes/100',
   '/npcs',
   '/npcs/guide',
   '/bosses',
@@ -327,6 +338,96 @@ const rootTokenExpression = `(() => {
   };
 })()`
 
+const biomeDetailThemeExpression = `(() => {
+  const root = document.documentElement;
+  const copy = document.querySelector('.biome-detail-environment-copy');
+  const hero = document.querySelector('.biome-detail-environment-hero');
+  const tags = [...document.querySelectorAll('.biome-detail-environment-hero .tag')];
+  if (!copy || !hero) return null;
+
+  const parseColor = (value) => {
+    const text = String(value || '').trim();
+    const rgbMatch = text.match(/rgba?\\(([^)]+)\\)/);
+    if (!rgbMatch) return [0, 0, 0, 1];
+    const parts = rgbMatch[1].split(',').map((part) => Number.parseFloat(part.trim()));
+    return [parts[0] || 0, parts[1] || 0, parts[2] || 0, parts.length > 3 ? parts[3] : 1];
+  };
+  const luminance = (color) => {
+    const rgb = color.slice(0, 3).map((channel) => {
+      const value = channel / 255;
+      return value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+  };
+  const textColor = parseColor(getComputedStyle(copy).color);
+  const backgroundColor = parseColor(getComputedStyle(copy).backgroundColor);
+  const copyRect = copy.getBoundingClientRect();
+  const tagTextLuminance = tags.map((tag) => luminance(parseColor(getComputedStyle(tag).color)));
+  const issues = [];
+
+  if (luminance(backgroundColor) < 0.68) {
+    issues.push({
+      element: '.biome-detail-environment-copy',
+      text: 'light theme biome detail copy surface must stay light and theme-aware',
+      color: getComputedStyle(copy).backgroundColor + ' / ' + getComputedStyle(copy).backgroundImage,
+      fontSize: '',
+      fontWeight: '',
+      ratio: Number(luminance(backgroundColor).toFixed(2)),
+    });
+  }
+
+  if (luminance(textColor) > 0.42) {
+    issues.push({
+      element: '.biome-detail-environment-copy',
+      text: 'light theme biome detail copy text must use dark theme text tokens',
+      color: getComputedStyle(copy).color,
+      fontSize: '',
+      fontWeight: '',
+      ratio: Number(luminance(textColor).toFixed(2)),
+    });
+  }
+
+  if (tagTextLuminance.some((value) => value > 0.42)) {
+    issues.push({
+      element: '.biome-detail-environment-hero .tag',
+      text: 'light theme biome detail tags must not remain white-on-dark',
+      color: tags.map((tag) => getComputedStyle(tag).color).join(', '),
+      fontSize: '',
+      fontWeight: '',
+      ratio: Number(Math.max(...tagTextLuminance).toFixed(2)),
+    });
+  }
+
+  if (backgroundColor[3] > 0.74) {
+    issues.push({
+      element: '.biome-detail-environment-copy',
+      text: 'light theme biome detail copy surface must not become an opaque paper card',
+      color: getComputedStyle(copy).backgroundColor + ' / ' + getComputedStyle(copy).backgroundImage,
+      fontSize: Math.round(copyRect.width) + 'x' + Math.round(copyRect.height),
+      fontWeight: '',
+      ratio: Number(backgroundColor[3].toFixed(2)),
+    });
+  }
+
+  if (copyRect.width > 610) {
+    issues.push({
+      element: '.biome-detail-environment-copy',
+      text: 'light theme biome detail copy width must leave the biome artwork dominant',
+      color: getComputedStyle(copy).backgroundColor,
+      fontSize: Math.round(copyRect.width) + 'x' + Math.round(copyRect.height),
+      fontWeight: '',
+      ratio: Number(copyRect.width.toFixed(0)),
+    });
+  }
+
+  return {
+    path: location.pathname,
+    theme: root.getAttribute('data-theme'),
+    expectedTheme: root.getAttribute('data-theme'),
+    issues,
+  };
+})()`
+
 const themeAppliedExpression = (theme) => `(() => {
   const root = document.documentElement;
   const style = getComputedStyle(root);
@@ -471,6 +572,18 @@ try {
 
       if (value.issues.length > 0) {
         failures.push(value)
+      }
+
+      if (route === '/biomes/4' || route === '/biomes/7' || route === '/biomes/92' || route === '/biomes/100') {
+        const biomeDetailThemeResult = await browser.send('Runtime.evaluate', {
+          expression: biomeDetailThemeExpression,
+          returnByValue: true,
+        })
+        const biomeDetailThemeValue = biomeDetailThemeResult.result.value
+
+        if (biomeDetailThemeValue?.issues?.length > 0) {
+          failures.push(biomeDetailThemeValue)
+        }
       }
     }
   }

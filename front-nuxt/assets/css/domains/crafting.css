@@ -67,30 +67,16 @@
   min-height: 0;
 }
 
-.crafting-screen + .breadcrumb-shell,
-.crafting-screen .breadcrumb-shell {
-  border-top-color: var(--crafting-line-muted);
-  border-bottom-color: var(--crafting-line-soft);
-}
-
-.crafting-screen + .breadcrumb-shell .breadcrumb-list li + li::before,
-.crafting-screen .breadcrumb-list li + li::before {
+.crafting-screen .page-trail-item + .page-trail-item::before {
   color: color-mix(in srgb, var(--tp-color-text-muted) 32%, transparent);
 }
 
-.crafting-screen .breadcrumb-link,
-.crafting-screen .breadcrumb-current {
+.crafting-screen .page-trail-link,
+.crafting-screen .page-trail-back {
   color: var(--tp-color-text-muted);
 }
 
-.crafting-screen + .breadcrumb-shell :where(.breadcrumb-link:hover, .breadcrumb-current),
-.crafting-screen :where(.breadcrumb-link:hover, .breadcrumb-current) {
-  border-color: var(--crafting-line-soft);
-  background:
-    var(--crafting-grid-minor-x),
-    var(--crafting-grid-minor-y),
-    var(--index-surface);
-  background-size: 40px 40px, 40px 40px, auto;
+.crafting-screen :where(.page-trail-link:hover, .page-trail-back:hover, .page-trail-current) {
   color: var(--crafting-heading);
 }
 

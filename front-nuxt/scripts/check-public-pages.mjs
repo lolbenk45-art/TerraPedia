@@ -1044,6 +1044,10 @@ const requiredLightVisualSelectors = [
   `${lightThemeSelector} .cover-plate.primary`,
   `${lightThemeSelector} .cover-plate.secondary`,
   `${lightThemeSelector} .cover-plate.tertiary`,
+  `${lightThemeSelector} .biome-detail-environment-hero`,
+  `${lightThemeSelector} .biome-detail-environment-copy h1`,
+  `${lightThemeSelector} .biome-detail-environment-copy p`,
+  `${lightThemeSelector} .biome-detail-environment-hero .tag`,
 ]
 
 for (const selector of requiredLightVisualSelectors) {
@@ -1273,9 +1277,17 @@ for (const path of scanFiles) {
   }
 
   if (path === 'components/TerraBreadcrumb.vue') {
-    for (const marker of ['unavailableAccountRoutes', 'isUnavailableAccountRoute(currentPath)', 'href: currentPath === path || isUnavailableAccountRoute(currentPath) ? undefined : currentPath']) {
+    for (const marker of [
+      'hiddenTrailRoutes',
+      'data-page-trail-role="shell"',
+      'data-page-trail-role="list"',
+      'data-page-trail-role="link"',
+      'data-page-trail-role="current"',
+      'isUnavailableAccountRoute(currentPath)',
+      'href: currentPath === path || isUnavailableAccountRoute(currentPath) ? undefined : currentPath',
+    ]) {
       if (!content.includes(marker)) {
-        violations.push(`${path}: V0.1 breadcrumb must not link to unfinished account surfaces via marker ${marker}`)
+        violations.push(`${path}: compact page trail must keep route hiding, data-role, and unfinished account guard marker ${marker}`)
       }
     }
   }
@@ -3486,7 +3498,7 @@ for (const path of scanFiles) {
       violations.push(`${path}: light theme variants must adapt the home J1 secondary shortcut surfaces`)
     }
 
-    for (const selector of ['.brand-logo-image', '.site-logo-copy', '.breadcrumb-shell']) {
+    for (const selector of ['.brand-logo-image', '.site-logo-copy', '.page-trail']) {
       if (!content.includes(selector)) {
         violations.push(`${path}: public CSS must style the imported logo placement selector ${selector}`)
       }
@@ -3571,9 +3583,13 @@ for (const path of scanFiles) {
       violations.push(`${path}: home left index CSS must not keep the removed index-entry-strip block`)
     }
 
-    const breadcrumbShellRule = /\.breadcrumb-shell\s*\{[^}]*var\(--index-grid-x\)[^}]*var\(--index-grid-y\)[^}]*var\(--index-bg\)/m
-    if (!breadcrumbShellRule.test(content)) {
-      violations.push(`${path}: breadcrumb shell must use the same dark grid/index background tokens as the page`)
+    const pageTrailRule = /\.page-trail\s*\{[^}]*display:\s*inline-flex;[^}]*width:\s*fit-content;[^}]*max-width:\s*min\(100% - 36px,\s*1440px\)/m
+    if (!pageTrailRule.test(content)) {
+      violations.push(`${path}: compact page trail must use inline fit-content layout instead of the removed full-width breadcrumb bar`)
+    }
+
+    if (content.includes('.breadcrumb-shell') || content.includes('padding: 4px 42px')) {
+      violations.push(`${path}: public CSS must not restore the removed full-width breadcrumb shell contract`)
     }
 
     for (const selector of ['.brand-logo-image']) {
@@ -3610,7 +3626,7 @@ for (const path of scanFiles) {
       `${sharedLightSelector} .boss-route span`,
       `${sharedLightSelector} .sprite-frame`,
       `${sharedLightSelector} .atlas-index`,
-      `${sharedLightSelector} .breadcrumb-shell`,
+      `${sharedLightSelector} .page-trail`,
       `${sharedLightSelector} .index-head span`,
       `${sharedLightSelector} .index-total span`,
       `${sharedLightSelector} .index-focus span`,
