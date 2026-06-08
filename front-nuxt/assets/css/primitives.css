@@ -328,6 +328,75 @@
   line-height: var(--tp-data-meta-line-height);
 }
 
+/*
+  Legacy public page families still own many dense chips and metadata labels.
+  Keep their readable type floor centralized here until those pages migrate to
+  tp-* primitives.
+*/
+.catalog-category-chip,
+.catalog-density-chip,
+.search-type-tabs a,
+.category-cluster-label,
+.biome-chip,
+.public-article-kicker,
+.public-article-meta,
+.public-article-cover-fallback em,
+.entity-filter em,
+.entity-stat-strip span,
+.npc-card span,
+.npc-card em,
+.boss-node span,
+.node-meta em,
+.effect-card dt,
+.effect-card dd,
+.crafting-target-summary,
+.crafting-fact dt,
+.crafting-suggestion span,
+.crafting-selector span {
+  font-size: max(13px, 1em);
+  line-height: 1.45;
+}
+
+.catalog-category-chip,
+.catalog-density-chip,
+.search-type-tabs a,
+.biome-chip {
+  min-height: 36px;
+  padding-inline: 10px;
+}
+
+.search-suggestion-rows span,
+.route-stage-timeline em,
+.category-axis-branches span,
+.route-side-summary span,
+.featured-guide-metrics em,
+.entity-stat-strip span,
+.npc-card span,
+.boss-node p,
+.effect-card dt,
+.user-action-card span,
+.user-feed-row span,
+.favorite-card span,
+.settings-list span,
+.settings-toggle-row span {
+  color: var(--tp-readable-muted);
+}
+
+.node-meta em,
+.biome-tile-subtitle {
+  color: var(--tp-readable-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.effect-card dt {
+  color: var(--tp-readable-muted);
+}
+
+.biome-tile {
+  padding: 14px;
+}
+
 @media (max-width: 720px) {
   .tp-page-shell {
     gap: var(--tp-space-4);
@@ -366,6 +435,42 @@
 
   .tp-data-table {
     gap: var(--tp-space-3);
+  }
+
+  .catalog-category-chip,
+  .catalog-density-chip,
+  .search-type-tabs a,
+  .category-cluster-label,
+  .biome-chip,
+  .public-article-kicker,
+  .public-article-meta,
+  .public-article-cover-fallback em,
+  .entity-filter em,
+  .entity-stat-strip span,
+  .npc-card span,
+  .npc-card em,
+  .boss-node span,
+  .node-meta em,
+  .effect-card dt,
+  .effect-card dd,
+  .search-suggestion-rows span,
+  .route-stage-timeline em,
+  .category-axis-branches span,
+  .route-side-summary span,
+  .featured-guide-metrics em,
+  .crafting-target-summary,
+  .crafting-fact dt,
+  .crafting-suggestion span,
+  .crafting-selector span {
+    font-size: max(13px, 1em);
+  }
+
+  .public-article-card {
+    padding: var(--tp-space-4);
+  }
+
+  .biome-tile {
+    padding: var(--tp-space-4);
   }
 
   .user-action-card span,
