@@ -397,6 +397,50 @@
   padding: 14px;
 }
 
+[data-theme="light"] .armor-card p,
+[data-theme="light"] .armor-benefit-lines span,
+[data-theme="morning-paper"] .armor-card p,
+[data-theme="morning-paper"] .armor-benefit-lines span,
+[data-theme="warm-slate"] .armor-card p,
+[data-theme="warm-slate"] .armor-benefit-lines span {
+  color: var(--text-muted);
+}
+
+[data-theme="light"] .armor-effect-strip span,
+[data-theme="light"] .armor-effect-row span,
+[data-theme="morning-paper"] .armor-effect-strip span,
+[data-theme="morning-paper"] .armor-effect-row span,
+[data-theme="warm-slate"] .armor-effect-strip span,
+[data-theme="warm-slate"] .armor-effect-row span {
+  border-color: rgba(var(--theme-border-rgb), 0.18);
+  background: rgba(var(--theme-panel-rgb), 0.62);
+  color: var(--text-main);
+}
+
+[data-theme="light"] .armor-effect-strip span.is-offense,
+[data-theme="light"] .armor-effect-row span.is-offense,
+[data-theme="morning-paper"] .armor-effect-strip span.is-offense,
+[data-theme="morning-paper"] .armor-effect-row span.is-offense,
+[data-theme="warm-slate"] .armor-effect-strip span.is-offense,
+[data-theme="warm-slate"] .armor-effect-row span.is-offense {
+  color: var(--text-link);
+}
+
+[data-theme="light"] .armor-effect-strip span.is-mobility,
+[data-theme="light"] .armor-effect-row span.is-mobility,
+[data-theme="light"] .armor-effect-strip span.is-defense,
+[data-theme="light"] .armor-effect-row span.is-defense,
+[data-theme="morning-paper"] .armor-effect-strip span.is-mobility,
+[data-theme="morning-paper"] .armor-effect-row span.is-mobility,
+[data-theme="morning-paper"] .armor-effect-strip span.is-defense,
+[data-theme="morning-paper"] .armor-effect-row span.is-defense,
+[data-theme="warm-slate"] .armor-effect-strip span.is-mobility,
+[data-theme="warm-slate"] .armor-effect-row span.is-mobility,
+[data-theme="warm-slate"] .armor-effect-strip span.is-defense,
+[data-theme="warm-slate"] .armor-effect-row span.is-defense {
+  color: var(--text-positive);
+}
+
 @media (max-width: 720px) {
   .tp-page-shell {
     gap: var(--tp-space-4);
