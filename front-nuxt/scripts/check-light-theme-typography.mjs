@@ -267,6 +267,25 @@ const auditExpression = `(() => {
     }
   }
 
+  for (const element of document.querySelectorAll('.armor-card p, .armor-benefit-lines span, .armor-effect-strip span, .armor-effect-row span')) {
+    const text = (element.innerText || element.textContent || '').replace(/\\s+/g, ' ').trim();
+    if (!text || !isVisible(element)) continue;
+
+    const style = getComputedStyle(element);
+    const color = composite(parseColor(style.color), defaultBg);
+
+    if (luminance(color) > 0.62) {
+      issues.push({
+        element: nodeName(element),
+        text: text.slice(0, 80),
+        color: style.color,
+        fontSize: style.fontSize,
+        fontWeight: style.fontWeight,
+        ratio: Number(luminance(color).toFixed(2)),
+      });
+    }
+  }
+
   for (const selector of ['.search-action', '.theme-toggle', '.nav-menu-text-trigger', '.account-avatar-link']) {
     const control = document.querySelector(selector);
     if (!control || !isVisible(control)) continue;
