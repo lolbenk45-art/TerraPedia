@@ -1425,6 +1425,20 @@ for (const path of scanFiles) {
     }
   }
 
+  if (path === 'pages/articles/index.vue') {
+    for (const marker of [
+      'tp-container is-wide article-layout discovery-articles-page article-route-shell',
+      'article-list-layout-balanced',
+      '.article-route-shell',
+      'grid-template-columns: minmax(0, 1fr) minmax(240px, 300px)',
+      'grid-template-columns: minmax(150px, 0.24fr) minmax(0, 1fr)',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: public article list must use the shared wide container and balanced desktop article/card proportions via marker ${marker}`)
+      }
+    }
+  }
+
   if (path === 'components/TerraFooter.vue') {
     for (const marker of [
       'defineProps',

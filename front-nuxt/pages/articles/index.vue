@@ -120,9 +120,9 @@ useSeoMeta({
       </div>
     </div>
 
-    <main class="tp-page-shell article-layout discovery-articles-page">
+    <main class="tp-container is-wide article-layout discovery-articles-page article-route-shell tp-page-shell">
       <section class="article-panel article-route-system">
-        <div v-if="articleLoading" class="public-article-list" aria-live="polite" aria-label="文章列表加载中">
+        <div v-if="articleLoading" class="public-article-list article-list-layout-balanced" aria-live="polite" aria-label="文章列表加载中">
           <article
             v-for="slot in articleLoadingSlotCount"
             :key="`article-loading-${slot}`"
@@ -164,7 +164,7 @@ useSeoMeta({
           </div>
         </article>
 
-        <div v-else class="public-article-list">
+        <div v-else class="public-article-list article-list-layout-balanced">
           <article v-for="article in articles" :key="article.id" class="support-panel public-article-card">
             <NuxtLink class="public-article-cover-link" :to="`/articles/${article.slug}`" :aria-label="`阅读 ${article.title}`">
               <img
@@ -244,6 +244,14 @@ useSeoMeta({
 </template>
 
 <style scoped>
+.article-route-shell {
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+  align-items: start;
+  max-width: none;
+  padding-right: 0;
+  padding-left: 0;
+}
+
 .public-article-list {
   display: grid;
   gap: 16px;
@@ -251,7 +259,7 @@ useSeoMeta({
 
 .public-article-card {
   display: grid;
-  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+  grid-template-columns: minmax(150px, 0.24fr) minmax(0, 1fr);
   gap: 18px;
   align-items: stretch;
   padding: 16px;
@@ -401,6 +409,10 @@ useSeoMeta({
 }
 
 @media (max-width: 820px) {
+  .article-route-shell {
+    grid-template-columns: 1fr;
+  }
+
   .public-article-card {
     grid-template-columns: 1fr;
   }
