@@ -995,6 +995,7 @@ const scanFiles = [
   'stores/theme.ts',
   'assets/css/hifi-preview.css',
   'assets/css/loading-skeleton.css',
+  'assets/css/primitives.css',
   'assets/css/catalog-image-fixes.css',
   'assets/css/light-theme-contrast-fixes.css',
   'assets/css/domains/crafting.css',
@@ -1427,14 +1428,28 @@ for (const path of scanFiles) {
 
   if (path === 'pages/articles/index.vue') {
     for (const marker of [
-      'tp-container is-wide article-layout discovery-articles-page article-route-shell',
+      'tp-public-page-shell article-layout discovery-articles-page article-route-shell',
       'article-list-layout-balanced',
-      '.article-route-shell',
-      'grid-template-columns: minmax(0, 1fr) minmax(240px, 300px)',
       'grid-template-columns: minmax(150px, 0.24fr) minmax(0, 1fr)',
     ]) {
       if (!content.includes(marker)) {
-        violations.push(`${path}: public article list must use the shared wide container and balanced desktop article/card proportions via marker ${marker}`)
+        violations.push(`${path}: public article list must use the shared public page shell and balanced desktop card proportions via marker ${marker}`)
+      }
+    }
+  }
+
+  if (path === 'assets/css/primitives.css') {
+    for (const marker of [
+      '.tp-public-page-shell',
+      ':is(.catalog-layout, .catalog-pixel-stage, .detail-layout, .article-layout',
+      '.crafting-layout, .crafting-page, .user-layout, .user-auth-layout',
+      '.support-layout, .article-detail-layout, .boss-detail-shell',
+      'width: min(calc(100% - var(--tp-container-gutter) - var(--tp-container-gutter)), var(--tp-container-wide))',
+      'max-width: none',
+      'padding-inline: 0',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: non-home public pages need a shared width shell so page proportions stay consistent via marker ${marker}`)
       }
     }
   }
