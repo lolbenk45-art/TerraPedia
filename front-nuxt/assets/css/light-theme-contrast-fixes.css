@@ -110,22 +110,161 @@
   font-size: var(--tp-font-size-caption);
 }
 
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero.page-head {
+  border-color: rgba(var(--theme-border-rgb), 0.18);
+  background: var(--theme-hero-bg);
+  color: var(--text-main);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero::before {
+  background:
+    linear-gradient(90deg, rgba(var(--theme-panel-rgb), 0.36), rgba(var(--theme-panel-rgb), 0.2) 22%, rgba(var(--theme-bg-rgb), 0.04) 44%, transparent 68%),
+    linear-gradient(180deg, rgba(var(--theme-panel-rgb), 0.02), transparent 56%, rgba(var(--theme-bg-2-rgb), 0.08));
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero::after {
+  opacity: 0.22;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-preview::before {
+  background:
+    radial-gradient(circle at 72% 36%, rgba(var(--theme-gold-rgb), 0.1), transparent 34%),
+    radial-gradient(circle at 22% 80%, rgba(var(--theme-positive-rgb), 0.08), transparent 36%);
+  mix-blend-mode: multiply;
+  opacity: 0.38;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-preview::after {
+  background:
+    linear-gradient(90deg, rgba(var(--theme-panel-rgb), 0.18), rgba(var(--theme-panel-rgb), 0.08) 20%, transparent 46%, rgba(var(--theme-bg-rgb), 0.04)),
+    linear-gradient(180deg, transparent 0%, rgba(var(--theme-bg-2-rgb), 0.04) 74%, rgba(var(--theme-bg-2-rgb), 0.1));
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-inner {
+  box-sizing: border-box;
+  width: 100%;
+  padding-left: clamp(48px, 4vw, 68px);
+  padding-right: clamp(18px, 2.4vw, 42px);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy {
+  width: min(100%, 420px);
+  min-width: 0;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy h1 {
+  max-width: 100%;
+  font-size: clamp(36px, 4.2vw, 58px);
+  line-height: 1.02;
+  overflow-wrap: break-word;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy p {
+  max-width: min(100%, 400px);
+}
+
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero .eyebrow,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy h1,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy p,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-tags span,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-map-stats span,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-map-stats em {
-  color: #fffaf1;
+  color: var(--text-main);
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-tags span {
-  border-color: rgba(255, 250, 241, 0.28);
-  background: rgba(7, 11, 8, 0.58);
+  border-color: rgba(var(--theme-border-rgb), 0.18);
+  background: var(--button-control-bg);
+  color: var(--button-control-fg);
+  box-shadow: var(--theme-surface-shadow);
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero .eyebrow::before {
-  background: #fffaf1;
+  background: var(--text-strong);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-map-frame {
+  border-color: rgba(var(--theme-border-rgb), 0.18);
+  background:
+    linear-gradient(135deg, rgba(var(--theme-panel-rgb), 0.12), transparent 46%),
+    rgba(var(--theme-panel-rgb), 0.08);
+  box-shadow:
+    0 28px 62px rgba(var(--theme-text-rgb), 0.12),
+    inset 0 0 0 1px rgba(var(--theme-panel-rgb), 0.38);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-map-frame::before {
+  background:
+    linear-gradient(90deg, rgba(var(--theme-border-rgb), 0.2) 0 1px, transparent 1px),
+    linear-gradient(rgba(var(--theme-border-rgb), 0.14) 0 1px, transparent 1px);
+  opacity: 0.2;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-map-frame::after {
+  border-color: rgba(var(--theme-border-rgb), 0.16);
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--theme-panel-rgb), 0.34),
+    inset 0 0 56px rgba(var(--theme-panel-rgb), 0.2);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-map-image img,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-map-image.item-art.tp-preview-image img {
+  filter: saturate(1.04) brightness(1.04);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-map-ruler {
+  background: rgba(var(--theme-border-rgb), 0.36);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-map-stats {
+  border-color: rgba(var(--theme-border-rgb), 0.18);
+  background: rgba(var(--theme-panel-rgb), 0.76);
+  box-shadow: var(--theme-surface-shadow);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-map-stats b {
+  color: var(--text-strong);
+}
+
+@media (max-width: 1180px) {
+  :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero {
+    min-height: max(560px, calc(100dvh - 118px));
+  }
+
+  :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-inner {
+    align-items: start;
+    padding-top: clamp(72px, 12vh, 116px);
+    padding-bottom: 120px;
+  }
+
+  :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy {
+    width: min(100%, 360px);
+  }
+
+  :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy h1 {
+    font-size: clamp(34px, 5vw, 48px);
+  }
+}
+
+@media (max-width: 720px) {
+  :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero {
+    min-height: max(540px, calc(100dvh - 126px));
+  }
+
+  :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-inner {
+    padding-left: 36px;
+    padding-right: 24px;
+    padding-top: 68px;
+    padding-bottom: 112px;
+  }
+
+  :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy {
+    width: min(100%, 320px);
+  }
+
+  :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy h1 {
+    font-size: clamp(30px, 10vw, 38px);
+  }
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-hero {

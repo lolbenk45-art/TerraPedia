@@ -252,6 +252,116 @@ const cssOrder = [
   if (content.includes('box-shadow: var(--button-control-shadow);')) {
     violations.push(`${path}: light theme active control overrides must not fall back to the base control shadow`)
   }
+
+  const lightThemeSelectorPattern = String.raw`:where\(\[data-theme="light"\],\s*\[data-theme="morning-paper"\],\s*\[data-theme="warm-slate"\]\)`
+
+  requireRegex(
+    path,
+    content,
+    new RegExp(`${lightThemeSelectorPattern}\\s+\\.biome-environment-hero\\.page-head\\s*\\{[^}]*background:\\s*var\\(--theme-hero-bg\\);`, 's'),
+    'biome index hero page-head must use the active theme hero background in light themes',
+  )
+
+  requireRegex(
+    path,
+    content,
+    new RegExp(`${lightThemeSelectorPattern}\\s+\\.biome-environment-hero::before\\s*\\{[^}]*rgba\\(var\\(--theme-panel-rgb\\)`, 's'),
+    'biome index hero overlay must use theme panel tokens in light themes',
+  )
+
+  if (/\.biome-environment-preview::after\s*\{[^}]*rgba\(var\(--theme-panel-rgb\),\s*0\.(?:[4-9]\d)\)/m.test(content)) {
+    violations.push(`${path}: biome index light theme image overlay must not wash out the live biome artwork`)
+  }
+
+  requireRegex(
+    path,
+    content,
+    new RegExp(`${lightThemeSelectorPattern}\\s+\\.biome-environment-hero-copy\\s*\\{[^}]*width:\\s*min\\(100%,\\s*420px\\);[^}]*min-width:\\s*0;`, 's'),
+    'biome index hero copy must have a bounded responsive width in light themes',
+  )
+
+  requireRegex(
+    path,
+    content,
+    new RegExp(`${lightThemeSelectorPattern}\\s+\\.biome-environment-hero-inner\\s*\\{[^}]*padding-left:\\s*clamp\\(48px,\\s*4vw,\\s*68px\\);`, 's'),
+    'biome index hero copy must stay inside the map frame inner border in light themes',
+  )
+
+  requireRegex(
+    path,
+    content,
+    new RegExp(`@media\\s*\\(max-width:\\s*720px\\)\\s*\\{[\\s\\S]*?${lightThemeSelectorPattern}\\s+\\.biome-environment-hero-inner\\s*\\{[^}]*padding-left:\\s*36px;`, 's'),
+    'biome index mobile hero copy must keep a safe inset inside the map frame inner border',
+  )
+
+  requireRegex(
+    path,
+    content,
+    new RegExp(`${lightThemeSelectorPattern}\\s+\\.biome-environment-hero-copy h1\\s*\\{[^}]*font-size:\\s*clamp\\(36px,\\s*4\\.2vw,\\s*58px\\);[^}]*overflow-wrap:\\s*break-word;`, 's'),
+    'biome index hero title must use a bounded responsive size and wrapping in light themes',
+  )
+
+  requireRegex(
+    path,
+    content,
+    new RegExp(`${lightThemeSelectorPattern}\\s+\\.biome-environment-map-frame\\s*\\{[^}]*border-color:\\s*rgba\\(var\\(--theme-border-rgb\\)`, 's'),
+    'biome index map frame must use theme border tokens in light themes',
+  )
+
+  requireRegex(
+    path,
+    content,
+    new RegExp(`${lightThemeSelectorPattern}\\s+\\.biome-environment-map-stats\\s*\\{[^}]*background:\\s*rgba\\(var\\(--theme-panel-rgb\\)`, 's'),
+    'biome index map stats must use theme panel tokens in light themes',
+  )
+}
+
+{
+  const path = 'assets/css/mobile-typography-fixes.css'
+  const content = requireFile(path)
+
+  for (const line of content.split('\n')) {
+    const selector = line.trim()
+
+    if (
+      selector === '.page-head-inner,' ||
+      selector === '.page-head-inner {' ||
+      selector.startsWith('.page-head-inner ') ||
+      selector.startsWith('.page-head h1') ||
+      selector.startsWith('.page-head h2') ||
+      selector.startsWith('.page-head p')
+    ) {
+      violations.push(`${path}: mobile page-head normalization must exclude .biome-environment-hero so the biome map-frame hero keeps its internal safe inset (${selector})`)
+    }
+  }
+
+  for (const marker of [
+    '.page-head:not(.biome-environment-hero)',
+    '.page-head:not(.biome-environment-hero) .page-head-inner',
+    '.page-head:not(.biome-environment-hero) h1',
+    '.page-head:not(.biome-environment-hero) p',
+  ]) {
+    requireIncludes(
+      path,
+      content,
+      marker,
+      `mobile typography page-head rules must use biome-safe selector marker ${marker}`,
+    )
+  }
+}
+
+{
+  const path = 'assets/css/catalog-image-fixes.css'
+  const content = requireFile(path)
+
+  if (/\.catalog-category-chip\.active,[\s\S]*?\.catalog-dock-page-button\.active\s*\{[\s\S]*?rgba\(var\(--theme-text-rgb\),\s*0\.9[0-9]\)/m.test(content)) {
+    violations.push(`${path}: light theme catalog active chips and pagination must not use near-solid text color as a dark fill`)
+  }
+
+  const activeCatalogControlsRule = /:where\(\[data-theme="light"\],\s*\[data-theme="morning-paper"\],\s*\[data-theme="warm-slate"\]\)\s+\.catalog-category-chip\.active,[\s\S]*?\.catalog-dock-page-button\.active\s*\{[\s\S]*?border-color:\s*var\(--button-control-active-border\);[\s\S]*?background:\s*var\(--button-control-active-bg\);[\s\S]*?color:\s*var\(--button-control-active-fg\);[\s\S]*?box-shadow:\s*var\(--button-control-active-shadow\);/m
+  if (!activeCatalogControlsRule.test(content)) {
+    violations.push(`${path}: light theme catalog active chips and pagination must consume shared active control tokens`)
+  }
 }
 
 if (violations.length > 0) {

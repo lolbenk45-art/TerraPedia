@@ -1281,8 +1281,15 @@
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-category-chip.active,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-density-chip.active,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-dock-page-button.active {
-  border-color: rgba(var(--theme-text-rgb), 0.34);
-  background: linear-gradient(180deg, rgba(var(--theme-text-rgb), 0.96), rgba(var(--theme-text-rgb), 0.88));
+  border-color: var(--button-control-active-border);
+  background: var(--button-control-active-bg);
+  color: var(--button-control-active-fg);
+  box-shadow: var(--button-control-active-shadow);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-category-chip.active :where(b, span, em, strong),
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-density-chip.active :where(b, span, em, strong),
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-dock-page-button.active :where(b, span, em, strong) {
   color: var(--button-control-active-fg);
 }
 

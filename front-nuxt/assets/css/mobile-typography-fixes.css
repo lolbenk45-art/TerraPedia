@@ -31,8 +31,8 @@ textarea {
 .hero-j1-panel,
 .hero-left,
 .atlas-index,
-.page-head,
-.page-head-inner,
+.page-head:not(.biome-environment-hero),
+.page-head:not(.biome-environment-hero) .page-head-inner,
 .catalog-layout,
 .filter-panel,
 .list-panel,
@@ -64,8 +64,8 @@ textarea {
 }
 
 .hero-j1-title,
-.page-head h1,
-.page-head h2,
+.page-head:not(.biome-environment-hero) h1,
+.page-head:not(.biome-environment-hero) h2,
 .article-detail-hero h1,
 .article-detail-hero h2,
 .boss-detail-hero h1,
@@ -94,7 +94,7 @@ textarea {
 .filter-option,
 .item-cell span,
 .hero-j1-lede,
-.page-head p,
+.page-head:not(.biome-environment-hero) p,
 .preview-panel p,
 .camp-footer p {
   font-family: var(--font-sans);
@@ -416,13 +416,13 @@ textarea {
     min-width: 0;
   }
 
-  .page-head {
+  .page-head:not(.biome-environment-hero) {
     width: 100%;
     max-width: 100%;
     padding: 18px 14px;
   }
 
-  .page-head-inner {
+  .page-head:not(.biome-environment-hero) .page-head-inner {
     grid-template-columns: minmax(0, 1fr);
     width: 100%;
     min-width: 0;
@@ -430,14 +430,14 @@ textarea {
     border-radius: 16px;
   }
 
-  .page-head h1,
-  .page-head h2 {
+  .page-head:not(.biome-environment-hero) h1,
+  .page-head:not(.biome-environment-hero) h2 {
     font-size: 34px;
     line-height: 1.12;
     overflow-wrap: anywhere;
   }
 
-  .page-head p {
+  .page-head:not(.biome-environment-hero) p {
     max-width: 100%;
   }
 
@@ -584,7 +584,7 @@ textarea {
     border-top: 0;
   }
 
-  .page-head-inner,
+  .page-head:not(.biome-environment-hero) .page-head-inner,
   .filter-panel,
   .list-panel,
   .preview-hero {
