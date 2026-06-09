@@ -18,7 +18,7 @@ public class PublicHomeServiceImpl implements PublicHomeService {
     private final PublicItemService publicItemService;
 
     @Override
-    @Cacheable(cacheNames = "stats:overview", key = "'home-focus-item'", unless = "#result == null")
+    @Cacheable(cacheNames = "home:focus-item", key = "'current'", unless = "#result == null")
     public PublicHomeFocusItemDTO getFocusItem() {
         PublicItemDetailDTO item = publicItemService.getPublicItemById(HOME_FOCUS_ITEM_ID);
         if (item == null || item.getId() == null) {
