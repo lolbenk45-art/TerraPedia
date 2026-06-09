@@ -91,7 +91,7 @@ const fetchHomeFocusItem = async (): Promise<HomeFocusItem> => {
 }
 
 export const useHomeData = async () => {
-  const { data: homeStats } = await useAsyncData(
+  const homeStatsResult = useAsyncData(
     'home-public-stats',
     fetchHomeStats,
     {
@@ -99,13 +99,18 @@ export const useHomeData = async () => {
     },
   )
 
-  const { data: homeFocusItem } = await useAsyncData(
+  const homeFocusItemResult = useAsyncData(
     'home-public-focus-item',
     fetchHomeFocusItem,
     {
       default: () => fallbackFocusItem,
     },
   )
+
+  const [
+    { data: homeStats },
+    { data: homeFocusItem },
+  ] = await Promise.all([homeStatsResult, homeFocusItemResult])
 
   const itemTotalLabel = computed(() => formatCount(homeStats.value?.totalItems, '图鉴'))
   const categoryTotalLabel = computed(() => formatCount(homeStats.value?.totalCategories, '分类'))

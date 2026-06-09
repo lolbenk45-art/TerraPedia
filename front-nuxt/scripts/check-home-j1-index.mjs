@@ -233,6 +233,10 @@ if (!existsSync(file(pagePath))) {
   assertIncludes(homeHeroPath, homeHero, '公共资料索引', 'homepage atlas must keep the existing index framing')
   assertIncludes(homeHeroPath, homeHero, 'atlas.rows', 'homepage atlas table must remain intact')
 
+  if (/await\s+useAsyncData\([\s\S]*?await\s+useAsyncData\(/.test(homeData)) {
+    failures.push(`${homeDataPath}: useHomeData must register multiple useAsyncData calls before awaiting to preserve the Nuxt instance`)
+  }
+
   const unsupportedHomeLinkMarkers = [
     '/articles?stage=',
     '/articles?type=',
