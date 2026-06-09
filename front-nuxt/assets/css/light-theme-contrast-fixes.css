@@ -147,18 +147,6 @@
   padding-right: clamp(18px, 2.4vw, 42px);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy {
-  width: min(100%, 420px);
-  min-width: 0;
-}
-
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy h1 {
-  max-width: 100%;
-  font-size: clamp(36px, 4.2vw, 58px);
-  line-height: 1.02;
-  overflow-wrap: break-word;
-}
-
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy p {
   max-width: min(100%, 400px);
 }
@@ -237,13 +225,6 @@
     padding-bottom: 120px;
   }
 
-  :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy {
-    width: min(100%, 360px);
-  }
-
-  :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy h1 {
-    font-size: clamp(34px, 5vw, 48px);
-  }
 }
 
 @media (max-width: 720px) {
@@ -258,13 +239,6 @@
     padding-bottom: 112px;
   }
 
-  :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy {
-    width: min(100%, 320px);
-  }
-
-  :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-environment-hero-copy h1 {
-    font-size: clamp(30px, 10vw, 38px);
-  }
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-hero {
@@ -285,27 +259,32 @@
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy {
-  max-width: 580px;
-  border-color: rgba(var(--theme-border-rgb), 0.18);
+  border-color: rgba(var(--theme-border-rgb), 0.1);
   background:
-    linear-gradient(135deg, rgba(var(--theme-panel-rgb), 0.72), rgba(var(--theme-bg-2-rgb), 0.58)),
-    rgba(var(--theme-panel-rgb), 0.64);
+    linear-gradient(135deg, rgba(var(--theme-panel-rgb), 0.36), rgba(var(--theme-bg-2-rgb), 0.22)),
+    rgba(var(--theme-panel-rgb), 0.26);
   color: var(--text-main);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.38),
-    0 16px 34px rgba(var(--theme-text-rgb), 0.1);
-  backdrop-filter: blur(1px);
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    0 10px 24px rgba(var(--theme-text-rgb), 0.06);
+  backdrop-filter: none;
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy .eyebrow,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy h1,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy h2 {
   color: var(--text-strong);
   text-shadow: none;
 }
 
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy h1 {
+  color: var(--text-strong);
+  font-weight: 900;
+  text-shadow: none;
+}
+
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-detail-environment-copy p {
-  color: var(--text-main);
+  color: rgba(var(--theme-text-rgb), 0.9);
+  font-weight: 650;
   text-shadow: none;
 }
 

@@ -196,6 +196,7 @@ const cssOrder = [
   const content = requireFile(path)
 
   requireIncludes(path, content, 'Do not add business selectors to hifi-preview.css', 'must document the hifi-preview migration boundary')
+  requireIncludes(path, content, '@import "./biome.css";', 'must load biome domain CSS for theme-managed biome hero rules')
 }
 
 {
@@ -239,6 +240,42 @@ const cssOrder = [
 }
 
 {
+  const path = 'assets/css/domains/biome.css'
+  const content = requireFile(path)
+
+  for (const marker of [
+    '--biome-environment-hero-copy-offset: clamp(44px, 4vw, 72px);',
+    '--biome-environment-hero-copy-width: min(calc(100% - var(--biome-environment-hero-copy-offset)), 420px);',
+    '--biome-environment-hero-copy-max-width: 420px;',
+    '--biome-environment-hero-title-size: clamp(38px, 4.4vw, 64px);',
+    '--biome-detail-environment-copy-max-width: 580px;',
+    '--biome-detail-environment-title-size: 42px;',
+    'margin-left: var(--biome-environment-hero-copy-offset);',
+    'width: var(--biome-environment-hero-copy-width);',
+    'max-width: var(--biome-environment-hero-copy-max-width);',
+    'font-size: var(--biome-environment-hero-title-size);',
+    'max-width: var(--biome-detail-environment-copy-max-width);',
+    'font-size: var(--biome-detail-environment-title-size);',
+  ]) {
+    requireIncludes(path, content, marker, `missing biome theme-managed marker ${marker}`)
+  }
+
+  requireRegex(
+    path,
+    content,
+    /@media\s*\(max-width:\s*720px\)\s*\{[\s\S]*?\.biome-environment-hero\s*\{[^}]*--biome-environment-hero-copy-offset:\s*56px;[^}]*--biome-environment-hero-copy-width:\s*min\(calc\(100%\s*-\s*var\(--biome-environment-hero-copy-offset\)\),\s*320px\);[^}]*--biome-environment-hero-copy-max-width:\s*320px;/s,
+    'biome mobile hero copy offset and width must stay theme-managed through shared variables',
+  )
+
+  requireRegex(
+    path,
+    content,
+    /\.biome-detail-environment-copy p\s*\{[^}]*display:\s*block;[^}]*overflow:\s*visible;[^}]*-webkit-line-clamp:\s*initial;[^}]*line-clamp:\s*initial;/s,
+    'biome detail copy must not truncate description text in the shared domain layer',
+  )
+}
+
+{
   const path = 'assets/css/light-theme-contrast-fixes.css'
   const content = requireFile(path)
 
@@ -273,12 +310,15 @@ const cssOrder = [
     violations.push(`${path}: biome index light theme image overlay must not wash out the live biome artwork`)
   }
 
-  requireRegex(
-    path,
-    content,
-    new RegExp(`${lightThemeSelectorPattern}\\s+\\.biome-environment-hero-copy\\s*\\{[^}]*width:\\s*min\\(100%,\\s*420px\\);[^}]*min-width:\\s*0;`, 's'),
-    'biome index hero copy must have a bounded responsive width in light themes',
-  )
+  const directLightHeroCopyRulePattern = new RegExp(`${lightThemeSelectorPattern}\\s+\\.biome-environment-hero-copy\\s*\\{[^}]*\\b(?:width|max-width|margin-left|font-size):`, 's')
+  if (directLightHeroCopyRulePattern.test(content)) {
+    violations.push(`${path}: light theme biome hero copy sizing and movement must be handled by shared biome domain variables`)
+  }
+
+  const directLightDetailCopySizingRulePattern = new RegExp(`${lightThemeSelectorPattern}\\s+\\.biome-detail-environment-copy\\s*\\{[^}]*\\b(?:width|max-width|margin-left|font-size):`, 's')
+  if (directLightDetailCopySizingRulePattern.test(content)) {
+    violations.push(`${path}: light theme biome detail copy sizing must be handled by shared biome domain variables`)
+  }
 
   requireRegex(
     path,
@@ -287,19 +327,10 @@ const cssOrder = [
     'biome index hero copy must stay inside the map frame inner border in light themes',
   )
 
-  requireRegex(
-    path,
-    content,
-    new RegExp(`@media\\s*\\(max-width:\\s*720px\\)\\s*\\{[\\s\\S]*?${lightThemeSelectorPattern}\\s+\\.biome-environment-hero-inner\\s*\\{[^}]*padding-left:\\s*36px;`, 's'),
-    'biome index mobile hero copy must keep a safe inset inside the map frame inner border',
-  )
-
-  requireRegex(
-    path,
-    content,
-    new RegExp(`${lightThemeSelectorPattern}\\s+\\.biome-environment-hero-copy h1\\s*\\{[^}]*font-size:\\s*clamp\\(36px,\\s*4\\.2vw,\\s*58px\\);[^}]*overflow-wrap:\\s*break-word;`, 's'),
-    'biome index hero title must use a bounded responsive size and wrapping in light themes',
-  )
+  const lightHeroTitleMediaOverridePattern = new RegExp(`@media\\s*\\(max-width:\\s*(?:1180|720)px\\)\\s*\\{[\\s\\S]*?${lightThemeSelectorPattern}\\s+\\.biome-environment-hero-copy h1\\s*\\{[^}]*font-size:`, 's')
+  if (lightHeroTitleMediaOverridePattern.test(content)) {
+    violations.push(`${path}: light theme biome index hero title must not shrink below the dark theme size at responsive breakpoints`)
+  }
 
   requireRegex(
     path,
@@ -313,6 +344,27 @@ const cssOrder = [
     content,
     new RegExp(`${lightThemeSelectorPattern}\\s+\\.biome-environment-map-stats\\s*\\{[^}]*background:\\s*rgba\\(var\\(--theme-panel-rgb\\)`, 's'),
     'biome index map stats must use theme panel tokens in light themes',
+  )
+
+  requireRegex(
+    path,
+    content,
+    new RegExp(`${lightThemeSelectorPattern}\\s+\\.biome-detail-environment-copy\\s*\\{[^}]*border-color:\\s*rgba\\(var\\(--theme-border-rgb\\),\\s*0\\.1\\);[^}]*background:\\s*linear-gradient\\(135deg,\\s*rgba\\(var\\(--theme-panel-rgb\\),\\s*0\\.36\\),\\s*rgba\\(var\\(--theme-bg-2-rgb\\),\\s*0\\.22\\)\\),\\s*rgba\\(var\\(--theme-panel-rgb\\),\\s*0\\.26\\);[^}]*box-shadow:\\s*inset\\s+0\\s+1px\\s+0\\s+rgba\\(255,\\s*255,\\s*255,\\s*0\\.34\\),\\s*0\\s+10px\\s+24px\\s+rgba\\(var\\(--theme-text-rgb\\),\\s*0\\.06\\);[^}]*backdrop-filter:\\s*none;`, 's'),
+    'biome detail light copy panel must use a lighter low-coverage surface distinct from the artwork',
+  )
+
+  requireRegex(
+    path,
+    content,
+    new RegExp(`${lightThemeSelectorPattern}\\s+\\.biome-detail-environment-copy h1\\s*\\{[^}]*color:\\s*var\\(--text-strong\\);[^}]*font-weight:\\s*900;`, 's'),
+    'biome detail light title must have a stronger text hierarchy',
+  )
+
+  requireRegex(
+    path,
+    content,
+    new RegExp(`${lightThemeSelectorPattern}\\s+\\.biome-detail-environment-copy p\\s*\\{[^}]*color:\\s*rgba\\(var\\(--theme-text-rgb\\),\\s*0\\.9\\);[^}]*font-weight:\\s*650;`, 's'),
+    'biome detail light description must stay readable without relying on a heavy panel fill',
   )
 }
 

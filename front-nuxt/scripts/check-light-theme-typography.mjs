@@ -341,6 +341,7 @@ const rootTokenExpression = `(() => {
 const biomeDetailThemeExpression = `(() => {
   const root = document.documentElement;
   const copy = document.querySelector('.biome-detail-environment-copy');
+  const description = copy?.querySelector('p');
   const hero = document.querySelector('.biome-detail-environment-hero');
   const tags = [...document.querySelectorAll('.biome-detail-environment-hero .tag')];
   if (!copy || !hero) return null;
@@ -361,6 +362,8 @@ const biomeDetailThemeExpression = `(() => {
   };
   const textColor = parseColor(getComputedStyle(copy).color);
   const backgroundColor = parseColor(getComputedStyle(copy).backgroundColor);
+  const descriptionStyle = description ? getComputedStyle(description) : null;
+  const descriptionClamp = descriptionStyle ? String(descriptionStyle.webkitLineClamp || descriptionStyle.lineClamp || '').trim() : '';
   const copyRect = copy.getBoundingClientRect();
   const tagTextLuminance = tags.map((tag) => luminance(parseColor(getComputedStyle(tag).color)));
   const issues = [];
@@ -417,6 +420,30 @@ const biomeDetailThemeExpression = `(() => {
       fontSize: Math.round(copyRect.width) + 'x' + Math.round(copyRect.height),
       fontWeight: '',
       ratio: Number(copyRect.width.toFixed(0)),
+    });
+  }
+
+  if (!description) {
+    issues.push({
+      element: '.biome-detail-environment-copy p',
+      text: 'light theme biome detail description must exist for readability checks',
+      color: '',
+      fontSize: '',
+      fontWeight: '',
+      ratio: 0,
+    });
+  } else if (
+    descriptionStyle.display !== 'block'
+    || descriptionStyle.overflow !== 'visible'
+    || /^\d+$/.test(descriptionClamp)
+  ) {
+    issues.push({
+      element: '.biome-detail-environment-copy p',
+      text: 'light theme biome detail description must wrap naturally without truncation',
+      color: descriptionStyle.display + ' / ' + descriptionStyle.overflow + ' / ' + descriptionClamp,
+      fontSize: Math.round(description.scrollHeight) + 'px content',
+      fontWeight: descriptionStyle.fontWeight,
+      ratio: Number(description.getBoundingClientRect().height.toFixed(0)),
     });
   }
 

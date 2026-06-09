@@ -10,3 +10,4 @@
   Do not add business selectors to hifi-preview.css during new domain work.
 */
 @import "./crafting.css";
+@import "./biome.css";

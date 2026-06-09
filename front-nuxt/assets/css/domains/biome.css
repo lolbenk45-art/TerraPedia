@@ -1,0 +1,51 @@
+.biome-environment-hero {
+  --biome-environment-hero-copy-offset: clamp(44px, 4vw, 72px);
+  --biome-environment-hero-copy-width: min(calc(100% - var(--biome-environment-hero-copy-offset)), 420px);
+  --biome-environment-hero-copy-max-width: 420px;
+  --biome-environment-hero-title-size: clamp(38px, 4.4vw, 64px);
+}
+
+.biome-detail-environment-hero {
+  --biome-detail-environment-copy-max-width: 580px;
+  --biome-detail-environment-title-size: 42px;
+}
+
+.biome-environment-hero-copy {
+  width: var(--biome-environment-hero-copy-width);
+  max-width: var(--biome-environment-hero-copy-max-width);
+  margin-left: var(--biome-environment-hero-copy-offset);
+}
+
+.biome-environment-hero-copy h1 {
+  font-size: var(--biome-environment-hero-title-size);
+}
+
+.biome-detail-environment-copy {
+  max-width: var(--biome-detail-environment-copy-max-width);
+}
+
+.biome-detail-environment-copy h1 {
+  font-size: var(--biome-detail-environment-title-size);
+}
+
+.biome-detail-environment-copy p {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: initial;
+  line-clamp: initial;
+}
+
+@media (max-width: 1180px) {
+  .biome-environment-hero {
+    --biome-environment-hero-copy-width: min(100%, 360px);
+    --biome-environment-hero-copy-max-width: 360px;
+  }
+}
+
+@media (max-width: 720px) {
+  .biome-environment-hero {
+    --biome-environment-hero-copy-offset: 56px;
+    --biome-environment-hero-copy-width: min(calc(100% - var(--biome-environment-hero-copy-offset)), 320px);
+    --biome-environment-hero-copy-max-width: 320px;
+  }
+}
