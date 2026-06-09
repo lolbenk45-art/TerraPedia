@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -54,6 +55,8 @@ class PublicItemControllerTest {
         item.setImage("http://localhost:9000/terrapedia-images/items/iron-pickaxe.png");
         item.setCategoryId(313L);
         item.setCategoryName("Pickaxes");
+        item.setRelatedCategoryIds(List.of(313L, 314L));
+        item.setCategoryPaths(List.of("Items / Tools / Pickaxes", "Items / Mining / Pickaxes"));
         item.setRarityId(1L);
         item.setRarity("Blue");
         item.setGamePeriodId(1L);
@@ -90,7 +93,12 @@ class PublicItemControllerTest {
             .andExpect(jsonPath("$.data[0].image").value("http://localhost:9000/terrapedia-images/items/iron-pickaxe.png"))
             .andExpect(jsonPath("$.data[0].imageUrl").doesNotExist())
             .andExpect(jsonPath("$.data[0].category").doesNotExist())
+            .andExpect(jsonPath("$.data[0].categoryId").value(313))
             .andExpect(jsonPath("$.data[0].categoryName").value("Pickaxes"))
+            .andExpect(jsonPath("$.data[0].relatedCategoryIds[0]").value(313))
+            .andExpect(jsonPath("$.data[0].relatedCategoryIds[1]").value(314))
+            .andExpect(jsonPath("$.data[0].categoryPaths[0]").value("Items / Tools / Pickaxes"))
+            .andExpect(jsonPath("$.data[0].categoryPaths[1]").value("Items / Mining / Pickaxes"))
             .andExpect(jsonPath("$.data[0].rare").doesNotExist())
             .andExpect(jsonPath("$.data[0].rarity").value("Blue"))
             .andExpect(jsonPath("$.data[0].price").value(500))
@@ -98,7 +106,6 @@ class PublicItemControllerTest {
             .andExpect(jsonPath("$.data[0].sell").value(100))
             .andExpect(jsonPath("$.data[0].sourceNpcs").doesNotExist())
             .andExpect(jsonPath("$.data[0].sourceNpcsJson").doesNotExist())
-            .andExpect(jsonPath("$.data[0].categoryPaths").doesNotExist())
             .andExpect(jsonPath("$.data[0].description").doesNotExist())
             .andExpect(jsonPath("$.data[0].descriptionZh").doesNotExist())
             .andExpect(jsonPath("$.data[0].tooltip").doesNotExist())
@@ -119,6 +126,28 @@ class PublicItemControllerTest {
         assertEquals("Blue", query.getRarity());
         assertEquals("name", query.getSortBy());
         assertEquals("asc", query.getSortDirection());
+    }
+
+    @Test
+    void shouldPreserveNullAndEmptyCategoryContractForPublicItemList() throws Exception {
+        PublicItemListDTO item = new PublicItemListDTO();
+        item.setId(2L);
+        item.setName("Uncategorized");
+        item.setRelatedCategoryIds(new ArrayList<>());
+        item.setCategoryPaths(new ArrayList<>());
+
+        Page<PublicItemListDTO> page = new Page<>(1, 36);
+        page.setTotal(1);
+        page.setRecords(List.of(item));
+
+        when(publicItemService.getPublicItems(any(PageQuery.class))).thenReturn(page);
+
+        mockMvc.perform(get("/public/items"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].categoryId").doesNotExist())
+            .andExpect(jsonPath("$.data[0].categoryName").doesNotExist())
+            .andExpect(jsonPath("$.data[0].relatedCategoryIds.length()").value(0))
+            .andExpect(jsonPath("$.data[0].categoryPaths.length()").value(0));
     }
 
     @Test
@@ -208,6 +237,8 @@ class PublicItemControllerTest {
         item.setImage("http://localhost:9000/terrapedia-images/items/night-edge.png");
         item.setCategoryId(9L);
         item.setCategoryName("Weapons");
+        item.setRelatedCategoryIds(List.of(9L, 10L));
+        item.setCategoryPaths(List.of("Items / Weapons", "Items / Weapons / Swords"));
         item.setRarityId(3L);
         item.setRarity("Orange");
         item.setGamePeriodId(1L);
@@ -226,7 +257,12 @@ class PublicItemControllerTest {
             .andExpect(jsonPath("$.data.id").value(77))
             .andExpect(jsonPath("$.data.name").value("Night Edge"))
             .andExpect(jsonPath("$.data.image").value("http://localhost:9000/terrapedia-images/items/night-edge.png"))
+            .andExpect(jsonPath("$.data.categoryId").value(9))
             .andExpect(jsonPath("$.data.categoryName").value("Weapons"))
+            .andExpect(jsonPath("$.data.relatedCategoryIds[0]").value(9))
+            .andExpect(jsonPath("$.data.relatedCategoryIds[1]").value(10))
+            .andExpect(jsonPath("$.data.categoryPaths[0]").value("Items / Weapons"))
+            .andExpect(jsonPath("$.data.categoryPaths[1]").value("Items / Weapons / Swords"))
             .andExpect(jsonPath("$.data.rarity").value("Orange"))
             .andExpect(jsonPath("$.data.description").value("A strong pre-hardmode sword"))
             .andExpect(jsonPath("$.data.tooltip").value("Forged from darkness"))
@@ -234,7 +270,6 @@ class PublicItemControllerTest {
             .andExpect(jsonPath("$.data.sourceNpcsJson").doesNotExist())
             .andExpect(jsonPath("$.data.imageUrl").doesNotExist())
             .andExpect(jsonPath("$.data.originalUrl").doesNotExist())
-            .andExpect(jsonPath("$.data.categoryPaths").doesNotExist())
             .andExpect(jsonPath("$.data.createdAt").doesNotExist())
             .andExpect(jsonPath("$.data.updatedAt").doesNotExist());
 

@@ -31,7 +31,6 @@ type CatalogCategoryFilter = {
   label: string
   categoryCodes?: readonly string[]
   gamePeriodId?: number
-  terms?: readonly string[]
 }
 
 type CatalogCategoryGroup = {
@@ -50,8 +49,8 @@ const catalogCategoryGroups: readonly CatalogCategoryGroup[] = [
     caption: '全库浏览',
     filters: [
       allCategoryFilter,
-      { key: 'pre-hardmode', label: '困难前', gamePeriodId: 1, terms: ['困难模式前', '开荒', 'Boss 前', 'pre-hardmode'] },
-      { key: 'hardmode', label: '困难模式', gamePeriodId: 2, terms: ['困难模式后', '困难模式', 'hardmode'] },
+      { key: 'pre-hardmode', label: '困难前', gamePeriodId: 1 },
+      { key: 'hardmode', label: '困难模式', gamePeriodId: 2 },
     ],
   },
   {
@@ -59,12 +58,12 @@ const catalogCategoryGroups: readonly CatalogCategoryGroup[] = [
     label: '战斗',
     caption: '武器 / 防具 / Boss',
     filters: [
-      { key: 'weapon', label: '武器', categoryCodes: ['WEAPON', 'WEAPON_MELEE', 'WEAPON_RANGED', 'WEAPON_MAGIC', 'WEAPON_SUMMON'], terms: ['武器', '剑', '弓', '枪', '炮', '魔法', '近战', '远程', 'weapon', 'melee', 'ranged', 'magic'] },
-      { key: 'armor', label: '盔甲', categoryCodes: ['ARMOR'], terms: ['盔甲', '护甲', '头盔', '胸甲', '护胫', 'armor'] },
-      { key: 'accessory', label: '饰品', categoryCodes: ['ACCESSORY'], terms: ['饰品', '配饰', 'accessory'] },
-      { key: 'ammo', label: '弹药', categoryCodes: ['AMMUNITION'], terms: ['弹药', '子弹', '箭', 'ammo', 'ammunition'] },
-      { key: 'summon', label: '召唤', categoryCodes: ['WEAPON_SUMMON', 'CONSUMABLE_SUMMON'], terms: ['召唤', '仆从', '哨兵', 'summon', 'minion', 'sentry'] },
-      { key: 'boss-drop', label: 'Boss 掉落', categoryCodes: ['CONSUMABLE_GRAB', 'CONSUMABLE_GRAB_BAG'], terms: ['Boss 掉落', 'Boss', '宝藏袋', 'treasure bag', 'relic'] },
+      { key: 'weapon', label: '武器', categoryCodes: ['WEAPON', 'WEAPON_MELEE', 'WEAPON_RANGED', 'WEAPON_MAGIC', 'WEAPON_SUMMON'] },
+      { key: 'armor', label: '盔甲', categoryCodes: ['ARMOR'] },
+      { key: 'accessory', label: '饰品', categoryCodes: ['ACCESSORY'] },
+      { key: 'ammo', label: '弹药', categoryCodes: ['AMMUNITION'] },
+      { key: 'summon', label: '召唤', categoryCodes: ['WEAPON_SUMMON', 'CONSUMABLE_SUMMON'] },
+      { key: 'boss-drop', label: 'Boss 掉落', categoryCodes: ['CONSUMABLE_GRAB', 'CONSUMABLE_GRAB_BAG'] },
     ],
   },
   {
@@ -72,12 +71,12 @@ const catalogCategoryGroups: readonly CatalogCategoryGroup[] = [
     label: '制作',
     caption: '材料 / 机关 / 工作站',
     filters: [
-      { key: 'material', label: '材料', categoryCodes: ['MATERIAL'], terms: ['材料', 'material'] },
-      { key: 'ore', label: '矿石', categoryCodes: ['MATERIAL_ORE'], terms: ['矿石', '铁矿', '铜矿', 'ore'] },
-      { key: 'bar', label: '锭', categoryCodes: ['MATERIAL_BAR'], terms: ['锭', 'bar', 'ingot'] },
-      { key: 'station', label: '工作站', categoryCodes: ['FURNITURE_CRAFTING_STATION'], terms: ['工作台', '熔炉', '砧', '站', 'station', 'workbench'] },
-      { key: 'mechanism', label: '机关', categoryCodes: ['TOOL_CIRCUIT'], terms: ['机关', '电线', '压力板', '开关', 'mechanism', 'wire'] },
-      { key: 'wiring', label: '电路', categoryCodes: ['TOOL_CIRCUIT'], terms: ['电线', '扳手', '电路', 'wiring', 'wire'] },
+      { key: 'material', label: '材料', categoryCodes: ['MATERIAL'] },
+      { key: 'ore', label: '矿石', categoryCodes: ['MATERIAL_ORE'] },
+      { key: 'bar', label: '锭', categoryCodes: ['MATERIAL_BAR'] },
+      { key: 'station', label: '工作站', categoryCodes: ['FURNITURE_CRAFTING_STATION'] },
+      { key: 'mechanism', label: '机关', categoryCodes: ['TOOL_CIRCUIT'] },
+      { key: 'wiring', label: '电路', categoryCodes: ['TOOL_CIRCUIT'] },
     ],
   },
   {
@@ -85,12 +84,12 @@ const catalogCategoryGroups: readonly CatalogCategoryGroup[] = [
     label: '探索',
     caption: '工具 / 照明 / 宝箱',
     filters: [
-      { key: 'tool', label: '工具', categoryCodes: ['TOOL'], terms: ['工具', '镐', '斧', '锤', '钓竿', 'tool', 'pickaxe', 'axe', 'hammer'] },
-      { key: 'mount', label: '坐骑', categoryCodes: ['MOUNT'], terms: ['坐骑', 'mount'] },
-      { key: 'pet', label: '宠物', categoryCodes: ['PET'], terms: ['宠物', 'pet'] },
-      { key: 'lighting', label: '照明', categoryCodes: ['FURNITURE_LIGHT'], terms: ['照明', '火把', '灯笼', '蜡烛', 'light', 'torch', 'lantern'] },
-      { key: 'key', label: '钥匙', categoryCodes: ['MATERIAL_KEY'], terms: ['钥匙', 'key'] },
-      { key: 'treasure', label: '宝藏袋', categoryCodes: ['CONSUMABLE_GRAB', 'CONSUMABLE_GRAB_BAG'], terms: ['宝藏袋', '宝匣', 'treasure bag', 'crate'] },
+      { key: 'tool', label: '工具', categoryCodes: ['TOOL'] },
+      { key: 'mount', label: '坐骑', categoryCodes: ['MOUNT'] },
+      { key: 'pet', label: '宠物', categoryCodes: ['PET'] },
+      { key: 'lighting', label: '照明', categoryCodes: ['FURNITURE_LIGHT'] },
+      { key: 'key', label: '钥匙', categoryCodes: ['MATERIAL_KEY'] },
+      { key: 'treasure', label: '宝藏袋', categoryCodes: ['CONSUMABLE_GRAB', 'CONSUMABLE_GRAB_BAG'] },
     ],
   },
   {
@@ -98,12 +97,12 @@ const catalogCategoryGroups: readonly CatalogCategoryGroup[] = [
     label: '建筑',
     caption: '方块 / 家具 / 装饰',
     filters: [
-      { key: 'block', label: '方块', categoryCodes: ['MATERIAL_BLOCK'], terms: ['方块', '块', 'block'] },
-      { key: 'wall', label: '墙', categoryCodes: ['MATERIAL_WALL'], terms: ['墙', 'wall'] },
-      { key: 'furniture', label: '家具', categoryCodes: ['FURNITURE'], terms: ['家具', '椅子', '桌子', 'furniture'] },
-      { key: 'door', label: '门', categoryCodes: ['FURNITURE_FUNCTIONAL'], terms: ['门', 'door'] },
-      { key: 'platform', label: '平台', categoryCodes: ['MATERIAL_BLOCK'], terms: ['平台', 'platform'] },
-      { key: 'decor', label: '装饰', categoryCodes: ['FURNITURE_DECORATION'], terms: ['装饰', '画', '旗', 'painting', 'banner', 'decor'] },
+      { key: 'block', label: '方块', categoryCodes: ['MATERIAL_BLOCK'] },
+      { key: 'wall', label: '墙', categoryCodes: ['MATERIAL_WALL'] },
+      { key: 'furniture', label: '家具', categoryCodes: ['FURNITURE'] },
+      { key: 'door', label: '门', categoryCodes: ['FURNITURE_FUNCTIONAL'] },
+      { key: 'platform', label: '平台', categoryCodes: ['MATERIAL_BLOCK'] },
+      { key: 'decor', label: '装饰', categoryCodes: ['FURNITURE_DECORATION'] },
     ],
   },
   {
@@ -111,12 +110,12 @@ const catalogCategoryGroups: readonly CatalogCategoryGroup[] = [
     label: '消耗',
     caption: '药水 / 食物 / 事件',
     filters: [
-      { key: 'potion', label: '药水', categoryCodes: ['CONSUMABLE_POTION'], terms: ['药水', 'potion'] },
-      { key: 'food', label: '食物', categoryCodes: ['CONSUMABLE_FOOD'], terms: ['食物', 'food'] },
-      { key: 'buff', label: '增益', categoryCodes: ['CONSUMABLE_POTION', 'CONSUMABLE_FOOD'], terms: ['增益', 'buff'] },
-      { key: 'bait', label: '鱼饵', categoryCodes: ['AMMUNITION_TOOL_BAIT'], terms: ['鱼饵', 'bait'] },
-      { key: 'crate', label: '宝匣', categoryCodes: ['CONSUMABLE_GRAB_BAG'], terms: ['宝匣', 'crate'] },
-      { key: 'event', label: '事件', categoryCodes: ['CONSUMABLE_SUMMON'], terms: ['事件', '召唤物', 'event'] },
+      { key: 'potion', label: '药水', categoryCodes: ['CONSUMABLE_POTION'] },
+      { key: 'food', label: '食物', categoryCodes: ['CONSUMABLE_FOOD'] },
+      { key: 'buff', label: '增益', categoryCodes: ['CONSUMABLE_POTION', 'CONSUMABLE_FOOD'] },
+      { key: 'bait', label: '鱼饵', categoryCodes: ['AMMUNITION_TOOL_BAIT'] },
+      { key: 'crate', label: '宝匣', categoryCodes: ['CONSUMABLE_GRAB_BAG'] },
+      { key: 'event', label: '事件', categoryCodes: ['CONSUMABLE_SUMMON'] },
     ],
   },
 ] satisfies readonly CatalogCategoryGroup[]
@@ -249,7 +248,7 @@ const activeFilterLabel = computed(() => selectedFilter.value.label)
 const catalogLoadingSlotCount = computed(() => Math.min(selectedPageSize.value, 50))
 const shouldUseApiPagedItems = computed(() => publicItemsResult.value?.source === 'api')
 const shouldApplyLocalCategoryFilter = computed(() => publicItemsResult.value?.source !== 'api')
-const matchCategoryFilter = (item: CatalogItem, filter: CatalogCategoryFilter) => {
+const matchFallbackCatalogFilter = (item: CatalogItem, filter: CatalogCategoryFilter) => {
   if (filter.key === 'all') return true
 
   const haystack = normalizeSearchText([
@@ -277,7 +276,7 @@ const matchCategoryFilter = (item: CatalogItem, filter: CatalogCategoryFilter) =
     return true
   }
 
-  return filter.terms?.some((term) => haystack.includes(normalizeSearchText(term))) ?? false
+  return false
 }
 
 const filteredCatalogItems = computed(() => {
@@ -286,7 +285,7 @@ const filteredCatalogItems = computed(() => {
   const keyword = normalizeSearchText(searchQuery.value.trim())
 
   return catalogDisplayItems.value.filter((item) => {
-    if (shouldApplyLocalCategoryFilter.value && !matchCategoryFilter(item, selectedFilter.value)) return false
+    if (shouldApplyLocalCategoryFilter.value && !matchFallbackCatalogFilter(item, selectedFilter.value)) return false
     return !keyword || item.searchText.includes(keyword)
   })
 })
@@ -728,6 +727,8 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
                       <span class="catalog-hover-preview-tags">
                         <span>{{ item.rarity }}</span>
                         <span>{{ item.phase }}</span>
+                        <span v-if="item.categoryPaths.length">{{ item.categoryPaths.join(' / ') }}</span>
+                        <span v-if="item.relatedCategoryIds.length">关联分类 {{ item.relatedCategoryIds.length }}</span>
                         <span v-if="item.priceLabel">{{ item.priceLabel }}</span>
                       </span>
                     </span>

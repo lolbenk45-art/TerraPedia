@@ -15,6 +15,7 @@ const npcWallTopRef = ref<HTMLElement | null>(null)
 const npcSearch = ref('')
 const debouncedNpcSearch = ref('')
 const activeFilter = ref('all')
+const selectedNpcCategoryId = ref<number | null>(null)
 const currentPage = ref(1)
 const selectedPageSize = ref(defaultNpcPageSize)
 const focusedNpcId = ref<string | null>(null)
@@ -33,7 +34,6 @@ type NpcCategoryFilter = {
   isBoss?: boolean
   hasShop?: boolean
   hasLoot?: boolean
-  terms?: readonly string[]
 }
 
 type NpcCategoryGroup = {
@@ -52,8 +52,8 @@ const npcCategoryGroups: readonly NpcCategoryGroup[] = [
     caption: '全库浏览',
     filters: [
       allNpcFilter,
-      { key: 'town', label: '城镇居民', isTownNpc: true, terms: ['城镇', 'town', 'merchant', 'guide', 'nurse'] },
-      { key: 'friendly', label: '友好生物', isFriendly: true, terms: ['友好', 'friendly', '城镇'] },
+      { key: 'town', label: '城镇居民', isTownNpc: true },
+      { key: 'friendly', label: '友好生物', isFriendly: true },
     ],
   },
   {
@@ -61,8 +61,8 @@ const npcCategoryGroups: readonly NpcCategoryGroup[] = [
     label: '遭遇',
     caption: '敌怪 / Boss',
     filters: [
-      { key: 'enemy', label: '敌对 NPC', isTownNpc: false, isFriendly: false, isBoss: false, terms: ['敌怪', 'enemy', 'monster', '生态', 'slime', 'zombie'] },
-      { key: 'boss', label: 'Boss', isBoss: true, terms: ['boss', 'Boss', '首领', '克苏鲁', '史莱姆王'] },
+      { key: 'enemy', label: '敌对 NPC', isTownNpc: false, isFriendly: false, isBoss: false },
+      { key: 'boss', label: 'Boss', isBoss: true },
     ],
   },
   {
@@ -70,8 +70,8 @@ const npcCategoryGroups: readonly NpcCategoryGroup[] = [
     label: '交互',
     caption: '商店 / 掉落',
     filters: [
-      { key: 'shop', label: '出售物品', hasShop: true, terms: ['商人', 'shop', 'vendor', '出售', '商店'] },
-      { key: 'loot', label: '掉落物品', hasLoot: true, terms: ['掉落', 'drop', 'loot'] },
+      { key: 'shop', label: '出售物品', hasShop: true },
+      { key: 'loot', label: '掉落物品', hasLoot: true },
     ],
   },
 ] satisfies readonly NpcCategoryGroup[]
@@ -114,6 +114,7 @@ const publicNpcQuery = computed(() => ({
   page: currentPage.value,
   limit: selectedPageSize.value,
   search: backendSearch.value || undefined,
+  categoryId: selectedNpcCategoryId.value ?? undefined,
   isTownNpc: selectedFilter.value.isTownNpc,
   isFriendly: selectedFilter.value.isFriendly,
   isBoss: selectedFilter.value.isBoss,
@@ -153,18 +154,7 @@ const matchNpcFilter = (npc: NpcCatalogCard, filter: NpcCategoryFilter) => {
   if (filter.hasShop === true && npc.shopEntryCount <= 0) return false
   if (filter.hasLoot === true && npc.lootEntryCount <= 0) return false
   if (filter.key === 'enemy') return !npc.isTownNpc && !npc.isFriendly
-
-  const haystack = normalizeSearchText([
-    npc.displayName,
-    npc.name,
-    npc.secondaryName,
-    npc.internalName,
-    npc.categoryName,
-    npc.subtitle,
-    npc.searchText,
-  ].join(' '))
-
-  return filter.terms?.some((term) => haystack.includes(normalizeSearchText(term))) ?? true
+  return true
 }
 
 const filteredNpcCards = computed(() => {
@@ -203,6 +193,17 @@ const npcKindLabel = (npc: NpcCatalogCard) => {
   if (npc.isFriendly) return '友好 NPC'
   return npc.isBoss ? 'Boss 相关' : '敌怪 / 生态'
 }
+
+const npcTypeValueLabel = (npcType: number | null) => (npcType == null ? '类型未标注' : `类型 #${npcType}`)
+
+const npcTaxonomyMeta = (npc: NpcCatalogCard) => ({
+  categoryId: npc.categoryId,
+  label: [
+    npcTypeValueLabel(npc.npcType),
+    npc.categoryName,
+    npc.categoryId == null ? '' : `分类 #${npc.categoryId}`,
+  ].filter(Boolean).join(' · '),
+})
 
 const npcRelationCountLabel = (npc: NpcCatalogCard) => [
   npc.shopEntryCount > 0 ? `出售 ${npc.shopEntryCount}` : '',
@@ -301,6 +302,7 @@ const updateNpcRouteQuery = () => {
     pageSize: selectedPageSize.value !== defaultNpcPageSize ? String(selectedPageSize.value) : undefined,
     filter: activeFilter.value !== 'all' ? activeFilter.value : undefined,
     search: debouncedNpcSearch.value.trim() || undefined,
+    categoryId: selectedNpcCategoryId.value == null ? undefined : String(selectedNpcCategoryId.value),
     isTownNpc: selectedFilter.value.isTownNpc === true ? 'true' : undefined,
     town: undefined,
   }
@@ -313,9 +315,11 @@ const hydrateNpcStateFromRoute = () => {
   const legacyTown = String(firstQueryValue(route.query.isTownNpc ?? route.query.town) ?? '').toLowerCase()
   const search = String(firstQueryValue(route.query.search ?? route.query.q) ?? '')
   const queryPageSize = firstQueryValue(route.query.pageSize)
+  const categoryId = Number(firstQueryValue(route.query.categoryId))
 
   selectedPageSize.value = queryPageSize ? parsePageSize(queryPageSize) : readStoredPageSize()
   currentPage.value = parsePositiveInteger(route.query.page, 1)
+  selectedNpcCategoryId.value = Number.isFinite(categoryId) && categoryId > 0 ? Math.floor(categoryId) : null
   activeFilter.value = quickFilters.some((item) => item.key === filter)
     ? filter as QuickFilterKey
     : legacyTown === 'true' || legacyTown === '1' ? 'town' : 'all'
@@ -376,7 +380,7 @@ watch(totalPages, (pages) => {
 })
 
 watch(
-  [currentPage, selectedPageSize, activeFilter, debouncedNpcSearch],
+  [currentPage, selectedPageSize, activeFilter, debouncedNpcSearch, selectedNpcCategoryId],
   updateNpcRouteQuery,
   { flush: 'post' },
 )
@@ -510,7 +514,7 @@ watch(() => route.query, hydrateNpcStateFromRoute)
               <i>
                 <CommonPreviewImage :src="npc.image" :alt="npc.displayName" :fallback="npc.fallback" fallback-icon="icon-npc" />
               </i>
-              <div><b>{{ npc.displayName }}</b><span>{{ [npcKindLabel(npc), npc.categoryName, npcRelationCountLabel(npc)].filter(Boolean).join(' · ') }}</span></div>
+              <div><b>{{ npc.displayName }}</b><span>{{ [npcKindLabel(npc), npcTaxonomyMeta(npc).label, npcRelationCountLabel(npc)].filter(Boolean).join(' · ') }}</span></div>
               <em>详情</em>
             </a>
           </div>
@@ -539,7 +543,7 @@ watch(() => route.query, hydrateNpcStateFromRoute)
           />
         </div>
         <h2>{{ selectedNpc?.displayName || 'NPC 资料' }}</h2>
-        <p>{{ selectedNpc ? `${selectedNpc.categoryName} · ${selectedNpc.internalName || selectedNpc.secondaryName || '公开资料'}` : '选择一个公开 NPC 后查看详情。' }}</p>
+        <p>{{ selectedNpc ? `${npcTaxonomyMeta(selectedNpc).label} · ${selectedNpc.internalName || selectedNpc.secondaryName || '公开资料'}` : '选择一个公开 NPC 后查看详情。' }}</p>
         <div class="mini-facts">
           <div><b>{{ selectedNpc?.gameId ?? '--' }}</b><span>编号</span></div>
           <div><b>{{ selectedNpc?.isTownNpc ? '城镇' : selectedNpc?.isBoss ? 'Boss' : '生态' }}</b><span>角色类型</span></div>

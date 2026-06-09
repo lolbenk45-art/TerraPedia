@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -19,6 +20,8 @@ public class PublicItemDetailDTO implements Serializable {
     private String image;
     private Long categoryId;
     private String categoryName;
+    private List<Long> relatedCategoryIds;
+    private List<String> categoryPaths;
     private Long rarityId;
     private String rarity;
     private Long gamePeriodId;
@@ -40,4 +43,7 @@ public class PublicItemDetailDTO implements Serializable {
     private String tooltip;
     private String tooltipZh;
     private String tooltipEn;
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private String relatedCategoryIdsRaw;
 }

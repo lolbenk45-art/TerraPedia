@@ -45,14 +45,6 @@ const toNumberOrNull = (value: unknown) => {
   return Number.isFinite(numberValue) ? numberValue : null
 }
 
-const resolveCategoryGroup = (text: string) => {
-  if (/药水|potion|增益|buff/i.test(text)) return '药水'
-  if (/武器|剑|弓|枪|炮|魔法|召唤|近战|远程|melee|ranged|magic|summon|weapon/i.test(text)) return '武器'
-  if (/材料|矿|锭|块|方块|木材|矿石|material|bar|ore|block/i.test(text)) return '材料'
-  if (/困难模式后|困难模式|hardmode/i.test(text)) return '困难模式'
-  return '其他'
-}
-
 const resolveVisualTone = (itemId: number | null, index: number) => {
   const seed = itemId ?? index + 1
   return `tone-${(Math.abs(seed) % 3) + 1}`
@@ -63,9 +55,14 @@ export const normalizePublicItem = (raw: PublicItemListItem, index = 0): Catalog
   const displayName = normalizeText(raw.displayName) || normalizeText(raw.nameZh) || normalizeText(raw.name) || `物品 ${index + 1}`
   const englishName = normalizeText(raw.nameEn) || normalizeText(raw.name)
   const internalName = normalizeText(raw.internalName)
-  const categoryPath = Array.isArray(raw.categoryPaths) && raw.categoryPaths.length > 0
-    ? normalizeText(raw.categoryPaths[0])
-    : normalizeText(raw.categoryPath)
+  const categoryId = toNumberOrNull(raw.categoryId)
+  const categoryPaths = Array.isArray(raw.categoryPaths)
+    ? raw.categoryPaths.map(normalizeText).filter(Boolean)
+    : []
+  const relatedCategoryIds = Array.isArray(raw.relatedCategoryIds)
+    ? raw.relatedCategoryIds.map(toNumberOrNull).filter((id): id is number => id != null)
+    : []
+  const categoryPath = categoryPaths[0] || normalizeText(raw.categoryPath)
   const category = categoryPath || normalizeText(raw.categoryName) || normalizeText(raw.category) || '未分类'
   const phase = normalizeText(raw.gamePeriod) || (Number(raw.gamePeriodId) > 1 ? '困难模式后' : '阶段未标记')
   const rarity = normalizeText(raw.rarity) || normalizeText(raw.rare) || '稀有度未标记'
@@ -77,7 +74,9 @@ export const normalizePublicItem = (raw: PublicItemListItem, index = 0): Catalog
   const buy = toNumberOrNull(raw.buy ?? raw.buyPrice)
   const sell = toNumberOrNull(raw.sell ?? raw.sellPrice)
   const categoryGroup = normalizeText(raw.categoryGroup)
-    || resolveCategoryGroup([category, categoryPath, phase, displayName, englishName, internalName].join(' '))
+    || categoryPath
+    || normalizeText(raw.categoryName)
+    || '未分类'
   const description = normalizeText(raw.descriptionZh)
     || normalizeText(raw.description)
     || normalizeText(raw.tooltipZh)
@@ -106,7 +105,10 @@ export const normalizePublicItem = (raw: PublicItemListItem, index = 0): Catalog
     image,
     sourceImage,
     category,
+    categoryId,
     categoryPath,
+    categoryPaths,
+    relatedCategoryIds,
     categoryGroup,
     visualTone: resolveVisualTone(itemId, index),
     phase,

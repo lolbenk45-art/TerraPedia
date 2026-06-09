@@ -16,6 +16,7 @@ public class PublicBossLootEntryDTO implements Serializable {
     private Long itemId;
     private Integer sourceItemId;
     private String dropSourceKind;
+    private String dropSourceKindLabel;
     private Integer quantityMin;
     private Integer quantityMax;
     private String quantityText;

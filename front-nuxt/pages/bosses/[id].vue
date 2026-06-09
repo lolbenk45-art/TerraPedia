@@ -79,11 +79,19 @@ const memberFallbackIcon = 'icon-npc'
 const lootTitle = (entry: { itemNameZh?: string | null; itemName?: string | null; itemInternalName?: string | null }) => (
   safeBossDisplayText(entry.itemNameZh, entry.itemName) || '未命名掉落'
 )
-const dropSourceKindLabel = (value: unknown) => {
-  const key = displayText(value).toLowerCase()
-  if (key === 'direct_boss') return '直接掉落'
-  if (key === 'treasure_bag') return '宝藏袋'
-  return ''
+const runtimeDropSourceKindLabels = {
+  npc_drop: 'NPC 掉落',
+  direct_boss: 'Boss 直接掉落',
+  treasure_bag: '宝藏袋掉落',
+  unknown: '未知来源',
+} as const
+const dropSourceKindLabel = (entry: { dropSourceKind?: string | null; dropSourceKindLabel?: string | null }) => {
+  const backendLabel = safeBossDisplayText(entry.dropSourceKindLabel)
+  if (backendLabel) return backendLabel
+  const key = displayText(entry.dropSourceKind).toLowerCase() as keyof typeof runtimeDropSourceKindLabels
+  const fallbackLabel = runtimeDropSourceKindLabels[key]
+  if (fallbackLabel) return fallbackLabel
+  return '未知来源'
 }
 const asArray = <T,>(value: T[] | null | undefined) => Array.isArray(value) ? value : []
 const bossSummonMethod = computed(() => safeBossDisplayText(
@@ -115,8 +123,8 @@ const bossMechanicTitle = (note: BossMechanicNoteDTO) => safeBossDisplayText(not
 const bossDifficultyCopy = (note: BossDifficultyNoteDTO) => safeBossDisplayText(note.description)
 const bossLootConditionLabel = (entry: { conditions?: string | null }) => safeBossDisplayText(entry.conditions)
 const bossLootNoteLabel = (entry: { notes?: string | null }) => safeBossDisplayText(entry.notes)
-const bossLootChanceLabel = (entry: { chanceText?: string | null; dropSourceKind?: string | null }) => (
-  safeBossDisplayText(entry.chanceText) || dropSourceKindLabel(entry.dropSourceKind) || '概率未标注'
+const bossLootChanceLabel = (entry: { chanceText?: string | null; dropSourceKind?: string | null; dropSourceKindLabel?: string | null }) => (
+  safeBossDisplayText(entry.chanceText) || dropSourceKindLabel(entry) || '概率未标注'
 )
 const bossLootDetailLabel = (entry: { quantityText?: string | null; conditions?: string | null; notes?: string | null }) => (
   [safeBossDisplayText(entry.quantityText), bossLootConditionLabel(entry), bossLootNoteLabel(entry)]

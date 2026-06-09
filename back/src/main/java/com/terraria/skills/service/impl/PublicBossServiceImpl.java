@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.common.ItemImageSql;
+import com.terraria.skills.common.RuntimeDropSourceKindLabels;
 import com.terraria.skills.dto.BossSummonItemDTO;
 import com.terraria.skills.dto.PublicBossMoneyDropDTO;
 import com.terraria.skills.dto.PublicBossDetailDTO;
@@ -551,6 +552,7 @@ public class PublicBossServiceImpl implements PublicBossService {
         dto.setItemId(toLong(row.get("itemId")));
         dto.setSourceItemId(toInteger(row.get("sourceItemId")));
         dto.setDropSourceKind(trimToNull(row.get("dropSourceKind")));
+        dto.setDropSourceKindLabel(RuntimeDropSourceKindLabels.label(dto.getDropSourceKind()));
         dto.setQuantityMin(toInteger(row.get("quantityMin")));
         dto.setQuantityMax(toInteger(row.get("quantityMax")));
         dto.setQuantityText(trimToNull(row.get("quantityText")));

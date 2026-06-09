@@ -232,7 +232,9 @@ class AdminBossControllerTest {
         )).thenReturn(List.of(
             lootEntry(3383L, "Terrarian", "Terrarian", "泰拉悠悠球", "direct_boss"),
             lootEntry(3381L, "PortalGun", "Portal Gun", "传送枪", "direct_boss"),
-            lootEntry(3381L, "PortalGun", "Portal Gun", "传送枪", "treasure_bag")
+            lootEntry(3381L, "PortalGun", "Portal Gun", "传送枪", "treasure_bag"),
+            lootEntry(3382L, "UnknownRelic", "Unknown Relic", "未知遗物", "legacy_kind"),
+            lootEntry(3384L, "NullRelic", "Null Relic", "空来源遗物", null)
         ));
         when(jdbcTemplate.queryForList(contains("FROM items i"), any(Object[].class))).thenReturn(List.of(
             summonItem(3601L, "CelestialSigil", "Celestial Sigil", "天界符", "http://localhost:9000/terrapedia-images/items/celestial-sigil.png")
@@ -258,9 +260,16 @@ class AdminBossControllerTest {
             .andExpect(jsonPath("$.data.lootOwnerNpc.id").value(464))
             .andExpect(jsonPath("$.data.lootOwnerNpc.internalName").value("MoonLordCore"))
             .andExpect(jsonPath("$.data.lootEntries[0].dropSourceKind").value("direct_boss"))
+            .andExpect(jsonPath("$.data.lootEntries[0].dropSourceKindLabel").value("Boss 直接掉落"))
+            .andExpect(jsonPath("$.data.lootEntries[2].dropSourceKind").value("treasure_bag"))
+            .andExpect(jsonPath("$.data.lootEntries[2].dropSourceKindLabel").value("宝藏袋掉落"))
+            .andExpect(jsonPath("$.data.lootEntries[3].dropSourceKind").value("legacy_kind"))
+            .andExpect(jsonPath("$.data.lootEntries[3].dropSourceKindLabel").value("未知来源"))
+            .andExpect(jsonPath("$.data.lootEntries[4].dropSourceKind", nullValue()))
+            .andExpect(jsonPath("$.data.lootEntries[4].dropSourceKindLabel").value("未知来源"))
             .andExpect(jsonPath("$.data.directLootCount").value(2))
             .andExpect(jsonPath("$.data.treasureBagLootCount").value(1))
-            .andExpect(jsonPath("$.data.uniqueLootItemCount").value(2));
+            .andExpect(jsonPath("$.data.uniqueLootItemCount").value(4));
     }
 
     @Test

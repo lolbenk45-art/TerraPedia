@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.common.ApiResponse;
+import com.terraria.skills.common.RuntimeDropSourceKindLabels;
 import com.terraria.skills.common.Pagination;
 import com.terraria.skills.common.PaginationParams;
 import com.terraria.skills.entity.BossGroup;
@@ -382,7 +383,7 @@ public class AdminBossController {
         if (npcId == null || jdbcTemplate == null) {
             return List.of();
         }
-        return sanitizeDisplayImageFields(jdbcTemplate.queryForList(
+        return withDropSourceKindLabels(sanitizeDisplayImageFields(jdbcTemplate.queryForList(
             """
             SELECT
               nle.id,
@@ -415,7 +416,20 @@ public class AdminBossController {
               nle.id ASC
             """.formatted(AdminItemImageSql.preferredItemImageExpression("i")),
             npcId
-        ), "itemImage");
+        ), "itemImage"));
+    }
+
+    private List<Map<String, Object>> withDropSourceKindLabels(List<Map<String, Object>> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return List.of();
+        }
+        return rows.stream()
+            .map(row -> {
+                Map<String, Object> labeled = new LinkedHashMap<>(row);
+                labeled.put("dropSourceKindLabel", RuntimeDropSourceKindLabels.label(row.get("dropSourceKind")));
+                return labeled;
+            })
+            .toList();
     }
 
     private int countLootEntriesByKind(List<Map<String, Object>> lootEntries, String kind) {

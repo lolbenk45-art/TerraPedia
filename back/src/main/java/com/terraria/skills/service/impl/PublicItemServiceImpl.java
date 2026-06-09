@@ -27,6 +27,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -151,6 +152,7 @@ public class PublicItemServiceImpl implements PublicItemService {
             offset,
             managedImagePrefixes()
         );
+        applyPublicCategoryFields(records);
 
         Page<PublicItemListDTO> itemPage = new Page<>(safeQuery.getPage(), safeQuery.getLimit(), total);
         itemPage.setRecords(records);
@@ -161,7 +163,9 @@ public class PublicItemServiceImpl implements PublicItemService {
     @Override
     @Cacheable(cacheNames = "item:public:detail", key = "#root.target.buildPublicDetailCacheKey(#id)", unless = "#result == null")
     public PublicItemDetailDTO getPublicItemById(Long id) {
-        return itemMapper.selectPublicItemDetailById(id, managedImagePrefixes());
+        PublicItemDetailDTO item = itemMapper.selectPublicItemDetailById(id, managedImagePrefixes());
+        applyPublicCategoryFields(item);
+        return item;
     }
 
     @Override
@@ -239,7 +243,7 @@ public class PublicItemServiceImpl implements PublicItemService {
     }
 
     public String buildPublicDetailCacheKey(Long id) {
-        return String.join("|", "v4", managedImagePrefixFingerprint(), id == null ? "" : String.valueOf(id));
+        return String.join("|", "v5", managedImagePrefixFingerprint(), id == null ? "" : String.valueOf(id));
     }
 
     public String buildPublicSuggestionsCacheKey(String keyword, int limit) {
@@ -342,6 +346,75 @@ public class PublicItemServiceImpl implements PublicItemService {
         }
 
         return new ArrayList<>(categoryIds);
+    }
+
+    private void applyPublicCategoryFields(List<PublicItemListDTO> items) {
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+
+        Map<Long, String> categoryPathById = categoryManagementService.getCategoryPathMap();
+        for (PublicItemListDTO item : items) {
+            applyPublicCategoryFields(item, categoryPathById);
+        }
+    }
+
+    private void applyPublicCategoryFields(PublicItemDetailDTO item) {
+        if (item == null) {
+            return;
+        }
+        applyPublicCategoryFields(item, categoryManagementService.getCategoryPathMap());
+    }
+
+    private void applyPublicCategoryFields(PublicItemListDTO item, Map<Long, String> categoryPathById) {
+        if (item == null) {
+            return;
+        }
+
+        LinkedHashSet<Long> categoryIds = collectCategoryIds(item.getCategoryId(), item.getRelatedCategoryIdsRaw());
+        item.setRelatedCategoryIds(new ArrayList<>(categoryIds));
+        item.setCategoryPaths(resolveCategoryPaths(categoryIds, categoryPathById));
+    }
+
+    private void applyPublicCategoryFields(PublicItemDetailDTO item, Map<Long, String> categoryPathById) {
+        if (item == null) {
+            return;
+        }
+
+        LinkedHashSet<Long> categoryIds = collectCategoryIds(item.getCategoryId(), item.getRelatedCategoryIdsRaw());
+        item.setRelatedCategoryIds(new ArrayList<>(categoryIds));
+        item.setCategoryPaths(resolveCategoryPaths(categoryIds, categoryPathById));
+    }
+
+    private LinkedHashSet<Long> collectCategoryIds(Long primaryCategoryId, String relatedCategoryIdsRaw) {
+        LinkedHashSet<Long> categoryIds = new LinkedHashSet<>();
+        if (primaryCategoryId != null) {
+            categoryIds.add(primaryCategoryId);
+        }
+        if (relatedCategoryIdsRaw != null && !relatedCategoryIdsRaw.isBlank()) {
+            for (String value : relatedCategoryIdsRaw.split(",")) {
+                try {
+                    categoryIds.add(Long.parseLong(value.trim()));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        return categoryIds;
+    }
+
+    private List<String> resolveCategoryPaths(LinkedHashSet<Long> categoryIds, Map<Long, String> categoryPathById) {
+        if (categoryIds == null || categoryIds.isEmpty() || categoryPathById == null || categoryPathById.isEmpty()) {
+            return List.of();
+        }
+
+        List<String> paths = new ArrayList<>();
+        for (Long categoryId : categoryIds) {
+            String path = categoryPathById.get(categoryId);
+            if (path != null && !path.isBlank() && !paths.contains(path)) {
+                paths.add(path);
+            }
+        }
+        return paths;
     }
 
     private Long mapRarityToId(String rarity) {

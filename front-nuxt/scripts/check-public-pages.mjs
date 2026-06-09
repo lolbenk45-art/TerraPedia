@@ -410,6 +410,22 @@ const assertNoUnsafeFieldReader = (violations, path, content, fields, allowedHel
   }
 }
 
+const assertContainsMarkers = (violations, path, content, markers, reason) => {
+  for (const marker of markers) {
+    if (!content.includes(marker)) {
+      violations.push(`${path}: ${reason} via marker ${marker}`)
+    }
+  }
+}
+
+const assertOmitsMarkers = (violations, path, content, markers, reason) => {
+  for (const marker of markers) {
+    if (content.includes(marker)) {
+      violations.push(`${path}: ${reason} (${marker})`)
+    }
+  }
+}
+
 const forbiddenLightThemeTokens = [
   '#f5ecd2',
   '#dfcc9f',
@@ -1566,7 +1582,7 @@ for (const path of scanFiles) {
       'const pageSizeOptions = [12, 24, 48, 96]',
       'pageSize: selectedPageSize.value !== defaultNpcPageSize',
       '<CommonPaginationDock',
-      'matchNpcFilter',
+      'selectedNpcCategoryId',
       'npcWallTopRef',
       'scrollIntoView',
       'npcFallbackUnavailable',
@@ -1606,9 +1622,10 @@ for (const path of scanFiles) {
       apiBypassMarker: "if (npcResult.value?.source === 'api') return npcDisplayCards.value",
       markers: [
         "search: backendSearch.value || undefined",
-        "isTownNpc: selectedFilter.value.isTownNpc",
-        "isFriendly: selectedFilter.value.isFriendly",
-        "isBoss: selectedFilter.value.isBoss",
+        "categoryId: selectedNpcCategoryId.value",
+        'isTownNpc: selectedFilter.value.isTownNpc',
+        'isFriendly: selectedFilter.value.isFriendly',
+        'isBoss: selectedFilter.value.isBoss',
         "hasShop: selectedFilter.value.hasShop",
         "hasLoot: selectedFilter.value.hasLoot",
       ],
@@ -1634,6 +1651,21 @@ for (const path of scanFiles) {
     if (content.includes('/npcs/guide')) {
       violations.push(`${path}: NPC list page must not link static /npcs/guide preview routes`)
     }
+
+    assertContainsMarkers(violations, path, content, [
+      'categoryId: selectedNpcCategoryId.value',
+      'isTownNpc: selectedFilter.value.isTownNpc',
+      'isBoss: selectedFilter.value.isBoss',
+      'isFriendly: selectedFilter.value.isFriendly',
+      'npcTypeValueLabel(npc.npcType)',
+      'categoryId: npc.categoryId',
+    ], 'NPC list page must consume taxonomy fields and preserve query filters')
+
+    assertOmitsMarkers(violations, path, content, [
+      'terms:',
+      'matchNpcCategory',
+      'matchNpcType',
+    ], 'NPC taxonomy filtering must not use local text terms as the primary classifier')
   }
 
   if (path === 'types/public-api.ts') {
@@ -2209,6 +2241,15 @@ for (const path of scanFiles) {
         violations.push(`${path}: bosses page must not keep static preview-only boss content (${staticMarker})`)
       }
     }
+
+    assertContainsMarkers(violations, path, content, [
+      'const bossTypeOptions',
+      'selectedBossType',
+      'bossType: selectedBossType.value || undefined',
+      'type: selectedBossType.value || undefined',
+      'type: bossType',
+      'watch([bossCurrentPage, bossDebouncedSearchQuery, selectedBossType]',
+    ], 'Boss list page must expose bossType filter UI and route query synchronization')
   }
 
   if (path === 'pages/bosses/[id].vue') {
@@ -2274,7 +2315,7 @@ for (const path of scanFiles) {
     }
 
     for (const marker of [
-      'dropSourceKindLabel(entry.dropSourceKind)',
+      'dropSourceKindLabel(entry)',
       'bossMemberRoleLabel(member.bossRole, member.sourceBossCode)',
       'bossMemberPath(member)',
       'bossLootItemPath(entry)',
@@ -2285,6 +2326,19 @@ for (const path of scanFiles) {
         violations.push(`${path}: boss detail page must expose translated drop source labels and detail links via marker ${marker}`)
       }
     }
+
+    assertContainsMarkers(violations, path, content, [
+      'entry.dropSourceKindLabel',
+      'npc_drop: \'NPC 掉落\'',
+      'direct_boss: \'Boss 直接掉落\'',
+      'treasure_bag: \'宝藏袋掉落\'',
+      'unknown: \'未知来源\'',
+      'return \'未知来源\'',
+    ], 'Boss detail page must use backend-owned dropSourceKindLabel with typed display-safety fallback coverage')
+
+    assertOmitsMarkers(violations, path, content, [
+      'dropSourceKindLabel(entry.dropSourceKind)',
+    ], 'Boss loot labels must not be derived from source kind alone when backend labels are present')
 
     if (content.includes('entry.conditions, entry.notes') || content.includes('entry.quantityText, entry.conditions')) {
       violations.push(`${path}: boss loot rows must not render raw conditions or notes directly`)
@@ -2738,7 +2792,7 @@ for (const path of scanFiles) {
       'const quickFilters = catalogCategoryGroups.flatMap',
       'const selectedCategoryIds = computed',
       'categoryIds.length === 1 ? categoryIds[0] : undefined',
-      'matchCategoryFilter',
+      'selectedCategoryIds',
       'catalogWallTopRef',
       'scrollIntoView',
       'catalog-category-column',
@@ -2824,6 +2878,19 @@ for (const path of scanFiles) {
         'gamePeriodId: selectedGamePeriodId.value',
       ],
     })
+
+    assertContainsMarkers(violations, path, content, [
+      'item.categoryPath',
+      'item.categoryPaths',
+      'item.relatedCategoryIds',
+      'categoryIds: selectedCategoryIds.value.length > 0 ? selectedCategoryIds.value : undefined',
+    ], 'Items page must consume backend category/path fields and preserve categoryIds query behavior')
+
+    assertOmitsMarkers(violations, path, content, [
+      'terms:',
+      'matchCategoryFilter',
+      'resolveCategoryGroup',
+    ], 'Items page must not use local regex/category text as the primary category truth for API rows')
 
     for (const invalidCategoryCode of [
       'MELEE_WEAPON',

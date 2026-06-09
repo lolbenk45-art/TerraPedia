@@ -52,9 +52,11 @@ export type PublicItemListItem = {
   previewImage?: string | null
   iconUrl?: string | null
   category?: string | null
+  categoryId?: number | string | null
   categoryName?: string | null
   categoryPath?: string | null
   categoryPaths?: string[] | null
+  relatedCategoryIds?: Array<number | string> | null
   categoryGroup?: string | null
   rarity?: string | null
   rare?: string | null
@@ -447,7 +449,10 @@ export type CatalogItem = {
   image: string
   sourceImage: string
   category: string
+  categoryId: number | null
   categoryPath: string
+  categoryPaths: string[]
+  relatedCategoryIds: number[]
   categoryGroup: string
   visualTone: string
   phase: string
@@ -754,6 +759,10 @@ export type PublicNpcLootEntry = {
   chance_text?: string | null
   chanceValue?: number | string | null
   chance_value?: number | string | null
+  dropSourceKind?: string | null
+  drop_source_kind?: string | null
+  dropSourceKindLabel?: string | null
+  drop_source_kind_label?: string | null
   conditions?: string | null
   notes?: string | null
   lootSourceMode?: string | null
@@ -851,6 +860,7 @@ export type NpcCatalogCard = {
   displayName: string
   secondaryName: string
   subtitle: string
+  categoryId: number | null
   categoryName: string
   image: string
   fallback: string
@@ -1089,6 +1099,7 @@ export type PublicBossLootEntry = {
   itemId?: number | string | null
   sourceItemId?: number | string | null
   dropSourceKind?: string | null
+  dropSourceKindLabel?: string | null
   quantityMin?: number | string | null
   quantityMax?: number | string | null
   quantityText?: string | null

@@ -310,6 +310,7 @@ const menuSections: MenuSection[] = [
       { name: '爬取监控', path: '/operations/crawler-monitor', hint: '查看刷新进度与运行日志', icon: Activity },
       { name: '数据源验收', path: '/operations/data-source-acceptance', hint: '查看数据源替换准入状态', icon: ShieldCheck },
       { name: 'B 档域验收', path: '/operations/domain-acceptance', hint: '查看 B 档域自动维护证据', icon: ShieldCheck },
+      { name: '分类审计', path: '/operations/classification-audit', hint: '查看分类缺口与引用异常', icon: FileSearch },
       { name: '监控测试页', path: '/operations/crawler-monitor-test', hint: '手动观察测试状态', icon: Beaker },
     ],
   },

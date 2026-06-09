@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.common.ItemImageSql;
+import com.terraria.skills.common.RuntimeDropSourceKindLabels;
 import com.terraria.skills.dto.NpcBuffRelationDTO;
 import com.terraria.skills.dto.NpcDetailDTO;
 import com.terraria.skills.dto.NpcListItemDTO;
@@ -928,6 +929,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setItemId(toLong(row.get("itemId")));
         dto.setSourceItemId(toInteger(row.get("sourceItemId")));
         dto.setDropSourceKind(toStringValue(row.get("dropSourceKind")));
+        dto.setDropSourceKindLabel(RuntimeDropSourceKindLabels.label(dto.getDropSourceKind()));
         dto.setQuantityMin(toInteger(row.get("quantityMin")));
         dto.setQuantityMax(toInteger(row.get("quantityMax")));
         dto.setQuantityText(toStringValue(row.get("quantityText")));

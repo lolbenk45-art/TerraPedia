@@ -241,6 +241,37 @@ class PublicBossControllerTest {
     }
 
     @Test
+    void shouldExposePublicBossLootDropSourceKindLabelsForKnownUnknownAndNullKinds() throws Exception {
+        BossGroup moonLord = bossGroup(51L, "MOON_LORD", "Moon Lord", "月亮领主", "HARDMODE", 18);
+
+        when(bossGroupMapper.selectById(eq(51L))).thenReturn(moonLord);
+        when(npcMapper.selectList(any())).thenReturn(List.of(
+            npc(464L, 398L, "MoonLordCore", "Moon Lord's Core", "月亮领主心脏", "primary")
+        ));
+        when(jdbcTemplate.queryForList(
+            contains("FROM npc_loot_entries"),
+            eq(464L)
+        )).thenReturn(List.of(
+            lootEntry(3383L, "Terrarian", "Terrarian", "泰拉悠悠球", "direct_boss", MANAGED_LOOT_IMAGE_URL),
+            lootEntry(3381L, "PortalGun", "Portal Gun", "传送枪", "treasure_bag", MANAGED_LOOT_IMAGE_URL),
+            lootEntry(3382L, "UnknownRelic", "Unknown Relic", "未知遗物", "legacy_kind", MANAGED_LOOT_IMAGE_URL),
+            lootEntry(3384L, "NullRelic", "Null Relic", "空来源遗物", null, MANAGED_LOOT_IMAGE_URL)
+        ));
+
+        mockMvc.perform(get("/public/bosses/51"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.lootEntries[0].dropSourceKind").value("direct_boss"))
+            .andExpect(jsonPath("$.data.lootEntries[0].dropSourceKindLabel").value("Boss 直接掉落"))
+            .andExpect(jsonPath("$.data.lootEntries[1].dropSourceKind").value("treasure_bag"))
+            .andExpect(jsonPath("$.data.lootEntries[1].dropSourceKindLabel").value("宝藏袋掉落"))
+            .andExpect(jsonPath("$.data.lootEntries[2].dropSourceKind").value("legacy_kind"))
+            .andExpect(jsonPath("$.data.lootEntries[2].dropSourceKindLabel").value("未知来源"))
+            .andExpect(jsonPath("$.data.lootEntries[3].dropSourceKind").doesNotExist())
+            .andExpect(jsonPath("$.data.lootEntries[3].dropSourceKindLabel").value("未知来源"));
+    }
+
+    @Test
     void shouldExposeBossSummonItemsWithManagedItemImages() throws Exception {
         BossGroup kingSlime = bossGroup(34L, "KING_SLIME", "King Slime", "史莱姆王", "PRE_HARDMODE", 1);
 

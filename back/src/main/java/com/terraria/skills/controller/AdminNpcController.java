@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.common.Pagination;
 import com.terraria.skills.common.PaginationParams;
+import com.terraria.skills.common.RuntimeDropSourceKindLabels;
 import com.terraria.skills.entity.BossGroup;
 import com.terraria.skills.entity.Category;
 import com.terraria.skills.entity.Npc;
@@ -735,7 +736,20 @@ public class AdminNpcController {
             """.formatted(AdminItemImageSql.preferredItemImageExpression("i")),
             npcId
         );
-        return sanitizeDisplayImageFields(rows, "admin npc loot", "itemImage");
+        return withDropSourceKindLabels(sanitizeDisplayImageFields(rows, "admin npc loot", "itemImage"));
+    }
+
+    private List<Map<String, Object>> withDropSourceKindLabels(List<Map<String, Object>> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return List.of();
+        }
+        return rows.stream()
+            .map(row -> {
+                Map<String, Object> labeled = new LinkedHashMap<>(row);
+                labeled.put("dropSourceKindLabel", RuntimeDropSourceKindLabels.label(row.get("dropSourceKind")));
+                return labeled;
+            })
+            .toList();
     }
 
     private List<Map<String, Object>> stampLootProvenance(

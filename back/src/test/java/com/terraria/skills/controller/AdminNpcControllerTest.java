@@ -461,6 +461,8 @@ class AdminNpcControllerTest {
         mockMvc.perform(get("/admin/npcs/253"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.lootEntries[0].itemName").value("Death Sickle"))
+            .andExpect(jsonPath("$.data.lootEntries[0].dropSourceKind").value("npc_drop"))
+            .andExpect(jsonPath("$.data.lootEntries[0].dropSourceKindLabel").value("NPC 掉落"))
             .andExpect(jsonPath("$.data.lootEntries[0].itemImage").value(managedImage));
 
         ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
@@ -1310,7 +1312,8 @@ class AdminNpcControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.lootEntries", hasSize(1)))
-            .andExpect(jsonPath("$.data.lootEntries[0].dropSourceKind").value("npc_drop"));
+            .andExpect(jsonPath("$.data.lootEntries[0].dropSourceKind").value("npc_drop"))
+            .andExpect(jsonPath("$.data.lootEntries[0].dropSourceKindLabel").value("NPC 掉落"));
 
         verify(jdbcTemplate).update(
             contains("drop_source_kind IS NULL OR drop_source_kind = 'npc_drop'"),

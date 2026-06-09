@@ -181,6 +181,7 @@ export const normalizePublicNpcBase = (raw: PublicNpcListItem, index = 0): NpcCa
   const internalName = normalizeText(raw.internalName ?? raw.internal_name)
   const secondaryName = normalizeText(raw.nameZh ?? raw.name_zh) ? name || internalName : internalName
   const subtitle = normalizeText(raw.subNameZh ?? raw.sub_name_zh) || normalizeText(raw.subName ?? raw.sub_name)
+  const categoryId = toNumberOrNull(raw.categoryId ?? raw.category_id)
   const categoryName = normalizeText(raw.categoryName ?? raw.category_name) || '未分类'
   const sourceImage = normalizeText(raw.imageUrl ?? raw.image_url)
   const image = resolvePreviewImageUrl(sourceImage)
@@ -211,6 +212,7 @@ export const normalizePublicNpcBase = (raw: PublicNpcListItem, index = 0): NpcCa
     displayName,
     secondaryName,
     subtitle,
+    categoryId,
     categoryName,
     image,
     fallback: firstGlyph(displayName),
@@ -236,7 +238,7 @@ export const normalizePublicNpcBase = (raw: PublicNpcListItem, index = 0): NpcCa
       nameZh: normalizeText(raw.nameZh ?? raw.name_zh) || null,
       subName: normalizeText(raw.subName ?? raw.sub_name) || null,
       subNameZh: normalizeText(raw.subNameZh ?? raw.sub_name_zh) || null,
-      categoryId: toNumberOrNull(raw.categoryId ?? raw.category_id),
+      categoryId,
       categoryName,
       isBoss: toBoolean(raw.isBoss ?? raw.is_boss),
       isFriendly: toBoolean(raw.isFriendly ?? raw.is_friendly),
@@ -279,6 +281,8 @@ export const normalizePublicNpcLootEntry = (raw: PublicNpcLootEntry): PublicNpcL
   quantityMax: toNumberOrNull(raw.quantityMax ?? raw.quantity_max),
   chanceText: normalizeText(raw.chanceText ?? raw.chance_text) || null,
   chanceValue: toNumberOrNull(raw.chanceValue ?? raw.chance_value),
+  dropSourceKind: normalizeText(raw.dropSourceKind ?? raw.drop_source_kind) || null,
+  dropSourceKindLabel: normalizeText(raw.dropSourceKindLabel ?? raw.drop_source_kind_label) || null,
   conditions: normalizeText(raw.conditions) || null,
   notes: normalizeText(raw.notes) || null,
   lootSourceMode: normalizeText(raw.lootSourceMode ?? raw.loot_source_mode) || null,

@@ -13,6 +13,7 @@ useSeoMeta({
 const bossClientReady = ref(false)
 const bossSearchQuery = ref('')
 const bossDebouncedSearchQuery = ref('')
+const selectedBossType = ref('')
 const bossCurrentPage = ref(1)
 const bossPageSize = ref(20)
 const bossVisualLoading = ref(true)
@@ -28,10 +29,22 @@ const parsePositiveInteger = (value: unknown, fallback: number) => {
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback
 }
 
+const bossTypeOptions = [
+  { type: '', label: '全部' },
+  { type: 'pre_hardmode', label: '困难模式前' },
+  { type: 'hardmode', label: '困难模式' },
+  { type: 'event', label: '事件 Boss' },
+  { type: 'mini_boss', label: '小 Boss' },
+] as const
+
+const bossTypeLabel = (type: string) => bossTypeOptions.find((option) => option.type === type)?.label ?? 'Boss'
+const selectedBossTypeLabel = computed(() => bossTypeLabel(selectedBossType.value))
+
 const bossListQuery = computed(() => ({
   page: bossCurrentPage.value,
   limit: bossPageSize.value,
   search: bossDebouncedSearchQuery.value.trim() || undefined,
+  bossType: selectedBossType.value || undefined,
   sortBy: 'progressionOrder',
   sortDirection: 'asc',
 }) satisfies PublicBossQuery)
@@ -97,9 +110,15 @@ const clearBossSearch = () => {
   bossSearchQuery.value = ''
 }
 
-const resetBossSearch = () => {
+const setBossType = (bossType: string) => {
+  selectedBossType.value = bossType
+  bossCurrentPage.value = 1
+}
+
+const resetBossFilters = () => {
   bossSearchQuery.value = ''
   bossDebouncedSearchQuery.value = ''
+  selectedBossType.value = ''
   bossCurrentPage.value = 1
 }
 
@@ -110,6 +129,8 @@ const updateBossRouteQuery = () => {
       ...route.query,
       page: bossCurrentPage.value > 1 ? String(bossCurrentPage.value) : undefined,
       q: bossDebouncedSearchQuery.value.trim() || undefined,
+      type: selectedBossType.value || undefined,
+      bossType: selectedBossType.value || undefined,
     },
   }).finally(() => {
     syncingBossRouteQuery = false
@@ -120,9 +141,12 @@ const hydrateBossStateFromRoute = () => {
   if (syncingBossRouteQuery) return
 
   const search = String(firstQueryValue(route.query.q) ?? '')
+  const bossType = String(firstQueryValue(route.query.type ?? route.query.bossType) ?? '')
+  const bossTypeRouteState = { type: bossType }
   bossCurrentPage.value = parsePositiveInteger(route.query.page, 1)
   bossSearchQuery.value = search
   bossDebouncedSearchQuery.value = search
+  selectedBossType.value = bossTypeOptions.some((option) => option.type === bossTypeRouteState.type) ? bossTypeRouteState.type : ''
 }
 
 hydrateBossStateFromRoute()
@@ -144,7 +168,7 @@ watch(bossTotalPages, (pages) => {
   }
 })
 
-watch([bossCurrentPage, bossDebouncedSearchQuery], updateBossRouteQuery, { flush: 'post' })
+watch([bossCurrentPage, bossDebouncedSearchQuery, selectedBossType], updateBossRouteQuery, { flush: 'post' })
 watch(bossRawLoading, syncBossVisualLoading, { immediate: true })
 watch(() => route.query, hydrateBossStateFromRoute)
 
@@ -201,8 +225,24 @@ onBeforeUnmount(() => {
           </button>
         </form>
 
+        <div class="catalog-density-picker" aria-label="Boss 类型">
+          <span>类型</span>
+          <button
+            v-for="option in bossTypeOptions"
+            :key="option.type || 'all'"
+            class="catalog-density-chip"
+            :class="{ active: option.type === selectedBossType }"
+            type="button"
+            :aria-pressed="option.type === selectedBossType"
+            @click="setBossType(option.type)"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+
         <div class="boss-command-stats">
           <div><b>{{ bossStatusLabel }}</b><span>资料状态</span></div>
+          <div><b>{{ selectedBossTypeLabel }}</b><span>类型筛选</span></div>
           <div><b>{{ bossCurrentPage }}</b><span>当前页</span></div>
           <div><b>{{ bossTotalPages }}</b><span>总页数</span></div>
           <div><b>{{ bossTotalItems }}</b><span>数据量</span></div>
@@ -270,8 +310,8 @@ onBeforeUnmount(() => {
         <button v-if="bossApiUnavailable" class="small-button active" type="button" @click="refreshPublicBosses()">
           重新加载
         </button>
-        <button v-else class="small-button active" type="button" @click="resetBossSearch">
-          重置搜索
+        <button v-else class="small-button active" type="button" @click="resetBossFilters">
+          重置筛选
         </button>
       </section>
 

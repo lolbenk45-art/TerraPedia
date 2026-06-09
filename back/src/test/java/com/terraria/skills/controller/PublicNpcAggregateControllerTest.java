@@ -73,6 +73,8 @@ class PublicNpcAggregateControllerTest {
         lootEntry.setId(11L);
         lootEntry.setItemId(101L);
         lootEntry.setItemName("Fallen Star");
+        lootEntry.setDropSourceKind("npc_drop");
+        lootEntry.setDropSourceKindLabel("NPC 掉落");
         lootEntry.setLootSourceMode("direct");
         lootEntry.setTrustedStructured(true);
 
@@ -103,6 +105,8 @@ class PublicNpcAggregateControllerTest {
             .andExpect(jsonPath("$.data.npc.buffRelationCount").value(1))
             .andExpect(jsonPath("$.data.npc.rawJson").doesNotExist())
             .andExpect(jsonPath("$.data.loot.length()").value(1))
+            .andExpect(jsonPath("$.data.loot[0].dropSourceKind").value("npc_drop"))
+            .andExpect(jsonPath("$.data.loot[0].dropSourceKindLabel").value("NPC 掉落"))
             .andExpect(jsonPath("$.data.loot[0].lootSourceMode").value("direct"))
             .andExpect(jsonPath("$.data.loot[0].trustedStructured").value(true))
             .andExpect(jsonPath("$.data.shopEntries.length()").value(0))

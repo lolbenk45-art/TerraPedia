@@ -6,6 +6,7 @@ import lombok.Data;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -20,6 +21,8 @@ public class PublicItemListDTO implements Serializable {
     private String image;
     private Long categoryId;
     private String categoryName;
+    private List<Long> relatedCategoryIds;
+    private List<String> categoryPaths;
     private Long rarityId;
     private String rarity;
     private Long gamePeriodId;
@@ -32,4 +35,7 @@ public class PublicItemListDTO implements Serializable {
 
     @JsonIgnore
     private LocalDateTime updatedAt;
+
+    @JsonIgnore
+    private String relatedCategoryIdsRaw;
 }
