@@ -41,11 +41,6 @@ const articleDetailPage = read('pages/articles/[slug].vue')
 const userArticleListPage = read('pages/user/articles/index.vue')
 const userArticleNewPage = read('pages/user/articles/new.vue')
 const userArticleEditPage = read('pages/user/articles/[id].vue')
-const designPages = [
-  'pages/user/article-editor-designs.vue',
-  'pages/user/article-list-designs.vue',
-  'pages/user/page-head-designs.vue',
-]
 
 for (const marker of [
   '--tp-z-page-popover: 80;',
@@ -224,22 +219,6 @@ requireRegex(
   /article-editor-loading[\s\S]*<CommonTpSkeleton type="line"/,
   'user article edit loading state must render editor skeleton placeholders',
 )
-
-for (const path of designPages) {
-  const source = read(path)
-  for (const marker of [
-    '<section class="screen entity-screen active">',
-    '<TerraNav />',
-    '<TerraBreadcrumb />',
-    'tp-page-shell',
-    '<TerraFooter />',
-  ]) {
-    requireIncludes(path, source, marker, `design route must render inside the normal front shell (${marker})`)
-  }
-  if (source.includes('definePageMeta({ layout: false })')) {
-    violations.push(`${path}: design route must not opt out of the front shell`)
-  }
-}
 
 if (violations.length > 0) {
   console.error(`Front layout layering contract failed:\n${violations.map((item) => `- ${item}`).join('\n')}`)

@@ -74,7 +74,7 @@ function publicArticlePath(slug?: string | null) {
         <div>
           <span class="eyebrow">正在载入</span>
           <h2>读取作者资料</h2>
-          <p>正在从公开用户接口读取资料。</p>
+          <p>正在读取作者资料。</p>
         </div>
       </section>
     </main>

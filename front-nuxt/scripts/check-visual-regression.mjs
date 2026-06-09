@@ -143,7 +143,6 @@ const publicRouteMatrix = [
 
 const nonPublicPreviewRoutes = [
   '/search-tool',
-  '/home-hero-options',
   '/user',
   '/user/login',
   '/user/register',

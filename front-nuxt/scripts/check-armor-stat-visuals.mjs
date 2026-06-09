@@ -137,7 +137,8 @@ const requiredMarkers = [
   'default-full-set',
   '完整套装',
   '最终汇总',
-  'armor-preview-promoted-after-stats',
+  'armor-side-stack',
+  'armor-preview-under-crafting',
   'armorSetRecipeSummaries',
   'armorUniqueRecipeItems',
   'fetchArmorSetRecipeSummaries',
@@ -177,6 +178,15 @@ const requiredMarkers = [
   'if (rawText) return rawText',
   '套装奖励：+12% 召唤伤害',
   '挖矿头盔和超亮头盔可以互换',
+  '--tp-color-surface',
+  '--tp-color-surface-raised',
+  '--tp-color-border',
+  '--tp-color-border-strong',
+  '--tp-color-accent',
+  '--tp-color-text',
+  '--tp-color-text-muted',
+  '--theme-text-rgb',
+  '--theme-panel-rgb',
 ]
 
 const missing = requiredMarkers.filter((marker) => !source.includes(marker))
@@ -220,6 +230,19 @@ const forbiddenMarkers = [
   '<strong>套装效果</strong>',
   'class="armor-build-total-title"',
   '<CraftingRecipeSheet',
+  'armor-theme',
+  '--armor-theme',
+  'rgba(11, 18, 13',
+  'rgba(12, 15, 11',
+  'rgba(13, 16, 12',
+  'rgba(150, 58, 42',
+  'rgba(82, 76, 146',
+  'rgba(67, 89, 112',
+  'var(--text)',
+  'var(--muted)',
+  'var(--gold)',
+  'rgba(246, 239, 218',
+  'rgba(0, 0, 0',
 ]
 const presentForbidden = forbiddenMarkers.filter((marker) => source.includes(marker))
 

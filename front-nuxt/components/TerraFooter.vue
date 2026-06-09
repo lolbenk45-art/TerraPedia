@@ -41,7 +41,7 @@ withDefaults(defineProps<{
           <a href="/biomes">生态索引</a>
           <a href="/search">全站检索</a>
           <a href="/about">数据来源</a>
-          <a href="/about">开发计划</a>
+          <a href="/about">使用说明</a>
         </div>
       </nav>
 
@@ -51,17 +51,17 @@ withDefaults(defineProps<{
           <a href="/about">项目边界</a>
           <a href="/about">版本说明</a>
           <a href="/about">资料声明</a>
-          <a href="/about">公开路线图</a>
+          <a href="/about">权利声明</a>
         </div>
       </nav>
 
       <aside class="footer-contact">
         <h4>维护状态</h4>
-        <p>V0.1 先作为只读资料站发布，资料来源、校验边界和后续计划集中放在项目说明页。</p>
+        <p>资料来源、校验边界和权利说明集中放在项目说明页，页面内容会随数据维护状态持续校正。</p>
         <div class="footer-contact-list">
           <span><em>Source</em>Terraria Wiki / 本地校验链</span>
-          <span><em>Scope</em>Read-only public reference</span>
-          <span><em>Status</em>Preview build · 2026</span>
+          <span><em>Scope</em>中文资料索引</span>
+          <span><em>Status</em>Public release · 2026</span>
         </div>
       </aside>
     </div>

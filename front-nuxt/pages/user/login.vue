@@ -52,7 +52,7 @@ const submit = async () => {
           <span>密码</span>
           <input v-model="form.password" type="password" autocomplete="current-password" required />
         </label>
-        <p class="user-field-hint">使用后端写入的 HttpOnly Cookie 保持登录状态。</p>
+        <p class="user-field-hint">登录状态会安全保存。</p>
         <p v-if="error" class="user-form-status user-form-error" aria-live="polite">{{ error }}</p>
         <button class="primary-button" type="submit" :disabled="authStore.submitting">
           {{ authStore.submitting ? '登录中...' : '登录' }}

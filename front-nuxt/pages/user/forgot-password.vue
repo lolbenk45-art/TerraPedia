@@ -12,6 +12,7 @@ const error = ref('')
 const status = ref('')
 const debugCode = ref('')
 const resetComplete = ref(false)
+const showDebugVerificationCode = import.meta.dev
 
 const requestCode = async () => {
   error.value = ''
@@ -84,7 +85,7 @@ const submit = async () => {
         </label>
         <p class="user-field-hint">新密码需为 10-64 位，并同时包含字母和数字。</p>
         <p v-if="status" class="user-form-status user-form-success" aria-live="polite">{{ status }}</p>
-        <p v-if="debugCode" class="user-field-hint">本地调试验证码：{{ debugCode }}</p>
+        <p v-if="showDebugVerificationCode && debugCode" class="user-field-hint">开发验证码：{{ debugCode }}</p>
         <p v-if="error" class="user-form-status user-form-error" aria-live="polite">{{ error }}</p>
         <button class="primary-button" type="submit" :disabled="authStore.submitting || resetComplete">
           {{ authStore.submitting ? '重置中...' : '重置密码' }}

@@ -53,7 +53,7 @@ const removeHistoryEntry = async (entry: UserReadingHistory) => {
         <div>
           <span class="eyebrow">/user · public account</span>
           <h1>用户中心</h1>
-          <p>{{ authStore.isAuthenticated ? '继续管理你的收藏、投稿草稿和账号设置。' : '用户页整理收藏、投稿和账号入口；登录后会显示真实账号状态。' }}</p>
+          <p>{{ authStore.isAuthenticated ? '继续管理你的收藏、投稿草稿和账号设置。' : '登录后可以管理收藏、文章和账号设置。' }}</p>
         </div>
         <a v-if="!authStore.isAuthenticated" class="primary-button" href="/user/login">进入登录页</a>
         <a v-else class="secondary-button" href="/user/settings">账号设置</a>
@@ -69,7 +69,7 @@ const removeHistoryEntry = async (entry: UserReadingHistory) => {
         <div>
           <span class="eyebrow">{{ authStore.isAuthenticated ? '已登录' : '访客视图' }}</span>
           <h2>{{ authStore.isAuthenticated ? authStore.displayName : '把个人资料动作收进一个清晰的控制台' }}</h2>
-          <p>{{ authStore.isAuthenticated ? authStore.user?.email : '不在首页塞用户功能，用户中心单独承载收藏、文章草稿和账号设置。' }}</p>
+          <p>{{ authStore.isAuthenticated ? authStore.user?.email : '登录后集中查看收藏、文章草稿和账号设置。' }}</p>
           <div class="tag-row">
             <span class="tag gold">{{ authStore.isAuthenticated ? '真实会话' : '登录后启用' }}</span>
             <span class="tag moss">前台页面</span>

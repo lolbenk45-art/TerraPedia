@@ -2088,9 +2088,9 @@ onMounted(() => {
       <article class="article-detail-hero">
         <span class="eyebrow">资料手札 · 未找到</span>
         <h1>没有找到这篇文章</h1>
-        <p>这篇文章可能尚未发布、已下线，或链接已经失效。</p>
+        <p>这篇文章可能已下线，或链接已经失效。</p>
         <div class="article-meta">
-          <span>只显示已发布文章</span><span>草稿不会公开</span><span>请返回文章入口</span>
+          <span>文章不可访问</span><span>链接可能已失效</span><span>请返回文章入口</span>
         </div>
         <a class="primary-button article-return-link" href="/articles">返回文章入口</a>
       </article>

@@ -330,22 +330,22 @@ const pageContracts = [
   {
     path: 'pages/user/login.vue',
     required: ['definePageMeta({ guestOnly: true })', '@submit.prevent="submit"', 'authStore.login', 'buildUserPostAuthRedirectTarget', 'type="submit"', 'v-model.trim="form.email"', 'v-model="form.password"', '/user/forgot-password', 'user-form-status', 'user-form-error'],
-    forbidden: ['readonly', '登录占位', 'preview-only'],
+    forbidden: ['readonly', '登录占位', 'preview-only', '后端写入', 'HttpOnly Cookie'],
   },
   {
     path: 'pages/user/register.vue',
     required: ['definePageMeta({ guestOnly: true })', '@submit.prevent="submit"', 'authStore.requestRegisterCode', 'authStore.register', 'verificationCode', 'expiresInSeconds', 'pattern="[0-9]{4,8}"', 'type="submit"', 'user-form-status', 'user-form-error'],
-    forbidden: ['readonly', '注册占位', 'preview-only'],
+    forbidden: ['readonly', '注册占位', 'preview-only', '本地调试验证码', '投稿审核流程'],
   },
   {
     path: 'pages/user/forgot-password.vue',
     required: ['definePageMeta({ guestOnly: true })', '@submit.prevent="submit"', 'authStore.requestPasswordResetCode', 'authStore.resetPassword', 'verificationCode', 'newPassword', 'expiresInSeconds', 'pattern="[0-9]{4,8}"', 'type="submit"', 'user-form-status', 'user-form-error'],
-    forbidden: ['readonly', '找回占位', 'preview-only'],
+    forbidden: ['readonly', '找回占位', 'preview-only', '本地调试验证码'],
   },
   {
     path: 'pages/user/index.vue',
     required: ['authStore.init()', 'authStore.isAuthenticated', 'authStore.displayName', 'account-state-authenticated', 'account-state-guest', 'authStore.articlePagination', 'useUserHistoryStore', "historyStore.loadList('all', 1, 6)", 'historyStore.items', 'historyStore.remove(entry)', 'historyStore.mutating', 'useUserSavedRoutesStore', 'routesStore.loadList(1, 3)', 'useUserNotificationsStore', 'notificationsStore.loadUnreadCount', '最近阅读', '保存路线', '通知中心'],
-    forbidden: ['静态占位', '<em>24</em>', '<em>6</em>', '泰拉刃制作链', '克苏鲁之眼准备', '最近路径', '阅读路径', '保存进度', '偏好持久化', 'localStorage', 'sessionStorage'],
+    forbidden: ['静态占位', '<em>24</em>', '<em>6</em>', '泰拉刃制作链', '克苏鲁之眼准备', '最近路径', '阅读路径', '保存进度', '偏好持久化', 'localStorage', 'sessionStorage', '不在首页塞用户功能'],
   },
   {
     path: 'pages/user/settings.vue',
@@ -365,7 +365,7 @@ const pageContracts = [
   {
     path: 'pages/user/articles/index.vue',
     required: ['definePageMeta({ requiresUserAuth: true })', 'authStore.fetchUserArticles', 'articlesLoading', 'user-empty-state', 'formatReviewStatus', 'articleActionLabel', 'reviewComment', '编辑', '查看状态', '管理', '查看公开页', '`/user/articles/${article.id}`', 'article-table-shell', 'article-table-panel', 'article-table-row', 'article-cover-thumb', 'resolvePreviewImageUrl', '封面', '文章', '状态', '内容量', '时间', '下一步', '操作', 'article-category-filter', 'selectedArticleCategory', 'articleEngagementStats', '浏览', '评论', '点赞', '收藏'],
-    forbidden: ['近战装备路线补充', '克眼前准备清单', 'overflow-x: auto', 'min-width: 1380px'],
+    forbidden: ['近战装备路线补充', '克眼前准备清单', 'overflow-x: auto', 'min-width: 1380px', '不是后台管理'],
   },
   {
     path: 'pages/user/articles/new.vue',
@@ -416,7 +416,7 @@ const pageContracts = [
   {
     path: 'pages/users/[id].vue',
     required: ['usePublicApiFetch<PublicUserProfile>', '`/users/${userId.value}`', 'publishedArticles', 'publishedArticleCount', 'user-empty-state', '返回文章入口', 'publicArticlePath', 'profileAvatarUrl'],
-    forbidden: ['email', 'token', 'role', 'roles', 'deleted', 'passwordHash', 'avatarObjectKey', 'preview-only', '占位'],
+    forbidden: ['email', 'token', 'role', 'roles', 'deleted', 'passwordHash', 'avatarObjectKey', 'preview-only', '占位', '公开用户接口'],
   },
   {
     path: 'pages/articles/index.vue',

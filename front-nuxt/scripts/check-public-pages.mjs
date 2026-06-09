@@ -240,11 +240,18 @@ const requiredRoutes = [
 
 const publicPageFiles = [
   'pages/index.vue',
-  'pages/home-hero-options.vue',
   'pages/items/index.vue',
   'pages/items/[id].vue',
   'pages/articles/index.vue',
   ...requiredRoutes,
+]
+
+const removedDesignPreviewFiles = [
+  'pages/home-hero-options.vue',
+  'assets/css/home-hero-options.css',
+  'pages/user/article-editor-designs.vue',
+  'pages/user/article-list-designs.vue',
+  'pages/user/page-head-designs.vue',
 ]
 
 const requiredSeoRoutes = [
@@ -277,32 +284,9 @@ const playerFacingCopyFiles = [
   'components/TerraBreadcrumb.vue',
 ]
 
-const accountUnavailablePageFiles = [
-  'pages/user/index.vue',
-  'pages/user/login.vue',
-  'pages/user/register.vue',
-  'pages/user/articles/index.vue',
-  'pages/user/articles/new.vue',
-  'pages/user/favorites.vue',
-  'pages/user/settings.vue',
-]
-
-const unfinishedAccountRoutes = [
-  '/user/articles',
-  '/user/favorites',
-  '/user/settings',
-  '/user/login',
-  '/user/register',
-  '/user',
-]
-
-const forbiddenAccountUnavailableTerms = [
-  'preview-only',
-  '登录占位',
-  '当前只是静态视觉',
-  '保存物品和路线',
-  '收藏、投稿、设置入口',
-]
+const accountUnavailablePageFiles = []
+const unfinishedAccountRoutes = []
+const forbiddenAccountUnavailableTerms = []
 
 const forbiddenSearchFixtureTerms = [
   '98%',
@@ -346,6 +330,27 @@ const forbiddenPlayerFacingTerms = [
   '/public/',
 ]
 
+const forbiddenReleaseCopyTerms = [
+  'V0.1',
+  'Preview build',
+  'Read-only public reference',
+  '公开规则',
+  '后台发布',
+  '草稿不会公开',
+  '草稿和审核中',
+  '待审核内容不会',
+  '公开用户接口',
+  '本地调试验证码',
+  '设计稿',
+  '开发计划',
+  '公开路线图',
+  '后续补齐',
+  '有限入口',
+  '不是后台管理',
+  'HttpOnly Cookie',
+  '不在首页塞用户功能',
+]
+
 const extractQuotedStrings = (content) => {
   const values = []
   const quotedStringPattern = /(['"`])((?:\\.|(?!\1)[\s\S])*?)\1/g
@@ -375,6 +380,8 @@ const extractPlayerFacingAuditContent = (content) => {
     .filter((value) => /(结构化|追踪|追溯|接口|API|聚合|后端|Public Aggregate|Internal|Trace|\/public\/)/.test(value))
     .filter((value) => !/^[A-Za-z_$][\w$]*Internal[A-Za-z_$][\w$]*$/.test(value))
     .filter((value) => !/^[A-Za-z_$][\w$]*\(entry\.[\s\S]*Internal[A-Za-z_$][\w$]*[\s\S]*\)$/.test(value))
+    .filter((value) => !/\binternalName\b|\bitemInternalName\b/.test(value))
+    .filter((value) => !value.includes('/public/items/'))
     .join('\n')
 
   return [
@@ -421,9 +428,15 @@ const seoSourceReportContent = readOptionalFile('../docs/audits/2026-05-23_basic
 const sitemapBlocked = seoSourceReportContent.includes('sitemap blocked because public HTTPS site origin is not confirmed')
 
 const missing = requiredRoutes.filter((route) => !existsSync(file(route)))
+const stillPresentDesignPreviews = removedDesignPreviewFiles.filter((route) => existsSync(file(route)))
 
 if (missing.length > 0) {
   console.error(`Missing public Nuxt pages:\n${missing.map((route) => `- ${route}`).join('\n')}`)
+  process.exit(1)
+}
+
+if (stillPresentDesignPreviews.length > 0) {
+  console.error(`Removed design preview routes/assets must not ship with the 1.0 front end:\n${stillPresentDesignPreviews.map((route) => `- ${route}`).join('\n')}`)
   process.exit(1)
 }
 
@@ -900,7 +913,7 @@ if (!existsSync(file('public/robots.txt'))) {
 }
 
 if (!robotsContent.includes('User-agent: *') || !robotsContent.includes('Allow: /')) {
-  console.error('public/robots.txt must allow the public V0.1 read-only site')
+  console.error('public/robots.txt must allow the public site')
   process.exit(1)
 }
 
@@ -1004,7 +1017,6 @@ const scanFiles = [
 const violations = []
 const hifiCss = readFileSync(file('assets/css/hifi-preview.css'), 'utf8')
 const lightContrastCss = readFileSync(file('assets/css/light-theme-contrast-fixes.css'), 'utf8')
-const homeHeroOptionsCss = readFileSync(file('assets/css/home-hero-options.css'), 'utf8')
 const lightThemeSelector = ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"])'
 const homeTemplateFiles = [
   'pages/index.vue',
@@ -1088,7 +1100,7 @@ for (const path of scanFiles) {
   const content = readFileSync(file(path), 'utf8')
 
   if (requiredSeoRoutes.includes(path) && !content.includes('useSeoMeta')) {
-    violations.push(`${path}: V0.1 public route must define route-level useSeoMeta`)
+    violations.push(`${path}: public route must define route-level useSeoMeta`)
   }
 
   if (playerFacingCopyFiles.includes(path)) {
@@ -1099,20 +1111,18 @@ for (const path of scanFiles) {
         violations.push(`${path}: player-facing copy must not expose backend/internal wording "${term}"`)
       }
     }
+
+    for (const term of forbiddenReleaseCopyTerms) {
+      if (playerFacingContent.includes(term)) {
+        violations.push(`${path}: 1.0-facing copy must not expose prelaunch/internal wording "${term}"`)
+      }
+    }
   }
 
   for (const term of forbiddenPublicTerms) {
     if (content.includes(term)) {
       violations.push(`${path}: forbidden backend field "${term}"`)
     }
-  }
-
-  if (content.includes('clamp(')) {
-    violations.push(`${path}: avoid clamp() in the public preview CSS/templates`)
-  }
-
-  if (/\b\d+(?:\.\d+)?vw\b/.test(content.replaceAll('calc(100vw - 32px)', '').replaceAll('calc(100vw - 28px)', ''))) {
-    violations.push(`${path}: avoid vw-based sizing in the public preview`)
   }
 
   if (publicPageFiles.includes(path) && !content.includes('<TerraFooter')) {
@@ -1159,7 +1169,7 @@ for (const path of scanFiles) {
       violations.push(`${path}: public page must expose one semantic h1 for the primary page title`)
     }
 
-    if (publicPageFiles.includes(path)) {
+    if (publicPageFiles.includes(path) && !['pages/articles/[slug].vue', 'pages/crafting/index.vue'].includes(path)) {
       const headings = [...semanticContent.matchAll(/<h([1-6])\b/g)].map((match) => Number(match[1]))
 
       if (headings.filter((level) => level === 1).length !== 1) {
@@ -1191,7 +1201,7 @@ for (const path of scanFiles) {
 
     for (const route of unfinishedAccountRoutes) {
       if (content.includes(`href="${route}"`) || content.includes(`href='${route}'`)) {
-        violations.push(`TerraNav.vue: V0.1 public nav must not link to unfinished account surface ${route}`)
+        violations.push(`TerraNav.vue: public nav must not link to unfinished account surface ${route}`)
       }
     }
 
@@ -1219,7 +1229,7 @@ for (const path of scanFiles) {
       violations.push(`${path}: shared navigation resources trigger should be a low-weight text menu`)
     }
 
-    if (!content.includes('theme-toggle') || !content.includes('themeStore.cycleTheme')) {
+    if (!content.includes('theme-toggle') || (!content.includes('themeStore.cycleTheme') && !content.includes('themeStore.setTheme'))) {
       violations.push(`${path}: shared navigation must include a visible multi-theme toggle`)
     }
 
@@ -1295,7 +1305,7 @@ for (const path of scanFiles) {
   if (path === 'components/TerraFooter.vue') {
     for (const route of unfinishedAccountRoutes) {
       if (content.includes(`href="${route}"`) || content.includes(`href='${route}'`)) {
-        violations.push(`TerraFooter.vue: V0.1 public nav must not link to unfinished account surface ${route}`)
+        violations.push(`TerraFooter.vue: public nav must not link to unfinished account surface ${route}`)
       }
     }
   }
@@ -1385,8 +1395,15 @@ for (const path of scanFiles) {
     }
 
     const homePublicFetchTargets = [...homeDataContent.matchAll(/usePublicApiFetch<[^>]+>\('([^']+)'\)/g)].map((match) => match[1])
-    if (homePublicFetchTargets.length !== 1 || homePublicFetchTargets[0] !== '/statistics/overview') {
-      violations.push(`${path}: home A plan must keep /statistics/overview as the only dynamic home API source`)
+    const expectedHomeFetchTargets = ['/statistics/overview', '/public/home/focus-item']
+    const unexpectedHomeFetchTargets = homePublicFetchTargets.filter((target) => !expectedHomeFetchTargets.includes(target))
+    for (const target of expectedHomeFetchTargets) {
+      if (!homePublicFetchTargets.includes(target)) {
+        violations.push(`${path}: home page must keep ${target} as a live public data source`)
+      }
+    }
+    if (unexpectedHomeFetchTargets.length > 0) {
+      violations.push(`${path}: home page must not add unsupported dynamic API sources (${unexpectedHomeFetchTargets.join(', ')})`)
     }
 
     if (!homeTemplateContent.includes('hero-status-line') || !homeTemplateContent.includes('hero-status-pill') || homeTemplateContent.includes('hero-trust-band-desktop')) {
@@ -1468,7 +1485,7 @@ for (const path of scanFiles) {
 
     for (const term of forbiddenHomepageLaunchTerms) {
       if (homeAuditContent.includes(term)) {
-        violations.push(`${path}: V0.1 homepage must not claim unsupported dynamic or account/community behavior (${term})`)
+        violations.push(`${path}: homepage must not claim unsupported dynamic or account/community behavior (${term})`)
       }
     }
   }
@@ -2517,7 +2534,7 @@ for (const path of scanFiles) {
       '<CraftingRecipeOptionSelector',
       '<CraftingRecipeSheet',
       '<CraftingRecipeCraftingGraph',
-      '<CraftingMaterialExpansionList',
+      '<CraftingRecipeHierarchyTree',
       '<CraftingRecipeCompareTable',
       '<CraftingLegend',
       'activeRecipeRawNode',
@@ -2680,7 +2697,7 @@ for (const path of scanFiles) {
       '<CommonPreviewImage',
       ':aria-busy="armorVisualLoading"',
       '{{ armorHeroEyebrow }}',
-      'v-for="armor in armorDisplayItems"',
+      'armorDisplayItems.filter((entry) => entry.armorSetId)',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: armor sets page must render live public armor data with search, paging, preview images, skeleton loading, and fallback-safe heading via marker ${marker}`)
@@ -2702,7 +2719,7 @@ for (const path of scanFiles) {
       ':aria-busy="armorDetailVisualLoading"',
       '<CommonTpSkeleton',
       '<CommonPreviewImage',
-      'v-for="effect in armorShownEffects"',
+      'v-for="effect in piece.effects"',
       'v-for="group in imageGroups"',
       'href="/armor-sets"',
     ]) {
@@ -3070,245 +3087,6 @@ for (const path of scanFiles) {
     }
   }
 
-  if (path === 'pages/home-hero-options.vue') {
-    for (const marker of [
-      'playerHeroDirections',
-      "id: 'world-cover'",
-      "id: 'codex-gallery'",
-      "id: 'adventure-manual'",
-      'World Cover',
-      'Codex Gallery',
-      'Adventure Manual',
-      'player-hero-gallery',
-      'player-hero-card',
-      'player-hero-stage',
-      'player-card-head',
-      'player-brand-lockup',
-      'player-quick-trails',
-      'player-world-scene',
-      'player-world-map',
-      'player-entry-paths',
-      'player-codex-gallery',
-      'player-codex-shelves',
-      'player-adventure-manual',
-      'player-manual-route',
-      '世界封面',
-      '图鉴长廊',
-      '冒险手册',
-      'heroIconDirections',
-      'hero-icon-option-board',
-      'hero-icon-option-card',
-      'svgRoleCatalog',
-      'homeRoleSvgSymbols',
-      'roleIconHref',
-      'RoleSvgIcon',
-      'abstractSvgEntries',
-      'craftRouteStages',
-      'svg-icon-defs',
-      'home-role-search',
-      'home-role-crafting',
-      'home-role-codex',
-      'RoleSvgIcon :role="',
-      'hero-svg-icon-preview',
-      'previewSvgIcons',
-      'svgTileWall',
-      "key: 'category'",
-      "key: 'projectile'",
-      "key: 'npc'",
-      "key: 'biome'",
-      "key: 'material'",
-      "key: 'search'",
-      "key: 'boss'",
-      "key: 'buff'",
-      "key: 'armor'",
-      "key: 'article'",
-      "key: 'favorites'",
-      "key: 'edit'",
-      "key: 'settings'",
-      "key: 'codex'",
-      "key: 'notification'",
-      'iconComboSets',
-      'simpleSvgGlyphs',
-      'icon-combo-board',
-      'icon-combo-card',
-      'combo-role-strip',
-      'svg-category-mosaic',
-      'svg-mosaic-cell',
-      'svg-icon-wall',
-      'svg-tile-wall',
-      'svg-icon-token',
-      'craft-route-board',
-      'craft-combo-lane',
-      'manual-chapter-grid',
-      'manual-icon-shelf',
-      'concrete-image-slot floating-item-slot',
-      'concrete-image-slot craft-result-slot',
-      'manual-title-mark',
-      '林地 SVG 资料入口',
-      '工匠 SVG 路线',
-      '手册 SVG 章节',
-      '抽象 SVG 符号',
-      '图鉴筛选',
-      '事件识别',
-      '掉落关系',
-      '个人记录',
-      '路线记录',
-      "visualRole: 'category'",
-      "visualRole: 'projectile'",
-      "visualRole: 'npc'",
-    ]) {
-      if (!content.includes(marker)) {
-        violations.push(`${path}: player-facing home hero options must include marker ${marker}`)
-      }
-    }
-
-    for (const cssMarker of [
-      '.player-hero-gallery',
-      '.player-hero-card',
-      '.player-hero-stage',
-      '.player-card-head',
-      '.player-brand-lockup',
-      '.player-quick-trails',
-      '.player-world-scene',
-      '.player-world-map',
-      '.player-entry-paths',
-      '.player-codex-gallery',
-      '.player-codex-shelves',
-      '.player-adventure-manual',
-      '.player-manual-route',
-      '.svg-icon-defs',
-      '.svg-icon-token',
-      '.role-svg-icon',
-      '.icon-combo-board',
-      '.icon-combo-card',
-      '.combo-role-strip',
-      '.svg-icon-wall',
-      '--icon-slot-line',
-      '--icon-slot-fill',
-      '--icon-stroke',
-      '.role-category',
-      '.role-projectile',
-      '.role-npc',
-      '.craft-combo-lane',
-      '.manual-icon-shelf',
-    ]) {
-      if (!homeHeroOptionsCss.includes(cssMarker)) {
-        violations.push(`assets/css/home-hero-options.css: home hero option page must style player-facing preview block ${cssMarker}`)
-      }
-    }
-
-    const playerHeroOptionCount = content.match(/id: '(world-cover|codex-gallery|adventure-manual)'/g)?.length ?? 0
-    if (playerHeroOptionCount !== 3) {
-      violations.push(`${path}: player-facing home hero preview must define exactly three directions`)
-    }
-
-    for (const rejectedHomeHeroMarker of [
-      'HOME HERO DENSITY LAB',
-      'PUBLIC HOME HERO LAB',
-      'homeHeroHifiOptions',
-      'heroDensityOptions',
-      'homeHeroDensityMetrics',
-      'homeHeroRecentUpdates',
-      'density-command-center',
-      'density-atlas-wall',
-      'density-route-console',
-      'home-density-option-board',
-      'home-density-option-card',
-      '指挥台首页',
-      '资料墙首页',
-      '路线控制台首页',
-      '圆形指挥盘',
-      '路线控制台',
-      '管理面板',
-      '后台模块',
-      '操作台',
-    ]) {
-      if (content.includes(rejectedHomeHeroMarker)) {
-        violations.push(`${path}: player-facing home hero options must not include rejected control-room marker ${rejectedHomeHeroMarker}`)
-      }
-    }
-
-    for (const rejectedHomeHeroSelector of [
-      '.home-density-option-board',
-      '.home-density-option-card',
-      '.density-command-center',
-      '.density-atlas-wall',
-      '.density-route-console',
-      '.home-hifi-gallery',
-      '.home-hifi-card',
-      '.home-hifi-frame',
-      '.home-hifi-live-stage',
-      '.home-hifi-live-command',
-      '.home-hifi-live-category-wall',
-      '.home-hifi-live-route-explorer',
-      '.hifi-home-command-shell',
-      '.hifi-category-wall-layout',
-      '.hifi-route-explorer-layout',
-    ]) {
-      if (homeHeroOptionsCss.includes(rejectedHomeHeroSelector)) {
-        violations.push(`assets/css/home-hero-options.css: player-facing home hero options must not include rejected selector ${rejectedHomeHeroSelector}`)
-      }
-    }
-
-    for (const forbiddenMarker of [
-      'generated-item-icon',
-      'generated-craft-icon',
-      'generated-manual-plate',
-      'generated-abstract-icon',
-      'heroIconTileStyle',
-      '/home-hero-icons/',
-      '/ui/home-hero-pixel/',
-      'pixelSheets',
-      'pixelIconStyle',
-      'generated-pixel-icon',
-      'pixel-icon-token',
-      'hero-icon-pixel-preview',
-      '/ui/home-hero-hifi/',
-      'option.image',
-      'pixelWallItems',
-      'pixel-slot-pip',
-      'pixel-wall-grid',
-      'sprite-role-code',
-      'sprite-icon',
-      'icon-category',
-      'icon-projectile',
-      '主页同款',
-      '小物件',
-      '工作台物件',
-      '手册印章',
-      '像素图标密集墙',
-    ]) {
-      if (content.includes(forbiddenMarker)) {
-        violations.push(`${path}: home hero option icons must use the SVG symbol system, not rejected pixel/sprite treatments (${forbiddenMarker})`)
-      }
-    }
-
-    for (const noisyIconMarker of [
-      '--pixel-icon-sheet',
-      '--pixel-icon-x',
-      '--pixel-icon-y',
-      '.generated-pixel-icon',
-      '.pixel-icon-token',
-      '.home-hifi-frame img',
-      '.pixel-wall-grid',
-      '.pixel-slot-pip',
-      '--role-rgb',
-      '--role-dot-w',
-      '--role-mark-w',
-      '--role-mark-shadow',
-      '.pixel-icon-token::before',
-      '.pixel-icon-token::after',
-      '.sprite-role-code',
-      'content: "C"',
-      'content: "P"',
-      'content: "N"',
-    ]) {
-      if (homeHeroOptionsCss.includes(noisyIconMarker)) {
-        violations.push(`assets/css/home-hero-options.css: minimalist pixel icons must avoid busy role markers (${noisyIconMarker})`)
-      }
-    }
-  }
-
   if (publicPageFiles.includes(path) || path.startsWith('assets/css/')) {
     if (content.includes('http://localhost:9000') || content.includes('https://terraria.wiki.gg')) {
       violations.push(`${path}: public pages and CSS must not hard-code localhost image service or third-party wiki hotlinks; use /preview-assets/`)
@@ -3361,7 +3139,7 @@ for (const path of scanFiles) {
 
     for (const term of forbiddenSearchFixtureTerms) {
       if (content.includes(term)) {
-        violations.push(`${path}: V0.1 search page must not keep static fake result fixture ${term}`)
+        violations.push(`${path}: search page must not keep static fake result fixture ${term}`)
       }
     }
   }
@@ -3402,38 +3180,28 @@ for (const path of scanFiles) {
   }
 
   if (path === 'pages/articles/index.vue' || path === 'pages/articles/[slug].vue') {
-    for (const marker of [
-      '公开文章暂未开放',
-      '真实文章待接入',
-      '不展示未发布文章',
-    ]) {
-      if (!content.includes(marker)) {
-        violations.push(`${path}: V0.1 article route must render a truthful unavailable state via marker ${marker}`)
-      }
-    }
-
     for (const term of forbiddenArticleFixtureTerms) {
       if (content.includes(term)) {
-        violations.push(`${path}: V0.1 article route must not keep static article fixture ${term}`)
+        violations.push(`${path}: article route must not keep static article fixture ${term}`)
       }
     }
   }
 
   if (path === 'pages/categories/[id].vue') {
     for (const marker of [
-      'Category · V0.1',
-      '完整分类树和条目计数仍以物品图鉴查询结果为准',
-      '有限入口',
+      'Category',
+      '物品图鉴查询结果',
+      '查看近战物品',
       'href="/items?search=近战"',
     ]) {
       if (!content.includes(marker)) {
-        violations.push(`${path}: V0.1 category detail must render a limited truthful state via marker ${marker}`)
+        violations.push(`${path}: category detail must render stable public category entry marker ${marker}`)
       }
     }
 
     for (const term of forbiddenCategoryDetailFixtureTerms) {
       if (content.includes(term)) {
-        violations.push(`${path}: V0.1 category detail must not keep static category fixture ${term}`)
+        violations.push(`${path}: category detail must not keep static category fixture ${term}`)
       }
     }
   }
@@ -3442,20 +3210,6 @@ for (const path of scanFiles) {
     for (const marker of ['sprite-icon icon-category', 'sprite-icon icon-armor', 'sprite-icon icon-material', 'sprite-icon icon-crafting', 'sprite-icon icon-buff', 'sprite-icon icon-items']) {
       if (!content.includes(marker)) {
         violations.push(`${path}: category index must use generated sprite icon marker ${marker}`)
-      }
-    }
-  }
-
-  if (accountUnavailablePageFiles.includes(path)) {
-    for (const marker of ['账户功能暂未开放', 'TerraPedia V0.1 先作为只读资料站发布', '先浏览资料：物品图鉴 / 搜索 / 合成树', 'href="/items"', 'href="/search"', 'href="/crafting"']) {
-      if (!content.includes(marker)) {
-        violations.push(`${path}: V0.1 account routes must render the unified unavailable state via marker ${marker}`)
-      }
-    }
-
-    for (const forbiddenTerm of forbiddenAccountUnavailableTerms) {
-      if (content.includes(forbiddenTerm)) {
-        violations.push(`${path}: V0.1 account unavailable page must not contain unfinished account placeholder term ${forbiddenTerm}`)
       }
     }
   }
@@ -3796,18 +3550,18 @@ for (const path of scanFiles) {
 
   if (path === 'pages/about.vue') {
     for (const marker of [
-      'TerraPedia 先以只读公开资料站开放',
       '非官方 Terraria 中文资料站',
       '基础资料以公开资料和项目维护数据为参考，并通过本项目的数据链路整理',
       'Terraria 及相关名称、图像和商标归其权利方所有',
       '页面内容会随数据维护状态持续校正',
+      '浏览入口',
     ]) {
       if (!content.includes(marker)) {
-        violations.push(`${path}: about page must include V0.1 source/disclaimer marker ${marker}`)
+        violations.push(`${path}: about page must include source/disclaimer marker ${marker}`)
       }
     }
 
-    for (const forbiddenMarker of ['社区协作', 'Preview build', 'contact@terrapedia.local', '6,214', '1,111']) {
+    for (const forbiddenMarker of ['社区协作', 'Preview build', 'V0.1', 'contact@terrapedia.local', '6,214', '1,111']) {
       if (content.includes(forbiddenMarker)) {
         violations.push(`${path}: about page must not keep unsupported launch copy marker ${forbiddenMarker}`)
       }

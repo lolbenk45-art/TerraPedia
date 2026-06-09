@@ -6,11 +6,11 @@
     <main class="support-layout detail-support-layout">
       <section class="category-detail-hero support-panel">
         <div>
-          <span class="eyebrow">Category · V0.1</span>
+          <span class="eyebrow">Category</span>
           <h1>分类详情</h1>
-          <p>分类详情先作为有限入口保留。完整分类树和条目计数仍以物品图鉴查询结果为准，本页不展示未验证的代表物品或固定数量。</p>
+          <p>按常用战斗、制作和探索方向进入物品图鉴查询结果。</p>
           <div class="tag-row">
-            <span class="tag gold">有限入口</span>
+            <span class="tag gold">分类入口</span>
             <span class="tag moss">物品图鉴承接</span>
             <span class="tag paper">持续校验</span>
           </div>

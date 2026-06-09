@@ -139,7 +139,7 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
         <div>
           <span class="eyebrow">/user/articles · drafts</span>
           <h1>我的文章</h1>
-          <p>文章管理是前台用户页，不是后台管理。这里展示当前账号自己的草稿、投稿状态和公开文章入口。</p>
+          <p>管理当前账号的文章、投稿状态和公开入口。</p>
         </div>
         <a class="primary-button" href="/user/articles/new">新建文章</a>
       </div>

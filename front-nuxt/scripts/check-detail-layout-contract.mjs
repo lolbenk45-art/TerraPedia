@@ -135,6 +135,10 @@ if (!config.includes('~/assets/css/detail-layout.css')) {
         String.raw`\.armor-crafting-chip-compact\s+small,[\s\S]*\.armor-crafting-any-label\s+small\s*\{[\s\S]*overflow:\s*visible;`,
         'compact material quantity must not be hidden or ellipsized',
       ],
+      [
+        String.raw`\.armor-crafting-any-material\s*\{[\s\S]*background:\s*color-mix\(in srgb,\s*var\(--tp-color-positive\)\s*6%,\s*var\(--tp-color-surface\)\);`,
+        'compact alternative material backgrounds must use shared theme tokens without adding page-local pale surfaces',
+      ],
     ]) {
       if (!new RegExp(pattern, 'm').test(component)) {
         violations.push(`${componentPath}: ${message}`)
@@ -239,6 +243,18 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       'armor set detail must place stat overview and recipe summary in the primary 70/30 layout',
     ],
     [
+      String.raw`class="armor-side-stack"`,
+      'armor set detail must group recipe and preview modules in the same right rail',
+    ],
+    [
+      String.raw`class="armor-side-stack"[\s\S]*class="support-panel armor-module armor-crafting-module"[\s\S]*armor-preview-under-crafting[\s\S]*class="support-panel armor-module armor-preview-module"`,
+      'armor set preview images must render directly under the crafting recipe module in the right rail',
+    ],
+    [
+      String.raw`\.armor-side-stack\s*\{[\s\S]*display:\s*grid;[\s\S]*gap:\s*14px;[\s\S]*position:\s*sticky;[\s\S]*top:\s*14px;`,
+      'armor set right rail must keep recipe and preview as one sticky vertical stack on desktop',
+    ],
+    [
       String.raw`grid-template-columns:\s*minmax\(0,\s*2\.35fr\)\s*minmax\(300px,\s*1fr\)`,
       'armor set detail primary layout must reserve enough width for the three-column recipe table',
     ],
@@ -257,6 +273,26 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
     [
       String.raw`class="armor-preview-strip"`,
       'armor set detail must keep preview images compact beside stats',
+    ],
+    [
+      String.raw`\.armor-module\s*\{[\s\S]*padding:\s*18px;`,
+      'armor set detail modules must add consistent inner padding so content does not sit on card edges',
+    ],
+    [
+      String.raw`:class="\[detailLayout.detailModuleClass, armorPreviewCompactClass\]"`,
+      'armor set detail must compact the preview module when only a few images are available',
+    ],
+    [
+      String.raw`\.armor-preview-module--compact\s+\.armor-preview-tile\s*:deep\(\.item-art img\)\s*\{[\s\S]*max-width:\s*118px;[\s\S]*max-height:\s*118px;`,
+      'compact armor preview tiles must constrain the actual rendered image, not only the outer frame',
+    ],
+    [
+      String.raw`\.armor-side-stack\s+\.armor-preview-module--compact\s*\{[\s\S]*width:\s*100%;[\s\S]*justify-self:\s*stretch;`,
+      'compact armor preview modules must fill the recipe rail instead of becoming a detached narrow block',
+    ],
+    [
+      String.raw`\.armor-preview-tile\s*:deep\(\.item-art img\)\s*\{[\s\S]*max-width:\s*156px;[\s\S]*max-height:\s*156px;`,
+      'armor preview tiles must constrain the actual rendered image size for large character sprites',
     ],
     [
       String.raw`armor-detail-right-fact-panel-not-primary`,
@@ -297,6 +333,14 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
     [
       String.raw`const armorRecipeStationGroupKey`,
       'armor set recipe summary must compare station sets before merging station cells',
+    ],
+    [
+      String.raw`const armorRecipeUnavailableReason`,
+      'armor set recipe summary must keep a stable unavailable-state module when no recipe data exists',
+    ],
+    [
+      String.raw`class="armor-crafting-empty-state"`,
+      'armor set recipe summary must render a designed empty state instead of letting preview images jump upward',
     ],
     [
       String.raw`class="armor-crafting-station-cell is-merged"`,

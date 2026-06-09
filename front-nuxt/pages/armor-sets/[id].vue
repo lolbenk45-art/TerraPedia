@@ -1920,7 +1920,7 @@ const fetchArmorSetRecipeSummaries = async (items: PublicArmorSetRelatedItem[]) 
   return entries.filter((entry): entry is ArmorSetRecipeSummary => Boolean(entry))
 }
 
-const { data: armorSetRecipeSummaries } = await useAsyncData(
+const { data: armorSetRecipeSummaries, pending: armorSetRecipePending } = await useAsyncData(
   () => `public-armor-set-recipes:${armorSetId.value || 'missing'}:${armorRecipeFetchKey.value}`,
   () => fetchArmorSetRecipeSummaries(armorUniqueRecipeItems.value),
   {
@@ -1932,6 +1932,11 @@ const { data: armorSetRecipeSummaries } = await useAsyncData(
 
 const armorVisibleRecipeSummaries = computed(() => armorSetRecipeSummaries.value.slice(0, ARMOR_VISIBLE_RECIPE_LIMIT))
 const armorHiddenRecipeSummaries = computed(() => armorSetRecipeSummaries.value.slice(ARMOR_VISIBLE_RECIPE_LIMIT))
+const armorRecipeUnavailableReason = computed(() => {
+  if (armorSetRecipePending.value) return '正在读取制作配方。'
+  if (!armorUniqueRecipeItems.value.length) return '这个套装没有可用于查询配方的部件编号。'
+  return '当前资料没有可展示的制作配方，可能是掉落、购买、奖励或装饰性外观来源。'
+})
 
 const armorRecipeStationGroupKey = (recipe: ArmorSetRecipeSummary) => {
   const stationKey = recipe.stations
@@ -1972,6 +1977,8 @@ const imageGroups = computed(() => ([
   { key: 'special', label: '特殊', icon: 'icon-armor', images: asStringArray(armorRaw.value?.specialImages ?? armorRaw.value?.special_images) },
   { key: 'fallback', label: '部件图', icon: 'icon-items', images: asStringArray(armorRaw.value?.fallbackImages ?? armorRaw.value?.fallback_images) },
 ]).filter((group) => group.images.length))
+const armorPreviewImageTotal = computed(() => imageGroups.value.reduce((total, group) => total + group.images.length, 0))
+const armorPreviewCompactClass = computed(() => armorPreviewImageTotal.value <= 2 ? 'armor-preview-module--compact' : '')
 const armorPrimaryPreview = computed(() => imageGroups.value[0]?.images[0] ?? '')
 const armorPrimaryPreviewIcon = computed(() => imageGroups.value[0]?.icon ?? 'icon-armor')
 
@@ -2038,21 +2045,23 @@ onMounted(() => {
             </div>
           </section>
 
-          <section class="support-panel armor-module armor-crafting-module" :class="detailLayout.detailModuleClass">
-            <div class="armor-module-head">
-              <div>
-                <CommonTpSkeleton type="line" class="armor-detail-loading-heading" />
-                <CommonTpSkeleton type="line" class="armor-detail-loading-subheading" />
+          <aside class="armor-side-stack">
+            <section class="support-panel armor-module armor-crafting-module" :class="detailLayout.detailModuleClass">
+              <div class="armor-module-head">
+                <div>
+                  <CommonTpSkeleton type="line" class="armor-detail-loading-heading" />
+                  <CommonTpSkeleton type="line" class="armor-detail-loading-subheading" />
+                </div>
               </div>
-            </div>
-            <div class="armor-crafting-summary-list">
-              <div v-for="slot in 3" :key="`armor-detail-loading-recipe-${slot}`" class="armor-detail-loading-recipe-row">
-                <CommonTpSkeleton type="icon" />
-                <CommonTpSkeleton type="line" />
-                <CommonTpSkeleton type="line" />
+              <div class="armor-crafting-summary-list">
+                <div v-for="slot in 3" :key="`armor-detail-loading-recipe-${slot}`" class="armor-detail-loading-recipe-row">
+                  <CommonTpSkeleton type="icon" />
+                  <CommonTpSkeleton type="line" />
+                  <CommonTpSkeleton type="line" />
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          </aside>
         </div>
       </div>
 
@@ -2275,167 +2284,177 @@ onMounted(() => {
             </div>
           </section>
 
-          <!-- armor-detail-right-fact-panel-not-primary: low-value fact cards are removed from the right rail. -->
-          <section v-if="armorSetRecipeSummaries.length" class="support-panel armor-module armor-crafting-module" :class="detailLayout.detailModuleClass">
-            <div class="armor-module-head">
-              <div>
-                <h2>制作配方</h2>
-                <p>相同制作站合并显示；不同制作站保留逐行归属。</p>
-              </div>
-              <span class="tag paper">{{ armorSetRecipeSummaries.length }} 个部件</span>
-            </div>
-
-            <div class="armor-crafting-summary-list">
-              <table class="armor-crafting-table">
-                <thead class="armor-crafting-table-head">
-                  <tr>
-                    <th>部件</th>
-                    <th>材料</th>
-                    <th>制作站</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="recipe in armorVisibleRecipeRows" :key="recipe.key" class="armor-crafting-summary-row">
-                    <td class="armor-crafting-piece-cell">
-                      <div class="armor-crafting-piece">
-                        <CommonPreviewImage
-                          :src="recipe.image"
-                          :alt="recipe.name"
-                          :fallback="recipe.fallback"
-                          fallback-icon="icon-items"
-                          width="32"
-                          height="32"
-                        />
-                        <span>
-                          <b>{{ recipe.name }}</b>
-                          <small>{{ recipe.role }} · {{ recipe.recipeCount }} 条</small>
-                        </span>
-                      </div>
-                    </td>
-
-                    <td class="armor-crafting-chip-line" aria-label="材料摘要">
-                      <CraftingCompactRecipeMaterials :materials="recipe.materials" />
-                    </td>
-
-                    <td
-                      v-if="recipe.showStationCell"
-                      class="armor-crafting-station-cell is-merged"
-                      :rowspan="recipe.stationRowspan"
-                    >
-                      <template v-if="recipe.stations.length">
-                        <span v-for="(station, index) in recipe.stations" :key="`${recipe.key}-station-${station.key}`" class="armor-crafting-station-text">
-                          <CommonPreviewImage
-                            :src="station.image"
-                            :alt="station.name"
-                            :fallback="station.fallback"
-                            fallback-icon="icon-crafting"
-                            width="18"
-                            height="18"
-                          />
-                          <b>{{ station.name }}</b>
-                          <em v-if="index < recipe.stations.length - 1">或</em>
-                        </span>
-                      </template>
-                      <span v-else class="armor-crafting-station is-empty">无需制作站</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <details v-if="armorHiddenRecipeSummaries.length" class="armor-crafting-overflow armor-crafting-overflow-collapsed">
-                <summary>展开其余 {{ armorHiddenRecipeSummaries.length }} 个部件配方</summary>
-                <div class="armor-crafting-overflow-list">
-                  <table class="armor-crafting-table">
-                    <thead class="armor-crafting-table-head">
-                      <tr>
-                        <th>部件</th>
-                        <th>材料</th>
-                        <th>制作站</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="recipe in armorHiddenRecipeRows" :key="`hidden-${recipe.key}`" class="armor-crafting-summary-row">
-                        <td class="armor-crafting-piece-cell">
-                          <div class="armor-crafting-piece">
-                            <CommonPreviewImage
-                              :src="recipe.image"
-                              :alt="recipe.name"
-                              :fallback="recipe.fallback"
-                              fallback-icon="icon-items"
-                              width="32"
-                              height="32"
-                            />
-                            <span>
-                              <b>{{ recipe.name }}</b>
-                              <small>{{ recipe.role }} · {{ recipe.recipeCount }} 条</small>
-                            </span>
-                          </div>
-                        </td>
-
-                        <td class="armor-crafting-chip-line" aria-label="材料摘要">
-                          <CraftingCompactRecipeMaterials :materials="recipe.materials" />
-                        </td>
-
-                        <td
-                          v-if="recipe.showStationCell"
-                          class="armor-crafting-station-cell is-merged"
-                          :rowspan="recipe.stationRowspan"
-                        >
-                          <template v-if="recipe.stations.length">
-                            <span v-for="(station, index) in recipe.stations" :key="`${recipe.key}-hidden-station-${station.key}`" class="armor-crafting-station-text">
-                              <CommonPreviewImage
-                                :src="station.image"
-                                :alt="station.name"
-                                :fallback="station.fallback"
-                                fallback-icon="icon-crafting"
-                                width="18"
-                                height="18"
-                              />
-                              <b>{{ station.name }}</b>
-                              <em v-if="index < recipe.stations.length - 1">或</em>
-                            </span>
-                          </template>
-                          <span v-else class="armor-crafting-station is-empty">无需制作站</span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+          <aside class="armor-side-stack">
+            <!-- armor-detail-right-fact-panel-not-primary: low-value fact cards are removed from the right rail. -->
+            <section class="support-panel armor-module armor-crafting-module" :class="detailLayout.detailModuleClass">
+              <div class="armor-module-head">
+                <div>
+                  <h2>制作配方</h2>
+                  <p>相同制作站合并显示；不同制作站保留逐行归属。</p>
                 </div>
-              </details>
-            </div>
-          </section>
-        </div>
-
-        <!-- armor-preview-promoted-after-stats: display images now sit immediately after build comparison. -->
-        <section v-if="imageGroups.length" class="support-panel armor-module armor-preview-module" :class="detailLayout.detailModuleClass">
-          <div class="armor-module-head">
-            <div>
-              <h2>展示图</h2>
-              <p>套装外观与部件图片。</p>
-            </div>
-          </div>
-
-          <div class="armor-preview-strip">
-            <section v-for="group in imageGroups" :key="group.key" class="armor-preview-group">
-              <div class="armor-preview-group-head">
-                <b>{{ group.label }}</b>
-                <span class="tag paper">{{ group.images.length }} 张</span>
+                <span class="tag paper">{{ armorSetRecipeSummaries.length ? `${armorSetRecipeSummaries.length} 个部件` : '暂无配方' }}</span>
               </div>
-              <div class="armor-preview-images">
-                <CommonPreviewImage
-                  v-for="image in group.images.slice(0, 12)"
-                  :key="`${group.key}-${image}`"
-                  :src="resolvePreviewImageUrl(image)"
-                  :alt="`${armorTitle} ${group.label}`"
-                  :fallback="armorDetail?.fallback || '?'"
-                  :fallback-icon="group.icon"
-                  width="92"
-                  height="92"
-                  class="armor-preview-tile"
-                />
+
+              <div v-if="armorSetRecipeSummaries.length" class="armor-crafting-summary-list">
+                <table class="armor-crafting-table">
+                  <thead class="armor-crafting-table-head">
+                    <tr>
+                      <th>部件</th>
+                      <th>材料</th>
+                      <th>制作站</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="recipe in armorVisibleRecipeRows" :key="recipe.key" class="armor-crafting-summary-row">
+                      <td class="armor-crafting-piece-cell">
+                        <div class="armor-crafting-piece">
+                          <CommonPreviewImage
+                            :src="recipe.image"
+                            :alt="recipe.name"
+                            :fallback="recipe.fallback"
+                            fallback-icon="icon-items"
+                            width="32"
+                            height="32"
+                          />
+                          <span>
+                            <b>{{ recipe.name }}</b>
+                            <small>{{ recipe.role }} · {{ recipe.recipeCount }} 条</small>
+                          </span>
+                        </div>
+                      </td>
+
+                      <td class="armor-crafting-chip-line" aria-label="材料摘要">
+                        <CraftingCompactRecipeMaterials :materials="recipe.materials" />
+                      </td>
+
+                      <td
+                        v-if="recipe.showStationCell"
+                        class="armor-crafting-station-cell is-merged"
+                        :rowspan="recipe.stationRowspan"
+                      >
+                        <template v-if="recipe.stations.length">
+                          <span v-for="(station, index) in recipe.stations" :key="`${recipe.key}-station-${station.key}`" class="armor-crafting-station-text">
+                            <CommonPreviewImage
+                              :src="station.image"
+                              :alt="station.name"
+                              :fallback="station.fallback"
+                              fallback-icon="icon-crafting"
+                              width="18"
+                              height="18"
+                            />
+                            <b>{{ station.name }}</b>
+                            <em v-if="index < recipe.stations.length - 1">或</em>
+                          </span>
+                        </template>
+                        <span v-else class="armor-crafting-station is-empty">无需制作站</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <details v-if="armorHiddenRecipeSummaries.length" class="armor-crafting-overflow armor-crafting-overflow-collapsed">
+                  <summary>展开其余 {{ armorHiddenRecipeSummaries.length }} 个部件配方</summary>
+                  <div class="armor-crafting-overflow-list">
+                    <table class="armor-crafting-table">
+                      <thead class="armor-crafting-table-head">
+                        <tr>
+                          <th>部件</th>
+                          <th>材料</th>
+                          <th>制作站</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="recipe in armorHiddenRecipeRows" :key="`hidden-${recipe.key}`" class="armor-crafting-summary-row">
+                          <td class="armor-crafting-piece-cell">
+                            <div class="armor-crafting-piece">
+                              <CommonPreviewImage
+                                :src="recipe.image"
+                                :alt="recipe.name"
+                                :fallback="recipe.fallback"
+                                fallback-icon="icon-items"
+                                width="32"
+                                height="32"
+                              />
+                              <span>
+                                <b>{{ recipe.name }}</b>
+                                <small>{{ recipe.role }} · {{ recipe.recipeCount }} 条</small>
+                              </span>
+                            </div>
+                          </td>
+
+                          <td class="armor-crafting-chip-line" aria-label="材料摘要">
+                            <CraftingCompactRecipeMaterials :materials="recipe.materials" />
+                          </td>
+
+                          <td
+                            v-if="recipe.showStationCell"
+                            class="armor-crafting-station-cell is-merged"
+                            :rowspan="recipe.stationRowspan"
+                          >
+                            <template v-if="recipe.stations.length">
+                              <span v-for="(station, index) in recipe.stations" :key="`${recipe.key}-hidden-station-${station.key}`" class="armor-crafting-station-text">
+                                <CommonPreviewImage
+                                  :src="station.image"
+                                  :alt="station.name"
+                                  :fallback="station.fallback"
+                                  fallback-icon="icon-crafting"
+                                  width="18"
+                                  height="18"
+                                />
+                                <b>{{ station.name }}</b>
+                                <em v-if="index < recipe.stations.length - 1">或</em>
+                              </span>
+                            </template>
+                            <span v-else class="armor-crafting-station is-empty">无需制作站</span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              </div>
+              <div v-else class="armor-crafting-empty-state" aria-live="polite">
+                <span class="sprite-icon icon-crafting" aria-hidden="true"></span>
+                <div>
+                  <b>暂无可展示的制作配方</b>
+                  <p>{{ armorRecipeUnavailableReason }}</p>
+                </div>
+              </div>
+
+            </section>
+
+            <!-- armor-preview-under-crafting: display images stay in the same right rail below the recipe module. -->
+            <section v-if="imageGroups.length" class="support-panel armor-module armor-preview-module" :class="[detailLayout.detailModuleClass, armorPreviewCompactClass]">
+              <div class="armor-module-head">
+                <div>
+                  <h2>展示图</h2>
+                  <p>套装外观与部件图片。</p>
+                </div>
+              </div>
+
+              <div class="armor-preview-strip">
+                <section v-for="group in imageGroups" :key="group.key" class="armor-preview-group">
+                  <div class="armor-preview-group-head">
+                    <b>{{ group.label }}</b>
+                    <span class="tag paper">{{ group.images.length }} 张</span>
+                  </div>
+                  <div class="armor-preview-images">
+                    <CommonPreviewImage
+                      v-for="image in group.images.slice(0, 12)"
+                      :key="`${group.key}-${image}`"
+                      :src="resolvePreviewImageUrl(image)"
+                      :alt="`${armorTitle} ${group.label}`"
+                      :fallback="armorDetail?.fallback || '?'"
+                      :fallback-icon="group.icon"
+                      width="92"
+                      height="92"
+                      class="armor-preview-tile"
+                    />
+                  </div>
+                </section>
               </div>
             </section>
-          </div>
-        </section>
+          </aside>
+        </div>
       </div>
     </main>
 
@@ -2448,10 +2467,11 @@ onMounted(() => {
   padding: 18px 20px;
   overflow: hidden;
   background:
-    linear-gradient(135deg, rgba(219, 179, 93, 0.11), rgba(100, 154, 118, 0.045) 42%, transparent),
+    linear-gradient(135deg, rgba(var(--theme-panel-rgb), 0.12), rgba(var(--theme-bg-2-rgb), 0.08) 48%, transparent),
     var(--index-grid-x),
     var(--index-grid-y),
-    rgba(11, 18, 13, 0.88);
+    var(--tp-color-surface);
+  background-size: auto, 40px 40px, 40px 40px, auto;
 }
 
 .armor-hero-shell {
@@ -2526,7 +2546,7 @@ onMounted(() => {
   align-items: center;
   min-width: 0;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(244, 234, 208, 0.08);
+  border-bottom: 1px solid var(--tp-color-border);
 }
 
 .armor-detail-loading-recipe-row .tp-skeleton-icon {
@@ -2546,7 +2566,7 @@ onMounted(() => {
   gap: 8px;
   width: fit-content;
   max-width: 100%;
-  color: rgba(242, 211, 132, 0.95);
+  color: var(--tp-color-accent);
   font-size: 12px;
   font-weight: 900;
   line-height: 1.2;
@@ -2564,7 +2584,7 @@ onMounted(() => {
 
 .armor-detail-hero h1 {
   margin: 0;
-  color: var(--text);
+  color: var(--tp-color-text-strong);
   font-size: clamp(26px, 3vw, 38px);
   font-weight: 950;
   line-height: 1.08;
@@ -2574,7 +2594,7 @@ onMounted(() => {
 .armor-detail-hero p {
   max-width: 900px;
   margin: 0;
-  color: rgba(255, 248, 224, 0.94);
+  color: var(--tp-color-text);
   font-size: 15px;
   font-weight: 800;
   line-height: 1.65;
@@ -2598,9 +2618,9 @@ onMounted(() => {
   justify-items: center;
   min-width: 96px;
   padding: 10px;
-  border: 1px solid rgba(244, 234, 208, 0.11);
+  border: 1px solid var(--tp-color-border);
   border-radius: 8px;
-  background: rgba(244, 234, 208, 0.04);
+  background: var(--tp-color-surface-raised);
 }
 
 .armor-hero-preview :deep(.item-art) {
@@ -2613,7 +2633,7 @@ onMounted(() => {
 }
 
 .armor-hero-preview span {
-  color: var(--muted);
+  color: var(--tp-color-text-muted);
   font-size: 11px;
   font-weight: 850;
   line-height: 1.2;
@@ -2635,14 +2655,14 @@ onMounted(() => {
 
 .armor-module-head h2 {
   margin: 0;
-  color: var(--text);
+  color: var(--tp-color-text-strong);
   font-size: 18px;
   line-height: 1.25;
 }
 
 .armor-module-head p {
   margin: 0;
-  color: var(--muted);
+  color: var(--tp-color-text-muted);
   font-size: 13px;
   line-height: 1.55;
 }
@@ -2653,8 +2673,8 @@ onMounted(() => {
   gap: 8px;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid rgba(244, 234, 208, 0.1);
-  color: var(--text);
+  border-top: 1px solid var(--tp-color-border);
+  color: var(--tp-color-text-strong);
   font-size: 13px;
   line-height: 1.7;
 }
@@ -2664,18 +2684,18 @@ onMounted(() => {
   align-items: center;
   max-width: 100%;
   padding: 6px 10px;
-  border: 1px solid rgba(244, 234, 208, 0.09);
+  border: 1px solid var(--tp-color-border);
   border-radius: 999px;
-  background: rgba(244, 234, 208, 0.03);
+  background: var(--tp-color-surface-raised);
   overflow-wrap: anywhere;
 }
 
 .armor-crafting-summary-list {
   display: grid;
   min-width: 0;
-  border: 1px solid rgba(244, 234, 208, 0.13);
+  border: 1px solid var(--tp-color-border);
   border-radius: 7px;
-  background: rgba(12, 15, 11, 0.2);
+  background: var(--tp-color-surface-raised);
   overflow-x: visible;
   overflow-y: visible;
 }
@@ -2690,9 +2710,9 @@ onMounted(() => {
 .armor-crafting-table th,
 .armor-crafting-table td {
   min-width: 0;
-  padding: 5px 4px;
-  border-top: 1px solid rgba(244, 234, 208, 0.08);
-  border-left: 1px solid rgba(244, 234, 208, 0.11);
+  padding: 7px 8px;
+  border-top: 1px solid var(--tp-color-border);
+  border-left: 1px solid var(--tp-color-border);
   vertical-align: middle;
   text-align: center;
 }
@@ -2722,21 +2742,21 @@ onMounted(() => {
 }
 
 .armor-crafting-table-head {
-  border-bottom: 1px solid rgba(244, 234, 208, 0.13);
-  background: rgba(244, 234, 208, 0.045);
+  border-bottom: 1px solid var(--tp-color-border);
+  background: color-mix(in srgb, var(--tp-color-accent) 5%, var(--tp-color-surface));
 }
 
 .armor-crafting-table-head th {
   min-width: 0;
-  color: rgba(242, 211, 132, 0.96);
-  font-size: 10px;
+  color: var(--tp-color-accent);
+  font-size: 11px;
   font-weight: 950;
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
 
 .armor-crafting-summary-row {
-  background: rgba(244, 234, 208, 0.026);
+  background: var(--tp-color-surface-raised);
 }
 
 .armor-crafting-piece-cell {
@@ -2745,8 +2765,8 @@ onMounted(() => {
 
 .armor-crafting-piece {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
-  gap: 5px;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 7px;
   align-items: center;
   justify-content: center;
   min-width: 0;
@@ -2772,8 +2792,8 @@ onMounted(() => {
 .armor-crafting-piece b,
 .armor-crafting-chip-compact b {
   min-width: 0;
-  color: var(--text);
-  font-size: 11px;
+  color: var(--tp-color-text-strong);
+  font-size: 12px;
   font-weight: 850;
   line-height: 1.25;
   overflow-wrap: normal;
@@ -2782,8 +2802,8 @@ onMounted(() => {
 
 .armor-crafting-piece small,
 .armor-crafting-chip-compact small {
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--tp-color-text-muted);
+  font-size: 10px;
   font-weight: 800;
   line-height: 1.2;
 }
@@ -2815,7 +2835,7 @@ onMounted(() => {
   min-width: 0;
   padding: 3px 4px;
   border-radius: 6px;
-  background: rgba(125, 229, 220, 0.045);
+  background: color-mix(in srgb, var(--tp-color-positive) 6%, var(--tp-color-surface));
 }
 
 .armor-crafting-any-option {
@@ -2829,7 +2849,7 @@ onMounted(() => {
 
 .armor-crafting-any-option b {
   min-width: 0;
-  color: var(--text);
+  color: var(--tp-color-text-strong);
   font-size: 10px;
   font-weight: 850;
   line-height: 1.15;
@@ -2844,7 +2864,7 @@ onMounted(() => {
   gap: 0;
   min-width: 0;
   padding: 2px 0;
-  color: var(--muted);
+  color: var(--tp-color-text-muted);
   font-size: 9px;
   font-weight: 850;
   line-height: 1.15;
@@ -2916,7 +2936,7 @@ onMounted(() => {
 }
 
 .armor-crafting-chip-line em {
-  color: var(--muted);
+  color: var(--tp-color-text-muted);
   font-size: 11px;
   font-style: normal;
   font-weight: 850;
@@ -2924,7 +2944,9 @@ onMounted(() => {
 
 .armor-crafting-station-cell {
   min-width: 0;
-  background: rgba(125, 229, 220, 0.025);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-positive) 4%, transparent), color-mix(in srgb, var(--tp-color-accent) 3%, transparent)),
+    var(--tp-color-surface);
 }
 
 .armor-crafting-station-cell.is-merged {
@@ -2958,7 +2980,7 @@ onMounted(() => {
 
 .armor-crafting-station-text b {
   min-width: 0;
-  color: rgba(125, 229, 220, 0.95);
+  color: var(--tp-color-positive);
   font-size: 11px;
   font-weight: 850;
   line-height: 1.25;
@@ -2970,7 +2992,7 @@ onMounted(() => {
   display: block;
   width: 100%;
   grid-column: 1 / -1;
-  color: rgba(242, 211, 132, 0.95);
+  color: var(--tp-color-accent);
   font-size: 10px;
   font-style: normal;
   font-weight: 950;
@@ -2978,7 +3000,7 @@ onMounted(() => {
 }
 
 .armor-crafting-station.is-empty {
-  color: var(--muted);
+  color: var(--tp-color-text-muted);
   font-size: 12px;
   font-weight: 850;
 }
@@ -2987,7 +3009,7 @@ onMounted(() => {
   display: grid;
   gap: 0;
   min-width: 0;
-  border-top: 1px solid rgba(244, 234, 208, 0.08);
+  border-top: 1px solid var(--tp-color-border);
 }
 
 .armor-crafting-overflow summary {
@@ -2995,10 +3017,10 @@ onMounted(() => {
   max-width: 100%;
   margin: 8px 10px;
   padding: 7px 9px;
-  border: 1px solid rgba(219, 179, 93, 0.18);
+  border: 1px solid var(--tp-color-border-strong);
   border-radius: 6px;
-  background: rgba(219, 179, 93, 0.055);
-  color: rgba(242, 211, 132, 0.95);
+  background: color-mix(in srgb, var(--tp-color-accent) 7%, var(--tp-color-surface));
+  color: var(--tp-color-accent);
   cursor: pointer;
   font-size: 12px;
   font-weight: 900;
@@ -3026,9 +3048,13 @@ onMounted(() => {
 .armor-primary-layout {
   display: grid;
   grid-template-columns: minmax(0, 2.35fr) minmax(300px, 1fr);
-  gap: 14px;
+  gap: 18px;
   align-items: start;
   min-width: 0;
+}
+
+.armor-module {
+  padding: 18px;
 }
 
 .armor-stat-module,
@@ -3038,9 +3064,55 @@ onMounted(() => {
   align-content: start;
 }
 
-.armor-crafting-module {
+.armor-side-stack {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  min-width: 0;
   position: sticky;
   top: 14px;
+}
+
+.armor-crafting-empty-state {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--tp-color-border);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-accent) 5%, transparent), color-mix(in srgb, var(--tp-color-positive) 4%, transparent)),
+    var(--tp-color-surface);
+}
+
+.armor-crafting-empty-state > span {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background-color: color-mix(in srgb, var(--tp-color-accent) 7%, var(--tp-color-surface-raised));
+  opacity: 0.88;
+}
+
+.armor-crafting-empty-state div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.armor-crafting-empty-state b {
+  color: var(--tp-color-text-strong);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.armor-crafting-empty-state p {
+  margin: 0;
+  color: var(--tp-color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .armor-stat-groups {
@@ -3058,9 +3130,9 @@ onMounted(() => {
   gap: 12px;
   min-width: 0;
   padding: 12px;
-  border: 1px solid rgba(244, 234, 208, 0.08);
+  border: 1px solid var(--tp-color-border);
   border-radius: 8px;
-  background: rgba(12, 15, 11, 0.16);
+  background: var(--tp-color-surface);
 }
 
 .armor-effect-section-head {
@@ -3071,18 +3143,18 @@ onMounted(() => {
   justify-content: space-between;
   min-width: 0;
   padding-bottom: 10px;
-  border-bottom: 1px solid rgba(244, 234, 208, 0.08);
+  border-bottom: 1px solid var(--tp-color-border);
 }
 
 .armor-effect-section-head h3 {
   margin: 0;
-  color: var(--text);
+  color: var(--tp-color-text-strong);
   font-size: 16px;
   line-height: 1.35;
 }
 
 .armor-effect-section-head span {
-  color: var(--muted);
+  color: var(--tp-color-text-muted);
   font-size: 12px;
   font-weight: 700;
   line-height: 1.45;
@@ -3098,9 +3170,9 @@ onMounted(() => {
 .armor-piece-effect-group {
   min-width: 0;
   padding: 12px;
-  border: 1px solid rgba(244, 234, 208, 0.09);
+  border: 1px solid var(--tp-color-border);
   border-radius: 8px;
-  background: rgba(244, 234, 208, 0.025);
+  background: var(--tp-color-surface-raised);
 }
 
 .armor-effect-row {
@@ -3110,59 +3182,59 @@ onMounted(() => {
   align-items: center;
   min-width: 0;
   padding: 10px 12px;
-  border: 1px solid rgba(244, 234, 208, 0.08);
+  border: 1px solid var(--tp-color-border);
   border-radius: 8px;
-  background: rgba(244, 234, 208, 0.025);
+  background: var(--tp-color-surface-raised);
 }
 
 .armor-build-board {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
 }
 
 .armor-build-matrix {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
 }
 
 .armor-build-row {
   display: grid;
   grid-template-columns: minmax(96px, 0.65fr) minmax(210px, 1.1fr) minmax(92px, 0.44fr) minmax(220px, 1.35fr);
-  gap: 8px;
+  gap: 10px;
   align-items: stretch;
   min-width: 0;
-  padding: 7px;
-  border: 1px solid rgba(244, 234, 208, 0.12);
+  padding: 10px;
+  border: 1px solid var(--tp-color-border);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(244, 234, 208, 0.04), rgba(100, 154, 118, 0.02)),
-    rgba(12, 15, 11, 0.16);
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-accent) 3%, transparent), color-mix(in srgb, var(--tp-color-positive) 2%, transparent)),
+    var(--tp-color-surface);
 }
 
 .armor-build-row-head {
-  padding: 4px 7px;
-  border-color: rgba(244, 234, 208, 0.08);
-  background: rgba(244, 234, 208, 0.025);
+  padding: 6px 10px;
+  border-color: var(--tp-color-border);
+  background: color-mix(in srgb, var(--tp-color-accent) 4%, var(--tp-color-surface));
 }
 
 .armor-build-row-head b {
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--tp-color-text-muted);
+  font-size: 12px;
   font-weight: 900;
   line-height: 1.25;
 }
 
 .armor-fixed-bonus-row {
-  border-color: rgba(219, 179, 93, 0.28);
+  border-color: var(--tp-color-border-strong);
   background:
-    linear-gradient(135deg, rgba(219, 179, 93, 0.09), rgba(100, 154, 118, 0.025)),
-    rgba(12, 15, 11, 0.2);
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-accent) 5%, transparent), color-mix(in srgb, var(--tp-color-positive) 3%, transparent)),
+    var(--tp-color-surface-raised);
 }
 
 .armor-fixed-bonus-row .armor-build-title-cell strong {
-  color: var(--gold);
+  color: var(--tp-color-accent);
 }
 
 .armor-build-cell {
@@ -3172,15 +3244,15 @@ onMounted(() => {
 }
 
 .armor-build-cell > span {
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--tp-color-text-muted);
+  font-size: 12.5px;
   font-weight: 800;
   line-height: 1.35;
 }
 
 .armor-build-title-cell strong {
-  color: var(--text);
-  font-size: 13px;
+  color: var(--tp-color-text-strong);
+  font-size: 14px;
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
@@ -3194,8 +3266,8 @@ onMounted(() => {
 .armor-equipment-section h3 {
   margin: 0;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(244, 234, 208, 0.12);
-  color: var(--text);
+  border-bottom: 1px solid var(--tp-color-border);
+  color: var(--tp-color-text-strong);
   font-size: 20px;
   line-height: 1.25;
 }
@@ -3213,11 +3285,11 @@ onMounted(() => {
   align-content: start;
   min-width: 0;
   padding: 8px;
-  border: 1px solid rgba(244, 234, 208, 0.14);
+  border: 1px solid var(--tp-color-border);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(244, 234, 208, 0.055), rgba(100, 154, 118, 0.025)),
-    rgba(12, 15, 11, 0.18);
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-accent) 3%, transparent), color-mix(in srgb, var(--tp-color-positive) 2%, transparent)),
+    var(--tp-color-surface);
 }
 
 .armor-equipment-card-title {
@@ -3225,14 +3297,14 @@ onMounted(() => {
   place-items: center;
   min-height: 34px;
   padding: 6px 8px;
-  border: 1px solid rgba(244, 234, 208, 0.13);
+  border: 1px solid var(--tp-color-border);
   border-radius: 7px;
-  background: rgba(12, 15, 11, 0.36);
+  background: var(--tp-color-surface-raised);
 }
 
 .armor-equipment-card-title h4 {
   margin: 0;
-  color: var(--text);
+  color: var(--tp-color-text-strong);
   font-size: 16px;
   line-height: 1.25;
   text-align: center;
@@ -3272,15 +3344,15 @@ onMounted(() => {
 }
 
 .armor-build-part-head b {
-  color: rgba(219, 179, 93, 0.95);
-  font-size: 10px;
+  color: var(--tp-color-accent);
+  font-size: 11px;
   font-weight: 900;
   line-height: 1.2;
 }
 
 .armor-build-part-head small {
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--tp-color-text-muted);
+  font-size: 11px;
   font-weight: 850;
   line-height: 1.2;
 }
@@ -3293,17 +3365,19 @@ onMounted(() => {
 
 .armor-build-piece-evidence {
   display: grid;
-  gap: 5px;
+  gap: 6px;
   min-width: 0;
-  padding: 6px 8px;
-  border: 1px solid rgba(244, 234, 208, 0.08);
+  padding: 8px 10px;
+  border: 1px solid var(--tp-color-border);
   border-radius: 6px;
-  background: rgba(244, 234, 208, 0.025);
+  background: var(--tp-color-surface-raised);
 }
 
 .armor-build-piece-evidence.has-alternatives {
-  border-color: rgba(219, 179, 93, 0.16);
-  background: rgba(219, 179, 93, 0.04);
+  border-color: var(--tp-color-border-strong);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-accent) 4%, transparent), color-mix(in srgb, var(--tp-color-positive) 2%, transparent)),
+    var(--tp-color-surface-raised);
 }
 
 .armor-build-piece-summary {
@@ -3340,8 +3414,8 @@ onMounted(() => {
 
 .armor-build-piece-summary-text b {
   min-width: 0;
-  color: var(--text);
-  font-size: 11px;
+  color: var(--tp-color-text-strong);
+  font-size: 12px;
   font-weight: 850;
   line-height: 1.25;
   overflow-wrap: anywhere;
@@ -3349,19 +3423,19 @@ onMounted(() => {
 
 .armor-build-piece-summary-text small,
 .armor-build-icons small {
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--tp-color-text-muted);
+  font-size: 11px;
   font-weight: 800;
   line-height: 1.2;
 }
 
 .armor-build-piece-summary-toggle {
   justify-self: end;
-  padding: 2px 6px;
-  border: 1px solid rgba(219, 179, 93, 0.2);
+  padding: 3px 7px;
+  border: 1px solid var(--tp-color-border-strong);
   border-radius: 999px;
-  color: rgba(219, 179, 93, 0.96);
-  font-size: 10px;
+  color: var(--tp-color-accent);
+  font-size: 11px;
   font-weight: 900;
   line-height: 1.1;
 }
@@ -3375,11 +3449,11 @@ onMounted(() => {
   width: max-content;
   max-width: min(360px, 74vw);
   padding: 8px 10px;
-  border: 1px solid rgba(245, 193, 92, 0.36);
+  border: 1px solid var(--tp-color-border-strong);
   border-radius: 6px;
-  background: rgba(13, 16, 12, 0.97);
-  color: rgba(255, 248, 224, 0.95);
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.38);
+  background: var(--tp-color-surface-strong);
+  color: var(--tp-color-text);
+  box-shadow: 0 12px 26px rgba(var(--theme-text-rgb), 0.18);
   font-size: 11px;
   font-weight: 750;
   line-height: 1.45;
@@ -3398,7 +3472,7 @@ onMounted(() => {
   gap: 5px;
   min-width: 0;
   padding-top: 5px;
-  border-top: 1px solid rgba(244, 234, 208, 0.08);
+  border-top: 1px solid var(--tp-color-border);
 }
 
 .armor-build-piece-detail-row {
@@ -3434,7 +3508,7 @@ onMounted(() => {
 
 .armor-build-piece-detail-row strong {
   min-width: 0;
-  color: var(--text);
+  color: var(--tp-color-text-strong);
   font-size: 11px;
   font-weight: 850;
   line-height: 1.25;
@@ -3449,7 +3523,7 @@ onMounted(() => {
   position: relative;
   grid-column: 2;
   min-width: 0;
-  color: rgba(226, 236, 224, 0.82);
+  color: var(--tp-color-text-muted);
   font-size: 10px;
   font-style: normal;
   font-weight: 700;
@@ -3475,9 +3549,9 @@ onMounted(() => {
   place-items: center;
   width: 13px;
   height: 13px;
-  border: 1px solid rgba(219, 179, 93, 0.38);
+  border: 1px solid var(--tp-color-border-strong);
   border-radius: 999px;
-  color: rgba(242, 211, 132, 0.96);
+  color: var(--tp-color-accent);
   font-size: 9px;
   font-style: normal;
   font-weight: 900;
@@ -3494,11 +3568,11 @@ onMounted(() => {
   width: max-content;
   max-width: min(320px, 70vw);
   padding: 7px 9px;
-  border: 1px solid rgba(245, 193, 92, 0.36);
+  border: 1px solid var(--tp-color-border-strong);
   border-radius: 6px;
-  background: rgba(13, 16, 12, 0.96);
-  color: rgba(255, 248, 224, 0.95);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.36);
+  background: var(--tp-color-surface-strong);
+  color: var(--tp-color-text);
+  box-shadow: 0 10px 24px rgba(var(--theme-text-rgb), 0.16);
   font-size: 11px;
   font-weight: 750;
   line-height: 1.45;
@@ -3520,16 +3594,16 @@ onMounted(() => {
 }
 
 .armor-build-defense-formula strong {
-  color: var(--text);
-  font-size: 24px;
+  color: var(--tp-color-text-strong);
+  font-size: 26px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
 .armor-build-defense-formula small,
 .armor-build-defense-formula span {
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--tp-color-text-muted);
+  font-size: 12px;
   font-weight: 800;
   line-height: 1.2;
   overflow-wrap: anywhere;
@@ -3543,8 +3617,8 @@ onMounted(() => {
 }
 
 .armor-build-stat-lines span {
-  color: var(--text);
-  font-size: 12px;
+  color: var(--tp-color-text-strong);
+  font-size: 13px;
   font-weight: 750;
   line-height: 1.35;
   overflow-wrap: anywhere;
@@ -3584,12 +3658,12 @@ onMounted(() => {
   display: grid;
   gap: 4px;
   min-width: 0;
-  padding: 8px 10px;
-  border: 1px solid rgba(100, 154, 118, 0.32);
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--tp-color-positive) 28%, var(--tp-color-border));
   border-radius: 7px;
   background:
-    linear-gradient(135deg, rgba(100, 154, 118, 0.12), rgba(219, 179, 93, 0.045)),
-    rgba(100, 154, 118, 0.055);
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-positive) 7%, transparent), color-mix(in srgb, var(--tp-color-accent) 4%, transparent)),
+    var(--tp-color-surface-raised);
 }
 
 .armor-build-total-label,
@@ -3597,8 +3671,8 @@ onMounted(() => {
   display: inline-flex;
   width: fit-content;
   max-width: 100%;
-  color: rgba(166, 200, 176, 0.95);
-  font-size: 11px;
+  color: var(--tp-color-positive);
+  font-size: 12px;
   font-weight: 900;
   line-height: 1.2;
 }
@@ -3617,7 +3691,7 @@ onMounted(() => {
 }
 
 .armor-set-bonus-heading {
-  color: rgba(166, 200, 176, 0.95);
+  color: var(--tp-color-positive);
 }
 
 .armor-build-total-entries {
@@ -3637,18 +3711,18 @@ onMounted(() => {
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: rgba(226, 236, 224, 0.95);
-  font-size: 12px;
+  color: var(--tp-color-text);
+  font-size: 13px;
   font-weight: 850;
   line-height: 1.24;
 }
 
 .armor-build-total-entry.is-variable {
-  color: rgba(244, 234, 208, 0.98);
+  color: var(--tp-color-text-strong);
 }
 
 .armor-build-total-entry em {
-  color: rgba(219, 179, 93, 0.92);
+  color: var(--tp-color-accent);
   font-size: 10px;
   font-style: normal;
   font-weight: 900;
@@ -3659,8 +3733,8 @@ onMounted(() => {
   position: relative;
   margin: 0;
   padding-left: 10px;
-  color: rgba(226, 236, 224, 0.94);
-  font-size: 12px;
+  color: var(--tp-color-text);
+  font-size: 13px;
   font-weight: 730;
   line-height: 1.48;
   overflow-wrap: anywhere;
@@ -3673,15 +3747,15 @@ onMounted(() => {
   width: 4px;
   height: 4px;
   border-radius: 999px;
-  background: rgba(166, 200, 176, 0.68);
+  background: var(--tp-color-positive);
   content: '';
 }
 
 .armor-highlight-number {
   padding: 0 3px;
   border-radius: 4px;
-  background: rgba(219, 179, 93, 0.16);
-  color: rgba(242, 211, 132, 0.98);
+  background: color-mix(in srgb, var(--tp-color-accent) 8%, var(--tp-color-surface));
+  color: var(--tp-color-accent);
   font-weight: 930;
 }
 
@@ -3698,21 +3772,21 @@ onMounted(() => {
   max-width: 100%;
   margin-bottom: 2px;
   padding: 2px 7px;
-  border: 1px solid rgba(244, 234, 208, 0.1);
+  border: 1px solid var(--tp-color-border);
   border-radius: 999px;
-  background: rgba(244, 234, 208, 0.04);
-  color: var(--muted);
+  background: var(--tp-color-surface-raised);
+  color: var(--tp-color-text-muted);
   font-size: 10px;
   font-weight: 900;
   line-height: 1.25;
 }
 
 .armor-fixed-bonus-group.is-attribute .armor-fixed-bonus-group-title {
-  color: rgba(219, 179, 93, 0.95);
+  color: var(--tp-color-accent);
 }
 
 .armor-fixed-bonus-group.is-description .armor-fixed-bonus-group-title {
-  color: rgba(166, 200, 176, 0.95);
+  color: var(--tp-color-positive);
 }
 
 .armor-fixed-bonus-line {
@@ -3722,7 +3796,7 @@ onMounted(() => {
   align-items: start;
   min-width: 0;
   padding: 5px 0;
-  border-bottom: 1px solid rgba(244, 234, 208, 0.08);
+  border-bottom: 1px solid var(--tp-color-border);
 }
 
 .armor-fixed-bonus-line small {
@@ -3731,10 +3805,10 @@ onMounted(() => {
   min-width: 36px;
   min-height: 20px;
   padding: 0 6px;
-  border: 1px solid rgba(219, 179, 93, 0.22);
+  border: 1px solid var(--tp-color-border-strong);
   border-radius: 999px;
-  background: rgba(219, 179, 93, 0.08);
-  color: rgba(219, 179, 93, 0.9);
+  background: color-mix(in srgb, var(--tp-color-accent) 7%, var(--tp-color-surface));
+  color: var(--tp-color-accent);
   font-size: 11px;
   font-weight: 900;
   line-height: 1;
@@ -3743,7 +3817,7 @@ onMounted(() => {
 
 .armor-fixed-bonus-line b {
   min-width: 0;
-  color: var(--text);
+  color: var(--tp-color-text-strong);
   font-size: 12px;
   font-weight: 760;
   line-height: 1.42;
@@ -3753,7 +3827,7 @@ onMounted(() => {
 .armor-fixed-bonus-line em {
   grid-column: 2;
   min-width: 0;
-  color: var(--muted);
+  color: var(--tp-color-text-muted);
   font-size: 11px;
   font-style: normal;
   font-weight: 700;
@@ -3766,7 +3840,7 @@ onMounted(() => {
 }
 
 .armor-fixed-bonus-group.is-description .armor-fixed-bonus-line b {
-  color: rgba(226, 236, 224, 0.92);
+  color: var(--tp-color-text);
   font-weight: 720;
 }
 
@@ -3775,23 +3849,23 @@ onMounted(() => {
   gap: 6px;
   min-width: 0;
   padding: 8px;
-  border: 1px solid rgba(244, 234, 208, 0.11);
+  border: 1px solid var(--tp-color-border);
   border-radius: 7px;
-  background: rgba(12, 15, 11, 0.2);
+  background: var(--tp-color-surface);
 }
 
 .armor-equipment-card-panel b {
   justify-self: stretch;
   padding-bottom: 5px;
-  border-bottom: 1px solid rgba(244, 234, 208, 0.1);
-  color: var(--text);
+  border-bottom: 1px solid var(--tp-color-border);
+  color: var(--tp-color-text-strong);
   font-size: 13px;
   text-align: center;
 }
 
 .armor-equipment-card-panel p {
   margin: 0;
-  color: var(--text);
+  color: var(--tp-color-text-strong);
   font-size: 12px;
   font-weight: 700;
   line-height: 1.45;
@@ -3799,7 +3873,7 @@ onMounted(() => {
 }
 
 .armor-equipment-card-panel strong {
-  color: var(--muted);
+  color: var(--tp-color-text-muted);
   font-weight: 900;
 }
 
@@ -3812,7 +3886,7 @@ onMounted(() => {
 .armor-stat-group h3,
 .armor-stat-group h4 {
   margin: 0;
-  color: var(--text);
+  color: var(--tp-color-text-strong);
   font-size: 15px;
   line-height: 1.35;
 }
@@ -3828,11 +3902,11 @@ onMounted(() => {
   gap: 12px;
   min-width: 0;
   padding: 12px;
-  border: 1px solid rgba(244, 234, 208, 0.09);
+  border: 1px solid var(--tp-color-border);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(244, 234, 208, 0.06), rgba(100, 154, 118, 0.035)),
-    rgba(244, 234, 208, 0.025);
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-accent) 4%, transparent), color-mix(in srgb, var(--tp-color-positive) 3%, transparent)),
+    var(--tp-color-surface-raised);
 }
 
 .armor-effect-card-head {
@@ -3852,52 +3926,52 @@ onMounted(() => {
   place-items: center;
   width: 42px;
   height: 42px;
-  border: 1px solid rgba(244, 234, 208, 0.14);
+  border: 1px solid var(--tp-color-border);
   border-radius: 8px;
   background:
-    radial-gradient(circle at 35% 28%, rgba(255, 255, 255, 0.12), transparent 34%),
-    rgba(12, 15, 11, 0.58);
-  color: var(--text);
-  box-shadow: inset 0 0 0 1px rgba(12, 15, 11, 0.45);
+    radial-gradient(circle at 35% 28%, rgba(var(--theme-panel-rgb), 0.18), transparent 34%),
+    var(--tp-color-surface-raised);
+  color: var(--tp-color-text-strong);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tp-color-border) 55%, transparent);
 }
 
 .armor-stat-art :deep(.item-art) {
   width: 34px;
   height: 34px;
   border-radius: 7px;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 3px 10px rgba(var(--theme-text-rgb), 0.14);
   overflow: hidden;
 }
 
 .armor-stat-art.is-offense {
   background:
-    radial-gradient(circle at 34% 28%, rgba(255, 238, 194, 0.18), transparent 34%),
-    linear-gradient(135deg, rgba(150, 58, 42, 0.48), rgba(174, 132, 61, 0.18));
+    radial-gradient(circle at 34% 28%, rgba(var(--theme-panel-rgb), 0.2), transparent 34%),
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-accent) 12%, transparent), color-mix(in srgb, var(--tp-color-positive) 5%, transparent));
 }
 
 .armor-stat-art.is-mobility {
   background:
-    radial-gradient(circle at 34% 28%, rgba(236, 255, 220, 0.18), transparent 34%),
-    linear-gradient(135deg, rgba(59, 127, 101, 0.48), rgba(171, 180, 92, 0.16));
+    radial-gradient(circle at 34% 28%, rgba(var(--theme-panel-rgb), 0.18), transparent 34%),
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-positive) 10%, transparent), color-mix(in srgb, var(--tp-color-accent) 4%, transparent));
 }
 
 .armor-stat-art.is-defense {
   background:
-    radial-gradient(circle at 34% 28%, rgba(230, 245, 255, 0.16), transparent 34%),
-    linear-gradient(135deg, rgba(67, 89, 112, 0.5), rgba(176, 182, 160, 0.14));
+    radial-gradient(circle at 34% 28%, rgba(var(--theme-panel-rgb), 0.18), transparent 34%),
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-positive) 9%, transparent), color-mix(in srgb, var(--tp-color-accent) 5%, transparent));
 }
 
 .armor-stat-art.is-resource {
   background:
-    radial-gradient(circle at 34% 28%, rgba(235, 232, 255, 0.2), transparent 34%),
-    linear-gradient(135deg, rgba(82, 76, 146, 0.5), rgba(165, 117, 179, 0.16));
+    radial-gradient(circle at 34% 28%, rgba(var(--theme-panel-rgb), 0.18), transparent 34%),
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-accent) 9%, transparent), color-mix(in srgb, var(--tp-color-positive) 6%, transparent));
 }
 
 .armor-stat-art.is-summon,
 .armor-stat-art.is-special {
   background:
-    radial-gradient(circle at 34% 28%, rgba(255, 243, 214, 0.18), transparent 34%),
-    linear-gradient(135deg, rgba(113, 91, 52, 0.5), rgba(79, 124, 103, 0.16));
+    radial-gradient(circle at 34% 28%, rgba(var(--theme-panel-rgb), 0.18), transparent 34%),
+    linear-gradient(135deg, color-mix(in srgb, var(--tp-color-accent) 10%, transparent), color-mix(in srgb, var(--tp-color-positive) 5%, transparent));
 }
 
 .armor-stat-title {
@@ -3914,7 +3988,7 @@ onMounted(() => {
 }
 
 .armor-stat-title small {
-  color: var(--muted);
+  color: var(--tp-color-text-muted);
   font-size: 11px;
   font-weight: 700;
   line-height: 1.25;
@@ -3922,7 +3996,7 @@ onMounted(() => {
 }
 
 .armor-effect-card-value {
-  color: var(--text);
+  color: var(--tp-color-text-strong);
   font-size: 18px;
   font-variant-numeric: tabular-nums;
   font-weight: 900;
@@ -3932,14 +4006,14 @@ onMounted(() => {
 
 .armor-effect-card p {
   margin: 0;
-  color: var(--text);
+  color: var(--tp-color-text-strong);
   font-size: 13px;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
 .armor-effect-scope {
-  color: var(--muted);
+  color: var(--tp-color-text-muted);
   font-size: 12px;
   font-weight: 700;
   line-height: 1.35;
@@ -3965,22 +4039,22 @@ onMounted(() => {
   gap: 3px 10px;
   align-items: baseline;
   padding: 10px;
-  border: 1px solid rgba(244, 234, 208, 0.09);
+  border: 1px solid var(--tp-color-border);
   border-radius: 8px;
-  background: rgba(244, 234, 208, 0.025);
+  background: var(--tp-color-surface-raised);
 }
 
 .armor-fact-row span,
 .armor-fact-row small {
   min-width: 0;
-  color: var(--muted);
+  color: var(--tp-color-text-muted);
   font-size: 12px;
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
 .armor-fact-row strong {
-  color: var(--text);
+  color: var(--tp-color-text-strong);
   font-size: 20px;
   font-variant-numeric: tabular-nums;
   font-weight: 900;
@@ -4003,8 +4077,9 @@ onMounted(() => {
   align-content: start;
   min-width: 0;
   padding: 14px;
-  border: 1px solid rgba(244, 234, 208, 0.09);
+  border: 1px solid var(--tp-color-border);
   border-radius: 8px;
+  background: var(--tp-color-surface);
 }
 
 .armor-piece-card-head {
@@ -4016,14 +4091,14 @@ onMounted(() => {
 }
 
 .armor-piece-card-head b {
-  color: var(--text);
+  color: var(--tp-color-text-strong);
   font-size: 14px;
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
 .armor-piece-card-head span {
-  color: var(--muted);
+  color: var(--tp-color-text-muted);
   font-size: 12px;
   line-height: 1.35;
   white-space: nowrap;
@@ -4041,7 +4116,7 @@ onMounted(() => {
   align-items: center;
   min-width: 0;
   padding: 8px 0;
-  border-top: 1px solid rgba(244, 234, 208, 0.07);
+  border-top: 1px solid var(--tp-color-border);
 }
 
 .armor-piece-option :deep(.item-art) {
@@ -4060,7 +4135,7 @@ onMounted(() => {
 }
 
 .armor-piece-option span {
-  color: var(--text);
+  color: var(--tp-color-text-strong);
   font-size: 13px;
   font-weight: 700;
   line-height: 1.45;
@@ -4089,23 +4164,66 @@ onMounted(() => {
 }
 
 .armor-preview-group-head b {
-  color: var(--text);
+  color: var(--tp-color-text-strong);
   font-size: 13px;
   line-height: 1.4;
 }
 
 .armor-preview-images {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(188px, 188px));
+  grid-template-columns: repeat(auto-fit, minmax(156px, 156px));
   justify-content: start;
-  gap: 14px;
+  gap: 16px;
+}
+
+.armor-preview-module--compact .armor-preview-strip {
+  grid-template-columns: repeat(auto-fit, minmax(128px, max-content));
+  gap: 16px;
+}
+
+.armor-preview-module--compact {
+  width: fit-content;
+  max-width: 100%;
+  justify-self: start;
+}
+
+.armor-side-stack .armor-preview-module--compact {
+  width: 100%;
+  justify-self: stretch;
+}
+
+.armor-preview-module--compact .armor-preview-images {
+  grid-template-columns: repeat(auto-fit, minmax(118px, 118px));
 }
 
 .armor-preview-tile :deep(.item-art) {
-  width: 188px;
-  height: 188px;
+  width: 156px;
+  height: 156px;
   border-radius: 14px;
   overflow: hidden;
+  --tp-preview-image-size: 156px;
+  --tp-preview-fallback-icon-size: 58px;
+}
+
+.armor-preview-tile :deep(.item-art img) {
+  width: auto;
+  height: auto;
+  max-width: 156px;
+  max-height: 156px;
+  object-fit: contain;
+}
+
+.armor-preview-module--compact .armor-preview-tile :deep(.item-art) {
+  width: 118px;
+  height: 118px;
+  border-radius: 12px;
+  --tp-preview-image-size: 118px;
+  --tp-preview-fallback-icon-size: 46px;
+}
+
+.armor-preview-module--compact .armor-preview-tile :deep(.item-art img) {
+  max-width: 118px;
+  max-height: 118px;
 }
 
 @media (max-width: 980px) {
@@ -4113,7 +4231,7 @@ onMounted(() => {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .armor-crafting-module {
+  .armor-side-stack {
     position: static;
   }
 
@@ -4197,7 +4315,7 @@ onMounted(() => {
 
   .armor-build-title-cell {
     padding-bottom: 8px;
-    border-bottom: 1px solid rgba(244, 234, 208, 0.1);
+    border-bottom: 1px solid var(--tp-color-border);
   }
 
   .armor-build-title-cell strong {
@@ -4286,10 +4404,10 @@ onMounted(() => {
     width: auto;
     max-width: 100%;
     padding: 4px 6px;
-    border-color: rgba(219, 179, 93, 0.22);
-    background: rgba(219, 179, 93, 0.06);
+    border-color: var(--tp-color-border-strong);
+    background: color-mix(in srgb, var(--tp-color-accent) 8%, transparent);
     box-shadow: none;
-    color: rgba(244, 234, 208, 0.9);
+    color: var(--tp-color-text);
     font-size: 10px;
     line-height: 1.35;
   }

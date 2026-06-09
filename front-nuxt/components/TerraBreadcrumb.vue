@@ -19,7 +19,6 @@ const props = withDefaults(defineProps<{
 
 const routeLabels: Record<string, string> = {
   '/': '首页',
-  '/home-hero-options': '首页首屏',
   '/search': '全站检索',
   '/items': '物品图鉴',
   '/items/terra-blade': '泰拉刃',
@@ -61,7 +60,6 @@ const routeLabels: Record<string, string> = {
 
 const segmentLabels: Record<string, string> = {
   search: '全站检索',
-  'home-hero-options': '首页首屏',
   items: '物品图鉴',
   crafting: '制作路线',
   categories: '分类索引',
@@ -87,7 +85,6 @@ const segmentLabels: Record<string, string> = {
 
 const hiddenTrailRoutes = new Set([
   '/',
-  '/home-hero-options',
   '/about',
   '/search',
   '/crafting',
@@ -109,9 +106,6 @@ const hiddenTrailRoutes = new Set([
   '/user/routes',
   '/user/notifications',
   '/user/settings',
-  '/user/article-editor-designs',
-  '/user/article-list-designs',
-  '/user/page-head-designs',
 ])
 
 const unavailableAccountRoutes = [

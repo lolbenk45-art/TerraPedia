@@ -128,7 +128,7 @@ const submitPreferences = async () => {
         <div>
           <span class="eyebrow">/user/settings · preferences</span>
           <h1>账号设置</h1>
-          <p>设置页接入当前用户资料、头像、密码和显示偏好接口。</p>
+          <p>管理当前用户资料、头像、密码和显示偏好。</p>
         </div>
         <a class="secondary-button" href="/user">返回用户中心</a>
       </div>

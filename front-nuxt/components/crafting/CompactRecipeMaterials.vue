@@ -112,7 +112,7 @@ defineProps<{
 .armor-crafting-any-option b,
 .armor-crafting-any-label b {
   min-width: 0;
-  color: var(--text);
+  color: var(--tp-color-text-strong);
   font-weight: 850;
   line-height: 1.2;
 }
@@ -128,7 +128,7 @@ defineProps<{
 
 .armor-crafting-chip-compact small,
 .armor-crafting-any-label small {
-  color: var(--muted);
+  color: var(--tp-color-text-muted);
   font-size: 9px;
   font-weight: 800;
   line-height: 1.2;
@@ -145,7 +145,7 @@ defineProps<{
   min-width: 0;
   padding: 3px 4px;
   border-radius: 6px;
-  background: rgba(125, 229, 220, 0.045);
+  background: color-mix(in srgb, var(--tp-color-positive) 6%, var(--tp-color-surface));
 }
 
 .armor-crafting-any-option {
@@ -171,7 +171,7 @@ defineProps<{
   gap: 0;
   min-width: 0;
   padding: 2px 0;
-  color: var(--muted);
+  color: var(--tp-color-text-muted);
   font-size: 9px;
   font-weight: 850;
   line-height: 1.15;

@@ -15,6 +15,7 @@ const form = reactive({
 const error = ref('')
 const status = ref('')
 const debugCode = ref('')
+const showDebugVerificationCode = import.meta.dev
 
 const redirectTarget = computed(() => buildUserPostAuthRedirectTarget(route.query.redirect, '/user'))
 
@@ -57,7 +58,7 @@ const submit = async () => {
       <section class="user-auth-copy support-panel">
         <span class="eyebrow">创建账号</span>
         <h1>注册成为资料共建者</h1>
-        <p>注册后可以保存阅读路径、管理自己的文章草稿，并进入后续投稿审核流程。</p>
+        <p>注册后可以保存阅读路径，发布和管理自己的专题文章。</p>
         <div class="user-auth-proof">
           <div><b>路线</b><span>保存阅读进度</span></div>
           <div><b>纠错</b><span>提交资料反馈</span></div>
@@ -88,7 +89,7 @@ const submit = async () => {
           {{ authStore.submitting ? '处理中...' : '发送验证码' }}
         </button>
         <p v-if="status" class="user-form-status user-form-success" aria-live="polite">{{ status }}</p>
-        <p v-if="debugCode" class="user-field-hint">本地调试验证码：{{ debugCode }}</p>
+        <p v-if="showDebugVerificationCode && debugCode" class="user-field-hint">开发验证码：{{ debugCode }}</p>
         <p v-if="error" class="user-form-status user-form-error" aria-live="polite">{{ error }}</p>
         <button class="primary-button" type="submit" :disabled="authStore.submitting">
           {{ authStore.submitting ? '注册中...' : '注册' }}

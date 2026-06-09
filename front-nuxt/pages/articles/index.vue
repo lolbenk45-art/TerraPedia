@@ -114,7 +114,7 @@ useSeoMeta({
         <div>
           <span class="eyebrow">资料手札 · published articles</span>
           <h1>资料手札</h1>
-          <p>浏览已经发布的用户文章和专题资料，草稿与待审核内容不会出现在公开列表。</p>
+          <p>浏览玩家整理的专题文章、路线心得和资料补充。</p>
         </div>
         <NuxtLink class="secondary-button" to="/user/articles">写文章</NuxtLink>
       </div>
@@ -160,7 +160,7 @@ useSeoMeta({
           <div>
             <span class="eyebrow">暂无公开文章</span>
             <h2>还没有已发布内容</h2>
-            <p>后台发布文章后，会自动出现在这里。</p>
+            <p>暂无公开文章，请稍后再来查看。</p>
           </div>
         </article>
 
@@ -229,14 +229,6 @@ useSeoMeta({
         />
       </section>
 
-      <aside class="article-side article-route-side">
-        <span class="eyebrow">公开规则</span>
-        <div class="toc-list">
-          <div class="toc-item"><span class="toc-num">01</span><div><b>只显示已发布</b><span>草稿和审核中内容不会公开</span></div></div>
-          <div class="toc-item"><span class="toc-num">02</span><div><b>按发布时间浏览</b><span>从最新内容开始阅读</span></div></div>
-          <div class="toc-item"><span class="toc-num">03</span><div><b>详情页收藏</b><span>登录后可收藏公开文章</span></div></div>
-        </div>
-      </aside>
     </main>
 
     <TerraFooter />
@@ -245,7 +237,7 @@ useSeoMeta({
 
 <style scoped>
 .article-route-shell {
-  grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
 
