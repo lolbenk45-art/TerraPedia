@@ -13,6 +13,12 @@ const acHomeArticleSeedPath = '../scripts/content/seed-ac-home-articles.mjs'
 const acHomeArticleSqlSeedPath = '../back/src/main/resources/db/migration/V55__seed_ac_home_original_articles.sql'
 const failures = []
 
+const assertIncludes = (path, content, expected, message) => {
+  if (!content.includes(expected)) {
+    failures.push(`${path}: ${message}`)
+  }
+}
+
 const extractRuleBlocks = (css, selector) => {
   const blocks = []
   let index = 0
@@ -212,9 +218,20 @@ if (!existsSync(file(pagePath))) {
   }
 
   const publicFetchTargets = [...homeData.matchAll(/usePublicApiFetch<[^>]+>\('([^']+)'\)/g)].map((match) => match[1])
-  if (publicFetchTargets.length !== 1 || publicFetchTargets[0] !== '/statistics/overview') {
-    failures.push(`${homeDataPath}: home A plan must keep /statistics/overview as the only dynamic home API source`)
+  const expectedPublicFetchTargets = ['/statistics/overview', '/public/home/focus-item']
+  if (
+    publicFetchTargets.length !== expectedPublicFetchTargets.length
+    || !expectedPublicFetchTargets.every((target) => publicFetchTargets.includes(target))
+  ) {
+    failures.push(`${homeDataPath}: home must fetch only statistics overview and the real focus item endpoint`)
   }
+
+  assertIncludes(homeDataPath, homeData, '/public/home/focus-item', 'homepage must fetch the real public home focus item')
+  assertIncludes(homeHeroPath, homeHero, 'atlas.focus.image', 'homepage atlas focus must render the real item image')
+  assertIncludes(homeHeroPath, homeHero, 'atlas.focus.meta', 'homepage atlas focus must render real item meta')
+  assertIncludes(homeHeroPath, homeHero, 'atlas.focus.statLine', 'homepage atlas focus must support a compact real stat line')
+  assertIncludes(homeHeroPath, homeHero, '公共资料索引', 'homepage atlas must keep the existing index framing')
+  assertIncludes(homeHeroPath, homeHero, 'atlas.rows', 'homepage atlas table must remain intact')
 
   const unsupportedHomeLinkMarkers = [
     '/articles?stage=',

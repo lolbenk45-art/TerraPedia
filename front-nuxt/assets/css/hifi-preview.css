@@ -2123,9 +2123,19 @@ img[data-preview-fallback] {
   image-rendering: pixelated;
 }
 
+.index-focus img {
+  border-radius: 10px;
+  background: rgba(10, 16, 18, 0.36);
+  object-fit: contain;
+  padding: 4px;
+}
+
 .index-focus-icon {
   border-radius: 12px;
   box-shadow: 0 0 20px rgba(240, 207, 116, 0.22);
+}
+.index-focus-copy {
+  min-width: 0;
 }
 .index-focus span {
   display: block;
@@ -2138,6 +2148,27 @@ img[data-preview-fallback] {
   margin-top: 6px;
   color: var(--paper);
   font-size: 24px;
+}
+.index-focus em,
+.index-focus small {
+  display: block;
+  overflow: hidden;
+  max-width: 100%;
+  color: rgba(244, 234, 208, 0.58);
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.index-focus em {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.index-focus small {
+  margin-top: 4px;
+  color: rgba(240, 207, 116, 0.72);
+  font-size: 11px;
+  font-weight: 900;
 }
 .index-focus-action {
   display: inline-flex;
@@ -8930,6 +8961,14 @@ img[data-preview-fallback] {
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-total span,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-focus span {
   color: var(--text-muted);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-focus em {
+  color: var(--text-muted);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-focus small {
+  color: var(--text-link);
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-total b,

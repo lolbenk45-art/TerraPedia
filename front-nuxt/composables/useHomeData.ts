@@ -10,6 +10,23 @@ export type HomeStats = {
   totalPublishedArticles?: number | null
 }
 
+export type HomeFocusItem = {
+  id?: number | string | null
+  name?: string | null
+  nameZh?: string | null
+  internalName?: string | null
+  href?: string | null
+  image?: string | null
+  categoryName?: string | null
+  gamePeriod?: string | null
+  rarity?: string | null
+  damage?: number | null
+  knockback?: number | null
+  useTime?: number | null
+  sell?: number | null
+  reasonLabel?: string | null
+}
+
 const fallbackHomeStats: HomeStats = {
   totalItems: null,
   totalCategories: null,
@@ -22,6 +39,21 @@ const fallbackHomeStats: HomeStats = {
   totalPublishedArticles: null,
 }
 
+const fallbackFocusItem: HomeFocusItem = {
+  id: 757,
+  name: 'Terra Blade',
+  nameZh: '泰拉刃',
+  internalName: 'TerraBlade',
+  href: '/items/757',
+  categoryName: '武器',
+  gamePeriod: '困难模式后',
+  rarity: '浅红色',
+  damage: 85,
+  knockback: 7,
+  useTime: 18,
+  reasonLabel: '当前焦点 · 真实物品',
+}
+
 const formatCount = (value: number | null | undefined, fallback: string) => {
   const numberValue = Number(value)
 
@@ -30,12 +62,31 @@ const formatCount = (value: number | null | undefined, fallback: string) => {
     : fallback
 }
 
+const optionalText = (value: string | number | null | undefined) => {
+  const text = String(value ?? '').trim()
+  return text.length > 0 ? text : null
+}
+
+const positiveNumber = (value: number | null | undefined) => {
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) && numberValue > 0 ? numberValue : null
+}
+
 const fetchHomeStats = async (): Promise<HomeStats> => {
   try {
     const response = await usePublicApiFetch<HomeStats>('/statistics/overview')
     return unwrapApiResponse(response) ?? fallbackHomeStats
   } catch {
     return fallbackHomeStats
+  }
+}
+
+const fetchHomeFocusItem = async (): Promise<HomeFocusItem> => {
+  try {
+    const response = await usePublicApiFetch<HomeFocusItem>('/public/home/focus-item')
+    return unwrapApiResponse(response) ?? fallbackFocusItem
+  } catch {
+    return fallbackFocusItem
   }
 }
 
@@ -48,6 +99,14 @@ export const useHomeData = async () => {
     },
   )
 
+  const { data: homeFocusItem } = await useAsyncData(
+    'home-public-focus-item',
+    fetchHomeFocusItem,
+    {
+      default: () => fallbackFocusItem,
+    },
+  )
+
   const itemTotalLabel = computed(() => formatCount(homeStats.value?.totalItems, '图鉴'))
   const categoryTotalLabel = computed(() => formatCount(homeStats.value?.totalCategories, '分类'))
   const bossTotalLabel = computed(() => formatCount(homeStats.value?.totalBosses, '路线'))
@@ -57,6 +116,41 @@ export const useHomeData = async () => {
   const armorSetTotalLabel = computed(() => formatCount(homeStats.value?.totalArmorSets, '套装'))
   const projectileTotalLabel = computed(() => formatCount(homeStats.value?.totalProjectiles, '射弹'))
   const articleTotalLabel = computed(() => formatCount(homeStats.value?.totalPublishedArticles, '专题'))
+  const focusDisplayName = computed(() => (
+    optionalText(homeFocusItem.value?.nameZh)
+    ?? optionalText(homeFocusItem.value?.name)
+    ?? optionalText(fallbackFocusItem.nameZh)
+    ?? '泰拉刃'
+  ))
+  const focusHref = computed(() => {
+    const directHref = optionalText(homeFocusItem.value?.href)
+    if (directHref) {
+      return directHref
+    }
+
+    const id = optionalText(homeFocusItem.value?.id) ?? optionalText(fallbackFocusItem.id)
+    return id ? `/items/${id}` : '/items/757'
+  })
+  const focusMeta = computed(() => {
+    const parts = [
+      optionalText(homeFocusItem.value?.categoryName),
+      optionalText(homeFocusItem.value?.gamePeriod),
+      optionalText(homeFocusItem.value?.rarity),
+    ].filter(Boolean)
+
+    return parts.length > 0 ? parts.join(' / ') : '武器 / 困难模式后 / 浅红色'
+  })
+  const focusStatLine = computed(() => {
+    const stats = [
+      ['伤害', positiveNumber(homeFocusItem.value?.damage)],
+      ['击退', positiveNumber(homeFocusItem.value?.knockback)],
+      ['使用时间', positiveNumber(homeFocusItem.value?.useTime)],
+    ]
+      .filter((entry): entry is [string, number] => entry[1] !== null)
+      .map(([label, value]) => `${label} ${value}`)
+
+    return stats.length > 0 ? stats.join(' · ') : null
+  })
 
   const primaryEntries = computed(() => [
     { label: '物品', href: '/items', icon: 'icon-items', desc: '查装备、材料、掉落', count: itemTotalLabel.value, hex: '255,215,101' },
@@ -73,9 +167,12 @@ export const useHomeData = async () => {
   const atlasOverview = computed(() => ({
     totalLabel: itemTotalLabel.value,
     focus: {
-      label: '当前焦点',
-      title: '泰拉刃',
-      href: '/items/757',
+      label: optionalText(homeFocusItem.value?.reasonLabel) ?? '当前焦点 · 真实物品',
+      title: focusDisplayName.value,
+      href: focusHref.value,
+      image: optionalText(homeFocusItem.value?.image),
+      meta: focusMeta.value,
+      statLine: focusStatLine.value,
     },
     metrics: [
       { label: '物品', href: '/items', desc: '装备 / 材料 / 掉落' },

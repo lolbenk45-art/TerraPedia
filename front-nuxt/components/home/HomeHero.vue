@@ -33,6 +33,9 @@ type AtlasOverview = {
     label: string
     title: string
     href: string
+    image?: string | null
+    meta?: string | null
+    statLine?: string | null
   }
   metrics: Array<{
     label: string
@@ -171,10 +174,20 @@ const submitHomeSearch = () => {
             </div>
           </div>
           <div class="index-focus">
-            <span class="sprite-icon index-focus-icon icon-items" aria-hidden="true"></span>
-            <div>
+            <img
+              v-if="atlas.focus.image"
+              class="index-focus-icon"
+              :src="atlas.focus.image"
+              :alt="atlas.focus.title"
+              loading="lazy"
+              decoding="async"
+            />
+            <span v-else class="sprite-icon index-focus-icon icon-items" aria-hidden="true"></span>
+            <div class="index-focus-copy">
               <span>{{ atlas.focus.label }}</span>
               <b>{{ atlas.focus.title }}</b>
+              <em v-if="atlas.focus.meta">{{ atlas.focus.meta }}</em>
+              <small v-if="atlas.focus.statLine">{{ atlas.focus.statLine }}</small>
             </div>
             <a class="index-focus-action" :href="atlas.focus.href">详情</a>
           </div>
