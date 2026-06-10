@@ -10,14 +10,14 @@
 
 ---
 
-## Current Blockers
+## Current Status
 
 - `Torches`: 24 candidates; current extraction copies `Baby Slime`, `Bonus drop`, and other shared rows to every torch.
 - `Ropes`: 4 candidates; current extraction copies the same mixed rows to every rope.
 - `Block-placing wands`: 6 candidates; current extraction copies all wand sources to every wand.
-- `Mummy set`: 3 candidates; source `Mummies` is unresolved.
-- `Witch set`: 3 candidates; contains valid `Goodie Bag` plus extra `Witch set worldgen`.
-- `Shucked Oyster`: 1 candidate; source `Oyster` is unresolved.
+- `Mummy set`: closed in lane C with page-gated expansion to `Blood Mummy`, `Dark Mummy`, `Light Mummy`, and `Mummy`.
+- `Witch set`: closed in lane C with `drop/item/Goodie Bag`; `Vampirism worlds` worldgen text omitted.
+- `Shucked Oyster`: closed in lane C with `drop/item/Oyster`.
 
 ## Hard Boundaries
 
@@ -48,5 +48,5 @@ Every promoted row from a polluted matrix page must include at least one stable 
 ## Acceptance
 
 - Torches/Ropes/Wands do not share the same full source matrix across every item.
-- Mummy set, Witch set, and Shucked Oyster each have an explicit rule or remain blocked with a documented reason.
+- Mummy set, Witch set, and Shucked Oyster each have explicit page-gated rules and local DB/API validation.
 - API `/api/public/items/{id}/sources` shows only item-specific sources for sampled repaired items.

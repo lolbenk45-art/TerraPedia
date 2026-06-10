@@ -50,6 +50,15 @@
 | Witch set | 3 | Contains `drop/item/Goodie Bag` plus extra `worldgen/world/Witch set worldgen`; blocked until the extra row is proven item-specific or dropped by fixture. |
 | Shucked Oyster | 1 | Source is `drop/unknown/Oyster`; needs item-backed Oyster mapping or source-type correction. |
 
+## Lane C Follow-up
+
+See `data/reports/item-source-polluted-lane-c-review-2026-06-10.md`.
+
+- `Shucked Oyster` was promoted as `drop/item/Oyster`.
+- `Witch set` was promoted as `drop/item/Goodie Bag`; the `Vampirism worlds` worldgen text was omitted.
+- `Mummy set` was promoted as explicit NPC drop rows for `Blood Mummy`, `Dark Mummy`, `Light Mummy`, and `Mummy`.
+- After lane C, remaining polluted blockers are `Torches` 24, `Block-placing wands` 6, and `Ropes` 4.
+
 ## Safety Notes
 
 - Goodie Bag normalization is page-gated to allowed vanity set pages.

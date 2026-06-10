@@ -77,6 +77,12 @@ const GOODIE_BAG_POLLUTED_PAGES = new Set([
   'Reaper set',
   'Treasure Hunter set'
 ]);
+const MUMMY_SET_SOURCE_NPCS = [
+  'Blood Mummy',
+  'Dark Mummy',
+  'Light Mummy',
+  'Mummy'
+];
 
 export function parseBuildItemSourceCandidateImportPlanArgs(argv = process.argv.slice(2)) {
   const options = parseCliArgs(argv);
@@ -301,11 +307,30 @@ function isAllowedPollutedCandidate(candidate, sourcePlans) {
       && sourcePlans.some((source) => source.sourceRefType === 'boss' && source.sourceRefName === 'Duke Fishron')
       && sourcePlans.some((source) => source.sourceRefType === 'treasure_bag' && source.sourceRefName === 'Treasure Bag (Duke Fishron)');
   }
+  if (pageTitle === 'Shucked Oyster') {
+    return sourcePlans.length === 1
+      && sourcePlans.every((source) =>
+        !source.blockedReason
+        && source.sourceType === 'drop'
+        && source.sourceRefType === 'item'
+        && source.sourceRefName === 'Oyster');
+  }
+  if (pageTitle === 'Mummy set') {
+    const expected = new Set(MUMMY_SET_SOURCE_NPCS);
+    return sourcePlans.length === expected.size
+      && sourcePlans.every((source) =>
+        !source.blockedReason
+        && source.sourceType === 'drop'
+        && source.sourceRefType === 'npc'
+        && expected.has(source.sourceRefName));
+  }
   return false;
 }
 
 function normalizeCandidateSourcesForPlanning(candidate, sources) {
-  const normalized = (Array.isArray(sources) ? sources : []).map((source) => normalizeSourceForPlanning(candidate, source));
+  const normalized = (Array.isArray(sources) ? sources : [])
+    .flatMap((source) => normalizeSourceForPlanning(candidate, source))
+    .filter((source) => !isDroppedPollutedNoiseSource(candidate, source));
   if (normalizeText(candidate?.pageTitle) !== 'Flairon') {
     return normalized;
   }
@@ -341,12 +366,41 @@ function normalizeSourceForPlanning(candidate, source) {
   ) {
     sourceRefType = 'item';
   }
+  if (
+    normalizeText(candidate?.pageTitle) === 'Shucked Oyster'
+    && sourceType === 'drop'
+    && sourceRefType === 'unknown'
+    && sourceRefName === 'Oyster'
+  ) {
+    sourceRefType = 'item';
+  }
+  if (
+    normalizeText(candidate?.pageTitle) === 'Mummy set'
+    && sourceType === 'drop'
+    && sourceRefType === 'unknown'
+    && sourceRefName === 'Mummies'
+  ) {
+    return MUMMY_SET_SOURCE_NPCS.map((name) => ({
+      ...source,
+      sourceType,
+      sourceRefType: 'npc',
+      sourceRefName: name
+    }));
+  }
   return {
     ...source,
     sourceType,
     sourceRefType,
     sourceRefName
   };
+}
+
+function isDroppedPollutedNoiseSource(candidate, source) {
+  return normalizeText(candidate?.pageTitle) === 'Witch set'
+    && source.sourceType === 'worldgen'
+    && source.sourceRefType === 'world'
+    && source.sourceRefName === 'Witch set worldgen'
+    && /\bVampirism worlds?\b/i.test(source.conditions ?? '');
 }
 
 function buildSourcePlan({

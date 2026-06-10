@@ -33,7 +33,13 @@ function createFixture() {
       { id: 2002, internalName: 'StyngerBolt', name: 'Stynger Bolt' },
       { id: 1774, internalName: 'GoodieBag', name: 'Goodie Bag' },
       { id: 1749, internalName: 'CatMask', name: 'Cat Mask' },
-      { id: 2611, internalName: 'Flairon', name: 'Flairoon' }
+      { id: 1766, internalName: 'WitchHat', name: 'Witch Hat' },
+      { id: 1775, internalName: 'WitchDress', name: 'Witch Dress' },
+      { id: 1776, internalName: 'WitchBoots', name: 'Witch Boots' },
+      { id: 2611, internalName: 'Flairon', name: 'Flairoon' },
+      { id: 4410, internalName: 'Oyster', name: 'Oyster' },
+      { id: 4411, internalName: 'ShuckedOyster', name: 'Shucked Oyster' },
+      { id: 870, internalName: 'MummyMask', name: 'Mummy Mask' }
     ]
   }));
   fs.writeFileSync(npcsPath, JSON.stringify({
@@ -42,7 +48,11 @@ function createFixture() {
       { id: 54, internalName: 'Clothier', name: 'Clothier', boss: false },
       { id: 19, internalName: 'ArmsDealer', name: 'Arms Dealer', boss: false },
       { id: 228, internalName: 'WitchDoctor', name: 'Witch Doctor', boss: false },
-      { id: 370, internalName: 'DukeFishron', name: 'Duke Fishron', boss: true }
+      { id: 370, internalName: 'DukeFishron', name: 'Duke Fishron', boss: true },
+      { id: 78, internalName: 'Mummy', name: 'Mummy', boss: false },
+      { id: 79, internalName: 'DarkMummy', name: 'Dark Mummy', boss: false },
+      { id: 80, internalName: 'LightMummy', name: 'Light Mummy', boss: false },
+      { id: 630, internalName: 'BloodMummy', name: 'Blood Mummy', boss: false }
     ]
   }));
   return { root, rawDir, sourcesDir, itemsPath, npcsPath };
@@ -329,6 +339,186 @@ test('buildItemSourceCandidateImportPlan does not map Goodie Bag unknown source 
         sourceRevisionTimestamp: '2026-05-14T05:44:56Z',
         extractedSources: [
           { sourceType: 'drop', sourceRefType: 'unknown', sourceRefName: 'Goodie Bag', quantityText: null, chanceText: null, conditions: null, notes: null }
+        ]
+      }]
+    },
+    standardizedItemsPath: fixture.itemsPath,
+    standardizedNpcsPath: fixture.npcsPath,
+    npcParsedPath: fixture.npcsPath,
+    itemSourcesDir: fixture.sourcesDir
+  });
+
+  assert.equal(plan.summary.eligibleCandidates, 0);
+  assert.equal(plan.summary.blockedCandidates, 1);
+  assert.equal(plan.blockedCandidates[0].blockedSources[0].blockedReason, 'unknown_source_contract');
+});
+
+test('buildItemSourceCandidateImportPlan maps Shucked Oyster unknown Oyster source to item-backed source', () => {
+  const fixture = createFixture();
+  const plan = buildItemSourceCandidateImportPlan({
+    auditSummary: {
+      generatedAt: '2026-06-10T00:00:00.000Z',
+      readOnly: true,
+      totalCandidates: 1,
+      classificationCounts: { polluted_candidate: 1 },
+      candidates: [{
+        itemInternalName: 'ShuckedOyster',
+        itemName: 'Shucked Oyster',
+        pageTitle: 'Shucked Oyster',
+        rawPath: path.join(fixture.rawDir, 'shuckedoyster.latest.json'),
+        rawSourceCount: 1,
+        standardizedSourceCount: 0,
+        classification: 'polluted_candidate',
+        sourceRevisionTimestamp: '2026-03-29T04:32:14Z',
+        extractedSources: [
+          { sourceType: 'drop', sourceRefType: 'unknown', sourceRefName: 'Oyster', quantityText: '1', chanceText: '100%', conditions: null, notes: null }
+        ]
+      }]
+    },
+    standardizedItemsPath: fixture.itemsPath,
+    standardizedNpcsPath: fixture.npcsPath,
+    npcParsedPath: fixture.npcsPath,
+    itemSourcesDir: fixture.sourcesDir
+  });
+
+  assert.equal(plan.summary.eligibleCandidates, 1);
+  assert.equal(plan.summary.blockedCandidates, 0);
+  assert.deepEqual(
+    plan.eligibleCandidates[0].plannedSources.map((source) => [source.sourceType, source.sourceRefType, source.sourceRefName, source.quantityText, source.chanceText, source.resolutionStatus]),
+    [['drop', 'item', 'Oyster', '1', '100%', 'resolved_item_ref']]
+  );
+});
+
+test('buildItemSourceCandidateImportPlan does not map unknown Oyster source outside Shucked Oyster page', () => {
+  const fixture = createFixture();
+  const plan = buildItemSourceCandidateImportPlan({
+    auditSummary: {
+      generatedAt: '2026-06-10T00:00:00.000Z',
+      readOnly: true,
+      totalCandidates: 1,
+      classificationCounts: { high_confidence: 1 },
+      candidates: [{
+        itemInternalName: 'MagicMirror',
+        itemName: 'Magic Mirror',
+        pageTitle: 'Unexpected Oyster Source',
+        rawPath: path.join(fixture.rawDir, 'unexpected-oyster.latest.json'),
+        rawSourceCount: 1,
+        standardizedSourceCount: 0,
+        classification: 'high_confidence',
+        sourceRevisionTimestamp: '2026-05-14T05:44:56Z',
+        extractedSources: [
+          { sourceType: 'drop', sourceRefType: 'unknown', sourceRefName: 'Oyster', quantityText: '1', chanceText: '100%', conditions: null, notes: null }
+        ]
+      }]
+    },
+    standardizedItemsPath: fixture.itemsPath,
+    standardizedNpcsPath: fixture.npcsPath,
+    npcParsedPath: fixture.npcsPath,
+    itemSourcesDir: fixture.sourcesDir
+  });
+
+  assert.equal(plan.summary.eligibleCandidates, 0);
+  assert.equal(plan.summary.blockedCandidates, 1);
+  assert.equal(plan.blockedCandidates[0].blockedSources[0].blockedReason, 'unknown_source_contract');
+});
+
+test('buildItemSourceCandidateImportPlan keeps Witch set Goodie Bag source and drops Vampirism worldgen noise', () => {
+  const fixture = createFixture();
+  const plan = buildItemSourceCandidateImportPlan({
+    auditSummary: {
+      generatedAt: '2026-06-10T00:00:00.000Z',
+      readOnly: true,
+      totalCandidates: 1,
+      classificationCounts: { polluted_candidate: 1 },
+      candidates: [{
+        itemInternalName: 'WitchHat',
+        itemName: 'Witch Hat',
+        pageTitle: 'Witch set',
+        rawPath: path.join(fixture.rawDir, 'witchhat.latest.json'),
+        rawSourceCount: 2,
+        standardizedSourceCount: 0,
+        classification: 'polluted_candidate',
+        sourceRevisionTimestamp: '2026-05-23T16:47:45Z',
+        extractedSources: [
+          { sourceType: 'drop', sourceRefType: 'unknown', sourceRefName: 'Goodie Bag', quantityText: '1', chanceText: '3.51%', conditions: null, notes: null },
+          { sourceType: 'worldgen', sourceRefType: 'world', sourceRefName: 'Witch set worldgen', quantityText: null, chanceText: null, conditions: 'It may also be found in chests in Vampirism worlds.', notes: null }
+        ]
+      }]
+    },
+    standardizedItemsPath: fixture.itemsPath,
+    standardizedNpcsPath: fixture.npcsPath,
+    npcParsedPath: fixture.npcsPath,
+    itemSourcesDir: fixture.sourcesDir
+  });
+
+  assert.equal(plan.summary.eligibleCandidates, 1);
+  assert.equal(plan.summary.blockedCandidates, 0);
+  assert.deepEqual(
+    plan.eligibleCandidates[0].plannedSources.map((source) => [source.sourceType, source.sourceRefType, source.sourceRefName, source.chanceText, source.resolutionStatus]),
+    [['drop', 'item', 'Goodie Bag', '3.51%', 'resolved_item_ref']]
+  );
+});
+
+test('buildItemSourceCandidateImportPlan expands Mummy set group source to explicit NPC rows', () => {
+  const fixture = createFixture();
+  const plan = buildItemSourceCandidateImportPlan({
+    auditSummary: {
+      generatedAt: '2026-06-10T00:00:00.000Z',
+      readOnly: true,
+      totalCandidates: 1,
+      classificationCounts: { polluted_candidate: 1 },
+      candidates: [{
+        itemInternalName: 'MummyMask',
+        itemName: 'Mummy Mask',
+        pageTitle: 'Mummy set',
+        rawPath: path.join(fixture.rawDir, 'mummymask.latest.json'),
+        rawSourceCount: 1,
+        standardizedSourceCount: 0,
+        classification: 'polluted_candidate',
+        sourceRevisionTimestamp: '2023-10-24T00:43:54Z',
+        extractedSources: [
+          { sourceType: 'drop', sourceRefType: 'unknown', sourceRefName: 'Mummies', quantityText: '1', chanceText: '1.33%', conditions: null, notes: null }
+        ]
+      }]
+    },
+    standardizedItemsPath: fixture.itemsPath,
+    standardizedNpcsPath: fixture.npcsPath,
+    npcParsedPath: fixture.npcsPath,
+    itemSourcesDir: fixture.sourcesDir
+  });
+
+  assert.equal(plan.summary.eligibleCandidates, 1);
+  assert.equal(plan.summary.blockedCandidates, 0);
+  assert.deepEqual(
+    plan.eligibleCandidates[0].plannedSources.map((source) => [source.sourceType, source.sourceRefType, source.sourceRefName, source.quantityText, source.chanceText, source.resolutionStatus]),
+    [
+      ['drop', 'npc', 'Blood Mummy', '1', '1.33%', 'resolved_npc_ref'],
+      ['drop', 'npc', 'Dark Mummy', '1', '1.33%', 'resolved_npc_ref'],
+      ['drop', 'npc', 'Light Mummy', '1', '1.33%', 'resolved_npc_ref'],
+      ['drop', 'npc', 'Mummy', '1', '1.33%', 'resolved_npc_ref']
+    ]
+  );
+});
+
+test('buildItemSourceCandidateImportPlan does not expand Mummies group source outside Mummy set page', () => {
+  const fixture = createFixture();
+  const plan = buildItemSourceCandidateImportPlan({
+    auditSummary: {
+      generatedAt: '2026-06-10T00:00:00.000Z',
+      readOnly: true,
+      totalCandidates: 1,
+      classificationCounts: { high_confidence: 1 },
+      candidates: [{
+        itemInternalName: 'MagicMirror',
+        itemName: 'Magic Mirror',
+        pageTitle: 'Unexpected Mummies Source',
+        rawPath: path.join(fixture.rawDir, 'unexpected-mummies.latest.json'),
+        rawSourceCount: 1,
+        standardizedSourceCount: 0,
+        classification: 'high_confidence',
+        sourceRevisionTimestamp: '2023-10-24T00:43:54Z',
+        extractedSources: [
+          { sourceType: 'drop', sourceRefType: 'unknown', sourceRefName: 'Mummies', quantityText: '1', chanceText: '1.33%', conditions: null, notes: null }
         ]
       }]
     },

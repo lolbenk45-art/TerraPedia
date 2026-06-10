@@ -1,0 +1,514 @@
+{
+  "generatedAt": "2026-06-10T15:30:49.349Z",
+  "readOnly": true,
+  "mode": "reviewed_item_source_candidate_batch",
+  "sourcePlan": "data/reports/item-source-candidate-import-plan.after-polluted-lane-c.json",
+  "reviewScope": "polluted-lane-c-mummy-set-only",
+  "safetyPolicy": {
+    "allowPages": [
+      "Mummy set"
+    ],
+    "disallowPages": [
+      "Torches",
+      "Ropes",
+      "Block-placing wands"
+    ],
+    "notes": [
+      "Mummy set imports only explicit raw drop-table NPC rows: Blood Mummy, Dark Mummy, Light Mummy, Mummy.",
+      "No generic Mummies group row is imported.",
+      "Matrix pages remain blocked until item-specific row discriminators exist."
+    ]
+  },
+  "summary": {
+    "eligibleCandidates": 3,
+    "plannedSourceRows": 12
+  },
+  "eligibleCandidates": [
+    {
+      "itemInternalName": "MummyMask",
+      "itemName": "Mummy Mask",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 870,
+        "internalName": "MummyMask",
+        "name": "Mummy Mask"
+      },
+      "pageTitle": "Mummy set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/mummymask.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "4fba1011c009a6b9e40caefff4bb9909b6cef85ba66a389d03a20eeaa89314a2",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Blood Mummy",
+          "quantityText": "1",
+          "chanceText": "1.33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Mummy set",
+          "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "MummyMask",
+            "itemName": "Mummy Mask",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Blood Mummy",
+            "quantityText": "1",
+            "chanceText": "1.33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Mummy set",
+            "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 630,
+            "internalName": "BloodMummy",
+            "name": "Blood Mummy"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "3731b117d6982370b471ed23366972677c380b1f0b520f2f99f4106a6b407457",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Dark Mummy",
+          "quantityText": "1",
+          "chanceText": "1.33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Mummy set",
+          "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "MummyMask",
+            "itemName": "Mummy Mask",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Dark Mummy",
+            "quantityText": "1",
+            "chanceText": "1.33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Mummy set",
+            "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 79,
+            "internalName": "DarkMummy",
+            "name": "Dark Mummy"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "67c454c01c26ed73f1e8f7e4e34c688ea1481392bdaa7c8b835a48fc10737ac5",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Light Mummy",
+          "quantityText": "1",
+          "chanceText": "1.33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Mummy set",
+          "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+          "sortOrder": 2,
+          "landingRow": {
+            "itemInternalName": "MummyMask",
+            "itemName": "Mummy Mask",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Light Mummy",
+            "quantityText": "1",
+            "chanceText": "1.33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Mummy set",
+            "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+            "sortOrder": 2
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 80,
+            "internalName": "LightMummy",
+            "name": "Light Mummy"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "fe54b24b431a90a0c0880e3b690f94f558dea02f85feb5abea61a534e2e52cff",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Mummy",
+          "quantityText": "1",
+          "chanceText": "1.33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Mummy set",
+          "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+          "sortOrder": 3,
+          "landingRow": {
+            "itemInternalName": "MummyMask",
+            "itemName": "Mummy Mask",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Mummy",
+            "quantityText": "1",
+            "chanceText": "1.33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Mummy set",
+            "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+            "sortOrder": 3
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 78,
+            "internalName": "Mummy",
+            "name": "Mummy"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "MummyPants",
+      "itemName": "Mummy Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 872,
+        "internalName": "MummyPants",
+        "name": "Mummy Pants"
+      },
+      "pageTitle": "Mummy set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/mummypants.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "6d7cdff506fa4bf32010fb46e24b2b97b219c00ff95916c485d34becca8022e7",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Blood Mummy",
+          "quantityText": "1",
+          "chanceText": "1.33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Mummy set",
+          "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "MummyPants",
+            "itemName": "Mummy Pants",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Blood Mummy",
+            "quantityText": "1",
+            "chanceText": "1.33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Mummy set",
+            "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 630,
+            "internalName": "BloodMummy",
+            "name": "Blood Mummy"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "19898f6ee8ff81163a6dfd96b6fd4719df0c0671ee47942e8db4cd455227b751",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Dark Mummy",
+          "quantityText": "1",
+          "chanceText": "1.33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Mummy set",
+          "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "MummyPants",
+            "itemName": "Mummy Pants",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Dark Mummy",
+            "quantityText": "1",
+            "chanceText": "1.33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Mummy set",
+            "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 79,
+            "internalName": "DarkMummy",
+            "name": "Dark Mummy"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "9c9ec7b3af4c223e2720faad053924b772abde275292e51ece63b5fcf69967a4",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Light Mummy",
+          "quantityText": "1",
+          "chanceText": "1.33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Mummy set",
+          "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+          "sortOrder": 2,
+          "landingRow": {
+            "itemInternalName": "MummyPants",
+            "itemName": "Mummy Pants",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Light Mummy",
+            "quantityText": "1",
+            "chanceText": "1.33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Mummy set",
+            "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+            "sortOrder": 2
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 80,
+            "internalName": "LightMummy",
+            "name": "Light Mummy"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "5de33b910f98e9b6eeaf9a3ef8c1b75dd7f0238444367947298cc2df1c3528d0",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Mummy",
+          "quantityText": "1",
+          "chanceText": "1.33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Mummy set",
+          "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+          "sortOrder": 3,
+          "landingRow": {
+            "itemInternalName": "MummyPants",
+            "itemName": "Mummy Pants",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Mummy",
+            "quantityText": "1",
+            "chanceText": "1.33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Mummy set",
+            "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+            "sortOrder": 3
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 78,
+            "internalName": "Mummy",
+            "name": "Mummy"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "MummyShirt",
+      "itemName": "Mummy Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 871,
+        "internalName": "MummyShirt",
+        "name": "Mummy Shirt"
+      },
+      "pageTitle": "Mummy set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/mummyshirt.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "8be227a47f8611c20372655ffad92b7a644dc37dcdd95649c5cf486e2cbc04c8",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Blood Mummy",
+          "quantityText": "1",
+          "chanceText": "1.33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Mummy set",
+          "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "MummyShirt",
+            "itemName": "Mummy Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Blood Mummy",
+            "quantityText": "1",
+            "chanceText": "1.33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Mummy set",
+            "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 630,
+            "internalName": "BloodMummy",
+            "name": "Blood Mummy"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "fa48c7ec13bb4d907b6f80135b43456d983b16314ec3db58544e26dbbf82ba09",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Dark Mummy",
+          "quantityText": "1",
+          "chanceText": "1.33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Mummy set",
+          "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "MummyShirt",
+            "itemName": "Mummy Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Dark Mummy",
+            "quantityText": "1",
+            "chanceText": "1.33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Mummy set",
+            "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 79,
+            "internalName": "DarkMummy",
+            "name": "Dark Mummy"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "cf05817bb41e0537dd6c40a5238cc6406f17826f0dd51c338cc9a4db9cc9dfe3",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Light Mummy",
+          "quantityText": "1",
+          "chanceText": "1.33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Mummy set",
+          "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+          "sortOrder": 2,
+          "landingRow": {
+            "itemInternalName": "MummyShirt",
+            "itemName": "Mummy Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Light Mummy",
+            "quantityText": "1",
+            "chanceText": "1.33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Mummy set",
+            "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+            "sortOrder": 2
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 80,
+            "internalName": "LightMummy",
+            "name": "Light Mummy"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "2b0c385fdb109cab6a6c7cf88e58ef9ca60c0b574103f15bc8da94ea27a997e7",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Mummy",
+          "quantityText": "1",
+          "chanceText": "1.33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Mummy set",
+          "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+          "sortOrder": 3,
+          "landingRow": {
+            "itemInternalName": "MummyShirt",
+            "itemName": "Mummy Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Mummy",
+            "quantityText": "1",
+            "chanceText": "1.33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Mummy set",
+            "sourceRevisionTimestamp": "2023-10-24T00:43:54Z",
+            "sortOrder": 3
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 78,
+            "internalName": "Mummy",
+            "name": "Mummy"
+          },
+          "blockedReason": null
+        }
+      ]
+    }
+  ]
+}
