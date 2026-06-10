@@ -158,6 +158,32 @@ class ItemSourceServiceImplTest {
     }
 
     @Test
+    void shouldFallbackToItemMetadataWhenNpcTypedSourceNameMatchesItemOnly() {
+        String crateImage = "http://localhost:9000/terrapedia-images/items/wiki/item-images/Azure_Crate.png";
+        ItemAcquisitionSource source = source(8L, 88L, "drop", "npc", null, "Azure Crate");
+
+        Item crate = new Item();
+        crate.setId(5303L);
+        crate.setName("Azure Crate");
+        crate.setInternalName("FloatingIslandFishingCrateHard");
+        crate.setNameZh("天蓝匣");
+        crate.setImage(crateImage);
+
+        when(itemAcquisitionSourceMapper.selectList(any())).thenReturn(List.of(source));
+        when(itemMapper.selectList(any())).thenReturn(List.of(crate));
+        when(npcMapper.selectList(any())).thenReturn(List.of());
+
+        List<ItemSourceDTO> sources = itemSourceService.getSourcesByItemId(88L);
+
+        assertEquals(1, sources.size());
+        ItemSourceDTO result = sources.get(0);
+        assertEquals("天蓝匣", result.getSourceRefNameZh());
+        assertEquals(crateImage, result.getImageUrl());
+        assertEquals(crateImage, result.getSourceRefImageUrl());
+        assertEquals(crateImage, result.getItemImageUrl());
+    }
+
+    @Test
     void shouldMergeImagesWhenDuplicateSourcesHaveDifferentReferenceCompleteness() {
         String managedNpcImage = "http://localhost:9000/terrapedia-images/npcs/zombie.png";
         ItemAcquisitionSource sourceWithoutRef = source(6L, 88L, "drop", "npc", 999L, "Zombie");

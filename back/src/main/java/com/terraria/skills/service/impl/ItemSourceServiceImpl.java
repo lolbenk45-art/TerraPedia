@@ -85,9 +85,9 @@ public class ItemSourceServiceImpl implements ItemSourceService {
                 dto.setSourceRefNameZh(sourceRefMetadata.nameZh());
                 dto.setImageUrl(sourceRefMetadata.imageUrl());
                 dto.setSourceRefImageUrl(sourceRefMetadata.imageUrl());
-                if (SOURCE_REF_TYPE_ITEM.equalsIgnoreCase(normalizeText(source.getSourceRefType(), ""))) {
+                if (SOURCE_REF_TYPE_ITEM.equalsIgnoreCase(normalizeText(sourceRefMetadata.sourceRefType(), ""))) {
                     dto.setItemImageUrl(sourceRefMetadata.imageUrl());
-                } else if (SOURCE_REF_TYPE_NPC.equalsIgnoreCase(normalizeText(source.getSourceRefType(), ""))) {
+                } else if (SOURCE_REF_TYPE_NPC.equalsIgnoreCase(normalizeText(sourceRefMetadata.sourceRefType(), ""))) {
                     dto.setNpcImageUrl(sourceRefMetadata.imageUrl());
                 }
             }
@@ -208,7 +208,11 @@ public class ItemSourceServiceImpl implements ItemSourceService {
         }
         if (SOURCE_REF_TYPE_NPC.equalsIgnoreCase(sourceRefType)) {
             SourceRefMetadata byId = source.getSourceRefId() == null ? null : npcMetadataById.get(source.getSourceRefId());
-            return mergeMetadata(byId, metadataByName(cleanedSourceRefName, npcMetadataByName));
+            SourceRefMetadata npcMetadata = mergeMetadata(byId, metadataByName(cleanedSourceRefName, npcMetadataByName));
+            if (npcMetadata != null) {
+                return npcMetadata;
+            }
+            return metadataByName(cleanedSourceRefName, itemMetadataByName);
         }
         SourceRefMetadata itemMetadata = metadataByName(cleanedSourceRefName, itemMetadataByName);
         return itemMetadata != null ? itemMetadata : metadataByName(cleanedSourceRefName, npcMetadataByName);
@@ -228,7 +232,8 @@ public class ItemSourceServiceImpl implements ItemSourceService {
         }
         return new SourceRefMetadata(
             primary.nameZh() == null ? fallback.nameZh() : primary.nameZh(),
-            primary.imageUrl() == null ? fallback.imageUrl() : primary.imageUrl()
+            primary.imageUrl() == null ? fallback.imageUrl() : primary.imageUrl(),
+            primary.sourceRefType() == null ? fallback.sourceRefType() : primary.sourceRefType()
         );
     }
 
@@ -323,13 +328,21 @@ public class ItemSourceServiceImpl implements ItemSourceService {
         return text == null ? fallback : text;
     }
 
-    private record SourceRefMetadata(String nameZh, String imageUrl) {
+    private record SourceRefMetadata(String nameZh, String imageUrl, String sourceRefType) {
         private static SourceRefMetadata fromItem(Item item) {
-            return new SourceRefMetadata(normalizeTextValue(item == null ? null : item.getNameZh()), normalizeTextValue(item == null ? null : item.getImage()));
+            return new SourceRefMetadata(
+                normalizeTextValue(item == null ? null : item.getNameZh()),
+                normalizeTextValue(item == null ? null : item.getImage()),
+                SOURCE_REF_TYPE_ITEM
+            );
         }
 
         private static SourceRefMetadata fromNpc(Npc npc) {
-            return new SourceRefMetadata(normalizeTextValue(npc == null ? null : npc.getNameZh()), normalizeTextValue(npc == null ? null : npc.getImageUrl()));
+            return new SourceRefMetadata(
+                normalizeTextValue(npc == null ? null : npc.getNameZh()),
+                normalizeTextValue(npc == null ? null : npc.getImageUrl()),
+                SOURCE_REF_TYPE_NPC
+            );
         }
 
         private static String normalizeTextValue(String value) {
