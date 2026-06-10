@@ -1,0 +1,59 @@
+{
+  "generatedAt": "2026-06-10T22:32:24.349Z",
+  "batchId": "item-source-legacy-duplicate-cleanup-lane-h-apply",
+  "connection": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "database": "terria_v1_local"
+  },
+  "rows": [
+    {
+      "id": 192084,
+      "item_id": 2274,
+      "source_type": "shop",
+      "source_ref_type": "npc",
+      "source_ref_id": 368,
+      "source_ref_name": "Traveling Merchant",
+      "biome_id": null,
+      "quantity_min": null,
+      "quantity_max": null,
+      "quantity_text": null,
+      "chance_value": null,
+      "chance_text": null,
+      "conditions": null,
+      "notes": null,
+      "source_provider": "terrapedia.generated",
+      "source_page": "https://terraria.wiki.gg/wiki/Traveling_Merchant",
+      "source_revision_timestamp": null,
+      "sort_order": 1,
+      "status": 1,
+      "deleted": 0,
+      "created_at": "2026-05-13T09:13:39.000Z",
+      "updated_at": "2026-05-20T10:35:26.000Z"
+    },
+    {
+      "id": 193964,
+      "item_id": 4388,
+      "source_type": "shop",
+      "source_ref_type": "npc",
+      "source_ref_id": 17,
+      "source_ref_name": "Merchant",
+      "biome_id": null,
+      "quantity_min": null,
+      "quantity_max": null,
+      "quantity_text": null,
+      "chance_value": null,
+      "chance_text": null,
+      "conditions": null,
+      "notes": null,
+      "source_provider": "terrapedia.generated",
+      "source_page": "https://terraria.wiki.gg/wiki/Merchant",
+      "source_revision_timestamp": null,
+      "sort_order": 1,
+      "status": 1,
+      "deleted": 0,
+      "created_at": "2026-05-13T09:13:39.000Z",
+      "updated_at": "2026-05-20T10:35:26.000Z"
+    }
+  ]
+}

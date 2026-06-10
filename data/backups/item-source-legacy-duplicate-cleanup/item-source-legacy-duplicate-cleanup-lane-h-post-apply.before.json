@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-06-10T22:32:43.726Z",
+  "batchId": "item-source-legacy-duplicate-cleanup-lane-h-post-apply",
+  "connection": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "database": "terria_v1_local"
+  },
+  "rows": []
+}
