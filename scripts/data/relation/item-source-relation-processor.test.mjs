@@ -145,6 +145,89 @@ test('buildItemSourceRelations respects upstream resolved internal-name metadata
   assert.equal(detail.sourceRefResolution, 'resolved');
 });
 
+test('buildItemSourceRelations preserves non-NPC MagicMirror source details without NPC loot rows', () => {
+  const itemSourceRows = [
+    {
+      id: 41,
+      record_key: 'a'.repeat(64),
+      item_internal_name: 'MagicMirror',
+      item_name: 'Magic Mirror',
+      source_type: 'container',
+      source_ref_type: 'container',
+      source_ref_name: 'Gold Chest',
+      sort_order: 0,
+      raw_json: JSON.stringify({
+        sourceRefName: 'Gold Chest',
+        quantityMin: 1,
+        quantityMax: 1,
+        chanceText: '1/6 (16.67%)',
+      }),
+      landing_source_id: 151,
+      landing_source_key: 'generated.item_relations_bundle:chunk:magicmirror',
+      landing_content_hash: 'm'.repeat(64),
+      source_provider: 'wiki_gg',
+      source_page: 'Magic Mirrors',
+    },
+    {
+      id: 42,
+      record_key: 'b'.repeat(64),
+      item_internal_name: 'MagicMirror',
+      item_name: 'Magic Mirror',
+      source_type: 'container',
+      source_ref_type: 'container',
+      source_ref_name: 'Frozen Chest',
+      sort_order: 1,
+      raw_json: JSON.stringify({
+        sourceRefName: 'Frozen Chest',
+        quantityMin: 1,
+        quantityMax: 1,
+        chanceText: '1/5 (20%)',
+      }),
+      landing_source_id: 151,
+      landing_source_key: 'generated.item_relations_bundle:chunk:magicmirror',
+      landing_content_hash: 'm'.repeat(64),
+      source_provider: 'wiki_gg',
+      source_page: 'Magic Mirrors',
+    },
+    {
+      id: 43,
+      record_key: 'c'.repeat(64),
+      item_internal_name: 'MagicMirror',
+      item_name: 'Magic Mirror',
+      source_type: 'worldgen',
+      source_ref_type: 'world',
+      source_ref_name: 'Magic Mirrors worldgen',
+      sort_order: 2,
+      raw_json: JSON.stringify({
+        sourceRefName: 'Magic Mirrors worldgen',
+        notes: 'Magic Mirrors worldgen',
+      }),
+      landing_source_id: 151,
+      landing_source_key: 'generated.item_relations_bundle:chunk:magicmirror',
+      landing_content_hash: 'm'.repeat(64),
+      source_provider: 'wiki_gg',
+      source_page: 'Magic Mirrors',
+    },
+  ];
+
+  const actual = buildItemSourceRelations({
+    itemSourceRows,
+    npcIndex: new Map([
+      ['Gold Chest', { source_id: 999, internal_name: 'GoldChestNpcLikeName', name: 'Gold Chest' }],
+      ['Frozen Chest', { source_id: 998, internal_name: 'FrozenChestNpcLikeName', name: 'Frozen Chest' }],
+    ]),
+  });
+
+  assert.equal(actual.sourceFacts.length, 3);
+  assert.equal(actual.sourceDetails.length, 3);
+  assert.equal(actual.npcLootRelations.some((row) => row.sourceRefName === 'Gold Chest'), false);
+  assert.equal(actual.npcLootRelations.some((row) => row.sourceRefName === 'Frozen Chest'), false);
+  assert.equal(actual.sourceDetails.some((row) => row.sourceRefName === 'Gold Chest'), true);
+  assert.equal(actual.sourceDetails.some((row) => row.sourceRefName === 'Magic Mirrors worldgen'), true);
+  assert.equal(actual.sourceFacts.find((row) => row.sourceRefName === 'Gold Chest').reviewStatus, 'resolved');
+  assert.equal(actual.sourceFacts.find((row) => row.sourceRefName === 'Magic Mirrors worldgen').reviewStatus, 'resolved');
+});
+
 test('buildItemSourceRelations keeps reviewed non-NPC exclusions out of loot relations', () => {
   const actual = buildItemSourceRelations({
     itemSourceRows: [

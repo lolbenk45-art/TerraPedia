@@ -83,7 +83,7 @@ test('buildRelationCompatSyncSql only publishes source-backed reviewed active ro
   assert.match(sql.item_acquisition_sources.insertSql, /n\.status = 1/);
   assert.match(
     sql.item_acquisition_sources.insertSql,
-    /f\.source_ref_type <> 'npc' OR \(d\.source_ref_resolution IN \('resolved', 'exact_internal_name', 'reviewed_page_level_shared_loot'\) AND n\.id IS NOT NULL\)/
+    /f\.source_ref_type = 'npc' AND d\.source_ref_resolution IN \('resolved', 'exact_internal_name', 'reviewed_page_level_shared_loot'\) AND n\.id IS NOT NULL/
   );
 
   for (const [alias, definition] of [
@@ -151,9 +151,26 @@ test('buildRelationCompatSyncSql publishes reviewed page-level shared loot npc r
     assert.match(definition, /reviewed_page_level_shared_loot/);
     assert.match(
       definition,
-      /f\.source_ref_type <> 'npc' OR \(d\.source_ref_resolution IN \('resolved', 'exact_internal_name', 'reviewed_page_level_shared_loot'\) AND n\.id IS NOT NULL\)/
+      /f\.source_ref_type = 'npc' AND d\.source_ref_resolution IN \('resolved', 'exact_internal_name', 'reviewed_page_level_shared_loot'\) AND n\.id IS NOT NULL/
     );
   }
+});
+
+test('buildRelationCompatSyncSql gates source reference joins by reference domain', () => {
+  const sql = buildRelationCompatSyncSql({
+    localDatabase: 'terria_v1_local',
+    relationDatabase: 'terria_v1_relation'
+  });
+  const insertSql = sql.item_acquisition_sources.insertSql;
+
+  assert.match(insertSql, /f\.source_ref_type = 'npc'/);
+  assert.match(insertSql, /LEFT JOIN `terria_v1_local`\.`npcs`/);
+  assert.match(insertSql, /LEFT JOIN `terria_v1_local`\.`items`/);
+  assert.match(insertSql, /f\.source_ref_type IN \('item', 'container', 'crate', 'treasure_bag'\)/);
+  assert.match(insertSql, /WHEN f\.source_ref_type = 'npc' THEN n\.id/);
+  assert.match(insertSql, /WHEN f\.source_ref_type IN \('item', 'container', 'crate', 'treasure_bag'\) THEN source_item\.id/);
+  assert.match(insertSql, /f\.source_ref_type IS NULL\s+OR f\.source_ref_type = 'world'/);
+  assert.doesNotMatch(insertSql, /f\.source_ref_type <> 'npc' OR \(d\.source_ref_resolution/);
 });
 
 test('runRelationToLocalCompatSync dry-run reports row counts and samples without mutating', async () => {

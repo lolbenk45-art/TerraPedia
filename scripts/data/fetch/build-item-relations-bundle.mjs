@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { generateRecipeMaterialReference } from '../generate/generate-recipe-material-reference.mjs';
 import {
   ensureDir,
   numericOption,
@@ -80,62 +79,73 @@ const DEFAULT_BIOME_CONFIG = {
   }
 };
 
-const options = parseCliArgs(process.argv.slice(2));
-const inputPath = path.resolve(process.cwd(), options.input ?? sharedDataPath('normalized', 'items.wiki.json'));
-const itemPageDir = path.resolve(process.cwd(), options['item-pages'] ?? sharedDataPath('raw', 'wiki', 'item-pages'));
-const biomeDir = path.resolve(process.cwd(), options['biome-pages'] ?? sharedDataPath('raw', 'wiki', 'biomes'));
-const npcParsedPath = path.resolve(process.cwd(), options.npcs ?? sharedDataPath('raw', 'wiki', 'module__npcinfo__data.parsed.latest.json'));
-const recipeReferencePath = path.resolve(process.cwd(), options['recipe-reference'] ?? path.join(process.cwd(), 'data', 'generated', 'recipe-material-reference.json'));
-const outputPath = path.resolve(process.cwd(), options.output ?? sharedDataPath('normalized', 'item-relations.bundle.json'));
-const reportDir = sharedDataPath('reports', 'normalize');
-const limit = numericOption(options.limit, null);
-const refreshRecipeReference = booleanOption(options['refresh-recipe-reference'] ?? options.refreshRecipeReference, false);
+export async function buildItemRelationsBundle({
+  inputPath = sharedDataPath('normalized', 'items.wiki.json'),
+  itemPageDir = sharedDataPath('raw', 'wiki', 'item-pages'),
+  biomeDir = sharedDataPath('raw', 'wiki', 'biomes'),
+  npcParsedPath = sharedDataPath('raw', 'wiki', 'module__npcinfo__data.parsed.latest.json'),
+  recipeReferencePath = path.join(process.cwd(), 'data', 'generated', 'recipe-material-reference.json'),
+  outputPath = sharedDataPath('normalized', 'item-relations.bundle.json'),
+  reportDir = sharedDataPath('reports', 'normalize'),
+  limit = null,
+  refreshRecipeReference = false,
+  pages = null,
+  log = false
+} = {}) {
+  inputPath = path.resolve(process.cwd(), inputPath);
+  itemPageDir = path.resolve(process.cwd(), itemPageDir);
+  biomeDir = path.resolve(process.cwd(), biomeDir);
+  npcParsedPath = path.resolve(process.cwd(), npcParsedPath);
+  recipeReferencePath = path.resolve(process.cwd(), recipeReferencePath);
+  outputPath = path.resolve(process.cwd(), outputPath);
+  reportDir = path.resolve(process.cwd(), reportDir);
 
-ensureDir(path.dirname(outputPath));
-ensureDir(reportDir);
+  ensureDir(path.dirname(outputPath));
+  ensureDir(reportDir);
 
-let recipeReferenceRefreshSummary = null;
-if (refreshRecipeReference) {
-  const recipeReferenceOptions = {
-    output: recipeReferencePath,
-    items: inputPath
-  };
-  if (typeof options.pages === 'string' && options.pages.trim() !== '') {
-    recipeReferenceOptions.pages = options.pages.trim();
+  let recipeReferenceRefreshSummary = null;
+  if (refreshRecipeReference) {
+    const { generateRecipeMaterialReference } = await import('../generate/generate-recipe-material-reference.mjs');
+    const recipeReferenceOptions = {
+      output: recipeReferencePath,
+      items: inputPath
+    };
+    if (typeof pages === 'string' && pages.trim() !== '') {
+      recipeReferenceOptions.pages = pages.trim();
+    }
+    recipeReferenceRefreshSummary = await generateRecipeMaterialReference(recipeReferenceOptions);
   }
-  recipeReferenceRefreshSummary = await generateRecipeMaterialReference(recipeReferenceOptions);
-}
 
-const normalizedItemsPayload = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
-const items = Array.isArray(normalizedItemsPayload?.items) ? normalizedItemsPayload.items : [];
-const itemByInternalName = new Map(items.map((item) => [item.internalName, item]));
-const itemLookup = buildItemLookup(items);
-const npcLookup = loadNpcLookup(npcParsedPath);
-const recipeReference = loadRecipeReference(recipeReferencePath);
+  const normalizedItemsPayload = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
+  const items = Array.isArray(normalizedItemsPayload?.items) ? normalizedItemsPayload.items : [];
+  const itemByInternalName = new Map(items.map((item) => [item.internalName, item]));
+  const itemLookup = buildItemLookup(items);
+  const npcLookup = loadNpcLookup(npcParsedPath);
+  const recipeReference = loadRecipeReference(recipeReferencePath);
 
-const itemPageFiles = fs.existsSync(itemPageDir)
-  ? fs.readdirSync(itemPageDir).filter((name) => name.endsWith('.latest.json')).sort()
-  : [];
-const selectedItemPageFiles = itemPageFiles.slice(0, Number.isFinite(limit) && limit > 0 ? limit : undefined);
+  const itemPageFiles = fs.existsSync(itemPageDir)
+    ? fs.readdirSync(itemPageDir).filter((name) => name.endsWith('.latest.json')).sort()
+    : [];
+  const selectedItemPageFiles = itemPageFiles.slice(0, Number.isFinite(limit) && limit > 0 ? limit : undefined);
 
-const itemImages = [];
-const recipes = [];
-const itemSources = [];
-const itemBiomes = [];
-const snapshots = [];
-const errors = [];
-const npcSourceRefStats = {
-  totalDropNpcSources: 0,
-  boundByExactInternalName: 0,
-  boundBySingleCandidate: 0,
-  boundBySinglePositiveCandidate: 0,
-  boundByPositiveIdFallback: 0,
-  unresolvedNoMatch: 0,
-  unresolvedNoStableCandidate: 0
-};
-const unresolvedNpcSourceRefs = new Map();
+  const itemImages = [];
+  const recipes = [];
+  const itemSources = [];
+  const itemBiomes = [];
+  const snapshots = [];
+  const errors = [];
+  const npcSourceRefStats = {
+    totalDropNpcSources: 0,
+    boundByExactInternalName: 0,
+    boundBySingleCandidate: 0,
+    boundBySinglePositiveCandidate: 0,
+    boundByPositiveIdFallback: 0,
+    unresolvedNoMatch: 0,
+    unresolvedNoStableCandidate: 0
+  };
+  const unresolvedNpcSourceRefs = new Map();
 
-for (const fileName of selectedItemPageFiles) {
+  for (const fileName of selectedItemPageFiles) {
   const payload = JSON.parse(fs.readFileSync(path.join(itemPageDir, fileName), 'utf8'));
   const item = itemByInternalName.get(payload.itemInternalName) ?? resolveItemFromLookup(itemLookup, payload.itemName);
   if (!item) {
@@ -282,14 +292,14 @@ for (const fileName of selectedItemPageFiles) {
     isCurrent: true,
     parseStatus: 'parsed'
   });
-}
+  }
 
-const biomes = [];
-const biomePageFiles = fs.existsSync(biomeDir)
-  ? fs.readdirSync(biomeDir).filter((name) => name.endsWith('.latest.json')).sort()
-  : [];
+  const biomes = [];
+  const biomePageFiles = fs.existsSync(biomeDir)
+    ? fs.readdirSync(biomeDir).filter((name) => name.endsWith('.latest.json')).sort()
+    : [];
 
-for (const fileName of biomePageFiles) {
+  for (const fileName of biomePageFiles) {
   const payload = JSON.parse(fs.readFileSync(path.join(biomeDir, fileName), 'utf8'));
   const config = DEFAULT_BIOME_CONFIG[payload.biomeCode];
   if (!config) {
@@ -340,61 +350,87 @@ for (const fileName of biomePageFiles) {
     isCurrent: true,
     parseStatus: 'parsed'
   });
+  }
+
+  const output = {
+    source: 'terraria.wiki.gg:item-page-assembly',
+    overwriteExisting: true,
+    itemImages,
+    recipes,
+    itemSources,
+    biomes,
+    itemBiomes,
+    snapshots
+  };
+
+  writeJson(outputPath, output);
+
+  const reportPath = path.join(reportDir, `item-relations-${new Date().toISOString().replaceAll(':', '-')}.json`);
+  writeJson(reportPath, {
+    inputPath,
+    itemPageDir,
+    biomeDir,
+    outputPath,
+    refreshRecipeReference,
+    recipeReferencePath,
+    recipeReferenceRefreshSummary,
+    itemPageCount: selectedItemPageFiles.length,
+    biomePageCount: biomePageFiles.length,
+    itemImages: itemImages.length,
+    recipes: recipes.length,
+    itemSources: itemSources.length,
+    biomes: biomes.length,
+    itemBiomes: itemBiomes.length,
+    snapshots: snapshots.length,
+    npcSourceRefStats,
+    unresolvedNpcSourceRefs: [...unresolvedNpcSourceRefs.values()].sort((left, right) => {
+      return (
+        right.occurrences - left.occurrences
+        || String(left.sourceRefName ?? '').localeCompare(String(right.sourceRefName ?? ''))
+      );
+    }),
+    errors
+  });
+
+  if (log) {
+    console.log(`Items input: ${inputPath}`);
+    console.log(`Item pages used: ${selectedItemPageFiles.length}`);
+    console.log(`Biome pages used: ${biomePageFiles.length}`);
+    console.log(`Images: ${itemImages.length}`);
+    console.log(`Recipes: ${recipes.length}`);
+    console.log(`Sources: ${itemSources.length}`);
+    console.log(`Biomes: ${biomes.length}`);
+    console.log(`Item-biomes: ${itemBiomes.length}`);
+    console.log(`Snapshots: ${snapshots.length}`);
+    console.log(`NPC source refs resolved: ${npcSourceRefStats.totalDropNpcSources - npcSourceRefStats.unresolvedNoMatch - npcSourceRefStats.unresolvedNoStableCandidate}`);
+    console.log(`NPC source refs unresolved: ${npcSourceRefStats.unresolvedNoMatch + npcSourceRefStats.unresolvedNoStableCandidate}`);
+    console.log(`Bundle: ${outputPath}`);
+    console.log(`Report: ${reportPath}`);
+  }
+
+  return {
+    ...output,
+    reportPath,
+    errors,
+    npcSourceRefStats
+  };
 }
 
-const output = {
-  source: 'terraria.wiki.gg:item-page-assembly',
-  overwriteExisting: true,
-  itemImages,
-  recipes,
-  itemSources,
-  biomes,
-  itemBiomes,
-  snapshots
-};
-
-writeJson(outputPath, output);
-
-const reportPath = path.join(reportDir, `item-relations-${new Date().toISOString().replaceAll(':', '-')}.json`);
-writeJson(reportPath, {
-  inputPath,
-  itemPageDir,
-  biomeDir,
-  outputPath,
-  refreshRecipeReference,
-  recipeReferencePath,
-  recipeReferenceRefreshSummary,
-  itemPageCount: selectedItemPageFiles.length,
-  biomePageCount: biomePageFiles.length,
-  itemImages: itemImages.length,
-  recipes: recipes.length,
-  itemSources: itemSources.length,
-  biomes: biomes.length,
-  itemBiomes: itemBiomes.length,
-  snapshots: snapshots.length,
-  npcSourceRefStats,
-  unresolvedNpcSourceRefs: [...unresolvedNpcSourceRefs.values()].sort((left, right) => {
-    return (
-      right.occurrences - left.occurrences
-      || String(left.sourceRefName ?? '').localeCompare(String(right.sourceRefName ?? ''))
-    );
-  }),
-  errors
-});
-
-console.log(`Items input: ${inputPath}`);
-console.log(`Item pages used: ${selectedItemPageFiles.length}`);
-console.log(`Biome pages used: ${biomePageFiles.length}`);
-console.log(`Images: ${itemImages.length}`);
-console.log(`Recipes: ${recipes.length}`);
-console.log(`Sources: ${itemSources.length}`);
-console.log(`Biomes: ${biomes.length}`);
-console.log(`Item-biomes: ${itemBiomes.length}`);
-console.log(`Snapshots: ${snapshots.length}`);
-console.log(`NPC source refs resolved: ${npcSourceRefStats.totalDropNpcSources - npcSourceRefStats.unresolvedNoMatch - npcSourceRefStats.unresolvedNoStableCandidate}`);
-console.log(`NPC source refs unresolved: ${npcSourceRefStats.unresolvedNoMatch + npcSourceRefStats.unresolvedNoStableCandidate}`);
-console.log(`Bundle: ${outputPath}`);
-console.log(`Report: ${reportPath}`);
+if (isDirectRun(import.meta.url)) {
+  const options = parseCliArgs(process.argv.slice(2));
+  await buildItemRelationsBundle({
+    inputPath: options.input ?? sharedDataPath('normalized', 'items.wiki.json'),
+    itemPageDir: options['item-pages'] ?? sharedDataPath('raw', 'wiki', 'item-pages'),
+    biomeDir: options['biome-pages'] ?? sharedDataPath('raw', 'wiki', 'biomes'),
+    npcParsedPath: options.npcs ?? sharedDataPath('raw', 'wiki', 'module__npcinfo__data.parsed.latest.json'),
+    recipeReferencePath: options['recipe-reference'] ?? path.join(process.cwd(), 'data', 'generated', 'recipe-material-reference.json'),
+    outputPath: options.output ?? sharedDataPath('normalized', 'item-relations.bundle.json'),
+    limit: numericOption(options.limit, null),
+    refreshRecipeReference: booleanOption(options['refresh-recipe-reference'] ?? options.refreshRecipeReference, false),
+    pages: options.pages,
+    log: true
+  });
+}
 
 function loadNpcLookup(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -716,4 +752,8 @@ function booleanOption(value, fallback) {
     return false;
   }
   return fallback;
+}
+
+function isDirectRun(metaUrl) {
+  return process.argv[1] && metaUrl === new URL(`file://${path.resolve(process.argv[1])}`).href;
 }

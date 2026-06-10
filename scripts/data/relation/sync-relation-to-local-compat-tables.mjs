@@ -76,6 +76,7 @@ export function buildRelationCompatSyncSql({
   const lootRelations = qualified(relationDatabase, 'item_npc_loot_relations');
   const shopRelations = qualified(relationDatabase, 'item_npc_shop_relations');
   const acceptedReviewStatuses = "('accepted', 'resolved', 'promoted')";
+  const itemBackedSourceRefTypes = "('item', 'container', 'crate', 'treasure_bag')";
   const publishableFactWhere = `f.deleted = 0
   AND f.status = 1
   AND f.review_status IN ${acceptedReviewStatuses}`;
@@ -84,6 +85,10 @@ export function buildRelationCompatSyncSql({
  AND d.status = 1
  AND d.review_status IN ${acceptedReviewStatuses}`;
   const resolvedNpcDetailWhere = "d.source_ref_resolution IN ('resolved', 'exact_internal_name', 'reviewed_page_level_shared_loot')";
+  const publishableSourceRefWhere = `(f.source_ref_type = 'npc' AND ${resolvedNpcDetailWhere} AND n.id IS NOT NULL)
+  OR f.source_ref_type IN ${itemBackedSourceRefTypes}
+  OR f.source_ref_type IS NULL
+  OR f.source_ref_type = 'world'`;
   const publishableRelationWhere = `r.deleted = 0
   AND r.status = 1
   AND r.review_status IN ${acceptedReviewStatuses}`;
@@ -100,11 +105,17 @@ INNER JOIN ${localItems} i
 LEFT JOIN ${sourceDetails} d
   ON ${publishableDetailJoin}
 LEFT JOIN ${localNpcs} n
-  ON n.internal_name COLLATE utf8mb4_unicode_ci = d.source_ref_internal_name COLLATE utf8mb4_unicode_ci
+  ON f.source_ref_type = 'npc'
+ AND n.internal_name COLLATE utf8mb4_unicode_ci = d.source_ref_internal_name COLLATE utf8mb4_unicode_ci
  AND n.deleted = 0
  AND n.status = 1
+LEFT JOIN ${localItems} source_item
+  ON f.source_ref_type IN ${itemBackedSourceRefTypes}
+ AND source_item.internal_name COLLATE utf8mb4_unicode_ci = d.source_ref_internal_name COLLATE utf8mb4_unicode_ci
+ AND source_item.deleted = 0
+ AND source_item.status = 1
 WHERE ${publishableFactWhere}
-  AND (f.source_ref_type IS NULL OR f.source_ref_type <> 'npc' OR (${resolvedNpcDetailWhere} AND n.id IS NOT NULL))`,
+  AND (${publishableSourceRefWhere})`,
       sampleSql: `SELECT f.item_internal_name, f.source_type, f.source_ref_type, f.source_ref_name
 FROM ${sourceFacts} f
 INNER JOIN ${localItems} i
@@ -114,11 +125,17 @@ INNER JOIN ${localItems} i
 LEFT JOIN ${sourceDetails} d
   ON ${publishableDetailJoin}
 LEFT JOIN ${localNpcs} n
-  ON n.internal_name COLLATE utf8mb4_unicode_ci = d.source_ref_internal_name COLLATE utf8mb4_unicode_ci
+  ON f.source_ref_type = 'npc'
+ AND n.internal_name COLLATE utf8mb4_unicode_ci = d.source_ref_internal_name COLLATE utf8mb4_unicode_ci
  AND n.deleted = 0
  AND n.status = 1
+LEFT JOIN ${localItems} source_item
+  ON f.source_ref_type IN ${itemBackedSourceRefTypes}
+ AND source_item.internal_name COLLATE utf8mb4_unicode_ci = d.source_ref_internal_name COLLATE utf8mb4_unicode_ci
+ AND source_item.deleted = 0
+ AND source_item.status = 1
 WHERE ${publishableFactWhere}
-  AND (f.source_ref_type IS NULL OR f.source_ref_type <> 'npc' OR (${resolvedNpcDetailWhere} AND n.id IS NOT NULL))
+  AND (${publishableSourceRefWhere})
 LIMIT 5`,
       insertSql: `
 INSERT INTO ${localItemSources}
@@ -127,7 +144,11 @@ SELECT
   i.id,
   f.source_type,
   f.source_ref_type,
-  CASE WHEN f.source_ref_type = 'npc' THEN n.id ELSE NULL END,
+  CASE
+    WHEN f.source_ref_type = 'npc' THEN n.id
+    WHEN f.source_ref_type IN ${itemBackedSourceRefTypes} THEN source_item.id
+    ELSE NULL
+  END,
   f.source_ref_name,
   NULL,
   d.quantity_min,
@@ -151,11 +172,17 @@ INNER JOIN ${localItems} i
 LEFT JOIN ${sourceDetails} d
   ON ${publishableDetailJoin}
 LEFT JOIN ${localNpcs} n
-  ON n.internal_name COLLATE utf8mb4_unicode_ci = d.source_ref_internal_name COLLATE utf8mb4_unicode_ci
+  ON f.source_ref_type = 'npc'
+ AND n.internal_name COLLATE utf8mb4_unicode_ci = d.source_ref_internal_name COLLATE utf8mb4_unicode_ci
  AND n.deleted = 0
  AND n.status = 1
+LEFT JOIN ${localItems} source_item
+  ON f.source_ref_type IN ${itemBackedSourceRefTypes}
+ AND source_item.internal_name COLLATE utf8mb4_unicode_ci = d.source_ref_internal_name COLLATE utf8mb4_unicode_ci
+ AND source_item.deleted = 0
+ AND source_item.status = 1
 WHERE ${publishableFactWhere}
-  AND (f.source_ref_type IS NULL OR f.source_ref_type <> 'npc' OR (${resolvedNpcDetailWhere} AND n.id IS NOT NULL))`.trim()
+  AND (${publishableSourceRefWhere})`.trim()
     },
     npc_loot_entries: {
       deleteSql: `DELETE FROM ${localLoot}

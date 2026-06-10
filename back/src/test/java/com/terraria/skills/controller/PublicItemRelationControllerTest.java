@@ -133,6 +133,52 @@ class PublicItemRelationControllerTest {
     }
 
     @Test
+    void shouldReturnMagicMirrorPublicSourcesWithSourceRefTypes() throws Exception {
+        ItemSourceDTO goldChest = new ItemSourceDTO();
+        goldChest.setId(50L);
+        goldChest.setItemId(50L);
+        goldChest.setSourceType("container");
+        goldChest.setSourceRefType("container");
+        goldChest.setSourceRefName("Gold Chest");
+        goldChest.setQuantityText("1");
+        goldChest.setChanceText("1/6 (16.67%)");
+        goldChest.setSourceProvider("terraria.wiki.gg");
+        goldChest.setSourcePage("https://terraria.wiki.gg/wiki/Magic_Mirrors");
+
+        ItemSourceDTO mimic = new ItemSourceDTO();
+        mimic.setId(51L);
+        mimic.setItemId(50L);
+        mimic.setSourceType("drop");
+        mimic.setSourceRefType("npc");
+        mimic.setSourceRefName("Mimic");
+        mimic.setNpcImageUrl("http://localhost:9000/terrapedia-images/npcs/mimic.png");
+
+        ItemSourceDTO worldgen = new ItemSourceDTO();
+        worldgen.setId(52L);
+        worldgen.setItemId(50L);
+        worldgen.setSourceType("worldgen");
+        worldgen.setSourceRefType("world");
+        worldgen.setSourceRefName("Magic Mirrors worldgen");
+
+        when(itemSourceService.getSourcesByItemId(50L)).thenReturn(List.of(goldChest, mimic, worldgen));
+
+        mockMvc.perform(get("/public/items/50/sources"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.length()").value(3))
+            .andExpect(jsonPath("$.data[0].sourceRefType").value("container"))
+            .andExpect(jsonPath("$.data[0].sourceRefName").value("Gold Chest"))
+            .andExpect(jsonPath("$.data[0].sourceProvider").doesNotExist())
+            .andExpect(jsonPath("$.data[0].sourcePage").doesNotExist())
+            .andExpect(jsonPath("$.data[1].sourceRefType").value("npc"))
+            .andExpect(jsonPath("$.data[1].npcImageUrl").value("http://localhost:9000/terrapedia-images/npcs/mimic.png"))
+            .andExpect(jsonPath("$.data[2].sourceRefType").value("world"))
+            .andExpect(jsonPath("$.data[2].sourceRefName").value("Magic Mirrors worldgen"));
+
+        verify(itemSourceService).getSourcesByItemId(50L);
+    }
+
+    @Test
     void shouldReturnOnlyManagedPublicSourceImages() throws Exception {
         ItemSourceDTO managedNpcSource = new ItemSourceDTO();
         managedNpcSource.setId(4L);

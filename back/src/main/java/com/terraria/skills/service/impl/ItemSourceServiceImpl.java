@@ -34,6 +34,7 @@ public class ItemSourceServiceImpl implements ItemSourceService {
 
     private static final String SOURCE_REF_TYPE_ITEM = "item";
     private static final String SOURCE_REF_TYPE_NPC = "npc";
+    private static final Set<String> ITEM_BACKED_SOURCE_REF_TYPES = Set.of("item", "container", "crate", "treasure_bag");
 
     private final ItemAcquisitionSourceMapper itemAcquisitionSourceMapper;
     private final BiomeMapper biomeMapper;
@@ -66,11 +67,12 @@ public class ItemSourceServiceImpl implements ItemSourceService {
             .map(this::cleanSourceRefName)
             .filter(Objects::nonNull)
             .collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<String> npcSourceNames = sourceNamesByType(sources, SOURCE_REF_TYPE_NPC);
 
         Map<Long, SourceRefMetadata> itemMetadataById = loadItemMetadataById(sources);
         Map<Long, SourceRefMetadata> npcMetadataById = loadNpcMetadataById(sources);
         Map<String, SourceRefMetadata> itemMetadataByName = loadItemMetadataByName(sourceNames);
-        Map<String, SourceRefMetadata> npcMetadataByName = loadNpcMetadataByName(sourceNames);
+        Map<String, SourceRefMetadata> npcMetadataByName = loadNpcMetadataByName(npcSourceNames);
 
         Map<String, ItemSourceDTO> deduped = new LinkedHashMap<>();
 
@@ -112,7 +114,7 @@ public class ItemSourceServiceImpl implements ItemSourceService {
     }
 
     private Map<Long, SourceRefMetadata> loadItemMetadataById(List<ItemAcquisitionSource> sources) {
-        Set<Long> ids = sourceRefIdsByType(sources, SOURCE_REF_TYPE_ITEM);
+        Set<Long> ids = itemBackedSourceRefIds(sources);
         if (ids.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -202,7 +204,7 @@ public class ItemSourceServiceImpl implements ItemSourceService {
         Map<String, SourceRefMetadata> npcMetadataByName
     ) {
         String sourceRefType = normalizeText(source.getSourceRefType(), "");
-        if (SOURCE_REF_TYPE_ITEM.equalsIgnoreCase(sourceRefType)) {
+        if (ITEM_BACKED_SOURCE_REF_TYPES.contains(sourceRefType.toLowerCase(Locale.ROOT))) {
             SourceRefMetadata byId = source.getSourceRefId() == null ? null : itemMetadataById.get(source.getSourceRefId());
             return mergeMetadata(byId, metadataByName(cleanedSourceRefName, itemMetadataByName));
         }
@@ -212,10 +214,10 @@ public class ItemSourceServiceImpl implements ItemSourceService {
             if (npcMetadata != null) {
                 return npcMetadata;
             }
-            return metadataByName(cleanedSourceRefName, itemMetadataByName);
+            return null;
         }
         SourceRefMetadata itemMetadata = metadataByName(cleanedSourceRefName, itemMetadataByName);
-        return itemMetadata != null ? itemMetadata : metadataByName(cleanedSourceRefName, npcMetadataByName);
+        return itemMetadata;
     }
 
     private SourceRefMetadata metadataByName(String cleanedSourceRefName, Map<String, SourceRefMetadata> metadataByName) {
@@ -241,6 +243,23 @@ public class ItemSourceServiceImpl implements ItemSourceService {
         return sources.stream()
             .filter(source -> sourceRefType.equalsIgnoreCase(normalizeText(source.getSourceRefType(), "")))
             .map(ItemAcquisitionSource::getSourceRefId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private Set<Long> itemBackedSourceRefIds(List<ItemAcquisitionSource> sources) {
+        return sources.stream()
+            .filter(source -> ITEM_BACKED_SOURCE_REF_TYPES.contains(normalizeText(source.getSourceRefType(), "").toLowerCase(Locale.ROOT)))
+            .map(ItemAcquisitionSource::getSourceRefId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private Set<String> sourceNamesByType(List<ItemAcquisitionSource> sources, String sourceRefType) {
+        return sources.stream()
+            .filter(source -> sourceRefType.equalsIgnoreCase(normalizeText(source.getSourceRefType(), "")))
+            .map(ItemAcquisitionSource::getSourceRefName)
+            .map(this::cleanSourceRefName)
             .filter(Objects::nonNull)
             .collect(Collectors.toCollection(LinkedHashSet::new));
     }

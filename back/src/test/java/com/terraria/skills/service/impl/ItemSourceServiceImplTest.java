@@ -80,7 +80,6 @@ class ItemSourceServiceImplTest {
 
         when(itemAcquisitionSourceMapper.selectList(any())).thenReturn(List.of(source));
         when(itemMapper.selectList(any())).thenReturn(List.of(item));
-        when(npcMapper.selectList(any())).thenReturn(List.of());
 
         List<ItemSourceDTO> sources = itemSourceService.getSourcesByItemId(88L);
 
@@ -98,7 +97,6 @@ class ItemSourceServiceImplTest {
 
         when(itemAcquisitionSourceMapper.selectList(any())).thenReturn(List.of(source));
         when(itemMapper.selectList(any())).thenReturn(List.of());
-        when(npcMapper.selectList(any())).thenReturn(List.of());
 
         itemSourceService.getSourcesByItemId(88L);
 
@@ -158,7 +156,7 @@ class ItemSourceServiceImplTest {
     }
 
     @Test
-    void shouldFallbackToItemMetadataWhenNpcTypedSourceNameMatchesItemOnly() {
+    void shouldNotFallbackToItemMetadataForNpcTypedSourceName() {
         String crateImage = "http://localhost:9000/terrapedia-images/items/wiki/item-images/Azure_Crate.png";
         ItemAcquisitionSource source = source(8L, 88L, "drop", "npc", null, "Azure Crate");
 
@@ -177,10 +175,90 @@ class ItemSourceServiceImplTest {
 
         assertEquals(1, sources.size());
         ItemSourceDTO result = sources.get(0);
-        assertEquals("天蓝匣", result.getSourceRefNameZh());
-        assertEquals(crateImage, result.getImageUrl());
-        assertEquals(crateImage, result.getSourceRefImageUrl());
-        assertEquals(crateImage, result.getItemImageUrl());
+        assertEquals(null, result.getSourceRefNameZh());
+        assertEquals(null, result.getImageUrl());
+        assertEquals(null, result.getSourceRefImageUrl());
+        assertEquals(null, result.getItemImageUrl());
+        assertEquals(null, result.getNpcImageUrl());
+    }
+
+    @Test
+    void shouldKeepMagicMirrorContainerAndWorldgenSourcesOutOfNpcFallback() {
+        String frozenChestImage = "http://localhost:9000/terrapedia-images/items/frozen-chest.png";
+        String mimicImage = "http://localhost:9000/terrapedia-images/npcs/mimic.png";
+        String fakeGoldChestNpcImage = "http://localhost:9000/terrapedia-images/npcs/gold-chest.png";
+        ItemAcquisitionSource goldChest = source(9L, 50L, "container", "container", null, "Gold Chest");
+        ItemAcquisitionSource frozenChest = source(10L, 50L, "container", "container", null, "Frozen Chest");
+        ItemAcquisitionSource mimic = source(11L, 50L, "drop", "npc", null, "Mimic");
+        ItemAcquisitionSource worldgen = source(12L, 50L, "worldgen", "world", null, "Magic Mirrors worldgen");
+
+        Item frozenChestItem = new Item();
+        frozenChestItem.setId(681L);
+        frozenChestItem.setName("Frozen Chest");
+        frozenChestItem.setInternalName("FrozenChest");
+        frozenChestItem.setNameZh("冰冻箱");
+        frozenChestItem.setImage(frozenChestImage);
+
+        Npc mimicNpc = npc(85L, "Mimic", "宝箱怪", mimicImage);
+        Npc fakeGoldChestNpc = npc(999L, "Gold Chest", "错误金箱 NPC", fakeGoldChestNpcImage);
+
+        when(itemAcquisitionSourceMapper.selectList(any())).thenReturn(List.of(goldChest, frozenChest, mimic, worldgen));
+        when(itemMapper.selectList(any())).thenReturn(List.of(frozenChestItem));
+        when(npcMapper.selectList(any())).thenReturn(List.of(mimicNpc, fakeGoldChestNpc));
+
+        List<ItemSourceDTO> result = itemSourceService.getSourcesByItemId(50L);
+
+        assertEquals(4, result.size());
+        ItemSourceDTO goldChestResult = sourceByName(result, "Gold Chest");
+        assertEquals("container", goldChestResult.getSourceRefType());
+        assertEquals("Gold Chest", goldChestResult.getSourceRefName());
+        assertEquals(null, goldChestResult.getSourceRefNameZh());
+        assertEquals(null, goldChestResult.getImageUrl());
+        assertEquals(null, goldChestResult.getNpcImageUrl());
+
+        ItemSourceDTO frozenChestResult = sourceByName(result, "Frozen Chest");
+        assertEquals("container", frozenChestResult.getSourceRefType());
+        assertEquals("冰冻箱", frozenChestResult.getSourceRefNameZh());
+        assertEquals(frozenChestImage, frozenChestResult.getImageUrl());
+        assertEquals(frozenChestImage, frozenChestResult.getItemImageUrl());
+        assertEquals(null, frozenChestResult.getNpcImageUrl());
+
+        ItemSourceDTO mimicResult = sourceByName(result, "Mimic");
+        assertEquals("npc", mimicResult.getSourceRefType());
+        assertEquals("宝箱怪", mimicResult.getSourceRefNameZh());
+        assertEquals(mimicImage, mimicResult.getNpcImageUrl());
+
+        ItemSourceDTO worldgenResult = sourceByName(result, "Magic Mirrors worldgen");
+        assertEquals("world", worldgenResult.getSourceRefType());
+        assertEquals(null, worldgenResult.getSourceRefNameZh());
+        assertEquals(null, worldgenResult.getNpcImageUrl());
+    }
+
+    @Test
+    void shouldUseItemBackedSourceRefIdForContainerSources() {
+        String goldChestImage = "http://localhost:9000/terrapedia-images/items/gold-chest.png";
+        ItemAcquisitionSource goldChest = source(13L, 50L, "container", "container", 681L, "Wrong Display Name");
+
+        Item goldChestItem = new Item();
+        goldChestItem.setId(681L);
+        goldChestItem.setName("Gold Chest");
+        goldChestItem.setInternalName("GoldChest");
+        goldChestItem.setNameZh("金箱");
+        goldChestItem.setImage(goldChestImage);
+
+        when(itemAcquisitionSourceMapper.selectList(any())).thenReturn(List.of(goldChest));
+        when(itemMapper.selectList(any())).thenReturn(List.of(goldChestItem));
+
+        List<ItemSourceDTO> result = itemSourceService.getSourcesByItemId(50L);
+
+        assertEquals(1, result.size());
+        ItemSourceDTO goldChestResult = result.get(0);
+        assertEquals("container", goldChestResult.getSourceRefType());
+        assertEquals("金箱", goldChestResult.getSourceRefNameZh());
+        assertEquals(goldChestImage, goldChestResult.getImageUrl());
+        assertEquals(goldChestImage, goldChestResult.getSourceRefImageUrl());
+        assertEquals(goldChestImage, goldChestResult.getItemImageUrl());
+        assertEquals(null, goldChestResult.getNpcImageUrl());
     }
 
     @Test
@@ -204,6 +282,13 @@ class ItemSourceServiceImplTest {
         assertEquals("僵尸", result.getSourceRefNameZh());
         assertEquals(managedNpcImage, result.getImageUrl());
         assertEquals(managedNpcImage, result.getNpcImageUrl());
+    }
+
+    private static ItemSourceDTO sourceByName(List<ItemSourceDTO> sources, String sourceRefName) {
+        return sources.stream()
+            .filter(source -> sourceRefName.equals(source.getSourceRefName()))
+            .findFirst()
+            .orElseThrow();
     }
 
     private static ItemAcquisitionSource source(Long id, Long itemId, String sourceType, String sourceRefType, Long sourceRefId, String sourceRefName) {

@@ -1118,6 +1118,45 @@ test('extractMaintEntitiesFromLandingRow expands relation bundle chunk into sour
   assert.equal(biomeRow.relationType, 'found_in');
 });
 
+test('extractMaintEntitiesFromLandingRow preserves MagicMirror item source reference domains', async () => {
+  const landingRow = {
+    id: 151,
+    dataset_type: 'item_relations_bundle_raw',
+    provider: 'terrapedia.generated',
+    source_page: 'item-relations.bundle#snapshots/magicmirror',
+    source_key: 'generated.item_relations_bundle:chunk:magicmirror',
+    source_revision_timestamp: '2026-04-02T10:40:10Z',
+    content_hash: 'm'.repeat(64),
+    fetched_at: '2026-06-10T01:00:00.000Z',
+    parsed_at: '2026-06-10T01:00:00.000Z',
+    payload_json: JSON.stringify({
+      itemSources: [
+        { itemInternalName: 'MagicMirror', itemName: 'Magic Mirror', sourceType: 'container', sourceRefType: 'container', sourceRefName: 'Gold Chest' },
+        { itemInternalName: 'MagicMirror', itemName: 'Magic Mirror', sourceType: 'drop', sourceRefType: 'npc', sourceRefName: 'Mimic' },
+        { itemInternalName: 'MagicMirror', itemName: 'Magic Mirror', sourceType: 'worldgen', sourceRefType: 'world', sourceRefName: 'Magic Mirrors worldgen' },
+      ],
+      itemBiomes: [],
+      snapshots: [],
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+  const rows = actual.rows.filter((row) => row.tableName === 'maint_item_sources');
+  const goldChestRow = rows.find((row) => row.sourceRefName === 'Gold Chest');
+  const mimicRow = rows.find((row) => row.sourceRefName === 'Mimic');
+  const worldgenRow = rows.find((row) => row.sourceRefName === 'Magic Mirrors worldgen');
+
+  assert.equal(rows.length, 3);
+  for (const row of rows) {
+    assert.equal(row.itemInternalName, 'MagicMirror');
+    assert.notEqual(row.itemInternalName, null);
+    assert.match(row.recordKey, /^[a-f0-9]{64}$/);
+  }
+  assert.equal(goldChestRow.sourceRefType, 'container');
+  assert.equal(mimicRow.sourceRefType, 'npc');
+  assert.equal(worldgenRow.sourceRefType, 'world');
+});
+
 test('extractMaintEntitiesFromLandingRow expands relation bundle chunk into snapshot rows', async () => {
   const landingRow = {
     id: 61,

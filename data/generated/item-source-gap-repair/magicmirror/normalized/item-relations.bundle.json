@@ -1,0 +1,103 @@
+{
+  "source": "terraria.wiki.gg:item-source-gap-repair",
+  "generatedAt": "2026-06-10T04:29:20.648Z",
+  "overwriteExisting": false,
+  "itemImages": [],
+  "recipes": [],
+  "itemSources": [
+    {
+      "itemInternalName": "MagicMirror",
+      "itemName": "Magic Mirror",
+      "sourceType": "container",
+      "sourceRefType": "container",
+      "sourceRefName": "Gold Chest",
+      "quantityText": "1",
+      "chanceText": "1/6 (16.67%) (Underground) 2/15 (13.33%) (Cavern) 19/150 (12.67%) (\"lava layer\")",
+      "conditions": null,
+      "notes": null,
+      "sourceProvider": "wiki_gg",
+      "sourcePage": "Magic Mirrors",
+      "sourceRevisionTimestamp": "2026-04-02T10:40:10Z",
+      "sortOrder": 0
+    },
+    {
+      "itemInternalName": "MagicMirror",
+      "itemName": "Magic Mirror",
+      "sourceType": "drop",
+      "sourceRefType": "npc",
+      "sourceRefName": "Mimics",
+      "quantityText": "1",
+      "chanceText": "16.67%",
+      "conditions": null,
+      "notes": null,
+      "sourceProvider": "wiki_gg",
+      "sourcePage": "Magic Mirrors",
+      "sourceRevisionTimestamp": "2026-04-02T10:40:10Z",
+      "sortOrder": 1
+    },
+    {
+      "itemInternalName": "MagicMirror",
+      "itemName": "Magic Mirror",
+      "sourceType": "drop",
+      "sourceRefType": "npc",
+      "sourceRefName": "Mimic",
+      "quantityText": "1",
+      "chanceText": "16.67%",
+      "conditions": null,
+      "notes": null,
+      "sourceProvider": "wiki_gg",
+      "sourcePage": "Magic Mirrors",
+      "sourceRevisionTimestamp": "2026-04-02T10:40:10Z",
+      "sortOrder": 2
+    },
+    {
+      "itemInternalName": "MagicMirror",
+      "itemName": "Magic Mirror",
+      "sourceType": "container",
+      "sourceRefType": "container",
+      "sourceRefName": "Frozen Chest",
+      "quantityText": "1",
+      "chanceText": "1/5 (20%)",
+      "conditions": null,
+      "notes": null,
+      "sourceProvider": "wiki_gg",
+      "sourcePage": "Magic Mirrors",
+      "sourceRevisionTimestamp": "2026-04-02T10:40:10Z",
+      "sortOrder": 3
+    },
+    {
+      "itemInternalName": "MagicMirror",
+      "itemName": "Magic Mirror",
+      "sourceType": "worldgen",
+      "sourceRefType": "world",
+      "sourceRefName": "Magic Mirrors worldgen",
+      "quantityText": null,
+      "chanceText": null,
+      "conditions": "Magic Mirrors can be found in Chests generated in the Underground and Cavern layers. Ice Mirrors can be found in Frozen Chests generated in the Ice biome . Newly created characters in Journey Mode (Desktop, Console and Mobile versions) spawn with a Magic Mirror.",
+      "notes": null,
+      "sourceProvider": "wiki_gg",
+      "sourcePage": "Magic Mirrors",
+      "sourceRevisionTimestamp": "2026-04-02T10:40:10Z",
+      "sortOrder": 4
+    }
+  ],
+  "biomes": [],
+  "itemBiomes": [],
+  "snapshots": [],
+  "importPlanSummary": {
+    "totalCandidates": 1,
+    "eligibleCandidates": 1,
+    "blockedCandidates": 0,
+    "plannedSourceRows": 5,
+    "blockedSourceRows": 0,
+    "classificationCounts": {
+      "high_confidence": 1
+    },
+    "blockedReasonCounts": {},
+    "plannedSourceRefTypeCounts": {
+      "container": 2,
+      "npc": 2,
+      "world": 1
+    }
+  }
+}

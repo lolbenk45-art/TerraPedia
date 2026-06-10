@@ -202,10 +202,11 @@ export function extractDropSourcesFromHtml(html, npcLookup = new Map()) {
       for (const sourceName of sourceNames) {
         const normalizedName = normalizeText(sourceName);
         const npcMeta = normalizedName ? npcLookup.get(normalizedName.toLowerCase()) ?? null : null;
+        const sourceRefType = classifyDropSourceRefType(sourceName, npcMeta);
 
         rows.push({
-          sourceType: 'drop',
-          sourceRefType: npcMeta?.boss ? 'boss' : 'npc',
+          sourceType: classifyDropSourceType(sourceRefType),
+          sourceRefType,
           sourceRefName: sourceName,
           quantityMin: quantity.min,
           quantityMax: quantity.max,
@@ -219,6 +220,25 @@ export function extractDropSourcesFromHtml(html, npcLookup = new Map()) {
   }
 
   return rows;
+}
+
+export function classifyDropSourceRefType(sourceName, npcMeta = null) {
+  if (npcMeta) {
+    return npcMeta.boss ? 'boss' : 'npc';
+  }
+
+  const normalized = normalizeText(sourceName)?.toLowerCase() ?? '';
+  if (/\bcrates?\b/i.test(normalized)) return 'crate';
+  if (/\btreasure bags?\b/i.test(normalized)) return 'treasure_bag';
+  if (/\b(?:chests?|lock boxes?|lock box|presents?)\b/i.test(normalized)) return 'container';
+  return 'unknown';
+}
+
+function classifyDropSourceType(sourceRefType) {
+  if (sourceRefType === 'crate') return 'crate';
+  if (sourceRefType === 'treasure_bag') return 'treasure_bag';
+  if (sourceRefType === 'container') return 'container';
+  return 'drop';
 }
 
 export function extractNarrativeSources(introParagraphs, pageTitle) {
