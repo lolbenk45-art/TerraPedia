@@ -239,12 +239,26 @@ function loadNpcLookup(filePath, fallbackFilePath) {
     const name = normalizeText(npc?.name);
     if (!name) continue;
     const meta = { boss: npc?.boss === true || npc?.boss === 1 || npc?.flags?.boss === true };
-    lookup.set(name.toLowerCase(), meta);
+    rememberNpcLookupAlias(lookup, name, meta);
     if (!name.toLowerCase().endsWith('s')) {
-      lookup.set(`${name}s`.toLowerCase(), meta);
+      rememberNpcLookupAlias(lookup, `${name}s`, meta);
     }
+    rememberNpcLookupAlias(lookup, npc?.internalName ?? npc?.internal_name, meta);
+    rememberNpcLookupAlias(lookup, normalizeImageFileTitleAlias(npc?.imageFileTitle ?? npc?.image_file_title), meta);
   }
   return lookup;
+}
+
+function rememberNpcLookupAlias(lookup, value, meta) {
+  const key = normalizeText(value)?.toLowerCase();
+  if (!key) return;
+  lookup.set(key, meta);
+}
+
+function normalizeImageFileTitleAlias(value) {
+  return normalizeText(value)
+    ?.replace(/\.(?:gif|png|jpe?g|webp)$/i, '')
+    .trim() ?? null;
 }
 
 function countBy(values, keySelector) {

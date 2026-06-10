@@ -61,3 +61,61 @@ test('buildItemRelationsBundle preserves MagicMirror source ref types', async ()
   assert.ok(itemSources.some((row) => row.sourceRefName === 'Mimic' && row.sourceRefType === 'npc'));
   assert.ok(itemSources.some((row) => row.sourceType === 'worldgen' && row.sourceRefType === 'world'));
 });
+
+test('buildItemRelationsBundle resolves NPC variants from image file title aliases', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'item-relations-npc-alias-'));
+  const inputPath = path.join(root, 'items.json');
+  const itemPageDir = path.join(root, 'item-pages');
+  const biomeDir = path.join(root, 'biomes');
+  const outputPath = path.join(root, 'bundle.json');
+  const reportDir = path.join(root, 'reports');
+  const npcPath = path.join(root, 'npcs.json');
+  const recipeReferencePath = path.join(root, 'recipe-reference.json');
+  fs.mkdirSync(itemPageDir, { recursive: true });
+  fs.mkdirSync(biomeDir, { recursive: true });
+
+  fs.writeFileSync(inputPath, JSON.stringify({
+    items: [{ internalName: 'Torch', name: 'Torch' }]
+  }));
+  fs.writeFileSync(npcPath, JSON.stringify({
+    npcs: [
+      { id: 590, internalName: 'TorchZombie', name: 'Zombie', imageFileTitle: 'Torch Zombie.gif', boss: false },
+      { id: 591, internalName: 'ArmedTorchZombie', name: 'Zombie', imageFileTitle: 'Armed Torch Zombie.gif', boss: false }
+    ]
+  }));
+  fs.writeFileSync(recipeReferencePath, JSON.stringify({ sourceType: null, supplementalRecipes: [], groups: [] }));
+  fs.writeFileSync(path.join(itemPageDir, 'torch.latest.json'), JSON.stringify({
+    itemInternalName: 'Torch',
+    itemName: 'Torch',
+    pageTitle: 'Torches',
+    revisionTimestamp: '2026-05-22T20:22:49Z',
+    fetchedAt: '2026-06-10T00:00:00Z',
+    wikitext: '',
+    recipesMarkup: '',
+    html: `
+      <table class="drop">
+        <tr><th>Entity</th><th>Qty</th><th>Chance</th></tr>
+        <tr><td><span class="npcimg"><img alt="Armed Torch Zombie.gif" /></span><a title="Zombie">Zombie</a><div class="note-text">(Armed Torch Zombie)</div></td><td>5–20</td><td>100%</td></tr>
+        <tr><td><span class="npcimg"><img alt="Torch Zombie.gif" /></span><a title="Zombie">Zombie</a><div class="note-text">(Torch Zombie)</div></td><td>5–20</td><td>100%</td></tr>
+      </table>
+    `
+  }));
+
+  const bundle = await buildItemRelationsBundle({
+    inputPath,
+    itemPageDir,
+    biomeDir,
+    npcParsedPath: npcPath,
+    recipeReferencePath,
+    outputPath,
+    reportDir
+  });
+
+  assert.deepEqual(
+    bundle.itemSources.map((row) => [row.sourceRefName, row.sourceRefType, row.sourceRefId, row.sourceRefInternalName]),
+    [
+      ['Armed Torch Zombie', 'npc', 591, 'ArmedTorchZombie'],
+      ['Torch Zombie', 'npc', 590, 'TorchZombie']
+    ]
+  );
+});

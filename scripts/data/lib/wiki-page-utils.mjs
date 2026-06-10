@@ -551,6 +551,18 @@ function extractDropSourceNames(cellHtml) {
     return [];
   }
 
+  const imageAltNames = [
+    ...new Set(
+      [...cellHtml.matchAll(/<img\b[^>]*\balt="([^"]+)"/gi)]
+        .map((match) => normalizeImageAltEntityName(match[1]))
+        .filter((title) => isDropSourceTitle(title))
+    )
+  ];
+
+  if (imageAltNames.length > 0) {
+    return imageAltNames;
+  }
+
   const linkedTitles = [
     ...new Set(
       [...cellHtml.matchAll(/<a\b[^>]*title="([^"]+)"/gi)]
@@ -565,6 +577,12 @@ function extractDropSourceNames(cellHtml) {
 
   const stripped = stripHtml(cellHtml);
   return stripped ? [stripped] : [];
+}
+
+function normalizeImageAltEntityName(value) {
+  return normalizeText(value)
+    ?.replace(/\.(?:gif|png|jpe?g|webp)$/i, '')
+    .trim() ?? '';
 }
 
 function isDropSourceTitle(title) {

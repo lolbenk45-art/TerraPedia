@@ -100,6 +100,48 @@ test('extractDropSourcesFromHtml preserves section title for matrix pages', () =
   );
 });
 
+test('extractDropSourcesFromHtml prefers entity image alt names over generic link titles for variants', () => {
+  const html = `
+    <table class="drop">
+      <tr><th>Entity</th><th>Qty</th><th>Chance</th></tr>
+      <tr>
+        <td>
+          <span class="entity-name">
+            <span class="npcimg"><img alt="Armed Torch Zombie.gif" src="/images/Armed_Torch_Zombie.gif" /></span>
+            <span><a href="/wiki/Zombie" title="Zombie">Zombie</a><div class="note-text">(Armed Torch Zombie)</div></span>
+          </span>
+        </td>
+        <td>5–20</td>
+        <td>100%</td>
+      </tr>
+      <tr>
+        <td>
+          <span class="entity-name">
+            <span class="npcimg"><img alt="Torch Zombie.gif" src="/images/Torch_Zombie.gif" /></span>
+            <span><a href="/wiki/Zombie" title="Zombie">Zombie</a><div class="note-text">(Torch Zombie)</div></span>
+          </span>
+        </td>
+        <td>5–20</td>
+        <td>100%</td>
+      </tr>
+    </table>
+  `;
+  const npcLookup = new Map([
+    ['armed torch zombie', { boss: false }],
+    ['torch zombie', { boss: false }]
+  ]);
+
+  const actual = extractDropSourcesFromHtml(html, npcLookup);
+
+  assert.deepEqual(
+    actual.map((entry) => [entry.sourceRefName, entry.sourceRefType, entry.quantityText, entry.chanceText]),
+    [
+      ['Armed Torch Zombie', 'npc', '5–20', '100%'],
+      ['Torch Zombie', 'npc', '5–20', '100%']
+    ]
+  );
+});
+
 test('classifyDropSourceRefType keeps container-like drop table sources out of npc resolution', () => {
   assert.equal(classifyDropSourceRefType('Gold Chest'), 'container');
   assert.equal(classifyDropSourceRefType('Frozen Chest'), 'container');

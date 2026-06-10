@@ -83,7 +83,9 @@ function createFixture() {
       { id: 17, internalName: 'Merchant', name: 'Merchant', boss: false },
       { id: 453, internalName: 'SkeletonMerchant', name: 'Skeleton Merchant', boss: false },
       { id: 368, internalName: 'TravelingMerchant', name: 'Traveling Merchant', boss: false },
-      { id: 1, internalName: 'BlueSlime', name: 'Blue Slime', boss: false }
+      { id: 1, internalName: 'BlueSlime', name: 'Blue Slime', boss: false },
+      { id: 590, internalName: 'TorchZombie', name: 'Zombie', imageFileTitle: 'Torch Zombie.gif', boss: false },
+      { id: 591, internalName: 'ArmedTorchZombie', name: 'Zombie', imageFileTitle: 'Armed Torch Zombie.gif', boss: false }
     ]
   }));
   return { root, rawDir, sourcesDir, itemsPath, npcsPath };
@@ -753,6 +755,8 @@ test('buildItemSourceCandidateImportPlan promotes torches by exact recipe or typ
   const fixture = createFixture();
   const commonDropSources = [
     { sourceType: 'drop', sourceRefType: 'npc', sourceRefName: 'Blue Slime', quantityText: '5-10', chanceText: '0.31%', conditions: null, notes: null, sourceRowText: 'Blue Slime Bonus drop 5-10 0.31%' },
+    { sourceType: 'drop', sourceRefType: 'npc', sourceRefName: 'Armed Torch Zombie', quantityText: '5-20', chanceText: '100%', conditions: null, notes: null, sourceRowText: 'Zombie (Armed Torch Zombie) 5-20 100%' },
+    { sourceType: 'drop', sourceRefType: 'npc', sourceRefName: 'Torch Zombie', quantityText: '5-20', chanceText: '100%', conditions: null, notes: null, sourceRowText: 'Zombie (Torch Zombie) 5-20 100%' },
     { sourceType: 'drop', sourceRefType: 'unknown', sourceRefName: 'Bonus drop', quantityText: '5-10', chanceText: '0.31%', conditions: null, notes: null, sourceRowText: 'Blue Slime Bonus drop 5-10 0.31%' },
     { sourceType: 'shop', sourceRefType: 'npc', sourceRefName: 'Merchant or Skeleton Merchant for', quantityText: null, chanceText: null, conditions: null, notes: 'Regular Torches can be purchased from the Merchant or Skeleton Merchant for 50 Copper Coins each.' },
     { sourceType: 'shop', sourceRefType: 'npc', sourceRefName: 'Skeleton Merchant', sourceTargetItemName: 'Bone Torch', quantityText: null, chanceText: null, conditions: 'first half of every second', notes: 'Sold by the Skeleton Merchant for 1 Silver Coin each during the first half of every second.' },
@@ -806,6 +810,8 @@ test('buildItemSourceCandidateImportPlan promotes torches by exact recipe or typ
     {
       Torch: [
         ['drop', 'npc', 'Blue Slime', '5-10', null, 'resolved_npc_ref'],
+        ['drop', 'npc', 'Armed Torch Zombie', '5-20', null, 'resolved_npc_ref'],
+        ['drop', 'npc', 'Torch Zombie', '5-20', null, 'resolved_npc_ref'],
         ['shop', 'npc', 'Merchant', null, null, 'resolved_npc_ref'],
         ['shop', 'npc', 'Skeleton Merchant', null, null, 'resolved_npc_ref'],
         ['craft', 'item', 'Gel', '3', 'Crafted by hand', 'resolved_item_ref'],
