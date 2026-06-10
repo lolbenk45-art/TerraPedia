@@ -8,6 +8,9 @@ import {
   auditItemSourceGapCandidates
 } from './audit-item-source-gap-candidates.mjs';
 import {
+  isFamilyPageAllowedForSharedSource
+} from './item-source-family-page-policy.mjs';
+import {
   numericOption,
   parseCliArgs,
   sharedDataPath,
@@ -53,6 +56,27 @@ const ALLOWED_SOURCE_REF_TYPES = new Set([
 const ITEM_BACKED_SOURCE_REF_TYPES = new Set(['item', 'container', 'crate', 'treasure_bag']);
 const NPC_BACKED_SOURCE_REF_TYPES = new Set(['npc', 'boss']);
 const CONTAINER_LIKE_NPC_POLLUTION = /\b(chest|crate|treasure\s+bag|lock\s*box|present|bag)\b/i;
+const PROMOTION_SCOPES = new Set(['family', 'polluted', 'all']);
+const GOODIE_BAG_POLLUTED_PAGES = new Set([
+  'Cat set',
+  'Creeper set',
+  'Fox set',
+  'Karate Tortoise set',
+  'Leprechaun set',
+  'Princess set',
+  'Pumpkin set',
+  'Robot set',
+  'Space Creature set',
+  'Unicorn set',
+  'Vampire set',
+  'Witch set',
+  'Wolf set',
+  'Bride of Frankenstein set',
+  'Ghost set',
+  'Pixie set',
+  'Reaper set',
+  'Treasure Hunter set'
+]);
 
 export function parseBuildItemSourceCandidateImportPlanArgs(argv = process.argv.slice(2)) {
   const options = parseCliArgs(argv);
@@ -71,7 +95,8 @@ export function parseBuildItemSourceCandidateImportPlanArgs(argv = process.argv.
     sample: options.sample ?? null,
     limit: numericOption(options.limit, null),
     outputPath: options.output ?? null,
-    bundleRoot: options['bundle-root'] ?? options.bundleRoot ?? null
+    bundleRoot: options['bundle-root'] ?? options.bundleRoot ?? null,
+    promotionScope: normalizePromotionScope(options['promotion-scope'] ?? options.promotionScope ?? 'all')
   };
 }
 
@@ -83,8 +108,10 @@ export function buildItemSourceCandidateImportPlan({
   standardizedItemsPath = path.join(process.cwd(), 'data', 'standardized', 'items.standardized.json'),
   itemSourcesDir = path.join(process.cwd(), 'data', 'standardized-view', 'item_relations', 'itemSources'),
   sample = null,
-  limit = null
+  limit = null,
+  promotionScope = 'all'
 } = {}) {
+  const normalizedPromotionScope = normalizePromotionScope(promotionScope);
   const summary = auditSummary ?? auditItemSourceGapCandidates({
     rawItemPageDir,
     npcParsedPath,
@@ -109,8 +136,7 @@ export function buildItemSourceCandidateImportPlan({
   for (const candidate of Array.isArray(summary.candidates) ? summary.candidates : []) {
     const classification = normalizeText(candidate.classification) ?? 'unknown';
     const itemResolution = resolveEntityRef(itemLookup, candidate.itemInternalName, candidate.itemName);
-    const candidateBlockReason = classifyCandidateBlockReason(candidate, itemResolution);
-    const sourcePlans = dedupeSourcePlans((Array.isArray(candidate.extractedSources) ? candidate.extractedSources : [])
+    const sourcePlans = dedupeSourcePlans(normalizeCandidateSourcesForPlanning(candidate, candidate.extractedSources)
       .map((source, sourceIndex) => buildSourcePlan({
         candidate,
         source,
@@ -118,10 +144,13 @@ export function buildItemSourceCandidateImportPlan({
         itemLookup,
         npcLookup
       })));
+    const candidateBlockReason = classifyCandidateBlockReason(candidate, itemResolution, sourcePlans, {
+      promotionScope: normalizedPromotionScope
+    });
 
     const blockedSources = sourcePlans.filter((source) => source.blockedReason);
-    if (candidateBlockReason || blockedSources.length > 0 || classification !== 'high_confidence') {
-      const blockedReason = candidateBlockReason ?? (classification !== 'high_confidence' ? classification : 'blocked_source_rows');
+    if (candidateBlockReason || blockedSources.length > 0) {
+      const blockedReason = candidateBlockReason ?? 'blocked_source_rows';
       blockedSourceRows += sourcePlans.length;
       blockedCandidates.push({
         itemInternalName: candidate.itemInternalName,
@@ -168,7 +197,8 @@ export function buildItemSourceCandidateImportPlan({
       standardizedItemsPath,
       itemSourcesDir,
       sample,
-      limit
+      limit,
+      promotionScope: normalizedPromotionScope
     },
     sourceAudit: {
       generatedAt: summary.generatedAt,
@@ -215,13 +245,108 @@ export function buildItemSourceCandidateBundle(plan) {
   };
 }
 
-function classifyCandidateBlockReason(candidate, itemResolution) {
+function classifyCandidateBlockReason(candidate, itemResolution, sourcePlans = [], { promotionScope = 'all' } = {}) {
   const classification = normalizeText(candidate.classification) ?? 'unknown';
-  if (classification === 'family_page_candidate') return 'family_page_candidate';
-  if (classification === 'polluted_candidate') return 'polluted_candidate';
-  if (classification !== 'high_confidence') return classification;
   if (itemResolution.status !== 'resolved') return 'item_unresolved';
+  if (classification === 'high_confidence') return null;
+  if (classification === 'family_page_candidate') {
+    if (!['family', 'all'].includes(promotionScope)) return 'family_page_candidate';
+    return isAllowedFamilyCandidate(candidate, sourcePlans) ? null : 'family_page_candidate';
+  }
+  if (classification === 'polluted_candidate') {
+    if (!['polluted', 'all'].includes(promotionScope)) return 'polluted_candidate';
+    return isAllowedPollutedCandidate(candidate, sourcePlans) ? null : 'polluted_candidate';
+  }
+  if (classification !== 'high_confidence') return classification;
   return null;
+}
+
+function normalizePromotionScope(value) {
+  const normalized = normalizeText(value)?.toLowerCase() ?? 'all';
+  if (!PROMOTION_SCOPES.has(normalized)) {
+    throw new Error(`invalid promotion scope: ${value}`);
+  }
+  return normalized;
+}
+
+function isAllowedFamilyCandidate(candidate, sourcePlans) {
+  return sourcePlans.length > 0
+    && sourcePlans.every((source) =>
+      !source.blockedReason
+      && isFamilyPageAllowedForSharedSource({
+        pageTitle: candidate.pageTitle,
+        sourceType: source.sourceType,
+        sourceRefType: source.sourceRefType
+      }));
+}
+
+function isAllowedPollutedCandidate(candidate, sourcePlans) {
+  const pageTitle = normalizeText(candidate.pageTitle);
+  if (GOODIE_BAG_POLLUTED_PAGES.has(pageTitle)) {
+    return sourcePlans.length > 0
+      && sourcePlans.every((source) =>
+        !source.blockedReason
+        && source.sourceType === 'drop'
+        && source.sourceRefType === 'item'
+        && source.sourceRefName === 'Goodie Bag');
+  }
+  if (pageTitle === 'Flairon') {
+    return sourcePlans.length > 0
+      && sourcePlans.every((source) =>
+        !source.blockedReason
+        && (
+          (source.sourceType === 'drop' && source.sourceRefType === 'boss' && source.sourceRefName === 'Duke Fishron')
+          || (source.sourceType === 'treasure_bag' && source.sourceRefType === 'treasure_bag' && source.sourceRefName === 'Treasure Bag (Duke Fishron)')
+        ))
+      && sourcePlans.some((source) => source.sourceRefType === 'boss' && source.sourceRefName === 'Duke Fishron')
+      && sourcePlans.some((source) => source.sourceRefType === 'treasure_bag' && source.sourceRefName === 'Treasure Bag (Duke Fishron)');
+  }
+  return false;
+}
+
+function normalizeCandidateSourcesForPlanning(candidate, sources) {
+  const normalized = (Array.isArray(sources) ? sources : []).map((source) => normalizeSourceForPlanning(candidate, source));
+  if (normalizeText(candidate?.pageTitle) !== 'Flairon') {
+    return normalized;
+  }
+
+  const expertModeSources = normalized.filter((source) =>
+    source.sourceType === 'drop'
+    && source.sourceRefType === 'unknown'
+    && source.sourceRefName === 'Expert Mode');
+  if (!expertModeSources.length) {
+    return normalized;
+  }
+
+  return normalized
+    .filter((source) => !expertModeSources.includes(source))
+    .map((source) => {
+      if (source.sourceRefType !== 'treasure_bag') return source;
+      return {
+        ...source,
+        conditions: mergeText(source.conditions, 'Expert Mode')
+      };
+    });
+}
+
+function normalizeSourceForPlanning(candidate, source) {
+  const sourceType = normalizeText(source?.sourceType)?.toLowerCase() ?? 'unknown';
+  let sourceRefType = normalizeText(source?.sourceRefType)?.toLowerCase() ?? 'unknown';
+  const sourceRefName = normalizeSourceRefNameForPlanning(sourceRefType, source?.sourceRefName);
+  if (
+    GOODIE_BAG_POLLUTED_PAGES.has(normalizeText(candidate?.pageTitle))
+    && sourceType === 'drop'
+    && sourceRefType === 'unknown'
+    && sourceRefName === 'Goodie Bag'
+  ) {
+    sourceRefType = 'item';
+  }
+  return {
+    ...source,
+    sourceType,
+    sourceRefType,
+    sourceRefName
+  };
 }
 
 function buildSourcePlan({

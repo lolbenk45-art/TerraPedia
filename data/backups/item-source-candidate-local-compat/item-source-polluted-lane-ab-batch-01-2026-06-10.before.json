@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-06-10T14:47:37.470Z",
+  "batchId": "item-source-polluted-lane-ab-batch-01-2026-06-10",
+  "connection": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "database": "terria_v1_local"
+  },
+  "rows": []
+}
