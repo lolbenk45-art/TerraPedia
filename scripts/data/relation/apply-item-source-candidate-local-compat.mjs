@@ -11,8 +11,8 @@ import { getProjectRoot } from '../lib/project-root.mjs';
 const repoRoot = getProjectRoot();
 const require = createRequire(path.join(repoRoot, 'data-query-app', 'package.json'));
 const ITEM_BACKED_REF_TYPES = new Set(['item', 'container', 'crate', 'treasure_bag']);
-const NPC_BACKED_REF_TYPES = new Set(['npc']);
-const SUPPORTED_REF_TYPES = new Set(['item', 'container', 'crate', 'treasure_bag', 'npc', 'world']);
+const NPC_BACKED_REF_TYPES = new Set(['npc', 'boss']);
+const SUPPORTED_REF_TYPES = new Set(['item', 'container', 'crate', 'treasure_bag', 'npc', 'boss', 'world']);
 
 function booleanOption(value, fallback = false) {
   if (value == null || value === '') return fallback;

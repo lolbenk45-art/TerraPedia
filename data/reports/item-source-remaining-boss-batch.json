@@ -1,0 +1,1000 @@
+{
+  "generatedAt": "2026-06-10T04:29:23.030Z",
+  "readOnly": true,
+  "mode": "eligible_requires_boss_taxonomy",
+  "inputs": {
+    "rawItemPageDir": "/home/lolben/data/terraPedia/raw/wiki/item-pages",
+    "npcParsedPath": "/home/lolben/data/terraPedia/raw/wiki/module__npcinfo__data.parsed.latest.json",
+    "standardizedNpcsPath": "/home/lolben/TerraPedia/data/standardized/npcs.standardized.json",
+    "standardizedItemsPath": "/home/lolben/TerraPedia/data/standardized/items.standardized.json",
+    "itemSourcesDir": "/home/lolben/TerraPedia/data/standardized-view/item_relations/itemSources",
+    "sample": null,
+    "limit": null,
+    "batch": "boss"
+  },
+  "sourceAudit": {
+    "generatedAt": "2026-06-10T04:29:22.945Z",
+    "readOnly": true,
+    "parsedRawItemPages": 6131,
+    "inspectedRawPages": 6131,
+    "rawPagesWithExtractedSources": 2614,
+    "rawExtractedButStandardizedZeroCandidates": 1488
+  },
+  "summary": {
+    "totalCandidates": 1488,
+    "eligibleCandidates": 11,
+    "blockedCandidates": 0,
+    "plannedSourceRows": 21,
+    "blockedSourceRows": 0,
+    "classificationCounts": {
+      "family_page_candidate": 1129,
+      "high_confidence": 271,
+      "polluted_candidate": 88
+    },
+    "blockedReasonCounts": {
+      "family_page_candidate": 1129,
+      "blocked_source_rows": 136,
+      "polluted_candidate": 88
+    },
+    "plannedSourceRefTypeCounts": {
+      "npc": 153,
+      "crate": 90,
+      "boss": 11,
+      "treasure_bag": 9,
+      "world": 30,
+      "container": 13
+    }
+  },
+  "eligibleCandidates": [
+    {
+      "itemInternalName": "BeeHat",
+      "itemName": "Bee Hat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 842,
+        "internalName": "BeeHat",
+        "name": "Bee Hat"
+      },
+      "pageTitle": "Bee set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/beehat.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-01-17T17:42:17Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "e26c9b2b0fbe7e6d2eb2ef3a18895a3034ce58f7d3664a5ae002217855d14094",
+          "sourceType": "drop",
+          "sourceRefType": "boss",
+          "sourceRefName": "Queen Bee",
+          "quantityText": "1",
+          "chanceText": "11%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Bee set",
+          "sourceRevisionTimestamp": "2026-01-17T17:42:17Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "BeeHat",
+            "itemName": "Bee Hat",
+            "sourceType": "drop",
+            "sourceRefType": "boss",
+            "sourceRefName": "Queen Bee",
+            "quantityText": "1",
+            "chanceText": "11%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Bee set",
+            "sourceRevisionTimestamp": "2026-01-17T17:42:17Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_boss_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 222,
+            "internalName": "QueenBee",
+            "name": "Queen Bee"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "7c9fade003bc0de6c8f660070dc88edbcf75bc1537ceec405cf84f29814dd763",
+          "sourceType": "treasure_bag",
+          "sourceRefType": "treasure_bag",
+          "sourceRefName": "Treasure Bag (Queen Bee)",
+          "quantityText": "1",
+          "chanceText": "33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Bee set",
+          "sourceRevisionTimestamp": "2026-01-17T17:42:17Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "BeeHat",
+            "itemName": "Bee Hat",
+            "sourceType": "treasure_bag",
+            "sourceRefType": "treasure_bag",
+            "sourceRefName": "Treasure Bag (Queen Bee)",
+            "quantityText": "1",
+            "chanceText": "33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Bee set",
+            "sourceRevisionTimestamp": "2026-01-17T17:42:17Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 3322,
+            "internalName": "QueenBeeBossBag",
+            "name": "Treasure Bag (Queen Bee)"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "BeePants",
+      "itemName": "Bee Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 844,
+        "internalName": "BeePants",
+        "name": "Bee Pants"
+      },
+      "pageTitle": "Bee set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/beepants.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-01-17T17:42:17Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "a61cecc4f4f024183624fb9b1805faf4fa4d33750178da955cc83d159567b37a",
+          "sourceType": "drop",
+          "sourceRefType": "boss",
+          "sourceRefName": "Queen Bee",
+          "quantityText": "1",
+          "chanceText": "11%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Bee set",
+          "sourceRevisionTimestamp": "2026-01-17T17:42:17Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "BeePants",
+            "itemName": "Bee Pants",
+            "sourceType": "drop",
+            "sourceRefType": "boss",
+            "sourceRefName": "Queen Bee",
+            "quantityText": "1",
+            "chanceText": "11%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Bee set",
+            "sourceRevisionTimestamp": "2026-01-17T17:42:17Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_boss_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 222,
+            "internalName": "QueenBee",
+            "name": "Queen Bee"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "a96b3d5cde9c113bc5565eefd25fe273fb62cddd3b8c9614ddc7e643676c9aeb",
+          "sourceType": "treasure_bag",
+          "sourceRefType": "treasure_bag",
+          "sourceRefName": "Treasure Bag (Queen Bee)",
+          "quantityText": "1",
+          "chanceText": "33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Bee set",
+          "sourceRevisionTimestamp": "2026-01-17T17:42:17Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "BeePants",
+            "itemName": "Bee Pants",
+            "sourceType": "treasure_bag",
+            "sourceRefType": "treasure_bag",
+            "sourceRefName": "Treasure Bag (Queen Bee)",
+            "quantityText": "1",
+            "chanceText": "33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Bee set",
+            "sourceRevisionTimestamp": "2026-01-17T17:42:17Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 3322,
+            "internalName": "QueenBeeBossBag",
+            "name": "Treasure Bag (Queen Bee)"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "BeeShirt",
+      "itemName": "Bee Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 843,
+        "internalName": "BeeShirt",
+        "name": "Bee Shirt"
+      },
+      "pageTitle": "Bee set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/beeshirt.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-01-17T17:42:17Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "1214fd0dd74090c436cd20288223020f85287077d405332e217c403522f8e846",
+          "sourceType": "drop",
+          "sourceRefType": "boss",
+          "sourceRefName": "Queen Bee",
+          "quantityText": "1",
+          "chanceText": "11%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Bee set",
+          "sourceRevisionTimestamp": "2026-01-17T17:42:17Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "BeeShirt",
+            "itemName": "Bee Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "boss",
+            "sourceRefName": "Queen Bee",
+            "quantityText": "1",
+            "chanceText": "11%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Bee set",
+            "sourceRevisionTimestamp": "2026-01-17T17:42:17Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_boss_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 222,
+            "internalName": "QueenBee",
+            "name": "Queen Bee"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "c4ec3f4c2c69c7fd987e805a9cae983168b1ca244bea1043316cdd4a76c78560",
+          "sourceType": "treasure_bag",
+          "sourceRefType": "treasure_bag",
+          "sourceRefName": "Treasure Bag (Queen Bee)",
+          "quantityText": "1",
+          "chanceText": "33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Bee set",
+          "sourceRevisionTimestamp": "2026-01-17T17:42:17Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "BeeShirt",
+            "itemName": "Bee Shirt",
+            "sourceType": "treasure_bag",
+            "sourceRefType": "treasure_bag",
+            "sourceRefName": "Treasure Bag (Queen Bee)",
+            "quantityText": "1",
+            "chanceText": "33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Bee set",
+            "sourceRevisionTimestamp": "2026-01-17T17:42:17Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 3322,
+            "internalName": "QueenBeeBossBag",
+            "name": "Treasure Bag (Queen Bee)"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "CrystalNinjaChestplate",
+      "itemName": "Crystal Assassin Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 4983,
+        "internalName": "CrystalNinjaChestplate",
+        "name": "Crystal Assassin Shirt"
+      },
+      "pageTitle": "Crystal Assassin armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/crystalninjachestplate.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-25T13:43:32Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "4045a2a60b3145283c3b6633a6594fefbab32c30513d27607c35c6877af93ce4",
+          "sourceType": "drop",
+          "sourceRefType": "boss",
+          "sourceRefName": "Queen Slime",
+          "quantityText": "1",
+          "chanceText": "33.33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Crystal Assassin armor",
+          "sourceRevisionTimestamp": "2026-04-25T13:43:32Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "CrystalNinjaChestplate",
+            "itemName": "Crystal Assassin Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "boss",
+            "sourceRefName": "Queen Slime",
+            "quantityText": "1",
+            "chanceText": "33.33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Crystal Assassin armor",
+            "sourceRevisionTimestamp": "2026-04-25T13:43:32Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_boss_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 657,
+            "internalName": "QueenSlimeBoss",
+            "name": "Queen Slime"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "8bd995de4c6b92b7f9797fedd0fc5c7c0422ba56a9dea093511d0ed393476ac0",
+          "sourceType": "treasure_bag",
+          "sourceRefType": "treasure_bag",
+          "sourceRefName": "Treasure Bag (Queen Slime)",
+          "quantityText": "1",
+          "chanceText": "67%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Crystal Assassin armor",
+          "sourceRevisionTimestamp": "2026-04-25T13:43:32Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "CrystalNinjaChestplate",
+            "itemName": "Crystal Assassin Shirt",
+            "sourceType": "treasure_bag",
+            "sourceRefType": "treasure_bag",
+            "sourceRefName": "Treasure Bag (Queen Slime)",
+            "quantityText": "1",
+            "chanceText": "67%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Crystal Assassin armor",
+            "sourceRevisionTimestamp": "2026-04-25T13:43:32Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 4957,
+            "internalName": "QueenSlimeBossBag",
+            "name": "Treasure Bag (Queen Slime)"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "CrystalNinjaHelmet",
+      "itemName": "Crystal Assassin Hood",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 4982,
+        "internalName": "CrystalNinjaHelmet",
+        "name": "Crystal Assassin Hood"
+      },
+      "pageTitle": "Crystal Assassin armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/crystalninjahelmet.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-25T13:43:32Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "6da8b53a5f02b43f02ae40f1880fbe0de299a22f99b1cd1354c6488fe04134af",
+          "sourceType": "drop",
+          "sourceRefType": "boss",
+          "sourceRefName": "Queen Slime",
+          "quantityText": "1",
+          "chanceText": "33.33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Crystal Assassin armor",
+          "sourceRevisionTimestamp": "2026-04-25T13:43:32Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "CrystalNinjaHelmet",
+            "itemName": "Crystal Assassin Hood",
+            "sourceType": "drop",
+            "sourceRefType": "boss",
+            "sourceRefName": "Queen Slime",
+            "quantityText": "1",
+            "chanceText": "33.33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Crystal Assassin armor",
+            "sourceRevisionTimestamp": "2026-04-25T13:43:32Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_boss_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 657,
+            "internalName": "QueenSlimeBoss",
+            "name": "Queen Slime"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "a4b58de0f589093de3055bb7644f40cc3feee4b61c8889638e8384a6ad286e77",
+          "sourceType": "treasure_bag",
+          "sourceRefType": "treasure_bag",
+          "sourceRefName": "Treasure Bag (Queen Slime)",
+          "quantityText": "1",
+          "chanceText": "67%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Crystal Assassin armor",
+          "sourceRevisionTimestamp": "2026-04-25T13:43:32Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "CrystalNinjaHelmet",
+            "itemName": "Crystal Assassin Hood",
+            "sourceType": "treasure_bag",
+            "sourceRefType": "treasure_bag",
+            "sourceRefName": "Treasure Bag (Queen Slime)",
+            "quantityText": "1",
+            "chanceText": "67%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Crystal Assassin armor",
+            "sourceRevisionTimestamp": "2026-04-25T13:43:32Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 4957,
+            "internalName": "QueenSlimeBossBag",
+            "name": "Treasure Bag (Queen Slime)"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "CrystalNinjaLeggings",
+      "itemName": "Crystal Assassin Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 4984,
+        "internalName": "CrystalNinjaLeggings",
+        "name": "Crystal Assassin Pants"
+      },
+      "pageTitle": "Crystal Assassin armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/crystalninjaleggings.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-25T13:43:32Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "f88039b5937a2e529ad8b56624e534afcbcaf344ebf22bca594a4dd00aedf59d",
+          "sourceType": "drop",
+          "sourceRefType": "boss",
+          "sourceRefName": "Queen Slime",
+          "quantityText": "1",
+          "chanceText": "33.33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Crystal Assassin armor",
+          "sourceRevisionTimestamp": "2026-04-25T13:43:32Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "CrystalNinjaLeggings",
+            "itemName": "Crystal Assassin Pants",
+            "sourceType": "drop",
+            "sourceRefType": "boss",
+            "sourceRefName": "Queen Slime",
+            "quantityText": "1",
+            "chanceText": "33.33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Crystal Assassin armor",
+            "sourceRevisionTimestamp": "2026-04-25T13:43:32Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_boss_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 657,
+            "internalName": "QueenSlimeBoss",
+            "name": "Queen Slime"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "05376402e27150e9f1817fb5c7f688125a0e948be56afe019faa89225b89b4d3",
+          "sourceType": "treasure_bag",
+          "sourceRefType": "treasure_bag",
+          "sourceRefName": "Treasure Bag (Queen Slime)",
+          "quantityText": "1",
+          "chanceText": "67%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Crystal Assassin armor",
+          "sourceRevisionTimestamp": "2026-04-25T13:43:32Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "CrystalNinjaLeggings",
+            "itemName": "Crystal Assassin Pants",
+            "sourceType": "treasure_bag",
+            "sourceRefType": "treasure_bag",
+            "sourceRefName": "Treasure Bag (Queen Slime)",
+            "quantityText": "1",
+            "chanceText": "67%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Crystal Assassin armor",
+            "sourceRevisionTimestamp": "2026-04-25T13:43:32Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 4957,
+            "internalName": "QueenSlimeBossBag",
+            "name": "Treasure Bag (Queen Slime)"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "LihzahrdBrick",
+      "itemName": "Lihzahrd Brick",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1101,
+        "internalName": "LihzahrdBrick",
+        "name": "Lihzahrd Brick"
+      },
+      "pageTitle": "Lihzahrd Brick",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/lihzahrdbrick.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-05-20T02:26:55Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "6961678ad4f3300be5148829aeba3be31c4f73cbe1f007511830f01b3d5fc52e",
+          "sourceType": "drop",
+          "sourceRefType": "boss",
+          "sourceRefName": "Plantera",
+          "quantityText": "Lihzahrd Brick (when the Jungle Temple is not present; see conditions ) (500–600)",
+          "chanceText": "100%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Lihzahrd Brick",
+          "sourceRevisionTimestamp": "2026-05-20T02:26:55Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "LihzahrdBrick",
+            "itemName": "Lihzahrd Brick",
+            "sourceType": "drop",
+            "sourceRefType": "boss",
+            "sourceRefName": "Plantera",
+            "quantityText": "Lihzahrd Brick (when the Jungle Temple is not present; see conditions ) (500–600)",
+            "chanceText": "100%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Lihzahrd Brick",
+            "sourceRevisionTimestamp": "2026-05-20T02:26:55Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_boss_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 262,
+            "internalName": "Plantera",
+            "name": "Plantera"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "LihzahrdWallUnsafe",
+      "itemName": "Forbidden Lihzahrd Brick Wall",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 5376,
+        "internalName": "LihzahrdWallUnsafe",
+        "name": "Forbidden Lihzahrd Brick Wall"
+      },
+      "pageTitle": "Lihzahrd Brick Wall",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/lihzahrdwallunsafe.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-05-20T02:29:25Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "ec734f8b8df25e354736ca752857d698f12d0b3cba0038c1f9e1a5dc35585ef0",
+          "sourceType": "drop",
+          "sourceRefType": "boss",
+          "sourceRefName": "Plantera",
+          "quantityText": "Forbidden Lihzahrd Brick Wall (when the Jungle Temple is not present; see conditions ) (1200–1500)",
+          "chanceText": "100%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Lihzahrd Brick Wall",
+          "sourceRevisionTimestamp": "2026-05-20T02:29:25Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "LihzahrdWallUnsafe",
+            "itemName": "Forbidden Lihzahrd Brick Wall",
+            "sourceType": "drop",
+            "sourceRefType": "boss",
+            "sourceRefName": "Plantera",
+            "quantityText": "Forbidden Lihzahrd Brick Wall (when the Jungle Temple is not present; see conditions ) (1200–1500)",
+            "chanceText": "100%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Lihzahrd Brick Wall",
+            "sourceRevisionTimestamp": "2026-05-20T02:29:25Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_boss_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 262,
+            "internalName": "Plantera",
+            "name": "Plantera"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "1a68e22c2a4e5e57470fec81b3af760e77f25ea3c8b1c93b904abdf3bea00be1",
+          "sourceType": "worldgen",
+          "sourceRefType": "world",
+          "sourceRefName": "Lihzahrd Brick Wall worldgen",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": "The Lihzahrd Brick Wall is a type of background wall which can be found naturally generated in the Jungle Temple , considered unsafe . It drops as an item when destroyed, and can also be obtained via crafting. It is considered a safe wall when placed by the player.",
+          "notes": null,
+          "sourcePage": "Lihzahrd Brick Wall",
+          "sourceRevisionTimestamp": "2026-05-20T02:29:25Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "LihzahrdWallUnsafe",
+            "itemName": "Forbidden Lihzahrd Brick Wall",
+            "sourceType": "worldgen",
+            "sourceRefType": "world",
+            "sourceRefName": "Lihzahrd Brick Wall worldgen",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": "The Lihzahrd Brick Wall is a type of background wall which can be found naturally generated in the Jungle Temple , considered unsafe . It drops as an item when destroyed, and can also be obtained via crafting. It is considered a safe wall when placed by the player.",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Lihzahrd Brick Wall",
+            "sourceRevisionTimestamp": "2026-05-20T02:29:25Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "world_text_ref",
+          "resolvedRef": null,
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "NinjaHood",
+      "itemName": "Ninja Hood",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 256,
+        "internalName": "NinjaHood",
+        "name": "Ninja Hood"
+      },
+      "pageTitle": "Ninja armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/ninjahood.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-06-02T13:51:55Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "b7ea34a8a40329a1c2d75254582c5574d1af478b82fb6887c8254d0ff1ecafdc",
+          "sourceType": "drop",
+          "sourceRefType": "boss",
+          "sourceRefName": "King Slime",
+          "quantityText": "1",
+          "chanceText": "33.33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Ninja armor",
+          "sourceRevisionTimestamp": "2026-06-02T13:51:55Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "NinjaHood",
+            "itemName": "Ninja Hood",
+            "sourceType": "drop",
+            "sourceRefType": "boss",
+            "sourceRefName": "King Slime",
+            "quantityText": "1",
+            "chanceText": "33.33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Ninja armor",
+            "sourceRevisionTimestamp": "2026-06-02T13:51:55Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_boss_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 50,
+            "internalName": "KingSlime",
+            "name": "King Slime"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "4a0c05fabf37edfdc21de556a071d39c2dc5656b7195beaad496f794c0cddc23",
+          "sourceType": "treasure_bag",
+          "sourceRefType": "treasure_bag",
+          "sourceRefName": "Treasure Bag (King Slime)",
+          "quantityText": "1",
+          "chanceText": "67%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Ninja armor",
+          "sourceRevisionTimestamp": "2026-06-02T13:51:55Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "NinjaHood",
+            "itemName": "Ninja Hood",
+            "sourceType": "treasure_bag",
+            "sourceRefType": "treasure_bag",
+            "sourceRefName": "Treasure Bag (King Slime)",
+            "quantityText": "1",
+            "chanceText": "67%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Ninja armor",
+            "sourceRevisionTimestamp": "2026-06-02T13:51:55Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 3318,
+            "internalName": "KingSlimeBossBag",
+            "name": "Treasure Bag (King Slime)"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "NinjaPants",
+      "itemName": "Ninja Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 258,
+        "internalName": "NinjaPants",
+        "name": "Ninja Pants"
+      },
+      "pageTitle": "Ninja armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/ninjapants.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-06-02T13:51:55Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "9d6db59cec919a1e33be3ef1dd9e274a6f83fda55a0a71564e06f321d76f907f",
+          "sourceType": "drop",
+          "sourceRefType": "boss",
+          "sourceRefName": "King Slime",
+          "quantityText": "1",
+          "chanceText": "33.33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Ninja armor",
+          "sourceRevisionTimestamp": "2026-06-02T13:51:55Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "NinjaPants",
+            "itemName": "Ninja Pants",
+            "sourceType": "drop",
+            "sourceRefType": "boss",
+            "sourceRefName": "King Slime",
+            "quantityText": "1",
+            "chanceText": "33.33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Ninja armor",
+            "sourceRevisionTimestamp": "2026-06-02T13:51:55Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_boss_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 50,
+            "internalName": "KingSlime",
+            "name": "King Slime"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "50abd833945f7e63efb9a10e2c62a12b4521181f9a42e8634376aaca57eaaa7e",
+          "sourceType": "treasure_bag",
+          "sourceRefType": "treasure_bag",
+          "sourceRefName": "Treasure Bag (King Slime)",
+          "quantityText": "1",
+          "chanceText": "67%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Ninja armor",
+          "sourceRevisionTimestamp": "2026-06-02T13:51:55Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "NinjaPants",
+            "itemName": "Ninja Pants",
+            "sourceType": "treasure_bag",
+            "sourceRefType": "treasure_bag",
+            "sourceRefName": "Treasure Bag (King Slime)",
+            "quantityText": "1",
+            "chanceText": "67%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Ninja armor",
+            "sourceRevisionTimestamp": "2026-06-02T13:51:55Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 3318,
+            "internalName": "KingSlimeBossBag",
+            "name": "Treasure Bag (King Slime)"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "NinjaShirt",
+      "itemName": "Ninja Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 257,
+        "internalName": "NinjaShirt",
+        "name": "Ninja Shirt"
+      },
+      "pageTitle": "Ninja armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/ninjashirt.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-06-02T13:51:55Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "86bf34167f1d0192fa701263c1139352c6e395b4f96d8776ce06f6b899c7fca7",
+          "sourceType": "drop",
+          "sourceRefType": "boss",
+          "sourceRefName": "King Slime",
+          "quantityText": "1",
+          "chanceText": "33.33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Ninja armor",
+          "sourceRevisionTimestamp": "2026-06-02T13:51:55Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "NinjaShirt",
+            "itemName": "Ninja Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "boss",
+            "sourceRefName": "King Slime",
+            "quantityText": "1",
+            "chanceText": "33.33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Ninja armor",
+            "sourceRevisionTimestamp": "2026-06-02T13:51:55Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_boss_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 50,
+            "internalName": "KingSlime",
+            "name": "King Slime"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "89bc5704b2138b4a056418f266a5da4e8984db3d2910b9e6da5ad4657d30724e",
+          "sourceType": "treasure_bag",
+          "sourceRefType": "treasure_bag",
+          "sourceRefName": "Treasure Bag (King Slime)",
+          "quantityText": "1",
+          "chanceText": "67%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Ninja armor",
+          "sourceRevisionTimestamp": "2026-06-02T13:51:55Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "NinjaShirt",
+            "itemName": "Ninja Shirt",
+            "sourceType": "treasure_bag",
+            "sourceRefType": "treasure_bag",
+            "sourceRefName": "Treasure Bag (King Slime)",
+            "quantityText": "1",
+            "chanceText": "67%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Ninja armor",
+            "sourceRevisionTimestamp": "2026-06-02T13:51:55Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 3318,
+            "internalName": "KingSlimeBossBag",
+            "name": "Treasure Bag (King Slime)"
+          },
+          "blockedReason": null
+        }
+      ]
+    }
+  ],
+  "blockedCandidates": []
+}

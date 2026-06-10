@@ -34,7 +34,9 @@ public class ItemSourceServiceImpl implements ItemSourceService {
 
     private static final String SOURCE_REF_TYPE_ITEM = "item";
     private static final String SOURCE_REF_TYPE_NPC = "npc";
+    private static final String SOURCE_REF_TYPE_BOSS = "boss";
     private static final Set<String> ITEM_BACKED_SOURCE_REF_TYPES = Set.of("item", "container", "crate", "treasure_bag");
+    private static final Set<String> NPC_BACKED_SOURCE_REF_TYPES = Set.of(SOURCE_REF_TYPE_NPC, SOURCE_REF_TYPE_BOSS);
 
     private final ItemAcquisitionSourceMapper itemAcquisitionSourceMapper;
     private final BiomeMapper biomeMapper;
@@ -67,7 +69,7 @@ public class ItemSourceServiceImpl implements ItemSourceService {
             .map(this::cleanSourceRefName)
             .filter(Objects::nonNull)
             .collect(Collectors.toCollection(LinkedHashSet::new));
-        Set<String> npcSourceNames = sourceNamesByType(sources, SOURCE_REF_TYPE_NPC);
+        Set<String> npcSourceNames = npcBackedSourceNames(sources);
 
         Map<Long, SourceRefMetadata> itemMetadataById = loadItemMetadataById(sources);
         Map<Long, SourceRefMetadata> npcMetadataById = loadNpcMetadataById(sources);
@@ -134,7 +136,7 @@ public class ItemSourceServiceImpl implements ItemSourceService {
     }
 
     private Map<Long, SourceRefMetadata> loadNpcMetadataById(List<ItemAcquisitionSource> sources) {
-        Set<Long> ids = sourceRefIdsByType(sources, SOURCE_REF_TYPE_NPC);
+        Set<Long> ids = npcBackedSourceRefIds(sources);
         if (ids.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -208,7 +210,7 @@ public class ItemSourceServiceImpl implements ItemSourceService {
             SourceRefMetadata byId = source.getSourceRefId() == null ? null : itemMetadataById.get(source.getSourceRefId());
             return mergeMetadata(byId, metadataByName(cleanedSourceRefName, itemMetadataByName));
         }
-        if (SOURCE_REF_TYPE_NPC.equalsIgnoreCase(sourceRefType)) {
+        if (NPC_BACKED_SOURCE_REF_TYPES.contains(sourceRefType.toLowerCase(Locale.ROOT))) {
             SourceRefMetadata byId = source.getSourceRefId() == null ? null : npcMetadataById.get(source.getSourceRefId());
             SourceRefMetadata npcMetadata = mergeMetadata(byId, metadataByName(cleanedSourceRefName, npcMetadataByName));
             if (npcMetadata != null) {
@@ -239,9 +241,9 @@ public class ItemSourceServiceImpl implements ItemSourceService {
         );
     }
 
-    private Set<Long> sourceRefIdsByType(List<ItemAcquisitionSource> sources, String sourceRefType) {
+    private Set<Long> npcBackedSourceRefIds(List<ItemAcquisitionSource> sources) {
         return sources.stream()
-            .filter(source -> sourceRefType.equalsIgnoreCase(normalizeText(source.getSourceRefType(), "")))
+            .filter(source -> NPC_BACKED_SOURCE_REF_TYPES.contains(normalizeText(source.getSourceRefType(), "").toLowerCase(Locale.ROOT)))
             .map(ItemAcquisitionSource::getSourceRefId)
             .filter(Objects::nonNull)
             .collect(Collectors.toCollection(LinkedHashSet::new));
@@ -255,9 +257,9 @@ public class ItemSourceServiceImpl implements ItemSourceService {
             .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
-    private Set<String> sourceNamesByType(List<ItemAcquisitionSource> sources, String sourceRefType) {
+    private Set<String> npcBackedSourceNames(List<ItemAcquisitionSource> sources) {
         return sources.stream()
-            .filter(source -> sourceRefType.equalsIgnoreCase(normalizeText(source.getSourceRefType(), "")))
+            .filter(source -> NPC_BACKED_SOURCE_REF_TYPES.contains(normalizeText(source.getSourceRefType(), "").toLowerCase(Locale.ROOT)))
             .map(ItemAcquisitionSource::getSourceRefName)
             .map(this::cleanSourceRefName)
             .filter(Objects::nonNull)

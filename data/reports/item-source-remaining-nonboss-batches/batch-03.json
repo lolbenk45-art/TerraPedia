@@ -1,0 +1,3906 @@
+{
+  "generatedAt": "2026-06-10T04:29:23.030Z",
+  "readOnly": true,
+  "mode": "eligible_next_batch_non_boss",
+  "inputs": {
+    "rawItemPageDir": "/home/lolben/data/terraPedia/raw/wiki/item-pages",
+    "npcParsedPath": "/home/lolben/data/terraPedia/raw/wiki/module__npcinfo__data.parsed.latest.json",
+    "standardizedNpcsPath": "/home/lolben/TerraPedia/data/standardized/npcs.standardized.json",
+    "standardizedItemsPath": "/home/lolben/TerraPedia/data/standardized/items.standardized.json",
+    "itemSourcesDir": "/home/lolben/TerraPedia/data/standardized-view/item_relations/itemSources",
+    "sample": null,
+    "limit": null,
+    "batchIndex": 3,
+    "batchCount": 3
+  },
+  "sourceAudit": {
+    "generatedAt": "2026-06-10T04:29:22.945Z",
+    "readOnly": true,
+    "parsedRawItemPages": 6131,
+    "inspectedRawPages": 6131,
+    "rawPagesWithExtractedSources": 2614,
+    "rawExtractedButStandardizedZeroCandidates": 1488
+  },
+  "summary": {
+    "totalCandidates": 1488,
+    "eligibleCandidates": 56,
+    "blockedCandidates": 0,
+    "plannedSourceRows": 81,
+    "blockedSourceRows": 0,
+    "classificationCounts": {
+      "family_page_candidate": 1129,
+      "high_confidence": 271,
+      "polluted_candidate": 88
+    },
+    "blockedReasonCounts": {
+      "family_page_candidate": 1129,
+      "blocked_source_rows": 136,
+      "polluted_candidate": 88
+    },
+    "plannedSourceRefTypeCounts": {
+      "npc": 153,
+      "crate": 90,
+      "boss": 11,
+      "treasure_bag": 9,
+      "world": 30,
+      "container": 13
+    }
+  },
+  "eligibleCandidates": [
+    {
+      "itemInternalName": "MrsClauseShirt",
+      "itemName": "Mrs. Claus Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1933,
+        "internalName": "MrsClauseShirt",
+        "name": "Mrs. Claus Shirt"
+      },
+      "pageTitle": "Mrs. Claus set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/mrsclauseshirt.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T15:01:29Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "9eb0d1cbc67932274fedf418c3c509ef7a69ee92abf9972270897dfaf544fab8",
+          "sourceType": "container",
+          "sourceRefType": "container",
+          "sourceRefName": "Present",
+          "quantityText": "1",
+          "chanceText": "1.08% 1.01% (Hardmode)",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Mrs. Claus set",
+          "sourceRevisionTimestamp": "2023-10-23T15:01:29Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "MrsClauseShirt",
+            "itemName": "Mrs. Claus Shirt",
+            "sourceType": "container",
+            "sourceRefType": "container",
+            "sourceRefName": "Present",
+            "quantityText": "1",
+            "chanceText": "1.08% 1.01% (Hardmode)",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Mrs. Claus set",
+            "sourceRevisionTimestamp": "2023-10-23T15:01:29Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1869,
+            "internalName": "Present",
+            "name": "Present"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "MushroomHat",
+      "itemName": "Mushroom Hat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 4779,
+        "internalName": "MushroomHat",
+        "name": "Mushroom Hat"
+      },
+      "pageTitle": "Mushroom set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/mushroomhat.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T21:03:20Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "c1664abfc53145f23e7279e4ba342c1cf36ea5378c19f9bd93ab5f864902e8dc",
+          "sourceType": "worldgen",
+          "sourceRefType": "world",
+          "sourceRefName": "Mushroom set worldgen",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": "The Mushroom set is a vanity set consisting of the Mushroom Hat , Mushroom Vest , and Mushroom Pants . All three pieces have a 1/2 (50%) chance of being found in Mushroom Chests in underground Glowing Mushroom biomes .",
+          "notes": null,
+          "sourcePage": "Mushroom set",
+          "sourceRevisionTimestamp": "2023-10-23T21:03:20Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "MushroomHat",
+            "itemName": "Mushroom Hat",
+            "sourceType": "worldgen",
+            "sourceRefType": "world",
+            "sourceRefName": "Mushroom set worldgen",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": "The Mushroom set is a vanity set consisting of the Mushroom Hat , Mushroom Vest , and Mushroom Pants . All three pieces have a 1/2 (50%) chance of being found in Mushroom Chests in underground Glowing Mushroom biomes .",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Mushroom set",
+            "sourceRevisionTimestamp": "2023-10-23T21:03:20Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "world_text_ref",
+          "resolvedRef": null,
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "MushroomPants",
+      "itemName": "Mushroom Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 4781,
+        "internalName": "MushroomPants",
+        "name": "Mushroom Pants"
+      },
+      "pageTitle": "Mushroom set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/mushroompants.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T21:03:20Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "486f414a6227d60b094d4411dc2a30cb76d99f1ece5ad87979c5d722115dc355",
+          "sourceType": "worldgen",
+          "sourceRefType": "world",
+          "sourceRefName": "Mushroom set worldgen",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": "The Mushroom set is a vanity set consisting of the Mushroom Hat , Mushroom Vest , and Mushroom Pants . All three pieces have a 1/2 (50%) chance of being found in Mushroom Chests in underground Glowing Mushroom biomes .",
+          "notes": null,
+          "sourcePage": "Mushroom set",
+          "sourceRevisionTimestamp": "2023-10-23T21:03:20Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "MushroomPants",
+            "itemName": "Mushroom Pants",
+            "sourceType": "worldgen",
+            "sourceRefType": "world",
+            "sourceRefName": "Mushroom set worldgen",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": "The Mushroom set is a vanity set consisting of the Mushroom Hat , Mushroom Vest , and Mushroom Pants . All three pieces have a 1/2 (50%) chance of being found in Mushroom Chests in underground Glowing Mushroom biomes .",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Mushroom set",
+            "sourceRevisionTimestamp": "2023-10-23T21:03:20Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "world_text_ref",
+          "resolvedRef": null,
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "MushroomVest",
+      "itemName": "Mushroom Vest",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 4780,
+        "internalName": "MushroomVest",
+        "name": "Mushroom Vest"
+      },
+      "pageTitle": "Mushroom set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/mushroomvest.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T21:03:20Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "c2114d99cd785b9d1193cb69e4ba614fa3e990e9aab845c0f58a590e00f3acf8",
+          "sourceType": "worldgen",
+          "sourceRefType": "world",
+          "sourceRefName": "Mushroom set worldgen",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": "The Mushroom set is a vanity set consisting of the Mushroom Hat , Mushroom Vest , and Mushroom Pants . All three pieces have a 1/2 (50%) chance of being found in Mushroom Chests in underground Glowing Mushroom biomes .",
+          "notes": null,
+          "sourcePage": "Mushroom set",
+          "sourceRevisionTimestamp": "2023-10-23T21:03:20Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "MushroomVest",
+            "itemName": "Mushroom Vest",
+            "sourceType": "worldgen",
+            "sourceRefType": "world",
+            "sourceRefName": "Mushroom set worldgen",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": "The Mushroom set is a vanity set consisting of the Mushroom Hat , Mushroom Vest , and Mushroom Pants . All three pieces have a 1/2 (50%) chance of being found in Mushroom Chests in underground Glowing Mushroom biomes .",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Mushroom set",
+            "sourceRevisionTimestamp": "2023-10-23T21:03:20Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "world_text_ref",
+          "resolvedRef": null,
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "Nail",
+      "itemName": "Nail",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 3108,
+        "internalName": "Nail",
+        "name": "Nail"
+      },
+      "pageTitle": "Nail Gun",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/nail.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 3,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-01-05T20:45:41Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "2d8c1effd78d2f6347ca8fe00280e0f468e1b37e1700ac6e76013e1d2e4a95d3",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Arms Dealer",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Nail Gun",
+          "sourceRevisionTimestamp": "2026-01-05T20:45:41Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "Nail",
+            "itemName": "Nail",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Arms Dealer",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Nail Gun",
+            "sourceRevisionTimestamp": "2026-01-05T20:45:41Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 19,
+            "internalName": "ArmsDealer",
+            "name": "Arms Dealer"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "7a257c036d67be555771bb051d32ed5e191aa0223d7d35d76004d870409384d4",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Merchant",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Nail Gun",
+          "sourceRevisionTimestamp": "2026-01-05T20:45:41Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "Nail",
+            "itemName": "Nail",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Merchant",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Nail Gun",
+            "sourceRevisionTimestamp": "2026-01-05T20:45:41Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 17,
+            "internalName": "Merchant",
+            "name": "Merchant"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "f0ad900b89666d3fd3170a419a26dc8cb00ba716046bdc39817b6c46f3659e84",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Nailhead",
+          "quantityText": "Nail Gun (Desktop, Console and Mobile versions) + Nail (Desktop, Console and Mobile versions) (100–200)",
+          "chanceText": "4% 7.84%",
+          "conditions": null,
+          "notes": "Normal mode row",
+          "sourcePage": "Nail Gun",
+          "sourceRevisionTimestamp": "2026-01-05T20:45:41Z",
+          "sortOrder": 2,
+          "landingRow": {
+            "itemInternalName": "Nail",
+            "itemName": "Nail",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Nailhead",
+            "quantityText": "Nail Gun (Desktop, Console and Mobile versions) + Nail (Desktop, Console and Mobile versions) (100–200)",
+            "chanceText": "4% 7.84%",
+            "conditions": null,
+            "notes": "Normal mode row",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Nail Gun",
+            "sourceRevisionTimestamp": "2026-01-05T20:45:41Z",
+            "sortOrder": 2
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 463,
+            "internalName": "Nailhead",
+            "name": "Nailhead"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "NecroBreastplate",
+      "itemName": "Necro Breastplate",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 152,
+        "internalName": "NecroBreastplate",
+        "name": "Necro Breastplate"
+      },
+      "pageTitle": "Necro armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/necrobreastplate.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 3,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "47214a3c164ec7804adcc7ba8cccecfa7ef9c650b9b7ca6ada9ad9e740d4fd34",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Angry Bones",
+          "quantityText": "1",
+          "chanceText": "0.22%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Necro armor",
+          "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "NecroBreastplate",
+            "itemName": "Necro Breastplate",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Angry Bones",
+            "quantityText": "1",
+            "chanceText": "0.22%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Necro armor",
+            "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": -14,
+            "internalName": "BigBoned",
+            "name": "Angry Bones"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "1cc09b2ee160fdd5b49f1f5311128d957f4159e476e809316d72bc8861653daa",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Dark Caster",
+          "quantityText": "1",
+          "chanceText": "0.22%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Necro armor",
+          "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "NecroBreastplate",
+            "itemName": "Necro Breastplate",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Dark Caster",
+            "quantityText": "1",
+            "chanceText": "0.22%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Necro armor",
+            "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 32,
+            "internalName": "DarkCaster",
+            "name": "Dark Caster"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "eab2a4c4a2de2e62a73bbd31cd43296c7cc267cb47eb97655aa63ba67aa7f60c",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Librarian Skeleton",
+          "quantityText": "1",
+          "chanceText": "0.22%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Necro armor",
+          "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+          "sortOrder": 2,
+          "landingRow": {
+            "itemInternalName": "NecroBreastplate",
+            "itemName": "Necro Breastplate",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Librarian Skeleton",
+            "quantityText": "1",
+            "chanceText": "0.22%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Necro armor",
+            "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+            "sortOrder": 2
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 693,
+            "internalName": "LibrarianSkeleton",
+            "name": "Librarian Skeleton"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "NecroGreaves",
+      "itemName": "Necro Greaves",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 153,
+        "internalName": "NecroGreaves",
+        "name": "Necro Greaves"
+      },
+      "pageTitle": "Necro armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/necrogreaves.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 3,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "b94267030f3b63e4feb7aca78d15869dfc462962b2f5801f6e3054c0cf77534f",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Angry Bones",
+          "quantityText": "1",
+          "chanceText": "0.22%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Necro armor",
+          "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "NecroGreaves",
+            "itemName": "Necro Greaves",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Angry Bones",
+            "quantityText": "1",
+            "chanceText": "0.22%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Necro armor",
+            "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": -14,
+            "internalName": "BigBoned",
+            "name": "Angry Bones"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "d476fb8e727701dd523d5bc49a2608f06abb508d9e064be59501a15d26d8478b",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Dark Caster",
+          "quantityText": "1",
+          "chanceText": "0.22%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Necro armor",
+          "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "NecroGreaves",
+            "itemName": "Necro Greaves",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Dark Caster",
+            "quantityText": "1",
+            "chanceText": "0.22%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Necro armor",
+            "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 32,
+            "internalName": "DarkCaster",
+            "name": "Dark Caster"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "f89529d5912ecc888210555898840959c4297e47e50c7d5d9cb5c22c8192977f",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Librarian Skeleton",
+          "quantityText": "1",
+          "chanceText": "0.22%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Necro armor",
+          "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+          "sortOrder": 2,
+          "landingRow": {
+            "itemInternalName": "NecroGreaves",
+            "itemName": "Necro Greaves",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Librarian Skeleton",
+            "quantityText": "1",
+            "chanceText": "0.22%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Necro armor",
+            "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+            "sortOrder": 2
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 693,
+            "internalName": "LibrarianSkeleton",
+            "name": "Librarian Skeleton"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "NecroHelmet",
+      "itemName": "Necro Helmet",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 151,
+        "internalName": "NecroHelmet",
+        "name": "Necro Helmet"
+      },
+      "pageTitle": "Necro armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/necrohelmet.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 3,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "45324ae281b0b23e81a9de1d59388596593e5c9ce8c7c5fba08baf12bd966122",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Angry Bones",
+          "quantityText": "1",
+          "chanceText": "0.22%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Necro armor",
+          "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "NecroHelmet",
+            "itemName": "Necro Helmet",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Angry Bones",
+            "quantityText": "1",
+            "chanceText": "0.22%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Necro armor",
+            "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": -14,
+            "internalName": "BigBoned",
+            "name": "Angry Bones"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "0ff358703c645cf39b84d5bbb8782d954e5627bf06e2c7d5f50496d5af764a4e",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Dark Caster",
+          "quantityText": "1",
+          "chanceText": "0.22%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Necro armor",
+          "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "NecroHelmet",
+            "itemName": "Necro Helmet",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Dark Caster",
+            "quantityText": "1",
+            "chanceText": "0.22%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Necro armor",
+            "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 32,
+            "internalName": "DarkCaster",
+            "name": "Dark Caster"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "fd8093a9a77c447cb9984ed25e902cac6edaef21128ebc5c27935f495eb2386a",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Librarian Skeleton",
+          "quantityText": "1",
+          "chanceText": "0.22%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Necro armor",
+          "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+          "sortOrder": 2,
+          "landingRow": {
+            "itemInternalName": "NecroHelmet",
+            "itemName": "Necro Helmet",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Librarian Skeleton",
+            "quantityText": "1",
+            "chanceText": "0.22%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Necro armor",
+            "sourceRevisionTimestamp": "2026-05-28T23:15:24Z",
+            "sortOrder": 2
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 693,
+            "internalName": "LibrarianSkeleton",
+            "name": "Librarian Skeleton"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "NurseHat",
+      "itemName": "Nurse Hat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1736,
+        "internalName": "NurseHat",
+        "name": "Nurse Hat"
+      },
+      "pageTitle": "Nurse set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/nursehat.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T16:23:36Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "e75c3f203d2810deaa56a89a09fe517afa9c92fef56b800a10a34f0d60f39fc7",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Arms Dealer",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Nurse set",
+          "sourceRevisionTimestamp": "2023-10-23T16:23:36Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "NurseHat",
+            "itemName": "Nurse Hat",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Arms Dealer",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Nurse set",
+            "sourceRevisionTimestamp": "2023-10-23T16:23:36Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 19,
+            "internalName": "ArmsDealer",
+            "name": "Arms Dealer"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "NursePants",
+      "itemName": "Nurse Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1738,
+        "internalName": "NursePants",
+        "name": "Nurse Pants"
+      },
+      "pageTitle": "Nurse set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/nursepants.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T16:23:36Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "3613e5a189ac951a5625c3eb465d1406ea73120380a23d391ee5af986c4fd173",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Arms Dealer",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Nurse set",
+          "sourceRevisionTimestamp": "2023-10-23T16:23:36Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "NursePants",
+            "itemName": "Nurse Pants",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Arms Dealer",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Nurse set",
+            "sourceRevisionTimestamp": "2023-10-23T16:23:36Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 19,
+            "internalName": "ArmsDealer",
+            "name": "Arms Dealer"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "NurseShirt",
+      "itemName": "Nurse Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1737,
+        "internalName": "NurseShirt",
+        "name": "Nurse Shirt"
+      },
+      "pageTitle": "Nurse set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/nurseshirt.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T16:23:36Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "c81954354a804af27623658a5d3901b4a8ab6bad15a1be2b7ef3aa6852eea5a3",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Arms Dealer",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Nurse set",
+          "sourceRevisionTimestamp": "2023-10-23T16:23:36Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "NurseShirt",
+            "itemName": "Nurse Shirt",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Arms Dealer",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Nurse set",
+            "sourceRevisionTimestamp": "2023-10-23T16:23:36Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 19,
+            "internalName": "ArmsDealer",
+            "name": "Arms Dealer"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PaperAirplaneA",
+      "itemName": "Paper Airplane",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 4343,
+        "internalName": "PaperAirplaneA",
+        "name": "Paper Airplane"
+      },
+      "pageTitle": "Paper Airplanes",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/paperairplanea.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-20T19:40:52Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "94243c2874ed86cced2144179a25a759561361c2ae77fb2172c41324054f55ac",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Windy Balloon",
+          "quantityText": "2–5",
+          "chanceText": "1.39%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Paper Airplanes",
+          "sourceRevisionTimestamp": "2026-02-20T19:40:52Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PaperAirplaneA",
+            "itemName": "Paper Airplane",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Windy Balloon",
+            "quantityText": "2–5",
+            "chanceText": "1.39%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Paper Airplanes",
+            "sourceRevisionTimestamp": "2026-02-20T19:40:52Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 594,
+            "internalName": "WindyBalloon",
+            "name": "Windy Balloon"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "ParkaCoat",
+      "itemName": "Parka Coat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1936,
+        "internalName": "ParkaCoat",
+        "name": "Parka Coat"
+      },
+      "pageTitle": "Parka set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/parkacoat.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T15:03:53Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "488fa394ab333638be854345ea0064992183beb685073adc66ad84d29664af99",
+          "sourceType": "container",
+          "sourceRefType": "container",
+          "sourceRefName": "Present",
+          "quantityText": "1",
+          "chanceText": "1.08% 1.01% (Hardmode)",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Parka set",
+          "sourceRevisionTimestamp": "2023-10-23T15:03:53Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "ParkaCoat",
+            "itemName": "Parka Coat",
+            "sourceType": "container",
+            "sourceRefType": "container",
+            "sourceRefName": "Present",
+            "quantityText": "1",
+            "chanceText": "1.08% 1.01% (Hardmode)",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Parka set",
+            "sourceRevisionTimestamp": "2023-10-23T15:03:53Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1869,
+            "internalName": "Present",
+            "name": "Present"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "ParkaHood",
+      "itemName": "Parka Hood",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1935,
+        "internalName": "ParkaHood",
+        "name": "Parka Hood"
+      },
+      "pageTitle": "Parka set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/parkahood.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T15:03:53Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "dd1f801065b2be1b89b9df37afe7e97c08a844a0087ded6314a771992ddcd47d",
+          "sourceType": "container",
+          "sourceRefType": "container",
+          "sourceRefName": "Present",
+          "quantityText": "1",
+          "chanceText": "1.08% 1.01% (Hardmode)",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Parka set",
+          "sourceRevisionTimestamp": "2023-10-23T15:03:53Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "ParkaHood",
+            "itemName": "Parka Hood",
+            "sourceType": "container",
+            "sourceRefType": "container",
+            "sourceRefName": "Present",
+            "quantityText": "1",
+            "chanceText": "1.08% 1.01% (Hardmode)",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Parka set",
+            "sourceRevisionTimestamp": "2023-10-23T15:03:53Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1869,
+            "internalName": "Present",
+            "name": "Present"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "ParkaPants",
+      "itemName": "Parka Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1937,
+        "internalName": "ParkaPants",
+        "name": "Parka Pants"
+      },
+      "pageTitle": "Parka set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/parkapants.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T15:03:53Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "f7795c03e3cac9cab8116ce55209f4a0f5f5e92649467de3de3cd5e7d5e1705b",
+          "sourceType": "container",
+          "sourceRefType": "container",
+          "sourceRefName": "Present",
+          "quantityText": "1",
+          "chanceText": "1.08% 1.01% (Hardmode)",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Parka set",
+          "sourceRevisionTimestamp": "2023-10-23T15:03:53Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "ParkaPants",
+            "itemName": "Parka Pants",
+            "sourceType": "container",
+            "sourceRefType": "container",
+            "sourceRefName": "Present",
+            "quantityText": "1",
+            "chanceText": "1.08% 1.01% (Hardmode)",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Parka set",
+            "sourceRevisionTimestamp": "2023-10-23T15:03:53Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1869,
+            "internalName": "Present",
+            "name": "Present"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PedguinHat",
+      "itemName": "Pedguin's Hood",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 3757,
+        "internalName": "PedguinHat",
+        "name": "Pedguin's Hood"
+      },
+      "pageTitle": "Pedguin's set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/pedguinhat.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-10T04:24:50Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "171c60d8ac22de9a85dbd9c06c88756f34944510a123e4ce91701ce3b72adabb",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Corrupt Penguin",
+          "quantityText": "1",
+          "chanceText": "0.67%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Pedguin's set",
+          "sourceRevisionTimestamp": "2026-02-10T04:24:50Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PedguinHat",
+            "itemName": "Pedguin's Hood",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Corrupt Penguin",
+            "quantityText": "1",
+            "chanceText": "0.67%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Pedguin's set",
+            "sourceRevisionTimestamp": "2026-02-10T04:24:50Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 168,
+            "internalName": "CorruptPenguin",
+            "name": "Corrupt Penguin"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "97383abc576567251fa4845b64d23da19a9636313757c250568952aef1841428",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Vicious Penguin",
+          "quantityText": "1",
+          "chanceText": "0.67%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Pedguin's set",
+          "sourceRevisionTimestamp": "2026-02-10T04:24:50Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "PedguinHat",
+            "itemName": "Pedguin's Hood",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Vicious Penguin",
+            "quantityText": "1",
+            "chanceText": "0.67%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Pedguin's set",
+            "sourceRevisionTimestamp": "2026-02-10T04:24:50Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 470,
+            "internalName": "CrimsonPenguin",
+            "name": "Vicious Penguin"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PedguinPants",
+      "itemName": "Pedguin's Trousers",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 3759,
+        "internalName": "PedguinPants",
+        "name": "Pedguin's Trousers"
+      },
+      "pageTitle": "Pedguin's set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/pedguinpants.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-10T04:24:50Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "b0624f946e45bc89d038368ba97b830a05535bece5bd884b65345b9329f96c0c",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Corrupt Penguin",
+          "quantityText": "1",
+          "chanceText": "0.67%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Pedguin's set",
+          "sourceRevisionTimestamp": "2026-02-10T04:24:50Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PedguinPants",
+            "itemName": "Pedguin's Trousers",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Corrupt Penguin",
+            "quantityText": "1",
+            "chanceText": "0.67%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Pedguin's set",
+            "sourceRevisionTimestamp": "2026-02-10T04:24:50Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 168,
+            "internalName": "CorruptPenguin",
+            "name": "Corrupt Penguin"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "e2fc68978b769a274ad36ee8811318450c2b333bf962c8d7977c6c7b14ac1c64",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Vicious Penguin",
+          "quantityText": "1",
+          "chanceText": "0.67%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Pedguin's set",
+          "sourceRevisionTimestamp": "2026-02-10T04:24:50Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "PedguinPants",
+            "itemName": "Pedguin's Trousers",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Vicious Penguin",
+            "quantityText": "1",
+            "chanceText": "0.67%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Pedguin's set",
+            "sourceRevisionTimestamp": "2026-02-10T04:24:50Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 470,
+            "internalName": "CrimsonPenguin",
+            "name": "Vicious Penguin"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PedguinShirt",
+      "itemName": "Pedguin's Jacket",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 3758,
+        "internalName": "PedguinShirt",
+        "name": "Pedguin's Jacket"
+      },
+      "pageTitle": "Pedguin's set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/pedguinshirt.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-10T04:24:50Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "b0a0c71da5ac7e9b29e2b16b19abdf89d16adb1e328834b94362bbf22f784537",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Corrupt Penguin",
+          "quantityText": "1",
+          "chanceText": "0.67%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Pedguin's set",
+          "sourceRevisionTimestamp": "2026-02-10T04:24:50Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PedguinShirt",
+            "itemName": "Pedguin's Jacket",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Corrupt Penguin",
+            "quantityText": "1",
+            "chanceText": "0.67%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Pedguin's set",
+            "sourceRevisionTimestamp": "2026-02-10T04:24:50Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 168,
+            "internalName": "CorruptPenguin",
+            "name": "Corrupt Penguin"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "c077c602a41e66130498be1d05c43b7cc739d5490675d949de086320b8e74aaf",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Vicious Penguin",
+          "quantityText": "1",
+          "chanceText": "0.67%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Pedguin's set",
+          "sourceRevisionTimestamp": "2026-02-10T04:24:50Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "PedguinShirt",
+            "itemName": "Pedguin's Jacket",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Vicious Penguin",
+            "quantityText": "1",
+            "chanceText": "0.67%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Pedguin's set",
+            "sourceRevisionTimestamp": "2026-02-10T04:24:50Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 470,
+            "internalName": "CrimsonPenguin",
+            "name": "Vicious Penguin"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "Piano",
+      "itemName": "Piano",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 333,
+        "internalName": "Piano",
+        "name": "Piano"
+      },
+      "pageTitle": "Pianos",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/piano.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-05-15T07:17:36Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "c7a9410f4ad1b6e31512f09d03eccea93e784fe12d4c3e57c1ed155a51be7a97",
+          "sourceType": "worldgen",
+          "sourceRefType": "world",
+          "sourceRefName": "Pianos worldgen",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": "There is a total of (Desktop, Console and Mobile versions) 60 / (Old-gen console version) 15 / 10 craftable Pianos, and 5 non-craftable Pianos that can be found in the Dungeon , Ruined Houses , and Pirate Invasion event. Some Pianos can also be found in Underground Cabins , in which they follow the theme of the cabin that they are found in.",
+          "notes": null,
+          "sourcePage": "Pianos",
+          "sourceRevisionTimestamp": "2026-05-15T07:17:36Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "Piano",
+            "itemName": "Piano",
+            "sourceType": "worldgen",
+            "sourceRefType": "world",
+            "sourceRefName": "Pianos worldgen",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": "There is a total of (Desktop, Console and Mobile versions) 60 / (Old-gen console version) 15 / 10 craftable Pianos, and 5 non-craftable Pianos that can be found in the Dungeon , Ruined Houses , and Pirate Invasion event. Some Pianos can also be found in Underground Cabins , in which they follow the theme of the cabin that they are found in.",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Pianos",
+            "sourceRevisionTimestamp": "2026-05-15T07:17:36Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "world_text_ref",
+          "resolvedRef": null,
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PlaguebringerChestplate",
+      "itemName": "Plaguebringer's Cloak",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 5046,
+        "internalName": "PlaguebringerChestplate",
+        "name": "Plaguebringer's Cloak"
+      },
+      "pageTitle": "Plaguebringer's set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/plaguebringerchestplate.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-11-11T15:58:40Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "68cea4159e9c402b892a6330b876247bf929dae517eab7d27af47c46e9634447",
+          "sourceType": "worldgen",
+          "sourceRefType": "world",
+          "sourceRefName": "Plaguebringer's set worldgen",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": "Crafting the set requires materials that can only be found in the Crimson . Its Corruption counterpart is the Timeless Traveler's set .",
+          "notes": null,
+          "sourcePage": "Plaguebringer's set",
+          "sourceRevisionTimestamp": "2025-11-11T15:58:40Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PlaguebringerChestplate",
+            "itemName": "Plaguebringer's Cloak",
+            "sourceType": "worldgen",
+            "sourceRefType": "world",
+            "sourceRefName": "Plaguebringer's set worldgen",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": "Crafting the set requires materials that can only be found in the Crimson . Its Corruption counterpart is the Timeless Traveler's set .",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Plaguebringer's set",
+            "sourceRevisionTimestamp": "2025-11-11T15:58:40Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "world_text_ref",
+          "resolvedRef": null,
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PlaguebringerGreaves",
+      "itemName": "Plaguebringer's Treads",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 5047,
+        "internalName": "PlaguebringerGreaves",
+        "name": "Plaguebringer's Treads"
+      },
+      "pageTitle": "Plaguebringer's set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/plaguebringergreaves.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-11-11T15:58:40Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "f344cd12b827bd83bfd0dac156c42ec932ecdb32f5ef3e1efaa7b85730cbd589",
+          "sourceType": "worldgen",
+          "sourceRefType": "world",
+          "sourceRefName": "Plaguebringer's set worldgen",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": "Crafting the set requires materials that can only be found in the Crimson . Its Corruption counterpart is the Timeless Traveler's set .",
+          "notes": null,
+          "sourcePage": "Plaguebringer's set",
+          "sourceRevisionTimestamp": "2025-11-11T15:58:40Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PlaguebringerGreaves",
+            "itemName": "Plaguebringer's Treads",
+            "sourceType": "worldgen",
+            "sourceRefType": "world",
+            "sourceRefName": "Plaguebringer's set worldgen",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": "Crafting the set requires materials that can only be found in the Crimson . Its Corruption counterpart is the Timeless Traveler's set .",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Plaguebringer's set",
+            "sourceRevisionTimestamp": "2025-11-11T15:58:40Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "world_text_ref",
+          "resolvedRef": null,
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PlaguebringerHelmet",
+      "itemName": "Plaguebringer's Skull",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 5045,
+        "internalName": "PlaguebringerHelmet",
+        "name": "Plaguebringer's Skull"
+      },
+      "pageTitle": "Plaguebringer's set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/plaguebringerhelmet.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-11-11T15:58:40Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "532233e1f318b14b35e860058104e0fe4fc1f4b96e5c5520d62798a337aebc4b",
+          "sourceType": "worldgen",
+          "sourceRefType": "world",
+          "sourceRefName": "Plaguebringer's set worldgen",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": "Crafting the set requires materials that can only be found in the Crimson . Its Corruption counterpart is the Timeless Traveler's set .",
+          "notes": null,
+          "sourcePage": "Plaguebringer's set",
+          "sourceRevisionTimestamp": "2025-11-11T15:58:40Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PlaguebringerHelmet",
+            "itemName": "Plaguebringer's Skull",
+            "sourceType": "worldgen",
+            "sourceRefType": "world",
+            "sourceRefName": "Plaguebringer's set worldgen",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": "Crafting the set requires materials that can only be found in the Crimson . Its Corruption counterpart is the Timeless Traveler's set .",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Plaguebringer's set",
+            "sourceRevisionTimestamp": "2025-11-11T15:58:40Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "world_text_ref",
+          "resolvedRef": null,
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "RainCoat",
+      "itemName": "Rain Coat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1136,
+        "internalName": "RainCoat",
+        "name": "Rain Coat"
+      },
+      "pageTitle": "Rain armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/raincoat.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-27T17:31:23Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "1e9ec33b1106e20f4a23a72f3410a84cbcb319317bb9f6f16a57c046c43c6f38",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Raincoat Zombie",
+          "quantityText": "1",
+          "chanceText": "2.5%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Rain armor",
+          "sourceRevisionTimestamp": "2026-02-27T17:31:23Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "RainCoat",
+            "itemName": "Rain Coat",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Raincoat Zombie",
+            "quantityText": "1",
+            "chanceText": "2.5%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Rain armor",
+            "sourceRevisionTimestamp": "2026-02-27T17:31:23Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 223,
+            "internalName": "ZombieRaincoat",
+            "name": "Raincoat Zombie"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "RainHat",
+      "itemName": "Rain Hat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1135,
+        "internalName": "RainHat",
+        "name": "Rain Hat"
+      },
+      "pageTitle": "Rain armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/rainhat.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-27T17:31:23Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "b5def64e81b05cc8f69583cf2fb42b9d03997f342a8d185d1aee535040e93a05",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Raincoat Zombie",
+          "quantityText": "1",
+          "chanceText": "2.5%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Rain armor",
+          "sourceRevisionTimestamp": "2026-02-27T17:31:23Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "RainHat",
+            "itemName": "Rain Hat",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Raincoat Zombie",
+            "quantityText": "1",
+            "chanceText": "2.5%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Rain armor",
+            "sourceRevisionTimestamp": "2026-02-27T17:31:23Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 223,
+            "internalName": "ZombieRaincoat",
+            "name": "Raincoat Zombie"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "RedHat",
+      "itemName": "Red Hat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 260,
+        "internalName": "RedHat",
+        "name": "Red Hat"
+      },
+      "pageTitle": "Clothier's set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/redhat.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-11-19T23:20:35Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "a79ed3f3faa905234761bccb3fb944cd1f1a7aff150ea0a3fb62ec26ddb8e976",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Clothier",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Clothier's set",
+          "sourceRevisionTimestamp": "2025-11-19T23:20:35Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "RedHat",
+            "itemName": "Red Hat",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Clothier",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Clothier's set",
+            "sourceRevisionTimestamp": "2025-11-19T23:20:35Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 54,
+            "internalName": "Clothier",
+            "name": "Clothier"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "e66ed78360dc4cf41a7935426b5ca6e178ced0258a23aaaba6372963352f3471",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Clothier",
+          "quantityText": "1",
+          "chanceText": "100%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Clothier's set",
+          "sourceRevisionTimestamp": "2025-11-19T23:20:35Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "RedHat",
+            "itemName": "Red Hat",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Clothier",
+            "quantityText": "1",
+            "chanceText": "100%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Clothier's set",
+            "sourceRevisionTimestamp": "2025-11-19T23:20:35Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 54,
+            "internalName": "Clothier",
+            "name": "Clothier"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "RubblemakerLarge",
+      "itemName": "Rubblemaker (Large)",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 5330,
+        "internalName": "RubblemakerLarge",
+        "name": "Rubblemaker (Large)"
+      },
+      "pageTitle": "Rubblemaker",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/rubblemakerlarge.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-25T02:48:07Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "bae0598481d39a2b03ec6741075bff574bd7c746ff502c5b446f142d879a00e2",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Goblin Tinkerer",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Rubblemaker",
+          "sourceRevisionTimestamp": "2026-04-25T02:48:07Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "RubblemakerLarge",
+            "itemName": "Rubblemaker (Large)",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Goblin Tinkerer",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Rubblemaker",
+            "sourceRevisionTimestamp": "2026-04-25T02:48:07Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 107,
+            "internalName": "GoblinTinkerer",
+            "name": "Goblin Tinkerer"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "RubblemakerMedium",
+      "itemName": "Rubblemaker (Medium)",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 5329,
+        "internalName": "RubblemakerMedium",
+        "name": "Rubblemaker (Medium)"
+      },
+      "pageTitle": "Rubblemaker",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/rubblemakermedium.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-25T02:48:07Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "3a7884a8207b1ac8aaef41c731bb356b71f54c017edca04d5b36f77ca055843e",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Goblin Tinkerer",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Rubblemaker",
+          "sourceRevisionTimestamp": "2026-04-25T02:48:07Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "RubblemakerMedium",
+            "itemName": "Rubblemaker (Medium)",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Goblin Tinkerer",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Rubblemaker",
+            "sourceRevisionTimestamp": "2026-04-25T02:48:07Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 107,
+            "internalName": "GoblinTinkerer",
+            "name": "Goblin Tinkerer"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "RubblemakerSmall",
+      "itemName": "Rubblemaker (Small)",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 5324,
+        "internalName": "RubblemakerSmall",
+        "name": "Rubblemaker (Small)"
+      },
+      "pageTitle": "Rubblemaker",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/rubblemakersmall.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-25T02:48:07Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "3be1b9170c21dfd7ace8979bd5f69d6d4fee9bcbc43104baa18beb6a96b1eca0",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Goblin Tinkerer",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Rubblemaker",
+          "sourceRevisionTimestamp": "2026-04-25T02:48:07Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "RubblemakerSmall",
+            "itemName": "Rubblemaker (Small)",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Goblin Tinkerer",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Rubblemaker",
+            "sourceRevisionTimestamp": "2026-04-25T02:48:07Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 107,
+            "internalName": "GoblinTinkerer",
+            "name": "Goblin Tinkerer"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "RuneHat",
+      "itemName": "Rune Hat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 754,
+        "internalName": "RuneHat",
+        "name": "Rune Hat"
+      },
+      "pageTitle": "Rune set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/runehat.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2024-07-03T23:38:12Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "83b03d2f751fad10d872fc7da6fb7b9cc8bf5f9c5aa1aa50032383fdc9775742",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Rune Wizard",
+          "quantityText": "1",
+          "chanceText": "100%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Rune set",
+          "sourceRevisionTimestamp": "2024-07-03T23:38:12Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "RuneHat",
+            "itemName": "Rune Hat",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Rune Wizard",
+            "quantityText": "1",
+            "chanceText": "100%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Rune set",
+            "sourceRevisionTimestamp": "2024-07-03T23:38:12Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 172,
+            "internalName": "RuneWizard",
+            "name": "Rune Wizard"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "RuneRobe",
+      "itemName": "Rune Robe",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 755,
+        "internalName": "RuneRobe",
+        "name": "Rune Robe"
+      },
+      "pageTitle": "Rune set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/runerobe.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2024-07-03T23:38:12Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "09744f7eaecc36239db1de707729f3fb0b7fb38d4b8f3c889429c4045a76aa51",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Rune Wizard",
+          "quantityText": "1",
+          "chanceText": "100%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Rune set",
+          "sourceRevisionTimestamp": "2024-07-03T23:38:12Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "RuneRobe",
+            "itemName": "Rune Robe",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Rune Wizard",
+            "quantityText": "1",
+            "chanceText": "100%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Rune set",
+            "sourceRevisionTimestamp": "2024-07-03T23:38:12Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 172,
+            "internalName": "RuneWizard",
+            "name": "Rune Wizard"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SailorHat",
+      "itemName": "Sailor Hat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1277,
+        "internalName": "SailorHat",
+        "name": "Sailor Hat"
+      },
+      "pageTitle": "Sailor set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/sailorhat.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 4,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "8f428328ff21ebf02c17da3216833b975e2776f4c084505803a4716436267b66",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Pirate Corsair",
+          "quantityText": "1",
+          "chanceText": "0.2%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Sailor set",
+          "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SailorHat",
+            "itemName": "Sailor Hat",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Pirate Corsair",
+            "quantityText": "1",
+            "chanceText": "0.2%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Sailor set",
+            "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 213,
+            "internalName": "PirateCorsair",
+            "name": "Pirate Corsair"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "dae2a5c71a2e00e3596743cafb3332d12a97980f87c7913adefd5163c052f34e",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Pirate Crossbower",
+          "quantityText": "1",
+          "chanceText": "0.2%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Sailor set",
+          "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "SailorHat",
+            "itemName": "Sailor Hat",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Pirate Crossbower",
+            "quantityText": "1",
+            "chanceText": "0.2%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Sailor set",
+            "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 215,
+            "internalName": "PirateCrossbower",
+            "name": "Pirate Crossbower"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "5c315d409943311b291ad78bd5faf01fe86f10ec51c6831a092b34ed6b22d65b",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Pirate Deadeye",
+          "quantityText": "1",
+          "chanceText": "0.2%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Sailor set",
+          "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+          "sortOrder": 2,
+          "landingRow": {
+            "itemInternalName": "SailorHat",
+            "itemName": "Sailor Hat",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Pirate Deadeye",
+            "quantityText": "1",
+            "chanceText": "0.2%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Sailor set",
+            "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+            "sortOrder": 2
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 214,
+            "internalName": "PirateDeadeye",
+            "name": "Pirate Deadeye"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "8dd990c8620615ffe66785581ff4fb970252cab9d7633bc2d481a000bc917b67",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Pirate Deckhand",
+          "quantityText": "1",
+          "chanceText": "0.2%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Sailor set",
+          "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+          "sortOrder": 3,
+          "landingRow": {
+            "itemInternalName": "SailorHat",
+            "itemName": "Sailor Hat",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Pirate Deckhand",
+            "quantityText": "1",
+            "chanceText": "0.2%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Sailor set",
+            "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+            "sortOrder": 3
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 212,
+            "internalName": "PirateDeckhand",
+            "name": "Pirate Deckhand"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SailorPants",
+      "itemName": "Sailor Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1280,
+        "internalName": "SailorPants",
+        "name": "Sailor Pants"
+      },
+      "pageTitle": "Sailor set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/sailorpants.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 4,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "0604841821030dca8d79627d9c77eeebba9132bf74dac8b25f2f036ded2b32c8",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Pirate Corsair",
+          "quantityText": "1",
+          "chanceText": "0.2%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Sailor set",
+          "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SailorPants",
+            "itemName": "Sailor Pants",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Pirate Corsair",
+            "quantityText": "1",
+            "chanceText": "0.2%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Sailor set",
+            "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 213,
+            "internalName": "PirateCorsair",
+            "name": "Pirate Corsair"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "7776f3bef60bbe3b15e7262161b7e1f693c061ebb9f60d95fe2b0b57f6bfd803",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Pirate Crossbower",
+          "quantityText": "1",
+          "chanceText": "0.2%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Sailor set",
+          "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "SailorPants",
+            "itemName": "Sailor Pants",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Pirate Crossbower",
+            "quantityText": "1",
+            "chanceText": "0.2%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Sailor set",
+            "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 215,
+            "internalName": "PirateCrossbower",
+            "name": "Pirate Crossbower"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "5347519b2ebb90d0c2ab0ac02400a4b44c4fc36b1995a365796a213bea2aeaf6",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Pirate Deadeye",
+          "quantityText": "1",
+          "chanceText": "0.2%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Sailor set",
+          "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+          "sortOrder": 2,
+          "landingRow": {
+            "itemInternalName": "SailorPants",
+            "itemName": "Sailor Pants",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Pirate Deadeye",
+            "quantityText": "1",
+            "chanceText": "0.2%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Sailor set",
+            "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+            "sortOrder": 2
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 214,
+            "internalName": "PirateDeadeye",
+            "name": "Pirate Deadeye"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "499e3b15fb930236655cd004f0ff1709e3093d730bded66ce5afe62179f349c6",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Pirate Deckhand",
+          "quantityText": "1",
+          "chanceText": "0.2%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Sailor set",
+          "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+          "sortOrder": 3,
+          "landingRow": {
+            "itemInternalName": "SailorPants",
+            "itemName": "Sailor Pants",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Pirate Deckhand",
+            "quantityText": "1",
+            "chanceText": "0.2%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Sailor set",
+            "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+            "sortOrder": 3
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 212,
+            "internalName": "PirateDeckhand",
+            "name": "Pirate Deckhand"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SailorShirt",
+      "itemName": "Sailor Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1279,
+        "internalName": "SailorShirt",
+        "name": "Sailor Shirt"
+      },
+      "pageTitle": "Sailor set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/sailorshirt.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 4,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "f2594c5566ef01cdb767a84c3aa1debab36b84c1520d73e26a9af50b6d988e6a",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Pirate Corsair",
+          "quantityText": "1",
+          "chanceText": "0.2%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Sailor set",
+          "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SailorShirt",
+            "itemName": "Sailor Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Pirate Corsair",
+            "quantityText": "1",
+            "chanceText": "0.2%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Sailor set",
+            "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 213,
+            "internalName": "PirateCorsair",
+            "name": "Pirate Corsair"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "287e5f37e1160115b1874020ccadba370e722e5492567553ebf51c1ed7a004d3",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Pirate Crossbower",
+          "quantityText": "1",
+          "chanceText": "0.2%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Sailor set",
+          "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "SailorShirt",
+            "itemName": "Sailor Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Pirate Crossbower",
+            "quantityText": "1",
+            "chanceText": "0.2%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Sailor set",
+            "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 215,
+            "internalName": "PirateCrossbower",
+            "name": "Pirate Crossbower"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "18a7ee95be89f53b67b54110cb9a25c877875c047cc4e16212707a0decd47188",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Pirate Deadeye",
+          "quantityText": "1",
+          "chanceText": "0.2%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Sailor set",
+          "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+          "sortOrder": 2,
+          "landingRow": {
+            "itemInternalName": "SailorShirt",
+            "itemName": "Sailor Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Pirate Deadeye",
+            "quantityText": "1",
+            "chanceText": "0.2%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Sailor set",
+            "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+            "sortOrder": 2
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 214,
+            "internalName": "PirateDeadeye",
+            "name": "Pirate Deadeye"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "6b728412fc482558800832d9d2c40100d43daff3a85170925ad349c01ee4c0de",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Pirate Deckhand",
+          "quantityText": "1",
+          "chanceText": "0.2%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Sailor set",
+          "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+          "sortOrder": 3,
+          "landingRow": {
+            "itemInternalName": "SailorShirt",
+            "itemName": "Sailor Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Pirate Deckhand",
+            "quantityText": "1",
+            "chanceText": "0.2%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Sailor set",
+            "sourceRevisionTimestamp": "2025-10-23T17:21:28Z",
+            "sortOrder": 3
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 212,
+            "internalName": "PirateDeckhand",
+            "name": "Pirate Deckhand"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SandBlock",
+      "itemName": "Sand Block",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 169,
+        "internalName": "SandBlock",
+        "name": "Sand Block"
+      },
+      "pageTitle": "Sand Blocks",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/sandblock.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-05-14T12:31:40Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "cde748c0f656adf1275456cd77db9aa73b15995d86aecb645eedae4e5a86fbe2",
+          "sourceType": "worldgen",
+          "sourceRefType": "world",
+          "sourceRefName": "Sand Blocks worldgen",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": "Sand Blocks are soil blocks found in vast quantities in Desert biomes , at shore and bottom of Ocean biomes, and can be found as microbiomes in patches in the Underground layer. They are also shot as projectiles by Antlions . Sand can spread and be converted by the evil biomes and The Hallow (see below ).",
+          "notes": null,
+          "sourcePage": "Sand Blocks",
+          "sourceRevisionTimestamp": "2026-05-14T12:31:40Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SandBlock",
+            "itemName": "Sand Block",
+            "sourceType": "worldgen",
+            "sourceRefType": "world",
+            "sourceRefName": "Sand Blocks worldgen",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": "Sand Blocks are soil blocks found in vast quantities in Desert biomes , at shore and bottom of Ocean biomes, and can be found as microbiomes in patches in the Underground layer. They are also shot as projectiles by Antlions . Sand can spread and be converted by the evil biomes and The Hallow (see below ).",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Sand Blocks",
+            "sourceRevisionTimestamp": "2026-05-14T12:31:40Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "world_text_ref",
+          "resolvedRef": null,
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "Sandstone",
+      "itemName": "Sandstone Block",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 3271,
+        "internalName": "Sandstone",
+        "name": "Sandstone Block"
+      },
+      "pageTitle": "Sandstone Blocks",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/sandstone.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-19T11:09:03Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "e13bc429ef04afa43d2fa12fe1cc8b78cdc57558335bdd392eacac211da6a700",
+          "sourceType": "worldgen",
+          "sourceRefType": "world",
+          "sourceRefName": "Sandstone Blocks worldgen",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": "Sandstone Blocks are blocks found naturally placed in the Underground Desert biome . Like Sand and Hardened Sand , they are corruptable blocks in Hardmode, and have Corruption , Crimson , and Hallowed counterparts: Ebonsandstone , Crimsandstone , and Pearlsandstone respectively.",
+          "notes": null,
+          "sourcePage": "Sandstone Blocks",
+          "sourceRevisionTimestamp": "2026-02-19T11:09:03Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "Sandstone",
+            "itemName": "Sandstone Block",
+            "sourceType": "worldgen",
+            "sourceRefType": "world",
+            "sourceRefName": "Sandstone Blocks worldgen",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": "Sandstone Blocks are blocks found naturally placed in the Underground Desert biome . Like Sand and Hardened Sand , they are corruptable blocks in Hardmode, and have Corruption , Crimson , and Hallowed counterparts: Ebonsandstone , Crimsandstone , and Pearlsandstone respectively.",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Sandstone Blocks",
+            "sourceRevisionTimestamp": "2026-02-19T11:09:03Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "world_text_ref",
+          "resolvedRef": null,
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SandstoneWall",
+      "itemName": "Sandstone Wall",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 3273,
+        "internalName": "SandstoneWall",
+        "name": "Sandstone Wall"
+      },
+      "pageTitle": "Sandstone Walls",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/sandstonewall.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-20T14:05:59Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "a5f100334a74750e35c07d2c3b5d0303d11d8a21fba8a68628d961ed4cce97f3",
+          "sourceType": "worldgen",
+          "sourceRefType": "world",
+          "sourceRefName": "Sandstone Walls worldgen",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": "The Sandstone Wall , Ebonsandstone Wall , Crimsandstone Wall , and Pearlsandstone Wall are types of background walls which can be found naturally generated in the Underground Desert , considered unsafe . Underground Deserts generate by default the normal Sandstone Sand Wall which may be converted into the respective variant if exposed to the Corruption , Crimson , or Hallow . Converted Sandstone Walls may further spread conversion to other walls; see Biome spread for more information. Unsafe Sandstone Walls do not drop as items when destroyed, and can only be obtained via crafting. They are considered safe walls when placed by the player.",
+          "notes": null,
+          "sourcePage": "Sandstone Walls",
+          "sourceRevisionTimestamp": "2026-04-20T14:05:59Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SandstoneWall",
+            "itemName": "Sandstone Wall",
+            "sourceType": "worldgen",
+            "sourceRefType": "world",
+            "sourceRefName": "Sandstone Walls worldgen",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": "The Sandstone Wall , Ebonsandstone Wall , Crimsandstone Wall , and Pearlsandstone Wall are types of background walls which can be found naturally generated in the Underground Desert , considered unsafe . Underground Deserts generate by default the normal Sandstone Sand Wall which may be converted into the respective variant if exposed to the Corruption , Crimson , or Hallow . Converted Sandstone Walls may further spread conversion to other walls; see Biome spread for more information. Unsafe Sandstone Walls do not drop as items when destroyed, and can only be obtained via crafting. They are considered safe walls when placed by the player.",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Sandstone Walls",
+            "sourceRevisionTimestamp": "2026-04-20T14:05:59Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "world_text_ref",
+          "resolvedRef": null,
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "ScarecrowHat",
+      "itemName": "Scarecrow Hat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1788,
+        "internalName": "ScarecrowHat",
+        "name": "Scarecrow Hat"
+      },
+      "pageTitle": "Scarecrow set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/scarecrowhat.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-06-13T12:17:21Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "aba102e4af845d61dc6b269c760fd98e2137497af15274d6fd4593c32a954e18",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Scarecrow",
+          "quantityText": "1",
+          "chanceText": "0.37%–3.33% 0.56%–3.33%",
+          "conditions": null,
+          "notes": "Normal mode row",
+          "sourcePage": "Scarecrow set",
+          "sourceRevisionTimestamp": "2025-06-13T12:17:21Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "ScarecrowHat",
+            "itemName": "Scarecrow Hat",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Scarecrow",
+            "quantityText": "1",
+            "chanceText": "0.37%–3.33% 0.56%–3.33%",
+            "conditions": null,
+            "notes": "Normal mode row",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Scarecrow set",
+            "sourceRevisionTimestamp": "2025-06-13T12:17:21Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 305,
+            "internalName": "Scarecrow1",
+            "name": "Scarecrow"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "ScarecrowPants",
+      "itemName": "Scarecrow Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1790,
+        "internalName": "ScarecrowPants",
+        "name": "Scarecrow Pants"
+      },
+      "pageTitle": "Scarecrow set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/scarecrowpants.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-06-13T12:17:21Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "27e6fe710af39fe0a92ff409ec1c377fb67546a0ee23443405678ce67d940eec",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Scarecrow",
+          "quantityText": "1",
+          "chanceText": "0.37%–3.33% 0.56%–3.33%",
+          "conditions": null,
+          "notes": "Normal mode row",
+          "sourcePage": "Scarecrow set",
+          "sourceRevisionTimestamp": "2025-06-13T12:17:21Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "ScarecrowPants",
+            "itemName": "Scarecrow Pants",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Scarecrow",
+            "quantityText": "1",
+            "chanceText": "0.37%–3.33% 0.56%–3.33%",
+            "conditions": null,
+            "notes": "Normal mode row",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Scarecrow set",
+            "sourceRevisionTimestamp": "2025-06-13T12:17:21Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 305,
+            "internalName": "Scarecrow1",
+            "name": "Scarecrow"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "ScarecrowShirt",
+      "itemName": "Scarecrow Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1789,
+        "internalName": "ScarecrowShirt",
+        "name": "Scarecrow Shirt"
+      },
+      "pageTitle": "Scarecrow set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/scarecrowshirt.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-06-13T12:17:21Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "bb6c4219b7f0c5a702b06b3569abaabf45631d0956a4b6be1133f1c1d7053df8",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Scarecrow",
+          "quantityText": "1",
+          "chanceText": "0.37%–3.33% 0.56%–3.33%",
+          "conditions": null,
+          "notes": "Normal mode row",
+          "sourcePage": "Scarecrow set",
+          "sourceRevisionTimestamp": "2025-06-13T12:17:21Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "ScarecrowShirt",
+            "itemName": "Scarecrow Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Scarecrow",
+            "quantityText": "1",
+            "chanceText": "0.37%–3.33% 0.56%–3.33%",
+            "conditions": null,
+            "notes": "Normal mode row",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Scarecrow set",
+            "sourceRevisionTimestamp": "2025-06-13T12:17:21Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 305,
+            "internalName": "Scarecrow1",
+            "name": "Scarecrow"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "Scorpion",
+      "itemName": "Scorpion",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 2157,
+        "internalName": "Scorpion",
+        "name": "Scorpion"
+      },
+      "pageTitle": "Scorpions",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/scorpion.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-01-16T09:32:54Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "ac995fbed8134e546d29869f1a24f09f796611a6645796e241d282bf6e7f458d",
+          "sourceType": "worldgen",
+          "sourceRefType": "world",
+          "sourceRefName": "Scorpions worldgen",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": "The Scorpion and Black Scorpion are harmless critters that are most commonly found in a Desert . For detailed spawning conditions, see Notes .",
+          "notes": null,
+          "sourcePage": "Scorpions",
+          "sourceRevisionTimestamp": "2026-01-16T09:32:54Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "Scorpion",
+            "itemName": "Scorpion",
+            "sourceType": "worldgen",
+            "sourceRefType": "world",
+            "sourceRefName": "Scorpions worldgen",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": "The Scorpion and Black Scorpion are harmless critters that are most commonly found in a Desert . For detailed spawning conditions, see Notes .",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Scorpions",
+            "sourceRevisionTimestamp": "2026-01-16T09:32:54Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "world_text_ref",
+          "resolvedRef": null,
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "Stake",
+      "itemName": "Stake",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1836,
+        "internalName": "Stake",
+        "name": "Stake"
+      },
+      "pageTitle": "Stake Launcher",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/stake.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 3,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-26T17:41:14Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "35d5ad7dbac1fd3eb34b5c1f827bc2385e2d9735bb804e91f66f33f1aec5b0fb",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Arms Dealer",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Stake Launcher",
+          "sourceRevisionTimestamp": "2026-02-26T17:41:14Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "Stake",
+            "itemName": "Stake",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Arms Dealer",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Stake Launcher",
+            "sourceRevisionTimestamp": "2026-02-26T17:41:14Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 19,
+            "internalName": "ArmsDealer",
+            "name": "Arms Dealer"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "9cdf842cb649323c213d8c545ca9ea8072f9b299e5c66288c9016e7934b29a26",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Witch Doctor",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Stake Launcher",
+          "sourceRevisionTimestamp": "2026-02-26T17:41:14Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "Stake",
+            "itemName": "Stake",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Witch Doctor",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Stake Launcher",
+            "sourceRevisionTimestamp": "2026-02-26T17:41:14Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 228,
+            "internalName": "WitchDoctor",
+            "name": "Witch Doctor"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "dbfd84245793289eef4fd89d8064cd167aabaca5fd7eb761df5d066d338d9669",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Mourning Wood",
+          "quantityText": "Stake Launcher + Stake (30–60)",
+          "chanceText": "2.86–20% 5–20%",
+          "conditions": null,
+          "notes": "Normal mode row",
+          "sourcePage": "Stake Launcher",
+          "sourceRevisionTimestamp": "2026-02-26T17:41:14Z",
+          "sortOrder": 2,
+          "landingRow": {
+            "itemInternalName": "Stake",
+            "itemName": "Stake",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Mourning Wood",
+            "quantityText": "Stake Launcher + Stake (30–60)",
+            "chanceText": "2.86–20% 5–20%",
+            "conditions": null,
+            "notes": "Normal mode row",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Stake Launcher",
+            "sourceRevisionTimestamp": "2026-02-26T17:41:14Z",
+            "sortOrder": 2
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 325,
+            "internalName": "MourningWood",
+            "name": "Mourning Wood"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TheBrideDress",
+      "itemName": "Wedding Dress",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 3479,
+        "internalName": "TheBrideDress",
+        "name": "Wedding Dress"
+      },
+      "pageTitle": "Wedding set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/thebridedress.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T15:57:55Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "2b554b5002f4685a5cb07a1bfe13904bbaeaa2b76310a1e163feb4c6b23777d0",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "The Bride",
+          "quantityText": "1",
+          "chanceText": "100%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Wedding set",
+          "sourceRevisionTimestamp": "2023-10-23T15:57:55Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "TheBrideDress",
+            "itemName": "Wedding Dress",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "The Bride",
+            "quantityText": "1",
+            "chanceText": "100%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Wedding set",
+            "sourceRevisionTimestamp": "2023-10-23T15:57:55Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 536,
+            "internalName": "TheBride",
+            "name": "The Bride"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TheBrideHat",
+      "itemName": "Wedding Veil",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 3478,
+        "internalName": "TheBrideHat",
+        "name": "Wedding Veil"
+      },
+      "pageTitle": "Wedding set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/thebridehat.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T15:57:55Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "df1fc7b9afea5ef8a41a802a452cfdb9b7ce02e0b50b1dab8a33d2d47d094c14",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "The Bride",
+          "quantityText": "1",
+          "chanceText": "100%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Wedding set",
+          "sourceRevisionTimestamp": "2023-10-23T15:57:55Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "TheBrideHat",
+            "itemName": "Wedding Veil",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "The Bride",
+            "quantityText": "1",
+            "chanceText": "100%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Wedding set",
+            "sourceRevisionTimestamp": "2023-10-23T15:57:55Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 536,
+            "internalName": "TheBride",
+            "name": "The Bride"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TopHat",
+      "itemName": "Top Hat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 239,
+        "internalName": "TopHat",
+        "name": "Top Hat"
+      },
+      "pageTitle": "Tuxedo set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/tophat.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-06-22T18:49:30Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "114cb3335fbdf087350d73fb6b6d6b0f88a3472ca16410505d4eafda08790e76",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "The Groom",
+          "quantityText": "1",
+          "chanceText": "100%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Tuxedo set",
+          "sourceRevisionTimestamp": "2025-06-22T18:49:30Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "TopHat",
+            "itemName": "Top Hat",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "The Groom",
+            "quantityText": "1",
+            "chanceText": "100%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Tuxedo set",
+            "sourceRevisionTimestamp": "2025-06-22T18:49:30Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 53,
+            "internalName": "TheGroom",
+            "name": "The Groom"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TreeMask",
+      "itemName": "Tree Mask",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1940,
+        "internalName": "TreeMask",
+        "name": "Tree Mask"
+      },
+      "pageTitle": "Tree set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/treemask.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-08-25T14:29:05Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "51d63c83b6999fbf5bc8fc506bd9eabef9b62ff5882a1a0f576fceb7e814a190",
+          "sourceType": "container",
+          "sourceRefType": "container",
+          "sourceRefName": "Present",
+          "quantityText": "1",
+          "chanceText": "1.08% 1.01% (Hardmode)",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Tree set",
+          "sourceRevisionTimestamp": "2025-08-25T14:29:05Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "TreeMask",
+            "itemName": "Tree Mask",
+            "sourceType": "container",
+            "sourceRefType": "container",
+            "sourceRefName": "Present",
+            "quantityText": "1",
+            "chanceText": "1.08% 1.01% (Hardmode)",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Tree set",
+            "sourceRevisionTimestamp": "2025-08-25T14:29:05Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1869,
+            "internalName": "Present",
+            "name": "Present"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TreeShirt",
+      "itemName": "Tree Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1941,
+        "internalName": "TreeShirt",
+        "name": "Tree Shirt"
+      },
+      "pageTitle": "Tree set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/treeshirt.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-08-25T14:29:05Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "3b492a813406639417162f49a8227c10c0cf1394b90d580cf1cd941ebe25d8ef",
+          "sourceType": "container",
+          "sourceRefType": "container",
+          "sourceRefName": "Present",
+          "quantityText": "1",
+          "chanceText": "1.08% 1.01% (Hardmode)",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Tree set",
+          "sourceRevisionTimestamp": "2025-08-25T14:29:05Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "TreeShirt",
+            "itemName": "Tree Shirt",
+            "sourceType": "container",
+            "sourceRefType": "container",
+            "sourceRefName": "Present",
+            "quantityText": "1",
+            "chanceText": "1.08% 1.01% (Hardmode)",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Tree set",
+            "sourceRevisionTimestamp": "2025-08-25T14:29:05Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1869,
+            "internalName": "Present",
+            "name": "Present"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TreeTrunks",
+      "itemName": "Tree Trunks",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1942,
+        "internalName": "TreeTrunks",
+        "name": "Tree Trunks"
+      },
+      "pageTitle": "Tree set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/treetrunks.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-08-25T14:29:05Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "4c6ac84b5ee13c2ddddb4596ab4a12f3fe13c783e60cfddfe39224c853003341",
+          "sourceType": "container",
+          "sourceRefType": "container",
+          "sourceRefName": "Present",
+          "quantityText": "1",
+          "chanceText": "1.08% 1.01% (Hardmode)",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Tree set",
+          "sourceRevisionTimestamp": "2025-08-25T14:29:05Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "TreeTrunks",
+            "itemName": "Tree Trunks",
+            "sourceType": "container",
+            "sourceRefType": "container",
+            "sourceRefName": "Present",
+            "quantityText": "1",
+            "chanceText": "1.08% 1.01% (Hardmode)",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Tree set",
+            "sourceRevisionTimestamp": "2025-08-25T14:29:05Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1869,
+            "internalName": "Present",
+            "name": "Present"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TuxedoPants",
+      "itemName": "Tuxedo Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 241,
+        "internalName": "TuxedoPants",
+        "name": "Tuxedo Pants"
+      },
+      "pageTitle": "Tuxedo set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/tuxedopants.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-06-22T18:49:30Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "b88fa80feafd12a011d8beb67791bff5f9c7dd3137806be8e80ec163b4aa2922",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "The Groom",
+          "quantityText": "1",
+          "chanceText": "100%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Tuxedo set",
+          "sourceRevisionTimestamp": "2025-06-22T18:49:30Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "TuxedoPants",
+            "itemName": "Tuxedo Pants",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "The Groom",
+            "quantityText": "1",
+            "chanceText": "100%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Tuxedo set",
+            "sourceRevisionTimestamp": "2025-06-22T18:49:30Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 53,
+            "internalName": "TheGroom",
+            "name": "The Groom"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TuxedoShirt",
+      "itemName": "Tuxedo Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 240,
+        "internalName": "TuxedoShirt",
+        "name": "Tuxedo Shirt"
+      },
+      "pageTitle": "Tuxedo set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/tuxedoshirt.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-06-22T18:49:30Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "b07688bef124a9c3b7433c26748da97ddd9e5194d2f3188f86c2235f555e3ff2",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "The Groom",
+          "quantityText": "1",
+          "chanceText": "100%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Tuxedo set",
+          "sourceRevisionTimestamp": "2025-06-22T18:49:30Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "TuxedoShirt",
+            "itemName": "Tuxedo Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "The Groom",
+            "quantityText": "1",
+            "chanceText": "100%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Tuxedo set",
+            "sourceRevisionTimestamp": "2025-06-22T18:49:30Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 53,
+            "internalName": "TheGroom",
+            "name": "The Groom"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "UncumberingStone",
+      "itemName": "Uncumbering Stone",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 5391,
+        "internalName": "UncumberingStone",
+        "name": "Uncumbering Stone"
+      },
+      "pageTitle": "Encumbering Stone",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/uncumberingstone.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2024-09-27T05:36:06Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "04853dee6b1d4cacc2faaa2beaaadb1fa00ef9fe30761e78b7e994fda68181eb",
+          "sourceType": "container",
+          "sourceRefType": "container",
+          "sourceRefName": "Sandstone Chest",
+          "quantityText": "1",
+          "chanceText": "1/7 (14.29%)",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Encumbering Stone",
+          "sourceRevisionTimestamp": "2024-09-27T05:36:06Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "UncumberingStone",
+            "itemName": "Uncumbering Stone",
+            "sourceType": "container",
+            "sourceRefType": "container",
+            "sourceRefName": "Sandstone Chest",
+            "quantityText": "1",
+            "chanceText": "1/7 (14.29%)",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Encumbering Stone",
+            "sourceRevisionTimestamp": "2024-09-27T05:36:06Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 4267,
+            "internalName": "DesertChest",
+            "name": "Sandstone Chest"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "164ecb9acabc9b657df3d2a8648fc16c4a1d3dd16413e6c7e09440a9ba618e0e",
+          "sourceType": "worldgen",
+          "sourceRefType": "world",
+          "sourceRefName": "Encumbering Stone worldgen",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": "The Encumbering Stone has a 1/7 (14.29%) chance of being found in Sandstone Chests in the Underground Desert .",
+          "notes": null,
+          "sourcePage": "Encumbering Stone",
+          "sourceRevisionTimestamp": "2024-09-27T05:36:06Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "UncumberingStone",
+            "itemName": "Uncumbering Stone",
+            "sourceType": "worldgen",
+            "sourceRefType": "world",
+            "sourceRefName": "Encumbering Stone worldgen",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": "The Encumbering Stone has a 1/7 (14.29%) chance of being found in Sandstone Chests in the Underground Desert .",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Encumbering Stone",
+            "sourceRevisionTimestamp": "2024-09-27T05:36:06Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "world_text_ref",
+          "resolvedRef": null,
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "WilsonBeardLong",
+      "itemName": "Gentleman's Long Beard",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 5105,
+        "internalName": "WilsonBeardLong",
+        "name": "Gentleman's Long Beard"
+      },
+      "pageTitle": "Gentleman's set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/wilsonbeardlong.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-15T14:52:44Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "c6eeb9bf7d5726feb5cf8543ad3d7c699620462e2acb68a8e4b71c386ac9efb2",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Stylist",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Gentleman's set",
+          "sourceRevisionTimestamp": "2026-02-15T14:52:44Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "WilsonBeardLong",
+            "itemName": "Gentleman's Long Beard",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Stylist",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Gentleman's set",
+            "sourceRevisionTimestamp": "2026-02-15T14:52:44Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 353,
+            "internalName": "Stylist",
+            "name": "Stylist"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "WilsonBeardMagnificent",
+      "itemName": "Gentleman's Magnificent Beard",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 5106,
+        "internalName": "WilsonBeardMagnificent",
+        "name": "Gentleman's Magnificent Beard"
+      },
+      "pageTitle": "Gentleman's set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/wilsonbeardmagnificent.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-15T14:52:44Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "ee59a9b27f98e0f900057e704ac47eff96af7b2f9e1dd698b7baaaae8bb37ef1",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Stylist",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Gentleman's set",
+          "sourceRevisionTimestamp": "2026-02-15T14:52:44Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "WilsonBeardMagnificent",
+            "itemName": "Gentleman's Magnificent Beard",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Stylist",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Gentleman's set",
+            "sourceRevisionTimestamp": "2026-02-15T14:52:44Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 353,
+            "internalName": "Stylist",
+            "name": "Stylist"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "WilsonBeardShort",
+      "itemName": "Gentleman's Beard",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 5104,
+        "internalName": "WilsonBeardShort",
+        "name": "Gentleman's Beard"
+      },
+      "pageTitle": "Gentleman's set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/wilsonbeardshort.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-15T14:52:44Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "465b92f5a35fca1eee2835f43b727d34c5a7342663ae8e949a54666d753a7525",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Stylist",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Gentleman's set",
+          "sourceRevisionTimestamp": "2026-02-15T14:52:44Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "WilsonBeardShort",
+            "itemName": "Gentleman's Beard",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Stylist",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Gentleman's set",
+            "sourceRevisionTimestamp": "2026-02-15T14:52:44Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 353,
+            "internalName": "Stylist",
+            "name": "Stylist"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "WilsonPants",
+      "itemName": "Gentleman's Trousers",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 5103,
+        "internalName": "WilsonPants",
+        "name": "Gentleman's Trousers"
+      },
+      "pageTitle": "Gentleman's set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/wilsonpants.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-15T14:52:44Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "8249d7a942386188104edbda44ef461c9ee3fef53130d66772034c793a85e2c6",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Stylist",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Gentleman's set",
+          "sourceRevisionTimestamp": "2026-02-15T14:52:44Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "WilsonPants",
+            "itemName": "Gentleman's Trousers",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Stylist",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Gentleman's set",
+            "sourceRevisionTimestamp": "2026-02-15T14:52:44Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 353,
+            "internalName": "Stylist",
+            "name": "Stylist"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "WilsonShirt",
+      "itemName": "Gentleman's Vest",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 5102,
+        "internalName": "WilsonShirt",
+        "name": "Gentleman's Vest"
+      },
+      "pageTitle": "Gentleman's set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/wilsonshirt.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-15T14:52:44Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "d8d82fcc2a8662291e8973533842f93b2e797fa6fc9eca5a9739267065328725",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Stylist",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Gentleman's set",
+          "sourceRevisionTimestamp": "2026-02-15T14:52:44Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "WilsonShirt",
+            "itemName": "Gentleman's Vest",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Stylist",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Gentleman's set",
+            "sourceRevisionTimestamp": "2026-02-15T14:52:44Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 353,
+            "internalName": "Stylist",
+            "name": "Stylist"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "Wood",
+      "itemName": "Wood",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 9,
+        "internalName": "Wood",
+        "name": "Wood"
+      },
+      "pageTitle": "Woods",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/wood.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-02T20:27:11Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "616be7c6cdf01a89a8f58b2eac49a9f811f9c3c131f990f522946856de16a8b4",
+          "sourceType": "mining",
+          "sourceRefType": "world",
+          "sourceRefName": "Woods vein",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": "Wood is a type of block that is generally obtained by cutting down trees using an axe or a chainsaw . Regular Wood can be harvested from Forest trees , vanity trees , Living Trees , and Underground Cabins in underground or cavern layers, as well as by using the Faecorn . Forest trees can be cultivated by placing Acorns on top of regular grass or Mowed grass above surface , and vanity trees can be cultivated by placing Sakura Sapling or Yellow Willow Sapling on top of any grass (but yields Ebonwood or Shadewood instead if placed on Corrupt or Crimson grass variants).",
+          "notes": null,
+          "sourcePage": "Woods",
+          "sourceRevisionTimestamp": "2026-04-02T20:27:11Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "Wood",
+            "itemName": "Wood",
+            "sourceType": "mining",
+            "sourceRefType": "world",
+            "sourceRefName": "Woods vein",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": "Wood is a type of block that is generally obtained by cutting down trees using an axe or a chainsaw . Regular Wood can be harvested from Forest trees , vanity trees , Living Trees , and Underground Cabins in underground or cavern layers, as well as by using the Faecorn . Forest trees can be cultivated by placing Acorns on top of regular grass or Mowed grass above surface , and vanity trees can be cultivated by placing Sakura Sapling or Yellow Willow Sapling on top of any grass (but yields Ebonwood or Shadewood instead if placed on Corrupt or Crimson grass variants).",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Woods",
+            "sourceRevisionTimestamp": "2026-04-02T20:27:11Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "world_text_ref",
+          "resolvedRef": null,
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "f7c905c762d4f6359a536862d037e27e6a05a26e25c4eca33d140f659509882b",
+          "sourceType": "worldgen",
+          "sourceRefType": "world",
+          "sourceRefName": "Woods worldgen",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": "Some Wood types are found placed in other forms. For example, Underground Cabins generally use Wood corresponding to their biome (i.e. Rich Mahogany in the Jungle, Boreal in the Snow biome, regular Wood basically everywhere else). Living Trees and Living Mahogany Trees are made of Living Wood and Rich Mahogany, respectively.",
+          "notes": null,
+          "sourcePage": "Woods",
+          "sourceRevisionTimestamp": "2026-04-02T20:27:11Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "Wood",
+            "itemName": "Wood",
+            "sourceType": "worldgen",
+            "sourceRefType": "world",
+            "sourceRefName": "Woods worldgen",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": "Some Wood types are found placed in other forms. For example, Underground Cabins generally use Wood corresponding to their biome (i.e. Rich Mahogany in the Jungle, Boreal in the Snow biome, regular Wood basically everywhere else). Living Trees and Living Mahogany Trees are made of Living Wood and Rich Mahogany, respectively.",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Woods",
+            "sourceRevisionTimestamp": "2026-04-02T20:27:11Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "world_text_ref",
+          "resolvedRef": null,
+          "blockedReason": null
+        }
+      ]
+    }
+  ],
+  "blockedCandidates": []
+}

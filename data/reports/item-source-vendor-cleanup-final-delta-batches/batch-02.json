@@ -1,0 +1,2625 @@
+{
+  "generatedAt": "2026-06-10T06:20:02.901Z",
+  "readOnly": true,
+  "mode": "vendor_cleanup_final_delta",
+  "inputs": {
+    "rawItemPageDir": "/home/lolben/data/terraPedia/raw/wiki/item-pages",
+    "npcParsedPath": "/home/lolben/data/terraPedia/raw/wiki/module__npcinfo__data.parsed.latest.json",
+    "standardizedNpcsPath": "/home/lolben/TerraPedia/data/standardized/npcs.standardized.json",
+    "standardizedItemsPath": "/home/lolben/TerraPedia/data/standardized/items.standardized.json",
+    "itemSourcesDir": "/home/lolben/TerraPedia/data/standardized-view/item_relations/itemSources",
+    "sample": null,
+    "limit": null,
+    "batchIndex": 2,
+    "batchCount": 2
+  },
+  "sourceAudit": {
+    "generatedAt": "2026-06-10T06:20:02.825Z",
+    "readOnly": true,
+    "parsedRawItemPages": 6131,
+    "inspectedRawPages": 6131,
+    "rawPagesWithExtractedSources": 2614,
+    "rawExtractedButStandardizedZeroCandidates": 1488
+  },
+  "summary": {
+    "totalCandidates": 1488,
+    "eligibleCandidates": 45,
+    "blockedCandidates": 0,
+    "plannedSourceRows": 49,
+    "blockedSourceRows": 0,
+    "classificationCounts": {
+      "family_page_candidate": 1129,
+      "high_confidence": 271,
+      "polluted_candidate": 88
+    },
+    "blockedReasonCounts": {
+      "family_page_candidate": 1129,
+      "polluted_candidate": 88
+    },
+    "plannedSourceRefTypeCounts": {
+      "npc": 299,
+      "crate": 90,
+      "boss": 12,
+      "treasure_bag": 10,
+      "world": 30,
+      "container": 13
+    }
+  },
+  "eligibleCandidates": [
+    {
+      "itemInternalName": "PlumbersShirt",
+      "itemName": "Plumber's Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 245,
+        "internalName": "PlumbersShirt",
+        "name": "Plumber's Shirt"
+      },
+      "pageTitle": "Plumber's set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/plumbersshirt.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 3,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-12-29T23:48:13Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "a543c78b5a102e14a0604066f9c14995a244f1f31f6b2d0b26a8c2541e7e6e52",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Clothier",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Plumber's set is a vanity set made up of the Plumber's Hat , the Plumber's Shirt , and the Plumber's Pants . The hat has a 1/250 (0.4%) chance to be dropped by Fire Imps , while the shirt and pants are purchased from the Clothier for 25 GC each, during a full moon .",
+          "sourcePage": "Plumber's set",
+          "sourceRevisionTimestamp": "2025-12-29T23:48:13Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PlumbersShirt",
+            "itemName": "Plumber's Shirt",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Clothier",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Plumber's set is a vanity set made up of the Plumber's Hat , the Plumber's Shirt , and the Plumber's Pants . The hat has a 1/250 (0.4%) chance to be dropped by Fire Imps , while the shirt and pants are purchased from the Clothier for 25 GC each, during a full moon .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Plumber's set",
+            "sourceRevisionTimestamp": "2025-12-29T23:48:13Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 54,
+            "internalName": "Clothier",
+            "name": "Clothier"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "223f03dad3d8b7a95025daedebe70ff5baaab44ffab295242e682375e29030cb",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Fire Imp",
+          "quantityText": "1",
+          "chanceText": "0.4%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Plumber's set",
+          "sourceRevisionTimestamp": "2025-12-29T23:48:13Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "PlumbersShirt",
+            "itemName": "Plumber's Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Fire Imp",
+            "quantityText": "1",
+            "chanceText": "0.4%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Plumber's set",
+            "sourceRevisionTimestamp": "2025-12-29T23:48:13Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 24,
+            "internalName": "FireImp",
+            "name": "Fire Imp"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PrettyPinkDressPants",
+      "itemName": "Pretty Pink Stockings",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 4665,
+        "internalName": "PrettyPinkDressPants",
+        "name": "Pretty Pink Stockings"
+      },
+      "pageTitle": "Pretty Pink set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/prettypinkdresspants.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2024-04-13T04:38:27Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "49824a1ad93b07d41a311d18ac7d9d741719a74adbd9f8162011050614f4c9b0",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Traveling Merchant",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Pretty Pink set is a vanity set consisting of the Pretty Pink Ribbon , Pretty Pink Dress , and Pretty Pink Stockings . The set is purchased from the Traveling Merchant for 55 GC (set) .",
+          "sourcePage": "Pretty Pink set",
+          "sourceRevisionTimestamp": "2024-04-13T04:38:27Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PrettyPinkDressPants",
+            "itemName": "Pretty Pink Stockings",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Traveling Merchant",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Pretty Pink set is a vanity set consisting of the Pretty Pink Ribbon , Pretty Pink Dress , and Pretty Pink Stockings . The set is purchased from the Traveling Merchant for 55 GC (set) .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Pretty Pink set",
+            "sourceRevisionTimestamp": "2024-04-13T04:38:27Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 368,
+            "internalName": "TravellingMerchant",
+            "name": "Traveling Merchant"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PrettyPinkDressSkirt",
+      "itemName": "Pretty Pink Dress",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 4664,
+        "internalName": "PrettyPinkDressSkirt",
+        "name": "Pretty Pink Dress"
+      },
+      "pageTitle": "Pretty Pink set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/prettypinkdressskirt.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2024-04-13T04:38:27Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "8583fd221a7094644b75f1648ff7f8ddbf43dfd56a30cae34fe109a4c116f5e5",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Traveling Merchant",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Pretty Pink set is a vanity set consisting of the Pretty Pink Ribbon , Pretty Pink Dress , and Pretty Pink Stockings . The set is purchased from the Traveling Merchant for 55 GC (set) .",
+          "sourcePage": "Pretty Pink set",
+          "sourceRevisionTimestamp": "2024-04-13T04:38:27Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PrettyPinkDressSkirt",
+            "itemName": "Pretty Pink Dress",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Traveling Merchant",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Pretty Pink set is a vanity set consisting of the Pretty Pink Ribbon , Pretty Pink Dress , and Pretty Pink Stockings . The set is purchased from the Traveling Merchant for 55 GC (set) .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Pretty Pink set",
+            "sourceRevisionTimestamp": "2024-04-13T04:38:27Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 368,
+            "internalName": "TravellingMerchant",
+            "name": "Traveling Merchant"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PrettyPinkRibbon",
+      "itemName": "Pretty Pink Ribbon",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 4666,
+        "internalName": "PrettyPinkRibbon",
+        "name": "Pretty Pink Ribbon"
+      },
+      "pageTitle": "Pretty Pink set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/prettypinkribbon.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2024-04-13T04:38:27Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "6518666839d50c74b5d67589a2c9eb661f4dbdf675f2977b09d1ff83688d638b",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Traveling Merchant",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Pretty Pink set is a vanity set consisting of the Pretty Pink Ribbon , Pretty Pink Dress , and Pretty Pink Stockings . The set is purchased from the Traveling Merchant for 55 GC (set) .",
+          "sourcePage": "Pretty Pink set",
+          "sourceRevisionTimestamp": "2024-04-13T04:38:27Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PrettyPinkRibbon",
+            "itemName": "Pretty Pink Ribbon",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Traveling Merchant",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Pretty Pink set is a vanity set consisting of the Pretty Pink Ribbon , Pretty Pink Dress , and Pretty Pink Stockings . The set is purchased from the Traveling Merchant for 55 GC (set) .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Pretty Pink set",
+            "sourceRevisionTimestamp": "2024-04-13T04:38:27Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 368,
+            "internalName": "TravellingMerchant",
+            "name": "Traveling Merchant"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PrinceCape",
+      "itemName": "Prince Cape",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 5080,
+        "internalName": "PrinceCape",
+        "name": "Prince Cape"
+      },
+      "pageTitle": "Prince set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/princecape.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-11-10T09:35:02Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "699176b0ecbc278d504467df6fc1425adf49199c4c24da6628bcf2461c341056",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Princess",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Prince set is a Hardmode vanity set consisting of the Prince Uniform , Prince Cape , and the Prince Pants . It is purchased from the Princess for 1 PC 50 GC (set) .",
+          "sourcePage": "Prince set",
+          "sourceRevisionTimestamp": "2023-11-10T09:35:02Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PrinceCape",
+            "itemName": "Prince Cape",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Princess",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Prince set is a Hardmode vanity set consisting of the Prince Uniform , Prince Cape , and the Prince Pants . It is purchased from the Princess for 1 PC 50 GC (set) .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Prince set",
+            "sourceRevisionTimestamp": "2023-11-10T09:35:02Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 663,
+            "internalName": "Princess",
+            "name": "Princess"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PrincePants",
+      "itemName": "Prince Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 5079,
+        "internalName": "PrincePants",
+        "name": "Prince Pants"
+      },
+      "pageTitle": "Prince set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/princepants.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-11-10T09:35:02Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "1fb30c72ab6e9642c544f06a56f7ddc0e7262dc8797dcbc97b4aacbe8b20d01c",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Princess",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Prince set is a Hardmode vanity set consisting of the Prince Uniform , Prince Cape , and the Prince Pants . It is purchased from the Princess for 1 PC 50 GC (set) .",
+          "sourcePage": "Prince set",
+          "sourceRevisionTimestamp": "2023-11-10T09:35:02Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PrincePants",
+            "itemName": "Prince Pants",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Princess",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Prince set is a Hardmode vanity set consisting of the Prince Uniform , Prince Cape , and the Prince Pants . It is purchased from the Princess for 1 PC 50 GC (set) .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Prince set",
+            "sourceRevisionTimestamp": "2023-11-10T09:35:02Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 663,
+            "internalName": "Princess",
+            "name": "Princess"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PrinceUniform",
+      "itemName": "Prince Uniform",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 5078,
+        "internalName": "PrinceUniform",
+        "name": "Prince Uniform"
+      },
+      "pageTitle": "Prince set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/princeuniform.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-11-10T09:35:02Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "6bd48ff8616a7397bf670ec21611015c3c19ab778f51d2b328113b42f2ca0cb9",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Princess",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Prince set is a Hardmode vanity set consisting of the Prince Uniform , Prince Cape , and the Prince Pants . It is purchased from the Princess for 1 PC 50 GC (set) .",
+          "sourcePage": "Prince set",
+          "sourceRevisionTimestamp": "2023-11-10T09:35:02Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PrinceUniform",
+            "itemName": "Prince Uniform",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Princess",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Prince set is a Hardmode vanity set consisting of the Prince Uniform , Prince Cape , and the Prince Pants . It is purchased from the Princess for 1 PC 50 GC (set) .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Prince set",
+            "sourceRevisionTimestamp": "2023-11-10T09:35:02Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 663,
+            "internalName": "Princess",
+            "name": "Princess"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PurificationPowder",
+      "itemName": "Purification Powder",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 66,
+        "internalName": "PurificationPowder",
+        "name": "Purification Powder"
+      },
+      "pageTitle": "Thrown Powder",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/purificationpowder.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-30T16:50:06Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "cfda58c39e6af851158b4b323e0c044d695a1f167550a67e9d9e1eabc432fe4e",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Dryad",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "Vile Powder is able to convert blocks and walls, including the Crimson and the Hallowed ones, into their Corrupted form, such as converting Pearlstone into Ebonstone. If thrown at a Bunny , Penguin , or Goldfish , it will turn into its Corrupted variants: the Corrupt Bunny , Corrupt Penguin , and Corrupt Goldfish , respectively. It can be crafted from Vile Mushrooms or purchased from the Dryad for 1 SC each during a Blood Moon in a Corrupt world.",
+          "sourcePage": "Thrown Powder",
+          "sourceRevisionTimestamp": "2026-04-30T16:50:06Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PurificationPowder",
+            "itemName": "Purification Powder",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Dryad",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "Vile Powder is able to convert blocks and walls, including the Crimson and the Hallowed ones, into their Corrupted form, such as converting Pearlstone into Ebonstone. If thrown at a Bunny , Penguin , or Goldfish , it will turn into its Corrupted variants: the Corrupt Bunny , Corrupt Penguin , and Corrupt Goldfish , respectively. It can be crafted from Vile Mushrooms or purchased from the Dryad for 1 SC each during a Blood Moon in a Corrupt world.",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Thrown Powder",
+            "sourceRevisionTimestamp": "2026-04-30T16:50:06Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 20,
+            "internalName": "Dryad",
+            "name": "Dryad"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "RoyalDressBottom",
+      "itemName": "Royal Dress",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 5073,
+        "internalName": "RoyalDressBottom",
+        "name": "Royal Dress"
+      },
+      "pageTitle": "Royal set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/royaldressbottom.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-11T16:31:58Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "f3a824a61b3f7ac41b366d97d2e9f8a4bce6a38f12d3bd98f0ce56f394c7e8cd",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Princess",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Royal set is a Hardmode vanity set consisting of the Royal Tiara , Royal Blouse , and the Royal Dress . It is purchased from the Princess for 1 PC 50 GC (set) .",
+          "sourcePage": "Royal set",
+          "sourceRevisionTimestamp": "2026-02-11T16:31:58Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "RoyalDressBottom",
+            "itemName": "Royal Dress",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Princess",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Royal set is a Hardmode vanity set consisting of the Royal Tiara , Royal Blouse , and the Royal Dress . It is purchased from the Princess for 1 PC 50 GC (set) .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Royal set",
+            "sourceRevisionTimestamp": "2026-02-11T16:31:58Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 663,
+            "internalName": "Princess",
+            "name": "Princess"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "RoyalDressTop",
+      "itemName": "Royal Blouse",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 5072,
+        "internalName": "RoyalDressTop",
+        "name": "Royal Blouse"
+      },
+      "pageTitle": "Royal set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/royaldresstop.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-11T16:31:58Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "5d4c8b70dc60865add28a76690b55d84cd35388a9d8446393cee3fcc0336d3aa",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Princess",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Royal set is a Hardmode vanity set consisting of the Royal Tiara , Royal Blouse , and the Royal Dress . It is purchased from the Princess for 1 PC 50 GC (set) .",
+          "sourcePage": "Royal set",
+          "sourceRevisionTimestamp": "2026-02-11T16:31:58Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "RoyalDressTop",
+            "itemName": "Royal Blouse",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Princess",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Royal set is a Hardmode vanity set consisting of the Royal Tiara , Royal Blouse , and the Royal Dress . It is purchased from the Princess for 1 PC 50 GC (set) .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Royal set",
+            "sourceRevisionTimestamp": "2026-02-11T16:31:58Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 663,
+            "internalName": "Princess",
+            "name": "Princess"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "RoyalTiara",
+      "itemName": "Royal Tiara",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 5071,
+        "internalName": "RoyalTiara",
+        "name": "Royal Tiara"
+      },
+      "pageTitle": "Royal set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/royaltiara.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-11T16:31:58Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "2228b3bd5a278102ac148cec6a0fbfe2587f54488fa918b903ac2cc6bc2ef312",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Princess",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Royal set is a Hardmode vanity set consisting of the Royal Tiara , Royal Blouse , and the Royal Dress . It is purchased from the Princess for 1 PC 50 GC (set) .",
+          "sourcePage": "Royal set",
+          "sourceRevisionTimestamp": "2026-02-11T16:31:58Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "RoyalTiara",
+            "itemName": "Royal Tiara",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Princess",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Royal set is a Hardmode vanity set consisting of the Royal Tiara , Royal Blouse , and the Royal Dress . It is purchased from the Princess for 1 PC 50 GC (set) .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Royal set",
+            "sourceRevisionTimestamp": "2026-02-11T16:31:58Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 663,
+            "internalName": "Princess",
+            "name": "Princess"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SantaHat",
+      "itemName": "Santa Hat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 588,
+        "internalName": "SantaHat",
+        "name": "Santa Hat"
+      },
+      "pageTitle": "Santa set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/santahat.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T06:12:54Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "930d57240f83b03f74df097adb3af3dd7b9203cfd127d82908e9969b4d73c590",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Santa Claus",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Santa set is a vanity set which consists of the Santa Hat , the Santa Shirt , and the Santa Pants . It is purchased from Santa Claus for 45 GC (set) after the Frost Legion has been defeated.",
+          "sourcePage": "Santa set",
+          "sourceRevisionTimestamp": "2023-10-23T06:12:54Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SantaHat",
+            "itemName": "Santa Hat",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Santa Claus",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Santa set is a vanity set which consists of the Santa Hat , the Santa Shirt , and the Santa Pants . It is purchased from Santa Claus for 45 GC (set) after the Frost Legion has been defeated.",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Santa set",
+            "sourceRevisionTimestamp": "2023-10-23T06:12:54Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 142,
+            "internalName": "SantaClaus",
+            "name": "Santa Claus"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SantaPants",
+      "itemName": "Santa Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 590,
+        "internalName": "SantaPants",
+        "name": "Santa Pants"
+      },
+      "pageTitle": "Santa set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/santapants.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T06:12:54Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "6be96153ed360f4003dd4f0b29aa89f6eed3a91785e071ab297fe24d3b4c117c",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Santa Claus",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Santa set is a vanity set which consists of the Santa Hat , the Santa Shirt , and the Santa Pants . It is purchased from Santa Claus for 45 GC (set) after the Frost Legion has been defeated.",
+          "sourcePage": "Santa set",
+          "sourceRevisionTimestamp": "2023-10-23T06:12:54Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SantaPants",
+            "itemName": "Santa Pants",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Santa Claus",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Santa set is a vanity set which consists of the Santa Hat , the Santa Shirt , and the Santa Pants . It is purchased from Santa Claus for 45 GC (set) after the Frost Legion has been defeated.",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Santa set",
+            "sourceRevisionTimestamp": "2023-10-23T06:12:54Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 142,
+            "internalName": "SantaClaus",
+            "name": "Santa Claus"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SantaShirt",
+      "itemName": "Santa Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 589,
+        "internalName": "SantaShirt",
+        "name": "Santa Shirt"
+      },
+      "pageTitle": "Santa set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/santashirt.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T06:12:54Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "e26e02b7b3f845c9c3fb43312bab92181c6f264691c213f053c0f31e57f75459",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Santa Claus",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Santa set is a vanity set which consists of the Santa Hat , the Santa Shirt , and the Santa Pants . It is purchased from Santa Claus for 45 GC (set) after the Frost Legion has been defeated.",
+          "sourcePage": "Santa set",
+          "sourceRevisionTimestamp": "2023-10-23T06:12:54Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SantaShirt",
+            "itemName": "Santa Shirt",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Santa Claus",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Santa set is a vanity set which consists of the Santa Hat , the Santa Shirt , and the Santa Pants . It is purchased from Santa Claus for 45 GC (set) after the Frost Legion has been defeated.",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Santa set",
+            "sourceRevisionTimestamp": "2023-10-23T06:12:54Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 142,
+            "internalName": "SantaClaus",
+            "name": "Santa Claus"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SquireAltHead",
+      "itemName": "Valhalla Knight's Helm",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 3871,
+        "internalName": "SquireAltHead",
+        "name": "Valhalla Knight's Helm"
+      },
+      "pageTitle": "Valhalla Knight armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/squirealthead.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-18T13:08:33Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "f1680880148499843cc49b13ca9c5bf67818fc0909799a6a6113f1419ac5dbab",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Tavernkeep",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "Valhalla Knight armor is a Hardmode , post- Golem melee/summoner armor set consisting of the Valhalla Knight's Helm , Valhalla Knight's Breastplate , and Valhalla Knight's Greaves . The set can be purchased from the Tavernkeep for a total of 1500000* 150 .",
+          "sourcePage": "Valhalla Knight armor",
+          "sourceRevisionTimestamp": "2026-04-18T13:08:33Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SquireAltHead",
+            "itemName": "Valhalla Knight's Helm",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Tavernkeep",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "Valhalla Knight armor is a Hardmode , post- Golem melee/summoner armor set consisting of the Valhalla Knight's Helm , Valhalla Knight's Breastplate , and Valhalla Knight's Greaves . The set can be purchased from the Tavernkeep for a total of 1500000* 150 .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Valhalla Knight armor",
+            "sourceRevisionTimestamp": "2026-04-18T13:08:33Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 550,
+            "internalName": "DD2Bartender",
+            "name": "Tavernkeep"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SquireAltPants",
+      "itemName": "Valhalla Knight's Greaves",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 3873,
+        "internalName": "SquireAltPants",
+        "name": "Valhalla Knight's Greaves"
+      },
+      "pageTitle": "Valhalla Knight armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/squirealtpants.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-18T13:08:33Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "8a8e7519958d6951aa8be4f6cf616084e7e90483feeee403f4b95ebdb08a7337",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Tavernkeep",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "Valhalla Knight armor is a Hardmode , post- Golem melee/summoner armor set consisting of the Valhalla Knight's Helm , Valhalla Knight's Breastplate , and Valhalla Knight's Greaves . The set can be purchased from the Tavernkeep for a total of 1500000* 150 .",
+          "sourcePage": "Valhalla Knight armor",
+          "sourceRevisionTimestamp": "2026-04-18T13:08:33Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SquireAltPants",
+            "itemName": "Valhalla Knight's Greaves",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Tavernkeep",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "Valhalla Knight armor is a Hardmode , post- Golem melee/summoner armor set consisting of the Valhalla Knight's Helm , Valhalla Knight's Breastplate , and Valhalla Knight's Greaves . The set can be purchased from the Tavernkeep for a total of 1500000* 150 .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Valhalla Knight armor",
+            "sourceRevisionTimestamp": "2026-04-18T13:08:33Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 550,
+            "internalName": "DD2Bartender",
+            "name": "Tavernkeep"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SquireAltShirt",
+      "itemName": "Valhalla Knight's Breastplate",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 3872,
+        "internalName": "SquireAltShirt",
+        "name": "Valhalla Knight's Breastplate"
+      },
+      "pageTitle": "Valhalla Knight armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/squirealtshirt.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-18T13:08:33Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "e7d66951e00f90cc0a207d30af73f5bb275481c704c97be21c3f097391b72ff9",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Tavernkeep",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "Valhalla Knight armor is a Hardmode , post- Golem melee/summoner armor set consisting of the Valhalla Knight's Helm , Valhalla Knight's Breastplate , and Valhalla Knight's Greaves . The set can be purchased from the Tavernkeep for a total of 1500000* 150 .",
+          "sourcePage": "Valhalla Knight armor",
+          "sourceRevisionTimestamp": "2026-04-18T13:08:33Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SquireAltShirt",
+            "itemName": "Valhalla Knight's Breastplate",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Tavernkeep",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "Valhalla Knight armor is a Hardmode , post- Golem melee/summoner armor set consisting of the Valhalla Knight's Helm , Valhalla Knight's Breastplate , and Valhalla Knight's Greaves . The set can be purchased from the Tavernkeep for a total of 1500000* 150 .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Valhalla Knight armor",
+            "sourceRevisionTimestamp": "2026-04-18T13:08:33Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 550,
+            "internalName": "DD2Bartender",
+            "name": "Tavernkeep"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SquireGreatHelm",
+      "itemName": "Squire's Great Helm",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 3800,
+        "internalName": "SquireGreatHelm",
+        "name": "Squire's Great Helm"
+      },
+      "pageTitle": "Squire armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/squiregreathelm.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-19T08:10:52Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "eebca38c83433836425c8d2d814f21403e2884f758505726eaef547e56c119e9",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Tavernkeep",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "Squire armor is a Hardmode melee/summoner armor set consisting of the Squire's Great Helm , Squire's Plating , and Squire's Greaves . The set can be purchased from the Tavernkeep for a total of 450000* 45 after defeating any mechanical boss .",
+          "sourcePage": "Squire armor",
+          "sourceRevisionTimestamp": "2026-04-19T08:10:52Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SquireGreatHelm",
+            "itemName": "Squire's Great Helm",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Tavernkeep",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "Squire armor is a Hardmode melee/summoner armor set consisting of the Squire's Great Helm , Squire's Plating , and Squire's Greaves . The set can be purchased from the Tavernkeep for a total of 450000* 45 after defeating any mechanical boss .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Squire armor",
+            "sourceRevisionTimestamp": "2026-04-19T08:10:52Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 550,
+            "internalName": "DD2Bartender",
+            "name": "Tavernkeep"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SquireGreaves",
+      "itemName": "Squire's Greaves",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 3802,
+        "internalName": "SquireGreaves",
+        "name": "Squire's Greaves"
+      },
+      "pageTitle": "Squire armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/squiregreaves.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-19T08:10:52Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "1037680ec21402bdfce2efd23ebb5f5a6d1bf827f7b3b3a511def25345842457",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Tavernkeep",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "Squire armor is a Hardmode melee/summoner armor set consisting of the Squire's Great Helm , Squire's Plating , and Squire's Greaves . The set can be purchased from the Tavernkeep for a total of 450000* 45 after defeating any mechanical boss .",
+          "sourcePage": "Squire armor",
+          "sourceRevisionTimestamp": "2026-04-19T08:10:52Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SquireGreaves",
+            "itemName": "Squire's Greaves",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Tavernkeep",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "Squire armor is a Hardmode melee/summoner armor set consisting of the Squire's Great Helm , Squire's Plating , and Squire's Greaves . The set can be purchased from the Tavernkeep for a total of 450000* 45 after defeating any mechanical boss .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Squire armor",
+            "sourceRevisionTimestamp": "2026-04-19T08:10:52Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 550,
+            "internalName": "DD2Bartender",
+            "name": "Tavernkeep"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SquirePlating",
+      "itemName": "Squire's Plating",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 3801,
+        "internalName": "SquirePlating",
+        "name": "Squire's Plating"
+      },
+      "pageTitle": "Squire armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/squireplating.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-19T08:10:52Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "a5bd95b18cb053dc32e9a88a3ea6f8d2023ff80e09f2d11a719638e5c4a86de7",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Tavernkeep",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "Squire armor is a Hardmode melee/summoner armor set consisting of the Squire's Great Helm , Squire's Plating , and Squire's Greaves . The set can be purchased from the Tavernkeep for a total of 450000* 45 after defeating any mechanical boss .",
+          "sourcePage": "Squire armor",
+          "sourceRevisionTimestamp": "2026-04-19T08:10:52Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SquirePlating",
+            "itemName": "Squire's Plating",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Tavernkeep",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "Squire armor is a Hardmode melee/summoner armor set consisting of the Squire's Great Helm , Squire's Plating , and Squire's Greaves . The set can be purchased from the Tavernkeep for a total of 450000* 45 after defeating any mechanical boss .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Squire armor",
+            "sourceRevisionTimestamp": "2026-04-19T08:10:52Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 550,
+            "internalName": "DD2Bartender",
+            "name": "Tavernkeep"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "StarPrincessCrown",
+      "itemName": "Star Princess Crown",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 4323,
+        "internalName": "StarPrincessCrown",
+        "name": "Star Princess Crown"
+      },
+      "pageTitle": "Star Princess set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/starprincesscrown.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2024-01-18T17:38:26Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "41909e774dd3582568c6ac05cf73a0f552f5b8f5b596660c7d72402695d50fd7",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Traveling Merchant",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "These items are to be equipped in the Social Slots as they only provide a visual appearance. They are purchased from the Traveling Merchant for 1 PC (set) , and is always sold along with the Celestial Wand .",
+          "sourcePage": "Star Princess set",
+          "sourceRevisionTimestamp": "2024-01-18T17:38:26Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "StarPrincessCrown",
+            "itemName": "Star Princess Crown",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Traveling Merchant",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "These items are to be equipped in the Social Slots as they only provide a visual appearance. They are purchased from the Traveling Merchant for 1 PC (set) , and is always sold along with the Celestial Wand .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Star Princess set",
+            "sourceRevisionTimestamp": "2024-01-18T17:38:26Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 368,
+            "internalName": "TravellingMerchant",
+            "name": "Traveling Merchant"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "StarPrincessDress",
+      "itemName": "Star Princess Dress",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 4324,
+        "internalName": "StarPrincessDress",
+        "name": "Star Princess Dress"
+      },
+      "pageTitle": "Star Princess set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/starprincessdress.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2024-01-18T17:38:26Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "1918607db5fb5bd53938f71d4f2d335b4166883578fe0090eb4180686ca2cf1d",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Traveling Merchant",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "These items are to be equipped in the Social Slots as they only provide a visual appearance. They are purchased from the Traveling Merchant for 1 PC (set) , and is always sold along with the Celestial Wand .",
+          "sourcePage": "Star Princess set",
+          "sourceRevisionTimestamp": "2024-01-18T17:38:26Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "StarPrincessDress",
+            "itemName": "Star Princess Dress",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Traveling Merchant",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "These items are to be equipped in the Social Slots as they only provide a visual appearance. They are purchased from the Traveling Merchant for 1 PC (set) , and is always sold along with the Celestial Wand .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Star Princess set",
+            "sourceRevisionTimestamp": "2024-01-18T17:38:26Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 368,
+            "internalName": "TravellingMerchant",
+            "name": "Traveling Merchant"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SteampunkHat",
+      "itemName": "Steampunk Hat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 839,
+        "internalName": "SteampunkHat",
+        "name": "Steampunk Hat"
+      },
+      "pageTitle": "Steampunk set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/steampunkhat.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-01-13T18:02:38Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "2d1f7891ceae6185be7e1e0f01b0702e8fd96eaece08a34bf11460ae954e0053",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Steampunker",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Steampunk set is a Hardmode vanity set which consists of the Steampunk Hat , Steampunk Shirt , and Steampunk Pants . It is purchased from the Steampunker for 4 GC 50 SC (set) , during the full and waning moon phases .",
+          "sourcePage": "Steampunk set",
+          "sourceRevisionTimestamp": "2026-01-13T18:02:38Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SteampunkHat",
+            "itemName": "Steampunk Hat",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Steampunker",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Steampunk set is a Hardmode vanity set which consists of the Steampunk Hat , Steampunk Shirt , and Steampunk Pants . It is purchased from the Steampunker for 4 GC 50 SC (set) , during the full and waning moon phases .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Steampunk set",
+            "sourceRevisionTimestamp": "2026-01-13T18:02:38Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 178,
+            "internalName": "Steampunker",
+            "name": "Steampunker"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SteampunkPants",
+      "itemName": "Steampunk Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 841,
+        "internalName": "SteampunkPants",
+        "name": "Steampunk Pants"
+      },
+      "pageTitle": "Steampunk set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/steampunkpants.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-01-13T18:02:38Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "e64e6225ff2de62723c5c3c0c1432930ded408304147bad4b1c6b3e3759e4a7e",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Steampunker",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Steampunk set is a Hardmode vanity set which consists of the Steampunk Hat , Steampunk Shirt , and Steampunk Pants . It is purchased from the Steampunker for 4 GC 50 SC (set) , during the full and waning moon phases .",
+          "sourcePage": "Steampunk set",
+          "sourceRevisionTimestamp": "2026-01-13T18:02:38Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SteampunkPants",
+            "itemName": "Steampunk Pants",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Steampunker",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Steampunk set is a Hardmode vanity set which consists of the Steampunk Hat , Steampunk Shirt , and Steampunk Pants . It is purchased from the Steampunker for 4 GC 50 SC (set) , during the full and waning moon phases .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Steampunk set",
+            "sourceRevisionTimestamp": "2026-01-13T18:02:38Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 178,
+            "internalName": "Steampunker",
+            "name": "Steampunker"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SteampunkShirt",
+      "itemName": "Steampunk Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 840,
+        "internalName": "SteampunkShirt",
+        "name": "Steampunk Shirt"
+      },
+      "pageTitle": "Steampunk set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/steampunkshirt.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-01-13T18:02:38Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "d942b53187695f88e5ff99d81d451ddc89f959fe9459345446470fdae5051444",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Steampunker",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Steampunk set is a Hardmode vanity set which consists of the Steampunk Hat , Steampunk Shirt , and Steampunk Pants . It is purchased from the Steampunker for 4 GC 50 SC (set) , during the full and waning moon phases .",
+          "sourcePage": "Steampunk set",
+          "sourceRevisionTimestamp": "2026-01-13T18:02:38Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SteampunkShirt",
+            "itemName": "Steampunk Shirt",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Steampunker",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Steampunk set is a Hardmode vanity set which consists of the Steampunk Hat , Steampunk Shirt , and Steampunk Pants . It is purchased from the Steampunker for 4 GC 50 SC (set) , during the full and waning moon phases .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Steampunk set",
+            "sourceRevisionTimestamp": "2026-01-13T18:02:38Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 178,
+            "internalName": "Steampunker",
+            "name": "Steampunker"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "StyngerBolt",
+      "itemName": "Stynger Bolt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1261,
+        "internalName": "StyngerBolt",
+        "name": "Stynger Bolt"
+      },
+      "pageTitle": "Stynger",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/styngerbolt.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 5,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-01-05T19:47:00Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "03c4efd677321b57c97e65660087ecf45262f5b077d67cf0c7d14527d1dc3577",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Arms Dealer",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Stynger has a 1/7 (14.29%) chance of being dropped by Golem . When dropped, the Stynger is always accompanied by 60 to 99 Stynger Bolts. Additional Stynger Bolts can be purchased from the Witch Doctor and Arms Dealer ( 75 CC per bolt), if the Stynger is in the player's inventory .",
+          "sourcePage": "Stynger",
+          "sourceRevisionTimestamp": "2026-01-05T19:47:00Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "StyngerBolt",
+            "itemName": "Stynger Bolt",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Arms Dealer",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Stynger has a 1/7 (14.29%) chance of being dropped by Golem . When dropped, the Stynger is always accompanied by 60 to 99 Stynger Bolts. Additional Stynger Bolts can be purchased from the Witch Doctor and Arms Dealer ( 75 CC per bolt), if the Stynger is in the player's inventory .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Stynger",
+            "sourceRevisionTimestamp": "2026-01-05T19:47:00Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 19,
+            "internalName": "ArmsDealer",
+            "name": "Arms Dealer"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "a74e97577c0ea3a3e1fe2e43a627c0f4d77eedb73785c5ad0d12a9331997aefa",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Witch Doctor",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Stynger has a 1/7 (14.29%) chance of being dropped by Golem . When dropped, the Stynger is always accompanied by 60 to 99 Stynger Bolts. Additional Stynger Bolts can be purchased from the Witch Doctor and Arms Dealer ( 75 CC per bolt), if the Stynger is in the player's inventory .",
+          "sourcePage": "Stynger",
+          "sourceRevisionTimestamp": "2026-01-05T19:47:00Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "StyngerBolt",
+            "itemName": "Stynger Bolt",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Witch Doctor",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Stynger has a 1/7 (14.29%) chance of being dropped by Golem . When dropped, the Stynger is always accompanied by 60 to 99 Stynger Bolts. Additional Stynger Bolts can be purchased from the Witch Doctor and Arms Dealer ( 75 CC per bolt), if the Stynger is in the player's inventory .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Stynger",
+            "sourceRevisionTimestamp": "2026-01-05T19:47:00Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 228,
+            "internalName": "WitchDoctor",
+            "name": "Witch Doctor"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "fb6322ab775f9f4fb7b748db903961a81de27a6f32d6d42359ff8d58b0b0264d",
+          "sourceType": "drop",
+          "sourceRefType": "boss",
+          "sourceRefName": "Golem",
+          "quantityText": "Stynger + Stynger Bolt (60–99)",
+          "chanceText": "14.29%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Stynger",
+          "sourceRevisionTimestamp": "2026-01-05T19:47:00Z",
+          "sortOrder": 2,
+          "landingRow": {
+            "itemInternalName": "StyngerBolt",
+            "itemName": "Stynger Bolt",
+            "sourceType": "drop",
+            "sourceRefType": "boss",
+            "sourceRefName": "Golem",
+            "quantityText": "Stynger + Stynger Bolt (60–99)",
+            "chanceText": "14.29%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Stynger",
+            "sourceRevisionTimestamp": "2026-01-05T19:47:00Z",
+            "sortOrder": 2
+          },
+          "resolutionStatus": "resolved_boss_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 245,
+            "internalName": "Golem",
+            "name": "Golem"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "2b95fc8a1127ebbae3fee39f76436454a982dc7fd7b68fff62f2b4856789f6e4",
+          "sourceType": "treasure_bag",
+          "sourceRefType": "treasure_bag",
+          "sourceRefName": "Treasure Bag (Golem)",
+          "quantityText": "Stynger + Stynger Bolt (60–99)",
+          "chanceText": "14.29%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Stynger",
+          "sourceRevisionTimestamp": "2026-01-05T19:47:00Z",
+          "sortOrder": 3,
+          "landingRow": {
+            "itemInternalName": "StyngerBolt",
+            "itemName": "Stynger Bolt",
+            "sourceType": "treasure_bag",
+            "sourceRefType": "treasure_bag",
+            "sourceRefName": "Treasure Bag (Golem)",
+            "quantityText": "Stynger + Stynger Bolt (60–99)",
+            "chanceText": "14.29%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Stynger",
+            "sourceRevisionTimestamp": "2026-01-05T19:47:00Z",
+            "sortOrder": 3
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 3329,
+            "internalName": "GolemBossBag",
+            "name": "Treasure Bag (Golem)"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TaxCollectorHat",
+      "itemName": "Tax Collector's Hat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 3242,
+        "internalName": "TaxCollectorHat",
+        "name": "Tax Collector's Hat"
+      },
+      "pageTitle": "Tax Collector's set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/taxcollectorhat.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-11-11T16:03:23Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "ae664ce7250d668710af8023ba86670fb65106a48cd4e7cd61c832a4b55ad219",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Clothier",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Tax Collector's set is a Hardmode vanity set consisting of the Tax Collector's Hat , the Tax Collector's Suit and the Tax Collector's Pants . It is purchased from the Clothier for 9 GC (set) when the Tax Collector is present in the world.",
+          "sourcePage": "Tax Collector's set",
+          "sourceRevisionTimestamp": "2025-11-11T16:03:23Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "TaxCollectorHat",
+            "itemName": "Tax Collector's Hat",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Clothier",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Tax Collector's set is a Hardmode vanity set consisting of the Tax Collector's Hat , the Tax Collector's Suit and the Tax Collector's Pants . It is purchased from the Clothier for 9 GC (set) when the Tax Collector is present in the world.",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Tax Collector's set",
+            "sourceRevisionTimestamp": "2025-11-11T16:03:23Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 54,
+            "internalName": "Clothier",
+            "name": "Clothier"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TaxCollectorPants",
+      "itemName": "Tax Collector's Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 3244,
+        "internalName": "TaxCollectorPants",
+        "name": "Tax Collector's Pants"
+      },
+      "pageTitle": "Tax Collector's set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/taxcollectorpants.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-11-11T16:03:23Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "ae4bcafe74b381ab24f8adefb0ce7688af9d0dc17d4ccbd5c742bf778eb4ab60",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Clothier",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Tax Collector's set is a Hardmode vanity set consisting of the Tax Collector's Hat , the Tax Collector's Suit and the Tax Collector's Pants . It is purchased from the Clothier for 9 GC (set) when the Tax Collector is present in the world.",
+          "sourcePage": "Tax Collector's set",
+          "sourceRevisionTimestamp": "2025-11-11T16:03:23Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "TaxCollectorPants",
+            "itemName": "Tax Collector's Pants",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Clothier",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Tax Collector's set is a Hardmode vanity set consisting of the Tax Collector's Hat , the Tax Collector's Suit and the Tax Collector's Pants . It is purchased from the Clothier for 9 GC (set) when the Tax Collector is present in the world.",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Tax Collector's set",
+            "sourceRevisionTimestamp": "2025-11-11T16:03:23Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 54,
+            "internalName": "Clothier",
+            "name": "Clothier"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TaxCollectorSuit",
+      "itemName": "Tax Collector's Suit",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 3243,
+        "internalName": "TaxCollectorSuit",
+        "name": "Tax Collector's Suit"
+      },
+      "pageTitle": "Tax Collector's set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/taxcollectorsuit.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-11-11T16:03:23Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "64bf14112640e7e6a92eaa49dc1f11ab38524cda9ce93be14741cc621b78288f",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Clothier",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Tax Collector's set is a Hardmode vanity set consisting of the Tax Collector's Hat , the Tax Collector's Suit and the Tax Collector's Pants . It is purchased from the Clothier for 9 GC (set) when the Tax Collector is present in the world.",
+          "sourcePage": "Tax Collector's set",
+          "sourceRevisionTimestamp": "2025-11-11T16:03:23Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "TaxCollectorSuit",
+            "itemName": "Tax Collector's Suit",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Clothier",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Tax Collector's set is a Hardmode vanity set consisting of the Tax Collector's Hat , the Tax Collector's Suit and the Tax Collector's Pants . It is purchased from the Clothier for 9 GC (set) when the Tax Collector is present in the world.",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Tax Collector's set",
+            "sourceRevisionTimestamp": "2025-11-11T16:03:23Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 54,
+            "internalName": "Clothier",
+            "name": "Clothier"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TheDoctorsPants",
+      "itemName": "The Doctor's Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 326,
+        "internalName": "TheDoctorsPants",
+        "name": "The Doctor's Pants"
+      },
+      "pageTitle": "The Doctor's set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/thedoctorspants.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-12-04T15:32:00Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "c79ce1f92c02f68e9e9aa34e25d1ff06448793c254c37dc4fd6b593cac0380c9",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Clothier",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Doctor's set is a vanity set which consists of The Doctor's Shirt and The Doctor's Pants . They are purchased from the Clothier for 40 GC (set) in total, during Waning Gibbous .",
+          "sourcePage": "The Doctor's set",
+          "sourceRevisionTimestamp": "2025-12-04T15:32:00Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "TheDoctorsPants",
+            "itemName": "The Doctor's Pants",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Clothier",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Doctor's set is a vanity set which consists of The Doctor's Shirt and The Doctor's Pants . They are purchased from the Clothier for 40 GC (set) in total, during Waning Gibbous .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "The Doctor's set",
+            "sourceRevisionTimestamp": "2025-12-04T15:32:00Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 54,
+            "internalName": "Clothier",
+            "name": "Clothier"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TheDoctorsShirt",
+      "itemName": "The Doctor's Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 325,
+        "internalName": "TheDoctorsShirt",
+        "name": "The Doctor's Shirt"
+      },
+      "pageTitle": "The Doctor's set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/thedoctorsshirt.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-12-04T15:32:00Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "cb5b64db61e2d9686bd34de6b4d7f82434519c5a088f60a7eb4154612dbfabcd",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Clothier",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Doctor's set is a vanity set which consists of The Doctor's Shirt and The Doctor's Pants . They are purchased from the Clothier for 40 GC (set) in total, during Waning Gibbous .",
+          "sourcePage": "The Doctor's set",
+          "sourceRevisionTimestamp": "2025-12-04T15:32:00Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "TheDoctorsShirt",
+            "itemName": "The Doctor's Shirt",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Clothier",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Doctor's set is a vanity set which consists of The Doctor's Shirt and The Doctor's Pants . They are purchased from the Clothier for 40 GC (set) in total, during Waning Gibbous .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "The Doctor's set",
+            "sourceRevisionTimestamp": "2025-12-04T15:32:00Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 54,
+            "internalName": "Clothier",
+            "name": "Clothier"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "Tiara",
+      "itemName": "Tiara",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 864,
+        "internalName": "Tiara",
+        "name": "Tiara"
+      },
+      "pageTitle": "Princess set (Clothier)",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/tiara.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-21T05:25:31Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "46c09feaca561859b1c06ca919c2a79ff0fda105ab6cfcd35f8d955594560be0",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Clothier",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Princess set is a Hardmode vanity set consisting of the Tiara and the Princess Dress . It is purchased from the Clothier for 35 GC (set) , during a New Moon .",
+          "sourcePage": "Princess set (Clothier)",
+          "sourceRevisionTimestamp": "2026-02-21T05:25:31Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "Tiara",
+            "itemName": "Tiara",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Clothier",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Princess set is a Hardmode vanity set consisting of the Tiara and the Princess Dress . It is purchased from the Clothier for 35 GC (set) , during a New Moon .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Princess set (Clothier)",
+            "sourceRevisionTimestamp": "2026-02-21T05:25:31Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 54,
+            "internalName": "Clothier",
+            "name": "Clothier"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TikiMask",
+      "itemName": "Tiki Mask",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1159,
+        "internalName": "TikiMask",
+        "name": "Tiki Mask"
+      },
+      "pageTitle": "Tiki armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/tikimask.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-08-25T14:28:34Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "931554d87946b57f971ac82a795b5a14ee25d862a1e712a5a7d93deb311eca90",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Witch Doctor",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "Tiki armor is a Hardmode , post- Plantera summoner armor set consisting of the Tiki Mask , Tiki Shirt , and Tiki Pants . The set can be purchased from the Witch Doctor for a total of 1 PC 50 GC (set) .",
+          "sourcePage": "Tiki armor",
+          "sourceRevisionTimestamp": "2025-08-25T14:28:34Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "TikiMask",
+            "itemName": "Tiki Mask",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Witch Doctor",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "Tiki armor is a Hardmode , post- Plantera summoner armor set consisting of the Tiki Mask , Tiki Shirt , and Tiki Pants . The set can be purchased from the Witch Doctor for a total of 1 PC 50 GC (set) .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Tiki armor",
+            "sourceRevisionTimestamp": "2025-08-25T14:28:34Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 228,
+            "internalName": "WitchDoctor",
+            "name": "Witch Doctor"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TikiPants",
+      "itemName": "Tiki Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1161,
+        "internalName": "TikiPants",
+        "name": "Tiki Pants"
+      },
+      "pageTitle": "Tiki armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/tikipants.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-08-25T14:28:34Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "b33325b822ed89b1541596ebfda4929822ddd29dab7071767418c6fa753d5e0a",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Witch Doctor",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "Tiki armor is a Hardmode , post- Plantera summoner armor set consisting of the Tiki Mask , Tiki Shirt , and Tiki Pants . The set can be purchased from the Witch Doctor for a total of 1 PC 50 GC (set) .",
+          "sourcePage": "Tiki armor",
+          "sourceRevisionTimestamp": "2025-08-25T14:28:34Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "TikiPants",
+            "itemName": "Tiki Pants",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Witch Doctor",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "Tiki armor is a Hardmode , post- Plantera summoner armor set consisting of the Tiki Mask , Tiki Shirt , and Tiki Pants . The set can be purchased from the Witch Doctor for a total of 1 PC 50 GC (set) .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Tiki armor",
+            "sourceRevisionTimestamp": "2025-08-25T14:28:34Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 228,
+            "internalName": "WitchDoctor",
+            "name": "Witch Doctor"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TikiShirt",
+      "itemName": "Tiki Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1160,
+        "internalName": "TikiShirt",
+        "name": "Tiki Shirt"
+      },
+      "pageTitle": "Tiki armor",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/tikishirt.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-08-25T14:28:34Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "8dc7df5c41d32364cdca1395552e06ddb1dce61afa28dd71a457366172978c8a",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Witch Doctor",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "Tiki armor is a Hardmode , post- Plantera summoner armor set consisting of the Tiki Mask , Tiki Shirt , and Tiki Pants . The set can be purchased from the Witch Doctor for a total of 1 PC 50 GC (set) .",
+          "sourcePage": "Tiki armor",
+          "sourceRevisionTimestamp": "2025-08-25T14:28:34Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "TikiShirt",
+            "itemName": "Tiki Shirt",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Witch Doctor",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "Tiki armor is a Hardmode , post- Plantera summoner armor set consisting of the Tiki Mask , Tiki Shirt , and Tiki Pants . The set can be purchased from the Witch Doctor for a total of 1 PC 50 GC (set) .",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Tiki armor",
+            "sourceRevisionTimestamp": "2025-08-25T14:28:34Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 228,
+            "internalName": "WitchDoctor",
+            "name": "Witch Doctor"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "UndertakerCoat",
+      "itemName": "Gravedigger Coat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 4686,
+        "internalName": "UndertakerCoat",
+        "name": "Gravedigger Coat"
+      },
+      "pageTitle": "Gravedigger set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/undertakercoat.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T20:40:47Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "bd9c8425e6534674d75ad04b1b6131b540dd635bd2763ed439ea61f703e844db",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Clothier",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "These items are to be equipped in the Social Slots as they only provide a visual appearance. They are purchased from the Clothier for 20 GC (set) when he is in the Graveyard biome.",
+          "sourcePage": "Gravedigger set",
+          "sourceRevisionTimestamp": "2023-10-23T20:40:47Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "UndertakerCoat",
+            "itemName": "Gravedigger Coat",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Clothier",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "These items are to be equipped in the Social Slots as they only provide a visual appearance. They are purchased from the Clothier for 20 GC (set) when he is in the Graveyard biome.",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Gravedigger set",
+            "sourceRevisionTimestamp": "2023-10-23T20:40:47Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 54,
+            "internalName": "Clothier",
+            "name": "Clothier"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "UndertakerHat",
+      "itemName": "Gravedigger Hat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 4685,
+        "internalName": "UndertakerHat",
+        "name": "Gravedigger Hat"
+      },
+      "pageTitle": "Gravedigger set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/undertakerhat.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T20:40:47Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "85190763c01dff4c7c5dead5519ac14ecffebbdc76701a88f5bab6ae0473edae",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Clothier",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "These items are to be equipped in the Social Slots as they only provide a visual appearance. They are purchased from the Clothier for 20 GC (set) when he is in the Graveyard biome.",
+          "sourcePage": "Gravedigger set",
+          "sourceRevisionTimestamp": "2023-10-23T20:40:47Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "UndertakerHat",
+            "itemName": "Gravedigger Hat",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Clothier",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "These items are to be equipped in the Social Slots as they only provide a visual appearance. They are purchased from the Clothier for 20 GC (set) when he is in the Graveyard biome.",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Gravedigger set",
+            "sourceRevisionTimestamp": "2023-10-23T20:40:47Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 54,
+            "internalName": "Clothier",
+            "name": "Clothier"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "ViciousPowder",
+      "itemName": "Vicious Powder",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 2886,
+        "internalName": "ViciousPowder",
+        "name": "Vicious Powder"
+      },
+      "pageTitle": "Thrown Powder",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/viciouspowder.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-30T16:50:06Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "06960e9ddacbf8bb81818ba08a9f3a06c0b89f6a33c0eab9c6bf0ad3603a5dde",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Dryad",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "Vile Powder is able to convert blocks and walls, including the Crimson and the Hallowed ones, into their Corrupted form, such as converting Pearlstone into Ebonstone. If thrown at a Bunny , Penguin , or Goldfish , it will turn into its Corrupted variants: the Corrupt Bunny , Corrupt Penguin , and Corrupt Goldfish , respectively. It can be crafted from Vile Mushrooms or purchased from the Dryad for 1 SC each during a Blood Moon in a Corrupt world.",
+          "sourcePage": "Thrown Powder",
+          "sourceRevisionTimestamp": "2026-04-30T16:50:06Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "ViciousPowder",
+            "itemName": "Vicious Powder",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Dryad",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "Vile Powder is able to convert blocks and walls, including the Crimson and the Hallowed ones, into their Corrupted form, such as converting Pearlstone into Ebonstone. If thrown at a Bunny , Penguin , or Goldfish , it will turn into its Corrupted variants: the Corrupt Bunny , Corrupt Penguin , and Corrupt Goldfish , respectively. It can be crafted from Vile Mushrooms or purchased from the Dryad for 1 SC each during a Blood Moon in a Corrupt world.",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Thrown Powder",
+            "sourceRevisionTimestamp": "2026-04-30T16:50:06Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 20,
+            "internalName": "Dryad",
+            "name": "Dryad"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "VictorianGothDress",
+      "itemName": "Victorian Goth Dress",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 4709,
+        "internalName": "VictorianGothDress",
+        "name": "Victorian Goth Dress"
+      },
+      "pageTitle": "Victorian Goth set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/victoriangothdress.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T20:35:46Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "784dac15353c0842d1b3f6612887caf068898500b987dcadeedfdf075d7db906",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Clothier",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "These items are to be equipped in the Social Slots as they only provide a visual appearance. They are purchased from the Clothier for 20 GC (set) when he is spoken to in the Graveyard biome.",
+          "sourcePage": "Victorian Goth set",
+          "sourceRevisionTimestamp": "2023-10-23T20:35:46Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "VictorianGothDress",
+            "itemName": "Victorian Goth Dress",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Clothier",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "These items are to be equipped in the Social Slots as they only provide a visual appearance. They are purchased from the Clothier for 20 GC (set) when he is spoken to in the Graveyard biome.",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Victorian Goth set",
+            "sourceRevisionTimestamp": "2023-10-23T20:35:46Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 54,
+            "internalName": "Clothier",
+            "name": "Clothier"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "VictorianGothHat",
+      "itemName": "Victorian Goth Hat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 4708,
+        "internalName": "VictorianGothHat",
+        "name": "Victorian Goth Hat"
+      },
+      "pageTitle": "Victorian Goth set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/victoriangothhat.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T20:35:46Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "52e8b7f8c0cce33e730669bc656c62c20fcfc2ec3c264e91dcb5059fdf215945",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Clothier",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "These items are to be equipped in the Social Slots as they only provide a visual appearance. They are purchased from the Clothier for 20 GC (set) when he is spoken to in the Graveyard biome.",
+          "sourcePage": "Victorian Goth set",
+          "sourceRevisionTimestamp": "2023-10-23T20:35:46Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "VictorianGothHat",
+            "itemName": "Victorian Goth Hat",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Clothier",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "These items are to be equipped in the Social Slots as they only provide a visual appearance. They are purchased from the Clothier for 20 GC (set) when he is spoken to in the Graveyard biome.",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Victorian Goth set",
+            "sourceRevisionTimestamp": "2023-10-23T20:35:46Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 54,
+            "internalName": "Clothier",
+            "name": "Clothier"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "VilePowder",
+      "itemName": "Vile Powder",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 67,
+        "internalName": "VilePowder",
+        "name": "Vile Powder"
+      },
+      "pageTitle": "Thrown Powder",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/vilepowder.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-30T16:50:06Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "785cb59eb8106fac57d15436f1a327f3d12b49e100f8f4f735d659a164b0062f",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Dryad",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "Vile Powder is able to convert blocks and walls, including the Crimson and the Hallowed ones, into their Corrupted form, such as converting Pearlstone into Ebonstone. If thrown at a Bunny , Penguin , or Goldfish , it will turn into its Corrupted variants: the Corrupt Bunny , Corrupt Penguin , and Corrupt Goldfish , respectively. It can be crafted from Vile Mushrooms or purchased from the Dryad for 1 SC each during a Blood Moon in a Corrupt world.",
+          "sourcePage": "Thrown Powder",
+          "sourceRevisionTimestamp": "2026-04-30T16:50:06Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "VilePowder",
+            "itemName": "Vile Powder",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Dryad",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "Vile Powder is able to convert blocks and walls, including the Crimson and the Hallowed ones, into their Corrupted form, such as converting Pearlstone into Ebonstone. If thrown at a Bunny , Penguin , or Goldfish , it will turn into its Corrupted variants: the Corrupt Bunny , Corrupt Penguin , and Corrupt Goldfish , respectively. It can be crafted from Vile Mushrooms or purchased from the Dryad for 1 SC each during a Blood Moon in a Corrupt world.",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Thrown Powder",
+            "sourceRevisionTimestamp": "2026-04-30T16:50:06Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 20,
+            "internalName": "Dryad",
+            "name": "Dryad"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "WhiteLunaticHood",
+      "itemName": "Solar Cultist Hood",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 2856,
+        "internalName": "WhiteLunaticHood",
+        "name": "Solar Cultist Hood"
+      },
+      "pageTitle": "Cultist set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/whitelunatichood.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-10-01T12:55:22Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "94abfbaa3794d2342ed4d7f9a8b890b0feeab066e430f08165f01010d092aa99",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Clothier",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Cultist set is a vanity set purchased from the Clothier for 20 GC (set) after the Lunatic Cultist has been defeated. Its appearance is based on the clothing worn by Cultists , but its design is different from the robes worn either by normal Lunatic Devotees or the Lunatic Cultist itself. These items are to be equipped in the Social Slots as they only provide a visual appearance.",
+          "sourcePage": "Cultist set",
+          "sourceRevisionTimestamp": "2025-10-01T12:55:22Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "WhiteLunaticHood",
+            "itemName": "Solar Cultist Hood",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Clothier",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Cultist set is a vanity set purchased from the Clothier for 20 GC (set) after the Lunatic Cultist has been defeated. Its appearance is based on the clothing worn by Cultists , but its design is different from the robes worn either by normal Lunatic Devotees or the Lunatic Cultist itself. These items are to be equipped in the Social Slots as they only provide a visual appearance.",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Cultist set",
+            "sourceRevisionTimestamp": "2025-10-01T12:55:22Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 54,
+            "internalName": "Clothier",
+            "name": "Clothier"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "WhiteLunaticRobe",
+      "itemName": "Solar Cultist Robe",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 2858,
+        "internalName": "WhiteLunaticRobe",
+        "name": "Solar Cultist Robe"
+      },
+      "pageTitle": "Cultist set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/whitelunaticrobe.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-10-01T12:55:22Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "94160060290a74820ad6db6762723ac95f2bf8eb0b542db0b51e1e9ecb9d1e1e",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Clothier",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The Cultist set is a vanity set purchased from the Clothier for 20 GC (set) after the Lunatic Cultist has been defeated. Its appearance is based on the clothing worn by Cultists , but its design is different from the robes worn either by normal Lunatic Devotees or the Lunatic Cultist itself. These items are to be equipped in the Social Slots as they only provide a visual appearance.",
+          "sourcePage": "Cultist set",
+          "sourceRevisionTimestamp": "2025-10-01T12:55:22Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "WhiteLunaticRobe",
+            "itemName": "Solar Cultist Robe",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Clothier",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The Cultist set is a vanity set purchased from the Clothier for 20 GC (set) after the Lunatic Cultist has been defeated. Its appearance is based on the clothing worn by Cultists , but its design is different from the robes worn either by normal Lunatic Devotees or the Lunatic Cultist itself. These items are to be equipped in the Social Slots as they only provide a visual appearance.",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Cultist set",
+            "sourceRevisionTimestamp": "2025-10-01T12:55:22Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 54,
+            "internalName": "Clothier",
+            "name": "Clothier"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "WhiteTuxedoPants",
+      "itemName": "White Tuxedo Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1289,
+        "internalName": "WhiteTuxedoPants",
+        "name": "White Tuxedo Pants"
+      },
+      "pageTitle": "White Tuxedo set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/whitetuxedopants.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-08-25T14:29:24Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "b172664f47c367ee62f797b7fb85bd60e930d4e8489058696c06926b1d24be92",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Clothier",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The White Tuxedo set is a vanity set consisting of the White Tuxedo Shirt and the White Tuxedo Pants . It is purchased from the Clothier for 50 GC (set) , on the night of a Full Moon . These items are to be equipped in the Social Slots as they only provide a visual appearance.",
+          "sourcePage": "White Tuxedo set",
+          "sourceRevisionTimestamp": "2025-08-25T14:29:24Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "WhiteTuxedoPants",
+            "itemName": "White Tuxedo Pants",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Clothier",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The White Tuxedo set is a vanity set consisting of the White Tuxedo Shirt and the White Tuxedo Pants . It is purchased from the Clothier for 50 GC (set) , on the night of a Full Moon . These items are to be equipped in the Social Slots as they only provide a visual appearance.",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "White Tuxedo set",
+            "sourceRevisionTimestamp": "2025-08-25T14:29:24Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 54,
+            "internalName": "Clothier",
+            "name": "Clothier"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "WhiteTuxedoShirt",
+      "itemName": "White Tuxedo Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1288,
+        "internalName": "WhiteTuxedoShirt",
+        "name": "White Tuxedo Shirt"
+      },
+      "pageTitle": "White Tuxedo set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/whitetuxedoshirt.latest.json",
+      "classification": "high_confidence",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-08-25T14:29:24Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "864a3e2ace143c31cfb4f00ee5d20924124fe13ed8b581cc0842b91736d862c7",
+          "sourceType": "shop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Clothier",
+          "quantityText": null,
+          "chanceText": null,
+          "conditions": null,
+          "notes": "The White Tuxedo set is a vanity set consisting of the White Tuxedo Shirt and the White Tuxedo Pants . It is purchased from the Clothier for 50 GC (set) , on the night of a Full Moon . These items are to be equipped in the Social Slots as they only provide a visual appearance.",
+          "sourcePage": "White Tuxedo set",
+          "sourceRevisionTimestamp": "2025-08-25T14:29:24Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "WhiteTuxedoShirt",
+            "itemName": "White Tuxedo Shirt",
+            "sourceType": "shop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Clothier",
+            "quantityText": null,
+            "chanceText": null,
+            "conditions": null,
+            "notes": "The White Tuxedo set is a vanity set consisting of the White Tuxedo Shirt and the White Tuxedo Pants . It is purchased from the Clothier for 50 GC (set) , on the night of a Full Moon . These items are to be equipped in the Social Slots as they only provide a visual appearance.",
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "White Tuxedo set",
+            "sourceRevisionTimestamp": "2025-08-25T14:29:24Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 54,
+            "internalName": "Clothier",
+            "name": "Clothier"
+          },
+          "blockedReason": null
+        }
+      ]
+    }
+  ],
+  "blockedCandidates": []
+}

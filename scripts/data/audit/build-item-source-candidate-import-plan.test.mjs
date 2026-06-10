@@ -28,12 +28,17 @@ function createFixture() {
       { id: 1003, internalName: 'WoodenCrate', name: 'Wooden Crate' },
       { id: 1004, internalName: 'BossBagDukeFishron', name: 'Treasure Bag (Duke Fishron)' },
       { id: 1005, internalName: 'LockBox', name: 'Lock Box' },
-      { id: 2000, internalName: 'AetheriumBookcase', name: 'Aetherium Bookcase' }
+      { id: 2000, internalName: 'AetheriumBookcase', name: 'Aetherium Bookcase' },
+      { id: 2001, internalName: 'ClownHat', name: 'Clown Hat' },
+      { id: 2002, internalName: 'StyngerBolt', name: 'Stynger Bolt' }
     ]
   }));
   fs.writeFileSync(npcsPath, JSON.stringify({
     records: [
-      { id: 85, internalName: 'Mimic', name: 'Mimic', boss: false }
+      { id: 85, internalName: 'Mimic', name: 'Mimic', boss: false },
+      { id: 54, internalName: 'Clothier', name: 'Clothier', boss: false },
+      { id: 19, internalName: 'ArmsDealer', name: 'Arms Dealer', boss: false },
+      { id: 228, internalName: 'WitchDoctor', name: 'Witch Doctor', boss: false }
     ]
   }));
   return { root, rawDir, sourcesDir, itemsPath, npcsPath };
@@ -94,6 +99,86 @@ test('buildItemSourceCandidateImportPlan marks MagicMirror as eligible canary', 
       ['Mimic', 'npc', 'resolved_npc_ref'],
       ['Frozen Chest', 'container', 'resolved_item_ref'],
       ['Magic Mirrors worldgen', 'world', 'world_text_ref']
+    ]
+  );
+});
+
+test('buildItemSourceCandidateImportPlan cleans duplicate vendor tail rows', () => {
+  const fixture = createFixture();
+  const plan = buildItemSourceCandidateImportPlan({
+    auditSummary: {
+      generatedAt: '2026-06-10T00:00:00.000Z',
+      readOnly: true,
+      totalCandidates: 1,
+      classificationCounts: { high_confidence: 1 },
+      candidates: [{
+        itemInternalName: 'ClownHat',
+        itemName: 'Clown Hat',
+        pageTitle: 'Clown set',
+        rawPath: path.join(fixture.rawDir, 'clownhat.latest.json'),
+        rawSourceCount: 2,
+        standardizedSourceCount: 0,
+        classification: 'high_confidence',
+        sourceRevisionTimestamp: '2026-04-02T10:40:10Z',
+        extractedSources: [
+          { sourceType: 'shop', sourceRefType: 'npc', sourceRefName: 'Clothier', quantityText: null, chanceText: null, conditions: null, notes: null },
+          { sourceType: 'shop', sourceRefType: 'npc', sourceRefName: 'Clothier for', quantityText: null, chanceText: null, conditions: null, notes: 'Sold by the Clothier for 3 gold.' }
+        ]
+      }]
+    },
+    standardizedItemsPath: fixture.itemsPath,
+    standardizedNpcsPath: fixture.npcsPath,
+    npcParsedPath: fixture.npcsPath,
+    itemSourcesDir: fixture.sourcesDir
+  });
+
+  assert.equal(plan.summary.eligibleCandidates, 1);
+  assert.equal(plan.summary.blockedCandidates, 0);
+  assert.equal(plan.summary.plannedSourceRows, 1);
+  assert.deepEqual(
+    plan.eligibleCandidates[0].plannedSources.map((row) => [row.sourceType, row.sourceRefType, row.sourceRefName, row.resolutionStatus, row.notes]),
+    [['shop', 'npc', 'Clothier', 'resolved_npc_ref', 'Sold by the Clothier for 3 gold.']]
+  );
+});
+
+test('buildItemSourceCandidateImportPlan drops covered composite vendor rows', () => {
+  const fixture = createFixture();
+  const plan = buildItemSourceCandidateImportPlan({
+    auditSummary: {
+      generatedAt: '2026-06-10T00:00:00.000Z',
+      readOnly: true,
+      totalCandidates: 1,
+      classificationCounts: { high_confidence: 1 },
+      candidates: [{
+        itemInternalName: 'StyngerBolt',
+        itemName: 'Stynger Bolt',
+        pageTitle: 'Stynger',
+        rawPath: path.join(fixture.rawDir, 'styngerbolt.latest.json'),
+        rawSourceCount: 3,
+        standardizedSourceCount: 0,
+        classification: 'high_confidence',
+        sourceRevisionTimestamp: '2026-04-02T10:40:10Z',
+        extractedSources: [
+          { sourceType: 'shop', sourceRefType: 'npc', sourceRefName: 'Arms Dealer', quantityText: '60-99', chanceText: null, conditions: null, notes: null },
+          { sourceType: 'shop', sourceRefType: 'npc', sourceRefName: 'Witch Doctor', quantityText: '60-99', chanceText: null, conditions: null, notes: null },
+          { sourceType: 'shop', sourceRefType: 'npc', sourceRefName: 'Witch Doctor and Arms Dealer', quantityText: '60-99', chanceText: null, conditions: null, notes: 'Sold if the player has a Stynger.' }
+        ]
+      }]
+    },
+    standardizedItemsPath: fixture.itemsPath,
+    standardizedNpcsPath: fixture.npcsPath,
+    npcParsedPath: fixture.npcsPath,
+    itemSourcesDir: fixture.sourcesDir
+  });
+
+  assert.equal(plan.summary.eligibleCandidates, 1);
+  assert.equal(plan.summary.blockedCandidates, 0);
+  assert.equal(plan.summary.plannedSourceRows, 2);
+  assert.deepEqual(
+    plan.eligibleCandidates[0].plannedSources.map((row) => [row.sourceRefName, row.notes]),
+    [
+      ['Arms Dealer', 'Sold if the player has a Stynger.'],
+      ['Witch Doctor', 'Sold if the player has a Stynger.']
     ]
   );
 });

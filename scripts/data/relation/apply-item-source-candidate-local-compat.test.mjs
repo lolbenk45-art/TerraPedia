@@ -115,6 +115,39 @@ test('buildLocalCompatRows maps candidate plan rows to local compat rows', () =>
   );
 });
 
+test('buildLocalCompatRows maps boss refs as npc-backed boss source rows', () => {
+  const plan = samplePlan();
+  plan.eligibleCandidates = [{
+    itemInternalName: 'BeeHat',
+    itemName: 'Bee Hat',
+    itemResolution: { status: 'resolved', id: 2108, internalName: 'BeeHat', name: 'Bee Hat' },
+    pageTitle: 'Bee set',
+    classification: 'high_confidence',
+    plannedSources: [{
+      sourceType: 'drop',
+      sourceRefType: 'boss',
+      sourceRefName: 'Queen Bee',
+      quantityText: '1',
+      chanceText: '11.11%',
+      conditions: null,
+      notes: null,
+      sourcePage: 'Bee set',
+      sourceRevisionTimestamp: '2026-04-02T10:40:10Z',
+      sortOrder: 0,
+      resolvedRef: { status: 'resolved_boss_ref', id: 222, internalName: 'QueenBee', name: 'Queen Bee' }
+    }]
+  }];
+
+  const result = buildLocalCompatRows(plan, { sample: 'BeeHat' });
+
+  assert.equal(result.blocked.length, 0);
+  assert.equal(result.rows.length, 1);
+  assert.deepEqual(
+    result.rows.map((row) => [row.itemId, row.sourceType, row.sourceRefType, row.sourceRefId, row.sourceRefName]),
+    [[2108, 'drop', 'boss', 222, 'Queen Bee']]
+  );
+});
+
 test('runItemSourceCandidateLocalCompatApply dry-run validates and does not insert', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'item-source-local-dry-'));
   const inputPath = path.join(root, 'plan.json');

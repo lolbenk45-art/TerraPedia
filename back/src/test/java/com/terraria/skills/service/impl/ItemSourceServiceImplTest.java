@@ -67,6 +67,33 @@ class ItemSourceServiceImplTest {
     }
 
     @Test
+    void shouldEnrichBossSourceImagesFromReferencedNpcWhileKeepingBossType() {
+        String managedBossImage = "http://localhost:9000/terrapedia-images/npcs/queen-bee.png";
+        ItemAcquisitionSource source = source(14L, 2108L, "drop", "boss", 222L, "Queen Bee");
+
+        Npc boss = new Npc();
+        boss.setId(222L);
+        boss.setName("Queen Bee");
+        boss.setInternalName("QueenBee");
+        boss.setNameZh("蜂王");
+        boss.setImageUrl(managedBossImage);
+
+        when(itemAcquisitionSourceMapper.selectList(any())).thenReturn(List.of(source));
+        when(itemMapper.selectList(any())).thenReturn(List.of());
+        when(npcMapper.selectList(any())).thenReturn(List.of(boss));
+
+        List<ItemSourceDTO> sources = itemSourceService.getSourcesByItemId(2108L);
+
+        assertEquals(1, sources.size());
+        ItemSourceDTO result = sources.get(0);
+        assertEquals("boss", result.getSourceRefType());
+        assertEquals("蜂王", result.getSourceRefNameZh());
+        assertEquals(managedBossImage, result.getImageUrl());
+        assertEquals(managedBossImage, result.getSourceRefImageUrl());
+        assertEquals(managedBossImage, result.getNpcImageUrl());
+    }
+
+    @Test
     void shouldEnrichItemSourceImagesFromReferencedItem() {
         String managedItemImage = "http://localhost:9000/terrapedia-images/items/wood.png";
         ItemAcquisitionSource source = source(2L, 88L, "craft", "item", 9L, "Wood");

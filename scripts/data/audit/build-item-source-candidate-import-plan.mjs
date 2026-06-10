@@ -110,14 +110,14 @@ export function buildItemSourceCandidateImportPlan({
     const classification = normalizeText(candidate.classification) ?? 'unknown';
     const itemResolution = resolveEntityRef(itemLookup, candidate.itemInternalName, candidate.itemName);
     const candidateBlockReason = classifyCandidateBlockReason(candidate, itemResolution);
-    const sourcePlans = (Array.isArray(candidate.extractedSources) ? candidate.extractedSources : [])
+    const sourcePlans = dedupeSourcePlans((Array.isArray(candidate.extractedSources) ? candidate.extractedSources : [])
       .map((source, sourceIndex) => buildSourcePlan({
         candidate,
         source,
         sourceIndex,
         itemLookup,
         npcLookup
-      }));
+      })));
 
     const blockedSources = sourcePlans.filter((source) => source.blockedReason);
     if (candidateBlockReason || blockedSources.length > 0 || classification !== 'high_confidence') {
@@ -233,7 +233,7 @@ function buildSourcePlan({
 }) {
   const sourceType = normalizeText(source.sourceType)?.toLowerCase() ?? 'unknown';
   const sourceRefType = normalizeText(source.sourceRefType)?.toLowerCase() ?? 'unknown';
-  const sourceRefName = normalizeText(source.sourceRefName);
+  const sourceRefName = normalizeSourceRefNameForPlanning(sourceRefType, source.sourceRefName);
   const base = {
     importPlanKey: createImportPlanKey(candidate, source, sourceIndex),
     sourceType,
@@ -324,6 +324,106 @@ function buildSourcePlan({
     resolvedRef: null,
     blockedReason: 'unsupported_source_ref_type'
   };
+}
+
+function dedupeSourcePlans(sourcePlans) {
+  const deduped = new Map();
+  for (const source of sourcePlans) {
+    const key = JSON.stringify([
+      source.sourceType,
+      source.sourceRefType,
+      source.sourceRefName,
+      source.quantityText ?? null,
+      source.chanceText ?? null,
+      source.conditions ?? null
+    ]);
+    const existing = deduped.get(key);
+    if (!existing) {
+      deduped.set(key, source);
+      continue;
+    }
+    deduped.set(key, mergeSourcePlan(existing, source));
+  }
+  return reindexSourcePlans(dropCoveredCompositeNpcRows([...deduped.values()]));
+}
+
+function reindexSourcePlans(sourcePlans) {
+  return sourcePlans.map((source, index) => ({
+    ...source,
+    sortOrder: index,
+    landingRow: {
+      ...source.landingRow,
+      sortOrder: index
+    }
+  }));
+}
+
+function dropCoveredCompositeNpcRows(sourcePlans) {
+  return sourcePlans.flatMap((source) => {
+    const components = compositeNpcComponents(source);
+    if (!components.length) return [source];
+
+    const coveredRows = components.map((name) => sourcePlans.find((candidate) =>
+      !candidate.blockedReason
+      && candidate.sourceType === source.sourceType
+      && candidate.sourceRefType === source.sourceRefType
+      && candidate.sourceRefName === name
+    ));
+    if (coveredRows.some((row) => !row)) return [source];
+
+    for (const row of coveredRows) {
+      row.notes = mergeText(row.notes, source.notes);
+      row.landingRow = {
+        ...row.landingRow,
+        notes: row.notes
+      };
+    }
+    return [];
+  });
+}
+
+function compositeNpcComponents(source) {
+  if (
+    source.sourceRefType !== 'npc'
+    || source.blockedReason !== 'source_npc_ref_unresolved'
+    || !/\s+and\s+/i.test(source.sourceRefName ?? '')
+  ) {
+    return [];
+  }
+  return String(source.sourceRefName)
+    .split(/\s+and\s+/i)
+    .map((value) => normalizeText(value))
+    .filter(Boolean);
+}
+
+function mergeSourcePlan(primary, fallback) {
+  const notes = mergeText(primary.notes, fallback.notes);
+  return {
+    ...primary,
+    notes,
+    landingRow: {
+      ...primary.landingRow,
+      notes
+    }
+  };
+}
+
+function mergeText(primary, fallback) {
+  const first = normalizeText(primary);
+  const second = normalizeText(fallback);
+  if (!first) return second ?? null;
+  if (!second || first === second) return first;
+  return `${first} ${second}`;
+}
+
+function normalizeSourceRefNameForPlanning(sourceRefType, value) {
+  const text = normalizeText(value);
+  if (!text || !NPC_BACKED_SOURCE_REF_TYPES.has(sourceRefType)) return text;
+  const withoutNpcSuffix = text.replace(/\s+NPC\s+for$/i, '').trim();
+  const duringMatch = withoutNpcSuffix.match(/^(.+?)\s+during\b.+\s+for(?:\b.*)?$/i);
+  if (duringMatch) return duringMatch[1].trim();
+  const withoutForTail = withoutNpcSuffix.replace(/\s+for(?:\b.*)?$/i, '').trim();
+  return withoutForTail || text;
 }
 
 function validateSourceContract({ sourceType, sourceRefType, sourceRefName }) {
