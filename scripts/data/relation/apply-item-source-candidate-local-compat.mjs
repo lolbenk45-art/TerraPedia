@@ -12,6 +12,7 @@ const repoRoot = getProjectRoot();
 const require = createRequire(path.join(repoRoot, 'data-query-app', 'package.json'));
 const ITEM_BACKED_REF_TYPES = new Set(['item', 'container', 'crate', 'treasure_bag']);
 const NPC_BACKED_REF_TYPES = new Set(['npc', 'boss']);
+const SUPPORTED_SOURCE_TYPES = new Set(['drop', 'shop', 'container', 'crate', 'treasure_bag', 'worldgen', 'mining', 'quest_reward', 'craft', 'shimmer']);
 const SUPPORTED_REF_TYPES = new Set(['item', 'container', 'crate', 'treasure_bag', 'npc', 'boss', 'world']);
 
 function booleanOption(value, fallback = false) {
@@ -58,6 +59,11 @@ export function buildLocalCompatRows(plan, { sample = null, allowBulk = false } 
       continue;
     }
     for (const source of Array.isArray(candidate.plannedSources) ? candidate.plannedSources : []) {
+      const sourceType = normalizeText(source.sourceType)?.toLowerCase() ?? null;
+      if (!SUPPORTED_SOURCE_TYPES.has(sourceType)) {
+        blocked.push(blockedSource(candidate, source, 'unsupported_source_type'));
+        continue;
+      }
       const sourceRefType = normalizeText(source.sourceRefType)?.toLowerCase() ?? null;
       if (!SUPPORTED_REF_TYPES.has(sourceRefType)) {
         blocked.push(blockedSource(candidate, source, 'unsupported_source_ref_type'));
@@ -72,7 +78,7 @@ export function buildLocalCompatRows(plan, { sample = null, allowBulk = false } 
       rows.push({
         fingerprint: buildFingerprint({
           itemId,
-          sourceType: normalizeText(source.sourceType)?.toLowerCase(),
+          sourceType,
           sourceRefType,
           sourceRefId,
           sourceRefName: normalizeText(source.sourceRefName),
@@ -85,7 +91,7 @@ export function buildLocalCompatRows(plan, { sample = null, allowBulk = false } 
         itemId,
         itemInternalName: candidate.itemInternalName,
         itemName: candidate.itemName,
-        sourceType: normalizeText(source.sourceType)?.toLowerCase(),
+        sourceType,
         sourceRefType,
         sourceRefId,
         sourceRefName: normalizeText(source.sourceRefName),

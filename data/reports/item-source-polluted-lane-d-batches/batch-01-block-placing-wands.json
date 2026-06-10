@@ -1,0 +1,571 @@
+{
+  "generatedAt": "2026-06-10T15:54:48.031Z",
+  "readOnly": true,
+  "mode": "reviewed_item_source_candidate_batch",
+  "sourcePlan": "data/reports/item-source-candidate-import-plan.after-polluted-lane-d.json",
+  "reviewScope": "polluted-lane-d-block-placing-wands-only",
+  "safetyPolicy": {
+    "allowPages": [
+      "Block-placing wands"
+    ],
+    "disallowPages": [
+      "Torches",
+      "Ropes"
+    ],
+    "notes": [
+      "Each promoted row must carry sourceSectionTitle equal to the candidate item name.",
+      "Tree shaking rows are normalized as drop/world tree refs with conditions=Shaking.",
+      "Torches and Ropes remain blocked because their drop infobox applies only to regular Torch/Rope while variants need a separate recipe/source contract."
+    ]
+  },
+  "summary": {
+    "eligibleCandidates": 6,
+    "plannedSourceRows": 12
+  },
+  "eligibleCandidates": [
+    {
+      "itemInternalName": "BoneWand",
+      "itemName": "Bone Wand",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 932,
+        "internalName": "BoneWand",
+        "name": "Bone Wand"
+      },
+      "pageTitle": "Block-placing wands",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/bonewand.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 19,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "894bce671f25ba34fcac44f8a95fdd12b9f82a47d8cd511f9bef31595682806e",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Angry Bones",
+          "quantityText": "1",
+          "chanceText": "0.4%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Block-placing wands",
+          "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+          "sourceSectionTitle": "Bone Wand",
+          "sourceRowText": "Angry Bones Angry Bones 1 0.4%",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "BoneWand",
+            "itemName": "Bone Wand",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Angry Bones",
+            "quantityText": "1",
+            "chanceText": "0.4%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Block-placing wands",
+            "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": -14,
+            "internalName": "BigBoned",
+            "name": "Angry Bones"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "9964a447291b120fd162a0160d4e88c9907583015dd94ba4d3b7b046a8a0fc6c",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Cursed Skull",
+          "quantityText": "1",
+          "chanceText": "0.4%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Block-placing wands",
+          "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+          "sourceSectionTitle": "Bone Wand",
+          "sourceRowText": "Cursed Skull Cursed Skull 1 0.4%",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "BoneWand",
+            "itemName": "Bone Wand",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Cursed Skull",
+            "quantityText": "1",
+            "chanceText": "0.4%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Block-placing wands",
+            "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 34,
+            "internalName": "CursedSkull",
+            "name": "Cursed Skull"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "9c35851b03ed0a3a3b5fc836f06477887a9e4351d6366a67ab89d1786172ee37",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Dark Caster",
+          "quantityText": "1",
+          "chanceText": "0.4%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Block-placing wands",
+          "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+          "sourceSectionTitle": "Bone Wand",
+          "sourceRowText": "Dark Caster Dark Caster 1 0.4%",
+          "sortOrder": 2,
+          "landingRow": {
+            "itemInternalName": "BoneWand",
+            "itemName": "Bone Wand",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Dark Caster",
+            "quantityText": "1",
+            "chanceText": "0.4%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Block-placing wands",
+            "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+            "sortOrder": 2
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 32,
+            "internalName": "DarkCaster",
+            "name": "Dark Caster"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "744dd6c87f760aebf11dbe071f8f6f78410e302668a1c2e40fc447863c4c6d58",
+          "sourceType": "drop",
+          "sourceRefType": "npc",
+          "sourceRefName": "Librarian Skeleton",
+          "quantityText": "1",
+          "chanceText": "0.4%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Block-placing wands",
+          "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+          "sourceSectionTitle": "Bone Wand",
+          "sourceRowText": "Librarian Skeleton Librarian Skeleton 1 0.4%",
+          "sortOrder": 3,
+          "landingRow": {
+            "itemInternalName": "BoneWand",
+            "itemName": "Bone Wand",
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Librarian Skeleton",
+            "quantityText": "1",
+            "chanceText": "0.4%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Block-placing wands",
+            "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+            "sortOrder": 3
+          },
+          "resolutionStatus": "resolved_npc_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 693,
+            "internalName": "LibrarianSkeleton",
+            "name": "Librarian Skeleton"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "HiveWand",
+      "itemName": "Hive Wand",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1129,
+        "internalName": "HiveWand",
+        "name": "Hive Wand"
+      },
+      "pageTitle": "Block-placing wands",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/hivewand.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 19,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "5888c27f88d74f6bb09359e505273adfe44261a9ae3c672b36c0af0809390ee0",
+          "sourceType": "drop",
+          "sourceRefType": "boss",
+          "sourceRefName": "Queen Bee",
+          "quantityText": "1",
+          "chanceText": "33%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Block-placing wands",
+          "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+          "sourceSectionTitle": "Hive Wand",
+          "sourceRowText": "Queen Bee Queen Bee 1 33%",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "HiveWand",
+            "itemName": "Hive Wand",
+            "sourceType": "drop",
+            "sourceRefType": "boss",
+            "sourceRefName": "Queen Bee",
+            "quantityText": "1",
+            "chanceText": "33%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Block-placing wands",
+            "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_boss_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 222,
+            "internalName": "QueenBee",
+            "name": "Queen Bee"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "dcedad4174c84d2ea523cdacaaeafef554fcbc4c6a964c84dc9aa4101b8744ef",
+          "sourceType": "treasure_bag",
+          "sourceRefType": "treasure_bag",
+          "sourceRefName": "Treasure Bag (Queen Bee)",
+          "quantityText": "1",
+          "chanceText": "100%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Block-placing wands",
+          "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+          "sourceSectionTitle": "Hive Wand",
+          "sourceRowText": "Treasure Bag (Desktop, Console and Mobile versions) (Queen Bee) Treasure Bag (Queen Bee) 1 100%",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "HiveWand",
+            "itemName": "Hive Wand",
+            "sourceType": "treasure_bag",
+            "sourceRefType": "treasure_bag",
+            "sourceRefName": "Treasure Bag (Queen Bee)",
+            "quantityText": "1",
+            "chanceText": "100%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Block-placing wands",
+            "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 3322,
+            "internalName": "QueenBeeBossBag",
+            "name": "Treasure Bag (Queen Bee)"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "LeafWand",
+      "itemName": "Leaf Wand",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 933,
+        "internalName": "LeafWand",
+        "name": "Leaf Wand"
+      },
+      "pageTitle": "Block-placing wands",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/leafwand.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 19,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "0a237e3fce42f858ac21376b0a867d84ff4b5d5ecda69965f9e32e1cca3f7aeb",
+          "sourceType": "drop",
+          "sourceRefType": "world",
+          "sourceRefName": "Forest tree",
+          "quantityText": "1",
+          "chanceText": "0.3322%",
+          "conditions": "Shaking",
+          "notes": null,
+          "sourcePage": "Block-placing wands",
+          "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+          "sourceSectionTitle": "Leaf Wand",
+          "sourceRowText": "Forest tree _ Forest tree ( Shaking ) 1 0.3322%",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "LeafWand",
+            "itemName": "Leaf Wand",
+            "sourceType": "drop",
+            "sourceRefType": "world",
+            "sourceRefName": "Forest tree",
+            "quantityText": "1",
+            "chanceText": "0.3322%",
+            "conditions": "Shaking",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Block-placing wands",
+            "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "world_text_ref",
+          "resolvedRef": null,
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "LivingMahoganyLeafWand",
+      "itemName": "Rich Mahogany Leaf Wand",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 3361,
+        "internalName": "LivingMahoganyLeafWand",
+        "name": "Rich Mahogany Leaf Wand"
+      },
+      "pageTitle": "Block-placing wands",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/livingmahoganyleafwand.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 19,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "b68c0127e6033e769b112797d871f7ad08e9ace80e416725b1b68f28822f62f4",
+          "sourceType": "container",
+          "sourceRefType": "container",
+          "sourceRefName": "Ivy Chest",
+          "quantityText": "1",
+          "chanceText": "1/6 (16.67%)",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Block-placing wands",
+          "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+          "sourceSectionTitle": "Rich Mahogany Leaf Wand",
+          "sourceRowText": "Ivy Chest Ivy Chest 1 1/6 (16.67%)",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "LivingMahoganyLeafWand",
+            "itemName": "Rich Mahogany Leaf Wand",
+            "sourceType": "container",
+            "sourceRefType": "container",
+            "sourceRefName": "Ivy Chest",
+            "quantityText": "1",
+            "chanceText": "1/6 (16.67%)",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Block-placing wands",
+            "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 680,
+            "internalName": "IvyChest",
+            "name": "Ivy Chest"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "d4e5580e865561c2f7d1742e20cdf5ec082bd420adcc7a073d96d7b7a0c77635",
+          "sourceType": "drop",
+          "sourceRefType": "world",
+          "sourceRefName": "Mahogany tree",
+          "quantityText": "1",
+          "chanceText": "0.4975%",
+          "conditions": "Shaking",
+          "notes": null,
+          "sourcePage": "Block-placing wands",
+          "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+          "sourceSectionTitle": "Rich Mahogany Leaf Wand",
+          "sourceRowText": "Mahogany tree _ Mahogany tree ( Shaking ) 1 0.4975%",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "LivingMahoganyLeafWand",
+            "itemName": "Rich Mahogany Leaf Wand",
+            "sourceType": "drop",
+            "sourceRefType": "world",
+            "sourceRefName": "Mahogany tree",
+            "quantityText": "1",
+            "chanceText": "0.4975%",
+            "conditions": "Shaking",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Block-placing wands",
+            "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "world_text_ref",
+          "resolvedRef": null,
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "LivingMahoganyWand",
+      "itemName": "Living Mahogany Wand",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 3360,
+        "internalName": "LivingMahoganyWand",
+        "name": "Living Mahogany Wand"
+      },
+      "pageTitle": "Block-placing wands",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/livingmahoganywand.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 19,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "a54d9a3836a8ceb6c52b2e51106cab4401ac2f5599e98a351a5f0bca29104ec0",
+          "sourceType": "container",
+          "sourceRefType": "container",
+          "sourceRefName": "Ivy Chest",
+          "quantityText": "1",
+          "chanceText": "1/6 (16.67%)",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Block-placing wands",
+          "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+          "sourceSectionTitle": "Living Mahogany Wand",
+          "sourceRowText": "Ivy Chest Ivy Chest 1 1/6 (16.67%)",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "LivingMahoganyWand",
+            "itemName": "Living Mahogany Wand",
+            "sourceType": "container",
+            "sourceRefType": "container",
+            "sourceRefName": "Ivy Chest",
+            "quantityText": "1",
+            "chanceText": "1/6 (16.67%)",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Block-placing wands",
+            "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 680,
+            "internalName": "IvyChest",
+            "name": "Ivy Chest"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "7e9d134e04d0c8cac854f1a52c131439391d8386b3d28ac8cfe1b5c5cdb0648c",
+          "sourceType": "drop",
+          "sourceRefType": "world",
+          "sourceRefName": "Mahogany tree",
+          "quantityText": "1",
+          "chanceText": "0.5%",
+          "conditions": "Shaking",
+          "notes": null,
+          "sourcePage": "Block-placing wands",
+          "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+          "sourceSectionTitle": "Living Mahogany Wand",
+          "sourceRowText": "Mahogany tree _ Mahogany tree ( Shaking ) 1 0.5%",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "LivingMahoganyWand",
+            "itemName": "Living Mahogany Wand",
+            "sourceType": "drop",
+            "sourceRefType": "world",
+            "sourceRefName": "Mahogany tree",
+            "quantityText": "1",
+            "chanceText": "0.5%",
+            "conditions": "Shaking",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Block-placing wands",
+            "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "world_text_ref",
+          "resolvedRef": null,
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "LivingWoodWand",
+      "itemName": "Living Wood Wand",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 832,
+        "internalName": "LivingWoodWand",
+        "name": "Living Wood Wand"
+      },
+      "pageTitle": "Block-placing wands",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/livingwoodwand.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 19,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "31817dedf2f2060ae9d7e5dcba2de19cd3a5292716383751d4f65f127220650b",
+          "sourceType": "drop",
+          "sourceRefType": "world",
+          "sourceRefName": "Forest tree",
+          "quantityText": "1",
+          "chanceText": "0.3333%",
+          "conditions": "Shaking",
+          "notes": null,
+          "sourcePage": "Block-placing wands",
+          "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+          "sourceSectionTitle": "Living Wood Wand",
+          "sourceRowText": "Forest tree _ Forest tree ( Shaking ) 1 0.3333%",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "LivingWoodWand",
+            "itemName": "Living Wood Wand",
+            "sourceType": "drop",
+            "sourceRefType": "world",
+            "sourceRefName": "Forest tree",
+            "quantityText": "1",
+            "chanceText": "0.3333%",
+            "conditions": "Shaking",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Block-placing wands",
+            "sourceRevisionTimestamp": "2026-04-20T15:01:42Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "world_text_ref",
+          "resolvedRef": null,
+          "blockedReason": null
+        }
+      ]
+    }
+  ]
+}

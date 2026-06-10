@@ -35,6 +35,7 @@ const ALLOWED_SOURCE_TYPES = new Set([
   'container',
   'crate',
   'treasure_bag',
+  'shimmer',
   'worldgen',
   'mining',
   'quest_reward',
@@ -324,6 +325,27 @@ function isAllowedPollutedCandidate(candidate, sourcePlans) {
         && source.sourceRefType === 'npc'
         && expected.has(source.sourceRefName));
   }
+  if (pageTitle === 'Block-placing wands') {
+    const itemName = normalizeText(candidate.itemName);
+    return sourcePlans.length > 0
+      && sourcePlans.every((source) =>
+        !source.blockedReason
+        && normalizeText(source.sourceSectionTitle) === itemName);
+  }
+  if (pageTitle === 'Torches') {
+    return sourcePlans.length > 0
+      && sourcePlans.every((source) =>
+        !source.blockedReason
+        && ['drop', 'container', 'shop', 'craft', 'shimmer'].includes(source.sourceType)
+        && source.sourceRefType !== 'unknown');
+  }
+  if (pageTitle === 'Ropes') {
+    return sourcePlans.length > 0
+      && sourcePlans.every((source) =>
+        !source.blockedReason
+        && ['drop', 'container', 'shop', 'craft'].includes(source.sourceType)
+        && source.sourceRefType !== 'unknown');
+  }
   return false;
 }
 
@@ -331,6 +353,15 @@ function normalizeCandidateSourcesForPlanning(candidate, sources) {
   const normalized = (Array.isArray(sources) ? sources : [])
     .flatMap((source) => normalizeSourceForPlanning(candidate, source))
     .filter((source) => !isDroppedPollutedNoiseSource(candidate, source));
+  if (normalizeText(candidate?.pageTitle) === 'Torches') {
+    return normalizeTorchSources(candidate, normalized);
+  }
+  if (normalizeText(candidate?.pageTitle) === 'Ropes') {
+    return normalizeRopeSources(candidate, normalized);
+  }
+  if (normalizeText(candidate?.pageTitle) === 'Block-placing wands') {
+    return normalizeBlockPlacingWandSources(candidate, normalized);
+  }
   if (normalizeText(candidate?.pageTitle) !== 'Flairon') {
     return normalized;
   }
@@ -352,6 +383,153 @@ function normalizeCandidateSourcesForPlanning(candidate, sources) {
         conditions: mergeText(source.conditions, 'Expert Mode')
       };
     });
+}
+
+function normalizeTorchSources(candidate, sources) {
+  const itemName = normalizeText(candidate.itemName);
+  const recipeSources = buildExactRecipeSources(candidate);
+  const exactTypeSources = sources.filter((source) => normalizeText(source.sourceTargetItemName) === itemName);
+  if (itemName !== 'Torch') {
+    return [...exactTypeSources, ...recipeSources];
+  }
+  return [
+    ...normalizeBaseMatrixItemSources(sources),
+    ...recipeSources
+  ];
+}
+
+function normalizeRopeSources(candidate, sources) {
+  const itemName = normalizeText(candidate.itemName);
+  if (itemName === 'Vine Rope') {
+    return [{
+      sourceType: 'drop',
+      sourceRefType: 'world',
+      sourceRefName: 'Vines',
+      quantityText: '1',
+      chanceText: null,
+      conditions: 'Guide to Plant Fiber Cordage equipped',
+      notes: 'Vine Rope is acquired by destroying vines while the Guide to Plant Fiber Cordage is equipped.'
+    }];
+  }
+  const recipeSources = buildExactRecipeSources(candidate);
+  if (itemName !== 'Rope') {
+    return recipeSources;
+  }
+  return [
+    ...normalizeBaseMatrixItemSources(sources),
+    ...splitCompositeMerchantSource({
+      sourceType: 'shop',
+      sourceRefType: 'npc',
+      sourceRefName: 'Merchant and Skeleton Merchant',
+      quantityText: null,
+      chanceText: null,
+      conditions: null,
+      notes: 'Rope can be purchased from the Merchant and Skeleton Merchant.'
+    })
+  ];
+}
+
+function normalizeBaseMatrixItemSources(sources) {
+  return sources
+    .filter((source) => !normalizeText(source.sourceTargetItemName))
+    .filter((source) => !isBonusDropMarker(source))
+    .flatMap(splitCompositeMerchantSource);
+}
+
+function isBonusDropMarker(source) {
+  return source.sourceType === 'drop'
+    && source.sourceRefType === 'unknown'
+    && normalizeText(source.sourceRefName) === 'Bonus drop';
+}
+
+function splitCompositeMerchantSource(source) {
+  if (
+    source.sourceType !== 'shop'
+    || source.sourceRefType !== 'npc'
+    || !/Merchant\s+(?:or|and)\s+Skeleton Merchant/i.test(source.sourceRefName ?? '')
+  ) {
+    return [source];
+  }
+  return ['Merchant', 'Skeleton Merchant'].map((sourceRefName) => ({
+    ...source,
+    sourceRefName,
+    conditions: null
+  }));
+}
+
+function buildExactRecipeSources(candidate) {
+  const itemName = normalizeText(candidate.itemName);
+  const recipes = Array.isArray(candidate.extractedRecipes) ? candidate.extractedRecipes : [];
+  return recipes
+    .filter((recipe) => normalizeRecipeResultName(recipe?.resultName) === itemName)
+    .flatMap((recipe) => buildRecipeSourceRows(candidate, recipe));
+}
+
+function buildRecipeSourceRows(candidate, recipe) {
+  const ingredients = Array.isArray(recipe?.ingredients) ? recipe.ingredients : [];
+  const resultQuantity = Number(recipe?.resultQuantity);
+  const quantityText = Number.isFinite(resultQuantity) && resultQuantity > 0 ? String(resultQuantity) : '1';
+  const sourceType = inferRecipeSourceType(candidate, recipe);
+  const conditions = sourceType === 'shimmer' ? 'Shimmer transmutation' : recipeConditionText(recipe);
+  const notes = recipeIngredientSummary(ingredients);
+  return ingredients
+    .filter((ingredient) => normalizeText(ingredient?.ingredientName))
+    .map((ingredient) => {
+      const sourceRefType = normalizeText(ingredient.ingredientGroupType) === 'item' ? 'item' : 'world';
+      return {
+        sourceType,
+        sourceRefType,
+        sourceRefName: normalizeText(ingredient.ingredientName),
+        quantityText,
+        chanceText: null,
+        conditions,
+        notes
+      };
+    });
+}
+
+function inferRecipeSourceType(candidate, recipe) {
+  const itemName = normalizeText(candidate.itemName);
+  const ingredientNames = (Array.isArray(recipe?.ingredients) ? recipe.ingredients : [])
+    .map((ingredient) => normalizeText(ingredient?.ingredientName))
+    .filter(Boolean);
+  if (normalizeText(candidate.pageTitle) === 'Torches' && itemName === 'Aether Torch' && ingredientNames.includes('Any Torch')) {
+    return 'shimmer';
+  }
+  return 'craft';
+}
+
+function recipeConditionText(recipe) {
+  const stations = (Array.isArray(recipe?.stations) ? recipe.stations : [])
+    .map((station) => normalizeText(station?.stationName ?? station?.stationNameRaw))
+    .filter(Boolean);
+  if (!stations.length || stations.every((station) => station === 'By Hand')) {
+    return 'Crafted by hand';
+  }
+  return stations.length ? `Crafted at ${stations.join(' + ')}` : 'Crafted by hand';
+}
+
+function recipeIngredientSummary(ingredients) {
+  const parts = (Array.isArray(ingredients) ? ingredients : [])
+    .map((ingredient) => {
+      const name = normalizeText(ingredient?.ingredientName);
+      if (!name) return null;
+      const quantity = normalizeText(ingredient?.quantityText);
+      return quantity ? `${name} x${quantity}` : name;
+    })
+    .filter(Boolean);
+  return parts.length ? `Recipe ingredients: ${parts.join(', ')}` : null;
+}
+
+function normalizeRecipeResultName(value) {
+  const text = normalizeText(value);
+  if (!text) return null;
+  return text
+    .replace(/^only:\s*/i, '')
+    .replace(/\s*\([^)]*versions?\)/gi, '')
+    .replace(/\s+\d+(?:\.\d+)?$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function normalizeSourceForPlanning(candidate, source) {
@@ -403,6 +581,44 @@ function isDroppedPollutedNoiseSource(candidate, source) {
     && /\bVampirism worlds?\b/i.test(source.conditions ?? '');
 }
 
+function normalizeBlockPlacingWandSources(candidate, sources) {
+  const itemName = normalizeText(candidate.itemName);
+  const matching = sources.filter((source) => normalizeText(source.sourceSectionTitle) === itemName);
+  const hasTreeSource = new Set(matching
+    .filter((source) => isBlockPlacingWandTreeSource(source))
+    .map((source) => blockPlacingWandSourceRowKey(source)));
+
+  return matching
+    .filter((source) => {
+      if (normalizeText(source.sourceRefName) !== 'Shaking') return true;
+      return !hasTreeSource.has(blockPlacingWandSourceRowKey(source));
+    })
+    .map((source) => {
+      if (!isBlockPlacingWandTreeSource(source)) return source;
+      return {
+        ...source,
+        sourceType: 'drop',
+        sourceRefType: 'world',
+        conditions: mergeText(source.conditions, 'Shaking')
+      };
+    });
+}
+
+function isBlockPlacingWandTreeSource(source) {
+  return source.sourceType === 'drop'
+    && source.sourceRefType === 'unknown'
+    && /^(?:Forest|Mahogany) tree$/i.test(normalizeText(source.sourceRefName) ?? '');
+}
+
+function blockPlacingWandSourceRowKey(source) {
+  return JSON.stringify([
+    normalizeText(source.sourceSectionTitle),
+    source.quantityText ?? null,
+    source.chanceText ?? null,
+    source.sourceRowText ?? null
+  ]);
+}
+
 function buildSourcePlan({
   candidate,
   source,
@@ -424,6 +640,8 @@ function buildSourcePlan({
     notes: source.notes ?? null,
     sourcePage: candidate.pageTitle ?? null,
     sourceRevisionTimestamp: candidate.sourceRevisionTimestamp ?? null,
+    sourceSectionTitle: source.sourceSectionTitle ?? null,
+    sourceRowText: source.sourceRowText ?? null,
     sortOrder: sourceIndex,
     landingRow: {
       itemInternalName: candidate.itemInternalName,

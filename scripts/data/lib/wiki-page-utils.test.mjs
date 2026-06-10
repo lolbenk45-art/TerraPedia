@@ -71,6 +71,35 @@ test('extractDropSourcesFromHtml falls back to stripped entity text when no link
   assert.equal(actual[0].quantityText, '5');
 });
 
+test('extractDropSourcesFromHtml preserves section title for matrix pages', () => {
+  const html = `
+    <h2><span class="mw-headline" id="Bone_Wand">Bone Wand</span><span class="mw-editsection">[ edit ]</span></h2>
+    <table class="drop-noncustom sortable">
+      <tr><th>Entity</th><th>Qty</th><th>Rate</th></tr>
+      <tr><td><a title="Angry Bones">Angry Bones</a></td><td>1</td><td>0.4%</td></tr>
+    </table>
+    <h2><span class="mw-headline" id="Hive_Wand">Hive Wand</span><span class="mw-editsection">[ edit ]</span></h2>
+    <table class="drop-noncustom sortable">
+      <tr><th>Entity</th><th>Qty</th><th>Rate</th></tr>
+      <tr><td><a title="Queen Bee">Queen Bee</a></td><td>1</td><td>33%</td></tr>
+    </table>
+  `;
+  const npcLookup = new Map([
+    ['angry bones', { boss: false }],
+    ['queen bee', { boss: true }]
+  ]);
+
+  const actual = extractDropSourcesFromHtml(html, npcLookup);
+
+  assert.deepEqual(
+    actual.map((entry) => [entry.sourceRefName, entry.sourceSectionTitle, entry.sourceRowText]),
+    [
+      ['Angry Bones', 'Bone Wand', 'Angry Bones 1 0.4%'],
+      ['Queen Bee', 'Hive Wand', 'Queen Bee 1 33%']
+    ]
+  );
+});
+
 test('classifyDropSourceRefType keeps container-like drop table sources out of npc resolution', () => {
   assert.equal(classifyDropSourceRefType('Gold Chest'), 'container');
   assert.equal(classifyDropSourceRefType('Frozen Chest'), 'container');
@@ -208,6 +237,35 @@ test('parseRecipeTable humanizes file-based version notes into stable scope labe
 
   assert.equal(recipes.length, 1);
   assert.equal(recipes[0].versionScope, 'Desktop version Console version only');
+});
+
+test('parseRecipeTable strips version labels and result quantities from result names', () => {
+  const markup = `
+    <table class="terraria cellborder recipes sortable">
+      <tr><th class="result">Result</th><th class="ingredients">Ingredients</th><th class="station">[[Crafting station]]</th></tr>
+      <tr>
+        <td class="result">
+          <div class="version-note note-text small">[[File:Desktop only.png|16x12px|Desktop version|link=Desktop version history]] only:</div>
+          <span class="i">[[Blue Torch]]</span><span class="am">10</span>
+        </td>
+        <td class="ingredients"><ul><li><span class="i">[[Torch]]</span><span class="am">10</span></li><li><span class="i">[[Sapphire]]</span></li></ul></td>
+      </tr>
+      <tr>
+        <td class="result"><span class="i">[[Silk Rope]]</span><span class="am">30</span></td>
+        <td class="ingredients"><ul><li><span class="i">[[Silk]]</span></li></ul></td>
+      </tr>
+    </table>
+  `;
+
+  const recipes = parseRecipeTable(markup);
+
+  assert.deepEqual(
+    recipes.map((recipe) => [recipe.resultName, recipe.resultQuantity, recipe.versionScope]),
+    [
+      ['Blue Torch', 10, 'Desktop version only'],
+      ['Silk Rope', 30, null]
+    ]
+  );
 });
 
 test('parseRecipeTable keeps combined stations as jointly required instead of alternatives', () => {

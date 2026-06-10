@@ -56,18 +56,27 @@ export function extractLinkedTitles(value) {
   }
 
   const titles = [];
-  for (const match of value.matchAll(/\[\[([^|\]]+)(?:\|[^\]]*)?\]\]/g)) {
-    const title = match[1].trim();
-    if (
-      title.startsWith('File:') ||
-      title.startsWith('Category:') ||
-      title.startsWith('Legacy:')
-    ) {
+  for (const match of value.matchAll(/<a\b[^>]*\btitle="([^"]+)"/gi)) {
+    const title = normalizeText(match[1]);
+    if (!title || isIgnoredLinkedTitle(title)) {
       continue;
     }
     titles.push(title);
   }
-  return titles;
+  for (const match of value.matchAll(/\[\[([^|\]]+)(?:\|[^\]]*)?\]\]/g)) {
+    const title = match[1].trim();
+    if (isIgnoredLinkedTitle(title)) {
+      continue;
+    }
+    titles.push(title);
+  }
+  return [...new Set(titles)];
+}
+
+function isIgnoredLinkedTitle(title) {
+  return title.startsWith('File:')
+    || title.startsWith('Category:')
+    || title.startsWith('Legacy:');
 }
 
 export function parseQuantity(value) {
@@ -184,17 +193,25 @@ export function extractDropSourcesFromHtml(html, npcLookup = new Map()) {
     return [];
   }
 
-  const tables = [...html.matchAll(/<table class="drop[^"]*?">([\s\S]*?)<\/table>/gi)];
   const rows = [];
+  const tokens = [...html.matchAll(/<h([2-4])\b[^>]*>([\s\S]*?)<\/h\1>|<table class="drop[^"]*?">([\s\S]*?)<\/table>/gi)];
+  let sourceSectionTitle = null;
 
-  for (const table of tables) {
-    for (const rowMatch of table[1].matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
+  for (const token of tokens) {
+    if (token[1]) {
+      sourceSectionTitle = normalizeHeadingTitle(stripHtml(token[2]));
+      continue;
+    }
+
+    const tableHtml = token[3];
+    for (const rowMatch of tableHtml.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
       const rowHtml = rowMatch[1];
       const cells = [...rowHtml.matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi)].map((cell) => cell[1]);
       if (cells.length < 3 || stripHtml(cells[0]) === 'Entity') {
         continue;
       }
 
+      const sourceRowText = normalizeText(cells.map((cell) => stripHtml(cell)).join(' '));
       const quantity = parseQuantity(stripHtml(cells[1]));
       const chance = parseChance(stripHtml(cells[2]));
       const sourceNames = extractDropSourceNames(cells[0]);
@@ -213,6 +230,8 @@ export function extractDropSourcesFromHtml(html, npcLookup = new Map()) {
           quantityText: quantity.text,
           chanceValue: chance.value,
           chanceText: chance.text,
+          sourceSectionTitle,
+          sourceRowText,
           notes: rowHtml.includes('m-normal') ? 'Normal mode row' : null
         });
       }
@@ -220,6 +239,67 @@ export function extractDropSourcesFromHtml(html, npcLookup = new Map()) {
   }
 
   return rows;
+}
+
+export function extractTypeRowSourcesFromHtml(html) {
+  if (typeof html !== 'string') {
+    return [];
+  }
+
+  const sources = [];
+  for (const rowMatch of html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const rowHtml = rowMatch[1];
+    if (!/\bid="type(?:_|&#95;)/i.test(rowHtml)) {
+      continue;
+    }
+
+    const itemName = normalizeText(rowHtml.match(/<span title="([^"]+)">[^<]*<\/span><span class="id">Internal/i)?.[1]);
+    if (!itemName) {
+      continue;
+    }
+
+    const cells = [...rowHtml.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map((cell) => cell[1]);
+    const noteHtml = cells.at(-1) ?? '';
+    const noteText = normalizeText(stripHtml(noteHtml));
+    if (!noteText || !/\bsold\b/i.test(noteText)) {
+      continue;
+    }
+
+    const vendors = extractLinkedTitles(noteHtml).filter((title) => /\bMerchant\b/i.test(title));
+    for (const vendor of vendors) {
+      sources.push({
+        sourceType: 'shop',
+        sourceRefType: 'npc',
+        sourceRefName: vendor,
+        sourceTargetItemName: itemName,
+        conditions: inferShopCondition(noteText),
+        notes: noteText
+      });
+    }
+  }
+
+  return dedupeBy(sources, (source) => [
+    source.sourceType,
+    source.sourceRefType,
+    source.sourceRefName,
+    source.sourceTargetItemName,
+    source.conditions ?? '',
+    source.notes ?? ''
+  ].join('|'));
+}
+
+function inferShopCondition(noteText) {
+  if (/\brandom(?:ly)?\b/i.test(noteText)) return 'random shop stock';
+  const firstHalfMatch = noteText.match(/during the first half of every second/i);
+  if (firstHalfMatch) return 'first half of every second';
+  return null;
+}
+
+function normalizeHeadingTitle(value) {
+  return normalizeText(value)
+    ?.replace(/\s*\[\s*edit\s*\]\s*/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim() || null;
 }
 
 export function classifyDropSourceRefType(sourceName, npcMeta = null) {
@@ -310,6 +390,7 @@ export function parseRecipeTable(expandedMarkup) {
 
     const resultLinks = extractLinkedTitles(resultCell).filter((title) => !title.startsWith('Desktop ') && !title.startsWith('Console ') && !title.startsWith('Mobile '));
     const resultName = resultLinks.find((title) => title !== 'Crafting station') ?? stripHtml(resultCell);
+    const resultQuantity = parseQuantity(resultCell.match(/<span class="am">([\s\S]*?)<\/span>/i)?.[1] ?? '');
     const versionScope = humanizeVersionNote(resultCell.match(/<div class="version-note[^"]*">([\s\S]*?)<\/div>/i)?.[1] ?? '');
 
     const ingredientOptionSets = [...ingredientsCell.matchAll(/<li>([\s\S]*?)<\/li>/gi)]
@@ -332,7 +413,7 @@ export function parseRecipeTable(expandedMarkup) {
     for (const ingredients of ingredientVariants) {
       recipes.push({
         resultName,
-        resultQuantity: 1,
+        resultQuantity: resultQuantity.min ?? 1,
         versionScope: versionScope ? versionScope.replace(/:\s*$/, '') : null,
         ingredients,
         stations

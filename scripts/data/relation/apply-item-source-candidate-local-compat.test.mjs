@@ -148,6 +148,28 @@ test('buildLocalCompatRows maps boss refs as npc-backed boss source rows', () =>
   );
 });
 
+test('buildLocalCompatRows blocks unsupported source types before database validation', () => {
+  const plan = samplePlan();
+  plan.eligibleCandidates[0].plannedSources = [{
+    sourceType: 'unsafe_refresh',
+    sourceRefType: 'world',
+    sourceRefName: 'Unsafe world source',
+    quantityText: null,
+    chanceText: null,
+    conditions: null,
+    notes: null,
+    sourcePage: 'Unsafe',
+    sourceRevisionTimestamp: '2026-06-10T00:00:00Z',
+    sortOrder: 0,
+    resolvedRef: null
+  }];
+
+  const result = buildLocalCompatRows(plan, { sample: 'MagicMirror' });
+
+  assert.equal(result.rows.length, 0);
+  assert.deepEqual(result.blocked.map((entry) => entry.reason), ['unsupported_source_type']);
+});
+
 test('runItemSourceCandidateLocalCompatApply dry-run validates and does not insert', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'item-source-local-dry-'));
   const inputPath = path.join(root, 'plan.json');

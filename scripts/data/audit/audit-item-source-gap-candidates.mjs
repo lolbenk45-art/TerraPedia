@@ -5,7 +5,9 @@ import {
   extractDropSourcesFromHtml,
   extractIntroParagraphs,
   extractNarrativeSources,
+  extractTypeRowSourcesFromHtml,
   extractVendorSourcesFromWikitext,
+  parseRecipeTable,
   normalizeText
 } from '../lib/wiki-page-utils.mjs';
 import {
@@ -79,6 +81,7 @@ export function auditItemSourceGapCandidates({
 
     inspected.push(internalName);
     const extractedSources = extractSourcesFromRawPayload(payload, npcLookup);
+    const extractedRecipes = parseRecipeTable(payload.html);
     if (extractedSources.length > 0) {
       rawPagesWithExtractedSources += 1;
     }
@@ -94,6 +97,7 @@ export function auditItemSourceGapCandidates({
         standardizedSourceCount,
         classification: classifyCandidate(payload, extractedSources),
         extractedSources,
+        extractedRecipes,
         sourceRevisionTimestamp: payload.revisionTimestamp ?? null
       });
     }
@@ -131,6 +135,7 @@ function extractSourcesFromRawPayload(payload, npcLookup) {
   const sources = [
     ...extractVendorSourcesFromWikitext(payload.wikitext),
     ...extractDropSourcesFromHtml(payload.html, npcLookup),
+    ...extractTypeRowSourcesFromHtml(payload.html),
     ...extractNarrativeSources(introParagraphs, payload.pageTitle)
   ];
   return dedupeBy(
@@ -141,9 +146,12 @@ function extractSourcesFromRawPayload(payload, npcLookup) {
       quantityText: source.quantityText ?? null,
       chanceText: source.chanceText ?? null,
       conditions: source.conditions ?? null,
-      notes: source.notes ?? null
+      notes: source.notes ?? null,
+      sourceSectionTitle: source.sourceSectionTitle ?? null,
+      sourceRowText: source.sourceRowText ?? null,
+      sourceTargetItemName: source.sourceTargetItemName ?? null
     })),
-    (source) => `${source.sourceType}|${source.sourceRefType}|${source.sourceRefName}|${source.quantityText ?? ''}|${source.chanceText ?? ''}|${source.conditions ?? ''}`
+    (source) => `${source.sourceType}|${source.sourceRefType}|${source.sourceRefName}|${source.quantityText ?? ''}|${source.chanceText ?? ''}|${source.conditions ?? ''}|${source.sourceSectionTitle ?? ''}|${source.sourceRowText ?? ''}|${source.sourceTargetItemName ?? ''}`
   );
 }
 
