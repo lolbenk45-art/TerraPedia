@@ -1,0 +1,27 @@
+{
+  "generatedAt": "2026-06-10T22:32:43.726Z",
+  "batchId": "item-source-legacy-duplicate-cleanup-lane-h-post-apply",
+  "apply": false,
+  "connection": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "database": "terria_v1_local",
+    "user": "root"
+  },
+  "itemIds": [
+    2274,
+    4388
+  ],
+  "backupPath": "/home/lolben/TerraPedia/data/backups/item-source-legacy-duplicate-cleanup/item-source-legacy-duplicate-cleanup-lane-h-post-apply.before.json",
+  "summary": {
+    "inputRows": 4,
+    "reviewedRows": 4,
+    "legacyRows": 0,
+    "rowsToSoftDelete": 0,
+    "unsafeOverlaps": 0,
+    "softDeleted": 0
+  },
+  "rowsToSoftDelete": [],
+  "unsafeOverlaps": [],
+  "rollbackSql": null
+}

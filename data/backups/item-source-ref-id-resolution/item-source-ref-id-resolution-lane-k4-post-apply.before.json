@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-06-10T23:57:14.540Z",
+  "batchId": "item-source-ref-id-resolution-lane-k4-post-apply",
+  "connection": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "database": "terria_v1_local"
+  },
+  "rows": []
+}

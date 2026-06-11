@@ -445,16 +445,16 @@ function loadNpcLookup(filePath) {
     if (!name) {
       continue;
     }
-    const key = name.toLowerCase();
-    const candidates = byName.get(key) ?? [];
-    candidates.push({
+    const candidate = {
       boss: npc?.boss === true || npc?.boss === 1,
       id: toNullableInteger(npc?.id),
       internalName: normalizeName(npc?.internalName),
       name,
       type: toNullableInteger(npc?.type)
-    });
-    byName.set(key, candidates);
+    };
+    rememberNpcLookupCandidate(byName, name, candidate);
+    rememberNpcLookupCandidate(byName, npc?.internalName, candidate);
+    rememberNpcLookupCandidate(byName, normalizeImageFileTitleAlias(npc?.imageFileTitle ?? npc?.image_file_title), candidate);
   }
 
   return new Map(
@@ -476,6 +476,22 @@ function loadNpcLookup(filePath) {
       }
     ])
   );
+}
+
+function rememberNpcLookupCandidate(byName, value, candidate) {
+  const key = normalizeName(value)?.toLowerCase();
+  if (!key) return;
+  const candidates = byName.get(key) ?? [];
+  if (!candidates.some((entry) => entry.id === candidate.id && entry.internalName === candidate.internalName)) {
+    candidates.push(candidate);
+  }
+  byName.set(key, candidates);
+}
+
+function normalizeImageFileTitleAlias(value) {
+  return normalizeName(value)
+    ?.replace(/\.(?:gif|png|jpe?g|webp)$/i, '')
+    .trim() ?? null;
 }
 
 function resolveNpcSourceBinding({ item, npcLookup, source, stats, unresolvedByName }) {

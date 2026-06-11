@@ -1,0 +1,70 @@
+{
+  "generatedAt": "2026-06-10T22:31:59.801Z",
+  "batchId": "item-source-legacy-duplicate-cleanup-lane-h-dry-run",
+  "apply": false,
+  "connection": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "database": "terria_v1_local",
+    "user": "root"
+  },
+  "itemIds": [
+    2274,
+    4388
+  ],
+  "backupPath": "/home/lolben/TerraPedia/data/backups/item-source-legacy-duplicate-cleanup/item-source-legacy-duplicate-cleanup-lane-h-dry-run.before.json",
+  "summary": {
+    "inputRows": 6,
+    "reviewedRows": 4,
+    "legacyRows": 2,
+    "rowsToSoftDelete": 2,
+    "unsafeOverlaps": 0,
+    "softDeleted": 0
+  },
+  "rowsToSoftDelete": [
+    {
+      "id": 192084,
+      "itemId": 2274,
+      "itemName": "Ultrabright Torch",
+      "itemInternalName": "UltrabrightTorch",
+      "sourceType": "shop",
+      "sourceRefType": "npc",
+      "sourceRefId": 368,
+      "sourceRefName": "Traveling Merchant",
+      "sourceNpcType": 368,
+      "quantityText": null,
+      "chanceText": null,
+      "conditions": null,
+      "sourcePage": "https://terraria.wiki.gg/wiki/Traveling_Merchant",
+      "coveringReviewedRowId": 198604,
+      "coveringSourceRefId": 368,
+      "coveringSourceRefName": "Traveling Merchant",
+      "coveringSourceNpcType": 368,
+      "coveringSourcePage": "Torches",
+      "coverageReason": "exact_ref_id"
+    },
+    {
+      "id": 193964,
+      "itemId": 4388,
+      "itemName": "Jungle Torch",
+      "itemInternalName": "JungleTorch",
+      "sourceType": "shop",
+      "sourceRefType": "npc",
+      "sourceRefId": 17,
+      "sourceRefName": "Merchant",
+      "sourceNpcType": 17,
+      "quantityText": null,
+      "chanceText": null,
+      "conditions": null,
+      "sourcePage": "https://terraria.wiki.gg/wiki/Merchant",
+      "coveringReviewedRowId": 198557,
+      "coveringSourceRefId": 17,
+      "coveringSourceRefName": "Merchant",
+      "coveringSourceNpcType": 17,
+      "coveringSourcePage": "Torches",
+      "coverageReason": "exact_ref_id"
+    }
+  ],
+  "unsafeOverlaps": [],
+  "rollbackSql": "UPDATE `item_acquisition_sources` SET   `status` = CASE `id` WHEN 192084 THEN 1 WHEN 193964 THEN 1 END,   `deleted` = CASE `id` WHEN 192084 THEN 0 WHEN 193964 THEN 0 END WHERE `id` IN (192084, 193964);"
+}

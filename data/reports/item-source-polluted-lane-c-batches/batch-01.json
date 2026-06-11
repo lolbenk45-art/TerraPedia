@@ -1,0 +1,246 @@
+{
+  "generatedAt": "2026-06-10T15:23:00.135Z",
+  "readOnly": true,
+  "mode": "reviewed_item_source_candidate_batch",
+  "sourcePlan": "data/reports/item-source-candidate-import-plan.after-polluted-lane-c.json",
+  "reviewScope": "polluted-lane-c-shucked-oyster-witch-set-only",
+  "safetyPolicy": {
+    "allowPages": [
+      "Shucked Oyster",
+      "Witch set"
+    ],
+    "disallowPages": [
+      "Torches",
+      "Ropes",
+      "Block-placing wands",
+      "Mummy set"
+    ],
+    "notes": [
+      "Shucked Oyster may only import drop/item/Oyster.",
+      "Witch set may only import drop/item/Goodie Bag; Vampirism worlds worldgen text is omitted as non-vanilla/mod-like noise.",
+      "Matrix pages and Mummy group sources remain blocked."
+    ]
+  },
+  "summary": {
+    "eligibleCandidates": 4,
+    "plannedSourceRows": 4
+  },
+  "eligibleCandidates": [
+    {
+      "itemInternalName": "ShuckedOyster",
+      "itemName": "Shucked Oyster",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 4411,
+        "internalName": "ShuckedOyster",
+        "name": "Shucked Oyster"
+      },
+      "pageTitle": "Shucked Oyster",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/shuckedoyster.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-03-29T04:32:14Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "c02f976b77ed649d9155f741991b65913d69d5803eb058d0e1d6a183eb37e23e",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Oyster",
+          "quantityText": "1",
+          "chanceText": "100%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Shucked Oyster",
+          "sourceRevisionTimestamp": "2026-03-29T04:32:14Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "ShuckedOyster",
+            "itemName": "Shucked Oyster",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Oyster",
+            "quantityText": "1",
+            "chanceText": "100%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Shucked Oyster",
+            "sourceRevisionTimestamp": "2026-03-29T04:32:14Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 4410,
+            "internalName": "Oyster",
+            "name": "Oyster"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "WitchBoots",
+      "itemName": "Witch Boots",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1776,
+        "internalName": "WitchBoots",
+        "name": "Witch Boots"
+      },
+      "pageTitle": "Witch set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/witchboots.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-05-23T16:47:45Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "0a7cbf82d62dcd2b03a1f3ae9633d64930eaa04a9718d5cbdcad88e859079932",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Witch set",
+          "sourceRevisionTimestamp": "2026-05-23T16:47:45Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "WitchBoots",
+            "itemName": "Witch Boots",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Witch set",
+            "sourceRevisionTimestamp": "2026-05-23T16:47:45Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "WitchDress",
+      "itemName": "Witch Dress",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1775,
+        "internalName": "WitchDress",
+        "name": "Witch Dress"
+      },
+      "pageTitle": "Witch set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/witchdress.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-05-23T16:47:45Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "5407931eab357e4377bc69157ccc4615bf46f1f6494c2b6ee48a4934c70f566a",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Witch set",
+          "sourceRevisionTimestamp": "2026-05-23T16:47:45Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "WitchDress",
+            "itemName": "Witch Dress",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Witch set",
+            "sourceRevisionTimestamp": "2026-05-23T16:47:45Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "WitchHat",
+      "itemName": "Witch Hat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1766,
+        "internalName": "WitchHat",
+        "name": "Witch Hat"
+      },
+      "pageTitle": "Witch set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/witchhat.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-05-23T16:47:45Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "a989ec5509f8bbc2d308c94b4c2ae25a3659d909a1f11cbe901f4606857a72df",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Witch set",
+          "sourceRevisionTimestamp": "2026-05-23T16:47:45Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "WitchHat",
+            "itemName": "Witch Hat",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Witch set",
+            "sourceRevisionTimestamp": "2026-05-23T16:47:45Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    }
+  ]
+}

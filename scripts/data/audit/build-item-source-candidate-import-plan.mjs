@@ -8,6 +8,9 @@ import {
   auditItemSourceGapCandidates
 } from './audit-item-source-gap-candidates.mjs';
 import {
+  isFamilyPageAllowedForSharedSource
+} from './item-source-family-page-policy.mjs';
+import {
   numericOption,
   parseCliArgs,
   sharedDataPath,
@@ -32,6 +35,7 @@ const ALLOWED_SOURCE_TYPES = new Set([
   'container',
   'crate',
   'treasure_bag',
+  'shimmer',
   'worldgen',
   'mining',
   'quest_reward',
@@ -53,6 +57,33 @@ const ALLOWED_SOURCE_REF_TYPES = new Set([
 const ITEM_BACKED_SOURCE_REF_TYPES = new Set(['item', 'container', 'crate', 'treasure_bag']);
 const NPC_BACKED_SOURCE_REF_TYPES = new Set(['npc', 'boss']);
 const CONTAINER_LIKE_NPC_POLLUTION = /\b(chest|crate|treasure\s+bag|lock\s*box|present|bag)\b/i;
+const PROMOTION_SCOPES = new Set(['family', 'polluted', 'all']);
+const GOODIE_BAG_POLLUTED_PAGES = new Set([
+  'Cat set',
+  'Creeper set',
+  'Fox set',
+  'Karate Tortoise set',
+  'Leprechaun set',
+  'Princess set',
+  'Pumpkin set',
+  'Robot set',
+  'Space Creature set',
+  'Unicorn set',
+  'Vampire set',
+  'Witch set',
+  'Wolf set',
+  'Bride of Frankenstein set',
+  'Ghost set',
+  'Pixie set',
+  'Reaper set',
+  'Treasure Hunter set'
+]);
+const MUMMY_SET_SOURCE_NPCS = [
+  'Blood Mummy',
+  'Dark Mummy',
+  'Light Mummy',
+  'Mummy'
+];
 
 export function parseBuildItemSourceCandidateImportPlanArgs(argv = process.argv.slice(2)) {
   const options = parseCliArgs(argv);
@@ -71,7 +102,8 @@ export function parseBuildItemSourceCandidateImportPlanArgs(argv = process.argv.
     sample: options.sample ?? null,
     limit: numericOption(options.limit, null),
     outputPath: options.output ?? null,
-    bundleRoot: options['bundle-root'] ?? options.bundleRoot ?? null
+    bundleRoot: options['bundle-root'] ?? options.bundleRoot ?? null,
+    promotionScope: normalizePromotionScope(options['promotion-scope'] ?? options.promotionScope ?? 'all')
   };
 }
 
@@ -83,8 +115,10 @@ export function buildItemSourceCandidateImportPlan({
   standardizedItemsPath = path.join(process.cwd(), 'data', 'standardized', 'items.standardized.json'),
   itemSourcesDir = path.join(process.cwd(), 'data', 'standardized-view', 'item_relations', 'itemSources'),
   sample = null,
-  limit = null
+  limit = null,
+  promotionScope = 'all'
 } = {}) {
+  const normalizedPromotionScope = normalizePromotionScope(promotionScope);
   const summary = auditSummary ?? auditItemSourceGapCandidates({
     rawItemPageDir,
     npcParsedPath,
@@ -109,8 +143,7 @@ export function buildItemSourceCandidateImportPlan({
   for (const candidate of Array.isArray(summary.candidates) ? summary.candidates : []) {
     const classification = normalizeText(candidate.classification) ?? 'unknown';
     const itemResolution = resolveEntityRef(itemLookup, candidate.itemInternalName, candidate.itemName);
-    const candidateBlockReason = classifyCandidateBlockReason(candidate, itemResolution);
-    const sourcePlans = dedupeSourcePlans((Array.isArray(candidate.extractedSources) ? candidate.extractedSources : [])
+    const sourcePlans = dedupeSourcePlans(normalizeCandidateSourcesForPlanning(candidate, candidate.extractedSources)
       .map((source, sourceIndex) => buildSourcePlan({
         candidate,
         source,
@@ -118,10 +151,13 @@ export function buildItemSourceCandidateImportPlan({
         itemLookup,
         npcLookup
       })));
+    const candidateBlockReason = classifyCandidateBlockReason(candidate, itemResolution, sourcePlans, {
+      promotionScope: normalizedPromotionScope
+    });
 
     const blockedSources = sourcePlans.filter((source) => source.blockedReason);
-    if (candidateBlockReason || blockedSources.length > 0 || classification !== 'high_confidence') {
-      const blockedReason = candidateBlockReason ?? (classification !== 'high_confidence' ? classification : 'blocked_source_rows');
+    if (candidateBlockReason || blockedSources.length > 0) {
+      const blockedReason = candidateBlockReason ?? 'blocked_source_rows';
       blockedSourceRows += sourcePlans.length;
       blockedCandidates.push({
         itemInternalName: candidate.itemInternalName,
@@ -168,7 +204,8 @@ export function buildItemSourceCandidateImportPlan({
       standardizedItemsPath,
       itemSourcesDir,
       sample,
-      limit
+      limit,
+      promotionScope: normalizedPromotionScope
     },
     sourceAudit: {
       generatedAt: summary.generatedAt,
@@ -215,13 +252,371 @@ export function buildItemSourceCandidateBundle(plan) {
   };
 }
 
-function classifyCandidateBlockReason(candidate, itemResolution) {
+function classifyCandidateBlockReason(candidate, itemResolution, sourcePlans = [], { promotionScope = 'all' } = {}) {
   const classification = normalizeText(candidate.classification) ?? 'unknown';
-  if (classification === 'family_page_candidate') return 'family_page_candidate';
-  if (classification === 'polluted_candidate') return 'polluted_candidate';
-  if (classification !== 'high_confidence') return classification;
   if (itemResolution.status !== 'resolved') return 'item_unresolved';
+  if (classification === 'high_confidence') return null;
+  if (classification === 'family_page_candidate') {
+    if (!['family', 'all'].includes(promotionScope)) return 'family_page_candidate';
+    return isAllowedFamilyCandidate(candidate, sourcePlans) ? null : 'family_page_candidate';
+  }
+  if (classification === 'polluted_candidate') {
+    if (!['polluted', 'all'].includes(promotionScope)) return 'polluted_candidate';
+    return isAllowedPollutedCandidate(candidate, sourcePlans) ? null : 'polluted_candidate';
+  }
+  if (classification !== 'high_confidence') return classification;
   return null;
+}
+
+function normalizePromotionScope(value) {
+  const normalized = normalizeText(value)?.toLowerCase() ?? 'all';
+  if (!PROMOTION_SCOPES.has(normalized)) {
+    throw new Error(`invalid promotion scope: ${value}`);
+  }
+  return normalized;
+}
+
+function isAllowedFamilyCandidate(candidate, sourcePlans) {
+  return sourcePlans.length > 0
+    && sourcePlans.every((source) =>
+      !source.blockedReason
+      && isFamilyPageAllowedForSharedSource({
+        pageTitle: candidate.pageTitle,
+        sourceType: source.sourceType,
+        sourceRefType: source.sourceRefType
+      }));
+}
+
+function isAllowedPollutedCandidate(candidate, sourcePlans) {
+  const pageTitle = normalizeText(candidate.pageTitle);
+  if (GOODIE_BAG_POLLUTED_PAGES.has(pageTitle)) {
+    return sourcePlans.length > 0
+      && sourcePlans.every((source) =>
+        !source.blockedReason
+        && source.sourceType === 'drop'
+        && source.sourceRefType === 'item'
+        && source.sourceRefName === 'Goodie Bag');
+  }
+  if (pageTitle === 'Flairon') {
+    return sourcePlans.length > 0
+      && sourcePlans.every((source) =>
+        !source.blockedReason
+        && (
+          (source.sourceType === 'drop' && source.sourceRefType === 'boss' && source.sourceRefName === 'Duke Fishron')
+          || (source.sourceType === 'treasure_bag' && source.sourceRefType === 'treasure_bag' && source.sourceRefName === 'Treasure Bag (Duke Fishron)')
+        ))
+      && sourcePlans.some((source) => source.sourceRefType === 'boss' && source.sourceRefName === 'Duke Fishron')
+      && sourcePlans.some((source) => source.sourceRefType === 'treasure_bag' && source.sourceRefName === 'Treasure Bag (Duke Fishron)');
+  }
+  if (pageTitle === 'Shucked Oyster') {
+    return sourcePlans.length === 1
+      && sourcePlans.every((source) =>
+        !source.blockedReason
+        && source.sourceType === 'drop'
+        && source.sourceRefType === 'item'
+        && source.sourceRefName === 'Oyster');
+  }
+  if (pageTitle === 'Mummy set') {
+    const expected = new Set(MUMMY_SET_SOURCE_NPCS);
+    return sourcePlans.length === expected.size
+      && sourcePlans.every((source) =>
+        !source.blockedReason
+        && source.sourceType === 'drop'
+        && source.sourceRefType === 'npc'
+        && expected.has(source.sourceRefName));
+  }
+  if (pageTitle === 'Block-placing wands') {
+    const itemName = normalizeText(candidate.itemName);
+    return sourcePlans.length > 0
+      && sourcePlans.every((source) =>
+        !source.blockedReason
+        && normalizeText(source.sourceSectionTitle) === itemName);
+  }
+  if (pageTitle === 'Torches') {
+    return sourcePlans.length > 0
+      && sourcePlans.every((source) =>
+        !source.blockedReason
+        && ['drop', 'container', 'shop', 'craft', 'shimmer'].includes(source.sourceType)
+        && source.sourceRefType !== 'unknown');
+  }
+  if (pageTitle === 'Ropes') {
+    return sourcePlans.length > 0
+      && sourcePlans.every((source) =>
+        !source.blockedReason
+        && ['drop', 'container', 'shop', 'craft'].includes(source.sourceType)
+        && source.sourceRefType !== 'unknown');
+  }
+  return false;
+}
+
+function normalizeCandidateSourcesForPlanning(candidate, sources) {
+  const normalized = (Array.isArray(sources) ? sources : [])
+    .flatMap((source) => normalizeSourceForPlanning(candidate, source))
+    .filter((source) => !isDroppedPollutedNoiseSource(candidate, source));
+  if (normalizeText(candidate?.pageTitle) === 'Torches') {
+    return normalizeTorchSources(candidate, normalized);
+  }
+  if (normalizeText(candidate?.pageTitle) === 'Ropes') {
+    return normalizeRopeSources(candidate, normalized);
+  }
+  if (normalizeText(candidate?.pageTitle) === 'Block-placing wands') {
+    return normalizeBlockPlacingWandSources(candidate, normalized);
+  }
+  if (normalizeText(candidate?.pageTitle) !== 'Flairon') {
+    return normalized;
+  }
+
+  const expertModeSources = normalized.filter((source) =>
+    source.sourceType === 'drop'
+    && source.sourceRefType === 'unknown'
+    && source.sourceRefName === 'Expert Mode');
+  if (!expertModeSources.length) {
+    return normalized;
+  }
+
+  return normalized
+    .filter((source) => !expertModeSources.includes(source))
+    .map((source) => {
+      if (source.sourceRefType !== 'treasure_bag') return source;
+      return {
+        ...source,
+        conditions: mergeText(source.conditions, 'Expert Mode')
+      };
+    });
+}
+
+function normalizeTorchSources(candidate, sources) {
+  const itemName = normalizeText(candidate.itemName);
+  const recipeSources = buildExactRecipeSources(candidate);
+  const exactTypeSources = sources.filter((source) => normalizeText(source.sourceTargetItemName) === itemName);
+  if (itemName !== 'Torch') {
+    return [...exactTypeSources, ...recipeSources];
+  }
+  return [
+    ...normalizeBaseMatrixItemSources(sources),
+    ...recipeSources
+  ];
+}
+
+function normalizeRopeSources(candidate, sources) {
+  const itemName = normalizeText(candidate.itemName);
+  if (itemName === 'Vine Rope') {
+    return [{
+      sourceType: 'drop',
+      sourceRefType: 'world',
+      sourceRefName: 'Vines',
+      quantityText: '1',
+      chanceText: null,
+      conditions: 'Guide to Plant Fiber Cordage equipped',
+      notes: 'Vine Rope is acquired by destroying vines while the Guide to Plant Fiber Cordage is equipped.'
+    }];
+  }
+  const recipeSources = buildExactRecipeSources(candidate);
+  if (itemName !== 'Rope') {
+    return recipeSources;
+  }
+  return [
+    ...normalizeBaseMatrixItemSources(sources),
+    ...splitCompositeMerchantSource({
+      sourceType: 'shop',
+      sourceRefType: 'npc',
+      sourceRefName: 'Merchant and Skeleton Merchant',
+      quantityText: null,
+      chanceText: null,
+      conditions: null,
+      notes: 'Rope can be purchased from the Merchant and Skeleton Merchant.'
+    })
+  ];
+}
+
+function normalizeBaseMatrixItemSources(sources) {
+  return sources
+    .filter((source) => !normalizeText(source.sourceTargetItemName))
+    .filter((source) => !isBonusDropMarker(source))
+    .flatMap(splitCompositeMerchantSource);
+}
+
+function isBonusDropMarker(source) {
+  return source.sourceType === 'drop'
+    && source.sourceRefType === 'unknown'
+    && normalizeText(source.sourceRefName) === 'Bonus drop';
+}
+
+function splitCompositeMerchantSource(source) {
+  if (
+    source.sourceType !== 'shop'
+    || source.sourceRefType !== 'npc'
+    || !/Merchant\s+(?:or|and)\s+Skeleton Merchant/i.test(source.sourceRefName ?? '')
+  ) {
+    return [source];
+  }
+  return ['Merchant', 'Skeleton Merchant'].map((sourceRefName) => ({
+    ...source,
+    sourceRefName,
+    conditions: null
+  }));
+}
+
+function buildExactRecipeSources(candidate) {
+  const itemName = normalizeText(candidate.itemName);
+  const recipes = Array.isArray(candidate.extractedRecipes) ? candidate.extractedRecipes : [];
+  return recipes
+    .filter((recipe) => normalizeRecipeResultName(recipe?.resultName) === itemName)
+    .flatMap((recipe) => buildRecipeSourceRows(candidate, recipe));
+}
+
+function buildRecipeSourceRows(candidate, recipe) {
+  const ingredients = Array.isArray(recipe?.ingredients) ? recipe.ingredients : [];
+  const resultQuantity = Number(recipe?.resultQuantity);
+  const quantityText = Number.isFinite(resultQuantity) && resultQuantity > 0 ? String(resultQuantity) : '1';
+  const sourceType = inferRecipeSourceType(candidate, recipe);
+  const conditions = sourceType === 'shimmer' ? 'Shimmer transmutation' : recipeConditionText(recipe);
+  const notes = recipeIngredientSummary(ingredients);
+  return ingredients
+    .filter((ingredient) => normalizeText(ingredient?.ingredientName))
+    .map((ingredient) => {
+      const sourceRefType = normalizeText(ingredient.ingredientGroupType) === 'item' ? 'item' : 'world';
+      return {
+        sourceType,
+        sourceRefType,
+        sourceRefName: normalizeText(ingredient.ingredientName),
+        quantityText,
+        chanceText: null,
+        conditions,
+        notes
+      };
+    });
+}
+
+function inferRecipeSourceType(candidate, recipe) {
+  const itemName = normalizeText(candidate.itemName);
+  const ingredientNames = (Array.isArray(recipe?.ingredients) ? recipe.ingredients : [])
+    .map((ingredient) => normalizeText(ingredient?.ingredientName))
+    .filter(Boolean);
+  if (normalizeText(candidate.pageTitle) === 'Torches' && itemName === 'Aether Torch' && ingredientNames.includes('Any Torch')) {
+    return 'shimmer';
+  }
+  return 'craft';
+}
+
+function recipeConditionText(recipe) {
+  const stations = (Array.isArray(recipe?.stations) ? recipe.stations : [])
+    .map((station) => normalizeText(station?.stationName ?? station?.stationNameRaw))
+    .filter(Boolean);
+  if (!stations.length || stations.every((station) => station === 'By Hand')) {
+    return 'Crafted by hand';
+  }
+  return stations.length ? `Crafted at ${stations.join(' + ')}` : 'Crafted by hand';
+}
+
+function recipeIngredientSummary(ingredients) {
+  const parts = (Array.isArray(ingredients) ? ingredients : [])
+    .map((ingredient) => {
+      const name = normalizeText(ingredient?.ingredientName);
+      if (!name) return null;
+      const quantity = normalizeText(ingredient?.quantityText);
+      return quantity ? `${name} x${quantity}` : name;
+    })
+    .filter(Boolean);
+  return parts.length ? `Recipe ingredients: ${parts.join(', ')}` : null;
+}
+
+function normalizeRecipeResultName(value) {
+  const text = normalizeText(value);
+  if (!text) return null;
+  return text
+    .replace(/^only:\s*/i, '')
+    .replace(/\s*\([^)]*versions?\)/gi, '')
+    .replace(/\s+\d+(?:\.\d+)?$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeSourceForPlanning(candidate, source) {
+  const sourceType = normalizeText(source?.sourceType)?.toLowerCase() ?? 'unknown';
+  let sourceRefType = normalizeText(source?.sourceRefType)?.toLowerCase() ?? 'unknown';
+  const sourceRefName = normalizeSourceRefNameForPlanning(sourceRefType, source?.sourceRefName);
+  if (
+    GOODIE_BAG_POLLUTED_PAGES.has(normalizeText(candidate?.pageTitle))
+    && sourceType === 'drop'
+    && sourceRefType === 'unknown'
+    && sourceRefName === 'Goodie Bag'
+  ) {
+    sourceRefType = 'item';
+  }
+  if (
+    normalizeText(candidate?.pageTitle) === 'Shucked Oyster'
+    && sourceType === 'drop'
+    && sourceRefType === 'unknown'
+    && sourceRefName === 'Oyster'
+  ) {
+    sourceRefType = 'item';
+  }
+  if (
+    normalizeText(candidate?.pageTitle) === 'Mummy set'
+    && sourceType === 'drop'
+    && sourceRefType === 'unknown'
+    && sourceRefName === 'Mummies'
+  ) {
+    return MUMMY_SET_SOURCE_NPCS.map((name) => ({
+      ...source,
+      sourceType,
+      sourceRefType: 'npc',
+      sourceRefName: name
+    }));
+  }
+  return {
+    ...source,
+    sourceType,
+    sourceRefType,
+    sourceRefName
+  };
+}
+
+function isDroppedPollutedNoiseSource(candidate, source) {
+  return normalizeText(candidate?.pageTitle) === 'Witch set'
+    && source.sourceType === 'worldgen'
+    && source.sourceRefType === 'world'
+    && source.sourceRefName === 'Witch set worldgen'
+    && /\bVampirism worlds?\b/i.test(source.conditions ?? '');
+}
+
+function normalizeBlockPlacingWandSources(candidate, sources) {
+  const itemName = normalizeText(candidate.itemName);
+  const matching = sources.filter((source) => normalizeText(source.sourceSectionTitle) === itemName);
+  const hasTreeSource = new Set(matching
+    .filter((source) => isBlockPlacingWandTreeSource(source))
+    .map((source) => blockPlacingWandSourceRowKey(source)));
+
+  return matching
+    .filter((source) => {
+      if (normalizeText(source.sourceRefName) !== 'Shaking') return true;
+      return !hasTreeSource.has(blockPlacingWandSourceRowKey(source));
+    })
+    .map((source) => {
+      if (!isBlockPlacingWandTreeSource(source)) return source;
+      return {
+        ...source,
+        sourceType: 'drop',
+        sourceRefType: 'world',
+        conditions: mergeText(source.conditions, 'Shaking')
+      };
+    });
+}
+
+function isBlockPlacingWandTreeSource(source) {
+  return source.sourceType === 'drop'
+    && source.sourceRefType === 'unknown'
+    && /^(?:Forest|Mahogany) tree$/i.test(normalizeText(source.sourceRefName) ?? '');
+}
+
+function blockPlacingWandSourceRowKey(source) {
+  return JSON.stringify([
+    normalizeText(source.sourceSectionTitle),
+    source.quantityText ?? null,
+    source.chanceText ?? null,
+    source.sourceRowText ?? null
+  ]);
 }
 
 function buildSourcePlan({
@@ -245,6 +640,8 @@ function buildSourcePlan({
     notes: source.notes ?? null,
     sourcePage: candidate.pageTitle ?? null,
     sourceRevisionTimestamp: candidate.sourceRevisionTimestamp ?? null,
+    sourceSectionTitle: source.sourceSectionTitle ?? null,
+    sourceRowText: source.sourceRowText ?? null,
     sortOrder: sourceIndex,
     landingRow: {
       itemInternalName: candidate.itemInternalName,

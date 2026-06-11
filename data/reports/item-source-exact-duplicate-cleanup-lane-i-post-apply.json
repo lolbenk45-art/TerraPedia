@@ -1,0 +1,6277 @@
+{
+  "generatedAt": "2026-06-10T22:36:23.187Z",
+  "batchId": "item-source-exact-duplicate-cleanup-lane-i-post-apply",
+  "apply": false,
+  "connection": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "database": "terria_v1_local",
+    "user": "root"
+  },
+  "backupPath": "/home/lolben/TerraPedia/data/backups/item-source-exact-duplicate-cleanup/item-source-exact-duplicate-cleanup-lane-i-post-apply.before.json",
+  "summary": {
+    "inputRows": 6923,
+    "duplicateGroups": 0,
+    "rowsToSoftDelete": 0,
+    "skippedGroups": 877,
+    "softDeleted": 0
+  },
+  "groups": [],
+  "rowsToSoftDelete": [],
+  "skippedGroups": [
+    {
+      "key": "biome_wikitext|5|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196708
+      ]
+    },
+    {
+      "key": "biome_wikitext|8|drop|biome_wikitext|From Zombies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196693
+      ]
+    },
+    {
+      "key": "biome_wikitext|9|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196712
+      ]
+    },
+    {
+      "key": "biome_wikitext|18|drop|biome_wikitext|From Ice Bats|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197247
+      ]
+    },
+    {
+      "key": "biome_wikitext|18|drop|biome_wikitext|From Spore Bats|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197117
+      ]
+    },
+    {
+      "key": "biome_wikitext|23|drop|biome_wikitext|From Corrupt Slimes and Slimelings|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196946,
+        197447
+      ]
+    },
+    {
+      "key": "biome_wikitext|23|drop|biome_wikitext|From Gastropods|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197185
+      ]
+    },
+    {
+      "key": "biome_wikitext|23|drop|biome_wikitext|From Ice Slimes|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196859
+      ]
+    },
+    {
+      "key": "biome_wikitext|23|drop|biome_wikitext|From Illuminant Slimes|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197562
+      ]
+    },
+    {
+      "key": "biome_wikitext|23|drop|biome_wikitext|From Sand Slimes|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197520
+      ]
+    },
+    {
+      "key": "biome_wikitext|23|drop|biome_wikitext|From Slimes|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196682
+      ]
+    },
+    {
+      "key": "biome_wikitext|23|drop|biome_wikitext|From Zombies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196692
+      ]
+    },
+    {
+      "key": "biome_wikitext|27|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196713
+      ]
+    },
+    {
+      "key": "biome_wikitext|28|drop|biome_wikitext|Through plundering|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197062
+      ]
+    },
+    {
+      "key": "biome_wikitext|38|drop|biome_wikitext|From Demon Eyes and Wandering Eyes|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196685
+      ]
+    },
+    {
+      "key": "biome_wikitext|40|drop|biome_wikitext|From Zombies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196691
+      ]
+    },
+    {
+      "key": "biome_wikitext|56|drop|biome_wikitext|From Eater of Worlds|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196935
+      ]
+    },
+    {
+      "key": "biome_wikitext|59|for_sale|biome_wikitext|From Dryad|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197171
+      ]
+    },
+    {
+      "key": "biome_wikitext|60|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196952,
+        197467
+      ]
+    },
+    {
+      "key": "biome_wikitext|61|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196956,
+        197468
+      ]
+    },
+    {
+      "key": "biome_wikitext|63|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196710
+      ]
+    },
+    {
+      "key": "biome_wikitext|64|drop|biome_wikitext|From Shadow Orbs|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196928
+      ]
+    },
+    {
+      "key": "biome_wikitext|65|resource|biome_wikitext|From Skyware Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197079
+      ]
+    },
+    {
+      "key": "biome_wikitext|68|drop|biome_wikitext|From Devourers and Corruptors|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197452
+      ]
+    },
+    {
+      "key": "biome_wikitext|68|drop|biome_wikitext|From Eaters of Souls, Devourers and Corruptors|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196933
+      ]
+    },
+    {
+      "key": "biome_wikitext|69|drop|biome_wikitext|From Devourers|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196931,
+        197450
+      ]
+    },
+    {
+      "key": "biome_wikitext|86|drop|biome_wikitext|From Eater of Worlds|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196936
+      ]
+    },
+    {
+      "key": "biome_wikitext|96|drop|biome_wikitext|From Shadow Orbs|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196926
+      ]
+    },
+    {
+      "key": "biome_wikitext|110|drop|biome_wikitext|Through plundering|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197063
+      ]
+    },
+    {
+      "key": "biome_wikitext|111|drop|biome_wikitext|From Shadow Orbs|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196929
+      ]
+    },
+    {
+      "key": "biome_wikitext|112|resource|biome_wikitext|From Shadow Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196807
+      ]
+    },
+    {
+      "key": "biome_wikitext|113|resource|biome_wikitext|From Locked Gold Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197011
+      ]
+    },
+    {
+      "key": "biome_wikitext|116|drop|biome_wikitext|From Meteor Heads|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197350
+      ]
+    },
+    {
+      "key": "biome_wikitext|116|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197349
+      ]
+    },
+    {
+      "key": "biome_wikitext|118|drop|biome_wikitext|From Hoplites|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197343
+      ]
+    },
+    {
+      "key": "biome_wikitext|118|drop|biome_wikitext|From Undead Vikings|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197249
+      ]
+    },
+    {
+      "key": "biome_wikitext|134|resource|biome_wikitext|From Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197329
+      ]
+    },
+    {
+      "key": "biome_wikitext|137|resource|biome_wikitext|From Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197330
+      ]
+    },
+    {
+      "key": "biome_wikitext|139|resource|biome_wikitext|From Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197331
+      ]
+    },
+    {
+      "key": "biome_wikitext|147|drop|biome_wikitext|Through plundering|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197064
+      ]
+    },
+    {
+      "key": "biome_wikitext|148|drop|biome_wikitext|Through plundering|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197065
+      ]
+    },
+    {
+      "key": "biome_wikitext|149|drop|biome_wikitext|Through plundering|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197061
+      ]
+    },
+    {
+      "key": "biome_wikitext|154|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197026
+      ]
+    },
+    {
+      "key": "biome_wikitext|155|resource|biome_wikitext|From Locked Gold Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197014
+      ]
+    },
+    {
+      "key": "biome_wikitext|156|resource|biome_wikitext|From Locked Gold Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197013
+      ]
+    },
+    {
+      "key": "biome_wikitext|157|resource|biome_wikitext|From Locked Gold Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197010
+      ]
+    },
+    {
+      "key": "biome_wikitext|158|resource|biome_wikitext|From Skyware Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197080
+      ]
+    },
+    {
+      "key": "biome_wikitext|159|resource|biome_wikitext|From Skyware Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197078
+      ]
+    },
+    {
+      "key": "biome_wikitext|162|drop|biome_wikitext|From Shadow Orbs|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196927
+      ]
+    },
+    {
+      "key": "biome_wikitext|163|resource|biome_wikitext|From Locked Gold Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197012
+      ]
+    },
+    {
+      "key": "biome_wikitext|164|resource|biome_wikitext|From Locked Gold Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197009
+      ]
+    },
+    {
+      "key": "biome_wikitext|165|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197033
+      ]
+    },
+    {
+      "key": "biome_wikitext|165|drop|biome_wikitext|Through plundering|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197060
+      ]
+    },
+    {
+      "key": "biome_wikitext|169|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196750
+      ]
+    },
+    {
+      "key": "biome_wikitext|169|resource|biome_wikitext|From the terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197549
+      ]
+    },
+    {
+      "key": "biome_wikitext|172|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196845
+      ]
+    },
+    {
+      "key": "biome_wikitext|174|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196847
+      ]
+    },
+    {
+      "key": "biome_wikitext|183|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197120
+      ]
+    },
+    {
+      "key": "biome_wikitext|186|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197366
+      ]
+    },
+    {
+      "key": "biome_wikitext|187|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197364
+      ]
+    },
+    {
+      "key": "biome_wikitext|192|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196850
+      ]
+    },
+    {
+      "key": "biome_wikitext|194|for_sale|biome_wikitext|From Dryad|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197124
+      ]
+    },
+    {
+      "key": "biome_wikitext|194|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197121
+      ]
+    },
+    {
+      "key": "biome_wikitext|195|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196778,
+        197660
+      ]
+    },
+    {
+      "key": "biome_wikitext|208|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196777,
+        197659
+      ]
+    },
+    {
+      "key": "biome_wikitext|209|drop|biome_wikitext|From Hornets, Moss Hornets and Spiked Jungle Slimes|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197611
+      ]
+    },
+    {
+      "key": "biome_wikitext|210|drop|biome_wikitext|From Man Eaters|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197613
+      ]
+    },
+    {
+      "key": "biome_wikitext|211|resource|biome_wikitext|From Ivy Chests and Jungle/Bramble Crates|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197598
+      ]
+    },
+    {
+      "key": "biome_wikitext|212|resource|biome_wikitext|From Ivy Chests and Jungle/Bramble Crates|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197597
+      ]
+    },
+    {
+      "key": "biome_wikitext|213|resource|biome_wikitext|From Ivy Chests and Jungle/Bramble Crates|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197599
+      ]
+    },
+    {
+      "key": "biome_wikitext|214|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196848
+      ]
+    },
+    {
+      "key": "biome_wikitext|216|drop|biome_wikitext|From Zombies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196688
+      ]
+    },
+    {
+      "key": "biome_wikitext|218|resource|biome_wikitext|From Shadow Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196806
+      ]
+    },
+    {
+      "key": "biome_wikitext|220|resource|biome_wikitext|From Shadow Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196805
+      ]
+    },
+    {
+      "key": "biome_wikitext|221|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196852
+      ]
+    },
+    {
+      "key": "biome_wikitext|223|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197661
+      ]
+    },
+    {
+      "key": "biome_wikitext|236|drop|biome_wikitext|From Demon Eyes and Wandering Eyes|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196686
+      ]
+    },
+    {
+      "key": "biome_wikitext|239|drop|biome_wikitext|From The Groom|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197142
+      ]
+    },
+    {
+      "key": "biome_wikitext|244|drop|biome_wikitext|From Fire Imps|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196815
+      ]
+    },
+    {
+      "key": "biome_wikitext|251|drop|biome_wikitext|From Dr. Bones|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196764,
+        197608
+      ]
+    },
+    {
+      "key": "biome_wikitext|263|fishing|biome_wikitext|From Piranhas and Angler Fish|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196773,
+        197622
+      ]
+    },
+    {
+      "key": "biome_wikitext|265|resource|biome_wikitext|From Shadow Chests and Pots|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196813
+      ]
+    },
+    {
+      "key": "biome_wikitext|267|drop|biome_wikitext|From Voodoo Demons|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196817
+      ]
+    },
+    {
+      "key": "biome_wikitext|268|drop|biome_wikitext|From Sharks or Orcas|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197372
+      ]
+    },
+    {
+      "key": "biome_wikitext|272|drop|biome_wikitext|From Demons and Voodoo Demons|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196816
+      ]
+    },
+    {
+      "key": "biome_wikitext|274|resource|biome_wikitext|From Shadow Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196804
+      ]
+    },
+    {
+      "key": "biome_wikitext|275|resource|biome_wikitext|From terrain/vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197390
+      ]
+    },
+    {
+      "key": "biome_wikitext|276|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196758
+      ]
+    },
+    {
+      "key": "biome_wikitext|277|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197363
+      ]
+    },
+    {
+      "key": "biome_wikitext|282|drop|biome_wikitext|From Pink Jellyfish|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197377
+      ]
+    },
+    {
+      "key": "biome_wikitext|283|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196716
+      ]
+    },
+    {
+      "key": "biome_wikitext|306|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197422
+      ]
+    },
+    {
+      "key": "biome_wikitext|308|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197663
+      ]
+    },
+    {
+      "key": "biome_wikitext|310|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196954,
+        196993
+      ]
+    },
+    {
+      "key": "biome_wikitext|311|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196760
+      ]
+    },
+    {
+      "key": "biome_wikitext|312|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196842
+      ]
+    },
+    {
+      "key": "biome_wikitext|313|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196711
+      ]
+    },
+    {
+      "key": "biome_wikitext|314|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196776,
+        197662
+      ]
+    },
+    {
+      "key": "biome_wikitext|316|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196953,
+        196992,
+        197466,
+        197503
+      ]
+    },
+    {
+      "key": "biome_wikitext|317|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196759
+      ]
+    },
+    {
+      "key": "biome_wikitext|318|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196841
+      ]
+    },
+    {
+      "key": "biome_wikitext|319|drop|biome_wikitext|From Sharks or Orcas|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197373
+      ]
+    },
+    {
+      "key": "biome_wikitext|320|drop|biome_wikitext|From Harpies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197104,
+        197424
+      ]
+    },
+    {
+      "key": "biome_wikitext|323|drop|biome_wikitext|From Antlions|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196748
+      ]
+    },
+    {
+      "key": "biome_wikitext|323|drop|biome_wikitext|From Antlions, Antlion Swarmers, Antlion Chargers, and Antlion Larvas|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197516
+      ]
+    },
+    {
+      "key": "biome_wikitext|327|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197025
+      ]
+    },
+    {
+      "key": "biome_wikitext|328|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196853
+      ]
+    },
+    {
+      "key": "biome_wikitext|329|resource|biome_wikitext|From Locked Gold Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197015
+      ]
+    },
+    {
+      "key": "biome_wikitext|330|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196851
+      ]
+    },
+    {
+      "key": "biome_wikitext|331|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197658
+      ]
+    },
+    {
+      "key": "biome_wikitext|362|drop|biome_wikitext|From Goblin Scouts|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196681
+      ]
+    },
+    {
+      "key": "biome_wikitext|367|drop|biome_wikitext|From Wall of Flesh|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196824
+      ]
+    },
+    {
+      "key": "biome_wikitext|370|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196751,
+        196957,
+        197469
+      ]
+    },
+    {
+      "key": "biome_wikitext|370|resource|biome_wikitext|From the terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197551
+      ]
+    },
+    {
+      "key": "biome_wikitext|392|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197102
+      ]
+    },
+    {
+      "key": "biome_wikitext|393|drop|biome_wikitext|From Piranhas|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196774
+      ]
+    },
+    {
+      "key": "biome_wikitext|393|drop|biome_wikitext|From Snow Flinx, Armored Vikings and Undead Vikings|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197242
+      ]
+    },
+    {
+      "key": "biome_wikitext|408|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196753,
+        197217,
+        197582
+      ]
+    },
+    {
+      "key": "biome_wikitext|408|resource|biome_wikitext|From the terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197557
+      ]
+    },
+    {
+      "key": "biome_wikitext|409|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197216,
+        197581
+      ]
+    },
+    {
+      "key": "biome_wikitext|426|drop|biome_wikitext|From Wall of Flesh|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196825
+      ]
+    },
+    {
+      "key": "biome_wikitext|433|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196846
+      ]
+    },
+    {
+      "key": "biome_wikitext|434|drop|biome_wikitext|From Wall of Flesh|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196826
+      ]
+    },
+    {
+      "key": "biome_wikitext|485|drop|biome_wikitext|From Werewolves|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196695
+      ]
+    },
+    {
+      "key": "biome_wikitext|489|drop|biome_wikitext|From Wall of Flesh|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196831
+      ]
+    },
+    {
+      "key": "biome_wikitext|490|drop|biome_wikitext|From Wall of Flesh|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196829
+      ]
+    },
+    {
+      "key": "biome_wikitext|491|drop|biome_wikitext|From Wall of Flesh|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196830
+      ]
+    },
+    {
+      "key": "biome_wikitext|499|drop|biome_wikitext|From Corrupt Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197444
+      ]
+    },
+    {
+      "key": "biome_wikitext|499|drop|biome_wikitext|From Crimson Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197499
+      ]
+    },
+    {
+      "key": "biome_wikitext|499|drop|biome_wikitext|From Hallowed Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197577
+      ]
+    },
+    {
+      "key": "biome_wikitext|500|drop|biome_wikitext|From Corrupt Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197445
+      ]
+    },
+    {
+      "key": "biome_wikitext|500|drop|biome_wikitext|From Crimson Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197500
+      ]
+    },
+    {
+      "key": "biome_wikitext|500|drop|biome_wikitext|From Hallowed Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197578
+      ]
+    },
+    {
+      "key": "biome_wikitext|501|drop|biome_wikitext|From Pixies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197179
+      ]
+    },
+    {
+      "key": "biome_wikitext|502|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197586
+      ]
+    },
+    {
+      "key": "biome_wikitext|514|drop|biome_wikitext|From Wall of Flesh|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196827
+      ]
+    },
+    {
+      "key": "biome_wikitext|520|drop|biome_wikitext|From any enemy|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197580
+      ]
+    },
+    {
+      "key": "biome_wikitext|521|drop|biome_wikitext|From any enemy|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197465,
+        197502
+      ]
+    },
+    {
+      "key": "biome_wikitext|522|drop|biome_wikitext|From Vile Ghouls|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197523
+      ]
+    },
+    {
+      "key": "biome_wikitext|522|drop|biome_wikitext|From World Feeders|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196943
+      ]
+    },
+    {
+      "key": "biome_wikitext|522|drop|biome_wikitext|From World Feeders, Clingers and Vile Ghouls|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197457
+      ]
+    },
+    {
+      "key": "biome_wikitext|526|drop|biome_wikitext|From Unicorns|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197181
+      ]
+    },
+    {
+      "key": "biome_wikitext|527|drop|biome_wikitext|From Blood and Dark Mummies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196743
+      ]
+    },
+    {
+      "key": "biome_wikitext|527|drop|biome_wikitext|From Blood Mummies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196989
+      ]
+    },
+    {
+      "key": "biome_wikitext|527|drop|biome_wikitext|From Dark Mummies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196950
+      ]
+    },
+    {
+      "key": "biome_wikitext|527|drop|biome_wikitext|From Tainted Ghouls|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197493
+      ]
+    },
+    {
+      "key": "biome_wikitext|527|drop|biome_wikitext|From Vile and Tainted Ghouls|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197525
+      ]
+    },
+    {
+      "key": "biome_wikitext|527|drop|biome_wikitext|From Vile Ghouls|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197463
+      ]
+    },
+    {
+      "key": "biome_wikitext|528|drop|biome_wikitext|From Dreamer Ghouls|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197527,
+        197572
+      ]
+    },
+    {
+      "key": "biome_wikitext|528|drop|biome_wikitext|From Light Mummies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196746,
+        197175
+      ]
+    },
+    {
+      "key": "biome_wikitext|575|drop|biome_wikitext|From Wyverns|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197106,
+        197426
+      ]
+    },
+    {
+      "key": "biome_wikitext|593|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196881,
+        197263
+      ]
+    },
+    {
+      "key": "biome_wikitext|607|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197420
+      ]
+    },
+    {
+      "key": "biome_wikitext|608|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197421
+      ]
+    },
+    {
+      "key": "biome_wikitext|619|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196955
+      ]
+    },
+    {
+      "key": "biome_wikitext|620|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196780,
+        197664
+      ]
+    },
+    {
+      "key": "biome_wikitext|621|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197211
+      ]
+    },
+    {
+      "key": "biome_wikitext|662|drop|biome_wikitext|From Rainbow Slimes|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197187
+      ]
+    },
+    {
+      "key": "biome_wikitext|664|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196882,
+        197265
+      ]
+    },
+    {
+      "key": "biome_wikitext|670|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197231
+      ]
+    },
+    {
+      "key": "biome_wikitext|671|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197037
+      ]
+    },
+    {
+      "key": "biome_wikitext|676|drop|biome_wikitext|From Ice Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197257
+      ]
+    },
+    {
+      "key": "biome_wikitext|679|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197051
+      ]
+    },
+    {
+      "key": "biome_wikitext|683|drop|biome_wikitext|From Red Devils|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196821
+      ]
+    },
+    {
+      "key": "biome_wikitext|724|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197232
+      ]
+    },
+    {
+      "key": "biome_wikitext|725|drop|biome_wikitext|From Ice Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197258
+      ]
+    },
+    {
+      "key": "biome_wikitext|726|drop|biome_wikitext|From Ice Elementals|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196864
+      ]
+    },
+    {
+      "key": "biome_wikitext|726|drop|biome_wikitext|From Ice Elementals and Icy Mermen|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197252
+      ]
+    },
+    {
+      "key": "biome_wikitext|751|resource|biome_wikitext|From Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197332
+      ]
+    },
+    {
+      "key": "biome_wikitext|751|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197096
+      ]
+    },
+    {
+      "key": "biome_wikitext|752|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197100
+      ]
+    },
+    {
+      "key": "biome_wikitext|756|for_sale|biome_wikitext|From Truffle|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197125
+      ]
+    },
+    {
+      "key": "biome_wikitext|758|drop|biome_wikitext|From Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197639
+      ]
+    },
+    {
+      "key": "biome_wikitext|759|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197047
+      ]
+    },
+    {
+      "key": "biome_wikitext|765|resource|biome_wikitext|From Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197333
+      ]
+    },
+    {
+      "key": "biome_wikitext|765|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197097
+      ]
+    },
+    {
+      "key": "biome_wikitext|781|for_sale|biome_wikitext|From Steampunker|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197229
+      ]
+    },
+    {
+      "key": "biome_wikitext|783|for_sale|biome_wikitext|From Truffle|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197130
+      ]
+    },
+    {
+      "key": "biome_wikitext|787|for_sale|biome_wikitext|From Truffle|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197126
+      ]
+    },
+    {
+      "key": "biome_wikitext|788|drop|biome_wikitext|From Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197641
+      ]
+    },
+    {
+      "key": "biome_wikitext|789|drop|biome_wikitext|Through plundering|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197419
+      ]
+    },
+    {
+      "key": "biome_wikitext|790|drop|biome_wikitext|Through plundering|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197417
+      ]
+    },
+    {
+      "key": "biome_wikitext|791|drop|biome_wikitext|Through plundering|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197418
+      ]
+    },
+    {
+      "key": "biome_wikitext|800|drop|biome_wikitext|From Crimson Hearts|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196971
+      ]
+    },
+    {
+      "key": "biome_wikitext|802|drop|biome_wikitext|From Crimson Hearts|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196972
+      ]
+    },
+    {
+      "key": "biome_wikitext|803|drop|biome_wikitext|From Frozen Zombies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197139
+      ]
+    },
+    {
+      "key": "biome_wikitext|804|drop|biome_wikitext|From Frozen Zombies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197140
+      ]
+    },
+    {
+      "key": "biome_wikitext|805|drop|biome_wikitext|From Frozen Zombies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197141
+      ]
+    },
+    {
+      "key": "biome_wikitext|806|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197319
+      ]
+    },
+    {
+      "key": "biome_wikitext|819|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197317
+      ]
+    },
+    {
+      "key": "biome_wikitext|824|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197099
+      ]
+    },
+    {
+      "key": "biome_wikitext|825|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197101
+      ]
+    },
+    {
+      "key": "biome_wikitext|826|drop|biome_wikitext|From the structure|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197091
+      ]
+    },
+    {
+      "key": "biome_wikitext|829|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197318
+      ]
+    },
+    {
+      "key": "biome_wikitext|830|drop|biome_wikitext|From the structure|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197090
+      ]
+    },
+    {
+      "key": "biome_wikitext|831|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197315
+      ]
+    },
+    {
+      "key": "biome_wikitext|832|resource|biome_wikitext|From Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197323
+      ]
+    },
+    {
+      "key": "biome_wikitext|832|resource|biome_wikitext|From shaking trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196724
+      ]
+    },
+    {
+      "key": "biome_wikitext|833|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196883,
+        196958,
+        197266,
+        197472
+      ]
+    },
+    {
+      "key": "biome_wikitext|834|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196885,
+        197218,
+        197268,
+        197585
+      ]
+    },
+    {
+      "key": "biome_wikitext|835|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196884,
+        196997,
+        197267,
+        197508
+      ]
+    },
+    {
+      "key": "biome_wikitext|836|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196995,
+        197504
+      ]
+    },
+    {
+      "key": "biome_wikitext|837|drop|biome_wikitext|From the structure|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197092
+      ]
+    },
+    {
+      "key": "biome_wikitext|838|drop|biome_wikitext|From the structure|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197089
+      ]
+    },
+    {
+      "key": "biome_wikitext|842|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196911
+      ]
+    },
+    {
+      "key": "biome_wikitext|843|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196912
+      ]
+    },
+    {
+      "key": "biome_wikitext|844|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196913
+      ]
+    },
+    {
+      "key": "biome_wikitext|845|drop|biome_wikitext|From the structure|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197095
+      ]
+    },
+    {
+      "key": "biome_wikitext|846|drop|biome_wikitext|From the structure|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197094
+      ]
+    },
+    {
+      "key": "biome_wikitext|847|drop|biome_wikitext|From the structure|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197093
+      ]
+    },
+    {
+      "key": "biome_wikitext|856|drop|biome_wikitext|From Unicorns|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197182
+      ]
+    },
+    {
+      "key": "biome_wikitext|857|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197416
+      ]
+    },
+    {
+      "key": "biome_wikitext|863|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197369
+      ]
+    },
+    {
+      "key": "biome_wikitext|868|for_sale|biome_wikitext|From Truffle|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197127
+      ]
+    },
+    {
+      "key": "biome_wikitext|879|drop|biome_wikitext|From Undead Vikings|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197248
+      ]
+    },
+    {
+      "key": "biome_wikitext|880|drop|biome_wikitext|From Brain of Cthulhu|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196979
+      ]
+    },
+    {
+      "key": "biome_wikitext|885|drop|biome_wikitext|From Werewolves|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196696
+      ]
+    },
+    {
+      "key": "biome_wikitext|885|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197043
+      ]
+    },
+    {
+      "key": "biome_wikitext|885|fishing|biome_wikitext|From Angler Fish|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196775,
+        197623
+      ]
+    },
+    {
+      "key": "biome_wikitext|886|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197042
+      ]
+    },
+    {
+      "key": "biome_wikitext|887|drop|biome_wikitext|From Hornets and Moss Hornets|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197612
+      ]
+    },
+    {
+      "key": "biome_wikitext|888|drop|biome_wikitext|From Blood and Dark Mummies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196745
+      ]
+    },
+    {
+      "key": "biome_wikitext|888|drop|biome_wikitext|From Blood Mummies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196988
+      ]
+    },
+    {
+      "key": "biome_wikitext|888|drop|biome_wikitext|From Corrupt Slimes and Slimelings|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196947,
+        197446
+      ]
+    },
+    {
+      "key": "biome_wikitext|888|drop|biome_wikitext|From Dark Mummies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196949
+      ]
+    },
+    {
+      "key": "biome_wikitext|889|drop|biome_wikitext|From normal Mummies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196742
+      ]
+    },
+    {
+      "key": "biome_wikitext|889|drop|biome_wikitext|From Pixies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197178
+      ]
+    },
+    {
+      "key": "biome_wikitext|889|drop|biome_wikitext|From Wraiths|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196697
+      ]
+    },
+    {
+      "key": "biome_wikitext|890|drop|biome_wikitext|From Blood and Dark Mummies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196744
+      ]
+    },
+    {
+      "key": "biome_wikitext|890|drop|biome_wikitext|From Blood Mummies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196990
+      ]
+    },
+    {
+      "key": "biome_wikitext|890|drop|biome_wikitext|From Dark Mummies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196951
+      ]
+    },
+    {
+      "key": "biome_wikitext|890|drop|biome_wikitext|From Pixies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197177
+      ]
+    },
+    {
+      "key": "biome_wikitext|891|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197030
+      ]
+    },
+    {
+      "key": "biome_wikitext|891|drop|biome_wikitext|From Crimson Axes|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197481
+      ]
+    },
+    {
+      "key": "biome_wikitext|891|drop|biome_wikitext|From Cursed Hammers|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197448
+      ]
+    },
+    {
+      "key": "biome_wikitext|892|drop|biome_wikitext|From Corruptors|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196948,
+        197449
+      ]
+    },
+    {
+      "key": "biome_wikitext|892|drop|biome_wikitext|From Floaty Grosses|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197484
+      ]
+    },
+    {
+      "key": "biome_wikitext|893|drop|biome_wikitext|From Light Mummies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196747,
+        197176
+      ]
+    },
+    {
+      "key": "biome_wikitext|899|drop|biome_wikitext|From Golem|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197286
+      ]
+    },
+    {
+      "key": "biome_wikitext|911|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196994
+      ]
+    },
+    {
+      "key": "biome_wikitext|932|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197027
+      ]
+    },
+    {
+      "key": "biome_wikitext|933|resource|biome_wikitext|From Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197322
+      ]
+    },
+    {
+      "key": "biome_wikitext|933|resource|biome_wikitext|From shaking trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196723
+      ]
+    },
+    {
+      "key": "biome_wikitext|934|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197415
+      ]
+    },
+    {
+      "key": "biome_wikitext|938|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197040
+      ]
+    },
+    {
+      "key": "biome_wikitext|939|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197434
+      ]
+    },
+    {
+      "key": "biome_wikitext|947|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197657
+      ]
+    },
+    {
+      "key": "biome_wikitext|950|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197233
+      ]
+    },
+    {
+      "key": "biome_wikitext|951|drop|biome_wikitext|From Snow Flinx|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197244
+      ]
+    },
+    {
+      "key": "biome_wikitext|952|drop|biome_wikitext|Through plundering|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197438
+      ]
+    },
+    {
+      "key": "biome_wikitext|959|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197029
+      ]
+    },
+    {
+      "key": "biome_wikitext|963|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197052
+      ]
+    },
+    {
+      "key": "biome_wikitext|964|resource|biome_wikitext|From Ivy Chests and Jungle/Bramble Crates|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197601
+      ]
+    },
+    {
+      "key": "biome_wikitext|967|for_sale|biome_wikitext|From Merchant|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196899
+      ]
+    },
+    {
+      "key": "biome_wikitext|977|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197053
+      ]
+    },
+    {
+      "key": "biome_wikitext|987|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197235
+      ]
+    },
+    {
+      "key": "biome_wikitext|994|drop|biome_wikitext|From Eater of Worlds|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196937
+      ]
+    },
+    {
+      "key": "biome_wikitext|996|drop|biome_wikitext|From Clingers, Corruptors, Corrupt Slimes, Cursed Hammers, Slimelings, and World Feeders|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197453
+      ]
+    },
+    {
+      "key": "biome_wikitext|996|drop|biome_wikitext|From Corruptors, Corrupt Slimes, Slimelings and World Feeders|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196945
+      ]
+    },
+    {
+      "key": "biome_wikitext|996|drop|biome_wikitext|From Crimson Axes and Floaty Grosses|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197485
+      ]
+    },
+    {
+      "key": "biome_wikitext|996|drop|biome_wikitext|From Herplings and Crimslimes|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196987
+      ]
+    },
+    {
+      "key": "biome_wikitext|998|drop|biome_wikitext|From the King Slime|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196698
+      ]
+    },
+    {
+      "key": "biome_wikitext|999|resource|biome_wikitext|From the terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197550
+      ]
+    },
+    {
+      "key": "biome_wikitext|1101|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197296,
+        197656
+      ]
+    },
+    {
+      "key": "biome_wikitext|1102|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197297
+      ]
+    },
+    {
+      "key": "biome_wikitext|1103|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197264
+      ]
+    },
+    {
+      "key": "biome_wikitext|1109|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196779,
+        197665
+      ]
+    },
+    {
+      "key": "biome_wikitext|1110|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196709
+      ]
+    },
+    {
+      "key": "biome_wikitext|1111|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196714
+      ]
+    },
+    {
+      "key": "biome_wikitext|1112|resource|biome_wikitext|From terrain/vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197398
+      ]
+    },
+    {
+      "key": "biome_wikitext|1113|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196761
+      ]
+    },
+    {
+      "key": "biome_wikitext|1116|drop|biome_wikitext|From Cyan Beetles|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197250
+      ]
+    },
+    {
+      "key": "biome_wikitext|1117|drop|biome_wikitext|From Lac Beetles|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197618
+      ]
+    },
+    {
+      "key": "biome_wikitext|1118|drop|biome_wikitext|From Sea Snails|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197375
+      ]
+    },
+    {
+      "key": "biome_wikitext|1119|drop|biome_wikitext|From Squids|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197374
+      ]
+    },
+    {
+      "key": "biome_wikitext|1121|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196905,
+        197624
+      ]
+    },
+    {
+      "key": "biome_wikitext|1122|drop|biome_wikitext|From Golem|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197285
+      ]
+    },
+    {
+      "key": "biome_wikitext|1123|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196906,
+        197625
+      ]
+    },
+    {
+      "key": "biome_wikitext|1124|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196924,
+        197654
+      ]
+    },
+    {
+      "key": "biome_wikitext|1125|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197655
+      ]
+    },
+    {
+      "key": "biome_wikitext|1126|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196925
+      ]
+    },
+    {
+      "key": "biome_wikitext|1129|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196910,
+        197627
+      ]
+    },
+    {
+      "key": "biome_wikitext|1130|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196914
+      ]
+    },
+    {
+      "key": "biome_wikitext|1132|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196908,
+        197628
+      ]
+    },
+    {
+      "key": "biome_wikitext|1134|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196917
+      ]
+    },
+    {
+      "key": "biome_wikitext|1135|drop|biome_wikitext|From Raincoat Zombies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197137
+      ]
+    },
+    {
+      "key": "biome_wikitext|1136|drop|biome_wikitext|From Raincoat Zombies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197138
+      ]
+    },
+    {
+      "key": "biome_wikitext|1137|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197304
+      ]
+    },
+    {
+      "key": "biome_wikitext|1141|drop|biome_wikitext|From Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197637
+      ]
+    },
+    {
+      "key": "biome_wikitext|1142|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197308
+      ]
+    },
+    {
+      "key": "biome_wikitext|1143|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197311
+      ]
+    },
+    {
+      "key": "biome_wikitext|1144|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197310
+      ]
+    },
+    {
+      "key": "biome_wikitext|1145|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197309
+      ]
+    },
+    {
+      "key": "biome_wikitext|1146|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197302
+      ]
+    },
+    {
+      "key": "biome_wikitext|1147|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197300
+      ]
+    },
+    {
+      "key": "biome_wikitext|1148|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197299
+      ]
+    },
+    {
+      "key": "biome_wikitext|1149|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197301
+      ]
+    },
+    {
+      "key": "biome_wikitext|1150|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197303
+      ]
+    },
+    {
+      "key": "biome_wikitext|1151|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197298
+      ]
+    },
+    {
+      "key": "biome_wikitext|1152|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197305
+      ]
+    },
+    {
+      "key": "biome_wikitext|1153|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197307
+      ]
+    },
+    {
+      "key": "biome_wikitext|1154|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197306
+      ]
+    },
+    {
+      "key": "biome_wikitext|1155|drop|biome_wikitext|From Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197644
+      ]
+    },
+    {
+      "key": "biome_wikitext|1156|resource|biome_wikitext|Hardmode post-Plantera from Biome Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197019
+      ]
+    },
+    {
+      "key": "biome_wikitext|1157|drop|biome_wikitext|From Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197638
+      ]
+    },
+    {
+      "key": "biome_wikitext|1162|for_sale|biome_wikitext|From Witch Doctor in Hardmode|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196799
+      ]
+    },
+    {
+      "key": "biome_wikitext|1167|for_sale|biome_wikitext|From Witch Doctor in Hardmode|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196798
+      ]
+    },
+    {
+      "key": "biome_wikitext|1169|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197032
+      ]
+    },
+    {
+      "key": "biome_wikitext|1170|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196909,
+        197630
+      ]
+    },
+    {
+      "key": "biome_wikitext|1171|for_sale|biome_wikitext|From Witch Doctor in Hardmode|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196800
+      ]
+    },
+    {
+      "key": "biome_wikitext|1172|drop|biome_wikitext|From enemies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197280
+      ]
+    },
+    {
+      "key": "biome_wikitext|1178|drop|biome_wikitext|From Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197642
+      ]
+    },
+    {
+      "key": "biome_wikitext|1180|for_sale|biome_wikitext|From Pirate (NPC)|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197413
+      ]
+    },
+    {
+      "key": "biome_wikitext|1181|for_sale|biome_wikitext|From Truffle|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197129
+      ]
+    },
+    {
+      "key": "biome_wikitext|1182|drop|biome_wikitext|From Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197649
+      ]
+    },
+    {
+      "key": "biome_wikitext|1183|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197038
+      ]
+    },
+    {
+      "key": "biome_wikitext|1246|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196752,
+        196996,
+        197505
+      ]
+    },
+    {
+      "key": "biome_wikitext|1246|resource|biome_wikitext|From the terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197554
+      ]
+    },
+    {
+      "key": "biome_wikitext|1248|drop|biome_wikitext|From Golem|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197287
+      ]
+    },
+    {
+      "key": "biome_wikitext|1253|drop|biome_wikitext|From Ice Tortoises|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197251
+      ]
+    },
+    {
+      "key": "biome_wikitext|1254|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197049
+      ]
+    },
+    {
+      "key": "biome_wikitext|1255|drop|biome_wikitext|From Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197640
+      ]
+    },
+    {
+      "key": "biome_wikitext|1256|drop|biome_wikitext|From Crimson Hearts|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196973
+      ]
+    },
+    {
+      "key": "biome_wikitext|1258|drop|biome_wikitext|From Golem|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197284
+      ]
+    },
+    {
+      "key": "biome_wikitext|1259|drop|biome_wikitext|From Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197643
+      ]
+    },
+    {
+      "key": "biome_wikitext|1260|resource|biome_wikitext|Hardmode post-Plantera from Biome Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197022
+      ]
+    },
+    {
+      "key": "biome_wikitext|1264|drop|biome_wikitext|From Ice Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197259
+      ]
+    },
+    {
+      "key": "biome_wikitext|1265|drop|biome_wikitext|From Angry Trappers|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196768,
+        197615
+      ]
+    },
+    {
+      "key": "biome_wikitext|1266|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197039
+      ]
+    },
+    {
+      "key": "biome_wikitext|1290|drop|biome_wikitext|From Crimson Hearts|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196974
+      ]
+    },
+    {
+      "key": "biome_wikitext|1291|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197667
+      ]
+    },
+    {
+      "key": "biome_wikitext|1292|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197312
+      ]
+    },
+    {
+      "key": "biome_wikitext|1293|drop|biome_wikitext|From enemies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197281
+      ]
+    },
+    {
+      "key": "biome_wikitext|1293|resource|biome_wikitext|From Lihzahrd Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197277
+      ]
+    },
+    {
+      "key": "biome_wikitext|1294|drop|biome_wikitext|From Golem|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197288
+      ]
+    },
+    {
+      "key": "biome_wikitext|1295|drop|biome_wikitext|From Golem|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197289
+      ]
+    },
+    {
+      "key": "biome_wikitext|1296|drop|biome_wikitext|From Golem|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197290
+      ]
+    },
+    {
+      "key": "biome_wikitext|1297|drop|biome_wikitext|From Golem|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197291
+      ]
+    },
+    {
+      "key": "biome_wikitext|1300|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197048
+      ]
+    },
+    {
+      "key": "biome_wikitext|1303|drop|biome_wikitext|From Pink Jellyfish|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197376
+      ]
+    },
+    {
+      "key": "biome_wikitext|1304|drop|biome_wikitext|From Zombies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196689
+      ]
+    },
+    {
+      "key": "biome_wikitext|1305|drop|biome_wikitext|From Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197648
+      ]
+    },
+    {
+      "key": "biome_wikitext|1306|drop|biome_wikitext|From Ice Elementals|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196865
+      ]
+    },
+    {
+      "key": "biome_wikitext|1306|drop|biome_wikitext|From Ice Elementals, Armored Vikings, Ice Tortoises and Icy Mermen|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197243
+      ]
+    },
+    {
+      "key": "biome_wikitext|1307|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197028
+      ]
+    },
+    {
+      "key": "biome_wikitext|1308|drop|biome_wikitext|From Black Recluses|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197435
+      ]
+    },
+    {
+      "key": "biome_wikitext|1309|drop|biome_wikitext|From Ice Slimes|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196860
+      ]
+    },
+    {
+      "key": "biome_wikitext|1309|drop|biome_wikitext|From Illuminant Slimes|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197563
+      ]
+    },
+    {
+      "key": "biome_wikitext|1309|drop|biome_wikitext|From Sand Slimes|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197519
+      ]
+    },
+    {
+      "key": "biome_wikitext|1309|drop|biome_wikitext|From Slimes|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196684
+      ]
+    },
+    {
+      "key": "biome_wikitext|1309|drop|biome_wikitext|From the King Slime|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196702
+      ]
+    },
+    {
+      "key": "biome_wikitext|1309|drop|biome_wikitext|From Zombies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196694
+      ]
+    },
+    {
+      "key": "biome_wikitext|1312|drop|biome_wikitext|From Ice Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197260
+      ]
+    },
+    {
+      "key": "biome_wikitext|1315|drop|biome_wikitext|From any enemy in Hardmode|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197389
+      ]
+    },
+    {
+      "key": "biome_wikitext|1319|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197234
+      ]
+    },
+    {
+      "key": "biome_wikitext|1322|drop|biome_wikitext|From Lava Bats and Hellbats|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196818
+      ]
+    },
+    {
+      "key": "biome_wikitext|1323|drop|biome_wikitext|From Fire Imps|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196814
+      ]
+    },
+    {
+      "key": "biome_wikitext|1326|drop|biome_wikitext|From Chaos Elementals|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197564
+      ]
+    },
+    {
+      "key": "biome_wikitext|1328|drop|biome_wikitext|From Giant Tortoises|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196767,
+        197621
+      ]
+    },
+    {
+      "key": "biome_wikitext|1329|drop|biome_wikitext|From Brain of Cthulhu|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196980
+      ]
+    },
+    {
+      "key": "biome_wikitext|1330|drop|biome_wikitext|From Blood Crawlers, Crimera, and Face Monsters|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196975
+      ]
+    },
+    {
+      "key": "biome_wikitext|1330|drop|biome_wikitext|From Floaty Grosses|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197483
+      ]
+    },
+    {
+      "key": "biome_wikitext|1332|drop|biome_wikitext|From Ichor Stickers and Tainted Ghouls|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197482
+      ]
+    },
+    {
+      "key": "biome_wikitext|1332|drop|biome_wikitext|From Tainted Ghouls|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197524
+      ]
+    },
+    {
+      "key": "biome_wikitext|1361|drop|biome_wikitext|From Eater of Worlds|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196939
+      ]
+    },
+    {
+      "key": "biome_wikitext|1362|drop|biome_wikitext|From Brain of Cthulhu|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196982
+      ]
+    },
+    {
+      "key": "biome_wikitext|1364|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196916,
+        197634
+      ]
+    },
+    {
+      "key": "biome_wikitext|1365|drop|biome_wikitext|From Wall of Flesh|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196835
+      ]
+    },
+    {
+      "key": "biome_wikitext|1370|drop|biome_wikitext|From Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197651
+      ]
+    },
+    {
+      "key": "biome_wikitext|1371|drop|biome_wikitext|From Golem|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197292
+      ]
+    },
+    {
+      "key": "biome_wikitext|1429|for_sale|biome_wikitext|From Clothier|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196900
+      ]
+    },
+    {
+      "key": "biome_wikitext|1444|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197044
+      ]
+    },
+    {
+      "key": "biome_wikitext|1445|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197046
+      ]
+    },
+    {
+      "key": "biome_wikitext|1446|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197045
+      ]
+    },
+    {
+      "key": "biome_wikitext|1485|for_sale|biome_wikitext|From Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197115,
+        197431
+      ]
+    },
+    {
+      "key": "biome_wikitext|1486|for_sale|biome_wikitext|From Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196797
+      ]
+    },
+    {
+      "key": "biome_wikitext|1487|for_sale|biome_wikitext|From Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196901
+      ]
+    },
+    {
+      "key": "biome_wikitext|1488|for_sale|biome_wikitext|From the Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196970
+      ]
+    },
+    {
+      "key": "biome_wikitext|1489|for_sale|biome_wikitext|From Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197228
+      ]
+    },
+    {
+      "key": "biome_wikitext|1491|for_sale|biome_wikitext|From the Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196762
+      ]
+    },
+    {
+      "key": "biome_wikitext|1492|for_sale|biome_wikitext|From Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197008
+      ]
+    },
+    {
+      "key": "biome_wikitext|1494|for_sale|biome_wikitext|From Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197116,
+        197432
+      ]
+    },
+    {
+      "key": "biome_wikitext|1508|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197054
+      ]
+    },
+    {
+      "key": "biome_wikitext|1513|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197041
+      ]
+    },
+    {
+      "key": "biome_wikitext|1514|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197050
+      ]
+    },
+    {
+      "key": "biome_wikitext|1516|drop|biome_wikitext|From Harpies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197105,
+        197425
+      ]
+    },
+    {
+      "key": "biome_wikitext|1517|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197036
+      ]
+    },
+    {
+      "key": "biome_wikitext|1518|drop|biome_wikitext|From Red Devils|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196820
+      ]
+    },
+    {
+      "key": "biome_wikitext|1519|drop|biome_wikitext|From Ice Golems|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196862
+      ]
+    },
+    {
+      "key": "biome_wikitext|1521|drop|biome_wikitext|From Moss Hornets|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197620
+      ]
+    },
+    {
+      "key": "biome_wikitext|1528|drop|biome_wikitext|Hardmode Post-Plantera plundering|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197068
+      ]
+    },
+    {
+      "key": "biome_wikitext|1529|drop|biome_wikitext|Hardmode Post-Plantera plundering|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197071
+      ]
+    },
+    {
+      "key": "biome_wikitext|1530|drop|biome_wikitext|Hardmode Post-Plantera plundering|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197072
+      ]
+    },
+    {
+      "key": "biome_wikitext|1531|drop|biome_wikitext|Hardmode Post-Plantera plundering|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197070
+      ]
+    },
+    {
+      "key": "biome_wikitext|1532|drop|biome_wikitext|Hardmode Post-Plantera plundering|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197069
+      ]
+    },
+    {
+      "key": "biome_wikitext|1533|drop|biome_wikitext|From any enemy in Hardmode|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196765,
+        197609
+      ]
+    },
+    {
+      "key": "biome_wikitext|1534|drop|biome_wikitext|From any enemy|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197464
+      ]
+    },
+    {
+      "key": "biome_wikitext|1534|drop|biome_wikitext|From any enemy in Hardmode|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196942
+      ]
+    },
+    {
+      "key": "biome_wikitext|1535|drop|biome_wikitext|From any enemy|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197501
+      ]
+    },
+    {
+      "key": "biome_wikitext|1535|drop|biome_wikitext|From any enemy in Hardmode|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196986
+      ]
+    },
+    {
+      "key": "biome_wikitext|1536|drop|biome_wikitext|From any enemy|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197174,
+        197579
+      ]
+    },
+    {
+      "key": "biome_wikitext|1537|drop|biome_wikitext|From any enemy in Hardmode|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196868,
+        197261
+      ]
+    },
+    {
+      "key": "biome_wikitext|1551|for_sale|biome_wikitext|From Truffle|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197128
+      ]
+    },
+    {
+      "key": "biome_wikitext|1569|resource|biome_wikitext|Hardmode post-Plantera from Biome Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197021
+      ]
+    },
+    {
+      "key": "biome_wikitext|1571|resource|biome_wikitext|Hardmode post-Plantera from Biome Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197020
+      ]
+    },
+    {
+      "key": "biome_wikitext|1572|resource|biome_wikitext|Hardmode post-Plantera from Biome Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197023
+      ]
+    },
+    {
+      "key": "biome_wikitext|1579|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197236
+      ]
+    },
+    {
+      "key": "biome_wikitext|1611|drop|biome_wikitext|From Moths|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197619
+      ]
+    },
+    {
+      "key": "biome_wikitext|1723|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197320
+      ]
+    },
+    {
+      "key": "biome_wikitext|1725|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196715
+      ]
+    },
+    {
+      "key": "biome_wikitext|1727|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196717
+      ]
+    },
+    {
+      "key": "biome_wikitext|1809|resource|biome_wikitext|From shaking Ash trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196857
+      ]
+    },
+    {
+      "key": "biome_wikitext|1809|resource|biome_wikitext|From shaking Ebonwood trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196969
+      ]
+    },
+    {
+      "key": "biome_wikitext|1809|resource|biome_wikitext|From shaking Mahogany trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196786
+      ]
+    },
+    {
+      "key": "biome_wikitext|1809|resource|biome_wikitext|From Shaking Palm Trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197401
+      ]
+    },
+    {
+      "key": "biome_wikitext|1809|resource|biome_wikitext|From shaking Pearlwood trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197215
+      ]
+    },
+    {
+      "key": "biome_wikitext|1809|resource|biome_wikitext|From shaking Shadewood trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197007
+      ]
+    },
+    {
+      "key": "biome_wikitext|1809|resource|biome_wikitext|From shaking trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196726
+      ]
+    },
+    {
+      "key": "biome_wikitext|2104|drop|biome_wikitext|From Brain of Cthulhu|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196983
+      ]
+    },
+    {
+      "key": "biome_wikitext|2105|drop|biome_wikitext|From Wall of Flesh|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196834
+      ]
+    },
+    {
+      "key": "biome_wikitext|2108|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196918,
+        197633
+      ]
+    },
+    {
+      "key": "biome_wikitext|2109|drop|biome_wikitext|From Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197650
+      ]
+    },
+    {
+      "key": "biome_wikitext|2110|drop|biome_wikitext|From Golem|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197293
+      ]
+    },
+    {
+      "key": "biome_wikitext|2111|drop|biome_wikitext|From Eater of Worlds|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196938
+      ]
+    },
+    {
+      "key": "biome_wikitext|2161|drop|biome_wikitext|From Ice Golems|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196863
+      ]
+    },
+    {
+      "key": "biome_wikitext|2171|for_sale|biome_wikitext|From Dryad|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197172
+      ]
+    },
+    {
+      "key": "biome_wikitext|2192|for_sale|biome_wikitext|From Steampunker|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197148
+      ]
+    },
+    {
+      "key": "biome_wikitext|2192|resource|biome_wikitext|From Locked Gold Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197018
+      ]
+    },
+    {
+      "key": "biome_wikitext|2195|for_sale|biome_wikitext|From Steampunker|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196802
+      ]
+    },
+    {
+      "key": "biome_wikitext|2195|resource|biome_wikitext|From Lihzahrd Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197276
+      ]
+    },
+    {
+      "key": "biome_wikitext|2195|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197313
+      ]
+    },
+    {
+      "key": "biome_wikitext|2196|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197316
+      ]
+    },
+    {
+      "key": "biome_wikitext|2197|for_sale|biome_wikitext|From Steampunker|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197433
+      ]
+    },
+    {
+      "key": "biome_wikitext|2197|resource|biome_wikitext|From Skyware Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197082
+      ]
+    },
+    {
+      "key": "biome_wikitext|2198|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197238
+      ]
+    },
+    {
+      "key": "biome_wikitext|2198|for_sale|biome_wikitext|From Steampunker|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196903
+      ]
+    },
+    {
+      "key": "biome_wikitext|2204|for_sale|biome_wikitext|From Steampunker|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196801
+      ]
+    },
+    {
+      "key": "biome_wikitext|2204|resource|biome_wikitext|From Ivy Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197605
+      ]
+    },
+    {
+      "key": "biome_wikitext|2218|drop|biome_wikitext|From Golem|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197283
+      ]
+    },
+    {
+      "key": "biome_wikitext|2219|resource|biome_wikitext|From Skyware Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197081
+      ]
+    },
+    {
+      "key": "biome_wikitext|2290|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196729
+      ]
+    },
+    {
+      "key": "biome_wikitext|2292|resource|biome_wikitext|From Ivy Chests and Jungle/Bramble Crates|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197600
+      ]
+    },
+    {
+      "key": "biome_wikitext|2297|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197402
+      ]
+    },
+    {
+      "key": "biome_wikitext|2298|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196730
+      ]
+    },
+    {
+      "key": "biome_wikitext|2299|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196892,
+        197269
+      ]
+    },
+    {
+      "key": "biome_wikitext|2300|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197403
+      ]
+    },
+    {
+      "key": "biome_wikitext|2301|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197404
+      ]
+    },
+    {
+      "key": "biome_wikitext|2302|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196788,
+        197668
+      ]
+    },
+    {
+      "key": "biome_wikitext|2304|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197108
+      ]
+    },
+    {
+      "key": "biome_wikitext|2305|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196998
+      ]
+    },
+    {
+      "key": "biome_wikitext|2305|fishing|biome_wikitext|From Fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197509
+      ]
+    },
+    {
+      "key": "biome_wikitext|2306|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196893,
+        197270
+      ]
+    },
+    {
+      "key": "biome_wikitext|2307|fishing|biome_wikitext|From Fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197219,
+        197589
+      ]
+    },
+    {
+      "key": "biome_wikitext|2310|fishing|biome_wikitext|From Fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197220,
+        197590
+      ]
+    },
+    {
+      "key": "biome_wikitext|2311|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197669
+      ]
+    },
+    {
+      "key": "biome_wikitext|2313|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196787
+      ]
+    },
+    {
+      "key": "biome_wikitext|2316|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197405
+      ]
+    },
+    {
+      "key": "biome_wikitext|2317|fishing|biome_wikitext|From Fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197588
+      ]
+    },
+    {
+      "key": "biome_wikitext|2318|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196959,
+        197473
+      ]
+    },
+    {
+      "key": "biome_wikitext|2319|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196999
+      ]
+    },
+    {
+      "key": "biome_wikitext|2319|fishing|biome_wikitext|From Fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197510
+      ]
+    },
+    {
+      "key": "biome_wikitext|2330|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196960,
+        197474
+      ]
+    },
+    {
+      "key": "biome_wikitext|2332|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197408
+      ]
+    },
+    {
+      "key": "biome_wikitext|2341|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197406
+      ]
+    },
+    {
+      "key": "biome_wikitext|2342|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197407
+      ]
+    },
+    {
+      "key": "biome_wikitext|2357|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196888
+      ]
+    },
+    {
+      "key": "biome_wikitext|2358|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196887
+      ]
+    },
+    {
+      "key": "biome_wikitext|2429|fishing|biome_wikitext|From fishing in overlapping Crimson/Corruption/Hallow|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197273
+      ]
+    },
+    {
+      "key": "biome_wikitext|2430|drop|biome_wikitext|From the King Slime|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196699
+      ]
+    },
+    {
+      "key": "biome_wikitext|2431|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196919,
+        197632
+      ]
+    },
+    {
+      "key": "biome_wikitext|2452|fishing|biome_wikitext|From Angler quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196794
+      ]
+    },
+    {
+      "key": "biome_wikitext|2453|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197111,
+        197428
+      ]
+    },
+    {
+      "key": "biome_wikitext|2454|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196966,
+        197480
+      ]
+    },
+    {
+      "key": "biome_wikitext|2455|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196732
+      ]
+    },
+    {
+      "key": "biome_wikitext|2456|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196733
+      ]
+    },
+    {
+      "key": "biome_wikitext|2457|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196964,
+        197478
+      ]
+    },
+    {
+      "key": "biome_wikitext|2458|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196738
+      ]
+    },
+    {
+      "key": "biome_wikitext|2459|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196734
+      ]
+    },
+    {
+      "key": "biome_wikitext|2461|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196735,
+        197112
+      ]
+    },
+    {
+      "key": "biome_wikitext|2463|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197004,
+        197515
+      ]
+    },
+    {
+      "key": "biome_wikitext|2465|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197596
+      ]
+    },
+    {
+      "key": "biome_wikitext|2466|fishing|biome_wikitext|From Angler quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197274
+      ]
+    },
+    {
+      "key": "biome_wikitext|2467|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196898
+      ]
+    },
+    {
+      "key": "biome_wikitext|2468|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197226
+      ]
+    },
+    {
+      "key": "biome_wikitext|2470|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196897
+      ]
+    },
+    {
+      "key": "biome_wikitext|2471|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197227,
+        197595
+      ]
+    },
+    {
+      "key": "biome_wikitext|2473|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197114,
+        197430
+      ]
+    },
+    {
+      "key": "biome_wikitext|2474|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196737
+      ]
+    },
+    {
+      "key": "biome_wikitext|2475|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197123
+      ]
+    },
+    {
+      "key": "biome_wikitext|2476|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197113,
+        197429
+      ]
+    },
+    {
+      "key": "biome_wikitext|2477|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197003,
+        197514
+      ]
+    },
+    {
+      "key": "biome_wikitext|2479|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196731
+      ]
+    },
+    {
+      "key": "biome_wikitext|2480|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197412
+      ]
+    },
+    {
+      "key": "biome_wikitext|2481|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197411
+      ]
+    },
+    {
+      "key": "biome_wikitext|2483|fishing|biome_wikitext|From Angler quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196796
+      ]
+    },
+    {
+      "key": "biome_wikitext|2484|fishing|biome_wikitext|From Angler quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197275
+      ]
+    },
+    {
+      "key": "biome_wikitext|2485|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196965,
+        197479
+      ]
+    },
+    {
+      "key": "biome_wikitext|2486|fishing|biome_wikitext|From Angler quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196793
+      ]
+    },
+    {
+      "key": "biome_wikitext|2487|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196736
+      ]
+    },
+    {
+      "key": "biome_wikitext|2488|fishing|biome_wikitext|From Angler quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196795
+      ]
+    },
+    {
+      "key": "biome_wikitext|2489|drop|biome_wikitext|From the King Slime|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196704
+      ]
+    },
+    {
+      "key": "biome_wikitext|2493|drop|biome_wikitext|From the King Slime|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196703
+      ]
+    },
+    {
+      "key": "biome_wikitext|2502|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196920,
+        197631
+      ]
+    },
+    {
+      "key": "biome_wikitext|2503|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196886
+      ]
+    },
+    {
+      "key": "biome_wikitext|2504|resource|biome_wikitext|From terrain/vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197397
+      ]
+    },
+    {
+      "key": "biome_wikitext|2504|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197360
+      ]
+    },
+    {
+      "key": "biome_wikitext|2585|drop|biome_wikitext|From the King Slime|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196700
+      ]
+    },
+    {
+      "key": "biome_wikitext|2588|drop|biome_wikitext|From Duke Fishron|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197379
+      ]
+    },
+    {
+      "key": "biome_wikitext|2589|drop|biome_wikitext|From Duke Fishron|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197380
+      ]
+    },
+    {
+      "key": "biome_wikitext|2607|drop|biome_wikitext|From Black Recluses|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197436
+      ]
+    },
+    {
+      "key": "biome_wikitext|2609|drop|biome_wikitext|From Duke Fishron|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197381
+      ]
+    },
+    {
+      "key": "biome_wikitext|2610|drop|biome_wikitext|From the King Slime|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196701
+      ]
+    },
+    {
+      "key": "biome_wikitext|2621|drop|biome_wikitext|From Duke Fishron|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197383
+      ]
+    },
+    {
+      "key": "biome_wikitext|2622|drop|biome_wikitext|From Duke Fishron|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197382
+      ]
+    },
+    {
+      "key": "biome_wikitext|2623|drop|biome_wikitext|From Duke Fishron|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197384
+      ]
+    },
+    {
+      "key": "biome_wikitext|2624|drop|biome_wikitext|From Duke Fishron|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197385
+      ]
+    },
+    {
+      "key": "biome_wikitext|2625|resource|biome_wikitext|From terrain/vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197392
+      ]
+    },
+    {
+      "key": "biome_wikitext|2626|resource|biome_wikitext|From terrain/vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197396
+      ]
+    },
+    {
+      "key": "biome_wikitext|2629|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197321
+      ]
+    },
+    {
+      "key": "biome_wikitext|2701|drop|biome_wikitext|From any enemy in Hardmode|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196839
+      ]
+    },
+    {
+      "key": "biome_wikitext|2766|drop|biome_wikitext|From enemies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197282
+      ]
+    },
+    {
+      "key": "biome_wikitext|2766|resource|biome_wikitext|From Lihzahrd Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197279
+      ]
+    },
+    {
+      "key": "biome_wikitext|2767|resource|biome_wikitext|From Lihzahrd Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197278
+      ]
+    },
+    {
+      "key": "biome_wikitext|2801|drop|biome_wikitext|From Lamias|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197533
+      ]
+    },
+    {
+      "key": "biome_wikitext|2802|drop|biome_wikitext|From Lamias|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197534
+      ]
+    },
+    {
+      "key": "biome_wikitext|2887|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196991
+      ]
+    },
+    {
+      "key": "biome_wikitext|2888|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196907,
+        197626
+      ]
+    },
+    {
+      "key": "biome_wikitext|2998|drop|biome_wikitext|From Wall of Flesh|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196832
+      ]
+    },
+    {
+      "key": "biome_wikitext|2999|drop|biome_wikitext|Through plundering|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197067
+      ]
+    },
+    {
+      "key": "biome_wikitext|2999|fishing|biome_wikitext|From Fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197077
+      ]
+    },
+    {
+      "key": "biome_wikitext|3000|drop|biome_wikitext|Through plundering|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197066
+      ]
+    },
+    {
+      "key": "biome_wikitext|3000|fishing|biome_wikitext|From Fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197076
+      ]
+    },
+    {
+      "key": "biome_wikitext|3006|drop|biome_wikitext|From Crimson Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197494
+      ]
+    },
+    {
+      "key": "biome_wikitext|3007|drop|biome_wikitext|From Crimson Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197495
+      ]
+    },
+    {
+      "key": "biome_wikitext|3008|drop|biome_wikitext|From Corrupt Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197439
+      ]
+    },
+    {
+      "key": "biome_wikitext|3012|drop|biome_wikitext|From Corrupt Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197441
+      ]
+    },
+    {
+      "key": "biome_wikitext|3013|drop|biome_wikitext|From Crimson Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197496
+      ]
+    },
+    {
+      "key": "biome_wikitext|3014|drop|biome_wikitext|From Corrupt Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197442
+      ]
+    },
+    {
+      "key": "biome_wikitext|3015|drop|biome_wikitext|From Corrupt Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197443
+      ]
+    },
+    {
+      "key": "biome_wikitext|3016|drop|biome_wikitext|From Crimson Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197497
+      ]
+    },
+    {
+      "key": "biome_wikitext|3017|resource|biome_wikitext|From Ivy Chests and Jungle/Bramble Crates|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197602
+      ]
+    },
+    {
+      "key": "biome_wikitext|3018|drop|biome_wikitext|From Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197645
+      ]
+    },
+    {
+      "key": "biome_wikitext|3019|resource|biome_wikitext|From Shadow Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196808
+      ]
+    },
+    {
+      "key": "biome_wikitext|3020|drop|biome_wikitext|From Crimson Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197498
+      ]
+    },
+    {
+      "key": "biome_wikitext|3021|drop|biome_wikitext|From Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197647
+      ]
+    },
+    {
+      "key": "biome_wikitext|3022|drop|biome_wikitext|From Hallowed Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197576
+      ]
+    },
+    {
+      "key": "biome_wikitext|3023|drop|biome_wikitext|From Corrupt Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197440
+      ]
+    },
+    {
+      "key": "biome_wikitext|3029|drop|biome_wikitext|From Hallowed Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197573
+      ]
+    },
+    {
+      "key": "biome_wikitext|3030|drop|biome_wikitext|From Hallowed Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197574
+      ]
+    },
+    {
+      "key": "biome_wikitext|3051|drop|biome_wikitext|From Hallowed Mimics|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197575
+      ]
+    },
+    {
+      "key": "biome_wikitext|3060|drop|biome_wikitext|From Brain of Cthulhu|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196981
+      ]
+    },
+    {
+      "key": "biome_wikitext|3067|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196849
+      ]
+    },
+    {
+      "key": "biome_wikitext|3081|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197348
+      ]
+    },
+    {
+      "key": "biome_wikitext|3086|resource|biome_wikitext|From Granite Golems, Granite Elementals, and terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197133
+      ]
+    },
+    {
+      "key": "biome_wikitext|3094|drop|biome_wikitext|From Hoplites|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197339
+      ]
+    },
+    {
+      "key": "biome_wikitext|3095|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197031
+      ]
+    },
+    {
+      "key": "biome_wikitext|3109|drop|biome_wikitext|From Granite Golems and Granite Elementals|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197134
+      ]
+    },
+    {
+      "key": "biome_wikitext|3111|drop|biome_wikitext|From Slimes|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196683
+      ]
+    },
+    {
+      "key": "biome_wikitext|3187|drop|biome_wikitext|From Hoplites|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197340
+      ]
+    },
+    {
+      "key": "biome_wikitext|3188|drop|biome_wikitext|From Hoplites|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197341
+      ]
+    },
+    {
+      "key": "biome_wikitext|3189|drop|biome_wikitext|From Hoplites|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197342
+      ]
+    },
+    {
+      "key": "biome_wikitext|3197|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196894
+      ]
+    },
+    {
+      "key": "biome_wikitext|3199|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197237
+      ]
+    },
+    {
+      "key": "biome_wikitext|3203|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196962,
+        197476
+      ]
+    },
+    {
+      "key": "biome_wikitext|3204|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197001
+      ]
+    },
+    {
+      "key": "biome_wikitext|3204|fishing|biome_wikitext|From Fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197512
+      ]
+    },
+    {
+      "key": "biome_wikitext|3205|fishing|biome_wikitext|From Fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197074
+      ]
+    },
+    {
+      "key": "biome_wikitext|3206|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197109
+      ]
+    },
+    {
+      "key": "biome_wikitext|3207|fishing|biome_wikitext|From Fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197224,
+        197592
+      ]
+    },
+    {
+      "key": "biome_wikitext|3208|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196791,
+        197670
+      ]
+    },
+    {
+      "key": "biome_wikitext|3209|fishing|biome_wikitext|From Fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197221,
+        197591
+      ]
+    },
+    {
+      "key": "biome_wikitext|3210|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196961,
+        197475
+      ]
+    },
+    {
+      "key": "biome_wikitext|3211|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197000
+      ]
+    },
+    {
+      "key": "biome_wikitext|3211|fishing|biome_wikitext|From Fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197511
+      ]
+    },
+    {
+      "key": "biome_wikitext|3260|drop|biome_wikitext|From Unicorns|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197183
+      ]
+    },
+    {
+      "key": "biome_wikitext|3269|drop|biome_wikitext|From Medusas|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197345
+      ]
+    },
+    {
+      "key": "biome_wikitext|3271|resource|biome_wikitext|From the terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197547
+      ]
+    },
+    {
+      "key": "biome_wikitext|3272|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196754
+      ]
+    },
+    {
+      "key": "biome_wikitext|3272|resource|biome_wikitext|From the terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197546
+      ]
+    },
+    {
+      "key": "biome_wikitext|3274|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196755,
+        197470
+      ]
+    },
+    {
+      "key": "biome_wikitext|3274|resource|biome_wikitext|From the terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197552
+      ]
+    },
+    {
+      "key": "biome_wikitext|3275|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196756,
+        197506
+      ]
+    },
+    {
+      "key": "biome_wikitext|3275|resource|biome_wikitext|From the terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197555
+      ]
+    },
+    {
+      "key": "biome_wikitext|3276|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197471
+      ]
+    },
+    {
+      "key": "biome_wikitext|3276|resource|biome_wikitext|From the terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197553
+      ]
+    },
+    {
+      "key": "biome_wikitext|3277|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197507
+      ]
+    },
+    {
+      "key": "biome_wikitext|3277|resource|biome_wikitext|From the terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197556
+      ]
+    },
+    {
+      "key": "biome_wikitext|3282|drop|biome_wikitext|From any enemy after defeating Skeletron and before entering Hardmode|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196838
+      ]
+    },
+    {
+      "key": "biome_wikitext|3286|drop|biome_wikitext|From any enemy after a mechanical boss has been defeated|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196766
+      ]
+    },
+    {
+      "key": "biome_wikitext|3286|drop|biome_wikitext|From any enemy after a Mechanical Boss has been defeated|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197610
+      ]
+    },
+    {
+      "key": "biome_wikitext|3289|drop|biome_wikitext|From any enemy in Hardmode|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196867,
+        197262
+      ]
+    },
+    {
+      "key": "biome_wikitext|3290|drop|biome_wikitext|From any enemy in Hardmode|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196840
+      ]
+    },
+    {
+      "key": "biome_wikitext|3291|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197055
+      ]
+    },
+    {
+      "key": "biome_wikitext|3317|resource|biome_wikitext|From Locked Gold Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197016
+      ]
+    },
+    {
+      "key": "biome_wikitext|3318|drop|biome_wikitext|From the King Slime|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196705
+      ]
+    },
+    {
+      "key": "biome_wikitext|3322|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196921
+      ]
+    },
+    {
+      "key": "biome_wikitext|3338|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196757,
+        197583
+      ]
+    },
+    {
+      "key": "biome_wikitext|3338|resource|biome_wikitext|From the terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197558
+      ]
+    },
+    {
+      "key": "biome_wikitext|3339|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197584
+      ]
+    },
+    {
+      "key": "biome_wikitext|3339|resource|biome_wikitext|From the terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197559
+      ]
+    },
+    {
+      "key": "biome_wikitext|3347|resource|biome_wikitext|From the terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197548
+      ]
+    },
+    {
+      "key": "biome_wikitext|3360|resource|biome_wikitext|From Ivy Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197603
+      ]
+    },
+    {
+      "key": "biome_wikitext|3360|resource|biome_wikitext|From shaking Mahogany trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196784
+      ]
+    },
+    {
+      "key": "biome_wikitext|3361|resource|biome_wikitext|From Ivy Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197604
+      ]
+    },
+    {
+      "key": "biome_wikitext|3361|resource|biome_wikitext|From shaking Mahogany trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196785
+      ]
+    },
+    {
+      "key": "biome_wikitext|3380|drop|biome_wikitext|From Basilisks|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197531
+      ]
+    },
+    {
+      "key": "biome_wikitext|3380|drop|biome_wikitext|From Tomb Crawlers|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197521
+      ]
+    },
+    {
+      "key": "biome_wikitext|3478|drop|biome_wikitext|From The Bride|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197143
+      ]
+    },
+    {
+      "key": "biome_wikitext|3479|drop|biome_wikitext|From The Bride|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197144
+      ]
+    },
+    {
+      "key": "biome_wikitext|3532|drop|biome_wikitext|From Pigrons|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197253,
+        197458,
+        197488,
+        197567
+      ]
+    },
+    {
+      "key": "biome_wikitext|3756|resource|biome_wikitext|From Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197334
+      ]
+    },
+    {
+      "key": "biome_wikitext|3770|drop|biome_wikitext|From Desert Spirits|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197530
+      ]
+    },
+    {
+      "key": "biome_wikitext|3771|drop|biome_wikitext|From Basilisks|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197532
+      ]
+    },
+    {
+      "key": "biome_wikitext|3772|drop|biome_wikitext|From Antlion Charger and Antlion Swarmers|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197517
+      ]
+    },
+    {
+      "key": "biome_wikitext|3781|drop|biome_wikitext|From Medusas|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197346
+      ]
+    },
+    {
+      "key": "biome_wikitext|3794|drop|biome_wikitext|From all Ghouls|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197522
+      ]
+    },
+    {
+      "key": "biome_wikitext|3794|drop|biome_wikitext|From Dreamer Ghouls|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197571
+      ]
+    },
+    {
+      "key": "biome_wikitext|3794|drop|biome_wikitext|From Tainted Ghouls|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197492
+      ]
+    },
+    {
+      "key": "biome_wikitext|3794|drop|biome_wikitext|From Vile Ghouls|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197462
+      ]
+    },
+    {
+      "key": "biome_wikitext|3795|drop|biome_wikitext|From Desert Spirits|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197529
+      ]
+    },
+    {
+      "key": "biome_wikitext|3982|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196963,
+        197477
+      ]
+    },
+    {
+      "key": "biome_wikitext|3983|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197002
+      ]
+    },
+    {
+      "key": "biome_wikitext|3983|fishing|biome_wikitext|From Fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197513
+      ]
+    },
+    {
+      "key": "biome_wikitext|3984|fishing|biome_wikitext|From Fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197075
+      ]
+    },
+    {
+      "key": "biome_wikitext|3985|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197110
+      ]
+    },
+    {
+      "key": "biome_wikitext|3986|fishing|biome_wikitext|From Fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197225,
+        197593
+      ]
+    },
+    {
+      "key": "biome_wikitext|3987|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196792,
+        197671
+      ]
+    },
+    {
+      "key": "biome_wikitext|4009|resource|biome_wikitext|From shaking trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196718
+      ]
+    },
+    {
+      "key": "biome_wikitext|4011|drop|biome_wikitext|From Illuminant Bats, Illuminant Slimes and Chaos Elementals|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197565
+      ]
+    },
+    {
+      "key": "biome_wikitext|4012|drop|biome_wikitext|From Antlions|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196749
+      ]
+    },
+    {
+      "key": "biome_wikitext|4012|drop|biome_wikitext|From Antlions, Antlion Chargers, and Antlion Swarmers|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197518
+      ]
+    },
+    {
+      "key": "biome_wikitext|4013|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197058
+      ]
+    },
+    {
+      "key": "biome_wikitext|4015|drop|biome_wikitext|From Crimera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196978
+      ]
+    },
+    {
+      "key": "biome_wikitext|4015|drop|biome_wikitext|From Eaters of Souls|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196930
+      ]
+    },
+    {
+      "key": "biome_wikitext|4016|drop|biome_wikitext|From Harpies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197103,
+        197423
+      ]
+    },
+    {
+      "key": "biome_wikitext|4017|drop|biome_wikitext|From Gastropods|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197186
+      ]
+    },
+    {
+      "key": "biome_wikitext|4018|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197035
+      ]
+    },
+    {
+      "key": "biome_wikitext|4020|drop|biome_wikitext|From Sand Poachers|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197535
+      ]
+    },
+    {
+      "key": "biome_wikitext|4020|drop|biome_wikitext|From Wall Creepers and Black Recluses|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197437
+      ]
+    },
+    {
+      "key": "biome_wikitext|4023|drop|biome_wikitext|From Derplings and Giant Flying Foxes|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196771
+      ]
+    },
+    {
+      "key": "biome_wikitext|4025|drop|biome_wikitext|From Bone Serpents and Red Devils|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196823
+      ]
+    },
+    {
+      "key": "biome_wikitext|4026|drop|biome_wikitext|From Ice Slimes|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196861
+      ]
+    },
+    {
+      "key": "biome_wikitext|4026|drop|biome_wikitext|From Spiked Ice Slimes and Ice Bats|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197240
+      ]
+    },
+    {
+      "key": "biome_wikitext|4027|drop|biome_wikitext|From Ice Tortoises and Icy Mermen|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197241
+      ]
+    },
+    {
+      "key": "biome_wikitext|4029|drop|biome_wikitext|From Hoplites and Medusas|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197347
+      ]
+    },
+    {
+      "key": "biome_wikitext|4035|drop|biome_wikitext|From Crabs, Sharks or Orcas|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197371
+      ]
+    },
+    {
+      "key": "biome_wikitext|4036|drop|biome_wikitext|From Granite Golems and Granite Elementals|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197135
+      ]
+    },
+    {
+      "key": "biome_wikitext|4055|resource|biome_wikitext|From Sandstone Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197538
+      ]
+    },
+    {
+      "key": "biome_wikitext|4056|resource|biome_wikitext|From Sandstone Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197537
+      ]
+    },
+    {
+      "key": "biome_wikitext|4061|resource|biome_wikitext|From Sandstone Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197539
+      ]
+    },
+    {
+      "key": "biome_wikitext|4062|resource|biome_wikitext|From Sandstone Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197540
+      ]
+    },
+    {
+      "key": "biome_wikitext|4066|resource|biome_wikitext|From Sandstone Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197545
+      ]
+    },
+    {
+      "key": "biome_wikitext|4071|resource|biome_wikitext|From terrain/vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197393
+      ]
+    },
+    {
+      "key": "biome_wikitext|4072|resource|biome_wikitext|From terrain/vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197394
+      ]
+    },
+    {
+      "key": "biome_wikitext|4073|resource|biome_wikitext|From terrain/vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197395
+      ]
+    },
+    {
+      "key": "biome_wikitext|4090|resource|biome_wikitext|From terrain/vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197391
+      ]
+    },
+    {
+      "key": "biome_wikitext|4238|resource|biome_wikitext|From Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197335
+      ]
+    },
+    {
+      "key": "biome_wikitext|4239|resource|biome_wikitext|From Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197336
+      ]
+    },
+    {
+      "key": "biome_wikitext|4240|resource|biome_wikitext|From Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197337
+      ]
+    },
+    {
+      "key": "biome_wikitext|4262|resource|biome_wikitext|From Sandstone Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197544
+      ]
+    },
+    {
+      "key": "biome_wikitext|4263|resource|biome_wikitext|From Sandstone Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197541
+      ]
+    },
+    {
+      "key": "biome_wikitext|4276|resource|biome_wikitext|From Sandstone Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197543
+      ]
+    },
+    {
+      "key": "biome_wikitext|4281|resource|biome_wikitext|From Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197326
+      ]
+    },
+    {
+      "key": "biome_wikitext|4282|resource|biome_wikitext|From shaking trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196720
+      ]
+    },
+    {
+      "key": "biome_wikitext|4283|resource|biome_wikitext|From Shaking Palm Trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197400
+      ]
+    },
+    {
+      "key": "biome_wikitext|4284|resource|biome_wikitext|From shaking Ebonwood trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196967
+      ]
+    },
+    {
+      "key": "biome_wikitext|4285|resource|biome_wikitext|From shaking Shadewood trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197005
+      ]
+    },
+    {
+      "key": "biome_wikitext|4286|resource|biome_wikitext|From Shaking Boreal Trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196889
+      ]
+    },
+    {
+      "key": "biome_wikitext|4287|resource|biome_wikitext|From Shaking Palm Trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197399
+      ]
+    },
+    {
+      "key": "biome_wikitext|4288|resource|biome_wikitext|From shaking Pearlwood trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197212
+      ]
+    },
+    {
+      "key": "biome_wikitext|4289|resource|biome_wikitext|From shaking Ebonwood trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196968
+      ]
+    },
+    {
+      "key": "biome_wikitext|4290|resource|biome_wikitext|From shaking trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196721
+      ]
+    },
+    {
+      "key": "biome_wikitext|4291|resource|biome_wikitext|From shaking trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196722
+      ]
+    },
+    {
+      "key": "biome_wikitext|4292|resource|biome_wikitext|From shaking Mahogany trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196782
+      ]
+    },
+    {
+      "key": "biome_wikitext|4293|resource|biome_wikitext|From shaking trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196719
+      ]
+    },
+    {
+      "key": "biome_wikitext|4294|resource|biome_wikitext|From shaking Mahogany trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196783
+      ]
+    },
+    {
+      "key": "biome_wikitext|4295|resource|biome_wikitext|From Shaking Boreal Trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196890
+      ]
+    },
+    {
+      "key": "biome_wikitext|4296|resource|biome_wikitext|From shaking Shadewood trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197006
+      ]
+    },
+    {
+      "key": "biome_wikitext|4297|resource|biome_wikitext|From shaking Pearlwood trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197213
+      ]
+    },
+    {
+      "key": "biome_wikitext|4346|resource|biome_wikitext|From Sandstone Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197542
+      ]
+    },
+    {
+      "key": "biome_wikitext|4366|resource|biome_wikitext|From shaking trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196727
+      ]
+    },
+    {
+      "key": "biome_wikitext|4379|drop|biome_wikitext|From Wyverns|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197107,
+        197427
+      ]
+    },
+    {
+      "key": "biome_wikitext|4392|for_sale|biome_wikitext|From Cyborg|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197150
+      ]
+    },
+    {
+      "key": "biome_wikitext|4393|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197358
+      ]
+    },
+    {
+      "key": "biome_wikitext|4394|fishing|biome_wikitext|From Angler Quests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197359
+      ]
+    },
+    {
+      "key": "biome_wikitext|4400|drop|biome_wikitext|From Granite Golems and Granite Elementals|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197136
+      ]
+    },
+    {
+      "key": "biome_wikitext|4401|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197353
+      ]
+    },
+    {
+      "key": "biome_wikitext|4402|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197354
+      ]
+    },
+    {
+      "key": "biome_wikitext|4404|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197367
+      ]
+    },
+    {
+      "key": "biome_wikitext|4405|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196895,
+        197271
+      ]
+    },
+    {
+      "key": "biome_wikitext|4406|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196896,
+        197272
+      ]
+    },
+    {
+      "key": "biome_wikitext|4407|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197356
+      ]
+    },
+    {
+      "key": "biome_wikitext|4408|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197357
+      ]
+    },
+    {
+      "key": "biome_wikitext|4409|for_sale|biome_wikitext|From Mechanic or Cyborg|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197149
+      ]
+    },
+    {
+      "key": "biome_wikitext|4410|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197352
+      ]
+    },
+    {
+      "key": "biome_wikitext|4425|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197368
+      ]
+    },
+    {
+      "key": "biome_wikitext|4426|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196915
+      ]
+    },
+    {
+      "key": "biome_wikitext|4426|resource|biome_wikitext|From Ivy Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197606
+      ]
+    },
+    {
+      "key": "biome_wikitext|4427|resource|biome_wikitext|From Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197325
+      ]
+    },
+    {
+      "key": "biome_wikitext|4428|drop|biome_wikitext|From Pigrons|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197256,
+        197461,
+        197491,
+        197570
+      ]
+    },
+    {
+      "key": "biome_wikitext|4429|resource|biome_wikitext|From Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197324
+      ]
+    },
+    {
+      "key": "biome_wikitext|4443|resource|biome_wikitext|From Shadow Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196810
+      ]
+    },
+    {
+      "key": "biome_wikitext|4450|resource|biome_wikitext|From Mushroom Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197122
+      ]
+    },
+    {
+      "key": "biome_wikitext|4460|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197365
+      ]
+    },
+    {
+      "key": "biome_wikitext|4463|drop|biome_wikitext|From Hoplites|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197338
+      ]
+    },
+    {
+      "key": "biome_wikitext|4551|resource|biome_wikitext|From Shadow Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196812
+      ]
+    },
+    {
+      "key": "biome_wikitext|4564|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196781
+      ]
+    },
+    {
+      "key": "biome_wikitext|4607|resource|biome_wikitext|Hardmode post-Plantera from Biome Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197024
+      ]
+    },
+    {
+      "key": "biome_wikitext|4610|drop|biome_wikitext|From Bone Serpents|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196822
+      ]
+    },
+    {
+      "key": "biome_wikitext|4611|drop|biome_wikitext|From World Feeders|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196944,
+        197456
+      ]
+    },
+    {
+      "key": "biome_wikitext|4613|drop|biome_wikitext|From Pigrons|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197255,
+        197460,
+        197490,
+        197569
+      ]
+    },
+    {
+      "key": "biome_wikitext|4648|drop|biome_wikitext|From Man Eaters|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197614
+      ]
+    },
+    {
+      "key": "biome_wikitext|4650|drop|biome_wikitext|From Pink Jellyfish|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197378
+      ]
+    },
+    {
+      "key": "biome_wikitext|4651|drop|biome_wikitext|From Sharks|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197370
+      ]
+    },
+    {
+      "key": "biome_wikitext|4662|for_sale|biome_wikitext|From Dye Trader|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197147
+      ]
+    },
+    {
+      "key": "biome_wikitext|4668|for_sale|biome_wikitext|From Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197151
+      ]
+    },
+    {
+      "key": "biome_wikitext|4675|drop|biome_wikitext|From Angry Trappers|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196769,
+        197616
+      ]
+    },
+    {
+      "key": "biome_wikitext|4679|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197056
+      ]
+    },
+    {
+      "key": "biome_wikitext|4682|for_sale|biome_wikitext|From Party Girl|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197161
+      ]
+    },
+    {
+      "key": "biome_wikitext|4683|drop|biome_wikitext|From Wandering Eyes|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196687
+      ]
+    },
+    {
+      "key": "biome_wikitext|4684|drop|biome_wikitext|From Unicorns|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197184
+      ]
+    },
+    {
+      "key": "biome_wikitext|4685|for_sale|biome_wikitext|From Clothier|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197162
+      ]
+    },
+    {
+      "key": "biome_wikitext|4686|for_sale|biome_wikitext|From Clothier|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197163
+      ]
+    },
+    {
+      "key": "biome_wikitext|4703|for_sale|biome_wikitext|From Arms Dealer|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197146
+      ]
+    },
+    {
+      "key": "biome_wikitext|4704|for_sale|biome_wikitext|From Clothier|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197164
+      ]
+    },
+    {
+      "key": "biome_wikitext|4705|for_sale|biome_wikitext|From Clothier|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197165
+      ]
+    },
+    {
+      "key": "biome_wikitext|4706|for_sale|biome_wikitext|From Clothier|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197166
+      ]
+    },
+    {
+      "key": "biome_wikitext|4707|for_sale|biome_wikitext|From Clothier|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197167
+      ]
+    },
+    {
+      "key": "biome_wikitext|4708|for_sale|biome_wikitext|From Clothier|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197169
+      ]
+    },
+    {
+      "key": "biome_wikitext|4709|for_sale|biome_wikitext|From Clothier|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197170
+      ]
+    },
+    {
+      "key": "biome_wikitext|4712|drop|biome_wikitext|Hardmode Post-Plantera plundering|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197073
+      ]
+    },
+    {
+      "key": "biome_wikitext|4714|drop|biome_wikitext|From any enemy in Hardmode|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196741,
+        197536
+      ]
+    },
+    {
+      "key": "biome_wikitext|4715|drop|biome_wikitext|From Empress of Light|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197203
+      ]
+    },
+    {
+      "key": "biome_wikitext|4723|for_sale|biome_wikitext|From Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197153
+      ]
+    },
+    {
+      "key": "biome_wikitext|4724|for_sale|biome_wikitext|From Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197154
+      ]
+    },
+    {
+      "key": "biome_wikitext|4725|for_sale|biome_wikitext|From Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197155
+      ]
+    },
+    {
+      "key": "biome_wikitext|4726|for_sale|biome_wikitext|From Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197156
+      ]
+    },
+    {
+      "key": "biome_wikitext|4727|for_sale|biome_wikitext|From Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197157
+      ]
+    },
+    {
+      "key": "biome_wikitext|4728|for_sale|biome_wikitext|From Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197158
+      ]
+    },
+    {
+      "key": "biome_wikitext|4729|for_sale|biome_wikitext|From Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197159
+      ]
+    },
+    {
+      "key": "biome_wikitext|4737|resource|biome_wikitext|From Shadow Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196811
+      ]
+    },
+    {
+      "key": "biome_wikitext|4758|drop|biome_wikitext|From Queen Slime|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197189
+      ]
+    },
+    {
+      "key": "biome_wikitext|4764|drop|biome_wikitext|From Spore Bats|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197119
+      ]
+    },
+    {
+      "key": "biome_wikitext|4778|drop|biome_wikitext|From Empress of Light|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197202
+      ]
+    },
+    {
+      "key": "biome_wikitext|4782|drop|biome_wikitext|From Empress of Light|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197208
+      ]
+    },
+    {
+      "key": "biome_wikitext|4783|drop|biome_wikitext|From Empress of Light|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197206
+      ]
+    },
+    {
+      "key": "biome_wikitext|4784|drop|biome_wikitext|From Empress of Light|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197205
+      ]
+    },
+    {
+      "key": "biome_wikitext|4789|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197057
+      ]
+    },
+    {
+      "key": "biome_wikitext|4795|drop|biome_wikitext|From Wall of Flesh|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196836
+      ]
+    },
+    {
+      "key": "biome_wikitext|4797|drop|biome_wikitext|From the King Slime|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196706
+      ]
+    },
+    {
+      "key": "biome_wikitext|4799|drop|biome_wikitext|From Eater of Worlds|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196940
+      ]
+    },
+    {
+      "key": "biome_wikitext|4800|drop|biome_wikitext|From Brain of Cthulhu|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196985
+      ]
+    },
+    {
+      "key": "biome_wikitext|4802|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196922,
+        197635
+      ]
+    },
+    {
+      "key": "biome_wikitext|4806|drop|biome_wikitext|From Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197652
+      ]
+    },
+    {
+      "key": "biome_wikitext|4807|drop|biome_wikitext|From Golem|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197294
+      ]
+    },
+    {
+      "key": "biome_wikitext|4808|drop|biome_wikitext|From Duke Fishron|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197387
+      ]
+    },
+    {
+      "key": "biome_wikitext|4811|drop|biome_wikitext|From Empress of Light|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197209
+      ]
+    },
+    {
+      "key": "biome_wikitext|4823|drop|biome_wikitext|From Empress of Light|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197201
+      ]
+    },
+    {
+      "key": "biome_wikitext|4875|for_sale|biome_wikitext|Any Happy NPC Shop|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196803
+      ]
+    },
+    {
+      "key": "biome_wikitext|4876|for_sale|biome_wikitext|Any Happy NPC Shop|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196740
+      ]
+    },
+    {
+      "key": "biome_wikitext|4912|drop|biome_wikitext|From Wall of Flesh|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196828
+      ]
+    },
+    {
+      "key": "biome_wikitext|4914|drop|biome_wikitext|From Empress of Light|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197199
+      ]
+    },
+    {
+      "key": "biome_wikitext|4916|for_sale|biome_wikitext|Any Happy NPC Shop|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197230
+      ]
+    },
+    {
+      "key": "biome_wikitext|4918|for_sale|biome_wikitext|Any Happy NPC Shop|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197414
+      ]
+    },
+    {
+      "key": "biome_wikitext|4919|for_sale|biome_wikitext|Any Happy NPC Shop|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196763
+      ]
+    },
+    {
+      "key": "biome_wikitext|4920|for_sale|biome_wikitext|Any Happy NPC Shop|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196904
+      ]
+    },
+    {
+      "key": "biome_wikitext|4921|for_sale|biome_wikitext|Any Happy NPC Shop|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197132
+      ]
+    },
+    {
+      "key": "biome_wikitext|4923|drop|biome_wikitext|From Empress of Light|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197198
+      ]
+    },
+    {
+      "key": "biome_wikitext|4925|drop|biome_wikitext|From Eater of Worlds|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196941
+      ]
+    },
+    {
+      "key": "biome_wikitext|4926|drop|biome_wikitext|From Brain of Cthulhu|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196984
+      ]
+    },
+    {
+      "key": "biome_wikitext|4928|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196923,
+        197636
+      ]
+    },
+    {
+      "key": "biome_wikitext|4929|drop|biome_wikitext|From the King Slime|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196707
+      ]
+    },
+    {
+      "key": "biome_wikitext|4930|drop|biome_wikitext|From Wall of Flesh|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196837
+      ]
+    },
+    {
+      "key": "biome_wikitext|4934|drop|biome_wikitext|From Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197653
+      ]
+    },
+    {
+      "key": "biome_wikitext|4935|drop|biome_wikitext|From Golem|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197295
+      ]
+    },
+    {
+      "key": "biome_wikitext|4936|drop|biome_wikitext|From Duke Fishron|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197388
+      ]
+    },
+    {
+      "key": "biome_wikitext|4949|drop|biome_wikitext|From Empress of Light|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197210
+      ]
+    },
+    {
+      "key": "biome_wikitext|4950|drop|biome_wikitext|From Queen Slime|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197196
+      ]
+    },
+    {
+      "key": "biome_wikitext|4952|drop|biome_wikitext|From Empress of Light|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197197
+      ]
+    },
+    {
+      "key": "biome_wikitext|4953|drop|biome_wikitext|From Empress of Light|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197200
+      ]
+    },
+    {
+      "key": "biome_wikitext|4957|drop|biome_wikitext|From Queen Slime|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197194
+      ]
+    },
+    {
+      "key": "biome_wikitext|4958|drop|biome_wikitext|From Queen Slime|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197193
+      ]
+    },
+    {
+      "key": "biome_wikitext|4959|drop|biome_wikitext|From Queen Slime|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197192
+      ]
+    },
+    {
+      "key": "biome_wikitext|4960|drop|biome_wikitext|From Queen Slime|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197195
+      ]
+    },
+    {
+      "key": "biome_wikitext|4978|resource|biome_wikitext|From Skyware Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197083
+      ]
+    },
+    {
+      "key": "biome_wikitext|4980|drop|biome_wikitext|From Queen Slime|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197191
+      ]
+    },
+    {
+      "key": "biome_wikitext|4981|drop|biome_wikitext|From Queen Slime|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197190
+      ]
+    },
+    {
+      "key": "biome_wikitext|4986|drop|biome_wikitext|From Queen Slime|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197188
+      ]
+    },
+    {
+      "key": "biome_wikitext|4988|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197587
+      ]
+    },
+    {
+      "key": "biome_wikitext|5002|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197409
+      ]
+    },
+    {
+      "key": "biome_wikitext|5003|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197410
+      ]
+    },
+    {
+      "key": "biome_wikitext|5004|drop|biome_wikitext|From Wall of Flesh|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196833
+      ]
+    },
+    {
+      "key": "biome_wikitext|5005|drop|biome_wikitext|From Empress of Light|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197207
+      ]
+    },
+    {
+      "key": "biome_wikitext|5010|resource|biome_wikitext|From Shadow Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196809
+      ]
+    },
+    {
+      "key": "biome_wikitext|5042|drop|biome_wikitext|From Man Eaters and Angry Trappers|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197617
+      ]
+    },
+    {
+      "key": "biome_wikitext|5042|drop|biome_wikitext|From Snatchers, Angry Trappers, and Man Eaters|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196772
+      ]
+    },
+    {
+      "key": "biome_wikitext|5042|drop|biome_wikitext|Hardmode post-Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197059
+      ]
+    },
+    {
+      "key": "biome_wikitext|5070|drop|biome_wikitext|From Snow Flinx|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197245
+      ]
+    },
+    {
+      "key": "biome_wikitext|5075|drop|biome_wikitext|From Empress of Light|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197204
+      ]
+    },
+    {
+      "key": "biome_wikitext|5089|drop|biome_wikitext|From Derplings|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196770
+      ]
+    },
+    {
+      "key": "biome_wikitext|5090|drop|biome_wikitext|From Deerclops|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196879
+      ]
+    },
+    {
+      "key": "biome_wikitext|5091|drop|biome_wikitext|From Blood Crawlers, Crimera, Face Monsters, Blood Feeders, Blood Jelly, Herplings, and Crimslimes|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196977
+      ]
+    },
+    {
+      "key": "biome_wikitext|5091|drop|biome_wikitext|From Blood Feeders, Blood Jelly, Floaty Grosses, and Ichor Stickers|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197486
+      ]
+    },
+    {
+      "key": "biome_wikitext|5091|drop|biome_wikitext|From Clingers, Devourers, Corruptors, Corrupt Slimes, Slimers, and World Feeders|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197454
+      ]
+    },
+    {
+      "key": "biome_wikitext|5091|drop|biome_wikitext|From Eaters of Souls, Devourers, Corruptors, Corrupt Slimes, Slimers and World Feeders|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196934
+      ]
+    },
+    {
+      "key": "biome_wikitext|5094|drop|biome_wikitext|From Blood Crawlers, Crimera, and Face Monsters|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196976
+      ]
+    },
+    {
+      "key": "biome_wikitext|5094|drop|biome_wikitext|From Devourers|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197451
+      ]
+    },
+    {
+      "key": "biome_wikitext|5094|drop|biome_wikitext|From Eaters of Souls and Devourers|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196932
+      ]
+    },
+    {
+      "key": "biome_wikitext|5095|drop|biome_wikitext|From Deerclops|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196876
+      ]
+    },
+    {
+      "key": "biome_wikitext|5096|drop|biome_wikitext|From Pigrons|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197254,
+        197459,
+        197489,
+        197568
+      ]
+    },
+    {
+      "key": "biome_wikitext|5097|drop|biome_wikitext|From Ice Bats|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197246
+      ]
+    },
+    {
+      "key": "biome_wikitext|5097|drop|biome_wikitext|From Illuminant Bats|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197561
+      ]
+    },
+    {
+      "key": "biome_wikitext|5097|drop|biome_wikitext|From Lava Bats and Hellbats|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196819
+      ]
+    },
+    {
+      "key": "biome_wikitext|5097|drop|biome_wikitext|From Spore Bats|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197118
+      ]
+    },
+    {
+      "key": "biome_wikitext|5098|drop|biome_wikitext|From Deerclops|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196869
+      ]
+    },
+    {
+      "key": "biome_wikitext|5101|drop|biome_wikitext|From Deerclops|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196870
+      ]
+    },
+    {
+      "key": "biome_wikitext|5108|drop|biome_wikitext|From Deerclops|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196878
+      ]
+    },
+    {
+      "key": "biome_wikitext|5109|drop|biome_wikitext|From Deerclops|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196877
+      ]
+    },
+    {
+      "key": "biome_wikitext|5110|drop|biome_wikitext|From Deerclops|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196880
+      ]
+    },
+    {
+      "key": "biome_wikitext|5113|drop|biome_wikitext|From Deerclops|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196871
+      ]
+    },
+    {
+      "key": "biome_wikitext|5117|drop|biome_wikitext|From Deerclops|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196873
+      ]
+    },
+    {
+      "key": "biome_wikitext|5118|drop|biome_wikitext|From Deerclops|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196874
+      ]
+    },
+    {
+      "key": "biome_wikitext|5119|drop|biome_wikitext|From Deerclops|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196875
+      ]
+    },
+    {
+      "key": "biome_wikitext|5120|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197239
+      ]
+    },
+    {
+      "key": "biome_wikitext|5130|drop|biome_wikitext|From Wolves|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196866
+      ]
+    },
+    {
+      "key": "biome_wikitext|5214|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196844
+      ]
+    },
+    {
+      "key": "biome_wikitext|5215|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196843
+      ]
+    },
+    {
+      "key": "biome_wikitext|5226|resource|biome_wikitext|From Skyware Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197085
+      ]
+    },
+    {
+      "key": "biome_wikitext|5230|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197314
+      ]
+    },
+    {
+      "key": "biome_wikitext|5231|for_sale|biome_wikitext|From Truffle|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197131
+      ]
+    },
+    {
+      "key": "biome_wikitext|5245|for_sale|biome_wikitext|From the Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196739
+      ]
+    },
+    {
+      "key": "biome_wikitext|5254|resource|biome_wikitext|From Skyware Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197086
+      ]
+    },
+    {
+      "key": "biome_wikitext|5255|resource|biome_wikitext|From Skyware Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197087
+      ]
+    },
+    {
+      "key": "biome_wikitext|5257|for_sale|biome_wikitext|From Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197160
+      ]
+    },
+    {
+      "key": "biome_wikitext|5258|resource|biome_wikitext|From Skyware Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197084
+      ]
+    },
+    {
+      "key": "biome_wikitext|5274|fishing|biome_wikitext|From Fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197222,
+        197594
+      ]
+    },
+    {
+      "key": "biome_wikitext|5277|resource|biome_wikitext|From shaking Ash trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196854
+      ]
+    },
+    {
+      "key": "biome_wikitext|5278|resource|biome_wikitext|From shaking Ash trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196855
+      ]
+    },
+    {
+      "key": "biome_wikitext|5332|drop|biome_wikitext|From Zombies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196690
+      ]
+    },
+    {
+      "key": "biome_wikitext|5333|resource|biome_wikitext|From vegetation|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197666
+      ]
+    },
+    {
+      "key": "biome_wikitext|5344|for_sale|biome_wikitext|From Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197152
+      ]
+    },
+    {
+      "key": "biome_wikitext|5385|drop|biome_wikitext|From Deerclops|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196872
+      ]
+    },
+    {
+      "key": "biome_wikitext|5388|resource|biome_wikitext|From Skyware Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197088
+      ]
+    },
+    {
+      "key": "biome_wikitext|5463|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196789
+      ]
+    },
+    {
+      "key": "biome_wikitext|5465|resource|biome_wikitext|From Locked Gold Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197017
+      ]
+    },
+    {
+      "key": "biome_wikitext|5477|drop|biome_wikitext|From Plantera|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197646
+      ]
+    },
+    {
+      "key": "biome_wikitext|5478|drop|biome_wikitext|From Duke Fishron|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197386
+      ]
+    },
+    {
+      "key": "biome_wikitext|5483|drop|biome_wikitext|From Queen Bee|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197629
+      ]
+    },
+    {
+      "key": "biome_wikitext|5486|drop|biome_wikitext|From Meteor Heads|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197351
+      ]
+    },
+    {
+      "key": "biome_wikitext|5488|drop|biome_wikitext|From Dreamer Ghouls|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197528
+      ]
+    },
+    {
+      "key": "biome_wikitext|5488|drop|biome_wikitext|From Hallow Pigrons, Hallowed Mimics, Enchanted Swords, Illuminant Bats, Illuminant Slimes, Dreamer Ghouls, and Chaos Elementals|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197566
+      ]
+    },
+    {
+      "key": "biome_wikitext|5489|drop|biome_wikitext|From Clingers, Corruption Pigrons, Corruptors, Corrupt Mimics, Cursed Hammers, Vile Ghouls, and World Feeders|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197455
+      ]
+    },
+    {
+      "key": "biome_wikitext|5489|drop|biome_wikitext|From Crimson Pigrons, Crimson Mimics, Crimson Axes, Floaty Grosses, Ichor Sticker and Tainted Ghouls|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197487
+      ]
+    },
+    {
+      "key": "biome_wikitext|5489|drop|biome_wikitext|From Vile, Tainted Ghouls, Dark Lamias and Desert Spirits|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197526
+      ]
+    },
+    {
+      "key": "biome_wikitext|5490|fishing|biome_wikitext|From Fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197223
+      ]
+    },
+    {
+      "key": "biome_wikitext|5490|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197355
+      ]
+    },
+    {
+      "key": "biome_wikitext|5491|for_sale|biome_wikitext|From Painter|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196902
+      ]
+    },
+    {
+      "key": "biome_wikitext|5517|resource|biome_wikitext|From shaking trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196728
+      ]
+    },
+    {
+      "key": "biome_wikitext|5525|resource|biome_wikitext|From Ivy Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197607
+      ]
+    },
+    {
+      "key": "biome_wikitext|5528|resource|biome_wikitext|From Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197328
+      ]
+    },
+    {
+      "key": "biome_wikitext|5543|drop|biome_wikitext|From Hoplites|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197344
+      ]
+    },
+    {
+      "key": "biome_wikitext|5570|resource|biome_wikitext|From terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197098
+      ]
+    },
+    {
+      "key": "biome_wikitext|5576|drop|biome_wikitext|From Raven|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197145
+      ]
+    },
+    {
+      "key": "biome_wikitext|5577|for_sale|biome_wikitext|From Clothier|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197168
+      ]
+    },
+    {
+      "key": "biome_wikitext|5629|resource|biome_wikitext|From Chests|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197327
+      ]
+    },
+    {
+      "key": "biome_wikitext|5629|resource|biome_wikitext|From shaking Ash trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196856
+      ]
+    },
+    {
+      "key": "biome_wikitext|5629|resource|biome_wikitext|From Shaking Boreal Trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196891
+      ]
+    },
+    {
+      "key": "biome_wikitext|5629|resource|biome_wikitext|From shaking Pearlwood trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197214
+      ]
+    },
+    {
+      "key": "biome_wikitext|5629|resource|biome_wikitext|From shaking trees|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196725
+      ]
+    },
+    {
+      "key": "biome_wikitext|5632|drop|biome_wikitext|null|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197034
+      ]
+    },
+    {
+      "key": "biome_wikitext|5634|fishing|biome_wikitext|From fishing|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196790
+      ]
+    },
+    {
+      "key": "biome_wikitext|5652|for_sale|biome_wikitext|Any Happy NPC Shop|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        196858
+      ]
+    },
+    {
+      "key": "biome_wikitext|5655|drop|biome_wikitext|From throwing a Platinum Coin into water|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197362
+      ]
+    },
+    {
+      "key": "biome_wikitext|5661|drop|biome_wikitext|From throwing a Platinum Coin into water|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197361
+      ]
+    },
+    {
+      "key": "biome_wikitext|5662|drop|biome_wikitext|From Pixies|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197180
+      ]
+    },
+    {
+      "key": "biome_wikitext|5667|resource|biome_wikitext|From the terrain|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197560
+      ]
+    },
+    {
+      "key": "biome_wikitext|5926|for_sale|biome_wikitext|From Pirate|||",
+      "reason": "biome_wikitext",
+      "ids": [
+        197173
+      ]
+    }
+  ],
+  "rollbackSql": null
+}

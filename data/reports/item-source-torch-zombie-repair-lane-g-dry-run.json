@@ -1,0 +1,59 @@
+{
+  "generatedAt": "2026-06-10T22:26:54.925Z",
+  "batchId": "item-source-torch-zombie-repair-lane-g-dry-run",
+  "apply": false,
+  "connection": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "database": "terria_v1_local",
+    "user": "root"
+  },
+  "backupPath": "/home/lolben/TerraPedia/data/backups/item-source-torch-zombie-repair/item-source-torch-zombie-repair-lane-g-dry-run.before.json",
+  "summary": {
+    "validationErrors": 0,
+    "toUpdate": 1,
+    "toInsert": 1,
+    "toSoftDelete": 2,
+    "updated": 0,
+    "inserted": 0,
+    "softDeleted": 0
+  },
+  "validationErrors": [],
+  "updateWrongReviewedRow": {
+    "id": 198599,
+    "target": {
+      "sourceRefId": 591,
+      "sourceRefName": "Armed Torch Zombie",
+      "sourcePage": "Torches",
+      "sourceRevisionTimestamp": "2026-05-22 20:22:49"
+    }
+  },
+  "insertRows": [
+    {
+      "itemId": 8,
+      "sourceType": "drop",
+      "sourceRefType": "npc",
+      "sourceRefId": 590,
+      "sourceRefName": "Torch Zombie",
+      "quantityMin": 5,
+      "quantityMax": 20,
+      "quantityText": "5–20",
+      "chanceValue": null,
+      "chanceText": "100%",
+      "conditions": null,
+      "notes": null,
+      "sourceProvider": "wiki_gg",
+      "sourcePage": "Torches",
+      "sourceRevisionTimestamp": "2026-05-22 20:22:49",
+      "sortOrder": 13,
+      "status": 1,
+      "deleted": 0
+    }
+  ],
+  "softDeleteIds": [
+    192158,
+    192159
+  ],
+  "insertedIds": [],
+  "rollbackSql": "UPDATE `item_acquisition_sources` SET   `status` = CASE `id` WHEN 192158 THEN 1 WHEN 192159 THEN 1 WHEN 198599 THEN 1 END,   `deleted` = CASE `id` WHEN 192158 THEN 0 WHEN 192159 THEN 0 WHEN 198599 THEN 0 END,   `source_ref_id` = CASE `id` WHEN 192158 THEN 591 WHEN 192159 THEN 590 WHEN 198599 THEN -55 END,   `source_ref_name` = CASE `id` WHEN 192158 THEN 'Zombie' WHEN 192159 THEN 'Zombie' WHEN 198599 THEN 'Zombie' END,   `source_page` = CASE `id` WHEN 192158 THEN 'https://terraria.wiki.gg/wiki/Zombie' WHEN 192159 THEN 'https://terraria.wiki.gg/wiki/Zombie' WHEN 198599 THEN 'Torches' END,   `source_revision_timestamp` = CASE `id` WHEN 192158 THEN NULL WHEN 192159 THEN NULL WHEN 198599 THEN '2026-05-22 12:22:49' END WHERE `id` IN (192158, 192159, 198599);"
+}

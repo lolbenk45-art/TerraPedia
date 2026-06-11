@@ -1,0 +1,34 @@
+{
+  "generatedAt": "2026-06-11T00:23:34.857Z",
+  "batchId": "item-source-non-npc-ref-reclassification-lane-r-apply",
+  "apply": true,
+  "connection": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "database": "terria_v1_local",
+    "user": "root"
+  },
+  "backupPath": "/home/lolben/TerraPedia/data/backups/item-source-non-npc-ref-reclassification/item-source-non-npc-ref-reclassification-lane-r-apply.before.json",
+  "summary": {
+    "inputRows": 1,
+    "rowsToUpdate": 1,
+    "blockedRows": 0,
+    "validationErrors": 0,
+    "updatedRows": 1
+  },
+  "updates": [
+    {
+      "id": 196623,
+      "itemId": 5382,
+      "sourceType": "drop",
+      "sourceRefName": "Mechdusa",
+      "oldSourceRefType": "unknown",
+      "oldSourceRefId": null,
+      "newSourceRefType": "boss_group",
+      "newSourceRefId": null,
+      "reason": "boss_lane_reference_source"
+    }
+  ],
+  "blocked": [],
+  "rollbackSql": "UPDATE `item_acquisition_sources` SET `source_ref_type` = CASE `id` WHEN 196623 THEN 'unknown' END, `source_ref_id` = CASE `id` WHEN 196623 THEN NULL END WHERE `id` IN (196623);"
+}

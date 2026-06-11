@@ -5,7 +5,9 @@ import {
   extractDropSourcesFromHtml,
   extractIntroParagraphs,
   extractNarrativeSources,
+  extractTypeRowSourcesFromHtml,
   extractVendorSourcesFromWikitext,
+  parseRecipeTable,
   normalizeText
 } from '../lib/wiki-page-utils.mjs';
 import {
@@ -79,6 +81,7 @@ export function auditItemSourceGapCandidates({
 
     inspected.push(internalName);
     const extractedSources = extractSourcesFromRawPayload(payload, npcLookup);
+    const extractedRecipes = parseRecipeTable(payload.html);
     if (extractedSources.length > 0) {
       rawPagesWithExtractedSources += 1;
     }
@@ -94,6 +97,7 @@ export function auditItemSourceGapCandidates({
         standardizedSourceCount,
         classification: classifyCandidate(payload, extractedSources),
         extractedSources,
+        extractedRecipes,
         sourceRevisionTimestamp: payload.revisionTimestamp ?? null
       });
     }
@@ -131,6 +135,7 @@ function extractSourcesFromRawPayload(payload, npcLookup) {
   const sources = [
     ...extractVendorSourcesFromWikitext(payload.wikitext),
     ...extractDropSourcesFromHtml(payload.html, npcLookup),
+    ...extractTypeRowSourcesFromHtml(payload.html),
     ...extractNarrativeSources(introParagraphs, payload.pageTitle)
   ];
   return dedupeBy(
@@ -141,9 +146,12 @@ function extractSourcesFromRawPayload(payload, npcLookup) {
       quantityText: source.quantityText ?? null,
       chanceText: source.chanceText ?? null,
       conditions: source.conditions ?? null,
-      notes: source.notes ?? null
+      notes: source.notes ?? null,
+      sourceSectionTitle: source.sourceSectionTitle ?? null,
+      sourceRowText: source.sourceRowText ?? null,
+      sourceTargetItemName: source.sourceTargetItemName ?? null
     })),
-    (source) => `${source.sourceType}|${source.sourceRefType}|${source.sourceRefName}|${source.quantityText ?? ''}|${source.chanceText ?? ''}|${source.conditions ?? ''}`
+    (source) => `${source.sourceType}|${source.sourceRefType}|${source.sourceRefName}|${source.quantityText ?? ''}|${source.chanceText ?? ''}|${source.conditions ?? ''}|${source.sourceSectionTitle ?? ''}|${source.sourceRowText ?? ''}|${source.sourceTargetItemName ?? ''}`
   );
 }
 
@@ -231,12 +239,26 @@ function loadNpcLookup(filePath, fallbackFilePath) {
     const name = normalizeText(npc?.name);
     if (!name) continue;
     const meta = { boss: npc?.boss === true || npc?.boss === 1 || npc?.flags?.boss === true };
-    lookup.set(name.toLowerCase(), meta);
+    rememberNpcLookupAlias(lookup, name, meta);
     if (!name.toLowerCase().endsWith('s')) {
-      lookup.set(`${name}s`.toLowerCase(), meta);
+      rememberNpcLookupAlias(lookup, `${name}s`, meta);
     }
+    rememberNpcLookupAlias(lookup, npc?.internalName ?? npc?.internal_name, meta);
+    rememberNpcLookupAlias(lookup, normalizeImageFileTitleAlias(npc?.imageFileTitle ?? npc?.image_file_title), meta);
   }
   return lookup;
+}
+
+function rememberNpcLookupAlias(lookup, value, meta) {
+  const key = normalizeText(value)?.toLowerCase();
+  if (!key) return;
+  lookup.set(key, meta);
+}
+
+function normalizeImageFileTitleAlias(value) {
+  return normalizeText(value)
+    ?.replace(/\.(?:gif|png|jpe?g|webp)$/i, '')
+    .trim() ?? null;
 }
 
 function countBy(values, keySelector) {

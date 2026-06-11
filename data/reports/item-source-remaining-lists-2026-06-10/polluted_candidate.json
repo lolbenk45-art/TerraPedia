@@ -1,0 +1,944 @@
+{
+  "generatedAt": "2026-06-10T11:14:36.398Z",
+  "input": "data/reports/item-source-full-classification-review-2026-06-10.json",
+  "category": "polluted_candidate",
+  "totalItems": 88,
+  "pageGroups": [
+    {
+      "pageTitle": "Torches",
+      "count": 24,
+      "items": [
+        {
+          "itemId": 427,
+          "itemInternalName": "BlueTorch",
+          "itemName": "Blue Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 3004,
+          "itemInternalName": "BoneTorch",
+          "itemName": "Bone Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 4384,
+          "itemInternalName": "CoralTorch",
+          "itemName": "Coral Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 4385,
+          "itemInternalName": "CorruptTorch",
+          "itemName": "Corrupt Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 4386,
+          "itemInternalName": "CrimsonTorch",
+          "itemName": "Crimson Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 523,
+          "itemInternalName": "CursedTorch",
+          "itemName": "Cursed Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 433,
+          "itemInternalName": "DemonTorch",
+          "itemName": "Demon Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 4383,
+          "itemInternalName": "DesertTorch",
+          "itemName": "Desert Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 429,
+          "itemInternalName": "GreenTorch",
+          "itemName": "Green Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 4387,
+          "itemInternalName": "HallowedTorch",
+          "itemName": "Hallowed Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 974,
+          "itemInternalName": "IceTorch",
+          "itemName": "Ice Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 1333,
+          "itemInternalName": "IchorTorch",
+          "itemName": "Ichor Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 4388,
+          "itemInternalName": "JungleTorch",
+          "itemName": "Jungle Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 5293,
+          "itemInternalName": "MushroomTorch",
+          "itemName": "Mushroom Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 1245,
+          "itemInternalName": "OrangeTorch",
+          "itemName": "Orange Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 3114,
+          "itemInternalName": "PinkTorch",
+          "itemName": "Pink Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 430,
+          "itemInternalName": "PurpleTorch",
+          "itemName": "Purple Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 3045,
+          "itemInternalName": "RainbowTorch",
+          "itemName": "Rainbow Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 428,
+          "itemInternalName": "RedTorch",
+          "itemName": "Red Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 5353,
+          "itemInternalName": "ShimmerTorch",
+          "itemName": "Aether Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 8,
+          "itemInternalName": "Torch",
+          "itemName": "Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 2274,
+          "itemInternalName": "UltrabrightTorch",
+          "itemName": "Ultrabright Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 431,
+          "itemInternalName": "WhiteTorch",
+          "itemName": "White Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 432,
+          "itemInternalName": "YellowTorch",
+          "itemName": "Yellow Torch",
+          "blockedRows": 15,
+          "sourceTypes": "drop, container, shop",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Block-placing wands",
+      "count": 6,
+      "items": [
+        {
+          "itemId": 932,
+          "itemInternalName": "BoneWand",
+          "itemName": "Bone Wand",
+          "blockedRows": 18,
+          "sourceTypes": "drop, worldgen, container, mining, treasure_bag",
+          "sourceRefTypes": "unknown, npc, world, boss, container, treasure_bag",
+          "examples": "drop:npc:Angry Bones:-14 | drop:npc:Cursed Skull:34 | drop:npc:Dark Caster:32"
+        },
+        {
+          "itemId": 1129,
+          "itemInternalName": "HiveWand",
+          "itemName": "Hive Wand",
+          "blockedRows": 18,
+          "sourceTypes": "drop, worldgen, container, mining, treasure_bag",
+          "sourceRefTypes": "unknown, npc, world, boss, container, treasure_bag",
+          "examples": "drop:npc:Angry Bones:-14 | drop:npc:Cursed Skull:34 | drop:npc:Dark Caster:32"
+        },
+        {
+          "itemId": 933,
+          "itemInternalName": "LeafWand",
+          "itemName": "Leaf Wand",
+          "blockedRows": 18,
+          "sourceTypes": "drop, worldgen, container, mining, treasure_bag",
+          "sourceRefTypes": "unknown, npc, world, boss, container, treasure_bag",
+          "examples": "drop:npc:Angry Bones:-14 | drop:npc:Cursed Skull:34 | drop:npc:Dark Caster:32"
+        },
+        {
+          "itemId": 3361,
+          "itemInternalName": "LivingMahoganyLeafWand",
+          "itemName": "Rich Mahogany Leaf Wand",
+          "blockedRows": 18,
+          "sourceTypes": "drop, worldgen, container, mining, treasure_bag",
+          "sourceRefTypes": "unknown, npc, world, boss, container, treasure_bag",
+          "examples": "drop:npc:Angry Bones:-14 | drop:npc:Cursed Skull:34 | drop:npc:Dark Caster:32"
+        },
+        {
+          "itemId": 3360,
+          "itemInternalName": "LivingMahoganyWand",
+          "itemName": "Living Mahogany Wand",
+          "blockedRows": 18,
+          "sourceTypes": "drop, worldgen, container, mining, treasure_bag",
+          "sourceRefTypes": "unknown, npc, world, boss, container, treasure_bag",
+          "examples": "drop:npc:Angry Bones:-14 | drop:npc:Cursed Skull:34 | drop:npc:Dark Caster:32"
+        },
+        {
+          "itemId": 832,
+          "itemInternalName": "LivingWoodWand",
+          "itemName": "Living Wood Wand",
+          "blockedRows": 18,
+          "sourceTypes": "drop, worldgen, container, mining, treasure_bag",
+          "sourceRefTypes": "unknown, npc, world, boss, container, treasure_bag",
+          "examples": "drop:npc:Angry Bones:-14 | drop:npc:Cursed Skull:34 | drop:npc:Dark Caster:32"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Ropes",
+      "count": 4,
+      "items": [
+        {
+          "itemId": 965,
+          "itemInternalName": "Rope",
+          "itemName": "Rope",
+          "blockedRows": 12,
+          "sourceTypes": "drop, container",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 3077,
+          "itemInternalName": "SilkRope",
+          "itemName": "Silk Rope",
+          "blockedRows": 12,
+          "sourceTypes": "drop, container",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 2996,
+          "itemInternalName": "VineRope",
+          "itemName": "Vine Rope",
+          "blockedRows": 12,
+          "sourceTypes": "drop, container",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        },
+        {
+          "itemId": 3078,
+          "itemInternalName": "WebRope",
+          "itemName": "Web Rope",
+          "blockedRows": 12,
+          "sourceTypes": "drop, container",
+          "sourceRefTypes": "npc, container, unknown",
+          "examples": "drop:npc:Baby Slime:-5 | drop:unknown:Bonus drop: | drop:npc:Black Slime:-6"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Cat set",
+      "count": 3,
+      "items": [
+        {
+          "itemId": 1749,
+          "itemInternalName": "CatMask",
+          "itemName": "Cat Mask",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1751,
+          "itemInternalName": "CatPants",
+          "itemName": "Cat Pants",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1750,
+          "itemInternalName": "CatShirt",
+          "itemName": "Cat Shirt",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Creeper set",
+      "count": 3,
+      "items": [
+        {
+          "itemId": 1746,
+          "itemInternalName": "CreeperMask",
+          "itemName": "Creeper Mask",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1748,
+          "itemInternalName": "CreeperPants",
+          "itemName": "Creeper Pants",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1747,
+          "itemInternalName": "CreeperShirt",
+          "itemName": "Creeper Shirt",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Fox set",
+      "count": 3,
+      "items": [
+        {
+          "itemId": 1821,
+          "itemInternalName": "FoxMask",
+          "itemName": "Fox Mask",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1823,
+          "itemInternalName": "FoxPants",
+          "itemName": "Fox Pants",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1822,
+          "itemInternalName": "FoxShirt",
+          "itemName": "Fox Shirt",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Karate Tortoise set",
+      "count": 3,
+      "items": [
+        {
+          "itemId": 1779,
+          "itemInternalName": "KarateTortoiseMask",
+          "itemName": "Karate Tortoise Mask",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1781,
+          "itemInternalName": "KarateTortoisePants",
+          "itemName": "Karate Tortoise Pants",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1780,
+          "itemInternalName": "KarateTortoiseShirt",
+          "itemName": "Karate Tortoise Shirt",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Leprechaun set",
+      "count": 3,
+      "items": [
+        {
+          "itemId": 1767,
+          "itemInternalName": "LeprechaunHat",
+          "itemName": "Leprechaun Hat",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1769,
+          "itemInternalName": "LeprechaunPants",
+          "itemName": "Leprechaun Pants",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1768,
+          "itemInternalName": "LeprechaunShirt",
+          "itemName": "Leprechaun Shirt",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Mummy set",
+      "count": 3,
+      "items": [
+        {
+          "itemId": 870,
+          "itemInternalName": "MummyMask",
+          "itemName": "Mummy Mask",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Mummies:"
+        },
+        {
+          "itemId": 872,
+          "itemInternalName": "MummyPants",
+          "itemName": "Mummy Pants",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Mummies:"
+        },
+        {
+          "itemId": 871,
+          "itemInternalName": "MummyShirt",
+          "itemName": "Mummy Shirt",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Mummies:"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Princess set",
+      "count": 3,
+      "items": [
+        {
+          "itemId": 865,
+          "itemInternalName": "PrincessDress",
+          "itemName": "Princess Dress",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1773,
+          "itemInternalName": "PrincessDressNew",
+          "itemName": "Princess Dress",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1772,
+          "itemInternalName": "PrincessHat",
+          "itemName": "Princess Hat",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Pumpkin set",
+      "count": 3,
+      "items": [
+        {
+          "itemId": 1754,
+          "itemInternalName": "PumpkinMask",
+          "itemName": "Pumpkin Mask",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1756,
+          "itemInternalName": "PumpkinPants",
+          "itemName": "Pumpkin Pants",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1755,
+          "itemInternalName": "PumpkinShirt",
+          "itemName": "Pumpkin Shirt",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Robot set",
+      "count": 3,
+      "items": [
+        {
+          "itemId": 1757,
+          "itemInternalName": "RobotMask",
+          "itemName": "Robot Mask",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1759,
+          "itemInternalName": "RobotPants",
+          "itemName": "Robot Pants",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1758,
+          "itemInternalName": "RobotShirt",
+          "itemName": "Robot Shirt",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Space Creature set",
+      "count": 3,
+      "items": [
+        {
+          "itemId": 1838,
+          "itemInternalName": "SpaceCreatureMask",
+          "itemName": "Space Creature Mask",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1840,
+          "itemInternalName": "SpaceCreaturePants",
+          "itemName": "Space Creature Pants",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1839,
+          "itemInternalName": "SpaceCreatureShirt",
+          "itemName": "Space Creature Shirt",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Unicorn set",
+      "count": 3,
+      "items": [
+        {
+          "itemId": 1760,
+          "itemInternalName": "UnicornMask",
+          "itemName": "Unicorn Mask",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1762,
+          "itemInternalName": "UnicornPants",
+          "itemName": "Unicorn Pants",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1761,
+          "itemInternalName": "UnicornShirt",
+          "itemName": "Unicorn Shirt",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Vampire set",
+      "count": 3,
+      "items": [
+        {
+          "itemId": 1763,
+          "itemInternalName": "VampireMask",
+          "itemName": "Vampire Mask",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1765,
+          "itemInternalName": "VampirePants",
+          "itemName": "Vampire Pants",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1764,
+          "itemInternalName": "VampireShirt",
+          "itemName": "Vampire Shirt",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Witch set",
+      "count": 3,
+      "items": [
+        {
+          "itemId": 1776,
+          "itemInternalName": "WitchBoots",
+          "itemName": "Witch Boots",
+          "blockedRows": 2,
+          "sourceTypes": "drop, worldgen",
+          "sourceRefTypes": "unknown, world",
+          "examples": "drop:unknown:Goodie Bag: | worldgen:world:Witch set worldgen:"
+        },
+        {
+          "itemId": 1775,
+          "itemInternalName": "WitchDress",
+          "itemName": "Witch Dress",
+          "blockedRows": 2,
+          "sourceTypes": "drop, worldgen",
+          "sourceRefTypes": "unknown, world",
+          "examples": "drop:unknown:Goodie Bag: | worldgen:world:Witch set worldgen:"
+        },
+        {
+          "itemId": 1766,
+          "itemInternalName": "WitchHat",
+          "itemName": "Witch Hat",
+          "blockedRows": 2,
+          "sourceTypes": "drop, worldgen",
+          "sourceRefTypes": "unknown, world",
+          "examples": "drop:unknown:Goodie Bag: | worldgen:world:Witch set worldgen:"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Wolf set",
+      "count": 3,
+      "items": [
+        {
+          "itemId": 1841,
+          "itemInternalName": "WolfMask",
+          "itemName": "Wolf Mask",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1843,
+          "itemInternalName": "WolfPants",
+          "itemName": "Wolf Pants",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1842,
+          "itemInternalName": "WolfShirt",
+          "itemName": "Wolf Shirt",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Bride of Frankenstein set",
+      "count": 2,
+      "items": [
+        {
+          "itemId": 1778,
+          "itemInternalName": "BrideofFrankensteinDress",
+          "itemName": "Bride of Frankenstein Dress",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1777,
+          "itemInternalName": "BrideofFrankensteinMask",
+          "itemName": "Bride of Frankenstein Mask",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Ghost set",
+      "count": 2,
+      "items": [
+        {
+          "itemId": 1752,
+          "itemInternalName": "GhostMask",
+          "itemName": "Ghost Mask",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1753,
+          "itemInternalName": "GhostShirt",
+          "itemName": "Ghost Shirt",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Pixie set",
+      "count": 2,
+      "items": [
+        {
+          "itemId": 1771,
+          "itemInternalName": "PixiePants",
+          "itemName": "Pixie Pants",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1770,
+          "itemInternalName": "PixieShirt",
+          "itemName": "Pixie Shirt",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Reaper set",
+      "count": 2,
+      "items": [
+        {
+          "itemId": 1819,
+          "itemInternalName": "ReaperHood",
+          "itemName": "Reaper Hood",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1820,
+          "itemInternalName": "ReaperRobe",
+          "itemName": "Reaper Robe",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Treasure Hunter set",
+      "count": 2,
+      "items": [
+        {
+          "itemId": 1852,
+          "itemInternalName": "TreasureHunterPants",
+          "itemName": "Treasure Hunter Pants",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        },
+        {
+          "itemId": 1851,
+          "itemInternalName": "TreasureHunterShirt",
+          "itemName": "Treasure Hunter Shirt",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Goodie Bag:"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Flairon",
+      "count": 1,
+      "items": [
+        {
+          "itemId": 2611,
+          "itemInternalName": "Flairon",
+          "itemName": "Flairoon",
+          "blockedRows": 3,
+          "sourceTypes": "drop, treasure_bag",
+          "sourceRefTypes": "boss, treasure_bag, unknown",
+          "examples": "drop:boss:Duke Fishron:370 | drop:unknown:Expert Mode: | treasure_bag:treasure_bag:Treasure Bag (Duke Fishron):3330"
+        }
+      ]
+    },
+    {
+      "pageTitle": "Shucked Oyster",
+      "count": 1,
+      "items": [
+        {
+          "itemId": 4411,
+          "itemInternalName": "ShuckedOyster",
+          "itemName": "Shucked Oyster",
+          "blockedRows": 1,
+          "sourceTypes": "drop",
+          "sourceRefTypes": "unknown",
+          "examples": "drop:unknown:Oyster:"
+        }
+      ]
+    }
+  ]
+}

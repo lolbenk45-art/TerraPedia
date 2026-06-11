@@ -1,0 +1,22 @@
+{
+  "generatedAt": "2026-06-11T00:23:34.961Z",
+  "batchId": "item-source-non-npc-ref-reclassification-lane-r-post-apply",
+  "apply": false,
+  "connection": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "database": "terria_v1_local",
+    "user": "root"
+  },
+  "backupPath": "/home/lolben/TerraPedia/data/backups/item-source-non-npc-ref-reclassification/item-source-non-npc-ref-reclassification-lane-r-post-apply.before.json",
+  "summary": {
+    "inputRows": 0,
+    "rowsToUpdate": 0,
+    "blockedRows": 0,
+    "validationErrors": 0,
+    "updatedRows": 0
+  },
+  "updates": [],
+  "blocked": [],
+  "rollbackSql": null
+}

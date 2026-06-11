@@ -1,0 +1,2625 @@
+{
+  "generatedAt": "2026-06-10T14:46:20.745Z",
+  "readOnly": true,
+  "mode": "candidate_import_plan",
+  "inputs": {
+    "rawItemPageDir": "/home/lolben/data/terraPedia/raw/wiki/item-pages",
+    "npcParsedPath": "/home/lolben/data/terraPedia/raw/wiki/module__npcinfo__data.parsed.latest.json",
+    "standardizedNpcsPath": "/home/lolben/TerraPedia/data/standardized/npcs.standardized.json",
+    "standardizedItemsPath": "/home/lolben/TerraPedia/data/standardized/items.standardized.json",
+    "itemSourcesDir": "/home/lolben/TerraPedia/data/standardized-view/item_relations/itemSources",
+    "sample": null,
+    "limit": null,
+    "promotionScope": "polluted"
+  },
+  "sourceAudit": {
+    "generatedAt": "2026-06-10T14:46:20.620Z",
+    "readOnly": true,
+    "parsedRawItemPages": 6131,
+    "inspectedRawPages": 6131,
+    "rawPagesWithExtractedSources": 2614,
+    "rawExtractedButStandardizedZeroCandidates": 1488
+  },
+  "summary": {
+    "totalCandidates": 1488,
+    "eligibleCandidates": 47,
+    "blockedCandidates": 1170,
+    "plannedSourceRows": 48,
+    "blockedSourceRows": 1852,
+    "classificationCounts": {
+      "family_page_candidate": 1129,
+      "high_confidence": 271,
+      "polluted_candidate": 88
+    },
+    "blockedReasonCounts": {
+      "family_page_candidate": 1129,
+      "polluted_candidate": 41
+    },
+    "plannedSourceRefTypeCounts": {
+      "npc": 299,
+      "crate": 90,
+      "boss": 13,
+      "treasure_bag": 11,
+      "world": 30,
+      "item": 46,
+      "container": 13
+    }
+  },
+  "eligibleCandidates": [
+    {
+      "itemInternalName": "BrideofFrankensteinDress",
+      "itemName": "Bride of Frankenstein Dress",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1778,
+        "internalName": "BrideofFrankensteinDress",
+        "name": "Bride of Frankenstein Dress"
+      },
+      "pageTitle": "Bride of Frankenstein set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/brideoffrankensteindress.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T16:11:32Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "674a2d52937fc8a810ae04571c6ebd6ed089753fa2478147c0d91f09e3c93925",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Bride of Frankenstein set",
+          "sourceRevisionTimestamp": "2023-10-23T16:11:32Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "BrideofFrankensteinDress",
+            "itemName": "Bride of Frankenstein Dress",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Bride of Frankenstein set",
+            "sourceRevisionTimestamp": "2023-10-23T16:11:32Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "BrideofFrankensteinMask",
+      "itemName": "Bride of Frankenstein Mask",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1777,
+        "internalName": "BrideofFrankensteinMask",
+        "name": "Bride of Frankenstein Mask"
+      },
+      "pageTitle": "Bride of Frankenstein set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/brideoffrankensteinmask.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T16:11:32Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "e973adae850ceb6c328410a23302403bb7c617744b45552e67637459ecc92f4d",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Bride of Frankenstein set",
+          "sourceRevisionTimestamp": "2023-10-23T16:11:32Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "BrideofFrankensteinMask",
+            "itemName": "Bride of Frankenstein Mask",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Bride of Frankenstein set",
+            "sourceRevisionTimestamp": "2023-10-23T16:11:32Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "CatMask",
+      "itemName": "Cat Mask",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1749,
+        "internalName": "CatMask",
+        "name": "Cat Mask"
+      },
+      "pageTitle": "Cat set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/catmask.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-11-11T16:13:54Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "8781e08877a66dae39f4d46f7cf7b2b24436a01683bc059c51719714ff95b45b",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Cat set",
+          "sourceRevisionTimestamp": "2025-11-11T16:13:54Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "CatMask",
+            "itemName": "Cat Mask",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Cat set",
+            "sourceRevisionTimestamp": "2025-11-11T16:13:54Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "CatPants",
+      "itemName": "Cat Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1751,
+        "internalName": "CatPants",
+        "name": "Cat Pants"
+      },
+      "pageTitle": "Cat set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/catpants.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-11-11T16:13:54Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "132ea302a9ca5301285da64adb37432ee85095965806e3f6e9c4a59c712ec2ed",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Cat set",
+          "sourceRevisionTimestamp": "2025-11-11T16:13:54Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "CatPants",
+            "itemName": "Cat Pants",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Cat set",
+            "sourceRevisionTimestamp": "2025-11-11T16:13:54Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "CatShirt",
+      "itemName": "Cat Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1750,
+        "internalName": "CatShirt",
+        "name": "Cat Shirt"
+      },
+      "pageTitle": "Cat set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/catshirt.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-11-11T16:13:54Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "40e24ed438fe2580c3aac809a2c247981f89ecb330350d7a54b0b02598477328",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Cat set",
+          "sourceRevisionTimestamp": "2025-11-11T16:13:54Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "CatShirt",
+            "itemName": "Cat Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Cat set",
+            "sourceRevisionTimestamp": "2025-11-11T16:13:54Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "CreeperMask",
+      "itemName": "Creeper Mask",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1746,
+        "internalName": "CreeperMask",
+        "name": "Creeper Mask"
+      },
+      "pageTitle": "Creeper set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/creepermask.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-03T00:28:30Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "b10fefb3403d2b2fc7c01e50d665fc7c5c5ef79aa08d5f51c72508348a7c6f87",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Creeper set",
+          "sourceRevisionTimestamp": "2026-02-03T00:28:30Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "CreeperMask",
+            "itemName": "Creeper Mask",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Creeper set",
+            "sourceRevisionTimestamp": "2026-02-03T00:28:30Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "CreeperPants",
+      "itemName": "Creeper Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1748,
+        "internalName": "CreeperPants",
+        "name": "Creeper Pants"
+      },
+      "pageTitle": "Creeper set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/creeperpants.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-03T00:28:30Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "d28e77d6bd37ace97e0f6dca2c609a33fed48ae6f1e059864f1def2c6c081fb1",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Creeper set",
+          "sourceRevisionTimestamp": "2026-02-03T00:28:30Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "CreeperPants",
+            "itemName": "Creeper Pants",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Creeper set",
+            "sourceRevisionTimestamp": "2026-02-03T00:28:30Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "CreeperShirt",
+      "itemName": "Creeper Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1747,
+        "internalName": "CreeperShirt",
+        "name": "Creeper Shirt"
+      },
+      "pageTitle": "Creeper set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/creepershirt.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-03T00:28:30Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "d4ba058dced19c9d6f89591a5b148d419308f1262630ec67f2a036479ee00c29",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Creeper set",
+          "sourceRevisionTimestamp": "2026-02-03T00:28:30Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "CreeperShirt",
+            "itemName": "Creeper Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Creeper set",
+            "sourceRevisionTimestamp": "2026-02-03T00:28:30Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "Flairon",
+      "itemName": "Flairoon",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 2611,
+        "internalName": "Flairon",
+        "name": "Flairoon"
+      },
+      "pageTitle": "Flairon",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/flairon.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 3,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-08T18:09:07Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "61000a944db479f6923328e6987bbc5f42eaf8a6113098ead93c5f94b87a5327",
+          "sourceType": "drop",
+          "sourceRefType": "boss",
+          "sourceRefName": "Duke Fishron",
+          "quantityText": "1",
+          "chanceText": "16.67%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Flairon",
+          "sourceRevisionTimestamp": "2026-02-08T18:09:07Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "Flairon",
+            "itemName": "Flairoon",
+            "sourceType": "drop",
+            "sourceRefType": "boss",
+            "sourceRefName": "Duke Fishron",
+            "quantityText": "1",
+            "chanceText": "16.67%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Flairon",
+            "sourceRevisionTimestamp": "2026-02-08T18:09:07Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_boss_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 370,
+            "internalName": "DukeFishron",
+            "name": "Duke Fishron"
+          },
+          "blockedReason": null
+        },
+        {
+          "importPlanKey": "614148b1b9b4ddd440ee958810a6cf902792afc54a916b6249e96fd8811e2327",
+          "sourceType": "treasure_bag",
+          "sourceRefType": "treasure_bag",
+          "sourceRefName": "Treasure Bag (Duke Fishron)",
+          "quantityText": "1",
+          "chanceText": "16.67%",
+          "conditions": "Expert Mode",
+          "notes": null,
+          "sourcePage": "Flairon",
+          "sourceRevisionTimestamp": "2026-02-08T18:09:07Z",
+          "sortOrder": 1,
+          "landingRow": {
+            "itemInternalName": "Flairon",
+            "itemName": "Flairoon",
+            "sourceType": "treasure_bag",
+            "sourceRefType": "treasure_bag",
+            "sourceRefName": "Treasure Bag (Duke Fishron)",
+            "quantityText": "1",
+            "chanceText": "16.67%",
+            "conditions": "Expert Mode",
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Flairon",
+            "sourceRevisionTimestamp": "2026-02-08T18:09:07Z",
+            "sortOrder": 1
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 3330,
+            "internalName": "FishronBossBag",
+            "name": "Treasure Bag (Duke Fishron)"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "FoxMask",
+      "itemName": "Fox Mask",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1821,
+        "internalName": "FoxMask",
+        "name": "Fox Mask"
+      },
+      "pageTitle": "Fox set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/foxmask.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-03-26T23:20:02Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "f6007d20a2ce12ea7c1e8ec9f5fc6c30f92fd20702f36de4123159e805a02d2d",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Fox set",
+          "sourceRevisionTimestamp": "2026-03-26T23:20:02Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "FoxMask",
+            "itemName": "Fox Mask",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Fox set",
+            "sourceRevisionTimestamp": "2026-03-26T23:20:02Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "FoxPants",
+      "itemName": "Fox Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1823,
+        "internalName": "FoxPants",
+        "name": "Fox Pants"
+      },
+      "pageTitle": "Fox set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/foxpants.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-03-26T23:20:02Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "bf58bda68c63cbfdfbc9e7897a5f8db52667f6100c07ff353642c2b9844d0094",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Fox set",
+          "sourceRevisionTimestamp": "2026-03-26T23:20:02Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "FoxPants",
+            "itemName": "Fox Pants",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Fox set",
+            "sourceRevisionTimestamp": "2026-03-26T23:20:02Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "FoxShirt",
+      "itemName": "Fox Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1822,
+        "internalName": "FoxShirt",
+        "name": "Fox Shirt"
+      },
+      "pageTitle": "Fox set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/foxshirt.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-03-26T23:20:02Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "72e81fab76cffeaf137cae2fe6d2d0569b09670dbfb056b30967f28298f5fd0f",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Fox set",
+          "sourceRevisionTimestamp": "2026-03-26T23:20:02Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "FoxShirt",
+            "itemName": "Fox Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Fox set",
+            "sourceRevisionTimestamp": "2026-03-26T23:20:02Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "GhostMask",
+      "itemName": "Ghost Mask",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1752,
+        "internalName": "GhostMask",
+        "name": "Ghost Mask"
+      },
+      "pageTitle": "Ghost set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/ghostmask.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-02T17:03:42Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "56edf8ab6fa18d6527f9b7f1c04802d374d541282eda2838038d80f00879aace",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Ghost set",
+          "sourceRevisionTimestamp": "2026-02-02T17:03:42Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "GhostMask",
+            "itemName": "Ghost Mask",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Ghost set",
+            "sourceRevisionTimestamp": "2026-02-02T17:03:42Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "GhostShirt",
+      "itemName": "Ghost Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1753,
+        "internalName": "GhostShirt",
+        "name": "Ghost Shirt"
+      },
+      "pageTitle": "Ghost set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/ghostshirt.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-02-02T17:03:42Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "1c5db9ee5a8e9e3e78f463f3f312e9dd076c525114b1dec4a14d13e0a13f2848",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Ghost set",
+          "sourceRevisionTimestamp": "2026-02-02T17:03:42Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "GhostShirt",
+            "itemName": "Ghost Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Ghost set",
+            "sourceRevisionTimestamp": "2026-02-02T17:03:42Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "KarateTortoiseMask",
+      "itemName": "Karate Tortoise Mask",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1779,
+        "internalName": "KarateTortoiseMask",
+        "name": "Karate Tortoise Mask"
+      },
+      "pageTitle": "Karate Tortoise set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/karatetortoisemask.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-05-25T17:18:06Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "5befc6d47f3a11ce2c2eb1489606590476b67424a05bf7683f124e45a8e3d895",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Karate Tortoise set",
+          "sourceRevisionTimestamp": "2025-05-25T17:18:06Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "KarateTortoiseMask",
+            "itemName": "Karate Tortoise Mask",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Karate Tortoise set",
+            "sourceRevisionTimestamp": "2025-05-25T17:18:06Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "KarateTortoisePants",
+      "itemName": "Karate Tortoise Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1781,
+        "internalName": "KarateTortoisePants",
+        "name": "Karate Tortoise Pants"
+      },
+      "pageTitle": "Karate Tortoise set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/karatetortoisepants.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-05-25T17:18:06Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "948e8239d5816aefada9a387439054e897ed93467f6781127c65562db61442ac",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Karate Tortoise set",
+          "sourceRevisionTimestamp": "2025-05-25T17:18:06Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "KarateTortoisePants",
+            "itemName": "Karate Tortoise Pants",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Karate Tortoise set",
+            "sourceRevisionTimestamp": "2025-05-25T17:18:06Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "KarateTortoiseShirt",
+      "itemName": "Karate Tortoise Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1780,
+        "internalName": "KarateTortoiseShirt",
+        "name": "Karate Tortoise Shirt"
+      },
+      "pageTitle": "Karate Tortoise set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/karatetortoiseshirt.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-05-25T17:18:06Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "28e80c25bfe013809bdb57f91af40ef6b0a3f997f26f1b1e2dba4be4462d2363",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Karate Tortoise set",
+          "sourceRevisionTimestamp": "2025-05-25T17:18:06Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "KarateTortoiseShirt",
+            "itemName": "Karate Tortoise Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Karate Tortoise set",
+            "sourceRevisionTimestamp": "2025-05-25T17:18:06Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "LeprechaunHat",
+      "itemName": "Leprechaun Hat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1767,
+        "internalName": "LeprechaunHat",
+        "name": "Leprechaun Hat"
+      },
+      "pageTitle": "Leprechaun set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/leprechaunhat.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T16:22:03Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "ac9744a2bcf9267e20518bf9cf0bab333bc55366a61e5ca5a05fe1df7905a746",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Leprechaun set",
+          "sourceRevisionTimestamp": "2023-10-23T16:22:03Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "LeprechaunHat",
+            "itemName": "Leprechaun Hat",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Leprechaun set",
+            "sourceRevisionTimestamp": "2023-10-23T16:22:03Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "LeprechaunPants",
+      "itemName": "Leprechaun Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1769,
+        "internalName": "LeprechaunPants",
+        "name": "Leprechaun Pants"
+      },
+      "pageTitle": "Leprechaun set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/leprechaunpants.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T16:22:03Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "798e5cf9d722b030f52ea6dd6eca7f9e9de200313d5a561d245c091a9ad6b987",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Leprechaun set",
+          "sourceRevisionTimestamp": "2023-10-23T16:22:03Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "LeprechaunPants",
+            "itemName": "Leprechaun Pants",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Leprechaun set",
+            "sourceRevisionTimestamp": "2023-10-23T16:22:03Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "LeprechaunShirt",
+      "itemName": "Leprechaun Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1768,
+        "internalName": "LeprechaunShirt",
+        "name": "Leprechaun Shirt"
+      },
+      "pageTitle": "Leprechaun set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/leprechaunshirt.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T16:22:03Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "39ec8f59d39782ba38f86ea496e62720b54a2b11edd2ca41aaf933b3fc8f7216",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Leprechaun set",
+          "sourceRevisionTimestamp": "2023-10-23T16:22:03Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "LeprechaunShirt",
+            "itemName": "Leprechaun Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Leprechaun set",
+            "sourceRevisionTimestamp": "2023-10-23T16:22:03Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PixiePants",
+      "itemName": "Pixie Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1771,
+        "internalName": "PixiePants",
+        "name": "Pixie Pants"
+      },
+      "pageTitle": "Pixie set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/pixiepants.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-05-16T22:06:24Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "5c1ca2870963576895a086340012d1684ce0289c4c5b1442e7dc18f019513403",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Pixie set",
+          "sourceRevisionTimestamp": "2025-05-16T22:06:24Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PixiePants",
+            "itemName": "Pixie Pants",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Pixie set",
+            "sourceRevisionTimestamp": "2025-05-16T22:06:24Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PixieShirt",
+      "itemName": "Pixie Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1770,
+        "internalName": "PixieShirt",
+        "name": "Pixie Shirt"
+      },
+      "pageTitle": "Pixie set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/pixieshirt.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-05-16T22:06:24Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "22ffb08faf08d2d276877ff8d7b78e4816735838ba097e5add0adfa2ff9e30a5",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Pixie set",
+          "sourceRevisionTimestamp": "2025-05-16T22:06:24Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PixieShirt",
+            "itemName": "Pixie Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Pixie set",
+            "sourceRevisionTimestamp": "2025-05-16T22:06:24Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PrincessDress",
+      "itemName": "Princess Dress",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 865,
+        "internalName": "PrincessDress",
+        "name": "Princess Dress"
+      },
+      "pageTitle": "Princess set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/princessdress.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-10-23T17:03:45Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "1f7410f229c87fd987efe143be1ce7b216c003a3f18d805d0d8440c6d8c24375",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Princess set",
+          "sourceRevisionTimestamp": "2025-10-23T17:03:45Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PrincessDress",
+            "itemName": "Princess Dress",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Princess set",
+            "sourceRevisionTimestamp": "2025-10-23T17:03:45Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PrincessDressNew",
+      "itemName": "Princess Dress",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1773,
+        "internalName": "PrincessDressNew",
+        "name": "Princess Dress"
+      },
+      "pageTitle": "Princess set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/princessdressnew.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-10-23T17:03:45Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "e7f4cc6d8685b20cad575c77bead13dfef6de0db0f0d94a35afc71493bbee76b",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Princess set",
+          "sourceRevisionTimestamp": "2025-10-23T17:03:45Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PrincessDressNew",
+            "itemName": "Princess Dress",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Princess set",
+            "sourceRevisionTimestamp": "2025-10-23T17:03:45Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PrincessHat",
+      "itemName": "Princess Hat",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1772,
+        "internalName": "PrincessHat",
+        "name": "Princess Hat"
+      },
+      "pageTitle": "Princess set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/princesshat.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-10-23T17:03:45Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "01395387095dc940e7480ab59e0fb3571e65cb50b58797068f6f3635f1fcd57d",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Princess set",
+          "sourceRevisionTimestamp": "2025-10-23T17:03:45Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PrincessHat",
+            "itemName": "Princess Hat",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Princess set",
+            "sourceRevisionTimestamp": "2025-10-23T17:03:45Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PumpkinMask",
+      "itemName": "Pumpkin Mask",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1754,
+        "internalName": "PumpkinMask",
+        "name": "Pumpkin Mask"
+      },
+      "pageTitle": "Pumpkin set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/pumpkinmask.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2024-06-25T09:18:40Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "7199b233876d7e286aef12b09ffae2d8d5b7b2a773416969fbe62145bce100ad",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Pumpkin set",
+          "sourceRevisionTimestamp": "2024-06-25T09:18:40Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PumpkinMask",
+            "itemName": "Pumpkin Mask",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Pumpkin set",
+            "sourceRevisionTimestamp": "2024-06-25T09:18:40Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PumpkinPants",
+      "itemName": "Pumpkin Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1756,
+        "internalName": "PumpkinPants",
+        "name": "Pumpkin Pants"
+      },
+      "pageTitle": "Pumpkin set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/pumpkinpants.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2024-06-25T09:18:40Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "b81d3464ae9a9b0c6566369aba50a3fb69ca8937676c2a664f6d72041513c93e",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Pumpkin set",
+          "sourceRevisionTimestamp": "2024-06-25T09:18:40Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PumpkinPants",
+            "itemName": "Pumpkin Pants",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Pumpkin set",
+            "sourceRevisionTimestamp": "2024-06-25T09:18:40Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "PumpkinShirt",
+      "itemName": "Pumpkin Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1755,
+        "internalName": "PumpkinShirt",
+        "name": "Pumpkin Shirt"
+      },
+      "pageTitle": "Pumpkin set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/pumpkinshirt.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2024-06-25T09:18:40Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "ef9020e47c3b4af2e06c640f229a97bf059617ddd14055b44c3747921800ca48",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Pumpkin set",
+          "sourceRevisionTimestamp": "2024-06-25T09:18:40Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "PumpkinShirt",
+            "itemName": "Pumpkin Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Pumpkin set",
+            "sourceRevisionTimestamp": "2024-06-25T09:18:40Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "ReaperHood",
+      "itemName": "Reaper Hood",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1819,
+        "internalName": "ReaperHood",
+        "name": "Reaper Hood"
+      },
+      "pageTitle": "Reaper set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/reaperhood.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T16:55:58Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "c1c00511b0cbcc84562b06733ef6274cc357e5bfc2121bfe5b316f6be7015e3b",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Reaper set",
+          "sourceRevisionTimestamp": "2023-10-23T16:55:58Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "ReaperHood",
+            "itemName": "Reaper Hood",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Reaper set",
+            "sourceRevisionTimestamp": "2023-10-23T16:55:58Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "ReaperRobe",
+      "itemName": "Reaper Robe",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1820,
+        "internalName": "ReaperRobe",
+        "name": "Reaper Robe"
+      },
+      "pageTitle": "Reaper set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/reaperrobe.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T16:55:58Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "5fd2c78c7df41abb83014289190f20242139b2cf33870aa3dc4b71c6c7d0da50",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Reaper set",
+          "sourceRevisionTimestamp": "2023-10-23T16:55:58Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "ReaperRobe",
+            "itemName": "Reaper Robe",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Reaper set",
+            "sourceRevisionTimestamp": "2023-10-23T16:55:58Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "RobotMask",
+      "itemName": "Robot Mask",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1757,
+        "internalName": "RobotMask",
+        "name": "Robot Mask"
+      },
+      "pageTitle": "Robot set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/robotmask.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T16:57:08Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "3aefc80b8979343d1d0d7b7b074e9fb94afa4c48d5150f8e869e26eb1f0a6964",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Robot set",
+          "sourceRevisionTimestamp": "2023-10-23T16:57:08Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "RobotMask",
+            "itemName": "Robot Mask",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Robot set",
+            "sourceRevisionTimestamp": "2023-10-23T16:57:08Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "RobotPants",
+      "itemName": "Robot Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1759,
+        "internalName": "RobotPants",
+        "name": "Robot Pants"
+      },
+      "pageTitle": "Robot set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/robotpants.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T16:57:08Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "5a1ee594acacb1fadb7fbf61088967ab771ea7cc5b398e788506f43b02163898",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Robot set",
+          "sourceRevisionTimestamp": "2023-10-23T16:57:08Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "RobotPants",
+            "itemName": "Robot Pants",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Robot set",
+            "sourceRevisionTimestamp": "2023-10-23T16:57:08Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "RobotShirt",
+      "itemName": "Robot Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1758,
+        "internalName": "RobotShirt",
+        "name": "Robot Shirt"
+      },
+      "pageTitle": "Robot set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/robotshirt.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T16:57:08Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "0fa96e19847f6b2de7599a8f8729f3beb5473c6000e2fa596810797b59505881",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Robot set",
+          "sourceRevisionTimestamp": "2023-10-23T16:57:08Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "RobotShirt",
+            "itemName": "Robot Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Robot set",
+            "sourceRevisionTimestamp": "2023-10-23T16:57:08Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SpaceCreatureMask",
+      "itemName": "Space Creature Mask",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1838,
+        "internalName": "SpaceCreatureMask",
+        "name": "Space Creature Mask"
+      },
+      "pageTitle": "Space Creature set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/spacecreaturemask.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-11-11T16:12:00Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "f4de9901924f21d1329df3516e99d335b5dc27061f126860fbc5f80a1a9c9cec",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Space Creature set",
+          "sourceRevisionTimestamp": "2025-11-11T16:12:00Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SpaceCreatureMask",
+            "itemName": "Space Creature Mask",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Space Creature set",
+            "sourceRevisionTimestamp": "2025-11-11T16:12:00Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SpaceCreaturePants",
+      "itemName": "Space Creature Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1840,
+        "internalName": "SpaceCreaturePants",
+        "name": "Space Creature Pants"
+      },
+      "pageTitle": "Space Creature set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/spacecreaturepants.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-11-11T16:12:00Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "d21772ef362c18dcc6a7ccf69084757498876c4a55b695ed4459ddb5311d9e80",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Space Creature set",
+          "sourceRevisionTimestamp": "2025-11-11T16:12:00Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SpaceCreaturePants",
+            "itemName": "Space Creature Pants",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Space Creature set",
+            "sourceRevisionTimestamp": "2025-11-11T16:12:00Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "SpaceCreatureShirt",
+      "itemName": "Space Creature Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1839,
+        "internalName": "SpaceCreatureShirt",
+        "name": "Space Creature Shirt"
+      },
+      "pageTitle": "Space Creature set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/spacecreatureshirt.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2025-11-11T16:12:00Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "93356bba475a9ff8b50d68789afb4387bb80f57adf29c5581954652dca427341",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Space Creature set",
+          "sourceRevisionTimestamp": "2025-11-11T16:12:00Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "SpaceCreatureShirt",
+            "itemName": "Space Creature Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Space Creature set",
+            "sourceRevisionTimestamp": "2025-11-11T16:12:00Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TreasureHunterPants",
+      "itemName": "Treasure Hunter Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1852,
+        "internalName": "TreasureHunterPants",
+        "name": "Treasure Hunter Pants"
+      },
+      "pageTitle": "Treasure Hunter set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/treasurehunterpants.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T16:10:36Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "246af2dbf0c9669d5e789cc43c7dd5f5268793be8f4aa2304e7a85b10ed0598a",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Treasure Hunter set",
+          "sourceRevisionTimestamp": "2023-10-23T16:10:36Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "TreasureHunterPants",
+            "itemName": "Treasure Hunter Pants",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Treasure Hunter set",
+            "sourceRevisionTimestamp": "2023-10-23T16:10:36Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TreasureHunterShirt",
+      "itemName": "Treasure Hunter Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1851,
+        "internalName": "TreasureHunterShirt",
+        "name": "Treasure Hunter Shirt"
+      },
+      "pageTitle": "Treasure Hunter set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/treasurehuntershirt.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T16:10:36Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "8b934a5760f4cf276b1c6dc9855611e394ea84f5e540ea27f2dcfdbdf322758b",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Treasure Hunter set",
+          "sourceRevisionTimestamp": "2023-10-23T16:10:36Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "TreasureHunterShirt",
+            "itemName": "Treasure Hunter Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Treasure Hunter set",
+            "sourceRevisionTimestamp": "2023-10-23T16:10:36Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "UnicornMask",
+      "itemName": "Unicorn Mask",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1760,
+        "internalName": "UnicornMask",
+        "name": "Unicorn Mask"
+      },
+      "pageTitle": "Unicorn set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/unicornmask.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T17:00:34Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "88c1ad967b79e2e0ab827be132795463e162c0a49345a1bdcb0276fb4898d94e",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Unicorn set",
+          "sourceRevisionTimestamp": "2023-10-23T17:00:34Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "UnicornMask",
+            "itemName": "Unicorn Mask",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Unicorn set",
+            "sourceRevisionTimestamp": "2023-10-23T17:00:34Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "UnicornPants",
+      "itemName": "Unicorn Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1762,
+        "internalName": "UnicornPants",
+        "name": "Unicorn Pants"
+      },
+      "pageTitle": "Unicorn set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/unicornpants.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T17:00:34Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "b557af8e2466dbfc74a6c0a0dc7f6a58a3a6df235d20a2028f7225bd3ffe9ae7",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Unicorn set",
+          "sourceRevisionTimestamp": "2023-10-23T17:00:34Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "UnicornPants",
+            "itemName": "Unicorn Pants",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Unicorn set",
+            "sourceRevisionTimestamp": "2023-10-23T17:00:34Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "UnicornShirt",
+      "itemName": "Unicorn Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1761,
+        "internalName": "UnicornShirt",
+        "name": "Unicorn Shirt"
+      },
+      "pageTitle": "Unicorn set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/unicornshirt.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T17:00:34Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "80015cbb2425e7a311c12c59d8f1db721444404283e21345e23dda8045852bc1",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Unicorn set",
+          "sourceRevisionTimestamp": "2023-10-23T17:00:34Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "UnicornShirt",
+            "itemName": "Unicorn Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Unicorn set",
+            "sourceRevisionTimestamp": "2023-10-23T17:00:34Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "VampireMask",
+      "itemName": "Vampire Mask",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1763,
+        "internalName": "VampireMask",
+        "name": "Vampire Mask"
+      },
+      "pageTitle": "Vampire set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/vampiremask.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-01-31T07:31:56Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "ee74a13e0cfba7b42ef543d83a1b7f5bc00d9984c61b0200bc7f8f76b5f41a85",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Vampire set",
+          "sourceRevisionTimestamp": "2026-01-31T07:31:56Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "VampireMask",
+            "itemName": "Vampire Mask",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Vampire set",
+            "sourceRevisionTimestamp": "2026-01-31T07:31:56Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "VampirePants",
+      "itemName": "Vampire Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1765,
+        "internalName": "VampirePants",
+        "name": "Vampire Pants"
+      },
+      "pageTitle": "Vampire set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/vampirepants.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-01-31T07:31:56Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "f683fdf2ad23e0269927f0029c11e02c9f023aba7a40fb7a2b14235a9ad93cb1",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Vampire set",
+          "sourceRevisionTimestamp": "2026-01-31T07:31:56Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "VampirePants",
+            "itemName": "Vampire Pants",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Vampire set",
+            "sourceRevisionTimestamp": "2026-01-31T07:31:56Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "VampireShirt",
+      "itemName": "Vampire Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1764,
+        "internalName": "VampireShirt",
+        "name": "Vampire Shirt"
+      },
+      "pageTitle": "Vampire set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/vampireshirt.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2026-01-31T07:31:56Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "99ef995e580c30b4fbcf5cb4a6c51437b8b295ac47af112c6afb3a5fdaa694f4",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Vampire set",
+          "sourceRevisionTimestamp": "2026-01-31T07:31:56Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "VampireShirt",
+            "itemName": "Vampire Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Vampire set",
+            "sourceRevisionTimestamp": "2026-01-31T07:31:56Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "WolfMask",
+      "itemName": "Wolf Mask",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1841,
+        "internalName": "WolfMask",
+        "name": "Wolf Mask"
+      },
+      "pageTitle": "Wolf set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/wolfmask.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T17:03:16Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "9461bf70477bcb58095d78cb56c1d9804814f1cd96d770fa06496152f126c99a",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Wolf set",
+          "sourceRevisionTimestamp": "2023-10-23T17:03:16Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "WolfMask",
+            "itemName": "Wolf Mask",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Wolf set",
+            "sourceRevisionTimestamp": "2023-10-23T17:03:16Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "WolfPants",
+      "itemName": "Wolf Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1843,
+        "internalName": "WolfPants",
+        "name": "Wolf Pants"
+      },
+      "pageTitle": "Wolf set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/wolfpants.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T17:03:16Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "61088af2c9d779506a79324fa24a2e0f1ca73b55ab9c9f3b02d5e67682a09678",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Wolf set",
+          "sourceRevisionTimestamp": "2023-10-23T17:03:16Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "WolfPants",
+            "itemName": "Wolf Pants",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Wolf set",
+            "sourceRevisionTimestamp": "2023-10-23T17:03:16Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    },
+    {
+      "itemInternalName": "WolfShirt",
+      "itemName": "Wolf Shirt",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 1842,
+        "internalName": "WolfShirt",
+        "name": "Wolf Shirt"
+      },
+      "pageTitle": "Wolf set",
+      "rawPath": "/home/lolben/data/terraPedia/raw/wiki/item-pages/wolfshirt.latest.json",
+      "classification": "polluted_candidate",
+      "rawSourceCount": 1,
+      "standardizedSourceCount": 0,
+      "sourceRevisionTimestamp": "2023-10-23T17:03:16Z",
+      "plannedSources": [
+        {
+          "importPlanKey": "154288b8b32887046f0bab30021e06009c3481092f4475310c4da68f307082ad",
+          "sourceType": "drop",
+          "sourceRefType": "item",
+          "sourceRefName": "Goodie Bag",
+          "quantityText": "1",
+          "chanceText": "3.51%",
+          "conditions": null,
+          "notes": null,
+          "sourcePage": "Wolf set",
+          "sourceRevisionTimestamp": "2023-10-23T17:03:16Z",
+          "sortOrder": 0,
+          "landingRow": {
+            "itemInternalName": "WolfShirt",
+            "itemName": "Wolf Shirt",
+            "sourceType": "drop",
+            "sourceRefType": "item",
+            "sourceRefName": "Goodie Bag",
+            "quantityText": "1",
+            "chanceText": "3.51%",
+            "conditions": null,
+            "notes": null,
+            "sourceProvider": "wiki_gg",
+            "sourcePage": "Wolf set",
+            "sourceRevisionTimestamp": "2023-10-23T17:03:16Z",
+            "sortOrder": 0
+          },
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1774,
+            "internalName": "GoodieBag",
+            "name": "Goodie Bag"
+          },
+          "blockedReason": null
+        }
+      ]
+    }
+  ],
+  "blockedCandidates": []
+}

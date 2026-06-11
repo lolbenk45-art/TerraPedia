@@ -56,18 +56,27 @@ export function extractLinkedTitles(value) {
   }
 
   const titles = [];
-  for (const match of value.matchAll(/\[\[([^|\]]+)(?:\|[^\]]*)?\]\]/g)) {
-    const title = match[1].trim();
-    if (
-      title.startsWith('File:') ||
-      title.startsWith('Category:') ||
-      title.startsWith('Legacy:')
-    ) {
+  for (const match of value.matchAll(/<a\b[^>]*\btitle="([^"]+)"/gi)) {
+    const title = normalizeText(match[1]);
+    if (!title || isIgnoredLinkedTitle(title)) {
       continue;
     }
     titles.push(title);
   }
-  return titles;
+  for (const match of value.matchAll(/\[\[([^|\]]+)(?:\|[^\]]*)?\]\]/g)) {
+    const title = match[1].trim();
+    if (isIgnoredLinkedTitle(title)) {
+      continue;
+    }
+    titles.push(title);
+  }
+  return [...new Set(titles)];
+}
+
+function isIgnoredLinkedTitle(title) {
+  return title.startsWith('File:')
+    || title.startsWith('Category:')
+    || title.startsWith('Legacy:');
 }
 
 export function parseQuantity(value) {
@@ -184,17 +193,25 @@ export function extractDropSourcesFromHtml(html, npcLookup = new Map()) {
     return [];
   }
 
-  const tables = [...html.matchAll(/<table class="drop[^"]*?">([\s\S]*?)<\/table>/gi)];
   const rows = [];
+  const tokens = [...html.matchAll(/<h([2-4])\b[^>]*>([\s\S]*?)<\/h\1>|<table class="drop[^"]*?">([\s\S]*?)<\/table>/gi)];
+  let sourceSectionTitle = null;
 
-  for (const table of tables) {
-    for (const rowMatch of table[1].matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
+  for (const token of tokens) {
+    if (token[1]) {
+      sourceSectionTitle = normalizeHeadingTitle(stripHtml(token[2]));
+      continue;
+    }
+
+    const tableHtml = token[3];
+    for (const rowMatch of tableHtml.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
       const rowHtml = rowMatch[1];
       const cells = [...rowHtml.matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi)].map((cell) => cell[1]);
       if (cells.length < 3 || stripHtml(cells[0]) === 'Entity') {
         continue;
       }
 
+      const sourceRowText = normalizeText(cells.map((cell) => stripHtml(cell)).join(' '));
       const quantity = parseQuantity(stripHtml(cells[1]));
       const chance = parseChance(stripHtml(cells[2]));
       const sourceNames = extractDropSourceNames(cells[0]);
@@ -213,6 +230,8 @@ export function extractDropSourcesFromHtml(html, npcLookup = new Map()) {
           quantityText: quantity.text,
           chanceValue: chance.value,
           chanceText: chance.text,
+          sourceSectionTitle,
+          sourceRowText,
           notes: rowHtml.includes('m-normal') ? 'Normal mode row' : null
         });
       }
@@ -220,6 +239,67 @@ export function extractDropSourcesFromHtml(html, npcLookup = new Map()) {
   }
 
   return rows;
+}
+
+export function extractTypeRowSourcesFromHtml(html) {
+  if (typeof html !== 'string') {
+    return [];
+  }
+
+  const sources = [];
+  for (const rowMatch of html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const rowHtml = rowMatch[1];
+    if (!/\bid="type(?:_|&#95;)/i.test(rowHtml)) {
+      continue;
+    }
+
+    const itemName = normalizeText(rowHtml.match(/<span title="([^"]+)">[^<]*<\/span><span class="id">Internal/i)?.[1]);
+    if (!itemName) {
+      continue;
+    }
+
+    const cells = [...rowHtml.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map((cell) => cell[1]);
+    const noteHtml = cells.at(-1) ?? '';
+    const noteText = normalizeText(stripHtml(noteHtml));
+    if (!noteText || !/\bsold\b/i.test(noteText)) {
+      continue;
+    }
+
+    const vendors = extractLinkedTitles(noteHtml).filter((title) => /\bMerchant\b/i.test(title));
+    for (const vendor of vendors) {
+      sources.push({
+        sourceType: 'shop',
+        sourceRefType: 'npc',
+        sourceRefName: vendor,
+        sourceTargetItemName: itemName,
+        conditions: inferShopCondition(noteText),
+        notes: noteText
+      });
+    }
+  }
+
+  return dedupeBy(sources, (source) => [
+    source.sourceType,
+    source.sourceRefType,
+    source.sourceRefName,
+    source.sourceTargetItemName,
+    source.conditions ?? '',
+    source.notes ?? ''
+  ].join('|'));
+}
+
+function inferShopCondition(noteText) {
+  if (/\brandom(?:ly)?\b/i.test(noteText)) return 'random shop stock';
+  const firstHalfMatch = noteText.match(/during the first half of every second/i);
+  if (firstHalfMatch) return 'first half of every second';
+  return null;
+}
+
+function normalizeHeadingTitle(value) {
+  return normalizeText(value)
+    ?.replace(/\s*\[\s*edit\s*\]\s*/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim() || null;
 }
 
 export function classifyDropSourceRefType(sourceName, npcMeta = null) {
@@ -252,7 +332,19 @@ export function extractNarrativeSources(introParagraphs, pageTitle) {
     }
 
     if (/purchased from/i.test(text)) {
-      const purchaseMatch = text.match(/purchased from (?:the )?([A-Z][A-Za-z' ]+)/i);
+      const purchaseMatch = text.match(/purchased from (?:the )?([A-Z][A-Za-z' ]+?)(?:\s+for\b|[,.]|$)/i);
+      if (purchaseMatch) {
+        sources.push({
+          sourceType: 'shop',
+          sourceRefType: 'npc',
+          sourceRefName: purchaseMatch[1].trim(),
+          notes: text
+        });
+      }
+    }
+
+    if (/can be purchased from/i.test(text)) {
+      const purchaseMatch = text.match(/can be purchased from (?:the )?([A-Z][A-Za-z' ]+?)(?:\s+for\b|[,.]|$)/i);
       if (purchaseMatch) {
         sources.push({
           sourceType: 'shop',
@@ -272,6 +364,174 @@ export function extractNarrativeSources(introParagraphs, pageTitle) {
       });
     }
 
+    if (/\bfalls?\s+from\s+the\s+sky\b/i.test(text)) {
+      sources.push({
+        sourceType: 'worldgen',
+        sourceRefType: 'world',
+        sourceRefName: `${normalizedTitle} sky fall`,
+        conditions: text
+      });
+    }
+
+    if (/\bgenerates?\s+in\b/i.test(text) && /(underground|surface|vein|desert|jungle|snow|crimson|corruption|hallow|cavern|sky|space|ocean|dungeon|underworld)/i.test(text)) {
+      sources.push({
+        sourceType: 'worldgen',
+        sourceRefType: 'world',
+        sourceRefName: `${normalizedTitle} worldgen`,
+        conditions: text
+      });
+    }
+
+    if (/\bavailable during\b/i.test(text) && /\bseasonal event\b/i.test(text)) {
+      const eventMatch = text.match(/available during (?:the )?(.+? seasonal event)\b/i);
+      sources.push({
+        sourceType: 'drop',
+        sourceRefType: 'world',
+        sourceRefName: normalizeText(eventMatch?.[1]) ?? `${normalizedTitle} seasonal event`,
+        conditions: text
+      });
+    }
+
+    if (/\bobtained\b/i.test(text) && /\bas a reward for defeating bosses\b/i.test(text)) {
+      sources.push({
+        sourceType: 'treasure_bag',
+        sourceRefType: 'boss_group',
+        sourceRefName: 'defeating bosses',
+        conditions: text
+      });
+    }
+
+    if (/\bdropped from most bosses\b/i.test(text)) {
+      sources.push({
+        sourceType: 'drop',
+        sourceRefType: 'boss_group',
+        sourceRefName: 'most bosses',
+        chanceText: extractFirstChanceText(text),
+        conditions: text
+      });
+    }
+
+    if (/\bdropped by bosses and mini-bosses\b/i.test(text)) {
+      sources.push({
+        sourceType: 'drop',
+        sourceRefType: 'boss_group',
+        sourceRefName: 'bosses and mini-bosses',
+        conditions: text
+      });
+    }
+
+    if (/\bobtained\b/i.test(text) && /\bfrom Treasure Bags dropped from Hardmode bosses\b/i.test(text)) {
+      sources.push({
+        sourceType: 'treasure_bag',
+        sourceRefType: 'treasure_bag',
+        sourceRefName: 'Treasure Bags dropped from Hardmode bosses',
+        chanceText: extractFirstChanceText(text),
+        conditions: text
+      });
+    }
+
+    if (/\brewarded randomly by the Angler NPC\b/i.test(text) && /\bcompleting (?:fishing )?quests\b/i.test(text)) {
+      sources.push({
+        sourceType: 'quest_reward',
+        sourceRefType: 'npc',
+        sourceRefName: 'Angler',
+        conditions: text
+      });
+    }
+
+    if (/\b(?:can be received|has a base .* chance of being obtained) as\b/i.test(text) && /\bAngler\b/i.test(text) && /\b(?:fishing )?quests?\b/i.test(text)) {
+      sources.push({
+        sourceType: 'quest_reward',
+        sourceRefType: 'npc',
+        sourceRefName: 'Angler',
+        chanceText: extractFirstChanceText(text),
+        conditions: text
+      });
+    }
+
+    if (/\bis given by the Angler\b/i.test(text) && /\bcompleting\b/i.test(text)) {
+      sources.push({
+        sourceType: 'quest_reward',
+        sourceRefType: 'npc',
+        sourceRefName: 'Angler',
+        conditions: text
+      });
+    }
+
+    if (/\brewards the player\b/i.test(text) && /\brandom special exclusive dye\b/i.test(text)) {
+      sources.push({
+        sourceType: 'quest_reward',
+        sourceRefType: 'npc',
+        sourceRefName: 'Dye Trader',
+        conditions: text
+      });
+    }
+
+    if (/\bobtained by fishing\b/i.test(text)) {
+      const fishingMatch = text.match(/obtained by (fishing .+?)(?:[,.]|$)/i);
+      sources.push({
+        sourceType: 'crate',
+        sourceRefType: 'world',
+        sourceRefName: normalizeText(fishingMatch?.[1]) ?? 'fishing',
+        conditions: text
+      });
+    }
+
+    if (/\bcan be caught with any Bug Net\b/i.test(text)) {
+      sources.push({
+        sourceType: 'unknown',
+        sourceRefType: 'world',
+        sourceRefName: 'caught with any Bug Net',
+        conditions: text
+      });
+    }
+
+    if (/\bare obtained in the Old One's Army event\b/i.test(text)) {
+      sources.push({
+        sourceType: 'drop',
+        sourceRefType: 'world',
+        sourceRefName: "Old One's Army event",
+        conditions: text
+      });
+    }
+
+    if (/\bnaturally-generated Chest\b/i.test(text)) {
+      sources.push({
+        sourceType: 'worldgen',
+        sourceRefType: 'world',
+        sourceRefName: `${normalizedTitle} worldgen`,
+        conditions: text
+      });
+    }
+
+    if (/\bformed when a Gnome touches sunlight\b/i.test(text)) {
+      sources.push({
+        sourceType: 'unknown',
+        sourceRefType: 'npc',
+        sourceRefName: 'Gnome sunlight transformation',
+        conditions: text
+      });
+    }
+
+    if (/\bonly available to players in the Terraria Collector's Edition\b/i.test(text)) {
+      sources.push({
+        sourceType: 'unknown',
+        sourceRefType: 'world',
+        sourceRefName: "Terraria Collector's Edition",
+        conditions: text
+      });
+    }
+
+    if (/\bobtained by killing\b/i.test(text) && /\b(enemies|critters)\b/i.test(text)) {
+      const killMatch = text.match(/obtained by (killing .+?)(?:\.|$)/i);
+      sources.push({
+        sourceType: 'drop',
+        sourceRefType: 'npc_group',
+        sourceRefName: normalizeText(killMatch?.[1]) ?? 'killing enemies',
+        conditions: text
+      });
+    }
+
     if (/(can be mined|required to mine|needed to mine|harvested)/i.test(text)) {
       sources.push({
         sourceType: 'mining',
@@ -283,6 +543,10 @@ export function extractNarrativeSources(introParagraphs, pageTitle) {
   }
 
   return dedupeBy(sources, (source) => `${source.sourceType}|${source.sourceRefType}|${source.sourceRefName}|${source.conditions ?? ''}|${source.notes ?? ''}`);
+}
+
+function extractFirstChanceText(text) {
+  return normalizeText(text.match(/(?:\d+\s*\/\s*\d+\s*)?\(\s*\d+(?:\.\d+)?%\s*\)|\d+(?:\.\d+)?%/i)?.[0]) ?? null;
 }
 
 export function parseRecipeTable(expandedMarkup) {
@@ -308,8 +572,8 @@ export function parseRecipeTable(expandedMarkup) {
       previousStationMarkup = stationCell;
     }
 
-    const resultLinks = extractLinkedTitles(resultCell).filter((title) => !title.startsWith('Desktop ') && !title.startsWith('Console ') && !title.startsWith('Mobile '));
-    const resultName = resultLinks.find((title) => title !== 'Crafting station') ?? stripHtml(resultCell);
+    const resultName = extractRecipeResultName(resultCell);
+    const resultQuantity = parseQuantity(resultCell.match(/<span class="am">([\s\S]*?)<\/span>/i)?.[1] ?? '');
     const versionScope = humanizeVersionNote(resultCell.match(/<div class="version-note[^"]*">([\s\S]*?)<\/div>/i)?.[1] ?? '');
 
     const ingredientOptionSets = [...ingredientsCell.matchAll(/<li>([\s\S]*?)<\/li>/gi)]
@@ -332,7 +596,7 @@ export function parseRecipeTable(expandedMarkup) {
     for (const ingredients of ingredientVariants) {
       recipes.push({
         resultName,
-        resultQuantity: 1,
+        resultQuantity: resultQuantity.min ?? 1,
         versionScope: versionScope ? versionScope.replace(/:\s*$/, '') : null,
         ingredients,
         stations
@@ -355,6 +619,39 @@ export function parseRecipeTable(expandedMarkup) {
       isAlternative: Boolean(station.isAlternative)
     }))
   }));
+}
+
+function extractRecipeResultName(resultCell) {
+  const sortValueMatch = resultCell.match(/\bdata-sort-value="([^"]+)"/i);
+  const sortValue = normalizeRecipeResultCandidate(sortValueMatch?.[1]);
+  if (sortValue) {
+    return sortValue;
+  }
+
+  for (const imageMatch of resultCell.matchAll(/<img\b([^>]*?)>/gi)) {
+    const attrs = parseTagAttributes(imageMatch[1]);
+    const imageName = normalizeRecipeResultCandidate(attrs.alt ?? attrs.title);
+    if (imageName) {
+      return imageName;
+    }
+  }
+
+  const resultLinks = extractLinkedTitles(resultCell)
+    .map((title) => normalizeRecipeResultCandidate(title))
+    .filter(Boolean);
+  const linkedTitle = resultLinks.find((title) => title !== 'Crafting station');
+  return linkedTitle ?? normalizeText(stripHtml(resultCell));
+}
+
+function normalizeRecipeResultCandidate(value) {
+  const text = normalizeText(value)
+    ?.replace(/\.(?:gif|png|jpe?g|webp)$/i, '')
+    .trim();
+  if (!text) return null;
+  if (text === 'Item IDs' || text === 'Crafting station') return null;
+  if (/^(?:Desktop|Console|Mobile|Old-gen console|Nintendo 3DS)(?: version)?$/i.test(text)) return null;
+  if (/^Internal (?:Item|Tile|Projectile) ID/i.test(text)) return null;
+  return text;
 }
 
 function inferStationRequirementMode(markup, stationNames) {
@@ -470,6 +767,18 @@ function extractDropSourceNames(cellHtml) {
     return [];
   }
 
+  const imageAltNames = [
+    ...new Set(
+      [...cellHtml.matchAll(/<img\b[^>]*\balt="([^"]+)"/gi)]
+        .map((match) => normalizeImageAltEntityName(match[1]))
+        .filter((title) => isDropSourceTitle(title))
+    )
+  ];
+
+  if (imageAltNames.length > 0) {
+    return imageAltNames;
+  }
+
   const linkedTitles = [
     ...new Set(
       [...cellHtml.matchAll(/<a\b[^>]*title="([^"]+)"/gi)]
@@ -484,6 +793,12 @@ function extractDropSourceNames(cellHtml) {
 
   const stripped = stripHtml(cellHtml);
   return stripped ? [stripped] : [];
+}
+
+function normalizeImageAltEntityName(value) {
+  return normalizeText(value)
+    ?.replace(/\.(?:gif|png|jpe?g|webp)$/i, '')
+    .trim() ?? '';
 }
 
 function isDropSourceTitle(title) {

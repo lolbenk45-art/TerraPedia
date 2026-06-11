@@ -105,17 +105,78 @@ test('auditItemSourceGapCandidates reads records payloads and includes vendor so
   assert.equal(summary.totalCandidates, 1);
   assert.equal(summary.candidateSourceRows, 1);
   assert.equal(summary.candidates[0].itemName, 'Vendor Item');
-  assert.deepEqual(summary.candidates[0].extractedSources, [
-    {
-      sourceType: 'shop',
-      sourceRefType: 'npc',
-      sourceRefName: 'Merchant',
-      quantityText: null,
-      chanceText: null,
-      conditions: null,
-      notes: null
-    }
-  ]);
+  assert.deepEqual(
+    summary.candidates[0].extractedSources.map((row) => ({
+      sourceType: row.sourceType,
+      sourceRefType: row.sourceRefType,
+      sourceRefName: row.sourceRefName,
+      quantityText: row.quantityText,
+      chanceText: row.chanceText,
+      conditions: row.conditions,
+      notes: row.notes
+    })),
+    [
+      {
+        sourceType: 'shop',
+        sourceRefType: 'npc',
+        sourceRefName: 'Merchant',
+        quantityText: null,
+        chanceText: null,
+        conditions: null,
+        notes: null
+      }
+    ]
+  );
+});
+
+test('auditItemSourceGapCandidates resolves NPC variants from image file title aliases', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'item-source-gap-npc-alias-'));
+  const rawDir = path.join(root, 'raw');
+  const sourcesDir = path.join(root, 'itemSources');
+  const itemsPath = path.join(root, 'items.standardized.json');
+  const npcsPath = path.join(root, 'npcs.standardized.json');
+  fs.mkdirSync(rawDir, { recursive: true });
+  fs.mkdirSync(sourcesDir, { recursive: true });
+
+  fs.writeFileSync(itemsPath, JSON.stringify({
+    records: [{ id: 8, internalName: 'Torch', name: 'Torch' }]
+  }));
+  fs.writeFileSync(npcsPath, JSON.stringify({
+    records: [
+      { id: 590, internalName: 'TorchZombie', name: 'Zombie', imageFileTitle: 'Torch Zombie.gif', boss: false },
+      { id: 591, internalName: 'ArmedTorchZombie', name: 'Zombie', imageFileTitle: 'Armed Torch Zombie.gif', boss: false }
+    ]
+  }));
+  fs.writeFileSync(path.join(sourcesDir, 'itemSources.part-0001.json'), JSON.stringify([]));
+  fs.writeFileSync(path.join(rawDir, 'torch.latest.json'), JSON.stringify({
+    itemInternalName: 'Torch',
+    itemName: 'Torch',
+    pageTitle: 'Torches',
+    wikitext: '',
+    html: `
+      <table class="drop">
+        <tr><th>Entity</th><th>Qty</th><th>Chance</th></tr>
+        <tr><td><span class="npcimg"><img alt="Armed Torch Zombie.gif" /></span><a title="Zombie">Zombie</a><div class="note-text">(Armed Torch Zombie)</div></td><td>5–20</td><td>100%</td></tr>
+        <tr><td><span class="npcimg"><img alt="Torch Zombie.gif" /></span><a title="Zombie">Zombie</a><div class="note-text">(Torch Zombie)</div></td><td>5–20</td><td>100%</td></tr>
+      </table>
+    `
+  }));
+
+  const summary = auditItemSourceGapCandidates({
+    rawItemPageDir: rawDir,
+    standardizedItemsPath: itemsPath,
+    standardizedNpcsPath: npcsPath,
+    itemSourcesDir: sourcesDir,
+    sample: 'Torch'
+  });
+
+  assert.deepEqual(
+    summary.candidates[0].extractedSources.map((row) => [row.sourceRefName, row.sourceRefType]),
+    [
+      ['Armed Torch Zombie', 'npc'],
+      ['Torch Zombie', 'npc']
+    ]
+  );
 });
 
 test('auditItemSourceGapCandidates separates exact plural item pages from family pages', () => {

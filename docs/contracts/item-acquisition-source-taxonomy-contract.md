@@ -11,6 +11,8 @@ This contract separates how an item is acquired from what domain the source refe
 - `treasure_bag`
 - `worldgen`
 - `mining`
+- `fishing`
+- `capture`
 - `quest_reward`
 - `craft`
 - `unknown`
@@ -18,7 +20,9 @@ This contract separates how an item is acquired from what domain the source refe
 ## Required Source Reference Types
 
 - `npc`
+- `npc_group`
 - `boss`
+- `boss_group`
 - `item`
 - `container`
 - `crate`
@@ -31,7 +35,9 @@ This contract separates how an item is acquired from what domain the source refe
 | `sourceRefType` | Resolver rule |
 | --- | --- |
 | `npc` | NPC resolver only; may generate NPC loot/shop relations. |
+| `npc_group` | NPC family/page-level textual evidence only; no strong entity id is required and it must not generate NPC loot/shop relations. |
 | `boss` | Boss/domain resolver only; do not treat as generic NPC unless an existing boss contract explicitly allows it. |
+| `boss_group` | Boss group or composite boss textual evidence only; no strong entity id is required and it must not generate NPC loot/shop relations. |
 | `item` | Item metadata resolver only; never generate `npcLootRelations`. |
 | `container` | Item/container metadata resolver only; never generate `npcLootRelations`. |
 | `crate` | Item/crate metadata resolver only; never generate `npcLootRelations`. |
@@ -40,6 +46,10 @@ This contract separates how an item is acquired from what domain the source refe
 | `unknown` | Preserve as a blocked or review candidate unless explicitly accepted. |
 
 `sourceType` describes the acquisition mechanism. `sourceRefType` describes the referenced domain and controls resolver behavior. A wiki drop table row is not automatically an NPC source.
+
+`fishing` and `capture` are acquisition mechanisms, not NPC loot. They should normally use `sourceRefType=world` unless the raw evidence names a resolvable container/item/NPC source. They must not generate NPC loot/shop relations.
+
+`unknown`, `npc_group`, and `boss_group` references may be text-only review candidates. They preserve raw-backed acquisition evidence when the source exists but has no stable single entity row, such as item toggles, eligible NPC vendor groups, event enemy groups, or non-standard boss variants. They must not be silently resolved to a concrete NPC/item id.
 
 ## MagicMirror Examples
 
