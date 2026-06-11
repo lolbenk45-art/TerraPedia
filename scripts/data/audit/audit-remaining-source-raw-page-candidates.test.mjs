@@ -382,6 +382,71 @@ test('auditRemainingSourceRawPageCandidates uses target-aware hard-block parsers
   assert.equal(report.hardBlockedRows[0].specificBlockerReason, 'alias raw page Jellyfish does not prove identity for Pink Jellyfish (bait)');
 });
 
+test('auditRemainingSourceRawPageCandidates classifies terminal hard-block reasons', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'remaining-source-terminal-'));
+  const rawDir = path.join(root, 'raw');
+  const reportPath = path.join(root, 'closure.json');
+  fs.mkdirSync(rawDir, { recursive: true });
+
+  fs.writeFileSync(reportPath, JSON.stringify({
+    rowsByLane: {
+      needs_external_source_evidence: [
+        { itemId: 1475, internalName: 'Darkness', name: 'Darkness', categoryCode: 'BUFF' },
+        { itemId: 2436, internalName: 'BlueJellyfish', name: 'Blue Jellyfish', categoryCode: 'NPC' },
+        { itemId: 8416, internalName: 'PinkJellyfishBaitRecipe', name: 'Pink Jellyfish (bait)', categoryCode: 'BAIT' },
+        { itemId: 3705, internalName: 'Fake_newchest1', name: 'Fake_newchest1', categoryCode: 'FURNITURE_STORAGE' }
+      ]
+    }
+  }));
+  fs.writeFileSync(path.join(rawDir, 'darkness.latest.json'), JSON.stringify({
+    itemInternalName: 'Darkness',
+    itemName: 'Darkness',
+    pageTitle: 'Darkness',
+    wikitext: '{{buff infobox|auto=22}}',
+    html: '<p>Darkness is a debuff that decreases the player light vision.</p>'
+  }));
+  fs.writeFileSync(path.join(rawDir, 'bluejellyfish.latest.json'), JSON.stringify({
+    itemInternalName: 'BlueJellyfish',
+    itemName: 'Blue Jellyfish',
+    pageTitle: 'Jellyfish',
+    wikitext: '{{about|the enemies|the collectible bait items|Jellyfish (bait)}}',
+    html: '<p>Jellyfish are enemies found in water. Blue Jellyfish can spawn underground.</p>'
+  }));
+  fs.writeFileSync(path.join(rawDir, 'pinkjellyfish.latest.json'), JSON.stringify({
+    itemInternalName: 'PinkJellyfish',
+    itemName: 'Pink Jellyfish',
+    pageTitle: 'Jellyfish',
+    wikitext: '{{about|the enemies|the collectible bait items|Jellyfish (bait)}}',
+    html: '<p>Jellyfish are enemies found in water. Pink Jellyfish can spawn in the Ocean.</p>'
+  }));
+
+  const report = auditRemainingSourceRawPageCandidates({
+    closureReportPath: reportPath,
+    rawItemPageDir: rawDir,
+    npcLookup: new Map()
+  });
+  const byInternalName = new Map(report.hardBlockedRows.map((row) => [row.internalName, row]));
+
+  assert.equal(report.summary.hardBlockedRows, 4);
+  assert.equal(report.summary.terminalHardBlockedRows, 4);
+  assert.deepEqual(report.summary.terminalClosureStatusCounts, {
+    enemy_page_identity_mismatch: 1,
+    internal_or_unobtainable_identity_review: 1,
+    missing_bait_raw: 1,
+    non_item_effect: 1
+  });
+  assert.equal(byInternalName.get('Darkness').terminalClosureStatus, 'non_item_effect');
+  assert.equal(byInternalName.get('BlueJellyfish').terminalClosureStatus, 'enemy_page_identity_mismatch');
+  assert.equal(byInternalName.get('PinkJellyfishBaitRecipe').terminalClosureStatus, 'missing_bait_raw');
+  assert.equal(byInternalName.get('Fake_newchest1').terminalClosureStatus, 'internal_or_unobtainable_identity_review');
+  for (const row of report.hardBlockedRows) {
+    assert.equal(row.extractedSources.length, 0);
+    assert.equal(typeof row.terminalClosureReason, 'string');
+    assert.equal(typeof row.recommendedNextAction, 'string');
+    assert.ok(row.terminalClosureEvidence);
+  }
+});
+
 test('auditRemainingSourceRawPageCandidates parses safe family source rows and keeps unsupported taxonomy explicit', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'remaining-source-family-'));
   const rawDir = path.join(root, 'raw');
