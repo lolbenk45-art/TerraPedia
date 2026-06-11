@@ -26,6 +26,7 @@ export function parseBuildItemSourceGapCoveragePlanArgs(argv = process.argv.slic
   return {
     baselinePath: options.baseline ?? path.join(process.cwd(), 'data', 'reports', 'item-source-full-baseline-2026-06-11.json'),
     candidatePlanPath: options['candidate-plan'] ?? options.candidatePlan ?? path.join(process.cwd(), 'data', 'reports', 'item-source-candidate-import-plan.latest.json'),
+    terminalExemptionPlanPath: options['terminal-exemption-plan'] ?? options.terminalExemptionPlan ?? null,
     outputPath: options.output ?? null
   };
 }
@@ -33,11 +34,13 @@ export function parseBuildItemSourceGapCoveragePlanArgs(argv = process.argv.slic
 export function buildItemSourceGapCoveragePlan({
   generatedAt = new Date().toISOString(),
   baselineReport = {},
-  candidatePlan = {}
+  candidatePlan = {},
+  terminalExemptionPlan = {}
 } = {}) {
   const candidateIndex = buildCandidateIndex(candidatePlan);
+  const terminalIndex = buildTerminalIndex(terminalExemptionPlan);
   const rows = (Array.isArray(baselineReport.rows) ? baselineReport.rows : [])
-    .map((row) => buildCoveragePlanRow(row, candidateIndex))
+    .map((row) => buildCoveragePlanRow(row, candidateIndex, terminalIndex))
     .sort((a, b) => a.itemId - b.itemId);
   return {
     generatedAt,
@@ -57,18 +60,23 @@ export function runBuildItemSourceGapCoveragePlan(options = {}) {
   const candidatePlan = fs.existsSync(path.resolve(process.cwd(), options.candidatePlanPath))
     ? JSON.parse(fs.readFileSync(path.resolve(process.cwd(), options.candidatePlanPath), 'utf8'))
     : {};
-  const plan = buildItemSourceGapCoveragePlan({ baselineReport, candidatePlan });
+  const terminalExemptionPlan = options.terminalExemptionPlanPath && fs.existsSync(path.resolve(process.cwd(), options.terminalExemptionPlanPath))
+    ? JSON.parse(fs.readFileSync(path.resolve(process.cwd(), options.terminalExemptionPlanPath), 'utf8'))
+    : {};
+  const plan = buildItemSourceGapCoveragePlan({ baselineReport, candidatePlan, terminalExemptionPlan });
   if (options.outputPath) {
     writeJson(path.resolve(process.cwd(), options.outputPath), plan);
   }
   return plan;
 }
 
-function buildCoveragePlanRow(row, candidateIndex) {
+function buildCoveragePlanRow(row, candidateIndex, terminalIndex) {
   const internalName = normalizeText(row.internalName ?? row.itemInternalName);
   const itemId = Number(row.itemId ?? row.id);
   const candidate = candidateIndex.get(normalizeIdentity(internalName));
-  const lane = resolveLane(row, candidate);
+  const terminal = terminalIndex.get(itemId) ?? terminalIndex.get(normalizeIdentity(internalName));
+  const lane = resolveLane(row, candidate, terminal);
+  const terminalApplied = ['explicit_no_source_exemption', 'missing_required_raw_evidence'].includes(lane);
   return {
     itemId,
     internalName,
@@ -78,13 +86,24 @@ function buildCoveragePlanRow(row, candidateIndex) {
     lane,
     candidateClassification: candidate?.classification ?? null,
     candidateBlockedReason: candidate?.blockedReason ?? null,
+    ...(terminalApplied ? {
+      terminalClosureStatus: terminal?.terminalClosureStatus ?? null,
+      terminalResolutionLane: terminal?.resolutionLane ?? null,
+      terminalRecommendedNextAction: terminal?.recommendedNextAction ?? null
+    } : {}),
+    ...(lane === 'explicit_no_source_exemption' ? {
+      exemptionRule: terminal?.exemptionRule ?? row.exemptionRule ?? null
+    } : {}),
     plannedSourceRows: Number(candidate?.plannedSourceRows ?? 0),
-    blockedReason: resolveBlockedReason(row, candidate, lane),
-    evidence: Array.isArray(row.evidence) ? row.evidence : []
+    blockedReason: resolveBlockedReason(row, candidate, terminal, lane),
+    evidence: [
+      ...(Array.isArray(row.evidence) ? row.evidence : []),
+      ...(terminalApplied && Array.isArray(terminal?.evidence) ? terminal.evidence : [])
+    ]
   };
 }
 
-function resolveLane(row, candidate) {
+function resolveLane(row, candidate, terminal) {
   if (Number(row.activeSourceCount ?? 0) > 0 || row.primaryBucket === 'local_source_already_present') {
     return 'local_source_already_present';
   }
@@ -109,18 +128,30 @@ function resolveLane(row, candidate) {
   if (row.hasBiomeEvidence || row.primaryBucket === 'biome_evidence_only') {
     return 'biome_evidence_projection';
   }
+  if (terminal?.resolutionLane === 'explicit_no_source_exemption_candidate') {
+    return 'explicit_no_source_exemption';
+  }
+  if (terminal?.resolutionLane === 'missing_required_raw_evidence') {
+    return 'missing_required_raw_evidence';
+  }
   if (row.primaryBucket === 'explicit_no_source_exemption' && row.exemptionStatus !== 'ignored_due_to_existing_evidence') {
     return 'explicit_no_source_exemption';
   }
   return 'unclassified_requires_new_lane';
 }
 
-function resolveBlockedReason(row, candidate, lane) {
+function resolveBlockedReason(row, candidate, terminal, lane) {
+  if (lane === 'explicit_no_source_exemption') {
+    return null;
+  }
   if (lane === 'unclassified_requires_new_lane') {
     return row.blockedReason ?? candidate?.blockedReason ?? 'no_coverage_lane';
   }
   if (['family_policy_candidate', 'polluted_page_candidate'].includes(lane)) {
     return candidate?.blockedReason ?? row.blockedReason ?? lane;
+  }
+  if (lane === 'missing_required_raw_evidence') {
+    return terminal?.resolutionLane ?? 'missing_required_raw_evidence';
   }
   return row.blockedReason ?? null;
 }
@@ -145,6 +176,23 @@ function buildCandidateIndex(plan) {
   return byName;
 }
 
+function buildTerminalIndex(plan) {
+  const byIdentity = new Map();
+  for (const row of Array.isArray(plan.rows) ? plan.rows : []) {
+    const terminal = {
+      resolutionLane: row.resolutionLane ?? null,
+      exemptionRule: row.exemptionRule ?? null,
+      terminalClosureStatus: row.terminalClosureStatus ?? null,
+      recommendedNextAction: row.recommendedNextAction ?? row.terminalRecommendedNextAction ?? null,
+      evidence: Array.isArray(row.evidence) ? row.evidence : []
+    };
+    const itemId = Number(row.itemId);
+    if (Number.isFinite(itemId)) byIdentity.set(itemId, terminal);
+    byIdentity.set(normalizeIdentity(row.internalName ?? row.itemInternalName), terminal);
+  }
+  return byIdentity;
+}
+
 function buildSummary(rows) {
   const laneCounts = {};
   for (const row of rows) {
@@ -161,6 +209,7 @@ function buildSummary(rows) {
     recipeOrShimmerChainCovered: laneCounts.recipe_or_shimmer_chain_covered ?? 0,
     biomeEvidenceProjection: laneCounts.biome_evidence_projection ?? 0,
     explicitNoSourceExemption: laneCounts.explicit_no_source_exemption ?? 0,
+    missingRequiredRawEvidence: laneCounts.missing_required_raw_evidence ?? 0,
     unclassifiedRequiresNewLane: laneCounts.unclassified_requires_new_lane ?? 0,
     laneCounts
   };

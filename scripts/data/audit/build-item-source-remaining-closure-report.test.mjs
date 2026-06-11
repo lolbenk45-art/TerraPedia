@@ -170,3 +170,50 @@ test('buildItemSourceRemainingClosureReport keeps obtainable-looking developer a
     'needs_external_source_evidence'
   ]);
 });
+
+test('buildItemSourceRemainingClosureReport consumes terminal coverage lanes', () => {
+  const report = buildItemSourceRemainingClosureReport({
+    baselineReport: {
+      summary: { itemsWithoutActiveSources: 2 },
+      rows: [
+        baselineRow({ itemId: 30, internalName: 'Darkness', name: 'Darkness', blockedReason: 'no_source_evidence_found' }),
+        baselineRow({ itemId: 31, internalName: 'PinkJellyfishBait', name: 'Pink Jellyfish (bait)', blockedReason: 'no_source_evidence_found' })
+      ]
+    },
+    coveragePlan: {
+      rows: [
+        {
+          itemId: 30,
+          lane: 'explicit_no_source_exemption',
+          exemptionRule: 'terminal_non_item_effect',
+          terminalClosureStatus: 'non_item_effect',
+          terminalRecommendedNextAction: 'Move to effect domain.',
+          evidence: [{ kind: 'terminal_closure_status', status: 'non_item_effect' }]
+        },
+        {
+          itemId: 31,
+          lane: 'missing_required_raw_evidence',
+          blockedReason: 'missing_required_raw_evidence',
+          terminalClosureStatus: 'missing_bait_raw',
+          terminalRecommendedNextAction: 'Fetch bait raw page.',
+          evidence: [{ kind: 'terminal_closure_status', status: 'missing_bait_raw' }]
+        }
+      ]
+    },
+    sourceRowQuality: cleanQuality
+  });
+
+  assert.deepEqual(report.rows.map((row) => row.closureLane), [
+    'explicit_no_source_exemption_candidate',
+    'missing_required_raw_evidence'
+  ]);
+  assert.equal(report.rows[0].classificationRule, 'terminal_non_item_effect');
+  assert.equal(report.rows[0].coverageBlockedReason, null);
+  assert.equal(report.rows[0].terminalClosureStatus, 'non_item_effect');
+  assert.equal(report.rows[0].evidence[0].kind, 'terminal_closure_status');
+  assert.equal(report.rows[1].classificationRule, 'terminal_missing_required_raw_evidence');
+  assert.equal(report.rows[1].coverageBlockedReason, 'missing_required_raw_evidence');
+  assert.equal(report.summary.explicitNoSourceExemptionCandidate, 1);
+  assert.equal(report.summary.missingRequiredRawEvidence, 1);
+  assert.equal(report.summary.needsExternalSourceEvidence, 0);
+});

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-11T01:52:07.165Z",
+  "generatedAt": "2026-06-11T12:53:40.978Z",
   "readOnly": true,
   "entity": "item_source_gap_coverage_plan",
   "inputs": {
@@ -16,15 +16,18 @@
     "npcRefResolutionGap": 1,
     "recipeOrShimmerChainCovered": 2434,
     "biomeEvidenceProjection": 12,
-    "explicitNoSourceExemption": 0,
-    "unclassifiedRequiresNewLane": 832,
+    "explicitNoSourceExemption": 14,
+    "missingRequiredRawEvidence": 3,
+    "unclassifiedRequiresNewLane": 815,
     "laneCounts": {
       "recipe_or_shimmer_chain_covered": 2434,
       "local_source_already_present": 2429,
-      "unclassified_requires_new_lane": 832,
+      "unclassified_requires_new_lane": 815,
       "family_policy_candidate": 451,
+      "explicit_no_source_exemption": 14,
       "npc_ref_resolution_gap": 1,
-      "biome_evidence_projection": 12
+      "biome_evidence_projection": 12,
+      "missing_required_raw_evidence": 3
     }
   },
   "rows": [
@@ -27071,12 +27074,24 @@
       "name": "Darkness",
       "activeSourceCount": 0,
       "baselineBucket": "unclassified_no_source_evidence",
-      "lane": "unclassified_requires_new_lane",
+      "lane": "explicit_no_source_exemption",
       "candidateClassification": null,
       "candidateBlockedReason": null,
+      "terminalClosureStatus": "non_item_effect",
+      "terminalResolutionLane": "explicit_no_source_exemption_candidate",
+      "terminalRecommendedNextAction": "Exclude this row from item acquisition source coverage or move it to an effect/status domain audit.",
+      "exemptionRule": "terminal_non_item_effect",
       "plannedSourceRows": 0,
-      "blockedReason": "no_source_evidence_found",
-      "evidence": []
+      "blockedReason": null,
+      "evidence": [
+        {
+          "kind": "terminal_closure_status",
+          "status": "non_item_effect",
+          "reason": "Darkness resolves to an effect/buff/debuff page, not an item acquisition source page.",
+          "evidence": "Darkness raw page contains buff/debuff evidence",
+          "reportPath": "data/reports/item-source-raw-page-candidates-2026-06-11-current.json"
+        }
+      ]
     },
     {
       "itemId": 1476,
@@ -42693,12 +42708,24 @@
       "name": "Blue Jellyfish",
       "activeSourceCount": 0,
       "baselineBucket": "unclassified_no_source_evidence",
-      "lane": "unclassified_requires_new_lane",
+      "lane": "explicit_no_source_exemption",
       "candidateClassification": null,
       "candidateBlockedReason": null,
+      "terminalClosureStatus": "enemy_page_identity_mismatch",
+      "terminalResolutionLane": "explicit_no_source_exemption_candidate",
+      "terminalRecommendedNextAction": "Confirm whether this record belongs in NPC/enemy taxonomy; do not import an item acquisition source from the enemy page.",
+      "exemptionRule": "terminal_enemy_page_identity_mismatch",
       "plannedSourceRows": 0,
-      "blockedReason": "no_source_evidence_found",
-      "evidence": []
+      "blockedReason": null,
+      "evidence": [
+        {
+          "kind": "terminal_closure_status",
+          "status": "enemy_page_identity_mismatch",
+          "reason": "Blue Jellyfish resolves to the Jellyfish enemy page, not a safe item or bait acquisition page.",
+          "evidence": "Jellyfish raw page describes enemies and points bait items to a separate page",
+          "reportPath": "data/reports/item-source-raw-page-candidates-2026-06-11-current.json"
+        }
+      ]
     },
     {
       "itemId": 2437,
@@ -42706,12 +42733,24 @@
       "name": "Green Jellyfish",
       "activeSourceCount": 0,
       "baselineBucket": "unclassified_no_source_evidence",
-      "lane": "unclassified_requires_new_lane",
+      "lane": "explicit_no_source_exemption",
       "candidateClassification": null,
       "candidateBlockedReason": null,
+      "terminalClosureStatus": "enemy_page_identity_mismatch",
+      "terminalResolutionLane": "explicit_no_source_exemption_candidate",
+      "terminalRecommendedNextAction": "Confirm whether this record belongs in NPC/enemy taxonomy; do not import an item acquisition source from the enemy page.",
+      "exemptionRule": "terminal_enemy_page_identity_mismatch",
       "plannedSourceRows": 0,
-      "blockedReason": "no_source_evidence_found",
-      "evidence": []
+      "blockedReason": null,
+      "evidence": [
+        {
+          "kind": "terminal_closure_status",
+          "status": "enemy_page_identity_mismatch",
+          "reason": "Green Jellyfish resolves to the Jellyfish enemy page, not a safe item or bait acquisition page.",
+          "evidence": "Jellyfish raw page describes enemies and points bait items to a separate page",
+          "reportPath": "data/reports/item-source-raw-page-candidates-2026-06-11-current.json"
+        }
+      ]
     },
     {
       "itemId": 2438,
@@ -42719,12 +42758,24 @@
       "name": "Pink Jellyfish",
       "activeSourceCount": 0,
       "baselineBucket": "unclassified_no_source_evidence",
-      "lane": "unclassified_requires_new_lane",
+      "lane": "explicit_no_source_exemption",
       "candidateClassification": null,
       "candidateBlockedReason": null,
+      "terminalClosureStatus": "enemy_page_identity_mismatch",
+      "terminalResolutionLane": "explicit_no_source_exemption_candidate",
+      "terminalRecommendedNextAction": "Confirm whether this record belongs in NPC/enemy taxonomy; do not import an item acquisition source from the enemy page.",
+      "exemptionRule": "terminal_enemy_page_identity_mismatch",
       "plannedSourceRows": 0,
-      "blockedReason": "no_source_evidence_found",
-      "evidence": []
+      "blockedReason": null,
+      "evidence": [
+        {
+          "kind": "terminal_closure_status",
+          "status": "enemy_page_identity_mismatch",
+          "reason": "Pink Jellyfish resolves to the Jellyfish enemy page, not a safe item or bait acquisition page.",
+          "evidence": "Jellyfish raw page describes enemies and points bait items to a separate page",
+          "reportPath": "data/reports/item-source-raw-page-candidates-2026-06-11-current.json"
+        }
+      ]
     },
     {
       "itemId": 2439,
@@ -63758,12 +63809,24 @@
       "name": "Fake_newchest1",
       "activeSourceCount": 0,
       "baselineBucket": "unclassified_no_source_evidence",
-      "lane": "unclassified_requires_new_lane",
+      "lane": "explicit_no_source_exemption",
       "candidateClassification": null,
       "candidateBlockedReason": null,
+      "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+      "terminalResolutionLane": "explicit_no_source_exemption_candidate",
+      "terminalRecommendedNextAction": "Review item identity against standardized item records and wiki raw cache; either add a verified raw page, merge as an alias, or mark out of item acquisition source scope.",
+      "exemptionRule": "terminal_internal_or_unobtainable_identity_review",
       "plannedSourceRows": 0,
-      "blockedReason": "no_source_evidence_found",
-      "evidence": []
+      "blockedReason": null,
+      "evidence": [
+        {
+          "kind": "terminal_closure_status",
+          "status": "internal_or_unobtainable_identity_review",
+          "reason": "Fake_newchest1 has no exact safe local raw page and appears to require internal, duplicate, unobtainable, or alias identity review before source import.",
+          "evidence": "missing exact local raw page for Fake_newchest1",
+          "reportPath": "data/reports/item-source-raw-page-candidates-2026-06-11-current.json"
+        }
+      ]
     },
     {
       "itemId": 3706,
@@ -63771,12 +63834,24 @@
       "name": "Fake_newchest2",
       "activeSourceCount": 0,
       "baselineBucket": "unclassified_no_source_evidence",
-      "lane": "unclassified_requires_new_lane",
+      "lane": "explicit_no_source_exemption",
       "candidateClassification": null,
       "candidateBlockedReason": null,
+      "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+      "terminalResolutionLane": "explicit_no_source_exemption_candidate",
+      "terminalRecommendedNextAction": "Review item identity against standardized item records and wiki raw cache; either add a verified raw page, merge as an alias, or mark out of item acquisition source scope.",
+      "exemptionRule": "terminal_internal_or_unobtainable_identity_review",
       "plannedSourceRows": 0,
-      "blockedReason": "no_source_evidence_found",
-      "evidence": []
+      "blockedReason": null,
+      "evidence": [
+        {
+          "kind": "terminal_closure_status",
+          "status": "internal_or_unobtainable_identity_review",
+          "reason": "Fake_newchest2 has no exact safe local raw page and appears to require internal, duplicate, unobtainable, or alias identity review before source import.",
+          "evidence": "missing exact local raw page for Fake_newchest2",
+          "reportPath": "data/reports/item-source-raw-page-candidates-2026-06-11-current.json"
+        }
+      ]
     },
     {
       "itemId": 3707,
@@ -66207,12 +66282,24 @@
       "name": "OgreMask",
       "activeSourceCount": 0,
       "baselineBucket": "unclassified_no_source_evidence",
-      "lane": "unclassified_requires_new_lane",
+      "lane": "explicit_no_source_exemption",
       "candidateClassification": null,
       "candidateBlockedReason": null,
+      "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+      "terminalResolutionLane": "explicit_no_source_exemption_candidate",
+      "terminalRecommendedNextAction": "Review item identity against standardized item records and wiki raw cache; either add a verified raw page, merge as an alias, or mark out of item acquisition source scope.",
+      "exemptionRule": "terminal_internal_or_unobtainable_identity_review",
       "plannedSourceRows": 0,
-      "blockedReason": "no_source_evidence_found",
-      "evidence": []
+      "blockedReason": null,
+      "evidence": [
+        {
+          "kind": "terminal_closure_status",
+          "status": "internal_or_unobtainable_identity_review",
+          "reason": "OgreMask has no exact safe local raw page and appears to require internal, duplicate, unobtainable, or alias identity review before source import.",
+          "evidence": "missing exact local raw page for OgreMask",
+          "reportPath": "data/reports/item-source-raw-page-candidates-2026-06-11-current.json"
+        }
+      ]
     },
     {
       "itemId": 3848,
@@ -66220,12 +66307,24 @@
       "name": "GoblinMask",
       "activeSourceCount": 0,
       "baselineBucket": "unclassified_no_source_evidence",
-      "lane": "unclassified_requires_new_lane",
+      "lane": "explicit_no_source_exemption",
       "candidateClassification": null,
       "candidateBlockedReason": null,
+      "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+      "terminalResolutionLane": "explicit_no_source_exemption_candidate",
+      "terminalRecommendedNextAction": "Review item identity against standardized item records and wiki raw cache; either add a verified raw page, merge as an alias, or mark out of item acquisition source scope.",
+      "exemptionRule": "terminal_internal_or_unobtainable_identity_review",
       "plannedSourceRows": 0,
-      "blockedReason": "no_source_evidence_found",
-      "evidence": []
+      "blockedReason": null,
+      "evidence": [
+        {
+          "kind": "terminal_closure_status",
+          "status": "internal_or_unobtainable_identity_review",
+          "reason": "GoblinMask has no exact safe local raw page and appears to require internal, duplicate, unobtainable, or alias identity review before source import.",
+          "evidence": "missing exact local raw page for GoblinMask",
+          "reportPath": "data/reports/item-source-raw-page-candidates-2026-06-11-current.json"
+        }
+      ]
     },
     {
       "itemId": 3849,
@@ -66233,12 +66332,24 @@
       "name": "GoblinBomberCap",
       "activeSourceCount": 0,
       "baselineBucket": "unclassified_no_source_evidence",
-      "lane": "unclassified_requires_new_lane",
+      "lane": "explicit_no_source_exemption",
       "candidateClassification": null,
       "candidateBlockedReason": null,
+      "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+      "terminalResolutionLane": "explicit_no_source_exemption_candidate",
+      "terminalRecommendedNextAction": "Review item identity against standardized item records and wiki raw cache; either add a verified raw page, merge as an alias, or mark out of item acquisition source scope.",
+      "exemptionRule": "terminal_internal_or_unobtainable_identity_review",
       "plannedSourceRows": 0,
-      "blockedReason": "no_source_evidence_found",
-      "evidence": []
+      "blockedReason": null,
+      "evidence": [
+        {
+          "kind": "terminal_closure_status",
+          "status": "internal_or_unobtainable_identity_review",
+          "reason": "GoblinBomberCap has no exact safe local raw page and appears to require internal, duplicate, unobtainable, or alias identity review before source import.",
+          "evidence": "missing exact local raw page for GoblinBomberCap",
+          "reportPath": "data/reports/item-source-raw-page-candidates-2026-06-11-current.json"
+        }
+      ]
     },
     {
       "itemId": 3850,
@@ -66246,12 +66357,24 @@
       "name": "EtherianJavelin",
       "activeSourceCount": 0,
       "baselineBucket": "unclassified_no_source_evidence",
-      "lane": "unclassified_requires_new_lane",
+      "lane": "explicit_no_source_exemption",
       "candidateClassification": null,
       "candidateBlockedReason": null,
+      "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+      "terminalResolutionLane": "explicit_no_source_exemption_candidate",
+      "terminalRecommendedNextAction": "Review item identity against standardized item records and wiki raw cache; either add a verified raw page, merge as an alias, or mark out of item acquisition source scope.",
+      "exemptionRule": "terminal_internal_or_unobtainable_identity_review",
       "plannedSourceRows": 0,
-      "blockedReason": "no_source_evidence_found",
-      "evidence": []
+      "blockedReason": null,
+      "evidence": [
+        {
+          "kind": "terminal_closure_status",
+          "status": "internal_or_unobtainable_identity_review",
+          "reason": "EtherianJavelin has no exact safe local raw page and appears to require internal, duplicate, unobtainable, or alias identity review before source import.",
+          "evidence": "missing exact local raw page for EtherianJavelin",
+          "reportPath": "data/reports/item-source-raw-page-candidates-2026-06-11-current.json"
+        }
+      ]
     },
     {
       "itemId": 3851,
@@ -66259,12 +66382,24 @@
       "name": "KoboldDynamiteBackpack",
       "activeSourceCount": 0,
       "baselineBucket": "unclassified_no_source_evidence",
-      "lane": "unclassified_requires_new_lane",
+      "lane": "explicit_no_source_exemption",
       "candidateClassification": null,
       "candidateBlockedReason": null,
+      "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+      "terminalResolutionLane": "explicit_no_source_exemption_candidate",
+      "terminalRecommendedNextAction": "Review item identity against standardized item records and wiki raw cache; either add a verified raw page, merge as an alias, or mark out of item acquisition source scope.",
+      "exemptionRule": "terminal_internal_or_unobtainable_identity_review",
       "plannedSourceRows": 0,
-      "blockedReason": "no_source_evidence_found",
-      "evidence": []
+      "blockedReason": null,
+      "evidence": [
+        {
+          "kind": "terminal_closure_status",
+          "status": "internal_or_unobtainable_identity_review",
+          "reason": "KoboldDynamiteBackpack has no exact safe local raw page and appears to require internal, duplicate, unobtainable, or alias identity review before source import.",
+          "evidence": "missing exact local raw page for KoboldDynamiteBackpack",
+          "reportPath": "data/reports/item-source-raw-page-candidates-2026-06-11-current.json"
+        }
+      ]
     },
     {
       "itemId": 3852,
@@ -66293,12 +66428,24 @@
       "name": "BoringBow",
       "activeSourceCount": 0,
       "baselineBucket": "unclassified_no_source_evidence",
-      "lane": "unclassified_requires_new_lane",
+      "lane": "explicit_no_source_exemption",
       "candidateClassification": null,
       "candidateBlockedReason": null,
+      "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+      "terminalResolutionLane": "explicit_no_source_exemption_candidate",
+      "terminalRecommendedNextAction": "Review item identity against standardized item records and wiki raw cache; either add a verified raw page, merge as an alias, or mark out of item acquisition source scope.",
+      "exemptionRule": "terminal_internal_or_unobtainable_identity_review",
       "plannedSourceRows": 0,
-      "blockedReason": "no_source_evidence_found",
-      "evidence": []
+      "blockedReason": null,
+      "evidence": [
+        {
+          "kind": "terminal_closure_status",
+          "status": "internal_or_unobtainable_identity_review",
+          "reason": "BoringBow has no exact safe local raw page and appears to require internal, duplicate, unobtainable, or alias identity review before source import.",
+          "evidence": "missing exact local raw page for BoringBow",
+          "reportPath": "data/reports/item-source-raw-page-candidates-2026-06-11-current.json"
+        }
+      ]
     },
     {
       "itemId": 3854,
@@ -68374,12 +68521,24 @@
       "name": "ColorOnlyDye",
       "activeSourceCount": 0,
       "baselineBucket": "unclassified_no_source_evidence",
-      "lane": "unclassified_requires_new_lane",
+      "lane": "explicit_no_source_exemption",
       "candidateClassification": null,
       "candidateBlockedReason": null,
+      "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+      "terminalResolutionLane": "explicit_no_source_exemption_candidate",
+      "terminalRecommendedNextAction": "Review item identity against standardized item records and wiki raw cache; either add a verified raw page, merge as an alias, or mark out of item acquisition source scope.",
+      "exemptionRule": "terminal_internal_or_unobtainable_identity_review",
       "plannedSourceRows": 0,
-      "blockedReason": "no_source_evidence_found",
-      "evidence": []
+      "blockedReason": null,
+      "evidence": [
+        {
+          "kind": "terminal_closure_status",
+          "status": "internal_or_unobtainable_identity_review",
+          "reason": "ColorOnlyDye has no exact safe local raw page and appears to require internal, duplicate, unobtainable, or alias identity review before source import.",
+          "evidence": "missing exact local raw page for ColorOnlyDye",
+          "reportPath": "data/reports/item-source-raw-page-candidates-2026-06-11-current.json"
+        }
+      ]
     },
     {
       "itemId": 3979,
@@ -71338,12 +71497,24 @@
       "name": "ManaCloakStar",
       "activeSourceCount": 0,
       "baselineBucket": "unclassified_no_source_evidence",
-      "lane": "unclassified_requires_new_lane",
+      "lane": "explicit_no_source_exemption",
       "candidateClassification": null,
       "candidateBlockedReason": null,
+      "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+      "terminalResolutionLane": "explicit_no_source_exemption_candidate",
+      "terminalRecommendedNextAction": "Review item identity against standardized item records and wiki raw cache; either add a verified raw page, merge as an alias, or mark out of item acquisition source scope.",
+      "exemptionRule": "terminal_internal_or_unobtainable_identity_review",
       "plannedSourceRows": 0,
-      "blockedReason": "no_source_evidence_found",
-      "evidence": []
+      "blockedReason": null,
+      "evidence": [
+        {
+          "kind": "terminal_closure_status",
+          "status": "internal_or_unobtainable_identity_review",
+          "reason": "ManaCloakStar has no exact safe local raw page and appears to require internal, duplicate, unobtainable, or alias identity review before source import.",
+          "evidence": "missing exact local raw page for ManaCloakStar",
+          "reportPath": "data/reports/item-source-raw-page-candidates-2026-06-11-current.json"
+        }
+      ]
     },
     {
       "itemId": 4144,
@@ -105463,12 +105634,23 @@
       "name": "Pink Jellyfish (bait)",
       "activeSourceCount": 0,
       "baselineBucket": "unclassified_no_source_evidence",
-      "lane": "unclassified_requires_new_lane",
+      "lane": "missing_required_raw_evidence",
       "candidateClassification": null,
       "candidateBlockedReason": null,
+      "terminalClosureStatus": "missing_bait_raw",
+      "terminalResolutionLane": "missing_required_raw_evidence",
+      "terminalRecommendedNextAction": "Fetch or add a verified Jellyfish (bait) raw page, then parse bait acquisition evidence from that exact page.",
       "plannedSourceRows": 0,
-      "blockedReason": "no_source_evidence_found",
-      "evidence": []
+      "blockedReason": "missing_required_raw_evidence",
+      "evidence": [
+        {
+          "kind": "terminal_closure_status",
+          "status": "missing_bait_raw",
+          "reason": "Pink Jellyfish (bait) needs a bait-specific raw page; the available Jellyfish alias is an enemy page and is not safe item acquisition evidence.",
+          "evidence": "alias raw page Jellyfish does not prove identity for Pink Jellyfish (bait)",
+          "reportPath": "data/reports/item-source-raw-page-candidates-2026-06-11-current.json"
+        }
+      ]
     },
     {
       "itemId": 8417,
@@ -105476,12 +105658,23 @@
       "name": "Green Jellyfish (bait)",
       "activeSourceCount": 0,
       "baselineBucket": "unclassified_no_source_evidence",
-      "lane": "unclassified_requires_new_lane",
+      "lane": "missing_required_raw_evidence",
       "candidateClassification": null,
       "candidateBlockedReason": null,
+      "terminalClosureStatus": "missing_bait_raw",
+      "terminalResolutionLane": "missing_required_raw_evidence",
+      "terminalRecommendedNextAction": "Fetch or add a verified Jellyfish (bait) raw page, then parse bait acquisition evidence from that exact page.",
       "plannedSourceRows": 0,
-      "blockedReason": "no_source_evidence_found",
-      "evidence": []
+      "blockedReason": "missing_required_raw_evidence",
+      "evidence": [
+        {
+          "kind": "terminal_closure_status",
+          "status": "missing_bait_raw",
+          "reason": "Green Jellyfish (bait) needs a bait-specific raw page; the available Jellyfish alias is an enemy page and is not safe item acquisition evidence.",
+          "evidence": "alias raw page Jellyfish does not prove identity for Green Jellyfish (bait)",
+          "reportPath": "data/reports/item-source-raw-page-candidates-2026-06-11-current.json"
+        }
+      ]
     },
     {
       "itemId": 8418,
@@ -105489,12 +105682,23 @@
       "name": "Blue Jellyfish (bait)",
       "activeSourceCount": 0,
       "baselineBucket": "unclassified_no_source_evidence",
-      "lane": "unclassified_requires_new_lane",
+      "lane": "missing_required_raw_evidence",
       "candidateClassification": null,
       "candidateBlockedReason": null,
+      "terminalClosureStatus": "missing_bait_raw",
+      "terminalResolutionLane": "missing_required_raw_evidence",
+      "terminalRecommendedNextAction": "Fetch or add a verified Jellyfish (bait) raw page, then parse bait acquisition evidence from that exact page.",
       "plannedSourceRows": 0,
-      "blockedReason": "no_source_evidence_found",
-      "evidence": []
+      "blockedReason": "missing_required_raw_evidence",
+      "evidence": [
+        {
+          "kind": "terminal_closure_status",
+          "status": "missing_bait_raw",
+          "reason": "Blue Jellyfish (bait) needs a bait-specific raw page; the available Jellyfish alias is an enemy page and is not safe item acquisition evidence.",
+          "evidence": "alias raw page Jellyfish does not prove identity for Blue Jellyfish (bait)",
+          "reportPath": "data/reports/item-source-raw-page-candidates-2026-06-11-current.json"
+        }
+      ]
     },
     {
       "itemId": 8419,
