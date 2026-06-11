@@ -1,0 +1,57 @@
+{
+  "generatedAt": "2026-06-11T00:20:51.465Z",
+  "batchId": "item-source-composite-shop-split-lane-q-apply",
+  "apply": true,
+  "connection": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "database": "terria_v1_local",
+    "user": "root"
+  },
+  "backupPath": "/home/lolben/TerraPedia/data/backups/item-source-composite-shop-split/item-source-composite-shop-split-lane-q-apply.before.json",
+  "summary": {
+    "inputRows": 2,
+    "rowsToSplit": 2,
+    "insertRowsPlanned": 1,
+    "blockedRows": 0,
+    "validationErrors": 0,
+    "updatedRows": 2,
+    "insertedRows": 1
+  },
+  "splits": [
+    {
+      "id": 195807,
+      "itemId": 3548,
+      "oldSourceRefName": "her for",
+      "oldSourceRefType": "unknown",
+      "oldSourceRefId": null,
+      "updateTarget": {
+        "sourceRefName": "Party Girl",
+        "sourceRefId": 208
+      },
+      "insertTargets": []
+    },
+    {
+      "id": 196401,
+      "itemId": 1263,
+      "oldSourceRefName": "the",
+      "oldSourceRefType": "unknown",
+      "oldSourceRefId": null,
+      "updateTarget": {
+        "sourceRefName": "Mechanic",
+        "sourceRefId": 124
+      },
+      "insertTargets": [
+        {
+          "sourceRefName": "Steampunker",
+          "sourceRefId": 178
+        }
+      ]
+    }
+  ],
+  "blocked": [],
+  "insertedIds": [
+    198614
+  ],
+  "rollbackSql": "UPDATE `item_acquisition_sources` SET `source_ref_type` = CASE `id` WHEN 195807 THEN 'unknown' WHEN 196401 THEN 'unknown' END, `source_ref_id` = CASE `id` WHEN 195807 THEN NULL WHEN 196401 THEN NULL END, `source_ref_name` = CASE `id` WHEN 195807 THEN 'her for' WHEN 196401 THEN 'the' END WHERE `id` IN (195807, 196401);\nUPDATE `item_acquisition_sources` SET `status` = 0, `deleted` = 1 WHERE `id` IN (198614);"
+}

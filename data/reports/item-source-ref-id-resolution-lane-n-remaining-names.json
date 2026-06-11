@@ -1,0 +1,257 @@
+{
+  "generatedAt": "2026-06-11T00:01:44.253Z",
+  "rows": [
+    {
+      "source_ref_name": "Mimics",
+      "rowsMissing": 45,
+      "sourceTypes": "drop",
+      "pages": "Band of Regeneration | Blizzard in a Bottle | Chain Guillotines | Clinger Staff | Cloud in a Bottle | Coal | Cross Necklace | Crystal Vile Shard | Daedalus Stormbow | Dart Pistol | Dart Rifle | Dual Hook | Extractinator | Fart in a Jar | Fetid Baghnakhs | Flare Gun | Flesh Knuckles | Flower of Frost | Flurry Boots | Flying Knife | Frostbrand | Golden Shower | Greater Healing Potion | Greater Mana Potion | Hermes Boots | Ice Blade | Ice Boomerang | Ice Bow | Ice Skates | Life Drain | Mace | Magic Dagger | Philosopher's Stone | Poo | Putrid Scent | Red Potion | Shoe Spikes | Snowball Cannon | Sparkle Slime Balloon | Star Cloak | Stink Potion | Titan Glove | Toy Sled | Water Gun",
+      "npcMatches": 0
+    },
+    {
+      "source_ref_name": "Zombie",
+      "rowsMissing": 7,
+      "sourceTypes": "drop",
+      "pages": "Gel | Shackle | Slime Staff | Spiffo Plush | Wooden Arrow | Zombie Arm",
+      "npcMatches": 36
+    },
+    {
+      "source_ref_name": "Blue Armored Bones",
+      "rowsMissing": 6,
+      "sourceTypes": "drop",
+      "pages": "Armor Polish | Bone Feather | Keybrand | Magnet Sphere | Morning Star | Wisp in a Bottle",
+      "npcMatches": 4
+    },
+    {
+      "source_ref_name": "Mummies",
+      "rowsMissing": 6,
+      "sourceTypes": "drop",
+      "pages": "Blindfold | Dark Shard | Fast Clock | Light Shard | Megaphone | Trifold Map",
+      "npcMatches": 0
+    },
+    {
+      "source_ref_name": "Ghouls",
+      "rowsMissing": 5,
+      "sourceTypes": "drop",
+      "pages": "Ancient Cloth | Cursed Flame | Dark Shard | Ichor | Light Shard",
+      "npcMatches": 0
+    },
+    {
+      "source_ref_name": "Hell Armored Bones",
+      "rowsMissing": 5,
+      "sourceTypes": "drop",
+      "pages": "Bone Feather | Keybrand | Magnet Sphere | Morning Star | Wisp in a Bottle",
+      "npcMatches": 4
+    },
+    {
+      "source_ref_name": "Angry Bones",
+      "rowsMissing": 4,
+      "sourceTypes": "drop",
+      "pages": "Bone | Clothier Voodoo Doll | Golden Key | Tally Counter",
+      "npcMatches": 6
+    },
+    {
+      "source_ref_name": "Crawdad",
+      "rowsMissing": 4,
+      "sourceTypes": "drop",
+      "pages": "Compass | Depth Meter | Potato Chips | Rally",
+      "npcMatches": 2
+    },
+    {
+      "source_ref_name": "Crimera",
+      "rowsMissing": 4,
+      "sourceTypes": "drop",
+      "pages": "Burger | Monster Meat | Tentacle Spike | Vertebra",
+      "npcMatches": 3
+    },
+    {
+      "source_ref_name": "Crimslime",
+      "rowsMissing": 4,
+      "sourceTypes": "drop",
+      "pages": "Blindfold | Gel | Meat Grinder | Monster Meat",
+      "npcMatches": 3
+    },
+    {
+      "source_ref_name": "Eater of Souls",
+      "rowsMissing": 4,
+      "sourceTypes": "drop",
+      "pages": "Burger | Monster Meat | Rotten Chunk | Tentacle Spike",
+      "npcMatches": 3
+    },
+    {
+      "source_ref_name": "Giant Shelly",
+      "rowsMissing": 4,
+      "sourceTypes": "drop",
+      "pages": "Compass | Depth Meter | Potato Chips | Rally",
+      "npcMatches": 2
+    },
+    {
+      "source_ref_name": "Jellyfish",
+      "rowsMissing": 4,
+      "sourceTypes": "drop",
+      "pages": "Glowstick | Jellyfish Necklace | Megaphone | Monster Meat",
+      "npcMatches": 0
+    },
+    {
+      "source_ref_name": "Salamander",
+      "rowsMissing": 4,
+      "sourceTypes": "drop",
+      "pages": "Compass | Depth Meter | Potato Chips | Rally",
+      "npcMatches": 9
+    },
+    {
+      "source_ref_name": "Sand Sharks",
+      "rowsMissing": 4,
+      "sourceTypes": "drop",
+      "pages": "Dark Shard | Light Shard | Nachos | Shark Fin",
+      "npcMatches": 0
+    },
+    {
+      "source_ref_name": "Skeleton",
+      "rowsMissing": 4,
+      "sourceTypes": "drop",
+      "pages": "Bone Sword | Carton of Milk | Hook | Skull",
+      "npcMatches": 19
+    },
+    {
+      "source_ref_name": "Slimer",
+      "rowsMissing": 4,
+      "sourceTypes": "drop",
+      "pages": "Blindfold | Gel | Meat Grinder | Monster Meat",
+      "npcMatches": 2
+    },
+    {
+      "source_ref_name": "The Destroyer",
+      "rowsMissing": 4,
+      "sourceTypes": "drop",
+      "pages": "Deactivated Probe | Greater Healing Potion | Hallowed Bar | Soul of Might",
+      "npcMatches": 3
+    },
+    {
+      "source_ref_name": "The Twins",
+      "rowsMissing": 4,
+      "sourceTypes": "drop",
+      "pages": "Greater Healing Potion | Hallowed Bar | Pair of Eyeballs | Soul of Sight",
+      "npcMatches": 0
+    },
+    {
+      "source_ref_name": "Black Recluse",
+      "rowsMissing": 3,
+      "sourceTypes": "drop",
+      "pages": "Fried Egg | Poison Staff | Spider Fang",
+      "npcMatches": 2
+    },
+    {
+      "source_ref_name": "Blood Crawler",
+      "rowsMissing": 3,
+      "sourceTypes": "drop",
+      "pages": "Monster Meat | Tentacle Spike | Vertebra",
+      "npcMatches": 2
+    },
+    {
+      "source_ref_name": "Lihzahrd",
+      "rowsMissing": 3,
+      "sourceTypes": "drop",
+      "pages": "Lihzahrd Power Cell | Lizard Egg | Solar Tablet Fragment",
+      "npcMatches": 2
+    },
+    {
+      "source_ref_name": "Moss Hornet",
+      "rowsMissing": 3,
+      "sourceTypes": "drop",
+      "pages": "Bezoar | Stinger | Tattered Bee Wing",
+      "npcMatches": 5
+    },
+    {
+      "source_ref_name": "Vampire",
+      "rowsMissing": 3,
+      "sourceTypes": "drop",
+      "pages": "Amulet of the Night | Broken Bat Wing | Moon Stone",
+      "npcMatches": 2
+    },
+    {
+      "source_ref_name": "Armored Skeleton",
+      "rowsMissing": 2,
+      "sourceTypes": "drop",
+      "pages": "Armor Polish | Beam Sword",
+      "npcMatches": 2
+    },
+    {
+      "source_ref_name": "Demon Eye",
+      "rowsMissing": 2,
+      "sourceTypes": "drop",
+      "pages": "Black Lens | Lens",
+      "npcMatches": 14
+    },
+    {
+      "source_ref_name": "Hornet",
+      "rowsMissing": 2,
+      "sourceTypes": "drop",
+      "pages": "Bezoar | Stinger",
+      "npcMatches": 18
+    },
+    {
+      "source_ref_name": "Slimes",
+      "rowsMissing": 2,
+      "sourceTypes": "drop",
+      "pages": "Gel | Giant Bow",
+      "npcMatches": 0
+    },
+    {
+      "source_ref_name": "Demolitionist and Skeleton Merchant for",
+      "rowsMissing": 1,
+      "sourceTypes": "shop",
+      "pages": "Bomb",
+      "npcMatches": 0
+    },
+    {
+      "source_ref_name": "Enchanted Sword (NPC)",
+      "rowsMissing": 1,
+      "sourceTypes": "drop",
+      "pages": "Nazar",
+      "npcMatches": 0
+    },
+    {
+      "source_ref_name": "Necromancer",
+      "rowsMissing": 1,
+      "sourceTypes": "drop",
+      "pages": "Shadowbeam Staff",
+      "npcMatches": 2
+    },
+    {
+      "source_ref_name": "Ragged Caster",
+      "rowsMissing": 1,
+      "sourceTypes": "drop",
+      "pages": "Spectre Staff",
+      "npcMatches": 2
+    },
+    {
+      "source_ref_name": "Sand Poacher",
+      "rowsMissing": 1,
+      "sourceTypes": "drop",
+      "pages": "Fried Egg",
+      "npcMatches": 2
+    },
+    {
+      "source_ref_name": "Wall Creeper",
+      "rowsMissing": 1,
+      "sourceTypes": "drop",
+      "pages": "Fried Egg",
+      "npcMatches": 2
+    },
+    {
+      "source_ref_name": "Witch Doctor and Arms Dealer",
+      "rowsMissing": 1,
+      "sourceTypes": "shop",
+      "pages": "Stynger",
+      "npcMatches": 0
+    },
+    {
+      "source_ref_name": "Wyvern",
+      "rowsMissing": 1,
+      "sourceTypes": "drop",
+      "pages": "Soul of Flight",
+      "npcMatches": 6
+    }
+  ]
+}

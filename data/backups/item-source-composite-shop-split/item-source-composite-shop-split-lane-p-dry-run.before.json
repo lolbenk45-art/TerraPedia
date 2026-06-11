@@ -1,0 +1,59 @@
+{
+  "generatedAt": "2026-06-11T00:13:33.513Z",
+  "batchId": "item-source-composite-shop-split-lane-p-dry-run",
+  "connection": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "database": "terria_v1_local"
+  },
+  "rows": [
+    {
+      "id": 194479,
+      "item_id": 166,
+      "source_type": "shop",
+      "source_ref_type": "npc",
+      "source_ref_id": null,
+      "source_ref_name": "Demolitionist and Skeleton Merchant for",
+      "biome_id": null,
+      "quantity_min": null,
+      "quantity_max": null,
+      "quantity_text": null,
+      "chance_value": null,
+      "chance_text": null,
+      "conditions": null,
+      "notes": "The Bomb can be purchased from the Demolitionist and Skeleton Merchant for 3 SC each or obtained from Pots , Chests , slimes , by powering Bomb Statues , or as a drop from Undead Miners with a 18/25 (72%) chance. It has a small chance to appear as a bonus drop from slimes.",
+      "source_provider": "wiki_gg",
+      "source_page": "Bomb",
+      "source_revision_timestamp": "2026-03-20T09:51:27.000Z",
+      "sort_order": 17,
+      "status": 1,
+      "deleted": 0,
+      "created_at": "2026-05-20T10:34:59.000Z",
+      "updated_at": "2026-05-20T10:35:26.000Z"
+    },
+    {
+      "id": 196350,
+      "item_id": 1258,
+      "source_type": "shop",
+      "source_ref_type": "npc",
+      "source_ref_id": null,
+      "source_ref_name": "Witch Doctor and Arms Dealer",
+      "biome_id": null,
+      "quantity_min": null,
+      "quantity_max": null,
+      "quantity_text": null,
+      "chance_value": null,
+      "chance_text": null,
+      "conditions": null,
+      "notes": "The Stynger has a 1/7 (14.29%) chance of being dropped by Golem . When dropped, the Stynger is always accompanied by 60 to 99 Stynger Bolts. Additional Stynger Bolts can be purchased from the Witch Doctor and Arms Dealer ( 75 CC per bolt), if the Stynger is in the player's inventory .",
+      "source_provider": "wiki_gg",
+      "source_page": "Stynger",
+      "source_revision_timestamp": "2026-01-05T11:47:00.000Z",
+      "sort_order": 6,
+      "status": 1,
+      "deleted": 0,
+      "created_at": "2026-05-20T10:35:00.000Z",
+      "updated_at": "2026-05-20T10:35:26.000Z"
+    }
+  ]
+}

@@ -12,8 +12,9 @@ const repoRoot = getProjectRoot();
 const require = createRequire(path.join(repoRoot, 'data-query-app', 'package.json'));
 const ITEM_BACKED_REF_TYPES = new Set(['item', 'container', 'crate', 'treasure_bag']);
 const NPC_BACKED_REF_TYPES = new Set(['npc', 'boss']);
-const SUPPORTED_SOURCE_TYPES = new Set(['drop', 'shop', 'container', 'crate', 'treasure_bag', 'worldgen', 'mining', 'quest_reward', 'craft', 'shimmer']);
-const SUPPORTED_REF_TYPES = new Set(['item', 'container', 'crate', 'treasure_bag', 'npc', 'boss', 'world']);
+const TEXT_ONLY_REF_TYPES = new Set(['world', 'npc_group', 'boss_group', 'unknown']);
+const SUPPORTED_SOURCE_TYPES = new Set(['drop', 'shop', 'container', 'crate', 'treasure_bag', 'worldgen', 'mining', 'fishing', 'capture', 'quest_reward', 'craft', 'shimmer', 'unknown']);
+const SUPPORTED_REF_TYPES = new Set(['item', 'container', 'crate', 'treasure_bag', 'npc', 'npc_group', 'boss', 'boss_group', 'world', 'unknown']);
 
 function booleanOption(value, fallback = false) {
   if (value == null || value === '') return fallback;
@@ -70,7 +71,7 @@ export function buildLocalCompatRows(plan, { sample = null, allowBulk = false } 
         continue;
       }
       const sourceRefId = resolveSourceRefId(source);
-      if (sourceRefType !== 'world' && sourceRefId == null) {
+      if (!TEXT_ONLY_REF_TYPES.has(sourceRefType) && sourceRefId == null) {
         blocked.push(blockedSource(candidate, source, 'source_ref_id_missing'));
         continue;
       }
@@ -213,7 +214,7 @@ export async function runItemSourceCandidateLocalCompatApply(options = {}, depen
     insertedIds,
     plannedRows: built.rows,
     rollbackSql: insertedIds.length
-      ? `DELETE FROM \`item_acquisition_sources\` WHERE \`id\` IN (${insertedIds.join(', ')});`
+      ? `UPDATE \`item_acquisition_sources\` SET \`status\` = 0, \`deleted\` = 1 WHERE \`id\` IN (${insertedIds.join(', ')});`
       : null
   };
   if (options.outputPath) {
@@ -236,7 +237,7 @@ function selectCandidates(plan, { sample = null, allowBulk = false } = {}) {
 
 function resolveSourceRefId(source) {
   const sourceRefType = normalizeText(source.sourceRefType)?.toLowerCase();
-  if (sourceRefType === 'world') return null;
+  if (TEXT_ONLY_REF_TYPES.has(sourceRefType)) return null;
   if (ITEM_BACKED_REF_TYPES.has(sourceRefType) || NPC_BACKED_REF_TYPES.has(sourceRefType)) {
     return toNullableInteger(source?.resolvedRef?.id);
   }

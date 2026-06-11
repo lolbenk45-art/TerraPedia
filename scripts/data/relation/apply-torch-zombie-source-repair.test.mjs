@@ -131,6 +131,6 @@ test('runTorchZombieSourceRepair applies update insert and soft delete with roll
   assert.equal(report.summary.inserted, 1);
   assert.equal(report.summary.softDeleted, 2);
   assert.deepEqual(report.insertedIds, [200001]);
-  assert.match(report.rollbackSql, /DELETE FROM `item_acquisition_sources` WHERE `id` IN \(200001\);/);
+  assert.match(report.rollbackSql, /UPDATE `item_acquisition_sources` SET `status` = 0, `deleted` = 1 WHERE `id` IN \(200001\);/);
   assert.match(report.rollbackSql, /WHEN 198599 THEN -55/);
 });

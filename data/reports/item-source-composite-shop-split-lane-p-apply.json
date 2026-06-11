@@ -1,0 +1,63 @@
+{
+  "generatedAt": "2026-06-11T00:17:15.264Z",
+  "batchId": "item-source-composite-shop-split-lane-p-apply",
+  "apply": true,
+  "connection": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "database": "terria_v1_local",
+    "user": "root"
+  },
+  "backupPath": "/home/lolben/TerraPedia/data/backups/item-source-composite-shop-split/item-source-composite-shop-split-lane-p-apply.before.json",
+  "summary": {
+    "inputRows": 2,
+    "rowsToSplit": 2,
+    "insertRowsPlanned": 2,
+    "blockedRows": 0,
+    "validationErrors": 0,
+    "updatedRows": 2,
+    "insertedRows": 2
+  },
+  "splits": [
+    {
+      "id": 194479,
+      "itemId": 166,
+      "oldSourceRefName": "Demolitionist and Skeleton Merchant for",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "updateTarget": {
+        "sourceRefName": "Demolitionist",
+        "sourceRefId": 38
+      },
+      "insertTargets": [
+        {
+          "sourceRefName": "Skeleton Merchant",
+          "sourceRefId": 453
+        }
+      ]
+    },
+    {
+      "id": 196350,
+      "itemId": 1258,
+      "oldSourceRefName": "Witch Doctor and Arms Dealer",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "updateTarget": {
+        "sourceRefName": "Witch Doctor",
+        "sourceRefId": 228
+      },
+      "insertTargets": [
+        {
+          "sourceRefName": "Arms Dealer",
+          "sourceRefId": 19
+        }
+      ]
+    }
+  ],
+  "blocked": [],
+  "insertedIds": [
+    198612,
+    198613
+  ],
+  "rollbackSql": "UPDATE `item_acquisition_sources` SET `source_ref_type` = CASE `id` WHEN 194479 THEN 'npc' WHEN 196350 THEN 'npc' END, `source_ref_id` = CASE `id` WHEN 194479 THEN NULL WHEN 196350 THEN NULL END, `source_ref_name` = CASE `id` WHEN 194479 THEN 'Demolitionist and Skeleton Merchant for' WHEN 196350 THEN 'Witch Doctor and Arms Dealer' END WHERE `id` IN (194479, 196350);\nUPDATE `item_acquisition_sources` SET `status` = 0, `deleted` = 1 WHERE `id` IN (198612, 198613);"
+}

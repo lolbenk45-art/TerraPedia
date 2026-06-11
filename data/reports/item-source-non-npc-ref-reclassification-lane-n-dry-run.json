@@ -1,0 +1,2212 @@
+{
+  "generatedAt": "2026-06-11T00:01:17.622Z",
+  "batchId": "item-source-non-npc-ref-reclassification-lane-n-dry-run",
+  "apply": false,
+  "connection": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "database": "terria_v1_local",
+    "user": "root"
+  },
+  "backupPath": "/home/lolben/TerraPedia/data/backups/item-source-non-npc-ref-reclassification/item-source-non-npc-ref-reclassification-lane-n-dry-run.before.json",
+  "summary": {
+    "inputRows": 256,
+    "rowsToUpdate": 99,
+    "blockedRows": 157,
+    "validationErrors": 0,
+    "updatedRows": 0
+  },
+  "updates": [
+    {
+      "id": 194292,
+      "itemId": 27,
+      "sourceType": "drop",
+      "sourceRefName": "Ash tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194293,
+      "itemId": 27,
+      "sourceType": "drop",
+      "sourceRefName": "Boreal tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194294,
+      "itemId": 27,
+      "sourceType": "drop",
+      "sourceRefName": "Forest tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194295,
+      "itemId": 27,
+      "sourceType": "drop",
+      "sourceRefName": "Pearlwood tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194297,
+      "itemId": 5629,
+      "sourceType": "drop",
+      "sourceRefName": "Ash tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194298,
+      "itemId": 5629,
+      "sourceType": "drop",
+      "sourceRefName": "Boreal tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194299,
+      "itemId": 5629,
+      "sourceType": "drop",
+      "sourceRefName": "Forest tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194301,
+      "itemId": 5629,
+      "sourceType": "drop",
+      "sourceRefName": "Pearlwood tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194313,
+      "itemId": 391,
+      "sourceType": "drop",
+      "sourceRefName": "Shadow Hammer",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "world_object_source"
+    },
+    {
+      "id": 194355,
+      "itemId": 4009,
+      "sourceType": "drop",
+      "sourceRefName": "Forest tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194356,
+      "itemId": 4009,
+      "sourceType": "drop",
+      "sourceRefName": "Forest tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194361,
+      "itemId": 4282,
+      "sourceType": "drop",
+      "sourceRefName": "Forest tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194362,
+      "itemId": 4282,
+      "sourceType": "drop",
+      "sourceRefName": "Forest tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194375,
+      "itemId": 5517,
+      "sourceType": "drop",
+      "sourceRefName": "Forest tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194386,
+      "itemId": 162,
+      "sourceType": "drop",
+      "sourceRefName": "Shadow Orb",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "heart_or_orb_source"
+    },
+    {
+      "id": 194390,
+      "itemId": 4283,
+      "sourceType": "drop",
+      "sourceRefName": "Ebonwood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194391,
+      "itemId": 4283,
+      "sourceType": "drop",
+      "sourceRefName": "Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194392,
+      "itemId": 4283,
+      "sourceType": "drop",
+      "sourceRefName": "Pearlwood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194393,
+      "itemId": 4283,
+      "sourceType": "drop",
+      "sourceRefName": "Shadewood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194401,
+      "itemId": 111,
+      "sourceType": "drop",
+      "sourceRefName": "Shadow Orb",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "heart_or_orb_source"
+    },
+    {
+      "id": 194433,
+      "itemId": 4284,
+      "sourceType": "drop",
+      "sourceRefName": "Ebonwood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194434,
+      "itemId": 4284,
+      "sourceType": "drop",
+      "sourceRefName": "Ebonwood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194435,
+      "itemId": 4284,
+      "sourceType": "drop",
+      "sourceRefName": "Ebonwood tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194436,
+      "itemId": 4284,
+      "sourceType": "drop",
+      "sourceRefName": "Ebonwood tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194456,
+      "itemId": 4285,
+      "sourceType": "drop",
+      "sourceRefName": "Shadewood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194457,
+      "itemId": 4285,
+      "sourceType": "drop",
+      "sourceRefName": "Shadewood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194458,
+      "itemId": 4285,
+      "sourceType": "drop",
+      "sourceRefName": "Shadewood tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194459,
+      "itemId": 4285,
+      "sourceType": "drop",
+      "sourceRefName": "Shadewood tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194553,
+      "itemId": 4286,
+      "sourceType": "drop",
+      "sourceRefName": "Boreal tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194595,
+      "itemId": 381,
+      "sourceType": "drop",
+      "sourceRefName": "Shadow Hammer",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "world_object_source"
+    },
+    {
+      "id": 194612,
+      "itemId": 4287,
+      "sourceType": "drop",
+      "sourceRefName": "Ebonwood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194613,
+      "itemId": 4287,
+      "sourceType": "drop",
+      "sourceRefName": "Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194614,
+      "itemId": 4287,
+      "sourceType": "drop",
+      "sourceRefName": "Pearlwood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194615,
+      "itemId": 4287,
+      "sourceType": "drop",
+      "sourceRefName": "Shadewood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194686,
+      "itemId": 1256,
+      "sourceType": "drop",
+      "sourceRefName": "Crimson Heart",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "heart_or_orb_source"
+    },
+    {
+      "id": 194777,
+      "itemId": 4288,
+      "sourceType": "drop",
+      "sourceRefName": "Pearlwood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194778,
+      "itemId": 4288,
+      "sourceType": "drop",
+      "sourceRefName": "Pearlwood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194779,
+      "itemId": 4288,
+      "sourceType": "drop",
+      "sourceRefName": "Pearlwood tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194780,
+      "itemId": 4288,
+      "sourceType": "drop",
+      "sourceRefName": "Pearlwood tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194781,
+      "itemId": 4288,
+      "sourceType": "drop",
+      "sourceRefName": "Pearlwood tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194803,
+      "itemId": 4289,
+      "sourceType": "drop",
+      "sourceRefName": "Ebonwood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194804,
+      "itemId": 4289,
+      "sourceType": "drop",
+      "sourceRefName": "Ebonwood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194805,
+      "itemId": 4289,
+      "sourceType": "drop",
+      "sourceRefName": "Ebonwood tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194806,
+      "itemId": 4289,
+      "sourceType": "drop",
+      "sourceRefName": "Ebonwood tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194822,
+      "itemId": 4366,
+      "sourceType": "drop",
+      "sourceRefName": "Forest tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 194921,
+      "itemId": 3457,
+      "sourceType": "drop",
+      "sourceRefName": "Celestial Pillars",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "world_object_source"
+    },
+    {
+      "id": 194922,
+      "itemId": 3458,
+      "sourceType": "drop",
+      "sourceRefName": "Celestial Pillars",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "world_object_source"
+    },
+    {
+      "id": 194923,
+      "itemId": 3459,
+      "sourceType": "drop",
+      "sourceRefName": "Celestial Pillars",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "world_object_source"
+    },
+    {
+      "id": 194924,
+      "itemId": 3456,
+      "sourceType": "drop",
+      "sourceRefName": "Celestial Pillars",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "world_object_source"
+    },
+    {
+      "id": 195047,
+      "itemId": 4290,
+      "sourceType": "drop",
+      "sourceRefName": "Forest tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 195048,
+      "itemId": 4290,
+      "sourceType": "drop",
+      "sourceRefName": "Forest tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 195444,
+      "itemId": 4291,
+      "sourceType": "drop",
+      "sourceRefName": "Forest tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 195445,
+      "itemId": 4291,
+      "sourceType": "drop",
+      "sourceRefName": "Forest tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 195543,
+      "itemId": 4292,
+      "sourceType": "drop",
+      "sourceRefName": "Mahogany tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 195544,
+      "itemId": 4292,
+      "sourceType": "drop",
+      "sourceRefName": "Mahogany tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 195640,
+      "itemId": 194,
+      "sourceType": "drop",
+      "sourceRefName": "Giant Glowing Mushroom",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "environment_source"
+    },
+    {
+      "id": 195646,
+      "itemId": 96,
+      "sourceType": "drop",
+      "sourceRefName": "Shadow Orb",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "heart_or_orb_source"
+    },
+    {
+      "id": 195649,
+      "itemId": 97,
+      "sourceType": "drop",
+      "sourceRefName": "Crimson Heart",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "heart_or_orb_source"
+    },
+    {
+      "id": 195650,
+      "itemId": 97,
+      "sourceType": "drop",
+      "sourceRefName": "Shadow Orb",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "heart_or_orb_source"
+    },
+    {
+      "id": 195664,
+      "itemId": 382,
+      "sourceType": "drop",
+      "sourceRefName": "Shadow Hammer",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "world_object_source"
+    },
+    {
+      "id": 195800,
+      "itemId": 1290,
+      "sourceType": "drop",
+      "sourceRefName": "Crimson Heart",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "heart_or_orb_source"
+    },
+    {
+      "id": 195807,
+      "itemId": 3548,
+      "sourceType": "shop",
+      "sourceRefName": "her for",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "unknown",
+      "newSourceRefId": null,
+      "reason": "malformed_source_name"
+    },
+    {
+      "id": 195811,
+      "itemId": 4293,
+      "sourceType": "drop",
+      "sourceRefName": "Forest tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 195812,
+      "itemId": 4293,
+      "sourceType": "drop",
+      "sourceRefName": "Forest tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 195832,
+      "itemId": 4294,
+      "sourceType": "drop",
+      "sourceRefName": "Mahogany tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 195833,
+      "itemId": 4294,
+      "sourceType": "drop",
+      "sourceRefName": "Mahogany tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 195942,
+      "itemId": 4295,
+      "sourceType": "drop",
+      "sourceRefName": "Boreal tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 195946,
+      "itemId": 5278,
+      "sourceType": "drop",
+      "sourceRefName": "Ash tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 195947,
+      "itemId": 5278,
+      "sourceType": "drop",
+      "sourceRefName": "Ash tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196006,
+      "itemId": 4296,
+      "sourceType": "drop",
+      "sourceRefName": "Shadewood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196007,
+      "itemId": 4296,
+      "sourceType": "drop",
+      "sourceRefName": "Shadewood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196008,
+      "itemId": 4296,
+      "sourceType": "drop",
+      "sourceRefName": "Shadewood tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196009,
+      "itemId": 4296,
+      "sourceType": "drop",
+      "sourceRefName": "Shadewood tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196054,
+      "itemId": 1809,
+      "sourceType": "drop",
+      "sourceRefName": "Ash tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196055,
+      "itemId": 1809,
+      "sourceType": "drop",
+      "sourceRefName": "Boreal tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196056,
+      "itemId": 1809,
+      "sourceType": "drop",
+      "sourceRefName": "Ebonwood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196057,
+      "itemId": 1809,
+      "sourceType": "drop",
+      "sourceRefName": "Ebonwood tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196058,
+      "itemId": 1809,
+      "sourceType": "drop",
+      "sourceRefName": "Forest tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196059,
+      "itemId": 1809,
+      "sourceType": "drop",
+      "sourceRefName": "Giant Glowing Mushroom",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "environment_source"
+    },
+    {
+      "id": 196061,
+      "itemId": 1809,
+      "sourceType": "drop",
+      "sourceRefName": "Mahogany tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196062,
+      "itemId": 1809,
+      "sourceType": "drop",
+      "sourceRefName": "Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196063,
+      "itemId": 1809,
+      "sourceType": "drop",
+      "sourceRefName": "Pearlwood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196064,
+      "itemId": 1809,
+      "sourceType": "drop",
+      "sourceRefName": "Pearlwood tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196065,
+      "itemId": 1809,
+      "sourceType": "drop",
+      "sourceRefName": "Shadewood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196066,
+      "itemId": 1809,
+      "sourceType": "drop",
+      "sourceRefName": "Shadewood tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196216,
+      "itemId": 1309,
+      "sourceType": "shop",
+      "sourceRefName": "seed:celebrationmk10",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "world_seed_condition_source"
+    },
+    {
+      "id": 196217,
+      "itemId": 1309,
+      "sourceType": "shop",
+      "sourceRefName": "seed:getfixedboi",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "world_seed_condition_source"
+    },
+    {
+      "id": 196301,
+      "itemId": 5277,
+      "sourceType": "drop",
+      "sourceRefName": "Ash tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196302,
+      "itemId": 5277,
+      "sourceType": "drop",
+      "sourceRefName": "Ash tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196322,
+      "itemId": 4297,
+      "sourceType": "drop",
+      "sourceRefName": "Pearlwood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196323,
+      "itemId": 4297,
+      "sourceType": "drop",
+      "sourceRefName": "Pearlwood Palm tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196324,
+      "itemId": 4297,
+      "sourceType": "drop",
+      "sourceRefName": "Pearlwood tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196325,
+      "itemId": 4297,
+      "sourceType": "drop",
+      "sourceRefName": "Pearlwood tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196326,
+      "itemId": 4297,
+      "sourceType": "drop",
+      "sourceRefName": "Pearlwood tree",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "tree_source"
+    },
+    {
+      "id": 196401,
+      "itemId": 1263,
+      "sourceType": "shop",
+      "sourceRefName": "the",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "unknown",
+      "newSourceRefId": null,
+      "reason": "malformed_source_name"
+    },
+    {
+      "id": 196417,
+      "itemId": 802,
+      "sourceType": "drop",
+      "sourceRefName": "Crimson Heart",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "heart_or_orb_source"
+    },
+    {
+      "id": 196421,
+      "itemId": 800,
+      "sourceType": "drop",
+      "sourceRefName": "Crimson Heart",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "heart_or_orb_source"
+    },
+    {
+      "id": 196615,
+      "itemId": 64,
+      "sourceType": "drop",
+      "sourceRefName": "Shadow Orb",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "world",
+      "newSourceRefId": null,
+      "reason": "heart_or_orb_source"
+    },
+    {
+      "id": 196623,
+      "itemId": 5382,
+      "sourceType": "drop",
+      "sourceRefName": "Mechdusa",
+      "oldSourceRefType": "npc",
+      "oldSourceRefId": null,
+      "newSourceRefType": "unknown",
+      "newSourceRefId": null,
+      "reason": "boss_lane_reference_source"
+    }
+  ],
+  "blocked": [
+    {
+      "id": 190936,
+      "itemId": 18,
+      "sourceType": "drop",
+      "sourceRefName": "Salamander",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 190939,
+      "itemId": 18,
+      "sourceType": "drop",
+      "sourceRefName": "Giant Shelly",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 190941,
+      "itemId": 18,
+      "sourceType": "drop",
+      "sourceRefName": "Crawdad",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 190948,
+      "itemId": 23,
+      "sourceType": "drop",
+      "sourceRefName": "Zombie",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 190954,
+      "itemId": 23,
+      "sourceType": "drop",
+      "sourceRefName": "Slimer",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 190965,
+      "itemId": 23,
+      "sourceType": "drop",
+      "sourceRefName": "Crimslime",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 191040,
+      "itemId": 393,
+      "sourceType": "drop",
+      "sourceRefName": "Salamander",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 191043,
+      "itemId": 393,
+      "sourceType": "drop",
+      "sourceRefName": "Giant Shelly",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 191044,
+      "itemId": 393,
+      "sourceType": "drop",
+      "sourceRefName": "Crawdad",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 191093,
+      "itemId": 886,
+      "sourceType": "drop",
+      "sourceRefName": "Blue Armored Bones",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 191096,
+      "itemId": 887,
+      "sourceType": "drop",
+      "sourceRefName": "Moss Hornet",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 191098,
+      "itemId": 888,
+      "sourceType": "drop",
+      "sourceRefName": "Slimer",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 191100,
+      "itemId": 888,
+      "sourceType": "drop",
+      "sourceRefName": "Crimslime",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 191183,
+      "itemId": 1517,
+      "sourceType": "drop",
+      "sourceRefName": "Hell Armored Bones",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 191353,
+      "itemId": 4015,
+      "sourceType": "drop",
+      "sourceRefName": "Eater of Souls",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 191359,
+      "itemId": 4020,
+      "sourceType": "drop",
+      "sourceRefName": "Wall Creeper",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 191601,
+      "itemId": 68,
+      "sourceType": "drop",
+      "sourceRefName": "Eater of Souls",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 191653,
+      "itemId": 4030,
+      "sourceType": "drop",
+      "sourceRefName": "Salamander",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 191654,
+      "itemId": 4030,
+      "sourceType": "drop",
+      "sourceRefName": "Giant Shelly",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 191769,
+      "itemId": 118,
+      "sourceType": "drop",
+      "sourceRefName": "Skeleton",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 191817,
+      "itemId": 1309,
+      "sourceType": "drop",
+      "sourceRefName": "Zombie",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 191818,
+      "itemId": 1309,
+      "sourceType": "drop",
+      "sourceRefName": "Zombie",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 192226,
+      "itemId": 5094,
+      "sourceType": "drop",
+      "sourceRefName": "Eater of Souls",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 192227,
+      "itemId": 5094,
+      "sourceType": "drop",
+      "sourceRefName": "Crimera",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 192261,
+      "itemId": 1304,
+      "sourceType": "drop",
+      "sourceRefName": "Zombie",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 192422,
+      "itemId": 209,
+      "sourceType": "drop",
+      "sourceRefName": "Moss Hornet",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 192464,
+      "itemId": 3285,
+      "sourceType": "drop",
+      "sourceRefName": "Salamander",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 192465,
+      "itemId": 3285,
+      "sourceType": "drop",
+      "sourceRefName": "Giant Shelly",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 192616,
+      "itemId": 1266,
+      "sourceType": "drop",
+      "sourceRefName": "Hell Armored Bones",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 192769,
+      "itemId": 5091,
+      "sourceType": "drop",
+      "sourceRefName": "Slimer",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 192774,
+      "itemId": 5091,
+      "sourceType": "drop",
+      "sourceRefName": "Eater of Souls",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 192775,
+      "itemId": 5091,
+      "sourceType": "drop",
+      "sourceRefName": "Crimslime",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 192776,
+      "itemId": 5091,
+      "sourceType": "drop",
+      "sourceRefName": "Crimera",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 192818,
+      "itemId": 1330,
+      "sourceType": "drop",
+      "sourceRefName": "Crimera",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 192858,
+      "itemId": 40,
+      "sourceType": "drop",
+      "sourceRefName": "Zombie",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 192929,
+      "itemId": 5332,
+      "sourceType": "drop",
+      "sourceRefName": "Zombie",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 193020,
+      "itemId": 671,
+      "sourceType": "drop",
+      "sourceRefName": "Hell Armored Bones",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 193201,
+      "itemId": 891,
+      "sourceType": "drop",
+      "sourceRefName": "Enchanted Sword (NPC)",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 193417,
+      "itemId": 996,
+      "sourceType": "drop",
+      "sourceRefName": "Slimer",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 193423,
+      "itemId": 996,
+      "sourceType": "drop",
+      "sourceRefName": "Crimslime",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 193452,
+      "itemId": 2766,
+      "sourceType": "drop",
+      "sourceRefName": "Lihzahrd",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 193499,
+      "itemId": 216,
+      "sourceType": "drop",
+      "sourceRefName": "Zombie",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 193683,
+      "itemId": 1183,
+      "sourceType": "drop",
+      "sourceRefName": "Hell Armored Bones",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 193916,
+      "itemId": 1172,
+      "sourceType": "drop",
+      "sourceRefName": "Lihzahrd",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194140,
+      "itemId": 1293,
+      "sourceType": "drop",
+      "sourceRefName": "Lihzahrd",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194276,
+      "itemId": 4679,
+      "sourceType": "drop",
+      "sourceRefName": "Hell Armored Bones",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194344,
+      "itemId": 3794,
+      "sourceType": "drop",
+      "sourceRefName": "Ghouls",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194368,
+      "itemId": 886,
+      "sourceType": "drop",
+      "sourceRefName": "Armored Skeleton",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194397,
+      "itemId": 49,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194406,
+      "itemId": 5597,
+      "sourceType": "drop",
+      "sourceRefName": "Vampire",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194410,
+      "itemId": 723,
+      "sourceType": "drop",
+      "sourceRefName": "Armored Skeleton",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194428,
+      "itemId": 887,
+      "sourceType": "drop",
+      "sourceRefName": "Hornet",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194439,
+      "itemId": 236,
+      "sourceType": "drop",
+      "sourceRefName": "Demon Eye",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194444,
+      "itemId": 888,
+      "sourceType": "drop",
+      "sourceRefName": "Mummies",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194450,
+      "itemId": 987,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194479,
+      "itemId": 166,
+      "sourceType": "shop",
+      "sourceRefName": "Demolitionist and Skeleton Merchant for",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194480,
+      "itemId": 154,
+      "sourceType": "drop",
+      "sourceRefName": "Angry Bones",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194482,
+      "itemId": 1517,
+      "sourceType": "drop",
+      "sourceRefName": "Blue Armored Bones",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194490,
+      "itemId": 1166,
+      "sourceType": "drop",
+      "sourceRefName": "Skeleton",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194515,
+      "itemId": 1520,
+      "sourceType": "drop",
+      "sourceRefName": "Vampire",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194526,
+      "itemId": 4015,
+      "sourceType": "drop",
+      "sourceRefName": "Crimera",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194548,
+      "itemId": 3012,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194569,
+      "itemId": 3014,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194572,
+      "itemId": 1307,
+      "sourceType": "drop",
+      "sourceRefName": "Angry Bones",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194577,
+      "itemId": 53,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194582,
+      "itemId": 1922,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194697,
+      "itemId": 554,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194700,
+      "itemId": 3051,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194703,
+      "itemId": 522,
+      "sourceType": "drop",
+      "sourceRefName": "Ghouls",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194708,
+      "itemId": 3029,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194712,
+      "itemId": 527,
+      "sourceType": "drop",
+      "sourceRefName": "Ghouls",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194713,
+      "itemId": 527,
+      "sourceType": "drop",
+      "sourceRefName": "Mummies",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194714,
+      "itemId": 527,
+      "sourceType": "drop",
+      "sourceRefName": "Sand Sharks",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194715,
+      "itemId": 3007,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194716,
+      "itemId": 3008,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194755,
+      "itemId": 4803,
+      "sourceType": "drop",
+      "sourceRefName": "The Destroyer",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194784,
+      "itemId": 437,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194830,
+      "itemId": 997,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194849,
+      "itemId": 1724,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194850,
+      "itemId": 889,
+      "sourceType": "drop",
+      "sourceRefName": "Mummies",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194858,
+      "itemId": 3013,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194879,
+      "itemId": 930,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194883,
+      "itemId": 3016,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194900,
+      "itemId": 1264,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194908,
+      "itemId": 1579,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194911,
+      "itemId": 3030,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194926,
+      "itemId": 4020,
+      "sourceType": "drop",
+      "sourceRefName": "Black Recluse",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194927,
+      "itemId": 4020,
+      "sourceType": "drop",
+      "sourceRefName": "Sand Poacher",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194930,
+      "itemId": 676,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194945,
+      "itemId": 23,
+      "sourceType": "drop",
+      "sourceRefName": "Slimes",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194946,
+      "itemId": 4986,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194951,
+      "itemId": 1906,
+      "sourceType": "drop",
+      "sourceRefName": "Slimes",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194966,
+      "itemId": 282,
+      "sourceType": "drop",
+      "sourceRefName": "Jellyfish",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194997,
+      "itemId": 327,
+      "sourceType": "drop",
+      "sourceRefName": "Angry Bones",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 194998,
+      "itemId": 1336,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195084,
+      "itemId": 499,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195088,
+      "itemId": 499,
+      "sourceType": "drop",
+      "sourceRefName": "The Destroyer",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195089,
+      "itemId": 499,
+      "sourceType": "drop",
+      "sourceRefName": "The Twins",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195092,
+      "itemId": 500,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195106,
+      "itemId": 1225,
+      "sourceType": "drop",
+      "sourceRefName": "The Destroyer",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195107,
+      "itemId": 1225,
+      "sourceType": "drop",
+      "sourceRefName": "The Twins",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195199,
+      "itemId": 54,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195246,
+      "itemId": 724,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195250,
+      "itemId": 670,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195251,
+      "itemId": 725,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195263,
+      "itemId": 950,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195264,
+      "itemId": 1332,
+      "sourceType": "drop",
+      "sourceRefName": "Ghouls",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195348,
+      "itemId": 1303,
+      "sourceType": "drop",
+      "sourceRefName": "Jellyfish",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195363,
+      "itemId": 671,
+      "sourceType": "drop",
+      "sourceRefName": "Blue Armored Bones",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195446,
+      "itemId": 38,
+      "sourceType": "drop",
+      "sourceRefName": "Demon Eye",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195468,
+      "itemId": 528,
+      "sourceType": "drop",
+      "sourceRefName": "Ghouls",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195469,
+      "itemId": 528,
+      "sourceType": "drop",
+      "sourceRefName": "Mummies",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195470,
+      "itemId": 528,
+      "sourceType": "drop",
+      "sourceRefName": "Sand Sharks",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195498,
+      "itemId": 5011,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195500,
+      "itemId": 4679,
+      "sourceType": "drop",
+      "sourceRefName": "Blue Armored Bones",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195506,
+      "itemId": 517,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195515,
+      "itemId": 1266,
+      "sourceType": "drop",
+      "sourceRefName": "Blue Armored Bones",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195558,
+      "itemId": 890,
+      "sourceType": "drop",
+      "sourceRefName": "Jellyfish",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195559,
+      "itemId": 890,
+      "sourceType": "drop",
+      "sourceRefName": "Mummies",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195566,
+      "itemId": 5041,
+      "sourceType": "drop",
+      "sourceRefName": "Skeleton",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195629,
+      "itemId": 900,
+      "sourceType": "drop",
+      "sourceRefName": "Vampire",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195680,
+      "itemId": 4028,
+      "sourceType": "drop",
+      "sourceRefName": "Sand Sharks",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195820,
+      "itemId": 535,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195827,
+      "itemId": 5091,
+      "sourceType": "drop",
+      "sourceRefName": "Blood Crawler",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195829,
+      "itemId": 5091,
+      "sourceType": "drop",
+      "sourceRefName": "Jellyfish",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195945,
+      "itemId": 1308,
+      "sourceType": "drop",
+      "sourceRefName": "Black Recluse",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195948,
+      "itemId": 5395,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195960,
+      "itemId": 4030,
+      "sourceType": "drop",
+      "sourceRefName": "Crawdad",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 195978,
+      "itemId": 3015,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196005,
+      "itemId": 3285,
+      "sourceType": "drop",
+      "sourceRefName": "Crawdad",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196030,
+      "itemId": 678,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196107,
+      "itemId": 1444,
+      "sourceType": "drop",
+      "sourceRefName": "Necromancer",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196122,
+      "itemId": 319,
+      "sourceType": "drop",
+      "sourceRefName": "Sand Sharks",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196139,
+      "itemId": 975,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196209,
+      "itemId": 1274,
+      "sourceType": "drop",
+      "sourceRefName": "Skeleton",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196230,
+      "itemId": 1319,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196231,
+      "itemId": 1319,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196245,
+      "itemId": 3006,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196246,
+      "itemId": 575,
+      "sourceType": "drop",
+      "sourceRefName": "Wyvern",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196250,
+      "itemId": 548,
+      "sourceType": "drop",
+      "sourceRefName": "The Destroyer",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196254,
+      "itemId": 549,
+      "sourceType": "drop",
+      "sourceRefName": "The Twins",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196262,
+      "itemId": 1446,
+      "sourceType": "drop",
+      "sourceRefName": "Ragged Caster",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196304,
+      "itemId": 2607,
+      "sourceType": "drop",
+      "sourceRefName": "Black Recluse",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196321,
+      "itemId": 532,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196337,
+      "itemId": 209,
+      "sourceType": "drop",
+      "sourceRefName": "Hornet",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196340,
+      "itemId": 2353,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196350,
+      "itemId": 1258,
+      "sourceType": "shop",
+      "sourceRefName": "Witch Doctor and Arms Dealer",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196387,
+      "itemId": 3095,
+      "sourceType": "drop",
+      "sourceRefName": "Angry Bones",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196391,
+      "itemId": 1521,
+      "sourceType": "drop",
+      "sourceRefName": "Moss Hornet",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196406,
+      "itemId": 5094,
+      "sourceType": "drop",
+      "sourceRefName": "Blood Crawler",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196472,
+      "itemId": 536,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196503,
+      "itemId": 1312,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196517,
+      "itemId": 893,
+      "sourceType": "drop",
+      "sourceRefName": "Mummies",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196585,
+      "itemId": 4804,
+      "sourceType": "drop",
+      "sourceRefName": "The Twins",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196608,
+      "itemId": 1330,
+      "sourceType": "drop",
+      "sourceRefName": "Blood Crawler",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196640,
+      "itemId": 2272,
+      "sourceType": "drop",
+      "sourceRefName": "Mimics",
+      "reason": "not_reviewed_non_npc_source"
+    },
+    {
+      "id": 196658,
+      "itemId": 1183,
+      "sourceType": "drop",
+      "sourceRefName": "Blue Armored Bones",
+      "reason": "not_reviewed_non_npc_source"
+    }
+  ],
+  "rollbackSql": "UPDATE `item_acquisition_sources` SET `source_ref_type` = CASE `id` WHEN 194292 THEN 'npc' WHEN 194293 THEN 'npc' WHEN 194294 THEN 'npc' WHEN 194295 THEN 'npc' WHEN 194297 THEN 'npc' WHEN 194298 THEN 'npc' WHEN 194299 THEN 'npc' WHEN 194301 THEN 'npc' WHEN 194313 THEN 'npc' WHEN 194355 THEN 'npc' WHEN 194356 THEN 'npc' WHEN 194361 THEN 'npc' WHEN 194362 THEN 'npc' WHEN 194375 THEN 'npc' WHEN 194386 THEN 'npc' WHEN 194390 THEN 'npc' WHEN 194391 THEN 'npc' WHEN 194392 THEN 'npc' WHEN 194393 THEN 'npc' WHEN 194401 THEN 'npc' WHEN 194433 THEN 'npc' WHEN 194434 THEN 'npc' WHEN 194435 THEN 'npc' WHEN 194436 THEN 'npc' WHEN 194456 THEN 'npc' WHEN 194457 THEN 'npc' WHEN 194458 THEN 'npc' WHEN 194459 THEN 'npc' WHEN 194553 THEN 'npc' WHEN 194595 THEN 'npc' WHEN 194612 THEN 'npc' WHEN 194613 THEN 'npc' WHEN 194614 THEN 'npc' WHEN 194615 THEN 'npc' WHEN 194686 THEN 'npc' WHEN 194777 THEN 'npc' WHEN 194778 THEN 'npc' WHEN 194779 THEN 'npc' WHEN 194780 THEN 'npc' WHEN 194781 THEN 'npc' WHEN 194803 THEN 'npc' WHEN 194804 THEN 'npc' WHEN 194805 THEN 'npc' WHEN 194806 THEN 'npc' WHEN 194822 THEN 'npc' WHEN 194921 THEN 'npc' WHEN 194922 THEN 'npc' WHEN 194923 THEN 'npc' WHEN 194924 THEN 'npc' WHEN 195047 THEN 'npc' WHEN 195048 THEN 'npc' WHEN 195444 THEN 'npc' WHEN 195445 THEN 'npc' WHEN 195543 THEN 'npc' WHEN 195544 THEN 'npc' WHEN 195640 THEN 'npc' WHEN 195646 THEN 'npc' WHEN 195649 THEN 'npc' WHEN 195650 THEN 'npc' WHEN 195664 THEN 'npc' WHEN 195800 THEN 'npc' WHEN 195807 THEN 'npc' WHEN 195811 THEN 'npc' WHEN 195812 THEN 'npc' WHEN 195832 THEN 'npc' WHEN 195833 THEN 'npc' WHEN 195942 THEN 'npc' WHEN 195946 THEN 'npc' WHEN 195947 THEN 'npc' WHEN 196006 THEN 'npc' WHEN 196007 THEN 'npc' WHEN 196008 THEN 'npc' WHEN 196009 THEN 'npc' WHEN 196054 THEN 'npc' WHEN 196055 THEN 'npc' WHEN 196056 THEN 'npc' WHEN 196057 THEN 'npc' WHEN 196058 THEN 'npc' WHEN 196059 THEN 'npc' WHEN 196061 THEN 'npc' WHEN 196062 THEN 'npc' WHEN 196063 THEN 'npc' WHEN 196064 THEN 'npc' WHEN 196065 THEN 'npc' WHEN 196066 THEN 'npc' WHEN 196216 THEN 'npc' WHEN 196217 THEN 'npc' WHEN 196301 THEN 'npc' WHEN 196302 THEN 'npc' WHEN 196322 THEN 'npc' WHEN 196323 THEN 'npc' WHEN 196324 THEN 'npc' WHEN 196325 THEN 'npc' WHEN 196326 THEN 'npc' WHEN 196401 THEN 'npc' WHEN 196417 THEN 'npc' WHEN 196421 THEN 'npc' WHEN 196615 THEN 'npc' WHEN 196623 THEN 'npc' END, `source_ref_id` = CASE `id` WHEN 194292 THEN NULL WHEN 194293 THEN NULL WHEN 194294 THEN NULL WHEN 194295 THEN NULL WHEN 194297 THEN NULL WHEN 194298 THEN NULL WHEN 194299 THEN NULL WHEN 194301 THEN NULL WHEN 194313 THEN NULL WHEN 194355 THEN NULL WHEN 194356 THEN NULL WHEN 194361 THEN NULL WHEN 194362 THEN NULL WHEN 194375 THEN NULL WHEN 194386 THEN NULL WHEN 194390 THEN NULL WHEN 194391 THEN NULL WHEN 194392 THEN NULL WHEN 194393 THEN NULL WHEN 194401 THEN NULL WHEN 194433 THEN NULL WHEN 194434 THEN NULL WHEN 194435 THEN NULL WHEN 194436 THEN NULL WHEN 194456 THEN NULL WHEN 194457 THEN NULL WHEN 194458 THEN NULL WHEN 194459 THEN NULL WHEN 194553 THEN NULL WHEN 194595 THEN NULL WHEN 194612 THEN NULL WHEN 194613 THEN NULL WHEN 194614 THEN NULL WHEN 194615 THEN NULL WHEN 194686 THEN NULL WHEN 194777 THEN NULL WHEN 194778 THEN NULL WHEN 194779 THEN NULL WHEN 194780 THEN NULL WHEN 194781 THEN NULL WHEN 194803 THEN NULL WHEN 194804 THEN NULL WHEN 194805 THEN NULL WHEN 194806 THEN NULL WHEN 194822 THEN NULL WHEN 194921 THEN NULL WHEN 194922 THEN NULL WHEN 194923 THEN NULL WHEN 194924 THEN NULL WHEN 195047 THEN NULL WHEN 195048 THEN NULL WHEN 195444 THEN NULL WHEN 195445 THEN NULL WHEN 195543 THEN NULL WHEN 195544 THEN NULL WHEN 195640 THEN NULL WHEN 195646 THEN NULL WHEN 195649 THEN NULL WHEN 195650 THEN NULL WHEN 195664 THEN NULL WHEN 195800 THEN NULL WHEN 195807 THEN NULL WHEN 195811 THEN NULL WHEN 195812 THEN NULL WHEN 195832 THEN NULL WHEN 195833 THEN NULL WHEN 195942 THEN NULL WHEN 195946 THEN NULL WHEN 195947 THEN NULL WHEN 196006 THEN NULL WHEN 196007 THEN NULL WHEN 196008 THEN NULL WHEN 196009 THEN NULL WHEN 196054 THEN NULL WHEN 196055 THEN NULL WHEN 196056 THEN NULL WHEN 196057 THEN NULL WHEN 196058 THEN NULL WHEN 196059 THEN NULL WHEN 196061 THEN NULL WHEN 196062 THEN NULL WHEN 196063 THEN NULL WHEN 196064 THEN NULL WHEN 196065 THEN NULL WHEN 196066 THEN NULL WHEN 196216 THEN NULL WHEN 196217 THEN NULL WHEN 196301 THEN NULL WHEN 196302 THEN NULL WHEN 196322 THEN NULL WHEN 196323 THEN NULL WHEN 196324 THEN NULL WHEN 196325 THEN NULL WHEN 196326 THEN NULL WHEN 196401 THEN NULL WHEN 196417 THEN NULL WHEN 196421 THEN NULL WHEN 196615 THEN NULL WHEN 196623 THEN NULL END WHERE `id` IN (194292, 194293, 194294, 194295, 194297, 194298, 194299, 194301, 194313, 194355, 194356, 194361, 194362, 194375, 194386, 194390, 194391, 194392, 194393, 194401, 194433, 194434, 194435, 194436, 194456, 194457, 194458, 194459, 194553, 194595, 194612, 194613, 194614, 194615, 194686, 194777, 194778, 194779, 194780, 194781, 194803, 194804, 194805, 194806, 194822, 194921, 194922, 194923, 194924, 195047, 195048, 195444, 195445, 195543, 195544, 195640, 195646, 195649, 195650, 195664, 195800, 195807, 195811, 195812, 195832, 195833, 195942, 195946, 195947, 196006, 196007, 196008, 196009, 196054, 196055, 196056, 196057, 196058, 196059, 196061, 196062, 196063, 196064, 196065, 196066, 196216, 196217, 196301, 196302, 196322, 196323, 196324, 196325, 196326, 196401, 196417, 196421, 196615, 196623);"
+}

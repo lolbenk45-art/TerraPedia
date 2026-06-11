@@ -332,7 +332,19 @@ export function extractNarrativeSources(introParagraphs, pageTitle) {
     }
 
     if (/purchased from/i.test(text)) {
-      const purchaseMatch = text.match(/purchased from (?:the )?([A-Z][A-Za-z' ]+)/i);
+      const purchaseMatch = text.match(/purchased from (?:the )?([A-Z][A-Za-z' ]+?)(?:\s+for\b|[,.]|$)/i);
+      if (purchaseMatch) {
+        sources.push({
+          sourceType: 'shop',
+          sourceRefType: 'npc',
+          sourceRefName: purchaseMatch[1].trim(),
+          notes: text
+        });
+      }
+    }
+
+    if (/can be purchased from/i.test(text)) {
+      const purchaseMatch = text.match(/can be purchased from (?:the )?([A-Z][A-Za-z' ]+?)(?:\s+for\b|[,.]|$)/i);
       if (purchaseMatch) {
         sources.push({
           sourceType: 'shop',
@@ -352,6 +364,174 @@ export function extractNarrativeSources(introParagraphs, pageTitle) {
       });
     }
 
+    if (/\bfalls?\s+from\s+the\s+sky\b/i.test(text)) {
+      sources.push({
+        sourceType: 'worldgen',
+        sourceRefType: 'world',
+        sourceRefName: `${normalizedTitle} sky fall`,
+        conditions: text
+      });
+    }
+
+    if (/\bgenerates?\s+in\b/i.test(text) && /(underground|surface|vein|desert|jungle|snow|crimson|corruption|hallow|cavern|sky|space|ocean|dungeon|underworld)/i.test(text)) {
+      sources.push({
+        sourceType: 'worldgen',
+        sourceRefType: 'world',
+        sourceRefName: `${normalizedTitle} worldgen`,
+        conditions: text
+      });
+    }
+
+    if (/\bavailable during\b/i.test(text) && /\bseasonal event\b/i.test(text)) {
+      const eventMatch = text.match(/available during (?:the )?(.+? seasonal event)\b/i);
+      sources.push({
+        sourceType: 'drop',
+        sourceRefType: 'world',
+        sourceRefName: normalizeText(eventMatch?.[1]) ?? `${normalizedTitle} seasonal event`,
+        conditions: text
+      });
+    }
+
+    if (/\bobtained\b/i.test(text) && /\bas a reward for defeating bosses\b/i.test(text)) {
+      sources.push({
+        sourceType: 'treasure_bag',
+        sourceRefType: 'boss_group',
+        sourceRefName: 'defeating bosses',
+        conditions: text
+      });
+    }
+
+    if (/\bdropped from most bosses\b/i.test(text)) {
+      sources.push({
+        sourceType: 'drop',
+        sourceRefType: 'boss_group',
+        sourceRefName: 'most bosses',
+        chanceText: extractFirstChanceText(text),
+        conditions: text
+      });
+    }
+
+    if (/\bdropped by bosses and mini-bosses\b/i.test(text)) {
+      sources.push({
+        sourceType: 'drop',
+        sourceRefType: 'boss_group',
+        sourceRefName: 'bosses and mini-bosses',
+        conditions: text
+      });
+    }
+
+    if (/\bobtained\b/i.test(text) && /\bfrom Treasure Bags dropped from Hardmode bosses\b/i.test(text)) {
+      sources.push({
+        sourceType: 'treasure_bag',
+        sourceRefType: 'treasure_bag',
+        sourceRefName: 'Treasure Bags dropped from Hardmode bosses',
+        chanceText: extractFirstChanceText(text),
+        conditions: text
+      });
+    }
+
+    if (/\brewarded randomly by the Angler NPC\b/i.test(text) && /\bcompleting (?:fishing )?quests\b/i.test(text)) {
+      sources.push({
+        sourceType: 'quest_reward',
+        sourceRefType: 'npc',
+        sourceRefName: 'Angler',
+        conditions: text
+      });
+    }
+
+    if (/\b(?:can be received|has a base .* chance of being obtained) as\b/i.test(text) && /\bAngler\b/i.test(text) && /\b(?:fishing )?quests?\b/i.test(text)) {
+      sources.push({
+        sourceType: 'quest_reward',
+        sourceRefType: 'npc',
+        sourceRefName: 'Angler',
+        chanceText: extractFirstChanceText(text),
+        conditions: text
+      });
+    }
+
+    if (/\bis given by the Angler\b/i.test(text) && /\bcompleting\b/i.test(text)) {
+      sources.push({
+        sourceType: 'quest_reward',
+        sourceRefType: 'npc',
+        sourceRefName: 'Angler',
+        conditions: text
+      });
+    }
+
+    if (/\brewards the player\b/i.test(text) && /\brandom special exclusive dye\b/i.test(text)) {
+      sources.push({
+        sourceType: 'quest_reward',
+        sourceRefType: 'npc',
+        sourceRefName: 'Dye Trader',
+        conditions: text
+      });
+    }
+
+    if (/\bobtained by fishing\b/i.test(text)) {
+      const fishingMatch = text.match(/obtained by (fishing .+?)(?:[,.]|$)/i);
+      sources.push({
+        sourceType: 'crate',
+        sourceRefType: 'world',
+        sourceRefName: normalizeText(fishingMatch?.[1]) ?? 'fishing',
+        conditions: text
+      });
+    }
+
+    if (/\bcan be caught with any Bug Net\b/i.test(text)) {
+      sources.push({
+        sourceType: 'unknown',
+        sourceRefType: 'world',
+        sourceRefName: 'caught with any Bug Net',
+        conditions: text
+      });
+    }
+
+    if (/\bare obtained in the Old One's Army event\b/i.test(text)) {
+      sources.push({
+        sourceType: 'drop',
+        sourceRefType: 'world',
+        sourceRefName: "Old One's Army event",
+        conditions: text
+      });
+    }
+
+    if (/\bnaturally-generated Chest\b/i.test(text)) {
+      sources.push({
+        sourceType: 'worldgen',
+        sourceRefType: 'world',
+        sourceRefName: `${normalizedTitle} worldgen`,
+        conditions: text
+      });
+    }
+
+    if (/\bformed when a Gnome touches sunlight\b/i.test(text)) {
+      sources.push({
+        sourceType: 'unknown',
+        sourceRefType: 'npc',
+        sourceRefName: 'Gnome sunlight transformation',
+        conditions: text
+      });
+    }
+
+    if (/\bonly available to players in the Terraria Collector's Edition\b/i.test(text)) {
+      sources.push({
+        sourceType: 'unknown',
+        sourceRefType: 'world',
+        sourceRefName: "Terraria Collector's Edition",
+        conditions: text
+      });
+    }
+
+    if (/\bobtained by killing\b/i.test(text) && /\b(enemies|critters)\b/i.test(text)) {
+      const killMatch = text.match(/obtained by (killing .+?)(?:\.|$)/i);
+      sources.push({
+        sourceType: 'drop',
+        sourceRefType: 'npc_group',
+        sourceRefName: normalizeText(killMatch?.[1]) ?? 'killing enemies',
+        conditions: text
+      });
+    }
+
     if (/(can be mined|required to mine|needed to mine|harvested)/i.test(text)) {
       sources.push({
         sourceType: 'mining',
@@ -363,6 +543,10 @@ export function extractNarrativeSources(introParagraphs, pageTitle) {
   }
 
   return dedupeBy(sources, (source) => `${source.sourceType}|${source.sourceRefType}|${source.sourceRefName}|${source.conditions ?? ''}|${source.notes ?? ''}`);
+}
+
+function extractFirstChanceText(text) {
+  return normalizeText(text.match(/(?:\d+\s*\/\s*\d+\s*)?\(\s*\d+(?:\.\d+)?%\s*\)|\d+(?:\.\d+)?%/i)?.[0]) ?? null;
 }
 
 export function parseRecipeTable(expandedMarkup) {
@@ -388,8 +572,7 @@ export function parseRecipeTable(expandedMarkup) {
       previousStationMarkup = stationCell;
     }
 
-    const resultLinks = extractLinkedTitles(resultCell).filter((title) => !title.startsWith('Desktop ') && !title.startsWith('Console ') && !title.startsWith('Mobile '));
-    const resultName = resultLinks.find((title) => title !== 'Crafting station') ?? stripHtml(resultCell);
+    const resultName = extractRecipeResultName(resultCell);
     const resultQuantity = parseQuantity(resultCell.match(/<span class="am">([\s\S]*?)<\/span>/i)?.[1] ?? '');
     const versionScope = humanizeVersionNote(resultCell.match(/<div class="version-note[^"]*">([\s\S]*?)<\/div>/i)?.[1] ?? '');
 
@@ -436,6 +619,39 @@ export function parseRecipeTable(expandedMarkup) {
       isAlternative: Boolean(station.isAlternative)
     }))
   }));
+}
+
+function extractRecipeResultName(resultCell) {
+  const sortValueMatch = resultCell.match(/\bdata-sort-value="([^"]+)"/i);
+  const sortValue = normalizeRecipeResultCandidate(sortValueMatch?.[1]);
+  if (sortValue) {
+    return sortValue;
+  }
+
+  for (const imageMatch of resultCell.matchAll(/<img\b([^>]*?)>/gi)) {
+    const attrs = parseTagAttributes(imageMatch[1]);
+    const imageName = normalizeRecipeResultCandidate(attrs.alt ?? attrs.title);
+    if (imageName) {
+      return imageName;
+    }
+  }
+
+  const resultLinks = extractLinkedTitles(resultCell)
+    .map((title) => normalizeRecipeResultCandidate(title))
+    .filter(Boolean);
+  const linkedTitle = resultLinks.find((title) => title !== 'Crafting station');
+  return linkedTitle ?? normalizeText(stripHtml(resultCell));
+}
+
+function normalizeRecipeResultCandidate(value) {
+  const text = normalizeText(value)
+    ?.replace(/\.(?:gif|png|jpe?g|webp)$/i, '')
+    .trim();
+  if (!text) return null;
+  if (text === 'Item IDs' || text === 'Crafting station') return null;
+  if (/^(?:Desktop|Console|Mobile|Old-gen console|Nintendo 3DS)(?: version)?$/i.test(text)) return null;
+  if (/^Internal (?:Item|Tile|Projectile) ID/i.test(text)) return null;
+  return text;
 }
 
 function inferStationRequirementMode(markup, stationNames) {

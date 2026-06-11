@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-06-11T01:53:47.922Z",
+  "readOnly": true,
+  "entity": "item_source_row_quality_snapshot",
+  "connection": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "database": "terria_v1_local"
+  },
+  "sourceRowQuality": {
+    "missingNpcBossRefRows": 0,
+    "unknownSourceRefRows": 0,
+    "wikiUrlSourcePageRows": 0,
+    "emptyRuntimeSourceNameRows": 0,
+    "emptyBiomeWikitextNameRowsPreserved": 30,
+    "activeRows": 6932
+  }
+}

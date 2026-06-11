@@ -1,0 +1,37 @@
+{
+  "generatedAt": "2026-06-11T00:05:09.700Z",
+  "batchId": "item-source-npc-group-ref-reclassification-lane-o-post-apply",
+  "apply": false,
+  "connection": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "database": "terria_v1_local",
+    "user": "root"
+  },
+  "backupPath": "/home/lolben/TerraPedia/data/backups/item-source-npc-group-ref-reclassification/item-source-npc-group-ref-reclassification-lane-o-post-apply.before.json",
+  "summary": {
+    "inputRows": 2,
+    "rowsToUpdate": 0,
+    "blockedRows": 2,
+    "validationErrors": 0,
+    "updatedRows": 0
+  },
+  "updates": [],
+  "blocked": [
+    {
+      "id": 194479,
+      "itemId": 166,
+      "sourceType": "shop",
+      "sourceRefName": "Demolitionist and Skeleton Merchant for",
+      "reason": "not_reviewed_npc_group_source"
+    },
+    {
+      "id": 196350,
+      "itemId": 1258,
+      "sourceType": "shop",
+      "sourceRefName": "Witch Doctor and Arms Dealer",
+      "reason": "not_reviewed_npc_group_source"
+    }
+  ],
+  "rollbackSql": null
+}

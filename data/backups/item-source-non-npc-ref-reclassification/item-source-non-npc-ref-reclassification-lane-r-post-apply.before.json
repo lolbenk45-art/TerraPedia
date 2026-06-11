@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-06-11T00:23:34.961Z",
+  "batchId": "item-source-non-npc-ref-reclassification-lane-r-post-apply",
+  "connection": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "database": "terria_v1_local"
+  },
+  "rows": []
+}

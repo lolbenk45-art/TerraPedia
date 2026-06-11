@@ -316,7 +316,7 @@ function insertParams(row) {
 function buildRollbackSql(beforeRows, insertedIds) {
   const statements = [];
   if (insertedIds.length) {
-    statements.push(`DELETE FROM \`item_acquisition_sources\` WHERE \`id\` IN (${insertedIds.join(', ')});`);
+    statements.push(`UPDATE \`item_acquisition_sources\` SET \`status\` = 0, \`deleted\` = 1 WHERE \`id\` IN (${insertedIds.join(', ')});`);
   }
   if (Array.isArray(beforeRows) && beforeRows.length) {
     const ids = beforeRows.map((row) => Number(row.id));

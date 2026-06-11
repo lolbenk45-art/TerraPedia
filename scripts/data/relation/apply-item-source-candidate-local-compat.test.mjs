@@ -170,6 +170,120 @@ test('buildLocalCompatRows blocks unsupported source types before database valid
   assert.deepEqual(result.blocked.map((entry) => entry.reason), ['unsupported_source_type']);
 });
 
+test('buildLocalCompatRows preserves reviewed fishing and capture world sources', () => {
+  const plan = samplePlan();
+  plan.eligibleCandidates = [{
+    itemInternalName: 'ZephyrFish',
+    itemName: 'Zephyr Fish',
+    itemResolution: { status: 'resolved', id: 2420, internalName: 'ZephyrFish', name: 'Zephyr Fish' },
+    pageTitle: 'Zephyr Fish',
+    classification: 'high_confidence',
+    plannedSources: [
+      {
+        sourceType: 'fishing',
+        sourceRefType: 'world',
+        sourceRefName: 'Fishing',
+        quantityText: null,
+        chanceText: '2/3125 (0.06%)',
+        conditions: 'rarely caught from fishing in any body of water',
+        notes: null,
+        sourcePage: 'Zephyr Fish',
+        sourceRevisionTimestamp: '2026-04-02T10:40:10Z',
+        sortOrder: 0,
+        resolvedRef: null
+      },
+      {
+        sourceType: 'capture',
+        sourceRefType: 'world',
+        sourceRefName: 'Bug Net capture',
+        quantityText: null,
+        chanceText: null,
+        conditions: 'caught with a Bug Net',
+        notes: null,
+        sourcePage: 'Butterflies',
+        sourceRevisionTimestamp: '2026-04-02T10:40:10Z',
+        sortOrder: 1,
+        resolvedRef: null
+      }
+    ]
+  }];
+
+  const result = buildLocalCompatRows(plan, { sample: 'ZephyrFish' });
+
+  assert.equal(result.blocked.length, 0);
+  assert.deepEqual(
+    result.rows.map((row) => [row.sourceType, row.sourceRefType, row.sourceRefId, row.sourceRefName]),
+    [
+      ['fishing', 'world', null, 'Fishing'],
+      ['capture', 'world', null, 'Bug Net capture']
+    ]
+  );
+});
+
+test('buildLocalCompatRows preserves reviewed text-only group and unknown refs', () => {
+  const plan = samplePlan();
+  plan.eligibleCandidates = [{
+    itemInternalName: 'EtherianMana',
+    itemName: 'Etherian Mana',
+    itemResolution: { status: 'resolved', id: 3822, internalName: 'EtherianMana', name: 'Etherian Mana' },
+    pageTitle: 'Etherian Mana',
+    classification: 'high_confidence',
+    plannedSources: [
+      {
+        sourceType: 'drop',
+        sourceRefType: 'npc_group',
+        sourceRefName: "Old One's Army enemies",
+        quantityText: null,
+        chanceText: null,
+        conditions: "dropped by all of the event's enemies",
+        notes: null,
+        sourcePage: 'Etherian Mana',
+        sourceRevisionTimestamp: '2026-04-02T10:40:10Z',
+        sortOrder: 0,
+        resolvedRef: null
+      },
+      {
+        sourceType: 'drop',
+        sourceRefType: 'boss_group',
+        sourceRefName: "Skeletron's Red Hat variant",
+        quantityText: null,
+        chanceText: null,
+        conditions: "dropped by Skeletron's Red Hat variant",
+        notes: null,
+        sourcePage: 'Wings',
+        sourceRevisionTimestamp: '2026-04-02T10:40:10Z',
+        sortOrder: 1,
+        resolvedRef: null
+      },
+      {
+        sourceType: 'unknown',
+        sourceRefType: 'unknown',
+        sourceRefName: 'review-only transformation',
+        quantityText: null,
+        chanceText: null,
+        conditions: 'raw-backed source exists but has no stable entity ref',
+        notes: null,
+        sourcePage: 'Void Bag',
+        sourceRevisionTimestamp: '2026-04-02T10:40:10Z',
+        sortOrder: 2,
+        resolvedRef: null
+      }
+    ]
+  }];
+
+  const result = buildLocalCompatRows(plan, { sample: 'EtherianMana' });
+
+  assert.equal(result.blocked.length, 0);
+  assert.deepEqual(
+    result.rows.map((row) => [row.sourceType, row.sourceRefType, row.sourceRefId, row.sourceRefName]),
+    [
+      ['drop', 'npc_group', null, "Old One's Army enemies"],
+      ['drop', 'boss_group', null, "Skeletron's Red Hat variant"],
+      ['unknown', 'unknown', null, 'review-only transformation']
+    ]
+  );
+});
+
 test('runItemSourceCandidateLocalCompatApply dry-run validates and does not insert', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'item-source-local-dry-'));
   const inputPath = path.join(root, 'plan.json');
@@ -212,6 +326,6 @@ test('runItemSourceCandidateLocalCompatApply inserts missing rows and reports ro
   assert.equal(report.apply, true);
   assert.equal(report.summary.inserted, 2);
   assert.deepEqual(report.insertedIds, [9000, 9001]);
-  assert.match(report.rollbackSql, /DELETE FROM `item_acquisition_sources` WHERE `id` IN \(9000, 9001\);/);
+  assert.match(report.rollbackSql, /UPDATE `item_acquisition_sources` SET `status` = 0, `deleted` = 1 WHERE `id` IN \(9000, 9001\);/);
   assert.ok(fs.existsSync(report.backupPath));
 });
