@@ -71,6 +71,7 @@ export function auditRemainingSourceRawPageCandidates({
   for (const row of rows) {
     const rawResolution = findRawPageResolution(rawItemPageDir, row);
     if (!rawResolution.rawPath) {
+      const terminalClosure = terminalClosureForMissingRaw(row, rawResolution);
       const missingRawPage = {
         ...toItemSummary(row),
         pageTitle: row.name ?? row.internalName,
@@ -78,7 +79,8 @@ export function auditRemainingSourceRawPageCandidates({
         blockerReason: 'missing raw wiki page cache',
         specificBlockerReason: rawResolution.rejectedAliasReason ?? `missing raw wiki page cache for ${row.name ?? row.internalName}`,
         attemptedRawPath: expectedRawPagePath(rawItemPageDir, row.internalName),
-        extractedSources: []
+        extractedSources: [],
+        ...terminalClosure
       };
       missingRawPages.push(missingRawPage);
       hardBlockedRows.push(missingRawPage);
@@ -86,6 +88,22 @@ export function auditRemainingSourceRawPageCandidates({
     }
     const rawPath = rawResolution.rawPath;
     const payload = JSON.parse(fs.readFileSync(rawPath, 'utf8'));
+    const baseEntry = {
+      ...toItemSummary(row),
+      rawPath,
+      pageTitle: payload.pageTitle ?? null,
+      sourceRevisionTimestamp: payload.revisionTimestamp ?? null,
+      extractedSourceCount: 0,
+      extractedSources: []
+    };
+    const terminalClosure = terminalClosureForRawPage(baseEntry, row, payload);
+    if (terminalClosure) {
+      hardBlockedRows.push(toHardBlockedRawPage({
+        ...baseEntry,
+        unresolvedLane: classifyUnresolvedRawPage(baseEntry, payload)
+      }, row, payload, terminalClosure));
+      continue;
+    }
     const extractedSources = extractSourcesFromRawPayload(payload, npcLookup, row);
     const entry = {
       ...toItemSummary(row),
@@ -146,7 +164,10 @@ export function auditRemainingSourceRawPageCandidates({
         ...countBy(rawPagesWithoutSources, (entry) => entry.unresolvedLane)
       },
       sourceTypeCounts: countExtracted(candidates, (source) => source.sourceType),
-      sourceRefTypeCounts: countExtracted(candidates, (source) => source.sourceRefType)
+      sourceRefTypeCounts: countExtracted(candidates, (source) => source.sourceRefType),
+      terminalHardBlockedRows: hardBlockedRows.filter((row) => row.terminalClosureStatus).length,
+      terminalClosureStatusCounts: countBy(hardBlockedRows.filter((row) => row.terminalClosureStatus), (row) => row.terminalClosureStatus),
+      actionableParserHardBlockedRows: hardBlockedRows.filter((row) => !row.terminalClosureStatus).length
     },
     candidates,
     rawPagesWithoutSources,
@@ -157,7 +178,7 @@ export function auditRemainingSourceRawPageCandidates({
   };
 }
 
-function toHardBlockedRawPage(entry, row, payload) {
+function toHardBlockedRawPage(entry, row, payload, terminalClosure = null) {
   const lane = hardBlockLaneForUnresolved(entry.unresolvedLane);
   const specificBlockerReason = specificHardBlockReasonForEntry(entry, row, payload, lane);
   return {
@@ -174,7 +195,8 @@ function toHardBlockedRawPage(entry, row, payload) {
     blockerReason: hardBlockReasonForLane(lane),
     specificBlockerReason,
     priorUnresolvedLane: entry.unresolvedLane,
-    extractedSources: []
+    extractedSources: [],
+    ...(terminalClosure ?? {})
   };
 }
 
@@ -195,6 +217,66 @@ function hardBlockReasonForLane(lane) {
     return 'raw page source evidence uses an acquisition mechanism not represented by the current taxonomy';
   }
   return 'raw page exists but no supported source pattern was extracted';
+}
+
+function terminalClosureForMissingRaw(row, rawResolution = {}) {
+  const itemName = normalizeText(row?.name) ?? normalizeText(row?.internalName) ?? 'unknown item';
+  if (/\(bait\)$/i.test(itemName) && /alias raw page Jellyfish does not prove identity/i.test(rawResolution.rejectedAliasReason ?? '')) {
+    return {
+      terminalClosureStatus: 'missing_bait_raw',
+      terminalClosureReason: `${itemName} needs a bait-specific raw page; the available Jellyfish alias is an enemy page and is not safe item acquisition evidence.`,
+      recommendedNextAction: 'Fetch or add a verified Jellyfish (bait) raw page, then parse bait acquisition evidence from that exact page.',
+      terminalClosureEvidence: rawResolution.rejectedAliasReason
+    };
+  }
+  if (/^(?:Fake_newchest1|Fake_newchest2|OgreMask|GoblinMask|GoblinBomberCap|EtherianJavelin|KoboldDynamiteBackpack|BoringBow|ColorOnlyDye|ManaCloakStar)$/i.test(String(row?.internalName ?? itemName))) {
+    return {
+      terminalClosureStatus: 'internal_or_unobtainable_identity_review',
+      terminalClosureReason: `${itemName} has no exact safe local raw page and appears to require internal, duplicate, unobtainable, or alias identity review before source import.`,
+      recommendedNextAction: 'Review item identity against standardized item records and wiki raw cache; either add a verified raw page, merge as an alias, or mark out of item acquisition source scope.',
+      terminalClosureEvidence: rawResolution.rejectedAliasReason ?? `missing exact local raw page for ${itemName}`
+    };
+  }
+  return {
+    terminalClosureStatus: 'missing_exact_raw',
+    terminalClosureReason: `${itemName} has no exact safe local raw page.`,
+    recommendedNextAction: 'Add a verified exact raw page before attempting source extraction.',
+    terminalClosureEvidence: rawResolution.rejectedAliasReason ?? `missing raw wiki page cache for ${itemName}`
+  };
+}
+
+function terminalClosureForRawPage(entry, row, payload) {
+  const itemName = normalizeText(row?.name) ?? normalizeText(entry?.name) ?? 'unknown item';
+  const pageTitle = normalizeText(payload?.pageTitle) ?? normalizeText(entry?.pageTitle);
+  const wikitext = String(payload?.wikitext ?? '');
+  const text = cleanWikiText(`${wikitext} ${stripHtmlPreserve(payload?.html)}`);
+  if (
+    /^Darkness$/i.test(itemName)
+    && (
+      /buff infobox/i.test(wikitext)
+      || /\bdebuff\b/i.test(text)
+    )
+  ) {
+    return {
+      terminalClosureStatus: 'non_item_effect',
+      terminalClosureReason: `${itemName} resolves to an effect/buff/debuff page, not an item acquisition source page.`,
+      recommendedNextAction: 'Exclude this row from item acquisition source coverage or move it to an effect/status domain audit.',
+      terminalClosureEvidence: `${pageTitle ?? itemName} raw page contains buff/debuff evidence`
+    };
+  }
+  if (
+    pageTitle === 'Jellyfish'
+    && /\bJellyfish are enemies\b/i.test(text)
+    && !/\(bait\)$/i.test(itemName)
+  ) {
+    return {
+      terminalClosureStatus: 'enemy_page_identity_mismatch',
+      terminalClosureReason: `${itemName} resolves to the Jellyfish enemy page, not a safe item or bait acquisition page.`,
+      recommendedNextAction: 'Confirm whether this record belongs in NPC/enemy taxonomy; do not import an item acquisition source from the enemy page.',
+      terminalClosureEvidence: 'Jellyfish raw page describes enemies and points bait items to a separate page'
+    };
+  }
+  return null;
 }
 
 export function runAuditRemainingSourceRawPageCandidates(options = {}) {

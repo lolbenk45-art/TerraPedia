@@ -94,3 +94,60 @@ test('buildItemSourceGapCoveragePlan does not exempt items with evidence', () =>
   assert.equal(plan.rows[0].lane, 'recipe_or_shimmer_chain_covered');
   assert.equal(plan.summary.explicitNoSourceExemption, 0);
 });
+
+test('buildItemSourceGapCoveragePlan consumes terminal exemption and required raw evidence plans', () => {
+  const plan = buildItemSourceGapCoveragePlan({
+    baselineReport: {
+      rows: [
+        baselineRow({ itemId: 21, internalName: 'Darkness', primaryBucket: 'unclassified_no_source_evidence', blockedReason: 'no_source_evidence_found' }),
+        baselineRow({ itemId: 22, internalName: 'PinkJellyfishBait', primaryBucket: 'unclassified_no_source_evidence' }),
+        baselineRow({ itemId: 23, internalName: 'RecipeDarkness', primaryBucket: 'recipe_chain_covered', hasRecipe: true })
+      ]
+    },
+    candidatePlan: {},
+    terminalExemptionPlan: {
+      rows: [
+        {
+          itemId: 21,
+          internalName: 'Darkness',
+          resolutionLane: 'explicit_no_source_exemption_candidate',
+          exemptionRule: 'terminal_non_item_effect',
+          terminalClosureStatus: 'non_item_effect',
+          recommendedNextAction: 'Move to effect domain.',
+          evidence: [{ kind: 'terminal_closure_status' }]
+        },
+        {
+          itemId: 22,
+          internalName: 'PinkJellyfishBait',
+          resolutionLane: 'missing_required_raw_evidence',
+          exemptionRule: null,
+          terminalClosureStatus: 'missing_bait_raw',
+          recommendedNextAction: 'Fetch verified bait raw page.',
+          evidence: [{ kind: 'terminal_closure_status' }]
+        },
+        {
+          itemId: 23,
+          internalName: 'RecipeDarkness',
+          resolutionLane: 'explicit_no_source_exemption_candidate',
+          exemptionRule: 'bad_if_used',
+          terminalClosureStatus: 'non_item_effect',
+          evidence: [{ kind: 'terminal_closure_status' }]
+        }
+      ]
+    }
+  });
+
+  assert.deepEqual(plan.rows.map((row) => row.lane), [
+    'explicit_no_source_exemption',
+    'missing_required_raw_evidence',
+    'recipe_or_shimmer_chain_covered'
+  ]);
+  assert.equal(plan.rows[0].terminalClosureStatus, 'non_item_effect');
+  assert.equal(plan.rows[0].exemptionRule, 'terminal_non_item_effect');
+  assert.equal(plan.rows[0].blockedReason, null);
+  assert.equal(plan.rows[1].terminalClosureStatus, 'missing_bait_raw');
+  assert.equal(plan.rows[1].blockedReason, 'missing_required_raw_evidence');
+  assert.equal(Object.hasOwn(plan.rows[2], 'exemptionRule'), false);
+  assert.equal(plan.summary.explicitNoSourceExemption, 1);
+  assert.equal(plan.summary.missingRequiredRawEvidence, 1);
+});

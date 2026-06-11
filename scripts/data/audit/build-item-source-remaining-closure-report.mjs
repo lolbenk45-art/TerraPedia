@@ -19,6 +19,7 @@ const CLOSURE_LANES = [
   'family_policy_candidate',
   'needs_external_source_evidence',
   'explicit_no_source_exemption_candidate',
+  'missing_required_raw_evidence',
   'runtime_or_developer_internal',
   'manual_review_required'
 ];
@@ -160,6 +161,7 @@ export function buildItemSourceRemainingClosureReport({
       manualReviewRequired: laneCounts.manual_review_required ?? 0,
       needsExternalSourceEvidence: laneCounts.needs_external_source_evidence ?? 0,
       explicitNoSourceExemptionCandidate: laneCounts.explicit_no_source_exemption_candidate ?? 0,
+      missingRequiredRawEvidence: laneCounts.missing_required_raw_evidence ?? 0,
       familyPolicyCandidate: laneCounts.family_policy_candidate ?? 0,
       staleNpcRefGapWarning: staleNpcRefGapRows.length > 0,
       unmatchedCoverageRows: unmatchedCoverageRows.length,
@@ -255,7 +257,7 @@ export async function buildCurrentSourceRowQualityReport(options = {}, dependenc
 function buildClosureRow(row, coverageRow, paths) {
   const lane = resolveClosureLane(row, coverageRow);
   const rule = resolveClassificationRule(row, coverageRow, lane);
-  const sourceEvidenceStatus = resolveSourceEvidenceStatus(row, lane);
+  const sourceEvidenceStatus = resolveSourceEvidenceStatus(row, coverageRow, lane);
   const failedRules = lane === 'manual_review_required' ? buildFailedRules(row, coverageRow) : [];
   return {
     itemId: row.itemId,
@@ -273,12 +275,21 @@ function buildClosureRow(row, coverageRow, paths) {
     sourceReportPaths: [paths.baselinePath, paths.coveragePlanPath, paths.sourceQualityPath].filter(Boolean),
     failedRules,
     coverageBlockedReason: coverageRow?.blockedReason ?? null,
-    evidence: Array.isArray(row.evidence) ? row.evidence : []
+    ...(coverageRow?.terminalClosureStatus ? {
+      terminalClosureStatus: coverageRow.terminalClosureStatus,
+      terminalRecommendedNextAction: coverageRow.terminalRecommendedNextAction ?? null
+    } : {}),
+    evidence: [
+      ...(Array.isArray(row.evidence) ? row.evidence : []),
+      ...(Array.isArray(coverageRow?.evidence) ? coverageRow.evidence : [])
+    ]
   };
 }
 
 function resolveClosureLane(row, coverageRow) {
   if (coverageRow?.lane === 'family_policy_candidate') return 'family_policy_candidate';
+  if (coverageRow?.lane === 'explicit_no_source_exemption') return 'explicit_no_source_exemption_candidate';
+  if (coverageRow?.lane === 'missing_required_raw_evidence') return 'missing_required_raw_evidence';
   if (row.primaryBucket === 'recipe_chain_covered' || row.hasRecipe) return 'recipe_or_shimmer_chain_covered';
   if (row.primaryBucket === 'biome_evidence_only' || row.hasBiomeEvidence) return 'biome_evidence_projection';
   if (row.primaryBucket === 'npc_relation_chain_gap' || row.hasNpcLootOrShop || coverageRow?.lane === 'npc_ref_resolution_gap') return 'npc_relation_chain_gap';
@@ -293,7 +304,9 @@ function resolveClassificationRule(row, coverageRow, lane) {
   if (lane === 'recipe_or_shimmer_chain_covered') return 'baseline_recipe_or_shimmer_evidence';
   if (lane === 'biome_evidence_projection') return 'baseline_biome_evidence_projection';
   if (lane === 'npc_relation_chain_gap') return 'baseline_npc_relation_chain_gap';
+  if (lane === 'explicit_no_source_exemption_candidate' && coverageRow?.exemptionRule) return coverageRow.exemptionRule;
   if (lane === 'explicit_no_source_exemption_candidate') return 'deterministic_no_source_exemption_candidate';
+  if (lane === 'missing_required_raw_evidence') return 'terminal_missing_required_raw_evidence';
   if (lane === 'runtime_or_developer_internal') return 'deterministic_runtime_or_developer_internal';
   if (lane === 'needs_external_source_evidence') return 'deterministic_obtainable_shape_absent_local_evidence';
   return 'manual_review_no_deterministic_rule_matched';
@@ -304,14 +317,18 @@ function resolveClosureReason(row, coverageRow, lane) {
   if (lane === 'recipe_or_shimmer_chain_covered') return 'item has recipe or shimmer coverage and does not require an acquisition source row in this lane';
   if (lane === 'biome_evidence_projection') return 'item has biome evidence that should be projected, not inserted as a fabricated source row';
   if (lane === 'npc_relation_chain_gap') return 'baseline has NPC loot/shop relation evidence but no current local item source row; keep named for a future relation projection lane';
+  if (lane === 'explicit_no_source_exemption_candidate' && coverageRow?.terminalClosureStatus) return `terminal closure marks item as ${coverageRow.terminalClosureStatus}; no item acquisition source row should be imported without identity review`;
   if (lane === 'explicit_no_source_exemption_candidate') return 'item appears to be a deterministic no-source or unreleased/internal exemption candidate';
+  if (lane === 'missing_required_raw_evidence') return 'terminal closure found a source-like item but the exact required raw evidence is missing; do not fabricate a source row';
   if (lane === 'runtime_or_developer_internal') return 'item appears to be runtime, internal, inactive, or developer/internal content without obtainable source evidence';
   if (lane === 'needs_external_source_evidence') return 'no local source evidence exists in current artifacts; external source evidence refresh or manual source review is required';
   return 'no deterministic rule matched; row remains fully enumerated for manual classification';
 }
 
-function resolveSourceEvidenceStatus(row, lane) {
+function resolveSourceEvidenceStatus(row, coverageRow, lane) {
   if (row.evidence?.length > 0 || row.hasRecipe || row.hasBiomeEvidence || row.hasNpcLootOrShop) return 'local_evidence_present';
+  if (lane === 'explicit_no_source_exemption_candidate' && coverageRowHasTerminalEvidence(coverageRow)) return 'terminal_closure_evidence';
+  if (lane === 'missing_required_raw_evidence') return 'missing_required_raw_evidence';
   if (lane === 'family_policy_candidate') return 'blocked_family_page_evidence';
   if (lane === 'manual_review_required') return 'absent_local_evidence_manual_review';
   return 'absent_local_evidence';
@@ -323,10 +340,15 @@ function buildFailedRules(row, coverageRow) {
   if (!(row.primaryBucket === 'recipe_chain_covered' || row.hasRecipe)) failed.push('not_recipe_or_shimmer_covered');
   if (!(row.primaryBucket === 'biome_evidence_only' || row.hasBiomeEvidence)) failed.push('not_biome_evidence_projection');
   if (!(row.primaryBucket === 'npc_relation_chain_gap' || row.hasNpcLootOrShop || coverageRow?.lane === 'npc_ref_resolution_gap')) failed.push('not_npc_relation_chain_gap');
-  if (!isExplicitNoSourceExemptionCandidate(row)) failed.push('not_explicit_no_source_exemption_candidate');
+  if (!(coverageRow?.lane === 'explicit_no_source_exemption' || isExplicitNoSourceExemptionCandidate(row))) failed.push('not_explicit_no_source_exemption_candidate');
+  if (coverageRow?.lane !== 'missing_required_raw_evidence') failed.push('not_missing_required_raw_evidence');
   if (!isRuntimeOrDeveloperInternal(row)) failed.push('not_runtime_or_developer_internal');
   if (!isExternalEvidenceCandidate(row)) failed.push('not_needs_external_source_evidence');
   return failed;
+}
+
+function coverageRowHasTerminalEvidence(row) {
+  return Array.isArray(row?.evidence) && row.evidence.some((entry) => entry?.kind === 'terminal_closure_status');
 }
 
 function isExplicitNoSourceExemptionCandidate(row) {
