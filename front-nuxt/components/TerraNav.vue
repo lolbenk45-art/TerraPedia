@@ -116,7 +116,7 @@ onBeforeUnmount(closeMenu)
 
 <template>
   <header class="site-nav">
-    <a class="site-logo" href="/" aria-label="TerraPedia 首页">
+    <NuxtLink class="site-logo" to="/" aria-label="TerraPedia 首页">
       <span class="logo-gem" aria-hidden="true">
         <img class="brand-logo-image" src="/brand/terrapedia-emblem-centered.png" alt="" />
       </span>
@@ -124,43 +124,43 @@ onBeforeUnmount(closeMenu)
         <strong>TerraPedia</strong>
         <small>中文资料库</small>
       </span>
-    </a>
+    </NuxtLink>
 
     <nav class="site-links" aria-label="主导航">
-      <a
+      <NuxtLink
         v-for="link in primaryLinks"
         :key="link.href"
         class="site-link"
         :class="{ active: isActive(link.href) }"
-        :href="link.href"
-      >{{ link.label }}</a>
+        :to="link.href"
+      >{{ link.label }}</NuxtLink>
     </nav>
 
     <div class="site-actions">
-      <a class="icon-button search-action" href="/search" aria-label="搜索">
+      <NuxtLink class="icon-button search-action" to="/search" aria-label="搜索">
         <span class="sprite-icon icon-search compact" aria-hidden="true"></span>
-      </a>
+      </NuxtLink>
 
-      <a
+      <NuxtLink
         class="nav-notification-link"
         :class="{ active: isActive('/user/notifications'), 'has-unread': unreadNotificationCount > 0 }"
-        href="/user/notifications"
+        to="/user/notifications"
         :aria-label="unreadNotificationCount > 0 ? `通知中心，${unreadNotificationCount} 条未读消息` : '通知中心'"
       >
         <span class="sprite-icon icon-notification compact" aria-hidden="true"></span>
         <b>{{ navNotificationLabel }}</b>
         <em v-if="unreadNotificationCount" class="nav-notification-count">{{ unreadNotificationCount }}</em>
-      </a>
+      </NuxtLink>
 
-      <a
+      <NuxtLink
         class="nav-user-article-link"
         :class="{ active: isActive('/user/articles') }"
-        href="/user/articles"
+        to="/user/articles"
         aria-label="我的文章"
       >
         <span class="sprite-icon icon-article compact" aria-hidden="true"></span>
         <b>我的文章</b>
-      </a>
+      </NuxtLink>
 
       <div
         class="nav-menu"
@@ -189,20 +189,20 @@ onBeforeUnmount(closeMenu)
           :class="{ 'is-open': activeMenu === 'resources' }"
           :aria-hidden="activeMenu !== 'resources'"
         >
-          <a class="nav-search-link" href="/search" :tabindex="activeMenu === 'resources' ? 0 : -1" @click="closeMenu">
+          <NuxtLink class="nav-search-link" to="/search" :tabindex="activeMenu === 'resources' ? 0 : -1" @click="closeMenu">
             <span class="sprite-icon icon-search nav-card-icon" aria-hidden="true"></span>
             <span class="nav-card-copy">
               <b>全站检索</b>
               <span>搜索物品、NPC、Boss、攻略</span>
             </span>
-          </a>
+          </NuxtLink>
           <div class="nav-resource-grid">
-            <a
+            <NuxtLink
               v-for="link in resourceLinks"
               :key="link.href"
               class="nav-resource-link"
               :class="{ active: isActive(link.href) }"
-              :href="link.href"
+              :to="link.href"
               :tabindex="menuLinkTabIndex('resources')"
               @click="closeMenu"
             >
@@ -211,7 +211,7 @@ onBeforeUnmount(closeMenu)
                 <b>{{ link.label }}</b>
                 <span>{{ link.desc }}</span>
               </span>
-            </a>
+            </NuxtLink>
           </div>
         </div>
       </div>
@@ -224,13 +224,13 @@ onBeforeUnmount(closeMenu)
         @focusout="scheduleCloseMenu('account')"
         @keydown.esc="closeMenu"
       >
-        <a
+        <NuxtLink
           class="account-avatar-link"
           :class="{
             active: isActive('/user') || activeMenu === 'account',
             'has-user-avatar': Boolean(authStore.user?.avatarUrl),
           }"
-          href="/user"
+          to="/user"
           aria-label="TP 用户中心"
           aria-haspopup="true"
           :aria-expanded="activeMenu === 'account'"
@@ -238,7 +238,7 @@ onBeforeUnmount(closeMenu)
           <img v-if="authStore.user?.avatarUrl" :src="authStore.user.avatarUrl" :alt="`${authStore.displayName} 的头像`" />
           <span v-else>{{ accountInitials }}</span>
           <em v-if="notificationsStore.unreadCount" class="account-unread-badge">{{ notificationsStore.unreadCount }}</em>
-        </a>
+        </NuxtLink>
         <div class="account-menu-hover-bridge" aria-hidden="true"></div>
         <div
           class="account-menu-panel"
@@ -263,26 +263,26 @@ onBeforeUnmount(closeMenu)
             </div>
           </div>
           <div class="account-menu-grid" aria-label="用户快捷入口">
-            <a href="/user" :tabindex="menuLinkTabIndex('account')" aria-label="用户中心" @click="closeMenu">
+            <NuxtLink to="/user" :tabindex="menuLinkTabIndex('account')" aria-label="用户中心" @click="closeMenu">
               <span class="sprite-icon icon-user menu-icon" aria-hidden="true"></span><b>用户中心</b>
-            </a>
-            <a href="/user/favorites" :tabindex="menuLinkTabIndex('account')" aria-label="收藏夹" @click="closeMenu">
+            </NuxtLink>
+            <NuxtLink to="/user/favorites" :tabindex="menuLinkTabIndex('account')" aria-label="收藏夹" @click="closeMenu">
               <span class="sprite-icon icon-favorites menu-icon" aria-hidden="true"></span><b>收藏夹</b>
-            </a>
-            <a href="/user/routes" :tabindex="menuLinkTabIndex('account')" aria-label="保存路线" @click="closeMenu">
+            </NuxtLink>
+            <NuxtLink to="/user/routes" :tabindex="menuLinkTabIndex('account')" aria-label="保存路线" @click="closeMenu">
               <span class="sprite-icon icon-crafting menu-icon" aria-hidden="true"></span><b>保存路线</b>
-            </a>
-            <a href="/user/notifications" :tabindex="menuLinkTabIndex('account')" aria-label="通知中心" @click="closeMenu">
+            </NuxtLink>
+            <NuxtLink to="/user/notifications" :tabindex="menuLinkTabIndex('account')" aria-label="通知中心" @click="closeMenu">
               <span class="sprite-icon icon-notification menu-icon" aria-hidden="true"></span>
               <b>通知中心</b>
               <em v-if="notificationsStore.unreadCount">{{ notificationsStore.unreadCount }}</em>
-            </a>
-            <a href="/user/articles" :tabindex="menuLinkTabIndex('account')" aria-label="我的文章" @click="closeMenu">
+            </NuxtLink>
+            <NuxtLink to="/user/articles" :tabindex="menuLinkTabIndex('account')" aria-label="我的文章" @click="closeMenu">
               <span class="sprite-icon icon-article menu-icon" aria-hidden="true"></span><b>我的文章</b>
-            </a>
-            <a href="/user/settings" :tabindex="menuLinkTabIndex('account')" aria-label="账号设置" @click="closeMenu">
+            </NuxtLink>
+            <NuxtLink to="/user/settings" :tabindex="menuLinkTabIndex('account')" aria-label="账号设置" @click="closeMenu">
               <span class="sprite-icon icon-settings menu-icon" aria-hidden="true"></span><b>账号设置</b>
-            </a>
+            </NuxtLink>
           </div>
           <div class="account-theme-switcher">
             <span>主题</span>
@@ -309,15 +309,15 @@ onBeforeUnmount(closeMenu)
               </button>
             </div>
           </div>
-          <a
+          <NuxtLink
             v-if="authStore.isAuthenticated"
             class="account-menu-logout"
-            href="/user/login"
+            to="/user/login"
             :tabindex="menuLinkTabIndex('account')"
             @click.prevent="logout"
           >
             <span class="sprite-icon icon-close menu-icon" aria-hidden="true"></span><b>退出登录</b>
-          </a>
+          </NuxtLink>
         </div>
       </div>
     </div>
