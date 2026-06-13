@@ -81,6 +81,24 @@ const assertNoSolidEntryFill = (blocks, label, path) => {
   }
 }
 
+const maxDeclarationRgbaAlpha = (block, properties) => {
+  const declarationPattern = new RegExp(`(?:^|\\n)\\s*(?:${properties.join('|')})\\s*:[\\s\\S]*?;`, 'g')
+  const declarations = [...block.matchAll(declarationPattern)]
+    .map((match) => match[0])
+    .join('\n')
+  const matches = [...declarations.matchAll(/rgba\([^)]*,\s*([0-9.]+)\)/g)]
+
+  return matches.reduce((max, match) => Math.max(max, Number(match[1])), 0)
+}
+
+const assertMaxDeclarationRgbaAlpha = (blocks, properties, limit, label, path) => {
+  const max = blocks.reduce((value, block) => Math.max(value, maxDeclarationRgbaAlpha(block, properties)), 0)
+
+  if (max > limit) {
+    failures.push(`${path}: ${label} ${properties.join('/')} rgba alpha must be <= ${limit}, found ${max}`)
+  }
+}
+
 const requiredPageMarkers = [
   'primaryEntries',
   'secondaryLinks',
@@ -550,6 +568,26 @@ if (!existsSync(file(cssPath))) {
   if (!stageChipBlocks.some((block) => /min-height\s*:\s*44px/.test(block))) {
     failures.push(`${cssPath}: home stage chips must keep a 44px touch target`)
   }
+
+  const darkStatsBlocks = extractRuleBlocks(css, '\n.hero-stats {')
+  const darkKickerBlocks = extractRuleBlocks(css, '\n.hero-kicker {')
+  const darkKickerBeforeBlocks = extractRuleBlocks(css, '\n.hero-kicker::before')
+
+  if (!darkStatsBlocks.some((block) => block.includes('border-top: 0') && block.includes('border-bottom: 0'))) {
+    failures.push(`${cssPath}: dark homepage stats must use a soft transition instead of hard top and bottom borders`)
+  }
+
+  if (!darkStatsBlocks.some((block) => block.includes('linear-gradient(90deg, transparent, rgba(244, 234, 208, 0.08), transparent)'))) {
+    failures.push(`${cssPath}: dark homepage stats must keep only a soft center divider glow`)
+  }
+
+  if (!darkKickerBlocks.some((block) => block.includes('font-size: 11px') && block.includes('color: rgba(244, 234, 208, 0.46)'))) {
+    failures.push(`${cssPath}: dark homepage kicker must be visually secondary`)
+  }
+
+  if (!darkKickerBeforeBlocks.some((block) => block.includes('height: 1px') && block.includes('opacity: 0.64'))) {
+    failures.push(`${cssPath}: dark homepage kicker rule must use a quiet one-pixel lead line`)
+  }
 }
 
 if (!existsSync(file(lightContrastCssPath))) {
@@ -562,7 +600,14 @@ if (!existsSync(file(lightContrastCssPath))) {
     ':where([data-theme="warm-slate"]) .home-screen',
     ':where([data-theme="light"], [data-theme="morning-paper"]) .hero',
     ':where([data-theme="warm-slate"]) .hero',
+    ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-screen',
     ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero::before',
+    ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stats',
+    ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-kicker',
+    ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell',
+    ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stage-chip',
+    ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-status-pill',
+    ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-atlas-secondary .atlas-index',
   ]
 
   for (const selector of requiredLightBackgroundSelectors) {
@@ -583,10 +628,56 @@ if (!existsSync(file(lightContrastCssPath))) {
 
   const lightCellBlocks = extractRuleBlocks(lightCss, ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell {')
   const lightCellHoverBlocks = extractRuleBlocks(lightCss, ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell:hover')
+  const softHomeBlocks = extractRuleBlocks(lightCss, ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-screen')
+  const heroFrameBlocks = [
+    ...extractRuleBlocks(lightCss, ':where([data-theme="light"], [data-theme="morning-paper"]) .hero {'),
+    ...extractRuleBlocks(lightCss, ':where([data-theme="warm-slate"]) .hero {'),
+  ]
+  const heroInnerFrameBlocks = extractRuleBlocks(lightCss, ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero::before')
 
   assertMaxAccentAlpha(lightCellBlocks, 0.08, 'light home primary entries', lightContrastCssPath)
   assertMaxAccentAlpha(lightCellHoverBlocks, 0.10, 'light home primary entry hover', lightContrastCssPath)
   assertNoSolidEntryFill([...lightCellBlocks, ...lightCellHoverBlocks], 'home primary entries', lightContrastCssPath)
+  assertMaxDeclarationRgbaAlpha(heroFrameBlocks, ['border'], 0.12, 'light home hero outer frame', lightContrastCssPath)
+  assertMaxDeclarationRgbaAlpha(heroInnerFrameBlocks, ['border'], 0.08, 'light home hero inner frame', lightContrastCssPath)
+
+  const requiredSoftHomeTokens = [
+    '--home-soft-border:',
+    '--home-soft-border-strong:',
+    '--home-soft-surface:',
+    '--home-soft-surface-raised:',
+    '--home-soft-divider:',
+    '--home-soft-shadow:',
+  ]
+
+  for (const token of requiredSoftHomeTokens) {
+    if (!softHomeBlocks.some((block) => block.includes(token))) {
+      failures.push(`${lightContrastCssPath}: homepage three-theme soft visual contract must define ${token}`)
+    }
+  }
+
+  const requiredSoftHomeSelectors = [
+    ['hero-stats', '.hero-stats', ['border-top: 0', 'border-bottom: 0', '--home-soft-divider']],
+    ['hero kicker', '.hero-kicker', ['font-size: 11px', 'color: var(--text-faint)']],
+    ['hero stage chips', '.hero-stage-chip', ['var(--home-soft-border)', 'var(--home-soft-surface)']],
+    ['hero status pills', '.hero-status-pill', ['border-color: transparent', 'var(--home-soft-surface)']],
+    ['home atlas index', '.home-atlas-secondary .atlas-index', ['var(--home-soft-border-strong)', 'var(--home-soft-shadow)']],
+  ]
+
+  for (const [label, selector, markers] of requiredSoftHomeSelectors) {
+    const blocks = extractRuleBlocks(lightCss, `:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) ${selector}`)
+    if (blocks.length === 0) {
+      failures.push(`${lightContrastCssPath}: missing soft homepage selector for ${label}`)
+      continue
+    }
+
+    const blockText = blocks.join('\n')
+    for (const marker of markers) {
+      if (!blockText.includes(marker)) {
+        failures.push(`${lightContrastCssPath}: ${label} must include soft homepage marker ${marker}`)
+      }
+    }
+  }
 
   if (!lightCss.includes(':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-route-list a')) {
     failures.push(`${lightContrastCssPath}: light AC codex route anchors must keep explicit link surface styling`)
