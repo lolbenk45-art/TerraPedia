@@ -1,0 +1,104 @@
+{
+  "generatedAt": "2026-06-13T05:09:02.343Z",
+  "batchId": "item-source-local-2026-06-13T05-09-02-343Z",
+  "mode": "item_source_local_compat_retire_plan",
+  "apply": true,
+  "inputPath": "/home/lolben/TerraPedia/data/reports/item-source-local-compat-retire-stale-identity-2026-06-13.json",
+  "backupPath": "/home/lolben/TerraPedia/data/backups/item-source-candidate-local-compat/item-source-local-2026-06-13T05-09-02-343Z.before.json",
+  "connection": {
+    "host": "127.0.0.1",
+    "port": 13306,
+    "database": "terria_v1_local",
+    "user": "root"
+  },
+  "summary": {
+    "selectedRows": 6,
+    "validationErrors": 0,
+    "toRetire": 6,
+    "retired": 6
+  },
+  "validationErrors": [],
+  "retireRows": [
+    {
+      "id": 198875,
+      "itemId": 5049,
+      "expectedItemInternalName": "HeartArrow",
+      "expectedItemName": "Heart Arrow",
+      "sourceType": "craft",
+      "sourceRefType": "item",
+      "sourceRefName": "Silk",
+      "conditions": "Crafted at Loom",
+      "sourcePage": "Wandering set",
+      "reason": "Source belongs to RoninShirt / Wandering Yukata, not HeartArrow."
+    },
+    {
+      "id": 198876,
+      "itemId": 5049,
+      "expectedItemInternalName": "HeartArrow",
+      "expectedItemName": "Heart Arrow",
+      "sourceType": "craft",
+      "sourceRefType": "item",
+      "sourceRefName": "Firefly",
+      "conditions": "Crafted at Loom",
+      "sourcePage": "Wandering set",
+      "reason": "Source belongs to RoninShirt / Wandering Yukata, not HeartArrow."
+    },
+    {
+      "id": 198877,
+      "itemId": 5051,
+      "expectedItemInternalName": "ValentineRing",
+      "expectedItemName": "Valentine Ring",
+      "sourceType": "craft",
+      "sourceRefType": "item",
+      "sourceRefName": "Silk",
+      "conditions": "Crafted at Loom",
+      "sourcePage": "Timeless Traveler's set",
+      "reason": "Source belongs to TimelessTravelerHood / Timeless Traveler's Hood, not ValentineRing."
+    },
+    {
+      "id": 198878,
+      "itemId": 5051,
+      "expectedItemInternalName": "ValentineRing",
+      "expectedItemName": "Valentine Ring",
+      "sourceType": "craft",
+      "sourceRefType": "item",
+      "sourceRefName": "Bone",
+      "conditions": "Crafted at Loom",
+      "sourcePage": "Timeless Traveler's set",
+      "reason": "Source belongs to TimelessTravelerHood / Timeless Traveler's Hood, not ValentineRing."
+    },
+    {
+      "id": 198879,
+      "itemId": 5063,
+      "expectedItemInternalName": "TurkeyFeather",
+      "expectedItemName": "Turkey feather",
+      "sourceType": "craft",
+      "sourceRefType": "item",
+      "sourceRefName": "Silk",
+      "conditions": "Crafted at Loom",
+      "sourcePage": "TV Head set",
+      "reason": "Source belongs to TVHeadPants / Pinstripe Pants, not TurkeyFeather."
+    },
+    {
+      "id": 198880,
+      "itemId": 5063,
+      "expectedItemInternalName": "TurkeyFeather",
+      "expectedItemName": "Turkey feather",
+      "sourceType": "craft",
+      "sourceRefType": "item",
+      "sourceRefName": "Purple Dye",
+      "conditions": "Crafted at Loom",
+      "sourcePage": "TV Head set",
+      "reason": "Source belongs to TVHeadPants / Pinstripe Pants, not TurkeyFeather."
+    }
+  ],
+  "retiredIds": [
+    198875,
+    198876,
+    198877,
+    198878,
+    198879,
+    198880
+  ],
+  "rollbackSql": "UPDATE `item_acquisition_sources` SET `status` = 1, `deleted` = 0 WHERE `id` IN (198875, 198876, 198877, 198878, 198879, 198880);"
+}

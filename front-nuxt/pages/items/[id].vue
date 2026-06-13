@@ -182,7 +182,7 @@ const imageEntries = computed(() => {
 })
 
 const sourceGroupKey = (source: PublicItemSource) => {
-  const text = firstText(source.sourceType, source.sourceRefType, source.kind, source.type, source.method).toLowerCase()
+  const text = firstText(source.sourceType, source.sourceRefType, source.kind, source.type, source.method, source.evidenceKind).toLowerCase()
   if (/drop|loot|enemy|npc|boss/.test(text)) return 'drop'
   if (/shop|sell|buy|vendor|merchant/.test(text)) return 'shop'
   if (/craft|recipe|shimmer|transmute|convert/.test(text)) return 'craft'
@@ -225,14 +225,32 @@ const sourceChanceLabel = (source: PublicItemSource) => {
   return percentLabel(source.chance ?? source.rate ?? source.chanceValue)
 }
 const sourceBiomeLabel = (source: PublicItemSource) => safeItemDisplayText(source.biomeNameZh, source.biomeNameEn)
+const sourceEvidenceLabel = (source: PublicItemSource) => {
+  const evidenceKind = firstText(source.evidenceKind).toLowerCase()
+  if (evidenceKind === 'npc_relation') {
+    if (firstText(source.sourceType).toLowerCase() === 'shop' || firstText(source.shopEntryId)) return 'NPC 商店证据'
+    return firstText(source.dropSourceKind) === 'treasure_bag' ? 'NPC 宝藏袋证据' : 'NPC 掉落证据'
+  }
+  if (evidenceKind === 'biome_resource') return '群系资源证据'
+  if (evidenceKind === 'item_biome') return '物品群系证据'
+  return ''
+}
+const sourceNoteLabel = (source: PublicItemSource) => {
+  const parts = [source.notes, sourceBiomeLabel(source), sourceEvidenceLabel(source)]
+    .map((part) => safeItemDisplayText(part))
+    .filter(Boolean)
+  return Array.from(new Set(parts)).join(' · ')
+}
+const sourceDetailHref = (source: PublicItemSource) => safeItemDisplayText(source.npcDetailPath, source.biomeDetailPath)
 
 const sourceEntries = computed(() => rawBundle.value.sources.map((source: PublicItemSource, index) => ({
-  id: firstText(source.id, source.sourceId, index),
+  id: firstText(source.sourceFactKey, source.id, source.sourceId, index),
   name: safeItemDisplayText(source.sourceRefNameZh, source.sourceRefName, source.name, source.displayName, source.sourceName, source.title) || `来源 ${index + 1}`,
   groupKey: sourceGroupKey(source),
   detail: safeItemDisplayText(source.conditions, source.condition, source.description, source.summary, '来源信息整理中'),
-  note: safeItemDisplayText(source.notes, sourceBiomeLabel(source)),
+  note: sourceNoteLabel(source),
   value: [sourceQuantityLabel(source), sourceChanceLabel(source)].filter(Boolean).join(' · '),
+  href: sourceDetailHref(source),
   image: firstImageUrl(
     source.previewImage,
     source.previewImageUrl,
@@ -700,7 +718,8 @@ onMounted(() => {
                       />
                     </span>
                     <div class="detail-relation-copy">
-                      <b>{{ source.name }}</b>
+                      <NuxtLink v-if="source.href" class="item-source-link" :to="source.href">{{ source.name }}</NuxtLink>
+                      <b v-else>{{ source.name }}</b>
                       <span>{{ source.detail }}</span>
                       <small v-if="source.note">{{ source.note }}</small>
                     </div>
@@ -798,6 +817,17 @@ onMounted(() => {
 .detail-relation-copy span,
 .detail-relation-meta {
   overflow-wrap: anywhere;
+}
+
+.item-source-link {
+  display: inline-block;
+  color: var(--text-strong);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.item-source-link:hover {
+  text-decoration: underline;
 }
 
 .detail-relation-copy span {

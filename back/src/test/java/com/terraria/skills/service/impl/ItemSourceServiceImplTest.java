@@ -1,13 +1,22 @@
 package com.terraria.skills.service.impl;
 
 import com.terraria.skills.dto.ItemSourceDTO;
+import com.terraria.skills.entity.Biome;
+import com.terraria.skills.entity.BiomeResource;
 import com.terraria.skills.entity.Item;
 import com.terraria.skills.entity.ItemAcquisitionSource;
+import com.terraria.skills.entity.ItemBiome;
 import com.terraria.skills.entity.Npc;
+import com.terraria.skills.entity.NpcLootEntry;
+import com.terraria.skills.entity.NpcShopEntry;
 import com.terraria.skills.mapper.BiomeMapper;
+import com.terraria.skills.mapper.BiomeResourceMapper;
 import com.terraria.skills.mapper.ItemAcquisitionSourceMapper;
+import com.terraria.skills.mapper.ItemBiomeMapper;
 import com.terraria.skills.mapper.ItemMapper;
+import com.terraria.skills.mapper.NpcLootEntryMapper;
 import com.terraria.skills.mapper.NpcMapper;
+import com.terraria.skills.mapper.NpcShopEntryMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -21,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class ItemSourceServiceImplTest {
@@ -36,6 +46,18 @@ class ItemSourceServiceImplTest {
 
     @Mock
     private NpcMapper npcMapper;
+
+    @Mock
+    private NpcLootEntryMapper npcLootEntryMapper;
+
+    @Mock
+    private NpcShopEntryMapper npcShopEntryMapper;
+
+    @Mock
+    private BiomeResourceMapper biomeResourceMapper;
+
+    @Mock
+    private ItemBiomeMapper itemBiomeMapper;
 
     @InjectMocks
     private ItemSourceServiceImpl itemSourceService;
@@ -309,6 +331,196 @@ class ItemSourceServiceImplTest {
         assertEquals("僵尸", result.getSourceRefNameZh());
         assertEquals(managedNpcImage, result.getImageUrl());
         assertEquals(managedNpcImage, result.getNpcImageUrl());
+    }
+
+    @Test
+    void shouldProjectNpcLootEvidenceWhenItemHasNoOrdinarySourceRows() {
+        NpcLootEntry lootEntry = new NpcLootEntry();
+        lootEntry.setId(700L);
+        lootEntry.setNpcId(42L);
+        lootEntry.setItemId(1586L);
+        lootEntry.setDropSourceKind("npc_drop");
+        lootEntry.setQuantityText("1");
+        lootEntry.setChanceText("5%");
+        lootEntry.setConditions("Expert Mode");
+        lootEntry.setStatus(1);
+        lootEntry.setDeleted(0);
+
+        Npc npc = npc(42L, "Cenx", "Cenx", "http://localhost:9000/terrapedia-images/npcs/cenx.png");
+
+        when(itemAcquisitionSourceMapper.selectList(any())).thenReturn(List.of());
+        when(npcLootEntryMapper.selectList(any())).thenReturn(List.of(lootEntry));
+        when(npcShopEntryMapper.selectList(any())).thenReturn(List.of());
+        when(npcMapper.selectList(any())).thenReturn(List.of(npc));
+        when(biomeResourceMapper.selectList(any())).thenReturn(List.of());
+        when(itemBiomeMapper.selectList(any())).thenReturn(List.of());
+
+        List<ItemSourceDTO> result = itemSourceService.getSourcesByItemId(1586L);
+
+        assertEquals(1, result.size());
+        ItemSourceDTO source = result.get(0);
+        assertEquals("npc_relation", source.getEvidenceKind());
+        assertEquals("npc_loot:700", source.getSourceFactKey());
+        assertEquals(700L, source.getLootEntryId());
+        assertEquals("npc_drop", source.getDropSourceKind());
+        assertEquals("drop", source.getSourceType());
+        assertEquals("npc", source.getSourceRefType());
+        assertEquals(42L, source.getSourceRefId());
+        assertEquals("Cenx", source.getSourceRefName());
+        assertEquals("Cenx", source.getSourceRefNameZh());
+        assertEquals("/npcs/42", source.getNpcDetailPath());
+        assertEquals("http://localhost:9000/terrapedia-images/npcs/cenx.png", source.getNpcImageUrl());
+        assertEquals("5%", source.getChanceText());
+    }
+
+    @Test
+    void shouldProjectNpcShopEvidenceWhenItemHasNoOrdinarySourceRows() {
+        NpcShopEntry shopEntry = new NpcShopEntry();
+        shopEntry.setId(701L);
+        shopEntry.setNpcId(43L);
+        shopEntry.setItemId(3217L);
+        shopEntry.setPriceText("1 silver");
+        shopEntry.setNotes("When Corruption is present");
+        shopEntry.setStatus(1);
+        shopEntry.setDeleted(0);
+
+        Npc npc = npc(43L, "Dryad", "树妖", "http://localhost:9000/terrapedia-images/npcs/dryad.png");
+
+        when(itemAcquisitionSourceMapper.selectList(any())).thenReturn(List.of());
+        when(npcLootEntryMapper.selectList(any())).thenReturn(List.of());
+        when(npcShopEntryMapper.selectList(any())).thenReturn(List.of(shopEntry));
+        when(npcMapper.selectList(any())).thenReturn(List.of(npc));
+        when(biomeResourceMapper.selectList(any())).thenReturn(List.of());
+        when(itemBiomeMapper.selectList(any())).thenReturn(List.of());
+
+        List<ItemSourceDTO> result = itemSourceService.getSourcesByItemId(3217L);
+
+        assertEquals(1, result.size());
+        ItemSourceDTO source = result.get(0);
+        assertEquals("npc_relation", source.getEvidenceKind());
+        assertEquals("npc_shop:701", source.getSourceFactKey());
+        assertEquals(701L, source.getShopEntryId());
+        assertEquals("shop", source.getSourceType());
+        assertEquals("npc", source.getSourceRefType());
+        assertEquals(43L, source.getSourceRefId());
+        assertEquals("Dryad", source.getSourceRefName());
+        assertEquals("树妖", source.getSourceRefNameZh());
+        assertEquals("/npcs/43", source.getNpcDetailPath());
+        assertEquals("1 silver", source.getConditions());
+        assertEquals("When Corruption is present", source.getNotes());
+    }
+
+    @Test
+    void shouldKeepProjectedFactWhenOrdinarySourceHasSameVisibleText() {
+        ItemAcquisitionSource ordinary = source(100L, 1586L, "drop", "npc", 42L, "Cenx");
+        ordinary.setQuantityText("1");
+        ordinary.setChanceText("5%");
+        ordinary.setConditions("Expert Mode");
+
+        NpcLootEntry lootEntry = new NpcLootEntry();
+        lootEntry.setId(700L);
+        lootEntry.setNpcId(42L);
+        lootEntry.setItemId(1586L);
+        lootEntry.setDropSourceKind("npc_drop");
+        lootEntry.setQuantityText("1");
+        lootEntry.setChanceText("5%");
+        lootEntry.setConditions("Expert Mode");
+        lootEntry.setStatus(1);
+        lootEntry.setDeleted(0);
+
+        Npc npc = npc(42L, "Cenx", "Cenx", "http://localhost:9000/terrapedia-images/npcs/cenx.png");
+
+        when(itemAcquisitionSourceMapper.selectList(any())).thenReturn(List.of(ordinary));
+        when(itemMapper.selectList(any())).thenReturn(List.of());
+        when(npcLootEntryMapper.selectList(any())).thenReturn(List.of(lootEntry));
+        when(npcShopEntryMapper.selectList(any())).thenReturn(List.of());
+        when(npcMapper.selectList(any())).thenReturn(List.of(npc));
+        when(biomeResourceMapper.selectList(any())).thenReturn(List.of());
+        when(itemBiomeMapper.selectList(any())).thenReturn(List.of());
+
+        List<ItemSourceDTO> result = itemSourceService.getSourcesByItemId(1586L);
+
+        assertEquals(2, result.size());
+        assertTrue(result.stream().anyMatch(source -> source.getEvidenceKind() == null && "drop".equals(source.getSourceType())));
+        assertTrue(result.stream().anyMatch(source -> "npc_loot:700".equals(source.getSourceFactKey())));
+    }
+
+    @Test
+    void shouldProjectBiomeEvidenceWhenItemHasBiomeResourceOrItemBiomeRows() {
+        BiomeResource resource = new BiomeResource();
+        resource.setId(800L);
+        resource.setBiomeId(9L);
+        resource.setItemId(1827L);
+        resource.setResourceNameRaw("Halloween biome drop");
+        resource.setResourceType("drop");
+        resource.setNotes("Halloween event enemy drop");
+        resource.setSortOrder(0);
+
+        ItemBiome itemBiome = new ItemBiome();
+        itemBiome.setId(801L);
+        itemBiome.setItemId(1827L);
+        itemBiome.setBiomeId(9L);
+        itemBiome.setRelationType("event_drop");
+        itemBiome.setNotes("Halloween");
+        itemBiome.setSortOrder(1);
+
+        Biome biome = new Biome();
+        biome.setId(9L);
+        biome.setCode("halloween");
+        biome.setNameEn("Halloween");
+        biome.setNameZh("万圣节");
+
+        when(itemAcquisitionSourceMapper.selectList(any())).thenReturn(List.of());
+        when(npcLootEntryMapper.selectList(any())).thenReturn(List.of());
+        when(npcShopEntryMapper.selectList(any())).thenReturn(List.of());
+        when(biomeResourceMapper.selectList(any())).thenReturn(List.of(resource));
+        when(itemBiomeMapper.selectList(any())).thenReturn(List.of(itemBiome));
+        when(biomeMapper.selectList(any())).thenReturn(List.of(biome));
+
+        List<ItemSourceDTO> result = itemSourceService.getSourcesByItemId(1827L);
+
+        assertEquals(2, result.size());
+        ItemSourceDTO resourceSource = result.get(0);
+        assertEquals("biome_resource", resourceSource.getEvidenceKind());
+        assertEquals("biome_resource:800", resourceSource.getSourceFactKey());
+        assertEquals("worldgen", resourceSource.getSourceType());
+        assertEquals("world", resourceSource.getSourceRefType());
+        assertEquals("Halloween biome drop", resourceSource.getSourceRefName());
+        assertEquals(9L, resourceSource.getBiomeId());
+        assertEquals("halloween", resourceSource.getBiomeCode());
+        assertEquals("万圣节", resourceSource.getBiomeNameZh());
+        assertEquals("/biomes/9", resourceSource.getBiomeDetailPath());
+
+        ItemSourceDTO itemBiomeSource = result.get(1);
+        assertEquals("item_biome", itemBiomeSource.getEvidenceKind());
+        assertEquals("item_biome:801", itemBiomeSource.getSourceFactKey());
+        assertEquals("event_drop", itemBiomeSource.getConditions());
+        assertEquals("Halloween", itemBiomeSource.getNotes());
+    }
+
+    @Test
+    void shouldQueryOnlyActiveNonDeletedBiomesForProjectionMetadata() {
+        ItemBiome itemBiome = new ItemBiome();
+        itemBiome.setId(801L);
+        itemBiome.setItemId(1827L);
+        itemBiome.setBiomeId(9L);
+        itemBiome.setRelationType("event_drop");
+
+        when(itemAcquisitionSourceMapper.selectList(any())).thenReturn(List.of());
+        when(npcLootEntryMapper.selectList(any())).thenReturn(List.of());
+        when(npcShopEntryMapper.selectList(any())).thenReturn(List.of());
+        when(biomeResourceMapper.selectList(any())).thenReturn(List.of());
+        when(itemBiomeMapper.selectList(any())).thenReturn(List.of(itemBiome));
+        when(biomeMapper.selectList(any())).thenReturn(List.of());
+
+        itemSourceService.getSourcesByItemId(1827L);
+
+        ArgumentCaptor<com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<Biome>> captor =
+            ArgumentCaptor.forClass(com.baomidou.mybatisplus.core.conditions.query.QueryWrapper.class);
+        verify(biomeMapper).selectList(captor.capture());
+        String sqlSegment = captor.getValue().getSqlSegment();
+        assertTrue(sqlSegment.contains("status"));
+        assertTrue(sqlSegment.contains("deleted"));
     }
 
     private static ItemSourceDTO sourceByName(List<ItemSourceDTO> sources, String sourceRefName) {

@@ -1,0 +1,616 @@
+{
+  "generatedAt": "2026-06-13T02:55:27.262Z",
+  "readOnly": true,
+  "entity": "item_source_family_full_processing_readiness",
+  "inputs": {
+    "workItemsPath": "data/reports/item-source-remaining-work-items-report-2026-06-12.json"
+  },
+  "summary": {
+    "totalFamilyPolicyPendingRows": 266,
+    "totalFamilies": 11,
+    "allRowsAssignedToFamilyPlan": true,
+    "phaseCounts": [
+      {
+        "key": "phase_2",
+        "count": 7
+      },
+      {
+        "key": "phase_3",
+        "count": 3
+      },
+      {
+        "key": "phase_1",
+        "count": 1
+      }
+    ],
+    "readinessStatusCounts": [
+      {
+        "key": "parser_ready_after_worldgen_contract",
+        "count": 3
+      },
+      {
+        "key": "requires_item_matrix_parser",
+        "count": 3
+      },
+      {
+        "key": "parser_ready_after_capture_contract",
+        "count": 1
+      },
+      {
+        "key": "parser_ready_after_enemy_identity_contract",
+        "count": 1
+      },
+      {
+        "key": "parser_ready_after_mechanism_contract",
+        "count": 1
+      },
+      {
+        "key": "parser_ready_after_mixed_worldgen_boss_contract",
+        "count": 1
+      },
+      {
+        "key": "parser_ready_after_shop_contract",
+        "count": 1
+      }
+    ]
+  },
+  "globalGates": {
+    "sourceChain": "raw/wiki evidence -> family parser -> focused candidate plan -> local compat dry-run -> guarded local apply -> refreshed reports",
+    "applyGate": "blockedRows=0, validationErrors=0, toInsert>0 before apply; re-run dry-run to toInsert=0 after apply.",
+    "reportGate": "Refresh evidence/work/treatment/final status reports after each batch.",
+    "forbiddenActions": [
+      "Do not run crawler/fetch/import/backfill/sync/pipeline from this preparation report.",
+      "Do not hand-write SQL data changes.",
+      "Do not page-level allow mixed family pages.",
+      "Do not apply candidate rows unless dry-run reports blockedRows=0, validationErrors=0, and toInsert>0."
+    ]
+  },
+  "familyPlans": [
+    {
+      "family": "Dragonflies",
+      "count": 6,
+      "phase": 1,
+      "readinessStatus": "parser_ready_after_capture_contract",
+      "parserStrategy": "Capture/critter family parser: map each dragonfly item to capture source only after the source model is confirmed.",
+      "unmetConditions": [
+        "Confirm whether capture should be ordinary item source or dedicated critter projection.",
+        "Resolve dragonfly item identity to critter/capture evidence without NPC loot pollution."
+      ],
+      "acceptance": [
+        "Focused tests cover one dragonfly positive row and one non-dragonfly negative row.",
+        "Candidate dry-run has blockedRows=0 and validationErrors=0, or rows are moved to projection treatment."
+      ],
+      "forbiddenActions": [
+        "Do not run crawler/fetch/import/backfill/sync/pipeline from this preparation report.",
+        "Do not hand-write SQL data changes.",
+        "Do not page-level allow mixed family pages.",
+        "Do not apply candidate rows unless dry-run reports blockedRows=0, validationErrors=0, and toInsert>0."
+      ],
+      "sampleItems": [
+        {
+          "itemId": 4334,
+          "internalName": "BlackDragonfly",
+          "name": "Black Dragonfly"
+        },
+        {
+          "itemId": 4335,
+          "internalName": "BlueDragonfly",
+          "name": "Blue Dragonfly"
+        },
+        {
+          "itemId": 4336,
+          "internalName": "GreenDragonfly",
+          "name": "Green Dragonfly"
+        },
+        {
+          "itemId": 4337,
+          "internalName": "OrangeDragonfly",
+          "name": "Orange Dragonfly"
+        },
+        {
+          "itemId": 4338,
+          "internalName": "RedDragonfly",
+          "name": "Red Dragonfly"
+        },
+        {
+          "itemId": 4339,
+          "internalName": "YellowDragonfly",
+          "name": "Yellow Dragonfly"
+        }
+      ]
+    },
+    {
+      "family": "Vases",
+      "count": 4,
+      "phase": 2,
+      "readinessStatus": "parser_ready_after_worldgen_contract",
+      "parserStrategy": "Worldgen/container-style parser with item-specific page evidence; do not classify decorative vases by name only.",
+      "unmetConditions": [
+        "Extract item-specific vase evidence from raw page rows or narrative sections.",
+        "Separate worldgen/container evidence from decorative/craft evidence."
+      ],
+      "acceptance": [
+        "Each vase row has a sourcePage/sourceRowText or explicit non-import treatment.",
+        "Dry-run validates all resolved source refs."
+      ],
+      "forbiddenActions": [
+        "Do not run crawler/fetch/import/backfill/sync/pipeline from this preparation report.",
+        "Do not hand-write SQL data changes.",
+        "Do not page-level allow mixed family pages.",
+        "Do not apply candidate rows unless dry-run reports blockedRows=0, validationErrors=0, and toInsert>0."
+      ],
+      "sampleItems": [
+        {
+          "itemId": 1408,
+          "internalName": "BlueDungeonVase",
+          "name": "Blue Dungeon Vase"
+        },
+        {
+          "itemId": 1409,
+          "internalName": "GreenDungeonVase",
+          "name": "Green Dungeon Vase"
+        },
+        {
+          "itemId": 1410,
+          "internalName": "PinkDungeonVase",
+          "name": "Pink Dungeon Vase"
+        },
+        {
+          "itemId": 1462,
+          "internalName": "ObsidianVase",
+          "name": "Obsidian Vase"
+        }
+      ]
+    },
+    {
+      "family": "Moss",
+      "count": 4,
+      "phase": 2,
+      "readinessStatus": "parser_ready_after_worldgen_contract",
+      "parserStrategy": "Worldgen/mining parser for moss variants with explicit biome/location wording.",
+      "unmetConditions": [
+        "Identify whether each moss item source is mining, worldgen, shimmer, or projection-only.",
+        "Avoid converting biome/location-only evidence into fake drop/shop rows."
+      ],
+      "acceptance": [
+        "Tests distinguish mining/worldgen from biome projection.",
+        "No blocked source rows remain after dry-run."
+      ],
+      "forbiddenActions": [
+        "Do not run crawler/fetch/import/backfill/sync/pipeline from this preparation report.",
+        "Do not hand-write SQL data changes.",
+        "Do not page-level allow mixed family pages.",
+        "Do not apply candidate rows unless dry-run reports blockedRows=0, validationErrors=0, and toInsert>0."
+      ],
+      "sampleItems": [
+        {
+          "itemId": 4354,
+          "internalName": "LavaMoss",
+          "name": "Lava Moss"
+        },
+        {
+          "itemId": 4378,
+          "internalName": "XenonMoss",
+          "name": "Xenon Moss"
+        },
+        {
+          "itemId": 5127,
+          "internalName": "VioletMoss",
+          "name": "Neon Moss"
+        },
+        {
+          "itemId": 5128,
+          "internalName": "RainbowMoss",
+          "name": "Helium Moss"
+        }
+      ]
+    },
+    {
+      "family": "Altars",
+      "count": 4,
+      "phase": 2,
+      "readinessStatus": "parser_ready_after_mixed_worldgen_boss_contract",
+      "parserStrategy": "Mixed altar parser: split worldgen/mining, boss/event, and uncollectible evidence by item.",
+      "unmetConditions": [
+        "Determine whether each altar is obtainable as an item or only world fixture.",
+        "Split boss/event references from worldgen references."
+      ],
+      "acceptance": [
+        "Each altar row lands in importable source, projection treatment, or explicit exemption.",
+        "No page-level shared source allow."
+      ],
+      "forbiddenActions": [
+        "Do not run crawler/fetch/import/backfill/sync/pipeline from this preparation report.",
+        "Do not hand-write SQL data changes.",
+        "Do not page-level allow mixed family pages.",
+        "Do not apply candidate rows unless dry-run reports blockedRows=0, validationErrors=0, and toInsert>0."
+      ],
+      "sampleItems": [
+        {
+          "itemId": 5532,
+          "internalName": "DemonAltar",
+          "name": "Demon Altar"
+        },
+        {
+          "itemId": 5533,
+          "internalName": "CrimsonAltar",
+          "name": "Crimson Altar"
+        },
+        {
+          "itemId": 6135,
+          "internalName": "DemonAltarIcon",
+          "name": "Demon Altar"
+        },
+        {
+          "itemId": 6136,
+          "internalName": "CrimsonAltarIcon",
+          "name": "Crimson Altar"
+        }
+      ]
+    },
+    {
+      "family": "Banners",
+      "count": 1,
+      "phase": 2,
+      "readinessStatus": "parser_ready_after_enemy_identity_contract",
+      "parserStrategy": "Banner item to NPC identity parser, using explicit alias mapping when display names collide.",
+      "unmetConditions": [
+        "Resolve the remaining banner to one stable NPC identity.",
+        "Confirm it is not an explicit unobtainable enemy banner exemption."
+      ],
+      "acceptance": [
+        "Banner source resolves to concrete NPC id or explicit exemption.",
+        "No display-text-only ambiguous NPC mapping."
+      ],
+      "forbiddenActions": [
+        "Do not run crawler/fetch/import/backfill/sync/pipeline from this preparation report.",
+        "Do not hand-write SQL data changes.",
+        "Do not page-level allow mixed family pages.",
+        "Do not apply candidate rows unless dry-run reports blockedRows=0, validationErrors=0, and toInsert>0."
+      ],
+      "sampleItems": [
+        {
+          "itemId": 5529,
+          "internalName": "BannerOfTheBeast",
+          "name": "Banner of the Beast"
+        }
+      ]
+    },
+    {
+      "family": "Planter Boxes",
+      "count": 1,
+      "phase": 2,
+      "readinessStatus": "parser_ready_after_shop_contract",
+      "parserStrategy": "Shop family parser with item-specific vendor and condition checks.",
+      "unmetConditions": [
+        "Resolve the exact vendor and condition for the remaining planter box.",
+        "Confirm existing shop relation is absent before writing ordinary source."
+      ],
+      "acceptance": [
+        "Candidate resolves to a concrete NPC source or existing relation treatment.",
+        "Dry-run has zero validation errors."
+      ],
+      "forbiddenActions": [
+        "Do not run crawler/fetch/import/backfill/sync/pipeline from this preparation report.",
+        "Do not hand-write SQL data changes.",
+        "Do not page-level allow mixed family pages.",
+        "Do not apply candidate rows unless dry-run reports blockedRows=0, validationErrors=0, and toInsert>0."
+      ],
+      "sampleItems": [
+        {
+          "itemId": 3218,
+          "internalName": "CrimsonPlanterBox",
+          "name": "Deathweed Planter Box"
+        }
+      ]
+    },
+    {
+      "family": "Shimmer Tools",
+      "count": 1,
+      "phase": 2,
+      "readinessStatus": "parser_ready_after_mechanism_contract",
+      "parserStrategy": "Mechanism/shimmer parser: only write ordinary source when source item transform is explicit.",
+      "unmetConditions": [
+        "Confirm whether evidence is actual Shimmer acquisition or mechanism/projection-only.",
+        "Resolve source item identity if Shimmer transform is importable."
+      ],
+      "acceptance": [
+        "Shimmer transform has sourceRefType=item and resolved item id, or is documented as projection-only.",
+        "No unknown source contract rows."
+      ],
+      "forbiddenActions": [
+        "Do not run crawler/fetch/import/backfill/sync/pipeline from this preparation report.",
+        "Do not hand-write SQL data changes.",
+        "Do not page-level allow mixed family pages.",
+        "Do not apply candidate rows unless dry-run reports blockedRows=0, validationErrors=0, and toInsert>0."
+      ],
+      "sampleItems": [
+        {
+          "itemId": 5492,
+          "internalName": "MagicShimmerDropper",
+          "name": "Magic Shimmer Dropper"
+        }
+      ]
+    },
+    {
+      "family": "Unsafe Walls",
+      "count": 1,
+      "phase": 2,
+      "readinessStatus": "parser_ready_after_worldgen_contract",
+      "parserStrategy": "Unsafe wall parser: keep natural wall/worldgen evidence distinct from safe wall crafting.",
+      "unmetConditions": [
+        "Prove the unsafe wall is obtainable as placed/generated wall evidence.",
+        "Do not infer from safe wall recipes."
+      ],
+      "acceptance": [
+        "Positive unsafe wall fixture maps to reviewed worldgen/mining source.",
+        "Safe wall fixture remains excluded."
+      ],
+      "forbiddenActions": [
+        "Do not run crawler/fetch/import/backfill/sync/pipeline from this preparation report.",
+        "Do not hand-write SQL data changes.",
+        "Do not page-level allow mixed family pages.",
+        "Do not apply candidate rows unless dry-run reports blockedRows=0, validationErrors=0, and toInsert>0."
+      ],
+      "sampleItems": [
+        {
+          "itemId": 5374,
+          "internalName": "SandstoneWallUnsafe",
+          "name": "Treacherous Sandstone Wall"
+        }
+      ]
+    },
+    {
+      "family": "Paintings",
+      "count": 97,
+      "phase": 3,
+      "readinessStatus": "requires_item_matrix_parser",
+      "parserStrategy": "Large mixed matrix parser: match each painting item to a table row or section-specific evidence.",
+      "unmetConditions": [
+        "Build item-level matrix extraction for painting rows.",
+        "Split worldgen, shop, event, and special-source painting evidence.",
+        "Detect painting names that are only decorative identities without source row evidence."
+      ],
+      "acceptance": [
+        "Tests cover at least one worldgen painting, one shop/event painting, and one excluded non-matching row.",
+        "All painting rows become importable, projection/exemption, or missing raw evidence."
+      ],
+      "forbiddenActions": [
+        "Do not run crawler/fetch/import/backfill/sync/pipeline from this preparation report.",
+        "Do not hand-write SQL data changes.",
+        "Do not page-level allow mixed family pages.",
+        "Do not apply candidate rows unless dry-run reports blockedRows=0, validationErrors=0, and toInsert>0."
+      ],
+      "sampleItems": [
+        {
+          "itemId": 1372,
+          "internalName": "BloodMoonRising",
+          "name": "Blood Moon Rising"
+        },
+        {
+          "itemId": 1373,
+          "internalName": "TheHangedMan",
+          "name": "The Hanged Man"
+        },
+        {
+          "itemId": 1374,
+          "internalName": "GloryoftheFire",
+          "name": "Glory of the Fire"
+        },
+        {
+          "itemId": 1375,
+          "internalName": "BoneWarp",
+          "name": "Bone Warp"
+        },
+        {
+          "itemId": 1419,
+          "internalName": "SkellingtonJSkellingsworth",
+          "name": "Skellington J Skellingsworth"
+        },
+        {
+          "itemId": 1420,
+          "internalName": "TheCursedMan",
+          "name": "The Cursed Man"
+        },
+        {
+          "itemId": 1421,
+          "internalName": "TheEyeSeestheEnd",
+          "name": "The Eye Sees the End"
+        },
+        {
+          "itemId": 1422,
+          "internalName": "SomethingEvilisWatchingYou",
+          "name": "Something Evil is Watching You"
+        },
+        {
+          "itemId": 1423,
+          "internalName": "TheTwinsHaveAwoken",
+          "name": "The Twins Have Awoken"
+        },
+        {
+          "itemId": 1424,
+          "internalName": "TheScreamer",
+          "name": "The Screamer"
+        },
+        {
+          "itemId": 1425,
+          "internalName": "GoblinsPlayingPoker",
+          "name": "Goblins Playing Poker"
+        },
+        {
+          "itemId": 1426,
+          "internalName": "Dryadisque",
+          "name": "Dryadisque"
+        }
+      ]
+    },
+    {
+      "family": "Music Boxes",
+      "count": 95,
+      "phase": 3,
+      "readinessStatus": "requires_item_matrix_parser",
+      "parserStrategy": "Large mixed matrix parser: split recording, shimmer, drop/event, and shop evidence per music box.",
+      "unmetConditions": [
+        "Split recording/shimmer/event/drop/shop evidence by individual music box.",
+        "Decide whether recording-only evidence should be ordinary source or dedicated music-box projection.",
+        "Resolve any event/boss source refs without text-only false positives."
+      ],
+      "acceptance": [
+        "Tests cover recorded music box, shimmer transform, event/drop music box, and excluded aggregate row.",
+        "No generic Music Boxes page source is applied to every item."
+      ],
+      "forbiddenActions": [
+        "Do not run crawler/fetch/import/backfill/sync/pipeline from this preparation report.",
+        "Do not hand-write SQL data changes.",
+        "Do not page-level allow mixed family pages.",
+        "Do not apply candidate rows unless dry-run reports blockedRows=0, validationErrors=0, and toInsert>0."
+      ],
+      "sampleItems": [
+        {
+          "itemId": 563,
+          "internalName": "MusicBoxEerie",
+          "name": "Music Box (Eerie)"
+        },
+        {
+          "itemId": 564,
+          "internalName": "MusicBoxNight",
+          "name": "Music Box (Night)"
+        },
+        {
+          "itemId": 566,
+          "internalName": "MusicBoxUnderground",
+          "name": "Music Box (Underground)"
+        },
+        {
+          "itemId": 567,
+          "internalName": "MusicBoxBoss1",
+          "name": "Music Box (Boss 1)"
+        },
+        {
+          "itemId": 568,
+          "internalName": "MusicBoxJungle",
+          "name": "Music Box (Jungle)"
+        },
+        {
+          "itemId": 569,
+          "internalName": "MusicBoxCorruption",
+          "name": "Music Box (Corruption)"
+        },
+        {
+          "itemId": 570,
+          "internalName": "MusicBoxUndergroundCorruption",
+          "name": "Music Box (Underground Corruption)"
+        },
+        {
+          "itemId": 571,
+          "internalName": "MusicBoxTheHallow",
+          "name": "Music Box (The Hallow)"
+        },
+        {
+          "itemId": 572,
+          "internalName": "MusicBoxBoss2",
+          "name": "Music Box (Boss 2)"
+        },
+        {
+          "itemId": 573,
+          "internalName": "MusicBoxUndergroundHallow",
+          "name": "Music Box (Underground Hallow)"
+        },
+        {
+          "itemId": 574,
+          "internalName": "MusicBoxBoss3",
+          "name": "Music Box (Boss 3)"
+        },
+        {
+          "itemId": 1596,
+          "internalName": "MusicBoxSnow",
+          "name": "Music Box (Snow)"
+        }
+      ]
+    },
+    {
+      "family": "Statues",
+      "count": 52,
+      "phase": 3,
+      "readinessStatus": "requires_item_matrix_parser",
+      "parserStrategy": "Large mixed matrix parser: separate worldgen statues, functional statue mechanics, shop/drop, and unavailable variants.",
+      "unmetConditions": [
+        "Build item-level statue matrix matching.",
+        "Separate mechanism/function-only evidence from actual acquisition source.",
+        "Resolve statue-specific worldgen/shop/drop evidence."
+      ],
+      "acceptance": [
+        "Tests cover worldgen statue, functional-only statue, and mixed-source statue.",
+        "No function/mechanism evidence is written as fake drop/shop source."
+      ],
+      "forbiddenActions": [
+        "Do not run crawler/fetch/import/backfill/sync/pipeline from this preparation report.",
+        "Do not hand-write SQL data changes.",
+        "Do not page-level allow mixed family pages.",
+        "Do not apply candidate rows unless dry-run reports blockedRows=0, validationErrors=0, and toInsert>0."
+      ],
+      "sampleItems": [
+        {
+          "itemId": 438,
+          "internalName": "StarStatue",
+          "name": "Star Statue"
+        },
+        {
+          "itemId": 439,
+          "internalName": "SwordStatue",
+          "name": "Sword Statue"
+        },
+        {
+          "itemId": 440,
+          "internalName": "SlimeStatue",
+          "name": "Slime Statue"
+        },
+        {
+          "itemId": 441,
+          "internalName": "GoblinStatue",
+          "name": "Goblin Statue"
+        },
+        {
+          "itemId": 442,
+          "internalName": "ShieldStatue",
+          "name": "Shield Statue"
+        },
+        {
+          "itemId": 443,
+          "internalName": "BatStatue",
+          "name": "Bat Statue"
+        },
+        {
+          "itemId": 446,
+          "internalName": "SkeletonStatue",
+          "name": "Skeleton Statue"
+        },
+        {
+          "itemId": 447,
+          "internalName": "ReaperStatue",
+          "name": "Reaper Statue"
+        },
+        {
+          "itemId": 448,
+          "internalName": "WomanStatue",
+          "name": "Woman Statue"
+        },
+        {
+          "itemId": 449,
+          "internalName": "ImpStatue",
+          "name": "Imp Statue"
+        },
+        {
+          "itemId": 450,
+          "internalName": "GargoyleStatue",
+          "name": "Gargoyle Statue"
+        },
+        {
+          "itemId": 451,
+          "internalName": "GloomStatue",
+          "name": "Gloom Statue"
+        }
+      ]
+    }
+  ]
+}

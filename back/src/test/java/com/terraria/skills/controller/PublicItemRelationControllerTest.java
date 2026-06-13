@@ -179,6 +179,52 @@ class PublicItemRelationControllerTest {
     }
 
     @Test
+    void shouldReturnProjectedNpcAndBiomeEvidenceFields() throws Exception {
+        ItemSourceDTO npcProjection = new ItemSourceDTO();
+        npcProjection.setId(700L);
+        npcProjection.setItemId(1586L);
+        npcProjection.setEvidenceKind("npc_relation");
+        npcProjection.setSourceFactKey("npc_loot:700");
+        npcProjection.setLootEntryId(700L);
+        npcProjection.setDropSourceKind("npc_drop");
+        npcProjection.setSourceType("drop");
+        npcProjection.setSourceRefType("npc");
+        npcProjection.setSourceRefId(42L);
+        npcProjection.setSourceRefName("Cenx");
+        npcProjection.setNpcDetailPath("/npcs/42");
+
+        ItemSourceDTO biomeProjection = new ItemSourceDTO();
+        biomeProjection.setId(800L);
+        biomeProjection.setItemId(1827L);
+        biomeProjection.setEvidenceKind("biome_resource");
+        biomeProjection.setSourceFactKey("biome_resource:800");
+        biomeProjection.setSourceType("worldgen");
+        biomeProjection.setSourceRefType("world");
+        biomeProjection.setSourceRefName("Halloween biome drop");
+        biomeProjection.setBiomeId(9L);
+        biomeProjection.setBiomeCode("halloween");
+        biomeProjection.setBiomeNameZh("万圣节");
+        biomeProjection.setBiomeDetailPath("/biomes/9");
+
+        when(itemSourceService.getSourcesByItemId(1586L)).thenReturn(List.of(npcProjection, biomeProjection));
+
+        mockMvc.perform(get("/public/items/1586/sources"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data[0].evidenceKind").value("npc_relation"))
+            .andExpect(jsonPath("$.data[0].sourceFactKey").value("npc_loot:700"))
+            .andExpect(jsonPath("$.data[0].lootEntryId").value(700))
+            .andExpect(jsonPath("$.data[0].dropSourceKind").value("npc_drop"))
+            .andExpect(jsonPath("$.data[0].npcDetailPath").value("/npcs/42"))
+            .andExpect(jsonPath("$.data[1].evidenceKind").value("biome_resource"))
+            .andExpect(jsonPath("$.data[1].sourceFactKey").value("biome_resource:800"))
+            .andExpect(jsonPath("$.data[1].biomeDetailPath").value("/biomes/9"))
+            .andExpect(jsonPath("$.data[1].biomeNameZh").value("万圣节"));
+
+        verify(itemSourceService).getSourcesByItemId(1586L);
+    }
+
+    @Test
     void shouldReturnOnlyManagedPublicSourceImages() throws Exception {
         ItemSourceDTO managedNpcSource = new ItemSourceDTO();
         managedNpcSource.setId(4L);

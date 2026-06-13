@@ -229,6 +229,13 @@ export type PublicItemSource = {
   summary?: string | null
   notes?: string | null
   sortOrder?: number | string | null
+  evidenceKind?: string | null
+  sourceFactKey?: string | null
+  npcDetailPath?: string | null
+  lootEntryId?: number | string | null
+  shopEntryId?: number | string | null
+  dropSourceKind?: string | null
+  biomeDetailPath?: string | null
   biomeCode?: string | null
   biomeNameEn?: string | null
   biomeNameZh?: string | null

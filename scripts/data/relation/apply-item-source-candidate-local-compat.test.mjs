@@ -66,11 +66,12 @@ function createMockMysql({ duplicateIds = [] } = {}) {
     async end() { calls.push(['end']); },
     async execute(sql, params = []) {
       calls.push(['execute', sql, params]);
-      if (/FROM `?items`?/i.test(sql)) return [[{ id: params[0] }]];
+      if (/FROM `?items`?/i.test(sql)) return [[{ id: params[0], internal_name: 'MagicMirror', name: 'Magic Mirror' }]];
       if (/FROM `?npcs`?/i.test(sql)) return [[{ id: params[0] }]];
-      if (/FROM `?item_acquisition_sources`?/i.test(sql) && /^SELECT id/i.test(sql.trim())) {
+  if (/FROM `?item_acquisition_sources`?/i.test(sql) && /^SELECT id/i.test(sql.trim())) {
         return [duplicateIds.length ? duplicateIds.map((id) => ({ id })) : []];
       }
+      if (/FROM `?item_acquisition_sources`?/i.test(sql) && /WHERE `id` IN/i.test(sql)) return [[]];
       if (/INSERT INTO `?item_acquisition_sources`?/i.test(sql)) {
         const insertId = nextInsertId++;
         insertedIds.push(insertId);
@@ -92,6 +93,35 @@ function createMockMysql({ duplicateIds = [] } = {}) {
   };
 }
 
+function createIdentityAwareMockMysql(itemsById = {}) {
+  const calls = [];
+  const connection = {
+    calls,
+    async beginTransaction() { calls.push(['beginTransaction']); },
+    async commit() { calls.push(['commit']); },
+    async rollback() { calls.push(['rollback']); },
+    async end() { calls.push(['end']); },
+    async execute(sql, params = []) {
+      calls.push(['execute', sql, params]);
+      if (/FROM `?items`?/i.test(sql)) {
+        const row = itemsById[Number(params[0])];
+        return [row ? [row] : []];
+      }
+      if (/FROM `?item_acquisition_sources`?/i.test(sql) && /^SELECT id/i.test(sql.trim())) return [[]];
+      if (/SELECT \*/i.test(sql)) return [[]];
+      return [[]];
+    },
+    async query(sql, params = []) {
+      calls.push(['query', sql, params]);
+      return this.execute(sql, params);
+    }
+  };
+  return {
+    module: { createConnection: async () => connection },
+    connection
+  };
+}
+
 test('parseApplyItemSourceCandidateLocalCompatArgs requires confirmation for apply', () => {
   assert.throws(
     () => parseApplyItemSourceCandidateLocalCompatArgs(['--apply=true']),
@@ -100,6 +130,89 @@ test('parseApplyItemSourceCandidateLocalCompatArgs requires confirmation for app
   const parsed = parseApplyItemSourceCandidateLocalCompatArgs(['--apply=true', '--confirm-local-compat=true', '--sample=MagicMirror']);
   assert.equal(parsed.apply, true);
   assert.equal(parsed.sample, 'MagicMirror');
+});
+
+test('runItemSourceCandidateLocalCompatApply retires only exact matched local compat rows', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'item-source-local-compat-retire-'));
+  const inputPath = path.join(tempDir, 'retire.json');
+  const outputPath = path.join(tempDir, 'report.json');
+  fs.writeFileSync(inputPath, JSON.stringify({
+    mode: 'item_source_local_compat_retire_plan',
+    rows: [
+      {
+        id: 198875,
+        itemId: 5049,
+        expectedItemInternalName: 'HeartArrow',
+        expectedItemName: 'Heart Arrow',
+        sourceType: 'craft',
+        sourceRefType: 'item',
+        sourceRefName: 'Silk',
+        conditions: 'Crafted at Loom',
+        sourcePage: 'Wandering set',
+        reason: 'stale candidate item id wrote RoninShirt source to HeartArrow'
+      }
+    ]
+  }));
+  const calls = [];
+  const connection = {
+    calls,
+    async beginTransaction() { calls.push(['beginTransaction']); },
+    async commit() { calls.push(['commit']); },
+    async rollback() { calls.push(['rollback']); },
+    async end() { calls.push(['end']); },
+    async execute(sql, params = []) {
+      calls.push(['execute', sql, params]);
+      if (/FROM\s+`?item_acquisition_sources`?\s+s\s+JOIN\s+`?items`?\s+i/is.test(sql)) {
+        return [[{
+          id: 198875,
+          item_id: 5049,
+          internal_name: 'HeartArrow',
+          name: 'Heart Arrow',
+          source_type: 'craft',
+          source_ref_type: 'item',
+          source_ref_name: 'Silk',
+          conditions: 'Crafted at Loom',
+          source_page: 'Wandering set',
+          status: 1,
+          deleted: 0
+        }]];
+      }
+      if (/UPDATE `?item_acquisition_sources`?/i.test(sql)) return [{ affectedRows: params.length }];
+      return [[]];
+    },
+    async query(sql, params = []) {
+      calls.push(['query', sql, params]);
+      return this.execute(sql, params);
+    }
+  };
+  const mysql = { createConnection: async () => connection };
+
+  const report = await runItemSourceCandidateLocalCompatApply(
+    {
+      inputPath,
+      outputPath,
+      backupDir: path.join(tempDir, 'backup'),
+      apply: true,
+      confirmLocalCompat: true,
+      allowBulk: true,
+      database: 'terria_v1_local'
+    },
+    {
+      now: new Date('2026-06-13T00:00:00.000Z'),
+      mysqlModule: mysql,
+      config: { database: { host: '127.0.0.1', port: 13306, username: 'root', password: 'root' } }
+    }
+  );
+
+  assert.equal(report.mode, 'item_source_local_compat_retire_plan');
+  assert.deepEqual(report.summary, {
+    selectedRows: 1,
+    validationErrors: 0,
+    toRetire: 1,
+    retired: 1
+  });
+  assert.match(report.rollbackSql, /status` = 1/);
+  assert.ok(connection.calls.some((call) => call[0] === 'execute' && /UPDATE `?item_acquisition_sources`?/i.test(call[1])));
 });
 
 test('buildLocalCompatRows maps candidate plan rows to local compat rows', () => {
@@ -284,6 +397,56 @@ test('buildLocalCompatRows preserves reviewed text-only group and unknown refs',
   );
 });
 
+test('buildLocalCompatRows preserves reviewed event and transformation source rows', () => {
+  const plan = samplePlan();
+  plan.eligibleCandidates = [{
+    itemInternalName: 'GardenGnome',
+    itemName: 'Garden Gnome',
+    itemResolution: { status: 'resolved', id: 4609, internalName: 'GardenGnome', name: 'Garden Gnome' },
+    pageTitle: 'Garden Gnome',
+    classification: 'high_confidence',
+    plannedSources: [
+      {
+        sourceType: 'transformation',
+        sourceRefType: 'npc',
+        sourceRefName: 'Gnome',
+        quantityText: null,
+        chanceText: null,
+        conditions: 'formed when a Gnome touches sunlight',
+        notes: 'Sunlight transformation',
+        sourcePage: 'Garden Gnome',
+        sourceRevisionTimestamp: '2026-05-01T00:00:00Z',
+        sortOrder: 0,
+        resolvedRef: { status: 'resolved', id: 624, internalName: 'Gnome', name: 'Gnome' }
+      },
+      {
+        sourceType: 'event',
+        sourceRefType: 'world',
+        sourceRefName: 'The Torch God event',
+        quantityText: null,
+        chanceText: null,
+        conditions: 'obtained by surviving The Torch God event',
+        notes: null,
+        sourcePage: "Torch God's Favor",
+        sourceRevisionTimestamp: '2026-05-01T00:00:00Z',
+        sortOrder: 1,
+        resolvedRef: null
+      }
+    ]
+  }];
+
+  const result = buildLocalCompatRows(plan, { sample: 'GardenGnome' });
+
+  assert.equal(result.blocked.length, 0);
+  assert.deepEqual(
+    result.rows.map((row) => [row.sourceType, row.sourceRefType, row.sourceRefId, row.sourceRefName]),
+    [
+      ['transformation', 'npc', 624, 'Gnome'],
+      ['event', 'world', null, 'The Torch God event']
+    ]
+  );
+});
+
 test('runItemSourceCandidateLocalCompatApply dry-run validates and does not insert', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'item-source-local-dry-'));
   const inputPath = path.join(root, 'plan.json');
@@ -304,6 +467,49 @@ test('runItemSourceCandidateLocalCompatApply dry-run validates and does not inse
   assert.equal(report.summary.plannedRows, 2);
   assert.equal(report.summary.toInsert, 2);
   assert.equal(mysql.insertedIds.length, 0);
+});
+
+test('runItemSourceCandidateLocalCompatApply blocks stale item identity mismatches', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'item-source-local-compat-'));
+  const inputPath = path.join(tempDir, 'plan.json');
+  const outputPath = path.join(tempDir, 'report.json');
+  const plan = samplePlan();
+  plan.eligibleCandidates[0].itemInternalName = 'RoninShirt';
+  plan.eligibleCandidates[0].itemName = 'Wandering Yukata';
+  plan.eligibleCandidates[0].itemResolution = {
+    status: 'resolved',
+    id: 5049,
+    internalName: 'RoninShirt',
+    name: 'Wandering Yukata'
+  };
+  fs.writeFileSync(inputPath, JSON.stringify(plan));
+  const mysql = createIdentityAwareMockMysql({
+    5049: { id: 5049, internal_name: 'HeartArrow', name: 'Heart Arrow' },
+    306: { id: 306, internal_name: 'GoldChest', name: 'Gold Chest' }
+  });
+
+  const report = await runItemSourceCandidateLocalCompatApply(
+    {
+      inputPath,
+      outputPath,
+      backupDir: path.join(tempDir, 'backup'),
+      apply: false,
+      allowBulk: true,
+      database: 'terria_v1_local'
+    },
+    {
+      now: new Date('2026-06-13T00:00:00.000Z'),
+      mysqlModule: mysql.module,
+      config: { database: { host: '127.0.0.1', port: 13306, username: 'root', password: 'root' } }
+    }
+  );
+
+  assert.equal(report.summary.validationErrors, 2);
+  assert.equal(report.summary.toInsert, 0);
+  assert.deepEqual(
+    report.validationErrors.map((error) => error.reason),
+    ['item_identity_mismatch', 'item_identity_mismatch']
+  );
 });
 
 test('runItemSourceCandidateLocalCompatApply inserts missing rows and reports rollback ids', async () => {

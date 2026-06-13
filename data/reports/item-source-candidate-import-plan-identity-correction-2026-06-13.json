@@ -1,0 +1,190 @@
+{
+  "generatedAt": "2026-06-13T00:00:00.000Z",
+  "readOnly": true,
+  "mode": "candidate_import_plan",
+  "summary": {
+    "totalCandidates": 3,
+    "eligibleCandidates": 3,
+    "blockedCandidates": 0,
+    "explicitSourceExemptionCandidates": 0,
+    "plannedSourceRows": 6,
+    "blockedSourceRows": 0,
+    "explicitSourceExemptionRows": 0,
+    "classificationCounts": {
+      "identity_correction": 3
+    },
+    "blockedReasonCounts": {},
+    "plannedSourceRefTypeCounts": {
+      "item": 6
+    }
+  },
+  "eligibleCandidates": [
+    {
+      "itemInternalName": "RoninShirt",
+      "itemName": "Wandering Yukata",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 8423,
+        "internalName": "RoninShirt",
+        "name": "Wandering Yukata"
+      },
+      "pageTitle": "Wandering set",
+      "classification": "identity_correction",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 2,
+      "sourceRevisionTimestamp": "2025-11-11T16:22:19Z",
+      "plannedSources": [
+        {
+          "sourceType": "craft",
+          "sourceRefType": "item",
+          "sourceRefName": "Silk",
+          "quantityText": "1",
+          "chanceText": null,
+          "conditions": "Crafted at Loom",
+          "notes": "Recipe ingredients: Silk x20, Firefly x3",
+          "sourcePage": "Wandering set",
+          "sourceRevisionTimestamp": "2025-11-11T16:22:19Z",
+          "sortOrder": 0,
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 225,
+            "internalName": "Silk",
+            "name": "Silk"
+          }
+        },
+        {
+          "sourceType": "craft",
+          "sourceRefType": "item",
+          "sourceRefName": "Firefly",
+          "quantityText": "1",
+          "chanceText": null,
+          "conditions": "Crafted at Loom",
+          "notes": "Recipe ingredients: Silk x20, Firefly x3",
+          "sourcePage": "Wandering set",
+          "sourceRevisionTimestamp": "2025-11-11T16:22:19Z",
+          "sortOrder": 1,
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1992,
+            "internalName": "Firefly",
+            "name": "Firefly"
+          }
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TimelessTravelerHood",
+      "itemName": "Timeless Traveler's Hood",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 8424,
+        "internalName": "TimelessTravelerHood",
+        "name": "Timeless Traveler's Hood"
+      },
+      "pageTitle": "Timeless Traveler's set",
+      "classification": "identity_correction",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 2,
+      "sourceRevisionTimestamp": "2025-11-11T15:49:43Z",
+      "plannedSources": [
+        {
+          "sourceType": "craft",
+          "sourceRefType": "item",
+          "sourceRefName": "Silk",
+          "quantityText": "1",
+          "chanceText": null,
+          "conditions": "Crafted at Loom",
+          "notes": "Recipe ingredients: Silk x10, Bone x10",
+          "sourcePage": "Timeless Traveler's set",
+          "sourceRevisionTimestamp": "2025-11-11T15:49:43Z",
+          "sortOrder": 0,
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 225,
+            "internalName": "Silk",
+            "name": "Silk"
+          }
+        },
+        {
+          "sourceType": "craft",
+          "sourceRefType": "item",
+          "sourceRefName": "Bone",
+          "quantityText": "1",
+          "chanceText": null,
+          "conditions": "Crafted at Loom",
+          "notes": "Recipe ingredients: Silk x10, Bone x10",
+          "sourcePage": "Timeless Traveler's set",
+          "sourceRevisionTimestamp": "2025-11-11T15:49:43Z",
+          "sortOrder": 1,
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 154,
+            "internalName": "Bone",
+            "name": "Bone"
+          }
+        }
+      ]
+    },
+    {
+      "itemInternalName": "TVHeadPants",
+      "itemName": "Pinstripe Pants",
+      "itemResolution": {
+        "status": "resolved",
+        "id": 8425,
+        "internalName": "TVHeadPants",
+        "name": "Pinstripe Pants"
+      },
+      "pageTitle": "TV Head set",
+      "classification": "identity_correction",
+      "rawSourceCount": 2,
+      "standardizedSourceCount": 2,
+      "sourceRevisionTimestamp": "2026-04-15T12:18:03Z",
+      "plannedSources": [
+        {
+          "sourceType": "craft",
+          "sourceRefType": "item",
+          "sourceRefName": "Silk",
+          "quantityText": "1",
+          "chanceText": null,
+          "conditions": "Crafted at Loom",
+          "notes": "Recipe ingredients: Silk x20, Purple Dye",
+          "sourcePage": "TV Head set",
+          "sourceRevisionTimestamp": "2026-04-15T12:18:03Z",
+          "sortOrder": 0,
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 225,
+            "internalName": "Silk",
+            "name": "Silk"
+          }
+        },
+        {
+          "sourceType": "craft",
+          "sourceRefType": "item",
+          "sourceRefName": "Purple Dye",
+          "quantityText": "1",
+          "chanceText": null,
+          "conditions": "Crafted at Loom",
+          "notes": "Recipe ingredients: Silk x20, Purple Dye",
+          "sourcePage": "TV Head set",
+          "sourceRevisionTimestamp": "2026-04-15T12:18:03Z",
+          "sortOrder": 1,
+          "resolutionStatus": "resolved_item_ref",
+          "resolvedRef": {
+            "status": "resolved",
+            "id": 1016,
+            "internalName": "PurpleDye",
+            "name": "Purple Dye"
+          }
+        }
+      ]
+    }
+  ],
+  "blockedCandidates": [],
+  "explicitSourceExemptionCandidates": []
+}
