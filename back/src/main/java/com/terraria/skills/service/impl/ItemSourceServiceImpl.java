@@ -4,13 +4,21 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.terraria.skills.dto.ItemSourceDTO;
 import com.terraria.skills.entity.Biome;
+import com.terraria.skills.entity.BiomeResource;
 import com.terraria.skills.entity.Item;
 import com.terraria.skills.entity.ItemAcquisitionSource;
+import com.terraria.skills.entity.ItemBiome;
 import com.terraria.skills.entity.Npc;
+import com.terraria.skills.entity.NpcLootEntry;
+import com.terraria.skills.entity.NpcShopEntry;
 import com.terraria.skills.mapper.BiomeMapper;
+import com.terraria.skills.mapper.BiomeResourceMapper;
 import com.terraria.skills.mapper.ItemAcquisitionSourceMapper;
+import com.terraria.skills.mapper.ItemBiomeMapper;
 import com.terraria.skills.mapper.ItemMapper;
+import com.terraria.skills.mapper.NpcLootEntryMapper;
 import com.terraria.skills.mapper.NpcMapper;
+import com.terraria.skills.mapper.NpcShopEntryMapper;
 import com.terraria.skills.service.ItemSourceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -42,6 +50,10 @@ public class ItemSourceServiceImpl implements ItemSourceService {
     private final BiomeMapper biomeMapper;
     private final ItemMapper itemMapper;
     private final NpcMapper npcMapper;
+    private final NpcLootEntryMapper npcLootEntryMapper;
+    private final NpcShopEntryMapper npcShopEntryMapper;
+    private final BiomeResourceMapper biomeResourceMapper;
+    private final ItemBiomeMapper itemBiomeMapper;
 
     @Override
     public List<ItemSourceDTO> getSourcesByItemId(Long itemId) {
@@ -50,11 +62,13 @@ public class ItemSourceServiceImpl implements ItemSourceService {
             .eq(ItemAcquisitionSource::getStatus, 1)
             .orderByAsc(ItemAcquisitionSource::getSortOrder, ItemAcquisitionSource::getId));
 
-        if (sources == null || sources.isEmpty()) {
+        List<ItemSourceDTO> projectedSources = loadProjectedSources(itemId);
+        if ((sources == null || sources.isEmpty()) && projectedSources.isEmpty()) {
             return Collections.emptyList();
         }
 
-        List<Long> biomeIds = sources.stream()
+        List<ItemAcquisitionSource> activeSources = sources == null ? Collections.emptyList() : sources;
+        List<Long> biomeIds = activeSources.stream()
             .map(ItemAcquisitionSource::getBiomeId)
             .filter(java.util.Objects::nonNull)
             .distinct()
@@ -64,21 +78,21 @@ public class ItemSourceServiceImpl implements ItemSourceService {
             ? Collections.emptyMap()
             : biomeMapper.selectBatchIds(biomeIds).stream().collect(Collectors.toMap(Biome::getId, Function.identity()));
 
-        Set<String> sourceNames = sources.stream()
+        Set<String> sourceNames = activeSources.stream()
             .map(ItemAcquisitionSource::getSourceRefName)
             .map(this::cleanSourceRefName)
             .filter(Objects::nonNull)
             .collect(Collectors.toCollection(LinkedHashSet::new));
-        Set<String> npcSourceNames = npcBackedSourceNames(sources);
+        Set<String> npcSourceNames = npcBackedSourceNames(activeSources);
 
-        Map<Long, SourceRefMetadata> itemMetadataById = loadItemMetadataById(sources);
-        Map<Long, SourceRefMetadata> npcMetadataById = loadNpcMetadataById(sources);
+        Map<Long, SourceRefMetadata> itemMetadataById = loadItemMetadataById(activeSources);
+        Map<Long, SourceRefMetadata> npcMetadataById = loadNpcMetadataById(activeSources);
         Map<String, SourceRefMetadata> itemMetadataByName = loadItemMetadataByName(sourceNames);
         Map<String, SourceRefMetadata> npcMetadataByName = loadNpcMetadataByName(npcSourceNames);
 
         Map<String, ItemSourceDTO> deduped = new LinkedHashMap<>();
 
-        for (ItemAcquisitionSource source : sources) {
+        for (ItemAcquisitionSource source : activeSources) {
             ItemSourceDTO dto = new ItemSourceDTO();
             BeanUtils.copyProperties(source, dto);
 
@@ -111,8 +125,227 @@ public class ItemSourceServiceImpl implements ItemSourceService {
                 mergeMissingSourceMetadata(existing, dto);
             }
         }
+        for (ItemSourceDTO projectedSource : projectedSources) {
+            deduped.putIfAbsent(buildDedupeKey(projectedSource), projectedSource);
+        }
 
         return List.copyOf(deduped.values());
+    }
+
+    private List<ItemSourceDTO> loadProjectedSources(Long itemId) {
+        ProjectionSourceRows rows = loadProjectionSourceRows(itemId);
+        Map<Long, Npc> npcById = loadProjectionNpcs(rows.lootEntries(), rows.shopEntries());
+        Map<Long, Biome> biomeById = loadProjectionBiomes(rows.biomeResources(), rows.itemBiomes());
+        List<ItemSourceDTO> projected = new java.util.ArrayList<>();
+        projected.addAll(projectNpcLootSources(itemId, rows.lootEntries(), npcById));
+        projected.addAll(projectNpcShopSources(itemId, rows.shopEntries(), npcById));
+        projected.addAll(projectBiomeResourceSources(itemId, rows.biomeResources(), biomeById));
+        projected.addAll(projectItemBiomeSources(itemId, rows.itemBiomes(), biomeById));
+        return projected;
+    }
+
+    private ProjectionSourceRows loadProjectionSourceRows(Long itemId) {
+        List<NpcLootEntry> entries = npcLootEntryMapper.selectList(new LambdaQueryWrapper<NpcLootEntry>()
+            .eq(NpcLootEntry::getItemId, itemId)
+            .eq(NpcLootEntry::getStatus, 1)
+            .eq(NpcLootEntry::getDeleted, 0)
+            .orderByAsc(NpcLootEntry::getSortOrder, NpcLootEntry::getId));
+        List<NpcShopEntry> shopEntries = npcShopEntryMapper.selectList(new LambdaQueryWrapper<NpcShopEntry>()
+            .eq(NpcShopEntry::getItemId, itemId)
+            .eq(NpcShopEntry::getStatus, 1)
+            .eq(NpcShopEntry::getDeleted, 0)
+            .orderByAsc(NpcShopEntry::getSortOrder, NpcShopEntry::getId));
+        List<BiomeResource> resources = biomeResourceMapper.selectList(new LambdaQueryWrapper<BiomeResource>()
+            .eq(BiomeResource::getItemId, itemId)
+            .orderByAsc(BiomeResource::getSortOrder, BiomeResource::getId));
+        List<ItemBiome> relations = itemBiomeMapper.selectList(new LambdaQueryWrapper<ItemBiome>()
+            .eq(ItemBiome::getItemId, itemId)
+            .orderByAsc(ItemBiome::getSortOrder, ItemBiome::getId));
+        return new ProjectionSourceRows(
+            entries == null ? Collections.emptyList() : entries,
+            shopEntries == null ? Collections.emptyList() : shopEntries,
+            resources == null ? Collections.emptyList() : resources,
+            relations == null ? Collections.emptyList() : relations
+        );
+    }
+
+    private List<ItemSourceDTO> projectNpcLootSources(Long itemId, List<NpcLootEntry> entries, Map<Long, Npc> npcById) {
+        if (entries == null || entries.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return entries.stream()
+            .map(entry -> toNpcLootProjectedSource(itemId, entry, npcById.get(entry.getNpcId())))
+            .toList();
+    }
+
+    private ItemSourceDTO toNpcLootProjectedSource(Long itemId, NpcLootEntry entry, Npc npc) {
+        ItemSourceDTO dto = new ItemSourceDTO();
+        dto.setId(entry.getId());
+        dto.setItemId(itemId);
+        dto.setEvidenceKind("npc_relation");
+        dto.setSourceFactKey("npc_loot:" + entry.getId());
+        dto.setLootEntryId(entry.getId());
+        dto.setDropSourceKind(entry.getDropSourceKind());
+        dto.setSourceType("drop");
+        dto.setSourceRefType(Boolean.TRUE.equals(isBossNpc(npc)) ? SOURCE_REF_TYPE_BOSS : SOURCE_REF_TYPE_NPC);
+        dto.setSourceRefId(entry.getNpcId());
+        dto.setSourceRefName(npc == null ? null : npc.getName());
+        dto.setSourceRefNameZh(npc == null ? null : npc.getNameZh());
+        dto.setNpcDetailPath(entry.getNpcId() == null ? null : "/npcs/" + entry.getNpcId());
+        dto.setImageUrl(npc == null ? null : npc.getImageUrl());
+        dto.setSourceRefImageUrl(npc == null ? null : npc.getImageUrl());
+        dto.setNpcImageUrl(npc == null ? null : npc.getImageUrl());
+        dto.setQuantityMin(entry.getQuantityMin());
+        dto.setQuantityMax(entry.getQuantityMax());
+        dto.setQuantityText(entry.getQuantityText());
+        dto.setChanceValue(entry.getChanceValue());
+        dto.setChanceText(entry.getChanceText());
+        dto.setConditions(entry.getConditions());
+        dto.setNotes(entry.getNotes());
+        dto.setSortOrder(entry.getSortOrder());
+        return dto;
+    }
+
+    private List<ItemSourceDTO> projectNpcShopSources(Long itemId, List<NpcShopEntry> entries, Map<Long, Npc> npcById) {
+        if (entries == null || entries.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return entries.stream()
+            .map(entry -> toNpcShopProjectedSource(itemId, entry, npcById.get(entry.getNpcId())))
+            .toList();
+    }
+
+    private ItemSourceDTO toNpcShopProjectedSource(Long itemId, NpcShopEntry entry, Npc npc) {
+        ItemSourceDTO dto = new ItemSourceDTO();
+        dto.setId(entry.getId());
+        dto.setItemId(itemId);
+        dto.setEvidenceKind("npc_relation");
+        dto.setSourceFactKey("npc_shop:" + entry.getId());
+        dto.setShopEntryId(entry.getId());
+        dto.setSourceType("shop");
+        dto.setSourceRefType(SOURCE_REF_TYPE_NPC);
+        dto.setSourceRefId(entry.getNpcId());
+        dto.setSourceRefName(npc == null ? null : npc.getName());
+        dto.setSourceRefNameZh(npc == null ? null : npc.getNameZh());
+        dto.setNpcDetailPath(entry.getNpcId() == null ? null : "/npcs/" + entry.getNpcId());
+        dto.setImageUrl(npc == null ? null : npc.getImageUrl());
+        dto.setSourceRefImageUrl(npc == null ? null : npc.getImageUrl());
+        dto.setNpcImageUrl(npc == null ? null : npc.getImageUrl());
+        dto.setConditions(entry.getPriceText());
+        dto.setNotes(entry.getNotes());
+        dto.setSortOrder(entry.getSortOrder());
+        return dto;
+    }
+
+    private List<ItemSourceDTO> projectBiomeResourceSources(Long itemId, List<BiomeResource> resources, Map<Long, Biome> biomeById) {
+        if (resources == null || resources.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return resources.stream()
+            .map(resource -> toBiomeResourceProjectedSource(itemId, resource, biomeById.get(resource.getBiomeId())))
+            .toList();
+    }
+
+    private ItemSourceDTO toBiomeResourceProjectedSource(Long itemId, BiomeResource resource, Biome biome) {
+        ItemSourceDTO dto = baseBiomeProjectedSource(itemId, resource.getBiomeId(), biome);
+        dto.setId(resource.getId());
+        dto.setEvidenceKind("biome_resource");
+        dto.setSourceFactKey("biome_resource:" + resource.getId());
+        dto.setSourceType("worldgen");
+        dto.setSourceRefType("world");
+        dto.setSourceRefName(normalizeText(resource.getResourceNameRaw(), biome == null ? null : biome.getNameEn()));
+        dto.setConditions(resource.getResourceType());
+        dto.setNotes(resource.getNotes());
+        dto.setSortOrder(resource.getSortOrder());
+        return dto;
+    }
+
+    private List<ItemSourceDTO> projectItemBiomeSources(Long itemId, List<ItemBiome> relations, Map<Long, Biome> biomeById) {
+        if (relations == null || relations.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return relations.stream()
+            .map(relation -> toItemBiomeProjectedSource(itemId, relation, biomeById.get(relation.getBiomeId())))
+            .toList();
+    }
+
+    private ItemSourceDTO toItemBiomeProjectedSource(Long itemId, ItemBiome relation, Biome biome) {
+        ItemSourceDTO dto = baseBiomeProjectedSource(itemId, relation.getBiomeId(), biome);
+        dto.setId(relation.getId());
+        dto.setEvidenceKind("item_biome");
+        dto.setSourceFactKey("item_biome:" + relation.getId());
+        dto.setSourceType("worldgen");
+        dto.setSourceRefType("world");
+        dto.setSourceRefName(biome == null ? null : biome.getNameEn());
+        dto.setConditions(relation.getRelationType());
+        dto.setNotes(relation.getNotes());
+        dto.setSortOrder(relation.getSortOrder());
+        return dto;
+    }
+
+    private ItemSourceDTO baseBiomeProjectedSource(Long itemId, Long biomeId, Biome biome) {
+        ItemSourceDTO dto = new ItemSourceDTO();
+        dto.setItemId(itemId);
+        dto.setBiomeId(biomeId);
+        dto.setBiomeDetailPath(biomeId == null ? null : "/biomes/" + biomeId);
+        if (biome != null) {
+            dto.setBiomeCode(biome.getCode());
+            dto.setBiomeNameEn(biome.getNameEn());
+            dto.setBiomeNameZh(biome.getNameZh());
+            dto.setImageUrl(biome.getIconUrl());
+            dto.setSourceRefImageUrl(biome.getIconUrl());
+        }
+        return dto;
+    }
+
+    private Map<Long, Npc> loadProjectionNpcs(List<NpcLootEntry> lootEntries, List<NpcShopEntry> shopEntries) {
+        Set<Long> npcIds = new LinkedHashSet<>();
+        if (lootEntries != null) {
+            lootEntries.stream().map(NpcLootEntry::getNpcId).filter(Objects::nonNull).forEach(npcIds::add);
+        }
+        if (shopEntries != null) {
+            shopEntries.stream().map(NpcShopEntry::getNpcId).filter(Objects::nonNull).forEach(npcIds::add);
+        }
+        if (npcIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return npcMapper.selectList(new QueryWrapper<Npc>()
+                .eq("status", 1)
+                .eq("deleted", 0)
+                .in("id", npcIds))
+            .stream()
+            .collect(Collectors.toMap(Npc::getId, Function.identity(), (left, right) -> left, LinkedHashMap::new));
+    }
+
+    private Map<Long, Biome> loadProjectionBiomes(List<BiomeResource> resources, List<ItemBiome> relations) {
+        Set<Long> biomeIds = new LinkedHashSet<>();
+        if (resources != null) {
+            resources.stream().map(BiomeResource::getBiomeId).filter(Objects::nonNull).forEach(biomeIds::add);
+        }
+        if (relations != null) {
+            relations.stream().map(ItemBiome::getBiomeId).filter(Objects::nonNull).forEach(biomeIds::add);
+        }
+        if (biomeIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return biomeMapper.selectList(new QueryWrapper<Biome>()
+                .eq("status", 1)
+                .eq("deleted", 0)
+                .in("id", biomeIds))
+            .stream()
+            .collect(Collectors.toMap(Biome::getId, Function.identity(), (left, right) -> left, LinkedHashMap::new));
+    }
+
+    private Boolean isBossNpc(Npc npc) {
+        return npc != null && Boolean.TRUE.equals(npc.getIsBoss());
+    }
+
+    private record ProjectionSourceRows(
+        List<NpcLootEntry> lootEntries,
+        List<NpcShopEntry> shopEntries,
+        List<BiomeResource> biomeResources,
+        List<ItemBiome> itemBiomes
+    ) {
     }
 
     private Map<Long, SourceRefMetadata> loadItemMetadataById(List<ItemAcquisitionSource> sources) {
@@ -296,6 +529,8 @@ public class ItemSourceServiceImpl implements ItemSourceService {
 
     private String buildDedupeKey(ItemSourceDTO dto) {
         return String.join("|",
+            normalizeText(dto.getEvidenceKind(), ""),
+            normalizeText(dto.getSourceFactKey(), ""),
             normalizeText(dto.getSourceType(), ""),
             normalizeText(dto.getSourceRefType(), ""),
             normalizeText(dto.getSourceRefName(), ""),

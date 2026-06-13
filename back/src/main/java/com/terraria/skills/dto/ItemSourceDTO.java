@@ -32,6 +32,13 @@ public class ItemSourceDTO {
     private String sourcePage;
     private LocalDateTime sourceRevisionTimestamp;
     private Integer sortOrder;
+    private String evidenceKind;
+    private String sourceFactKey;
+    private String npcDetailPath;
+    private Long lootEntryId;
+    private Long shopEntryId;
+    private String dropSourceKind;
+    private String biomeDetailPath;
     private String biomeCode;
     private String biomeNameEn;
     private String biomeNameZh;

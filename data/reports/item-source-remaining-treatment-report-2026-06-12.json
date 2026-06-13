@@ -1,0 +1,514 @@
+{
+  "generatedAt": "2026-06-13T05:13:04.058Z",
+  "readOnly": true,
+  "entity": "item_source_remaining_treatment_report",
+  "inputs": {
+    "evidenceReportPath": "data/reports/item-source-existing-evidence-layers-2026-06-12.json",
+    "rawCandidatesPath": "data/reports/item-source-raw-page-candidates-2026-06-11-current.json",
+    "candidatePlanPath": "data/reports/item-source-candidate-import-plan.remaining-2026-06-12.json",
+    "dryRunReportPath": "data/reports/item-source-candidate-local-compat-dry-run-2026-06-12.json"
+  },
+  "summary": {
+    "totalRemainingRows": 3730,
+    "evidenceLayerCountSum": 3730,
+    "allRowsClassifiedByEvidenceLayer": true,
+    "itemOnlyNoSourceEvidenceRows": 0,
+    "dedicatedStructureCoveredRows": 2603,
+    "rawCandidateRows": 23,
+    "focusedRawCandidates": 292,
+    "dryRunReadyCandidates": 269,
+    "dryRunReadySourceRows": 0,
+    "requiresUserApprovedApplyRows": 0,
+    "notAppliedBecauseSafetyBoundaryRows": 0,
+    "dryRunValidationErrors": 0,
+    "dryRunDuplicates": 276,
+    "familyPolicyBlockedCandidates": 0,
+    "familyPolicyPendingClosureRows": 0,
+    "blockedSourceRowCandidates": 0,
+    "blockedSourceRows": 0,
+    "projectionRequiredRows": 17,
+    "npcRelationNotProjectedRows": 2,
+    "biomeProjectionPendingRows": 15,
+    "terminalExemptOrIdentityReviewRows": 19,
+    "missingRawRequiredRows": 0,
+    "canClaimAllRowsAppliedToDb": false,
+    "dbWritesPerformed": false,
+    "crawlerOrFetchPerformed": false
+  },
+  "actions": [],
+  "remainingWork": [
+    {
+      "lane": "projection_contract_required",
+      "title": "NPC/biome 关系投影",
+      "count": 17,
+      "nextAction": "补 public contract 和前台专属展示，不伪造成普通来源。"
+    }
+  ],
+  "familyPolicyReview": {
+    "familyPolicyPendingItems": 278,
+    "familyPolicyCandidateBlockedItems": 632,
+    "topSourcePages": [
+      {
+        "sourcePage": "Paintings",
+        "items": 97
+      },
+      {
+        "sourcePage": "Music Boxes",
+        "items": 95
+      },
+      {
+        "sourcePage": "Statues",
+        "items": 52
+      },
+      {
+        "sourcePage": "Dragonflies",
+        "items": 6
+      },
+      {
+        "sourcePage": "Logic Gates",
+        "items": 6
+      },
+      {
+        "sourcePage": "Team Blocks",
+        "items": 6
+      },
+      {
+        "sourcePage": "Altars",
+        "items": 4
+      },
+      {
+        "sourcePage": "Moss",
+        "items": 4
+      },
+      {
+        "sourcePage": "Vases",
+        "items": 4
+      }
+    ],
+    "topRowTypeCounts": [
+      {
+        "sourceType": "worldgen",
+        "sourceRefType": "world",
+        "rows": 221
+      },
+      {
+        "sourceType": "shop",
+        "sourceRefType": "npc",
+        "rows": 108
+      },
+      {
+        "sourceType": "drop",
+        "sourceRefType": "boss",
+        "rows": 8
+      },
+      {
+        "sourceType": "mining",
+        "sourceRefType": "world",
+        "rows": 5
+      },
+      {
+        "sourceType": "drop",
+        "sourceRefType": "npc",
+        "rows": 4
+      }
+    ],
+    "requiredWork": [
+      "扩展 family policy/parser，不能把 Paintings/Statues/Music Boxes 等整页无条件放行。",
+      "Music Boxes、Logic Gates、Team Blocks、Planter Boxes 属于 shop/NPC family rule，不适合走 shared worldgen allow。",
+      "Altars 等混合页需要先解决 boss/ref 映射或拆 item-specific row。"
+    ]
+  },
+  "publicContractReview": {
+    "publicDetailSourceVisibility": "partial",
+    "missingContractFields": [
+      "evidenceKind",
+      "sourceFactKey",
+      "recipeId",
+      "recipeKind",
+      "npcDetailPath",
+      "lootEntryId",
+      "shopEntryId",
+      "dropSourceKind",
+      "biomeDetailPath"
+    ],
+    "conclusion": "前台 item detail 已能泛化展示 /public/items/{id}/sources 和 recipe-tree，但 recipe/shimmer、NPC loot/shop、biome/location 的专属证据字段还没有完整落到 public contract/UI。"
+  },
+  "focusedRawCandidateSummary": {
+    "totalCandidates": 810,
+    "classificationCounts": {
+      "high_confidence": 178,
+      "family_page_candidate": 632
+    }
+  },
+  "candidatePlanSummary": {
+    "totalCandidates": 292,
+    "eligibleCandidates": 269,
+    "blockedCandidates": 0,
+    "explicitSourceExemptionCandidates": 23,
+    "plannedSourceRows": 276,
+    "blockedSourceRows": 0,
+    "explicitSourceExemptionRows": 30,
+    "classificationCounts": {
+      "high_confidence": 8,
+      "family_page_candidate": 284
+    },
+    "blockedReasonCounts": {},
+    "plannedSourceRefTypeCounts": {
+      "item": 101,
+      "world": 170,
+      "npc": 5
+    }
+  },
+  "dryRunSummary": {
+    "selectedCandidates": 269,
+    "plannedRows": 276,
+    "blockedRows": 0,
+    "validationErrors": 0,
+    "duplicates": 276,
+    "toInsert": 0,
+    "inserted": 0
+  },
+  "examples": {
+    "dryRunReady": [
+      {
+        "internalName": "RoninShirt",
+        "name": "Wandering Yukata",
+        "sourceRows": 2,
+        "sourceTypes": [
+          "craft/item"
+        ]
+      },
+      {
+        "internalName": "TimelessTravelerHood",
+        "name": "Timeless Traveler's Hood",
+        "sourceRows": 2,
+        "sourceTypes": [
+          "craft/item"
+        ]
+      },
+      {
+        "internalName": "TVHeadPants",
+        "name": "Pinstripe Pants",
+        "sourceRows": 2,
+        "sourceTypes": [
+          "craft/item"
+        ]
+      },
+      {
+        "internalName": "AHorribleNightforAlchemy",
+        "name": "A Horrible Night for Alchemy",
+        "sourceRows": 1,
+        "sourceTypes": [
+          "worldgen/world"
+        ]
+      },
+      {
+        "internalName": "AmericanExplosive",
+        "name": "American Explosive",
+        "sourceRows": 1,
+        "sourceTypes": [
+          "worldgen/world"
+        ]
+      },
+      {
+        "internalName": "AncientTablet",
+        "name": "Ancient Tablet",
+        "sourceRows": 1,
+        "sourceTypes": [
+          "worldgen/world"
+        ]
+      },
+      {
+        "internalName": "AndrewSphinx",
+        "name": "Andrew Sphinx",
+        "sourceRows": 1,
+        "sourceTypes": [
+          "worldgen/world"
+        ]
+      },
+      {
+        "internalName": "AnvilStatue",
+        "name": "Anvil Statue",
+        "sourceRows": 1,
+        "sourceTypes": [
+          "worldgen/world"
+        ]
+      },
+      {
+        "internalName": "AuroraBorealis",
+        "name": "Aurora Borealis",
+        "sourceRows": 1,
+        "sourceTypes": [
+          "worldgen/world"
+        ]
+      },
+      {
+        "internalName": "AxeStatue",
+        "name": "Axe Statue",
+        "sourceRows": 1,
+        "sourceTypes": [
+          "worldgen/world"
+        ]
+      }
+    ],
+    "blockedSourceRows": [],
+    "familyPolicyBlocked": [],
+    "projectionRequired": [
+      {
+        "itemId": 1586,
+        "internalName": "CenxsWings",
+        "name": "Cenx's Wings",
+        "closureLane": "npc_relation_chain_gap",
+        "evidenceLayer": "npc_relation_not_projected"
+      },
+      {
+        "itemId": 3217,
+        "internalName": "CorruptPlanterBox",
+        "name": "Deathweed Planter Box",
+        "closureLane": "family_policy_candidate",
+        "evidenceLayer": "npc_relation_not_projected"
+      },
+      {
+        "itemId": 1827,
+        "internalName": "BladedGlove",
+        "name": "Bladed Glove",
+        "closureLane": "biome_evidence_projection",
+        "evidenceLayer": "biome_projection_pending"
+      },
+      {
+        "itemId": 2312,
+        "internalName": "FlarefinKoi",
+        "name": "Flarefin Koi",
+        "closureLane": "biome_evidence_projection",
+        "evidenceLayer": "biome_projection_pending"
+      },
+      {
+        "itemId": 2320,
+        "internalName": "Rockfish",
+        "name": "Rockfish",
+        "closureLane": "biome_evidence_projection",
+        "evidenceLayer": "biome_projection_pending"
+      },
+      {
+        "itemId": 2885,
+        "internalName": "InfernalWispDye",
+        "name": "Infernal Wisp Dye",
+        "closureLane": "biome_evidence_projection",
+        "evidenceLayer": "biome_projection_pending"
+      },
+      {
+        "itemId": 3027,
+        "internalName": "ReflectiveGoldDye",
+        "name": "Reflective Gold Dye",
+        "closureLane": "biome_evidence_projection",
+        "evidenceLayer": "biome_projection_pending"
+      },
+      {
+        "itemId": 3028,
+        "internalName": "BlueAcidDye",
+        "name": "Blue Acid Dye",
+        "closureLane": "biome_evidence_projection",
+        "evidenceLayer": "biome_projection_pending"
+      },
+      {
+        "itemId": 3196,
+        "internalName": "BombFish",
+        "name": "Bomb Fish",
+        "closureLane": "biome_evidence_projection",
+        "evidenceLayer": "biome_projection_pending"
+      },
+      {
+        "itemId": 4377,
+        "internalName": "KryptonMoss",
+        "name": "Krypton Moss",
+        "closureLane": "family_policy_candidate",
+        "evidenceLayer": "biome_projection_pending"
+      },
+      {
+        "itemId": 4389,
+        "internalName": "ArgonMoss",
+        "name": "Argon Moss",
+        "closureLane": "family_policy_candidate",
+        "evidenceLayer": "biome_projection_pending"
+      },
+      {
+        "itemId": 4469,
+        "internalName": "MeowmereMinecart",
+        "name": "Meowmere Minecart",
+        "closureLane": "biome_evidence_projection",
+        "evidenceLayer": "biome_projection_pending"
+      },
+      {
+        "itemId": 4471,
+        "internalName": "PirateMinecart",
+        "name": "The Dutchman",
+        "closureLane": "biome_evidence_projection",
+        "evidenceLayer": "biome_projection_pending"
+      },
+      {
+        "itemId": 4546,
+        "internalName": "GoblinSharkBanner",
+        "name": "Hemogoblin Shark Banner",
+        "closureLane": "biome_evidence_projection",
+        "evidenceLayer": "biome_projection_pending"
+      },
+      {
+        "itemId": 4942,
+        "internalName": "PumpkingMasterTrophy",
+        "name": "Pumpking Relic",
+        "closureLane": "biome_evidence_projection",
+        "evidenceLayer": "biome_projection_pending"
+      },
+      {
+        "itemId": 4967,
+        "internalName": "SporeSkeletonBanner",
+        "name": "Spore Skeleton Banner",
+        "closureLane": "biome_evidence_projection",
+        "evidenceLayer": "biome_projection_pending"
+      },
+      {
+        "itemId": 5375,
+        "internalName": "HardenedSandWallUnsafe",
+        "name": "Treacherous Hardened Sand Wall",
+        "closureLane": "family_policy_candidate",
+        "evidenceLayer": "biome_projection_pending"
+      }
+    ],
+    "missingRawRequired": [],
+    "terminalExemptOrIdentityReview": [
+      {
+        "itemId": 1475,
+        "internalName": "Darkness",
+        "name": "Darkness",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "evidenceLayer": "terminal_exempt_or_identity_review"
+      },
+      {
+        "itemId": 2436,
+        "internalName": "BlueJellyfish",
+        "name": "Blue Jellyfish",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "evidenceLayer": "terminal_exempt_or_identity_review"
+      },
+      {
+        "itemId": 2437,
+        "internalName": "GreenJellyfish",
+        "name": "Green Jellyfish",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "evidenceLayer": "terminal_exempt_or_identity_review"
+      },
+      {
+        "itemId": 2438,
+        "internalName": "PinkJellyfish",
+        "name": "Pink Jellyfish",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "evidenceLayer": "terminal_exempt_or_identity_review"
+      },
+      {
+        "itemId": 3705,
+        "internalName": "Fake_newchest1",
+        "name": "Fake_newchest1",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "evidenceLayer": "terminal_exempt_or_identity_review"
+      },
+      {
+        "itemId": 3706,
+        "internalName": "Fake_newchest2",
+        "name": "Fake_newchest2",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "evidenceLayer": "terminal_exempt_or_identity_review"
+      },
+      {
+        "itemId": 3847,
+        "internalName": "OgreMask",
+        "name": "OgreMask",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "evidenceLayer": "terminal_exempt_or_identity_review"
+      },
+      {
+        "itemId": 3848,
+        "internalName": "GoblinMask",
+        "name": "GoblinMask",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "evidenceLayer": "terminal_exempt_or_identity_review"
+      },
+      {
+        "itemId": 3849,
+        "internalName": "GoblinBomberCap",
+        "name": "GoblinBomberCap",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "evidenceLayer": "terminal_exempt_or_identity_review"
+      },
+      {
+        "itemId": 3850,
+        "internalName": "EtherianJavelin",
+        "name": "EtherianJavelin",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "evidenceLayer": "terminal_exempt_or_identity_review"
+      },
+      {
+        "itemId": 3851,
+        "internalName": "KoboldDynamiteBackpack",
+        "name": "KoboldDynamiteBackpack",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "evidenceLayer": "terminal_exempt_or_identity_review"
+      },
+      {
+        "itemId": 3853,
+        "internalName": "BoringBow",
+        "name": "BoringBow",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "evidenceLayer": "terminal_exempt_or_identity_review"
+      },
+      {
+        "itemId": 3861,
+        "internalName": "BossBagOgre",
+        "name": "BossBagOgre",
+        "closureLane": "runtime_or_developer_internal",
+        "evidenceLayer": "terminal_exempt_or_identity_review"
+      },
+      {
+        "itemId": 3862,
+        "internalName": "BossBagDarkMage",
+        "name": "BossBagDarkMage",
+        "closureLane": "runtime_or_developer_internal",
+        "evidenceLayer": "terminal_exempt_or_identity_review"
+      },
+      {
+        "itemId": 3978,
+        "internalName": "ColorOnlyDye",
+        "name": "ColorOnlyDye",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "evidenceLayer": "terminal_exempt_or_identity_review"
+      },
+      {
+        "itemId": 4143,
+        "internalName": "ManaCloakStar",
+        "name": "ManaCloakStar",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "evidenceLayer": "terminal_exempt_or_identity_review"
+      },
+      {
+        "itemId": 4722,
+        "internalName": "FirstFractal",
+        "name": "FirstFractal",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "evidenceLayer": "terminal_exempt_or_identity_review"
+      },
+      {
+        "itemId": 5013,
+        "internalName": "SleepingIcon",
+        "name": "SleepingIcon",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "evidenceLayer": "terminal_exempt_or_identity_review"
+      },
+      {
+        "itemId": 6143,
+        "internalName": "FoxparksTagEffect",
+        "name": "FoxparksTagEffect",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "evidenceLayer": "terminal_exempt_or_identity_review"
+      }
+    ]
+  }
+}

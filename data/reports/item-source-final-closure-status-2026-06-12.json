@@ -1,0 +1,1423 @@
+{
+  "generatedAt": "2026-06-13T05:16:55.140Z",
+  "readOnly": true,
+  "entity": "item_source_final_closure_status",
+  "summary": {
+    "dbWritesPerformed": true,
+    "crawlerOrFetchPerformed": false,
+    "dryRunReadyCandidates": 269,
+    "dryRunReadySourceRows": 270,
+    "dryRunValidationErrors": 0,
+    "dryRunDuplicates": 6,
+    "familyPolicyRowsAwaitingParser": 0,
+    "blockedSourceRowsRemaining": 0,
+    "blockedSourceCandidatesRemaining": 0,
+    "explicitSourceExemptionRows": 30,
+    "explicitSourceExemptionCandidates": 23,
+    "projectionRows": 17,
+    "projectionRowsClosedByPublicContract": 17,
+    "terminalExemptionRows": 19,
+    "missingRawRows": 0,
+    "blockedSourceSummaryByStatus": {
+      "explicit_exemption_review": 23
+    },
+    "allProjectionRowsHaveEvidence": true,
+    "canClaimAllOrdinarySourcesAppliedToDb": true,
+    "canClaimNoRemainingWork": false
+  },
+  "candidatePlanSummary": {
+    "totalCandidates": 292,
+    "eligibleCandidates": 269,
+    "blockedCandidates": 0,
+    "explicitSourceExemptionCandidates": 23,
+    "plannedSourceRows": 276,
+    "blockedSourceRows": 0,
+    "explicitSourceExemptionRows": 30,
+    "classificationCounts": {
+      "high_confidence": 8,
+      "family_page_candidate": 284
+    },
+    "blockedReasonCounts": {},
+    "plannedSourceRefTypeCounts": {
+      "item": 101,
+      "world": 170,
+      "npc": 5
+    }
+  },
+  "dryRunSummary": {
+    "selectedCandidates": 269,
+    "plannedRows": 276,
+    "blockedRows": 0,
+    "validationErrors": 0,
+    "duplicates": 6,
+    "toInsert": 270,
+    "inserted": 270
+  },
+  "closures": {
+    "dryRunReady": {
+      "closureStatus": "applied_to_local_db",
+      "candidates": 269,
+      "sourceRows": 270,
+      "nextAction": "已写入本地 DB，且 apply 报告包含 rollback/backup evidence。",
+      "evidence": {
+        "apply": true,
+        "toInsert": 270,
+        "inserted": 270,
+        "validationErrors": 0,
+        "duplicates": 6,
+        "hasRollback": true,
+        "hasBackup": true
+      }
+    },
+    "familyPolicy": {
+      "closureStatus": "parser_policy_required",
+      "rows": 0,
+      "nextAction": "需要按 page/source row 做 item-specific family parser；不能整页粗放放行。"
+    },
+    "blockedSourceRows": [],
+    "explicitSourceExemptions": [
+      {
+        "itemId": 766,
+        "itemInternalName": "BoneBlock",
+        "itemName": "Bone Block",
+        "pageTitle": "Bone Block",
+        "exemptionReason": "explicit_unobtainable_or_unimplemented_source",
+        "exemptedSourceRows": 1,
+        "exemptionStatuses": [
+          "unobtainable_as_item"
+        ],
+        "exemptedSourceTypeRefs": [
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable as item",
+            "exemptionStatus": "unobtainable_as_item",
+            "conditions": "There is no way to obtain the block as an item in these versions.",
+            "sourcePage": "Bone Block"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 2772,
+        "itemInternalName": "VortexAxe",
+        "itemName": "Vortex Axe",
+        "pageTitle": "Luminite Axes",
+        "exemptionReason": "explicit_unobtainable_or_unimplemented_source",
+        "exemptedSourceRows": 1,
+        "exemptionStatuses": [
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "Luminite Axes are unobtainable tools .",
+            "sourcePage": "Luminite Axes"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 2773,
+        "itemInternalName": "VortexChainsaw",
+        "itemName": "Vortex Chainsaw",
+        "pageTitle": "Luminite Chainsaws",
+        "exemptionReason": "explicit_unobtainable_or_unimplemented_source",
+        "exemptedSourceRows": 1,
+        "exemptionStatuses": [
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "Luminite Chainsaws are unobtainable tools .",
+            "sourcePage": "Luminite Chainsaws"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 2775,
+        "itemInternalName": "VortexHammer",
+        "itemName": "Vortex Hammer",
+        "pageTitle": "Luminite Hammers",
+        "exemptionReason": "explicit_unobtainable_or_unimplemented_source",
+        "exemptedSourceRows": 1,
+        "exemptionStatuses": [
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "Luminite Hammers are unobtainable tools .",
+            "sourcePage": "Luminite Hammers"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 2777,
+        "itemInternalName": "NebulaAxe",
+        "itemName": "Nebula Axe",
+        "pageTitle": "Luminite Axes",
+        "exemptionReason": "explicit_unobtainable_or_unimplemented_source",
+        "exemptedSourceRows": 1,
+        "exemptionStatuses": [
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "Luminite Axes are unobtainable tools .",
+            "sourcePage": "Luminite Axes"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 2778,
+        "itemInternalName": "NebulaChainsaw",
+        "itemName": "Nebula Chainsaw",
+        "pageTitle": "Luminite Chainsaws",
+        "exemptionReason": "explicit_unobtainable_or_unimplemented_source",
+        "exemptedSourceRows": 1,
+        "exemptionStatuses": [
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "Luminite Chainsaws are unobtainable tools .",
+            "sourcePage": "Luminite Chainsaws"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 2780,
+        "itemInternalName": "NebulaHammer",
+        "itemName": "Nebula Hammer",
+        "pageTitle": "Luminite Hammers",
+        "exemptionReason": "explicit_unobtainable_or_unimplemented_source",
+        "exemptedSourceRows": 1,
+        "exemptionStatuses": [
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "Luminite Hammers are unobtainable tools .",
+            "sourcePage": "Luminite Hammers"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 2782,
+        "itemInternalName": "SolarFlareAxe",
+        "itemName": "Solar Flare Axe",
+        "pageTitle": "Luminite Axes",
+        "exemptionReason": "explicit_unobtainable_or_unimplemented_source",
+        "exemptedSourceRows": 1,
+        "exemptionStatuses": [
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "Luminite Axes are unobtainable tools .",
+            "sourcePage": "Luminite Axes"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 2783,
+        "itemInternalName": "SolarFlareChainsaw",
+        "itemName": "Solar Flare Chainsaw",
+        "pageTitle": "Luminite Chainsaws",
+        "exemptionReason": "explicit_unobtainable_or_unimplemented_source",
+        "exemptedSourceRows": 1,
+        "exemptionStatuses": [
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "Luminite Chainsaws are unobtainable tools .",
+            "sourcePage": "Luminite Chainsaws"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 2785,
+        "itemInternalName": "SolarFlareHammer",
+        "itemName": "Solar Flare Hammer",
+        "pageTitle": "Luminite Hammers",
+        "exemptionReason": "explicit_unobtainable_or_unimplemented_source",
+        "exemptedSourceRows": 1,
+        "exemptionStatuses": [
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "Luminite Hammers are unobtainable tools .",
+            "sourcePage": "Luminite Hammers"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 2881,
+        "itemInternalName": "PhasicWarpEjector",
+        "itemName": "Phasic Warp Ejector",
+        "pageTitle": "Phasic Warp Ejector",
+        "exemptionReason": "explicit_unobtainable_or_unimplemented_source",
+        "exemptedSourceRows": 1,
+        "exemptionStatuses": [
+          "unimplemented"
+        ],
+        "exemptedSourceTypeRefs": [
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unimplemented",
+            "exemptionStatus": "unimplemented",
+            "conditions": "The Phasic Warp Ejector is an unimplemented and incomplete item.",
+            "sourcePage": "Phasic Warp Ejector"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 2903,
+        "itemInternalName": "BlueCultistFighterBanner",
+        "itemName": "Blue Cultist Fighter Banner",
+        "pageTitle": "Banners (enemy)",
+        "exemptionReason": "explicit_unobtainable_enemy_banner_source",
+        "exemptedSourceRows": 2,
+        "exemptionStatuses": [
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "drop/npc",
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Blue Cultist Fighter",
+            "exemptionStatus": null,
+            "conditions": "Enemy banners are functional furniture items that can be placed on the underside of blocks and platforms . They are obtained by killing most enemies and a few critters .",
+            "sourcePage": "Banners (enemy)"
+          },
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "In addition, there are 6 unobtainable enemy banners.",
+            "sourcePage": "Banners (enemy)"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 2989,
+        "itemInternalName": "WhiteCultistArcherBanner",
+        "itemName": "White Cultist Archer Banner",
+        "pageTitle": "Banners (enemy)",
+        "exemptionReason": "explicit_unobtainable_enemy_banner_source",
+        "exemptedSourceRows": 2,
+        "exemptionStatuses": [
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "drop/npc",
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Cultist Archer",
+            "exemptionStatus": null,
+            "conditions": "Enemy banners are functional furniture items that can be placed on the underside of blocks and platforms . They are obtained by killing most enemies and a few critters .",
+            "sourcePage": "Banners (enemy)"
+          },
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "In addition, there are 6 unobtainable enemy banners.",
+            "sourcePage": "Banners (enemy)"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 2990,
+        "itemInternalName": "WhiteCultistCasterBanner",
+        "itemName": "White Cultist Caster Banner",
+        "pageTitle": "Banners (enemy)",
+        "exemptionReason": "explicit_unobtainable_enemy_banner_source",
+        "exemptedSourceRows": 2,
+        "exemptionStatuses": [
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "drop/npc",
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "White Cultist Caster",
+            "exemptionStatus": null,
+            "conditions": "Enemy banners are functional furniture items that can be placed on the underside of blocks and platforms . They are obtained by killing most enemies and a few critters .",
+            "sourcePage": "Banners (enemy)"
+          },
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "In addition, there are 6 unobtainable enemy banners.",
+            "sourcePage": "Banners (enemy)"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 2991,
+        "itemInternalName": "WhiteCultistFighterBanner",
+        "itemName": "White Cultist Fighter Banner",
+        "pageTitle": "Banners (enemy)",
+        "exemptionReason": "explicit_unobtainable_enemy_banner_source",
+        "exemptedSourceRows": 2,
+        "exemptionStatuses": [
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "drop/npc",
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "White Cultist Fighter",
+            "exemptionStatus": null,
+            "conditions": "Enemy banners are functional furniture items that can be placed on the underside of blocks and platforms . They are obtained by killing most enemies and a few critters .",
+            "sourcePage": "Banners (enemy)"
+          },
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "In addition, there are 6 unobtainable enemy banners.",
+            "sourcePage": "Banners (enemy)"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 3398,
+        "itemInternalName": "SeveredHandBanner",
+        "itemName": "Severed Hand Banner",
+        "pageTitle": "Banners (enemy)",
+        "exemptionReason": "explicit_unobtainable_enemy_banner_source",
+        "exemptedSourceRows": 2,
+        "exemptionStatuses": [
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "drop/npc",
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Severed Hand",
+            "exemptionStatus": null,
+            "conditions": "Enemy banners are functional furniture items that can be placed on the underside of blocks and platforms . They are obtained by killing most enemies and a few critters .",
+            "sourcePage": "Banners (enemy)"
+          },
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "In addition, there are 6 unobtainable enemy banners.",
+            "sourcePage": "Banners (enemy)"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 3404,
+        "itemInternalName": "PoisonousSporeBanner",
+        "itemName": "Poisonous Spore Banner",
+        "pageTitle": "Banners (enemy)",
+        "exemptionReason": "explicit_unobtainable_enemy_banner_source",
+        "exemptedSourceRows": 2,
+        "exemptionStatuses": [
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "drop/npc",
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "drop",
+            "sourceRefType": "npc",
+            "sourceRefName": "Poisonous Spore",
+            "exemptionStatus": null,
+            "conditions": "Enemy banners are functional furniture items that can be placed on the underside of blocks and platforms . They are obtained by killing most enemies and a few critters .",
+            "sourcePage": "Banners (enemy)"
+          },
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "In addition, there are 6 unobtainable enemy banners.",
+            "sourcePage": "Banners (enemy)"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 3462,
+        "itemInternalName": "StardustAxe",
+        "itemName": "Stardust Axe",
+        "pageTitle": "Luminite Axes",
+        "exemptionReason": "explicit_unobtainable_or_unimplemented_source",
+        "exemptedSourceRows": 1,
+        "exemptionStatuses": [
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "Luminite Axes are unobtainable tools .",
+            "sourcePage": "Luminite Axes"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 3463,
+        "itemInternalName": "StardustChainsaw",
+        "itemName": "Stardust Chainsaw",
+        "pageTitle": "Luminite Chainsaws",
+        "exemptionReason": "explicit_unobtainable_or_unimplemented_source",
+        "exemptedSourceRows": 1,
+        "exemptionStatuses": [
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "Luminite Chainsaws are unobtainable tools .",
+            "sourcePage": "Luminite Chainsaws"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 3465,
+        "itemInternalName": "StardustHammer",
+        "itemName": "Stardust Hammer",
+        "pageTitle": "Luminite Hammers",
+        "exemptionReason": "explicit_unobtainable_or_unimplemented_source",
+        "exemptedSourceRows": 1,
+        "exemptionStatuses": [
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "Luminite Hammers are unobtainable tools .",
+            "sourcePage": "Luminite Hammers"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 4010,
+        "itemInternalName": "ApplePieSlice",
+        "itemName": "Apple Pie Slice",
+        "pageTitle": "Apple Pie Slice",
+        "exemptionReason": "explicit_unobtainable_or_unimplemented_source",
+        "exemptedSourceRows": 1,
+        "exemptionStatuses": [
+          "unimplemented"
+        ],
+        "exemptedSourceTypeRefs": [
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unimplemented",
+            "exemptionStatus": "unimplemented",
+            "conditions": "The Apple Pie Slice is an unimplemented item.",
+            "sourcePage": "Apple Pie Slice"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 4058,
+        "itemInternalName": "SkeletonBow",
+        "itemName": "Skull Bow",
+        "pageTitle": "Skull Bow",
+        "exemptionReason": "explicit_unobtainable_or_unimplemented_source",
+        "exemptedSourceRows": 1,
+        "exemptionStatuses": [
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "The Skull Bow is an unobtainable bow .",
+            "sourcePage": "Skull Bow"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      },
+      {
+        "itemId": 5668,
+        "itemInternalName": "SoundGun",
+        "itemName": "The Imploder",
+        "pageTitle": "The Imploder",
+        "exemptionReason": "explicit_unobtainable_or_unimplemented_source",
+        "exemptedSourceRows": 2,
+        "exemptionStatuses": [
+          "unimplemented",
+          "unobtainable"
+        ],
+        "exemptedSourceTypeRefs": [
+          "unknown/world"
+        ],
+        "exemptedSources": [
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unimplemented",
+            "exemptionStatus": "unimplemented",
+            "conditions": "The Imploder is an unimplemented item.",
+            "sourcePage": "The Imploder"
+          },
+          {
+            "sourceType": "unknown",
+            "sourceRefType": "world",
+            "sourceRefName": "unobtainable",
+            "exemptionStatus": "unobtainable",
+            "conditions": "* Unlike most other unobtainable items, if obtained via inventory editor, The Imploder is not removed from inventory when the character is loaded.",
+            "sourcePage": "The Imploder"
+          }
+        ],
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false,
+        "nextAction": "显式不可获得/未实现来源，保留为豁免，不导入普通 item source。"
+      }
+    ],
+    "projections": [
+      {
+        "itemId": 1586,
+        "internalName": "CenxsWings",
+        "name": "Cenx's Wings",
+        "evidenceLayer": "npc_relation_not_projected",
+        "closureLane": "npc_relation_chain_gap",
+        "coverageLane": "npc_ref_resolution_gap",
+        "terminalClosureStatus": null,
+        "nextAction": "由 public item sources contract 只读投影，不写 item_acquisition_sources。",
+        "closureStatus": "projected_by_public_sources_contract",
+        "publicContractFiles": [
+          "back/src/main/java/com/terraria/skills/dto/ItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/dto/PublicItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/service/impl/ItemSourceServiceImpl.java",
+          "back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java",
+          "front-nuxt/types/public-api.ts",
+          "front-nuxt/pages/items/[id].vue"
+        ],
+        "evidenceCounts": {
+          "npcLoot": 0,
+          "npcShop": 1,
+          "biomeResource": 0,
+          "itemBiome": 0
+        }
+      },
+      {
+        "itemId": 3217,
+        "internalName": "CorruptPlanterBox",
+        "name": "Deathweed Planter Box",
+        "evidenceLayer": "npc_relation_not_projected",
+        "closureLane": "family_policy_candidate",
+        "coverageLane": "family_policy_candidate",
+        "terminalClosureStatus": null,
+        "nextAction": "由 public item sources contract 只读投影，不写 item_acquisition_sources。",
+        "closureStatus": "projected_by_public_sources_contract",
+        "publicContractFiles": [
+          "back/src/main/java/com/terraria/skills/dto/ItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/dto/PublicItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/service/impl/ItemSourceServiceImpl.java",
+          "back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java",
+          "front-nuxt/types/public-api.ts",
+          "front-nuxt/pages/items/[id].vue"
+        ],
+        "evidenceCounts": {
+          "npcLoot": 0,
+          "npcShop": 1,
+          "biomeResource": 0,
+          "itemBiome": 0
+        }
+      },
+      {
+        "itemId": 1827,
+        "internalName": "BladedGlove",
+        "name": "Bladed Glove",
+        "evidenceLayer": "biome_projection_pending",
+        "closureLane": "biome_evidence_projection",
+        "coverageLane": "biome_evidence_projection",
+        "terminalClosureStatus": null,
+        "nextAction": "由 public item sources contract 只读投影，不写 item_acquisition_sources。",
+        "closureStatus": "projected_by_public_sources_contract",
+        "publicContractFiles": [
+          "back/src/main/java/com/terraria/skills/dto/ItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/dto/PublicItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/service/impl/ItemSourceServiceImpl.java",
+          "back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java",
+          "front-nuxt/types/public-api.ts",
+          "front-nuxt/pages/items/[id].vue"
+        ],
+        "evidenceCounts": {
+          "npcLoot": 0,
+          "npcShop": 0,
+          "biomeResource": 0,
+          "itemBiome": 1
+        }
+      },
+      {
+        "itemId": 2312,
+        "internalName": "FlarefinKoi",
+        "name": "Flarefin Koi",
+        "evidenceLayer": "biome_projection_pending",
+        "closureLane": "biome_evidence_projection",
+        "coverageLane": "biome_evidence_projection",
+        "terminalClosureStatus": null,
+        "nextAction": "由 public item sources contract 只读投影，不写 item_acquisition_sources。",
+        "closureStatus": "projected_by_public_sources_contract",
+        "publicContractFiles": [
+          "back/src/main/java/com/terraria/skills/dto/ItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/dto/PublicItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/service/impl/ItemSourceServiceImpl.java",
+          "back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java",
+          "front-nuxt/types/public-api.ts",
+          "front-nuxt/pages/items/[id].vue"
+        ],
+        "evidenceCounts": {
+          "npcLoot": 0,
+          "npcShop": 0,
+          "biomeResource": 0,
+          "itemBiome": 1
+        }
+      },
+      {
+        "itemId": 2320,
+        "internalName": "Rockfish",
+        "name": "Rockfish",
+        "evidenceLayer": "biome_projection_pending",
+        "closureLane": "biome_evidence_projection",
+        "coverageLane": "biome_evidence_projection",
+        "terminalClosureStatus": null,
+        "nextAction": "由 public item sources contract 只读投影，不写 item_acquisition_sources。",
+        "closureStatus": "projected_by_public_sources_contract",
+        "publicContractFiles": [
+          "back/src/main/java/com/terraria/skills/dto/ItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/dto/PublicItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/service/impl/ItemSourceServiceImpl.java",
+          "back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java",
+          "front-nuxt/types/public-api.ts",
+          "front-nuxt/pages/items/[id].vue"
+        ],
+        "evidenceCounts": {
+          "npcLoot": 0,
+          "npcShop": 0,
+          "biomeResource": 0,
+          "itemBiome": 1
+        }
+      },
+      {
+        "itemId": 2885,
+        "internalName": "InfernalWispDye",
+        "name": "Infernal Wisp Dye",
+        "evidenceLayer": "biome_projection_pending",
+        "closureLane": "biome_evidence_projection",
+        "coverageLane": "biome_evidence_projection",
+        "terminalClosureStatus": null,
+        "nextAction": "由 public item sources contract 只读投影，不写 item_acquisition_sources。",
+        "closureStatus": "projected_by_public_sources_contract",
+        "publicContractFiles": [
+          "back/src/main/java/com/terraria/skills/dto/ItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/dto/PublicItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/service/impl/ItemSourceServiceImpl.java",
+          "back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java",
+          "front-nuxt/types/public-api.ts",
+          "front-nuxt/pages/items/[id].vue"
+        ],
+        "evidenceCounts": {
+          "npcLoot": 0,
+          "npcShop": 0,
+          "biomeResource": 1,
+          "itemBiome": 1
+        }
+      },
+      {
+        "itemId": 3027,
+        "internalName": "ReflectiveGoldDye",
+        "name": "Reflective Gold Dye",
+        "evidenceLayer": "biome_projection_pending",
+        "closureLane": "biome_evidence_projection",
+        "coverageLane": "biome_evidence_projection",
+        "terminalClosureStatus": null,
+        "nextAction": "由 public item sources contract 只读投影，不写 item_acquisition_sources。",
+        "closureStatus": "projected_by_public_sources_contract",
+        "publicContractFiles": [
+          "back/src/main/java/com/terraria/skills/dto/ItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/dto/PublicItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/service/impl/ItemSourceServiceImpl.java",
+          "back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java",
+          "front-nuxt/types/public-api.ts",
+          "front-nuxt/pages/items/[id].vue"
+        ],
+        "evidenceCounts": {
+          "npcLoot": 0,
+          "npcShop": 0,
+          "biomeResource": 0,
+          "itemBiome": 1
+        }
+      },
+      {
+        "itemId": 3028,
+        "internalName": "BlueAcidDye",
+        "name": "Blue Acid Dye",
+        "evidenceLayer": "biome_projection_pending",
+        "closureLane": "biome_evidence_projection",
+        "coverageLane": "biome_evidence_projection",
+        "terminalClosureStatus": null,
+        "nextAction": "由 public item sources contract 只读投影，不写 item_acquisition_sources。",
+        "closureStatus": "projected_by_public_sources_contract",
+        "publicContractFiles": [
+          "back/src/main/java/com/terraria/skills/dto/ItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/dto/PublicItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/service/impl/ItemSourceServiceImpl.java",
+          "back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java",
+          "front-nuxt/types/public-api.ts",
+          "front-nuxt/pages/items/[id].vue"
+        ],
+        "evidenceCounts": {
+          "npcLoot": 0,
+          "npcShop": 0,
+          "biomeResource": 0,
+          "itemBiome": 1
+        }
+      },
+      {
+        "itemId": 3196,
+        "internalName": "BombFish",
+        "name": "Bomb Fish",
+        "evidenceLayer": "biome_projection_pending",
+        "closureLane": "biome_evidence_projection",
+        "coverageLane": "biome_evidence_projection",
+        "terminalClosureStatus": null,
+        "nextAction": "由 public item sources contract 只读投影，不写 item_acquisition_sources。",
+        "closureStatus": "projected_by_public_sources_contract",
+        "publicContractFiles": [
+          "back/src/main/java/com/terraria/skills/dto/ItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/dto/PublicItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/service/impl/ItemSourceServiceImpl.java",
+          "back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java",
+          "front-nuxt/types/public-api.ts",
+          "front-nuxt/pages/items/[id].vue"
+        ],
+        "evidenceCounts": {
+          "npcLoot": 0,
+          "npcShop": 0,
+          "biomeResource": 0,
+          "itemBiome": 1
+        }
+      },
+      {
+        "itemId": 4377,
+        "internalName": "KryptonMoss",
+        "name": "Krypton Moss",
+        "evidenceLayer": "biome_projection_pending",
+        "closureLane": "family_policy_candidate",
+        "coverageLane": "family_policy_candidate",
+        "terminalClosureStatus": null,
+        "nextAction": "由 public item sources contract 只读投影，不写 item_acquisition_sources。",
+        "closureStatus": "projected_by_public_sources_contract",
+        "publicContractFiles": [
+          "back/src/main/java/com/terraria/skills/dto/ItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/dto/PublicItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/service/impl/ItemSourceServiceImpl.java",
+          "back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java",
+          "front-nuxt/types/public-api.ts",
+          "front-nuxt/pages/items/[id].vue"
+        ],
+        "evidenceCounts": {
+          "npcLoot": 0,
+          "npcShop": 0,
+          "biomeResource": 0,
+          "itemBiome": 1
+        }
+      },
+      {
+        "itemId": 4389,
+        "internalName": "ArgonMoss",
+        "name": "Argon Moss",
+        "evidenceLayer": "biome_projection_pending",
+        "closureLane": "family_policy_candidate",
+        "coverageLane": "family_policy_candidate",
+        "terminalClosureStatus": null,
+        "nextAction": "由 public item sources contract 只读投影，不写 item_acquisition_sources。",
+        "closureStatus": "projected_by_public_sources_contract",
+        "publicContractFiles": [
+          "back/src/main/java/com/terraria/skills/dto/ItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/dto/PublicItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/service/impl/ItemSourceServiceImpl.java",
+          "back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java",
+          "front-nuxt/types/public-api.ts",
+          "front-nuxt/pages/items/[id].vue"
+        ],
+        "evidenceCounts": {
+          "npcLoot": 0,
+          "npcShop": 0,
+          "biomeResource": 0,
+          "itemBiome": 1
+        }
+      },
+      {
+        "itemId": 4469,
+        "internalName": "MeowmereMinecart",
+        "name": "Meowmere Minecart",
+        "evidenceLayer": "biome_projection_pending",
+        "closureLane": "biome_evidence_projection",
+        "coverageLane": "biome_evidence_projection",
+        "terminalClosureStatus": null,
+        "nextAction": "由 public item sources contract 只读投影，不写 item_acquisition_sources。",
+        "closureStatus": "projected_by_public_sources_contract",
+        "publicContractFiles": [
+          "back/src/main/java/com/terraria/skills/dto/ItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/dto/PublicItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/service/impl/ItemSourceServiceImpl.java",
+          "back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java",
+          "front-nuxt/types/public-api.ts",
+          "front-nuxt/pages/items/[id].vue"
+        ],
+        "evidenceCounts": {
+          "npcLoot": 0,
+          "npcShop": 0,
+          "biomeResource": 0,
+          "itemBiome": 1
+        }
+      },
+      {
+        "itemId": 4471,
+        "internalName": "PirateMinecart",
+        "name": "The Dutchman",
+        "evidenceLayer": "biome_projection_pending",
+        "closureLane": "biome_evidence_projection",
+        "coverageLane": "biome_evidence_projection",
+        "terminalClosureStatus": null,
+        "nextAction": "由 public item sources contract 只读投影，不写 item_acquisition_sources。",
+        "closureStatus": "projected_by_public_sources_contract",
+        "publicContractFiles": [
+          "back/src/main/java/com/terraria/skills/dto/ItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/dto/PublicItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/service/impl/ItemSourceServiceImpl.java",
+          "back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java",
+          "front-nuxt/types/public-api.ts",
+          "front-nuxt/pages/items/[id].vue"
+        ],
+        "evidenceCounts": {
+          "npcLoot": 0,
+          "npcShop": 0,
+          "biomeResource": 0,
+          "itemBiome": 1
+        }
+      },
+      {
+        "itemId": 4546,
+        "internalName": "GoblinSharkBanner",
+        "name": "Hemogoblin Shark Banner",
+        "evidenceLayer": "biome_projection_pending",
+        "closureLane": "biome_evidence_projection",
+        "coverageLane": "biome_evidence_projection",
+        "terminalClosureStatus": null,
+        "nextAction": "由 public item sources contract 只读投影，不写 item_acquisition_sources。",
+        "closureStatus": "projected_by_public_sources_contract",
+        "publicContractFiles": [
+          "back/src/main/java/com/terraria/skills/dto/ItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/dto/PublicItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/service/impl/ItemSourceServiceImpl.java",
+          "back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java",
+          "front-nuxt/types/public-api.ts",
+          "front-nuxt/pages/items/[id].vue"
+        ],
+        "evidenceCounts": {
+          "npcLoot": 0,
+          "npcShop": 0,
+          "biomeResource": 1,
+          "itemBiome": 1
+        }
+      },
+      {
+        "itemId": 4942,
+        "internalName": "PumpkingMasterTrophy",
+        "name": "Pumpking Relic",
+        "evidenceLayer": "biome_projection_pending",
+        "closureLane": "biome_evidence_projection",
+        "coverageLane": "biome_evidence_projection",
+        "terminalClosureStatus": null,
+        "nextAction": "由 public item sources contract 只读投影，不写 item_acquisition_sources。",
+        "closureStatus": "projected_by_public_sources_contract",
+        "publicContractFiles": [
+          "back/src/main/java/com/terraria/skills/dto/ItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/dto/PublicItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/service/impl/ItemSourceServiceImpl.java",
+          "back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java",
+          "front-nuxt/types/public-api.ts",
+          "front-nuxt/pages/items/[id].vue"
+        ],
+        "evidenceCounts": {
+          "npcLoot": 0,
+          "npcShop": 0,
+          "biomeResource": 0,
+          "itemBiome": 1
+        }
+      },
+      {
+        "itemId": 4967,
+        "internalName": "SporeSkeletonBanner",
+        "name": "Spore Skeleton Banner",
+        "evidenceLayer": "biome_projection_pending",
+        "closureLane": "biome_evidence_projection",
+        "coverageLane": "biome_evidence_projection",
+        "terminalClosureStatus": null,
+        "nextAction": "由 public item sources contract 只读投影，不写 item_acquisition_sources。",
+        "closureStatus": "projected_by_public_sources_contract",
+        "publicContractFiles": [
+          "back/src/main/java/com/terraria/skills/dto/ItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/dto/PublicItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/service/impl/ItemSourceServiceImpl.java",
+          "back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java",
+          "front-nuxt/types/public-api.ts",
+          "front-nuxt/pages/items/[id].vue"
+        ],
+        "evidenceCounts": {
+          "npcLoot": 0,
+          "npcShop": 0,
+          "biomeResource": 0,
+          "itemBiome": 1
+        }
+      },
+      {
+        "itemId": 5375,
+        "internalName": "HardenedSandWallUnsafe",
+        "name": "Treacherous Hardened Sand Wall",
+        "evidenceLayer": "biome_projection_pending",
+        "closureLane": "family_policy_candidate",
+        "coverageLane": "family_policy_candidate",
+        "terminalClosureStatus": null,
+        "nextAction": "由 public item sources contract 只读投影，不写 item_acquisition_sources。",
+        "closureStatus": "projected_by_public_sources_contract",
+        "publicContractFiles": [
+          "back/src/main/java/com/terraria/skills/dto/ItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/dto/PublicItemSourceDTO.java",
+          "back/src/main/java/com/terraria/skills/service/impl/ItemSourceServiceImpl.java",
+          "back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java",
+          "front-nuxt/types/public-api.ts",
+          "front-nuxt/pages/items/[id].vue"
+        ],
+        "evidenceCounts": {
+          "npcLoot": 0,
+          "npcShop": 0,
+          "biomeResource": 0,
+          "itemBiome": 1
+        }
+      }
+    ],
+    "terminalExemptions": [
+      {
+        "itemId": 1475,
+        "internalName": "Darkness",
+        "name": "Darkness",
+        "evidenceLayer": "terminal_exempt_or_identity_review",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "coverageLane": "explicit_no_source_exemption",
+        "terminalClosureStatus": "non_item_effect",
+        "nextAction": "保持显式豁免/身份审查，不导入普通来源。",
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false
+      },
+      {
+        "itemId": 2436,
+        "internalName": "BlueJellyfish",
+        "name": "Blue Jellyfish",
+        "evidenceLayer": "terminal_exempt_or_identity_review",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "coverageLane": "explicit_no_source_exemption",
+        "terminalClosureStatus": "enemy_page_identity_mismatch",
+        "nextAction": "保持显式豁免/身份审查，不导入普通来源。",
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false
+      },
+      {
+        "itemId": 2437,
+        "internalName": "GreenJellyfish",
+        "name": "Green Jellyfish",
+        "evidenceLayer": "terminal_exempt_or_identity_review",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "coverageLane": "explicit_no_source_exemption",
+        "terminalClosureStatus": "enemy_page_identity_mismatch",
+        "nextAction": "保持显式豁免/身份审查，不导入普通来源。",
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false
+      },
+      {
+        "itemId": 2438,
+        "internalName": "PinkJellyfish",
+        "name": "Pink Jellyfish",
+        "evidenceLayer": "terminal_exempt_or_identity_review",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "coverageLane": "explicit_no_source_exemption",
+        "terminalClosureStatus": "enemy_page_identity_mismatch",
+        "nextAction": "保持显式豁免/身份审查，不导入普通来源。",
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false
+      },
+      {
+        "itemId": 3705,
+        "internalName": "Fake_newchest1",
+        "name": "Fake_newchest1",
+        "evidenceLayer": "terminal_exempt_or_identity_review",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "coverageLane": "explicit_no_source_exemption",
+        "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+        "nextAction": "保持显式豁免/身份审查，不导入普通来源。",
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false
+      },
+      {
+        "itemId": 3706,
+        "internalName": "Fake_newchest2",
+        "name": "Fake_newchest2",
+        "evidenceLayer": "terminal_exempt_or_identity_review",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "coverageLane": "explicit_no_source_exemption",
+        "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+        "nextAction": "保持显式豁免/身份审查，不导入普通来源。",
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false
+      },
+      {
+        "itemId": 3847,
+        "internalName": "OgreMask",
+        "name": "OgreMask",
+        "evidenceLayer": "terminal_exempt_or_identity_review",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "coverageLane": "explicit_no_source_exemption",
+        "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+        "nextAction": "保持显式豁免/身份审查，不导入普通来源。",
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false
+      },
+      {
+        "itemId": 3848,
+        "internalName": "GoblinMask",
+        "name": "GoblinMask",
+        "evidenceLayer": "terminal_exempt_or_identity_review",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "coverageLane": "explicit_no_source_exemption",
+        "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+        "nextAction": "保持显式豁免/身份审查，不导入普通来源。",
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false
+      },
+      {
+        "itemId": 3849,
+        "internalName": "GoblinBomberCap",
+        "name": "GoblinBomberCap",
+        "evidenceLayer": "terminal_exempt_or_identity_review",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "coverageLane": "explicit_no_source_exemption",
+        "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+        "nextAction": "保持显式豁免/身份审查，不导入普通来源。",
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false
+      },
+      {
+        "itemId": 3850,
+        "internalName": "EtherianJavelin",
+        "name": "EtherianJavelin",
+        "evidenceLayer": "terminal_exempt_or_identity_review",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "coverageLane": "explicit_no_source_exemption",
+        "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+        "nextAction": "保持显式豁免/身份审查，不导入普通来源。",
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false
+      },
+      {
+        "itemId": 3851,
+        "internalName": "KoboldDynamiteBackpack",
+        "name": "KoboldDynamiteBackpack",
+        "evidenceLayer": "terminal_exempt_or_identity_review",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "coverageLane": "explicit_no_source_exemption",
+        "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+        "nextAction": "保持显式豁免/身份审查，不导入普通来源。",
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false
+      },
+      {
+        "itemId": 3853,
+        "internalName": "BoringBow",
+        "name": "BoringBow",
+        "evidenceLayer": "terminal_exempt_or_identity_review",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "coverageLane": "explicit_no_source_exemption",
+        "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+        "nextAction": "保持显式豁免/身份审查，不导入普通来源。",
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false
+      },
+      {
+        "itemId": 3861,
+        "internalName": "BossBagOgre",
+        "name": "BossBagOgre",
+        "evidenceLayer": "terminal_exempt_or_identity_review",
+        "closureLane": "runtime_or_developer_internal",
+        "coverageLane": "unclassified_requires_new_lane",
+        "terminalClosureStatus": "internal_boss_bag_identity",
+        "nextAction": "保持显式豁免/身份审查，不导入普通来源。",
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false
+      },
+      {
+        "itemId": 3862,
+        "internalName": "BossBagDarkMage",
+        "name": "BossBagDarkMage",
+        "evidenceLayer": "terminal_exempt_or_identity_review",
+        "closureLane": "runtime_or_developer_internal",
+        "coverageLane": "unclassified_requires_new_lane",
+        "terminalClosureStatus": "internal_boss_bag_identity",
+        "nextAction": "保持显式豁免/身份审查，不导入普通来源。",
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false
+      },
+      {
+        "itemId": 3978,
+        "internalName": "ColorOnlyDye",
+        "name": "ColorOnlyDye",
+        "evidenceLayer": "terminal_exempt_or_identity_review",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "coverageLane": "explicit_no_source_exemption",
+        "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+        "nextAction": "保持显式豁免/身份审查，不导入普通来源。",
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false
+      },
+      {
+        "itemId": 4143,
+        "internalName": "ManaCloakStar",
+        "name": "ManaCloakStar",
+        "evidenceLayer": "terminal_exempt_or_identity_review",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "coverageLane": "explicit_no_source_exemption",
+        "terminalClosureStatus": "internal_or_unobtainable_identity_review",
+        "nextAction": "保持显式豁免/身份审查，不导入普通来源。",
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false
+      },
+      {
+        "itemId": 4722,
+        "internalName": "FirstFractal",
+        "name": "FirstFractal",
+        "evidenceLayer": "terminal_exempt_or_identity_review",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "coverageLane": "unclassified_requires_new_lane",
+        "terminalClosureStatus": "unreleased_internal_item",
+        "nextAction": "保持显式豁免/身份审查，不导入普通来源。",
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false
+      },
+      {
+        "itemId": 5013,
+        "internalName": "SleepingIcon",
+        "name": "SleepingIcon",
+        "evidenceLayer": "terminal_exempt_or_identity_review",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "coverageLane": "unclassified_requires_new_lane",
+        "terminalClosureStatus": "runtime_internal_effect",
+        "nextAction": "保持显式豁免/身份审查，不导入普通来源。",
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false
+      },
+      {
+        "itemId": 6143,
+        "internalName": "FoxparksTagEffect",
+        "name": "FoxparksTagEffect",
+        "evidenceLayer": "terminal_exempt_or_identity_review",
+        "closureLane": "explicit_no_source_exemption_candidate",
+        "coverageLane": "unclassified_requires_new_lane",
+        "terminalClosureStatus": "runtime_internal_effect",
+        "nextAction": "保持显式豁免/身份审查，不导入普通来源。",
+        "closureStatus": "explicit_exemption_review",
+        "importableAsSource": false
+      }
+    ],
+    "missingRaw": []
+  }
+}

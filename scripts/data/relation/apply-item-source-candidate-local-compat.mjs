@@ -13,7 +13,7 @@ const require = createRequire(path.join(repoRoot, 'data-query-app', 'package.jso
 const ITEM_BACKED_REF_TYPES = new Set(['item', 'container', 'crate', 'treasure_bag']);
 const NPC_BACKED_REF_TYPES = new Set(['npc', 'boss']);
 const TEXT_ONLY_REF_TYPES = new Set(['world', 'npc_group', 'boss_group', 'unknown']);
-const SUPPORTED_SOURCE_TYPES = new Set(['drop', 'shop', 'container', 'crate', 'treasure_bag', 'worldgen', 'mining', 'fishing', 'capture', 'quest_reward', 'craft', 'shimmer', 'unknown']);
+const SUPPORTED_SOURCE_TYPES = new Set(['drop', 'shop', 'container', 'crate', 'treasure_bag', 'worldgen', 'mining', 'fishing', 'capture', 'event', 'transformation', 'quest_reward', 'craft', 'shimmer', 'unknown']);
 const SUPPORTED_REF_TYPES = new Set(['item', 'container', 'crate', 'treasure_bag', 'npc', 'npc_group', 'boss', 'boss_group', 'world', 'unknown']);
 
 function booleanOption(value, fallback = false) {
@@ -120,10 +120,6 @@ export async function runItemSourceCandidateLocalCompatApply(options = {}, depen
   const now = dependencies.now instanceof Date ? dependencies.now : new Date();
   const batchId = options.batchId ?? `item-source-local-${now.toISOString().replace(/[:.]/g, '-')}`;
   const plan = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), options.inputPath), 'utf8'));
-  const built = buildLocalCompatRows(plan, {
-    sample: options.sample,
-    allowBulk: options.allowBulk
-  });
   const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
   const mysqlModule = dependencies.mysqlModule ?? require('mysql2/promise');
   const connectionConfig = {
@@ -133,6 +129,15 @@ export async function runItemSourceCandidateLocalCompatApply(options = {}, depen
     password: options.password ?? process.env.TERRAPEDIA_DB_PASSWORD ?? config.database?.password ?? 'root',
     database: options.database ?? process.env.TERRAPEDIA_DB_NAME ?? config.database?.name ?? 'terria_v1_local'
   };
+
+  if (plan?.mode === 'item_source_local_compat_retire_plan') {
+    return runRetirePlan({ plan, options, now, batchId, connectionConfig, mysqlModule });
+  }
+
+  const built = buildLocalCompatRows(plan, {
+    sample: options.sample,
+    allowBulk: options.allowBulk
+  });
 
   if (options.apply && connectionConfig.database !== 'terria_v1_local') {
     throw new Error(`Refusing local compat apply to non-local database: ${connectionConfig.database}`);
@@ -223,6 +228,87 @@ export async function runItemSourceCandidateLocalCompatApply(options = {}, depen
   return report;
 }
 
+async function runRetirePlan({ plan, options, now, batchId, connectionConfig, mysqlModule }) {
+  if (options.apply && connectionConfig.database !== 'terria_v1_local') {
+    throw new Error(`Refusing local compat retire to non-local database: ${connectionConfig.database}`);
+  }
+  const rows = Array.isArray(plan.rows) ? plan.rows : [];
+  if (options.apply && rows.length > 1 && !options.allowBulk) {
+    throw new Error('Bulk local compat retire requires --allow-bulk=true');
+  }
+  const connection = await mysqlModule.createConnection(connectionConfig);
+  const validationErrors = [];
+  const retireRows = [];
+  let beforeRows = [];
+  try {
+    beforeRows = await readRetireBeforeRows(connection, rows);
+    const beforeById = new Map(beforeRows.map((row) => [Number(row.id), row]));
+    for (const row of rows) {
+      const current = beforeById.get(Number(row.id));
+      const validation = validateRetireRow(current, row);
+      if (validation) {
+        validationErrors.push({ id: row.id, reason: validation, row, current: current ?? null });
+      } else {
+        retireRows.push(row);
+      }
+    }
+    if (options.apply) {
+      await connection.beginTransaction();
+      if (retireRows.length) {
+        const ids = retireRows.map((row) => Number(row.id));
+        const placeholders = ids.map(() => '?').join(', ');
+        await connection.execute(
+          `UPDATE \`item_acquisition_sources\` SET \`status\` = 0, \`deleted\` = 1 WHERE \`id\` IN (${placeholders})`,
+          ids
+        );
+      }
+      await connection.commit();
+    }
+  } catch (error) {
+    if (options.apply) {
+      await connection.rollback();
+    }
+    throw error;
+  } finally {
+    await connection.end();
+  }
+
+  const backupPath = path.resolve(process.cwd(), options.backupDir, `${batchId}.before.json`);
+  writeJson(backupPath, {
+    generatedAt: now.toISOString(),
+    batchId,
+    mode: 'item_source_local_compat_retire_plan',
+    connection: { host: connectionConfig.host, port: connectionConfig.port, database: connectionConfig.database },
+    rows: beforeRows
+  });
+  const retiredIds = options.apply ? retireRows.map((row) => Number(row.id)) : [];
+  const report = {
+    generatedAt: now.toISOString(),
+    batchId,
+    mode: 'item_source_local_compat_retire_plan',
+    apply: Boolean(options.apply),
+    inputPath: path.resolve(process.cwd(), options.inputPath),
+    backupPath,
+    connection: { host: connectionConfig.host, port: connectionConfig.port, database: connectionConfig.database, user: connectionConfig.user },
+    summary: {
+      selectedRows: rows.length,
+      validationErrors: validationErrors.length,
+      toRetire: retireRows.length,
+      retired: retiredIds.length
+    },
+    validationErrors,
+    retireRows,
+    retiredIds,
+    rollbackSql: retiredIds.length
+      ? `UPDATE \`item_acquisition_sources\` SET \`status\` = 1, \`deleted\` = 0 WHERE \`id\` IN (${retiredIds.join(', ')});`
+      : null
+  };
+  if (options.outputPath) {
+    writeJson(path.resolve(process.cwd(), options.outputPath), report);
+  }
+  return report;
+}
+
 function selectCandidates(plan, { sample = null, allowBulk = false } = {}) {
   const candidates = Array.isArray(plan?.eligibleCandidates) ? plan.eligibleCandidates : [];
   const sampleKey = normalizeIdentity(sample);
@@ -265,12 +351,58 @@ async function readBeforeRows(connection, rows) {
   return Array.isArray(result) ? result : [];
 }
 
+async function readRetireBeforeRows(connection, rows) {
+  const ids = [...new Set(rows.map((row) => toNullableInteger(row.id)).filter((id) => id != null))];
+  if (!ids.length) return [];
+  const placeholders = ids.map(() => '?').join(', ');
+  const [result] = await connection.execute(
+    `SELECT s.*, i.internal_name, i.name
+       FROM \`item_acquisition_sources\` s
+       JOIN \`items\` i ON i.id = s.item_id
+      WHERE s.\`id\` IN (${placeholders})
+      ORDER BY s.\`id\``,
+    ids
+  );
+  return Array.isArray(result) ? result : [];
+}
+
+function validateRetireRow(current, expected) {
+  if (!current) return 'row_missing';
+  if (Number(current.status) !== 1 || Number(current.deleted) !== 0) return 'row_not_active';
+  const checks = [
+    ['item_id', expected.itemId],
+    ['internal_name', expected.expectedItemInternalName],
+    ['name', expected.expectedItemName],
+    ['source_type', expected.sourceType],
+    ['source_ref_type', expected.sourceRefType],
+    ['source_ref_name', expected.sourceRefName],
+    ['conditions', expected.conditions],
+    ['source_page', expected.sourcePage]
+  ];
+  for (const [field, expectedValue] of checks) {
+    if (expectedValue == null) continue;
+    const currentValue = field === 'item_id' ? Number(current[field]) : normalizeText(current[field]);
+    const normalizedExpected = field === 'item_id' ? Number(expectedValue) : normalizeText(expectedValue);
+    if (currentValue !== normalizedExpected) {
+      return `field_mismatch:${field}`;
+    }
+  }
+  return null;
+}
+
 async function validateRowRefs(connection, row) {
   const [items] = await connection.execute(
-    'SELECT id FROM `items` WHERE `id` = ? AND `status` = 1 AND `deleted` = 0 LIMIT 1',
+    'SELECT id, internal_name, name FROM `items` WHERE `id` = ? AND `status` = 1 AND `deleted` = 0 LIMIT 1',
     [row.itemId]
   );
   if (!Array.isArray(items) || items.length === 0) return 'item_missing';
+  const item = items[0];
+  if (normalizeIdentity(row.itemInternalName) && normalizeIdentity(item.internal_name) !== normalizeIdentity(row.itemInternalName)) {
+    return 'item_identity_mismatch';
+  }
+  if (normalizeIdentity(row.itemName) && normalizeIdentity(item.name) !== normalizeIdentity(row.itemName)) {
+    return 'item_identity_mismatch';
+  }
   if (ITEM_BACKED_REF_TYPES.has(row.sourceRefType)) {
     const [sourceItems] = await connection.execute(
       'SELECT id FROM `items` WHERE `id` = ? AND `status` = 1 AND `deleted` = 0 LIMIT 1',
