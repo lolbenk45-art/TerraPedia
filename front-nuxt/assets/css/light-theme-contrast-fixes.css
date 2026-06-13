@@ -398,6 +398,17 @@
   --theme-positive-rgb: 39, 77, 32;
 }
 
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-screen {
+  --home-soft-border: rgba(var(--theme-border-rgb), 0.09);
+  --home-soft-border-strong: rgba(var(--theme-border-rgb), 0.13);
+  --home-soft-surface: rgba(var(--theme-panel-rgb), 0.36);
+  --home-soft-surface-raised: rgba(var(--theme-panel-rgb), 0.5);
+  --home-soft-divider: rgba(var(--theme-border-rgb), 0.1);
+  --home-soft-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.58),
+    0 14px 34px rgba(var(--theme-text-rgb), 0.07);
+}
+
 :where([data-theme="light"], [data-theme="morning-paper"]) .home-screen {
   background:
     var(--index-grid-x),
@@ -417,39 +428,39 @@
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"]) .hero {
-  border: 1px solid rgba(122, 90, 33, 0.18);
+  border: 1px solid rgba(122, 90, 33, 0.1);
   border-radius: 10px;
   background:
     var(--index-grid-x),
     var(--index-grid-y),
-    radial-gradient(circle at 18% 12%, rgba(46, 92, 36, 0.1), transparent 24rem),
-    linear-gradient(90deg, rgba(122, 90, 33, 0.08), transparent 22%, rgba(46, 92, 36, 0.035) 78%, transparent),
+    radial-gradient(circle at 18% 12%, rgba(46, 92, 36, 0.07), transparent 24rem),
+    linear-gradient(90deg, rgba(122, 90, 33, 0.055), transparent 22%, rgba(46, 92, 36, 0.025) 78%, transparent),
     #f3ead8;
   background-size: 64px 64px, 64px 64px, auto, auto, auto;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.76),
-    0 20px 52px rgba(30, 28, 24, 0.1);
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    0 16px 42px rgba(30, 28, 24, 0.075);
 }
 
 :where([data-theme="warm-slate"]) .hero {
-  border: 1px solid rgba(41, 50, 65, 0.16);
+  border: 1px solid rgba(41, 50, 65, 0.1);
   border-radius: 10px;
   background:
     var(--index-grid-x),
     var(--index-grid-y),
-    radial-gradient(circle at 18% 12%, rgba(41, 50, 65, 0.08), transparent 24rem),
-    linear-gradient(135deg, rgba(41, 50, 65, 0.08), transparent 34%),
+    radial-gradient(circle at 18% 12%, rgba(41, 50, 65, 0.055), transparent 24rem),
+    linear-gradient(135deg, rgba(41, 50, 65, 0.055), transparent 34%),
     #eef1f4;
   background-size: 52px 52px, 52px 52px, auto, auto, auto;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.76),
-    0 20px 52px rgba(29, 36, 48, 0.1);
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    0 16px 42px rgba(29, 36, 48, 0.075);
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero::before {
   inset: 18px;
   height: auto;
-  border: 1px solid rgba(var(--theme-border-rgb), 0.16);
+  border: 1px solid rgba(var(--theme-border-rgb), 0.06);
   border-radius: 8px;
   background: transparent;
   opacity: 1;
@@ -460,7 +471,7 @@
   right: 38px;
   bottom: 30px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(var(--theme-border-rgb), 0.24), transparent);
+  background: linear-gradient(90deg, transparent, rgba(var(--theme-border-rgb), 0.1), transparent);
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stat-card span,
@@ -756,4 +767,110 @@
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-medallion::after {
   border-color: rgba(var(--theme-positive-rgb), 0.24);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-kicker {
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-kicker::before {
+  width: 20px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.54;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stats {
+  border-top: 0;
+  border-bottom: 0;
+  background:
+    linear-gradient(90deg, transparent, var(--home-soft-divider), transparent),
+    var(--index-grid-x),
+    var(--index-grid-y),
+    rgba(var(--theme-panel-rgb), 0.24);
+  background-size: auto, 40px 40px, 40px 40px, auto;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.32);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stat-card {
+  border-left-color: var(--home-soft-divider);
+  background: transparent;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-primary-stat:hover {
+  background: rgba(var(--theme-panel-rgb), 0.32);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell {
+  border-color: var(--home-soft-border);
+  border-left-color: rgba(var(--entry-accent), 0.24);
+  background:
+    linear-gradient(90deg, rgba(var(--entry-accent), 0.045), transparent 58%),
+    var(--index-grid-x),
+    var(--index-grid-y),
+    var(--home-soft-surface);
+  background-size: auto, 40px 40px, 40px 40px, auto;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.44),
+    0 8px 18px rgba(var(--theme-border-rgb), 0.045);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell:hover {
+  border-color: rgba(var(--entry-accent), 0.2);
+  background:
+    linear-gradient(90deg, rgba(var(--entry-accent), 0.075), transparent 58%),
+    var(--index-grid-x),
+    var(--index-grid-y),
+    var(--home-soft-surface-raised);
+  background-size: auto, 40px 40px, 40px 40px, auto;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 10px 22px rgba(var(--theme-border-rgb), 0.055);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stage-chip {
+  border-color: var(--home-soft-border);
+  background: var(--home-soft-surface);
+  color: var(--text-muted);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stage-chip:hover {
+  border-color: var(--home-soft-border-strong);
+  background: var(--home-soft-surface-raised);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-status-pill {
+  border-color: transparent;
+  background: var(--home-soft-surface);
+  color: var(--text-faint);
+  padding-inline: 8px;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-path-link {
+  border-color: var(--home-soft-border);
+  background:
+    var(--index-grid-x),
+    var(--index-grid-y),
+    rgba(var(--theme-panel-rgb), 0.24);
+  background-size: 40px 40px, 40px 40px, auto;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-path-link:hover {
+  border-color: var(--home-soft-border-strong);
+  background:
+    var(--index-grid-x),
+    var(--index-grid-y),
+    rgba(var(--theme-panel-rgb), 0.44);
+  background-size: 40px 40px, 40px 40px, auto;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-atlas-secondary .atlas-index {
+  border-color: var(--home-soft-border-strong);
+  background:
+    linear-gradient(180deg, rgba(var(--theme-panel-rgb), 0.18), transparent 34%),
+    rgba(var(--theme-panel-rgb), 0.52);
+  box-shadow: var(--home-soft-shadow);
 }
