@@ -15,6 +15,14 @@ const assertIncludes = (path, content, marker, message) => {
 const navPath = 'components/TerraNav.vue'
 const nav = read(navPath)
 
+const internalAnchorPattern = /<a\b[^>]*\bhref=["']\/(?!\/)/g
+const internalAnchors = nav.match(internalAnchorPattern) ?? []
+if (internalAnchors.length) {
+  violations.push(
+    `${navPath}: internal navigation must use NuxtLink/to instead of native href anchors to avoid full-page reloads: ${internalAnchors.join(', ')}`,
+  )
+}
+
 assertIncludes(
   navPath,
   nav,
