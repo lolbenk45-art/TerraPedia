@@ -135,18 +135,110 @@ class BiomeServiceImplTest {
         unrelatedItemSource.setBiomeId(10L);
         unrelatedItemSource.setSourceType("drop");
         unrelatedItemSource.setSourceRefType("npc");
+        unrelatedItemSource.setSourceRefId(70L);
         unrelatedItemSource.setSourceRefName("Green Slime");
-        unrelatedItemSource.setSourceProvider("terraria.wiki.gg");
+        unrelatedItemSource.setSourceProvider("wiki_gg");
         unrelatedItemSource.setSourcePage("Forest");
         unrelatedItemSource.setStatus(1);
         unrelatedItemSource.setDeleted(0);
+
+        ItemAcquisitionSource bossItemSource = new ItemAcquisitionSource();
+        bossItemSource.setId(92L);
+        bossItemSource.setItemId(50L);
+        bossItemSource.setBiomeId(10L);
+        bossItemSource.setSourceType("drop");
+        bossItemSource.setSourceRefType("boss");
+        bossItemSource.setSourceRefId(701L);
+        bossItemSource.setSourceRefName("King Slime");
+        bossItemSource.setSourceProvider("wiki_gg");
+        bossItemSource.setSourcePage("Forest");
+        bossItemSource.setStatus(1);
+        bossItemSource.setDeleted(0);
+
+        ItemAcquisitionSource crateItemSource = new ItemAcquisitionSource();
+        crateItemSource.setId(93L);
+        crateItemSource.setItemId(50L);
+        crateItemSource.setBiomeId(10L);
+        crateItemSource.setSourceType("crate");
+        crateItemSource.setSourceRefType("crate");
+        crateItemSource.setSourceRefId(9001L);
+        crateItemSource.setSourceRefName("Wooden Crate");
+        crateItemSource.setSourceProvider("wiki_gg");
+        crateItemSource.setSourcePage("Forest");
+        crateItemSource.setStatus(1);
+        crateItemSource.setDeleted(0);
+
+        ItemAcquisitionSource bossGroupItemSource = new ItemAcquisitionSource();
+        bossGroupItemSource.setId(94L);
+        bossGroupItemSource.setItemId(50L);
+        bossGroupItemSource.setBiomeId(10L);
+        bossGroupItemSource.setSourceType("treasure_bag");
+        bossGroupItemSource.setSourceRefType("boss_group");
+        bossGroupItemSource.setSourceRefName("Mechanical bosses");
+        bossGroupItemSource.setSourceProvider("wiki_gg");
+        bossGroupItemSource.setSourcePage("Forest");
+        bossGroupItemSource.setStatus(1);
+        bossGroupItemSource.setDeleted(0);
+
+        ItemAcquisitionSource nullProviderItemSource = new ItemAcquisitionSource();
+        nullProviderItemSource.setId(95L);
+        nullProviderItemSource.setItemId(50L);
+        nullProviderItemSource.setBiomeId(10L);
+        nullProviderItemSource.setSourceType("drop");
+        nullProviderItemSource.setSourceRefType("npc_group");
+        nullProviderItemSource.setSourceRefName("Slimes");
+        nullProviderItemSource.setStatus(1);
+        nullProviderItemSource.setDeleted(0);
+
+        ItemAcquisitionSource rejectedProviderItemSource = new ItemAcquisitionSource();
+        rejectedProviderItemSource.setId(96L);
+        rejectedProviderItemSource.setItemId(50L);
+        rejectedProviderItemSource.setBiomeId(10L);
+        rejectedProviderItemSource.setSourceType("drop");
+        rejectedProviderItemSource.setSourceRefType("npc");
+        rejectedProviderItemSource.setSourceRefName("Rejected Provider");
+        rejectedProviderItemSource.setSourceProvider("unknown_provider");
+        rejectedProviderItemSource.setStatus(1);
+        rejectedProviderItemSource.setDeleted(0);
+
+        ItemAcquisitionSource rejectedTypeItemSource = new ItemAcquisitionSource();
+        rejectedTypeItemSource.setId(97L);
+        rejectedTypeItemSource.setItemId(50L);
+        rejectedTypeItemSource.setBiomeId(10L);
+        rejectedTypeItemSource.setSourceType("crafting");
+        rejectedTypeItemSource.setSourceRefType("npc");
+        rejectedTypeItemSource.setSourceRefName("Rejected Type");
+        rejectedTypeItemSource.setSourceProvider("wiki_gg");
+        rejectedTypeItemSource.setStatus(1);
+        rejectedTypeItemSource.setDeleted(0);
+
+        ItemAcquisitionSource rejectedRefTypeItemSource = new ItemAcquisitionSource();
+        rejectedRefTypeItemSource.setId(98L);
+        rejectedRefTypeItemSource.setItemId(50L);
+        rejectedRefTypeItemSource.setBiomeId(10L);
+        rejectedRefTypeItemSource.setSourceType("drop");
+        rejectedRefTypeItemSource.setSourceRefType("recipe");
+        rejectedRefTypeItemSource.setSourceRefName("Rejected Ref Type");
+        rejectedRefTypeItemSource.setSourceProvider("wiki_gg");
+        rejectedRefTypeItemSource.setStatus(1);
+        rejectedRefTypeItemSource.setDeleted(0);
 
         when(biomeMapper.selectById(10L)).thenReturn(biome);
         when(biomeRelationMapper.selectList(any())).thenReturn(List.of());
         when(biomeResourceMapper.selectList(any())).thenReturn(List.of(resource));
         when(itemBiomeMapper.selectList(any())).thenReturn(List.of(itemBiome));
         when(npcBiomeMapper.selectList(any())).thenReturn(List.of(npcBiome, deletedNpcBiome));
-        when(itemAcquisitionSourceMapper.selectList(any())).thenReturn(List.of(itemSource, unrelatedItemSource));
+        when(itemAcquisitionSourceMapper.selectList(any())).thenReturn(List.of(
+            itemSource,
+            unrelatedItemSource,
+            bossItemSource,
+            crateItemSource,
+            bossGroupItemSource,
+            nullProviderItemSource,
+            rejectedProviderItemSource,
+            rejectedTypeItemSource,
+            rejectedRefTypeItemSource
+        ));
         when(itemMapper.selectBatchIds(List.of(50L))).thenReturn(List.of(item));
         when(managedItemImageResolver.resolveManagedImages(any())).thenReturn(Map.of(50L, "http://localhost:9000/terrapedia-images/items/wood.png"));
         when(managedItemImageResolver.resolveManagedImage(any(), any())).thenReturn("http://localhost:9000/terrapedia-images/items/wood.png");
@@ -171,10 +263,16 @@ class BiomeServiceImplTest {
         assertEquals("绿史莱姆", detail.getNpcBiomes().get(0).getNpcNameZh());
         assertEquals("biome_wikitext", detail.getItemSources().get(0).getSourceRefType());
         assertEquals("From Goblin Scouts", detail.getItemSources().get(0).getSourceRefName());
+        assertEquals("npc", detail.getItemSources().get(1).getSourceRefType());
+        assertEquals(70L, detail.getItemSources().get(1).getSourceRefId());
+        assertEquals("boss", detail.getItemSources().get(2).getSourceRefType());
+        assertEquals("crate", detail.getItemSources().get(3).getSourceRefType());
+        assertEquals("boss_group", detail.getItemSources().get(4).getSourceRefType());
+        assertEquals("npc_group", detail.getItemSources().get(5).getSourceRefType());
         assertEquals(Boolean.FALSE, detail.getItemBiomes().get(0).getMissingItem());
         assertEquals(Boolean.FALSE, detail.getNpcBiomes().get(0).getMissingNpc());
         assertEquals(1, detail.getNpcBiomes().size());
-        assertEquals(1, detail.getItemSources().size());
+        assertEquals(6, detail.getItemSources().size());
         assertEquals("http://localhost:9000/terrapedia-images/items/wood.png", detail.getResources().get(0).getItemImage());
     }
 }

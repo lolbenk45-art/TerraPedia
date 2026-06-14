@@ -10,6 +10,7 @@ public class BiomeItemSourceDTO {
     private Long itemId;
     private String sourceType;
     private String sourceRefType;
+    private Long sourceRefId;
     private String sourceRefName;
     private Long biomeId;
     private String quantityText;

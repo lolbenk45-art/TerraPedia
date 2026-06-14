@@ -50,7 +50,12 @@ const biomeSourceTypeLabels: Record<string, string> = {
   feature: '生态资源',
   fishing: '钓鱼',
   for_sale: '出售',
+  shop: '出售',
   worldgen: '世界生成',
+  mining: '挖掘',
+  treasure_bag: '宝藏袋',
+  crate: '宝匣',
+  container: '宝箱',
 }
 const biomeRelationTypeLabels: Record<string, string> = {
   appears_in: '出现于',
@@ -69,6 +74,87 @@ const biomeSpawnContextLabels: Record<string, string> = {
 }
 const biomeDropResources = computed(() => biomeResources.value.filter((resource) => normalizeType(resource.resourceType) === 'drop'))
 const biomeGeneralResources = computed(() => biomeResources.value.filter((resource) => normalizeType(resource.resourceType) !== 'drop'))
+const biomeSourceRefTypeLabels: Record<string, string> = {
+  biome_wikitext: '文字来源记录',
+  npc: 'NPC',
+  boss: 'Boss',
+  npc_group: 'NPC 族群',
+  boss_group: 'Boss 族群',
+  treasure_bag: '宝藏袋',
+  world: '环境与世界',
+  container: '宝箱',
+  crate: '宝匣',
+}
+const biomeSourceGroupDefinitions = [
+  {
+    key: 'boss',
+    title: 'Boss 掉落',
+    description: '由 Boss 来源记录直接指向的物品。',
+    match: (source: PublicBiomeItemSource) => normalizeType(source.sourceType) === 'drop' && normalizeType(source.sourceRefType) === 'boss',
+  },
+  {
+    key: 'npc',
+    title: 'NPC 掉落',
+    description: '由单个 NPC 来源记录指向的物品。',
+    match: (source: PublicBiomeItemSource) => normalizeType(source.sourceType) === 'drop' && normalizeType(source.sourceRefType) === 'npc',
+  },
+  {
+    key: 'npc-group',
+    title: 'NPC 族群',
+    description: '由同类敌怪或族群来源记录指向的物品。',
+    match: (source: PublicBiomeItemSource) => normalizeType(source.sourceType) === 'drop' && normalizeType(source.sourceRefType) === 'npc_group',
+  },
+  {
+    key: 'treasure-bag',
+    title: '宝藏袋',
+    description: '由宝藏袋来源记录指向的物品。',
+    match: (source: PublicBiomeItemSource) => ['treasure_bag', 'boss_group'].includes(normalizeType(source.sourceRefType)) || normalizeType(source.sourceType) === 'treasure_bag',
+  },
+  {
+    key: 'world',
+    title: '环境与世界',
+    description: '来自世界生成、环境掉落、挖掘或采集的来源记录。',
+    match: (source: PublicBiomeItemSource) => normalizeType(source.sourceRefType) === 'world' || ['worldgen', 'mining'].includes(normalizeType(source.sourceType)),
+  },
+  {
+    key: 'container',
+    title: '宝箱与宝匣',
+    description: '来自宝箱、容器或宝匣的来源记录。',
+    match: (source: PublicBiomeItemSource) => ['container', 'crate'].includes(normalizeType(source.sourceRefType)) || ['container', 'crate'].includes(normalizeType(source.sourceType)),
+  },
+  {
+    key: 'gathering',
+    title: '钓鱼与资源',
+    description: '来自钓鱼、资源或采集类来源记录。',
+    match: (source: PublicBiomeItemSource) => ['fishing', 'resource'].includes(normalizeType(source.sourceType)),
+  },
+  {
+    key: 'wikitext',
+    title: '文字来源记录',
+    description: '来源短语已保留，但尚未全部归并到具体实体。',
+    match: (source: PublicBiomeItemSource) => normalizeType(source.sourceRefType) === 'biome_wikitext',
+  },
+  {
+    key: 'other',
+    title: '其他来源',
+    description: '出售或其他来源记录。',
+    match: () => true,
+  },
+]
+const biomeSourceGroups = computed(() => {
+  const remaining = [...biomeItemSources.value]
+  return biomeSourceGroupDefinitions
+    .map((definition) => {
+      const records = remaining.filter(definition.match)
+      records.forEach((record) => {
+        const index = remaining.indexOf(record)
+        if (index >= 0) remaining.splice(index, 1)
+      })
+      return { ...definition, records }
+    })
+    .filter((group) => group.records.length)
+})
+const biomeDropSourceCount = computed(() => biomeSourceGroups.value.reduce((total, group) => total + group.records.length, 0))
 const typedImage = (value: { itemImage?: string | null; item_image?: string | null; npcImageUrl?: string | null; npc_image_url?: string | null; imageUrl?: string | null; image_url?: string | null; iconUrl?: string | null; icon_url?: string | null; image?: string | null; previewImage?: string | null; previewImageUrl?: string | null; preview_image?: string | null; preview_image_url?: string | null }) => (
   resolvePreviewImageUrl(displayText(value.previewImage, value.previewImageUrl, value.preview_image, value.preview_image_url, value.itemImage, value.item_image, value.npcImageUrl, value.npc_image_url, value.imageUrl, value.image_url, value.iconUrl, value.icon_url, value.image))
 )
@@ -90,6 +176,7 @@ const typeLabel = (value: unknown, labels: Record<string, string>, fallback = '�
   return labels[normalized] || displayText(value, fallback)
 }
 const sourceTypeLabel = (value: unknown) => typeLabel(value, biomeSourceTypeLabels)
+const sourceRefTypeLabel = (value: unknown) => typeLabel(value, biomeSourceRefTypeLabels, '来源')
 const relationTypeLabel = (value: unknown) => typeLabel(value, biomeRelationTypeLabels)
 const spawnContextLabel = (value: unknown) => {
   const normalized = normalizeType(value).replace(/\s+/g, '_')
@@ -98,6 +185,11 @@ const spawnContextLabel = (value: unknown) => {
 }
 const itemPath = (itemId: unknown) => displayText(itemId) ? `/items/${displayText(itemId)}` : '/items'
 const npcPath = (npcId: unknown) => displayText(npcId) ? `/npcs/${displayText(npcId)}` : '/npcs'
+const sourceDetailText = (source: PublicBiomeItemSource) => {
+  const sourceName = displayText(source.sourceRefName, sourceRefTypeLabel(source.sourceRefType))
+  const amount = displayText(source.chanceText, source.quantityText, source.conditions, source.notes)
+  return amount ? `${sourceName} · ${amount}` : sourceName
+}
 
 const clearBiomeDetailVisualLoadingTimer = () => {
   if (biomeDetailVisualLoadingTimer) {
@@ -220,7 +312,7 @@ onBeforeUnmount(clearBiomeDetailVisualLoadingTimer)
           </article>
           <article class="support-panel category-branch">
             <b>掉落</b>
-            <span>{{ biomeItemBiomes.length + biomeDropResources.length }} 条掉落线索。</span>
+            <span>{{ biomeItemBiomes.length + biomeDropResources.length + biomeDropSourceCount }} 条掉落与来源线索。</span>
             <a href="/items">查看相关物品</a>
           </article>
           <article class="support-panel category-branch">
@@ -229,8 +321,8 @@ onBeforeUnmount(clearBiomeDetailVisualLoadingTimer)
             <a href="/npcs">打开 NPC 图鉴</a>
           </article>
           <article class="support-panel category-branch">
-            <b>来源证据</b>
-            <span>{{ biomeItemSources.length }} 条来源证据。</span>
+            <b>来源记录</b>
+            <span>{{ biomeItemSources.length }} 条来源记录。</span>
             <a href="/search">搜索资料</a>
           </article>
         </section>
@@ -263,9 +355,9 @@ onBeforeUnmount(clearBiomeDetailVisualLoadingTimer)
         <section class="biome-detail-section support-panel">
           <div class="biome-detail-section-head">
             <span class="eyebrow">掉落</span>
-            <h2>掉落物品</h2>
+            <h2>掉落与来源</h2>
           </div>
-          <div class="biome-detail-link-grid">
+          <div v-if="biomeItemBiomes.length || biomeDropResources.length" class="biome-detail-link-grid">
             <a v-for="drop in biomeItemBiomes" :key="displayText(drop.id, drop.itemId, drop.itemNameZh, drop.itemName, 'item-drop')" class="detail-relation-link" :href="itemPath(drop.itemId)">
               <CommonPreviewImage
                 :src="itemRelationImage(drop)"
@@ -291,9 +383,31 @@ onBeforeUnmount(clearBiomeDetailVisualLoadingTimer)
               <span>{{ sourceTypeLabel(resource.resourceType) }} · {{ displayText(resource.notes, '暂无说明') }}</span>
             </a>
           </div>
-          <div v-if="!biomeItemBiomes.length && !biomeDropResources.length" class="biome-detail-empty-state">
-            <b>暂无掉落数据。</b>
-            <span>当前没有可展示的掉落记录。</span>
+          <div v-if="biomeSourceGroups.length" class="biome-source-groups">
+            <article v-for="group in biomeSourceGroups" :key="group.key" class="biome-source-group">
+              <div class="biome-source-group-head">
+                <b>{{ group.title }}</b>
+                <span>{{ group.description }} {{ group.records.length }} 条。</span>
+              </div>
+              <div class="biome-detail-link-grid">
+                <a v-for="source in group.records" :key="displayText(source.id, source.itemId, source.sourceRefName, group.key, 'item-source')" class="detail-relation-link" :href="itemPath(source.itemId)">
+                  <CommonPreviewImage
+                    :src="itemRelationImage(source)"
+                    :alt="itemRelationTitle(source)"
+                    :fallback="firstGlyph(itemRelationTitle(source))"
+                    :fallback-icon="biomeResourceFallbackIcon"
+                    width="40"
+                    height="40"
+                  />
+                  <b>{{ itemRelationTitle(source) }}</b>
+                  <span>{{ sourceTypeLabel(source.sourceType) }} · {{ sourceDetailText(source) }}</span>
+                </a>
+              </div>
+            </article>
+          </div>
+          <div v-if="!biomeItemBiomes.length && !biomeDropResources.length && !biomeSourceGroups.length" class="biome-detail-empty-state">
+            <b>暂无掉落来源数据。</b>
+            <span>当前没有可展示的掉落或来源记录。</span>
           </div>
         </section>
 
@@ -319,31 +433,6 @@ onBeforeUnmount(clearBiomeDetailVisualLoadingTimer)
           <div v-if="!biomeNpcBiomes.length" class="biome-detail-empty-state">
             <b>暂无 NPC 出现数据。</b>
             <span>当前没有可展示的 NPC 出现记录。</span>
-          </div>
-        </section>
-
-        <section class="biome-detail-section support-panel">
-          <div class="biome-detail-section-head">
-            <span class="eyebrow">来源证据</span>
-            <h2>物品来源记录</h2>
-          </div>
-          <div class="biome-detail-link-grid">
-            <a v-for="source in biomeItemSources" :key="displayText(source.id, source.itemId, source.sourceRefName, 'item-source')" class="detail-relation-link" :href="itemPath(source.itemId)">
-              <CommonPreviewImage
-                :src="itemRelationImage(source)"
-                :alt="itemRelationTitle(source)"
-                :fallback="firstGlyph(itemRelationTitle(source))"
-                :fallback-icon="biomeResourceFallbackIcon"
-                width="40"
-                height="40"
-              />
-              <b>{{ itemRelationTitle(source) }}</b>
-              <span>{{ sourceTypeLabel(source.sourceType) }} · {{ displayText(source.sourceRefName, source.chanceText, source.quantityText, '来源未标注') }}</span>
-            </a>
-          </div>
-          <div v-if="!biomeItemSources.length" class="biome-detail-empty-state">
-            <b>暂无来源证据数据。</b>
-            <span>当前没有可展示的来源证据记录。</span>
           </div>
         </section>
 
@@ -429,6 +518,35 @@ onBeforeUnmount(clearBiomeDetailVisualLoadingTimer)
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 8px 18px;
+}
+
+.biome-source-groups {
+  display: grid;
+  gap: 16px;
+}
+
+.biome-source-group {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.biome-source-group-head {
+  display: grid;
+  gap: 3px;
+}
+
+.biome-source-group-head b {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.biome-source-group-head span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .biome-detail-empty-state {

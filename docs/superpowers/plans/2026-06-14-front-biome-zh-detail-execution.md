@@ -13,10 +13,34 @@
 ## Execution Boundaries
 
 - No crawler, import, backfill, refresh, or database write commands are part of this plan.
+- This plan may read local API/DB state to prove the existing chain, but must not mutate data.
 - Public page copy must not include player-facing `Wiki`, `API`, `接口`, `后端`, `结构化`, `追踪`, `追溯`, `聚合`, `fallback`, `/public/`, or `静态样例`.
 - Do not hard-code `terraria.wiki.gg` into templates. It may remain in backend test fixtures and returned source data.
 - Full `check-visual-regression.mjs` is a final broad regression option only; task red/green uses scoped checks and `pnpm run check`.
 - If local runtime validation is needed, use `http://localhost:18088` for backend and `http://localhost:5174` for front unless `ss -ltnp` proves a different active local-stack port.
+
+## 2026-06-14 Addendum: Biome Drop Source Clarity
+
+**User-visible problem:** 群系详情页的“掉落”只列出物品，不能清楚说明每个物品来自 Boss、NPC、NPC 族群、宝藏袋、环境/世界、宝箱、宝匣或文字来源记录。
+
+**Data-chain finding:** `item_acquisition_sources` already stores biome-scoped rows with `source_type` and `source_ref_type`. The chain contains `drop/npc`, `drop/boss`, `drop/npc_group`, `treasure_bag/treasure_bag`, `crate/crate`, `container/container`, `worldgen/world`, `mining/world`, and `biome_wikitext` phrase rows. Current public biome service only exposes `source_ref_type = biome_wikitext`, so structured source rows are hidden from the public page.
+
+**Closure definition:** Public biome detail returns public-safe structured `itemSources`, including `sourceRefId`; the public biome page groups source rows in the drop/source area by source ownership: Boss 掉落、NPC 掉落、NPC 族群、宝藏袋、环境与世界、宝箱与宝匣、钓鱼/采集/资源、商店/其他来源. Existing generic item-biome and resource rows remain visible as supplemental records.
+
+**Files:**
+- Modify: `back/src/main/java/com/terraria/skills/service/impl/BiomeServiceImpl.java`
+- Modify: `back/src/main/java/com/terraria/skills/dto/BiomeItemSourceDTO.java`
+- Modify: `back/src/test/java/com/terraria/skills/service/impl/BiomeServiceImplTest.java`
+- Modify: `back/src/test/java/com/terraria/skills/controller/PublicBiomeControllerTest.java`
+- Modify: `front-nuxt/types/public-api.ts`
+- Modify: `front-nuxt/pages/biomes/[id].vue`
+- Modify: `front-nuxt/scripts/check-public-pages.mjs`
+
+**Validation:**
+- `cd back && mvn -Dtest=BiomeServiceImplTest,PublicBiomeControllerTest test`
+- `cd front-nuxt && pnpm run check:public-pages`
+- `cd front-nuxt && pnpm run check`
+- Runtime smoke, if stack is up: `curl -fsS http://localhost:18088/api/public/biomes/1` and `curl -fsS http://localhost:18088/api/public/biomes/2`, confirming Forest exposes `From the King Slime` phrase rows and Jungle exposes structured Boss/NPC/container/crate/world rows.
 
 ### Task 1: Public biome detail contract
 

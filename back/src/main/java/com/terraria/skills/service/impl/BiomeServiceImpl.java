@@ -33,6 +33,7 @@ import org.springframework.stereotype.Service;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -42,6 +43,36 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class BiomeServiceImpl implements BiomeService {
+
+    private static final Set<String> PUBLIC_BIOME_ITEM_SOURCE_REF_TYPES = Set.of(
+        "biome_wikitext",
+        "npc",
+        "boss",
+        "npc_group",
+        "boss_group",
+        "treasure_bag",
+        "world",
+        "container",
+        "crate"
+    );
+
+    private static final Set<String> PUBLIC_BIOME_ITEM_SOURCE_TYPES = Set.of(
+        "drop",
+        "treasure_bag",
+        "crate",
+        "container",
+        "worldgen",
+        "mining",
+        "fishing",
+        "resource",
+        "shop",
+        "for_sale"
+    );
+
+    private static final Set<String> PUBLIC_BIOME_ITEM_SOURCE_PROVIDERS = Set.of(
+        "terraria.wiki.gg",
+        "wiki_gg"
+    );
 
     private final BiomeMapper biomeMapper;
     private final BiomeRelationMapper biomeRelationMapper;
@@ -90,10 +121,12 @@ public class BiomeServiceImpl implements BiomeService {
             .toList();
         List<ItemAcquisitionSource> itemSources = itemAcquisitionSourceMapper.selectList(new LambdaQueryWrapper<ItemAcquisitionSource>()
             .eq(ItemAcquisitionSource::getBiomeId, id)
-            .eq(ItemAcquisitionSource::getSourceRefType, "biome_wikitext")
+            .in(ItemAcquisitionSource::getSourceRefType, PUBLIC_BIOME_ITEM_SOURCE_REF_TYPES)
             .eq(ItemAcquisitionSource::getStatus, 1)
             .eq(ItemAcquisitionSource::getDeleted, 0)
             .and(wrapper -> wrapper.eq(ItemAcquisitionSource::getSourceProvider, "terraria.wiki.gg")
+                .or()
+                .eq(ItemAcquisitionSource::getSourceProvider, "wiki_gg")
                 .or()
                 .isNull(ItemAcquisitionSource::getSourceProvider))
             .orderByAsc(ItemAcquisitionSource::getSortOrder, ItemAcquisitionSource::getId))
@@ -209,10 +242,15 @@ public class BiomeServiceImpl implements BiomeService {
     }
 
     private boolean isPublicBiomeItemSource(ItemAcquisitionSource itemSource) {
-        return Objects.equals(itemSource.getSourceRefType(), "biome_wikitext")
+        return PUBLIC_BIOME_ITEM_SOURCE_REF_TYPES.contains(normalizeKey(itemSource.getSourceRefType()))
+            && PUBLIC_BIOME_ITEM_SOURCE_TYPES.contains(normalizeKey(itemSource.getSourceType()))
             && Objects.equals(itemSource.getStatus(), 1)
             && Objects.equals(itemSource.getDeleted(), 0)
-            && (itemSource.getSourceProvider() == null || Objects.equals(itemSource.getSourceProvider(), "terraria.wiki.gg"));
+            && (itemSource.getSourceProvider() == null || PUBLIC_BIOME_ITEM_SOURCE_PROVIDERS.contains(normalizeKey(itemSource.getSourceProvider())));
+    }
+
+    private String normalizeKey(String value) {
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
     }
 
     private BiomeDTO toSummaryDto(Biome biome) {

@@ -1421,6 +1421,7 @@ export type PublicBiomeItemSource = {
   itemId?: number | string | null
   sourceType?: string | null
   sourceRefType?: string | null
+  sourceRefId?: number | string | null
   sourceRefName?: string | null
   biomeId?: number | string | null
   quantityText?: string | null

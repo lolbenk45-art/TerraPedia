@@ -60,9 +60,15 @@ class PublicBiomeControllerTest {
         itemSource.setSourceRefType("biome_wikitext");
         itemSource.setSourceRefName("From Goblin Scouts");
 
+        BiomeItemSourceDTO npcItemSource = new BiomeItemSourceDTO();
+        npcItemSource.setId(91L);
+        npcItemSource.setSourceRefType("npc");
+        npcItemSource.setSourceRefId(70L);
+        npcItemSource.setSourceRefName("Green Slime");
+
         detail.setItemBiomes(List.of(itemBiome));
         detail.setNpcBiomes(List.of(npcBiome));
-        detail.setItemSources(List.of(itemSource));
+        detail.setItemSources(List.of(itemSource, npcItemSource));
 
         when(biomeService.getBiomeById(10L)).thenReturn(detail);
 
@@ -72,6 +78,8 @@ class PublicBiomeControllerTest {
             .andExpect(jsonPath("$.data.itemBiomes[0].itemNameZh").value("木材"))
             .andExpect(jsonPath("$.data.npcBiomes[0].npcNameZh").value("绿史莱姆"))
             .andExpect(jsonPath("$.data.itemSources[0].sourceRefType").value("biome_wikitext"))
-            .andExpect(jsonPath("$.data.itemSources[0].sourceRefName").value("From Goblin Scouts"));
+            .andExpect(jsonPath("$.data.itemSources[0].sourceRefName").value("From Goblin Scouts"))
+            .andExpect(jsonPath("$.data.itemSources[1].sourceRefType").value("npc"))
+            .andExpect(jsonPath("$.data.itemSources[1].sourceRefId").value(70));
     }
 }
