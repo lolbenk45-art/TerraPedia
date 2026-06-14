@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nuxt dev --host 0.0.0.0 --port 5176",
     "build": "nuxt build",
-    "check": "pnpm run check:user-module && pnpm run check:public-pages && pnpm run check:display-date-time && pnpm run check:article-comments-runtime && pnpm run check:user-article-editor && pnpm run check:user-article-editor-runtime && pnpm run check:article-content-references && pnpm run check:nav-layout && pnpm run check:front-layout-layering && pnpm run check:detail-layout && pnpm run check:preview-images && pnpm run check:visual-system && pnpm run check:armor-stat-visuals && pnpm run check:armor-builds && pnpm run check:crafting-structure && pnpm run check:crafting-alternatives && nuxt typecheck",
+    "check": "pnpm run check:runtime-config && pnpm run check:user-module && pnpm run check:public-pages && pnpm run check:display-date-time && pnpm run check:article-comments-runtime && pnpm run check:user-article-editor && pnpm run check:user-article-editor-runtime && pnpm run check:article-content-references && pnpm run check:nav-layout && pnpm run check:front-layout-layering && pnpm run check:detail-layout && pnpm run check:preview-images && pnpm run check:visual-system && pnpm run check:armor-stat-visuals && pnpm run check:armor-builds && pnpm run check:crafting-structure && pnpm run check:crafting-alternatives && nuxt typecheck",
+    "check:runtime-config": "node scripts/check-runtime-config.mjs",
     "check:user-module": "node scripts/check-user-module-contract.mjs",
     "check:display-date-time": "node scripts/check-display-date-time.mjs",
     "check:article-comments-runtime": "node scripts/check-article-comments-runtime.mjs",

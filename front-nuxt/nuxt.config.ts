@@ -1,14 +1,12 @@
-const terrapediaBackendOrigin = (process.env.TERRAPEDIA_BACKEND_ORIGIN || 'http://localhost:18088').replace(/\/$/, '')
-const terrapediaImageOrigin = (
-  process.env.TERRAPEDIA_IMAGE_ORIGIN
-  || process.env.TERRAPEDIA_MINIO_PUBLIC_ENDPOINT
-  || (process.env.NODE_ENV === 'development' ? 'http://localhost:9000' : '')
-).replace(/\/$/, '')
-const terrapediaWikiImageGateUrl = (
-  process.env.TERRAPEDIA_IMAGE_FETCH_GATE_URL
-  || 'http://127.0.0.1:18099/fetch-image'
-).replace(/\/$/, '')
+import { resolveFrontRuntimeConfig } from './utils/runtimeConfig.mjs'
 import tailwindcss from '@tailwindcss/vite'
+
+const {
+  backendApiBase,
+  backendOrigin: terrapediaBackendOrigin,
+  imageOrigin: terrapediaImageOrigin,
+  wikiImageGateUrl: terrapediaWikiImageGateUrl,
+} = resolveFrontRuntimeConfig()
 
 export default defineNuxtConfig({
   srcDir: '.',
@@ -40,7 +38,7 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    apiServerBase: `${terrapediaBackendOrigin}/api`,
+    apiServerBase: backendApiBase,
     wikiImageGateUrl: terrapediaWikiImageGateUrl,
     public: {
       apiBase: '/api',
