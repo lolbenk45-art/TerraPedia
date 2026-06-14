@@ -9,6 +9,8 @@ public interface RecipeService {
 
     List<RecipeDTO> getRecipesByResultItemId(Long itemId);
 
+    List<RecipeDTO> getRecipesByIngredientItemId(Long itemId);
+
     List<RecipeDTO> replaceRecipesForResultItemId(Long itemId, List<AdminRecipeUpsertRequestDTO> recipes);
 
     List<RecipeDTO> replaceRecipesForResultItemId(Long itemId, List<AdminRecipeUpsertRequestDTO> recipes, String scopeMode);

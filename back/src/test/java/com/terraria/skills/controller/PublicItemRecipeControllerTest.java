@@ -3,6 +3,7 @@ package com.terraria.skills.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.terraria.skills.dto.RecipeDTO;
 import com.terraria.skills.dto.RecipeGroupMemberDTO;
 import com.terraria.skills.dto.RecipeTreeItemDTO;
 import com.terraria.skills.dto.RecipeTreeNodeDTO;
@@ -10,6 +11,7 @@ import com.terraria.skills.dto.RecipeTreeResponseDTO;
 import com.terraria.skills.dto.RecipeTreeStationDTO;
 import com.terraria.skills.dto.RecipeTreeVariantDTO;
 import com.terraria.skills.service.ManagedImageUrlPolicy;
+import com.terraria.skills.service.RecipeService;
 import com.terraria.skills.service.RecipeTreeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,6 +50,9 @@ class PublicItemRecipeControllerTest {
     @Mock
     private RecipeTreeService recipeTreeService;
 
+    @Mock
+    private RecipeService recipeService;
+
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -56,7 +61,7 @@ class PublicItemRecipeControllerTest {
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-        mockMvc = MockMvcBuilders.standaloneSetup(new PublicItemRecipeController(recipeTreeService, MANAGED_IMAGE_URL_POLICY))
+        mockMvc = MockMvcBuilders.standaloneSetup(new PublicItemRecipeController(recipeTreeService, recipeService, MANAGED_IMAGE_URL_POLICY))
             .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
             .build();
     }
@@ -123,5 +128,25 @@ class PublicItemRecipeControllerTest {
         assertEquals("https://terraria.wiki.gg/images/Honey_Block.png", groupMember.getImage());
         assertEquals("https://static.wikia.nocookie.net/terraria_gamepedia/images/Water.png", treeStation.getStationImage());
         verify(recipeTreeService).getRecipeTreeByItemId(1L, 4);
+    }
+
+    @Test
+    void shouldReturnPublicRecipeUsagesForIngredientItem() throws Exception {
+        RecipeDTO ironBarRecipe = new RecipeDTO();
+        ironBarRecipe.setId(101L);
+        ironBarRecipe.setResultItemId(68L);
+        ironBarRecipe.setResultItemNameZh("铁锭");
+
+        when(recipeService.getRecipesByIngredientItemId(11L)).thenReturn(List.of(ironBarRecipe));
+
+        mockMvc.perform(get("/public/items/11/recipe-usages")
+                .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data[0].id").value(101))
+            .andExpect(jsonPath("$.data[0].resultItemId").value(68))
+            .andExpect(jsonPath("$.data[0].resultItemNameZh").value("铁锭"));
+
+        verify(recipeService).getRecipesByIngredientItemId(11L);
     }
 }

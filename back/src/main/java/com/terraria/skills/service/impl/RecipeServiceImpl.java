@@ -79,6 +79,40 @@ public class RecipeServiceImpl implements RecipeService {
             .eq(Recipe::getStatus, 1)
             .orderByAsc(Recipe::getSortOrder, Recipe::getId));
 
+        return hydrateRecipes(allRecipes);
+    }
+
+    @Override
+    public List<RecipeDTO> getRecipesByIngredientItemId(Long itemId) {
+        if (itemId == null) {
+            return Collections.emptyList();
+        }
+
+        List<RecipeIngredient> matchingIngredients = recipeIngredientMapper.selectList(new LambdaQueryWrapper<RecipeIngredient>()
+            .eq(RecipeIngredient::getIngredientItemId, itemId)
+            .orderByAsc(RecipeIngredient::getRecipeId, RecipeIngredient::getSortOrder, RecipeIngredient::getId));
+        if (matchingIngredients == null || matchingIngredients.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Long> recipeIds = matchingIngredients.stream()
+            .map(RecipeIngredient::getRecipeId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+        if (recipeIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Recipe> recipes = recipeMapper.selectList(new LambdaQueryWrapper<Recipe>()
+            .in(Recipe::getId, recipeIds)
+            .eq(Recipe::getStatus, 1)
+            .orderByAsc(Recipe::getSortOrder, Recipe::getId));
+
+        return hydrateRecipes(recipes);
+    }
+
+    private List<RecipeDTO> hydrateRecipes(List<Recipe> allRecipes) {
         if (allRecipes == null || allRecipes.isEmpty()) {
             return Collections.emptyList();
         }
