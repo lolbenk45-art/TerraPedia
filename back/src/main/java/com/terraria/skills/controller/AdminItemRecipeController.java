@@ -37,6 +37,12 @@ public class AdminItemRecipeController {
         return ResponseEntity.ok(ApiResponse.success(recipeService.getRecipesByResultItemId(itemId)));
     }
 
+    @GetMapping("/{id}/recipe-usages")
+    @Operation(summary = "Get recipes that use the item as an ingredient for admin")
+    public ResponseEntity<ApiResponse<List<RecipeDTO>>> getItemRecipeUsages(@PathVariable("id") Long itemId) {
+        return ResponseEntity.ok(ApiResponse.success(recipeService.getRecipesByIngredientItemId(itemId)));
+    }
+
     @GetMapping("/{id}/recipe-tree")
     @Operation(summary = "Get grouped recipe tree for admin")
     public ResponseEntity<ApiResponse<RecipeTreeResponseDTO>> getItemRecipeTree(

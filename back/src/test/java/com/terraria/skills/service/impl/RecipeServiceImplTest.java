@@ -509,6 +509,43 @@ class RecipeServiceImplTest {
     }
 
     @Test
+    void shouldFindRecipesThatUseAnItemAsIngredient() {
+        RecipeIngredient ironOreIngredient = new RecipeIngredient();
+        ironOreIngredient.setRecipeId(101L);
+        ironOreIngredient.setIngredientItemId(11L);
+        ironOreIngredient.setIngredientInternalName("IronOre");
+        ironOreIngredient.setIngredientNameRaw("Iron Ore");
+        ironOreIngredient.setIngredientGroupType("item");
+        ironOreIngredient.setQuantityText("3");
+        ironOreIngredient.setQuantityMin(3);
+        ironOreIngredient.setQuantityMax(3);
+        ironOreIngredient.setSortOrder(1);
+
+        Recipe ironBarRecipe = recipe(101L, "wiki_gg");
+        ironBarRecipe.setResultItemId(68L);
+        ironBarRecipe.setResultInternalName("IronBar");
+        ironBarRecipe.setResultQuantity(1);
+
+        when(recipeIngredientMapper.selectList(any()))
+            .thenReturn(List.of(ironOreIngredient))
+            .thenReturn(List.of(ironOreIngredient));
+        when(recipeMapper.selectList(any())).thenReturn(List.of(ironBarRecipe));
+        when(itemMapper.selectBatchIds(any())).thenReturn(List.of(
+            item(11L, "IronOre", "Iron Ore", "铁矿石", null),
+            item(68L, "IronBar", "Iron Bar", "铁锭", null)
+        ));
+
+        List<RecipeDTO> recipes = service.getRecipesByIngredientItemId(11L);
+
+        assertEquals(1, recipes.size());
+        assertEquals(68L, recipes.get(0).getResultItemId());
+        assertEquals("IronBar", recipes.get(0).getResultItemInternalName());
+        assertEquals("铁锭", recipes.get(0).getResultItemNameZh());
+        assertEquals(11L, recipes.get(0).getIngredients().get(0).getIngredientItemId());
+        assertEquals("3", recipes.get(0).getIngredients().get(0).getQuantityText());
+    }
+
+    @Test
     void shouldDefaultSingleGroupIngredientQuantityToOneInRecipeDto() {
         Recipe recipe = recipe(60L, "wiki_gg");
         recipe.setResultItemId(8L);

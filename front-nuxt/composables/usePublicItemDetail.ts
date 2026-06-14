@@ -5,6 +5,7 @@ import type {
   PublicItemDetailBundle,
   PublicItemEquipmentEffect,
   PublicItemImage,
+  PublicItemRecipe,
   PublicItemRecipeTree,
   PublicItemSource,
   PublicItemTreasureBagLoot,
@@ -19,6 +20,7 @@ const missingPublicItemDetailBundle = (): PublicItemDetailBundle => ({
   armorAttributes: [],
   equipmentEffects: [],
   recipeTree: null,
+  recipeUsages: [],
   source: 'missing',
 })
 
@@ -71,7 +73,7 @@ export const fetchPublicItemDetailBundle = async (itemId: string | number): Prom
       return missingPublicItemDetailBundle()
     }
 
-    const [rawImages, rawSources, rawTreasureBagLoot, rawBuffEffects, rawArmorAttributes, rawEquipmentEffects, recipeTree] = await Promise.all([
+    const [rawImages, rawSources, rawTreasureBagLoot, rawBuffEffects, rawArmorAttributes, rawEquipmentEffects, recipeTree, rawRecipeUsages] = await Promise.all([
       fetchOptionalPublicItemRelation<PublicItemImage[]>(`/public/items/${normalizedItemId}/images`, []),
       fetchOptionalPublicItemRelation<PublicItemSource[]>(`/public/items/${normalizedItemId}/sources`, []),
       fetchOptionalPublicItemRelation<PublicItemTreasureBagLoot[]>(`/public/items/${normalizedItemId}/treasure-bag-loot`, []),
@@ -79,6 +81,7 @@ export const fetchPublicItemDetailBundle = async (itemId: string | number): Prom
       fetchOptionalPublicItemRelation<PublicItemArmorAttribute[]>(`/public/items/${normalizedItemId}/armor-attributes`, []),
       fetchOptionalPublicItemRelation<PublicItemEquipmentEffect[]>(`/public/items/${normalizedItemId}/equipment-effects`, []),
       fetchOptionalPublicItemRelation<PublicItemRecipeTree | null>(`/public/items/${normalizedItemId}/recipe-tree`, null),
+      fetchOptionalPublicItemRelation<PublicItemRecipe[]>(`/public/items/${normalizedItemId}/recipe-usages`, []),
     ])
 
     return {
@@ -90,6 +93,7 @@ export const fetchPublicItemDetailBundle = async (itemId: string | number): Prom
       armorAttributes: Array.isArray(rawArmorAttributes) ? rawArmorAttributes : [],
       equipmentEffects: Array.isArray(rawEquipmentEffects) ? rawEquipmentEffects : [],
       recipeTree,
+      recipeUsages: Array.isArray(rawRecipeUsages) ? rawRecipeUsages : [],
       source: 'api',
     }
   } catch {

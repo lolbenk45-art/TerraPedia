@@ -480,6 +480,58 @@ export type PublicItemRecipeTree = {
   description?: string | null
 }
 
+export type PublicItemRecipeIngredient = {
+  id?: number | string | null
+  recipeId?: number | string | null
+  ingredientItemId?: number | string | null
+  ingredientInternalName?: string | null
+  ingredientNameRaw?: string | null
+  ingredientGroupType?: string | null
+  quantityMin?: number | string | null
+  quantityMax?: number | string | null
+  quantityText?: string | null
+  sortOrder?: number | string | null
+  itemName?: string | null
+  itemNameZh?: string | null
+  itemInternalName?: string | null
+  itemImage?: string | null
+}
+
+export type PublicItemRecipeStation = {
+  id?: number | string | null
+  recipeId?: number | string | null
+  stationId?: number | string | null
+  stationItemId?: number | string | null
+  stationInternalName?: string | null
+  stationNameRaw?: string | null
+  isAlternative?: boolean | number | string | null
+  sortOrder?: number | string | null
+  itemName?: string | null
+  itemNameZh?: string | null
+  itemInternalName?: string | null
+  itemImage?: string | null
+  stationType?: string | null
+}
+
+export type PublicItemRecipe = {
+  id?: number | string | null
+  resultItemId?: number | string | null
+  resultInternalName?: string | null
+  resultItemName?: string | null
+  resultItemNameZh?: string | null
+  resultItemInternalName?: string | null
+  resultItemImage?: string | null
+  resultQuantity?: number | string | null
+  versionScope?: string | null
+  notes?: string | null
+  sourceProvider?: string | null
+  sourcePage?: string | null
+  sourceRevisionTimestamp?: string | null
+  sortOrder?: number | string | null
+  ingredients?: PublicItemRecipeIngredient[] | null
+  stations?: PublicItemRecipeStation[] | null
+}
+
 export type PublicItemDetailBundle = {
   item: PublicItemDetail | null
   images: PublicItemImage[]
@@ -489,6 +541,7 @@ export type PublicItemDetailBundle = {
   armorAttributes: PublicItemArmorAttribute[]
   equipmentEffects: PublicItemEquipmentEffect[]
   recipeTree: PublicItemRecipeTree | null
+  recipeUsages: PublicItemRecipe[]
   source: 'api' | 'missing'
 }
 

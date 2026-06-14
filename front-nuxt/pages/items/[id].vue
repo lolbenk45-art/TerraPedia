@@ -9,6 +9,9 @@ import type {
   PublicItemDetailBundle,
   PublicItemEquipmentEffect,
   PublicItemImage,
+  PublicItemRecipe,
+  PublicItemRecipeIngredient,
+  PublicItemRecipeStation,
   PublicItemRecipeTree,
   PublicItemRecipeTreeVariant,
   PublicItemSource,
@@ -27,6 +30,8 @@ const detailClientReady = ref(false)
 const selectedRecipeVariantKey = ref('')
 const favoriteError = ref('')
 const recordedItemHistoryIds = new Set<string>()
+const recipeUsagePreviewLimit = 6
+const recipeUsageExpanded = ref(false)
 
 const firstText = (...values: unknown[]) => {
   for (const value of values) {
@@ -696,6 +701,66 @@ const recipeTreeSummary = computed(() => {
   }
 })
 
+const recipeQuantityLabel = (...values: unknown[]) => {
+  const text = firstText(...values)
+  return text ? `x${text.replace(/^x/i, '')}` : 'x1'
+}
+
+const recipeUsageIngredientTitle = (ingredient: PublicItemRecipeIngredient) => safeItemDisplayText(
+  ingredient.itemNameZh,
+  ingredient.itemName,
+  ingredient.ingredientNameRaw,
+) || '材料'
+
+const recipeUsageIngredientQuantity = (ingredient: PublicItemRecipeIngredient) => {
+  if (firstText(ingredient.quantityText)) return recipeQuantityLabel(ingredient.quantityText)
+  if (firstText(ingredient.quantityMin) && firstText(ingredient.quantityMax) && firstText(ingredient.quantityMin) !== firstText(ingredient.quantityMax)) {
+    return `x${firstText(ingredient.quantityMin)}-${firstText(ingredient.quantityMax)}`
+  }
+  return recipeQuantityLabel(ingredient.quantityMin, ingredient.quantityMax)
+}
+
+const recipeUsageStationTitle = (station: PublicItemRecipeStation) => safeItemDisplayText(
+  station.itemNameZh,
+  station.itemName,
+  station.stationNameRaw,
+) || '制作站'
+
+const recipeUsageEntries = computed(() => rawBundle.value.recipeUsages.map((recipe: PublicItemRecipe, index) => {
+  const resultName = safeItemDisplayText(
+    recipe.resultItemNameZh,
+    recipe.resultItemName,
+  ) || `配方产物 ${index + 1}`
+  const resultItemId = firstText(recipe.resultItemId)
+  const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : []
+  const stations = Array.isArray(recipe.stations) ? recipe.stations : []
+  const ingredientSummary = ingredients
+    .slice(0, 4)
+    .map((ingredient) => `${recipeUsageIngredientTitle(ingredient)} ${recipeUsageIngredientQuantity(ingredient)}`)
+    .join(' + ')
+  const stationSummary = stations.map(recipeUsageStationTitle).filter(Boolean).slice(0, 3).join(' / ')
+  const resultQuantity = Number(recipe.resultQuantity)
+
+  return {
+    id: firstText(recipe.id, `${resultName}-${index}`),
+    name: resultName,
+    href: resultItemId ? `/items/${resultItemId}` : '',
+    image: firstImageUrl(recipe.resultItemImage),
+    fallback: firstText(Array.from(resultName)[0], '配'),
+    detail: ingredientSummary || '材料记录待补充',
+    station: stationSummary || '制作站未标记',
+    meta: Number.isFinite(resultQuantity) && resultQuantity > 1 ? `产出 x${resultQuantity}` : '产物',
+  }
+}))
+
+const visibleRecipeUsageEntries = computed(() => (
+  recipeUsageExpanded.value
+    ? recipeUsageEntries.value
+    : recipeUsageEntries.value.slice(0, recipeUsagePreviewLimit)
+))
+const hiddenRecipeUsageCount = computed(() => Math.max(0, recipeUsageEntries.value.length - recipeUsagePreviewLimit))
+const hasRecipeUsageOverflow = computed(() => hiddenRecipeUsageCount.value > 0)
+
 const buyPriceValue = computed(() => toPriceNumber(detailItem.value?.buyPrice ?? detailItem.value?.buy))
 const sellPriceValue = computed(() => toPriceNumber(detailItem.value?.sellPrice ?? detailItem.value?.sell))
 const buyPriceTokens = computed(() => buyPriceValue.value != null && buyPriceValue.value > 0 ? buildTerrariaPriceTokens(buyPriceValue.value) : [])
@@ -746,7 +811,8 @@ const itemCoverageRows = computed(() => [
   { label: '来源', value: sourceEntries.value.length ? `${sourceEntries.value.length} 条来源记录` : '暂无来源' },
   { label: '状态效果', value: buffEffectEntries.value.length ? `${buffEffectEntries.value.length} 条状态效果` : '暂无状态效果' },
   { label: '装备属性', value: itemEquipmentAttributeCount.value ? `${itemEquipmentAttributeCount.value} 条装备属性` : '暂无装备属性' },
-  { label: '制作', value: recipeTreeSummary.value ? '可查看制作路线' : '暂无制作资料' },
+  { label: '制作', value: recipeTreeSummary.value ? '可查看制作此物品路线' : '暂无制作此物品资料' },
+  { label: '用途', value: recipeUsageEntries.value.length ? `${recipeUsageEntries.value.length} 条可用于制作` : '暂无制作用途' },
   { label: '图片', value: imageEntries.value.length ? `${imageEntries.value.length} 张图片` : '暂无图片' },
 ])
 
@@ -892,7 +958,7 @@ onMounted(() => {
           <section :class="['detail-module dark-card item-recipe-summary-module', detailLayout.detailModuleClass]">
             <div class="module-title">
               <div>
-                <h2>制作路线</h2>
+                <h2>制作此物品</h2>
                 <span>{{ recipeTreeSummary ? `${recipeTreeSummary.variant} · ${recipeTreeSummary.count} 个直接材料` : '当前物品暂无制作路线' }}</span>
               </div>
               <span class="tag gold">{{ recipeTreeSummary ? `${recipeTreeSummary.recipeCount} 个配方` : '暂无配方' }}</span>
@@ -913,6 +979,52 @@ onMounted(() => {
             <p v-else class="tp-detail-empty">还没有可展示的配方、材料或制作站记录。</p>
             <p v-if="recipeTreeSummary?.note">{{ recipeTreeSummary.note }}</p>
             <a v-if="recipeTreeSummary" class="primary-button item-recipe-summary-link" :href="`/crafting?itemId=${itemId}&maxDepth=3`">查看完整制作树</a>
+          </section>
+
+          <section :class="['detail-module dark-card item-recipe-usage-module', detailLayout.detailModuleClass]">
+            <div class="module-title">
+              <div>
+                <h2>可用于制作</h2>
+                <span>{{ recipeUsageEntries.length ? `${recipeUsageEntries.length} 个产物使用此物品` : '当前物品暂无制作用途' }}</span>
+              </div>
+              <span class="tag moss">{{ recipeUsageEntries.length ? `${recipeUsageEntries.length} 条` : '暂无用途' }}</span>
+            </div>
+            <div v-if="recipeUsageEntries.length" class="recipe-usage-summary">
+              <span>{{ recipeUsageExpanded ? '已显示全部用途' : `先显示 ${visibleRecipeUsageEntries.length} 条重点用途` }}</span>
+              <button
+                v-if="hasRecipeUsageOverflow"
+                class="recipe-usage-toggle"
+                type="button"
+                :aria-expanded="recipeUsageExpanded ? 'true' : 'false'"
+                @click="recipeUsageExpanded = !recipeUsageExpanded"
+              >
+                {{ recipeUsageExpanded ? '收起' : `展开其余 ${hiddenRecipeUsageCount} 条` }}
+              </button>
+            </div>
+            <div v-if="recipeUsageEntries.length" class="recipe-usage-grid tp-detail-relation-grid">
+              <div
+                v-for="usage in visibleRecipeUsageEntries"
+                :key="String(usage.id)"
+                :class="['recipe-usage-row detail-relation-row', detailLayout.detailRelationRowClass]"
+              >
+                <span class="sprite-frame detail-relation-icon">
+                  <CommonPreviewImage
+                    :src="usage.image"
+                    :alt="usage.name"
+                    :fallback="usage.fallback"
+                    fallback-icon="icon-crafting"
+                  />
+                </span>
+                <div class="detail-relation-copy">
+                  <NuxtLink v-if="usage.href" class="item-source-link" :to="usage.href">{{ usage.name }}</NuxtLink>
+                  <b v-else>{{ usage.name }}</b>
+                  <span>{{ usage.detail }}</span>
+                  <small>{{ usage.station }}</small>
+                </div>
+                <strong class="detail-relation-meta">{{ usage.meta }}</strong>
+              </div>
+            </div>
+            <p v-else class="tp-detail-empty">还没有可展示的上级合成或制作用途。</p>
           </section>
 
           <section :class="['detail-module dark-card item-equipment-attribute-module', detailLayout.detailModuleClass]">
@@ -1248,10 +1360,168 @@ onMounted(() => {
 .treasure-bag-loot-module,
 .item-buff-effect-module,
 .item-equipment-attribute-module,
+.item-recipe-usage-module,
 .grouped-source-list,
 .item-source-group {
   display: grid;
   gap: 12px;
+}
+
+.recipe-usage-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 172px), 1fr));
+  gap: 10px;
+}
+
+.recipe-usage-summary {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid color-mix(in srgb, var(--accent-moss) 20%, var(--index-line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-moss) 6%, transparent);
+  padding: 7px 9px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.recipe-usage-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  border: 1px solid color-mix(in srgb, var(--accent-moss) 34%, var(--index-line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-moss) 12%, var(--index-surface));
+  padding: 0 12px;
+  color: var(--text-strong);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.recipe-usage-toggle:hover {
+  background: color-mix(in srgb, var(--accent-moss) 18%, var(--index-surface));
+}
+
+.recipe-usage-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: start;
+  min-height: 98px;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-gold) 34%, var(--index-line));
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent-gold) 16%, transparent), transparent 42%),
+    linear-gradient(135deg, color-mix(in srgb, var(--accent-moss) 12%, transparent), transparent 62%),
+    color-mix(in srgb, var(--index-card) 82%, white 2%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    0 8px 18px rgba(0,0,0,0.22);
+  padding: 10px;
+  padding-top: 12px;
+  padding-left: 12px;
+  overflow: hidden;
+}
+
+.recipe-usage-row::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  width: 100%;
+  height: 3px;
+  border-radius: 8px 8px 0 0;
+  background: color-mix(in srgb, var(--accent-moss) 70%, var(--accent-gold));
+}
+
+.recipe-usage-row::after {
+  content: "";
+  position: absolute;
+  inset: 10px auto auto 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-gold) 13%, var(--index-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-gold) 22%, transparent);
+  pointer-events: none;
+}
+
+.recipe-usage-row .detail-relation-icon {
+  position: relative;
+  z-index: 1;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  background: transparent;
+}
+
+.recipe-usage-row .detail-relation-icon :deep(.item-art) {
+  width: 30px;
+  height: 30px;
+}
+
+.recipe-usage-row .detail-relation-copy :where(b, a, span, small),
+.recipe-usage-row .detail-relation-meta {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.recipe-usage-row .detail-relation-meta {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  grid-column: auto;
+  justify-self: auto;
+  max-width: 100%;
+  border-color: color-mix(in srgb, var(--accent-gold) 42%, var(--index-line));
+  background: color-mix(in srgb, var(--accent-gold) 18%, var(--index-surface));
+  padding: 3px 7px;
+  color: var(--text-strong);
+  font-size: 10px;
+  line-height: 1.1;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.recipe-usage-row .detail-relation-copy {
+  display: grid;
+  gap: 2px;
+  padding-bottom: 22px;
+}
+
+.recipe-usage-row .detail-relation-copy :where(b, a) {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--text-strong);
+  font-size: 13px;
+  line-height: 1.18;
+}
+
+.recipe-usage-row .detail-relation-copy span {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: color-mix(in srgb, var(--text-muted) 88%, var(--accent-gold));
+  font-size: 11px;
+  line-height: 1.28;
+}
+
+.recipe-usage-row .detail-relation-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-faint);
+  font-size: 10px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .item-source-module .source-table {

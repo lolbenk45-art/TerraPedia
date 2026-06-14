@@ -244,6 +244,58 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       'item source copy must preserve readable text wrapping instead of breaking every character',
     ],
     [
+      String.raw`const recipeUsagePreviewLimit = 6`,
+      'item recipe usage list must cap the default visible entries so high-usage materials do not stretch the page',
+    ],
+    [
+      String.raw`const recipeUsageExpanded = ref\(false\)`,
+      'item recipe usage list must keep an explicit expanded state',
+    ],
+    [
+      String.raw`const visibleRecipeUsageEntries = computed`,
+      'item recipe usage list must render a computed visible subset',
+    ],
+    [
+      String.raw`v-for="usage in visibleRecipeUsageEntries"`,
+      'item recipe usage module must render the visible subset instead of every usage by default',
+    ],
+    [
+      String.raw`:aria-expanded="recipeUsageExpanded \? 'true' : 'false'"`,
+      'item recipe usage toggle must expose expanded state for assistive technology',
+    ],
+    [
+      String.raw`@click="recipeUsageExpanded = !recipeUsageExpanded"`,
+      'item recipe usage toggle must expand and collapse the long list',
+    ],
+    [
+      String.raw`\.recipe-usage-summary\s*\{[\s\S]*display:\s*flex;[\s\S]*justify-content:\s*space-between;`,
+      'item recipe usage module must show a compact count summary above long lists',
+    ],
+    [
+      String.raw`\.recipe-usage-toggle\s*\{[\s\S]*min-height:\s*36px;[\s\S]*border-radius:\s*999px;`,
+      'item recipe usage toggle must be a stable compact pill control',
+    ],
+    [
+      String.raw`\.recipe-usage-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(100%,\s*172px\),\s*1fr\)\);[\s\S]*gap:\s*10px;`,
+      'item recipe usage grid must use compact tiles so each row can show more recipes',
+    ],
+    [
+      String.raw`\.recipe-usage-row\s*\{[\s\S]*grid-template-columns:\s*34px minmax\(0,\s*1fr\);[\s\S]*min-height:\s*98px;[\s\S]*border:\s*1px solid color-mix\(in srgb,\s*var\(--accent-gold\)\s*34%,\s*var\(--index-line\)\);[\s\S]*border-radius:\s*8px;[\s\S]*box-shadow:`,
+      'item recipe usage rows must look like distinct compact recipe cards instead of text floating on the module background',
+    ],
+    [
+      String.raw`\.recipe-usage-row::before\s*\{[\s\S]*height:\s*3px;[\s\S]*background:\s*color-mix\(in srgb,\s*var\(--accent-moss\)\s*70%,\s*var\(--accent-gold\)\);`,
+      'item recipe usage cards must have a compact visual identifier stripe',
+    ],
+    [
+      String.raw`\.recipe-usage-row::after\s*\{[\s\S]*width:\s*34px;[\s\S]*height:\s*34px;[\s\S]*background:\s*color-mix\(in srgb,\s*var\(--accent-gold\)\s*13%,\s*var\(--index-surface\)\);`,
+      'item recipe usage cards must give item icons a visible compact base',
+    ],
+    [
+      String.raw`\.recipe-usage-row\s+\.detail-relation-icon\s*\{[\s\S]*width:\s*34px;[\s\S]*height:\s*34px;`,
+      'item recipe usage icons must be compact so the grid has higher information density',
+    ],
+    [
       String.raw`\.item-coverage-panel\s*\{[\s\S]*gap:\s*8px;[\s\S]*padding:\s*18px;`,
       'item coverage overview panel must have its own compact spacing instead of inheriting the generic evidence rail',
     ],

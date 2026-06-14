@@ -1,12 +1,14 @@
 package com.terraria.skills.controller;
 
 import com.terraria.skills.common.ApiResponse;
+import com.terraria.skills.dto.RecipeDTO;
 import com.terraria.skills.dto.RecipeGroupMemberDTO;
 import com.terraria.skills.dto.RecipeTreeNodeDTO;
 import com.terraria.skills.dto.RecipeTreeResponseDTO;
 import com.terraria.skills.dto.RecipeTreeStationDTO;
 import com.terraria.skills.dto.RecipeTreeVariantDTO;
 import com.terraria.skills.service.ManagedImageUrlPolicy;
+import com.terraria.skills.service.RecipeService;
 import com.terraria.skills.service.RecipeTreeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,6 +33,7 @@ import java.util.List;
 public class PublicItemRecipeController {
 
     private final RecipeTreeService recipeTreeService;
+    private final RecipeService recipeService;
     private final ManagedImageUrlPolicy managedImageUrlPolicy;
 
     @GetMapping("/{id}/recipe-tree")
@@ -46,6 +49,12 @@ public class PublicItemRecipeController {
             log.warn("public item recipe tree stripped non-managed image(s) itemId={} strippedCount={}", itemId, strippedCount);
         }
         return ResponseEntity.ok(ApiResponse.success(publicResponse));
+    }
+
+    @GetMapping("/{id}/recipe-usages")
+    @Operation(summary = "Get public recipes that use the item as an ingredient")
+    public ResponseEntity<ApiResponse<List<RecipeDTO>>> getItemRecipeUsages(@PathVariable("id") Long itemId) {
+        return ResponseEntity.ok(ApiResponse.success(recipeService.getRecipesByIngredientItemId(itemId)));
     }
 
     private RecipeTreeResponseDTO copyTree(RecipeTreeResponseDTO source) {
