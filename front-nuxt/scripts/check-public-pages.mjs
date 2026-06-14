@@ -2529,6 +2529,8 @@ for (const path of scanFiles) {
     for (const marker of [
       'bossLootGroups',
       'bossLootGroupKey(entry)',
+      'bossLootEvidenceLabel(entry)',
+      '来源记录',
       '普通掉落',
       '宝藏袋',
       '条件掉落',
@@ -2544,6 +2546,11 @@ for (const path of scanFiles) {
 
     if (content.includes('v-for="entry in bossLootEntries"')) {
       violations.push(`${path}: boss loot entries must not render as one flat ungrouped list`)
+    }
+
+    const bossLootEvidenceRenderCount = (content.match(/bossLootEvidenceLabel\(entry\)/g) ?? []).length
+    if (!content.includes('const bossLootEvidenceLabel =') || bossLootEvidenceRenderCount < 2) {
+      violations.push(`${path}: boss loot rows must define the source evidence helper and render it in both visible and expanded loot rows`)
     }
 
     for (const marker of [

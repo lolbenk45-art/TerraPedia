@@ -1219,6 +1219,15 @@ export type PublicBossLootEntry = {
   itemNameZh?: string | null
   itemInternalName?: string | null
   itemImage?: string | null
+  sourceId?: number | string | null
+  sourceType?: string | null
+  sourceRefType?: string | null
+  sourceRefId?: number | string | null
+  sourceRefName?: string | null
+  sourceProvider?: string | null
+  sourcePage?: string | null
+  sourceRevisionTimestamp?: string | null
+  sourceFactKey?: string | null
 }
 
 export type PublicBossMoneyToken = {

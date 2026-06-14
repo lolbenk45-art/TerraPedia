@@ -131,6 +131,19 @@ const bossLootDetailLabel = (entry: { quantityText?: string | null; conditions?:
     .filter(Boolean)
     .join(' · ') || '掉落条件未标注'
 )
+const bossLootEvidenceLabel = (entry: {
+  sourceRefName?: string | null
+  sourcePage?: string | null
+}) => {
+  const sourceName = safeBossDisplayText(entry.sourceRefName)
+  const sourcePage = safeBossDisplayText(entry.sourcePage)
+  const parts = [
+    sourceName,
+    sourcePage ? `资料页 ${sourcePage}` : '',
+  ].filter(Boolean)
+
+  return parts.length ? `来源记录：${parts.join(' · ')}` : '来源记录：待补充'
+}
 const bossMoneyModeLabel = (drop: Pick<PublicBossMoneyDrop, 'mode'>) => {
   const mode = displayText(drop.mode).toLowerCase()
   if (mode === 'normal') return '普通'
@@ -432,6 +445,7 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
                     </NuxtLink>
                     <b v-else>{{ lootTitle(entry) }}</b>
                     <span>{{ bossLootDetailLabel(entry) }}</span>
+                    <span class="detail-loot-evidence">{{ bossLootEvidenceLabel(entry) }}</span>
                   </div>
                   <em>{{ bossLootChanceLabel(entry) }}</em>
                 </div>
@@ -454,6 +468,7 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
                       </NuxtLink>
                       <b v-else>{{ lootTitle(entry) }}</b>
                       <span>{{ bossLootDetailLabel(entry) }}</span>
+                      <span class="detail-loot-evidence">{{ bossLootEvidenceLabel(entry) }}</span>
                     </div>
                     <em>{{ bossLootChanceLabel(entry) }}</em>
                   </div>
@@ -784,12 +799,16 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
 
 .detail-loot-copy span {
   display: block;
-  overflow: hidden;
   color: var(--text-muted);
   font-size: 12px;
   line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+}
+
+.detail-loot-copy .detail-loot-evidence {
+  color: var(--text-subtle);
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .detail-loot-row em {

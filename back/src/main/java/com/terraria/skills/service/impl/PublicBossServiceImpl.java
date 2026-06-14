@@ -529,9 +529,62 @@ public class PublicBossServiceImpl implements PublicBossService {
               i.name AS itemName,
               i.name_zh AS itemNameZh,
               i.internal_name AS itemInternalName,
-              %s AS itemImage
+              %s AS itemImage,
+              ias.id AS sourceId,
+              ias.source_type AS sourceType,
+              ias.source_ref_type AS sourceRefType,
+              ias.source_ref_id AS sourceRefId,
+              ias.source_ref_name AS sourceRefName,
+              ias.source_provider AS sourceProvider,
+              ias.source_page AS sourcePage,
+              ias.source_revision_timestamp AS sourceRevisionTimestamp
             FROM npc_loot_entries nle
             LEFT JOIN items i ON i.id = nle.item_id AND i.deleted = 0
+            LEFT JOIN npcs owner_npc ON owner_npc.id = nle.npc_id AND owner_npc.deleted = 0
+            LEFT JOIN item_acquisition_sources ias
+              ON ias.id = (
+                SELECT ias_pick.id
+                FROM item_acquisition_sources ias_pick
+                WHERE ias_pick.item_id = nle.item_id
+                  AND ias_pick.status = 1
+                  AND ias_pick.deleted = 0
+                  AND (
+                    (
+                      nle.drop_source_kind = 'direct_boss'
+                      AND ias_pick.source_type = 'drop'
+                      AND ias_pick.source_ref_type = 'boss'
+                      AND ias_pick.source_ref_id = nle.npc_id
+                    )
+                    OR (
+                      nle.drop_source_kind = 'treasure_bag'
+                      AND ias_pick.source_type = 'treasure_bag'
+                      AND ias_pick.source_ref_type = 'treasure_bag'
+                      AND (
+                        (
+                          nle.source_item_id IS NOT NULL
+                          AND ias_pick.source_ref_id = nle.source_item_id
+                        )
+                        OR (
+                          owner_npc.name IS NOT NULL
+                          AND LOWER(TRIM(ias_pick.source_ref_name)) = LOWER(CONCAT('Treasure Bag (', TRIM(owner_npc.name), ')'))
+                        )
+                      )
+                    )
+                  )
+                ORDER BY
+                  CASE
+                    WHEN nle.drop_source_kind = 'treasure_bag'
+                      AND nle.source_item_id IS NOT NULL
+                      AND ias_pick.source_ref_id = nle.source_item_id THEN 0
+                    WHEN nle.drop_source_kind = 'treasure_bag'
+                      AND owner_npc.name IS NOT NULL
+                      AND LOWER(TRIM(ias_pick.source_ref_name)) = LOWER(CONCAT('Treasure Bag (', TRIM(owner_npc.name), ')')) THEN 1
+                    ELSE 2
+                  END ASC,
+                  ias_pick.sort_order ASC,
+                  ias_pick.id ASC
+                LIMIT 1
+              )
             WHERE nle.npc_id = ? AND nle.deleted = 0
             ORDER BY
               CASE nle.drop_source_kind
@@ -565,7 +618,29 @@ public class PublicBossServiceImpl implements PublicBossService {
         dto.setItemNameZh(trimToNull(row.get("itemNameZh")));
         dto.setItemInternalName(trimToNull(row.get("itemInternalName")));
         dto.setItemImage(managedImageOrNull(trimToNull(row.get("itemImage"))));
+        dto.setSourceId(toLong(row.get("sourceId")));
+        dto.setSourceType(trimToNull(row.get("sourceType")));
+        dto.setSourceRefType(trimToNull(row.get("sourceRefType")));
+        dto.setSourceRefId(toLong(row.get("sourceRefId")));
+        dto.setSourceRefName(trimToNull(row.get("sourceRefName")));
+        dto.setSourceProvider(trimToNull(row.get("sourceProvider")));
+        dto.setSourcePage(trimToNull(row.get("sourcePage")));
+        dto.setSourceRevisionTimestamp(trimToNull(row.get("sourceRevisionTimestamp")));
+        dto.setSourceFactKey(buildLootSourceFactKey(dto));
         return dto;
+    }
+
+    private String buildLootSourceFactKey(PublicBossLootEntryDTO dto) {
+        if (dto == null || dto.getSourceId() == null) {
+            return null;
+        }
+        return String.join(
+            ":",
+            "boss-loot",
+            String.valueOf(dto.getSourceId()),
+            firstNonBlank(dto.getSourceType(), "unknown"),
+            firstNonBlank(dto.getSourceRefType(), "unknown")
+        );
     }
 
     private int countLootEntriesByKind(List<PublicBossLootEntryDTO> lootEntries, String kind) {

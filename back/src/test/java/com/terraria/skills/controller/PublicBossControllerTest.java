@@ -272,6 +272,53 @@ class PublicBossControllerTest {
     }
 
     @Test
+    void shouldExposePublicBossLootSourceEvidence() throws Exception {
+        BossGroup kingSlime = bossGroup(34L, "KING_SLIME", "King Slime", "史莱姆王", "PRE_HARDMODE", 1);
+
+        when(bossGroupMapper.selectById(eq(34L))).thenReturn(kingSlime);
+        when(npcMapper.selectList(any())).thenReturn(List.of(
+            npc(50L, 50L, "KingSlime", "King Slime", "史莱姆王", "primary")
+        ));
+        when(jdbcTemplate.queryForList(
+            contains("FROM npc_loot_entries"),
+            eq(50L)
+        )).thenReturn(List.of(
+            lootEntry(28L, "LesserHealingPotion", "Lesser Healing Potion", "弱效治疗药水", "direct_boss", MANAGED_LOOT_IMAGE_URL,
+                193886L, "drop", "boss", 50L, "King Slime", "wiki_gg", "Lesser Healing Potion"),
+            lootEntry(3090L, "RoyalGel", "Royal Gel", "皇家凝胶", "treasure_bag", MANAGED_LOOT_IMAGE_URL,
+                196067L, "treasure_bag", "treasure_bag", 3318L, "Treasure Bag (King Slime)", "wiki_gg", "Royal Gel")
+        ));
+
+        mockMvc.perform(get("/public/bosses/34"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.lootEntries[0].sourceId").value(193886))
+            .andExpect(jsonPath("$.data.lootEntries[0].sourceType").value("drop"))
+            .andExpect(jsonPath("$.data.lootEntries[0].sourceRefType").value("boss"))
+            .andExpect(jsonPath("$.data.lootEntries[0].sourceRefId").value(50))
+            .andExpect(jsonPath("$.data.lootEntries[0].sourceRefName").value("King Slime"))
+            .andExpect(jsonPath("$.data.lootEntries[0].sourceProvider").value("wiki_gg"))
+            .andExpect(jsonPath("$.data.lootEntries[0].sourcePage").value("Lesser Healing Potion"))
+            .andExpect(jsonPath("$.data.lootEntries[1].sourceId").value(196067))
+            .andExpect(jsonPath("$.data.lootEntries[1].sourceType").value("treasure_bag"))
+            .andExpect(jsonPath("$.data.lootEntries[1].sourceRefType").value("treasure_bag"))
+            .andExpect(jsonPath("$.data.lootEntries[1].sourceRefId").value(3318))
+            .andExpect(jsonPath("$.data.lootEntries[1].sourceRefName").value("Treasure Bag (King Slime)"))
+            .andExpect(jsonPath("$.data.lootEntries[1].sourceProvider").value("wiki_gg"))
+            .andExpect(jsonPath("$.data.lootEntries[1].sourcePage").value("Royal Gel"));
+
+        ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate).queryForList(queryCaptor.capture(), eq(50L));
+        assertTrue(queryCaptor.getValue().contains("item_acquisition_sources ias"));
+        assertTrue(queryCaptor.getValue().contains("SELECT ias_pick.id"));
+        assertTrue(queryCaptor.getValue().contains("LIMIT 1"));
+        assertTrue(queryCaptor.getValue().contains("ias_pick.source_ref_type = 'boss'"));
+        assertTrue(queryCaptor.getValue().contains("ias_pick.source_ref_type = 'treasure_bag'"));
+        assertTrue(queryCaptor.getValue().contains("ias_pick.source_ref_id = nle.source_item_id"));
+        assertTrue(queryCaptor.getValue().contains("LOWER(TRIM(ias_pick.source_ref_name))"));
+    }
+
+    @Test
     void shouldExposeBossSummonItemsWithManagedItemImages() throws Exception {
         BossGroup kingSlime = bossGroup(34L, "KING_SLIME", "King Slime", "史莱姆王", "PRE_HARDMODE", 1);
 
@@ -458,6 +505,32 @@ class PublicBossControllerTest {
         entry.put("chanceValue", BigDecimal.valueOf(0.125));
         entry.put("chanceText", "12.5%");
         entry.put("itemImage", itemImage);
+        return entry;
+    }
+
+    private Map<String, Object> lootEntry(
+        Long itemId,
+        String itemInternalName,
+        String itemName,
+        String itemNameZh,
+        String dropSourceKind,
+        String itemImage,
+        Long sourceId,
+        String sourceType,
+        String sourceRefType,
+        Long sourceRefId,
+        String sourceRefName,
+        String sourceProvider,
+        String sourcePage
+    ) {
+        Map<String, Object> entry = lootEntry(itemId, itemInternalName, itemName, itemNameZh, dropSourceKind, itemImage);
+        entry.put("sourceId", sourceId);
+        entry.put("sourceType", sourceType);
+        entry.put("sourceRefType", sourceRefType);
+        entry.put("sourceRefId", sourceRefId);
+        entry.put("sourceRefName", sourceRefName);
+        entry.put("sourceProvider", sourceProvider);
+        entry.put("sourcePage", sourcePage);
         return entry;
     }
 
