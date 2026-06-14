@@ -6,6 +6,7 @@ import com.terraria.skills.auth.UserAuthenticationInterceptor;
 import com.terraria.skills.auth.UserTokenClaims;
 import com.terraria.skills.dto.UserProfileDTO;
 import com.terraria.skills.dto.UserSessionDTO;
+import com.terraria.skills.security.ClientIpResolver;
 import com.terraria.skills.service.UserAuthService;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class UserAuthControllerTest {
 
     private final UserAuthService userAuthService = mock(UserAuthService.class);
+    private final ClientIpResolver clientIpResolver = mock(ClientIpResolver.class);
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -39,7 +41,9 @@ class UserAuthControllerTest {
         properties.setAccessTokenTtlSeconds(3600L);
         properties.setRefreshTokenTtlSeconds(86400L);
 
-        mockMvc = MockMvcBuilders.standaloneSetup(new UserAuthController(userAuthService, properties))
+        when(clientIpResolver.resolve(org.mockito.ArgumentMatchers.any())).thenReturn("203.0.113.9");
+
+        mockMvc = MockMvcBuilders.standaloneSetup(new UserAuthController(userAuthService, properties, clientIpResolver))
             .setMessageConverters(new MappingJackson2HttpMessageConverter(new ObjectMapper()))
             .build();
     }
@@ -115,5 +119,35 @@ class UserAuthControllerTest {
             .andExpect(jsonPath("$.message").value("Password changed successfully"));
 
         verify(userAuthService).changePassword(eq(42L), eq("OldPassword123"), eq("NewPassword123"), anyString());
+    }
+
+    @Test
+    void shouldUseCentralClientIpResolverForLogin() throws Exception {
+        UserProfileDTO user = UserProfileDTO.builder()
+            .id(42L)
+            .email("user@example.com")
+            .displayName("User")
+            .status(1)
+            .build();
+        UserSessionDTO session = UserSessionDTO.builder()
+            .user(user)
+            .accessToken("access-token")
+            .refreshToken("refresh-token")
+            .expiresAt(1893456000000L)
+            .build();
+        when(userAuthService.login(eq("user@example.com"), eq("Password123"), eq("203.0.113.9"))).thenReturn(session);
+
+        mockMvc.perform(post("/user-auth/login")
+                .header("X-Forwarded-For", "198.51.100.77")
+                .contentType("application/json")
+                .content("""
+                    {
+                      "email": "user@example.com",
+                      "password": "Password123"
+                    }
+                    """))
+            .andExpect(status().isOk());
+
+        verify(userAuthService).login(eq("user@example.com"), eq("Password123"), eq("203.0.113.9"));
     }
 }

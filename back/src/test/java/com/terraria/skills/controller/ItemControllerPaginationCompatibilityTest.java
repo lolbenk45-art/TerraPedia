@@ -111,6 +111,25 @@ class ItemControllerPaginationCompatibilityTest {
     }
 
     @Test
+    void shouldCapLegacyItemsLimitAtOneHundred() throws Exception {
+        Page<ItemDTO> page = new Page<>(1, 100);
+        page.setTotal(100);
+        page.setRecords(List.of());
+
+        when(itemService.getItems(any(PageQuery.class))).thenReturn(page);
+
+        mockMvc.perform(get("/items")
+                .param("page", "1")
+                .param("limit", "999"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.pagination.limit").value(100));
+
+        ArgumentCaptor<PageQuery> pageQueryCaptor = ArgumentCaptor.forClass(PageQuery.class);
+        verify(itemService).getItems(pageQueryCaptor.capture());
+        assertEquals(100, pageQueryCaptor.getValue().getLimit());
+    }
+
+    @Test
     void shouldForwardGamePeriodFilter() throws Exception {
         Page<ItemDTO> page = new Page<>(1, 10);
         page.setTotal(1);

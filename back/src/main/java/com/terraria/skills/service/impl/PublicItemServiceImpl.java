@@ -173,7 +173,7 @@ public class PublicItemServiceImpl implements PublicItemService {
     private final JdbcTemplate jdbcTemplate;
 
     @Override
-    @Cacheable(cacheNames = "item:public:list", key = "#root.target.buildPublicListCacheKey(#pageQuery)", unless = "#result == null")
+    @Cacheable(cacheNames = "item:public:list", key = "#root.target.buildPublicListCacheKey(#pageQuery)", sync = true)
     public Page<PublicItemListDTO> getPublicItems(PageQuery pageQuery) {
         PageQuery safeQuery = pageQuery == null ? new PageQuery() : pageQuery;
         String normalizedSearch = trimToEmpty(safeQuery.getSearch());
@@ -209,7 +209,7 @@ public class PublicItemServiceImpl implements PublicItemService {
     }
 
     @Override
-    @Cacheable(cacheNames = "item:public:detail", key = "#root.target.buildPublicDetailCacheKey(#id)", unless = "#result == null")
+    @Cacheable(cacheNames = "item:public:detail", key = "#root.target.buildPublicDetailCacheKey(#id)", sync = true)
     public PublicItemDetailDTO getPublicItemById(Long id) {
         PublicItemDetailDTO item = itemMapper.selectPublicItemDetailById(id, managedImagePrefixes());
         applyPublicCategoryFields(item);
@@ -221,7 +221,7 @@ public class PublicItemServiceImpl implements PublicItemService {
         cacheNames = "item:public:suggestions",
         key = "#root.target.buildPublicSuggestionsCacheKey(#keyword, #limit)",
         condition = "#keyword != null && !#keyword.trim().isEmpty()",
-        unless = "#result == null"
+        sync = true
     )
     public List<PublicItemSuggestionDTO> searchSuggestions(String keyword, int limit) {
         String normalizedKeyword = trimToEmpty(keyword);

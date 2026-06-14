@@ -3,11 +3,14 @@ package com.terraria.skills.controller;
 import com.terraria.skills.auth.AdminAuthProperties;
 import com.terraria.skills.auth.AdminAuthenticationInterceptor;
 import com.terraria.skills.auth.AdminJwtService;
+import com.terraria.skills.auth.AdminLoginRateLimitService;
 import com.terraria.skills.auth.AdminTokenClaims;
 import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.dto.AdminProfileDTO;
 import com.terraria.skills.dto.AuthLoginRequestDTO;
 import com.terraria.skills.dto.AuthLoginResponseDTO;
+import com.terraria.skills.security.ClientIpResolver;
+import com.terraria.skills.service.SecurityAuditService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,18 +35,33 @@ public class AuthController {
 
     private final AdminAuthProperties adminAuthProperties;
     private final AdminJwtService adminJwtService;
+    private final AdminLoginRateLimitService adminLoginRateLimitService;
+    private final SecurityAuditService securityAuditService;
+    private final ClientIpResolver clientIpResolver;
 
     @PostMapping("/login")
     @Operation(summary = "管理员登录", description = "使用配置中的管理员用户名和密码换取 JWT")
-    public ResponseEntity<ApiResponse<AuthLoginResponseDTO>> login(@Valid @RequestBody AuthLoginRequestDTO request) {
+    public ResponseEntity<ApiResponse<AuthLoginResponseDTO>> login(
+        @Valid @RequestBody AuthLoginRequestDTO request,
+        HttpServletRequest httpRequest
+    ) {
         String username = request.getUsername().trim();
+        String ipAddress = clientIpResolver.resolve(httpRequest);
+        if (adminLoginRateLimitService.isLocked(username, ipAddress)) {
+            securityAuditService.log("ADMIN_LOGIN_LOCKED", "ADMIN", null, null, ipAddress, "username=" + username);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(ApiResponse.error(HttpStatus.TOO_MANY_REQUESTS.value(), "管理员登录失败次数过多，请稍后再试"));
+        }
         if (!adminAuthProperties.getUsername().equals(username)
             || !adminAuthProperties.getPassword().equals(request.getPassword())) {
+            adminLoginRateLimitService.recordFailure(username, ipAddress);
+            securityAuditService.log("ADMIN_LOGIN_FAILED", "ADMIN", null, null, ipAddress, "username=" + username);
             log.warn("管理员登录失败 username={}", username);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.error(HttpStatus.UNAUTHORIZED.value(), "用户名或密码错误"));
         }
 
+        adminLoginRateLimitService.recordSuccess(username, ipAddress);
         AdminTokenClaims claims = adminJwtService.issueToken();
         AuthLoginResponseDTO response = AuthLoginResponseDTO.builder()
             .token(adminJwtService.createToken(claims))
@@ -52,6 +70,7 @@ public class AuthController {
             .user(toProfile(claims))
             .build();
 
+        securityAuditService.log("ADMIN_LOGIN_SUCCESS", "ADMIN", null, null, ipAddress, "username=" + username);
         log.info("管理员登录成功 username={}", username);
         return ResponseEntity.ok(ApiResponse.success(response, "登录成功"));
     }

@@ -8,6 +8,10 @@ import io.minio.RemoveObjectArgs;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 
+import java.util.Base64;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -37,7 +41,7 @@ class MinioObjectStorageServiceImplTest {
             )
         );
 
-        MockMultipartFile file = new MockMultipartFile("file", "eye.png", "image/png", new byte[] {1, 2, 3});
+        MockMultipartFile file = new MockMultipartFile("file", "eye.png", "image/png", onePixelPng());
         service.uploadItemImage(file, "npcs");
 
         verify(minioClient).putObject(any(PutObjectArgs.class));
@@ -64,11 +68,52 @@ class MinioObjectStorageServiceImplTest {
             )
         );
 
-        MockMultipartFile file = new MockMultipartFile("file", "king-slime.png", "image/png", new byte[] {1, 2, 3});
+        MockMultipartFile file = new MockMultipartFile("file", "king-slime.png", "image/png", onePixelPng());
         service.uploadItemImage(file, "bosses");
 
         verify(minioClient).putObject(any(PutObjectArgs.class));
         verify(minioClient).putObject(argThat(args -> args.object().startsWith("bosses/")));
+    }
+
+    @Test
+    void shouldRejectSvgUploadsForManagedImages() throws Exception {
+        MinioClient minioClient = mock(MinioClient.class);
+        MinioObjectStorageServiceImpl service = new MinioObjectStorageServiceImpl(minioClient, connectionDetails());
+        MockMultipartFile file = new MockMultipartFile(
+            "file",
+            "bad.svg",
+            "image/svg+xml",
+            "<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>".getBytes()
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> service.uploadItemImage(file, "items"));
+
+        verify(minioClient, never()).putObject(any(PutObjectArgs.class));
+    }
+
+    @Test
+    void shouldRejectSpoofedPngUploadsForManagedImages() throws Exception {
+        MinioClient minioClient = mock(MinioClient.class);
+        MinioObjectStorageServiceImpl service = new MinioObjectStorageServiceImpl(minioClient, connectionDetails());
+        MockMultipartFile file = new MockMultipartFile("file", "bad.png", "image/png", new byte[] {1, 2, 3});
+
+        assertThrows(IllegalArgumentException.class, () -> service.uploadItemImage(file, "items"));
+
+        verify(minioClient, never()).putObject(any(PutObjectArgs.class));
+    }
+
+    @Test
+    void shouldUseValidatedImageTypeForObjectKeyAndResult() throws Exception {
+        MinioClient minioClient = mock(MinioClient.class);
+        when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
+        MinioObjectStorageServiceImpl service = new MinioObjectStorageServiceImpl(minioClient, connectionDetails());
+        MockMultipartFile file = new MockMultipartFile("file", "misleading.gif", "image/png", onePixelPng());
+
+        var result = service.uploadItemImage(file, "items");
+
+        assertTrue(result.getObjectKey().endsWith(".png"));
+        assertEquals("image/png", result.getContentType());
+        verify(minioClient).putObject(argThat(args -> args.object().endsWith(".png")));
     }
 
     @Test
@@ -119,6 +164,12 @@ class MinioObjectStorageServiceImplTest {
             false,
             true,
             1024 * 1024
+        );
+    }
+
+    private static byte[] onePixelPng() {
+        return Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
         );
     }
 }

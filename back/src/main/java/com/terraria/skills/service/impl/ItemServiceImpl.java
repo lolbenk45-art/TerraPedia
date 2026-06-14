@@ -48,7 +48,7 @@ public class ItemServiceImpl implements ItemService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    @Cacheable(cacheNames = "item:list", key = "#root.target.buildListCacheKey(#pageQuery)", unless = "#result == null")
+    @Cacheable(cacheNames = "item:list", key = "#root.target.buildListCacheKey(#pageQuery)", sync = true)
     public Page<ItemDTO> getItems(PageQuery pageQuery) {
         String normalizedSearch = trimToEmpty(pageQuery.getSearch());
         Long rarityId = mapRarityToId(pageQuery.getRarity());
@@ -81,7 +81,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    @Cacheable(cacheNames = "item:detail", key = "#id", unless = "#result == null")
+    @Cacheable(cacheNames = "item:detail", key = "#id", sync = true)
     public ItemDTO getItemById(Long id) {
         ItemDTO dto = itemMapper.selectItemDetailById(id);
         normalizeItemDTO(dto);
@@ -107,7 +107,7 @@ public class ItemServiceImpl implements ItemService {
         cacheNames = "item:suggestions",
         key = "#root.target.buildSuggestionsCacheKey(#keyword, #limit)",
         condition = "#keyword != null && !#keyword.trim().isEmpty()",
-        unless = "#result == null"
+        sync = true
     )
     public List<ItemDTO> searchSuggestions(String keyword, int limit) {
         String normalizedKeyword = trimToEmpty(keyword);

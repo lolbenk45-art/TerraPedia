@@ -54,7 +54,7 @@ public class ItemController {
         @RequestParam(required = false) String sortDirection
     ) {
         int resolvedPage = PaginationParams.resolvePage(page);
-        int resolvedLimit = PaginationParams.resolveLimit(limit, size, 20);
+        int resolvedLimit = PaginationParams.resolveLimit(limit, size, 20, 100);
         log.info(
             "get items page={}, limit={}, size={}, resolvedLimit={}, search={}, categoryId={}, rarity={}, gamePeriodId={}, sortBy={}, sortDirection={}",
             resolvedPage,

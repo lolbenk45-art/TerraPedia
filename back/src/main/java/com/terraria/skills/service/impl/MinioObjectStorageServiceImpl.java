@@ -4,6 +4,7 @@ import com.terraria.skills.config.MinioConnectionDetails;
 import com.terraria.skills.dto.FileUploadResultDTO;
 import com.terraria.skills.dto.StoredObjectDTO;
 import com.terraria.skills.service.ObjectStorageService;
+import com.terraria.skills.service.UserAvatarValidator;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.MakeBucketArgs;
@@ -91,14 +92,12 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
             throw new IllegalArgumentException("图片文件过大，当前限制为 " + (connectionDetails.maxFileSize() / 1024 / 1024) + " MB");
         }
 
-        String contentType = file.getContentType();
-        if (!StringUtils.hasText(contentType) || !contentType.toLowerCase(Locale.ROOT).startsWith("image/")) {
-            throw new IllegalArgumentException("仅支持图片文件上传");
-        }
+        UserAvatarValidator.AvatarImage validatedImage = validateManagedImage(file);
+        String contentType = validatedImage.contentType();
 
         ensureBucketReady();
 
-        String objectKey = buildObjectKey(file.getOriginalFilename(), contentType, entityDomain);
+        String objectKey = buildObjectKey(validatedImage.extension(), entityDomain);
 
         try (InputStream inputStream = file.getInputStream()) {
             minioClient.putObject(
@@ -230,6 +229,31 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
             + "/"
             + UUID.randomUUID().toString().replace("-", "")
             + extension;
+    }
+
+    private String buildObjectKey(String extension, String entityDomain) {
+        LocalDate today = LocalDate.now();
+        String normalizedExtension = StringUtils.hasText(extension) && extension.startsWith(".") ? extension : ".bin";
+        String prefix = resolveObjectPrefix(entityDomain);
+
+        return prefix
+            + "/"
+            + today.getYear()
+            + "/"
+            + String.format("%02d", today.getMonthValue())
+            + "/"
+            + String.format("%02d", today.getDayOfMonth())
+            + "/"
+            + UUID.randomUUID().toString().replace("-", "")
+            + normalizedExtension;
+    }
+
+    private UserAvatarValidator.AvatarImage validateManagedImage(MultipartFile file) {
+        try {
+            return UserAvatarValidator.validateAndResolve(file);
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("仅支持有效的 JPEG、PNG 或 WebP 图片文件");
+        }
     }
 
     private String normalizeReadableObjectKey(String objectKey) {

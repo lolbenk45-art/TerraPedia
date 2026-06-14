@@ -34,7 +34,7 @@ public class PublicItemAggregateService {
     private final ItemSourceService itemSourceService;
     private final RecipeService recipeService;
 
-    @Cacheable(cacheNames = "item:aggregate", key = "#root.target.buildCacheKey(#id, #include)", unless = "#result == null")
+    @Cacheable(cacheNames = "item:aggregate", key = "#root.target.buildCacheKey(#id, #include)", sync = true)
     public ItemAggregateDTO getItemAggregate(Long id, String include) {
         var item = itemService.getItemById(id);
         if (item == null) {
