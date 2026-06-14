@@ -102,6 +102,11 @@ terrapedia:
   audio-media-root: ${TERRAPEDIA_AUDIO_MEDIA_ROOT:/home/lolben/data/terraPedia/media/audio/wiki}
 
 terraria:
+  logging:
+    file-root: ${TERRARIA_LOG_FILE_ROOT:logs}
+    max-file-size: ${TERRARIA_LOG_MAX_FILE_SIZE:20MB}
+    max-history: ${TERRARIA_LOG_MAX_HISTORY:14}
+    total-size-cap: ${TERRARIA_LOG_TOTAL_SIZE_CAP:1GB}
   relation:
     compatibility:
       relation-database: ${TERRAPEDIA_RELATION_DB_NAME:terria_v1_relation}
@@ -134,6 +139,36 @@ terraria:
       cookie-secure: ${TERRAPEDIA_USER_COOKIE_SECURE:false}
       cookie-same-site: ${TERRAPEDIA_USER_COOKIE_SAME_SITE:Lax}
   security:
+    network:
+      trusted-proxies: ${TERRAPEDIA_TRUSTED_PROXIES:}
+      trust-loopback-proxies: ${TERRAPEDIA_TRUST_LOOPBACK_PROXIES:true}
+      http-audit-enabled: ${TERRAPEDIA_HTTP_AUDIT_ENABLED:true}
+    admin-login-rate-limit:
+      max-failures: ${TERRAPEDIA_ADMIN_LOGIN_MAX_FAILURES:5}
+      max-failures-per-username: ${TERRAPEDIA_ADMIN_LOGIN_MAX_FAILURES_PER_USERNAME:12}
+      max-failures-per-ip: ${TERRAPEDIA_ADMIN_LOGIN_MAX_FAILURES_PER_IP:20}
+      failure-window-seconds: ${TERRAPEDIA_ADMIN_LOGIN_FAILURE_WINDOW_SECONDS:600}
+      lock-seconds: ${TERRAPEDIA_ADMIN_LOGIN_LOCK_SECONDS:900}
+    http-rate-limit:
+      enabled: ${TERRAPEDIA_HTTP_RATE_LIMIT_ENABLED:true}
+      public-read:
+        requests: ${TERRAPEDIA_HTTP_RATE_PUBLIC_READ_REQUESTS:120}
+        window-seconds: ${TERRAPEDIA_HTTP_RATE_PUBLIC_READ_WINDOW_SECONDS:60}
+      auth:
+        requests: ${TERRAPEDIA_HTTP_RATE_AUTH_REQUESTS:20}
+        window-seconds: ${TERRAPEDIA_HTTP_RATE_AUTH_WINDOW_SECONDS:60}
+      user-write:
+        requests: ${TERRAPEDIA_HTTP_RATE_USER_WRITE_REQUESTS:60}
+        window-seconds: ${TERRAPEDIA_HTTP_RATE_USER_WRITE_WINDOW_SECONDS:60}
+      upload:
+        requests: ${TERRAPEDIA_HTTP_RATE_UPLOAD_REQUESTS:20}
+        window-seconds: ${TERRAPEDIA_HTTP_RATE_UPLOAD_WINDOW_SECONDS:60}
+      admin-write:
+        requests: ${TERRAPEDIA_HTTP_RATE_ADMIN_WRITE_REQUESTS:80}
+        window-seconds: ${TERRAPEDIA_HTTP_RATE_ADMIN_WRITE_WINDOW_SECONDS:60}
+    admin-job-lock:
+      wiki-image-sync-ttl-seconds: ${TERRAPEDIA_ADMIN_JOB_LOCK_WIKI_IMAGE_SYNC_TTL_SECONDS:1800}
+      item-import-ttl-seconds: ${TERRAPEDIA_ADMIN_JOB_LOCK_ITEM_IMPORT_TTL_SECONDS:1800}
     login-rate-limit:
       max-failures: ${TERRAPEDIA_LOGIN_MAX_FAILURES:5}
       max-failures-per-email: ${TERRAPEDIA_LOGIN_MAX_FAILURES_PER_EMAIL:12}

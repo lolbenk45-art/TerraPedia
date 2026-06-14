@@ -16,6 +16,7 @@ import com.terraria.skills.dto.UserRegisterCodeResponseDTO;
 import com.terraria.skills.dto.UserRegisterRequestDTO;
 import com.terraria.skills.dto.UserSessionDTO;
 import com.terraria.skills.dto.UserUpdateProfileRequestDTO;
+import com.terraria.skills.security.ClientIpResolver;
 import com.terraria.skills.service.UserAuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -48,6 +49,7 @@ public class UserAuthController {
 
     private final UserAuthService userAuthService;
     private final UserAuthProperties userAuthProperties;
+    private final ClientIpResolver clientIpResolver;
 
     @PostMapping("/register/code")
     @Operation(summary = "Send registration verification code")
@@ -57,7 +59,7 @@ public class UserAuthController {
     ) {
         UserRegisterCodeResponseDTO response = userAuthService.sendRegisterVerificationCode(
             request.getEmail(),
-            getClientIp(httpRequest)
+            clientIpResolver.resolve(httpRequest)
         );
         return ResponseEntity.ok(ApiResponse.success(response, "Verification code sent"));
     }
@@ -70,7 +72,7 @@ public class UserAuthController {
     ) {
         UserRegisterCodeResponseDTO response = userAuthService.sendPasswordResetVerificationCode(
             request.getEmail(),
-            getClientIp(httpRequest)
+            clientIpResolver.resolve(httpRequest)
         );
         return ResponseEntity.ok(ApiResponse.success(response, "Verification code sent"));
     }
@@ -87,7 +89,7 @@ public class UserAuthController {
             request.getPassword(),
             request.getDisplayName(),
             request.getVerificationCode(),
-            getClientIp(httpRequest)
+            clientIpResolver.resolve(httpRequest)
         );
 
         writeAuthCookies(httpResponse, session);
@@ -111,7 +113,7 @@ public class UserAuthController {
         UserSessionDTO session = userAuthService.login(
             request.getEmail(),
             request.getPassword(),
-            getClientIp(httpRequest)
+            clientIpResolver.resolve(httpRequest)
         );
 
         writeAuthCookies(httpResponse, session);
@@ -138,7 +140,7 @@ public class UserAuthController {
         }
 
         try {
-            UserSessionDTO session = userAuthService.refreshSession(refreshToken, getClientIp(httpRequest));
+            UserSessionDTO session = userAuthService.refreshSession(refreshToken, clientIpResolver.resolve(httpRequest));
             writeAuthCookies(httpResponse, session);
             UserAuthResponseDTO response = UserAuthResponseDTO.builder()
                 .user(session.getUser())
@@ -171,7 +173,7 @@ public class UserAuthController {
         UserProfileDTO profile = userAuthService.updateProfile(
             claims.getUserId(),
             request.getDisplayName(),
-            getClientIp(httpRequest)
+            clientIpResolver.resolve(httpRequest)
         );
         return ResponseEntity.ok(ApiResponse.success(profile, "Profile updated"));
     }
@@ -186,7 +188,7 @@ public class UserAuthController {
         UserProfileDTO profile = userAuthService.uploadAvatar(
             claims.getUserId(),
             file,
-            getClientIp(httpRequest)
+            clientIpResolver.resolve(httpRequest)
         );
         return ResponseEntity.ok(ApiResponse.success(profile, "Avatar updated"));
     }
@@ -197,7 +199,7 @@ public class UserAuthController {
         UserTokenClaims claims = getRequiredClaims(httpRequest);
         UserProfileDTO profile = userAuthService.deleteAvatar(
             claims.getUserId(),
-            getClientIp(httpRequest)
+            clientIpResolver.resolve(httpRequest)
         );
         return ResponseEntity.ok(ApiResponse.success(profile, "Avatar removed"));
     }
@@ -214,7 +216,7 @@ public class UserAuthController {
             claims.getUserId(),
             request.getCurrentPassword(),
             request.getNewPassword(),
-            getClientIp(httpRequest)
+            clientIpResolver.resolve(httpRequest)
         );
         clearAuthCookies(httpResponse);
         return ResponseEntity.ok(ApiResponse.success(null, "Password changed successfully"));
@@ -230,7 +232,7 @@ public class UserAuthController {
             request.getEmail(),
             request.getVerificationCode(),
             request.getNewPassword(),
-            getClientIp(httpRequest)
+            clientIpResolver.resolve(httpRequest)
         );
         return ResponseEntity.ok(ApiResponse.success(null, "Password reset successfully"));
     }
@@ -246,7 +248,7 @@ public class UserAuthController {
         userAuthService.deleteOwnAccount(
             claims.getUserId(),
             request.getCurrentPassword(),
-            getClientIp(httpRequest)
+            clientIpResolver.resolve(httpRequest)
         );
         clearAuthCookies(httpResponse);
         return ResponseEntity.ok(ApiResponse.success(null, "Account deleted"));
@@ -258,7 +260,7 @@ public class UserAuthController {
         UserTokenClaims claims = getRequiredClaims(request);
         String refreshToken = readCookie(request, userAuthProperties.getRefreshCookieName());
 
-        userAuthService.logout(claims.getUserId(), refreshToken, getClientIp(request));
+        userAuthService.logout(claims.getUserId(), refreshToken, clientIpResolver.resolve(request));
         clearAuthCookies(response);
         return ResponseEntity.ok(ApiResponse.success(null, "Logout success"));
     }
@@ -321,14 +323,6 @@ public class UserAuthController {
         }
 
         return null;
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
     }
 
     private UserTokenClaims getRequiredClaims(HttpServletRequest request) {
