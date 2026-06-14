@@ -3,7 +3,7 @@ import { usePublicBiomes } from '~/composables/usePublicBiomes'
 
 useSeoMeta({
   title: 'TerraPedia · 生态索引',
-  description: '浏览 Terraria 公开生态和群系资料，按 Wiki 分类、层级、资源和关系进入详情。',
+  description: '浏览 Terraria 公开生态和群系资料，按生态分类、层级、资源和关系进入详情。',
 })
 
 const biomeClientReady = ref(false)
@@ -166,7 +166,7 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
         <div class="biome-environment-hero-copy">
           <span class="eyebrow">{{ biomeHeroEyebrow }}</span>
           <h1>生态索引</h1>
-          <p>用真实群系环境图建立场景感，再按 Wiki 分类、层级和来源资料进入具体生态。</p>
+          <p>用真实群系环境图建立场景感，再按生态分类、层级和来源资料进入具体生态。</p>
           <div class="biome-environment-hero-tags">
             <span>{{ biomeHeroBiome?.groupLabel || '公开生态' }}</span>
             <span>{{ biomeHeroBiome?.layerType ? normalizeBiomeFacet(biomeHeroBiome.layerType) : '环境图谱' }}</span>
@@ -368,7 +368,7 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
       <section v-else class="search-suggestion-band support-panel">
         <div>
           <b>{{ biomeApiUnavailable ? '群系资料暂未载入' : '没有匹配群系' }}</b>
-          <span>{{ biomeApiUnavailable ? '当前资料暂不可用，页面不会展示静态样例。' : '调整搜索词或清空搜索。' }}</span>
+          <span>{{ biomeApiUnavailable ? '当前资料暂不可用，页面不会展示无关内容。' : '调整搜索词或清空搜索。' }}</span>
         </div>
         <button v-if="biomeApiUnavailable" class="small-button active" type="button" @click="refreshPublicBiomes()">
           重新加载

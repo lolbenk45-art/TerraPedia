@@ -1358,6 +1358,85 @@ export type PublicBiomeRelation = {
   relatedBiomeNameZh?: string | null
 }
 
+export type PublicBiomeItemRelation = {
+  id?: number | string | null
+  biomeId?: number | string | null
+  itemId?: number | string | null
+  relationType?: string | null
+  notes?: string | null
+  sortOrder?: number | string | null
+  itemName?: string | null
+  itemNameZh?: string | null
+  itemInternalName?: string | null
+  itemImage?: string | null
+  item_image?: string | null
+  image?: string | null
+  imageUrl?: string | null
+  image_url?: string | null
+  previewImage?: string | null
+  previewImageUrl?: string | null
+  preview_image?: string | null
+  preview_image_url?: string | null
+  missingItem?: boolean | null
+  missing_item?: boolean | null
+}
+
+export type PublicBiomeNpcRelation = {
+  id?: number | string | null
+  biomeId?: number | string | null
+  npcId?: number | string | null
+  relationType?: string | null
+  spawnContext?: string | null
+  notes?: string | null
+  sourceProvider?: string | null
+  sourcePage?: string | null
+  sortOrder?: number | string | null
+  npcName?: string | null
+  npcNameZh?: string | null
+  npcInternalName?: string | null
+  npcImageUrl?: string | null
+  npc_image_url?: string | null
+  image?: string | null
+  imageUrl?: string | null
+  image_url?: string | null
+  previewImage?: string | null
+  previewImageUrl?: string | null
+  preview_image?: string | null
+  preview_image_url?: string | null
+  missingNpc?: boolean | null
+  missing_npc?: boolean | null
+}
+
+export type PublicBiomeItemSource = {
+  id?: number | string | null
+  itemId?: number | string | null
+  sourceType?: string | null
+  sourceRefType?: string | null
+  sourceRefName?: string | null
+  biomeId?: number | string | null
+  quantityText?: string | null
+  chanceText?: string | null
+  conditions?: string | null
+  notes?: string | null
+  sourceProvider?: string | null
+  sourcePage?: string | null
+  sortOrder?: number | string | null
+  itemName?: string | null
+  itemNameZh?: string | null
+  itemInternalName?: string | null
+  itemImage?: string | null
+  item_image?: string | null
+  image?: string | null
+  imageUrl?: string | null
+  image_url?: string | null
+  previewImage?: string | null
+  previewImageUrl?: string | null
+  preview_image?: string | null
+  preview_image_url?: string | null
+  missingItem?: boolean | null
+  missing_item?: boolean | null
+}
+
 export type PublicBiomeListItem = {
   id?: number | string | null
   code?: string | null
@@ -1392,6 +1471,9 @@ export type PublicBiomeListItem = {
   lastSyncedAt?: string | null
   resources?: PublicBiomeResource[] | null
   relations?: PublicBiomeRelation[] | null
+  itemBiomes?: PublicBiomeItemRelation[] | null
+  npcBiomes?: PublicBiomeNpcRelation[] | null
+  itemSources?: PublicBiomeItemSource[] | null
 }
 
 export type BiomeCatalogTile = {
@@ -1426,6 +1508,9 @@ export type PublicBiomeDetailResult = {
   item: BiomeCatalogTile | null
   resources: PublicBiomeResource[]
   relations: PublicBiomeRelation[]
+  itemBiomes: PublicBiomeItemRelation[]
+  npcBiomes: PublicBiomeNpcRelation[]
+  itemSources: PublicBiomeItemSource[]
   source: 'api' | 'missing'
 }
 

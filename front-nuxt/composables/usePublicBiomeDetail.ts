@@ -1,6 +1,9 @@
 import type {
   PublicBiomeDetailResult,
+  PublicBiomeItemRelation,
+  PublicBiomeItemSource,
   PublicBiomeListItem,
+  PublicBiomeNpcRelation,
   PublicBiomeRelation,
   PublicBiomeResource,
 } from '~/types/public-api'
@@ -10,12 +13,18 @@ const missingPublicBiomeDetail = (): PublicBiomeDetailResult => ({
   item: null,
   resources: [],
   relations: [],
+  itemBiomes: [],
+  npcBiomes: [],
+  itemSources: [],
   source: 'missing',
 })
 
 const normalizeBiomeId = (biomeId: string | number) => String(biomeId ?? '').trim()
 const normalizeResources = (resources: PublicBiomeResource[] | null | undefined) => Array.isArray(resources) ? resources : []
 const normalizeRelations = (relations: PublicBiomeRelation[] | null | undefined) => Array.isArray(relations) ? relations : []
+const normalizeItemBiomes = (itemBiomes: PublicBiomeItemRelation[] | null | undefined) => Array.isArray(itemBiomes) ? itemBiomes : []
+const normalizeNpcBiomes = (npcBiomes: PublicBiomeNpcRelation[] | null | undefined) => Array.isArray(npcBiomes) ? npcBiomes : []
+const normalizeItemSources = (itemSources: PublicBiomeItemSource[] | null | undefined) => Array.isArray(itemSources) ? itemSources : []
 
 const fetchBiomeDetailRow = async (path: string) => {
   const response = await usePublicApiFetch<PublicBiomeListItem>(path)
@@ -50,6 +59,9 @@ export const fetchPublicBiomeDetail = async (biomeId: string | number): Promise<
       item: normalizePublicBiome(detail),
       resources: normalizeResources(detail.resources),
       relations: normalizeRelations(detail.relations),
+      itemBiomes: normalizeItemBiomes(detail.itemBiomes),
+      npcBiomes: normalizeNpcBiomes(detail.npcBiomes),
+      itemSources: normalizeItemSources(detail.itemSources),
       source: 'api',
     }
   } catch {
