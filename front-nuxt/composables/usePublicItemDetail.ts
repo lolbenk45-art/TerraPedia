@@ -7,12 +7,14 @@ import type {
   PublicItemImage,
   PublicItemRecipeTree,
   PublicItemSource,
+  PublicItemTreasureBagLoot,
 } from '~/types/public-api'
 
 const missingPublicItemDetailBundle = (): PublicItemDetailBundle => ({
   item: null,
   images: [],
   sources: [],
+  treasureBagLoot: [],
   buffEffects: [],
   armorAttributes: [],
   equipmentEffects: [],
@@ -43,6 +45,12 @@ const normalizePublicItemImage = (image: PublicItemImage): PublicItemImage => ({
   previewImageUrl: resolvePreviewImageUrl(image.previewImageUrl || image.imageUrl),
 })
 
+const normalizePublicItemTreasureBagLoot = (entry: PublicItemTreasureBagLoot): PublicItemTreasureBagLoot => ({
+  ...entry,
+  itemImage: resolvePreviewImageUrl(entry.itemImage || entry.item_image || entry.imageUrl || entry.image_url),
+  sourceNpcImageUrl: resolvePreviewImageUrl(entry.sourceNpcImageUrl || entry.source_npc_image_url),
+})
+
 export const fetchPublicItemDetailBundle = async (itemId: string | number): Promise<PublicItemDetailBundle> => {
   const normalizedItemId = normalizeItemId(itemId)
 
@@ -63,9 +71,10 @@ export const fetchPublicItemDetailBundle = async (itemId: string | number): Prom
       return missingPublicItemDetailBundle()
     }
 
-    const [rawImages, rawSources, rawBuffEffects, rawArmorAttributes, rawEquipmentEffects, recipeTree] = await Promise.all([
+    const [rawImages, rawSources, rawTreasureBagLoot, rawBuffEffects, rawArmorAttributes, rawEquipmentEffects, recipeTree] = await Promise.all([
       fetchOptionalPublicItemRelation<PublicItemImage[]>(`/public/items/${normalizedItemId}/images`, []),
       fetchOptionalPublicItemRelation<PublicItemSource[]>(`/public/items/${normalizedItemId}/sources`, []),
+      fetchOptionalPublicItemRelation<PublicItemTreasureBagLoot[]>(`/public/items/${normalizedItemId}/treasure-bag-loot`, []),
       fetchOptionalPublicItemRelation<PublicItemBuffEffect[]>(`/public/items/${normalizedItemId}/buff-effects`, []),
       fetchOptionalPublicItemRelation<PublicItemArmorAttribute[]>(`/public/items/${normalizedItemId}/armor-attributes`, []),
       fetchOptionalPublicItemRelation<PublicItemEquipmentEffect[]>(`/public/items/${normalizedItemId}/equipment-effects`, []),
@@ -76,6 +85,7 @@ export const fetchPublicItemDetailBundle = async (itemId: string | number): Prom
       item,
       images: Array.isArray(rawImages) ? rawImages.map(normalizePublicItemImage) : [],
       sources: Array.isArray(rawSources) ? rawSources : [],
+      treasureBagLoot: Array.isArray(rawTreasureBagLoot) ? rawTreasureBagLoot.map(normalizePublicItemTreasureBagLoot) : [],
       buffEffects: Array.isArray(rawBuffEffects) ? rawBuffEffects : [],
       armorAttributes: Array.isArray(rawArmorAttributes) ? rawArmorAttributes : [],
       equipmentEffects: Array.isArray(rawEquipmentEffects) ? rawEquipmentEffects : [],

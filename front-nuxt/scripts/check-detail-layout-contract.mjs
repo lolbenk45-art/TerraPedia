@@ -15,7 +15,7 @@ const detailPages = {
     String.raw`:class="\['detail-module dark-card item-source-module', detailLayout\.detailModuleClass\]"`,
     String.raw`class="source-table tp-detail-relation-grid"`,
     String.raw`:class="\['source-row detail-relation-row', detailLayout\.detailRelationRowClass\]"`,
-    String.raw`:class="\['evidence-panel dark-card', detailLayout\.detailModuleClass\]"`,
+    String.raw`:class="\['evidence-panel dark-card item-coverage-panel', detailLayout\.detailModuleClass\]"`,
   ],
   'pages/npcs/[id].vue': [
     String.raw`<main :class="\['entity-detail-layout', detailLayout\.detailShellClass\]"`,
@@ -48,6 +48,7 @@ try {
     'detailModuleClass',
     'detailRelationRowClass',
     'detailDensityClass',
+    'return reactive({',
   ]) {
     if (!composable.includes(marker)) {
       violations.push(`${composablePath}: missing shared layout marker ${marker}`)
@@ -216,6 +217,76 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
     [
       String.raw`white-space:\s*nowrap;`,
       'boss loot chance labels must not wrap into the item title column',
+    ],
+  ]) {
+    assertPattern(path, content, pattern, message)
+  }
+}
+
+{
+  const path = 'pages/items/[id].vue'
+  const content = read(path)
+  for (const [pattern, message] of [
+    [
+      String.raw`\.item-source-module\s+\.source-table\s*\{[\s\S]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(100%,\s*360px\),\s*1fr\)\);`,
+      'item source cards must use wider responsive tiles so source text is not squeezed into narrow columns',
+    ],
+    [
+      String.raw`\.item-source-module\s+\.detail-relation-row\s*\{[\s\S]*grid-template-columns:\s*44px minmax\(0,\s*1fr\);`,
+      'item source cards must use a two-column body layout instead of a third meta column that squeezes copy',
+    ],
+    [
+      String.raw`\.item-source-module\s+\.detail-relation-meta\s*\{[\s\S]*grid-column:\s*2;[\s\S]*white-space:\s*normal;`,
+      'item source meta labels must wrap under the source copy without causing horizontal overflow',
+    ],
+    [
+      String.raw`\.item-source-module\s+\.detail-relation-copy\s+:where\(b,\s*a,\s*span,\s*small\)\s*\{[\s\S]*overflow-wrap:\s*break-word;[\s\S]*word-break:\s*normal;`,
+      'item source copy must preserve readable text wrapping instead of breaking every character',
+    ],
+    [
+      String.raw`\.item-coverage-panel\s*\{[\s\S]*gap:\s*8px;[\s\S]*padding:\s*18px;`,
+      'item coverage overview panel must have its own compact spacing instead of inheriting the generic evidence rail',
+    ],
+    [
+      String.raw`\.item-coverage-panel\s*>\s*\.eyebrow\s*\{[\s\S]*min-height:\s*32px;[\s\S]*padding-bottom:\s*10px;`,
+      'item coverage overview title must have breathing room from the panel border and fact rows',
+    ],
+    [
+      String.raw`\.item-coverage-panel\s+\.evidence-step\s*\{[\s\S]*min-height:\s*44px;[\s\S]*padding:\s*10px 12px;`,
+      'item coverage overview rows must be compact and vertically balanced',
+    ],
+    [
+      String.raw`\.item-coverage-panel\s+\.evidence-step\s*>\s*div\s*\{[\s\S]*align-items:\s*center;`,
+      'item coverage overview label and value text must be vertically aligned',
+    ],
+  ]) {
+    assertPattern(path, content, pattern, message)
+  }
+}
+
+{
+  const path = 'assets/css/hifi-preview.css'
+  const content = read(path)
+  for (const [pattern, message] of [
+    [
+      String.raw`\.evidence-panel\s*\{[\s\S]*max-height:\s*calc\(100dvh - 128px\);[\s\S]*overflow:\s*auto;`,
+      'detail evidence panel must stay compact in the sticky rail and scroll internally when needed',
+    ],
+    [
+      String.raw`\.evidence-step\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\);[\s\S]*border:\s*1px solid var\(--index-line\);`,
+      'detail evidence rows must render as compact fact cards instead of a vertical timeline',
+    ],
+    [
+      String.raw`\.evidence-step\s+>\s+div\s*\{[\s\S]*grid-template-columns:\s*minmax\(72px,\s*0\.58fr\)\s*minmax\(0,\s*1fr\);`,
+      'detail evidence fact cards must keep labels and values on compact readable rows',
+    ],
+    [
+      String.raw`\.evidence-step::before\s*\{[\s\S]*display:\s*none;`,
+      'detail evidence rows must disable the timeline dot marker',
+    ],
+    [
+      String.raw`\.evidence-step\s+span\s*\{[\s\S]*overflow-wrap:\s*break-word;[\s\S]*word-break:\s*normal;`,
+      'detail evidence values must wrap readable text without overflowing the rail',
     ],
   ]) {
     assertPattern(path, content, pattern, message)

@@ -9,6 +9,7 @@ import com.terraria.skills.dto.PublicItemDetailDTO;
 import com.terraria.skills.dto.PublicItemEquipmentEffectDTO;
 import com.terraria.skills.dto.PublicItemListDTO;
 import com.terraria.skills.dto.PublicItemSuggestionDTO;
+import com.terraria.skills.dto.PublicItemTreasureBagLootDTO;
 import com.terraria.skills.mapper.ItemMapper;
 import com.terraria.skills.service.CategoryManagementService;
 import com.terraria.skills.service.ManagedImageUrlPolicy;
@@ -311,5 +312,59 @@ class PublicItemServiceImplTest {
         assertEquals("melee", result.get(0).getClassScope());
         assertEquals(java.math.BigDecimal.TEN, result.get(0).getValueDecimal());
         verify(jdbcTemplate).query(eq(PublicItemServiceImpl.ITEM_EQUIPMENT_EFFECTS_SQL), ArgumentMatchers.<RowMapper<PublicItemEquipmentEffectDTO>>any(), eq(559L));
+    }
+
+    @Test
+    void shouldQueryTreasureBagLootBySourceItemIdWithManagedItemAndBossImages() throws Exception {
+        ResultSet resultSet = mock(ResultSet.class);
+        when(resultSet.getLong("id")).thenReturn(700L);
+        when(resultSet.getLong("treasureBagItemId")).thenReturn(3318L);
+        when(resultSet.getLong("itemId")).thenReturn(3088L);
+        when(resultSet.getString("itemName")).thenReturn("Royal Gel");
+        when(resultSet.getString("itemNameZh")).thenReturn("皇家凝胶");
+        when(resultSet.getString("itemInternalName")).thenReturn("RoyalGel");
+        when(resultSet.getString("itemImage")).thenReturn("http://localhost:9000/terrapedia-images/items/royal-gel.png");
+        when(resultSet.getLong("sourceNpcId")).thenReturn(50L);
+        when(resultSet.getString("sourceNpcName")).thenReturn("King Slime");
+        when(resultSet.getString("sourceNpcNameZh")).thenReturn("史莱姆王");
+        when(resultSet.getString("sourceNpcImageUrl")).thenReturn("http://localhost:9000/terrapedia-images/npcs/king-slime.png");
+        when(resultSet.getString("dropSourceKind")).thenReturn("treasure_bag");
+        when(resultSet.getInt("quantityMin")).thenReturn(1);
+        when(resultSet.getInt("quantityMax")).thenReturn(1);
+        when(resultSet.getString("quantityText")).thenReturn("1");
+        when(resultSet.getBigDecimal("chanceValue")).thenReturn(java.math.BigDecimal.ONE);
+        when(resultSet.getString("chanceText")).thenReturn("100%");
+        when(resultSet.getString("conditions")).thenReturn("Expert Mode");
+        when(resultSet.getString("notes")).thenReturn("Guaranteed");
+        when(resultSet.getInt("sortOrder")).thenReturn(10);
+        when(managedImageUrlPolicy.isManagedImageUrlForDomain("http://localhost:9000/terrapedia-images/items/royal-gel.png", "items")).thenReturn(true);
+        when(managedImageUrlPolicy.isManagedImageUrlForDomain("http://localhost:9000/terrapedia-images/npcs/king-slime.png", "npcs")).thenReturn(true);
+        doAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            RowMapper<PublicItemTreasureBagLootDTO> rowMapper = invocation.getArgument(1);
+            return List.of(rowMapper.mapRow(resultSet, 0));
+        }).when(jdbcTemplate).query(
+            eq(PublicItemServiceImpl.ITEM_TREASURE_BAG_LOOT_SQL),
+            ArgumentMatchers.<RowMapper<PublicItemTreasureBagLootDTO>>any(),
+            eq(3318L)
+        );
+
+        List<PublicItemTreasureBagLootDTO> result = publicItemService.getPublicItemTreasureBagLoot(3318L);
+
+        assertEquals(1, result.size());
+        PublicItemTreasureBagLootDTO loot = result.get(0);
+        assertEquals(3318L, loot.getTreasureBagItemId());
+        assertEquals(3088L, loot.getItemId());
+        assertEquals("皇家凝胶", loot.getItemNameZh());
+        assertEquals("http://localhost:9000/terrapedia-images/items/royal-gel.png", loot.getItemImage());
+        assertEquals(50L, loot.getSourceNpcId());
+        assertEquals("史莱姆王", loot.getSourceNpcNameZh());
+        assertEquals("http://localhost:9000/terrapedia-images/npcs/king-slime.png", loot.getSourceNpcImageUrl());
+        assertEquals("/npcs/50", loot.getSourceNpcDetailPath());
+        assertEquals("treasure_bag", loot.getDropSourceKind());
+        assertEquals("宝藏袋掉落", loot.getDropSourceKindLabel());
+        assertEquals("100%", loot.getChanceText());
+        assertEquals("Expert Mode", loot.getConditions());
+        verify(jdbcTemplate).query(eq(PublicItemServiceImpl.ITEM_TREASURE_BAG_LOOT_SQL), ArgumentMatchers.<RowMapper<PublicItemTreasureBagLootDTO>>any(), eq(3318L));
     }
 }

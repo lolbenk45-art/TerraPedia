@@ -8,6 +8,7 @@ import com.terraria.skills.dto.PublicItemBuffEffectDTO;
 import com.terraria.skills.dto.PublicItemEquipmentEffectDTO;
 import com.terraria.skills.dto.PublicItemImageDTO;
 import com.terraria.skills.dto.PublicItemSourceDTO;
+import com.terraria.skills.dto.PublicItemTreasureBagLootDTO;
 import com.terraria.skills.service.ItemImageService;
 import com.terraria.skills.service.ItemSourceService;
 import com.terraria.skills.service.ManagedImageUrlPolicy;
@@ -79,6 +80,12 @@ public class PublicItemRelationController {
     @Operation(summary = "Get public equipment effects sourced from the item")
     public ResponseEntity<ApiResponse<List<PublicItemEquipmentEffectDTO>>> getItemEquipmentEffects(@PathVariable("id") Long itemId) {
         return ResponseEntity.ok(ApiResponse.success(publicItemService.getPublicItemEquipmentEffects(itemId)));
+    }
+
+    @GetMapping("/{id}/treasure-bag-loot")
+    @Operation(summary = "Get public item drops contained by this treasure bag")
+    public ResponseEntity<ApiResponse<List<PublicItemTreasureBagLootDTO>>> getItemTreasureBagLoot(@PathVariable("id") Long itemId) {
+        return ResponseEntity.ok(ApiResponse.success(publicItemService.getPublicItemTreasureBagLoot(itemId)));
     }
 
     private PublicItemImageDTO toPublicImage(Long itemId, ItemImageDTO source) {

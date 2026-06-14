@@ -534,10 +534,12 @@ const requiredPublicDataLayerMarkers = {
     'export type PublicItemDetail',
     'export type PublicItemImage',
     'export type PublicItemSource',
+    'export type PublicItemTreasureBagLoot',
     'export type PublicItemArmorAttribute',
     'export type PublicItemEquipmentEffect',
     'export type PublicItemRecipeTree',
     'export type PublicItemDetailBundle',
+    'treasureBagLoot: PublicItemTreasureBagLoot[]',
     'export type PublicItemQuery',
     'export type CatalogItem',
     'export type PublicNpcQuery',
@@ -591,6 +593,7 @@ const requiredPublicDataLayerMarkers = {
     '/public/items/${normalizedItemId}',
     '/public/items/${normalizedItemId}/images',
     '/public/items/${normalizedItemId}/sources',
+    '/public/items/${normalizedItemId}/treasure-bag-loot',
     '/public/items/${normalizedItemId}/recipe-tree',
     '/public/items/${normalizedItemId}/buff-effects',
     '/public/items/${normalizedItemId}/armor-attributes',
@@ -598,7 +601,9 @@ const requiredPublicDataLayerMarkers = {
     'rawBuffEffects',
     'rawArmorAttributes',
     'rawEquipmentEffects',
+    'rawTreasureBagLoot',
     'resolvePreviewImageUrl',
+    'treasureBagLoot: []',
     'source: \'missing\'',
   ],
   'composables/usePublicNpcs.ts': [
@@ -2040,6 +2045,7 @@ for (const path of scanFiles) {
       'buffEffectEntries',
       'armorAttributeEntries',
       'equipmentEffectEntries',
+      'treasureBagLootEntries',
       'itemEquipmentAttributeCount',
       'itemCoverageRows',
       'itemDescriptionSourceText',
@@ -2050,12 +2056,14 @@ for (const path of scanFiles) {
       '制作路线',
       '来源分组',
       '状态效果',
+      '宝藏袋内物品',
       '装备属性',
       '来源物品',
       '效果来源已确认',
       '图片画廊',
       '资料概览',
       'sourceEntries',
+      'rawBundle.value.treasureBagLoot',
       '<CommonPreviewImage',
       '<RecipeSummaryCard',
       ':src="source.image"',
@@ -2113,6 +2121,101 @@ for (const path of scanFiles) {
 
     if (content.includes('detailItem.value?.internalName') || content.includes('detailItem.value?.categoryPath')) {
       violations.push(`${path}: item detail header/category must not fall back to internal names or category paths`)
+    }
+
+    if (!content.includes('buildTerrariaPriceTokens') || !content.includes('formatTerrariaPriceTokens') || !content.includes('itemPriceTokenImage')) {
+      violations.push(`${path}: item detail prices must render structured Terraria coin tokens with real item images`)
+    }
+
+    if (!content.includes('copper: { itemId: 71') || !content.includes('silver: { itemId: 72') || !content.includes('gold: { itemId: 73') || !content.includes('platinum: { itemId: 74')) {
+      violations.push(`${path}: item detail coin images must map to real Terraria coin item ids 71-74`)
+    }
+
+    if (!content.includes('<CommonPreviewImage') || !content.includes('item-price-token-icon')) {
+      violations.push(`${path}: item detail price tokens must render coin images through CommonPreviewImage`)
+    }
+
+    if (content.includes('item-price-coin-mark')) {
+      violations.push(`${path}: item detail prices must not use CSS-drawn fake coin marks`)
+    }
+
+    if (content.includes('formatTerrariaPrice(buyPriceValue') || content.includes('formatTerrariaPrice(sellPriceValue')) {
+      violations.push(`${path}: item detail prices must not render plain shorthand price text in the core stat table`)
+    }
+
+    if (!content.includes('localizeItemSourceDisplayText') || !content.includes('safeItemSourceNoteText') || !content.includes('localizeTerrariaPriceShorthandText')) {
+      violations.push(`${path}: item source rows must localize English source copy and price shorthand before rendering`)
+    }
+
+    if (content.includes('source.notes, sourceBiomeLabel(source), sourceEvidenceLabel(source)')) {
+      violations.push(`${path}: item source notes must not render raw backend notes before localization/filtering`)
+    }
+
+    if (content.includes("safeItemDisplayText(source.conditions, source.condition, source.description, source.summary, '来源信息整理中')")) {
+      violations.push(`${path}: item source details must not render raw condition/description fields without localization`)
+    }
+
+    for (const marker of [
+      'sourceSourceTypeKey(source)',
+      'sourceRefTypeKey(source)',
+      'sourceEvidenceKindKey(source)',
+      'sourceFactKeyText(source)',
+      'isWorldEvidenceSource(source)',
+      "sourceRefType === 'biome_wikitext'",
+      "evidenceKind === 'biome_resource'",
+      "evidenceKind === 'item_biome'",
+      "sourceFactKey.startsWith('biome_resource:')",
+      "sourceFactKey.startsWith('item_biome:')",
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: item source grouping must route biome/world evidence before generic drop matching via marker ${marker}`)
+      }
+    }
+
+    const sourceGroupStart = content.indexOf('const sourceGroupKey = (source: PublicItemSource) => {')
+    const worldEvidenceIndex = content.indexOf('isWorldEvidenceSource(source)', sourceGroupStart)
+    const dropRegexIndex = content.indexOf('/drop|loot|enemy|npc|boss/', sourceGroupStart)
+    if (sourceGroupStart === -1 || worldEvidenceIndex === -1 || dropRegexIndex === -1 || !(worldEvidenceIndex < dropRegexIndex)) {
+      violations.push(`${path}: item source grouping must classify explicit world/biome/container evidence before generic drop regex matching`)
+    }
+
+    for (const marker of [
+      'sourceTreasureBagInfo(source)',
+      'sourceTreasureBagName(source)',
+      'sourceTreasureBagImage(source)',
+      "itemTreasureBagFallbackImage(source)",
+      'sourceTreasureBagDetail(source)',
+      "sourceRefName.match(/Treasure Bag \\(([^)]+)\\)/i)",
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: item treasure-bag sources must render as item sources instead of biome evidence via marker ${marker}`)
+      }
+    }
+
+    if (!content.includes('sourceTreasureBagImage(source),') || content.indexOf('sourceTreasureBagImage(source),') > content.indexOf('source.imageUrl,')) {
+      violations.push(`${path}: item source image selection must prefer treasure-bag item images before backend biome images`)
+    }
+
+    if (!content.includes("if (isTreasureBagSource(source)) return ''")) {
+      violations.push(`${path}: item treasure-bag rows must suppress biome evidence notes and biome detail links`)
+    }
+
+    for (const marker of [
+      'treasureBagLootEntries',
+      'treasureBagLootTitle',
+      'treasureBagLootImage',
+      'treasureBagLootSourceTitle',
+      'treasureBagLootSourceImage',
+      'treasureBagLootMeta',
+      'treasure-bag-loot-module',
+      'treasure-bag-loot-row',
+      'source.sourceNpcNameZh',
+      'source.sourceNpcImageUrl',
+      'source.sourceNpcDetailPath',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: treasure bag detail must render contained loot and source boss via marker ${marker}`)
+      }
     }
 
     if (content.includes("itemDescriptionText.value ? '已整理'") || content.includes("statRows.value.some((row) => row.label === '买入'")) {

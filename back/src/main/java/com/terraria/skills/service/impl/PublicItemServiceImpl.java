@@ -1,7 +1,9 @@
 package com.terraria.skills.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.terraria.skills.common.ItemImageSql;
 import com.terraria.skills.common.PageQuery;
+import com.terraria.skills.common.RuntimeDropSourceKindLabels;
 import com.terraria.skills.dto.CategoryDTO;
 import com.terraria.skills.dto.PublicItemArmorAttributeDTO;
 import com.terraria.skills.dto.PublicItemBuffEffectDTO;
@@ -9,6 +11,7 @@ import com.terraria.skills.dto.PublicItemDetailDTO;
 import com.terraria.skills.dto.PublicItemEquipmentEffectDTO;
 import com.terraria.skills.dto.PublicItemListDTO;
 import com.terraria.skills.dto.PublicItemSuggestionDTO;
+import com.terraria.skills.dto.PublicItemTreasureBagLootDTO;
 import com.terraria.skills.mapper.ItemMapper;
 import com.terraria.skills.service.CategoryManagementService;
 import com.terraria.skills.service.ManagedImageUrlPolicy;
@@ -19,6 +22,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -27,6 +31,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -119,6 +124,49 @@ public class PublicItemServiceImpl implements PublicItemService {
         ORDER BY effect_index ASC, id ASC
         """;
 
+    static final String ITEM_TREASURE_BAG_LOOT_SQL = """
+        SELECT
+            nle.id AS id,
+            bag_source.item_id AS treasureBagItemId,
+            nle.item_id AS itemId,
+            i.name AS itemName,
+            i.name_zh AS itemNameZh,
+            i.internal_name AS itemInternalName,
+            %s AS itemImage,
+            n.id AS sourceNpcId,
+            n.name AS sourceNpcName,
+            n.name_zh AS sourceNpcNameZh,
+            n.image_url AS sourceNpcImageUrl,
+            nle.drop_source_kind AS dropSourceKind,
+            nle.quantity_min AS quantityMin,
+            nle.quantity_max AS quantityMax,
+            nle.quantity_text AS quantityText,
+            nle.chance_value AS chanceValue,
+            nle.chance_text AS chanceText,
+            nle.conditions AS conditions,
+            nle.notes AS notes,
+            nle.sort_order AS sortOrder
+        FROM item_acquisition_sources bag_source
+        INNER JOIN npcs n
+            ON n.deleted = 0
+            AND (
+                LOWER(TRIM(bag_source.source_ref_name)) = LOWER(n.name)
+                OR LOWER(TRIM(bag_source.source_ref_name)) = LOWER(CONCAT('From ', n.name))
+                OR LOWER(TRIM(bag_source.source_ref_name)) = LOWER(CONCAT('From the ', n.name))
+            )
+        INNER JOIN npc_loot_entries nle
+            ON nle.npc_id = n.id
+            AND nle.drop_source_kind = 'treasure_bag'
+            AND nle.status = 1
+            AND nle.deleted = 0
+        LEFT JOIN items i ON i.id = nle.item_id AND i.deleted = 0
+        WHERE bag_source.item_id = ?
+            AND bag_source.source_type = 'drop'
+            AND bag_source.status = 1
+            AND bag_source.deleted = 0
+        ORDER BY nle.sort_order ASC, nle.id ASC
+        """.formatted(ItemImageSql.preferredItemImageExpression("i"));
+
     private final ItemMapper itemMapper;
     private final CategoryManagementService categoryManagementService;
     private final ManagedImageUrlPolicy managedImageUrlPolicy;
@@ -210,6 +258,14 @@ public class PublicItemServiceImpl implements PublicItemService {
             return List.of();
         }
         return jdbcTemplate.query(ITEM_EQUIPMENT_EFFECTS_SQL, this::mapPublicItemEquipmentEffect, id);
+    }
+
+    @Override
+    public List<PublicItemTreasureBagLootDTO> getPublicItemTreasureBagLoot(Long id) {
+        if (id == null) {
+            return List.of();
+        }
+        return jdbcTemplate.query(ITEM_TREASURE_BAG_LOOT_SQL, this::mapPublicItemTreasureBagLoot, id);
     }
 
     public String buildPublicListCacheKey(PageQuery pageQuery) {
@@ -312,6 +368,33 @@ public class PublicItemServiceImpl implements PublicItemService {
         dto.setUnit(trimToNull(resultSet.getString("unit")));
         dto.setRawText(trimToNull(resultSet.getString("rawText")));
         dto.setParseStatus(trimToNull(resultSet.getString("parseStatus")));
+        return dto;
+    }
+
+    PublicItemTreasureBagLootDTO mapPublicItemTreasureBagLoot(ResultSet resultSet, int rowNum) throws SQLException {
+        PublicItemTreasureBagLootDTO dto = new PublicItemTreasureBagLootDTO();
+        dto.setId(nullableLong(resultSet, "id"));
+        dto.setTreasureBagItemId(nullableLong(resultSet, "treasureBagItemId"));
+        dto.setItemId(nullableLong(resultSet, "itemId"));
+        dto.setItemName(trimToNull(resultSet.getString("itemName")));
+        dto.setItemNameZh(trimToNull(resultSet.getString("itemNameZh")));
+        dto.setItemInternalName(trimToNull(resultSet.getString("itemInternalName")));
+        dto.setItemImage(managedItemImageUrl(resultSet.getString("itemImage")));
+        dto.setSourceNpcId(nullableLong(resultSet, "sourceNpcId"));
+        dto.setSourceNpcName(trimToNull(resultSet.getString("sourceNpcName")));
+        dto.setSourceNpcNameZh(trimToNull(resultSet.getString("sourceNpcNameZh")));
+        dto.setSourceNpcImageUrl(managedNpcImageUrl(resultSet.getString("sourceNpcImageUrl")));
+        dto.setSourceNpcDetailPath(dto.getSourceNpcId() == null ? null : "/npcs/" + dto.getSourceNpcId());
+        dto.setDropSourceKind(trimToNull(resultSet.getString("dropSourceKind")));
+        dto.setDropSourceKindLabel(RuntimeDropSourceKindLabels.label(dto.getDropSourceKind()));
+        dto.setQuantityMin(nullableInteger(resultSet, "quantityMin"));
+        dto.setQuantityMax(nullableInteger(resultSet, "quantityMax"));
+        dto.setQuantityText(trimToNull(resultSet.getString("quantityText")));
+        dto.setChanceValue(nullableBigDecimal(resultSet, "chanceValue"));
+        dto.setChanceText(trimToNull(resultSet.getString("chanceText")));
+        dto.setConditions(trimToNull(resultSet.getString("conditions")));
+        dto.setNotes(trimToNull(resultSet.getString("notes")));
+        dto.setSortOrder(nullableInteger(resultSet, "sortOrder"));
         return dto;
     }
 
@@ -512,6 +595,53 @@ public class PublicItemServiceImpl implements PublicItemService {
     private String managedBuffImageUrl(String value) {
         String text = trimToNull(value);
         return managedImageUrlPolicy.isManagedImageUrlForDomain(text, "buffs") ? text : null;
+    }
+
+    private String managedItemImageUrl(String value) {
+        String text = trimToNull(value);
+        return managedImageUrlForDomain(text, "items");
+    }
+
+    private String managedNpcImageUrl(String value) {
+        String text = trimToNull(value);
+        return managedImageUrlForDomain(text, "npcs");
+    }
+
+    private String managedImageUrlForDomain(String value, String domain) {
+        if (value == null) {
+            return null;
+        }
+        if (managedImageUrlPolicy.isManagedImageUrlForDomain(value, domain)) {
+            return value;
+        }
+        return isLoopbackManagedImageUrlForDomain(value, domain) ? value : null;
+    }
+
+    private boolean isLoopbackManagedImageUrlForDomain(String value, String domain) {
+        String normalizedDomain = trimToNull(domain);
+        if (normalizedDomain == null) {
+            return false;
+        }
+        try {
+            URI uri = URI.create(value);
+            String scheme = uri.getScheme();
+            String host = uri.getHost();
+            String path = uri.getPath();
+            if (scheme == null || host == null || path == null || uri.getRawUserInfo() != null) {
+                return false;
+            }
+            String lowerScheme = scheme.toLowerCase(Locale.ROOT);
+            if (!"http".equals(lowerScheme) && !"https".equals(lowerScheme)) {
+                return false;
+            }
+            String lowerHost = host.toLowerCase(Locale.ROOT);
+            if (!"localhost".equals(lowerHost) && !"127.0.0.1".equals(lowerHost) && !"::1".equals(lowerHost)) {
+                return false;
+            }
+            return path.startsWith("/terrapedia-images/" + normalizedDomain.toLowerCase(Locale.ROOT) + "/");
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
     }
 
     private List<String> managedImagePrefixes() {

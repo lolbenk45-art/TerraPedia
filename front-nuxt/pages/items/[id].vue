@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import RecipeSummaryCard from '~/components/crafting/RecipeSummaryCard.vue'
 import { usePublicItemDetail } from '~/composables/usePublicItemDetail'
-import { formatTerrariaPrice, toPriceNumber } from '~/utils/price'
+import { buildTerrariaPriceTokens, formatTerrariaPriceTokens, localizeTerrariaPriceShorthandText, toPriceNumber, type TerrariaPriceToken } from '~/utils/price'
 import type {
   PublicItemArmorAttribute,
   PublicItemBuffEffect,
@@ -12,6 +12,7 @@ import type {
   PublicItemRecipeTree,
   PublicItemRecipeTreeVariant,
   PublicItemSource,
+  PublicItemTreasureBagLoot,
 } from '~/types/public-api'
 
 const route = useRoute()
@@ -50,6 +51,55 @@ const safeItemDisplayText = (...values: unknown[]) => {
   }
 
   return ''
+}
+const mostlyAsciiPattern = /[A-Za-z][A-Za-z\s,'().|/-]{18,}/
+const itemSourcePhraseLabels: Array<[RegExp, string]> = [
+  [/\bCrafted by hand\b/gi, '徒手制作'],
+  [/\bBy Hand\b/gi, '徒手'],
+  [/\bAny Wood\b/gi, '任何木材'],
+  [/\bGel\b/gi, '凝胶'],
+  [/\bTorch\b/gi, '火把'],
+  [/\bRecipe ingredients\b/gi, '配方材料'],
+  [/\bUnderground\b/gi, '地下'],
+  [/\bFrom Zombies\b/gi, '来自僵尸'],
+  [/\bTorch Zombie\b/gi, '火把僵尸'],
+  [/\bFrom the King Slime\b/gi, '来自史莱姆王'],
+  [/\bFrom King Slime\b/gi, '来自史莱姆王'],
+  [/\bFrom Queen Bee\b/gi, '来自蜂王'],
+  [/\bFrom Empress of Light\b/gi, '来自光之女皇'],
+  [/\bKing Slime\b/gi, '史莱姆王'],
+  [/\bQueen Bee\b/gi, '蜂王'],
+  [/\bEmpress of Light\b/gi, '光之女皇'],
+  [/\bExpert Mode and Master Mode only\b/gi, '仅专家模式和大师模式'],
+  [/\bExpert Mode\b/gi, '专家模式'],
+  [/\bMaster Mode\b/gi, '大师模式'],
+  [/\bDrops\b/gi, '掉落'],
+  [/\bMerchant\b/gi, '商人'],
+  [/\bSkeleton Merchant\b/gi, '骷髅商人'],
+  [/\bForest\b/gi, '森林'],
+  [/\bBee Hive\b/gi, '蜂巢'],
+  [/\bThe Hallow\b/gi, '神圣之地'],
+  [/\bdrop\b/gi, '掉落'],
+]
+const localizeItemSourceDisplayText = (...values: unknown[]) => {
+  const raw = safeItemDisplayText(...values)
+  if (!raw) return ''
+
+  let localized = localizeTerrariaPriceShorthandText(raw).replace(/\s+/g, ' ').trim()
+  for (const [pattern, replacement] of itemSourcePhraseLabels) {
+    localized = localized.replace(pattern, replacement)
+  }
+  localized = localized.replace(/\s*\|\s*/g, ' · ')
+
+  if (/[A-Za-z]{2,}/.test(localized)) return ''
+  return mostlyAsciiPattern.test(localized) ? '' : localized
+}
+const safeItemSourceNoteText = (...values: unknown[]) => {
+  const parts = values
+    .map((value) => localizeItemSourceDisplayText(value))
+    .filter(Boolean)
+
+  return Array.from(new Set(parts)).join(' · ')
 }
 
 const rawBundle = computed<PublicItemDetailBundle>(() => detailBundle.value)
@@ -181,18 +231,48 @@ const imageEntries = computed(() => {
   }]
 })
 
+const sourceSourceTypeKey = (source: PublicItemSource) => firstText(source.sourceType, source.kind, source.type, source.method).toLowerCase()
+const sourceRefTypeKey = (source: PublicItemSource) => firstText(source.sourceRefType).toLowerCase()
+const sourceEvidenceKindKey = (source: PublicItemSource) => firstText(source.evidenceKind).toLowerCase()
+const sourceFactKeyText = (source: PublicItemSource) => firstText(source.sourceFactKey).toLowerCase()
+const isTreasureBagSource = (source: PublicItemSource) => {
+  const text = firstText(source.dropSourceKind, source.sourceType, source.sourceRefType, source.evidenceKind, source.sourceRefName).toLowerCase()
+  return text.includes('treasure_bag') || /treasure bag \([^)]+\)/i.test(firstText(source.sourceRefName, source.name, source.displayName, source.sourceName, source.title))
+}
+const isWorldEvidenceSource = (source: PublicItemSource) => {
+  const sourceType = sourceSourceTypeKey(source)
+  const sourceRefType = sourceRefTypeKey(source)
+  const evidenceKind = sourceEvidenceKindKey(source)
+  const sourceFactKey = sourceFactKeyText(source)
+  return sourceRefType === 'biome_wikitext'
+    || sourceRefType === 'biome'
+    || sourceRefType === 'world'
+    || sourceRefType === 'container'
+    || sourceRefType === 'crate'
+    || sourceRefType === 'chest'
+    || sourceType === 'worldgen'
+    || sourceType === 'container'
+    || sourceType === 'crate'
+    || sourceType === 'chest'
+    || evidenceKind === 'biome_resource'
+    || evidenceKind === 'item_biome'
+    || sourceFactKey.startsWith('biome_resource:')
+    || sourceFactKey.startsWith('item_biome:')
+}
 const sourceGroupKey = (source: PublicItemSource) => {
-  const text = firstText(source.sourceType, source.sourceRefType, source.kind, source.type, source.method, source.evidenceKind).toLowerCase()
-  if (/drop|loot|enemy|npc|boss/.test(text)) return 'drop'
+  const text = firstText(sourceSourceTypeKey(source), sourceRefTypeKey(source), sourceEvidenceKindKey(source))
+  if (isTreasureBagSource(source)) return 'drop'
+  if (isWorldEvidenceSource(source)) return 'world'
   if (/shop|sell|buy|vendor|merchant/.test(text)) return 'shop'
   if (/craft|recipe|shimmer|transmute|convert/.test(text)) return 'craft'
+  if (/drop|loot|enemy|npc|boss/.test(text)) return 'drop'
   if (/biome|fishing|crate|chest|world|environment|event/.test(text)) return 'world'
   return 'other'
 }
 
 const sourceGroupMeta = {
-  drop: { title: '掉落来源', meta: '敌怪、Boss 或事件掉落' },
-  shop: { title: '购买与商店', meta: 'NPC 出售或货币购买' },
+  drop: { title: '掉落来源', meta: '敌怪、首领或事件掉落' },
+  shop: { title: '购买与商店', meta: '非玩家角色出售或货币购买' },
   craft: { title: '制作与转换', meta: '配方、微光或转换获得' },
   world: { title: '环境与探索', meta: '群系、宝箱、钓鱼或世界来源' },
   other: { title: '其他来源', meta: '补充来源记录' },
@@ -220,38 +300,102 @@ const percentLabel = (value: unknown) => {
   return numberValue <= 1 ? `${Math.round(numberValue * 100)}%` : `${numberValue}%`
 }
 const sourceChanceLabel = (source: PublicItemSource) => {
-  const explicit = safeItemDisplayText(source.chanceText)
+  const explicit = localizeItemSourceDisplayText(source.chanceText)
   if (explicit) return explicit
   return percentLabel(source.chance ?? source.rate ?? source.chanceValue)
 }
 const sourceBiomeLabel = (source: PublicItemSource) => safeItemDisplayText(source.biomeNameZh, source.biomeNameEn)
+const treasureBagBossNameLabel = (value: string) => localizeItemSourceDisplayText(value) || safeItemDisplayText(value)
+const sourceTreasureBagInfo = (source: PublicItemSource) => {
+  const sourceRefName = firstText(source.sourceRefName, source.name, source.displayName, source.sourceName, source.title)
+  const match = sourceRefName.match(/Treasure Bag \(([^)]+)\)/i)
+  if (!match) return null
+  const bossName = treasureBagBossNameLabel(match[1] ?? '')
+  return {
+    bossName,
+    sourceName: bossName ? `宝藏袋（${bossName}）` : '宝藏袋',
+  }
+}
+const itemTreasureBagFallbackImage = (source: PublicItemSource) => {
+  const info = sourceTreasureBagInfo(source)
+  if (!info) return ''
+
+  const sourceItemId = firstText(source.itemId)
+  if (sourceItemId && sourceItemId === itemId.value) return itemImage.value
+  return ''
+}
+const sourceTreasureBagName = (source: PublicItemSource) => sourceTreasureBagInfo(source)?.sourceName || ''
+const sourceTreasureBagImage = (source: PublicItemSource) => firstImageUrl(source.itemImageUrl, source.item_image_url, itemTreasureBagFallbackImage(source))
+const sourceTreasureBagDetail = (source: PublicItemSource) => {
+  if (!isTreasureBagSource(source)) return ''
+  const info = sourceTreasureBagInfo(source)
+  return info?.bossName ? `${info.bossName}的专家/大师模式宝藏袋` : '专家/大师模式宝藏袋'
+}
+const treasureBagLootSource = computed(() => rawBundle.value.treasureBagLoot.find((source: PublicItemTreasureBagLoot) => (
+  safeItemDisplayText(source.sourceNpcNameZh, source.source_npc_name_zh, source.sourceNpcName, source.source_npc_name)
+)))
+const sourceTreasureBagBossName = (source: PublicItemSource) => {
+  const lootSource = treasureBagLootSource.value
+  return safeItemDisplayText(
+    lootSource?.sourceNpcNameZh,
+    lootSource?.source_npc_name_zh,
+    lootSource?.sourceNpcName,
+    lootSource?.source_npc_name,
+  ) || sourceTreasureBagInfo(source)?.bossName || ''
+}
+const sourceTreasureBagBossImage = (source: PublicItemSource) => {
+  if (!isTreasureBagSource(source)) return ''
+  const lootSource = treasureBagLootSource.value
+  return firstImageUrl(lootSource?.sourceNpcImageUrl, lootSource?.source_npc_image_url)
+}
+const sourceTreasureBagBossHref = (source: PublicItemSource) => {
+  if (!isTreasureBagSource(source)) return ''
+  const lootSource = treasureBagLootSource.value
+  return safeItemDisplayText(lootSource?.sourceNpcDetailPath, lootSource?.source_npc_detail_path)
+}
+const sourceTreasureBagBossDetail = (source: PublicItemSource) => {
+  const bossName = sourceTreasureBagBossName(source)
+  return bossName ? `${bossName}掉落的专家/大师模式宝藏袋` : sourceTreasureBagDetail(source)
+}
 const sourceEvidenceLabel = (source: PublicItemSource) => {
   const evidenceKind = firstText(source.evidenceKind).toLowerCase()
   if (evidenceKind === 'npc_relation') {
-    if (firstText(source.sourceType).toLowerCase() === 'shop' || firstText(source.shopEntryId)) return 'NPC 商店证据'
-    return firstText(source.dropSourceKind) === 'treasure_bag' ? 'NPC 宝藏袋证据' : 'NPC 掉落证据'
+    if (firstText(source.sourceType).toLowerCase() === 'shop' || firstText(source.shopEntryId)) return '商店证据'
+    return firstText(source.dropSourceKind) === 'treasure_bag' ? '宝藏袋证据' : '掉落证据'
   }
   if (evidenceKind === 'biome_resource') return '群系资源证据'
   if (evidenceKind === 'item_biome') return '物品群系证据'
   return ''
 }
 const sourceNoteLabel = (source: PublicItemSource) => {
-  const parts = [source.notes, sourceBiomeLabel(source), sourceEvidenceLabel(source)]
-    .map((part) => safeItemDisplayText(part))
-    .filter(Boolean)
-  return Array.from(new Set(parts)).join(' · ')
+  if (isTreasureBagSource(source)) return ''
+
+  return safeItemSourceNoteText(
+    sourceBiomeLabel(source),
+    sourceEvidenceLabel(source),
+    source.notes,
+  )
 }
-const sourceDetailHref = (source: PublicItemSource) => safeItemDisplayText(source.npcDetailPath, source.biomeDetailPath)
+const sourceDetailHref = (source: PublicItemSource) => {
+  if (isTreasureBagSource(source)) return sourceTreasureBagBossHref(source)
+  return safeItemDisplayText(source.npcDetailPath, source.biomeDetailPath)
+}
 
 const sourceEntries = computed(() => rawBundle.value.sources.map((source: PublicItemSource, index) => ({
   id: firstText(source.sourceFactKey, source.id, source.sourceId, index),
-  name: safeItemDisplayText(source.sourceRefNameZh, source.sourceRefName, source.name, source.displayName, source.sourceName, source.title) || `来源 ${index + 1}`,
+  name: sourceTreasureBagName(source)
+    || safeItemDisplayText(source.sourceRefNameZh)
+    || localizeItemSourceDisplayText(source.sourceRefName, source.name, source.displayName, source.sourceName, source.title)
+    || sourceBiomeLabel(source)
+    || `来源 ${index + 1}`,
   groupKey: sourceGroupKey(source),
-  detail: safeItemDisplayText(source.conditions, source.condition, source.description, source.summary, '来源信息整理中'),
+  detail: sourceTreasureBagBossDetail(source) || localizeItemSourceDisplayText(source.conditions, source.condition, source.description, source.summary) || '来源信息整理中',
   note: sourceNoteLabel(source),
   value: [sourceQuantityLabel(source), sourceChanceLabel(source)].filter(Boolean).join(' · '),
   href: sourceDetailHref(source),
   image: firstImageUrl(
+    sourceTreasureBagBossImage(source),
+    sourceTreasureBagImage(source),
     source.previewImage,
     source.previewImageUrl,
     source.preview_image,
@@ -270,6 +414,64 @@ const sourceEntries = computed(() => rawBundle.value.sources.map((source: Public
   ),
   fallback: Array.from(safeItemDisplayText(source.sourceRefNameZh, source.sourceRefName, source.name, source.displayName, source.sourceName) || '源')[0] ?? '源',
   icon: sourceFallbackIcon(sourceGroupKey(source)),
+})))
+
+const treasureBagLootTitle = (source: PublicItemTreasureBagLoot) => safeItemDisplayText(
+  source.itemNameZh,
+  source.item_name_zh,
+  source.itemName,
+  source.item_name,
+) || '未命名掉落物'
+const treasureBagLootImage = (source: PublicItemTreasureBagLoot) => firstImageUrl(
+  source.itemImage,
+  source.item_image,
+  source.imageUrl,
+  source.image_url,
+)
+const treasureBagLootSourceTitle = (source: PublicItemTreasureBagLoot) => safeItemDisplayText(
+  source.sourceNpcNameZh,
+  source.source_npc_name_zh,
+  source.sourceNpcName,
+  source.source_npc_name,
+) || '来源首领未标注'
+const treasureBagLootSourceImage = (source: PublicItemTreasureBagLoot) => firstImageUrl(
+  source.sourceNpcImageUrl,
+  source.source_npc_image_url,
+)
+const treasureBagLootQuantityLabel = (source: PublicItemTreasureBagLoot) => {
+  const explicit = safeItemDisplayText(source.quantityText, source.quantity_text)
+  if (explicit) return explicit
+  const min = firstText(source.quantityMin, source.quantity_min)
+  const max = firstText(source.quantityMax, source.quantity_max)
+  if (min && max && min !== max) return `${min}-${max}`
+  return firstText(min, max)
+}
+const treasureBagLootChanceLabel = (source: PublicItemTreasureBagLoot) => {
+  const explicit = localizeItemSourceDisplayText(source.chanceText, source.chance_text)
+  if (explicit) return explicit
+  return percentLabel(source.chanceValue ?? source.chance_value)
+}
+const treasureBagLootMeta = (source: PublicItemTreasureBagLoot) => (
+  [treasureBagLootQuantityLabel(source), treasureBagLootChanceLabel(source)].filter(Boolean).join(' · ') || '掉落数值整理中'
+)
+const treasureBagLootDetail = (source: PublicItemTreasureBagLoot) => (
+  [safeItemDisplayText(source.dropSourceKindLabel, source.drop_source_kind_label), localizeItemSourceDisplayText(source.conditions), localizeItemSourceDisplayText(source.notes)]
+    .filter(Boolean)
+    .join(' · ') || '宝藏袋内物品'
+)
+const treasureBagLootEntries = computed(() => rawBundle.value.treasureBagLoot.map((source: PublicItemTreasureBagLoot, index) => ({
+  id: firstText(source.id, source.itemId, source.item_id, index),
+  itemId: firstText(source.itemId, source.item_id),
+  name: treasureBagLootTitle(source),
+  image: treasureBagLootImage(source),
+  fallback: Array.from(treasureBagLootTitle(source))[0] ?? '物',
+  sourceName: treasureBagLootSourceTitle(source),
+  sourceImage: treasureBagLootSourceImage(source),
+  sourceFallback: Array.from(treasureBagLootSourceTitle(source))[0] ?? '首',
+  sourceHref: safeItemDisplayText(source.sourceNpcDetailPath, source.source_npc_detail_path),
+  itemHref: firstText(source.itemId, source.item_id) ? `/items/${firstText(source.itemId, source.item_id)}` : '',
+  detail: treasureBagLootDetail(source),
+  meta: treasureBagLootMeta(source),
 })))
 
 const sourceEntryGroups = computed(() => {
@@ -326,7 +528,7 @@ const buffEffectEntries = computed(() => rawBundle.value.buffEffects.map((effect
     effect.buffNameEn,
     effect.buff_name_en,
   )
-  const internalFallback = firstText(effect.buffInternalName, effect.buff_internal_name, effect.buffId, effect.buff_id, index + 1)
+  const buffFallback = firstText(effect.buffId, effect.buff_id, index + 1)
   const meta = [
     buffDurationLabel(effect),
     buffChanceLabel(effect),
@@ -340,7 +542,7 @@ const buffEffectEntries = computed(() => rawBundle.value.buffEffects.map((effect
     meta: meta.length ? meta.join(' · ') : '效果来源已确认',
     notes: safeItemDisplayText(effect.notes),
     image: firstImageUrl(effect.imageUrl, effect.image_url),
-    fallback: Array.from(name || internalFallback || '状')[0] ?? '状',
+    fallback: Array.from(name || buffFallback || '状')[0] ?? '状',
   }
 }))
 
@@ -496,6 +698,29 @@ const recipeTreeSummary = computed(() => {
 
 const buyPriceValue = computed(() => toPriceNumber(detailItem.value?.buyPrice ?? detailItem.value?.buy))
 const sellPriceValue = computed(() => toPriceNumber(detailItem.value?.sellPrice ?? detailItem.value?.sell))
+const buyPriceTokens = computed(() => buyPriceValue.value != null && buyPriceValue.value > 0 ? buildTerrariaPriceTokens(buyPriceValue.value) : [])
+const sellPriceTokens = computed(() => sellPriceValue.value != null && sellPriceValue.value > 0 ? buildTerrariaPriceTokens(sellPriceValue.value) : [])
+const itemPriceLabel = (tokens: TerrariaPriceToken[]) => formatTerrariaPriceTokens(tokens)
+const itemPriceTokenKey = (unit: unknown) => {
+  const key = firstText(unit).toLowerCase()
+  if (key === 'platinum' || key === 'pc' || key === 'platinum coin') return 'platinum'
+  if (key === 'gold' || key === 'gc' || key === 'gold coin') return 'gold'
+  if (key === 'silver' || key === 'sc' || key === 'silver coin') return 'silver'
+  if (key === 'copper' || key === 'cc' || key === 'copper coin') return 'copper'
+  return 'unknown'
+}
+const itemCoinImageByUnit = {
+  copper: { itemId: 71, image: '/terrapedia-images/items/wiki/item-images/37/3759072ffe0c9c4c994a6f702e0bd5a704cfd35f-copper-coin-gif.gif', label: '铜币' },
+  silver: { itemId: 72, image: '/terrapedia-images/items/wiki/item-images/21/21b43bed59f5fc3fdd3060145f84e5d62883bdc9-silver-coin-gif.gif', label: '银币' },
+  gold: { itemId: 73, image: '/terrapedia-images/items/wiki/item-images/34/34fdf6f986715e8c9fd0c1381d27c81cfc2e7fe6-gold-coin-gif.gif', label: '金币' },
+  platinum: { itemId: 74, image: '/terrapedia-images/items/wiki/item-images/6e/6e8289618c2cf75478458d12c683f9a2a321b6d0-platinum-coin-gif.gif', label: '铂金币' },
+} as const
+const itemPriceTokenImage = (unit: unknown) => {
+  const key = itemPriceTokenKey(unit)
+  if (key === 'unknown') return null
+  const coin = itemCoinImageByUnit[key]
+  return { ...coin, image: resolvePreviewImageUrl(coin.image) }
+}
 const itemHasPrice = computed(() => (
   (buyPriceValue.value != null && buyPriceValue.value > 0)
   || (sellPriceValue.value != null && sellPriceValue.value > 0)
@@ -508,8 +733,8 @@ const statRows = computed(() => [
   { label: '使用时间', value: firstNumberText(detailItem.value?.useTime, detailItem.value?.useAnimation) },
   { label: '最大堆叠', value: firstNumberText(detailItem.value?.stackSize, detailItem.value?.maxStack) },
   { label: '尺寸', value: imageDimensionLabel(detailItem.value?.width, detailItem.value?.height) },
-  { label: '买入', value: buyPriceValue.value != null && buyPriceValue.value > 0 ? formatTerrariaPrice(buyPriceValue.value, 'buy') : '' },
-  { label: '售出', value: sellPriceValue.value != null && sellPriceValue.value > 0 ? formatTerrariaPrice(sellPriceValue.value, 'sell') : '' },
+  { label: '买入', value: itemPriceLabel(buyPriceTokens.value), priceTokens: buyPriceTokens.value },
+  { label: '售出', value: itemPriceLabel(sellPriceTokens.value), priceTokens: sellPriceTokens.value },
   { label: '稀有度', value: itemRarity.value },
 ].filter((row) => row.value))
 
@@ -640,7 +865,23 @@ onMounted(() => {
           <dl>
             <template v-for="row in statRows" :key="row.label">
               <dt>{{ row.label }}</dt>
-              <dd>{{ row.value }}</dd>
+              <dd>
+                <span v-if="row.priceTokens?.length" class="item-price-token-row" :aria-label="row.value">
+                  <span v-for="token in row.priceTokens" :key="`${row.label}-${token.unit}`" class="item-price-token">
+                    <span class="item-price-token-icon" :data-coin-item-id="itemPriceTokenImage(token.unit)?.itemId">
+                      <CommonPreviewImage
+                        :src="itemPriceTokenImage(token.unit)?.image"
+                        :alt="itemPriceTokenImage(token.unit)?.label || token.label"
+                        :fallback="itemPriceTokenImage(token.unit)?.label || token.label"
+                        fallback-icon="icon-items"
+                        decorative
+                      />
+                    </span>
+                    <span class="item-price-token-copy">{{ token.amount }}{{ token.label }}</span>
+                  </span>
+                </span>
+                <span v-else>{{ row.value }}</span>
+              </dd>
             </template>
           </dl>
         </aside>
@@ -731,6 +972,53 @@ onMounted(() => {
             <p v-else class="tp-detail-empty">还没有可展示的掉落、购买、制作或探索来源记录。</p>
           </section>
 
+          <section v-if="treasureBagLootEntries.length" :class="['detail-module dark-card treasure-bag-loot-module', detailLayout.detailModuleClass]">
+            <div class="module-title">
+              <div>
+                <h2>宝藏袋内物品</h2>
+                <span>打开该宝藏袋可能获得的具体物品</span>
+              </div>
+              <span class="tag gold">{{ treasureBagLootEntries.length }} 件</span>
+            </div>
+            <div class="treasure-bag-loot-grid tp-detail-relation-grid">
+              <div
+                v-for="loot in treasureBagLootEntries"
+                :key="String(loot.id)"
+                :class="['treasure-bag-loot-row detail-relation-row', detailLayout.detailRelationRowClass]"
+              >
+                <span class="sprite-frame detail-relation-icon">
+                  <CommonPreviewImage
+                    :src="loot.image"
+                    :alt="loot.name"
+                    :fallback="loot.fallback"
+                    fallback-icon="icon-items"
+                  />
+                </span>
+                <div class="detail-relation-copy">
+                  <NuxtLink v-if="loot.itemHref" class="item-source-link" :to="loot.itemHref">{{ loot.name }}</NuxtLink>
+                  <b v-else>{{ loot.name }}</b>
+                  <span>{{ loot.detail }}</span>
+                  <small>
+                    <span class="treasure-bag-source-chip">
+                      <span class="treasure-bag-source-icon">
+                        <CommonPreviewImage
+                          :src="loot.sourceImage"
+                          :alt="loot.sourceName"
+                          :fallback="loot.sourceFallback"
+                          fallback-icon="icon-boss"
+                        />
+                      </span>
+                      <NuxtLink v-if="loot.sourceHref" class="item-source-link" :to="loot.sourceHref">{{ loot.sourceName }}</NuxtLink>
+                      <b v-else>{{ loot.sourceName }}</b>
+                      <span>掉落此宝藏袋</span>
+                    </span>
+                  </small>
+                </div>
+                <strong class="detail-relation-meta">{{ loot.meta }}</strong>
+              </div>
+            </div>
+          </section>
+
           <section :class="['detail-module dark-card item-buff-effect-module', detailLayout.detailModuleClass]">
             <div class="module-title">
               <h2>状态效果</h2>
@@ -782,7 +1070,7 @@ onMounted(() => {
           </section>
         </div>
 
-        <aside :class="['evidence-panel dark-card', detailLayout.detailModuleClass]">
+        <aside :class="['evidence-panel dark-card item-coverage-panel', detailLayout.detailModuleClass]">
           <span class="eyebrow">资料概览</span>
           <div v-for="row in itemCoverageRows" :key="row.label" class="evidence-step">
             <div><b>{{ row.label }}</b><span>{{ row.value }}</span></div>
@@ -912,13 +1200,200 @@ onMounted(() => {
   font-weight: 800;
 }
 
+.item-price-token-row {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 5px 7px;
+  align-items: center;
+  min-width: 0;
+  vertical-align: middle;
+}
+
+.item-price-token {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--gold) 22%, var(--index-line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gold) 7%, transparent);
+  padding: 2px 7px 2px 3px;
+  color: var(--text-strong);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.item-price-token-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  overflow: hidden;
+}
+
+.item-price-token-icon :deep(.item-art) {
+  width: 24px;
+  height: 24px;
+}
+
+.item-price-token-copy {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .item-source-module,
+.treasure-bag-loot-module,
 .item-buff-effect-module,
 .item-equipment-attribute-module,
 .grouped-source-list,
 .item-source-group {
   display: grid;
   gap: 12px;
+}
+
+.item-source-module .source-table {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  gap: 12px;
+}
+
+.item-source-module .detail-relation-row {
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: start;
+  padding: 12px;
+}
+
+.item-source-module .detail-relation-icon {
+  margin-top: 2px;
+}
+
+.item-source-module .detail-relation-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.item-source-module .detail-relation-copy :where(b, a, span, small) {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.item-source-module .detail-relation-copy span {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.item-source-module .detail-relation-meta {
+  grid-column: 2;
+  justify-self: start;
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.treasure-bag-loot-module {
+  display: grid;
+  gap: 12px;
+}
+
+.treasure-bag-loot-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+  gap: 12px;
+}
+
+.treasure-bag-loot-row {
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: start;
+  padding: 12px;
+}
+
+.treasure-bag-loot-row .detail-relation-meta {
+  grid-column: 2;
+  justify-self: start;
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+
+.treasure-bag-source-chip {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  max-width: 100%;
+  border: 1px solid color-mix(in srgb, var(--index-line) 76%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-gold) 7%, transparent);
+  padding: 4px 8px 4px 4px;
+  color: var(--text-muted);
+}
+
+.treasure-bag-source-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  overflow: hidden;
+}
+
+.treasure-bag-source-icon :deep(.item-art) {
+  width: 24px;
+  height: 24px;
+}
+
+.item-coverage-panel {
+  gap: 8px;
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.item-coverage-panel > .eyebrow {
+  display: flex;
+  min-height: 32px;
+  margin: 0 0 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--index-line) 72%, transparent);
+  padding-bottom: 10px;
+  color: var(--text-strong);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.item-coverage-panel > .eyebrow::before {
+  width: 22px;
+  height: 3px;
+}
+
+.item-coverage-panel .evidence-step {
+  min-height: 44px;
+  border-color: color-mix(in srgb, var(--index-line) 76%, transparent);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgba(214, 177, 90, 0.055), transparent 44%),
+    rgba(244, 234, 208, 0.022);
+  padding: 10px 12px;
+}
+
+.item-coverage-panel .evidence-step > div {
+  grid-template-columns: minmax(92px, 0.72fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.item-coverage-panel .evidence-step b {
+  color: var(--text-strong);
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.item-coverage-panel .evidence-step span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .armor-attribute-summary,

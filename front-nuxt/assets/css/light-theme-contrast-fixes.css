@@ -404,25 +404,34 @@
   --home-soft-surface: rgba(var(--theme-panel-rgb), 0.36);
   --home-soft-surface-raised: rgba(var(--theme-panel-rgb), 0.5);
   --home-soft-divider: rgba(var(--theme-border-rgb), 0.1);
+  --home-lower-bg: var(--theme-screen-bg);
+  --home-title-gradient: var(--theme-title-gradient);
+  --home-atlas-bg: rgba(var(--theme-panel-rgb), 0.96);
   --home-soft-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.58),
     0 14px 34px rgba(var(--theme-text-rgb), 0.07);
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"]) .home-screen {
+  --home-lower-bg: #f3ead8;
+  --home-title-gradient: linear-gradient(108deg, #1a1f18 0%, #4f432e 58%, #7a5a21 100%);
+  --home-atlas-bg: rgba(255, 250, 241, 0.98);
   background:
     var(--index-grid-x),
     var(--index-grid-y),
-    linear-gradient(90deg, rgba(122, 90, 33, 0.08), transparent 22%, rgba(46, 92, 36, 0.035) 78%, transparent),
+    linear-gradient(90deg, rgba(122, 90, 33, 0.045), transparent 22%, rgba(46, 92, 36, 0.02) 78%, transparent),
     #f3ead8;
   background-size: 64px 64px, 64px 64px, auto, auto;
 }
 
 :where([data-theme="warm-slate"]) .home-screen {
+  --home-lower-bg: #eef1f4;
+  --home-title-gradient: linear-gradient(108deg, #1d2430 0%, #293241 62%, #657184 100%);
+  --home-atlas-bg: rgba(255, 255, 255, 0.98);
   background:
     var(--index-grid-x),
     var(--index-grid-y),
-    linear-gradient(135deg, rgba(41, 50, 65, 0.08), transparent 34%),
+    linear-gradient(135deg, rgba(41, 50, 65, 0.045), transparent 34%),
     #eef1f4;
   background-size: 52px 52px, 52px 52px, auto, auto;
 }
@@ -471,7 +480,7 @@
   right: 38px;
   bottom: 30px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(var(--theme-border-rgb), 0.1), transparent);
+  background: transparent;
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stat-card span,
@@ -770,6 +779,7 @@
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-kicker {
+  display: none;
   color: var(--text-faint);
   font-size: 11px;
 }
@@ -784,15 +794,17 @@
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stats {
   border-top: 0;
   border-bottom: 0;
-  background:
-    linear-gradient(90deg, transparent, var(--home-soft-divider), transparent),
-    var(--index-grid-x),
-    var(--index-grid-y),
-    rgba(var(--theme-panel-rgb), 0.24);
-  background-size: auto, 40px 40px, 40px 40px, auto;
+  background: transparent;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.42),
     inset 0 -1px 0 rgba(255, 255, 255, 0.32);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-title {
+  background: var(--home-title-gradient);
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stat-card {
@@ -870,7 +882,29 @@
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-atlas-secondary .atlas-index {
   border-color: var(--home-soft-border-strong);
   background:
-    linear-gradient(180deg, rgba(var(--theme-panel-rgb), 0.18), transparent 34%),
-    rgba(var(--theme-panel-rgb), 0.52);
+    linear-gradient(180deg, rgba(var(--theme-panel-rgb), 0.24), transparent 34%),
+    var(--home-atlas-bg);
   box-shadow: var(--home-soft-shadow);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-left::after {
+  display: none;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-lower {
+  padding-top: 0;
+  background:
+    linear-gradient(180deg, rgba(var(--theme-bg-rgb), 0) 0, var(--home-lower-bg) 72px),
+    var(--index-grid-x),
+    var(--index-grid-y),
+    var(--home-lower-bg);
+  background-size: auto, 40px 40px, 40px 40px, auto;
+}
+
+:where([data-theme="warm-slate"]) .hero-j1-search-btn {
+  border-color: rgba(41, 50, 65, 0.28);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(226, 231, 237, 0.82)),
+    linear-gradient(90deg, rgba(41, 50, 65, 0.12), rgba(101, 113, 132, 0.08));
+  color: #1d2430;
 }

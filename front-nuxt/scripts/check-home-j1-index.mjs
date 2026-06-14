@@ -570,23 +570,37 @@ if (!existsSync(file(cssPath))) {
   }
 
   const darkStatsBlocks = extractRuleBlocks(css, '\n.hero-stats {')
+  const darkHeroBlocks = extractRuleBlocks(css, '\n.hero {')
+  const darkHeroGridBlocks = extractRuleBlocks(css, '\n.hero-grid {')
+  const darkHeroPanelBlocks = extractRuleBlocks(css, '\n.hero-j1-panel {')
   const darkKickerBlocks = extractRuleBlocks(css, '\n.hero-kicker {')
-  const darkKickerBeforeBlocks = extractRuleBlocks(css, '\n.hero-kicker::before')
 
-  if (!darkStatsBlocks.some((block) => block.includes('border-top: 0') && block.includes('border-bottom: 0'))) {
-    failures.push(`${cssPath}: dark homepage stats must use a soft transition instead of hard top and bottom borders`)
+  if (!darkHeroBlocks.some((block) => block.includes('--home-first-screen-peek:') && block.includes('--home-hero-target-height:'))) {
+    failures.push(`${cssPath}: dark homepage hero must define viewport-height tokens for the first screen`)
   }
 
-  if (!darkStatsBlocks.some((block) => block.includes('linear-gradient(90deg, transparent, rgba(244, 234, 208, 0.08), transparent)'))) {
-    failures.push(`${cssPath}: dark homepage stats must keep only a soft center divider glow`)
+  if (!darkHeroBlocks.some((block) => block.includes('display: grid') && block.includes('grid-template-rows: minmax(0, 1fr) auto') && block.includes('min-height: var(--home-hero-target-height)'))) {
+    failures.push(`${cssPath}: dark homepage hero must size grid and stats as one first-screen block`)
   }
 
-  if (!darkKickerBlocks.some((block) => block.includes('font-size: 11px') && block.includes('color: rgba(244, 234, 208, 0.46)'))) {
-    failures.push(`${cssPath}: dark homepage kicker must be visually secondary`)
+  if (!darkHeroGridBlocks.some((block) => block.includes('min-height: 0') && block.includes('align-self: center') && block.includes('justify-self: stretch') && block.includes('width: 100%'))) {
+    failures.push(`${cssPath}: dark homepage hero grid must not force a second visual height system`)
   }
 
-  if (!darkKickerBeforeBlocks.some((block) => block.includes('height: 1px') && block.includes('opacity: 0.64'))) {
-    failures.push(`${cssPath}: dark homepage kicker rule must use a quiet one-pixel lead line`)
+  if (!darkHeroPanelBlocks.some((block) => block.includes('min-height: 0'))) {
+    failures.push(`${cssPath}: dark homepage J1 panel must let the shared hero height control the first screen`)
+  }
+
+  if (!darkStatsBlocks.some((block) => block.includes('border-top: 0') && block.includes('border-bottom: 0') && block.includes('background: transparent'))) {
+    failures.push(`${cssPath}: dark homepage stats must be transparent inside the shared hero block`)
+  }
+
+  if (!darkStatsBlocks.some((block) => block.includes('width: 100%') && block.includes('justify-self: stretch'))) {
+    failures.push(`${cssPath}: homepage stats must stretch to the same content width as the hero and lower sections`)
+  }
+
+  if (!darkKickerBlocks.some((block) => block.includes('display: none'))) {
+    failures.push(`${cssPath}: low-value homepage kicker must be hidden from the first visual layer`)
   }
 }
 
@@ -657,11 +671,14 @@ if (!existsSync(file(lightContrastCssPath))) {
   }
 
   const requiredSoftHomeSelectors = [
-    ['hero-stats', '.hero-stats', ['border-top: 0', 'border-bottom: 0', '--home-soft-divider']],
-    ['hero kicker', '.hero-kicker', ['font-size: 11px', 'color: var(--text-faint)']],
+    ['hero-stats', '.hero-stats', ['border-top: 0', 'border-bottom: 0', 'background: transparent']],
+    ['hero kicker', '.hero-kicker', ['display: none']],
     ['hero stage chips', '.hero-stage-chip', ['var(--home-soft-border)', 'var(--home-soft-surface)']],
     ['hero status pills', '.hero-status-pill', ['border-color: transparent', 'var(--home-soft-surface)']],
-    ['home atlas index', '.home-atlas-secondary .atlas-index', ['var(--home-soft-border-strong)', 'var(--home-soft-shadow)']],
+    ['home atlas index', '.home-atlas-secondary .atlas-index', ['var(--home-soft-border-strong)', 'var(--home-soft-shadow)', 'var(--home-atlas-bg)']],
+    ['home atlas shadow layer', '.hero-left::after', ['display: none']],
+    ['home lower', '.home-lower', ['var(--home-lower-bg)', 'padding-top: 0']],
+    ['light hero title', '.hero-j1-title', ['var(--home-title-gradient)']],
   ]
 
   for (const [label, selector, markers] of requiredSoftHomeSelectors) {

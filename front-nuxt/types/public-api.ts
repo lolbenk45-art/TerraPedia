@@ -258,6 +258,52 @@ export type PublicItemSource = {
   item_image_url?: string | null
 }
 
+export type PublicItemTreasureBagLoot = {
+  id?: number | string | null
+  treasureBagItemId?: number | string | null
+  treasure_bag_item_id?: number | string | null
+  itemId?: number | string | null
+  item_id?: number | string | null
+  itemName?: string | null
+  item_name?: string | null
+  itemNameZh?: string | null
+  item_name_zh?: string | null
+  itemInternalName?: string | null
+  item_internal_name?: string | null
+  itemImage?: string | null
+  item_image?: string | null
+  imageUrl?: string | null
+  image_url?: string | null
+  sourceNpcId?: number | string | null
+  source_npc_id?: number | string | null
+  sourceNpcName?: string | null
+  source_npc_name?: string | null
+  sourceNpcNameZh?: string | null
+  source_npc_name_zh?: string | null
+  sourceNpcImageUrl?: string | null
+  source_npc_image_url?: string | null
+  sourceNpcDetailPath?: string | null
+  source_npc_detail_path?: string | null
+  dropSourceKind?: string | null
+  drop_source_kind?: string | null
+  dropSourceKindLabel?: string | null
+  drop_source_kind_label?: string | null
+  quantityMin?: number | string | null
+  quantity_min?: number | string | null
+  quantityMax?: number | string | null
+  quantity_max?: number | string | null
+  quantityText?: string | null
+  quantity_text?: string | null
+  chanceValue?: number | string | null
+  chance_value?: number | string | null
+  chanceText?: string | null
+  chance_text?: string | null
+  conditions?: string | null
+  notes?: string | null
+  sortOrder?: number | string | null
+  sort_order?: number | string | null
+}
+
 export type PublicItemBuffEffect = {
   id?: number | string | null
   buffId?: number | string | null
@@ -438,6 +484,7 @@ export type PublicItemDetailBundle = {
   item: PublicItemDetail | null
   images: PublicItemImage[]
   sources: PublicItemSource[]
+  treasureBagLoot: PublicItemTreasureBagLoot[]
   buffEffects: PublicItemBuffEffect[]
   armorAttributes: PublicItemArmorAttribute[]
   equipmentEffects: PublicItemEquipmentEffect[]

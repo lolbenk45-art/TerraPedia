@@ -8,6 +8,7 @@ import com.terraria.skills.dto.PublicItemDetailDTO;
 import com.terraria.skills.dto.PublicItemEquipmentEffectDTO;
 import com.terraria.skills.dto.PublicItemListDTO;
 import com.terraria.skills.dto.PublicItemSuggestionDTO;
+import com.terraria.skills.dto.PublicItemTreasureBagLootDTO;
 
 import java.util.List;
 
@@ -24,4 +25,6 @@ public interface PublicItemService {
     List<PublicItemArmorAttributeDTO> getPublicItemArmorAttributes(Long id);
 
     List<PublicItemEquipmentEffectDTO> getPublicItemEquipmentEffects(Long id);
+
+    List<PublicItemTreasureBagLootDTO> getPublicItemTreasureBagLoot(Long id);
 }

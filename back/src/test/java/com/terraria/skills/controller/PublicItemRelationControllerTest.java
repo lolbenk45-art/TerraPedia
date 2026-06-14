@@ -6,6 +6,7 @@ import com.terraria.skills.dto.ItemSourceDTO;
 import com.terraria.skills.dto.PublicItemArmorAttributeDTO;
 import com.terraria.skills.dto.PublicItemBuffEffectDTO;
 import com.terraria.skills.dto.PublicItemEquipmentEffectDTO;
+import com.terraria.skills.dto.PublicItemTreasureBagLootDTO;
 import com.terraria.skills.service.ItemImageService;
 import com.terraria.skills.service.ItemSourceService;
 import com.terraria.skills.service.ManagedImageUrlPolicy;
@@ -362,5 +363,43 @@ class PublicItemRelationControllerTest {
             .andExpect(jsonPath("$.data[0].unit").value("percent"));
 
         verify(publicItemService).getPublicItemEquipmentEffects(559L);
+    }
+
+    @Test
+    void shouldReturnTreasureBagLootWithDropItemsAndSourceBoss() throws Exception {
+        PublicItemTreasureBagLootDTO loot = new PublicItemTreasureBagLootDTO();
+        loot.setId(700L);
+        loot.setTreasureBagItemId(3318L);
+        loot.setItemId(3088L);
+        loot.setItemName("Royal Gel");
+        loot.setItemNameZh("皇家凝胶");
+        loot.setItemImage("http://localhost:9000/terrapedia-images/items/royal-gel.png");
+        loot.setSourceNpcId(50L);
+        loot.setSourceNpcName("King Slime");
+        loot.setSourceNpcNameZh("史莱姆王");
+        loot.setSourceNpcImageUrl("http://localhost:9000/terrapedia-images/npcs/king-slime.png");
+        loot.setSourceNpcDetailPath("/npcs/50");
+        loot.setDropSourceKind("treasure_bag");
+        loot.setDropSourceKindLabel("宝藏袋掉落");
+        loot.setQuantityText("1");
+        loot.setChanceText("100%");
+
+        when(publicItemService.getPublicItemTreasureBagLoot(3318L)).thenReturn(List.of(loot));
+
+        mockMvc.perform(get("/public/items/3318/treasure-bag-loot"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.length()").value(1))
+            .andExpect(jsonPath("$.data[0].treasureBagItemId").value(3318))
+            .andExpect(jsonPath("$.data[0].itemId").value(3088))
+            .andExpect(jsonPath("$.data[0].itemNameZh").value("皇家凝胶"))
+            .andExpect(jsonPath("$.data[0].itemImage").value("http://localhost:9000/terrapedia-images/items/royal-gel.png"))
+            .andExpect(jsonPath("$.data[0].sourceNpcNameZh").value("史莱姆王"))
+            .andExpect(jsonPath("$.data[0].sourceNpcImageUrl").value("http://localhost:9000/terrapedia-images/npcs/king-slime.png"))
+            .andExpect(jsonPath("$.data[0].sourceNpcDetailPath").value("/npcs/50"))
+            .andExpect(jsonPath("$.data[0].dropSourceKindLabel").value("宝藏袋掉落"))
+            .andExpect(jsonPath("$.data[0].chanceText").value("100%"));
+
+        verify(publicItemService).getPublicItemTreasureBagLoot(3318L);
     }
 }
