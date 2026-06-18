@@ -124,6 +124,7 @@ export interface CrawlerMonitorRegisteredTask {
   progressReadable?: boolean
   progressUpdatedAt?: string | null
   progressErrorMessage?: string | null
+  progressPayload?: CrawlerMonitorPayload | null
   progressHeartbeatAt?: string | null
   progressHeartbeatAgeMs?: number | null
   progressStale?: boolean
@@ -142,6 +143,74 @@ export interface CrawlerMonitorImageNormalizationSummary {
   legacyExemptionCount?: number | null
 }
 
+export interface CrawlerMonitorWikiSummary {
+  domainCount?: number | null
+  changedCount?: number | null
+  pendingApprovalCount?: number | null
+  runningCount?: number | null
+  failedCount?: number | null
+}
+
+export interface CrawlerMonitorWikiDomain {
+  domain?: string | null
+  label?: string | null
+  status?: string | null
+  sourceKey?: string | null
+  locator?: string | null
+  lastCheckedAt?: string | null
+  currentValue?: string | null
+  previousValue?: string | null
+  changed?: boolean
+  recommendedActionId?: string | null
+  progressPath?: string | null
+  requiresApproval?: boolean
+  autoEligible?: boolean
+  dispatchMode?: string | null
+  cooldownMinutes?: number | null
+  maxConcurrent?: number | null
+  failureCircuitBreaker?: string | null
+  lastAutoRunAt?: string | null
+  pauseReason?: string | null
+  message?: string | null
+}
+
+export interface CrawlerMonitorWikiDispatch {
+  dispatchId?: string | null
+  domain?: string | null
+  actionId?: string | null
+  controlAction?: string | null
+  status?: string | null
+  commandPreview?: string | null
+  progressPath?: string | null
+  lockPath?: string | null
+  reportPath?: string | null
+  requestedAt?: string | null
+  startedAt?: string | null
+  completedAt?: string | null
+  message?: string | null
+}
+
+export interface CrawlerMonitorDispatchResult {
+  accepted?: boolean
+  dispatchId?: string | null
+  domain?: string | null
+  actionId?: string | null
+  status?: string | null
+  progressPath?: string | null
+  lockPath?: string | null
+  reportPath?: string | null
+  message?: string | null
+}
+
+export interface CrawlerMonitorWikiMonitor {
+  generatedAt?: string | null
+  dispatchMode?: string | null
+  autoDispatchEnabled?: boolean
+  summary?: CrawlerMonitorWikiSummary | null
+  domains?: CrawlerMonitorWikiDomain[]
+  pendingDispatches?: CrawlerMonitorWikiDispatch[]
+}
+
 export interface CrawlerMonitorOverview {
   generatedAt?: string | null
   repoRoot?: string | null
@@ -154,6 +223,7 @@ export interface CrawlerMonitorOverview {
   refreshStaleThresholdMs?: number | null
   refreshStaleReason?: string | null
   imageNormalization?: CrawlerMonitorImageNormalizationSummary | null
+  wikiMonitor?: CrawlerMonitorWikiMonitor | null
   history?: CrawlerMonitorRun[]
   recentReports?: CrawlerMonitorReport[]
   architectureLayers?: CrawlerMonitorArchitectureLayer[]

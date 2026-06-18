@@ -67,7 +67,11 @@ const normalizeUrl = (url: string) => {
 }
 
 const getBaseURL = () => {
-  const config = useRuntimeConfig()
+  const config = useRuntimeConfig() as { backendOrigin?: string; public: { apiBase?: string } }
+  if (import.meta.server) {
+    const backendOrigin = String(config.backendOrigin || '')
+    if (backendOrigin) return `${backendOrigin.replace(/\/$/, '')}/api`
+  }
   return config.public.apiBase || ''
 }
 

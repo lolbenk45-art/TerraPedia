@@ -1,6 +1,9 @@
 package com.terraria.skills.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.terraria.skills.dto.CrawlerMonitorDispatchRequestDTO;
+import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
@@ -21,10 +24,13 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -1660,6 +1666,568 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("backend-refresh monitor files are missing or unreadable.", overview.getRefreshStaleReason());
     }
 
+    @Test
+    void shouldExposeWikiMonitorSummaryDomainsAndPendingApprovalRows() throws Exception {
+        writeJson(repoRoot.resolve("data/generated/source-update-monitor.latest.json"), Map.of(
+            "checkedAt", "2026-06-14T00:00:00Z",
+            "sources", List.of(
+                Map.of(
+                    "key", "wiki.module.iteminfo",
+                    "locator", "Module:Iteminfo/data",
+                    "checkedAt", "2026-06-14T00:00:00Z",
+                    "currentValue", "2026-06-13T00:00:00Z",
+                    "previousValue", "2026-06-01T00:00:00Z",
+                    "changed", true,
+                    "status", "ok"
+                ),
+                Map.of(
+                    "key", "wiki.domain.bosses",
+                    "locator", "Boss source snapshot pages",
+                    "checkedAt", "2026-06-14T00:00:00Z",
+                    "currentValue", "2026-06-13T00:00:00Z",
+                    "previousValue", "2026-06-13T00:00:00Z",
+                    "changed", false,
+                    "status", "ok"
+                )
+            )
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T00:05:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO.WikiMonitorDTO wikiMonitor = service.getOverview().getWikiMonitor();
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO items = wikiDomainById(wikiMonitor.getDomains(), "items");
+
+        assertEquals("manual", wikiMonitor.getDispatchMode());
+        assertFalse(wikiMonitor.isAutoDispatchEnabled());
+        assertEquals(10, wikiMonitor.getSummary().getDomainCount());
+        assertEquals(1, wikiMonitor.getSummary().getChangedCount());
+        assertEquals(1, wikiMonitor.getSummary().getPendingApprovalCount());
+        assertEquals("changed", items.getStatus());
+        assertEquals("wiki-core-refresh", items.getRecommendedActionId());
+        assertEquals("reports/backend-refresh/history/<run>.runtime/wiki-core-refresh.child-status.json", items.getProgressPath());
+        assertTrue(items.isRequiresApproval());
+        assertFalse(items.isAutoEligible());
+        assertEquals("manual", items.getDispatchMode());
+        assertEquals(30L, items.getCooldownMinutes());
+        assertEquals("2026-06-14T00:00:00Z", items.getLastCheckedAt());
+        assertEquals("2026-06-13T00:00:00Z", items.getCurrentValue());
+        assertEquals("2026-06-01T00:00:00Z", items.getPreviousValue());
+        assertEquals("items", wikiMonitor.getPendingDispatches().get(0).getDomain());
+        assertEquals("pending_approval", wikiMonitor.getPendingDispatches().get(0).getStatus());
+        assertEquals("awaiting approval", wikiMonitor.getPendingDispatches().get(0).getMessage());
+    }
+
+    @Test
+    void shouldNotCountAlreadyRunningWikiMonitorDispatchAsPendingApproval() throws Exception {
+        writeJson(repoRoot.resolve("data/generated/source-update-monitor.latest.json"), Map.of(
+            "checkedAt", "2026-06-14T00:00:00Z",
+            "sources", List.of(Map.of(
+                "key", "wiki.domain.bosses",
+                "locator", "Boss source snapshot pages",
+                "checkedAt", "2026-06-14T00:00:00Z",
+                "currentValue", "2026-06-13T00:00:00Z",
+                "previousValue", "2026-06-01T00:00:00Z",
+                "changed", true,
+                "status", "ok"
+            ))
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "dispatchId", "wiki-monitor-running",
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "status", "running",
+            "progressPath", "data/generated/domain-source-bosses-progress.latest.json",
+            "requestedAt", "2026-06-14T00:01:00Z"
+        ));
+        writeJson(repoRoot.resolve("data/generated/domain-source-bosses-progress.latest.json"), Map.of(
+            "actionId", "domain-source-bosses",
+            "status", "running",
+            "generatedAt", "2026-06-14T00:04:00Z",
+            "lastHeartbeatAt", "2026-06-14T00:04:00Z",
+            "phase", "fetch",
+            "message", "fetching boss source pages",
+            "current", 1,
+            "total", 3
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T00:05:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO.WikiMonitorDTO wikiMonitor = service.getOverview().getWikiMonitor();
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO bosses = wikiDomainById(wikiMonitor.getDomains(), "bosses");
+
+        assertEquals("running", bosses.getStatus());
+        assertEquals(1, wikiMonitor.getSummary().getChangedCount());
+        assertEquals(1, wikiMonitor.getSummary().getRunningCount());
+        assertEquals(0, wikiMonitor.getSummary().getPendingApprovalCount());
+        assertTrue(wikiMonitor.getPendingDispatches().isEmpty());
+    }
+
+    @Test
+    void shouldTreatStaleRunningWikiMonitorDispatchWithoutProgressAsStalled() throws Exception {
+        writeJson(repoRoot.resolve("data/generated/source-update-monitor.latest.json"), Map.of(
+            "checkedAt", "2026-06-14T00:00:00Z",
+            "sources", List.of(Map.of(
+                "key", "wiki.domain.bosses",
+                "locator", "Boss source snapshot pages",
+                "checkedAt", "2026-06-14T00:00:00Z",
+                "currentValue", "2026-06-13T00:00:00Z",
+                "previousValue", "2026-06-01T00:00:00Z",
+                "changed", true,
+                "status", "ok"
+            ))
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "dispatchId", "wiki-monitor-stale",
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "status", "running",
+            "progressPath", "data/generated/domain-source-bosses-progress.latest.json",
+            "requestedAt", "2026-06-14T00:01:00Z"
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T00:30:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO.WikiMonitorDTO wikiMonitor = service.getOverview().getWikiMonitor();
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO bosses = wikiDomainById(wikiMonitor.getDomains(), "bosses");
+
+        assertEquals("stalled", bosses.getStatus());
+        assertEquals(0, wikiMonitor.getSummary().getPendingApprovalCount());
+        assertTrue(wikiMonitor.getPendingDispatches().isEmpty());
+    }
+
+    @Test
+    void shouldRejectWikiMonitorDispatchWhenDomainActionPairIsNotWhitelisted() {
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+        CrawlerMonitorDispatchRequestDTO request = dispatchRequest("items", "domain-source-shimmer");
+
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> service.dispatchWikiMonitorTask(request)
+        );
+
+        assertEquals("Action domain-source-shimmer is not allowed for domain items", exception.getMessage());
+    }
+
+    @Test
+    void shouldRejectWikiMonitorDispatchWhenRequiredFieldsAreBlank() {
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        assertEquals(
+            "domain is required",
+            assertThrows(IllegalArgumentException.class, () -> service.dispatchWikiMonitorTask(dispatchRequest(" ", "wiki-core-refresh"))).getMessage()
+        );
+        assertEquals(
+            "actionId is required",
+            assertThrows(IllegalArgumentException.class, () -> service.dispatchWikiMonitorTask(dispatchRequest("items", " "))).getMessage()
+        );
+    }
+
+    @Test
+    void shouldLaunchWhitelistedBackendRefreshDispatchWithChildStatusProgressPath() throws Exception {
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-core-refresh"));
+
+        assertTrue(result.isAccepted());
+        assertEquals("running", result.getStatus());
+        assertEquals("items", result.getDomain());
+        assertEquals("wiki-core-refresh", result.getActionId());
+        assertTrue(result.getReportPath().startsWith("reports/backend-refresh/history/backend-data-refresh-wiki-monitor-2026-06-14T01-00-00Z-"));
+        assertTrue(result.getProgressPath().startsWith("reports/backend-refresh/history/backend-data-refresh-wiki-monitor-2026-06-14T01-00-00Z-"));
+        assertTrue(result.getProgressPath().endsWith(".runtime/wiki-core-refresh.child-status.json"));
+        assertEquals("reports/crawler-monitor/wiki-monitor-dispatch.lock.json", result.getLockPath());
+
+        CrawlerMonitorServiceImpl.LaunchRequest launch = launcher.lastRequest;
+        assertEquals(List.of(
+            "node",
+            "scripts/data/workflow/run-backend-data-refresh.mjs",
+            "--mode=apply",
+            "--steps=wiki-core-refresh",
+            "--output=" + result.getReportPath()
+        ), launch.command());
+        assertEquals(repoRoot.toFile(), launch.directory());
+        assertEquals(repoRoot.toString(), launch.environment().get("WORKTREE_ROOT"));
+        assertEquals("wiki-core-refresh", launch.environment().get("TERRAPEDIA_CRAWLER_ACTION_ID"));
+        assertEquals(result.getProgressPath(), launch.environment().get("TERRAPEDIA_CRAWLER_PROGRESS_PATH"));
+        assertTrue(launch.logFile().getPath().replace('\\', '/').endsWith(".log"));
+    }
+
+    @Test
+    void shouldLaunchWhitelistedDirectFetchDispatchWithCanonicalProgressPath() throws Exception {
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(dispatchRequest("bosses", "domain-source-bosses"));
+
+        assertTrue(result.isAccepted());
+        assertEquals("data/generated/domain-source-bosses-progress.latest.json", result.getProgressPath());
+        assertEquals(List.of(
+            "node",
+            "scripts/data/fetch/fetch-wiki-bosses.mjs",
+            "--progress-path=data/generated/domain-source-bosses-progress.latest.json"
+        ), launcher.lastRequest.command());
+        assertEquals("domain-source-bosses", launcher.lastRequest.environment().get("TERRAPEDIA_CRAWLER_ACTION_ID"));
+        assertEquals("data/generated/domain-source-bosses-progress.latest.json", launcher.lastRequest.environment().get("TERRAPEDIA_CRAWLER_PROGRESS_PATH"));
+    }
+
+    @Test
+    void shouldRejectWikiMonitorDispatchWhenAtomicLockAlreadyExists() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "dispatchId", "existing",
+            "domain", "items",
+            "actionId", "wiki-core-refresh"
+        ));
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot, Clock.systemUTC(), launcher);
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-core-refresh"));
+
+        assertFalse(result.isAccepted());
+        assertEquals("locked", result.getStatus());
+        assertEquals("another wiki monitor dispatch is running", result.getMessage());
+        assertEquals(0, launcher.launchCount);
+    }
+
+    @Test
+    void shouldReleaseStaleWikiMonitorDispatchLockBeforeLaunching() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "dispatchId", "stale-existing",
+            "domain", "items",
+            "actionId", "wiki-core-refresh",
+            "lockedAt", "2026-06-14T00:00:00Z"
+        ));
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T03:00:01Z"), ZoneOffset.UTC),
+            launcher
+        );
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-core-refresh"));
+
+        assertTrue(result.isAccepted());
+        assertEquals("running", result.getStatus());
+        assertEquals(1, launcher.launchCount);
+    }
+
+    @Test
+    void shouldRejectWikiMonitorDispatchWhenCooldownIsActive() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "dispatchId", "recent",
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "status", "completed",
+            "completedAt", "2026-06-14T01:00:00Z"
+        ));
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:20:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(dispatchRequest("bosses", "domain-source-bosses"));
+
+        assertFalse(result.isAccepted());
+        assertEquals("cooldown", result.getStatus());
+        assertEquals("dispatch cooldown is active", result.getMessage());
+        assertEquals(0, launcher.launchCount);
+    }
+
+    @Test
+    void shouldPauseAndResumeActiveWikiMonitorDispatchProcess() throws Exception {
+        ControllableBlockingProcess process = new ControllableBlockingProcess();
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(process);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorTask(dispatchRequest("bosses", "domain-source-bosses"));
+
+        CrawlerMonitorDispatchRequestDTO pause = dispatchRequest("bosses", "domain-source-bosses");
+        pause.setControlAction("pause");
+        CrawlerMonitorDispatchResultDTO paused = service.controlWikiMonitorDispatch(pause);
+
+        assertTrue(started.isAccepted());
+        assertTrue(paused.isAccepted());
+        assertEquals("paused", paused.getStatus());
+        assertEquals(1, process.pauseCount);
+        assertEquals(0, process.resumeCount);
+
+        CrawlerMonitorDispatchRequestDTO resume = dispatchRequest("bosses", "domain-source-bosses");
+        resume.setControlAction("resume");
+        CrawlerMonitorDispatchResultDTO resumed = service.controlWikiMonitorDispatch(resume);
+
+        assertTrue(resumed.isAccepted());
+        assertEquals("running", resumed.getStatus());
+        assertEquals(1, process.resumeCount);
+    }
+
+    @Test
+    void shouldCancelActiveWikiMonitorDispatchAndReleaseLock() throws Exception {
+        ControllableBlockingProcess process = new ControllableBlockingProcess();
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(process);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorTask(dispatchRequest("bosses", "domain-source-bosses"));
+
+        CrawlerMonitorDispatchRequestDTO cancel = dispatchRequest("bosses", "domain-source-bosses");
+        cancel.setControlAction("cancel");
+        CrawlerMonitorDispatchResultDTO cancelled = service.controlWikiMonitorDispatch(cancel);
+
+        assertTrue(started.isAccepted());
+        assertTrue(cancelled.isAccepted());
+        assertEquals("cancelled", cancelled.getStatus());
+        assertEquals("dispatch cancelled", cancelled.getMessage());
+        assertEquals(1, process.terminateCount);
+        assertFalse(process.isAlive());
+        assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+
+        Map<String, Object> latest = new ObjectMapper().readValue(
+            Files.readString(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json")),
+            new TypeReference<>() {}
+        );
+        assertEquals("cancelled", latest.get("status"));
+        assertEquals("cancel", latest.get("controlAction"));
+        assertEquals("dispatch cancelled", latest.get("message"));
+        assertEquals("2026-06-14T01:05:00Z", latest.get("completedAt"));
+    }
+
+    @Test
+    void shouldControlActiveRegisteredTaskByActionIdWithoutDomain() throws Exception {
+        ControllableBlockingProcess process = new ControllableBlockingProcess();
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(process);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        service.dispatchWikiMonitorTask(dispatchRequest("buffs", "buff-page-immunity-refresh"));
+
+        CrawlerMonitorDispatchRequestDTO pause = new CrawlerMonitorDispatchRequestDTO();
+        pause.setActionId("buff-page-immunity-refresh");
+        pause.setControlAction("pause");
+        CrawlerMonitorDispatchResultDTO paused = service.controlWikiMonitorDispatch(pause);
+
+        assertTrue(paused.isAccepted());
+        assertEquals("paused", paused.getStatus());
+        assertEquals("buffs", paused.getDomain());
+        assertEquals("buff-page-immunity-refresh", paused.getActionId());
+        assertEquals(1, process.pauseCount);
+    }
+
+    @Test
+    void shouldControlLegacyOsProcessWhenActionMatchesRuleCommand() {
+        ControllableBlockingProcess process = new ControllableBlockingProcess();
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(process);
+        launcher.legacyActionId = "buff-page-immunity-refresh";
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+
+        CrawlerMonitorDispatchRequestDTO pause = new CrawlerMonitorDispatchRequestDTO();
+        pause.setActionId("buff-page-immunity-refresh");
+        pause.setControlAction("pause");
+        CrawlerMonitorDispatchResultDTO paused = service.controlWikiMonitorDispatch(pause);
+
+        assertTrue(paused.isAccepted());
+        assertEquals("paused", paused.getStatus());
+        assertEquals("legacy-os-process", paused.getDispatchId());
+        assertEquals(1, process.pauseCount);
+    }
+
+    @Test
+    void shouldOverlayPausedWikiMonitorDispatchStatusOnRegisteredTaskProgress() throws Exception {
+        writeJson(repoRoot.resolve("data/generated/fetch-wiki-buffs-progress.latest.json"), Map.ofEntries(
+            Map.entry("actionId", "buff-page-immunity-refresh"),
+            Map.entry("status", "running"),
+            Map.entry("phase", "fetch"),
+            Map.entry("message", "fetching buff immunity pages"),
+            Map.entry("current", 12),
+            Map.entry("total", 388),
+            Map.entry("lastHeartbeatAt", "2026-06-14T01:04:30Z"),
+            Map.entry("generatedAt", "2026-06-14T01:04:30Z")
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "dispatchId", "legacy-os-process",
+            "domain", "buffs",
+            "actionId", "buff-page-immunity-refresh",
+            "status", "paused",
+            "controlAction", "pause",
+            "message", "dispatch paused",
+            "controlledAt", "2026-06-14T01:05:00Z",
+            "progressPath", "data/generated/fetch-wiki-buffs-progress.latest.json"
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:06:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO buffRefresh = taskById(
+            service.getOverview().getRegisteredTasks(),
+            "buff-page-immunity-refresh"
+        );
+
+        assertEquals("paused", buffRefresh.getStatus());
+        assertEquals("paused", buffRefresh.getProgressKind());
+        assertFalse(buffRefresh.isProgressStale());
+        assertEquals("dispatch paused", buffRefresh.getQueueState());
+        assertEquals("2026-06-14T01:05:00Z", buffRefresh.getUpdatedAt());
+    }
+
+    @Test
+    void shouldSignalActiveProcessTreeWhenPausingDispatch() throws Exception {
+        ControllableBlockingProcess root = new ControllableBlockingProcess();
+        ControllableBlockingProcess child = new ControllableBlockingProcess();
+        root.children = List.of(child);
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(root);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        service.dispatchWikiMonitorTask(dispatchRequest("bosses", "domain-source-bosses"));
+
+        CrawlerMonitorDispatchRequestDTO pause = dispatchRequest("bosses", "domain-source-bosses");
+        pause.setControlAction("pause");
+        CrawlerMonitorDispatchResultDTO paused = service.controlWikiMonitorDispatch(pause);
+
+        assertTrue(paused.isAccepted());
+        assertEquals(1, root.pauseCount);
+        assertEquals(1, child.pauseCount);
+    }
+
+    @Test
+    void shouldLaunchBoundedWikiMonitorDomainSmokeWithFixedLimitAndServerSideCommand() throws Exception {
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorDomainSmoke();
+
+        assertTrue(result.isAccepted());
+        assertEquals("all", result.getDomain());
+        assertEquals("wiki-monitor-domain-smoke", result.getActionId());
+        assertEquals("running", result.getStatus());
+        assertEquals("reports/crawler-monitor/wiki-monitor-domain-smoke-progress.latest.json", result.getProgressPath());
+        assertEquals("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json", result.getLockPath());
+        assertTrue(result.getReportPath().startsWith("reports/crawler-monitor/wiki-monitor-domain-smoke-"));
+        assertEquals(1, launcher.launchCount);
+        assertEquals("node", launcher.lastRequest.command().get(0));
+        assertEquals("scripts/data/monitor/wiki-monitor-domain-smoke.mjs", launcher.lastRequest.command().get(1));
+        assertTrue(launcher.lastRequest.command().contains("--limit=10"));
+        assertTrue(launcher.lastRequest.command().stream().anyMatch(arg -> arg.startsWith("--run-id=wiki-monitor-domain-smoke-")));
+        assertEquals("wiki-monitor-domain-smoke", launcher.lastRequest.environment().get("TERRAPEDIA_CRAWLER_ACTION_ID"));
+        assertEquals("reports/crawler-monitor/wiki-monitor-domain-smoke-progress.latest.json", launcher.lastRequest.environment().get("TERRAPEDIA_CRAWLER_PROGRESS_PATH"));
+        assertTrue(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json")));
+    }
+
+    @Test
+    void shouldRejectWikiMonitorDomainSmokeWhenLockAlreadyExists() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json"), Map.of(
+            "dispatchId", "existing",
+            "domain", "all",
+            "actionId", "wiki-monitor-domain-smoke"
+        ));
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot, Clock.systemUTC(), launcher);
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorDomainSmoke();
+
+        assertFalse(result.isAccepted());
+        assertEquals("locked", result.getStatus());
+        assertEquals("another wiki monitor domain smoke is running", result.getMessage());
+        assertEquals(0, launcher.launchCount);
+    }
+
+    @Test
+    void shouldExposeWikiMonitorDomainSmokeProgressAsRegisteredTask() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-domain-smoke-progress.latest.json"), Map.ofEntries(
+            Map.entry("actionId", "wiki-monitor-domain-smoke"),
+            Map.entry("status", "running"),
+            Map.entry("phase", "download"),
+            Map.entry("message", "downloaded items 1/10"),
+            Map.entry("current", 1),
+            Map.entry("total", 10),
+            Map.entry("overallCurrent", 1),
+            Map.entry("overallTotal", 10),
+            Map.entry("lastHeartbeatAt", "2026-06-14T01:00:00Z"),
+            Map.entry("reportPath", "reports/crawler-monitor/wiki-monitor-domain-smoke-run.json"),
+            Map.entry("outputPath", "reports/crawler-monitor/wiki-monitor-domain-smoke-run"),
+            Map.entry("domains", List.of(Map.of(
+                "domain", "items",
+                "label", "Items",
+                "status", "completed",
+                "actualCount", 10,
+                "limit", 10
+            )))
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:01:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = taskById(overview.getRegisteredTasks(), "wiki-monitor-domain-smoke");
+
+        assertEquals("running", task.getStatus());
+        assertEquals("live", task.getProgressKind());
+        assertEquals(1L, task.getCurrent());
+        assertEquals(10L, task.getTotal());
+        assertEquals("reports/crawler-monitor/wiki-monitor-domain-smoke-progress.latest.json", task.getProgressPath());
+        assertEquals("reports/crawler-monitor/wiki-monitor-domain-smoke-run.json", task.getReportPath());
+        assertEquals(1, ((List<?>) task.getProgressPayload().get("domains")).size());
+    }
+
+    private CrawlerMonitorDispatchRequestDTO dispatchRequest(String domain, String actionId) {
+        CrawlerMonitorDispatchRequestDTO request = new CrawlerMonitorDispatchRequestDTO();
+        request.setDomain(domain);
+        request.setActionId(actionId);
+        return request;
+    }
+
     private void writeJson(Path path, Map<String, Object> payload) throws IOException {
         Files.createDirectories(path.getParent());
         new ObjectMapper().writeValue(path.toFile(), payload);
@@ -1693,5 +2261,127 @@ class CrawlerMonitorServiceImplTest {
             .filter(file -> label.equals(file.getLabel()))
             .findFirst()
             .orElseThrow(() -> new AssertionError("Missing architecture file " + label));
+    }
+
+    private CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO wikiDomainById(
+        List<CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO> domains,
+        String id
+    ) {
+        return domains.stream()
+            .filter(domain -> id.equals(domain.getDomain()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("Missing wiki monitor domain " + id));
+    }
+
+    private static class RecordingProcessLauncher implements CrawlerMonitorServiceImpl.ProcessLauncher {
+        private final Process process;
+        private CrawlerMonitorServiceImpl.LaunchRequest lastRequest;
+        private int launchCount;
+        private String legacyActionId;
+
+        RecordingProcessLauncher(Process process) {
+            this.process = process;
+        }
+
+        @Override
+        public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+            this.lastRequest = request;
+            this.launchCount++;
+            return process;
+        }
+
+        @Override
+        public Process findLegacyProcess(CrawlerMonitorServiceImpl.LegacyProcessRequest request) {
+            return request.actionId().equals(legacyActionId) ? process : null;
+        }
+
+        @Override
+        public boolean pause(Process process) {
+            if (process instanceof ControllableBlockingProcess controllable) {
+                controllable.pauseCount++;
+                for (ControllableBlockingProcess child : controllable.children) {
+                    pause(child);
+                }
+                return true;
+            }
+            return CrawlerMonitorServiceImpl.ProcessLauncher.super.pause(process);
+        }
+
+        @Override
+        public boolean resume(Process process) {
+            if (process instanceof ControllableBlockingProcess controllable) {
+                controllable.resumeCount++;
+                for (ControllableBlockingProcess child : controllable.children) {
+                    resume(child);
+                }
+                return true;
+            }
+            return CrawlerMonitorServiceImpl.ProcessLauncher.super.resume(process);
+        }
+
+        @Override
+        public boolean destroy(Process process) {
+            if (process instanceof ControllableBlockingProcess controllable) {
+                controllable.terminateCount++;
+                for (ControllableBlockingProcess child : controllable.children) {
+                    destroy(child);
+                }
+                controllable.destroy();
+                return true;
+            }
+            return CrawlerMonitorServiceImpl.ProcessLauncher.super.destroy(process);
+        }
+    }
+
+    private static class BlockingProcess extends Process {
+        private final CountDownLatch completed = new CountDownLatch(1);
+        private int exitCode;
+
+        @Override
+        public int waitFor() throws InterruptedException {
+            completed.await();
+            return exitCode;
+        }
+
+        @Override
+        public boolean waitFor(long timeout, TimeUnit unit) throws InterruptedException {
+            return completed.await(timeout, unit);
+        }
+
+        @Override
+        public int exitValue() {
+            if (completed.getCount() > 0) {
+                throw new IllegalThreadStateException("process still running");
+            }
+            return exitCode;
+        }
+
+        @Override
+        public void destroy() {
+            exitCode = 143;
+            completed.countDown();
+        }
+
+        @Override
+        public java.io.OutputStream getOutputStream() {
+            return java.io.OutputStream.nullOutputStream();
+        }
+
+        @Override
+        public java.io.InputStream getInputStream() {
+            return java.io.InputStream.nullInputStream();
+        }
+
+        @Override
+        public java.io.InputStream getErrorStream() {
+            return java.io.InputStream.nullInputStream();
+        }
+    }
+
+    private static class ControllableBlockingProcess extends BlockingProcess {
+        private int pauseCount;
+        private int resumeCount;
+        private int terminateCount;
+        private List<ControllableBlockingProcess> children = List.of();
     }
 }

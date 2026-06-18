@@ -24,6 +24,7 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    backendOrigin: terrapediaBackendOrigin,
     public: {
       apiBase: '/api',
     },

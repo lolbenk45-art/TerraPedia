@@ -32,6 +32,22 @@
             <TimerReset :size="16" />
             <span>{{ autoRefreshLabel }}</span>
           </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            :disabled="domainSmokeRunning || loading || saving || simulationRunning"
+            @click="startDomainSmoke"
+          >
+            <Download :size="16" :class="{ spin: domainSmokeRunning }" />
+            <span>{{ domainSmokePrimaryActionLabel }}</span>
+          </button>
+          <button type="button" class="btn btn-secondary" :disabled="domainSmokeProgressActive" @click="clearDomainSmokeDisplay">
+            <X :size="16" />
+            <span>清除本次展示</span>
+          </button>
+          <NuxtLink class="btn btn-secondary" to="/operations/crawler-monitor">
+            回到监控页
+          </NuxtLink>
           <label class="refresh-interval-control">
             <span>间隔</span>
             <input
@@ -129,6 +145,78 @@
         </button>
         <small v-if="editorDirty" class="simulation-warning">开始前请保存或重置 JSON 编辑。</small>
       </div>
+    </section>
+
+    <section v-if="domainSmokeResult" class="section-card smoke-panel">
+      <div class="section-head">
+        <div>
+          <h2 class="section-card__title">真实下载测试</h2>
+          <p class="section-card__subtitle">后端固定执行 wiki-monitor-domain-smoke，每个域最多 10 条。</p>
+        </div>
+        <span class="status-pill" :class="statusTone(domainSmokeResult.status)">{{ statusLabel(domainSmokeResult.status) }}</span>
+      </div>
+      <div class="smoke-meta">
+        <span>任务 {{ domainSmokeResult.dispatchId || '--' }}</span>
+        <span>进度 {{ domainSmokeResult.progressPath || '--' }}</span>
+        <span>报告 {{ domainSmokeResult.reportPath || '--' }}</span>
+      </div>
+    </section>
+
+    <section class="section-card smoke-progress-panel">
+      <div class="section-head">
+        <div>
+          <h2 class="section-card__title">真实下载进度</h2>
+          <p class="section-card__subtitle">读取后端 overview 中的 wiki-monitor-domain-smoke 进度文件。</p>
+        </div>
+        <span class="status-pill" :class="statusTone(domainSmokeProgressStatus)">
+          {{ statusLabel(domainSmokeProgressStatus) }}
+        </span>
+      </div>
+
+      <div class="smoke-progress-summary">
+        <span>
+          <small>总进度</small>
+          <strong>{{ domainSmokeProgressLabel }}</strong>
+        </span>
+        <span>
+          <small>汇总</small>
+          <strong>{{ domainSmokeSummaryLabel }}</strong>
+        </span>
+        <span>
+          <small>域</small>
+          <strong>{{ formatNumber(visibleDomainSmokeProgressRows.length) }}</strong>
+        </span>
+        <span>
+          <small>当前域</small>
+          <strong>{{ domainSmokeCurrentDomain || '--' }}</strong>
+        </span>
+        <span>
+          <small>更新时间</small>
+          <strong>{{ formatDate(domainSmokeProgressTask?.progressHeartbeatAt || domainSmokeProgressTask?.updatedAt) }}</strong>
+        </span>
+      </div>
+      <div class="progress-track">
+        <span :class="statusTone(domainSmokeProgressStatus)" :style="{ width: domainSmokeProgressWidth }" />
+      </div>
+      <div class="smoke-meta">
+        <span>进度 {{ domainSmokeProgressTask?.progressSource || domainSmokeProgressTask?.progressPath || domainSmokeResult?.progressPath || '--' }}</span>
+        <span>报告 {{ domainSmokeProgressTask?.reportPath || domainSmokeResult?.reportPath || '--' }}</span>
+      </div>
+
+      <div v-if="visibleDomainSmokeProgressRows.length" class="smoke-domain-grid">
+        <article v-for="row in visibleDomainSmokeProgressRows" :key="row.domain || row.label || 'domain-smoke'" class="smoke-domain-row">
+          <div>
+            <strong>{{ row.label || row.domain || '未知域' }}</strong>
+            <small>{{ row.sourceKey || row.locator || row.message || '--' }}</small>
+          </div>
+          <span class="status-pill" :class="statusTone(row.status)">{{ statusLabel(row.status) }}</span>
+          <div class="smoke-domain-row__result">
+            <strong>{{ domainSmokeRowCountLabel(row) }}</strong>
+            <code v-if="domainSmokeRowPath(row)">{{ domainSmokeRowPath(row) }}</code>
+          </div>
+        </article>
+      </div>
+      <div v-else class="table-empty">{{ domainSmokeDisplayCleared ? '本次展示已清除；重新执行或刷新后可再次查看真实进度。' : '暂无真实下载进度；点击“每域 10 条”后等待下一次自动刷新。' }}</div>
     </section>
 
     <section class="section-card scenario-panel">
@@ -230,6 +318,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock3,
+  Download,
   FileJson,
   LockKeyhole,
   Play,
@@ -242,9 +331,14 @@ import {
 } from 'lucide-vue-next'
 import { get, post, put } from '~/composables/useApi'
 import { showToast } from '~/composables/useToast'
+import {
+  progressRowsFromOverview,
+  rowStatus,
+} from '~/utils/crawlerMonitorProgressRows.mjs'
 import type {
   CrawlerMonitorAction,
   CrawlerMonitorFile,
+  CrawlerMonitorRegisteredTask,
   CrawlerMonitorRun,
   CrawlerMonitorTestPayload,
   CrawlerMonitorTestState,
@@ -262,6 +356,25 @@ type StatusCard = {
 
 type ScenarioKey = 'idle' | 'running' | 'failed' | 'completed' | 'locked' | 'stale'
 type SimulationResult = 'completed' | 'failed'
+type DomainSmokeProgressRow = {
+  domain?: string | null
+  label?: string | null
+  sourceKey?: string | null
+  locator?: string | null
+  message?: string | null
+  status?: string | null
+  actualCount?: number | null
+  current?: number | null
+  requestedLimit?: number | null
+  limit?: number | null
+  total?: number | null
+  outputPath?: string | null
+  error?: string | null
+}
+type ProgressRow = CrawlerMonitorRegisteredTask & {
+  rowKey: string
+  action?: CrawlerMonitorAction | null
+}
 
 const MIN_REFRESH_INTERVAL_SECONDS = 2
 const MAX_REFRESH_INTERVAL_SECONDS = 120
@@ -286,6 +399,10 @@ const simulationResult = ref<SimulationResult>('completed')
 const simulationRunning = ref(false)
 const simulationFinished = ref(false)
 const simulationElapsedSeconds = ref(0)
+const domainSmokeRunning = ref(false)
+const domainSmokeResult = ref<Record<string, any> | null>(null)
+const domainSmokeDisplayCleared = ref(false)
+const liveOverview = ref<any | null>(null)
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 let simulationTimer: ReturnType<typeof setInterval> | null = null
 let simulationStartedAt = 0
@@ -296,11 +413,61 @@ let simulationFinishSilent = false
 
 const payload = computed<CrawlerMonitorTestPayload>(() => testState.value?.payload || {})
 const overview = computed(() => testState.value?.overview || null)
+const smokeOverview = computed(() => liveOverview.value || overview.value)
 const daemon = computed(() => overview.value?.daemon || null)
 const scheduler = computed(() => overview.value?.scheduler || null)
 const lockFile = computed(() => overview.value?.lock || null)
 const latestRun = computed<CrawlerMonitorRun>(() => overview.value?.latestRun || {})
 const actions = computed<CrawlerMonitorAction[]>(() => Array.isArray(latestRun.value.actions) ? latestRun.value.actions : [])
+const progressRows = computed<ProgressRow[]>(() => progressRowsFromOverview(smokeOverview.value))
+const domainSmokeProgressTask = computed<ProgressRow | null>(() => {
+  return progressRows.value.find((row) => row.id === 'wiki-monitor-domain-smoke')
+    || progressRows.value.find((row) => String(row.progressPath || row.progressSource || '').includes('wiki-monitor-domain-smoke-progress'))
+    || null
+})
+const domainSmokeProgressPayload = computed<Record<string, any>>(() => {
+  const payload = domainSmokeProgressTask.value?.progressPayload
+  return payload && typeof payload === 'object' && !Array.isArray(payload) ? payload as Record<string, any> : {}
+})
+const domainSmokeProgressRows = computed<DomainSmokeProgressRow[]>(() => {
+  const domains = domainSmokeProgressPayload.value.domains
+  return Array.isArray(domains) ? domains : []
+})
+const visibleDomainSmokeProgressRows = computed(() => domainSmokeDisplayCleared.value ? [] : domainSmokeProgressRows.value)
+const domainSmokeProgressStatus = computed(() => {
+  if (domainSmokeDisplayCleared.value) return 'missing'
+  return rowStatus(domainSmokeProgressTask.value)
+    || String(domainSmokeProgressPayload.value.status || domainSmokeResult.value?.status || 'missing')
+})
+const domainSmokeActive = computed(() => ['running', 'stalled'].includes(String(domainSmokeProgressStatus.value).toLowerCase()))
+const domainSmokeProgressActive = computed(() => ['running', 'stalled'].includes(String(domainSmokeProgressStatus.value).toLowerCase()))
+const domainSmokeCurrentDomain = computed(() => String(domainSmokeProgressPayload.value.currentDomain || domainSmokeProgressPayload.value.domain || ''))
+const domainSmokeProgressLabel = computed(() => {
+  if (domainSmokeDisplayCleared.value) return '--'
+  const current = finiteNumber(domainSmokeProgressTask.value?.overallCurrent ?? domainSmokeProgressTask.value?.current)
+  const total = finiteNumber(domainSmokeProgressTask.value?.overallTotal ?? domainSmokeProgressTask.value?.total)
+  if (current != null && total != null && total > 0) return `${formatNumber(current)}/${formatNumber(total)}`
+  const completedDomains = domainSmokeProgressRows.value.filter((row) => String(row.status || '').toLowerCase() === 'completed').length
+  if (domainSmokeProgressRows.value.length) return `${formatNumber(completedDomains)}/${formatNumber(domainSmokeProgressRows.value.length)} 域`
+  return '--'
+})
+const domainSmokeProgressWidth = computed(() => {
+  if (domainSmokeDisplayCleared.value) return '0%'
+  const percent = finiteNumber(domainSmokeProgressTask.value?.percent)
+  if (percent != null) return `${clampPercent(percent)}%`
+  const current = finiteNumber(domainSmokeProgressTask.value?.overallCurrent ?? domainSmokeProgressTask.value?.current)
+  const total = finiteNumber(domainSmokeProgressTask.value?.overallTotal ?? domainSmokeProgressTask.value?.total)
+  if (current != null && total != null && total > 0) return `${clampPercent((current / total) * 100)}%`
+  return ['completed', 'failed'].includes(String(domainSmokeProgressStatus.value).toLowerCase()) ? '100%' : '0%'
+})
+const domainSmokeCompletedCount = computed(() => visibleDomainSmokeProgressRows.value.filter((row) => String(row.status || '').toLowerCase() === 'completed').length)
+const domainSmokeFailedCount = computed(() => visibleDomainSmokeProgressRows.value.filter((row) => String(row.status || '').toLowerCase() === 'failed').length)
+const domainSmokeSummaryLabel = computed(() => `${formatNumber(domainSmokeCompletedCount.value)} 完成 / ${formatNumber(domainSmokeFailedCount.value)} 失败`)
+const domainSmokePrimaryActionLabel = computed(() => {
+  if (domainSmokeRunning.value) return '下载中'
+  if (domainSmokeResult.value || domainSmokeProgressRows.value.length) return '重新执行'
+  return '每域 10 条'
+})
 const refreshStale = computed(() => Boolean(overview.value?.refreshStale))
 const filePath = computed(() => testState.value?.filePath || testState.value?.path || 'reports/backend-refresh/manual-monitor-test.json')
 const autoRefreshLabel = computed(() => autoRefresh.value ? `自动刷新 ${refreshIntervalSeconds.value}s` : '自动刷新关闭')
@@ -404,11 +571,18 @@ watch(refreshIntervalSeconds, () => {
   }
 })
 
+watch(domainSmokeActive, () => {
+  if (autoRefresh.value) {
+    syncAutoRefresh()
+  }
+})
+
 async function loadState() {
   loading.value = true
   try {
     const response: any = await get('/admin/crawler-monitor/test-state')
     testState.value = (response?.data ?? response) || null
+    await loadLiveOverview()
     if (!editorDirty.value && !saving.value) {
       editorText.value = JSON.stringify(testState.value?.payload || {}, null, 2)
     }
@@ -417,6 +591,15 @@ async function loadState() {
     showToast(error?.data?.message || error?.message || '加载测试状态失败', 'error')
   } finally {
     loading.value = false
+  }
+}
+
+async function loadLiveOverview() {
+  try {
+    const response: any = await get('/admin/crawler-monitor/overview')
+    liveOverview.value = (response?.data ?? response) || null
+  } catch (error) {
+    console.error('Failed to load live crawler monitor overview:', error)
   }
 }
 
@@ -477,6 +660,33 @@ async function resetState() {
   }
 }
 
+async function startDomainSmoke() {
+  if (domainSmokeRunning.value || loading.value || saving.value || simulationRunning.value) return
+  domainSmokeRunning.value = true
+  try {
+    const response: any = await post('/admin/crawler-monitor/test-domain-smoke', {})
+    const result = (response?.data ?? response) || null
+    domainSmokeResult.value = result
+    domainSmokeDisplayCleared.value = false
+    if (result?.accepted) {
+      showToast('每域 10 条真实下载测试已启动')
+      await loadState()
+      return
+    }
+    showToast(result?.message || '真实下载测试未启动', 'error')
+  } catch (error: any) {
+    console.error('Failed to start wiki monitor domain smoke:', error)
+    showToast(error?.data?.message || error?.message || '启动真实下载测试失败', 'error')
+  } finally {
+    domainSmokeRunning.value = false
+  }
+}
+
+function clearDomainSmokeDisplay() {
+  domainSmokeResult.value = null
+  domainSmokeDisplayCleared.value = true
+}
+
 function syncAutoRefresh() {
   clearRefreshTimer()
   if (!autoRefresh.value || !import.meta.client) return
@@ -484,7 +694,7 @@ function syncAutoRefresh() {
     if (!loading.value && !saving.value) {
       loadState()
     }
-  }, refreshIntervalSeconds.value * 1000)
+  }, (domainSmokeActive.value ? MIN_REFRESH_INTERVAL_SECONDS : refreshIntervalSeconds.value) * 1000)
 }
 
 function clearRefreshTimer() {
@@ -831,6 +1041,8 @@ function statusLabel(status?: string | null) {
   if (normalized === 'failed') return '失败 failed'
   if (normalized === 'running') return '运行中 running'
   if (normalized === 'pending') return '等待中 pending'
+  if (normalized === 'stalled') return '停滞 stalled'
+  if (normalized === 'partial') return '部分完成 partial'
   if (normalized === 'missing') return '缺失 missing'
   if (normalized === 'readable') return '可读取 readable'
   if (normalized === 'read error') return '读取错误 read error'
@@ -846,13 +1058,31 @@ function statusTone(status?: string | null) {
   if (['completed', 'success', 'ok', 'readable', 'free', 'current'].includes(normalized)) return 'success'
   if (['failed', 'error', 'missing', 'read error', 'stale'].includes(normalized)) return 'danger'
   if (['running', 'active'].includes(normalized)) return 'info'
-  if (['pending', 'sleeping', 'locked', 'idle'].includes(normalized)) return 'warning'
+  if (['pending', 'sleeping', 'locked', 'idle', 'stalled', 'partial'].includes(normalized)) return 'warning'
   return 'muted'
+}
+
+function domainSmokeRowCountLabel(row: DomainSmokeProgressRow) {
+  return `${formatNumber(row.actualCount ?? row.current)}/${formatNumber(row.requestedLimit ?? row.limit ?? row.total ?? 10)}`
+}
+
+function domainSmokeRowPath(row: DomainSmokeProgressRow) {
+  return row.outputPath || ''
 }
 
 function formatNumber(value: number | string | null | undefined) {
   const parsed = Number(value || 0)
   return Number.isFinite(parsed) ? parsed.toLocaleString('zh-CN') : '0'
+}
+
+function finiteNumber(value: number | string | null | undefined) {
+  if (value == null || value === '') return null
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : null
+}
+
+function clampPercent(value: number) {
+  return Math.max(0, Math.min(100, value))
 }
 
 function formatDate(value: number | string | null | undefined) {
@@ -981,8 +1211,87 @@ function shortArgs(args?: string[]) {
 
 .scenario-panel,
 .simulation-panel,
+.smoke-panel,
 .monitor-panel {
   min-width: 0;
+}
+
+.smoke-meta {
+  display: grid;
+  gap: 8px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.smoke-progress-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.smoke-progress-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.smoke-progress-summary span {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 72%, var(--color-bg));
+}
+
+.smoke-progress-summary small,
+.smoke-domain-row small {
+  display: block;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.smoke-progress-summary strong,
+.smoke-domain-row strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.smoke-domain-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.smoke-domain-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(96px, 0.45fr);
+  gap: 12px;
+  align-items: center;
+  min-height: 54px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
+  border-radius: 8px;
+  background: var(--color-bg);
+}
+
+.smoke-domain-row > div {
+  min-width: 0;
+}
+
+.smoke-domain-row__result {
+  min-width: 0;
+  text-align: right;
+}
+
+.smoke-domain-row__result code {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .simulation-controls {
@@ -1237,6 +1546,10 @@ function shortArgs(args?: string[]) {
     grid-column: 1 / -1;
   }
 
+  .smoke-progress-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .scenario-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -1263,6 +1576,15 @@ function shortArgs(args?: string[]) {
 
   .simulation-progress {
     grid-column: auto;
+  }
+
+  .smoke-progress-summary,
+  .smoke-domain-row {
+    grid-template-columns: 1fr;
+  }
+
+  .smoke-domain-row__result {
+    text-align: left;
   }
 
   .test-actions .btn,

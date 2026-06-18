@@ -3,6 +3,8 @@ package com.terraria.skills.service.impl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.terraria.skills.dto.CrawlerMonitorDispatchRequestDTO;
+import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
@@ -12,8 +14,12 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileTime;
 import java.time.Clock;
 import java.time.Duration;
@@ -27,6 +33,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -50,6 +58,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path DOMAIN_SOURCE_SHIMMER_PROGRESS_FILE = Path.of("data", "generated", "domain-source-shimmer-progress.latest.json");
     private static final Path DOMAIN_SOURCE_TOWN_NPC_MAINTENANCE_PROGRESS_FILE = Path.of("data", "generated", "domain-source-town-npc-maintenance-progress.latest.json");
     private static final Path WIKI_AUDIO_ASSETS_PROGRESS_FILE = Path.of("data", "generated", "wiki-audio-assets-progress.latest.json");
+    private static final Path WIKI_SOURCE_UPDATE_STATE_FILE = Path.of("data", "generated", "source-update-monitor.latest.json");
+    private static final Path WIKI_MONITOR_DISPATCH_FILE = Path.of("reports", "crawler-monitor", "wiki-monitor-dispatch.latest.json");
+    private static final Path WIKI_MONITOR_DISPATCH_LOCK_FILE = Path.of("reports", "crawler-monitor", "wiki-monitor-dispatch.lock.json");
+    private static final Path WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE = Path.of("reports", "crawler-monitor", "wiki-monitor-domain-smoke-progress.latest.json");
+    private static final Path WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE = Path.of("reports", "crawler-monitor", "wiki-monitor-domain-smoke.lock.json");
+    private static final Duration WIKI_MONITOR_DISPATCH_COOLDOWN = Duration.ofMinutes(30);
+    private static final Duration WIKI_MONITOR_DISPATCH_LOCK_STALE = Duration.ofHours(2);
+    private static final int WIKI_MONITOR_DOMAIN_SMOKE_LIMIT = 10;
     private static final Path NPC_COVERAGE_REPORT = Path.of("data", "wiki-crawler", "report", "npc", "coverage-audit.latest.json");
     private static final Path RAW_ITEM_PAGES_DIR = Path.of("raw", "wiki", "item-pages");
     private static final Path STANDARDIZED_DIR = Path.of("standardized");
@@ -68,6 +84,28 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final String REDIS_BUFF_PROGRESS_KEY = "terrapedia:crawler:buff-page-immunity-refresh:progress";
     private static final String REDIS_BACKEND_ACTION_PROGRESS_PREFIX = "terrapedia:crawler:backend-refresh:action:";
     private static final String REDIS_BACKEND_ACTION_PROGRESS_SUFFIX = ":progress";
+    private static final List<WikiMonitorRule> WIKI_MONITOR_RULES = List.of(
+        backendRule("items", "Items", "wiki.module.iteminfo", "Module:Iteminfo/data", "wiki-core-refresh"),
+        backendRule("npcs", "NPCs", "wiki.module.npcinfo", "Module:Npcinfo/data", "wiki-core-refresh"),
+        backendRule("projectiles", "Projectiles", "wiki.module.projectileinfo", "Module:Projectileinfo/data", "wiki-core-refresh"),
+        directRule("buffs", "Buffs", "wiki.page.template_getbuffinfo", "Template:GetBuffInfo", "buff-page-immunity-refresh",
+            "data/generated/fetch-wiki-buffs-progress.latest.json",
+            List.of("node", "scripts/data/fetch/fetch-wiki-buffs.mjs", "--progress-path=data/generated/fetch-wiki-buffs-progress.latest.json")),
+        directRule("armor_sets", "Armor sets", "wiki.module.armorsetbonuses", "Module:ArmorSetBonuses", "domain-source-armor-sets",
+            "data/generated/domain-source-armor-sets-progress.latest.json",
+            List.of("node", "scripts/data/fetch/fetch-wiki-armor-sets.mjs", "--progress-path=data/generated/domain-source-armor-sets-progress.latest.json")),
+        backendRule("recipes", "Recipes", "wiki.zh.recipes", "zh recipe source coverage", "recipe-reference-sync"),
+        backendRule("biomes", "Biomes", "wiki.page.biomes_anchor", "Forest", "biome-sync"),
+        directRule("bosses", "Bosses", "wiki.domain.bosses", "Boss source snapshot pages", "domain-source-bosses",
+            "data/generated/domain-source-bosses-progress.latest.json",
+            List.of("node", "scripts/data/fetch/fetch-wiki-bosses.mjs", "--progress-path=data/generated/domain-source-bosses-progress.latest.json")),
+        directRule("town_npc_maintenance", "Town NPC maintenance", "wiki.domain.town_npc_maintenance", "Town NPC maintenance source page", "domain-source-town-npc-maintenance",
+            "data/generated/domain-source-town-npc-maintenance-progress.latest.json",
+            List.of("<PYTHON>", "scripts/data/fetch/fetch-wiki-town-npc-maintenance.py", "--progress-path=data/generated/domain-source-town-npc-maintenance-progress.latest.json")),
+        directRule("shimmer", "Shimmer", "wiki.domain.shimmer", "Shimmer source page", "domain-source-shimmer",
+            "data/generated/domain-source-shimmer-progress.latest.json",
+            List.of("node", "scripts/data/fetch/fetch-wiki-shimmer-page.mjs", "--progress-path=data/generated/domain-source-shimmer-progress.latest.json"))
+    );
 
     private final ObjectMapper objectMapper;
     private final Path repoRootOverride;
@@ -75,6 +113,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private final StringRedisTemplate redisTemplate;
     private final CrawlerStateRedisRepository redisRepository;
     private final CrawlerReportArchiver reportArchiver;
+    private final ProcessLauncher processLauncher;
+    private final Map<String, ActiveDispatchProcess> activeDispatchProcesses = new ConcurrentHashMap<>();
+    private final Set<String> cancellingDispatches = ConcurrentHashMap.newKeySet();
 
     @Autowired
     public CrawlerMonitorServiceImpl(ObjectMapper objectMapper, @Autowired(required = false) StringRedisTemplate redisTemplate) {
@@ -82,20 +123,35 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     CrawlerMonitorServiceImpl(ObjectMapper objectMapper, Path repoRootOverride) {
-        this(objectMapper, repoRootOverride, Clock.systemUTC(), null);
+        this(objectMapper, repoRootOverride, Clock.systemUTC(), (StringRedisTemplate) null);
     }
 
     CrawlerMonitorServiceImpl(ObjectMapper objectMapper, Path repoRootOverride, Clock clock) {
-        this(objectMapper, repoRootOverride, clock, null);
+        this(objectMapper, repoRootOverride, clock, (StringRedisTemplate) null);
     }
 
     CrawlerMonitorServiceImpl(ObjectMapper objectMapper, Path repoRootOverride, Clock clock, StringRedisTemplate redisTemplate) {
+        this(objectMapper, repoRootOverride, clock, redisTemplate, new ProcessBuilderLauncher());
+    }
+
+    CrawlerMonitorServiceImpl(ObjectMapper objectMapper, Path repoRootOverride, Clock clock, ProcessLauncher processLauncher) {
+        this(objectMapper, repoRootOverride, clock, null, processLauncher);
+    }
+
+    CrawlerMonitorServiceImpl(
+        ObjectMapper objectMapper,
+        Path repoRootOverride,
+        Clock clock,
+        StringRedisTemplate redisTemplate,
+        ProcessLauncher processLauncher
+    ) {
         this.objectMapper = objectMapper;
         this.repoRootOverride = repoRootOverride == null ? null : repoRootOverride.toAbsolutePath().normalize();
         this.clock = clock == null ? Clock.systemUTC() : clock;
         this.redisTemplate = redisTemplate;
         this.redisRepository = redisTemplate == null ? null : new CrawlerStateRedisRepository(objectMapper, redisTemplate);
         this.reportArchiver = new CrawlerReportArchiver(objectMapper);
+        this.processLauncher = processLauncher == null ? new ProcessBuilderLauncher() : processLauncher;
     }
 
     @Override
@@ -118,6 +174,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             .registeredTasks(buildRegisteredTasks(repoRoot, latestRun))
             .imageNormalization(buildImageNormalizationSummary(repoRoot))
             .build();
+        overview.setWikiMonitor(buildWikiMonitor(repoRoot));
         applyRedisHeartbeatState(repoRoot, overview);
         applyRefreshStaleState(repoRoot, overview);
         return overview;
@@ -126,6 +183,645 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     @Override
     public CrawlerMonitorReportDetailDTO getReportDetail(String path) {
         return reportArchiver.getReportDetail(resolveRepoRoot(), path);
+    }
+
+    @Override
+    public CrawlerMonitorDispatchResultDTO dispatchWikiMonitorTask(CrawlerMonitorDispatchRequestDTO request) {
+        Path repoRoot = resolveRepoRoot();
+        WikiMonitorRule rule = resolveWikiMonitorRule(request);
+        ReadResult latestDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+        if (isInCooldown(rule, latestDispatch.payload())) {
+            return rejectedDispatch(rule, "cooldown", "dispatch cooldown is active");
+        }
+
+        String timestamp = Instant.now(clock).toString();
+        String dispatchId = "wiki-monitor-" + timestamp.replaceAll("[^0-9A-Za-z]+", "-") + "-" + UUID.randomUUID().toString().substring(0, 8);
+        Path lockPath = repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
+        LinkedHashMap<String, Object> lockPayload = new LinkedHashMap<>();
+        lockPayload.put("dispatchId", dispatchId);
+        lockPayload.put("domain", rule.domain());
+        lockPayload.put("actionId", rule.actionId());
+        lockPayload.put("lockedAt", timestamp);
+        releaseStaleDispatchLock(lockPath);
+        if (!acquireDispatchLock(lockPath, lockPayload)) {
+            CrawlerMonitorDispatchResultDTO result = rejectedDispatch(rule, "locked", "another wiki monitor dispatch is running");
+            result.setLockPath(toDisplayPath(repoRoot, lockPath));
+            return result;
+        }
+
+        DispatchPaths dispatchPaths = buildDispatchPaths(repoRoot, rule, dispatchId);
+        LinkedHashMap<String, Object> state = buildDispatchState(dispatchId, rule, "running", timestamp, null, dispatchPaths, "dispatch accepted");
+        writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), state);
+
+        LaunchRequest launchRequest = buildLaunchRequest(repoRoot, rule, dispatchPaths);
+        try {
+            Process process = processLauncher.launch(launchRequest);
+            activeDispatchProcesses.put(dispatchId, new ActiveDispatchProcess(dispatchId, rule.domain(), rule.actionId(), process, dispatchPaths));
+            watchDispatchProcess(repoRoot, dispatchId, rule, dispatchPaths, process);
+        } catch (IOException exception) {
+            writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(),
+                buildDispatchState(dispatchId, rule, "failed", timestamp, Instant.now(clock).toString(), dispatchPaths, exception.getMessage()));
+            releaseDispatchLock(repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize(), dispatchId);
+            CrawlerMonitorDispatchResultDTO failed = acceptedDispatch(rule, dispatchId, dispatchPaths, "failed", exception.getMessage());
+            failed.setAccepted(false);
+            return failed;
+        }
+
+        return acceptedDispatch(rule, dispatchId, dispatchPaths, "running", "dispatch accepted");
+    }
+
+    @Override
+    public CrawlerMonitorDispatchResultDTO controlWikiMonitorDispatch(CrawlerMonitorDispatchRequestDTO request) {
+        Path repoRoot = resolveRepoRoot();
+        WikiMonitorRule rule = resolveWikiMonitorControlRule(request);
+        String controlAction = trimToNull(request.getControlAction());
+        if (!"pause".equals(controlAction) && !"resume".equals(controlAction) && !"cancel".equals(controlAction)) {
+            throw new IllegalArgumentException("controlAction must be pause, resume or cancel");
+        }
+        ReadResult latestDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+        Map<String, Object> payload = latestDispatch.readable() ? latestDispatch.payload() : Map.of();
+        String dispatchId = asString(payload.get("dispatchId"));
+        boolean latestMatches = dispatchId != null
+            && rule.domain().equals(asString(payload.get("domain")))
+            && rule.actionId().equals(asString(payload.get("actionId")));
+        ActiveDispatchProcess active = latestMatches ? activeDispatchProcesses.get(dispatchId) : null;
+        if (active == null) {
+            active = findActiveDispatchProcess(rule);
+            if (active != null) {
+                dispatchId = active.dispatchId();
+            }
+        }
+        if (dispatchId == null || active == null) {
+            Process legacyProcess = processLauncher.findLegacyProcess(buildLegacyProcessRequest(repoRoot, rule));
+            if (legacyProcess == null || !legacyProcess.isAlive()) {
+                return rejectedDispatch(rule, "missing", "no matching wiki monitor dispatch is active");
+            }
+            active = new ActiveDispatchProcess("legacy-os-process", rule.domain(), rule.actionId(), legacyProcess, buildLegacyDispatchPaths(rule));
+            dispatchId = active.dispatchId();
+        }
+        if (!active.process().isAlive()) {
+            return rejectedDispatch(rule, "uncontrollable", "dispatch process is not controlled by this backend instance");
+        }
+
+        String status = switch (controlAction) {
+            case "pause" -> "paused";
+            case "resume" -> "running";
+            default -> "cancelled";
+        };
+        String message = switch (controlAction) {
+            case "pause" -> "dispatch paused";
+            case "resume" -> "dispatch resumed";
+            default -> "dispatch cancelled";
+        };
+        boolean watcherTracked = activeDispatchProcesses.containsKey(dispatchId);
+        if ("cancel".equals(controlAction)) {
+            cancellingDispatches.add(dispatchId);
+        }
+        boolean signalSent = switch (controlAction) {
+            case "pause" -> processLauncher.pause(active.process());
+            case "resume" -> processLauncher.resume(active.process());
+            default -> processLauncher.destroy(active.process());
+        };
+        if (!signalSent) {
+            if ("cancel".equals(controlAction)) {
+                cancellingDispatches.remove(dispatchId);
+            }
+            return rejectedDispatch(rule, "uncontrollable", "dispatch process control signal failed");
+        }
+
+        DispatchPaths paths = active.paths();
+        LinkedHashMap<String, Object> state = latestMatches
+            ? new LinkedHashMap<>(payload)
+            : buildDispatchState(dispatchId, rule, status, Instant.now(clock).toString(), null, paths, message);
+        state.put("status", status);
+        state.put("message", message);
+        state.put("controlAction", controlAction);
+        state.put("controlledAt", Instant.now(clock).toString());
+        if ("cancel".equals(controlAction)) {
+            state.put("completedAt", Instant.now(clock).toString());
+        }
+        writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), state);
+        if ("cancel".equals(controlAction)) {
+            releaseDispatchLock(repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize(), dispatchId);
+            activeDispatchProcesses.remove(dispatchId);
+            if (!watcherTracked) {
+                cancellingDispatches.remove(dispatchId);
+            }
+        }
+
+        return acceptedDispatch(rule, dispatchId, paths, status, message);
+    }
+
+    @Override
+    public CrawlerMonitorDispatchResultDTO dispatchWikiMonitorDomainSmoke() {
+        Path repoRoot = resolveRepoRoot();
+        String timestamp = Instant.now(clock).toString();
+        String dispatchId = "wiki-monitor-domain-smoke-" + timestamp.replaceAll("[^0-9A-Za-z]+", "-") + "-" + UUID.randomUUID().toString().substring(0, 8);
+        Path lockPath = repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize();
+        LinkedHashMap<String, Object> lockPayload = new LinkedHashMap<>();
+        lockPayload.put("dispatchId", dispatchId);
+        lockPayload.put("domain", "all");
+        lockPayload.put("actionId", "wiki-monitor-domain-smoke");
+        lockPayload.put("limit", WIKI_MONITOR_DOMAIN_SMOKE_LIMIT);
+        lockPayload.put("lockedAt", timestamp);
+        releaseStaleDispatchLock(lockPath);
+        if (!acquireDispatchLock(lockPath, lockPayload)) {
+            return smokeDispatchResult(dispatchId, false, "locked", "another wiki monitor domain smoke is running");
+        }
+
+        String reportPath = "reports/crawler-monitor/" + dispatchId + ".json";
+        String outputDir = "reports/crawler-monitor/" + dispatchId;
+        String progressPath = toDisplayPath(repoRoot, repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE).normalize());
+        String logPath = "reports/crawler-monitor/" + dispatchId + ".log";
+        LaunchRequest launchRequest = buildDomainSmokeLaunchRequest(repoRoot, dispatchId, reportPath, outputDir, progressPath, logPath);
+        try {
+            Process process = processLauncher.launch(launchRequest);
+            watchDomainSmokeProcess(repoRoot, dispatchId, lockPath, process);
+        } catch (IOException exception) {
+            releaseDispatchLock(lockPath, dispatchId);
+            CrawlerMonitorDispatchResultDTO failed = smokeDispatchResult(dispatchId, false, "failed", exception.getMessage());
+            failed.setReportPath(reportPath);
+            failed.setProgressPath(progressPath);
+            failed.setLockPath(toDisplayPath(repoRoot, lockPath));
+            return failed;
+        }
+
+        CrawlerMonitorDispatchResultDTO result = smokeDispatchResult(dispatchId, true, "running", "domain smoke accepted");
+        result.setReportPath(reportPath);
+        result.setProgressPath(progressPath);
+        result.setLockPath(toDisplayPath(repoRoot, lockPath));
+        return result;
+    }
+
+    private CrawlerMonitorOverviewDTO.WikiMonitorDTO buildWikiMonitor(Path repoRoot) {
+        ReadResult sourceState = readJsonMap(repoRoot.resolve(WIKI_SOURCE_UPDATE_STATE_FILE).normalize());
+        ReadResult dispatchState = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+        Map<String, Object> dispatchPayload = dispatchState.readable() ? dispatchState.payload() : Map.of();
+        Map<String, Object> sourcePayload = sourceState.readable() ? sourceState.payload() : Map.of();
+        Map<String, Map<String, Object>> sourceByKey = sourceMap(sourcePayload.get("sources"));
+
+        List<CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO> domains = WIKI_MONITOR_RULES.stream()
+            .map(rule -> buildWikiMonitorDomain(repoRoot, rule, sourcePayload, sourceByKey.get(rule.sourceKey()), dispatchPayload))
+            .toList();
+
+        CrawlerMonitorOverviewDTO.WikiMonitorDTO monitor = new CrawlerMonitorOverviewDTO.WikiMonitorDTO();
+        monitor.setGeneratedAt(Instant.now(clock).toString());
+        monitor.setDispatchMode("manual");
+        monitor.setAutoDispatchEnabled(false);
+        monitor.setDomains(domains);
+        monitor.setPendingDispatches(buildPendingDispatches(repoRoot, domains, dispatchPayload));
+
+        CrawlerMonitorOverviewDTO.WikiMonitorSummaryDTO summary = new CrawlerMonitorOverviewDTO.WikiMonitorSummaryDTO();
+        summary.setDomainCount(domains.size());
+        summary.setChangedCount(domains.stream().filter(CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO::isChanged).count());
+        summary.setPendingApprovalCount(domains.stream().filter(this::isPendingApprovalDomain).count());
+        summary.setRunningCount(domains.stream().filter(domain -> "running".equals(domain.getStatus())).count());
+        summary.setFailedCount(domains.stream().filter(domain -> "failed".equals(domain.getStatus())).count());
+        monitor.setSummary(summary);
+        return monitor;
+    }
+
+    private CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO buildWikiMonitorDomain(
+        Path repoRoot,
+        WikiMonitorRule rule,
+        Map<String, Object> sourcePayload,
+        Map<String, Object> source,
+        Map<String, Object> dispatchPayload
+    ) {
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO domain = new CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO();
+        domain.setDomain(rule.domain());
+        domain.setLabel(rule.label());
+        domain.setSourceKey(rule.sourceKey());
+        domain.setLocator(rule.locator());
+        domain.setRecommendedActionId(rule.actionId());
+        domain.setProgressPath(rule.backendRefresh() ? backendProgressTemplate(rule.actionId()) : rule.progressPath());
+        domain.setRequiresApproval(true);
+        domain.setAutoEligible(false);
+        domain.setDispatchMode("manual");
+        domain.setCooldownMinutes(WIKI_MONITOR_DISPATCH_COOLDOWN.toMinutes());
+        domain.setMaxConcurrent(1L);
+        domain.setFailureCircuitBreaker("disabled until auto dispatch is enabled");
+
+        boolean changed = Boolean.TRUE.equals(source == null ? null : source.get("changed"));
+        domain.setChanged(changed);
+        domain.setLastCheckedAt(firstNonBlank(asString(source == null ? null : source.get("checkedAt")), asString(sourcePayload.get("checkedAt"))));
+        domain.setCurrentValue(asString(source == null ? null : source.get("currentValue")));
+        domain.setPreviousValue(asString(source == null ? null : source.get("previousValue")));
+
+        String dispatchStatus = dispatchStatusForDomain(repoRoot, rule, dispatchPayload);
+        domain.setStatus(firstNonBlank(dispatchStatus, source == null ? "unknown" : changed ? "changed" : "unchanged"));
+        domain.setMessage(changed ? "changed source awaiting approval" : source == null ? "source state missing" : "no upstream change detected");
+        String lastAutoRunAt = asString(dispatchPayload.get("completedAt"));
+        if (lastAutoRunAt != null && rule.domain().equals(asString(dispatchPayload.get("domain")))) {
+            domain.setLastAutoRunAt(lastAutoRunAt);
+        }
+        return domain;
+    }
+
+    private List<CrawlerMonitorOverviewDTO.WikiMonitorDispatchDTO> buildPendingDispatches(
+        Path repoRoot,
+        List<CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO> domains,
+        Map<String, Object> dispatchPayload
+    ) {
+        List<CrawlerMonitorOverviewDTO.WikiMonitorDispatchDTO> pending = new ArrayList<>();
+        for (CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO domain : domains) {
+            if (!isPendingApprovalDomain(domain)) {
+                continue;
+            }
+            CrawlerMonitorOverviewDTO.WikiMonitorDispatchDTO dispatch = new CrawlerMonitorOverviewDTO.WikiMonitorDispatchDTO();
+            dispatch.setDomain(domain.getDomain());
+            dispatch.setActionId(domain.getRecommendedActionId());
+            dispatch.setStatus("pending_approval");
+            dispatch.setCommandPreview(domain.getLabel() + " refresh");
+            dispatch.setProgressPath(domain.getProgressPath());
+            dispatch.setLockPath(toDisplayPath(repoRoot, repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize()));
+            dispatch.setMessage("awaiting approval");
+            if (domain.getDomain().equals(asString(dispatchPayload.get("domain")))) {
+                dispatch.setDispatchId(asString(dispatchPayload.get("dispatchId")));
+                dispatch.setReportPath(asString(dispatchPayload.get("reportPath")));
+                dispatch.setRequestedAt(asString(dispatchPayload.get("requestedAt")));
+                dispatch.setStartedAt(asString(dispatchPayload.get("startedAt")));
+                dispatch.setCompletedAt(asString(dispatchPayload.get("completedAt")));
+            }
+            pending.add(dispatch);
+        }
+        return pending;
+    }
+
+    private boolean isPendingApprovalDomain(CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO domain) {
+        if (!domain.isChanged() || !domain.isRequiresApproval() || domain.getRecommendedActionId() == null) {
+            return false;
+        }
+        String status = String.valueOf(domain.getStatus() == null ? "" : domain.getStatus()).toLowerCase(Locale.ROOT);
+        return !Set.of("running", "stalled", "blocked", "completed").contains(status);
+    }
+
+    private Map<String, Map<String, Object>> sourceMap(Object value) {
+        if (!(value instanceof List<?> sources)) {
+            return Map.of();
+        }
+        Map<String, Map<String, Object>> byKey = new LinkedHashMap<>();
+        for (Object source : sources) {
+            if (source instanceof Map<?, ?> raw) {
+                Map<String, Object> copy = copyObjectMap(raw);
+                String key = asString(copy.get("key"));
+                if (key != null) {
+                    byKey.put(key, copy);
+                }
+            }
+        }
+        return byKey;
+    }
+
+    private String dispatchStatusForDomain(Path repoRoot, WikiMonitorRule rule, Map<String, Object> dispatchPayload) {
+        if (!rule.domain().equals(asString(dispatchPayload.get("domain")))) {
+            return null;
+        }
+        String progressPath = asString(dispatchPayload.get("progressPath"));
+        String dispatchStatus = asString(dispatchPayload.get("status"));
+        if (progressPath != null) {
+            ReadResult progress = readJsonMap(repoRoot.resolve(progressPath).normalize());
+            if (progress.readable()) {
+                String progressStatus = asString(progress.payload().get("status"));
+                if ("completed".equals(progressStatus) || "failed".equals(progressStatus)) {
+                    return progressStatus;
+                }
+                if ("running".equals(progressStatus)) {
+                    return progressHeartbeatIsStale(progress) ? "stalled" : "running";
+                }
+            }
+        }
+        if ("running".equals(dispatchStatus)) {
+            return "stalled";
+        }
+        return dispatchStatus;
+    }
+
+    private boolean progressHeartbeatIsStale(ReadResult progress) {
+        String heartbeat = firstNonBlank(asString(progress.payload().get("lastHeartbeatAt")), asString(progress.payload().get("generatedAt")));
+        if (heartbeat == null) {
+            return false;
+        }
+        try {
+            return Duration.between(Instant.parse(heartbeat), Instant.now(clock)).compareTo(PROGRESS_STALE_THRESHOLD) > 0;
+        } catch (RuntimeException exception) {
+            return false;
+        }
+    }
+
+    private WikiMonitorRule resolveWikiMonitorRule(CrawlerMonitorDispatchRequestDTO request) {
+        if (request == null) {
+            throw new IllegalArgumentException("dispatch request is required");
+        }
+        String domain = trimToNull(request.getDomain());
+        if (domain == null) {
+            throw new IllegalArgumentException("domain is required");
+        }
+        String actionId = trimToNull(request.getActionId());
+        if (actionId == null) {
+            throw new IllegalArgumentException("actionId is required");
+        }
+        return WIKI_MONITOR_RULES.stream()
+            .filter(rule -> rule.domain().equals(domain) && rule.actionId().equals(actionId))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Action " + actionId + " is not allowed for domain " + domain));
+    }
+
+    private WikiMonitorRule resolveWikiMonitorControlRule(CrawlerMonitorDispatchRequestDTO request) {
+        if (request == null) {
+            throw new IllegalArgumentException("dispatch request is required");
+        }
+        String domain = trimToNull(request.getDomain());
+        String actionId = trimToNull(request.getActionId());
+        if (actionId == null) {
+            throw new IllegalArgumentException("actionId is required");
+        }
+        if (domain != null) {
+            return resolveWikiMonitorRule(request);
+        }
+        List<WikiMonitorRule> matches = WIKI_MONITOR_RULES.stream()
+            .filter(rule -> rule.actionId().equals(actionId))
+            .toList();
+        if (matches.isEmpty()) {
+            throw new IllegalArgumentException("Action " + actionId + " is not allowed");
+        }
+        if (matches.size() == 1) {
+            return matches.get(0);
+        }
+        return matches.stream()
+            .filter(rule -> findActiveDispatchProcess(rule) != null)
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("domain is required for shared action " + actionId));
+    }
+
+    private ActiveDispatchProcess findActiveDispatchProcess(WikiMonitorRule rule) {
+        return activeDispatchProcesses.values().stream()
+            .filter(active -> active.domain().equals(rule.domain()) && active.actionId().equals(rule.actionId()))
+            .filter(active -> active.process().isAlive())
+            .findFirst()
+            .orElse(null);
+    }
+
+    private boolean isInCooldown(WikiMonitorRule rule, Map<String, Object> payload) {
+        if (!rule.domain().equals(asString(payload.get("domain"))) || !"completed".equals(asString(payload.get("status")))) {
+            return false;
+        }
+        String completedAt = asString(payload.get("completedAt"));
+        if (completedAt == null) {
+            return false;
+        }
+        try {
+            return Duration.between(Instant.parse(completedAt), Instant.now(clock)).compareTo(WIKI_MONITOR_DISPATCH_COOLDOWN) < 0;
+        } catch (RuntimeException exception) {
+            return false;
+        }
+    }
+
+    private CrawlerMonitorDispatchResultDTO rejectedDispatch(WikiMonitorRule rule, String status, String message) {
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(false);
+        result.setDomain(rule.domain());
+        result.setActionId(rule.actionId());
+        result.setStatus(status);
+        result.setProgressPath(rule.progressPath());
+        result.setMessage(message);
+        return result;
+    }
+
+    private CrawlerMonitorDispatchResultDTO acceptedDispatch(
+        WikiMonitorRule rule,
+        String dispatchId,
+        DispatchPaths paths,
+        String status,
+        String message
+    ) {
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(true);
+        result.setDispatchId(dispatchId);
+        result.setDomain(rule.domain());
+        result.setActionId(rule.actionId());
+        result.setStatus(status);
+        result.setProgressPath(paths.progressPath());
+        result.setLockPath(paths.lockPath());
+        result.setReportPath(paths.reportPath());
+        result.setMessage(message);
+        return result;
+    }
+
+    private boolean acquireDispatchLock(Path lockPath, Map<String, Object> payload) {
+        try {
+            Files.createDirectories(lockPath.getParent());
+            Files.writeString(lockPath, objectMapper.writeValueAsString(payload), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+            return true;
+        } catch (IOException exception) {
+            return false;
+        }
+    }
+
+    private void releaseDispatchLock(Path lockPath, String dispatchId) {
+        ReadResult lock = readJsonMap(lockPath);
+        if (lock.readable() && dispatchId.equals(asString(lock.payload().get("dispatchId")))) {
+            try {
+                Files.deleteIfExists(lockPath);
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
+    private void releaseStaleDispatchLock(Path lockPath) {
+        ReadResult lock = readJsonMap(lockPath);
+        if (!lock.readable()) {
+            return;
+        }
+        String lockedAt = asString(lock.payload().get("lockedAt"));
+        if (lockedAt == null) {
+            return;
+        }
+        try {
+            if (Duration.between(Instant.parse(lockedAt), Instant.now(clock)).compareTo(WIKI_MONITOR_DISPATCH_LOCK_STALE) > 0) {
+                Files.deleteIfExists(lockPath);
+            }
+        } catch (RuntimeException | IOException ignored) {
+        }
+    }
+
+    private DispatchPaths buildDispatchPaths(Path repoRoot, WikiMonitorRule rule, String dispatchId) {
+        String reportPath = "reports/backend-refresh/history/backend-data-refresh-" + dispatchId + ".json";
+        String progressPath = rule.backendRefresh()
+            ? reportPath.replace(".json", ".runtime/" + rule.actionId() + ".child-status.json")
+            : rule.progressPath();
+        String lockPath = toDisplayPath(repoRoot, repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize());
+        String logPath = "reports/crawler-monitor/wiki-monitor-dispatch-" + dispatchId + ".log";
+        return new DispatchPaths(reportPath, progressPath, lockPath, logPath);
+    }
+
+    private DispatchPaths buildLegacyDispatchPaths(WikiMonitorRule rule) {
+        return new DispatchPaths(null, rule.progressPath(), null, null);
+    }
+
+    private LegacyProcessRequest buildLegacyProcessRequest(Path repoRoot, WikiMonitorRule rule) {
+        List<String> commandNeedles = rule.command().stream()
+            .filter(token -> token != null && !token.isBlank() && !"<PYTHON>".equals(token))
+            .filter(token -> token.contains("/") || token.contains("=") || token.endsWith(".mjs") || token.endsWith(".py"))
+            .toList();
+        return new LegacyProcessRequest(rule.actionId(), repoRoot, commandNeedles);
+    }
+
+    private LinkedHashMap<String, Object> buildDispatchState(
+        String dispatchId,
+        WikiMonitorRule rule,
+        String status,
+        String startedAt,
+        String completedAt,
+        DispatchPaths paths,
+        String message
+    ) {
+        LinkedHashMap<String, Object> payload = new LinkedHashMap<>();
+        payload.put("dispatchId", dispatchId);
+        payload.put("domain", rule.domain());
+        payload.put("actionId", rule.actionId());
+        payload.put("status", status);
+        payload.put("commandPreview", rule.label() + " refresh");
+        payload.put("progressPath", paths.progressPath());
+        payload.put("lockPath", paths.lockPath());
+        payload.put("reportPath", paths.reportPath());
+        payload.put("logPath", paths.logPath());
+        payload.put("requestedAt", startedAt);
+        payload.put("startedAt", startedAt);
+        if (completedAt != null) {
+            payload.put("completedAt", completedAt);
+        }
+        payload.put("message", message);
+        return payload;
+    }
+
+    private LaunchRequest buildLaunchRequest(Path repoRoot, WikiMonitorRule rule, DispatchPaths paths) {
+        List<String> command = new ArrayList<>();
+        for (String token : rule.command()) {
+            if ("<reportPath>".equals(token)) {
+                command.add(paths.reportPath());
+            } else if (token != null && token.contains("<reportPath>")) {
+                command.add(token.replace("<reportPath>", paths.reportPath()));
+            } else if ("<PYTHON>".equals(token)) {
+                command.add(resolvePythonExecutable());
+            } else {
+                command.add(token);
+            }
+        }
+        Map<String, String> environment = new LinkedHashMap<>();
+        environment.put("WORKTREE_ROOT", repoRoot.toString());
+        environment.put("TERRAPEDIA_CRAWLER_ACTION_ID", rule.actionId());
+        environment.put("TERRAPEDIA_CRAWLER_PROGRESS_PATH", paths.progressPath());
+        return new LaunchRequest(command, repoRoot.toFile(), environment, repoRoot.resolve(paths.logPath()).normalize().toFile());
+    }
+
+    private LaunchRequest buildDomainSmokeLaunchRequest(
+        Path repoRoot,
+        String dispatchId,
+        String reportPath,
+        String outputDir,
+        String progressPath,
+        String logPath
+    ) {
+        List<String> command = List.of(
+            "node",
+            "scripts/data/monitor/wiki-monitor-domain-smoke.mjs",
+            "--limit=" + WIKI_MONITOR_DOMAIN_SMOKE_LIMIT,
+            "--run-id=" + dispatchId,
+            "--report-path=" + reportPath,
+            "--output-dir=" + outputDir,
+            "--progress-path=" + progressPath
+        );
+        Map<String, String> environment = new LinkedHashMap<>();
+        environment.put("WORKTREE_ROOT", repoRoot.toString());
+        environment.put("TERRAPEDIA_CRAWLER_ACTION_ID", "wiki-monitor-domain-smoke");
+        environment.put("TERRAPEDIA_CRAWLER_PROGRESS_PATH", progressPath);
+        return new LaunchRequest(command, repoRoot.toFile(), environment, repoRoot.resolve(logPath).normalize().toFile());
+    }
+
+    private CrawlerMonitorDispatchResultDTO smokeDispatchResult(
+        String dispatchId,
+        boolean accepted,
+        String status,
+        String message
+    ) {
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(accepted);
+        result.setDispatchId(dispatchId);
+        result.setDomain("all");
+        result.setActionId("wiki-monitor-domain-smoke");
+        result.setStatus(status);
+        result.setProgressPath(WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE.toString().replace('\\', '/'));
+        result.setLockPath(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE.toString().replace('\\', '/'));
+        result.setMessage(message);
+        return result;
+    }
+
+    private String resolvePythonExecutable() {
+        String configured = trimToNull(System.getenv("PYTHON"));
+        return configured == null ? "python3" : configured;
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private void watchDispatchProcess(Path repoRoot, String dispatchId, WikiMonitorRule rule, DispatchPaths paths, Process process) {
+        Thread thread = new Thread(() -> {
+            try {
+                int exitCode = process.waitFor();
+                ReadResult currentDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+                if (cancellingDispatches.contains(dispatchId)) {
+                    return;
+                }
+                if (currentDispatch.readable()
+                    && dispatchId.equals(asString(currentDispatch.payload().get("dispatchId")))
+                    && "cancelled".equals(asString(currentDispatch.payload().get("status")))) {
+                    return;
+                }
+                String status = exitCode == 0 ? "completed" : "failed";
+                writeJsonFile(
+                    repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(),
+                    buildDispatchState(dispatchId, rule, status, asString(currentDispatch.payload().get("startedAt")),
+                        Instant.now(clock).toString(), paths, status + " with exit code " + exitCode)
+                );
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            } finally {
+                releaseDispatchLock(repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize(), dispatchId);
+                activeDispatchProcesses.remove(dispatchId);
+                cancellingDispatches.remove(dispatchId);
+            }
+        }, "wiki-monitor-dispatch-" + dispatchId);
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    private void watchDomainSmokeProcess(Path repoRoot, String dispatchId, Path lockPath, Process process) {
+        Thread thread = new Thread(() -> {
+            try {
+                process.waitFor();
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            } finally {
+                releaseDispatchLock(lockPath, dispatchId);
+            }
+        }, "wiki-monitor-domain-smoke-" + dispatchId);
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    private void writeJsonFile(Path path, Map<String, Object> payload) {
+        try {
+            Files.createDirectories(path.getParent());
+            objectMapper.writerWithDefaultPrettyPrinter().writeValue(path.toFile(), payload);
+        } catch (IOException exception) {
+            throw new IllegalStateException("Failed to write " + path, exception);
+        }
     }
 
     @Override
@@ -760,6 +1456,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         ReadResult domainSourceShimmerProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_SHIMMER_PROGRESS_FILE).normalize());
         ReadResult domainSourceTownNpcMaintenanceProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_TOWN_NPC_MAINTENANCE_PROGRESS_FILE).normalize());
         ReadResult wikiAudioAssetsProgress = readJsonMap(repoRoot.resolve(WIKI_AUDIO_ASSETS_PROGRESS_FILE).normalize());
+        ReadResult domainSmokeProgress = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE).normalize());
         ReadResult npcCoverage = readJsonMap(repoRoot.resolve(NPC_COVERAGE_REPORT).normalize());
 
         List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> tasks = new ArrayList<>();
@@ -818,6 +1515,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             "Review audio metadata and keep DB/UI playback wiring in a separate task."
         ));
         tasks.add(buildItemPagesRefreshTask(repoRoot, itemProgress));
+        tasks.add(buildWikiMonitorDomainSmokeTask(repoRoot, domainSmokeProgress));
         tasks.add(buildStaticTask(
             "item-pages-retry-failures",
             "Item page retry queue",
@@ -941,7 +1639,36 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             "Use readiness report before replacing local projections."
         ));
         appendUnregisteredLatestRunActions(repoRoot, latestRun, tasks);
+        applyWikiMonitorControlState(repoRoot, tasks);
         return tasks;
+    }
+
+    private void applyWikiMonitorControlState(
+        Path repoRoot,
+        List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> tasks
+    ) {
+        ReadResult dispatchState = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+        if (!dispatchState.readable()) {
+            return;
+        }
+        Map<String, Object> payload = dispatchState.payload();
+        String actionId = asString(payload.get("actionId"));
+        String status = asString(payload.get("status"));
+        if (actionId == null || !"paused".equals(status)) {
+            return;
+        }
+        for (CrawlerMonitorOverviewDTO.RegisteredTaskDTO task : tasks) {
+            if (!actionId.equals(task.getId())) {
+                continue;
+            }
+            task.setStatus("paused");
+            task.setProgressKind(progressKindForStatus("paused"));
+            task.setProgressStale(false);
+            task.setProgressStaleReason(null);
+            task.setQueueState(firstNonBlank(asString(payload.get("message")), "dispatch paused"));
+            task.setUpdatedAt(firstNonBlank(asString(payload.get("controlledAt")), task.getUpdatedAt()));
+            return;
+        }
     }
 
     private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildWikiCoreRefreshTask(
@@ -1253,6 +1980,53 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return task;
     }
 
+    private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildWikiMonitorDomainSmokeTask(
+        Path repoRoot,
+        ReadResult progress
+    ) {
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask(
+            "wiki-monitor-domain-smoke",
+            "Wiki monitor: 每域 10 条真实下载",
+            "test",
+            "manual"
+        );
+        task.setProgressPath(toDisplayPath(repoRoot, repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE).normalize()));
+        task.setInputPath("wiki API search/revisions");
+        task.setOutputPath("reports/crawler-monitor/<run-id>/*.json");
+        task.setDataStage("wiki API -> crawler-monitor smoke reports");
+        task.setNextStep("Use the test page button to start a bounded smoke download when manual verification is needed.");
+        applyProgressFileMetadata(task, repoRoot, progress);
+
+        if (!progress.found()) {
+            task.setStatus("missing");
+            task.setProgressKind("missing");
+            task.setQueueState("domain smoke progress file missing");
+            return task;
+        }
+        if (!progress.readable()) {
+            task.setStatus("blocked");
+            task.setProgressKind("blocked");
+            task.setQueueState(progress.errorMessage());
+            return task;
+        }
+
+        Map<String, Object> payload = progress.payload();
+        task.setStatus(firstNonBlank(asString(payload.get("status")), "pending"));
+        task.setQueueState(firstNonBlank(asString(payload.get("message")), firstNonBlank(asString(payload.get("phase")), task.getStatus())));
+        task.setUpdatedAt(firstNonBlank(asString(payload.get("lastHeartbeatAt")), asString(payload.get("generatedAt"))));
+        copyTaskProgressFromPayload(task, payload);
+        String reportPath = normalizePayloadPath(repoRoot, payload.get("reportPath"));
+        if (reportPath != null && !reportPath.isBlank()) {
+            task.setReportPath(reportPath);
+        }
+        String outputPath = normalizePayloadPath(repoRoot, payload.get("outputPath"));
+        if (outputPath != null && !outputPath.isBlank()) {
+            task.setOutputPath(outputPath);
+        }
+        applyReadableProgressState(task);
+        return task;
+    }
+
     private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildReportBackedTask(
         Path repoRoot,
         String id,
@@ -1430,6 +2204,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (!progress.readable()) {
             return;
         }
+        task.setProgressPayload(new LinkedHashMap<>(progress.payload()));
 
         String heartbeat = firstNonBlank(
             asString(progress.payload().get("lastHeartbeatAt")),
@@ -2087,6 +2862,43 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return payload;
     }
 
+    private static WikiMonitorRule backendRule(String domain, String label, String sourceKey, String locator, String actionId) {
+        return new WikiMonitorRule(
+            domain,
+            label,
+            sourceKey,
+            locator,
+            actionId,
+            backendProgressTemplate(actionId),
+            List.of("node", "scripts/data/workflow/run-backend-data-refresh.mjs", "--mode=apply", "--steps=" + actionId, "--output=<reportPath>"),
+            true
+        );
+    }
+
+    private static WikiMonitorRule directRule(
+        String domain,
+        String label,
+        String sourceKey,
+        String locator,
+        String actionId,
+        String progressPath,
+        List<String> command
+    ) {
+        return new WikiMonitorRule(domain, label, sourceKey, locator, actionId, progressPath, command, false);
+    }
+
+    private static String backendProgressTemplate(String actionId) {
+        return "reports/backend-refresh/history/<run>.runtime/" + actionId + ".child-status.json";
+    }
+
+    private Map<String, Object> copyObjectMap(Map<?, ?> raw) {
+        LinkedHashMap<String, Object> result = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : raw.entrySet()) {
+            result.put(String.valueOf(entry.getKey()), entry.getValue());
+        }
+        return result;
+    }
+
     private record ReadResult(
         Path path,
         String displayPath,
@@ -2114,6 +2926,194 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         static ReadResult missingRedis(String key) {
             String displayPath = key == null ? null : "redis://" + key;
             return new ReadResult(displayPath == null ? null : Path.of(displayPath), displayPath, true, false, false, Collections.emptyMap(), null);
+        }
+    }
+
+    record WikiMonitorRule(
+        String domain,
+        String label,
+        String sourceKey,
+        String locator,
+        String actionId,
+        String progressPath,
+        List<String> command,
+        boolean backendRefresh
+    ) {}
+
+    record DispatchPaths(String reportPath, String progressPath, String lockPath, String logPath) {}
+
+    record ActiveDispatchProcess(String dispatchId, String domain, String actionId, Process process, DispatchPaths paths) {}
+
+    record LaunchRequest(List<String> command, File directory, Map<String, String> environment, File logFile) {}
+
+    record LegacyProcessRequest(String actionId, Path repoRoot, List<String> commandNeedles) {}
+
+    interface ProcessLauncher {
+        Process launch(LaunchRequest request) throws IOException;
+
+        default Process findLegacyProcess(LegacyProcessRequest request) {
+            if (request == null || request.actionId() == null || request.commandNeedles().isEmpty()) {
+                return null;
+            }
+            Path repoRoot = request.repoRoot().toAbsolutePath().normalize();
+            return ProcessHandle.allProcesses()
+                .filter(ProcessHandle::isAlive)
+                .filter(handle -> processCwdMatches(handle, repoRoot))
+                .filter(handle -> commandMatches(handle, request.commandNeedles()))
+                .map(handle -> handle.pid())
+                .map(ProcessLauncher::processFromPid)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+        }
+
+        default boolean pause(Process process) {
+            return sendSignal(process, "STOP");
+        }
+
+        default boolean resume(Process process) {
+            return sendSignal(process, "CONT");
+        }
+
+        default boolean destroy(Process process) {
+            if (process == null || !process.isAlive()) {
+                return false;
+            }
+            try {
+                boolean sent = true;
+                List<ProcessHandle> handles = Stream.concat(process.toHandle().descendants(), Stream.of(process.toHandle()))
+                    .filter(ProcessHandle::isAlive)
+                    .toList();
+                for (ProcessHandle handle : handles) {
+                    sent = handle.destroy() && sent;
+                }
+                return sent;
+            } catch (UnsupportedOperationException exception) {
+                return false;
+            }
+        }
+
+        private static boolean sendSignal(Process process, String signal) {
+            if (process == null || !process.isAlive()) {
+                return false;
+            }
+            try {
+                boolean sent = true;
+                List<ProcessHandle> handles = Stream.concat(process.toHandle().descendants(), Stream.of(process.toHandle()))
+                    .filter(ProcessHandle::isAlive)
+                    .toList();
+                for (ProcessHandle handle : handles) {
+                    Process signalProcess = new ProcessBuilder("kill", "-" + signal, Long.toString(handle.pid())).start();
+                    sent = signalProcess.waitFor() == 0 && sent;
+                }
+                return sent;
+            } catch (IOException | InterruptedException | UnsupportedOperationException exception) {
+                if (exception instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                }
+                return false;
+            }
+        }
+
+        private static boolean processCwdMatches(ProcessHandle handle, Path repoRoot) {
+            try {
+                Path cwd = Path.of("/proc", Long.toString(handle.pid()), "cwd").toRealPath();
+                return cwd.equals(repoRoot);
+            } catch (IOException | RuntimeException exception) {
+                return false;
+            }
+        }
+
+        private static boolean commandMatches(ProcessHandle handle, List<String> needles) {
+            try {
+                String cmdline = Files.readString(Path.of("/proc", Long.toString(handle.pid()), "cmdline")).replace('\0', ' ');
+                return needles.stream().allMatch(cmdline::contains);
+            } catch (IOException | RuntimeException exception) {
+                return false;
+            }
+        }
+
+        private static Process processFromPid(long pid) {
+            try {
+                return ProcessHandle.of(pid).map(HandleBackedProcess::new).orElse(null);
+            } catch (RuntimeException exception) {
+                return null;
+            }
+        }
+    }
+
+    private static class HandleBackedProcess extends Process {
+        private final ProcessHandle handle;
+
+        HandleBackedProcess(ProcessHandle handle) {
+            this.handle = handle;
+        }
+
+        @Override
+        public OutputStream getOutputStream() {
+            return OutputStream.nullOutputStream();
+        }
+
+        @Override
+        public InputStream getInputStream() {
+            return InputStream.nullInputStream();
+        }
+
+        @Override
+        public InputStream getErrorStream() {
+            return InputStream.nullInputStream();
+        }
+
+        @Override
+        public int waitFor() throws InterruptedException {
+            while (isAlive()) {
+                Thread.sleep(100L);
+            }
+            return exitValue();
+        }
+
+        @Override
+        public int exitValue() {
+            if (handle.isAlive()) {
+                throw new IllegalThreadStateException("process still running");
+            }
+            return 0;
+        }
+
+        @Override
+        public void destroy() {
+            handle.destroy();
+        }
+
+        @Override
+        public boolean isAlive() {
+            return handle.isAlive();
+        }
+
+        @Override
+        public long pid() {
+            return handle.pid();
+        }
+
+        @Override
+        public ProcessHandle toHandle() {
+            return handle;
+        }
+    }
+
+    private static class ProcessBuilderLauncher implements ProcessLauncher {
+        @Override
+        public Process launch(LaunchRequest request) throws IOException {
+            ProcessBuilder builder = new ProcessBuilder(request.command());
+            builder.directory(request.directory());
+            builder.environment().putAll(request.environment());
+            File logFile = request.logFile();
+            if (logFile != null) {
+                Files.createDirectories(logFile.toPath().getParent());
+                builder.redirectOutput(ProcessBuilder.Redirect.to(logFile));
+                builder.redirectError(ProcessBuilder.Redirect.appendTo(logFile));
+            }
+            return builder.start();
         }
     }
 }

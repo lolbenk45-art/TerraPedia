@@ -15,8 +15,14 @@ public class CorsConfig {
         
         config.addAllowedOriginPattern("http://localhost:*");
         config.addAllowedOriginPattern("http://127.0.0.1:*");
+        config.addAllowedOriginPattern("http://172.*:*");
+        config.addAllowedOriginPattern("http://192.168.*:*");
+        config.addAllowedOriginPattern("http://10.*:*");
         config.addAllowedOriginPattern("https://localhost:*");
         config.addAllowedOriginPattern("https://127.0.0.1:*");
+        config.addAllowedOriginPattern("https://172.*:*");
+        config.addAllowedOriginPattern("https://192.168.*:*");
+        config.addAllowedOriginPattern("https://10.*:*");
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
         config.setAllowCredentials(true);
