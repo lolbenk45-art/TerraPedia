@@ -2,9 +2,9 @@
   "database": {
     "name": "terria_v1_local",
     "host": "127.0.0.1",
-    "port": 3306,
+    "port": 13306,
     "username": "root",
-    "password": "set-your-local-db-password"
+    "password": "root"
   },
   "redis": {
     "host": "127.0.0.1",
@@ -25,7 +25,7 @@
   "auth": {
     "admin": {
       "username": "admin",
-      "password": "set-a-local-admin-password",
+      "password": "admin",
       "displayName": "Admin",
       "tokenSecret": "set-a-local-admin-token-secret"
     },

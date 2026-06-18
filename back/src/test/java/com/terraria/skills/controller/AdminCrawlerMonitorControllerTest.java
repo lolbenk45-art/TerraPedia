@@ -3,6 +3,7 @@ package com.terraria.skills.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
@@ -26,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -269,6 +271,155 @@ class AdminCrawlerMonitorControllerTest {
             .andExpect(jsonPath("$.data.content").value("{\"status\":\"ok\"}"));
 
         verify(crawlerMonitorService).getReportDetail("reports/relation/relation-health-smoke.json");
+    }
+
+    @Test
+    void shouldDispatchApprovedCrawlerMonitorTask() throws Exception {
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(true);
+        result.setDispatchId("wiki-monitor-2026-06-14T01-00-00Z-12345678");
+        result.setDomain("bosses");
+        result.setActionId("domain-source-bosses");
+        result.setStatus("running");
+        result.setProgressPath("data/generated/domain-source-bosses-progress.latest.json");
+        result.setLockPath("reports/crawler-monitor/wiki-monitor-dispatch.lock.json");
+        result.setReportPath("reports/backend-refresh/history/backend-data-refresh-wiki-monitor-2026-06-14T01-00-00Z-12345678.json");
+        result.setMessage("dispatch accepted");
+
+        when(crawlerMonitorService.dispatchWikiMonitorTask(argThat(request ->
+            "bosses".equals(request.getDomain()) && "domain-source-bosses".equals(request.getActionId())
+        ))).thenReturn(result);
+
+        mockMvc.perform(post("/admin/crawler-monitor/dispatch")
+                .contentType("application/json")
+                .content("{\"domain\":\"bosses\",\"actionId\":\"domain-source-bosses\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.accepted").value(true))
+            .andExpect(jsonPath("$.data.dispatchId").value("wiki-monitor-2026-06-14T01-00-00Z-12345678"))
+            .andExpect(jsonPath("$.data.domain").value("bosses"))
+            .andExpect(jsonPath("$.data.actionId").value("domain-source-bosses"))
+            .andExpect(jsonPath("$.data.status").value("running"))
+            .andExpect(jsonPath("$.data.progressPath").value("data/generated/domain-source-bosses-progress.latest.json"))
+            .andExpect(jsonPath("$.data.lockPath").value("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"))
+            .andExpect(jsonPath("$.data.message").value("dispatch accepted"));
+
+        verify(crawlerMonitorService).dispatchWikiMonitorTask(argThat(request ->
+            "bosses".equals(request.getDomain()) && "domain-source-bosses".equals(request.getActionId())
+        ));
+    }
+
+    @Test
+    void shouldReturnBadRequestForRejectedCrawlerMonitorDispatch() throws Exception {
+        when(crawlerMonitorService.dispatchWikiMonitorTask(argThat(request ->
+            "items".equals(request.getDomain()) && "domain-source-shimmer".equals(request.getActionId())
+        ))).thenThrow(new IllegalArgumentException("Action domain-source-shimmer is not allowed for domain items"));
+
+        mockMvc.perform(post("/admin/crawler-monitor/dispatch")
+                .contentType("application/json")
+                .content("{\"domain\":\"items\",\"actionId\":\"domain-source-shimmer\"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.statusCode").value(400))
+            .andExpect(jsonPath("$.message").value("Action domain-source-shimmer is not allowed for domain items"));
+
+        verify(crawlerMonitorService).dispatchWikiMonitorTask(argThat(request ->
+            "items".equals(request.getDomain()) && "domain-source-shimmer".equals(request.getActionId())
+        ));
+    }
+
+    @Test
+    void shouldDispatchBoundedWikiMonitorDomainSmokeFromTestPage() throws Exception {
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(true);
+        result.setDispatchId("wiki-monitor-domain-smoke-2026-06-14T01-00-00Z-12345678");
+        result.setDomain("all");
+        result.setActionId("wiki-monitor-domain-smoke");
+        result.setStatus("running");
+        result.setProgressPath("reports/crawler-monitor/wiki-monitor-domain-smoke-progress.latest.json");
+        result.setLockPath("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json");
+        result.setReportPath("reports/crawler-monitor/wiki-monitor-domain-smoke-2026-06-14T01-00-00Z-12345678.json");
+        result.setMessage("domain smoke accepted");
+
+        when(crawlerMonitorService.dispatchWikiMonitorDomainSmoke()).thenReturn(result);
+
+        mockMvc.perform(post("/admin/crawler-monitor/test-domain-smoke")
+                .contentType("application/json")
+                .content("{}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.accepted").value(true))
+            .andExpect(jsonPath("$.data.domain").value("all"))
+            .andExpect(jsonPath("$.data.actionId").value("wiki-monitor-domain-smoke"))
+            .andExpect(jsonPath("$.data.progressPath").value("reports/crawler-monitor/wiki-monitor-domain-smoke-progress.latest.json"))
+            .andExpect(jsonPath("$.data.lockPath").value("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json"))
+            .andExpect(jsonPath("$.data.message").value("domain smoke accepted"));
+
+        verify(crawlerMonitorService).dispatchWikiMonitorDomainSmoke();
+    }
+
+    @Test
+    void shouldControlRunningWikiMonitorDispatch() throws Exception {
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(true);
+        result.setDispatchId("wiki-monitor-active");
+        result.setDomain("bosses");
+        result.setActionId("domain-source-bosses");
+        result.setStatus("paused");
+        result.setMessage("dispatch paused");
+
+        when(crawlerMonitorService.controlWikiMonitorDispatch(argThat(request ->
+            "bosses".equals(request.getDomain())
+                && "domain-source-bosses".equals(request.getActionId())
+                && "pause".equals(request.getControlAction())
+        ))).thenReturn(result);
+
+        mockMvc.perform(post("/admin/crawler-monitor/dispatch/control")
+                .contentType("application/json")
+                .content("{\"domain\":\"bosses\",\"actionId\":\"domain-source-bosses\",\"controlAction\":\"pause\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.accepted").value(true))
+            .andExpect(jsonPath("$.data.status").value("paused"))
+            .andExpect(jsonPath("$.data.message").value("dispatch paused"));
+
+        verify(crawlerMonitorService).controlWikiMonitorDispatch(argThat(request ->
+            "bosses".equals(request.getDomain())
+                && "domain-source-bosses".equals(request.getActionId())
+                && "pause".equals(request.getControlAction())
+        ));
+    }
+
+    @Test
+    void shouldCancelRunningWikiMonitorDispatch() throws Exception {
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(true);
+        result.setDispatchId("wiki-monitor-active");
+        result.setDomain("bosses");
+        result.setActionId("domain-source-bosses");
+        result.setStatus("cancelled");
+        result.setMessage("dispatch cancelled");
+
+        when(crawlerMonitorService.controlWikiMonitorDispatch(argThat(request ->
+            "bosses".equals(request.getDomain())
+                && "domain-source-bosses".equals(request.getActionId())
+                && "cancel".equals(request.getControlAction())
+        ))).thenReturn(result);
+
+        mockMvc.perform(post("/admin/crawler-monitor/dispatch/control")
+                .contentType("application/json")
+                .content("{\"domain\":\"bosses\",\"actionId\":\"domain-source-bosses\",\"controlAction\":\"cancel\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.accepted").value(true))
+            .andExpect(jsonPath("$.data.status").value("cancelled"))
+            .andExpect(jsonPath("$.data.message").value("dispatch cancelled"));
+
+        verify(crawlerMonitorService).controlWikiMonitorDispatch(argThat(request ->
+            "bosses".equals(request.getDomain())
+                && "domain-source-bosses".equals(request.getActionId())
+                && "cancel".equals(request.getControlAction())
+        ));
     }
 
     @Test

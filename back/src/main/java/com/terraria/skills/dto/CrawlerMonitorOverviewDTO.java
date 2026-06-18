@@ -25,6 +25,7 @@ public class CrawlerMonitorOverviewDTO {
     private String refreshStaleReason;
     private Long heartbeatStaleAfterMs;
     private ImageNormalizationSummaryDTO imageNormalization;
+    private WikiMonitorDTO wikiMonitor;
     private List<String> staleHeartbeats = new ArrayList<>();
     private List<MonitorRunDTO> history = new ArrayList<>();
     private List<MonitorReportDTO> recentReports = new ArrayList<>();
@@ -41,6 +42,69 @@ public class CrawlerMonitorOverviewDTO {
         private Long npcWikiOnlyCount;
         private Long projectileWikiOnlyCount;
         private Long legacyExemptionCount;
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class WikiMonitorDTO {
+        private String generatedAt;
+        private String dispatchMode;
+        private boolean autoDispatchEnabled;
+        private WikiMonitorSummaryDTO summary = new WikiMonitorSummaryDTO();
+        private List<WikiMonitorDomainDTO> domains = new ArrayList<>();
+        private List<WikiMonitorDispatchDTO> pendingDispatches = new ArrayList<>();
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class WikiMonitorSummaryDTO {
+        private long domainCount;
+        private long changedCount;
+        private long pendingApprovalCount;
+        private long runningCount;
+        private long failedCount;
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class WikiMonitorDomainDTO {
+        private String domain;
+        private String label;
+        private String status;
+        private String sourceKey;
+        private String locator;
+        private String lastCheckedAt;
+        private String currentValue;
+        private String previousValue;
+        private boolean changed;
+        private String recommendedActionId;
+        private String progressPath;
+        private boolean requiresApproval;
+        private boolean autoEligible;
+        private String dispatchMode;
+        private Long cooldownMinutes;
+        private Long maxConcurrent;
+        private String failureCircuitBreaker;
+        private String lastAutoRunAt;
+        private String pauseReason;
+        private String message;
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class WikiMonitorDispatchDTO {
+        private String dispatchId;
+        private String domain;
+        private String actionId;
+        private String status;
+        private String commandPreview;
+        private String progressPath;
+        private String lockPath;
+        private String reportPath;
+        private String requestedAt;
+        private String startedAt;
+        private String completedAt;
+        private String message;
     }
 
     @Data
@@ -171,6 +235,7 @@ public class CrawlerMonitorOverviewDTO {
         private boolean progressReadable;
         private String progressUpdatedAt;
         private String progressErrorMessage;
+        private Map<String, Object> progressPayload = new LinkedHashMap<>();
         private String progressHeartbeatAt;
         private Long progressHeartbeatAgeMs;
         private boolean progressStale;

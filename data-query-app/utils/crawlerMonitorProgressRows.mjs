@@ -62,8 +62,8 @@ export function isSourceSnapshotRow(row) {
 export function shouldIncludeProgressTask(task) {
   const normalizedStatus = String(task?.status || '').toLowerCase();
   const normalizedKind = String(task?.progressKind || '').toLowerCase();
-  return ['running', 'stalled', 'queued', 'pending', 'blocked', 'warning', 'missing', 'failed', 'error'].includes(normalizedStatus)
-    || ['live', 'stalled', 'queued', 'blocked', 'missing', 'report-only', 'failed', 'error', 'warning'].includes(normalizedKind)
+  return ['running', 'stalled', 'paused', 'queued', 'pending', 'blocked', 'warning', 'missing', 'failed', 'error'].includes(normalizedStatus)
+    || ['live', 'stalled', 'paused', 'queued', 'blocked', 'missing', 'report-only', 'failed', 'error', 'warning'].includes(normalizedKind)
     || Boolean(task?.progressPath || task?.progressSource || task?.reportPath);
 }
 
@@ -71,6 +71,7 @@ export function progressRowRank(row) {
   const normalized = rowStatus(row);
   const order = {
     stalled: 0,
+    paused: 1,
     running: 1,
     failed: 2,
     error: 2,
@@ -88,7 +89,7 @@ export function progressRowRank(row) {
 export function rowStatus(row) {
   if (!row) return '';
   const status = String(row.status || row.action?.status || '').toLowerCase();
-  if (['failed', 'error', 'blocked', 'warning', 'stalled', 'missing'].includes(status)) {
+  if (['failed', 'error', 'blocked', 'warning', 'stalled', 'paused', 'missing'].includes(status)) {
     return status;
   }
   const kind = String(row.progressKind || '').toLowerCase();
@@ -101,7 +102,7 @@ export function progressKindFromStatus(status) {
   const normalized = String(status || '').toLowerCase();
   if (normalized === 'running') return 'live';
   if (['pending', 'queued'].includes(normalized)) return 'queued';
-  if (['blocked', 'missing', 'stalled', 'failed', 'error', 'warning'].includes(normalized)) return normalized;
+  if (['blocked', 'missing', 'stalled', 'paused', 'failed', 'error', 'warning'].includes(normalized)) return normalized;
   return normalized || null;
 }
 

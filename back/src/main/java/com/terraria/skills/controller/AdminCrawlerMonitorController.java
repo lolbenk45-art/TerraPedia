@@ -1,6 +1,8 @@
 package com.terraria.skills.controller;
 
 import com.terraria.skills.common.ApiResponse;
+import com.terraria.skills.dto.CrawlerMonitorDispatchRequestDTO;
+import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
@@ -47,6 +49,24 @@ public class AdminCrawlerMonitorController {
     @Operation(summary = "Preview a crawler monitor report")
     public ApiResponse<CrawlerMonitorReportDetailDTO> report(@RequestParam String path) {
         return ApiResponse.success(crawlerMonitorService.getReportDetail(path));
+    }
+
+    @PostMapping("/dispatch")
+    @Operation(summary = "Dispatch an approved crawler monitor task")
+    public ApiResponse<CrawlerMonitorDispatchResultDTO> dispatch(@RequestBody CrawlerMonitorDispatchRequestDTO request) {
+        return ApiResponse.success(crawlerMonitorService.dispatchWikiMonitorTask(request));
+    }
+
+    @PostMapping("/dispatch/control")
+    @Operation(summary = "Pause or resume an active crawler monitor dispatch")
+    public ApiResponse<CrawlerMonitorDispatchResultDTO> controlDispatch(@RequestBody CrawlerMonitorDispatchRequestDTO request) {
+        return ApiResponse.success(crawlerMonitorService.controlWikiMonitorDispatch(request));
+    }
+
+    @PostMapping("/test-domain-smoke")
+    @Operation(summary = "Dispatch a bounded wiki monitor domain smoke test")
+    public ApiResponse<CrawlerMonitorDispatchResultDTO> dispatchTestDomainSmoke() {
+        return ApiResponse.success(crawlerMonitorService.dispatchWikiMonitorDomainSmoke());
     }
 
     @GetMapping("/test-state")
