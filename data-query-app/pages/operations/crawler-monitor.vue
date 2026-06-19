@@ -303,6 +303,16 @@
                 <FileJson :size="14" />
                 <span>查看进度文件</span>
               </button>
+              <button
+                v-if="isPreviewableGeneratedJsonPath(selectedWikiOutputPath)"
+                type="button"
+                class="inline-report-button"
+                :disabled="isPreviewLoading(selectedWikiOutputPath)"
+                @click="openReportPreview(selectedWikiOutputPath)"
+              >
+                <FileJson :size="14" />
+                <span>打开爬取文件</span>
+              </button>
               <button type="button" class="inline-report-button" @click="toggleCommandPreview(selectedWikiDomain)">
                 <FileStack :size="14" />
                 <span>查看命令</span>
@@ -463,6 +473,10 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               <article class="wiki-detail-card">
                 <span>报告文件</span>
                 <strong>{{ selectedWikiReportPath || '等待生成' }}</strong>
+              </article>
+              <article class="wiki-detail-card">
+                <span>爬取文件</span>
+                <strong>{{ selectedWikiOutputPath || '等待生成' }}</strong>
               </article>
               <article class="wiki-detail-card">
                 <span>技术标识</span>
@@ -886,6 +900,7 @@ const selectedWikiProgressPath = computed(() => selectedWikiProgressRow.value
   : selectedWikiDomain.value?.progressPath || ''
 )
 const selectedWikiReportPath = computed(() => selectedWikiProgressRow.value?.reportPath || '')
+const selectedWikiOutputPath = computed(() => selectedWikiProgressRow.value?.outputPath || selectedWikiProgressRow.value?.progressPayload?.outputPath || '')
 const selectedWikiProgressNumbers = computed(() => rowProgressNumbers(selectedWikiProgressRow.value))
 const selectedWikiHeartbeatAtLabel = computed(() => rowHeartbeatAtLabel(selectedWikiProgressRow.value))
 const selectedWikiUpdatedAtLabel = computed(() => rowUpdatedAtLabel(selectedWikiProgressRow.value))
@@ -908,6 +923,7 @@ const selectedWikiPathSummary = computed(() => {
   const parts = [
     selectedWikiProgressPath.value ? `进度 ${selectedWikiProgressPath.value}` : '',
     selectedWikiReportPath.value ? `报告 ${selectedWikiReportPath.value}` : '',
+    selectedWikiOutputPath.value ? `爬取文件 ${selectedWikiOutputPath.value}` : '',
   ].filter(Boolean)
   return parts.join(' / ') || '未生成进度或报告文件'
 })
@@ -1066,7 +1082,7 @@ async function loadOverview() {
 }
 
 async function openReportPreview(path?: string | null) {
-  if (!isPreviewableReportPath(path) && !isPreviewableProgressPath(path)) return
+  if (!isPreviewableReportPath(path) && !isPreviewableProgressPath(path) && !isPreviewableGeneratedJsonPath(path)) return
   selectedReportPath.value = path || null
   reportPreviewLoading.value = true
   reportPreviewError.value = ''
@@ -1747,7 +1763,14 @@ function isPreviewableProgressPath(path?: string | null) {
   const normalized = String(path || '').replace(/\\/g, '/').toLowerCase()
   if (!normalized || normalized.startsWith('redis://')) return false
   if (normalized.includes('*') || normalized.includes('?')) return false
-  return isPreviewableReportPath(path) || (normalized.startsWith('data/generated/') && normalized.endsWith('.json'))
+  return isPreviewableReportPath(path) || isPreviewableGeneratedJsonPath(path)
+}
+
+function isPreviewableGeneratedJsonPath(path?: string | null) {
+  const normalized = String(path || '').replace(/\\/g, '/').toLowerCase()
+  if (!normalized || normalized.startsWith('redis://')) return false
+  if (normalized.includes('*') || normalized.includes('?')) return false
+  return normalized.startsWith('data/generated/') && normalized.endsWith('.json')
 }
 
 function isMissingReportError(message?: string | null) {

@@ -688,9 +688,11 @@ test('crawler monitor report preview explains missing reports in Chinese', () =>
   assert.match(page, /reportPreviewStatusLabel/)
   assert.match(page, /reportPreviewEmptyMessage/)
   assert.match(page, /报告未找到/)
+  assert.match(page, /报告读取失败/)
   assert.match(page, /请先确认任务是否已生成报告/)
   assert.match(page, /selectedReportPath/)
   assert.match(page, /isPreviewableProgressPath/)
+  assert.match(page, /isPreviewableGeneratedJsonPath/)
   assert.match(page, /normalized\.startsWith\('data\/generated\/'\)/)
   assert.match(page, /normalized\.endsWith\('\.json'\)/)
 })
@@ -971,6 +973,7 @@ test('crawler monitor recovery workbench keeps selected domain, path split, and 
     'selectedWikiProgressRow',
     'selectedWikiProgressPath',
     'selectedWikiReportPath',
+    'selectedWikiOutputPath',
     'latestDispatchResult',
     'latestDispatchBelongsToSelected',
     'wiki-workbench',
@@ -993,10 +996,12 @@ test('crawler monitor recovery workbench keeps selected domain, path split, and 
 
   assert.match(page, /打开报告/)
   assert.match(page, /查看进度文件/)
+  assert.match(page, /打开爬取文件/)
   assert.match(page, /dispatchId/)
   assert.match(page, /reportPath/)
   assert.match(page, /progressPath/)
   assert.match(page, /@click="openReportPreview\(selectedWikiReportPath\)"/)
   assert.match(page, /@click="openReportPreview\(selectedWikiProgressPath\)"/)
+  assert.match(page, /@click="openReportPreview\(selectedWikiOutputPath\)"/)
   assert.doesNotMatch(page, /数据主链路/)
 })
