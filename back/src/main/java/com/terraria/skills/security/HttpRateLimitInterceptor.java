@@ -5,6 +5,7 @@ import com.terraria.skills.common.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -28,6 +29,7 @@ public class HttpRateLimitInterceptor implements HandlerInterceptor {
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
+    @Autowired
     public HttpRateLimitInterceptor(
         HttpRateLimitProperties properties,
         StringRedisTemplate redisTemplate,
