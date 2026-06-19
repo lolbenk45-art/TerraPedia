@@ -141,6 +141,88 @@ test('crawler monitor operation labels are Chinese-first while keeping raw statu
   assert.doesNotMatch(page, />read error</)
 })
 
+test('crawler monitor display helpers provide Chinese operator labels', async () => {
+  const helper = await import('../utils/crawlerMonitorDisplay.mjs')
+
+  assert.equal(helper.wikiDomainChineseName({ domain: 'items', label: 'Items' }), '物品')
+  assert.equal(helper.wikiDomainChineseName({ domain: 'projectiles', label: 'Projectiles' }), '射弹')
+  assert.equal(helper.wikiDomainChineseName({ domain: 'armor_sets', label: 'Armor sets' }), '盔甲套装')
+  assert.equal(helper.wikiDomainChineseName({ domain: 'unknown_domain', label: 'Unknown domain' }), 'unknown_domain')
+
+  assert.equal(helper.crawlerStatusChineseLabel('running'), '运行中')
+  assert.equal(helper.crawlerStatusChineseLabel('queued'), '队列中')
+  assert.equal(helper.crawlerStatusChineseLabel('stalled'), '心跳过期')
+  assert.equal(helper.crawlerStatusChineseLabel('failed'), '失败')
+  assert.equal(helper.crawlerStatusChineseLabel(''), '未知')
+})
+
+test('crawler monitor display helpers explain cooldown edge cases', async () => {
+  const helper = await import('../utils/crawlerMonitorDisplay.mjs')
+
+  assert.match(
+    helper.wikiCooldownExplanation({
+      cooldownMinutes: 30,
+      lastAutoRunAt: '2026-06-19T08:00:00Z',
+    }, new Date('2026-06-19T08:10:00Z')),
+    /Wiki 保护冷却：30 分钟。上次自动执行：2026-06-19T08:00:00Z，约 20 分钟后可再次自动执行。保护 Wiki，避免短时间重复请求。/
+  )
+
+  assert.match(
+    helper.wikiCooldownExplanation({
+      cooldownMinutes: 30,
+    }, new Date('2026-06-19T08:10:00Z')),
+    /没有上次自动执行时间/
+  )
+
+  assert.match(
+    helper.wikiCooldownExplanation({
+      cooldownMinutes: 30,
+      lastAutoRunAt: '2026-06-19T08:00:00Z',
+    }, new Date('2026-06-19T08:40:00Z')),
+    /冷却已结束/
+  )
+
+  assert.match(
+    helper.wikiCooldownExplanation({
+      cooldownMinutes: 30,
+      lastAutoRunAt: 'not-a-date',
+    }, new Date('2026-06-19T08:10:00Z')),
+    /上次自动执行：not-a-date/
+  )
+})
+
+test('crawler monitor display helpers summarize heartbeat states', async () => {
+  const helper = await import('../utils/crawlerMonitorDisplay.mjs')
+
+  assert.deepEqual(
+    helper.wikiHeartbeatSummary({
+      progressHeartbeatAt: '2026-06-19T08:05:00Z',
+      progressHeartbeatAgeMs: 125000,
+      status: 'running',
+    }),
+    {
+      state: '正常',
+      time: '2026-06-19T08:05:00Z',
+      age: '约 2 分钟前',
+      message: '最后心跳：2026-06-19T08:05:00Z（约 2 分钟前）',
+    }
+  )
+
+  assert.equal(
+    helper.wikiHeartbeatSummary({ progressStale: true, progressHeartbeatAt: '2026-06-19T08:05:00Z' }).state,
+    '过期'
+  )
+  assert.equal(
+    helper.wikiHeartbeatSummary({ progressStale: true, progressHeartbeatAt: '2026-06-19T08:05:00Z' }).message,
+    '最后心跳：2026-06-19T08:05:00Z'
+  )
+  assert.equal(
+    helper.wikiHeartbeatSummary({ progressHeartbeatAt: '2026-06-19T08:05:00Z', progressHeartbeatAgeMs: 'bad-age' }).age,
+    ''
+  )
+  assert.equal(helper.wikiHeartbeatSummary(null).message, '暂无运行心跳')
+})
+
 test('crawler monitor no longer treats latestRun actions as the only progress source', () => {
   assert.doesNotMatch(page, /v-if="actions\.length" class="action-rail"/)
   assert.match(page, /progressRows\.length/)
@@ -250,10 +332,10 @@ test('crawler monitor exposes pause and resume controls for running wiki tasks',
   assert.match(page, /\/admin\/crawler-monitor\/dispatch\/control/)
   assert.match(page, /class="wiki-run-control-panel"/)
   assert.match(page, /class="wiki-run-control-buttons"/)
-  assert.match(page, /开始爬取/)
-  assert.match(page, /暂停/)
-  assert.match(page, /继续/)
-  assert.match(page, /取消/)
+  assert.match(page, /开始刷新/)
+  assert.match(page, /暂停任务/)
+  assert.match(page, /继续任务/)
+  assert.match(page, /终止并清理文件/)
   assert.match(page, /已取消/)
 })
 
@@ -264,8 +346,9 @@ test('crawler monitor wiki domain cards expose retry, heartbeat, and flow state 
   )
 
   assert.match(workbenchTemplate, /wiki-live-metrics/)
-  assert.match(workbenchTemplate, /wikiDomainFlowLabel\(selectedWikiDomain\)/)
-  assert.match(workbenchTemplate, /wikiDomainHeartbeatLabel\(selectedWikiDomain\)/)
+  assert.match(workbenchTemplate, /selectedDomainStatusLabel/)
+  assert.match(workbenchTemplate, /selectedDomainHeartbeatMessage/)
+  assert.match(workbenchTemplate, /selectedDomainHeartbeatState/)
   assert.match(workbenchTemplate, /wikiDomainFlowLabel\(domain\)/)
   assert.match(workbenchTemplate, /wikiDomainPrimaryActionLabel\(selectedWikiDomain\)/)
   assert.match(page, /function canRetryWikiDomain/)
@@ -296,7 +379,7 @@ test('crawler monitor automatically prioritizes running status and exposes concr
   assert.match(recoveryTemplate, /selectedWikiProgressNumbers/)
   assert.match(recoveryTemplate, /rowProgressNumbers\(wikiDomainProgressRow\(domain\)\)/)
   assert.match(stageTemplate, /rowProgressNumbers\(row\)/)
-  assert.match(recoveryTemplate, /selectedWikiHeartbeatAtLabel/)
+  assert.match(recoveryTemplate, /selectedDomainHeartbeatMessage/)
   assert.match(recoveryTemplate, /selectedWikiUpdatedAtLabel/)
   assert.match(recoveryTemplate, /selectedWikiPathSummary/)
 })
@@ -328,16 +411,16 @@ test('crawler monitor domain locator is a floating download-style window, not a 
   assert.match(windowTemplate, /canExecuteWikiDomain\(domain\)/)
   assert.match(windowTemplate, /controlWikiMonitorTask\(domain, 'pause'\)/)
   assert.match(windowTemplate, /controlWikiMonitorTask\(domain, 'resume'\)/)
-  assert.match(windowTemplate, /controlWikiMonitorTask\(domain, 'cancel'\)/)
+  assert.match(windowTemplate, /openCancelConfirm\(domain\)/)
   assert.match(windowTemplate, /executeWikiMonitorTask\(domain\)/)
   assert.match(windowTemplate, /:disabled="!canExecuteWikiDomain\(domain\) \|\| wikiDispatchLoading === domain\.domain"/)
   assert.match(windowTemplate, /:disabled="!canPauseWikiDomain\(domain\) \|\| wikiControlLoading === domain\.domain"/)
   assert.match(windowTemplate, /:disabled="!canResumeWikiDomain\(domain\) \|\| wikiControlLoading === domain\.domain"/)
   assert.match(windowTemplate, /:disabled="!canCancelWikiDomain\(domain\) \|\| wikiControlLoading === domain\.domain"/)
   assert.match(windowTemplate, />开始</)
-  assert.match(windowTemplate, />暂停</)
-  assert.match(windowTemplate, />继续</)
-  assert.match(windowTemplate, />取消</)
+  assert.match(windowTemplate, />暂停任务</)
+  assert.match(windowTemplate, />继续任务</)
+  assert.match(windowTemplate, />终止</)
   assert.match(page, /\.wiki-domain-download-window\s*\{[\s\S]*position:\s*fixed/)
   assert.match(page, /\.wiki-domain-download-window\s*\{[\s\S]*right:\s*24px/)
   assert.match(page, /\.wiki-domain-download-window\s*\{[\s\S]*top:\s*calc\(var\(--header-height\) \+ 16px\)/)
@@ -356,6 +439,73 @@ test('crawler monitor domain locator is a floating download-style window, not a 
   assert.doesNotMatch(windowTemplate, /@click\.stop="openReportPreview/)
   assert.doesNotMatch(windowTemplate, /class="wiki-domain-side-row__files"/)
   assert.doesNotMatch(page, /class="focused-side wiki-domain-sidebar"/)
+})
+
+test('crawler monitor selected domain workbench is Chinese-first and uses display computed values', () => {
+  assert.match(page, /selectedDomainDisplayName/)
+  assert.match(page, /selectedDomainOperatorSummary/)
+  assert.match(page, /selectedDomainNextActionLabel/)
+  assert.match(page, /selectedDomainCooldownExplanation/)
+  assert.match(page, /selectedDomainHeartbeatMessage/)
+  assert.match(page, /selectedDomainHeartbeatState/)
+
+  const workbench = page.slice(
+    page.indexOf('class="panel recovery-workbench wiki-workbench"'),
+    page.indexOf('class="panel recovery-domain-panel"')
+  )
+
+  for (const copy of ['当前选中域', '下一步建议', '为什么不能执行', 'Wiki 保护冷却', '最后心跳', '心跳状态', '运行文件']) {
+    assert.match(workbench, new RegExp(copy))
+  }
+
+  assert.match(workbench, /{{ selectedDomainDisplayName }}/)
+  assert.match(workbench, /{{ selectedDomainOperatorSummary }}/)
+  assert.match(workbench, /{{ selectedDomainNextActionLabel }}/)
+  assert.match(workbench, /{{ selectedDomainCooldownExplanation }}/)
+  assert.match(workbench, /{{ selectedDomainHeartbeatMessage }}/)
+  assert.match(workbench, /{{ selectedDomainHeartbeatState }}/)
+})
+
+test('crawler monitor domain detail uses Chinese field labels around technical identifiers', () => {
+  const detail = page.slice(
+    page.indexOf('class="panel recovery-detail"'),
+    page.indexOf('class="wiki-domain-download-window"')
+  )
+
+  for (const copy of ['域详情', '数据来源键', '定位规则', '上次检查', '白名单动作 ID', '进度文件', '报告文件', '技术标识']) {
+    assert.match(detail, new RegExp(copy))
+  }
+
+  assert.match(detail, /{{ selectedDomainDisplayName }} 域详情/)
+  assert.doesNotMatch(detail, /{{ selectedWikiDomain\.label \|\| selectedWikiDomain\.domain \|\| '未知域' }} 详情/)
+
+  for (const rawHeading of ['>sourceKey<', '>locator<', '>lastCheckedAt<', '>recommendedActionId<', '>progressPath<']) {
+    assert.doesNotMatch(detail, new RegExp(rawHeading))
+  }
+})
+
+test('crawler monitor cancel is guarded as destructive cleanup', () => {
+  assert.match(page, /cancelConfirmDomainKey/)
+  assert.match(page, /openCancelConfirm/)
+  assert.match(page, /confirmWikiDomainCancel/)
+  assert.match(page, /cancelCleanupPaths/)
+  assert.match(page, /matchingPendingDispatch/)
+  assert.match(page, /终止并清理文件/)
+  assert.match(page, /会停止当前任务，并可能删除已经下载的临时文件/)
+  assert.match(page, /确认终止并清理/)
+
+  assert.doesNotMatch(page, /@click="controlWikiMonitorTask\(selectedWikiDomain, 'cancel'\)"/)
+  assert.doesNotMatch(page, /@click\.stop="controlWikiMonitorTask\(domain, 'cancel'\)"/)
+
+  const cancelCallMatches = [...page.matchAll(/controlWikiMonitorTask\([^)]*, 'cancel'\)/g)]
+  assert.equal(cancelCallMatches.length, 1)
+
+  const confirmStart = page.indexOf('async function confirmWikiDomainCancel')
+  const confirmEnd = page.indexOf('\n}', confirmStart)
+  assert.ok(confirmStart >= 0)
+  assert.ok(confirmEnd > confirmStart)
+  const onlyCancelCallIndex = cancelCallMatches[0].index
+  assert.ok(onlyCancelCallIndex > confirmStart && onlyCancelCallIndex < confirmEnd)
 })
 
 test('crawler monitor exposes pause and resume controls for registered progress tasks', () => {

@@ -166,8 +166,8 @@
             <div class="wiki-live-panel__head">
               <div>
                 <span class="ops-card__label">当前选中域</span>
-                <h2>{{ selectedWikiDomain.label || selectedWikiDomain.domain || '未知域' }} 实时进度</h2>
-                <p>{{ selectedWikiDomainProgressCopy }}</p>
+                <h2>{{ selectedDomainDisplayName }} · {{ selectedDomainStatusLabel }}</h2>
+                <p>{{ selectedDomainOperatorSummary }}</p>
               </div>
               <strong class="wiki-live-percent">{{ rowProgressLabel(selectedWikiProgressRow) }}</strong>
             </div>
@@ -175,14 +175,23 @@
               <span :style="{ width: rowProgress(selectedWikiProgressRow) }" :class="statusTone(rowStatus(selectedWikiProgressRow))" />
             </div>
             <div class="wiki-live-metrics">
-              <span><small>状态</small><strong>{{ wikiDomainFlowLabel(selectedWikiDomain) }}</strong></span>
+              <span><small>状态</small><strong>{{ selectedDomainStatusLabel }}</strong></span>
+              <span><small>下一步建议</small><strong>{{ selectedDomainNextActionLabel }}</strong></span>
               <span><small>当前/总数</small><strong>{{ selectedWikiProgressNumbers }}</strong></span>
-              <span><small>心跳</small><strong>{{ wikiDomainHeartbeatLabel(selectedWikiDomain) }}</strong></span>
-              <span><small>心跳时间</small><strong>{{ selectedWikiHeartbeatAtLabel }}</strong></span>
+              <span><small>最后心跳</small><strong>{{ selectedDomainHeartbeatMessage }}</strong></span>
+              <span><small>心跳状态</small><strong>{{ selectedDomainHeartbeatState }}</strong></span>
               <span><small>更新时间</small><strong>{{ selectedWikiUpdatedAtLabel }}</strong></span>
               <span><small>待处理</small><strong>{{ rowPendingLabel(selectedWikiProgressRow) }}</strong></span>
               <span><small>速度</small><strong>{{ rowSpeedLabel(selectedWikiProgressRow) }}</strong></span>
               <span><small>预计剩余</small><strong>{{ rowEtaLabel(selectedWikiProgressRow) }}</strong></span>
+            </div>
+            <div v-if="selectedDomainCooldownExplanation" class="wiki-workbench__cooldown">
+              <span>Wiki 保护冷却</span>
+              <p>{{ selectedDomainCooldownExplanation }}</p>
+            </div>
+            <div v-if="selectedWikiActionDisabledReason" class="wiki-workbench__warning">
+              <span>为什么不能执行</span>
+              <p>{{ selectedWikiActionDisabledReason }}</p>
             </div>
             <div class="wiki-path-strip">
               <span>运行文件</span>
@@ -202,7 +211,7 @@
                   @click="executeWikiMonitorTask(selectedWikiDomain)"
                 >
                   <RefreshCw :size="16" :class="{ 'spin': wikiDispatchLoading === selectedWikiDomain.domain }" />
-                  <span>{{ wikiDispatchLoading === selectedWikiDomain.domain ? '派发中' : '开始爬取' }}</span>
+                  <span>{{ wikiDispatchLoading === selectedWikiDomain.domain ? '派发中' : '开始刷新' }}</span>
                 </button>
                 <button
                   type="button"
@@ -211,7 +220,7 @@
                   @click="controlWikiMonitorTask(selectedWikiDomain, 'pause')"
                 >
                   <Pause :size="14" />
-                  <span>{{ canPauseWikiDomain(selectedWikiDomain) ? (wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '暂停') : '暂停不可用' }}</span>
+                  <span>{{ canPauseWikiDomain(selectedWikiDomain) ? (wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '暂停任务') : '暂停不可用' }}</span>
                 </button>
                 <button
                   type="button"
@@ -220,16 +229,16 @@
                   @click="controlWikiMonitorTask(selectedWikiDomain, 'resume')"
                 >
                   <Play :size="14" />
-                  <span>{{ canResumeWikiDomain(selectedWikiDomain) ? (wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '继续') : '继续不可用' }}</span>
+                  <span>{{ canResumeWikiDomain(selectedWikiDomain) ? (wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '继续任务') : '继续不可用' }}</span>
                 </button>
                 <button
                   type="button"
                   class="inline-report-button inline-report-button--danger"
                   :disabled="wikiControlLoading === selectedWikiDomain.domain"
-                  @click="controlWikiMonitorTask(selectedWikiDomain, 'cancel')"
+                  @click="openCancelConfirm(selectedWikiDomain)"
                 >
                   <CircleStop :size="14" />
-                  <span>{{ canCancelWikiDomain(selectedWikiDomain) ? (wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '取消') : '取消不可用' }}</span>
+                  <span>{{ canCancelWikiDomain(selectedWikiDomain) ? (wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '终止并清理文件') : '终止不可用' }}</span>
                 </button>
               </div>
             </div>
@@ -260,7 +269,7 @@
                 @click="controlWikiMonitorTask(selectedWikiDomain, 'pause')"
               >
                 <Pause :size="14" />
-                <span>{{ wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '暂停' }}</span>
+                <span>{{ wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '暂停任务' }}</span>
               </button>
               <button
                 v-if="canResumeWikiDomain(selectedWikiDomain)"
@@ -270,7 +279,7 @@
                 @click="controlWikiMonitorTask(selectedWikiDomain, 'resume')"
               >
                 <Play :size="14" />
-                <span>{{ wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '继续' }}</span>
+                <span>{{ wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '继续任务' }}</span>
               </button>
               <button
                 v-if="isPreviewableReportPath(selectedWikiReportPath)"
@@ -392,7 +401,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
 
           <section v-if="selectedWikiDomain" class="panel recovery-detail">
             <div>
-              <h2>{{ selectedWikiDomain.label || selectedWikiDomain.domain || '未知域' }} 详情</h2>
+              <h2>{{ selectedDomainDisplayName }} 域详情</h2>
               <p>{{ selectedWikiDomainDetailCopy }}</p>
               <div class="reason-list">
                 <div class="reason-row">
@@ -430,28 +439,32 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
             </div>
             <div class="wiki-domain-detail-grid health-stack">
               <article class="wiki-detail-card">
-                <span>sourceKey</span>
+                <span>数据来源键</span>
                 <strong>{{ selectedWikiDomain.sourceKey || '未配置' }}</strong>
               </article>
               <article class="wiki-detail-card">
-                <span>locator</span>
+                <span>定位规则</span>
                 <strong>{{ selectedWikiDomain.locator || '未配置' }}</strong>
               </article>
               <article class="wiki-detail-card">
-                <span>lastCheckedAt</span>
+                <span>上次检查</span>
                 <strong>{{ formatDate(selectedWikiDomain.lastCheckedAt) }}</strong>
               </article>
               <article class="wiki-detail-card">
-                <span>recommendedActionId</span>
+                <span>白名单动作 ID</span>
                 <strong>{{ selectedWikiDomain.recommendedActionId || '无白名单动作' }}</strong>
               </article>
               <article class="wiki-detail-card">
-                <span>progressPath</span>
+                <span>进度文件</span>
                 <strong>{{ selectedWikiProgressPath || selectedWikiDomain.progressPath || '未生成' }}</strong>
               </article>
               <article class="wiki-detail-card">
-                <span>report</span>
+                <span>报告文件</span>
                 <strong>{{ selectedWikiReportPath || '等待生成' }}</strong>
+              </article>
+              <article class="wiki-detail-card">
+                <span>技术标识</span>
+                <strong>{{ selectedWikiDomain.domain || selectedWikiDomain.recommendedActionId || '未配置' }}</strong>
               </article>
             </div>
           </section>
@@ -556,7 +569,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               @click.stop="controlWikiMonitorTask(domain, 'pause')"
             >
               <Pause :size="14" />
-              <span>暂停</span>
+              <span>暂停任务</span>
             </button>
             <button
               type="button"
@@ -565,16 +578,16 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               @click.stop="controlWikiMonitorTask(domain, 'resume')"
             >
               <Play :size="14" />
-              <span>继续</span>
+              <span>继续任务</span>
             </button>
             <button
               type="button"
               class="inline-report-button inline-report-button--compact inline-report-button--danger"
               :disabled="!canCancelWikiDomain(domain) || wikiControlLoading === domain.domain"
-              @click.stop="controlWikiMonitorTask(domain, 'cancel')"
+              @click.stop="openCancelConfirm(domain)"
             >
               <CircleStop :size="14" />
-              <span>取消</span>
+              <span>终止</span>
             </button>
           </span>
         </button>
@@ -649,6 +662,29 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
 
     </section>
 
+    <section v-if="cancelConfirmDomain" class="cancel-confirm-panel" role="dialog" aria-modal="true" aria-label="终止并清理文件确认">
+      <div class="cancel-confirm-panel__body">
+        <span class="ops-card__label">危险操作确认</span>
+        <h2>终止并清理文件：{{ wikiDomainChineseName(cancelConfirmDomain) }}</h2>
+        <p>会停止当前任务，并可能删除已经下载的临时文件、进度文件、报告文件或锁文件。确认前请核对下面的路径。</p>
+        <ul v-if="cancelCleanupPaths.length">
+          <li v-for="path in cancelCleanupPaths" :key="path"><code>{{ path }}</code></li>
+        </ul>
+        <p v-else>当前没有返回具体清理路径，但取消仍可能清理该任务的运行产物。</p>
+        <div class="cancel-confirm-panel__actions">
+          <button type="button" class="inline-report-button" @click="closeCancelConfirm">暂不取消</button>
+          <button
+            type="button"
+            class="inline-report-button inline-report-button--danger"
+            :disabled="wikiControlLoading === cancelConfirmDomain.domain"
+            @click="confirmWikiDomainCancel"
+          >
+            确认终止并清理
+          </button>
+        </div>
+      </div>
+    </section>
+
     <div
       v-if="selectedReportPath || reportPreview || reportPreviewError"
       class="report-preview-shell"
@@ -707,6 +743,12 @@ import {
   rowStatus,
   sourceSnapshotRowsFromOverview,
 } from '~/utils/crawlerMonitorProgressRows.mjs'
+import {
+  crawlerStatusChineseLabel,
+  wikiCooldownExplanation,
+  wikiDomainChineseName,
+  wikiHeartbeatSummary,
+} from '~/utils/crawlerMonitorDisplay.mjs'
 import type {
   CrawlerMonitorAction,
   CrawlerMonitorDispatchResult,
@@ -742,6 +784,7 @@ const domainSidebarExpanded = ref(true)
 const selectedWikiDomainKey = ref('')
 const latestDispatchResult = ref<CrawlerMonitorDispatchResult | null>(null)
 const commandPreviewDomainKey = ref('')
+const cancelConfirmDomainKey = ref('')
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 
 async function fetchCrawlerMonitorOverview() {
@@ -838,6 +881,34 @@ const selectedWikiPathSummary = computed(() => {
   ].filter(Boolean)
   return parts.join(' / ') || '未生成进度或报告文件'
 })
+const selectedDomainDisplayName = computed(() => selectedWikiDomain.value ? wikiDomainChineseName(selectedWikiDomain.value) : '暂无可选域')
+const selectedDomainStatusLabel = computed(() => selectedWikiDomain.value ? crawlerStatusChineseLabel(wikiDomainFlowStatus(selectedWikiDomain.value)) : '未知')
+const selectedDomainCooldownExplanation = computed(() => selectedWikiDomain.value ? wikiCooldownExplanation(selectedWikiDomain.value) : '')
+const selectedDomainHeartbeatRaw = computed(() => wikiHeartbeatSummary(selectedWikiProgressRow.value))
+const selectedDomainHeartbeatMessage = computed(() => {
+  const summary = selectedDomainHeartbeatRaw.value
+  if (!summary.time) return summary.message
+  const localTime = formatDate(summary.time)
+  return summary.age ? `最后心跳：${localTime}（${summary.age}）` : `最后心跳：${localTime}`
+})
+const selectedDomainHeartbeatState = computed(() => selectedDomainHeartbeatRaw.value.state)
+const selectedDomainNextActionLabel = computed(() => {
+  const domain = selectedWikiDomain.value
+  if (!domain) return '暂无可操作域'
+  if (canRetryWikiDomain(domain)) return '重试失败任务'
+  if (canResumeWikiDomain(domain)) return '继续任务'
+  if (canPauseWikiDomain(domain)) return '暂停任务'
+  if (canExecuteWikiDomain(domain)) return '开始刷新'
+  if (domain.cooldownMinutes) return '等待冷却'
+  return '暂不可执行'
+})
+const selectedDomainOperatorSummary = computed(() => {
+  const domain = selectedWikiDomain.value
+  if (!domain) return '请选择一个域查看可执行动作。'
+  const reason = selectedWikiActionDisabledReason.value
+  if (reason) return `${selectedDomainDisplayName.value} 当前${selectedDomainStatusLabel.value}，${reason}。${selectedDomainHeartbeatMessage.value}。`
+  return `${selectedDomainDisplayName.value} 当前${selectedDomainStatusLabel.value}，可以执行：${selectedDomainNextActionLabel.value}。${selectedDomainHeartbeatMessage.value}。`
+})
 const selectedWikiRecoveryTitle = computed(() => selectedWikiDomain.value ? wikiDomainRecoveryTitle(selectedWikiDomain.value) : '暂无可选域')
 const selectedWikiRecoveryCopy = computed(() => selectedWikiDomain.value ? wikiDomainRecoveryCopy(selectedWikiDomain.value) : '当前没有可展示的 Wiki 域。')
 const selectedWikiOperationHint = computed(() => selectedWikiDomain.value ? wikiDomainOperationHint(selectedWikiDomain.value) : '暂无可操作域。')
@@ -878,6 +949,41 @@ const latestDispatchMatchedDomain = computed(() => {
     if (progressPath && result.progressPath && progressPath === result.progressPath) return true
     return Boolean(domain.recommendedActionId && result.actionId && domain.recommendedActionId === result.actionId)
   }) || null
+})
+const cancelConfirmDomain = computed(() => {
+  if (!cancelConfirmDomainKey.value) return null
+  return visibleWikiDomainRows.value.find((domain) => wikiDomainKey(domain) === cancelConfirmDomainKey.value) || null
+})
+const matchingPendingDispatch = computed(() => {
+  const domain = cancelConfirmDomain.value
+  if (!domain) return null
+  const key = wikiDomainKey(domain)
+  return pendingWikiDispatches.value.find((dispatch) => {
+    if (dispatch.domain && dispatch.domain === domain.domain) return true
+    if (dispatch.actionId && dispatch.actionId === domain.recommendedActionId) return true
+    const row = wikiDomainProgressRow(domain)
+    const progressPath = row ? rowSourcePath(row) : domain.progressPath
+    if (dispatch.progressPath && dispatch.progressPath === progressPath) return true
+    return wikiDomainKey({ domain: dispatch.domain || '', label: dispatch.domain || '' }) === key
+  }) || null
+})
+const cancelCleanupPaths = computed(() => {
+  const domain = cancelConfirmDomain.value
+  if (!domain) return []
+  const row = wikiDomainProgressRow(domain)
+  const pending = matchingPendingDispatch.value
+  const latest = latestDispatchBelongsToSelected.value ? latestDispatchResult.value : null
+  const values = [
+    row ? rowSourcePath(row) : domain.progressPath,
+    row?.reportPath,
+    pending?.progressPath,
+    pending?.reportPath,
+    pending?.lockPath,
+    latest?.progressPath,
+    latest?.reportPath,
+    latest?.lockPath,
+  ]
+  return Array.from(new Set(values.filter((value): value is string => Boolean(value))))
 })
 
 watch(visibleWikiDomainRowsByPriority, (rows) => {
@@ -1094,6 +1200,23 @@ function selectLatestDispatchDomain() {
   if (latestDispatchMatchedDomain.value) {
     selectWikiDomain(latestDispatchMatchedDomain.value)
   }
+}
+
+function openCancelConfirm(domain: CrawlerMonitorWikiDomain | null | undefined) {
+  if (!domain || !canCancelWikiDomain(domain)) return
+  selectWikiDomain(domain)
+  cancelConfirmDomainKey.value = wikiDomainKey(domain)
+}
+
+function closeCancelConfirm() {
+  cancelConfirmDomainKey.value = ''
+}
+
+async function confirmWikiDomainCancel() {
+  const domain = cancelConfirmDomain.value
+  if (!domain) return
+  await controlWikiMonitorTask(domain, 'cancel')
+  closeCancelConfirm()
 }
 
 function dispatchResultPath(kind: 'progress' | 'report' | 'lock') {
@@ -3112,6 +3235,79 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 .report-preview__empty {
   color: var(--color-text-secondary);
   white-space: normal;
+}
+
+.wiki-workbench__cooldown,
+.wiki-workbench__warning {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 68%, var(--color-bg));
+}
+
+.wiki-workbench__cooldown span,
+.wiki-workbench__warning span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.wiki-workbench__cooldown p,
+.wiki-workbench__warning p {
+  margin: 0;
+  color: var(--color-text);
+  line-height: 1.55;
+}
+
+.cancel-confirm-panel {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.cancel-confirm-panel__body {
+  width: min(620px, 100%);
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 34%, transparent);
+  border-radius: 8px;
+  background: var(--color-bg);
+  box-shadow: var(--shadow-xl);
+}
+
+.cancel-confirm-panel__body h2,
+.cancel-confirm-panel__body p {
+  margin: 0;
+}
+
+.cancel-confirm-panel__body p {
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+.cancel-confirm-panel__body ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.cancel-confirm-panel__body code {
+  overflow-wrap: anywhere;
+}
+
+.cancel-confirm-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .empty-block {
