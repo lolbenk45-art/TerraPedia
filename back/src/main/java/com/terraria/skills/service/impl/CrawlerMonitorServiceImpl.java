@@ -51,6 +51,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path ALERT_CONFIG_FILE = REFRESH_DIR.resolve("alert-config.json");
     private static final Path WIKI_SYNC_PROGRESS_FILE = Path.of("data", "generated", "wiki-sync-progress.latest.json");
     private static final Path BUFF_FETCH_PROGRESS_FILE = Path.of("data", "generated", "fetch-wiki-buffs-progress.latest.json");
+    private static final Path BUFF_PAGE_EVIDENCE_CACHE_DIR = Path.of("data", "generated", "buff-page-evidence-cache");
     private static final Path WORLD_CONTEXT_FETCH_PROGRESS_FILE = Path.of("data", "generated", "wiki-world-contexts-progress.latest.json");
     private static final Path DOMAIN_SOURCE_BOSSES_PROGRESS_FILE = Path.of("data", "generated", "domain-source-bosses-progress.latest.json");
     private static final Path DOMAIN_SOURCE_ARMOR_SETS_PROGRESS_FILE = Path.of("data", "generated", "domain-source-armor-sets-progress.latest.json");
@@ -204,8 +205,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         lockPayload.put("lockedAt", timestamp);
         releaseStaleDispatchLock(lockPath);
         if (!acquireDispatchLock(lockPath, lockPayload)) {
-            CrawlerMonitorDispatchResultDTO result = rejectedDispatch(rule, "locked", "another wiki monitor dispatch is running");
+            CrawlerMonitorDispatchResultDTO result = rejectedDispatch(rule, "locked", "wiki monitor dispatch is locked by an existing task");
             result.setLockPath(toDisplayPath(repoRoot, lockPath));
+            attachBlockedDispatch(repoRoot, lockPath, result);
             return result;
         }
 
@@ -326,7 +328,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         lockPayload.put("lockedAt", timestamp);
         releaseStaleDispatchLock(lockPath);
         if (!acquireDispatchLock(lockPath, lockPayload)) {
-            return smokeDispatchResult(dispatchId, false, "locked", "another wiki monitor domain smoke is running");
+            CrawlerMonitorDispatchResultDTO result = smokeDispatchResult(dispatchId, false, "locked", "wiki monitor dispatch is locked by an existing task");
+            attachBlockedDispatch(repoRoot, lockPath, result);
+            return result;
         }
 
         String reportPath = "reports/crawler-monitor/" + dispatchId + ".json";
@@ -606,6 +610,19 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         result.setReportPath(paths.reportPath());
         result.setMessage(message);
         return result;
+    }
+
+    private void attachBlockedDispatch(Path repoRoot, Path lockPath, CrawlerMonitorDispatchResultDTO result) {
+        ReadResult lock = readJsonMap(lockPath);
+        if (!lock.readable()) {
+            return;
+        }
+        Map<String, Object> payload = lock.payload();
+        result.setBlockedByDispatchId(asString(payload.get("dispatchId")));
+        result.setBlockedByDomain(asString(payload.get("domain")));
+        result.setBlockedByActionId(asString(payload.get("actionId")));
+        result.setBlockedSince(asString(payload.get("lockedAt")));
+        result.setLockPath(toDisplayPath(repoRoot, lockPath));
     }
 
     private boolean acquireDispatchLock(Path lockPath, Map<String, Object> payload) {
@@ -1818,7 +1835,28 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (outputPath != null && !outputPath.isBlank()) {
             task.setOutputPath(outputPath);
         }
+        applyBuffFetchOutputFallback(repoRoot, task);
         return task;
+    }
+
+    private void applyBuffFetchOutputFallback(Path repoRoot, CrawlerMonitorOverviewDTO.RegisteredTaskDTO task) {
+        Path outputPath = resolvePayloadPathInsideRepo(repoRoot, task.getOutputPath());
+        if (outputPath != null && Files.exists(outputPath)) {
+            return;
+        }
+        Path cacheDir = repoRoot.resolve(BUFF_PAGE_EVIDENCE_CACHE_DIR).normalize();
+        if (Files.isDirectory(cacheDir) && containsJsonFile(cacheDir)) {
+            task.setOutputPath(toDisplayPath(repoRoot, cacheDir));
+        }
+    }
+
+    private boolean containsJsonFile(Path directory) {
+        try (Stream<Path> stream = Files.list(directory)) {
+            return stream.anyMatch(path -> Files.isRegularFile(path)
+                && path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".json"));
+        } catch (IOException ignored) {
+            return false;
+        }
     }
 
     private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildWorldContextFetchRefreshTask(Path repoRoot, ReadResult progress) {

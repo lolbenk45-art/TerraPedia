@@ -29,6 +29,7 @@ public class CrawlerReportArchiver {
     private static final int HISTORY_LIMIT = 10;
     private static final int RECENT_REPORT_LIMIT = 20;
     private static final int REPORT_PREVIEW_MAX_BYTES = 200_000;
+    private static final int DIRECTORY_PREVIEW_FILE_LIMIT = 500;
 
     private final ObjectMapper objectMapper;
 
@@ -116,6 +117,9 @@ public class CrawlerReportArchiver {
             detail.setReadable(false);
             detail.setErrorMessage("Report file was not found.");
             return detail;
+        }
+        if (isAllowedCrawlerOutputDirectory(repoRoot, resolved)) {
+            return buildDirectoryPreview(repoRoot, resolved, detail);
         }
         if (!Files.isRegularFile(resolved)) {
             detail.setFound(true);
@@ -271,6 +275,9 @@ public class CrawlerReportArchiver {
 
     private boolean isAllowedReportPreviewPath(Path repoRoot, Path path) {
         Path normalized = path.toAbsolutePath().normalize();
+        if (isAllowedCrawlerOutputDirectory(repoRoot, normalized)) {
+            return true;
+        }
         if (!isReportLikeFile(normalized)) {
             return false;
         }
@@ -278,7 +285,9 @@ public class CrawlerReportArchiver {
         Path reportsRoot = repoRoot.resolve("reports").normalize();
         Path testReportsRoot = repoRoot.resolve("back").resolve("target").resolve("surefire-reports").normalize();
         Path generatedRoot = repoRoot.resolve("data").resolve("generated").normalize();
-        if (!normalized.startsWith(reportsRoot) && !normalized.startsWith(testReportsRoot) && !normalized.startsWith(generatedRoot)) {
+        Path rawWikiRoot = repoRoot.resolve("data").resolve("terraPedia").resolve("raw").resolve("wiki").normalize();
+        boolean rawWikiJson = normalized.startsWith(rawWikiRoot) && isJsonFile(normalized);
+        if (!normalized.startsWith(reportsRoot) && !normalized.startsWith(testReportsRoot) && !normalized.startsWith(generatedRoot) && !rawWikiJson) {
             return false;
         }
         if (!Files.exists(normalized)) {
@@ -287,7 +296,27 @@ public class CrawlerReportArchiver {
 
         try {
             Path realPath = normalized.toRealPath();
-            return realPath.startsWith(realRoot(reportsRoot)) || realPath.startsWith(realRoot(testReportsRoot)) || realPath.startsWith(realRoot(generatedRoot));
+            return realPath.startsWith(realRoot(reportsRoot))
+                || realPath.startsWith(realRoot(testReportsRoot))
+                || realPath.startsWith(realRoot(generatedRoot))
+                || (realPath.startsWith(realRoot(rawWikiRoot)) && isJsonFile(realPath));
+        } catch (IOException ignored) {
+            return false;
+        }
+    }
+
+    private boolean isAllowedCrawlerOutputDirectory(Path repoRoot, Path path) {
+        Path normalized = path.toAbsolutePath().normalize();
+        Path buffEvidenceCacheRoot = repoRoot.resolve("data").resolve("generated").resolve("buff-page-evidence-cache").normalize();
+        if (!normalized.equals(buffEvidenceCacheRoot)) {
+            return false;
+        }
+        if (!Files.exists(normalized)) {
+            return true;
+        }
+        try {
+            Path realPath = normalized.toRealPath();
+            return Files.isDirectory(realPath) && realPath.equals(realRoot(buffEvidenceCacheRoot));
         } catch (IOException ignored) {
             return false;
         }
@@ -301,8 +330,48 @@ public class CrawlerReportArchiver {
             || fileName.endsWith(".txt");
     }
 
+    private boolean isJsonFile(Path path) {
+        return path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".json");
+    }
+
     private Path realRoot(Path root) throws IOException {
         return Files.exists(root) ? root.toRealPath() : root.toAbsolutePath().normalize();
+    }
+
+    private CrawlerMonitorReportDetailDTO buildDirectoryPreview(Path repoRoot, Path directory, CrawlerMonitorReportDetailDTO detail) {
+        detail.setFound(true);
+        detail.setReadable(true);
+        detail.setUpdatedAt(readLastModifiedIso(directory));
+        detail.setContentType("json");
+        try (Stream<Path> stream = Files.list(directory)) {
+            List<LinkedHashMap<String, Object>> files = stream
+                .filter(Files::isRegularFile)
+                .filter(this::isJsonFile)
+                .sorted(Comparator.comparing(path -> path.getFileName().toString()))
+                .limit(DIRECTORY_PREVIEW_FILE_LIMIT)
+                .map(path -> {
+                    LinkedHashMap<String, Object> row = new LinkedHashMap<>();
+                    row.put("name", path.getFileName().toString());
+                    row.put("path", toDisplayPath(repoRoot, path));
+                    row.put("updatedAt", readLastModifiedIso(path));
+                    row.put("sizeBytes", safeSize(path));
+                    return row;
+                })
+                .toList();
+            LinkedHashMap<String, Object> payload = new LinkedHashMap<>();
+            payload.put("path", toDisplayPath(repoRoot, directory));
+            payload.put("fileCount", files.size());
+            payload.put("truncated", files.size() >= DIRECTORY_PREVIEW_FILE_LIMIT);
+            payload.put("files", files);
+            byte[] bytes = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(payload);
+            detail.setSizeBytes((long) bytes.length);
+            detail.setContent(new String(bytes, StandardCharsets.UTF_8));
+            detail.setTruncated(false);
+        } catch (IOException exception) {
+            detail.setReadable(false);
+            detail.setErrorMessage(exception.getMessage());
+        }
+        return detail;
     }
 
     private byte[] readPreviewBytes(Path path, int maxBytes) throws IOException {

@@ -328,12 +328,21 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
             </div>
             <div v-if="latestDispatchResult && (latestDispatchBelongsToSelected || !latestDispatchMatchedDomain)" class="wiki-dispatch-feedback">
               <span>{{ latestDispatchBelongsToSelected ? '当前域派发反馈' : '最新派发反馈' }}</span>
-              <strong>{{ latestDispatchResult.message || statusLabel(latestDispatchResult.status) }}</strong>
+              <strong>{{ dispatchFeedbackMessage(latestDispatchResult) }}</strong>
               <dl>
-                <div><dt>dispatchId</dt><dd>{{ latestDispatchResult.dispatchId || '未返回' }}</dd></div>
-                <div><dt>status</dt><dd>{{ latestDispatchResult.status || '未返回' }}</dd></div>
-                <div><dt>progressPath</dt><dd>{{ dispatchResultPath('progress') || '未返回' }}</dd></div>
-                <div><dt>reportPath</dt><dd>{{ dispatchResultPath('report') || '未返回' }}</dd></div>
+                <div><dt>派发编号</dt><dd>{{ latestDispatchResult.dispatchId || '未返回' }}</dd></div>
+                <div><dt>派发状态</dt><dd>{{ statusLabel(latestDispatchResult.status) }}</dd></div>
+                <div v-if="latestDispatchResult.blockedByDispatchId || latestDispatchResult.blockedByActionId">
+                  <dt>阻塞任务</dt>
+                  <dd>{{ dispatchBlockerLabel(latestDispatchResult) }}</dd>
+                </div>
+                <div v-if="latestDispatchResult.blockedSince">
+                  <dt>阻塞开始</dt>
+                  <dd>{{ formatDate(latestDispatchResult.blockedSince) }}</dd>
+                </div>
+                <div><dt>进度文件</dt><dd>{{ dispatchResultPath('progress') || '未返回' }}</dd></div>
+                <div><dt>报告文件</dt><dd>{{ dispatchResultPath('report') || '未返回' }}</dd></div>
+                <div v-if="latestDispatchResult.lockPath"><dt>锁文件</dt><dd>{{ latestDispatchResult.lockPath }}</dd></div>
               </dl>
               <div class="wiki-dispatch-feedback__actions">
                 <button
@@ -356,7 +365,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
             </div>
             <div v-else-if="latestDispatchResult" class="wiki-dispatch-feedback wiki-dispatch-feedback--muted">
               <span>上一条派发</span>
-              <strong>{{ latestDispatchResult.domain || latestDispatchResult.actionId || '未归属派发' }} · {{ latestDispatchResult.status || 'unknown' }}</strong>
+              <strong>{{ latestDispatchResult.domain || latestDispatchResult.actionId || '未归属派发' }} · {{ statusLabel(latestDispatchResult.status) }}</strong>
               <button
                 v-if="latestDispatchMatchedDomain"
                 type="button"
@@ -943,7 +952,7 @@ const selectedDomainElapsedLabel = computed(() => formatElapsedDuration(taskElap
 const selectedDomainNextActionLabel = computed(() => {
   const domain = selectedWikiDomain.value
   if (!domain) return '暂无可操作域'
-  if (canRetryWikiDomain(domain)) return '重试失败任务'
+  if (canRetryWikiDomain(domain)) return '手动重新派发'
   if (canResumeWikiDomain(domain)) return '继续任务'
   if (canPauseWikiDomain(domain)) return '暂停任务'
   if (canExecuteWikiDomain(domain)) return '开始刷新'
@@ -1159,7 +1168,7 @@ function wikiDomainFlowLabel(domain: CrawlerMonitorWikiDomain) {
   const status = wikiDomainFlowStatus(domain)
   if (status === 'running') return wikiDispatchLoading.value === domain.domain ? '派发中' : '运行中'
   if (status === 'stalled') return '心跳过期'
-  if (status === 'failed' || status === 'error') return '失败可重试'
+  if (status === 'failed' || status === 'error') return '需人工重派'
   if (status === 'paused') return '已暂停'
   if (status === 'cancelled') return '已取消'
   if (status === 'pending') return '待确认'
@@ -1195,15 +1204,15 @@ function wikiDomainHeartbeatLabel(domain: CrawlerMonitorWikiDomain) {
 
 function wikiDomainPrimaryActionLabel(domain: CrawlerMonitorWikiDomain) {
   if (wikiDispatchLoading.value === domain.domain) return '派发中'
-  if (canRetryWikiDomain(domain)) return '重试'
+  if (canRetryWikiDomain(domain)) return '重新派发'
   return '执行刷新'
 }
 
 function wikiDomainRecoveryTitle(domain: CrawlerMonitorWikiDomain) {
   const status = wikiDomainFlowStatus(domain)
   if (status === 'running') return '继续观察运行'
-  if (status === 'stalled') return '心跳过期，优先重试'
-  if (status === 'failed' || status === 'error') return '失败可重试'
+  if (status === 'stalled') return '心跳过期，人工确认后重派'
+  if (status === 'failed' || status === 'error') return '失败，人工确认后重派'
   if (status === 'paused') return '继续执行'
   if (status === 'pending' || status === 'ready' || status === 'changed') return '手动执行刷新'
   if (status === 'blocked') return '已阻断，查看原因'
@@ -1439,7 +1448,7 @@ async function executeWikiMonitorTask(target: CrawlerMonitorWikiDomain | Crawler
       actionId,
     })
     latestDispatchResult.value = (response?.data ?? response) || null
-    showToast(latestDispatchResult.value?.message || '已派发刷新任务', latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value), latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
     await loadOverview()
   } catch (error: any) {
     showToast(error?.data?.message || error?.message || '派发刷新任务失败', 'error')
@@ -1459,7 +1468,7 @@ async function controlProgressTask(row: ProgressRow, controlAction: 'pause' | 'r
       controlAction,
     })
     latestDispatchResult.value = (response?.data ?? response) || null
-    showToast(latestDispatchResult.value?.message || (controlAction === 'pause' ? '已暂停任务' : '已继续任务'), latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || (controlAction === 'pause' ? '已暂停任务' : '已继续任务'), latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
     await loadOverview()
   } catch (error: any) {
     showToast(error?.data?.message || error?.message || '控制任务失败', 'error')
@@ -1483,7 +1492,7 @@ async function controlWikiMonitorTask(domain: CrawlerMonitorWikiDomain, controlA
     })
     latestDispatchResult.value = (response?.data ?? response) || null
     const fallbackMessage = controlAction === 'pause' ? '已暂停任务' : controlAction === 'resume' ? '已继续任务' : '已取消任务'
-    showToast(latestDispatchResult.value?.message || fallbackMessage, latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || fallbackMessage, latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
     await loadOverview()
   } catch (error: any) {
     showToast(error?.data?.message || error?.message || '控制任务失败', 'error')
@@ -1770,7 +1779,33 @@ function isPreviewableGeneratedJsonPath(path?: string | null) {
   const normalized = String(path || '').replace(/\\/g, '/').toLowerCase()
   if (!normalized || normalized.startsWith('redis://')) return false
   if (normalized.includes('*') || normalized.includes('?')) return false
-  return normalized.startsWith('data/generated/') && normalized.endsWith('.json')
+  if (normalized === 'data/generated/buff-page-evidence-cache') return true
+  return normalized.endsWith('.json') && (
+    normalized.startsWith('data/generated/')
+    || normalized.startsWith('data/terrapedia/raw/wiki/')
+  )
+}
+
+function dispatchBlockerLabel(result?: CrawlerMonitorDispatchResult | null) {
+  if (!result) return '未返回阻塞者'
+  return [
+    result.blockedByDomain ? `域 ${result.blockedByDomain}` : '',
+    result.blockedByActionId ? `动作 ${result.blockedByActionId}` : '',
+    result.blockedByDispatchId ? `派发 ${result.blockedByDispatchId}` : '',
+  ].filter(Boolean).join(' / ') || '未返回阻塞者'
+}
+
+function dispatchFeedbackMessage(result?: CrawlerMonitorDispatchResult | null) {
+  if (!result) return ''
+  if (result.status === 'locked') {
+    const since = result.blockedSince ? `，开始于 ${formatDate(result.blockedSince)}` : ''
+    const lock = result.lockPath ? `，锁文件 ${result.lockPath}` : ''
+    return `已有 Wiki 监控任务占用：${dispatchBlockerLabel(result)}${since}${lock}。心跳过期不会自动重试，请先确认阻塞任务状态，必要时取消清理后再手动重新派发。`
+  }
+  if (result.status === 'cooldown') {
+    return '当前处于 Wiki 保护冷却期，页面只会在冷却条件真实命中时阻止派发。'
+  }
+  return result.message || statusLabel(result.status) || '已收到派发反馈'
 }
 
 function isMissingReportError(message?: string | null) {

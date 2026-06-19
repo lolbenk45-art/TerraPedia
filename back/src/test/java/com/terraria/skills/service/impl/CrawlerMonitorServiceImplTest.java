@@ -445,6 +445,28 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldExposeBuffEvidenceCacheOutputWhileFinalBuffRawFileIsMissing() throws Exception {
+        writeJson(repoRoot.resolve("data/generated/fetch-wiki-buffs-progress.latest.json"), Map.ofEntries(
+            Map.entry("actionId", "buff-page-immunity-refresh"),
+            Map.entry("status", "running"),
+            Map.entry("phase", "buff-page-immunities"),
+            Map.entry("message", "scraping rendered immunity pages 129/388: Scaly Truffle"),
+            Map.entry("current", 129),
+            Map.entry("total", 388),
+            Map.entry("outputPath", "data/terraPedia/raw/wiki/template__getbuffinfo.parsed.latest.json"),
+            Map.entry("lastHeartbeatAt", "2026-06-19T12:19:50Z"),
+            Map.entry("generatedAt", "2026-06-19T12:19:50Z")
+        ));
+        writeJson(repoRoot.resolve("data/generated/buff-page-evidence-cache/001-first.json"), Map.of("id", 1));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO buffRefresh = taskById(service.getOverview().getRegisteredTasks(), "buff-page-immunity-refresh");
+
+        assertEquals("data/generated/buff-page-evidence-cache", buffRefresh.getOutputPath());
+    }
+
+    @Test
     void shouldRegisterCrawlerPipelineTasksFromStandaloneProgressAndReports() throws Exception {
         Path progressPath = repoRoot.resolve("data/generated/wiki-sync-progress.latest.json");
         Path buffProgressPath = repoRoot.getParent().resolve("data/terraPedia/generated/fetch-wiki-buffs-progress.latest.json");
@@ -1898,7 +1920,8 @@ class CrawlerMonitorServiceImplTest {
         writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
             "dispatchId", "existing",
             "domain", "items",
-            "actionId", "wiki-core-refresh"
+            "actionId", "wiki-core-refresh",
+            "lockedAt", "2026-06-19T11:10:58.716Z"
         ));
         RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot, Clock.systemUTC(), launcher);
@@ -1907,7 +1930,12 @@ class CrawlerMonitorServiceImplTest {
 
         assertFalse(result.isAccepted());
         assertEquals("locked", result.getStatus());
-        assertEquals("another wiki monitor dispatch is running", result.getMessage());
+        assertEquals("wiki monitor dispatch is locked by an existing task", result.getMessage());
+        assertEquals("existing", result.getBlockedByDispatchId());
+        assertEquals("items", result.getBlockedByDomain());
+        assertEquals("wiki-core-refresh", result.getBlockedByActionId());
+        assertEquals("2026-06-19T11:10:58.716Z", result.getBlockedSince());
+        assertEquals("reports/crawler-monitor/wiki-monitor-dispatch.lock.json", result.getLockPath());
         assertEquals(0, launcher.launchCount);
     }
 
@@ -2168,7 +2196,8 @@ class CrawlerMonitorServiceImplTest {
         writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json"), Map.of(
             "dispatchId", "existing",
             "domain", "all",
-            "actionId", "wiki-monitor-domain-smoke"
+            "actionId", "wiki-monitor-domain-smoke",
+            "lockedAt", "2026-06-19T11:10:58.716Z"
         ));
         RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot, Clock.systemUTC(), launcher);
@@ -2177,7 +2206,12 @@ class CrawlerMonitorServiceImplTest {
 
         assertFalse(result.isAccepted());
         assertEquals("locked", result.getStatus());
-        assertEquals("another wiki monitor domain smoke is running", result.getMessage());
+        assertEquals("wiki monitor dispatch is locked by an existing task", result.getMessage());
+        assertEquals("existing", result.getBlockedByDispatchId());
+        assertEquals("all", result.getBlockedByDomain());
+        assertEquals("wiki-monitor-domain-smoke", result.getBlockedByActionId());
+        assertEquals("2026-06-19T11:10:58.716Z", result.getBlockedSince());
+        assertEquals("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json", result.getLockPath());
         assertEquals(0, launcher.launchCount);
     }
 

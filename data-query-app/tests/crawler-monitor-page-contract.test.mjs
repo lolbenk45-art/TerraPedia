@@ -354,10 +354,11 @@ test('crawler monitor wiki domain cards expose retry, heartbeat, and flow state 
   assert.match(page, /function canRetryWikiDomain/)
   assert.match(page, /function wikiDomainFlowStatus/)
   assert.match(page, /function wikiDomainHeartbeatStatus/)
-  assert.match(page, /失败可重试/)
+  assert.match(page, /需人工重派/)
   assert.match(page, /心跳正常/)
   assert.match(page, /心跳过期/)
-  assert.match(page, /重试/)
+  assert.match(page, /重新派发/)
+  assert.match(page, /不会自动重试/)
 })
 
 test('crawler monitor automatically prioritizes running status and exposes concrete progress numbers', () => {
@@ -694,6 +695,8 @@ test('crawler monitor report preview explains missing reports in Chinese', () =>
   assert.match(page, /isPreviewableProgressPath/)
   assert.match(page, /isPreviewableGeneratedJsonPath/)
   assert.match(page, /normalized\.startsWith\('data\/generated\/'\)/)
+  assert.match(page, /normalized\.startsWith\('data\/terrapedia\/raw\/wiki\/'\)/)
+  assert.match(page, /normalized === 'data\/generated\/buff-page-evidence-cache'/)
   assert.match(page, /normalized\.endsWith\('\.json'\)/)
 })
 
@@ -962,6 +965,10 @@ test('crawler monitor wiki monitor types expose auto-dispatch readiness fields',
     'maxConcurrent?: number | null',
     'failureCircuitBreaker?: string | null',
     'lockPath?: string | null',
+    'blockedByDispatchId?: string | null',
+    'blockedByDomain?: string | null',
+    'blockedByActionId?: string | null',
+    'blockedSince?: string | null',
   ]) {
     assert.match(types, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
   }
@@ -988,6 +995,7 @@ test('crawler monitor recovery workbench keeps selected domain, path split, and 
     'wikiDomainProgressPath',
     'toggleCommandPreview',
     'selectLatestDispatchDomain',
+    'dispatchFeedbackMessage',
     'selectWikiDomain',
     'wiki-pending-select',
   ]) {
@@ -998,8 +1006,12 @@ test('crawler monitor recovery workbench keeps selected domain, path split, and 
   assert.match(page, /查看进度文件/)
   assert.match(page, /打开爬取文件/)
   assert.match(page, /dispatchId/)
+  assert.match(page, /阻塞任务/)
+  assert.match(page, /blockedByActionId/)
+  assert.match(page, /blockedSince/)
   assert.match(page, /reportPath/)
   assert.match(page, /progressPath/)
+  assert.match(page, /showToast\(dispatchFeedbackMessage/)
   assert.match(page, /@click="openReportPreview\(selectedWikiReportPath\)"/)
   assert.match(page, /@click="openReportPreview\(selectedWikiProgressPath\)"/)
   assert.match(page, /@click="openReportPreview\(selectedWikiOutputPath\)"/)
