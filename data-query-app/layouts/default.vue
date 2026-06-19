@@ -47,7 +47,7 @@
         <small>统一管理词条、配方与内容发布。</small>
       </div>
 
-      <nav class="sidebar__nav" aria-label="后台导航">
+      <nav ref="sidebarNavRef" class="sidebar__nav" aria-label="后台导航">
         <section v-for="section in menuSections" :key="section.label" class="sidebar__section">
           <button
             v-if="!desktopCollapsed"
@@ -78,6 +78,7 @@
               class="sidebar__link"
               :class="{ 'sidebar__link--active': isActive(item.path) }"
               :aria-current="isActive(item.path) ? 'page' : undefined"
+              :ref="((el) => setMenuLinkRef(item.path, el))"
               @click="handleNavClick"
             >
               <span class="sidebar__link-icon">
@@ -188,7 +189,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Component } from 'vue'
+import type { Component, ComponentPublicInstance } from 'vue'
 import {
   Activity,
   Beaker,
@@ -236,6 +237,8 @@ const isMobileNavOpen = ref(false)
 const userOpen = ref(false)
 const collapsedMenuSections = ref<Set<string>>(new Set())
 const userMenuRef = ref<HTMLElement | null>(null)
+const sidebarNavRef = ref<HTMLElement | null>(null)
+const menuLinkRefs = new Map<string, HTMLElement>()
 
 type BreadcrumbItem = {
   label: string
@@ -325,6 +328,7 @@ const menuSections: MenuSection[] = [
 ]
 
 const flatMenuItems = menuSections.flatMap((section) => section.items)
+const flatMenuEntries = menuSections.flatMap((section) => section.items.map((item) => ({ section, item })))
 
 const desktopCollapsed = computed(() => !isMobile.value && isDesktopCollapsed.value)
 const headerVariant = computed<HeaderVariant>(() => (route.meta.headerVariant === 'compact' ? 'compact' : 'default'))
@@ -401,6 +405,62 @@ function isActive(path: string) {
   return route.path.startsWith(path)
 }
 
+function setMenuLinkRef(path: string, element: Element | ComponentPublicInstance | null) {
+  let linkElement: HTMLElement | null = null
+
+  if (element instanceof HTMLElement) {
+    linkElement = element
+  } else {
+    const componentElement = (element as ComponentPublicInstance | null)?.$el
+    if (componentElement instanceof HTMLElement) {
+      linkElement = componentElement
+    }
+  }
+
+  if (linkElement) {
+    menuLinkRefs.set(path, linkElement)
+  } else {
+    menuLinkRefs.delete(path)
+  }
+}
+
+function findActiveMenuEntry() {
+  return flatMenuEntries.find(({ item }) => isActive(item.path)) ?? null
+}
+
+function scrollSidebarLinkIntoView(activeLink: HTMLElement) {
+  const sidebarNav = sidebarNavRef.value
+  if (!sidebarNav) return
+
+  const linkTop = activeLink.offsetTop
+  const linkHeight = activeLink.offsetHeight
+  const viewportHeight = sidebarNav.clientHeight
+  const targetCenter = linkTop + (linkHeight / 2)
+  const nextScrollTop = Math.max(0, targetCenter - (viewportHeight / 2))
+
+  sidebarNav.scrollTop = nextScrollTop
+}
+
+async function revealActiveMenuItem() {
+  if (typeof window === 'undefined' || (isMobile.value && !isMobileNavOpen.value)) return
+
+  const activeEntry = findActiveMenuEntry()
+  if (!activeEntry) return
+
+  if (!desktopCollapsed.value && collapsedMenuSections.value.has(activeEntry.section.label)) {
+    const next = new Set(collapsedMenuSections.value)
+    next.delete(activeEntry.section.label)
+    collapsedMenuSections.value = next
+  }
+
+  await nextTick()
+
+  const activeLink = menuLinkRefs.get(activeEntry.item.path)
+  if (!activeLink || !sidebarNavRef.value?.contains(activeLink)) return
+
+  scrollSidebarLinkIntoView(activeLink)
+}
+
 function readDesktopCollapsePreference() {
   if (typeof window === 'undefined') return false
   return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1'
@@ -462,12 +522,14 @@ watch(
     if (isMobile.value) {
       isMobileNavOpen.value = false
     }
+    revealActiveMenuItem()
   },
 )
 
 onMounted(() => {
   isDesktopCollapsed.value = readDesktopCollapsePreference()
   syncViewportState()
+  revealActiveMenuItem()
 
   window.addEventListener('resize', syncViewportState)
   window.addEventListener('pointerdown', handleDocumentPointerDown)
