@@ -54,15 +54,11 @@ export function wikiCooldownExplanation(domain, now = new Date()) {
 
   const suffix = '保护 Wiki，避免短时间重复请求。'
   const lastAutoRunAt = String(domain?.lastAutoRunAt || '').trim()
-  if (!lastAutoRunAt) {
-    return `Wiki 保护冷却：${minutes} 分钟。当前没有上次自动执行时间。${suffix}`
-  }
+  if (!lastAutoRunAt) return ''
 
   const lastMs = Date.parse(lastAutoRunAt)
   const nowMs = now instanceof Date ? now.getTime() : Date.parse(String(now))
-  if (!Number.isFinite(lastMs) || !Number.isFinite(nowMs)) {
-    return `Wiki 保护冷却：${minutes} 分钟。上次自动执行：${lastAutoRunAt}。${suffix}`
-  }
+  if (!Number.isFinite(lastMs) || !Number.isFinite(nowMs)) return ''
 
   const nextMs = lastMs + minutes * 60000
   const remainingMs = nextMs - nowMs
@@ -71,7 +67,7 @@ export function wikiCooldownExplanation(domain, now = new Date()) {
     return `Wiki 保护冷却：${minutes} 分钟。上次自动执行：${lastAutoRunAt}，约 ${remainingMinutes} 分钟后可再次自动执行。${suffix}`
   }
 
-  return `Wiki 保护冷却：${minutes} 分钟。上次自动执行：${lastAutoRunAt}，冷却已结束。${suffix}`
+  return ''
 }
 
 export function wikiHeartbeatSummary(row) {

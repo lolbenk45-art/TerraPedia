@@ -883,7 +883,7 @@ const selectedWikiPathSummary = computed(() => {
 })
 const selectedDomainDisplayName = computed(() => selectedWikiDomain.value ? wikiDomainChineseName(selectedWikiDomain.value) : '暂无可选域')
 const selectedDomainStatusLabel = computed(() => selectedWikiDomain.value ? crawlerStatusChineseLabel(wikiDomainFlowStatus(selectedWikiDomain.value)) : '未知')
-const selectedDomainCooldownExplanation = computed(() => selectedWikiDomain.value ? wikiCooldownExplanation(selectedWikiDomain.value) : '')
+const selectedDomainCooldownExplanation = computed(() => selectedWikiDomain.value && isWikiDomainCoolingDown(selectedWikiDomain.value) ? wikiCooldownExplanation(selectedWikiDomain.value) : '')
 const selectedDomainHeartbeatRaw = computed(() => wikiHeartbeatSummary(selectedWikiProgressRow.value))
 const selectedDomainHeartbeatMessage = computed(() => {
   const summary = selectedDomainHeartbeatRaw.value
@@ -899,7 +899,7 @@ const selectedDomainNextActionLabel = computed(() => {
   if (canResumeWikiDomain(domain)) return '继续任务'
   if (canPauseWikiDomain(domain)) return '暂停任务'
   if (canExecuteWikiDomain(domain)) return '开始刷新'
-  if (domain.cooldownMinutes) return '等待冷却'
+  if (isWikiDomainCoolingDown(domain)) return '等待冷却'
   return '暂不可执行'
 })
 const selectedDomainOperatorSummary = computed(() => {
@@ -1249,8 +1249,16 @@ function wikiDomainDisabledReason(domain: CrawlerMonitorWikiDomain) {
   if (domain.status === 'blocked') return '该域任务被阻断'
   if (domain.status === 'failed') return ''
   if (domain.pauseReason) return domain.pauseReason
-  if (domain.cooldownMinutes && domain.lastAutoRunAt) return `冷却中：${domain.cooldownMinutes} 分钟`
+  if (isWikiDomainCoolingDown(domain)) return `冷却中：${domain.cooldownMinutes} 分钟`
   return ''
+}
+
+function isWikiDomainCoolingDown(domain: CrawlerMonitorWikiDomain) {
+  const minutes = Number(domain.cooldownMinutes || 0)
+  if (!minutes || !domain.lastAutoRunAt) return false
+  const lastMs = Date.parse(domain.lastAutoRunAt)
+  if (!Number.isFinite(lastMs)) return false
+  return Date.now() < lastMs + minutes * 60000
 }
 
 function wikiDomainManualHint(domain: CrawlerMonitorWikiDomain) {
@@ -1261,10 +1269,13 @@ function wikiDomainManualHint(domain: CrawlerMonitorWikiDomain) {
 
 function wikiDomainProgressRow(domain: CrawlerMonitorWikiDomain): ProgressRow | null {
   const progressPath = String(domain.progressPath || '')
+  const actionId = String(domain.recommendedActionId || '')
   const domainKey = String(domain.domain || domain.label || '').toLowerCase()
   return progressRows.value.find((row) => {
-    const rowPath = String(row.progressPath || row.progressSource || row.action?.childStatusPath || '')
-    if (progressPath && rowPath && rowPath === progressPath) return true
+    const rowPath = String(row.progressPath || row.progressSource || row.action?.childStatusPath || row.progressPayload?.childStatusPath || '')
+    const rowActionId = String(row.progressPayload?.actionId || row.action?.id || row.id || '')
+    if (actionId && rowActionId && actionId === rowActionId) return true
+    if (progressPath && rowPath && (rowPath === progressPath || rowPath.endsWith(progressPath))) return true
     const rowId = String(row.id || row.label || '').toLowerCase()
     return Boolean(domainKey && rowId.includes(domainKey))
   }) || null

@@ -171,23 +171,23 @@ test('crawler monitor display helpers explain cooldown edge cases', async () => 
     helper.wikiCooldownExplanation({
       cooldownMinutes: 30,
     }, new Date('2026-06-19T08:10:00Z')),
-    /没有上次自动执行时间/
+    /^$/
   )
 
-  assert.match(
+  assert.equal(
     helper.wikiCooldownExplanation({
       cooldownMinutes: 30,
       lastAutoRunAt: '2026-06-19T08:00:00Z',
     }, new Date('2026-06-19T08:40:00Z')),
-    /冷却已结束/
+    ''
   )
 
-  assert.match(
+  assert.equal(
     helper.wikiCooldownExplanation({
       cooldownMinutes: 30,
       lastAutoRunAt: 'not-a-date',
     }, new Date('2026-06-19T08:10:00Z')),
-    /上次自动执行：not-a-date/
+    ''
   )
 })
 
@@ -808,6 +808,27 @@ test('crawler monitor contract covers actionable and disabled wiki monitor state
   ]) {
     assert.match(page, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
   }
+})
+
+test('crawler monitor only shows cooldown when the cooldown window is active', () => {
+  assert.match(page, /function isWikiDomainCoolingDown/)
+  assert.match(page, /selectedDomainCooldownExplanation = computed\(\(\) => selectedWikiDomain\.value && isWikiDomainCoolingDown\(selectedWikiDomain\.value\)/)
+  assert.match(page, /if \(isWikiDomainCoolingDown\(domain\)\) return `冷却中：\$\{domain\.cooldownMinutes\} 分钟`/)
+  assert.doesNotMatch(page, /if \(domain\.cooldownMinutes\) return '等待冷却'/)
+})
+
+test('crawler monitor maps wiki domains to redis progress rows by recommended action id', () => {
+  const progressMatcher = page.slice(
+    page.indexOf('function wikiDomainProgressRow'),
+    page.indexOf('function progressRowPriorityScore')
+  )
+
+  assert.match(progressMatcher, /domain\.recommendedActionId/)
+  assert.match(progressMatcher, /row\.progressPayload\?\.actionId/)
+  assert.match(progressMatcher, /row\.id/)
+  assert.match(progressMatcher, /childStatusPath/)
+  assert.match(progressMatcher, /rowPath\.endsWith\(progressPath\)/)
+  assert.match(progressMatcher, /actionId && rowActionId && actionId === rowActionId/)
 })
 
 test('crawler monitor allows manual wiki dispatch for whitelisted unchanged domains', () => {
