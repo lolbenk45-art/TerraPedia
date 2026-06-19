@@ -80,7 +80,14 @@ export function wikiHeartbeatSummary(row) {
     }
   }
 
-  const time = row.progressHeartbeatAt || row.action?.lastHeartbeatAt || row.updatedAt || ''
+  const payload = row.progressPayload || {}
+  const time = row.progressHeartbeatAt
+    || row.action?.lastHeartbeatAt
+    || payload.lastHeartbeatAt
+    || payload.generatedAt
+    || row.progressUpdatedAt
+    || row.updatedAt
+    || ''
   const age = formatDurationFromMs(row.progressHeartbeatAgeMs)
   const status = String(row.status || row.action?.status || '').toLowerCase()
   const stale = Boolean(row.progressStale) || status === 'stalled'

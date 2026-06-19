@@ -277,7 +277,8 @@ public class CrawlerReportArchiver {
 
         Path reportsRoot = repoRoot.resolve("reports").normalize();
         Path testReportsRoot = repoRoot.resolve("back").resolve("target").resolve("surefire-reports").normalize();
-        if (!normalized.startsWith(reportsRoot) && !normalized.startsWith(testReportsRoot)) {
+        Path generatedRoot = repoRoot.resolve("data").resolve("generated").normalize();
+        if (!normalized.startsWith(reportsRoot) && !normalized.startsWith(testReportsRoot) && !normalized.startsWith(generatedRoot)) {
             return false;
         }
         if (!Files.exists(normalized)) {
@@ -286,7 +287,7 @@ public class CrawlerReportArchiver {
 
         try {
             Path realPath = normalized.toRealPath();
-            return realPath.startsWith(realRoot(reportsRoot)) || realPath.startsWith(realRoot(testReportsRoot));
+            return realPath.startsWith(realRoot(reportsRoot)) || realPath.startsWith(realRoot(testReportsRoot)) || realPath.startsWith(realRoot(generatedRoot));
         } catch (IOException ignored) {
             return false;
         }

@@ -149,8 +149,8 @@
 
           <div v-else class="empty-block">
             <Activity :size="24" />
-            <strong>暂无 action 明细</strong>
-            <span>当前 summary 可能只有聚合数量，或尚未生成完整 run report。</span>
+            <strong>暂无可展示进度</strong>
+            <span>当前没有运行中、停滞、失败或待处理的任务。</span>
           </div>
         </section>
 
@@ -161,7 +161,7 @@
         </div>
 
         <template v-if="wikiActionExpanded">
-          <section v-if="selectedWikiDomain" class="panel recovery-workbench wiki-workbench">
+          <section v-if="selectedWikiDomain" ref="wikiWorkbenchRef" class="panel recovery-workbench wiki-workbench">
             <div class="wiki-live-panel live-focus">
             <div class="wiki-live-panel__head">
               <div>
@@ -180,6 +180,8 @@
               <span><small>当前/总数</small><strong>{{ selectedWikiProgressNumbers }}</strong></span>
               <span><small>最后心跳</small><strong>{{ selectedDomainHeartbeatMessage }}</strong></span>
               <span><small>心跳状态</small><strong>{{ selectedDomainHeartbeatState }}</strong></span>
+              <span><small>开始时间</small><strong>{{ selectedDomainStartedAtLabel }}</strong></span>
+              <span><small>运行时长</small><strong>{{ selectedDomainElapsedLabel }}</strong></span>
               <span><small>更新时间</small><strong>{{ selectedWikiUpdatedAtLabel }}</strong></span>
               <span><small>待处理</small><strong>{{ rowPendingLabel(selectedWikiProgressRow) }}</strong></span>
               <span><small>速度</small><strong>{{ rowSpeedLabel(selectedWikiProgressRow) }}</strong></span>
@@ -292,7 +294,7 @@
                 <span>打开报告</span>
               </button>
               <button
-                v-if="isPreviewableReportPath(selectedWikiProgressPath)"
+                v-if="isPreviewableProgressPath(selectedWikiProgressPath)"
                 type="button"
                 class="inline-report-button"
                 :disabled="isPreviewLoading(selectedWikiProgressPath)"
@@ -333,7 +335,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
                   打开派发报告
                 </button>
                 <button
-                  v-if="isPreviewableReportPath(dispatchResultPath('progress'))"
+                  v-if="isPreviewableProgressPath(dispatchResultPath('progress'))"
                   type="button"
                   class="inline-report-button inline-report-button--compact"
                   @click="openReportPreview(dispatchResultPath('progress'))"
@@ -408,7 +410,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
                   <span>Wiki</span>
                   <strong>{{ wikiDomainManualHint(selectedWikiDomain) }}</strong>
                   <button
-                    v-if="isPreviewableReportPath(selectedWikiProgressPath)"
+                    v-if="isPreviewableProgressPath(selectedWikiProgressPath)"
                     type="button"
                     class="inline-report-button inline-report-button--compact"
                     @click="openReportPreview(selectedWikiProgressPath)"
@@ -499,8 +501,8 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
     <aside class="wiki-domain-download-window" :class="{ 'wiki-domain-download-window--collapsed': !domainSidebarExpanded }">
       <div class="wiki-domain-download-window__head">
         <div>
-          <h2>爬取进度</h2>
-          <p v-if="domainSidebarExpanded">快速定位域是否正常工作</p>
+          <h2>域快速定位</h2>
+          <p v-if="domainSidebarExpanded">点击域后定位到工作台</p>
         </div>
         <button
           type="button"
@@ -560,7 +562,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               @click.stop="executeWikiMonitorTask(domain)"
             >
               <RefreshCw :size="14" />
-              <span>开始</span>
+              <span>开始刷新</span>
             </button>
             <button
               type="button"
@@ -607,8 +609,8 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
         <section class="section-card monitor-panel">
           <div class="section-head">
             <div>
-              <h2 class="section-card__title">运行中任务</h2>
-              <p class="section-card__subtitle">保留最关键的执行行与心跳，不再展示历史摘要和低价值诊断噪音。</p>
+              <h2 class="section-card__title">任务进度明细</h2>
+              <p class="section-card__subtitle">汇总可操作的进度行、心跳、速度和运行文件；已完成与仅报告行不再挤占上方阶段进度。</p>
             </div>
           </div>
           <div class="table-scroll">
@@ -622,18 +624,20 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
                   <th>待处理</th>
                   <th>速度</th>
                   <th>预计剩余</th>
+                  <th>开始时间</th>
+                  <th>运行时长</th>
                   <th>心跳</th>
                   <th>运行文件</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="row in visibleProgressRowsByPriority" :key="`row-${row.rowKey}`">
+                <tr v-for="row in progressDetailRowsByPriority" :key="`row-${row.rowKey}`">
                   <td>
                     <strong>{{ row.label || row.id || '未知任务' }}</strong>
                     <small>{{ row.id || safeActionFallbackLabel(row.action) }}</small>
                   </td>
                   <td>{{ row.lane || row.action?.runner || '--' }}</td>
-                  <td><span class="status-pill" :class="statusTone(rowStatus(row))">{{ rowStatus(row) || 'unknown' }}</span></td>
+                  <td><span class="status-pill" :class="statusTone(rowStatus(row))">{{ statusLabel(rowStatus(row)) }}</span></td>
                   <td>
                     <strong>{{ rowProgressLabel(row) }}</strong>
                     <small v-if="row.progressKind || row.action?.phase || row.queueState">{{ [row.progressKind, row.action?.phase, row.queueState].filter(Boolean).join(' · ') }}</small>
@@ -642,6 +646,8 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
                   <td>{{ rowPendingLabel(row) }}</td>
                   <td>{{ rowSpeedLabel(row) }}</td>
                   <td>{{ rowEtaLabel(row) }}</td>
+                  <td>{{ formatDate(rowStartedAt(row)) }}</td>
+                  <td>{{ formatElapsedDuration(taskElapsedMs(row)) }}</td>
                   <td>{{ rowHeartbeatLabel(row) }}</td>
                   <td>
                     <code v-if="rowSourcePath(row)">{{ rowSourcePath(row) }}</code>
@@ -651,8 +657,8 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
                     <span v-if="!rowSourcePath(row) && !row.action?.heartbeatPath && !row.action?.snapshotPath && !row.action?.childStatusPath">--</span>
                   </td>
                 </tr>
-                <tr v-if="!visibleProgressRowsByPriority.length">
-                  <td colspan="9" class="table-empty">暂无 action 明细</td>
+                <tr v-if="!progressDetailRowsByPriority.length">
+                  <td colspan="11" class="table-empty">暂无进度行</td>
                 </tr>
               </tbody>
             </table>
@@ -707,14 +713,14 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
         <div class="report-preview__meta">
           <span class="status-pill" :class="reportTone(reportPreview?.category)">{{ reportPreview?.category || '报告' }}</span>
           <span class="status-pill" :class="reportPreview?.readable ? 'success' : reportPreviewError ? 'danger' : 'muted'">
-            {{ reportPreviewLoading ? '加载中' : reportPreview?.readable ? '可读' : reportPreviewError ? '错误' : '待处理' }}
+            {{ reportPreviewStatusLabel }}
           </span>
           <span v-if="reportPreview?.truncated" class="status-pill warning">已截断 {{ formatBytes(reportPreview.maxBytes) }}</span>
         </div>
 
         <pre v-if="reportPreview?.readable" class="report-preview__content">{{ reportPreview.content || '' }}</pre>
         <div v-else class="report-preview__empty">
-          {{ reportPreviewLoading ? '正在加载报告预览...' : (reportPreview?.errorMessage || reportPreviewError || '未加载报告内容。') }}
+          {{ reportPreviewEmptyMessage }}
         </div>
       </aside>
     </div>
@@ -781,6 +787,7 @@ const progressControlLoading = ref('')
 const hiddenNoiseKeys = ref<Set<string>>(new Set())
 const wikiActionExpanded = ref(true)
 const domainSidebarExpanded = ref(true)
+const wikiWorkbenchRef = ref<HTMLElement | null>(null)
 const selectedWikiDomainKey = ref('')
 const latestDispatchResult = ref<CrawlerMonitorDispatchResult | null>(null)
 const commandPreviewDomainKey = ref('')
@@ -821,11 +828,19 @@ const progressRows = computed<ProgressRow[]>(() => progressRowsFromOverview(over
 const sourceSnapshotRows = computed<ProgressRow[]>(() => sourceSnapshotRowsFromOverview(overview.value))
 const liveSourceSnapshotActive = computed(() => hasLiveSourceSnapshotProgress(overview.value))
 const visibleProgressRows = computed<ProgressRow[]>(() => progressRows.value
+  .filter(isActiveProgressRow)
+  .filter((row) => rowStatus(row) !== 'completed')
+  .filter((row) => rowStatus(row) !== 'report-only')
+  .filter((row) => row.id !== 'wiki-monitor-domain-smoke')
+  .filter((row) => !isNoiseHidden(noiseKey('progress', row.rowKey || row.id || row.label)))
+)
+const progressDetailRows = computed<ProgressRow[]>(() => progressRows.value
   .filter(isSignalTask)
   .filter((row) => row.id !== 'wiki-monitor-domain-smoke')
   .filter((row) => !isNoiseHidden(noiseKey('progress', row.rowKey || row.id || row.label)))
 )
 const visibleProgressRowsByPriority = computed<ProgressRow[]>(() => sortRowsByPriority(visibleProgressRows.value))
+const progressDetailRowsByPriority = computed<ProgressRow[]>(() => sortRowsByPriority(progressDetailRows.value))
 const visibleWikiDomainRowsByPriority = computed<CrawlerMonitorWikiDomain[]>(() => sortWikiDomainsByPriority(visibleWikiDomainRows.value))
 const progressRowCount = computed(() => progressRows.value.length)
 const liveProgressActive = computed(() => progressRows.value.some((row) => ['running', 'stalled'].includes(rowStatus(row))))
@@ -874,6 +889,21 @@ const selectedWikiReportPath = computed(() => selectedWikiProgressRow.value?.rep
 const selectedWikiProgressNumbers = computed(() => rowProgressNumbers(selectedWikiProgressRow.value))
 const selectedWikiHeartbeatAtLabel = computed(() => rowHeartbeatAtLabel(selectedWikiProgressRow.value))
 const selectedWikiUpdatedAtLabel = computed(() => rowUpdatedAtLabel(selectedWikiProgressRow.value))
+const reportPreviewStatusLabel = computed(() => {
+  if (reportPreviewLoading.value) return '加载中'
+  if (reportPreview.value?.readable) return '可读'
+  const message = reportPreview.value?.errorMessage || reportPreviewError.value
+  if (isMissingReportError(message)) return '报告未找到'
+  if (message) return '读取错误'
+  return '待处理'
+})
+const reportPreviewEmptyMessage = computed(() => {
+  if (reportPreviewLoading.value) return '正在加载报告预览...'
+  const message = reportPreview.value?.errorMessage || reportPreviewError.value
+  if (isMissingReportError(message)) return `报告未找到：${message}。请先确认任务是否已生成报告，或复制路径在本地检查。`
+  if (message) return `报告读取失败：${message}。请复制路径在本地检查，或确认该路径是否允许预览。`
+  return '未加载报告内容。'
+})
 const selectedWikiPathSummary = computed(() => {
   const parts = [
     selectedWikiProgressPath.value ? `进度 ${selectedWikiProgressPath.value}` : '',
@@ -892,6 +922,8 @@ const selectedDomainHeartbeatMessage = computed(() => {
   return summary.age ? `最后心跳：${localTime}（${summary.age}）` : `最后心跳：${localTime}`
 })
 const selectedDomainHeartbeatState = computed(() => selectedDomainHeartbeatRaw.value.state)
+const selectedDomainStartedAtLabel = computed(() => formatDate(rowStartedAt(selectedWikiProgressRow.value)))
+const selectedDomainElapsedLabel = computed(() => formatElapsedDuration(taskElapsedMs(selectedWikiProgressRow.value)))
 const selectedDomainNextActionLabel = computed(() => {
   const domain = selectedWikiDomain.value
   if (!domain) return '暂无可操作域'
@@ -1034,7 +1066,7 @@ async function loadOverview() {
 }
 
 async function openReportPreview(path?: string | null) {
-  if (!isPreviewableReportPath(path)) return
+  if (!isPreviewableReportPath(path) && !isPreviewableProgressPath(path)) return
   selectedReportPath.value = path || null
   reportPreviewLoading.value = true
   reportPreviewError.value = ''
@@ -1061,6 +1093,12 @@ function wikiDomainKey(domain: CrawlerMonitorWikiDomain | null | undefined) {
 function selectWikiDomain(domain: CrawlerMonitorWikiDomain | null | undefined) {
   if (!domain) return
   selectedWikiDomainKey.value = wikiDomainKey(domain)
+  wikiActionExpanded.value = true
+  if (import.meta.client) {
+    nextTick(() => {
+      wikiWorkbenchRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
 }
 
 function canExecuteWikiDomain(domain: CrawlerMonitorWikiDomain) {
@@ -1120,7 +1158,7 @@ function wikiDomainHeartbeatStatus(domain: CrawlerMonitorWikiDomain) {
   const row = wikiDomainProgressRow(domain)
   if (!row) return 'missing'
   if (row.progressStale || rowStatus(row) === 'stalled') return 'stale'
-  if (row.progressHeartbeatAt || row.action?.lastHeartbeatAt || row.updatedAt) return 'ok'
+  if (rowHeartbeatAt(row) || row.updatedAt) return 'ok'
   return 'missing'
 }
 
@@ -1271,13 +1309,18 @@ function wikiDomainProgressRow(domain: CrawlerMonitorWikiDomain): ProgressRow | 
   const progressPath = String(domain.progressPath || '')
   const actionId = String(domain.recommendedActionId || '')
   const domainKey = String(domain.domain || domain.label || '').toLowerCase()
+  const domainLabel = String(domain.label || '').toLowerCase()
   return progressRows.value.find((row) => {
+    const payload = row.progressPayload || {}
     const rowPath = String(row.progressPath || row.progressSource || row.action?.childStatusPath || row.progressPayload?.childStatusPath || '')
     const rowActionId = String(row.progressPayload?.actionId || row.action?.id || row.id || '')
     if (actionId && rowActionId && actionId === rowActionId) return true
     if (progressPath && rowPath && (rowPath === progressPath || rowPath.endsWith(progressPath))) return true
-    const rowId = String(row.id || row.label || '').toLowerCase()
-    return Boolean(domainKey && rowId.includes(domainKey))
+    const rowDomain = String(payload.domain || payload.sourceKey || '').toLowerCase()
+    const rowLabel = String(row.label || payload.label || '').toLowerCase()
+    const rowId = String(row.id || row.label || payload.sourceKey || '').toLowerCase()
+    if (domainKey && [rowDomain, rowLabel, rowId].some((value) => value.includes(domainKey))) return true
+    return Boolean(domainLabel && [rowDomain, rowLabel, rowId].some((value) => value.includes(domainLabel)))
   }) || null
 }
 
@@ -1324,20 +1367,19 @@ function wikiDomainKeyFromRow(row: ProgressRow) {
 
 function rowProgressNumbers(row: ProgressRow | null | undefined) {
   if (!row) return '--'
-  const current = finiteNumber(row.overallCurrent ?? row.current)
-  const total = finiteNumber(row.overallTotal ?? row.total)
-  if (current == null || total == null) return '--'
-  return `${current} / ${total}`
+  const basis = rowProgressBasis(row)
+  if (!basis) return '--'
+  return `${formatNumber(basis.current)} / ${formatNumber(basis.total)}`
 }
 
 function rowHeartbeatAtLabel(row: ProgressRow | null | undefined) {
   if (!row) return '--'
-  return formatDate(row.progressHeartbeatAt || row.action?.lastHeartbeatAt || row.updatedAt)
+  return formatDate(rowHeartbeatAt(row))
 }
 
 function rowUpdatedAtLabel(row: ProgressRow | null | undefined) {
   if (!row) return '--'
-  return formatDate(row.progressUpdatedAt || row.updatedAt || row.action?.updatedAt)
+  return formatDate(row.progressUpdatedAt || row.updatedAt || row.progressPayload?.generatedAt || row.progressPayload?.lastHeartbeatAt || row.action?.updatedAt)
 }
 
 function progressRowControlActionId(row: ProgressRow) {
@@ -1508,6 +1550,13 @@ function isSignalTask(row: ProgressRow) {
   return false
 }
 
+function isActiveProgressRow(row: ProgressRow) {
+  const status = rowStatus(row)
+  if (['completed', 'report-only'].includes(status)) return false
+  if (['running', 'stalled', 'paused', 'queued', 'pending', 'failed', 'error', 'blocked', 'warning'].includes(status)) return true
+  return Boolean(row.progressStaleReason || rowHeartbeatAt(row))
+}
+
 function statusTone(status?: string | null) {
   const normalized = String(status || '').toLowerCase()
   if (['completed', 'success', 'ok', 'readable', 'free'].includes(normalized)) return 'success'
@@ -1542,17 +1591,25 @@ function rowPendingLabel(row: ProgressRow | null | undefined) {
 
 function rowSpeedLabel(row: ProgressRow | null | undefined) {
   if (!row) return '--'
-  return row.action ? actionSpeedLabel(row.action) : '--'
+  const speed = taskSpeedPerMinute(row)
+  if (speed == null) return '--'
+  const rounded = speed >= 10 ? Math.round(speed) : Math.round(speed * 10) / 10
+  return `${rounded.toLocaleString('zh-CN')}/min`
 }
 
 function rowEtaLabel(row: ProgressRow | null | undefined) {
   if (!row) return '--'
-  return row.action ? actionEtaLabel(row.action) : '--'
+  const remaining = taskRemaining(row)
+  if (remaining == null) return '--'
+  if (remaining <= 0) return '0s'
+  const speed = taskSpeedPerMinute(row)
+  if (speed == null || speed <= 0) return '--'
+  return formatEtaDuration((remaining / speed) * 60_000)
 }
 
 function rowHeartbeatLabel(row: ProgressRow | null | undefined) {
   if (!row) return '--'
-  return formatDate(row.progressHeartbeatAt || row.action?.lastHeartbeatAt || row.updatedAt)
+  return formatDate(rowHeartbeatAt(row))
 }
 
 function rowSourcePath(row: ProgressRow | null | undefined) {
@@ -1613,6 +1670,70 @@ function taskPendingLabel(task: CrawlerMonitorRegisteredTask) {
   return '--'
 }
 
+function rowProgressBasis(row: ProgressRow | CrawlerMonitorAction | null | undefined) {
+  if (!row) return null
+  const payload = 'progressPayload' in row ? row.progressPayload || {} : {}
+  const overallCurrent = finiteNumber(row.overallCurrent ?? payload.overallCurrent)
+  const overallTotal = finiteNumber(row.overallTotal ?? payload.overallTotal)
+  if (overallCurrent != null && overallTotal != null && overallTotal >= 0) {
+    return {
+      current: Math.min(Math.max(0, overallCurrent), overallTotal),
+      total: overallTotal,
+    }
+  }
+
+  const current = finiteNumber(row.current ?? payload.current)
+  const total = finiteNumber(row.total ?? payload.total)
+  if (current != null && total != null && total >= 0) {
+    return {
+      current: Math.min(Math.max(0, current), total),
+      total,
+    }
+  }
+  return null
+}
+
+function rowStartedAt(row: ProgressRow | null | undefined) {
+  if (!row) return ''
+  return row.progressPayload?.startedAt || row.action?.startedAt || ''
+}
+
+function rowHeartbeatAt(row: ProgressRow | null | undefined) {
+  if (!row) return ''
+  return row.progressHeartbeatAt
+    || row.action?.lastHeartbeatAt
+    || row.progressPayload?.lastHeartbeatAt
+    || row.progressPayload?.generatedAt
+    || row.progressUpdatedAt
+    || row.updatedAt
+    || row.action?.updatedAt
+    || ''
+}
+
+function taskElapsedMs(row: ProgressRow | null | undefined) {
+  if (!row) return null
+  const startedAt = timestampMs(rowStartedAt(row))
+  const heartbeatAt = timestampMs(rowHeartbeatAt(row))
+  if (startedAt != null && heartbeatAt != null && heartbeatAt > startedAt) {
+    return heartbeatAt - startedAt
+  }
+  return row.action ? actionElapsedMs(row.action) : null
+}
+
+function taskSpeedPerMinute(row: ProgressRow | null | undefined) {
+  const basis = rowProgressBasis(row)
+  if (!basis || basis.current <= 0) return null
+  const elapsedMs = taskElapsedMs(row)
+  if (elapsedMs == null || elapsedMs <= 0) return null
+  return basis.current / (elapsedMs / 60_000)
+}
+
+function taskRemaining(row: ProgressRow | null | undefined) {
+  const basis = rowProgressBasis(row)
+  if (!basis) return null
+  return Math.max(0, basis.total - basis.current)
+}
+
 function isPreviewableReportPath(path?: string | null) {
   const normalized = String(path || '').replace(/\\/g, '/').toLowerCase()
   if (!normalized) return false
@@ -1620,6 +1741,18 @@ function isPreviewableReportPath(path?: string | null) {
   const allowedRoot = normalized.startsWith('reports/') || normalized.startsWith('back/target/surefire-reports/')
   const allowedSuffix = ['.json', '.md', '.xml', '.txt'].some((suffix) => normalized.endsWith(suffix))
   return allowedRoot && allowedSuffix
+}
+
+function isPreviewableProgressPath(path?: string | null) {
+  const normalized = String(path || '').replace(/\\/g, '/').toLowerCase()
+  if (!normalized || normalized.startsWith('redis://')) return false
+  if (normalized.includes('*') || normalized.includes('?')) return false
+  return isPreviewableReportPath(path) || (normalized.startsWith('data/generated/') && normalized.endsWith('.json'))
+}
+
+function isMissingReportError(message?: string | null) {
+  const normalized = String(message || '').toLowerCase()
+  return normalized.includes('not found') || normalized.includes('missing') || normalized.includes('不存在') || normalized.includes('未找到')
 }
 
 function actionProgressPercent(action: CrawlerMonitorAction) {
@@ -1656,15 +1789,6 @@ function actionRemaining(action: CrawlerMonitorAction) {
 }
 
 function actionProgressBasis(action: CrawlerMonitorAction) {
-  const overallCurrent = finiteNumber(action.overallCurrent)
-  const overallTotal = finiteNumber(action.overallTotal)
-  if (overallCurrent != null && overallTotal != null && overallTotal >= 0) {
-    return {
-      current: Math.min(Math.max(0, overallCurrent), overallTotal),
-      total: overallTotal,
-    }
-  }
-
   const current = finiteNumber(action.current)
   const total = finiteNumber(action.total)
   if (current != null && total != null && total >= 0) {
@@ -1673,15 +1797,24 @@ function actionProgressBasis(action: CrawlerMonitorAction) {
       total,
     }
   }
+
+  const overallCurrent = finiteNumber(action.overallCurrent)
+  const overallTotal = finiteNumber(action.overallTotal)
+  if (overallCurrent != null && overallTotal != null && overallTotal >= 0) {
+    return {
+      current: Math.min(Math.max(0, overallCurrent), overallTotal),
+      total: overallTotal,
+    }
+  }
   return null
 }
 
 function actionSpeedPerMinute(action: CrawlerMonitorAction) {
-  const completedInCurrentBatch = finiteNumber(action.current)
-  if (completedInCurrentBatch == null || completedInCurrentBatch <= 0) return null
+  const basis = actionProgressBasis(action)
+  if (!basis || basis.current <= 0) return null
   const elapsedMs = actionElapsedMs(action)
   if (elapsedMs == null || elapsedMs <= 0) return null
-  return completedInCurrentBatch / (elapsedMs / 60_000)
+  return basis.current / (elapsedMs / 60_000)
 }
 
 function actionElapsedMs(action: CrawlerMonitorAction) {
@@ -1733,6 +1866,21 @@ function formatEtaDuration(value: number) {
   const seconds = Math.ceil(ms / 1000)
   if (seconds < 60) return `${seconds}s`
   const minutes = Math.ceil(seconds / 60)
+  if (minutes < 60) return `${minutes}m`
+  const hours = Math.floor(minutes / 60)
+  const restMinutes = minutes % 60
+  if (hours < 24) return restMinutes ? `${hours}h ${restMinutes}m` : `${hours}h`
+  const days = Math.floor(hours / 24)
+  const restHours = hours % 24
+  return restHours ? `${days}d ${restHours}h` : `${days}d`
+}
+
+function formatElapsedDuration(value: number | null | undefined) {
+  const ms = Number(value || 0)
+  if (!Number.isFinite(ms) || ms <= 0) return '--'
+  const seconds = Math.floor(ms / 1000)
+  if (seconds < 60) return `${seconds}s`
+  const minutes = Math.floor(seconds / 60)
   if (minutes < 60) return `${minutes}m`
   const hours = Math.floor(minutes / 60)
   const restMinutes = minutes % 60

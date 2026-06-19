@@ -74,6 +74,33 @@ class CrawlerReportArchiverTest {
         assertFalse(outside.isReadable());
     }
 
+    @Test
+    void shouldPreviewGeneratedProgressJsonAndRejectOtherGeneratedFiles() throws Exception {
+        Path repoRoot = Files.createDirectories(tempDir.resolve("TerraPedia-dev"));
+        Path progressPath = repoRoot.resolve("data/generated/domain-source-bosses-progress.latest.json");
+        writeJson(progressPath, Map.of(
+            "actionId", "domain-source-bosses",
+            "status", "running",
+            "current", 7,
+            "total", 14
+        ));
+        Path textPath = repoRoot.resolve("data/generated/domain-source-bosses-progress.latest.log");
+        Files.createDirectories(textPath.getParent());
+        Files.writeString(textPath, "not previewable");
+
+        CrawlerReportArchiver archiver = new CrawlerReportArchiver(new ObjectMapper());
+
+        CrawlerMonitorReportDetailDTO detail = archiver.getReportDetail(repoRoot, "data/generated/domain-source-bosses-progress.latest.json");
+        CrawlerMonitorReportDetailDTO rejected = archiver.getReportDetail(repoRoot, "data/generated/domain-source-bosses-progress.latest.log");
+
+        assertTrue(detail.isFound());
+        assertTrue(detail.isReadable());
+        assertEquals("json", detail.getContentType());
+        assertTrue(detail.getContent().contains("\"actionId\" : \"domain-source-bosses\""));
+        assertFalse(rejected.isFound());
+        assertFalse(rejected.isReadable());
+    }
+
     private void writeJson(Path path, Map<String, Object> payload) throws Exception {
         Files.createDirectories(path.getParent());
         new ObjectMapper().writeValue(path.toFile(), payload);
