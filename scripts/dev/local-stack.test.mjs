@@ -333,3 +333,12 @@ test('start resolves a per-worktree slot and offsets app ports plus redis db', (
   assert.match(source, /TP_REDIS_DATABASE="\$TP_SLOT"/);
   assert.match(source, /TP_SLOT >= 64/);
 });
+
+test('start launches shared redis through start_background with setsid and extra databases', () => {
+  const source = startSource();
+
+  assert.match(source, /start_background "redis-\$TP_REDIS_PORT" "\$REPO_ROOT"/);
+  assert.match(source, /--databases 64/);
+  assert.match(source, /--requirepass <redacted> --databases 64/);
+  assert.doesNotMatch(source, /nohup "\$redis_cmd" --port/);
+});

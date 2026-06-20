@@ -334,14 +334,9 @@ start_redis_if_needed() {
     exit 1
   fi
 
-  local out_path err_path pid
-  out_path="$(log_path "redis-$TP_REDIS_PORT")"
-  err_path="$out_path.err"
-  nohup "$redis_cmd" --port "$TP_REDIS_PORT" --bind "$TP_REDIS_HOST" --protected-mode yes --requirepass "$TP_REDIS_PASSWORD" >"$out_path" 2>"$err_path" &
-  pid=$!
-  printf '%s\n' "$pid" >"$report_dir/redis-$TP_REDIS_PORT.pid"
-  append_process "redis-$TP_REDIS_PORT" "$pid" "$out_path" "$err_path" "redis-server --port $TP_REDIS_PORT --bind $TP_REDIS_HOST --protected-mode yes --requirepass <redacted>" running
-  printf 'redis PID=%s log=%s\n' "$pid" "$out_path"
+  start_background "redis-$TP_REDIS_PORT" "$REPO_ROOT" \
+    "redis-server --port $TP_REDIS_PORT --bind $TP_REDIS_HOST --protected-mode yes --requirepass <redacted> --databases 64" \
+    "$redis_cmd" --port "$TP_REDIS_PORT" --bind "$TP_REDIS_HOST" --protected-mode yes --requirepass "$TP_REDIS_PASSWORD" --databases 64
 
   if ! wait_port "$TP_REDIS_HOST" "$TP_REDIS_PORT" 15; then
     log_error "Redis $TP_REDIS_PORT failed to start. Check $out_path and $err_path"
