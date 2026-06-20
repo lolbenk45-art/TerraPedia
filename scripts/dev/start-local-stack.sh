@@ -255,6 +255,20 @@ resolve_local_stack_slot() {
 
 resolve_local_stack_slot
 
+assert_port_owned_by_worktree() {
+  local label="$1"
+  local port="$2"
+  local pid cwd
+  for pid in $(port_pids "$port"); do
+    cwd="$(process_cwd "$pid")"
+    if [[ "$cwd" == "$REPO_ROOT"* ]]; then
+      continue
+    fi
+    log_error "$label port $port is held by pid=$pid (cwd=${cwd:-unknown}) outside this worktree ($REPO_ROOT). Likely a slot collision or stale process. Free it, or fix the slot in $TP_SLOT_REGISTRY."
+    exit 1
+  done
+}
+
 resolved_minio_credentials_file=""
 if [[ -n "$TP_MINIO_CREDENTIALS_FILE" ]]; then
   resolved_minio_credentials_file="$(resolve_runtime_path "$TP_MINIO_CREDENTIALS_FILE")"
@@ -462,6 +476,7 @@ if ! tcp_check 127.0.0.1 "$TP_BACKEND_PORT" 800; then
     exit 1
   }
 else
+  assert_port_owned_by_worktree back "$TP_BACKEND_PORT"
   printf 'back already running on %s; status=occupied\n' "$TP_BACKEND_PORT"
 fi
 
@@ -474,6 +489,7 @@ if ! tcp_check 127.0.0.1 "$TP_FRONT_PORT" 800; then
     exit 1
   }
 else
+  assert_port_owned_by_worktree front "$TP_FRONT_PORT"
   printf 'front already running on %s; status=occupied\n' "$TP_FRONT_PORT"
 fi
 
@@ -486,6 +502,7 @@ if ! tcp_check 127.0.0.1 "$TP_ADMIN_PORT" 800; then
     exit 1
   }
 else
+  assert_port_owned_by_worktree data-query-app "$TP_ADMIN_PORT"
   printf 'data-query-app already running on %s; status=occupied\n' "$TP_ADMIN_PORT"
 fi
 

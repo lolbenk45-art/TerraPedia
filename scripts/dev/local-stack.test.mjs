@@ -342,3 +342,14 @@ test('start launches shared redis through start_background with setsid and extra
   assert.match(source, /--requirepass <redacted> --databases 64/);
   assert.doesNotMatch(source, /nohup "\$redis_cmd" --port/);
 });
+
+test('start refuses to reuse an app port owned by another worktree', () => {
+  const source = startSource();
+
+  assert.match(source, /assert_port_owned_by_worktree/);
+  assert.match(source, /outside this worktree/i);
+  // 三个应用服务的 else 复用分支都先校验归属
+  assert.match(source, /assert_port_owned_by_worktree back "\$TP_BACKEND_PORT"/);
+  assert.match(source, /assert_port_owned_by_worktree front "\$TP_FRONT_PORT"/);
+  assert.match(source, /assert_port_owned_by_worktree data-query-app "\$TP_ADMIN_PORT"/);
+});
