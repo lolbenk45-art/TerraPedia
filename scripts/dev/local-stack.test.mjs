@@ -353,3 +353,12 @@ test('start refuses to reuse an app port owned by another worktree', () => {
   assert.match(source, /assert_port_owned_by_worktree front "\$TP_FRONT_PORT"/);
   assert.match(source, /assert_port_owned_by_worktree data-query-app "\$TP_ADMIN_PORT"/);
 });
+
+test('stop preserves shared redis unless --stop-shared is passed', () => {
+  const source = stopSource();
+
+  assert.match(source, /stop_shared=false/);
+  assert.match(source, /--stop-shared/);
+  assert.match(source, /redis-\*[\s\S]*stop_shared/i);
+  assert.match(source, /use --stop-shared/i);
+});
