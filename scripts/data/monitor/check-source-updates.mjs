@@ -5,14 +5,26 @@ import path from 'node:path';
 import { resolveProjectPath } from '../lib/project-root.mjs';
 import {
   DEFAULT_WIKI_API_URL,
+  fetchWikiModuleContent,
+  fetchWikiPageMetadataBatch,
   ensureDir,
-  fetchWikiPageRevisionTimestamp,
   fetchWikiUrlText,
   isTerrariaWikiUrl,
   parseCliArgs,
   sharedDataPath,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
+import {
+  createContentHash,
+  DEFAULT_WIKI_SOURCE_MANIFEST_PATH,
+  loadWikiSourceManifest,
+  resolveIngestedRecord
+} from '../lib/wiki-sync-manifest.mjs';
+import {
+  buildActionProgressPayload,
+  writeJsonFile
+} from '../workflow/backend-refresh-runtime-state.mjs';
+import { compareWikiSourceFingerprint } from './source-update-comparison.mjs';
 
 const terraPediaRoot = resolveProjectPath();
 const OFFICIAL_SOURCE_MONITOR_USER_AGENT = 'TerraPedia-source-monitor/2.0 (+https://terraria.wiki.gg/api.php)';
@@ -25,23 +37,50 @@ const statePath = path.resolve(
   process.cwd(),
   options['state-file'] ?? sharedDataPath('generated', 'source-update-monitor.latest.json')
 );
+const manifestPath = path.resolve(process.cwd(), options['manifest-path'] ?? DEFAULT_WIKI_SOURCE_MANIFEST_PATH);
+const progressPath = path.resolve(
+  process.cwd(),
+  options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? sharedDataPath('generated', 'source-update-monitor-progress.latest.json')
+);
 const wikiApiUrl = options['wiki-api-url'] ?? DEFAULT_WIKI_API_URL;
 const officialCheckMode = resolveOfficialCheckMode(options);
 const previousState = readJsonIfExists(statePath);
 const previousSourceMap = buildPreviousSourceMap(previousState);
+const ingestionManifest = loadWikiSourceManifest(manifestPath);
 
 ensureDir(reportDir);
 ensureDir(path.dirname(statePath));
+writeMonitorProgress({
+  status: 'running',
+  phase: 'start',
+  message: 'checking source update fingerprints',
+  current: 0,
+  total: buildWikiSources().length + (officialCheckMode !== 'never' ? buildOfficialSources().length : 0)
+});
 
 const sources = [];
 
 for (const source of buildWikiSources()) {
   sources.push(await checkWikiSource(source));
+  writeMonitorProgress({
+    status: 'running',
+    phase: 'wiki',
+    message: `checked ${source.key}`,
+    current: sources.length,
+    total: buildWikiSources().length + (officialCheckMode !== 'never' ? buildOfficialSources().length : 0)
+  });
 }
 
 if (officialCheckMode !== 'never') {
   for (const source of buildOfficialSources()) {
     sources.push(await checkOfficialSource(source));
+    writeMonitorProgress({
+      status: 'running',
+      phase: 'official',
+      message: `checked ${source.key}`,
+      current: sources.length,
+      total: buildWikiSources().length + buildOfficialSources().length
+    });
   }
 }
 
@@ -63,6 +102,15 @@ writeJson(statePath, payload);
 writeJson(reportPath, {
   ...payload,
   reportFile: toWorkspaceRelative(reportPath)
+});
+writeMonitorProgress({
+  status: 'completed',
+  phase: 'write',
+  message: `checked ${summary.checkedSources} source(s); changed=${summary.changedSources}`,
+  current: sources.length,
+  total: sources.length,
+  outputPath: statePath,
+  reportPath
 });
 
 console.log(`Checked at: ${checkedAt}`);
@@ -131,14 +179,18 @@ function buildOfficialSources() {
 }
 
 async function checkWikiSource(source) {
-  const previous = previousSourceMap.get(source.key);
+  const ingestedRecord = resolveIngestedRecord(ingestionManifest, {
+    sourceKey: source.key,
+    locator: source.locator
+  });
 
   try {
-    const revisionTimestamp = await fetchWikiPageRevisionTimestamp({
-      pageTitle: source.locator,
-      apiUrl: wikiApiUrl
+    const apiFingerprint = await fetchWikiFingerprint(source);
+    const comparison = compareWikiSourceFingerprint({
+      source,
+      apiFingerprint,
+      ingestedRecord
     });
-    const changed = hasChanged(previous?.currentValue, revisionTimestamp);
 
     return {
       key: source.key,
@@ -146,14 +198,13 @@ async function checkWikiSource(source) {
       category: source.category,
       locator: source.locator,
       trigger: source.trigger,
-      status: revisionTimestamp ? 'ok' : 'missing',
+      status: comparison.status,
       checkedAt,
-      currentValue: revisionTimestamp,
-      previousValue: previous?.currentValue ?? null,
-      changed,
-      meta: {
-        compareField: 'revisionTimestamp'
-      }
+      currentValue: comparison.currentValue,
+      previousValue: comparison.previousValue,
+      ingestedValue: comparison.ingestedValue,
+      changed: comparison.changed,
+      meta: comparison.meta
     };
   } catch (error) {
     return {
@@ -165,14 +216,38 @@ async function checkWikiSource(source) {
       status: 'error',
       checkedAt,
       currentValue: null,
-      previousValue: previous?.currentValue ?? null,
+      previousValue: ingestedRecord?.contentHash ?? ingestedRecord?.revisionId ?? ingestedRecord?.revisionTimestamp ?? null,
       changed: false,
       error: compactError(error),
       meta: {
-        compareField: 'revisionTimestamp'
+        compareBasis: 'ingestion-manifest',
+        compareField: null
       }
     };
   }
+}
+
+async function fetchWikiFingerprint(source) {
+  if (source.category === 'wiki_module' || source.key === 'wiki.page.template_getbuffinfo') {
+    const result = await fetchWikiModuleContent({
+      moduleTitle: source.locator,
+      apiUrl: wikiApiUrl
+    });
+    return {
+      contentHash: createContentHash(result.moduleContent),
+      revisionId: result.revisionId ?? null,
+      revisionTimestamp: result.revisionTimestamp ?? null
+    };
+  }
+  const [metadata] = await fetchWikiPageMetadataBatch({
+    titles: [source.locator],
+    apiUrl: wikiApiUrl,
+    includeLanglinks: false
+  });
+  return {
+    revisionId: metadata?.revisionId ?? null,
+    revisionTimestamp: metadata?.revisionTimestamp ?? null
+  };
 }
 
 async function checkOfficialSource(source) {
@@ -325,6 +400,17 @@ function hasChanged(previousValue, currentValue) {
     return false;
   }
   return previousValue !== currentValue;
+}
+
+function writeMonitorProgress(progress) {
+  const generatedAt = progress.generatedAt ?? new Date().toISOString();
+  writeJsonFile(progressPath, buildActionProgressPayload({
+    ...progress,
+    actionId: 'source-update-monitor-check',
+    generatedAt,
+    lastHeartbeatAt: generatedAt,
+    childStatusPath: progressPath
+  }));
 }
 
 function compactError(error) {

@@ -1,6 +1,7 @@
 package com.terraria.skills.service;
 
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
+import com.terraria.skills.dto.CrawlerMonitorAutoDispatchDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchRequestDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
@@ -19,6 +20,10 @@ public interface CrawlerMonitorService {
     CrawlerMonitorDispatchResultDTO controlWikiMonitorDispatch(CrawlerMonitorDispatchRequestDTO request);
 
     CrawlerMonitorDispatchResultDTO dispatchWikiMonitorDomainSmoke();
+
+    CrawlerMonitorAutoDispatchDTO getAutoDispatchSettings();
+
+    CrawlerMonitorAutoDispatchDTO updateAutoDispatchSettings(CrawlerMonitorAutoDispatchDTO settings);
 
     CrawlerMonitorTestStateDTO getTestState();
 

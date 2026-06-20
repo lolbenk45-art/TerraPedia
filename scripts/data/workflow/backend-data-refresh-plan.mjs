@@ -10,7 +10,7 @@ export function buildBackendDataRefreshPlan(options = {}) {
       args: [
         'scripts/data/workflow/run-wiki-sync.mjs',
         '--mode=apply',
-        '--entity=items,npcs,bosses,biomes,categories'
+        '--entity=items,npcs,projectiles,bosses,biomes,categories'
       ]
     },
     {

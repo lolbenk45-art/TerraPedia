@@ -85,6 +85,11 @@ test('wiki monitor rules expose executable command arrays and canonical progress
     'scripts/data/fetch/fetch-wiki-bosses.mjs',
     '--progress-path=data/generated/domain-source-bosses-progress.latest.json'
   ]);
+  assert.deepEqual(actionByDomain.get('armor_sets').command, [
+    'node',
+    'scripts/data/fetch/fetch-wiki-armorsetbonuses.mjs',
+    '--progress-path=data/generated/domain-source-armor-sets-progress.latest.json'
+  ]);
   assert.deepEqual(actionByDomain.get('town_npc_maintenance').command, [
     '<PYTHON>',
     'scripts/data/fetch/fetch-wiki-town-npc-maintenance.py',

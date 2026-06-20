@@ -4,6 +4,7 @@ import com.terraria.skills.auth.AdminAccessDeniedException;
 import com.terraria.skills.auth.AdminAuthenticationInterceptor;
 import com.terraria.skills.auth.AdminTokenClaims;
 import com.terraria.skills.common.ApiResponse;
+import com.terraria.skills.dto.CrawlerMonitorAutoDispatchDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchRequestDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
@@ -74,6 +75,22 @@ public class AdminCrawlerMonitorController {
     public ApiResponse<CrawlerMonitorDispatchResultDTO> dispatchTestDomainSmoke(HttpServletRequest httpRequest) {
         requireAdminRole(httpRequest);
         return ApiResponse.success(crawlerMonitorService.dispatchWikiMonitorDomainSmoke());
+    }
+
+    @GetMapping("/auto-dispatch")
+    @Operation(summary = "Get crawler monitor auto-dispatch settings")
+    public ApiResponse<CrawlerMonitorAutoDispatchDTO> getAutoDispatchSettings() {
+        return ApiResponse.success(crawlerMonitorService.getAutoDispatchSettings());
+    }
+
+    @PutMapping("/auto-dispatch")
+    @Operation(summary = "Update crawler monitor auto-dispatch settings")
+    public ApiResponse<CrawlerMonitorAutoDispatchDTO> updateAutoDispatchSettings(
+        HttpServletRequest httpRequest,
+        @RequestBody CrawlerMonitorAutoDispatchDTO settings
+    ) {
+        requireAdminRole(httpRequest);
+        return ApiResponse.success(crawlerMonitorService.updateAutoDispatchSettings(settings));
     }
 
     @GetMapping("/test-state")

@@ -21,6 +21,7 @@ import {
   writeJsonFile
 } from './backend-refresh-runtime-state.mjs';
 import { writeCrawlerMonitorRedisState } from '../lib/crawler-monitor-redis-state.mjs';
+import { finalizeBackendRefreshActionIngestionManifest } from './backend-refresh-manifest-finalize.mjs';
 
 const options = parseArgs(process.argv.slice(2));
 const mode = String(options.mode ?? 'plan').trim().toLowerCase();
@@ -148,6 +149,7 @@ for (const action of actionsToRun) {
     writeReport(outputPath, buildBackendDataRefreshReport(plan, actionResults));
     throw new Error(`Backend refresh action failed: ${action.id}`);
   }
+  finalizeBackendRefreshActionIngestionManifest({ actionId: action.id });
 }
 
 const report = buildBackendDataRefreshReport(plan, actionResults);

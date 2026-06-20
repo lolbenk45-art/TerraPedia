@@ -42,7 +42,7 @@ export const WIKI_MONITOR_DOMAIN_RULES = [
     'Module:ArmorSetBonuses',
     'domain-source-armor-sets',
     'data/generated/domain-source-armor-sets-progress.latest.json',
-    ['node', 'scripts/data/fetch/fetch-wiki-armor-sets.mjs', '--progress-path=data/generated/domain-source-armor-sets-progress.latest.json']
+    ['node', 'scripts/data/fetch/fetch-wiki-armorsetbonuses.mjs', '--progress-path=data/generated/domain-source-armor-sets-progress.latest.json']
   ),
   rule(
     'recipes',

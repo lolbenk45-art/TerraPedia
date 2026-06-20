@@ -60,112 +60,6 @@
           </article>
         </section>
 
-        <section class="panel monitor-observability" aria-label="运行态">
-          <div class="panel-head">
-            <div>
-              <h2>运行态</h2>
-              <p>守护、调度、锁、心跳、历史、报告、图片和派发计划的紧凑总览。</p>
-            </div>
-            <span class="status-pill" :class="wikiMonitor?.autoDispatchEnabled ? 'info' : 'muted'">{{ wikiAutoDispatchLabel }}</span>
-          </div>
-
-          <div class="observability-grid">
-            <article class="observability-block">
-              <div class="observability-block__head">
-                <strong>运行文件</strong>
-                <span>{{ runtimeStateCards.length }} 项</span>
-              </div>
-              <div class="state-list">
-                <div v-for="card in runtimeStateCards" :key="card.key" class="state-row">
-                  <span>{{ card.label }}</span>
-                  <strong><em class="status-pill" :class="statusTone(card.status)">{{ statusLabel(card.status) }}</em></strong>
-                  <small>{{ card.detail }}</small>
-                  <code>{{ card.path }}</code>
-                </div>
-              </div>
-            </article>
-
-            <article class="observability-block">
-              <div class="observability-block__head">
-                <strong>派发状态</strong>
-                <span>{{ wikiPendingApprovalCount }} 待审批</span>
-              </div>
-              <div class="compact-metrics">
-                <span><small>派发模式</small><strong>{{ wikiDispatchModeLabel }}</strong></span>
-                <span><small>自动派发</small><strong>{{ wikiAutoDispatchLabel }}</strong></span>
-                <span><small>待审批</small><strong>{{ wikiPendingApprovalCount }}</strong></span>
-              </div>
-              <div v-if="dispatchPlanRows.length" class="state-list state-list--compact">
-                <div v-for="plan in dispatchPlanRows" :key="plan.actionId || plan.priority || plan.reason" class="state-row">
-                  <span>派发计划</span>
-                  <strong>{{ plan.actionId || '未命名动作' }}</strong>
-                  <small>{{ dispatchPlanSummary(plan) }}</small>
-                </div>
-              </div>
-              <p v-else class="empty-line">暂无派发计划</p>
-            </article>
-
-            <article class="observability-block">
-              <div class="observability-block__head">
-                <strong>心跳告警</strong>
-                <span>{{ staleHeartbeatRows.length }} 条</span>
-              </div>
-              <div v-if="staleHeartbeatRows.length" class="state-list state-list--compact">
-                <div v-for="heartbeat in staleHeartbeatRows" :key="heartbeatKey(heartbeat)" class="state-row">
-                  <span>{{ heartbeat.label || heartbeat.id || heartbeat.domain || '心跳' }}</span>
-                  <strong>{{ statusLabel(heartbeat.status || 'stalled') }}</strong>
-                  <small>{{ heartbeat.reason || heartbeat.progressStaleReason || heartbeat.message || formatDate(heartbeat.lastHeartbeatAt || heartbeat.progressHeartbeatAt) }}</small>
-                </div>
-              </div>
-              <p v-else class="empty-line">暂无心跳告警</p>
-            </article>
-
-            <article class="observability-block">
-              <div class="observability-block__head">
-                <strong>运行历史</strong>
-                <span>{{ historyRows.length }} 条</span>
-              </div>
-              <div v-if="historyRows.length" class="state-list state-list--compact">
-                <div v-for="run in historyRows" :key="run.path || run.generatedAt || run.summaryPath" class="state-row">
-                  <span>{{ statusLabel(runStatus(run)) }}</span>
-                  <strong>{{ formatDate(run.generatedAt || run.updatedAt) }}</strong>
-                  <small>{{ runSummary(run) }}</small>
-                </div>
-              </div>
-              <p v-else class="empty-line">暂无历史</p>
-            </article>
-
-            <article class="observability-block">
-              <div class="observability-block__head">
-                <strong>报告</strong>
-                <span>{{ recentReportRows.length }} 个</span>
-              </div>
-              <div v-if="recentReportRows.length" class="state-list state-list--compact">
-                <div v-for="report in recentReportRows" :key="report.path || report.name" class="state-row">
-                  <span>{{ report.category || '报告' }}</span>
-                  <strong>{{ report.name || report.path || '未命名报告' }}</strong>
-                  <small>{{ formatDate(report.updatedAt) }} · {{ formatBytes(report.sizeBytes) }}</small>
-                </div>
-              </div>
-              <p v-else class="empty-line">暂无报告</p>
-            </article>
-
-            <article class="observability-block">
-              <div class="observability-block__head">
-                <strong>图片指标</strong>
-                <span>{{ imageNormalizationRows.length }} 项</span>
-              </div>
-              <div v-if="imageNormalizationRows.length" class="compact-metrics">
-                <span v-for="metric in imageNormalizationRows" :key="metric.label">
-                  <small>{{ metric.label }}</small>
-                  <strong>{{ metric.value }}</strong>
-                </span>
-              </div>
-              <p v-else class="empty-line">暂无图片指标</p>
-            </article>
-          </div>
-        </section>
-
         <section class="section-card monitor-panel stage-progress-panel">
           <div class="section-head">
             <div>
@@ -269,10 +163,150 @@
           </div>
         </section>
 
+        <section class="panel monitor-observability" aria-label="运行态">
+          <div class="panel-head">
+            <div>
+              <h2>运行态</h2>
+              <p>守护、调度、锁、心跳、历史、报告、图片和派发计划的紧凑总览。</p>
+            </div>
+            <span class="status-pill" :class="wikiMonitor?.autoDispatchEnabled ? 'info' : 'muted'">{{ wikiAutoDispatchLabel }}</span>
+          </div>
+
+          <div class="observability-grid">
+            <article class="observability-block">
+              <div class="observability-block__head">
+                <strong>运行文件</strong>
+                <span>{{ runtimeStateCards.length }} 项</span>
+              </div>
+              <div class="state-list">
+                <div v-for="card in runtimeStateCards" :key="card.key" class="state-row">
+                  <span>{{ card.label }}</span>
+                  <strong><em class="status-pill" :class="statusTone(card.status)">{{ statusLabel(card.status) }}</em></strong>
+                  <small>{{ card.detail }}</small>
+                  <code>{{ card.path }}</code>
+                </div>
+              </div>
+            </article>
+
+            <article class="observability-block">
+              <div class="observability-block__head">
+                <strong>派发状态</strong>
+                <span>{{ wikiPendingApprovalCount }} 待审批</span>
+              </div>
+              <div class="compact-metrics">
+                <span><small>派发模式</small><strong>{{ wikiDispatchModeLabel }}</strong></span>
+                <span><small>自动派发</small><strong>{{ wikiAutoDispatchLabel }}</strong></span>
+                <span><small>待审批</small><strong>{{ wikiPendingApprovalCount }}</strong></span>
+              </div>
+              <div v-if="dispatchPlanRows.length" class="state-list state-list--compact">
+                <div v-for="plan in dispatchPlanRows" :key="plan.actionId || plan.priority || plan.reason" class="state-row">
+                  <span>派发计划</span>
+                  <strong>{{ plan.actionId || '未命名动作' }}</strong>
+                  <small>{{ dispatchPlanSummary(plan) }}</small>
+                </div>
+              </div>
+              <p v-else class="empty-line">暂无派发计划</p>
+            </article>
+
+            <article class="auto-dispatch-card">
+              <div class="observability-block__head">
+                <strong>自动派发设置</strong>
+                <span>{{ autoDispatchForm.enabled ? '已开启' : '已关闭' }}</span>
+              </div>
+              <div class="auto-dispatch-controls">
+                <label class="auto-dispatch-toggle">
+                  <input v-model="autoDispatchForm.enabled" type="checkbox">
+                  <span>有变化时自动派发</span>
+                </label>
+                <label class="auto-dispatch-interval">
+                  <span>扫描间隔</span>
+                  <input v-model.number="autoDispatchForm.sweepIntervalMinutes" type="number" min="1" max="1440">
+                  <small>分钟</small>
+                </label>
+                <button
+                  type="button"
+                  class="inline-report-button inline-report-button--compact"
+                  :disabled="autoDispatchSaving"
+                  @click="saveAutoDispatchSettings"
+                >
+                  <RefreshCw :size="14" :class="{ 'spin': autoDispatchSaving }" />
+                  <span>{{ autoDispatchSaving ? '保存中' : '保存设置' }}</span>
+                </button>
+              </div>
+              <div class="state-list state-list--compact">
+                <div class="state-row">
+                  <span>最近自动派发</span>
+                  <strong>{{ statusLabel(lastAutoDispatchSweep?.status || 'missing') }}</strong>
+                  <small>{{ autoDispatchSweepSummary }}</small>
+                </div>
+              </div>
+            </article>
+
+            <article class="observability-block">
+              <div class="observability-block__head">
+                <strong>心跳告警</strong>
+                <span>{{ staleHeartbeatRows.length }} 条</span>
+              </div>
+              <div v-if="staleHeartbeatRows.length" class="state-list state-list--compact">
+                <div v-for="heartbeat in staleHeartbeatRows" :key="heartbeatKey(heartbeat)" class="state-row">
+                  <span>{{ heartbeat.label || heartbeat.id || heartbeat.domain || '心跳' }}</span>
+                  <strong>{{ statusLabel(heartbeat.status || 'stalled') }}</strong>
+                  <small>{{ heartbeat.reason || heartbeat.progressStaleReason || heartbeat.message || formatDate(heartbeat.lastHeartbeatAt || heartbeat.progressHeartbeatAt) }}</small>
+                </div>
+              </div>
+              <p v-else class="empty-line">暂无心跳告警</p>
+            </article>
+
+            <article class="observability-block">
+              <div class="observability-block__head">
+                <strong>运行历史</strong>
+                <span>{{ historyRows.length }} 条</span>
+              </div>
+              <div v-if="historyRows.length" class="state-list state-list--compact">
+                <div v-for="run in historyRows" :key="run.path || run.generatedAt || run.summaryPath" class="state-row">
+                  <span>{{ statusLabel(runStatus(run)) }}</span>
+                  <strong>{{ formatDate(run.generatedAt || run.updatedAt) }}</strong>
+                  <small>{{ runSummary(run) }}</small>
+                </div>
+              </div>
+              <p v-else class="empty-line">暂无历史</p>
+            </article>
+
+            <article class="observability-block">
+              <div class="observability-block__head">
+                <strong>报告</strong>
+                <span>{{ recentReportRows.length }} 个</span>
+              </div>
+              <div v-if="recentReportRows.length" class="state-list state-list--compact">
+                <div v-for="report in recentReportRows" :key="report.path || report.name" class="state-row">
+                  <span>{{ report.category || '报告' }}</span>
+                  <strong>{{ report.name || report.path || '未命名报告' }}</strong>
+                  <small>{{ formatDate(report.updatedAt) }} · {{ formatBytes(report.sizeBytes) }}</small>
+                </div>
+              </div>
+              <p v-else class="empty-line">暂无报告</p>
+            </article>
+
+            <article class="observability-block">
+              <div class="observability-block__head">
+                <strong>图片指标</strong>
+                <span>{{ imageNormalizationRows.length }} 项</span>
+              </div>
+              <div v-if="imageNormalizationRows.length" class="compact-metrics">
+                <span v-for="metric in imageNormalizationRows" :key="metric.label">
+                  <small>{{ metric.label }}</small>
+                  <strong>{{ metric.value }}</strong>
+                </span>
+              </div>
+              <p v-else class="empty-line">暂无图片指标</p>
+            </article>
+          </div>
+        </section>
+
         <div v-if="!wikiActionExpanded" class="wiki-action-primary__collapsed-summary">
           <span>{{ pendingWikiDispatches.length }} 个待确认</span>
           <span>{{ visibleWikiDomainRows.length }} 个域可查看</span>
-          <span>点击展开后选择具体域并派发刷新</span>
+          <span>点击展开后选择具体域并启动重爬</span>
         </div>
 
         <template v-if="wikiActionExpanded">
@@ -314,21 +348,31 @@
               <span>运行文件</span>
               <code>{{ selectedWikiPathSummary }}</code>
             </div>
-            <div class="wiki-run-control-panel" aria-label="运行控制">
+            <div class="wiki-run-control-panel" aria-label="当前域操作">
               <div>
-                <strong>运行控制</strong>
+                <strong>当前域操作</strong>
                 <small>{{ selectedWikiOperationHint }}</small>
               </div>
-              <div class="wiki-run-control-buttons">
+              <div class="wiki-run-control-buttons" :class="{ 'wiki-run-control-buttons--disabled': !selectedWikiCanExecute }">
                 <button
                   type="button"
-                  class="btn btn-primary"
-                  :disabled="wikiDispatchLoading === selectedWikiDomain.domain"
+                  class="inline-report-button"
+                  :disabled="loading"
+                  @click="loadOverview"
+                >
+                  <RefreshCw :size="14" :class="{ 'spin': loading }" />
+                  <span>{{ loading ? '刷新中' : '刷新状态' }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="wiki-run-control-button--primary"
+                  :class="{ 'wiki-run-control-button--disabled': !selectedWikiCanExecute }"
+                  :disabled="!selectedWikiCanExecute || wikiDispatchLoading === selectedWikiDomain.domain"
                   :title="selectedWikiActionDisabledReason || selectedWikiOperationHint"
                   @click="openDispatchConfirm(selectedWikiDomain)"
                 >
                   <RefreshCw :size="16" :class="{ 'spin': wikiDispatchLoading === selectedWikiDomain.domain }" />
-                  <span>{{ wikiDispatchLoading === selectedWikiDomain.domain ? '派发中' : '派发刷新' }}</span>
+                  <span>{{ selectedWikiReCrawlButtonLabel }}</span>
                 </button>
                 <button
                   v-if="canRetryWikiDomain(selectedWikiDomain)"
@@ -343,7 +387,7 @@
                 <button
                   type="button"
                   class="inline-report-button"
-                  :disabled="wikiControlLoading === selectedWikiDomain.domain"
+                  :disabled="!canPauseWikiDomain(selectedWikiDomain) || wikiControlLoading === selectedWikiDomain.domain"
                   @click="controlWikiMonitorTask(selectedWikiDomain, 'pause')"
                 >
                   <Pause :size="14" />
@@ -352,7 +396,7 @@
                 <button
                   type="button"
                   class="inline-report-button"
-                  :disabled="wikiControlLoading === selectedWikiDomain.domain"
+                  :disabled="!canResumeWikiDomain(selectedWikiDomain) || wikiControlLoading === selectedWikiDomain.domain"
                   @click="controlWikiMonitorTask(selectedWikiDomain, 'resume')"
                 >
                   <Play :size="14" />
@@ -361,7 +405,7 @@
                 <button
                   type="button"
                   class="inline-report-button inline-report-button--danger"
-                  :disabled="wikiControlLoading === selectedWikiDomain.domain"
+                  :disabled="!canCancelWikiDomain(selectedWikiDomain) || wikiControlLoading === selectedWikiDomain.domain"
                   @click="openCancelConfirm(selectedWikiDomain)"
                 >
                   <CircleStop :size="14" />
@@ -543,6 +587,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
                   <span>{{ domain.recommendedActionId || '无白名单动作' }}</span>
                   <span>{{ rowProgressLabel(wikiDomainProgressRow(domain)) }} · {{ rowProgressNumbers(wikiDomainProgressRow(domain)) }}</span>
                 </span>
+                <small v-if="domain.autoDispatchReason" class="recovery-domain__reason">{{ domain.autoDispatchReason }}</small>
                 <span class="progress-track">
                   <span :style="{ width: rowProgress(wikiDomainProgressRow(domain)) }" :class="statusTone(rowStatus(wikiDomainProgressRow(domain)))" />
                 </span>
@@ -552,6 +597,26 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
             <div v-else class="empty-block empty-block--compact">
               <Activity :size="20" />
               <span>暂无可展示的 Wiki 域。</span>
+            </div>
+            <div class="domain-test-matrix" aria-label="10 域基础项测试">
+              <div class="domain-test-matrix__head">
+                <strong>10 域基础项测试</strong>
+                <span>{{ wikiDomainTestMatrixRows.length }} 域 × {{ BASIC_DOMAIN_TEST_ITEMS.length }} 项</span>
+              </div>
+              <div class="domain-test-matrix__grid">
+                <article v-for="domain in wikiDomainTestMatrixRows" :key="`domain-test-${domain.id}`" class="domain-test-card">
+                  <div class="domain-test-card__head">
+                    <strong>{{ domain.label }}</strong>
+                    <span class="status-pill" :class="statusTone(domain.status)">{{ statusLabel(domain.status) }}</span>
+                  </div>
+                  <div class="domain-test-items">
+                    <span v-for="item in domain.items" :key="`${domain.id}-${item.label}`">
+                      <small>{{ item.label }}</small>
+                      <strong>{{ item.value }}</strong>
+                    </span>
+                  </div>
+                </article>
+              </div>
             </div>
           </section>
 
@@ -656,7 +721,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
                 @click="openDispatchConfirm(wikiDispatchDomain(dispatch))"
               >
                 <RefreshCw :size="16" :class="{ 'spin': wikiDispatchLoading === dispatch.domain }" />
-                <span>{{ wikiDispatchLoading === dispatch.domain ? '派发中' : '派发刷新' }}</span>
+                <span>{{ wikiDispatchLoading === dispatch.domain ? '启动中' : '启动重爬' }}</span>
               </button>
             </article>
           </section>
@@ -712,7 +777,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               <strong>{{ rowUpdatedAtLabel(wikiDomainProgressRow(domain)) }}</strong>
             </span>
           </span>
-          <span class="wiki-domain-download-item__controls" aria-label="运行控制">
+          <span class="wiki-domain-download-item__controls" aria-label="域快捷操作">
             <button
               type="button"
               class="wiki-domain-download-item__select"
@@ -738,7 +803,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               @click.stop="openDispatchConfirm(domain)"
             >
               <RefreshCw :size="14" />
-              <span>派发刷新</span>
+              <span>启动重爬</span>
             </button>
             <button
               type="button"
@@ -844,11 +909,11 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
 
     </section>
 
-    <section v-if="dispatchConfirmDomain" class="cancel-confirm-panel" role="dialog" aria-modal="true" aria-label="重新派发确认">
+    <section v-if="dispatchConfirmDomain" class="cancel-confirm-panel" role="dialog" aria-modal="true" aria-label="启动重爬确认">
       <div class="cancel-confirm-panel__body">
-        <span class="ops-card__label">派发确认</span>
-        <h2>确认重新派发：{{ wikiDomainChineseName(dispatchConfirmDomain) }}</h2>
-        <p>该操作会重新启动对应 Wiki 域刷新。为防止误触，请先确认当前心跳、进度文件和已下载文件，再继续派发。</p>
+        <span class="ops-card__label">重爬确认</span>
+        <h2>确认启动重爬：{{ wikiDomainChineseName(dispatchConfirmDomain) }}</h2>
+        <p>该操作会启动对应 Wiki 域的真实爬取/刷新任务，不只是刷新当前页面状态。为防止误触，请先确认当前心跳、进度文件和已下载文件。</p>
         <ul>
           <li><code>动作：{{ dispatchConfirmDomain.recommendedActionId || '未配置' }}</code></li>
           <li><code>进度：{{ wikiDomainProgressPath(dispatchConfirmDomain) || '未生成' }}</code></li>
@@ -862,7 +927,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
             :disabled="wikiDispatchLoading === dispatchConfirmDomain.domain"
             @click="confirmWikiDomainDispatch"
           >
-            确认重新派发
+            确认启动重爬
           </button>
         </div>
       </div>
@@ -941,7 +1006,7 @@ import {
   TimerReset,
   X,
 } from 'lucide-vue-next'
-import { get, post } from '~/composables/useApi'
+import { get, post, put } from '~/composables/useApi'
 import { showToast } from '~/composables/useToast'
 import {
   hasLiveSourceSnapshotProgress,
@@ -957,6 +1022,7 @@ import {
 } from '~/utils/crawlerMonitorDisplay.mjs'
 import type {
   CrawlerMonitorAction,
+  CrawlerMonitorAutoDispatchSettings,
   CrawlerMonitorDispatchResult,
   CrawlerMonitorOverview,
   CrawlerMonitorRegisteredTask,
@@ -973,6 +1039,31 @@ type ProgressRow = CrawlerMonitorRegisteredTask & {
   action?: CrawlerMonitorAction | null
 }
 
+const BASIC_DOMAIN_TEST_ITEMS = [
+  '来源指纹',
+  '入库指纹',
+  '变化状态',
+  '动作白名单',
+  '进度文件',
+  '心跳状态',
+  '运行状态',
+  '冷却保护',
+  '最近产物',
+  '人工动作',
+]
+const DOMAIN_TEST_MATRIX_DOMAIN_IDS = [
+  'items',
+  'npcs',
+  'projectiles',
+  'armor_sets',
+  'buffs',
+  'biomes',
+  'recipes',
+  'bosses',
+  'town_npc_maintenance',
+  'shimmer',
+]
+
 const overview = ref<CrawlerMonitorOverview | null>(null)
 const loading = ref(false)
 const autoRefresh = ref(true)
@@ -984,6 +1075,12 @@ const lastOverviewRefreshAt = ref<string | null>(null)
 const wikiDispatchLoading = ref('')
 const wikiControlLoading = ref('')
 const progressControlLoading = ref('')
+const autoDispatchSaving = ref(false)
+const autoDispatchForm = reactive<CrawlerMonitorAutoDispatchSettings>({
+  enabled: false,
+  mode: 'changed-only',
+  sweepIntervalMinutes: 60,
+})
 const hiddenNoiseKeys = ref<Set<string>>(new Set())
 const wikiActionExpanded = ref(true)
 const domainSidebarExpanded = ref(true)
@@ -1020,6 +1117,29 @@ if (initialOverview.value) {
 
 const wikiMonitor = computed(() => overview.value?.wikiMonitor || null)
 const wikiDomainRows = computed<CrawlerMonitorWikiDomain[]>(() => Array.isArray(wikiMonitor.value?.domains) ? wikiMonitor.value!.domains! : [])
+const wikiDomainTestMatrixRows = computed(() => DOMAIN_TEST_MATRIX_DOMAIN_IDS.map((domainId) => {
+  const domain = wikiDomainRows.value.find((row) => row.domain === domainId) || { domain: domainId, label: domainId }
+  const progress = wikiDomainProgressRow(domain)
+  const sourceValue = domain.currentValue || domain.previousValue || '未记录'
+  const outputPath = wikiDomainOutputPath(domain) || progress?.outputPath || ''
+  return {
+    id: domainId,
+    label: wikiDomainChineseName(domain),
+    status: wikiDomainFlowStatus(domain),
+    items: [
+      { label: '来源指纹', value: sourceValue },
+      { label: '入库指纹', value: domain.previousValue || sourceValue || '未记录' },
+      { label: '变化状态', value: domain.changed ? '有变化' : '无变化' },
+      { label: '动作白名单', value: domain.recommendedActionId || '未配置' },
+      { label: '进度文件', value: wikiDomainProgressPath(domain) || '未生成' },
+      { label: '心跳状态', value: wikiDomainHeartbeatLabel(domain) },
+      { label: '运行状态', value: wikiDomainFlowLabel(domain) },
+      { label: '冷却保护', value: isWikiDomainCoolingDown(domain) ? `冷却 ${domain.cooldownMinutes || 0} 分钟` : '未冷却' },
+      { label: '最近产物', value: outputPath || wikiDomainReportPath(domain) || '未生成' },
+      { label: '人工动作', value: canExecuteWikiDomain(domain) ? '可启动重爬' : '不可重爬' },
+    ],
+  }
+}))
 const visibleWikiDomainRows = computed(() => wikiDomainRows.value.filter((domain) => !isNoiseHidden(noiseKey('wiki-domain', domain.domain || domain.label))))
 const pendingWikiDispatches = computed<CrawlerMonitorWikiDispatch[]>(() =>
   Array.isArray(wikiMonitor.value?.pendingDispatches) ? wikiMonitor.value!.pendingDispatches! : []
@@ -1053,6 +1173,7 @@ const runtimeStateCards = computed(() => [
 ])
 const overviewWithPlanBFields = computed<any>(() => overview.value || {})
 const wikiMonitorWithPlanBFields = computed<any>(() => wikiMonitor.value || {})
+const lastAutoDispatchSweep = computed(() => wikiMonitor.value?.lastSweep || null)
 const staleHeartbeatRows = computed<any[]>(() => Array.isArray(overview.value?.staleHeartbeats || overviewWithPlanBFields.value.staleHeartbeats) ? (overview.value?.staleHeartbeats || overviewWithPlanBFields.value.staleHeartbeats) : [])
 const historyRows = computed<any[]>(() => Array.isArray(overview.value?.history) ? overview.value!.history!.slice(0, 5) : [])
 const recentReportRows = computed<any[]>(() => Array.isArray(overview.value?.recentReports) ? overview.value!.recentReports!.slice(0, 5) : [])
@@ -1060,6 +1181,14 @@ const imageNormalizationRows = computed(() => imageNormalizationMetricRows(overv
 const dispatchPlanRows = computed<any[]>(() => Array.isArray(wikiMonitor.value?.dispatchPlan || wikiMonitorWithPlanBFields.value.dispatchPlan) ? (wikiMonitor.value?.dispatchPlan || wikiMonitorWithPlanBFields.value.dispatchPlan) : [])
 const wikiDispatchModeLabel = computed(() => statusLabel(wikiMonitor.value?.dispatchMode || 'manual'))
 const wikiAutoDispatchLabel = computed(() => wikiMonitor.value?.autoDispatchEnabled ? '已开启' : '已关闭')
+const autoDispatchSweepSummary = computed(() => {
+  const sweep = lastAutoDispatchSweep.value
+  if (!sweep) return '暂无自动扫描记录'
+  const detected = Array.isArray(sweep.detected) ? sweep.detected.length : 0
+  const dispatched = Array.isArray(sweep.dispatched) ? sweep.dispatched.length : 0
+  const skipped = Array.isArray(sweep.skipped) ? sweep.skipped.length : 0
+  return `${formatDate(sweep.checkedAt)} · 检测 ${detected} · 派发 ${dispatched} · 跳过 ${skipped}`
+})
 const wikiPendingApprovalCount = computed(() => formatNumber(wikiMonitor.value?.summary?.pendingApprovalCount ?? pendingWikiDispatches.value.length))
 const progressRowCount = computed(() => progressRows.value.length)
 const liveProgressActive = computed(() => progressRows.value.some((row) => ['running', 'stalled'].includes(rowStatus(row))))
@@ -1154,12 +1283,20 @@ const selectedDomainElapsedLabel = computed(() => formatElapsedDuration(taskElap
 const selectedDomainNextActionLabel = computed(() => {
   const domain = selectedWikiDomain.value
   if (!domain) return '暂无可操作域'
-  if (canRetryWikiDomain(domain)) return '手动重新派发'
+  if (canRetryWikiDomain(domain)) return '手动重新重爬'
   if (canResumeWikiDomain(domain)) return '继续任务'
   if (canPauseWikiDomain(domain)) return '暂停任务'
-  if (canExecuteWikiDomain(domain)) return '派发刷新'
+  if (canExecuteWikiDomain(domain)) return '启动重爬'
   if (isWikiDomainCoolingDown(domain)) return '等待冷却'
   return '暂不可执行'
+})
+const selectedWikiReCrawlButtonLabel = computed(() => {
+  const domain = selectedWikiDomain.value
+  if (!domain) return '不能重爬'
+  if (wikiDispatchLoading.value === domain.domain) return '启动中'
+  if (canRetryWikiDomain(domain)) return '重新重爬'
+  if (!canExecuteWikiDomain(domain)) return '不能重爬'
+  return '启动重爬'
 })
 const selectedDomainOperatorSummary = computed(() => {
   const domain = selectedWikiDomain.value
@@ -1259,6 +1396,12 @@ watch(visibleWikiDomainRowsByPriority, (rows) => {
   }
 }, { immediate: true })
 
+watch(() => wikiMonitor.value?.autoDispatchSettings, (settings) => {
+  autoDispatchForm.enabled = Boolean(settings?.enabled)
+  autoDispatchForm.mode = settings?.mode || 'changed-only'
+  autoDispatchForm.sweepIntervalMinutes = Math.max(1, Number(settings?.sweepIntervalMinutes || 60))
+}, { immediate: true })
+
 onMounted(async () => {
   if (!overview.value) {
     await refreshOverview()
@@ -1310,6 +1453,28 @@ async function loadOverview() {
     showToast(error?.data?.message || error?.message || '加载爬取监控失败', 'error')
   } finally {
     loading.value = false
+  }
+}
+
+async function saveAutoDispatchSettings() {
+  autoDispatchSaving.value = true
+  try {
+    const payload = {
+      enabled: Boolean(autoDispatchForm.enabled),
+      mode: 'changed-only',
+      sweepIntervalMinutes: Math.max(1, Number(autoDispatchForm.sweepIntervalMinutes || 60)),
+    }
+    const response: any = await put('/admin/crawler-monitor/auto-dispatch', payload)
+    const saved = (response?.data ?? response) || payload
+    autoDispatchForm.enabled = Boolean(saved.enabled)
+    autoDispatchForm.mode = saved.mode || 'changed-only'
+    autoDispatchForm.sweepIntervalMinutes = Math.max(1, Number(saved.sweepIntervalMinutes || payload.sweepIntervalMinutes))
+    showToast('自动派发设置已保存', 'success')
+    await loadOverview()
+  } catch (error: any) {
+    showToast(error?.data?.message || error?.message || '保存自动派发设置失败', 'error')
+  } finally {
+    autoDispatchSaving.value = false
   }
 }
 
@@ -1389,7 +1554,7 @@ function wikiDomainFlowStatus(domain: CrawlerMonitorWikiDomain) {
 
 function wikiDomainFlowLabel(domain: CrawlerMonitorWikiDomain) {
   const status = wikiDomainFlowStatus(domain)
-  if (status === 'running') return wikiDispatchLoading.value === domain.domain ? '派发中' : '运行中'
+  if (status === 'running') return wikiDispatchLoading.value === domain.domain ? '启动中' : '运行中'
   if (status === 'stalled') return '心跳过期'
   if (status === 'failed' || status === 'error') return '需人工重派'
   if (status === 'paused') return '已暂停'
@@ -1426,9 +1591,10 @@ function wikiDomainHeartbeatLabel(domain: CrawlerMonitorWikiDomain) {
 }
 
 function wikiDomainPrimaryActionLabel(domain: CrawlerMonitorWikiDomain) {
-  if (wikiDispatchLoading.value === domain.domain) return '派发中'
-  if (canRetryWikiDomain(domain)) return '重新派发'
-  return '派发刷新'
+  if (wikiDispatchLoading.value === domain.domain) return '启动中'
+  if (canRetryWikiDomain(domain)) return '重新重爬'
+  if (!canExecuteWikiDomain(domain)) return '不能重爬'
+  return '启动重爬'
 }
 
 function wikiDomainRecoveryTitle(domain: CrawlerMonitorWikiDomain) {
@@ -1437,10 +1603,10 @@ function wikiDomainRecoveryTitle(domain: CrawlerMonitorWikiDomain) {
   if (status === 'stalled') return '心跳过期，人工确认后重派'
   if (status === 'failed' || status === 'error') return '失败，人工确认后重派'
   if (status === 'paused') return '继续执行'
-  if (status === 'pending' || status === 'ready' || status === 'changed') return '手动派发刷新'
+  if (status === 'pending' || status === 'ready' || status === 'changed') return '手动启动重爬'
   if (status === 'blocked') return '已阻断，查看原因'
   if (status === 'completed') return '打开报告复核'
-  return '缺少进度，先派发刷新'
+  return '缺少进度，先启动重爬'
 }
 
 function wikiDomainRecoveryCopy(domain: CrawlerMonitorWikiDomain) {
@@ -1456,7 +1622,7 @@ function wikiDomainRecoveryCopy(domain: CrawlerMonitorWikiDomain) {
 function wikiDomainOperationHint(domain: CrawlerMonitorWikiDomain) {
   if (canPauseWikiDomain(domain)) return '当前运行中，可暂停；也可以继续观察心跳和进度。'
   if (canResumeWikiDomain(domain)) return '当前已暂停，可继续执行。'
-  if (canExecuteWikiDomain(domain)) return wikiDomainManualHint(domain)
+  if (canExecuteWikiDomain(domain)) return `${wikiDomainManualHint(domain)}。这里会启动该域重爬，不只是刷新页面状态。`
   return wikiDomainDisabledReason(domain) || '当前没有可用的运行控制。'
 }
 
@@ -1712,7 +1878,7 @@ async function executeWikiMonitorTask(target: CrawlerMonitorWikiDomain | Crawler
     showToast(dispatchFeedbackMessage(latestDispatchResult.value), latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
     await loadOverview()
   } catch (error: any) {
-    showToast(error?.data?.message || error?.message || '派发刷新任务失败', 'error')
+    showToast(error?.data?.message || error?.message || '启动重爬任务失败', 'error')
   } finally {
     wikiDispatchLoading.value = ''
   }
@@ -2249,7 +2415,7 @@ function dispatchFeedbackMessage(result?: CrawlerMonitorDispatchResult | null) {
   if (result.status === 'locked') {
     const since = result.blockedSince ? `，开始于 ${formatDate(result.blockedSince)}` : ''
     const lock = result.lockPath ? `，锁文件 ${result.lockPath}` : ''
-    return `已有 Wiki 监控任务占用：${dispatchBlockerLabel(result)}${since}${lock}。心跳过期不会自动重试，请先确认阻塞任务状态，必要时取消清理后再手动重新派发。`
+    return `已有 Wiki 监控任务占用：${dispatchBlockerLabel(result)}${since}${lock}。心跳过期不会自动重试，请先确认阻塞任务状态，必要时取消清理后再手动重新重爬。`
   }
   if (result.status === 'cooldown') {
     return '当前处于 Wiki 保护冷却期，页面只会在冷却条件真实命中时阻止派发。'
@@ -2614,6 +2780,50 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   background: color-mix(in srgb, var(--color-primary, #2563eb) 12%, var(--color-bg));
 }
 
+.auto-dispatch-card {
+  align-content: start;
+}
+
+.auto-dispatch-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.auto-dispatch-toggle,
+.auto-dispatch-interval {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.auto-dispatch-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary, #2563eb);
+}
+
+.auto-dispatch-interval input {
+  width: 76px;
+  min-height: 34px;
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
+  border-radius: 8px;
+  color: var(--color-text);
+  background: var(--color-bg);
+  font: inherit;
+}
+
+.auto-dispatch-interval small {
+  color: var(--color-text-secondary);
+}
+
 .wiki-action-primary__collapsed-summary {
   display: flex;
   flex-wrap: wrap;
@@ -2774,6 +2984,44 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.wiki-run-control-buttons--disabled {
+  padding: 8px;
+  border: 1px dashed color-mix(in srgb, var(--color-warning, #d97706) 34%, var(--color-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-warning, #d97706) 6%, transparent);
+}
+
+.wiki-run-control-button--primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--color-primary, #2563eb) 72%, transparent);
+  border-radius: 8px;
+  background: var(--color-primary, #2563eb);
+  color: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 6px;
+  line-height: 1.2;
+  transition: background 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
+}
+
+.wiki-run-control-button--primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-primary, #2563eb) 86%, #111827);
+}
+
+.wiki-run-control-button--primary:disabled,
+.wiki-run-control-button--disabled {
+  border-color: color-mix(in srgb, var(--color-border) 88%, transparent);
+  background: color-mix(in srgb, var(--color-bg-secondary) 82%, var(--color-bg));
+  color: var(--color-text-secondary);
+  cursor: not-allowed;
+  opacity: 0.72;
 }
 
 .wiki-recovery-panel {
@@ -3118,6 +3366,102 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   overflow-wrap: anywhere;
 }
 
+.domain-test-matrix {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+}
+
+.domain-test-matrix__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.domain-test-matrix__head strong {
+  color: var(--color-text);
+  font-size: 15px;
+}
+
+.domain-test-matrix__head span {
+  flex: 0 0 auto;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.domain-test-matrix__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.domain-test-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-surface) 78%, var(--color-bg));
+}
+
+.domain-test-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.domain-test-card__head strong {
+  min-width: 0;
+  color: var(--color-text);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.domain-test-card__head .status-pill {
+  flex: 0 0 auto;
+}
+
+.domain-test-items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.domain-test-items span {
+  min-width: 0;
+  padding: 7px 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 68%, transparent);
+}
+
+.domain-test-items small,
+.domain-test-items strong {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.domain-test-items small {
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.domain-test-items strong {
+  margin-top: 3px;
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .recovery-detail {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
@@ -3202,7 +3546,8 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   gap: 12px;
 }
 
-.observability-block {
+.observability-block,
+.auto-dispatch-card {
   display: grid;
   align-content: start;
   gap: 10px;

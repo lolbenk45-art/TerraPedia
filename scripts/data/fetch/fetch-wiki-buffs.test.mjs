@@ -322,3 +322,15 @@ const fs = require('node:fs');
       && args.some((arg) => String(arg).includes('"status":"failed"'));
   }));
 });
+
+test('buff fetch finalizes template ingestion manifest after writing latest raw output', () => {
+  const source = fs.readFileSync(scriptPath, 'utf8');
+
+  assert.match(source, /advanceWikiIngestionManifestForSource/);
+  assert.match(source, /options\['manifest-path'\]/);
+  assert.match(source, /sourceKey:\s*'wiki\.page\.template_getbuffinfo'/);
+  assert.match(source, /locator:\s*DEFAULT_TEMPLATE_TITLE/);
+  assert.match(source, /entityFamily:\s*'buffs'/);
+  assert.match(source, /sourceKind:\s*'template'/);
+  assert.match(source, /outputPath:\s*latestJsonPath/);
+});

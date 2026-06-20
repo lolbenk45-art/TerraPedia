@@ -59,6 +59,22 @@ const overview: CrawlerMonitorOverview = {
     generatedAt: '2026-06-14T00:00:00Z',
     dispatchMode: 'manual',
     autoDispatchEnabled: false,
+    autoDispatchSettings: {
+      enabled: false,
+      mode: 'changed-only',
+      sweepIntervalMinutes: 60,
+    },
+    lastSweep: {
+      checkedAt: '2026-06-20T03:05:00Z',
+      status: 'completed',
+      detected: [
+        { domain: 'items', sourceKey: 'wiki.module.iteminfo', actionId: 'wiki-core-refresh', changed: true },
+      ],
+      dispatched: [
+        { actionId: 'wiki-core-refresh', domains: ['items'], accepted: true, dispatchId: 'wiki-monitor-1', status: 'running' },
+      ],
+      skipped: [],
+    },
     summary: {
       domainCount: 10,
       changedCount: 1,
@@ -81,6 +97,7 @@ const overview: CrawlerMonitorOverview = {
         progressPath: 'reports/backend-refresh/history/backend-data-refresh-2026-06-14T00-00-00-000Z.runtime/wiki-core-refresh.child-status.json',
         requiresApproval: true,
         autoEligible: false,
+        autoDispatchReason: 'not covered by v1 auto dispatch',
         dispatchMode: 'manual',
         cooldownMinutes: 30,
         maxConcurrent: 1,

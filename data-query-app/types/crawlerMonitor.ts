@@ -165,6 +165,7 @@ export interface CrawlerMonitorWikiDomain {
   progressPath?: string | null
   requiresApproval?: boolean
   autoEligible?: boolean
+  autoDispatchReason?: string | null
   dispatchMode?: string | null
   cooldownMinutes?: number | null
   maxConcurrent?: number | null
@@ -229,10 +230,26 @@ export interface CrawlerMonitorDispatchResult {
   message?: string | null
 }
 
+export interface CrawlerMonitorAutoDispatchSettings {
+  enabled?: boolean
+  mode?: string | null
+  sweepIntervalMinutes?: number | null
+}
+
+export interface CrawlerMonitorWikiLastSweep {
+  checkedAt?: string | null
+  status?: string | null
+  detected?: CrawlerMonitorPayload[]
+  dispatched?: CrawlerMonitorPayload[]
+  skipped?: CrawlerMonitorPayload[]
+}
+
 export interface CrawlerMonitorWikiMonitor {
   generatedAt?: string | null
   dispatchMode?: string | null
   autoDispatchEnabled?: boolean
+  autoDispatchSettings?: CrawlerMonitorAutoDispatchSettings | null
+  lastSweep?: CrawlerMonitorWikiLastSweep | null
   summary?: CrawlerMonitorWikiSummary | null
   domains?: CrawlerMonitorWikiDomain[]
   pendingDispatches?: CrawlerMonitorWikiDispatch[]

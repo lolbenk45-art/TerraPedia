@@ -16,6 +16,7 @@ import {
 } from '../lib/wiki-item-utils.mjs';
 import { reportHeartbeat } from '../lib/crawler-heartbeat.mjs';
 import { writeCrawlerMonitorRedisState } from '../lib/crawler-monitor-redis-state.mjs';
+import { advanceWikiIngestionManifestForSource } from '../lib/wiki-sync-manifest.mjs';
 import {
   buildActionProgressPayload,
   writeJsonFile
@@ -37,6 +38,7 @@ async function main(argv = process.argv.slice(2)) {
   const reportDir = sharedDataPath('reports', 'fetch');
   const langs = parseLanguages(options.langs);
   const progressPath = path.resolve(process.cwd(), options['progress-path'] ?? DEFAULT_BUFF_PROGRESS_PATH);
+  const manifestPath = options['manifest-path'] ? path.resolve(process.cwd(), options['manifest-path']) : null;
   const keepSnapshot = shouldKeepSnapshot(options);
   const startedAt = new Date().toISOString();
 
@@ -149,6 +151,16 @@ async function main(argv = process.argv.slice(2)) {
     snapshotJsonPath: keepSnapshot ? snapshotJsonPath : null,
     snapshotParsedPath: keepSnapshot ? snapshotParsedPath : null
   });
+  if (manifestPath) {
+    advanceWikiIngestionManifestForSource({
+      sourceKey: 'wiki.page.template_getbuffinfo',
+      locator: DEFAULT_TEMPLATE_TITLE,
+      entityFamily: 'buffs',
+      sourceKind: 'template',
+      outputPath: latestJsonPath,
+      manifestPath
+    });
+  }
   writeBuffFetchProgress(progressPath, {
     status: 'completed',
     phase: 'write',

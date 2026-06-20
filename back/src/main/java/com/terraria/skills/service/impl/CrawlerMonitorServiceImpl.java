@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.CrawlerMonitorDispatchRequestDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
+import com.terraria.skills.dto.CrawlerMonitorAutoDispatchDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
@@ -14,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -67,6 +69,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path DOMAIN_SOURCE_TOWN_NPC_MAINTENANCE_PROGRESS_FILE = Path.of("data", "generated", "domain-source-town-npc-maintenance-progress.latest.json");
     private static final Path WIKI_AUDIO_ASSETS_PROGRESS_FILE = Path.of("data", "generated", "wiki-audio-assets-progress.latest.json");
     private static final Path WIKI_SOURCE_UPDATE_STATE_FILE = Path.of("data", "generated", "source-update-monitor.latest.json");
+    private static final Path SOURCE_UPDATE_MONITOR_PROGRESS_FILE = Path.of("data", "generated", "source-update-monitor-progress.latest.json");
+    private static final Path AUTO_DISPATCH_CONFIG_FILE = Path.of("reports", "crawler-monitor", "auto-dispatch.config.json");
+    private static final Path AUTO_DISPATCH_LAST_SWEEP_FILE = Path.of("reports", "crawler-monitor", "auto-dispatch.last-sweep.json");
     private static final Path WIKI_MONITOR_DISPATCH_FILE = Path.of("reports", "crawler-monitor", "wiki-monitor-dispatch.latest.json");
     private static final Path WIKI_MONITOR_DISPATCH_LOCK_FILE = Path.of("reports", "crawler-monitor", "wiki-monitor-dispatch.lock.json");
     private static final Path WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE = Path.of("reports", "crawler-monitor", "wiki-monitor-domain-smoke-progress.latest.json");
@@ -108,7 +113,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             List.of("node", "scripts/data/fetch/fetch-wiki-buffs.mjs", "--progress-path=data/generated/fetch-wiki-buffs-progress.latest.json")),
         directRule("armor_sets", "Armor sets", "wiki.module.armorsetbonuses", "Module:ArmorSetBonuses", "domain-source-armor-sets",
             "data/generated/domain-source-armor-sets-progress.latest.json",
-            List.of("node", "scripts/data/fetch/fetch-wiki-armor-sets.mjs", "--progress-path=data/generated/domain-source-armor-sets-progress.latest.json")),
+            List.of("node", "scripts/data/fetch/fetch-wiki-armorsetbonuses.mjs", "--progress-path=data/generated/domain-source-armor-sets-progress.latest.json")),
         backendRule("recipes", "Recipes", "wiki.zh.recipes", "zh recipe source coverage", "recipe-reference-sync"),
         backendRule("biomes", "Biomes", "wiki.page.biomes_anchor", "Forest", "biome-sync"),
         directRule("bosses", "Bosses", "wiki.domain.bosses", "Boss source snapshot pages", "domain-source-bosses",
@@ -534,9 +539,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             buildDispatchPlanFromDetection(sourcePayload, sourceByKey, dispatchPayload);
 
         CrawlerMonitorOverviewDTO.WikiMonitorDTO monitor = new CrawlerMonitorOverviewDTO.WikiMonitorDTO();
+        CrawlerMonitorAutoDispatchDTO settings = readAutoDispatchSettings(repoRoot);
         monitor.setGeneratedAt(Instant.now(clock).toString());
-        monitor.setDispatchMode("manual");
-        monitor.setAutoDispatchEnabled(false);
+        monitor.setDispatchMode(settings.isEnabled() ? "changed-only" : "manual");
+        monitor.setAutoDispatchEnabled(settings.isEnabled());
+        monitor.setAutoDispatchSettings(settings);
+        monitor.setLastSweep(readLastSweep(repoRoot));
         monitor.setDomains(domains);
         monitor.setDispatchPlan(dispatchPlan);
         monitor.setPendingDispatches(buildPendingDispatches(repoRoot, domains, dispatchPayload, dispatchPlan));
@@ -566,8 +574,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         domain.setRecommendedActionId(rule.actionId());
         domain.setProgressPath(rule.backendRefresh() ? backendProgressTemplate(rule.actionId()) : rule.progressPath());
         domain.setRequiresApproval(true);
-        domain.setAutoEligible(false);
-        domain.setDispatchMode("manual");
+        boolean autoEligible = isAutoEligibleRule(rule);
+        domain.setAutoEligible(autoEligible);
+        domain.setAutoDispatchReason(autoEligible ? "source update covered and progress-safe" : "not covered by v1 auto dispatch");
+        domain.setDispatchMode(autoEligible ? "changed-only" : "manual");
         domain.setCooldownMinutes(WIKI_MONITOR_DISPATCH_COOLDOWN.toMinutes());
         domain.setMaxConcurrent(1L);
         domain.setFailureCircuitBreaker("disabled until auto dispatch is enabled");
@@ -636,6 +646,44 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return !Set.of("running", "stalled", "blocked", "completed").contains(status);
     }
 
+    private boolean isAutoEligibleRule(WikiMonitorRule rule) {
+        return Set.of(
+            "items",
+            "npcs",
+            "projectiles",
+            "armor_sets",
+            "buffs",
+            "biomes"
+        ).contains(rule.domain());
+    }
+
+    private CrawlerMonitorAutoDispatchDTO readAutoDispatchSettings(Path repoRoot) {
+        CrawlerMonitorAutoDispatchDTO defaults = new CrawlerMonitorAutoDispatchDTO();
+        ReadResult config = readJsonMap(repoRoot.resolve(AUTO_DISPATCH_CONFIG_FILE).normalize());
+        if (!config.readable()) {
+            return defaults;
+        }
+        defaults.setEnabled(asBoolean(config.payload().get("enabled")));
+        defaults.setMode("changed-only");
+        int interval = asInt(config.payload().get("sweepIntervalMinutes"), 60);
+        defaults.setSweepIntervalMinutes(Math.max(1, interval));
+        return defaults;
+    }
+
+    private CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO readLastSweep(Path repoRoot) {
+        ReadResult lastSweep = readJsonMap(repoRoot.resolve(AUTO_DISPATCH_LAST_SWEEP_FILE).normalize());
+        if (!lastSweep.readable()) {
+            return null;
+        }
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO dto = new CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO();
+        dto.setCheckedAt(asString(lastSweep.payload().get("checkedAt")));
+        dto.setStatus(asString(lastSweep.payload().get("status")));
+        dto.setDetected(asMapList(lastSweep.payload().get("detected")));
+        dto.setDispatched(asMapList(lastSweep.payload().get("dispatched")));
+        dto.setSkipped(asMapList(lastSweep.payload().get("skipped")));
+        return dto;
+    }
+
     private List<CrawlerMonitorOverviewDTO.WikiMonitorDispatchPlanDTO> buildDispatchPlanFromDetection(
         Map<String, Object> sourcePayload,
         Map<String, Map<String, Object>> sourceByKey,
@@ -648,6 +696,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 continue;
             }
             Map<String, Object> source = sourceByKey.get(rule.sourceKey());
+            if (source == null) {
+                continue;
+            }
             boolean changed = asBoolean(source == null ? null : source.get("changed"));
             boolean requiresFullRefetch = asBoolean(source == null ? null : source.get("requiresFullRefetch"));
             if (!changed && !requiresFullRefetch) {
@@ -1400,6 +1451,168 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     @Override
+    public CrawlerMonitorAutoDispatchDTO getAutoDispatchSettings() {
+        return readAutoDispatchSettings(resolveRepoRoot());
+    }
+
+    @Override
+    public CrawlerMonitorAutoDispatchDTO updateAutoDispatchSettings(CrawlerMonitorAutoDispatchDTO settings) {
+        CrawlerMonitorAutoDispatchDTO normalized = normalizeAutoDispatchSettings(settings);
+        Path repoRoot = resolveRepoRoot();
+        Path absolutePath = repoRoot.resolve(AUTO_DISPATCH_CONFIG_FILE).normalize();
+        LinkedHashMap<String, Object> payload = new LinkedHashMap<>();
+        payload.put("enabled", normalized.isEnabled());
+        payload.put("mode", normalized.getMode());
+        payload.put("sweepIntervalMinutes", normalized.getSweepIntervalMinutes());
+        payload.put("updatedAt", Instant.now(clock).toString());
+        writeJsonFile(absolutePath, payload);
+        return normalized;
+    }
+
+    public CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO runAutoDispatchSweepOnce() {
+        Path repoRoot = resolveRepoRoot();
+        CrawlerMonitorAutoDispatchDTO settings = readAutoDispatchSettings(repoRoot);
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = new CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO();
+        sweep.setCheckedAt(Instant.now(clock).toString());
+        if (!settings.isEnabled()) {
+            sweep.setStatus("disabled");
+            writeLastSweep(repoRoot, sweep);
+            return sweep;
+        }
+        SourceUpdateCheckResult sourceUpdateCheck = runSourceUpdateMonitorCheck(repoRoot);
+        if (!sourceUpdateCheck.success()) {
+            sweep.setStatus("error");
+            LinkedHashMap<String, Object> skipped = new LinkedHashMap<>();
+            skipped.put("domain", "all");
+            skipped.put("actionId", "source-update-monitor-check");
+            skipped.put("reason", "source_update_check_failed");
+            skipped.put("message", sourceUpdateCheck.message());
+            sweep.getSkipped().add(skipped);
+            writeLastSweep(repoRoot, sweep);
+            return sweep;
+        }
+
+        ReadResult sourceState = readJsonMap(repoRoot.resolve(WIKI_SOURCE_UPDATE_STATE_FILE).normalize());
+        Map<String, Map<String, Object>> sourceByKey = sourceMap(sourceState.readable() ? sourceState.payload().get("sources") : null);
+        Map<String, List<WikiMonitorRule>> changedByAction = new LinkedHashMap<>();
+        for (WikiMonitorRule rule : WIKI_MONITOR_RULES) {
+            if (!rule.wikiDomain()) {
+                continue;
+            }
+            Map<String, Object> source = sourceByKey.get(rule.sourceKey());
+            if (source == null) {
+                continue;
+            }
+            boolean changed = asBoolean(source == null ? null : source.get("changed"));
+            LinkedHashMap<String, Object> detected = new LinkedHashMap<>();
+            detected.put("domain", rule.domain());
+            detected.put("sourceKey", rule.sourceKey());
+            detected.put("actionId", rule.actionId());
+            detected.put("changed", changed);
+            sweep.getDetected().add(detected);
+            if (!changed) {
+                continue;
+            }
+            if (!isAutoEligibleRule(rule)) {
+                LinkedHashMap<String, Object> skipped = new LinkedHashMap<>();
+                skipped.put("domain", rule.domain());
+                skipped.put("actionId", rule.actionId());
+                skipped.put("reason", "not_auto_eligible");
+                skipped.put("message", "domain is outside v1 changed-only auto dispatch coverage");
+                sweep.getSkipped().add(skipped);
+                continue;
+            }
+            changedByAction.computeIfAbsent(rule.actionId(), ignored -> new ArrayList<>()).add(rule);
+        }
+
+        for (Map.Entry<String, List<WikiMonitorRule>> entry : changedByAction.entrySet()) {
+            WikiMonitorRule firstRule = entry.getValue().get(0);
+            CrawlerMonitorDispatchResultDTO result = dispatchWikiMonitorTask(repoRoot, firstRule, Map.of(
+                "message", "auto dispatch changed covered source"
+            ));
+            LinkedHashMap<String, Object> dispatched = new LinkedHashMap<>();
+            dispatched.put("actionId", entry.getKey());
+            dispatched.put("domains", entry.getValue().stream().map(WikiMonitorRule::domain).toList());
+            dispatched.put("accepted", result.isAccepted());
+            dispatched.put("dispatchId", result.getDispatchId());
+            dispatched.put("status", result.getStatus());
+            dispatched.put("message", result.getMessage());
+            sweep.getDispatched().add(dispatched);
+        }
+        sweep.setStatus("completed");
+        writeLastSweep(repoRoot, sweep);
+        return sweep;
+    }
+
+    private SourceUpdateCheckResult runSourceUpdateMonitorCheck(Path repoRoot) {
+        String timestamp = Instant.now(clock).toString();
+        String logPath = "reports/crawler-monitor/source-update-monitor-check-"
+            + timestamp.replaceAll("[^0-9A-Za-z]+", "-")
+            + ".log";
+        LaunchRequest request = new LaunchRequest(
+            List.of(
+                "node",
+                "scripts/data/monitor/check-source-updates.mjs",
+                "--state-file=" + WIKI_SOURCE_UPDATE_STATE_FILE.toString().replace('\\', '/'),
+                "--manifest-path=data/generated/wiki-source-manifest.latest.json",
+                "--progress-path=" + SOURCE_UPDATE_MONITOR_PROGRESS_FILE.toString().replace('\\', '/')
+            ),
+            repoRoot.toFile(),
+            Map.of(
+                "WORKTREE_ROOT", repoRoot.toString(),
+                "TERRAPEDIA_CRAWLER_ACTION_ID", "source-update-monitor-check",
+                "TERRAPEDIA_CRAWLER_PROGRESS_PATH", SOURCE_UPDATE_MONITOR_PROGRESS_FILE.toString().replace('\\', '/')
+            ),
+            repoRoot.resolve(logPath).normalize().toFile()
+        );
+        try {
+            Process process = processLauncher.launch(request);
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                return new SourceUpdateCheckResult(false, "source update monitor check exited with code " + exitCode);
+            }
+            return new SourceUpdateCheckResult(true, "source update monitor check completed");
+        } catch (IOException exception) {
+            return new SourceUpdateCheckResult(false, exception.getMessage());
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            return new SourceUpdateCheckResult(false, "source update monitor check interrupted");
+        }
+    }
+
+    @Scheduled(fixedDelayString = "${terrapedia.crawler-monitor.auto-dispatch.poll-ms:60000}")
+    public void scheduledAutoDispatchSweep() {
+        try {
+            CrawlerMonitorAutoDispatchDTO settings = readAutoDispatchSettings(resolveRepoRoot());
+            if (!settings.isEnabled()) {
+                return;
+            }
+            runAutoDispatchSweepOnce();
+        } catch (RuntimeException exception) {
+            log.warn("Crawler monitor auto-dispatch sweep failed: {}", exception.getMessage(), exception);
+        }
+    }
+
+    private void writeLastSweep(Path repoRoot, CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep) {
+        LinkedHashMap<String, Object> payload = new LinkedHashMap<>();
+        payload.put("checkedAt", sweep.getCheckedAt());
+        payload.put("status", sweep.getStatus());
+        payload.put("detected", sweep.getDetected());
+        payload.put("dispatched", sweep.getDispatched());
+        payload.put("skipped", sweep.getSkipped());
+        writeJsonFile(repoRoot.resolve(AUTO_DISPATCH_LAST_SWEEP_FILE).normalize(), payload);
+    }
+
+    private CrawlerMonitorAutoDispatchDTO normalizeAutoDispatchSettings(CrawlerMonitorAutoDispatchDTO settings) {
+        CrawlerMonitorAutoDispatchDTO normalized = new CrawlerMonitorAutoDispatchDTO();
+        normalized.setEnabled(settings != null && settings.isEnabled());
+        normalized.setMode("changed-only");
+        int interval = settings == null ? 60 : settings.getSweepIntervalMinutes();
+        normalized.setSweepIntervalMinutes(Math.max(1, interval));
+        return normalized;
+    }
+
+    @Override
     public CrawlerMonitorTestStateDTO getTestState() {
         Path repoRoot = resolveRepoRoot();
         Path absolutePath = repoRoot.resolve(TEST_STATE_FILE).normalize();
@@ -2032,6 +2245,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         ReadResult domainSourceTownNpcMaintenanceProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_TOWN_NPC_MAINTENANCE_PROGRESS_FILE).normalize());
         ReadResult wikiAudioAssetsProgress = readJsonMap(repoRoot.resolve(WIKI_AUDIO_ASSETS_PROGRESS_FILE).normalize());
         ReadResult domainSmokeProgress = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE).normalize());
+        ReadResult sourceUpdateMonitorProgress = readJsonMap(repoRoot.resolve(SOURCE_UPDATE_MONITOR_PROGRESS_FILE).normalize());
         ReadResult npcCoverage = readJsonMap(repoRoot.resolve(NPC_COVERAGE_REPORT).normalize());
 
         List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> tasks = new ArrayList<>();
@@ -2091,6 +2305,17 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         ));
         tasks.add(buildItemPagesRefreshTask(repoRoot, itemProgress));
         tasks.add(buildWikiMonitorDomainSmokeTask(repoRoot, domainSmokeProgress));
+        tasks.add(buildDomainSourceSnapshotTask(
+            repoRoot,
+            "source-update-monitor-check",
+            "Source update monitor check",
+            SOURCE_UPDATE_MONITOR_PROGRESS_FILE,
+            "data/generated/source-update-monitor.latest.json",
+            sourceUpdateMonitorProgress,
+            "p0",
+            "wiki/API source fingerprints -> crawler monitor source state",
+            "Review changed covered sources, then dispatch eligible refresh actions."
+        ));
         tasks.add(buildStaticTask(
             "item-pages-retry-failures",
             "Item page retry queue",
@@ -3365,6 +3590,16 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return copy;
     }
 
+    private List<Map<String, Object>> asMapList(Object value) {
+        if (!(value instanceof List<?> list)) {
+            return new ArrayList<>();
+        }
+        return list.stream()
+            .filter(Map.class::isInstance)
+            .map(this::asMap)
+            .toList();
+    }
+
     private boolean asBoolean(Object value) {
         if (value instanceof Boolean bool) {
             return bool;
@@ -3378,6 +3613,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private long asLong(Object value) {
         Long parsed = asNullableLong(value);
         return parsed == null ? 0L : parsed;
+    }
+
+    private int asInt(Object value, int fallback) {
+        Long parsed = asNullableLong(value);
+        if (parsed == null) {
+            return fallback;
+        }
+        return parsed.intValue();
     }
 
     private Long asNullableLong(Object value) {
@@ -3557,6 +3800,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     record ActiveDispatchProcess(String dispatchId, String domain, String actionId, Process process, DispatchPaths paths) {}
 
     record LaunchRequest(List<String> command, File directory, Map<String, String> environment, File logFile) {}
+
+    record SourceUpdateCheckResult(boolean success, String message) {}
 
     record LegacyProcessRequest(String actionId, Path repoRoot, List<String> commandNeedles, long minStartEpochMillis) {}
 

@@ -42,6 +42,14 @@ const sharedRawWikiRoot = sharedDataPath('raw', 'wiki');
 const seedScriptPath = path.join(repoRoot, 'scripts', 'data', 'workflow', 'seed-wiki-source-manifest.mjs');
 const zhEnrichScriptPath = path.join(repoRoot, 'scripts', 'data', 'workflow', 'run-zh-enrich.mjs');
 const imageSyncScriptPath = path.join(repoRoot, 'scripts', 'data', 'workflow', 'run-image-sync.mjs');
+const OWNER_ADVANCED_SOURCE_KEYS = new Set([
+  'wiki.module.iteminfo',
+  'wiki.module.npcinfo',
+  'wiki.module.projectileinfo',
+  'wiki.module.armorsetbonuses',
+  'wiki.page.template_getbuffinfo',
+  'wiki.page.biomes_anchor'
+]);
 
 const CATEGORY_TEMPLATE_TITLES = [
   'Template:Master Template Tiles',
@@ -493,7 +501,7 @@ async function runApply({ resume }) {
       throw new Error(`Workflow action failed: ${action.id}`);
     }
 
-    if (action.entityFamily !== 'item_pages') {
+    if (action.entityFamily !== 'item_pages' && !hasOwnerAdvancedSourceKey(action)) {
       manifest = await updateManifestForEntity(manifest, action.entityFamily);
       saveWikiSourceManifest(manifestPath, manifest);
     }
@@ -699,6 +707,10 @@ function markAction(plan, actionId, status) {
       };
     })
   };
+}
+
+function hasOwnerAdvancedSourceKey(action) {
+  return Array.isArray(action?.sourceKeys) && action.sourceKeys.some((sourceKey) => OWNER_ADVANCED_SOURCE_KEYS.has(sourceKey));
 }
 
 function writeWikiSyncProgress(progress) {

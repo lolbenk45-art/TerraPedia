@@ -50,6 +50,8 @@ public class CrawlerMonitorOverviewDTO {
         private String generatedAt;
         private String dispatchMode;
         private boolean autoDispatchEnabled;
+        private CrawlerMonitorAutoDispatchDTO autoDispatchSettings;
+        private WikiMonitorLastSweepDTO lastSweep;
         private WikiMonitorSummaryDTO summary = new WikiMonitorSummaryDTO();
         private List<WikiMonitorDomainDTO> domains = new ArrayList<>();
         private List<WikiMonitorDispatchPlanDTO> dispatchPlan = new ArrayList<>();
@@ -82,6 +84,7 @@ public class CrawlerMonitorOverviewDTO {
         private String progressPath;
         private boolean requiresApproval;
         private boolean autoEligible;
+        private String autoDispatchReason;
         private String dispatchMode;
         private Long cooldownMinutes;
         private Long maxConcurrent;
@@ -89,6 +92,16 @@ public class CrawlerMonitorOverviewDTO {
         private String lastAutoRunAt;
         private String pauseReason;
         private String message;
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class WikiMonitorLastSweepDTO {
+        private String checkedAt;
+        private String status;
+        private List<Map<String, Object>> detected = new ArrayList<>();
+        private List<Map<String, Object>> dispatched = new ArrayList<>();
+        private List<Map<String, Object>> skipped = new ArrayList<>();
     }
 
     @Data

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.terraria.skills.auth.AdminAuthenticationInterceptor;
 import com.terraria.skills.auth.AdminTokenClaims;
+import com.terraria.skills.dto.CrawlerMonitorAutoDispatchDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
@@ -355,6 +356,48 @@ class AdminCrawlerMonitorControllerTest {
             .andExpect(jsonPath("$.statusCode").value(403));
 
         verifyNoInteractions(crawlerMonitorService);
+    }
+
+    @Test
+    void shouldGetAndUpdateCrawlerMonitorAutoDispatchSettings() throws Exception {
+        CrawlerMonitorAutoDispatchDTO current = new CrawlerMonitorAutoDispatchDTO();
+        current.setEnabled(false);
+        current.setMode("changed-only");
+        current.setSweepIntervalMinutes(60);
+        CrawlerMonitorAutoDispatchDTO updated = new CrawlerMonitorAutoDispatchDTO();
+        updated.setEnabled(true);
+        updated.setMode("changed-only");
+        updated.setSweepIntervalMinutes(15);
+
+        when(crawlerMonitorService.getAutoDispatchSettings()).thenReturn(current);
+        when(crawlerMonitorService.updateAutoDispatchSettings(argThat(settings ->
+            settings.isEnabled()
+                && "changed-only".equals(settings.getMode())
+                && settings.getSweepIntervalMinutes() == 15
+        ))).thenReturn(updated);
+
+        mockMvc.perform(get("/admin/crawler-monitor/auto-dispatch"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.enabled").value(false))
+            .andExpect(jsonPath("$.data.mode").value("changed-only"))
+            .andExpect(jsonPath("$.data.sweepIntervalMinutes").value(60));
+
+        mockMvc.perform(put("/admin/crawler-monitor/auto-dispatch")
+                .contentType("application/json")
+                .content("{\"enabled\":true,\"mode\":\"changed-only\",\"sweepIntervalMinutes\":15}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.enabled").value(true))
+            .andExpect(jsonPath("$.data.mode").value("changed-only"))
+            .andExpect(jsonPath("$.data.sweepIntervalMinutes").value(15));
+
+        verify(crawlerMonitorService).getAutoDispatchSettings();
+        verify(crawlerMonitorService).updateAutoDispatchSettings(argThat(settings ->
+            settings.isEnabled()
+                && "changed-only".equals(settings.getMode())
+                && settings.getSweepIntervalMinutes() == 15
+        ));
     }
 
     @Test

@@ -67,8 +67,93 @@ export function buildManifestRecordMap(manifest) {
   return map;
 }
 
+export function buildManifestRecordsBySourceKey(manifest) {
+  const map = new Map();
+  for (const record of normalizeManifest(manifest).records) {
+    const sourceKey = nullableString(record.sourceKey);
+    if (!sourceKey) {
+      continue;
+    }
+    const records = map.get(sourceKey) ?? [];
+    records.push(record);
+    map.set(sourceKey, records);
+  }
+  return map;
+}
+
+export function latestManifestRecordForSourceKey(manifest, sourceKey) {
+  return pickNewestManifestRecord(buildManifestRecordsBySourceKey(manifest).get(sourceKey) ?? []);
+}
+
+export function resolveIngestedRecord(manifest, { sourceKey, locator } = {}) {
+  const sourceRecords = buildManifestRecordsBySourceKey(manifest).get(sourceKey) ?? [];
+  if (sourceRecords.length === 0) {
+    return null;
+  }
+  const locatorText = nullableString(locator);
+  if (locatorText) {
+    const identityMatches = sourceRecords.filter((record) => {
+      return record.pageTitle === locatorText || record.requestedPageTitle === locatorText;
+    });
+    if (identityMatches.length > 0) {
+      return pickNewestManifestRecord(identityMatches);
+    }
+  }
+  return pickNewestManifestRecord(sourceRecords);
+}
+
 export function createContentHash(value) {
   return crypto.createHash('sha256').update(String(value ?? '')).digest('hex');
+}
+
+export function advanceWikiIngestionManifestForSource({
+  sourceKey,
+  locator,
+  entityFamily,
+  sourceKind,
+  outputPath,
+  record,
+  manifestPath = DEFAULT_WIKI_SOURCE_MANIFEST_PATH
+} = {}) {
+  if (!sourceKey) {
+    throw new Error('advanceWikiIngestionManifestForSource requires sourceKey');
+  }
+  if (!entityFamily) {
+    throw new Error('advanceWikiIngestionManifestForSource requires entityFamily');
+  }
+  if (!sourceKind) {
+    throw new Error('advanceWikiIngestionManifestForSource requires sourceKind');
+  }
+  if (!outputPath) {
+    throw new Error('advanceWikiIngestionManifestForSource requires outputPath');
+  }
+  const payload = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
+  const manifest = loadWikiSourceManifest(manifestPath);
+  const sourceRecord = isObject(record) ? record : null;
+  const fetchedAt = sourceRecord?.fetchedAt ?? payload.fetchedAt ?? payload.generatedAt ?? new Date().toISOString();
+  const pageTitle = sourceRecord?.pageTitle ?? payload.pageTitle ?? payload.moduleTitle ?? payload.requestedPageTitle ?? locator ?? null;
+  const requestedPageTitle = sourceRecord?.requestedPageTitle ?? payload.requestedPageTitle ?? payload.moduleTitle ?? locator ?? pageTitle;
+  const contentHash = sourceRecord?.contentHash === null
+    ? null
+    : createContentHash(sourceRecord?.moduleContent ?? payload.moduleContent ?? JSON.stringify(payload));
+  const nextManifest = upsertManifestRecord(manifest, {
+    contentHash,
+    entityFamily,
+    lang: 'en',
+    lastFetchedAt: fetchedAt,
+    lastParsedAt: fetchedAt,
+    localPath: normalizePathForOutput(outputPath),
+    pageId: sourceRecord?.pageId ?? payload.pageId ?? null,
+    pageTitle,
+    requestedPageTitle,
+    revisionId: sourceRecord?.revisionId ?? payload.revisionId ?? null,
+    revisionTimestamp: sourceRecord?.revisionTimestamp ?? payload.revisionTimestamp ?? null,
+    sourceKey,
+    sourceKind,
+    status: 'ok'
+  });
+  saveWikiSourceManifest(manifestPath, nextManifest);
+  return nextManifest;
 }
 
 export function normalizePathForOutput(filePath) {
@@ -143,6 +228,32 @@ function nullableString(value) {
 
 function isObject(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function pickNewestManifestRecord(records) {
+  if (!Array.isArray(records) || records.length === 0) {
+    return null;
+  }
+  return records
+    .map((record, index) => ({ record, index }))
+    .sort((left, right) => {
+      const leftTime = newestManifestTimestamp(left.record);
+      const rightTime = newestManifestTimestamp(right.record);
+      if (leftTime !== rightTime) {
+        return rightTime - leftTime;
+      }
+      return left.index - right.index;
+    })[0].record;
+}
+
+function newestManifestTimestamp(record) {
+  for (const field of ['lastParsedAt', 'lastFetchedAt', 'revisionTimestamp']) {
+    const value = Date.parse(record?.[field] ?? '');
+    if (Number.isFinite(value)) {
+      return value;
+    }
+  }
+  return 0;
 }
 
 function deepSortObject(value) {

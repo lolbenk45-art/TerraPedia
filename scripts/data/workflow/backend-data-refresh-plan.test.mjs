@@ -37,7 +37,7 @@ test('buildBackendDataRefreshPlan returns the default primary backend refresh ac
   assert.deepEqual(wikiCore.args, [
     'scripts/data/workflow/run-wiki-sync.mjs',
     '--mode=apply',
-    '--entity=items,npcs,bosses,biomes,categories'
+    '--entity=items,npcs,projectiles,bosses,biomes,categories'
   ]);
 
   const recipeReferenceSync = plan.actions.find((action) => action.id === 'recipe-reference-sync');

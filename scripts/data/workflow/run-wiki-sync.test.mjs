@@ -200,3 +200,83 @@ test('default wiki sync progress path follows WORKTREE_ROOT when progress path i
     assert.equal(progress.status, 'completed');
     assert.equal(path.resolve(progress.childStatusPath), worktreeProgressPath);
 });
+
+test('covered source manifest is not advanced during raw child fetch completion', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-sync-owned-manifest-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const manifestPath = path.join(tempDir, 'manifest.json');
+    const planPath = path.join(tempDir, 'plan.json');
+    const progressPath = path.join(tempDir, 'progress.json');
+    const fakeChildPath = path.join(tempDir, 'fake-child.mjs');
+    const rawWikiDir = path.join(worktreeRoot, 'data', 'raw', 'wiki');
+    const iteminfoPath = path.join(rawWikiDir, 'module__iteminfo__data.latest.json');
+
+    fs.mkdirSync(rawWikiDir, { recursive: true });
+    fs.writeFileSync(fakeChildPath, 'process.exit(0);\n', 'utf8');
+    fs.writeFileSync(iteminfoPath, JSON.stringify({
+      fetchedAt: '2026-06-20T00:00:00.000Z',
+      moduleContent: 'return { changed = true }',
+      pageId: 123,
+      pageTitle: 'Module:Iteminfo/data',
+      revisionId: 456,
+      revisionTimestamp: '2026-06-20T00:00:00Z'
+    }), 'utf8');
+    fs.writeFileSync(manifestPath, JSON.stringify({
+      generatedAt: '2026-06-19T00:00:00.000Z',
+      records: [{
+        contentHash: 'previous-hash',
+        entityFamily: 'items',
+        key: 'items|module|wiki.module.iteminfo|en|Module:Iteminfo/data',
+        lang: 'en',
+        lastFetchedAt: '2026-06-19T00:00:00.000Z',
+        lastParsedAt: '2026-06-19T00:00:00.000Z',
+        localPath: iteminfoPath,
+        pageId: 111,
+        pageTitle: 'Module:Iteminfo/data',
+        requestedPageTitle: 'Module:Iteminfo/data',
+        revisionId: 222,
+        revisionTimestamp: '2026-06-19T00:00:00Z',
+        sourceKey: 'wiki.module.iteminfo',
+        sourceKind: 'module',
+        status: 'ok'
+      }],
+      schemaVersion: '1.0.0'
+    }), 'utf8');
+    fs.writeFileSync(planPath, JSON.stringify({
+      actions: [{
+        id: 'items-refresh',
+        entityFamily: 'items',
+        type: 'run_script',
+        command: process.execPath,
+        args: [fakeChildPath],
+        sourceKeys: ['wiki.module.iteminfo'],
+        status: 'pending'
+      }],
+      generatedAt: '2026-06-20T00:00:00.000Z',
+      requestedEntities: ['items'],
+      resumeToken: 'test-owned-manifest',
+      runMode: 'plan'
+    }), 'utf8');
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      '--mode=resume',
+      '--entity=items',
+      `--manifest-path=${manifestPath}`,
+      `--plan-path=${planPath}`,
+      `--progress-path=${progressPath}`
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+      }
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const iteminfoRecord = manifest.records.find((record) => record.sourceKey === 'wiki.module.iteminfo');
+    assert.equal(iteminfoRecord.contentHash, 'previous-hash');
+    assert.equal(iteminfoRecord.revisionId, 222);
+});

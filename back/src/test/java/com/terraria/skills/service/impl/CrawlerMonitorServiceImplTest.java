@@ -2,6 +2,8 @@ package com.terraria.skills.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.terraria.skills.SkillsBackApplication;
+import com.terraria.skills.dto.CrawlerMonitorAutoDispatchDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchRequestDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
@@ -13,9 +15,13 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
@@ -60,6 +66,14 @@ class CrawlerMonitorServiceImplTest {
         Constructor<CrawlerMonitorServiceImpl> constructor = CrawlerMonitorServiceImpl.class.getConstructor(ObjectMapper.class, StringRedisTemplate.class);
 
         assertTrue(constructor.isAnnotationPresent(Autowired.class));
+    }
+
+    @Test
+    void shouldEnableScheduledAutoDispatchSweep() {
+        assertTrue(SkillsBackApplication.class.isAnnotationPresent(EnableScheduling.class));
+        assertTrue(Arrays.stream(CrawlerMonitorServiceImpl.class.getDeclaredMethods())
+            .anyMatch(method -> method.isAnnotationPresent(Scheduled.class)
+                && method.getName().contains("AutoDispatch")));
     }
 
     @Test
@@ -1726,6 +1740,10 @@ class CrawlerMonitorServiceImplTest {
 
         assertEquals("manual", wikiMonitor.getDispatchMode());
         assertFalse(wikiMonitor.isAutoDispatchEnabled());
+        assertNotNull(wikiMonitor.getAutoDispatchSettings());
+        assertFalse(wikiMonitor.getAutoDispatchSettings().isEnabled());
+        assertEquals("changed-only", wikiMonitor.getAutoDispatchSettings().getMode());
+        assertEquals(60, wikiMonitor.getAutoDispatchSettings().getSweepIntervalMinutes());
         assertEquals(10, wikiMonitor.getSummary().getDomainCount());
         assertEquals(1, wikiMonitor.getSummary().getChangedCount());
         assertEquals(1, wikiMonitor.getSummary().getPendingApprovalCount());
@@ -1733,8 +1751,9 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("wiki-core-refresh", items.getRecommendedActionId());
         assertEquals("reports/backend-refresh/history/<run>.runtime/wiki-core-refresh.child-status.json", items.getProgressPath());
         assertTrue(items.isRequiresApproval());
-        assertFalse(items.isAutoEligible());
-        assertEquals("manual", items.getDispatchMode());
+        assertTrue(items.isAutoEligible());
+        assertEquals("changed-only", items.getDispatchMode());
+        assertEquals("source update covered and progress-safe", items.getAutoDispatchReason());
         assertEquals(30L, items.getCooldownMinutes());
         assertEquals("2026-06-14T00:00:00Z", items.getLastCheckedAt());
         assertEquals("2026-06-13T00:00:00Z", items.getCurrentValue());
@@ -1742,6 +1761,53 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("items", wikiMonitor.getPendingDispatches().get(0).getDomain());
         assertEquals("pending_approval", wikiMonitor.getPendingDispatches().get(0).getStatus());
         assertEquals("awaiting approval", wikiMonitor.getPendingDispatches().get(0).getMessage());
+    }
+
+    @Test
+    void shouldExposeSourceUpdateMonitorCheckRegisteredTaskWhenProgressMissing() {
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-20T02:00:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = taskById(
+            service.getOverview().getRegisteredTasks(),
+            "source-update-monitor-check"
+        );
+
+        assertEquals("source-update-monitor-check", task.getId());
+        assertEquals("Source update monitor check", task.getLabel());
+        assertEquals("missing", task.getStatus());
+        assertEquals("data/generated/source-update-monitor-progress.latest.json", task.getProgressPath());
+    }
+
+    @Test
+    void shouldUseArmorSetBonusesSourceCommandForArmorSetMonitorRule() throws Exception {
+        writeJson(repoRoot.resolve("data/generated/source-update-monitor.latest.json"), Map.of(
+            "checkedAt", "2026-06-20T01:00:00Z",
+            "sources", List.of(Map.of(
+                "key", "wiki.module.armorsetbonuses",
+                "locator", "Module:ArmorSetBonuses",
+                "changed", true,
+                "status", "ok"
+            ))
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-20T02:00:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO armorSets = wikiDomainById(
+            service.getOverview().getWikiMonitor().getDomains(),
+            "armor_sets"
+        );
+
+        assertTrue(armorSets.isAutoEligible());
+        assertEquals("source update covered and progress-safe", armorSets.getAutoDispatchReason());
+        assertEquals("domain-source-armor-sets", armorSets.getRecommendedActionId());
     }
 
     @Test
@@ -2023,6 +2089,98 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("wiki-core-refresh", launch.environment().get("TERRAPEDIA_CRAWLER_ACTION_ID"));
         assertEquals(result.getProgressPath(), launch.environment().get("TERRAPEDIA_CRAWLER_PROGRESS_PATH"));
         assertTrue(launch.logFile().getPath().replace('\\', '/').endsWith(".log"));
+    }
+
+    @Test
+    void shouldAutoDispatchChangedEligibleDomainsGroupedByActionId() throws Exception {
+        writeJson(repoRoot.resolve("data/generated/source-update-monitor.latest.json"), Map.of(
+            "checkedAt", "2026-06-20T03:00:00Z",
+            "sources", List.of(
+                Map.of("key", "wiki.module.iteminfo", "changed", true, "status", "ok"),
+                Map.of("key", "wiki.module.npcinfo", "changed", true, "status", "ok"),
+                Map.of("key", "wiki.page.template_getbuffinfo", "changed", true, "status", "ok"),
+                Map.of("key", "wiki.domain.bosses", "changed", true, "status", "ok")
+            )
+        ));
+        CrawlerMonitorAutoDispatchDTO settings = new CrawlerMonitorAutoDispatchDTO();
+        settings.setEnabled(true);
+        settings.setMode("changed-only");
+        settings.setSweepIntervalMinutes(60);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(
+                    Map.of("key", "wiki.module.iteminfo", "changed", true, "status", "ok"),
+                    Map.of("key", "wiki.module.npcinfo", "changed", true, "status", "ok"),
+                    Map.of("key", "wiki.page.template_getbuffinfo", "changed", true, "status", "ok"),
+                    Map.of("key", "wiki.domain.bosses", "changed", true, "status", "ok")
+                )
+            )
+        );
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-20T03:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        service.updateAutoDispatchSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runAutoDispatchSweepOnce();
+
+        assertEquals("completed", sweep.getStatus());
+        assertEquals(4, sweep.getDetected().size());
+        assertEquals(2, sweep.getDispatched().size());
+        assertEquals("wiki-core-refresh", sweep.getDispatched().get(0).get("actionId"));
+        assertEquals(List.of("items", "npcs"), sweep.getDispatched().get(0).get("domains"));
+        assertEquals("buff-page-immunity-refresh", sweep.getDispatched().get(1).get("actionId"));
+        assertEquals(1, sweep.getSkipped().size());
+        assertEquals("bosses", sweep.getSkipped().get(0).get("domain"));
+        assertEquals("not_auto_eligible", sweep.getSkipped().get(0).get("reason"));
+    }
+
+    @Test
+    void shouldRunSourceUpdateDetectionBeforeAutoDispatchingChangedDomains() throws Exception {
+        writeJson(repoRoot.resolve("data/generated/source-update-monitor.latest.json"), Map.of(
+            "checkedAt", "2026-06-20T02:00:00Z",
+            "sources", List.of(Map.of("key", "wiki.module.iteminfo", "changed", false, "status", "ok"))
+        ));
+        CrawlerMonitorAutoDispatchDTO settings = new CrawlerMonitorAutoDispatchDTO();
+        settings.setEnabled(true);
+        settings.setMode("changed-only");
+        settings.setSweepIntervalMinutes(60);
+        SourceUpdateThenDispatchLauncher launcher = new SourceUpdateThenDispatchLauncher(
+            repoRoot,
+            Map.of(
+                "checkedAt", "2026-06-20T03:00:00Z",
+                "sources", List.of(Map.of("key", "wiki.module.iteminfo", "changed", true, "status", "ok"))
+            )
+        );
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-20T03:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        service.updateAutoDispatchSettings(settings);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = service.runAutoDispatchSweepOnce();
+
+        assertEquals("completed", sweep.getStatus());
+        assertEquals(2, launcher.launchCount);
+        assertEquals(List.of(
+            "node",
+            "scripts/data/monitor/check-source-updates.mjs",
+            "--state-file=data/generated/source-update-monitor.latest.json",
+            "--manifest-path=data/generated/wiki-source-manifest.latest.json",
+            "--progress-path=data/generated/source-update-monitor-progress.latest.json"
+        ), launcher.requests.get(0).command());
+        assertEquals("source-update-monitor-check", launcher.requests.get(0).environment().get("TERRAPEDIA_CRAWLER_ACTION_ID"));
+        assertEquals("data/generated/source-update-monitor-progress.latest.json", launcher.requests.get(0).environment().get("TERRAPEDIA_CRAWLER_PROGRESS_PATH"));
+        assertEquals("wiki-core-refresh", launcher.requests.get(1).environment().get("TERRAPEDIA_CRAWLER_ACTION_ID"));
+        assertEquals(1, sweep.getDispatched().size());
+        assertEquals("wiki-core-refresh", sweep.getDispatched().get(0).get("actionId"));
+        assertEquals(List.of("items"), sweep.getDispatched().get(0).get("domains"));
     }
 
     @Test
@@ -2725,7 +2883,7 @@ class CrawlerMonitorServiceImplTest {
         }
 
         @Override
-        public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+        public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) throws IOException {
             this.lastRequest = request;
             this.launchCount++;
             return process;
@@ -2771,6 +2929,81 @@ class CrawlerMonitorServiceImplTest {
                 return true;
             }
             return CrawlerMonitorServiceImpl.ProcessLauncher.super.destroy(process);
+        }
+    }
+
+    private class SourceUpdateThenDispatchLauncher implements CrawlerMonitorServiceImpl.ProcessLauncher {
+        private final Path repoRoot;
+        private final Map<String, Object> sourceState;
+        private final List<CrawlerMonitorServiceImpl.LaunchRequest> requests = new ArrayList<>();
+        private int launchCount;
+
+        SourceUpdateThenDispatchLauncher(Path repoRoot, Map<String, Object> sourceState) {
+            this.repoRoot = repoRoot;
+            this.sourceState = sourceState;
+        }
+
+        @Override
+        public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) throws IOException {
+            requests.add(request);
+            launchCount++;
+            if (launchCount == 1) {
+                writeJson(repoRoot.resolve("data/generated/source-update-monitor.latest.json"), sourceState);
+                writeJson(repoRoot.resolve("data/generated/source-update-monitor-progress.latest.json"), Map.of(
+                    "actionId", "source-update-monitor-check",
+                    "status", "completed",
+                    "generatedAt", "2026-06-20T03:00:00Z",
+                    "lastHeartbeatAt", "2026-06-20T03:00:00Z",
+                    "phase", "done",
+                    "message", "source update check completed",
+                    "current", 1,
+                    "total", 1
+                ));
+                return new CompletedProcess(0);
+            }
+            return new BlockingProcess();
+        }
+    }
+
+    private static class CompletedProcess extends Process {
+        private final int exitCode;
+
+        CompletedProcess(int exitCode) {
+            this.exitCode = exitCode;
+        }
+
+        @Override
+        public int waitFor() {
+            return exitCode;
+        }
+
+        @Override
+        public boolean waitFor(long timeout, TimeUnit unit) {
+            return true;
+        }
+
+        @Override
+        public int exitValue() {
+            return exitCode;
+        }
+
+        @Override
+        public void destroy() {
+        }
+
+        @Override
+        public java.io.OutputStream getOutputStream() {
+            return java.io.OutputStream.nullOutputStream();
+        }
+
+        @Override
+        public java.io.InputStream getInputStream() {
+            return java.io.InputStream.nullInputStream();
+        }
+
+        @Override
+        public java.io.InputStream getErrorStream() {
+            return java.io.InputStream.nullInputStream();
         }
     }
 
