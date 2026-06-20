@@ -2687,6 +2687,46 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldCleanupOnlyWikiMonitorDomainSmokeArtifacts() throws Exception {
+        Path crawlerMonitorDir = Files.createDirectories(repoRoot.resolve("reports/crawler-monitor"));
+        Path smokeDir = Files.createDirectories(crawlerMonitorDir.resolve("wiki-monitor-domain-smoke-2026-06-21T01-00-00Z"));
+        Path smokeRecord = smokeDir.resolve("items.json");
+        Path smokeReport = crawlerMonitorDir.resolve("wiki-monitor-domain-smoke-2026-06-21T01-00-00Z.json");
+        Path smokeLog = crawlerMonitorDir.resolve("wiki-monitor-domain-smoke-2026-06-21T01-00-00Z.log");
+        Path smokeLatest = crawlerMonitorDir.resolve("wiki-monitor-domain-smoke.latest.json");
+        Path smokeProgress = crawlerMonitorDir.resolve("wiki-monitor-domain-smoke-progress.latest.json");
+        Path smokeLock = crawlerMonitorDir.resolve("wiki-monitor-domain-smoke.lock.json");
+        Path formalDispatch = crawlerMonitorDir.resolve("wiki-monitor-dispatch.latest.json");
+        Path unrelatedReport = crawlerMonitorDir.resolve("domain-source-bosses-2026-06-21.json");
+        writeJson(smokeRecord, Map.of("domain", "items"));
+        writeJson(smokeReport, Map.of("actionId", "wiki-monitor-domain-smoke"));
+        writeJson(smokeLog, Map.of("message", "log"));
+        writeJson(smokeLatest, Map.of("actionId", "wiki-monitor-domain-smoke"));
+        writeJson(smokeProgress, Map.of("actionId", "wiki-monitor-domain-smoke"));
+        writeJson(smokeLock, Map.of("actionId", "wiki-monitor-domain-smoke"));
+        writeJson(formalDispatch, Map.of("actionId", "domain-source-bosses"));
+        writeJson(unrelatedReport, Map.of("actionId", "domain-source-bosses"));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        CrawlerMonitorDispatchResultDTO result = service.cleanupWikiMonitorDomainSmoke();
+
+        assertTrue(result.isAccepted());
+        assertEquals("cleaned", result.getStatus());
+        assertEquals("all", result.getDomain());
+        assertEquals("wiki-monitor-domain-smoke", result.getActionId());
+        assertEquals("reports/crawler-monitor/wiki-monitor-domain-smoke-progress.latest.json", result.getProgressPath());
+        assertFalse(Files.exists(smokeDir));
+        assertFalse(Files.exists(smokeReport));
+        assertFalse(Files.exists(smokeLog));
+        assertFalse(Files.exists(smokeLatest));
+        assertFalse(Files.exists(smokeProgress));
+        assertFalse(Files.exists(smokeLock));
+        assertTrue(Files.exists(formalDispatch));
+        assertTrue(Files.exists(unrelatedReport));
+    }
+
+    @Test
     void shouldReclaimWikiMonitorDispatchProcessOnTimeout() throws Exception {
         ControllableBlockingProcess process = new ControllableBlockingProcess();
         RecordingProcessLauncher launcher = new RecordingProcessLauncher(process);

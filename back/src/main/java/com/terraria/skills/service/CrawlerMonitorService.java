@@ -21,6 +21,8 @@ public interface CrawlerMonitorService {
 
     CrawlerMonitorDispatchResultDTO dispatchWikiMonitorDomainSmoke();
 
+    CrawlerMonitorDispatchResultDTO cleanupWikiMonitorDomainSmoke();
+
     CrawlerMonitorAutoDispatchDTO getAutoDispatchSettings();
 
     CrawlerMonitorAutoDispatchDTO updateAutoDispatchSettings(CrawlerMonitorAutoDispatchDTO settings);

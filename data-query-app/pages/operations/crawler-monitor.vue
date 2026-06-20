@@ -602,7 +602,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               <div class="base-domain-orchestration__head">
                 <div>
                   <strong>基础域顺序编排</strong>
-                  <span>按来源检测、队列、重爬、补数据、验收逐项检查。</span>
+                  <span>按来源检测、队列、样本爬取、清理样本、验收逐项检查；每域 10 条，可控删除，不写正式数据。</span>
                 </div>
                 <em>{{ baseDomainOrchestrationRows.length }} 个基础域</em>
               </div>
@@ -619,22 +619,22 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
                       <strong>{{ step.value }}</strong>
                       <small>{{ step.detail }}</small>
                       <button
-                        v-if="step.key === 'recrawl'"
-                        type="button"
-                        class="inline-report-button inline-report-button--compact"
-                        :disabled="step.disabled || wikiDispatchLoading === domain.domain.domain"
-                        @click.stop="openDispatchConfirm(domain.domain)"
-                      >
-                        启动重爬
-                      </button>
-                      <button
-                        v-if="step.key === 'backfill'"
+                        v-if="step.key === 'sample-crawl'"
                         type="button"
                         class="inline-report-button inline-report-button--compact"
                         :disabled="step.disabled"
-                        @click.stop="triggerBaseDomainBackfill(domain)"
+                        @click.stop="startBaseDomainSampleCrawl(domain)"
                       >
-                        补数据
+                        样本爬取
+                      </button>
+                      <button
+                        v-if="step.key === 'sample-cleanup'"
+                        type="button"
+                        class="inline-report-button inline-report-button--compact"
+                        :disabled="step.disabled"
+                        @click.stop="cleanupBaseDomainSampleCrawl(domain)"
+                      >
+                        清理样本
                       </button>
                     </div>
                   </div>
@@ -1097,8 +1097,8 @@ const BASIC_DOMAIN_TEST_ITEMS = [
 const BASE_DOMAIN_ORCHESTRATION_STEPS = [
   { key: 'source-check', label: '来源检测' },
   { key: 'queue-state', label: '队列状态' },
-  { key: 'recrawl', label: '启动重爬' },
-  { key: 'backfill', label: '补数据' },
+  { key: 'sample-crawl', label: '样本爬取' },
+  { key: 'sample-cleanup', label: '清理样本' },
   { key: 'acceptance', label: '验收' },
 ]
 const DOMAIN_TEST_MATRIX_DOMAIN_IDS = [
@@ -1194,7 +1194,7 @@ const baseDomainOrchestrationRows = computed(() => DOMAIN_TEST_MATRIX_DOMAIN_IDS
   const domain = wikiDomainRows.value.find((row) => row.domain === domainId) || { domain: domainId, label: domainId }
   const progress = wikiDomainProgressRow(domain)
   const queueRow = baseDomainQueueRow(domain)
-  const backfillRow = baseDomainBackfillRow(domain)
+  const smokeRow = domainSmokeProgressRow.value
   const outputPath = wikiDomainOutputPath(domain) || progress?.outputPath || ''
   const reportPath = wikiDomainReportPath(domain) || progress?.reportPath || ''
   return {
@@ -1221,22 +1221,22 @@ const baseDomainOrchestrationRows = computed(() => DOMAIN_TEST_MATRIX_DOMAIN_IDS
           disabled: true,
         }
       }
-      if (step.key === 'recrawl') {
+      if (step.key === 'sample-crawl') {
         return {
           ...step,
-          status: wikiDomainFlowStatus(domain),
-          value: baseDomainReCrawlActionLabel(domain),
-          detail: domain.recommendedActionId || '无白名单动作',
-          disabled: !canExecuteWikiDomain(domain),
+          status: rowStatus(smokeRow) || 'missing',
+          value: '每域 10 条',
+          detail: smokeRow?.queueState || smokeRow?.progressPath || '点击后一次跑 10 个基础域样本',
+          disabled: wikiDispatchLoading.value === 'wiki-monitor-domain-smoke',
         }
       }
-      if (step.key === 'backfill') {
+      if (step.key === 'sample-cleanup') {
         return {
           ...step,
-          status: backfillRow ? rowStatus(backfillRow) : 'missing',
-          value: backfillRow ? '可触发补数据' : '无补数据动作',
-          detail: backfillRow?.id || baseDomainBackfillHint(domain),
-          disabled: !backfillRow || !canTriggerBackfillRow(backfillRow),
+          status: smokeRow ? rowStatus(smokeRow) : 'missing',
+          value: '可控删除',
+          detail: '仅删除 wiki-monitor-domain-smoke 样本产物',
+          disabled: wikiDispatchLoading.value === 'wiki-monitor-domain-smoke-cleanup',
         }
       }
       return {
@@ -1257,6 +1257,7 @@ const latestRun = computed<CrawlerMonitorRun>(() => overview.value?.latestRun ||
 const actions = computed<CrawlerMonitorAction[]>(() => Array.isArray(latestRun.value.actions) ? latestRun.value.actions : [])
 const registeredTasks = computed<CrawlerMonitorRegisteredTask[]>(() => Array.isArray(overview.value?.registeredTasks) ? overview.value!.registeredTasks! : [])
 const progressRows = computed<ProgressRow[]>(() => progressRowsFromOverview(overview.value))
+const domainSmokeProgressRow = computed<ProgressRow | null>(() => progressRows.value.find((row) => row.id === 'wiki-monitor-domain-smoke') || null)
 const sourceSnapshotRows = computed<ProgressRow[]>(() => sourceSnapshotRowsFromOverview(overview.value))
 const liveSourceSnapshotActive = computed(() => hasLiveSourceSnapshotProgress(overview.value))
 const visibleProgressRows = computed<ProgressRow[]>(() => progressRows.value
@@ -2002,6 +2003,40 @@ async function triggerBaseDomainBackfill(domainRow: { domain?: CrawlerMonitorWik
   const row = baseDomainBackfillRow(domain)
   if (!row) return
   await triggerBackfillRow(row)
+}
+
+async function startBaseDomainSampleCrawl(domainRow: { domain?: CrawlerMonitorWikiDomain | null } | CrawlerMonitorWikiDomain | null | undefined) {
+  const domain = domainRow && 'domain' in domainRow && typeof domainRow.domain === 'object' ? domainRow.domain : domainRow as CrawlerMonitorWikiDomain | null | undefined
+  if (wikiDispatchLoading.value === 'wiki-monitor-domain-smoke') return
+  if (domain) selectWikiDomain(domain)
+  wikiDispatchLoading.value = 'wiki-monitor-domain-smoke'
+  try {
+    const response: any = await post('/admin/crawler-monitor/test-domain-smoke', {})
+    latestDispatchResult.value = (response?.data ?? response) || null
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || '已启动 10 域样本爬取，每域 10 条', latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    await loadOverview()
+  } catch (error: any) {
+    showToast(error?.data?.message || error?.message || '启动样本爬取失败', 'error')
+  } finally {
+    wikiDispatchLoading.value = ''
+  }
+}
+
+async function cleanupBaseDomainSampleCrawl(domainRow: { domain?: CrawlerMonitorWikiDomain | null } | CrawlerMonitorWikiDomain | null | undefined) {
+  const domain = domainRow && 'domain' in domainRow && typeof domainRow.domain === 'object' ? domainRow.domain : domainRow as CrawlerMonitorWikiDomain | null | undefined
+  if (wikiDispatchLoading.value === 'wiki-monitor-domain-smoke-cleanup') return
+  if (domain) selectWikiDomain(domain)
+  wikiDispatchLoading.value = 'wiki-monitor-domain-smoke-cleanup'
+  try {
+    const response: any = await post('/admin/crawler-monitor/test-domain-smoke/cleanup', {})
+    latestDispatchResult.value = (response?.data ?? response) || null
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || '已清理 10 域样本产物', latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    await loadOverview()
+  } catch (error: any) {
+    showToast(error?.data?.message || error?.message || '清理样本产物失败', 'error')
+  } finally {
+    wikiDispatchLoading.value = ''
+  }
 }
 
 async function executeWikiMonitorTask(target: CrawlerMonitorWikiDomain | CrawlerMonitorWikiDispatch) {

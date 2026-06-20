@@ -390,18 +390,24 @@ test('crawler monitor groups base domains into an ordered function validation bo
   assert.match(page, /const BASE_DOMAIN_ORCHESTRATION_STEPS/)
   assert.match(page, /const baseDomainOrchestrationRows/)
   assert.match(page, /baseDomainQueueRow/)
-  assert.match(page, /baseDomainBackfillRow/)
-  assert.match(page, /baseDomainReCrawlActionLabel/)
+  assert.match(page, /startBaseDomainSampleCrawl/)
+  assert.match(page, /cleanupBaseDomainSampleCrawl/)
+  assert.match(page, /\/admin\/crawler-monitor\/test-domain-smoke/)
+  assert.match(page, /\/admin\/crawler-monitor\/test-domain-smoke\/cleanup/)
 
-  for (const label of ['来源检测', '队列状态', '启动重爬', '补数据', '验收']) {
+  for (const label of ['来源检测', '队列状态', '样本爬取', '清理样本', '验收']) {
     assert.match(page, new RegExp(label))
   }
-  for (const token of ['source-check', 'queue-state', 'recrawl', 'backfill', 'acceptance']) {
+  for (const token of ['source-check', 'queue-state', 'sample-crawl', 'sample-cleanup', 'acceptance']) {
     assert.match(page, new RegExp(`'${token}'`))
   }
   assert.match(domainPanel, /@click\.stop="selectWikiDomain\(domain\.domain\)"/)
-  assert.match(domainPanel, /@click\.stop="openDispatchConfirm\(domain\.domain\)"/)
-  assert.match(domainPanel, /@click\.stop="triggerBaseDomainBackfill\(domain\)"/)
+  assert.match(domainPanel, /@click\.stop="startBaseDomainSampleCrawl\(domain\)"/)
+  assert.match(domainPanel, /@click\.stop="cleanupBaseDomainSampleCrawl\(domain\)"/)
+  assert.doesNotMatch(domainPanel, /@click\.stop="openDispatchConfirm\(domain\.domain\)"/)
+  assert.doesNotMatch(domainPanel, /@click\.stop="triggerBaseDomainBackfill\(domain\)"/)
+  assert.match(domainPanel, /每域 10 条/)
+  assert.match(domainPanel, /可控删除/)
 })
 
 test('crawler monitor exposes auto-dispatch settings and last sweep state', () => {
@@ -683,7 +689,7 @@ test('crawler monitor keeps bounded domain smoke testing on the test page only',
   assert.doesNotMatch(testPage, /domain\.current \?\? domain\.completed \?\? 0/)
 })
 
-test('crawler monitor keeps domain smoke testing on the test page and out of the main monitor', () => {
+test('crawler monitor keeps domain smoke testing in domain progress without legacy test-page linking', () => {
   assert.doesNotMatch(page, /domainSmokeLinkTask/)
   assert.doesNotMatch(page, /domainSmokeLinkRows/)
   assert.doesNotMatch(page, /domainSmokeLinkActive/)
@@ -696,7 +702,8 @@ test('crawler monitor keeps domain smoke testing on the test page and out of the
   assert.doesNotMatch(page, /查看测试页/)
   assert.doesNotMatch(page, /测试联动/)
   assert.doesNotMatch(page, /@click="startDomainSmoke"/)
-  assert.doesNotMatch(page, /post\('\/admin\/crawler-monitor\/test-domain-smoke'/)
+  assert.match(page, /startBaseDomainSampleCrawl/)
+  assert.match(page, /post\('\/admin\/crawler-monitor\/test-domain-smoke', \{\}\)/)
 })
 
 test('crawler monitor test page presents domain smoke as a closed loop', () => {

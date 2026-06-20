@@ -524,6 +524,30 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return result;
     }
 
+    @Override
+    public CrawlerMonitorDispatchResultDTO cleanupWikiMonitorDomainSmoke() {
+        Path repoRoot = resolveRepoRoot();
+        Path dir = repoRoot.resolve(CRAWLER_MONITOR_DIR).normalize();
+        int deletedCount = 0;
+        if (Files.isDirectory(dir)) {
+            try (Stream<Path> entries = Files.list(dir)) {
+                for (Path entry : entries.filter(this::isWikiMonitorDomainSmokeArtifact).toList()) {
+                    deletedCount += deleteCrawlerMonitorArtifact(entry, repoRoot);
+                }
+            } catch (IOException exception) {
+                log.warn("Failed to clean up wiki monitor domain smoke artifacts in {}: {}", dir, exception.getMessage());
+            }
+        }
+        CrawlerMonitorDispatchResultDTO result = smokeDispatchResult(
+            "wiki-monitor-domain-smoke-cleanup",
+            true,
+            "cleaned",
+            "domain smoke artifacts cleaned; deleted=" + deletedCount
+        );
+        result.setReportPath(CRAWLER_MONITOR_DIR.resolve("wiki-monitor-domain-smoke.latest.json").toString().replace('\\', '/'));
+        return result;
+    }
+
     private CrawlerMonitorOverviewDTO.WikiMonitorDTO buildWikiMonitor(Path repoRoot) {
         ReadResult sourceState = readJsonMap(repoRoot.resolve(WIKI_SOURCE_UPDATE_STATE_FILE).normalize());
         ReadResult dispatchState = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
@@ -1074,6 +1098,31 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             return true;
         }
         return Files.isDirectory(path) && name.startsWith("wiki-monitor-domain-smoke-");
+    }
+
+    private boolean isWikiMonitorDomainSmokeArtifact(Path path) {
+        String name = path.getFileName().toString();
+        return name.equals("wiki-monitor-domain-smoke.latest.json")
+            || name.equals(WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE.getFileName().toString())
+            || name.equals(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE.getFileName().toString())
+            || name.startsWith("wiki-monitor-domain-smoke-");
+    }
+
+    private int deleteCrawlerMonitorArtifact(Path path, Path repoRoot) {
+        Path normalized = path.normalize();
+        if (!normalized.startsWith(repoRoot.resolve(CRAWLER_MONITOR_DIR).normalize())) {
+            return 0;
+        }
+        if (Files.isDirectory(normalized)) {
+            deleteRecursivelyQuietly(normalized, repoRoot);
+            return Files.exists(normalized) ? 0 : 1;
+        }
+        try {
+            return Files.deleteIfExists(normalized) ? 1 : 0;
+        } catch (IOException exception) {
+            log.warn("Failed to delete crawler monitor artifact {}: {}", normalized, exception.getMessage());
+            return 0;
+        }
     }
 
     private Instant lastModifiedOrEpoch(Path path) {

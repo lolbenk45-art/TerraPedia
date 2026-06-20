@@ -431,6 +431,33 @@ class AdminCrawlerMonitorControllerTest {
     }
 
     @Test
+    void shouldCleanupBoundedWikiMonitorDomainSmokeArtifacts() throws Exception {
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(true);
+        result.setDispatchId("wiki-monitor-domain-smoke-cleanup");
+        result.setDomain("all");
+        result.setActionId("wiki-monitor-domain-smoke");
+        result.setStatus("cleaned");
+        result.setProgressPath("reports/crawler-monitor/wiki-monitor-domain-smoke-progress.latest.json");
+        result.setLockPath("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json");
+        result.setReportPath("reports/crawler-monitor/wiki-monitor-domain-smoke.latest.json");
+        result.setMessage("domain smoke artifacts cleaned");
+
+        when(crawlerMonitorService.cleanupWikiMonitorDomainSmoke()).thenReturn(result);
+
+        mockMvc.perform(post("/admin/crawler-monitor/test-domain-smoke/cleanup"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.accepted").value(true))
+            .andExpect(jsonPath("$.data.domain").value("all"))
+            .andExpect(jsonPath("$.data.actionId").value("wiki-monitor-domain-smoke"))
+            .andExpect(jsonPath("$.data.status").value("cleaned"))
+            .andExpect(jsonPath("$.data.message").value("domain smoke artifacts cleaned"));
+
+        verify(crawlerMonitorService).cleanupWikiMonitorDomainSmoke();
+    }
+
+    @Test
     void shouldControlRunningWikiMonitorDispatch() throws Exception {
         CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
         result.setAccepted(true);
