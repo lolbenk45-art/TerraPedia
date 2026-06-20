@@ -17,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 @Service
@@ -56,18 +57,18 @@ public class ManagedItemImageResolverImpl implements ManagedItemImageResolver {
         imageRows.stream()
             .filter(Objects::nonNull)
             .filter(image -> image.getItemId() != null)
-            .filter(image -> isUsableManagedImage(image.getCachedUrl()))
+            .filter(image -> normalizeUsableManagedImage(image.getCachedUrl()).isPresent())
             .sorted(Comparator
                 .comparing(ItemImage::getItemId, Comparator.nullsLast(Long::compareTo))
                 .thenComparing(ManagedItemImageResolverImpl::isPrimaryImage, Comparator.reverseOrder())
                 .thenComparing(ManagedItemImageResolverImpl::safeSortOrder)
                 .thenComparing(ItemImage::getId, Comparator.nullsLast(Long::compareTo)))
-            .forEach(image -> resolved.putIfAbsent(image.getItemId(), image.getCachedUrl().trim()));
+            .forEach(image -> normalizeUsableManagedImage(image.getCachedUrl())
+                .ifPresent(path -> resolved.putIfAbsent(image.getItemId(), path)));
 
         for (Item item : itemsById.values()) {
-            if (!resolved.containsKey(item.getId()) && isUsableManagedImage(item.getImage())) {
-                resolved.put(item.getId(), item.getImage().trim());
-            }
+            normalizeUsableManagedImage(item.getImage())
+                .ifPresent(path -> resolved.putIfAbsent(item.getId(), path));
         }
         return resolved;
     }
@@ -78,20 +79,19 @@ public class ManagedItemImageResolverImpl implements ManagedItemImageResolver {
             return null;
         }
         String resolved = managedImagesByItemId == null ? null : managedImagesByItemId.get(item.getId());
-        if (isUsableManagedImage(resolved)) {
-            return resolved.trim();
+        Optional<String> normalizedResolved = normalizeUsableManagedImage(resolved);
+        if (normalizedResolved.isPresent()) {
+            return normalizedResolved.get();
         }
-        if (isUsableManagedImage(item.getImage())) {
-            return item.getImage().trim();
-        }
-        return null;
+        return normalizeUsableManagedImage(item.getImage()).orElse(null);
     }
 
-    private boolean isUsableManagedImage(String value) {
+    private Optional<String> normalizeUsableManagedImage(String value) {
         String text = trimToNull(value);
-        return text != null
-            && managedImageUrlPolicy.isManagedImageUrl(text)
-            && !isNonItemIconVariant(text);
+        if (text == null || isNonItemIconVariant(text)) {
+            return Optional.empty();
+        }
+        return managedImageUrlPolicy.normalizeManagedImagePath(text);
     }
 
     private static boolean isPrimaryImage(ItemImage image) {

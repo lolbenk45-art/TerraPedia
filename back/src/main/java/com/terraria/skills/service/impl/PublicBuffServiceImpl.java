@@ -935,7 +935,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
             return null;
         }
         String normalized = value.trim();
-        return managedImageUrlPolicy.isManagedImageUrlForDomain(normalized, domain) ? normalized : null;
+        return managedImageUrlPolicy.normalizeManagedImagePathForDomain(normalized, domain).orElse(null);
     }
 
     private String firstNonBlank(String... values) {

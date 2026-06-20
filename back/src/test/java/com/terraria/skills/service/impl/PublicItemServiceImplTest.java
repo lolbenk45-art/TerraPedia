@@ -24,6 +24,7 @@ import org.springframework.jdbc.core.RowMapper;
 
 import java.sql.ResultSet;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -203,7 +204,8 @@ class PublicItemServiceImplTest {
         when(resultSet.getBigDecimal("chanceValue")).thenReturn(null);
         when(resultSet.getString("chanceText")).thenReturn(null);
         when(resultSet.getString("conditions")).thenReturn(null);
-        when(managedImageUrlPolicy.isManagedImageUrlForDomain("http://localhost:9000/terrapedia-images/buffs/poisoned.png", "buffs")).thenReturn(true);
+        when(managedImageUrlPolicy.normalizeManagedImagePathForDomain("http://localhost:9000/terrapedia-images/buffs/poisoned.png", "buffs"))
+            .thenReturn(Optional.of("/terrapedia-images/buffs/poisoned.png"));
         doAnswer(invocation -> {
             @SuppressWarnings("unchecked")
             RowMapper<PublicItemBuffEffectDTO> rowMapper = invocation.getArgument(1);
@@ -226,7 +228,7 @@ class PublicItemServiceImplTest {
         assertEquals("来源物品", effect.getRelationLabel());
         assertEquals(300, effect.getDurationTicks());
         assertEquals("5秒", effect.getDurationText());
-        assertEquals("http://localhost:9000/terrapedia-images/buffs/poisoned.png", effect.getImageUrl());
+        assertEquals("/terrapedia-images/buffs/poisoned.png", effect.getImageUrl());
         assertNull(effect.getChanceValue());
         assertNull(effect.getChanceText());
         assertNull(effect.getConditions());
@@ -337,8 +339,10 @@ class PublicItemServiceImplTest {
         when(resultSet.getString("conditions")).thenReturn("Expert Mode");
         when(resultSet.getString("notes")).thenReturn("Guaranteed");
         when(resultSet.getInt("sortOrder")).thenReturn(10);
-        when(managedImageUrlPolicy.isManagedImageUrlForDomain("http://localhost:9000/terrapedia-images/items/royal-gel.png", "items")).thenReturn(true);
-        when(managedImageUrlPolicy.isManagedImageUrlForDomain("http://localhost:9000/terrapedia-images/npcs/king-slime.png", "npcs")).thenReturn(true);
+        when(managedImageUrlPolicy.normalizeManagedImagePathForDomain("http://localhost:9000/terrapedia-images/items/royal-gel.png", "items"))
+            .thenReturn(Optional.of("/terrapedia-images/items/royal-gel.png"));
+        when(managedImageUrlPolicy.normalizeManagedImagePathForDomain("http://localhost:9000/terrapedia-images/npcs/king-slime.png", "npcs"))
+            .thenReturn(Optional.of("/terrapedia-images/npcs/king-slime.png"));
         doAnswer(invocation -> {
             @SuppressWarnings("unchecked")
             RowMapper<PublicItemTreasureBagLootDTO> rowMapper = invocation.getArgument(1);
@@ -356,10 +360,10 @@ class PublicItemServiceImplTest {
         assertEquals(3318L, loot.getTreasureBagItemId());
         assertEquals(3088L, loot.getItemId());
         assertEquals("皇家凝胶", loot.getItemNameZh());
-        assertEquals("http://localhost:9000/terrapedia-images/items/royal-gel.png", loot.getItemImage());
+        assertEquals("/terrapedia-images/items/royal-gel.png", loot.getItemImage());
         assertEquals(50L, loot.getSourceNpcId());
         assertEquals("史莱姆王", loot.getSourceNpcNameZh());
-        assertEquals("http://localhost:9000/terrapedia-images/npcs/king-slime.png", loot.getSourceNpcImageUrl());
+        assertEquals("/terrapedia-images/npcs/king-slime.png", loot.getSourceNpcImageUrl());
         assertEquals("/npcs/50", loot.getSourceNpcDetailPath());
         assertEquals("treasure_bag", loot.getDropSourceKind());
         assertEquals("宝藏袋掉落", loot.getDropSourceKindLabel());

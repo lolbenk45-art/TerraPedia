@@ -93,6 +93,23 @@ const assertBiomeHeroUsesCoverCropping = (path, content) => {
 }
 
 {
+  const path = 'server/routes/preview-assets/[...path].get.ts'
+  const content = read(path)
+
+  assertContains(path, content, [
+    "safePath.startsWith('terrapedia-images/')",
+    'throw createError',
+    'statusCode: 502',
+    'Managed image preview unavailable',
+    'non-managed preview placeholder',
+  ])
+
+  if (/catch\s*\{[\s\S]{0,180}fallbackSvg/.test(content)) {
+    failures.push(`${path}: managed terrapedia-images fetch failures must not fall through to fallbackSvg`)
+  }
+}
+
+{
   const path = 'components/common/PreviewImage.vue'
   const content = read(path)
 

@@ -173,6 +173,6 @@ public class PublicItemRecipeController {
             return null;
         }
         String trimmed = value.trim();
-        return managedImageUrlPolicy.isManagedImageUrl(trimmed) ? trimmed : null;
+        return managedImageUrlPolicy.normalizeManagedImagePath(trimmed).orElse(null);
     }
 }

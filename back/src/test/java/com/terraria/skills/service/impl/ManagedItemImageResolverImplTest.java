@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -99,6 +100,21 @@ class ManagedItemImageResolverImplTest {
     }
 
     @Test
+    void shouldReturnNormalizedManagedPathsFromMapAndFallbackValues() {
+        Item item = item(7L, "  http://localhost:9000/terrapedia-images/items/night-edge-fallback.png?X-Amz-Signature=old  ");
+        trustNormalizedManagedPaths();
+
+        String resolvedFromMap = resolver.resolveManagedImage(
+            item,
+            Map.of(7L, "  http://localhost:9000/terrapedia-images/items/night-edge-map.png?X-Amz-Signature=old  ")
+        );
+        String resolvedFromFallback = resolver.resolveManagedImage(item, Map.of(7L, WIKI_ICON));
+
+        assertEquals("/terrapedia-images/items/night-edge-map.png", resolvedFromMap);
+        assertEquals("/terrapedia-images/items/night-edge-fallback.png", resolvedFromFallback);
+    }
+
+    @Test
     void shouldResolveManagedImageFromTrustedItemFallbackWhenMapValueIsUnusable() {
         Item item = item(7L, "  " + TRUSTED_FALLBACK + "  ");
         trustManagedPrefix();
@@ -126,10 +142,30 @@ class ManagedItemImageResolverImplTest {
     }
 
     private void trustManagedPrefix() {
-        when(managedImageUrlPolicy.isManagedImageUrl(any()))
+        when(managedImageUrlPolicy.normalizeManagedImagePath(any()))
             .thenAnswer(invocation -> {
                 String value = invocation.getArgument(0);
-                return value != null && value.startsWith(TRUSTED_PREFIX);
+                return value != null && value.startsWith(TRUSTED_PREFIX)
+                    ? Optional.of(value)
+                    : Optional.empty();
+            });
+    }
+
+    private void trustNormalizedManagedPaths() {
+        when(managedImageUrlPolicy.normalizeManagedImagePath(any()))
+            .thenAnswer(invocation -> {
+                String value = invocation.getArgument(0);
+                if (value == null) {
+                    return Optional.empty();
+                }
+                String text = value.trim();
+                String prefix = "http://localhost:9000";
+                if (!text.startsWith(prefix + "/terrapedia-images/items/")) {
+                    return Optional.empty();
+                }
+                int queryIndex = text.indexOf('?');
+                String withoutQuery = queryIndex >= 0 ? text.substring(0, queryIndex) : text;
+                return Optional.of(withoutQuery.substring(prefix.length()));
             });
     }
 

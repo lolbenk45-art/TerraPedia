@@ -332,11 +332,17 @@ public class WikiImageResponseSanitizerAdvice implements ResponseBodyAdvice<Obje
         if (localizedUrlCache.containsKey(value)) {
             return localizedUrlCache.get(value);
         }
-        if (!wikiImageLocalizationService.isWikiImageUrl(value) || wikiImageLocalizationService.isManagedImageUrl(value)) {
+        if (wikiImageLocalizationService.isManagedImageUrl(value)) {
+            String normalized = normalizeManagedImagePath(value);
+            localizedUrlCache.put(value, normalized);
+            return normalized;
+        }
+        if (!wikiImageLocalizationService.isWikiImageUrl(value)) {
             localizedUrlCache.put(value, value);
             return value;
         }
         String localized = wikiImageLocalizationService.localizeCachedImageUrlOrFallback(value, context);
+        localized = normalizeManagedImagePath(localized);
         localizedUrlCache.put(value, localized);
         return localized;
     }
@@ -347,6 +353,9 @@ public class WikiImageResponseSanitizerAdvice implements ResponseBodyAdvice<Obje
             && !wikiImageLocalizationService.isManagedImageUrl(value);
         if (wholeValueIsWikiImage) {
             return localizeIfNeeded(value, context, localizedUrlCache);
+        }
+        if (wikiImageLocalizationService.isManagedImageUrl(value)) {
+            return normalizeManagedImagePath(value);
         }
         if (!allowDelimitedUrls) {
             return value;
@@ -367,6 +376,13 @@ public class WikiImageResponseSanitizerAdvice implements ResponseBodyAdvice<Obje
         }
         matcher.appendTail(buffer);
         return changed ? buffer.toString() : value;
+    }
+
+    private String normalizeManagedImagePath(String value) {
+        if (value == null) {
+            return null;
+        }
+        return wikiImageLocalizationService.normalizeManagedImagePath(value).orElse(value);
     }
 
     private boolean shouldInspectStringValue(String fieldName, boolean inspectStringValues) {

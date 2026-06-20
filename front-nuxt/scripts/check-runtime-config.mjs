@@ -66,5 +66,29 @@ const writeStackConfig = (root, config) => {
   })
 
   assert.equal(resolved.backendOrigin, 'http://localhost:18088')
-  assert.equal(resolved.imageOrigin, 'http://localhost:9000')
+  assert.equal(resolved.imageOrigin, 'http://localhost:19000')
+}
+
+{
+  const root = mkdtempSync(join(tmpdir(), 'tp-front-runtime-config-image-origin-wins-'))
+  const configPath = writeStackConfig(root, {
+    backend: { port: 18882 },
+    minio: {
+      endpoint: 'http://127.0.0.1:19000',
+      publicEndpoint: 'http://localhost:19000',
+    },
+  })
+
+  const resolved = resolveFrontRuntimeConfig({
+    env: {
+      TERRAPEDIA_LOCAL_STACK_CONFIG: configPath,
+      TERRAPEDIA_IMAGE_ORIGIN: 'http://localhost:19998/',
+      TERRAPEDIA_MINIO_PUBLIC_ENDPOINT: 'http://localhost:19997/',
+    },
+    cwd: root,
+    nodeEnv: 'development',
+  })
+
+  assert.equal(resolved.imageOrigin, 'http://localhost:19998')
+  assert.equal(resolved.minioPublicEndpoint, 'http://localhost:19997')
 }

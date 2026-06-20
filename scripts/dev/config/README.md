@@ -54,6 +54,9 @@ Scheduler notes:
 - `dataRefresh.mode=apply` is a write-capable scheduler setting. It must not be enabled as part of `verify-local-stack.sh`, `start-local-stack.sh`, or `smoke-local-stack.sh`.
 - Configured ports are expected bind targets. An open port is only a TCP fact and does not prove business health.
 - MinIO and storage sync are outside the default read-only smoke boundary.
+- Managed image reads use `TERRAPEDIA_IMAGE_ORIGIN` first, then `TERRAPEDIA_MINIO_PUBLIC_ENDPOINT`, and default to the MinIO object API on `http://localhost:19000`.
+- `19001` is the MinIO console port, not an image origin. Do not use it for `endpoint`, `publicEndpoint`, or `TERRAPEDIA_IMAGE_ORIGIN`.
+- Legacy `http://localhost:9000` and `http://127.0.0.1:9000` image URLs are compatibility origins only; local startup may proxy them to the canonical object API when the port is free.
 
 - `dataRefresh.enabled`
   - Whether `run-backend-data-refresh-daemon.mjs` should run continuously

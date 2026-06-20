@@ -825,14 +825,14 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     ) {
         String managedImage = managedItemImageResolver.resolveManagedImage(resolved, managedImagesByItemId);
         if (managedImage != null) {
-            return managedImage;
+            return managedImageOrNull(managedImage);
         }
         return null;
     }
 
     private String managedImageOrNull(String value) {
         String image = trimToNull(value);
-        return image != null && managedImageUrlPolicy.isManagedImageUrl(image) ? image : null;
+        return image == null ? null : managedImageUrlPolicy.normalizeManagedImagePath(image).orElse(null);
     }
 
     private Path resolveDataFile(Path relativePath) {

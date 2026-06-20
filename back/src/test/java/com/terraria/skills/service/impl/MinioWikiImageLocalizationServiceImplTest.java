@@ -2,6 +2,7 @@ package com.terraria.skills.service.impl;
 
 import com.github.benmanes.caffeine.cache.Ticker;
 import com.terraria.skills.config.MinioConnectionDetails;
+import com.terraria.skills.config.MinioStorageProperties;
 import com.terraria.skills.dto.WikiImageLocalizationCacheMetricsDTO;
 import com.terraria.skills.service.WikiImageLocalizationService;
 import com.sun.net.httpserver.HttpExchange;
@@ -16,9 +17,11 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -232,6 +235,26 @@ class MinioWikiImageLocalizationServiceImplTest {
     }
 
     @Test
+    void shouldNormalizeLegacyManagedUrlWhenCurrentEndpointUsesDifferentPort() {
+        MinioWikiImageLocalizationServiceImpl service = new MinioWikiImageLocalizationServiceImpl(
+            minioClient("http://localhost:19000"),
+            connectionDetails("http://localhost:19000"),
+            Set.of("127.0.0.1"),
+            true,
+            "http://127.0.0.1:18099/fetch-image",
+            "TerraPedia/2.0 (+https://terraria.wiki.gg/api.php)",
+            List.of(URI.create("http://localhost:9000"), URI.create("http://127.0.0.1:9000"))
+        );
+
+        assertEquals(
+            "/terrapedia-images/items/wiki/legacy.png",
+            service.normalizeManagedImagePath("http://localhost:9000/terrapedia-images/items/wiki/legacy.png?X-Amz-Signature=old")
+                .orElseThrow()
+        );
+        assertFalse(service.normalizeManagedImagePath("https://example.com/terrapedia-images/items/wiki/legacy.png").isPresent());
+    }
+
+    @Test
     void shouldNotTreatAllowedTestHostProxyPathAsWikiImage() {
         MinioWikiImageLocalizationServiceImpl service = service("http://localhost:9000");
 
@@ -245,6 +268,7 @@ class MinioWikiImageLocalizationServiceImplTest {
             .withPropertyValues("terraria.storage.minio.enabled=true")
             .withBean(MinioClient.class, () -> minioClient(TEST_MINIO_ENDPOINT))
             .withBean(MinioConnectionDetails.class, () -> connectionDetails(TEST_MINIO_ENDPOINT))
+            .withBean(MinioStorageProperties.class, MinioStorageProperties::new)
             .withUserConfiguration(MinioWikiImageLocalizationServiceImpl.class)
             .run(context -> {
                 assertTrue(context.isRunning(), () -> String.valueOf(context.getStartupFailure()));

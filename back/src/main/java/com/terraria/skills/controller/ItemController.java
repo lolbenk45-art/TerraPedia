@@ -184,10 +184,10 @@ public class ItemController {
             return null;
         }
         String trimmed = value.trim();
-        if (managedImageUrlPolicy.isManagedImageUrl(trimmed)) {
-            return trimmed;
-        }
-        log.warn("item display image suppressed non-managed url context={}", context);
-        return null;
+        return managedImageUrlPolicy.normalizeManagedImagePath(trimmed)
+            .orElseGet(() -> {
+                log.warn("item display image suppressed non-managed url context={}", context);
+                return null;
+            });
     }
 }

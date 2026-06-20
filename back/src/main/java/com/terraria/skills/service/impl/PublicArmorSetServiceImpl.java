@@ -294,8 +294,9 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         for (Map<String, Object> imageRow : imageRows) {
             Long itemId = toLong(imageRow.get("item_id"));
             String imageUrl = trimToNull(imageRow.get("cached_url"));
-            if (itemId != null && !result.containsKey(itemId) && imageUrl != null && managedImageUrlPolicy.isManagedImageUrl(imageUrl)) {
-                result.put(itemId, imageUrl);
+            String normalizedImageUrl = managedImageUrlPolicy.normalizeManagedImagePath(imageUrl).orElse(null);
+            if (itemId != null && !result.containsKey(itemId) && normalizedImageUrl != null) {
+                result.put(itemId, normalizedImageUrl);
             }
         }
         return result;
@@ -388,13 +389,14 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
 
     private String managedImageOrNull(Object value) {
         String imageUrl = trimToNull(value);
-        return imageUrl != null && managedImageUrlPolicy.isManagedImageUrl(imageUrl) ? imageUrl : null;
+        return managedImageUrlPolicy.normalizeManagedImagePath(imageUrl).orElse(null);
     }
 
     private List<String> filterManagedImages(List<String> values) {
         return values.stream()
             .map(this::trimToNull)
-            .filter(value -> value != null && managedImageUrlPolicy.isManagedImageUrl(value))
+            .map(value -> managedImageUrlPolicy.normalizeManagedImagePath(value).orElse(null))
+            .filter(java.util.Objects::nonNull)
             .toList();
     }
 

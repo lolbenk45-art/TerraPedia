@@ -38,12 +38,12 @@ class PublicItemRecipeControllerTest {
     private static final ManagedImageUrlPolicy MANAGED_IMAGE_URL_POLICY = new ManagedImageUrlPolicy() {
         @Override
         public boolean isManagedImageUrl(String value) {
-            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/items/");
+            return value != null && value.startsWith("/terrapedia-images/items/");
         }
 
         @Override
         public List<String> trustedManagedImageUrlPrefixes() {
-            return List.of("http://localhost:9000/terrapedia-images/items/");
+            return List.of("/terrapedia-images/items/");
         }
     };
 
@@ -92,7 +92,7 @@ class PublicItemRecipeControllerTest {
         RecipeTreeNodeDTO managedChild = new RecipeTreeNodeDTO();
         managedChild.setItemId(2L);
         managedChild.setItemName("Stinger");
-        managedChild.setItemImage("http://localhost:9000/terrapedia-images/items/stinger.png");
+        managedChild.setItemImage("/terrapedia-images/items/stinger.png");
 
         RecipeTreeNodeDTO fakeManagedPathChild = new RecipeTreeNodeDTO();
         fakeManagedPathChild.setItemId(3L);
@@ -120,7 +120,7 @@ class PublicItemRecipeControllerTest {
             .andExpect(jsonPath("$.data.variants[0].roots[0].itemImage").doesNotExist())
             .andExpect(jsonPath("$.data.variants[0].roots[0].groupMembers[0].image").doesNotExist())
             .andExpect(jsonPath("$.data.variants[0].roots[0].stations[0].stationImage").doesNotExist())
-            .andExpect(jsonPath("$.data.variants[0].roots[0].children[0].itemImage").value("http://localhost:9000/terrapedia-images/items/stinger.png"))
+            .andExpect(jsonPath("$.data.variants[0].roots[0].children[0].itemImage").value("/terrapedia-images/items/stinger.png"))
             .andExpect(jsonPath("$.data.variants[0].roots[0].children[1].itemImage").doesNotExist());
 
         assertEquals("https://terraria.wiki.gg/wiki/File:Abeemination.png", response.getItem().getImage());

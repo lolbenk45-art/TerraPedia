@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const DEFAULT_BACKEND_ORIGIN = 'http://localhost:18088'
-const DEFAULT_IMAGE_ORIGIN = 'http://localhost:9000'
+const DEFAULT_IMAGE_ORIGIN = 'http://localhost:19000'
 const DEFAULT_WIKI_GATE_URL = 'http://127.0.0.1:18099/fetch-image'
 
 const trimTrailingSlash = (value) => String(value ?? '').replace(/\/$/, '')

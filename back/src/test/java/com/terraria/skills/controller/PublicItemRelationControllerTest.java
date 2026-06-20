@@ -34,12 +34,12 @@ class PublicItemRelationControllerTest {
     private static final ManagedImageUrlPolicy MANAGED_IMAGE_URL_POLICY = new ManagedImageUrlPolicy() {
         @Override
         public boolean isManagedImageUrl(String value) {
-            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/");
+            return value != null && value.startsWith("/terrapedia-images/");
         }
 
         @Override
         public List<String> trustedManagedImageUrlPrefixes() {
-            return List.of("http://localhost:9000/terrapedia-images/");
+            return List.of("/terrapedia-images/");
         }
     };
 
@@ -72,8 +72,8 @@ class PublicItemRelationControllerTest {
         managed.setSourceFileTitle("Night Edge.png");
         managed.setSourcePage("https://terraria.wiki.gg/wiki/Night_Edge");
         managed.setOriginalUrl("https://terraria.wiki.gg/images/Night_Edge.png");
-        managed.setCachedUrl("http://localhost:9000/terrapedia-images/items/night-edge.png");
-        managed.setImageUrl("http://localhost:9000/terrapedia-images/items/night-edge.png");
+        managed.setCachedUrl("/terrapedia-images/items/night-edge.png");
+        managed.setImageUrl("/terrapedia-images/items/night-edge.png");
         managed.setIsPrimary(true);
 
         ItemImageDTO wikiOnly = new ItemImageDTO();
@@ -94,7 +94,7 @@ class PublicItemRelationControllerTest {
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.length()").value(1))
             .andExpect(jsonPath("$.data[0].id").value(1))
-            .andExpect(jsonPath("$.data[0].imageUrl").value("http://localhost:9000/terrapedia-images/items/night-edge.png"))
+            .andExpect(jsonPath("$.data[0].imageUrl").value("/terrapedia-images/items/night-edge.png"))
             .andExpect(jsonPath("$.data[0].provider").doesNotExist())
             .andExpect(jsonPath("$.data[0].sourceFileTitle").doesNotExist())
             .andExpect(jsonPath("$.data[0].sourcePage").doesNotExist())
@@ -152,7 +152,7 @@ class PublicItemRelationControllerTest {
         mimic.setSourceType("drop");
         mimic.setSourceRefType("npc");
         mimic.setSourceRefName("Mimic");
-        mimic.setNpcImageUrl("http://localhost:9000/terrapedia-images/npcs/mimic.png");
+        mimic.setNpcImageUrl("/terrapedia-images/npcs/mimic.png");
 
         ItemSourceDTO worldgen = new ItemSourceDTO();
         worldgen.setId(52L);
@@ -172,7 +172,7 @@ class PublicItemRelationControllerTest {
             .andExpect(jsonPath("$.data[0].sourceProvider").doesNotExist())
             .andExpect(jsonPath("$.data[0].sourcePage").doesNotExist())
             .andExpect(jsonPath("$.data[1].sourceRefType").value("npc"))
-            .andExpect(jsonPath("$.data[1].npcImageUrl").value("http://localhost:9000/terrapedia-images/npcs/mimic.png"))
+            .andExpect(jsonPath("$.data[1].npcImageUrl").value("/terrapedia-images/npcs/mimic.png"))
             .andExpect(jsonPath("$.data[2].sourceRefType").value("world"))
             .andExpect(jsonPath("$.data[2].sourceRefName").value("Magic Mirrors worldgen"));
 
@@ -233,9 +233,9 @@ class PublicItemRelationControllerTest {
         managedNpcSource.setSourceType("shop");
         managedNpcSource.setSourceRefType("npc");
         managedNpcSource.setSourceRefName("Merchant");
-        managedNpcSource.setImageUrl("http://localhost:9000/terrapedia-images/npcs/merchant.png");
-        managedNpcSource.setSourceRefImageUrl("http://localhost:9000/terrapedia-images/npcs/merchant.png");
-        managedNpcSource.setNpcImageUrl("http://localhost:9000/terrapedia-images/npcs/merchant.png");
+        managedNpcSource.setImageUrl("/terrapedia-images/npcs/merchant.png");
+        managedNpcSource.setSourceRefImageUrl("/terrapedia-images/npcs/merchant.png");
+        managedNpcSource.setNpcImageUrl("/terrapedia-images/npcs/merchant.png");
 
         ItemSourceDTO managedItemSource = new ItemSourceDTO();
         managedItemSource.setId(5L);
@@ -243,9 +243,9 @@ class PublicItemRelationControllerTest {
         managedItemSource.setSourceType("craft");
         managedItemSource.setSourceRefType("item");
         managedItemSource.setSourceRefName("Wood");
-        managedItemSource.setImageUrl("http://localhost:9000/terrapedia-images/items/wood.png");
-        managedItemSource.setSourceRefImageUrl("http://localhost:9000/terrapedia-images/items/wood.png");
-        managedItemSource.setItemImageUrl("http://localhost:9000/terrapedia-images/items/wood.png");
+        managedItemSource.setImageUrl("/terrapedia-images/items/wood.png");
+        managedItemSource.setSourceRefImageUrl("/terrapedia-images/items/wood.png");
+        managedItemSource.setItemImageUrl("/terrapedia-images/items/wood.png");
 
         ItemSourceDTO wikiSource = new ItemSourceDTO();
         wikiSource.setId(6L);
@@ -263,13 +263,13 @@ class PublicItemRelationControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.length()").value(3))
-            .andExpect(jsonPath("$.data[0].imageUrl").value("http://localhost:9000/terrapedia-images/npcs/merchant.png"))
-            .andExpect(jsonPath("$.data[0].sourceRefImageUrl").value("http://localhost:9000/terrapedia-images/npcs/merchant.png"))
-            .andExpect(jsonPath("$.data[0].npcImageUrl").value("http://localhost:9000/terrapedia-images/npcs/merchant.png"))
+            .andExpect(jsonPath("$.data[0].imageUrl").value("/terrapedia-images/npcs/merchant.png"))
+            .andExpect(jsonPath("$.data[0].sourceRefImageUrl").value("/terrapedia-images/npcs/merchant.png"))
+            .andExpect(jsonPath("$.data[0].npcImageUrl").value("/terrapedia-images/npcs/merchant.png"))
             .andExpect(jsonPath("$.data[0].itemImageUrl").doesNotExist())
-            .andExpect(jsonPath("$.data[1].imageUrl").value("http://localhost:9000/terrapedia-images/items/wood.png"))
-            .andExpect(jsonPath("$.data[1].sourceRefImageUrl").value("http://localhost:9000/terrapedia-images/items/wood.png"))
-            .andExpect(jsonPath("$.data[1].itemImageUrl").value("http://localhost:9000/terrapedia-images/items/wood.png"))
+            .andExpect(jsonPath("$.data[1].imageUrl").value("/terrapedia-images/items/wood.png"))
+            .andExpect(jsonPath("$.data[1].sourceRefImageUrl").value("/terrapedia-images/items/wood.png"))
+            .andExpect(jsonPath("$.data[1].itemImageUrl").value("/terrapedia-images/items/wood.png"))
             .andExpect(jsonPath("$.data[1].npcImageUrl").doesNotExist())
             .andExpect(jsonPath("$.data[2].imageUrl").doesNotExist())
             .andExpect(jsonPath("$.data[2].sourceRefImageUrl").doesNotExist())
@@ -373,11 +373,11 @@ class PublicItemRelationControllerTest {
         loot.setItemId(3088L);
         loot.setItemName("Royal Gel");
         loot.setItemNameZh("皇家凝胶");
-        loot.setItemImage("http://localhost:9000/terrapedia-images/items/royal-gel.png");
+        loot.setItemImage("/terrapedia-images/items/royal-gel.png");
         loot.setSourceNpcId(50L);
         loot.setSourceNpcName("King Slime");
         loot.setSourceNpcNameZh("史莱姆王");
-        loot.setSourceNpcImageUrl("http://localhost:9000/terrapedia-images/npcs/king-slime.png");
+        loot.setSourceNpcImageUrl("/terrapedia-images/npcs/king-slime.png");
         loot.setSourceNpcDetailPath("/npcs/50");
         loot.setDropSourceKind("treasure_bag");
         loot.setDropSourceKindLabel("宝藏袋掉落");
@@ -393,9 +393,9 @@ class PublicItemRelationControllerTest {
             .andExpect(jsonPath("$.data[0].treasureBagItemId").value(3318))
             .andExpect(jsonPath("$.data[0].itemId").value(3088))
             .andExpect(jsonPath("$.data[0].itemNameZh").value("皇家凝胶"))
-            .andExpect(jsonPath("$.data[0].itemImage").value("http://localhost:9000/terrapedia-images/items/royal-gel.png"))
+            .andExpect(jsonPath("$.data[0].itemImage").value("/terrapedia-images/items/royal-gel.png"))
             .andExpect(jsonPath("$.data[0].sourceNpcNameZh").value("史莱姆王"))
-            .andExpect(jsonPath("$.data[0].sourceNpcImageUrl").value("http://localhost:9000/terrapedia-images/npcs/king-slime.png"))
+            .andExpect(jsonPath("$.data[0].sourceNpcImageUrl").value("/terrapedia-images/npcs/king-slime.png"))
             .andExpect(jsonPath("$.data[0].sourceNpcDetailPath").value("/npcs/50"))
             .andExpect(jsonPath("$.data[0].dropSourceKindLabel").value("宝藏袋掉落"))
             .andExpect(jsonPath("$.data[0].chanceText").value("100%"));

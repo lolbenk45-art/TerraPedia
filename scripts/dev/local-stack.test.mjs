@@ -94,6 +94,80 @@ test('start exports MinIO endpoint settings from local stack config', () => {
   assert.match(exampleConfig, /"publicEndpoint"/);
 });
 
+test('local stack resolves canonical image origin from object API and exports it to app processes', () => {
+  const runtimeConfig = fs.readFileSync('scripts/dev/lib/runtime-config.sh', 'utf8');
+  const source = startSource();
+  const exampleConfig = fs.readFileSync('scripts/dev/config/local-stack.config.example.json', 'utf8');
+  const readme = fs.readFileSync('scripts/dev/config/README.md', 'utf8');
+
+  assert.match(runtimeConfig, /TP_IMAGE_ORIGIN/);
+  assert.match(runtimeConfig, /TERRAPEDIA_IMAGE_ORIGIN/);
+  assert.match(runtimeConfig, /TP_MINIO_PUBLIC_ENDPOINT/);
+  assert.match(runtimeConfig, /TP_LEGACY_IMAGE_ORIGINS/);
+  assert.match(runtimeConfig, /TERRAPEDIA_LEGACY_IMAGE_ORIGINS/);
+  assert.match(runtimeConfig, /TP_IMAGE_COMPAT_PROXY_ENABLED/);
+  assert.match(runtimeConfig, /TERRAPEDIA_IMAGE_COMPAT_PROXY_ENABLED/);
+  assert.match(runtimeConfig, /localhost:19000/);
+  assert.match(runtimeConfig, /127\.0\.0\.1:19000/);
+  assert.doesNotMatch(runtimeConfig, /TP_IMAGE_ORIGIN=.*19001/);
+
+  assert.match(source, /export TERRAPEDIA_IMAGE_ORIGIN="\$TP_IMAGE_ORIGIN"/);
+  assert.match(source, /export TERRAPEDIA_LEGACY_IMAGE_ORIGINS="\$TP_LEGACY_IMAGE_ORIGINS"/);
+  assert.match(source, /start_image_compat_proxy_if_needed/);
+  assert.match(source, /TP_IMAGE_COMPAT_PROXY_ENABLED/);
+  assert.match(source, /127\.0\.0\.1:9000/);
+  assert.match(source, /localhost:9000/);
+  assert.match(source, /status=unverified; smoke must verify real image bytes/);
+  assert.doesNotMatch(source, /TP_IMAGE_COMPAT_STATUS="occupied"/);
+  assert.match(source, /imageCompat/);
+  assert.match(source, /imageOrigin/);
+  assert.match(source, /TP_IMAGE_ORIGIN/);
+  assert.match(source, /19001[\s\S]{0,160}console/i);
+
+  assert.match(exampleConfig, /"endpoint": "http:\/\/127\.0\.0\.1:19000"/);
+  assert.match(exampleConfig, /"publicEndpoint": "http:\/\/localhost:19000"/);
+  assert.match(exampleConfig, /"consolePort": 19001/);
+  assert.doesNotMatch(exampleConfig, /"endpoint": "http:\/\/127\.0\.0\.1:9000"/);
+  assert.doesNotMatch(exampleConfig, /"publicEndpoint": "http:\/\/localhost:9000"/);
+
+  assert.match(readme, /TERRAPEDIA_IMAGE_ORIGIN/);
+  assert.match(readme, /19000/);
+  assert.match(readme, /19001[\s\S]{0,120}console/i);
+});
+
+test('run manifest records image origin health independently from MinIO enabled state', () => {
+  const source = startSource();
+
+  assert.match(source, /imageOriginOpen/i);
+  assert.match(source, /const imageOrigin = process\.env\.TP_IMAGE_ORIGIN/);
+  assert.match(source, /TP_IMAGE_ORIGIN_DATA_ROOT_STATUS/);
+  assert.match(source, /verify_image_origin_data_root/);
+  assert.match(source, /pgrep -af "minio server"/);
+  assert.match(source, /wrong_data_root/);
+  assert.match(source, /MinIO image origin is running from a different dataDir/i);
+  assert.match(source, /imageOrigin:\s*\{\s*endpoint:\s*imageOrigin/i);
+  assert.match(source, /imageCompat:\s*\{/);
+  assert.match(source, /legacyOrigins/i);
+  assert.match(source, /TP_IMAGE_COMPAT_STATUS/);
+  assert.match(source, /console port/i);
+  assert.doesNotMatch(source, /imageOrigin:\s*\{[\s\S]{0,160}minioEnabled/i);
+  assert.doesNotMatch(source, /const imageOrigin = .*19001/i);
+  assert.doesNotMatch(source, /endpoint:\s*['"]http:\/\/localhost:19001/i);
+});
+
+test('smoke validates selected managed image bytes instead of first TCP-reachable candidate', () => {
+  const source = smokeSource();
+
+  assert.match(source, /collectManagedImageCandidates/);
+  assert.match(source, /managedImage\.selected/);
+  assert.match(source, /real managed image bytes verified through origin, admin, and front/);
+  assert.match(source, /no managed image candidate returned real bytes/);
+  assert.match(source, /rejected text\/html/);
+  assert.match(source, /rejected generated fallback SVG/);
+  assert.match(source, /unexpected content-type/);
+  assert.doesNotMatch(source, /findManagedImageCandidate/);
+});
+
 test('start loads local mail settings without hard-disabling backend mail', () => {
   const runtimeConfig = fs.readFileSync('scripts/dev/lib/runtime-config.sh', 'utf8');
   const source = startSource();
@@ -229,8 +303,9 @@ test('smoke script is read-only and writes timestamped smoke report', () => {
   assert.doesNotMatch(source, /pnpm[\s\S]*(dev|start)/i);
   assert.doesNotMatch(source, /\b(crawler|import|backfill|load|apply|refresh|evidence)\b/i);
   assert.doesNotMatch(source, /storage[\s\S]{0,80}sync/i);
-  assert.doesNotMatch(source, /smoke_request[\s\S]*(PUT|PATCH|DELETE)/i);
-  assert.doesNotMatch(source, /smoke_request[\s\S]*POST(?![\s\S]*\/api\/auth\/login)/i);
+  const smokeRequestLines = source.split('\n').filter((line) => line.includes('smoke_request '));
+  assert.equal(smokeRequestLines.some((line) => /\b(PUT|PATCH|DELETE)\b/i.test(line)), false);
+  assert.equal(smokeRequestLines.some((line) => /\bPOST\b/i.test(line)), false);
   assert.equal((source.match(/\bPOST\b/gi) ?? []).length, 1, 'auth login should be the only POST smoke request');
 });
 
@@ -241,6 +316,63 @@ test('smoke script checks MinIO public endpoint when MinIO is enabled', () => {
   assert.match(source, /minio\.publicEndpoint/i);
   assert.match(source, /SMOKE_MINIO_ENABLED/i);
   assert.match(source, /SMOKE_MINIO_PUBLIC_ENDPOINT/i);
+});
+
+test('smoke script derives runtime ports from run manifest after startup', () => {
+  const source = smokeSource();
+
+  assert.match(source, /run-manifest\.json/);
+  assert.match(source, /load_smoke_manifest_runtime/);
+  assert.match(source, /health\?\.back\?\.port/);
+  assert.match(source, /health\?\.front\?\.port/);
+  assert.match(source, /health\?\.dataQueryApp\?\.port/);
+  assert.match(source, /ports\?\.backend\?\.port/);
+  assert.doesNotMatch(source, /backend_base_url="http:\/\/127\.0\.0\.1:\$TP_BACKEND_PORT"/);
+  assert.doesNotMatch(source, /admin_base_url="http:\/\/localhost:\$TP_ADMIN_PORT"/);
+});
+
+test('smoke script proves real managed images through both front and admin proxies', () => {
+  const source = smokeSource();
+
+  assert.match(source, /smoke_real_managed_images/i);
+  assert.match(source, /\/api\/items\?page=1&limit=/i);
+  assert.match(source, /\/terrapedia-images\//);
+  assert.match(source, /\/preview-assets\/terrapedia-images\//);
+  assert.match(source, /admin\.managedImage/i);
+  assert.match(source, /front\.managedImage/i);
+  assert.match(source, /contentType/i);
+  assert.match(source, /firstBytes/i);
+  assert.match(source, /normalizedPath/i);
+  assert.match(source, /probedUrl/i);
+  assert.match(source, /text\/html/i);
+  assert.match(source, /generated fallback SVG/i);
+  assert.match(source, /no managed image candidate found/i);
+  assert.match(source, /image\\\/\(png\|jpeg\|gif\|webp\|svg\\\+xml\)/i);
+});
+
+
+test('smoke script classifies missing managed objects separately from port and proxy failures', () => {
+  const source = smokeSource();
+
+  assert.match(source, /SMOKE_MANIFEST_IMAGE_ORIGIN/);
+  assert.match(source, /origin\.managedImage\.candidate/);
+  assert.match(source, /reasonCode/);
+  assert.match(source, /object_missing/);
+  assert.match(source, /NoSuch\(Key\|Bucket\)/);
+  assert.match(source, /console_html/);
+  assert.match(source, /wrong_port_or_unreachable/);
+  assert.match(source, /non_image_response/);
+  assert.match(source, /managed_fallback_svg/);
+  assert.match(source, /repairHint/);
+  assert.match(source, /managed image object is missing from the configured image origin/i);
+});
+
+test('smoke MinIO check uses real managed object probes instead of bucket root TCP reachability', () => {
+  const source = smokeSource();
+
+  assert.doesNotMatch(source, /entry\.ok = response\.status >= 200 && response\.status < 500/);
+  assert.doesNotMatch(source, /`\$\{endpoint\}\/\$\{bucket\}\/`/);
+  assert.match(source, /smoke_real_managed_images/i);
 });
 
 test('smoke script verifies admin article images through the admin proxy', () => {

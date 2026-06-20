@@ -14,6 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static java.util.Map.entry;
@@ -28,6 +29,8 @@ class PublicArmorSetServiceImplTest {
 
     private static final String MANAGED_ITEM_IMAGE =
         "http://localhost:9000/terrapedia-images/items/wiki/item-images/cc/beetle-helmet.png";
+    private static final String MANAGED_ITEM_IMAGE_PATH =
+        "/terrapedia-images/items/wiki/item-images/cc/beetle-helmet.png";
 
     @Mock
     private JdbcTemplate jdbcTemplate;
@@ -37,7 +40,7 @@ class PublicArmorSetServiceImplTest {
 
     @Test
     void shouldExposeManagedItemFallbackImagesWhenArmorSetImagesAreMissing() {
-        when(managedImageUrlPolicy.isManagedImageUrl(MANAGED_ITEM_IMAGE)).thenReturn(true);
+        when(managedImageUrlPolicy.normalizeManagedImagePath(MANAGED_ITEM_IMAGE)).thenReturn(Optional.of(MANAGED_ITEM_IMAGE_PATH));
         when(jdbcTemplate.queryForObject(contains("SELECT COUNT(*)"), eq(Long.class), any(Object[].class))).thenReturn(1L);
         when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_armor_sets`"), isA(Integer.class), isA(Integer.class))).thenReturn(List.of(Map.ofEntries(
             entry("id", 158677909L),
@@ -83,7 +86,7 @@ class PublicArmorSetServiceImplTest {
         assertEquals(List.of(), armorSet.getMaleImages());
         assertEquals(List.of(), armorSet.getFemaleImages());
         assertEquals(List.of(), armorSet.getSpecialImages());
-        assertEquals(List.of(MANAGED_ITEM_IMAGE), armorSet.getFallbackImages());
+        assertEquals(List.of(MANAGED_ITEM_IMAGE_PATH), armorSet.getFallbackImages());
         assertEquals("套装奖励：+20% 移动速度", armorSet.getBenefitZh());
         assertEquals("Set bonus: +20% movement speed", armorSet.getBenefitEn());
         assertEquals(1, armorSet.getEffects().size());
@@ -93,7 +96,7 @@ class PublicArmorSetServiceImplTest {
 
     @Test
     void shouldExposeArmorSetDetailByIdWithFallbackImagesAndEffects() {
-        when(managedImageUrlPolicy.isManagedImageUrl(MANAGED_ITEM_IMAGE)).thenReturn(true);
+        when(managedImageUrlPolicy.normalizeManagedImagePath(MANAGED_ITEM_IMAGE)).thenReturn(Optional.of(MANAGED_ITEM_IMAGE_PATH));
         when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_armor_sets`"), isA(Long.class))).thenReturn(List.of(Map.ofEntries(
             entry("id", 158677909L),
             entry("text_key", "ArmorSetBonus.BeetleDamage"),
@@ -138,11 +141,11 @@ class PublicArmorSetServiceImplTest {
 
         assertEquals(158677909L, armorSet.getId());
         assertEquals("甲虫盔甲", armorSet.getNameZh());
-        assertEquals(List.of(MANAGED_ITEM_IMAGE), armorSet.getFallbackImages());
+        assertEquals(List.of(MANAGED_ITEM_IMAGE_PATH), armorSet.getFallbackImages());
         assertEquals(1, armorSet.getRelatedItems().size());
         assertEquals(2199L, armorSet.getRelatedItems().get(0).getItemId());
         assertEquals("甲虫头盔", armorSet.getRelatedItems().get(0).getNameZh());
-        assertEquals(MANAGED_ITEM_IMAGE, armorSet.getRelatedItems().get(0).getImage());
+        assertEquals(MANAGED_ITEM_IMAGE_PATH, armorSet.getRelatedItems().get(0).getImage());
         assertEquals("head", armorSet.getRelatedItems().get(0).getPartRole());
         assertEquals(157, armorSet.getRelatedItems().get(0).getEquipmentSlotId());
         assertEquals(1, armorSet.getRelatedItems().get(0).getSetVariantIndex());
@@ -184,7 +187,8 @@ class PublicArmorSetServiceImplTest {
             Map.of("id", 553L, "defense", 99)
         ));
         when(jdbcTemplate.queryForList(contains("projection_equipment_effect_attributes"), isA(Long.class))).thenReturn(List.of());
-        when(managedImageUrlPolicy.isManagedImageUrl("http://localhost:9000/terrapedia-images/armor/hallowed.png")).thenReturn(true);
+        when(managedImageUrlPolicy.normalizeManagedImagePath("http://localhost:9000/terrapedia-images/armor/hallowed.png"))
+            .thenReturn(Optional.of("/terrapedia-images/armor/hallowed.png"));
 
         PublicArmorSetServiceImpl service = new PublicArmorSetServiceImpl(jdbcTemplate, new ObjectMapper(), managedImageUrlPolicy);
         PublicArmorSetListDTO armorSet = service.getPublicArmorSetById(2879750981L);

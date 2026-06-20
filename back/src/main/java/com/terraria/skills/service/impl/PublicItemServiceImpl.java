@@ -22,7 +22,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -594,7 +593,7 @@ public class PublicItemServiceImpl implements PublicItemService {
 
     private String managedBuffImageUrl(String value) {
         String text = trimToNull(value);
-        return managedImageUrlPolicy.isManagedImageUrlForDomain(text, "buffs") ? text : null;
+        return managedImageUrlPolicy.normalizeManagedImagePathForDomain(text, "buffs").orElse(null);
     }
 
     private String managedItemImageUrl(String value) {
@@ -611,37 +610,7 @@ public class PublicItemServiceImpl implements PublicItemService {
         if (value == null) {
             return null;
         }
-        if (managedImageUrlPolicy.isManagedImageUrlForDomain(value, domain)) {
-            return value;
-        }
-        return isLoopbackManagedImageUrlForDomain(value, domain) ? value : null;
-    }
-
-    private boolean isLoopbackManagedImageUrlForDomain(String value, String domain) {
-        String normalizedDomain = trimToNull(domain);
-        if (normalizedDomain == null) {
-            return false;
-        }
-        try {
-            URI uri = URI.create(value);
-            String scheme = uri.getScheme();
-            String host = uri.getHost();
-            String path = uri.getPath();
-            if (scheme == null || host == null || path == null || uri.getRawUserInfo() != null) {
-                return false;
-            }
-            String lowerScheme = scheme.toLowerCase(Locale.ROOT);
-            if (!"http".equals(lowerScheme) && !"https".equals(lowerScheme)) {
-                return false;
-            }
-            String lowerHost = host.toLowerCase(Locale.ROOT);
-            if (!"localhost".equals(lowerHost) && !"127.0.0.1".equals(lowerHost) && !"::1".equals(lowerHost)) {
-                return false;
-            }
-            return path.startsWith("/terrapedia-images/" + normalizedDomain.toLowerCase(Locale.ROOT) + "/");
-        } catch (IllegalArgumentException exception) {
-            return false;
-        }
+        return managedImageUrlPolicy.normalizeManagedImagePathForDomain(value, domain).orElse(null);
     }
 
     private List<String> managedImagePrefixes() {

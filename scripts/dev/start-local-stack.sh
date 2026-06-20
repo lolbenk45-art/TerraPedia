@@ -299,6 +299,8 @@ export TERRAPEDIA_MINIO_ENDPOINT="$TP_MINIO_ENDPOINT"
 export TERRAPEDIA_MINIO_PUBLIC_ENDPOINT="$TP_MINIO_PUBLIC_ENDPOINT"
 export TERRAPEDIA_MINIO_BUCKET="$TP_MINIO_BUCKET"
 export TERRAPEDIA_MINIO_OBJECT_PREFIX="$TP_MINIO_OBJECT_PREFIX"
+export TERRAPEDIA_IMAGE_ORIGIN="$TP_IMAGE_ORIGIN"
+export TERRAPEDIA_LEGACY_IMAGE_ORIGINS="$TP_LEGACY_IMAGE_ORIGINS"
 if is_truthy "$TP_FLARESOLVERR_ENABLED"; then
   export TERRAPEDIA_FLARESOLVERR_URL="$TP_FLARESOLVERR_URL"
 fi
@@ -432,6 +434,121 @@ start_minio_if_needed() {
 }
 
 start_minio_if_needed
+
+TP_IMAGE_ORIGIN_DATA_ROOT_STATUS="unchecked"
+TP_IMAGE_ORIGIN_DATA_ROOT_EXPECTED=""
+TP_IMAGE_ORIGIN_DATA_ROOT_ACTUAL=""
+
+verify_image_origin_data_root() {
+  local image_host image_port expected_data_dir pid cmd actual_data_dir
+  if [[ -z "$TP_IMAGE_ORIGIN" ]]; then
+    TP_IMAGE_ORIGIN_DATA_ROOT_STATUS="unreachable"
+    return 0
+  fi
+
+  image_host="$(url_component "$TP_IMAGE_ORIGIN" host)"
+  image_port="$(url_component "$TP_IMAGE_ORIGIN" port)"
+  if ! tcp_check "$image_host" "$image_port" 800; then
+    TP_IMAGE_ORIGIN_DATA_ROOT_STATUS="unreachable"
+    return 0
+  fi
+
+  expected_data_dir="$(resolve_runtime_path "$TP_MINIO_DATA_DIR")"
+  TP_IMAGE_ORIGIN_DATA_ROOT_EXPECTED="$expected_data_dir"
+  for pid in $(port_pids "$image_port"); do
+    cmd="$(process_cmdline "$pid")"
+    inspect_minio_image_origin_cmdline "$cmd" "$image_port" "$expected_data_dir" && return 0
+  done
+
+  while IFS= read -r cmd; do
+    inspect_minio_image_origin_cmdline "$cmd" "$image_port" "$expected_data_dir" && return 0
+  done < <(pgrep -af "minio server" 2>/dev/null || true)
+
+  TP_IMAGE_ORIGIN_DATA_ROOT_STATUS="unknown"
+}
+
+inspect_minio_image_origin_cmdline() {
+  local cmd="$1"
+  local image_port="$2"
+  local expected_data_dir="$3"
+  local actual_data_dir
+  [[ "$cmd" == *"minio server"* ]] || return 1
+  [[ "$cmd" == *":$image_port"* ]] || return 1
+  actual_data_dir="$(MINIO_CMDLINE="$cmd" node --input-type=module <<'NODE'
+import path from 'node:path';
+
+const parts = String(process.env.MINIO_CMDLINE || '').split(/\s+/).filter(Boolean);
+const serverIndex = parts.indexOf('server');
+const dataDir = serverIndex >= 0 ? parts[serverIndex + 1] : '';
+process.stdout.write(dataDir ? path.normalize(dataDir) : '');
+NODE
+)"
+  TP_IMAGE_ORIGIN_DATA_ROOT_ACTUAL="$actual_data_dir"
+  if [[ -n "$actual_data_dir" && "$actual_data_dir" != "$expected_data_dir" ]]; then
+    TP_IMAGE_ORIGIN_DATA_ROOT_STATUS="wrong_data_root"
+    log_warn "MinIO image origin is running from a different dataDir: origin=$TP_IMAGE_ORIGIN actual=$actual_data_dir expected=$expected_data_dir. Images may return object_missing until MinIO is restarted with the configured dataDir."
+    return 0
+  fi
+  if [[ -n "$actual_data_dir" ]]; then
+    TP_IMAGE_ORIGIN_DATA_ROOT_STATUS="matched"
+    return 0
+  fi
+  return 1
+}
+
+verify_image_origin_data_root
+export TP_IMAGE_ORIGIN_DATA_ROOT_STATUS
+export TP_IMAGE_ORIGIN_DATA_ROOT_EXPECTED
+export TP_IMAGE_ORIGIN_DATA_ROOT_ACTUAL
+
+TP_IMAGE_COMPAT_STATUS="disabled"
+
+start_image_compat_proxy_if_needed() {
+  if ! is_truthy "$TP_IMAGE_COMPAT_PROXY_ENABLED"; then
+    TP_IMAGE_COMPAT_STATUS="disabled"
+    return 0
+  fi
+  if [[ -z "$TP_IMAGE_ORIGIN" ]]; then
+    TP_IMAGE_COMPAT_STATUS="unreachable"
+    log_warn "Image compatibility proxy disabled because TP_IMAGE_ORIGIN is empty"
+    return 0
+  fi
+
+  local image_host image_port
+  image_host="$(url_component "$TP_IMAGE_ORIGIN" host)"
+  image_port="$(url_component "$TP_IMAGE_ORIGIN" port)"
+  if [[ "$image_port" == "19001" ]]; then
+    # 19001 is the MinIO console port, never a managed image object API origin.
+    TP_IMAGE_COMPAT_STATUS="unreachable"
+    log_warn "Image origin $TP_IMAGE_ORIGIN points at MinIO console port 19001; compatibility proxy will not start"
+    return 0
+  fi
+  if ! tcp_check "$image_host" "$image_port" 800; then
+    TP_IMAGE_COMPAT_STATUS="unreachable"
+    log_warn "Image origin $TP_IMAGE_ORIGIN is not reachable; legacy localhost:9000 compatibility proxy will not start"
+    return 0
+  fi
+
+  if tcp_check 127.0.0.1 9000 500; then
+    TP_IMAGE_COMPAT_STATUS="unverified"
+    printf 'legacy image origin localhost:9000 already open; status=unverified; smoke must verify real image bytes\n'
+    return 0
+  fi
+
+  start_background "image-compat-9000" "$REPO_ROOT" \
+    "node scripts/dev/lib/tcp-proxy.mjs 127.0.0.1:9000 -> $image_host:$image_port" \
+    env TP_PROXY_PUBLIC_HOST="127.0.0.1" TP_PROXY_PUBLIC_PORT="9000" TP_PROXY_TARGET_HOST="$image_host" TP_PROXY_TARGET_PORT="$image_port" node "$SCRIPT_DIR/lib/tcp-proxy.mjs"
+  if wait_port 127.0.0.1 9000 10; then
+    TP_IMAGE_COMPAT_STATUS="active"
+    return 0
+  fi
+
+  TP_IMAGE_COMPAT_STATUS="unreachable"
+  log_warn "Legacy image compatibility proxy failed to start on localhost:9000"
+}
+
+start_image_compat_proxy_if_needed
+export TP_IMAGE_COMPAT_STATUS
 
 start_flaresolverr_if_needed() {
   if ! is_truthy "$TP_FLARESOLVERR_ENABLED"; then
@@ -572,6 +689,23 @@ const processes = processLines.map((line) => JSON.parse(line));
   const minioPublicOpen = minioEnabled && minioPublicEndpoint
     ? await tcpEndpointOpen(minioPublicEndpoint)
     : false;
+  const imageOrigin = process.env.TP_IMAGE_ORIGIN || '';
+  const imageOriginOpen = imageOrigin ? await tcpEndpointOpen(imageOrigin) : false;
+  const imageOriginPort = (() => {
+    try {
+      const url = new URL(imageOrigin);
+      return url.port || (url.protocol === 'https:' ? '443' : '80');
+    } catch {
+      return '';
+    }
+  })();
+  if (imageOriginPort === '19001') {
+    console.error('image origin points at MinIO console port 19001; use object API port 19000 instead');
+  }
+  const legacyOrigins = String(process.env.TP_LEGACY_IMAGE_ORIGINS || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
   const flaresolverrEnabled = truthy(process.env.TP_FLARESOLVERR_ENABLED);
   const flaresolverrUrl = process.env.TP_FLARESOLVERR_URL || '';
   const flaresolverrOpen = flaresolverrEnabled && flaresolverrUrl
@@ -591,6 +725,11 @@ const processes = processLines.map((line) => JSON.parse(line));
       front: portState(process.env.TP_FRONT_PORT, frontOpen),
       admin: portState(process.env.TP_ADMIN_PORT, adminOpen),
       minioPublic: minioEnabled ? { endpoint: minioPublicEndpoint, status: minioPublicOpen ? 'occupied' : 'free' } : { status: 'disabled' },
+          imageOrigin: {
+            endpoint: imageOrigin,
+            status: imageOriginOpen ? 'occupied' : 'free',
+            dataRootStatus: process.env.TP_IMAGE_ORIGIN_DATA_ROOT_STATUS || 'unchecked',
+          },
       flaresolverr: flaresolverrEnabled ? { endpoint: flaresolverrUrl, status: flaresolverrOpen ? 'occupied' : 'free' } : { status: 'disabled' },
     },
     "springProfile": process.env.SPRING_PROFILES_ACTIVE,
@@ -604,6 +743,15 @@ const processes = processLines.map((line) => JSON.parse(line));
       back: { port: Number(process.env.TP_BACKEND_PORT), tcp: backOpen, status: backOpen ? 'occupied' : 'unreachable' },
       front: { port: Number(process.env.TP_FRONT_PORT), tcp: frontOpen, status: frontOpen ? 'occupied' : 'unreachable' },
       dataQueryApp: { port: Number(process.env.TP_ADMIN_PORT), tcp: adminOpen, status: adminOpen ? 'occupied' : 'unreachable' },
+          imageOrigin: {
+            endpoint: imageOrigin,
+            tcp: imageOriginOpen,
+            status: imageOriginOpen && imageOriginPort !== '19001' ? 'occupied' : 'unreachable',
+            dataRootStatus: process.env.TP_IMAGE_ORIGIN_DATA_ROOT_STATUS || 'unchecked',
+            expectedDataDir: process.env.TP_IMAGE_ORIGIN_DATA_ROOT_EXPECTED || '',
+            actualDataDir: process.env.TP_IMAGE_ORIGIN_DATA_ROOT_ACTUAL || '',
+          },
+      imageCompat: { legacyOrigins, status: process.env.TP_IMAGE_COMPAT_STATUS || 'disabled' },
       minioPublic: { endpoint: minioPublicEndpoint, tcp: minioPublicOpen, status: minioEnabled ? (minioPublicOpen ? 'occupied' : 'unreachable') : 'disabled' },
       flaresolverr: { endpoint: flaresolverrUrl, tcp: flaresolverrOpen, status: flaresolverrEnabled ? (flaresolverrOpen ? 'occupied' : 'unreachable') : 'disabled' },
     },

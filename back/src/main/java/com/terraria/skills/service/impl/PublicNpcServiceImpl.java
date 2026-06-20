@@ -1244,15 +1244,15 @@ public class PublicNpcServiceImpl implements PublicNpcService {
 
     private String managedDisplayImageUrl(String value) {
         String text = trimToNull(value);
-        if (text == null || !managedImageUrlPolicy.isManagedImageUrl(text)) {
+        if (text == null) {
             return null;
         }
-        return text;
+        return managedImageUrlPolicy.normalizeManagedImagePath(text).orElse(null);
     }
 
     private String managedBuffImageUrl(String value) {
         String text = trimToNull(value);
-        return managedImageUrlPolicy.isManagedImageUrlForDomain(text, "buffs") ? text : null;
+        return managedImageUrlPolicy.normalizeManagedImagePathForDomain(text, "buffs").orElse(null);
     }
 
     private NpcSupplement getSupplement(Long gameId) {

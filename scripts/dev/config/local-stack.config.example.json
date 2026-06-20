@@ -36,8 +36,8 @@
   "minio": {
     "enabled": false,
     "credentialsFile": "scripts/dev/config/credentials.json",
-    "endpoint": "http://127.0.0.1:9000",
-    "publicEndpoint": "http://localhost:9000",
+    "endpoint": "http://127.0.0.1:19000",
+    "publicEndpoint": "http://localhost:19000",
     "bucket": "terrapedia-images",
     "objectPrefix": "items",
     "dataDir": "~/.local/share/terrapedia/minio/data",

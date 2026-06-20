@@ -1,6 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 const terrapediaBackendOrigin = (process.env.TERRAPEDIA_BACKEND_ORIGIN || 'http://localhost:18088').replace(/\/$/, '')
-const terrapediaMinioPublicOrigin = (process.env.TERRAPEDIA_MINIO_PUBLIC_ENDPOINT || 'http://localhost:9000').replace(/\/$/, '')
+const terrapediaImageOrigin = (process.env.TERRAPEDIA_IMAGE_ORIGIN || process.env.TERRAPEDIA_MINIO_PUBLIC_ENDPOINT || 'http://localhost:19000').replace(/\/$/, '')
 
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
@@ -25,8 +25,10 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     backendOrigin: terrapediaBackendOrigin,
+    imageOrigin: terrapediaImageOrigin,
     public: {
       apiBase: '/api',
+      imageOrigin: terrapediaImageOrigin,
     },
   },
 
@@ -37,7 +39,7 @@ export default defineNuxtConfig({
         changeOrigin: true,
       },
       '/terrapedia-images': {
-        target: `${terrapediaMinioPublicOrigin}/terrapedia-images`,
+        target: `${terrapediaImageOrigin}/terrapedia-images`,
         changeOrigin: true,
       },
     },

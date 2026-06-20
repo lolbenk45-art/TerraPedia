@@ -47,8 +47,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class PublicNpcServiceImplImageTest {
 
-    private static final String MANAGED_IMAGE = "http://localhost:9000/terrapedia-images/items/wiki/npcs/ab/guide.png";
-    private static final String CDN_BUFF_IMAGE = "https://cdn.example.com/terrapedia-images/buffs/wiki/ab/sharpened.png";
+    private static final String MANAGED_IMAGE = "/terrapedia-images/items/wiki/npcs/ab/guide.png";
+    private static final String CDN_BUFF_IMAGE = "/terrapedia-images/buffs/wiki/ab/sharpened.png";
     private static final String WIKI_IMAGE = "https://terraria.wiki.gg/images/Stingy%20Hornet.gif";
     private static final String STATIC_IMAGE = "/static/images/npcs/guide.png";
 
@@ -339,7 +339,7 @@ class PublicNpcServiceImplImageTest {
     void shouldParseManagedNpcWikiAssetsAndLivingPreferencesFromDetailEntityJson() {
         Npc npc = npc(17L, 17L, "Merchant", "Merchant");
         npc.setWikiAssetsJson("""
-            {"spriteImage":"http://localhost:9000/terrapedia-images/npcs/merchant.png","mapIconImage":"http://localhost:9000/terrapedia-images/npcs/merchant-map.png","dialogPortraitImage":"http://localhost:9000/terrapedia-images/npcs/merchant-dialog-portrait.png"}
+            {"spriteImage":"/terrapedia-images/npcs/merchant.png","mapIconImage":"/terrapedia-images/npcs/merchant-map.png","dialogPortraitImage":"/terrapedia-images/npcs/merchant-dialog-portrait.png"}
             """);
         npc.setLivingPreferencesJson("""
             [{"targetType":"biome","preference":"like","targetName":"Forest","targetNameZh":"森林"},{"targetType":"npc","preference":"hate","targetId":369,"targetName":"Angler","targetNameZh":"渔夫"},{"preference":"like","targetName":"Unknown neighbor","targetNameZh":"未知邻居"}]
@@ -348,19 +348,19 @@ class PublicNpcServiceImplImageTest {
         when(jdbcTemplate.queryForList(contains("FROM npcs WHERE deleted = 0 AND id IN (?)"), eq(369L)))
             .thenReturn(List.of(Map.of(
                 "id", 369L,
-                "imageUrl", "http://localhost:9000/terrapedia-images/npcs/angler.png",
+                "imageUrl", "/terrapedia-images/npcs/angler.png",
                 "wikiAssetsJson", """
-                    {"dialogPortraitImage":"http://localhost:9000/terrapedia-images/npcs/angler-dialog.png"}
+                    {"dialogPortraitImage":"/terrapedia-images/npcs/angler-dialog.png"}
                     """
             )));
 
         NpcDetailDTO detail = newService().getNpcById(npc.getId());
 
-        assertEquals("http://localhost:9000/terrapedia-images/npcs/merchant-dialog-portrait.png", detail.getWikiAssets().getDialogPortraitImage());
+        assertEquals("/terrapedia-images/npcs/merchant-dialog-portrait.png", detail.getWikiAssets().getDialogPortraitImage());
         assertEquals(3, detail.getLivingPreferences().size());
         assertEquals("biome", detail.getLivingPreferences().get(0).getTargetType());
         assertEquals("渔夫", detail.getLivingPreferences().get(1).getTargetNameZh());
-        assertEquals("http://localhost:9000/terrapedia-images/npcs/angler-dialog.png", detail.getLivingPreferences().get(1).getTargetImageUrl());
+        assertEquals("/terrapedia-images/npcs/angler-dialog.png", detail.getLivingPreferences().get(1).getTargetImageUrl());
         assertNull(detail.getLivingPreferences().get(2).getTargetType());
         assertEquals("未知邻居", detail.getLivingPreferences().get(2).getTargetNameZh());
     }
@@ -396,14 +396,14 @@ class PublicNpcServiceImplImageTest {
             "buffInternalName", "OnFire",
             "buffNameEn", "On Fire!",
             "buffNameZh", "着火了！",
-            "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/ab/sharpened.png"
+            "buffImage", "/terrapedia-images/buffs/wiki/ab/sharpened.png"
         )));
 
         PublicNpcServiceImpl service = newService();
         List<NpcBuffRelationDTO> result = service.getNpcBuffRelations(7L);
 
         assertEquals(1, result.size());
-        assertEquals("http://localhost:9000/terrapedia-images/buffs/wiki/ab/sharpened.png", result.get(0).getImageUrl());
+        assertEquals("/terrapedia-images/buffs/wiki/ab/sharpened.png", result.get(0).getImageUrl());
 
         ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
         verify(jdbcTemplate).queryForList(queryCaptor.capture(), any(Object[].class));
@@ -494,20 +494,20 @@ class PublicNpcServiceImplImageTest {
             Map.entry("itemId", 282L),
             Map.entry("itemName", "Glowstick"),
             Map.entry("itemInternalName", "Glowstick"),
-            Map.entry("itemImage", "http://localhost:9000/terrapedia-images/items/wiki/items/ab/glowstick.png")
+            Map.entry("itemImage", "/terrapedia-images/items/wiki/items/ab/glowstick.png")
         );
         Map<String, Object> shopRow = Map.ofEntries(
             Map.entry("id", 51L),
             Map.entry("itemId", 8L),
             Map.entry("itemName", "Torch"),
             Map.entry("itemInternalName", "Torch"),
-            Map.entry("itemImage", "http://localhost:9000/terrapedia-images/items/wiki/items/cd/torch.png")
+            Map.entry("itemImage", "/terrapedia-images/items/wiki/items/cd/torch.png")
         );
         Map<String, Object> buffRow = Map.of(
             "id", 61L,
             "buffId", 401L,
             "buffInternalName", "Sharpened",
-            "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/ab/sharpened.png"
+            "buffImage", "/terrapedia-images/buffs/wiki/ab/sharpened.png"
         );
         when(jdbcTemplate.queryForList(contains("WHERE nle.npc_id = ?"), eq(7L))).thenReturn(List.of(lootRow));
         when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries"), eq(7L))).thenReturn(List.of(shopRow));
@@ -516,14 +516,14 @@ class PublicNpcServiceImplImageTest {
 
         PublicNpcServiceImpl service = newService();
 
-        assertEquals("http://localhost:9000/terrapedia-images/items/wiki/items/ab/glowstick.png", service.getNpcLoot(7L, null, "Zombie").get(0).getImageUrl());
-        assertEquals("http://localhost:9000/terrapedia-images/items/wiki/items/cd/torch.png", service.getNpcShopEntries(7L).get(0).getImageUrl());
-        assertEquals("http://localhost:9000/terrapedia-images/buffs/wiki/ab/sharpened.png", service.getNpcBuffRelations(7L).get(0).getImageUrl());
+        assertEquals("/terrapedia-images/items/wiki/items/ab/glowstick.png", service.getNpcLoot(7L, null, "Zombie").get(0).getImageUrl());
+        assertEquals("/terrapedia-images/items/wiki/items/cd/torch.png", service.getNpcShopEntries(7L).get(0).getImageUrl());
+        assertEquals("/terrapedia-images/buffs/wiki/ab/sharpened.png", service.getNpcBuffRelations(7L).get(0).getImageUrl());
     }
 
     @Test
     void shouldResolveLootImageFromManagedItemImagesWhenItemsImageIsMissing() {
-        String managedLootImage = "http://localhost:9000/terrapedia-images/items/wiki/items/re/requiem.png";
+        String managedLootImage = "/terrapedia-images/items/wiki/items/re/requiem.png";
         when(jdbcTemplate.queryForList(contains("WHERE nle.npc_id = ?"), eq(253L))).thenReturn(List.of(Map.ofEntries(
             Map.entry("id", 401L),
             Map.entry("itemId", 5001L),
@@ -547,7 +547,7 @@ class PublicNpcServiceImplImageTest {
 
     @Test
     void shouldPreferManagedItemImageResolverOverWikiLootItemImage() {
-        String managedLootImage = "http://localhost:9000/terrapedia-images/items/wiki/items/de/death-sickle.png";
+        String managedLootImage = "/terrapedia-images/items/wiki/items/de/death-sickle.png";
         when(jdbcTemplate.queryForList(contains("WHERE nle.npc_id = ?"), eq(253L))).thenReturn(List.of(Map.ofEntries(
             Map.entry("id", 402L),
             Map.entry("itemId", 1327L),
@@ -565,7 +565,7 @@ class PublicNpcServiceImplImageTest {
 
     @Test
     void shouldResolveShopImageFromManagedItemImagesWhenItemsImageIsMissing() {
-        String managedShopImage = "http://localhost:9000/terrapedia-images/items/wiki/items/to/torch.png";
+        String managedShopImage = "/terrapedia-images/items/wiki/items/to/torch.png";
         when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries"), eq(22L))).thenReturn(List.of(Map.ofEntries(
             Map.entry("id", 501L),
             Map.entry("itemId", 8L),
@@ -589,8 +589,8 @@ class PublicNpcServiceImplImageTest {
 
     @Test
     void shouldExposeStructuredCoinPriceTokensForNpcShopEntries() {
-        String silverIcon = "http://localhost:9000/terrapedia-images/items/wiki/coins/silver-coin.png";
-        String copperIcon = "http://localhost:9000/terrapedia-images/items/wiki/coins/copper-coin.png";
+        String silverIcon = "/terrapedia-images/items/wiki/coins/silver-coin.png";
+        String copperIcon = "/terrapedia-images/items/wiki/coins/copper-coin.png";
         when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries"), eq(17L))).thenReturn(List.of(Map.ofEntries(
             Map.entry("id", 601L),
             Map.entry("itemId", 8L),
@@ -619,9 +619,9 @@ class PublicNpcServiceImplImageTest {
 
     @Test
     void shouldPreferShopPriceTextWhenItDisagreesWithItemBuyPrice() {
-        String goldIcon = "http://localhost:9000/terrapedia-images/items/wiki/coins/gold-coin.png";
-        String silverIcon = "http://localhost:9000/terrapedia-images/items/wiki/coins/silver-coin.png";
-        String copperIcon = "http://localhost:9000/terrapedia-images/items/wiki/coins/copper-coin.png";
+        String goldIcon = "/terrapedia-images/items/wiki/coins/gold-coin.png";
+        String silverIcon = "/terrapedia-images/items/wiki/coins/silver-coin.png";
+        String copperIcon = "/terrapedia-images/items/wiki/coins/copper-coin.png";
         when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries"), eq(17L))).thenReturn(List.of(
             Map.ofEntries(
                 Map.entry("id", 701L),
@@ -664,8 +664,8 @@ class PublicNpcServiceImplImageTest {
 
     @Test
     void shouldExposeManagedNormalMoneyDropsForHostileNonBossNpcDetail() {
-        String goldIcon = "http://localhost:9000/terrapedia-images/items/wiki/coins/gold-coin.png";
-        String copperIcon = "http://localhost:9000/terrapedia-images/items/wiki/coins/copper-coin.png";
+        String goldIcon = "/terrapedia-images/items/wiki/coins/gold-coin.png";
+        String copperIcon = "/terrapedia-images/items/wiki/coins/copper-coin.png";
         Npc npc = npc(42L, 42L, "AngryBones", "Angry Bones");
         npc.setValue(10060);
         npc.setIsFriendly(false);
@@ -696,8 +696,8 @@ class PublicNpcServiceImplImageTest {
 
     @Test
     void shouldExposeNpcMoneyDropsFromValueAndDifficultyExtras() {
-        String goldIcon = "http://localhost:9000/terrapedia-images/items/wiki/coins/gold-coin.png";
-        String silverIcon = "http://localhost:9000/terrapedia-images/items/wiki/coins/silver-coin.png";
+        String goldIcon = "/terrapedia-images/items/wiki/coins/gold-coin.png";
+        String silverIcon = "/terrapedia-images/items/wiki/coins/silver-coin.png";
         Npc npc = npc(473L, 473L, "BigMimicCorruption", "Corrupt Mimic");
         npc.setValue(30000);
         npc.setRawJson("""
@@ -743,9 +743,9 @@ class PublicNpcServiceImplImageTest {
         when(npcMapper.selectById(473L)).thenReturn(npc);
         when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
         when(jdbcTemplate.queryForList(contains("FROM buffs"), any(Object[].class))).thenReturn(List.of(
-            Map.of("id", 20L, "buffId", 20L, "buffSourceId", 20, "buffInternalName", "Poisoned", "buffNameEn", "Poisoned", "buffNameZh", "中毒", "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/poisoned.png"),
-            Map.of("id", 375L, "buffId", 375L, "buffSourceId", 375, "buffInternalName", "Hemorrhage", "buffNameEn", "Hemorrhage", "buffNameZh", "出血", "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/hemorrhage.png"),
-            Map.of("id", 24L, "buffId", 24L, "buffSourceId", 24, "buffInternalName", "OnFire", "buffNameEn", "On Fire!", "buffNameZh", "着火了！", "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/onfire.png")
+            Map.of("id", 20L, "buffId", 20L, "buffSourceId", 20, "buffInternalName", "Poisoned", "buffNameEn", "Poisoned", "buffNameZh", "中毒", "buffImage", "/terrapedia-images/buffs/wiki/poisoned.png"),
+            Map.of("id", 375L, "buffId", 375L, "buffSourceId", 375, "buffInternalName", "Hemorrhage", "buffNameEn", "Hemorrhage", "buffNameZh", "出血", "buffImage", "/terrapedia-images/buffs/wiki/hemorrhage.png"),
+            Map.of("id", 24L, "buffId", 24L, "buffSourceId", 24, "buffInternalName", "OnFire", "buffNameEn", "On Fire!", "buffNameZh", "着火了！", "buffImage", "/terrapedia-images/buffs/wiki/onfire.png")
         ));
 
         List<NpcBuffRelationDTO> result = newService().getNpcBuffRelations(473L);
@@ -755,7 +755,7 @@ class PublicNpcServiceImplImageTest {
         assertNull(result.get(0).getId());
         assertEquals(20, result.get(0).getBuffSourceId());
         assertEquals("中毒", result.get(0).getBuffNameZh());
-        assertEquals("http://localhost:9000/terrapedia-images/buffs/wiki/poisoned.png", result.get(0).getImageUrl());
+        assertEquals("/terrapedia-images/buffs/wiki/poisoned.png", result.get(0).getImageUrl());
         assertEquals("immune", result.get(1).getRelationType());
         assertNull(result.get(1).getId());
         assertEquals(375, result.get(1).getBuffSourceId());
@@ -778,8 +778,8 @@ class PublicNpcServiceImplImageTest {
         when(npcMapper.selectById(473L)).thenReturn(npc);
         when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
         when(jdbcTemplate.queryForList(contains("FROM buffs"), any(Object[].class))).thenReturn(List.of(
-            Map.of("id", 20L, "buffId", 20L, "buffSourceId", 20, "buffInternalName", "Poisoned", "buffNameEn", "Poisoned", "buffNameZh", "中毒", "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/poisoned.png"),
-            Map.of("id", 375L, "buffId", 375L, "buffSourceId", 375, "buffInternalName", "Hemorrhage", "buffNameEn", "Hemorrhage", "buffNameZh", "出血", "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/hemorrhage.png")
+            Map.of("id", 20L, "buffId", 20L, "buffSourceId", 20, "buffInternalName", "Poisoned", "buffNameEn", "Poisoned", "buffNameZh", "中毒", "buffImage", "/terrapedia-images/buffs/wiki/poisoned.png"),
+            Map.of("id", 375L, "buffId", 375L, "buffSourceId", 375, "buffInternalName", "Hemorrhage", "buffNameEn", "Hemorrhage", "buffNameZh", "出血", "buffImage", "/terrapedia-images/buffs/wiki/hemorrhage.png")
         ));
 
         List<NpcBuffRelationDTO> result = newService().getNpcBuffRelations(473L);
@@ -796,8 +796,8 @@ class PublicNpcServiceImplImageTest {
         when(npcMapper.selectById(473L)).thenReturn(npc);
         when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
         when(jdbcTemplate.queryForList(contains("FROM buffs"), any(Object[].class))).thenReturn(List.of(
-            Map.of("id", 20L, "buffId", 20L, "buffSourceId", 20, "buffInternalName", "Poisoned", "buffNameEn", "Poisoned", "buffNameZh", "中毒", "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/poisoned.png"),
-            Map.of("id", 375L, "buffId", 375L, "buffSourceId", 375, "buffInternalName", "Hemorrhage", "buffNameEn", "Hemorrhage", "buffNameZh", "出血", "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/hemorrhage.png")
+            Map.of("id", 20L, "buffId", 20L, "buffSourceId", 20, "buffInternalName", "Poisoned", "buffNameEn", "Poisoned", "buffNameZh", "中毒", "buffImage", "/terrapedia-images/buffs/wiki/poisoned.png"),
+            Map.of("id", 375L, "buffId", 375L, "buffSourceId", 375, "buffInternalName", "Hemorrhage", "buffNameEn", "Hemorrhage", "buffNameZh", "出血", "buffImage", "/terrapedia-images/buffs/wiki/hemorrhage.png")
         ));
 
         NpcDetailDTO detail = newService().getNpcById(473L);
@@ -819,7 +819,7 @@ class PublicNpcServiceImplImageTest {
                 "buffInternalName", "OnFire",
                 "buffNameEn", "On Fire!",
                 "buffNameZh", "着火了！",
-                "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/onfire.png"
+                "buffImage", "/terrapedia-images/buffs/wiki/onfire.png"
             ),
             Map.of(
                 "id", 2L,
@@ -829,12 +829,12 @@ class PublicNpcServiceImplImageTest {
                 "buffInternalName", "Poisoned",
                 "buffNameEn", "Poisoned",
                 "buffNameZh", "中毒",
-                "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/poisoned.png"
+                "buffImage", "/terrapedia-images/buffs/wiki/poisoned.png"
             )
         ));
         when(jdbcTemplate.queryForList(contains("FROM buffs"), any(Object[].class))).thenReturn(List.of(
-            Map.of("id", 20L, "buffId", 20L, "buffSourceId", 20, "buffInternalName", "Poisoned", "buffNameEn", "Poisoned", "buffNameZh", "中毒", "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/poisoned.png"),
-            Map.of("id", 375L, "buffId", 375L, "buffSourceId", 375, "buffInternalName", "Hemorrhage", "buffNameEn", "Hemorrhage", "buffNameZh", "出血", "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/hemorrhage.png")
+            Map.of("id", 20L, "buffId", 20L, "buffSourceId", 20, "buffInternalName", "Poisoned", "buffNameEn", "Poisoned", "buffNameZh", "中毒", "buffImage", "/terrapedia-images/buffs/wiki/poisoned.png"),
+            Map.of("id", 375L, "buffId", 375L, "buffSourceId", 375, "buffInternalName", "Hemorrhage", "buffNameEn", "Hemorrhage", "buffNameZh", "出血", "buffImage", "/terrapedia-images/buffs/wiki/hemorrhage.png")
         ));
 
         List<NpcBuffRelationDTO> result = newService().getNpcBuffRelations(473L);
@@ -872,7 +872,7 @@ class PublicNpcServiceImplImageTest {
                 "buffInternalName", "OnFire",
                 "buffNameEn", "On Fire!",
                 "buffNameZh", "着火了！",
-                "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/onfire.png"
+                "buffImage", "/terrapedia-images/buffs/wiki/onfire.png"
             )
         ));
         when(jdbcTemplate.queryForList(contains("FROM buffs"), any(Object[].class)))
@@ -922,7 +922,7 @@ class PublicNpcServiceImplImageTest {
 
     @Test
     void shouldKeepManagedItemsImageFallbackWhenResolverHasNoCachedImage() {
-        String managedLootImage = "http://localhost:9000/terrapedia-images/items/wiki/items/gl/glowstick.png";
+        String managedLootImage = "/terrapedia-images/items/wiki/items/gl/glowstick.png";
         when(jdbcTemplate.queryForList(contains("WHERE nle.npc_id = ?"), eq(7L))).thenReturn(List.of(Map.ofEntries(
             Map.entry("id", 41L),
             Map.entry("itemId", 282L),
@@ -1052,19 +1052,19 @@ class PublicNpcServiceImplImageTest {
             @Override
             public boolean isManagedImageUrl(String value) {
                 return value != null
-                    && (value.startsWith("http://localhost:9000/terrapedia-images/items/")
-                    || value.startsWith("http://localhost:9000/terrapedia-images/buffs/")
-                    || value.startsWith("http://localhost:9000/terrapedia-images/npcs/")
-                    || value.startsWith("https://cdn.example.com/terrapedia-images/buffs/"));
+                    && (value.startsWith("/terrapedia-images/items/")
+                    || value.startsWith("/terrapedia-images/buffs/")
+                    || value.startsWith("/terrapedia-images/npcs/")
+                    || value.startsWith("/terrapedia-images/buffs/"));
             }
 
             @Override
             public List<String> trustedManagedImageUrlPrefixes() {
                 return List.of(
-                    "http://localhost:9000/terrapedia-images/items/",
-                    "http://localhost:9000/terrapedia-images/buffs/",
-                    "http://localhost:9000/terrapedia-images/npcs/",
-                    "https://cdn.example.com/terrapedia-images/buffs/"
+                    "/terrapedia-images/items/",
+                    "/terrapedia-images/buffs/",
+                    "/terrapedia-images/npcs/",
+                    "/terrapedia-images/buffs/"
                 );
             }
         };

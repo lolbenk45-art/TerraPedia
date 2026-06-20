@@ -138,7 +138,7 @@ public class PublicItemRelationController {
             return null;
         }
         String trimmed = value.trim();
-        return managedImageUrlPolicy.isManagedImageUrl(trimmed) ? trimmed : null;
+        return managedImageUrlPolicy.normalizeManagedImagePath(trimmed).orElse(null);
     }
 
     private String publicText(Long itemId, ItemSourceDTO source, String fieldName, String value) {

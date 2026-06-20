@@ -31,9 +31,9 @@ import static org.mockito.Mockito.doThrow;
 @ExtendWith(MockitoExtension.class)
 class PublicBuffServiceImplTest {
 
-    private static final String CDN_BUFF_IMAGE_URL = "https://cdn.example.com/terrapedia-images/buffs/wiki/ab/sharpened.png";
-    private static final String CDN_NPC_IMAGE_URL = "https://cdn.example.com/terrapedia-images/npcs/wiki/ab/hornet.gif";
-    private static final String CDN_ITEM_IMAGE_URL = "https://cdn.example.com/terrapedia-images/items/wiki/ab/cursed-arrow.png";
+    private static final String CDN_BUFF_IMAGE_URL = "/terrapedia-images/buffs/wiki/ab/sharpened.png";
+    private static final String CDN_NPC_IMAGE_URL = "/terrapedia-images/npcs/wiki/ab/hornet.gif";
+    private static final String CDN_ITEM_IMAGE_URL = "/terrapedia-images/items/wiki/ab/cursed-arrow.png";
 
     @Mock
     private BuffMapper buffMapper;
@@ -610,7 +610,7 @@ class PublicBuffServiceImplTest {
         when(buffMapper.selectById(90039L)).thenReturn(buff);
         when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(39))).thenReturn(List.of(Map.of(
             "source_items_json",
-            "[{\"sourceId\":47,\"internalName\":\"CursedArrow\",\"name\":\"Cursed Arrow\",\"imageUrl\":\"https://cdn.example.com/terrapedia-images/items/wiki/cursed-arrow.png\"}]",
+            "[{\"sourceId\":47,\"internalName\":\"CursedArrow\",\"name\":\"Cursed Arrow\",\"imageUrl\":\"/terrapedia-images/items/wiki/cursed-arrow.png\"}]",
             "immune_npcs_json",
             "[]",
             "source_evidence_json",
@@ -688,7 +688,7 @@ class PublicBuffServiceImplTest {
             "source_items_json",
             "[]",
             "inflicting_npcs_json",
-            "[{\"npc_id\":122,\"npc_internal_name\":\"HoneySlime\",\"npc_name\":\"Honey Slime\",\"npc_name_zh\":\"蜂蜜史莱姆\",\"npc_image_url\":\"https://cdn.example.com/terrapedia-images/npcs/wiki/honey-slime.gif\",\"source_section\":\"From NPCs\"}]",
+            "[{\"npc_id\":122,\"npc_internal_name\":\"HoneySlime\",\"npc_name\":\"Honey Slime\",\"npc_name_zh\":\"蜂蜜史莱姆\",\"npc_image_url\":\"/terrapedia-images/npcs/wiki/honey-slime.gif\",\"source_section\":\"From NPCs\"}]",
             "immune_npcs_json",
             "[]",
             "source_evidence_json",
@@ -708,7 +708,7 @@ class PublicBuffServiceImplTest {
         assertEquals("HoneySlime", honeySlime.getInternalName());
         assertEquals("Honey Slime", honeySlime.getName());
         assertEquals("蜂蜜史莱姆", honeySlime.getNameZh());
-        assertEquals("https://cdn.example.com/terrapedia-images/npcs/wiki/honey-slime.gif", honeySlime.getImageUrl());
+        assertEquals("/terrapedia-images/npcs/wiki/honey-slime.gif", honeySlime.getImageUrl());
         assertEquals("From NPCs", honeySlime.getSourceSection());
     }
 
@@ -797,7 +797,7 @@ class PublicBuffServiceImplTest {
             .when(jdbcTemplate).queryForList(argThat(sql -> sql != null && sql.contains("source_evidence_json")), eq(39));
         when(jdbcTemplate.queryForList(argThat(sql -> sql != null && sql.contains("source_items_json") && !sql.contains("source_evidence_json")), eq(39))).thenReturn(List.of(Map.of(
             "source_items_json",
-            "[{\"sourceId\":545,\"internalName\":\"CursedArrow\",\"name\":\"Cursed Arrow\",\"imageUrl\":\"https://cdn.example.com/terrapedia-images/items/wiki/cursed-arrow.png\"}]"
+            "[{\"sourceId\":545,\"internalName\":\"CursedArrow\",\"name\":\"Cursed Arrow\",\"imageUrl\":\"/terrapedia-images/items/wiki/cursed-arrow.png\"}]"
         )));
         when(jdbcTemplate.queryForList(argThat(sql -> sql != null && sql.contains("immune_npcs_json") && !sql.contains("source_evidence_json")), eq(39))).thenReturn(List.of());
         when(jdbcTemplate.queryForList(contains("FROM buff_source_items"), eq(90039L))).thenReturn(List.of());
@@ -903,7 +903,7 @@ class PublicBuffServiceImplTest {
                 "gameId", 455,
                 "internalName", "CultistDragonBody1",
                 "name", "Phantasm Dragon",
-                "imageUrl", "https://cdn.example.com/terrapedia-images/npcs/wiki/ab/dragon-body.png"
+                "imageUrl", "/terrapedia-images/npcs/wiki/ab/dragon-body.png"
             ),
             Map.of(
                 "id", 459L,
@@ -912,7 +912,7 @@ class PublicBuffServiceImplTest {
                 "gameId", 459,
                 "internalName", "CultistDragonTail",
                 "name", "Phantasm Dragon",
-                "imageUrl", "https://cdn.example.com/terrapedia-images/npcs/wiki/ab/dragon-tail.png"
+                "imageUrl", "/terrapedia-images/npcs/wiki/ab/dragon-tail.png"
             )
         ));
 
@@ -968,7 +968,7 @@ class PublicBuffServiceImplTest {
                 "gameId", 114,
                 "internalName", "WallofFleshEye",
                 "name", "Wall of Flesh",
-                "imageUrl", "https://cdn.example.com/terrapedia-images/npcs/wiki/ab/wall-eye.png"
+                "imageUrl", "/terrapedia-images/npcs/wiki/ab/wall-eye.png"
             )
         ));
 
@@ -986,7 +986,7 @@ class PublicBuffServiceImplTest {
         assertEquals(114L, wallOfFleshEye.getId());
         assertEquals(114, wallOfFleshEye.getSourceId());
         assertEquals("WallofFleshEye", wallOfFleshEye.getInternalName());
-        assertEquals("https://cdn.example.com/terrapedia-images/npcs/wiki/ab/wall-eye.png", wallOfFleshEye.getImageUrl());
+        assertEquals("/terrapedia-images/npcs/wiki/ab/wall-eye.png", wallOfFleshEye.getImageUrl());
     }
 
     @Test
@@ -1029,7 +1029,7 @@ class PublicBuffServiceImplTest {
                 "gameId", 577,
                 "internalName", "DD2OgreT3",
                 "name", "Ogre",
-                "imageUrl", "https://cdn.example.com/terrapedia-images/npcs/wiki/ab/ogre-t3.png"
+                "imageUrl", "/terrapedia-images/npcs/wiki/ab/ogre-t3.png"
             )
         ));
 
@@ -1043,7 +1043,7 @@ class PublicBuffServiceImplTest {
         assertEquals(CDN_NPC_IMAGE_URL, detail.getImmuneNpcs().get(0).getImageUrl());
         assertEquals(577L, detail.getImmuneNpcs().get(1).getId());
         assertEquals("DD2OgreT3", detail.getImmuneNpcs().get(1).getInternalName());
-        assertEquals("https://cdn.example.com/terrapedia-images/npcs/wiki/ab/ogre-t3.png", detail.getImmuneNpcs().get(1).getImageUrl());
+        assertEquals("/terrapedia-images/npcs/wiki/ab/ogre-t3.png", detail.getImmuneNpcs().get(1).getImageUrl());
     }
 
     @Test
@@ -1124,7 +1124,7 @@ class PublicBuffServiceImplTest {
                 "gameId", 577,
                 "internalName", "DD2OgreT3",
                 "name", "Ogre",
-                "imageUrl", "https://cdn.example.com/terrapedia-images/npcs/wiki/ab/ogre-t3.png"
+                "imageUrl", "/terrapedia-images/npcs/wiki/ab/ogre-t3.png"
             )
         ));
 
@@ -1177,7 +1177,7 @@ class PublicBuffServiceImplTest {
                 "gameId", 577,
                 "internalName", "DD2OgreT3",
                 "name", "Ogre",
-                "imageUrl", "https://cdn.example.com/terrapedia-images/npcs/wiki/ab/ogre-t3.png"
+                "imageUrl", "/terrapedia-images/npcs/wiki/ab/ogre-t3.png"
             )
         ));
 
@@ -1198,15 +1198,15 @@ class PublicBuffServiceImplTest {
         return new ManagedImageUrlPolicy() {
             @Override
             public boolean isManagedImageUrl(String value) {
-                return value != null && value.startsWith("https://cdn.example.com/terrapedia-images/");
+                return value != null && value.startsWith("/terrapedia-images/");
             }
 
             @Override
             public List<String> trustedManagedImageUrlPrefixes() {
                 return List.of(
-                    "https://cdn.example.com/terrapedia-images/buffs/",
-                    "https://cdn.example.com/terrapedia-images/npcs/",
-                    "https://cdn.example.com/terrapedia-images/items/"
+                    "/terrapedia-images/buffs/",
+                    "/terrapedia-images/npcs/",
+                    "/terrapedia-images/items/"
                 );
             }
         };

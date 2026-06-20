@@ -77,7 +77,7 @@ public class PublicProjectileServiceImpl implements PublicProjectileService {
         if (value == null || value.isBlank()) {
             return null;
         }
-        return managedImageUrlPolicy.isManagedImageUrl(value) ? value.trim() : null;
+        return managedImageUrlPolicy.normalizeManagedImagePath(value).orElse(null);
     }
 
     private String normalizeSortBy(String sortBy) {

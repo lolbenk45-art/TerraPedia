@@ -38,6 +38,67 @@ function env(name, value) {
   return String(raw);
 }
 
+function trimTrailingSlash(value) {
+  return String(value || '').replace(/\/+$/, '');
+}
+
+function originPort(value) {
+  try {
+    const url = new URL(value);
+    return url.port || (url.protocol === 'https:' ? '443' : '80');
+  } catch {
+    return '';
+  }
+}
+
+function isLegacyImageOrigin(value) {
+  try {
+    const url = new URL(value);
+    const port = url.port || (url.protocol === 'https:' ? '443' : '80');
+    return port === '9000' && ['localhost', '127.0.0.1'].includes(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function isConsoleImageOrigin(value) {
+  return originPort(value) === '19001';
+}
+
+function tcpOpen(endpoint, timeoutMs = 300) {
+  return new Promise((resolve) => {
+    let url;
+    try {
+      url = new URL(endpoint);
+    } catch {
+      resolve(false);
+      return;
+    }
+    import('node:net').then(({ default: net }) => {
+      const socket = new net.Socket();
+      let done = false;
+      const finish = (value) => {
+        if (done) return;
+        done = true;
+        socket.destroy();
+        resolve(value);
+      };
+      socket.setTimeout(timeoutMs);
+      socket.once('connect', () => finish(true));
+      socket.once('timeout', () => finish(false));
+      socket.once('error', () => finish(false));
+      socket.connect(Number(url.port || (url.protocol === 'https:' ? 443 : 80)), url.hostname);
+    }).catch(() => resolve(false));
+  });
+}
+
+async function firstReachable(candidates) {
+  for (const candidate of candidates) {
+    if (await tcpOpen(candidate)) return candidate;
+  }
+  return '';
+}
+
 function shellQuote(value) {
   return `'${String(value).replaceAll("'", "'\\''")}'`;
 }
@@ -46,6 +107,16 @@ const dbHost = env('TERRAPEDIA_DB_HOST', get(['database', 'host'], '127.0.0.1'))
 const dbPort = env('TERRAPEDIA_DB_PORT', get(['database', 'port'], 3306));
 const dbName = env('TERRAPEDIA_DB_NAME', get(['database', 'name'], 'terria_v1_local'));
 const mailUsername = env('TERRAPEDIA_MAIL_USERNAME', get(['mail', 'username'], ''));
+const minioEndpoint = trimTrailingSlash(env('TERRAPEDIA_MINIO_ENDPOINT', get(['minio', 'endpoint'], 'http://127.0.0.1:19000')));
+const minioPublicEndpoint = trimTrailingSlash(env('TERRAPEDIA_MINIO_PUBLIC_ENDPOINT', get(['minio', 'publicEndpoint'], 'http://localhost:19000')));
+const explicitImageOrigin = trimTrailingSlash(env('TERRAPEDIA_IMAGE_ORIGIN', ''));
+let imageOrigin = explicitImageOrigin || minioPublicEndpoint || minioEndpoint || 'http://localhost:19000';
+if (!explicitImageOrigin && (isLegacyImageOrigin(imageOrigin) || isConsoleImageOrigin(imageOrigin))) {
+  imageOrigin = await firstReachable(['http://localhost:19000', 'http://127.0.0.1:19000']) || 'http://localhost:19000';
+}
+if (isConsoleImageOrigin(imageOrigin)) {
+  imageOrigin = isConsoleImageOrigin(minioEndpoint) ? 'http://localhost:19000' : (minioEndpoint || 'http://localhost:19000');
+}
 
 const values = {
   TP_REPO_ROOT: root,
@@ -72,8 +143,11 @@ const values = {
   TP_USER_TOKEN_SECRET: env('TERRAPEDIA_USER_TOKEN_SECRET', get(['auth', 'user', 'tokenSecret'], '')),
   TP_MINIO_ENABLED: env('TERRAPEDIA_MINIO_ENABLED', get(['minio', 'enabled'], false)),
   TP_MINIO_CREDENTIALS_FILE: env('TERRAPEDIA_MINIO_CREDENTIALS_FILE', get(['minio', 'credentialsFile'], '')),
-  TP_MINIO_ENDPOINT: env('TERRAPEDIA_MINIO_ENDPOINT', get(['minio', 'endpoint'], '')),
-  TP_MINIO_PUBLIC_ENDPOINT: env('TERRAPEDIA_MINIO_PUBLIC_ENDPOINT', get(['minio', 'publicEndpoint'], '')),
+  TP_MINIO_ENDPOINT: minioEndpoint,
+  TP_MINIO_PUBLIC_ENDPOINT: minioPublicEndpoint,
+  TP_IMAGE_ORIGIN: imageOrigin,
+  TP_LEGACY_IMAGE_ORIGINS: env('TERRAPEDIA_LEGACY_IMAGE_ORIGINS', 'http://localhost:9000,http://127.0.0.1:9000'),
+  TP_IMAGE_COMPAT_PROXY_ENABLED: env('TERRAPEDIA_IMAGE_COMPAT_PROXY_ENABLED', true),
   TP_MINIO_BUCKET: env('TERRAPEDIA_MINIO_BUCKET', get(['minio', 'bucket'], 'terrapedia-images')),
   TP_MINIO_OBJECT_PREFIX: env('TERRAPEDIA_MINIO_OBJECT_PREFIX', get(['minio', 'objectPrefix'], 'items')),
   TP_MINIO_DATA_DIR: env('TERRAPEDIA_MINIO_DATA_DIR', get(['minio', 'dataDir'], `${process.env.HOME || root}/.local/share/terrapedia/minio/data`)),

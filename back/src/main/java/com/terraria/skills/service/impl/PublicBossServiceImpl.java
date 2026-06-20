@@ -773,7 +773,7 @@ public class PublicBossServiceImpl implements PublicBossService {
         if (text == null) {
             return null;
         }
-        return managedImageUrlPolicy.isManagedImageUrlForDomain(text, "bosses") ? text : null;
+        return managedImageUrlPolicy.normalizeManagedImagePathForDomain(text, "bosses").orElse(null);
     }
 
     private String managedImageOrNull(String value) {
@@ -781,7 +781,7 @@ public class PublicBossServiceImpl implements PublicBossService {
         if (text == null) {
             return null;
         }
-        return managedImageUrlPolicy.isManagedImageUrl(text) ? text : null;
+        return managedImageUrlPolicy.normalizeManagedImagePath(text).orElse(null);
     }
 
     private String trimToNull(Object value) {

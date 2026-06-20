@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -48,18 +49,18 @@ class WikiImageResponseSanitizerAdviceTest {
 
         item = sanitizedData(advice, item);
 
-        assertEquals("http://localhost:9000/terrapedia-images/items/wiki/Foo.png", item.get("imageUrl"));
+        assertEquals("/terrapedia-images/items/wiki/Foo.png", item.get("imageUrl"));
         assertEquals("https://terraria.wiki.gg/wiki/Foo", item.get("sourcePageUrl"));
-        assertEquals("http://localhost:9000/terrapedia-images/items/existing.png", item.get("iconUrl"));
+        assertEquals("/terrapedia-images/items/existing.png", item.get("iconUrl"));
         @SuppressWarnings("unchecked")
         Map<String, Object> sanitizedNestedImage = (Map<String, Object>) ((List<?>) item.get("images")).get(0);
         assertEquals("https://static.wikia.nocookie.net/terraria_gamepedia/images/Bar.png", nestedImage.get("originalUrl"));
-        assertEquals("http://localhost:9000/terrapedia-images/items/wiki/Bar.png", sanitizedNestedImage.get("originalUrl"));
+        assertEquals("/terrapedia-images/items/wiki/Bar.png", sanitizedNestedImage.get("originalUrl"));
         assertEquals("https://terraria.wiki.gg/wiki/File:Bar.png", nestedImage.get("wikiPageUrl"));
         @SuppressWarnings("unchecked")
         Map<String, String> sanitizedCoinIcons = (Map<String, String>) item.get("coinIcons");
         assertEquals("https://terraria.wiki.gg/images/Gold_Coin.png", coinIcons.get("gold"));
-        assertEquals("http://localhost:9000/terrapedia-images/items/wiki/Gold_Coin.png", sanitizedCoinIcons.get("gold"));
+        assertEquals("/terrapedia-images/items/wiki/Gold_Coin.png", sanitizedCoinIcons.get("gold"));
         assertEquals(3, localizationService.getCachedLocalizationCalls());
         assertEquals(0, localizationService.getBlockingLocalizationCalls());
     }
@@ -105,10 +106,10 @@ class WikiImageResponseSanitizerAdviceTest {
 
         payload = sanitizedData(advice, payload);
 
-        assertEquals("http://localhost:9000/terrapedia-images/items/wiki/Buff.png", payload.get("imagePath"));
-        assertEquals("http://localhost:9000/terrapedia-images/items/wiki/Male.png", payload.get("maleImages"));
+        assertEquals("/terrapedia-images/items/wiki/Buff.png", payload.get("imagePath"));
+        assertEquals("/terrapedia-images/items/wiki/Male.png", payload.get("maleImages"));
         assertEquals(
-            "http://localhost:9000/terrapedia-images/items/wiki/Female.png, http://localhost:9000/terrapedia-images/items/wiki/Special.png",
+            "/terrapedia-images/items/wiki/Female.png, /terrapedia-images/items/wiki/Special.png",
             payload.get("femaleImages")
         );
         assertEquals("https://terraria.wiki.gg/wiki/File:Special.png", payload.get("specialImages"));
@@ -134,9 +135,9 @@ class WikiImageResponseSanitizerAdviceTest {
         payload = sanitizedData(advice, payload);
 
         assertEquals("https://terraria.wiki.gg/images/Array.png", thumbnails[0]);
-        assertEquals("http://localhost:9000/terrapedia-images/items/wiki/Array.png", ((String[]) payload.get("thumbnails"))[0]);
+        assertEquals("/terrapedia-images/items/wiki/Array.png", ((String[]) payload.get("thumbnails"))[0]);
         assertEquals(
-            List.of("http://localhost:9000/terrapedia-images/items/wiki/Collection.png"),
+            List.of("/terrapedia-images/items/wiki/Collection.png"),
             new ArrayList<>((Collection<String>) payload.get("icons"))
         );
         assertEquals(2, localizationService.getCachedLocalizationCalls());
@@ -164,10 +165,10 @@ class WikiImageResponseSanitizerAdviceTest {
 
         payload = sanitizedData(advice, payload);
 
-        assertEquals("<img src=\"http://localhost:9000/terrapedia-images/items/wiki/Article.png\">", payload.get("contentHtml"));
-        assertEquals("{\"imageUrl\":\"http://localhost:9000/terrapedia-images/items/wiki/Raw.png\"}", payload.get("rawJson"));
+        assertEquals("<img src=\"/terrapedia-images/items/wiki/Article.png\">", payload.get("contentHtml"));
+        assertEquals("{\"imageUrl\":\"/terrapedia-images/items/wiki/Raw.png\"}", payload.get("rawJson"));
         assertEquals("report: https://terraria.wiki.gg/images/Report.png", payload.get("content"));
-        assertEquals("[{\"sourcePage\":\"http://localhost:9000/terrapedia-images/items/wiki/Zoologist.png\"}]", payload.get("sourceNpcsJson"));
+        assertEquals("[{\"sourcePage\":\"/terrapedia-images/items/wiki/Zoologist.png\"}]", payload.get("sourceNpcsJson"));
         assertEquals(3, localizationService.getCachedLocalizationCalls());
     }
 
@@ -188,9 +189,9 @@ class WikiImageResponseSanitizerAdviceTest {
 
         payload = sanitizedData(advice, payload);
 
-        assertEquals("http://localhost:9000/terrapedia-images/items/wiki/Original.png", payload.get("imageOriginalUrl"));
+        assertEquals("/terrapedia-images/items/wiki/Original.png", payload.get("imageOriginalUrl"));
         assertNull(payload.get("imageCachedUrl"));
-        assertEquals("http://localhost:9000/terrapedia-images/items/wiki/Proto.png", payload.get("imageUrl"));
+        assertEquals("/terrapedia-images/items/wiki/Proto.png", payload.get("imageUrl"));
         assertEquals(3, localizationService.getCachedLocalizationCalls());
     }
 
@@ -213,7 +214,7 @@ class WikiImageResponseSanitizerAdviceTest {
         assertNotSame(image, sanitizedAggregate.getImages().get(0));
         assertEquals("https://terraria.wiki.gg/images/Cached.png", image.getOriginalUrl());
         assertNull(sanitizedAggregate.getImages().get(0).getOriginalUrl());
-        assertEquals("http://localhost:9000/terrapedia-images/items/wiki/Cached.png", sanitizedAggregate.getImages().get(0).getImageUrl());
+        assertEquals("/terrapedia-images/items/wiki/Cached.png", sanitizedAggregate.getImages().get(0).getImageUrl());
     }
 
     @Test
@@ -231,7 +232,7 @@ class WikiImageResponseSanitizerAdviceTest {
 
         payload = sanitizedData(advice, payload);
 
-        assertEquals("http://localhost:9000/terrapedia-images/items/wiki/Source.png", payload.get("sourceUrl"));
+        assertEquals("/terrapedia-images/items/wiki/Source.png", payload.get("sourceUrl"));
         assertEquals("https://terraria.wiki.gg/wiki/Source", payload.get("sourcePageUrl"));
         assertEquals("https://terraria.wiki.gg/wiki/File:Source.png", payload.get("wikiPageUrl"));
     }
@@ -313,9 +314,9 @@ class WikiImageResponseSanitizerAdviceTest {
 
         @SuppressWarnings("unchecked")
         Map<String, Object> detail = (Map<String, Object>) payload.get("detail");
-        assertEquals("http://localhost:9000/terrapedia-images/items/wiki/ImmutableMap.png", detail.get("imageUrl"));
+        assertEquals("/terrapedia-images/items/wiki/ImmutableMap.png", detail.get("imageUrl"));
         assertEquals(
-            List.of("http://localhost:9000/terrapedia-images/items/wiki/ImmutableList.png"),
+            List.of("/terrapedia-images/items/wiki/ImmutableList.png"),
             payload.get("icons")
         );
     }
@@ -347,6 +348,21 @@ class WikiImageResponseSanitizerAdviceTest {
         @Override
         public boolean isManagedImageUrl(String value) {
             return value != null && value.contains("/terrapedia-images/");
+        }
+
+        @Override
+        public Optional<String> normalizeManagedImagePath(String value) {
+            if (!isManagedImageUrl(value)) {
+                return Optional.empty();
+            }
+            String text = value.trim();
+            int index = text.indexOf("/terrapedia-images/");
+            String path = text.substring(index);
+            int queryIndex = path.indexOf('?');
+            if (queryIndex >= 0) {
+                path = path.substring(0, queryIndex);
+            }
+            return Optional.of(path);
         }
 
         @Override

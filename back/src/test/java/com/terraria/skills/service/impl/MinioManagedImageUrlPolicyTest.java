@@ -31,6 +31,30 @@ class MinioManagedImageUrlPolicyTest {
     }
 
     @Test
+    void shouldNormalizeTrustedManagedImageValuesToStablePaths() {
+        MinioManagedImageUrlPolicy policy = new MinioManagedImageUrlPolicy(
+            new MinioStorageProperties(),
+            connectionDetailsProvider(connectionDetails("http://localhost:19000", "https://cdn.example.com"))
+        );
+
+        assertEquals(
+            "/terrapedia-images/items/night-edge.png",
+            policy.normalizeManagedImagePath("http://localhost:9000/terrapedia-images/items/night-edge.png").orElseThrow()
+        );
+        assertEquals(
+            "/terrapedia-images/npcs/guide.png",
+            policy.normalizeManagedImagePath("http://localhost:19000/terrapedia-images/npcs/guide.png?X-Amz-Signature=abc").orElseThrow()
+        );
+        assertEquals(
+            "/terrapedia-images/buffs/ironskin.png",
+            policy.normalizeManagedImagePath("/terrapedia-images/buffs/ironskin.png").orElseThrow()
+        );
+        assertTrue(policy.normalizeManagedImagePath("https://terraria.wiki.gg/images/Foo.png").isEmpty());
+        assertTrue(policy.normalizeManagedImagePath("https://example.com/page?u=/terrapedia-images/items/foo.png").isEmpty());
+        assertTrue(policy.normalizeManagedImagePath("https://example.com/terrapedia-images/items/night-edge.png").isEmpty());
+    }
+
+    @Test
     void shouldBuildTrustedPrefixesFromConfiguredEndpoints() {
         MinioManagedImageUrlPolicy policy = new MinioManagedImageUrlPolicy(
             new MinioStorageProperties(),

@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Ticker;
 import com.terraria.skills.config.MinioConnectionDetails;
+import com.terraria.skills.config.MinioStorageProperties;
 import com.terraria.skills.dto.FileUploadResultDTO;
 import com.terraria.skills.dto.WikiImageLocalizationCacheMetricsDTO;
 import com.terraria.skills.service.WikiImageLocalizationService;
@@ -35,6 +36,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -54,6 +56,7 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
     private final MinioClient minioClient;
     private final MinioConnectionDetails connectionDetails;
     private final Set<String> extraAllowedWikiImageHosts;
+    private final List<URI> legacyImageOrigins;
     private final boolean imageFetchViaGate;
     private final String imageFetchGateUrl;
     private final String wikiUserAgent;
@@ -72,9 +75,18 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
         MinioConnectionDetails connectionDetails,
         @Value("${terraria.crawler.image-fetch-via-gate:true}") boolean imageFetchViaGate,
         @Value("${terraria.crawler.image-fetch-gate-url:http://127.0.0.1:18099/fetch-image}") String imageFetchGateUrl,
-        @Value("${terraria.crawler.user-agent:TerraPedia/2.0 (+https://terraria.wiki.gg/api.php)}") String wikiUserAgent
+        @Value("${terraria.crawler.user-agent:TerraPedia/2.0 (+https://terraria.wiki.gg/api.php)}") String wikiUserAgent,
+        MinioStorageProperties storageProperties
     ) {
-        this(minioClient, connectionDetails, Set.of(), imageFetchViaGate, imageFetchGateUrl, wikiUserAgent);
+        this(
+            minioClient,
+            connectionDetails,
+            Set.of(),
+            imageFetchViaGate,
+            imageFetchGateUrl,
+            wikiUserAgent,
+            legacyOrigins(storageProperties == null ? null : storageProperties.getLegacyImageOrigins())
+        );
     }
 
     MinioWikiImageLocalizationServiceImpl(
@@ -88,7 +100,8 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
             extraAllowedWikiImageHosts,
             true,
             "http://127.0.0.1:18099/fetch-image",
-            "TerraPedia/2.0 (+https://terraria.wiki.gg/api.php)"
+            "TerraPedia/2.0 (+https://terraria.wiki.gg/api.php)",
+            List.of()
         );
     }
 
@@ -100,9 +113,30 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
         String imageFetchGateUrl,
         String wikiUserAgent
     ) {
+        this(
+            minioClient,
+            connectionDetails,
+            extraAllowedWikiImageHosts,
+            imageFetchViaGate,
+            imageFetchGateUrl,
+            wikiUserAgent,
+            List.of()
+        );
+    }
+
+    MinioWikiImageLocalizationServiceImpl(
+        MinioClient minioClient,
+        MinioConnectionDetails connectionDetails,
+        Set<String> extraAllowedWikiImageHosts,
+        boolean imageFetchViaGate,
+        String imageFetchGateUrl,
+        String wikiUserAgent,
+        List<URI> legacyImageOrigins
+    ) {
         this.minioClient = minioClient;
         this.connectionDetails = connectionDetails;
         this.extraAllowedWikiImageHosts = extraAllowedWikiImageHosts == null ? Set.of() : extraAllowedWikiImageHosts;
+        this.legacyImageOrigins = legacyImageOrigins == null ? List.of() : List.copyOf(legacyImageOrigins);
         this.imageFetchViaGate = imageFetchViaGate;
         this.imageFetchGateUrl = firstNonBlank(imageFetchGateUrl, "http://127.0.0.1:18099/fetch-image");
         this.wikiUserAgent = firstNonBlank(wikiUserAgent, "TerraPedia/2.0 (+https://terraria.wiki.gg/api.php)");
@@ -119,9 +153,32 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
         String wikiUserAgent,
         Ticker ticker
     ) {
+        this(
+            minioClient,
+            connectionDetails,
+            extraAllowedWikiImageHosts,
+            imageFetchViaGate,
+            imageFetchGateUrl,
+            wikiUserAgent,
+            ticker,
+            List.of()
+        );
+    }
+
+    MinioWikiImageLocalizationServiceImpl(
+        MinioClient minioClient,
+        MinioConnectionDetails connectionDetails,
+        Set<String> extraAllowedWikiImageHosts,
+        boolean imageFetchViaGate,
+        String imageFetchGateUrl,
+        String wikiUserAgent,
+        Ticker ticker,
+        List<URI> legacyImageOrigins
+    ) {
         this.minioClient = minioClient;
         this.connectionDetails = connectionDetails;
         this.extraAllowedWikiImageHosts = extraAllowedWikiImageHosts == null ? Set.of() : extraAllowedWikiImageHosts;
+        this.legacyImageOrigins = legacyImageOrigins == null ? List.of() : List.copyOf(legacyImageOrigins);
         this.imageFetchViaGate = imageFetchViaGate;
         this.imageFetchGateUrl = firstNonBlank(imageFetchGateUrl, "http://127.0.0.1:18099/fetch-image");
         this.wikiUserAgent = firstNonBlank(wikiUserAgent, "TerraPedia/2.0 (+https://terraria.wiki.gg/api.php)");
@@ -168,7 +225,26 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
         URI publicEndpoint = parseHttpUri(normalizePublicEndpoint(connectionDetails.publicEndpoint()));
         URI minioEndpoint = parseHttpUri(normalizePublicEndpoint(connectionDetails.endpoint()));
         return sameOrigin(uri, publicEndpoint) && hasBucketPath(uri)
-            || sameOrigin(uri, minioEndpoint) && hasBucketPath(uri);
+            || sameOrigin(uri, minioEndpoint) && hasBucketPath(uri)
+            || isLegacyManagedImageUri(uri);
+    }
+
+    @Override
+    public Optional<String> normalizeManagedImagePath(String value) {
+        String normalized = trimToNull(value);
+        if (normalized == null) {
+            return Optional.empty();
+        }
+        if (normalized.startsWith("/" + connectionDetails.bucket() + "/")) {
+            return Optional.of(stripQueryAndFragment(normalized));
+        }
+        URI uri = parseHttpUri(normalized);
+        URI publicEndpoint = parseHttpUri(normalizePublicEndpoint(connectionDetails.publicEndpoint()));
+        URI minioEndpoint = parseHttpUri(normalizePublicEndpoint(connectionDetails.endpoint()));
+        if ((sameOrigin(uri, publicEndpoint) || sameOrigin(uri, minioEndpoint) || isLegacyManagedImageUri(uri)) && hasBucketPath(uri)) {
+            return Optional.of(stripQueryAndFragment(uri.getPath()));
+        }
+        return Optional.empty();
     }
 
     @Override
@@ -615,6 +691,51 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
         return uri.getPath().startsWith("/" + connectionDetails.bucket() + "/");
     }
 
+    private boolean isLegacyManagedImageUri(URI uri) {
+        if (!hasBucketPath(uri)) {
+            return false;
+        }
+        return legacyImageOrigins.stream().anyMatch(origin -> sameOrigin(uri, origin));
+    }
+
+    private static List<URI> legacyOrigins(String origins) {
+        String normalized = staticTrimToNull(origins);
+        if (normalized == null) {
+            return List.of();
+        }
+        return java.util.Arrays.stream(normalized.split(","))
+            .map(String::trim)
+            .filter(item -> !item.isBlank())
+            .map(MinioWikiImageLocalizationServiceImpl::parseHttpUriStatic)
+            .filter(Objects::nonNull)
+            .filter(uri -> uri.getHost() != null)
+            .toList();
+    }
+
+    private static URI parseHttpUriStatic(String value) {
+        String normalized = staticTrimToNull(value);
+        if (normalized == null) {
+            return null;
+        }
+        try {
+            URI uri = URI.create(normalized.startsWith("//") ? "http:" + normalized : normalized);
+            String scheme = uri.getScheme();
+            if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
+                return null;
+            }
+            return uri;
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
+    }
+
+    private static String staticTrimToNull(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        return value.trim();
+    }
+
     private boolean sameOrigin(URI left, URI right) {
         if (left == null || right == null || left.getHost() == null || right.getHost() == null) {
             return false;
@@ -732,6 +853,19 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
             normalized = normalized.substring(0, normalized.length() - 1);
         }
         return normalized;
+    }
+
+    private String stripQueryAndFragment(String value) {
+        int endIndex = value.length();
+        int queryIndex = value.indexOf('?');
+        int fragmentIndex = value.indexOf('#');
+        if (queryIndex >= 0) {
+            endIndex = Math.min(endIndex, queryIndex);
+        }
+        if (fragmentIndex >= 0) {
+            endIndex = Math.min(endIndex, fragmentIndex);
+        }
+        return value.substring(0, endIndex);
     }
 
     private String trimToNull(String value) {

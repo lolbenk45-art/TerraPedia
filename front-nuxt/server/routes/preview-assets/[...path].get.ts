@@ -32,6 +32,7 @@ export default defineEventHandler(async (event) => {
   const imageOrigin = String(useRuntimeConfig(event).public.imageOrigin || '').replace(/\/$/, '')
   const wikiImageGateUrl = String(useRuntimeConfig(event).wikiImageGateUrl || '').replace(/\/$/, '')
   const wikiFileName = safePath.startsWith('wiki-files/') ? safePath.slice('wiki-files/'.length) : ''
+  const isManagedImage = safePath.startsWith('terrapedia-images/')
 
   if (wikiFileName && wikiImageGateUrl) {
     try {
@@ -64,6 +65,13 @@ export default defineEventHandler(async (event) => {
         responseType: 'arrayBuffer',
       })
       const contentType = response.headers.get('content-type')
+      if (isManagedImage && !String(contentType || '').toLowerCase().startsWith('image/')) {
+        throw createError({
+          statusCode: 502,
+          statusMessage: 'Managed image preview unavailable',
+          message: `Managed image origin returned non-image content-type: ${contentType || 'unknown'}`,
+        })
+      }
 
       if (contentType) {
         setHeader(event, 'content-type', contentType)
@@ -71,8 +79,15 @@ export default defineEventHandler(async (event) => {
       setHeader(event, 'cache-control', 'public, max-age=3600')
 
       return new Uint8Array(response._data as ArrayBuffer)
-    } catch {
-      // Fall through to a stable preview placeholder when the configured image service is unavailable.
+    } catch (error) {
+      if (isManagedImage) {
+        throw createError({
+          statusCode: 502,
+          statusMessage: 'Managed image preview unavailable',
+          message: error instanceof Error ? error.message : 'Managed image origin fetch failed',
+        })
+      }
+      // Fall through to a stable non-managed preview placeholder when the configured image service is unavailable.
     }
   }
 

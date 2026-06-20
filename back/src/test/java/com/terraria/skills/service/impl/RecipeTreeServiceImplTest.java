@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -69,6 +70,19 @@ class RecipeTreeServiceImplTest {
         lenient().when(managedImageUrlPolicy.isManagedImageUrl(any())).thenAnswer(invocation -> {
             String value = invocation.getArgument(0);
             return value != null && value.startsWith("http://localhost:9000/terrapedia-images/items/");
+        });
+        lenient().when(managedImageUrlPolicy.normalizeManagedImagePath(any())).thenAnswer(invocation -> {
+            String value = invocation.getArgument(0);
+            if (value == null) {
+                return Optional.empty();
+            }
+            if (value.startsWith("/terrapedia-images/")) {
+                return Optional.of(value);
+            }
+            if (value.startsWith("http://localhost:9000/terrapedia-images/")) {
+                return Optional.of(value.substring("http://localhost:9000".length()));
+            }
+            return Optional.empty();
         });
     }
 
@@ -206,8 +220,49 @@ class RecipeTreeServiceImplTest {
         RecipeTreeNodeDTO groupNode = response.getVariants().get(0).getRoots().get(0).getChildren().get(0);
         assertEquals(2, groupNode.getGroupMembers().size());
         assertEquals(22L, groupNode.getGroupMembers().get(0).getItemId());
-        assertEquals("http://localhost:9000/terrapedia-images/items/iron-bar.png", groupNode.getGroupMembers().get(0).getImage());
-        assertEquals("http://localhost:9000/terrapedia-images/items/lead-bar.png", groupNode.getGroupMembers().get(1).getImage());
+        assertEquals("/terrapedia-images/items/iron-bar.png", groupNode.getGroupMembers().get(0).getImage());
+        assertEquals("/terrapedia-images/items/lead-bar.png", groupNode.getGroupMembers().get(1).getImage());
+    }
+
+    @Test
+    void shouldPreserveRelativeManagedImagesFromResolverAndRecipeFields() {
+        RecipeTreeServiceImpl service = newService();
+
+        ItemDTO item = recipeTreeItem(1000L, "RelativeSword", "Relative Sword", "Relative Sword");
+        item.setImage("/terrapedia-images/items/relative-sword.png");
+
+        RecipeIngredientDTO ingredient = new RecipeIngredientDTO();
+        ingredient.setIngredientItemId(1001L);
+        ingredient.setItemName("Relative Bar");
+        ingredient.setItemImage("/terrapedia-images/items/relative-bar.png");
+        ingredient.setQuantityText("2");
+
+        RecipeStationDTO station = new RecipeStationDTO();
+        station.setItemName("Relative Forge");
+        station.setItemImage("http://localhost:9000/terrapedia-images/items/relative-forge.png");
+
+        RecipeDTO recipe = new RecipeDTO();
+        recipe.setId(10001L);
+        recipe.setResultItemId(1000L);
+        recipe.setResultItemName("Relative Sword");
+        recipe.setResultItemInternalName("RelativeSword");
+        recipe.setResultItemImage("/terrapedia-images/items/relative-sword.png");
+        recipe.setResultQuantity(1);
+        recipe.setIngredients(List.of(ingredient));
+        recipe.setStations(List.of(station));
+
+        when(itemService.getItemById(1000L)).thenReturn(item);
+        when(recipeService.getRecipesByResultItemId(1000L)).thenReturn(List.of(recipe));
+        when(recipeService.getRecipesByResultItemId(1001L)).thenReturn(List.of());
+        when(itemMapper.selectList(any())).thenReturn(List.of());
+
+        RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(1000L, 3);
+
+        RecipeTreeNodeDTO root = response.getVariants().get(0).getRoots().get(0);
+        assertEquals("/terrapedia-images/items/relative-sword.png", response.getItem().getImage());
+        assertEquals("/terrapedia-images/items/relative-sword.png", root.getItemImage());
+        assertEquals("/terrapedia-images/items/relative-bar.png", root.getChildren().get(0).getItemImage());
+        assertEquals("/terrapedia-images/items/relative-forge.png", root.getStations().get(0).getStationImage());
     }
 
     @Test

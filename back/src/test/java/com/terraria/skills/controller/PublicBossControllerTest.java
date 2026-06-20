@@ -46,29 +46,29 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class PublicBossControllerTest {
 
-    private static final String MANAGED_BOSS_IMAGE_URL = "http://localhost:9000/terrapedia-images/bosses/king-slime.png";
-    private static final String CDN_MANAGED_BOSS_IMAGE_URL = "https://cdn.example.com/terrapedia-images/bosses/king-slime.png";
-    private static final String MANAGED_MEMBER_IMAGE_URL = "http://localhost:9000/terrapedia-images/npcs/retinazer.png";
-    private static final String MANAGED_LOOT_IMAGE_URL = "http://localhost:9000/terrapedia-images/items/slime-gun.png";
-    private static final String MANAGED_SUMMON_ITEM_IMAGE_URL = "http://localhost:9000/terrapedia-images/items/slime-crown.png";
+    private static final String MANAGED_BOSS_IMAGE_URL = "/terrapedia-images/bosses/king-slime.png";
+    private static final String CDN_MANAGED_BOSS_IMAGE_URL = "/terrapedia-images/bosses/king-slime.png";
+    private static final String MANAGED_MEMBER_IMAGE_URL = "/terrapedia-images/npcs/retinazer.png";
+    private static final String MANAGED_LOOT_IMAGE_URL = "/terrapedia-images/items/slime-gun.png";
+    private static final String MANAGED_SUMMON_ITEM_IMAGE_URL = "/terrapedia-images/items/slime-crown.png";
     private static final String WIKI_IMAGE_URL = "https://terraria.wiki.gg/images/King_Slime.png";
     private static final ManagedImageUrlPolicy MANAGED_IMAGE_URL_POLICY = new ManagedImageUrlPolicy() {
         @Override
         public boolean isManagedImageUrl(String value) {
             return value != null && (
-                value.startsWith("http://localhost:9000/terrapedia-images/")
-                    || value.startsWith("https://cdn.example.com/terrapedia-images/")
+                value.startsWith("/terrapedia-images/")
+                    || value.startsWith("/terrapedia-images/")
             );
         }
 
         @Override
         public List<String> trustedManagedImageUrlPrefixes() {
             return List.of(
-                "http://localhost:9000/terrapedia-images/items/",
-                "http://localhost:9000/terrapedia-images/npcs/",
-                "http://localhost:9000/terrapedia-images/bosses/",
-                "https://cdn.example.com/terrapedia-images/bosses/",
-                "https://cdn.example.com/terrapedia-images/npcs/"
+                "/terrapedia-images/items/",
+                "/terrapedia-images/npcs/",
+                "/terrapedia-images/bosses/",
+                "/terrapedia-images/bosses/",
+                "/terrapedia-images/npcs/"
             );
         }
     };
@@ -171,7 +171,7 @@ class PublicBossControllerTest {
                 """
                 {
                   "records": {
-                    "125": {"imageUrl": "http://localhost:9000/terrapedia-images/npcs/retinazer.png"},
+                    "125": {"imageUrl": "/terrapedia-images/npcs/retinazer.png"},
                     "126": {"imageUrl": "https://terraria.wiki.gg/images/Spazmatism.png"}
                   }
                 }
@@ -333,10 +333,10 @@ class PublicBossControllerTest {
         when(npcMapper.selectList(any())).thenReturn(List.of(owner));
         when(jdbcTemplate.queryForList(contains("FROM npc_loot_entries"), eq(201L))).thenReturn(List.of());
         when(jdbcTemplate.queryForList(contains("Gold Coin"))).thenReturn(List.of(
-            coinIcon("Copper Coin", "http://localhost:9000/terrapedia-images/items/wiki/coins/copper-coin.png"),
-            coinIcon("Silver Coin", "http://localhost:9000/terrapedia-images/items/wiki/coins/silver-coin.png"),
-            coinIcon("Gold Coin", "http://localhost:9000/terrapedia-images/items/wiki/coins/gold-coin.png"),
-            coinIcon("Platinum Coin", "http://localhost:9000/terrapedia-images/items/wiki/coins/platinum-coin.png")
+            coinIcon("Copper Coin", "/terrapedia-images/items/wiki/coins/copper-coin.png"),
+            coinIcon("Silver Coin", "/terrapedia-images/items/wiki/coins/silver-coin.png"),
+            coinIcon("Gold Coin", "/terrapedia-images/items/wiki/coins/gold-coin.png"),
+            coinIcon("Platinum Coin", "/terrapedia-images/items/wiki/coins/platinum-coin.png")
         ));
 
         mockMvc.perform(get("/public/bosses/34"))
@@ -349,7 +349,7 @@ class PublicBossControllerTest {
             .andExpect(jsonPath("$.data.moneyDrops[0].tokens[0].unit").value("gold"))
             .andExpect(jsonPath("$.data.moneyDrops[0].tokens[0].amount").value(1))
             .andExpect(jsonPath("$.data.moneyDrops[0].tokens[0].label").value("金币"))
-            .andExpect(jsonPath("$.data.moneyDrops[0].tokens[0].iconUrl").value("http://localhost:9000/terrapedia-images/items/wiki/coins/gold-coin.png"))
+            .andExpect(jsonPath("$.data.moneyDrops[0].tokens[0].iconUrl").value("/terrapedia-images/items/wiki/coins/gold-coin.png"))
             .andExpect(jsonPath("$.data.moneyDrops[1].mode").value("expert"))
             .andExpect(jsonPath("$.data.moneyDrops[1].label").value("专家"))
             .andExpect(jsonPath("$.data.moneyDrops[1].value").doesNotExist())

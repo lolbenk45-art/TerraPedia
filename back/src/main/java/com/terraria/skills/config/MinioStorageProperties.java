@@ -38,6 +38,15 @@ public class MinioStorageProperties {
      */
     private String managedImageObjectPrefixes = "items,npcs,projectiles,buffs,bosses";
 
+    /**
+     * Comma-separated local origins that should be accepted only for read-side
+     * legacy managed image URL normalization.
+     */
+    private String legacyImageOrigins = System.getenv().getOrDefault(
+        "TERRAPEDIA_LEGACY_IMAGE_ORIGINS",
+        "http://localhost:9000,http://127.0.0.1:9000"
+    );
+
     private boolean autoCreateBucket = true;
 
     private boolean publicRead = true;

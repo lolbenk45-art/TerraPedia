@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -40,6 +41,14 @@ class ItemControllerPaginationCompatibilityTest {
         @Override
         public List<String> trustedManagedImageUrlPrefixes() {
             return List.of("http://localhost:9000/terrapedia-images/");
+        }
+
+        @Override
+        public Optional<String> normalizeManagedImagePath(String value) {
+            if (value == null || !value.startsWith("http://localhost:9000/terrapedia-images/")) {
+                return Optional.empty();
+            }
+            return Optional.of(value.substring("http://localhost:9000".length()));
         }
     };
 
@@ -80,7 +89,8 @@ class ItemControllerPaginationCompatibilityTest {
             .andExpect(jsonPath("$.pagination.size").value(5))
             .andExpect(jsonPath("$.pagination.total").value(11))
             .andExpect(jsonPath("$.data[0].id").value(1))
-            .andExpect(jsonPath("$.data[0].imageUrl").value("http://localhost:9000/terrapedia-images/items/iron-pickaxe.png"))
+            .andExpect(jsonPath("$.data[0].image").value("/terrapedia-images/items/iron-pickaxe.png"))
+            .andExpect(jsonPath("$.data[0].imageUrl").value("/terrapedia-images/items/iron-pickaxe.png"))
             .andExpect(jsonPath("$.data[0].gamePeriod").value("前期"));
 
         ArgumentCaptor<PageQuery> pageQueryCaptor = ArgumentCaptor.forClass(PageQuery.class);
