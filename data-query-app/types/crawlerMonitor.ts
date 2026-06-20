@@ -190,6 +190,29 @@ export interface CrawlerMonitorWikiDispatch {
   message?: string | null
 }
 
+export interface CrawlerMonitorDispatchPlan {
+  actionId?: string | null
+  domain?: string | null
+  priority?: string | number | null
+  reason?: string | null
+  status?: string | null
+  commandPreview?: string | null
+  progressPath?: string | null
+  reportPath?: string | null
+  message?: string | null
+}
+
+export interface CrawlerMonitorStaleHeartbeat {
+  actionId?: string | null
+  domain?: string | null
+  path?: string | null
+  lastHeartbeatAt?: string | null
+  staleSince?: string | null
+  staleMs?: number | null
+  reason?: string | null
+  message?: string | null
+}
+
 export interface CrawlerMonitorDispatchResult {
   accepted?: boolean
   dispatchId?: string | null
@@ -213,6 +236,7 @@ export interface CrawlerMonitorWikiMonitor {
   summary?: CrawlerMonitorWikiSummary | null
   domains?: CrawlerMonitorWikiDomain[]
   pendingDispatches?: CrawlerMonitorWikiDispatch[]
+  dispatchPlan?: CrawlerMonitorDispatchPlan[]
 }
 
 export interface CrawlerMonitorOverview {
@@ -232,6 +256,7 @@ export interface CrawlerMonitorOverview {
   recentReports?: CrawlerMonitorReport[]
   architectureLayers?: CrawlerMonitorArchitectureLayer[]
   registeredTasks?: CrawlerMonitorRegisteredTask[]
+  staleHeartbeats?: CrawlerMonitorStaleHeartbeat[]
 }
 
 export type CrawlerMonitorTestPayload = CrawlerMonitorOverview & Record<string, any>
