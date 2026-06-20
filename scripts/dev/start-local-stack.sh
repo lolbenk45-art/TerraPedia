@@ -353,7 +353,7 @@ start_redis_if_needed() {
     "$redis_cmd" --port "$TP_REDIS_PORT" --bind "$TP_REDIS_HOST" --protected-mode yes --requirepass "$TP_REDIS_PASSWORD" --databases 64
 
   if ! wait_port "$TP_REDIS_HOST" "$TP_REDIS_PORT" 15; then
-    log_error "Redis $TP_REDIS_PORT failed to start. Check $out_path and $err_path"
+    log_error "Redis $TP_REDIS_PORT failed to start. Check $(log_path "redis-$TP_REDIS_PORT")"
     exit 1
   fi
 }
