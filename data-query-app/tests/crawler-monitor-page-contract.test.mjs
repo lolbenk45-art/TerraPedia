@@ -377,6 +377,33 @@ test('crawler monitor domain progress contains a ten-domain baseline test matrix
   }
 })
 
+test('crawler monitor groups base domains into an ordered function validation board', () => {
+  const domainPanel = page.slice(
+    page.indexOf('class="panel recovery-domain-panel"'),
+    page.indexOf('class="panel recovery-detail"')
+  )
+
+  assert.match(domainPanel, /class="base-domain-orchestration"/)
+  assert.match(domainPanel, /基础域顺序编排/)
+  assert.match(domainPanel, /v-for="domain in baseDomainOrchestrationRows"/)
+  assert.match(domainPanel, /v-for="step in domain\.steps"/)
+  assert.match(page, /const BASE_DOMAIN_ORCHESTRATION_STEPS/)
+  assert.match(page, /const baseDomainOrchestrationRows/)
+  assert.match(page, /baseDomainQueueRow/)
+  assert.match(page, /baseDomainBackfillRow/)
+  assert.match(page, /baseDomainReCrawlActionLabel/)
+
+  for (const label of ['来源检测', '队列状态', '启动重爬', '补数据', '验收']) {
+    assert.match(page, new RegExp(label))
+  }
+  for (const token of ['source-check', 'queue-state', 'recrawl', 'backfill', 'acceptance']) {
+    assert.match(page, new RegExp(`'${token}'`))
+  }
+  assert.match(domainPanel, /@click\.stop="selectWikiDomain\(domain\.domain\)"/)
+  assert.match(domainPanel, /@click\.stop="openDispatchConfirm\(domain\.domain\)"/)
+  assert.match(domainPanel, /@click\.stop="triggerBaseDomainBackfill\(domain\)"/)
+})
+
 test('crawler monitor exposes auto-dispatch settings and last sweep state', () => {
   assert.match(types, /CrawlerMonitorAutoDispatchSettings/)
   assert.match(types, /CrawlerMonitorWikiLastSweep/)

@@ -598,6 +598,49 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               <Activity :size="20" />
               <span>暂无可展示的 Wiki 域。</span>
             </div>
+            <div class="base-domain-orchestration" aria-label="基础域顺序编排">
+              <div class="base-domain-orchestration__head">
+                <div>
+                  <strong>基础域顺序编排</strong>
+                  <span>按来源检测、队列、重爬、补数据、验收逐项检查。</span>
+                </div>
+                <em>{{ baseDomainOrchestrationRows.length }} 个基础域</em>
+              </div>
+              <div class="base-domain-orchestration__rows">
+                <article v-for="domain in baseDomainOrchestrationRows" :key="`base-domain-orchestration-${domain.id}`" class="base-domain-flow-row">
+                  <button type="button" class="base-domain-flow-row__domain" @click.stop="selectWikiDomain(domain.domain)">
+                    <small>#{{ domain.order }}</small>
+                    <strong>{{ wikiDomainChineseName(domain.domain) }}</strong>
+                    <span class="status-pill" :class="statusTone(domain.status)">{{ wikiDomainFlowLabel(domain.domain) }}</span>
+                  </button>
+                  <div class="base-domain-flow-steps">
+                    <div v-for="step in domain.steps" :key="`${domain.id}-${step.key}`" class="base-domain-flow-step" :class="`base-domain-flow-step--${step.key}`">
+                      <span class="base-domain-flow-step__label">{{ step.label }}</span>
+                      <strong>{{ step.value }}</strong>
+                      <small>{{ step.detail }}</small>
+                      <button
+                        v-if="step.key === 'recrawl'"
+                        type="button"
+                        class="inline-report-button inline-report-button--compact"
+                        :disabled="step.disabled || wikiDispatchLoading === domain.domain.domain"
+                        @click.stop="openDispatchConfirm(domain.domain)"
+                      >
+                        启动重爬
+                      </button>
+                      <button
+                        v-if="step.key === 'backfill'"
+                        type="button"
+                        class="inline-report-button inline-report-button--compact"
+                        :disabled="step.disabled"
+                        @click.stop="triggerBaseDomainBackfill(domain)"
+                      >
+                        补数据
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
             <div class="domain-test-matrix" aria-label="10 域基础项测试">
               <div class="domain-test-matrix__head">
                 <strong>10 域基础项测试</strong>
@@ -1051,6 +1094,13 @@ const BASIC_DOMAIN_TEST_ITEMS = [
   '最近产物',
   '人工动作',
 ]
+const BASE_DOMAIN_ORCHESTRATION_STEPS = [
+  { key: 'source-check', label: '来源检测' },
+  { key: 'queue-state', label: '队列状态' },
+  { key: 'recrawl', label: '启动重爬' },
+  { key: 'backfill', label: '补数据' },
+  { key: 'acceptance', label: '验收' },
+]
 const DOMAIN_TEST_MATRIX_DOMAIN_IDS = [
   'items',
   'npcs',
@@ -1138,6 +1188,65 @@ const wikiDomainTestMatrixRows = computed(() => DOMAIN_TEST_MATRIX_DOMAIN_IDS.ma
       { label: '最近产物', value: outputPath || wikiDomainReportPath(domain) || '未生成' },
       { label: '人工动作', value: canExecuteWikiDomain(domain) ? '可启动重爬' : '不可重爬' },
     ],
+  }
+}))
+const baseDomainOrchestrationRows = computed(() => DOMAIN_TEST_MATRIX_DOMAIN_IDS.map((domainId, index) => {
+  const domain = wikiDomainRows.value.find((row) => row.domain === domainId) || { domain: domainId, label: domainId }
+  const progress = wikiDomainProgressRow(domain)
+  const queueRow = baseDomainQueueRow(domain)
+  const backfillRow = baseDomainBackfillRow(domain)
+  const outputPath = wikiDomainOutputPath(domain) || progress?.outputPath || ''
+  const reportPath = wikiDomainReportPath(domain) || progress?.reportPath || ''
+  return {
+    id: domainId,
+    order: index + 1,
+    domain,
+    status: wikiDomainFlowStatus(domain),
+    steps: BASE_DOMAIN_ORCHESTRATION_STEPS.map((step) => {
+      if (step.key === 'source-check') {
+        return {
+          ...step,
+          status: domain.changed ? 'changed' : domain.currentValue || domain.previousValue ? 'completed' : 'missing',
+          value: domain.changed ? '有变化' : domain.currentValue || domain.previousValue ? '已检测' : '未记录',
+          detail: domain.currentValue || domain.previousValue || domain.sourceKey || '等待来源快照',
+          disabled: true,
+        }
+      }
+      if (step.key === 'queue-state') {
+        return {
+          ...step,
+          status: queueRow ? rowStatus(queueRow) : pendingWikiDispatches.value.some((dispatch) => dispatch.domain === domain.domain) ? 'queued' : 'missing',
+          value: queueRow ? statusLabel(rowStatus(queueRow)) : pendingWikiDispatches.value.some((dispatch) => dispatch.domain === domain.domain) ? '待确认' : '无队列',
+          detail: queueRow?.queueState || queueRow?.nextStep || '当前无队列记录',
+          disabled: true,
+        }
+      }
+      if (step.key === 'recrawl') {
+        return {
+          ...step,
+          status: wikiDomainFlowStatus(domain),
+          value: baseDomainReCrawlActionLabel(domain),
+          detail: domain.recommendedActionId || '无白名单动作',
+          disabled: !canExecuteWikiDomain(domain),
+        }
+      }
+      if (step.key === 'backfill') {
+        return {
+          ...step,
+          status: backfillRow ? rowStatus(backfillRow) : 'missing',
+          value: backfillRow ? '可触发补数据' : '无补数据动作',
+          detail: backfillRow?.id || baseDomainBackfillHint(domain),
+          disabled: !backfillRow || !canTriggerBackfillRow(backfillRow),
+        }
+      }
+      return {
+        ...step,
+        status: outputPath || reportPath ? 'completed' : rowStatus(progress) || 'missing',
+        value: outputPath || reportPath ? '有产物' : '待验收',
+        detail: outputPath || reportPath || wikiDomainProgressPath(domain) || '等待进度/报告',
+        disabled: true,
+      }
+    }),
   }
 }))
 const visibleWikiDomainRows = computed(() => wikiDomainRows.value.filter((domain) => !isNoiseHidden(noiseKey('wiki-domain', domain.domain || domain.label))))
@@ -1853,6 +1962,46 @@ function backfillDomainForRow(row: ProgressRow) {
   if (id === 'npc-loot-backfill') return 'npc_loot'
   if (id === 'boss-loot-backfill') return 'boss_loot'
   return ''
+}
+
+function baseDomainQueueRow(domain: CrawlerMonitorWikiDomain | null | undefined) {
+  const key = String(domain?.domain || '').toLowerCase()
+  const actionId = String(domain?.recommendedActionId || '').toLowerCase()
+  return progressRows.value.find((row) => {
+    const rowId = String(row.id || '').toLowerCase()
+    if (actionId && rowId === actionId) return true
+    if (key === 'items' && rowId === 'item-pages-retry-failures') return true
+    if (key === 'npcs' && rowId === 'npc-loot-backfill') return true
+    if (key === 'bosses' && rowId === 'boss-loot-backfill') return true
+    return false
+  }) || null
+}
+
+function baseDomainBackfillRow(domain: CrawlerMonitorWikiDomain | null | undefined) {
+  const key = String(domain?.domain || '').toLowerCase()
+  if (key === 'npcs') return progressRows.value.find((row) => row.id === 'npc-loot-backfill') || null
+  if (key === 'bosses') return progressRows.value.find((row) => row.id === 'boss-loot-backfill') || null
+  return null
+}
+
+function baseDomainBackfillHint(domain: CrawlerMonitorWikiDomain | null | undefined) {
+  const key = String(domain?.domain || '').toLowerCase()
+  if (key === 'npcs') return 'NPC loot backfill'
+  if (key === 'bosses') return 'Boss loot backfill'
+  return '该域暂无补数据动作'
+}
+
+function baseDomainReCrawlActionLabel(domain: CrawlerMonitorWikiDomain | null | undefined) {
+  if (!domain) return '不可重爬'
+  if (wikiDispatchLoading.value === domain.domain) return '启动中'
+  return canExecuteWikiDomain(domain) ? '可启动重爬' : '不可重爬'
+}
+
+async function triggerBaseDomainBackfill(domainRow: { domain?: CrawlerMonitorWikiDomain | null } | CrawlerMonitorWikiDomain | null | undefined) {
+  const domain = domainRow && 'domain' in domainRow && typeof domainRow.domain === 'object' ? domainRow.domain : domainRow as CrawlerMonitorWikiDomain | null | undefined
+  const row = baseDomainBackfillRow(domain)
+  if (!row) return
+  await triggerBackfillRow(row)
 }
 
 async function executeWikiMonitorTask(target: CrawlerMonitorWikiDomain | CrawlerMonitorWikiDispatch) {
@@ -3364,6 +3513,127 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   font-size: 12px;
   font-weight: 800;
   overflow-wrap: anywhere;
+}
+
+.base-domain-orchestration {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-primary, #2563eb) 22%, var(--color-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-primary, #2563eb) 5%, var(--color-bg));
+}
+
+.base-domain-orchestration__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.base-domain-orchestration__head strong,
+.base-domain-orchestration__head span {
+  display: block;
+}
+
+.base-domain-orchestration__head strong {
+  color: var(--color-text);
+  font-size: 15px;
+}
+
+.base-domain-orchestration__head span,
+.base-domain-orchestration__head em {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.base-domain-orchestration__rows {
+  display: grid;
+  gap: 8px;
+}
+
+.base-domain-flow-row {
+  display: grid;
+  grid-template-columns: minmax(168px, 0.28fr) minmax(0, 1fr);
+  gap: 10px;
+  min-width: 0;
+}
+
+.base-domain-flow-row__domain {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.base-domain-flow-row__domain small {
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.base-domain-flow-row__domain strong {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.base-domain-flow-steps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(116px, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.base-domain-flow-step {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  min-width: 0;
+  min-height: 112px;
+  padding: 9px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 70%, var(--color-bg));
+}
+
+.base-domain-flow-step__label {
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.base-domain-flow-step strong,
+.base-domain-flow-step small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.base-domain-flow-step strong {
+  color: var(--color-text);
+  font-size: 12px;
+}
+
+.base-domain-flow-step small {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.base-domain-flow-step .inline-report-button {
+  align-self: end;
+  justify-self: start;
+  min-height: 30px;
 }
 
 .domain-test-matrix {
