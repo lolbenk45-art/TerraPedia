@@ -11,6 +11,7 @@ function read(relativePath) {
 
 const variables = read('assets/css/variables.css')
 const layout = read('layouts/default.vue')
+const dashboard = read('pages/index.vue')
 const lookupInput = read('components/AdminItemLookupInput.vue')
 const articleEditorWorkspace = read('components/article/ArticleEditorWorkspace.vue')
 const articleReviewWorkspace = read('components/article/ArticleReviewWorkspace.vue')
@@ -61,4 +62,25 @@ test('page-owned fixed drawers stay below admin navigation and reserve shell spa
   assert.match(crawlerMonitorPage, /\.report-preview-shell\s*\{[\s\S]*inset:\s*var\(--header-height\) 0 0 var\(--sidebar-width\)/)
   assert.match(crawlerMonitorPage, /\.report-preview-shell\s*\{[\s\S]*z-index:\s*var\(--z-page-popover\)/)
   assert.doesNotMatch(crawlerMonitorPage, /\.report-preview-shell\s*\{[\s\S]*inset:\s*0;[\s\S]*z-index:\s*80/)
+})
+
+test('collapsed sidebar uses compact navigation without overflow-prone expanded groups', () => {
+  assert.match(layout, /v-for="section in visibleMenuSections"/)
+  assert.match(layout, /const visibleMenuSections = computed/)
+  assert.match(layout, /const visibleMenuSections = computed\(\(\) => menuSections\)/)
+  assert.doesNotMatch(layout, /const collapsedMenuSections = computed/)
+  assert.doesNotMatch(layout, /v-show="desktopCollapsed \|\| !isMenuSectionCollapsed/)
+  assert.match(layout, /\.sidebar--collapsed \.sidebar__nav\s*\{[\s\S]*overflow-x:\s*hidden/)
+  assert.match(layout, /\.sidebar--collapsed \.sidebar__nav\s*\{[\s\S]*scrollbar-width:\s*none/)
+  assert.match(layout, /\.sidebar--collapsed \.sidebar__link\s*\{[\s\S]*min-height:\s*44px/)
+})
+
+test('dashboard keeps panorama compact and prioritizes downstream data blocks', () => {
+  assert.match(dashboard, /\.panorama\s*\{[\s\S]*padding:\s*18px/)
+  assert.match(dashboard, /\.panorama__groups\s*\{[\s\S]*grid-template-columns:\s*repeat\(auto-fit, minmax\(240px, 1fr\)\)/)
+  assert.match(dashboard, /\.panorama__grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/)
+  assert.match(dashboard, /\.panorama-tile\s*\{[\s\S]*min-height:\s*52px/)
+  assert.match(dashboard, /\.dashboard__split\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 1\.25fr\) minmax\(320px, 0\.75fr\)/)
+  assert.match(dashboard, /\.quick-action\s*\{[\s\S]*min-height:\s*64px/)
+  assert.match(dashboard, /\.ops-card\s*\{[\s\S]*min-height:\s*62px/)
 })

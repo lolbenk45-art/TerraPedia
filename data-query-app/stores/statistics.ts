@@ -11,6 +11,13 @@ export interface StatsCategoryCount {
 export interface StatsOverview {
   totalItems: number
   totalCategories: number
+  totalBosses: number
+  totalNpcs: number
+  totalBuffs: number
+  totalBiomes: number
+  totalArmorSets: number
+  totalProjectiles: number
+  totalPublishedArticles: number
   rootCategoryCounts: StatsCategoryCount[]
   categoryItemCounts: Record<string, number>
 }
@@ -18,6 +25,13 @@ export interface StatsOverview {
 const emptyOverview = (): StatsOverview => ({
   totalItems: 0,
   totalCategories: 0,
+  totalBosses: 0,
+  totalNpcs: 0,
+  totalBuffs: 0,
+  totalBiomes: 0,
+  totalArmorSets: 0,
+  totalProjectiles: 0,
+  totalPublishedArticles: 0,
   rootCategoryCounts: [],
   categoryItemCounts: {}
 })
@@ -25,6 +39,13 @@ const emptyOverview = (): StatsOverview => ({
 const normalizeOverview = (raw: any): StatsOverview => ({
   totalItems: Number(raw?.totalItems ?? 0),
   totalCategories: Number(raw?.totalCategories ?? 0),
+  totalBosses: Number(raw?.totalBosses ?? 0),
+  totalNpcs: Number(raw?.totalNpcs ?? 0),
+  totalBuffs: Number(raw?.totalBuffs ?? 0),
+  totalBiomes: Number(raw?.totalBiomes ?? 0),
+  totalArmorSets: Number(raw?.totalArmorSets ?? 0),
+  totalProjectiles: Number(raw?.totalProjectiles ?? 0),
+  totalPublishedArticles: Number(raw?.totalPublishedArticles ?? 0),
   rootCategoryCounts: Array.isArray(raw?.rootCategoryCounts)
     ? raw.rootCategoryCounts.map((entry: any) => ({
         categoryId: Number(entry?.categoryId ?? 0),
@@ -46,6 +67,14 @@ export const useStatisticsStore = defineStore('statistics', () => {
   const rootCategoryCount = computed(() => overview.value.rootCategoryCounts.length)
   const nonEmptyRootCategoryCount = computed(() =>
     overview.value.rootCategoryCounts.filter((entry) => entry.count > 0).length
+  )
+  const totalEntities = computed(() =>
+    overview.value.totalBosses +
+    overview.value.totalNpcs +
+    overview.value.totalBuffs +
+    overview.value.totalBiomes +
+    overview.value.totalArmorSets +
+    overview.value.totalProjectiles
   )
 
   const fetchOverview = async () => {
@@ -73,6 +102,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     loading,
     rootCategoryCount,
     nonEmptyRootCategoryCount,
+    totalEntities,
     fetchOverview
   }
 })

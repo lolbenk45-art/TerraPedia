@@ -48,7 +48,7 @@
       </div>
 
       <nav class="sidebar__nav" aria-label="后台导航">
-        <section v-for="section in menuSections" :key="section.label" class="sidebar__section">
+        <section v-for="section in visibleMenuSections" :key="section.label" class="sidebar__section">
           <button
             v-if="!desktopCollapsed"
             type="button"
@@ -67,10 +67,7 @@
             </span>
           </button>
 
-          <div
-            class="sidebar__section-items"
-            v-show="desktopCollapsed || !isMenuSectionCollapsed(section.label)"
-          >
+          <div v-show="!isMenuSectionCollapsed(section.label)" class="sidebar__section-items">
             <NuxtLink
               v-for="item in section.items"
               :key="item.path"
@@ -234,7 +231,7 @@ const isDesktopCollapsed = ref(false)
 const isMobile = ref(false)
 const isMobileNavOpen = ref(false)
 const userOpen = ref(false)
-const collapsedMenuSections = ref<Set<string>>(new Set())
+const collapsedMenuSectionLabels = ref<Set<string>>(new Set())
 const userMenuRef = ref<HTMLElement | null>(null)
 
 type BreadcrumbItem = {
@@ -330,8 +327,10 @@ const desktopCollapsed = computed(() => !isMobile.value && isDesktopCollapsed.va
 const headerVariant = computed<HeaderVariant>(() => (route.meta.headerVariant === 'compact' ? 'compact' : 'default'))
 const sidebarToggleLabel = computed(() => (desktopCollapsed.value ? '展开侧栏' : '折叠侧栏'))
 
+const visibleMenuSections = computed(() => menuSections)
+
 function toggleMenuSection(label: string) {
-  const next = new Set(collapsedMenuSections.value)
+  const next = new Set(collapsedMenuSectionLabels.value)
 
   if (next.has(label)) {
     next.delete(label)
@@ -339,11 +338,11 @@ function toggleMenuSection(label: string) {
     next.add(label)
   }
 
-  collapsedMenuSections.value = next
+  collapsedMenuSectionLabels.value = next
 }
 
 function isMenuSectionCollapsed(label: string) {
-  return collapsedMenuSections.value.has(label)
+  return !desktopCollapsed.value && collapsedMenuSectionLabels.value.has(label)
 }
 
 const currentPageTitle = computed(() => {
@@ -506,6 +505,7 @@ onUnmounted(() => {
 
 .sidebar--collapsed {
   width: var(--sidebar-collapsed-width);
+  overflow: visible;
 }
 
 .sidebar__head {
@@ -853,11 +853,32 @@ onUnmounted(() => {
 
 .sidebar--collapsed .sidebar__nav {
   padding-inline: 10px;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  gap: 4px;
+}
+
+.sidebar--collapsed .sidebar__nav::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .sidebar--collapsed .sidebar__link {
   justify-content: center;
+  min-height: 44px;
   padding-inline: 0;
+  border-radius: 14px;
+  transform: none;
+}
+
+.sidebar--collapsed .sidebar__link:hover {
+  transform: none;
+}
+
+.sidebar--collapsed .sidebar__link-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
 }
 
 .sidebar--collapsed .sidebar__link:hover .sidebar__link-tooltip {
