@@ -73,6 +73,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE = Path.of("reports", "crawler-monitor", "wiki-monitor-domain-smoke.lock.json");
     private static final Duration WIKI_MONITOR_DISPATCH_COOLDOWN = Duration.ofMinutes(30);
     private static final Duration WIKI_MONITOR_DISPATCH_TIMEOUT = Duration.ofMinutes(90);
+    private static final int WIKI_MONITOR_RETRY_LIMIT = 3;
     // Lock staleness must be >= the dispatch timeout so an in-flight process is never
     // declared stale before the watcher has had a chance to reclaim it (see H1).
     private static final Duration WIKI_MONITOR_DISPATCH_LOCK_STALE = Duration.ofMinutes(120);
@@ -118,7 +119,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             List.of("<PYTHON>", "scripts/data/fetch/fetch-wiki-town-npc-maintenance.py", "--progress-path=data/generated/domain-source-town-npc-maintenance-progress.latest.json")),
         directRule("shimmer", "Shimmer", "wiki.domain.shimmer", "Shimmer source page", "domain-source-shimmer",
             "data/generated/domain-source-shimmer-progress.latest.json",
-            List.of("node", "scripts/data/fetch/fetch-wiki-shimmer-page.mjs", "--progress-path=data/generated/domain-source-shimmer-progress.latest.json"))
+            List.of("node", "scripts/data/fetch/fetch-wiki-shimmer-page.mjs", "--progress-path=data/generated/domain-source-shimmer-progress.latest.json")),
+        operationalBackendRule("npc_loot", "NPC loot backfill", "npc.loot.backfill", "normal NPC loot import report", "npc-loot-backfill"),
+        operationalBackendRule("boss_loot", "Boss loot backfill", "boss.loot.backfill", "boss loot import report", "boss-loot-backfill")
     );
 
     private final ObjectMapper objectMapper;
@@ -302,6 +305,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         Path repoRoot = resolveRepoRoot();
         pruneDispatchArtifacts(repoRoot);
         WikiMonitorRule rule = resolveWikiMonitorRule(request);
+        return dispatchWikiMonitorTask(repoRoot, rule, Map.of());
+    }
+
+    private CrawlerMonitorDispatchResultDTO dispatchWikiMonitorTask(Path repoRoot, WikiMonitorRule rule, Map<String, Object> metadata) {
         ReadResult latestDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
         if (isInCooldown(rule, latestDispatch.payload())) {
             return rejectedDispatch(rule, "cooldown", "dispatch cooldown is active");
@@ -324,7 +331,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
 
         DispatchPaths dispatchPaths = buildDispatchPaths(repoRoot, rule, dispatchId);
-        LinkedHashMap<String, Object> state = buildDispatchState(dispatchId, rule, "running", timestamp, null, dispatchPaths, "dispatch accepted");
+        String message = firstNonBlank(asString(metadata.get("message")), "dispatch accepted");
+        LinkedHashMap<String, Object> state = buildDispatchState(dispatchId, rule, "running", timestamp, null, dispatchPaths, message);
+        state.putAll(metadata);
         writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), state);
 
         LaunchRequest launchRequest = buildLaunchRequest(repoRoot, rule, dispatchPaths);
@@ -342,7 +351,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             return failed;
         }
 
-        return acceptedDispatch(rule, dispatchId, dispatchPaths, "running", "dispatch accepted");
+        return acceptedDispatch(rule, dispatchId, dispatchPaths, "running", message);
     }
 
     @Override
@@ -350,11 +359,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         Path repoRoot = resolveRepoRoot();
         WikiMonitorRule rule = resolveWikiMonitorControlRule(request);
         String controlAction = trimToNull(request.getControlAction());
-        if (!"pause".equals(controlAction) && !"resume".equals(controlAction) && !"cancel".equals(controlAction)) {
-            throw new IllegalArgumentException("controlAction must be pause, resume or cancel");
+        if (!"pause".equals(controlAction) && !"resume".equals(controlAction) && !"cancel".equals(controlAction) && !"retry".equals(controlAction)) {
+            throw new IllegalArgumentException("controlAction must be pause, resume, cancel or retry");
         }
         ReadResult latestDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
         Map<String, Object> payload = latestDispatch.readable() ? latestDispatch.payload() : Map.of();
+        if ("retry".equals(controlAction)) {
+            return retryWikiMonitorDispatch(repoRoot, rule, payload);
+        }
         String dispatchId = asString(payload.get("dispatchId"));
         boolean latestMatches = dispatchId != null
             && rule.domain().equals(asString(payload.get("domain")))
@@ -434,6 +446,35 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return acceptedDispatch(rule, dispatchId, paths, status, message);
     }
 
+    private CrawlerMonitorDispatchResultDTO retryWikiMonitorDispatch(
+        Path repoRoot,
+        WikiMonitorRule rule,
+        Map<String, Object> latestPayload
+    ) {
+        String failedDispatchId = asString(latestPayload.get("dispatchId"));
+        boolean latestMatches = failedDispatchId != null
+            && rule.domain().equals(asString(latestPayload.get("domain")))
+            && rule.actionId().equals(asString(latestPayload.get("actionId")));
+        if (!latestMatches) {
+            return rejectedDispatch(rule, "missing", "no matching wiki monitor dispatch is available to retry");
+        }
+        if (!"failed".equals(asString(latestPayload.get("status")))) {
+            return rejectedDispatch(rule, "not_failed", "only failed wiki monitor dispatches can be retried");
+        }
+        long retryCount = asLong(latestPayload.get("retryCount"));
+        if (retryCount >= WIKI_MONITOR_RETRY_LIMIT) {
+            return rejectedDispatch(rule, "retry_limit", "retry limit reached for this dispatch");
+        }
+        LinkedHashMap<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put("retryOf", failedDispatchId);
+        metadata.put("retryCount", retryCount + 1);
+        metadata.put("retryReason", firstNonBlank(asString(latestPayload.get("message")), "previous dispatch failed"));
+        metadata.put("controlAction", "retry");
+        metadata.put("controlledAt", Instant.now(clock).toString());
+        metadata.put("message", "retrying failed dispatch " + failedDispatchId);
+        return dispatchWikiMonitorTask(repoRoot, rule, metadata);
+    }
+
     @Override
     public CrawlerMonitorDispatchResultDTO dispatchWikiMonitorDomainSmoke() {
         Path repoRoot = resolveRepoRoot();
@@ -486,15 +527,19 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         Map<String, Map<String, Object>> sourceByKey = sourceMap(sourcePayload.get("sources"));
 
         List<CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO> domains = WIKI_MONITOR_RULES.stream()
+            .filter(WikiMonitorRule::wikiDomain)
             .map(rule -> buildWikiMonitorDomain(repoRoot, rule, sourcePayload, sourceByKey.get(rule.sourceKey()), dispatchPayload))
             .toList();
+        List<CrawlerMonitorOverviewDTO.WikiMonitorDispatchPlanDTO> dispatchPlan =
+            buildDispatchPlanFromDetection(sourcePayload, sourceByKey, dispatchPayload);
 
         CrawlerMonitorOverviewDTO.WikiMonitorDTO monitor = new CrawlerMonitorOverviewDTO.WikiMonitorDTO();
         monitor.setGeneratedAt(Instant.now(clock).toString());
         monitor.setDispatchMode("manual");
         monitor.setAutoDispatchEnabled(false);
         monitor.setDomains(domains);
-        monitor.setPendingDispatches(buildPendingDispatches(repoRoot, domains, dispatchPayload));
+        monitor.setDispatchPlan(dispatchPlan);
+        monitor.setPendingDispatches(buildPendingDispatches(repoRoot, domains, dispatchPayload, dispatchPlan));
 
         CrawlerMonitorOverviewDTO.WikiMonitorSummaryDTO summary = new CrawlerMonitorOverviewDTO.WikiMonitorSummaryDTO();
         summary.setDomainCount(domains.size());
@@ -546,10 +591,20 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private List<CrawlerMonitorOverviewDTO.WikiMonitorDispatchDTO> buildPendingDispatches(
         Path repoRoot,
         List<CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO> domains,
-        Map<String, Object> dispatchPayload
+        Map<String, Object> dispatchPayload,
+        List<CrawlerMonitorOverviewDTO.WikiMonitorDispatchPlanDTO> dispatchPlan
     ) {
         List<CrawlerMonitorOverviewDTO.WikiMonitorDispatchDTO> pending = new ArrayList<>();
-        for (CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO domain : domains) {
+        List<String> orderedDomains = dispatchPlan.stream()
+            .flatMap(plan -> plan.getCoveredDomains().stream())
+            .toList();
+        List<CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO> ordered = domains.stream()
+            .sorted(Comparator.comparingInt(domain -> {
+                int index = orderedDomains.indexOf(domain.getDomain());
+                return index < 0 ? Integer.MAX_VALUE : index;
+            }))
+            .toList();
+        for (CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO domain : ordered) {
             if (!isPendingApprovalDomain(domain)) {
                 continue;
             }
@@ -579,6 +634,101 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
         String status = String.valueOf(domain.getStatus() == null ? "" : domain.getStatus()).toLowerCase(Locale.ROOT);
         return !Set.of("running", "stalled", "blocked", "completed").contains(status);
+    }
+
+    private List<CrawlerMonitorOverviewDTO.WikiMonitorDispatchPlanDTO> buildDispatchPlanFromDetection(
+        Map<String, Object> sourcePayload,
+        Map<String, Map<String, Object>> sourceByKey,
+        Map<String, Object> dispatchPayload
+    ) {
+        Map<String, DispatchPlanAccumulator> byActionId = new LinkedHashMap<>();
+        Map<String, String> advisoryByActionId = advisoryNotesByActionId(sourcePayload.get("recommendedActions"));
+        for (WikiMonitorRule rule : WIKI_MONITOR_RULES) {
+            if (!rule.wikiDomain()) {
+                continue;
+            }
+            Map<String, Object> source = sourceByKey.get(rule.sourceKey());
+            boolean changed = asBoolean(source == null ? null : source.get("changed"));
+            boolean requiresFullRefetch = asBoolean(source == null ? null : source.get("requiresFullRefetch"));
+            if (!changed && !requiresFullRefetch) {
+                continue;
+            }
+            DispatchPlanAccumulator accumulator = byActionId.computeIfAbsent(
+                rule.actionId(),
+                actionId -> new DispatchPlanAccumulator(actionId, advisoryByActionId.get(actionId))
+            );
+            accumulator.coveredDomains.add(rule.domain());
+            if (changed) {
+                accumulator.changedDomains.add(rule.domain());
+            }
+            if (requiresFullRefetch) {
+                accumulator.fullRefetchDomains.add(rule.domain());
+            }
+        }
+        for (DispatchPlanAccumulator accumulator : byActionId.values()) {
+            accumulator.coveredDomains.clear();
+            WIKI_MONITOR_RULES.stream()
+                .filter(WikiMonitorRule::wikiDomain)
+                .filter(rule -> accumulator.actionId.equals(rule.actionId()))
+                .map(WikiMonitorRule::domain)
+                .forEach(accumulator.coveredDomains::add);
+        }
+        return byActionId.values().stream()
+            .map(accumulator -> toDispatchPlanDTO(accumulator, dispatchPayload))
+            .sorted(Comparator
+                .comparingInt(this::dispatchPlanSortRank)
+                .thenComparing(CrawlerMonitorOverviewDTO.WikiMonitorDispatchPlanDTO::getActionId))
+            .toList();
+    }
+
+    private CrawlerMonitorOverviewDTO.WikiMonitorDispatchPlanDTO toDispatchPlanDTO(
+        DispatchPlanAccumulator accumulator,
+        Map<String, Object> dispatchPayload
+    ) {
+        CrawlerMonitorOverviewDTO.WikiMonitorDispatchPlanDTO plan = new CrawlerMonitorOverviewDTO.WikiMonitorDispatchPlanDTO();
+        plan.setActionId(accumulator.actionId);
+        plan.setCoveredDomains(new ArrayList<>(accumulator.coveredDomains));
+        boolean cooldown = isActionInCooldown(accumulator.actionId, dispatchPayload);
+        if (cooldown) {
+            plan.setPriority("p9_cooldown");
+        } else if (!accumulator.fullRefetchDomains.isEmpty()) {
+            plan.setPriority("p0_full_refetch");
+        } else {
+            plan.setPriority("p1_changed");
+        }
+        List<String> triggeringDomains = !accumulator.fullRefetchDomains.isEmpty()
+            ? accumulator.fullRefetchDomains
+            : accumulator.changedDomains;
+        String reason = "source domain changed: " + String.join(", ", triggeringDomains);
+        if (!accumulator.fullRefetchDomains.isEmpty()) {
+            reason = reason + "; full refetch required";
+        }
+        if (cooldown) {
+            reason = reason + "; cooldown active";
+        }
+        plan.setReason(reason);
+        plan.setAdvisoryNote(accumulator.advisoryNote);
+        return plan;
+    }
+
+    private int dispatchPlanSortRank(CrawlerMonitorOverviewDTO.WikiMonitorDispatchPlanDTO plan) {
+        return switch (String.valueOf(plan.getPriority())) {
+            case "p0_full_refetch" -> 0;
+            case "p1_changed" -> 1;
+            default -> 9;
+        };
+    }
+
+    private Map<String, String> advisoryNotesByActionId(Object value) {
+        Map<String, String> notes = new LinkedHashMap<>();
+        for (String note : toStringList(value)) {
+            for (WikiMonitorRule rule : WIKI_MONITOR_RULES) {
+                if (rule.wikiDomain() && !notes.containsKey(rule.actionId()) && note.contains(rule.actionId())) {
+                    notes.put(rule.actionId(), note);
+                }
+            }
+        }
+        return notes;
     }
 
     private Map<String, Map<String, Object>> sourceMap(Object value) {
@@ -887,6 +1037,17 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (!rule.domain().equals(asString(payload.get("domain"))) || !"completed".equals(asString(payload.get("status")))) {
             return false;
         }
+        return completedDispatchIsInCooldown(payload);
+    }
+
+    private boolean isActionInCooldown(String actionId, Map<String, Object> payload) {
+        if (!actionId.equals(asString(payload.get("actionId"))) || !"completed".equals(asString(payload.get("status")))) {
+            return false;
+        }
+        return completedDispatchIsInCooldown(payload);
+    }
+
+    private boolean completedDispatchIsInCooldown(Map<String, Object> payload) {
         String completedAt = asString(payload.get("completedAt"));
         if (completedAt == null) {
             return false;
@@ -1186,11 +1347,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                     status = exitCode == 0 ? "completed" : "failed";
                     message = status + " with exit code " + exitCode;
                 }
-                writeJsonFile(
-                    repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(),
-                    buildDispatchState(dispatchId, rule, status, asString(currentDispatch.payload().get("startedAt")),
-                        Instant.now(clock).toString(), paths, message)
-                );
+                LinkedHashMap<String, Object> state = buildDispatchState(dispatchId, rule, status, asString(currentDispatch.payload().get("startedAt")),
+                    Instant.now(clock).toString(), paths, message);
+                preserveDispatchMetadata(currentDispatch.payload(), state);
+                writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), state);
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
             } finally {
@@ -1201,6 +1361,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }, "wiki-monitor-dispatch-" + dispatchId);
         thread.setDaemon(true);
         thread.start();
+    }
+
+    private void preserveDispatchMetadata(Map<String, Object> currentPayload, LinkedHashMap<String, Object> target) {
+        for (String key : List.of("retryOf", "retryCount", "retryReason", "controlAction", "controlledAt", "pid")) {
+            if (currentPayload.containsKey(key)) {
+                target.put(key, currentPayload.get(key));
+            }
+        }
     }
 
     private void watchDomainSmokeProcess(Path repoRoot, String dispatchId, Path lockPath, Process process) {
@@ -1945,8 +2113,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             "NPC loot backfill restore",
             "backfill",
             "p0",
-            findLatestReport(repoRoot, REPORTS_DIR, "normal-npc-loot-restore-apply-", ".json"),
-            "reports/normal-npc-loot-restore-apply-*.json",
+            findLatestReport(repoRoot, REPORTS_DIR, "normal-npc-loot-import-", ".json"),
+            "reports/normal-npc-loot-import-*.json",
             "Validate restored normal NPC loot, then rerun relation health.",
             "restored loot evidence -> maint item sources"
         ));
@@ -1956,8 +2124,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             "Boss loot backfill restore",
             "backfill",
             "p0",
-            findLatestReport(repoRoot, REPORTS_DIR, "boss-loot-restore-apply-", ".json"),
-            "reports/boss-loot-restore-apply-*.json",
+            findLatestReport(repoRoot, REPORTS_DIR, "boss-loot-import-", ".json"),
+            "reports/boss-loot-import-*.json",
             "Validate restored boss loot and treasure bag drops before relation sync.",
             "restored boss loot evidence -> maint item sources"
         ));
@@ -3299,6 +3467,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             actionId,
             backendProgressTemplate(actionId),
             List.of("node", "scripts/data/workflow/run-backend-data-refresh.mjs", "--mode=apply", "--steps=" + actionId, "--output=<reportPath>"),
+            true,
             true
         );
     }
@@ -3312,7 +3481,21 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         String progressPath,
         List<String> command
     ) {
-        return new WikiMonitorRule(domain, label, sourceKey, locator, actionId, progressPath, command, false);
+        return new WikiMonitorRule(domain, label, sourceKey, locator, actionId, progressPath, command, false, true);
+    }
+
+    private static WikiMonitorRule operationalBackendRule(String domain, String label, String sourceKey, String locator, String actionId) {
+        return new WikiMonitorRule(
+            domain,
+            label,
+            sourceKey,
+            locator,
+            actionId,
+            backendProgressTemplate(actionId),
+            List.of("node", "scripts/data/workflow/run-backend-data-refresh.mjs", "--mode=apply", "--steps=" + actionId, "--output=<reportPath>"),
+            true,
+            false
+        );
     }
 
     private static String backendProgressTemplate(String actionId) {
@@ -3365,7 +3548,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         String actionId,
         String progressPath,
         List<String> command,
-        boolean backendRefresh
+        boolean backendRefresh,
+        boolean wikiDomain
     ) {}
 
     record DispatchPaths(String reportPath, String progressPath, String lockPath, String logPath) {}
@@ -3375,6 +3559,19 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     record LaunchRequest(List<String> command, File directory, Map<String, String> environment, File logFile) {}
 
     record LegacyProcessRequest(String actionId, Path repoRoot, List<String> commandNeedles, long minStartEpochMillis) {}
+
+    private static class DispatchPlanAccumulator {
+        private final String actionId;
+        private final String advisoryNote;
+        private final List<String> coveredDomains = new ArrayList<>();
+        private final List<String> changedDomains = new ArrayList<>();
+        private final List<String> fullRefetchDomains = new ArrayList<>();
+
+        private DispatchPlanAccumulator(String actionId, String advisoryNote) {
+            this.actionId = actionId;
+            this.advisoryNote = advisoryNote;
+        }
+    }
 
     interface ProcessLauncher {
         Process launch(LaunchRequest request) throws IOException;

@@ -452,6 +452,38 @@ class AdminCrawlerMonitorControllerTest {
     }
 
     @Test
+    void shouldPassRetryControlActionToCrawlerMonitorService() throws Exception {
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(true);
+        result.setDispatchId("wiki-monitor-retry");
+        result.setDomain("bosses");
+        result.setActionId("domain-source-bosses");
+        result.setStatus("running");
+        result.setMessage("retrying failed dispatch failed-bosses-run");
+
+        when(crawlerMonitorService.controlWikiMonitorDispatch(argThat(request ->
+            "bosses".equals(request.getDomain())
+                && "domain-source-bosses".equals(request.getActionId())
+                && "retry".equals(request.getControlAction())
+        ))).thenReturn(result);
+
+        mockMvc.perform(post("/admin/crawler-monitor/dispatch/control")
+                .contentType("application/json")
+                .content("{\"domain\":\"bosses\",\"actionId\":\"domain-source-bosses\",\"controlAction\":\"retry\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.accepted").value(true))
+            .andExpect(jsonPath("$.data.status").value("running"))
+            .andExpect(jsonPath("$.data.message").value("retrying failed dispatch failed-bosses-run"));
+
+        verify(crawlerMonitorService).controlWikiMonitorDispatch(argThat(request ->
+            "bosses".equals(request.getDomain())
+                && "domain-source-bosses".equals(request.getActionId())
+                && "retry".equals(request.getControlAction())
+        ));
+    }
+
+    @Test
     void shouldReturnManualMonitorTestState() throws Exception {
         CrawlerMonitorTestStateDTO state = testState("manual-running", "running", true, 3);
 

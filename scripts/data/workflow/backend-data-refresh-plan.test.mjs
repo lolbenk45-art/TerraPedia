@@ -1,11 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import {
   buildBackendDataRefreshPlan,
   buildBackendDataRefreshReport,
   resolvePendingBackendDataRefreshActions
 } from './backend-data-refresh-plan.mjs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 test('buildBackendDataRefreshPlan returns the default primary backend refresh actions', () => {
   const plan = buildBackendDataRefreshPlan();
@@ -16,6 +21,8 @@ test('buildBackendDataRefreshPlan returns the default primary backend refresh ac
     'item-pages-refresh',
     'recipe-reference-sync',
     'item-detail-sync',
+    'npc-loot-backfill',
+    'boss-loot-backfill',
     'boss-sync',
     'biome-sync',
     'town-npc-sync',
@@ -51,6 +58,22 @@ test('buildBackendDataRefreshPlan returns the default primary backend refresh ac
   assert.ok(bossSync);
   assert.ok(bossSync.args.includes('scripts/data/pipeline/run-boss-sync-pipeline.mjs'));
   assert.ok(bossSync.args.includes('--apply=true'));
+
+  const npcLootBackfill = plan.actions.find((action) => action.id === 'npc-loot-backfill');
+  assert.ok(npcLootBackfill);
+  assert.deepEqual(npcLootBackfill.args, [
+    'scripts/data/import/import-normal-npc-loot-to-db.mjs',
+    '--dry-run=true',
+    '--report-json=<outputPath>'
+  ]);
+
+  const bossLootBackfill = plan.actions.find((action) => action.id === 'boss-loot-backfill');
+  assert.ok(bossLootBackfill);
+  assert.deepEqual(bossLootBackfill.args, [
+    'scripts/data/import/import-boss-loot-to-db.mjs',
+    '--dry-run=true',
+    '--report-json=<outputPath>'
+  ]);
 
   const biomeSync = plan.actions.find((action) => action.id === 'biome-sync');
   assert.ok(biomeSync);
@@ -98,6 +121,14 @@ test('buildBackendDataRefreshPlan can select bounded wiki audio asset refresh on
   ]);
 });
 
+test('run-backend-data-refresh replaces output path placeholders before spawning actions', () => {
+  const source = fs.readFileSync(path.join(__dirname, 'run-backend-data-refresh.mjs'), 'utf8');
+
+  assert.match(source, /replaceAll\('<outputPath>', options\.outputPath\)/);
+  assert.match(source, /const child = spawn\(command, actionArgs,/);
+  assert.doesNotMatch(source, /const child = spawn\(command, args,/);
+});
+
 test('buildBackendDataRefreshPlan allows overriding item page limit', () => {
   const plan = buildBackendDataRefreshPlan({ itemPageLimit: 25 });
   const itemPages = plan.actions.find((action) => action.id === 'item-pages-refresh');
@@ -142,10 +173,10 @@ test('buildBackendDataRefreshReport summarizes action statuses', () => {
     { id: 'item-pages-refresh', status: 'failed', durationMs: 300 }
   ]);
 
-  assert.equal(report.totalActions, 11);
+  assert.equal(report.totalActions, 13);
   assert.equal(report.completedActions, 1);
   assert.equal(report.failedActions, 1);
-  assert.equal(report.pendingActions, 9);
+  assert.equal(report.pendingActions, 11);
   assert.equal(report.runningActions, 0);
   assert.equal(report.actions[0].status, 'completed');
   assert.equal(report.actions[0].childStatusPath, 'reports/backend-refresh/history/run.runtime/wiki-core-refresh.child-status.json');
@@ -192,6 +223,8 @@ test('resolvePendingBackendDataRefreshActions skips completed actions for resume
       'item-pages-refresh',
       'recipe-reference-sync',
       'item-detail-sync',
+      'npc-loot-backfill',
+      'boss-loot-backfill',
       'boss-sync',
       'biome-sync',
       'town-npc-sync',

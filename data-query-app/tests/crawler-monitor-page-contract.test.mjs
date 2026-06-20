@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
   progressRowsFromOverview,
   rowStatus,
@@ -10,7 +11,8 @@ import {
   isSourceSnapshotRow,
 } from '../utils/crawlerMonitorProgressRows.mjs'
 
-const repoRoot = path.resolve(import.meta.dirname, '..')
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const repoRoot = path.resolve(__dirname, '..')
 
 function read(relativePath) {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8')
@@ -355,7 +357,14 @@ test('crawler monitor wiki domain cards expose retry, heartbeat, and flow state 
   assert.match(workbenchTemplate, /selectedDomainHeartbeatState/)
   assert.match(workbenchTemplate, /wikiDomainFlowLabel\(domain\)/)
   assert.match(workbenchTemplate, /wikiDomainPrimaryActionLabel\(selectedWikiDomain\)/)
+  assert.match(workbenchTemplate, /retryWikiDomain\(selectedWikiDomain\)/)
+  assert.match(workbenchTemplate, /重试/)
+  assert.match(page, /async function retryWikiDomain/)
   assert.match(page, /function canRetryWikiDomain/)
+  assert.match(page, /post\('\/admin\/crawler-monitor\/dispatch\/control'/)
+  assert.match(page, /controlAction:\s*'retry'/)
+  assert.match(page, /wikiDomainFlowStatus\(domain\) === 'failed'/)
+  assert.doesNotMatch(page, /\['failed', 'stalled', 'error'\]\.includes\(wikiDomainFlowStatus\(domain\)\)/)
   assert.match(page, /function wikiDomainFlowStatus/)
   assert.match(page, /function wikiDomainHeartbeatStatus/)
   assert.match(page, /需人工重派/)
@@ -983,6 +992,56 @@ test('crawler monitor maps wiki domains to redis progress rows by recommended ac
   assert.match(progressMatcher, /actionId && rowActionId && actionId === rowActionId/)
 })
 
+test('crawler monitor renders Plan B overview observability fields defensively', () => {
+  for (const token of [
+    'runtimeStateCards',
+    'staleHeartbeatRows',
+    'historyRows',
+    'recentReportRows',
+    'imageNormalizationRows',
+    'dispatchPlanRows',
+    'wikiDispatchModeLabel',
+    'wikiAutoDispatchLabel',
+    'wikiPendingApprovalCount',
+    'domainMaxConcurrentLabel',
+    'domainFailureCircuitBreakerLabel',
+    'overview.value?.daemon',
+    'overview.value?.scheduler',
+    'overview.value?.lock',
+    'overview.value?.staleHeartbeats',
+    'overview.value?.history',
+    'overview.value?.recentReports',
+    'overview.value?.imageNormalization',
+    'wikiMonitor.value?.dispatchPlan',
+    'wikiMonitor.value?.dispatchMode',
+    'wikiMonitor.value?.autoDispatchEnabled',
+    'wikiMonitor.value?.summary?.pendingApprovalCount',
+    'domain.maxConcurrent',
+    'domain.failureCircuitBreaker',
+  ]) {
+    assert.match(page, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+  }
+
+  for (const label of [
+    '运行态',
+    '守护',
+    '调度',
+    '锁',
+    '心跳告警',
+    '运行历史',
+    '报告',
+    '图片指标',
+    '派发计划',
+    '派发模式',
+    '自动派发',
+    '待审批',
+    '最大并发',
+    '熔断',
+  ]) {
+    assert.match(page, new RegExp(label))
+  }
+})
+
 test('crawler monitor allows manual wiki dispatch for whitelisted unchanged domains', () => {
   assert.match(page, /wikiDomainManualHint/)
   assert.match(page, /可手动执行/)
@@ -1006,6 +1065,16 @@ test('crawler monitor dispatch post only sends domain and actionId fields', () =
   for (const forbidden of ['command', 'commandPreview', 'progressPath', 'reportPath', 'lockPath']) {
     assert.doesNotMatch(block, new RegExp(`${forbidden}\\s*:`))
   }
+})
+
+test('crawler monitor exposes dry-run backfill trigger controls on backfill progress rows', () => {
+  assert.match(page, /canTriggerBackfillRow/)
+  assert.match(page, /triggerBackfillRow/)
+  assert.match(page, /确认触发补爬 dry-run 预览/)
+  assert.match(page, /触发补爬/)
+  assert.match(page, /domain: backfillDomainForRow\(row\)/)
+  assert.match(page, /actionId: row\.id/)
+  assert.doesNotMatch(page, /apply:\s*true/)
 })
 
 test('crawler monitor does not render raw action argv text in progress rows', () => {
