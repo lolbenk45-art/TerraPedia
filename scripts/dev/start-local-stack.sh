@@ -233,6 +233,28 @@ if (( node_major < 22 )); then
   exit 1
 fi
 
+resolve_local_stack_slot() {
+  TP_SLOT_REGISTRY="${TERRAPEDIA_SLOT_REGISTRY:-$HOME/.terrapedia/local-stack-slots.json}"
+  local worktree_root
+  worktree_root="$(resolve_repo_root "$PWD")"
+  TP_SLOT="$(node "$SCRIPT_DIR/lib/slot-allocator.mjs" "$TP_SLOT_REGISTRY" "$worktree_root")"
+  if ! [[ "$TP_SLOT" =~ ^[0-9]+$ ]]; then
+    log_error "Failed to resolve local stack slot for $worktree_root (got: ${TP_SLOT:-<empty>})"
+    exit 1
+  fi
+  if (( TP_SLOT >= 64 )); then
+    log_error "Slot $TP_SLOT exceeds shared Redis database capacity (64). Remove an unused worktree entry from $TP_SLOT_REGISTRY."
+    exit 1
+  fi
+  TP_BACKEND_PORT=$(( TP_BACKEND_PORT + TP_SLOT ))
+  TP_FRONT_PORT=$(( TP_FRONT_PORT + TP_SLOT ))
+  TP_ADMIN_PORT=$(( TP_ADMIN_PORT + TP_SLOT ))
+  TP_REDIS_DATABASE="$TP_SLOT"
+  log_info "Local stack slot=$TP_SLOT (backend=$TP_BACKEND_PORT front=$TP_FRONT_PORT admin=$TP_ADMIN_PORT redisDb=$TP_REDIS_DATABASE)"
+}
+
+resolve_local_stack_slot
+
 resolved_minio_credentials_file=""
 if [[ -n "$TP_MINIO_CREDENTIALS_FILE" ]]; then
   resolved_minio_credentials_file="$(resolve_runtime_path "$TP_MINIO_CREDENTIALS_FILE")"

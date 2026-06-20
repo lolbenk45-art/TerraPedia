@@ -321,3 +321,15 @@ test('start requires Node 22 via preflight and repo pins it with .nvmrc', () => 
   assert.match(source, /process\.versions\.node/i);
   assert.match(source, /Node 22\+ required/i);
 });
+
+test('start resolves a per-worktree slot and offsets app ports plus redis db', () => {
+  const source = startSource();
+
+  assert.match(source, /local-stack-slots\.json/);
+  assert.match(source, /slot-allocator\.mjs/);
+  assert.match(source, /TP_BACKEND_PORT=\$\(\( TP_BACKEND_PORT \+ TP_SLOT \)\)/);
+  assert.match(source, /TP_FRONT_PORT=\$\(\( TP_FRONT_PORT \+ TP_SLOT \)\)/);
+  assert.match(source, /TP_ADMIN_PORT=\$\(\( TP_ADMIN_PORT \+ TP_SLOT \)\)/);
+  assert.match(source, /TP_REDIS_DATABASE="\$TP_SLOT"/);
+  assert.match(source, /TP_SLOT >= 64/);
+});
