@@ -227,6 +227,48 @@ require_runtime_secret_before_manifest TP_ADMIN_PASSWORD
 require_runtime_secret_before_manifest TP_ADMIN_TOKEN_SECRET
 require_runtime_secret_before_manifest TP_USER_TOKEN_SECRET
 
+node_major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || printf 0)"
+if (( node_major < 22 )); then
+  log_error "Node 22+ required (found $(node -v 2>/dev/null || printf none)). Run 'nvm use' (see .nvmrc) and retry."
+  exit 1
+fi
+
+resolve_local_stack_slot() {
+  TP_SLOT_REGISTRY="${TERRAPEDIA_SLOT_REGISTRY:-$HOME/.terrapedia/local-stack-slots.json}"
+  local worktree_root
+  worktree_root="$(resolve_repo_root "$PWD")"
+  TP_SLOT="$(node "$SCRIPT_DIR/lib/slot-allocator.mjs" "$TP_SLOT_REGISTRY" "$worktree_root")"
+  if ! [[ "$TP_SLOT" =~ ^[0-9]+$ ]]; then
+    log_error "Failed to resolve local stack slot for $worktree_root (got: ${TP_SLOT:-<empty>})"
+    exit 1
+  fi
+  if (( TP_SLOT >= 64 )); then
+    log_error "Slot $TP_SLOT exceeds shared Redis database capacity (64). Remove an unused worktree entry from $TP_SLOT_REGISTRY."
+    exit 1
+  fi
+  TP_BACKEND_PORT=$(( TP_BACKEND_PORT + TP_SLOT ))
+  TP_FRONT_PORT=$(( TP_FRONT_PORT + TP_SLOT ))
+  TP_ADMIN_PORT=$(( TP_ADMIN_PORT + TP_SLOT ))
+  TP_REDIS_DATABASE="$TP_SLOT"
+  log_info "Local stack slot=$TP_SLOT (backend=$TP_BACKEND_PORT front=$TP_FRONT_PORT admin=$TP_ADMIN_PORT redisDb=$TP_REDIS_DATABASE)"
+}
+
+resolve_local_stack_slot
+
+assert_port_owned_by_worktree() {
+  local label="$1"
+  local port="$2"
+  local pid cwd
+  for pid in $(port_pids "$port"); do
+    cwd="$(process_cwd "$pid")"
+    if [[ "$cwd" == "$REPO_ROOT"* ]]; then
+      continue
+    fi
+    log_error "$label port $port is held by pid=$pid (cwd=${cwd:-unknown}) outside this worktree ($REPO_ROOT). Likely a slot collision or stale process. Free it, or fix the slot in $TP_SLOT_REGISTRY."
+    exit 1
+  done
+}
+
 resolved_minio_credentials_file=""
 if [[ -n "$TP_MINIO_CREDENTIALS_FILE" ]]; then
   resolved_minio_credentials_file="$(resolve_runtime_path "$TP_MINIO_CREDENTIALS_FILE")"
@@ -306,17 +348,12 @@ start_redis_if_needed() {
     exit 1
   fi
 
-  local out_path err_path pid
-  out_path="$(log_path "redis-$TP_REDIS_PORT")"
-  err_path="$out_path.err"
-  nohup "$redis_cmd" --port "$TP_REDIS_PORT" --bind "$TP_REDIS_HOST" --protected-mode yes --requirepass "$TP_REDIS_PASSWORD" >"$out_path" 2>"$err_path" &
-  pid=$!
-  printf '%s\n' "$pid" >"$report_dir/redis-$TP_REDIS_PORT.pid"
-  append_process "redis-$TP_REDIS_PORT" "$pid" "$out_path" "$err_path" "redis-server --port $TP_REDIS_PORT --bind $TP_REDIS_HOST --protected-mode yes --requirepass <redacted>" running
-  printf 'redis PID=%s log=%s\n' "$pid" "$out_path"
+  start_background "redis-$TP_REDIS_PORT" "$REPO_ROOT" \
+    "redis-server --port $TP_REDIS_PORT --bind $TP_REDIS_HOST --protected-mode yes --requirepass <redacted> --databases 64" \
+    "$redis_cmd" --port "$TP_REDIS_PORT" --bind "$TP_REDIS_HOST" --protected-mode yes --requirepass "$TP_REDIS_PASSWORD" --databases 64
 
   if ! wait_port "$TP_REDIS_HOST" "$TP_REDIS_PORT" 15; then
-    log_error "Redis $TP_REDIS_PORT failed to start. Check $out_path and $err_path"
+    log_error "Redis $TP_REDIS_PORT failed to start. Check $(log_path "redis-$TP_REDIS_PORT")"
     exit 1
   fi
 }
@@ -439,6 +476,7 @@ if ! tcp_check 127.0.0.1 "$TP_BACKEND_PORT" 800; then
     exit 1
   }
 else
+  assert_port_owned_by_worktree back "$TP_BACKEND_PORT"
   printf 'back already running on %s; status=occupied\n' "$TP_BACKEND_PORT"
 fi
 
@@ -451,6 +489,7 @@ if ! tcp_check 127.0.0.1 "$TP_FRONT_PORT" 800; then
     exit 1
   }
 else
+  assert_port_owned_by_worktree front "$TP_FRONT_PORT"
   printf 'front already running on %s; status=occupied\n' "$TP_FRONT_PORT"
 fi
 
@@ -463,6 +502,7 @@ if ! tcp_check 127.0.0.1 "$TP_ADMIN_PORT" 800; then
     exit 1
   }
 else
+  assert_port_owned_by_worktree data-query-app "$TP_ADMIN_PORT"
   printf 'data-query-app already running on %s; status=occupied\n' "$TP_ADMIN_PORT"
 fi
 

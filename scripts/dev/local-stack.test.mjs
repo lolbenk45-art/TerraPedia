@@ -304,3 +304,61 @@ test('verify-local-stack mapper preflight executes inline Node script instead of
   assert.match(source, /node --input-type=module - "\$mapper_dir" <<'NODE'/);
   assert.match(source, /const mapperDir = process\.argv\[2\]/);
 });
+
+test('slot allocator tests are included in local and ci gates', () => {
+  const localGate = fs.readFileSync('scripts/dev/quality-gate.sh', 'utf8');
+  const ciGate = fs.readFileSync('scripts/dev/quality-gate-ci.sh', 'utf8');
+
+  assert.match(localGate, /scripts\/dev\/slot-allocator\.test\.mjs/);
+  assert.match(ciGate, /scripts\/dev\/slot-allocator\.test\.mjs/);
+});
+
+test('start requires Node 22 via preflight and repo pins it with .nvmrc', () => {
+  const source = startSource();
+  const nvmrc = fs.readFileSync('.nvmrc', 'utf8').trim();
+
+  assert.equal(nvmrc, '22');
+  assert.match(source, /process\.versions\.node/i);
+  assert.match(source, /Node 22\+ required/i);
+});
+
+test('start resolves a per-worktree slot and offsets app ports plus redis db', () => {
+  const source = startSource();
+
+  assert.match(source, /local-stack-slots\.json/);
+  assert.match(source, /slot-allocator\.mjs/);
+  assert.match(source, /TP_BACKEND_PORT=\$\(\( TP_BACKEND_PORT \+ TP_SLOT \)\)/);
+  assert.match(source, /TP_FRONT_PORT=\$\(\( TP_FRONT_PORT \+ TP_SLOT \)\)/);
+  assert.match(source, /TP_ADMIN_PORT=\$\(\( TP_ADMIN_PORT \+ TP_SLOT \)\)/);
+  assert.match(source, /TP_REDIS_DATABASE="\$TP_SLOT"/);
+  assert.match(source, /TP_SLOT >= 64/);
+});
+
+test('start launches shared redis through start_background with setsid and extra databases', () => {
+  const source = startSource();
+
+  assert.match(source, /start_background "redis-\$TP_REDIS_PORT" "\$REPO_ROOT"/);
+  assert.match(source, /--databases 64/);
+  assert.match(source, /--requirepass <redacted> --databases 64/);
+  assert.doesNotMatch(source, /nohup "\$redis_cmd" --port/);
+});
+
+test('start refuses to reuse an app port owned by another worktree', () => {
+  const source = startSource();
+
+  assert.match(source, /assert_port_owned_by_worktree/);
+  assert.match(source, /outside this worktree/i);
+  // 三个应用服务的 else 复用分支都先校验归属
+  assert.match(source, /assert_port_owned_by_worktree back "\$TP_BACKEND_PORT"/);
+  assert.match(source, /assert_port_owned_by_worktree front "\$TP_FRONT_PORT"/);
+  assert.match(source, /assert_port_owned_by_worktree data-query-app "\$TP_ADMIN_PORT"/);
+});
+
+test('stop preserves shared redis unless --stop-shared is passed', () => {
+  const source = stopSource();
+
+  assert.match(source, /stop_shared=false/);
+  assert.match(source, /--stop-shared/);
+  assert.match(source, /redis-\*[\s\S]*stop_shared/i);
+  assert.match(source, /use --stop-shared/i);
+});
