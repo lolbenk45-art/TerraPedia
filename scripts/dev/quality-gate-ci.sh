@@ -36,6 +36,7 @@ done
 run_step "Data workflow acceptance tests" . node --test \
   scripts/dev/quality-gate.test.mjs \
   scripts/dev/local-stack.test.mjs \
+  scripts/dev/slot-allocator.test.mjs \
   scripts/dev/data-source-snapshot.test.mjs \
   scripts/data/lib/wiki-user-agent.test.mjs \
   scripts/data/lib/wiki-direct-request-boundary.test.mjs \

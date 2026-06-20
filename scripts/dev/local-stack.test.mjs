@@ -304,3 +304,11 @@ test('verify-local-stack mapper preflight executes inline Node script instead of
   assert.match(source, /node --input-type=module - "\$mapper_dir" <<'NODE'/);
   assert.match(source, /const mapperDir = process\.argv\[2\]/);
 });
+
+test('slot allocator tests are included in local and ci gates', () => {
+  const localGate = fs.readFileSync('scripts/dev/quality-gate.sh', 'utf8');
+  const ciGate = fs.readFileSync('scripts/dev/quality-gate-ci.sh', 'utf8');
+
+  assert.match(localGate, /scripts\/dev\/slot-allocator\.test\.mjs/);
+  assert.match(ciGate, /scripts\/dev\/slot-allocator\.test\.mjs/);
+});
