@@ -3,7 +3,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 import { isStandardizedViewDir, loadStandardizedDataset } from '../lib/load-standardized-dataset.mjs';
+import { assertPrimaryDb } from '../lib/base-domain-primary-db-guard.mjs';
+import { rowsEqual } from '../lib/base-domain-row-reconcile.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   clearPublicItemCaches,
@@ -18,9 +21,10 @@ import {
 } from '../lib/item-category-normalization.mjs';
 
 const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
 
 const repoRoot = getProjectRoot();
+
+export { assertPrimaryDb };
 
 function parseArgs(argv) {
   const args = {};
@@ -35,6 +39,21 @@ function parseArgs(argv) {
     }
   }
   return args;
+}
+
+export function resolveImportOptions(argv = process.argv.slice(2), env = process.env) {
+  const args = parseArgs(argv);
+  const explicitDryRun = args['dry-run'] ?? args.dryRun;
+  const explicitApply = args.apply;
+  const dryRun = explicitDryRun == null
+    ? explicitApply !== 'true'
+    : explicitDryRun !== 'false';
+  return {
+    args,
+    dryRun,
+    apply: !dryRun,
+    allowNonPrimaryDb: args['allow-non-primary-db'] === 'true' || env.TERRAPEDIA_ALLOW_NON_PRIMARY_DB === 'true',
+  };
 }
 
 function extractDatabaseNameFromJdbcUrl(jdbcUrl) {
@@ -313,7 +332,11 @@ async function ensureItemCategories(conn, itemRecords, categoryByCode, stats) {
 
 async function loadItemLookup(conn) {
   const [rows] = await conn.query(
-    'SELECT id, internal_name, name, name_zh, image, game_period_id, game_model_id FROM items WHERE deleted = 0'
+    `SELECT id, internal_name, name, name_zh, image, category_id, description,
+            damage, defense, knockback, use_time, width, height, buy, sell, tooltip,
+            rarity_id, game_period_id, game_model_id, is_stackable, stack_size, status, deleted
+       FROM items
+      WHERE deleted = 0`
   );
   const byInternal = new Map();
   const byName = new Map();
@@ -331,8 +354,25 @@ async function loadItemLookup(conn) {
       name,
       nameZh,
       image: toNullableString(row.image),
+      categoryId: toNullableInteger(row.category_id),
+      description: toNullableString(row.description),
+      damage: toNullableInteger(row.damage),
+      defense: toNullableInteger(row.defense),
+      knockback: toNullableInteger(row.knockback),
+      useTime: toNullableInteger(row.use_time),
+      width: toNullableInteger(row.width),
+      height: toNullableInteger(row.height),
+      buy: toNullableInteger(row.buy),
+      sell: toNullableInteger(row.sell),
+      tooltip: toNullableString(row.tooltip),
+      rarityId: toNullableInteger(row.rarity_id),
       gamePeriodId: toNullableInteger(row.game_period_id),
       gameModelId: toNullableInteger(row.game_model_id),
+      isStackable: toTinyIntBoolean(row.is_stackable, 0),
+      stackSize: toNullableInteger(row.stack_size),
+      status: toNullableInteger(row.status),
+      deleted: toNullableInteger(row.deleted),
+      dbRow: row,
     });
   }
   return { byInternal, byName, byId };
@@ -404,6 +444,10 @@ async function importItems(conn, records, categoryByCode, stats) {
     };
 
     if (existingId != null) {
+      if (itemRowsEqual(existingItem, payload)) {
+        stats.skipped += 1;
+        continue;
+      }
       await conn.execute(
         `UPDATE items
            SET name = ?,
@@ -512,6 +556,83 @@ async function importItems(conn, records, categoryByCode, stats) {
   }
 }
 
+const ITEM_COMPARE_COLUMNS = [
+  'name',
+  'internal_name',
+  'image',
+  'category_id',
+  'description',
+  'damage',
+  'defense',
+  'knockback',
+  'use_time',
+  'width',
+  'height',
+  'buy',
+  'sell',
+  'tooltip',
+  'rarity_id',
+  'game_period_id',
+  'game_model_id',
+  'is_stackable',
+  'stack_size',
+  'status',
+  'deleted',
+];
+
+const ITEM_NUMERIC_COLUMNS = [
+  'category_id',
+  'damage',
+  'defense',
+  'knockback',
+  'use_time',
+  'width',
+  'height',
+  'buy',
+  'sell',
+  'rarity_id',
+  'game_period_id',
+  'game_model_id',
+  'is_stackable',
+  'stack_size',
+  'status',
+  'deleted',
+];
+
+function itemPayloadToDbRow(payload) {
+  return {
+    name: payload.name,
+    internal_name: payload.internalName,
+    image: payload.image,
+    category_id: payload.categoryId,
+    description: payload.description,
+    damage: payload.damage,
+    defense: payload.defense,
+    knockback: payload.knockback,
+    use_time: payload.useTime,
+    width: payload.width,
+    height: payload.height,
+    buy: payload.buy,
+    sell: payload.sell,
+    tooltip: payload.tooltip,
+    rarity_id: payload.rarityId,
+    game_period_id: payload.gamePeriodId,
+    game_model_id: payload.gameModelId,
+    is_stackable: payload.isStackable,
+    stack_size: payload.stackSize,
+    status: payload.status,
+    deleted: 0,
+  };
+}
+
+function itemRowsEqual(existingItem, payload) {
+  if (!existingItem) return false;
+  return rowsEqual(existingItem.dbRow ?? {}, itemPayloadToDbRow(payload), {
+    columns: ITEM_COMPARE_COLUMNS,
+    numericColumns: ITEM_NUMERIC_COLUMNS,
+  });
+}
+
 async function upsertItemRecord(conn, itemLookup, payload, stats) {
   const name = toNullableString(payload.name) ?? payload.internalName;
   const existingId = itemLookup.byInternal.get(payload.internalName) ?? null;
@@ -541,6 +662,10 @@ async function upsertItemRecord(conn, itemLookup, payload, stats) {
   };
 
   if (existingId != null) {
+    if (itemRowsEqual(existingItem, normalizedPayload)) {
+      stats.skipped += 1;
+      return;
+    }
     await conn.execute(
       `UPDATE items
          SET name = ?,
@@ -1557,7 +1682,8 @@ async function importSnapshots(conn, snapshotRecords, itemLookup, biomeByCode, s
 }
 
 async function main() {
-  const args = parseArgs(process.argv.slice(2));
+  const { args, dryRun, allowNonPrimaryDb } = resolveImportOptions(process.argv.slice(2));
+  const mysql = require('mysql2/promise');
 
   const dataDir = path.resolve(
     args['data-dir']
@@ -1580,7 +1706,7 @@ async function main() {
   };
   const redisConfig = resolveRedisConfigFromEnv(args);
 
-  assertPrimaryDb(connectionConfig.database, args['allow-non-primary-db'] === 'true' || process.env.TERRAPEDIA_ALLOW_NON_PRIMARY_DB === 'true');
+  assertPrimaryDb(connectionConfig.database, !dryRun, allowNonPrimaryDb);
 
   const manifestPath = isStandardizedViewDir(dataDir)
     ? path.join(dataDir, '_index.json')
@@ -1598,14 +1724,50 @@ async function main() {
     ? loadOptionalJson(wikiBiomesFile)
     : null;
 
-  const summary = makeSummary();
   const conn = await mysql.createConnection(connectionConfig);
 
   try {
-    await conn.query('SET NAMES utf8mb4');
-    await ensureRelationTextColumns(conn);
-    await conn.beginTransaction();
+    const report = await runStandardizedImportWithConnection(conn, {
+      dryRun,
+      dataDir,
+      wikiBiomesFile: wikiBiomesDataset ? wikiBiomesFile : null,
+      datasets: {
+        manifest,
+        itemsDataset,
+        relationsDataset,
+        wikiBiomesDataset,
+      },
+      redisConfig,
+    });
+    console.log(JSON.stringify(report, null, 2));
+  } finally {
+    await conn.end();
+  }
+}
 
+export async function runStandardizedImportWithConnection(conn, {
+  dryRun = true,
+  dataDir = null,
+  wikiBiomesFile = null,
+  datasets = {},
+  redisConfig = {},
+  generatedAt = new Date().toISOString(),
+} = {}) {
+  const {
+    manifest = null,
+    itemsDataset = { records: [] },
+    relationsDataset = { records: {} },
+    wikiBiomesDataset = null,
+  } = datasets;
+
+  const summary = makeSummary();
+
+  await conn.query('SET NAMES utf8mb4');
+  if (!dryRun) {
+    await ensureRelationTextColumns(conn);
+  }
+  await conn.beginTransaction();
+  try {
     const categoryByCode = await loadCategoryCodeMap(conn);
     await ensureItemCategories(conn, itemsDataset.records, categoryByCode, summary.categorySync);
 
@@ -1632,29 +1794,31 @@ async function main() {
     await importSnapshots(conn, snapshots, itemLookup, biomeByCode, summary.snapshots);
     await normalizeRelationSortOrders(conn, summary.sortNormalization);
 
-    await conn.commit();
+    if (dryRun) {
+      await conn.rollback();
+    } else {
+      await conn.commit();
+    }
   } catch (error) {
     await conn.rollback();
     throw error;
-  } finally {
-    await conn.end();
   }
 
   const publicItemCache = publicItemRowsChanged(summary)
+    && !dryRun
     ? await clearPublicItemCaches(redisConfig)
     : skippedPublicItemCacheResult('no_public_item_rows_changed');
 
-  const report = {
-    generatedAt: new Date().toISOString(),
-    database: connectionConfig.database,
+  return {
+    generatedAt,
+    database: conn.config?.database ?? null,
+    dryRun,
     dataDir,
     wikiBiomesFile: wikiBiomesDataset ? wikiBiomesFile : null,
     manifestGeneratedAt: manifest?.generatedAt ?? null,
     summary,
     publicItemCache,
   };
-
-  console.log(JSON.stringify(report, null, 2));
 }
 
 function publicItemRowsChanged(summary) {
@@ -1682,14 +1846,15 @@ function mergeBiomeRecords(baseRecords, overrideRecords) {
   return [...merged.values()];
 }
 
-main().catch((error) => {
-  console.error('[import-standardized-to-db] failed');
-  console.error(error?.stack || error?.message || error);
-  process.exit(1);
-});
+function isDirectExecution() {
+  if (!process.argv[1]) return false;
+  return fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+}
 
-function assertPrimaryDb(database, allowNonPrimaryDb) {
-  if (String(database || '').trim() === 'terria_v1_local') return;
-  if (allowNonPrimaryDb) return;
-  throw new Error(`Refusing to write to non-primary database '${database}'. Set TERRAPEDIA_DB_NAME=terria_v1_local or pass --allow-non-primary-db=true explicitly.`);
+if (isDirectExecution()) {
+  main().catch((error) => {
+    console.error('[import-standardized-to-db] failed');
+    console.error(error?.stack || error?.message || error);
+    process.exit(1);
+  });
 }

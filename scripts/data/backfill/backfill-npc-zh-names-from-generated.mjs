@@ -85,8 +85,12 @@ try {
            SET name_zh = ?,
                sub_name_zh = ?,
                updated_at = NOW()
-         WHERE id = ?`,
-        [nextNameZh, nextSubNameZh, row.id]
+         WHERE id = ?
+           AND (
+             NOT (name_zh <=> ?)
+             OR NOT (sub_name_zh <=> ?)
+           )`,
+        [nextNameZh, nextSubNameZh, row.id, nextNameZh, nextSubNameZh]
       );
       summary.appliedUpdated += Number(result.affectedRows || 0);
     }

@@ -889,27 +889,135 @@ function mapTypeTokenToCategoryCode(token) {
   }
 }
 
-async function syncItemCategoryRelations(connection, { itemId, categoryCodes, primaryCode, wiki, categoryLookup }) {
-  await connection.execute('DELETE FROM item_category_rel WHERE item_id = ?', [itemId]);
-
+export async function syncItemCategoryRelations(connection, { itemId, categoryCodes, primaryCode, wiki, categoryLookup }) {
+  const targetRows = [];
   let sortOrder = 1;
   for (const code of categoryCodes) {
     const category = categoryLookup.byCode.get(code);
     if (!category?.id) continue;
+    targetRows.push({
+      itemId,
+      categoryId: Number(category.id),
+      isPrimary: code === primaryCode ? 1 : 0,
+      relationType: 'wiki_type',
+      sortOrder: sortOrder++,
+      sourceProvider: 'terraria.wiki.gg',
+      sourcePage: toText(wiki?.pageTitle),
+      sourceRevisionTimestamp: normalizeSqlDateTime(wiki?.revisionTimestamp),
+      status: 1,
+      deleted: 0,
+    });
+  }
+
+  const [existingRowsRaw] = await connection.execute(
+    `SELECT
+       id,
+       item_id AS itemId,
+       category_id AS categoryId,
+       is_primary AS isPrimary,
+       relation_type AS relationType,
+       sort_order AS sortOrder,
+       source_provider AS sourceProvider,
+       source_page AS sourcePage,
+       source_revision_timestamp AS sourceRevisionTimestamp,
+       status,
+       deleted
+     FROM item_category_rel
+     WHERE item_id = ? AND deleted = 0`,
+    [itemId]
+  );
+  const existingRows = existingRowsRaw.map(normalizeCategoryRelationRow);
+  const existingByCategoryId = new Map(existingRows.map((row) => [row.categoryId, row]));
+  const targetByCategoryId = new Map(targetRows.map((row) => [row.categoryId, normalizeCategoryRelationRow(row)]));
+  const stats = { inserted: 0, updated: 0, deleted: 0, skipped: 0 };
+
+  for (const existing of existingRows) {
+    if (!targetByCategoryId.has(existing.categoryId)) {
+      await connection.execute('DELETE FROM item_category_rel WHERE id = ? AND item_id = ?', [existing.id, itemId]);
+      stats.deleted += 1;
+    }
+  }
+
+  for (const target of targetRows) {
+    const normalizedTarget = normalizeCategoryRelationRow(target);
+    const existing = existingByCategoryId.get(normalizedTarget.categoryId);
+    if (!existing) {
+      await insertItemCategoryRelation(connection, normalizedTarget);
+      stats.inserted += 1;
+      continue;
+    }
+    if (categoryRelationRowsEqual(existing, normalizedTarget)) {
+      stats.skipped += 1;
+      continue;
+    }
     await connection.execute(
-      `INSERT INTO item_category_rel (
-        item_id, category_id, is_primary, relation_type, sort_order, source_provider, source_page, source_revision_timestamp, status, deleted
-      ) VALUES (?, ?, ?, 'wiki_type', ?, 'terraria.wiki.gg', ?, ?, 1, 0)`,
+      `UPDATE item_category_rel
+       SET is_primary = ?,
+           relation_type = ?,
+           sort_order = ?,
+           source_provider = ?,
+           source_page = ?,
+           source_revision_timestamp = ?,
+           status = 1,
+           deleted = 0,
+           updated_at = NOW()
+       WHERE id = ? AND item_id = ?`,
       [
+        normalizedTarget.isPrimary,
+        normalizedTarget.relationType,
+        normalizedTarget.sortOrder,
+        normalizedTarget.sourceProvider,
+        normalizedTarget.sourcePage,
+        normalizedTarget.sourceRevisionTimestamp,
+        existing.id,
         itemId,
-        category.id,
-        code === primaryCode ? 1 : 0,
-        sortOrder++,
-        toText(wiki?.pageTitle),
-        normalizeSqlDateTime(wiki?.revisionTimestamp),
       ]
     );
+    stats.updated += 1;
   }
+
+  return stats;
+}
+
+async function insertItemCategoryRelation(connection, row) {
+  await connection.execute(
+    `INSERT INTO item_category_rel (
+      item_id, category_id, is_primary, relation_type, sort_order, source_provider, source_page, source_revision_timestamp, status, deleted
+    ) VALUES (?, ?, ?, 'wiki_type', ?, 'terraria.wiki.gg', ?, ?, 1, 0)`,
+    [
+      row.itemId,
+      row.categoryId,
+      row.isPrimary,
+      row.sortOrder,
+      row.sourcePage,
+      row.sourceRevisionTimestamp,
+    ]
+  );
+}
+
+function categoryRelationRowsEqual(left, right) {
+  return JSON.stringify(stripCategoryRelationIdentity(left)) === JSON.stringify(stripCategoryRelationIdentity(right));
+}
+
+function stripCategoryRelationIdentity(row) {
+  const { id: _id, ...rest } = normalizeCategoryRelationRow(row);
+  return rest;
+}
+
+function normalizeCategoryRelationRow(row) {
+  return {
+    id: row.id == null ? null : Number(row.id),
+    itemId: Number(row.itemId ?? row.item_id),
+    categoryId: Number(row.categoryId ?? row.category_id),
+    isPrimary: Number(row.isPrimary ?? row.is_primary ?? 0),
+    relationType: toText(row.relationType ?? row.relation_type) ?? 'wiki_type',
+    sortOrder: Number(row.sortOrder ?? row.sort_order ?? 0),
+    sourceProvider: toText(row.sourceProvider ?? row.source_provider),
+    sourcePage: toText(row.sourcePage ?? row.source_page),
+    sourceRevisionTimestamp: normalizeSqlDateTime(row.sourceRevisionTimestamp ?? row.source_revision_timestamp),
+    status: Number(row.status ?? 1),
+    deleted: Number(row.deleted ?? 0),
+  };
 }
 
 export function shouldApplyCategoryChange({ currentCode, nextCode, categoryLookup, reason }) {

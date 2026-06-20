@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  applyRows,
   assertPrimaryDb,
   buildBiomeWikitextResolvedImportPlan,
   buildConnectionConfig,
@@ -192,3 +193,160 @@ test('buildConnectionConfig supports local socket and username env alias', () =>
   assert.equal(config.host, undefined);
   assert.equal(config.port, undefined);
 });
+
+test('applyRows skips unchanged biome wikitext relation rows', async () => {
+  const itemRow = biomeItemRow();
+  const npcRow = biomeNpcRow();
+  const conn = createApplyRowsFakeConnection({
+    biomeResourceRows: [dbBiomeResourceRow(itemRow)],
+    itemBiomeRows: [dbItemBiomeRow(itemRow)],
+    itemAcquisitionRows: [dbItemAcquisitionSourceRow(itemRow)],
+    npcBiomeRows: [dbNpcBiomeRow(npcRow)],
+  });
+
+  const summary = await applyRows(conn, {
+    itemRows: [itemRow],
+    npcRows: [npcRow],
+  });
+
+  assert.deepEqual(summary, {
+    biomeResources: { created: 0, updated: 0 },
+    itemBiomes: { created: 0, updated: 0 },
+    itemAcquisitionSources: { created: 0, updated: 0 },
+    npcBiomes: { created: 0, updated: 0 },
+  });
+  assert.equal(conn.calls.some((call) => /\bUPDATE\s+biome_resources\b/i.test(call.sql)), false);
+  assert.equal(conn.calls.some((call) => /\bINSERT INTO\s+item_biomes\b/i.test(call.sql)), false);
+  assert.equal(conn.calls.some((call) => /\bUPDATE\s+item_acquisition_sources\b/i.test(call.sql)), false);
+  assert.equal(conn.calls.some((call) => /\bINSERT INTO\s+npc_biomes\b/i.test(call.sql)), false);
+});
+
+test('applyRows updates changed biome wikitext relation rows without broad deletes', async () => {
+  const itemRow = biomeItemRow({ notes: 'changed source | changed note', noteOnly: 'changed note', sortOrder: 2 });
+  const npcRow = biomeNpcRow({ notes: 'changed note', sortOrder: 2 });
+  const conn = createApplyRowsFakeConnection({
+    biomeResourceRows: [dbBiomeResourceRow(biomeItemRow())],
+    itemBiomeRows: [dbItemBiomeRow(biomeItemRow())],
+    itemAcquisitionRows: [dbItemAcquisitionSourceRow(biomeItemRow())],
+    npcBiomeRows: [dbNpcBiomeRow(biomeNpcRow())],
+  });
+
+  const summary = await applyRows(conn, {
+    itemRows: [itemRow],
+    npcRows: [npcRow],
+  });
+
+  assert.deepEqual(summary, {
+    biomeResources: { created: 0, updated: 1 },
+    itemBiomes: { created: 0, updated: 1 },
+    itemAcquisitionSources: { created: 0, updated: 1 },
+    npcBiomes: { created: 0, updated: 1 },
+  });
+  assert.equal(conn.calls.some((call) => /\bDELETE FROM\b/i.test(call.sql)), false);
+  assert.equal(conn.calls.filter((call) => /\bUPDATE\s+biome_resources\b/i.test(call.sql)).length, 1);
+  assert.equal(conn.calls.filter((call) => /\bUPDATE\s+item_biomes\b/i.test(call.sql)).length, 1);
+  assert.equal(conn.calls.filter((call) => /\bUPDATE\s+item_acquisition_sources\b/i.test(call.sql)).length, 1);
+  assert.equal(conn.calls.filter((call) => /\bUPDATE\s+npc_biomes\b/i.test(call.sql)).length, 1);
+});
+
+function biomeItemRow(overrides = {}) {
+  return {
+    biomeId: 10,
+    itemId: 20,
+    itemName: 'Tattered Cloth',
+    relationType: 'drop',
+    source: 'From Goblin Scouts',
+    notes: 'From Goblin Scouts | rare drop',
+    noteOnly: 'rare drop',
+    sourcePage: 'Forest',
+    sortOrder: 1,
+    ...overrides,
+  };
+}
+
+function biomeNpcRow(overrides = {}) {
+  return {
+    biomeId: 10,
+    npcId: 30,
+    npcName: 'Green Slime',
+    spawnContext: 'During the day',
+    notes: 'common spawn',
+    sourcePage: 'Forest',
+    sortOrder: 1,
+    ...overrides,
+  };
+}
+
+function dbBiomeResourceRow(row) {
+  return {
+    id: 100,
+    biome_id: row.biomeId,
+    item_id: row.itemId,
+    resource_name_raw: row.itemName,
+    resource_type: row.relationType,
+    notes: row.notes,
+    sort_order: row.sortOrder,
+  };
+}
+
+function dbItemBiomeRow(row) {
+  return {
+    id: 101,
+    item_id: row.itemId,
+    biome_id: row.biomeId,
+    relation_type: row.relationType,
+    notes: row.notes,
+    sort_order: row.sortOrder,
+  };
+}
+
+function dbItemAcquisitionSourceRow(row) {
+  return {
+    id: 102,
+    item_id: row.itemId,
+    source_type: row.relationType,
+    source_ref_type: 'biome_wikitext',
+    source_ref_name: row.source,
+    biome_id: row.biomeId,
+    notes: row.noteOnly,
+    source_provider: 'terraria.wiki.gg',
+    source_page: row.sourcePage,
+    sort_order: row.sortOrder,
+  };
+}
+
+function dbNpcBiomeRow(row) {
+  return {
+    id: 103,
+    npc_id: row.npcId,
+    biome_id: row.biomeId,
+    relation_type: 'appears_in',
+    spawn_context: row.spawnContext,
+    notes: row.notes,
+    source_provider: 'terraria.wiki.gg',
+    source_page: row.sourcePage,
+    sort_order: row.sortOrder,
+    status: 1,
+    deleted: 0,
+  };
+}
+
+function createApplyRowsFakeConnection({
+  biomeResourceRows = [],
+  itemBiomeRows = [],
+  itemAcquisitionRows = [],
+  npcBiomeRows = [],
+} = {}) {
+  const calls = [];
+  return {
+    calls,
+    async execute(sql, params = []) {
+      calls.push({ sql, params });
+      if (/\bFROM\s+biome_resources\b/i.test(sql)) return [biomeResourceRows];
+      if (/\bFROM\s+item_biomes\b/i.test(sql)) return [itemBiomeRows];
+      if (/\bFROM\s+item_acquisition_sources\b/i.test(sql)) return [itemAcquisitionRows];
+      if (/\bFROM\s+npc_biomes\b/i.test(sql)) return [npcBiomeRows];
+      return [{ affectedRows: 1, insertId: 200 }];
+    },
+  };
+}

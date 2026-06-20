@@ -88,8 +88,9 @@ try {
         `UPDATE npcs
            SET category_id = ?,
                updated_at = NOW()
-         WHERE id = ?`,
-        [nextCategoryId, row.id]
+         WHERE id = ?
+           AND NOT (category_id <=> ?)`,
+        [nextCategoryId, row.id, nextCategoryId]
       );
       summary.appliedUpdated += Number(result.affectedRows || 0);
     }

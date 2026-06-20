@@ -15,13 +15,19 @@ import {
   getRequiredTownNpcConditionTerms,
   getRequiredTownNpcWorldContexts
 } from '../lib/town-npc-shop-conditions.mjs';
-import { resolveManagedImageUrlPrefixes } from '../relation/managed-image-url-policy.mjs';
+import {
+  DEFAULT_MANAGED_IMAGE_URL_PREFIXES,
+  resolveManagedImageUrlPrefixes,
+} from '../relation/managed-image-url-policy.mjs';
+import { reconcileChildRows } from '../lib/base-domain-row-reconcile.mjs';
 
 const require = createRequire(import.meta.url);
 
 const repoRoot = getProjectRoot();
-const mysql = loadMysqlModule();
-const managedImageUrlPrefixes = resolveManagedImageUrlPrefixes({ repoRoot });
+const resolvedManagedImageUrlPrefixes = resolveManagedImageUrlPrefixes({ repoRoot });
+const managedImageUrlPrefixes = resolvedManagedImageUrlPrefixes.length > 0
+  ? resolvedManagedImageUrlPrefixes
+  : DEFAULT_MANAGED_IMAGE_URL_PREFIXES;
 const VALID_LIVING_PREFERENCES = new Set(['love', 'like', 'dislike', 'hate']);
 
 const TOWN_NPC_SHOP_ITEM_ALIASES = new Map([
@@ -106,7 +112,7 @@ export async function runImportWikiTownNpcsToDb(rawArgs = process.argv.slice(2),
   const payload = JSON.parse(await fs.promises.readFile(inputPath, 'utf8'));
   const records = Array.isArray(payload?.records) ? payload.records : [];
 
-  const createConnection = dependencies.createConnection ?? mysql.createConnection;
+  const createConnection = dependencies.createConnection ?? loadMysqlModule().createConnection;
   const conn = await createConnection(db);
   try {
     await conn.query('SET NAMES utf8mb4');
@@ -280,7 +286,12 @@ export async function importTownNpcRecord(connection, rawRecord, context) {
     shopReplaceSkipped: false,
     deletedShopEntryCount: 0,
     insertedShopEntryCount: 0,
+    updatedShopEntryCount: 0,
+    skippedShopEntryCount: 0,
     insertedShopConditionCount: 0,
+    updatedShopConditionCount: 0,
+    deletedShopConditionCount: 0,
+    skippedShopConditionCount: 0,
     matchedShopItems: [],
     ignoredLegacyShopItems: [],
     genericChoiceShopItems: [],
@@ -350,58 +361,8 @@ export async function importTownNpcRecord(connection, rawRecord, context) {
     return result;
   }
 
-  const deletedEntryIds = await loadNpcShopEntryIds(connection, npc.id);
-  result.deletedShopEntryCount = deletedEntryIds.length;
-
   if (context.apply) {
-    if (deletedEntryIds.length > 0) {
-      const placeholders = deletedEntryIds.map(() => '?').join(',');
-      await connection.execute(
-        `DELETE FROM npc_shop_conditions WHERE shop_entry_id IN (${placeholders})`,
-        deletedEntryIds
-      );
-      await connection.execute(
-        `DELETE FROM npc_shop_entries WHERE id IN (${placeholders})`,
-        deletedEntryIds
-      );
-    }
-
-    for (let index = 0; index < preparedShopEntries.length; index += 1) {
-      const entry = preparedShopEntries[index];
-      const [insertResult] = await connection.execute(
-        `INSERT INTO npc_shop_entries
-          (npc_id, item_id, source_item_id, price_text, notes, sort_order, status, deleted)
-         VALUES (?, ?, ?, ?, ?, ?, 1, 0)`,
-        [
-          npc.id,
-          entry.itemId,
-          null,
-          entry.priceText,
-          entry.notes,
-          index + 1
-        ]
-      );
-      const shopEntryId = Number(insertResult?.insertId);
-      result.insertedShopEntryCount += 1;
-
-      for (let conditionIndex = 0; conditionIndex < entry.conditions.length; conditionIndex += 1) {
-        const condition = entry.conditions[conditionIndex];
-        await connection.execute(
-          `INSERT INTO npc_shop_conditions
-            (shop_entry_id, ref_type, ref_id, condition_role, notes, sort_order)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [
-            shopEntryId,
-            condition.refType,
-            condition.refId,
-            condition.conditionRole ?? 'required',
-            condition.notes ?? null,
-            conditionIndex
-          ]
-        );
-        result.insertedShopConditionCount += 1;
-      }
-    }
+    await reconcileNpcShopEntries(connection, npc.id, preparedShopEntries, result);
     result.shopReplaced = true;
   } else {
     result.insertedShopEntryCount = preparedShopEntries.length;
@@ -413,6 +374,166 @@ export async function importTownNpcRecord(connection, rawRecord, context) {
   }
 
   return result;
+}
+
+async function reconcileNpcShopEntries(connection, npcId, preparedShopEntries, result) {
+  const [existingEntries] = await connection.execute(
+    `SELECT id, npc_id, item_id, source_item_id, price_text, notes, sort_order, status, deleted
+       FROM npc_shop_entries
+      WHERE npc_id = ?
+      ORDER BY sort_order`,
+    [npcId]
+  );
+  const targetRows = preparedShopEntries.map((entry, index) => ({
+    npc_id: npcId,
+    item_id: entry.itemId,
+    source_item_id: null,
+    price_text: entry.priceText,
+    notes: entry.notes,
+    sort_order: index + 1,
+    status: 1,
+    deleted: 0,
+    conditions: entry.conditions,
+  }));
+  const diff = reconcileChildRows({
+    existingRows: existingEntries,
+    targetRows,
+    keyColumns: ['sort_order'],
+    compareColumns: ['npc_id', 'item_id', 'source_item_id', 'price_text', 'notes', 'sort_order', 'status', 'deleted'],
+    numericColumns: ['npc_id', 'item_id', 'source_item_id', 'sort_order', 'status', 'deleted'],
+  });
+
+  result.skippedShopEntryCount += diff.noop.length;
+
+  for (const { existing } of diff.remove) {
+    await deleteNpcShopEntry(connection, existing.id, result);
+  }
+
+  for (const { existing, target } of diff.update) {
+    await connection.execute(
+      `UPDATE npc_shop_entries
+          SET npc_id = ?,
+              item_id = ?,
+              source_item_id = ?,
+              price_text = ?,
+              notes = ?,
+              sort_order = ?,
+              status = 1,
+              deleted = 0,
+              updated_at = NOW()
+        WHERE id = ?`,
+      [
+        target.npc_id,
+        target.item_id,
+        target.source_item_id,
+        target.price_text,
+        target.notes,
+        target.sort_order,
+        existing.id,
+      ]
+    );
+    result.updatedShopEntryCount += 1;
+    await reconcileNpcShopConditions(connection, existing.id, target.conditions, result);
+  }
+
+  for (const { existing, target } of diff.noop) {
+    await reconcileNpcShopConditions(connection, existing.id, target.conditions, result);
+  }
+
+  for (const { target } of diff.add) {
+    const [insertResult] = await connection.execute(
+      `INSERT INTO npc_shop_entries
+        (npc_id, item_id, source_item_id, price_text, notes, sort_order, status, deleted)
+       VALUES (?, ?, ?, ?, ?, ?, 1, 0)`,
+      [
+        target.npc_id,
+        target.item_id,
+        target.source_item_id,
+        target.price_text,
+        target.notes,
+        target.sort_order,
+      ]
+    );
+    const shopEntryId = Number(insertResult?.insertId);
+    result.insertedShopEntryCount += 1;
+    await reconcileNpcShopConditions(connection, shopEntryId, target.conditions, result);
+  }
+}
+
+async function deleteNpcShopEntry(connection, shopEntryId, result) {
+  await connection.execute('DELETE FROM npc_shop_conditions WHERE shop_entry_id = ?', [shopEntryId]);
+  result.deletedShopConditionCount += 1;
+  await connection.execute('DELETE FROM npc_shop_entries WHERE id = ?', [shopEntryId]);
+  result.deletedShopEntryCount += 1;
+}
+
+async function reconcileNpcShopConditions(connection, shopEntryId, conditions, result) {
+  const [existingRows] = await connection.execute(
+    `SELECT id, shop_entry_id, ref_type, ref_id, condition_role, notes, sort_order
+       FROM npc_shop_conditions
+      WHERE shop_entry_id = ?
+      ORDER BY sort_order`,
+    [shopEntryId]
+  );
+  const targetRows = conditions.map((condition, index) => ({
+    shop_entry_id: shopEntryId,
+    ref_type: condition.refType,
+    ref_id: condition.refId,
+    condition_role: condition.conditionRole ?? 'required',
+    notes: condition.notes ?? null,
+    sort_order: index,
+  }));
+  const diff = reconcileChildRows({
+    existingRows,
+    targetRows,
+    keyColumns: ['sort_order'],
+    compareColumns: ['shop_entry_id', 'ref_type', 'ref_id', 'condition_role', 'notes', 'sort_order'],
+    numericColumns: ['shop_entry_id', 'ref_id', 'sort_order'],
+  });
+  result.skippedShopConditionCount += diff.noop.length;
+  for (const { existing } of diff.remove) {
+    await connection.execute('DELETE FROM npc_shop_conditions WHERE id = ?', [existing.id]);
+    result.deletedShopConditionCount += 1;
+  }
+  for (const { existing, target } of diff.update) {
+    await connection.execute(
+      `UPDATE npc_shop_conditions
+          SET shop_entry_id = ?,
+              ref_type = ?,
+              ref_id = ?,
+              condition_role = ?,
+              notes = ?,
+              sort_order = ?,
+              updated_at = NOW()
+        WHERE id = ?`,
+      [
+        target.shop_entry_id,
+        target.ref_type,
+        target.ref_id,
+        target.condition_role,
+        target.notes,
+        target.sort_order,
+        existing.id,
+      ]
+    );
+    result.updatedShopConditionCount += 1;
+  }
+  for (const { target } of diff.add) {
+    await connection.execute(
+      `INSERT INTO npc_shop_conditions
+        (shop_entry_id, ref_type, ref_id, condition_role, notes, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        target.shop_entry_id,
+        target.ref_type,
+        target.ref_id,
+        target.condition_role,
+        target.notes,
+        target.sort_order,
+      ]
+    );
+    result.insertedShopConditionCount += 1;
+  }
 }
 
 async function updateNpcRichProfile(connection, npc, { wikiAssetsJson, livingPreferencesJson, result }) {

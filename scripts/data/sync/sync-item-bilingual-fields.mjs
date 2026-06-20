@@ -84,8 +84,30 @@ try {
         UPDATE items
         SET name = ?, name_zh = ?, description = ?, description_zh = ?, tooltip = ?, tooltip_zh = ?, updated_at = NOW()
         WHERE id = ?
+          AND (
+            NOT (name <=> ?)
+            OR NOT (name_zh <=> ?)
+            OR NOT (description <=> ?)
+            OR NOT (description_zh <=> ?)
+            OR NOT (tooltip <=> ?)
+            OR NOT (tooltip_zh <=> ?)
+          )
         `,
-        [nextNameEn, nextNameZh, nextDescriptionEn, nextDescriptionZh, nextTooltipEn, nextTooltipZh, row.id]
+        [
+          nextNameEn,
+          nextNameZh,
+          nextDescriptionEn,
+          nextDescriptionZh,
+          nextTooltipEn,
+          nextTooltipZh,
+          row.id,
+          nextNameEn,
+          nextNameZh,
+          nextDescriptionEn,
+          nextDescriptionZh,
+          nextTooltipEn,
+          nextTooltipZh
+        ]
       );
       updated += Number(result.affectedRows || 0);
     } else {

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadStandardizedDataset } from '../lib/load-standardized-dataset.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import { rowsEqual } from '../lib/base-domain-row-reconcile.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const moduleRequire = createRequire(import.meta.url);
@@ -282,13 +283,42 @@ async function loadBiomeCodeMap(conn) {
   return map;
 }
 
-async function loadExistingBiomeIconMap(conn) {
-  const [rows] = await conn.query('SELECT code, icon_url FROM biomes WHERE deleted = 0');
+async function loadExistingBiomeMap(conn) {
+  const [rows] = await conn.query(`
+    SELECT
+      id,
+      code,
+      name_en,
+      name_zh,
+      alias_en,
+      alias_zh,
+      layer_type,
+      biome_type,
+      wiki_group_code,
+      wiki_group_name_en,
+      wiki_group_name_zh,
+      wiki_parent_group_code,
+      wiki_parent_group_name_en,
+      wiki_parent_group_name_zh,
+      wiki_section_level,
+      wiki_sort_order,
+      wiki_section_anchor,
+      description,
+      icon_url,
+      source_provider,
+      source_page,
+      source_revision_timestamp,
+      last_synced_at,
+      status,
+      deleted
+    FROM biomes
+    WHERE deleted = 0
+  `);
   const map = new Map();
   for (const row of rows) {
     const code = normalizeCode(row.code);
     if (!code) continue;
-    map.set(code, toNullableString(row.icon_url));
+    map.set(code, row);
   }
   return map;
 }
@@ -308,7 +338,7 @@ function getItemId(itemLookup, internalName, itemName) {
 async function importBiomes(conn, biomeRecords, stats) {
   if (!Array.isArray(biomeRecords) || biomeRecords.length === 0) return new Map();
 
-  const existingIconByCode = await loadExistingBiomeIconMap(conn);
+  const existingByCode = await loadExistingBiomeMap(conn);
 
   for (let i = 0; i < biomeRecords.length; i += 1) {
     const raw = biomeRecords[i];
@@ -320,6 +350,37 @@ async function importBiomes(conn, biomeRecords, stats) {
     }
 
     const nameEn = toNullableString(raw?.nameEn ?? raw?.pageTitle ?? code) ?? code;
+    const target = buildBiomeDbSnapshot({
+      code: code.toLowerCase(),
+      name_en: nameEn,
+      name_zh: toNullableString(raw?.nameZh),
+      alias_en: toNullableString(raw?.aliasEn),
+      alias_zh: toNullableString(raw?.aliasZh),
+      layer_type: toNullableString(raw?.layerType),
+      biome_type: toNullableString(raw?.biomeType),
+      wiki_group_code: toNullableString(raw?.wikiGroupCode),
+      wiki_group_name_en: toNullableString(raw?.wikiGroupNameEn),
+      wiki_group_name_zh: toNullableString(raw?.wikiGroupNameZh),
+      wiki_parent_group_code: toNullableString(raw?.wikiParentGroupCode),
+      wiki_parent_group_name_en: toNullableString(raw?.wikiParentGroupNameEn),
+      wiki_parent_group_name_zh: toNullableString(raw?.wikiParentGroupNameZh),
+      wiki_section_level: toNullableInteger(raw?.wikiSectionLevel),
+      wiki_sort_order: toNullableInteger(raw?.wikiSortOrder),
+      wiki_section_anchor: toNullableString(raw?.wikiSectionAnchor),
+      description: toNullableString(raw?.description),
+      icon_url: mergeIconUrl(existingByCode.get(code)?.icon_url, raw?.iconUrl, raw),
+      source_provider: toNullableString(raw?.sourceProvider) ?? 'wiki_gg',
+      source_page: toNullableString(raw?.sourcePage ?? raw?.pageTitle),
+      source_revision_timestamp: toDateTime(raw?.sourceRevisionTimestamp ?? raw?.revisionTimestamp),
+      last_synced_at: toDateTime(raw?.lastSyncedAt ?? raw?.fetchedAt),
+      status: 1,
+      deleted: 0,
+    });
+    const existing = existingByCode.get(code);
+    if (existing && biomeRowsEqual(existing, target)) {
+      stats.skipped += 1;
+      continue;
+    }
     await conn.execute(
       `INSERT INTO biomes
         (code, name_en, name_zh, alias_en, alias_zh, layer_type, biome_type,
@@ -355,34 +416,95 @@ async function importBiomes(conn, biomeRecords, stats) {
         deleted = 0,
         updated_at = NOW()`,
       [
-        code.toLowerCase(),
-        nameEn,
-        toNullableString(raw?.nameZh),
-        toNullableString(raw?.aliasEn),
-        toNullableString(raw?.aliasZh),
-        toNullableString(raw?.layerType),
-        toNullableString(raw?.biomeType),
-        toNullableString(raw?.wikiGroupCode),
-        toNullableString(raw?.wikiGroupNameEn),
-        toNullableString(raw?.wikiGroupNameZh),
-        toNullableString(raw?.wikiParentGroupCode),
-        toNullableString(raw?.wikiParentGroupNameEn),
-        toNullableString(raw?.wikiParentGroupNameZh),
-        toNullableInteger(raw?.wikiSectionLevel),
-        toNullableInteger(raw?.wikiSortOrder),
-        toNullableString(raw?.wikiSectionAnchor),
-        toNullableString(raw?.description),
-        mergeIconUrl(existingIconByCode.get(code), raw?.iconUrl, raw),
-        toNullableString(raw?.sourceProvider) ?? 'wiki_gg',
-        toNullableString(raw?.sourcePage ?? raw?.pageTitle),
-        toDateTime(raw?.sourceRevisionTimestamp ?? raw?.revisionTimestamp),
-        toDateTime(raw?.lastSyncedAt ?? raw?.fetchedAt),
+        target.code,
+        target.name_en,
+        target.name_zh,
+        target.alias_en,
+        target.alias_zh,
+        target.layer_type,
+        target.biome_type,
+        target.wiki_group_code,
+        target.wiki_group_name_en,
+        target.wiki_group_name_zh,
+        target.wiki_parent_group_code,
+        target.wiki_parent_group_name_en,
+        target.wiki_parent_group_name_zh,
+        target.wiki_section_level,
+        target.wiki_sort_order,
+        target.wiki_section_anchor,
+        target.description,
+        target.icon_url,
+        target.source_provider,
+        target.source_page,
+        target.source_revision_timestamp,
+        target.last_synced_at,
       ]
     );
     stats.updated += 1;
   }
 
   return loadBiomeCodeMap(conn);
+}
+
+function biomeRowsEqual(existing, target) {
+  return rowsEqual(buildBiomeDbSnapshot(existing), buildBiomeDbSnapshot(target), {
+    columns: [
+      'code',
+      'name_en',
+      'name_zh',
+      'alias_en',
+      'alias_zh',
+      'layer_type',
+      'biome_type',
+      'wiki_group_code',
+      'wiki_group_name_en',
+      'wiki_group_name_zh',
+      'wiki_parent_group_code',
+      'wiki_parent_group_name_en',
+      'wiki_parent_group_name_zh',
+      'wiki_section_level',
+      'wiki_sort_order',
+      'wiki_section_anchor',
+      'description',
+      'icon_url',
+      'source_provider',
+      'source_page',
+      'source_revision_timestamp',
+      'last_synced_at',
+      'status',
+      'deleted',
+    ],
+    numericColumns: ['wiki_section_level', 'wiki_sort_order', 'status', 'deleted'],
+  });
+}
+
+function buildBiomeDbSnapshot(row = {}) {
+  return {
+    code: normalizeCode(row.code)?.toLowerCase() ?? null,
+    name_en: row.name_en ?? row.nameEn ?? null,
+    name_zh: row.name_zh ?? row.nameZh ?? null,
+    alias_en: row.alias_en ?? row.aliasEn ?? null,
+    alias_zh: row.alias_zh ?? row.aliasZh ?? null,
+    layer_type: row.layer_type ?? row.layerType ?? null,
+    biome_type: row.biome_type ?? row.biomeType ?? null,
+    wiki_group_code: row.wiki_group_code ?? row.wikiGroupCode ?? null,
+    wiki_group_name_en: row.wiki_group_name_en ?? row.wikiGroupNameEn ?? null,
+    wiki_group_name_zh: row.wiki_group_name_zh ?? row.wikiGroupNameZh ?? null,
+    wiki_parent_group_code: row.wiki_parent_group_code ?? row.wikiParentGroupCode ?? null,
+    wiki_parent_group_name_en: row.wiki_parent_group_name_en ?? row.wikiParentGroupNameEn ?? null,
+    wiki_parent_group_name_zh: row.wiki_parent_group_name_zh ?? row.wikiParentGroupNameZh ?? null,
+    wiki_section_level: row.wiki_section_level ?? row.wikiSectionLevel ?? null,
+    wiki_sort_order: row.wiki_sort_order ?? row.wikiSortOrder ?? null,
+    wiki_section_anchor: row.wiki_section_anchor ?? row.wikiSectionAnchor ?? null,
+    description: row.description ?? null,
+    icon_url: row.icon_url ?? row.iconUrl ?? null,
+    source_provider: row.source_provider ?? row.sourceProvider ?? null,
+    source_page: row.source_page ?? row.sourcePage ?? null,
+    source_revision_timestamp: normalizeDbDateTime(row.source_revision_timestamp ?? row.sourceRevisionTimestamp),
+    last_synced_at: normalizeDbDateTime(row.last_synced_at ?? row.lastSyncedAt),
+    status: row.status ?? 1,
+    deleted: row.deleted ?? 0,
+  };
 }
 
 async function importBiomeRelationsAndResources(conn, biomeRecords, biomeByCode, itemLookup, relationStats, resourceStats) {
@@ -571,6 +693,16 @@ function toDateTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
   return date.toISOString().slice(0, 19).replace('T', ' ');
+}
+
+function normalizeDbDateTime(value) {
+  if (value == null || value === '') return null;
+  if (value instanceof Date) return toDateTime(value.toISOString());
+  const text = String(value).trim();
+  if (!text) return null;
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(text)) return text.slice(0, 19);
+  const parsed = toDateTime(text);
+  return parsed ?? text.replace('T', ' ').replace(/Z$/, '').slice(0, 19);
 }
 
 function normalizeCode(value) {

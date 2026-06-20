@@ -134,7 +134,15 @@ async function summarizeResult(result, summary, applyUpdate) {
   }
 
   if (applyUpdate) {
-    const [dbResult] = await connection.execute('UPDATE items SET image = ?, updated_at = NOW() WHERE id = ?', [result.managedUrl, result.itemId]);
+    const [dbResult] = await connection.execute(
+      `UPDATE items SET image = ?, updated_at = NOW()
+       WHERE id = ?
+         AND (
+           image IS NULL
+           OR TRIM(image) <> TRIM(?)
+         )`,
+      [result.managedUrl, result.itemId, result.managedUrl]
+    );
     summary.updated += Number(dbResult.affectedRows || 0);
   } else {
     summary.updated += 1;

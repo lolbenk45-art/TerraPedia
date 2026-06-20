@@ -3,14 +3,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
+import { assertPrimaryDb } from '../lib/base-domain-primary-db-guard.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import { fetchWikiApiJson, parseCliArgs } from '../lib/wiki-item-utils.mjs';
 import { isRecipeGroupName } from '../lib/recipe-material-reference.mjs';
 
 const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
 
 const repoRoot = getProjectRoot();
 
@@ -32,29 +34,51 @@ const RECIPE_PAGE_ENVIRONMENT_MAP = new Map([
   ['\u914d\u65b9/\u5fae\u5149', { nameZh: '\u5fae\u5149', nameEn: 'Shimmer' }]
 ]);
 
-const args = parseCliArgs(process.argv.slice(2));
-const apply = booleanOption(args.apply, false);
-const inputPath = path.resolve(args.input ?? path.join(repoRoot, 'data', 'generated', 'wiki-zh-recipe-pages.latest.json'));
-const reportPath = path.resolve(args.output ?? path.join(repoRoot, 'reports', `wiki-zh-recipe-import-${new Date().toISOString().slice(0, 10)}.json`));
-
-if (!fs.existsSync(inputPath)) {
-  throw new Error(`Input file not found: ${inputPath}`);
+if (isDirectExecution()) {
+  main().catch((error) => {
+    console.error(error?.stack || error?.message || error);
+    process.exit(1);
+  });
 }
 
-const config = loadLocalStackConfig(repoRoot);
-const db = {
-  host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? config.database?.host ?? '127.0.0.1',
-  port: Number(args.port ?? process.env.TERRAPEDIA_DB_PORT ?? config.database?.port ?? 3306),
-  user: args.user ?? process.env.TERRAPEDIA_DB_USERNAME ?? config.database?.username ?? 'root',
-  password: args.password ?? process.env.TERRAPEDIA_DB_PASSWORD ?? config.database?.password ?? 'root',
-  database: args.database ?? process.env.TERRAPEDIA_DB_NAME ?? config.database?.name ?? 'terria_v1_local'
-};
+async function main() {
+  const args = parseCliArgs(process.argv.slice(2));
+  const apply = booleanOption(args.apply, false);
+  const inputPath = path.resolve(args.input ?? path.join(repoRoot, 'data', 'generated', 'wiki-zh-recipe-pages.latest.json'));
+  const reportPath = path.resolve(args.output ?? path.join(repoRoot, 'reports', `wiki-zh-recipe-import-${new Date().toISOString().slice(0, 10)}.json`));
 
-const payload = JSON.parse(await fs.promises.readFile(inputPath, 'utf8'));
-const rawRecipes = collectRawRecipes(payload);
+  if (!fs.existsSync(inputPath)) {
+    throw new Error(`Input file not found: ${inputPath}`);
+  }
 
-const conn = await mysql.createConnection(db);
-try {
+  const config = loadLocalStackConfig(repoRoot);
+  const db = {
+    host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? config.database?.host ?? '127.0.0.1',
+    port: Number(args.port ?? process.env.TERRAPEDIA_DB_PORT ?? config.database?.port ?? 3306),
+    user: args.user ?? process.env.TERRAPEDIA_DB_USERNAME ?? config.database?.username ?? 'root',
+    password: args.password ?? process.env.TERRAPEDIA_DB_PASSWORD ?? config.database?.password ?? 'root',
+    database: args.database ?? process.env.TERRAPEDIA_DB_NAME ?? config.database?.name ?? 'terria_v1_local'
+  };
+  assertPrimaryDb(
+    db.database,
+    apply,
+    args['allow-non-primary-db'] === 'true' || process.env.TERRAPEDIA_ALLOW_NON_PRIMARY_DB === 'true'
+  );
+
+  const payload = JSON.parse(await fs.promises.readFile(inputPath, 'utf8'));
+  const rawRecipes = collectRawRecipes(payload);
+
+  if (!apply) {
+    const summary = buildDryRunSummary({ payload, rawRecipes, inputPath, reportPath, database: db.database });
+    await fs.promises.mkdir(path.dirname(reportPath), { recursive: true });
+    await fs.promises.writeFile(reportPath, JSON.stringify(summary, null, 2), 'utf8');
+    console.log(JSON.stringify(summary, null, 2));
+    return;
+  }
+
+  const mysql = require('mysql2/promise');
+  const conn = await mysql.createConnection(db);
+  try {
   await conn.query('SET NAMES utf8mb4');
 
   const summary = {
@@ -112,8 +136,7 @@ try {
     0
   );
 
-  summary.deletedExistingRecipes = await deleteRecipesByProvider(conn, SOURCE_PROVIDER, apply);
-  await importRecipes(conn, dedupedRecipes, summary, apply);
+  await syncWikiZhRecipeScopeIfChanged(conn, dedupedRecipes, summary, apply);
 
   if (apply) {
     await conn.commit();
@@ -136,6 +159,7 @@ try {
   throw error;
 } finally {
   await conn.end();
+}
 }
 
 function collectRawRecipes(payload) {
@@ -170,6 +194,50 @@ function collectRawRecipes(payload) {
     }
   }
   return recipes;
+}
+
+function buildDryRunSummary({ payload, rawRecipes, inputPath, reportPath, database }) {
+  return {
+    generatedAt: new Date().toISOString(),
+    apply: false,
+    inputPath,
+    reportPath,
+    database,
+    inputPages: Array.isArray(payload.records) ? payload.records.length : 0,
+    inputRecipes: rawRecipes.length,
+    deletedExistingRecipes: 0,
+    insertedRecipes: 0,
+    insertedIngredientRows: 0,
+    insertedStationRows: 0,
+    createdPlaceholderItems: 0,
+    createdCraftingStations: 0,
+    environmentRelationRows: countDryRunEnvironmentRelations(rawRecipes),
+    alternativeStationRows: countDryRunAlternativeStationRows(rawRecipes),
+    reusedItemsByZhOrEn: 0,
+    resolvedViaLanglink: 0,
+    groupIngredientRows: 0,
+    unresolvedItemRowsAfterImport: 0,
+    unresolvedStationRowsAfterImport: 0,
+    importedRecipeCountInDb: null,
+    importedResultItemCountInDb: null,
+    placeholderItems: [],
+    createdStations: [],
+    skippedRecipes: 0,
+  };
+}
+
+function countDryRunEnvironmentRelations(rawRecipes) {
+  return rawRecipes.reduce((sum, recipe) => (
+    RECIPE_PAGE_ENVIRONMENT_MAP.has(recipe.sourcePage) ? sum + 1 : sum
+  ), 0);
+}
+
+function countDryRunAlternativeStationRows(rawRecipes) {
+  return rawRecipes.reduce((sum, recipe) => {
+    if (!RECIPE_PAGE_ENVIRONMENT_MAP.has(recipe.sourcePage)) return sum;
+    if (recipe.stationRequirementMode !== 'combination') return sum;
+    return sum + Math.max(0, recipe.stations.length - 2);
+  }, 0);
 }
 
 function inferStationRequirementMode(explicitMode, caption, stations) {
@@ -789,6 +857,185 @@ async function importRecipes(connection, recipes, summary, apply) {
   }
 }
 
+export async function syncWikiZhRecipeScopeIfChanged(connection, recipes, summary, apply) {
+  if (!apply) {
+    await importRecipes(connection, recipes, summary, apply);
+    return { skipped: false };
+  }
+
+  const existingProjection = await loadRecipeProviderProjection(connection, SOURCE_PROVIDER);
+  const targetProjection = buildWikiZhTargetRecipeProjection(recipes);
+  summary.recipeScopeHashBefore = hashWikiZhRecipeProjection(existingProjection);
+  summary.recipeScopeHashTarget = hashWikiZhRecipeProjection(targetProjection);
+
+  if (summary.recipeScopeHashBefore === summary.recipeScopeHashTarget) {
+    summary.skippedRecipeScope = true;
+    summary.insertedRecipes = 0;
+    summary.deletedExistingRecipes = 0;
+    return { skipped: true };
+  }
+
+  summary.deletedExistingRecipes = await deleteRecipesByProvider(connection, SOURCE_PROVIDER, apply);
+  await importRecipes(connection, recipes, summary, apply);
+  return { skipped: false };
+}
+
+async function loadRecipeProviderProjection(connection, sourceProvider) {
+  const [recipes] = await connection.execute(
+    `SELECT
+       r.id,
+       r.result_item_id,
+       r.result_internal_name,
+       r.result_quantity,
+       r.version_scope,
+       r.notes,
+       r.source_provider,
+       r.source_page,
+       r.source_revision_timestamp,
+       r.sort_order,
+       r.status,
+       r.deleted
+     FROM recipes r
+     WHERE COALESCE(r.source_provider, '') = ?
+     ORDER BY r.sort_order ASC, r.id ASC`,
+    [sourceProvider]
+  );
+  const ids = recipes.map((recipe) => Number(recipe.id)).filter(Number.isFinite);
+  const ingredients = ids.length === 0 ? [] : await loadRecipeIngredients(connection, ids);
+  const stations = ids.length === 0 ? [] : await loadRecipeStations(connection, ids);
+  return normalizeWikiZhExistingRecipeProjection(recipes, ingredients, stations);
+}
+
+async function loadRecipeIngredients(connection, ids) {
+  const placeholders = ids.map(() => '?').join(',');
+  const [rows] = await connection.execute(
+    `SELECT
+       recipe_id,
+       ingredient_item_id,
+       ingredient_internal_name,
+       ingredient_name_raw,
+       ingredient_group_type,
+       quantity_min,
+       quantity_max,
+       quantity_text,
+       sort_order
+     FROM recipe_ingredients
+     WHERE recipe_id IN (${placeholders})
+     ORDER BY recipe_id ASC, sort_order ASC, id ASC`,
+    ids
+  );
+  return rows;
+}
+
+async function loadRecipeStations(connection, ids) {
+  const placeholders = ids.map(() => '?').join(',');
+  const [rows] = await connection.execute(
+    `SELECT
+       recipe_id,
+       station_id,
+       station_item_id,
+       station_internal_name,
+       station_name_raw,
+       is_alternative,
+       sort_order
+     FROM recipe_stations
+     WHERE recipe_id IN (${placeholders})
+     ORDER BY recipe_id ASC, sort_order ASC, id ASC`,
+    ids
+  );
+  return rows;
+}
+
+function buildWikiZhTargetRecipeProjection(recipes) {
+  return recipes.map((recipe, recipeIndex) => ({
+    resultItemId: toInt(recipe.resultItemId),
+    resultInternalName: toText(recipe.resultInternalName),
+    resultQuantity: toInt(recipe.resultQuantity) ?? 1,
+    versionScope: toText(recipe.versionScope),
+    notes: toText(recipe.notes),
+    sourceProvider: SOURCE_PROVIDER,
+    sourcePage: toText(recipe.sourcePage),
+    sourceRevisionTimestamp: toDateTime(recipe.sourceRevisionTimestamp),
+    sortOrder: recipeIndex + 1,
+    status: 1,
+    deleted: 0,
+    ingredients: recipe.ingredients.map((ingredient) => ({
+      ingredientItemId: toInt(ingredient.ingredientItemId),
+      ingredientInternalName: toText(ingredient.ingredientInternalName),
+      ingredientNameRaw: toText(ingredient.ingredientNameRaw),
+      ingredientGroupType: toText(ingredient.ingredientGroupType) ?? 'item',
+      quantityMin: toInt(ingredient.quantityMin),
+      quantityMax: toInt(ingredient.quantityMax),
+      quantityText: toText(ingredient.quantityText),
+      sortOrder: toInt(ingredient.sortOrder),
+    })),
+    stations: recipe.stations.map((station) => ({
+      stationId: toInt(station.stationId),
+      stationItemId: toInt(station.stationItemId),
+      stationInternalName: toText(station.stationInternalName),
+      stationNameRaw: toText(station.stationNameRaw),
+      isAlternative: station.isAlternative ? 1 : 0,
+      sortOrder: toInt(station.sortOrder),
+    })),
+  }));
+}
+
+function normalizeWikiZhExistingRecipeProjection(recipeRows, ingredientRows, stationRows) {
+  const byRecipeId = new Map();
+  for (const row of recipeRows) {
+    const id = Number(row.id);
+    if (!Number.isFinite(id)) continue;
+    byRecipeId.set(id, {
+      resultItemId: toInt(row.result_item_id),
+      resultInternalName: toText(row.result_internal_name),
+      resultQuantity: toInt(row.result_quantity) ?? 1,
+      versionScope: toText(row.version_scope),
+      notes: toText(row.notes),
+      sourceProvider: toText(row.source_provider),
+      sourcePage: toText(row.source_page),
+      sourceRevisionTimestamp: toDateTime(row.source_revision_timestamp),
+      sortOrder: toInt(row.sort_order),
+      status: toInt(row.status) ?? 1,
+      deleted: toInt(row.deleted) ?? 0,
+      ingredients: [],
+      stations: [],
+    });
+  }
+  for (const row of ingredientRows) {
+    const recipe = byRecipeId.get(Number(row.recipe_id));
+    if (!recipe) continue;
+    recipe.ingredients.push({
+      ingredientItemId: toInt(row.ingredient_item_id),
+      ingredientInternalName: toText(row.ingredient_internal_name),
+      ingredientNameRaw: toText(row.ingredient_name_raw),
+      ingredientGroupType: toText(row.ingredient_group_type) ?? 'item',
+      quantityMin: toInt(row.quantity_min),
+      quantityMax: toInt(row.quantity_max),
+      quantityText: toText(row.quantity_text),
+      sortOrder: toInt(row.sort_order),
+    });
+  }
+  for (const row of stationRows) {
+    const recipe = byRecipeId.get(Number(row.recipe_id));
+    if (!recipe) continue;
+    recipe.stations.push({
+      stationId: toInt(row.station_id),
+      stationItemId: toInt(row.station_item_id),
+      stationInternalName: toText(row.station_internal_name),
+      stationNameRaw: toText(row.station_name_raw),
+      isAlternative: row.is_alternative ? 1 : 0,
+      sortOrder: toInt(row.sort_order),
+    });
+  }
+  return [...byRecipeId.values()];
+}
+
+function hashWikiZhRecipeProjection(projection) {
+  return crypto.createHash('sha256')
+    .update(`v1:recipes:${SOURCE_PROVIDER}:${JSON.stringify(projection)}`)
+    .digest('hex');
+}
+
 async function deleteRecipesByProvider(connection, sourceProvider, apply) {
   const [rows] = await connection.query(
     `SELECT id
@@ -1226,4 +1473,8 @@ async function fetchNameMetadata(title) {
     englishTitle: toText(page?.langlinks?.find((entry) => entry?.lang === 'en')?.title),
     missing: Boolean(page?.missing)
   };
+}
+
+function isDirectExecution() {
+  return process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 }

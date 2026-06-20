@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 
 import { getProjectRoot } from '../lib/project-root.mjs';
 
@@ -481,7 +482,17 @@ async function loadExistingAssetIds(connection, assetIds) {
 }
 
 async function upsertAsset(connection, row) {
-  const [existing] = await connection.execute('SELECT id FROM audio_assets WHERE asset_id = ?', [row.assetId]);
+  const [existing] = await connection.execute(
+    `SELECT id, asset_id, shard, kind, source_key, display_name_zh, display_name_en,
+            file_title, wiki_file_url, source_url, local_path, absolute_local_path, mime,
+            size_bytes, sha256, provider, status, crawl_report_path, raw_json, deleted
+       FROM audio_assets
+      WHERE asset_id = ?`,
+    [row.assetId]
+  );
+  if (existing.length > 0 && audioAssetRowsEqual(existing[0], row)) {
+    return 'skipped';
+  }
   await connection.execute(
     `INSERT INTO audio_assets (
       asset_id, shard, kind, source_key, display_name_zh, display_name_en, file_title, wiki_file_url, source_url,
@@ -519,10 +530,15 @@ async function upsertAsset(connection, row) {
 
 async function upsertLink(connection, row, assetDbId) {
   const [existing] = await connection.execute(
-    `SELECT id FROM audio_asset_links
+    `SELECT id, audio_asset_id, entity_type, entity_id, source_key, relation_type,
+            match_status, match_reason, sort_order, deleted
+       FROM audio_asset_links
      WHERE audio_asset_id = ? AND entity_type = ? AND source_key <=> ? AND relation_type = ?`,
     [assetDbId, row.entityType, row.sourceKey, row.relationType]
   );
+  if (existing.length > 0 && audioLinkRowsEqual(existing[0], row, assetDbId)) {
+    return 'skipped';
+  }
   await connection.execute(
     `INSERT INTO audio_asset_links (
       audio_asset_id, entity_type, entity_id, source_key, relation_type,
@@ -537,6 +553,68 @@ async function upsertLink(connection, row, assetDbId) {
     [assetDbId, row.entityType, row.entityId, row.sourceKey, row.relationType, row.matchStatus, row.matchReason, row.sortOrder]
   );
   return existing.length > 0 ? 'updated' : 'inserted';
+}
+
+function audioAssetRowsEqual(existing, target) {
+  return JSON.stringify(normalizeAudioAssetRow(existing)) === JSON.stringify(normalizeAudioAssetRow(target));
+}
+
+function normalizeAudioAssetRow(row) {
+  return {
+    assetId: nullable(row.assetId ?? row.asset_id),
+    shard: nullable(row.shard),
+    kind: nullable(row.kind),
+    sourceKey: nullable(row.sourceKey ?? row.source_key),
+    displayNameZh: nullable(row.displayNameZh ?? row.display_name_zh),
+    displayNameEn: nullable(row.displayNameEn ?? row.display_name_en),
+    fileTitle: nullable(row.fileTitle ?? row.file_title),
+    wikiFileUrl: nullable(row.wikiFileUrl ?? row.wiki_file_url),
+    sourceUrl: nullable(row.sourceUrl ?? row.source_url),
+    localPath: nullable(row.localPath ?? row.local_path),
+    absoluteLocalPath: nullable(row.absoluteLocalPath ?? row.absolute_local_path),
+    mime: nullable(row.mime),
+    sizeBytes: Number(row.sizeBytes ?? row.size_bytes ?? 0),
+    sha256: nullable(row.sha256),
+    provider: nullable(row.provider),
+    status: nullable(row.status),
+    crawlReportPath: nullable(row.crawlReportPath ?? row.crawl_report_path),
+    rawJson: normalizeJsonText(row.rawJson ?? row.raw_json),
+    deleted: Number(row.deleted ?? 0),
+  };
+}
+
+function audioLinkRowsEqual(existing, target, assetDbId) {
+  return JSON.stringify(normalizeAudioLinkRow(existing)) === JSON.stringify(normalizeAudioLinkRow({ ...target, audioAssetId: assetDbId }));
+}
+
+function normalizeAudioLinkRow(row) {
+  return {
+    audioAssetId: Number(row.audioAssetId ?? row.audio_asset_id),
+    entityType: nullable(row.entityType ?? row.entity_type),
+    entityId: nullableNumber(row.entityId ?? row.entity_id),
+    sourceKey: nullable(row.sourceKey ?? row.source_key),
+    relationType: nullable(row.relationType ?? row.relation_type),
+    matchStatus: nullable(row.matchStatus ?? row.match_status),
+    matchReason: nullable(row.matchReason ?? row.match_reason),
+    sortOrder: Number(row.sortOrder ?? row.sort_order ?? 0),
+    deleted: Number(row.deleted ?? 0),
+  };
+}
+
+function normalizeJsonText(value) {
+  const text = nullable(value);
+  if (!text) return null;
+  try {
+    return JSON.stringify(JSON.parse(text));
+  } catch {
+    return text;
+  }
+}
+
+function nullableNumber(value) {
+  if (value == null || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
 }
 
 export async function runAudioAssetImport(options = {}, dependencies = {}) {
@@ -563,8 +641,10 @@ export async function runAudioAssetImport(options = {}, dependencies = {}) {
       wouldUpdateLinks: 0,
       insertedAssets: 0,
       updatedAssets: 0,
+      skippedAssets: 0,
       insertedLinks: 0,
       updatedLinks: 0,
+      skippedLinks: 0,
       matched: linkRows.filter((row) => row.matchStatus === 'matched').length,
       unmatched: linkRows.filter((row) => row.matchStatus === 'unmatched').length,
       ambiguous: linkRows.filter((row) => row.matchStatus === 'ambiguous').length,
@@ -593,7 +673,7 @@ export async function runAudioAssetImport(options = {}, dependencies = {}) {
       linkRows = buildAudioLinkRows(assets, itemRows);
       for (const row of enrichedAssetRows) {
         const result = await upsertAsset(connection, row);
-        report.summary[result === 'inserted' ? 'insertedAssets' : 'updatedAssets'] += 1;
+        report.summary[result === 'inserted' ? 'insertedAssets' : result === 'updated' ? 'updatedAssets' : 'skippedAssets'] += 1;
       }
       const [assetIdRows] = await connection.execute(
         `SELECT id, asset_id FROM audio_assets WHERE asset_id IN (${enrichedAssetRows.map(() => '?').join(', ')})`,
@@ -604,7 +684,7 @@ export async function runAudioAssetImport(options = {}, dependencies = {}) {
         const assetDbId = dbIdByAssetId.get(row.assetId);
         if (!assetDbId) continue;
         const result = await upsertLink(connection, row, assetDbId);
-        report.summary[result === 'inserted' ? 'insertedLinks' : 'updatedLinks'] += 1;
+        report.summary[result === 'inserted' ? 'insertedLinks' : result === 'updated' ? 'updatedLinks' : 'skippedLinks'] += 1;
       }
       report.summary.matched = linkRows.filter((row) => row.matchStatus === 'matched').length;
       report.summary.unmatched = linkRows.filter((row) => row.matchStatus === 'unmatched').length;
@@ -635,7 +715,7 @@ async function main() {
   if (report.failures.length > 0) process.exitCode = 1;
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(import.meta.filename)) {
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch((error) => {
     console.error(error.stack || error.message);
     process.exitCode = 1;

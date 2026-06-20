@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
 import { createRequire } from 'node:module';
+import { assertPrimaryDb } from '../lib/base-domain-primary-db-guard.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
 
 const args = parseArgs(process.argv.slice(2));
 const apply = args.apply === 'true';
+const allowNonPrimaryDb = booleanOption(args['allow-non-primary-db'] ?? process.env.TERRAPEDIA_ALLOW_NON_PRIMARY_DB, false);
 const GROUP_NAME_MAP = new Map([
   ['Any Adamantite Bar', '任意精金锭'],
   ['Any Cobalt Bar', '任意钴锭'],
@@ -54,6 +56,8 @@ const db = {
   password: process.env.TERRAPEDIA_DB_PASSWORD || 'root',
   database: resolveDefaultDatabaseName(),
 };
+
+assertPrimaryDb(db.database, apply, allowNonPrimaryDb);
 
 const conn = await mysql.createConnection(db);
 
@@ -546,6 +550,14 @@ function toText(value) {
   if (value == null) return null;
   const text = String(value).trim();
   return text ? text : null;
+}
+
+function booleanOption(value, fallback = false) {
+  if (value == null || value === '') return fallback;
+  const normalized = String(value).trim().toLowerCase();
+  if (['true', '1', 'yes', 'y'].includes(normalized)) return true;
+  if (['false', '0', 'no', 'n'].includes(normalized)) return false;
+  return fallback;
 }
 
 function shouldSyncCraftingStationFromItem(row) {

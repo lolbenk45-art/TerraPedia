@@ -5,6 +5,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
+import { rowsEqual } from '../lib/base-domain-row-reconcile.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -233,7 +234,7 @@ async function main(argv = process.argv.slice(2)) {
   }
 }
 
-async function applyRows(connection, { itemRows, npcRows }) {
+export async function applyRows(connection, { itemRows, npcRows }) {
   const summary = makeWriteSummary();
   for (const row of itemRows) {
     await upsertBiomeResource(connection, row, summary.biomeResources);
@@ -248,7 +249,7 @@ async function applyRows(connection, { itemRows, npcRows }) {
 
 async function upsertBiomeResource(connection, row, stats) {
   const [existingRows] = await connection.execute(
-    `SELECT id
+    `SELECT id, biome_id, item_id, resource_name_raw, resource_type, notes, sort_order
        FROM biome_resources
       WHERE biome_id = ?
         AND COALESCE(item_id, 0) = ?
@@ -258,6 +259,21 @@ async function upsertBiomeResource(connection, row, stats) {
     [row.biomeId, row.itemId ?? 0, row.itemName ?? '', row.relationType]
   );
   if (existingRows.length > 0) {
+    const existing = existingRows[0];
+    const target = {
+      biome_id: row.biomeId,
+      item_id: row.itemId,
+      resource_name_raw: row.itemName,
+      resource_type: row.relationType,
+      notes: row.notes,
+      sort_order: row.sortOrder,
+    };
+    if (rowsEqual(existing, target, {
+      columns: ['biome_id', 'item_id', 'resource_name_raw', 'resource_type', 'notes', 'sort_order'],
+      numericColumns: ['biome_id', 'item_id', 'sort_order'],
+    })) {
+      return;
+    }
     await connection.execute(
       `UPDATE biome_resources
           SET notes = ?,
@@ -278,19 +294,54 @@ async function upsertBiomeResource(connection, row, stats) {
 }
 
 async function upsertItemBiome(connection, row, stats) {
-  const [result] = await connection.execute(
+  const [existingRows] = await connection.execute(
+    `SELECT id, item_id, biome_id, relation_type, notes, sort_order
+       FROM item_biomes
+      WHERE item_id = ?
+        AND biome_id = ?
+        AND relation_type = ?
+      LIMIT 1`,
+    [row.itemId, row.biomeId, row.relationType]
+  );
+  if (existingRows.length > 0) {
+    const existing = existingRows[0];
+    const target = {
+      item_id: row.itemId,
+      biome_id: row.biomeId,
+      relation_type: row.relationType,
+      notes: row.notes,
+      sort_order: row.sortOrder,
+    };
+    if (rowsEqual(existing, target, {
+      columns: ['item_id', 'biome_id', 'relation_type', 'notes', 'sort_order'],
+      numericColumns: ['item_id', 'biome_id', 'sort_order'],
+    })) {
+      return;
+    }
+    await connection.execute(
+      `UPDATE item_biomes
+          SET notes = ?,
+              sort_order = ?,
+              updated_at = NOW()
+        WHERE id = ?`,
+      [row.notes, row.sortOrder, Number(existing.id)]
+    );
+    stats.updated += 1;
+    return;
+  }
+  await connection.execute(
     `INSERT INTO item_biomes (item_id, biome_id, relation_type, notes, sort_order)
-     VALUES (?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE notes = VALUES(notes), sort_order = VALUES(sort_order), updated_at = NOW()`,
+     VALUES (?, ?, ?, ?, ?)`,
     [row.itemId, row.biomeId, row.relationType, row.notes, row.sortOrder]
   );
-  addUpsertStats(stats, result);
+  stats.created += 1;
 }
 
 async function upsertItemAcquisitionSource(connection, row, stats) {
   const sourceRefType = 'biome_wikitext';
   const [existingRows] = await connection.execute(
-    `SELECT id
+    `SELECT id, item_id, source_type, source_ref_type, source_ref_name, biome_id, notes,
+            source_provider, source_page, sort_order
        FROM item_acquisition_sources
       WHERE item_id = ?
         AND source_type = ?
@@ -302,6 +353,34 @@ async function upsertItemAcquisitionSource(connection, row, stats) {
     [row.itemId, row.relationType, sourceRefType, row.source ?? '', row.biomeId ?? 0, row.sourcePage ?? '']
   );
   if (existingRows.length > 0) {
+    const existing = existingRows[0];
+    const target = {
+      item_id: row.itemId,
+      source_type: row.relationType,
+      source_ref_type: sourceRefType,
+      source_ref_name: row.source,
+      biome_id: row.biomeId,
+      notes: row.noteOnly,
+      source_provider: SOURCE_PROVIDER,
+      source_page: row.sourcePage,
+      sort_order: row.sortOrder,
+    };
+    if (rowsEqual(existing, target, {
+      columns: [
+        'item_id',
+        'source_type',
+        'source_ref_type',
+        'source_ref_name',
+        'biome_id',
+        'notes',
+        'source_provider',
+        'source_page',
+        'sort_order',
+      ],
+      numericColumns: ['item_id', 'biome_id', 'sort_order'],
+    })) {
+      return;
+    }
     await connection.execute(
       `UPDATE item_acquisition_sources
           SET notes = ?,
@@ -324,23 +403,68 @@ async function upsertItemAcquisitionSource(connection, row, stats) {
 }
 
 async function upsertNpcBiome(connection, row, stats) {
-  const [result] = await connection.execute(
+  const [existingRows] = await connection.execute(
+    `SELECT id, npc_id, biome_id, relation_type, spawn_context, notes, source_provider,
+            source_page, sort_order, status, deleted
+       FROM npc_biomes
+      WHERE npc_id = ?
+        AND biome_id = ?
+        AND relation_type = 'appears_in'
+        AND COALESCE(spawn_context, '') = ?
+      LIMIT 1`,
+    [row.npcId, row.biomeId, row.spawnContext ?? '']
+  );
+  if (existingRows.length > 0) {
+    const existing = existingRows[0];
+    const target = {
+      npc_id: row.npcId,
+      biome_id: row.biomeId,
+      relation_type: 'appears_in',
+      spawn_context: row.spawnContext,
+      notes: row.notes,
+      source_provider: SOURCE_PROVIDER,
+      source_page: row.sourcePage,
+      sort_order: row.sortOrder,
+      status: 1,
+      deleted: 0,
+    };
+    if (rowsEqual(existing, target, {
+      columns: [
+        'npc_id',
+        'biome_id',
+        'relation_type',
+        'spawn_context',
+        'notes',
+        'source_provider',
+        'source_page',
+        'sort_order',
+        'status',
+        'deleted',
+      ],
+      numericColumns: ['npc_id', 'biome_id', 'sort_order', 'status', 'deleted'],
+    })) {
+      return;
+    }
+    await connection.execute(
+      `UPDATE npc_biomes
+          SET notes = ?,
+              sort_order = ?,
+              status = 1,
+              deleted = 0,
+              updated_at = NOW()
+        WHERE id = ?`,
+      [row.notes, row.sortOrder, Number(existing.id)]
+    );
+    stats.updated += 1;
+    return;
+  }
+  await connection.execute(
     `INSERT INTO npc_biomes
       (npc_id, biome_id, relation_type, spawn_context, notes, source_provider, source_page, sort_order, status, deleted)
-     VALUES (?, ?, 'appears_in', ?, ?, ?, ?, ?, 1, 0)
-     ON DUPLICATE KEY UPDATE notes = VALUES(notes), sort_order = VALUES(sort_order), status = 1, deleted = 0, updated_at = NOW()`,
+     VALUES (?, ?, 'appears_in', ?, ?, ?, ?, ?, 1, 0)`,
     [row.npcId, row.biomeId, row.spawnContext, row.notes, SOURCE_PROVIDER, row.sourcePage, row.sortOrder]
   );
-  addUpsertStats(stats, result);
-}
-
-function addUpsertStats(stats, result) {
-  const affectedRows = Number(result?.affectedRows ?? 0);
-  if (affectedRows === 1) {
-    stats.created += 1;
-  } else if (affectedRows > 1) {
-    stats.updated += 1;
-  }
+  stats.created += 1;
 }
 
 async function loadDbLookups(connection) {

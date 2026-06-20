@@ -648,8 +648,12 @@ async function applyPlan(conn, plan, scopes) {
                   notes = ?,
                   updated_at = NOW()
             WHERE id = ?
-              AND COALESCE(deleted, 0) = 0`,
-          [update.nameZhAfter, update.notesAfter, update.id]
+              AND COALESCE(deleted, 0) = 0
+              AND (
+                (NULLIF(TRIM(name_zh), '') IS NULL AND NULLIF(TRIM(?), '') IS NOT NULL)
+                OR NOT (notes <=> ?)
+              )`,
+          [update.nameZhAfter, update.notesAfter, update.id, update.nameZhAfter, update.notesAfter]
         );
         summary.bossRowsUpdated += Number(result.affectedRows || 0);
       }
@@ -661,8 +665,9 @@ async function applyPlan(conn, plan, scopes) {
               SET description = ?,
                   updated_at = NOW()
             WHERE id = ?
-              AND COALESCE(deleted, 0) = 0`,
-          [update.descriptionAfter, update.id]
+              AND COALESCE(deleted, 0) = 0
+              AND NOT (description <=> ?)`,
+          [update.descriptionAfter, update.id, update.descriptionAfter]
         );
         summary.biomeRowsUpdated += Number(result.affectedRows || 0);
       }
@@ -674,8 +679,9 @@ async function applyPlan(conn, plan, scopes) {
               SET description_zh = ?,
                   updated_at = NOW()
             WHERE id = ?
-              AND COALESCE(deleted, 0) = 0`,
-          [update.descriptionZhAfter, update.id]
+              AND COALESCE(deleted, 0) = 0
+              AND NOT (description_zh <=> ?)`,
+          [update.descriptionZhAfter, update.id, update.descriptionZhAfter]
         );
         summary.itemRowsUpdated += Number(result.affectedRows || 0);
       }
@@ -691,8 +697,20 @@ async function applyPlan(conn, plan, scopes) {
                   last_synced_at = NOW(),
                   updated_at = NOW()
             WHERE id = ?
-              AND COALESCE(deleted, 0) = 0`,
-          [update.descriptionAfter, update.sourcePageBefore, update.sourceRevisionTimestamp, update.id]
+              AND COALESCE(deleted, 0) = 0
+              AND (
+                NOT (description <=> ?)
+                OR source_provider IS NULL
+                OR NULLIF(TRIM(source_page), '') IS NULL
+                OR source_revision_timestamp IS NULL
+              )`,
+          [
+            update.descriptionAfter,
+            update.sourcePageBefore,
+            update.sourceRevisionTimestamp,
+            update.id,
+            update.descriptionAfter
+          ]
         );
         summary.worldContextRowsUpdated += Number(result.affectedRows || 0);
       }

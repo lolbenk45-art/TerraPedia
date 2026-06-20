@@ -7,6 +7,8 @@ import { createRequire } from 'node:module';
 import { resolveIndependentEntityImportApply } from './independent-entity-import-mode.mjs';
 import { loadStandardizedDataset } from '../lib/load-standardized-dataset.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import { rowsEqual } from '../lib/base-domain-row-reconcile.mjs';
+import { reconcileChildRows } from '../lib/base-domain-row-reconcile.mjs';
 import { resolveProjectileZhFromRecord } from '../lib/projectile-name-resolver.mjs';
 
 const require = createRequire(import.meta.url);
@@ -73,7 +75,7 @@ function loadJson(filePath) {
 }
 
 function makeStats() {
-  return { input: 0, created: 0, updated: 0, errors: [] };
+  return { input: 0, created: 0, updated: 0, skipped: 0, errors: [] };
 }
 
 function makeRelationStats() {
@@ -277,9 +279,41 @@ export function buildIndependentBuffColumnValueMap(record, index, buffCategoryId
   };
 }
 
+const BUFF_COMPARE_COLUMNS = [
+  'source_id',
+  'internal_name',
+  'english_name',
+  'name_zh',
+  'tooltip_en',
+  'tooltip_zh',
+  'image',
+  'buff_type',
+  'source_item_count',
+  'immune_npc_count',
+  'source_items_json',
+  'immune_npcs_json',
+  'immune_npc_sample_json',
+  'source_evidence_json',
+  'status',
+  'deleted',
+];
+
 async function upsertBuff(conn, record, index) {
-  const values = buildIndependentBuffColumnValueMap(record, index);
-  const [[existing]] = await conn.execute('SELECT id FROM buffs WHERE source_id = ? LIMIT 1', [toNullableInteger(record.id)]);
+  const values = { ...buildIndependentBuffColumnValueMap(record, index), status: 1, deleted: 0 };
+  const [[existing]] = await conn.execute(
+    `SELECT id, ${BUFF_COMPARE_COLUMNS.join(', ')}
+       FROM buffs
+      WHERE source_id = ?
+      LIMIT 1`,
+    [toNullableInteger(record.id)]
+  );
+  if (existing && independentRowsEqual(existing, values, {
+    columns: BUFF_COMPARE_COLUMNS,
+    jsonColumns: ['source_items_json', 'immune_npcs_json', 'immune_npc_sample_json', 'source_evidence_json'],
+    numericColumns: ['source_id', 'source_item_count', 'immune_npc_count', 'status', 'deleted'],
+  })) {
+    return { id: Number(existing.id), isNew: false, skipped: true };
+  }
   const [result] = await conn.execute(
     `INSERT INTO buffs
       (source_id, internal_name, english_name, name_zh, tooltip_en, tooltip_zh, image, buff_type, source_item_count, immune_npc_count, source_items_json, immune_npcs_json, immune_npc_sample_json, source_evidence_json, status, deleted)
@@ -319,23 +353,24 @@ async function upsertBuff(conn, record, index) {
       values.source_evidence_json,
     ]
   );
-  return { id: Number(result.insertId), isNew: !existing };
+  return { id: Number(result.insertId || existing?.id), isNew: !existing, skipped: false };
 }
 
-async function importBuffs(conn, records, itemLookup, sourceItemLookup, stats, relationStats) {
+export async function importBuffs(conn, records, itemLookup, sourceItemLookup, stats, relationStats) {
   stats.input = Array.isArray(records) ? records.length : 0;
   relationStats.input = 0;
   for (let i = 0; i < stats.input; i += 1) {
     try {
       const record = records[i];
       const buffInternalName = normalizeInternalName(record.internalName, record.englishName || record.id || i);
-      const { id: buffId, isNew } = await upsertBuff(conn, record, i);
-      if (isNew) stats.created += 1;
+      const { id: buffId, isNew, skipped } = await upsertBuff(conn, record, i);
+      if (skipped) addSkipped(stats);
+      else if (isNew) stats.created += 1;
       else stats.updated += 1;
 
-      await conn.execute('DELETE FROM buff_source_items WHERE buff_id = ?', [buffId]);
       const sourceItems = Array.isArray(record.sourceItems) ? record.sourceItems : [];
       relationStats.input += sourceItems.length;
+      const targetRows = [];
       for (let j = 0; j < sourceItems.length; j += 1) {
         const sourceItem = sourceItems[j];
         const sourceItemId = toNullablePositiveInteger(sourceItem.itemId);
@@ -347,35 +382,108 @@ async function importBuffs(conn, records, itemLookup, sourceItemLookup, stats, r
           );
           continue;
         }
-        await conn.execute(
-          `INSERT INTO buff_source_items
-            (buff_id, source_item_id, source_item_internal_name, source_item_name, item_id, buff_time, sort_order)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [
-            buffId,
-            sourceItemId,
-            mapped.internalName,
-            mapped.dbItem?.name ?? null,
-            mapped.dbItem?.id ?? null,
-            toNullableInteger(sourceItem.buffTime),
-            j,
-          ]
-        );
-        relationStats.updated += 1;
+        targetRows.push({
+          buff_id: buffId,
+          source_item_id: sourceItemId,
+          source_item_internal_name: mapped.internalName,
+          source_item_name: mapped.dbItem?.name ?? null,
+          item_id: mapped.dbItem?.id ?? null,
+          buff_time: toNullableInteger(sourceItem.buffTime),
+          sort_order: j,
+        });
       }
+      await reconcileBuffSourceItems(conn, buffId, targetRows, relationStats);
     } catch (error) {
       stats.errors.push(`buffs[${i}]: ${error?.message ?? String(error)}`);
     }
   }
 }
 
-async function importNpcs(conn, records, itemLookup, sourceItemLookup, categoryByCode, stats, linkStats) {
+async function reconcileBuffSourceItems(conn, buffId, targetRows, relationStats) {
+  const [existingRows] = await conn.execute(
+    `SELECT id, buff_id, source_item_id, source_item_internal_name, source_item_name, item_id, buff_time, sort_order
+       FROM buff_source_items
+      WHERE buff_id = ?
+      ORDER BY sort_order`,
+    [buffId]
+  );
+  const diff = reconcileChildRows({
+    existingRows,
+    targetRows,
+    keyColumns: ['sort_order'],
+    compareColumns: [
+      'buff_id',
+      'source_item_id',
+      'source_item_internal_name',
+      'source_item_name',
+      'item_id',
+      'buff_time',
+      'sort_order',
+    ],
+    numericColumns: ['buff_id', 'source_item_id', 'item_id', 'buff_time', 'sort_order'],
+  });
+  relationStats.skipped += diff.noop.length;
+  for (const { existing } of diff.remove) {
+    await conn.execute('DELETE FROM buff_source_items WHERE id = ?', [existing.id]);
+    relationStats.updated += 1;
+  }
+  for (const { existing, target } of diff.update) {
+    await conn.execute(
+      `UPDATE buff_source_items
+          SET buff_id = ?,
+              source_item_id = ?,
+              source_item_internal_name = ?,
+              source_item_name = ?,
+              item_id = ?,
+              buff_time = ?,
+              sort_order = ?,
+              updated_at = NOW()
+        WHERE id = ?`,
+      [
+        target.buff_id,
+        target.source_item_id,
+        target.source_item_internal_name,
+        target.source_item_name,
+        target.item_id,
+        target.buff_time,
+        target.sort_order,
+        existing.id,
+      ]
+    );
+    relationStats.updated += 1;
+  }
+  for (const { target } of diff.add) {
+    await conn.execute(
+      `INSERT INTO buff_source_items
+        (buff_id, source_item_id, source_item_internal_name, source_item_name, item_id, buff_time, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        target.buff_id,
+        target.source_item_id,
+        target.source_item_internal_name,
+        target.source_item_name,
+        target.item_id,
+        target.buff_time,
+        target.sort_order,
+      ]
+    );
+    relationStats.updated += 1;
+  }
+}
+
+export async function importNpcs(conn, records, itemLookup, sourceItemLookup, categoryByCode, stats, linkStats) {
   const npcZhMap = loadNpcZhMap();
   stats.input = Array.isArray(records) ? records.length : 0;
   for (let i = 0; i < stats.input; i += 1) {
     const r = records[i];
     try {
-      const [[existing]] = await conn.execute('SELECT id, category_id FROM npcs WHERE source_id = ? LIMIT 1', [toNullableInteger(r.id)]);
+      const [[existing]] = await conn.execute(
+        `SELECT id, ${NPC_COMPARE_COLUMNS.join(', ')}
+           FROM npcs
+          WHERE source_id = ?
+          LIMIT 1`,
+        [toNullableInteger(r.id)]
+      );
       const values = buildIndependentNpcColumnValueMap(r, i, {
         categoryByCode,
         sourceItemLookup,
@@ -398,6 +506,14 @@ async function importNpcs(conn, records, itemLookup, sourceItemLookup, categoryB
           linkType: 'catchItem',
           sourceItemId: values.catch_source_item_id,
         }, values.catchMapped);
+      }
+      if (existing && independentRowsEqual(existing, buildIndependentNpcTargetRow(values), {
+        columns: NPC_COMPARE_COLUMNS,
+        jsonColumns: ['raw_json'],
+        numericColumns: NPC_NUMERIC_COLUMNS,
+      })) {
+        addSkipped(stats);
+        continue;
       }
       await conn.execute(
         `INSERT INTO npcs
@@ -469,6 +585,68 @@ async function importNpcs(conn, records, itemLookup, sourceItemLookup, categoryB
       stats.errors.push(`npcs[${i}]: ${error?.message ?? String(error)}`);
     }
   }
+}
+
+const NPC_COMPARE_COLUMNS = [
+  'source_id',
+  'internal_name',
+  'name',
+  'name_zh',
+  'sub_name',
+  'sub_name_zh',
+  'category_id',
+  'is_boss',
+  'is_friendly',
+  'is_town_npc',
+  'net_id',
+  'npc_type',
+  'ai_style',
+  'damage',
+  'defense',
+  'life_max',
+  'knock_back_resist',
+  'width',
+  'height',
+  'scale',
+  'value',
+  'banner_source_item_id',
+  'banner_item_id',
+  'catch_source_item_id',
+  'catch_item_id',
+  'buff_immune',
+  'raw_json',
+  'status',
+  'deleted',
+];
+
+const NPC_NUMERIC_COLUMNS = [
+  'source_id',
+  'category_id',
+  'is_boss',
+  'is_friendly',
+  'is_town_npc',
+  'net_id',
+  'npc_type',
+  'ai_style',
+  'damage',
+  'defense',
+  'life_max',
+  'knock_back_resist',
+  'width',
+  'height',
+  'scale',
+  'value',
+  'banner_source_item_id',
+  'banner_item_id',
+  'catch_source_item_id',
+  'catch_item_id',
+  'status',
+  'deleted',
+];
+
+function buildIndependentNpcTargetRow(values) {
+  const { bannerMapped, catchMapped, ...target } = values;
+  return { ...target, status: 1, deleted: 0 };
 }
 
 function loadNpcZhMap() {
@@ -585,14 +763,29 @@ function buildProjectileZhLookup(records) {
   };
 }
 
-async function importProjectiles(conn, records, stats) {
+export async function importProjectiles(conn, records, stats) {
   const projectileZhLookup = buildProjectileZhLookup(records);
   stats.input = Array.isArray(records) ? records.length : 0;
   for (let i = 0; i < stats.input; i += 1) {
     const r = records[i];
     try {
-      const [[existing]] = await conn.execute('SELECT id FROM projectiles WHERE source_id = ? LIMIT 1', [toNullableInteger(r.id)]);
+      const [[existing]] = await conn.execute(
+        `SELECT id, ${PROJECTILE_COMPARE_COLUMNS.join(', ')}
+           FROM projectiles
+          WHERE source_id = ?
+          LIMIT 1`,
+        [toNullableInteger(r.id)]
+      );
       const imageUrl = toNullableString(r.imageUrl ?? r.image_url ?? r.image);
+      const values = buildIndependentProjectileColumnValueMap(r, i, projectileZhLookup, imageUrl);
+      if (existing && independentRowsEqual(existing, values, {
+        columns: PROJECTILE_COMPARE_COLUMNS,
+        jsonColumns: ['raw_json'],
+        numericColumns: PROJECTILE_NUMERIC_COLUMNS,
+      })) {
+        addSkipped(stats);
+        continue;
+      }
       await conn.execute(
         `INSERT INTO projectiles
           (source_id, internal_name, name, name_zh, image_url, ai_style, damage, knock_back, penetrate, time_left, width, height, scale, friendly, hostile, tile_collide, raw_json, status, deleted)
@@ -618,23 +811,23 @@ async function importProjectiles(conn, records, stats) {
            deleted = 0,
            updated_at = NOW()`,
         [
-          toNullableInteger(r.id),
-          normalizeInternalName(r.internalName, r.name || r.id || i),
-          toNullableString(r.name),
-          toNullableString(resolveProjectileZhFromRecord(r, projectileZhLookup)),
-          imageUrl,
-          toNullableInteger(r.aiStyle),
-          toNullableInteger(r.combat?.damage),
-          toNullableDecimal(r.combat?.knockBack),
-          toNullableInteger(r.combat?.penetrate),
-          toNullableInteger(r.lifecycle?.timeLeft),
-          toNullableInteger(r.dimensions?.width),
-          toNullableInteger(r.dimensions?.height),
-          toNullableDecimal(r.dimensions?.scale),
-          toTinyInt(r.flags?.friendly, 0),
-          toTinyInt(r.flags?.hostile, 0),
-          toTinyInt(r.flags?.tileCollide, 1),
-          JSON.stringify(r),
+          values.source_id,
+          values.internal_name,
+          values.name,
+          values.name_zh,
+          values.image_url,
+          values.ai_style,
+          values.damage,
+          values.knock_back,
+          values.penetrate,
+          values.time_left,
+          values.width,
+          values.height,
+          values.scale,
+          values.friendly,
+          values.hostile,
+          values.tile_collide,
+          values.raw_json,
         ]
       );
       if (existing) stats.updated += 1;
@@ -645,13 +838,76 @@ async function importProjectiles(conn, records, stats) {
   }
 }
 
+const PROJECTILE_COMPARE_COLUMNS = [
+  'source_id',
+  'internal_name',
+  'name',
+  'name_zh',
+  'image_url',
+  'ai_style',
+  'damage',
+  'knock_back',
+  'penetrate',
+  'time_left',
+  'width',
+  'height',
+  'scale',
+  'friendly',
+  'hostile',
+  'tile_collide',
+  'raw_json',
+  'status',
+  'deleted',
+];
+
+const PROJECTILE_NUMERIC_COLUMNS = [
+  'source_id',
+  'ai_style',
+  'damage',
+  'knock_back',
+  'penetrate',
+  'time_left',
+  'width',
+  'height',
+  'scale',
+  'friendly',
+  'hostile',
+  'tile_collide',
+  'status',
+  'deleted',
+];
+
+function buildIndependentProjectileColumnValueMap(record, index, projectileZhLookup, imageUrl) {
+  return {
+    source_id: toNullableInteger(record.id),
+    internal_name: normalizeInternalName(record.internalName, record.name || record.id || index),
+    name: toNullableString(record.name),
+    name_zh: toNullableString(resolveProjectileZhFromRecord(record, projectileZhLookup)),
+    image_url: imageUrl,
+    ai_style: toNullableInteger(record.aiStyle),
+    damage: toNullableInteger(record.combat?.damage),
+    knock_back: toNullableDecimal(record.combat?.knockBack),
+    penetrate: toNullableInteger(record.combat?.penetrate),
+    time_left: toNullableInteger(record.lifecycle?.timeLeft),
+    width: toNullableInteger(record.dimensions?.width),
+    height: toNullableInteger(record.dimensions?.height),
+    scale: toNullableDecimal(record.dimensions?.scale),
+    friendly: toTinyInt(record.flags?.friendly, 0),
+    hostile: toTinyInt(record.flags?.hostile, 0),
+    tile_collide: toTinyInt(record.flags?.tileCollide, 1),
+    raw_json: JSON.stringify(record),
+    status: 1,
+    deleted: 0,
+  };
+}
+
 function resolveArmorSetSourceKey(record, index) {
   return toNullableString(record.textKey)
     ?? toNullableString(record.benefitExpression)
     ?? `armor_set_${index + 1}`;
 }
 
-async function importArmorSets(conn, records, itemLookup, sourceItemLookup, stats, relationStats) {
+export async function importArmorSets(conn, records, itemLookup, sourceItemLookup, stats, relationStats) {
   stats.input = Array.isArray(records) ? records.length : 0;
   relationStats.input = 0;
 
@@ -659,41 +915,57 @@ async function importArmorSets(conn, records, itemLookup, sourceItemLookup, stat
     const r = records[i];
     try {
       const sourceKey = resolveArmorSetSourceKey(r, i);
-      const [[existing]] = await conn.execute('SELECT id FROM armor_sets WHERE source_key = ? LIMIT 1', [sourceKey]);
-      const [result] = await conn.execute(
-        `INSERT INTO armor_sets
-          (source_key, text_key, benefit_expression, primary_part, set_count, unique_item_count, sets_json, unique_item_ids_json, status, deleted)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
-         ON DUPLICATE KEY UPDATE
-           id = LAST_INSERT_ID(id),
-           text_key = VALUES(text_key),
-           benefit_expression = VALUES(benefit_expression),
-           primary_part = VALUES(primary_part),
-           set_count = VALUES(set_count),
-           unique_item_count = VALUES(unique_item_count),
-           sets_json = VALUES(sets_json),
-           unique_item_ids_json = VALUES(unique_item_ids_json),
-           status = 1,
-           deleted = 0,
-           updated_at = NOW()`,
-        [
-          sourceKey,
-          toNullableString(r.textKey),
-          toNullableString(r.benefitExpression),
-          toNullableString(r.primaryPart),
-          toNullableInteger(r.setCount) ?? 0,
-          Array.isArray(r.uniqueItemIds) ? r.uniqueItemIds.length : 0,
-          JSON.stringify(r.sets ?? []),
-          JSON.stringify(r.uniqueItemIds ?? []),
-        ]
+      const [[existing]] = await conn.execute(
+        `SELECT id, ${ARMOR_SET_COMPARE_COLUMNS.join(', ')}
+           FROM armor_sets
+          WHERE source_key = ?
+          LIMIT 1`,
+        [sourceKey]
       );
-      const armorSetId = Number(result.insertId);
-      if (existing) stats.updated += 1;
-      else stats.created += 1;
+      const values = buildIndependentArmorSetColumnValueMap(r, sourceKey);
+      let armorSetId = existing ? Number(existing.id) : null;
+      if (existing && independentRowsEqual(existing, values, {
+        columns: ARMOR_SET_COMPARE_COLUMNS,
+        jsonColumns: ['sets_json', 'unique_item_ids_json'],
+        numericColumns: ['set_count', 'unique_item_count', 'status', 'deleted'],
+      })) {
+        addSkipped(stats);
+      } else {
+        const [result] = await conn.execute(
+          `INSERT INTO armor_sets
+            (source_key, text_key, benefit_expression, primary_part, set_count, unique_item_count, sets_json, unique_item_ids_json, status, deleted)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
+           ON DUPLICATE KEY UPDATE
+             id = LAST_INSERT_ID(id),
+             text_key = VALUES(text_key),
+             benefit_expression = VALUES(benefit_expression),
+             primary_part = VALUES(primary_part),
+             set_count = VALUES(set_count),
+             unique_item_count = VALUES(unique_item_count),
+             sets_json = VALUES(sets_json),
+             unique_item_ids_json = VALUES(unique_item_ids_json),
+             status = 1,
+             deleted = 0,
+             updated_at = NOW()`,
+          [
+            values.source_key,
+            values.text_key,
+            values.benefit_expression,
+            values.primary_part,
+            values.set_count,
+            values.unique_item_count,
+            values.sets_json,
+            values.unique_item_ids_json,
+          ]
+        );
+        armorSetId = Number(result.insertId || existing?.id);
+        if (existing) stats.updated += 1;
+        else stats.created += 1;
+      }
 
-      await conn.execute('DELETE FROM armor_set_items WHERE armor_set_id = ?', [armorSetId]);
       const variants = Array.isArray(r.sets) ? r.sets : [];
       relationStats.input += variants.reduce((sum, setArray) => sum + (Array.isArray(setArray) ? setArray.length : 0), 0);
+      const targetRows = [];
       for (let variantIndex = 0; variantIndex < variants.length; variantIndex += 1) {
         const setArray = Array.isArray(variants[variantIndex]) ? variants[variantIndex] : [];
         for (let partIndex = 0; partIndex < setArray.length; partIndex += 1) {
@@ -713,27 +985,122 @@ async function importArmorSets(conn, records, itemLookup, sourceItemLookup, stat
               partIndex,
             });
           }
-          await conn.execute(
-            `INSERT INTO armor_set_items
-              (armor_set_id, set_variant_index, part_index, source_item_id, item_id, item_internal_name, item_name)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [
-              armorSetId,
-              variantIndex,
-              partIndex,
-              sourceItemId,
-              mapped.dbItem?.id ?? null,
-              mapped.internalName,
-              mapped.dbItem?.name ?? null,
-            ]
-          );
-          relationStats.updated += 1;
+          targetRows.push({
+            armor_set_id: armorSetId,
+            set_variant_index: variantIndex,
+            part_index: partIndex,
+            source_item_id: sourceItemId,
+            item_id: mapped.dbItem?.id ?? null,
+            item_internal_name: mapped.internalName,
+            item_name: mapped.dbItem?.name ?? null,
+          });
         }
       }
+      await reconcileArmorSetItems(conn, armorSetId, targetRows, relationStats);
     } catch (error) {
       stats.errors.push(`armor_sets[${i}]: ${error?.message ?? String(error)}`);
     }
   }
+}
+
+async function reconcileArmorSetItems(conn, armorSetId, targetRows, relationStats) {
+  const [existingRows] = await conn.execute(
+    `SELECT id, armor_set_id, set_variant_index, part_index, source_item_id, item_id, item_internal_name, item_name
+       FROM armor_set_items
+      WHERE armor_set_id = ?
+      ORDER BY set_variant_index, part_index`,
+    [armorSetId]
+  );
+  const diff = reconcileChildRows({
+    existingRows,
+    targetRows,
+    keyColumns: ['set_variant_index', 'part_index'],
+    compareColumns: [
+      'armor_set_id',
+      'set_variant_index',
+      'part_index',
+      'source_item_id',
+      'item_id',
+      'item_internal_name',
+      'item_name',
+    ],
+    numericColumns: ['armor_set_id', 'set_variant_index', 'part_index', 'source_item_id', 'item_id'],
+  });
+  relationStats.skipped += diff.noop.length;
+  for (const { existing } of diff.remove) {
+    await conn.execute('DELETE FROM armor_set_items WHERE id = ?', [existing.id]);
+    relationStats.updated += 1;
+  }
+  for (const { existing, target } of diff.update) {
+    await conn.execute(
+      `UPDATE armor_set_items
+          SET armor_set_id = ?,
+              set_variant_index = ?,
+              part_index = ?,
+              source_item_id = ?,
+              item_id = ?,
+              item_internal_name = ?,
+              item_name = ?,
+              updated_at = NOW()
+        WHERE id = ?`,
+      [
+        target.armor_set_id,
+        target.set_variant_index,
+        target.part_index,
+        target.source_item_id,
+        target.item_id,
+        target.item_internal_name,
+        target.item_name,
+        existing.id,
+      ]
+    );
+    relationStats.updated += 1;
+  }
+  for (const { target } of diff.add) {
+    await conn.execute(
+      `INSERT INTO armor_set_items
+        (armor_set_id, set_variant_index, part_index, source_item_id, item_id, item_internal_name, item_name)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        target.armor_set_id,
+        target.set_variant_index,
+        target.part_index,
+        target.source_item_id,
+        target.item_id,
+        target.item_internal_name,
+        target.item_name,
+      ]
+    );
+    relationStats.updated += 1;
+  }
+}
+
+const ARMOR_SET_COMPARE_COLUMNS = [
+  'source_key',
+  'text_key',
+  'benefit_expression',
+  'primary_part',
+  'set_count',
+  'unique_item_count',
+  'sets_json',
+  'unique_item_ids_json',
+  'status',
+  'deleted',
+];
+
+function buildIndependentArmorSetColumnValueMap(record, sourceKey) {
+  return {
+    source_key: sourceKey,
+    text_key: toNullableString(record.textKey),
+    benefit_expression: toNullableString(record.benefitExpression),
+    primary_part: toNullableString(record.primaryPart),
+    set_count: toNullableInteger(record.setCount) ?? 0,
+    unique_item_count: Array.isArray(record.uniqueItemIds) ? record.uniqueItemIds.length : 0,
+    sets_json: JSON.stringify(record.sets ?? []),
+    unique_item_ids_json: JSON.stringify(record.uniqueItemIds ?? []),
+    status: 1,
+    deleted: 0,
+  };
 }
 
 async function main() {
@@ -823,4 +1190,12 @@ function assertPrimaryDb(database, allowNonPrimaryDb) {
   if (String(database || '').trim() === 'terria_v1_local') return;
   if (allowNonPrimaryDb) return;
   throw new Error(`Refusing to write to non-primary database '${database}'. Set TERRAPEDIA_DB_NAME=terria_v1_local or pass --allow-non-primary-db=true explicitly.`);
+}
+
+function independentRowsEqual(existing, target, options) {
+  return rowsEqual(existing, target, options);
+}
+
+function addSkipped(stats) {
+  stats.skipped = Number(stats.skipped ?? 0) + 1;
 }

@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { assertPrimaryDb } from '../lib/base-domain-primary-db-guard.mjs';
 import { resolveItemCategoryCode } from '../lib/item-category-normalization.mjs';
 
 const require = createRequire(import.meta.url);
@@ -11,6 +12,7 @@ const mysql = require('mysql2/promise');
 const repoRoot = process.cwd();
 const args = parseArgs(process.argv.slice(2));
 const apply = args.apply === 'true';
+const allowNonPrimaryDb = booleanOption(args['allow-non-primary-db'] ?? process.env.TERRAPEDIA_ALLOW_NON_PRIMARY_DB, false);
 
 const db = {
   host: process.env.TERRAPEDIA_DB_HOST || '127.0.0.1',
@@ -19,6 +21,8 @@ const db = {
   password: process.env.TERRAPEDIA_DB_PASSWORD || 'root',
   database: process.env.TERRAPEDIA_DB_NAME || 'terria_v1_local',
 };
+
+assertPrimaryDb(db.database, apply, allowNonPrimaryDb);
 
 const standardizedPath = path.join(repoRoot, 'data', 'standardized', 'items.standardized.json');
 if (!fs.existsSync(standardizedPath)) {
@@ -136,4 +140,12 @@ function toText(value) {
   if (value == null) return null;
   const text = String(value).trim();
   return text ? text : null;
+}
+
+function booleanOption(value, fallback = false) {
+  if (value == null || value === '') return fallback;
+  const normalized = String(value).trim().toLowerCase();
+  if (['true', '1', 'yes', 'y'].includes(normalized)) return true;
+  if (['false', '0', 'no', 'n'].includes(normalized)) return false;
+  return fallback;
 }
