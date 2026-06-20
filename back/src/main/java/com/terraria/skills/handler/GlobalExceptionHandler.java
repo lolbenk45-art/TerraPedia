@@ -1,5 +1,6 @@
 package com.terraria.skills.handler;
 
+import com.terraria.skills.auth.AdminAccessDeniedException;
 import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.service.CrawlerMonitorRedisUnavailableException;
 import lombok.extern.slf4j.Slf4j;
@@ -32,11 +33,18 @@ public class GlobalExceptionHandler {
         return ApiResponse.error(503, e.getMessage());
     }
 
+    @ExceptionHandler(AdminAccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiResponse<Void> handleAdminAccessDenied(AdminAccessDeniedException e) {
+        log.warn("Admin access denied: {}", e.getMessage());
+        return ApiResponse.error(403, e.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiResponse<Void> handleException(Exception e) {
         log.error("系统异常", e);
-        return ApiResponse.error("系统错误：" + e.getMessage());
+        return ApiResponse.error(500, "系统繁忙，请稍后重试");
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -70,6 +78,6 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiResponse<Void> handleRuntimeException(RuntimeException e) {
         log.error("运行时异常", e);
-        return ApiResponse.error("运行时错误：" + e.getMessage());
+        return ApiResponse.error(500, "系统繁忙，请稍后重试");
     }
 }

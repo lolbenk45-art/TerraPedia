@@ -28,6 +28,7 @@ public class CrawlerReportArchiver {
     private static final Path HISTORY_DIR = REFRESH_DIR.resolve("history");
     private static final int HISTORY_LIMIT = 10;
     private static final int RECENT_REPORT_LIMIT = 20;
+    private static final int REPORT_SCAN_MAX_DEPTH = 4;
     private static final int REPORT_PREVIEW_MAX_BYTES = 200_000;
     private static final int DIRECTORY_PREVIEW_FILE_LIMIT = 500;
 
@@ -263,7 +264,9 @@ public class CrawlerReportArchiver {
             return;
         }
         Path backendRefreshDir = repoRoot.resolve(REFRESH_DIR).normalize();
-        try (Stream<Path> stream = Files.walk(root)) {
+        // Bound the walk so high-frequency overview polling never recurses into deep per-run
+        // dispatch output directories; legitimate report files live at most a couple levels deep.
+        try (Stream<Path> stream = Files.walk(root, REPORT_SCAN_MAX_DEPTH)) {
             stream
                 .filter(Files::isRegularFile)
                 .filter(path -> !path.normalize().startsWith(backendRefreshDir))

@@ -840,6 +840,8 @@ const commandPreviewDomainKey = ref('')
 const cancelConfirmDomainKey = ref('')
 const dispatchConfirmDomainKey = ref('')
 let refreshTimer: ReturnType<typeof setInterval> | null = null
+const refreshFailureStreak = ref(0)
+const authRefreshHalted = ref(false)
 
 async function fetchCrawlerMonitorOverview() {
   const response: any = await get('/admin/crawler-monitor/overview')
@@ -893,6 +895,12 @@ const visibleWikiDomainRowsByPriority = computed<CrawlerMonitorWikiDomain[]>(() 
 const progressRowCount = computed(() => progressRows.value.length)
 const liveProgressActive = computed(() => progressRows.value.some((row) => ['running', 'stalled'].includes(rowStatus(row))))
 const activeRefreshIntervalMs = computed(() => liveProgressActive.value ? 3000 : 10000)
+const effectiveRefreshIntervalMs = computed(() => {
+  const base = activeRefreshIntervalMs.value
+  if (refreshFailureStreak.value <= 0) return base
+  const factor = Math.min(2 ** refreshFailureStreak.value, 16)
+  return Math.min(base * factor, 60000)
+})
 const refreshStale = computed(() => Boolean(overview.value?.refreshStale))
 const latestRunStatus = computed(() => {
   if (!latestRun.value.found) return 'missing'
@@ -1091,17 +1099,23 @@ onMounted(async () => {
     }
   }
   syncAutoRefresh()
+  if (import.meta.client) {
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+  }
 })
 
 onUnmounted(() => {
   clearRefreshTimer()
+  if (import.meta.client) {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }
 })
 
 watch(autoRefresh, () => {
   syncAutoRefresh()
 })
 
-watch(activeRefreshIntervalMs, () => {
+watch(effectiveRefreshIntervalMs, () => {
   syncAutoRefresh()
 })
 
@@ -1111,8 +1125,19 @@ async function loadOverview() {
     await refreshOverview()
     overview.value = initialOverview.value
     lastOverviewRefreshAt.value = new Date().toISOString()
+    refreshFailureStreak.value = 0
+    authRefreshHalted.value = false
   } catch (error: any) {
     console.error('Failed to load crawler monitor overview:', error)
+    const statusCode = Number(error?.statusCode ?? error?.response?.status ?? error?.data?.statusCode ?? 0)
+    if (statusCode === 401 || statusCode === 403) {
+      authRefreshHalted.value = true
+      autoRefresh.value = false
+      clearRefreshTimer()
+      showToast('登录已失效或无访问权限，已停止自动刷新，请重新登录', 'error')
+      return
+    }
+    refreshFailureStreak.value = Math.min(refreshFailureStreak.value + 1, 6)
     showToast(error?.data?.message || error?.message || '加载爬取监控失败', 'error')
   } finally {
     loading.value = false
@@ -1583,18 +1608,33 @@ function noiseKey(...parts: Array<string | null | undefined>) {
 
 function syncAutoRefresh() {
   clearRefreshTimer()
-  if (!autoRefresh.value || !import.meta.client) return
+  if (!autoRefresh.value || authRefreshHalted.value || !import.meta.client) return
+  if (typeof document !== 'undefined' && document.hidden) return
   refreshTimer = setInterval(() => {
     if (!loading.value) {
       loadOverview()
     }
-  }, activeRefreshIntervalMs.value)
+  }, effectiveRefreshIntervalMs.value)
 }
 
 function clearRefreshTimer() {
   if (refreshTimer) {
     clearInterval(refreshTimer)
     refreshTimer = null
+  }
+}
+
+function handleVisibilityChange() {
+  if (typeof document === 'undefined') return
+  if (document.hidden) {
+    clearRefreshTimer()
+    return
+  }
+  if (autoRefresh.value && !authRefreshHalted.value) {
+    if (!loading.value) {
+      loadOverview()
+    }
+    syncAutoRefresh()
   }
 }
 

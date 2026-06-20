@@ -9,6 +9,9 @@ import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
 import com.terraria.skills.service.CrawlerMonitorService;
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -32,8 +35,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -41,6 +46,8 @@ import java.util.stream.Stream;
 
 @Service
 public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
+
+    private static final Logger log = LoggerFactory.getLogger(CrawlerMonitorServiceImpl.class);
 
     private static final TypeReference<LinkedHashMap<String, Object>> MAP_TYPE = new TypeReference<>() {};
     private static final Path REFRESH_DIR = Path.of("reports", "backend-refresh");
@@ -65,8 +72,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE = Path.of("reports", "crawler-monitor", "wiki-monitor-domain-smoke-progress.latest.json");
     private static final Path WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE = Path.of("reports", "crawler-monitor", "wiki-monitor-domain-smoke.lock.json");
     private static final Duration WIKI_MONITOR_DISPATCH_COOLDOWN = Duration.ofMinutes(30);
-    private static final Duration WIKI_MONITOR_DISPATCH_LOCK_STALE = Duration.ofHours(2);
+    private static final Duration WIKI_MONITOR_DISPATCH_TIMEOUT = Duration.ofMinutes(90);
+    // Lock staleness must be >= the dispatch timeout so an in-flight process is never
+    // declared stale before the watcher has had a chance to reclaim it (see H1).
+    private static final Duration WIKI_MONITOR_DISPATCH_LOCK_STALE = Duration.ofMinutes(120);
     private static final int WIKI_MONITOR_DOMAIN_SMOKE_LIMIT = 10;
+    private static final Path CRAWLER_MONITOR_DIR = Path.of("reports", "crawler-monitor");
+    private static final int DISPATCH_ARTIFACT_RETENTION_COUNT = 20;
+    private static final Duration DISPATCH_ARTIFACT_MAX_AGE = Duration.ofDays(7);
     private static final Path NPC_COVERAGE_REPORT = Path.of("data", "wiki-crawler", "report", "npc", "coverage-audit.latest.json");
     private static final Path RAW_ITEM_PAGES_DIR = Path.of("raw", "wiki", "item-pages");
     private static final Path STANDARDIZED_DIR = Path.of("standardized");
@@ -117,6 +130,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private final ProcessLauncher processLauncher;
     private final Map<String, ActiveDispatchProcess> activeDispatchProcesses = new ConcurrentHashMap<>();
     private final Set<String> cancellingDispatches = ConcurrentHashMap.newKeySet();
+    private volatile Duration dispatchTimeout = WIKI_MONITOR_DISPATCH_TIMEOUT;
+    private static final long OVERVIEW_CACHE_TTL_NANOS = TimeUnit.SECONDS.toNanos(2);
+    private volatile CrawlerMonitorOverviewDTO cachedOverview;
+    private volatile long cachedOverviewAtNanos;
+
+    void setDispatchTimeoutForTesting(Duration timeout) {
+        this.dispatchTimeout = timeout == null ? WIKI_MONITOR_DISPATCH_TIMEOUT : timeout;
+    }
 
     @Autowired
     public CrawlerMonitorServiceImpl(ObjectMapper objectMapper, @Autowired(required = false) StringRedisTemplate redisTemplate) {
@@ -155,8 +176,98 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         this.processLauncher = processLauncher == null ? new ProcessBuilderLauncher() : processLauncher;
     }
 
+    /**
+     * Reconciles the persisted dispatch lock against the live process table on startup so that a
+     * backend restart does not leave a "running" dispatch stranded (lock held for hours, UI showing
+     * running, controls broken). If the recorded process is still alive it is re-tracked and a fresh
+     * watcher is attached; otherwise the dispatch is converged to {@code failed} and the lock released.
+     */
+    @PostConstruct
+    void reconcileActiveDispatchesOnStartup() {
+        try {
+            Path repoRoot = resolveRepoRoot();
+            Path lockPath = repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
+            ReadResult lock = readJsonMap(lockPath);
+            if (!lock.readable()) {
+                return;
+            }
+            Map<String, Object> payload = lock.payload();
+            String dispatchId = asString(payload.get("dispatchId"));
+            String domain = asString(payload.get("domain"));
+            String actionId = asString(payload.get("actionId"));
+            if (dispatchId == null || domain == null || actionId == null) {
+                return;
+            }
+            WikiMonitorRule rule = findWikiMonitorRule(domain, actionId);
+            if (rule == null) {
+                return;
+            }
+            long pid = asLong(payload.get("pid"));
+            Optional<ProcessHandle> handle = pid > 0 ? ProcessHandle.of(pid) : Optional.empty();
+            if (handle.isPresent() && handle.get().isAlive() && processStartMatches(handle.get(), asString(payload.get("startedAt")))) {
+                DispatchPaths paths = reconstructDispatchPaths(repoRoot, dispatchId, rule);
+                Process process = new HandleBackedProcess(handle.get());
+                activeDispatchProcesses.put(dispatchId, new ActiveDispatchProcess(dispatchId, domain, actionId, process, paths));
+                watchDispatchProcess(repoRoot, dispatchId, rule, paths, process);
+                log.info("Recovered running wiki monitor dispatch {} (pid={}) after restart.", dispatchId, pid);
+            } else {
+                convergeOrphanedDispatch(repoRoot, lockPath, dispatchId, rule);
+                log.warn("Released orphaned wiki monitor dispatch lock {} after restart (pid={} not alive).", dispatchId, pid);
+            }
+        } catch (RuntimeException exception) {
+            log.warn("Failed to reconcile active dispatches on startup: {}", exception.getMessage());
+        }
+    }
+
+    private void convergeOrphanedDispatch(Path repoRoot, Path lockPath, String dispatchId, WikiMonitorRule rule) {
+        Path statePath = repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize();
+        ReadResult state = readJsonMap(statePath);
+        if (state.readable()
+            && dispatchId.equals(asString(state.payload().get("dispatchId")))
+            && "running".equals(asString(state.payload().get("status")))) {
+            LinkedHashMap<String, Object> merged = new LinkedHashMap<>(state.payload());
+            merged.put("status", "failed");
+            merged.put("message", "dispatch orphaned by backend restart");
+            merged.put("completedAt", Instant.now(clock).toString());
+            writeJsonFile(statePath, merged);
+        }
+        releaseDispatchLock(lockPath, dispatchId);
+    }
+
+    private WikiMonitorRule findWikiMonitorRule(String domain, String actionId) {
+        return WIKI_MONITOR_RULES.stream()
+            .filter(rule -> rule.domain().equals(domain) && rule.actionId().equals(actionId))
+            .findFirst()
+            .orElse(null);
+    }
+
+    private DispatchPaths reconstructDispatchPaths(Path repoRoot, String dispatchId, WikiMonitorRule rule) {
+        ReadResult state = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+        if (state.readable() && dispatchId.equals(asString(state.payload().get("dispatchId")))) {
+            Map<String, Object> payload = state.payload();
+            return new DispatchPaths(
+                asString(payload.get("reportPath")),
+                asString(payload.get("progressPath")),
+                asString(payload.get("lockPath")),
+                asString(payload.get("logPath"))
+            );
+        }
+        return buildDispatchPaths(repoRoot, rule, dispatchId);
+    }
+
     @Override
     public CrawlerMonitorOverviewDTO getOverview() {
+        CrawlerMonitorOverviewDTO cached = cachedOverview;
+        if (cached != null && (System.nanoTime() - cachedOverviewAtNanos) < OVERVIEW_CACHE_TTL_NANOS) {
+            return cached;
+        }
+        CrawlerMonitorOverviewDTO overview = computeOverview();
+        cachedOverview = overview;
+        cachedOverviewAtNanos = System.nanoTime();
+        return overview;
+    }
+
+    private CrawlerMonitorOverviewDTO computeOverview() {
         Path repoRoot = resolveRepoRoot();
         CrawlerMonitorOverviewDTO.MonitorFileDTO daemon = readRuntimeMonitorState(repoRoot, REDIS_BACKEND_DAEMON_KEY, DAEMON_HEARTBEAT, false);
         CrawlerMonitorOverviewDTO.MonitorFileDTO scheduler = readRuntimeMonitorState(repoRoot, REDIS_BACKEND_SCHEDULER_KEY, SCHEDULER_STATE, false);
@@ -189,6 +300,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     @Override
     public CrawlerMonitorDispatchResultDTO dispatchWikiMonitorTask(CrawlerMonitorDispatchRequestDTO request) {
         Path repoRoot = resolveRepoRoot();
+        pruneDispatchArtifacts(repoRoot);
         WikiMonitorRule rule = resolveWikiMonitorRule(request);
         ReadResult latestDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
         if (isInCooldown(rule, latestDispatch.payload())) {
@@ -219,6 +331,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         try {
             Process process = processLauncher.launch(launchRequest);
             activeDispatchProcesses.put(dispatchId, new ActiveDispatchProcess(dispatchId, rule.domain(), rule.actionId(), process, dispatchPaths));
+            recordDispatchRuntime(repoRoot, lockPath, dispatchId, safePid(process), timestamp);
             watchDispatchProcess(repoRoot, dispatchId, rule, dispatchPaths, process);
         } catch (IOException exception) {
             writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(),
@@ -249,6 +362,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         ActiveDispatchProcess active = latestMatches ? activeDispatchProcesses.get(dispatchId) : null;
         if (active == null) {
             active = findActiveDispatchProcess(rule);
+            if (active != null) {
+                dispatchId = active.dispatchId();
+            }
+        }
+        if (active == null) {
+            active = reconstructDispatchFromLock(repoRoot, rule);
             if (active != null) {
                 dispatchId = active.dispatchId();
             }
@@ -306,6 +425,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if ("cancel".equals(controlAction)) {
             releaseDispatchLock(repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize(), dispatchId);
             activeDispatchProcesses.remove(dispatchId);
+            cleanupDispatchArtifacts(repoRoot, paths);
             if (!watcherTracked) {
                 cancellingDispatches.remove(dispatchId);
             }
@@ -317,6 +437,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     @Override
     public CrawlerMonitorDispatchResultDTO dispatchWikiMonitorDomainSmoke() {
         Path repoRoot = resolveRepoRoot();
+        pruneDispatchArtifacts(repoRoot);
         String timestamp = Instant.now(clock).toString();
         String dispatchId = "wiki-monitor-domain-smoke-" + timestamp.replaceAll("[^0-9A-Za-z]+", "-") + "-" + UUID.randomUUID().toString().substring(0, 8);
         Path lockPath = repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize();
@@ -566,6 +687,202 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             .orElse(null);
     }
 
+    private static long safePid(Process process) {
+        try {
+            return process.pid();
+        } catch (UnsupportedOperationException exception) {
+            return -1L;
+        }
+    }
+
+    /**
+     * Persists the launched process PID and start time to the lock and state files so that the
+     * dispatch can be controlled by precise PID ownership after the in-memory tracking is lost
+     * (e.g. a backend restart), instead of resorting to fuzzy {@code /proc} command matching.
+     */
+    private void recordDispatchRuntime(Path repoRoot, Path lockPath, String dispatchId, long pid, String startedAt) {
+        if (pid <= 0) {
+            return;
+        }
+        LinkedHashMap<String, Object> runtime = new LinkedHashMap<>();
+        runtime.put("pid", pid);
+        runtime.put("startedAt", startedAt);
+        mergeDispatchJson(lockPath, dispatchId, runtime);
+        mergeDispatchJson(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), dispatchId, Map.of("pid", pid));
+    }
+
+    private void mergeDispatchJson(Path path, String dispatchId, Map<String, Object> updates) {
+        ReadResult result = readJsonMap(path);
+        if (!result.readable() || !dispatchId.equals(asString(result.payload().get("dispatchId")))) {
+            return;
+        }
+        LinkedHashMap<String, Object> merged = new LinkedHashMap<>(result.payload());
+        merged.putAll(updates);
+        writeJsonFile(path, merged);
+    }
+
+    /**
+     * Reconstructs an {@link ActiveDispatchProcess} for the given rule from the persisted lock file
+     * by resolving the recorded PID. Only returns a process whose recorded ownership (matching
+     * domain/action and a start time not predating the dispatch) checks out.
+     */
+    private ActiveDispatchProcess reconstructDispatchFromLock(Path repoRoot, WikiMonitorRule rule) {
+        ReadResult lock = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize());
+        if (!lock.readable()) {
+            return null;
+        }
+        Map<String, Object> payload = lock.payload();
+        if (!rule.domain().equals(asString(payload.get("domain"))) || !rule.actionId().equals(asString(payload.get("actionId")))) {
+            return null;
+        }
+        long pid = asLong(payload.get("pid"));
+        String dispatchId = asString(payload.get("dispatchId"));
+        if (pid <= 0 || dispatchId == null) {
+            return null;
+        }
+        Optional<ProcessHandle> handle = ProcessHandle.of(pid);
+        if (handle.isEmpty() || !handle.get().isAlive()) {
+            return null;
+        }
+        if (!processStartMatches(handle.get(), asString(payload.get("startedAt")))) {
+            return null;
+        }
+        return new ActiveDispatchProcess(dispatchId, rule.domain(), rule.actionId(),
+            new HandleBackedProcess(handle.get()), buildLegacyDispatchPaths(rule));
+    }
+
+    /**
+     * Guards against PID reuse: the OS process must not have started measurably before the dispatch
+     * was recorded. A small tolerance absorbs clock skew between the recorded timestamp and the
+     * kernel-reported start time.
+     */
+    private static boolean processStartMatches(ProcessHandle handle, String recordedStartedAt) {
+        if (recordedStartedAt == null) {
+            return true;
+        }
+        Optional<Instant> processStart = handle.info().startInstant();
+        if (processStart.isEmpty()) {
+            return true;
+        }
+        try {
+            Instant recorded = Instant.parse(recordedStartedAt);
+            return !processStart.get().isBefore(recorded.minus(Duration.ofMinutes(2)));
+        } catch (RuntimeException exception) {
+            return true;
+        }
+    }
+
+    /**
+     * Implements the "终止并清理文件" (terminate and clean up files) contract surfaced by the cancel
+     * dialog: removes the report, log and progress artifacts produced by this dispatch. Deletions are
+     * confined to the {@code reports/} and {@code data/generated/} namespaces inside the repo, and the
+     * shared dispatch state/lock index files are never touched.
+     */
+    private void cleanupDispatchArtifacts(Path repoRoot, DispatchPaths paths) {
+        if (paths == null) {
+            return;
+        }
+        deleteDispatchArtifact(repoRoot, paths.reportPath());
+        deleteDispatchArtifact(repoRoot, paths.logPath());
+        deleteDispatchArtifact(repoRoot, paths.progressPath());
+    }
+
+    private void deleteDispatchArtifact(Path repoRoot, String relativePath) {
+        if (relativePath == null || relativePath.isBlank()) {
+            return;
+        }
+        Path resolved = repoRoot.resolve(relativePath).normalize();
+        if (!resolved.startsWith(repoRoot)) {
+            return;
+        }
+        String relative = repoRoot.relativize(resolved).toString().replace('\\', '/');
+        if (!relative.startsWith("reports/") && !relative.startsWith("data/generated/")) {
+            return;
+        }
+        if (relative.equals(WIKI_MONITOR_DISPATCH_FILE.toString().replace('\\', '/'))
+            || relative.equals(WIKI_MONITOR_DISPATCH_LOCK_FILE.toString().replace('\\', '/'))) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(resolved);
+            if (relative.endsWith(".json")) {
+                Path runtimeDir = resolved.resolveSibling(resolved.getFileName().toString().replace(".json", ".runtime"));
+                deleteRecursivelyQuietly(runtimeDir, repoRoot);
+            }
+        } catch (IOException exception) {
+            log.warn("Failed to clean up dispatch artifact {}: {}", relative, exception.getMessage());
+        }
+    }
+
+    private void deleteRecursivelyQuietly(Path dir, Path repoRoot) {
+        Path normalized = dir.normalize();
+        if (!normalized.startsWith(repoRoot) || !Files.isDirectory(normalized)) {
+            return;
+        }
+        try (Stream<Path> walk = Files.walk(normalized)) {
+            walk.sorted(Comparator.reverseOrder()).forEach(path -> {
+                try {
+                    Files.deleteIfExists(path);
+                } catch (IOException ignored) {
+                }
+            });
+        } catch (IOException ignored) {
+        }
+    }
+
+    /**
+     * Bounds the growth of the dispatch output directory (L4): keeps the most recent
+     * {@value #DISPATCH_ARTIFACT_RETENTION_COUNT} dispatch logs / smoke output directories and prunes
+     * anything older than {@link #DISPATCH_ARTIFACT_MAX_AGE}. Lock and state index files are excluded.
+     */
+    private void pruneDispatchArtifacts(Path repoRoot) {
+        Path dir = repoRoot.resolve(CRAWLER_MONITOR_DIR).normalize();
+        if (!Files.isDirectory(dir)) {
+            return;
+        }
+        Instant cutoff = Instant.now(clock).minus(DISPATCH_ARTIFACT_MAX_AGE);
+        try (Stream<Path> entries = Files.list(dir)) {
+            List<Path> candidates = entries
+                .filter(this::isPrunableDispatchArtifact)
+                .sorted(Comparator.comparing(this::lastModifiedOrEpoch).reversed())
+                .toList();
+            for (int index = 0; index < candidates.size(); index += 1) {
+                Path candidate = candidates.get(index);
+                boolean overCount = index >= DISPATCH_ARTIFACT_RETENTION_COUNT;
+                boolean tooOld = lastModifiedOrEpoch(candidate).isBefore(cutoff);
+                if (!overCount && !tooOld) {
+                    continue;
+                }
+                if (Files.isDirectory(candidate)) {
+                    deleteRecursivelyQuietly(candidate, repoRoot);
+                } else {
+                    try {
+                        Files.deleteIfExists(candidate);
+                    } catch (IOException ignored) {
+                    }
+                }
+            }
+        } catch (IOException exception) {
+            log.warn("Failed to prune dispatch artifacts in {}: {}", dir, exception.getMessage());
+        }
+    }
+
+    private boolean isPrunableDispatchArtifact(Path path) {
+        String name = path.getFileName().toString();
+        if (name.endsWith(".log")) {
+            return true;
+        }
+        return Files.isDirectory(path) && name.startsWith("wiki-monitor-domain-smoke-");
+    }
+
+    private Instant lastModifiedOrEpoch(Path path) {
+        try {
+            return Files.getLastModifiedTime(path).toInstant();
+        } catch (IOException exception) {
+            return Instant.EPOCH;
+        }
+    }
+
     private boolean isInCooldown(WikiMonitorRule rule, Map<String, Object> payload) {
         if (!rule.domain().equals(asString(payload.get("domain"))) || !"completed".equals(asString(payload.get("status")))) {
             return false;
@@ -650,16 +967,32 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (!lock.readable()) {
             return;
         }
-        String lockedAt = asString(lock.payload().get("lockedAt"));
+        Map<String, Object> payload = lock.payload();
+        String lockedAt = asString(payload.get("lockedAt"));
         if (lockedAt == null) {
             return;
         }
         try {
-            if (Duration.between(Instant.parse(lockedAt), Instant.now(clock)).compareTo(WIKI_MONITOR_DISPATCH_LOCK_STALE) > 0) {
-                Files.deleteIfExists(lockPath);
+            if (Duration.between(Instant.parse(lockedAt), Instant.now(clock)).compareTo(WIKI_MONITOR_DISPATCH_LOCK_STALE) <= 0) {
+                return;
             }
+            if (isRecordedProcessAlive(payload)) {
+                log.warn("Wiki monitor dispatch lock {} is past the stale threshold but its recorded process (pid={}) is still alive; keeping the lock.",
+                    lockPath, asLong(payload.get("pid")));
+                return;
+            }
+            Files.deleteIfExists(lockPath);
         } catch (RuntimeException | IOException ignored) {
         }
+    }
+
+    private boolean isRecordedProcessAlive(Map<String, Object> payload) {
+        long pid = asLong(payload.get("pid"));
+        if (pid <= 0) {
+            return false;
+        }
+        Optional<ProcessHandle> handle = ProcessHandle.of(pid);
+        return handle.isPresent() && handle.get().isAlive() && processStartMatches(handle.get(), asString(payload.get("startedAt")));
     }
 
     private DispatchPaths buildDispatchPaths(Path repoRoot, WikiMonitorRule rule, String dispatchId) {
@@ -681,7 +1014,30 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             .filter(token -> token != null && !token.isBlank() && !"<PYTHON>".equals(token))
             .filter(token -> token.contains("/") || token.contains("=") || token.endsWith(".mjs") || token.endsWith(".py"))
             .toList();
-        return new LegacyProcessRequest(rule.actionId(), repoRoot, commandNeedles);
+        return new LegacyProcessRequest(rule.actionId(), repoRoot, commandNeedles, legacyMinStartEpochMillis(repoRoot, rule));
+    }
+
+    /**
+     * Lower-bounds the {@code /proc} scan to processes started no earlier than the most recent
+     * dispatch for this rule, so an unrelated long-running process that merely shares the script
+     * path and cwd is never matched and paused/killed (see H2).
+     */
+    private long legacyMinStartEpochMillis(Path repoRoot, WikiMonitorRule rule) {
+        ReadResult latest = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+        if (!latest.readable()
+            || !rule.domain().equals(asString(latest.payload().get("domain")))
+            || !rule.actionId().equals(asString(latest.payload().get("actionId")))) {
+            return 0L;
+        }
+        String startedAt = asString(latest.payload().get("startedAt"));
+        if (startedAt == null) {
+            return 0L;
+        }
+        try {
+            return Instant.parse(startedAt).minus(Duration.ofMinutes(2)).toEpochMilli();
+        } catch (RuntimeException exception) {
+            return 0L;
+        }
     }
 
     private LinkedHashMap<String, Object> buildDispatchState(
@@ -776,7 +1132,18 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private String resolvePythonExecutable() {
         String configured = trimToNull(System.getenv("PYTHON"));
-        return configured == null ? "python3" : configured;
+        if (configured == null) {
+            return "python3";
+        }
+        boolean looksLikePath = configured.contains("/") || configured.contains("\\");
+        if (looksLikePath) {
+            Path candidate = Path.of(configured);
+            if (!Files.isRegularFile(candidate) || !Files.isExecutable(candidate)) {
+                log.warn("Configured PYTHON path is not an executable file; falling back to python3.");
+                return "python3";
+            }
+        }
+        return configured;
     }
 
     private String trimToNull(String value) {
@@ -788,9 +1155,19 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private void watchDispatchProcess(Path repoRoot, String dispatchId, WikiMonitorRule rule, DispatchPaths paths, Process process) {
+        Duration timeout = dispatchTimeout;
         Thread thread = new Thread(() -> {
+            boolean timedOut = false;
+            int exitCode = -1;
             try {
-                int exitCode = process.waitFor();
+                if (process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
+                    exitCode = process.exitValue();
+                } else {
+                    timedOut = true;
+                    log.warn("Wiki monitor dispatch {} ({}/{}) exceeded {} min timeout; reclaiming process tree.",
+                        dispatchId, rule.domain(), rule.actionId(), timeout.toMinutes());
+                    processLauncher.destroy(process);
+                }
                 ReadResult currentDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
                 if (cancellingDispatches.contains(dispatchId)) {
                     return;
@@ -800,11 +1177,19 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                     && "cancelled".equals(asString(currentDispatch.payload().get("status")))) {
                     return;
                 }
-                String status = exitCode == 0 ? "completed" : "failed";
+                String status;
+                String message;
+                if (timedOut) {
+                    status = "timed_out";
+                    message = "dispatch timed out after " + timeout.toMinutes() + " minutes";
+                } else {
+                    status = exitCode == 0 ? "completed" : "failed";
+                    message = status + " with exit code " + exitCode;
+                }
                 writeJsonFile(
                     repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(),
                     buildDispatchState(dispatchId, rule, status, asString(currentDispatch.payload().get("startedAt")),
-                        Instant.now(clock).toString(), paths, status + " with exit code " + exitCode)
+                        Instant.now(clock).toString(), paths, message)
                 );
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
@@ -819,9 +1204,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private void watchDomainSmokeProcess(Path repoRoot, String dispatchId, Path lockPath, Process process) {
+        Duration timeout = dispatchTimeout;
         Thread thread = new Thread(() -> {
             try {
-                process.waitFor();
+                if (!process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
+                    log.warn("Wiki monitor domain smoke {} exceeded {} min timeout; reclaiming process tree.",
+                        dispatchId, timeout.toMinutes());
+                    processLauncher.destroy(process);
+                }
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
             } finally {
@@ -2984,7 +3374,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     record LaunchRequest(List<String> command, File directory, Map<String, String> environment, File logFile) {}
 
-    record LegacyProcessRequest(String actionId, Path repoRoot, List<String> commandNeedles) {}
+    record LegacyProcessRequest(String actionId, Path repoRoot, List<String> commandNeedles, long minStartEpochMillis) {}
 
     interface ProcessLauncher {
         Process launch(LaunchRequest request) throws IOException;
@@ -2996,6 +3386,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             Path repoRoot = request.repoRoot().toAbsolutePath().normalize();
             return ProcessHandle.allProcesses()
                 .filter(ProcessHandle::isAlive)
+                .filter(handle -> processStartedAtOrAfter(handle, request.minStartEpochMillis()))
                 .filter(handle -> processCwdMatches(handle, repoRoot))
                 .filter(handle -> commandMatches(handle, request.commandNeedles()))
                 .map(handle -> handle.pid())
@@ -3003,6 +3394,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 .filter(Objects::nonNull)
                 .findFirst()
                 .orElse(null);
+        }
+
+        private static boolean processStartedAtOrAfter(ProcessHandle handle, long minStartEpochMillis) {
+            if (minStartEpochMillis <= 0L) {
+                return true;
+            }
+            Optional<Instant> start = handle.info().startInstant();
+            return start.isEmpty() || !start.get().isBefore(Instant.ofEpochMilli(minStartEpochMillis));
         }
 
         default boolean pause(Process process) {
@@ -3022,6 +3421,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 List<ProcessHandle> handles = Stream.concat(process.toHandle().descendants(), Stream.of(process.toHandle()))
                     .filter(ProcessHandle::isAlive)
                     .toList();
+                log.warn("Destroying wiki monitor dispatch process tree: pids={}",
+                    handles.stream().map(ProcessHandle::pid).toList());
                 for (ProcessHandle handle : handles) {
                     sent = handle.destroy() && sent;
                 }
@@ -3040,6 +3441,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 List<ProcessHandle> handles = Stream.concat(process.toHandle().descendants(), Stream.of(process.toHandle()))
                     .filter(ProcessHandle::isAlive)
                     .toList();
+                log.info("Signalling wiki monitor dispatch process tree with {}: pids={}",
+                    signal, handles.stream().map(ProcessHandle::pid).toList());
                 for (ProcessHandle handle : handles) {
                     Process signalProcess = new ProcessBuilder("kill", "-" + signal, Long.toString(handle.pid())).start();
                     sent = signalProcess.waitFor() == 0 && sent;

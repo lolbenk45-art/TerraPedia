@@ -3,6 +3,8 @@ package com.terraria.skills.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.terraria.skills.auth.AdminAuthenticationInterceptor;
+import com.terraria.skills.auth.AdminTokenClaims;
 import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
@@ -29,6 +31,7 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -56,9 +59,16 @@ class AdminCrawlerMonitorControllerTest {
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
+        AdminTokenClaims adminClaims = AdminTokenClaims.builder()
+            .username("admin")
+            .displayName("Admin")
+            .role("ADMIN")
+            .build();
+
         mockMvc = MockMvcBuilders.standaloneSetup(adminCrawlerMonitorController)
             .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
             .setControllerAdvice(new GlobalExceptionHandler())
+            .defaultRequest(get("/").requestAttr(AdminAuthenticationInterceptor.ADMIN_CLAIMS_ATTRIBUTE, adminClaims))
             .build();
     }
 
@@ -326,6 +336,25 @@ class AdminCrawlerMonitorControllerTest {
         verify(crawlerMonitorService).dispatchWikiMonitorTask(argThat(request ->
             "items".equals(request.getDomain()) && "domain-source-shimmer".equals(request.getActionId())
         ));
+    }
+
+    @Test
+    void shouldRejectDispatchWhenCallerLacksAdminRole() throws Exception {
+        AdminTokenClaims viewerClaims = AdminTokenClaims.builder()
+            .username("admin")
+            .displayName("Viewer")
+            .role("VIEWER")
+            .build();
+
+        mockMvc.perform(post("/admin/crawler-monitor/dispatch")
+                .requestAttr(AdminAuthenticationInterceptor.ADMIN_CLAIMS_ATTRIBUTE, viewerClaims)
+                .contentType("application/json")
+                .content("{\"domain\":\"bosses\",\"actionId\":\"domain-source-bosses\"}"))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.statusCode").value(403));
+
+        verifyNoInteractions(crawlerMonitorService);
     }
 
     @Test
