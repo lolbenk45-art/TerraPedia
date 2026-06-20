@@ -227,6 +227,12 @@ require_runtime_secret_before_manifest TP_ADMIN_PASSWORD
 require_runtime_secret_before_manifest TP_ADMIN_TOKEN_SECRET
 require_runtime_secret_before_manifest TP_USER_TOKEN_SECRET
 
+node_major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || printf 0)"
+if (( node_major < 22 )); then
+  log_error "Node 22+ required (found $(node -v 2>/dev/null || printf none)). Run 'nvm use' (see .nvmrc) and retry."
+  exit 1
+fi
+
 resolved_minio_credentials_file=""
 if [[ -n "$TP_MINIO_CREDENTIALS_FILE" ]]; then
   resolved_minio_credentials_file="$(resolve_runtime_path "$TP_MINIO_CREDENTIALS_FILE")"

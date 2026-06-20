@@ -312,3 +312,12 @@ test('slot allocator tests are included in local and ci gates', () => {
   assert.match(localGate, /scripts\/dev\/slot-allocator\.test\.mjs/);
   assert.match(ciGate, /scripts\/dev\/slot-allocator\.test\.mjs/);
 });
+
+test('start requires Node 22 via preflight and repo pins it with .nvmrc', () => {
+  const source = startSource();
+  const nvmrc = fs.readFileSync('.nvmrc', 'utf8').trim();
+
+  assert.equal(nvmrc, '22');
+  assert.match(source, /process\.versions\.node/i);
+  assert.match(source, /Node 22\+ required/i);
+});
