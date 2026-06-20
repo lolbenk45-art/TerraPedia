@@ -82,11 +82,18 @@ async function ensureTopLevelCategory(conn, code, name, sortOrder) {
      VALUES (0, ?, ?, 'ROOT', ?, 1, 0)
      ON DUPLICATE KEY UPDATE
        id = LAST_INSERT_ID(id),
+       updated_at = IF(
+         NOT (name <=> VALUES(name))
+         OR NOT (sort <=> VALUES(sort))
+         OR NOT (status <=> 1)
+         OR NOT (deleted <=> 0),
+         NOW(),
+         updated_at
+       ),
        name = VALUES(name),
        sort = VALUES(sort),
        status = 1,
-       deleted = 0,
-       updated_at = NOW()`,
+       deleted = 0`,
     [name, code, sortOrder]
   );
   return Number(result.insertId);
@@ -102,13 +109,22 @@ async function ensureCategoryDefinition(conn, categoryByCode, definition) {
      VALUES (?, ?, ?, ?, ?, 1, 0)
      ON DUPLICATE KEY UPDATE
        id = LAST_INSERT_ID(id),
+       updated_at = IF(
+         NOT (parent_id <=> VALUES(parent_id))
+         OR NOT (name <=> VALUES(name))
+         OR NOT (top_type <=> VALUES(top_type))
+         OR NOT (sort <=> VALUES(sort))
+         OR NOT (status <=> 1)
+         OR NOT (deleted <=> 0),
+         NOW(),
+         updated_at
+       ),
        parent_id = VALUES(parent_id),
        name = VALUES(name),
        top_type = VALUES(top_type),
        sort = VALUES(sort),
        status = 1,
-       deleted = 0,
-       updated_at = NOW()`,
+       deleted = 0`,
     [parentId, definition.name, definition.code, topType, definition.sort]
   );
   const id = Number(result.insertId);

@@ -339,6 +339,32 @@ test('importBiomeDataset persists wiki taxonomy columns while preserving managed
   assert.ok(insert.params.includes(44));
 });
 
+test('importBiomeDataset skips unchanged existing biome entity rows', async () => {
+  const biome = {
+    code: 'forest',
+    nameEn: 'Forest',
+    nameZh: '森林',
+    sourceProvider: 'wiki_gg',
+    sourcePage: 'Forest',
+    sourceRevisionTimestamp: '2026-05-20T00:00:00Z',
+    lastSyncedAt: '2026-05-22T00:00:00Z',
+    status: 1,
+  };
+  const conn = createFakeConnection({
+    biomeRows: [['FOREST', dbBiomeRow(biome)]],
+  });
+  const plan = buildBiomeImportPlan({
+    wikiBiomes: [biome],
+  });
+
+  const summary = await importBiomeDataset(conn, plan);
+
+  assert.equal(summary.biomes.created, 0);
+  assert.equal(summary.biomes.updated, 0);
+  assert.equal(summary.biomes.skipped, 1);
+  assert.equal(conn.calls.some((call) => call.method === 'execute' && /\bINSERT INTO biomes\b/i.test(call.sql)), false);
+});
+
 test('importBiomeDataset soft-deletes stale wiki overview fallback biome rows', async () => {
   const conn = createFakeConnection({
     biomeIds: [
@@ -391,9 +417,11 @@ function createFakeConnection({
     ['HALLOW', 11],
   ],
   biomeIcons: initialBiomeIcons = [],
+  biomeRows: initialBiomeRows = [],
 } = {}) {
   const biomeIds = new Map(initialBiomeIds);
   const biomeIcons = new Map(initialBiomeIcons);
+  const biomeRows = new Map(initialBiomeRows);
   const itemByInternal = new Map([
     ['WOOD', {
       id: 20,
@@ -408,11 +436,12 @@ function createFakeConnection({
     calls,
     async query(sql) {
       calls.push({ method: 'query', sql });
-      if (/FROM biomes WHERE deleted = 0/i.test(sql)) {
+      if (/FROM\s+biomes\s+WHERE\s+deleted\s*=\s*0/i.test(sql)) {
         return [[...biomeIds.entries()].map(([code, id]) => ({
           id,
           code,
           icon_url: biomeIcons.get(code) ?? null,
+          ...(biomeRows.get(code) ?? {}),
         }))];
       }
       if (/FROM items WHERE deleted = 0/i.test(sql)) {
@@ -451,5 +480,36 @@ function createFakeConnection({
       }
       return [{ affectedRows: 1, insertId: 1 }];
     },
+  };
+}
+
+function dbBiomeRow(record, overrides = {}) {
+  return {
+    id: 10,
+    code: record.code,
+    name_en: record.nameEn,
+    name_zh: record.nameZh ?? null,
+    alias_en: record.aliasEn ?? null,
+    alias_zh: record.aliasZh ?? null,
+    layer_type: record.layerType ?? null,
+    biome_type: record.biomeType ?? null,
+    wiki_group_code: record.wikiGroupCode ?? null,
+    wiki_group_name_en: record.wikiGroupNameEn ?? null,
+    wiki_group_name_zh: record.wikiGroupNameZh ?? null,
+    wiki_parent_group_code: record.wikiParentGroupCode ?? null,
+    wiki_parent_group_name_en: record.wikiParentGroupNameEn ?? null,
+    wiki_parent_group_name_zh: record.wikiParentGroupNameZh ?? null,
+    wiki_section_level: record.wikiSectionLevel ?? null,
+    wiki_sort_order: record.wikiSortOrder ?? null,
+    wiki_section_anchor: record.wikiSectionAnchor ?? null,
+    description: record.description ?? null,
+    icon_url: record.iconUrl ?? null,
+    source_provider: record.sourceProvider ?? 'wiki_gg',
+    source_page: record.sourcePage ?? record.pageTitle ?? null,
+    source_revision_timestamp: '2026-05-20 00:00:00',
+    last_synced_at: '2026-05-22 00:00:00',
+    status: record.status ?? 1,
+    deleted: 0,
+    ...overrides,
   };
 }

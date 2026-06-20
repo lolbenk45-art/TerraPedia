@@ -3,12 +3,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { resolveBossLootSchemaSqlPath } from './boss-loot-schema-path.mjs';
 import { resolveBossLootOwnerContext } from './boss-loot-owner.mjs';
 import { buildBossLootBundle } from '../generate/generate-boss-loot-bundle.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import { reconcileChildRows } from '../lib/base-domain-row-reconcile.mjs';
 import {
   parseCliArgs,
   sharedDataPath,
@@ -16,7 +18,6 @@ import {
 } from '../lib/wiki-item-utils.mjs';
 
 const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
 
 const repoRoot = getProjectRoot();
 
@@ -30,13 +31,16 @@ const relationsPath = path.resolve(args.relations ?? sharedDataPath('normalized'
 const npcPath = path.resolve(args.npcs ?? sharedDataPath('raw', 'wiki', 'module__npcinfo__data.parsed.latest.json'));
 const reportPath = path.resolve(args['report-json'] ?? path.join(repoRoot, 'reports', `boss-loot-import-${dateTag}.json`));
 
-main().catch((error) => {
-  console.error('[import-boss-loot-to-db] failed');
-  console.error(error?.stack || error?.message || error);
-  process.exit(1);
-});
+if (isDirectExecution()) {
+  main().catch((error) => {
+    console.error('[import-boss-loot-to-db] failed');
+    console.error(error?.stack || error?.message || error);
+    process.exit(1);
+  });
+}
 
 async function main() {
+  const mysql = require('mysql2/promise');
   const localStackConfig = loadLocalStackConfig(repoRoot);
   const conn = await mysql.createConnection({
     host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? localStackConfig.database?.host ?? '127.0.0.1',
@@ -82,6 +86,9 @@ async function main() {
     skippedBosses: 0,
     replacedLootRows: 0,
     insertedLootRows: 0,
+    updatedLootRows: 0,
+    removedLootRows: 0,
+    skippedLootRows: 0,
     directBossRows: 0,
     treasureBagRows: 0,
     unresolvedBosses: [],
@@ -176,36 +183,11 @@ async function main() {
       }
 
       const existingRows = await countExistingLootRows(conn, ownerNpc.id);
-      summary.replacedLootRows += existingRows;
-      summary.insertedLootRows += rowsToInsert.length;
       summary.directBossRows += rowsToInsert.filter((row) => row.dropSourceKind === 'direct_boss').length;
       summary.treasureBagRows += rowsToInsert.filter((row) => row.dropSourceKind === 'treasure_bag').length;
       summary.importedBosses += 1;
 
-      if (!dryRun) {
-        await conn.execute('DELETE FROM npc_loot_entries WHERE npc_id = ?', [ownerNpc.id]);
-        for (const row of rowsToInsert) {
-          await conn.execute(
-            `INSERT INTO npc_loot_entries
-              (npc_id, item_id, source_item_id, drop_source_kind, quantity_min, quantity_max, quantity_text, chance_value, chance_text, conditions, notes, sort_order, status, deleted)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
-            [
-              row.npcId,
-              row.itemId,
-              row.sourceItemId,
-              row.dropSourceKind,
-              row.quantityMin,
-              row.quantityMax,
-              row.quantityText,
-              row.chanceValue,
-              row.chanceText,
-              row.conditions,
-              row.notes,
-              row.sortOrder,
-            ]
-          );
-        }
-      }
+      await reconcileBossLootRows(conn, ownerNpc.id, rowsToInsert, summary, { dryRun });
 
       if (summary.samples.length < 20) {
         summary.samples.push({
@@ -244,6 +226,176 @@ async function main() {
   console.log(`Imported bosses: ${summary.importedBosses}`);
   console.log(`Inserted loot rows: ${summary.insertedLootRows}`);
   console.log(`Report: ${reportPath}`);
+}
+
+export async function reconcileBossLootRows(conn, npcId, targetRows, summary = {}, { dryRun = false } = {}) {
+  const existingRows = await loadExistingBossLootRows(conn, npcId);
+  const normalizedTargetRows = targetRows.map((row) => normalizeLootRowForCompare(row));
+  const diff = reconcileChildRows({
+    existingRows,
+    targetRows: normalizedTargetRows,
+    keyColumns: ['sortOrder'],
+    compareColumns: LOOT_COMPARE_COLUMNS,
+    numericColumns: LOOT_NUMERIC_COLUMNS,
+  });
+
+  incrementSummary(summary, 'insertedLootRows', diff.add.length);
+  incrementSummary(summary, 'updatedLootRows', diff.update.length);
+  incrementSummary(summary, 'removedLootRows', diff.remove.length);
+  incrementSummary(summary, 'skippedLootRows', diff.noop.length);
+  incrementSummary(summary, 'replacedLootRows', diff.remove.length);
+
+  if (dryRun) {
+    return diff;
+  }
+
+  for (const entry of diff.remove) {
+    await conn.execute('DELETE FROM npc_loot_entries WHERE id = ? AND npc_id = ?', [
+      entry.existing.id,
+      npcId,
+    ]);
+  }
+
+  for (const entry of diff.update) {
+    const row = entry.target;
+    await conn.execute(
+      `UPDATE npc_loot_entries
+       SET item_id = ?,
+           source_item_id = ?,
+           drop_source_kind = ?,
+           quantity_min = ?,
+           quantity_max = ?,
+           quantity_text = ?,
+           chance_value = ?,
+           chance_text = ?,
+           conditions = ?,
+           notes = ?,
+           status = 1,
+           deleted = 0,
+           updated_at = NOW()
+       WHERE id = ? AND npc_id = ?`,
+      [
+        row.itemId,
+        row.sourceItemId,
+        row.dropSourceKind,
+        row.quantityMin,
+        row.quantityMax,
+        row.quantityText,
+        row.chanceValue,
+        row.chanceText,
+        row.conditions,
+        row.notes,
+        entry.existing.id,
+        npcId,
+      ]
+    );
+  }
+
+  for (const entry of diff.add) {
+    await insertBossLootRow(conn, entry.target);
+  }
+
+  return diff;
+}
+
+const LOOT_COMPARE_COLUMNS = [
+  'npcId',
+  'itemId',
+  'sourceItemId',
+  'dropSourceKind',
+  'quantityMin',
+  'quantityMax',
+  'quantityText',
+  'chanceValue',
+  'chanceText',
+  'conditions',
+  'notes',
+  'sortOrder',
+  'status',
+  'deleted',
+];
+
+const LOOT_NUMERIC_COLUMNS = [
+  'npcId',
+  'itemId',
+  'sourceItemId',
+  'quantityMin',
+  'quantityMax',
+  'chanceValue',
+  'sortOrder',
+  'status',
+  'deleted',
+];
+
+async function loadExistingBossLootRows(conn, npcId) {
+  const [rows] = await conn.execute(
+    `SELECT
+       id,
+       npc_id AS npcId,
+       item_id AS itemId,
+       source_item_id AS sourceItemId,
+       drop_source_kind AS dropSourceKind,
+       quantity_min AS quantityMin,
+       quantity_max AS quantityMax,
+       quantity_text AS quantityText,
+       chance_value AS chanceValue,
+       chance_text AS chanceText,
+       conditions,
+       notes,
+       sort_order AS sortOrder,
+       status,
+       deleted
+     FROM npc_loot_entries
+     WHERE npc_id = ? AND deleted = 0`,
+    [npcId]
+  );
+  return rows.map((row) => normalizeLootRowForCompare(row));
+}
+
+function normalizeLootRowForCompare(row) {
+  return {
+    id: row.id == null ? null : Number(row.id),
+    npcId: toNullableInteger(row.npcId ?? row.npc_id),
+    itemId: toNullableInteger(row.itemId ?? row.item_id),
+    sourceItemId: toNullableInteger(row.sourceItemId ?? row.source_item_id),
+    dropSourceKind: normalizeDropSourceKind(row.dropSourceKind ?? row.drop_source_kind),
+    quantityMin: toNullableInteger(row.quantityMin ?? row.quantity_min),
+    quantityMax: toNullableInteger(row.quantityMax ?? row.quantity_max),
+    quantityText: toNullableString(row.quantityText ?? row.quantity_text),
+    chanceValue: toNullableDecimal(row.chanceValue ?? row.chance_value),
+    chanceText: toNullableString(row.chanceText ?? row.chance_text),
+    conditions: toNullableString(row.conditions),
+    notes: toNullableString(row.notes),
+    sortOrder: toNullableInteger(row.sortOrder ?? row.sort_order),
+    status: toNullableInteger(row.status) ?? 1,
+    deleted: toNullableInteger(row.deleted) ?? 0,
+  };
+}
+
+async function insertBossLootRow(conn, row) {
+  await conn.execute(
+    `INSERT INTO npc_loot_entries
+      (npc_id, item_id, source_item_id, drop_source_kind, quantity_min, quantity_max, quantity_text, chance_value, chance_text, conditions, notes, sort_order, status, deleted)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+    [
+      row.npcId,
+      row.itemId,
+      row.sourceItemId,
+      row.dropSourceKind,
+      row.quantityMin,
+      row.quantityMax,
+      row.quantityText,
+      row.chanceValue,
+      row.chanceText,
+      row.conditions,
+      row.notes,
+      row.sortOrder,
+    ]
+  );
+}
+
+function incrementSummary(summary, field, amount) {
+  summary[field] = Number(summary[field] ?? 0) + amount;
 }
 
 function loadOrGenerateBundle({
@@ -510,4 +662,8 @@ function booleanOption(value, fallback) {
     return false;
   }
   return fallback;
+}
+
+function isDirectExecution() {
+  return process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 }

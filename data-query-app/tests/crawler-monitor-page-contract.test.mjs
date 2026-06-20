@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
   progressRowsFromOverview,
   rowStatus,
@@ -10,7 +11,8 @@ import {
   isSourceSnapshotRow,
 } from '../utils/crawlerMonitorProgressRows.mjs'
 
-const repoRoot = path.resolve(import.meta.dirname, '..')
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const repoRoot = path.resolve(__dirname, '..')
 
 function read(relativePath) {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8')
@@ -112,10 +114,10 @@ test('crawler monitor operation labels are Chinese-first while keeping raw statu
     '任务',
     '运行中',
     '队列中',
-    '可读取 readable',
-    '读取错误 read error',
-    '缺失 missing',
-    '已完成 completed',
+    '可读取',
+    '读取错误',
+    '缺失',
+    '已完成',
   ]) {
     assert.match(page, new RegExp(label))
   }
@@ -135,10 +137,95 @@ test('crawler monitor operation labels are Chinese-first while keeping raw statu
   assert.match(page, /rowStatus\(row\)/)
   assert.match(page, /function statusLabel/)
   assert.match(page, /wikiDomainFlowLabel/)
-  assert.match(page, /运行中 running/)
+  assert.match(page, /normalized === 'running'\) return '运行中'/)
+  assert.match(page, /normalized === 'locked'\) return '被占用'/)
+  assert.match(page, /normalized === 'cancelled'\) return '已取消'/)
+  assert.match(page, /normalized === 'cooldown'\) return '冷却中'/)
   assert.doesNotMatch(page, />File group</)
   assert.doesNotMatch(page, />readable</)
   assert.doesNotMatch(page, />read error</)
+})
+
+test('crawler monitor display helpers provide Chinese operator labels', async () => {
+  const helper = await import('../utils/crawlerMonitorDisplay.mjs')
+
+  assert.equal(helper.wikiDomainChineseName({ domain: 'items', label: 'Items' }), '物品')
+  assert.equal(helper.wikiDomainChineseName({ domain: 'projectiles', label: 'Projectiles' }), '射弹')
+  assert.equal(helper.wikiDomainChineseName({ domain: 'armor_sets', label: 'Armor sets' }), '盔甲套装')
+  assert.equal(helper.wikiDomainChineseName({ domain: 'unknown_domain', label: 'Unknown domain' }), 'unknown_domain')
+
+  assert.equal(helper.crawlerStatusChineseLabel('running'), '运行中')
+  assert.equal(helper.crawlerStatusChineseLabel('queued'), '队列中')
+  assert.equal(helper.crawlerStatusChineseLabel('stalled'), '心跳过期')
+  assert.equal(helper.crawlerStatusChineseLabel('failed'), '失败')
+  assert.equal(helper.crawlerStatusChineseLabel(''), '未知')
+})
+
+test('crawler monitor display helpers explain cooldown edge cases', async () => {
+  const helper = await import('../utils/crawlerMonitorDisplay.mjs')
+
+  assert.match(
+    helper.wikiCooldownExplanation({
+      cooldownMinutes: 30,
+      lastAutoRunAt: '2026-06-19T08:00:00Z',
+    }, new Date('2026-06-19T08:10:00Z')),
+    /Wiki 保护冷却：30 分钟。上次自动执行：2026-06-19T08:00:00Z，约 20 分钟后可再次自动执行。保护 Wiki，避免短时间重复请求。/
+  )
+
+  assert.match(
+    helper.wikiCooldownExplanation({
+      cooldownMinutes: 30,
+    }, new Date('2026-06-19T08:10:00Z')),
+    /^$/
+  )
+
+  assert.equal(
+    helper.wikiCooldownExplanation({
+      cooldownMinutes: 30,
+      lastAutoRunAt: '2026-06-19T08:00:00Z',
+    }, new Date('2026-06-19T08:40:00Z')),
+    ''
+  )
+
+  assert.equal(
+    helper.wikiCooldownExplanation({
+      cooldownMinutes: 30,
+      lastAutoRunAt: 'not-a-date',
+    }, new Date('2026-06-19T08:10:00Z')),
+    ''
+  )
+})
+
+test('crawler monitor display helpers summarize heartbeat states', async () => {
+  const helper = await import('../utils/crawlerMonitorDisplay.mjs')
+
+  assert.deepEqual(
+    helper.wikiHeartbeatSummary({
+      progressHeartbeatAt: '2026-06-19T08:05:00Z',
+      progressHeartbeatAgeMs: 125000,
+      status: 'running',
+    }),
+    {
+      state: '正常',
+      time: '2026-06-19T08:05:00Z',
+      age: '约 2 分钟前',
+      message: '最后心跳：2026-06-19T08:05:00Z（约 2 分钟前）',
+    }
+  )
+
+  assert.equal(
+    helper.wikiHeartbeatSummary({ progressStale: true, progressHeartbeatAt: '2026-06-19T08:05:00Z' }).state,
+    '过期'
+  )
+  assert.equal(
+    helper.wikiHeartbeatSummary({ progressStale: true, progressHeartbeatAt: '2026-06-19T08:05:00Z' }).message,
+    '最后心跳：2026-06-19T08:05:00Z'
+  )
+  assert.equal(
+    helper.wikiHeartbeatSummary({ progressHeartbeatAt: '2026-06-19T08:05:00Z', progressHeartbeatAgeMs: 'bad-age' }).age,
+    ''
+  )
+  assert.equal(helper.wikiHeartbeatSummary(null).message, '暂无运行心跳')
 })
 
 test('crawler monitor no longer treats latestRun actions as the only progress source', () => {
@@ -152,7 +239,7 @@ test('crawler monitor promotes real progress above decorative queue cards', () =
   assert.match(page, /Wiki 数据变化 \/ 手动执行/)
   assert.match(page, /visibleWikiDomainRows/)
   assert.match(page, /visibleProgressRows/)
-  assert.match(page, /执行刷新/)
+  assert.match(page, /派发刷新/)
   assert.doesNotMatch(page, /class="focus-progress-panel"/)
   assert.doesNotMatch(page, /<h2 class="section-card__title">重点进度<\/h2>/)
   assert.doesNotMatch(page, /<span class="ops-card__label">队列<\/span>/)
@@ -233,6 +320,7 @@ test('crawler monitor wiki domain cards prioritize progress and avoid overflowin
   assert.match(page, /\.wiki-workbench\s*\{[\s\S]*grid-template-columns:/)
   assert.match(page, /class="recovery-domain-grid"/)
   assert.match(page, /class="recovery-domain-card"/)
+  assert.match(page, /class="status-pill domain-flow-pill"/)
   assert.match(page, /\.recovery-domain-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(220px,\s*1fr\)\)/)
   assert.match(page, /\.recovery-domain-card\s*\{[\s\S]*min-height:\s*142px/)
   assert.doesNotMatch(page, /class="recovery-domain wiki-domain-side-row"/)
@@ -250,10 +338,10 @@ test('crawler monitor exposes pause and resume controls for running wiki tasks',
   assert.match(page, /\/admin\/crawler-monitor\/dispatch\/control/)
   assert.match(page, /class="wiki-run-control-panel"/)
   assert.match(page, /class="wiki-run-control-buttons"/)
-  assert.match(page, /开始爬取/)
-  assert.match(page, /暂停/)
-  assert.match(page, /继续/)
-  assert.match(page, /取消/)
+  assert.match(page, /派发刷新/)
+  assert.match(page, /暂停任务/)
+  assert.match(page, /继续任务/)
+  assert.match(page, /终止并清理文件/)
   assert.match(page, /已取消/)
 })
 
@@ -264,17 +352,26 @@ test('crawler monitor wiki domain cards expose retry, heartbeat, and flow state 
   )
 
   assert.match(workbenchTemplate, /wiki-live-metrics/)
-  assert.match(workbenchTemplate, /wikiDomainFlowLabel\(selectedWikiDomain\)/)
-  assert.match(workbenchTemplate, /wikiDomainHeartbeatLabel\(selectedWikiDomain\)/)
+  assert.match(workbenchTemplate, /selectedDomainStatusLabel/)
+  assert.match(workbenchTemplate, /selectedDomainHeartbeatMessage/)
+  assert.match(workbenchTemplate, /selectedDomainHeartbeatState/)
   assert.match(workbenchTemplate, /wikiDomainFlowLabel\(domain\)/)
   assert.match(workbenchTemplate, /wikiDomainPrimaryActionLabel\(selectedWikiDomain\)/)
+  assert.match(workbenchTemplate, /retryWikiDomain\(selectedWikiDomain\)/)
+  assert.match(workbenchTemplate, /重试/)
+  assert.match(page, /async function retryWikiDomain/)
   assert.match(page, /function canRetryWikiDomain/)
+  assert.match(page, /post\('\/admin\/crawler-monitor\/dispatch\/control'/)
+  assert.match(page, /controlAction:\s*'retry'/)
+  assert.match(page, /wikiDomainFlowStatus\(domain\) === 'failed'/)
+  assert.doesNotMatch(page, /\['failed', 'stalled', 'error'\]\.includes\(wikiDomainFlowStatus\(domain\)\)/)
   assert.match(page, /function wikiDomainFlowStatus/)
   assert.match(page, /function wikiDomainHeartbeatStatus/)
-  assert.match(page, /失败可重试/)
+  assert.match(page, /需人工重派/)
   assert.match(page, /心跳正常/)
   assert.match(page, /心跳过期/)
-  assert.match(page, /重试/)
+  assert.match(page, /重新派发/)
+  assert.match(page, /不会自动重试/)
 })
 
 test('crawler monitor automatically prioritizes running status and exposes concrete progress numbers', () => {
@@ -289,14 +386,16 @@ test('crawler monitor automatically prioritizes running status and exposes concr
 
   assert.match(page, /visibleWikiDomainRowsByPriority/)
   assert.match(page, /visibleProgressRowsByPriority/)
+  assert.match(page, /progressDetailRowsByPriority/)
   assert.match(page, /domainPriorityScore/)
   assert.match(page, /progressRowPriorityScore/)
   assert.match(recoveryTemplate, /v-for="domain in visibleWikiDomainRowsByPriority"/)
   assert.match(stageTemplate, /v-for="row in visibleProgressRowsByPriority"/)
+  assert.doesNotMatch(stageTemplate, /progressDetailRowsByPriority/)
   assert.match(recoveryTemplate, /selectedWikiProgressNumbers/)
   assert.match(recoveryTemplate, /rowProgressNumbers\(wikiDomainProgressRow\(domain\)\)/)
   assert.match(stageTemplate, /rowProgressNumbers\(row\)/)
-  assert.match(recoveryTemplate, /selectedWikiHeartbeatAtLabel/)
+  assert.match(recoveryTemplate, /selectedDomainHeartbeatMessage/)
   assert.match(recoveryTemplate, /selectedWikiUpdatedAtLabel/)
   assert.match(recoveryTemplate, /selectedWikiPathSummary/)
 })
@@ -310,7 +409,8 @@ test('crawler monitor domain locator is a floating download-style window, not a 
   assert.match(page, /domainSidebarExpanded/)
   assert.match(windowTemplate, /domain-sidebar-toggle/)
   assert.match(windowTemplate, /aria-expanded="domainSidebarExpanded"/)
-  assert.match(windowTemplate, /爬取进度/)
+  assert.match(windowTemplate, /域快速定位/)
+  assert.match(windowTemplate, /定位到工作台/)
   assert.match(windowTemplate, /wiki-domain-download-items/)
   assert.match(windowTemplate, /wiki-domain-download-item/)
   assert.match(windowTemplate, /wiki-domain-health-metrics/)
@@ -320,6 +420,7 @@ test('crawler monitor domain locator is a floating download-style window, not a 
   assert.match(windowTemplate, /rowUpdatedAtLabel\(wikiDomainProgressRow\(domain\)\)/)
   assert.match(windowTemplate, /class="wiki-domain-download-item__name"/)
   assert.match(windowTemplate, /class="wiki-domain-download-item__select"/)
+  assert.match(windowTemplate, /class="status-pill domain-flow-pill"/)
   assert.match(windowTemplate, /class="wiki-domain-download-item__controls"/)
   assert.match(windowTemplate, /aria-label="运行控制"/)
   assert.match(windowTemplate, /canPauseWikiDomain\(domain\)/)
@@ -328,16 +429,15 @@ test('crawler monitor domain locator is a floating download-style window, not a 
   assert.match(windowTemplate, /canExecuteWikiDomain\(domain\)/)
   assert.match(windowTemplate, /controlWikiMonitorTask\(domain, 'pause'\)/)
   assert.match(windowTemplate, /controlWikiMonitorTask\(domain, 'resume'\)/)
-  assert.match(windowTemplate, /controlWikiMonitorTask\(domain, 'cancel'\)/)
-  assert.match(windowTemplate, /executeWikiMonitorTask\(domain\)/)
-  assert.match(windowTemplate, /:disabled="!canExecuteWikiDomain\(domain\) \|\| wikiDispatchLoading === domain\.domain"/)
+  assert.match(windowTemplate, /openCancelConfirm\(domain\)/)
+  assert.match(windowTemplate, /openDispatchConfirm\(domain\)/)
   assert.match(windowTemplate, /:disabled="!canPauseWikiDomain\(domain\) \|\| wikiControlLoading === domain\.domain"/)
   assert.match(windowTemplate, /:disabled="!canResumeWikiDomain\(domain\) \|\| wikiControlLoading === domain\.domain"/)
   assert.match(windowTemplate, /:disabled="!canCancelWikiDomain\(domain\) \|\| wikiControlLoading === domain\.domain"/)
-  assert.match(windowTemplate, />开始</)
-  assert.match(windowTemplate, />暂停</)
-  assert.match(windowTemplate, />继续</)
-  assert.match(windowTemplate, />取消</)
+  assert.match(windowTemplate, />派发刷新</)
+  assert.match(windowTemplate, />暂停任务</)
+  assert.match(windowTemplate, />继续任务</)
+  assert.match(windowTemplate, />终止并清理</)
   assert.match(page, /\.wiki-domain-download-window\s*\{[\s\S]*position:\s*fixed/)
   assert.match(page, /\.wiki-domain-download-window\s*\{[\s\S]*right:\s*24px/)
   assert.match(page, /\.wiki-domain-download-window\s*\{[\s\S]*top:\s*calc\(var\(--header-height\) \+ 16px\)/)
@@ -356,6 +456,93 @@ test('crawler monitor domain locator is a floating download-style window, not a 
   assert.doesNotMatch(windowTemplate, /@click\.stop="openReportPreview/)
   assert.doesNotMatch(windowTemplate, /class="wiki-domain-side-row__files"/)
   assert.doesNotMatch(page, /class="focused-side wiki-domain-sidebar"/)
+})
+
+test('crawler monitor selecting a domain scrolls to the selected workbench', () => {
+  const selectFunction = page.slice(
+    page.indexOf('function selectWikiDomain'),
+    page.indexOf('function canExecuteWikiDomain')
+  )
+
+  assert.match(page, /ref="wikiWorkbenchRef"/)
+  assert.match(page, /const wikiWorkbenchRef = ref/)
+  assert.match(selectFunction, /wikiActionExpanded\.value = true/)
+  assert.match(selectFunction, /nextTick/)
+  assert.match(selectFunction, /scrollIntoView/)
+  assert.match(page, /@click="selectWikiDomain\(domain\)"/)
+  assert.match(page, /@click.stop="selectWikiDomain\(domain\)"/)
+  assert.match(page, /selectLatestDispatchDomain/)
+})
+
+test('crawler monitor selected domain workbench is Chinese-first and uses display computed values', () => {
+  assert.match(page, /selectedDomainDisplayName/)
+  assert.match(page, /selectedDomainOperatorSummary/)
+  assert.match(page, /selectedDomainNextActionLabel/)
+  assert.match(page, /selectedDomainCooldownExplanation/)
+  assert.match(page, /selectedDomainHeartbeatMessage/)
+  assert.match(page, /selectedDomainHeartbeatState/)
+  assert.match(page, /selectedDomainStartedAtLabel/)
+  assert.match(page, /selectedDomainElapsedLabel/)
+
+  const workbench = page.slice(
+    page.indexOf('class="panel recovery-workbench wiki-workbench"'),
+    page.indexOf('class="panel recovery-domain-panel"')
+  )
+
+  for (const copy of ['当前选中域', '下一步建议', '为什么不能执行', 'Wiki 保护冷却', '最后心跳', '心跳状态', '开始时间', '运行时长', '运行文件']) {
+    assert.match(workbench, new RegExp(copy))
+  }
+
+  assert.match(workbench, /{{ selectedDomainDisplayName }}/)
+  assert.match(workbench, /{{ selectedDomainOperatorSummary }}/)
+  assert.match(workbench, /{{ selectedDomainNextActionLabel }}/)
+  assert.match(workbench, /{{ selectedDomainCooldownExplanation }}/)
+  assert.match(workbench, /{{ selectedDomainHeartbeatMessage }}/)
+  assert.match(workbench, /{{ selectedDomainHeartbeatState }}/)
+  assert.match(workbench, /{{ selectedDomainStartedAtLabel }}/)
+  assert.match(workbench, /{{ selectedDomainElapsedLabel }}/)
+})
+
+test('crawler monitor domain detail uses Chinese field labels around technical identifiers', () => {
+  const detail = page.slice(
+    page.indexOf('class="panel recovery-detail"'),
+    page.indexOf('class="wiki-domain-download-window"')
+  )
+
+  for (const copy of ['域详情', '数据来源键', '定位规则', '上次检查', '白名单动作 ID', '进度文件', '报告文件', '技术标识']) {
+    assert.match(detail, new RegExp(copy))
+  }
+
+  assert.match(detail, /{{ selectedDomainDisplayName }} 域详情/)
+  assert.doesNotMatch(detail, /{{ selectedWikiDomain\.label \|\| selectedWikiDomain\.domain \|\| '未知域' }} 详情/)
+
+  for (const rawHeading of ['>sourceKey<', '>locator<', '>lastCheckedAt<', '>recommendedActionId<', '>progressPath<']) {
+    assert.doesNotMatch(detail, new RegExp(rawHeading))
+  }
+})
+
+test('crawler monitor cancel is guarded as destructive cleanup', () => {
+  assert.match(page, /cancelConfirmDomainKey/)
+  assert.match(page, /openCancelConfirm/)
+  assert.match(page, /confirmWikiDomainCancel/)
+  assert.match(page, /cancelCleanupPaths/)
+  assert.match(page, /matchingPendingDispatch/)
+  assert.match(page, /终止并清理文件/)
+  assert.match(page, /会停止当前任务，并可能删除已经下载的临时文件/)
+  assert.match(page, /确认终止并清理/)
+
+  assert.doesNotMatch(page, /@click="controlWikiMonitorTask\(selectedWikiDomain, 'cancel'\)"/)
+  assert.doesNotMatch(page, /@click\.stop="controlWikiMonitorTask\(domain, 'cancel'\)"/)
+
+  const cancelCallMatches = [...page.matchAll(/controlWikiMonitorTask\([^)]*, 'cancel'\)/g)]
+  assert.equal(cancelCallMatches.length, 1)
+
+  const confirmStart = page.indexOf('async function confirmWikiDomainCancel')
+  const confirmEnd = page.indexOf('\n}', confirmStart)
+  assert.ok(confirmStart >= 0)
+  assert.ok(confirmEnd > confirmStart)
+  const onlyCancelCallIndex = cancelCallMatches[0].index
+  assert.ok(onlyCancelCallIndex > confirmStart && onlyCancelCallIndex < confirmEnd)
 })
 
 test('crawler monitor exposes pause and resume controls for registered progress tasks', () => {
@@ -380,6 +567,11 @@ test('crawler monitor card headers keep status and delete controls inside the ca
   assert.match(page, /\.noise-delete-button\s*\{[\s\S]*min-height:\s*28px/)
   assert.match(page, /\.noise-delete-button\s*\{[\s\S]*white-space:\s*nowrap/)
   assert.match(page, /\.status-pill\s*\{[\s\S]*max-width:\s*100%/)
+  assert.match(page, /\.status-pill\s*\{[\s\S]*white-space:\s*nowrap/)
+  assert.match(page, /\.status-pill\s*\{[\s\S]*text-overflow:\s*ellipsis/)
+  assert.match(page, /\.domain-flow-pill\s*\{[\s\S]*flex-shrink:\s*0/)
+  assert.match(page, /\.domain-flow-pill\s*\{[\s\S]*min-width:\s*max-content/)
+  assert.match(page, /\.domain-flow-pill\s*\{[\s\S]*white-space:\s*nowrap/)
 }
 )
 
@@ -456,6 +648,125 @@ test('crawler monitor exposes stalled state and progress source path in the task
   assert.match(page, /stalled/)
   assert.match(page, /progressSource/)
   assert.match(page, /progressStaleReason/)
+})
+
+test('crawler monitor separates active stage progress from the detailed task table', () => {
+  const stageSource = page.slice(
+    page.indexOf('const visibleProgressRows = computed'),
+    page.indexOf('const visibleProgressRowsByPriority = computed')
+  )
+  const detailSource = page.slice(
+    page.indexOf('const progressDetailRows = computed'),
+    page.indexOf('const progressDetailRowsByPriority = computed')
+  )
+  const lowerTable = page.slice(
+    page.indexOf('<section class="monitor-layout">'),
+    page.indexOf('</section>', page.indexOf('<section class="monitor-layout">'))
+  )
+
+  assert.match(page, /function isActiveProgressRow/)
+  assert.match(page, /progressDetailRows/)
+  assert.match(page, /progressDetailRowsByPriority/)
+  assert.match(stageSource, /isActiveProgressRow/)
+  assert.match(stageSource, /rowStatus\(row\) !== 'completed'/)
+  assert.match(stageSource, /rowStatus\(row\) !== 'report-only'/)
+  assert.match(stageSource, /isOperationalProgressRow/)
+  assert.match(page, /function isOperationalProgressRow/)
+  assert.match(page, /row\.lane === 'validation'/)
+  assert.match(page, /row\.id === 'replacement-readiness'/)
+  assert.match(detailSource, /isSignalTask/)
+  assert.match(lowerTable, /任务进度明细/)
+  assert.match(lowerTable, /v-for="row in progressDetailRowsByPriority"/)
+  assert.match(lowerTable, /开始时间/)
+  assert.match(lowerTable, /运行时长/)
+  assert.match(lowerTable, /rowStartedAt\(row\)/)
+  assert.match(lowerTable, /taskElapsedMs\(row\)/)
+  assert.match(lowerTable, /statusLabel\(rowStatus\(row\)\)/)
+  assert.match(lowerTable, /暂无进度行/)
+  assert.doesNotMatch(lowerTable, /运行中任务/)
+  assert.doesNotMatch(page, /暂无 action 明细/)
+})
+
+test('crawler monitor stage cards are Chinese-first and do not show raw technical statuses', () => {
+  const stageTemplate = page.slice(
+    page.indexOf('<div v-if="visibleProgressRowsByPriority.length" class="action-rail">'),
+    page.indexOf('<div v-else class="empty-block">')
+  )
+
+  assert.match(page, /function progressRowTitle/)
+  assert.match(page, /function progressRowLaneLabel/)
+  assert.match(page, /function progressRowMessageLabel/)
+  assert.match(stageTemplate, /progressRowTitle\(row\)/)
+  assert.match(stageTemplate, /statusLabel\(rowStatus\(row\)\)/)
+  assert.match(stageTemplate, /progressRowLaneLabel\(row\)/)
+  assert.match(stageTemplate, /progressRowMessageLabel\(row\)/)
+  assert.doesNotMatch(stageTemplate, /\{\{ rowStatus\(row\) \|\| '未知' \}\}/)
+  assert.doesNotMatch(stageTemplate, /\{\{ row\.lane \|\| row\.action\?\.runner \|\| '未知执行器' \}\}/)
+})
+
+test('crawler monitor manual dispatch requires confirmation before posting', () => {
+  assert.match(page, /dispatchConfirmDomainKey/)
+  assert.match(page, /openDispatchConfirm/)
+  assert.match(page, /confirmWikiDomainDispatch/)
+  assert.match(page, /确认重新派发/)
+  assert.match(page, /防止误触/)
+  assert.doesNotMatch(page, /@click="executeWikiMonitorTask\(selectedWikiDomain\)"/)
+  assert.doesNotMatch(page, /@click\.stop="executeWikiMonitorTask\(domain\)"/)
+
+  const dispatchCallMatches = [...page.matchAll(/await executeWikiMonitorTask\([^)]*\)/g)]
+  assert.equal(dispatchCallMatches.length, 1)
+  const confirmStart = page.indexOf('async function confirmWikiDomainDispatch')
+  const confirmEnd = page.indexOf('\n}', confirmStart)
+  assert.ok(confirmStart >= 0)
+  assert.ok(confirmEnd > confirmStart)
+  const onlyDispatchCallIndex = dispatchCallMatches[0].index
+  assert.ok(onlyDispatchCallIndex > confirmStart && onlyDispatchCallIndex < confirmEnd)
+})
+
+test('crawler monitor calculates speed and ETA from registered task progress payloads', () => {
+  const speedSource = page.slice(
+    page.indexOf('function rowSpeedLabel'),
+    page.indexOf('function rowHeartbeatLabel')
+  )
+
+  assert.match(page, /function taskSpeedPerMinute/)
+  assert.match(page, /function taskElapsedMs/)
+  assert.match(page, /function taskRemaining/)
+  assert.match(page, /function rowProgressBasis/)
+  assert.match(page, /row\.progressPayload\?\.startedAt/)
+  assert.match(page, /row\.progressPayload\?\.lastHeartbeatAt/)
+  assert.match(page, /row\.progressPayload\?\.generatedAt/)
+  assert.match(page, /function actionProgressBasis/)
+  assert.match(page, /finiteNumber\(action\.current\)/)
+  assert.doesNotMatch(page, /function actionProgressBasis\(action: CrawlerMonitorAction\) \{\s*return rowProgressBasis\(action\)\s*\}/)
+  assert.doesNotMatch(speedSource, /return row\.action \? actionSpeedLabel\(row\.action\) : '--'/)
+  assert.doesNotMatch(speedSource, /return row\.action \? actionEtaLabel\(row\.action\) : '--'/)
+})
+
+test('crawler monitor report preview explains missing reports in Chinese', () => {
+  const generatedPathGuard = page.slice(
+    page.indexOf('function isPreviewableGeneratedJsonPath'),
+    page.indexOf('function dispatchBlockerLabel')
+  )
+
+  assert.match(page, /reportPreviewStatusLabel/)
+  assert.match(page, /reportPreviewEmptyMessage/)
+  assert.match(page, /报告未找到/)
+  assert.match(page, /报告读取失败/)
+  assert.match(page, /请先确认任务是否已生成报告/)
+  assert.match(page, /selectedReportPath/)
+  assert.match(page, /isPreviewableProgressPath/)
+  assert.match(page, /isPreviewableGeneratedJsonPath/)
+  assert.match(page, /normalized\.startsWith\('data\/generated\/'\)/)
+  assert.match(page, /normalized\.startsWith\('data\/terrapedia\/raw\/wiki\/'\)/)
+  assert.match(page, /normalized === 'data\/generated\/buff-page-evidence-cache'/)
+  assert.match(page, /normalized\.endsWith\('\.json'\)/)
+  assert.match(generatedPathGuard, /normalized\.startsWith\('redis:\/\/'\)/)
+  assert.match(generatedPathGuard, /normalized\.includes\('\*'\)/)
+  assert.match(generatedPathGuard, /normalized\.includes\('\?'\)/)
+  assert.match(generatedPathGuard, /normalized\.endsWith\('\.json'\)/)
+  assert.match(generatedPathGuard, /normalized\.startsWith\('data\/generated\/'\)/)
+  assert.match(generatedPathGuard, /normalized\.startsWith\('data\/terrapedia\/raw\/wiki\/'\)/)
 })
 
 test('crawler monitor has a fixture path for registered tasks without latestRun actions', () => {
@@ -660,6 +971,77 @@ test('crawler monitor contract covers actionable and disabled wiki monitor state
   }
 })
 
+test('crawler monitor only shows cooldown when the cooldown window is active', () => {
+  assert.match(page, /function isWikiDomainCoolingDown/)
+  assert.match(page, /selectedDomainCooldownExplanation = computed\(\(\) => selectedWikiDomain\.value && isWikiDomainCoolingDown\(selectedWikiDomain\.value\)/)
+  assert.match(page, /if \(isWikiDomainCoolingDown\(domain\)\) return `冷却中：\$\{domain\.cooldownMinutes\} 分钟`/)
+  assert.doesNotMatch(page, /if \(domain\.cooldownMinutes\) return '等待冷却'/)
+})
+
+test('crawler monitor maps wiki domains to redis progress rows by recommended action id', () => {
+  const progressMatcher = page.slice(
+    page.indexOf('function wikiDomainProgressRow'),
+    page.indexOf('function progressRowPriorityScore')
+  )
+
+  assert.match(progressMatcher, /domain\.recommendedActionId/)
+  assert.match(progressMatcher, /row\.progressPayload\?\.actionId/)
+  assert.match(progressMatcher, /row\.id/)
+  assert.match(progressMatcher, /childStatusPath/)
+  assert.match(progressMatcher, /rowPath\.endsWith\(progressPath\)/)
+  assert.match(progressMatcher, /actionId && rowActionId && actionId === rowActionId/)
+})
+
+test('crawler monitor renders Plan B overview observability fields defensively', () => {
+  for (const token of [
+    'runtimeStateCards',
+    'staleHeartbeatRows',
+    'historyRows',
+    'recentReportRows',
+    'imageNormalizationRows',
+    'dispatchPlanRows',
+    'wikiDispatchModeLabel',
+    'wikiAutoDispatchLabel',
+    'wikiPendingApprovalCount',
+    'domainMaxConcurrentLabel',
+    'domainFailureCircuitBreakerLabel',
+    'overview.value?.daemon',
+    'overview.value?.scheduler',
+    'overview.value?.lock',
+    'overview.value?.staleHeartbeats',
+    'overview.value?.history',
+    'overview.value?.recentReports',
+    'overview.value?.imageNormalization',
+    'wikiMonitor.value?.dispatchPlan',
+    'wikiMonitor.value?.dispatchMode',
+    'wikiMonitor.value?.autoDispatchEnabled',
+    'wikiMonitor.value?.summary?.pendingApprovalCount',
+    'domain.maxConcurrent',
+    'domain.failureCircuitBreaker',
+  ]) {
+    assert.match(page, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+  }
+
+  for (const label of [
+    '运行态',
+    '守护',
+    '调度',
+    '锁',
+    '心跳告警',
+    '运行历史',
+    '报告',
+    '图片指标',
+    '派发计划',
+    '派发模式',
+    '自动派发',
+    '待审批',
+    '最大并发',
+    '熔断',
+  ]) {
+    assert.match(page, new RegExp(label))
+  }
+})
+
 test('crawler monitor allows manual wiki dispatch for whitelisted unchanged domains', () => {
   assert.match(page, /wikiDomainManualHint/)
   assert.match(page, /可手动执行/)
@@ -685,6 +1067,16 @@ test('crawler monitor dispatch post only sends domain and actionId fields', () =
   }
 })
 
+test('crawler monitor exposes dry-run backfill trigger controls on backfill progress rows', () => {
+  assert.match(page, /canTriggerBackfillRow/)
+  assert.match(page, /triggerBackfillRow/)
+  assert.match(page, /确认触发补爬 dry-run 预览/)
+  assert.match(page, /触发补爬/)
+  assert.match(page, /domain: backfillDomainForRow\(row\)/)
+  assert.match(page, /actionId: row\.id/)
+  assert.doesNotMatch(page, /apply:\s*true/)
+})
+
 test('crawler monitor does not render raw action argv text in progress rows', () => {
   assert.doesNotMatch(page, /shortArgs/)
   assert.doesNotMatch(page, /args\.join/)
@@ -702,6 +1094,10 @@ test('crawler monitor wiki monitor types expose auto-dispatch readiness fields',
     'maxConcurrent?: number | null',
     'failureCircuitBreaker?: string | null',
     'lockPath?: string | null',
+    'blockedByDispatchId?: string | null',
+    'blockedByDomain?: string | null',
+    'blockedByActionId?: string | null',
+    'blockedSince?: string | null',
   ]) {
     assert.match(types, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
   }
@@ -713,6 +1109,7 @@ test('crawler monitor recovery workbench keeps selected domain, path split, and 
     'selectedWikiProgressRow',
     'selectedWikiProgressPath',
     'selectedWikiReportPath',
+    'selectedWikiOutputPath',
     'latestDispatchResult',
     'latestDispatchBelongsToSelected',
     'wiki-workbench',
@@ -727,6 +1124,7 @@ test('crawler monitor recovery workbench keeps selected domain, path split, and 
     'wikiDomainProgressPath',
     'toggleCommandPreview',
     'selectLatestDispatchDomain',
+    'dispatchFeedbackMessage',
     'selectWikiDomain',
     'wiki-pending-select',
   ]) {
@@ -735,10 +1133,16 @@ test('crawler monitor recovery workbench keeps selected domain, path split, and 
 
   assert.match(page, /打开报告/)
   assert.match(page, /查看进度文件/)
+  assert.match(page, /打开爬取文件/)
   assert.match(page, /dispatchId/)
+  assert.match(page, /阻塞任务/)
+  assert.match(page, /blockedByActionId/)
+  assert.match(page, /blockedSince/)
   assert.match(page, /reportPath/)
   assert.match(page, /progressPath/)
+  assert.match(page, /showToast\(dispatchFeedbackMessage/)
   assert.match(page, /@click="openReportPreview\(selectedWikiReportPath\)"/)
   assert.match(page, /@click="openReportPreview\(selectedWikiProgressPath\)"/)
+  assert.match(page, /@click="openReportPreview\(selectedWikiOutputPath\)"/)
   assert.doesNotMatch(page, /数据主链路/)
 })

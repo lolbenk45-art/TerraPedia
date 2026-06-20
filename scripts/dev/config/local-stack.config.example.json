@@ -10,7 +10,7 @@
     "host": "127.0.0.1",
     "port": 6380,
     "database": 0,
-    "password": "set-your-local-redis-password"
+    "password": "root"
   },
   "backend": {
     "port": 18088

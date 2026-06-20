@@ -141,8 +141,13 @@ try {
 
     if (apply) {
       const [result] = await conn.execute(
-        'UPDATE items SET image = ?, updated_at = NOW() WHERE id = ?',
-        [upload.url, row.id],
+        `UPDATE items SET image = ?, updated_at = NOW()
+         WHERE id = ?
+           AND (
+             image IS NULL
+             OR TRIM(image) <> TRIM(?)
+           )`,
+        [upload.url, row.id, upload.url],
       );
       summary.updated += Number(result.affectedRows || 0);
     } else {

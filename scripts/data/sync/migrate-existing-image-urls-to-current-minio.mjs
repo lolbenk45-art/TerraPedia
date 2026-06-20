@@ -106,7 +106,12 @@ async function migrateItems(conn, stats) {
     }
 
     if (apply) {
-      const [result] = await conn.execute('UPDATE items SET image = ?, updated_at = NOW() WHERE id = ?', [upload.url, row.id]);
+      const [result] = await conn.execute(
+        `UPDATE items SET image = ?, updated_at = NOW()
+         WHERE id = ?
+           AND NOT (image <=> ?)`,
+        [upload.url, row.id, upload.url]
+      );
       stats.updated += Number(result.affectedRows || 0);
     } else {
       stats.updated += 1;
@@ -147,7 +152,12 @@ async function migrateBuffs(conn, stats) {
     }
 
     if (apply) {
-      const [result] = await conn.execute('UPDATE buffs SET image_path = ?, updated_at = NOW() WHERE id = ?', [upload.url, row.id]);
+      const [result] = await conn.execute(
+        `UPDATE buffs SET image_path = ?, updated_at = NOW()
+         WHERE id = ?
+           AND NOT (image_path <=> ?)`,
+        [upload.url, row.id, upload.url]
+      );
       stats.updated += Number(result.affectedRows || 0);
     } else {
       stats.updated += 1;
@@ -188,7 +198,12 @@ async function migrateBiomes(conn, stats) {
     }
 
     if (apply) {
-      const [result] = await conn.execute('UPDATE biomes SET icon_url = ?, updated_at = NOW() WHERE id = ?', [upload.url, row.id]);
+      const [result] = await conn.execute(
+        `UPDATE biomes SET icon_url = ?, updated_at = NOW()
+         WHERE id = ?
+           AND NOT (icon_url <=> ?)`,
+        [upload.url, row.id, upload.url]
+      );
       stats.updated += Number(result.affectedRows || 0);
     } else {
       stats.updated += 1;
@@ -222,8 +237,15 @@ async function migrateArmorSets(conn, stats) {
 
     if (apply) {
       const [result] = await conn.execute(
-        'UPDATE armor_sets SET male_images = ?, female_images = ?, special_images = ?, updated_at = NOW() WHERE id = ?',
-        [nextMale.value, nextFemale.value, nextSpecial.value, row.id]
+        `UPDATE armor_sets
+         SET male_images = ?, female_images = ?, special_images = ?, updated_at = NOW()
+         WHERE id = ?
+           AND (
+             NOT (male_images <=> ?)
+             OR NOT (female_images <=> ?)
+             OR NOT (special_images <=> ?)
+           )`,
+        [nextMale.value, nextFemale.value, nextSpecial.value, row.id, nextMale.value, nextFemale.value, nextSpecial.value]
       );
       stats.updated += Number(result.affectedRows || 0);
     } else {

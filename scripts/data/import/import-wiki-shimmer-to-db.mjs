@@ -3,64 +3,75 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import { parseCliArgs } from '../lib/wiki-item-utils.mjs';
 
 const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
 
 const repoRoot = getProjectRoot();
 
-const args = parseCliArgs(process.argv.slice(2));
-const apply = booleanOption(args.apply, false);
-const allowNonPrimaryDb = booleanOption(
-  args['allow-non-primary-db'] ?? args.allowNonPrimaryDb ?? process.env.TERRAPEDIA_ALLOW_NON_PRIMARY_DB,
-  false
-);
-const dateTag = new Date().toISOString().slice(0, 10);
-const shimmerRawPath = path.resolve(args.raw ?? path.join(repoRoot, 'data', 'generated', 'wiki-shimmer.latest.json'));
-const shimmerDir = path.resolve(args.input ?? path.join(repoRoot, 'data', 'generated', 'shimmer'));
-const reportPath = path.resolve(args.output ?? path.join(repoRoot, 'reports', `wiki-shimmer-db-import-${dateTag}.json`));
-
-const config = loadLocalStackConfig(repoRoot);
-const db = {
-  host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? config.database?.host ?? '127.0.0.1',
-  port: Number(args.port ?? process.env.TERRAPEDIA_DB_PORT ?? config.database?.port ?? 3306),
-  user: args.user ?? process.env.TERRAPEDIA_DB_USERNAME ?? config.database?.username ?? 'root',
-  password: args.password ?? process.env.TERRAPEDIA_DB_PASSWORD ?? config.database?.password ?? 'root',
-  database: args.database ?? process.env.TERRAPEDIA_DB_NAME ?? config.database?.name ?? 'terria_v1_local'
-};
-
-assertPrimaryDb(db.database, apply, allowNonPrimaryDb);
-
-const requiredFiles = {
-  raw: shimmerRawPath,
-  context: path.join(shimmerDir, 'wiki-shimmer-context.importable.latest.json'),
-  itemTransforms: path.join(shimmerDir, 'wiki-shimmer-item-transforms.importable.latest.json'),
-  decraftRules: path.join(shimmerDir, 'wiki-shimmer-decraft-rules.importable.latest.json'),
-  entityTransforms: path.join(shimmerDir, 'wiki-shimmer-entity-transforms.importable.latest.json'),
-  npcTransforms: path.join(shimmerDir, 'wiki-shimmer-npc-transforms.importable.latest.json'),
-  manifest: path.join(shimmerDir, 'wiki-shimmer-manifest.latest.json')
-};
-
-for (const [label, filePath] of Object.entries(requiredFiles)) {
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Missing ${label} file: ${filePath}`);
-  }
+if (isDirectExecution()) {
+  main().catch((error) => {
+    console.error('[import-wiki-shimmer-to-db] failed');
+    console.error(error?.stack || error?.message || error);
+    process.exit(1);
+  });
 }
 
-const rawPayload = readJson(requiredFiles.raw);
-const contextPayload = readJson(requiredFiles.context);
-const itemTransformsPayload = readJson(requiredFiles.itemTransforms);
-const decraftRulesPayload = readJson(requiredFiles.decraftRules);
-const entityTransformsPayload = readJson(requiredFiles.entityTransforms);
-const npcTransformsPayload = readJson(requiredFiles.npcTransforms);
-const manifestPayload = readJson(requiredFiles.manifest);
+async function main() {
+  const mysql = require('mysql2/promise');
+  const args = parseCliArgs(process.argv.slice(2));
+  const apply = booleanOption(args.apply, false);
+  const allowNonPrimaryDb = booleanOption(
+    args['allow-non-primary-db'] ?? args.allowNonPrimaryDb ?? process.env.TERRAPEDIA_ALLOW_NON_PRIMARY_DB,
+    false
+  );
+  const dateTag = new Date().toISOString().slice(0, 10);
+  const shimmerRawPath = path.resolve(args.raw ?? path.join(repoRoot, 'data', 'generated', 'wiki-shimmer.latest.json'));
+  const shimmerDir = path.resolve(args.input ?? path.join(repoRoot, 'data', 'generated', 'shimmer'));
+  const reportPath = path.resolve(args.output ?? path.join(repoRoot, 'reports', `wiki-shimmer-db-import-${dateTag}.json`));
 
-const conn = await mysql.createConnection(db);
-try {
+  const config = loadLocalStackConfig(repoRoot);
+  const db = {
+    host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? config.database?.host ?? '127.0.0.1',
+    port: Number(args.port ?? process.env.TERRAPEDIA_DB_PORT ?? config.database?.port ?? 3306),
+    user: args.user ?? process.env.TERRAPEDIA_DB_USERNAME ?? config.database?.username ?? 'root',
+    password: args.password ?? process.env.TERRAPEDIA_DB_PASSWORD ?? config.database?.password ?? 'root',
+    database: args.database ?? process.env.TERRAPEDIA_DB_NAME ?? config.database?.name ?? 'terria_v1_local'
+  };
+
+  assertPrimaryDb(db.database, apply, allowNonPrimaryDb);
+
+  const requiredFiles = {
+    raw: shimmerRawPath,
+    context: path.join(shimmerDir, 'wiki-shimmer-context.importable.latest.json'),
+    itemTransforms: path.join(shimmerDir, 'wiki-shimmer-item-transforms.importable.latest.json'),
+    decraftRules: path.join(shimmerDir, 'wiki-shimmer-decraft-rules.importable.latest.json'),
+    entityTransforms: path.join(shimmerDir, 'wiki-shimmer-entity-transforms.importable.latest.json'),
+    npcTransforms: path.join(shimmerDir, 'wiki-shimmer-npc-transforms.importable.latest.json'),
+    manifest: path.join(shimmerDir, 'wiki-shimmer-manifest.latest.json')
+  };
+
+  for (const [label, filePath] of Object.entries(requiredFiles)) {
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`Missing ${label} file: ${filePath}`);
+    }
+  }
+
+  const rawPayload = readJson(requiredFiles.raw);
+  const contextPayload = readJson(requiredFiles.context);
+  const itemTransformsPayload = readJson(requiredFiles.itemTransforms);
+  const decraftRulesPayload = readJson(requiredFiles.decraftRules);
+  const entityTransformsPayload = readJson(requiredFiles.entityTransforms);
+  const npcTransformsPayload = readJson(requiredFiles.npcTransforms);
+  const manifestPayload = readJson(requiredFiles.manifest);
+
+  const conn = await mysql.createConnection(db);
+  try {
   await conn.query('SET NAMES utf8mb4');
 
   const summary = {
@@ -181,6 +192,7 @@ try {
   throw error;
 } finally {
   await conn.end();
+}
 }
 
 async function ensureShimmerTables(connection, shouldApply) {
@@ -511,20 +523,17 @@ async function loadShimmerTableStats(connection) {
   return stats;
 }
 
-async function importShimmerItemTransforms(connection, contextCode, records, stats, shouldApply) {
+export async function importShimmerItemTransforms(connection, contextCode, records, stats, shouldApply) {
   const count = Array.isArray(records) ? records.length : 0;
   if (!shouldApply) {
     stats.created = count;
     return;
   }
-  const existingCount = await replaceSourceScopedRows(connection, 'shimmer_item_transforms');
-  stats.replaced = existingCount;
-  for (const [index, record] of records.entries()) {
-    await connection.execute(
-      `INSERT INTO shimmer_item_transforms
-        (context_code, input_kind, input_name_en, input_name_zh, input_internal_name, output_kind, output_name_en, output_name_zh, output_internal_name, conditions_json, notes, source_provider, source_page, source_revision_timestamp, sort_order, status, deleted)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
-      [
+  const rows = records.map((record, index) => ({
+    sql: `INSERT INTO shimmer_item_transforms
+      (context_code, input_kind, input_name_en, input_name_zh, input_internal_name, output_kind, output_name_en, output_name_zh, output_internal_name, conditions_json, notes, source_provider, source_page, source_revision_timestamp, sort_order, status, deleted)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+    payload: [
         contextCode,
         toText(record?.inputKind) ?? 'item',
         toText(record?.inputNameEn),
@@ -540,10 +549,9 @@ async function importShimmerItemTransforms(connection, contextCode, records, sta
         toText(record?.sourcePage) ?? '\u5fae\u5149',
         toDateTime(record?.sourceRevisionTimestamp),
         index + 1
-      ]
-    );
-  }
-  stats.created = count;
+    ],
+  }));
+  await replaceSourceScopedRowsIfChanged(connection, 'shimmer_item_transforms', SHIMMER_TABLE_COLUMNS.shimmer_item_transforms, rows, stats);
 }
 
 async function importShimmerDecraftRules(connection, contextCode, records, stats, shouldApply) {
@@ -552,14 +560,11 @@ async function importShimmerDecraftRules(connection, contextCode, records, stats
     stats.created = count;
     return;
   }
-  const existingCount = await replaceSourceScopedRows(connection, 'shimmer_decraft_rules');
-  stats.replaced = existingCount;
-  for (const [index, record] of records.entries()) {
-    await connection.execute(
-      `INSERT INTO shimmer_decraft_rules
-        (context_code, rule_type, group_label, input_kind, input_name_en, input_name_zh, input_internal_name, outputs_json, conditions_json, notes, source_provider, source_page, source_revision_timestamp, sort_order, status, deleted)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
-      [
+  const rows = records.map((record, index) => ({
+    sql: `INSERT INTO shimmer_decraft_rules
+      (context_code, rule_type, group_label, input_kind, input_name_en, input_name_zh, input_internal_name, outputs_json, conditions_json, notes, source_provider, source_page, source_revision_timestamp, sort_order, status, deleted)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+    payload: [
         contextCode,
         toText(record?.ruleType),
         toText(record?.groupLabel),
@@ -574,10 +579,9 @@ async function importShimmerDecraftRules(connection, contextCode, records, stats
         toText(record?.sourcePage) ?? '\u5fae\u5149',
         toDateTime(record?.sourceRevisionTimestamp),
         index + 1
-      ]
-    );
-  }
-  stats.created = count;
+    ],
+  }));
+  await replaceSourceScopedRowsIfChanged(connection, 'shimmer_decraft_rules', SHIMMER_TABLE_COLUMNS.shimmer_decraft_rules, rows, stats);
 }
 
 async function importShimmerEntityTransforms(connection, contextCode, records, stats, shouldApply) {
@@ -586,14 +590,11 @@ async function importShimmerEntityTransforms(connection, contextCode, records, s
     stats.created = count;
     return;
   }
-  const existingCount = await replaceSourceScopedRows(connection, 'shimmer_entity_transforms');
-  stats.replaced = existingCount;
-  for (const [index, record] of records.entries()) {
-    await connection.execute(
-      `INSERT INTO shimmer_entity_transforms
-        (context_code, transform_group, input_entity_type, input_name_en, input_name_zh, input_internal_name, output_entity_type, output_name_en, output_name_zh, output_internal_name, source_provider, source_page, source_revision_timestamp, sort_order, status, deleted)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
-      [
+  const rows = records.map((record, index) => ({
+    sql: `INSERT INTO shimmer_entity_transforms
+      (context_code, transform_group, input_entity_type, input_name_en, input_name_zh, input_internal_name, output_entity_type, output_name_en, output_name_zh, output_internal_name, source_provider, source_page, source_revision_timestamp, sort_order, status, deleted)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+    payload: [
         contextCode,
         toText(record?.transformGroup),
         toText(record?.input?.kind),
@@ -608,10 +609,9 @@ async function importShimmerEntityTransforms(connection, contextCode, records, s
         toText(record?.sourcePage) ?? '\u5fae\u5149',
         toDateTime(record?.sourceRevisionTimestamp),
         index + 1
-      ]
-    );
-  }
-  stats.created = count;
+    ],
+  }));
+  await replaceSourceScopedRowsIfChanged(connection, 'shimmer_entity_transforms', SHIMMER_TABLE_COLUMNS.shimmer_entity_transforms, rows, stats);
 }
 
 async function importShimmerNpcTransforms(connection, contextCode, records, stats, shouldApply) {
@@ -620,14 +620,11 @@ async function importShimmerNpcTransforms(connection, contextCode, records, stat
     stats.created = count;
     return;
   }
-  const existingCount = await replaceSourceScopedRows(connection, 'shimmer_npc_transforms');
-  stats.replaced = existingCount;
-  for (const [index, record] of records.entries()) {
-    await connection.execute(
-      `INSERT INTO shimmer_npc_transforms
-        (context_code, npc_name_en, npc_name_zh, npc_internal_name, appearance_variant, effect_type, variant_image_url, variant_image_alt, notes, source_provider, source_page, source_revision_timestamp, sort_order, status, deleted)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
-      [
+  const rows = records.map((record, index) => ({
+    sql: `INSERT INTO shimmer_npc_transforms
+      (context_code, npc_name_en, npc_name_zh, npc_internal_name, appearance_variant, effect_type, variant_image_url, variant_image_alt, notes, source_provider, source_page, source_revision_timestamp, sort_order, status, deleted)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+    payload: [
         contextCode,
         toText(record?.npc?.nameEn),
         toText(record?.npc?.nameZh),
@@ -641,28 +638,162 @@ async function importShimmerNpcTransforms(connection, contextCode, records, stat
         toText(record?.sourcePage) ?? '\u5fae\u5149',
         toDateTime(record?.sourceRevisionTimestamp),
         index + 1
-      ]
-    );
-  }
-  stats.created = count;
+    ],
+  }));
+  await replaceSourceScopedRowsIfChanged(connection, 'shimmer_npc_transforms', SHIMMER_TABLE_COLUMNS.shimmer_npc_transforms, rows, stats);
 }
 
-async function replaceSourceScopedRows(connection, tableName) {
-  const [[countRow]] = await connection.execute(
-    `SELECT COUNT(*) AS c
-       FROM ${tableName}
-      WHERE deleted = 0
-        AND COALESCE(source_provider, '') = 'wiki_zh'
-        AND source_page = ?`,
-    ['\u5fae\u5149']
-  );
+const SHIMMER_TABLE_COLUMNS = {
+  shimmer_item_transforms: [
+    'contextCode',
+    'inputKind',
+    'inputNameEn',
+    'inputNameZh',
+    'inputInternalName',
+    'outputKind',
+    'outputNameEn',
+    'outputNameZh',
+    'outputInternalName',
+    'conditionsJson',
+    'notes',
+    'sourceProvider',
+    'sourcePage',
+    'sourceRevisionTimestamp',
+    'sortOrder',
+    'status',
+    'deleted',
+  ],
+  shimmer_decraft_rules: [
+    'contextCode',
+    'ruleType',
+    'groupLabel',
+    'inputKind',
+    'inputNameEn',
+    'inputNameZh',
+    'inputInternalName',
+    'outputsJson',
+    'conditionsJson',
+    'notes',
+    'sourceProvider',
+    'sourcePage',
+    'sourceRevisionTimestamp',
+    'sortOrder',
+    'status',
+    'deleted',
+  ],
+  shimmer_entity_transforms: [
+    'contextCode',
+    'transformGroup',
+    'inputEntityType',
+    'inputNameEn',
+    'inputNameZh',
+    'inputInternalName',
+    'outputEntityType',
+    'outputNameEn',
+    'outputNameZh',
+    'outputInternalName',
+    'sourceProvider',
+    'sourcePage',
+    'sourceRevisionTimestamp',
+    'sortOrder',
+    'status',
+    'deleted',
+  ],
+  shimmer_npc_transforms: [
+    'contextCode',
+    'npcNameEn',
+    'npcNameZh',
+    'npcInternalName',
+    'appearanceVariant',
+    'effectType',
+    'variantImageUrl',
+    'variantImageAlt',
+    'notes',
+    'sourceProvider',
+    'sourcePage',
+    'sourceRevisionTimestamp',
+    'sortOrder',
+    'status',
+    'deleted',
+  ],
+};
+
+async function replaceSourceScopedRowsIfChanged(connection, tableName, columns, rows, stats) {
+  const targetRows = rows.map((row) => rowFromColumns(columns, row.payload));
+  const existingRows = await loadSourceScopedRows(connection, tableName);
+  const targetHash = hashRows(tableName, targetRows);
+  const existingHash = hashRows(tableName, existingRows);
+
+  stats.scopeHashBefore = existingHash;
+  stats.scopeHashTarget = targetHash;
+
+  if (targetHash === existingHash) {
+    stats.skipped = targetRows.length;
+    stats.created = 0;
+    stats.replaced = 0;
+    return;
+  }
+
+  stats.replaced = existingRows.length;
   await connection.execute(
     `DELETE FROM ${tableName}
       WHERE COALESCE(source_provider, '') = 'wiki_zh'
         AND source_page = ?`,
     ['\u5fae\u5149']
   );
-  return Number(countRow.c ?? 0);
+  for (const row of rows) {
+    await connection.execute(row.sql, row.payload);
+  }
+  stats.created = rows.length;
+}
+
+async function loadSourceScopedRows(connection, tableName) {
+  const [rows] = await connection.execute(
+    `SELECT *
+       FROM ${tableName}
+      WHERE deleted = 0
+        AND COALESCE(source_provider, '') = 'wiki_zh'
+        AND source_page = ?
+      ORDER BY sort_order ASC, id ASC`,
+    ['\u5fae\u5149']
+  );
+  return rows.map((row) => normalizeShimmerDbRow(row));
+}
+
+function rowFromColumns(columns, payload) {
+  const row = Object.fromEntries(columns.map((column, index) => [column, payload[index]]));
+  row.status = 1;
+  row.deleted = 0;
+  return normalizeShimmerDbRow(row);
+}
+
+function normalizeShimmerDbRow(row) {
+  return Object.fromEntries(
+    Object.entries(row)
+      .filter(([key]) => !['id', 'created_at', 'createdAt', 'updated_at', 'updatedAt'].includes(key))
+      .map(([key, value]) => [toCamelCase(key), normalizeHashValue(value)])
+      .sort(([left], [right]) => left.localeCompare(right))
+  );
+}
+
+function normalizeHashValue(value) {
+  if (value == null) return null;
+  if (value instanceof Date) return toDateTime(value.toISOString());
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  const text = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(text)) return toDateTime(text);
+  if (/^-?\d+(?:\.\d+)?$/.test(text)) return Number(text);
+  return text === '' ? null : text;
+}
+
+function hashRows(tableName, rows) {
+  return crypto.createHash('sha256')
+    .update(`v1:${tableName}:wiki_zh:微光:${JSON.stringify(rows)}`)
+    .digest('hex');
+}
+
+function toCamelCase(value) {
+  return String(value).replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
 }
 
 function toText(value) {
@@ -709,4 +840,8 @@ function assertPrimaryDb(database, shouldApply, allowNonPrimary) {
     return;
   }
   throw new Error(`Refusing to write to non-primary database '${database}'. Set TERRAPEDIA_DB_NAME=terria_v1_local or pass --allow-non-primary-db=true explicitly.`);
+}
+
+function isDirectExecution() {
+  return process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 }

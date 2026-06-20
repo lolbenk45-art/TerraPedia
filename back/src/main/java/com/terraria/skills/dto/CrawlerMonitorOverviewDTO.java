@@ -52,6 +52,7 @@ public class CrawlerMonitorOverviewDTO {
         private boolean autoDispatchEnabled;
         private WikiMonitorSummaryDTO summary = new WikiMonitorSummaryDTO();
         private List<WikiMonitorDomainDTO> domains = new ArrayList<>();
+        private List<WikiMonitorDispatchPlanDTO> dispatchPlan = new ArrayList<>();
         private List<WikiMonitorDispatchDTO> pendingDispatches = new ArrayList<>();
     }
 
@@ -105,6 +106,16 @@ public class CrawlerMonitorOverviewDTO {
         private String startedAt;
         private String completedAt;
         private String message;
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class WikiMonitorDispatchPlanDTO {
+        private String actionId;
+        private List<String> coveredDomains = new ArrayList<>();
+        private String priority;
+        private String reason;
+        private String advisoryNote;
     }
 
     @Data

@@ -72,7 +72,7 @@ try {
 
     if (apply) {
       const [result] = await connection.execute(
-        'UPDATE items SET status = 0, updated_at = NOW() WHERE id = ?',
+        'UPDATE items SET status = 0, updated_at = NOW() WHERE id = ? AND status <> 0',
         [row.id],
       );
       summary.disabledCount += Number(result.affectedRows || 0);

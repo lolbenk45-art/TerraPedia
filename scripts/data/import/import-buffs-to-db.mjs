@@ -6,10 +6,14 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { loadStandardizedDataset } from '../lib/load-standardized-dataset.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import { assertPrimaryDb } from '../lib/base-domain-primary-db-guard.mjs';
+import { reconcileChildRows } from '../lib/base-domain-row-reconcile.mjs';
 
 const require = createRequire(import.meta.url);
 
 const repoRoot = getProjectRoot();
+
+export { assertPrimaryDb };
 
 function parseArgs(argv) {
   const args = {};
@@ -21,6 +25,21 @@ function parseArgs(argv) {
     else args[body] = 'true';
   }
   return args;
+}
+
+export function resolveImportOptions(argv = process.argv.slice(2), env = process.env) {
+  const args = parseArgs(argv);
+  const explicitDryRun = args['dry-run'] ?? args.dryRun;
+  const explicitApply = args.apply;
+  const dryRun = explicitDryRun == null
+    ? explicitApply !== 'true'
+    : explicitDryRun !== 'false';
+  return {
+    args,
+    dryRun,
+    apply: !dryRun,
+    allowNonPrimaryDb: args['allow-non-primary-db'] === 'true' || env.TERRAPEDIA_ALLOW_NON_PRIMARY_DB === 'true',
+  };
 }
 
 function toNullableString(value) {
@@ -58,7 +77,7 @@ function makeStats() {
 }
 
 function makeRelationStats() {
-  return { input: 0, inserted: 0, unmatched: 0, unmatchedSamples: [] };
+  return { input: 0, inserted: 0, updated: 0, removed: 0, skipped: 0, unmatched: 0, unmatchedSamples: [] };
 }
 
 function loadSourceItemLookup(records) {
@@ -297,9 +316,9 @@ async function importBuffs(conn, buffs, itemLookup, sourceItemLookup, stats, rel
       if (isNew) stats.created += 1;
       else stats.updated += 1;
 
-      await conn.execute('DELETE FROM buff_source_items WHERE buff_id = ?', [buffId]);
       const sourceItems = Array.isArray(record.sourceItems) ? record.sourceItems : [];
       relationStats.input += sourceItems.length;
+      const targetRows = [];
 
       for (let sortOrder = 0; sortOrder < sourceItems.length; sortOrder += 1) {
         const sourceItem = sourceItems[sortOrder];
@@ -312,36 +331,138 @@ async function importBuffs(conn, buffs, itemLookup, sourceItemLookup, stats, rel
           );
           continue;
         }
-        await conn.execute(
-          `INSERT INTO buff_source_items
-            (buff_id, source_item_id, source_item_internal_name, source_item_name, item_id, buff_time, sort_order)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [
-            buffId,
-            sourceItemId,
-            mapped.internalName ?? toNullableString(sourceItem.internalName),
-            mapped.dbItem?.name ?? toNullableString(sourceItem.name),
-            mapped.dbItem?.id ?? null,
-            toNullableInteger(sourceItem.buffTime),
-            sortOrder,
-          ]
-        );
-        relationStats.inserted += 1;
+        targetRows.push({
+          buff_id: buffId,
+          source_item_id: sourceItemId,
+          source_item_internal_name: mapped.internalName ?? toNullableString(sourceItem.internalName),
+          source_item_name: mapped.dbItem?.name ?? toNullableString(sourceItem.name),
+          item_id: mapped.dbItem?.id ?? null,
+          buff_time: toNullableInteger(sourceItem.buffTime),
+          sort_order: sortOrder,
+        });
       }
+      await reconcileBuffSourceItems(conn, buffId, targetRows, relationStats);
     } catch (error) {
       stats.errors.push(`buffs[${i}]: ${error?.message ?? String(error)}`);
     }
   }
 }
 
-function assertPrimaryDb(database, allowNonPrimaryDb) {
-  if (String(database || '').trim() === 'terria_v1_local') return;
-  if (allowNonPrimaryDb) return;
-  throw new Error(`Refusing to write to non-primary database '${database}'. Set TERRAPEDIA_DB_NAME=terria_v1_local or pass --allow-non-primary-db=true explicitly.`);
+async function reconcileBuffSourceItems(conn, buffId, targetRows, relationStats) {
+  const [existingRows] = await conn.execute(
+    `SELECT id, buff_id, source_item_id, source_item_internal_name, source_item_name, item_id, buff_time, sort_order
+       FROM buff_source_items
+      WHERE buff_id = ?
+      ORDER BY sort_order`,
+    [buffId]
+  );
+  const diff = reconcileChildRows({
+    existingRows,
+    targetRows,
+    keyColumns: ['sort_order'],
+    compareColumns: [
+      'buff_id',
+      'source_item_id',
+      'source_item_internal_name',
+      'source_item_name',
+      'item_id',
+      'buff_time',
+      'sort_order',
+    ],
+    numericColumns: ['buff_id', 'source_item_id', 'item_id', 'buff_time', 'sort_order'],
+  });
+
+  relationStats.skipped += diff.noop.length;
+
+  for (const { existing } of diff.remove) {
+    await conn.execute('DELETE FROM buff_source_items WHERE id = ?', [existing.id]);
+    relationStats.removed += 1;
+  }
+
+  for (const { existing, target } of diff.update) {
+    await conn.execute(
+      `UPDATE buff_source_items
+          SET buff_id = ?,
+              source_item_id = ?,
+              source_item_internal_name = ?,
+              source_item_name = ?,
+              item_id = ?,
+              buff_time = ?,
+              sort_order = ?,
+              updated_at = NOW()
+        WHERE id = ?`,
+      [
+        target.buff_id,
+        target.source_item_id,
+        target.source_item_internal_name,
+        target.source_item_name,
+        target.item_id,
+        target.buff_time,
+        target.sort_order,
+        existing.id,
+      ]
+    );
+    relationStats.updated += 1;
+  }
+
+  for (const { target } of diff.add) {
+    await conn.execute(
+      `INSERT INTO buff_source_items
+        (buff_id, source_item_id, source_item_internal_name, source_item_name, item_id, buff_time, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        target.buff_id,
+        target.source_item_id,
+        target.source_item_internal_name,
+        target.source_item_name,
+        target.item_id,
+        target.buff_time,
+        target.sort_order,
+      ]
+    );
+    relationStats.inserted += 1;
+  }
+}
+
+export async function runBuffImportWithConnection(conn, {
+  dryRun = true,
+  buffs = [],
+  sourceItems = [],
+  generatedAt = new Date().toISOString(),
+} = {}) {
+  const sourceItemLookup = loadSourceItemLookup(sourceItems);
+  const summary = {
+    generatedAt,
+    database: conn.config?.database ?? null,
+    dryRun,
+    buffs: makeStats(),
+    buffSourceItems: makeRelationStats(),
+  };
+
+  await conn.query('SET NAMES utf8mb4');
+  if (!dryRun) {
+    await ensureBuffSchema(conn);
+  }
+  const buffColumns = await loadTableColumns(conn, 'buffs');
+  const itemLookup = await loadItemsLookup(conn);
+  const buffCategoryId = await loadBuffCategoryId(conn);
+  await conn.beginTransaction();
+  try {
+    await importBuffs(conn, buffs, itemLookup, sourceItemLookup, summary.buffs, summary.buffSourceItems, buffColumns, buffCategoryId);
+    if (dryRun) {
+      await conn.rollback();
+    } else {
+      await conn.commit();
+    }
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  }
+  return summary;
 }
 
 async function main() {
-  const args = parseArgs(process.argv.slice(2));
+  const { args, dryRun, allowNonPrimaryDb } = resolveImportOptions(process.argv.slice(2));
   const dataDir = path.resolve(
     args['data-dir']
     ?? process.env.TERRAPEDIA_STANDARDIZED_OUTPUT_DIR
@@ -358,35 +479,17 @@ async function main() {
     multipleStatements: true,
   });
 
-  assertPrimaryDb(conn.config.database, args['allow-non-primary-db'] === 'true' || process.env.TERRAPEDIA_ALLOW_NON_PRIMARY_DB === 'true');
+  assertPrimaryDb(conn.config.database, !dryRun, allowNonPrimaryDb);
 
   const buffs = loadStandardizedDataset(dataDir, 'buffs').records ?? [];
   const sourceItems = loadStandardizedDataset(dataDir, 'items').records ?? [];
-  const sourceItemLookup = loadSourceItemLookup(sourceItems);
-  const summary = {
-    generatedAt: new Date().toISOString(),
-    database: conn.config.database,
-    buffs: makeStats(),
-    buffSourceItems: makeRelationStats(),
-  };
 
   try {
-    await conn.query('SET NAMES utf8mb4');
-    await ensureBuffSchema(conn);
-    const buffColumns = await loadTableColumns(conn, 'buffs');
-    const itemLookup = await loadItemsLookup(conn);
-    const buffCategoryId = await loadBuffCategoryId(conn);
-    await conn.beginTransaction();
-    await importBuffs(conn, buffs, itemLookup, sourceItemLookup, summary.buffs, summary.buffSourceItems, buffColumns, buffCategoryId);
-    await conn.commit();
-  } catch (error) {
-    await conn.rollback();
-    throw error;
+    const summary = await runBuffImportWithConnection(conn, { dryRun, buffs, sourceItems });
+    console.log(JSON.stringify(summary, null, 2));
   } finally {
     await conn.end();
   }
-
-  console.log(JSON.stringify(summary, null, 2));
 }
 
 function isDirectExecution() {

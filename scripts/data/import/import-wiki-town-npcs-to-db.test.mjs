@@ -13,12 +13,13 @@ import {
 } from './import-wiki-town-npcs-to-db.mjs';
 import { buildTownNpcShopConditionLookup } from '../lib/town-npc-shop-conditions.mjs';
 
-function createShopImportFixture({ shopItems }) {
+function createShopImportFixture({ shopItems, existingShopEntries = [], existingShopConditions = new Map() }) {
   const statements = [];
   const connection = {
     async execute(sql, params = []) {
       statements.push({ sql, params });
-      if (/SELECT id\s+FROM npc_shop_entries/i.test(sql)) return [[]];
+      if (/FROM\s+npc_shop_conditions\b/i.test(sql)) return [existingShopConditions.get(params[0]) ?? []];
+      if (/FROM\s+npc_shop_entries\b/i.test(sql)) return [existingShopEntries];
       if (/INSERT INTO npc_shop_entries/i.test(sql)) return [{ insertId: 501 }];
       return [{ affectedRows: 1 }];
     }
@@ -155,6 +156,38 @@ test('importTownNpcRecord writes parsed shop conditions with readable notes fall
   assert.equal(conditionInsert.params[3], 'required');
   assert.match(JSON.stringify(conditionInsert.params), /HARDMODE|困难模式/i);
   assert.match(String(conditionInsert.params[4]), /困难模式|Hardmode|HARDMODE/i);
+});
+
+test('importTownNpcRecord skips unchanged shop entries and conditions', async () => {
+  const fixture = createShopImportFixture({
+    shopItems: [
+      {
+        nameZh: '弱效治疗药水',
+        nameEn: 'Lesser Healing Potion',
+        priceText: '3 SC',
+        availability: '一直有售。',
+      },
+    ],
+    existingShopEntries: [{
+      id: 701,
+      npc_id: 17,
+      item_id: 28,
+      source_item_id: null,
+      price_text: '3 SC',
+      notes: '一直有售。',
+      sort_order: 1,
+      status: 1,
+      deleted: 0,
+    }],
+    existingShopConditions: new Map([[701, []]]),
+  });
+
+  const result = await importTownNpcRecord(fixture.connection, fixture.record, fixture.context);
+
+  assert.equal(result.insertedShopEntryCount, 0);
+  assert.equal(result.skippedShopEntryCount, 1);
+  assert.equal(fixture.statements.some((entry) => /DELETE FROM npc_shop_entries/i.test(entry.sql)), false);
+  assert.equal(fixture.statements.some((entry) => /INSERT INTO npc_shop_entries/i.test(entry.sql)), false);
 });
 
 test('importTownNpcRecord writes managed wiki assets and living preferences before shop replacement', async () => {

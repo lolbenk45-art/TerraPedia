@@ -5,6 +5,8 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
+import { assertPrimaryDb } from '../lib/base-domain-primary-db-guard.mjs';
+import { rowsEqual } from '../lib/base-domain-row-reconcile.mjs';
 import { createMinioImageUploader, guessExtensionFromUrl } from '../lib/minio-image-upload.mjs';
 import { resolveProjectileZhFromRecord } from '../lib/projectile-name-resolver.mjs';
 
@@ -24,6 +26,10 @@ export const __test__ = {
   buildGeneratedNpcRecord,
   loadNpcZhMapFromPayload,
   loadMysqlModule,
+  buildSyncPaths,
+  syncNpcs,
+  syncProjectiles,
+  assertPrimaryDb,
 };
 
 async function main() {
@@ -43,6 +49,9 @@ async function main() {
     password: process.env.TERRAPEDIA_DB_PASSWORD || 'root',
     database: process.env.TERRAPEDIA_DB_NAME || 'terria_v1_local',
   };
+  const allowNonPrimaryDb = args['allow-non-primary-db'] === 'true'
+    || process.env.TERRAPEDIA_ALLOW_NON_PRIMARY_DB === 'true';
+  assertPrimaryDb(db.database, apply, allowNonPrimaryDb);
 
   const connection = await loadMysqlModule().createConnection(db);
   const { uploadImageUrl } = await createMinioImageUploader({
@@ -85,14 +94,20 @@ async function main() {
   }
 }
 
-async function syncNpcs(stats, { apply, connection, uploadImageUrl }) {
-  if (!fs.existsSync(standardizedNpcPath)) {
+async function syncNpcs(stats, {
+  apply,
+  connection,
+  uploadImageUrl,
+  paths = buildSyncPaths(process.cwd()),
+  npcZhMap = loadNpcZhMap(paths),
+}) {
+  if (!fs.existsSync(paths.standardizedNpcPath)) {
     stats.failed += 1;
-    pushSample(stats, { reason: 'missing_standardized_file', path: standardizedNpcPath });
+    pushSample(stats, { reason: 'missing_standardized_file', path: paths.standardizedNpcPath });
     return;
   }
 
-  const raw = JSON.parse(fs.readFileSync(standardizedNpcPath, 'utf8'));
+  const raw = JSON.parse(fs.readFileSync(paths.standardizedNpcPath, 'utf8'));
   const records = Array.isArray(raw.records) ? raw.records : [];
   const generatedMap = {};
 
@@ -120,14 +135,39 @@ async function syncNpcs(stats, { apply, connection, uploadImageUrl }) {
         npcPayload.imageUrl = effectiveImageUrl;
       }
 
-      const [rows] = await connection.query('SELECT id, category_id, name, sub_name FROM npcs WHERE game_id = ? LIMIT 1', [gameId]);
+      const [rows] = await connection.query(
+        `SELECT id, ${SYNC_NPC_COMPARE_COLUMNS.join(', ')}
+           FROM npcs
+          WHERE game_id = ?
+          LIMIT 1`,
+        [gameId]
+      );
       const existing = rows[0];
       const nextCategoryId = existing?.category_id ?? inferNpcCategoryId(record);
-      const localized = resolveNpcLocalizedFields(record, existing, loadNpcZhMap());
+      const localized = resolveNpcLocalizedFields(record, existing, npcZhMap);
       generatedMap[String(gameId)] = buildGeneratedNpcRecord(record, effectiveImageUrl, localized);
+      const target = {
+        game_id: gameId,
+        name: localized.nextName,
+        name_zh: localized.nextNameZh,
+        sub_name: localized.nextSubName,
+        sub_name_zh: localized.nextSubNameZh,
+        internal_name: internalName,
+        category_id: nextCategoryId,
+        banner_source_item_id: toInt(record?.banner),
+        catch_source_item_id: toInt(record?.extras?.catchItem),
+      };
 
       if (apply) {
         if (existing) {
+          if (syncRowsEqual(existing, target, {
+            columns: SYNC_NPC_COMPARE_COLUMNS,
+            numericColumns: ['game_id', 'category_id', 'banner_source_item_id', 'catch_source_item_id'],
+          })) {
+            addSkipped(stats);
+            pushSample(stats, { gameId, internalName, imageUrl: effectiveImageUrl, reason: 'skipped_unchanged' });
+            continue;
+          }
           const [result] = await connection.execute(
             `
             UPDATE npcs
@@ -186,22 +226,34 @@ async function syncNpcs(stats, { apply, connection, uploadImageUrl }) {
     }
   }
 
-  fs.mkdirSync(generatedDir, { recursive: true });
-  fs.writeFileSync(generatedNpcMapPath, JSON.stringify({
+  fs.mkdirSync(paths.generatedDir, { recursive: true });
+  fs.writeFileSync(paths.generatedNpcMapPath, JSON.stringify({
     generatedAt: new Date().toISOString(),
     count: Object.keys(generatedMap).length,
     records: generatedMap,
   }, null, 2), 'utf8');
 }
 
-async function syncProjectiles(stats, { apply, connection, uploadImageUrl }) {
-  if (!fs.existsSync(standardizedProjectilePath)) {
+const SYNC_NPC_COMPARE_COLUMNS = [
+  'game_id',
+  'name',
+  'name_zh',
+  'sub_name',
+  'sub_name_zh',
+  'internal_name',
+  'category_id',
+  'banner_source_item_id',
+  'catch_source_item_id',
+];
+
+async function syncProjectiles(stats, { apply, connection, uploadImageUrl, paths = buildSyncPaths(process.cwd()) }) {
+  if (!fs.existsSync(paths.standardizedProjectilePath)) {
     stats.failed += 1;
-    pushSample(stats, { reason: 'missing_standardized_file', path: standardizedProjectilePath });
+    pushSample(stats, { reason: 'missing_standardized_file', path: paths.standardizedProjectilePath });
     return;
   }
 
-  const raw = JSON.parse(fs.readFileSync(standardizedProjectilePath, 'utf8'));
+  const raw = JSON.parse(fs.readFileSync(paths.standardizedProjectilePath, 'utf8'));
   const records = Array.isArray(raw.records) ? raw.records : [];
   const projectileZhLookup = buildProjectileZhLookup(records);
 
@@ -228,7 +280,13 @@ async function syncProjectiles(stats, { apply, connection, uploadImageUrl }) {
       }
       const effectiveImageUrl = toText(projectilePayload?.imageUrl ?? projectilePayload?.image_url ?? projectilePayload?.image);
 
-      const [rows] = await connection.query('SELECT id FROM projectiles WHERE source_id = ? LIMIT 1', [sourceId]);
+      const [rows] = await connection.query(
+        `SELECT id, ${SYNC_PROJECTILE_COMPARE_COLUMNS.join(', ')}
+           FROM projectiles
+          WHERE source_id = ?
+          LIMIT 1`,
+        [sourceId]
+      );
       const existing = rows[0];
 
       const values = [
@@ -250,9 +308,19 @@ async function syncProjectiles(stats, { apply, connection, uploadImageUrl }) {
         projectilePayload?.flags?.tileCollide == null ? 1 : toBoolean(projectilePayload?.flags?.tileCollide),
         JSON.stringify(projectilePayload),
       ];
+      const target = buildSyncProjectileTargetRow(values);
 
       if (apply) {
         if (existing) {
+          if (syncRowsEqual(existing, target, {
+            columns: SYNC_PROJECTILE_COMPARE_COLUMNS,
+            jsonColumns: ['raw_json'],
+            numericColumns: SYNC_PROJECTILE_NUMERIC_COLUMNS,
+          })) {
+            addSkipped(stats);
+            pushSample(stats, { sourceId, internalName, reason: 'skipped_unchanged' });
+            continue;
+          }
           const [result] = await connection.execute(
             `
             UPDATE projectiles
@@ -289,6 +357,69 @@ async function syncProjectiles(stats, { apply, connection, uploadImageUrl }) {
       pushSample(stats, { id: record?.id ?? null, internalName: record?.internalName ?? null, reason: String(error.message || error) });
     }
   }
+}
+
+const SYNC_PROJECTILE_COMPARE_COLUMNS = [
+  'source_id',
+  'internal_name',
+  'name',
+  'name_zh',
+  'image_url',
+  'ai_style',
+  'damage',
+  'knock_back',
+  'penetrate',
+  'time_left',
+  'width',
+  'height',
+  'scale',
+  'friendly',
+  'hostile',
+  'tile_collide',
+  'raw_json',
+  'status',
+  'deleted',
+];
+
+const SYNC_PROJECTILE_NUMERIC_COLUMNS = [
+  'source_id',
+  'ai_style',
+  'damage',
+  'knock_back',
+  'penetrate',
+  'time_left',
+  'width',
+  'height',
+  'scale',
+  'friendly',
+  'hostile',
+  'tile_collide',
+  'status',
+  'deleted',
+];
+
+function buildSyncProjectileTargetRow(values) {
+  return {
+    source_id: values[0],
+    internal_name: values[1],
+    name: values[2],
+    name_zh: values[3],
+    image_url: values[4],
+    ai_style: values[5],
+    damage: values[6],
+    knock_back: values[7],
+    penetrate: values[8],
+    time_left: values[9],
+    width: values[10],
+    height: values[11],
+    scale: values[12],
+    friendly: values[13],
+    hostile: values[14],
+    tile_collide: values[15],
+    raw_json: values[16],
+    status: 1,
+    deleted: 0,
+  };
 }
 
 function buildProjectileZhLookup(records) {
@@ -399,8 +530,26 @@ function pushSample(stats, sample) {
   if (stats.samples.length < 40) stats.samples.push(sample);
 }
 
-function loadNpcZhMap() {
-  const mapPath = path.join(process.cwd(), 'data', 'generated', 'npc-id-row-images.json');
+function addSkipped(stats) {
+  stats.skipped = Number(stats.skipped ?? 0) + 1;
+}
+
+function syncRowsEqual(existing, target, options) {
+  return rowsEqual(existing, target, options);
+}
+
+function buildSyncPaths(rootDir = process.cwd()) {
+  return {
+    standardizedNpcPath: path.join(rootDir, 'data', 'standardized', 'npcs.standardized.json'),
+    standardizedProjectilePath: path.join(rootDir, 'data', 'standardized', 'projectiles.standardized.json'),
+    generatedDir: path.join(rootDir, 'data', 'generated'),
+    generatedNpcMapPath: path.join(rootDir, 'data', 'generated', 'npc-standardized-map.json'),
+    npcZhMapPath: path.join(rootDir, 'data', 'generated', 'npc-id-row-images.json'),
+  };
+}
+
+function loadNpcZhMap(paths = buildSyncPaths(process.cwd())) {
+  const mapPath = paths.npcZhMapPath;
   if (!fs.existsSync(mapPath)) {
     return new Map();
   }

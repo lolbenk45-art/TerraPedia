@@ -60,6 +60,112 @@
           </article>
         </section>
 
+        <section class="panel monitor-observability" aria-label="运行态">
+          <div class="panel-head">
+            <div>
+              <h2>运行态</h2>
+              <p>守护、调度、锁、心跳、历史、报告、图片和派发计划的紧凑总览。</p>
+            </div>
+            <span class="status-pill" :class="wikiMonitor?.autoDispatchEnabled ? 'info' : 'muted'">{{ wikiAutoDispatchLabel }}</span>
+          </div>
+
+          <div class="observability-grid">
+            <article class="observability-block">
+              <div class="observability-block__head">
+                <strong>运行文件</strong>
+                <span>{{ runtimeStateCards.length }} 项</span>
+              </div>
+              <div class="state-list">
+                <div v-for="card in runtimeStateCards" :key="card.key" class="state-row">
+                  <span>{{ card.label }}</span>
+                  <strong><em class="status-pill" :class="statusTone(card.status)">{{ statusLabel(card.status) }}</em></strong>
+                  <small>{{ card.detail }}</small>
+                  <code>{{ card.path }}</code>
+                </div>
+              </div>
+            </article>
+
+            <article class="observability-block">
+              <div class="observability-block__head">
+                <strong>派发状态</strong>
+                <span>{{ wikiPendingApprovalCount }} 待审批</span>
+              </div>
+              <div class="compact-metrics">
+                <span><small>派发模式</small><strong>{{ wikiDispatchModeLabel }}</strong></span>
+                <span><small>自动派发</small><strong>{{ wikiAutoDispatchLabel }}</strong></span>
+                <span><small>待审批</small><strong>{{ wikiPendingApprovalCount }}</strong></span>
+              </div>
+              <div v-if="dispatchPlanRows.length" class="state-list state-list--compact">
+                <div v-for="plan in dispatchPlanRows" :key="plan.actionId || plan.priority || plan.reason" class="state-row">
+                  <span>派发计划</span>
+                  <strong>{{ plan.actionId || '未命名动作' }}</strong>
+                  <small>{{ dispatchPlanSummary(plan) }}</small>
+                </div>
+              </div>
+              <p v-else class="empty-line">暂无派发计划</p>
+            </article>
+
+            <article class="observability-block">
+              <div class="observability-block__head">
+                <strong>心跳告警</strong>
+                <span>{{ staleHeartbeatRows.length }} 条</span>
+              </div>
+              <div v-if="staleHeartbeatRows.length" class="state-list state-list--compact">
+                <div v-for="heartbeat in staleHeartbeatRows" :key="heartbeatKey(heartbeat)" class="state-row">
+                  <span>{{ heartbeat.label || heartbeat.id || heartbeat.domain || '心跳' }}</span>
+                  <strong>{{ statusLabel(heartbeat.status || 'stalled') }}</strong>
+                  <small>{{ heartbeat.reason || heartbeat.progressStaleReason || heartbeat.message || formatDate(heartbeat.lastHeartbeatAt || heartbeat.progressHeartbeatAt) }}</small>
+                </div>
+              </div>
+              <p v-else class="empty-line">暂无心跳告警</p>
+            </article>
+
+            <article class="observability-block">
+              <div class="observability-block__head">
+                <strong>运行历史</strong>
+                <span>{{ historyRows.length }} 条</span>
+              </div>
+              <div v-if="historyRows.length" class="state-list state-list--compact">
+                <div v-for="run in historyRows" :key="run.path || run.generatedAt || run.summaryPath" class="state-row">
+                  <span>{{ statusLabel(runStatus(run)) }}</span>
+                  <strong>{{ formatDate(run.generatedAt || run.updatedAt) }}</strong>
+                  <small>{{ runSummary(run) }}</small>
+                </div>
+              </div>
+              <p v-else class="empty-line">暂无历史</p>
+            </article>
+
+            <article class="observability-block">
+              <div class="observability-block__head">
+                <strong>报告</strong>
+                <span>{{ recentReportRows.length }} 个</span>
+              </div>
+              <div v-if="recentReportRows.length" class="state-list state-list--compact">
+                <div v-for="report in recentReportRows" :key="report.path || report.name" class="state-row">
+                  <span>{{ report.category || '报告' }}</span>
+                  <strong>{{ report.name || report.path || '未命名报告' }}</strong>
+                  <small>{{ formatDate(report.updatedAt) }} · {{ formatBytes(report.sizeBytes) }}</small>
+                </div>
+              </div>
+              <p v-else class="empty-line">暂无报告</p>
+            </article>
+
+            <article class="observability-block">
+              <div class="observability-block__head">
+                <strong>图片指标</strong>
+                <span>{{ imageNormalizationRows.length }} 项</span>
+              </div>
+              <div v-if="imageNormalizationRows.length" class="compact-metrics">
+                <span v-for="metric in imageNormalizationRows" :key="metric.label">
+                  <small>{{ metric.label }}</small>
+                  <strong>{{ metric.value }}</strong>
+                </span>
+              </div>
+              <p v-else class="empty-line">暂无图片指标</p>
+            </article>
+          </div>
+        </section>
+
         <section class="section-card monitor-panel stage-progress-panel">
           <div class="section-head">
             <div>
@@ -73,9 +179,9 @@
           <div v-if="visibleProgressRowsByPriority.length" class="action-rail">
             <article v-for="row in visibleProgressRowsByPriority" :key="row.rowKey" class="action-card">
               <div class="action-card__head">
-                <strong>{{ row.label || row.id || '未知任务' }}</strong>
+                <strong>{{ progressRowTitle(row) }}</strong>
                 <div class="noise-actions">
-                  <span class="status-pill" :class="statusTone(rowStatus(row))">{{ rowStatus(row) || '未知' }}</span>
+                  <span class="status-pill" :class="statusTone(rowStatus(row))">{{ statusLabel(rowStatus(row)) }}</span>
                   <button
                     v-if="canPauseProgressRow(row)"
                     type="button"
@@ -97,6 +203,16 @@
                     <span>{{ progressControlLoading === progressRowControlKey(row) ? '处理中' : '继续' }}</span>
                   </button>
                   <button
+                    v-if="canTriggerBackfillRow(row)"
+                    type="button"
+                    class="inline-report-button inline-report-button--compact"
+                    :disabled="progressControlLoading === progressRowControlKey(row)"
+                    @click="triggerBackfillRow(row)"
+                  >
+                    <RefreshCw :size="14" />
+                    <span>{{ progressControlLoading === progressRowControlKey(row) ? '处理中' : '触发补爬' }}</span>
+                  </button>
+                  <button
                     v-if="canDismissProgressRow(row)"
                     type="button"
                     class="noise-delete-button"
@@ -108,12 +224,11 @@
                 </div>
               </div>
               <div class="action-card__meta">
-                <span>{{ row.lane || row.action?.runner || '未知执行器' }}</span>
+                <span>{{ progressRowLaneLabel(row) }}</span>
                 <span>{{ rowProgressLabel(row) }} · {{ rowProgressNumbers(row) }}</span>
               </div>
-              <p v-if="row.action?.phase || row.queueState || row.action?.message" class="action-card__message">
-                <span v-if="row.action?.phase">{{ row.action.phase }}</span>
-                {{ row.queueState || row.action?.message || '' }}
+              <p v-if="progressRowMessageLabel(row)" class="action-card__message">
+                {{ progressRowMessageLabel(row) }}
               </p>
               <p v-if="row.progressStaleReason" class="action-card__message action-card__message--warning">
                 {{ row.progressStaleReason }}
@@ -149,25 +264,25 @@
 
           <div v-else class="empty-block">
             <Activity :size="24" />
-            <strong>暂无 action 明细</strong>
-            <span>当前 summary 可能只有聚合数量，或尚未生成完整 run report。</span>
+            <strong>暂无可展示进度</strong>
+            <span>当前没有运行中、停滞、失败或待处理的任务。</span>
           </div>
         </section>
 
         <div v-if="!wikiActionExpanded" class="wiki-action-primary__collapsed-summary">
           <span>{{ pendingWikiDispatches.length }} 个待确认</span>
           <span>{{ visibleWikiDomainRows.length }} 个域可查看</span>
-          <span>点击展开后派发具体域刷新</span>
+          <span>点击展开后选择具体域并派发刷新</span>
         </div>
 
         <template v-if="wikiActionExpanded">
-          <section v-if="selectedWikiDomain" class="panel recovery-workbench wiki-workbench">
+          <section v-if="selectedWikiDomain" ref="wikiWorkbenchRef" class="panel recovery-workbench wiki-workbench">
             <div class="wiki-live-panel live-focus">
             <div class="wiki-live-panel__head">
               <div>
                 <span class="ops-card__label">当前选中域</span>
-                <h2>{{ selectedWikiDomain.label || selectedWikiDomain.domain || '未知域' }} 实时进度</h2>
-                <p>{{ selectedWikiDomainProgressCopy }}</p>
+                <h2>{{ selectedDomainDisplayName }} · {{ selectedDomainStatusLabel }}</h2>
+                <p>{{ selectedDomainOperatorSummary }}</p>
               </div>
               <strong class="wiki-live-percent">{{ rowProgressLabel(selectedWikiProgressRow) }}</strong>
             </div>
@@ -175,14 +290,25 @@
               <span :style="{ width: rowProgress(selectedWikiProgressRow) }" :class="statusTone(rowStatus(selectedWikiProgressRow))" />
             </div>
             <div class="wiki-live-metrics">
-              <span><small>状态</small><strong>{{ wikiDomainFlowLabel(selectedWikiDomain) }}</strong></span>
+              <span><small>状态</small><strong>{{ selectedDomainStatusLabel }}</strong></span>
+              <span><small>下一步建议</small><strong>{{ selectedDomainNextActionLabel }}</strong></span>
               <span><small>当前/总数</small><strong>{{ selectedWikiProgressNumbers }}</strong></span>
-              <span><small>心跳</small><strong>{{ wikiDomainHeartbeatLabel(selectedWikiDomain) }}</strong></span>
-              <span><small>心跳时间</small><strong>{{ selectedWikiHeartbeatAtLabel }}</strong></span>
+              <span><small>最后心跳</small><strong>{{ selectedDomainHeartbeatMessage }}</strong></span>
+              <span><small>心跳状态</small><strong>{{ selectedDomainHeartbeatState }}</strong></span>
+              <span><small>开始时间</small><strong>{{ selectedDomainStartedAtLabel }}</strong></span>
+              <span><small>运行时长</small><strong>{{ selectedDomainElapsedLabel }}</strong></span>
               <span><small>更新时间</small><strong>{{ selectedWikiUpdatedAtLabel }}</strong></span>
               <span><small>待处理</small><strong>{{ rowPendingLabel(selectedWikiProgressRow) }}</strong></span>
               <span><small>速度</small><strong>{{ rowSpeedLabel(selectedWikiProgressRow) }}</strong></span>
               <span><small>预计剩余</small><strong>{{ rowEtaLabel(selectedWikiProgressRow) }}</strong></span>
+            </div>
+            <div v-if="selectedDomainCooldownExplanation" class="wiki-workbench__cooldown">
+              <span>Wiki 保护冷却</span>
+              <p>{{ selectedDomainCooldownExplanation }}</p>
+            </div>
+            <div v-if="selectedWikiActionDisabledReason" class="wiki-workbench__warning">
+              <span>为什么不能执行</span>
+              <p>{{ selectedWikiActionDisabledReason }}</p>
             </div>
             <div class="wiki-path-strip">
               <span>运行文件</span>
@@ -199,10 +325,20 @@
                   class="btn btn-primary"
                   :disabled="wikiDispatchLoading === selectedWikiDomain.domain"
                   :title="selectedWikiActionDisabledReason || selectedWikiOperationHint"
-                  @click="executeWikiMonitorTask(selectedWikiDomain)"
+                  @click="openDispatchConfirm(selectedWikiDomain)"
                 >
                   <RefreshCw :size="16" :class="{ 'spin': wikiDispatchLoading === selectedWikiDomain.domain }" />
-                  <span>{{ wikiDispatchLoading === selectedWikiDomain.domain ? '派发中' : '开始爬取' }}</span>
+                  <span>{{ wikiDispatchLoading === selectedWikiDomain.domain ? '派发中' : '派发刷新' }}</span>
+                </button>
+                <button
+                  v-if="canRetryWikiDomain(selectedWikiDomain)"
+                  type="button"
+                  class="inline-report-button inline-report-button--warning"
+                  :disabled="wikiDispatchLoading === selectedWikiDomain.domain"
+                  @click="retryWikiDomain(selectedWikiDomain)"
+                >
+                  <RefreshCw :size="14" :class="{ 'spin': wikiDispatchLoading === selectedWikiDomain.domain }" />
+                  <span>{{ wikiDispatchLoading === selectedWikiDomain.domain ? '重试中' : '重试' }}</span>
                 </button>
                 <button
                   type="button"
@@ -211,7 +347,7 @@
                   @click="controlWikiMonitorTask(selectedWikiDomain, 'pause')"
                 >
                   <Pause :size="14" />
-                  <span>{{ canPauseWikiDomain(selectedWikiDomain) ? (wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '暂停') : '暂停不可用' }}</span>
+                  <span>{{ canPauseWikiDomain(selectedWikiDomain) ? (wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '暂停任务') : '暂停不可用' }}</span>
                 </button>
                 <button
                   type="button"
@@ -220,16 +356,16 @@
                   @click="controlWikiMonitorTask(selectedWikiDomain, 'resume')"
                 >
                   <Play :size="14" />
-                  <span>{{ canResumeWikiDomain(selectedWikiDomain) ? (wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '继续') : '继续不可用' }}</span>
+                  <span>{{ canResumeWikiDomain(selectedWikiDomain) ? (wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '继续任务') : '继续不可用' }}</span>
                 </button>
                 <button
                   type="button"
                   class="inline-report-button inline-report-button--danger"
                   :disabled="wikiControlLoading === selectedWikiDomain.domain"
-                  @click="controlWikiMonitorTask(selectedWikiDomain, 'cancel')"
+                  @click="openCancelConfirm(selectedWikiDomain)"
                 >
                   <CircleStop :size="14" />
-                  <span>{{ canCancelWikiDomain(selectedWikiDomain) ? (wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '取消') : '取消不可用' }}</span>
+                  <span>{{ canCancelWikiDomain(selectedWikiDomain) ? (wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '终止并清理文件') : '终止不可用' }}</span>
                 </button>
               </div>
             </div>
@@ -247,10 +383,20 @@
                 class="btn btn-primary"
                 :disabled="!selectedWikiCanExecute || wikiDispatchLoading === selectedWikiDomain.domain"
                 :title="selectedWikiActionDisabledReason || selectedWikiOperationHint"
-                @click="executeWikiMonitorTask(selectedWikiDomain)"
+                @click="openDispatchConfirm(selectedWikiDomain)"
               >
                 <RefreshCw :size="16" :class="{ 'spin': wikiDispatchLoading === selectedWikiDomain.domain }" />
                 <span>{{ wikiDomainPrimaryActionLabel(selectedWikiDomain) }}</span>
+              </button>
+              <button
+                v-if="canRetryWikiDomain(selectedWikiDomain)"
+                type="button"
+                class="inline-report-button inline-report-button--warning"
+                :disabled="wikiDispatchLoading === selectedWikiDomain.domain"
+                @click="retryWikiDomain(selectedWikiDomain)"
+              >
+                <RefreshCw :size="14" :class="{ 'spin': wikiDispatchLoading === selectedWikiDomain.domain }" />
+                <span>{{ wikiDispatchLoading === selectedWikiDomain.domain ? '重试中' : '重试' }}</span>
               </button>
               <button
                 v-if="canPauseWikiDomain(selectedWikiDomain)"
@@ -260,7 +406,7 @@
                 @click="controlWikiMonitorTask(selectedWikiDomain, 'pause')"
               >
                 <Pause :size="14" />
-                <span>{{ wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '暂停' }}</span>
+                <span>{{ wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '暂停任务' }}</span>
               </button>
               <button
                 v-if="canResumeWikiDomain(selectedWikiDomain)"
@@ -270,7 +416,7 @@
                 @click="controlWikiMonitorTask(selectedWikiDomain, 'resume')"
               >
                 <Play :size="14" />
-                <span>{{ wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '继续' }}</span>
+                <span>{{ wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '继续任务' }}</span>
               </button>
               <button
                 v-if="isPreviewableReportPath(selectedWikiReportPath)"
@@ -283,7 +429,7 @@
                 <span>打开报告</span>
               </button>
               <button
-                v-if="isPreviewableReportPath(selectedWikiProgressPath)"
+                v-if="isPreviewableProgressPath(selectedWikiProgressPath)"
                 type="button"
                 class="inline-report-button"
                 :disabled="isPreviewLoading(selectedWikiProgressPath)"
@@ -291,6 +437,16 @@
               >
                 <FileJson :size="14" />
                 <span>查看进度文件</span>
+              </button>
+              <button
+                v-if="isPreviewableGeneratedJsonPath(selectedWikiOutputPath)"
+                type="button"
+                class="inline-report-button"
+                :disabled="isPreviewLoading(selectedWikiOutputPath)"
+                @click="openReportPreview(selectedWikiOutputPath)"
+              >
+                <FileJson :size="14" />
+                <span>打开爬取文件</span>
               </button>
               <button type="button" class="inline-report-button" @click="toggleCommandPreview(selectedWikiDomain)">
                 <FileStack :size="14" />
@@ -307,12 +463,21 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
             </div>
             <div v-if="latestDispatchResult && (latestDispatchBelongsToSelected || !latestDispatchMatchedDomain)" class="wiki-dispatch-feedback">
               <span>{{ latestDispatchBelongsToSelected ? '当前域派发反馈' : '最新派发反馈' }}</span>
-              <strong>{{ latestDispatchResult.message || statusLabel(latestDispatchResult.status) }}</strong>
+              <strong>{{ dispatchFeedbackMessage(latestDispatchResult) }}</strong>
               <dl>
-                <div><dt>dispatchId</dt><dd>{{ latestDispatchResult.dispatchId || '未返回' }}</dd></div>
-                <div><dt>status</dt><dd>{{ latestDispatchResult.status || '未返回' }}</dd></div>
-                <div><dt>progressPath</dt><dd>{{ dispatchResultPath('progress') || '未返回' }}</dd></div>
-                <div><dt>reportPath</dt><dd>{{ dispatchResultPath('report') || '未返回' }}</dd></div>
+                <div><dt>派发编号</dt><dd>{{ latestDispatchResult.dispatchId || '未返回' }}</dd></div>
+                <div><dt>派发状态</dt><dd>{{ statusLabel(latestDispatchResult.status) }}</dd></div>
+                <div v-if="latestDispatchResult.blockedByDispatchId || latestDispatchResult.blockedByActionId">
+                  <dt>阻塞任务</dt>
+                  <dd>{{ dispatchBlockerLabel(latestDispatchResult) }}</dd>
+                </div>
+                <div v-if="latestDispatchResult.blockedSince">
+                  <dt>阻塞开始</dt>
+                  <dd>{{ formatDate(latestDispatchResult.blockedSince) }}</dd>
+                </div>
+                <div><dt>进度文件</dt><dd>{{ dispatchResultPath('progress') || '未返回' }}</dd></div>
+                <div><dt>报告文件</dt><dd>{{ dispatchResultPath('report') || '未返回' }}</dd></div>
+                <div v-if="latestDispatchResult.lockPath"><dt>锁文件</dt><dd>{{ latestDispatchResult.lockPath }}</dd></div>
               </dl>
               <div class="wiki-dispatch-feedback__actions">
                 <button
@@ -324,7 +489,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
                   打开派发报告
                 </button>
                 <button
-                  v-if="isPreviewableReportPath(dispatchResultPath('progress'))"
+                  v-if="isPreviewableProgressPath(dispatchResultPath('progress'))"
                   type="button"
                   class="inline-report-button inline-report-button--compact"
                   @click="openReportPreview(dispatchResultPath('progress'))"
@@ -335,7 +500,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
             </div>
             <div v-else-if="latestDispatchResult" class="wiki-dispatch-feedback wiki-dispatch-feedback--muted">
               <span>上一条派发</span>
-              <strong>{{ latestDispatchResult.domain || latestDispatchResult.actionId || '未归属派发' }} · {{ latestDispatchResult.status || 'unknown' }}</strong>
+              <strong>{{ latestDispatchResult.domain || latestDispatchResult.actionId || '未归属派发' }} · {{ statusLabel(latestDispatchResult.status) }}</strong>
               <button
                 v-if="latestDispatchMatchedDomain"
                 type="button"
@@ -371,7 +536,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               >
                 <span class="recovery-domain__head">
                   <strong>{{ domain.label || domain.domain || '未知域' }}</strong>
-                  <em class="status-pill" :class="statusTone(wikiDomainFlowStatus(domain))">{{ wikiDomainFlowLabel(domain) }}</em>
+                  <em class="status-pill domain-flow-pill" :class="statusTone(wikiDomainFlowStatus(domain))">{{ wikiDomainFlowLabel(domain) }}</em>
                 </span>
                 <small>{{ wikiDomainHeartbeatLabel(domain) }}</small>
                 <span class="recovery-domain__meta">
@@ -392,14 +557,14 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
 
           <section v-if="selectedWikiDomain" class="panel recovery-detail">
             <div>
-              <h2>{{ selectedWikiDomain.label || selectedWikiDomain.domain || '未知域' }} 详情</h2>
+              <h2>{{ selectedDomainDisplayName }} 域详情</h2>
               <p>{{ selectedWikiDomainDetailCopy }}</p>
               <div class="reason-list">
                 <div class="reason-row">
                   <span>Wiki</span>
                   <strong>{{ wikiDomainManualHint(selectedWikiDomain) }}</strong>
                   <button
-                    v-if="isPreviewableReportPath(selectedWikiProgressPath)"
+                    v-if="isPreviewableProgressPath(selectedWikiProgressPath)"
                     type="button"
                     class="inline-report-button inline-report-button--compact"
                     @click="openReportPreview(selectedWikiProgressPath)"
@@ -430,28 +595,44 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
             </div>
             <div class="wiki-domain-detail-grid health-stack">
               <article class="wiki-detail-card">
-                <span>sourceKey</span>
+                <span>数据来源键</span>
                 <strong>{{ selectedWikiDomain.sourceKey || '未配置' }}</strong>
               </article>
               <article class="wiki-detail-card">
-                <span>locator</span>
+                <span>定位规则</span>
                 <strong>{{ selectedWikiDomain.locator || '未配置' }}</strong>
               </article>
               <article class="wiki-detail-card">
-                <span>lastCheckedAt</span>
+                <span>上次检查</span>
                 <strong>{{ formatDate(selectedWikiDomain.lastCheckedAt) }}</strong>
               </article>
               <article class="wiki-detail-card">
-                <span>recommendedActionId</span>
+                <span>白名单动作 ID</span>
                 <strong>{{ selectedWikiDomain.recommendedActionId || '无白名单动作' }}</strong>
               </article>
               <article class="wiki-detail-card">
-                <span>progressPath</span>
+                <span>最大并发</span>
+                <strong>{{ domainMaxConcurrentLabel(selectedWikiDomain) }}</strong>
+              </article>
+              <article class="wiki-detail-card">
+                <span>熔断</span>
+                <strong>{{ domainFailureCircuitBreakerLabel(selectedWikiDomain) }}</strong>
+              </article>
+              <article class="wiki-detail-card">
+                <span>进度文件</span>
                 <strong>{{ selectedWikiProgressPath || selectedWikiDomain.progressPath || '未生成' }}</strong>
               </article>
               <article class="wiki-detail-card">
-                <span>report</span>
+                <span>报告文件</span>
                 <strong>{{ selectedWikiReportPath || '等待生成' }}</strong>
+              </article>
+              <article class="wiki-detail-card">
+                <span>爬取文件</span>
+                <strong>{{ selectedWikiOutputPath || '等待生成' }}</strong>
+              </article>
+              <article class="wiki-detail-card">
+                <span>技术标识</span>
+                <strong>{{ selectedWikiDomain.domain || selectedWikiDomain.recommendedActionId || '未配置' }}</strong>
               </article>
             </div>
           </section>
@@ -472,10 +653,10 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
                 class="btn btn-primary"
                 :disabled="!canExecuteWikiDispatch(dispatch) || wikiDispatchLoading === dispatch.domain"
                 :title="wikiDispatchDisabledReason(dispatch)"
-                @click="executeWikiMonitorTask(dispatch)"
+                @click="openDispatchConfirm(wikiDispatchDomain(dispatch))"
               >
                 <RefreshCw :size="16" :class="{ 'spin': wikiDispatchLoading === dispatch.domain }" />
-                <span>{{ wikiDispatchLoading === dispatch.domain ? '派发中' : '执行刷新' }}</span>
+                <span>{{ wikiDispatchLoading === dispatch.domain ? '派发中' : '派发刷新' }}</span>
               </button>
             </article>
           </section>
@@ -486,8 +667,8 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
     <aside class="wiki-domain-download-window" :class="{ 'wiki-domain-download-window--collapsed': !domainSidebarExpanded }">
       <div class="wiki-domain-download-window__head">
         <div>
-          <h2>爬取进度</h2>
-          <p v-if="domainSidebarExpanded">快速定位域是否正常工作</p>
+          <h2>域快速定位</h2>
+          <p v-if="domainSidebarExpanded">点击域后定位到工作台</p>
         </div>
         <button
           type="button"
@@ -512,7 +693,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               <strong>{{ domain.label || domain.domain || '未知域' }}</strong>
               <small>{{ rowProgressNumbers(wikiDomainProgressRow(domain)) }}</small>
             </span>
-            <em class="status-pill" :class="statusTone(wikiDomainFlowStatus(domain))">{{ wikiDomainFlowLabel(domain) }}</em>
+            <em class="status-pill domain-flow-pill" :class="statusTone(wikiDomainFlowStatus(domain))">{{ wikiDomainFlowLabel(domain) }}</em>
           </span>
           <span class="progress-track">
             <span :style="{ width: rowProgress(wikiDomainProgressRow(domain)) }" :class="statusTone(rowStatus(wikiDomainProgressRow(domain)))" />
@@ -541,13 +722,23 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               <span>查看</span>
             </button>
             <button
+              v-if="canRetryWikiDomain(domain)"
+              type="button"
+              class="inline-report-button inline-report-button--compact inline-report-button--warning"
+              :disabled="wikiDispatchLoading === domain.domain"
+              @click.stop="retryWikiDomain(domain)"
+            >
+              <RefreshCw :size="14" />
+              <span>重试</span>
+            </button>
+            <button
               type="button"
               class="inline-report-button inline-report-button--compact"
               :disabled="!canExecuteWikiDomain(domain) || wikiDispatchLoading === domain.domain"
-              @click.stop="executeWikiMonitorTask(domain)"
+              @click.stop="openDispatchConfirm(domain)"
             >
               <RefreshCw :size="14" />
-              <span>开始</span>
+              <span>派发刷新</span>
             </button>
             <button
               type="button"
@@ -556,7 +747,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               @click.stop="controlWikiMonitorTask(domain, 'pause')"
             >
               <Pause :size="14" />
-              <span>暂停</span>
+              <span>暂停任务</span>
             </button>
             <button
               type="button"
@@ -565,16 +756,16 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               @click.stop="controlWikiMonitorTask(domain, 'resume')"
             >
               <Play :size="14" />
-              <span>继续</span>
+              <span>继续任务</span>
             </button>
             <button
               type="button"
               class="inline-report-button inline-report-button--compact inline-report-button--danger"
               :disabled="!canCancelWikiDomain(domain) || wikiControlLoading === domain.domain"
-              @click.stop="controlWikiMonitorTask(domain, 'cancel')"
+              @click.stop="openCancelConfirm(domain)"
             >
               <CircleStop :size="14" />
-              <span>取消</span>
+              <span>终止并清理</span>
             </button>
           </span>
         </button>
@@ -594,8 +785,8 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
         <section class="section-card monitor-panel">
           <div class="section-head">
             <div>
-              <h2 class="section-card__title">运行中任务</h2>
-              <p class="section-card__subtitle">保留最关键的执行行与心跳，不再展示历史摘要和低价值诊断噪音。</p>
+              <h2 class="section-card__title">任务进度明细</h2>
+              <p class="section-card__subtitle">汇总可操作的进度行、心跳、速度和运行文件；已完成与仅报告行不再挤占上方阶段进度。</p>
             </div>
           </div>
           <div class="table-scroll">
@@ -609,18 +800,20 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
                   <th>待处理</th>
                   <th>速度</th>
                   <th>预计剩余</th>
+                  <th>开始时间</th>
+                  <th>运行时长</th>
                   <th>心跳</th>
                   <th>运行文件</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="row in visibleProgressRowsByPriority" :key="`row-${row.rowKey}`">
+                <tr v-for="row in progressDetailRowsByPriority" :key="`row-${row.rowKey}`">
                   <td>
                     <strong>{{ row.label || row.id || '未知任务' }}</strong>
                     <small>{{ row.id || safeActionFallbackLabel(row.action) }}</small>
                   </td>
-                  <td>{{ row.lane || row.action?.runner || '--' }}</td>
-                  <td><span class="status-pill" :class="statusTone(rowStatus(row))">{{ rowStatus(row) || 'unknown' }}</span></td>
+                  <td>{{ progressRowLaneLabel(row) }}</td>
+                  <td><span class="status-pill" :class="statusTone(rowStatus(row))">{{ statusLabel(rowStatus(row)) }}</span></td>
                   <td>
                     <strong>{{ rowProgressLabel(row) }}</strong>
                     <small v-if="row.progressKind || row.action?.phase || row.queueState">{{ [row.progressKind, row.action?.phase, row.queueState].filter(Boolean).join(' · ') }}</small>
@@ -629,6 +822,8 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
                   <td>{{ rowPendingLabel(row) }}</td>
                   <td>{{ rowSpeedLabel(row) }}</td>
                   <td>{{ rowEtaLabel(row) }}</td>
+                  <td>{{ formatDate(rowStartedAt(row)) }}</td>
+                  <td>{{ formatElapsedDuration(taskElapsedMs(row)) }}</td>
                   <td>{{ rowHeartbeatLabel(row) }}</td>
                   <td>
                     <code v-if="rowSourcePath(row)">{{ rowSourcePath(row) }}</code>
@@ -638,8 +833,8 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
                     <span v-if="!rowSourcePath(row) && !row.action?.heartbeatPath && !row.action?.snapshotPath && !row.action?.childStatusPath">--</span>
                   </td>
                 </tr>
-                <tr v-if="!visibleProgressRowsByPriority.length">
-                  <td colspan="9" class="table-empty">暂无 action 明细</td>
+                <tr v-if="!progressDetailRowsByPriority.length">
+                  <td colspan="11" class="table-empty">暂无进度行</td>
                 </tr>
               </tbody>
             </table>
@@ -647,6 +842,53 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
         </section>
       </div>
 
+    </section>
+
+    <section v-if="dispatchConfirmDomain" class="cancel-confirm-panel" role="dialog" aria-modal="true" aria-label="重新派发确认">
+      <div class="cancel-confirm-panel__body">
+        <span class="ops-card__label">派发确认</span>
+        <h2>确认重新派发：{{ wikiDomainChineseName(dispatchConfirmDomain) }}</h2>
+        <p>该操作会重新启动对应 Wiki 域刷新。为防止误触，请先确认当前心跳、进度文件和已下载文件，再继续派发。</p>
+        <ul>
+          <li><code>动作：{{ dispatchConfirmDomain.recommendedActionId || '未配置' }}</code></li>
+          <li><code>进度：{{ wikiDomainProgressPath(dispatchConfirmDomain) || '未生成' }}</code></li>
+          <li><code>输出：{{ wikiDomainOutputPath(dispatchConfirmDomain) || '等待生成' }}</code></li>
+        </ul>
+        <div class="cancel-confirm-panel__actions">
+          <button type="button" class="inline-report-button" @click="closeDispatchConfirm">暂不派发</button>
+          <button
+            type="button"
+            class="inline-report-button inline-report-button--danger"
+            :disabled="wikiDispatchLoading === dispatchConfirmDomain.domain"
+            @click="confirmWikiDomainDispatch"
+          >
+            确认重新派发
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section v-if="cancelConfirmDomain" class="cancel-confirm-panel" role="dialog" aria-modal="true" aria-label="终止并清理文件确认">
+      <div class="cancel-confirm-panel__body">
+        <span class="ops-card__label">危险操作确认</span>
+        <h2>终止并清理文件：{{ wikiDomainChineseName(cancelConfirmDomain) }}</h2>
+        <p>会停止当前任务，并可能删除已经下载的临时文件、进度文件、报告文件或锁文件。确认前请核对下面的路径。</p>
+        <ul v-if="cancelCleanupPaths.length">
+          <li v-for="path in cancelCleanupPaths" :key="path"><code>{{ path }}</code></li>
+        </ul>
+        <p v-else>当前没有返回具体清理路径，但取消仍可能清理该任务的运行产物。</p>
+        <div class="cancel-confirm-panel__actions">
+          <button type="button" class="inline-report-button" @click="closeCancelConfirm">暂不取消</button>
+          <button
+            type="button"
+            class="inline-report-button inline-report-button--danger"
+            :disabled="wikiControlLoading === cancelConfirmDomain.domain"
+            @click="confirmWikiDomainCancel"
+          >
+            确认终止并清理
+          </button>
+        </div>
+      </div>
     </section>
 
     <div
@@ -671,14 +913,14 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
         <div class="report-preview__meta">
           <span class="status-pill" :class="reportTone(reportPreview?.category)">{{ reportPreview?.category || '报告' }}</span>
           <span class="status-pill" :class="reportPreview?.readable ? 'success' : reportPreviewError ? 'danger' : 'muted'">
-            {{ reportPreviewLoading ? '加载中' : reportPreview?.readable ? '可读' : reportPreviewError ? '错误' : '待处理' }}
+            {{ reportPreviewStatusLabel }}
           </span>
           <span v-if="reportPreview?.truncated" class="status-pill warning">已截断 {{ formatBytes(reportPreview.maxBytes) }}</span>
         </div>
 
         <pre v-if="reportPreview?.readable" class="report-preview__content">{{ reportPreview.content || '' }}</pre>
         <div v-else class="report-preview__empty">
-          {{ reportPreviewLoading ? '正在加载报告预览...' : (reportPreview?.errorMessage || reportPreviewError || '未加载报告内容。') }}
+          {{ reportPreviewEmptyMessage }}
         </div>
       </aside>
     </div>
@@ -707,6 +949,12 @@ import {
   rowStatus,
   sourceSnapshotRowsFromOverview,
 } from '~/utils/crawlerMonitorProgressRows.mjs'
+import {
+  crawlerStatusChineseLabel,
+  wikiCooldownExplanation,
+  wikiDomainChineseName,
+  wikiHeartbeatSummary,
+} from '~/utils/crawlerMonitorDisplay.mjs'
 import type {
   CrawlerMonitorAction,
   CrawlerMonitorDispatchResult,
@@ -739,10 +987,15 @@ const progressControlLoading = ref('')
 const hiddenNoiseKeys = ref<Set<string>>(new Set())
 const wikiActionExpanded = ref(true)
 const domainSidebarExpanded = ref(true)
+const wikiWorkbenchRef = ref<HTMLElement | null>(null)
 const selectedWikiDomainKey = ref('')
 const latestDispatchResult = ref<CrawlerMonitorDispatchResult | null>(null)
 const commandPreviewDomainKey = ref('')
+const cancelConfirmDomainKey = ref('')
+const dispatchConfirmDomainKey = ref('')
 let refreshTimer: ReturnType<typeof setInterval> | null = null
+const refreshFailureStreak = ref(0)
+const authRefreshHalted = ref(false)
 
 async function fetchCrawlerMonitorOverview() {
   const response: any = await get('/admin/crawler-monitor/overview')
@@ -778,15 +1031,45 @@ const progressRows = computed<ProgressRow[]>(() => progressRowsFromOverview(over
 const sourceSnapshotRows = computed<ProgressRow[]>(() => sourceSnapshotRowsFromOverview(overview.value))
 const liveSourceSnapshotActive = computed(() => hasLiveSourceSnapshotProgress(overview.value))
 const visibleProgressRows = computed<ProgressRow[]>(() => progressRows.value
+  .filter(isActiveProgressRow)
+  .filter(isOperationalProgressRow)
+  .filter((row) => rowStatus(row) !== 'completed')
+  .filter((row) => rowStatus(row) !== 'report-only')
+  .filter((row) => row.id !== 'wiki-monitor-domain-smoke')
+  .filter((row) => !isNoiseHidden(noiseKey('progress', row.rowKey || row.id || row.label)))
+)
+const progressDetailRows = computed<ProgressRow[]>(() => progressRows.value
   .filter(isSignalTask)
   .filter((row) => row.id !== 'wiki-monitor-domain-smoke')
   .filter((row) => !isNoiseHidden(noiseKey('progress', row.rowKey || row.id || row.label)))
 )
 const visibleProgressRowsByPriority = computed<ProgressRow[]>(() => sortRowsByPriority(visibleProgressRows.value))
+const progressDetailRowsByPriority = computed<ProgressRow[]>(() => sortRowsByPriority(progressDetailRows.value))
 const visibleWikiDomainRowsByPriority = computed<CrawlerMonitorWikiDomain[]>(() => sortWikiDomainsByPriority(visibleWikiDomainRows.value))
+const runtimeStateCards = computed(() => [
+  runtimeStateCard('daemon', '守护', overview.value?.daemon),
+  runtimeStateCard('scheduler', '调度', overview.value?.scheduler),
+  runtimeStateCard('lock', '锁', overview.value?.lock),
+])
+const overviewWithPlanBFields = computed<any>(() => overview.value || {})
+const wikiMonitorWithPlanBFields = computed<any>(() => wikiMonitor.value || {})
+const staleHeartbeatRows = computed<any[]>(() => Array.isArray(overview.value?.staleHeartbeats || overviewWithPlanBFields.value.staleHeartbeats) ? (overview.value?.staleHeartbeats || overviewWithPlanBFields.value.staleHeartbeats) : [])
+const historyRows = computed<any[]>(() => Array.isArray(overview.value?.history) ? overview.value!.history!.slice(0, 5) : [])
+const recentReportRows = computed<any[]>(() => Array.isArray(overview.value?.recentReports) ? overview.value!.recentReports!.slice(0, 5) : [])
+const imageNormalizationRows = computed(() => imageNormalizationMetricRows(overview.value?.imageNormalization))
+const dispatchPlanRows = computed<any[]>(() => Array.isArray(wikiMonitor.value?.dispatchPlan || wikiMonitorWithPlanBFields.value.dispatchPlan) ? (wikiMonitor.value?.dispatchPlan || wikiMonitorWithPlanBFields.value.dispatchPlan) : [])
+const wikiDispatchModeLabel = computed(() => statusLabel(wikiMonitor.value?.dispatchMode || 'manual'))
+const wikiAutoDispatchLabel = computed(() => wikiMonitor.value?.autoDispatchEnabled ? '已开启' : '已关闭')
+const wikiPendingApprovalCount = computed(() => formatNumber(wikiMonitor.value?.summary?.pendingApprovalCount ?? pendingWikiDispatches.value.length))
 const progressRowCount = computed(() => progressRows.value.length)
 const liveProgressActive = computed(() => progressRows.value.some((row) => ['running', 'stalled'].includes(rowStatus(row))))
 const activeRefreshIntervalMs = computed(() => liveProgressActive.value ? 3000 : 10000)
+const effectiveRefreshIntervalMs = computed(() => {
+  const base = activeRefreshIntervalMs.value
+  if (refreshFailureStreak.value <= 0) return base
+  const factor = Math.min(2 ** refreshFailureStreak.value, 16)
+  return Math.min(base * factor, 60000)
+})
 const refreshStale = computed(() => Boolean(overview.value?.refreshStale))
 const latestRunStatus = computed(() => {
   if (!latestRun.value.found) return 'missing'
@@ -828,15 +1111,62 @@ const selectedWikiProgressPath = computed(() => selectedWikiProgressRow.value
   : selectedWikiDomain.value?.progressPath || ''
 )
 const selectedWikiReportPath = computed(() => selectedWikiProgressRow.value?.reportPath || '')
+const selectedWikiOutputPath = computed(() => selectedWikiProgressRow.value?.outputPath || selectedWikiProgressRow.value?.progressPayload?.outputPath || '')
 const selectedWikiProgressNumbers = computed(() => rowProgressNumbers(selectedWikiProgressRow.value))
 const selectedWikiHeartbeatAtLabel = computed(() => rowHeartbeatAtLabel(selectedWikiProgressRow.value))
 const selectedWikiUpdatedAtLabel = computed(() => rowUpdatedAtLabel(selectedWikiProgressRow.value))
+const reportPreviewStatusLabel = computed(() => {
+  if (reportPreviewLoading.value) return '加载中'
+  if (reportPreview.value?.readable) return '可读'
+  const message = reportPreview.value?.errorMessage || reportPreviewError.value
+  if (isMissingReportError(message)) return '报告未找到'
+  if (message) return '读取错误'
+  return '待处理'
+})
+const reportPreviewEmptyMessage = computed(() => {
+  if (reportPreviewLoading.value) return '正在加载报告预览...'
+  const message = reportPreview.value?.errorMessage || reportPreviewError.value
+  if (isMissingReportError(message)) return `报告未找到：${message}。请先确认任务是否已生成报告，或复制路径在本地检查。`
+  if (message) return `报告读取失败：${message}。请复制路径在本地检查，或确认该路径是否允许预览。`
+  return '未加载报告内容。'
+})
 const selectedWikiPathSummary = computed(() => {
   const parts = [
     selectedWikiProgressPath.value ? `进度 ${selectedWikiProgressPath.value}` : '',
     selectedWikiReportPath.value ? `报告 ${selectedWikiReportPath.value}` : '',
+    selectedWikiOutputPath.value ? `爬取文件 ${selectedWikiOutputPath.value}` : '',
   ].filter(Boolean)
   return parts.join(' / ') || '未生成进度或报告文件'
+})
+const selectedDomainDisplayName = computed(() => selectedWikiDomain.value ? wikiDomainChineseName(selectedWikiDomain.value) : '暂无可选域')
+const selectedDomainStatusLabel = computed(() => selectedWikiDomain.value ? crawlerStatusChineseLabel(wikiDomainFlowStatus(selectedWikiDomain.value)) : '未知')
+const selectedDomainCooldownExplanation = computed(() => selectedWikiDomain.value && isWikiDomainCoolingDown(selectedWikiDomain.value) ? wikiCooldownExplanation(selectedWikiDomain.value) : '')
+const selectedDomainHeartbeatRaw = computed(() => wikiHeartbeatSummary(selectedWikiProgressRow.value))
+const selectedDomainHeartbeatMessage = computed(() => {
+  const summary = selectedDomainHeartbeatRaw.value
+  if (!summary.time) return summary.message
+  const localTime = formatDate(summary.time)
+  return summary.age ? `最后心跳：${localTime}（${summary.age}）` : `最后心跳：${localTime}`
+})
+const selectedDomainHeartbeatState = computed(() => selectedDomainHeartbeatRaw.value.state)
+const selectedDomainStartedAtLabel = computed(() => formatDate(rowStartedAt(selectedWikiProgressRow.value)))
+const selectedDomainElapsedLabel = computed(() => formatElapsedDuration(taskElapsedMs(selectedWikiProgressRow.value)))
+const selectedDomainNextActionLabel = computed(() => {
+  const domain = selectedWikiDomain.value
+  if (!domain) return '暂无可操作域'
+  if (canRetryWikiDomain(domain)) return '手动重新派发'
+  if (canResumeWikiDomain(domain)) return '继续任务'
+  if (canPauseWikiDomain(domain)) return '暂停任务'
+  if (canExecuteWikiDomain(domain)) return '派发刷新'
+  if (isWikiDomainCoolingDown(domain)) return '等待冷却'
+  return '暂不可执行'
+})
+const selectedDomainOperatorSummary = computed(() => {
+  const domain = selectedWikiDomain.value
+  if (!domain) return '请选择一个域查看可执行动作。'
+  const reason = selectedWikiActionDisabledReason.value
+  if (reason) return `${selectedDomainDisplayName.value} 当前${selectedDomainStatusLabel.value}，${reason}。${selectedDomainHeartbeatMessage.value}。`
+  return `${selectedDomainDisplayName.value} 当前${selectedDomainStatusLabel.value}，可以执行：${selectedDomainNextActionLabel.value}。${selectedDomainHeartbeatMessage.value}。`
 })
 const selectedWikiRecoveryTitle = computed(() => selectedWikiDomain.value ? wikiDomainRecoveryTitle(selectedWikiDomain.value) : '暂无可选域')
 const selectedWikiRecoveryCopy = computed(() => selectedWikiDomain.value ? wikiDomainRecoveryCopy(selectedWikiDomain.value) : '当前没有可展示的 Wiki 域。')
@@ -879,6 +1209,45 @@ const latestDispatchMatchedDomain = computed(() => {
     return Boolean(domain.recommendedActionId && result.actionId && domain.recommendedActionId === result.actionId)
   }) || null
 })
+const cancelConfirmDomain = computed(() => {
+  if (!cancelConfirmDomainKey.value) return null
+  return visibleWikiDomainRows.value.find((domain) => wikiDomainKey(domain) === cancelConfirmDomainKey.value) || null
+})
+const dispatchConfirmDomain = computed(() => {
+  if (!dispatchConfirmDomainKey.value) return null
+  return visibleWikiDomainRows.value.find((domain) => wikiDomainKey(domain) === dispatchConfirmDomainKey.value) || null
+})
+const matchingPendingDispatch = computed(() => {
+  const domain = cancelConfirmDomain.value
+  if (!domain) return null
+  const key = wikiDomainKey(domain)
+  return pendingWikiDispatches.value.find((dispatch) => {
+    if (dispatch.domain && dispatch.domain === domain.domain) return true
+    if (dispatch.actionId && dispatch.actionId === domain.recommendedActionId) return true
+    const row = wikiDomainProgressRow(domain)
+    const progressPath = row ? rowSourcePath(row) : domain.progressPath
+    if (dispatch.progressPath && dispatch.progressPath === progressPath) return true
+    return wikiDomainKey({ domain: dispatch.domain || '', label: dispatch.domain || '' }) === key
+  }) || null
+})
+const cancelCleanupPaths = computed(() => {
+  const domain = cancelConfirmDomain.value
+  if (!domain) return []
+  const row = wikiDomainProgressRow(domain)
+  const pending = matchingPendingDispatch.value
+  const latest = latestDispatchBelongsToSelected.value ? latestDispatchResult.value : null
+  const values = [
+    row ? rowSourcePath(row) : domain.progressPath,
+    row?.reportPath,
+    pending?.progressPath,
+    pending?.reportPath,
+    pending?.lockPath,
+    latest?.progressPath,
+    latest?.reportPath,
+    latest?.lockPath,
+  ]
+  return Array.from(new Set(values.filter((value): value is string => Boolean(value))))
+})
 
 watch(visibleWikiDomainRowsByPriority, (rows) => {
   if (!rows.length) {
@@ -899,17 +1268,23 @@ onMounted(async () => {
     }
   }
   syncAutoRefresh()
+  if (import.meta.client) {
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+  }
 })
 
 onUnmounted(() => {
   clearRefreshTimer()
+  if (import.meta.client) {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }
 })
 
 watch(autoRefresh, () => {
   syncAutoRefresh()
 })
 
-watch(activeRefreshIntervalMs, () => {
+watch(effectiveRefreshIntervalMs, () => {
   syncAutoRefresh()
 })
 
@@ -919,8 +1294,19 @@ async function loadOverview() {
     await refreshOverview()
     overview.value = initialOverview.value
     lastOverviewRefreshAt.value = new Date().toISOString()
+    refreshFailureStreak.value = 0
+    authRefreshHalted.value = false
   } catch (error: any) {
     console.error('Failed to load crawler monitor overview:', error)
+    const statusCode = Number(error?.statusCode ?? error?.response?.status ?? error?.data?.statusCode ?? 0)
+    if (statusCode === 401 || statusCode === 403) {
+      authRefreshHalted.value = true
+      autoRefresh.value = false
+      clearRefreshTimer()
+      showToast('登录已失效或无访问权限，已停止自动刷新，请重新登录', 'error')
+      return
+    }
+    refreshFailureStreak.value = Math.min(refreshFailureStreak.value + 1, 6)
     showToast(error?.data?.message || error?.message || '加载爬取监控失败', 'error')
   } finally {
     loading.value = false
@@ -928,7 +1314,7 @@ async function loadOverview() {
 }
 
 async function openReportPreview(path?: string | null) {
-  if (!isPreviewableReportPath(path)) return
+  if (!isPreviewableReportPath(path) && !isPreviewableProgressPath(path) && !isPreviewableGeneratedJsonPath(path)) return
   selectedReportPath.value = path || null
   reportPreviewLoading.value = true
   reportPreviewError.value = ''
@@ -955,6 +1341,12 @@ function wikiDomainKey(domain: CrawlerMonitorWikiDomain | null | undefined) {
 function selectWikiDomain(domain: CrawlerMonitorWikiDomain | null | undefined) {
   if (!domain) return
   selectedWikiDomainKey.value = wikiDomainKey(domain)
+  wikiActionExpanded.value = true
+  if (import.meta.client) {
+    nextTick(() => {
+      wikiWorkbenchRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
 }
 
 function canExecuteWikiDomain(domain: CrawlerMonitorWikiDomain) {
@@ -978,7 +1370,7 @@ function canCancelWikiDomain(domain: CrawlerMonitorWikiDomain) {
 }
 
 function canRetryWikiDomain(domain: CrawlerMonitorWikiDomain) {
-  return ['failed', 'stalled', 'error'].includes(wikiDomainFlowStatus(domain)) && Boolean(domain.recommendedActionId)
+  return wikiDomainFlowStatus(domain) === 'failed' && Boolean(domain.recommendedActionId)
 }
 
 function wikiDomainControlStatus(domain: CrawlerMonitorWikiDomain) {
@@ -999,7 +1391,7 @@ function wikiDomainFlowLabel(domain: CrawlerMonitorWikiDomain) {
   const status = wikiDomainFlowStatus(domain)
   if (status === 'running') return wikiDispatchLoading.value === domain.domain ? '派发中' : '运行中'
   if (status === 'stalled') return '心跳过期'
-  if (status === 'failed' || status === 'error') return '失败可重试'
+  if (status === 'failed' || status === 'error') return '需人工重派'
   if (status === 'paused') return '已暂停'
   if (status === 'cancelled') return '已取消'
   if (status === 'pending') return '待确认'
@@ -1014,7 +1406,7 @@ function wikiDomainHeartbeatStatus(domain: CrawlerMonitorWikiDomain) {
   const row = wikiDomainProgressRow(domain)
   if (!row) return 'missing'
   if (row.progressStale || rowStatus(row) === 'stalled') return 'stale'
-  if (row.progressHeartbeatAt || row.action?.lastHeartbeatAt || row.updatedAt) return 'ok'
+  if (rowHeartbeatAt(row) || row.updatedAt) return 'ok'
   return 'missing'
 }
 
@@ -1035,20 +1427,20 @@ function wikiDomainHeartbeatLabel(domain: CrawlerMonitorWikiDomain) {
 
 function wikiDomainPrimaryActionLabel(domain: CrawlerMonitorWikiDomain) {
   if (wikiDispatchLoading.value === domain.domain) return '派发中'
-  if (canRetryWikiDomain(domain)) return '重试'
-  return '执行刷新'
+  if (canRetryWikiDomain(domain)) return '重新派发'
+  return '派发刷新'
 }
 
 function wikiDomainRecoveryTitle(domain: CrawlerMonitorWikiDomain) {
   const status = wikiDomainFlowStatus(domain)
   if (status === 'running') return '继续观察运行'
-  if (status === 'stalled') return '心跳过期，优先重试'
-  if (status === 'failed' || status === 'error') return '失败可重试'
+  if (status === 'stalled') return '心跳过期，人工确认后重派'
+  if (status === 'failed' || status === 'error') return '失败，人工确认后重派'
   if (status === 'paused') return '继续执行'
-  if (status === 'pending' || status === 'ready' || status === 'changed') return '手动执行刷新'
+  if (status === 'pending' || status === 'ready' || status === 'changed') return '手动派发刷新'
   if (status === 'blocked') return '已阻断，查看原因'
   if (status === 'completed') return '打开报告复核'
-  return '缺少进度，先执行刷新'
+  return '缺少进度，先派发刷新'
 }
 
 function wikiDomainRecoveryCopy(domain: CrawlerMonitorWikiDomain) {
@@ -1065,12 +1457,18 @@ function wikiDomainOperationHint(domain: CrawlerMonitorWikiDomain) {
   if (canPauseWikiDomain(domain)) return '当前运行中，可暂停；也可以继续观察心跳和进度。'
   if (canResumeWikiDomain(domain)) return '当前已暂停，可继续执行。'
   if (canExecuteWikiDomain(domain)) return wikiDomainManualHint(domain)
-  return wikiDomainDisabledReason(domain) || '当前没有可用操作。'
+  return wikiDomainDisabledReason(domain) || '当前没有可用的运行控制。'
 }
 
 function wikiDomainReportPath(domain: CrawlerMonitorWikiDomain | null | undefined) {
   if (!domain) return ''
   return wikiDomainProgressRow(domain)?.reportPath || ''
+}
+
+function wikiDomainOutputPath(domain: CrawlerMonitorWikiDomain | null | undefined) {
+  if (!domain) return ''
+  const row = wikiDomainProgressRow(domain)
+  return row?.outputPath || row?.progressPayload?.outputPath || ''
 }
 
 function wikiDomainProgressPath(domain: CrawlerMonitorWikiDomain | null | undefined) {
@@ -1094,6 +1492,40 @@ function selectLatestDispatchDomain() {
   if (latestDispatchMatchedDomain.value) {
     selectWikiDomain(latestDispatchMatchedDomain.value)
   }
+}
+
+function openCancelConfirm(domain: CrawlerMonitorWikiDomain | null | undefined) {
+  if (!domain || !canCancelWikiDomain(domain)) return
+  selectWikiDomain(domain)
+  cancelConfirmDomainKey.value = wikiDomainKey(domain)
+}
+
+function openDispatchConfirm(domain: CrawlerMonitorWikiDomain | null | undefined) {
+  if (!domain || !canExecuteWikiDomain(domain)) return
+  selectWikiDomain(domain)
+  dispatchConfirmDomainKey.value = wikiDomainKey(domain)
+}
+
+function closeCancelConfirm() {
+  cancelConfirmDomainKey.value = ''
+}
+
+function closeDispatchConfirm() {
+  dispatchConfirmDomainKey.value = ''
+}
+
+async function confirmWikiDomainDispatch() {
+  const domain = dispatchConfirmDomain.value
+  if (!domain) return
+  await executeWikiMonitorTask(domain)
+  closeDispatchConfirm()
+}
+
+async function confirmWikiDomainCancel() {
+  const domain = cancelConfirmDomain.value
+  if (!domain) return
+  await controlWikiMonitorTask(domain, 'cancel')
+  closeCancelConfirm()
 }
 
 function dispatchResultPath(kind: 'progress' | 'report' | 'lock') {
@@ -1126,8 +1558,16 @@ function wikiDomainDisabledReason(domain: CrawlerMonitorWikiDomain) {
   if (domain.status === 'blocked') return '该域任务被阻断'
   if (domain.status === 'failed') return ''
   if (domain.pauseReason) return domain.pauseReason
-  if (domain.cooldownMinutes && domain.lastAutoRunAt) return `冷却中：${domain.cooldownMinutes} 分钟`
+  if (isWikiDomainCoolingDown(domain)) return `冷却中：${domain.cooldownMinutes} 分钟`
   return ''
+}
+
+function isWikiDomainCoolingDown(domain: CrawlerMonitorWikiDomain) {
+  const minutes = Number(domain.cooldownMinutes || 0)
+  if (!minutes || !domain.lastAutoRunAt) return false
+  const lastMs = Date.parse(domain.lastAutoRunAt)
+  if (!Number.isFinite(lastMs)) return false
+  return Date.now() < lastMs + minutes * 60000
 }
 
 function wikiDomainManualHint(domain: CrawlerMonitorWikiDomain) {
@@ -1138,12 +1578,20 @@ function wikiDomainManualHint(domain: CrawlerMonitorWikiDomain) {
 
 function wikiDomainProgressRow(domain: CrawlerMonitorWikiDomain): ProgressRow | null {
   const progressPath = String(domain.progressPath || '')
+  const actionId = String(domain.recommendedActionId || '')
   const domainKey = String(domain.domain || domain.label || '').toLowerCase()
+  const domainLabel = String(domain.label || '').toLowerCase()
   return progressRows.value.find((row) => {
-    const rowPath = String(row.progressPath || row.progressSource || row.action?.childStatusPath || '')
-    if (progressPath && rowPath && rowPath === progressPath) return true
-    const rowId = String(row.id || row.label || '').toLowerCase()
-    return Boolean(domainKey && rowId.includes(domainKey))
+    const payload = row.progressPayload || {}
+    const rowPath = String(row.progressPath || row.progressSource || row.action?.childStatusPath || row.progressPayload?.childStatusPath || '')
+    const rowActionId = String(row.progressPayload?.actionId || row.action?.id || row.id || '')
+    if (actionId && rowActionId && actionId === rowActionId) return true
+    if (progressPath && rowPath && (rowPath === progressPath || rowPath.endsWith(progressPath))) return true
+    const rowDomain = String(payload.domain || payload.sourceKey || '').toLowerCase()
+    const rowLabel = String(row.label || payload.label || '').toLowerCase()
+    const rowId = String(row.id || row.label || payload.sourceKey || '').toLowerCase()
+    if (domainKey && [rowDomain, rowLabel, rowId].some((value) => value.includes(domainKey))) return true
+    return Boolean(domainLabel && [rowDomain, rowLabel, rowId].some((value) => value.includes(domainLabel)))
   }) || null
 }
 
@@ -1190,20 +1638,19 @@ function wikiDomainKeyFromRow(row: ProgressRow) {
 
 function rowProgressNumbers(row: ProgressRow | null | undefined) {
   if (!row) return '--'
-  const current = finiteNumber(row.overallCurrent ?? row.current)
-  const total = finiteNumber(row.overallTotal ?? row.total)
-  if (current == null || total == null) return '--'
-  return `${current} / ${total}`
+  const basis = rowProgressBasis(row)
+  if (!basis) return '--'
+  return `${formatNumber(basis.current)} / ${formatNumber(basis.total)}`
 }
 
 function rowHeartbeatAtLabel(row: ProgressRow | null | undefined) {
   if (!row) return '--'
-  return formatDate(row.progressHeartbeatAt || row.action?.lastHeartbeatAt || row.updatedAt)
+  return formatDate(rowHeartbeatAt(row))
 }
 
 function rowUpdatedAtLabel(row: ProgressRow | null | undefined) {
   if (!row) return '--'
-  return formatDate(row.progressUpdatedAt || row.updatedAt || row.action?.updatedAt)
+  return formatDate(row.progressUpdatedAt || row.updatedAt || row.progressPayload?.generatedAt || row.progressPayload?.lastHeartbeatAt || row.action?.updatedAt)
 }
 
 function progressRowControlActionId(row: ProgressRow) {
@@ -1227,6 +1674,21 @@ function canResumeProgressRow(row: ProgressRow) {
   return rowStatus(row) === 'paused' && Boolean(progressRowControlActionId(row))
 }
 
+function canTriggerBackfillRow(row: ProgressRow) {
+  const status = rowStatus(row)
+  return String(row.lane || '').toLowerCase() === 'backfill'
+    && Boolean(row.id)
+    && Boolean(backfillDomainForRow(row))
+    && !['running', 'paused', 'stalled'].includes(status)
+}
+
+function backfillDomainForRow(row: ProgressRow) {
+  const id = String(row.id || '')
+  if (id === 'npc-loot-backfill') return 'npc_loot'
+  if (id === 'boss-loot-backfill') return 'boss_loot'
+  return ''
+}
+
 async function executeWikiMonitorTask(target: CrawlerMonitorWikiDomain | CrawlerMonitorWikiDispatch) {
   let domain: CrawlerMonitorWikiDomain | null = null
   let actionId: string | null | undefined = null
@@ -1247,10 +1709,35 @@ async function executeWikiMonitorTask(target: CrawlerMonitorWikiDomain | Crawler
       actionId,
     })
     latestDispatchResult.value = (response?.data ?? response) || null
-    showToast(latestDispatchResult.value?.message || '已派发刷新任务', latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value), latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
     await loadOverview()
   } catch (error: any) {
     showToast(error?.data?.message || error?.message || '派发刷新任务失败', 'error')
+  } finally {
+    wikiDispatchLoading.value = ''
+  }
+}
+
+async function retryWikiDomain(domain: CrawlerMonitorWikiDomain | null | undefined) {
+  if (!domain || !canRetryWikiDomain(domain)) return
+  await executeWikiMonitorRetry(domain)
+}
+
+async function executeWikiMonitorRetry(domain: CrawlerMonitorWikiDomain) {
+  if (!domain.domain || !domain.recommendedActionId) return
+  selectWikiDomain(domain)
+  wikiDispatchLoading.value = domain.domain
+  try {
+    const response: any = await post('/admin/crawler-monitor/dispatch/control', {
+      domain: domain.domain,
+      actionId: domain.recommendedActionId,
+      controlAction: 'retry',
+    })
+    latestDispatchResult.value = (response?.data ?? response) || null
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || '已提交重试', latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    await loadOverview()
+  } catch (error: any) {
+    showToast(error?.data?.message || error?.message || '重试任务失败', 'error')
   } finally {
     wikiDispatchLoading.value = ''
   }
@@ -1267,7 +1754,7 @@ async function controlProgressTask(row: ProgressRow, controlAction: 'pause' | 'r
       controlAction,
     })
     latestDispatchResult.value = (response?.data ?? response) || null
-    showToast(latestDispatchResult.value?.message || (controlAction === 'pause' ? '已暂停任务' : '已继续任务'), latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || (controlAction === 'pause' ? '已暂停任务' : '已继续任务'), latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
     await loadOverview()
   } catch (error: any) {
     showToast(error?.data?.message || error?.message || '控制任务失败', 'error')
@@ -1276,11 +1763,32 @@ async function controlProgressTask(row: ProgressRow, controlAction: 'pause' | 'r
   }
 }
 
-async function controlWikiMonitorTask(domain: CrawlerMonitorWikiDomain, controlAction: 'pause' | 'resume' | 'cancel') {
+async function triggerBackfillRow(row: ProgressRow) {
+  if (!canTriggerBackfillRow(row)) return
+  if (import.meta.client && !window.confirm('确认触发补爬 dry-run 预览？本次不会 apply 写库。')) return
+  const controlKey = progressRowControlKey(row)
+  progressControlLoading.value = controlKey
+  try {
+    const response: any = await post('/admin/crawler-monitor/dispatch', {
+      domain: backfillDomainForRow(row),
+      actionId: row.id,
+    })
+    latestDispatchResult.value = (response?.data ?? response) || null
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || '已触发补爬 dry-run 预览', latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    await loadOverview()
+  } catch (error: any) {
+    showToast(error?.data?.message || error?.message || '触发补爬失败', 'error')
+  } finally {
+    progressControlLoading.value = ''
+  }
+}
+
+async function controlWikiMonitorTask(domain: CrawlerMonitorWikiDomain, controlAction: 'pause' | 'resume' | 'cancel' | 'retry') {
   if (!domain.domain || !domain.recommendedActionId) return
   if (controlAction === 'pause' && !canPauseWikiDomain(domain)) return
   if (controlAction === 'resume' && !canResumeWikiDomain(domain)) return
   if (controlAction === 'cancel' && !canCancelWikiDomain(domain)) return
+  if (controlAction === 'retry' && !canRetryWikiDomain(domain)) return
   selectWikiDomain(domain)
   wikiControlLoading.value = domain.domain
   try {
@@ -1290,8 +1798,8 @@ async function controlWikiMonitorTask(domain: CrawlerMonitorWikiDomain, controlA
       controlAction,
     })
     latestDispatchResult.value = (response?.data ?? response) || null
-    const fallbackMessage = controlAction === 'pause' ? '已暂停任务' : controlAction === 'resume' ? '已继续任务' : '已取消任务'
-    showToast(latestDispatchResult.value?.message || fallbackMessage, latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    const fallbackMessage = controlAction === 'pause' ? '已暂停任务' : controlAction === 'resume' ? '已继续任务' : controlAction === 'retry' ? '已提交重试' : '已取消任务'
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || fallbackMessage, latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
     await loadOverview()
   } catch (error: any) {
     showToast(error?.data?.message || error?.message || '控制任务失败', 'error')
@@ -1330,12 +1838,13 @@ function noiseKey(...parts: Array<string | null | undefined>) {
 
 function syncAutoRefresh() {
   clearRefreshTimer()
-  if (!autoRefresh.value || !import.meta.client) return
+  if (!autoRefresh.value || authRefreshHalted.value || !import.meta.client) return
+  if (typeof document !== 'undefined' && document.hidden) return
   refreshTimer = setInterval(() => {
     if (!loading.value) {
       loadOverview()
     }
-  }, activeRefreshIntervalMs.value)
+  }, effectiveRefreshIntervalMs.value)
 }
 
 function clearRefreshTimer() {
@@ -1345,20 +1854,155 @@ function clearRefreshTimer() {
   }
 }
 
+function handleVisibilityChange() {
+  if (typeof document === 'undefined') return
+  if (document.hidden) {
+    clearRefreshTimer()
+    return
+  }
+  if (autoRefresh.value && !authRefreshHalted.value) {
+    if (!loading.value) {
+      loadOverview()
+    }
+    syncAutoRefresh()
+  }
+}
+
 function statusLabel(status?: string | null) {
   const normalized = String(status || '').toLowerCase()
-  if (normalized === 'completed') return '已完成 completed'
-  if (normalized === 'failed') return '失败 failed'
-  if (normalized === 'running') return '运行中 running'
-  if (normalized === 'paused') return '已暂停 paused'
-  if (normalized === 'pending') return '等待中 pending'
-  if (normalized === 'queued') return '队列中 queued'
-  if (normalized === 'stalled') return '停滞 stalled'
-  if (normalized === 'missing') return '缺失 missing'
-  if (normalized === 'readable') return '可读取 readable'
-  if (normalized === 'read error') return '读取错误 read error'
-  if (normalized === 'report-only') return '仅报告 report-only'
+  if (normalized === 'manual') return '人工'
+  if (normalized === 'auto' || normalized === 'automatic') return '自动'
+  if (normalized === 'enabled') return '已开启'
+  if (normalized === 'disabled') return '已关闭'
+  if (normalized === 'idle') return '空闲'
+  if (normalized === 'sleeping') return '休眠'
+  if (normalized === 'active') return '活跃'
+  if (normalized === 'free') return '空闲'
+  if (normalized === 'completed') return '已完成'
+  if (normalized === 'failed') return '失败'
+  if (normalized === 'running') return '运行中'
+  if (normalized === 'paused') return '已暂停'
+  if (normalized === 'pending') return '等待中'
+  if (normalized === 'queued') return '队列中'
+  if (normalized === 'stalled') return '停滞'
+  if (normalized === 'missing') return '缺失'
+  if (normalized === 'readable') return '可读取'
+  if (normalized === 'read error') return '读取错误'
+  if (normalized === 'report-only') return '仅报告'
+  if (normalized === 'blocked') return '已阻断'
+  if (normalized === 'warning') return '需注意'
+  if (normalized === 'locked') return '被占用'
+  if (normalized === 'cancelled') return '已取消'
+  if (normalized === 'cooldown') return '冷却中'
+  if (normalized === 'accepted') return '已接收'
   return normalized || '未知'
+}
+
+function runtimeStateCard(key: string, label: string, file: any) {
+  const payload = file?.payload || {}
+  const status = payload.status || file?.status || fileStateText(file)
+  const time = payload.generatedAt || payload.updatedAt || file?.updatedAt
+  const next = payload.nextPlannedAt || payload.nextRunAt
+  return {
+    key,
+    label,
+    status,
+    detail: next ? `下次 ${formatDate(next)}` : `更新 ${formatDate(time)}`,
+    path: file?.path || '--',
+  }
+}
+
+function fileStateText(file: any) {
+  if (!file) return 'missing'
+  if (file.readable) return 'readable'
+  if (file.found === false) return 'missing'
+  if (file.errorMessage) return 'read error'
+  return 'unknown'
+}
+
+function imageNormalizationMetricRows(summary: any) {
+  if (!summary || typeof summary !== 'object') return []
+  return [
+    { label: 'NPC 前缀', value: formatNumber(summary.npcWrongPrefixCount) },
+    { label: '射弹前缀', value: formatNumber(summary.projectileWrongPrefixCount) },
+    { label: 'NPC Wiki-only', value: formatNumber(summary.npcWikiOnlyCount) },
+    { label: '射弹 Wiki-only', value: formatNumber(summary.projectileWikiOnlyCount) },
+    { label: '豁免', value: formatNumber(summary.legacyExemptionCount) },
+    { label: '最近同步', value: formatDate(summary.lastCanonicalSyncAt) },
+  ]
+}
+
+function heartbeatKey(heartbeat: any) {
+  return String(heartbeat?.id || heartbeat?.domain || heartbeat?.label || heartbeat?.progressPath || heartbeat?.lastHeartbeatAt || Math.random())
+}
+
+function runStatus(run: any) {
+  if (!run?.found) return 'missing'
+  if (Number(run.failedActions || 0) > 0) return 'failed'
+  if (Number(run.runningActions || 0) > 0) return 'running'
+  if (Number(run.pendingActions || 0) > 0) return 'pending'
+  return 'completed'
+}
+
+function runSummary(run: any) {
+  const total = formatNumber(run?.totalActions)
+  const completed = formatNumber(run?.completedActions)
+  const failed = formatNumber(run?.failedActions)
+  return `总 ${total} / 完成 ${completed} / 失败 ${failed}`
+}
+
+function dispatchPlanSummary(plan: any) {
+  const domains = Array.isArray(plan?.coveredDomains) ? plan.coveredDomains.join('、') : ''
+  return [plan?.reason, domains, plan?.advisoryNote].filter(Boolean).join(' · ') || `优先级 ${plan?.priority ?? '--'}`
+}
+
+function domainMaxConcurrentLabel(domain: CrawlerMonitorWikiDomain | null | undefined) {
+  if (!domain || domain.maxConcurrent == null) return '--'
+  return formatNumber(domain.maxConcurrent)
+}
+
+function domainFailureCircuitBreakerLabel(domain: CrawlerMonitorWikiDomain | null | undefined) {
+  if (!domain) return '未配置'
+  return String(domain.failureCircuitBreaker || '未配置')
+}
+
+function progressRowTitle(row: ProgressRow) {
+  const id = String(row.id || '')
+  if (id === 'buff-page-immunity-refresh') return 'Buff 免疫页面刷新'
+  if (id === 'crawler-output-standardize') return '爬取结果标准化'
+  if (id === 'item-page-retry-queue') return '物品页重试队列'
+  if (id === 'wiki-core-refresh') return 'Wiki 核心刷新'
+  if (id === 'item-pages-refresh') return '物品页面爬取'
+  if (id === 'wiki-audio-assets-refresh') return 'Wiki 音频资源刷新'
+  if (id === 'domain-source-bosses') return 'Boss 来源快照'
+  if (id === 'domain-source-armor-sets') return '盔甲套装来源快照'
+  if (id === 'domain-source-shimmer') return '微光来源快照'
+  if (id === 'domain-source-town-npc-maintenance') return '城镇 NPC 维护快照'
+  return row.label || row.id || '未知任务'
+}
+
+function progressRowLaneLabel(row: ProgressRow) {
+  const lane = String(row.lane || row.action?.runner || '').toLowerCase()
+  if (lane === 'fetch') return '爬取'
+  if (lane === 'transform') return '转换'
+  if (lane === 'crawl') return '爬虫'
+  if (lane === 'backfill') return '回填'
+  if (lane === 'backend-refresh') return '后端刷新'
+  if (lane === 'validation') return '校验'
+  return lane || '未知执行器'
+}
+
+function progressRowMessageLabel(row: ProgressRow) {
+  const raw = String(row.queueState || row.action?.message || row.action?.phase || '').trim()
+  if (!raw) return ''
+  const normalized = raw.toLowerCase()
+  if (normalized === 'pending') return '等待执行'
+  if (normalized === 'completed') return '已完成'
+  if (normalized === 'dispatch paused') return '任务已暂停'
+  if (normalized === 'backend refresh action') return '后端刷新动作等待执行'
+  if (normalized.startsWith('expanding localized fields')) return raw.replace('expanding localized fields', '正在扩展本地化字段').replace('for', '共').replace('buff(s)', '个 Buff').replace('across', '覆盖').replace('language(s)', '种语言')
+  if (normalized.startsWith('scraping rendered immunity pages')) return raw.replace('scraping rendered immunity pages', '正在爬取免疫页面')
+  return raw
 }
 
 function canDismissProgressRow(row: ProgressRow) {
@@ -1372,6 +2016,19 @@ function isSignalTask(row: ProgressRow) {
   if (rowProgressLabel(row) !== '--') return true
   if (row.progressStaleReason) return true
   return false
+}
+
+function isActiveProgressRow(row: ProgressRow) {
+  const status = rowStatus(row)
+  if (['completed', 'report-only'].includes(status)) return false
+  if (['running', 'stalled', 'paused', 'queued', 'pending', 'failed', 'error', 'blocked', 'warning'].includes(status)) return true
+  return Boolean(row.progressStaleReason || rowHeartbeatAt(row))
+}
+
+function isOperationalProgressRow(row: ProgressRow) {
+  if (row.lane === 'validation') return false
+  if (row.id === 'replacement-readiness') return false
+  return true
 }
 
 function statusTone(status?: string | null) {
@@ -1408,17 +2065,25 @@ function rowPendingLabel(row: ProgressRow | null | undefined) {
 
 function rowSpeedLabel(row: ProgressRow | null | undefined) {
   if (!row) return '--'
-  return row.action ? actionSpeedLabel(row.action) : '--'
+  const speed = taskSpeedPerMinute(row)
+  if (speed == null) return '--'
+  const rounded = speed >= 10 ? Math.round(speed) : Math.round(speed * 10) / 10
+  return `${rounded.toLocaleString('zh-CN')}/min`
 }
 
 function rowEtaLabel(row: ProgressRow | null | undefined) {
   if (!row) return '--'
-  return row.action ? actionEtaLabel(row.action) : '--'
+  const remaining = taskRemaining(row)
+  if (remaining == null) return '--'
+  if (remaining <= 0) return '0s'
+  const speed = taskSpeedPerMinute(row)
+  if (speed == null || speed <= 0) return '--'
+  return formatEtaDuration((remaining / speed) * 60_000)
 }
 
 function rowHeartbeatLabel(row: ProgressRow | null | undefined) {
   if (!row) return '--'
-  return formatDate(row.progressHeartbeatAt || row.action?.lastHeartbeatAt || row.updatedAt)
+  return formatDate(rowHeartbeatAt(row))
 }
 
 function rowSourcePath(row: ProgressRow | null | undefined) {
@@ -1479,6 +2144,70 @@ function taskPendingLabel(task: CrawlerMonitorRegisteredTask) {
   return '--'
 }
 
+function rowProgressBasis(row: ProgressRow | CrawlerMonitorAction | null | undefined) {
+  if (!row) return null
+  const payload = 'progressPayload' in row ? row.progressPayload || {} : {}
+  const overallCurrent = finiteNumber(row.overallCurrent ?? payload.overallCurrent)
+  const overallTotal = finiteNumber(row.overallTotal ?? payload.overallTotal)
+  if (overallCurrent != null && overallTotal != null && overallTotal >= 0) {
+    return {
+      current: Math.min(Math.max(0, overallCurrent), overallTotal),
+      total: overallTotal,
+    }
+  }
+
+  const current = finiteNumber(row.current ?? payload.current)
+  const total = finiteNumber(row.total ?? payload.total)
+  if (current != null && total != null && total >= 0) {
+    return {
+      current: Math.min(Math.max(0, current), total),
+      total,
+    }
+  }
+  return null
+}
+
+function rowStartedAt(row: ProgressRow | null | undefined) {
+  if (!row) return ''
+  return row.progressPayload?.startedAt || row.action?.startedAt || ''
+}
+
+function rowHeartbeatAt(row: ProgressRow | null | undefined) {
+  if (!row) return ''
+  return row.progressHeartbeatAt
+    || row.action?.lastHeartbeatAt
+    || row.progressPayload?.lastHeartbeatAt
+    || row.progressPayload?.generatedAt
+    || row.progressUpdatedAt
+    || row.updatedAt
+    || row.action?.updatedAt
+    || ''
+}
+
+function taskElapsedMs(row: ProgressRow | null | undefined) {
+  if (!row) return null
+  const startedAt = timestampMs(rowStartedAt(row))
+  const heartbeatAt = timestampMs(rowHeartbeatAt(row))
+  if (startedAt != null && heartbeatAt != null && heartbeatAt > startedAt) {
+    return heartbeatAt - startedAt
+  }
+  return row.action ? actionElapsedMs(row.action) : null
+}
+
+function taskSpeedPerMinute(row: ProgressRow | null | undefined) {
+  const basis = rowProgressBasis(row)
+  if (!basis || basis.current <= 0) return null
+  const elapsedMs = taskElapsedMs(row)
+  if (elapsedMs == null || elapsedMs <= 0) return null
+  return basis.current / (elapsedMs / 60_000)
+}
+
+function taskRemaining(row: ProgressRow | null | undefined) {
+  const basis = rowProgressBasis(row)
+  if (!basis) return null
+  return Math.max(0, basis.total - basis.current)
+}
+
 function isPreviewableReportPath(path?: string | null) {
   const normalized = String(path || '').replace(/\\/g, '/').toLowerCase()
   if (!normalized) return false
@@ -1486,6 +2215,51 @@ function isPreviewableReportPath(path?: string | null) {
   const allowedRoot = normalized.startsWith('reports/') || normalized.startsWith('back/target/surefire-reports/')
   const allowedSuffix = ['.json', '.md', '.xml', '.txt'].some((suffix) => normalized.endsWith(suffix))
   return allowedRoot && allowedSuffix
+}
+
+function isPreviewableProgressPath(path?: string | null) {
+  const normalized = String(path || '').replace(/\\/g, '/').toLowerCase()
+  if (!normalized || normalized.startsWith('redis://')) return false
+  if (normalized.includes('*') || normalized.includes('?')) return false
+  return isPreviewableReportPath(path) || isPreviewableGeneratedJsonPath(path)
+}
+
+function isPreviewableGeneratedJsonPath(path?: string | null) {
+  const normalized = String(path || '').replace(/\\/g, '/').toLowerCase()
+  if (!normalized || normalized.startsWith('redis://')) return false
+  if (normalized.includes('*') || normalized.includes('?')) return false
+  if (normalized === 'data/generated/buff-page-evidence-cache') return true
+  return normalized.endsWith('.json') && (
+    normalized.startsWith('data/generated/')
+    || normalized.startsWith('data/terrapedia/raw/wiki/')
+  )
+}
+
+function dispatchBlockerLabel(result?: CrawlerMonitorDispatchResult | null) {
+  if (!result) return '未返回阻塞者'
+  return [
+    result.blockedByDomain ? `域 ${result.blockedByDomain}` : '',
+    result.blockedByActionId ? `动作 ${result.blockedByActionId}` : '',
+    result.blockedByDispatchId ? `派发 ${result.blockedByDispatchId}` : '',
+  ].filter(Boolean).join(' / ') || '未返回阻塞者'
+}
+
+function dispatchFeedbackMessage(result?: CrawlerMonitorDispatchResult | null) {
+  if (!result) return ''
+  if (result.status === 'locked') {
+    const since = result.blockedSince ? `，开始于 ${formatDate(result.blockedSince)}` : ''
+    const lock = result.lockPath ? `，锁文件 ${result.lockPath}` : ''
+    return `已有 Wiki 监控任务占用：${dispatchBlockerLabel(result)}${since}${lock}。心跳过期不会自动重试，请先确认阻塞任务状态，必要时取消清理后再手动重新派发。`
+  }
+  if (result.status === 'cooldown') {
+    return '当前处于 Wiki 保护冷却期，页面只会在冷却条件真实命中时阻止派发。'
+  }
+  return result.message || statusLabel(result.status) || '已收到派发反馈'
+}
+
+function isMissingReportError(message?: string | null) {
+  const normalized = String(message || '').toLowerCase()
+  return normalized.includes('not found') || normalized.includes('missing') || normalized.includes('不存在') || normalized.includes('未找到')
 }
 
 function actionProgressPercent(action: CrawlerMonitorAction) {
@@ -1522,15 +2296,6 @@ function actionRemaining(action: CrawlerMonitorAction) {
 }
 
 function actionProgressBasis(action: CrawlerMonitorAction) {
-  const overallCurrent = finiteNumber(action.overallCurrent)
-  const overallTotal = finiteNumber(action.overallTotal)
-  if (overallCurrent != null && overallTotal != null && overallTotal >= 0) {
-    return {
-      current: Math.min(Math.max(0, overallCurrent), overallTotal),
-      total: overallTotal,
-    }
-  }
-
   const current = finiteNumber(action.current)
   const total = finiteNumber(action.total)
   if (current != null && total != null && total >= 0) {
@@ -1539,15 +2304,24 @@ function actionProgressBasis(action: CrawlerMonitorAction) {
       total,
     }
   }
+
+  const overallCurrent = finiteNumber(action.overallCurrent)
+  const overallTotal = finiteNumber(action.overallTotal)
+  if (overallCurrent != null && overallTotal != null && overallTotal >= 0) {
+    return {
+      current: Math.min(Math.max(0, overallCurrent), overallTotal),
+      total: overallTotal,
+    }
+  }
   return null
 }
 
 function actionSpeedPerMinute(action: CrawlerMonitorAction) {
-  const completedInCurrentBatch = finiteNumber(action.current)
-  if (completedInCurrentBatch == null || completedInCurrentBatch <= 0) return null
+  const basis = actionProgressBasis(action)
+  if (!basis || basis.current <= 0) return null
   const elapsedMs = actionElapsedMs(action)
   if (elapsedMs == null || elapsedMs <= 0) return null
-  return completedInCurrentBatch / (elapsedMs / 60_000)
+  return basis.current / (elapsedMs / 60_000)
 }
 
 function actionElapsedMs(action: CrawlerMonitorAction) {
@@ -1599,6 +2373,21 @@ function formatEtaDuration(value: number) {
   const seconds = Math.ceil(ms / 1000)
   if (seconds < 60) return `${seconds}s`
   const minutes = Math.ceil(seconds / 60)
+  if (minutes < 60) return `${minutes}m`
+  const hours = Math.floor(minutes / 60)
+  const restMinutes = minutes % 60
+  if (hours < 24) return restMinutes ? `${hours}h ${restMinutes}m` : `${hours}h`
+  const days = Math.floor(hours / 24)
+  const restHours = hours % 24
+  return restHours ? `${days}d ${restHours}h` : `${days}d`
+}
+
+function formatElapsedDuration(value: number | null | undefined) {
+  const ms = Number(value || 0)
+  if (!Number.isFinite(ms) || ms <= 0) return '--'
+  const seconds = Math.floor(ms / 1000)
+  if (seconds < 60) return `${seconds}s`
+  const minutes = Math.floor(seconds / 60)
   if (minutes < 60) return `${minutes}m`
   const hours = Math.floor(minutes / 60)
   const restMinutes = minutes % 60
@@ -2402,6 +3191,128 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   text-align: left;
 }
 
+.monitor-observability {
+  display: grid;
+  gap: 14px;
+}
+
+.observability-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.observability-block {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 70%, var(--color-bg));
+}
+
+.observability-block__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.observability-block__head strong {
+  color: var(--color-text);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.observability-block__head span {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.state-list {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.state-list--compact {
+  max-height: 176px;
+  overflow: auto;
+}
+
+.state-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 8px;
+  min-width: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg) 76%, transparent);
+}
+
+.state-row span,
+.state-row small,
+.state-row code {
+  min-width: 0;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.state-row span {
+  font-weight: 800;
+}
+
+.state-row strong {
+  min-width: 0;
+  color: var(--color-text);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.state-row small,
+.state-row code {
+  grid-column: 1 / -1;
+}
+
+.compact-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.compact-metrics span {
+  min-width: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg) 76%, transparent);
+}
+
+.compact-metrics small,
+.compact-metrics strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.compact-metrics small {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.compact-metrics strong {
+  margin-top: 3px;
+  color: var(--color-text);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
 .wiki-monitor-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -2916,7 +3827,15 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   font-size: 12px;
   font-weight: 800;
   line-height: 1.2;
-  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.domain-flow-pill {
+  flex-shrink: 0;
+  min-width: max-content;
+  white-space: nowrap;
 }
 
 .success {
@@ -3022,6 +3941,12 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   background: color-mix(in srgb, #fef2f2 72%, var(--color-bg));
 }
 
+.inline-report-button--warning {
+  border-color: color-mix(in srgb, #d97706 36%, var(--color-border));
+  color: #92400e;
+  background: color-mix(in srgb, #fffbeb 76%, var(--color-bg));
+}
+
 .inline-report-button:disabled {
   cursor: wait;
   opacity: 0.62;
@@ -3112,6 +4037,79 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 .report-preview__empty {
   color: var(--color-text-secondary);
   white-space: normal;
+}
+
+.wiki-workbench__cooldown,
+.wiki-workbench__warning {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 68%, var(--color-bg));
+}
+
+.wiki-workbench__cooldown span,
+.wiki-workbench__warning span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.wiki-workbench__cooldown p,
+.wiki-workbench__warning p {
+  margin: 0;
+  color: var(--color-text);
+  line-height: 1.55;
+}
+
+.cancel-confirm-panel {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.cancel-confirm-panel__body {
+  width: min(620px, 100%);
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 34%, transparent);
+  border-radius: 8px;
+  background: var(--color-bg);
+  box-shadow: var(--shadow-xl);
+}
+
+.cancel-confirm-panel__body h2,
+.cancel-confirm-panel__body p {
+  margin: 0;
+}
+
+.cancel-confirm-panel__body p {
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+.cancel-confirm-panel__body ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.cancel-confirm-panel__body code {
+  overflow-wrap: anywhere;
+}
+
+.cancel-confirm-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .empty-block {

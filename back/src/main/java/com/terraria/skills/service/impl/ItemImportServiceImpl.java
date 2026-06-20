@@ -169,7 +169,12 @@ public class ItemImportServiceImpl extends ServiceImpl<ItemMapper, Item> impleme
             return;
         }
 
+        ItemSnapshot before = ItemSnapshot.from(existing.item());
         applyPayload(existing.item(), payload, category);
+        if (ItemSnapshot.from(existing.item()).equals(before)) {
+            result.setSkipped(result.getSkipped() + 1);
+            return;
+        }
         existing.item().setUpdatedAt(LocalDateTime.now());
         if (!existing.pending()) {
             transactionTemplate.executeWithoutResult(status -> itemMapper.updateById(existing.item()));
@@ -264,6 +269,54 @@ public class ItemImportServiceImpl extends ServiceImpl<ItemMapper, Item> impleme
     }
 
     private record ExistingItemMatch(Item item, boolean pending) {
+    }
+
+    private record ItemSnapshot(
+        String name,
+        String internalName,
+        String image,
+        Long categoryId,
+        String description,
+        Integer damage,
+        Integer defense,
+        Integer knockback,
+        Integer useTime,
+        Integer width,
+        Integer height,
+        Integer buy,
+        Integer sell,
+        String tooltip,
+        Long rarityId,
+        Long gamePeriodId,
+        Long gameModelId,
+        Boolean isStackable,
+        Integer stackSize,
+        Integer status
+    ) {
+        private static ItemSnapshot from(Item item) {
+            return new ItemSnapshot(
+                item.getName(),
+                item.getInternalName(),
+                item.getImage(),
+                item.getCategoryId(),
+                item.getDescription(),
+                item.getDamage(),
+                item.getDefense(),
+                item.getKnockback(),
+                item.getUseTime(),
+                item.getWidth(),
+                item.getHeight(),
+                item.getBuy(),
+                item.getSell(),
+                item.getTooltip(),
+                item.getRarityId(),
+                item.getGamePeriodId(),
+                item.getGameModelId(),
+                item.getIsStackable(),
+                item.getStackSize(),
+                item.getStatus()
+            );
+        }
     }
 
     private void applyPayload(Item item, NormalizedItemImportDTO payload, Category category) {

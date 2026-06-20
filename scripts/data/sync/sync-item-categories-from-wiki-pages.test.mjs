@@ -7,6 +7,7 @@ import {
   ensureCategories,
   parseArgs,
   runItemCategorySync,
+  syncItemCategoryRelations,
   shouldApplyCategoryChange
 } from './sync-item-categories-from-wiki-pages.mjs';
 
@@ -866,4 +867,43 @@ test('runItemCategorySync dry-run reports distribution and verified changed samp
       willUpdate: true,
     },
   ]);
+});
+
+test('syncItemCategoryRelations skips unchanged item_category_rel rows', async () => {
+  const calls = [];
+  const connection = {
+    execute: async (sql, params = []) => {
+      calls.push({ sql, params });
+      if (/FROM\s+item_category_rel\b/i.test(sql)) {
+        return [[{
+          id: 10,
+          item_id: 100,
+          category_id: 1,
+          is_primary: 1,
+          relation_type: 'wiki_type',
+          sort_order: 1,
+          source_provider: 'terraria.wiki.gg',
+          source_page: 'Torch',
+          source_revision_timestamp: '2026-06-20 01:02:03',
+          status: 1,
+          deleted: 0,
+        }]];
+      }
+      return [{ affectedRows: 1, insertId: 20 }];
+    },
+  };
+
+  const result = await syncItemCategoryRelations(connection, {
+    itemId: 100,
+    categoryCodes: ['MATERIAL'],
+    primaryCode: 'MATERIAL',
+    wiki: { pageTitle: 'Torch', revisionTimestamp: '2026-06-20T01:02:03Z' },
+    categoryLookup: { byCode: new Map([['MATERIAL', { id: 1 }]]) },
+  });
+
+  assert.equal(result.skipped, 1);
+  assert.equal(result.inserted, 0);
+  assert.equal(result.deleted, 0);
+  assert.equal(calls.some((call) => /\bDELETE FROM item_category_rel\b/i.test(call.sql)), false);
+  assert.equal(calls.some((call) => /\bINSERT INTO item_category_rel\b/i.test(call.sql)), false);
 });

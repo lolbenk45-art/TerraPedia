@@ -199,6 +199,10 @@ export interface CrawlerMonitorDispatchResult {
   progressPath?: string | null
   lockPath?: string | null
   reportPath?: string | null
+  blockedByDispatchId?: string | null
+  blockedByDomain?: string | null
+  blockedByActionId?: string | null
+  blockedSince?: string | null
   message?: string | null
 }
 

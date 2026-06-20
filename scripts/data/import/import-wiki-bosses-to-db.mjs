@@ -2,6 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
 import { shouldFailBossImportStrictMode } from './boss-import-strict-mode.mjs';
@@ -15,25 +16,8 @@ import {
 } from '../lib/minio-image-upload.mjs';
 
 const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
 
 const repoRoot = getProjectRoot();
-
-const args = parseArgs(process.argv.slice(2));
-const inputPath = path.resolve(args.input ?? path.join(repoRoot, 'data', 'generated', 'wiki-bosses.latest.json'));
-const dateTag = new Date().toISOString().slice(0, 10);
-const reportPath = path.resolve(args['report-json'] ?? path.join(repoRoot, 'reports', `wiki-bosses-import-${dateTag}.json`));
-const dryRun = booleanOption(args['dry-run'], false);
-const strictMode = booleanOption(args.strict, false);
-const apiBase = resolveBackendApiBase(args, { repoRoot });
-const { username: adminUsername, password: adminPassword } = resolveAdminAuth(args, {
-  usernameKey: 'adminUsername',
-  passwordKey: 'adminPassword',
-  repoRoot,
-  requiredPassword: !dryRun,
-});
-const managedUrlPrefixes = [args.managedUrlPrefix ?? DEFAULT_MANAGED_URL_PREFIX];
-const generatedNpcMapPath = path.resolve(args['generated-npc-map'] ?? path.join(repoRoot, 'data', 'generated', 'npc-standardized-map.json'));
 
 const EXPLICIT_MEMBER_DEFS = {
   'Eater of Worlds': [
@@ -132,13 +116,31 @@ const NEGATIVE_FALLBACK_INTERNAL_PATTERNS = [
 const BOSS_IMAGE_DOMAIN = 'bosses';
 const BOSS_MEMBER_IMAGE_DOMAIN = 'npcs';
 
-main().catch((error) => {
-  console.error('[import-wiki-bosses-to-db] failed');
-  console.error(error?.stack || error?.message || error);
-  process.exit(1);
-});
+if (isDirectExecution()) {
+  main().catch((error) => {
+    console.error('[import-wiki-bosses-to-db] failed');
+    console.error(error?.stack || error?.message || error);
+    process.exit(1);
+  });
+}
 
 async function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const inputPath = path.resolve(args.input ?? path.join(repoRoot, 'data', 'generated', 'wiki-bosses.latest.json'));
+  const dateTag = new Date().toISOString().slice(0, 10);
+  const reportPath = path.resolve(args['report-json'] ?? path.join(repoRoot, 'reports', `wiki-bosses-import-${dateTag}.json`));
+  const dryRun = booleanOption(args['dry-run'], false);
+  const strictMode = booleanOption(args.strict, false);
+  const apiBase = resolveBackendApiBase(args, { repoRoot });
+  const { username: adminUsername, password: adminPassword } = resolveAdminAuth(args, {
+    usernameKey: 'adminUsername',
+    passwordKey: 'adminPassword',
+    repoRoot,
+    requiredPassword: !dryRun,
+  });
+  const managedUrlPrefixes = [args.managedUrlPrefix ?? DEFAULT_MANAGED_URL_PREFIX];
+  const generatedNpcMapPath = path.resolve(args['generated-npc-map'] ?? path.join(repoRoot, 'data', 'generated', 'npc-standardized-map.json'));
+  const mysql = require('mysql2/promise');
   const payload = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
   const records = Array.isArray(payload?.records) ? payload.records : [];
   if (records.length === 0) {
@@ -220,22 +222,10 @@ async function main() {
       if (bossGroupResult.created) summary.createdBossGroups += 1;
       else summary.updatedBossGroups += 1;
 
-      await clearExistingMembersForGroup(conn, bossGroupResult.id);
-      for (const member of memberMapping.members) {
-        await conn.execute(
-          `UPDATE npcs
-             SET is_boss = 1,
-                 boss_group_id = ?,
-                 boss_role = ?,
-                 updated_at = NOW()
-           WHERE id = ?`,
-          [bossGroupResult.id, member.role, member.id]
-        );
-      }
+      await reconcileBossMembers(conn, bossGroupResult.id, memberMapping.members, summary);
 
       if (memberMapping.members.length > 0 || memberMapping.sourceMode === 'reference') {
         summary.mappedBosses += 1;
-        summary.totalMemberAssignments += memberMapping.members.length;
       } else {
         summary.unmappedBosses += 1;
       }
@@ -643,6 +633,58 @@ async function clearExistingMembersForGroup(conn, bossGroupId) {
   );
 }
 
+export async function reconcileBossMembers(conn, bossGroupId, members, summary) {
+  const [existingRows] = await conn.execute(
+    `SELECT id, boss_group_id, boss_role
+       FROM npcs
+      WHERE boss_group_id = ?`,
+    [bossGroupId]
+  );
+  const targetById = new Map((Array.isArray(members) ? members : []).map((member) => [Number(member.id), member]));
+  const existingById = new Map((Array.isArray(existingRows) ? existingRows : []).map((row) => [Number(row.id), row]));
+
+  if (summary) {
+    summary.totalMemberAssignments = Number(summary.totalMemberAssignments ?? 0) + targetById.size;
+  }
+
+  for (const existing of existingById.values()) {
+    if (targetById.has(Number(existing.id))) continue;
+    await conn.execute(
+      `UPDATE npcs
+          SET boss_group_id = NULL,
+              boss_role = NULL,
+              updated_at = NOW()
+        WHERE id = ?`,
+      [existing.id]
+    );
+    if (summary) {
+      summary.clearedMemberAssignments = Number(summary.clearedMemberAssignments ?? 0) + 1;
+    }
+  }
+
+  for (const member of members) {
+    const existing = existingById.get(Number(member.id));
+    if (existing && Number(existing.boss_group_id) === Number(bossGroupId) && toText(existing.boss_role) === toText(member.role)) {
+      if (summary) {
+        summary.skippedMemberAssignments = Number(summary.skippedMemberAssignments ?? 0) + 1;
+      }
+      continue;
+    }
+    await conn.execute(
+      `UPDATE npcs
+         SET is_boss = 1,
+             boss_group_id = ?,
+             boss_role = ?,
+             updated_at = NOW()
+       WHERE id = ?`,
+      [bossGroupId, member.role, member.id]
+    );
+    if (summary) {
+      summary.updatedMemberAssignments = Number(summary.updatedMemberAssignments ?? 0) + 1;
+    }
+  }
+}
+
 function buildBossCode(titleEn) {
   return String(titleEn ?? '')
     .trim()
@@ -746,4 +788,9 @@ function assertPrimaryDb(database, allowNonPrimaryDb) {
   if (String(database || '').trim() === 'terria_v1_local') return;
   if (allowNonPrimaryDb) return;
   throw new Error(`Refusing to write to non-primary database '${database}'. Set TERRAPEDIA_DB_NAME=terria_v1_local or pass --allow-non-primary-db=true explicitly.`);
+}
+
+function isDirectExecution() {
+  if (!process.argv[1]) return false;
+  return fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
 }

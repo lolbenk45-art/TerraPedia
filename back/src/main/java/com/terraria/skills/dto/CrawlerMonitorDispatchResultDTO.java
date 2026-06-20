@@ -14,5 +14,9 @@ public class CrawlerMonitorDispatchResultDTO {
     private String progressPath;
     private String lockPath;
     private String reportPath;
+    private String blockedByDispatchId;
+    private String blockedByDomain;
+    private String blockedByActionId;
+    private String blockedSince;
     private String message;
 }

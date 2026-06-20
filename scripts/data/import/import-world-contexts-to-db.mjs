@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import { getProjectRoot } from '../lib/project-root.mjs';
 import { parseCliArgs, sharedDataPath } from '../lib/wiki-item-utils.mjs';
+import { rowsEqual } from '../lib/base-domain-row-reconcile.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const moduleRequire = createRequire(import.meta.url);
@@ -39,8 +40,12 @@ export async function importWorldContextDataset(conn, plan, { apply = false } = 
       pushError(summary.worldContexts, `worldContexts[${index}] skipped: missing code, nameEn, or contextType`);
       continue;
     }
-    const exists = existingByCode.has(record.code);
-    if (exists) {
+    const existing = existingByCode.get(record.code);
+    if (existing) {
+      if (worldContextRowsEqual(existing, record)) {
+        summary.worldContexts.skipped += 1;
+        continue;
+      }
       summary.worldContexts.updated += 1;
     } else {
       summary.worldContexts.created += 1;
@@ -59,12 +64,82 @@ export function assertPrimaryDb(database, allowNonPrimaryDb) {
 }
 
 async function loadWorldContextCodeMap(conn) {
-  const [rows] = await conn.query('SELECT id, code FROM world_contexts WHERE deleted = 0');
+  const [rows] = await conn.query(`
+    SELECT
+      id,
+      code,
+      name_en,
+      name_zh,
+      context_type,
+      description,
+      icon_url,
+      source_provider,
+      source_page,
+      source_revision_timestamp,
+      last_synced_at,
+      raw_json,
+      sort_order,
+      status,
+      deleted
+    FROM world_contexts
+    WHERE deleted = 0
+  `);
   return new Map(
     (Array.isArray(rows) ? rows : [])
       .map(row => [normalizeCode(row?.code), row])
       .filter(([code]) => code)
   );
+}
+
+function worldContextRowsEqual(existing, record) {
+  return rowsEqual(worldContextDbSnapshot(existing), worldContextDbSnapshot(record), {
+    columns: [
+      'code',
+      'name_en',
+      'name_zh',
+      'context_type',
+      'description',
+      'icon_url',
+      'source_provider',
+      'source_page',
+      'source_revision_timestamp',
+      'last_synced_at',
+      'raw_json',
+      'sort_order',
+      'status',
+      'deleted',
+    ],
+    jsonColumns: ['raw_json'],
+    numericColumns: ['sort_order', 'status', 'deleted'],
+  });
+}
+
+function worldContextDbSnapshot(row = {}) {
+  return {
+    code: row.code,
+    name_en: row.name_en ?? row.nameEn,
+    name_zh: row.name_zh ?? row.nameZh,
+    context_type: row.context_type ?? row.contextType,
+    description: row.description,
+    icon_url: row.icon_url ?? row.iconUrl,
+    source_provider: row.source_provider ?? row.sourceProvider,
+    source_page: row.source_page ?? row.sourcePage,
+    source_revision_timestamp: normalizeDbDateTime(row.source_revision_timestamp ?? row.sourceRevisionTimestamp),
+    last_synced_at: normalizeDbDateTime(row.last_synced_at ?? row.lastSyncedAt),
+    raw_json: row.raw_json ?? row.rawJson,
+    sort_order: row.sort_order ?? row.sortOrder,
+    status: row.status,
+    deleted: row.deleted ?? 0,
+  };
+}
+
+function normalizeDbDateTime(value) {
+  if (value == null || value === '') return null;
+  if (value instanceof Date) return toDateTime(value.toISOString());
+  const text = String(value).trim();
+  if (!text) return null;
+  const parsed = toDateTime(text);
+  return parsed ?? text.replace('T', ' ').replace(/Z$/, '').slice(0, 19);
 }
 
 async function upsertWorldContext(conn, record) {

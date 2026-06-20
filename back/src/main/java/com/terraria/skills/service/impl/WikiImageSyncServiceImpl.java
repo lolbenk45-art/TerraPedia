@@ -180,13 +180,17 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
                     "wiki/item-images/" + hashPrefix(sourceUrl),
                     buildStableId(sourceUrl, firstNonBlank(image.getSourceFileTitle(), image.getSourcePage(), image.getRole(), "item-image"))
                 );
-                image.setOriginalUrl(upload.getSourceUrl());
-                image.setCachedUrl(upload.getUrl());
-                image.setContentType(upload.getContentType());
-                image.setLastVerifiedAt(LocalDateTime.now());
-                itemImageMapper.updateById(image);
-                scope.setSyncedCount(scope.getSyncedCount() + 1);
-                scope.addSampleUrl(upload.getUrl());
+                if (itemImageMirroredFieldsEqual(image, upload)) {
+                    scope.setSkippedCount(scope.getSkippedCount() + 1);
+                } else {
+                    image.setOriginalUrl(upload.getSourceUrl());
+                    image.setCachedUrl(upload.getUrl());
+                    image.setContentType(upload.getContentType());
+                    image.setLastVerifiedAt(LocalDateTime.now());
+                    itemImageMapper.updateById(image);
+                    scope.setSyncedCount(scope.getSyncedCount() + 1);
+                    scope.addSampleUrl(upload.getUrl());
+                }
             } catch (Exception exception) {
                 log.warn("Failed to sync item image id={} url={}", image.getId(), sourceUrl, exception);
                 scope.setFailedCount(scope.getFailedCount() + 1);
@@ -238,6 +242,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
                     "legacy/items/" + hashPrefix(sourceUrl),
                     buildStableId(sourceUrl, firstNonBlank(item.getInternalName(), item.getNameZh(), item.getName(), "item"))
                 );
+                boolean changed = false;
                 if (existingImage == null) {
                     existingImage = buildLegacyItemImage(item, sourceUrl);
                     existingImage.setCachedUrl(upload.getUrl());
@@ -245,16 +250,26 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
                     existingImage.setLastVerifiedAt(LocalDateTime.now());
                     itemImageMapper.insert(existingImage);
                     existingImages.add(existingImage);
+                    changed = true;
                 } else {
-                    existingImage.setOriginalUrl(upload.getSourceUrl());
-                    existingImage.setCachedUrl(upload.getUrl());
-                    existingImage.setContentType(upload.getContentType());
-                    existingImage.setLastVerifiedAt(LocalDateTime.now());
-                    itemImageMapper.updateById(existingImage);
+                    if (itemImageMirroredFieldsEqual(existingImage, upload)) {
+                        changed = false;
+                    } else {
+                        existingImage.setOriginalUrl(upload.getSourceUrl());
+                        existingImage.setCachedUrl(upload.getUrl());
+                        existingImage.setContentType(upload.getContentType());
+                        existingImage.setLastVerifiedAt(LocalDateTime.now());
+                        itemImageMapper.updateById(existingImage);
+                        changed = true;
+                    }
                 }
-                backfillItemDisplayImage(item, existingImage.getCachedUrl());
-                scope.setSyncedCount(scope.getSyncedCount() + 1);
-                scope.addSampleUrl(upload.getUrl());
+                changed = backfillItemDisplayImage(item, existingImage.getCachedUrl()) || changed;
+                if (changed) {
+                    scope.setSyncedCount(scope.getSyncedCount() + 1);
+                    scope.addSampleUrl(upload.getUrl());
+                } else {
+                    scope.setSkippedCount(scope.getSkippedCount() + 1);
+                }
             } catch (Exception exception) {
                 log.warn("Failed to sync legacy item image id={} url={}", item.getId(), sourceUrl, exception);
                 scope.setFailedCount(scope.getFailedCount() + 1);
@@ -278,15 +293,16 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
         return image;
     }
 
-    private void backfillItemDisplayImage(Item item, String managedUrl) {
+    private boolean backfillItemDisplayImage(Item item, String managedUrl) {
         if (item == null || item.getId() == null || !isManagedUrl(managedUrl) || isManagedUrl(item.getImage())) {
-            return;
+            return false;
         }
         Item update = new Item();
         update.setId(item.getId());
         update.setImage(managedUrl.trim());
         itemMapper.updateById(update);
         item.setImage(managedUrl.trim());
+        return true;
     }
 
     private ItemImage findMatchingLegacyItemImage(List<ItemImage> images, Item item, String sourceUrl) {
@@ -380,14 +396,18 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
                     BUFF_OBJECT_PREFIX + "/wiki/" + hashPrefix(sourceUrl),
                     buildStableId(sourceUrl, firstNonBlank(buff.getInternalName(), buff.getEnglishName(), buff.getNameZh(), "buff"))
                 );
-                buff.setImage(upload.getUrl());
-                buff.setImageOriginalUrl(upload.getSourceUrl());
-                buff.setImageCachedUrl(upload.getUrl());
-                buff.setImageContentType(upload.getContentType());
-                buff.setImageLastVerifiedAt(LocalDateTime.now());
-                buffMapper.updateById(buff);
-                scope.setSyncedCount(scope.getSyncedCount() + 1);
-                scope.addSampleUrl(upload.getUrl());
+                if (buffMirroredFieldsEqual(buff, upload)) {
+                    scope.setSkippedCount(scope.getSkippedCount() + 1);
+                } else {
+                    buff.setImage(upload.getUrl());
+                    buff.setImageOriginalUrl(upload.getSourceUrl());
+                    buff.setImageCachedUrl(upload.getUrl());
+                    buff.setImageContentType(upload.getContentType());
+                    buff.setImageLastVerifiedAt(LocalDateTime.now());
+                    buffMapper.updateById(buff);
+                    scope.setSyncedCount(scope.getSyncedCount() + 1);
+                    scope.addSampleUrl(upload.getUrl());
+                }
             } catch (Exception exception) {
                 log.warn("Failed to sync buff image id={} url={}", buff.getId(), sourceUrl, exception);
                 scope.setFailedCount(scope.getFailedCount() + 1);
@@ -397,8 +417,25 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
     }
 
     private boolean shouldBackfillBuffImageFallback(Buff buff, String sourceUrl) {
-        return !Objects.equals(normalizeFetchUrl(buff.getImage()), sourceUrl)
+        String cachedUrl = firstNonBlank(
+            trimToNull(buff.getImageCachedUrl()),
+            isManagedUrl(buff.getImage()) ? trimToNull(buff.getImage()) : null
+        );
+        return !Objects.equals(trimToNull(buff.getImage()), cachedUrl)
             || !Objects.equals(normalizeFetchUrl(buff.getImageOriginalUrl()), sourceUrl);
+    }
+
+    private boolean itemImageMirroredFieldsEqual(ItemImage image, FileUploadResultDTO upload) {
+        return Objects.equals(trimToNull(image.getOriginalUrl()), trimToNull(upload.getSourceUrl()))
+            && Objects.equals(trimToNull(image.getCachedUrl()), trimToNull(upload.getUrl()))
+            && Objects.equals(trimToNull(image.getContentType()), trimToNull(upload.getContentType()));
+    }
+
+    private boolean buffMirroredFieldsEqual(Buff buff, FileUploadResultDTO upload) {
+        return Objects.equals(trimToNull(buff.getImage()), trimToNull(upload.getUrl()))
+            && Objects.equals(trimToNull(buff.getImageOriginalUrl()), trimToNull(upload.getSourceUrl()))
+            && Objects.equals(trimToNull(buff.getImageCachedUrl()), trimToNull(upload.getUrl()))
+            && Objects.equals(trimToNull(buff.getImageContentType()), trimToNull(upload.getContentType()));
     }
 
     private void syncBiomeIcons(
@@ -438,10 +475,14 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
                     "wiki/biomes/" + hashPrefix(currentUrl),
                     buildStableId(currentUrl, firstNonBlank(biome.getCode(), biome.getNameEn(), biome.getNameZh(), "biome"))
                 );
-                biome.setIconUrl(upload.getUrl());
-                biomeMapper.updateById(biome);
-                scope.setSyncedCount(scope.getSyncedCount() + 1);
-                scope.addSampleUrl(upload.getUrl());
+                if (Objects.equals(trimToNull(biome.getIconUrl()), trimToNull(upload.getUrl()))) {
+                    scope.setSkippedCount(scope.getSkippedCount() + 1);
+                } else {
+                    biome.setIconUrl(upload.getUrl());
+                    biomeMapper.updateById(biome);
+                    scope.setSyncedCount(scope.getSyncedCount() + 1);
+                    scope.addSampleUrl(upload.getUrl());
+                }
             } catch (Exception exception) {
                 log.warn("Failed to sync biome icon id={} url={}", biome.getId(), currentUrl, exception);
                 scope.setFailedCount(scope.getFailedCount() + 1);
@@ -487,10 +528,14 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
                     "wiki/world-contexts/" + hashPrefix(currentUrl),
                     buildStableId(currentUrl, firstNonBlank(context.getCode(), context.getNameEn(), context.getNameZh(), "world-context"))
                 );
-                context.setIconUrl(upload.getUrl());
-                worldContextMapper.updateById(context);
-                scope.setSyncedCount(scope.getSyncedCount() + 1);
-                scope.addSampleUrl(upload.getUrl());
+                if (Objects.equals(trimToNull(context.getIconUrl()), trimToNull(upload.getUrl()))) {
+                    scope.setSkippedCount(scope.getSkippedCount() + 1);
+                } else {
+                    context.setIconUrl(upload.getUrl());
+                    worldContextMapper.updateById(context);
+                    scope.setSyncedCount(scope.getSyncedCount() + 1);
+                    scope.addSampleUrl(upload.getUrl());
+                }
             } catch (Exception exception) {
                 log.warn("Failed to sync world context icon id={} url={}", context.getId(), currentUrl, exception);
                 scope.setFailedCount(scope.getFailedCount() + 1);

@@ -142,6 +142,29 @@ class WikiImageSyncServiceImplTest {
     }
 
     @Test
+    void shouldNotBackfillItemDisplayImageWhenAlreadyManagedAndUnchanged() throws Exception {
+        String sourceUrl = startImageServer("/images/Sharp_Blade.png");
+        Item item = legacyItem(sourceUrl);
+        item.setImage("http://localhost:9000/terrapedia-images/items/legacy/items/existing.png");
+
+        ItemImage existing = new ItemImage();
+        existing.setId(11L);
+        existing.setItemId(7L);
+        existing.setOriginalUrl(sourceUrl);
+        existing.setCachedUrl("http://localhost:9000/terrapedia-images/items/legacy/items/existing.png");
+        existing.setProvider("wiki_gg");
+        existing.setStatus(1);
+
+        when(itemImageMapper.selectList(any())).thenReturn(List.of(existing));
+        when(itemMapper.selectList(any())).thenReturn(List.of(item));
+
+        AdminWikiImageSyncResultDTO result = service().syncWikiImages(itemImagesOnlyRequest());
+
+        assertEquals(0, result.getItemImages().getSyncedCount());
+        verify(itemMapper, never()).updateById(any(Item.class));
+    }
+
+    @Test
     void shouldPreserveWikiFallbackWhenExistingItemImageUsesWikiCachedUrl() throws Exception {
         String sourceUrl = startImageServer("/images/Sharp_Blade.png");
 
@@ -362,6 +385,67 @@ class WikiImageSyncServiceImplTest {
         assertEquals(sourceUrl, updated.getOriginalUrl());
         assertEquals("http://localhost:9000/terrapedia-images/items/wiki/item-images/shared.png", updated.getCachedUrl());
         assertEquals("image/png", updated.getContentType());
+    }
+
+    @Test
+    void shouldSkipItemImageUpdateWhenMirroredFieldsAreUnchanged() {
+        String sourceUrl = "https://terraria.wiki.gg/images/Sharp_Blade.png";
+        String managedUrl = "http://localhost:9000/terrapedia-images/items/wiki/item-images/shared.png";
+
+        ItemImage existing = new ItemImage();
+        existing.setId(11L);
+        existing.setItemId(7L);
+        existing.setOriginalUrl(sourceUrl);
+        existing.setCachedUrl(managedUrl);
+        existing.setContentType("image/png");
+        existing.setProvider("wiki_gg");
+        existing.setStatus(1);
+
+        when(itemImageMapper.selectList(any())).thenReturn(List.of(existing));
+        when(itemMapper.selectList(any())).thenReturn(List.of());
+
+        AdminWikiImageSyncRequestDTO request = itemImagesOnlyRequest();
+        request.setForce(true);
+
+        AdminWikiImageSyncResultDTO result = service(new RecordingWikiImageLocalizationService(sourceUrl, managedUrl))
+            .syncWikiImages(request);
+
+        assertEquals(1, result.getItemImages().getCandidateCount());
+        assertEquals(1, result.getItemImages().getSkippedCount());
+        assertEquals(0, result.getItemImages().getSyncedCount());
+        verify(itemImageMapper, never()).updateById(any(ItemImage.class));
+    }
+
+    @Test
+    void shouldSkipBuffUpdateWhenMirroredFieldsAreUnchanged() {
+        String sourceUrl = "https://terraria.wiki.gg/images/Mana_Regeneration.png";
+        String managedUrl = "http://localhost:9000/terrapedia-images/buffs/wiki/shared.png";
+        Buff buff = new Buff();
+        buff.setId(6L);
+        buff.setInternalName("ManaRegeneration");
+        buff.setEnglishName("Mana Regeneration");
+        buff.setImage(managedUrl);
+        buff.setImageOriginalUrl(sourceUrl);
+        buff.setImageCachedUrl(managedUrl);
+        buff.setImageContentType("image/png");
+
+        when(buffMapper.selectList(any())).thenReturn(List.of(buff));
+
+        AdminWikiImageSyncRequestDTO request = new AdminWikiImageSyncRequestDTO();
+        request.setForce(true);
+        request.setIncludeItemImages(false);
+        request.setIncludeBuffs(true);
+        request.setIncludeBiomes(false);
+        request.setIncludeArmorSets(false);
+        request.setIncludeWorldContexts(false);
+
+        AdminWikiImageSyncResultDTO result = service(new RecordingWikiImageLocalizationService(sourceUrl, managedUrl))
+            .syncWikiImages(request);
+
+        assertEquals(1, result.getBuffs().getCandidateCount());
+        assertEquals(1, result.getBuffs().getSkippedCount());
+        assertEquals(0, result.getBuffs().getSyncedCount());
+        verify(buffMapper, never()).updateById(any(Buff.class));
     }
 
     @Test
@@ -853,9 +937,15 @@ class WikiImageSyncServiceImplTest {
     private static class RecordingWikiImageLocalizationService implements com.terraria.skills.service.WikiImageLocalizationService {
 
         private final String acceptedUrl;
+        private final String mirroredUrl;
 
         RecordingWikiImageLocalizationService(String acceptedUrl) {
+            this(acceptedUrl, "http://localhost:9000/terrapedia-images/items/wiki/item-images/shared.png");
+        }
+
+        RecordingWikiImageLocalizationService(String acceptedUrl, String mirroredUrl) {
             this.acceptedUrl = acceptedUrl;
+            this.mirroredUrl = mirroredUrl;
         }
 
         @Override
@@ -877,7 +967,7 @@ class WikiImageSyncServiceImplTest {
         public com.terraria.skills.dto.FileUploadResultDTO mirrorWikiImage(String sourceUrl, String pathPrefix, String stableId) {
             com.terraria.skills.dto.FileUploadResultDTO result = new com.terraria.skills.dto.FileUploadResultDTO();
             result.setSourceUrl(sourceUrl);
-            result.setUrl("http://localhost:9000/terrapedia-images/items/wiki/item-images/shared.png");
+            result.setUrl(mirroredUrl);
             result.setContentType("image/png");
             return result;
         }

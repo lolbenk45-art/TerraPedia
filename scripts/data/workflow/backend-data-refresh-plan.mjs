@@ -44,6 +44,26 @@ export function buildBackendDataRefreshPlan(options = {}) {
       ]
     },
     {
+      id: 'npc-loot-backfill',
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'scripts/data/import/import-normal-npc-loot-to-db.mjs',
+        '--dry-run=true',
+        '--report-json=<outputPath>'
+      ]
+    },
+    {
+      id: 'boss-loot-backfill',
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'scripts/data/import/import-boss-loot-to-db.mjs',
+        '--dry-run=true',
+        '--report-json=<outputPath>'
+      ]
+    },
+    {
       id: 'boss-sync',
       runner: 'node',
       timeoutMs: timeoutMs ?? 20 * 60 * 1000,

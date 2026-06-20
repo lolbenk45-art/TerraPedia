@@ -360,13 +360,22 @@ async function ensureLookupTables(conn) {
       (10, 'red', '红色', 'Red', 15, 1, 0),
       (11, 'purple', '紫色', 'Purple', 16, 1, 0)
     ON DUPLICATE KEY UPDATE
+      updated_at = IF(
+        NOT (code <=> VALUES(code))
+        OR NOT (display_name_zh <=> VALUES(display_name_zh))
+        OR NOT (display_name_en <=> VALUES(display_name_en))
+        OR NOT (sort_order <=> VALUES(sort_order))
+        OR NOT (status <=> VALUES(status))
+        OR NOT (deleted <=> VALUES(deleted)),
+        NOW(),
+        updated_at
+      ),
       code = VALUES(code),
       display_name_zh = VALUES(display_name_zh),
       display_name_en = VALUES(display_name_en),
       sort_order = VALUES(sort_order),
       status = VALUES(status),
-      deleted = VALUES(deleted),
-      updated_at = NOW()
+      deleted = VALUES(deleted)
   `);
   await conn.query(`
     INSERT INTO game_period (id, code, display_name_zh, display_name_en, sort_order, status, deleted)
@@ -374,13 +383,22 @@ async function ensureLookupTables(conn) {
       (1, 'pre_hardmode', '困难模式前', 'Pre-Hardmode', 1, 1, 0),
       (2, 'hardmode', '困难模式后', 'Hardmode', 2, 1, 0)
     ON DUPLICATE KEY UPDATE
+      updated_at = IF(
+        NOT (code <=> VALUES(code))
+        OR NOT (display_name_zh <=> VALUES(display_name_zh))
+        OR NOT (display_name_en <=> VALUES(display_name_en))
+        OR NOT (sort_order <=> VALUES(sort_order))
+        OR NOT (status <=> VALUES(status))
+        OR NOT (deleted <=> VALUES(deleted)),
+        NOW(),
+        updated_at
+      ),
       code = VALUES(code),
       display_name_zh = VALUES(display_name_zh),
       display_name_en = VALUES(display_name_en),
       sort_order = VALUES(sort_order),
       status = VALUES(status),
-      deleted = VALUES(deleted),
-      updated_at = NOW()
+      deleted = VALUES(deleted)
   `);
 }
 

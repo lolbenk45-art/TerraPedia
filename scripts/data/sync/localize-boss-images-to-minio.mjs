@@ -132,8 +132,10 @@ try {
           nextUrl = uploadedUrl;
           summary.bossGroups.localized += 1;
           await connection.execute(
-            'UPDATE boss_groups SET image_url = ?, updated_at = NOW() WHERE id = ?',
-            [nextUrl, bossGroup.id]
+            `UPDATE boss_groups SET image_url = ?, updated_at = NOW()
+             WHERE id = ?
+               AND NOT (image_url <=> ?)`,
+            [nextUrl, bossGroup.id, nextUrl]
           );
         }
       }

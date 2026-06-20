@@ -105,8 +105,13 @@ try {
 
     if (apply) {
       const [result] = await connection.execute(
-        'UPDATE items SET name_zh = ?, updated_at = NOW() WHERE id = ?',
-        [nextZh, row.id],
+        `UPDATE items SET name_zh = ?, updated_at = NOW()
+         WHERE id = ?
+           AND (
+             name_zh IS NULL
+             OR TRIM(name_zh) <> TRIM(?)
+           )`,
+        [nextZh, row.id, nextZh],
       );
       summary.updated += Number(result.affectedRows || 0);
     } else {

@@ -194,8 +194,12 @@ try {
           UPDATE items
           SET description = ?, updated_at = NOW()
           WHERE id = ?
+            AND (
+              description IS NULL
+              OR TRIM(description) <> TRIM(?)
+            )
           `,
-          [candidate.descriptionAfter, candidate.id]
+          [candidate.descriptionAfter, candidate.id, candidate.descriptionAfter]
         );
         summary.updatedCount += Number(result.affectedRows || 0);
       }

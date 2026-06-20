@@ -8,6 +8,8 @@ const {
   wikiImageGateUrl: terrapediaWikiImageGateUrl,
 } = resolveFrontRuntimeConfig()
 
+// Public image origin is resolved in utils/runtimeConfig.mjs from TERRAPEDIA_IMAGE_ORIGIN
+// or TERRAPEDIA_MINIO_PUBLIC_ENDPOINT, then exposed as runtimeConfig.public.imageOrigin.
 export default defineNuxtConfig({
   srcDir: '.',
   dir: {

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Map;
 
@@ -72,6 +73,113 @@ class CrawlerReportArchiverTest {
         assertTrue(detail.getContent().contains("\"blockingCount\" : 0"));
         assertFalse(outside.isFound());
         assertFalse(outside.isReadable());
+    }
+
+    @Test
+    void shouldPreviewGeneratedProgressJsonAndRejectOtherGeneratedFiles() throws Exception {
+        Path repoRoot = Files.createDirectories(tempDir.resolve("TerraPedia-dev"));
+        Path progressPath = repoRoot.resolve("data/generated/domain-source-bosses-progress.latest.json");
+        writeJson(progressPath, Map.of(
+            "actionId", "domain-source-bosses",
+            "status", "running",
+            "current", 7,
+            "total", 14
+        ));
+        Path textPath = repoRoot.resolve("data/generated/domain-source-bosses-progress.latest.log");
+        Files.createDirectories(textPath.getParent());
+        Files.writeString(textPath, "not previewable");
+
+        CrawlerReportArchiver archiver = new CrawlerReportArchiver(new ObjectMapper());
+
+        CrawlerMonitorReportDetailDTO detail = archiver.getReportDetail(repoRoot, "data/generated/domain-source-bosses-progress.latest.json");
+        CrawlerMonitorReportDetailDTO rejected = archiver.getReportDetail(repoRoot, "data/generated/domain-source-bosses-progress.latest.log");
+
+        assertTrue(detail.isFound());
+        assertTrue(detail.isReadable());
+        assertEquals("json", detail.getContentType());
+        assertTrue(detail.getContent().contains("\"actionId\" : \"domain-source-bosses\""));
+        assertFalse(rejected.isFound());
+        assertFalse(rejected.isReadable());
+    }
+
+    @Test
+    void shouldPreviewRawWikiJsonOutputsAndRejectOtherRawFiles() throws Exception {
+        Path repoRoot = Files.createDirectories(tempDir.resolve("TerraPedia-dev"));
+        Path outputPath = repoRoot.resolve("data/terraPedia/raw/wiki/template__getbuffinfo.parsed.latest.json");
+        writeJson(outputPath, Map.of(
+            "source", "template__getbuffinfo",
+            "count", 129
+        ));
+        Path rejectedPath = repoRoot.resolve("data/terraPedia/raw/wiki/template__getbuffinfo.parsed.latest.log");
+        Files.createDirectories(rejectedPath.getParent());
+        Files.writeString(rejectedPath, "not previewable");
+
+        CrawlerReportArchiver archiver = new CrawlerReportArchiver(new ObjectMapper());
+
+        CrawlerMonitorReportDetailDTO detail = archiver.getReportDetail(repoRoot, "data/terraPedia/raw/wiki/template__getbuffinfo.parsed.latest.json");
+        CrawlerMonitorReportDetailDTO rejected = archiver.getReportDetail(repoRoot, "data/terraPedia/raw/wiki/template__getbuffinfo.parsed.latest.log");
+
+        assertTrue(detail.isFound());
+        assertTrue(detail.isReadable());
+        assertEquals("json", detail.getContentType());
+        assertTrue(detail.getContent().contains("\"source\" : \"template__getbuffinfo\""));
+        assertFalse(rejected.isFound());
+        assertFalse(rejected.isReadable());
+    }
+
+    @Test
+    void shouldRejectRawWikiPreviewPathTraversalOutsideRawWikiRoot() throws Exception {
+        Path repoRoot = Files.createDirectories(tempDir.resolve("TerraPedia-dev"));
+        Path outsideRawWiki = repoRoot.resolve("data/terraPedia/raw/outside.json");
+        writeJson(outsideRawWiki, Map.of("status", "outside"));
+
+        CrawlerReportArchiver archiver = new CrawlerReportArchiver(new ObjectMapper());
+
+        CrawlerMonitorReportDetailDTO rejected = archiver.getReportDetail(repoRoot, "data/terraPedia/raw/wiki/../outside.json");
+
+        assertFalse(rejected.isFound());
+        assertFalse(rejected.isReadable());
+    }
+
+    @Test
+    void shouldRejectRawWikiSymlinkEscapingRawWikiRoot() throws Exception {
+        Path repoRoot = Files.createDirectories(tempDir.resolve("TerraPedia-dev"));
+        Path outside = tempDir.resolve("outside-raw-wiki.json");
+        writeJson(outside, Map.of("status", "outside"));
+        Path link = repoRoot.resolve("data/terraPedia/raw/wiki/linked.json");
+        Files.createDirectories(link.getParent());
+        try {
+            Files.createSymbolicLink(link, outside);
+        } catch (UnsupportedOperationException exception) {
+            Files.writeString(link, "{\"status\":\"not-symlink\"}", StandardOpenOption.CREATE_NEW);
+            return;
+        }
+
+        CrawlerReportArchiver archiver = new CrawlerReportArchiver(new ObjectMapper());
+
+        CrawlerMonitorReportDetailDTO rejected = archiver.getReportDetail(repoRoot, "data/terraPedia/raw/wiki/linked.json");
+
+        assertFalse(rejected.isFound());
+        assertFalse(rejected.isReadable());
+    }
+
+    @Test
+    void shouldPreviewBuffPageEvidenceCacheDirectoryAsCrawlerOutputList() throws Exception {
+        Path repoRoot = Files.createDirectories(tempDir.resolve("TerraPedia-dev"));
+        writeJson(repoRoot.resolve("data/generated/buff-page-evidence-cache/001-first.json"), Map.of("id", 1));
+        writeJson(repoRoot.resolve("data/generated/buff-page-evidence-cache/002-second.json"), Map.of("id", 2));
+
+        CrawlerReportArchiver archiver = new CrawlerReportArchiver(new ObjectMapper());
+
+        CrawlerMonitorReportDetailDTO detail = archiver.getReportDetail(repoRoot, "data/generated/buff-page-evidence-cache");
+
+        assertTrue(detail.isFound());
+        assertTrue(detail.isReadable());
+        assertEquals("json", detail.getContentType());
+        assertEquals("buff-page-evidence-cache", detail.getName());
+        assertTrue(detail.getContent().contains("\"fileCount\" : 2"));
+        assertTrue(detail.getContent().contains("001-first.json"));
+        assertTrue(detail.getContent().contains("002-second.json"));
     }
 
     private void writeJson(Path path, Map<String, Object> payload) throws Exception {

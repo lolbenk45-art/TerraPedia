@@ -271,6 +271,30 @@ class ItemImportServiceImplTest {
         verify(itemMapper, never()).updateById(any(Item.class));
     }
 
+    @Test
+    void importItemsSkipsUnchangedExistingOverwriteWithoutTouchingUpdatedAt() {
+        Category material = category(20L, "MATERIAL");
+        Item existing = new Item();
+        existing.setId(99L);
+        existing.setName("Torch");
+        existing.setInternalName("Torch");
+        existing.setCategoryId(20L);
+        existing.setStatus(1);
+
+        when(categoryMapper.selectList(any(Wrapper.class))).thenReturn(List.of(material));
+        when(itemMapper.selectOne(any(Wrapper.class))).thenReturn(existing);
+
+        ItemImportRequestDTO request = new ItemImportRequestDTO();
+        request.setOverwriteExisting(true);
+        request.setItems(List.of(item("Torch", "Torch", "MATERIAL")));
+
+        var result = itemImportService().importItems(request);
+
+        assertEquals(0, result.getUpdated());
+        assertEquals(1, result.getSkipped());
+        verify(itemMapper, never()).updateById(any(Item.class));
+    }
+
     private static class TestableItemImportServiceImpl extends ItemImportServiceImpl {
 
         private final List<List<Item>> savedBatches = new ArrayList<>();

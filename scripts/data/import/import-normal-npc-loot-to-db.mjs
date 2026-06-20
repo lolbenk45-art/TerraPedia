@@ -3,6 +3,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
@@ -16,7 +18,6 @@ import {
 } from '../lib/boss-loot-source-utils.mjs';
 
 const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
 
 const repoRoot = getProjectRoot();
 
@@ -25,13 +26,16 @@ const dryRun = booleanOption(args['dry-run'], false);
 const dateTag = new Date().toISOString().slice(0, 10);
 const reportPath = path.resolve(args['report-json'] ?? path.join(repoRoot, 'reports', `normal-npc-loot-import-${dateTag}.json`));
 
-main().catch((error) => {
-  console.error('[import-normal-npc-loot-to-db] failed');
-  console.error(error?.stack || error?.message || error);
-  process.exit(1);
-});
+if (isDirectExecution()) {
+  main().catch((error) => {
+    console.error('[import-normal-npc-loot-to-db] failed');
+    console.error(error?.stack || error?.message || error);
+    process.exit(1);
+  });
+}
 
 async function main() {
+  const mysql = require('mysql2/promise');
   const localStackConfig = loadLocalStackConfig(repoRoot);
   const conn = await mysql.createConnection({
     host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? localStackConfig.database?.host ?? '127.0.0.1',
@@ -66,6 +70,10 @@ async function main() {
     managedRowsBeforeSync: 0,
     replacedLootRows: 0,
     insertedLootRows: 0,
+    skippedLootRows: 0,
+    skippedManagedScope: false,
+    managedScopeHashBefore: null,
+    managedScopeHashTarget: null,
     importedPlans: 0,
     dropSourceKind: 'npc_drop',
     samples: [],
@@ -128,58 +136,10 @@ async function main() {
   summary.importedPlans = plans.length;
   summary.managedRowsBeforeSync = await countManagedNpcDropRows(conn);
 
-  const existingCounts = await loadExistingLootCounts(conn, Array.from(matchedNpcIds));
-
   try {
     await conn.beginTransaction();
 
-    if (!dryRun) {
-      await clearManagedNpcDropRows(conn);
-    }
-
-    for (const plan of plans) {
-      const existingRows = existingCounts.get(plan.npc.id) ?? 0;
-      summary.replacedLootRows += existingRows;
-      summary.insertedLootRows += plan.rows.length;
-
-      if (!dryRun) {
-        for (const row of plan.rows) {
-          await conn.execute(
-            `INSERT INTO npc_loot_entries
-              (npc_id, item_id, source_item_id, drop_source_kind, quantity_min, quantity_max, quantity_text, chance_value, chance_text, conditions, notes, sort_order, status, deleted)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
-            [
-              plan.npc.id,
-              row.itemId,
-              row.sourceItemId,
-              row.dropSourceKind,
-              row.quantityMin,
-              row.quantityMax,
-              row.quantityText,
-              row.chanceValue,
-              row.chanceText,
-              row.conditions,
-              row.notes,
-              row.sortOrder,
-            ]
-          );
-        }
-      }
-
-      if (summary.samples.length < 24) {
-        summary.samples.push({
-          npcId: plan.npc.id,
-          gameId: plan.npc.gameId,
-          internalName: plan.npc.internalName,
-          name: plan.npc.name,
-          nameZh: plan.npc.nameZh,
-          sourceRefName: plan.sourceRefName,
-          existingRows,
-          insertedRows: plan.rows.length,
-          uniqueItemCount: countUniqueRows(plan.rows),
-        });
-      }
-    }
+    await syncNormalNpcLootPlans(conn, plans, summary, { dryRun });
 
     if (dryRun) {
       await conn.rollback();
@@ -199,6 +159,148 @@ async function main() {
   console.log(`Matched NPCs: ${summary.matchedNpcCount}`);
   console.log(`Inserted loot rows: ${summary.insertedLootRows}`);
   console.log(`Report: ${reportPath}`);
+}
+
+export async function syncNormalNpcLootPlans(conn, plans, summary = {}, { dryRun = false } = {}) {
+  const existingRows = await loadManagedNpcDropRows(conn);
+  const existingProjection = existingRows.map((row) => normalizeNpcLootProjectionRow(row));
+  const targetProjection = buildTargetNpcLootProjection(plans);
+  const existingHash = hashProjection(existingProjection);
+  const targetHash = hashProjection(targetProjection);
+
+  summary.managedScopeHashBefore = existingHash;
+  summary.managedScopeHashTarget = targetHash;
+
+  if (existingHash === targetHash) {
+    summary.skippedManagedScope = true;
+    summary.skippedLootRows = targetProjection.length;
+    return { skipped: true, existingHash, targetHash };
+  }
+
+  const existingCounts = countExistingProjectionRowsByNpc(existingProjection);
+  for (const plan of plans) {
+    const existingRowsForNpc = existingCounts.get(plan.npc.id) ?? 0;
+    summary.replacedLootRows += existingRowsForNpc;
+    summary.insertedLootRows += plan.rows.length;
+
+    if (Array.isArray(summary.samples) && summary.samples.length < 24) {
+      summary.samples.push({
+        npcId: plan.npc.id,
+        gameId: plan.npc.gameId,
+        internalName: plan.npc.internalName,
+        name: plan.npc.name,
+        nameZh: plan.npc.nameZh,
+        sourceRefName: plan.sourceRefName,
+        existingRows: existingRowsForNpc,
+        insertedRows: plan.rows.length,
+        uniqueItemCount: countUniqueRows(plan.rows),
+      });
+    }
+  }
+
+  if (dryRun) {
+    return { skipped: false, existingHash, targetHash };
+  }
+
+  await clearManagedNpcDropRows(conn);
+  for (const plan of plans) {
+    for (const row of plan.rows) {
+      await insertNpcLootRow(conn, plan.npc.id, row);
+    }
+  }
+
+  return { skipped: false, existingHash, targetHash };
+}
+
+async function loadManagedNpcDropRows(conn) {
+  const [rows] = await conn.query(
+    `SELECT
+       nle.npc_id AS npcId,
+       nle.item_id AS itemId,
+       nle.source_item_id AS sourceItemId,
+       nle.drop_source_kind AS dropSourceKind,
+       nle.quantity_min AS quantityMin,
+       nle.quantity_max AS quantityMax,
+       nle.quantity_text AS quantityText,
+       nle.chance_value AS chanceValue,
+       nle.chance_text AS chanceText,
+       nle.conditions,
+       nle.notes,
+       nle.sort_order AS sortOrder
+     FROM npc_loot_entries nle
+     JOIN npcs n ON n.id = nle.npc_id
+     WHERE nle.deleted = 0
+       AND nle.drop_source_kind = 'npc_drop'
+       AND n.deleted = 0
+       AND (n.is_boss = 0 OR n.is_boss IS NULL)
+     ORDER BY nle.npc_id ASC, nle.sort_order ASC, nle.item_id ASC, nle.id ASC`
+  );
+  return rows;
+}
+
+function buildTargetNpcLootProjection(plans) {
+  return plans.flatMap((plan) => plan.rows.map((row) => normalizeNpcLootProjectionRow({
+    npcId: plan.npc.id,
+    ...row,
+  })));
+}
+
+function normalizeNpcLootProjectionRow(row) {
+  return {
+    npcId: toNullableInteger(row.npcId ?? row.npc_id),
+    itemId: toNullableInteger(row.itemId ?? row.item_id),
+    sourceItemId: toNullableInteger(row.sourceItemId ?? row.source_item_id),
+    dropSourceKind: toNullableString(row.dropSourceKind ?? row.drop_source_kind),
+    quantityMin: toNullableInteger(row.quantityMin ?? row.quantity_min),
+    quantityMax: toNullableInteger(row.quantityMax ?? row.quantity_max),
+    quantityText: toNullableString(row.quantityText ?? row.quantity_text),
+    chanceValue: toNullableDecimal(row.chanceValue ?? row.chance_value),
+    chanceText: toNullableString(row.chanceText ?? row.chance_text),
+    conditions: toNullableString(row.conditions),
+    notes: toNullableString(row.notes),
+    sortOrder: toNullableInteger(row.sortOrder ?? row.sort_order),
+  };
+}
+
+function countExistingProjectionRowsByNpc(rows) {
+  const counts = new Map();
+  for (const row of rows) {
+    counts.set(row.npcId, (counts.get(row.npcId) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function hashProjection(rows) {
+  const normalizedRows = [...rows].sort((left, right) => {
+    const leftKey = [left.npcId, left.sortOrder, left.itemId].map((value) => String(value ?? '')).join('|');
+    const rightKey = [right.npcId, right.sortOrder, right.itemId].map((value) => String(value ?? '')).join('|');
+    return leftKey.localeCompare(rightKey);
+  });
+  return crypto.createHash('sha256')
+    .update(`v1:npc_loot_entries:npc_drop:${JSON.stringify(normalizedRows)}`)
+    .digest('hex');
+}
+
+async function insertNpcLootRow(conn, npcId, row) {
+  await conn.execute(
+    `INSERT INTO npc_loot_entries
+      (npc_id, item_id, source_item_id, drop_source_kind, quantity_min, quantity_max, quantity_text, chance_value, chance_text, conditions, notes, sort_order, status, deleted)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+    [
+      npcId,
+      row.itemId,
+      row.sourceItemId,
+      row.dropSourceKind,
+      row.quantityMin,
+      row.quantityMax,
+      row.quantityText,
+      row.chanceValue,
+      row.chanceText,
+      row.conditions,
+      row.notes,
+      row.sortOrder,
+    ]
+  );
 }
 
 async function ensureSchema(conn) {
@@ -489,4 +591,8 @@ function recordSample(list, sample) {
   if (list.length < 100) {
     list.push(sample);
   }
+}
+
+function isDirectExecution() {
+  return process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 }

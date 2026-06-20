@@ -25,8 +25,9 @@ test('buildWorldContextImportPlan summarizes importable world contexts', () => {
 });
 
 test('importWorldContextDataset dry-run plans creates and updates without mutating SQL', async () => {
+  const existingRecord = worldContext({ code: 'DAY' });
   const conn = createFakeConnection({
-    existing: new Map([['DAY', { id: 1, code: 'DAY' }]])
+    existing: new Map([['DAY', dbWorldContext(existingRecord)]])
   });
   const plan = buildWorldContextImportPlan({
     worldContexts: [
@@ -45,8 +46,9 @@ test('importWorldContextDataset dry-run plans creates and updates without mutati
 });
 
 test('importWorldContextDataset apply upserts only world_contexts with source fields', async () => {
+  const existingRecord = worldContext({ code: 'DAY' });
   const conn = createFakeConnection({
-    existing: new Map([['DAY', { id: 1, code: 'DAY' }]])
+    existing: new Map([['DAY', dbWorldContext(existingRecord)]])
   });
   const plan = buildWorldContextImportPlan({
     worldContexts: [
@@ -61,7 +63,9 @@ test('importWorldContextDataset apply upserts only world_contexts with source fi
   assert.equal(summary.worldContexts.updated, 1);
 
   const sql = conn.calls.map(call => call.sql).join('\n');
-  assert.match(sql, /\bSELECT id, code FROM world_contexts\b/i);
+  assert.match(sql, /\bFROM world_contexts\b/i);
+  assert.match(sql, /\bname_en\b/i);
+  assert.match(sql, /\braw_json\b/i);
   assert.match(sql, /\bINSERT INTO world_contexts\b/i);
   assert.match(sql, /\bON DUPLICATE KEY UPDATE\b/i);
   assert.match(sql, /\bsource_provider\b/i);
@@ -70,6 +74,23 @@ test('importWorldContextDataset apply upserts only world_contexts with source fi
   assert.match(sql, /\blast_synced_at\b/i);
   assert.match(sql, /\braw_json\b/i);
   assert.doesNotMatch(sql, /\brecipes\b|\bnpc_shop_conditions\b|\bitems\b|\bbiomes\b|\bshimmer_/i);
+});
+
+test('importWorldContextDataset apply skips unchanged existing world contexts', async () => {
+  const existingRecord = worldContext({ code: 'DAY' });
+  const conn = createFakeConnection({
+    existing: new Map([['DAY', dbWorldContext(existingRecord)]])
+  });
+  const plan = buildWorldContextImportPlan({
+    worldContexts: [existingRecord]
+  });
+
+  const summary = await importWorldContextDataset(conn, plan, { apply: true });
+
+  assert.equal(summary.worldContexts.created, 0);
+  assert.equal(summary.worldContexts.updated, 0);
+  assert.equal(summary.worldContexts.skipped, 1);
+  assert.equal(conn.calls.some(call => /\bINSERT INTO world_contexts\b/i.test(call.sql)), false);
 });
 
 test('assertPrimaryDb blocks non-primary apply writes unless explicitly allowed', () => {
@@ -100,13 +121,34 @@ function worldContext(overrides = {}) {
   };
 }
 
+function dbWorldContext(record, overrides = {}) {
+  return {
+    id: 1,
+    code: record.code,
+    name_en: record.nameEn,
+    name_zh: record.nameZh,
+    context_type: record.contextType,
+    description: record.description,
+    icon_url: record.iconUrl,
+    source_provider: record.sourceProvider,
+    source_page: record.sourcePage,
+    source_revision_timestamp: '2026-05-20 00:00:00',
+    last_synced_at: '2026-05-22 00:00:00',
+    raw_json: record.rawJson,
+    sort_order: record.sortOrder,
+    status: record.status,
+    deleted: 0,
+    ...overrides
+  };
+}
+
 function createFakeConnection({ existing = new Map() } = {}) {
   const calls = [];
   return {
     calls,
     async query(sql, params = []) {
       calls.push({ method: 'query', sql, params });
-      if (/SELECT id, code FROM world_contexts/i.test(sql)) {
+      if (/FROM\s+world_contexts/i.test(sql)) {
         return [[...existing.values()]];
       }
       return [[]];

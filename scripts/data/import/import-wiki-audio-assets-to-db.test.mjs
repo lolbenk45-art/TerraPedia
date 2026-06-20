@@ -347,6 +347,62 @@ test('runAudioAssetImport applies idempotent upserts', async () => {
   assert.ok(executeCalls.some((call) => call.sql.startsWith('INSERT INTO audio_asset_links')));
 });
 
+test('runAudioAssetImport skips unchanged audio asset and link rows', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'audio-db-import-skip-'));
+  const filePath = path.join(tempDir, 'item.wav');
+  const inputPath = path.join(tempDir, 'metadata.json');
+  const inputAsset = asset({ absoluteLocalPath: filePath, sha256: sha256('item-one') });
+  fs.writeFileSync(filePath, 'item-one');
+  fs.writeFileSync(inputPath, JSON.stringify({ assets: [inputAsset] }));
+  const executeCalls = [];
+
+  const report = await runAudioAssetImport({
+    apply: true,
+    inputJsonPath: inputPath,
+    reportPath: null,
+    db: { database: 'terria_v1_local' }
+  }, {
+    localItemRows: [{ id: 1001, source_id: 1, internal_name: 'IronPickaxe', name: 'Iron Pickaxe', name_zh: '铁镐' }],
+    localNpcRows: [],
+    mysqlModule: {
+      async createConnection() {
+        return {
+          async beginTransaction() {},
+          async commit() {},
+          async rollback() {},
+          async execute(sql, params = []) {
+            executeCalls.push({ sql, params });
+            if (sql.startsWith('SELECT id, source_id, internal_name, name, name_zh FROM items')) {
+              return [[{ id: 1001, source_id: 1, internal_name: 'IronPickaxe', name: 'Iron Pickaxe', name_zh: '铁镐' }]];
+            }
+            if (sql.startsWith('SELECT id, internal_name, name, name_zh, raw_json FROM npcs')) {
+              return [[]];
+            }
+            if (sql.startsWith('SELECT id, asset_id FROM audio_assets WHERE asset_id IN')) {
+              return [[{ id: 77, asset_id: 'items:item-1' }]];
+            }
+            if (sql.startsWith('SELECT id,') && sql.includes('FROM audio_assets') && sql.includes('WHERE asset_id = ?')) {
+              return [[existingAudioAssetRow(inputAsset, { id: 77, reportPath: null })]];
+            }
+            if (sql.startsWith('SELECT id,') && sql.includes('FROM audio_asset_links')) {
+              return [[existingAudioLinkRow({ id: 88, audioAssetId: 77 })]];
+            }
+            return [{ affectedRows: 1 }];
+          },
+          async end() {}
+        };
+      }
+    }
+  });
+
+  assert.equal(report.summary.skippedAssets, 1);
+  assert.equal(report.summary.skippedLinks, 1);
+  assert.equal(report.summary.updatedAssets, 0);
+  assert.equal(report.summary.updatedLinks, 0);
+  assert.equal(executeCalls.some((call) => call.sql.startsWith('INSERT INTO audio_assets')), false);
+  assert.equal(executeCalls.some((call) => call.sql.startsWith('INSERT INTO audio_asset_links')), false);
+});
+
 test('runAudioAssetImport falls back when items source_id column is absent', async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'audio-db-import-no-source-id-'));
   const filePath = path.join(tempDir, 'item.wav');
@@ -421,6 +477,47 @@ function asset(overrides = {}) {
     size: 8,
     sha256: sha256('item-one'),
     ...overrides
+  };
+}
+
+function existingAudioAssetRow(inputAsset, { id, reportPath }) {
+  return {
+    id,
+    asset_id: inputAsset.assetId,
+    shard: inputAsset.shard,
+    kind: inputAsset.kind,
+    source_key: inputAsset.sourceKey,
+    display_name_zh: '铁镐',
+    display_name_en: 'Iron Pickaxe',
+    file_title: inputAsset.fileTitle,
+    wiki_file_url: inputAsset.wikiFileUrl,
+    source_url: inputAsset.sourceUrl,
+    local_path: inputAsset.localPath,
+    absolute_local_path: inputAsset.absoluteLocalPath,
+    mime: inputAsset.mime,
+    size_bytes: inputAsset.size,
+    sha256: inputAsset.sha256,
+    provider: 'wiki_gg',
+    status: 'active',
+    last_verified_at: null,
+    crawl_report_path: reportPath,
+    raw_json: JSON.stringify(inputAsset),
+    deleted: 0,
+  };
+}
+
+function existingAudioLinkRow({ id, audioAssetId }) {
+  return {
+    id,
+    audio_asset_id: audioAssetId,
+    entity_type: 'item',
+    entity_id: 1001,
+    source_key: 'Item_1',
+    relation_type: 'item_use_sound',
+    match_status: 'matched',
+    match_reason: 'matched items.source_id from Item_1',
+    sort_order: 0,
+    deleted: 0,
   };
 }
 

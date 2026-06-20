@@ -62,3 +62,16 @@ test('page-owned fixed drawers stay below admin navigation and reserve shell spa
   assert.match(crawlerMonitorPage, /\.report-preview-shell\s*\{[\s\S]*z-index:\s*var\(--z-page-popover\)/)
   assert.doesNotMatch(crawlerMonitorPage, /\.report-preview-shell\s*\{[\s\S]*inset:\s*0;[\s\S]*z-index:\s*80/)
 })
+
+test('active sidebar navigation scrolls the selected menu item into view', () => {
+  assert.match(layout, /ref="sidebarNavRef"/)
+  assert.match(layout, /:ref="\(\(el\) => setMenuLinkRef\(item\.path, el\)\)"/)
+  assert.match(layout, /function findActiveMenuEntry\(\)/)
+  assert.match(layout, /function revealActiveMenuItem\(\)/)
+  assert.match(layout, /next\.delete\(activeEntry\.section\.label\)/)
+  assert.match(layout, /function scrollSidebarLinkIntoView\(activeLink: HTMLElement\)/)
+  assert.match(layout, /sidebarNav\.scrollTop = nextScrollTop/)
+  assert.doesNotMatch(layout, /behavior:\s*'smooth'/)
+  assert.doesNotMatch(layout, /scrollIntoView\(/)
+  assert.match(layout, /watch\(\s*\(\) => route\.fullPath,[\s\S]*revealActiveMenuItem\(\)/)
+})

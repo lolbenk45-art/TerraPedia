@@ -230,7 +230,10 @@ function upsertActionResult(actionResults, nextResult) {
 
 function runAction(command, args, options = {}) {
   return new Promise((resolve) => {
-    const child = spawn(command, args, {
+    const actionArgs = Array.isArray(args)
+      ? args.map((arg) => typeof arg === 'string' ? arg.replaceAll('<outputPath>', options.outputPath) : arg)
+      : [];
+    const child = spawn(command, actionArgs, {
       cwd: options.cwd,
       env: {
         ...process.env,
