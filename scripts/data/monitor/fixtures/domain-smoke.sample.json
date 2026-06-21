@@ -1,0 +1,12 @@
+{
+  "items": 10,
+  "npcs": 10,
+  "projectiles": 10,
+  "buffs": 10,
+  "armor_sets": 10,
+  "recipes": 10,
+  "biomes": 10,
+  "bosses": 10,
+  "town_npc_maintenance": 10,
+  "shimmer": 10
+}

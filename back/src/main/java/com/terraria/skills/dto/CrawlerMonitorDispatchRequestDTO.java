@@ -7,4 +7,5 @@ public class CrawlerMonitorDispatchRequestDTO {
     private String domain;
     private String actionId;
     private String controlAction;
+    private String queueId;
 }

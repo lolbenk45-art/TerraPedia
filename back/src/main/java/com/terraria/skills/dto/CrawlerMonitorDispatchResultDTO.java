@@ -7,10 +7,14 @@ import lombok.Data;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CrawlerMonitorDispatchResultDTO {
     private boolean accepted;
+    private String queueId;
+    private Boolean queued;
+    private Integer queuePosition;
     private String dispatchId;
     private String domain;
     private String actionId;
     private String status;
+    private String requestedAt;
     private String progressPath;
     private String lockPath;
     private String reportPath;
@@ -18,5 +22,7 @@ public class CrawlerMonitorDispatchResultDTO {
     private String blockedByDomain;
     private String blockedByActionId;
     private String blockedSince;
+    private String queueMessage;
+    private String cooldownUntil;
     private String message;
 }

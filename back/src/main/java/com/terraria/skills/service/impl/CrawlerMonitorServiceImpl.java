@@ -97,6 +97,18 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Duration PROGRESS_STALE_THRESHOLD = Duration.ofMinutes(10);
     private static final Duration DEFAULT_HEARTBEAT_STALE_THRESHOLD = Duration.ofMinutes(30);
     private static final List<String> REDIS_HEARTBEAT_ENTITIES = List.of("items", "buffs");
+    private static final List<String> WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS = List.of(
+        "items",
+        "npcs",
+        "projectiles",
+        "armor_sets",
+        "buffs",
+        "biomes",
+        "recipes",
+        "bosses",
+        "town_npc_maintenance",
+        "shimmer"
+    );
     private static final String REDIS_BACKEND_DAEMON_KEY = "terrapedia:crawler:backend-refresh:daemon";
     private static final String REDIS_BACKEND_SCHEDULER_KEY = "terrapedia:crawler:backend-refresh:scheduler";
     private static final String REDIS_BACKEND_LOCK_KEY = "terrapedia:crawler:backend-refresh:lock";
@@ -134,9 +146,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private final Clock clock;
     private final StringRedisTemplate redisTemplate;
     private final CrawlerStateRedisRepository redisRepository;
+    private final WikiMonitorDispatchQueueRepository queueRepository;
     private final CrawlerReportArchiver reportArchiver;
     private final ProcessLauncher processLauncher;
     private final Map<String, ActiveDispatchProcess> activeDispatchProcesses = new ConcurrentHashMap<>();
+    private final Map<String, Process> activeDomainSmokeProcesses = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, Object>> queueStartMetadata = new ConcurrentHashMap<>();
     private final Set<String> cancellingDispatches = ConcurrentHashMap.newKeySet();
     private volatile Duration dispatchTimeout = WIKI_MONITOR_DISPATCH_TIMEOUT;
     private static final long OVERVIEW_CACHE_TTL_NANOS = TimeUnit.SECONDS.toNanos(2);
@@ -145,6 +160,24 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     void setDispatchTimeoutForTesting(Duration timeout) {
         this.dispatchTimeout = timeout == null ? WIKI_MONITOR_DISPATCH_TIMEOUT : timeout;
+    }
+
+    WikiMonitorQueueExecutor standardQueueExecutorForTesting() {
+        return new StandardWikiMonitorQueueExecutor();
+    }
+
+    WikiMonitorQueueExecutor domainSmokeQueueExecutorForTesting() {
+        return new DomainSmokeQueueExecutor();
+    }
+
+    String resolveSmokeTerminalStatusForTesting(
+        String dispatchId,
+        String reportPath,
+        String latestPath,
+        String progressPath,
+        Integer exitCodeOrNull
+    ) {
+        return resolveSmokeTerminalStatus(resolveRepoRoot(), dispatchId, reportPath, latestPath, progressPath, exitCodeOrNull);
     }
 
     @Autowired
@@ -180,6 +213,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         this.clock = clock == null ? Clock.systemUTC() : clock;
         this.redisTemplate = redisTemplate;
         this.redisRepository = redisTemplate == null ? null : new CrawlerStateRedisRepository(objectMapper, redisTemplate);
+        this.queueRepository = new WikiMonitorDispatchQueueRepository(
+            objectMapper,
+            resolveRepoRoot(),
+            redisTemplate,
+            this.clock
+        );
         this.reportArchiver = new CrawlerReportArchiver(objectMapper);
         this.processLauncher = processLauncher == null ? new ProcessBuilderLauncher() : processLauncher;
     }
@@ -216,7 +255,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 DispatchPaths paths = reconstructDispatchPaths(repoRoot, dispatchId, rule);
                 Process process = new HandleBackedProcess(handle.get());
                 activeDispatchProcesses.put(dispatchId, new ActiveDispatchProcess(dispatchId, domain, actionId, process, paths));
-                watchDispatchProcess(repoRoot, dispatchId, rule, paths, process);
+                watchDispatchProcess(repoRoot, null, dispatchId, rule, paths, process);
                 log.info("Recovered running wiki monitor dispatch {} (pid={}) after restart.", dispatchId, pid);
             } else {
                 convergeOrphanedDispatch(repoRoot, lockPath, dispatchId, rule);
@@ -314,58 +353,302 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private CrawlerMonitorDispatchResultDTO dispatchWikiMonitorTask(Path repoRoot, WikiMonitorRule rule, Map<String, Object> metadata) {
-        ReadResult latestDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
-        if (isInCooldown(rule, latestDispatch.payload())) {
-            return rejectedDispatch(rule, "cooldown", "dispatch cooldown is active");
+        WikiMonitorDispatchQueueRepository.EnqueueResult enqueue = enqueueWikiMonitorRequest(
+            repoRoot,
+            "standard",
+            rule.domain(),
+            rule.actionId(),
+            metadata
+        );
+        WikiMonitorQueueItem item = enqueue.item();
+        if (!enqueue.created()) {
+            return dispatchResponseFromQueueItem(repoRoot, item);
         }
+        if (!canClaimImmediateQueueItem(repoRoot, item)) {
+            return dispatchResponseFromQueueItem(repoRoot, item);
+        }
+        WikiMonitorDispatchQueueRepository.ClaimResult claim =
+            queueRepository.claimForStart(item.getQueueId(), queueClaimOwner(item.getLane()));
+        invalidateCachedOverview();
+        if (!claim.claimed() || claim.item().isEmpty()) {
+            return dispatchResponseFromQueueItem(repoRoot, queueRepository.findItem(item.getQueueId()).orElse(item));
+        }
+        return startWikiMonitorQueueItem(repoRoot, claim.item().get(), metadata);
+    }
 
-        String timestamp = Instant.now(clock).toString();
-        String dispatchId = "wiki-monitor-" + timestamp.replaceAll("[^0-9A-Za-z]+", "-") + "-" + UUID.randomUUID().toString().substring(0, 8);
-        Path lockPath = repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
-        LinkedHashMap<String, Object> lockPayload = new LinkedHashMap<>();
-        lockPayload.put("dispatchId", dispatchId);
-        lockPayload.put("domain", rule.domain());
-        lockPayload.put("actionId", rule.actionId());
-        lockPayload.put("lockedAt", timestamp);
+    private WikiMonitorDispatchQueueRepository.EnqueueResult enqueueWikiMonitorRequest(
+        Path repoRoot,
+        String lane,
+        String requestedDomain,
+        String actionId,
+        Map<String, Object> metadata
+    ) {
+        WikiMonitorQueueItem item = new WikiMonitorQueueItem();
+        item.setLane(lane);
+        item.setDomain(requestedDomain);
+        item.setCoveredDomains(coveredDomainsFor(actionId));
+        item.setActionId(actionId);
+        item.setRequestedAt(Instant.now(clock));
+        item.setRequestedBy("admin");
+        item.setMessage(firstNonBlank(asString(metadata.get("message")), "已加入队列"));
+        Instant cooldownUntil = cooldownUntilFor(repoRoot, lane, actionId).orElse(null);
+        attachQueueBlocker(repoRoot, item, lane, actionId, cooldownUntil);
+        WikiMonitorDispatchQueueRepository.EnqueueResult result = queueRepository.enqueue(item, cooldownUntil);
+        invalidateCachedOverview();
+        return result;
+    }
+
+    private void attachQueueBlocker(Path repoRoot, WikiMonitorQueueItem item, String lane, String actionId, Instant cooldownUntil) {
+        if (item == null) {
+            return;
+        }
+        Path lockPath = "domain_smoke".equals(lane)
+            ? repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize()
+            : repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
+        ReadResult lock = readJsonMap(lockPath);
+        if (lock.readable()) {
+            Map<String, Object> payload = lock.payload();
+            item.setBlockedByDispatchId(asString(payload.get("dispatchId")));
+            item.setBlockedByDomain(asString(payload.get("domain")));
+            item.setBlockedByActionId(asString(payload.get("actionId")));
+            item.setBlockedSince(parseInstant(asString(payload.get("lockedAt"))));
+            return;
+        }
+        if (cooldownUntil != null && cooldownUntil.isAfter(Instant.now(clock))) {
+            item.setBlockedByActionId(actionId);
+            item.setBlockedSince(Instant.now(clock));
+        }
+    }
+
+    private CrawlerMonitorDispatchResultDTO startWikiMonitorQueueItem(
+        Path repoRoot,
+        WikiMonitorQueueItem item,
+        Map<String, Object> metadata
+    ) {
+        if (item == null || !"starting".equals(item.getStatus())) {
+            return dispatchResponseFromQueueItem(repoRoot, item);
+        }
+        WikiMonitorQueueExecutor executor = executorFor(item);
+        Map<String, Object> safeMetadata = metadata == null ? Map.of() : new LinkedHashMap<>(metadata);
+        if ("standard".equals(item.getLane()) && !safeMetadata.isEmpty()) {
+            queueStartMetadata.put(item.getQueueId(), safeMetadata);
+        }
+        WikiMonitorQueueStartResult start;
+        try {
+            start = executor.start(repoRoot, item);
+        } finally {
+            if ("standard".equals(item.getLane())) {
+                queueStartMetadata.remove(item.getQueueId());
+            }
+        }
+        if (start.getStatus() == StartStatus.LOCK_BUSY) {
+            queueRepository.releaseStartingClaimToQueued(item.getQueueId(), "已加入队列，等待当前任务完成后启动");
+            invalidateCachedOverview();
+            return dispatchResponseFromQueueItem(repoRoot, queueRepository.findItem(item.getQueueId()).orElse(item));
+        }
+        if (start.getStatus() == StartStatus.LAUNCH_FAILED) {
+            releaseLaneLock(repoRoot, item.getLane(), start.getDispatchId());
+            queueRepository.markTerminal(
+                item.getQueueId(),
+                "failed",
+                Instant.now(clock),
+                firstNonBlank(start.getMessage(), "队列项启动失败")
+            );
+            invalidateCachedOverview();
+            return dispatchResponseFromQueueItem(repoRoot, queueRepository.findItem(item.getQueueId()).orElse(item));
+        }
+        queueRepository.markRunning(
+            item.getQueueId(),
+            start.getDispatchId(),
+            start.getPid() == null ? -1L : start.getPid(),
+            start.getProcessStartedAt(),
+            start.getStartedAt(),
+            new WikiMonitorDispatchQueueRepository.QueuePaths(
+                start.getProgressPath(),
+                start.getReportPath(),
+                start.getLockPath(),
+                start.getOutputPath()
+            )
+        );
+        attachQueueWatcher(repoRoot, item, start);
+        invalidateCachedOverview();
+        return dispatchResponseFromQueueItem(repoRoot, queueRepository.findItem(item.getQueueId()).orElse(item));
+    }
+
+    private void attachQueueWatcher(Path repoRoot, WikiMonitorQueueItem item, WikiMonitorQueueStartResult start) {
+        if (item == null || start == null || start.getProcess() == null) {
+            return;
+        }
+        if ("domain_smoke".equals(item.getLane())) {
+            watchDomainSmokeProcess(
+                repoRoot,
+                item.getQueueId(),
+                start.getDispatchId(),
+                repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize(),
+                start.getProcess()
+            );
+            return;
+        }
+        WikiMonitorRule rule = findWikiMonitorRule(item.getDomain(), item.getActionId());
+        if (rule == null) {
+            return;
+        }
+        watchDispatchProcess(
+            repoRoot,
+            item.getQueueId(),
+            start.getDispatchId(),
+            rule,
+            new DispatchPaths(start.getReportPath(), start.getProgressPath(), start.getLockPath(), start.getLogPath()),
+            start.getProcess()
+        );
+    }
+
+    private WikiMonitorQueueExecutor executorFor(WikiMonitorQueueItem item) {
+        WikiMonitorQueueExecutor executor = "domain_smoke".equals(item.getLane())
+            ? new DomainSmokeQueueExecutor()
+            : new StandardWikiMonitorQueueExecutor();
+        if (!executor.supports(item)) {
+            throw new IllegalArgumentException("No queue executor supports item " + item.getQueueId());
+        }
+        return executor;
+    }
+
+    private boolean canClaimImmediateQueueItem(Path repoRoot, WikiMonitorQueueItem item) {
+        if (item == null || !"queued".equals(item.getStatus())) {
+            return false;
+        }
+        if (queueRepository.positionFor(item.getQueueId()).map(WikiMonitorDispatchQueueRepository.QueuePosition::lanePosition).orElse(0) != 1) {
+            return false;
+        }
+        return !laneLockExists(repoRoot, item.getLane());
+    }
+
+    private boolean laneLockExists(Path repoRoot, String lane) {
+        Path lockPath = "domain_smoke".equals(lane)
+            ? repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize()
+            : repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
         releaseStaleDispatchLock(lockPath);
-        if (!acquireDispatchLock(lockPath, lockPayload)) {
-            CrawlerMonitorDispatchResultDTO result = rejectedDispatch(rule, "locked", "wiki monitor dispatch is locked by an existing task");
-            result.setLockPath(toDisplayPath(repoRoot, lockPath));
-            attachBlockedDispatch(repoRoot, lockPath, result);
+        return Files.exists(lockPath);
+    }
+
+    private void releaseLaneLock(Path repoRoot, String lane, String dispatchId) {
+        Path lockPath = "domain_smoke".equals(lane)
+            ? repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize()
+            : repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
+        releaseDispatchLock(lockPath, dispatchId);
+    }
+
+    private CrawlerMonitorDispatchResultDTO dispatchResponseFromQueueItem(Path repoRoot, WikiMonitorQueueItem item) {
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        if (item == null) {
+            result.setAccepted(false);
+            result.setStatus("missing");
+            result.setQueued(false);
+            result.setMessage("未找到队列项");
             return result;
         }
-
-        DispatchPaths dispatchPaths = buildDispatchPaths(repoRoot, rule, dispatchId);
-        String message = firstNonBlank(asString(metadata.get("message")), "dispatch accepted");
-        LinkedHashMap<String, Object> state = buildDispatchState(dispatchId, rule, "running", timestamp, null, dispatchPaths, message);
-        state.putAll(metadata);
-        writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), state);
-
-        LaunchRequest launchRequest = buildLaunchRequest(repoRoot, rule, dispatchPaths);
-        try {
-            Process process = processLauncher.launch(launchRequest);
-            activeDispatchProcesses.put(dispatchId, new ActiveDispatchProcess(dispatchId, rule.domain(), rule.actionId(), process, dispatchPaths));
-            recordDispatchRuntime(repoRoot, lockPath, dispatchId, safePid(process), timestamp);
-            watchDispatchProcess(repoRoot, dispatchId, rule, dispatchPaths, process);
-        } catch (IOException exception) {
-            writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(),
-                buildDispatchState(dispatchId, rule, "failed", timestamp, Instant.now(clock).toString(), dispatchPaths, exception.getMessage()));
-            releaseDispatchLock(repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize(), dispatchId);
-            CrawlerMonitorDispatchResultDTO failed = acceptedDispatch(rule, dispatchId, dispatchPaths, "failed", exception.getMessage());
-            failed.setAccepted(false);
-            return failed;
+        result.setAccepted(!"failed".equals(item.getStatus()));
+        result.setQueueId(item.getQueueId());
+        result.setDispatchId(item.getDispatchId());
+        result.setDomain(item.getDomain());
+        result.setActionId(item.getActionId());
+        result.setStatus(item.getStatus());
+        result.setRequestedAt(formatInstant(item.getRequestedAt()));
+        result.setProgressPath(item.getProgressPath());
+        result.setLockPath(firstNonBlank(item.getLockPath(), executorForLenient(item).map(executor -> executor.lockPath(repoRoot)).orElse(null)));
+        result.setReportPath(item.getReportPath());
+        result.setBlockedByDispatchId(item.getBlockedByDispatchId());
+        result.setBlockedByDomain(item.getBlockedByDomain());
+        result.setBlockedByActionId(item.getBlockedByActionId());
+        result.setBlockedSince(formatInstant(item.getBlockedSince()));
+        result.setCooldownUntil(formatInstant(item.getCooldownUntil()));
+        result.setMessage(item.getMessage());
+        boolean waiting = item.isWaiting();
+        result.setQueued(waiting);
+        if (waiting) {
+            queueRepository.positionFor(item.getQueueId()).ifPresent(position -> result.setQueuePosition(position.lanePosition()));
+            result.setQueueMessage(queueMessage(item, result.getQueuePosition()));
+        } else {
+            result.setQueuePosition(null);
+            result.setQueueMessage(null);
         }
+        return result;
+    }
 
-        return acceptedDispatch(rule, dispatchId, dispatchPaths, "running", message);
+    private Optional<WikiMonitorQueueExecutor> executorForLenient(WikiMonitorQueueItem item) {
+        if (item == null) {
+            return Optional.empty();
+        }
+        if ("domain_smoke".equals(item.getLane())) {
+            return Optional.of(new DomainSmokeQueueExecutor());
+        }
+        if ("standard".equals(item.getLane())) {
+            return Optional.of(new StandardWikiMonitorQueueExecutor());
+        }
+        return Optional.empty();
+    }
+
+    private String queueMessage(WikiMonitorQueueItem item, Integer lanePosition) {
+        if ("blocked_cooldown".equals(item.getStatus())) {
+            return "冷却中，已加入队列第 " + (lanePosition == null ? "-" : lanePosition) + " 位";
+        }
+        return "已加入队列第 " + (lanePosition == null ? "-" : lanePosition) + " 位";
+    }
+
+    private Optional<Instant> cooldownUntilFor(Path repoRoot, String lane, String actionId) {
+        Optional<Instant> queued = queueRepository.cooldownUntilFor(lane, actionId)
+            .filter(cooldownUntil -> cooldownUntil.isAfter(Instant.now(clock)));
+        if (queued.isPresent()) {
+            return queued;
+        }
+        if (!"standard".equals(lane)) {
+            return Optional.empty();
+        }
+        ReadResult latestDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+        Map<String, Object> payload = latestDispatch.readable() ? latestDispatch.payload() : Map.of();
+        if (!isActionInCooldown(actionId, payload)) {
+            return Optional.empty();
+        }
+        Instant completedAt = parseInstant(asString(payload.get("completedAt")));
+        return completedAt == null ? Optional.empty() : Optional.of(completedAt.plus(WIKI_MONITOR_DISPATCH_COOLDOWN));
+    }
+
+    private List<String> coveredDomainsFor(String actionId) {
+        List<String> domains = WIKI_MONITOR_RULES.stream()
+            .filter(rule -> rule.actionId().equals(actionId))
+            .filter(WikiMonitorRule::wikiDomain)
+            .map(WikiMonitorRule::domain)
+            .distinct()
+            .toList();
+        return domains.isEmpty() ? List.of() : domains;
+    }
+
+    private String queueClaimOwner(String lane) {
+        return "dispatch:" + (lane == null || lane.isBlank() ? "-" : lane) + ":" + Instant.now(clock);
+    }
+
+    private String formatInstant(Instant instant) {
+        return instant == null ? null : instant.toString();
+    }
+
+    private void invalidateCachedOverview() {
+        cachedOverview = null;
+        cachedOverviewAtNanos = 0L;
     }
 
     @Override
     public CrawlerMonitorDispatchResultDTO controlWikiMonitorDispatch(CrawlerMonitorDispatchRequestDTO request) {
         Path repoRoot = resolveRepoRoot();
+        String controlAction = trimToNull(request == null ? null : request.getControlAction());
+        if ("cancelQueued".equals(controlAction)) {
+            return cancelQueuedWikiMonitorDispatch(repoRoot, request);
+        }
+        if (isDomainSmokeControl(request)) {
+            return controlWikiMonitorDomainSmoke(repoRoot, request);
+        }
         WikiMonitorRule rule = resolveWikiMonitorControlRule(request);
-        String controlAction = trimToNull(request.getControlAction());
         if (!"pause".equals(controlAction) && !"resume".equals(controlAction) && !"cancel".equals(controlAction) && !"retry".equals(controlAction)) {
-            throw new IllegalArgumentException("controlAction must be pause, resume, cancel or retry");
+            throw new IllegalArgumentException("控制动作不支持 " + (controlAction == null ? "<空>" : controlAction) + "，请使用 pause、resume、cancel、retry 或 cancelQueued。");
         }
         ReadResult latestDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
         Map<String, Object> payload = latestDispatch.readable() ? latestDispatch.payload() : Map.of();
@@ -392,13 +675,13 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (dispatchId == null || active == null) {
             Process legacyProcess = processLauncher.findLegacyProcess(buildLegacyProcessRequest(repoRoot, rule));
             if (legacyProcess == null || !legacyProcess.isAlive()) {
-                return rejectedDispatch(rule, "missing", "no matching wiki monitor dispatch is active");
+                return missingActiveDispatch(rule, repoRoot);
             }
             active = new ActiveDispatchProcess("legacy-os-process", rule.domain(), rule.actionId(), legacyProcess, buildLegacyDispatchPaths(rule));
             dispatchId = active.dispatchId();
         }
         if (!active.process().isAlive()) {
-            return rejectedDispatch(rule, "uncontrollable", "dispatch process is not controlled by this backend instance");
+            return rejectedDispatch(rule, "uncontrollable", "派发进程已不在当前后端实例控制中；请刷新阶段进度确认是否已结束，必要时重新加入队列。");
         }
 
         String status = switch (controlAction) {
@@ -424,7 +707,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             if ("cancel".equals(controlAction)) {
                 cancellingDispatches.remove(dispatchId);
             }
-            return rejectedDispatch(rule, "uncontrollable", "dispatch process control signal failed");
+            return rejectedDispatch(rule, "uncontrollable", "派发进程控制信号发送失败；请刷新阶段进度后重试，或检查后端进程权限。");
         }
 
         DispatchPaths paths = active.paths();
@@ -443,12 +726,231 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             releaseDispatchLock(repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize(), dispatchId);
             activeDispatchProcesses.remove(dispatchId);
             cleanupDispatchArtifacts(repoRoot, paths);
+            markRunningQueueItemCancelled(dispatchId, message);
+            drainWikiMonitorDispatchQueue("active-cancel-standard");
             if (!watcherTracked) {
                 cancellingDispatches.remove(dispatchId);
             }
         }
 
         return acceptedDispatch(rule, dispatchId, paths, status, message);
+    }
+
+    private CrawlerMonitorDispatchResultDTO cancelQueuedWikiMonitorDispatch(Path repoRoot, CrawlerMonitorDispatchRequestDTO request) {
+        String queueId = trimToNull(request == null ? null : request.getQueueId());
+        if (queueId == null) {
+            CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+            result.setAccepted(false);
+            result.setStatus("missing");
+            result.setQueued(false);
+            result.setMessage("queueId 不能为空，请刷新队列后重试。");
+            return result;
+        }
+        Optional<WikiMonitorQueueItem> current = queueRepository.findItem(queueId);
+        if (current.isEmpty()) {
+            CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+            result.setAccepted(false);
+            result.setQueueId(queueId);
+            result.setStatus("missing");
+            result.setQueued(false);
+            result.setMessage("未找到队列任务，可能已完成、已取消，或队列状态已刷新。请刷新阶段进度后重试。");
+            return result;
+        }
+        WikiMonitorQueueItem item = current.get();
+        if ("starting".equals(item.getStatus())) {
+            CrawlerMonitorDispatchResultDTO result = dispatchResponseFromQueueItem(repoRoot, item);
+            result.setAccepted(false);
+            result.setQueued(false);
+            result.setMessage("队列任务正在启动，请稍后刷新阶段进度；如果已开始运行，请使用当前运行任务的终止按钮。");
+            return result;
+        }
+        if ("running".equals(item.getStatus())) {
+            CrawlerMonitorDispatchResultDTO result = dispatchResponseFromQueueItem(repoRoot, item);
+            result.setAccepted(false);
+            result.setQueued(false);
+            result.setMessage("队列任务已开始运行，请使用当前运行任务的终止按钮。");
+            return result;
+        }
+        WikiMonitorDispatchQueueRepository.CancelResult cancelResult =
+            queueRepository.cancelQueued(queueId, "已取消排队任务。");
+        WikiMonitorQueueItem resultItem = cancelResult.item() == null
+            ? queueRepository.findItem(queueId).orElse(item)
+            : cancelResult.item();
+        CrawlerMonitorDispatchResultDTO result = dispatchResponseFromQueueItem(repoRoot, resultItem);
+        result.setAccepted(cancelResult.cancelled());
+        result.setQueued(false);
+        if (cancelResult.cancelled()) {
+            result.setMessage("已取消排队任务。");
+            invalidateCachedOverview();
+            drainWikiMonitorDispatchQueue("queued-cancel");
+            return result;
+        }
+        result.setMessage("队列任务当前状态为 " + cancelResult.status() + "，不能按排队任务取消；请刷新阶段进度后重试。");
+        return result;
+    }
+
+    private boolean isDomainSmokeControl(CrawlerMonitorDispatchRequestDTO request) {
+        return request != null && "wiki-monitor-domain-smoke".equals(trimToNull(request.getActionId()));
+    }
+
+    private CrawlerMonitorDispatchResultDTO controlWikiMonitorDomainSmoke(Path repoRoot, CrawlerMonitorDispatchRequestDTO request) {
+        String controlAction = trimToNull(request.getControlAction());
+        if (!"cancel".equals(controlAction)) {
+            CrawlerMonitorDispatchResultDTO result = smokeDispatchResult(
+                "wiki-monitor-domain-smoke-control",
+                false,
+                "unsupported",
+                "10 域样本爬取暂不支持暂停或继续；如需停止，请使用终止。"
+            );
+            return result;
+        }
+
+        ReadResult lock = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize());
+        String dispatchId = lock.readable()
+            ? firstNonBlank(asString(lock.payload().get("dispatchId")), "wiki-monitor-domain-smoke-active")
+            : "wiki-monitor-domain-smoke-active";
+        Process active = activeDomainSmokeProcesses.get(dispatchId);
+        if (active == null || !active.isAlive()) {
+            CrawlerMonitorDispatchResultDTO result = smokeDispatchResult(
+                dispatchId,
+                false,
+                "missing",
+                "未找到正在运行的 10 域样本爬取任务；可能已结束、后端已重启，或只剩进度文件。actionId=wiki-monitor-domain-smoke，progressPath="
+                    + WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE.toString().replace('\\', '/')
+                    + "，lockPath=" + WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE.toString().replace('\\', '/')
+                    + "。如需删除样本产物，请使用“清理样本”。"
+            );
+            attachBlockedDispatch(repoRoot, repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize(), result);
+            return result;
+        }
+
+        cancellingDispatches.add(dispatchId);
+        boolean signalSent = processLauncher.destroy(active);
+        if (!signalSent) {
+            cancellingDispatches.remove(dispatchId);
+            return smokeDispatchResult(dispatchId, false, "uncontrollable", "10 域样本爬取进程存在，但终止信号发送失败；请刷新阶段进度后重试。");
+        }
+        activeDomainSmokeProcesses.remove(dispatchId);
+        releaseDispatchLock(repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize(), dispatchId);
+        markRunningQueueItemCancelled(dispatchId, "已终止 10 域样本爬取；样本产物可继续查看或手动清理。");
+        drainWikiMonitorDispatchQueue("active-cancel-smoke");
+        cancellingDispatches.remove(dispatchId);
+        return smokeDispatchResult(dispatchId, true, "cancelled", "已终止 10 域样本爬取；样本产物可继续查看或手动清理。");
+    }
+
+    private void markRunningQueueItemCancelled(String dispatchId, String message) {
+        queueRepository.findByDispatchId(dispatchId).ifPresent(item -> {
+            queueRepository.markTerminal(item.getQueueId(), "cancelled", Instant.now(clock), message);
+            invalidateCachedOverview();
+        });
+    }
+
+    private void drainWikiMonitorDispatchQueue(String reason) {
+        queueRepository.withDrainLock(reason, "all", () -> {
+            Path repoRoot = resolveRepoRoot();
+            reconcileQueueRuntimeState(repoRoot);
+            drainWikiMonitorDispatchQueueLane(repoRoot, "standard");
+            drainWikiMonitorDispatchQueueLane(repoRoot, "domain_smoke");
+        });
+    }
+
+    private void reconcileQueueRuntimeState(Path repoRoot) {
+        for (WikiMonitorQueueItem item : queueRepository.listItems()) {
+            if ("starting".equals(item.getStatus())) {
+                reconcileStartingQueueItem(repoRoot, item);
+                continue;
+            }
+            if (!"running".equals(item.getStatus())) {
+                continue;
+            }
+            if (hasTrackedActiveQueueProcess(item)) {
+                continue;
+            }
+            Long pid = item.getPid();
+            Optional<ProcessHandle> handle = pid == null || pid <= 0 ? Optional.empty() : ProcessHandle.of(pid);
+            if (handle.isPresent() && handle.get().isAlive()) {
+                continue;
+            }
+            queueRepository.markTerminal(
+                item.getQueueId(),
+                "timed_out",
+                Instant.now(clock),
+                "运行进程已不存在，队列项已标记为超时。"
+            );
+            releaseLaneLock(repoRoot, item.getLane(), item.getDispatchId());
+            invalidateCachedOverview();
+        }
+    }
+
+    private void reconcileStartingQueueItem(Path repoRoot, WikiMonitorQueueItem item) {
+        Instant claimExpiresAt = item.getClaimExpiresAt();
+        if (claimExpiresAt != null && claimExpiresAt.isAfter(Instant.now(clock))) {
+            return;
+        }
+        if (hasDurableQueueEvidence(repoRoot, item)) {
+            return;
+        }
+        queueRepository.markExpiredStartingFailed(
+            item.getQueueId(),
+            "队列项启动超时，未检测到对应运行进程；请重新加入队列。"
+        );
+        invalidateCachedOverview();
+    }
+
+    private boolean hasDurableQueueEvidence(Path repoRoot, WikiMonitorQueueItem item) {
+        Path lockPath = "domain_smoke".equals(item.getLane())
+            ? repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize()
+            : repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
+        ReadResult lock = readJsonMap(lockPath);
+        if (lock.readable() && item.getQueueId().equals(asString(lock.payload().get("queueId")))) {
+            return true;
+        }
+        if (!"standard".equals(item.getLane())) {
+            return false;
+        }
+        ReadResult latest = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+        return latest.readable() && item.getQueueId().equals(asString(latest.payload().get("queueId")));
+    }
+
+    private boolean hasTrackedActiveQueueProcess(WikiMonitorQueueItem item) {
+        if (item == null || item.getDispatchId() == null) {
+            return false;
+        }
+        if ("domain_smoke".equals(item.getLane())) {
+            Process process = activeDomainSmokeProcesses.get(item.getDispatchId());
+            return process != null && process.isAlive();
+        }
+        ActiveDispatchProcess active = activeDispatchProcesses.get(item.getDispatchId());
+        return active != null && active.process().isAlive();
+    }
+
+    private void drainWikiMonitorDispatchQueueLane(Path repoRoot, String lane) {
+        if (laneLockExists(repoRoot, lane)) {
+            return;
+        }
+        for (WikiMonitorQueueItem item : queueRepository.listItems()) {
+            if (!lane.equals(item.getLane())) {
+                continue;
+            }
+            if ("starting".equals(item.getStatus()) || "running".equals(item.getStatus())) {
+                return;
+            }
+            if ("blocked_cooldown".equals(item.getStatus())
+                && item.getCooldownUntil() != null
+                && item.getCooldownUntil().isAfter(Instant.now(clock))) {
+                return;
+            }
+            if (!item.isWaiting()) {
+                continue;
+            }
+            WikiMonitorDispatchQueueRepository.ClaimResult claim =
+                queueRepository.claimForStart(item.getQueueId(), queueClaimOwner(lane));
+            if (!claim.claimed() || claim.item().isEmpty()) {
+                return;
+            }
+            startWikiMonitorQueueItem(repoRoot, claim.item().get(), Map.of());
+            return;
+        }
     }
 
     private CrawlerMonitorDispatchResultDTO retryWikiMonitorDispatch(
@@ -461,14 +963,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             && rule.domain().equals(asString(latestPayload.get("domain")))
             && rule.actionId().equals(asString(latestPayload.get("actionId")));
         if (!latestMatches) {
-            return rejectedDispatch(rule, "missing", "no matching wiki monitor dispatch is available to retry");
+            return rejectedDispatch(rule, "missing", "未找到可重试的 Wiki 派发记录；请刷新阶段进度后确认该任务是否已生成失败记录。");
         }
         if (!"failed".equals(asString(latestPayload.get("status")))) {
-            return rejectedDispatch(rule, "not_failed", "only failed wiki monitor dispatches can be retried");
+            return rejectedDispatch(rule, "not_failed", "只有失败状态的 Wiki 派发任务可以重试；当前任务不是失败状态。");
         }
         long retryCount = asLong(latestPayload.get("retryCount"));
         if (retryCount >= WIKI_MONITOR_RETRY_LIMIT) {
-            return rejectedDispatch(rule, "retry_limit", "retry limit reached for this dispatch");
+            return rejectedDispatch(rule, "retry_limit", "该 Wiki 派发任务已达到重试次数上限，请检查报告后手动重新加入队列。");
         }
         LinkedHashMap<String, Object> metadata = new LinkedHashMap<>();
         metadata.put("retryOf", failedDispatchId);
@@ -484,43 +986,50 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     public CrawlerMonitorDispatchResultDTO dispatchWikiMonitorDomainSmoke() {
         Path repoRoot = resolveRepoRoot();
         pruneDispatchArtifacts(repoRoot);
-        String timestamp = Instant.now(clock).toString();
-        String dispatchId = "wiki-monitor-domain-smoke-" + timestamp.replaceAll("[^0-9A-Za-z]+", "-") + "-" + UUID.randomUUID().toString().substring(0, 8);
-        Path lockPath = repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize();
-        LinkedHashMap<String, Object> lockPayload = new LinkedHashMap<>();
-        lockPayload.put("dispatchId", dispatchId);
-        lockPayload.put("domain", "all");
-        lockPayload.put("actionId", "wiki-monitor-domain-smoke");
-        lockPayload.put("limit", WIKI_MONITOR_DOMAIN_SMOKE_LIMIT);
-        lockPayload.put("lockedAt", timestamp);
-        releaseStaleDispatchLock(lockPath);
-        if (!acquireDispatchLock(lockPath, lockPayload)) {
-            CrawlerMonitorDispatchResultDTO result = smokeDispatchResult(dispatchId, false, "locked", "wiki monitor dispatch is locked by an existing task");
-            attachBlockedDispatch(repoRoot, lockPath, result);
-            return result;
+        WikiMonitorDispatchQueueRepository.EnqueueResult enqueue = enqueueWikiMonitorRequest(
+            repoRoot,
+            "domain_smoke",
+            "all",
+            "wiki-monitor-domain-smoke",
+            Map.of("message", "domain smoke accepted")
+        );
+        WikiMonitorQueueItem item = enqueue.item();
+        if (!enqueue.created()) {
+            return dispatchResponseFromQueueItem(repoRoot, item);
         }
-
-        String reportPath = "reports/crawler-monitor/" + dispatchId + ".json";
-        String outputDir = "reports/crawler-monitor/" + dispatchId;
-        String progressPath = toDisplayPath(repoRoot, repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE).normalize());
-        String logPath = "reports/crawler-monitor/" + dispatchId + ".log";
-        LaunchRequest launchRequest = buildDomainSmokeLaunchRequest(repoRoot, dispatchId, reportPath, outputDir, progressPath, logPath);
-        try {
-            Process process = processLauncher.launch(launchRequest);
-            watchDomainSmokeProcess(repoRoot, dispatchId, lockPath, process);
-        } catch (IOException exception) {
-            releaseDispatchLock(lockPath, dispatchId);
-            CrawlerMonitorDispatchResultDTO failed = smokeDispatchResult(dispatchId, false, "failed", exception.getMessage());
-            failed.setReportPath(reportPath);
-            failed.setProgressPath(progressPath);
-            failed.setLockPath(toDisplayPath(repoRoot, lockPath));
-            return failed;
+        if (!canClaimImmediateQueueItem(repoRoot, item)) {
+            return dispatchResponseFromQueueItem(repoRoot, item);
         }
+        WikiMonitorDispatchQueueRepository.ClaimResult claim =
+            queueRepository.claimForStart(item.getQueueId(), queueClaimOwner(item.getLane()));
+        invalidateCachedOverview();
+        if (!claim.claimed() || claim.item().isEmpty()) {
+            return dispatchResponseFromQueueItem(repoRoot, queueRepository.findItem(item.getQueueId()).orElse(item));
+        }
+        return startWikiMonitorQueueItem(repoRoot, claim.item().get(), Map.of("message", "domain smoke accepted"));
+    }
 
-        CrawlerMonitorDispatchResultDTO result = smokeDispatchResult(dispatchId, true, "running", "domain smoke accepted");
-        result.setReportPath(reportPath);
-        result.setProgressPath(progressPath);
-        result.setLockPath(toDisplayPath(repoRoot, lockPath));
+    @Override
+    public CrawlerMonitorDispatchResultDTO cleanupWikiMonitorDomainSmoke() {
+        Path repoRoot = resolveRepoRoot();
+        Path dir = repoRoot.resolve(CRAWLER_MONITOR_DIR).normalize();
+        int deletedCount = 0;
+        if (Files.isDirectory(dir)) {
+            try (Stream<Path> entries = Files.list(dir)) {
+                for (Path entry : entries.filter(this::isWikiMonitorDomainSmokeArtifact).toList()) {
+                    deletedCount += deleteCrawlerMonitorArtifact(entry, repoRoot);
+                }
+            } catch (IOException exception) {
+                log.warn("Failed to clean up wiki monitor domain smoke artifacts in {}: {}", dir, exception.getMessage());
+            }
+        }
+        CrawlerMonitorDispatchResultDTO result = smokeDispatchResult(
+            "wiki-monitor-domain-smoke-cleanup",
+            true,
+            "cleaned",
+            "domain smoke artifacts cleaned; deleted=" + deletedCount
+        );
+        result.setReportPath(CRAWLER_MONITOR_DIR.resolve("wiki-monitor-domain-smoke.latest.json").toString().replace('\\', '/'));
         return result;
     }
 
@@ -547,6 +1056,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         monitor.setLastSweep(readLastSweep(repoRoot));
         monitor.setDomains(domains);
         monitor.setDispatchPlan(dispatchPlan);
+        monitor.setDispatchQueue(buildWikiMonitorDispatchQueue());
         monitor.setPendingDispatches(buildPendingDispatches(repoRoot, domains, dispatchPayload, dispatchPlan));
 
         CrawlerMonitorOverviewDTO.WikiMonitorSummaryDTO summary = new CrawlerMonitorOverviewDTO.WikiMonitorSummaryDTO();
@@ -557,6 +1067,44 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         summary.setFailedCount(domains.stream().filter(domain -> "failed".equals(domain.getStatus())).count());
         monitor.setSummary(summary);
         return monitor;
+    }
+
+    private List<CrawlerMonitorOverviewDTO.WikiMonitorQueueItemDTO> buildWikiMonitorDispatchQueue() {
+        List<WikiMonitorQueueItem> items = queueRepository.listItems();
+        return items.stream()
+            .filter(item -> !item.isTerminal())
+            .map(item -> {
+                CrawlerMonitorOverviewDTO.WikiMonitorQueueItemDTO dto = new CrawlerMonitorOverviewDTO.WikiMonitorQueueItemDTO();
+                dto.setQueueId(item.getQueueId());
+                dto.setDispatchId(item.getDispatchId());
+                dto.setLane(item.getLane());
+                dto.setDomain(item.getDomain());
+                dto.setCoveredDomains(item.getCoveredDomains());
+                dto.setActionId(item.getActionId());
+                dto.setStatus(item.getStatus());
+                dto.setRequestedAt(formatInstant(item.getRequestedAt()));
+                dto.setStartedAt(formatInstant(item.getStartedAt()));
+                dto.setCompletedAt(formatInstant(item.getCompletedAt()));
+                dto.setPid(item.getPid());
+                dto.setProcessStartedAt(formatInstant(item.getProcessStartedAt()));
+                dto.setRequestedBy(item.getRequestedBy());
+                dto.setBlockedByDispatchId(item.getBlockedByDispatchId());
+                dto.setBlockedByDomain(item.getBlockedByDomain());
+                dto.setBlockedByActionId(item.getBlockedByActionId());
+                dto.setBlockedSince(formatInstant(item.getBlockedSince()));
+                dto.setCooldownUntil(formatInstant(item.getCooldownUntil()));
+                dto.setProgressPath(item.getProgressPath());
+                dto.setReportPath(item.getReportPath());
+                dto.setLockPath(item.getLockPath());
+                dto.setOutputPath(item.getOutputPath());
+                dto.setMessage(item.getMessage());
+                queueRepository.positionFor(item.getQueueId()).ifPresent(position -> {
+                    dto.setPosition(position.position());
+                    dto.setLanePosition(position.lanePosition());
+                });
+                return dto;
+            })
+            .toList();
     }
 
     private CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO buildWikiMonitorDomain(
@@ -837,30 +1385,30 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private WikiMonitorRule resolveWikiMonitorRule(CrawlerMonitorDispatchRequestDTO request) {
         if (request == null) {
-            throw new IllegalArgumentException("dispatch request is required");
+            throw new IllegalArgumentException("派发请求不能为空，请刷新页面后重试。");
         }
         String domain = trimToNull(request.getDomain());
         if (domain == null) {
-            throw new IllegalArgumentException("domain is required");
+            throw new IllegalArgumentException("域不能为空，请选择要派发的域。");
         }
         String actionId = trimToNull(request.getActionId());
         if (actionId == null) {
-            throw new IllegalArgumentException("actionId is required");
+            throw new IllegalArgumentException("动作不能为空，请选择要执行的任务。");
         }
         return WIKI_MONITOR_RULES.stream()
             .filter(rule -> rule.domain().equals(domain) && rule.actionId().equals(actionId))
             .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("Action " + actionId + " is not allowed for domain " + domain));
+            .orElseThrow(() -> new IllegalArgumentException("动作 " + actionId + " 不允许用于域 " + domain + "。"));
     }
 
     private WikiMonitorRule resolveWikiMonitorControlRule(CrawlerMonitorDispatchRequestDTO request) {
         if (request == null) {
-            throw new IllegalArgumentException("dispatch request is required");
+            throw new IllegalArgumentException("派发控制请求不能为空，请刷新页面后重试。");
         }
         String domain = trimToNull(request.getDomain());
         String actionId = trimToNull(request.getActionId());
         if (actionId == null) {
-            throw new IllegalArgumentException("actionId is required");
+            throw new IllegalArgumentException("动作不能为空，请选择要操作的任务。");
         }
         if (domain != null) {
             return resolveWikiMonitorRule(request);
@@ -869,7 +1417,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             .filter(rule -> rule.actionId().equals(actionId))
             .toList();
         if (matches.isEmpty()) {
-            throw new IllegalArgumentException("Action " + actionId + " is not allowed");
+            throw new IllegalArgumentException("动作 " + actionId + " 不在允许的 Wiki 派发任务中。");
         }
         if (matches.size() == 1) {
             return matches.get(0);
@@ -877,7 +1425,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return matches.stream()
             .filter(rule -> findActiveDispatchProcess(rule) != null)
             .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("domain is required for shared action " + actionId));
+            .orElseThrow(() -> new IllegalArgumentException("动作 " + actionId + " 对应多个域，请先选择具体域后再操作。"));
     }
 
     private ActiveDispatchProcess findActiveDispatchProcess(WikiMonitorRule rule) {
@@ -1076,6 +1624,31 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return Files.isDirectory(path) && name.startsWith("wiki-monitor-domain-smoke-");
     }
 
+    private boolean isWikiMonitorDomainSmokeArtifact(Path path) {
+        String name = path.getFileName().toString();
+        return name.equals("wiki-monitor-domain-smoke.latest.json")
+            || name.equals(WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE.getFileName().toString())
+            || name.equals(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE.getFileName().toString())
+            || name.startsWith("wiki-monitor-domain-smoke-");
+    }
+
+    private int deleteCrawlerMonitorArtifact(Path path, Path repoRoot) {
+        Path normalized = path.normalize();
+        if (!normalized.startsWith(repoRoot.resolve(CRAWLER_MONITOR_DIR).normalize())) {
+            return 0;
+        }
+        if (Files.isDirectory(normalized)) {
+            deleteRecursivelyQuietly(normalized, repoRoot);
+            return Files.exists(normalized) ? 0 : 1;
+        }
+        try {
+            return Files.deleteIfExists(normalized) ? 1 : 0;
+        } catch (IOException exception) {
+            log.warn("Failed to delete crawler monitor artifact {}: {}", normalized, exception.getMessage());
+            return 0;
+        }
+    }
+
     private Instant lastModifiedOrEpoch(Path path) {
         try {
             return Files.getLastModifiedTime(path).toInstant();
@@ -1121,6 +1694,21 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return result;
     }
 
+    private CrawlerMonitorDispatchResultDTO missingActiveDispatch(WikiMonitorRule rule, Path repoRoot) {
+        String progressPath = rule.progressPath();
+        String lockPath = toDisplayPath(repoRoot, repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize());
+        return rejectedDispatch(
+            rule,
+            "missing",
+            "未找到正在运行的 Wiki 派发任务；可能任务已结束、后端重启后进程未接管，或当前按钮对应的不是正式派发任务。"
+                + " domain=" + rule.domain()
+                + "，actionId=" + rule.actionId()
+                + "，progressPath=" + progressPath
+                + "，lockPath=" + lockPath
+                + "。请先刷新阶段进度；如是 10 域样本任务，请使用样本任务的终止或清理样本。"
+        );
+    }
+
     private CrawlerMonitorDispatchResultDTO acceptedDispatch(
         WikiMonitorRule rule,
         String dispatchId,
@@ -1137,6 +1725,224 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         result.setProgressPath(paths.progressPath());
         result.setLockPath(paths.lockPath());
         result.setReportPath(paths.reportPath());
+        result.setMessage(message);
+        return result;
+    }
+
+    private WikiMonitorQueueStartResult startStandardQueueItemRaw(
+        Path repoRoot,
+        WikiMonitorQueueItem queueItem,
+        WikiMonitorRule rule
+    ) {
+        return startStandardQueueItemRaw(repoRoot, queueItem, rule, Map.of());
+    }
+
+    private WikiMonitorQueueStartResult startStandardQueueItemRaw(
+        Path repoRoot,
+        WikiMonitorQueueItem queueItem,
+        WikiMonitorRule rule,
+        Map<String, Object> metadata
+    ) {
+        String timestamp = Instant.now(clock).toString();
+        String dispatchId = "wiki-monitor-" + timestamp.replaceAll("[^0-9A-Za-z]+", "-") + "-" + UUID.randomUUID().toString().substring(0, 8);
+        String queueId = queueItem == null ? null : trimToNull(queueItem.getQueueId());
+        Path lockPath = repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
+        LinkedHashMap<String, Object> lockPayload = new LinkedHashMap<>();
+        lockPayload.put("dispatchId", dispatchId);
+        lockPayload.put("domain", rule.domain());
+        lockPayload.put("actionId", rule.actionId());
+        lockPayload.put("lockedAt", timestamp);
+        releaseStaleDispatchLock(lockPath);
+        if (!acquireDispatchLock(lockPath, lockPayload)) {
+            return queueStartResult(
+                queueId,
+                dispatchId,
+                StartStatus.LOCK_BUSY,
+                toDisplayPath(repoRoot, lockPath),
+                null,
+                null,
+                null,
+                null,
+                Instant.parse(timestamp),
+                null,
+                null,
+                null,
+                "已有 10 域样本爬取正在运行，已保留队列项等待当前任务结束。"
+            );
+        }
+
+        DispatchPaths dispatchPaths = buildDispatchPaths(repoRoot, rule, dispatchId);
+        Map<String, Object> queueMetadata = queueId == null ? Map.of() : queueStartMetadata.getOrDefault(queueId, Map.of());
+        Map<String, Object> effectiveMetadata = metadata == null || metadata.isEmpty()
+            ? queueMetadata
+            : metadata;
+        String message = firstNonBlank(
+            queueItem == null ? null : queueItem.getMessage(),
+            firstNonBlank(asString(effectiveMetadata.get("message")), "dispatch accepted")
+        );
+        LinkedHashMap<String, Object> state = buildDispatchState(dispatchId, rule, "running", timestamp, null, dispatchPaths, message);
+        state.putAll(effectiveMetadata);
+        if (queueId != null) {
+            state.put("queueId", queueId);
+        }
+        writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), state);
+
+        LaunchRequest launchRequest = buildLaunchRequest(repoRoot, rule, dispatchPaths);
+        try {
+            Process process = processLauncher.launch(launchRequest);
+            long pid = safePid(process);
+            Instant processStartedAt = Instant.parse(timestamp);
+            recordDispatchRuntime(repoRoot, lockPath, dispatchId, pid, timestamp);
+            activeDispatchProcesses.put(dispatchId, new ActiveDispatchProcess(dispatchId, rule.domain(), rule.actionId(), process, dispatchPaths));
+            if (queueId == null) {
+                watchDispatchProcess(repoRoot, null, dispatchId, rule, dispatchPaths, process);
+            }
+            return queueStartResult(
+                queueId,
+                dispatchId,
+                StartStatus.STARTED,
+                dispatchPaths.lockPath(),
+                dispatchPaths.progressPath(),
+                dispatchPaths.reportPath(),
+                null,
+                dispatchPaths.logPath(),
+                processStartedAt,
+                pid,
+                processStartedAt,
+                process,
+                message
+            );
+        } catch (IOException exception) {
+            writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(),
+                buildDispatchState(dispatchId, rule, "failed", timestamp, Instant.now(clock).toString(), dispatchPaths, exception.getMessage()));
+            releaseDispatchLock(lockPath, dispatchId);
+            return queueStartResult(
+                queueId,
+                dispatchId,
+                StartStatus.LAUNCH_FAILED,
+                dispatchPaths.lockPath(),
+                dispatchPaths.progressPath(),
+                dispatchPaths.reportPath(),
+                null,
+                dispatchPaths.logPath(),
+                Instant.parse(timestamp),
+                null,
+                null,
+                null,
+                exception.getMessage()
+            );
+        }
+    }
+
+    private WikiMonitorQueueStartResult startDomainSmokeQueueItemRaw(Path repoRoot, WikiMonitorQueueItem queueItem) {
+        String timestamp = Instant.now(clock).toString();
+        String dispatchId = "wiki-monitor-domain-smoke-" + timestamp.replaceAll("[^0-9A-Za-z]+", "-") + "-" + UUID.randomUUID().toString().substring(0, 8);
+        String queueId = queueItem == null ? null : trimToNull(queueItem.getQueueId());
+        Path lockPath = repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize();
+        LinkedHashMap<String, Object> lockPayload = new LinkedHashMap<>();
+        lockPayload.put("dispatchId", dispatchId);
+        lockPayload.put("domain", "all");
+        lockPayload.put("actionId", "wiki-monitor-domain-smoke");
+        lockPayload.put("limit", WIKI_MONITOR_DOMAIN_SMOKE_LIMIT);
+        lockPayload.put("lockedAt", timestamp);
+        if (queueId != null) {
+            lockPayload.put("queueId", queueId);
+        }
+        releaseStaleDispatchLock(lockPath);
+        if (!acquireDispatchLock(lockPath, lockPayload)) {
+            return queueStartResult(
+                queueId,
+                dispatchId,
+                StartStatus.LOCK_BUSY,
+                toDisplayPath(repoRoot, lockPath),
+                toDisplayPath(repoRoot, repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE).normalize()),
+                null,
+                null,
+                null,
+                Instant.parse(timestamp),
+                null,
+                null,
+                null,
+                "已有 10 域样本爬取正在运行，已保留队列项等待当前任务结束。"
+            );
+        }
+
+        String reportPath = "reports/crawler-monitor/" + dispatchId + ".json";
+        String outputDir = "reports/crawler-monitor/" + dispatchId;
+        String progressPath = toDisplayPath(repoRoot, repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE).normalize());
+        String logPath = "reports/crawler-monitor/" + dispatchId + ".log";
+        LaunchRequest launchRequest = buildDomainSmokeLaunchRequest(repoRoot, dispatchId, reportPath, outputDir, progressPath, logPath);
+        try {
+            Process process = processLauncher.launch(launchRequest);
+            long pid = safePid(process);
+            Instant processStartedAt = Instant.parse(timestamp);
+            activeDomainSmokeProcesses.put(dispatchId, process);
+            if (queueId == null) {
+                watchDomainSmokeProcess(repoRoot, null, dispatchId, lockPath, process);
+            }
+            return queueStartResult(
+                queueId,
+                dispatchId,
+                StartStatus.STARTED,
+                toDisplayPath(repoRoot, lockPath),
+                progressPath,
+                reportPath,
+                outputDir,
+                logPath,
+                processStartedAt,
+                pid,
+                processStartedAt,
+                process,
+                "domain smoke accepted"
+            );
+        } catch (IOException exception) {
+            releaseDispatchLock(lockPath, dispatchId);
+            return queueStartResult(
+                queueId,
+                dispatchId,
+                StartStatus.LAUNCH_FAILED,
+                toDisplayPath(repoRoot, lockPath),
+                progressPath,
+                reportPath,
+                outputDir,
+                logPath,
+                Instant.parse(timestamp),
+                null,
+                null,
+                null,
+                exception.getMessage()
+            );
+        }
+    }
+
+    private WikiMonitorQueueStartResult queueStartResult(
+        String queueId,
+        String dispatchId,
+        StartStatus status,
+        String lockPath,
+        String progressPath,
+        String reportPath,
+        String outputPath,
+        String logPath,
+        Instant startedAt,
+        Long pid,
+        Instant processStartedAt,
+        Process process,
+        String message
+    ) {
+        WikiMonitorQueueStartResult result = new WikiMonitorQueueStartResult();
+        result.setQueueId(queueId);
+        result.setDispatchId(dispatchId);
+        result.setStatus(status);
+        result.setLockPath(lockPath);
+        result.setProgressPath(progressPath);
+        result.setReportPath(reportPath);
+        result.setOutputPath(outputPath);
+        result.setLogPath(logPath);
+        result.setStartedAt(startedAt);
+        result.setPid(pid);
+        result.setProcessStartedAt(processStartedAt);
+        result.setProcess(process);
         result.setMessage(message);
         return result;
     }
@@ -1366,11 +2172,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private void watchDispatchProcess(Path repoRoot, String dispatchId, WikiMonitorRule rule, DispatchPaths paths, Process process) {
+    private void watchDispatchProcess(Path repoRoot, String queueIdOrNull, String dispatchId, WikiMonitorRule rule, DispatchPaths paths, Process process) {
         Duration timeout = dispatchTimeout;
         Thread thread = new Thread(() -> {
             boolean timedOut = false;
             int exitCode = -1;
+            boolean shouldDrain = true;
             try {
                 if (process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
                     exitCode = process.exitValue();
@@ -1382,11 +2189,13 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 }
                 ReadResult currentDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
                 if (cancellingDispatches.contains(dispatchId)) {
+                    shouldDrain = false;
                     return;
                 }
                 if (currentDispatch.readable()
                     && dispatchId.equals(asString(currentDispatch.payload().get("dispatchId")))
                     && "cancelled".equals(asString(currentDispatch.payload().get("status")))) {
+                    shouldDrain = false;
                     return;
                 }
                 String status;
@@ -1402,12 +2211,19 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                     Instant.now(clock).toString(), paths, message);
                 preserveDispatchMetadata(currentDispatch.payload(), state);
                 writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), state);
+                if (queueIdOrNull != null) {
+                    queueRepository.markTerminal(queueIdOrNull, status, Instant.now(clock), message);
+                    invalidateCachedOverview();
+                }
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
             } finally {
                 releaseDispatchLock(repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize(), dispatchId);
                 activeDispatchProcesses.remove(dispatchId);
                 cancellingDispatches.remove(dispatchId);
+                if (shouldDrain) {
+                    drainWikiMonitorDispatchQueue("standard-terminal");
+                }
             }
         }, "wiki-monitor-dispatch-" + dispatchId);
         thread.setDaemon(true);
@@ -1422,11 +2238,17 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
     }
 
-    private void watchDomainSmokeProcess(Path repoRoot, String dispatchId, Path lockPath, Process process) {
+    private void watchDomainSmokeProcess(Path repoRoot, String queueIdOrNull, String dispatchId, Path lockPath, Process process) {
         Duration timeout = dispatchTimeout;
         Thread thread = new Thread(() -> {
+            boolean timedOut = false;
+            Integer exitCode = null;
+            boolean shouldDrain = true;
             try {
-                if (!process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
+                if (process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
+                    exitCode = process.exitValue();
+                } else {
+                    timedOut = true;
                     log.warn("Wiki monitor domain smoke {} exceeded {} min timeout; reclaiming process tree.",
                         dispatchId, timeout.toMinutes());
                     processLauncher.destroy(process);
@@ -1434,11 +2256,162 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
             } finally {
+                if (cancellingDispatches.contains(dispatchId)) {
+                    shouldDrain = false;
+                    releaseDispatchLock(lockPath, dispatchId);
+                    activeDomainSmokeProcesses.remove(dispatchId);
+                    cancellingDispatches.remove(dispatchId);
+                    return;
+                }
+                String reportPath = "reports/crawler-monitor/" + dispatchId + ".json";
+                String status = resolveSmokeTerminalStatus(
+                    repoRoot,
+                    dispatchId,
+                    reportPath,
+                    "reports/crawler-monitor/wiki-monitor-domain-smoke.latest.json",
+                    toDisplayPath(repoRoot, repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE).normalize()),
+                    timedOut ? null : exitCode
+                );
+                log.debug("Wiki monitor domain smoke {} completed with terminal status {} (queueId={}).",
+                    dispatchId, status, queueIdOrNull);
+                if (queueIdOrNull != null) {
+                    queueRepository.markTerminal(queueIdOrNull, status, Instant.now(clock), "domain smoke " + status);
+                    invalidateCachedOverview();
+                }
                 releaseDispatchLock(lockPath, dispatchId);
+                activeDomainSmokeProcesses.remove(dispatchId);
+                if (shouldDrain) {
+                    drainWikiMonitorDispatchQueue("smoke-terminal");
+                }
             }
         }, "wiki-monitor-domain-smoke-" + dispatchId);
         thread.setDaemon(true);
         thread.start();
+    }
+
+    private String resolveSmokeTerminalStatus(
+        Path repoRoot,
+        String dispatchId,
+        String reportPath,
+        String latestPath,
+        String progressPath,
+        Integer exitCodeOrNull
+    ) {
+        String fileStatus = firstResolvedSmokeStatus(repoRoot, dispatchId, reportPath, latestPath, progressPath);
+        if (fileStatus != null) {
+            return fileStatus;
+        }
+        if (exitCodeOrNull == null) {
+            return "timed_out";
+        }
+        return exitCodeOrNull == 0 ? "timed_out" : "failed";
+    }
+
+    private String firstResolvedSmokeStatus(Path repoRoot, String dispatchId, String... displayPaths) {
+        for (String displayPath : displayPaths) {
+            if (displayPath == null || displayPath.isBlank()) {
+                continue;
+            }
+            ReadResult result = readJsonMap(repoRoot.resolve(displayPath).normalize());
+            if (!result.readable()) {
+                continue;
+            }
+            if (dispatchId != null) {
+                String fileDispatchId = asString(result.payload().get("dispatchId"));
+                String runId = asString(result.payload().get("runId"));
+                if (fileDispatchId != null && !dispatchId.equals(fileDispatchId)) {
+                    continue;
+                }
+                if (fileDispatchId == null && runId != null && !dispatchId.equals(runId)) {
+                    continue;
+                }
+            }
+            String status = asString(result.payload().get("status"));
+            if ("completed".equals(status)) {
+                return "completed";
+            }
+            if ("partial".equals(status) || "failed".equals(status)) {
+                return "failed";
+            }
+        }
+        return null;
+    }
+
+    private class StandardWikiMonitorQueueExecutor implements WikiMonitorQueueExecutor {
+
+        @Override
+        public String lane() {
+            return "standard";
+        }
+
+        @Override
+        public boolean supports(WikiMonitorQueueItem item) {
+            return item != null
+                && lane().equals(item.getLane())
+                && findWikiMonitorRule(item.getDomain(), item.getActionId()) != null;
+        }
+
+        @Override
+        public WikiMonitorQueueStartResult start(Path repoRoot, WikiMonitorQueueItem item) {
+            if (!supports(item)) {
+                throw new IllegalArgumentException("standard queue executor does not support item");
+            }
+            return startStandardQueueItemRaw(repoRoot, item, findWikiMonitorRule(item.getDomain(), item.getActionId()));
+        }
+
+        @Override
+        public String lockPath(Path repoRoot) {
+            return toDisplayPath(repoRoot, repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize());
+        }
+
+        @Override
+        public String progressPath(Path repoRoot, WikiMonitorQueueItem item) {
+            WikiMonitorRule rule = item == null ? null : findWikiMonitorRule(item.getDomain(), item.getActionId());
+            return rule == null ? null : rule.progressPath();
+        }
+
+        @Override
+        public String reportPath(Path repoRoot, WikiMonitorQueueItem item) {
+            return item == null ? null : item.getReportPath();
+        }
+    }
+
+    private class DomainSmokeQueueExecutor implements WikiMonitorQueueExecutor {
+
+        @Override
+        public String lane() {
+            return "domain_smoke";
+        }
+
+        @Override
+        public boolean supports(WikiMonitorQueueItem item) {
+            return item != null
+                && lane().equals(item.getLane())
+                && "wiki-monitor-domain-smoke".equals(item.getActionId());
+        }
+
+        @Override
+        public WikiMonitorQueueStartResult start(Path repoRoot, WikiMonitorQueueItem item) {
+            if (!supports(item)) {
+                throw new IllegalArgumentException("domain smoke queue executor does not support item");
+            }
+            return startDomainSmokeQueueItemRaw(repoRoot, item);
+        }
+
+        @Override
+        public String lockPath(Path repoRoot) {
+            return toDisplayPath(repoRoot, repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize());
+        }
+
+        @Override
+        public String progressPath(Path repoRoot, WikiMonitorQueueItem item) {
+            return toDisplayPath(repoRoot, repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE).normalize());
+        }
+
+        @Override
+        public String reportPath(Path repoRoot, WikiMonitorQueueItem item) {
+            return item == null ? null : item.getReportPath();
+        }
     }
 
     private void writeJsonFile(Path path, Map<String, Object> payload) {
@@ -1528,7 +2501,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         for (Map.Entry<String, List<WikiMonitorRule>> entry : changedByAction.entrySet()) {
             WikiMonitorRule firstRule = entry.getValue().get(0);
             CrawlerMonitorDispatchResultDTO result = dispatchWikiMonitorTask(repoRoot, firstRule, Map.of(
-                "message", "auto dispatch changed covered source"
+                "message", "auto dispatch changed covered source",
+                "dispatchSource", "auto-dispatch"
             ));
             LinkedHashMap<String, Object> dispatched = new LinkedHashMap<>();
             dispatched.put("actionId", entry.getKey());
@@ -1590,6 +2564,15 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             runAutoDispatchSweepOnce();
         } catch (RuntimeException exception) {
             log.warn("Crawler monitor auto-dispatch sweep failed: {}", exception.getMessage(), exception);
+        }
+    }
+
+    @Scheduled(fixedDelayString = "${terrapedia.crawler-monitor.dispatch-queue.drain-poll-ms:15000}")
+    public void scheduledWikiMonitorQueueDrainSweep() {
+        try {
+            drainWikiMonitorDispatchQueue("scheduled-drain");
+        } catch (RuntimeException exception) {
+            log.warn("Crawler monitor dispatch queue drain failed: {}", exception.getMessage(), exception);
         }
     }
 
@@ -2305,6 +3288,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         ));
         tasks.add(buildItemPagesRefreshTask(repoRoot, itemProgress));
         tasks.add(buildWikiMonitorDomainSmokeTask(repoRoot, domainSmokeProgress));
+        tasks.addAll(buildWikiMonitorDomainSmokeDomainTasks(repoRoot, domainSmokeProgress));
         tasks.add(buildDomainSourceSnapshotTask(
             repoRoot,
             "source-update-monitor-check",
@@ -2848,6 +3832,114 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return task;
     }
 
+    private List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> buildWikiMonitorDomainSmokeDomainTasks(
+        Path repoRoot,
+        ReadResult progress
+    ) {
+        Map<String, Object> payload = progress.readable() ? progress.payload() : Collections.emptyMap();
+        Map<String, Map<String, Object>> progressDomainsById = new LinkedHashMap<>();
+        if (progress.readable()) {
+            for (Map<String, Object> domain : asMapList(payload.get("domains"))) {
+                String domainId = trimToNull(asString(domain.get("domain")));
+                if (domainId != null) {
+                    progressDomainsById.put(domainId, domain);
+                }
+            }
+        }
+        String aggregateProgressPath = toDisplayPath(repoRoot, repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE).normalize());
+        String aggregateReportPath = firstNonBlank(
+            normalizePayloadPath(repoRoot, payload.get("reportPath")),
+            toDisplayPath(repoRoot, repoRoot.resolve(CRAWLER_MONITOR_DIR).resolve("wiki-monitor-domain-smoke.latest.json").normalize())
+        );
+        String aggregateOutputPath = firstNonBlank(
+            normalizePayloadPath(repoRoot, payload.get("outputPath")),
+            toDisplayPath(repoRoot, repoRoot.resolve(CRAWLER_MONITOR_DIR).resolve("wiki-monitor-domain-smoke.latest").normalize())
+        );
+        String updatedAt = firstNonBlank(asString(payload.get("lastHeartbeatAt")), asString(payload.get("generatedAt")));
+        List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> tasks = new ArrayList<>();
+        for (String domainId : WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS) {
+            Map<String, Object> domain = progressDomainsById.getOrDefault(domainId, Collections.emptyMap());
+            String actionId = firstNonBlank(asString(domain.get("actionId")), "wiki-monitor-domain-smoke:" + domainId);
+            String label = firstNonBlank(asString(domain.get("label")), wikiMonitorDomainLabel(domainId));
+            CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask(
+                actionId,
+                "样本爬取：" + label,
+                "test",
+                "manual"
+            );
+            task.setProgressPath(firstNonBlank(normalizePayloadPath(repoRoot, domain.get("progressPath")), aggregateProgressPath));
+            task.setReportPath(firstNonBlank(normalizePayloadPath(repoRoot, domain.get("reportPath")), aggregateReportPath));
+            task.setOutputPath(firstNonBlank(
+                normalizePayloadPath(repoRoot, domain.get("outputPath")),
+                domainOutputPath(aggregateOutputPath, domainId)
+            ));
+            task.setInputPath("wiki API search/revisions");
+            task.setDataStage("wiki API -> crawler-monitor smoke reports -> " + domainId + " sample");
+            task.setNextStep("Open the domain sample output/report to verify the 10 downloaded records.");
+            task.setStatus(firstNonBlank(asString(domain.get("status")), progress.found() ? "pending" : "missing"));
+            task.setQueueState(firstNonBlank(asString(domain.get("message")), domainSmokeDomainMessage(domainId, domain)));
+            task.setUpdatedAt(updatedAt);
+            task.setProgressSource(aggregateProgressPath);
+            task.setProgressFound(progress.found());
+            task.setProgressReadable(progress.readable());
+            if (!progress.readable() && progress.errorMessage() != null) {
+                task.setProgressErrorMessage(progress.errorMessage());
+            }
+            task.setProgressUpdatedAt(readLastModifiedIso(progress.path()));
+            task.setProgressHeartbeatAt(updatedAt);
+            Instant heartbeatAt = parseInstant(updatedAt);
+            if (heartbeatAt != null) {
+                task.setProgressHeartbeatAgeMs(Math.max(0L, Duration.between(heartbeatAt, Instant.now(clock)).toMillis()));
+            }
+            task.setProgressPayload(new LinkedHashMap<>(domain));
+            copyTaskProgressFromPayload(task, domain);
+            if (task.getCurrent() == null) {
+                task.setCurrent(firstNonNullLong(asNullableLong(domain.get("actualCount")), 0L));
+            }
+            if (task.getTotal() == null) {
+                task.setTotal(firstNonNullLong(firstNonNullLong(asNullableLong(domain.get("total")), asNullableLong(domain.get("limit"))), (long) WIKI_MONITOR_DOMAIN_SMOKE_LIMIT));
+            }
+            task.setPercent(firstNonNull(
+                task.getPercent(),
+                derivePercent(task.getOverallCurrent(), task.getOverallTotal(), task.getCurrent(), task.getTotal())
+            ));
+            task.setPending(computePending(task.getOverallCurrent(), task.getOverallTotal(), task.getCurrent(), task.getTotal()));
+            applyReadableProgressState(task);
+            if ("completed".equals(task.getStatus())) {
+                task.setProgressKind("report-only");
+            }
+            tasks.add(task);
+        }
+        return tasks;
+    }
+
+    private String wikiMonitorDomainLabel(String domainId) {
+        return WIKI_MONITOR_RULES.stream()
+            .filter(rule -> rule.domain().equals(domainId))
+            .map(WikiMonitorRule::label)
+            .findFirst()
+            .orElse(domainId);
+    }
+
+    private String domainSmokeDomainMessage(String domainId, Map<String, Object> domain) {
+        Long current = firstNonNullLong(asNullableLong(domain.get("current")), asNullableLong(domain.get("actualCount")));
+        Long total = firstNonNullLong(asNullableLong(domain.get("total")), asNullableLong(domain.get("limit")));
+        if (current != null && total != null) {
+            return domainId + " 样本" + ("completed".equals(asString(domain.get("status"))) ? "完成" : "进度") + " " + current + "/" + total;
+        }
+        if (domain.isEmpty()) {
+            return domainId + " 样本等待运行 0/" + WIKI_MONITOR_DOMAIN_SMOKE_LIMIT;
+        }
+        return domainId + " 样本进度";
+    }
+
+    private String domainOutputPath(String aggregateOutputPath, String domainId) {
+        if (aggregateOutputPath == null || aggregateOutputPath.isBlank()) {
+            return null;
+        }
+        return aggregateOutputPath.replaceAll("/+$", "") + "/" + domainId + ".json";
+    }
+
     private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildReportBackedTask(
         Path repoRoot,
         String id,
@@ -3091,6 +4183,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private Double firstNonNull(Double first, Double second) {
+        return first == null ? second : first;
+    }
+
+    private Long firstNonNullLong(Long first, Long second) {
         return first == null ? second : first;
     }
 

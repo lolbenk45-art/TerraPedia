@@ -52,6 +52,10 @@ export function buildDomainSmokePlan(rawOptions = {}) {
     repoRoot,
     rawOptions['progress-path'] ?? rawOptions.progressPath ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_PROGRESS_PATH
   );
+  const latestReportPath = path.resolve(
+    repoRoot,
+    rawOptions['latest-report-path'] ?? rawOptions.latestReportPath ?? DEFAULT_LATEST_REPORT_PATH
+  );
 
   return {
     actionId: ACTION_ID,
@@ -60,7 +64,7 @@ export function buildDomainSmokePlan(rawOptions = {}) {
     generatedAt,
     progressPath,
     reportPath,
-    latestReportPath: DEFAULT_LATEST_REPORT_PATH,
+    latestReportPath,
     outputDir,
     domains: WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS.map((domain) => ({
       ...domain,
@@ -70,7 +74,11 @@ export function buildDomainSmokePlan(rawOptions = {}) {
   };
 }
 
-export async function runDomainSmoke(rawOptions = {}) {
+export async function runDomainSmoke(rawOptions = {}, deps = {}) {
+  const transport = {
+    searchWikiPages: deps.searchWikiPages ?? searchWikiPages,
+    fetchPageRevisions: deps.fetchPageRevisions ?? fetchPageRevisions
+  };
   const plan = buildDomainSmokePlan(rawOptions);
   const startedAt = new Date().toISOString();
   const results = [];
@@ -99,7 +107,7 @@ export async function runDomainSmoke(rawOptions = {}) {
       domains: results
     });
 
-    const result = await downloadDomainSample(domain, plan.limit).catch((error) => ({
+    const result = await downloadDomainSample(domain, plan.limit, transport).catch((error) => ({
       domain: domain.domain,
       label: domain.label,
       sourceKey: domain.sourceKey,
@@ -114,7 +122,13 @@ export async function runDomainSmoke(rawOptions = {}) {
     writeJson(domain.outputPath, result);
     results.push({
       ...result,
-      outputPath: toRepoRelative(domain.outputPath)
+      actionId: `${ACTION_ID}:${domain.domain}`,
+      current: result.actualCount,
+      total: plan.limit,
+      progressPath: toRepoRelative(plan.progressPath),
+      reportPath: toRepoRelative(plan.reportPath),
+      outputPath: toRepoRelative(domain.outputPath),
+      message: `${domain.domain} 样本${result.status === 'failed' ? '失败' : result.status === 'partial' ? '不足' : '完成'} ${result.actualCount}/${plan.limit}`
     });
     writeProgress({
       status: 'running',
@@ -156,20 +170,21 @@ export async function runDomainSmoke(rawOptions = {}) {
     total: plan.domains.length,
     domains: results
   });
-  console.log(JSON.stringify(report, null, 2));
   return report;
 }
 
-async function downloadDomainSample(domain, limit) {
+async function downloadDomainSample(domain, limit, deps = {}) {
+  const searchPages = deps.searchWikiPages ?? searchWikiPages;
+  const fetchRevisions = deps.fetchPageRevisions ?? fetchPageRevisions;
   const searchResults = [];
   for (const query of domain.queries) {
     if (unique(searchResults.map((result) => result.title)).length >= limit) {
       break;
     }
-    searchResults.push(...await searchWikiPages(query, limit));
+    searchResults.push(...await searchPages(query, limit));
   }
   const titles = unique(searchResults.map((result) => result.title)).slice(0, limit);
-  const revisions = titles.length ? await fetchPageRevisions(titles) : [];
+  const revisions = titles.length ? await fetchRevisions(titles) : [];
   return {
     domain: domain.domain,
     label: domain.label,
@@ -259,15 +274,49 @@ function writeSmokeProgress(plan, {
   payload.domains = domains.map((domain) => ({
     domain: domain.domain,
     label: domain.label,
+    actionId: domain.actionId ?? `${ACTION_ID}:${domain.domain}`,
     sourceKey: domain.sourceKey,
     status: domain.status,
     actualCount: domain.actualCount,
     requestedLimit: domain.requestedLimit,
     limit: domain.requestedLimit ?? plan.limit,
+    current: domain.current ?? domain.actualCount ?? 0,
+    total: domain.total ?? domain.requestedLimit ?? plan.limit,
+    progressPath: domain.progressPath ?? toRepoRelative(plan.progressPath),
+    reportPath: domain.reportPath ?? toRepoRelative(plan.reportPath),
     outputPath: domain.outputPath,
+    message: domain.message,
     error: domain.error
   }));
   writeJsonFile(plan.progressPath, payload);
+}
+
+const QUERY_TO_DOMAIN = new Map(
+  WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS.flatMap((domain) => domain.queries.map((query) => [query, domain.domain]))
+);
+
+export function createFixtureTransport(fixture = {}) {
+  const specFor = (domain) => fixture[domain];
+  return {
+    async searchWikiPages(query) {
+      const domain = QUERY_TO_DOMAIN.get(query) ?? query;
+      const spec = specFor(domain);
+      if (spec === 'fail') {
+        throw new Error(`fixture transport: domain "${domain}" configured to fail`);
+      }
+      const count = Number.isFinite(Number(spec)) ? Math.max(0, Math.trunc(Number(spec))) : 0;
+      return Array.from({ length: count }, (_unused, index) => ({ title: `${domain}::sample-${index + 1}` }));
+    },
+    async fetchPageRevisions(titles) {
+      return titles.map((title, index) => ({
+        title,
+        pageId: 1000 + index,
+        revisionId: 2000 + index,
+        revisionTimestamp: '2026-06-21T00:00:00Z',
+        contentLength: 128 + index
+      }));
+    }
+  };
 }
 
 function smokeDomain(domain, label, sourceKey, queries) {
@@ -291,8 +340,16 @@ function toRepoRelative(filePath) {
 }
 
 if (process.argv[1] === __filename) {
-  runDomainSmoke(parseCliArgs(process.argv.slice(2))).catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-  });
+  const options = parseCliArgs(process.argv.slice(2));
+  const deps = options.fixture
+    ? createFixtureTransport(JSON.parse(fs.readFileSync(path.resolve(repoRoot, String(options.fixture)), 'utf8')))
+    : {};
+  runDomainSmoke(options, deps)
+    .then((report) => {
+      console.log(JSON.stringify(report, null, 2));
+    })
+    .catch((error) => {
+      console.error(error);
+      process.exitCode = 1;
+    });
 }

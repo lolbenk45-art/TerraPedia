@@ -107,6 +107,16 @@
                     <span>{{ progressControlLoading === progressRowControlKey(row) ? '处理中' : '触发补爬' }}</span>
                   </button>
                   <button
+                    v-if="canCancelProgressRow(row)"
+                    type="button"
+                    class="inline-report-button inline-report-button--compact inline-report-button--danger"
+                    :disabled="progressControlLoading === progressRowControlKey(row)"
+                    @click="controlProgressTask(row, 'cancel')"
+                  >
+                    <CircleStop :size="14" />
+                    <span>{{ progressControlLoading === progressRowControlKey(row) ? '处理中' : '终止' }}</span>
+                  </button>
+                  <button
                     v-if="canDismissProgressRow(row)"
                     type="button"
                     class="noise-delete-button"
@@ -149,7 +159,11 @@
                   <strong>{{ rowEtaLabel(row) }}</strong>
                 </span>
               </div>
-              <code v-if="rowSourcePath(row)" class="action-card__source">{{ rowSourcePath(row) }}</code>
+              <div v-if="progressRowPathEntries(row).length" class="action-card__paths">
+                <code v-for="entry in progressRowPathEntries(row)" :key="`${row.rowKey}-${entry.label}`" class="action-card__source">
+                  {{ entry.label }}：{{ entry.path }}
+                </code>
+              </div>
               <div class="progress-track">
                 <span :style="{ width: rowProgress(row) }" :class="statusTone(rowStatus(row))" />
               </div>
@@ -160,6 +174,47 @@
             <Activity :size="24" />
             <strong>暂无可展示进度</strong>
             <span>当前没有运行中、停滞、失败或待处理的任务。</span>
+          </div>
+        </section>
+
+        <section class="panel wiki-monitor-dispatch-queue" aria-label="wiki-monitor-dispatch-queue">
+          <div class="panel-head">
+            <div>
+              <h2>派发队列</h2>
+              <p>只显示已经接收的真实队列项；待确认仍保留在域详情里，不再伪装成队列。</p>
+            </div>
+            <span class="status-pill" :class="dispatchQueueRows.length ? 'warning' : 'muted'">{{ dispatchQueueRows.length }} 项</span>
+          </div>
+          <div v-if="dispatchQueueRows.length" class="dispatch-queue-list">
+            <article v-for="item in dispatchQueueRows" :key="item.queueId || item.dispatchId || `${item.domain}-${item.actionId}`" class="dispatch-queue-row">
+              <button type="button" class="dispatch-queue-row__main" @click="selectQueueItemDomain(item)">
+                <span>
+                  <strong>{{ queueItemDomainLabel(item) }}</strong>
+                  <em class="status-pill" :class="statusTone(queueItemStatus(item))">{{ statusLabel(queueItemStatus(item)) }}</em>
+                </span>
+                <small>{{ queueItemMessage(item) }}</small>
+                <code>{{ item.progressPath || item.reportPath || item.lockPath || item.queueId || '等待启动' }}</code>
+              </button>
+              <div class="dispatch-queue-row__meta">
+                <span><small>通道</small><strong>{{ queueItemLaneLabel(item) }}</strong></span>
+                <span><small>位置</small><strong>{{ queueItemPositionLabel(item) }}</strong></span>
+                <span><small>动作</small><strong>{{ item.actionId || '未命名动作' }}</strong></span>
+              </div>
+              <button
+                v-if="canCancelQueuedItem(item)"
+                type="button"
+                class="inline-report-button inline-report-button--compact inline-report-button--danger"
+                :disabled="queueControlLoading === item.queueId"
+                @click="cancelQueuedDispatchItem(item)"
+              >
+                <X :size="14" />
+                <span>{{ queueControlLoading === item.queueId ? '处理中' : '取消排队' }}</span>
+              </button>
+            </article>
+          </div>
+          <div v-else class="empty-block empty-block--compact">
+            <Activity :size="20" />
+            <span>暂无真实排队项。</span>
           </div>
         </section>
 
@@ -598,6 +653,49 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               <Activity :size="20" />
               <span>暂无可展示的 Wiki 域。</span>
             </div>
+            <div class="base-domain-orchestration" aria-label="基础域顺序编排">
+              <div class="base-domain-orchestration__head">
+                <div>
+                  <strong>基础域顺序编排</strong>
+                  <span>按来源检测、队列、样本爬取、清理样本、验收逐项检查；每域 10 条，可控删除，不写正式数据。</span>
+                </div>
+                <em>{{ baseDomainOrchestrationRows.length }} 个基础域</em>
+              </div>
+              <div class="base-domain-orchestration__rows">
+                <article v-for="domain in baseDomainOrchestrationRows" :key="`base-domain-orchestration-${domain.id}`" class="base-domain-flow-row">
+                  <button type="button" class="base-domain-flow-row__domain" @click.stop="selectWikiDomain(domain.domain)">
+                    <small>#{{ domain.order }}</small>
+                    <strong>{{ wikiDomainChineseName(domain.domain) }}</strong>
+                    <span class="status-pill" :class="statusTone(domain.status)">{{ wikiDomainFlowLabel(domain.domain) }}</span>
+                  </button>
+                  <div class="base-domain-flow-steps">
+                    <div v-for="step in domain.steps" :key="`${domain.id}-${step.key}`" class="base-domain-flow-step" :class="`base-domain-flow-step--${step.key}`">
+                      <span class="base-domain-flow-step__label">{{ step.label }}</span>
+                      <strong>{{ step.value }}</strong>
+                      <small>{{ step.detail }}</small>
+                      <button
+                        v-if="step.key === 'sample-crawl'"
+                        type="button"
+                        class="inline-report-button inline-report-button--compact"
+                        :disabled="step.disabled"
+                        @click.stop="startBaseDomainSampleCrawl(domain)"
+                      >
+                        样本爬取
+                      </button>
+                      <button
+                        v-if="step.key === 'sample-cleanup'"
+                        type="button"
+                        class="inline-report-button inline-report-button--compact"
+                        :disabled="step.disabled"
+                        @click.stop="cleanupBaseDomainSampleCrawl(domain)"
+                      >
+                        清理样本
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
             <div class="domain-test-matrix" aria-label="10 域基础项测试">
               <div class="domain-test-matrix__head">
                 <strong>10 域基础项测试</strong>
@@ -1015,6 +1113,13 @@ import {
   sourceSnapshotRowsFromOverview,
 } from '~/utils/crawlerMonitorProgressRows.mjs'
 import {
+  BASE_DOMAIN_ORCHESTRATION_STEPS,
+  BASIC_DOMAIN_TEST_ITEMS,
+  DOMAIN_TEST_MATRIX_DOMAIN_IDS,
+  buildBaseDomainOrchestrationRow,
+  buildWikiDomainTestMatrixRow,
+} from '~/utils/baseDomainOrchestration.mjs'
+import {
   crawlerStatusChineseLabel,
   wikiCooldownExplanation,
   wikiDomainChineseName,
@@ -1030,6 +1135,7 @@ import type {
   CrawlerMonitorRun,
   CrawlerMonitorWikiDispatch,
   CrawlerMonitorWikiDomain,
+  CrawlerMonitorWikiQueueItem,
 } from '~/types/crawlerMonitor'
 
 definePageMeta({ title: '爬取监控', navSection: '/operations/crawler-monitor', headerVariant: 'compact' })
@@ -1038,31 +1144,6 @@ type ProgressRow = CrawlerMonitorRegisteredTask & {
   rowKey: string
   action?: CrawlerMonitorAction | null
 }
-
-const BASIC_DOMAIN_TEST_ITEMS = [
-  '来源指纹',
-  '入库指纹',
-  '变化状态',
-  '动作白名单',
-  '进度文件',
-  '心跳状态',
-  '运行状态',
-  '冷却保护',
-  '最近产物',
-  '人工动作',
-]
-const DOMAIN_TEST_MATRIX_DOMAIN_IDS = [
-  'items',
-  'npcs',
-  'projectiles',
-  'armor_sets',
-  'buffs',
-  'biomes',
-  'recipes',
-  'bosses',
-  'town_npc_maintenance',
-  'shimmer',
-]
 
 const overview = ref<CrawlerMonitorOverview | null>(null)
 const loading = ref(false)
@@ -1075,6 +1156,7 @@ const lastOverviewRefreshAt = ref<string | null>(null)
 const wikiDispatchLoading = ref('')
 const wikiControlLoading = ref('')
 const progressControlLoading = ref('')
+const queueControlLoading = ref('')
 const autoDispatchSaving = ref(false)
 const autoDispatchForm = reactive<CrawlerMonitorAutoDispatchSettings>({
   enabled: false,
@@ -1120,25 +1202,43 @@ const wikiDomainRows = computed<CrawlerMonitorWikiDomain[]>(() => Array.isArray(
 const wikiDomainTestMatrixRows = computed(() => DOMAIN_TEST_MATRIX_DOMAIN_IDS.map((domainId) => {
   const domain = wikiDomainRows.value.find((row) => row.domain === domainId) || { domain: domainId, label: domainId }
   const progress = wikiDomainProgressRow(domain)
-  const sourceValue = domain.currentValue || domain.previousValue || '未记录'
-  const outputPath = wikiDomainOutputPath(domain) || progress?.outputPath || ''
-  return {
+  return buildWikiDomainTestMatrixRow({
     id: domainId,
     label: wikiDomainChineseName(domain),
     status: wikiDomainFlowStatus(domain),
-    items: [
-      { label: '来源指纹', value: sourceValue },
-      { label: '入库指纹', value: domain.previousValue || sourceValue || '未记录' },
-      { label: '变化状态', value: domain.changed ? '有变化' : '无变化' },
-      { label: '动作白名单', value: domain.recommendedActionId || '未配置' },
-      { label: '进度文件', value: wikiDomainProgressPath(domain) || '未生成' },
-      { label: '心跳状态', value: wikiDomainHeartbeatLabel(domain) },
-      { label: '运行状态', value: wikiDomainFlowLabel(domain) },
-      { label: '冷却保护', value: isWikiDomainCoolingDown(domain) ? `冷却 ${domain.cooldownMinutes || 0} 分钟` : '未冷却' },
-      { label: '最近产物', value: outputPath || wikiDomainReportPath(domain) || '未生成' },
-      { label: '人工动作', value: canExecuteWikiDomain(domain) ? '可启动重爬' : '不可重爬' },
-    ],
-  }
+    sourceValue: domain.currentValue || domain.previousValue || '未记录',
+    previousValue: domain.previousValue,
+    changed: domain.changed,
+    recommendedActionId: domain.recommendedActionId,
+    progressPath: wikiDomainProgressPath(domain),
+    heartbeatLabel: wikiDomainHeartbeatLabel(domain),
+    flowLabel: wikiDomainFlowLabel(domain),
+    coolingDown: isWikiDomainCoolingDown(domain),
+    cooldownMinutes: domain.cooldownMinutes,
+    outputPath: wikiDomainOutputPath(domain) || progress?.outputPath || '',
+    reportPath: wikiDomainReportPath(domain),
+    canExecute: canExecuteWikiDomain(domain),
+  })
+}))
+const baseDomainOrchestrationRows = computed(() => DOMAIN_TEST_MATRIX_DOMAIN_IDS.map((domainId, index) => {
+  const domain = wikiDomainRows.value.find((row) => row.domain === domainId) || { domain: domainId, label: domainId }
+  const progress = wikiDomainProgressRow(domain)
+  return buildBaseDomainOrchestrationRow({
+    id: domainId,
+    order: index + 1,
+    domain,
+    flowStatus: wikiDomainFlowStatus(domain),
+    queueRow: baseDomainQueueRow(domain),
+    queuePending: pendingWikiDispatches.value.some((dispatch) => dispatch.domain === domain.domain),
+    smokeRow: domainSmokeProgressRow.value,
+    progress,
+    outputPath: wikiDomainOutputPath(domain) || progress?.outputPath || '',
+    reportPath: wikiDomainReportPath(domain) || progress?.reportPath || '',
+    progressPath: wikiDomainProgressPath(domain),
+    sampleCrawlLoading: wikiDispatchLoading.value === 'wiki-monitor-domain-smoke',
+    sampleCleanupLoading: wikiDispatchLoading.value === 'wiki-monitor-domain-smoke-cleanup',
+    statusLabel,
+  })
 }))
 const visibleWikiDomainRows = computed(() => wikiDomainRows.value.filter((domain) => !isNoiseHidden(noiseKey('wiki-domain', domain.domain || domain.label))))
 const pendingWikiDispatches = computed<CrawlerMonitorWikiDispatch[]>(() =>
@@ -1148,23 +1248,27 @@ const latestRun = computed<CrawlerMonitorRun>(() => overview.value?.latestRun ||
 const actions = computed<CrawlerMonitorAction[]>(() => Array.isArray(latestRun.value.actions) ? latestRun.value.actions : [])
 const registeredTasks = computed<CrawlerMonitorRegisteredTask[]>(() => Array.isArray(overview.value?.registeredTasks) ? overview.value!.registeredTasks! : [])
 const progressRows = computed<ProgressRow[]>(() => progressRowsFromOverview(overview.value))
+const domainSmokeProgressRow = computed<ProgressRow | null>(() => progressRows.value.find((row) => row.id === 'wiki-monitor-domain-smoke') || null)
 const sourceSnapshotRows = computed<ProgressRow[]>(() => sourceSnapshotRowsFromOverview(overview.value))
 const liveSourceSnapshotActive = computed(() => hasLiveSourceSnapshotProgress(overview.value))
 const visibleProgressRows = computed<ProgressRow[]>(() => progressRows.value
   .filter(isActiveProgressRow)
   .filter(isOperationalProgressRow)
-  .filter((row) => rowStatus(row) !== 'completed')
-  .filter((row) => rowStatus(row) !== 'report-only')
-  .filter((row) => row.id !== 'wiki-monitor-domain-smoke')
+  .filter((row) => !isDomainSmokeAggregateRow(row))
+  .filter((row) => isDomainSmokeProgressRow(row) || rowStatus(row) !== 'completed')
+  .filter((row) => isDomainSmokeProgressRow(row) || rowStatus(row) !== 'report-only')
   .filter((row) => !isNoiseHidden(noiseKey('progress', row.rowKey || row.id || row.label)))
 )
 const progressDetailRows = computed<ProgressRow[]>(() => progressRows.value
   .filter(isSignalTask)
-  .filter((row) => row.id !== 'wiki-monitor-domain-smoke')
+  .filter((row) => !isAnyDomainSmokeProgressRow(row))
   .filter((row) => !isNoiseHidden(noiseKey('progress', row.rowKey || row.id || row.label)))
 )
 const visibleProgressRowsByPriority = computed<ProgressRow[]>(() => sortRowsByPriority(visibleProgressRows.value))
 const progressDetailRowsByPriority = computed<ProgressRow[]>(() => sortRowsByPriority(progressDetailRows.value))
+const dispatchQueueRows = computed<CrawlerMonitorWikiQueueItem[]>(() =>
+  Array.isArray(wikiMonitor.value?.dispatchQueue) ? wikiMonitor.value!.dispatchQueue! : []
+)
 const visibleWikiDomainRowsByPriority = computed<CrawlerMonitorWikiDomain[]>(() => sortWikiDomainsByPriority(visibleWikiDomainRows.value))
 const runtimeStateCards = computed(() => [
   runtimeStateCard('daemon', '守护', overview.value?.daemon),
@@ -1714,6 +1818,57 @@ function wikiDispatchDisabledReason(dispatch: CrawlerMonitorWikiDispatch) {
   return wikiDomainDisabledReason(domain)
 }
 
+function queueItemStatus(item: CrawlerMonitorWikiQueueItem | null | undefined) {
+  return String(item?.status || '').toLowerCase() || 'missing'
+}
+
+function queueItemDomain(item: CrawlerMonitorWikiQueueItem | null | undefined) {
+  if (!item) return null
+  const domainKey = String(item.domain || '').toLowerCase()
+  const coveredDomains = Array.isArray(item.coveredDomains) ? item.coveredDomains.map((value) => String(value).toLowerCase()) : []
+  return wikiDomainRows.value.find((domain) => {
+    const key = String(domain.domain || '').toLowerCase()
+    if (domainKey && key === domainKey) return true
+    return Boolean(key && coveredDomains.includes(key))
+  }) || null
+}
+
+function queueItemDomainLabel(item: CrawlerMonitorWikiQueueItem | null | undefined) {
+  const domain = queueItemDomain(item)
+  return domain ? wikiDomainChineseName(domain) : item?.domain || item?.actionId || '未知队列项'
+}
+
+function queueItemLaneLabel(item: CrawlerMonitorWikiQueueItem | null | undefined) {
+  if (item?.lane === 'domain_smoke') return '10 域样本'
+  if (item?.lane === 'standard') return '标准派发'
+  return item?.lane || '未知通道'
+}
+
+function queueItemPositionLabel(item: CrawlerMonitorWikiQueueItem | null | undefined) {
+  const lanePosition = Number(item?.lanePosition || 0)
+  const position = Number(item?.position || 0)
+  if (lanePosition > 0) return `通道第 ${lanePosition} 位`
+  if (position > 0) return `总队列第 ${position} 位`
+  return '已启动'
+}
+
+function queueItemMessage(item: CrawlerMonitorWikiQueueItem | null | undefined) {
+  if (!item) return '暂无队列信息'
+  if (item.message) return item.message
+  if (item.cooldownUntil) return `冷却到 ${formatDate(item.cooldownUntil)}`
+  if (item.blockedByDispatchId || item.blockedByActionId) return `等待 ${item.blockedByActionId || item.blockedByDispatchId}`
+  return statusLabel(queueItemStatus(item))
+}
+
+function canCancelQueuedItem(item: CrawlerMonitorWikiQueueItem | null | undefined) {
+  return Boolean(item?.queueId && ['queued', 'blocked_cooldown'].includes(queueItemStatus(item)))
+}
+
+function selectQueueItemDomain(item: CrawlerMonitorWikiQueueItem | null | undefined) {
+  const domain = queueItemDomain(item)
+  if (domain) selectWikiDomain(domain)
+}
+
 function isWikiDispatchTarget(target: CrawlerMonitorWikiDomain | CrawlerMonitorWikiDispatch): target is CrawlerMonitorWikiDispatch {
   return Object.prototype.hasOwnProperty.call(target, 'actionId')
 }
@@ -1820,6 +1975,7 @@ function rowUpdatedAtLabel(row: ProgressRow | null | undefined) {
 }
 
 function progressRowControlActionId(row: ProgressRow) {
+  if (isAnyDomainSmokeProgressRow(row)) return 'wiki-monitor-domain-smoke'
   return String(
     row.progressPayload?.actionId
       || row.action?.id
@@ -1848,11 +2004,90 @@ function canTriggerBackfillRow(row: ProgressRow) {
     && !['running', 'paused', 'stalled'].includes(status)
 }
 
+function canCancelProgressRow(row: ProgressRow) {
+  return ['running', 'paused', 'stalled'].includes(rowStatus(row)) && Boolean(progressRowControlActionId(row))
+}
+
 function backfillDomainForRow(row: ProgressRow) {
   const id = String(row.id || '')
   if (id === 'npc-loot-backfill') return 'npc_loot'
   if (id === 'boss-loot-backfill') return 'boss_loot'
   return ''
+}
+
+function baseDomainQueueRow(domain: CrawlerMonitorWikiDomain | null | undefined) {
+  const key = String(domain?.domain || '').toLowerCase()
+  const actionId = String(domain?.recommendedActionId || '').toLowerCase()
+  return dispatchQueueRows.value.find((item) => {
+    const itemDomain = String(item.domain || '').toLowerCase()
+    const itemAction = String(item.actionId || '').toLowerCase()
+    const coveredDomains = Array.isArray(item.coveredDomains) ? item.coveredDomains.map((value) => String(value).toLowerCase()) : []
+    if (key && itemDomain === key) return true
+    if (key && coveredDomains.includes(key)) return true
+    if (actionId && itemAction === actionId) return true
+    return false
+  }) || null
+}
+
+function baseDomainBackfillRow(domain: CrawlerMonitorWikiDomain | null | undefined) {
+  const key = String(domain?.domain || '').toLowerCase()
+  if (key === 'npcs') return progressRows.value.find((row) => row.id === 'npc-loot-backfill') || null
+  if (key === 'bosses') return progressRows.value.find((row) => row.id === 'boss-loot-backfill') || null
+  return null
+}
+
+function baseDomainBackfillHint(domain: CrawlerMonitorWikiDomain | null | undefined) {
+  const key = String(domain?.domain || '').toLowerCase()
+  if (key === 'npcs') return 'NPC loot backfill'
+  if (key === 'bosses') return 'Boss loot backfill'
+  return '该域暂无补数据动作'
+}
+
+function baseDomainReCrawlActionLabel(domain: CrawlerMonitorWikiDomain | null | undefined) {
+  if (!domain) return '不可重爬'
+  if (wikiDispatchLoading.value === domain.domain) return '启动中'
+  return canExecuteWikiDomain(domain) ? '可启动重爬' : '不可重爬'
+}
+
+async function triggerBaseDomainBackfill(domainRow: { domain?: CrawlerMonitorWikiDomain | null } | CrawlerMonitorWikiDomain | null | undefined) {
+  const domain = domainRow && 'domain' in domainRow && typeof domainRow.domain === 'object' ? domainRow.domain : domainRow as CrawlerMonitorWikiDomain | null | undefined
+  const row = baseDomainBackfillRow(domain)
+  if (!row) return
+  await triggerBackfillRow(row)
+}
+
+async function startBaseDomainSampleCrawl(domainRow: { domain?: CrawlerMonitorWikiDomain | null } | CrawlerMonitorWikiDomain | null | undefined) {
+  const domain = domainRow && 'domain' in domainRow && typeof domainRow.domain === 'object' ? domainRow.domain : domainRow as CrawlerMonitorWikiDomain | null | undefined
+  if (wikiDispatchLoading.value === 'wiki-monitor-domain-smoke') return
+  if (domain) selectWikiDomain(domain)
+  wikiDispatchLoading.value = 'wiki-monitor-domain-smoke'
+  try {
+    const response: any = await post('/admin/crawler-monitor/test-domain-smoke', {})
+    latestDispatchResult.value = (response?.data ?? response) || null
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || '已启动 10 域样本爬取，每域 10 条', latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    await loadOverview()
+  } catch (error: any) {
+    showToast(error?.data?.message || error?.message || '启动样本爬取失败', 'error')
+  } finally {
+    wikiDispatchLoading.value = ''
+  }
+}
+
+async function cleanupBaseDomainSampleCrawl(domainRow: { domain?: CrawlerMonitorWikiDomain | null } | CrawlerMonitorWikiDomain | null | undefined) {
+  const domain = domainRow && 'domain' in domainRow && typeof domainRow.domain === 'object' ? domainRow.domain : domainRow as CrawlerMonitorWikiDomain | null | undefined
+  if (wikiDispatchLoading.value === 'wiki-monitor-domain-smoke-cleanup') return
+  if (domain) selectWikiDomain(domain)
+  wikiDispatchLoading.value = 'wiki-monitor-domain-smoke-cleanup'
+  try {
+    const response: any = await post('/admin/crawler-monitor/test-domain-smoke/cleanup', {})
+    latestDispatchResult.value = (response?.data ?? response) || null
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || '已清理 10 域样本产物', latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    await loadOverview()
+  } catch (error: any) {
+    showToast(error?.data?.message || error?.message || '清理样本产物失败', 'error')
+  } finally {
+    wikiDispatchLoading.value = ''
+  }
 }
 
 async function executeWikiMonitorTask(target: CrawlerMonitorWikiDomain | CrawlerMonitorWikiDispatch) {
@@ -1909,9 +2144,10 @@ async function executeWikiMonitorRetry(domain: CrawlerMonitorWikiDomain) {
   }
 }
 
-async function controlProgressTask(row: ProgressRow, controlAction: 'pause' | 'resume') {
+async function controlProgressTask(row: ProgressRow, controlAction: 'pause' | 'resume' | 'cancel') {
   const actionId = progressRowControlActionId(row)
   if (!actionId) return
+  if (controlAction === 'cancel' && import.meta.client && !window.confirm('确认终止当前阶段任务？运行中的进程会被停止。')) return
   const controlKey = progressRowControlKey(row)
   progressControlLoading.value = controlKey
   try {
@@ -1920,7 +2156,8 @@ async function controlProgressTask(row: ProgressRow, controlAction: 'pause' | 'r
       controlAction,
     })
     latestDispatchResult.value = (response?.data ?? response) || null
-    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || (controlAction === 'pause' ? '已暂停任务' : '已继续任务'), latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    const fallbackMessage = controlAction === 'pause' ? '已暂停任务' : controlAction === 'resume' ? '已继续任务' : '已终止任务'
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || fallbackMessage, latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
     await loadOverview()
   } catch (error: any) {
     showToast(error?.data?.message || error?.message || '控制任务失败', 'error')
@@ -1971,6 +2208,24 @@ async function controlWikiMonitorTask(domain: CrawlerMonitorWikiDomain, controlA
     showToast(error?.data?.message || error?.message || '控制任务失败', 'error')
   } finally {
     wikiControlLoading.value = ''
+  }
+}
+
+async function cancelQueuedDispatchItem(item: CrawlerMonitorWikiQueueItem) {
+  if (!canCancelQueuedItem(item) || !item.queueId) return
+  queueControlLoading.value = item.queueId
+  try {
+    const response: any = await post('/admin/crawler-monitor/dispatch/control', {
+      controlAction: 'cancelQueued',
+      queueId: item.queueId,
+    })
+    latestDispatchResult.value = (response?.data ?? response) || null
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || '已取消排队任务', latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    await loadOverview()
+  } catch (error: any) {
+    showToast(error?.data?.message || error?.message || '取消排队任务失败', 'error')
+  } finally {
+    queueControlLoading.value = ''
   }
 }
 
@@ -2050,6 +2305,9 @@ function statusLabel(status?: string | null) {
   if (normalized === 'paused') return '已暂停'
   if (normalized === 'pending') return '等待中'
   if (normalized === 'queued') return '队列中'
+  if (normalized === 'blocked_cooldown') return '冷却排队'
+  if (normalized === 'starting') return '启动中'
+  if (normalized === 'timed_out') return '已超时'
   if (normalized === 'stalled') return '停滞'
   if (normalized === 'missing') return '缺失'
   if (normalized === 'readable') return '可读取'
@@ -2134,6 +2392,11 @@ function domainFailureCircuitBreakerLabel(domain: CrawlerMonitorWikiDomain | nul
 
 function progressRowTitle(row: ProgressRow) {
   const id = String(row.id || '')
+  if (id === 'wiki-monitor-domain-smoke') return '10 域样本爬取'
+  if (id.startsWith('wiki-monitor-domain-smoke:')) {
+    const domain = domainSmokeProgressDomain(row)
+    return `样本爬取：${domain ? wikiDomainChineseName({ domain, label: domain }) : row.label || '基础域'}`
+  }
   if (id === 'buff-page-immunity-refresh') return 'Buff 免疫页面刷新'
   if (id === 'crawler-output-standardize') return '爬取结果标准化'
   if (id === 'item-page-retry-queue') return '物品页重试队列'
@@ -2149,6 +2412,7 @@ function progressRowTitle(row: ProgressRow) {
 
 function progressRowLaneLabel(row: ProgressRow) {
   const lane = String(row.lane || row.action?.runner || '').toLowerCase()
+  if (isAnyDomainSmokeProgressRow(row)) return '样本测试'
   if (lane === 'fetch') return '爬取'
   if (lane === 'transform') return '转换'
   if (lane === 'crawl') return '爬虫'
@@ -2156,6 +2420,25 @@ function progressRowLaneLabel(row: ProgressRow) {
   if (lane === 'backend-refresh') return '后端刷新'
   if (lane === 'validation') return '校验'
   return lane || '未知执行器'
+}
+
+function isDomainSmokeProgressRow(row: ProgressRow | null | undefined) {
+  const id = String(row?.id || '')
+  return id.startsWith('wiki-monitor-domain-smoke:')
+}
+
+function isDomainSmokeAggregateRow(row: ProgressRow | null | undefined) {
+  return String(row?.id || '') === 'wiki-monitor-domain-smoke'
+}
+
+function isAnyDomainSmokeProgressRow(row: ProgressRow | null | undefined) {
+  return isDomainSmokeAggregateRow(row) || isDomainSmokeProgressRow(row)
+}
+
+function domainSmokeProgressDomain(row: ProgressRow | null | undefined) {
+  const id = String(row?.id || '')
+  if (id.startsWith('wiki-monitor-domain-smoke:')) return id.slice('wiki-monitor-domain-smoke:'.length)
+  return String(row?.progressPayload?.domain || '')
 }
 
 function progressRowMessageLabel(row: ProgressRow) {
@@ -2186,6 +2469,7 @@ function isSignalTask(row: ProgressRow) {
 
 function isActiveProgressRow(row: ProgressRow) {
   const status = rowStatus(row)
+  if (isDomainSmokeProgressRow(row)) return true
   if (['completed', 'report-only'].includes(status)) return false
   if (['running', 'stalled', 'paused', 'queued', 'pending', 'failed', 'error', 'blocked', 'warning'].includes(status)) return true
   return Boolean(row.progressStaleReason || rowHeartbeatAt(row))
@@ -2200,9 +2484,9 @@ function isOperationalProgressRow(row: ProgressRow) {
 function statusTone(status?: string | null) {
   const normalized = String(status || '').toLowerCase()
   if (['completed', 'success', 'ok', 'readable', 'free'].includes(normalized)) return 'success'
-  if (['failed', 'error', 'missing', 'read error', 'blocked'].includes(normalized)) return 'danger'
+  if (['failed', 'error', 'missing', 'read error', 'blocked', 'timed_out'].includes(normalized)) return 'danger'
   if (['running', 'active'].includes(normalized)) return 'info'
-  if (['pending', 'sleeping', 'locked', 'queued', 'stalled', 'warning', 'paused'].includes(normalized)) return 'warning'
+  if (['pending', 'sleeping', 'locked', 'queued', 'blocked_cooldown', 'starting', 'stalled', 'warning', 'paused'].includes(normalized)) return 'warning'
   return 'muted'
 }
 
@@ -2255,6 +2539,17 @@ function rowHeartbeatLabel(row: ProgressRow | null | undefined) {
 function rowSourcePath(row: ProgressRow | null | undefined) {
   if (!row) return ''
   return row.progressSource || row.progressPath || row.action?.childStatusPath || row.reportPath || row.outputPath || ''
+}
+
+function progressRowPathEntries(row: ProgressRow | null | undefined) {
+  if (!row) return []
+  const entries = [
+    { label: '进度', path: row.progressSource || row.progressPath || row.action?.childStatusPath || '' },
+    { label: '报告', path: row.reportPath || '' },
+    { label: '输出', path: row.outputPath || row.progressPayload?.outputPath || '' },
+  ].filter((entry) => entry.path)
+  if (!entries.length && rowSourcePath(row)) return [{ label: '来源', path: rowSourcePath(row) }]
+  return entries
 }
 
 function taskProgress(task: CrawlerMonitorRegisteredTask) {
@@ -3366,6 +3661,127 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   overflow-wrap: anywhere;
 }
 
+.base-domain-orchestration {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-primary, #2563eb) 22%, var(--color-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-primary, #2563eb) 5%, var(--color-bg));
+}
+
+.base-domain-orchestration__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.base-domain-orchestration__head strong,
+.base-domain-orchestration__head span {
+  display: block;
+}
+
+.base-domain-orchestration__head strong {
+  color: var(--color-text);
+  font-size: 15px;
+}
+
+.base-domain-orchestration__head span,
+.base-domain-orchestration__head em {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.base-domain-orchestration__rows {
+  display: grid;
+  gap: 8px;
+}
+
+.base-domain-flow-row {
+  display: grid;
+  grid-template-columns: minmax(168px, 0.28fr) minmax(0, 1fr);
+  gap: 10px;
+  min-width: 0;
+}
+
+.base-domain-flow-row__domain {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.base-domain-flow-row__domain small {
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.base-domain-flow-row__domain strong {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.base-domain-flow-steps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(116px, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.base-domain-flow-step {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  min-width: 0;
+  min-height: 112px;
+  padding: 9px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 70%, var(--color-bg));
+}
+
+.base-domain-flow-step__label {
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.base-domain-flow-step strong,
+.base-domain-flow-step small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.base-domain-flow-step strong {
+  color: var(--color-text);
+  font-size: 12px;
+}
+
+.base-domain-flow-step small {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.base-domain-flow-step .inline-report-button {
+  align-self: end;
+  justify-self: start;
+  min-height: 30px;
+}
+
 .domain-test-matrix {
   display: grid;
   gap: 12px;
@@ -3533,6 +3949,97 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   color: inherit;
   cursor: pointer;
   text-align: left;
+}
+
+.wiki-monitor-dispatch-queue {
+  display: grid;
+  gap: 12px;
+}
+
+.dispatch-queue-list {
+  display: grid;
+  gap: 10px;
+}
+
+.dispatch-queue-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(220px, 0.8fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg) 80%, transparent);
+}
+
+.dispatch-queue-row__main {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.dispatch-queue-row__main > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dispatch-queue-row__main strong,
+.dispatch-queue-row__main small,
+.dispatch-queue-row__main code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dispatch-queue-row__main strong {
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.dispatch-queue-row__main small,
+.dispatch-queue-row__main code {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.dispatch-queue-row__meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.dispatch-queue-row__meta span {
+  min-width: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 82%, transparent);
+}
+
+.dispatch-queue-row__meta small,
+.dispatch-queue-row__meta strong {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dispatch-queue-row__meta small {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.dispatch-queue-row__meta strong {
+  margin-top: 3px;
+  color: var(--color-text);
+  font-size: 12px;
 }
 
 .monitor-observability {
@@ -4132,6 +4639,11 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   white-space: normal;
 }
 
+.action-card__paths {
+  display: grid;
+  gap: 4px;
+}
+
 .action-card__message {
   min-height: 18px;
   margin: -4px 0 0;
@@ -4528,6 +5040,10 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   .wiki-approval-row {
     grid-template-columns: 1fr;
   }
+
+  .dispatch-queue-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
@@ -4546,7 +5062,8 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   }
 
   .wiki-live-metrics,
-  .wiki-domain-detail-grid {
+  .wiki-domain-detail-grid,
+  .dispatch-queue-row__meta {
     grid-template-columns: 1fr;
   }
 

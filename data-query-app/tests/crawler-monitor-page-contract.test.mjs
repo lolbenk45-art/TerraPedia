@@ -357,24 +357,35 @@ test('crawler monitor exposes pause and resume controls for running wiki tasks',
   assert.match(page, /已取消/)
 })
 
-test('crawler monitor domain progress contains a ten-domain baseline test matrix', () => {
+// Row/step/matrix logic lives in utils/baseDomainOrchestration.mjs and is covered
+// by base-domain-orchestration.test.mjs. These page contracts only assert that the
+// page wires that module into the template and the smoke endpoints.
+test('crawler monitor renders the ten-domain baseline matrix from the orchestration module', () => {
   const domainPanel = page.slice(
     page.indexOf('class="panel recovery-domain-panel"'),
     page.indexOf('class="panel recovery-detail"')
   )
   assert.match(domainPanel, /class="domain-test-matrix"/)
-  assert.match(domainPanel, /10 域基础项测试/)
   assert.match(domainPanel, /v-for="domain in wikiDomainTestMatrixRows"/)
   assert.match(domainPanel, /v-for="item in domain\.items"/)
-  assert.match(page, /const BASIC_DOMAIN_TEST_ITEMS/)
-  assert.match(page, /const DOMAIN_TEST_MATRIX_DOMAIN_IDS/)
-  assert.match(page, /wikiDomainTestMatrixRows/)
-  for (const domain of ['items', 'npcs', 'projectiles', 'armor_sets', 'buffs', 'biomes', 'recipes', 'bosses', 'town_npc_maintenance', 'shimmer']) {
-    assert.match(page, new RegExp(`'${domain}'`))
-  }
-  for (const item of ['来源指纹', '入库指纹', '变化状态', '动作白名单', '进度文件', '心跳状态', '运行状态', '冷却保护', '最近产物', '人工动作']) {
-    assert.match(page, new RegExp(item))
-  }
+  assert.match(page, /from '~\/utils\/baseDomainOrchestration\.mjs'/)
+  assert.match(page, /buildWikiDomainTestMatrixRow/)
+})
+
+test('crawler monitor groups base domains into an ordered validation board wired to the smoke endpoints', () => {
+  const domainPanel = page.slice(
+    page.indexOf('class="panel recovery-domain-panel"'),
+    page.indexOf('class="panel recovery-detail"')
+  )
+  assert.match(domainPanel, /class="base-domain-orchestration"/)
+  assert.match(domainPanel, /v-for="domain in baseDomainOrchestrationRows"/)
+  assert.match(domainPanel, /v-for="step in domain\.steps"/)
+  assert.match(page, /buildBaseDomainOrchestrationRow/)
+  assert.match(domainPanel, /@click\.stop="startBaseDomainSampleCrawl\(domain\)"/)
+  assert.match(domainPanel, /@click\.stop="cleanupBaseDomainSampleCrawl\(domain\)"/)
+  assert.match(page, /\/admin\/crawler-monitor\/test-domain-smoke/)
+  assert.match(page, /\/admin\/crawler-monitor\/test-domain-smoke\/cleanup/)
+  assert.doesNotMatch(domainPanel, /@click\.stop="openDispatchConfirm\(domain\.domain\)"/)
 })
 
 test('crawler monitor exposes auto-dispatch settings and last sweep state', () => {
@@ -398,6 +409,32 @@ test('crawler monitor exposes auto-dispatch settings and last sweep state', () =
   assert.match(page, /最近自动派发/)
   assert.match(page, /autoDispatchSweepSummary/)
   assert.match(page, /domain\.autoDispatchReason/)
+})
+
+test('crawler monitor queue DTO contract is declared without requiring page rendering', () => {
+  assert.match(types, /CrawlerMonitorWikiQueueItem/)
+  assert.match(types, /dispatchQueue\?: CrawlerMonitorWikiQueueItem\[\]/)
+  assert.match(types, /queueId\?: string \| null/)
+  assert.match(types, /queuePosition\?: number \| null/)
+  assert.match(typecheck, /dispatchQueue:/)
+  assert.match(typecheck, /queueId:/)
+  assert.match(typecheck, /queuePosition:/)
+})
+
+test('crawler monitor renders a real dispatch queue section from dispatchQueue', () => {
+  const queueSection = page.slice(
+    page.indexOf('class="panel wiki-monitor-dispatch-queue"'),
+    page.indexOf('class="panel monitor-observability"')
+  )
+
+  assert.match(page, /CrawlerMonitorWikiQueueItem/)
+  assert.match(page, /const dispatchQueueRows = computed<CrawlerMonitorWikiQueueItem\[\]>/)
+  assert.match(page, /wikiMonitor\.value\?\.dispatchQueue/)
+  assert.match(queueSection, /aria-label="wiki-monitor-dispatch-queue"/)
+  assert.match(queueSection, /v-for="item in dispatchQueueRows"/)
+  assert.match(queueSection, /cancelQueuedDispatchItem\(item\)/)
+  assert.doesNotMatch(queueSection, /pendingWikiDispatches/)
+  assert.doesNotMatch(queueSection, /dispatchPlanRows/)
 })
 
 test('crawler monitor wiki domain cards expose retry, heartbeat, and flow state as first-class controls', () => {
@@ -614,6 +651,42 @@ test('crawler monitor exposes pause and resume controls for registered progress 
   assert.match(page, /\/admin\/crawler-monitor\/dispatch\/control/)
 })
 
+test('crawler monitor surfaces domain smoke domains as real-time stage progress only', () => {
+  const stageSource = page.slice(
+    page.indexOf('const visibleProgressRows = computed'),
+    page.indexOf('const progressDetailRows = computed')
+  )
+  const detailSource = page.slice(
+    page.indexOf('const progressDetailRows = computed'),
+    page.indexOf('const progressDetailRowsByPriority = computed')
+  )
+  const stageTemplate = page.slice(
+    page.indexOf('<div v-if="visibleProgressRowsByPriority.length" class="action-rail">'),
+    page.indexOf('<div v-else class="empty-block">')
+  )
+
+  assert.doesNotMatch(stageSource, /wiki-monitor-domain-smoke(?::|')/)
+  assert.match(stageSource, /isOperationalProgressRow/)
+  assert.match(stageSource, /!isDomainSmokeAggregateRow\(row\)/)
+  assert.match(page, /wiki-monitor-domain-smoke:/)
+  const activeProgressSource = page.slice(
+    page.indexOf('function isActiveProgressRow'),
+    page.indexOf('function isOperationalProgressRow')
+  )
+  assert.match(activeProgressSource, /if \(isDomainSmokeProgressRow\(row\)\) return true/)
+  assert.match(detailSource, /!isAnyDomainSmokeProgressRow\(row\)/)
+  assert.match(stageTemplate, /canCancelProgressRow\(row\)/)
+  assert.match(stageTemplate, /controlProgressTask\(row, 'cancel'\)/)
+  assert.match(stageTemplate, /progressRowPathEntries\(row\)/)
+  assert.match(page, /function isDomainSmokeProgressRow/)
+  assert.match(page, /function isDomainSmokeAggregateRow/)
+  assert.match(page, /function isAnyDomainSmokeProgressRow/)
+  assert.match(page, /function domainSmokeProgressDomain/)
+  assert.match(page, /function progressRowPathEntries/)
+  assert.match(page, /return 'wiki-monitor-domain-smoke'/)
+  assert.match(page, /样本测试/)
+})
+
 test('crawler monitor card headers keep status and delete controls inside the card', () => {
   assert.match(page, /\.noise-actions\s*\{[\s\S]*flex-wrap:\s*wrap/)
   assert.match(page, /\.noise-actions\s*\{[\s\S]*max-width:\s*100%/)
@@ -656,7 +729,7 @@ test('crawler monitor keeps bounded domain smoke testing on the test page only',
   assert.doesNotMatch(testPage, /domain\.current \?\? domain\.completed \?\? 0/)
 })
 
-test('crawler monitor keeps domain smoke testing on the test page and out of the main monitor', () => {
+test('crawler monitor keeps domain smoke testing in domain progress without legacy test-page linking', () => {
   assert.doesNotMatch(page, /domainSmokeLinkTask/)
   assert.doesNotMatch(page, /domainSmokeLinkRows/)
   assert.doesNotMatch(page, /domainSmokeLinkActive/)
@@ -669,7 +742,8 @@ test('crawler monitor keeps domain smoke testing on the test page and out of the
   assert.doesNotMatch(page, /查看测试页/)
   assert.doesNotMatch(page, /测试联动/)
   assert.doesNotMatch(page, /@click="startDomainSmoke"/)
-  assert.doesNotMatch(page, /post\('\/admin\/crawler-monitor\/test-domain-smoke'/)
+  assert.match(page, /startBaseDomainSampleCrawl/)
+  assert.match(page, /post\('\/admin\/crawler-monitor\/test-domain-smoke', \{\}\)/)
 })
 
 test('crawler monitor test page presents domain smoke as a closed loop', () => {

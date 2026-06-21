@@ -77,6 +77,13 @@ public class AdminCrawlerMonitorController {
         return ApiResponse.success(crawlerMonitorService.dispatchWikiMonitorDomainSmoke());
     }
 
+    @PostMapping("/test-domain-smoke/cleanup")
+    @Operation(summary = "Clean up bounded wiki monitor domain smoke artifacts")
+    public ApiResponse<CrawlerMonitorDispatchResultDTO> cleanupTestDomainSmoke(HttpServletRequest httpRequest) {
+        requireAdminRole(httpRequest);
+        return ApiResponse.success(crawlerMonitorService.cleanupWikiMonitorDomainSmoke());
+    }
+
     @GetMapping("/auto-dispatch")
     @Operation(summary = "Get crawler monitor auto-dispatch settings")
     public ApiResponse<CrawlerMonitorAutoDispatchDTO> getAutoDispatchSettings() {

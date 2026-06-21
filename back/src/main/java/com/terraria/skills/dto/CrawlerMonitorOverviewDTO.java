@@ -55,6 +55,7 @@ public class CrawlerMonitorOverviewDTO {
         private WikiMonitorSummaryDTO summary = new WikiMonitorSummaryDTO();
         private List<WikiMonitorDomainDTO> domains = new ArrayList<>();
         private List<WikiMonitorDispatchPlanDTO> dispatchPlan = new ArrayList<>();
+        private List<WikiMonitorQueueItemDTO> dispatchQueue = new ArrayList<>();
         private List<WikiMonitorDispatchDTO> pendingDispatches = new ArrayList<>();
     }
 
@@ -119,6 +120,36 @@ public class CrawlerMonitorOverviewDTO {
         private String startedAt;
         private String completedAt;
         private String message;
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class WikiMonitorQueueItemDTO {
+        private String queueId;
+        private String dispatchId;
+        private String lane;
+        private String domain;
+        private List<String> coveredDomains = new ArrayList<>();
+        private String actionId;
+        private String status;
+        private String requestedAt;
+        private String startedAt;
+        private String completedAt;
+        private Long pid;
+        private String processStartedAt;
+        private String requestedBy;
+        private String blockedByDispatchId;
+        private String blockedByDomain;
+        private String blockedByActionId;
+        private String blockedSince;
+        private String cooldownUntil;
+        private String progressPath;
+        private String reportPath;
+        private String lockPath;
+        private String outputPath;
+        private String message;
+        private Integer position;
+        private Integer lanePosition;
     }
 
     @Data
