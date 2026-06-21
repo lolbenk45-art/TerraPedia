@@ -554,6 +554,39 @@ class AdminCrawlerMonitorControllerTest {
     }
 
     @Test
+    void shouldPassCancelQueuedControlActionAndQueueIdToCrawlerMonitorService() throws Exception {
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(true);
+        result.setQueueId("queue-buffs-001");
+        result.setQueued(false);
+        result.setStatus("cancelled");
+        result.setMessage("已取消排队任务。");
+
+        when(crawlerMonitorService.controlWikiMonitorDispatch(argThat(request ->
+            "cancelQueued".equals(request.getControlAction())
+                && "queue-buffs-001".equals(request.getQueueId())
+                && "wiki-monitor-domain-smoke".equals(request.getActionId())
+        ))).thenReturn(result);
+
+        mockMvc.perform(post("/admin/crawler-monitor/dispatch/control")
+                .contentType("application/json")
+                .content("{\"actionId\":\"wiki-monitor-domain-smoke\",\"controlAction\":\"cancelQueued\",\"queueId\":\"queue-buffs-001\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.accepted").value(true))
+            .andExpect(jsonPath("$.data.queueId").value("queue-buffs-001"))
+            .andExpect(jsonPath("$.data.queued").value(false))
+            .andExpect(jsonPath("$.data.status").value("cancelled"))
+            .andExpect(jsonPath("$.data.message").value("已取消排队任务。"));
+
+        verify(crawlerMonitorService).controlWikiMonitorDispatch(argThat(request ->
+            "cancelQueued".equals(request.getControlAction())
+                && "queue-buffs-001".equals(request.getQueueId())
+                && "wiki-monitor-domain-smoke".equals(request.getActionId())
+        ));
+    }
+
+    @Test
     void shouldReturnManualMonitorTestState() throws Exception {
         CrawlerMonitorTestStateDTO state = testState("manual-running", "running", true, 3);
 

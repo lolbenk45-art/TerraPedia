@@ -411,6 +411,32 @@ test('crawler monitor exposes auto-dispatch settings and last sweep state', () =
   assert.match(page, /domain\.autoDispatchReason/)
 })
 
+test('crawler monitor queue DTO contract is declared without requiring page rendering', () => {
+  assert.match(types, /CrawlerMonitorWikiQueueItem/)
+  assert.match(types, /dispatchQueue\?: CrawlerMonitorWikiQueueItem\[\]/)
+  assert.match(types, /queueId\?: string \| null/)
+  assert.match(types, /queuePosition\?: number \| null/)
+  assert.match(typecheck, /dispatchQueue:/)
+  assert.match(typecheck, /queueId:/)
+  assert.match(typecheck, /queuePosition:/)
+})
+
+test('crawler monitor renders a real dispatch queue section from dispatchQueue', () => {
+  const queueSection = page.slice(
+    page.indexOf('class="panel wiki-monitor-dispatch-queue"'),
+    page.indexOf('class="panel monitor-observability"')
+  )
+
+  assert.match(page, /CrawlerMonitorWikiQueueItem/)
+  assert.match(page, /const dispatchQueueRows = computed<CrawlerMonitorWikiQueueItem\[\]>/)
+  assert.match(page, /wikiMonitor\.value\?\.dispatchQueue/)
+  assert.match(queueSection, /aria-label="wiki-monitor-dispatch-queue"/)
+  assert.match(queueSection, /v-for="item in dispatchQueueRows"/)
+  assert.match(queueSection, /cancelQueuedDispatchItem\(item\)/)
+  assert.doesNotMatch(queueSection, /pendingWikiDispatches/)
+  assert.doesNotMatch(queueSection, /dispatchPlanRows/)
+})
+
 test('crawler monitor wiki domain cards expose retry, heartbeat, and flow state as first-class controls', () => {
   const workbenchTemplate = page.slice(
     page.indexOf('class="panel recovery-workbench wiki-workbench"'),

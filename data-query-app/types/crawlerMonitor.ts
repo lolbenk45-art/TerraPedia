@@ -191,6 +191,37 @@ export interface CrawlerMonitorWikiDispatch {
   message?: string | null
 }
 
+export type CrawlerMonitorWikiQueueLane = 'standard' | 'domain_smoke'
+export type CrawlerMonitorWikiQueueStatus = 'queued' | 'blocked_cooldown' | 'starting' | 'running' | 'completed' | 'failed' | 'timed_out' | 'cancelled'
+
+export interface CrawlerMonitorWikiQueueItem {
+  queueId?: string | null
+  dispatchId?: string | null
+  lane?: CrawlerMonitorWikiQueueLane | null
+  domain?: string | null
+  coveredDomains?: string[]
+  actionId?: string | null
+  status?: CrawlerMonitorWikiQueueStatus | string | null
+  requestedAt?: string | null
+  startedAt?: string | null
+  completedAt?: string | null
+  pid?: number | null
+  processStartedAt?: string | null
+  requestedBy?: string | null
+  blockedByDispatchId?: string | null
+  blockedByDomain?: string | null
+  blockedByActionId?: string | null
+  blockedSince?: string | null
+  cooldownUntil?: string | null
+  progressPath?: string | null
+  reportPath?: string | null
+  lockPath?: string | null
+  outputPath?: string | null
+  message?: string | null
+  position?: number | null
+  lanePosition?: number | null
+}
+
 export interface CrawlerMonitorDispatchPlan {
   actionId?: string | null
   domain?: string | null
@@ -216,10 +247,14 @@ export interface CrawlerMonitorStaleHeartbeat {
 
 export interface CrawlerMonitorDispatchResult {
   accepted?: boolean
+  queueId?: string | null
+  queued?: boolean | null
+  queuePosition?: number | null
   dispatchId?: string | null
   domain?: string | null
   actionId?: string | null
   status?: string | null
+  requestedAt?: string | null
   progressPath?: string | null
   lockPath?: string | null
   reportPath?: string | null
@@ -227,6 +262,8 @@ export interface CrawlerMonitorDispatchResult {
   blockedByDomain?: string | null
   blockedByActionId?: string | null
   blockedSince?: string | null
+  queueMessage?: string | null
+  cooldownUntil?: string | null
   message?: string | null
 }
 
@@ -254,6 +291,7 @@ export interface CrawlerMonitorWikiMonitor {
   domains?: CrawlerMonitorWikiDomain[]
   pendingDispatches?: CrawlerMonitorWikiDispatch[]
   dispatchPlan?: CrawlerMonitorDispatchPlan[]
+  dispatchQueue?: CrawlerMonitorWikiQueueItem[]
 }
 
 export interface CrawlerMonitorOverview {

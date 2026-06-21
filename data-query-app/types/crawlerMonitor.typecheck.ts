@@ -1,4 +1,4 @@
-import type { CrawlerMonitorOverview, CrawlerMonitorReportDetail, CrawlerMonitorTestState } from '~/types/crawlerMonitor'
+import type { CrawlerMonitorDispatchResult, CrawlerMonitorOverview, CrawlerMonitorReportDetail, CrawlerMonitorTestState } from '~/types/crawlerMonitor'
 
 const overview: CrawlerMonitorOverview = {
   generatedAt: '2026-04-27T00:00:00Z',
@@ -119,6 +119,35 @@ const overview: CrawlerMonitorOverview = {
         reportPath: 'reports/backend-refresh/history/backend-data-refresh-2026-06-14T00-00-00-000Z.json',
         requestedAt: '2026-06-14T00:00:00Z',
         message: 'awaiting approval',
+      },
+    ],
+    dispatchQueue: [
+      {
+        queueId: 'wiki-monitor-queue-20260621010101-abcd1234',
+        dispatchId: null,
+        lane: 'standard',
+        domain: 'items',
+        coveredDomains: ['items', 'npcs', 'projectiles'],
+        actionId: 'wiki-core-refresh',
+        status: 'queued',
+        requestedAt: '2026-06-21T01:01:01Z',
+        startedAt: null,
+        completedAt: null,
+        pid: null,
+        processStartedAt: null,
+        requestedBy: 'admin',
+        blockedByDispatchId: 'wiki-monitor-running-1',
+        blockedByDomain: 'items',
+        blockedByActionId: 'wiki-core-refresh',
+        blockedSince: '2026-06-21T01:01:01Z',
+        cooldownUntil: '2026-06-21T01:31:01Z',
+        progressPath: 'reports/backend-refresh/history/backend-data-refresh.runtime/wiki-core-refresh.child-status.json',
+        reportPath: 'reports/backend-refresh/history/backend-data-refresh.json',
+        lockPath: 'reports/crawler-monitor/wiki-monitor-dispatch.lock.json',
+        outputPath: 'reports/backend-refresh/history/backend-data-refresh.out.log',
+        message: '已加入队列第 1 位',
+        position: 1,
+        lanePosition: 1,
       },
     ],
   },
@@ -297,6 +326,23 @@ const reportDetail: CrawlerMonitorReportDetail = {
 }
 
 void reportDetail
+
+const dispatchResult: CrawlerMonitorDispatchResult = {
+  accepted: true,
+  queueId: 'wiki-monitor-queue-20260621010101-abcd1234',
+  queued: true,
+  queuePosition: 1,
+  dispatchId: null,
+  domain: 'items',
+  actionId: 'wiki-core-refresh',
+  status: 'queued',
+  requestedAt: '2026-06-21T01:01:01Z',
+  queueMessage: '已加入队列第 1 位',
+  cooldownUntil: '2026-06-21T01:31:01Z',
+  message: '已加入队列第 1 位',
+}
+
+void dispatchResult
 
 const testState: CrawlerMonitorTestState = {
   generatedAt: '2026-04-28T00:00:00Z',

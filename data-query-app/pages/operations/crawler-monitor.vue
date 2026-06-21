@@ -177,6 +177,47 @@
           </div>
         </section>
 
+        <section class="panel wiki-monitor-dispatch-queue" aria-label="wiki-monitor-dispatch-queue">
+          <div class="panel-head">
+            <div>
+              <h2>派发队列</h2>
+              <p>只显示已经接收的真实队列项；待确认仍保留在域详情里，不再伪装成队列。</p>
+            </div>
+            <span class="status-pill" :class="dispatchQueueRows.length ? 'warning' : 'muted'">{{ dispatchQueueRows.length }} 项</span>
+          </div>
+          <div v-if="dispatchQueueRows.length" class="dispatch-queue-list">
+            <article v-for="item in dispatchQueueRows" :key="item.queueId || item.dispatchId || `${item.domain}-${item.actionId}`" class="dispatch-queue-row">
+              <button type="button" class="dispatch-queue-row__main" @click="selectQueueItemDomain(item)">
+                <span>
+                  <strong>{{ queueItemDomainLabel(item) }}</strong>
+                  <em class="status-pill" :class="statusTone(queueItemStatus(item))">{{ statusLabel(queueItemStatus(item)) }}</em>
+                </span>
+                <small>{{ queueItemMessage(item) }}</small>
+                <code>{{ item.progressPath || item.reportPath || item.lockPath || item.queueId || '等待启动' }}</code>
+              </button>
+              <div class="dispatch-queue-row__meta">
+                <span><small>通道</small><strong>{{ queueItemLaneLabel(item) }}</strong></span>
+                <span><small>位置</small><strong>{{ queueItemPositionLabel(item) }}</strong></span>
+                <span><small>动作</small><strong>{{ item.actionId || '未命名动作' }}</strong></span>
+              </div>
+              <button
+                v-if="canCancelQueuedItem(item)"
+                type="button"
+                class="inline-report-button inline-report-button--compact inline-report-button--danger"
+                :disabled="queueControlLoading === item.queueId"
+                @click="cancelQueuedDispatchItem(item)"
+              >
+                <X :size="14" />
+                <span>{{ queueControlLoading === item.queueId ? '处理中' : '取消排队' }}</span>
+              </button>
+            </article>
+          </div>
+          <div v-else class="empty-block empty-block--compact">
+            <Activity :size="20" />
+            <span>暂无真实排队项。</span>
+          </div>
+        </section>
+
         <section class="panel monitor-observability" aria-label="运行态">
           <div class="panel-head">
             <div>
@@ -1094,6 +1135,7 @@ import type {
   CrawlerMonitorRun,
   CrawlerMonitorWikiDispatch,
   CrawlerMonitorWikiDomain,
+  CrawlerMonitorWikiQueueItem,
 } from '~/types/crawlerMonitor'
 
 definePageMeta({ title: '爬取监控', navSection: '/operations/crawler-monitor', headerVariant: 'compact' })
@@ -1114,6 +1156,7 @@ const lastOverviewRefreshAt = ref<string | null>(null)
 const wikiDispatchLoading = ref('')
 const wikiControlLoading = ref('')
 const progressControlLoading = ref('')
+const queueControlLoading = ref('')
 const autoDispatchSaving = ref(false)
 const autoDispatchForm = reactive<CrawlerMonitorAutoDispatchSettings>({
   enabled: false,
@@ -1223,6 +1266,9 @@ const progressDetailRows = computed<ProgressRow[]>(() => progressRows.value
 )
 const visibleProgressRowsByPriority = computed<ProgressRow[]>(() => sortRowsByPriority(visibleProgressRows.value))
 const progressDetailRowsByPriority = computed<ProgressRow[]>(() => sortRowsByPriority(progressDetailRows.value))
+const dispatchQueueRows = computed<CrawlerMonitorWikiQueueItem[]>(() =>
+  Array.isArray(wikiMonitor.value?.dispatchQueue) ? wikiMonitor.value!.dispatchQueue! : []
+)
 const visibleWikiDomainRowsByPriority = computed<CrawlerMonitorWikiDomain[]>(() => sortWikiDomainsByPriority(visibleWikiDomainRows.value))
 const runtimeStateCards = computed(() => [
   runtimeStateCard('daemon', '守护', overview.value?.daemon),
@@ -1772,6 +1818,57 @@ function wikiDispatchDisabledReason(dispatch: CrawlerMonitorWikiDispatch) {
   return wikiDomainDisabledReason(domain)
 }
 
+function queueItemStatus(item: CrawlerMonitorWikiQueueItem | null | undefined) {
+  return String(item?.status || '').toLowerCase() || 'missing'
+}
+
+function queueItemDomain(item: CrawlerMonitorWikiQueueItem | null | undefined) {
+  if (!item) return null
+  const domainKey = String(item.domain || '').toLowerCase()
+  const coveredDomains = Array.isArray(item.coveredDomains) ? item.coveredDomains.map((value) => String(value).toLowerCase()) : []
+  return wikiDomainRows.value.find((domain) => {
+    const key = String(domain.domain || '').toLowerCase()
+    if (domainKey && key === domainKey) return true
+    return Boolean(key && coveredDomains.includes(key))
+  }) || null
+}
+
+function queueItemDomainLabel(item: CrawlerMonitorWikiQueueItem | null | undefined) {
+  const domain = queueItemDomain(item)
+  return domain ? wikiDomainChineseName(domain) : item?.domain || item?.actionId || '未知队列项'
+}
+
+function queueItemLaneLabel(item: CrawlerMonitorWikiQueueItem | null | undefined) {
+  if (item?.lane === 'domain_smoke') return '10 域样本'
+  if (item?.lane === 'standard') return '标准派发'
+  return item?.lane || '未知通道'
+}
+
+function queueItemPositionLabel(item: CrawlerMonitorWikiQueueItem | null | undefined) {
+  const lanePosition = Number(item?.lanePosition || 0)
+  const position = Number(item?.position || 0)
+  if (lanePosition > 0) return `通道第 ${lanePosition} 位`
+  if (position > 0) return `总队列第 ${position} 位`
+  return '已启动'
+}
+
+function queueItemMessage(item: CrawlerMonitorWikiQueueItem | null | undefined) {
+  if (!item) return '暂无队列信息'
+  if (item.message) return item.message
+  if (item.cooldownUntil) return `冷却到 ${formatDate(item.cooldownUntil)}`
+  if (item.blockedByDispatchId || item.blockedByActionId) return `等待 ${item.blockedByActionId || item.blockedByDispatchId}`
+  return statusLabel(queueItemStatus(item))
+}
+
+function canCancelQueuedItem(item: CrawlerMonitorWikiQueueItem | null | undefined) {
+  return Boolean(item?.queueId && ['queued', 'blocked_cooldown'].includes(queueItemStatus(item)))
+}
+
+function selectQueueItemDomain(item: CrawlerMonitorWikiQueueItem | null | undefined) {
+  const domain = queueItemDomain(item)
+  if (domain) selectWikiDomain(domain)
+}
+
 function isWikiDispatchTarget(target: CrawlerMonitorWikiDomain | CrawlerMonitorWikiDispatch): target is CrawlerMonitorWikiDispatch {
   return Object.prototype.hasOwnProperty.call(target, 'actionId')
 }
@@ -1921,12 +2018,13 @@ function backfillDomainForRow(row: ProgressRow) {
 function baseDomainQueueRow(domain: CrawlerMonitorWikiDomain | null | undefined) {
   const key = String(domain?.domain || '').toLowerCase()
   const actionId = String(domain?.recommendedActionId || '').toLowerCase()
-  return progressRows.value.find((row) => {
-    const rowId = String(row.id || '').toLowerCase()
-    if (actionId && rowId === actionId) return true
-    if (key === 'items' && rowId === 'item-pages-retry-failures') return true
-    if (key === 'npcs' && rowId === 'npc-loot-backfill') return true
-    if (key === 'bosses' && rowId === 'boss-loot-backfill') return true
+  return dispatchQueueRows.value.find((item) => {
+    const itemDomain = String(item.domain || '').toLowerCase()
+    const itemAction = String(item.actionId || '').toLowerCase()
+    const coveredDomains = Array.isArray(item.coveredDomains) ? item.coveredDomains.map((value) => String(value).toLowerCase()) : []
+    if (key && itemDomain === key) return true
+    if (key && coveredDomains.includes(key)) return true
+    if (actionId && itemAction === actionId) return true
     return false
   }) || null
 }
@@ -2113,6 +2211,24 @@ async function controlWikiMonitorTask(domain: CrawlerMonitorWikiDomain, controlA
   }
 }
 
+async function cancelQueuedDispatchItem(item: CrawlerMonitorWikiQueueItem) {
+  if (!canCancelQueuedItem(item) || !item.queueId) return
+  queueControlLoading.value = item.queueId
+  try {
+    const response: any = await post('/admin/crawler-monitor/dispatch/control', {
+      controlAction: 'cancelQueued',
+      queueId: item.queueId,
+    })
+    latestDispatchResult.value = (response?.data ?? response) || null
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || '已取消排队任务', latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    await loadOverview()
+  } catch (error: any) {
+    showToast(error?.data?.message || error?.message || '取消排队任务失败', 'error')
+  } finally {
+    queueControlLoading.value = ''
+  }
+}
+
 function closeReportPreview() {
   selectedReportPath.value = null
   reportPreview.value = null
@@ -2189,6 +2305,9 @@ function statusLabel(status?: string | null) {
   if (normalized === 'paused') return '已暂停'
   if (normalized === 'pending') return '等待中'
   if (normalized === 'queued') return '队列中'
+  if (normalized === 'blocked_cooldown') return '冷却排队'
+  if (normalized === 'starting') return '启动中'
+  if (normalized === 'timed_out') return '已超时'
   if (normalized === 'stalled') return '停滞'
   if (normalized === 'missing') return '缺失'
   if (normalized === 'readable') return '可读取'
@@ -2365,9 +2484,9 @@ function isOperationalProgressRow(row: ProgressRow) {
 function statusTone(status?: string | null) {
   const normalized = String(status || '').toLowerCase()
   if (['completed', 'success', 'ok', 'readable', 'free'].includes(normalized)) return 'success'
-  if (['failed', 'error', 'missing', 'read error', 'blocked'].includes(normalized)) return 'danger'
+  if (['failed', 'error', 'missing', 'read error', 'blocked', 'timed_out'].includes(normalized)) return 'danger'
   if (['running', 'active'].includes(normalized)) return 'info'
-  if (['pending', 'sleeping', 'locked', 'queued', 'stalled', 'warning', 'paused'].includes(normalized)) return 'warning'
+  if (['pending', 'sleeping', 'locked', 'queued', 'blocked_cooldown', 'starting', 'stalled', 'warning', 'paused'].includes(normalized)) return 'warning'
   return 'muted'
 }
 
@@ -3832,6 +3951,97 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   text-align: left;
 }
 
+.wiki-monitor-dispatch-queue {
+  display: grid;
+  gap: 12px;
+}
+
+.dispatch-queue-list {
+  display: grid;
+  gap: 10px;
+}
+
+.dispatch-queue-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(220px, 0.8fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg) 80%, transparent);
+}
+
+.dispatch-queue-row__main {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.dispatch-queue-row__main > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dispatch-queue-row__main strong,
+.dispatch-queue-row__main small,
+.dispatch-queue-row__main code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dispatch-queue-row__main strong {
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.dispatch-queue-row__main small,
+.dispatch-queue-row__main code {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.dispatch-queue-row__meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.dispatch-queue-row__meta span {
+  min-width: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 82%, transparent);
+}
+
+.dispatch-queue-row__meta small,
+.dispatch-queue-row__meta strong {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dispatch-queue-row__meta small {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.dispatch-queue-row__meta strong {
+  margin-top: 3px;
+  color: var(--color-text);
+  font-size: 12px;
+}
+
 .monitor-observability {
   display: grid;
   gap: 14px;
@@ -4830,6 +5040,10 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   .wiki-approval-row {
     grid-template-columns: 1fr;
   }
+
+  .dispatch-queue-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
@@ -4848,7 +5062,8 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   }
 
   .wiki-live-metrics,
-  .wiki-domain-detail-grid {
+  .wiki-domain-detail-grid,
+  .dispatch-queue-row__meta {
     grid-template-columns: 1fr;
   }
 

@@ -48,14 +48,14 @@ test('source-check reflects changed, detected, and missing source states', () =>
   assert.equal(missing.value, '未记录')
 })
 
-test('queue-state distinguishes an active queue row, a pending dispatch, and no queue', () => {
+test('queue-state distinguishes a real dispatch queue item, a pending dispatch, and no queue', () => {
   const queued = stepByKey(
-    buildBaseDomainSteps({ queueRow: { status: 'running', progressKind: 'live', queueState: '排队中' }, statusLabel: () => '运行中' }),
+    buildBaseDomainSteps({ queueRow: { status: 'queued', message: '已加入队列第 1 位', lanePosition: 1 }, statusLabel: () => '队列中' }),
     'queue-state'
   )
-  assert.equal(queued.status, 'running')
-  assert.equal(queued.value, '运行中')
-  assert.equal(queued.detail, '排队中')
+  assert.equal(queued.status, 'queued')
+  assert.equal(queued.value, '队列中')
+  assert.equal(queued.detail, '已加入队列第 1 位')
 
   const pending = stepByKey(buildBaseDomainSteps({ queueRow: null, queuePending: true }), 'queue-state')
   assert.equal(pending.status, 'queued')
@@ -64,6 +64,21 @@ test('queue-state distinguishes an active queue row, a pending dispatch, and no 
   const empty = stepByKey(buildBaseDomainSteps({ queueRow: null, queuePending: false }), 'queue-state')
   assert.equal(empty.status, 'missing')
   assert.equal(empty.value, '无队列')
+})
+
+test('queue-state prefers real dispatchQueue over pendingDispatches', () => {
+  const step = stepByKey(
+    buildBaseDomainSteps({
+      queueRow: { status: 'blocked_cooldown', message: '冷却中，已加入队列第 1 位', cooldownUntil: '2026-06-21T01:31:01Z' },
+      queuePending: true,
+      statusLabel: (status) => status === 'blocked_cooldown' ? '冷却中' : String(status),
+    }),
+    'queue-state'
+  )
+
+  assert.equal(step.status, 'blocked_cooldown')
+  assert.equal(step.value, '冷却中')
+  assert.equal(step.detail, '冷却中，已加入队列第 1 位')
 })
 
 test('sample steps surface smoke status and respect their loading flags', () => {

@@ -89,7 +89,7 @@ export function progressRowRank(row) {
 export function rowStatus(row) {
   if (!row) return '';
   const status = String(row.status || row.action?.status || '').toLowerCase();
-  if (['failed', 'error', 'blocked', 'warning', 'stalled', 'paused', 'missing'].includes(status)) {
+  if (['failed', 'error', 'blocked', 'blocked_cooldown', 'warning', 'stalled', 'paused', 'missing', 'queued', 'starting', 'running', 'timed_out', 'cancelled'].includes(status)) {
     return status;
   }
   const kind = String(row.progressKind || '').toLowerCase();

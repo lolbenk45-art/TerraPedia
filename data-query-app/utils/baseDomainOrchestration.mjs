@@ -60,11 +60,14 @@ export function buildBaseDomainSteps(context = {}) {
       }
     }
     if (step.key === 'queue-state') {
+      const queueDetail = queueRow
+        ? queueRow.message || queueRow.queueState || queueRow.nextStep || queueRow.cooldownUntil || '已有真实队列记录'
+        : queuePending ? '待人工确认，尚未加入真实队列' : '当前无队列记录'
       return {
         ...step,
         status: queueRow ? rowStatus(queueRow) : queuePending ? 'queued' : 'missing',
         value: queueRow ? statusLabel(rowStatus(queueRow)) : queuePending ? '待确认' : '无队列',
-        detail: queueRow?.queueState || queueRow?.nextStep || '当前无队列记录',
+        detail: queueDetail,
         disabled: true,
       }
     }
