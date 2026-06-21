@@ -2699,7 +2699,7 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void shouldExposeWikiMonitorDomainSmokeProgressAsRegisteredTask() throws Exception {
+    void shouldExposeWikiMonitorDomainSmokeProgressAsDomainRegisteredTasks() throws Exception {
         writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-domain-smoke-progress.latest.json"), Map.ofEntries(
             Map.entry("actionId", "wiki-monitor-domain-smoke"),
             Map.entry("status", "running"),
@@ -2712,12 +2712,19 @@ class CrawlerMonitorServiceImplTest {
             Map.entry("lastHeartbeatAt", "2026-06-14T01:00:00Z"),
             Map.entry("reportPath", "reports/crawler-monitor/wiki-monitor-domain-smoke-run.json"),
             Map.entry("outputPath", "reports/crawler-monitor/wiki-monitor-domain-smoke-run"),
-            Map.entry("domains", List.of(Map.of(
-                "domain", "items",
-                "label", "Items",
-                "status", "completed",
-                "actualCount", 10,
-                "limit", 10
+            Map.entry("domains", List.of(Map.ofEntries(
+                Map.entry("domain", "items"),
+                Map.entry("label", "Items"),
+                Map.entry("status", "completed"),
+                Map.entry("actualCount", 10),
+                Map.entry("limit", 10),
+                Map.entry("current", 10),
+                Map.entry("total", 10),
+                Map.entry("actionId", "wiki-monitor-domain-smoke:items"),
+                Map.entry("progressPath", "reports/crawler-monitor/wiki-monitor-domain-smoke-progress.latest.json"),
+                Map.entry("reportPath", "reports/crawler-monitor/wiki-monitor-domain-smoke-run.json"),
+                Map.entry("outputPath", "reports/crawler-monitor/wiki-monitor-domain-smoke-run/items.json"),
+                Map.entry("message", "items 样本完成 10/10")
             )))
         ));
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
@@ -2727,15 +2734,54 @@ class CrawlerMonitorServiceImplTest {
         );
 
         CrawlerMonitorOverviewDTO overview = service.getOverview();
-        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = taskById(overview.getRegisteredTasks(), "wiki-monitor-domain-smoke");
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO aggregate = taskById(overview.getRegisteredTasks(), "wiki-monitor-domain-smoke");
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO items = taskById(overview.getRegisteredTasks(), "wiki-monitor-domain-smoke:items");
 
-        assertEquals("running", task.getStatus());
-        assertEquals("live", task.getProgressKind());
-        assertEquals(1L, task.getCurrent());
-        assertEquals(10L, task.getTotal());
-        assertEquals("reports/crawler-monitor/wiki-monitor-domain-smoke-progress.latest.json", task.getProgressPath());
-        assertEquals("reports/crawler-monitor/wiki-monitor-domain-smoke-run.json", task.getReportPath());
-        assertEquals(1, ((List<?>) task.getProgressPayload().get("domains")).size());
+        assertEquals("running", aggregate.getStatus());
+        assertEquals("live", aggregate.getProgressKind());
+        assertEquals(1L, aggregate.getCurrent());
+        assertEquals(10L, aggregate.getTotal());
+        assertEquals("reports/crawler-monitor/wiki-monitor-domain-smoke-progress.latest.json", aggregate.getProgressPath());
+        assertEquals("reports/crawler-monitor/wiki-monitor-domain-smoke-run.json", aggregate.getReportPath());
+        assertEquals(1, ((List<?>) aggregate.getProgressPayload().get("domains")).size());
+
+        assertEquals("completed", items.getStatus());
+        assertEquals("report-only", items.getProgressKind());
+        assertEquals("test", items.getLane());
+        assertEquals("manual", items.getPriority());
+        assertEquals(10L, items.getCurrent());
+        assertEquals(10L, items.getTotal());
+        assertEquals("reports/crawler-monitor/wiki-monitor-domain-smoke-progress.latest.json", items.getProgressPath());
+        assertEquals("reports/crawler-monitor/wiki-monitor-domain-smoke-run.json", items.getReportPath());
+        assertEquals("reports/crawler-monitor/wiki-monitor-domain-smoke-run/items.json", items.getOutputPath());
+        assertEquals("items 样本完成 10/10", items.getQueueState());
+        assertEquals("wiki API -> crawler-monitor smoke reports -> items sample", items.getDataStage());
+    }
+
+    @Test
+    void shouldExposeWikiMonitorDomainSmokeDomainsBeforeProgressExists() {
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:01:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+        List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> smokeDomains = overview.getRegisteredTasks().stream()
+            .filter(task -> task.getId() != null && task.getId().startsWith("wiki-monitor-domain-smoke:"))
+            .toList();
+
+        assertEquals(10, smokeDomains.size());
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO items = taskById(overview.getRegisteredTasks(), "wiki-monitor-domain-smoke:items");
+        assertEquals("missing", items.getStatus());
+        assertEquals("test", items.getLane());
+        assertEquals("manual", items.getPriority());
+        assertEquals(0L, items.getCurrent());
+        assertEquals(10L, items.getTotal());
+        assertEquals("reports/crawler-monitor/wiki-monitor-domain-smoke-progress.latest.json", items.getProgressPath());
+        assertEquals("reports/crawler-monitor/wiki-monitor-domain-smoke.latest.json", items.getReportPath());
+        assertEquals("reports/crawler-monitor/wiki-monitor-domain-smoke.latest/items.json", items.getOutputPath());
+        assertEquals("items 样本等待运行 0/10", items.getQueueState());
     }
 
     @Test

@@ -625,7 +625,7 @@ test('crawler monitor exposes pause and resume controls for registered progress 
   assert.match(page, /\/admin\/crawler-monitor\/dispatch\/control/)
 })
 
-test('crawler monitor surfaces domain smoke as real-time stage progress only', () => {
+test('crawler monitor surfaces domain smoke domains as real-time stage progress only', () => {
   const stageSource = page.slice(
     page.indexOf('const visibleProgressRows = computed'),
     page.indexOf('const progressDetailRows = computed')
@@ -639,13 +639,26 @@ test('crawler monitor surfaces domain smoke as real-time stage progress only', (
     page.indexOf('<div v-else class="empty-block">')
   )
 
-  assert.doesNotMatch(stageSource, /row\.id !== 'wiki-monitor-domain-smoke'/)
+  assert.doesNotMatch(stageSource, /wiki-monitor-domain-smoke(?::|')/)
   assert.match(stageSource, /isOperationalProgressRow/)
-  assert.match(page, /row\.id === 'wiki-monitor-domain-smoke'/)
-  assert.match(detailSource, /row\.id !== 'wiki-monitor-domain-smoke'/)
+  assert.match(stageSource, /!isDomainSmokeAggregateRow\(row\)/)
+  assert.match(page, /wiki-monitor-domain-smoke:/)
+  const activeProgressSource = page.slice(
+    page.indexOf('function isActiveProgressRow'),
+    page.indexOf('function isOperationalProgressRow')
+  )
+  assert.match(activeProgressSource, /if \(isDomainSmokeProgressRow\(row\)\) return true/)
+  assert.match(detailSource, /!isAnyDomainSmokeProgressRow\(row\)/)
   assert.match(stageTemplate, /canCancelProgressRow\(row\)/)
   assert.match(stageTemplate, /controlProgressTask\(row, 'cancel'\)/)
-  assert.match(page, /10 域样本爬取/)
+  assert.match(stageTemplate, /progressRowPathEntries\(row\)/)
+  assert.match(page, /function isDomainSmokeProgressRow/)
+  assert.match(page, /function isDomainSmokeAggregateRow/)
+  assert.match(page, /function isAnyDomainSmokeProgressRow/)
+  assert.match(page, /function domainSmokeProgressDomain/)
+  assert.match(page, /function progressRowPathEntries/)
+  assert.match(page, /return 'wiki-monitor-domain-smoke'/)
+  assert.match(page, /样本测试/)
 })
 
 test('crawler monitor card headers keep status and delete controls inside the card', () => {

@@ -101,6 +101,26 @@ test('writes a progress file that ends in a terminal state with full counts', as
   assert.equal(progress.domains.length, 10);
 });
 
+test('progress domains carry per-domain monitor and artifact paths', async () => {
+  const { root, options } = makeTmpRun();
+  const fixture = Object.fromEntries(DOMAIN_IDS.map((domain) => [domain, 10]));
+
+  await runDomainSmoke(options, createFixtureTransport(fixture));
+
+  const progress = readJson(path.join(root, 'progress.json'));
+  for (const domain of DOMAIN_IDS) {
+    const entry = progress.domains.find((item) => item.domain === domain);
+    assert.ok(entry, `expected progress domain ${domain}`);
+    assert.equal(entry.actionId, `wiki-monitor-domain-smoke:${domain}`);
+    assert.ok(entry.progressPath.endsWith('/progress.json'), `expected ${domain} progress path`);
+    assert.ok(entry.reportPath.endsWith('/report.json'), `expected ${domain} report path`);
+    assert.ok(entry.outputPath.endsWith(`/out/${domain}.json`), `expected ${domain} output path`);
+    assert.equal(entry.current, 10);
+    assert.equal(entry.total, 10);
+    assert.equal(entry.message, `${domain} 样本完成 10/10`);
+  }
+});
+
 test('does not pollute the default latest report path during a redirected run', async () => {
   const { root, options } = makeTmpRun();
   const fixture = Object.fromEntries(DOMAIN_IDS.map((domain) => [domain, 10]));

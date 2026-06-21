@@ -159,7 +159,11 @@
                   <strong>{{ rowEtaLabel(row) }}</strong>
                 </span>
               </div>
-              <code v-if="rowSourcePath(row)" class="action-card__source">{{ rowSourcePath(row) }}</code>
+              <div v-if="progressRowPathEntries(row).length" class="action-card__paths">
+                <code v-for="entry in progressRowPathEntries(row)" :key="`${row.rowKey}-${entry.label}`" class="action-card__source">
+                  {{ entry.label }}：{{ entry.path }}
+                </code>
+              </div>
               <div class="progress-track">
                 <span :style="{ width: rowProgress(row) }" :class="statusTone(rowStatus(row))" />
               </div>
@@ -1207,13 +1211,14 @@ const liveSourceSnapshotActive = computed(() => hasLiveSourceSnapshotProgress(ov
 const visibleProgressRows = computed<ProgressRow[]>(() => progressRows.value
   .filter(isActiveProgressRow)
   .filter(isOperationalProgressRow)
-  .filter((row) => rowStatus(row) !== 'completed')
-  .filter((row) => rowStatus(row) !== 'report-only')
+  .filter((row) => !isDomainSmokeAggregateRow(row))
+  .filter((row) => isDomainSmokeProgressRow(row) || rowStatus(row) !== 'completed')
+  .filter((row) => isDomainSmokeProgressRow(row) || rowStatus(row) !== 'report-only')
   .filter((row) => !isNoiseHidden(noiseKey('progress', row.rowKey || row.id || row.label)))
 )
 const progressDetailRows = computed<ProgressRow[]>(() => progressRows.value
   .filter(isSignalTask)
-  .filter((row) => row.id !== 'wiki-monitor-domain-smoke')
+  .filter((row) => !isAnyDomainSmokeProgressRow(row))
   .filter((row) => !isNoiseHidden(noiseKey('progress', row.rowKey || row.id || row.label)))
 )
 const visibleProgressRowsByPriority = computed<ProgressRow[]>(() => sortRowsByPriority(visibleProgressRows.value))
@@ -1873,6 +1878,7 @@ function rowUpdatedAtLabel(row: ProgressRow | null | undefined) {
 }
 
 function progressRowControlActionId(row: ProgressRow) {
+  if (isAnyDomainSmokeProgressRow(row)) return 'wiki-monitor-domain-smoke'
   return String(
     row.progressPayload?.actionId
       || row.action?.id
@@ -2268,6 +2274,10 @@ function domainFailureCircuitBreakerLabel(domain: CrawlerMonitorWikiDomain | nul
 function progressRowTitle(row: ProgressRow) {
   const id = String(row.id || '')
   if (id === 'wiki-monitor-domain-smoke') return '10 域样本爬取'
+  if (id.startsWith('wiki-monitor-domain-smoke:')) {
+    const domain = domainSmokeProgressDomain(row)
+    return `样本爬取：${domain ? wikiDomainChineseName({ domain, label: domain }) : row.label || '基础域'}`
+  }
   if (id === 'buff-page-immunity-refresh') return 'Buff 免疫页面刷新'
   if (id === 'crawler-output-standardize') return '爬取结果标准化'
   if (id === 'item-page-retry-queue') return '物品页重试队列'
@@ -2283,7 +2293,7 @@ function progressRowTitle(row: ProgressRow) {
 
 function progressRowLaneLabel(row: ProgressRow) {
   const lane = String(row.lane || row.action?.runner || '').toLowerCase()
-  if (row.id === 'wiki-monitor-domain-smoke') return '样本测试'
+  if (isAnyDomainSmokeProgressRow(row)) return '样本测试'
   if (lane === 'fetch') return '爬取'
   if (lane === 'transform') return '转换'
   if (lane === 'crawl') return '爬虫'
@@ -2291,6 +2301,25 @@ function progressRowLaneLabel(row: ProgressRow) {
   if (lane === 'backend-refresh') return '后端刷新'
   if (lane === 'validation') return '校验'
   return lane || '未知执行器'
+}
+
+function isDomainSmokeProgressRow(row: ProgressRow | null | undefined) {
+  const id = String(row?.id || '')
+  return id.startsWith('wiki-monitor-domain-smoke:')
+}
+
+function isDomainSmokeAggregateRow(row: ProgressRow | null | undefined) {
+  return String(row?.id || '') === 'wiki-monitor-domain-smoke'
+}
+
+function isAnyDomainSmokeProgressRow(row: ProgressRow | null | undefined) {
+  return isDomainSmokeAggregateRow(row) || isDomainSmokeProgressRow(row)
+}
+
+function domainSmokeProgressDomain(row: ProgressRow | null | undefined) {
+  const id = String(row?.id || '')
+  if (id.startsWith('wiki-monitor-domain-smoke:')) return id.slice('wiki-monitor-domain-smoke:'.length)
+  return String(row?.progressPayload?.domain || '')
 }
 
 function progressRowMessageLabel(row: ProgressRow) {
@@ -2321,6 +2350,7 @@ function isSignalTask(row: ProgressRow) {
 
 function isActiveProgressRow(row: ProgressRow) {
   const status = rowStatus(row)
+  if (isDomainSmokeProgressRow(row)) return true
   if (['completed', 'report-only'].includes(status)) return false
   if (['running', 'stalled', 'paused', 'queued', 'pending', 'failed', 'error', 'blocked', 'warning'].includes(status)) return true
   return Boolean(row.progressStaleReason || rowHeartbeatAt(row))
@@ -2390,6 +2420,17 @@ function rowHeartbeatLabel(row: ProgressRow | null | undefined) {
 function rowSourcePath(row: ProgressRow | null | undefined) {
   if (!row) return ''
   return row.progressSource || row.progressPath || row.action?.childStatusPath || row.reportPath || row.outputPath || ''
+}
+
+function progressRowPathEntries(row: ProgressRow | null | undefined) {
+  if (!row) return []
+  const entries = [
+    { label: '进度', path: row.progressSource || row.progressPath || row.action?.childStatusPath || '' },
+    { label: '报告', path: row.reportPath || '' },
+    { label: '输出', path: row.outputPath || row.progressPayload?.outputPath || '' },
+  ].filter((entry) => entry.path)
+  if (!entries.length && rowSourcePath(row)) return [{ label: '来源', path: rowSourcePath(row) }]
+  return entries
 }
 
 function taskProgress(task: CrawlerMonitorRegisteredTask) {
@@ -4386,6 +4427,11 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   font-size: 12px;
   overflow-wrap: anywhere;
   white-space: normal;
+}
+
+.action-card__paths {
+  display: grid;
+  gap: 4px;
 }
 
 .action-card__message {

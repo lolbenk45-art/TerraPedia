@@ -122,7 +122,13 @@ export async function runDomainSmoke(rawOptions = {}, deps = {}) {
     writeJson(domain.outputPath, result);
     results.push({
       ...result,
-      outputPath: toRepoRelative(domain.outputPath)
+      actionId: `${ACTION_ID}:${domain.domain}`,
+      current: result.actualCount,
+      total: plan.limit,
+      progressPath: toRepoRelative(plan.progressPath),
+      reportPath: toRepoRelative(plan.reportPath),
+      outputPath: toRepoRelative(domain.outputPath),
+      message: `${domain.domain} 样本${result.status === 'failed' ? '失败' : result.status === 'partial' ? '不足' : '完成'} ${result.actualCount}/${plan.limit}`
     });
     writeProgress({
       status: 'running',
@@ -268,12 +274,18 @@ function writeSmokeProgress(plan, {
   payload.domains = domains.map((domain) => ({
     domain: domain.domain,
     label: domain.label,
+    actionId: domain.actionId ?? `${ACTION_ID}:${domain.domain}`,
     sourceKey: domain.sourceKey,
     status: domain.status,
     actualCount: domain.actualCount,
     requestedLimit: domain.requestedLimit,
     limit: domain.requestedLimit ?? plan.limit,
+    current: domain.current ?? domain.actualCount ?? 0,
+    total: domain.total ?? domain.requestedLimit ?? plan.limit,
+    progressPath: domain.progressPath ?? toRepoRelative(plan.progressPath),
+    reportPath: domain.reportPath ?? toRepoRelative(plan.reportPath),
     outputPath: domain.outputPath,
+    message: domain.message,
     error: domain.error
   }));
   writeJsonFile(plan.progressPath, payload);

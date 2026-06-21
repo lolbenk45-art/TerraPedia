@@ -97,6 +97,18 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Duration PROGRESS_STALE_THRESHOLD = Duration.ofMinutes(10);
     private static final Duration DEFAULT_HEARTBEAT_STALE_THRESHOLD = Duration.ofMinutes(30);
     private static final List<String> REDIS_HEARTBEAT_ENTITIES = List.of("items", "buffs");
+    private static final List<String> WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS = List.of(
+        "items",
+        "npcs",
+        "projectiles",
+        "armor_sets",
+        "buffs",
+        "biomes",
+        "recipes",
+        "bosses",
+        "town_npc_maintenance",
+        "shimmer"
+    );
     private static final String REDIS_BACKEND_DAEMON_KEY = "terrapedia:crawler:backend-refresh:daemon";
     private static final String REDIS_BACKEND_SCHEDULER_KEY = "terrapedia:crawler:backend-refresh:scheduler";
     private static final String REDIS_BACKEND_LOCK_KEY = "terrapedia:crawler:backend-refresh:lock";
@@ -2419,6 +2431,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         ));
         tasks.add(buildItemPagesRefreshTask(repoRoot, itemProgress));
         tasks.add(buildWikiMonitorDomainSmokeTask(repoRoot, domainSmokeProgress));
+        tasks.addAll(buildWikiMonitorDomainSmokeDomainTasks(repoRoot, domainSmokeProgress));
         tasks.add(buildDomainSourceSnapshotTask(
             repoRoot,
             "source-update-monitor-check",
@@ -2962,6 +2975,114 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return task;
     }
 
+    private List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> buildWikiMonitorDomainSmokeDomainTasks(
+        Path repoRoot,
+        ReadResult progress
+    ) {
+        Map<String, Object> payload = progress.readable() ? progress.payload() : Collections.emptyMap();
+        Map<String, Map<String, Object>> progressDomainsById = new LinkedHashMap<>();
+        if (progress.readable()) {
+            for (Map<String, Object> domain : asMapList(payload.get("domains"))) {
+                String domainId = trimToNull(asString(domain.get("domain")));
+                if (domainId != null) {
+                    progressDomainsById.put(domainId, domain);
+                }
+            }
+        }
+        String aggregateProgressPath = toDisplayPath(repoRoot, repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE).normalize());
+        String aggregateReportPath = firstNonBlank(
+            normalizePayloadPath(repoRoot, payload.get("reportPath")),
+            toDisplayPath(repoRoot, repoRoot.resolve(CRAWLER_MONITOR_DIR).resolve("wiki-monitor-domain-smoke.latest.json").normalize())
+        );
+        String aggregateOutputPath = firstNonBlank(
+            normalizePayloadPath(repoRoot, payload.get("outputPath")),
+            toDisplayPath(repoRoot, repoRoot.resolve(CRAWLER_MONITOR_DIR).resolve("wiki-monitor-domain-smoke.latest").normalize())
+        );
+        String updatedAt = firstNonBlank(asString(payload.get("lastHeartbeatAt")), asString(payload.get("generatedAt")));
+        List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> tasks = new ArrayList<>();
+        for (String domainId : WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS) {
+            Map<String, Object> domain = progressDomainsById.getOrDefault(domainId, Collections.emptyMap());
+            String actionId = firstNonBlank(asString(domain.get("actionId")), "wiki-monitor-domain-smoke:" + domainId);
+            String label = firstNonBlank(asString(domain.get("label")), wikiMonitorDomainLabel(domainId));
+            CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask(
+                actionId,
+                "样本爬取：" + label,
+                "test",
+                "manual"
+            );
+            task.setProgressPath(firstNonBlank(normalizePayloadPath(repoRoot, domain.get("progressPath")), aggregateProgressPath));
+            task.setReportPath(firstNonBlank(normalizePayloadPath(repoRoot, domain.get("reportPath")), aggregateReportPath));
+            task.setOutputPath(firstNonBlank(
+                normalizePayloadPath(repoRoot, domain.get("outputPath")),
+                domainOutputPath(aggregateOutputPath, domainId)
+            ));
+            task.setInputPath("wiki API search/revisions");
+            task.setDataStage("wiki API -> crawler-monitor smoke reports -> " + domainId + " sample");
+            task.setNextStep("Open the domain sample output/report to verify the 10 downloaded records.");
+            task.setStatus(firstNonBlank(asString(domain.get("status")), progress.found() ? "pending" : "missing"));
+            task.setQueueState(firstNonBlank(asString(domain.get("message")), domainSmokeDomainMessage(domainId, domain)));
+            task.setUpdatedAt(updatedAt);
+            task.setProgressSource(aggregateProgressPath);
+            task.setProgressFound(progress.found());
+            task.setProgressReadable(progress.readable());
+            if (!progress.readable() && progress.errorMessage() != null) {
+                task.setProgressErrorMessage(progress.errorMessage());
+            }
+            task.setProgressUpdatedAt(readLastModifiedIso(progress.path()));
+            task.setProgressHeartbeatAt(updatedAt);
+            Instant heartbeatAt = parseInstant(updatedAt);
+            if (heartbeatAt != null) {
+                task.setProgressHeartbeatAgeMs(Math.max(0L, Duration.between(heartbeatAt, Instant.now(clock)).toMillis()));
+            }
+            task.setProgressPayload(new LinkedHashMap<>(domain));
+            copyTaskProgressFromPayload(task, domain);
+            if (task.getCurrent() == null) {
+                task.setCurrent(firstNonNullLong(asNullableLong(domain.get("actualCount")), 0L));
+            }
+            if (task.getTotal() == null) {
+                task.setTotal(firstNonNullLong(firstNonNullLong(asNullableLong(domain.get("total")), asNullableLong(domain.get("limit"))), (long) WIKI_MONITOR_DOMAIN_SMOKE_LIMIT));
+            }
+            task.setPercent(firstNonNull(
+                task.getPercent(),
+                derivePercent(task.getOverallCurrent(), task.getOverallTotal(), task.getCurrent(), task.getTotal())
+            ));
+            task.setPending(computePending(task.getOverallCurrent(), task.getOverallTotal(), task.getCurrent(), task.getTotal()));
+            applyReadableProgressState(task);
+            if ("completed".equals(task.getStatus())) {
+                task.setProgressKind("report-only");
+            }
+            tasks.add(task);
+        }
+        return tasks;
+    }
+
+    private String wikiMonitorDomainLabel(String domainId) {
+        return WIKI_MONITOR_RULES.stream()
+            .filter(rule -> rule.domain().equals(domainId))
+            .map(WikiMonitorRule::label)
+            .findFirst()
+            .orElse(domainId);
+    }
+
+    private String domainSmokeDomainMessage(String domainId, Map<String, Object> domain) {
+        Long current = firstNonNullLong(asNullableLong(domain.get("current")), asNullableLong(domain.get("actualCount")));
+        Long total = firstNonNullLong(asNullableLong(domain.get("total")), asNullableLong(domain.get("limit")));
+        if (current != null && total != null) {
+            return domainId + " 样本" + ("completed".equals(asString(domain.get("status"))) ? "完成" : "进度") + " " + current + "/" + total;
+        }
+        if (domain.isEmpty()) {
+            return domainId + " 样本等待运行 0/" + WIKI_MONITOR_DOMAIN_SMOKE_LIMIT;
+        }
+        return domainId + " 样本进度";
+    }
+
+    private String domainOutputPath(String aggregateOutputPath, String domainId) {
+        if (aggregateOutputPath == null || aggregateOutputPath.isBlank()) {
+            return null;
+        }
+        return aggregateOutputPath.replaceAll("/+$", "") + "/" + domainId + ".json";
+    }
+
     private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildReportBackedTask(
         Path repoRoot,
         String id,
@@ -3205,6 +3326,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private Double firstNonNull(Double first, Double second) {
+        return first == null ? second : first;
+    }
+
+    private Long firstNonNullLong(Long first, Long second) {
         return first == null ? second : first;
     }
 
