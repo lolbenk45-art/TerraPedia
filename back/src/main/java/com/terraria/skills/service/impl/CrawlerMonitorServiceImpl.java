@@ -137,6 +137,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private final CrawlerReportArchiver reportArchiver;
     private final ProcessLauncher processLauncher;
     private final Map<String, ActiveDispatchProcess> activeDispatchProcesses = new ConcurrentHashMap<>();
+    private final Map<String, Process> activeDomainSmokeProcesses = new ConcurrentHashMap<>();
     private final Set<String> cancellingDispatches = ConcurrentHashMap.newKeySet();
     private volatile Duration dispatchTimeout = WIKI_MONITOR_DISPATCH_TIMEOUT;
     private static final long OVERVIEW_CACHE_TTL_NANOS = TimeUnit.SECONDS.toNanos(2);
@@ -362,6 +363,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     @Override
     public CrawlerMonitorDispatchResultDTO controlWikiMonitorDispatch(CrawlerMonitorDispatchRequestDTO request) {
         Path repoRoot = resolveRepoRoot();
+        if (isDomainSmokeControl(request)) {
+            return controlWikiMonitorDomainSmoke(repoRoot, request);
+        }
         WikiMonitorRule rule = resolveWikiMonitorControlRule(request);
         String controlAction = trimToNull(request.getControlAction());
         if (!"pause".equals(controlAction) && !"resume".equals(controlAction) && !"cancel".equals(controlAction) && !"retry".equals(controlAction)) {
@@ -392,7 +396,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (dispatchId == null || active == null) {
             Process legacyProcess = processLauncher.findLegacyProcess(buildLegacyProcessRequest(repoRoot, rule));
             if (legacyProcess == null || !legacyProcess.isAlive()) {
-                return rejectedDispatch(rule, "missing", "no matching wiki monitor dispatch is active");
+                return missingActiveDispatch(rule, repoRoot);
             }
             active = new ActiveDispatchProcess("legacy-os-process", rule.domain(), rule.actionId(), legacyProcess, buildLegacyDispatchPaths(rule));
             dispatchId = active.dispatchId();
@@ -451,6 +455,50 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return acceptedDispatch(rule, dispatchId, paths, status, message);
     }
 
+    private boolean isDomainSmokeControl(CrawlerMonitorDispatchRequestDTO request) {
+        return request != null && "wiki-monitor-domain-smoke".equals(trimToNull(request.getActionId()));
+    }
+
+    private CrawlerMonitorDispatchResultDTO controlWikiMonitorDomainSmoke(Path repoRoot, CrawlerMonitorDispatchRequestDTO request) {
+        String controlAction = trimToNull(request.getControlAction());
+        if (!"cancel".equals(controlAction)) {
+            CrawlerMonitorDispatchResultDTO result = smokeDispatchResult(
+                "wiki-monitor-domain-smoke-control",
+                false,
+                "unsupported",
+                "10 域样本爬取暂不支持暂停或继续；如需停止，请使用终止。"
+            );
+            return result;
+        }
+
+        ReadResult lock = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize());
+        String dispatchId = lock.readable()
+            ? firstNonBlank(asString(lock.payload().get("dispatchId")), "wiki-monitor-domain-smoke-active")
+            : "wiki-monitor-domain-smoke-active";
+        Process active = activeDomainSmokeProcesses.get(dispatchId);
+        if (active == null || !active.isAlive()) {
+            CrawlerMonitorDispatchResultDTO result = smokeDispatchResult(
+                dispatchId,
+                false,
+                "missing",
+                "未找到正在运行的 10 域样本爬取任务；可能已结束、后端已重启，或只剩进度文件。actionId=wiki-monitor-domain-smoke，progressPath="
+                    + WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE.toString().replace('\\', '/')
+                    + "，lockPath=" + WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE.toString().replace('\\', '/')
+                    + "。如需删除样本产物，请使用“清理样本”。"
+            );
+            attachBlockedDispatch(repoRoot, repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize(), result);
+            return result;
+        }
+
+        boolean signalSent = processLauncher.destroy(active);
+        if (!signalSent) {
+            return smokeDispatchResult(dispatchId, false, "uncontrollable", "10 域样本爬取进程存在，但终止信号发送失败；请刷新阶段进度后重试。");
+        }
+        activeDomainSmokeProcesses.remove(dispatchId);
+        releaseDispatchLock(repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize(), dispatchId);
+        return smokeDispatchResult(dispatchId, true, "cancelled", "已终止 10 域样本爬取；样本产物可继续查看或手动清理。");
+    }
+
     private CrawlerMonitorDispatchResultDTO retryWikiMonitorDispatch(
         Path repoRoot,
         WikiMonitorRule rule,
@@ -507,6 +555,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         LaunchRequest launchRequest = buildDomainSmokeLaunchRequest(repoRoot, dispatchId, reportPath, outputDir, progressPath, logPath);
         try {
             Process process = processLauncher.launch(launchRequest);
+            activeDomainSmokeProcesses.put(dispatchId, process);
             watchDomainSmokeProcess(repoRoot, dispatchId, lockPath, process);
         } catch (IOException exception) {
             releaseDispatchLock(lockPath, dispatchId);
@@ -1170,6 +1219,21 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return result;
     }
 
+    private CrawlerMonitorDispatchResultDTO missingActiveDispatch(WikiMonitorRule rule, Path repoRoot) {
+        String progressPath = rule.progressPath();
+        String lockPath = toDisplayPath(repoRoot, repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize());
+        return rejectedDispatch(
+            rule,
+            "missing",
+            "未找到正在运行的 Wiki 派发任务；可能任务已结束、后端重启后进程未接管，或当前按钮对应的不是正式派发任务。"
+                + " domain=" + rule.domain()
+                + "，actionId=" + rule.actionId()
+                + "，progressPath=" + progressPath
+                + "，lockPath=" + lockPath
+                + "。请先刷新阶段进度；如是 10 域样本任务，请使用样本任务的终止或清理样本。"
+        );
+    }
+
     private CrawlerMonitorDispatchResultDTO acceptedDispatch(
         WikiMonitorRule rule,
         String dispatchId,
@@ -1484,6 +1548,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 Thread.currentThread().interrupt();
             } finally {
                 releaseDispatchLock(lockPath, dispatchId);
+                activeDomainSmokeProcesses.remove(dispatchId);
             }
         }, "wiki-monitor-domain-smoke-" + dispatchId);
         thread.setDaemon(true);

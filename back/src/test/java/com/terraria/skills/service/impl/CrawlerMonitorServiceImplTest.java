@@ -2526,6 +2526,58 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldReturnChineseDiagnosticWhenNoActiveWikiMonitorDispatchExists() {
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new ControllableBlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+
+        CrawlerMonitorDispatchRequestDTO cancel = dispatchRequest("bosses", "domain-source-bosses");
+        cancel.setControlAction("cancel");
+        CrawlerMonitorDispatchResultDTO result = service.controlWikiMonitorDispatch(cancel);
+
+        assertFalse(result.isAccepted());
+        assertEquals("missing", result.getStatus());
+        assertEquals("bosses", result.getDomain());
+        assertEquals("domain-source-bosses", result.getActionId());
+        assertEquals("data/generated/domain-source-bosses-progress.latest.json", result.getProgressPath());
+        assertTrue(result.getMessage().contains("未找到正在运行的 Wiki 派发任务"));
+        assertTrue(result.getMessage().contains("actionId=domain-source-bosses"));
+        assertTrue(result.getMessage().contains("progressPath=data/generated/domain-source-bosses-progress.latest.json"));
+    }
+
+    @Test
+    void shouldCancelActiveWikiMonitorDomainSmokeDispatch() throws Exception {
+        ControllableBlockingProcess process = new ControllableBlockingProcess();
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(process);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorDomainSmoke();
+
+        CrawlerMonitorDispatchRequestDTO cancel = new CrawlerMonitorDispatchRequestDTO();
+        cancel.setActionId("wiki-monitor-domain-smoke");
+        cancel.setControlAction("cancel");
+        CrawlerMonitorDispatchResultDTO cancelled = service.controlWikiMonitorDispatch(cancel);
+
+        assertTrue(started.isAccepted());
+        assertTrue(cancelled.isAccepted());
+        assertEquals("cancelled", cancelled.getStatus());
+        assertEquals("all", cancelled.getDomain());
+        assertEquals("wiki-monitor-domain-smoke", cancelled.getActionId());
+        assertTrue(cancelled.getMessage().contains("已终止 10 域样本爬取"));
+        assertEquals(1, process.terminateCount);
+        assertFalse(process.isAlive());
+        assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json")));
+    }
+
+    @Test
     void shouldOverlayPausedWikiMonitorDispatchStatusOnRegisteredTaskProgress() throws Exception {
         writeJson(repoRoot.resolve("data/generated/fetch-wiki-buffs-progress.latest.json"), Map.ofEntries(
             Map.entry("actionId", "buff-page-immunity-refresh"),
