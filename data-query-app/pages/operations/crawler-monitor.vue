@@ -5251,9 +5251,11 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 }
 
 .obs-collapsible > summary::before {
-  content: '▶ ';
+  content: '▶';
   font-size: 0.7em;
   opacity: 0.5;
+  flex-shrink: 0;
+  width: 1em;
 }
 
 .obs-collapsible[open] > summary::before {
@@ -5262,5 +5264,10 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 
 .monitor-detail-collapsible > summary {
   padding: 0;
+  margin-bottom: 0;
+}
+
+.monitor-detail-collapsible[open] > summary {
+  margin-bottom: 16px;
 }
 </style>
