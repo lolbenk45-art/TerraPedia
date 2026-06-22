@@ -431,17 +431,22 @@ test('crawler monitor renders a real dispatch queue section from dispatchQueue',
 
   assert.match(page, /CrawlerMonitorWikiQueueItem/)
   assert.match(page, /const dispatchQueueRows = computed<CrawlerMonitorWikiQueueItem\[\]>/)
+  assert.match(page, /const dispatchQueueHistoryRows = computed<CrawlerMonitorWikiQueueItem\[\]>/)
+  assert.match(page, /progressDetailRows = computed<ProgressRow\[\]>/)
+  assert.match(page, /concat\(dispatchQueueHistoryRows\.value\.map\(\(item\) => queueItemAsProgressRow\(item\)\)\)/)
+  assert.match(page, /queueItemAsProgressRow/)
   assert.match(page, /compareQueueItems/)
   assert.match(page, /wikiMonitor\.value\?\.dispatchQueue/)
   assert.match(queueSection, /aria-label="wiki-monitor-dispatch-queue"/)
   assert.match(queueSection, /v-for="item in dispatchQueueRows"/)
+  assert.match(queueSection, /activeDispatchQueueRows\.length/)
+  assert.match(queueSection, /尚无正在排队、运行或堵塞的队列项/)
   assert.match(queueSection, /cancelQueuedDispatchItem\(item\)/)
-  assert.match(queueSection, /最近结果/)
-  assert.match(queueSection, /queueItemCompletedAtLabel\(item\)/)
-  assert.match(queueSection, /queueItemPathEntries\(item\)/)
   assert.match(queueSection, /queueItemBlockerLabel\(item\)/)
-  assert.match(page, /日志/)
-  assert.match(page, /dispatch-queue-row__paths/)
+  assert.doesNotMatch(queueSection, /最近结果/)
+  assert.doesNotMatch(queueSection, /queueItemCompletedAtLabel\(item\)/)
+  assert.doesNotMatch(queueSection, /queueItemPathEntries\(item\)/)
+  assert.doesNotMatch(queueSection, /dispatch-queue-row__paths/)
   assert.match(page, /grid-column:\s*1\s*\/\s*-1/)
   assert.doesNotMatch(queueSection, /pendingWikiDispatches/)
   assert.doesNotMatch(queueSection, /dispatchPlanRows/)
@@ -1262,11 +1267,14 @@ test('crawler monitor recovery workbench keeps selected domain, path split, and 
   assert.doesNotMatch(page, /数据主链路/)
 })
 
-test('crawler monitor queue item log paths are rendered as clickable buttons calling openReportPreview', () => {
-  // The queue path entries must use a button/clickable element, not bare <code>
-  // Pattern: dispatch-queue-row__paths area must wire up openReportPreview for log paths
-  assert.match(page, /openReportPreview\(entry\.path\)/)
-  assert.match(page, /dispatch-queue-row__paths/)
+test('crawler monitor moves queue log and report paths into progress detail rows', () => {
+  assert.match(page, /queueItemAsProgressRow/)
+  assert.match(page, /dispatchQueueHistoryRows/)
+  assert.match(page, /item\.logPath/)
+  assert.match(page, /item\.reportPath/)
+  assert.match(page, /item\.progressPath/)
+  assert.match(page, /item\.lockPath/)
+  assert.doesNotMatch(page, /dispatch-queue-row__paths/)
 })
 
 test('crawler monitor isPreviewableReportPath accepts .log files under reports/crawler-monitor/', () => {

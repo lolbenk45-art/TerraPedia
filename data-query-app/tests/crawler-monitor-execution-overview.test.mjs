@@ -186,6 +186,53 @@ test('execution overview excludes missing progress-only evidence rows', () => {
   assert.deepEqual(rows.map((row) => row.actionId), ['domain-source-bosses'])
 })
 
+test('execution overview excludes terminal timeout and cancelled queue noise', () => {
+  const rows = buildExecutionOverviewRows({
+    wikiMonitor: {
+      dispatchQueue: [
+        {
+          queueId: 'q-timeout',
+          domain: 'buffs',
+          actionId: 'buff-page-immunity-refresh',
+          status: 'timed_out',
+          completedAt: '2026-06-22T05:08:46.951Z',
+          logPath: 'reports/crawler-monitor/wiki-monitor-dispatch-timeout.log',
+        },
+        {
+          queueId: 'q-cancelled',
+          domain: 'buffs',
+          actionId: 'buff-page-immunity-refresh',
+          status: 'cancelled',
+          completedAt: '2026-06-22T05:08:46.951Z',
+        },
+        {
+          queueId: 'q-running',
+          domain: 'town_npc_maintenance',
+          actionId: 'domain-source-town-npc-maintenance',
+          status: 'running',
+        },
+      ],
+    },
+    registeredTasks: [
+      {
+        id: 'domain-source-buffs',
+        label: 'Domain source: Buffs timeout',
+        status: 'timed_out',
+        progressKind: 'timed_out',
+        progressPath: 'data/generated/domain-source-buffs-progress.latest.json',
+      },
+      {
+        id: 'domain-source-armor-sets',
+        label: 'Domain source: Armor sets cancelled',
+        status: 'cancelled',
+        progressKind: 'cancelled',
+      },
+    ],
+  })
+
+  assert.deepEqual(rows.map((row) => row.actionId), ['domain-source-town-npc-maintenance'])
+})
+
 test('execution overview infers progress domains from progress payload before generic domain-source id parsing', () => {
   const rows = buildExecutionOverviewRows({
     registeredTasks: [

@@ -21,8 +21,6 @@ const ACTIONABLE_QUEUE_STATUSES = new Set([
   'running',
   'failed',
   'error',
-  'timed_out',
-  'cancelled',
 ])
 
 const ACTIONABLE_PROGRESS_STATUSES = new Set([
@@ -36,8 +34,6 @@ const ACTIONABLE_PROGRESS_STATUSES = new Set([
   'warning',
   'failed',
   'error',
-  'timed_out',
-  'cancelled',
 ])
 
 export function buildExecutionOverviewRows(overview = {}) {
