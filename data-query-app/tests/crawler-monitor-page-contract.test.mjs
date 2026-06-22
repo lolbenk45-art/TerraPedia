@@ -351,7 +351,8 @@ test('crawler monitor exposes pause and resume controls for running wiki tasks',
   assert.match(page, /:disabled="!canResumeWikiDomain\(selectedWikiDomain\) \|\| wikiControlLoading === selectedWikiDomain\.domain"/)
   assert.match(page, /:disabled="!canCancelWikiDomain\(selectedWikiDomain\) \|\| wikiControlLoading === selectedWikiDomain\.domain"/)
   assert.doesNotMatch(page, />派发刷新</)
-  assert.match(page, /暂停任务/)
+  assert.match(page, /暂停占用/)
+  assert.match(page, /暂停会保留执行锁/)
   assert.match(page, /继续任务/)
   assert.match(page, /终止并清理文件/)
   assert.match(page, /已取消/)
@@ -429,10 +430,18 @@ test('crawler monitor renders a real dispatch queue section from dispatchQueue',
 
   assert.match(page, /CrawlerMonitorWikiQueueItem/)
   assert.match(page, /const dispatchQueueRows = computed<CrawlerMonitorWikiQueueItem\[\]>/)
+  assert.match(page, /compareQueueItems/)
   assert.match(page, /wikiMonitor\.value\?\.dispatchQueue/)
   assert.match(queueSection, /aria-label="wiki-monitor-dispatch-queue"/)
   assert.match(queueSection, /v-for="item in dispatchQueueRows"/)
   assert.match(queueSection, /cancelQueuedDispatchItem\(item\)/)
+  assert.match(queueSection, /最近结果/)
+  assert.match(queueSection, /queueItemCompletedAtLabel\(item\)/)
+  assert.match(queueSection, /queueItemPathEntries\(item\)/)
+  assert.match(queueSection, /queueItemBlockerLabel\(item\)/)
+  assert.match(page, /日志/)
+  assert.match(page, /dispatch-queue-row__paths/)
+  assert.match(page, /grid-column:\s*1\s*\/\s*-1/)
   assert.doesNotMatch(queueSection, /pendingWikiDispatches/)
   assert.doesNotMatch(queueSection, /dispatchPlanRows/)
 })
@@ -527,7 +536,7 @@ test('crawler monitor domain locator is a floating download-style window, not a 
   assert.match(windowTemplate, /:disabled="!canResumeWikiDomain\(domain\) \|\| wikiControlLoading === domain\.domain"/)
   assert.match(windowTemplate, /:disabled="!canCancelWikiDomain\(domain\) \|\| wikiControlLoading === domain\.domain"/)
   assert.match(windowTemplate, />启动重爬</)
-  assert.match(windowTemplate, />暂停任务</)
+  assert.match(windowTemplate, />暂停占用</)
   assert.match(windowTemplate, />继续任务</)
   assert.match(windowTemplate, />终止并清理</)
   assert.match(page, /\.wiki-domain-download-window\s*\{[\s\S]*position:\s*fixed/)
@@ -1274,4 +1283,17 @@ test('crawler monitor recovery workbench keeps selected domain, path split, and 
   assert.match(page, /@click="openReportPreview\(selectedWikiProgressPath\)"/)
   assert.match(page, /@click="openReportPreview\(selectedWikiOutputPath\)"/)
   assert.doesNotMatch(page, /数据主链路/)
+})
+
+test('crawler monitor queue item log paths are rendered as clickable buttons calling openReportPreview', () => {
+  // The queue path entries must use a button/clickable element, not bare <code>
+  // Pattern: dispatch-queue-row__paths area must wire up openReportPreview for log paths
+  assert.match(page, /openReportPreview\(entry\.path\)/)
+  assert.match(page, /dispatch-queue-row__paths/)
+})
+
+test('crawler monitor isPreviewableReportPath accepts .log files under reports/crawler-monitor/', () => {
+  // The function must recognise .log as previewable when path starts with reports/crawler-monitor/
+  assert.match(page, /reports\/crawler-monitor\/.*\.log|\.log.*reports\/crawler-monitor/)
+  assert.match(page, /isPreviewableReportPath/)
 })
