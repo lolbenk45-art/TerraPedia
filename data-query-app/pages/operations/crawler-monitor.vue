@@ -202,7 +202,9 @@
                   :key="`${item.queueId || item.dispatchId}-${entry.label}`"
                   type="button"
                   class="inline-report-button inline-report-button--compact"
+                  :class="{ 'inline-report-button--not-previewable': !isPreviewableReportPath(entry.path) && !isPreviewableProgressPath(entry.path) }"
                   :disabled="!isPreviewableReportPath(entry.path) && !isPreviewableProgressPath(entry.path)"
+                  :title="(!isPreviewableReportPath(entry.path) && !isPreviewableProgressPath(entry.path)) ? '此路径不支持预览' : entry.path"
                   @click="openReportPreview(entry.path)"
                 >{{ entry.label }}：{{ entry.path }}</button>
               </div>
@@ -4090,20 +4092,6 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   min-width: 0;
 }
 
-.dispatch-queue-row__paths code {
-  display: block;
-  min-width: 0;
-  max-width: 100%;
-  padding: 6px 8px;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--color-bg-secondary) 86%, transparent);
-  color: var(--color-text-secondary);
-  font-size: 11px;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
-  white-space: normal;
-}
-
 .dispatch-queue-row__meta {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -5182,5 +5170,10 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
     width: 100vw;
     padding: 16px;
   }
+}
+
+.inline-report-button--not-previewable {
+  cursor: default;
+  opacity: 0.45;
 }
 </style>
