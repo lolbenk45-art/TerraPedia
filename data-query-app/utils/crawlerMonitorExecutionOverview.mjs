@@ -34,7 +34,6 @@ const ACTIONABLE_PROGRESS_STATUSES = new Set([
   'blocked',
   'blocked_cooldown',
   'warning',
-  'missing',
   'failed',
   'error',
   'timed_out',

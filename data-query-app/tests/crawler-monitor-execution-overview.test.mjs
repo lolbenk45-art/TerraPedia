@@ -157,6 +157,35 @@ test('execution overview retains active domain smoke aggregate progress', () => 
   assert.equal(rows[0].total, 10)
 })
 
+test('execution overview excludes missing progress-only evidence rows', () => {
+  const rows = buildExecutionOverviewRows({
+    registeredTasks: [
+      {
+        id: 'domain-source-armor-sets',
+        label: 'Domain source: Armor sets',
+        status: 'missing',
+        progressKind: 'missing',
+        progressPath: 'data/generated/domain-source-armor-sets-progress.latest.json',
+      },
+      {
+        id: 'npc-coverage-boss',
+        label: 'NPC coverage: boss',
+        status: 'missing',
+        progressKind: 'missing',
+      },
+      {
+        id: 'domain-source-bosses',
+        label: 'Domain source: Bosses',
+        status: 'queued',
+        progressKind: 'queued',
+        progressPath: 'data/generated/domain-source-bosses-progress.latest.json',
+      },
+    ],
+  })
+
+  assert.deepEqual(rows.map((row) => row.actionId), ['domain-source-bosses'])
+})
+
 test('execution overview infers progress domains from progress payload before generic domain-source id parsing', () => {
   const rows = buildExecutionOverviewRows({
     registeredTasks: [

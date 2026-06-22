@@ -247,6 +247,32 @@
               <p v-else class="empty-line">暂无派发计划</p>
             </article>
 
+            <details class="obs-collapsible observability-block domain-runtime-summary">
+              <summary class="observability-block__head">
+                <strong>域派发判断</strong>
+                <span>{{ domainRuntimeSummaryRows.length }} 域</span>
+              </summary>
+              <div v-if="domainRuntimeSummaryRows.length" class="state-list state-list--compact">
+                <button
+                  v-for="domain in domainRuntimeSummaryRows"
+                  :key="`domain-runtime-${domain.domain}`"
+                  type="button"
+                  class="state-row state-row--button domain-runtime-row"
+                  @click="selectWikiDomain(domain.sourceDomain)"
+                >
+                  <span>基础识别</span>
+                  <strong>{{ domain.label }}</strong>
+                  <small>
+                    来源指纹 {{ domain.currentValue }} · 入库指纹 {{ domain.previousValue }}
+                    · {{ domain.changeLabel }} · 自动资格 {{ domain.autoEligibleLabel }}
+                  </small>
+                  <code>{{ domain.actionLabel }} · {{ domain.progressLabel }}</code>
+                  <small>判断依据：{{ domain.reason }}</small>
+                </button>
+              </div>
+              <p v-else class="empty-line">暂无域基础信息。</p>
+            </details>
+
             <details class="obs-collapsible auto-dispatch-card">
               <summary class="observability-block__head">
                 <strong>自动派发设置</strong>
@@ -1381,6 +1407,9 @@ const dataQualityAttentionCount = computed(() =>
 const dispatchPlanRows = computed<any[]>(() => Array.isArray(wikiMonitor.value?.dispatchPlan || wikiMonitorWithPlanBFields.value.dispatchPlan) ? (wikiMonitor.value?.dispatchPlan || wikiMonitorWithPlanBFields.value.dispatchPlan) : [])
 const wikiDispatchModeLabel = computed(() => statusLabel(wikiMonitor.value?.dispatchMode || 'manual'))
 const wikiAutoDispatchLabel = computed(() => wikiMonitor.value?.autoDispatchEnabled ? '已开启' : '已关闭')
+const domainRuntimeSummaryRows = computed(() => wikiDomainRows.value
+  .map((domain) => domainRuntimeSummaryRow(domain))
+  .sort((left, right) => domainRuntimeSummaryRank(left) - domainRuntimeSummaryRank(right) || left.label.localeCompare(right.label, 'zh-CN')))
 const autoDispatchSweepSummary = computed(() => {
   const sweep = lastAutoDispatchSweep.value
   if (!sweep) return '暂无自动扫描记录'
@@ -2558,6 +2587,43 @@ function imageNormalizationMetricRows(summary: any) {
     { label: '豁免', value: formatNumber(summary.legacyExemptionCount) },
     { label: '最近同步', value: formatDate(summary.lastCanonicalSyncAt) },
   ]
+}
+
+function domainRuntimeSummaryRow(domain: CrawlerMonitorWikiDomain) {
+  const progress = wikiDomainProgressRow(domain)
+  const flowStatus = wikiDomainFlowStatus(domain)
+  const currentValue = shortFingerprint(domain.currentValue)
+  const previousValue = shortFingerprint(domain.previousValue)
+  const autoEligible = Boolean(domain.autoEligible)
+  const reason = domain.autoDispatchReason || domain.message || wikiDomainManualHint(domain)
+  return {
+    domain: domain.domain || wikiDomainKey(domain),
+    label: wikiDomainChineseName(domain),
+    status: flowStatus,
+    currentValue,
+    previousValue,
+    changeLabel: domain.changed ? '有变化' : '无变化',
+    autoEligible,
+    autoEligibleLabel: autoEligible ? '可自动派发' : '需人工判断',
+    actionLabel: domain.recommendedActionId || '无推荐动作',
+    progressLabel: rowSourcePath(progress) || domain.progressPath || '无进度文件',
+    reason,
+    sourceDomain: domain,
+  }
+}
+
+function domainRuntimeSummaryRank(row: ReturnType<typeof domainRuntimeSummaryRow>) {
+  if (row.status === 'running' || row.status === 'stalled') return 0
+  if (row.changeLabel === '有变化' && row.autoEligible) return 1
+  if (row.changeLabel === '有变化') return 2
+  if (row.status === 'pending' || row.status === 'ready') return 3
+  return 10
+}
+
+function shortFingerprint(value: string | null | undefined) {
+  const raw = String(value || '').trim()
+  if (!raw) return '未记录'
+  return raw.length > 12 ? `${raw.slice(0, 12)}...` : raw
 }
 
 function heartbeatKey(heartbeat: any) {
@@ -4523,6 +4589,17 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   padding: 8px;
   border-radius: 8px;
   background: color-mix(in srgb, var(--color-bg) 76%, transparent);
+}
+
+.state-row--button {
+  width: 100%;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.state-row--button:hover {
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-bg));
 }
 
 .state-row span,

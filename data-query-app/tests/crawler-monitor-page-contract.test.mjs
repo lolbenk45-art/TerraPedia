@@ -1100,6 +1100,7 @@ test('crawler monitor maps wiki domains to redis progress rows by recommended ac
 test('crawler monitor renders Plan B overview observability fields defensively', () => {
   for (const token of [
     'runtimeStateCards',
+    'domainRuntimeSummaryRows',
     'staleHeartbeatRows',
     'historyRows',
     'recentReportRows',
@@ -1123,12 +1124,21 @@ test('crawler monitor renders Plan B overview observability fields defensively',
     'wikiMonitor.value?.summary?.pendingApprovalCount',
     'domain.maxConcurrent',
     'domain.failureCircuitBreaker',
+    'domain.currentValue',
+    'domain.previousValue',
+    'domain.autoEligible',
+    'domain.autoDispatchReason',
   ]) {
     assert.match(page, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
   }
 
   for (const label of [
     '运行态',
+    '域派发判断',
+    '基础识别',
+    '来源指纹',
+    '自动资格',
+    '判断依据',
     '守护',
     '调度',
     '锁',
