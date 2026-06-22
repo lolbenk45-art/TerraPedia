@@ -230,7 +230,7 @@ test('crawler monitor display helpers summarize heartbeat states', async () => {
 
 test('crawler monitor no longer treats latestRun actions as the only progress source', () => {
   assert.doesNotMatch(page, /v-if="actions\.length" class="action-rail"/)
-  assert.match(page, /progressRows\.length/)
+  assert.match(page, /executionOverviewRows\.length/)
   assert.match(page, /progressRowsFromOverview/)
 })
 
@@ -368,7 +368,8 @@ test('crawler monitor renders the ten-domain baseline matrix from the orchestrat
   )
   assert.match(domainPanel, /class="domain-test-matrix"/)
   assert.match(domainPanel, /v-for="domain in wikiDomainTestMatrixRows"/)
-  assert.match(domainPanel, /v-for="item in domain\.items"/)
+  assert.match(domainPanel, /v-for="item in domain\.formalItems"/)
+  assert.match(domainPanel, /v-for="item in domain\.sampleItems"/)
   assert.match(page, /from '~\/utils\/baseDomainOrchestration\.mjs'/)
   assert.match(page, /buildWikiDomainTestMatrixRow/)
 })
@@ -480,22 +481,17 @@ test('crawler monitor automatically prioritizes running status and exposes concr
     page.indexOf('class="recovery-board"'),
     page.indexOf('<aside class="wiki-domain-download-window"')
   )
-  const stageTemplate = page.slice(
-    page.indexOf('class="section-card monitor-panel stage-progress-panel"'),
-    page.indexOf('<aside class="wiki-domain-download-window"')
-  )
 
   assert.match(page, /visibleWikiDomainRowsByPriority/)
-  assert.match(page, /visibleProgressRowsByPriority/)
+  assert.match(page, /executionOverviewRows/)
+  assert.match(page, /executionOverviewStatusLabel/)
+  assert.match(page, /executionOverviewProgressNumbers/)
   assert.match(page, /progressDetailRowsByPriority/)
   assert.match(page, /domainPriorityScore/)
   assert.match(page, /progressRowPriorityScore/)
   assert.match(recoveryTemplate, /v-for="domain in visibleWikiDomainRowsByPriority"/)
-  assert.match(stageTemplate, /v-for="row in visibleProgressRowsByPriority"/)
-  assert.doesNotMatch(stageTemplate, /progressDetailRowsByPriority/)
   assert.match(recoveryTemplate, /selectedWikiProgressNumbers/)
   assert.match(recoveryTemplate, /rowProgressNumbers\(wikiDomainProgressRow\(domain\)\)/)
-  assert.match(stageTemplate, /rowProgressNumbers\(row\)/)
   assert.match(recoveryTemplate, /selectedDomainHeartbeatMessage/)
   assert.match(recoveryTemplate, /selectedWikiUpdatedAtLabel/)
   assert.match(recoveryTemplate, /selectedWikiPathSummary/)
@@ -647,46 +643,24 @@ test('crawler monitor cancel is guarded as destructive cleanup', () => {
 })
 
 test('crawler monitor exposes pause and resume controls for registered progress tasks', () => {
-  const progressTemplate = page.slice(
-    page.indexOf('<div v-if="visibleProgressRowsByPriority.length" class="action-rail">'),
-    page.indexOf('<div v-else class="empty-block">')
-  )
-  assert.match(progressTemplate, /canPauseProgressRow\(row\)/)
-  assert.match(progressTemplate, /canResumeProgressRow\(row\)/)
-  assert.match(progressTemplate, /controlProgressTask\(row, 'pause'\)/)
-  assert.match(progressTemplate, /controlProgressTask\(row, 'resume'\)/)
-  assert.match(progressTemplate, /progressControlLoading/)
+  assert.match(page, /canPauseProgressRow/)
+  assert.match(page, /canResumeProgressRow/)
+  assert.match(page, /controlProgressTask/)
+  assert.match(page, /progressControlLoading/)
   assert.match(page, /function progressRowControlActionId/)
   assert.match(page, /\/admin\/crawler-monitor\/dispatch\/control/)
 })
 
 test('crawler monitor surfaces domain smoke domains as real-time stage progress only', () => {
-  const stageSource = page.slice(
-    page.indexOf('const visibleProgressRows = computed'),
-    page.indexOf('const progressDetailRows = computed')
-  )
-  const detailSource = page.slice(
-    page.indexOf('const progressDetailRows = computed'),
-    page.indexOf('const progressDetailRowsByPriority = computed')
-  )
-  const stageTemplate = page.slice(
-    page.indexOf('<div v-if="visibleProgressRowsByPriority.length" class="action-rail">'),
-    page.indexOf('<div v-else class="empty-block">')
-  )
-
-  assert.doesNotMatch(stageSource, /wiki-monitor-domain-smoke(?::|')/)
-  assert.match(stageSource, /isOperationalProgressRow/)
-  assert.match(stageSource, /!isDomainSmokeAggregateRow\(row\)/)
+  assert.match(page, /buildExecutionOverviewRows/)
+  assert.match(page, /executionOverviewRows/)
+  assert.match(page, /selectExecutionOverviewRow/)
   assert.match(page, /wiki-monitor-domain-smoke:/)
   const activeProgressSource = page.slice(
     page.indexOf('function isActiveProgressRow'),
     page.indexOf('function isOperationalProgressRow')
   )
   assert.match(activeProgressSource, /if \(isDomainSmokeProgressRow\(row\)\) return true/)
-  assert.match(detailSource, /!isAnyDomainSmokeProgressRow\(row\)/)
-  assert.match(stageTemplate, /canCancelProgressRow\(row\)/)
-  assert.match(stageTemplate, /controlProgressTask\(row, 'cancel'\)/)
-  assert.match(stageTemplate, /progressRowPathEntries\(row\)/)
   assert.match(page, /function isDomainSmokeProgressRow/)
   assert.match(page, /function isDomainSmokeAggregateRow/)
   assert.match(page, /function isAnyDomainSmokeProgressRow/)
@@ -774,9 +748,7 @@ test('crawler monitor lets operators hide low value progress cards without keepi
   assert.match(page, /hiddenNoiseKeys/)
   assert.match(page, /dismissNoiseItem/)
   assert.match(page, /canDismissProgressRow/)
-  assert.match(page, /aria-label="隐藏低价值任务"/)
   assert.doesNotMatch(page, /aria-label="隐藏缺失文件"/)
-  assert.match(page, /隐藏/)
   assert.doesNotMatch(page, /aria-label="删除低价值任务"/)
   assert.doesNotMatch(page, /aria-label="删除域卡片"/)
   assert.doesNotMatch(page, /aria-label="删除缺失文件"/)
@@ -826,20 +798,15 @@ test('crawler monitor separates active stage progress from the detailed task tab
 })
 
 test('crawler monitor stage cards are Chinese-first and do not show raw technical statuses', () => {
-  const stageTemplate = page.slice(
-    page.indexOf('<div v-if="visibleProgressRowsByPriority.length" class="action-rail">'),
-    page.indexOf('<div v-else class="empty-block">')
-  )
-
   assert.match(page, /function progressRowTitle/)
   assert.match(page, /function progressRowLaneLabel/)
   assert.match(page, /function progressRowMessageLabel/)
-  assert.match(stageTemplate, /progressRowTitle\(row\)/)
-  assert.match(stageTemplate, /statusLabel\(rowStatus\(row\)\)/)
-  assert.match(stageTemplate, /progressRowLaneLabel\(row\)/)
-  assert.match(stageTemplate, /progressRowMessageLabel\(row\)/)
-  assert.doesNotMatch(stageTemplate, /\{\{ rowStatus\(row\) \|\| '未知' \}\}/)
-  assert.doesNotMatch(stageTemplate, /\{\{ row\.lane \|\| row\.action\?\.runner \|\| '未知执行器' \}\}/)
+  assert.match(page, /row\.primaryLabel/)
+  assert.match(page, /statusLabel\(row\.displayStatus \|\| row\.status\)/)
+  assert.match(page, /row\.secondaryLabel/)
+  assert.match(page, /row\.message/)
+  assert.doesNotMatch(page, /\{\{ rowStatus\(row\) \|\| '未知' \}\}/)
+  assert.doesNotMatch(page, /\{\{ row\.lane \|\| row\.action\?\.runner \|\| '未知执行器' \}\}/)
 })
 
 test('crawler monitor manual dispatch requires confirmation before posting', () => {
@@ -1302,4 +1269,30 @@ test('crawler monitor shows a health strip with daemon, scheduler, lock, refresh
   assert.match(page, /healthSignals/)
   assert.match(page, /health-strip/)
   assert.match(page, /守护|调度|锁/)
+})
+
+test('crawler monitor wires execution overview from merged queue and progress rows', () => {
+  assert.match(page, /buildExecutionOverviewRows/)
+  assert.match(page, /const executionOverviewRows = computed/)
+  assert.match(page, /执行总览/)
+  assert.match(page, /v-for="row in executionOverviewRows"/)
+  assert.match(page, /selectExecutionOverviewRow/)
+})
+
+test('crawler monitor wires data quality signals from overview', () => {
+  assert.match(page, /buildDataQualitySignals/)
+  assert.match(page, /const dataQualitySignals = computed/)
+  assert.match(page, /数据质量核查/)
+  assert.match(page, /dataQualityAttentionCount/)
+  assert.match(page, /:disabled="!sig\.reportPath \|\| !isPreviewableReportPath\(sig\.reportPath\)"/)
+  assert.match(page, /@click="openReportPreview\(sig\.reportPath\)"/)
+})
+
+test('crawler monitor keeps base-domain validation collapsible and dual channel', () => {
+  assert.match(page, /基础域验收/)
+  assert.match(page, /正式域/)
+  assert.match(page, /样本测试/)
+  assert.match(page, /formalItems/)
+  assert.match(page, /sampleItems/)
+  assert.match(page, /selectedDomainValidationSummary/)
 })

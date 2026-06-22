@@ -178,7 +178,7 @@ test('crawler monitor primary operation labels are Chinese-first', () => {
   assert.match(crawlerMonitorTest, /已用/)
   assert.match(crawlerMonitorTest, /测试状态已保存/)
   assert.match(itemRecipeEditor, /替代工作台/)
-  assert.match(crawlerMonitor, /暂无可展示进度/)
+  assert.match(crawlerMonitor, /暂无需关注执行项/)
   assert.match(crawlerMonitor, /暂无进度行/)
   assert.doesNotMatch(crawlerMonitor, /Refresh State/)
   assert.doesNotMatch(crawlerMonitor, /No progress message yet\./)

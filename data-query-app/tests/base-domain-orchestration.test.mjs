@@ -7,6 +7,7 @@ import {
   DOMAIN_TEST_MATRIX_DOMAIN_IDS,
   buildBaseDomainOrchestrationRow,
   buildBaseDomainSteps,
+  buildSelectedDomainValidationSummary,
   buildWikiDomainTestMatrixRow,
 } from '../utils/baseDomainOrchestration.mjs'
 
@@ -167,4 +168,81 @@ test('matrix row falls back to safe placeholders when fields are empty', () => {
   assert.equal(value('冷却保护'), '未冷却')
   assert.equal(value('最近产物'), '未生成')
   assert.equal(value('人工动作'), '不可重爬')
+})
+
+test('matrix row keeps legacy items while exposing formal and sample channels', () => {
+  const row = buildWikiDomainTestMatrixRow({
+    id: 'buffs',
+    label: 'Buffs',
+    status: 'stalled',
+    sourceValue: 'hash-a',
+    previousValue: 'hash-a',
+    changed: false,
+    recommendedActionId: 'buff-page-immunity-refresh',
+    progressPath: 'data/generated/fetch-wiki-buffs-progress.latest.json',
+    heartbeatLabel: '正式心跳停滞',
+    flowLabel: '正式域停滞',
+    sampleStatusLabel: '样本完成',
+    sampleHeartbeatLabel: '样本心跳正常',
+    sampleProgressPath: 'reports/crawler-monitor/wiki-monitor-domain-smoke-progress.latest.json',
+    sampleCleanupLabel: '可控删除',
+    canExecute: true,
+  })
+
+  assert.deepEqual(row.items.map((item) => item.label), BASIC_DOMAIN_TEST_ITEMS)
+  assert.equal(row.formalItems.length, 10)
+  assert.equal(row.sampleItems.length, 5)
+  assert.equal(row.formalItems.find((item) => item.label === '正式心跳').value, '正式心跳停滞')
+  assert.equal(row.sampleItems.find((item) => item.label === '样本心跳').value, '样本心跳正常')
+  assert.equal(row.formalItems.find((item) => item.label === '正式进度文件').value, 'data/generated/fetch-wiki-buffs-progress.latest.json')
+  assert.equal(row.sampleItems.find((item) => item.label === '样本进度文件').value, 'reports/crawler-monitor/wiki-monitor-domain-smoke-progress.latest.json')
+})
+
+test('selected domain validation summary separates formal domain and smoke sample signals', () => {
+  const summary = buildSelectedDomainValidationSummary({
+    id: 'bosses',
+    label: 'Bosses',
+    status: 'running',
+    formalItems: [
+      { label: '正式心跳', value: '心跳正常' },
+      { label: '正式进度文件', value: 'data/generated/domain-source-bosses-progress.latest.json' },
+      { label: '正式人工动作', value: '可启动重爬' },
+    ],
+    sampleItems: [
+      { label: '样本心跳', value: '样本完成' },
+      { label: '样本进度文件', value: 'reports/crawler-monitor/wiki-monitor-domain-smoke-progress.latest.json' },
+      { label: '样本清理', value: '可控删除' },
+    ],
+  })
+
+  assert.equal(summary.formal.total, 3)
+  assert.equal(summary.formal.attention, 0)
+  assert.equal(summary.formal.ready, 3)
+  assert.equal(summary.sample.total, 3)
+  assert.equal(summary.sample.attention, 0)
+  assert.equal(summary.sample.ready, 3)
+  assert.equal(summary.label, 'Bosses')
+  assert.equal(summary.formal.items[0].label, '正式心跳')
+  assert.equal(summary.sample.items[0].label, '样本心跳')
+})
+
+test('selected domain validation summary flags formal and sample missing independently', () => {
+  const summary = buildSelectedDomainValidationSummary({
+    id: 'buffs',
+    label: 'Buffs',
+    status: 'stalled',
+    formalItems: [
+      { label: '正式心跳', value: '心跳停滞' },
+      { label: '正式进度文件', value: 'data/generated/fetch-wiki-buffs-progress.latest.json' },
+    ],
+    sampleItems: [
+      { label: '样本心跳', value: '未运行样本' },
+      { label: '样本进度文件', value: '未生成' },
+    ],
+  })
+
+  assert.equal(summary.formal.attention, 0)
+  assert.equal(summary.sample.attention, 2)
+  assert.equal(summary.formal.items[0].value, '心跳停滞')
+  assert.equal(summary.sample.items[0].value, '未运行样本')
 })
