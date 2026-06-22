@@ -1297,3 +1297,9 @@ test('crawler monitor isPreviewableReportPath accepts .log files under reports/c
   assert.match(page, /reports\/crawler-monitor\/.*\.log|\.log.*reports\/crawler-monitor/)
   assert.match(page, /isPreviewableReportPath/)
 })
+
+test('crawler monitor shows a health strip with daemon, scheduler, lock, refresh staleness, heartbeat and task alerts', () => {
+  assert.match(page, /healthSignals/)
+  assert.match(page, /health-strip/)
+  assert.match(page, /守护|调度|锁/)
+})

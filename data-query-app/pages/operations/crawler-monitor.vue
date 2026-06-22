@@ -52,6 +52,16 @@
           </div>
         </header>
 
+        <div v-if="healthSignals.length" class="health-strip">
+          <span
+            v-for="sig in healthSignals"
+            :key="sig.key"
+            class="health-signal"
+            :class="sig.tone"
+            :title="sig.detail"
+          >{{ sig.label }}</span>
+        </div>
+
         <section class="focused-summary">
           <article v-for="stat in focusedSummaryCards" :key="stat.label" class="summary-tile">
             <span>{{ stat.label }}</span>
@@ -1293,6 +1303,35 @@ const runtimeStateCards = computed(() => [
   runtimeStateCard('scheduler', '调度', overview.value?.scheduler),
   runtimeStateCard('lock', '锁', overview.value?.lock),
 ])
+const healthSignals = computed(() => {
+  const signals: Array<{key: string, label: string, tone: string, detail: string}> = []
+  for (const card of runtimeStateCards.value) {
+    signals.push({
+      key: card.key,
+      label: card.label,
+      tone: statusTone(card.status),
+      detail: card.detail,
+    })
+  }
+  if (refreshStale.value) {
+    signals.push({
+      key: 'refresh',
+      label: '刷新停滞',
+      tone: 'warning',
+      detail: overview.value?.refreshStaleReason || '最近无 refresh 活动',
+    })
+  }
+  const heartbeatCount = staleHeartbeatRows.value.length
+  if (heartbeatCount > 0) {
+    signals.push({
+      key: 'heartbeat',
+      label: `心跳告警 ${heartbeatCount}`,
+      tone: 'danger',
+      detail: '有任务心跳超时',
+    })
+  }
+  return signals
+})
 const overviewWithPlanBFields = computed<any>(() => overview.value || {})
 const wikiMonitorWithPlanBFields = computed<any>(() => wikiMonitor.value || {})
 const lastAutoDispatchSweep = computed(() => wikiMonitor.value?.lastSweep || null)
@@ -5176,4 +5215,28 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   cursor: default;
   opacity: 0.45;
 }
+
+.health-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 0 2px;
+}
+
+.health-signal {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: default;
+  white-space: nowrap;
+}
+
+.health-signal.success { background: var(--color-success-bg, #d1fae5); color: var(--color-success, #065f46); }
+.health-signal.warning { background: var(--color-warning-bg, #fef3c7); color: var(--color-warning, #92400e); }
+.health-signal.danger  { background: var(--color-danger-bg,  #fee2e2); color: var(--color-danger,  #991b1b); }
+.health-signal.info    { background: var(--color-info-bg,    #dbeafe); color: var(--color-info,    #1e40af); }
+.health-signal.muted   { background: var(--color-muted-bg,   #f3f4f6); color: var(--color-muted,   #6b7280); }
 </style>
