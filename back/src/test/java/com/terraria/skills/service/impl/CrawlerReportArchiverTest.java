@@ -182,6 +182,39 @@ class CrawlerReportArchiverTest {
         assertTrue(detail.getContent().contains("002-second.json"));
     }
 
+    @Test
+    void shouldPreviewCrawlerMonitorLogFile() throws Exception {
+        Path repoRoot = Files.createDirectories(tempDir.resolve("TerraPedia-dev"));
+        Path logDir = Files.createDirectories(repoRoot.resolve("reports/crawler-monitor"));
+        Path logPath = logDir.resolve("wiki-monitor-dispatch-abc123.log");
+        Files.writeString(logPath, "2026-06-22T10:00:00Z [INFO] Starting crawl\n2026-06-22T10:00:01Z [INFO] Done\n",
+            StandardOpenOption.CREATE);
+
+        CrawlerReportArchiver archiver = new CrawlerReportArchiver(new ObjectMapper());
+
+        CrawlerMonitorReportDetailDTO detail = archiver.getReportDetail(repoRoot, "reports/crawler-monitor/wiki-monitor-dispatch-abc123.log");
+
+        assertTrue(detail.isFound());
+        assertTrue(detail.isReadable());
+        assertEquals("text", detail.getContentType());
+        assertTrue(detail.getContent().contains("[INFO] Starting crawl"));
+    }
+
+    @Test
+    void shouldRejectLogFilesOutsideCrawlerMonitorDir() throws Exception {
+        Path repoRoot = Files.createDirectories(tempDir.resolve("TerraPedia-dev"));
+        Path logDir = Files.createDirectories(repoRoot.resolve("reports/other"));
+        Path logPath = logDir.resolve("something.log");
+        Files.writeString(logPath, "secret content", StandardOpenOption.CREATE);
+
+        CrawlerReportArchiver archiver = new CrawlerReportArchiver(new ObjectMapper());
+
+        CrawlerMonitorReportDetailDTO detail = archiver.getReportDetail(repoRoot, "reports/other/something.log");
+
+        assertFalse(detail.isFound());
+        assertFalse(detail.isReadable());
+    }
+
     private void writeJson(Path path, Map<String, Object> payload) throws Exception {
         Files.createDirectories(path.getParent());
         new ObjectMapper().writeValue(path.toFile(), payload);
