@@ -9,23 +9,22 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
-const scriptPath = path.join(__dirname, 'fetch-wiki-town-npc-maintenance.py');
-const pythonBin = process.env.PYTHON || 'python3';
+const scriptPath = path.join(__dirname, 'fetch-wiki-town-npc-maintenance.mjs');
 
 test('town npc maintenance script declares stable progress contract constants', () => {
   const source = fs.readFileSync(scriptPath, 'utf8');
 
-  assert.match(source, /ACTION_ID\s*=\s*["']domain-source-town-npc-maintenance["']/);
-  assert.match(source, /PROGRESS_FILE_NAME\s*=\s*["']domain-source-town-npc-maintenance-progress\.latest\.json["']/);
-  assert.match(source, /LATEST_FILE_NAME\s*=\s*["']wiki-town-npc-maintenance\.latest\.json["']/);
+  assert.match(source, /ACTION_ID\s*=\s*['"]domain-source-town-npc-maintenance['"]/);
+  assert.match(source, /PROGRESS_FILE_NAME\s*=\s*['"]domain-source-town-npc-maintenance-progress\.latest\.json['"]/);
+  assert.match(source, /LATEST_FILE_NAME\s*=\s*['"]wiki-town-npc-maintenance\.latest\.json['"]/);
   assert.match(source, /--progress-path/);
   assert.match(source, /TERRAPEDIA_CRAWLER_PROGRESS_PATH/);
   assert.match(source, /TERRAPEDIA_TOWN_NPC_MAINTENANCE_MOCK_HTML/);
-  assert.match(source, /time\.time_ns\(\)/);
-  assert.match(source, /tmp_path\.replace\(path\)/);
+  assert.match(source, /writeJsonAtomic/);
+  assert.match(source, /writeJsonFile/);
 });
 
-test('town npc maintenance fetch writes completed progress to explicit path without network', { skip: missingPythonRuntimeReason() }, () => {
+test('town npc maintenance fetch writes completed progress to explicit path without network', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-town-npc-maintenance-'));
   const worktreeRoot = path.join(tempDir, 'feature-worktree');
   const sourcePath = path.join(tempDir, 'npc-standardized-map.json');
@@ -50,7 +49,7 @@ test('town npc maintenance fetch writes completed progress to explicit path with
   }), 'utf8');
   fs.writeFileSync(mockHtmlPath, buildMockNpcHtml(), 'utf8');
 
-  const result = spawnSync(pythonBin, [
+  const result = spawnSync(process.execPath, [
     scriptPath,
     `--source=${sourcePath}`,
     `--output=${outputPath}`,
@@ -104,7 +103,7 @@ test('town npc maintenance fetch writes completed progress to explicit path with
   ]);
 });
 
-test('default town npc maintenance progress path follows WORKTREE_ROOT when omitted', { skip: missingPythonRuntimeReason() }, () => {
+test('default town npc maintenance progress path follows WORKTREE_ROOT when omitted', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-town-npc-maintenance-default-'));
   const worktreeRoot = path.join(tempDir, 'feature-worktree');
   const sourcePath = path.join(tempDir, 'npc-standardized-map.json');
@@ -125,7 +124,7 @@ test('default town npc maintenance progress path follows WORKTREE_ROOT when omit
   }), 'utf8');
   fs.writeFileSync(mockHtmlPath, buildMockNpcHtml(), 'utf8');
 
-  const result = spawnSync(pythonBin, [
+  const result = spawnSync(process.execPath, [
     scriptPath,
     `--source=${sourcePath}`,
     `--output=${outputPath}`,
@@ -149,7 +148,7 @@ test('default town npc maintenance progress path follows WORKTREE_ROOT when omit
   assert.equal(path.resolve(progress.childStatusPath), defaultProgressPath);
 });
 
-test('town npc maintenance progress path can be supplied by env', { skip: missingPythonRuntimeReason() }, () => {
+test('town npc maintenance progress path can be supplied by env', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-town-npc-maintenance-env-'));
   const worktreeRoot = path.join(tempDir, 'feature-worktree');
   const sourcePath = path.join(tempDir, 'npc-standardized-map.json');
@@ -170,7 +169,7 @@ test('town npc maintenance progress path can be supplied by env', { skip: missin
   }), 'utf8');
   fs.writeFileSync(mockHtmlPath, buildMockNpcHtml(), 'utf8');
 
-  const result = spawnSync(pythonBin, [
+  const result = spawnSync(process.execPath, [
     scriptPath,
     `--source=${sourcePath}`,
     `--output=${outputPath}`,
@@ -193,20 +192,6 @@ test('town npc maintenance progress path can be supplied by env', { skip: missin
   assert.equal(progress.status, 'completed');
   assert.equal(path.resolve(progress.childStatusPath), progressPath);
 });
-
-function missingPythonRuntimeReason() {
-  const probe = spawnSync(pythonBin, ['-c', 'import bs4'], {
-    cwd: repoRoot,
-    encoding: 'utf8'
-  });
-  if (probe.error) {
-    return `${pythonBin} unavailable: ${probe.error.message}`;
-  }
-  if (probe.status !== 0) {
-    return 'python3 dependency missing: bs4';
-  }
-  return false;
-}
 
 function buildMockNpcHtml() {
   return `<!doctype html>

@@ -129,11 +129,13 @@ class WikiMonitorDispatchQueueRepositoryTest {
                 "reports/progress.json",
                 "reports/report.json",
                 "reports/lock.json",
-                "reports/output"
+                "reports/output",
+                "reports/log.txt"
             )
         );
         WikiMonitorQueueItem markedRunning = repository.findByDispatchId("dispatch-running").orElseThrow();
         assertEquals(running.getQueueId(), markedRunning.getQueueId());
+        assertEquals("reports/log.txt", markedRunning.getLogPath());
         assertNull(markedRunning.getClaimOwner());
         assertNull(markedRunning.getClaimedAt());
         assertNull(markedRunning.getClaimExpiresAt());
@@ -256,6 +258,34 @@ class WikiMonitorDispatchQueueRepositoryTest {
 
         assertFalse(secondEntered);
         assertEquals(1, entered.get());
+
+        CountDownLatch waitingDrainEntered = new CountDownLatch(1);
+        Thread waitableDrain = new Thread(() -> {
+            boolean enteredAfterRelease = repository.withDrainLock("third", "standard", true, () -> {
+                entered.incrementAndGet();
+                waitingDrainEntered.countDown();
+            });
+            assertTrue(enteredAfterRelease);
+        }, "waitable-drain");
+        CountDownLatch heldAgain = new CountDownLatch(1);
+        CountDownLatch releaseAgain = new CountDownLatch(1);
+        Thread secondLockHolder = new Thread(() -> repository.withDrainLock("second-holder", "standard", () -> {
+            heldAgain.countDown();
+            try {
+                releaseAgain.await(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }), "second-drain-holder");
+        secondLockHolder.start();
+        assertTrue(heldAgain.await(5, TimeUnit.SECONDS));
+        waitableDrain.start();
+        releaseAgain.countDown();
+        secondLockHolder.join(5000);
+        waitableDrain.join(5000);
+
+        assertTrue(waitingDrainEntered.await(5, TimeUnit.SECONDS));
+        assertEquals(2, entered.get());
 
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(objectMapper, repoRoot);
         assertNotNull(service.getOverview().getWikiMonitor());

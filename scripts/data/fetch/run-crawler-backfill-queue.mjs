@@ -67,13 +67,9 @@ export function buildDefaultBackfillQueue({
   if (includeTownNpcMaintenance) {
     queue.push({
       id: 'town-npc-maintenance',
-      command: 'uv',
+      command: process.execPath,
       args: [
-        'run',
-        '--with',
-        'beautifulsoup4',
-        process.env.PYTHON || 'python3',
-        'scripts/data/fetch/fetch-wiki-town-npc-maintenance.py',
+        'scripts/data/fetch/fetch-wiki-town-npc-maintenance.mjs',
         `--source=${path.join(normalizedRepoRoot, 'data/generated/npc-standardized-map.json')}`,
         `--output=${path.join(normalizedRepoRoot, 'data/generated/wiki-town-npc-maintenance.latest.json')}`,
         `--snapshot-output=${path.join(normalizedRepoRoot, 'reports', `wiki-town-npc-maintenance-${timestampForFile(new Date())}.json`)}`,

@@ -133,7 +133,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             List.of("node", "scripts/data/fetch/fetch-wiki-bosses.mjs", "--progress-path=data/generated/domain-source-bosses-progress.latest.json")),
         directRule("town_npc_maintenance", "Town NPC maintenance", "wiki.domain.town_npc_maintenance", "Town NPC maintenance source page", "domain-source-town-npc-maintenance",
             "data/generated/domain-source-town-npc-maintenance-progress.latest.json",
-            List.of("<PYTHON>", "scripts/data/fetch/fetch-wiki-town-npc-maintenance.py", "--progress-path=data/generated/domain-source-town-npc-maintenance-progress.latest.json")),
+            List.of("node", "scripts/data/fetch/fetch-wiki-town-npc-maintenance.mjs", "--progress-path=data/generated/domain-source-town-npc-maintenance-progress.latest.json")),
         directRule("shimmer", "Shimmer", "wiki.domain.shimmer", "Shimmer source page", "domain-source-shimmer",
             "data/generated/domain-source-shimmer-progress.latest.json",
             List.of("node", "scripts/data/fetch/fetch-wiki-shimmer-page.mjs", "--progress-path=data/generated/domain-source-shimmer-progress.latest.json")),
@@ -467,7 +467,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 start.getProgressPath(),
                 start.getReportPath(),
                 start.getLockPath(),
-                start.getOutputPath()
+                start.getOutputPath(),
+                start.getLogPath()
             )
         );
         attachQueueWatcher(repoRoot, item, start);
@@ -589,10 +590,31 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private String queueMessage(WikiMonitorQueueItem item, Integer lanePosition) {
+        String blocker = queueBlockerDescription(item);
+        if (blocker != null) {
+            return "已加入队列第 " + (lanePosition == null ? "-" : lanePosition) + " 位，被 " + blocker + " 占用，等待其释放锁。";
+        }
         if ("blocked_cooldown".equals(item.getStatus())) {
             return "冷却中，已加入队列第 " + (lanePosition == null ? "-" : lanePosition) + " 位";
         }
         return "已加入队列第 " + (lanePosition == null ? "-" : lanePosition) + " 位";
+    }
+
+    private String queueBlockerDescription(WikiMonitorQueueItem item) {
+        if (item == null) {
+            return null;
+        }
+        List<String> parts = new ArrayList<>();
+        if (trimToNull(item.getBlockedByDomain()) != null) {
+            parts.add("域 " + item.getBlockedByDomain());
+        }
+        if (trimToNull(item.getBlockedByActionId()) != null) {
+            parts.add("动作 " + item.getBlockedByActionId());
+        }
+        if (trimToNull(item.getBlockedByDispatchId()) != null) {
+            parts.add("派发 " + item.getBlockedByDispatchId());
+        }
+        return parts.isEmpty() ? null : String.join(" / ", parts);
     }
 
     private Optional<Instant> cooldownUntilFor(Path repoRoot, String lane, String actionId) {
@@ -694,7 +716,6 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             case "resume" -> "dispatch resumed";
             default -> "dispatch cancelled";
         };
-        boolean watcherTracked = activeDispatchProcesses.containsKey(dispatchId);
         if ("cancel".equals(controlAction)) {
             cancellingDispatches.add(dispatchId);
         }
@@ -727,10 +748,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             activeDispatchProcesses.remove(dispatchId);
             cleanupDispatchArtifacts(repoRoot, paths);
             markRunningQueueItemCancelled(dispatchId, message);
-            drainWikiMonitorDispatchQueue("active-cancel-standard");
-            if (!watcherTracked) {
-                cancellingDispatches.remove(dispatchId);
-            }
+            drainWikiMonitorDispatchQueue("active-cancel-standard", true);
+            cancellingDispatches.remove(dispatchId);
         }
 
         return acceptedDispatch(rule, dispatchId, paths, status, message);
@@ -782,7 +801,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (cancelResult.cancelled()) {
             result.setMessage("已取消排队任务。");
             invalidateCachedOverview();
-            drainWikiMonitorDispatchQueue("queued-cancel");
+            drainWikiMonitorDispatchQueue("queued-cancel", true);
             return result;
         }
         result.setMessage("队列任务当前状态为 " + cancelResult.status() + "，不能按排队任务取消；请刷新阶段进度后重试。");
@@ -833,7 +852,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         activeDomainSmokeProcesses.remove(dispatchId);
         releaseDispatchLock(repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize(), dispatchId);
         markRunningQueueItemCancelled(dispatchId, "已终止 10 域样本爬取；样本产物可继续查看或手动清理。");
-        drainWikiMonitorDispatchQueue("active-cancel-smoke");
+        drainWikiMonitorDispatchQueue("active-cancel-smoke", true);
         cancellingDispatches.remove(dispatchId);
         return smokeDispatchResult(dispatchId, true, "cancelled", "已终止 10 域样本爬取；样本产物可继续查看或手动清理。");
     }
@@ -846,7 +865,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private void drainWikiMonitorDispatchQueue(String reason) {
-        queueRepository.withDrainLock(reason, "all", () -> {
+        drainWikiMonitorDispatchQueue(reason, false);
+    }
+
+    private void drainWikiMonitorDispatchQueue(String reason, boolean waitIfBusy) {
+        queueRepository.withDrainLock(reason, "all", waitIfBusy, () -> {
             Path repoRoot = resolveRepoRoot();
             reconcileQueueRuntimeState(repoRoot);
             drainWikiMonitorDispatchQueueLane(repoRoot, "standard");
@@ -861,6 +884,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 continue;
             }
             if (!"running".equals(item.getStatus())) {
+                continue;
+            }
+            if (cancellingDispatches.contains(item.getDispatchId())) {
                 continue;
             }
             if (hasTrackedActiveQueueProcess(item)) {
@@ -1072,7 +1098,6 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private List<CrawlerMonitorOverviewDTO.WikiMonitorQueueItemDTO> buildWikiMonitorDispatchQueue() {
         List<WikiMonitorQueueItem> items = queueRepository.listItems();
         return items.stream()
-            .filter(item -> !item.isTerminal())
             .map(item -> {
                 CrawlerMonitorOverviewDTO.WikiMonitorQueueItemDTO dto = new CrawlerMonitorOverviewDTO.WikiMonitorQueueItemDTO();
                 dto.setQueueId(item.getQueueId());
@@ -1097,6 +1122,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 dto.setReportPath(item.getReportPath());
                 dto.setLockPath(item.getLockPath());
                 dto.setOutputPath(item.getOutputPath());
+                dto.setLogPath(firstNonBlank(item.getLogPath(), queueItemLogPath(item)));
                 dto.setMessage(item.getMessage());
                 queueRepository.positionFor(item.getQueueId()).ifPresent(position -> {
                     dto.setPosition(position.position());
@@ -1105,6 +1131,16 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 return dto;
             })
             .toList();
+    }
+
+    private String queueItemLogPath(WikiMonitorQueueItem item) {
+        if (item == null || trimToNull(item.getDispatchId()) == null) {
+            return null;
+        }
+        if ("domain_smoke".equals(item.getLane())) {
+            return "reports/crawler-monitor/" + item.getDispatchId() + ".log";
+        }
+        return "reports/crawler-monitor/wiki-monitor-dispatch-" + item.getDispatchId() + ".log";
     }
 
     private CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO buildWikiMonitorDomain(
@@ -2029,7 +2065,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private LegacyProcessRequest buildLegacyProcessRequest(Path repoRoot, WikiMonitorRule rule) {
         List<String> commandNeedles = rule.command().stream()
-            .filter(token -> token != null && !token.isBlank() && !"<PYTHON>".equals(token))
+            .filter(token -> token != null && !token.isBlank())
             .filter(token -> token.contains("/") || token.contains("=") || token.endsWith(".mjs") || token.endsWith(".py"))
             .toList();
         return new LegacyProcessRequest(rule.actionId(), repoRoot, commandNeedles, legacyMinStartEpochMillis(repoRoot, rule));
@@ -2093,8 +2129,6 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 command.add(paths.reportPath());
             } else if (token != null && token.contains("<reportPath>")) {
                 command.add(token.replace("<reportPath>", paths.reportPath()));
-            } else if ("<PYTHON>".equals(token)) {
-                command.add(resolvePythonExecutable());
             } else {
                 command.add(token);
             }
@@ -2148,22 +2182,6 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return result;
     }
 
-    private String resolvePythonExecutable() {
-        String configured = trimToNull(System.getenv("PYTHON"));
-        if (configured == null) {
-            return "python3";
-        }
-        boolean looksLikePath = configured.contains("/") || configured.contains("\\");
-        if (looksLikePath) {
-            Path candidate = Path.of(configured);
-            if (!Files.isRegularFile(candidate) || !Files.isExecutable(candidate)) {
-                log.warn("Configured PYTHON path is not an executable file; falling back to python3.");
-                return "python3";
-            }
-        }
-        return configured;
-    }
-
     private String trimToNull(String value) {
         if (value == null) {
             return null;
@@ -2176,8 +2194,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         Duration timeout = dispatchTimeout;
         Thread thread = new Thread(() -> {
             boolean timedOut = false;
+            boolean controlledCancel = false;
             int exitCode = -1;
-            boolean shouldDrain = true;
             try {
                 if (process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
                     exitCode = process.exitValue();
@@ -2189,13 +2207,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 }
                 ReadResult currentDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
                 if (cancellingDispatches.contains(dispatchId)) {
-                    shouldDrain = false;
+                    controlledCancel = true;
                     return;
                 }
                 if (currentDispatch.readable()
                     && dispatchId.equals(asString(currentDispatch.payload().get("dispatchId")))
-                    && "cancelled".equals(asString(currentDispatch.payload().get("status")))) {
-                    shouldDrain = false;
+                    && isWikiMonitorDispatchTerminalStatus(asString(currentDispatch.payload().get("status")))) {
                     return;
                 }
                 String status;
@@ -2220,14 +2237,21 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             } finally {
                 releaseDispatchLock(repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize(), dispatchId);
                 activeDispatchProcesses.remove(dispatchId);
-                cancellingDispatches.remove(dispatchId);
-                if (shouldDrain) {
+                if (!controlledCancel) {
+                    cancellingDispatches.remove(dispatchId);
                     drainWikiMonitorDispatchQueue("standard-terminal");
                 }
             }
         }, "wiki-monitor-dispatch-" + dispatchId);
         thread.setDaemon(true);
         thread.start();
+    }
+
+    private boolean isWikiMonitorDispatchTerminalStatus(String status) {
+        return "completed".equals(status)
+            || "failed".equals(status)
+            || "timed_out".equals(status)
+            || "cancelled".equals(status);
     }
 
     private void preserveDispatchMetadata(Map<String, Object> currentPayload, LinkedHashMap<String, Object> target) {
@@ -2243,7 +2267,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         Thread thread = new Thread(() -> {
             boolean timedOut = false;
             Integer exitCode = null;
-            boolean shouldDrain = true;
+            boolean controlledCancel = false;
             try {
                 if (process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
                     exitCode = process.exitValue();
@@ -2257,10 +2281,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 Thread.currentThread().interrupt();
             } finally {
                 if (cancellingDispatches.contains(dispatchId)) {
-                    shouldDrain = false;
+                    controlledCancel = true;
                     releaseDispatchLock(lockPath, dispatchId);
                     activeDomainSmokeProcesses.remove(dispatchId);
-                    cancellingDispatches.remove(dispatchId);
                     return;
                 }
                 String reportPath = "reports/crawler-monitor/" + dispatchId + ".json";
@@ -2280,7 +2303,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 }
                 releaseDispatchLock(lockPath, dispatchId);
                 activeDomainSmokeProcesses.remove(dispatchId);
-                if (shouldDrain) {
+                if (!controlledCancel) {
                     drainWikiMonitorDispatchQueue("smoke-terminal");
                 }
             }
@@ -3438,19 +3461,19 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         Map<String, Object> payload = dispatchState.payload();
         String actionId = asString(payload.get("actionId"));
         String status = asString(payload.get("status"));
-        if (actionId == null || !"paused".equals(status)) {
+        if (actionId == null || !isWikiMonitorDispatchTerminalStatus(status) && !"paused".equals(status)) {
             return;
         }
         for (CrawlerMonitorOverviewDTO.RegisteredTaskDTO task : tasks) {
             if (!actionId.equals(task.getId())) {
                 continue;
             }
-            task.setStatus("paused");
-            task.setProgressKind(progressKindForStatus("paused"));
+            task.setStatus(status);
+            task.setProgressKind(progressKindForStatus(status));
             task.setProgressStale(false);
             task.setProgressStaleReason(null);
-            task.setQueueState(firstNonBlank(asString(payload.get("message")), "dispatch paused"));
-            task.setUpdatedAt(firstNonBlank(asString(payload.get("controlledAt")), task.getUpdatedAt()));
+            task.setQueueState(firstNonBlank(asString(payload.get("message")), "dispatch " + status));
+            task.setUpdatedAt(firstNonBlank(firstNonBlank(asString(payload.get("controlledAt")), asString(payload.get("completedAt"))), task.getUpdatedAt()));
             return;
         }
     }

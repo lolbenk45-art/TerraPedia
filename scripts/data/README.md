@@ -126,7 +126,7 @@ node scripts/data/fetch/fetch-wiki-buffs.mjs --langs=en,zh
 node scripts/data/fetch/fetch-wiki-biomes.mjs
 node scripts/data/fetch/fetch-wiki-item-pages.mjs --page-limit=100 --with-recipes=false
 node scripts/data/fetch/start-detached-item-page-crawl.mjs --resume-from-progress=true
-python scripts/data/fetch/fetch-wiki-town-npc-maintenance.py
+node scripts/data/fetch/fetch-wiki-town-npc-maintenance.mjs
 node scripts/data/fetch/build-item-relations-bundle.mjs
 node scripts/data/fetch/build-item-relations-bundle.mjs --refresh-recipe-reference=true
 ```

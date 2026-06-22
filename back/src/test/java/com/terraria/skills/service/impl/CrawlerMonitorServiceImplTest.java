@@ -169,6 +169,55 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldExposeRecentTerminalDispatchQueueItemsInOverview() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-22T00:16:46Z",
+            "items", List.of(
+                Map.ofEntries(
+                    Map.entry("queueId", "queue-cancelled"),
+                    Map.entry("dispatchId", "dispatch-cancelled"),
+                    Map.entry("lane", "standard"),
+                    Map.entry("domain", "buffs"),
+                    Map.entry("actionId", "buff-page-immunity-refresh"),
+                    Map.entry("status", "cancelled"),
+                    Map.entry("requestedAt", "2026-06-22T00:16:23Z"),
+                    Map.entry("startedAt", "2026-06-22T00:16:23Z"),
+                    Map.entry("completedAt", "2026-06-22T00:16:46Z"),
+                    Map.entry("message", "dispatch cancelled")
+                ),
+                Map.ofEntries(
+                    Map.entry("queueId", "queue-failed"),
+                    Map.entry("dispatchId", "dispatch-failed"),
+                    Map.entry("lane", "standard"),
+                    Map.entry("domain", "town_npc_maintenance"),
+                    Map.entry("actionId", "domain-source-town-npc-maintenance"),
+                    Map.entry("status", "failed"),
+                    Map.entry("requestedAt", "2026-06-22T00:16:36Z"),
+                    Map.entry("startedAt", "2026-06-22T00:16:46Z"),
+                    Map.entry("completedAt", "2026-06-22T00:16:46Z"),
+                    Map.entry("reportPath", "reports/backend-refresh/history/backend-data-refresh-wiki-monitor.json"),
+                    Map.entry("logPath", "reports/crawler-monitor/wiki-monitor-dispatch-wiki-monitor.log"),
+                    Map.entry("message", "failed with exit code 2")
+                )
+            )
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-22T00:17:00Z"), ZoneOffset.UTC)
+        );
+
+        List<CrawlerMonitorOverviewDTO.WikiMonitorQueueItemDTO> queue = service.getOverview().getWikiMonitor().getDispatchQueue();
+
+        assertEquals(2, queue.size());
+        assertEquals("cancelled", queue.get(0).getStatus());
+        assertEquals("failed", queue.get(1).getStatus());
+        assertEquals("2026-06-22T00:16:46Z", queue.get(1).getCompletedAt());
+        assertEquals("reports/crawler-monitor/wiki-monitor-dispatch-wiki-monitor.log", queue.get(1).getLogPath());
+        assertEquals("failed with exit code 2", queue.get(1).getMessage());
+    }
+
+    @Test
     void shouldAggregateSchedulerHeartbeatLatestRunAndHistory() throws Exception {
         Path outputPath = historyDir.resolve("backend-data-refresh-2026-04-27T00-00-00-000Z.json");
         Path summaryPath = historyDir.resolve("backend-data-refresh-2026-04-27T00-00-00-000Z.summary.json");
@@ -2491,6 +2540,8 @@ class CrawlerMonitorServiceImplTest {
         assertEquals(1, result.getQueuePosition());
         assertNotNull(result.getQueueId());
         assertTrue(result.getQueueMessage().contains("第 1 位"));
+        assertTrue(result.getQueueMessage().contains("items"));
+        assertTrue(result.getQueueMessage().contains("wiki-core-refresh"));
         assertEquals("reports/crawler-monitor/wiki-monitor-dispatch.lock.json", result.getLockPath());
         assertEquals("existing", result.getBlockedByDispatchId());
         assertEquals("items", result.getBlockedByDomain());
@@ -2510,6 +2561,41 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("items", queueItems.get(0).get("blockedByDomain"));
         assertEquals("wiki-core-refresh", queueItems.get(0).get("blockedByActionId"));
         assertEquals("2026-06-19T11:10:58.716Z", queueItems.get(0).get("blockedSince"));
+    }
+
+    @Test
+    void shouldExposeCancelledControlStateOnRegisteredTaskAfterActiveCancel() throws Exception {
+        writeJson(repoRoot.resolve("data/generated/domain-source-bosses-progress.latest.json"), Map.of(
+            "actionId", "domain-source-bosses",
+            "status", "running",
+            "phase", "fetch",
+            "message", "fetching bosses",
+            "current", 2,
+            "total", 10,
+            "lastHeartbeatAt", "2026-06-14T01:04:30Z",
+            "generatedAt", "2026-06-14T01:04:30Z"
+        ));
+        ControllableBlockingProcess process = new ControllableBlockingProcess();
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            new RecordingProcessLauncher(process)
+        );
+        service.dispatchWikiMonitorTask(dispatchRequest("bosses", "domain-source-bosses"));
+
+        CrawlerMonitorDispatchRequestDTO cancel = dispatchRequest("bosses", "domain-source-bosses");
+        cancel.setControlAction("cancel");
+        service.controlWikiMonitorDispatch(cancel);
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO bosses = taskById(
+            service.getOverview().getRegisteredTasks(),
+            "domain-source-bosses"
+        );
+        assertEquals("cancelled", bosses.getStatus());
+        assertEquals("cancelled", bosses.getProgressKind());
+        assertEquals("dispatch cancelled", bosses.getQueueState());
+        assertEquals("2026-06-14T01:05:00Z", bosses.getUpdatedAt());
     }
 
     @Test
