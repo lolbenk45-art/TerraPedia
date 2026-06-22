@@ -2979,6 +2979,122 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldCancelLegacyActiveQueueItemByQueueIdAndDrainNextItem() throws Exception {
+        ControllableBlockingProcess firstProcess = new ControllableBlockingProcess();
+        ControllableBlockingProcess secondProcess = new ControllableBlockingProcess();
+        Files.deleteIfExists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of());
+        String runningQueueId = "wiki-monitor-queue-running";
+        String queuedQueueId = "wiki-monitor-queue-next";
+        String runningDispatchId = "wiki-monitor-running-dispatch";
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:05:00Z",
+            "items", List.of(
+                Map.ofEntries(
+                    Map.entry("queueId", runningQueueId),
+                    Map.entry("dispatchId", runningDispatchId),
+                    Map.entry("lane", "standard"),
+                    Map.entry("domain", "town_npc_maintenance"),
+                    Map.entry("coveredDomains", List.of("town_npc_maintenance")),
+                    Map.entry("actionId", "domain-source-town-npc-maintenance"),
+                    Map.entry("status", "running"),
+                    Map.entry("requestedAt", "2026-06-14T01:00:00Z"),
+                    Map.entry("startedAt", "2026-06-14T01:00:10Z"),
+                    Map.entry("pid", 2_000_000_001L),
+                    Map.entry("processStartedAt", "2026-06-14T01:00:10Z"),
+                    Map.entry("requestedBy", "admin"),
+                    Map.entry("progressPath", "data/generated/domain-source-town-npc-maintenance-progress.latest.json"),
+                    Map.entry("reportPath", "reports/backend-refresh/history/backend-data-refresh-wiki-monitor-running-dispatch.json"),
+                    Map.entry("lockPath", "reports/crawler-monitor/wiki-monitor-dispatch.lock.json"),
+                    Map.entry("logPath", "reports/crawler-monitor/wiki-monitor-dispatch-wiki-monitor-running-dispatch.log"),
+                    Map.entry("message", "已加入队列")
+                ),
+                Map.ofEntries(
+                    Map.entry("queueId", queuedQueueId),
+                    Map.entry("lane", "standard"),
+                    Map.entry("domain", "armor_sets"),
+                    Map.entry("coveredDomains", List.of("armor_sets")),
+                    Map.entry("actionId", "domain-source-armor-sets"),
+                    Map.entry("status", "queued"),
+                    Map.entry("requestedAt", "2026-06-14T01:01:00Z"),
+                    Map.entry("requestedBy", "admin"),
+                    Map.entry("blockedByDispatchId", runningDispatchId),
+                    Map.entry("blockedByDomain", "town_npc_maintenance"),
+                    Map.entry("blockedByActionId", "domain-source-town-npc-maintenance"),
+                    Map.entry("blockedSince", "2026-06-14T01:00:10Z"),
+                    Map.entry("message", "已加入队列")
+                )
+            )
+        ));
+
+        RecordingProcessLauncher legacyLauncher = new RecordingProcessLauncher(secondProcess);
+        legacyLauncher.legacyActionId = "domain-source-town-npc-maintenance";
+        legacyLauncher.legacyProcess = firstProcess;
+        CrawlerMonitorServiceImpl restartedService = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:06:00Z"), ZoneOffset.UTC),
+            legacyLauncher
+        );
+        CrawlerMonitorDispatchRequestDTO cancel = dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance");
+        cancel.setControlAction("cancel");
+        cancel.setQueueId(runningQueueId);
+        CrawlerMonitorDispatchResultDTO cancelled = restartedService.controlWikiMonitorDispatch(cancel);
+
+        assertTrue(cancelled.isAccepted());
+        assertEquals("cancelled", cancelled.getStatus());
+        assertEquals(runningQueueId, cancelled.getQueueId());
+        assertEquals(1, firstProcess.terminateCount);
+        assertEquals(1, legacyLauncher.launchCount);
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals(runningQueueId, queueItems.get(0).get("queueId"));
+        assertEquals("cancelled", queueItems.get(0).get("status"));
+        assertEquals(queuedQueueId, queueItems.get(1).get("queueId"));
+        assertEquals("running", queueItems.get(1).get("status"));
+    }
+
+    @Test
+    void shouldClearOrphanedRunningQueueItemByQueueIdAndDrainNextItem() throws Exception {
+        ControllableBlockingProcess firstProcess = new ControllableBlockingProcess();
+        ControllableBlockingProcess secondProcess = new ControllableBlockingProcess();
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(List.of(firstProcess, secondProcess));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchResultDTO running = service.dispatchWikiMonitorTask(dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance"));
+        CrawlerMonitorDispatchResultDTO queued = service.dispatchWikiMonitorTask(dispatchRequest("armor_sets", "domain-source-armor-sets"));
+        Files.deleteIfExists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"));
+        Files.writeString(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), "{}");
+
+        CrawlerMonitorServiceImpl restartedService = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:06:00Z"), ZoneOffset.UTC),
+            new RecordingProcessLauncher(secondProcess)
+        );
+        CrawlerMonitorDispatchRequestDTO cancel = dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance");
+        cancel.setControlAction("cancel");
+        cancel.setQueueId(running.getQueueId());
+        CrawlerMonitorDispatchResultDTO cancelled = restartedService.controlWikiMonitorDispatch(cancel);
+
+        assertTrue(running.isAccepted());
+        assertTrue(queued.isAccepted());
+        assertTrue(cancelled.isAccepted());
+        assertEquals("cancelled", cancelled.getStatus());
+        assertEquals(running.getQueueId(), cancelled.getQueueId());
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals(running.getQueueId(), queueItems.get(0).get("queueId"));
+        assertEquals("cancelled", queueItems.get(0).get("status"));
+        assertEquals(queued.getQueueId(), queueItems.get(1).get("queueId"));
+        assertEquals("running", queueItems.get(1).get("status"));
+    }
+
+    @Test
     void shouldDrainNextStandardQueueItemAfterWatcherCompletion() throws Exception {
         BlockingProcess firstProcess = new BlockingProcess();
         ControllableBlockingProcess secondProcess = new ControllableBlockingProcess();
@@ -3936,6 +4052,7 @@ class CrawlerMonitorServiceImplTest {
         private CrawlerMonitorServiceImpl.LaunchRequest lastRequest;
         private int launchCount;
         private String legacyActionId;
+        private Process legacyProcess;
 
         RecordingProcessLauncher(Process process) {
             this.process = process;
@@ -3959,7 +4076,7 @@ class CrawlerMonitorServiceImplTest {
 
         @Override
         public Process findLegacyProcess(CrawlerMonitorServiceImpl.LegacyProcessRequest request) {
-            return request.actionId().equals(legacyActionId) ? process : null;
+            return request.actionId().equals(legacyActionId) ? (legacyProcess == null ? process : legacyProcess) : null;
         }
 
         @Override

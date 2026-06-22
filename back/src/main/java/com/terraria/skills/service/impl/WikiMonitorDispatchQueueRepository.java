@@ -14,6 +14,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -206,6 +207,10 @@ class WikiMonitorDispatchQueueRepository {
             clearClaim(item);
             item.setStatus("queued");
             item.setMessage(message);
+            item.setBlockedByDispatchId(null);
+            item.setBlockedByDomain(null);
+            item.setBlockedByActionId(null);
+            item.setBlockedSince(null);
             return new TransitionResult(true, "queued", item);
         });
     }
@@ -667,6 +672,9 @@ class WikiMonitorDispatchQueueRepository {
             return new MirrorPayload();
         }
         try {
+            if (Files.size(mirrorPath) == 0L) {
+                return new MirrorPayload();
+            }
             MirrorPayload payload = objectMapper.readValue(mirrorPath.toFile(), MIRROR_TYPE);
             return payload == null ? new MirrorPayload() : payload.normalize();
         } catch (IOException e) {
@@ -688,7 +696,13 @@ class WikiMonitorDispatchQueueRepository {
         try {
             Files.createDirectories(mirrorPath.getParent());
             Object payload = mirrorPayload == null ? snapshot : mirrorPayload.withCounts();
-            objectMapper.writerWithDefaultPrettyPrinter().writeValue(mirrorPath.toFile(), payload);
+            Path tempPath = mirrorPath.resolveSibling(mirrorPath.getFileName() + "." + UUID.randomUUID() + ".tmp");
+            objectMapper.writerWithDefaultPrettyPrinter().writeValue(tempPath.toFile(), payload);
+            try {
+                Files.move(tempPath, mirrorPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (IOException atomicMoveFailure) {
+                Files.move(tempPath, mirrorPath, StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (IOException e) {
             throw new IllegalStateException("Failed to write wiki monitor queue mirror " + mirrorPath, e);
         }
