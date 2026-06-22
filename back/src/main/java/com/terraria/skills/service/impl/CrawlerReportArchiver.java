@@ -327,6 +327,11 @@ public class CrawlerReportArchiver {
 
     private boolean isReportLikeFile(Path path) {
         String fileName = path.getFileName().toString().toLowerCase(Locale.ROOT);
+        if (fileName.endsWith(".log")) {
+            // Only allow .log files inside reports/crawler-monitor/
+            String displayPath = path.toAbsolutePath().normalize().toString().replace('\\', '/');
+            return displayPath.contains("/reports/crawler-monitor/");
+        }
         return fileName.endsWith(".json")
             || fileName.endsWith(".md")
             || fileName.endsWith(".xml")

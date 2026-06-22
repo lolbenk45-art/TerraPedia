@@ -37,6 +37,7 @@ class WikiMonitorQueueItem {
     private String reportPath;
     private String lockPath;
     private String outputPath;
+    private String logPath;
     private String message;
 
     boolean isTerminal() {
@@ -256,6 +257,14 @@ class WikiMonitorQueueItem {
 
     public void setOutputPath(String outputPath) {
         this.outputPath = outputPath;
+    }
+
+    public String getLogPath() {
+        return logPath;
+    }
+
+    public void setLogPath(String logPath) {
+        this.logPath = logPath;
     }
 
     public String getMessage() {

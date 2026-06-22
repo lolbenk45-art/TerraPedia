@@ -147,6 +147,7 @@ public class CrawlerMonitorOverviewDTO {
         private String reportPath;
         private String lockPath;
         private String outputPath;
+        private String logPath;
         private String message;
         private Integer position;
         private Integer lanePosition;

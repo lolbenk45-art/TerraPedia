@@ -14,6 +14,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -40,6 +41,7 @@ class WikiMonitorDispatchQueueRepository {
     private static final Duration CLAIM_LEASE = Duration.ofMinutes(5);
     private static final Duration DEDUPE_TTL = Duration.ofHours(24);
     private static final Duration STANDARD_COOLDOWN = Duration.ofMinutes(30);
+    private static final Duration DRAIN_LOCK_WAIT = Duration.ofSeconds(5);
     private static final int TERMINAL_RETAIN_COUNT = 100;
     private static final Duration TERMINAL_RETAIN_AGE = Duration.ofDays(7);
     private static final Set<String> TERMINAL_STATUSES = Set.of("completed", "failed", "timed_out", "cancelled");
@@ -205,6 +207,10 @@ class WikiMonitorDispatchQueueRepository {
             clearClaim(item);
             item.setStatus("queued");
             item.setMessage(message);
+            item.setBlockedByDispatchId(null);
+            item.setBlockedByDomain(null);
+            item.setBlockedByActionId(null);
+            item.setBlockedSince(null);
             return new TransitionResult(true, "queued", item);
         });
     }
@@ -249,6 +255,7 @@ class WikiMonitorDispatchQueueRepository {
                 item.setReportPath(paths.reportPath());
                 item.setLockPath(paths.lockPath());
                 item.setOutputPath(paths.outputPath());
+                item.setLogPath(paths.logPath());
             }
             item.setBlockedByDispatchId(null);
             item.setBlockedByDomain(null);
@@ -266,6 +273,9 @@ class WikiMonitorDispatchQueueRepository {
     TransitionResult markTerminal(String queueId, String status, Instant completedAt, String message) {
         TransitionResult result = mutateItem(queueId, item -> {
             if (!TERMINAL_STATUSES.contains(status)) {
+                return new TransitionResult(false, item.getStatus(), item);
+            }
+            if (item.isTerminal()) {
                 return new TransitionResult(false, item.getStatus(), item);
             }
             String dispatchId = item.getDispatchId();
@@ -462,10 +472,13 @@ class WikiMonitorDispatchQueueRepository {
     }
 
     boolean withDrainLock(String reason, String lane, Runnable body) {
+        return withDrainLock(reason, lane, false, body);
+    }
+
+    boolean withDrainLock(String reason, String lane, boolean waitIfBusy, Runnable body) {
         if (redisTemplate != null) {
             String owner = drainOwner(reason, lane);
-            Boolean acquired = redisTemplate.opsForValue().setIfAbsent(DRAIN_LOCK_KEY, owner, 30, TimeUnit.SECONDS);
-            if (!Boolean.TRUE.equals(acquired)) {
+            if (!acquireRedisDrainLock(owner, waitIfBusy)) {
                 return false;
             }
             try {
@@ -475,7 +488,7 @@ class WikiMonitorDispatchQueueRepository {
                 redisTemplate.execute(RELEASE_DRAIN_LOCK_SCRIPT, List.of(DRAIN_LOCK_KEY), owner);
             }
         }
-        if (!drainLock.tryLock()) {
+        if (!acquireLocalDrainLock(waitIfBusy)) {
             return false;
         }
         try {
@@ -484,6 +497,34 @@ class WikiMonitorDispatchQueueRepository {
         } finally {
             drainLock.unlock();
         }
+    }
+
+    private boolean acquireRedisDrainLock(String owner, boolean waitIfBusy) {
+        long deadline = System.nanoTime() + DRAIN_LOCK_WAIT.toNanos();
+        do {
+            Boolean acquired = redisTemplate.opsForValue().setIfAbsent(DRAIN_LOCK_KEY, owner, 30, TimeUnit.SECONDS);
+            if (Boolean.TRUE.equals(acquired)) {
+                return true;
+            }
+            if (!waitIfBusy) {
+                return false;
+            }
+            try {
+                TimeUnit.MILLISECONDS.sleep(50);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        } while (System.nanoTime() < deadline);
+        return false;
+    }
+
+    private boolean acquireLocalDrainLock(boolean waitIfBusy) {
+        if (!waitIfBusy) {
+            return drainLock.tryLock();
+        }
+        drainLock.lock();
+        return true;
     }
 
     String generateQueueId() {
@@ -631,6 +672,9 @@ class WikiMonitorDispatchQueueRepository {
             return new MirrorPayload();
         }
         try {
+            if (Files.size(mirrorPath) == 0L) {
+                return new MirrorPayload();
+            }
             MirrorPayload payload = objectMapper.readValue(mirrorPath.toFile(), MIRROR_TYPE);
             return payload == null ? new MirrorPayload() : payload.normalize();
         } catch (IOException e) {
@@ -652,7 +696,13 @@ class WikiMonitorDispatchQueueRepository {
         try {
             Files.createDirectories(mirrorPath.getParent());
             Object payload = mirrorPayload == null ? snapshot : mirrorPayload.withCounts();
-            objectMapper.writerWithDefaultPrettyPrinter().writeValue(mirrorPath.toFile(), payload);
+            Path tempPath = mirrorPath.resolveSibling(mirrorPath.getFileName() + "." + UUID.randomUUID() + ".tmp");
+            objectMapper.writerWithDefaultPrettyPrinter().writeValue(tempPath.toFile(), payload);
+            try {
+                Files.move(tempPath, mirrorPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (IOException atomicMoveFailure) {
+                Files.move(tempPath, mirrorPath, StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (IOException e) {
             throw new IllegalStateException("Failed to write wiki monitor queue mirror " + mirrorPath, e);
         }
@@ -794,7 +844,7 @@ class WikiMonitorDispatchQueueRepository {
 
     record QueuePosition(int position, int lanePosition) {}
 
-    record QueuePaths(String progressPath, String reportPath, String lockPath, String outputPath) {}
+    record QueuePaths(String progressPath, String reportPath, String lockPath, String outputPath, String logPath) {}
 
     record CooldownEntry(String lane, String actionId, String completedDispatchId, Instant completedAt, Instant cooldownUntil) {}
 

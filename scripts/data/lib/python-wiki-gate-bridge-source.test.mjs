@@ -3,8 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const pythonFetchers = [
-  'scripts/data/fetch/legacy/fetch_wiki_shimmer_via_bs4.legacy.py',
-  'scripts/data/fetch/fetch-wiki-town-npc-maintenance.py'
+  'scripts/data/fetch/legacy/fetch_wiki_shimmer_via_bs4.legacy.py'
 ];
 
 test('python wiki fetchers use the wiki request gate bridge instead of direct HTTP clients', () => {

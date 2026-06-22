@@ -78,7 +78,7 @@ export const WIKI_MONITOR_DOMAIN_RULES = [
     'Town NPC maintenance source page',
     'domain-source-town-npc-maintenance',
     'data/generated/domain-source-town-npc-maintenance-progress.latest.json',
-    ['<PYTHON>', 'scripts/data/fetch/fetch-wiki-town-npc-maintenance.py', '--progress-path=data/generated/domain-source-town-npc-maintenance-progress.latest.json']
+    ['node', 'scripts/data/fetch/fetch-wiki-town-npc-maintenance.mjs', '--progress-path=data/generated/domain-source-town-npc-maintenance-progress.latest.json']
   ),
   rule(
     'shimmer',

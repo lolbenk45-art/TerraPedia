@@ -29,9 +29,8 @@ test('buildDefaultBackfillQueue prioritizes small fetch lanes before item pages'
     '--input=/repo/data/standardized/armor_sets.standardized.json'
   ]);
   assert.equal(queue[0].env.TERRAPEDIA_CRAWLER_ACTION_ID, 'armor-set-images');
-  assert.equal(queue[1].command, 'uv');
-  assert.deepEqual(queue[1].args.slice(0, 4), ['run', '--with', 'beautifulsoup4', 'python3']);
-  assert.equal(queue[1].args[4], 'scripts/data/fetch/fetch-wiki-town-npc-maintenance.py');
+  assert.equal(queue[1].command, process.execPath);
+  assert.equal(queue[1].args[0], 'scripts/data/fetch/fetch-wiki-town-npc-maintenance.mjs');
   assert.equal(queue[2].args.includes('--with-recipes=false'), true);
   assert.equal(queue[2].args.includes('--start-offset=270'), true);
   assert.equal(queue[2].args.includes('--end-offset=370'), true);

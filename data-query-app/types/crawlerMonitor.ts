@@ -217,6 +217,7 @@ export interface CrawlerMonitorWikiQueueItem {
   reportPath?: string | null
   lockPath?: string | null
   outputPath?: string | null
+  logPath?: string | null
   message?: string | null
   position?: number | null
   lanePosition?: number | null

@@ -91,13 +91,13 @@ test('wiki monitor rules expose executable command arrays and canonical progress
     '--progress-path=data/generated/domain-source-armor-sets-progress.latest.json'
   ]);
   assert.deepEqual(actionByDomain.get('town_npc_maintenance').command, [
-    '<PYTHON>',
-    'scripts/data/fetch/fetch-wiki-town-npc-maintenance.py',
+    'node',
+    'scripts/data/fetch/fetch-wiki-town-npc-maintenance.mjs',
     '--progress-path=data/generated/domain-source-town-npc-maintenance-progress.latest.json'
   ]);
 
   for (const rule of WIKI_MONITOR_DOMAIN_RULES) {
-    assert.ok(['node', '<PYTHON>'].includes(rule.command[0]), `unexpected executable in ${rule.domain}`);
+    assert.equal(rule.command[0], 'node', `unexpected executable in ${rule.domain}`);
     assert.ok(rule.command.every((part) => !/[;&|`$]/.test(part)), `unsafe shell token in ${rule.domain}`);
     if (rule.command.includes('--output=<reportPath>')) {
       assert.match(rule.progressPath, /<run>\.runtime\/.+\.child-status\.json$/);
