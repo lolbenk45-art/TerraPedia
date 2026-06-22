@@ -628,10 +628,15 @@ test('crawler monitor cancel is guarded as destructive cleanup', () => {
   assert.match(page, /openCancelConfirm/)
   assert.match(page, /confirmWikiDomainCancel/)
   assert.match(page, /cancelCleanupPaths/)
+  assert.match(page, /activeQueueItemForDomain/)
   assert.match(page, /matchingPendingDispatch/)
   assert.match(page, /终止并清理文件/)
   assert.match(page, /会停止当前任务，并可能删除已经下载的临时文件/)
   assert.match(page, /确认终止并清理/)
+  assert.match(page, /wikiDomainControlStatus\(domain\)/)
+  assert.match(page, /queueItemStatus\(activeQueueItemForDomain\(domain\)\)/)
+  assert.match(page, /const activeQueueItemId = activeQueueItem\?\.queueId/)
+  assert.match(page, /queueId: activeQueueItemId/)
 
   assert.doesNotMatch(page, /@click="controlWikiMonitorTask\(selectedWikiDomain, 'cancel'\)"/)
   assert.doesNotMatch(page, /@click\.stop="controlWikiMonitorTask\(domain, 'cancel'\)"/)
@@ -1100,6 +1105,9 @@ test('crawler monitor maps wiki domains to redis progress rows by recommended ac
   assert.match(progressMatcher, /childStatusPath/)
   assert.match(progressMatcher, /rowPath\.endsWith\(progressPath\)/)
   assert.match(progressMatcher, /actionId && rowActionId && actionId === rowActionId/)
+  assert.match(progressMatcher, /isDomainSmokeProgressRow\(row\)/)
+  assert.doesNotMatch(progressMatcher, /rowId\]\.some\(\(value\) => value\.includes\(domainKey\)\)/)
+  assert.match(page, /if \(item\.lane && item\.lane !== 'standard'\) return false/)
 })
 
 test('crawler monitor renders Plan B overview observability fields defensively', () => {

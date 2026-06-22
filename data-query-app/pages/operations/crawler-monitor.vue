@@ -1776,19 +1776,27 @@ function canResumeWikiDomain(domain: CrawlerMonitorWikiDomain) {
 }
 
 function canCancelWikiDomain(domain: CrawlerMonitorWikiDomain) {
-  return ['running', 'paused', 'stalled'].includes(wikiDomainControlStatus(domain))
+  return ['starting', 'running', 'paused', 'stalled', 'blocked_cooldown', 'queued'].includes(wikiDomainControlStatus(domain))
 }
 
 function canRetryWikiDomain(domain: CrawlerMonitorWikiDomain) {
   return wikiDomainFlowStatus(domain) === 'failed' && Boolean(domain.recommendedActionId)
 }
 
+function activeQueueControlStatuses() {
+  return ['queued', 'starting', 'running', 'blocked_cooldown']
+}
+
 function wikiDomainControlStatus(domain: CrawlerMonitorWikiDomain) {
+  const activeQueueStatus = queueItemStatus(activeQueueItemForDomain(domain))
+  if (activeQueueControlStatuses().includes(activeQueueStatus)) return activeQueueStatus
   return String(wikiDomainProgressRow(domain)?.status || domain.status || '').toLowerCase()
 }
 
 function wikiDomainFlowStatus(domain: CrawlerMonitorWikiDomain) {
   if (wikiDispatchLoading.value === domain.domain) return 'running'
+  const activeQueueStatus = queueItemStatus(activeQueueItemForDomain(domain))
+  if (activeQueueControlStatuses().includes(activeQueueStatus)) return activeQueueStatus
   const row = wikiDomainProgressRow(domain)
   const status = String(rowStatus(row) || domain.status || '').toLowerCase()
   if (['failed', 'error', 'stalled', 'paused', 'running', 'blocked', 'completed', 'cancelled'].includes(status)) return status
@@ -2052,6 +2060,22 @@ function canCancelQueuedItem(item: CrawlerMonitorWikiQueueItem | null | undefine
   return Boolean(item?.queueId && ['queued', 'blocked_cooldown'].includes(queueItemStatus(item)))
 }
 
+function activeQueueItemForDomain(domain: CrawlerMonitorWikiDomain | null | undefined) {
+  if (!domain) return null
+  const key = String(domain.domain || '').toLowerCase()
+  const actionId = String(domain.recommendedActionId || '').toLowerCase()
+  return activeDispatchQueueRows.value.find((item) => {
+    if (item.lane && item.lane !== 'standard') return false
+    const itemDomain = String(item.domain || '').toLowerCase()
+    const itemAction = String(item.actionId || '').toLowerCase()
+    const coveredDomains = Array.isArray(item.coveredDomains) ? item.coveredDomains.map((value) => String(value).toLowerCase()) : []
+    if (key && itemDomain === key) return true
+    if (key && coveredDomains.includes(key)) return true
+    if (actionId && itemAction === actionId) return true
+    return false
+  }) || null
+}
+
 function queueItemAsProgressRow(item: CrawlerMonitorWikiQueueItem): ProgressRow {
   const status = queueItemStatus(item)
   return {
@@ -2168,6 +2192,7 @@ function wikiDomainProgressRow(domain: CrawlerMonitorWikiDomain): ProgressRow | 
   const domainKey = String(domain.domain || domain.label || '').toLowerCase()
   const domainLabel = String(domain.label || '').toLowerCase()
   return progressRows.value.find((row) => {
+    if (isDomainSmokeProgressRow(row)) return false
     const payload = row.progressPayload || {}
     const rowPath = String(row.progressPath || row.progressSource || row.action?.childStatusPath || row.progressPayload?.childStatusPath || '')
     const rowActionId = String(row.progressPayload?.actionId || row.action?.id || row.id || '')
@@ -2175,9 +2200,8 @@ function wikiDomainProgressRow(domain: CrawlerMonitorWikiDomain): ProgressRow | 
     if (progressPath && rowPath && (rowPath === progressPath || rowPath.endsWith(progressPath))) return true
     const rowDomain = String(payload.domain || payload.sourceKey || '').toLowerCase()
     const rowLabel = String(row.label || payload.label || '').toLowerCase()
-    const rowId = String(row.id || row.label || payload.sourceKey || '').toLowerCase()
-    if (domainKey && [rowDomain, rowLabel, rowId].some((value) => value.includes(domainKey))) return true
-    return Boolean(domainLabel && [rowDomain, rowLabel, rowId].some((value) => value.includes(domainLabel)))
+    if (domainKey && [rowDomain, rowLabel].some((value) => value === domainKey || value.endsWith(`:${domainKey}`))) return true
+    return Boolean(domainLabel && [rowDomain, rowLabel].some((value) => value === domainLabel))
   }) || null
 }
 
@@ -2281,17 +2305,7 @@ function backfillDomainForRow(row: ProgressRow) {
 }
 
 function baseDomainQueueRow(domain: CrawlerMonitorWikiDomain | null | undefined) {
-  const key = String(domain?.domain || '').toLowerCase()
-  const actionId = String(domain?.recommendedActionId || '').toLowerCase()
-  return dispatchQueueRows.value.find((item) => {
-    const itemDomain = String(item.domain || '').toLowerCase()
-    const itemAction = String(item.actionId || '').toLowerCase()
-    const coveredDomains = Array.isArray(item.coveredDomains) ? item.coveredDomains.map((value) => String(value).toLowerCase()) : []
-    if (key && itemDomain === key) return true
-    if (key && coveredDomains.includes(key)) return true
-    if (actionId && itemAction === actionId) return true
-    return false
-  }) || null
+  return activeQueueItemForDomain(domain)
 }
 
 function baseDomainBackfillRow(domain: CrawlerMonitorWikiDomain | null | undefined) {
@@ -2460,10 +2474,16 @@ async function controlWikiMonitorTask(domain: CrawlerMonitorWikiDomain, controlA
   selectWikiDomain(domain)
   wikiControlLoading.value = domain.domain
   try {
+    const activeQueueItem = activeQueueItemForDomain(domain)
+    const activeQueueItemId = activeQueueItem?.queueId
+    const effectiveControlAction = controlAction === 'cancel' && activeQueueItem && canCancelQueuedItem(activeQueueItem)
+      ? 'cancelQueued'
+      : controlAction
     const response: any = await post('/admin/crawler-monitor/dispatch/control', {
       domain: domain.domain,
       actionId: domain.recommendedActionId,
-      controlAction,
+      controlAction: effectiveControlAction,
+      queueId: activeQueueItemId,
     })
     latestDispatchResult.value = (response?.data ?? response) || null
     const fallbackMessage = controlAction === 'pause' ? '已暂停任务' : controlAction === 'resume' ? '已继续任务' : controlAction === 'retry' ? '已提交重试' : '已取消任务'

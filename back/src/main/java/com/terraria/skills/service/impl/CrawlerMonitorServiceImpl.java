@@ -668,7 +668,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (isDomainSmokeControl(request)) {
             return controlWikiMonitorDomainSmoke(repoRoot, request);
         }
-        WikiMonitorRule rule = resolveWikiMonitorControlRule(request);
+        Optional<WikiMonitorQueueItem> controlQueueItem = controlQueueItem(request);
+        WikiMonitorRule rule = controlQueueItem
+            .map(item -> resolveWikiMonitorControlRuleFromQueueItem(request, item))
+            .orElseGet(() -> resolveWikiMonitorControlRule(request));
         if (!"pause".equals(controlAction) && !"resume".equals(controlAction) && !"cancel".equals(controlAction) && !"retry".equals(controlAction)) {
             throw new IllegalArgumentException("控制动作不支持 " + (controlAction == null ? "<空>" : controlAction) + "，请使用 pause、resume、cancel、retry 或 cancelQueued。");
         }
@@ -677,11 +680,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if ("retry".equals(controlAction)) {
             return retryWikiMonitorDispatch(repoRoot, rule, payload);
         }
-        String dispatchId = asString(payload.get("dispatchId"));
+        String dispatchId = controlQueueItem.map(WikiMonitorQueueItem::getDispatchId).orElseGet(() -> asString(payload.get("dispatchId")));
         boolean latestMatches = dispatchId != null
             && rule.domain().equals(asString(payload.get("domain")))
             && rule.actionId().equals(asString(payload.get("actionId")));
         ActiveDispatchProcess active = latestMatches ? activeDispatchProcesses.get(dispatchId) : null;
+        if (active == null && controlQueueItem.isPresent()) {
+            active = activeDispatchProcesses.get(dispatchId);
+        }
         if (active == null) {
             active = findActiveDispatchProcess(rule);
             if (active != null) {
@@ -752,7 +758,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             cancellingDispatches.remove(dispatchId);
         }
 
-        return acceptedDispatch(rule, dispatchId, paths, status, message);
+        CrawlerMonitorDispatchResultDTO result = acceptedDispatch(rule, dispatchId, paths, status, message);
+        controlQueueItem.map(WikiMonitorQueueItem::getQueueId).ifPresent(result::setQueueId);
+        return result;
     }
 
     private CrawlerMonitorDispatchResultDTO cancelQueuedWikiMonitorDispatch(Path repoRoot, CrawlerMonitorDispatchRequestDTO request) {
@@ -1462,6 +1470,25 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             .filter(rule -> findActiveDispatchProcess(rule) != null)
             .findFirst()
             .orElseThrow(() -> new IllegalArgumentException("动作 " + actionId + " 对应多个域，请先选择具体域后再操作。"));
+    }
+
+    private Optional<WikiMonitorQueueItem> controlQueueItem(CrawlerMonitorDispatchRequestDTO request) {
+        String queueId = trimToNull(request == null ? null : request.getQueueId());
+        return queueId == null ? Optional.empty() : queueRepository.findItem(queueId);
+    }
+
+    private WikiMonitorRule resolveWikiMonitorControlRuleFromQueueItem(CrawlerMonitorDispatchRequestDTO request, WikiMonitorQueueItem item) {
+        if (item == null) {
+            return resolveWikiMonitorControlRule(request);
+        }
+        if (!"standard".equals(item.getLane())) {
+            return resolveWikiMonitorControlRule(request);
+        }
+        WikiMonitorRule rule = findWikiMonitorRule(item.getDomain(), item.getActionId());
+        if (rule == null) {
+            throw new IllegalArgumentException("队列任务 " + item.getQueueId() + " 对应的动作不在允许的 Wiki 派发任务中。");
+        }
+        return rule;
     }
 
     private ActiveDispatchProcess findActiveDispatchProcess(WikiMonitorRule rule) {

@@ -2944,6 +2944,41 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldCancelActiveStandardQueueItemByQueueIdWhenSelectedCoveredDomainDiffers() throws Exception {
+        ControllableBlockingProcess firstProcess = new ControllableBlockingProcess();
+        ControllableBlockingProcess secondProcess = new ControllableBlockingProcess();
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(List.of(firstProcess, secondProcess));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchResultDTO running = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-core-refresh"));
+        CrawlerMonitorDispatchResultDTO queued = service.dispatchWikiMonitorTask(dispatchRequest("buffs", "buff-page-immunity-refresh"));
+
+        CrawlerMonitorDispatchRequestDTO cancel = dispatchRequest("npcs", "wiki-core-refresh");
+        cancel.setControlAction("cancel");
+        cancel.setQueueId(running.getQueueId());
+        CrawlerMonitorDispatchResultDTO cancelled = service.controlWikiMonitorDispatch(cancel);
+
+        assertTrue(running.isAccepted());
+        assertTrue(queued.isAccepted());
+        assertTrue(cancelled.isAccepted());
+        assertEquals("cancelled", cancelled.getStatus());
+        assertEquals(running.getQueueId(), cancelled.getQueueId());
+        assertEquals("items", cancelled.getDomain());
+        assertEquals(1, firstProcess.terminateCount);
+        assertEquals(2, launcher.launchCount);
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals(running.getQueueId(), queueItems.get(0).get("queueId"));
+        assertEquals("cancelled", queueItems.get(0).get("status"));
+        assertEquals(queued.getQueueId(), queueItems.get(1).get("queueId"));
+        assertEquals("running", queueItems.get(1).get("status"));
+    }
+
+    @Test
     void shouldDrainNextStandardQueueItemAfterWatcherCompletion() throws Exception {
         BlockingProcess firstProcess = new BlockingProcess();
         ControllableBlockingProcess secondProcess = new ControllableBlockingProcess();
