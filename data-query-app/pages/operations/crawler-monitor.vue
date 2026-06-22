@@ -252,11 +252,11 @@
           </div>
 
           <div class="observability-grid">
-            <article class="observability-block">
-              <div class="observability-block__head">
+            <details class="obs-collapsible observability-block">
+              <summary class="observability-block__head">
                 <strong>运行文件</strong>
                 <span>{{ runtimeStateCards.length }} 项</span>
-              </div>
+              </summary>
               <div class="state-list">
                 <div v-for="card in runtimeStateCards" :key="card.key" class="state-row">
                   <span>{{ card.label }}</span>
@@ -265,7 +265,7 @@
                   <code>{{ card.path }}</code>
                 </div>
               </div>
-            </article>
+            </details>
 
             <article class="observability-block">
               <div class="observability-block__head">
@@ -287,11 +287,11 @@
               <p v-else class="empty-line">暂无派发计划</p>
             </article>
 
-            <article class="auto-dispatch-card">
-              <div class="observability-block__head">
+            <details class="obs-collapsible auto-dispatch-card">
+              <summary class="observability-block__head">
                 <strong>自动派发设置</strong>
                 <span>{{ autoDispatchForm.enabled ? '已开启' : '已关闭' }}</span>
-              </div>
+              </summary>
               <div class="auto-dispatch-controls">
                 <label class="auto-dispatch-toggle">
                   <input v-model="autoDispatchForm.enabled" type="checkbox">
@@ -319,7 +319,7 @@
                   <small>{{ autoDispatchSweepSummary }}</small>
                 </div>
               </div>
-            </article>
+            </details>
 
             <article class="observability-block">
               <div class="observability-block__head">
@@ -336,11 +336,11 @@
               <p v-else class="empty-line">暂无心跳告警</p>
             </article>
 
-            <article class="observability-block">
-              <div class="observability-block__head">
+            <details class="obs-collapsible observability-block">
+              <summary class="observability-block__head">
                 <strong>运行历史</strong>
                 <span>{{ historyRows.length }} 条</span>
-              </div>
+              </summary>
               <div v-if="historyRows.length" class="state-list state-list--compact">
                 <div v-for="run in historyRows" :key="run.path || run.generatedAt || run.summaryPath" class="state-row">
                   <span>{{ statusLabel(runStatus(run)) }}</span>
@@ -349,13 +349,13 @@
                 </div>
               </div>
               <p v-else class="empty-line">暂无历史</p>
-            </article>
+            </details>
 
-            <article class="observability-block">
-              <div class="observability-block__head">
+            <details class="obs-collapsible observability-block">
+              <summary class="observability-block__head">
                 <strong>报告</strong>
                 <span>{{ recentReportRows.length }} 个</span>
-              </div>
+              </summary>
               <div v-if="recentReportRows.length" class="state-list state-list--compact">
                 <div v-for="report in recentReportRows" :key="report.path || report.name" class="state-row">
                   <span>{{ report.category || '报告' }}</span>
@@ -364,13 +364,13 @@
                 </div>
               </div>
               <p v-else class="empty-line">暂无报告</p>
-            </article>
+            </details>
 
-            <article class="observability-block">
-              <div class="observability-block__head">
+            <details class="obs-collapsible observability-block">
+              <summary class="observability-block__head">
                 <strong>图片指标</strong>
                 <span>{{ imageNormalizationRows.length }} 项</span>
-              </div>
+              </summary>
               <div v-if="imageNormalizationRows.length" class="compact-metrics">
                 <span v-for="metric in imageNormalizationRows" :key="metric.label">
                   <small>{{ metric.label }}</small>
@@ -378,7 +378,7 @@
                 </span>
               </div>
               <p v-else class="empty-line">暂无图片指标</p>
-            </article>
+            </details>
           </div>
         </section>
 
@@ -972,13 +972,13 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
 
     <section class="monitor-layout">
       <div class="monitor-main">
-        <section class="section-card monitor-panel">
-          <div class="section-head">
+        <details class="obs-collapsible monitor-detail-collapsible section-card monitor-panel">
+          <summary class="section-head">
             <div>
               <h2 class="section-card__title">任务进度明细</h2>
               <p class="section-card__subtitle">汇总可操作的进度行、心跳、速度和运行文件；已完成与仅报告行不再挤占上方阶段进度。</p>
             </div>
-          </div>
+          </summary>
           <div class="table-scroll">
             <table class="monitor-table">
               <thead>
@@ -1029,7 +1029,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               </tbody>
             </table>
           </div>
-        </section>
+        </details>
       </div>
 
     </section>
@@ -5239,4 +5239,28 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 .health-signal.danger  { background: var(--color-danger-bg,  #fee2e2); color: var(--color-danger,  #991b1b); }
 .health-signal.info    { background: var(--color-info-bg,    #dbeafe); color: var(--color-info,    #1e40af); }
 .health-signal.muted   { background: var(--color-muted-bg,   #f3f4f6); color: var(--color-muted,   #6b7280); }
+
+.obs-collapsible > summary {
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.obs-collapsible > summary::-webkit-details-marker {
+  display: none;
+}
+
+.obs-collapsible > summary::before {
+  content: '▶ ';
+  font-size: 0.7em;
+  opacity: 0.5;
+}
+
+.obs-collapsible[open] > summary::before {
+  content: '▼ ';
+}
+
+.monitor-detail-collapsible > summary {
+  padding: 0;
+}
 </style>

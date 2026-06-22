@@ -399,7 +399,7 @@ test('crawler monitor exposes auto-dispatch settings and last sweep state', () =
   assert.match(typecheck, /lastSweep:/)
   assert.match(typecheck, /autoDispatchReason:/)
 
-  assert.match(page, /class="auto-dispatch-card"/)
+  assert.match(page, /class="[^"]*auto-dispatch-card[^"]*"/)
   assert.match(page, /自动派发设置/)
   assert.match(page, /autoDispatchForm\.enabled/)
   assert.match(page, /autoDispatchForm\.sweepIntervalMinutes/)
