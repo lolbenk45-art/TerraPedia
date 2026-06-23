@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>域爬取监控 · 紧凑工作台设计稿</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   设计稿：域爬取监控 · 紧凑工作台
+   主题沿用真实 app token（暖纸底 + 青绿 teal + Plus Jakarta Sans）
+   所有功能模块完整展开，无折叠占位
+   ============================================================ */
+:root{
+  --font-sans:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+
+  --primary:#0d9488; --primary-dark:#0f766e; --primary-hover:#0e857b;
+  --primary-muted:rgba(13,148,136,.12); --primary-strong:rgba(13,148,136,.22);
+
+  --bg-shell:#efede7; --bg:#f6f4ef; --bg-tertiary:#f1eeea; --bg-hover:#e7e3dc;
+  --surface-1:rgba(255,255,255,.82); --surface-2:#ffffff; --surface-muted:#f2eee7;
+  --sidebar:#171512; --sidebar-hover:#22201c; --sidebar-active:rgba(20,184,166,.18);
+
+  --success:#059669; --success-bg:rgba(5,150,105,.12);
+  --warning:#d97706; --warning-bg:rgba(217,119,6,.14);
+  --danger:#dc2626;  --danger-bg:rgba(220,38,38,.10);
+  --info:#0284c7;    --info-bg:rgba(2,132,199,.12);
+
+  --text:#1c1917; --text-2:#57534e; --text-muted:#8e877f; --text-inverse:#fafaf9;
+  --text-sidebar:#ddd8d1; --text-sidebar-muted:#8d847b; --text-sidebar-active:#5ff2df;
+
+  --border:#ded7ce; --border-light:#efeae2; --border-strong:rgba(120,113,108,.30);
+
+  --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-full:9999px;
+  --shadow-xs:0 1px 1px 0 rgb(28 25 23/.03);
+  --shadow-sm:0 1px 2px 0 rgb(28 25 23/.05);
+  --shadow-md:0 8px 24px -16px rgb(28 25 23/.14);
+  --shadow-card:0 10px 30px -24px rgb(28 25 23/.16);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{
+  font-family:var(--font-sans); color:var(--text); background:var(--bg-shell);
+  font-size:13px; line-height:1.45; -webkit-font-smoothing:antialiased;
+}
+button{font:inherit; color:inherit; cursor:pointer;}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px;}
+h1,h2,h3,h4,p{margin:0;}
+
+/* ---------- App shell ---------- */
+.app{display:grid; grid-template-columns:228px minmax(0,1fr); min-height:100vh;}
+.sidebar{
+  background:var(--sidebar); color:var(--text-sidebar);
+  display:flex; flex-direction:column; gap:4px; padding:18px 14px; position:sticky; top:0; height:100vh;
+}
+.brand{display:flex; flex-direction:column; gap:2px; padding:6px 8px 16px;}
+.brand strong{font-size:15px; color:#fff; letter-spacing:.2px;}
+.brand small{font-size:11px; color:var(--text-sidebar-muted);}
+.nav-group{margin-top:10px; padding:0 8px 6px; font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text-sidebar-muted);}
+.nav-item{
+  display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:var(--radius-sm);
+  color:var(--text-sidebar); font-size:13px; font-weight:600; text-decoration:none;
+}
+.nav-item:hover{background:var(--sidebar-hover);}
+.nav-item.active{background:var(--sidebar-active); color:var(--text-sidebar-active);}
+.nav-item .dot{width:7px; height:7px; border-radius:50%; background:currentColor; opacity:.7;}
+
+.content{min-width:0; padding:18px 22px 60px; display:grid; gap:12px; max-width:1480px;}
+
+/* ---------- Shared bits ---------- */
+.eyebrow{font-size:10.5px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:var(--primary);}
+.muted{color:var(--text-muted);}
+.row{display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0;}
+.spread{display:flex; align-items:flex-start; justify-content:space-between; gap:14px; min-width:0;}
+
+.pill{
+  display:inline-flex; align-items:center; gap:5px; height:22px; padding:0 9px;
+  border-radius:var(--radius-full); font-size:11px; font-weight:800; white-space:nowrap;
+}
+.pill::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor;}
+.pill.plain::before{display:none;}
+.t-success{color:#0f7a52; background:var(--success-bg);}
+.t-warning{color:#a85d05; background:var(--warning-bg);}
+.t-danger{color:#bb2020; background:var(--danger-bg);}
+.t-info{color:#06699e; background:var(--info-bg);}
+.t-muted{color:#5b554e; background:#e8e3da;}
+.t-primary{color:var(--primary-dark); background:var(--primary-muted);}
+
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  height:32px; padding:0 12px; border:1px solid var(--border); border-radius:var(--radius-sm);
+  background:var(--surface-2); color:var(--text); font-size:12px; font-weight:700; white-space:nowrap;
+  transition:background .15s,border-color .15s;
+}
+.btn:hover{background:var(--bg-hover);}
+.btn.sm{height:27px; padding:0 9px; font-size:11px; font-weight:700;}
+.btn.primary{background:var(--primary); border-color:var(--primary); color:#fff;}
+.btn.primary:hover{background:var(--primary-hover);}
+.btn.warn{color:#a85d05; border-color:color-mix(in srgb,var(--warning) 36%,var(--border)); background:var(--warning-bg);}
+.btn.danger{color:#bb2020; border-color:color-mix(in srgb,var(--danger) 36%,var(--border)); background:var(--danger-bg);}
+.btn .ico{width:14px; height:14px; display:inline-block;}
+
+.card{
+  background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-md);
+  box-shadow:var(--shadow-sm); padding:14px;
+}
+.card-head{display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:12px; min-width:0;}
+.card-head h2{font-size:15px; font-weight:800; letter-spacing:.1px;}
+.card-head h3{font-size:13.5px; font-weight:800;}
+.card-head p{font-size:12px; color:var(--text-2); margin-top:3px; max-width:70ch;}
+
+.progress{height:6px; border-radius:var(--radius-full); background:#e4ded4; overflow:hidden;}
+.progress > i{display:block; height:100%; border-radius:inherit; background:var(--primary);}
+.progress > i.danger{background:var(--danger);}
+.progress > i.warning{background:var(--warning);}
+.progress > i.info{background:var(--info);}
+.progress > i.success{background:var(--success);}
+
+/* metric grid cells */
+.cells{display:grid; gap:7px;}
+.cells > span{
+  display:flex; flex-direction:column; gap:3px; min-width:0;
+  padding:8px 9px; border-radius:var(--radius-sm); background:var(--surface-muted); border:1px solid var(--border-light);
+}
+.cells > span small{font-size:10.5px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em;}
+.cells > span strong{font-size:12.5px; font-weight:700; font-variant-numeric:tabular-nums; overflow-wrap:anywhere;}
+.cells > span strong.num{font-size:15px;}
+
+/* ---------- Stale banner ---------- */
+.stale{
+  display:flex; align-items:center; gap:10px; padding:9px 14px; border-radius:var(--radius-md);
+  background:var(--danger-bg); border:1px solid color-mix(in srgb,var(--danger) 30%,var(--border));
+  color:#9a1f1f; font-size:12.5px;
+}
+.stale strong{font-weight:800;}
+.stale .grow{flex:1;}
+
+/* ---------- Topbar ---------- */
+.topbar{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+.topbar h1{font-size:23px; font-weight:800; letter-spacing:.2px; margin-top:3px;}
+.topbar .sub{font-size:12.5px; color:var(--text-2); margin-top:4px; max-width:68ch;}
+.toggle{
+  display:inline-flex; align-items:center; gap:7px; height:32px; padding:0 12px;
+  border-radius:var(--radius-sm); border:1px solid var(--primary); background:var(--primary); color:#fff; font-size:12px; font-weight:700;
+}
+.toggle .led{width:7px; height:7px; border-radius:50%; background:#7af2e0; box-shadow:0 0 0 3px rgba(122,242,224,.3);}
+
+/* ---------- Health strip ---------- */
+.health{display:grid; grid-template-columns:1.6fr repeat(5,1fr); gap:8px;}
+.hcell{
+  display:flex; flex-direction:column; gap:3px; padding:9px 11px; border-radius:var(--radius-md);
+  background:var(--surface-2); border:1px solid var(--border); box-shadow:var(--shadow-xs); min-width:0;
+}
+.hcell .lbl{font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted);}
+.hcell .val{font-size:14px; font-weight:800; overflow-wrap:anywhere;}
+.hcell .note{font-size:11px; color:var(--text-2);}
+.hcell.risk{background:linear-gradient(180deg,var(--danger-bg),var(--surface-2)); border-color:color-mix(in srgb,var(--danger) 30%,var(--border));}
+.hcell.risk .val{color:#bb2020;}
+
+/* ---------- Domain table ---------- */
+.tbl-wrap{overflow-x:auto; border:1px solid var(--border-light); border-radius:var(--radius-sm);}
+table.grid{width:100%; border-collapse:collapse; font-size:12px;}
+table.grid th{
+  text-align:left; padding:9px 11px; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.05em;
+  color:var(--text-muted); background:var(--surface-muted); border-bottom:1px solid var(--border); white-space:nowrap;
+}
+table.grid td{padding:9px 11px; border-bottom:1px solid var(--border-light); vertical-align:top;}
+table.grid tr:last-child td{border-bottom:none;}
+table.grid td strong{display:block; font-size:12.5px; font-weight:700;}
+table.grid td small{display:block; font-size:11px; color:var(--text-muted); margin-top:1px;}
+table.grid td code{color:var(--text-2);}
+.domain-tbl tbody tr{cursor:pointer;}
+.domain-tbl tbody tr:hover{background:var(--bg);}
+.domain-tbl tbody tr.sel{background:color-mix(in srgb,var(--primary) 8%,var(--surface-2)); box-shadow:inset 3px 0 0 var(--primary);}
+.cellprog{min-width:150px;}
+.cellprog .progress{margin-top:6px;}
+.actions-inline{display:flex; gap:6px; flex-wrap:wrap;}
+
+.sample-divider td{
+  background:var(--surface-muted); color:var(--text-muted); font-size:10.5px; font-weight:800;
+  text-transform:uppercase; letter-spacing:.06em; padding:6px 11px;
+}
+
+/* ---------- Selected domain workbench ---------- */
+.selected{
+  border:1px solid color-mix(in srgb,var(--primary) 26%,var(--border));
+  border-radius:var(--radius-md); background:linear-gradient(180deg,var(--primary-muted),var(--surface-2) 38%);
+  box-shadow:var(--shadow-card); padding:14px; display:grid; gap:12px;
+}
+.sel-grid{display:grid; grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr); gap:12px;}
+.subcard{background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; display:grid; gap:10px; min-width:0;}
+.subcard.accent{border-color:color-mix(in srgb,var(--primary) 34%,var(--border)); background:color-mix(in srgb,var(--primary) 6%,var(--surface-2));}
+.live-head{display:flex; align-items:flex-start; justify-content:space-between; gap:12px;}
+.live-pct{font-size:30px; font-weight:800; line-height:1; color:var(--primary-dark); font-variant-numeric:tabular-nums;}
+.pathstrip{display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:var(--radius-sm); background:var(--surface-muted); border:1px dashed var(--border); font-size:11.5px; color:var(--text-2); overflow:hidden;}
+.pathstrip code{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.ctrl-title{font-size:12px; font-weight:800;}
+.ctrl-title + small{display:block; font-size:11px; color:var(--text-2); margin-top:2px;}
+
+.warn-note{display:flex; gap:8px; padding:8px 10px; border-radius:var(--radius-sm); background:var(--warning-bg); color:#8a5104; font-size:11.5px; border:1px solid color-mix(in srgb,var(--warning) 28%,var(--border));}
+
+.feedback{display:flex; align-items:flex-start; gap:12px; flex-wrap:wrap; padding:11px 12px; border-radius:var(--radius-sm); background:var(--surface-muted); border:1px solid var(--border-light);}
+.feedback .fcol{display:flex; flex-direction:column; gap:2px; min-width:0;}
+.feedback .fcol small{font-size:10.5px; font-weight:800; color:var(--text-muted); text-transform:uppercase;}
+.feedback .fcol strong{font-size:12px;}
+
+.config-grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px;}
+.reason-card{display:grid; gap:6px; padding:11px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2);}
+.reason-card .rc-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+.reason-card .rc-head strong{font-size:12px; font-weight:800;}
+.reason-card p{font-size:11.5px; color:var(--text-2);}
+
+.detail-block{border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface-2); padding:11px; display:grid; gap:9px;}
+.detail-block > .db-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+.detail-block > .db-head strong{font-size:12.5px; font-weight:800;}
+
+.pending{display:grid; gap:8px; padding:11px; border:1px dashed color-mix(in srgb,var(--primary) 32%,var(--border)); border-radius:var(--radius-sm); background:color-mix(in srgb,var(--primary) 5%,var(--surface-2));}
+.pending-row{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:7px 9px; border-radius:var(--radius-sm); background:var(--surface-2); border:1px solid var(--border-light);}
+
+/* ---------- secondary zone (diagnostics/validation) ---------- */
+.zone-head{display:flex; align-items:center; gap:10px; margin:8px 2px 0;}
+.zone-head .bar{width:4px; height:18px; border-radius:2px; background:var(--primary); opacity:.7;}
+.zone-head h2{font-size:14px; font-weight:800;}
+.zone-head .muted{font-size:11.5px;}
+
+.exec-list{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px;}
+.exec-card{display:grid; gap:7px; padding:11px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface-2);}
+.exec-card .ec-head{display:flex; align-items:flex-start; justify-content:space-between; gap:8px;}
+.exec-card .ec-head strong{font-size:12.5px; font-weight:700;}
+.exec-card .ec-meta{display:flex; gap:12px; font-size:11px; color:var(--text-2);}
+
+.queue-row{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 11px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface-2);}
+.queue-row + .queue-row{margin-top:7px;}
+.queue-row .qr-main{display:grid; gap:3px; min-width:0;}
+.queue-row .qr-meta{display:flex; gap:14px; font-size:11px; color:var(--text-2); margin-top:2px;}
+
+.quality-grid{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px;}
+.q-cell{display:grid; gap:4px; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); text-align:left;}
+.q-cell small{font-size:10.5px; font-weight:800; text-transform:uppercase; color:var(--text-muted);}
+.q-cell strong{font-size:17px; font-weight:800;}
+.q-cell.danger{background:var(--danger-bg); border-color:color-mix(in srgb,var(--danger) 28%,var(--border));}
+.q-cell.danger strong{color:#bb2020;}
+.q-cell.warning{background:var(--warning-bg); border-color:color-mix(in srgb,var(--warning) 28%,var(--border));}
+.q-cell.warning strong{color:#a85d05;}
+.q-cell.success strong{color:var(--success);}
+
+.flow-row{display:grid; grid-template-columns:200px 1fr; gap:10px; align-items:stretch; padding:10px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface-2);}
+.flow-row + .flow-row{margin-top:8px;}
+.flow-dom{display:flex; flex-direction:column; gap:5px; justify-content:center;}
+.flow-dom .fd-top{display:flex; align-items:center; gap:8px;}
+.flow-dom .ord{width:20px; height:20px; border-radius:6px; background:var(--primary-muted); color:var(--primary-dark); font-size:11px; font-weight:800; display:grid; place-items:center;}
+.flow-steps{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:7px;}
+.flow-step{display:grid; gap:3px; padding:8px; border-radius:var(--radius-sm); background:var(--surface-muted); border:1px solid var(--border-light);}
+.flow-step small{font-size:10px; font-weight:800; text-transform:uppercase; color:var(--text-muted);}
+.flow-step b{font-size:11.5px; font-weight:700;}
+.flow-step .det{font-size:10.5px; color:var(--text-2);}
+.flow-step.ok{background:var(--success-bg); border-color:color-mix(in srgb,var(--success) 24%,var(--border));}
+.flow-step.run{background:var(--info-bg); border-color:color-mix(in srgb,var(--info) 24%,var(--border));}
+.flow-step.wait{background:var(--warning-bg); border-color:color-mix(in srgb,var(--warning) 24%,var(--border));}
+
+.matrix{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;}
+.matrix-card{border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface-2); padding:11px; display:grid; gap:9px;}
+.matrix-card .mc-head{display:flex; align-items:center; justify-content:space-between;}
+.matrix-card .mc-head strong{font-size:12.5px; font-weight:800;}
+.channel-label{font-size:10.5px; font-weight:800; text-transform:uppercase; color:var(--text-muted); letter-spacing:.04em;}
+
+.runtime-grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px;}
+.rt-block{border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface-2); padding:11px; display:grid; gap:8px;}
+.rt-block > strong{font-size:12.5px; font-weight:800;}
+.rt-line{display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:11.5px; padding:5px 0; border-bottom:1px dashed var(--border-light);}
+.rt-line:last-child{border-bottom:none;}
+.rt-line .k{color:var(--text-2);}
+.rt-line .v{font-weight:700; font-variant-numeric:tabular-nums;}
+.switch{display:inline-flex; align-items:center; gap:8px; font-size:11.5px;}
+.switch .track{width:34px; height:19px; border-radius:999px; background:var(--primary); position:relative;}
+.switch .track::after{content:""; position:absolute; top:2px; right:2px; width:15px; height:15px; border-radius:50%; background:#fff;}
+.field{display:inline-flex; align-items:center; gap:6px;}
+.field input{width:56px; height:28px; border:1px solid var(--border); border-radius:var(--radius-sm); padding:0 8px; font:inherit; font-size:12px;}
+
+/* report preview */
+.report{display:grid; grid-template-columns:minmax(0,1fr); gap:10px;}
+.report pre{
+  margin:0; padding:13px; border-radius:var(--radius-sm); background:#1c1917; color:#e8e3da;
+  font-size:11.5px; line-height:1.65; overflow:auto; max-height:260px;
+}
+.report .meta{display:flex; gap:7px; flex-wrap:wrap;}
+
+@media (max-width:1080px){
+  .app{grid-template-columns:1fr;}
+  .sidebar{display:none;}
+  .health{grid-template-columns:repeat(2,1fr);}
+  .sel-grid,.config-grid,.exec-list,.quality-grid,.runtime-grid,.matrix,.flow-row,.flow-steps{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== Admin sidebar (context) ===== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <strong>TerraPedia</strong>
+      <small>运营控制台</small>
+    </div>
+    <div class="nav-group">数据</div>
+    <a class="nav-item"><span class="dot"></span>数据总览</a>
+    <a class="nav-item"><span class="dot"></span>Wiki 城镇数据</a>
+    <div class="nav-group">运营</div>
+    <a class="nav-item active"><span class="dot"></span>爬取监控</a>
+    <a class="nav-item"><span class="dot"></span>数据质量</a>
+    <a class="nav-item"><span class="dot"></span>任务历史</a>
+    <div class="nav-group">系统</div>
+    <a class="nav-item"><span class="dot"></span>调度设置</a>
+    <a class="nav-item"><span class="dot"></span>系统诊断</a>
+  </aside>
+
+  <!-- ===== Page content ===== -->
+  <main class="content">
+
+    <!-- 1. Stale alert -->
+    <div class="stale">
+      <strong>⚠ 后端刷新链路停滞</strong>
+      <span class="grow">backend-refresh 监控链路 3 分 12 秒未更新，下方数据可能不是最新。最后活动 14:25:39。</span>
+      <button class="btn sm">立即刷新</button>
+    </div>
+
+    <!-- 2. Topbar -->
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Crawler Monitor</p>
+        <h1>域爬取监控</h1>
+        <p class="sub">域表格优先：一张表定位异常域、队列占用、阻塞者、证据文件与可执行动作。正式域与 10 域样本验收分区显示。</p>
+      </div>
+      <div class="row">
+        <button class="btn">↻ 刷新</button>
+        <button class="toggle"><span class="led"></span>自动刷新 3s</button>
+        <button class="btn">系统诊断</button>
+      </div>
+    </header>
+
+    <!-- 3. Health strip -->
+    <section class="health" aria-label="全局健康">
+      <div class="hcell risk">
+        <span class="lbl">最高风险</span>
+        <span class="val">增益 Buff 停滞 12 分钟</span>
+        <span class="note">队列 #1 占用 wiki-monitor-dispatch.lock · PID 21482</span>
+      </div>
+      <div class="hcell"><span class="lbl">失败域</span><span class="val">2</span><span class="note">buff · drop</span></div>
+      <div class="hcell"><span class="lbl">心跳过期</span><span class="val">1</span><span class="note">buff</span></div>
+      <div class="hcell"><span class="lbl">运行中</span><span class="val">1</span><span class="note">item · PID 33101</span></div>
+      <div class="hcell"><span class="lbl">排队中</span><span class="val">3</span><span class="note">npc / boss / projectile</span></div>
+      <div class="hcell"><span class="lbl">最后刷新</span><span class="val">14:28:06</span><span class="note">自动刷新开启</span></div>
+    </section>
+
+    <!-- 4. Domain monitor table (primary) -->
+    <section class="card" aria-label="域监控表">
+      <div class="card-head">
+        <div>
+          <h2>域监控表</h2>
+          <p>异常 / 停滞 / 堵塞 / 运行 / 排队域优先排序。点击任意行，下方展开该域排障工作台。</p>
+        </div>
+        <span class="pill t-muted plain">正式域 6 · 样本 10 已隔离</span>
+      </div>
+      <div class="tbl-wrap">
+        <table class="grid domain-tbl">
+          <thead>
+            <tr>
+              <th>域</th><th>状态</th><th>进度</th><th>心跳</th><th>队列/占用</th><th>阻塞者</th><th>判断</th><th>证据</th><th>动作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="sel">
+              <td><strong>增益 Buff</strong><small>buff · wiki-monitor-buff</small></td>
+              <td><span class="pill t-danger">停滞</span></td>
+              <td class="cellprog"><strong>38 / 100</strong><small>38% · crawl-buff</small><div class="progress"><i class="danger" style="width:38%"></i></div></td>
+              <td><strong>12 分钟前</strong><small>进度心跳过期</small></td>
+              <td><strong>总队列 #1</strong><small>owner self · PID 21482</small></td>
+              <td><strong>阻塞 npc/boss/item</strong><small>d-buff-8842</small></td>
+              <td><small>进度文件未更新但进程仍占用锁，先看日志再决定是否终止。</small></td>
+              <td><div class="actions-inline"><button class="btn sm">日志</button><button class="btn sm">进度</button><button class="btn sm">报告</button></div></td>
+              <td><div class="actions-inline"><button class="btn sm danger">终止</button><button class="btn sm">查看</button></div></td>
+            </tr>
+            <tr>
+              <td><strong>掉落 Drop</strong><small>drop · wiki-monitor-drop</small></td>
+              <td><span class="pill t-danger">失败</span></td>
+              <td class="cellprog"><strong>0 / 240</strong><small>启动失败</small><div class="progress"><i class="danger" style="width:4%"></i></div></td>
+              <td><strong>暂无心跳</strong><small>退出码 1</small></td>
+              <td><strong>无队列</strong><small>—</small></td>
+              <td><strong>无</strong></td>
+              <td><small>脚本启动即退出，疑似选择器失效，查看报告定位。</small></td>
+              <td><div class="actions-inline"><button class="btn sm">报告</button><button class="btn sm">输出</button></div></td>
+              <td><div class="actions-inline"><button class="btn sm warn">重试</button><button class="btn sm">查看</button></div></td>
+            </tr>
+            <tr>
+              <td><strong>NPC</strong><small>npc · wiki-monitor-npc</small></td>
+              <td><span class="pill t-warning">堵塞</span></td>
+              <td class="cellprog"><strong>0 / 10</strong><small>未开始</small><div class="progress"><i class="warning" style="width:0%"></i></div></td>
+              <td><strong>暂无心跳</strong><small>排队中</small></td>
+              <td><strong>总队列 #2</strong><small>q-npc</small></td>
+              <td><strong>被 buff 堵塞</strong><small>d-buff-8842</small></td>
+              <td><small>等待 buff 释放执行锁。</small></td>
+              <td><div class="actions-inline"><button class="btn sm">进度</button></div></td>
+              <td><div class="actions-inline"><button class="btn sm">取消排队</button></div></td>
+            </tr>
+            <tr>
+              <td><strong>Boss</strong><small>boss · wiki-monitor-boss</small></td>
+              <td><span class="pill t-warning">排队</span></td>
+              <td class="cellprog"><strong>0 / 10</strong><small>未开始</small><div class="progress"><i class="warning" style="width:0%"></i></div></td>
+              <td><strong>暂无心跳</strong><small>排队中</small></td>
+              <td><strong>总队列 #3</strong><small>q-boss</small></td>
+              <td><strong>前方 2 项</strong><small>buff / npc</small></td>
+              <td><small>队列等待，前方释放后自动接上。</small></td>
+              <td><div class="actions-inline"><button class="btn sm">进度</button></div></td>
+              <td><div class="actions-inline"><button class="btn sm">取消排队</button></div></td>
+            </tr>
+            <tr>
+              <td><strong>物品 Item</strong><small>item · wiki-monitor-item</small></td>
+              <td><span class="pill t-info">运行中</span></td>
+              <td class="cellprog"><strong>640 / 1000</strong><small>64% · crawl-item</small><div class="progress"><i class="info" style="width:64%"></i></div></td>
+              <td><strong>10 秒前</strong><small>正常</small></td>
+              <td><strong>并行通道</strong><small>owner self · PID 33101</small></td>
+              <td><strong>无</strong></td>
+              <td><small>正常推进，速度稳定。</small></td>
+              <td><div class="actions-inline"><button class="btn sm">日志</button><button class="btn sm">进度</button></div></td>
+              <td><div class="actions-inline"><button class="btn sm">查看</button></div></td>
+            </tr>
+            <tr>
+              <td><strong>生物群落 Biome</strong><small>biome · wiki-monitor-biome</small></td>
+              <td><span class="pill t-success">完成</span></td>
+              <td class="cellprog"><strong>120 / 120</strong><small>100%</small><div class="progress"><i class="success" style="width:100%"></i></div></td>
+              <td><strong>2 分钟前</strong><small>完成心跳</small></td>
+              <td><strong>无队列</strong><small>—</small></td>
+              <td><strong>无</strong></td>
+              <td><small>暂无异常判断。</small></td>
+              <td><div class="actions-inline"><button class="btn sm">报告</button></div></td>
+              <td><div class="actions-inline"><button class="btn sm">查看</button></div></td>
+            </tr>
+            <tr class="sample-divider"><td colspan="9">— 以下为 10 域样本验收（与正式域隔离，不写入正式数据） —</td></tr>
+            <tr>
+              <td><strong>样本·武器</strong><small>sample-weapon · test-channel</small></td>
+              <td><span class="pill t-success">通过</span></td>
+              <td class="cellprog"><strong>10 / 10</strong><small>样本完成</small><div class="progress"><i class="success" style="width:100%"></i></div></td>
+              <td><strong>5 分钟前</strong><small>样本心跳</small></td>
+              <td><strong>样本通道</strong><small>sample</small></td>
+              <td><strong>无</strong></td>
+              <td><small>8 项正式校验 + 5 项样本校验全通过。</small></td>
+              <td><div class="actions-inline"><button class="btn sm">进度</button></div></td>
+              <td><div class="actions-inline"><button class="btn sm">查看</button></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 5. Selected domain workbench -->
+    <section class="selected" aria-label="选中域排障">
+      <div class="spread">
+        <div>
+          <p class="eyebrow">选中域排障 · 当前选中行</p>
+          <h2 style="font-size:17px;font-weight:800;margin-top:3px;">增益 Buff <span class="muted" style="font-weight:600;font-size:13px;">buff · wiki-monitor-buff</span></h2>
+          <p class="muted" style="font-size:12px;margin-top:3px;">operator self · 锁占用中 · 危险操作仅作用于当前域</p>
+        </div>
+        <span class="pill t-danger">停滞</span>
+      </div>
+
+      <div class="sel-grid">
+        <!-- 5a. Live panel + run controls -->
+        <div class="subcard accent">
+          <div class="live-head">
+            <div>
+              <h3 style="font-size:13.5px;font-weight:800;">实时进度与排障判断</h3>
+              <p class="muted" style="font-size:11.5px;margin-top:3px;">进度停在 38/100，心跳过期，进程仍存在；npc/boss/item 被当前域堵塞。</p>
+            </div>
+            <span class="live-pct">38%</span>
+          </div>
+          <div class="progress"><i class="danger" style="width:38%"></i></div>
+
+          <div class="cells" style="grid-template-columns:repeat(4,minmax(0,1fr));">
+            <span><small>状态</small><strong>停滞</strong></span>
+            <span><small>下一步</small><strong>查看日志</strong></span>
+            <span><small>当前/总数</small><strong>38 / 100</strong></span>
+            <span><small>心跳状态</small><strong>过期</strong></span>
+            <span><small>最后心跳</small><strong>12 分钟前</strong></span>
+            <span><small>开始时间</small><strong>13:58:42</strong></span>
+            <span><small>已运行</small><strong>27 分 18 秒</strong></span>
+            <span><small>更新时间</small><strong>14:10:51</strong></span>
+            <span><small>待处理</small><strong>62</strong></span>
+            <span><small>速度</small><strong>1.4 项/分</strong></span>
+            <span><small>ETA</small><strong>约 44 分</strong></span>
+            <span><small>冷却保护</small><strong>未触发</strong></span>
+          </div>
+
+          <div class="warn-note">⚠ Wiki 保护冷却未结束前，重爬动作可能被拒绝；当前可执行。</div>
+
+          <div class="pathstrip">运行文件 <code>data/generated/progress/wiki-monitor-buff.progress.json</code></div>
+
+          <div style="display:grid;gap:8px;">
+            <div>
+              <div class="ctrl-title">可执行动作 · Wiki 域</div>
+              <small>刷新 / 重爬 / 重试 / 暂停 / 继续 / 终止并清理</small>
+            </div>
+            <div class="row">
+              <button class="btn sm">刷新当前域</button>
+              <button class="btn sm primary">重新爬取</button>
+              <button class="btn sm warn">重试</button>
+              <button class="btn sm">暂停任务</button>
+              <button class="btn sm">继续任务</button>
+              <button class="btn sm danger">终止并清理</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5b. Evidence + recovery actions -->
+        <div class="subcard">
+          <div class="spread">
+            <div>
+              <h3 style="font-size:13.5px;font-weight:800;">当前域证据</h3>
+              <p class="muted" style="font-size:11.5px;margin-top:3px;">队列、占用、阻塞、日志、报告与进度文件。</p>
+            </div>
+          </div>
+          <div class="cells" style="grid-template-columns:repeat(2,minmax(0,1fr));">
+            <span><small>判断</small><strong>进度陈旧 · 进程存活</strong></span>
+            <span><small>队列摘要</small><strong>总队列 #1</strong></span>
+            <span><small>queueId</small><strong>q-20260622-001</strong></span>
+            <span><small>dispatchId</small><strong>d-buff-8842</strong></span>
+            <span><small>PID</small><strong>21482</strong></span>
+            <span><small>阻塞者</small><strong>npc / boss / item</strong></span>
+            <span><small>数据判定</small><strong>progress stale</strong></span>
+            <span><small>下一步</small><strong>查看日志</strong></span>
+          </div>
+          <div>
+            <div class="channel-label" style="margin-bottom:6px;">证据文件</div>
+            <div class="row">
+              <button class="btn sm">日志</button>
+              <button class="btn sm">进度 JSON</button>
+              <button class="btn sm">报告 MD</button>
+              <button class="btn sm">输出 JSON</button>
+              <button class="btn sm">锁文件</button>
+              <button class="btn sm">命令预览</button>
+            </div>
+          </div>
+          <div class="pathstrip" style="border-style:solid;">命令 <code>node crawl.mjs --domain buff --action crawl-buff --resume</code></div>
+        </div>
+      </div>
+
+      <!-- 5c. Dispatch feedback -->
+      <div class="feedback">
+        <span class="pill t-info plain" style="height:24px;">最近派发</span>
+        <div class="fcol"><small>dispatchId</small><strong>d-buff-8842</strong></div>
+        <div class="fcol"><small>状态</small><strong>blocked</strong></div>
+        <div class="fcol"><small>被阻塞</small><strong>execution-lock</strong></div>
+        <div class="fcol"><small>进度文件</small><strong>buff.progress.json</strong></div>
+        <div class="fcol"><small>报告文件</small><strong>buff.report.md</strong></div>
+        <div class="fcol"><small>锁文件</small><strong>wiki-monitor-dispatch.lock</strong></div>
+        <div class="row" style="margin-left:auto;"><button class="btn sm">看进度</button><button class="btn sm">看报告</button></div>
+      </div>
+
+      <!-- 5d. Selected domain config: reasons -->
+      <div class="config-grid">
+        <div class="reason-card">
+          <div class="rc-head"><strong>Wiki 状态</strong><span class="pill t-danger">陈旧</span></div>
+          <p>locator 命中但进度文件 12 分钟未更新，疑似抓取阻塞。</p>
+          <button class="btn sm" style="justify-self:start;">查看进度文件</button>
+        </div>
+        <div class="reason-card">
+          <div class="rc-head"><strong>心跳状态</strong><span class="pill t-warning">过期</span></div>
+          <p>最后心跳 14:10:51，超过 10 分钟阈值判定为过期。</p>
+          <button class="btn sm" style="justify-self:start;">查看报告</button>
+        </div>
+        <div class="reason-card">
+          <div class="rc-head"><strong>域状态</strong><span class="pill t-info">占用锁</span></div>
+          <p>PID 21482 持有 dispatch 锁，阻塞后续 3 个域。</p>
+          <button class="btn sm" style="justify-self:start;">查看命令</button>
+        </div>
+      </div>
+
+      <!-- 5e. Sample crawl verification + basic item validation -->
+      <div class="config-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="detail-block">
+          <div class="db-head"><strong>样本爬取验收</strong><span class="pill t-success">通过</span></div>
+          <div class="cells" style="grid-template-columns:repeat(2,1fr);">
+            <span><small>状态</small><strong>completed</strong></span>
+            <span><small>进度</small><strong>10 / 10</strong></span>
+            <span><small>心跳</small><strong>5 分钟前</strong></span>
+            <span><small>进度文件</small><strong>sample-buff.progress.json</strong></span>
+          </div>
+        </div>
+        <div class="detail-block">
+          <div class="db-head"><strong>基础项校验</strong><span class="pill t-warning">1 项关注</span></div>
+          <div class="cells" style="grid-template-columns:repeat(2,1fr);">
+            <span><small>正式域 · 字段完整</small><strong>通过</strong></span>
+            <span><small>正式域 · 图片前缀</small><strong>3 项异常</strong></span>
+            <span><small>样本 · 结构</small><strong>通过</strong></span>
+            <span><small>样本 · 去重</small><strong>通过</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5f. Wiki domain detail grid -->
+      <div class="detail-block">
+        <div class="db-head"><strong>Wiki 域配置明细</strong><span class="muted" style="font-size:11px;">技术标识 wiki-monitor-buff</span></div>
+        <div class="cells" style="grid-template-columns:repeat(5,minmax(0,1fr));">
+          <span><small>源键</small><strong>wiki-monitor-buff</strong></span>
+          <span><small>定位规则</small><strong>table.terraria-buffs</strong></span>
+          <span><small>最后检查</small><strong>14:10:51</strong></span>
+          <span><small>白名单 actionId</small><strong>crawl-buff</strong></span>
+          <span><small>最大并发</small><strong>1</strong></span>
+          <span><small>熔断器</small><strong>关闭</strong></span>
+          <span><small>进度路径</small><strong>progress/buff.progress.json</strong></span>
+          <span><small>报告路径</small><strong>reports/buff.report.md</strong></span>
+          <span><small>输出路径</small><strong>generated/wiki-town-buff.json</strong></span>
+          <span><small>技术标识</small><strong>wiki-monitor-buff</strong></span>
+        </div>
+      </div>
+
+      <!-- 5g. Pending wiki dispatches -->
+      <div class="pending">
+        <div class="spread">
+          <strong style="font-size:12.5px;">待人工确认派发 <span class="pill t-primary plain" style="height:20px;">2</span></strong>
+          <span class="muted" style="font-size:11px;">需手动确认后才会进入队列</span>
+        </div>
+        <div class="pending-row"><div class="row"><strong style="font-size:12px;">Boss</strong><span class="muted" style="font-size:11px;">crawl-boss · 等待确认</span></div><button class="btn sm primary">执行</button></div>
+        <div class="pending-row"><div class="row"><strong style="font-size:12px;">弹幕 Projectile</strong><span class="muted" style="font-size:11px;">crawl-projectile · 等待确认</span></div><button class="btn sm primary">执行</button></div>
+      </div>
+    </section>
+
+    <!-- ===== Secondary zone: 诊断与验收 ===== -->
+    <div class="zone-head"><span class="bar"></span><h2>诊断与验收</h2><span class="muted">执行总览 · 全局队列 · 任务明细 · 数据质量 · 基础域编排 · 10×10 验收</span></div>
+
+    <!-- 6. Execution overview -->
+    <section class="card">
+      <div class="card-head"><div><h3>执行总览</h3><p>跨域执行项与队列位置一览。</p></div><span class="pill t-info">1 运行 · 3 排队</span></div>
+      <div class="exec-list">
+        <div class="exec-card">
+          <div class="ec-head"><strong>物品 Item</strong><span class="pill t-info">运行中</span></div>
+          <div class="ec-meta"><span>crawl-item</span><span>并行通道</span><span>640/1000</span></div>
+          <div class="progress"><i class="info" style="width:64%"></i></div>
+        </div>
+        <div class="exec-card">
+          <div class="ec-head"><strong>增益 Buff</strong><span class="pill t-danger">停滞</span></div>
+          <div class="ec-meta"><span>crawl-buff</span><span>队列 #1</span><span>38/100</span></div>
+          <div class="warn-note" style="padding:6px 8px;">心跳过期 12 分钟，疑似阻塞。</div>
+          <div class="progress"><i class="danger" style="width:38%"></i></div>
+        </div>
+        <div class="exec-card">
+          <div class="ec-head"><strong>NPC</strong><span class="pill t-warning">排队</span></div>
+          <div class="ec-meta"><span>crawl-npc</span><span>队列 #2</span><span>0/10</span></div>
+          <div class="progress"><i class="warning" style="width:0%"></i></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. Global queue + task progress table -->
+    <section class="card">
+      <div class="card-head"><div><h3>全局队列与任务明细</h3><p>派发队列与全部注册任务的进度明细。</p></div><span class="pill t-warning">活跃 4</span></div>
+
+      <div class="channel-label" style="margin-bottom:7px;">派发队列</div>
+      <div class="queue-row">
+        <div class="qr-main">
+          <div class="row"><strong style="font-size:12.5px;">增益 Buff</strong><span class="pill t-danger">running · stale</span></div>
+          <div class="muted" style="font-size:11.5px;">进度文件陈旧，进程仍占用执行锁</div>
+          <div class="qr-meta"><span>lane: dispatch</span><span>position: #1</span><span>action: crawl-buff</span><span>PID: 21482</span></div>
+        </div>
+        <button class="btn sm danger">取消运行</button>
+      </div>
+      <div class="queue-row">
+        <div class="qr-main">
+          <div class="row"><strong style="font-size:12.5px;">NPC</strong><span class="pill t-warning">queued · blocked</span></div>
+          <div class="muted" style="font-size:11.5px;">被 d-buff-8842 阻塞</div>
+          <div class="qr-meta"><span>lane: dispatch</span><span>position: #2</span><span>action: crawl-npc</span><span>PID: —</span></div>
+        </div>
+        <button class="btn sm">取消排队</button>
+      </div>
+      <div class="queue-row">
+        <div class="qr-main">
+          <div class="row"><strong style="font-size:12.5px;">Boss</strong><span class="pill t-warning">queued</span></div>
+          <div class="muted" style="font-size:11.5px;">前方 2 项未完成</div>
+          <div class="qr-meta"><span>lane: dispatch</span><span>position: #3</span><span>action: crawl-boss</span><span>PID: —</span></div>
+        </div>
+        <button class="btn sm">取消排队</button>
+      </div>
+
+      <div class="channel-label" style="margin:12px 0 7px;">任务进度明细</div>
+      <div class="tbl-wrap">
+        <table class="grid">
+          <thead>
+            <tr><th>任务</th><th>通道</th><th>状态</th><th>进度</th><th>待处理</th><th>速度</th><th>ETA</th><th>开始</th><th>时长</th><th>心跳</th><th>文件</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>buff</strong><small>wiki-monitor-buff</small></td>
+              <td>dispatch</td>
+              <td><span class="pill t-danger">停滞</span></td>
+              <td><strong>38/100</strong><small>crawl · stale</small></td>
+              <td>62</td><td>1.4/分</td><td>~44 分</td><td>13:58:42</td><td>27分18秒</td><td>12 分钟前</td>
+              <td><div class="actions-inline"><button class="btn sm">进度</button><button class="btn sm">报告</button></div></td>
+            </tr>
+            <tr>
+              <td><strong>item</strong><small>wiki-monitor-item</small></td>
+              <td>parallel</td>
+              <td><span class="pill t-info">运行中</span></td>
+              <td><strong>640/1000</strong><small>crawl</small></td>
+              <td>360</td><td>22/分</td><td>~16 分</td><td>14:12:03</td><td>16分02秒</td><td>10 秒前</td>
+              <td><div class="actions-inline"><button class="btn sm">进度</button><button class="btn sm">日志</button></div></td>
+            </tr>
+            <tr>
+              <td><strong>npc</strong><small>wiki-monitor-npc</small></td>
+              <td>dispatch</td>
+              <td><span class="pill t-warning">排队</span></td>
+              <td><strong>0/10</strong><small>queued</small></td>
+              <td>10</td><td>—</td><td>—</td><td>—</td><td>—</td><td>暂无</td>
+              <td><div class="actions-inline"><button class="btn sm">进度</button></div></td>
+            </tr>
+            <tr>
+              <td><strong>biome</strong><small>wiki-monitor-biome</small></td>
+              <td>dispatch</td>
+              <td><span class="pill t-success">完成</span></td>
+              <td><strong>120/120</strong><small>done</small></td>
+              <td>0</td><td>—</td><td>—</td><td>13:40:11</td><td>9分44秒</td><td>2 分钟前</td>
+              <td><div class="actions-inline"><button class="btn sm">报告</button></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 8. Data quality + base domain orchestration + 10x10 matrix -->
+    <section class="card">
+      <div class="card-head"><div><h3>数据质量与验收</h3><p>数据质量核查、基础域顺序编排与 10×10 样本验收矩阵。</p></div><span class="pill t-warning">3 项关注</span></div>
+
+      <div class="channel-label" style="margin-bottom:7px;">数据质量信号</div>
+      <div class="quality-grid">
+        <button class="q-cell danger"><small>图片前缀错误 NPC</small><strong>3</strong></button>
+        <button class="q-cell warning"><small>命名空间漂移</small><strong>2</strong></button>
+        <button class="q-cell warning"><small>wiki-only 条目</small><strong>5</strong></button>
+        <button class="q-cell success"><small>遗留豁免</small><strong>1</strong></button>
+        <button class="q-cell success"><small>镜像同步</small><strong>14:02</strong></button>
+      </div>
+
+      <div class="channel-label" style="margin:14px 0 7px;">基础域顺序编排 <span class="muted" style="font-weight:600;text-transform:none;">共 10 个基础域 · 检测 → 队列 → 样本爬取 → 清理 → 验证</span></div>
+      <div class="flow-row">
+        <div class="flow-dom"><div class="fd-top"><span class="ord">1</span><strong style="font-size:12.5px;">增益 Buff</strong></div><span class="pill t-danger" style="justify-self:start;">停滞</span></div>
+        <div class="flow-steps">
+          <div class="flow-step ok"><small>检测</small><b>命中</b><span class="det">locator ok</span></div>
+          <div class="flow-step run"><small>队列</small><b>#1 占用</b><span class="det">PID 21482</span></div>
+          <div class="flow-step wait"><small>样本爬取</small><b>阻塞</b><button class="btn sm" style="height:22px;">运行样本</button></div>
+          <div class="flow-step"><small>清理</small><b>待执行</b><button class="btn sm" style="height:22px;">清理样本</button></div>
+          <div class="flow-step"><small>验证</small><b>未开始</b><span class="det">—</span></div>
+        </div>
+      </div>
+      <div class="flow-row">
+        <div class="flow-dom"><div class="fd-top"><span class="ord">2</span><strong style="font-size:12.5px;">NPC</strong></div><span class="pill t-warning" style="justify-self:start;">堵塞</span></div>
+        <div class="flow-steps">
+          <div class="flow-step ok"><small>检测</small><b>命中</b><span class="det">locator ok</span></div>
+          <div class="flow-step wait"><small>队列</small><b>#2 等待</b><span class="det">blocked</span></div>
+          <div class="flow-step"><small>样本爬取</small><b>未开始</b><button class="btn sm" style="height:22px;">运行样本</button></div>
+          <div class="flow-step"><small>清理</small><b>未开始</b><button class="btn sm" style="height:22px;">清理样本</button></div>
+          <div class="flow-step"><small>验证</small><b>未开始</b><span class="det">—</span></div>
+        </div>
+      </div>
+      <div class="flow-row">
+        <div class="flow-dom"><div class="fd-top"><span class="ord">3</span><strong style="font-size:12.5px;">生物群落</strong></div><span class="pill t-success" style="justify-self:start;">完成</span></div>
+        <div class="flow-steps">
+          <div class="flow-step ok"><small>检测</small><b>命中</b><span class="det">locator ok</span></div>
+          <div class="flow-step ok"><small>队列</small><b>已完成</b><span class="det">done</span></div>
+          <div class="flow-step ok"><small>样本爬取</small><b>通过</b><span class="det">10/10</span></div>
+          <div class="flow-step ok"><small>清理</small><b>已清理</b><span class="det">ok</span></div>
+          <div class="flow-step ok"><small>验证</small><b>通过</b><span class="det">13 项</span></div>
+        </div>
+      </div>
+
+      <div class="channel-label" style="margin:14px 0 7px;">10×10 样本验收矩阵 <span class="muted" style="font-weight:600;text-transform:none;">每域 8 项正式校验 + 5 项样本校验</span></div>
+      <div class="matrix">
+        <div class="matrix-card">
+          <div class="mc-head"><strong>增益 Buff</strong><span class="pill t-warning">8/13</span></div>
+          <div><div class="channel-label" style="margin-bottom:5px;">正式域通道</div>
+            <div class="cells" style="grid-template-columns:repeat(4,1fr);">
+              <span><small>字段</small><strong>通过</strong></span><span><small>图片前缀</small><strong>异常</strong></span><span><small>去重</small><strong>通过</strong></span><span><small>命名空间</small><strong>通过</strong></span>
+              <span><small>链接</small><strong>通过</strong></span><span><small>枚举</small><strong>通过</strong></span><span><small>数值</small><strong>通过</strong></span><span><small>本地化</small><strong>缺失</strong></span>
+            </div></div>
+          <div><div class="channel-label" style="margin-bottom:5px;">样本通道</div>
+            <div class="cells" style="grid-template-columns:repeat(5,1fr);">
+              <span><small>结构</small><strong>通过</strong></span><span><small>去重</small><strong>通过</strong></span><span><small>采样</small><strong>通过</strong></span><span><small>边界</small><strong>通过</strong></span><span><small>回归</small><strong>通过</strong></span>
+            </div></div>
+        </div>
+        <div class="matrix-card">
+          <div class="mc-head"><strong>物品 Item</strong><span class="pill t-success">13/13</span></div>
+          <div><div class="channel-label" style="margin-bottom:5px;">正式域通道</div>
+            <div class="cells" style="grid-template-columns:repeat(4,1fr);">
+              <span><small>字段</small><strong>通过</strong></span><span><small>图片前缀</small><strong>通过</strong></span><span><small>去重</small><strong>通过</strong></span><span><small>命名空间</small><strong>通过</strong></span>
+              <span><small>链接</small><strong>通过</strong></span><span><small>枚举</small><strong>通过</strong></span><span><small>数值</small><strong>通过</strong></span><span><small>本地化</small><strong>通过</strong></span>
+            </div></div>
+          <div><div class="channel-label" style="margin-bottom:5px;">样本通道</div>
+            <div class="cells" style="grid-template-columns:repeat(5,1fr);">
+              <span><small>结构</small><strong>通过</strong></span><span><small>去重</small><strong>通过</strong></span><span><small>采样</small><strong>通过</strong></span><span><small>边界</small><strong>通过</strong></span><span><small>回归</small><strong>通过</strong></span>
+            </div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. System diagnostics (inline, expanded) -->
+    <section class="card">
+      <div class="card-head"><div><h3>系统诊断</h3><p>10 域运行态、守护/调度/锁、自动派发设置、心跳过期、运行历史、最近报告与图片归一化。</p></div><span class="pill t-success">守护正常</span></div>
+
+      <div class="channel-label" style="margin-bottom:7px;">10 域运行态</div>
+      <div class="tbl-wrap" style="margin-bottom:12px;">
+        <table class="grid">
+          <thead><tr><th>域</th><th>编排状态</th><th>原因</th></tr></thead>
+          <tbody>
+            <tr><td><strong>buff</strong></td><td><span class="pill t-danger">停滞</span></td><td class="muted">进度陈旧 12 分钟，占用执行锁</td></tr>
+            <tr><td><strong>npc</strong></td><td><span class="pill t-warning">堵塞</span></td><td class="muted">被 buff 阻塞</td></tr>
+            <tr><td><strong>item</strong></td><td><span class="pill t-info">运行中</span></td><td class="muted">并行通道，正常推进</td></tr>
+            <tr><td><strong>biome</strong></td><td><span class="pill t-success">完成</span></td><td class="muted">本轮已完成</td></tr>
+            <tr><td><strong>drop</strong></td><td><span class="pill t-danger">失败</span></td><td class="muted">启动即退出，选择器疑似失效</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="runtime-grid">
+        <div class="rt-block">
+          <strong>运行态</strong>
+          <div class="rt-line"><span class="k">守护进程</span><span class="v">在线</span></div>
+          <div class="rt-line"><span class="k">调度器</span><span class="v">运行</span></div>
+          <div class="rt-line"><span class="k">执行锁</span><span class="v">buff 持有</span></div>
+        </div>
+        <div class="rt-block">
+          <strong>派发计划</strong>
+          <div class="rt-line"><span class="k">计划项</span><span class="v">3</span></div>
+          <div class="rt-line"><span class="k">下一项</span><span class="v">crawl-npc</span></div>
+          <div class="rt-line"><span class="k">状态</span><span class="v">等待锁</span></div>
+        </div>
+        <div class="rt-block">
+          <strong>自动派发设置</strong>
+          <div class="rt-line"><span class="k">启用</span><span class="v"><span class="switch"><span class="track"></span>开</span></span></div>
+          <div class="rt-line"><span class="k">扫描间隔</span><span class="v"><span class="field"><input value="5"> 分</span></span></div>
+          <div class="rt-line"><span class="k">最后扫描</span><span class="v">14:27:40</span></div>
+          <div class="row" style="justify-content:flex-end;"><button class="btn sm primary">保存</button></div>
+        </div>
+        <div class="rt-block">
+          <strong>心跳过期</strong>
+          <div class="rt-line"><span class="k">buff</span><span class="v">12 分钟</span></div>
+          <div class="rt-line"><span class="k">阈值</span><span class="v">10 分钟</span></div>
+          <div class="rt-line"><span class="k">其它域</span><span class="v">正常</span></div>
+        </div>
+        <div class="rt-block">
+          <strong>运行历史</strong>
+          <div class="rt-line"><span class="k">14:12 item</span><span class="v">运行</span></div>
+          <div class="rt-line"><span class="k">13:58 buff</span><span class="v">停滞</span></div>
+          <div class="rt-line"><span class="k">13:40 biome</span><span class="v">完成</span></div>
+        </div>
+        <div class="rt-block">
+          <strong>最近报告</strong>
+          <div class="rt-line"><span class="k">buff.report.md</span><span class="v"><button class="btn sm" style="height:22px;">预览</button></span></div>
+          <div class="rt-line"><span class="k">biome.report.md</span><span class="v"><button class="btn sm" style="height:22px;">预览</button></span></div>
+          <div class="rt-line"><span class="k">item.report.md</span><span class="v"><button class="btn sm" style="height:22px;">预览</button></span></div>
+        </div>
+        <div class="rt-block">
+          <strong>图片归一化</strong>
+          <div class="rt-line"><span class="k">最新血缘报告</span><span class="v">14:02</span></div>
+          <div class="rt-line"><span class="k">前缀错误 NPC</span><span class="v">3</span></div>
+          <div class="rt-line"><span class="k">前缀错误 Projectile</span><span class="v">0</span></div>
+        </div>
+        <div class="rt-block">
+          <strong>规范同步</strong>
+          <div class="rt-line"><span class="k">canonical 同步</span><span class="v">14:02</span></div>
+          <div class="rt-line"><span class="k">wiki-only</span><span class="v">5</span></div>
+          <div class="rt-line"><span class="k">遗留豁免</span><span class="v">1</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. Report preview (example, expanded) -->
+    <section class="card">
+      <div class="card-head"><div><h3>报告预览</h3><p>data/generated/reports/buff.report.md</p></div>
+        <div class="report meta" style="display:flex;"><span class="pill t-info">报告</span><span class="pill t-success">已读</span><span class="pill t-muted">未截断</span></div>
+      </div>
+      <div class="report">
+        <pre># wiki-monitor-buff 抓取报告
+
+- 生成时间：2026-06-22 14:10:51
+- 状态：stalled（进度 38/100）
+- 命中条目：38，待处理：62
+
+## 异常
+- 14:04:12 选择器 `table.terraria-buffs tr` 命中数从 100 降到 38
+- 14:06:33 心跳间隔超过 120s，疑似页面结构变更或限流
+- 进度文件未推进，进程仍存活（PID 21482）
+
+## 建议
+1. 查看运行日志确认是否被目标站限流
+2. 若确认阻塞，终止并清理后重爬（--resume）
+3. 复核 locator 规则是否需要更新</pre>
+      </div>
+    </section>
+
+  </main>
+</div>
+</body>
+</html>
