@@ -270,18 +270,18 @@ test('crawler monitor removes low value diagnostic sections from the main monito
   assert.doesNotMatch(page, /imageNormalizationVisible/)
 })
 
-test('crawler monitor uses a single-screen domain table as the primary troubleshooting surface', () => {
+test('crawler monitor uses a flowing domain table with an inline selected-domain panel', () => {
   const boardIndex = page.indexOf('class="recovery-board single-screen-board"')
   const topbarIndex = page.indexOf('class="focused-topbar single-screen-toolbar"')
   const domainTableIndex = page.indexOf('class="section-card monitor-panel domain-table-panel"')
-  const drawerIndex = page.indexOf('class="selected-domain-drawer-shell"')
+  const inlineIndex = page.indexOf('class="selected-domain-inline wiki-workbench"')
   const diagnosticsIndex = page.indexOf('class="single-screen-diagnostics"')
 
   assert.ok(boardIndex > -1, 'focused recovery board should be the real monitor first screen')
   assert.ok(topbarIndex > boardIndex, 'focused topbar should sit inside the recovery board')
   assert.ok(domainTableIndex > topbarIndex, 'domain table should be the first main troubleshooting block after the toolbar')
-  assert.ok(drawerIndex > domainTableIndex, 'selected domain detail should be an overlay after the table, not a page-height block')
-  assert.ok(diagnosticsIndex > domainTableIndex, 'secondary diagnostics should collapse into one entry after the table')
+  assert.ok(inlineIndex > domainTableIndex, 'selected domain detail should be inline right after the table, not an overlay')
+  assert.ok(diagnosticsIndex > inlineIndex, 'diagnostics zone should follow the inline selected-domain panel')
 
   assert.match(page, /buildDomainTableRows/)
   assert.match(page, /buildDomainTableEvidence/)
@@ -290,8 +290,7 @@ test('crawler monitor uses a single-screen domain table as the primary troublesh
   assert.match(page, /single-screen-board/)
   assert.match(page, /single-screen-toolbar/)
   assert.match(page, /single-screen-table-frame/)
-  assert.match(page, /selectedDomainDrawerOpen/)
-  assert.match(page, /openSelectedDomainDrawer/)
+  assert.match(page, /v-if="selectedDomainTableRow"/)
   assert.match(page, /closeSelectedDomainDrawer/)
   assert.match(page, /class="table-scroll"/)
   assert.match(page, /class="monitor-table domain-monitor-table"/)
@@ -328,22 +327,24 @@ test('crawler monitor uses a single-screen domain table as the primary troublesh
   assert.doesNotMatch(page, /wiki-domain-download-window/)
   assert.doesNotMatch(page, /class="crawler-monitor-secondary"/)
   assert.doesNotMatch(page, /class="panel recovery-workbench wiki-workbench selected-domain-table-detail"/)
-  assert.match(page, /\.domain-table-panel\s*\{[\s\S]*height:\s*calc\(100dvh - 132px\)/)
-  assert.match(page, /\.domain-table-panel\s*\{[\s\S]*min-height:\s*560px/)
+  // 内联流式：选中域不再是抽屉浮层，域表格不再单屏锁高
+  assert.doesNotMatch(page, /selected-domain-drawer-shell/)
+  assert.match(page, /\.domain-table-panel\s*\{[\s\S]*height:\s*auto/)
+  assert.match(page, /\.domain-table-panel\s*\{[\s\S]*max-height:\s*none/)
   assert.match(page, /\.focused-topbar\s*\{[\s\S]*padding:\s*12px 14px/)
-  assert.match(page, /\.single-screen-table-frame\s*\{[\s\S]*overflow:\s*hidden/)
-  assert.match(page, /\.single-screen-table-frame \.table-scroll\s*\{[\s\S]*overflow:\s*auto/)
+  assert.match(page, /\.single-screen-table-frame\s*\{[\s\S]*overflow:\s*visible/)
+  assert.match(page, /\.table-scroll\s*\{[\s\S]*overflow-x:\s*auto/)
   assert.match(page, /\.domain-monitor-table th\s*\{[\s\S]*position:\s*sticky/)
 })
 
-test('crawler monitor keeps wiki manual execution in the selected-domain drawer', () => {
+test('crawler monitor keeps wiki manual execution in the inline selected-domain panel', () => {
   const wikiSection = page.slice(
     page.indexOf('class="recovery-board single-screen-board"'),
     page.indexOf('class="single-screen-diagnostics"')
   )
 
-  assert.match(wikiSection, /selected-domain-drawer-shell/)
-  assert.match(wikiSection, /selected-domain-drawer/)
+  assert.match(wikiSection, /class="selected-domain-inline wiki-workbench"/)
+  assert.match(wikiSection, /v-if="selectedDomainTableRow"/)
   assert.match(wikiSection, /aria-label="选中域排障"/)
   assert.match(wikiSection, /当前域操作/)
   assert.match(wikiSection, /当前域证据/)
@@ -355,7 +356,7 @@ test('crawler monitor keeps wiki manual execution in the selected-domain drawer'
 
 test('crawler monitor wiki domain cards prioritize progress and avoid overflowing metric tiles', () => {
   const workbenchTemplate = page.slice(
-    page.indexOf('class="selected-domain-drawer wiki-workbench"'),
+    page.indexOf('class="selected-domain-inline wiki-workbench"'),
     page.indexOf('class="single-screen-diagnostics"')
   )
   assert.match(workbenchTemplate, /class="wiki-live-panel live-focus"/)
@@ -366,7 +367,7 @@ test('crawler monitor wiki domain cards prioritize progress and avoid overflowin
   assert.match(page, /\.wiki-workbench\s*\{[\s\S]*grid-template-columns:/)
   assert.match(page, /class="status-pill domain-flow-pill"/)
   assert.doesNotMatch(page, /class="recovery-domain wiki-domain-side-row"/)
-  assert.match(page, /\.selected-domain-drawer\s*\{[\s\S]*overflow:\s*auto/)
+  assert.match(page, /\.selected-domain-inline\s*\{[\s\S]*border-radius:/)
   assert.match(page, /\.wiki-path-strip code\s*\{[\s\S]*overflow-wrap:\s*anywhere/)
   assert.match(page, /\.wiki-domain-detail-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/)
 })
@@ -466,7 +467,7 @@ test('crawler monitor queue DTO contract is declared without requiring page rend
 test('crawler monitor renders a real dispatch queue section from dispatchQueue', () => {
   const queueSection = page.slice(
     page.indexOf('class="panel wiki-monitor-dispatch-queue"'),
-    page.indexOf('class="panel monitor-observability"')
+    page.indexOf('class="monitor-layout"')
   )
 
   assert.match(page, /CrawlerMonitorWikiQueueItem/)
@@ -498,7 +499,7 @@ test('crawler monitor renders a real dispatch queue section from dispatchQueue',
 
 test('crawler monitor wiki domain cards expose retry, heartbeat, and flow state as first-class controls', () => {
   const workbenchTemplate = page.slice(
-    page.indexOf('class="selected-domain-drawer wiki-workbench"'),
+    page.indexOf('class="selected-domain-inline wiki-workbench"'),
     page.indexOf('class="single-screen-diagnostics"')
   )
 
@@ -557,17 +558,22 @@ test('crawler monitor removes the floating domain locator because the table is t
   assert.doesNotMatch(page, /class="focused-side wiki-domain-sidebar"/)
 })
 
-test('crawler monitor selecting a domain opens the selected-domain drawer without scrolling the page', () => {
+test('crawler monitor selecting a domain shows the inline selected-domain panel without scrolling the page', () => {
   const selectFunction = page.slice(
     page.indexOf('function selectWikiDomain'),
     page.indexOf('function canExecuteWikiDomain')
   )
 
-  assert.match(page, /selectedDomainDrawerOpen/)
-  assert.match(page, /function openSelectedDomainDrawer/)
-  assert.match(selectFunction, /openSelectedDomainDrawer/)
+  // 选中域改为内联面板：靠 selectedDomainTableRow 驱动，不再有抽屉开关
+  assert.match(page, /v-if="selectedDomainTableRow"/)
+  assert.doesNotMatch(page, /selectedDomainDrawerOpen/)
+  assert.doesNotMatch(page, /function openSelectedDomainDrawer/)
+  assert.match(selectFunction, /selectedDomainTableKey\.value =/)
   assert.match(page, /function selectDomainTableRow/)
   assert.match(page, /selectedDomainTableRowKey\(row\)/)
+  // 首屏默认选中最严重域
+  assert.match(page, /hasAutoSelectedDomain/)
+  assert.match(page, /watch\(\s*domainTableRows/)
   assert.doesNotMatch(page, /ref="wikiWorkbenchRef"/)
   assert.doesNotMatch(page, /const wikiWorkbenchRef = ref/)
   assert.doesNotMatch(selectFunction, /scrollIntoView/)
@@ -585,7 +591,7 @@ test('crawler monitor selected domain workbench is Chinese-first and uses displa
   assert.match(page, /selectedDomainElapsedLabel/)
 
   const workbench = page.slice(
-    page.indexOf('class="selected-domain-drawer wiki-workbench"'),
+    page.indexOf('class="selected-domain-inline wiki-workbench"'),
     page.indexOf('class="single-screen-diagnostics"')
   )
 
@@ -1298,51 +1304,42 @@ test('crawler monitor shows a health strip with daemon, scheduler, lock, refresh
   assert.match(page, /守护|调度|锁/)
 })
 
-test('crawler monitor moves runtime observability details into a dedicated dialog', () => {
-  const runtimeStart = page.indexOf('<h2 class="section-card__title">系统诊断</h2>')
+test('crawler monitor renders runtime observability inline in the diagnostics zone', () => {
   const runtimeSection = page.slice(
-    runtimeStart,
-    page.indexOf('class="runtime-dialog-shell"', runtimeStart)
-  )
-  const runtimeDialog = page.slice(
-    page.indexOf('class="runtime-dialog-shell"'),
+    page.indexOf('class="section-card monitor-panel system-diagnostics-inline"'),
     page.indexOf('v-if="selectedReportPath || reportPreview || reportPreviewError"')
   )
 
+  // 系统诊断不再是弹层，改为内联平铺展开
+  assert.doesNotMatch(page, /class="runtime-dialog-shell"/)
+  assert.doesNotMatch(page, /runtimeDialogOpen/)
+  assert.doesNotMatch(page, /openRuntimeDialog/)
+  assert.doesNotMatch(page, /closeRuntimeDialog/)
+  assert.doesNotMatch(page, /打开系统诊断/)
+
+  assert.match(runtimeSection, /aria-label="系统诊断"/)
   assert.match(runtimeSection, /系统诊断/)
-  assert.match(runtimeSection, /openRuntimeDialog/)
-  assert.match(runtimeSection, /打开系统诊断/)
-  assert.match(runtimeSection, /runtimeDialogSummaryCards/)
-  assert.doesNotMatch(runtimeSection, /class="observability-grid"/)
-  assert.match(runtimeDialog, /role="dialog"/)
-  assert.match(runtimeDialog, /class="runtime-dialog-shell"/)
-  assert.match(runtimeDialog, /class="runtime-domain-index runtime-domain-index--primary"/)
-  assert.match(runtimeDialog, /v-for="domain in domainRuntimeSummaryRows"/)
-  assert.match(runtimeDialog, /10 域运行态/)
-  assert.match(runtimeDialog, /class="runtime-domain-table"/)
-  assert.match(runtimeDialog, /<th>域<\/th>/)
-  assert.match(runtimeDialog, /<th>判断<\/th>/)
-  assert.match(runtimeDialog, /<th>推荐动作<\/th>/)
-  assert.match(runtimeDialog, /runtime-domain-index__reason/)
-  assert.doesNotMatch(runtimeDialog, /runtime-domain-index__grid/)
-  assert.doesNotMatch(runtimeDialog, /class="obs-collapsible observability-block domain-runtime-summary"/)
-  assert.doesNotMatch(runtimeDialog, /runtime-dialog__summary/)
-  assert.match(runtimeDialog, /class="runtime-auxiliary-details obs-collapsible"/)
-  assert.match(runtimeDialog, /class="observability-grid observability-grid--dialog"/)
+  assert.match(runtimeSection, /class="runtime-domain-index runtime-domain-index--primary"/)
+  assert.match(runtimeSection, /v-for="domain in domainRuntimeSummaryRows"/)
+  assert.match(runtimeSection, /10 域运行态/)
+  assert.match(runtimeSection, /class="runtime-domain-table"/)
+  assert.match(runtimeSection, /<th>域<\/th>/)
+  assert.match(runtimeSection, /<th>判断<\/th>/)
+  assert.match(runtimeSection, /<th>推荐动作<\/th>/)
+  assert.match(runtimeSection, /runtime-domain-index__reason/)
+  assert.doesNotMatch(runtimeSection, /class="obs-collapsible observability-block domain-runtime-summary"/)
+  assert.match(runtimeSection, /class="runtime-auxiliary-details"/)
+  assert.match(runtimeSection, /class="observability-grid observability-grid--dialog"/)
+  // 10 域运行态在辅助信息之前
   assert.ok(
-    runtimeDialog.indexOf('class="runtime-domain-index runtime-domain-index--primary"') <
-      runtimeDialog.indexOf('class="runtime-auxiliary-details obs-collapsible"')
+    runtimeSection.indexOf('class="runtime-domain-index runtime-domain-index--primary"') <
+      runtimeSection.indexOf('class="runtime-auxiliary-details"')
   )
-  assert.match(runtimeDialog, /@click="openReportPreview\(report\.path\)"/)
-  assert.match(runtimeDialog, /inline-report-button--not-previewable/)
-  assert.match(runtimeDialog, /closeRuntimeDialog/)
-  assert.match(page, /\.runtime-dialog\s*\{[\s\S]*grid-template-rows:\s*auto minmax\(0,\s*1fr\) auto/)
-  assert.match(page, /\.runtime-domain-index--primary\s*\{[\s\S]*min-height:\s*0/)
-  assert.match(page, /\.runtime-domain-index--primary \.runtime-domain-table\s*\{[\s\S]*height:\s*100%/)
-  assert.match(page, /\.runtime-dialog-shell,\s*[\r\n\s]*\.report-preview-shell/)
-  assert.match(page, /const runtimeDialogOpen = ref\(false\)/)
-  assert.match(page, /function openRuntimeDialog/)
-  assert.match(page, /function closeRuntimeDialog/)
+  // 辅助信息子块默认展开（open）
+  assert.match(runtimeSection, /<details open class="obs-collapsible observability-block"/)
+  assert.match(runtimeSection, /自动派发设置/)
+  assert.match(runtimeSection, /@click="openReportPreview\(report\.path\)"/)
+  assert.match(runtimeSection, /inline-report-button--not-previewable/)
 })
 
 test('crawler monitor wires execution overview from merged queue and progress rows', () => {

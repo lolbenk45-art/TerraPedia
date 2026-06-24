@@ -38,6 +38,18 @@
           </div>
         </header>
 
+        <nav class="monitor-tabs" aria-label="监控分区">
+          <button
+            v-for="tab in monitorTabs"
+            :key="tab.key"
+            type="button"
+            class="monitor-tab"
+            :class="{ 'monitor-tab--active': activeMonitorTab === tab.key }"
+            @click="activeMonitorTab = tab.key"
+          >{{ tab.label }}</button>
+        </nav>
+
+        <div v-show="activeMonitorTab === 'triage'" class="monitor-tab-panel">
         <div v-if="healthSignals.length" class="health-strip">
           <span
             v-for="sig in healthSignals"
@@ -164,12 +176,11 @@
             </div>
           </div>
         </section>
-        <div
-          v-if="selectedDomainDrawerOpen && selectedDomainTableRow"
-          class="selected-domain-drawer-shell"
-          @click.self="closeSelectedDomainDrawer"
+        <section
+          v-if="selectedDomainTableRow"
+          class="selected-domain-inline wiki-workbench"
+          aria-label="选中域排障"
         >
-          <aside class="selected-domain-drawer wiki-workbench" role="dialog" aria-modal="true" aria-label="选中域排障">
             <header class="selected-domain-drawer__head">
               <div>
                 <span class="ops-card__label">选中域排障</span>
@@ -518,7 +529,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
                     </button>
                   </div>
                 </div>
-                <details v-if="selectedDomainSmokeRow" class="selected-domain-detail-block">
+                <details v-if="selectedDomainSmokeRow" open class="selected-domain-detail-block">
                   <summary>
                     <strong>样本爬取验收</strong>
                     <span>{{ statusLabel(rowStatus(selectedDomainSmokeRow)) }}</span>
@@ -530,14 +541,14 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
                     <span><small>进度文件</small><strong>{{ rowSourcePath(selectedDomainSmokeRow) || '--' }}</strong></span>
                   </div>
                 </details>
-                <details v-else class="selected-domain-detail-block">
+                <details v-else open class="selected-domain-detail-block">
                   <summary>
                     <strong>样本爬取验收</strong>
                     <span>暂无样本</span>
                   </summary>
                   <p class="empty-line">当前域暂无样本爬取结果。</p>
                 </details>
-                <details v-if="selectedDomainValidationSummary" class="selected-domain-detail-block">
+                <details v-if="selectedDomainValidationSummary" open class="selected-domain-detail-block">
                   <summary>
                     <strong>基础项检查</strong>
                     <span>
@@ -603,32 +614,23 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
                 </button>
               </article>
             </section>
-          </aside>
+        </section>
         </div>
       </div>
     </section>
 
     <section class="single-screen-diagnostics" aria-label="辅助监控信息">
-      <details class="obs-collapsible monitor-detail-collapsible section-card monitor-panel single-screen-diagnostics__entry">
-        <summary class="section-head">
-          <div>
-            <h2 class="section-card__title">更多诊断</h2>
-            <p class="section-card__subtitle">队列、任务明细、质量验收和系统诊断集中收起；主页面优先看域表格。</p>
-          </div>
-          <span class="status-pill" :class="activeDispatchQueueRows.length || dataQualityAttentionCount ? 'warning' : 'muted'">
-            {{ activeDispatchQueueRows.length }} 队列 · {{ dataQualityAttentionCount }} 质量
-          </span>
-        </summary>
-        <div class="single-screen-diagnostics__body">
-      <details class="obs-collapsible monitor-detail-collapsible section-card monitor-panel stage-progress-panel">
-        <summary class="section-head">
+      <div class="single-screen-diagnostics__body">
+      <div v-show="activeMonitorTab === 'queue'" class="monitor-tab-panel">
+      <section class="section-card monitor-panel stage-progress-panel">
+        <header class="section-head">
           <div>
             <h2 class="section-card__title">执行总览</h2>
             <p class="section-card__subtitle">合并真实队列与实时进度；域表格已经优先展示域状态，这里保留跨域执行项。</p>
             <small class="section-card__subtitle-note">执行项 {{ executionOverviewRows.length }} 项 · 详情交给当前选中域和任务进度明细</small>
           </div>
           <span class="status-pill" :class="statusTone(executionOverviewStatusLabel)">{{ statusLabel(executionOverviewStatusLabel) }}</span>
-        </summary>
+        </header>
 
         <div v-if="executionOverviewRows.length" class="action-rail action-rail--execution">
           <article v-for="row in executionOverviewRows" :key="row.key" class="action-card action-card--execution">
@@ -661,26 +663,25 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
           <strong>暂无需关注执行项</strong>
           <span>当前没有运行、排队、阻塞、停滞或失败的执行项。</span>
         </div>
-      </details>
+      </section>
 
-      <details class="obs-collapsible monitor-detail-collapsible section-card monitor-panel">
-        <summary class="section-head">
+      <section class="section-card monitor-panel">
+        <header class="section-head">
           <div>
             <h2 class="section-card__title">全局队列和任务明细</h2>
             <p class="section-card__subtitle">全局排队、运行、堵塞和历史进度；当前域证据优先看上方选中域。</p>
           </div>
           <span class="status-pill" :class="activeDispatchQueueRows.length ? 'warning' : 'muted'">{{ activeDispatchQueueRows.length }} 项</span>
-        </summary>
+        </header>
 
         <section class="panel wiki-monitor-dispatch-queue" aria-label="wiki-monitor-dispatch-queue">
-          <details class="obs-collapsible">
-            <summary class="panel-head">
-              <div>
-                <h2>队列明细</h2>
-                <p>只显示正在排队、运行或堵塞的队列项；终态结果和运行文件统一进入任务进度明细。</p>
-              </div>
-              <span class="status-pill" :class="activeDispatchQueueRows.length ? 'warning' : 'muted'">{{ activeDispatchQueueRows.length }} 项</span>
-            </summary>
+          <div class="panel-head">
+            <div>
+              <h2>队列明细</h2>
+              <p>只显示正在排队、运行或堵塞的队列项；终态结果和运行文件统一进入任务进度明细。</p>
+            </div>
+            <span class="status-pill" :class="activeDispatchQueueRows.length ? 'warning' : 'muted'">{{ activeDispatchQueueRows.length }} 项</span>
+          </div>
             <div v-if="activeDispatchQueueRows.length" class="dispatch-queue-list">
               <article v-for="item in dispatchQueueRows" :key="item.queueId || item.dispatchId || `${item.domain}-${item.actionId}`" class="dispatch-queue-row">
                 <button type="button" class="dispatch-queue-row__main" @click="selectQueueItemDomain(item)">
@@ -724,18 +725,17 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               <Activity :size="20" />
               <span>尚无正在排队、运行或堵塞的队列项。</span>
             </div>
-          </details>
         </section>
 
         <section class="monitor-layout">
       <div class="monitor-main">
-        <details class="obs-collapsible monitor-detail-collapsible section-card monitor-panel">
-          <summary class="section-head">
+        <section class="section-card monitor-panel">
+          <header class="section-head">
             <div>
               <h2 class="section-card__title">任务进度明细</h2>
               <p class="section-card__subtitle">汇总可操作的进度行、心跳、速度和运行文件；已完成与仅报告行不再挤占上方阶段进度。</p>
             </div>
-          </summary>
+          </header>
           <div class="table-scroll">
             <table class="monitor-table">
               <thead>
@@ -796,14 +796,16 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               </tbody>
             </table>
           </div>
-        </details>
+        </section>
       </div>
 
         </section>
-      </details>
+      </section>
+      </div>
+      <div v-show="activeMonitorTab === 'quality'" class="monitor-tab-panel">
 
-      <details class="obs-collapsible monitor-detail-collapsible section-card monitor-panel">
-        <summary class="section-head">
+      <section class="section-card monitor-panel">
+        <header class="section-head">
           <div>
             <h2 class="section-card__title">质量和验收</h2>
             <p class="section-card__subtitle">数据质量、基础域 10x10、样本测试和当前域详细配置集中在这里，避免挤占主排障路径。</p>
@@ -811,19 +813,18 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
           <span class="status-pill" :class="dataQualityAttentionCount ? 'danger' : 'success'">
             {{ dataQualityAttentionCount ? `${dataQualityAttentionCount} 项待查` : '质量正常' }}
           </span>
-        </summary>
+        </header>
 
         <section class="panel data-quality-panel" aria-label="data-quality">
-          <details class="obs-collapsible" :open="dataQualityAttentionCount > 0">
-            <summary class="panel-head">
-              <div>
-                <h2>数据质量核查</h2>
-                <p>图片归一化异常、漏爬、关系健康与覆盖率；红色表示数据错误，黄色表示漏爬或缺检查。</p>
-              </div>
-              <span class="status-pill" :class="dataQualityAttentionCount ? 'danger' : 'success'">
-                {{ dataQualityAttentionCount ? `${dataQualityAttentionCount} 项待查` : '全部正常' }}
-              </span>
-            </summary>
+          <div class="panel-head">
+            <div>
+              <h2>数据质量核查</h2>
+              <p>图片归一化异常、漏爬、关系健康与覆盖率；红色表示数据错误，黄色表示漏爬或缺检查。</p>
+            </div>
+            <span class="status-pill" :class="dataQualityAttentionCount ? 'danger' : 'success'">
+              {{ dataQualityAttentionCount ? `${dataQualityAttentionCount} 项待查` : '全部正常' }}
+            </span>
+          </div>
             <div v-if="dataQualitySignals.length" class="data-quality-grid">
               <button
                 v-for="sig in dataQualitySignals"
@@ -840,7 +841,6 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               </button>
             </div>
             <p v-else class="empty-line">暂无数据质量信号。</p>
-          </details>
         </section>
 
         <section class="panel recovery-domain-panel">
@@ -851,11 +851,10 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
             </div>
             <span class="status-pill info">{{ baseDomainOrchestrationRows.length }} 个基础域</span>
           </div>
-          <details class="obs-collapsible base-domain-validation-collapsible">
-            <summary class="base-domain-validation-summary">
-              <strong>基础域验收</strong>
-              <span>{{ baseDomainOrchestrationRows.length }} 域 · 正式域 / 样本测试双通道</span>
-            </summary>
+          <div class="base-domain-validation-summary">
+            <strong>基础域验收</strong>
+            <span>{{ baseDomainOrchestrationRows.length }} 域 · 正式域 / 样本测试双通道</span>
+          </div>
             <div class="base-domain-orchestration" aria-label="基础域顺序编排">
               <div class="base-domain-orchestration__head">
                 <div>
@@ -931,35 +930,12 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
                 </article>
               </div>
             </div>
-          </details>
         </section>
 
-      </details>
+      </section>
+      </div>
 
-      <details class="obs-collapsible monitor-detail-collapsible section-card monitor-panel">
-        <summary class="section-head">
-          <div>
-            <h2 class="section-card__title">系统诊断</h2>
-            <p class="section-card__subtitle">守护、调度、锁、心跳和派发设置集中到弹窗中查看。</p>
-          </div>
-          <button type="button" class="inline-report-button" @click.stop="openRuntimeDialog">
-            <Eye :size="14" />
-            <span>打开系统诊断</span>
-          </button>
-        </summary>
-
-        <section class="panel monitor-observability" aria-label="系统诊断">
-          <div class="runtime-summary-grid">
-            <span v-for="card in runtimeDialogSummaryCards" :key="card.key" class="runtime-summary-card">
-              <small>{{ card.label }}</small>
-              <strong>{{ card.value }}</strong>
-              <em>{{ card.detail }}</em>
-            </span>
-          </div>
-        </section>
-      </details>
-        </div>
-      </details>
+      </div>
     </section>
 
     <section v-if="dispatchConfirmDomain" class="cancel-confirm-panel" role="dialog" aria-modal="true" aria-label="启动重爬确认">
@@ -1009,21 +985,13 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
       </div>
     </section>
 
-    <div
-      v-if="runtimeDialogOpen"
-      class="runtime-dialog-shell"
-      @click.self="closeRuntimeDialog"
-    >
-      <aside class="runtime-dialog report-preview-drawer" role="dialog" aria-modal="true" aria-label="运行态详情">
-        <div class="report-preview__head">
+    <section v-show="activeMonitorTab === 'diagnostics'" class="section-card monitor-panel system-diagnostics-inline" aria-label="系统诊断">
+        <header class="section-head">
           <div>
-            <strong>运行态详情</strong>
-            <small>优先查看域状态；运行文件、派发、心跳、历史和报告在底部辅助信息中展开。</small>
+            <h2 class="section-card__title">系统诊断</h2>
+            <p class="section-card__subtitle">10 域运行态、运行文件、派发、心跳、历史、报告与图片指标，全部平铺展开。</p>
           </div>
-          <button type="button" class="icon-close-button" aria-label="关闭运行态详情" @click="closeRuntimeDialog">
-            <X :size="16" />
-          </button>
-        </div>
+        </header>
 
         <section class="runtime-domain-index runtime-domain-index--primary" aria-label="10 域运行态">
           <div class="observability-block__head">
@@ -1064,13 +1032,13 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
           <p v-else class="empty-line">暂无域基础信息。</p>
         </section>
 
-        <details class="runtime-auxiliary-details obs-collapsible">
-          <summary class="observability-block__head">
+        <div class="runtime-auxiliary-details">
+          <div class="observability-block__head runtime-auxiliary-details__head">
             <strong>辅助运行信息</strong>
             <span>运行文件 / 派发 / 心跳 / 历史 / 报告</span>
-          </summary>
+          </div>
           <div class="observability-grid observability-grid--dialog">
-            <details class="obs-collapsible observability-block">
+            <details open class="obs-collapsible observability-block">
               <summary class="observability-block__head">
                 <strong>运行文件</strong>
                 <span>{{ runtimeStateCards.length }} 项</span>
@@ -1105,7 +1073,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               <p v-else class="empty-line">暂无派发计划</p>
             </article>
 
-            <details class="obs-collapsible auto-dispatch-card">
+            <details open class="obs-collapsible auto-dispatch-card">
               <summary class="observability-block__head">
                 <strong>自动派发设置</strong>
                 <span>{{ autoDispatchForm.enabled ? '已开启' : '已关闭' }}</span>
@@ -1154,7 +1122,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               <p v-else class="empty-line">暂无心跳告警</p>
             </article>
 
-            <details class="obs-collapsible observability-block">
+            <details open class="obs-collapsible observability-block">
               <summary class="observability-block__head">
                 <strong>运行历史</strong>
                 <span>{{ historyRows.length }} 条</span>
@@ -1169,7 +1137,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               <p v-else class="empty-line">暂无历史</p>
             </details>
 
-            <details class="obs-collapsible observability-block">
+            <details open class="obs-collapsible observability-block">
               <summary class="observability-block__head">
                 <strong>报告</strong>
                 <span>{{ recentReportRows.length }} 个</span>
@@ -1193,7 +1161,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               <p v-else class="empty-line">暂无报告</p>
             </details>
 
-            <details class="obs-collapsible observability-block">
+            <details open class="obs-collapsible observability-block">
               <summary class="observability-block__head">
                 <strong>图片指标</strong>
                 <span>{{ imageNormalizationRows.length }} 项</span>
@@ -1207,9 +1175,8 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               <p v-else class="empty-line">暂无图片指标</p>
             </details>
           </div>
-        </details>
-      </aside>
-    </div>
+        </div>
+    </section>
 
     <div
       v-if="selectedReportPath || reportPreview || reportPreviewError"
@@ -1329,10 +1296,16 @@ const autoDispatchForm = reactive<CrawlerMonitorAutoDispatchSettings>({
   sweepIntervalMinutes: 60,
 })
 const hiddenNoiseKeys = ref<Set<string>>(new Set())
-const runtimeDialogOpen = ref(false)
-const selectedDomainDrawerOpen = ref(false)
 const selectedWikiDomainKey = ref('')
 const selectedDomainTableKey = ref('')
+const hasAutoSelectedDomain = ref(false)
+const monitorTabs = [
+  { key: 'triage', label: '域排障' },
+  { key: 'queue', label: '队列与任务' },
+  { key: 'quality', label: '质量验收' },
+  { key: 'diagnostics', label: '系统诊断' },
+] as const
+const activeMonitorTab = ref<'triage' | 'queue' | 'quality' | 'diagnostics'>('triage')
 const latestDispatchResult = ref<CrawlerMonitorDispatchResult | null>(null)
 const commandPreviewDomainKey = ref('')
 const cancelConfirmDomainKey = ref('')
@@ -1860,20 +1833,10 @@ async function openReportPreview(path?: string | null) {
   }
 }
 
-function openRuntimeDialog() {
-  runtimeDialogOpen.value = true
-}
-
-function closeRuntimeDialog() {
-  runtimeDialogOpen.value = false
-}
-
-function openSelectedDomainDrawer() {
-  selectedDomainDrawerOpen.value = true
-}
-
 function closeSelectedDomainDrawer() {
-  selectedDomainDrawerOpen.value = false
+  selectedDomainTableKey.value = ''
+  selectedWikiDomainKey.value = ''
+  hasAutoSelectedDomain.value = true
 }
 
 function wikiDomainKey(domain: CrawlerMonitorWikiDomain | null | undefined) {
@@ -1886,7 +1849,7 @@ function selectWikiDomain(domain: CrawlerMonitorWikiDomain | null | undefined) {
   const domainKeyValue = domain.domain || wikiDomainKey(domain)
   const matchedRow = domainTableRows.value.find((row) => row.domain === domainKeyValue || wikiDomainKey(row.sourceDomain) === domainKeyValue)
   selectedDomainTableKey.value = matchedRow ? selectedDomainTableRowKey(matchedRow) : `domain:${domainKeyValue}`
-  openSelectedDomainDrawer()
+  hasAutoSelectedDomain.value = true
 }
 
 function selectDomainTableRow(row: any) {
@@ -1895,7 +1858,7 @@ function selectDomainTableRow(row: any) {
   if (row.sourceDomain) {
     selectedWikiDomainKey.value = wikiDomainKey(row.sourceDomain)
   }
-  openSelectedDomainDrawer()
+  hasAutoSelectedDomain.value = true
 }
 
 function selectedDomainTableRowKey(row: any) {
@@ -1908,9 +1871,20 @@ function selectedDomainTableRowKey(row: any) {
 }
 
 function selectRuntimeDomain(domain: CrawlerMonitorWikiDomain | null | undefined) {
-  closeRuntimeDialog()
   selectWikiDomain(domain)
 }
+
+// 首屏默认选中最严重的域，使内联排障面板默认展示（对齐设计稿）
+watch(
+  domainTableRows,
+  (rows) => {
+    if (!hasAutoSelectedDomain.value && !selectedDomainTableKey.value && rows.length) {
+      selectedDomainTableKey.value = selectedDomainTableRowKey(rows[0])
+      hasAutoSelectedDomain.value = true
+    }
+  },
+  { immediate: true },
+)
 
 function canExecuteWikiDomain(domain: CrawlerMonitorWikiDomain) {
   return !wikiDomainDisabledReason(domain)
@@ -4489,25 +4463,6 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   font-size: 11px;
 }
 
-.selected-domain-drawer-shell {
-  position: fixed;
-  inset: var(--header-height) 0 0 0;
-  z-index: 60;
-  display: flex;
-  justify-content: flex-end;
-  background: rgb(15 23 42 / 24%);
-}
-
-.selected-domain-drawer {
-  width: min(720px, calc(100vw - 32px));
-  height: 100%;
-  overflow: auto;
-  padding: 18px;
-  border-left: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
-  background: var(--color-bg);
-  box-shadow: -18px 0 48px rgb(15 23 42 / 18%);
-}
-
 .selected-domain-drawer__head {
   position: sticky;
   top: -18px;
@@ -5976,4 +5931,501 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 .monitor-detail-collapsible[open] > summary {
   margin-bottom: 16px;
 }
+
+/* =====================================================================
+   紧凑工作台重皮层 (compact workbench redesign)
+   只新增、不删除：靠后写覆盖前写，保留全部布局与契约锁定规则。
+   目标：暖纸青绿主题一致、密度更紧、表面更干净、层级更清晰。
+   ===================================================================== */
+
+/* —— 状态色：暖色对齐主题，告别冷蓝/冷灰 —— */
+.success { color: #0f7a52; background: rgba(5, 150, 105, 0.13); }
+.danger  { color: #b3261e; background: rgba(220, 38, 38, 0.11); }
+.warning { color: #9a5b06; background: rgba(217, 119, 6, 0.16); }
+.info    { color: #06699e; background: rgba(2, 132, 199, 0.13); }
+.muted   { color: #5f594f; background: #ebe6dd; }
+
+/* —— 状态药丸：统一加圆点标识 + 更紧凑（保留契约锁定的省略号/不换行）—— */
+.status-pill {
+  gap: 5px;
+  min-height: 24px;
+  padding: 2px 9px;
+  font-size: 11.5px;
+}
+.status-pill::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* —— 进度条：实色填充，轨道更暖，看得清 —— */
+.progress-track { background: #e6e0d6; }
+.progress-track span.success { background: var(--color-success); }
+.progress-track span.danger  { background: var(--color-danger); }
+.progress-track span.warning { background: var(--color-warning); }
+.progress-track span.info    { background: var(--color-info); }
+.progress-track span.muted   { background: var(--color-text-muted); }
+
+/* —— 顶栏 / 主面板：干净白面 + 暖阴影 + 统一圆角 —— */
+.focused-topbar {
+  border-color: var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-2);
+  box-shadow: var(--shadow-sm);
+}
+.focused-topbar .page-head__title { font-size: 20px; }
+.panel {
+  border-color: var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-2);
+}
+.panel-head h2,
+.recovery-detail h2 { font-size: 16px; }
+.stale-alert { border-radius: 12px; }
+
+/* —— Wiki 选中域工作台：干净白卡 + 收紧标题字号 —— */
+.wiki-live-panel,
+.wiki-recovery-panel,
+.wiki-detail-card,
+.wiki-dispatch-feedback,
+.wiki-command-preview {
+  border-color: var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-2);
+}
+.wiki-live-panel h2,
+.wiki-live-panel h3,
+.wiki-recovery-panel h3 { font-size: 16px; }
+.wiki-live-percent { font-size: 28px; }
+.wiki-recovery-panel {
+  border-color: color-mix(in srgb, var(--color-primary) 26%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-surface-2));
+}
+.wiki-dispatch-feedback {
+  border-color: color-mix(in srgb, var(--color-info) 26%, var(--color-border));
+  background: color-mix(in srgb, var(--color-info) 7%, var(--color-surface-2));
+}
+.wiki-dispatch-feedback--muted {
+  border-color: var(--color-border);
+  background: var(--color-surface-muted);
+}
+.selected-domain-drawer__head h2 { font-size: 18px; }
+
+/* —— 内嵌指标格 / 元数据格 / 行块：统一暖灰底 —— */
+.wiki-live-metrics span,
+.wiki-path-strip,
+.selected-domain-detail-grid span,
+.dispatch-queue-row__meta span,
+.compact-metrics span,
+.action-card__queue span,
+.ops-metrics span,
+.domain-test-items span,
+.state-row,
+.reason-row,
+.task-row,
+.path-row {
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  background: var(--color-surface-muted);
+}
+
+/* —— 卡片类容器：干净白面 + 统一圆角 —— */
+.dispatch-queue-row,
+.runtime-summary-card,
+.observability-block,
+.auto-dispatch-card,
+.runtime-domain-index,
+.domain-test-card,
+.base-domain-flow-row__domain,
+.selected-domain-detail-block {
+  border-color: var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface-2);
+}
+.action-card {
+  border-color: var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-2);
+}
+.base-domain-flow-step { background: var(--color-surface-muted); }
+
+/* —— 数据质量格：暖色 tone —— */
+.data-quality-cell {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+}
+.data-quality-cell.success {
+  border-color: color-mix(in srgb, var(--color-success) 24%, var(--color-border));
+  background: color-mix(in srgb, var(--color-success) 9%, var(--color-surface-2));
+}
+.data-quality-cell.warning {
+  border-color: color-mix(in srgb, var(--color-warning) 26%, var(--color-border));
+  background: color-mix(in srgb, var(--color-warning) 11%, var(--color-surface-2));
+}
+.data-quality-cell.danger {
+  border-color: color-mix(in srgb, var(--color-danger) 26%, var(--color-border));
+  background: color-mix(in srgb, var(--color-danger) 9%, var(--color-surface-2));
+}
+.data-quality-cell.muted {
+  border-color: var(--color-border);
+  background: var(--color-surface-muted);
+}
+
+/* —— 按钮：统一干净 chrome + 悬停反馈，更紧凑 —— */
+.inline-report-button,
+.icon-close-button {
+  min-height: 30px;
+  border-color: var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-2);
+  font-weight: 700;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+.inline-report-button:hover:not(:disabled),
+.icon-close-button:hover { background: var(--color-bg-hover); }
+.icon-close-button { width: 34px; height: 34px; }
+.inline-report-button--danger {
+  border-color: color-mix(in srgb, var(--color-danger) 36%, var(--color-border));
+  color: #b3261e;
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-surface-2));
+}
+.inline-report-button--warning {
+  border-color: color-mix(in srgb, var(--color-warning) 36%, var(--color-border));
+  color: #9a5b06;
+  background: color-mix(in srgb, var(--color-warning) 10%, var(--color-surface-2));
+}
+
+/* —— 数据表：更紧凑、表头更克制 —— */
+.monitor-table th,
+.monitor-table td { padding: 10px 12px; }
+.monitor-table th { font-size: 11px; letter-spacing: 0.04em; }
+.domain-monitor-table td { padding-top: 8px; padding-bottom: 8px; }
+.ops-card__title { font-size: 16px; }
+.base-domain-orchestration__head strong,
+.domain-test-matrix__head strong { font-size: 14px; }
+
+/* —— 报告预览抽屉：暖阴影 —— */
+.report-preview-drawer { box-shadow: -24px 0 48px rgba(28, 25, 23, 0.18); }
+.report-preview__content,
+.report-preview__empty {
+  border-color: var(--color-border);
+  background: var(--color-surface-muted);
+}
+
+/* —— 次级"诊断与验收"区：轻微压暗，和主排障区分层 —— */
+.single-screen-diagnostics__entry { background: var(--color-surface-muted); }
+
+/* =====================================================================
+   内联工作台结构层（抽屉/弹层/折叠 → 内联平铺，对齐设计稿）
+   ===================================================================== */
+
+/* 域表格去单屏固定高，改为自然流 */
+.domain-table-panel {
+  grid-template-rows: auto auto;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+}
+.single-screen-table-frame { overflow: visible; }
+
+/* 诊断区与各内联区之间留白 */
+.recovery-main { gap: 12px; }
+.single-screen-diagnostics { gap: 12px; margin-top: 4px; }
+.single-screen-diagnostics__body { display: grid; gap: 12px; }
+
+/* 选中域内联面板：青绿强调卡（替代原抽屉） */
+.selected-domain-inline {
+  margin-top: 2px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
+  border-radius: 12px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 8%, var(--color-surface-2)), var(--color-surface-2) 42%);
+  box-shadow: var(--shadow-card);
+}
+/* 头部在内联流中不再粘顶 */
+.selected-domain-inline .selected-domain-drawer__head {
+  position: static;
+  top: auto;
+  padding: 0 0 10px;
+  background: transparent;
+}
+
+/* 诊断区标题头 */
+.diagnostics-zone__head {
+  margin: 6px 2px 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* 健康条：暖色圆角标签横排（轻量、信息密度高） */
+.health-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 2px 0;
+}
+.health-signal {
+  min-height: 26px;
+  padding: 4px 11px;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* 系统诊断内联：去掉弹层用的限高与滚动 */
+.system-diagnostics-inline .runtime-domain-index { border: 0; padding: 0; background: transparent; }
+.runtime-auxiliary-details { max-height: none; overflow: visible; padding: 0; border: 0; background: transparent; }
+.runtime-auxiliary-details__head { margin: 6px 0 4px; }
+.observability-grid--dialog { overflow: visible; padding-right: 0; }
+.runtime-domain-index--primary .runtime-domain-table { max-height: 360px; }
+
+/* 顶部分区 Tab（药丸式分页签） */
+.monitor-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 2px 0 2px;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-muted);
+}
+.monitor-tab {
+  appearance: none;
+  border: 0;
+  border-radius: var(--radius-full);
+  padding: 7px 16px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.monitor-tab:hover { color: var(--color-text); }
+.monitor-tab--active {
+  background: var(--color-surface-2);
+  color: var(--color-primary-dark);
+  box-shadow: var(--shadow-sm);
+}
+.monitor-tab-panel { display: grid; gap: 12px; min-width: 0; }
+.single-screen-diagnostics { margin-top: 0; }
+
+/* =====================================================================
+   全局紧凑密度层（缩小整体尺寸、提高信息密度、长文本限高）
+   末尾追加，覆盖前面规则；避开契约锁定的布局值
+   ===================================================================== */
+.crawler-monitor { font-size: 12px; }
+
+/* 标题与正文整体降一档 */
+.focused-topbar .page-head__title { font-size: 17px; }
+.focused-topbar .page-head__subtitle { font-size: 12px; margin-top: 2px; }
+.section-card__title,
+.panel-head h2,
+.panel-head h3,
+.recovery-detail h2 { font-size: 13px; }
+.section-card__subtitle,
+.section-card__subtitle-note,
+.panel-head p,
+.recovery-detail p { font-size: 11px; margin-top: 2px; line-height: 1.4; }
+.wiki-live-panel h2,
+.wiki-live-panel h3,
+.wiki-recovery-panel h3,
+.selected-domain-drawer__head h2 { font-size: 14px; }
+.wiki-live-panel p { font-size: 11.5px; margin-top: 4px; }
+.wiki-live-percent { font-size: 24px; }
+.ops-card__title { font-size: 14px; }
+.base-domain-orchestration__head strong,
+.domain-test-matrix__head strong { font-size: 13px; }
+
+/* 卡片 / 面板 / 容器 padding 收紧 */
+.focused-topbar { padding: 10px 12px; }
+.panel { padding: 12px; }
+.card { padding: 11px; }
+.section-card { }
+.wiki-live-panel,
+.wiki-recovery-panel { padding: 12px; gap: 10px; }
+.selected-domain-inline { padding: 12px; gap: 10px; }
+.observability-block,
+.auto-dispatch-card,
+.runtime-domain-index,
+.runtime-summary-card,
+.domain-test-card,
+.dispatch-queue-row { padding: 10px; }
+.action-card { padding: 11px; gap: 9px; }
+.recovery-main { gap: 10px; }
+.single-screen-diagnostics__body,
+.monitor-tab-panel { gap: 10px; }
+
+/* 指标格 / 行块更紧 + 字号降一档 */
+.wiki-live-metrics,
+.selected-domain-detail-grid,
+.dispatch-queue-row__meta,
+.compact-metrics,
+.action-card__queue,
+.ops-metrics,
+.domain-test-items { gap: 6px; }
+.wiki-live-metrics span,
+.wiki-path-strip,
+.selected-domain-detail-grid span,
+.dispatch-queue-row__meta span,
+.compact-metrics span,
+.action-card__queue span,
+.ops-metrics span,
+.domain-test-items span,
+.state-row,
+.reason-row,
+.runtime-summary-card { padding: 6px 8px; }
+.wiki-live-metrics strong,
+.selected-domain-detail-grid strong,
+.compact-metrics strong,
+.dispatch-queue-row__meta strong { font-size: 11.5px; }
+.runtime-summary-card strong { font-size: 14px; }
+.data-quality-cell strong { font-size: 14px; }
+.data-quality-cell { min-height: 50px; padding: 7px 9px; }
+.base-domain-flow-step { min-height: 92px; padding: 7px; }
+
+/* 表格行更紧凑 */
+.monitor-table th,
+.monitor-table td { padding: 7px 10px; }
+.monitor-table td strong { font-size: 12px; }
+.monitor-table td small,
+.monitor-table td code { font-size: 11px; margin-top: 2px; }
+.runtime-domain-table th,
+.runtime-domain-table td { padding: 6px 9px; font-size: 11px; }
+.domain-monitor-table td { padding-top: 6px; padding-bottom: 6px; }
+
+/* 按钮更小 */
+.inline-report-button,
+.icon-close-button { min-height: 28px; font-size: 11.5px; }
+.inline-report-button--compact { min-height: 24px; }
+.btn { min-height: 30px; font-size: 11.5px; }
+.monitor-tab { padding: 6px 13px; font-size: 12px; }
+
+/* —— 长文本限高截断，避免日志/路径/原因撑高卡片 —— */
+.runtime-domain-index__reason,
+.action-card__message,
+.dispatch-queue-row__main small,
+.wiki-domain-card__reason,
+.reason-row strong,
+.state-row small {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.wiki-path-strip code,
+.dispatch-queue-row__main code,
+.state-row code,
+.wiki-command-preview code {
+  display: block;
+  max-height: 3.4em;
+  overflow: auto;
+}
+/* 报告预览与空态：限制最大高度，内部滚动 */
+/* 报告/日志预览：抽屉是整屏高，内容吃满剩余高度（不再强压 320px） */
+.report-preview__content { max-height: none; height: 100%; font-size: 12px; line-height: 1.55; }
+.report-preview-drawer { width: min(960px, calc(100vw - 24px)); }
+.report-preview__empty { font-size: 11.5px; }
+/* 任务进度明细表横向滚动区限高，长列表内部滚动 */
+.single-screen-diagnostics .table-scroll { max-height: 460px; overflow: auto; }
+
+/* =====================================================================
+   块密度层 2：卡片/瓦片/格子更密更小，信息更集中
+   ===================================================================== */
+
+/* 内嵌指标瓦片：更小 padding、更小字、去多余高度 */
+.wiki-live-metrics span,
+.selected-domain-detail-grid span,
+.dispatch-queue-row__meta span,
+.compact-metrics span,
+.action-card__queue span,
+.ops-metrics span,
+.domain-test-items span,
+.wiki-detail-card,
+.runtime-summary-card,
+.state-row,
+.reason-row { padding: 5px 7px; border-radius: 6px; }
+.wiki-live-metrics small,
+.selected-domain-detail-grid small,
+.dispatch-queue-row__meta small,
+.compact-metrics small,
+.action-card__queue small,
+.ops-metrics small,
+.domain-test-items small,
+.wiki-detail-card span,
+.runtime-summary-card small { font-size: 10px; }
+.wiki-live-metrics strong,
+.selected-domain-detail-grid strong,
+.dispatch-queue-row__meta strong,
+.compact-metrics strong,
+.action-card__queue strong,
+.ops-metrics strong,
+.domain-test-items strong,
+.wiki-detail-card strong { font-size: 11px; margin-top: 1px; }
+
+/* 指标网格列更多更密 */
+.wiki-live-metrics { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
+.selected-domain-detail-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+.compact-metrics { grid-template-columns: repeat(auto-fit, minmax(78px, 1fr)); gap: 5px; }
+.runtime-summary-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px; }
+.data-quality-grid { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 6px; }
+.domain-test-items { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+.domain-test-matrix__grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+
+/* 数据质量瓦片更扁 */
+.data-quality-cell { min-height: 0; padding: 6px 8px; }
+.data-quality-cell strong { font-size: 13px; }
+.data-quality-cell small { font-size: 10px; }
+
+/* 基础域编排步骤瓦片更密 */
+.base-domain-orchestration { padding: 10px; gap: 8px; }
+.base-domain-flow-row { gap: 7px; }
+.base-domain-flow-steps { gap: 5px; }
+.base-domain-flow-step { min-height: 0; padding: 6px 7px; gap: 3px; }
+.base-domain-flow-step__label { font-size: 9px; }
+.base-domain-flow-step strong { font-size: 11px; }
+.base-domain-flow-step small { font-size: 10px; line-height: 1.3; }
+.base-domain-flow-row__domain { padding: 7px; gap: 4px; }
+
+/* 域测试卡更紧 */
+.domain-test-card { padding: 9px; gap: 7px; }
+.domain-test-card__head strong { font-size: 12px; }
+
+/* 执行总览卡更紧 */
+.action-card { padding: 9px; gap: 7px; }
+.action-card__head strong { font-size: 12px; }
+.action-card__meta { font-size: 11px; }
+
+/* 队列行更紧 */
+.dispatch-queue-row { padding: 8px 9px; gap: 9px; }
+.dispatch-queue-row__main strong { font-size: 12px; }
+.dispatch-queue-row__main small,
+.dispatch-queue-row__main code { font-size: 11px; }
+
+/* 选中域内联面板内部留白再收 */
+.selected-domain-inline { gap: 8px; }
+.wiki-live-panel,
+.wiki-recovery-panel { padding: 11px; gap: 9px; }
+.wiki-run-control-panel { padding: 9px; gap: 8px; }
+.wiki-detail-card { padding: 8px 9px; gap: 3px; }
+
+/* 健康条标签更小 */
+.health-signal { min-height: 22px; padding: 3px 9px; font-size: 11px; }
+
+/* 状态药丸再小一档 */
+.status-pill { min-height: 20px; padding: 1px 8px; font-size: 11px; }
+.status-pill::before { width: 5px; height: 5px; }
+
+/* 运行态辅助网格列更密 */
+.observability-grid--dialog { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 9px; }
 </style>
