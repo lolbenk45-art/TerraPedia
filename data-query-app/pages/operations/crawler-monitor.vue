@@ -39,15 +39,28 @@
         </header>
 
         <div class="monitor-tab-panel">
-        <div v-if="healthSignals.length" class="health-strip">
-          <span
-            v-for="sig in healthSignals"
-            :key="sig.key"
-            class="health-signal"
-            :class="sig.tone"
-            :title="sig.detail"
-          >{{ sig.label }}</span>
-        </div>
+        <section v-if="crawlerHealthCards.length" class="crawler-health-grid" aria-label="全局健康">
+          <template v-for="card in crawlerHealthCards" :key="card.key">
+            <article
+              v-if="card.risk"
+              class="crawler-health-card crawler-health-card--risk"
+              :class="`crawler-health-card--${card.tone}`"
+            >
+              <span class="crawler-health-card__label">{{ card.label }}</span>
+              <strong class="crawler-health-card__value">{{ card.value }}</strong>
+              <small class="crawler-health-card__note">{{ card.note }}</small>
+            </article>
+            <article
+              v-else
+              class="crawler-health-card"
+              :class="`crawler-health-card--${card.tone}`"
+            >
+              <span class="crawler-health-card__label">{{ card.label }}</span>
+              <strong class="crawler-health-card__value">{{ card.value }}</strong>
+              <small class="crawler-health-card__note">{{ card.note }}</small>
+            </article>
+          </template>
+        </section>
 
         <section class="section-card monitor-panel domain-table-panel crawler-domain-card" aria-label="域监控表">
           <div class="section-head">
@@ -167,7 +180,7 @@
         </section>
         <section
           v-if="selectedDomainTableRow"
-          class="selected-domain-inline wiki-workbench selected-domain-workbench"
+          class="selected-domain-workbench selected-domain-inline wiki-workbench"
           aria-label="选中域排障"
         >
             <header class="selected-domain-drawer__head">
@@ -1439,6 +1452,65 @@ const healthSignals = computed(() => {
     })
   }
   return signals
+})
+const crawlerHealthCards = computed(() => {
+  const highestRiskRow = domainTableRows.value[0] || null
+  const failedDomainRows = domainTableRows.value.filter((row) => ['failed'].includes(String(row.status || '').toLowerCase()))
+  const runningDomainRows = domainTableRows.value.filter((row) => ['running'].includes(String(row.status || '').toLowerCase()))
+  const queuedDomainRows = domainTableRows.value.filter((row) => ['queued'].includes(String(row.status || '').toLowerCase()))
+  const queuedRows = dispatchQueueRows.value.length ? dispatchQueueRows.value : queuedDomainRows
+  const staleHeartbeatCount = staleHeartbeatRows.value.length
+  const refreshLabel = lastOverviewRefreshAt.value ? formatDate(lastOverviewRefreshAt.value) : '暂无刷新'
+  return [
+    {
+      key: 'highest-risk',
+      label: '最高风险',
+      value: highestRiskRow ? (highestRiskRow.diagnosisTitle || statusLabel(highestRiskRow.status || 'missing')) : '暂无',
+      note: highestRiskRow ? `${highestRiskRow.label || highestRiskRow.domain || '未知域'} · ${highestRiskRow.rankReason || highestRiskRow.reason || '暂无判断'}` : '暂无域监控数据',
+      tone: highestRiskRow ? statusTone(highestRiskRow.risk || highestRiskRow.status || 'missing') : 'muted',
+      risk: Boolean(highestRiskRow),
+    },
+    {
+      key: 'failed-domains',
+      label: '失败域',
+      value: formatNumber(failedDomainRows.length),
+      note: failedDomainRows.length ? '来自域监控表的失败状态' : '暂无失败域',
+      tone: 'danger',
+      risk: failedDomainRows.length > 0,
+    },
+    {
+      key: 'stale-heartbeats',
+      label: '心跳过期',
+      value: formatNumber(staleHeartbeatCount),
+      note: staleHeartbeatCount ? '来自当前过期心跳列表' : '暂无心跳过期',
+      tone: staleHeartbeatCount > 0 ? 'warning' : 'muted',
+      risk: staleHeartbeatCount > 0,
+    },
+    {
+      key: 'running-domains',
+      label: '运行中',
+      value: formatNumber(runningDomainRows.length),
+      note: runningDomainRows.length ? '来自域监控表的运行中状态' : '暂无运行中域',
+      tone: 'success',
+      risk: false,
+    },
+    {
+      key: 'queued-domains',
+      label: '排队中',
+      value: formatNumber(queuedRows.length),
+      note: queuedRows.length ? '来自队列或域监控表' : '暂无排队任务',
+      tone: queuedRows.length > 0 ? 'info' : 'muted',
+      risk: false,
+    },
+    {
+      key: 'last-refresh',
+      label: '最后刷新',
+      value: refreshLabel,
+      note: autoRefresh.value ? '自动刷新开' : '自动刷新关',
+      tone: autoRefresh.value ? 'success' : 'muted',
+      risk: false,
+    },
+  ]
 })
 const overviewWithPlanBFields = computed<any>(() => overview.value || {})
 const wikiMonitorWithPlanBFields = computed<any>(() => wikiMonitor.value || {})

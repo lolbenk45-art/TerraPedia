@@ -1332,10 +1332,19 @@ test('crawler monitor isPreviewableReportPath accepts .log files under reports/c
   assert.match(page, /isPreviewableReportPath/)
 })
 
-test('crawler monitor shows a health strip with daemon, scheduler, lock, refresh staleness, heartbeat and task alerts', () => {
+test('crawler monitor shows a six-card health grid with highest risk first', () => {
   assert.match(page, /healthSignals/)
-  assert.match(page, /health-strip/)
-  assert.match(page, /守护|调度|锁/)
+  assert.match(page, /crawlerHealthCards/)
+  assert.match(page, /class="crawler-health-grid"/)
+  assert.match(page, /class="crawler-health-card crawler-health-card--risk"/)
+  assert.match(page, /v-for="card in crawlerHealthCards"/)
+  assert.match(page, /最高风险/)
+  assert.match(page, /失败域/)
+  assert.match(page, /心跳过期/)
+  assert.match(page, /运行中/)
+  assert.match(page, /排队中/)
+  assert.match(page, /最后刷新/)
+  assert.doesNotMatch(page, /class="health-strip"/)
 })
 
 test('crawler monitor renders runtime observability inline in the diagnostics zone', () => {
