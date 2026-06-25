@@ -183,7 +183,7 @@
           class="selected-domain-workbench selected-domain-inline wiki-workbench"
           aria-label="选中域排障"
         >
-            <header class="selected-domain-drawer__head">
+            <header class="selected-domain-workbench__head selected-domain-drawer__head">
               <div>
                 <span class="ops-card__label">选中域排障</span>
                 <h2>{{ selectedDomainDisplayName }} · {{ selectedDomainStatusLabel }}</h2>
@@ -193,6 +193,7 @@
                 <X :size="16" />
               </button>
             </header>
+            <div class="selected-domain-workbench__grid">
             <div class="wiki-live-panel live-focus">
             <div class="wiki-live-panel__head">
               <div>
@@ -359,46 +360,6 @@
             </div>
             <div v-if="selectedWikiDomain" class="wiki-recovery-actions">
               <button
-                type="button"
-                class="btn btn-primary"
-                :disabled="!selectedWikiCanExecute || wikiDispatchLoading === selectedWikiDomain.domain"
-                :title="selectedWikiActionDisabledReason || selectedWikiOperationHint"
-                @click="openDispatchConfirm(selectedWikiDomain)"
-              >
-                <RefreshCw :size="16" :class="{ 'spin': wikiDispatchLoading === selectedWikiDomain.domain }" />
-                <span>{{ wikiDomainPrimaryActionLabel(selectedWikiDomain) }}</span>
-              </button>
-              <button
-                v-if="canRetryWikiDomain(selectedWikiDomain)"
-                type="button"
-                class="inline-report-button inline-report-button--warning"
-                :disabled="wikiDispatchLoading === selectedWikiDomain.domain"
-                @click="retryWikiDomain(selectedWikiDomain)"
-              >
-                <RefreshCw :size="14" :class="{ 'spin': wikiDispatchLoading === selectedWikiDomain.domain }" />
-                <span>{{ wikiDispatchLoading === selectedWikiDomain.domain ? '重试中' : '重试' }}</span>
-              </button>
-              <button
-                v-if="canPauseWikiDomain(selectedWikiDomain)"
-                type="button"
-                class="inline-report-button"
-                :disabled="wikiControlLoading === selectedWikiDomain.domain"
-                @click="controlWikiMonitorTask(selectedWikiDomain, 'pause')"
-              >
-                <Pause :size="14" />
-                <span>{{ wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '暂停占用' }}</span>
-              </button>
-              <button
-                v-if="canResumeWikiDomain(selectedWikiDomain)"
-                type="button"
-                class="inline-report-button"
-                :disabled="wikiControlLoading === selectedWikiDomain.domain"
-                @click="controlWikiMonitorTask(selectedWikiDomain, 'resume')"
-              >
-                <Play :size="14" />
-                <span>{{ wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '继续任务' }}</span>
-              </button>
-              <button
                 v-if="isPreviewableReportPath(selectedWikiReportPath)"
                 type="button"
                 class="inline-report-button"
@@ -494,6 +455,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               </button>
             </div>
             </aside>
+            </div>
             <section v-if="selectedWikiDomain" class="panel recovery-detail selected-domain-config">
               <div>
                 <h2>{{ selectedDomainDisplayName }} 域详情</h2>
@@ -621,7 +583,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
       </div>
     </section>
 
-    <section class="single-screen-diagnostics diagnostics-zone" aria-label="辅助监控信息">
+    <section class="diagnostics-zone" aria-label="辅助监控信息">
       <div class="single-screen-diagnostics__body">
       <div class="monitor-tab-panel">
       <section class="section-card monitor-panel stage-progress-panel">
@@ -987,7 +949,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
       </div>
     </section>
 
-    <section class="section-card monitor-panel system-diagnostics-inline system-diagnostics-card" aria-label="系统诊断">
+    <section class="section-card monitor-panel system-diagnostics-card system-diagnostics-inline" aria-label="系统诊断">
         <header class="section-head">
           <div>
             <h2 class="section-card__title">系统诊断</h2>
