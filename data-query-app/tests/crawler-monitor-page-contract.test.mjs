@@ -49,6 +49,40 @@ const sourceSnapshotPriorityFixture = {
   ],
 }
 
+test('crawler monitor uses the compact workbench flow without page-level tabs', () => {
+  assert.doesNotMatch(page, /class="monitor-tabs"/)
+  assert.doesNotMatch(page, /class="monitor-tab"/)
+  assert.doesNotMatch(page, /activeMonitorTab/)
+  assert.doesNotMatch(page, /const monitorTabs\s*=/)
+  assert.doesNotMatch(page, /v-show="activeMonitorTab ===/)
+})
+
+function assertOrderedMarkers(markers) {
+  let previous = -1
+  for (const marker of markers) {
+    const next = page.indexOf(marker)
+    assert.ok(next > -1, `missing marker: ${marker}`)
+    assert.ok(next > previous, `marker out of order: ${marker}`)
+    previous = next
+  }
+}
+
+test('crawler monitor matches the compact workbench section order', () => {
+  assertOrderedMarkers([
+    'class="section-card stale-alert"',
+    'class="recovery-board single-screen-board crawler-workbench"',
+    'class="focused-topbar single-screen-toolbar crawler-workbench-topbar"',
+    'class="crawler-health-grid"',
+    'class="section-card monitor-panel domain-table-panel crawler-domain-card"',
+    'class="selected-domain-workbench selected-domain-inline wiki-workbench"',
+    'class="diagnostics-zone"',
+    'class="section-card monitor-panel execution-overview-card"',
+    'class="section-card monitor-panel queue-progress-card"',
+    'class="section-card monitor-panel quality-validation-card"',
+    'class="section-card monitor-panel system-diagnostics-card system-diagnostics-inline"',
+  ])
+})
+
 test('crawler monitor renders registered task progress as the primary progress rows', () => {
   assert.match(page, /progressRows/)
   assert.match(page, /registeredTasks/)
