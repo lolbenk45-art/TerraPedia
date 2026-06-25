@@ -11,9 +11,9 @@
       </div>
     </section>
 
-    <section class="recovery-board single-screen-board" aria-label="Wiki 数据变化 / 手动执行">
+    <section class="recovery-board single-screen-board crawler-workbench" aria-label="Wiki 数据变化 / 手动执行">
       <div class="recovery-main">
-        <header class="focused-topbar single-screen-toolbar">
+        <header class="focused-topbar single-screen-toolbar crawler-workbench-topbar">
           <div>
             <p class="eyebrow">Crawler Monitor</p>
             <h1 class="page-head__title">域爬取监控</h1>
@@ -38,29 +38,31 @@
           </div>
         </header>
 
-        <nav class="monitor-tabs" aria-label="监控分区">
-          <button
-            v-for="tab in monitorTabs"
-            :key="tab.key"
-            type="button"
-            class="monitor-tab"
-            :class="{ 'monitor-tab--active': activeMonitorTab === tab.key }"
-            @click="activeMonitorTab = tab.key"
-          >{{ tab.label }}</button>
-        </nav>
+        <div class="monitor-tab-panel">
+        <section v-if="crawlerHealthCards.length" class="crawler-health-grid" aria-label="全局健康">
+          <template v-for="card in crawlerHealthCards" :key="card.key">
+            <article
+              v-if="card.risk"
+              class="crawler-health-card crawler-health-card--risk"
+              :class="`crawler-health-card--${card.tone}`"
+            >
+              <span class="crawler-health-card__label">{{ card.label }}</span>
+              <strong class="crawler-health-card__value">{{ card.value }}</strong>
+              <small class="crawler-health-card__note">{{ card.note }}</small>
+            </article>
+            <article
+              v-else
+              class="crawler-health-card"
+              :class="`crawler-health-card--${card.tone}`"
+            >
+              <span class="crawler-health-card__label">{{ card.label }}</span>
+              <strong class="crawler-health-card__value">{{ card.value }}</strong>
+              <small class="crawler-health-card__note">{{ card.note }}</small>
+            </article>
+          </template>
+        </section>
 
-        <div v-show="activeMonitorTab === 'triage'" class="monitor-tab-panel">
-        <div v-if="healthSignals.length" class="health-strip">
-          <span
-            v-for="sig in healthSignals"
-            :key="sig.key"
-            class="health-signal"
-            :class="sig.tone"
-            :title="sig.detail"
-          >{{ sig.label }}</span>
-        </div>
-
-        <section class="section-card monitor-panel domain-table-panel" aria-label="域监控表">
+        <section class="section-card monitor-panel domain-table-panel crawler-domain-card" aria-label="域监控表">
           <div class="section-head">
             <div>
               <h2 class="section-card__title">域监控表</h2>
@@ -178,10 +180,10 @@
         </section>
         <section
           v-if="selectedDomainTableRow"
-          class="selected-domain-inline wiki-workbench"
+          class="selected-domain-workbench selected-domain-inline wiki-workbench"
           aria-label="选中域排障"
         >
-            <header class="selected-domain-drawer__head">
+            <header class="selected-domain-workbench__head selected-domain-drawer__head">
               <div>
                 <span class="ops-card__label">选中域排障</span>
                 <h2>{{ selectedDomainDisplayName }} · {{ selectedDomainStatusLabel }}</h2>
@@ -191,6 +193,7 @@
                 <X :size="16" />
               </button>
             </header>
+            <div class="selected-domain-workbench__grid">
             <div class="wiki-live-panel live-focus">
             <div class="wiki-live-panel__head">
               <div>
@@ -357,46 +360,6 @@
             </div>
             <div v-if="selectedWikiDomain" class="wiki-recovery-actions">
               <button
-                type="button"
-                class="btn btn-primary"
-                :disabled="!selectedWikiCanExecute || wikiDispatchLoading === selectedWikiDomain.domain"
-                :title="selectedWikiActionDisabledReason || selectedWikiOperationHint"
-                @click="openDispatchConfirm(selectedWikiDomain)"
-              >
-                <RefreshCw :size="16" :class="{ 'spin': wikiDispatchLoading === selectedWikiDomain.domain }" />
-                <span>{{ wikiDomainPrimaryActionLabel(selectedWikiDomain) }}</span>
-              </button>
-              <button
-                v-if="canRetryWikiDomain(selectedWikiDomain)"
-                type="button"
-                class="inline-report-button inline-report-button--warning"
-                :disabled="wikiDispatchLoading === selectedWikiDomain.domain"
-                @click="retryWikiDomain(selectedWikiDomain)"
-              >
-                <RefreshCw :size="14" :class="{ 'spin': wikiDispatchLoading === selectedWikiDomain.domain }" />
-                <span>{{ wikiDispatchLoading === selectedWikiDomain.domain ? '重试中' : '重试' }}</span>
-              </button>
-              <button
-                v-if="canPauseWikiDomain(selectedWikiDomain)"
-                type="button"
-                class="inline-report-button"
-                :disabled="wikiControlLoading === selectedWikiDomain.domain"
-                @click="controlWikiMonitorTask(selectedWikiDomain, 'pause')"
-              >
-                <Pause :size="14" />
-                <span>{{ wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '暂停占用' }}</span>
-              </button>
-              <button
-                v-if="canResumeWikiDomain(selectedWikiDomain)"
-                type="button"
-                class="inline-report-button"
-                :disabled="wikiControlLoading === selectedWikiDomain.domain"
-                @click="controlWikiMonitorTask(selectedWikiDomain, 'resume')"
-              >
-                <Play :size="14" />
-                <span>{{ wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '继续任务' }}</span>
-              </button>
-              <button
                 v-if="isPreviewableReportPath(selectedWikiReportPath)"
                 type="button"
                 class="inline-report-button"
@@ -492,6 +455,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
               </button>
             </div>
             </aside>
+            </div>
             <section v-if="selectedWikiDomain" class="panel recovery-detail selected-domain-config">
               <div>
                 <h2>{{ selectedDomainDisplayName }} 域详情</h2>
@@ -619,10 +583,17 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
       </div>
     </section>
 
-    <section class="single-screen-diagnostics" aria-label="辅助监控信息">
+    <section class="diagnostics-zone" aria-label="辅助监控信息">
+      <div class="diagnostics-zone__head">
+        <span class="diagnostics-zone__bar" aria-hidden="true"></span>
+        <div>
+          <h2>诊断与验收</h2>
+          <p>执行总览 · 全局队列 · 任务明细 · 数据质量 · 基础域编排 · 10×10 验收</p>
+        </div>
+      </div>
       <div class="single-screen-diagnostics__body">
-      <div v-show="activeMonitorTab === 'queue'" class="monitor-tab-panel">
-      <section class="section-card monitor-panel stage-progress-panel">
+      <div class="monitor-tab-panel">
+      <section class="section-card monitor-panel execution-overview-card">
         <header class="section-head">
           <div>
             <h2 class="section-card__title">执行总览</h2>
@@ -665,7 +636,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
         </div>
       </section>
 
-      <section class="section-card monitor-panel">
+      <section class="section-card monitor-panel queue-progress-card">
         <header class="section-head">
           <div>
             <h2 class="section-card__title">全局队列和任务明细</h2>
@@ -802,9 +773,9 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
         </section>
       </section>
       </div>
-      <div v-show="activeMonitorTab === 'quality'" class="monitor-tab-panel">
+      <div class="monitor-tab-panel">
 
-      <section class="section-card monitor-panel">
+      <section class="section-card monitor-panel quality-validation-card">
         <header class="section-head">
           <div>
             <h2 class="section-card__title">质量和验收</h2>
@@ -985,7 +956,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
       </div>
     </section>
 
-    <section v-show="activeMonitorTab === 'diagnostics'" class="section-card monitor-panel system-diagnostics-inline" aria-label="系统诊断">
+    <section class="section-card monitor-panel system-diagnostics-card system-diagnostics-inline" aria-label="系统诊断">
         <header class="section-head">
           <div>
             <h2 class="section-card__title">系统诊断</h2>
@@ -1299,13 +1270,6 @@ const hiddenNoiseKeys = ref<Set<string>>(new Set())
 const selectedWikiDomainKey = ref('')
 const selectedDomainTableKey = ref('')
 const hasAutoSelectedDomain = ref(false)
-const monitorTabs = [
-  { key: 'triage', label: '域排障' },
-  { key: 'queue', label: '队列与任务' },
-  { key: 'quality', label: '质量验收' },
-  { key: 'diagnostics', label: '系统诊断' },
-] as const
-const activeMonitorTab = ref<'triage' | 'queue' | 'quality' | 'diagnostics'>('triage')
 const latestDispatchResult = ref<CrawlerMonitorDispatchResult | null>(null)
 const commandPreviewDomainKey = ref('')
 const cancelConfirmDomainKey = ref('')
@@ -1457,6 +1421,65 @@ const healthSignals = computed(() => {
     })
   }
   return signals
+})
+const crawlerHealthCards = computed(() => {
+  const highestRiskRow = domainTableRows.value[0] || null
+  const failedDomainRows = domainTableRows.value.filter((row) => ['failed'].includes(String(row.status || '').toLowerCase()))
+  const runningDomainRows = domainTableRows.value.filter((row) => ['running'].includes(String(row.status || '').toLowerCase()))
+  const queuedDomainRows = domainTableRows.value.filter((row) => ['queued'].includes(String(row.status || '').toLowerCase()))
+  const queuedRows = dispatchQueueRows.value.length ? dispatchQueueRows.value : queuedDomainRows
+  const staleHeartbeatCount = staleHeartbeatRows.value.length
+  const refreshLabel = lastOverviewRefreshAt.value ? formatDate(lastOverviewRefreshAt.value) : '暂无刷新'
+  return [
+    {
+      key: 'highest-risk',
+      label: '最高风险',
+      value: highestRiskRow ? (highestRiskRow.diagnosisTitle || statusLabel(highestRiskRow.status || 'missing')) : '暂无',
+      note: highestRiskRow ? `${highestRiskRow.label || highestRiskRow.domain || '未知域'} · ${highestRiskRow.rankReason || highestRiskRow.reason || '暂无判断'}` : '暂无域监控数据',
+      tone: highestRiskRow ? statusTone(highestRiskRow.risk || highestRiskRow.status || 'missing') : 'muted',
+      risk: Boolean(highestRiskRow),
+    },
+    {
+      key: 'failed-domains',
+      label: '失败域',
+      value: formatNumber(failedDomainRows.length),
+      note: failedDomainRows.length ? '来自域监控表的失败状态' : '暂无失败域',
+      tone: 'danger',
+      risk: failedDomainRows.length > 0,
+    },
+    {
+      key: 'stale-heartbeats',
+      label: '心跳过期',
+      value: formatNumber(staleHeartbeatCount),
+      note: staleHeartbeatCount ? '来自当前过期心跳列表' : '暂无心跳过期',
+      tone: staleHeartbeatCount > 0 ? 'warning' : 'muted',
+      risk: staleHeartbeatCount > 0,
+    },
+    {
+      key: 'running-domains',
+      label: '运行中',
+      value: formatNumber(runningDomainRows.length),
+      note: runningDomainRows.length ? '来自域监控表的运行中状态' : '暂无运行中域',
+      tone: 'success',
+      risk: false,
+    },
+    {
+      key: 'queued-domains',
+      label: '排队中',
+      value: formatNumber(queuedRows.length),
+      note: queuedRows.length ? '来自队列或域监控表' : '暂无排队任务',
+      tone: queuedRows.length > 0 ? 'info' : 'muted',
+      risk: false,
+    },
+    {
+      key: 'last-refresh',
+      label: '最后刷新',
+      value: refreshLabel,
+      note: autoRefresh.value ? '自动刷新开' : '自动刷新关',
+      tone: autoRefresh.value ? 'success' : 'muted',
+      risk: false,
+    },
+  ]
 })
 const overviewWithPlanBFields = computed<any>(() => overview.value || {})
 const wikiMonitorWithPlanBFields = computed<any>(() => wikiMonitor.value || {})
@@ -3853,7 +3876,7 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 
 .wiki-domain-health-metrics small {
   color: var(--color-text-secondary);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0;
 }
@@ -4355,24 +4378,26 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 
 .domain-table-panel {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
   gap: 8px;
-  height: calc(100dvh - 132px);
-  min-height: 560px;
+  height: auto;
+  min-height: 0;
+  max-height: none;
   padding: 12px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .single-screen-table-frame {
   min-height: 0;
   border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .single-screen-table-frame .table-scroll {
   height: 100%;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
 }
 
 .domain-monitor-table {
@@ -5932,500 +5957,321 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   margin-bottom: 16px;
 }
 
-/* =====================================================================
-   紧凑工作台重皮层 (compact workbench redesign)
-   只新增、不删除：靠后写覆盖前写，保留全部布局与契约锁定规则。
-   目标：暖纸青绿主题一致、密度更紧、表面更干净、层级更清晰。
-   ===================================================================== */
+.crawler-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  min-width: 0;
+}
 
-/* —— 状态色：暖色对齐主题，告别冷蓝/冷灰 —— */
-.success { color: #0f7a52; background: rgba(5, 150, 105, 0.13); }
-.danger  { color: #b3261e; background: rgba(220, 38, 38, 0.11); }
-.warning { color: #9a5b06; background: rgba(217, 119, 6, 0.16); }
-.info    { color: #06699e; background: rgba(2, 132, 199, 0.13); }
-.muted   { color: #5f594f; background: #ebe6dd; }
+.crawler-workbench .recovery-main {
+  gap: 14px;
+}
 
-/* —— 状态药丸：统一加圆点标识 + 更紧凑（保留契约锁定的省略号/不换行）—— */
-.status-pill {
+.crawler-workbench-topbar {
+  border-color: color-mix(in srgb, var(--color-primary, #2563eb) 16%, var(--color-border));
+  border-radius: 12px;
+  background: var(--color-surface-2, var(--color-bg));
+  box-shadow: var(--shadow-sm, 0 8px 24px rgb(15 23 42 / 6%));
+}
+
+.crawler-workbench-topbar .page-head__title {
+  font-size: 22px;
+}
+
+.crawler-workbench-topbar .page-head__subtitle {
+  font-size: 13px;
+}
+
+.crawler-health-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(176px, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.crawler-health-card {
+  display: grid;
   gap: 5px;
-  min-height: 24px;
-  padding: 2px 9px;
-  font-size: 11.5px;
-}
-.status-pill::before {
-  content: "";
-  flex: 0 0 auto;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-/* —— 进度条：实色填充，轨道更暖，看得清 —— */
-.progress-track { background: #e6e0d6; }
-.progress-track span.success { background: var(--color-success); }
-.progress-track span.danger  { background: var(--color-danger); }
-.progress-track span.warning { background: var(--color-warning); }
-.progress-track span.info    { background: var(--color-info); }
-.progress-track span.muted   { background: var(--color-text-muted); }
-
-/* —— 顶栏 / 主面板：干净白面 + 暖阴影 + 统一圆角 —— */
-.focused-topbar {
-  border-color: var(--color-border);
-  border-radius: 12px;
-  background: var(--color-surface-2);
-  box-shadow: var(--shadow-sm);
-}
-.focused-topbar .page-head__title { font-size: 20px; }
-.panel {
-  border-color: var(--color-border);
-  border-radius: 12px;
-  background: var(--color-surface-2);
-}
-.panel-head h2,
-.recovery-detail h2 { font-size: 16px; }
-.stale-alert { border-radius: 12px; }
-
-/* —— Wiki 选中域工作台：干净白卡 + 收紧标题字号 —— */
-.wiki-live-panel,
-.wiki-recovery-panel,
-.wiki-detail-card,
-.wiki-dispatch-feedback,
-.wiki-command-preview {
-  border-color: var(--color-border);
-  border-radius: 12px;
-  background: var(--color-surface-2);
-}
-.wiki-live-panel h2,
-.wiki-live-panel h3,
-.wiki-recovery-panel h3 { font-size: 16px; }
-.wiki-live-percent { font-size: 28px; }
-.wiki-recovery-panel {
-  border-color: color-mix(in srgb, var(--color-primary) 26%, var(--color-border));
-  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-surface-2));
-}
-.wiki-dispatch-feedback {
-  border-color: color-mix(in srgb, var(--color-info) 26%, var(--color-border));
-  background: color-mix(in srgb, var(--color-info) 7%, var(--color-surface-2));
-}
-.wiki-dispatch-feedback--muted {
-  border-color: var(--color-border);
-  background: var(--color-surface-muted);
-}
-.selected-domain-drawer__head h2 { font-size: 18px; }
-
-/* —— 内嵌指标格 / 元数据格 / 行块：统一暖灰底 —— */
-.wiki-live-metrics span,
-.wiki-path-strip,
-.selected-domain-detail-grid span,
-.dispatch-queue-row__meta span,
-.compact-metrics span,
-.action-card__queue span,
-.ops-metrics span,
-.domain-test-items span,
-.state-row,
-.reason-row,
-.task-row,
-.path-row {
-  border: 1px solid var(--color-border-light);
-  border-radius: 8px;
-  background: var(--color-surface-muted);
-}
-
-/* —— 卡片类容器：干净白面 + 统一圆角 —— */
-.dispatch-queue-row,
-.runtime-summary-card,
-.observability-block,
-.auto-dispatch-card,
-.runtime-domain-index,
-.domain-test-card,
-.base-domain-flow-row__domain,
-.selected-domain-detail-block {
-  border-color: var(--color-border);
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, currentColor 18%, var(--color-border));
   border-radius: 10px;
-  background: var(--color-surface-2);
-}
-.action-card {
-  border-color: var(--color-border);
-  border-radius: 12px;
-  background: var(--color-surface-2);
-}
-.base-domain-flow-step { background: var(--color-surface-muted); }
-
-/* —— 数据质量格：暖色 tone —— */
-.data-quality-cell {
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-2);
-}
-.data-quality-cell.success {
-  border-color: color-mix(in srgb, var(--color-success) 24%, var(--color-border));
-  background: color-mix(in srgb, var(--color-success) 9%, var(--color-surface-2));
-}
-.data-quality-cell.warning {
-  border-color: color-mix(in srgb, var(--color-warning) 26%, var(--color-border));
-  background: color-mix(in srgb, var(--color-warning) 11%, var(--color-surface-2));
-}
-.data-quality-cell.danger {
-  border-color: color-mix(in srgb, var(--color-danger) 26%, var(--color-border));
-  background: color-mix(in srgb, var(--color-danger) 9%, var(--color-surface-2));
-}
-.data-quality-cell.muted {
-  border-color: var(--color-border);
-  background: var(--color-surface-muted);
+  background: color-mix(in srgb, currentColor 7%, var(--color-bg));
+  color: var(--color-text);
 }
 
-/* —— 按钮：统一干净 chrome + 悬停反馈，更紧凑 —— */
-.inline-report-button,
-.icon-close-button {
-  min-height: 30px;
-  border-color: var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface-2);
-  font-weight: 700;
-  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
-}
-.inline-report-button:hover:not(:disabled),
-.icon-close-button:hover { background: var(--color-bg-hover); }
-.icon-close-button { width: 34px; height: 34px; }
-.inline-report-button--danger {
-  border-color: color-mix(in srgb, var(--color-danger) 36%, var(--color-border));
-  color: #b3261e;
-  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-surface-2));
-}
-.inline-report-button--warning {
-  border-color: color-mix(in srgb, var(--color-warning) 36%, var(--color-border));
-  color: #9a5b06;
-  background: color-mix(in srgb, var(--color-warning) 10%, var(--color-surface-2));
+.crawler-health-card--risk {
+  border-width: 2px;
 }
 
-/* —— 数据表：更紧凑、表头更克制 —— */
-.monitor-table th,
-.monitor-table td { padding: 10px 12px; }
-.monitor-table th { font-size: 11px; letter-spacing: 0.04em; }
-.domain-monitor-table td { padding-top: 8px; padding-bottom: 8px; }
-.ops-card__title { font-size: 16px; }
-.base-domain-orchestration__head strong,
-.domain-test-matrix__head strong { font-size: 14px; }
-
-/* —— 报告预览抽屉：暖阴影 —— */
-.report-preview-drawer { box-shadow: -24px 0 48px rgba(28, 25, 23, 0.18); }
-.report-preview__content,
-.report-preview__empty {
-  border-color: var(--color-border);
-  background: var(--color-surface-muted);
+.crawler-health-card--success {
+  color: var(--color-success, #166534);
 }
 
-/* —— 次级"诊断与验收"区：轻微压暗，和主排障区分层 —— */
-.single-screen-diagnostics__entry { background: var(--color-surface-muted); }
-
-/* =====================================================================
-   内联工作台结构层（抽屉/弹层/折叠 → 内联平铺，对齐设计稿）
-   ===================================================================== */
-
-/* 域表格去单屏固定高，改为自然流 */
-.domain-table-panel {
-  grid-template-rows: auto auto;
-  height: auto;
-  min-height: 0;
-  max-height: none;
-  overflow: visible;
+.crawler-health-card--warning {
+  color: var(--color-warning, #92400e);
 }
-.single-screen-table-frame { overflow: visible; }
 
-/* 诊断区与各内联区之间留白 */
-.recovery-main { gap: 12px; }
-.single-screen-diagnostics { gap: 12px; margin-top: 4px; }
-.single-screen-diagnostics__body { display: grid; gap: 12px; }
+.crawler-health-card--danger {
+  color: var(--color-danger, #b91c1c);
+}
 
-/* 选中域内联面板：青绿强调卡（替代原抽屉） */
-.selected-domain-inline {
+.crawler-health-card--info {
+  color: var(--color-info, #075985);
+}
+
+.crawler-health-card--muted {
+  color: var(--color-text-muted, #475569);
+}
+
+.crawler-health-card__label,
+.crawler-health-card__note {
+  color: var(--color-text-secondary);
+}
+
+.crawler-health-card__label {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.crawler-health-card__value {
+  color: var(--color-text);
+  font-size: 20px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.crawler-health-card__note {
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.selected-domain-workbench {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
   margin-top: 2px;
   padding: 14px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
+  border: 1px solid color-mix(in srgb, var(--color-primary, #2563eb) 26%, var(--color-border));
   border-radius: 12px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 8%, var(--color-surface-2)), var(--color-surface-2) 42%);
-  box-shadow: var(--shadow-card);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-primary, #2563eb) 7%, var(--color-surface-2, var(--color-bg))),
+    var(--color-surface-2, var(--color-bg)) 44%
+  );
+  box-shadow: var(--shadow-card, 0 10px 28px rgb(15 23 42 / 8%));
 }
-/* 头部在内联流中不再粘顶 */
-.selected-domain-inline .selected-domain-drawer__head {
+
+.selected-domain-inline {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  margin-top: 2px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-primary, #2563eb) 26%, var(--color-border));
+  border-radius: 12px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-primary, #2563eb) 7%, var(--color-surface-2, var(--color-bg))),
+    var(--color-surface-2, var(--color-bg)) 44%
+  );
+  box-shadow: var(--shadow-card, 0 10px 28px rgb(15 23 42 / 8%));
+}
+
+.selected-domain-workbench__head {
   position: static;
   top: auto;
-  padding: 0 0 10px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+  padding: 0 0 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
   background: transparent;
 }
 
-/* 诊断区标题头 */
+.selected-domain-workbench__head h2 {
+  font-size: 20px;
+}
+
+.selected-domain-workbench__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+  gap: 14px;
+  min-width: 0;
+  align-items: start;
+}
+
+.selected-domain-workbench .wiki-live-panel,
+.selected-domain-workbench .wiki-recovery-panel,
+.selected-domain-workbench .wiki-detail-card,
+.selected-domain-workbench .wiki-dispatch-feedback,
+.selected-domain-workbench .wiki-command-preview,
+.selected-domain-workbench .wiki-run-control-panel {
+  border-radius: 10px;
+}
+
+.selected-domain-workbench .wiki-live-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+}
+
+.selected-domain-workbench .selected-domain-detail-grid {
+  grid-template-columns: repeat(auto-fit, minmax(144px, 1fr));
+}
+
+.diagnostics-zone {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  margin-top: 4px;
+}
+
 .diagnostics-zone__head {
-  margin: 6px 2px 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-/* 健康条：暖色圆角标签横排（轻量、信息密度高） */
-.health-strip {
   display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  padding: 2px 0;
-}
-.health-signal {
-  min-height: 26px;
-  padding: 4px 11px;
-  border-radius: var(--radius-full);
-  border: 1px solid transparent;
-  font-size: 12px;
-  font-weight: 700;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 62%, var(--color-bg));
 }
 
-/* 系统诊断内联：去掉弹层用的限高与滚动 */
-.system-diagnostics-inline .runtime-domain-index { border: 0; padding: 0; background: transparent; }
-.runtime-auxiliary-details { max-height: none; overflow: visible; padding: 0; border: 0; background: transparent; }
-.runtime-auxiliary-details__head { margin: 6px 0 4px; }
-.observability-grid--dialog { overflow: visible; padding-right: 0; }
-.runtime-domain-index--primary .runtime-domain-table { max-height: 360px; }
-
-/* 顶部分区 Tab（药丸式分页签） */
-.monitor-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  width: fit-content;
-  max-width: 100%;
-  margin: 2px 0 2px;
-  padding: 4px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  background: var(--color-surface-muted);
+.diagnostics-zone__head h2,
+.diagnostics-zone__head p {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
-.monitor-tab {
-  appearance: none;
-  border: 0;
-  border-radius: var(--radius-full);
-  padding: 7px 16px;
-  background: transparent;
+
+.diagnostics-zone__head h2 {
+  color: var(--color-text);
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.diagnostics-zone__head p {
+  margin-top: 4px;
   color: var(--color-text-secondary);
   font-size: 13px;
-  font-weight: 700;
-  white-space: nowrap;
-  transition: background 0.15s ease, color 0.15s ease;
+  line-height: 1.4;
 }
-.monitor-tab:hover { color: var(--color-text); }
-.monitor-tab--active {
-  background: var(--color-surface-2);
-  color: var(--color-primary-dark);
-  box-shadow: var(--shadow-sm);
+
+.diagnostics-zone__bar {
+  flex: 0 0 auto;
+  width: 4px;
+  min-height: 46px;
+  border-radius: 999px;
+  background: var(--color-primary, #2563eb);
 }
-.monitor-tab-panel { display: grid; gap: 12px; min-width: 0; }
-.single-screen-diagnostics { margin-top: 0; }
 
-/* =====================================================================
-   全局紧凑密度层（缩小整体尺寸、提高信息密度、长文本限高）
-   末尾追加，覆盖前面规则；避开契约锁定的布局值
-   ===================================================================== */
-.crawler-monitor { font-size: 12px; }
-
-/* 标题与正文整体降一档 */
-.focused-topbar .page-head__title { font-size: 17px; }
-.focused-topbar .page-head__subtitle { font-size: 12px; margin-top: 2px; }
-.section-card__title,
-.panel-head h2,
-.panel-head h3,
-.recovery-detail h2 { font-size: 13px; }
-.section-card__subtitle,
-.section-card__subtitle-note,
-.panel-head p,
-.recovery-detail p { font-size: 11px; margin-top: 2px; line-height: 1.4; }
-.wiki-live-panel h2,
-.wiki-live-panel h3,
-.wiki-recovery-panel h3,
-.selected-domain-drawer__head h2 { font-size: 14px; }
-.wiki-live-panel p { font-size: 11.5px; margin-top: 4px; }
-.wiki-live-percent { font-size: 24px; }
-.ops-card__title { font-size: 14px; }
-.base-domain-orchestration__head strong,
-.domain-test-matrix__head strong { font-size: 13px; }
-
-/* 卡片 / 面板 / 容器 padding 收紧 */
-.focused-topbar { padding: 10px 12px; }
-.panel { padding: 12px; }
-.card { padding: 11px; }
-.section-card { }
-.wiki-live-panel,
-.wiki-recovery-panel { padding: 12px; gap: 10px; }
-.selected-domain-inline { padding: 12px; gap: 10px; }
-.observability-block,
-.auto-dispatch-card,
-.runtime-domain-index,
-.runtime-summary-card,
-.domain-test-card,
-.dispatch-queue-row { padding: 10px; }
-.action-card { padding: 11px; gap: 9px; }
-.recovery-main { gap: 10px; }
-.single-screen-diagnostics__body,
-.monitor-tab-panel { gap: 10px; }
-
-/* 指标格 / 行块更紧 + 字号降一档 */
-.wiki-live-metrics,
-.selected-domain-detail-grid,
-.dispatch-queue-row__meta,
-.compact-metrics,
-.action-card__queue,
-.ops-metrics,
-.domain-test-items { gap: 6px; }
-.wiki-live-metrics span,
-.wiki-path-strip,
-.selected-domain-detail-grid span,
-.dispatch-queue-row__meta span,
-.compact-metrics span,
-.action-card__queue span,
-.ops-metrics span,
-.domain-test-items span,
-.state-row,
-.reason-row,
-.runtime-summary-card { padding: 6px 8px; }
-.wiki-live-metrics strong,
-.selected-domain-detail-grid strong,
-.compact-metrics strong,
-.dispatch-queue-row__meta strong { font-size: 11.5px; }
-.runtime-summary-card strong { font-size: 14px; }
-.data-quality-cell strong { font-size: 14px; }
-.data-quality-cell { min-height: 50px; padding: 7px 9px; }
-.base-domain-flow-step { min-height: 92px; padding: 7px; }
-
-/* 表格行更紧凑 */
-.monitor-table th,
-.monitor-table td { padding: 7px 10px; }
-.monitor-table td strong { font-size: 12px; }
-.monitor-table td small,
-.monitor-table td code { font-size: 11px; margin-top: 2px; }
-.runtime-domain-table th,
-.runtime-domain-table td { padding: 6px 9px; font-size: 11px; }
-.domain-monitor-table td { padding-top: 6px; padding-bottom: 6px; }
-
-/* 按钮更小 */
-.inline-report-button,
-.icon-close-button { min-height: 28px; font-size: 11.5px; }
-.inline-report-button--compact { min-height: 24px; }
-.btn { min-height: 30px; font-size: 11.5px; }
-.monitor-tab { padding: 6px 13px; font-size: 12px; }
-
-/* —— 长文本限高截断，避免日志/路径/原因撑高卡片 —— */
-.runtime-domain-index__reason,
-.action-card__message,
-.dispatch-queue-row__main small,
-.wiki-domain-card__reason,
-.reason-row strong,
-.state-row small {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.diagnostics-zone .single-screen-diagnostics__body,
+.diagnostics-zone .monitor-tab-panel {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
 }
-.wiki-path-strip code,
-.dispatch-queue-row__main code,
-.state-row code,
-.wiki-command-preview code {
-  display: block;
-  max-height: 3.4em;
+
+.diagnostics-zone .table-scroll {
+  max-height: 460px;
   overflow: auto;
 }
-/* 报告预览与空态：限制最大高度，内部滚动 */
-/* 报告/日志预览：抽屉是整屏高，内容吃满剩余高度（不再强压 320px） */
-.report-preview__content { max-height: none; height: 100%; font-size: 12px; line-height: 1.55; }
-.report-preview-drawer { width: min(960px, calc(100vw - 24px)); }
-.report-preview__empty { font-size: 11.5px; }
-/* 任务进度明细表横向滚动区限高，长列表内部滚动 */
-.single-screen-diagnostics .table-scroll { max-height: 460px; overflow: auto; }
 
-/* =====================================================================
-   块密度层 2：卡片/瓦片/格子更密更小，信息更集中
-   ===================================================================== */
+.execution-overview-card,
+.queue-progress-card,
+.quality-validation-card,
+.system-diagnostics-card {
+  border-color: color-mix(in srgb, var(--color-border) 86%, transparent);
+  border-radius: 12px;
+  background: var(--color-surface-2, var(--color-bg));
+}
 
-/* 内嵌指标瓦片：更小 padding、更小字、去多余高度 */
-.wiki-live-metrics span,
-.selected-domain-detail-grid span,
-.dispatch-queue-row__meta span,
-.compact-metrics span,
-.action-card__queue span,
-.ops-metrics span,
-.domain-test-items span,
-.wiki-detail-card,
-.runtime-summary-card,
-.state-row,
-.reason-row { padding: 5px 7px; border-radius: 6px; }
-.wiki-live-metrics small,
-.selected-domain-detail-grid small,
-.dispatch-queue-row__meta small,
-.compact-metrics small,
-.action-card__queue small,
-.ops-metrics small,
-.domain-test-items small,
-.wiki-detail-card span,
-.runtime-summary-card small { font-size: 10px; }
-.wiki-live-metrics strong,
-.selected-domain-detail-grid strong,
-.dispatch-queue-row__meta strong,
-.compact-metrics strong,
-.action-card__queue strong,
-.ops-metrics strong,
-.domain-test-items strong,
-.wiki-detail-card strong { font-size: 11px; margin-top: 1px; }
+.execution-overview-card .action-rail {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
 
-/* 指标网格列更多更密 */
-.wiki-live-metrics { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
-.selected-domain-detail-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
-.compact-metrics { grid-template-columns: repeat(auto-fit, minmax(78px, 1fr)); gap: 5px; }
-.runtime-summary-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px; }
-.data-quality-grid { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 6px; }
-.domain-test-items { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
-.domain-test-matrix__grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.queue-progress-card .wiki-monitor-dispatch-queue {
+  gap: 12px;
+}
 
-/* 数据质量瓦片更扁 */
-.data-quality-cell { min-height: 0; padding: 6px 8px; }
-.data-quality-cell strong { font-size: 13px; }
-.data-quality-cell small { font-size: 10px; }
+.queue-progress-card .dispatch-queue-row {
+  grid-template-columns: minmax(0, 1.3fr) minmax(220px, 0.8fr) auto;
+  gap: 12px;
+}
 
-/* 基础域编排步骤瓦片更密 */
-.base-domain-orchestration { padding: 10px; gap: 8px; }
-.base-domain-flow-row { gap: 7px; }
-.base-domain-flow-steps { gap: 5px; }
-.base-domain-flow-step { min-height: 0; padding: 6px 7px; gap: 3px; }
-.base-domain-flow-step__label { font-size: 9px; }
-.base-domain-flow-step strong { font-size: 11px; }
-.base-domain-flow-step small { font-size: 10px; line-height: 1.3; }
-.base-domain-flow-row__domain { padding: 7px; gap: 4px; }
+.queue-progress-card__subhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
 
-/* 域测试卡更紧 */
-.domain-test-card { padding: 9px; gap: 7px; }
-.domain-test-card__head strong { font-size: 12px; }
+.quality-validation-card .data-quality-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
 
-/* 执行总览卡更紧 */
-.action-card { padding: 9px; gap: 7px; }
-.action-card__head strong { font-size: 12px; }
-.action-card__meta { font-size: 11px; }
+.quality-validation-card .domain-test-matrix__grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
 
-/* 队列行更紧 */
-.dispatch-queue-row { padding: 8px 9px; gap: 9px; }
-.dispatch-queue-row__main strong { font-size: 12px; }
-.dispatch-queue-row__main small,
-.dispatch-queue-row__main code { font-size: 11px; }
+.system-diagnostics-card .runtime-domain-index,
+.system-diagnostics-card .runtime-auxiliary-details {
+  max-height: none;
+}
 
-/* 选中域内联面板内部留白再收 */
-.selected-domain-inline { gap: 8px; }
-.wiki-live-panel,
-.wiki-recovery-panel { padding: 11px; gap: 9px; }
-.wiki-run-control-panel { padding: 9px; gap: 8px; }
-.wiki-detail-card { padding: 8px 9px; gap: 3px; }
+.system-diagnostics-card .runtime-auxiliary-details {
+  overflow: visible;
+}
 
-/* 健康条标签更小 */
-.health-signal { min-height: 22px; padding: 3px 9px; font-size: 11px; }
+.system-diagnostics-card .observability-grid--dialog {
+  overflow: visible;
+  padding-right: 0;
+}
 
-/* 状态药丸再小一档 */
-.status-pill { min-height: 20px; padding: 1px 8px; font-size: 11px; }
-.status-pill::before { width: 5px; height: 5px; }
+@media (max-width: 1180px) {
+  .selected-domain-workbench__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 
-/* 运行态辅助网格列更密 */
-.observability-grid--dialog { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 9px; }
+  .queue-progress-card .dispatch-queue-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 980px) {
+  .crawler-workbench-topbar,
+  .selected-domain-workbench__head,
+  .diagnostics-zone__head {
+    display: grid;
+  }
+
+  .crawler-workbench-topbar .monitor-actions {
+    justify-content: flex-start;
+  }
+
+  .selected-domain-workbench {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 720px) {
+  .crawler-health-grid,
+  .selected-domain-workbench .wiki-live-metrics,
+  .selected-domain-workbench .selected-domain-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .diagnostics-zone__head {
+    padding: 12px;
+  }
+
+  .diagnostics-zone__bar {
+    width: 100%;
+    min-height: 4px;
+  }
+}
 </style>

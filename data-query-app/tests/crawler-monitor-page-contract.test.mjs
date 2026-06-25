@@ -49,6 +49,40 @@ const sourceSnapshotPriorityFixture = {
   ],
 }
 
+test('crawler monitor uses the compact workbench flow without page-level tabs', () => {
+  assert.doesNotMatch(page, /class="monitor-tabs"/)
+  assert.doesNotMatch(page, /class="monitor-tab"/)
+  assert.doesNotMatch(page, /activeMonitorTab/)
+  assert.doesNotMatch(page, /const monitorTabs\s*=/)
+  assert.doesNotMatch(page, /v-show="activeMonitorTab ===/)
+})
+
+function assertOrderedMarkers(markers) {
+  let previous = -1
+  for (const marker of markers) {
+    const next = page.indexOf(marker)
+    assert.ok(next > -1, `missing marker: ${marker}`)
+    assert.ok(next > previous, `marker out of order: ${marker}`)
+    previous = next
+  }
+}
+
+test('crawler monitor matches the compact workbench section order', () => {
+  assertOrderedMarkers([
+    'class="section-card stale-alert"',
+    'class="recovery-board single-screen-board crawler-workbench"',
+    'class="focused-topbar single-screen-toolbar crawler-workbench-topbar"',
+    'class="crawler-health-grid"',
+    'class="section-card monitor-panel domain-table-panel crawler-domain-card"',
+    'class="selected-domain-workbench selected-domain-inline wiki-workbench"',
+    'class="diagnostics-zone"',
+    'class="section-card monitor-panel execution-overview-card"',
+    'class="section-card monitor-panel queue-progress-card"',
+    'class="section-card monitor-panel quality-validation-card"',
+    'class="section-card monitor-panel system-diagnostics-card system-diagnostics-inline"',
+  ])
+})
+
 test('crawler monitor renders registered task progress as the primary progress rows', () => {
   assert.match(page, /progressRows/)
   assert.match(page, /registeredTasks/)
@@ -235,7 +269,7 @@ test('crawler monitor no longer treats latestRun actions as the only progress so
 })
 
 test('crawler monitor promotes real progress above decorative queue cards', () => {
-  assert.match(page, /class="recovery-board single-screen-board"/)
+  assert.match(page, /class="[^"]*\brecovery-board\b[^"]*\bsingle-screen-board\b[^"]*"/)
   assert.match(page, /Wiki 数据变化 \/ 手动执行/)
   assert.match(page, /visibleWikiDomainRows/)
   assert.match(page, /visibleProgressRows/)
@@ -271,11 +305,11 @@ test('crawler monitor removes low value diagnostic sections from the main monito
 })
 
 test('crawler monitor uses a flowing domain table with an inline selected-domain panel', () => {
-  const boardIndex = page.indexOf('class="recovery-board single-screen-board"')
-  const topbarIndex = page.indexOf('class="focused-topbar single-screen-toolbar"')
-  const domainTableIndex = page.indexOf('class="section-card monitor-panel domain-table-panel"')
-  const inlineIndex = page.indexOf('class="selected-domain-inline wiki-workbench"')
-  const diagnosticsIndex = page.indexOf('class="single-screen-diagnostics"')
+  const boardIndex = page.indexOf('class="recovery-board single-screen-board crawler-workbench"')
+  const topbarIndex = page.indexOf('class="focused-topbar single-screen-toolbar crawler-workbench-topbar"')
+  const domainTableIndex = page.indexOf('class="section-card monitor-panel domain-table-panel crawler-domain-card"')
+  const inlineIndex = page.indexOf('class="selected-domain-workbench selected-domain-inline wiki-workbench"')
+  const diagnosticsIndex = page.indexOf('class="diagnostics-zone"')
 
   assert.ok(boardIndex > -1, 'focused recovery board should be the real monitor first screen')
   assert.ok(topbarIndex > boardIndex, 'focused topbar should sit inside the recovery board')
@@ -339,11 +373,11 @@ test('crawler monitor uses a flowing domain table with an inline selected-domain
 
 test('crawler monitor keeps wiki manual execution in the inline selected-domain panel', () => {
   const wikiSection = page.slice(
-    page.indexOf('class="recovery-board single-screen-board"'),
-    page.indexOf('class="single-screen-diagnostics"')
+    page.indexOf('class="recovery-board single-screen-board crawler-workbench"'),
+    page.indexOf('class="diagnostics-zone"')
   )
 
-  assert.match(wikiSection, /class="selected-domain-inline wiki-workbench"/)
+  assert.match(wikiSection, /class="selected-domain-workbench selected-domain-inline wiki-workbench"/)
   assert.match(wikiSection, /v-if="selectedDomainTableRow"/)
   assert.match(wikiSection, /aria-label="选中域排障"/)
   assert.match(wikiSection, /当前域操作/)
@@ -356,8 +390,8 @@ test('crawler monitor keeps wiki manual execution in the inline selected-domain 
 
 test('crawler monitor wiki domain cards prioritize progress and avoid overflowing metric tiles', () => {
   const workbenchTemplate = page.slice(
-    page.indexOf('class="selected-domain-inline wiki-workbench"'),
-    page.indexOf('class="single-screen-diagnostics"')
+    page.indexOf('class="selected-domain-workbench selected-domain-inline wiki-workbench"'),
+    page.indexOf('class="diagnostics-zone"')
   )
   assert.match(workbenchTemplate, /class="wiki-live-panel live-focus"/)
   assert.match(workbenchTemplate, /class="wiki-live-metrics"/)
@@ -370,6 +404,28 @@ test('crawler monitor wiki domain cards prioritize progress and avoid overflowin
   assert.match(page, /\.selected-domain-inline\s*\{[\s\S]*border-radius:/)
   assert.match(page, /\.wiki-path-strip code\s*\{[\s\S]*overflow-wrap:\s*anywhere/)
   assert.match(page, /\.wiki-domain-detail-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/)
+})
+
+test('crawler monitor selected domain workbench uses live and evidence columns first', () => {
+  const workbench = page.slice(
+    page.indexOf('class="selected-domain-workbench selected-domain-inline wiki-workbench"'),
+    page.indexOf('class="diagnostics-zone"')
+  )
+
+  assert.match(workbench, /class="selected-domain-workbench__head selected-domain-drawer__head"/)
+  assert.match(workbench, /class="selected-domain-workbench__grid"/)
+  assert.match(workbench, /class="wiki-live-panel live-focus"/)
+  assert.match(workbench, /class="wiki-recovery-panel recovery-panel selected-domain-table-evidence"/)
+  assert.ok(
+    workbench.indexOf('class="wiki-live-panel live-focus"') <
+      workbench.indexOf('class="wiki-recovery-panel recovery-panel selected-domain-table-evidence"'),
+    'live progress must be the first selected-domain column'
+  )
+  assert.match(workbench, /当前域操作/)
+  assert.match(workbench, /当前域证据/)
+  assert.match(workbench, /终止并清理/)
+  assert.match(workbench, /打开报告/)
+  assert.match(workbench, /查看进度文件/)
 })
 
 test('crawler monitor exposes pause and resume controls for running wiki tasks', () => {
@@ -392,7 +448,7 @@ test('crawler monitor exposes pause and resume controls for running wiki tasks',
   assert.match(page, /:disabled="!canResumeWikiDomain\(selectedWikiDomain\) \|\| wikiControlLoading === selectedWikiDomain\.domain"/)
   assert.match(page, /:disabled="!canCancelWikiDomain\(selectedWikiDomain\) \|\| wikiControlLoading === selectedWikiDomain\.domain"/)
   assert.doesNotMatch(page, />派发刷新</)
-  assert.match(page, /暂停占用/)
+  assert.match(page, /暂停任务/)
   assert.match(page, /暂停会保留执行锁/)
   assert.match(page, /继续任务/)
   assert.match(page, /终止并清理文件/)
@@ -499,8 +555,8 @@ test('crawler monitor renders a real dispatch queue section from dispatchQueue',
 
 test('crawler monitor wiki domain cards expose retry, heartbeat, and flow state as first-class controls', () => {
   const workbenchTemplate = page.slice(
-    page.indexOf('class="selected-domain-inline wiki-workbench"'),
-    page.indexOf('class="single-screen-diagnostics"')
+    page.indexOf('class="selected-domain-workbench selected-domain-inline wiki-workbench"'),
+    page.indexOf('class="diagnostics-zone"')
   )
 
   assert.match(workbenchTemplate, /wiki-live-metrics/)
@@ -508,7 +564,7 @@ test('crawler monitor wiki domain cards expose retry, heartbeat, and flow state 
   assert.match(workbenchTemplate, /selectedDomainHeartbeatMessage/)
   assert.match(workbenchTemplate, /selectedDomainHeartbeatState/)
   assert.match(page, /wikiDomainFlowLabel\(domain\)/)
-  assert.match(workbenchTemplate, /wikiDomainPrimaryActionLabel\(selectedWikiDomain\)/)
+  assert.match(workbenchTemplate, /selectedWikiReCrawlButtonLabel/)
   assert.match(workbenchTemplate, /retryWikiDomain\(selectedWikiDomain\)/)
   assert.match(workbenchTemplate, /重试/)
   assert.match(page, /async function retryWikiDomain/)
@@ -528,8 +584,8 @@ test('crawler monitor wiki domain cards expose retry, heartbeat, and flow state 
 
 test('crawler monitor automatically prioritizes running status and exposes concrete progress numbers', () => {
   const recoveryTemplate = page.slice(
-    page.indexOf('class="recovery-board single-screen-board"'),
-    page.indexOf('class="single-screen-diagnostics"')
+    page.indexOf('class="recovery-board single-screen-board crawler-workbench"'),
+    page.indexOf('class="diagnostics-zone"')
   )
 
   assert.match(page, /executionOverviewRows/)
@@ -591,8 +647,8 @@ test('crawler monitor selected domain workbench is Chinese-first and uses displa
   assert.match(page, /selectedDomainElapsedLabel/)
 
   const workbench = page.slice(
-    page.indexOf('class="selected-domain-inline wiki-workbench"'),
-    page.indexOf('class="single-screen-diagnostics"')
+    page.indexOf('class="selected-domain-workbench selected-domain-inline wiki-workbench"'),
+    page.indexOf('class="diagnostics-zone"')
   )
 
   for (const copy of ['选中域排障', '当前域证据', '下一步建议', '为什么不能执行', 'Wiki 保护冷却', '最后心跳', '心跳状态', '开始时间', '运行时长', '运行文件']) {
@@ -613,7 +669,7 @@ test('crawler monitor domain detail uses Chinese field labels around technical i
   const detailStart = page.indexOf('class="panel recovery-detail selected-domain-config"')
   const detail = page.slice(
     detailStart,
-    page.indexOf('class="single-screen-diagnostics"', detailStart)
+    page.indexOf('class="diagnostics-zone"', detailStart)
   )
 
   for (const copy of ['域详情', '数据来源键', '定位规则', '上次检查', '白名单动作 ID', '进度文件', '报告文件', '技术标识']) {
@@ -1298,15 +1354,24 @@ test('crawler monitor isPreviewableReportPath accepts .log files under reports/c
   assert.match(page, /isPreviewableReportPath/)
 })
 
-test('crawler monitor shows a health strip with daemon, scheduler, lock, refresh staleness, heartbeat and task alerts', () => {
+test('crawler monitor shows a six-card health grid with highest risk first', () => {
   assert.match(page, /healthSignals/)
-  assert.match(page, /health-strip/)
-  assert.match(page, /守护|调度|锁/)
+  assert.match(page, /crawlerHealthCards/)
+  assert.match(page, /class="crawler-health-grid"/)
+  assert.match(page, /class="crawler-health-card crawler-health-card--risk"/)
+  assert.match(page, /v-for="card in crawlerHealthCards"/)
+  assert.match(page, /最高风险/)
+  assert.match(page, /失败域/)
+  assert.match(page, /心跳过期/)
+  assert.match(page, /运行中/)
+  assert.match(page, /排队中/)
+  assert.match(page, /最后刷新/)
+  assert.doesNotMatch(page, /class="health-strip"/)
 })
 
 test('crawler monitor renders runtime observability inline in the diagnostics zone', () => {
   const runtimeSection = page.slice(
-    page.indexOf('class="section-card monitor-panel system-diagnostics-inline"'),
+    page.indexOf('class="section-card monitor-panel system-diagnostics-card system-diagnostics-inline"'),
     page.indexOf('v-if="selectedReportPath || reportPreview || reportPreviewError"')
   )
 
