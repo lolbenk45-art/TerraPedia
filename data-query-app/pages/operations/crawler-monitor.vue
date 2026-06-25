@@ -11,9 +11,9 @@
       </div>
     </section>
 
-    <section class="recovery-board single-screen-board" aria-label="Wiki 数据变化 / 手动执行">
+    <section class="recovery-board single-screen-board crawler-workbench" aria-label="Wiki 数据变化 / 手动执行">
       <div class="recovery-main">
-        <header class="focused-topbar single-screen-toolbar">
+        <header class="focused-topbar single-screen-toolbar crawler-workbench-topbar">
           <div>
             <p class="eyebrow">Crawler Monitor</p>
             <h1 class="page-head__title">域爬取监控</h1>
@@ -38,18 +38,7 @@
           </div>
         </header>
 
-        <nav class="monitor-tabs" aria-label="监控分区">
-          <button
-            v-for="tab in monitorTabs"
-            :key="tab.key"
-            type="button"
-            class="monitor-tab"
-            :class="{ 'monitor-tab--active': activeMonitorTab === tab.key }"
-            @click="activeMonitorTab = tab.key"
-          >{{ tab.label }}</button>
-        </nav>
-
-        <div v-show="activeMonitorTab === 'triage'" class="monitor-tab-panel">
+        <div class="monitor-tab-panel">
         <div v-if="healthSignals.length" class="health-strip">
           <span
             v-for="sig in healthSignals"
@@ -60,7 +49,7 @@
           >{{ sig.label }}</span>
         </div>
 
-        <section class="section-card monitor-panel domain-table-panel" aria-label="域监控表">
+        <section class="section-card monitor-panel domain-table-panel crawler-domain-card" aria-label="域监控表">
           <div class="section-head">
             <div>
               <h2 class="section-card__title">域监控表</h2>
@@ -178,7 +167,7 @@
         </section>
         <section
           v-if="selectedDomainTableRow"
-          class="selected-domain-inline wiki-workbench"
+          class="selected-domain-inline wiki-workbench selected-domain-workbench"
           aria-label="选中域排障"
         >
             <header class="selected-domain-drawer__head">
@@ -619,9 +608,9 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
       </div>
     </section>
 
-    <section class="single-screen-diagnostics" aria-label="辅助监控信息">
+    <section class="single-screen-diagnostics diagnostics-zone" aria-label="辅助监控信息">
       <div class="single-screen-diagnostics__body">
-      <div v-show="activeMonitorTab === 'queue'" class="monitor-tab-panel">
+      <div class="monitor-tab-panel">
       <section class="section-card monitor-panel stage-progress-panel">
         <header class="section-head">
           <div>
@@ -802,7 +791,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
         </section>
       </section>
       </div>
-      <div v-show="activeMonitorTab === 'quality'" class="monitor-tab-panel">
+      <div class="monitor-tab-panel">
 
       <section class="section-card monitor-panel">
         <header class="section-head">
@@ -985,7 +974,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
       </div>
     </section>
 
-    <section v-show="activeMonitorTab === 'diagnostics'" class="section-card monitor-panel system-diagnostics-inline" aria-label="系统诊断">
+    <section class="section-card monitor-panel system-diagnostics-inline system-diagnostics-card" aria-label="系统诊断">
         <header class="section-head">
           <div>
             <h2 class="section-card__title">系统诊断</h2>
@@ -1299,13 +1288,6 @@ const hiddenNoiseKeys = ref<Set<string>>(new Set())
 const selectedWikiDomainKey = ref('')
 const selectedDomainTableKey = ref('')
 const hasAutoSelectedDomain = ref(false)
-const monitorTabs = [
-  { key: 'triage', label: '域排障' },
-  { key: 'queue', label: '队列与任务' },
-  { key: 'quality', label: '质量验收' },
-  { key: 'diagnostics', label: '系统诊断' },
-] as const
-const activeMonitorTab = ref<'triage' | 'queue' | 'quality' | 'diagnostics'>('triage')
 const latestDispatchResult = ref<CrawlerMonitorDispatchResult | null>(null)
 const commandPreviewDomainKey = ref('')
 const cancelConfirmDomainKey = ref('')
