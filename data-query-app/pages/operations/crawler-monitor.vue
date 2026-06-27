@@ -1,911 +1,495 @@
 <template>
-  <div class="page-wrap page-workspace crawler-monitor">
-    <section v-if="refreshStale" class="section-card stale-alert">
-      <span class="stale-alert__icon">
-        <AlertTriangle :size="20" />
-      </span>
-      <div>
-        <strong>backend-refresh 监控链路已过期</strong>
-        <p>{{ overview?.refreshStaleReason || '最近没有 backend-refresh 活动；请优先查看当前域进度、心跳和报告入口。' }}</p>
-        <code>最后活动：{{ formatDate(overview?.refreshLastActivityAt) }}</code>
+  <div class="page-wrap page-workspace crawler-monitor crawler-monitor-v4">
+    <section class="status-strip" :class="`status-strip--${v4StatusStrip.tone}`" aria-live="polite">
+      <div class="status-strip__main">
+        <span class="status-dot" :class="`status-dot--${v4StatusStrip.tone}`" aria-hidden="true"></span>
+        <div>
+          <strong>{{ v4StatusStrip.title }}</strong>
+          <small>{{ v4StatusStrip.subtitle }}</small>
+        </div>
+      </div>
+      <div class="status-strip__actions">
+        <span v-for="chip in v4StatusStrip.chips" :key="chip.label" class="status-pill" :class="chip.tone">
+          {{ chip.label }}
+        </span>
+        <button type="button" class="btn btn-secondary" :disabled="loading" @click="loadOverview">
+          <RefreshCw :size="16" :class="{ spin: loading }" />
+          <span>{{ loading ? '刷新中' : '刷新状态' }}</span>
+        </button>
       </div>
     </section>
 
-    <section class="recovery-board single-screen-board crawler-workbench" aria-label="Wiki 数据变化 / 手动执行">
-      <div class="recovery-main">
-        <header class="focused-topbar single-screen-toolbar crawler-workbench-topbar">
+    <section class="metric-row" aria-label="核心监控指标">
+      <article v-for="metric in v4MetricCards" :key="metric.key" class="metric" :class="`is-${metric.tone}`">
+        <small>{{ metric.label }}</small>
+        <strong>{{ metric.value }}</strong>
+        <span>{{ metric.note }}</span>
+      </article>
+    </section>
+
+    <nav class="module-tabs" aria-label="爬取监控模块">
+      <button
+        v-for="panel in monitorPanels"
+        :key="panel.key"
+        type="button"
+        class="module-tab"
+        :class="{ active: activeMonitorPanel === panel.key }"
+        @click="setActiveMonitorPanel(panel.key)"
+      >
+        <span>{{ panel.label }}</span>
+        <span v-if="panel.count !== '' && panel.count != null" class="module-tab__count">{{ panel.count }}</span>
+      </button>
+    </nav>
+
+    <section class="section-card module-stage-shell">
+      <div class="stage" :class="{ switching: panelSwitching }">
+        <div class="view-head">
           <div>
-            <p class="eyebrow">Crawler Monitor</p>
-            <h1 class="page-head__title">域爬取监控</h1>
-            <p class="page-head__subtitle">
-              优先定位异常、停滞、堵塞、运行和排队域；点击行查看实时进度、恢复动作和证据。
-            </p>
+            <h3>{{ activeMonitorPanelMeta.title }}</h3>
+            <p>{{ activeMonitorPanelMeta.subtitle }}</p>
           </div>
-          <div class="toolbar-top action-cluster toolbar-top--hero monitor-actions">
-            <button type="button" class="btn btn-secondary" :disabled="loading" @click="loadOverview">
-              <RefreshCw :size="16" :class="{ 'spin': loading }" />
-              <span>{{ loading ? '刷新中' : '刷新' }}</span>
-            </button>
-            <button
-              type="button"
-              class="btn"
-              :class="autoRefresh ? 'btn-primary' : 'btn-secondary'"
-              @click="autoRefresh = !autoRefresh"
-            >
-              <TimerReset :size="16" />
-              <span>{{ autoRefresh ? '自动刷新开' : '自动刷新关' }}</span>
-            </button>
-          </div>
-        </header>
+          <span class="status-pill" :class="v4StatusStrip.tone">{{ activeMonitorPanelMeta.badge }}</span>
+        </div>
 
-        <div class="monitor-tab-panel">
-        <section v-if="crawlerHealthCards.length" class="crawler-health-grid" aria-label="全局健康">
-          <template v-for="card in crawlerHealthCards" :key="card.key">
-            <article
-              v-if="card.risk"
-              class="crawler-health-card crawler-health-card--risk"
-              :class="`crawler-health-card--${card.tone}`"
-            >
-              <span class="crawler-health-card__label">{{ card.label }}</span>
-              <strong class="crawler-health-card__value">{{ card.value }}</strong>
-              <small class="crawler-health-card__note">{{ card.note }}</small>
-            </article>
-            <article
-              v-else
-              class="crawler-health-card"
-              :class="`crawler-health-card--${card.tone}`"
-            >
-              <span class="crawler-health-card__label">{{ card.label }}</span>
-              <strong class="crawler-health-card__value">{{ card.value }}</strong>
-              <small class="crawler-health-card__note">{{ card.note }}</small>
-            </article>
-          </template>
-        </section>
-
-        <section class="section-card monitor-panel domain-table-panel crawler-domain-card" aria-label="域监控表">
-          <div class="section-head">
-            <div>
-              <h2 class="section-card__title">域监控表</h2>
-              <p class="section-card__subtitle">正式域 {{ domainTableRows.length }} 个 · 10 域样本已隔离</p>
-            </div>
-            <span class="status-pill" :class="statusTone(selectedDomainTableRow?.risk || selectedDomainTableRow?.status || 'missing')">
-              {{ selectedDomainTableRow?.diagnosisTitle || statusLabel(selectedDomainTableRow?.status || 'missing') }}
-            </span>
-          </div>
-
-          <div class="single-screen-table-frame">
-            <div class="table-scroll">
-              <table class="monitor-table domain-monitor-table">
-              <thead>
-                <tr>
-                  <th>域</th>
-                  <th>状态</th>
-                  <th>进度</th>
-                  <th>心跳</th>
-                  <th>队列/占用</th>
-                  <th>阻塞者</th>
-                  <th>判断</th>
-                  <th>证据</th>
-                  <th>动作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="row in domainTableRows"
-                  :key="selectedDomainTableRowKey(row)"
-                  :class="[`domain-monitor-table__row--${row.diagnosisGroup}`, { 'is-selected': selectedDomainTableRow && selectedDomainTableRowKey(selectedDomainTableRow) === selectedDomainTableRowKey(row) }]"
-                  @click="selectDomainTableRow(row)"
-                >
-                  <td>
-                    <strong>{{ row.label }}</strong>
-                    <small>{{ row.domain || row.actionId || '未知域' }}</small>
-                  </td>
-                  <td>
-                    <span class="status-pill" :class="statusTone(row.risk || row.status)">{{ row.diagnosisTitle }}</span>
-                    <small>{{ statusLabel(row.status) }}</small>
-                  </td>
-                  <td>
-                    <strong>{{ row.progressLabel }}</strong>
-                    <small>{{ row.actionId || '无动作' }}</small>
-                    <div class="progress-track">
-                      <span :style="{ width: rowProgress(row.progressRow) }" :class="statusTone(row.status)" />
-                    </div>
-                  </td>
-                  <td><strong>{{ row.heartbeatAt ? formatDate(row.heartbeatAt) : '暂无心跳' }}</strong></td>
-                  <td>
-                    <strong>{{ row.queueSummary }}</strong>
-                    <small>{{ row.ownerLabel }}</small>
-                    <small v-if="row.pid">PID {{ row.pid }}</small>
-                  </td>
-                  <td>
-                    <strong>{{ row.blockerIdentity || row.blockerLabel || '无' }}</strong>
-                    <small v-if="row.dispatchId">{{ row.dispatchId }}</small>
-                  </td>
-                  <td>
-                    <strong>{{ row.rankReason }}</strong>
-                    <small>{{ row.reason || '暂无异常判断' }}</small>
-                    <small>{{ row.sourceSummary }}</small>
-                  </td>
-                  <td>
-                    <small>{{ row.evidenceSummary }}</small>
-                    <div v-if="row.files.length" class="progress-path-list">
-                      <button
-                        v-for="file in row.files"
-                        :key="`${row.domain}-${file.label}`"
-                        type="button"
-                        class="inline-report-button inline-report-button--compact"
-                        :class="{ 'inline-report-button--not-previewable': !isPreviewableReportPath(file.path) && !isPreviewableProgressPath(file.path) && !isPreviewableGeneratedJsonPath(file.path) }"
-                        :disabled="!isPreviewableReportPath(file.path) && !isPreviewableProgressPath(file.path) && !isPreviewableGeneratedJsonPath(file.path)"
-                        :title="file.path"
-                        @click.stop="openReportPreview(file.path)"
-                      >
-                        <span>{{ file.label }}</span>
-                      </button>
-                    </div>
-                  </td>
-                  <td>
-                    <button
-                      v-if="canCancelDomainTableQueuedRow(row)"
-                      type="button"
-                      class="inline-report-button inline-report-button--compact inline-report-button--danger"
-                      :disabled="queueControlLoading === row.queueId"
-                      @click.stop="cancelDomainTableQueuedRow(row)"
-                    >
-                      <CircleStop :size="14" />
-                      <span>{{ queueControlLoading === row.queueId ? '取消中' : '取消排队' }}</span>
-                    </button>
-                    <button
-                      v-else-if="canCancelDomainTableRunningRow(row)"
-                      type="button"
-                      class="inline-report-button inline-report-button--compact inline-report-button--danger"
-                      :disabled="queueControlLoading === row.queueId"
-                      @click.stop="cancelDomainTableRunningRow(row)"
-                    >
-                      <CircleStop :size="14" />
-                      <span>{{ queueControlLoading === row.queueId ? '终止中' : '终止运行' }}</span>
-                    </button>
-                    <button v-else type="button" class="inline-report-button inline-report-button--compact" @click.stop="selectDomainTableRow(row)">
-                      <Eye :size="14" />
-                      <span>{{ row.nextActionLabel || '查看' }}</span>
-                    </button>
-                  </td>
-                </tr>
-                <tr v-if="!domainTableRows.length">
-                  <td colspan="9" class="table-empty">暂无域状态。</td>
-                </tr>
-              </tbody>
+        <section v-show="activeMonitorPanel === 'overview'" class="monitor-panel-stage monitor-panel-stage--overview">
+          <div class="overview-layout">
+            <div class="domain-table">
+              <table class="monitor-table">
+                <thead>
+                  <tr>
+                    <th>域</th>
+                    <th>状态</th>
+                    <th>进度</th>
+                    <th>队列</th>
+                    <th>心跳</th>
+                    <th>下一步</th>
+                    <th>证据</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="row in domainTableRows"
+                    :key="selectedDomainTableRowKey(row)"
+                    class="domain-row"
+                    :class="[`domain-row--${row.diagnosisGroup}`, { selected: selectedDomainTableRow && selectedDomainTableRowKey(selectedDomainTableRow) === selectedDomainTableRowKey(row) }]"
+                    @click="selectDomainTableRow(row)"
+                  >
+                    <td>
+                      <strong>{{ row.label }}</strong>
+                      <small>{{ row.domain || row.actionId || '未知域' }}</small>
+                    </td>
+                    <td>
+                      <span class="status-pill" :class="statusTone(row.risk || row.status)">{{ row.diagnosisTitle }}</span>
+                      <small>{{ statusLabel(row.status) }}</small>
+                    </td>
+                    <td>
+                      <strong>{{ row.progressLabel }}</strong>
+                      <div class="progress-track">
+                        <span :style="{ width: rowProgress(row.progressRow) }" :class="statusTone(row.status)" />
+                      </div>
+                    </td>
+                    <td>
+                      <strong>{{ row.queueSummary }}</strong>
+                      <small>{{ row.ownerLabel }}</small>
+                    </td>
+                    <td>
+                      <strong>{{ row.heartbeatAt ? formatDate(row.heartbeatAt) : '暂无心跳' }}</strong>
+                      <small v-if="row.pid">PID {{ row.pid }}</small>
+                    </td>
+                    <td>
+                      <strong>{{ row.nextActionLabel || row.rankReason }}</strong>
+                      <small>{{ row.rankReason }}</small>
+                    </td>
+                    <td>
+                      <div class="domain-actions">
+                        <button type="button" class="btn btn-plain" @click.stop="selectDomainTableRow(row)">
+                          <Eye :size="14" />
+                          <span>证据</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr v-if="!domainTableRows.length">
+                    <td colspan="7" class="table-empty">暂无域状态。</td>
+                  </tr>
+                </tbody>
               </table>
             </div>
-          </div>
-        </section>
-        <section
-          v-if="selectedDomainTableRow"
-          class="selected-domain-workbench selected-domain-inline wiki-workbench"
-          aria-label="选中域排障"
-        >
-            <header class="selected-domain-workbench__head selected-domain-drawer__head">
-              <div>
-                <span class="ops-card__label">选中域排障</span>
-                <h2>{{ selectedDomainDisplayName }} · {{ selectedDomainStatusLabel }}</h2>
-                <p>{{ selectedDomainOperatorSummary }}</p>
-              </div>
-              <button type="button" class="icon-close-button" aria-label="关闭选中域排障" @click="closeSelectedDomainDrawer">
-                <X :size="16" />
-              </button>
-            </header>
-            <div class="selected-domain-workbench__grid">
-            <div class="wiki-live-panel live-focus">
-            <div class="wiki-live-panel__head">
-              <div>
-                <span class="ops-card__label">实时进度</span>
-                <h3>{{ selectedDomainNextActionLabel }}</h3>
-                <p>{{ selectedWikiDomainProgressCopy }}</p>
-              </div>
-              <strong class="wiki-live-percent">{{ rowProgressLabel(selectedWikiProgressRow) }}</strong>
-            </div>
-            <div class="progress-track">
-              <span :style="{ width: rowProgress(selectedWikiProgressRow) }" :class="statusTone(rowStatus(selectedWikiProgressRow))" />
-            </div>
-            <div class="wiki-live-metrics">
-              <span><small>状态</small><strong>{{ selectedDomainStatusLabel }}</strong></span>
-              <span><small>下一步建议</small><strong>{{ selectedDomainNextActionLabel }}</strong></span>
-              <span><small>当前/总数</small><strong>{{ selectedWikiProgressNumbers }}</strong></span>
-              <span><small>最后心跳</small><strong>{{ selectedDomainHeartbeatMessage }}</strong></span>
-              <span><small>心跳状态</small><strong>{{ selectedDomainHeartbeatState }}</strong></span>
-              <span><small>开始时间</small><strong>{{ selectedDomainStartedAtLabel }}</strong></span>
-              <span><small>运行时长</small><strong>{{ selectedDomainElapsedLabel }}</strong></span>
-              <span><small>更新时间</small><strong>{{ selectedWikiUpdatedAtLabel }}</strong></span>
-              <span><small>待处理</small><strong>{{ rowPendingLabel(selectedWikiProgressRow) }}</strong></span>
-              <span><small>速度</small><strong>{{ rowSpeedLabel(selectedWikiProgressRow) }}</strong></span>
-              <span><small>预计剩余</small><strong>{{ rowEtaLabel(selectedWikiProgressRow) }}</strong></span>
-            </div>
-            <div v-if="selectedDomainCooldownExplanation" class="wiki-workbench__cooldown">
-              <span>Wiki 保护冷却</span>
-              <p>{{ selectedDomainCooldownExplanation }}</p>
-            </div>
-            <div v-if="selectedWikiActionDisabledReason" class="wiki-workbench__warning">
-              <span>为什么不能执行</span>
-              <p>{{ selectedWikiActionDisabledReason }}</p>
-            </div>
-            <div class="wiki-path-strip">
-              <span>运行文件</span>
-              <code>{{ selectedWikiPathSummary }}</code>
-            </div>
-            <div class="wiki-run-control-panel" aria-label="当前域操作">
-              <div>
-                <strong>当前域操作</strong>
-                <small>{{ selectedWikiOperationHint }}</small>
-              </div>
-              <div
-                v-if="selectedWikiDomain"
-                class="wiki-run-control-buttons"
-                :class="{ 'wiki-run-control-buttons--disabled': !selectedWikiCanExecute }"
-              >
-                <button
-                  type="button"
-                  class="inline-report-button"
-                  :disabled="loading"
-                  @click="loadOverview"
-                >
-                  <RefreshCw :size="14" :class="{ 'spin': loading }" />
-                  <span>{{ loading ? '刷新中' : '刷新状态' }}</span>
-                </button>
-                <button
-                  type="button"
-                  class="wiki-run-control-button--primary"
-                  :class="{ 'wiki-run-control-button--disabled': !selectedWikiCanExecute }"
-                  :disabled="!selectedWikiCanExecute || wikiDispatchLoading === selectedWikiDomain.domain"
-                  :title="selectedWikiActionDisabledReason || selectedWikiOperationHint"
-                  @click="openDispatchConfirm(selectedWikiDomain)"
-                >
-                  <RefreshCw :size="16" :class="{ 'spin': wikiDispatchLoading === selectedWikiDomain.domain }" />
-                  <span>{{ selectedWikiReCrawlButtonLabel }}</span>
-                </button>
-                <button
-                  v-if="canRetryWikiDomain(selectedWikiDomain)"
-                  type="button"
-                  class="inline-report-button inline-report-button--warning"
-                  :disabled="wikiDispatchLoading === selectedWikiDomain.domain"
-                  @click="retryWikiDomain(selectedWikiDomain)"
-                >
-                  <RefreshCw :size="14" :class="{ 'spin': wikiDispatchLoading === selectedWikiDomain.domain }" />
-                  <span>{{ wikiDispatchLoading === selectedWikiDomain.domain ? '重试中' : '重试' }}</span>
-                </button>
-                <button
-                  type="button"
-                  class="inline-report-button"
-                  :disabled="!canPauseWikiDomain(selectedWikiDomain) || wikiControlLoading === selectedWikiDomain.domain"
-                  @click="controlWikiMonitorTask(selectedWikiDomain, 'pause')"
-                >
-                  <Pause :size="14" />
-                  <span>{{ canPauseWikiDomain(selectedWikiDomain) ? (wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '暂停任务') : '暂停不可用' }}</span>
-                </button>
-                <button
-                  type="button"
-                  class="inline-report-button"
-                  :disabled="!canResumeWikiDomain(selectedWikiDomain) || wikiControlLoading === selectedWikiDomain.domain"
-                  @click="controlWikiMonitorTask(selectedWikiDomain, 'resume')"
-                >
-                  <Play :size="14" />
-                  <span>{{ canResumeWikiDomain(selectedWikiDomain) ? (wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '继续任务') : '继续不可用' }}</span>
-                </button>
-                <button
-                  type="button"
-                  class="inline-report-button inline-report-button--danger"
-                  :disabled="!canCancelWikiDomain(selectedWikiDomain) || wikiControlLoading === selectedWikiDomain.domain"
-                  @click="openCancelConfirm(selectedWikiDomain)"
-                >
-                  <CircleStop :size="14" />
-                  <span>{{ canCancelWikiDomain(selectedWikiDomain) ? (wikiControlLoading === selectedWikiDomain.domain ? '处理中' : '终止并清理文件') : '终止不可用' }}</span>
-                </button>
-              </div>
-              <div v-else class="wiki-run-control-buttons">
-                <button
-                  v-if="canCancelDomainTableQueuedRow(selectedDomainTableRow)"
-                  type="button"
-                  class="inline-report-button inline-report-button--danger"
-                  :disabled="queueControlLoading === selectedDomainTableRow.queueId"
-                  @click="cancelDomainTableQueuedRow(selectedDomainTableRow)"
-                >
-                  <CircleStop :size="14" />
-                  <span>{{ queueControlLoading === selectedDomainTableRow.queueId ? '取消中' : '取消排队' }}</span>
-                </button>
-                <button
-                  v-if="canCancelDomainTableRunningRow(selectedDomainTableRow)"
-                  type="button"
-                  class="inline-report-button inline-report-button--danger"
-                  :disabled="queueControlLoading === selectedDomainTableRow.queueId"
-                  @click="cancelDomainTableRunningRow(selectedDomainTableRow)"
-                >
-                  <CircleStop :size="14" />
-                  <span>{{ queueControlLoading === selectedDomainTableRow.queueId ? '终止中' : '终止运行' }}</span>
-                </button>
-                <button type="button" class="inline-report-button" :disabled="loading" @click="loadOverview">
-                  <RefreshCw :size="14" :class="{ 'spin': loading }" />
-                  <span>{{ loading ? '刷新中' : '刷新状态' }}</span>
-                </button>
-              </div>
-            </div>
-            </div>
 
-            <aside class="wiki-recovery-panel recovery-panel selected-domain-table-evidence">
-            <div>
-              <span class="ops-card__label">当前域证据</span>
-              <h3>{{ selectedWikiRecoveryTitle }}</h3>
-              <p>{{ selectedWikiRecoveryCopy }}</p>
-            </div>
-            <div class="selected-domain-detail-grid">
-              <span><small>诊断</small><strong>{{ selectedDomainTableRow ? selectedDomainTableRow.rankReason : '无异常排序原因' }}</strong></span>
-              <span><small>标准队列</small><strong>{{ selectedDomainTableRow ? selectedDomainTableRow.queueSummary : '无标准队列' }}</strong></span>
-              <span><small>queueId</small><strong>{{ selectedDomainTableEvidence.queueId || '无' }}</strong></span>
-              <span><small>dispatchId</small><strong>{{ selectedDomainTableEvidence.dispatchId || '无' }}</strong></span>
-              <span><small>PID</small><strong>{{ selectedDomainTableEvidence.pid || '无' }}</strong></span>
-              <span><small>阻塞者</small><strong>{{ selectedDomainTableRow ? selectedDomainTableRow.blockerIdentity || selectedDomainTableEvidence.blockerLabel || '无' : selectedDomainTableEvidence.blockerLabel || '无' }}</strong></span>
-              <span><small>数据识别</small><strong>{{ selectedDomainTableRow ? selectedDomainTableRow.sourceSummary : '未记录' }}</strong></span>
-              <span><small>下一步</small><strong>{{ selectedDomainTableRow ? selectedDomainTableRow.nextActionLabel : selectedDomainNextActionLabel }}</strong></span>
-            </div>
-            <div v-if="selectedDomainTableEvidence.files.length" class="progress-path-list">
-              <button
-                v-for="file in selectedDomainTableEvidence.files"
-                :key="`selected-domain-evidence-${file.label}-${file.path}`"
-                type="button"
-                class="inline-report-button inline-report-button--compact"
-                :class="{ 'inline-report-button--not-previewable': !isPreviewableReportPath(file.path) && !isPreviewableProgressPath(file.path) && !isPreviewableGeneratedJsonPath(file.path) }"
-                :disabled="!isPreviewableReportPath(file.path) && !isPreviewableProgressPath(file.path) && !isPreviewableGeneratedJsonPath(file.path)"
-                :title="file.path"
-                @click="openReportPreview(file.path)"
-              >
-                <span>{{ file.label }}</span>
-              </button>
-            </div>
-            <div v-if="selectedWikiDomain" class="wiki-recovery-actions">
-              <button
-                v-if="isPreviewableReportPath(selectedWikiReportPath)"
-                type="button"
-                class="inline-report-button"
-                :disabled="isPreviewLoading(selectedWikiReportPath)"
-                @click="openReportPreview(selectedWikiReportPath)"
-              >
-                <Eye :size="14" />
-                <span>打开报告</span>
-              </button>
-              <button
-                v-if="isPreviewableProgressPath(selectedWikiProgressPath)"
-                type="button"
-                class="inline-report-button"
-                :disabled="isPreviewLoading(selectedWikiProgressPath)"
-                @click="openReportPreview(selectedWikiProgressPath)"
-              >
-                <FileJson :size="14" />
-                <span>查看进度文件</span>
-              </button>
-              <button
-                v-if="isPreviewableGeneratedJsonPath(selectedWikiOutputPath)"
-                type="button"
-                class="inline-report-button"
-                :disabled="isPreviewLoading(selectedWikiOutputPath)"
-                @click="openReportPreview(selectedWikiOutputPath)"
-              >
-                <FileJson :size="14" />
-                <span>打开爬取文件</span>
-              </button>
-              <button type="button" class="inline-report-button" @click="toggleCommandPreview(selectedWikiDomain)">
-                <FileStack :size="14" />
-                <span>查看命令</span>
-              </button>
-            </div>
-            <p class="wiki-recovery-hint">{{ selectedWikiOperationHint }}</p>
-            <p v-if="selectedWikiDomain && canPauseWikiDomain(selectedWikiDomain)" class="wiki-recovery-hint wiki-recovery-hint--warning">
-              暂停会保留执行锁，后续队列不会自动接上；如需让下一个域执行，请使用终止并清理文件。
-            </p>
-            <div v-if="selectedWikiDomain && selectedWikiCommandOpen" class="wiki-command-preview">
-              <span>命令预览</span>
-              <code>domain: {{ selectedWikiDomain.domain || '未配置' }}
-actionId: {{ selectedWikiDomain.recommendedActionId || '无白名单动作' }}
-progressPath: {{ selectedWikiProgressPath || selectedWikiDomain.progressPath || '未生成' }}
-command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后端白名单动作派发' }}</code>
-            </div>
-            <div v-if="latestDispatchResult && (latestDispatchBelongsToSelected || !latestDispatchMatchedDomain)" class="wiki-dispatch-feedback">
-              <span>{{ latestDispatchBelongsToSelected ? '当前域派发反馈' : '最新派发反馈' }}</span>
-              <strong>{{ dispatchFeedbackMessage(latestDispatchResult) }}</strong>
-              <dl>
-                <div><dt>派发编号</dt><dd>{{ latestDispatchResult.dispatchId || '未返回' }}</dd></div>
-                <div><dt>派发状态</dt><dd>{{ statusLabel(latestDispatchResult.status) }}</dd></div>
-                <div v-if="latestDispatchResult.blockedByDispatchId || latestDispatchResult.blockedByActionId">
-                  <dt>阻塞任务</dt>
-                  <dd>{{ dispatchBlockerLabel(latestDispatchResult) }}</dd>
+            <aside v-if="selectedDomainTableRow" class="current-card">
+              <header class="current-head">
+                <div>
+                  <span class="status-pill" :class="statusTone(selectedDomainTableRow.risk || selectedDomainTableRow.status)">
+                    {{ selectedDomainStatusLabel }}
+                  </span>
+                  <h4>{{ selectedDomainDisplayName }}</h4>
+                  <p>{{ selectedDomainOperatorSummary }}</p>
                 </div>
-                <div v-if="latestDispatchResult.blockedSince">
-                  <dt>阻塞开始</dt>
-                  <dd>{{ formatDate(latestDispatchResult.blockedSince) }}</dd>
-                </div>
-                <div><dt>进度文件</dt><dd>{{ dispatchResultPath('progress') || '未返回' }}</dd></div>
-                <div><dt>报告文件</dt><dd>{{ dispatchResultPath('report') || '未返回' }}</dd></div>
-                <div v-if="latestDispatchResult.lockPath"><dt>锁文件</dt><dd>{{ latestDispatchResult.lockPath }}</dd></div>
-              </dl>
-              <div class="wiki-dispatch-feedback__actions">
-                <button
-                  v-if="isPreviewableReportPath(dispatchResultPath('report'))"
-                  type="button"
-                  class="inline-report-button inline-report-button--compact"
-                  @click="openReportPreview(dispatchResultPath('report'))"
-                >
-                  打开派发报告
+                <button type="button" class="btn btn-plain" @click="openReportPreview(selectedWikiReportPath || selectedWikiProgressPath)">
+                  查看证据
                 </button>
+              </header>
+
+              <div class="kv-grid">
+                <div class="kv"><small>当前进度</small><strong>{{ selectedWikiProgressNumbers }}</strong></div>
+                <div class="kv"><small>队列占用</small><strong>{{ selectedDomainTableRow.queueSummary }}</strong></div>
+                <div class="kv"><small>最近心跳</small><strong>{{ selectedDomainHeartbeatMessage }}</strong></div>
+                <div class="kv"><small>建议动作</small><strong>{{ selectedDomainNextActionLabel }}</strong></div>
+              </div>
+
+              <div v-if="selectedDomainTableEvidence.files.length" class="evidence-row progress-path-list">
                 <button
-                  v-if="isPreviewableProgressPath(dispatchResultPath('progress'))"
+                  v-for="file in selectedDomainTableEvidence.files"
+                  :key="`selected-domain-evidence-${file.label}-${file.path}`"
                   type="button"
                   class="inline-report-button inline-report-button--compact"
-                  @click="openReportPreview(dispatchResultPath('progress'))"
+                  :class="{ 'inline-report-button--not-previewable': !isPreviewableReportPath(file.path) && !isPreviewableProgressPath(file.path) && !isPreviewableGeneratedJsonPath(file.path) }"
+                  :disabled="!isPreviewableReportPath(file.path) && !isPreviewableProgressPath(file.path) && !isPreviewableGeneratedJsonPath(file.path)"
+                  :title="file.path"
+                  @click="openReportPreview(file.path)"
                 >
-                  打开派发进度
+                  <span>{{ file.label }}</span>
                 </button>
               </div>
-            </div>
-            <div v-else-if="latestDispatchResult" class="wiki-dispatch-feedback wiki-dispatch-feedback--muted">
-              <span>上一条派发</span>
-              <strong>{{ latestDispatchResult.domain || latestDispatchResult.actionId || '未归属派发' }} · {{ statusLabel(latestDispatchResult.status) }}</strong>
-              <button
-                v-if="latestDispatchMatchedDomain"
-                type="button"
-                class="inline-report-button inline-report-button--compact"
-                @click="selectLatestDispatchDomain"
-              >
-                切到该域
-              </button>
-            </div>
+              <div v-else class="evidence-row">
+                <span class="file-chip">暂无证据</span>
+              </div>
             </aside>
-            </div>
-            <section v-if="selectedWikiDomain" class="panel recovery-detail selected-domain-config">
-              <div>
-                <h2>{{ selectedDomainDisplayName }} 域详情</h2>
-                <p>{{ selectedWikiDomainDetailCopy }}</p>
-                <div class="reason-list">
-                  <div class="reason-row">
-                    <span>Wiki</span>
-                    <strong>{{ wikiDomainManualHint(selectedWikiDomain) }}</strong>
-                    <button
-                      v-if="isPreviewableProgressPath(selectedWikiProgressPath)"
-                      type="button"
-                      class="inline-report-button inline-report-button--compact"
-                      @click="openReportPreview(selectedWikiProgressPath)"
-                    >
-                      打开文件
-                    </button>
-                  </div>
-                  <div class="reason-row">
-                    <span>心跳</span>
-                    <strong>{{ wikiDomainHeartbeatLabel(selectedWikiDomain) }}</strong>
-                    <button
-                      v-if="isPreviewableReportPath(selectedWikiReportPath)"
-                      type="button"
-                      class="inline-report-button inline-report-button--compact"
-                      @click="openReportPreview(selectedWikiReportPath)"
-                    >
-                      打开报告
-                    </button>
-                  </div>
-                  <div class="reason-row">
-                    <span>状态</span>
-                    <strong>{{ selectedWikiOperationHint }}</strong>
-                    <button type="button" class="inline-report-button inline-report-button--compact" @click="toggleCommandPreview(selectedWikiDomain)">
-                      查看命令
-                    </button>
-                  </div>
-                </div>
-                <details v-if="selectedDomainSmokeRow" open class="selected-domain-detail-block">
-                  <summary>
-                    <strong>样本爬取验收</strong>
-                    <span>{{ statusLabel(rowStatus(selectedDomainSmokeRow)) }}</span>
-                  </summary>
-                  <div class="selected-domain-detail-grid">
-                    <span><small>状态</small><strong>{{ statusLabel(rowStatus(selectedDomainSmokeRow)) }}</strong></span>
-                    <span><small>进度</small><strong>{{ rowProgressNumbers(selectedDomainSmokeRow) }}</strong></span>
-                    <span><small>心跳</small><strong>{{ rowHeartbeatLabel(selectedDomainSmokeRow) }}</strong></span>
-                    <span><small>进度文件</small><strong>{{ rowSourcePath(selectedDomainSmokeRow) || '--' }}</strong></span>
-                  </div>
-                </details>
-                <details v-else open class="selected-domain-detail-block">
-                  <summary>
-                    <strong>样本爬取验收</strong>
-                    <span>暂无样本</span>
-                  </summary>
-                  <p class="empty-line">当前域暂无样本爬取结果。</p>
-                </details>
-                <details v-if="selectedDomainValidationSummary" open class="selected-domain-detail-block">
-                  <summary>
-                    <strong>基础项检查</strong>
-                    <span>
-                      正式 {{ selectedDomainValidationSummary.formal.ready }}/{{ selectedDomainValidationSummary.formal.total }}
-                      · 样本 {{ selectedDomainValidationSummary.sample.ready }}/{{ selectedDomainValidationSummary.sample.total }}
-                    </span>
-                  </summary>
-                  <div class="selected-domain-validation-groups">
-                    <section>
-                      <h3>正式域状态</h3>
-                      <div class="domain-test-items domain-test-items--selected">
-                        <span v-for="item in selectedDomainValidationSummary.formal.items" :key="`${selectedDomainValidationSummary.id}-formal-${item.label}`">
-                          <small>{{ item.label }}</small>
-                          <strong>{{ item.value }}</strong>
-                        </span>
-                      </div>
-                    </section>
-                    <section>
-                      <h3>样本测试状态</h3>
-                      <div class="domain-test-items domain-test-items--selected">
-                        <span v-for="item in selectedDomainValidationSummary.sample.items" :key="`${selectedDomainValidationSummary.id}-sample-${item.label}`">
-                          <small>{{ item.label }}</small>
-                          <strong>{{ item.value }}</strong>
-                        </span>
-                      </div>
-                    </section>
-                  </div>
-                </details>
-              </div>
-              <div class="wiki-domain-detail-grid health-stack">
-                <article class="wiki-detail-card"><span>数据来源键</span><strong>{{ selectedWikiDomain.sourceKey || '未配置' }}</strong></article>
-                <article class="wiki-detail-card"><span>定位规则</span><strong>{{ selectedWikiDomain.locator || '未配置' }}</strong></article>
-                <article class="wiki-detail-card"><span>上次检查</span><strong>{{ formatDate(selectedWikiDomain.lastCheckedAt) }}</strong></article>
-                <article class="wiki-detail-card"><span>白名单动作 ID</span><strong>{{ selectedWikiDomain.recommendedActionId || '无白名单动作' }}</strong></article>
-                <article class="wiki-detail-card"><span>最大并发</span><strong>{{ domainMaxConcurrentLabel(selectedWikiDomain) }}</strong></article>
-                <article class="wiki-detail-card"><span>熔断</span><strong>{{ domainFailureCircuitBreakerLabel(selectedWikiDomain) }}</strong></article>
-                <article class="wiki-detail-card"><span>进度文件</span><strong>{{ selectedWikiProgressPath || selectedWikiDomain.progressPath || '未生成' }}</strong></article>
-                <article class="wiki-detail-card"><span>报告文件</span><strong>{{ selectedWikiReportPath || '等待生成' }}</strong></article>
-                <article class="wiki-detail-card"><span>爬取文件</span><strong>{{ selectedWikiOutputPath || '等待生成' }}</strong></article>
-                <article class="wiki-detail-card"><span>技术标识</span><strong>{{ selectedWikiDomain.domain || selectedWikiDomain.recommendedActionId || '未配置' }}</strong></article>
-              </div>
-            </section>
-            <section v-if="pendingWikiDispatches.length" class="panel wiki-pending-compact">
-              <div class="wiki-approval-list__head">
-                <strong>待确认</strong>
-                <span>{{ pendingWikiDispatches.length }} 个域需要处理</span>
-              </div>
-              <article v-for="dispatch in pendingWikiDispatches" :key="`pending-${dispatch.domain || dispatch.actionId}`" class="wiki-approval-row">
-                <button type="button" class="wiki-pending-select" @click="selectWikiDomain(wikiDispatchDomain(dispatch) || undefined)">
-                  <strong>{{ wikiDispatchDomain(dispatch)?.label || dispatch.domain || '未知域' }}</strong>
-                  <small>{{ dispatch.message || wikiDispatchDomain(dispatch)?.locator || '等待手动确认' }}</small>
-                  <code>{{ dispatch.progressPath || '未生成进度文件' }}</code>
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-primary"
-                  :disabled="!canExecuteWikiDispatch(dispatch) || wikiDispatchLoading === dispatch.domain"
-                  :title="wikiDispatchDisabledReason(dispatch)"
-                  @click="openDispatchConfirm(wikiDispatchDomain(dispatch))"
-                >
-                  <RefreshCw :size="16" :class="{ 'spin': wikiDispatchLoading === dispatch.domain }" />
-                  <span>{{ wikiDispatchLoading === dispatch.domain ? '启动中' : '启动重爬' }}</span>
-                </button>
-              </article>
-            </section>
-        </section>
-        </div>
-      </div>
-    </section>
-
-    <section class="diagnostics-zone" aria-label="辅助监控信息">
-      <div class="diagnostics-zone__head">
-        <span class="diagnostics-zone__bar" aria-hidden="true"></span>
-        <div>
-          <h2>诊断与验收</h2>
-          <p>执行总览 · 全局队列 · 任务明细 · 数据质量 · 基础域编排 · 10×10 验收</p>
-        </div>
-      </div>
-      <div class="single-screen-diagnostics__body">
-      <div class="monitor-tab-panel">
-      <section class="section-card monitor-panel execution-overview-card">
-        <header class="section-head">
-          <div>
-            <h2 class="section-card__title">执行总览</h2>
-            <p class="section-card__subtitle">合并真实队列与实时进度；域表格已经优先展示域状态，这里保留跨域执行项。</p>
-            <small class="section-card__subtitle-note">执行项 {{ executionOverviewRows.length }} 项 · 详情交给当前选中域和任务进度明细</small>
           </div>
-          <span class="status-pill" :class="statusTone(executionOverviewStatusLabel)">{{ statusLabel(executionOverviewStatusLabel) }}</span>
-        </header>
+        </section>
 
-        <div v-if="executionOverviewRows.length" class="action-rail action-rail--execution">
-          <article v-for="row in executionOverviewRows" :key="row.key" class="action-card action-card--execution">
-            <div class="action-card__head">
-              <strong>{{ row.primaryLabel }}</strong>
-              <div class="noise-actions">
-                <span class="status-pill" :class="statusTone(row.displayStatus || row.status)">{{ statusLabel(row.displayStatus || row.status) }}</span>
+        <section v-show="activeMonitorPanel === 'queue'" class="monitor-panel-stage monitor-panel-stage--queue">
+          <div class="grid-queue">
+            <div class="queue-list">
+              <article v-for="row in executionOverviewRows" :key="row.key" class="queue-card">
+                <div class="queue-meta">
+                  <strong>{{ row.primaryLabel }}</strong>
+                  <span class="status-pill" :class="statusTone(row.displayStatus || row.status)">{{ statusLabel(row.displayStatus || row.status) }}</span>
+                </div>
+                <small>{{ row.secondaryLabel }}</small>
+                <p v-if="row.message" class="queue-message">{{ row.message }}</p>
+                <p v-if="row.heartbeatSummary" class="queue-message queue-message--warning">{{ row.heartbeatSummary }}</p>
+                <div class="progress-track">
+                  <span :style="{ width: executionOverviewProgress(row) }" :class="statusTone(row.displayStatus || row.status)" />
+                </div>
                 <button type="button" class="inline-report-button inline-report-button--compact" @click="selectExecutionOverviewRow(row)">
                   <Eye :size="14" />
                   <span>查看</span>
                 </button>
+              </article>
+              <div v-if="!executionOverviewRows.length" class="empty-block empty-block--compact">
+                <Activity :size="20" />
+                <span>暂无需关注执行项。</span>
               </div>
             </div>
-            <div class="action-card__meta">
-              <span>{{ row.secondaryLabel }}</span>
-              <span v-if="row.queuePosition">队列 #{{ row.queuePosition }}</span>
-              <span v-else>{{ row.kind === 'queue' ? '队列任务' : '进度任务' }}</span>
-              <span v-if="executionOverviewProgressNumbers(row) !== '--'">{{ executionOverviewProgressNumbers(row) }}</span>
-            </div>
-            <p v-if="row.message" class="action-card__message">{{ row.message }}</p>
-            <p v-if="row.heartbeatSummary" class="action-card__message action-card__message--warning">{{ row.heartbeatSummary }}</p>
-            <div class="progress-track">
-              <span :style="{ width: executionOverviewProgress(row) }" :class="statusTone(row.displayStatus || row.status)" />
-            </div>
-          </article>
-        </div>
 
-        <div v-else class="empty-block">
-          <Activity :size="24" />
-          <strong>暂无需关注执行项</strong>
-          <span>当前没有运行、排队、阻塞、停滞或失败的执行项。</span>
-        </div>
-      </section>
-
-      <section class="section-card monitor-panel queue-progress-card">
-        <header class="section-head">
-          <div>
-            <h2 class="section-card__title">全局队列和任务明细</h2>
-            <p class="section-card__subtitle">全局排队、运行、堵塞和历史进度；当前域证据优先看上方选中域。</p>
-          </div>
-          <span class="status-pill" :class="activeDispatchQueueRows.length ? 'warning' : 'muted'">{{ activeDispatchQueueRows.length }} 项</span>
-        </header>
-
-        <section class="panel wiki-monitor-dispatch-queue" aria-label="wiki-monitor-dispatch-queue">
-          <div class="panel-head">
-            <div>
-              <h2>队列明细</h2>
-              <p>只显示正在排队、运行或堵塞的队列项；终态结果和运行文件统一进入任务进度明细。</p>
-            </div>
-            <span class="status-pill" :class="activeDispatchQueueRows.length ? 'warning' : 'muted'">{{ activeDispatchQueueRows.length }} 项</span>
-          </div>
-            <div v-if="activeDispatchQueueRows.length" class="dispatch-queue-list">
-              <article v-for="item in dispatchQueueRows" :key="item.queueId || item.dispatchId || `${item.domain}-${item.actionId}`" class="dispatch-queue-row">
-                <button type="button" class="dispatch-queue-row__main" @click="selectQueueItemDomain(item)">
-                  <span>
-                    <strong>{{ queueItemDomainLabel(item) }}</strong>
-                    <em class="status-pill" :class="statusTone(queueItemStatus(item))">{{ statusLabel(queueItemStatus(item)) }}</em>
-                  </span>
-                  <small>{{ queueItemMessage(item) }}</small>
-                  <small v-if="queueItemBlockerLabel(item)" class="dispatch-queue-row__blocker">{{ queueItemBlockerLabel(item) }}</small>
-                  <code>{{ queueItemIdentityLabel(item) }}</code>
-                </button>
-                <div class="dispatch-queue-row__meta">
-                  <span><small>通道</small><strong>{{ queueItemLaneLabel(item) }}</strong></span>
-                  <span><small>位置</small><strong>{{ queueItemPositionLabel(item) }}</strong></span>
-                  <span><small>动作</small><strong>{{ item.actionId || '未命名动作' }}</strong></span>
-                  <span v-if="item.pid"><small>PID</small><strong>{{ item.pid }}</strong></span>
+            <aside class="side-panel">
+              <section class="summary-card wiki-monitor-dispatch-queue" aria-label="wiki-monitor-dispatch-queue">
+                <div class="queue-side-head">
+                  <div>
+                    <h4>队列明细</h4>
+                    <p>只显示正在排队、运行或堵塞的队列项；终态结果和运行文件统一进入任务进度明细。</p>
+                  </div>
+                  <span class="status-pill" :class="activeDispatchQueueRows.length ? 'warning' : 'muted'">{{ activeDispatchQueueRows.length }} 项</span>
                 </div>
-                <button
-                  v-if="canCancelQueuedItem(item)"
-                  type="button"
-                  class="inline-report-button inline-report-button--compact inline-report-button--danger"
-                  :disabled="queueControlLoading === item.queueId"
-                  @click="cancelQueuedDispatchItem(item)"
-                >
-                  <X :size="14" />
-                  <span>{{ queueControlLoading === item.queueId ? '处理中' : '取消排队' }}</span>
-                </button>
-                <button
-                  v-if="canCancelRunningQueueItem(item)"
-                  type="button"
-                  class="inline-report-button inline-report-button--compact inline-report-button--danger"
-                  :disabled="queueControlLoading === item.queueId"
-                  @click="cancelRunningDispatchItem(item)"
-                >
-                  <CircleStop :size="14" />
-                  <span>{{ queueControlLoading === item.queueId ? '处理中' : '终止运行' }}</span>
-                </button>
-              </article>
-            </div>
-            <div v-else class="empty-block empty-block--compact">
-              <Activity :size="20" />
-              <span>尚无正在排队、运行或堵塞的队列项。</span>
-            </div>
-        </section>
-
-        <section class="monitor-layout">
-      <div class="monitor-main">
-        <section class="section-card monitor-panel">
-          <header class="section-head">
-            <div>
-              <h2 class="section-card__title">任务进度明细</h2>
-              <p class="section-card__subtitle">汇总可操作的进度行、心跳、速度和运行文件；已完成与仅报告行不再挤占上方阶段进度。</p>
-            </div>
-          </header>
-          <div class="table-scroll">
-            <table class="monitor-table">
-              <thead>
-                <tr>
-                  <th>任务</th>
-                  <th>通道</th>
-                  <th>状态</th>
-                  <th>进度</th>
-                  <th>待处理</th>
-                  <th>速度</th>
-                  <th>预计剩余</th>
-                  <th>开始时间</th>
-                  <th>运行时长</th>
-                  <th>心跳</th>
-                  <th>运行文件</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="row in progressDetailRowsByPriority" :key="`row-${row.rowKey}`">
-                  <td>
-                    <strong>{{ row.label || row.id || '未知任务' }}</strong>
-                    <small>{{ row.id || safeActionFallbackLabel(row.action) }}</small>
-                  </td>
-                  <td>{{ progressRowLaneLabel(row) }}</td>
-                  <td><span class="status-pill" :class="statusTone(rowStatus(row))">{{ statusLabel(rowStatus(row)) }}</span></td>
-                  <td>
-                    <strong>{{ rowProgressLabel(row) }}</strong>
-                    <small v-if="row.progressKind || row.action?.phase || row.queueState">{{ [row.progressKind, row.action?.phase, row.queueState].filter(Boolean).join(' · ') }}</small>
-                    <small v-if="row.progressStaleReason">{{ row.progressStaleReason }}</small>
-                  </td>
-                  <td>{{ rowPendingLabel(row) }}</td>
-                  <td>{{ rowSpeedLabel(row) }}</td>
-                  <td>{{ rowEtaLabel(row) }}</td>
-                  <td>{{ formatDate(rowStartedAt(row)) }}</td>
-                  <td>{{ formatElapsedDuration(taskElapsedMs(row)) }}</td>
-                  <td>{{ rowHeartbeatLabel(row) }}</td>
-                  <td>
-                    <div v-if="progressRowPathEntries(row).length" class="progress-path-list">
-                      <button
-                        v-for="entry in progressRowPathEntries(row)"
-                        :key="`${row.rowKey}-${entry.label}`"
-                        type="button"
-                        class="inline-report-button inline-report-button--compact"
-                        :class="{ 'inline-report-button--not-previewable': !isPreviewableReportPath(entry.path) && !isPreviewableProgressPath(entry.path) }"
-                        :disabled="!isPreviewableReportPath(entry.path) && !isPreviewableProgressPath(entry.path)"
-                        :title="(!isPreviewableReportPath(entry.path) && !isPreviewableProgressPath(entry.path)) ? '此路径不支持预览' : entry.path"
-                        @click="openReportPreview(entry.path)"
-                      >
-                        <span>{{ entry.label }}</span>
-                      </button>
+                <div v-if="activeDispatchQueueRows.length" class="dispatch-queue-list">
+                  <article v-for="item in dispatchQueueRows" :key="item.queueId || item.dispatchId || `${item.domain}-${item.actionId}`" class="dispatch-queue-row queue-card">
+                    <button type="button" class="dispatch-queue-row__main" @click="selectQueueItemDomain(item)">
+                      <span>
+                        <strong>{{ queueItemDomainLabel(item) }}</strong>
+                        <em class="status-pill" :class="statusTone(queueItemStatus(item))">{{ statusLabel(queueItemStatus(item)) }}</em>
+                      </span>
+                      <small>{{ queueItemMessage(item) }}</small>
+                      <small v-if="queueItemBlockerLabel(item)" class="dispatch-queue-row__blocker">{{ queueItemBlockerLabel(item) }}</small>
+                      <code>{{ queueItemIdentityLabel(item) }}</code>
+                    </button>
+                    <div class="dispatch-queue-row__meta">
+                      <span><small>通道</small><strong>{{ queueItemLaneLabel(item) }}</strong></span>
+                      <span><small>位置</small><strong>{{ queueItemPositionLabel(item) }}</strong></span>
+                      <span><small>动作</small><strong>{{ item.actionId || '未命名动作' }}</strong></span>
+                      <span v-if="item.pid"><small>PID</small><strong>{{ item.pid }}</strong></span>
                     </div>
-                    <span v-else>--</span>
-                  </td>
-                </tr>
-                <tr v-if="!progressDetailRowsByPriority.length">
-                  <td colspan="11" class="table-empty">暂无进度行</td>
-                </tr>
-              </tbody>
-            </table>
+                    <button v-if="canCancelQueuedItem(item)" type="button" class="inline-report-button inline-report-button--compact inline-report-button--danger" :disabled="queueControlLoading === item.queueId" @click="cancelQueuedDispatchItem(item)">
+                      <X :size="14" />
+                      <span>{{ queueControlLoading === item.queueId ? '处理中' : '取消排队' }}</span>
+                    </button>
+                    <button v-if="canCancelRunningQueueItem(item)" type="button" class="inline-report-button inline-report-button--compact inline-report-button--danger" :disabled="queueControlLoading === item.queueId" @click="cancelRunningDispatchItem(item)">
+                      <CircleStop :size="14" />
+                      <span>{{ queueControlLoading === item.queueId ? '处理中' : '终止运行' }}</span>
+                    </button>
+                  </article>
+                </div>
+                <div v-else class="empty-block empty-block--compact">
+                  <Activity :size="20" />
+                  <span>尚无正在排队、运行或堵塞的队列项。</span>
+                </div>
+              </section>
+            </aside>
           </div>
         </section>
-      </div>
 
-        </section>
-      </section>
-      </div>
-      <div class="monitor-tab-panel">
-
-      <section class="section-card monitor-panel quality-validation-card">
-        <header class="section-head">
-          <div>
-            <h2 class="section-card__title">质量和验收</h2>
-            <p class="section-card__subtitle">数据质量、基础域 10x10、样本测试和当前域详细配置集中在这里，避免挤占主排障路径。</p>
-          </div>
-          <span class="status-pill" :class="dataQualityAttentionCount ? 'danger' : 'success'">
-            {{ dataQualityAttentionCount ? `${dataQualityAttentionCount} 项待查` : '质量正常' }}
-          </span>
-        </header>
-
-        <section class="panel data-quality-panel" aria-label="data-quality">
-          <div class="panel-head">
-            <div>
-              <h2>数据质量核查</h2>
-              <p>图片归一化异常、漏爬、关系健康与覆盖率；红色表示数据错误，黄色表示漏爬或缺检查。</p>
+        <section v-show="activeMonitorPanel === 'progress'" class="monitor-panel-stage monitor-panel-stage--progress">
+          <div class="grid-progress">
+            <div class="task-list">
+              <article v-for="row in progressDetailRowsByPriority" :key="`row-${row.rowKey}`" class="task-card">
+                <span class="status-pill" :class="statusTone(rowStatus(row))">{{ statusLabel(rowStatus(row)) }}</span>
+                <strong>{{ row.label || row.id || '未知任务' }}</strong>
+                <small>{{ progressRowLaneLabel(row) }} · {{ rowProgressLabel(row) }} · {{ rowHeartbeatLabel(row) }}</small>
+                <div class="progress-track">
+                  <span :style="{ width: rowProgress(row) }" :class="statusTone(rowStatus(row))" />
+                </div>
+                <div class="kv-grid">
+                  <div class="kv"><small>待处理</small><strong>{{ rowPendingLabel(row) }}</strong></div>
+                  <div class="kv"><small>速度</small><strong>{{ rowSpeedLabel(row) }}</strong></div>
+                  <div class="kv"><small>预计剩余</small><strong>{{ rowEtaLabel(row) }}</strong></div>
+                  <div class="kv"><small>运行时长</small><strong>{{ formatElapsedDuration(taskElapsedMs(row)) }}</strong></div>
+                </div>
+                <div v-if="progressRowPathEntries(row).length" class="progress-path-list">
+                  <button
+                    v-for="entry in progressRowPathEntries(row)"
+                    :key="`${row.rowKey}-${entry.label}`"
+                    type="button"
+                    class="inline-report-button inline-report-button--compact"
+                    :class="{ 'inline-report-button--not-previewable': !isPreviewableReportPath(entry.path) && !isPreviewableProgressPath(entry.path) && !isPreviewableGeneratedJsonPath(entry.path) }"
+                    :disabled="!isPreviewableReportPath(entry.path) && !isPreviewableProgressPath(entry.path) && !isPreviewableGeneratedJsonPath(entry.path)"
+                    :title="(!isPreviewableReportPath(entry.path) && !isPreviewableProgressPath(entry.path) && !isPreviewableGeneratedJsonPath(entry.path)) ? '此路径不支持预览' : entry.path"
+                    @click="openReportPreview(entry.path)"
+                  >
+                    <span>{{ entry.label }}</span>
+                  </button>
+                </div>
+              </article>
+              <div v-if="!progressDetailRowsByPriority.length" class="empty-block empty-block--compact">
+                <Activity :size="20" />
+                <span>暂无进度行。</span>
+              </div>
             </div>
-            <span class="status-pill" :class="dataQualityAttentionCount ? 'danger' : 'success'">
-              {{ dataQualityAttentionCount ? `${dataQualityAttentionCount} 项待查` : '全部正常' }}
-            </span>
+            <aside class="side-panel">
+              <div class="summary-card">
+                <h4>进度规则</h4>
+                <p>这里仅展示后端真实进度和心跳，不拆出推算阶段百分比。</p>
+              </div>
+              <div class="diag-card" :class="executionOverviewStatusLabel === 'success' ? 'accent' : statusTone(executionOverviewStatusLabel)">
+                <small>当前执行状态</small>
+                <strong>{{ statusLabel(executionOverviewStatusLabel) }}</strong>
+                <small>执行项 {{ executionOverviewRows.length }} 项</small>
+              </div>
+            </aside>
           </div>
-            <div v-if="dataQualitySignals.length" class="data-quality-grid">
+        </section>
+
+        <section v-show="activeMonitorPanel === 'reports'" class="monitor-panel-stage monitor-panel-stage--reports">
+          <div class="grid-reports">
+            <div class="report-list">
               <button
-                v-for="sig in dataQualitySignals"
-                :key="sig.key"
+                v-for="report in recentReportRows"
+                :key="report.path || report.name"
                 type="button"
-                class="data-quality-cell"
-                :class="sig.tone"
-                :disabled="!sig.reportPath || !isPreviewableReportPath(sig.reportPath)"
-                :title="sig.reportPath || '无核查报告'"
-                @click="openReportPreview(sig.reportPath)"
+                class="report-item"
+                :class="{ active: selectedReportPath === report.path, 'inline-report-button--not-previewable': !isPreviewableReportPath(report.path) }"
+                :disabled="!isPreviewableReportPath(report.path)"
+                :title="isPreviewableReportPath(report.path) ? report.path : '此报告不支持预览'"
+                @click="openReportPreview(report.path)"
               >
-                <small>{{ sig.label }}</small>
-                <strong>{{ sig.value }}</strong>
+                <span class="status-pill" :class="reportTone(report.category)">{{ report.category || '报告' }}</span>
+                <strong>{{ report.name || report.path || '未命名报告' }}</strong>
+                <small>{{ formatDate(report.updatedAt) }} · {{ formatBytes(report.sizeBytes) }}</small>
+              </button>
+              <p v-if="!recentReportRows.length" class="empty-line">暂无报告</p>
+            </div>
+            <div>
+              <div class="section-head">
+                <div>
+                  <h4 class="section-title">报告预览</h4>
+                  <p class="section-subtitle">主页面只放摘要；完整路径和内容在右侧抽屉。</p>
+                </div>
+                <button type="button" class="btn btn-secondary" :disabled="!selectedReportPath" @click="openReportPreview(selectedReportPath)">打开抽屉</button>
+              </div>
+              <pre class="code-preview">{{ selectedReportPath || '请选择左侧报告查看详情。' }}</pre>
+            </div>
+          </div>
+        </section>
+
+        <section v-show="activeMonitorPanel === 'auto'" class="monitor-panel-stage monitor-panel-stage--auto">
+          <div class="grid-auto">
+            <div class="settings-form auto-dispatch-card">
+              <label class="setting-row auto-dispatch-toggle">
+                <div>
+                  <strong>自动派发</strong>
+                  <small>有变化时按 changed-only 流程派发。</small>
+                </div>
+                <input v-model="autoDispatchForm.enabled" type="checkbox">
+              </label>
+              <label class="setting-row auto-dispatch-interval">
+                <div>
+                  <strong>扫描间隔</strong>
+                  <small>单位：分钟。</small>
+                </div>
+                <input v-model.number="autoDispatchForm.sweepIntervalMinutes" class="number-input" type="number" min="1" max="1440">
+              </label>
+              <div class="setting-row">
+                <div>
+                  <strong>最近自动派发</strong>
+                  <small>{{ autoDispatchSweepSummary }}</small>
+                </div>
+                <span class="status-pill" :class="savedAutoDispatchEnabled ? 'success' : 'muted'">{{ savedAutoDispatchLabel }}</span>
+              </div>
+              <button type="button" class="btn btn-primary" :disabled="autoDispatchSaving" @click="saveAutoDispatchSettings">
+                <RefreshCw :size="16" :class="{ spin: autoDispatchSaving }" />
+                <span>{{ autoDispatchSaving ? '保存中' : '保存设置' }}</span>
               </button>
             </div>
-            <p v-else class="empty-line">暂无数据质量信号。</p>
-        </section>
-
-        <section class="panel recovery-domain-panel">
-          <div class="panel-head">
-            <div>
-              <h2>基础域验收</h2>
-              <p>保留 10x10 样本和基础域编排；正式域实时排障以主表格和选中域抽屉为准。</p>
-            </div>
-            <span class="status-pill info">{{ baseDomainOrchestrationRows.length }} 个基础域</span>
-          </div>
-          <div class="base-domain-validation-summary">
-            <strong>基础域验收</strong>
-            <span>{{ baseDomainOrchestrationRows.length }} 域 · 正式域 / 样本测试双通道</span>
-          </div>
-            <div class="base-domain-orchestration" aria-label="基础域顺序编排">
-              <div class="base-domain-orchestration__head">
-                <div>
-                  <strong>基础域顺序编排</strong>
-                  <span>按来源检测、队列、样本爬取、清理样本、验收逐项检查；每域 10 条，可控删除，不写正式数据。</span>
+            <aside class="side-panel">
+              <div class="summary-card">
+                <h4>派发状态</h4>
+                <p>{{ wikiDispatchModeLabel }} · {{ wikiAutoDispatchLabel }} · {{ wikiPendingApprovalCount }} 待审批</p>
+              </div>
+              <div v-if="dispatchPlanRows.length" class="diagnostic-list state-list state-list--compact">
+                <div v-for="plan in dispatchPlanRows" :key="plan.actionId || plan.priority || plan.reason" class="diag-card">
+                  <small>派发计划</small>
+                  <strong>{{ plan.actionId || '未命名动作' }}</strong>
+                  <small>{{ dispatchPlanSummary(plan) }}</small>
                 </div>
-                <em>{{ baseDomainOrchestrationRows.length }} 个基础域</em>
               </div>
-              <div class="base-domain-orchestration__rows">
-                <article v-for="domain in baseDomainOrchestrationRows" :key="`base-domain-orchestration-${domain.id}`" class="base-domain-flow-row">
-                  <button type="button" class="base-domain-flow-row__domain" @click.stop="selectWikiDomain(domain.domain)">
-                    <small>#{{ domain.order }}</small>
-                    <strong>{{ wikiDomainChineseName(domain.domain) }}</strong>
-                    <span class="status-pill" :class="statusTone(domain.status)">{{ wikiDomainFlowLabel(domain.domain) }}</span>
-                  </button>
-                  <div class="base-domain-flow-steps">
-                    <div v-for="step in domain.steps" :key="`${domain.id}-${step.key}`" class="base-domain-flow-step" :class="`base-domain-flow-step--${step.key}`">
-                      <span class="base-domain-flow-step__label">{{ step.label }}</span>
-                      <strong>{{ step.value }}</strong>
-                      <small>{{ step.detail }}</small>
-                      <button
-                        v-if="step.key === 'sample-crawl'"
-                        type="button"
-                        class="inline-report-button inline-report-button--compact"
-                        :disabled="step.disabled"
-                        @click.stop="startBaseDomainSampleCrawl(domain)"
-                      >
-                        样本爬取
-                      </button>
-                      <button
-                        v-if="step.key === 'sample-cleanup'"
-                        type="button"
-                        class="inline-report-button inline-report-button--compact"
-                        :disabled="step.disabled"
-                        @click.stop="cleanupBaseDomainSampleCrawl(domain)"
-                      >
-                        清理样本
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              </div>
-            </div>
-            <div class="domain-test-matrix" aria-label="10 域基础项测试">
-              <div class="domain-test-matrix__head">
-                <strong>10 域基础项测试</strong>
-                <span>{{ wikiDomainTestMatrixRows.length }} 域 · 正式域 {{ BASIC_DOMAIN_TEST_ITEMS.length }} 项 / 样本测试 5 项</span>
-              </div>
-              <div class="domain-test-matrix__grid">
-                <article v-for="domain in wikiDomainTestMatrixRows" :key="`domain-test-${domain.id}`" class="domain-test-card">
-                  <div class="domain-test-card__head">
-                    <strong>{{ domain.label }}</strong>
-                    <span class="status-pill" :class="statusTone(domain.status)">{{ statusLabel(domain.status) }}</span>
-                  </div>
-                  <div class="domain-test-channel">
-                    <strong>正式域</strong>
-                    <div class="domain-test-items">
-                      <span v-for="item in domain.formalItems" :key="`${domain.id}-formal-${item.label}`">
-                        <small>{{ item.label }}</small>
-                        <strong>{{ item.value }}</strong>
-                      </span>
-                    </div>
-                  </div>
-                  <div class="domain-test-channel">
-                    <strong>样本测试</strong>
-                    <div class="domain-test-items">
-                      <span v-for="item in domain.sampleItems" :key="`${domain.id}-sample-${item.label}`">
-                        <small>{{ item.label }}</small>
-                        <strong>{{ item.value }}</strong>
-                      </span>
-                    </div>
-                  </div>
-                </article>
-              </div>
-            </div>
+              <p v-else class="empty-line">暂无派发计划</p>
+            </aside>
+          </div>
         </section>
 
-      </section>
-      </div>
+        <section v-show="activeMonitorPanel === 'diagnostics'" class="monitor-panel-stage monitor-panel-stage--diagnostics">
+          <div class="grid-diagnostics">
+            <div class="diagnostic-list">
+              <div class="diag-grid">
+                <button
+                  v-for="sig in dataQualitySignals"
+                  :key="sig.key"
+                  type="button"
+                  class="diag-card data-quality-cell"
+                  :class="sig.tone"
+                  :disabled="!sig.reportPath || !isPreviewableReportPath(sig.reportPath)"
+                  :title="sig.reportPath || '无核查报告'"
+                  @click="openReportPreview(sig.reportPath)"
+                >
+                  <small>{{ sig.label }}</small>
+                  <strong>{{ sig.value }}</strong>
+                </button>
+                <article v-for="card in runtimeStateCards" :key="card.key" class="diag-card accent">
+                  <small>{{ card.label }}</small>
+                  <strong>{{ statusLabel(card.status) }}</strong>
+                  <small>{{ card.detail }}</small>
+                </article>
+              </div>
 
+              <section class="runtime-domain-index runtime-domain-index--primary" aria-label="10 域运行态">
+                <div class="observability-block__head">
+                  <strong>10 域运行态</strong>
+                  <span>{{ domainRuntimeSummaryRows.length }} 域</span>
+                </div>
+                <div v-if="domainRuntimeSummaryRows.length" class="runtime-domain-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>域</th>
+                        <th>状态</th>
+                        <th>判断</th>
+                        <th>推荐动作</th>
+                        <th>原因</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="domain in domainRuntimeSummaryRows" :key="`runtime-domain-index-${domain.domain}`" class="runtime-domain-row" @click="selectRuntimeDomain(domain.sourceDomain)">
+                        <td><button type="button" class="runtime-domain-row__select" @click.stop="selectRuntimeDomain(domain.sourceDomain)">{{ domain.label }}</button></td>
+                        <td><em class="status-pill domain-flow-pill" :class="statusTone(domain.status)">{{ domain.flowLabel }}</em></td>
+                        <td>{{ domain.changeLabel }} · {{ domain.autoEligibleLabel }}</td>
+                        <td><code>{{ domain.actionLabel }}</code></td>
+                        <td><span class="runtime-domain-index__reason">{{ domain.reason }}</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p v-else class="empty-line">暂无域基础信息。</p>
+              </section>
+
+              <section class="base-domain-orchestration" aria-label="基础域顺序编排">
+                <div class="base-domain-orchestration__head">
+                  <div>
+                    <strong>基础域验收</strong>
+                    <span>正式域 / 样本测试双通道；每域 10 条，可控删除，不写正式数据。</span>
+                  </div>
+                  <em>{{ baseDomainOrchestrationRows.length }} 个基础域</em>
+                </div>
+                <div class="base-domain-orchestration__rows">
+                  <article v-for="domain in baseDomainOrchestrationRows" :key="`base-domain-orchestration-${domain.id}`" class="base-domain-flow-row">
+                    <button type="button" class="base-domain-flow-row__domain" @click.stop="selectWikiDomain(domain.domain)">
+                      <small>#{{ domain.order }}</small>
+                      <strong>{{ wikiDomainChineseName(domain.domain) }}</strong>
+                      <span class="status-pill" :class="statusTone(domain.status)">{{ wikiDomainFlowLabel(domain.domain) }}</span>
+                    </button>
+                    <div class="base-domain-flow-steps">
+                      <div v-for="step in domain.steps" :key="`${domain.id}-${step.key}`" class="base-domain-flow-step" :class="`base-domain-flow-step--${step.key}`">
+                        <span class="base-domain-flow-step__label">{{ step.label }}</span>
+                        <strong>{{ step.value }}</strong>
+                        <small>{{ step.detail }}</small>
+                        <button v-if="step.key === 'sample-crawl'" type="button" class="inline-report-button inline-report-button--compact" :disabled="step.disabled" @click.stop="startBaseDomainSampleCrawl(domain)">样本爬取</button>
+                        <button v-if="step.key === 'sample-cleanup'" type="button" class="inline-report-button inline-report-button--compact" :disabled="step.disabled" @click.stop="cleanupBaseDomainSampleCrawl(domain)">清理样本</button>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <section class="domain-test-matrix" aria-label="10 域基础项测试">
+                <div class="domain-test-matrix__head">
+                  <strong>10 域基础项测试</strong>
+                  <span>{{ wikiDomainTestMatrixRows.length }} 域 · 正式域 {{ BASIC_DOMAIN_TEST_ITEMS.length }} 项 / 样本测试 5 项</span>
+                </div>
+                <div class="domain-test-matrix__grid">
+                  <article v-for="domain in wikiDomainTestMatrixRows" :key="`domain-test-${domain.id}`" class="domain-test-card">
+                    <div class="domain-test-card__head">
+                      <strong>{{ domain.label }}</strong>
+                      <span class="status-pill" :class="statusTone(domain.status)">{{ statusLabel(domain.status) }}</span>
+                    </div>
+                    <div class="domain-test-channel">
+                      <strong>正式域</strong>
+                      <div class="domain-test-items">
+                        <span v-for="item in domain.formalItems" :key="`${domain.id}-formal-${item.label}`"><small>{{ item.label }}</small><strong>{{ item.value }}</strong></span>
+                      </div>
+                    </div>
+                    <div class="domain-test-channel">
+                      <strong>样本测试</strong>
+                      <div class="domain-test-items">
+                        <span v-for="item in domain.sampleItems" :key="`${domain.id}-sample-${item.label}`"><small>{{ item.label }}</small><strong>{{ item.value }}</strong></span>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </section>
+            </div>
+
+            <aside class="side-panel">
+              <div class="summary-card">
+                <h4>系统诊断</h4>
+                <p>工程字段、心跳、锁、历史、报告和图片指标集中在低优先级区域。</p>
+              </div>
+              <div class="diagnostic-list state-list state-list--compact">
+                <div v-for="heartbeat in staleHeartbeatRows" :key="heartbeatKey(heartbeat)" class="diag-card warning">
+                  <small>{{ heartbeat.label || heartbeat.id || heartbeat.domain || '心跳' }}</small>
+                  <strong>{{ statusLabel(heartbeat.status || 'stalled') }}</strong>
+                  <small>{{ heartbeat.reason || heartbeat.progressStaleReason || heartbeat.message || formatDate(heartbeat.lastHeartbeatAt || heartbeat.progressHeartbeatAt) }}</small>
+                </div>
+                <div v-for="run in historyRows" :key="run.path || run.generatedAt || run.summaryPath" class="diag-card">
+                  <small>运行历史</small>
+                  <strong>{{ formatDate(run.generatedAt || run.updatedAt) }}</strong>
+                  <small>{{ runSummary(run) }}</small>
+                </div>
+                <div v-for="metric in imageNormalizationRows" :key="metric.label" class="diag-card">
+                  <small>{{ metric.label }}</small>
+                  <strong>{{ metric.value }}</strong>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
       </div>
     </section>
 
@@ -921,12 +505,7 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
         </ul>
         <div class="cancel-confirm-panel__actions">
           <button type="button" class="inline-report-button" @click="closeDispatchConfirm">暂不派发</button>
-          <button
-            type="button"
-            class="inline-report-button inline-report-button--danger"
-            :disabled="wikiDispatchLoading === dispatchConfirmDomain.domain"
-            @click="confirmWikiDomainDispatch"
-          >
+          <button type="button" class="inline-report-button inline-report-button--danger" :disabled="wikiDispatchLoading === dispatchConfirmDomain.domain" @click="confirmWikiDomainDispatch">
             确认启动重爬
           </button>
         </div>
@@ -944,230 +523,32 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
         <p v-else>当前没有返回具体清理路径，但取消仍可能清理该任务的运行产物。</p>
         <div class="cancel-confirm-panel__actions">
           <button type="button" class="inline-report-button" @click="closeCancelConfirm">暂不取消</button>
-          <button
-            type="button"
-            class="inline-report-button inline-report-button--danger"
-            :disabled="wikiControlLoading === cancelConfirmDomain.domain"
-            @click="confirmWikiDomainCancel"
-          >
+          <button type="button" class="inline-report-button inline-report-button--danger" :disabled="wikiControlLoading === cancelConfirmDomain.domain" @click="confirmWikiDomainCancel">
             确认终止并清理
           </button>
         </div>
       </div>
     </section>
 
-    <section class="section-card monitor-panel system-diagnostics-card system-diagnostics-inline" aria-label="系统诊断">
-        <header class="section-head">
-          <div>
-            <h2 class="section-card__title">系统诊断</h2>
-            <p class="section-card__subtitle">10 域运行态、运行文件、派发、心跳、历史、报告与图片指标，全部平铺展开。</p>
-          </div>
-        </header>
-
-        <section class="runtime-domain-index runtime-domain-index--primary" aria-label="10 域运行态">
-          <div class="observability-block__head">
-            <strong>10 域运行态</strong>
-            <span>{{ domainRuntimeSummaryRows.length }} 域</span>
-          </div>
-          <div v-if="domainRuntimeSummaryRows.length" class="runtime-domain-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>域</th>
-                  <th>状态</th>
-                  <th>判断</th>
-                  <th>推荐动作</th>
-                  <th>原因</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="domain in domainRuntimeSummaryRows"
-                  :key="`runtime-domain-index-${domain.domain}`"
-                  class="runtime-domain-row"
-                  @click="selectRuntimeDomain(domain.sourceDomain)"
-                >
-                  <td>
-                    <button type="button" class="runtime-domain-row__select" @click.stop="selectRuntimeDomain(domain.sourceDomain)">
-                      {{ domain.label }}
-                    </button>
-                  </td>
-                  <td><em class="status-pill domain-flow-pill" :class="statusTone(domain.status)">{{ domain.flowLabel }}</em></td>
-                  <td>{{ domain.changeLabel }} · {{ domain.autoEligibleLabel }}</td>
-                  <td><code>{{ domain.actionLabel }}</code></td>
-                  <td><span class="runtime-domain-index__reason">{{ domain.reason }}</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p v-else class="empty-line">暂无域基础信息。</p>
-        </section>
-
-        <div class="runtime-auxiliary-details">
-          <div class="observability-block__head runtime-auxiliary-details__head">
-            <strong>辅助运行信息</strong>
-            <span>运行文件 / 派发 / 心跳 / 历史 / 报告</span>
-          </div>
-          <div class="observability-grid observability-grid--dialog">
-            <details open class="obs-collapsible observability-block">
-              <summary class="observability-block__head">
-                <strong>运行文件</strong>
-                <span>{{ runtimeStateCards.length }} 项</span>
-              </summary>
-              <div class="state-list">
-                <div v-for="card in runtimeStateCards" :key="card.key" class="state-row">
-                  <span>{{ card.label }}</span>
-                  <strong><em class="status-pill" :class="statusTone(card.status)">{{ statusLabel(card.status) }}</em></strong>
-                  <small>{{ card.detail }}</small>
-                  <code>{{ card.path }}</code>
-                </div>
-              </div>
-            </details>
-
-            <article class="observability-block">
-              <div class="observability-block__head">
-                <strong>派发状态</strong>
-                <span>{{ wikiPendingApprovalCount }} 待审批</span>
-              </div>
-              <div class="compact-metrics">
-                <span><small>派发模式</small><strong>{{ wikiDispatchModeLabel }}</strong></span>
-                <span><small>自动派发</small><strong>{{ wikiAutoDispatchLabel }}</strong></span>
-                <span><small>待审批</small><strong>{{ wikiPendingApprovalCount }}</strong></span>
-              </div>
-              <div v-if="dispatchPlanRows.length" class="state-list state-list--compact">
-                <div v-for="plan in dispatchPlanRows" :key="plan.actionId || plan.priority || plan.reason" class="state-row">
-                  <span>派发计划</span>
-                  <strong>{{ plan.actionId || '未命名动作' }}</strong>
-                  <small>{{ dispatchPlanSummary(plan) }}</small>
-                </div>
-              </div>
-              <p v-else class="empty-line">暂无派发计划</p>
-            </article>
-
-            <details open class="obs-collapsible auto-dispatch-card">
-              <summary class="observability-block__head">
-                <strong>自动派发设置</strong>
-                <span>{{ autoDispatchForm.enabled ? '已开启' : '已关闭' }}</span>
-              </summary>
-              <div class="auto-dispatch-controls">
-                <label class="auto-dispatch-toggle">
-                  <input v-model="autoDispatchForm.enabled" type="checkbox">
-                  <span>有变化时自动派发</span>
-                </label>
-                <label class="auto-dispatch-interval">
-                  <span>扫描间隔</span>
-                  <input v-model.number="autoDispatchForm.sweepIntervalMinutes" type="number" min="1" max="1440">
-                  <small>分钟</small>
-                </label>
-                <button
-                  type="button"
-                  class="inline-report-button inline-report-button--compact"
-                  :disabled="autoDispatchSaving"
-                  @click="saveAutoDispatchSettings"
-                >
-                  <RefreshCw :size="14" :class="{ 'spin': autoDispatchSaving }" />
-                  <span>{{ autoDispatchSaving ? '保存中' : '保存设置' }}</span>
-                </button>
-              </div>
-              <div class="state-list state-list--compact">
-                <div class="state-row">
-                  <span>最近自动派发</span>
-                  <strong>{{ statusLabel(lastAutoDispatchSweep?.status || 'missing') }}</strong>
-                  <small>{{ autoDispatchSweepSummary }}</small>
-                </div>
-              </div>
-            </details>
-
-            <article class="observability-block">
-              <div class="observability-block__head">
-                <strong>心跳告警</strong>
-                <span>{{ staleHeartbeatRows.length }} 条</span>
-              </div>
-              <div v-if="staleHeartbeatRows.length" class="state-list state-list--compact">
-                <div v-for="heartbeat in staleHeartbeatRows" :key="heartbeatKey(heartbeat)" class="state-row">
-                  <span>{{ heartbeat.label || heartbeat.id || heartbeat.domain || '心跳' }}</span>
-                  <strong>{{ statusLabel(heartbeat.status || 'stalled') }}</strong>
-                  <small>{{ heartbeat.reason || heartbeat.progressStaleReason || heartbeat.message || formatDate(heartbeat.lastHeartbeatAt || heartbeat.progressHeartbeatAt) }}</small>
-                </div>
-              </div>
-              <p v-else class="empty-line">暂无心跳告警</p>
-            </article>
-
-            <details open class="obs-collapsible observability-block">
-              <summary class="observability-block__head">
-                <strong>运行历史</strong>
-                <span>{{ historyRows.length }} 条</span>
-              </summary>
-              <div v-if="historyRows.length" class="state-list state-list--compact">
-                <div v-for="run in historyRows" :key="run.path || run.generatedAt || run.summaryPath" class="state-row">
-                  <span>{{ statusLabel(runStatus(run)) }}</span>
-                  <strong>{{ formatDate(run.generatedAt || run.updatedAt) }}</strong>
-                  <small>{{ runSummary(run) }}</small>
-                </div>
-              </div>
-              <p v-else class="empty-line">暂无历史</p>
-            </details>
-
-            <details open class="obs-collapsible observability-block">
-              <summary class="observability-block__head">
-                <strong>报告</strong>
-                <span>{{ recentReportRows.length }} 个</span>
-              </summary>
-              <div v-if="recentReportRows.length" class="state-list state-list--compact">
-                <button
-                  v-for="report in recentReportRows"
-                  :key="report.path || report.name"
-                  type="button"
-                  class="state-row state-row--button runtime-report-row"
-                  :class="{ 'inline-report-button--not-previewable': !isPreviewableReportPath(report.path) }"
-                  :disabled="!isPreviewableReportPath(report.path)"
-                  :title="isPreviewableReportPath(report.path) ? report.path : '此报告不支持预览'"
-                  @click="openReportPreview(report.path)"
-                >
-                  <span>{{ report.category || '报告' }}</span>
-                  <strong>{{ report.name || report.path || '未命名报告' }}</strong>
-                  <small>{{ formatDate(report.updatedAt) }} · {{ formatBytes(report.sizeBytes) }}</small>
-                </button>
-              </div>
-              <p v-else class="empty-line">暂无报告</p>
-            </details>
-
-            <details open class="obs-collapsible observability-block">
-              <summary class="observability-block__head">
-                <strong>图片指标</strong>
-                <span>{{ imageNormalizationRows.length }} 项</span>
-              </summary>
-              <div v-if="imageNormalizationRows.length" class="compact-metrics">
-                <span v-for="metric in imageNormalizationRows" :key="metric.label">
-                  <small>{{ metric.label }}</small>
-                  <strong>{{ metric.value }}</strong>
-                </span>
-              </div>
-              <p v-else class="empty-line">暂无图片指标</p>
-            </details>
-          </div>
-        </div>
-    </section>
-
     <div
-      v-if="selectedReportPath || reportPreview || reportPreviewError"
-      class="report-preview-shell"
-      @click.self="closeReportPreview"
-    >
-      <aside class="report-preview report-preview-drawer" role="dialog" aria-modal="true" aria-label="报告预览">
-        <div class="report-preview__head">
-          <div>
-            <strong>{{ reportPreview?.name || selectedReportPath || '报告预览' }}</strong>
-            <small>
-              {{ reportPreview?.path || selectedReportPath }}
-              <template v-if="reportPreview?.sizeBytes"> - {{ formatBytes(reportPreview.sizeBytes) }}</template>
-            </small>
-          </div>
-          <button type="button" class="icon-close-button" aria-label="关闭报告预览" @click="closeReportPreview">
-            <X :size="16" />
-          </button>
+      class="drawer-backdrop"
+      :class="{ open: Boolean(selectedReportPath || reportPreview || reportPreviewError) }"
+      @click="closeReportPreview"
+    ></div>
+    <aside class="report-drawer" :class="{ open: Boolean(selectedReportPath || reportPreview || reportPreviewError) }" role="dialog" aria-modal="true" aria-label="报告预览">
+      <div class="drawer-head">
+        <div>
+          <strong>{{ reportPreview?.name || selectedReportPath || '报告预览' }}</strong>
+          <small>
+            {{ reportPreview?.path || selectedReportPath || '当前对象的报告、进度、日志与路径。' }}
+            <template v-if="reportPreview?.sizeBytes"> - {{ formatBytes(reportPreview.sizeBytes) }}</template>
+          </small>
         </div>
-
+        <button type="button" class="icon-close-button" aria-label="关闭报告预览" @click="closeReportPreview">
+          <X :size="16" />
+        </button>
+      </div>
+      <div class="drawer-body">
         <div class="report-preview__meta">
           <span class="status-pill" :class="reportTone(reportPreview?.category)">{{ reportPreview?.category || '报告' }}</span>
           <span class="status-pill" :class="reportPreview?.readable ? 'success' : reportPreviewError ? 'danger' : 'muted'">
@@ -1175,13 +556,12 @@ command: {{ wikiDispatchForDomain(selectedWikiDomain)?.commandPreview || '由后
           </span>
           <span v-if="reportPreview?.truncated" class="status-pill warning">已截断 {{ formatBytes(reportPreview.maxBytes) }}</span>
         </div>
-
-        <pre v-if="reportPreview?.readable" class="report-preview__content">{{ reportPreview.content || '' }}</pre>
+        <pre v-if="reportPreview?.readable" class="report-preview__content code-preview">{{ reportPreview.content || '' }}</pre>
         <div v-else class="report-preview__empty">
           {{ reportPreviewEmptyMessage }}
         </div>
-      </aside>
-    </div>
+      </div>
+    </aside>
   </div>
 </template>
 
@@ -1248,9 +628,30 @@ type ProgressRow = CrawlerMonitorRegisteredTask & {
   sourceQueueItem?: CrawlerMonitorWikiQueueItem | null
 }
 
+const MONITOR_PANEL_KEYS = ['overview', 'queue', 'progress', 'reports', 'auto', 'diagnostics'] as const
+type MonitorPanelKey = typeof MONITOR_PANEL_KEYS[number]
+type MonitorPanelMeta = {
+  key: MonitorPanelKey
+  label: string
+  title: string
+  subtitle: string
+  badge: string
+  count: number | string
+}
+const FALLBACK_MONITOR_PANEL: MonitorPanelMeta = {
+  key: 'overview',
+  label: '状态总览',
+  title: '10 域状态总览',
+  subtitle: '完整域列表只在这里展示；选中一行后在右侧查看当前域证据。',
+  badge: '0 域',
+  count: 0,
+}
+
 const overview = ref<CrawlerMonitorOverview | null>(null)
 const loading = ref(false)
 const autoRefresh = ref(true)
+const activeMonitorPanel = ref<MonitorPanelKey>('overview')
+const panelSwitching = ref(false)
 const selectedReportPath = ref<string | null>(null)
 const reportPreview = ref<CrawlerMonitorReportDetail | null>(null)
 const reportPreviewLoading = ref(false)
@@ -1277,6 +678,7 @@ const dispatchConfirmDomainKey = ref('')
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 const refreshFailureStreak = ref(0)
 const authRefreshHalted = ref(false)
+let panelSwitchTimer: ReturnType<typeof setTimeout> | null = null
 
 async function fetchCrawlerMonitorOverview() {
   const response: any = await get('/admin/crawler-monitor/overview')
@@ -1422,9 +824,14 @@ const healthSignals = computed(() => {
   }
   return signals
 })
+function isRiskHealthTone(tone?: string | null) {
+  return ['danger', 'warning'].includes(String(tone || '').toLowerCase())
+}
+
 const crawlerHealthCards = computed(() => {
   const highestRiskRow = domainTableRows.value[0] || null
-  const failedDomainRows = domainTableRows.value.filter((row) => ['failed'].includes(String(row.status || '').toLowerCase()))
+  const highestRiskTone = highestRiskRow ? statusTone(highestRiskRow.risk || highestRiskRow.status || 'missing') : 'muted'
+  const failedDomainRows = domainTableRows.value.filter((row) => statusTone(row.risk || row.status) === 'danger')
   const runningDomainRows = domainTableRows.value.filter((row) => ['running'].includes(String(row.status || '').toLowerCase()))
   const queuedDomainRows = domainTableRows.value.filter((row) => ['queued'].includes(String(row.status || '').toLowerCase()))
   const queuedRows = dispatchQueueRows.value.length ? dispatchQueueRows.value : queuedDomainRows
@@ -1436,15 +843,15 @@ const crawlerHealthCards = computed(() => {
       label: '最高风险',
       value: highestRiskRow ? (highestRiskRow.diagnosisTitle || statusLabel(highestRiskRow.status || 'missing')) : '暂无',
       note: highestRiskRow ? `${highestRiskRow.label || highestRiskRow.domain || '未知域'} · ${highestRiskRow.rankReason || highestRiskRow.reason || '暂无判断'}` : '暂无域监控数据',
-      tone: highestRiskRow ? statusTone(highestRiskRow.risk || highestRiskRow.status || 'missing') : 'muted',
-      risk: Boolean(highestRiskRow),
+      tone: highestRiskTone,
+      risk: isRiskHealthTone(highestRiskTone),
     },
     {
       key: 'failed-domains',
       label: '失败域',
       value: formatNumber(failedDomainRows.length),
       note: failedDomainRows.length ? '来自域监控表的失败状态' : '暂无失败域',
-      tone: 'danger',
+      tone: failedDomainRows.length > 0 ? 'danger' : 'muted',
       risk: failedDomainRows.length > 0,
     },
     {
@@ -1494,6 +901,12 @@ const dataQualityAttentionCount = computed(() =>
 const dispatchPlanRows = computed<any[]>(() => Array.isArray(wikiMonitor.value?.dispatchPlan || wikiMonitorWithPlanBFields.value.dispatchPlan) ? (wikiMonitor.value?.dispatchPlan || wikiMonitorWithPlanBFields.value.dispatchPlan) : [])
 const wikiDispatchModeLabel = computed(() => statusLabel(wikiMonitor.value?.dispatchMode || 'manual'))
 const wikiAutoDispatchLabel = computed(() => wikiMonitor.value?.autoDispatchEnabled ? '已开启' : '已关闭')
+const savedAutoDispatchEnabled = computed(() => Boolean(wikiMonitor.value?.autoDispatchSettings?.enabled ?? wikiMonitor.value?.autoDispatchEnabled))
+const savedAutoDispatchLabel = computed(() => savedAutoDispatchEnabled.value ? '已开启' : '已关闭')
+const savedAutoDispatchIntervalMinutes = computed(() => {
+  const settingsInterval = Number(wikiMonitor.value?.autoDispatchSettings?.sweepIntervalMinutes)
+  return Number.isFinite(settingsInterval) && settingsInterval > 0 ? settingsInterval : 60
+})
 const domainRuntimeSummaryRows = computed(() => wikiDomainRows.value
   .map((domain) => domainRuntimeSummaryRow(domain))
   .sort((left, right) => domainRuntimeSummaryRank(left) - domainRuntimeSummaryRank(right) || left.label.localeCompare(right.label, 'zh-CN')))
@@ -1553,6 +966,148 @@ const selectedDomainTableRow = computed(() => {
   return selected || rows[0]
 })
 const selectedDomainTableEvidence = computed(() => buildDomainTableEvidence(selectedDomainTableRow.value))
+const failedDomainRows = computed(() => domainTableRows.value.filter((row) => statusTone(row.risk || row.status) === 'danger'))
+const runningDomainRows = computed(() => domainTableRows.value.filter((row) => {
+  const status = String(row.status || row.risk || '').toLowerCase()
+  return status === 'running'
+}))
+const highestRiskDomainRow = computed(() => domainTableRows.value[0] || null)
+const v4StatusStrip = computed(() => {
+  const row = highestRiskDomainRow.value
+  const failedCount = failedDomainRows.value.length
+  const staleCount = staleHeartbeatRows.value.length
+  const runningCount = runningDomainRows.value.length
+  const title = failedCount > 0 && row
+    ? `当前需要处理：${row.label || row.domain || row.actionId || '未知域'} ${row.diagnosisTitle || statusLabel(row.status || 'failed')}`
+    : staleCount > 0
+      ? `当前需要处理：${formatNumber(staleCount)} 条心跳过期`
+      : runningCount > 0
+        ? `当前运行中：${formatNumber(runningCount)} 个域`
+        : '当前状态稳定'
+  const subtitle = [
+    `正式域 ${formatNumber(domainTableRows.value.length)} 个`,
+    `队列 ${formatNumber(dispatchQueueRows.value.length)} 项`,
+    `自动派发${savedAutoDispatchEnabled.value ? '开启' : '关闭'}`,
+    lastOverviewRefreshAt.value ? `刷新 ${formatDate(lastOverviewRefreshAt.value)}` : '暂无刷新',
+  ].join(' · ')
+  return {
+    title,
+    subtitle,
+    tone: failedCount > 0 ? 'danger' : staleCount > 0 ? 'warning' : runningCount > 0 ? 'info' : 'success',
+    chips: [
+      { label: `${formatNumber(failedCount)} 个失败`, tone: failedCount > 0 ? 'danger' : 'muted' },
+      { label: `${formatNumber(runningCount)} 个运行`, tone: runningCount > 0 ? 'info' : 'muted' },
+      { label: `${formatNumber(staleCount)} 条心跳`, tone: staleCount > 0 ? 'warning' : 'muted' },
+    ],
+  }
+})
+const v4MetricCards = computed(() => [
+  {
+    key: 'formal-domains',
+    label: '正式监控域',
+    value: formatNumber(domainTableRows.value.length),
+    note: '完整域列表在状态总览',
+    tone: domainTableRows.value.length ? 'success' : 'muted',
+  },
+  {
+    key: 'failed-domains',
+    label: '失败域',
+    value: formatNumber(failedDomainRows.value.length),
+    note: failedDomainRows.value.length ? '需要优先排查' : '暂无失败域',
+    tone: failedDomainRows.value.length ? 'danger' : 'muted',
+  },
+  {
+    key: 'stale-heartbeats',
+    label: '心跳过期',
+    value: formatNumber(staleHeartbeatRows.value.length),
+    note: staleHeartbeatRows.value.length ? '检查进度和锁' : '暂无过期心跳',
+    tone: staleHeartbeatRows.value.length ? 'warning' : 'muted',
+  },
+  {
+    key: 'running-domains',
+    label: '运行中',
+    value: formatNumber(runningDomainRows.value.length),
+    note: dispatchQueueRows.value.length ? `${formatNumber(dispatchQueueRows.value.length)} 项队列` : '无 active 队列',
+    tone: runningDomainRows.value.length ? 'info' : 'muted',
+  },
+  {
+    key: 'auto-dispatch',
+    label: '自动派发',
+    value: savedAutoDispatchLabel.value.replace(/^已/, ''),
+    note: `changed-only · ${formatNumber(savedAutoDispatchIntervalMinutes.value)} 分钟`,
+    tone: savedAutoDispatchEnabled.value ? 'success' : 'muted',
+  },
+].slice(0, 5))
+const monitorPanels = computed<MonitorPanelMeta[]>(() => [
+  {
+    key: 'overview',
+    label: '状态总览',
+    title: '10 域状态总览',
+    subtitle: '完整域列表只在这里展示；选中一行后在右侧查看当前域证据。',
+    badge: `${formatNumber(domainTableRows.value.length)} 域`,
+    count: domainTableRows.value.length,
+  },
+  {
+    key: 'queue',
+    label: '队列',
+    title: '队列和派发状态',
+    subtitle: '只展示有队列意义的运行、阻塞、失败和待处理项。',
+    badge: `${formatNumber(activeDispatchQueueRows.value.length)} 项`,
+    count: activeDispatchQueueRows.value.length,
+  },
+  {
+    key: 'progress',
+    label: '进度',
+    title: '真实任务进度',
+    subtitle: '来自 registeredTasks 和 latestRun.actions；不使用推算阶段百分比。',
+    badge: `${formatNumber(progressDetailRowsByPriority.value.length)} 行`,
+    count: progressDetailRowsByPriority.value.length,
+  },
+  {
+    key: 'reports',
+    label: '报告',
+    title: '报告和证据文件',
+    subtitle: '展示最近报告和当前对象相关证据，完整路径进入抽屉。',
+    badge: `${formatNumber(recentReportRows.value.length)} 个`,
+    count: recentReportRows.value.length,
+  },
+  {
+    key: 'auto',
+    label: '自动派发',
+    title: '自动派发状态',
+    subtitle: '展示当前配置、最近 sweep 和派发计划。',
+    badge: savedAutoDispatchLabel.value,
+    count: '',
+  },
+  {
+    key: 'diagnostics',
+    label: '系统诊断',
+    title: '系统诊断',
+    subtitle: '工程字段、心跳、锁、历史和质量指标集中在低优先级区域。',
+    badge: dataQualityAttentionCount.value ? `${formatNumber(dataQualityAttentionCount.value)} 项待查` : '质量正常',
+    count: dataQualityAttentionCount.value,
+  },
+])
+const activeMonitorPanelMeta = computed<MonitorPanelMeta>(() => monitorPanels.value.find((panel) => panel.key === activeMonitorPanel.value) || FALLBACK_MONITOR_PANEL)
+
+function normalizeMonitorPanelKey(value?: string | null): MonitorPanelKey | null {
+  const normalized = String(value || '').replace(/^#/, '').trim()
+  return (MONITOR_PANEL_KEYS as readonly string[]).includes(normalized) ? normalized as MonitorPanelKey : null
+}
+
+function setActiveMonitorPanel(panel: MonitorPanelKey) {
+  if (activeMonitorPanel.value === panel) return
+  activeMonitorPanel.value = panel
+  panelSwitching.value = true
+  if (panelSwitchTimer) clearTimeout(panelSwitchTimer)
+  panelSwitchTimer = setTimeout(() => {
+    panelSwitching.value = false
+    panelSwitchTimer = null
+  }, 180)
+  if (import.meta.client) {
+    window.location.hash = panel
+  }
+}
 
 const selectedWikiDomain = computed<CrawlerMonitorWikiDomain | null>(() => {
   const tableRow = selectedDomainTableRow.value
@@ -1760,6 +1315,10 @@ watch(() => wikiMonitor.value?.autoDispatchSettings, (settings) => {
 }, { immediate: true })
 
 onMounted(async () => {
+  const hashPanel = import.meta.client ? normalizeMonitorPanelKey(window.location.hash) : null
+  if (hashPanel) {
+    activeMonitorPanel.value = hashPanel
+  }
   if (!overview.value) {
     await refreshOverview()
     overview.value = initialOverview.value
@@ -1775,6 +1334,10 @@ onMounted(async () => {
 
 onUnmounted(() => {
   clearRefreshTimer()
+  if (panelSwitchTimer) {
+    clearTimeout(panelSwitchTimer)
+    panelSwitchTimer = null
+  }
   if (import.meta.client) {
     document.removeEventListener('visibilitychange', handleVisibilityChange)
   }
@@ -2191,8 +1754,9 @@ function isTerminalQueueItem(item: CrawlerMonitorWikiQueueItem | null | undefine
 function queueItemPathEntries(item: CrawlerMonitorWikiQueueItem | null | undefined) {
   return [
     { label: '日志', path: item?.logPath || '' },
-    { label: '报告', path: item?.reportPath || '' },
     { label: '进度', path: item?.progressPath || '' },
+    { label: '报告', path: item?.reportPath || '' },
+    { label: '输出', path: item?.outputPath || '' },
     { label: '锁', path: item?.lockPath || '' },
   ].filter((entry) => Boolean(entry.path))
 }
@@ -3507,45 +3071,6 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   animation: spin 1s linear infinite;
 }
 
-.stale-alert {
-  display: flex;
-  gap: 14px;
-  padding: 16px;
-  border: 1px solid #fecaca;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #fff1f2, #fff7ed);
-  color: #7f1d1d;
-}
-
-.stale-alert__icon {
-  width: 38px;
-  height: 38px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border-radius: 12px;
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.stale-alert strong,
-.stale-alert p,
-.stale-alert code {
-  display: block;
-}
-
-.stale-alert p {
-  margin: 4px 0 0;
-  color: #991b1b;
-}
-
-.stale-alert code {
-  margin-top: 6px;
-  color: #92400e;
-  overflow-wrap: anywhere;
-}
-
 .auto-dispatch-card {
   align-content: start;
 }
@@ -4385,107 +3910,6 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   max-height: none;
   padding: 12px;
   overflow: visible;
-}
-
-.single-screen-table-frame {
-  min-height: 0;
-  border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
-  border-radius: 8px;
-  overflow: visible;
-}
-
-.single-screen-table-frame .table-scroll {
-  height: 100%;
-  overflow-x: auto;
-  overflow-y: auto;
-}
-
-.domain-monitor-table {
-  min-width: 1180px;
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-.domain-monitor-table tbody tr {
-  cursor: pointer;
-}
-
-.domain-monitor-table tbody tr:hover,
-.domain-monitor-table tbody tr.is-selected {
-  background: color-mix(in srgb, var(--color-primary, #2563eb) 8%, var(--color-bg));
-}
-
-.domain-monitor-table__row--attention {
-  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--color-danger, #dc2626) 82%, transparent);
-}
-
-.domain-monitor-table__row--blocked,
-.domain-monitor-table__row--queued {
-  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--color-warning, #d97706) 82%, transparent);
-}
-
-.domain-monitor-table__row--active {
-  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--color-info, #0284c7) 82%, transparent);
-}
-
-.domain-monitor-table td {
-  vertical-align: top;
-  padding-top: 8px;
-  padding-bottom: 8px;
-}
-
-.domain-monitor-table th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: color-mix(in srgb, var(--color-bg-secondary) 88%, var(--color-bg));
-}
-
-.domain-monitor-table td:first-child {
-  width: 150px;
-}
-
-.domain-monitor-table td:nth-child(3) {
-  width: 130px;
-}
-
-.domain-monitor-table td:nth-child(4) {
-  width: 170px;
-}
-
-.domain-monitor-table td:nth-child(5),
-.domain-monitor-table td:nth-child(6) {
-  width: 160px;
-}
-
-.domain-monitor-table td:nth-child(8) {
-  width: 155px;
-}
-
-.domain-monitor-table .progress-track {
-  margin-top: 5px;
-  height: 6px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-border) 72%, transparent);
-}
-
-.domain-monitor-table .progress-track span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-}
-
-.domain-monitor-table .progress-path-list {
-  gap: 4px;
-  margin-top: 4px;
-}
-
-.domain-monitor-table .inline-report-button--compact {
-  min-height: 26px;
-  padding: 3px 7px;
-  border-radius: 6px;
-  font-size: 11px;
 }
 
 .selected-domain-drawer__head {
@@ -5957,229 +5381,6 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   margin-bottom: 16px;
 }
 
-.crawler-workbench {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 16px;
-  min-width: 0;
-}
-
-.crawler-workbench .recovery-main {
-  gap: 14px;
-}
-
-.crawler-workbench-topbar {
-  border-color: color-mix(in srgb, var(--color-primary, #2563eb) 16%, var(--color-border));
-  border-radius: 12px;
-  background: var(--color-surface-2, var(--color-bg));
-  box-shadow: var(--shadow-sm, 0 8px 24px rgb(15 23 42 / 6%));
-}
-
-.crawler-workbench-topbar .page-head__title {
-  font-size: 22px;
-}
-
-.crawler-workbench-topbar .page-head__subtitle {
-  font-size: 13px;
-}
-
-.crawler-health-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(176px, 1fr));
-  gap: 10px;
-  min-width: 0;
-}
-
-.crawler-health-card {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-  padding: 12px;
-  border: 1px solid color-mix(in srgb, currentColor 18%, var(--color-border));
-  border-radius: 10px;
-  background: color-mix(in srgb, currentColor 7%, var(--color-bg));
-  color: var(--color-text);
-}
-
-.crawler-health-card--risk {
-  border-width: 2px;
-}
-
-.crawler-health-card--success {
-  color: var(--color-success, #166534);
-}
-
-.crawler-health-card--warning {
-  color: var(--color-warning, #92400e);
-}
-
-.crawler-health-card--danger {
-  color: var(--color-danger, #b91c1c);
-}
-
-.crawler-health-card--info {
-  color: var(--color-info, #075985);
-}
-
-.crawler-health-card--muted {
-  color: var(--color-text-muted, #475569);
-}
-
-.crawler-health-card__label,
-.crawler-health-card__note {
-  color: var(--color-text-secondary);
-}
-
-.crawler-health-card__label {
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.crawler-health-card__value {
-  color: var(--color-text);
-  font-size: 20px;
-  line-height: 1.15;
-  overflow-wrap: anywhere;
-}
-
-.crawler-health-card__note {
-  font-size: 12px;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-}
-
-.selected-domain-workbench {
-  display: grid;
-  gap: 14px;
-  min-width: 0;
-  margin-top: 2px;
-  padding: 14px;
-  border: 1px solid color-mix(in srgb, var(--color-primary, #2563eb) 26%, var(--color-border));
-  border-radius: 12px;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-primary, #2563eb) 7%, var(--color-surface-2, var(--color-bg))),
-    var(--color-surface-2, var(--color-bg)) 44%
-  );
-  box-shadow: var(--shadow-card, 0 10px 28px rgb(15 23 42 / 8%));
-}
-
-.selected-domain-inline {
-  display: grid;
-  gap: 14px;
-  min-width: 0;
-  margin-top: 2px;
-  padding: 14px;
-  border: 1px solid color-mix(in srgb, var(--color-primary, #2563eb) 26%, var(--color-border));
-  border-radius: 12px;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-primary, #2563eb) 7%, var(--color-surface-2, var(--color-bg))),
-    var(--color-surface-2, var(--color-bg)) 44%
-  );
-  box-shadow: var(--shadow-card, 0 10px 28px rgb(15 23 42 / 8%));
-}
-
-.selected-domain-workbench__head {
-  position: static;
-  top: auto;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-  min-width: 0;
-  padding: 0 0 12px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
-  background: transparent;
-}
-
-.selected-domain-workbench__head h2 {
-  font-size: 20px;
-}
-
-.selected-domain-workbench__grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
-  gap: 14px;
-  min-width: 0;
-  align-items: start;
-}
-
-.selected-domain-workbench .wiki-live-panel,
-.selected-domain-workbench .wiki-recovery-panel,
-.selected-domain-workbench .wiki-detail-card,
-.selected-domain-workbench .wiki-dispatch-feedback,
-.selected-domain-workbench .wiki-command-preview,
-.selected-domain-workbench .wiki-run-control-panel {
-  border-radius: 10px;
-}
-
-.selected-domain-workbench .wiki-live-metrics {
-  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
-}
-
-.selected-domain-workbench .selected-domain-detail-grid {
-  grid-template-columns: repeat(auto-fit, minmax(144px, 1fr));
-}
-
-.diagnostics-zone {
-  display: grid;
-  gap: 14px;
-  min-width: 0;
-  margin-top: 4px;
-}
-
-.diagnostics-zone__head {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  min-width: 0;
-  margin: 0;
-  padding: 12px 14px;
-  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--color-bg-secondary) 62%, var(--color-bg));
-}
-
-.diagnostics-zone__head h2,
-.diagnostics-zone__head p {
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.diagnostics-zone__head h2 {
-  color: var(--color-text);
-  font-size: 18px;
-  line-height: 1.25;
-}
-
-.diagnostics-zone__head p {
-  margin-top: 4px;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.diagnostics-zone__bar {
-  flex: 0 0 auto;
-  width: 4px;
-  min-height: 46px;
-  border-radius: 999px;
-  background: var(--color-primary, #2563eb);
-}
-
-.diagnostics-zone .single-screen-diagnostics__body,
-.diagnostics-zone .monitor-tab-panel {
-  display: grid;
-  gap: 14px;
-  min-width: 0;
-}
-
-.diagnostics-zone .table-scroll {
-  max-height: 460px;
-  overflow: auto;
-}
-
 .execution-overview-card,
 .queue-progress-card,
 .quality-validation-card,
@@ -6233,45 +5434,887 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 }
 
 @media (max-width: 1180px) {
-  .selected-domain-workbench__grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .queue-progress-card .dispatch-queue-row {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
-@media (max-width: 980px) {
-  .crawler-workbench-topbar,
-  .selected-domain-workbench__head,
-  .diagnostics-zone__head {
-    display: grid;
+/* Formal v4 high fidelity */
+.crawler-monitor-v4 {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  gap: 10px;
+}
+
+.crawler-monitor-v4 .status-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  min-width: 0;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, #d97706 26%, var(--color-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, #fffbeb 54%, var(--color-bg));
+  box-shadow: none;
+}
+
+.crawler-monitor-v4 .status-strip--danger {
+  border-color: color-mix(in srgb, #dc2626 28%, var(--color-border));
+  background: color-mix(in srgb, #fff7f7 72%, var(--color-bg));
+}
+
+.crawler-monitor-v4 .status-strip--success {
+  border-color: color-mix(in srgb, #059669 22%, var(--color-border));
+  background: color-mix(in srgb, #f0fdf4 60%, var(--color-bg));
+}
+
+.crawler-monitor-v4 .status-strip__main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.crawler-monitor-v4 .status-strip__main > div {
+  min-width: 0;
+}
+
+.crawler-monitor-v4 .status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--color-warning);
+  box-shadow: 0 0 0 4px color-mix(in srgb, #d97706 16%, transparent);
+  flex: 0 0 auto;
+}
+
+.crawler-monitor-v4 .status-dot--danger {
+  background: var(--color-danger);
+  box-shadow: 0 0 0 4px color-mix(in srgb, #dc2626 15%, transparent);
+}
+
+.crawler-monitor-v4 .status-dot--success {
+  background: var(--color-success);
+  box-shadow: 0 0 0 4px color-mix(in srgb, #059669 15%, transparent);
+}
+
+.crawler-monitor-v4 .status-strip strong {
+  display: block;
+  min-width: 0;
+  color: var(--color-text);
+  font-size: 15px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.crawler-monitor-v4 .status-strip small {
+  display: block;
+  min-width: 0;
+  margin-top: 2px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.crawler-monitor-v4 .status-strip__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.crawler-monitor-v4 .status-pill {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crawler-monitor-v4 .success {
+  color: var(--color-success, #166534);
+  background: var(--color-success-bg, #dcfce7);
+}
+
+.crawler-monitor-v4 .danger {
+  color: var(--color-danger, #b91c1c);
+  background: var(--color-danger-bg, #fee2e2);
+}
+
+.crawler-monitor-v4 .warning {
+  color: var(--color-warning, #92400e);
+  background: var(--color-warning-bg, #fef3c7);
+}
+
+.crawler-monitor-v4 .info {
+  color: var(--color-info, #075985);
+  background: var(--color-info-bg, #e0f2fe);
+}
+
+.crawler-monitor-v4 .muted {
+  color: var(--color-text-secondary, #475569);
+  background: color-mix(in srgb, var(--color-border) 68%, var(--color-bg));
+}
+
+.crawler-monitor-v4 .metric-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.crawler-monitor-v4 .metric {
+  min-width: 0;
+  min-height: 86px;
+  display: grid;
+  align-content: space-between;
+  gap: 8px;
+  padding: 11px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  box-shadow: var(--shadow-card);
+}
+
+.crawler-monitor-v4 .metric strong {
+  color: var(--color-text);
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.crawler-monitor-v4 .metric small,
+.crawler-monitor-v4 .metric span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.crawler-monitor-v4 .metric small {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.crawler-monitor-v4 .metric span {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.crawler-monitor-v4 .metric.is-danger {
+  border-color: color-mix(in srgb, #dc2626 28%, var(--color-border));
+  background: color-mix(in srgb, #fff7f7 70%, var(--color-bg));
+  box-shadow: inset 4px 0 0 var(--color-danger), var(--shadow-card);
+}
+
+.crawler-monitor-v4 .metric.is-warning {
+  border-color: color-mix(in srgb, #d97706 30%, var(--color-border));
+  background: color-mix(in srgb, #fffbeb 72%, var(--color-bg));
+  box-shadow: inset 4px 0 0 var(--color-warning), var(--shadow-card);
+}
+
+.crawler-monitor-v4 .metric.is-success,
+.crawler-monitor-v4 .metric.is-info {
+  border-color: color-mix(in srgb, var(--color-primary) 26%, var(--color-border));
+  background: color-mix(in srgb, #f0fdfa 58%, var(--color-bg));
+  box-shadow: inset 4px 0 0 var(--color-primary), var(--shadow-card);
+}
+
+.crawler-monitor-v4 .module-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.crawler-monitor-v4 .module-tab {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.crawler-monitor-v4 .module-tab:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--color-primary) 36%, var(--color-border));
+  color: var(--color-text);
+}
+
+.crawler-monitor-v4 .module-tab.active {
+  color: #f8fffe;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: 0 16px 28px -24px color-mix(in srgb, var(--color-primary) 80%, transparent);
+}
+
+.crawler-monitor-v4 .module-tab__count {
+  min-width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-bg));
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.crawler-monitor-v4 .module-tab.active .module-tab__count {
+  background: rgb(255 255 255 / 22%);
+  color: #f8fffe;
+}
+
+.crawler-monitor-v4 .module-stage-shell {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--color-bg);
+  box-shadow: var(--shadow-card);
+}
+
+.crawler-monitor-v4 .stage {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  transition: opacity 170ms ease, transform 170ms ease;
+}
+
+.crawler-monitor-v4 .stage.switching {
+  opacity: 0.22;
+  transform: translateY(8px);
+}
+
+.crawler-monitor-v4 .view-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.crawler-monitor-v4 .view-head h3 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 18px;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.crawler-monitor-v4 .view-head p {
+  margin: 4px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.42;
+}
+
+.crawler-monitor-v4 .monitor-panel-stage {
+  min-width: 0;
+}
+
+.crawler-monitor-v4 .overview-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 390px);
+  gap: 12px;
+  align-items: start;
+}
+
+.crawler-monitor-v4 .domain-table {
+  max-height: 520px;
+  max-width: 100%;
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+}
+
+.crawler-monitor-v4 .monitor-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.crawler-monitor-v4 .monitor-table th,
+.crawler-monitor-v4 .monitor-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+  font-size: 12px;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.crawler-monitor-v4 .monitor-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+  font-weight: 700;
+}
+
+.crawler-monitor-v4 .domain-row {
+  cursor: pointer;
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.crawler-monitor-v4 .domain-row:hover {
+  background: color-mix(in srgb, var(--color-bg-secondary) 58%, var(--color-bg));
+}
+
+.crawler-monitor-v4 .domain-row.selected {
+  background: color-mix(in srgb, #f0fdfa 64%, var(--color-bg));
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+.crawler-monitor-v4 .progress-track {
+  height: 7px;
+  margin-top: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-border) 72%, transparent);
+}
+
+.crawler-monitor-v4 .progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.crawler-monitor-v4 .current-card {
+  position: sticky;
+  top: calc(var(--header-height) + 12px);
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
+  border-radius: 8px;
+  background: var(--color-bg);
+  box-shadow: var(--shadow-card);
+}
+
+.crawler-monitor-v4 .current-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.crawler-monitor-v4 .current-head h4 {
+  margin: 5px 0 0;
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.crawler-monitor-v4 .current-head p {
+  margin: 5px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.crawler-monitor-v4 .kv-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.crawler-monitor-v4 .kv {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  border-radius: 8px;
+  background: var(--color-bg-secondary);
+}
+
+.crawler-monitor-v4 .kv small,
+.crawler-monitor-v4 .kv strong {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.crawler-monitor-v4 .grid-queue,
+.crawler-monitor-v4 .grid-progress,
+.crawler-monitor-v4 .grid-reports,
+.crawler-monitor-v4 .grid-auto,
+.crawler-monitor-v4 .grid-diagnostics {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.42fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.crawler-monitor-v4 .queue-list,
+.crawler-monitor-v4 .task-list,
+.crawler-monitor-v4 .report-list,
+.crawler-monitor-v4 .diagnostic-list {
+  display: grid;
+  gap: 8px;
+  max-height: 520px;
+  min-width: 0;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.crawler-monitor-v4 .queue-card,
+.crawler-monitor-v4 .task-card,
+.crawler-monitor-v4 .report-item,
+.crawler-monitor-v4 .setting-row,
+.crawler-monitor-v4 .diag-card,
+.crawler-monitor-v4 .summary-card {
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  text-align: left;
+  box-shadow: var(--shadow-card);
+}
+
+.crawler-monitor-v4 .queue-card,
+.crawler-monitor-v4 .report-item {
+  width: 100%;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.crawler-monitor-v4 .queue-card:hover,
+.crawler-monitor-v4 .report-item:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--color-primary) 34%, var(--color-border));
+}
+
+.crawler-monitor-v4 .queue-card.selected,
+.crawler-monitor-v4 .report-item.active {
+  background: color-mix(in srgb, #f0fdfa 64%, var(--color-bg));
+  border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
+  box-shadow: inset 3px 0 0 var(--color-primary), var(--shadow-card);
+}
+
+.crawler-monitor-v4 .queue-card strong,
+.crawler-monitor-v4 .task-card strong,
+.crawler-monitor-v4 .report-item strong,
+.crawler-monitor-v4 .setting-row strong,
+.crawler-monitor-v4 .diag-card strong {
+  display: block;
+  min-width: 0;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.crawler-monitor-v4 .queue-card small,
+.crawler-monitor-v4 .task-card small,
+.crawler-monitor-v4 .report-item small,
+.crawler-monitor-v4 .setting-row small,
+.crawler-monitor-v4 .diag-card small {
+  display: block;
+  min-width: 0;
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 1.38;
+  overflow-wrap: anywhere;
+}
+
+.crawler-monitor-v4 .queue-meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-bottom: 7px;
+}
+
+.crawler-monitor-v4 .queue-message {
+  min-height: 18px;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.crawler-monitor-v4 .queue-message--warning {
+  color: var(--color-warning, #92400e);
+}
+
+.crawler-monitor-v4 .side-panel {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.crawler-monitor-v4 .queue-side-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.crawler-monitor-v4 .queue-side-head h4,
+.crawler-monitor-v4 .queue-side-head p {
+  margin: 0;
+}
+
+.crawler-monitor-v4 .queue-side-head h4 {
+  color: var(--color-text);
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.crawler-monitor-v4 .queue-side-head p {
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.crawler-monitor-v4 .dispatch-queue-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  min-width: 0;
+}
+
+.crawler-monitor-v4 .dispatch-queue-row__main {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+.crawler-monitor-v4 .dispatch-queue-row__main > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.crawler-monitor-v4 .dispatch-queue-row__main strong,
+.crawler-monitor-v4 .dispatch-queue-row__main small,
+.crawler-monitor-v4 .dispatch-queue-row__main code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.crawler-monitor-v4 .dispatch-queue-row__main strong {
+  color: var(--color-text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.crawler-monitor-v4 .dispatch-queue-row__main small,
+.crawler-monitor-v4 .dispatch-queue-row__main code {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 1.38;
+}
+
+.crawler-monitor-v4 .dispatch-queue-row__blocker {
+  color: var(--color-warning);
+  font-weight: 700;
+}
+
+.crawler-monitor-v4 .dispatch-queue-row__meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.crawler-monitor-v4 .dispatch-queue-row__meta span {
+  min-width: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--color-bg-secondary);
+}
+
+.crawler-monitor-v4 .dispatch-queue-row__meta small,
+.crawler-monitor-v4 .dispatch-queue-row__meta strong {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.crawler-monitor-v4 .dispatch-queue-row__meta small {
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.crawler-monitor-v4 .dispatch-queue-row__meta strong {
+  margin-top: 2px;
+  color: var(--color-text);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.crawler-monitor-v4 .settings-form {
+  display: grid;
+  gap: 8px;
+}
+
+.crawler-monitor-v4 .setting-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.crawler-monitor-v4 .diag-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.crawler-monitor-v4 .diag-card.accent {
+  border-color: color-mix(in srgb, var(--color-primary) 34%, var(--color-border));
+  box-shadow: inset 3px 0 0 var(--color-primary), var(--shadow-card);
+}
+
+.crawler-monitor-v4 .diag-card.warning {
+  border-color: color-mix(in srgb, #d97706 34%, var(--color-border));
+  box-shadow: inset 3px 0 0 var(--color-warning), var(--shadow-card);
+}
+
+.crawler-monitor-v4 .diag-card.danger,
+.crawler-monitor-v4 .data-quality-cell.danger {
+  border-color: color-mix(in srgb, #dc2626 34%, var(--color-border));
+  box-shadow: inset 3px 0 0 var(--color-danger), var(--shadow-card);
+}
+
+.crawler-monitor-v4 .domain-table {
+  max-width: 100%;
+  overflow: auto;
+}
+
+.crawler-monitor-v4 .progress-path-list {
+  max-width: 100%;
+  gap: 5px;
+}
+
+.crawler-monitor-v4 .progress-path-list .inline-report-button,
+.crawler-monitor-v4 .inline-report-button--compact {
+  max-width: 100%;
+}
+
+.crawler-monitor-v4 .progress-path-list .inline-report-button span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crawler-monitor-v4 .code-preview {
+  min-height: 0;
+  height: 430px;
+  max-width: 100%;
+  padding: 14px;
+  border-radius: 8px;
+  background: #171512;
+  color: #f5f5f4;
+  font-family: Consolas, "JetBrains Mono", monospace;
+  font-size: 12px;
+  line-height: 1.62;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+.crawler-monitor-v4 .drawer-backdrop {
+  position: fixed;
+  inset: var(--header-height) 0 0 var(--sidebar-width);
+  z-index: 1000;
+  background: rgb(28 25 23 / 30%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease;
+}
+
+.crawler-monitor-v4 .drawer-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.crawler-monitor-v4 .report-drawer {
+  position: fixed;
+  top: var(--header-height);
+  right: 0;
+  bottom: 0;
+  z-index: 1001;
+  width: min(620px, calc(100vw - var(--sidebar-width)));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--color-bg);
+  border-left: 1px solid var(--color-border);
+  box-shadow: var(--shadow-floating);
+  transform: translateX(105%);
+  transition: transform 260ms ease;
+}
+
+.crawler-monitor-v4 .report-drawer.open {
+  transform: translateX(0);
+}
+
+.crawler-monitor-v4 .drawer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.crawler-monitor-v4 .drawer-head strong,
+.crawler-monitor-v4 .drawer-head small {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.crawler-monitor-v4 .drawer-head strong {
+  font-size: 15px;
+}
+
+.crawler-monitor-v4 .drawer-head small {
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.crawler-monitor-v4 .drawer-body {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: 0;
+  padding: 16px 18px;
+  overflow: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crawler-monitor-v4 .module-tab,
+  .crawler-monitor-v4 .stage,
+  .crawler-monitor-v4 .drawer-backdrop,
+  .crawler-monitor-v4 .report-drawer,
+  .crawler-monitor-v4 .queue-card,
+  .crawler-monitor-v4 .report-item {
+    transition-duration: 1ms;
+  }
+}
+
+@media (max-width: 1180px) {
+  .crawler-monitor-v4 .overview-layout,
+  .crawler-monitor-v4 .grid-queue,
+  .crawler-monitor-v4 .grid-auto,
+  .crawler-monitor-v4 .grid-progress,
+  .crawler-monitor-v4 .grid-diagnostics,
+  .crawler-monitor-v4 .grid-reports {
+    grid-template-columns: 1fr;
   }
 
-  .crawler-workbench-topbar .monitor-actions {
-    justify-content: flex-start;
+  .crawler-monitor-v4 .current-card {
+    position: static;
   }
 
-  .selected-domain-workbench {
-    padding: 12px;
+  .crawler-monitor-v4 .drawer-backdrop {
+    inset-left: 0;
+  }
+
+  .crawler-monitor-v4 .report-drawer {
+    width: min(620px, 100vw);
+  }
+
+  .crawler-monitor-v4 .metric-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 720px) {
-  .crawler-health-grid,
-  .selected-domain-workbench .wiki-live-metrics,
-  .selected-domain-workbench .selected-domain-detail-grid {
-    grid-template-columns: minmax(0, 1fr);
+  .crawler-monitor-v4 {
+    gap: 8px;
   }
 
-  .diagnostics-zone__head {
-    padding: 12px;
+  .crawler-monitor-v4 .status-strip,
+  .crawler-monitor-v4 .view-head,
+  .crawler-monitor-v4 .setting-row {
+    grid-template-columns: 1fr;
   }
 
-  .diagnostics-zone__bar {
-    width: 100%;
-    min-height: 4px;
+  .crawler-monitor-v4 .status-strip__main {
+    align-items: flex-start;
+  }
+
+  .crawler-monitor-v4 .status-strip__actions {
+    justify-content: flex-start;
+  }
+
+  .crawler-monitor-v4 .metric-row,
+  .crawler-monitor-v4 .diag-grid,
+  .crawler-monitor-v4 .kv-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .crawler-monitor-v4 .module-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .crawler-monitor-v4 .module-tab {
+    min-height: 44px;
+    justify-content: center;
+    padding-inline: 10px;
+  }
+
+  .crawler-monitor-v4 .inline-report-button,
+  .crawler-monitor-v4 .inline-report-button--compact,
+  .crawler-monitor-v4 .icon-close-button {
+    min-height: 44px;
+  }
+
+  .crawler-monitor-v4 .icon-close-button {
+    min-width: 44px;
+  }
+
+  .crawler-monitor-v4 .domain-table {
+    max-height: 520px;
+  }
+
+  .crawler-monitor-v4 .monitor-table {
+    min-width: 640px;
   }
 }
 </style>
