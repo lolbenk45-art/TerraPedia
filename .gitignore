@@ -41,6 +41,11 @@ front-nuxt/--host/
 *.pid
 *.err
 *.out
+back/logs/
+
+# Local-only design-draft preview (reads gitignored .superpowers/ source; never push)
+data-query-app/server/routes/design/
+data-query-app/tests/design-preview-route-contract.test.mjs
 
 # Keep report policy and relation evidence, but ignore generated runtime folders
 reports/*
