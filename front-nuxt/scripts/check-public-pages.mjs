@@ -564,6 +564,10 @@ const requiredPublicDataLayerMarkers = {
     'export type BossDifficultyNoteDTO',
     'export type BossCatalogCard',
     'export type PublicBiomeListItem',
+    'export type PublicBiomeItemRelation',
+    'export type PublicBiomeNpcRelation',
+    'export type PublicBiomeItemSource',
+    'sourceRefId?: number | string | null',
     'export type BiomeCatalogTile',
     'export type PublicRecipeTreeResult',
   ],
@@ -668,6 +672,9 @@ const requiredPublicDataLayerMarkers = {
     'export const fetchPublicBiomeDetail',
     'export const usePublicBiomeDetail',
     '`/public/biomes/${normalizedBiomeId}`',
+    'normalizeItemBiomes',
+    'normalizeNpcBiomes',
+    'normalizeItemSources',
     'source: \'missing\'',
   ],
   'composables/usePublicRecipeTree.ts': [
@@ -2523,6 +2530,8 @@ for (const path of scanFiles) {
     for (const marker of [
       'bossLootGroups',
       'bossLootGroupKey(entry)',
+      'bossLootEvidenceLabel(entry)',
+      '来源记录',
       '普通掉落',
       '宝藏袋',
       '条件掉落',
@@ -2538,6 +2547,11 @@ for (const path of scanFiles) {
 
     if (content.includes('v-for="entry in bossLootEntries"')) {
       violations.push(`${path}: boss loot entries must not render as one flat ungrouped list`)
+    }
+
+    const bossLootEvidenceRenderCount = (content.match(/bossLootEvidenceLabel\(entry\)/g) ?? []).length
+    if (!content.includes('const bossLootEvidenceLabel =') || bossLootEvidenceRenderCount < 2) {
+      violations.push(`${path}: boss loot rows must define the source evidence helper and render it in both visible and expanded loot rows`)
     }
 
     for (const marker of [
@@ -2648,6 +2662,20 @@ for (const path of scanFiles) {
       'biomeDetailVisualLoading',
       'biomeResources',
       'biomeRelations',
+      'biomeItemBiomes',
+      'biomeNpcBiomes',
+      'biomeItemSources',
+      'biomeSourceGroups',
+      "normalizeType(source.sourceType) === 'drop'",
+      'boss_group',
+      '掉落',
+      'Boss 掉落',
+      'NPC 掉落',
+      '环境与世界',
+      '宝箱与宝匣',
+      'NPC 出现',
+      '来源记录',
+      '群系关系',
       'biome-detail-loading-tags',
       'biome-detail-missing-tags',
       '<CommonTpSkeleton',

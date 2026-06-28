@@ -30,4 +30,13 @@ public class PublicBossLootEntryDTO implements Serializable {
     private String itemInternalName;
     @JsonInclude(JsonInclude.Include.ALWAYS)
     private String itemImage;
+    private Long sourceId;
+    private String sourceType;
+    private String sourceRefType;
+    private Long sourceRefId;
+    private String sourceRefName;
+    private String sourceProvider;
+    private String sourcePage;
+    private String sourceRevisionTimestamp;
+    private String sourceFactKey;
 }
