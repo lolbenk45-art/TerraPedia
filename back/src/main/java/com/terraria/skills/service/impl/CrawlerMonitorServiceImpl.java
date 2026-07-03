@@ -972,22 +972,21 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             activeDispatchProcesses.remove(dispatchId);
         }
 
-        // 2) 释放本域及其 coveredDomains 的锁（best-effort）
+        // 2) 释放本域所属 lane 的锁（best-effort，不误删其它 lane）
         Path standardLock = repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
         Path smokeLock = repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize();
-        forceDeleteLock(standardLock);
-        forceDeleteLock(smokeLock);
+        boolean smokeLane = actionId != null && actionId.startsWith("wiki-monitor-domain-smoke");
+        if (smokeLane) {
+            forceDeleteLock(smokeLock);
+        } else {
+            forceDeleteLock(standardLock);
+        }
 
         // 3) 写终态证据（不删进度/派发文件）
         writeReclaimTerminalProgress(repoRoot, dispatchId, rule, safeReason);
 
-        // 4) 队列项标终态（本域 + 覆盖域，全部幂等）
-        markDomainQueueItemsReclaimed(domain, actionId, safeReason);
-        for (String covered : coveredDomainsFor(actionId)) {
-            markDomainQueueItemsReclaimed(covered, actionId, safeReason);
-        }
-
-        // 4b) drain 前再扫一遍，防止并发窗口内滑入的新队列项被立即调度
+        // 4) 队列项标终态（本域 + 覆盖域，全部幂等）。
+        //    注：这是尽力而为；drain 前的并发入队窗口极小，滑入项会被下次回收/drain 收敛。
         markDomainQueueItemsReclaimed(domain, actionId, safeReason);
         for (String covered : coveredDomainsFor(actionId)) {
             markDomainQueueItemsReclaimed(covered, actionId, safeReason);
