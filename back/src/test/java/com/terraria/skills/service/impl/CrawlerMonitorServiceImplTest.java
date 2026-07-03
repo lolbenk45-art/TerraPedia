@@ -4541,4 +4541,56 @@ class CrawlerMonitorServiceImplTest {
             return pid;
         }
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void forceReclaimShouldReleaseCoveredDomainsAndKeepEvidence() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "dispatchId", "shared-dispatch", "domain", "bosses",
+            "actionId", "domain-source-bosses", "lockedAt", "2026-06-14T01:00:00Z",
+            "pid", 2000000000L, "startedAt", "2026-06-14T01:00:00Z"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:00:00Z",
+            "items", List.of(
+                Map.ofEntries(
+                    Map.entry("queueId", "q-bosses"), Map.entry("dispatchId", "shared-dispatch"),
+                    Map.entry("lane", "standard"), Map.entry("domain", "bosses"),
+                    Map.entry("actionId", "domain-source-bosses"), Map.entry("status", "cancelled"),
+                    Map.entry("coveredDomains", List.of("bosses", "npcs")),
+                    Map.entry("requestedAt", "2026-06-14T00:59:00Z"), Map.entry("pid", 2000000000L)
+                ),
+                Map.ofEntries(
+                    Map.entry("queueId", "q-npcs"), Map.entry("dispatchId", "shared-dispatch"),
+                    Map.entry("lane", "standard"), Map.entry("domain", "npcs"),
+                    Map.entry("actionId", "domain-source-bosses"), Map.entry("status", "running"),
+                    Map.entry("coveredDomains", List.of("bosses", "npcs")),
+                    Map.entry("requestedAt", "2026-06-14T00:59:00Z"), Map.entry("pid", 2000000000L)
+                )
+            ),
+            "dedupe", Map.of(),
+            "dispatches", Map.of("shared-dispatch", "q-bosses")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC),
+            (org.springframework.data.redis.core.StringRedisTemplate) null
+        );
+        CrawlerMonitorDispatchRequestDTO request = new CrawlerMonitorDispatchRequestDTO();
+        request.setDomain("bosses");
+        request.setActionId("domain-source-bosses");
+        request.setControlAction("forceReclaim");
+
+        CrawlerMonitorDispatchResultDTO result = service.controlWikiMonitorDispatch(request);
+
+        assertTrue(result.isAccepted());
+        assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+        Map<String, Object> queue = readJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> items = (List<Map<String, Object>>) queue.get("items");
+        for (Map<String, Object> item : items) {
+            assertFalse("running".equals(item.get("status")), "覆盖域队列项不应仍为 running: " + item.get("queueId"));
+        }
+        Map<String, Object> latest = readJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+        assertNotNull(latest.get("message"));
+    }
 }
