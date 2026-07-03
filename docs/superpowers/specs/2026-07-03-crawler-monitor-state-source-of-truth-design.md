@@ -75,15 +75,23 @@ domain, status, nextAction, blocker, evidence, updatedAt
 
 - 后端新增控制动作 `forceReclaim`；无论进程是否找得到，都保证域回到可派发状态。这是"点了没用"的兜底解药。
 
-**P1 边界**：只做可靠性——租约锁、`reclaimDomain`、`forceReclaim`。**P1 不引入新的对外状态字段**，overview 契约保持不变，前端此阶段不改。避免"P1 半成品字段"与 P2 的权威契约打架。
+**P1 边界**：只做可靠性——租约锁、`reclaimDomain`、`forceReclaim`。**P1 不引入新的对外状态字段**，overview 的 status 契约保持不变（避免与 P2 权威契约打架）。
 
-**P1 交付后可验收**：可靠地取消 → 重爬，不再被占用卡死（后端 API 层面即可验证）。
+**P1 最小 UI（为了让用户能亲眼验收，而非只跑 API）**：在域处于 `blocked / stalled / 孤儿`（running 但无有效租约/进程）时，展示一个**"强制回收"**按钮，调用后端 `forceReclaim`。实现上复用现有"终止运行"按钮的位置与调用通道，仅新增该动作分支，不改状态渲染逻辑、不动 status 契约。回收成功后 toast/状态卡提示"已回收"，用户可紧接着点"重爬"。
+
+**P1 交付后可验收**：用户在**页面上**完成"强制回收 → 重爬"，API 与 UI 都不再显示旧 running 或以旧占用驳回。
 
 ### P2 — 域状态机（单一真相源）
 
 - 后端新增 `CrawlerDomainState`：输入队列项 + 进度 + 租约，输出封闭枚举 `status`（`idle | queued | starting | running | paused | blocked | stalled | failed | cancelled | completed`）+ `nextAction` + `blocker` + `evidence` + `updatedAt`。
 - 将 `crawlerMonitorUnifiedStatus.mjs` 的 16 层优先级逻辑迁移到后端成为权威实现；overview DTO 直接携带这些字段。
 - 状态冲突（"取消了但进度还 running"）在状态机内消解——清理是原子转移，不再有半清理残留。
+
+**状态机硬规则（本问题核心，必须覆盖）**：
+
+- **R1 无租约不 running**：若某域进度为 `running / starting / paused`，但**无有效租约、也无对应活跃队列项/进程**，则状态机**禁止**输出 `running/starting/paused`；改判为 `stalled`（心跳过期、疑似残留），并保留 `conflict` 标注与 `evidence`。
+- **R2 终态优先**：若队列项已是终态（`cancelled / failed / timed_out`）而进度文件仍 running，`status` 以队列终态为准（如 `cancelled / force_reclaimed`），进度冲突降级为 `conflict` 提示，不覆盖权威终态。
+- **R3 谁写终态**：`reclaimDomain` / `forceReclaim` / 租约过期回收器负责把进度/状态文件**写成终态**（幂等）；状态机自身只读不写。即"计算权威状态"（状态机，纯函数）与"落终态"（回收动作）职责分离，避免读路径产生副作用。
 
 **先定 DTO 契约（P2 的交付物，也是 P3 的前置门槛）**：overview 中每个域挂一个权威 `state` 对象：
 
@@ -132,9 +140,41 @@ domain.state = {
 **核心验收 smoke（贯穿三期回归，P1 起必须通过）**：
 
 1. 构造异常态：queue 项 `cancelled` + 进度文件仍 `running` + 锁文件残留（并覆盖共享动作 `coveredDomains` 的联动域）。
-2. 点击"强制回收"（`forceReclaim`）。
+2. 页面点击"强制回收"（`forceReclaim`）。
 3. 再点击"重爬"。
 4. 断言：**API 与 UI 都不再显示 `running`，也不再以"被旧占用"驳回派发**；被回收域及其 `coveredDomains` 联动域全部释放；页面仍能看到上一轮的取消原因与证据（不缺失/未知）。
+
+### 每期测试命令与 staged 范围
+
+**P1（后端锁/回收）**
+
+- `cd back && mvn "-Dtest=CrawlerMonitorServiceImplTest,AdminCrawlerMonitorControllerTest" test`
+- staged 范围仅限：`CrawlerMonitorServiceImpl.java`、`WikiMonitorDispatchQueueRepository.java`、`WikiMonitorQueueItem.java`、`AdminCrawlerMonitorController.java`、相关 DTO、上述测试，以及 P1 最小 UI 按钮对应的前端调用分支。
+- commit 前 `git status --short` 核对，不夹带工作区既有无关改动。
+
+**P2（状态机 / DTO 契约）**
+
+- `cd back && mvn "-Dtest=CrawlerMonitorServiceImplTest,AdminCrawlerMonitorControllerTest" test`
+- `cd data-query-app && node --test tests/crawler-monitor-page-contract.test.mjs`（校验 `domain.state` 契约字段）
+- staged 范围仅限：后端状态机新增类 + overview DTO + 对应测试；前端仅"双读"兼容改动。
+
+**P3（前端瘦身）**
+
+- `cd data-query-app && node --test tests/crawler-monitor-page-contract.test.mjs tests/crawler-monitor-domain-table.test.mjs tests/crawler-monitor-execution-overview.test.mjs`
+- `cd data-query-app && pnpm run check`
+- staged 范围仅限：`crawler-monitor.vue` 拆分产物、`crawlerMonitorDomainTable.mjs`、`crawlerMonitorExecutionOverview.mjs`、删除 `crawlerMonitorUnifiedStatus.mjs`、`types/crawlerMonitor.ts` 及测试。
+
+### 最终统一验证（三期完成后）
+
+- `cd back && mvn "-Dtest=CrawlerMonitorServiceImplTest,AdminCrawlerMonitorControllerTest" test`
+- `cd data-query-app && node --test tests/crawler-monitor-page-contract.test.mjs tests/crawler-monitor-domain-table.test.mjs tests/crawler-monitor-execution-overview.test.mjs`
+- `cd data-query-app && pnpm run check`
+- 本地管理端页面人工验收：强制回收、暂停、重爬。
+
+## 执行编排
+
+- **Agent 分组（避免踩同一文件）**：① 后端锁/回收（`CrawlerMonitorServiceImpl` 锁与 reclaim 区 + 队列仓库）；② 后端状态 DTO（状态机新增类 + overview DTO）；③ 前端显示（`crawler-monitor.vue` 拆分与工具）。**不并发改同一个 `CrawlerMonitorServiceImpl.java` 或 `crawler-monitor.vue` 区块**；②依赖①的租约字段，串行；③依赖②的契约，串行。
+- **残余风险与暂停触发器**：`CrawlerMonitorServiceImpl.java` 过大，P1/P2 易互相踩逻辑。**若实现中发现 lease、queue drain、progress 终态写入三者的先后顺序冲突，先暂停实现，补一张"状态转移表"（含并发时序）再继续。**
 
 ## 受影响文件（预估）
 
