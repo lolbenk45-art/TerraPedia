@@ -19,7 +19,7 @@ public interface CrawlerMonitorService {
 
     CrawlerMonitorDispatchResultDTO controlWikiMonitorDispatch(CrawlerMonitorDispatchRequestDTO request);
 
-    CrawlerMonitorDispatchResultDTO dispatchWikiMonitorDomainSmoke();
+    CrawlerMonitorDispatchResultDTO dispatchWikiMonitorDomainSmoke(CrawlerMonitorDispatchRequestDTO request);
 
     CrawlerMonitorDispatchResultDTO cleanupWikiMonitorDomainSmoke();
 

@@ -413,7 +413,10 @@ class AdminCrawlerMonitorControllerTest {
         result.setReportPath("reports/crawler-monitor/wiki-monitor-domain-smoke-2026-06-14T01-00-00Z-12345678.json");
         result.setMessage("domain smoke accepted");
 
-        when(crawlerMonitorService.dispatchWikiMonitorDomainSmoke()).thenReturn(result);
+        when(crawlerMonitorService.dispatchWikiMonitorDomainSmoke(argThat(request ->
+            request.getDomains() == null
+                && request.getQueueMode() == null
+        ))).thenReturn(result);
 
         mockMvc.perform(post("/admin/crawler-monitor/test-domain-smoke")
                 .contentType("application/json")
@@ -427,7 +430,44 @@ class AdminCrawlerMonitorControllerTest {
             .andExpect(jsonPath("$.data.lockPath").value("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json"))
             .andExpect(jsonPath("$.data.message").value("domain smoke accepted"));
 
-        verify(crawlerMonitorService).dispatchWikiMonitorDomainSmoke();
+        verify(crawlerMonitorService).dispatchWikiMonitorDomainSmoke(argThat(request ->
+            request.getDomains() == null
+                && request.getQueueMode() == null
+        ));
+    }
+
+    @Test
+    void shouldDispatchSelectedWikiMonitorDomainSmokeFromTestPage() throws Exception {
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(true);
+        result.setDispatchId("wiki-monitor-domain-smoke-2026-06-14T01-00-00Z-12345678");
+        result.setDomain("selected");
+        result.setActionId("wiki-monitor-domain-smoke");
+        result.setStatus("running");
+        result.setProgressPath("reports/crawler-monitor/wiki-monitor-domain-smoke-progress.latest.json");
+        result.setLockPath("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json");
+        result.setReportPath("reports/crawler-monitor/wiki-monitor-domain-smoke-2026-06-14T01-00-00Z-12345678.json");
+        result.setMessage("domain smoke accepted: items,buffs");
+
+        when(crawlerMonitorService.dispatchWikiMonitorDomainSmoke(argThat(request ->
+            List.of("items", "buffs").equals(request.getDomains())
+                && "single".equals(request.getQueueMode())
+        ))).thenReturn(result);
+
+        mockMvc.perform(post("/admin/crawler-monitor/test-domain-smoke")
+                .contentType("application/json")
+                .content("{\"domains\":[\"items\",\"buffs\"],\"queueMode\":\"single\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.accepted").value(true))
+            .andExpect(jsonPath("$.data.domain").value("selected"))
+            .andExpect(jsonPath("$.data.actionId").value("wiki-monitor-domain-smoke"))
+            .andExpect(jsonPath("$.data.message").value("domain smoke accepted: items,buffs"));
+
+        verify(crawlerMonitorService).dispatchWikiMonitorDomainSmoke(argThat(request ->
+            List.of("items", "buffs").equals(request.getDomains())
+                && "single".equals(request.getQueueMode())
+        ));
     }
 
     @Test

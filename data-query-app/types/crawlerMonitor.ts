@@ -253,12 +253,14 @@ export interface CrawlerMonitorDispatchResult {
   queuePosition?: number | null
   dispatchId?: string | null
   domain?: string | null
+  coveredDomains?: string[]
   actionId?: string | null
   status?: string | null
   requestedAt?: string | null
   progressPath?: string | null
   lockPath?: string | null
   reportPath?: string | null
+  outputPath?: string | null
   blockedByDispatchId?: string | null
   blockedByDomain?: string | null
   blockedByActionId?: string | null

@@ -1,22 +1,17 @@
-const RISK_RANK = {
-  failed: 10,
-  timed_out: 11,
-  stalled: 20,
-  blocked: 30,
-  running: 40,
-  queued: 50,
-  ready: 60,
-  healthy: 90,
-}
+import {
+  buildCrawlerUnifiedStatus,
+  crawlerStatusRank,
+  normalizeCrawlerStatus,
+} from './crawlerMonitorUnifiedStatus.mjs'
 
-const TERMINAL_QUEUE_STATUSES = new Set(['completed', 'cancelled'])
+const QUIET_TERMINAL_QUEUE_STATUSES = new Set(['completed'])
 
 function normalize(value) {
   return String(value || '').trim()
 }
 
 function lower(value) {
-  return normalize(value).toLowerCase()
+  return normalizeCrawlerStatus(value)
 }
 
 function domainKey(domain) {
@@ -65,40 +60,31 @@ function isStandardQueueItem(item) {
 }
 
 function progressRisk(row) {
-  const status = lower(row?.status || row?.action?.status)
+  const status = lower(row?.status || row?.action?.status || row?.progressKind)
   if (row?.progressStale || status === 'stalled') return 'stalled'
-  if (status === 'failed' || status === 'error') return 'failed'
-  if (status === 'timed_out' || status === 'timeout') return 'timed_out'
+  if (status === 'failed') return 'failed'
+  if (status === 'timed_out') return 'timed_out'
   if (status === 'running' || status === 'starting') return 'running'
   if (status === 'queued') return 'queued'
   return ''
 }
 
 function queueRisk(item) {
-  const status = lower(item?.status)
-  if (TERMINAL_QUEUE_STATUSES.has(status)) return ''
-  if (item?.blockedByDomain || item?.blockedByActionId || item?.blockedByDispatchId) return 'blocked'
-  if (status.includes('blocked')) return 'blocked'
+  const unified = buildCrawlerUnifiedStatus({ queueItem: item })
+  const status = lower(unified.effectiveStatus)
+  if (QUIET_TERMINAL_QUEUE_STATUSES.has(status)) return ''
+  if (status === 'blocked') return 'blocked'
+  if (status === 'paused') return 'paused'
+  if (status === 'cancelled') return 'cancelled'
   if (status === 'running' || status === 'starting') return 'running'
   if (status === 'queued') return 'queued'
-  if (status === 'failed' || status === 'cancel_failed') return 'failed'
+  if (status === 'failed') return 'failed'
   if (status === 'timed_out') return 'timed_out'
   return ''
 }
 
 function domainRisk(domain, progressRow, queueItem) {
-  const progress = progressRisk(progressRow)
-  if (progress) return progress === 'timed_out' ? 'failed' : progress
-  const queue = queueRisk(queueItem)
-  if (queue) return queue
-  const status = lower(domain?.status || domain?.flowStatus)
-  if (['failed', 'error'].includes(status)) return 'failed'
-  if (status === 'stalled') return 'stalled'
-  if (['blocked', 'blocked_cooldown', 'locked'].includes(status)) return 'blocked'
-  if (['running', 'starting'].includes(status)) return 'running'
-  if (status === 'queued') return 'queued'
-  if (domain?.disabledReason || domain?.requiresApproval) return 'ready'
-  return 'healthy'
+  return buildCrawlerUnifiedStatus({ domain, progressRow, queueItem }).risk
 }
 
 function progressLabel(row) {
@@ -198,22 +184,22 @@ function sourceSummary(domain) {
   return `当前 ${current} · 上次 ${previous} · ${changed}${locator ? ` · ${locator}` : ''}`
 }
 
-function diagnosisFor({ domain, progressRow, queueItem, risk, blockerLabel }) {
-  const status = lower(progressRow?.status || queueItem?.status || domain?.status || domain?.flowStatus)
+function diagnosisFor({ domain, progressRow, queueItem, risk, blockerLabel, unifiedStatus }) {
+  const status = unifiedStatus?.effectiveStatus || lower(progressRow?.status || queueItem?.status || domain?.status || domain?.flowStatus)
   if (risk === 'failed') {
     return {
       diagnosisGroup: 'attention',
       diagnosisTitle: status === 'timed_out' ? '任务超时' : '执行失败',
       rankReason: '失败域优先，需要人工确认日志和报告',
-      nextActionLabel: '终止并清理后重爬',
+      nextActionLabel: unifiedStatus?.nextActionLabel || (queueItem ? '终止并清理后重爬' : '启动重爬'),
     }
   }
   if (risk === 'stalled') {
     return {
       diagnosisGroup: 'attention',
       diagnosisTitle: '心跳过期',
-      rankReason: '心跳过期优先，避免卡住后续队列',
-      nextActionLabel: '终止并清理后重爬',
+      rankReason: unifiedStatus?.reason || '心跳过期优先，避免卡住后续队列',
+      nextActionLabel: unifiedStatus?.nextActionLabel || (queueItem ? '终止并清理后重爬' : '启动重爬'),
     }
   }
   if (risk === 'blocked') {
@@ -221,24 +207,40 @@ function diagnosisFor({ domain, progressRow, queueItem, risk, blockerLabel }) {
     return {
       diagnosisGroup: 'blocked',
       diagnosisTitle: blocker ? `被 ${blocker} 占用` : '等待占用释放',
-      rankReason: '被其它任务占用，先定位占用者',
-      nextActionLabel: queueItem?.queueId && ['queued', 'blocked_cooldown'].includes(lower(queueItem.status)) ? '取消排队' : '查看占用者',
+      rankReason: unifiedStatus?.reason || '被其它任务占用，先定位占用者',
+      nextActionLabel: unifiedStatus?.nextActionLabel || (queueItem?.queueId && ['queued', 'blocked'].includes(lower(queueItem.status)) ? '取消排队' : '查看占用者'),
+    }
+  }
+  if (risk === 'paused') {
+    return {
+      diagnosisGroup: 'paused',
+      diagnosisTitle: '已暂停',
+      rankReason: unifiedStatus?.reason || '队列已暂停，进度文件可能仍保留 running 心跳',
+      nextActionLabel: unifiedStatus?.nextActionLabel || '继续任务',
     }
   }
   if (risk === 'running') {
     return {
       diagnosisGroup: 'active',
       diagnosisTitle: '正在运行',
-      rankReason: '运行域优先，观察心跳和实时进度',
-      nextActionLabel: '观察或终止',
+      rankReason: unifiedStatus?.reason || '运行域优先，观察心跳和实时进度',
+      nextActionLabel: unifiedStatus?.nextActionLabel || '观察或终止',
     }
   }
   if (risk === 'queued') {
     return {
       diagnosisGroup: 'queued',
       diagnosisTitle: '等待执行',
-      rankReason: '队列域需要确认前方占用是否释放',
-      nextActionLabel: queueItem?.queueId ? '取消排队' : '等待或取消排队',
+      rankReason: unifiedStatus?.reason || '队列域需要确认前方占用是否释放',
+      nextActionLabel: unifiedStatus?.nextActionLabel || (queueItem?.queueId ? '取消排队' : '等待或取消排队'),
+    }
+  }
+  if (risk === 'cancelled') {
+    return {
+      diagnosisGroup: 'cancelled',
+      diagnosisTitle: '已取消',
+      rankReason: unifiedStatus?.reason || '队列已取消，旧进度文件可能仍保留运行状态',
+      nextActionLabel: unifiedStatus?.nextActionLabel || '启动重爬',
     }
   }
   if (risk === 'ready') {
@@ -257,8 +259,13 @@ function diagnosisFor({ domain, progressRow, queueItem, risk, blockerLabel }) {
   }
 }
 
-function rowReason({ domain, progressRow, queueItem, blockerLabel, risk }) {
+function effectiveStatus(domain, progressRow, queueItem) {
+  return buildCrawlerUnifiedStatus({ domain, progressRow, queueItem }).effectiveStatus
+}
+
+function rowReason({ domain, progressRow, queueItem, blockerLabel, risk, unifiedStatus }) {
   const explicit = domain?.reason
+    || unifiedStatus?.conflictLabel
     || progressRow?.progressStaleReason
     || progressRow?.message
     || progressRow?.queueState
@@ -299,17 +306,21 @@ export function buildDomainTableRows({ domains = [], progressRows = [], dispatch
     for (const matchKey of itemMatchKeys({ domain, progressRow: matchedProgressRow, queueItem: matchedQueueItem })) {
       emittedKeys.add(matchKey)
     }
+    const unifiedStatus = buildCrawlerUnifiedStatus({ domain, progressRow: matchedProgressRow, queueItem: matchedQueueItem })
     const risk = domainRisk(domain, matchedProgressRow, matchedQueueItem)
     const blockerLabel = formatBlocker(matchedQueueItem)
     const files = evidenceFiles(domain, matchedProgressRow, matchedQueueItem)
-    const diagnosis = diagnosisFor({ domain, progressRow: matchedProgressRow, queueItem: matchedQueueItem, risk, blockerLabel })
+    const diagnosis = diagnosisFor({ domain, progressRow: matchedProgressRow, queueItem: matchedQueueItem, risk, blockerLabel, unifiedStatus })
     return {
       domain: domainFromSources(domain, matchedProgressRow, matchedQueueItem),
       label: labelFromSources(domain, matchedProgressRow, matchedQueueItem),
       actionId: domain?.recommendedActionId || matchedQueueItem?.actionId || matchedProgressRow?.id || '',
       risk,
       ...diagnosis,
-      status: matchedProgressRow?.status || matchedQueueItem?.status || domain?.status || 'unknown',
+      status: effectiveStatus(domain, matchedProgressRow, matchedQueueItem),
+      statusSource: unifiedStatus.statusSource,
+      statusReason: unifiedStatus.reason,
+      stateConflictLabel: unifiedStatus.conflictLabel,
       progressLabel: progressLabel(matchedProgressRow),
       heartbeatAt: matchedProgressRow?.progressHeartbeatAt || matchedProgressRow?.lastHeartbeatAt || '',
       queueLabel: queueLabel(matchedQueueItem),
@@ -317,7 +328,7 @@ export function buildDomainTableRows({ domains = [], progressRows = [], dispatch
       ownerLabel: ownerLabel(matchedQueueItem),
       blockerLabel,
       blockerIdentity: blockerIdentity(matchedQueueItem),
-      reason: rowReason({ domain, progressRow: matchedProgressRow, queueItem: matchedQueueItem, blockerLabel, risk }),
+      reason: rowReason({ domain, progressRow: matchedProgressRow, queueItem: matchedQueueItem, blockerLabel, risk, unifiedStatus }),
       queueId: matchedQueueItem?.queueId || '',
       dispatchId: matchedQueueItem?.dispatchId || '',
       pid: matchedQueueItem?.pid || '',
@@ -353,7 +364,7 @@ export function buildDomainTableRows({ domains = [], progressRows = [], dispatch
   }
 
   return rows.sort((left, right) =>
-    (RISK_RANK[left.risk] ?? 99) - (RISK_RANK[right.risk] ?? 99) ||
+    crawlerStatusRank(left.risk) - crawlerStatusRank(right.risk) ||
     left.label.localeCompare(right.label, 'zh-CN')
   )
 }

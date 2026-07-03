@@ -158,18 +158,41 @@ test('crawler monitor formal v4 maps every panel to real page data and actions',
   assert.doesNotMatch(queuePanel, /class="panel\b/, 'v4 queue panel should not inherit old panel surface')
   assert.doesNotMatch(queuePanel, /panel-head/, 'v4 queue panel should use v4 summary/card header styling')
   assert.match(progressPanel, /v-for="row in progressDetailRowsByPriority"/)
-  assert.match(progressPanel, /progressRowPathEntries\(row\)/)
+  assert.match(progressPanel, /progressRowVisiblePathEntries\(row\)/)
+  assert.match(progressPanel, /progressRowLogPathEntries\(row\)/)
   assert.match(reportsPanel, /v-for="report in recentReportRows"/)
   assert.match(reportsPanel, /openReportPreview\(report\.path\)/)
   assert.match(autoPanel, /autoDispatchForm\.enabled/)
   assert.match(autoPanel, /saveAutoDispatchSettings/)
   assert.match(diagnosticsPanel, /dataQualitySignals/)
-  assert.match(diagnosticsPanel, /baseDomainOrchestrationRows/)
-  assert.match(diagnosticsPanel, /domainRuntimeSummaryRows/)
+  assert.match(diagnosticsPanel, /blockedDomainFocus/)
   assert.match(diagnosticsPanel, /runtimeStateCards/)
 })
 
-test('crawler monitor queue evidence chips keep the shared evidence order and output path', () => {
+test('crawler monitor formal page keeps 10-domain smoke testing off diagnostics', () => {
+  const template = page.slice(0, page.indexOf('<script setup'))
+  const diagnosticsPanel = page.slice(
+    page.indexOf('monitor-panel-stage--diagnostics'),
+    page.indexOf('v-if="dispatchConfirmDomain"')
+  )
+
+  for (const marker of [
+    '10 域运行态',
+    '基础域验收',
+    '样本爬取',
+    '清理样本',
+    '10 域基础项测试',
+    'sampleItems',
+  ]) {
+    assert.ok(!diagnosticsPanel.includes(marker), `diagnostics panel should not render ${marker}`)
+  }
+  assert.doesNotMatch(template, /startBaseDomainSampleCrawl/)
+  assert.doesNotMatch(template, /cleanupBaseDomainSampleCrawl/)
+  assert.match(testPage, /真实下载测试/)
+  assert.match(testPage, /一键删除测试域数据/)
+})
+
+test('crawler monitor queue evidence chips hide log noise behind an explicit toggle', () => {
   const helperSource = page.slice(
     page.indexOf('function queueItemPathEntries'),
     page.indexOf('function queueItemSortTime')
@@ -179,15 +202,129 @@ test('crawler monitor queue evidence chips keep the shared evidence order and ou
     page.indexOf('monitor-panel-stage--reports')
   )
 
+  for (const marker of [
+    "function queueItemVisiblePathEntries",
+    "function queueItemLogPathEntries",
+    "showQueueItemLogs",
+    "toggleQueueItemLogs",
+    "日志已隐藏",
+    "显示日志",
+  ]) {
+    assert.match(page, new RegExp(marker.replaceAll('?', '\\?')))
+  }
+
   assertOrderedMarkers([
-    "{ label: '日志', path: item?.logPath || '' }",
     "{ label: '进度', path: item?.progressPath || '' }",
     "{ label: '报告', path: item?.reportPath || '' }",
     "{ label: '输出', path: item?.outputPath || '' }",
     "{ label: '锁', path: item?.lockPath || '' }",
   ].map((marker) => helperSource.includes(marker) ? marker : `function queueItemPathEntries MISSING ${marker}`))
+  const visibleSource = helperSource.slice(
+    helperSource.indexOf('function queueItemVisiblePathEntries'),
+    helperSource.indexOf('function queueItemLogPathEntries')
+  )
+  assert.doesNotMatch(visibleSource, /\{ label: '日志', path: item\?\.logPath \|\| '' \}/)
+  assert.match(helperSource, /queueItemVisiblePathEntries\(item\)/)
+  assert.match(helperSource, /function queueItemLogPathEntries/)
   assert.match(helperSource, /item\?\.outputPath/)
-  assert.match(progressPanel, /isPreviewableGeneratedJsonPath\(entry\.path\)/)
+  assert.match(progressPanel, /progressRowVisiblePathEntries\(row\)/)
+  assert.match(progressPanel, /progressRowLogPathEntries\(row\)/)
+  assert.doesNotMatch(progressPanel, /v-for="entry in progressRowPathEntries\(row\)"/)
+})
+
+test('crawler monitor exposes affected domains and the current blocker so single-domain dispatch is understandable', () => {
+  const selectedDomainCard = page.slice(
+    page.indexOf('<aside v-if="selectedDomainTableRow" class="current-card">'),
+    page.indexOf('</aside>', page.indexOf('<aside v-if="selectedDomainTableRow" class="current-card">'))
+  )
+  const dispatchDialog = page.slice(
+    page.indexOf('v-if="dispatchConfirmDomain"'),
+    page.indexOf('v-if="cancelConfirmDomain"')
+  )
+
+  for (const marker of [
+    'selectedWikiCoveredDomainLabels',
+    '影响域',
+    'wikiDomainCoveredDomainLabels',
+    'sharedActionWarning',
+  ]) {
+    assert.ok(selectedDomainCard.includes(marker) || dispatchDialog.includes(marker) || page.includes(marker), `expected ${marker}`)
+  }
+  assert.match(page, /const blockedDomainFocus = computed/)
+  assert.match(page, /selectBlockedDomainFocus/)
+  assert.match(page, /当前卡住域/)
+  assert.match(page, /blockedDomainFocus/)
+  assert.match(dispatchDialog, /dispatchConfirmCoveredDomainLabels/)
+})
+
+test('crawler monitor progress cards expose queue context and clear control state', () => {
+  const progressPanel = page.slice(
+    page.indexOf('monitor-panel-stage--progress'),
+    page.indexOf('monitor-panel-stage--reports')
+  )
+
+  for (const marker of [
+    'progress-card-head',
+    'progressRowStatusLabel(row)',
+    'progressRowStatusSource(row)',
+    'progressRowDomainLabel(row)',
+    'progressRowQueueStateLabel(row)',
+    'progressRowCoveredDomainLabels(row)',
+    'progressRowNextActionLabel(row)',
+    'progressRowStateConflictLabel(row)',
+    'progressRowSyncActionLabel(row)',
+    'progressRowControlButtons(row)',
+    '状态来源',
+    '队列状态',
+    '影响域',
+    '建议动作',
+    '状态冲突',
+  ]) {
+    assert.ok(progressPanel.includes(marker) || page.includes(marker), `expected progress card marker ${marker}`)
+  }
+
+  assert.match(page, /function progressRowEffectiveStatus/)
+  assert.match(page, /function progressRowStateConflictLabel/)
+  assert.match(page, /function progressRowSyncActionLabel/)
+  assert.match(page, /buildCrawlerUnifiedStatus\(\{[\s\S]*progressRow:\s*row,[\s\S]*queueItem:\s*progressRowQueueItem\(row\)/)
+  assert.match(page, /\['running', 'paused'\]\.includes\(queueItemStatus\(item\)\)/)
+  assert.match(page, /rowStatus\(row\)/)
+})
+
+test('crawler monitor queue cards expose unified status details instead of vague running labels', () => {
+  const queuePanel = page.slice(
+    page.indexOf('monitor-panel-stage--queue'),
+    page.indexOf('monitor-panel-stage--progress')
+  )
+  const domainRowsSource = page.slice(
+    page.indexOf('const domainTableRows = computed'),
+    page.indexOf('const selectedDomainTableRow = computed')
+  )
+
+  for (const marker of [
+    'queue-insight-grid',
+    'executionOverviewStatusSource(row)',
+    'executionOverviewQueueIdentity(row)',
+    'executionOverviewProgressNumbers(row)',
+    'executionOverviewNextAction(row)',
+    'executionOverviewBlocker(row)',
+    'executionOverviewTiming(row)',
+    'executionOverviewStatusReason(row)',
+    '状态来源',
+    '队列标识',
+    '建议动作',
+    '阻塞',
+    '时间',
+  ]) {
+    assert.ok(queuePanel.includes(marker) || page.includes(marker), `expected queue card marker ${marker}`)
+  }
+
+  assert.match(page, /buildCrawlerUnifiedStatus/)
+  assert.match(page, /function executionOverviewStatusSource/)
+  assert.match(page, /function executionOverviewStatusReason/)
+  assert.match(page, /function progressRowEffectiveStatus/)
+  assert.match(domainRowsSource, /dispatchQueue:\s*rawDispatchQueueRows\.value/)
+  assert.doesNotMatch(domainRowsSource, /dispatchQueue:\s*dispatchQueueRows\.value/, 'domain table must see terminal queue items to suppress stale running progress')
 })
 
 test('crawler monitor formal v4 status strip and KPI cards are backed by real signals only', () => {
@@ -471,6 +608,60 @@ test('crawler monitor preserves guarded manual execution and destructive cleanup
   assert.doesNotMatch(page, /@click="controlWikiMonitorTask\(selectedWikiDomain, 'cancel'\)"/)
 })
 
+test('crawler monitor exposes formal manual dispatch controls in the selected domain card', () => {
+  const selectedDomainCard = page.slice(
+    page.indexOf('<aside v-if="selectedDomainTableRow" class="current-card">'),
+    page.indexOf('</aside>', page.indexOf('<aside v-if="selectedDomainTableRow" class="current-card">'))
+  )
+
+  for (const marker of [
+    'wiki-domain-control-strip',
+    '正式派发',
+    'selectedWikiOperationHint',
+    'handleSelectedWikiDomainPrimaryAction',
+    'selectedWikiPrimaryActionDisabled',
+    'selectedDomainNextActionLabel',
+    'openCancelConfirm(selectedWikiDomain)',
+    '终止任务',
+  ]) {
+    assert.ok(selectedDomainCard.includes(marker), `selected domain card should expose ${marker}`)
+  }
+
+  const primaryActionSource = page.slice(
+    page.indexOf('async function handleSelectedWikiDomainPrimaryAction'),
+    page.indexOf('function dispatchResultPath')
+  )
+  assert.match(page, /function handleSelectedWikiDomainPrimaryAction/)
+  assert.match(page, /if \(canResumeWikiDomain\(domain\)\)[\s\S]*controlWikiMonitorTask\(domain,\s*'resume'\)/)
+  assert.match(page, /if \(canPauseWikiDomain\(domain\)\)[\s\S]*controlWikiMonitorTask\(domain,\s*'pause'\)/)
+  assert.match(page, /if \(canExecuteWikiDomain\(domain\)\)[\s\S]*openDispatchConfirm\(domain\)/)
+  assert.doesNotMatch(primaryActionSource, /retryWikiDomain\(domain\)/)
+})
+
+test('crawler monitor exposes executable actions directly in domain table rows', () => {
+  const overviewPanel = page.slice(
+    page.indexOf('monitor-panel-stage--overview'),
+    page.indexOf('<aside v-if="selectedDomainTableRow" class="current-card">')
+  )
+
+  for (const marker of [
+    'canResumeDomainTableRow(row)',
+    'resumeDomainTableRow(row)',
+    'canCancelDomainTableRunningRow(row)',
+    'cancelDomainTableRunningRow(row)',
+    'canCancelDomainTableQueuedRow(row)',
+    'cancelDomainTableQueuedRow(row)',
+    'canStartDomainTableRow(row)',
+    'startDomainTableRow(row)',
+    '启动重爬',
+    '继续',
+    '终止',
+    '取消',
+  ]) {
+    assert.ok(overviewPanel.includes(marker) || page.includes(marker), `domain table should expose ${marker}`)
+  }
+})
+
 test('crawler monitor wires data quality and base-domain validation without moving smoke testing into the monitor page', () => {
   assert.match(page, /buildDataQualitySignals/)
   assert.match(page, /const dataQualitySignals = computed/)
@@ -479,8 +670,6 @@ test('crawler monitor wires data quality and base-domain validation without movi
   assert.match(page, /buildWikiDomainTestMatrixRow/)
   assert.match(page, /buildBaseDomainOrchestrationRow/)
   assert.match(page, /baseDomainOrchestrationRows/)
-  assert.match(page, /formalItems/)
-  assert.match(page, /sampleItems/)
   assert.match(page, /selectedDomainValidationSummary/)
 
   for (const smokeToken of [
@@ -496,6 +685,144 @@ test('crawler monitor wires data quality and base-domain validation without movi
   assert.match(testPage, /真实下载测试/)
   assert.match(testPage, /真实下载进度/)
   assert.match(testPage, /domainSmokeProgressRows/)
+})
+
+test('crawler monitor test page exposes button-style real domain smoke test cases', () => {
+  for (const marker of [
+    'domain-smoke-testcases',
+    'domainSmokeTestDomains',
+    'selectedSmokeDomains',
+    'runSelectedDomainSmoke',
+    '单任务爬选中域',
+    '逐域加入队列',
+    '全部 10 域入队',
+    '期望 10 条',
+    '实际',
+    '真实记录',
+    'revisionId',
+    'contentLength',
+    'loadDomainSmokeSamples',
+  ]) {
+    assert.match(testPage, new RegExp(marker.replaceAll('/', '\\/')))
+  }
+
+  assert.match(testPage, /post\('\/admin\/crawler-monitor\/test-domain-smoke',\s*\{[\s\S]*domains:[\s\S]*queueMode:/)
+  assert.match(testPage, /get\('\/admin\/crawler-monitor\/report'/)
+})
+
+test('crawler monitor test page makes 10-domain smoke effects and cleanup visible', () => {
+  for (const marker of [
+    '本次 10 域下载效果',
+    'domainSmokeEffectCards',
+    'domainSmokeEffectOutputDir',
+    'domainSmokeEffectProgressPath',
+    'domainSmokeEffectReportPath',
+    '生成文件',
+    '记录总数',
+    '输出目录',
+    '输出文件',
+    '报告文件',
+    '一键删除测试域数据',
+    '只删除 reports/crawler-monitor/wiki-monitor-domain-smoke* 测试产物',
+    'cleanupDomainSmokeArtifacts',
+    'domainSmokeCleanupRunning',
+  ]) {
+    assert.ok(testPage.includes(marker), `expected test page to include ${marker}`)
+  }
+
+  assert.match(testPage, /post\('\/admin\/crawler-monitor\/test-domain-smoke\/cleanup'\)/)
+  assert.match(testPage, /window\.confirm\([\s\S]*只删除[\s\S]*wiki-monitor-domain-smoke/)
+})
+
+test('crawler monitor test page shows the latest per-domain queue download details', () => {
+  for (const marker of [
+    '最近 10 域队列下载情况',
+    'latestDomainSmokeQueueRows',
+    'domainSmokeQueueBatchRows',
+    'queueDomainSmokeRow',
+    'wikiMonitor?.dispatchQueue',
+    "lane === 'domain_smoke'",
+    '开始时间',
+    '完成时间',
+    '日志文件',
+    '查看日志',
+  ]) {
+    assert.ok(testPage.includes(marker), `expected test page to include ${marker}`)
+  }
+})
+
+test('crawler monitor test page exposes domain smoke queue controls and continuation contract', () => {
+  for (const marker of [
+    '队列控制',
+    '10 域样本不支持暂停和断点续传',
+    '取消一个排队域后会继续执行后面的队列项',
+    'cancelDomainSmokeQueuedRow',
+    'cancelDomainSmokeRunningRow',
+    'domainSmokeQueueControlLoading',
+    'canCancelDomainSmokeQueuedRow',
+    'canCancelDomainSmokeRunningRow',
+    '取消排队',
+    '终止当前域',
+  ]) {
+    assert.ok(testPage.includes(marker), `expected test page to include ${marker}`)
+  }
+
+  assert.match(testPage, /post\('\/admin\/crawler-monitor\/dispatch\/control',\s*\{[\s\S]*controlAction:\s*'cancelQueued'[\s\S]*queueId:/)
+  assert.match(testPage, /post\('\/admin\/crawler-monitor\/dispatch\/control',\s*\{[\s\S]*controlAction:\s*'cancel'[\s\S]*actionId:\s*'wiki-monitor-domain-smoke'/)
+})
+
+test('crawler monitor test page surfaces real domain smoke failure reasons', () => {
+  for (const marker of [
+    '错误原因',
+    'row.error',
+    'sample.error',
+    'domainSmokeFailureReason',
+    'domain-smoke-error',
+  ]) {
+    assert.match(testPage, new RegExp(marker.replaceAll('/', '\\/')))
+  }
+})
+
+test('crawler monitor test page lets operators inspect concrete domain smoke output files', () => {
+  for (const marker of [
+    '查看文件',
+    'domainSmokeFilePreview',
+    'domainSmokeFilePreviewContent',
+    'openDomainSmokeFilePreview',
+    'closeDomainSmokeFilePreview',
+    'domain-smoke-file-viewer',
+    '原始文件内容',
+    '当前文件',
+  ]) {
+    assert.match(testPage, new RegExp(marker.replaceAll('/', '\\/')))
+  }
+
+  assert.match(testPage, /@click="openDomainSmokeFilePreview\(row\.outputPath\)"/)
+  assert.match(testPage, /get\('\/admin\/crawler-monitor\/report',\s*\{\s*path\s*\}/)
+})
+
+test('crawler monitor test page surfaces concrete business json records with id name internalName fields', () => {
+  for (const marker of [
+    '业务 JSON 数据文件',
+    'businessJsonDatasets',
+    'selectedBusinessJsonDatasetKey',
+    'businessJsonSearchInput',
+    'businessJsonRecordRows',
+    'loadBusinessJsonDataset',
+    'openBusinessJsonRecordPreview',
+    'data/standardized-view/items/part-0001.json',
+    'data/standardized-view/npcs/part-0001.json',
+    'Wooden Sword',
+    'Nurse',
+    'Guide',
+    'internalName',
+  ]) {
+    assert.match(testPage, new RegExp(marker.replaceAll('/', '\\/')))
+  }
+
+  assert.match(testPage, /<th>id<\/th>[\s\S]*<th>name<\/th>[\s\S]*<th>internalName<\/th>/)
+  assert.match(testPage, /@click="loadBusinessJsonDataset\(dataset\.key\)"/)
+  assert.match(testPage, /@click="openBusinessJsonRecordPreview\(row\.record\)"/)
 })
 
 test('crawler monitor preview path guards accept reports and generated JSON only', () => {

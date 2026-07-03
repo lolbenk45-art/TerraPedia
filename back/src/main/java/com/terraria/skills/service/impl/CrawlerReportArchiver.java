@@ -288,9 +288,15 @@ public class CrawlerReportArchiver {
         Path reportsRoot = repoRoot.resolve("reports").normalize();
         Path testReportsRoot = repoRoot.resolve("back").resolve("target").resolve("surefire-reports").normalize();
         Path generatedRoot = repoRoot.resolve("data").resolve("generated").normalize();
+        Path standardizedViewRoot = repoRoot.resolve("data").resolve("standardized-view").normalize();
         Path rawWikiRoot = repoRoot.resolve("data").resolve("terraPedia").resolve("raw").resolve("wiki").normalize();
+        boolean standardizedViewJson = normalized.startsWith(standardizedViewRoot) && isJsonFile(normalized);
         boolean rawWikiJson = normalized.startsWith(rawWikiRoot) && isJsonFile(normalized);
-        if (!normalized.startsWith(reportsRoot) && !normalized.startsWith(testReportsRoot) && !normalized.startsWith(generatedRoot) && !rawWikiJson) {
+        if (!normalized.startsWith(reportsRoot)
+            && !normalized.startsWith(testReportsRoot)
+            && !normalized.startsWith(generatedRoot)
+            && !standardizedViewJson
+            && !rawWikiJson) {
             return false;
         }
         if (!Files.exists(normalized)) {
@@ -302,6 +308,7 @@ public class CrawlerReportArchiver {
             return realPath.startsWith(realRoot(reportsRoot))
                 || realPath.startsWith(realRoot(testReportsRoot))
                 || realPath.startsWith(realRoot(generatedRoot))
+                || (realPath.startsWith(realRoot(standardizedViewRoot)) && isJsonFile(realPath))
                 || (realPath.startsWith(realRoot(rawWikiRoot)) && isJsonFile(realPath));
         } catch (IOException ignored) {
             return false;

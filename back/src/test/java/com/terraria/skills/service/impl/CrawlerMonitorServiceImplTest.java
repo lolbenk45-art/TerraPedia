@@ -2859,6 +2859,11 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("paused", paused.getStatus());
         assertEquals(1, process.pauseCount);
         assertEquals(0, process.resumeCount);
+        Map<String, Object> pausedQueueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> pausedQueueItems = (List<Map<String, Object>>) pausedQueueMirror.get("items");
+        assertEquals(started.getQueueId(), pausedQueueItems.get(0).get("queueId"));
+        assertEquals("paused", pausedQueueItems.get(0).get("status"));
+        assertEquals("dispatch paused", pausedQueueItems.get(0).get("message"));
 
         CrawlerMonitorDispatchRequestDTO resume = dispatchRequest("bosses", "domain-source-bosses");
         resume.setControlAction("resume");
@@ -2867,6 +2872,11 @@ class CrawlerMonitorServiceImplTest {
         assertTrue(resumed.isAccepted());
         assertEquals("running", resumed.getStatus());
         assertEquals(1, process.resumeCount);
+        Map<String, Object> resumedQueueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> resumedQueueItems = (List<Map<String, Object>>) resumedQueueMirror.get("items");
+        assertEquals(started.getQueueId(), resumedQueueItems.get(0).get("queueId"));
+        assertEquals("running", resumedQueueItems.get(0).get("status"));
+        assertEquals("dispatch resumed", resumedQueueItems.get(0).get("message"));
     }
 
     @Test
@@ -2987,6 +2997,9 @@ class CrawlerMonitorServiceImplTest {
         String runningQueueId = "wiki-monitor-queue-running";
         String queuedQueueId = "wiki-monitor-queue-next";
         String runningDispatchId = "wiki-monitor-running-dispatch";
+        Path runningOutputPath = repoRoot.resolve("data/generated/domain-source-town-npc-maintenance-cancel-output.json");
+        Files.createDirectories(runningOutputPath.getParent());
+        Files.writeString(runningOutputPath, "{}");
         writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
             "generatedAt", "2026-06-14T01:05:00Z",
             "items", List.of(
@@ -3006,6 +3019,7 @@ class CrawlerMonitorServiceImplTest {
                     Map.entry("progressPath", "data/generated/domain-source-town-npc-maintenance-progress.latest.json"),
                     Map.entry("reportPath", "reports/backend-refresh/history/backend-data-refresh-wiki-monitor-running-dispatch.json"),
                     Map.entry("lockPath", "reports/crawler-monitor/wiki-monitor-dispatch.lock.json"),
+                    Map.entry("outputPath", "data/generated/domain-source-town-npc-maintenance-cancel-output.json"),
                     Map.entry("logPath", "reports/crawler-monitor/wiki-monitor-dispatch-wiki-monitor-running-dispatch.log"),
                     Map.entry("message", "已加入队列")
                 ),
@@ -3052,6 +3066,7 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("cancelled", queueItems.get(0).get("status"));
         assertEquals(queuedQueueId, queueItems.get(1).get("queueId"));
         assertEquals("running", queueItems.get(1).get("status"));
+        assertFalse(Files.exists(runningOutputPath), "cancel should clean the queue item's downloaded outputPath artifact");
     }
 
     @Test
@@ -3451,6 +3466,60 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldReconcilePausedLatestDispatchIntoRunningQueueMirrorOnOverview() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "queueId", "wiki-monitor-queue-buffs",
+            "dispatchId", "wiki-monitor-dispatch-buffs",
+            "domain", "buffs",
+            "actionId", "buff-page-immunity-refresh",
+            "status", "paused",
+            "controlAction", "pause",
+            "message", "dispatch paused",
+            "controlledAt", "2026-06-14T01:05:00Z",
+            "progressPath", "data/generated/fetch-wiki-buffs-progress.latest.json"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:04:00Z",
+            "items", List.of(Map.ofEntries(
+                Map.entry("queueId", "wiki-monitor-queue-buffs"),
+                Map.entry("dispatchId", "wiki-monitor-dispatch-buffs"),
+                Map.entry("lane", "standard"),
+                Map.entry("domain", "buffs"),
+                Map.entry("coveredDomains", List.of("buffs")),
+                Map.entry("actionId", "buff-page-immunity-refresh"),
+                Map.entry("status", "running"),
+                Map.entry("requestedAt", "2026-06-14T01:03:00Z"),
+                Map.entry("startedAt", "2026-06-14T01:04:00Z"),
+                Map.entry("pid", 2000000000L),
+                Map.entry("progressPath", "data/generated/fetch-wiki-buffs-progress.latest.json"),
+                Map.entry("message", "已加入队列")
+            )),
+            "dispatches", Map.of("wiki-monitor-dispatch-buffs", "wiki-monitor-queue-buffs")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:06:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO.WikiMonitorQueueItemDTO queueItem = service.getOverview()
+            .getWikiMonitor()
+            .getDispatchQueue()
+            .stream()
+            .filter(item -> "wiki-monitor-queue-buffs".equals(item.getQueueId()))
+            .findFirst()
+            .orElseThrow();
+
+        assertEquals("paused", queueItem.getStatus());
+        assertEquals("dispatch paused（已从 latest dispatch 自动校准）", queueItem.getMessage());
+
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals("paused", queueItems.get(0).get("status"));
+        assertEquals("dispatch paused（已从 latest dispatch 自动校准）", queueItems.get(0).get("message"));
+    }
+
+    @Test
     void shouldSignalActiveProcessTreeWhenPausingDispatch() throws Exception {
         ControllableBlockingProcess root = new ControllableBlockingProcess();
         ControllableBlockingProcess child = new ControllableBlockingProcess();
@@ -3502,6 +3571,67 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("wiki-monitor-domain-smoke", launcher.lastRequest.environment().get("TERRAPEDIA_CRAWLER_ACTION_ID"));
         assertEquals("reports/crawler-monitor/wiki-monitor-domain-smoke-progress.latest.json", launcher.lastRequest.environment().get("TERRAPEDIA_CRAWLER_PROGRESS_PATH"));
         assertTrue(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json")));
+    }
+
+    @Test
+    void shouldLaunchSelectedWikiMonitorDomainSmokeWithDomainsArgument() throws Exception {
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchRequestDTO request = new CrawlerMonitorDispatchRequestDTO();
+        request.setDomains(List.of("items", "buffs"));
+        request.setQueueMode("single");
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorDomainSmoke(request);
+
+        assertTrue(result.isAccepted());
+        assertEquals("selected", result.getDomain());
+        assertEquals("wiki-monitor-domain-smoke", result.getActionId());
+        assertEquals("running", result.getStatus());
+        assertEquals(1, launcher.launchCount);
+        assertTrue(launcher.lastRequest.command().contains("--domains=items,buffs"));
+        assertTrue(launcher.lastRequest.command().contains("--limit=10"));
+        Map<String, Object> lock = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json"));
+        assertEquals(List.of("items", "buffs"), lock.get("coveredDomains"));
+    }
+
+    @Test
+    void shouldQueueSelectedWikiMonitorDomainSmokePerDomain() throws Exception {
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchRequestDTO request = new CrawlerMonitorDispatchRequestDTO();
+        request.setDomains(List.of("items", "buffs"));
+        request.setQueueMode("per_domain");
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorDomainSmoke(request);
+
+        assertTrue(result.isAccepted());
+        assertEquals("items", result.getDomain());
+        assertEquals("running", result.getStatus());
+        assertEquals(1, launcher.launchCount);
+        assertTrue(launcher.lastRequest.command().contains("--domains=items"));
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+        List<CrawlerMonitorOverviewDTO.WikiMonitorQueueItemDTO> queueItems = overview.getWikiMonitor().getDispatchQueue();
+        assertTrue(queueItems.stream().anyMatch(item ->
+            "items".equals(item.getDomain())
+                && List.of("items").equals(item.getCoveredDomains())
+                && "running".equals(item.getStatus())
+        ));
+        assertTrue(queueItems.stream().anyMatch(item ->
+            "buffs".equals(item.getDomain())
+                && List.of("buffs").equals(item.getCoveredDomains())
+                && "queued".equals(item.getStatus())
+        ));
     }
 
     @Test

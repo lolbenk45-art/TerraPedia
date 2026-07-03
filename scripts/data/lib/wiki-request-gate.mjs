@@ -9,6 +9,8 @@ import { resolveFlareSolverrUrl, runFlareSolverrRequest } from './flaresolverr-b
 
 const defaultStatePath = resolveSharedDataRoot('generated', 'wiki-request-gate.latest.json');
 const defaultUserAgent = WIKI_USER_AGENT;
+const DEFAULT_GATE_STATE_LOCK_TIMEOUT_MS = 30_000;
+const DEFAULT_GATE_STATE_LOCK_STALE_MS = 2 * 60_000;
 
 const REQUEST_PROFILES = {
   revision: {
@@ -47,9 +49,15 @@ export function createWikiRequestGate({
   fetchFn = globalThis.fetch,
   externalRequestFn = defaultExternalRequestFn(),
   alertFn = recordCrawlerAlert,
-  alertConfig = loadAlertConfig()
+  alertConfig = loadAlertConfig(),
+  stateLockTimeoutMs = DEFAULT_GATE_STATE_LOCK_TIMEOUT_MS,
+  stateLockStaleMs = DEFAULT_GATE_STATE_LOCK_STALE_MS
 } = {}) {
   const gateStatePath = path.resolve(statePath);
+  const gateStateLockOptions = {
+    timeoutMs: normalizePositiveNumber(stateLockTimeoutMs, DEFAULT_GATE_STATE_LOCK_TIMEOUT_MS),
+    staleMs: normalizePositiveNumber(stateLockStaleMs, DEFAULT_GATE_STATE_LOCK_STALE_MS)
+  };
   let state = loadGateState(gateStatePath, hostKey);
   let queue = Promise.resolve();
 
@@ -83,7 +91,7 @@ export function createWikiRequestGate({
       cooldownUntil: null,
       lastError: null
     };
-    state = saveGateState(gateStatePath, state, previousState);
+    state = saveGateState(gateStatePath, state, previousState, gateStateLockOptions);
   }
 
   async function performRequest(input, {
@@ -218,7 +226,7 @@ export function createWikiRequestGate({
       ...state,
       lastRequestAt: new Date(Number.isFinite(now) ? now : Date.now()).toISOString()
     };
-    state = saveGateState(gateStatePath, state, previousState);
+    state = saveGateState(gateStatePath, state, previousState, gateStateLockOptions);
   }
 
   function noteSuccess() {
@@ -230,7 +238,7 @@ export function createWikiRequestGate({
       lastError: null,
       successCount: Number(state.successCount ?? 0) + 1
     };
-    state = saveGateState(gateStatePath, state, previousState);
+    state = saveGateState(gateStatePath, state, previousState, gateStateLockOptions);
   }
 
   function noteFailure(error, profile) {
@@ -249,7 +257,7 @@ export function createWikiRequestGate({
       failureCount: Number(state.failureCount ?? 0) + 1,
       throttleFailureCount: retryable ? Number(state.throttleFailureCount ?? 0) + 1 : Number(state.throttleFailureCount ?? 0)
     };
-    state = saveGateState(gateStatePath, state, previousState);
+    state = saveGateState(gateStatePath, state, previousState, gateStateLockOptions);
     if (isCloudflareLikeError(error) && nextFailureCount === Number(alertConfig.consecutiveCloudflareFailures ?? 3)) {
       alertFn({
         type: 'cloudflare',
@@ -634,7 +642,7 @@ function buildInitialState(hostKey) {
   };
 }
 
-function saveGateState(filePath, state, previousLocalState = null) {
+function saveGateState(filePath, state, previousLocalState = null, lockOptions = {}) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   return withGateStateLock(filePath, () => {
     const previousState = loadGateState(filePath, state.hostKey ?? 'terraria.wiki.gg');
@@ -644,7 +652,7 @@ function saveGateState(filePath, state, previousLocalState = null) {
     };
     writeGateStateAtomically(filePath, nextState);
     return nextState;
-  });
+  }, lockOptions);
 }
 
 function writeGateStateAtomically(filePath, state) {
@@ -658,7 +666,10 @@ function writeGateStateAtomically(filePath, state) {
   }
 }
 
-function withGateStateLock(filePath, work) {
+function withGateStateLock(filePath, work, {
+  timeoutMs = DEFAULT_GATE_STATE_LOCK_TIMEOUT_MS,
+  staleMs = DEFAULT_GATE_STATE_LOCK_STALE_MS
+} = {}) {
   const lockPath = `${filePath}.lock`;
   const startedAt = Date.now();
   while (true) {
@@ -669,7 +680,8 @@ function withGateStateLock(filePath, work) {
       if (error?.code !== 'EEXIST') {
         throw error;
       }
-      if (Date.now() - startedAt > 30_000) {
+      recoverStaleGateStateLock(lockPath, staleMs);
+      if (Date.now() - startedAt > timeoutMs) {
         throw new Error(`Timed out waiting for wiki request gate state lock: ${lockPath}`);
       }
       sleepSync(10);
@@ -679,6 +691,25 @@ function withGateStateLock(filePath, work) {
   try {
     return work();
   } finally {
+    fs.rmSync(lockPath, { recursive: true, force: true });
+  }
+}
+
+function recoverStaleGateStateLock(lockPath, staleMs) {
+  let stats;
+  try {
+    stats = fs.statSync(lockPath);
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return;
+    }
+    throw error;
+  }
+  if (!stats.isDirectory()) {
+    return;
+  }
+  const lockAgeMs = Date.now() - stats.mtimeMs;
+  if (Number.isFinite(lockAgeMs) && lockAgeMs > staleMs) {
     fs.rmSync(lockPath, { recursive: true, force: true });
   }
 }
@@ -712,6 +743,11 @@ function latestTimestamp(previousValue, nextValue) {
     return previousValue ?? null;
   }
   return nextTime >= previousTime ? nextValue : previousValue;
+}
+
+function normalizePositiveNumber(value, fallback) {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : fallback;
 }
 
 function sleepSync(ms) {

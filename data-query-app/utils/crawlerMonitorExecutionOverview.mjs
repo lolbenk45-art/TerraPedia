@@ -1,4 +1,9 @@
 import { progressRowsFromOverview, rowStatus } from './crawlerMonitorProgressRows.mjs'
+import {
+  buildCrawlerUnifiedStatus,
+  crawlerStatusRank,
+  normalizeCrawlerStatus,
+} from './crawlerMonitorUnifiedStatus.mjs'
 
 const DOMAIN_LABELS = {
   items: 'Items',
@@ -19,8 +24,15 @@ const ACTIONABLE_QUEUE_STATUSES = new Set([
   'blocked_cooldown',
   'starting',
   'running',
+  'paused',
   'failed',
   'error',
+])
+
+const TERMINAL_QUEUE_STATUSES = new Set([
+  'cancelled',
+  'failed',
+  'timed_out',
 ])
 
 const ACTIONABLE_PROGRESS_STATUSES = new Set([
@@ -47,9 +59,9 @@ export function buildExecutionOverviewRows(overview = {}) {
 
   const rows = []
   for (const item of queueItems) {
-    if (!isActionableQueueItem(item)) continue
-
     const progressRow = findMatchingProgress(item, progressByKey)
+    if (!isActionableQueueItem(item, progressRow)) continue
+
     if (progressRow) usedProgressRows.add(progressRow)
     const row = buildQueueOverviewRow(item, progressRow)
     rows.push(row)
@@ -89,6 +101,7 @@ function buildQueueOverviewRow(item, progressRow) {
   const actionId = String(item.actionId || progressRow?.id || '')
   const progressStatus = progressRow ? rowStatus(progressRow) : ''
   const progressPath = firstNonEmpty(item.progressPath, progressRow?.progressPath, progressRow?.progressSource)
+  const unifiedStatus = buildCrawlerUnifiedStatus({ queueItem: item, progressRow })
 
   return {
     key: `queue:${item.queueId || item.dispatchId || stableKey(domain, actionId, progressPath)}`,
@@ -96,11 +109,19 @@ function buildQueueOverviewRow(item, progressRow) {
     domain,
     actionId,
     status: normalizeStatus(item.status),
-    displayStatus: effectiveQueueDisplayStatus(item.status, progressStatus),
+    displayStatus: unifiedStatus.effectiveStatus,
+    statusSource: unifiedStatus.statusSource,
+    statusReason: unifiedStatus.reason,
+    nextActionLabel: unifiedStatus.nextActionLabel,
+    stateConflictLabel: unifiedStatus.conflictLabel,
     progressStatus,
     queuePosition: item.lanePosition ?? item.position ?? null,
     message: item.message || '',
     heartbeatSummary: heartbeatSummary(progressRow),
+    blockerLabel: blockerLabel(item),
+    queueIdentityLabel: queueIdentityLabel(item),
+    timingLabel: timingLabel(item, progressRow),
+    pid: item.pid || '',
     primaryLabel: domainLabel(domain || domainFromProgress(progressRow)),
     secondaryLabel: actionId || item.lane || progressRow?.label || '未命名动作',
     current: progressRow?.current ?? item.current ?? null,
@@ -119,6 +140,7 @@ function buildProgressOverviewRow(row) {
   const domain = domainFromProgress(row)
   const actionId = String(row.id || row.action?.id || '')
   const progressPath = firstNonEmpty(row.progressPath, row.progressSource)
+  const unifiedStatus = buildCrawlerUnifiedStatus({ progressRow: row })
 
   return {
     key: `progress:${stableKey(domain, actionId, progressPath || row.reportPath || row.rowKey)}`,
@@ -126,11 +148,19 @@ function buildProgressOverviewRow(row) {
     domain,
     actionId,
     status: rowStatus(row),
-    displayStatus: rowStatus(row),
+    displayStatus: unifiedStatus.effectiveStatus,
+    statusSource: unifiedStatus.statusSource,
+    statusReason: unifiedStatus.reason,
+    nextActionLabel: unifiedStatus.nextActionLabel,
+    stateConflictLabel: unifiedStatus.conflictLabel,
     progressStatus: rowStatus(row),
     queuePosition: null,
     message: row.queueState || row.action?.message || row.action?.phase || '',
     heartbeatSummary: heartbeatSummary(row),
+    blockerLabel: '',
+    queueIdentityLabel: '无队列',
+    timingLabel: timingLabel(null, row),
+    pid: '',
     primaryLabel: progressPrimaryLabel(row, domain),
     secondaryLabel: actionId || row.label || '未命名动作',
     current: row.current ?? null,
@@ -201,8 +231,10 @@ function markEmittedKeys(emittedKeys, row) {
   for (const key of overviewMatchKeys(row)) emittedKeys.add(key)
 }
 
-function isActionableQueueItem(item) {
-  return ACTIONABLE_QUEUE_STATUSES.has(normalizeStatus(item?.status))
+function isActionableQueueItem(item, progressRow = null) {
+  const status = normalizeStatus(item?.status)
+  if (ACTIONABLE_QUEUE_STATUSES.has(status)) return true
+  return TERMINAL_QUEUE_STATUSES.has(status) && progressRow && isActionableProgressRow(progressRow)
 }
 
 function isActionableProgressRow(row) {
@@ -223,13 +255,10 @@ function heartbeatSummary(row) {
 }
 
 function effectiveQueueDisplayStatus(queueStatus, progressStatus) {
-  const queue = normalizeStatus(queueStatus)
-  const progress = normalizeStatus(progressStatus)
-  if (['failed', 'error', 'timed_out', 'stalled', 'blocked', 'blocked_cooldown'].includes(progress)) return progress
-  if (queue === 'running' && ['paused', 'warning'].includes(progress)) return progress
-  if (queue === 'starting' && ['running', 'paused', 'warning'].includes(progress)) return progress
-  if (queue === 'queued' && ['running', 'starting', 'paused', 'warning'].includes(progress)) return progress
-  return queue
+  return buildCrawlerUnifiedStatus({
+    queueItem: { status: queueStatus },
+    progressRow: { status: progressStatus },
+  }).effectiveStatus
 }
 
 function progressPrimaryLabel(row, domain) {
@@ -269,7 +298,7 @@ function normalizeDomain(domain) {
 }
 
 function normalizeStatus(status) {
-  return String(status || '').trim().toLowerCase()
+  return normalizeCrawlerStatus(status)
 }
 
 function firstNonEmpty(...values) {
@@ -284,42 +313,40 @@ function stableKey(...values) {
 }
 
 function overviewRowRank(row) {
-  const order = {
-    stalled: 0,
-    running: 1,
-    starting: 2,
-    failed: 3,
-    error: 3,
-    timed_out: 3,
-    blocked: 4,
-    blocked_cooldown: 4,
-    queued: 5,
-    pending: 5,
-    paused: 6,
-    warning: 7,
-    missing: 8,
-    cancelled: 9,
-  }
-  return order[row?.status] ?? 20
+  return crawlerStatusRank(row?.displayStatus || row?.status)
 }
 
 function overviewStatusRank(status) {
-  const order = {
-    failed: 0,
-    error: 0,
-    timed_out: 0,
-    stalled: 1,
-    blocked: 2,
-    blocked_cooldown: 2,
-    running: 3,
-    starting: 3,
-    queued: 4,
-    pending: 4,
-    paused: 5,
-    warning: 6,
-    missing: 7,
-    cancelled: 8,
-    idle: 20,
-  }
-  return order[normalizeStatus(status)] ?? 20
+  if (normalizeStatus(status) === 'idle') return 100
+  return crawlerStatusRank(status)
+}
+
+function blockerLabel(item) {
+  if (!item) return ''
+  return [
+    item.blockedByDomain ? `域 ${item.blockedByDomain}` : '',
+    item.blockedByActionId ? `动作 ${item.blockedByActionId}` : '',
+    item.blockedByDispatchId ? `派发 ${item.blockedByDispatchId}` : '',
+  ].filter(Boolean).join(' / ')
+}
+
+function queueIdentityLabel(item) {
+  if (!item) return '无队列'
+  return [
+    item.queueId ? `queueId ${item.queueId}` : 'queueId 未返回',
+    item.dispatchId ? `dispatch ${item.dispatchId}` : '',
+    item.pid ? `PID ${item.pid}` : '',
+  ].filter(Boolean).join(' · ')
+}
+
+function timingLabel(item, progressRow) {
+  const values = [
+    item?.requestedAt ? `请求 ${item.requestedAt}` : '',
+    item?.startedAt ? `启动 ${item.startedAt}` : '',
+    item?.completedAt ? `结束 ${item.completedAt}` : '',
+    progressRow?.progressHeartbeatAt ? `心跳 ${progressRow.progressHeartbeatAt}` : '',
+    progressRow?.lastHeartbeatAt ? `心跳 ${progressRow.lastHeartbeatAt}` : '',
+    progressRow?.updatedAt ? `更新 ${progressRow.updatedAt}` : '',
+  ].filter(Boolean)
+  return values.join(' · ') || '暂无时间'
 }

@@ -40,6 +40,10 @@ export function buildDomainSmokePlan(rawOptions = {}) {
   const generatedAt = new Date().toISOString();
   const runId = String(rawOptions['run-id'] ?? rawOptions.runId ?? `wiki-monitor-domain-smoke-${generatedAt.replaceAll(/[^0-9A-Za-z]+/g, '-')}`).trim();
   const limit = normalizeLimit(rawOptions.limit ?? rawOptions.count, DEFAULT_LIMIT);
+  const selectedDomains = normalizeDomains(rawOptions.domains ?? rawOptions.domain);
+  const domains = selectedDomains.length
+    ? WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS.filter((domain) => selectedDomains.includes(domain.domain))
+    : WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS;
   const outputDir = path.resolve(
     repoRoot,
     rawOptions['output-dir'] ?? rawOptions.outputDir ?? path.join('reports', 'crawler-monitor', runId)
@@ -66,7 +70,8 @@ export function buildDomainSmokePlan(rawOptions = {}) {
     reportPath,
     latestReportPath,
     outputDir,
-    domains: WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS.map((domain) => ({
+    selectedDomains: domains.map((domain) => domain.domain),
+    domains: domains.map((domain) => ({
       ...domain,
       limit,
       outputPath: path.join(outputDir, `${domain.domain}.json`)
@@ -153,6 +158,7 @@ export async function runDomainSmoke(rawOptions = {}, deps = {}) {
       : results.some((result) => result.status === 'partial') ? 'partial' : 'completed',
     requestedLimit: plan.limit,
     domainCount: results.length,
+    selectedDomains: plan.selectedDomains,
     completedDomains: results.filter((result) => result.status === 'completed').length,
     failedDomains: results.filter((result) => result.status === 'failed').length,
     outputDir: toRepoRelative(plan.outputDir),
@@ -269,7 +275,8 @@ function writeSmokeProgress(plan, {
   payload.outputPath = toRepoRelative(plan.outputDir);
   payload.reportPath = toRepoRelative(plan.reportPath);
   payload.batchLimit = plan.limit;
-  payload.queue = `limit=${plan.limit}; domains=${plan.domains.length}`;
+  payload.selectedDomains = plan.selectedDomains;
+  payload.queue = `limit=${plan.limit}; domains=${plan.domains.length}; selected=${plan.selectedDomains.join(',')}`;
   payload.currentDomain = currentDomain ?? null;
   payload.domains = domains.map((domain) => ({
     domain: domain.domain,
@@ -329,6 +336,20 @@ function normalizeLimit(value, fallback) {
     return fallback;
   }
   return Math.min(DEFAULT_LIMIT, Math.max(1, Math.trunc(parsed)));
+}
+
+function normalizeDomains(value) {
+  if (value == null || value === '') return [];
+  const requested = Array.isArray(value)
+    ? value
+    : String(value).split(',');
+  const domains = unique(requested.map((domain) => String(domain).trim()).filter(Boolean));
+  const valid = new Set(WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS.map((domain) => domain.domain));
+  const unknown = domains.filter((domain) => !valid.has(domain));
+  if (unknown.length) {
+    throw new Error(`Unknown wiki monitor domain smoke domain(s): ${unknown.join(', ')}`);
+  }
+  return domains;
 }
 
 function unique(values) {

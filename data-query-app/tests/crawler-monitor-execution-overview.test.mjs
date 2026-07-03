@@ -233,6 +233,46 @@ test('execution overview excludes terminal timeout and cancelled queue noise', (
   assert.deepEqual(rows.map((row) => row.actionId), ['domain-source-town-npc-maintenance'])
 })
 
+test('execution overview uses terminal queue state ahead of stale running progress', () => {
+  const rows = buildExecutionOverviewRows({
+    wikiMonitor: {
+      dispatchQueue: [
+        {
+          queueId: 'q-buffs-cancelled',
+          domain: 'buffs',
+          actionId: 'buff-page-immunity-refresh',
+          status: 'cancelled',
+          completedAt: '2026-07-02T11:58:00Z',
+          progressPath: 'data/generated/fetch-wiki-buffs-progress.latest.json',
+          message: 'dispatch cancelled',
+        },
+      ],
+    },
+    registeredTasks: [
+      {
+        id: 'buff-page-immunity-refresh',
+        label: 'Buff page immunity refresh',
+        status: 'running',
+        progressKind: 'live',
+        progressPath: 'data/generated/fetch-wiki-buffs-progress.latest.json',
+      },
+    ],
+  })
+
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].kind, 'queue')
+  assert.equal(rows[0].actionId, 'buff-page-immunity-refresh')
+  assert.equal(rows[0].status, 'cancelled')
+  assert.equal(rows[0].displayStatus, 'cancelled')
+  assert.equal(rows[0].statusSource, 'queue')
+  assert.equal(rows[0].nextActionLabel, '启动重爬')
+  assert.equal(rows[0].stateConflictLabel, '队列已取消，旧进度文件仍保留运行状态')
+  assert.match(rows[0].queueIdentityLabel, /queueId q-buffs-cancelled/)
+  assert.match(rows[0].timingLabel, /结束 2026-07-02T11:58:00Z/)
+  assert.equal(rows[0].progressStatus, 'running')
+  assert.equal(rows[0].message, 'dispatch cancelled')
+})
+
 test('execution overview infers progress domains from progress payload before generic domain-source id parsing', () => {
   const rows = buildExecutionOverviewRows({
     registeredTasks: [

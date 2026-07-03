@@ -3,6 +3,8 @@ package com.terraria.skills.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CrawlerMonitorDispatchResultDTO {
@@ -12,6 +14,7 @@ public class CrawlerMonitorDispatchResultDTO {
     private Integer queuePosition;
     private String dispatchId;
     private String domain;
+    private List<String> coveredDomains;
     private String actionId;
     private String status;
     private String requestedAt;

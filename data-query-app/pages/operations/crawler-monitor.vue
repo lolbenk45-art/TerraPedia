@@ -63,7 +63,7 @@
                     <th>队列</th>
                     <th>心跳</th>
                     <th>下一步</th>
-                    <th>证据</th>
+                    <th>操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -102,6 +102,22 @@
                     </td>
                     <td>
                       <div class="domain-actions">
+                        <button v-if="canResumeDomainTableRow(row)" type="button" class="btn btn-plain" @click.stop="resumeDomainTableRow(row)">
+                          <Play :size="14" />
+                          <span>继续</span>
+                        </button>
+                        <button v-if="canCancelDomainTableRunningRow(row)" type="button" class="btn btn-plain btn-plain--danger" @click.stop="cancelDomainTableRunningRow(row)">
+                          <CircleStop :size="14" />
+                          <span>终止</span>
+                        </button>
+                        <button v-if="canCancelDomainTableQueuedRow(row)" type="button" class="btn btn-plain btn-plain--danger" @click.stop="cancelDomainTableQueuedRow(row)">
+                          <X :size="14" />
+                          <span>取消</span>
+                        </button>
+                        <button v-if="canStartDomainTableRow(row)" type="button" class="btn btn-plain" @click.stop="startDomainTableRow(row)">
+                          <RefreshCw :size="14" />
+                          <span>启动重爬</span>
+                        </button>
                         <button type="button" class="btn btn-plain" @click.stop="selectDomainTableRow(row)">
                           <Eye :size="14" />
                           <span>证据</span>
@@ -137,9 +153,9 @@
                 <div class="kv"><small>建议动作</small><strong>{{ selectedDomainNextActionLabel }}</strong></div>
               </div>
 
-              <div v-if="selectedDomainTableEvidence.files.length" class="evidence-row progress-path-list">
+              <div v-if="selectedDomainTableVisibleEvidenceFiles.length || selectedDomainTableLogEvidenceFiles.length" class="evidence-row progress-path-list">
                 <button
-                  v-for="file in selectedDomainTableEvidence.files"
+                  v-for="file in selectedDomainTableVisibleEvidenceFiles"
                   :key="`selected-domain-evidence-${file.label}-${file.path}`"
                   type="button"
                   class="inline-report-button inline-report-button--compact"
@@ -150,10 +166,64 @@
                 >
                   <span>{{ file.label }}</span>
                 </button>
+                <button
+                  v-if="selectedDomainTableLogEvidenceFiles.length"
+                  type="button"
+                  class="inline-report-button inline-report-button--compact"
+                  @click="toggleQueueItemLogs(selectedDomainTableLogKey)"
+                >
+                  <span>{{ showQueueItemLogs(selectedDomainTableLogKey) ? '隐藏日志' : '显示日志' }}</span>
+                </button>
+                <template v-if="selectedDomainTableLogEvidenceFiles.length && showQueueItemLogs(selectedDomainTableLogKey)">
+                  <button
+                    v-for="file in selectedDomainTableLogEvidenceFiles"
+                    :key="`selected-domain-log-${file.label}-${file.path}`"
+                    type="button"
+                    class="inline-report-button inline-report-button--compact"
+                    :class="{ 'inline-report-button--not-previewable': !isPreviewableReportPath(file.path) }"
+                    :disabled="!isPreviewableReportPath(file.path)"
+                    :title="isPreviewableReportPath(file.path) ? file.path : '此日志不支持预览'"
+                    @click="openReportPreview(file.path)"
+                  >
+                    <span>{{ file.label }}</span>
+                  </button>
+                </template>
               </div>
               <div v-else class="evidence-row">
                 <span class="file-chip">暂无证据</span>
               </div>
+
+              <section v-if="selectedWikiDomain" class="wiki-domain-control-strip" aria-label="正式域手动派发">
+                <div class="wiki-domain-control-strip__copy">
+                  <strong>正式派发</strong>
+                  <small>{{ selectedWikiOperationHint }}</small>
+                  <small class="wiki-domain-control-strip__impact">
+                    影响域：{{ selectedWikiCoveredDomainLabels }}
+                    <template v-if="selectedWikiSharedActionWarning"> · {{ selectedWikiSharedActionWarning }}</template>
+                  </small>
+                </div>
+                <div class="wiki-domain-control-actions">
+                  <button
+                    type="button"
+                    class="inline-report-button inline-report-button--compact wiki-domain-control-primary"
+                    :disabled="selectedWikiPrimaryActionDisabled"
+                    @click="handleSelectedWikiDomainPrimaryAction"
+                  >
+                    <component :is="selectedWikiPrimaryActionIcon" :size="14" :class="{ spin: selectedWikiActionLoading }" />
+                    <span>{{ selectedDomainNextActionLabel }}</span>
+                  </button>
+                  <button
+                    v-if="selectedWikiCanCancel"
+                    type="button"
+                    class="inline-report-button inline-report-button--compact inline-report-button--danger"
+                    :disabled="selectedWikiActionLoading"
+                    @click="openCancelConfirm(selectedWikiDomain)"
+                  >
+                    <CircleStop :size="14" />
+                    <span>终止任务</span>
+                  </button>
+                </div>
+              </section>
             </aside>
           </div>
         </section>
@@ -168,9 +238,18 @@
                 </div>
                 <small>{{ row.secondaryLabel }}</small>
                 <p v-if="row.message" class="queue-message">{{ row.message }}</p>
+                <p v-if="executionOverviewStatusReason(row)" class="queue-message" :class="{ 'queue-message--warning': executionOverviewHasConflict(row) }">{{ executionOverviewStatusReason(row) }}</p>
                 <p v-if="row.heartbeatSummary" class="queue-message queue-message--warning">{{ row.heartbeatSummary }}</p>
                 <div class="progress-track">
                   <span :style="{ width: executionOverviewProgress(row) }" :class="statusTone(row.displayStatus || row.status)" />
+                </div>
+                <div class="queue-insight-grid">
+                  <span><small>状态来源</small><strong>{{ executionOverviewStatusSource(row) }}</strong></span>
+                  <span><small>队列标识</small><strong>{{ executionOverviewQueueIdentity(row) }}</strong></span>
+                  <span><small>进度</small><strong>{{ executionOverviewProgressNumbers(row) }}</strong></span>
+                  <span><small>建议动作</small><strong>{{ executionOverviewNextAction(row) }}</strong></span>
+                  <span><small>阻塞</small><strong>{{ executionOverviewBlocker(row) }}</strong></span>
+                  <span><small>时间</small><strong>{{ executionOverviewTiming(row) }}</strong></span>
                 </div>
                 <button type="button" class="inline-report-button inline-report-button--compact" @click="selectExecutionOverviewRow(row)">
                   <Eye :size="14" />
@@ -215,7 +294,7 @@
                     </button>
                     <button v-if="canCancelRunningQueueItem(item)" type="button" class="inline-report-button inline-report-button--compact inline-report-button--danger" :disabled="queueControlLoading === item.queueId" @click="cancelRunningDispatchItem(item)">
                       <CircleStop :size="14" />
-                      <span>{{ queueControlLoading === item.queueId ? '处理中' : '终止运行' }}</span>
+                      <span>{{ queueControlLoading === item.queueId ? '处理中' : queueItemStatus(item) === 'paused' ? '终止暂停' : '终止运行' }}</span>
                     </button>
                   </article>
                 </div>
@@ -232,11 +311,37 @@
           <div class="grid-progress">
             <div class="task-list">
               <article v-for="row in progressDetailRowsByPriority" :key="`row-${row.rowKey}`" class="task-card">
-                <span class="status-pill" :class="statusTone(rowStatus(row))">{{ statusLabel(rowStatus(row)) }}</span>
-                <strong>{{ row.label || row.id || '未知任务' }}</strong>
-                <small>{{ progressRowLaneLabel(row) }} · {{ rowProgressLabel(row) }} · {{ rowHeartbeatLabel(row) }}</small>
+                <div class="progress-card-head">
+                  <div>
+                    <strong>{{ progressRowTitle(row) }}</strong>
+                    <small>{{ progressRowDomainLabel(row) }} · {{ progressRowActionLabel(row) }}</small>
+                  </div>
+                  <span class="status-pill" :class="statusTone(progressRowEffectiveStatus(row))">{{ progressRowStatusLabel(row) }}</span>
+                </div>
+                <small class="progress-card-subtitle">{{ progressRowLaneLabel(row) }} · {{ rowProgressLabel(row) }} · {{ rowHeartbeatLabel(row) }}</small>
                 <div class="progress-track">
-                  <span :style="{ width: rowProgress(row) }" :class="statusTone(rowStatus(row))" />
+                  <span :style="{ width: rowProgress(row) }" :class="statusTone(progressRowEffectiveStatus(row))" />
+                </div>
+                <div class="progress-insight-grid">
+                  <span><small>状态来源</small><strong>{{ progressRowStatusSource(row) }}</strong></span>
+                  <span><small>队列状态</small><strong>{{ progressRowQueueStateLabel(row) }}</strong></span>
+                  <span><small>影响域</small><strong>{{ progressRowCoveredDomainLabels(row) }}</strong></span>
+                  <span><small>建议动作</small><strong>{{ progressRowNextActionLabel(row) }}</strong></span>
+                </div>
+                <div v-if="progressRowStateConflictLabel(row)" class="progress-state-conflict">
+                  <div>
+                    <small>状态冲突</small>
+                    <strong>{{ progressRowStateConflictLabel(row) }}</strong>
+                  </div>
+                  <button
+                    type="button"
+                    class="inline-report-button inline-report-button--compact inline-report-button--warning"
+                    :disabled="loading"
+                    @click="loadOverview"
+                  >
+                    <RefreshCw :size="14" :class="{ spin: loading }" />
+                    <span>{{ progressRowSyncActionLabel(row) }}</span>
+                  </button>
                 </div>
                 <div class="kv-grid">
                   <div class="kv"><small>待处理</small><strong>{{ rowPendingLabel(row) }}</strong></div>
@@ -244,9 +349,9 @@
                   <div class="kv"><small>预计剩余</small><strong>{{ rowEtaLabel(row) }}</strong></div>
                   <div class="kv"><small>运行时长</small><strong>{{ formatElapsedDuration(taskElapsedMs(row)) }}</strong></div>
                 </div>
-                <div v-if="progressRowPathEntries(row).length" class="progress-path-list">
+                <div v-if="progressRowVisiblePathEntries(row).length" class="progress-path-list">
                   <button
-                    v-for="entry in progressRowPathEntries(row)"
+                    v-for="entry in progressRowVisiblePathEntries(row)"
                     :key="`${row.rowKey}-${entry.label}`"
                     type="button"
                     class="inline-report-button inline-report-button--compact"
@@ -256,6 +361,43 @@
                     @click="openReportPreview(entry.path)"
                   >
                     <span>{{ entry.label }}</span>
+                  </button>
+                  <button
+                    v-if="progressRowLogPathEntries(row).length"
+                    type="button"
+                    class="inline-report-button inline-report-button--compact"
+                    @click="toggleQueueItemLogs(progressRowQueueLogKey(row))"
+                  >
+                    <span>{{ showQueueItemLogs(progressRowQueueLogKey(row)) ? '隐藏日志' : '显示日志' }}</span>
+                  </button>
+                  <span v-else class="file-chip file-chip--muted">日志已隐藏</span>
+                </div>
+                <div v-if="progressRowLogPathEntries(row).length && showQueueItemLogs(progressRowQueueLogKey(row))" class="progress-path-list progress-path-list--logs">
+                  <button
+                    v-for="entry in progressRowLogPathEntries(row)"
+                    :key="`${row.rowKey}-log-${entry.path}`"
+                    type="button"
+                    class="inline-report-button inline-report-button--compact"
+                    :class="{ 'inline-report-button--not-previewable': !isPreviewableReportPath(entry.path) }"
+                    :disabled="!isPreviewableReportPath(entry.path)"
+                    :title="isPreviewableReportPath(entry.path) ? entry.path : '此日志不支持预览'"
+                    @click="openReportPreview(entry.path)"
+                  >
+                    <span>{{ entry.label }}</span>
+                  </button>
+                </div>
+                <div v-if="progressRowControlButtons(row).length" class="progress-control-row">
+                  <button
+                    v-for="control in progressRowControlButtons(row)"
+                    :key="`${row.rowKey}-${control.action}`"
+                    type="button"
+                    class="inline-report-button inline-report-button--compact"
+                    :class="{ 'inline-report-button--danger': control.action === 'cancel' }"
+                    :disabled="progressControlLoading === progressRowControlKey(row)"
+                    @click="controlProgressTask(row, control.action)"
+                  >
+                    <component :is="control.icon" :size="14" :class="{ spin: progressControlLoading === progressRowControlKey(row) }" />
+                    <span>{{ control.label }}</span>
                   </button>
                 </div>
               </article>
@@ -361,6 +503,16 @@
             <div class="diagnostic-list">
               <div class="diag-grid">
                 <button
+                  v-if="blockedDomainFocus"
+                  type="button"
+                  class="diag-card warning blocked-domain-focus"
+                  @click="selectBlockedDomainFocus"
+                >
+                  <small>当前卡住域</small>
+                  <strong>{{ blockedDomainFocus.label }}</strong>
+                  <small>{{ blockedDomainFocus.detail }}</small>
+                </button>
+                <button
                   v-for="sig in dataQualitySignals"
                   :key="sig.key"
                   type="button"
@@ -379,91 +531,6 @@
                   <small>{{ card.detail }}</small>
                 </article>
               </div>
-
-              <section class="runtime-domain-index runtime-domain-index--primary" aria-label="10 域运行态">
-                <div class="observability-block__head">
-                  <strong>10 域运行态</strong>
-                  <span>{{ domainRuntimeSummaryRows.length }} 域</span>
-                </div>
-                <div v-if="domainRuntimeSummaryRows.length" class="runtime-domain-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>域</th>
-                        <th>状态</th>
-                        <th>判断</th>
-                        <th>推荐动作</th>
-                        <th>原因</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="domain in domainRuntimeSummaryRows" :key="`runtime-domain-index-${domain.domain}`" class="runtime-domain-row" @click="selectRuntimeDomain(domain.sourceDomain)">
-                        <td><button type="button" class="runtime-domain-row__select" @click.stop="selectRuntimeDomain(domain.sourceDomain)">{{ domain.label }}</button></td>
-                        <td><em class="status-pill domain-flow-pill" :class="statusTone(domain.status)">{{ domain.flowLabel }}</em></td>
-                        <td>{{ domain.changeLabel }} · {{ domain.autoEligibleLabel }}</td>
-                        <td><code>{{ domain.actionLabel }}</code></td>
-                        <td><span class="runtime-domain-index__reason">{{ domain.reason }}</span></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <p v-else class="empty-line">暂无域基础信息。</p>
-              </section>
-
-              <section class="base-domain-orchestration" aria-label="基础域顺序编排">
-                <div class="base-domain-orchestration__head">
-                  <div>
-                    <strong>基础域验收</strong>
-                    <span>正式域 / 样本测试双通道；每域 10 条，可控删除，不写正式数据。</span>
-                  </div>
-                  <em>{{ baseDomainOrchestrationRows.length }} 个基础域</em>
-                </div>
-                <div class="base-domain-orchestration__rows">
-                  <article v-for="domain in baseDomainOrchestrationRows" :key="`base-domain-orchestration-${domain.id}`" class="base-domain-flow-row">
-                    <button type="button" class="base-domain-flow-row__domain" @click.stop="selectWikiDomain(domain.domain)">
-                      <small>#{{ domain.order }}</small>
-                      <strong>{{ wikiDomainChineseName(domain.domain) }}</strong>
-                      <span class="status-pill" :class="statusTone(domain.status)">{{ wikiDomainFlowLabel(domain.domain) }}</span>
-                    </button>
-                    <div class="base-domain-flow-steps">
-                      <div v-for="step in domain.steps" :key="`${domain.id}-${step.key}`" class="base-domain-flow-step" :class="`base-domain-flow-step--${step.key}`">
-                        <span class="base-domain-flow-step__label">{{ step.label }}</span>
-                        <strong>{{ step.value }}</strong>
-                        <small>{{ step.detail }}</small>
-                        <button v-if="step.key === 'sample-crawl'" type="button" class="inline-report-button inline-report-button--compact" :disabled="step.disabled" @click.stop="startBaseDomainSampleCrawl(domain)">样本爬取</button>
-                        <button v-if="step.key === 'sample-cleanup'" type="button" class="inline-report-button inline-report-button--compact" :disabled="step.disabled" @click.stop="cleanupBaseDomainSampleCrawl(domain)">清理样本</button>
-                      </div>
-                    </div>
-                  </article>
-                </div>
-              </section>
-
-              <section class="domain-test-matrix" aria-label="10 域基础项测试">
-                <div class="domain-test-matrix__head">
-                  <strong>10 域基础项测试</strong>
-                  <span>{{ wikiDomainTestMatrixRows.length }} 域 · 正式域 {{ BASIC_DOMAIN_TEST_ITEMS.length }} 项 / 样本测试 5 项</span>
-                </div>
-                <div class="domain-test-matrix__grid">
-                  <article v-for="domain in wikiDomainTestMatrixRows" :key="`domain-test-${domain.id}`" class="domain-test-card">
-                    <div class="domain-test-card__head">
-                      <strong>{{ domain.label }}</strong>
-                      <span class="status-pill" :class="statusTone(domain.status)">{{ statusLabel(domain.status) }}</span>
-                    </div>
-                    <div class="domain-test-channel">
-                      <strong>正式域</strong>
-                      <div class="domain-test-items">
-                        <span v-for="item in domain.formalItems" :key="`${domain.id}-formal-${item.label}`"><small>{{ item.label }}</small><strong>{{ item.value }}</strong></span>
-                      </div>
-                    </div>
-                    <div class="domain-test-channel">
-                      <strong>样本测试</strong>
-                      <div class="domain-test-items">
-                        <span v-for="item in domain.sampleItems" :key="`${domain.id}-sample-${item.label}`"><small>{{ item.label }}</small><strong>{{ item.value }}</strong></span>
-                      </div>
-                    </div>
-                  </article>
-                </div>
-              </section>
             </div>
 
             <aside class="side-panel">
@@ -500,6 +567,7 @@
         <p>该操作会启动对应 Wiki 域的真实爬取/刷新任务，不只是刷新当前页面状态。为防止误触，请先确认当前心跳、进度文件和已下载文件。</p>
         <ul>
           <li><code>动作：{{ dispatchConfirmDomain.recommendedActionId || '未配置' }}</code></li>
+          <li><code>影响域：{{ dispatchConfirmCoveredDomainLabels }}</code></li>
           <li><code>进度：{{ wikiDomainProgressPath(dispatchConfirmDomain) || '未生成' }}</code></li>
           <li><code>输出：{{ wikiDomainOutputPath(dispatchConfirmDomain) || '等待生成' }}</code></li>
         </ul>
@@ -607,6 +675,7 @@ import {
   wikiDomainChineseName,
   wikiHeartbeatSummary,
 } from '~/utils/crawlerMonitorDisplay.mjs'
+import { buildCrawlerUnifiedStatus } from '~/utils/crawlerMonitorUnifiedStatus.mjs'
 import type {
   CrawlerMonitorAction,
   CrawlerMonitorAutoDispatchSettings,
@@ -668,6 +737,7 @@ const autoDispatchForm = reactive<CrawlerMonitorAutoDispatchSettings>({
   sweepIntervalMinutes: 60,
 })
 const hiddenNoiseKeys = ref<Set<string>>(new Set())
+const visibleQueueLogKeys = ref<Set<string>>(new Set())
 const selectedWikiDomainKey = ref('')
 const selectedDomainTableKey = ref('')
 const hasAutoSelectedDomain = ref(false)
@@ -957,7 +1027,7 @@ const refreshStale = computed(() => Boolean(overview.value?.refreshStale))
 const domainTableRows = computed(() => buildDomainTableRows({
   domains: visibleWikiDomainRows.value,
   progressRows: progressRows.value,
-  dispatchQueue: dispatchQueueRows.value,
+  dispatchQueue: rawDispatchQueueRows.value,
 }))
 const selectedDomainTableRow = computed(() => {
   const rows = domainTableRows.value
@@ -966,6 +1036,12 @@ const selectedDomainTableRow = computed(() => {
   return selected || rows[0]
 })
 const selectedDomainTableEvidence = computed(() => buildDomainTableEvidence(selectedDomainTableRow.value))
+const selectedDomainTableVisibleEvidenceFiles = computed(() => selectedDomainTableEvidence.value.files.filter((file: any) => String(file.label || '').trim() !== '日志'))
+const selectedDomainTableLogEvidenceFiles = computed(() => selectedDomainTableEvidence.value.files.filter((file: any) => String(file.label || '').trim() === '日志'))
+const selectedDomainTableLogKey = computed(() => {
+  const row = selectedDomainTableRow.value
+  return row?.queueItem ? queueItemLogKey(row.queueItem) : selectedDomainTableRowKey(row)
+})
 const failedDomainRows = computed(() => domainTableRows.value.filter((row) => statusTone(row.risk || row.status) === 'danger'))
 const runningDomainRows = computed(() => domainTableRows.value.filter((row) => {
   const status = String(row.status || row.risk || '').toLowerCase()
@@ -1131,6 +1207,9 @@ const selectedWikiProgressPath = computed(() => selectedWikiProgressRow.value
 )
 const selectedWikiReportPath = computed(() => selectedWikiProgressRow.value?.reportPath || selectedDomainTableRow.value?.queueItem?.reportPath || '')
 const selectedWikiOutputPath = computed(() => selectedWikiProgressRow.value?.outputPath || selectedWikiProgressRow.value?.progressPayload?.outputPath || selectedDomainTableRow.value?.queueItem?.outputPath || '')
+const selectedWikiCoveredDomainLabels = computed(() => wikiDomainCoveredDomainLabels(selectedWikiDomain.value))
+const selectedWikiSharedActionWarning = computed(() => sharedActionWarning(selectedWikiDomain.value))
+const dispatchConfirmCoveredDomainLabels = computed(() => wikiDomainCoveredDomainLabels(dispatchConfirmDomain.value))
 const selectedWikiProgressNumbers = computed(() => rowProgressNumbers(selectedWikiProgressRow.value))
 const selectedWikiUpdatedAtLabel = computed(() => rowUpdatedAtLabel(selectedWikiProgressRow.value))
 const reportPreviewStatusLabel = computed(() => {
@@ -1172,7 +1251,6 @@ const selectedDomainElapsedLabel = computed(() => formatElapsedDuration(taskElap
 const selectedDomainNextActionLabel = computed(() => {
   const domain = selectedWikiDomain.value
   if (!domain) return selectedDomainTableRow.value?.nextActionLabel || '查看任务'
-  if (canRetryWikiDomain(domain)) return '手动重新重爬'
   if (canResumeWikiDomain(domain)) return '继续任务'
   if (canPauseWikiDomain(domain)) return '暂停任务'
   if (canExecuteWikiDomain(domain)) return '启动重爬'
@@ -1183,7 +1261,6 @@ const selectedWikiReCrawlButtonLabel = computed(() => {
   const domain = selectedWikiDomain.value
   if (!domain) return '不能重爬'
   if (wikiDispatchLoading.value === domain.domain) return '启动中'
-  if (canRetryWikiDomain(domain)) return '重新重爬'
   if (!canExecuteWikiDomain(domain)) return '不能重爬'
   return '启动重爬'
 })
@@ -1202,6 +1279,36 @@ const selectedDomainOperatorSummary = computed(() => {
 const selectedWikiRecoveryTitle = computed(() => selectedWikiDomain.value ? wikiDomainRecoveryTitle(selectedWikiDomain.value) : selectedDomainTableRow.value?.diagnosisTitle || '任务详情')
 const selectedWikiRecoveryCopy = computed(() => selectedWikiDomain.value ? wikiDomainRecoveryCopy(selectedWikiDomain.value) : selectedDomainTableRow.value?.reason || selectedDomainTableRow.value?.rankReason || '当前任务没有绑定正式域，请优先查看 queueId、阻塞者、日志和进度文件。')
 const selectedWikiOperationHint = computed(() => selectedWikiDomain.value ? wikiDomainOperationHint(selectedWikiDomain.value) : selectedDomainTableRow.value?.rankReason || '未归属任务只能通过队列控制或证据文件排查。')
+const blockedDomainFocus = computed(() => {
+  const blockedQueue = activeDispatchQueueRows.value.find((item) => queueItemBlockerLabel(item))
+  if (blockedQueue) {
+    return {
+      label: queueItemDomainLabel(blockedQueue),
+      detail: `${statusLabel(queueItemStatus(blockedQueue))} · ${queueItemBlockerLabel(blockedQueue)} · ${blockedQueue.queueId || blockedQueue.actionId || '无 queueId'}`,
+      queueItem: blockedQueue,
+      row: null,
+    }
+  }
+  const stalledRow = domainTableRows.value.find((row) => ['stalled', 'blocked', 'failed'].includes(String(row.status || row.risk || '').toLowerCase()))
+  if (stalledRow) {
+    return {
+      label: stalledRow.label || stalledRow.domain || stalledRow.actionId || '未知域',
+      detail: `${stalledRow.diagnosisTitle || statusLabel(stalledRow.status)} · ${stalledRow.rankReason || stalledRow.reason || '查看进度和队列'}`,
+      queueItem: stalledRow.queueItem || null,
+      row: stalledRow,
+    }
+  }
+  const stale = staleHeartbeatRows.value[0]
+  if (stale) {
+    return {
+      label: stale.label || stale.domain || stale.id || '心跳过期任务',
+      detail: stale.progressStaleReason || stale.reason || stale.message || formatDate(stale.lastHeartbeatAt || stale.progressHeartbeatAt),
+      queueItem: null,
+      row: null,
+    }
+  }
+  return null
+})
 const selectedWikiDomainProgressCopy = computed(() => {
   const domain = selectedWikiDomain.value
   if (!domain) {
@@ -1229,6 +1336,24 @@ const selectedDomainValidationSummary = computed(() => {
 })
 const selectedWikiActionDisabledReason = computed(() => selectedWikiDomain.value ? wikiDomainDisabledReason(selectedWikiDomain.value) : '暂无可操作域')
 const selectedWikiCanExecute = computed(() => Boolean(selectedWikiDomain.value && canExecuteWikiDomain(selectedWikiDomain.value)))
+const selectedWikiCanCancel = computed(() => Boolean(selectedWikiDomain.value && canCancelWikiDomain(selectedWikiDomain.value)))
+const selectedWikiActionLoading = computed(() => {
+  const domain = selectedWikiDomain.value
+  return Boolean(domain?.domain && (wikiDispatchLoading.value === domain.domain || wikiControlLoading.value === domain.domain))
+})
+const selectedWikiPrimaryActionDisabled = computed(() => {
+  const domain = selectedWikiDomain.value
+  if (!domain || selectedWikiActionLoading.value) return true
+  return !canResumeWikiDomain(domain)
+    && !canPauseWikiDomain(domain)
+    && !canExecuteWikiDomain(domain)
+})
+const selectedWikiPrimaryActionIcon = computed(() => {
+  const domain = selectedWikiDomain.value
+  if (!domain) return Play
+  if (canPauseWikiDomain(domain)) return Pause
+  return Play
+})
 const selectedWikiCommandOpen = computed(() => Boolean(selectedWikiDomain.value && commandPreviewDomainKey.value === wikiDomainKey(selectedWikiDomain.value)))
 const latestDispatchBelongsToSelected = computed(() => {
   const selected = selectedWikiDomain.value
@@ -1286,7 +1411,9 @@ const cancelCleanupPaths = computed(() => {
     pending?.lockPath,
     latest?.progressPath,
     latest?.reportPath,
+    latest?.outputPath,
     latest?.lockPath,
+    selectedWikiOutputPath.value,
   ]
   return Array.from(new Set(values.filter((value): value is string => Boolean(value))))
 })
@@ -1460,6 +1587,20 @@ function selectRuntimeDomain(domain: CrawlerMonitorWikiDomain | null | undefined
   selectWikiDomain(domain)
 }
 
+function selectBlockedDomainFocus() {
+  const focus = blockedDomainFocus.value
+  if (!focus) return
+  if (focus.row) {
+    selectDomainTableRow(focus.row)
+    setActiveMonitorPanel('overview')
+    return
+  }
+  if (focus.queueItem) {
+    selectQueueItemDomain(focus.queueItem)
+    setActiveMonitorPanel('queue')
+  }
+}
+
 // 首屏默认选中最严重的域，使内联排障面板默认展示（对齐设计稿）
 watch(
   domainTableRows,
@@ -1497,7 +1638,7 @@ function canRetryWikiDomain(domain: CrawlerMonitorWikiDomain) {
 }
 
 function activeQueueControlStatuses() {
-  return ['queued', 'starting', 'running', 'blocked_cooldown']
+  return ['queued', 'starting', 'running', 'paused', 'blocked_cooldown']
 }
 
 function wikiDomainControlStatus(domain: CrawlerMonitorWikiDomain) {
@@ -1558,7 +1699,6 @@ function wikiDomainHeartbeatLabel(domain: CrawlerMonitorWikiDomain) {
 
 function wikiDomainPrimaryActionLabel(domain: CrawlerMonitorWikiDomain) {
   if (wikiDispatchLoading.value === domain.domain) return '启动中'
-  if (canRetryWikiDomain(domain)) return '重新重爬'
   if (!canExecuteWikiDomain(domain)) return '不能重爬'
   return '启动重爬'
 }
@@ -1601,6 +1741,36 @@ function wikiDomainOutputPath(domain: CrawlerMonitorWikiDomain | null | undefine
   if (!domain) return ''
   const row = wikiDomainProgressRow(domain)
   return row?.outputPath || row?.progressPayload?.outputPath || ''
+}
+
+function wikiDomainCoveredDomains(domain: CrawlerMonitorWikiDomain | null | undefined) {
+  if (!domain) return []
+  const actionId = String(domain.recommendedActionId || '').trim()
+  const activeQueueItem = activeQueueItemForDomain(domain)
+  const queueCovered = Array.isArray(activeQueueItem?.coveredDomains)
+    ? activeQueueItem.coveredDomains.map((value) => String(value || '').trim()).filter(Boolean)
+    : []
+  const inferred = actionId
+    ? wikiDomainRows.value
+        .filter((row) => row.recommendedActionId === actionId)
+        .map((row) => row.domain || wikiDomainKey(row))
+        .filter(Boolean)
+    : []
+  const self = domain.domain || wikiDomainKey(domain)
+  return Array.from(new Set([...queueCovered, ...inferred, self].filter(Boolean)))
+}
+
+function wikiDomainCoveredDomainLabels(domain: CrawlerMonitorWikiDomain | null | undefined) {
+  const labels = wikiDomainCoveredDomains(domain).map((domainId) => {
+    const matched = wikiDomainRows.value.find((row) => row.domain === domainId)
+    return wikiDomainChineseName(matched || { domain: domainId, label: domainId })
+  })
+  return labels.join('、') || '当前域'
+}
+
+function sharedActionWarning(domain: CrawlerMonitorWikiDomain | null | undefined) {
+  const count = wikiDomainCoveredDomains(domain).length
+  return count > 1 ? '共享动作会联动刷新这些域' : ''
 }
 
 function wikiDomainProgressPath(domain: CrawlerMonitorWikiDomain | null | undefined) {
@@ -1658,6 +1828,22 @@ async function confirmWikiDomainCancel() {
   if (!domain) return
   await controlWikiMonitorTask(domain, 'cancel')
   closeCancelConfirm()
+}
+
+async function handleSelectedWikiDomainPrimaryAction() {
+  const domain = selectedWikiDomain.value
+  if (!domain || selectedWikiPrimaryActionDisabled.value) return
+  if (canResumeWikiDomain(domain)) {
+    await controlWikiMonitorTask(domain, 'resume')
+    return
+  }
+  if (canPauseWikiDomain(domain)) {
+    await controlWikiMonitorTask(domain, 'pause')
+    return
+  }
+  if (canExecuteWikiDomain(domain)) {
+    openDispatchConfirm(domain)
+  }
 }
 
 function dispatchResultPath(kind: 'progress' | 'report' | 'lock') {
@@ -1752,13 +1938,41 @@ function isTerminalQueueItem(item: CrawlerMonitorWikiQueueItem | null | undefine
 }
 
 function queueItemPathEntries(item: CrawlerMonitorWikiQueueItem | null | undefined) {
+  return queueItemVisiblePathEntries(item)
+}
+
+function queueItemVisiblePathEntries(item: CrawlerMonitorWikiQueueItem | null | undefined) {
   return [
-    { label: '日志', path: item?.logPath || '' },
     { label: '进度', path: item?.progressPath || '' },
     { label: '报告', path: item?.reportPath || '' },
     { label: '输出', path: item?.outputPath || '' },
     { label: '锁', path: item?.lockPath || '' },
   ].filter((entry) => Boolean(entry.path))
+}
+
+function queueItemLogPathEntries(item: CrawlerMonitorWikiQueueItem | null | undefined) {
+  return [
+    { label: '日志', path: item?.logPath || '' },
+  ].filter((entry) => Boolean(entry.path))
+}
+
+function queueItemLogKey(item: CrawlerMonitorWikiQueueItem | null | undefined) {
+  return item?.queueId || item?.dispatchId || item?.logPath || `${item?.domain || ''}:${item?.actionId || ''}`
+}
+
+function showQueueItemLogs(key: string | null | undefined) {
+  return Boolean(key && visibleQueueLogKeys.value.has(key))
+}
+
+function toggleQueueItemLogs(key: string | null | undefined) {
+  if (!key) return
+  const next = new Set(visibleQueueLogKeys.value)
+  if (next.has(key)) {
+    next.delete(key)
+  } else {
+    next.add(key)
+  }
+  visibleQueueLogKeys.value = next
 }
 
 function queueItemSortTime(item: CrawlerMonitorWikiQueueItem | null | undefined) {
@@ -1784,7 +1998,7 @@ function canCancelQueuedItem(item: CrawlerMonitorWikiQueueItem | null | undefine
 }
 
 function canCancelRunningQueueItem(item: CrawlerMonitorWikiQueueItem | null | undefined) {
-  return Boolean(item?.queueId && queueItemStatus(item) === 'running')
+  return Boolean(item?.queueId && ['running', 'paused'].includes(queueItemStatus(item)))
 }
 
 function canCancelDomainTableQueuedRow(row: any) {
@@ -1793,6 +2007,34 @@ function canCancelDomainTableQueuedRow(row: any) {
 
 function canCancelDomainTableRunningRow(row: any) {
   return Boolean(row?.queueItem && canCancelRunningQueueItem(row.queueItem))
+}
+
+function canResumeDomainTableRow(row: any) {
+  const domain = row?.sourceDomain || null
+  if (domain && canResumeWikiDomain(domain)) return true
+  return queueItemStatus(row?.queueItem) === 'paused'
+}
+
+function canStartDomainTableRow(row: any) {
+  const domain = row?.sourceDomain || null
+  if (!domain || !canExecuteWikiDomain(domain)) return false
+  if (row?.queueItem && ['queued', 'blocked_cooldown', 'starting', 'running', 'paused'].includes(queueItemStatus(row.queueItem))) return false
+  return ['failed', 'stalled', 'ready', 'completed', 'cancelled', 'missing'].includes(String(row?.risk || row?.status || '').toLowerCase())
+}
+
+function resumeDomainTableRow(row: any) {
+  selectDomainTableRow(row)
+  const domain = row?.sourceDomain || null
+  if (domain && canResumeWikiDomain(domain)) return controlWikiMonitorTask(domain, 'resume')
+  if (row?.queueItem) return controlProgressTask(queueItemAsProgressRow(row.queueItem), 'resume')
+}
+
+function startDomainTableRow(row: any) {
+  selectDomainTableRow(row)
+  const domain = row?.sourceDomain || null
+  if (domain && canExecuteWikiDomain(domain)) {
+    openDispatchConfirm(domain)
+  }
 }
 
 function cancelDomainTableQueuedRow(row: any) {
@@ -1844,6 +2086,7 @@ function queueItemAsProgressRow(item: CrawlerMonitorWikiQueueItem): ProgressRow 
       logPath: item.logPath || null,
       reportPath: item.reportPath || null,
       progressPath: item.progressPath || null,
+      outputPath: item.outputPath || null,
       lockPath: item.lockPath || null,
     },
     rowKey: `queue-history:${item.queueId || item.dispatchId || item.domain || item.actionId || 'unknown'}`,
@@ -1895,6 +2138,38 @@ function executionOverviewProgress(row: any) {
   if (current != null && total != null && total > 0) return `${clampPercent((current / total) * 100)}%`
   if ((row?.displayStatus || row?.status) === 'completed') return '100%'
   return '0%'
+}
+
+function executionOverviewStatusSource(row: any) {
+  const source = String(row?.statusSource || '').toLowerCase()
+  if (source === 'queue') return `队列：${statusLabel(row?.status)}`
+  if (source === 'progress') return `进度：${statusLabel(row?.progressStatus || row?.status)}`
+  if (source === 'domain') return '正式域规则'
+  return '未判定'
+}
+
+function executionOverviewStatusReason(row: any) {
+  return String(row?.stateConflictLabel || row?.statusReason || '').trim()
+}
+
+function executionOverviewHasConflict(row: any) {
+  return Boolean(row?.stateConflictLabel)
+}
+
+function executionOverviewQueueIdentity(row: any) {
+  return row?.queueIdentityLabel || (row?.queuePosition ? `队列第 ${row.queuePosition} 位` : '无队列')
+}
+
+function executionOverviewNextAction(row: any) {
+  return row?.nextActionLabel || '查看证据'
+}
+
+function executionOverviewBlocker(row: any) {
+  return row?.blockerLabel || '无阻塞'
+}
+
+function executionOverviewTiming(row: any) {
+  return row?.timingLabel || row?.heartbeatSummary || '暂无时间'
 }
 
 function smokeRowForDomain(domainId: string | null | undefined) {
@@ -2018,16 +2293,137 @@ function progressRowControlActionId(row: ProgressRow) {
   ).trim()
 }
 
+function progressRowQueueItem(row: ProgressRow | null | undefined) {
+  if (!row) return null
+  if (row.sourceQueueItem) return row.sourceQueueItem
+  const actionId = progressRowControlActionId(row)
+  const progressPath = String(row.progressPath || row.progressSource || row.action?.childStatusPath || '')
+  return rawDispatchQueueRows.value.find((item) => {
+    if (item.lane && item.lane !== 'standard') return false
+    if (actionId && item.actionId === actionId) return true
+    if (progressPath && item.progressPath === progressPath) return true
+    return false
+  }) || null
+}
+
+function progressRowEffectiveStatus(row: ProgressRow | null | undefined) {
+  return buildCrawlerUnifiedStatus({
+    progressRow: row,
+    queueItem: progressRowQueueItem(row),
+  }).effectiveStatus
+}
+
+function progressRowStatusLabel(row: ProgressRow) {
+  return statusLabel(progressRowEffectiveStatus(row))
+}
+
+function progressRowStatusSource(row: ProgressRow) {
+  const queueItem = progressRowQueueItem(row)
+  const queueStatus = queueItemStatus(queueItem)
+  const progressStatus = rowStatus(row)
+  const unified = buildCrawlerUnifiedStatus({ progressRow: row, queueItem })
+  if (unified.statusSource === 'queue') return `队列控制：${statusLabel(unified.effectiveStatus)}`
+  if (unified.statusSource === 'progress') return `进度文件：${statusLabel(unified.effectiveStatus)}`
+  if (queueItem) return `队列 ${statusLabel(queueStatus)} / 进度 ${statusLabel(progressStatus)}`
+  return `进度文件：${statusLabel(progressStatus)}`
+}
+
+function progressRowStateConflictLabel(row: ProgressRow) {
+  const queueItem = progressRowQueueItem(row)
+  if (!queueItem) return ''
+  const unified = buildCrawlerUnifiedStatus({ progressRow: row, queueItem })
+  if (unified.conflictLabel) return `${unified.conflictLabel}；以后端队列状态为准。`
+  const queueStatus = queueItemStatus(queueItem)
+  const progressStatus = rowStatus(row)
+  const message = String(queueItem.message || '')
+  if (message.includes('自动校准')) return message
+  if (queueStatus === 'paused' && ['running', 'starting'].includes(progressStatus)) {
+    return '队列已暂停，但进度文件仍显示运行；以后端队列状态为准。'
+  }
+  if (queueStatus === 'running' && progressStatus === 'paused') {
+    return '队列显示运行，但最近派发状态显示暂停；刷新后以后端校准结果为准。'
+  }
+  if (['timed_out', 'cancelled', 'failed'].includes(queueStatus) && ['running', 'starting', 'paused'].includes(progressStatus)) {
+    return `队列已是${statusLabel(queueStatus)}，进度文件仍保留 ${statusLabel(progressStatus)}；可查看文件或重新派发。`
+  }
+  return ''
+}
+
+function progressRowSyncActionLabel(row: ProgressRow) {
+  const status = progressRowEffectiveStatus(row)
+  if (status === 'paused') return '同步状态'
+  if (status === 'running') return '重新校准'
+  return '刷新状态'
+}
+
+function progressRowDomainLabel(row: ProgressRow) {
+  const queueItem = progressRowQueueItem(row)
+  if (queueItem) return queueItemDomainLabel(queueItem)
+  const payloadDomain = String(row.progressPayload?.domain || '').trim()
+  if (payloadDomain) return wikiDomainChineseName({ domain: payloadDomain, label: payloadDomain })
+  const actionId = progressRowControlActionId(row)
+  const domain = wikiDomainRows.value.find((candidate) => candidate.recommendedActionId === actionId)
+  if (domain) return wikiDomainChineseName(domain)
+  return row.label || row.id || '未知域'
+}
+
+function progressRowActionLabel(row: ProgressRow) {
+  return progressRowControlActionId(row) || row.action?.id || row.id || '未命名动作'
+}
+
+function progressRowQueueStateLabel(row: ProgressRow) {
+  const queueItem = progressRowQueueItem(row)
+  if (!queueItem) return '无队列占用'
+  return `${statusLabel(queueItemStatus(queueItem))} · ${queueItemPositionLabel(queueItem)}`
+}
+
+function progressRowCoveredDomainLabels(row: ProgressRow) {
+  const queueItem = progressRowQueueItem(row)
+  const queueCovered = Array.isArray(queueItem?.coveredDomains)
+    ? queueItem.coveredDomains.map((value) => String(value || '').trim()).filter(Boolean)
+    : []
+  const actionId = progressRowControlActionId(row)
+  const inferred = actionId
+    ? wikiDomainRows.value
+        .filter((domain) => domain.recommendedActionId === actionId)
+        .map((domain) => domain.domain || wikiDomainKey(domain))
+        .filter(Boolean)
+    : []
+  const domains = Array.from(new Set([...queueCovered, ...inferred]))
+  if (!domains.length) return progressRowDomainLabel(row)
+  return domains
+    .map((domainId) => wikiDomainChineseName(wikiDomainRows.value.find((domain) => domain.domain === domainId) || { domain: domainId, label: domainId }))
+    .join('、')
+}
+
+function progressRowNextActionLabel(row: ProgressRow) {
+  const status = progressRowEffectiveStatus(row)
+  if (status === 'paused') return '继续任务'
+  if (status === 'running' || status === 'starting') return '可暂停或终止'
+  if (status === 'queued' || status === 'blocked_cooldown') return '等待或取消排队'
+  if (status === 'stalled' || status === 'failed' || status === 'error') return '终止清理后重爬'
+  return '查看证据'
+}
+
+function progressRowControlButtons(row: ProgressRow): Array<{ action: 'pause' | 'resume' | 'cancel', label: string, icon: any }> {
+  const status = progressRowEffectiveStatus(row)
+  const buttons: Array<{ action: 'pause' | 'resume' | 'cancel', label: string, icon: any }> = []
+  if (status === 'running') buttons.push({ action: 'pause', label: '暂停任务', icon: Pause })
+  if (status === 'paused') buttons.push({ action: 'resume', label: '继续任务', icon: Play })
+  if (['running', 'paused', 'stalled'].includes(status)) buttons.push({ action: 'cancel', label: '终止任务', icon: CircleStop })
+  return progressRowControlActionId(row) ? buttons : []
+}
+
 function progressRowControlKey(row: ProgressRow) {
   return progressRowControlActionId(row) || row.rowKey || row.label || ''
 }
 
 function canPauseProgressRow(row: ProgressRow) {
-  return rowStatus(row) === 'running' && Boolean(progressRowControlActionId(row))
+  return progressRowEffectiveStatus(row) === 'running' && Boolean(progressRowControlActionId(row))
 }
 
 function canResumeProgressRow(row: ProgressRow) {
-  return rowStatus(row) === 'paused' && Boolean(progressRowControlActionId(row))
+  return progressRowEffectiveStatus(row) === 'paused' && Boolean(progressRowControlActionId(row))
 }
 
 function canTriggerBackfillRow(row: ProgressRow) {
@@ -2039,7 +2435,7 @@ function canTriggerBackfillRow(row: ProgressRow) {
 }
 
 function canCancelProgressRow(row: ProgressRow) {
-  return ['running', 'paused', 'stalled'].includes(rowStatus(row)) && Boolean(progressRowControlActionId(row))
+  return ['running', 'paused', 'stalled'].includes(progressRowEffectiveStatus(row)) && Boolean(progressRowControlActionId(row))
 }
 
 function backfillDomainForRow(row: ProgressRow) {
@@ -2173,11 +2569,14 @@ async function controlProgressTask(row: ProgressRow, controlAction: 'pause' | 'r
   if (!actionId) return
   if (controlAction === 'cancel' && import.meta.client && !window.confirm('确认终止当前阶段任务？运行中的进程会被停止。')) return
   const controlKey = progressRowControlKey(row)
+  const queueItem = progressRowQueueItem(row)
   progressControlLoading.value = controlKey
   try {
     const response: any = await post('/admin/crawler-monitor/dispatch/control', {
       actionId,
       controlAction,
+      queueId: queueItem?.queueId,
+      domain: queueItem?.domain,
     })
     latestDispatchResult.value = (response?.data ?? response) || null
     const fallbackMessage = controlAction === 'pause' ? '已暂停任务' : controlAction === 'resume' ? '已继续任务' : '已终止任务'
@@ -2576,7 +2975,7 @@ function statusTone(status?: string | null) {
   if (['completed', 'success', 'ok', 'readable', 'free'].includes(normalized)) return 'success'
   if (['failed', 'error', 'missing', 'read error', 'blocked', 'timed_out'].includes(normalized)) return 'danger'
   if (['running', 'active'].includes(normalized)) return 'info'
-  if (['pending', 'sleeping', 'locked', 'queued', 'blocked_cooldown', 'starting', 'stalled', 'warning', 'paused'].includes(normalized)) return 'warning'
+  if (['pending', 'sleeping', 'locked', 'queued', 'blocked_cooldown', 'starting', 'stalled', 'warning', 'paused', 'cancelled'].includes(normalized)) return 'warning'
   return 'muted'
 }
 
@@ -2629,14 +3028,18 @@ function rowHeartbeatLabel(row: ProgressRow | null | undefined) {
 function rowSourcePath(row: ProgressRow | null | undefined) {
   if (!row) return ''
   if (row.sourceQueueItem) {
-    return row.sourceQueueItem.logPath || row.sourceQueueItem.reportPath || row.sourceQueueItem.progressPath || row.sourceQueueItem.lockPath || ''
+    return row.sourceQueueItem.progressPath || row.sourceQueueItem.reportPath || row.sourceQueueItem.outputPath || row.sourceQueueItem.lockPath || row.sourceQueueItem.logPath || ''
   }
   return row.progressSource || row.progressPath || row.action?.childStatusPath || row.reportPath || row.outputPath || ''
 }
 
 function progressRowPathEntries(row: ProgressRow | null | undefined) {
+  return progressRowVisiblePathEntries(row)
+}
+
+function progressRowVisiblePathEntries(row: ProgressRow | null | undefined) {
   if (!row) return []
-  if (row.sourceQueueItem) return queueItemPathEntries(row.sourceQueueItem)
+  if (row.sourceQueueItem) return queueItemVisiblePathEntries(row.sourceQueueItem)
   const entries = [
     { label: '进度', path: row.progressSource || row.progressPath || row.action?.childStatusPath || '' },
     { label: '报告', path: row.reportPath || '' },
@@ -2644,6 +3047,19 @@ function progressRowPathEntries(row: ProgressRow | null | undefined) {
   ].filter((entry) => entry.path)
   if (!entries.length && rowSourcePath(row)) return [{ label: '来源', path: rowSourcePath(row) }]
   return entries
+}
+
+function progressRowLogPathEntries(row: ProgressRow | null | undefined) {
+  if (!row) return []
+  if (row.sourceQueueItem) return queueItemLogPathEntries(row.sourceQueueItem)
+  return [
+    { label: '日志', path: row.progressPayload?.logPath || '' },
+  ].filter((entry) => Boolean(entry.path))
+}
+
+function progressRowQueueLogKey(row: ProgressRow | null | undefined) {
+  if (row?.sourceQueueItem) return queueItemLogKey(row.sourceQueueItem)
+  return row?.rowKey || row?.id || row?.label || ''
 }
 
 function taskProgress(task: CrawlerMonitorRegisteredTask) {
@@ -5788,6 +6204,24 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   box-shadow: inset 3px 0 0 var(--color-primary);
 }
 
+.crawler-monitor-v4 .domain-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 150px;
+}
+
+.crawler-monitor-v4 .domain-actions .btn {
+  min-height: 32px;
+  padding: 5px 7px;
+  white-space: nowrap;
+}
+
+.crawler-monitor-v4 .btn-plain--danger {
+  color: var(--color-danger, #b91c1c);
+  background: color-mix(in srgb, var(--color-danger, #b91c1c) 7%, transparent);
+}
+
 .crawler-monitor-v4 .progress-track {
   height: 7px;
   margin-top: 5px;
@@ -5847,6 +6281,47 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
   border-radius: 8px;
   background: var(--color-bg-secondary);
+}
+
+.crawler-monitor-v4 .wiki-domain-control-strip {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-bg));
+}
+
+.crawler-monitor-v4 .wiki-domain-control-strip__copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.crawler-monitor-v4 .wiki-domain-control-strip__copy strong {
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.crawler-monitor-v4 .wiki-domain-control-strip__copy small {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.crawler-monitor-v4 .wiki-domain-control-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.crawler-monitor-v4 .wiki-domain-control-primary {
+  border-color: color-mix(in srgb, var(--color-primary) 44%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg));
+  color: var(--color-primary);
 }
 
 .crawler-monitor-v4 .kv small,
@@ -5949,6 +6424,86 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   gap: 7px;
   flex-wrap: wrap;
   margin-bottom: 7px;
+}
+
+.crawler-monitor-v4 .progress-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  margin-bottom: 6px;
+}
+
+.crawler-monitor-v4 .progress-card-head > div {
+  min-width: 0;
+}
+
+.crawler-monitor-v4 .progress-card-head .status-pill {
+  flex: 0 0 auto;
+}
+
+.crawler-monitor-v4 .progress-card-subtitle {
+  margin-bottom: 6px;
+}
+
+.crawler-monitor-v4 .progress-insight-grid,
+.crawler-monitor-v4 .queue-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.crawler-monitor-v4 .queue-insight-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.crawler-monitor-v4 .progress-insight-grid span,
+.crawler-monitor-v4 .queue-insight-grid span {
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 62%, transparent);
+}
+
+.crawler-monitor-v4 .progress-insight-grid strong,
+.crawler-monitor-v4 .queue-insight-grid strong {
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.crawler-monitor-v4 .progress-state-conflict {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-warning, #d97706) 32%, var(--color-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-warning-bg, #fef3c7) 72%, var(--color-bg-card));
+}
+
+.crawler-monitor-v4 .progress-state-conflict > div {
+  min-width: 0;
+}
+
+.crawler-monitor-v4 .progress-state-conflict strong {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-warning, #92400e);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.crawler-monitor-v4 .progress-control-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .crawler-monitor-v4 .queue-message {

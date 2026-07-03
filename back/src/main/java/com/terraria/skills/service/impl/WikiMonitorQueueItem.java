@@ -52,10 +52,14 @@ class WikiMonitorQueueItem {
         return "queued".equals(status)
             || "blocked_cooldown".equals(status)
             || "starting".equals(status)
-            || "running".equals(status);
+            || "running".equals(status)
+            || "paused".equals(status);
     }
 
     String dedupeKeyPart() {
+        if ("domain_smoke".equals(lane) && domain != null && !domain.isBlank()) {
+            return lane + ":" + actionId + ":" + domain;
+        }
         return lane + ":" + actionId;
     }
 
