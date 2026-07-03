@@ -4136,6 +4136,11 @@ class CrawlerMonitorServiceImplTest {
         new ObjectMapper().writeValue(path.toFile(), payload);
     }
 
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> readJson(Path path) throws IOException {
+        return new ObjectMapper().readValue(Files.readString(path), Map.class);
+    }
+
     private CrawlerMonitorOverviewDTO.RegisteredTaskDTO taskById(
         List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> tasks,
         String id
@@ -4342,6 +4347,129 @@ class CrawlerMonitorServiceImplTest {
         public java.io.InputStream getErrorStream() {
             return java.io.InputStream.nullInputStream();
         }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldForceReclaimDeadDomainAndWriteTerminalEvidence() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "dispatchId", "dead-dispatch",
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "lockedAt", "2026-06-14T01:00:00Z",
+            "pid", 2000000000L,
+            "startedAt", "2026-06-14T01:00:00Z"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:00:00Z",
+            "items", List.of(Map.ofEntries(
+                Map.entry("queueId", "queue-dead-running"),
+                Map.entry("dispatchId", "dead-dispatch"),
+                Map.entry("lane", "standard"),
+                Map.entry("domain", "bosses"),
+                Map.entry("actionId", "domain-source-bosses"),
+                Map.entry("status", "running"),
+                Map.entry("requestedAt", "2026-06-14T00:59:00Z"),
+                Map.entry("startedAt", "2026-06-14T01:00:00Z"),
+                Map.entry("pid", 2000000000L),
+                Map.entry("processStartedAt", "2026-06-14T01:00:00Z"),
+                Map.entry("lockPath", "reports/crawler-monitor/wiki-monitor-dispatch.lock.json")
+            )),
+            "dedupe", Map.of(),
+            "dispatches", Map.of("dead-dispatch", "queue-dead-running")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC),
+            (org.springframework.data.redis.core.StringRedisTemplate) null
+        );
+        CrawlerMonitorDispatchRequestDTO request = new CrawlerMonitorDispatchRequestDTO();
+        request.setDomain("bosses");
+        request.setActionId("domain-source-bosses");
+        request.setControlAction("forceReclaim");
+
+        CrawlerMonitorDispatchResultDTO result = service.controlWikiMonitorDispatch(request);
+
+        assertTrue(result.isAccepted());
+        assertEquals("force_reclaimed", result.getStatus());
+        assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+        Map<String, Object> queue = readJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> items = (List<Map<String, Object>>) queue.get("items");
+        assertEquals("cancelled", items.get(0).get("status"));
+        Map<String, Object> latest = readJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+        assertEquals("force_reclaimed", latest.get("status"));
+        assertNotNull(latest.get("message"));
+    }
+
+    @Test
+    void shouldBeIdempotentWhenForceReclaimCalledTwice() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:00:00Z",
+            "items", List.of(Map.ofEntries(
+                Map.entry("queueId", "queue-x"),
+                Map.entry("dispatchId", "d-x"),
+                Map.entry("lane", "standard"),
+                Map.entry("domain", "bosses"),
+                Map.entry("actionId", "domain-source-bosses"),
+                Map.entry("status", "running"),
+                Map.entry("requestedAt", "2026-06-14T00:59:00Z"),
+                Map.entry("pid", 2000000000L)
+            )),
+            "dedupe", Map.of(),
+            "dispatches", Map.of("d-x", "queue-x")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC),
+            (org.springframework.data.redis.core.StringRedisTemplate) null
+        );
+        CrawlerMonitorDispatchRequestDTO request = new CrawlerMonitorDispatchRequestDTO();
+        request.setDomain("bosses");
+        request.setActionId("domain-source-bosses");
+        request.setControlAction("forceReclaim");
+
+        CrawlerMonitorDispatchResultDTO first = service.controlWikiMonitorDispatch(request);
+        CrawlerMonitorDispatchResultDTO second = service.controlWikiMonitorDispatch(request);
+
+        assertTrue(first.isAccepted());
+        assertTrue(second.isAccepted());
+        assertEquals("force_reclaimed", second.getStatus());
+    }
+
+    @Test
+    void shouldMarkTerminalQueueItemCoveredByReclaimedDomain() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:00:00Z",
+            "items", List.of(Map.ofEntries(
+                Map.entry("queueId", "q-shared"),
+                Map.entry("dispatchId", "d-shared"),
+                Map.entry("lane", "standard"),
+                Map.entry("domain", "items"),           // domain != bosses
+                Map.entry("actionId", "domain-source-items"),
+                Map.entry("status", "running"),
+                Map.entry("coveredDomains", List.of("bosses", "items")),  // but covers bosses
+                Map.entry("requestedAt", "2026-06-14T00:59:00Z"),
+                Map.entry("pid", 2000000000L)
+            )),
+            "dedupe", Map.of(),
+            "dispatches", Map.of("d-shared", "q-shared")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC)
+        );
+        CrawlerMonitorDispatchRequestDTO request = new CrawlerMonitorDispatchRequestDTO();
+        request.setDomain("bosses");
+        request.setActionId("domain-source-bosses");
+        request.setControlAction("forceReclaim");
+
+        CrawlerMonitorDispatchResultDTO result = service.controlWikiMonitorDispatch(request);
+
+        assertTrue(result.isAccepted());
+        Map<String, Object> queue = readJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> items = (List<Map<String, Object>>) queue.get("items");
+        assertFalse("running".equals(items.get(0).get("status")),
+            "coveredDomains 包含回收域的队列项应被标终态");
     }
 
     private static class BlockingProcess extends Process {

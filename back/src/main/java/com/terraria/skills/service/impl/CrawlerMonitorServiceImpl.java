@@ -682,6 +682,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if ("cancelQueued".equals(controlAction)) {
             return cancelQueuedWikiMonitorDispatch(repoRoot, request);
         }
+        if ("forceReclaim".equals(controlAction)) {
+            WikiMonitorRule reclaimRule = controlQueueItem(request)
+                .map(item -> resolveWikiMonitorControlRuleFromQueueItem(request, item))
+                .orElseGet(() -> resolveWikiMonitorControlRule(request));
+            return reclaimDomain(repoRoot, reclaimRule, "管理员强制回收占用");
+        }
         if (isDomainSmokeControl(request)) {
             return controlWikiMonitorDomainSmoke(repoRoot, request);
         }
@@ -945,6 +951,104 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             return result;
         }
         return markRunningQueueItemCancelled(dispatchId, message);
+    }
+
+    private CrawlerMonitorDispatchResultDTO reclaimDomain(Path repoRoot, WikiMonitorRule rule, String reason) {
+        String domain = rule.domain();
+        String actionId = rule.actionId();
+        String safeReason = firstNonBlank(reason, "已强制回收占用");
+
+        // 1) 尽力杀掉仍活着的进程（找不到也无妨——幂等）
+        ActiveDispatchProcess active = findActiveDispatchProcess(rule);
+        if (active == null) {
+            active = reconstructDispatchFromLock(repoRoot, rule);
+        }
+        String dispatchId = active == null ? null : active.dispatchId();
+        if (active != null && active.process() != null && active.process().isAlive()) {
+            cancellingDispatches.add(dispatchId);
+            processLauncher.destroy(active.process());
+        }
+        if (dispatchId != null) {
+            activeDispatchProcesses.remove(dispatchId);
+        }
+
+        // 2) 释放本域及其 coveredDomains 的锁（best-effort）
+        Path standardLock = repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
+        Path smokeLock = repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize();
+        forceDeleteLock(standardLock);
+        forceDeleteLock(smokeLock);
+
+        // 3) 写终态证据（不删进度/派发文件）
+        writeReclaimTerminalProgress(repoRoot, dispatchId, rule, safeReason);
+
+        // 4) 队列项标终态（本域 + 覆盖域，全部幂等）
+        markDomainQueueItemsReclaimed(domain, actionId, safeReason);
+        for (String covered : coveredDomainsFor(actionId)) {
+            markDomainQueueItemsReclaimed(covered, actionId, safeReason);
+        }
+
+        // 4b) drain 前再扫一遍，防止并发窗口内滑入的新队列项被立即调度
+        markDomainQueueItemsReclaimed(domain, actionId, safeReason);
+        for (String covered : coveredDomainsFor(actionId)) {
+            markDomainQueueItemsReclaimed(covered, actionId, safeReason);
+        }
+
+        // 5) 触发 drain，让后续排队项可启动
+        drainWikiMonitorDispatchQueue("force-reclaim", true);
+        if (dispatchId != null) {
+            cancellingDispatches.remove(dispatchId);
+        }
+        invalidateCachedOverview();
+
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(true);
+        result.setDomain(domain);
+        result.setActionId(actionId);
+        result.setStatus("force_reclaimed");
+        result.setQueued(false);
+        result.setMessage(safeReason);
+        return result;
+    }
+
+    private void forceDeleteLock(Path lockPath) {
+        try {
+            Files.deleteIfExists(lockPath);
+        } catch (IOException ignored) {
+            log.warn("Failed to delete lock {}: {}", lockPath, ignored.getMessage());
+        }
+    }
+
+    private void writeReclaimTerminalProgress(Path repoRoot, String dispatchId, WikiMonitorRule rule, String reason) {
+        Path dispatchFile = repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize();
+        ReadResult current = readJsonMap(dispatchFile);
+        LinkedHashMap<String, Object> state = current.readable()
+            ? new LinkedHashMap<>(current.payload())
+            : new LinkedHashMap<>();
+        if (dispatchId != null) {
+            state.putIfAbsent("dispatchId", dispatchId);
+        }
+        state.putIfAbsent("domain", rule.domain());
+        state.putIfAbsent("actionId", rule.actionId());
+        state.put("status", "force_reclaimed");
+        state.put("message", reason);
+        state.put("controlAction", "forceReclaim");
+        state.put("controlledAt", Instant.now(clock).toString());
+        state.put("completedAt", Instant.now(clock).toString());
+        writeJsonFile(dispatchFile, state);
+    }
+
+    private void markDomainQueueItemsReclaimed(String domain, String actionId, String reason) {
+        for (WikiMonitorQueueItem item : queueRepository.listItems()) {
+            if (item.isTerminal()) {
+                continue;
+            }
+            boolean matchesDomain = domain != null && domain.equals(item.getDomain());
+            boolean matchesAction = actionId != null && actionId.equals(item.getActionId());
+            boolean matchesCovered = item.getCoveredDomains() != null && item.getCoveredDomains().contains(domain);
+            if (matchesDomain || matchesAction || matchesCovered) {
+                queueRepository.markTerminal(item.getQueueId(), "cancelled", Instant.now(clock), reason);
+            }
+        }
     }
 
     private void drainWikiMonitorDispatchQueue(String reason) {
