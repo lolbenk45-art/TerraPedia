@@ -25,8 +25,8 @@ public class CrawlerDomainStateReducer {
         boolean progressActiveNoLease = ACTIVE_PROGRESS.contains(progress) && !leaseValid;
 
         String status;
-        if (isOneOf(queue, "failed", "timed_out", "cancelled", "force_reclaimed")) {
-            status = "force_reclaimed".equals(queue) ? "cancelled" : queue;
+        if (isOneOf(queue, "failed", "timed_out", "cancelled")) {
+            status = queue;
         } else if (isOneOf(progress, "failed", "timed_out")) {
             status = progress;
         } else if ("paused".equals(queue)) {
@@ -94,6 +94,7 @@ public class CrawlerDomainStateReducer {
         return switch (v) {
             case "error" -> "failed";
             case "timeout" -> "timed_out";
+            case "force_reclaimed" -> "cancelled";   // P1 强制回收态收口：任何信号路径统一规约
             case "blocked_cooldown", "locked" -> "blocked";
             default -> v;
         };

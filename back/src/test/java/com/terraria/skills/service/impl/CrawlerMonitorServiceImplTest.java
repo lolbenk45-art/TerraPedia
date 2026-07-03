@@ -4593,4 +4593,26 @@ class CrawlerMonitorServiceImplTest {
         Map<String, Object> latest = readJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
         assertNotNull(latest.get("message"));
     }
+
+    @Test
+    void overviewDomainStateNormalizesForceReclaimed() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "dispatchId", "d1", "domain", "bosses", "actionId", "domain-source-bosses",
+            "status", "force_reclaimed", "message", "管理员强制回收占用",
+            "completedAt", "2026-06-14T01:00:00Z"
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC),
+            (org.springframework.data.redis.core.StringRedisTemplate) null
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO bosses = overview.getWikiMonitor().getDomains().stream()
+            .filter(d -> "bosses".equals(d.getDomain())).findFirst().orElseThrow();
+
+        assertNotNull(bosses.getState(), "域应带 state 权威对象");
+        assertEquals("cancelled", bosses.getState().getStatus(), "force_reclaimed 应被规约为 cancelled");
+        assertFalse("running".equals(bosses.getState().getStatus()));
+    }
 }

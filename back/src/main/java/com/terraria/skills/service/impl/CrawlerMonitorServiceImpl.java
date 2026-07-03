@@ -149,6 +149,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private final WikiMonitorDispatchQueueRepository queueRepository;
     private final CrawlerReportArchiver reportArchiver;
     private final ProcessLauncher processLauncher;
+    private final CrawlerDomainStateReducer domainStateReducer = new CrawlerDomainStateReducer();
     private final Map<String, ActiveDispatchProcess> activeDispatchProcesses = new ConcurrentHashMap<>();
     private final Map<String, Process> activeDomainSmokeProcesses = new ConcurrentHashMap<>();
     private final Map<String, Map<String, Object>> queueStartMetadata = new ConcurrentHashMap<>();
@@ -1446,9 +1447,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         Map<String, Object> sourcePayload = sourceState.readable() ? sourceState.payload() : Map.of();
         Map<String, Map<String, Object>> sourceByKey = sourceMap(sourcePayload.get("sources"));
 
+        List<WikiMonitorQueueItem> queueItemsForState = queueRepository.listItems();
         List<CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO> domains = WIKI_MONITOR_RULES.stream()
             .filter(WikiMonitorRule::wikiDomain)
-            .map(rule -> buildWikiMonitorDomain(repoRoot, rule, sourcePayload, sourceByKey.get(rule.sourceKey()), dispatchPayload))
+            .map(rule -> buildWikiMonitorDomain(repoRoot, rule, sourcePayload, sourceByKey.get(rule.sourceKey()), dispatchPayload, queueItemsForState))
             .toList();
         List<CrawlerMonitorOverviewDTO.WikiMonitorDispatchPlanDTO> dispatchPlan =
             buildDispatchPlanFromDetection(sourcePayload, sourceByKey, dispatchPayload);
@@ -1528,7 +1530,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         WikiMonitorRule rule,
         Map<String, Object> sourcePayload,
         Map<String, Object> source,
-        Map<String, Object> dispatchPayload
+        Map<String, Object> dispatchPayload,
+        List<WikiMonitorQueueItem> queueItems
     ) {
         CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO domain = new CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO();
         domain.setDomain(rule.domain());
@@ -1559,6 +1562,35 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (lastAutoRunAt != null && rule.domain().equals(asString(dispatchPayload.get("domain")))) {
             domain.setLastAutoRunAt(lastAutoRunAt);
         }
+
+        WikiMonitorQueueItem queueItem = queueItems.stream()
+            .filter(item -> !item.isTerminal())
+            .filter(item -> rule.domain().equals(item.getDomain())
+                || rule.actionId().equals(item.getActionId())
+                || (item.getCoveredDomains() != null && item.getCoveredDomains().contains(rule.domain())))
+            .findFirst()
+            .orElse(null);
+
+        CrawlerDomainStateReducer.Input reducerInput = CrawlerDomainStateReducer.Input.builder()
+            .queueStatus(queueItem == null ? null : queueItem.getStatus())
+            .progressStatus(dispatchStatus)
+            .domainStatus(domain.getStatus())
+            .blockedByDomain(queueItem == null ? null : queueItem.getBlockedByDomain())
+            .blockedByActionId(queueItem == null ? null : queueItem.getBlockedByActionId())
+            .blockedByDispatchId(queueItem == null ? null : queueItem.getBlockedByDispatchId())
+            .leaseExpiresAt(queueItem == null ? null : queueItem.getClaimExpiresAt())
+            .now(Instant.now(clock))
+            .build();
+        CrawlerDomainStateReducer.State reduced = domainStateReducer.reduce(reducerInput);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainStateDTO stateDto = new CrawlerMonitorOverviewDTO.WikiMonitorDomainStateDTO();
+        stateDto.setStatus(reduced.status());
+        stateDto.setNextAction(reduced.nextAction());
+        stateDto.setBlocker(reduced.blocker());
+        stateDto.setBlockerLabel(reduced.blockerLabel());
+        stateDto.setEvidence(firstNonBlank(domain.getProgressPath(), asString(dispatchPayload.get("reportPath"))));
+        stateDto.setUpdatedAt(Instant.now(clock).toString());
+        domain.setState(stateDto);
         return domain;
     }
 
