@@ -4615,4 +4615,41 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("cancelled", bosses.getState().getStatus(), "force_reclaimed 应被规约为 cancelled");
         assertFalse("running".equals(bosses.getState().getStatus()));
     }
+
+    @Test
+    void overviewDomainStatePrefersTerminalQueueOverStaleRunning() throws Exception {
+        // 进度文件残留 running（模拟"取消了但进度没清"）
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "dispatchId", "d1", "domain", "bosses", "actionId", "domain-source-bosses",
+            "status", "running", "progressPath", "reports/x-progress.json"
+        ));
+        writeJson(repoRoot.resolve("reports/x-progress.json"), Map.of(
+            "status", "running", "lastHeartbeatAt", "2026-06-14T01:58:00Z"  // 心跳新鲜, 不会因stale降级
+        ));
+        // 队列里只有一个终态(cancelled)项
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:00:00Z",
+            "items", List.of(Map.ofEntries(
+                Map.entry("queueId", "q-bosses"), Map.entry("dispatchId", "d1"),
+                Map.entry("lane", "standard"), Map.entry("domain", "bosses"),
+                Map.entry("actionId", "domain-source-bosses"),
+                Map.entry("status", "cancelled"),
+                Map.entry("requestedAt", "2026-06-14T00:59:00Z"),
+                Map.entry("completedAt", "2026-06-14T01:30:00Z")
+            )),
+            "dedupe", Map.of(), "dispatches", Map.of("d1", "q-bosses")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC), (StringRedisTemplate) null
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO bosses = overview.getWikiMonitor().getDomains().stream()
+            .filter(d -> "bosses".equals(d.getDomain())).findFirst().orElseThrow();
+
+        assertNotNull(bosses.getState());
+        assertEquals("cancelled", bosses.getState().getStatus(),
+            "R2: 队列终态应优先于残留的 running 进度");
+    }
 }

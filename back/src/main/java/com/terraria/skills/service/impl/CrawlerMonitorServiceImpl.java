@@ -1563,13 +1563,19 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             domain.setLastAutoRunAt(lastAutoRunAt);
         }
 
+        java.util.function.Predicate<WikiMonitorQueueItem> matchesDomain = item ->
+            rule.domain().equals(item.getDomain())
+            || rule.actionId().equals(item.getActionId())
+            || (item.getCoveredDomains() != null && item.getCoveredDomains().contains(rule.domain()));
+
         WikiMonitorQueueItem queueItem = queueItems.stream()
             .filter(item -> !item.isTerminal())
-            .filter(item -> rule.domain().equals(item.getDomain())
-                || rule.actionId().equals(item.getActionId())
-                || (item.getCoveredDomains() != null && item.getCoveredDomains().contains(rule.domain())))
+            .filter(matchesDomain)
             .findFirst()
-            .orElse(null);
+            .orElseGet(() -> queueItems.stream()
+                .filter(matchesDomain)
+                .reduce((first, second) -> second)  // 取最后一个(通常最近)终态匹配项
+                .orElse(null));
 
         CrawlerDomainStateReducer.Input reducerInput = CrawlerDomainStateReducer.Input.builder()
             .queueStatus(queueItem == null ? null : queueItem.getStatus())
