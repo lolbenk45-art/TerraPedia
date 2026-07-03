@@ -118,6 +118,10 @@
                           <RefreshCw :size="14" />
                           <span>启动重爬</span>
                         </button>
+                        <button v-if="shouldOfferForceReclaim(row)" type="button" class="btn btn--reclaim btn-plain btn-plain--danger" @click.stop="forceReclaimDomainTableRow(row)">
+                          <TimerReset :size="14" />
+                          <span>强制回收</span>
+                        </button>
                         <button type="button" class="btn btn-plain" @click.stop="selectDomainTableRow(row)">
                           <Eye :size="14" />
                           <span>证据</span>
@@ -676,6 +680,7 @@ import {
   wikiHeartbeatSummary,
 } from '~/utils/crawlerMonitorDisplay.mjs'
 import { buildCrawlerUnifiedStatus } from '~/utils/crawlerMonitorUnifiedStatus.mjs'
+import { shouldOfferForceReclaim, buildDispatchControlPayload } from './crawler-monitor.control.mjs'
 import type {
   CrawlerMonitorAction,
   CrawlerMonitorAutoDispatchSettings,
@@ -2045,6 +2050,19 @@ function cancelDomainTableQueuedRow(row: any) {
 function cancelDomainTableRunningRow(row: any) {
   selectDomainTableRow(row)
   if (row?.queueItem) return cancelRunningDispatchItem(row.queueItem)
+}
+
+async function forceReclaimDomainTableRow(row: any) {
+  selectDomainTableRow(row)
+  const payload = buildDispatchControlPayload('forceReclaim', row)
+  try {
+    const response: any = await post('/admin/crawler-monitor/dispatch/control', payload)
+    latestDispatchResult.value = (response?.data ?? response) || null
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || '已提交强制回收', latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    await loadOverview()
+  } catch (error: any) {
+    showToast(error?.data?.message || error?.message || '强制回收失败', 'error')
+  }
 }
 
 function activeQueueItemForDomain(domain: CrawlerMonitorWikiDomain | null | undefined) {

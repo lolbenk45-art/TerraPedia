@@ -917,3 +917,23 @@ test('crawler monitor uses faster refresh while live progress exists', () => {
   assert.match(page, /3000/)
   assert.match(page, /10000/)
 })
+
+import { buildDispatchControlPayload, shouldOfferForceReclaim } from '../pages/operations/crawler-monitor.control.mjs'
+
+test('blocked/stalled/orphan 行提供 forceReclaim', (t) => {
+  assert.equal(shouldOfferForceReclaim({ risk: 'blocked' }), true)
+  assert.equal(shouldOfferForceReclaim({ risk: 'stalled' }), true)
+  assert.equal(shouldOfferForceReclaim({ risk: 'running', hasActiveProcess: false }), true)
+  assert.equal(shouldOfferForceReclaim({ risk: 'running', hasActiveProcess: true }), false)
+  assert.equal(shouldOfferForceReclaim({ risk: 'healthy' }), false)
+})
+
+test('forceReclaim 请求负载正确', (t) => {
+  const payload = buildDispatchControlPayload('forceReclaim', {
+    domain: 'bosses', actionId: 'domain-source-bosses', queueId: 'q1',
+  })
+  assert.equal(payload.controlAction, 'forceReclaim')
+  assert.equal(payload.domain, 'bosses')
+  assert.equal(payload.actionId, 'domain-source-bosses')
+  assert.equal(payload.queueId, 'q1')
+})
