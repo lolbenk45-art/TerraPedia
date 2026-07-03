@@ -37,7 +37,7 @@
 
 ## 方案路线
 
-**B 为目标（单一状态真相源）+ 锁用 C 租约思路（Redis TTL 租约自愈）**，分三期一次规划、一起执行，最后统一验收。Redis 已在队列仓库中使用（`StringRedisTemplate` + drain 锁脚本），租约不引入新依赖。
+**B 为目标（单一状态真相源）+ 锁用 C 租约思路（Redis TTL 租约自愈）**。**一次规划三期，但分期 commit、分期可独立验收**（P1 后端回收/租约 → P2 状态机/DTO → P3 前端瘦身），最后由用户统一验收。不做一次性大爆炸落地——每期是独立的可回滚提交，且 P3 以 P2 契约为前置门槛。Redis 已在队列仓库中使用（`StringRedisTemplate` + drain 锁脚本），租约不引入新依赖。
 
 ## 架构总览
 
@@ -47,7 +47,7 @@
 domain, status, nextAction, blocker, evidence, updatedAt
 ```
 
-- `status`：封闭枚举 `idle | queued | running | blocked | stalled | failed | cancelled | completed`，由后端综合队列 + 进度 + 租约算好。
+- `status`：封闭枚举 `idle | queued | starting | running | paused | blocked | stalled | failed | cancelled | completed`，由后端综合队列 + 进度 + 租约算好。补充 `starting`（已认领未出心跳）与 `paused`（已暂停），避免"启动中被当成排队""暂停了页面还像运行中"的回归。
 - `nextAction`：后端给出的建议动作（如 启动重爬 / 取消排队 / 强制回收 / 观察）。
 - `blocker`：占用者标识（域 / 动作 / 派发 id）。
 - `evidence`：日志 / 进度 / 报告 / 输出 / 锁 等文件路径，供详情展开。
@@ -58,34 +58,52 @@ domain, status, nextAction, blocker, evidence, updatedAt
 
 ### P1 — 租约锁 + 统一取消/回收（可靠性核心）
 
-**租约锁（替代文件锁作为派发判据）**
+**租约锁（替代文件锁作为派发判据，支持共享动作）**
 
-- 新增 Redis 键 `crawler:lease:{domain}`，值含 `dispatchId / pid / startedAt`，TTL 90s。
-- `watchDispatchProcess` 每 30s 续租；进程结束 / 后端停 → 无人续租 → TTL 到期域自动空闲。
-- 派发前判据从"锁文件是否存在"改为"租约是否有效"；文件锁降级为只读证据（保留兼容读取，不再作为能否派发的判据）。
+- 每个域一个租约键 `crawler:lease:{domain}`，值含 `dispatchId / actionId / pid / startedAt / coveredDomains`，TTL 90s。
+- **共享动作（一个 action 覆盖多个域）必须原子占用/释放**：一次派发 `coveredDomains = [d1, d2, ...]` 时，用单条 Lua 脚本对全部域的租约键做 **all-or-nothing** 的 `SETNX`——任一域已被占用则整批失败并回滚已写入的键；释放同理，用一条脚本按 `dispatchId` 校验后原子删除该派发持有的全部域租约。避免"占了一半"导致联动域状态错乱。
+- 续租：`watchDispatchProcess` 每 30s 对该派发持有的全部域租约一起续租；进程结束 / 后端停 → 无人续租 → 全部覆盖域的 TTL 到期一起自动空闲。
+- 派发前判据从"锁文件是否存在"改为"该域及本次 `coveredDomains` 的租约是否全部可占"；文件锁降级为只读证据（保留兼容读取，不再作为能否派发的判据）。
 
 **统一取消/回收（合并现有 4 条分叉路径）**
 
-- 新增 `reclaimDomain(domain, reason)`：尽力杀进程 → 删租约 → 清进度文件 → 队列项标终态 → 触发 drain。对"排队中 / starting / running / 孤儿 / 找不到进程"全部走同一条，每步 best-effort 且幂等。
+- 新增 `reclaimDomain(domain, reason)`：尽力杀进程 → 释放租约 → **向进度/状态文件写终态**（`cancelled` / `force_reclaimed` + reason + 时间戳，**不删除证据**）→ 队列项标终态 → 触发 drain。对"排队中 / starting / running / 孤儿 / 找不到进程"全部走同一条，每步 best-effort 且幂等（重复调用结果一致）。
+- **关键**：不默认删进度文件。删文件会让页面变成"缺失/未知"、丢掉取消原因与证据；改为写入明确终态，保证管理员事后能看到"为什么被取消/回收"和相关日志报告。
 - `controlWikiMonitorDispatch` 的 6 层回退收敛：找不到活进程时不再返回 `missingActiveDispatch` 死路，改走 `reclaimDomain` 兜底。
 
 **"强制回收占用"动作**
 
 - 后端新增控制动作 `forceReclaim`；无论进程是否找得到，都保证域回到可派发状态。这是"点了没用"的兜底解药。
 
-**P1 交付后可验收**：可靠地取消 → 重爬，不再被占用卡死；后端 overview 开始输出 `unifiedStatus` 字段。
+**P1 边界**：只做可靠性——租约锁、`reclaimDomain`、`forceReclaim`。**P1 不引入新的对外状态字段**，overview 契约保持不变，前端此阶段不改。避免"P1 半成品字段"与 P2 的权威契约打架。
+
+**P1 交付后可验收**：可靠地取消 → 重爬，不再被占用卡死（后端 API 层面即可验证）。
 
 ### P2 — 域状态机（单一真相源）
 
-- 后端新增 `CrawlerDomainState`：输入队列项 + 进度 + 租约，输出封闭枚举 `status` + `nextAction` + `blocker` + `evidence`。
+- 后端新增 `CrawlerDomainState`：输入队列项 + 进度 + 租约，输出封闭枚举 `status`（`idle | queued | starting | running | paused | blocked | stalled | failed | cancelled | completed`）+ `nextAction` + `blocker` + `evidence` + `updatedAt`。
 - 将 `crawlerMonitorUnifiedStatus.mjs` 的 16 层优先级逻辑迁移到后端成为权威实现；overview DTO 直接携带这些字段。
 - 状态冲突（"取消了但进度还 running"）在状态机内消解——清理是原子转移，不再有半清理残留。
 
-**P2 交付后可验收**：各区块状态口径一致，一处算好。
+**先定 DTO 契约（P2 的交付物，也是 P3 的前置门槛）**：overview 中每个域挂一个权威 `state` 对象：
+
+```
+domain.state = {
+  status,       // 上述封闭枚举
+  nextAction,   // 建议动作
+  blocker,      // { byDomain, byActionId, byDispatchId } | null
+  evidence,     // { logPath, progressPath, reportPath, outputPath, lockPath }
+  updatedAt,
+}
+```
+
+此契约必须先在后端定义并稳定输出、有测试覆盖，**P3 才允许删除前端 fallback**。P2 阶段前端保持双读（优先用 `domain.state`，缺失时回落旧调解器），确保灰度期不崩。
+
+**P2 交付后可验收**：各区块状态口径一致，一处算好；`domain.state` 契约稳定、有测试。
 
 ### P3 — 前端瘦身（照着显示）
 
-- 删除 `crawlerMonitorUnifiedStatus.mjs`、域表格 / 执行总览中的三源 fuzzy 匹配与合成行，改用后端权威 `status / nextAction`。
+- **前置门槛**：P2 的 `domain.state` 契约已稳定输出且有测试。满足后，删除 `crawlerMonitorUnifiedStatus.mjs`、域表格 / 执行总览中的三源 fuzzy 匹配与合成行，改用后端权威 `domain.state.status / nextAction`。
 - 进度过载治理：默认只显示 `status + 当前进度 + nextAction`，5 个时间戳 / PID / 证据文件收进"详情"折叠。
 - `crawler-monitor.vue`（约 6875 行）按区块拆分（域表、执行总览、证据抽屉），每块单一职责、可独立测试。
 
@@ -95,7 +113,7 @@ domain, status, nextAction, blocker, evidence, updatedAt
 
 1. 派发：写租约 `crawler:lease:{domain}` + 入队 → watch 进程续租。
 2. 运行：进度文件心跳 + 租约续租并行；overview 读取时由域状态机综合三源算出权威 `status`。
-3. 结束 / 取消 / 崩溃：`reclaimDomain` 或租约过期 → 域回 idle；状态机保证无残留。
+3. 结束 / 取消 / 崩溃：`reclaimDomain`（写终态、释放租约）或租约过期 → 域释放占用可再派发；状态机保证无 running 残留，且保留取消原因与证据。
 4. 前端：只消费 overview 中每域的权威对象，按 `status` 渲染、按 `nextAction` 决定按钮。
 
 ## 错误处理与边界
@@ -103,13 +121,20 @@ domain, status, nextAction, blocker, evidence, updatedAt
 - **进程死但锁在**：租约 TTL 过期自愈（秒级），不再依赖 120 分钟 stale。
 - **后端重启，内存 map 清空**：控制动作走 `reclaimDomain` 兜底，不再死路。
 - **并发取消 + 重爬**：`reclaimDomain` 幂等，drain 串行化保证不双跑。
-- **Redis 不可用**：租约退化，回落到文件锁只读判断并记录告警（保持现有可用性下限，不因改造而更差）。
+- **Redis 不可用**：**拒绝新派发并告警（fail-safe），不回落文件锁作为判据**。理由：Redis 本就是队列的硬依赖（队列仓库已用 `StringRedisTemplate` + drain 锁脚本），Redis 挂时派发链路已不可用；回落到旧文件锁只会重新引入"锁死 120 分钟"这一类被本设计消除的 bug。已在运行的任务不受影响（进程续租失败时按租约过期正常回收）。此策略与"租约为唯一派发判据、文件锁只读"保持一致，无矛盾。
 
 ## 测试与验收策略
 
 - **后端**：租约过期自愈、`reclaimDomain` 幂等、并发取消 + 重爬无残留、6 类状态转移正确——单元测试 + 集成测试。
 - **前端**：延续既有偏好——行为测试优先于 `.vue` 源码匹配；离线 / 可注入数据优先于真实网络。对 P3 的状态映射与瘦身做行为测试。
 - **分期独立可验收**：P1 完可靠取消 → 重爬；P2 完口径一致；P3 完界面清爽。
+
+**核心验收 smoke（贯穿三期回归，P1 起必须通过）**：
+
+1. 构造异常态：queue 项 `cancelled` + 进度文件仍 `running` + 锁文件残留（并覆盖共享动作 `coveredDomains` 的联动域）。
+2. 点击"强制回收"（`forceReclaim`）。
+3. 再点击"重爬"。
+4. 断言：**API 与 UI 都不再显示 `running`，也不再以"被旧占用"驳回派发**；被回收域及其 `coveredDomains` 联动域全部释放；页面仍能看到上一轮的取消原因与证据（不缺失/未知）。
 
 ## 受影响文件（预估）
 
