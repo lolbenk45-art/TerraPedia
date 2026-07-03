@@ -3,6 +3,7 @@ const STATUS_ALIASES = {
   timeout: 'timed_out',
   blocked_cooldown: 'blocked',
   locked: 'blocked',
+  force_reclaimed: 'cancelled',
 }
 
 const TERMINAL_STATUSES = new Set(['failed', 'timed_out', 'cancelled', 'completed'])
@@ -20,6 +21,7 @@ const STATUS_LABELS = {
   queued: '等待执行',
   pending: '等待执行',
   cancelled: '已取消',
+  force_reclaimed: '已强制回收',
   completed: '已完成',
   ready: '可执行',
   healthy: '暂无异常',

@@ -937,3 +937,20 @@ test('forceReclaim 请求负载正确', (t) => {
   assert.equal(payload.actionId, 'domain-source-bosses')
   assert.equal(payload.queueId, 'q1')
 })
+
+import { resolveDomainState } from '../pages/operations/crawler-monitor.state.mjs'
+
+test('resolveDomainState 优先用后端 state', () => {
+  const domain = { domain: 'bosses', state: { status: 'cancelled', nextAction: 'recrawl' } }
+  const s = resolveDomainState(domain)
+  assert.equal(s.status, 'cancelled')
+  assert.equal(s.nextAction, 'recrawl')
+  assert.equal(s.source, 'backend')
+})
+
+test('resolveDomainState 缺 state 时回落旧调解器', () => {
+  const domain = { domain: 'bosses', status: 'running' }
+  const s = resolveDomainState(domain, { progressRow: null, queueItem: null })
+  assert.ok(s.status, '回落应产出 status')
+  assert.equal(s.source, 'fallback')
+})

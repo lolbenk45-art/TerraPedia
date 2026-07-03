@@ -79,8 +79,8 @@
                       <small>{{ row.domain || row.actionId || '未知域' }}</small>
                     </td>
                     <td>
-                      <span class="status-pill" :class="statusTone(row.risk || row.status)">{{ row.diagnosisTitle }}</span>
-                      <small>{{ statusLabel(row.status) }}</small>
+                      <span class="status-pill" :class="statusTone(row.risk || domainRowStatus(row))">{{ row.diagnosisTitle }}</span>
+                      <small>{{ domainRowStatusLabel(row) }}</small>
                     </td>
                     <td>
                       <strong>{{ row.progressLabel }}</strong>
@@ -681,6 +681,7 @@ import {
 } from '~/utils/crawlerMonitorDisplay.mjs'
 import { buildCrawlerUnifiedStatus } from '~/utils/crawlerMonitorUnifiedStatus.mjs'
 import { shouldOfferForceReclaim, buildDispatchControlPayload } from './crawler-monitor.control.mjs'
+import { resolveDomainState } from './crawler-monitor.state.mjs'
 import type {
   CrawlerMonitorAction,
   CrawlerMonitorAutoDispatchSettings,
@@ -2333,6 +2334,23 @@ function progressRowEffectiveStatus(row: ProgressRow | null | undefined) {
 
 function progressRowStatusLabel(row: ProgressRow) {
   return statusLabel(progressRowEffectiveStatus(row))
+}
+
+// P2 双读：优先后端权威 domain.state，缺失回落旧前端调解器（P3 删）。
+function domainRowState(row: any) {
+  const domain = row?.sourceDomain || row || null
+  return resolveDomainState(domain, {
+    progressRow: row?.progressRow || null,
+    queueItem: row?.queueItem || null,
+  })
+}
+
+function domainRowStatus(row: any) {
+  return domainRowState(row).status || row?.status
+}
+
+function domainRowStatusLabel(row: any) {
+  return statusLabel(domainRowStatus(row))
 }
 
 function progressRowStatusSource(row: ProgressRow) {
