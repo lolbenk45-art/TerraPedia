@@ -205,7 +205,7 @@ function statusReason({ effectiveStatus, statusSource, domain, progressRow, queu
   }
   if (effectiveStatus === 'running') return queueItem?.message || progressRow?.message || '任务正在运行，观察心跳和实时进度'
   if (effectiveStatus === 'queued') return queueItem?.message || progressRow?.queueState || '任务正在等待队列执行'
-  if (effectiveStatus === 'ready') return domain?.reason || '可手动启动'
+  if (effectiveStatus === 'ready') return domain?.reason || '可手动提交正式派发'
   if (statusSource === 'none') return '无运行队列或异常信号'
   return domain?.reason || progressRow?.message || queueItem?.message || ''
 }
@@ -216,10 +216,10 @@ function nextActionLabel(status, queueItem) {
   if (normalized === 'running' || normalized === 'starting') return '观察或终止'
   if (normalized === 'queued') return queueItem?.queueId ? '取消排队' : '等待或取消排队'
   if (normalized === 'blocked') return '查看占用者'
-  if (normalized === 'stalled') return queueItem ? '终止并清理后重爬' : '启动重爬'
-  if (normalized === 'failed' || normalized === 'timed_out') return queueItem ? '终止并清理后重爬' : '启动重爬'
-  if (normalized === 'cancelled') return '启动重爬'
-  if (normalized === 'ready' || normalized === 'missing') return '启动重爬'
+  if (normalized === 'stalled') return queueItem ? '终止清理后重新提交' : '提交正式派发'
+  if (normalized === 'failed' || normalized === 'timed_out') return queueItem ? '终止清理后重新提交' : '提交正式派发'
+  if (normalized === 'cancelled') return '提交正式派发'
+  if (normalized === 'ready' || normalized === 'missing') return '提交正式派发'
   return '查看证据'
 }
 

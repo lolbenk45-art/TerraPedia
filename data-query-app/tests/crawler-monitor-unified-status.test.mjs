@@ -26,7 +26,7 @@ test('unified status treats cancelled queue as authoritative over stale running 
   assert.equal(status.effectiveStatus, 'cancelled')
   assert.equal(status.statusSource, 'queue')
   assert.equal(status.displayLabel, '已取消')
-  assert.equal(status.nextActionLabel, '启动重爬')
+  assert.equal(status.nextActionLabel, '提交正式派发')
   assert.equal(status.hasConflict, true)
   assert.match(status.reason, /旧进度文件仍保留运行状态/)
 })
@@ -72,7 +72,7 @@ test('unified status promotes stale progress above running queue', () => {
   assert.equal(status.statusSource, 'progress')
   assert.equal(status.displayLabel, '心跳过期')
   assert.equal(status.reason, '心跳超过 5 分钟')
-  assert.equal(status.nextActionLabel, '终止并清理后重爬')
+  assert.equal(status.nextActionLabel, '终止清理后重新提交')
 })
 
 test('unified status ranks states consistently for all monitor sections', () => {

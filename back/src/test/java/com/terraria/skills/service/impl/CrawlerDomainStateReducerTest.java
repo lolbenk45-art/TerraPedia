@@ -10,17 +10,21 @@ class CrawlerDomainStateReducerTest {
     private final Instant now = Instant.parse("2026-06-14T02:00:00Z");
 
     @Test
-    void queueCancelledBeatsProgressRunning() {
+    void queueCancelledBecomesReadyInsteadOfCurrentCancelled() {
         CrawlerDomainStateReducer.Input in = CrawlerDomainStateReducer.Input.builder()
             .queueStatus("cancelled").progressStatus("running").now(now).build();
-        assertEquals("cancelled", reducer.reduce(in).status());
+        CrawlerDomainStateReducer.State state = reducer.reduce(in);
+        assertEquals("ready", state.status());
+        assertEquals("recrawl", state.nextAction());
     }
 
     @Test
-    void forceReclaimedNormalizesToCancelled() {
+    void forceReclaimedBecomesReadyInsteadOfCurrentCancelled() {
         CrawlerDomainStateReducer.Input in = CrawlerDomainStateReducer.Input.builder()
             .queueStatus("force_reclaimed").now(now).build();
-        assertEquals("cancelled", reducer.reduce(in).status());
+        CrawlerDomainStateReducer.State state = reducer.reduce(in);
+        assertEquals("ready", state.status());
+        assertEquals("recrawl", state.nextAction());
     }
 
     @Test
@@ -42,9 +46,29 @@ class CrawlerDomainStateReducerTest {
     }
 
     @Test
-    void blockerProducesBlocked() {
+    void runningQueueWithoutLeaseStaysRunning() {
+        CrawlerDomainStateReducer.Input in = CrawlerDomainStateReducer.Input.builder()
+            .queueStatus("running")
+            .progressStatus("running")
+            .leaseExpiresAt(null)
+            .now(now).build();
+        assertEquals("running", reducer.reduce(in).status());
+    }
+
+    @Test
+    void queuedWithBlockerStaysQueuedAndKeepsBlocker() {
         CrawlerDomainStateReducer.Input in = CrawlerDomainStateReducer.Input.builder()
             .queueStatus("queued").blockedByDomain("bosses").now(now).build();
+        CrawlerDomainStateReducer.State state = reducer.reduce(in);
+        assertEquals("queued", state.status());
+        assertEquals("cancel_queued", state.nextAction());
+        assertEquals("域 bosses", state.blockerLabel());
+    }
+
+    @Test
+    void blockedQueueProducesBlocked() {
+        CrawlerDomainStateReducer.Input in = CrawlerDomainStateReducer.Input.builder()
+            .queueStatus("blocked").blockedByDomain("bosses").now(now).build();
         assertEquals("blocked", reducer.reduce(in).status());
     }
 

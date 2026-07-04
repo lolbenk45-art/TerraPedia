@@ -707,6 +707,29 @@ class AdminCrawlerMonitorControllerTest {
         ));
     }
 
+    @Test
+    void controlDispatchShouldDelegateForceReclaimAll() throws Exception {
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(true);
+        result.setStatus("force_reclaimed_all");
+
+        when(crawlerMonitorService.controlWikiMonitorDispatch(argThat(request ->
+            "forceReclaimAll".equals(request.getControlAction())
+        ))).thenReturn(result);
+
+        mockMvc.perform(post("/admin/crawler-monitor/dispatch/control")
+                .contentType("application/json")
+                .content("{\"controlAction\":\"forceReclaimAll\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.accepted").value(true))
+            .andExpect(jsonPath("$.data.status").value("force_reclaimed_all"));
+
+        verify(crawlerMonitorService).controlWikiMonitorDispatch(argThat(request ->
+            "forceReclaimAll".equals(request.getControlAction())
+        ));
+    }
+
     private CrawlerMonitorTestStateDTO testState(String scenario, String daemonStatus, boolean lockFound, long totalActions) {
         CrawlerMonitorOverviewDTO.MonitorFileDTO daemon = new CrawlerMonitorOverviewDTO.MonitorFileDTO();
         daemon.setFound(true);

@@ -19,22 +19,27 @@ public class CrawlerDomainStateReducer {
         String domain = normalize(in.domainStatus());
         boolean hasBlocker = in.blockedByDomain() != null || in.blockedByActionId() != null || in.blockedByDispatchId() != null;
         boolean leaseValid = in.leaseExpiresAt() != null && in.leaseExpiresAt().isAfter(in.now());
+        boolean queueActive = isOneOf(queue, "running", "starting", "paused", "queued");
 
-        // R1：progress 活跃(running/starting)但无有效租约(含 null/已过期) → 判 stalled(疑似孤儿)。
-        // 这是有意扩展：进程死亡/后端重启后进度文件仍是 running，但无人续租，故不允许显示 running。
-        boolean progressActiveNoLease = ACTIVE_PROGRESS.contains(progress) && !leaseValid;
+        // R1：只有孤儿 progress 活跃(running/starting)且无有效租约(含 null/已过期)时，才判 stalled。
+        // 若 queue 本身仍处于 active 状态，queue 是当前派发事实，不能被缺失的文件镜像租约误压成 stalled。
+        boolean progressActiveNoLease = ACTIVE_PROGRESS.contains(progress) && !leaseValid && !queueActive;
 
         String status;
-        if (isOneOf(queue, "failed", "timed_out", "cancelled")) {
+        if (isOneOf(queue, "failed", "timed_out")) {
             status = queue;
         } else if (isOneOf(progress, "failed", "timed_out")) {
             status = progress;
+        } else if (isOneOf(queue, "cancelled") || isOneOf(progress, "cancelled") || isOneOf(domain, "cancelled")) {
+            status = "ready";
         } else if ("paused".equals(queue)) {
             status = "paused";
         } else if ("paused".equals(progress)) {
             status = "paused";
         } else if ("stalled".equals(progress) || progressActiveNoLease) {
             status = "stalled";
+        } else if ("queued".equals(queue)) {
+            status = "queued";
         } else if (hasBlocker || "blocked".equals(queue)) {
             status = "blocked";
         } else if (isOneOf(domain, "failed", "timed_out", "stalled", "blocked")) {
@@ -61,7 +66,7 @@ public class CrawlerDomainStateReducer {
             case "queued" -> "cancel_queued";
             case "blocked" -> "inspect_blocker";
             case "stalled", "failed", "timed_out" -> "terminate_and_recrawl";
-            case "cancelled" -> "recrawl";
+            case "cancelled", "ready" -> "recrawl";
             case "healthy" -> "none";
             default -> "inspect";
         };

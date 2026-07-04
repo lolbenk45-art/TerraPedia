@@ -3372,7 +3372,7 @@ class CrawlerMonitorServiceImplTest {
             () -> service.controlWikiMonitorDispatch(request)
         );
 
-        assertEquals("控制动作不支持 refresh，请使用 pause、resume、cancel、retry 或 cancelQueued。", exception.getMessage());
+        assertEquals("控制动作不支持 refresh，请使用 pause、resume、cancel、retry、cancelQueued、forceReclaim 或 forceReclaimAll。", exception.getMessage());
     }
 
     @Test
@@ -4352,6 +4352,14 @@ class CrawlerMonitorServiceImplTest {
     @Test
     @SuppressWarnings("unchecked")
     void shouldForceReclaimDeadDomainAndWriteTerminalEvidence() throws Exception {
+        writeJson(repoRoot.resolve("data/generated/domain-source-bosses-progress.latest.json"), Map.of(
+            "actionId", "domain-source-bosses",
+            "status", "running",
+            "current", 8,
+            "total", 33,
+            "lastHeartbeatAt", "2026-06-14T01:30:00Z",
+            "message", "fetching stale boss"
+        ));
         writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
             "dispatchId", "dead-dispatch",
             "domain", "bosses",
@@ -4399,6 +4407,11 @@ class CrawlerMonitorServiceImplTest {
         Map<String, Object> latest = readJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
         assertEquals("force_reclaimed", latest.get("status"));
         assertNotNull(latest.get("message"));
+        Map<String, Object> progress = readJson(repoRoot.resolve("data/generated/domain-source-bosses-progress.latest.json"));
+        assertEquals("force_reclaimed", progress.get("status"));
+        assertEquals("管理员强制回收占用", progress.get("message"));
+        assertEquals("forceReclaim", progress.get("controlAction"));
+        assertNotNull(progress.get("completedAt"));
     }
 
     @Test
@@ -4612,8 +4625,68 @@ class CrawlerMonitorServiceImplTest {
             .filter(d -> "bosses".equals(d.getDomain())).findFirst().orElseThrow();
 
         assertNotNull(bosses.getState(), "域应带 state 权威对象");
-        assertEquals("cancelled", bosses.getState().getStatus(), "force_reclaimed 应被规约为 cancelled");
+        assertEquals("ready", bosses.getState().getStatus(), "force_reclaimed 是上次结果，域当前状态应可重爬");
+        assertEquals("recrawl", bosses.getState().getNextAction());
         assertFalse("running".equals(bosses.getState().getStatus()));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void forceReclaimAllShouldCancelAllActiveQueueItemsAndWriteTerminalEvidence() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "dispatchId", "d-buffs",
+            "domain", "buffs",
+            "actionId", "buff-page-immunity-refresh",
+            "pid", 2000000000L
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:00:00Z",
+            "items", List.of(
+                Map.ofEntries(
+                    Map.entry("queueId", "q-buffs"),
+                    Map.entry("dispatchId", "d-buffs"),
+                    Map.entry("lane", "standard"),
+                    Map.entry("domain", "buffs"),
+                    Map.entry("actionId", "buff-page-immunity-refresh"),
+                    Map.entry("status", "running"),
+                    Map.entry("pid", 2000000000L),
+                    Map.entry("requestedAt", "2026-06-14T00:59:00Z")
+                ),
+                Map.ofEntries(
+                    Map.entry("queueId", "q-bosses"),
+                    Map.entry("dispatchId", "d-bosses"),
+                    Map.entry("lane", "standard"),
+                    Map.entry("domain", "bosses"),
+                    Map.entry("actionId", "domain-source-bosses"),
+                    Map.entry("status", "queued"),
+                    Map.entry("requestedAt", "2026-06-14T01:01:00Z")
+                )
+            ),
+            "dedupe", Map.of(),
+            "dispatches", Map.of("d-buffs", "q-buffs", "d-bosses", "q-bosses")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC),
+            (StringRedisTemplate) null
+        );
+        CrawlerMonitorDispatchRequestDTO request = new CrawlerMonitorDispatchRequestDTO();
+        request.setControlAction("forceReclaimAll");
+
+        CrawlerMonitorDispatchResultDTO result = service.controlWikiMonitorDispatch(request);
+
+        assertTrue(result.isAccepted());
+        assertEquals("force_reclaimed_all", result.getStatus());
+        assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+        Map<String, Object> queue = readJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> items = (List<Map<String, Object>>) queue.get("items");
+        for (Map<String, Object> item : items) {
+            assertEquals("cancelled", item.get("status"));
+        }
+        Map<String, Object> latest = readJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+        assertEquals("force_reclaimed_all", latest.get("status"));
+        Map<String, Object> buffsProgress = readJson(repoRoot.resolve("data/generated/fetch-wiki-buffs-progress.latest.json"));
+        assertEquals("force_reclaimed", buffsProgress.get("status"));
     }
 
     @Test
@@ -4649,7 +4722,88 @@ class CrawlerMonitorServiceImplTest {
             .filter(d -> "bosses".equals(d.getDomain())).findFirst().orElseThrow();
 
         assertNotNull(bosses.getState());
-        assertEquals("cancelled", bosses.getState().getStatus(),
-            "R2: 队列终态应优先于残留的 running 进度");
+        assertEquals("ready", bosses.getState().getStatus(),
+            "cancelled 是上次结果，域当前状态应显示可重爬而不是已取消");
+        assertEquals("recrawl", bosses.getState().getNextAction());
+    }
+
+    @Test
+    void overviewDomainStateKeepsRunningQueueRunningWithoutLeaseMirror() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:00:00Z",
+            "items", List.of(Map.ofEntries(
+                Map.entry("queueId", "q-biomes-running"),
+                Map.entry("dispatchId", "d-biomes-running"),
+                Map.entry("lane", "standard"),
+                Map.entry("domain", "biomes"),
+                Map.entry("coveredDomains", List.of("biomes")),
+                Map.entry("actionId", "biome-sync"),
+                Map.entry("status", "running"),
+                Map.entry("requestedAt", "2026-06-14T01:00:00Z"),
+                Map.entry("startedAt", "2026-06-14T01:01:00Z"),
+                Map.entry("pid", ProcessHandle.current().pid())
+            )),
+            "dedupe", Map.of(), "dispatches", Map.of("d-biomes-running", "q-biomes-running")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC), (StringRedisTemplate) null
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO biomes = overview.getWikiMonitor().getDomains().stream()
+            .filter(d -> "biomes".equals(d.getDomain())).findFirst().orElseThrow();
+
+        assertNotNull(biomes.getState());
+        assertEquals("running", biomes.getState().getStatus());
+        assertEquals("observe_or_terminate", biomes.getState().getNextAction());
+    }
+
+    @Test
+    void overviewDomainStateKeepsQueuedBlockedDomainQueuedWithBlockerEvidence() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:00:00Z",
+            "items", List.of(
+                Map.ofEntries(
+                    Map.entry("queueId", "q-biomes-running"),
+                    Map.entry("dispatchId", "d-biomes-running"),
+                    Map.entry("lane", "standard"),
+                    Map.entry("domain", "biomes"),
+                    Map.entry("coveredDomains", List.of("biomes")),
+                    Map.entry("actionId", "biome-sync"),
+                    Map.entry("status", "running"),
+                    Map.entry("requestedAt", "2026-06-14T01:00:00Z"),
+                    Map.entry("startedAt", "2026-06-14T01:01:00Z"),
+                    Map.entry("pid", ProcessHandle.current().pid())
+                ),
+                Map.ofEntries(
+                    Map.entry("queueId", "q-bosses-queued"),
+                    Map.entry("lane", "standard"),
+                    Map.entry("domain", "bosses"),
+                    Map.entry("coveredDomains", List.of("bosses")),
+                    Map.entry("actionId", "domain-source-bosses"),
+                    Map.entry("status", "queued"),
+                    Map.entry("requestedAt", "2026-06-14T01:02:00Z"),
+                    Map.entry("blockedByDomain", "biomes"),
+                    Map.entry("blockedByActionId", "biome-sync"),
+                    Map.entry("blockedByDispatchId", "d-biomes-running")
+                )
+            ),
+            "dedupe", Map.of(), "dispatches", Map.of("d-biomes-running", "q-biomes-running")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC), (StringRedisTemplate) null
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO bosses = overview.getWikiMonitor().getDomains().stream()
+            .filter(d -> "bosses".equals(d.getDomain())).findFirst().orElseThrow();
+
+        assertNotNull(bosses.getState());
+        assertEquals("queued", bosses.getState().getStatus());
+        assertEquals("cancel_queued", bosses.getState().getNextAction());
+        assertEquals("biomes", bosses.getState().getBlocker());
+        assertEquals("域 biomes", bosses.getState().getBlockerLabel());
     }
 }

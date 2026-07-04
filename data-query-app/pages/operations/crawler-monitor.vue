@@ -1,6 +1,6 @@
 <template>
   <div class="page-wrap page-workspace crawler-monitor crawler-monitor-v4">
-    <section class="status-strip" :class="`status-strip--${v4StatusStrip.tone}`" aria-live="polite">
+    <section class="status-strip" aria-live="polite">
       <div class="status-strip__main">
         <span class="status-dot" :class="`status-dot--${v4StatusStrip.tone}`" aria-hidden="true"></span>
         <div>
@@ -12,15 +12,19 @@
         <span v-for="chip in v4StatusStrip.chips" :key="chip.label" class="status-pill" :class="chip.tone">
           {{ chip.label }}
         </span>
-        <button type="button" class="btn btn-secondary" :disabled="loading" @click="loadOverview">
-          <RefreshCw :size="16" :class="{ spin: loading }" />
-          <span>{{ loading ? '刷新中' : '刷新状态' }}</span>
+        <button type="button" class="btn btn-plain btn-plain--danger" :disabled="forceReclaimAllLoading" @click="forceReclaimAllRunningDispatches">
+          <TimerReset :size="16" />
+          <span>{{ forceReclaimAllLoading ? '清理中' : '清空运行/队列' }}</span>
+        </button>
+        <button type="button" class="btn btn-secondary" :aria-busy="loading" :aria-disabled="loading" @click="loadOverview">
+          <RefreshCw :size="16" />
+          <span>刷新状态</span>
         </button>
       </div>
     </section>
 
     <section class="metric-row" aria-label="核心监控指标">
-      <article v-for="metric in v4MetricCards" :key="metric.key" class="metric" :class="`is-${metric.tone}`">
+      <article v-for="metric in v4MetricCards" :key="metric.key" class="metric">
         <small>{{ metric.label }}</small>
         <strong>{{ metric.value }}</strong>
         <span>{{ metric.note }}</span>
@@ -60,8 +64,6 @@
                     <th>域</th>
                     <th>状态</th>
                     <th>进度</th>
-                    <th>队列</th>
-                    <th>心跳</th>
                     <th>下一步</th>
                     <th>操作</th>
                   </tr>
@@ -79,8 +81,10 @@
                       <small>{{ row.domain || row.actionId || '未知域' }}</small>
                     </td>
                     <td>
-                      <span class="status-pill" :class="statusTone(row.risk || domainRowStatus(row))">{{ row.diagnosisTitle }}</span>
-                      <small>{{ domainRowStatusLabel(row) }}</small>
+                      <div class="domain-status-cell">
+                        <span class="status-pill" :class="statusTone(domainRowStatus(row) || row.risk)">{{ domainRowStatusLabel(row) }}</span>
+                        <small>{{ row.diagnosisTitle }}</small>
+                      </div>
                     </td>
                     <td>
                       <strong>{{ row.progressLabel }}</strong>
@@ -89,48 +93,39 @@
                       </div>
                     </td>
                     <td>
-                      <strong>{{ row.queueSummary }}</strong>
-                      <small>{{ row.ownerLabel }}</small>
-                    </td>
-                    <td>
-                      <strong>{{ row.heartbeatAt ? formatDate(row.heartbeatAt) : '暂无心跳' }}</strong>
-                      <small v-if="row.pid">PID {{ row.pid }}</small>
-                    </td>
-                    <td>
-                      <strong>{{ row.nextActionLabel || row.rankReason }}</strong>
-                      <small>{{ row.rankReason }}</small>
+                      <strong>{{ domainRowNextActionLabel(row) }}</strong>
                     </td>
                     <td>
                       <div class="domain-actions">
                         <button v-if="canResumeDomainTableRow(row)" type="button" class="btn btn-plain" @click.stop="resumeDomainTableRow(row)">
                           <Play :size="14" />
-                          <span>继续</span>
+                          <span>继续运行</span>
                         </button>
                         <button v-if="canCancelDomainTableRunningRow(row)" type="button" class="btn btn-plain btn-plain--danger" @click.stop="cancelDomainTableRunningRow(row)">
                           <CircleStop :size="14" />
-                          <span>终止</span>
+                          <span>终止运行</span>
                         </button>
                         <button v-if="canCancelDomainTableQueuedRow(row)" type="button" class="btn btn-plain btn-plain--danger" @click.stop="cancelDomainTableQueuedRow(row)">
                           <X :size="14" />
-                          <span>取消</span>
+                          <span>取消排队</span>
                         </button>
                         <button v-if="canStartDomainTableRow(row)" type="button" class="btn btn-plain" @click.stop="startDomainTableRow(row)">
                           <RefreshCw :size="14" />
-                          <span>启动重爬</span>
+                          <span>提交正式派发</span>
                         </button>
-                        <button v-if="shouldOfferForceReclaim(row)" type="button" class="btn btn--reclaim btn-plain btn-plain--danger" @click.stop="forceReclaimDomainTableRow(row)">
+                        <button v-if="shouldOfferDomainRowForceReclaim(row)" type="button" class="btn btn--reclaim btn-plain btn-plain--danger" @click.stop="forceReclaimDomainTableRow(row)">
                           <TimerReset :size="14" />
                           <span>强制回收</span>
                         </button>
                         <button type="button" class="btn btn-plain" @click.stop="selectDomainTableRow(row)">
                           <Eye :size="14" />
-                          <span>证据</span>
+                          <span>查看证据</span>
                         </button>
                       </div>
                     </td>
                   </tr>
                   <tr v-if="!domainTableRows.length">
-                    <td colspan="7" class="table-empty">暂无域状态。</td>
+                    <td colspan="5" class="table-empty">暂无域状态。</td>
                   </tr>
                 </tbody>
               </table>
@@ -139,22 +134,25 @@
             <aside v-if="selectedDomainTableRow" class="current-card">
               <header class="current-head">
                 <div>
-                  <span class="status-pill" :class="statusTone(selectedDomainTableRow.risk || selectedDomainTableRow.status)">
+                  <span class="status-pill" :class="statusTone(domainRowStatus(selectedDomainTableRow) || selectedDomainTableRow.risk)">
                     {{ selectedDomainStatusLabel }}
                   </span>
                   <h4>{{ selectedDomainDisplayName }}</h4>
                   <p>{{ selectedDomainOperatorSummary }}</p>
                 </div>
-                <button type="button" class="btn btn-plain" @click="openReportPreview(selectedWikiReportPath || selectedWikiProgressPath)">
+                <button type="button" class="btn btn-plain" @click="openReportPreview(domainRowEvidencePath(selectedDomainTableRow) || selectedWikiReportPath || selectedWikiProgressPath)">
                   查看证据
                 </button>
               </header>
 
               <div class="kv-grid">
                 <div class="kv"><small>当前进度</small><strong>{{ selectedWikiProgressNumbers }}</strong></div>
-                <div class="kv"><small>队列占用</small><strong>{{ selectedDomainTableRow.queueSummary }}</strong></div>
+                <div class="kv"><small>阻塞/占用</small><strong>{{ domainRowBlockerLabel(selectedDomainTableRow) || selectedDomainTableRow.queueSummary }}</strong></div>
                 <div class="kv"><small>最近心跳</small><strong>{{ selectedDomainHeartbeatMessage }}</strong></div>
-                <div class="kv"><small>建议动作</small><strong>{{ selectedDomainNextActionLabel }}</strong></div>
+                <div class="kv"><small>建议动作</small><strong>{{ domainRowNextActionLabel(selectedDomainTableRow) }}</strong></div>
+                <div class="kv"><small>队列详情</small><strong>{{ selectedDomainTableRow.ownerLabel || selectedDomainTableRow.queueSummary }}</strong></div>
+                <div class="kv"><small>进程</small><strong>{{ selectedDomainTableRow.pid ? `PID ${selectedDomainTableRow.pid}` : '无 PID' }}</strong></div>
+                <div class="kv"><small>补充说明</small><strong>{{ selectedDomainTableRow.rankReason || selectedDomainTableRow.reason || '暂无补充' }}</strong></div>
               </div>
 
               <div v-if="selectedDomainTableVisibleEvidenceFiles.length || selectedDomainTableLogEvidenceFiles.length" class="evidence-row progress-path-list">
@@ -235,31 +233,95 @@
         <section v-show="activeMonitorPanel === 'queue'" class="monitor-panel-stage monitor-panel-stage--queue">
           <div class="grid-queue">
             <div class="queue-list">
-              <article v-for="row in executionOverviewRows" :key="row.key" class="queue-card">
-                <div class="queue-meta">
-                  <strong>{{ row.primaryLabel }}</strong>
-                  <span class="status-pill" :class="statusTone(row.displayStatus || row.status)">{{ statusLabel(row.displayStatus || row.status) }}</span>
+              <section class="queue-group queue-group--active">
+                <header class="queue-group-head">
+                  <div>
+                    <h4>正在运行</h4>
+                    <p>运行、排队、暂停或等待占用释放的未结束项。</p>
+                  </div>
+                  <span class="status-pill info">{{ formatNumber(activeExecutionOverviewRows.length) }} 项</span>
+                </header>
+                <article v-for="row in activeExecutionOverviewRows" :key="`active-execution-${row.key}`" class="queue-card">
+                  <small class="queue-time">{{ executionOverviewTiming(row) }}</small>
+                  <div class="queue-meta">
+                    <strong>{{ row.primaryLabel }}</strong>
+                    <span class="status-pill" :class="statusTone(row.displayStatus || row.status)">{{ statusLabel(row.displayStatus || row.status) }}</span>
+                  </div>
+                  <small>{{ row.secondaryLabel }}</small>
+                  <div class="progress-track">
+                    <span :style="{ width: executionOverviewProgress(row) }" :class="statusTone(row.displayStatus || row.status)" />
+                  </div>
+                  <div class="queue-primary-insight">
+                    <span><small>进度</small><strong>{{ executionOverviewProgressNumbers(row) }}</strong></span>
+                    <span><small>建议动作</small><strong>{{ executionOverviewNextAction(row) }}</strong></span>
+                  </div>
+                  <details class="queue-card-details">
+                    <summary>工程详情</summary>
+                    <p v-if="row.message" class="queue-message">{{ row.message }}</p>
+                    <p v-if="executionOverviewStatusReason(row)" class="queue-message" :class="{ 'queue-message--warning': executionOverviewHasConflict(row) }">{{ executionOverviewStatusReason(row) }}</p>
+                    <p v-if="row.heartbeatSummary" class="queue-message queue-message--warning">{{ row.heartbeatSummary }}</p>
+                    <div class="queue-insight-grid">
+                      <span><small>状态来源</small><strong>{{ executionOverviewStatusSource(row) }}</strong></span>
+                      <span><small>队列标识</small><strong>{{ executionOverviewQueueIdentity(row) }}</strong></span>
+                      <span><small>阻塞</small><strong>{{ executionOverviewBlocker(row) }}</strong></span>
+                      <span><small>时间</small><strong>{{ executionOverviewTiming(row) }}</strong></span>
+                    </div>
+                  </details>
+                  <button type="button" class="inline-report-button inline-report-button--compact" @click="selectExecutionOverviewRow(row)">
+                    <Eye :size="14" />
+                    <span>查看</span>
+                  </button>
+                </article>
+                <div v-if="!activeExecutionOverviewRows.length" class="empty-block empty-block--compact">
+                  <Activity :size="20" />
+                  <span>暂无正在运行的执行项。</span>
                 </div>
-                <small>{{ row.secondaryLabel }}</small>
-                <p v-if="row.message" class="queue-message">{{ row.message }}</p>
-                <p v-if="executionOverviewStatusReason(row)" class="queue-message" :class="{ 'queue-message--warning': executionOverviewHasConflict(row) }">{{ executionOverviewStatusReason(row) }}</p>
-                <p v-if="row.heartbeatSummary" class="queue-message queue-message--warning">{{ row.heartbeatSummary }}</p>
-                <div class="progress-track">
-                  <span :style="{ width: executionOverviewProgress(row) }" :class="statusTone(row.displayStatus || row.status)" />
+              </section>
+
+              <section class="queue-group queue-group--history">
+                <header class="queue-group-head">
+                  <div>
+                    <h4>已处理/异常</h4>
+                    <p>失败、超时、停滞、取消或已处理完的追溯项。</p>
+                  </div>
+                  <span class="status-pill muted">{{ formatNumber(historicalExecutionOverviewRows.length) }} 项</span>
+                </header>
+                <article v-for="row in historicalExecutionOverviewRows" :key="`history-execution-${row.key}`" class="queue-card queue-card--history">
+                  <small class="queue-time">{{ executionOverviewTiming(row) }}</small>
+                  <div class="queue-meta">
+                    <strong>{{ row.primaryLabel }}</strong>
+                    <span class="status-pill" :class="statusTone(row.displayStatus || row.status)">{{ statusLabel(row.displayStatus || row.status) }}</span>
+                  </div>
+                  <small>{{ row.secondaryLabel }}</small>
+                  <div class="progress-track">
+                    <span :style="{ width: executionOverviewProgress(row) }" :class="statusTone(row.displayStatus || row.status)" />
+                  </div>
+                  <div class="queue-primary-insight">
+                    <span><small>进度</small><strong>{{ executionOverviewProgressNumbers(row) }}</strong></span>
+                    <span><small>建议动作</small><strong>{{ executionOverviewNextAction(row) }}</strong></span>
+                  </div>
+                  <details class="queue-card-details">
+                    <summary>工程详情</summary>
+                    <p v-if="row.message" class="queue-message">{{ row.message }}</p>
+                    <p v-if="executionOverviewStatusReason(row)" class="queue-message" :class="{ 'queue-message--warning': executionOverviewHasConflict(row) }">{{ executionOverviewStatusReason(row) }}</p>
+                    <p v-if="row.heartbeatSummary" class="queue-message queue-message--warning">{{ row.heartbeatSummary }}</p>
+                    <div class="queue-insight-grid">
+                      <span><small>状态来源</small><strong>{{ executionOverviewStatusSource(row) }}</strong></span>
+                      <span><small>队列标识</small><strong>{{ executionOverviewQueueIdentity(row) }}</strong></span>
+                      <span><small>阻塞</small><strong>{{ executionOverviewBlocker(row) }}</strong></span>
+                      <span><small>时间</small><strong>{{ executionOverviewTiming(row) }}</strong></span>
+                    </div>
+                  </details>
+                  <button type="button" class="inline-report-button inline-report-button--compact" @click="selectExecutionOverviewRow(row)">
+                    <Eye :size="14" />
+                    <span>查看</span>
+                  </button>
+                </article>
+                <div v-if="!historicalExecutionOverviewRows.length" class="empty-block empty-block--compact">
+                  <Activity :size="20" />
+                  <span>暂无已处理或异常执行项。</span>
                 </div>
-                <div class="queue-insight-grid">
-                  <span><small>状态来源</small><strong>{{ executionOverviewStatusSource(row) }}</strong></span>
-                  <span><small>队列标识</small><strong>{{ executionOverviewQueueIdentity(row) }}</strong></span>
-                  <span><small>进度</small><strong>{{ executionOverviewProgressNumbers(row) }}</strong></span>
-                  <span><small>建议动作</small><strong>{{ executionOverviewNextAction(row) }}</strong></span>
-                  <span><small>阻塞</small><strong>{{ executionOverviewBlocker(row) }}</strong></span>
-                  <span><small>时间</small><strong>{{ executionOverviewTiming(row) }}</strong></span>
-                </div>
-                <button type="button" class="inline-report-button inline-report-button--compact" @click="selectExecutionOverviewRow(row)">
-                  <Eye :size="14" />
-                  <span>查看</span>
-                </button>
-              </article>
+              </section>
               <div v-if="!executionOverviewRows.length" class="empty-block empty-block--compact">
                 <Activity :size="20" />
                 <span>暂无需关注执行项。</span>
@@ -314,97 +376,199 @@
         <section v-show="activeMonitorPanel === 'progress'" class="monitor-panel-stage monitor-panel-stage--progress">
           <div class="grid-progress">
             <div class="task-list">
-              <article v-for="row in progressDetailRowsByPriority" :key="`row-${row.rowKey}`" class="task-card">
-                <div class="progress-card-head">
+              <section class="progress-group progress-group--active">
+                <header class="progress-group-head">
                   <div>
-                    <strong>{{ progressRowTitle(row) }}</strong>
-                    <small>{{ progressRowDomainLabel(row) }} · {{ progressRowActionLabel(row) }}</small>
+                    <h4>正在运行</h4>
+                    <p>当前运行、排队、暂停或等待占用释放的任务。</p>
                   </div>
-                  <span class="status-pill" :class="statusTone(progressRowEffectiveStatus(row))">{{ progressRowStatusLabel(row) }}</span>
+                  <span class="status-pill info">{{ formatNumber(activeProgressRows.length) }} 项</span>
+                </header>
+                <article v-for="row in activeProgressRows" :key="`active-row-${row.rowKey}`" class="task-card">
+                  <div class="progress-card-head">
+                    <div>
+                      <strong>{{ progressRowTitle(row) }}</strong>
+                      <small>{{ progressRowDomainLabel(row) }} · {{ progressRowActionLabel(row) }}</small>
+                    </div>
+                    <span class="status-pill" :class="statusTone(progressRowEffectiveStatus(row))">{{ progressRowStatusLabel(row) }}</span>
+                  </div>
+                  <small class="progress-card-subtitle">{{ progressRowLaneLabel(row) }} · {{ rowProgressLabel(row) }} · {{ rowHeartbeatLabel(row) }}</small>
+                  <div class="progress-track">
+                    <span :style="{ width: rowProgress(row) }" :class="statusTone(progressRowEffectiveStatus(row))" />
+                  </div>
+                  <div class="progress-primary-insight">
+                    <span><small>进度</small><strong>{{ rowProgressLabel(row) }}</strong></span>
+                    <span><small>建议动作</small><strong>{{ progressRowNextActionLabel(row) }}</strong></span>
+                  </div>
+                  <div v-if="progressRowStateConflictLabel(row)" class="progress-state-conflict">
+                    <div>
+                      <small>状态冲突</small>
+                      <strong>{{ progressRowStateConflictLabel(row) }}</strong>
+                    </div>
+                    <button
+                      type="button"
+                      class="inline-report-button inline-report-button--compact inline-report-button--warning"
+                      :aria-busy="loading"
+                      :aria-disabled="loading"
+                      @click="loadOverview"
+                    >
+                      <RefreshCw :size="14" />
+                      <span>{{ progressRowSyncActionLabel(row) }}</span>
+                    </button>
+                  </div>
+                  <details class="progress-card-details">
+                    <summary>工程详情</summary>
+                    <div class="progress-insight-grid">
+                      <span><small>状态来源</small><strong>{{ progressRowStatusSource(row) }}</strong></span>
+                      <span><small>队列状态</small><strong>{{ progressRowQueueStateLabel(row) }}</strong></span>
+                      <span><small>影响域</small><strong>{{ progressRowCoveredDomainLabels(row) }}</strong></span>
+                    </div>
+                    <div class="kv-grid">
+                      <div class="kv"><small>待处理</small><strong>{{ rowPendingLabel(row) }}</strong></div>
+                      <div class="kv"><small>速度</small><strong>{{ rowSpeedLabel(row) }}</strong></div>
+                      <div class="kv"><small>预计剩余</small><strong>{{ rowEtaLabel(row) }}</strong></div>
+                      <div class="kv"><small>运行时长</small><strong>{{ formatElapsedDuration(taskElapsedMs(row)) }}</strong></div>
+                    </div>
+                    <div v-if="progressRowVisiblePathEntries(row).length" class="progress-path-list">
+                      <button
+                        v-for="entry in progressRowVisiblePathEntries(row)"
+                        :key="`${row.rowKey}-${entry.label}`"
+                        type="button"
+                        class="inline-report-button inline-report-button--compact"
+                        :class="{ 'inline-report-button--not-previewable': !isPreviewableReportPath(entry.path) && !isPreviewableProgressPath(entry.path) && !isPreviewableGeneratedJsonPath(entry.path) }"
+                        :disabled="!isPreviewableReportPath(entry.path) && !isPreviewableProgressPath(entry.path) && !isPreviewableGeneratedJsonPath(entry.path)"
+                        :title="(!isPreviewableReportPath(entry.path) && !isPreviewableProgressPath(entry.path) && !isPreviewableGeneratedJsonPath(entry.path)) ? '此路径不支持预览' : entry.path"
+                        @click="openReportPreview(entry.path)"
+                      >
+                        <span>{{ entry.label }}</span>
+                      </button>
+                      <button
+                        v-if="progressRowLogPathEntries(row).length"
+                        type="button"
+                        class="inline-report-button inline-report-button--compact"
+                        @click="toggleQueueItemLogs(progressRowQueueLogKey(row))"
+                      >
+                        <span>{{ showQueueItemLogs(progressRowQueueLogKey(row)) ? '隐藏日志' : '显示日志' }}</span>
+                      </button>
+                      <span v-else class="file-chip file-chip--muted">日志已隐藏</span>
+                    </div>
+                    <div v-if="progressRowLogPathEntries(row).length && showQueueItemLogs(progressRowQueueLogKey(row))" class="progress-path-list progress-path-list--logs">
+                      <button
+                        v-for="entry in progressRowLogPathEntries(row)"
+                        :key="`${row.rowKey}-log-${entry.path}`"
+                        type="button"
+                        class="inline-report-button inline-report-button--compact"
+                        :class="{ 'inline-report-button--not-previewable': !isPreviewableReportPath(entry.path) }"
+                        :disabled="!isPreviewableReportPath(entry.path)"
+                        :title="isPreviewableReportPath(entry.path) ? entry.path : '此日志不支持预览'"
+                        @click="openReportPreview(entry.path)"
+                      >
+                        <span>{{ entry.label }}</span>
+                      </button>
+                    </div>
+                  </details>
+                  <div v-if="progressRowControlButtons(row).length" class="progress-control-row">
+                    <button
+                      v-for="control in progressRowControlButtons(row)"
+                      :key="`${row.rowKey}-${control.action}`"
+                      type="button"
+                      class="inline-report-button inline-report-button--compact"
+                      :class="{ 'inline-report-button--danger': control.action === 'cancel' }"
+                      :disabled="progressControlLoading === progressRowControlKey(row)"
+                      @click="controlProgressTask(row, control.action)"
+                    >
+                      <component :is="control.icon" :size="14" :class="{ spin: progressControlLoading === progressRowControlKey(row) }" />
+                      <span>{{ control.label }}</span>
+                    </button>
+                  </div>
+                </article>
+                <div v-if="!activeProgressRows.length" class="empty-block empty-block--compact">
+                  <Activity :size="20" />
+                  <span>暂无正在运行的进度。</span>
                 </div>
-                <small class="progress-card-subtitle">{{ progressRowLaneLabel(row) }} · {{ rowProgressLabel(row) }} · {{ rowHeartbeatLabel(row) }}</small>
-                <div class="progress-track">
-                  <span :style="{ width: rowProgress(row) }" :class="statusTone(progressRowEffectiveStatus(row))" />
-                </div>
-                <div class="progress-insight-grid">
-                  <span><small>状态来源</small><strong>{{ progressRowStatusSource(row) }}</strong></span>
-                  <span><small>队列状态</small><strong>{{ progressRowQueueStateLabel(row) }}</strong></span>
-                  <span><small>影响域</small><strong>{{ progressRowCoveredDomainLabels(row) }}</strong></span>
-                  <span><small>建议动作</small><strong>{{ progressRowNextActionLabel(row) }}</strong></span>
-                </div>
-                <div v-if="progressRowStateConflictLabel(row)" class="progress-state-conflict">
+              </section>
+
+              <section class="progress-group progress-group--history">
+                <header class="progress-group-head">
                   <div>
-                    <small>状态冲突</small>
-                    <strong>{{ progressRowStateConflictLabel(row) }}</strong>
+                    <h4>历史与异常</h4>
+                    <p>失败、超时、完成、取消和不再运行的进度，作为追溯项保留。</p>
                   </div>
-                  <button
-                    type="button"
-                    class="inline-report-button inline-report-button--compact inline-report-button--warning"
-                    :disabled="loading"
-                    @click="loadOverview"
-                  >
-                    <RefreshCw :size="14" :class="{ spin: loading }" />
-                    <span>{{ progressRowSyncActionLabel(row) }}</span>
-                  </button>
+                  <span class="status-pill muted">{{ formatNumber(historicalProgressRows.length) }} 项</span>
+                </header>
+                <article v-for="row in historicalProgressRows" :key="`history-row-${row.rowKey}`" class="task-card task-card--history">
+                  <div class="progress-card-head">
+                    <div>
+                      <strong>{{ progressRowTitle(row) }}</strong>
+                      <small>{{ progressRowDomainLabel(row) }} · {{ progressRowActionLabel(row) }}</small>
+                    </div>
+                    <span class="status-pill" :class="statusTone(progressRowEffectiveStatus(row))">{{ progressRowStatusLabel(row) }}</span>
+                  </div>
+                  <small class="progress-card-subtitle">{{ progressRowLaneLabel(row) }} · {{ rowProgressLabel(row) }} · {{ rowHeartbeatLabel(row) }}</small>
+                  <div class="progress-track">
+                    <span :style="{ width: rowProgress(row) }" :class="statusTone(progressRowEffectiveStatus(row))" />
+                  </div>
+                  <div class="progress-primary-insight">
+                    <span><small>进度</small><strong>{{ rowProgressLabel(row) }}</strong></span>
+                    <span><small>建议动作</small><strong>{{ progressRowNextActionLabel(row) }}</strong></span>
+                  </div>
+                  <details class="progress-card-details">
+                    <summary>工程详情</summary>
+                    <div class="progress-insight-grid">
+                      <span><small>状态来源</small><strong>{{ progressRowStatusSource(row) }}</strong></span>
+                      <span><small>队列状态</small><strong>{{ progressRowQueueStateLabel(row) }}</strong></span>
+                      <span><small>影响域</small><strong>{{ progressRowCoveredDomainLabels(row) }}</strong></span>
+                    </div>
+                    <div class="kv-grid">
+                      <div class="kv"><small>待处理</small><strong>{{ rowPendingLabel(row) }}</strong></div>
+                      <div class="kv"><small>速度</small><strong>{{ rowSpeedLabel(row) }}</strong></div>
+                      <div class="kv"><small>预计剩余</small><strong>{{ rowEtaLabel(row) }}</strong></div>
+                      <div class="kv"><small>运行时长</small><strong>{{ formatElapsedDuration(taskElapsedMs(row)) }}</strong></div>
+                    </div>
+                    <div v-if="progressRowVisiblePathEntries(row).length" class="progress-path-list">
+                      <button
+                        v-for="entry in progressRowVisiblePathEntries(row)"
+                        :key="`${row.rowKey}-${entry.label}`"
+                        type="button"
+                        class="inline-report-button inline-report-button--compact"
+                        :class="{ 'inline-report-button--not-previewable': !isPreviewableReportPath(entry.path) && !isPreviewableProgressPath(entry.path) && !isPreviewableGeneratedJsonPath(entry.path) }"
+                        :disabled="!isPreviewableReportPath(entry.path) && !isPreviewableProgressPath(entry.path) && !isPreviewableGeneratedJsonPath(entry.path)"
+                        :title="(!isPreviewableReportPath(entry.path) && !isPreviewableProgressPath(entry.path) && !isPreviewableGeneratedJsonPath(entry.path)) ? '此路径不支持预览' : entry.path"
+                        @click="openReportPreview(entry.path)"
+                      >
+                        <span>{{ entry.label }}</span>
+                      </button>
+                      <button
+                        v-if="progressRowLogPathEntries(row).length"
+                        type="button"
+                        class="inline-report-button inline-report-button--compact"
+                        @click="toggleQueueItemLogs(progressRowQueueLogKey(row))"
+                      >
+                        <span>{{ showQueueItemLogs(progressRowQueueLogKey(row)) ? '隐藏日志' : '显示日志' }}</span>
+                      </button>
+                      <span v-else class="file-chip file-chip--muted">日志已隐藏</span>
+                    </div>
+                    <div v-if="progressRowLogPathEntries(row).length && showQueueItemLogs(progressRowQueueLogKey(row))" class="progress-path-list progress-path-list--logs">
+                      <button
+                        v-for="entry in progressRowLogPathEntries(row)"
+                        :key="`${row.rowKey}-log-${entry.path}`"
+                        type="button"
+                        class="inline-report-button inline-report-button--compact"
+                        :class="{ 'inline-report-button--not-previewable': !isPreviewableReportPath(entry.path) }"
+                        :disabled="!isPreviewableReportPath(entry.path)"
+                        :title="isPreviewableReportPath(entry.path) ? entry.path : '此日志不支持预览'"
+                        @click="openReportPreview(entry.path)"
+                      >
+                        <span>{{ entry.label }}</span>
+                      </button>
+                    </div>
+                  </details>
+                </article>
+                <div v-if="!historicalProgressRows.length" class="empty-block empty-block--compact">
+                  <Activity :size="20" />
+                  <span>暂无历史或异常进度。</span>
                 </div>
-                <div class="kv-grid">
-                  <div class="kv"><small>待处理</small><strong>{{ rowPendingLabel(row) }}</strong></div>
-                  <div class="kv"><small>速度</small><strong>{{ rowSpeedLabel(row) }}</strong></div>
-                  <div class="kv"><small>预计剩余</small><strong>{{ rowEtaLabel(row) }}</strong></div>
-                  <div class="kv"><small>运行时长</small><strong>{{ formatElapsedDuration(taskElapsedMs(row)) }}</strong></div>
-                </div>
-                <div v-if="progressRowVisiblePathEntries(row).length" class="progress-path-list">
-                  <button
-                    v-for="entry in progressRowVisiblePathEntries(row)"
-                    :key="`${row.rowKey}-${entry.label}`"
-                    type="button"
-                    class="inline-report-button inline-report-button--compact"
-                    :class="{ 'inline-report-button--not-previewable': !isPreviewableReportPath(entry.path) && !isPreviewableProgressPath(entry.path) && !isPreviewableGeneratedJsonPath(entry.path) }"
-                    :disabled="!isPreviewableReportPath(entry.path) && !isPreviewableProgressPath(entry.path) && !isPreviewableGeneratedJsonPath(entry.path)"
-                    :title="(!isPreviewableReportPath(entry.path) && !isPreviewableProgressPath(entry.path) && !isPreviewableGeneratedJsonPath(entry.path)) ? '此路径不支持预览' : entry.path"
-                    @click="openReportPreview(entry.path)"
-                  >
-                    <span>{{ entry.label }}</span>
-                  </button>
-                  <button
-                    v-if="progressRowLogPathEntries(row).length"
-                    type="button"
-                    class="inline-report-button inline-report-button--compact"
-                    @click="toggleQueueItemLogs(progressRowQueueLogKey(row))"
-                  >
-                    <span>{{ showQueueItemLogs(progressRowQueueLogKey(row)) ? '隐藏日志' : '显示日志' }}</span>
-                  </button>
-                  <span v-else class="file-chip file-chip--muted">日志已隐藏</span>
-                </div>
-                <div v-if="progressRowLogPathEntries(row).length && showQueueItemLogs(progressRowQueueLogKey(row))" class="progress-path-list progress-path-list--logs">
-                  <button
-                    v-for="entry in progressRowLogPathEntries(row)"
-                    :key="`${row.rowKey}-log-${entry.path}`"
-                    type="button"
-                    class="inline-report-button inline-report-button--compact"
-                    :class="{ 'inline-report-button--not-previewable': !isPreviewableReportPath(entry.path) }"
-                    :disabled="!isPreviewableReportPath(entry.path)"
-                    :title="isPreviewableReportPath(entry.path) ? entry.path : '此日志不支持预览'"
-                    @click="openReportPreview(entry.path)"
-                  >
-                    <span>{{ entry.label }}</span>
-                  </button>
-                </div>
-                <div v-if="progressRowControlButtons(row).length" class="progress-control-row">
-                  <button
-                    v-for="control in progressRowControlButtons(row)"
-                    :key="`${row.rowKey}-${control.action}`"
-                    type="button"
-                    class="inline-report-button inline-report-button--compact"
-                    :class="{ 'inline-report-button--danger': control.action === 'cancel' }"
-                    :disabled="progressControlLoading === progressRowControlKey(row)"
-                    @click="controlProgressTask(row, control.action)"
-                  >
-                    <component :is="control.icon" :size="14" :class="{ spin: progressControlLoading === progressRowControlKey(row) }" />
-                    <span>{{ control.label }}</span>
-                  </button>
-                </div>
-              </article>
+              </section>
               <div v-if="!progressDetailRowsByPriority.length" class="empty-block empty-block--compact">
                 <Activity :size="20" />
                 <span>暂无进度行。</span>
@@ -456,52 +620,6 @@
           </div>
         </section>
 
-        <section v-show="activeMonitorPanel === 'auto'" class="monitor-panel-stage monitor-panel-stage--auto">
-          <div class="grid-auto">
-            <div class="settings-form auto-dispatch-card">
-              <label class="setting-row auto-dispatch-toggle">
-                <div>
-                  <strong>自动派发</strong>
-                  <small>有变化时按 changed-only 流程派发。</small>
-                </div>
-                <input v-model="autoDispatchForm.enabled" type="checkbox">
-              </label>
-              <label class="setting-row auto-dispatch-interval">
-                <div>
-                  <strong>扫描间隔</strong>
-                  <small>单位：分钟。</small>
-                </div>
-                <input v-model.number="autoDispatchForm.sweepIntervalMinutes" class="number-input" type="number" min="1" max="1440">
-              </label>
-              <div class="setting-row">
-                <div>
-                  <strong>最近自动派发</strong>
-                  <small>{{ autoDispatchSweepSummary }}</small>
-                </div>
-                <span class="status-pill" :class="savedAutoDispatchEnabled ? 'success' : 'muted'">{{ savedAutoDispatchLabel }}</span>
-              </div>
-              <button type="button" class="btn btn-primary" :disabled="autoDispatchSaving" @click="saveAutoDispatchSettings">
-                <RefreshCw :size="16" :class="{ spin: autoDispatchSaving }" />
-                <span>{{ autoDispatchSaving ? '保存中' : '保存设置' }}</span>
-              </button>
-            </div>
-            <aside class="side-panel">
-              <div class="summary-card">
-                <h4>派发状态</h4>
-                <p>{{ wikiDispatchModeLabel }} · {{ wikiAutoDispatchLabel }} · {{ wikiPendingApprovalCount }} 待审批</p>
-              </div>
-              <div v-if="dispatchPlanRows.length" class="diagnostic-list state-list state-list--compact">
-                <div v-for="plan in dispatchPlanRows" :key="plan.actionId || plan.priority || plan.reason" class="diag-card">
-                  <small>派发计划</small>
-                  <strong>{{ plan.actionId || '未命名动作' }}</strong>
-                  <small>{{ dispatchPlanSummary(plan) }}</small>
-                </div>
-              </div>
-              <p v-else class="empty-line">暂无派发计划</p>
-            </aside>
-          </div>
-        </section>
-
         <section v-show="activeMonitorPanel === 'diagnostics'" class="monitor-panel-stage monitor-panel-stage--diagnostics">
           <div class="grid-diagnostics">
             <div class="diagnostic-list">
@@ -542,7 +660,45 @@
                 <h4>系统诊断</h4>
                 <p>工程字段、心跳、锁、历史、报告和图片指标集中在低优先级区域。</p>
               </div>
+              <div class="summary-card auto-dispatch-card">
+                <div class="queue-side-head">
+                  <div>
+                    <h4>自动派发</h4>
+                    <p>{{ wikiDispatchModeLabel }} · {{ wikiAutoDispatchLabel }} · {{ wikiPendingApprovalCount }} 待审批</p>
+                  </div>
+                  <span class="status-pill" :class="savedAutoDispatchEnabled ? 'success' : 'muted'">{{ savedAutoDispatchLabel }}</span>
+                </div>
+                <label class="setting-row auto-dispatch-toggle">
+                  <div>
+                    <strong>启用状态</strong>
+                    <small>有变化时按 changed-only 流程派发。</small>
+                  </div>
+                  <input v-model="autoDispatchForm.enabled" type="checkbox">
+                </label>
+                <label class="setting-row auto-dispatch-interval">
+                  <div>
+                    <strong>扫描间隔</strong>
+                    <small>单位：分钟。</small>
+                  </div>
+                  <input v-model.number="autoDispatchForm.sweepIntervalMinutes" class="number-input" type="number" min="1" max="1440">
+                </label>
+                <div class="setting-row">
+                  <div>
+                    <strong>最近自动派发</strong>
+                    <small>{{ autoDispatchSweepSummary }}</small>
+                  </div>
+                  <button type="button" class="btn btn-secondary" :disabled="autoDispatchSaving" @click="saveAutoDispatchSettings">
+                    <RefreshCw :size="16" :class="{ spin: autoDispatchSaving }" />
+                    <span>{{ autoDispatchSaving ? '保存中' : '保存设置' }}</span>
+                  </button>
+                </div>
+              </div>
               <div class="diagnostic-list state-list state-list--compact">
+                <div v-for="plan in dispatchPlanRows" :key="plan.actionId || plan.priority || plan.reason" class="diag-card">
+                  <small>派发计划</small>
+                  <strong>{{ plan.actionId || '未命名动作' }}</strong>
+                  <small>{{ dispatchPlanSummary(plan) }}</small>
+                </div>
                 <div v-for="heartbeat in staleHeartbeatRows" :key="heartbeatKey(heartbeat)" class="diag-card warning">
                   <small>{{ heartbeat.label || heartbeat.id || heartbeat.domain || '心跳' }}</small>
                   <strong>{{ statusLabel(heartbeat.status || 'stalled') }}</strong>
@@ -564,11 +720,11 @@
       </div>
     </section>
 
-    <section v-if="dispatchConfirmDomain" class="cancel-confirm-panel" role="dialog" aria-modal="true" aria-label="启动重爬确认">
+    <section v-if="dispatchConfirmDomain" class="cancel-confirm-panel" role="dialog" aria-modal="true" aria-label="正式派发确认">
       <div class="cancel-confirm-panel__body">
-        <span class="ops-card__label">重爬确认</span>
-        <h2>确认启动重爬：{{ wikiDomainChineseName(dispatchConfirmDomain) }}</h2>
-        <p>该操作会启动对应 Wiki 域的真实爬取/刷新任务，不只是刷新当前页面状态。为防止误触，请先确认当前心跳、进度文件和已下载文件。</p>
+        <span class="ops-card__label">派发确认</span>
+        <h2>确认提交正式派发：{{ wikiDomainChineseName(dispatchConfirmDomain) }}</h2>
+        <p>该操作会创建后台抓取任务并进入正式队列；不是刷新当前页面，也不会自动清理旧产物。为防止误触，请先确认当前心跳、进度文件和已下载文件。</p>
         <ul>
           <li><code>动作：{{ dispatchConfirmDomain.recommendedActionId || '未配置' }}</code></li>
           <li><code>影响域：{{ dispatchConfirmCoveredDomainLabels }}</code></li>
@@ -578,7 +734,7 @@
         <div class="cancel-confirm-panel__actions">
           <button type="button" class="inline-report-button" @click="closeDispatchConfirm">暂不派发</button>
           <button type="button" class="inline-report-button inline-report-button--danger" :disabled="wikiDispatchLoading === dispatchConfirmDomain.domain" @click="confirmWikiDomainDispatch">
-            确认启动重爬
+            确认提交正式派发
           </button>
         </div>
       </div>
@@ -703,7 +859,7 @@ type ProgressRow = CrawlerMonitorRegisteredTask & {
   sourceQueueItem?: CrawlerMonitorWikiQueueItem | null
 }
 
-const MONITOR_PANEL_KEYS = ['overview', 'queue', 'progress', 'reports', 'auto', 'diagnostics'] as const
+const MONITOR_PANEL_KEYS = ['overview', 'queue', 'progress', 'reports', 'diagnostics'] as const
 type MonitorPanelKey = typeof MONITOR_PANEL_KEYS[number]
 type MonitorPanelMeta = {
   key: MonitorPanelKey
@@ -714,18 +870,18 @@ type MonitorPanelMeta = {
   count: number | string
 }
 const FALLBACK_MONITOR_PANEL: MonitorPanelMeta = {
-  key: 'overview',
-  label: '状态总览',
-  title: '10 域状态总览',
-  subtitle: '完整域列表只在这里展示；选中一行后在右侧查看当前域证据。',
-  badge: '0 域',
+  key: 'queue',
+  label: '队列和派发状态',
+  title: '队列和派发状态',
+  subtitle: '当前未结束项和已处理/异常项分开展示，运行中的任务始终在上方。',
+  badge: '运行 0 / 已处理 0',
   count: 0,
 }
 
 const overview = ref<CrawlerMonitorOverview | null>(null)
 const loading = ref(false)
 const autoRefresh = ref(true)
-const activeMonitorPanel = ref<MonitorPanelKey>('overview')
+const activeMonitorPanel = ref<MonitorPanelKey>('queue')
 const panelSwitching = ref(false)
 const selectedReportPath = ref<string | null>(null)
 const reportPreview = ref<CrawlerMonitorReportDetail | null>(null)
@@ -736,6 +892,7 @@ const wikiDispatchLoading = ref('')
 const wikiControlLoading = ref('')
 const progressControlLoading = ref('')
 const queueControlLoading = ref('')
+const forceReclaimAllLoading = ref(false)
 const autoDispatchSaving = ref(false)
 const autoDispatchForm = reactive<CrawlerMonitorAutoDispatchSettings>({
   enabled: false,
@@ -835,6 +992,8 @@ const registeredTasks = computed<CrawlerMonitorRegisteredTask[]>(() => Array.isA
 const progressRows = computed<ProgressRow[]>(() => progressRowsFromOverview(overview.value))
 const domainSmokeProgressRow = computed<ProgressRow | null>(() => progressRows.value.find((row) => row.id === 'wiki-monitor-domain-smoke') || null)
 const executionOverviewRows = computed(() => buildExecutionOverviewRows(overview.value || {}))
+const activeExecutionOverviewRows = computed(() => executionOverviewRows.value.filter((row) => isCurrentExecutionOverviewRow(row)))
+const historicalExecutionOverviewRows = computed(() => executionOverviewRows.value.filter((row) => isHistoricalExecutionOverviewRow(row)))
 const executionOverviewStatusLabel = computed(() => executionOverviewStatus(executionOverviewRows.value))
 const sourceSnapshotRows = computed<ProgressRow[]>(() => sourceSnapshotRowsFromOverview(overview.value))
 const liveSourceSnapshotActive = computed(() => hasLiveSourceSnapshotProgress(overview.value))
@@ -864,6 +1023,8 @@ const progressDetailRows = computed<ProgressRow[]>(() => progressRows.value
 )
 const visibleProgressRowsByPriority = computed<ProgressRow[]>(() => sortRowsByPriority(visibleProgressRows.value))
 const progressDetailRowsByPriority = computed<ProgressRow[]>(() => sortRowsByPriority(progressDetailRows.value))
+const activeProgressRows = computed<ProgressRow[]>(() => progressDetailRowsByPriority.value.filter((row) => isCurrentProgressRow(row)))
+const historicalProgressRows = computed<ProgressRow[]>(() => progressDetailRowsByPriority.value.filter((row) => isHistoricalProgressRow(row)))
 const dispatchQueueRows = computed<CrawlerMonitorWikiQueueItem[]>(() => activeDispatchQueueRows.value)
 const visibleWikiDomainRowsByPriority = computed<CrawlerMonitorWikiDomain[]>(() => sortWikiDomainsByPriority(visibleWikiDomainRows.value))
 const runtimeStateCards = computed(() => [
@@ -940,7 +1101,7 @@ const crawlerHealthCards = computed(() => {
     },
     {
       key: 'running-domains',
-      label: '运行中',
+      label: '运行态',
       value: formatNumber(runningDomainRows.length),
       note: runningDomainRows.length ? '来自域监控表的运行中状态' : '暂无运行中域',
       tone: 'success',
@@ -1042,7 +1203,16 @@ const selectedDomainTableRow = computed(() => {
   return selected || rows[0]
 })
 const selectedDomainTableEvidence = computed(() => buildDomainTableEvidence(selectedDomainTableRow.value))
-const selectedDomainTableVisibleEvidenceFiles = computed(() => selectedDomainTableEvidence.value.files.filter((file: any) => String(file.label || '').trim() !== '日志'))
+const selectedDomainTableBackendEvidenceFile = computed(() => {
+  const path = domainRowEvidencePath(selectedDomainTableRow.value)
+  return path ? { label: '后端证据', path } : null
+})
+const selectedDomainTableVisibleEvidenceFiles = computed(() => {
+  const files = selectedDomainTableEvidence.value.files.filter((file: any) => String(file.label || '').trim() !== '日志')
+  const backendFile = selectedDomainTableBackendEvidenceFile.value
+  if (!backendFile || files.some((file: any) => file.path === backendFile.path)) return files
+  return [backendFile, ...files]
+})
 const selectedDomainTableLogEvidenceFiles = computed(() => selectedDomainTableEvidence.value.files.filter((file: any) => String(file.label || '').trim() === '日志'))
 const selectedDomainTableLogKey = computed(() => {
   const row = selectedDomainTableRow.value
@@ -1083,66 +1253,75 @@ const v4StatusStrip = computed(() => {
     ],
   }
 })
-const v4MetricCards = computed(() => [
-  {
-    key: 'formal-domains',
-    label: '正式监控域',
-    value: formatNumber(domainTableRows.value.length),
-    note: '完整域列表在状态总览',
-    tone: domainTableRows.value.length ? 'success' : 'muted',
-  },
-  {
-    key: 'failed-domains',
-    label: '失败域',
-    value: formatNumber(failedDomainRows.value.length),
-    note: failedDomainRows.value.length ? '需要优先排查' : '暂无失败域',
-    tone: failedDomainRows.value.length ? 'danger' : 'muted',
-  },
-  {
-    key: 'stale-heartbeats',
-    label: '心跳过期',
-    value: formatNumber(staleHeartbeatRows.value.length),
-    note: staleHeartbeatRows.value.length ? '检查进度和锁' : '暂无过期心跳',
-    tone: staleHeartbeatRows.value.length ? 'warning' : 'muted',
-  },
-  {
-    key: 'running-domains',
-    label: '运行中',
-    value: formatNumber(runningDomainRows.value.length),
-    note: dispatchQueueRows.value.length ? `${formatNumber(dispatchQueueRows.value.length)} 项队列` : '无 active 队列',
-    tone: runningDomainRows.value.length ? 'info' : 'muted',
-  },
-  {
-    key: 'auto-dispatch',
-    label: '自动派发',
-    value: savedAutoDispatchLabel.value.replace(/^已/, ''),
-    note: `changed-only · ${formatNumber(savedAutoDispatchIntervalMinutes.value)} 分钟`,
-    tone: savedAutoDispatchEnabled.value ? 'success' : 'muted',
-  },
-].slice(0, 5))
+const v4MetricCards = computed(() => {
+  const highestRiskRow = highestRiskDomainRow.value
+  const queuedRows = dispatchQueueRows.value.length
+    ? dispatchQueueRows.value
+    : domainTableRows.value.filter((row) => ['queued'].includes(String(row.status || '').toLowerCase()))
+  const visibleEvidenceCount = recentReportRows.value.length
+    + progressDetailRowsByPriority.value.reduce((total, row) => total + progressRowVisiblePathEntries(row).length + progressRowLogPathEntries(row).length, 0)
+
+  return [
+    {
+      key: 'highest-risk',
+      label: '最需要处理',
+      value: highestRiskRow ? (highestRiskRow.label || highestRiskRow.domain || highestRiskRow.actionId || '未知域') : '暂无',
+      note: highestRiskRow ? `${highestRiskRow.diagnosisTitle || statusLabel(highestRiskRow.status || 'unknown')} · ${highestRiskRow.rankReason || highestRiskRow.reason || '查看证据'}` : '暂无域监控数据',
+      tone: highestRiskRow ? statusTone(highestRiskRow.risk || highestRiskRow.status || 'missing') : 'muted',
+    },
+    {
+      key: 'running-domains',
+      label: '运行态',
+      value: formatNumber(runningDomainRows.value.length),
+      note: runningDomainRows.value.length ? '来自域监控表的运行中状态' : '暂无运行中域',
+      tone: runningDomainRows.value.length ? 'info' : 'muted',
+    },
+    {
+      key: 'queued-domains',
+      label: '队列等待',
+      value: formatNumber(queuedRows.length),
+      note: queuedRows.length ? '来自队列或域监控表' : '暂无排队任务',
+      tone: queuedRows.length ? 'warning' : 'muted',
+    },
+    {
+      key: 'evidence-files',
+      label: '可点击证据',
+      value: formatNumber(visibleEvidenceCount),
+      note: `报告 ${formatNumber(recentReportRows.value.length)} / 进度与日志 ${formatNumber(Math.max(0, visibleEvidenceCount - recentReportRows.value.length))}`,
+      tone: visibleEvidenceCount ? 'info' : 'muted',
+    },
+    {
+      key: 'last-refresh',
+      label: '最近刷新',
+      value: lastOverviewRefreshAt.value ? formatDate(lastOverviewRefreshAt.value) : '暂无刷新',
+      note: autoRefresh.value ? '自动刷新开' : '自动刷新关',
+      tone: autoRefresh.value ? 'success' : 'muted',
+    },
+  ].slice(0, 5)
+})
 const monitorPanels = computed<MonitorPanelMeta[]>(() => [
   {
     key: 'overview',
-    label: '状态总览',
-    title: '10 域状态总览',
+    label: '域总览',
+    title: '域总览',
     subtitle: '完整域列表只在这里展示；选中一行后在右侧查看当前域证据。',
     badge: `${formatNumber(domainTableRows.value.length)} 域`,
     count: domainTableRows.value.length,
   },
   {
     key: 'queue',
-    label: '队列',
+    label: '队列和派发状态',
     title: '队列和派发状态',
-    subtitle: '只展示有队列意义的运行、阻塞、失败和待处理项。',
-    badge: `${formatNumber(activeDispatchQueueRows.value.length)} 项`,
+    subtitle: '当前未结束项和已处理/异常项分开展示，运行中的任务始终在上方。',
+    badge: `运行 ${formatNumber(activeExecutionOverviewRows.value.length)} / 已处理 ${formatNumber(historicalExecutionOverviewRows.value.length)}`,
     count: activeDispatchQueueRows.value.length,
   },
   {
     key: 'progress',
-    label: '进度',
+    label: '真实任务进度',
     title: '真实任务进度',
-    subtitle: '来自 registeredTasks 和 latestRun.actions；不使用推算阶段百分比。',
-    badge: `${formatNumber(progressDetailRowsByPriority.value.length)} 行`,
+    subtitle: '当前执行和历史异常分开展示；不把失败、过去进度与正在运行混排。',
+    badge: `运行 ${formatNumber(activeProgressRows.value.length)} / 历史 ${formatNumber(historicalProgressRows.value.length)}`,
     count: progressDetailRowsByPriority.value.length,
   },
   {
@@ -1154,17 +1333,9 @@ const monitorPanels = computed<MonitorPanelMeta[]>(() => [
     count: recentReportRows.value.length,
   },
   {
-    key: 'auto',
-    label: '自动派发',
-    title: '自动派发状态',
-    subtitle: '展示当前配置、最近 sweep 和派发计划。',
-    badge: savedAutoDispatchLabel.value,
-    count: '',
-  },
-  {
     key: 'diagnostics',
-    label: '系统诊断',
-    title: '系统诊断',
+    label: '诊断',
+    title: '诊断',
     subtitle: '工程字段、心跳、锁、历史和质量指标集中在低优先级区域。',
     badge: dataQualityAttentionCount.value ? `${formatNumber(dataQualityAttentionCount.value)} 项待查` : '质量正常',
     count: dataQualityAttentionCount.value,
@@ -1242,7 +1413,7 @@ const selectedWikiPathSummary = computed(() => {
   return parts.join(' / ') || '未生成进度或报告文件'
 })
 const selectedDomainDisplayName = computed(() => selectedWikiDomain.value ? wikiDomainChineseName(selectedWikiDomain.value) : selectedDomainTableRow.value?.label || '暂无可选任务')
-const selectedDomainStatusLabel = computed(() => selectedWikiDomain.value ? crawlerStatusChineseLabel(wikiDomainFlowStatus(selectedWikiDomain.value)) : statusLabel(selectedDomainTableRow.value?.status || 'unknown'))
+const selectedDomainStatusLabel = computed(() => statusLabel(domainRowStatus(selectedDomainTableRow.value) || 'unknown'))
 const selectedDomainCooldownExplanation = computed(() => selectedWikiDomain.value && isWikiDomainCoolingDown(selectedWikiDomain.value) ? wikiCooldownExplanation(selectedWikiDomain.value) : '')
 const selectedDomainHeartbeatRaw = computed(() => wikiHeartbeatSummary(selectedWikiProgressRow.value))
 const selectedDomainHeartbeatMessage = computed(() => {
@@ -1255,20 +1426,22 @@ const selectedDomainHeartbeatState = computed(() => selectedDomainHeartbeatRaw.v
 const selectedDomainStartedAtLabel = computed(() => formatDate(rowStartedAt(selectedWikiProgressRow.value)))
 const selectedDomainElapsedLabel = computed(() => formatElapsedDuration(taskElapsedMs(selectedWikiProgressRow.value)))
 const selectedDomainNextActionLabel = computed(() => {
+  const backendAction = domainRowNextActionLabel(selectedDomainTableRow.value)
+  if (backendAction) return backendAction
   const domain = selectedWikiDomain.value
   if (!domain) return selectedDomainTableRow.value?.nextActionLabel || '查看任务'
   if (canResumeWikiDomain(domain)) return '继续任务'
   if (canPauseWikiDomain(domain)) return '暂停任务'
-  if (canExecuteWikiDomain(domain)) return '启动重爬'
+  if (canExecuteWikiDomain(domain)) return '提交正式派发'
   if (isWikiDomainCoolingDown(domain)) return '等待冷却'
   return '暂不可执行'
 })
 const selectedWikiReCrawlButtonLabel = computed(() => {
   const domain = selectedWikiDomain.value
-  if (!domain) return '不能重爬'
-  if (wikiDispatchLoading.value === domain.domain) return '启动中'
-  if (!canExecuteWikiDomain(domain)) return '不能重爬'
-  return '启动重爬'
+  if (!domain) return '不能派发'
+  if (wikiDispatchLoading.value === domain.domain) return '提交中'
+  if (!canExecuteWikiDomain(domain)) return '不能派发'
+  return '提交正式派发'
 })
 const selectedDomainOperatorSummary = computed(() => {
   const domain = selectedWikiDomain.value
@@ -1485,6 +1658,7 @@ watch(effectiveRefreshIntervalMs, () => {
 })
 
 async function loadOverview() {
+  if (loading.value) return
   loading.value = true
   try {
     await refreshOverview()
@@ -1704,9 +1878,9 @@ function wikiDomainHeartbeatLabel(domain: CrawlerMonitorWikiDomain) {
 }
 
 function wikiDomainPrimaryActionLabel(domain: CrawlerMonitorWikiDomain) {
-  if (wikiDispatchLoading.value === domain.domain) return '启动中'
-  if (!canExecuteWikiDomain(domain)) return '不能重爬'
-  return '启动重爬'
+  if (wikiDispatchLoading.value === domain.domain) return '提交中'
+  if (!canExecuteWikiDomain(domain)) return '不能派发'
+  return '提交正式派发'
 }
 
 function wikiDomainRecoveryTitle(domain: CrawlerMonitorWikiDomain) {
@@ -1715,10 +1889,10 @@ function wikiDomainRecoveryTitle(domain: CrawlerMonitorWikiDomain) {
   if (status === 'stalled') return '心跳过期，人工确认后重派'
   if (status === 'failed' || status === 'error') return '失败，人工确认后重派'
   if (status === 'paused') return '继续执行'
-  if (status === 'pending' || status === 'ready' || status === 'changed') return '手动启动重爬'
+  if (status === 'pending' || status === 'ready' || status === 'changed') return '手动提交正式派发'
   if (status === 'blocked') return '已阻断，查看原因'
   if (status === 'completed') return '打开报告复核'
-  return '缺少进度，先启动重爬'
+  return '缺少进度，先提交正式派发'
 }
 
 function wikiDomainRecoveryCopy(domain: CrawlerMonitorWikiDomain) {
@@ -1734,7 +1908,7 @@ function wikiDomainRecoveryCopy(domain: CrawlerMonitorWikiDomain) {
 function wikiDomainOperationHint(domain: CrawlerMonitorWikiDomain) {
   if (canPauseWikiDomain(domain)) return '当前运行中，可暂停；也可以继续观察心跳和进度。'
   if (canResumeWikiDomain(domain)) return '当前已暂停，可继续执行。'
-  if (canExecuteWikiDomain(domain)) return `${wikiDomainManualHint(domain)}。这里会启动该域重爬，不只是刷新页面状态。`
+  if (canExecuteWikiDomain(domain)) return `${wikiDomainManualHint(domain)}。将创建一个后台抓取任务并加入正式队列；不是刷新当前页面，也不会自动清理旧产物。`
   return wikiDomainDisabledReason(domain) || '当前没有可用的运行控制。'
 }
 
@@ -2022,10 +2196,22 @@ function canResumeDomainTableRow(row: any) {
 }
 
 function canStartDomainTableRow(row: any) {
-  const domain = row?.sourceDomain || null
-  if (!domain || !canExecuteWikiDomain(domain)) return false
+  if (!canExecuteDomainTableRow(row)) return false
   if (row?.queueItem && ['queued', 'blocked_cooldown', 'starting', 'running', 'paused'].includes(queueItemStatus(row.queueItem))) return false
-  return ['failed', 'stalled', 'ready', 'completed', 'cancelled', 'missing'].includes(String(row?.risk || row?.status || '').toLowerCase())
+  return ['failed', 'stalled', 'ready', 'completed', 'cancelled', 'missing'].includes(String(domainRowStatus(row) || row?.risk || row?.status || '').toLowerCase())
+}
+
+function canExecuteDomainTableRow(row: any) {
+  const domain = row?.sourceDomain || null
+  if (!domain?.recommendedActionId) return false
+  if (domain.pauseReason) return false
+  if (isWikiDomainCoolingDown(domain)) return false
+  if (row?.queueItem && ['queued', 'blocked_cooldown', 'starting', 'running', 'paused'].includes(queueItemStatus(row.queueItem))) return false
+  return ['failed', 'stalled', 'ready', 'completed', 'cancelled', 'missing'].includes(String(domainRowStatus(row) || row?.risk || row?.status || '').toLowerCase())
+}
+
+function shouldOfferDomainRowForceReclaim(row: any) {
+  return shouldOfferForceReclaim({ ...row, risk: domainRowStatus(row) || row?.risk })
 }
 
 function resumeDomainTableRow(row: any) {
@@ -2037,10 +2223,14 @@ function resumeDomainTableRow(row: any) {
 
 function startDomainTableRow(row: any) {
   selectDomainTableRow(row)
+  openDomainTableDispatchConfirm(row)
+}
+
+function openDomainTableDispatchConfirm(row: any) {
   const domain = row?.sourceDomain || null
-  if (domain && canExecuteWikiDomain(domain)) {
-    openDispatchConfirm(domain)
-  }
+  if (!domain || !canExecuteDomainTableRow(row)) return
+  selectWikiDomain(domain)
+  dispatchConfirmDomainKey.value = wikiDomainKey(domain)
 }
 
 function cancelDomainTableQueuedRow(row: any) {
@@ -2063,6 +2253,27 @@ async function forceReclaimDomainTableRow(row: any) {
     await loadOverview()
   } catch (error: any) {
     showToast(error?.data?.message || error?.message || '强制回收失败', 'error')
+  }
+}
+
+async function forceReclaimAllRunningDispatches() {
+  if (forceReclaimAllLoading.value) return
+  if (import.meta.client && !window.confirm('确认清空所有运行中和排队中的爬虫监控任务？这会终止已登记进程、释放锁，并把非终态队列标记为已取消。')) return
+  forceReclaimAllLoading.value = true
+  try {
+    const response: any = await post('/admin/crawler-monitor/dispatch/control', {
+      controlAction: 'forceReclaimAll',
+      domain: null,
+      actionId: null,
+      queueId: null,
+    })
+    latestDispatchResult.value = (response?.data ?? response) || null
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || '已清空运行/队列任务', latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    await loadOverview()
+  } catch (error: any) {
+    showToast(error?.data?.message || error?.message || '清空运行/队列失败', 'error')
+  } finally {
+    forceReclaimAllLoading.value = false
   }
 }
 
@@ -2188,7 +2399,23 @@ function executionOverviewBlocker(row: any) {
 }
 
 function executionOverviewTiming(row: any) {
-  return row?.timingLabel || row?.heartbeatSummary || '暂无时间'
+  const timeEvent = executionOverviewTimeEvent(row)
+  if (timeEvent) return `上海时间 ${formatDate(timeEvent.value)} · ${timeEvent.label}`
+  const fallback = String(row?.heartbeatSummary || '').trim()
+  return fallback || '暂无时间'
+}
+
+function executionOverviewTimeEvent(row: any) {
+  const item = row?.sourceQueueItem || null
+  const progressRow = row?.sourceProgressRow || null
+  const candidates = [
+    { label: '结束', value: item?.completedAt || progressRow?.progressPayload?.completedAt },
+    { label: '最新心跳', value: progressRow?.progressHeartbeatAt || progressRow?.lastHeartbeatAt || progressRow?.action?.lastHeartbeatAt },
+    { label: '更新', value: progressRow?.updatedAt || progressRow?.progressUpdatedAt || progressRow?.action?.updatedAt },
+    { label: '启动', value: item?.startedAt || progressRow?.progressPayload?.startedAt || progressRow?.action?.startedAt },
+    { label: '请求', value: item?.requestedAt },
+  ]
+  return candidates.find((candidate) => isValidDateValue(candidate.value)) || null
 }
 
 function smokeRowForDomain(domainId: string | null | undefined) {
@@ -2346,11 +2573,25 @@ function domainRowState(row: any) {
 }
 
 function domainRowStatus(row: any) {
-  return domainRowState(row).status || row?.status
+  return domainRowState(row).status
 }
 
 function domainRowStatusLabel(row: any) {
   return statusLabel(domainRowStatus(row))
+}
+
+function domainRowNextActionLabel(row: any) {
+  const state = domainRowState(row)
+  return state.nextActionLabel || '等待后端状态'
+}
+
+function domainRowBlockerLabel(row: any) {
+  const state = domainRowState(row)
+  return state.blockerLabel || state.blocker || ''
+}
+
+function domainRowEvidencePath(row: any) {
+  return domainRowState(row).evidence || ''
 }
 
 function progressRowStatusSource(row: ProgressRow) {
@@ -2437,7 +2678,7 @@ function progressRowNextActionLabel(row: ProgressRow) {
   if (status === 'paused') return '继续任务'
   if (status === 'running' || status === 'starting') return '可暂停或终止'
   if (status === 'queued' || status === 'blocked_cooldown') return '等待或取消排队'
-  if (status === 'stalled' || status === 'failed' || status === 'error') return '终止清理后重爬'
+  if (status === 'stalled' || status === 'failed' || status === 'error') return '终止清理后重新提交'
   return '查看证据'
 }
 
@@ -2500,9 +2741,9 @@ function baseDomainBackfillHint(domain: CrawlerMonitorWikiDomain | null | undefi
 }
 
 function baseDomainReCrawlActionLabel(domain: CrawlerMonitorWikiDomain | null | undefined) {
-  if (!domain) return '不可重爬'
-  if (wikiDispatchLoading.value === domain.domain) return '启动中'
-  return canExecuteWikiDomain(domain) ? '可启动重爬' : '不可重爬'
+  if (!domain) return '不可派发'
+  if (wikiDispatchLoading.value === domain.domain) return '提交中'
+  return canExecuteWikiDomain(domain) ? '可提交派发' : '不可派发'
 }
 
 async function triggerBaseDomainBackfill(domainRow: { domain?: CrawlerMonitorWikiDomain | null } | CrawlerMonitorWikiDomain | null | undefined) {
@@ -2569,7 +2810,7 @@ async function executeWikiMonitorTask(target: CrawlerMonitorWikiDomain | Crawler
     showToast(dispatchFeedbackMessage(latestDispatchResult.value), latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
     await loadOverview()
   } catch (error: any) {
-    showToast(error?.data?.message || error?.message || '启动重爬任务失败', 'error')
+    showToast(error?.data?.message || error?.message || '提交正式派发失败', 'error')
   } finally {
     wikiDispatchLoading.value = ''
   }
@@ -2796,6 +3037,8 @@ function statusLabel(status?: string | null) {
   if (normalized === 'timed_out') return '已超时'
   if (normalized === 'stalled') return '停滞'
   if (normalized === 'missing') return '缺失'
+  if (normalized === 'state_missing') return '状态未同步'
+  if (normalized === 'ready') return '可重新派发'
   if (normalized === 'readable') return '可读取'
   if (normalized === 'read error') return '读取错误'
   if (normalized === 'report-only') return '仅报告'
@@ -3000,6 +3243,24 @@ function isActiveProgressRow(row: ProgressRow) {
   return Boolean(row.progressStaleReason || rowHeartbeatAt(row))
 }
 
+function isCurrentProgressRow(row: ProgressRow) {
+  const status = progressRowEffectiveStatus(row)
+  return ['running', 'starting', 'queued', 'pending', 'paused', 'blocked', 'blocked_cooldown'].includes(status)
+}
+
+function isHistoricalProgressRow(row: ProgressRow) {
+  return !isCurrentProgressRow(row)
+}
+
+function isCurrentExecutionOverviewRow(row: any) {
+  const status = String(row?.displayStatus || row?.status || '').toLowerCase()
+  return ['running', 'starting', 'queued', 'pending', 'paused', 'blocked', 'blocked_cooldown'].includes(status)
+}
+
+function isHistoricalExecutionOverviewRow(row: any) {
+  return !isCurrentExecutionOverviewRow(row)
+}
+
 function isOperationalProgressRow(row: ProgressRow) {
   if (row.lane === 'validation') return false
   if (row.id === 'replacement-readiness') return false
@@ -3011,7 +3272,9 @@ function statusTone(status?: string | null) {
   if (['completed', 'success', 'ok', 'readable', 'free'].includes(normalized)) return 'success'
   if (['failed', 'error', 'missing', 'read error', 'blocked', 'timed_out'].includes(normalized)) return 'danger'
   if (['running', 'active'].includes(normalized)) return 'info'
-  if (['pending', 'sleeping', 'locked', 'queued', 'blocked_cooldown', 'starting', 'stalled', 'warning', 'paused', 'cancelled'].includes(normalized)) return 'warning'
+  if (normalized === 'ready') return 'ready'
+  if (normalized === 'cancelled') return 'cancelled'
+  if (['pending', 'sleeping', 'locked', 'queued', 'blocked_cooldown', 'starting', 'stalled', 'warning', 'paused'].includes(normalized)) return 'warning'
   return 'muted'
 }
 
@@ -3261,7 +3524,7 @@ function dispatchFeedbackMessage(result?: CrawlerMonitorDispatchResult | null) {
   if (result.status === 'locked') {
     const since = result.blockedSince ? `，开始于 ${formatDate(result.blockedSince)}` : ''
     const lock = result.lockPath ? `，锁文件 ${result.lockPath}` : ''
-    return `已有 Wiki 监控任务占用：${dispatchBlockerLabel(result)}${since}${lock}。心跳过期不会自动重试，请先确认阻塞任务状态，必要时取消清理后再手动重新重爬。`
+    return `已有 Wiki 监控任务占用：${dispatchBlockerLabel(result)}${since}${lock}。心跳过期不会自动重试，请先确认阻塞任务状态，必要时取消清理后再重新提交正式派发。`
   }
   if (result.status === 'cooldown') {
     return '当前处于 Wiki 保护冷却期，页面只会在冷却条件真实命中时阻止派发。'
@@ -3376,7 +3639,28 @@ function formatDate(value: number | string | null | undefined) {
   if (!value) return '--'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return String(value)
-  return date.toLocaleString('zh-CN', { hour12: false })
+  return formatShanghaiDate(date)
+}
+
+const SHANGHAI_DATE_FORMATTER = new Intl.DateTimeFormat('zh-CN', {
+  timeZone: 'Asia/Shanghai',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+})
+
+function formatShanghaiDate(value: Date) {
+  const parts = Object.fromEntries(SHANGHAI_DATE_FORMATTER.formatToParts(value).map((part) => [part.type, part.value]))
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`
+}
+
+function isValidDateValue(value: number | string | null | undefined) {
+  if (!value) return false
+  return Number.isFinite(new Date(value).getTime())
 }
 
 function formatEtaDuration(value: number) {
@@ -5904,22 +6188,13 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 14px;
   align-items: center;
+  min-height: 58px;
   min-width: 0;
   padding: 10px 14px;
   border: 1px solid color-mix(in srgb, #d97706 26%, var(--color-border));
   border-radius: 8px;
   background: color-mix(in srgb, #fffbeb 54%, var(--color-bg));
   box-shadow: none;
-}
-
-.crawler-monitor-v4 .status-strip--danger {
-  border-color: color-mix(in srgb, #dc2626 28%, var(--color-border));
-  background: color-mix(in srgb, #fff7f7 72%, var(--color-bg));
-}
-
-.crawler-monitor-v4 .status-strip--success {
-  border-color: color-mix(in srgb, #059669 22%, var(--color-border));
-  background: color-mix(in srgb, #f0fdf4 60%, var(--color-bg));
 }
 
 .crawler-monitor-v4 .status-strip__main {
@@ -5994,6 +6269,29 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   white-space: nowrap;
 }
 
+.crawler-monitor-v4 .domain-status-cell {
+  min-height: 48px;
+  display: grid;
+  grid-template-rows: 26px 16px;
+  align-content: center;
+  gap: 4px;
+  width: 88px;
+}
+
+.crawler-monitor-v4 .domain-status-cell .status-pill {
+  min-width: 72px;
+  width: 72px;
+  justify-self: start;
+}
+
+.crawler-monitor-v4 .domain-status-cell small {
+  min-height: 16px;
+  max-width: 88px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .crawler-monitor-v4 .success {
   color: var(--color-success, #166534);
   background: var(--color-success-bg, #dcfce7);
@@ -6012,6 +6310,16 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 .crawler-monitor-v4 .info {
   color: var(--color-info, #075985);
   background: var(--color-info-bg, #e0f2fe);
+}
+
+.crawler-monitor-v4 .ready {
+  color: #166534;
+  background: color-mix(in srgb, var(--color-success-bg, #dcfce7) 72%, var(--color-bg));
+}
+
+.crawler-monitor-v4 .cancelled {
+  color: var(--color-text-secondary, #475569);
+  background: color-mix(in srgb, var(--color-border) 72%, var(--color-bg));
 }
 
 .crawler-monitor-v4 .muted {
@@ -6063,25 +6371,6 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   color: var(--color-text-secondary);
   font-size: 11px;
   line-height: 1.3;
-}
-
-.crawler-monitor-v4 .metric.is-danger {
-  border-color: color-mix(in srgb, #dc2626 28%, var(--color-border));
-  background: color-mix(in srgb, #fff7f7 70%, var(--color-bg));
-  box-shadow: inset 4px 0 0 var(--color-danger), var(--shadow-card);
-}
-
-.crawler-monitor-v4 .metric.is-warning {
-  border-color: color-mix(in srgb, #d97706 30%, var(--color-border));
-  background: color-mix(in srgb, #fffbeb 72%, var(--color-bg));
-  box-shadow: inset 4px 0 0 var(--color-warning), var(--shadow-card);
-}
-
-.crawler-monitor-v4 .metric.is-success,
-.crawler-monitor-v4 .metric.is-info {
-  border-color: color-mix(in srgb, var(--color-primary) 26%, var(--color-border));
-  background: color-mix(in srgb, #f0fdfa 58%, var(--color-bg));
-  box-shadow: inset 4px 0 0 var(--color-primary), var(--shadow-card);
 }
 
 .crawler-monitor-v4 .module-tabs {
@@ -6151,12 +6440,11 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   display: grid;
   gap: 10px;
   min-width: 0;
-  transition: opacity 170ms ease, transform 170ms ease;
+  transition: opacity 170ms ease;
 }
 
 .crawler-monitor-v4 .stage.switching {
-  opacity: 0.22;
-  transform: translateY(8px);
+  opacity: 0.5;
 }
 
 .crawler-monitor-v4 .view-head {
@@ -6187,7 +6475,7 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 
 .crawler-monitor-v4 .overview-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(330px, 390px);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
   gap: 12px;
   align-items: start;
 }
@@ -6195,7 +6483,8 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 .crawler-monitor-v4 .domain-table {
   max-height: 520px;
   max-width: 100%;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-bg);
@@ -6203,7 +6492,8 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 
 .crawler-monitor-v4 .monitor-table {
   width: 100%;
-  min-width: 760px;
+  min-width: 0;
+  table-layout: fixed;
   border-collapse: collapse;
 }
 
@@ -6226,6 +6516,31 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   font-weight: 700;
 }
 
+.crawler-monitor-v4 .monitor-table th:nth-child(1),
+.crawler-monitor-v4 .monitor-table td:nth-child(1) {
+  width: 18%;
+}
+
+.crawler-monitor-v4 .monitor-table th:nth-child(2),
+.crawler-monitor-v4 .monitor-table td:nth-child(2) {
+  width: 18%;
+}
+
+.crawler-monitor-v4 .monitor-table th:nth-child(3),
+.crawler-monitor-v4 .monitor-table td:nth-child(3) {
+  width: 14%;
+}
+
+.crawler-monitor-v4 .monitor-table th:nth-child(4),
+.crawler-monitor-v4 .monitor-table td:nth-child(4) {
+  width: 22%;
+}
+
+.crawler-monitor-v4 .monitor-table th:nth-child(5),
+.crawler-monitor-v4 .monitor-table td:nth-child(5) {
+  width: 28%;
+}
+
 .crawler-monitor-v4 .domain-row {
   cursor: pointer;
   transition: background-color 160ms ease, box-shadow 160ms ease;
@@ -6244,13 +6559,13 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  min-width: 150px;
+  min-width: 0;
 }
 
 .crawler-monitor-v4 .domain-actions .btn {
   min-height: 32px;
   padding: 5px 7px;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .crawler-monitor-v4 .btn-plain--danger {
@@ -6278,6 +6593,8 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   display: grid;
   gap: 10px;
   min-width: 0;
+  max-height: calc(100vh - var(--header-height) - 28px);
+  overflow: auto;
   padding: 12px;
   border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
   border-radius: 8px;
@@ -6286,8 +6603,8 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 }
 
 .crawler-monitor-v4 .current-head {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   align-items: flex-start;
 }
@@ -6367,13 +6684,20 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   overflow-wrap: anywhere;
 }
 
+.crawler-monitor-v4 .kv strong {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
 .crawler-monitor-v4 .grid-queue,
 .crawler-monitor-v4 .grid-progress,
 .crawler-monitor-v4 .grid-reports,
 .crawler-monitor-v4 .grid-auto,
 .crawler-monitor-v4 .grid-diagnostics {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.42fr);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.36fr);
   gap: 12px;
   align-items: start;
 }
@@ -6388,6 +6712,47 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   min-width: 0;
   overflow: auto;
   padding-right: 2px;
+}
+
+.crawler-monitor-v4 .progress-group,
+.crawler-monitor-v4 .queue-group {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.crawler-monitor-v4 .progress-group + .progress-group,
+.crawler-monitor-v4 .queue-group + .queue-group {
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+}
+
+.crawler-monitor-v4 .progress-group-head,
+.crawler-monitor-v4 .queue-group-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  min-width: 0;
+  min-height: 44px;
+  padding: 2px 0;
+}
+
+.crawler-monitor-v4 .progress-group-head h4,
+.crawler-monitor-v4 .queue-group-head h4 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.crawler-monitor-v4 .progress-group-head p,
+.crawler-monitor-v4 .queue-group-head p {
+  margin: 3px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .crawler-monitor-v4 .queue-card,
@@ -6454,6 +6819,21 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   overflow-wrap: anywhere;
 }
 
+.crawler-monitor-v4 .queue-time {
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 0 7px;
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 84%, transparent);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
 .crawler-monitor-v4 .queue-meta {
   display: flex;
   align-items: center;
@@ -6481,6 +6861,38 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 
 .crawler-monitor-v4 .progress-card-subtitle {
   margin-bottom: 6px;
+}
+
+.crawler-monitor-v4 .queue-primary-insight,
+.crawler-monitor-v4 .progress-primary-insight {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.crawler-monitor-v4 .queue-primary-insight span,
+.crawler-monitor-v4 .progress-primary-insight span {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-secondary);
+}
+
+.crawler-monitor-v4 .queue-card-details,
+.crawler-monitor-v4 .progress-card-details {
+  margin-top: 8px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 8px;
+}
+
+.crawler-monitor-v4 .queue-card-details > summary,
+.crawler-monitor-v4 .progress-card-details > summary {
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .crawler-monitor-v4 .progress-insight-grid,
@@ -6816,12 +7228,213 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   overflow: auto;
 }
 
+.crawler-monitor-v4 {
+  scrollbar-color: color-mix(in srgb, var(--color-text-muted) 42%, transparent) transparent;
+  scrollbar-width: thin;
+}
+
+.crawler-monitor-v4 ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.crawler-monitor-v4 ::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-text-muted) 34%, transparent);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+.crawler-monitor-v4 ::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--color-primary) 42%, transparent);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.crawler-monitor-v4 .status-strip {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #fffbeb 58%, var(--color-bg-secondary)), var(--color-bg-secondary));
+}
+
+.crawler-monitor-v4 .btn:focus-visible,
+.crawler-monitor-v4 .module-tab:focus-visible,
+.crawler-monitor-v4 .queue-card:focus-visible,
+.crawler-monitor-v4 .task-card:focus-visible,
+.crawler-monitor-v4 .report-item:focus-visible,
+.crawler-monitor-v4 .inline-report-button:focus-visible {
+  outline: 0;
+  box-shadow: var(--shadow-focus), var(--shadow-card);
+}
+
+.crawler-monitor-v4 .metric,
+.crawler-monitor-v4 .module-stage-shell,
+.crawler-monitor-v4 .queue-card,
+.crawler-monitor-v4 .task-card,
+.crawler-monitor-v4 .report-item,
+.crawler-monitor-v4 .diag-card,
+.crawler-monitor-v4 .summary-card,
+.crawler-monitor-v4 .current-card {
+  background:
+    linear-gradient(180deg, var(--color-bg-secondary), color-mix(in srgb, var(--color-bg-secondary) 90%, var(--color-bg-tertiary)));
+}
+
+.crawler-monitor-v4 .metric {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--color-border) 84%, transparent);
+}
+
+.crawler-monitor-v4 .metric::after {
+  content: "";
+  position: absolute;
+  inset: auto 12px 0;
+  height: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  opacity: 0.45;
+}
+
+.crawler-monitor-v4 .side-panel {
+  position: sticky;
+  top: calc(var(--header-height) + 12px);
+  align-self: start;
+}
+
+.crawler-monitor-v4 .queue-card,
+.crawler-monitor-v4 .task-card,
+.crawler-monitor-v4 .report-item {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 26px -24px rgb(28 25 23 / 22%);
+}
+
+.crawler-monitor-v4 .queue-card::before,
+.crawler-monitor-v4 .task-card::before,
+.crawler-monitor-v4 .report-item::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: transparent;
+  transition: background-color 160ms ease, opacity 160ms ease;
+}
+
+.crawler-monitor-v4 .queue-card.selected,
+.crawler-monitor-v4 .report-item.active {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 7%, var(--color-bg-secondary)), var(--color-bg-secondary));
+  box-shadow:
+    inset 3px 0 0 var(--color-primary),
+    0 14px 34px -28px color-mix(in srgb, var(--color-primary) 42%, rgb(28 25 23 / 20%));
+}
+
+.crawler-monitor-v4 .queue-card.selected::before,
+.crawler-monitor-v4 .report-item.active::before {
+  background: var(--color-primary);
+}
+
+.crawler-monitor-v4 .queue-card:hover,
+.crawler-monitor-v4 .task-card:hover,
+.crawler-monitor-v4 .report-item:hover,
+.crawler-monitor-v4 .diag-card:hover {
+  box-shadow: var(--shadow-surface-2);
+}
+
+.crawler-monitor-v4 .queue-primary-insight span,
+.crawler-monitor-v4 .progress-primary-insight span,
+.crawler-monitor-v4 .queue-insight-grid span,
+.crawler-monitor-v4 .progress-insight-grid span,
+.crawler-monitor-v4 .dispatch-queue-row__meta span,
+.crawler-monitor-v4 .kv {
+  background:
+    linear-gradient(180deg, var(--color-bg-secondary), color-mix(in srgb, var(--color-bg-secondary) 82%, var(--color-bg-tertiary)));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 58%, transparent);
+}
+
+.crawler-monitor-v4 .progress-track {
+  height: 8px;
+  background: color-mix(in srgb, var(--color-border) 64%, var(--color-bg-tertiary));
+  box-shadow: inset 0 1px 2px rgb(28 25 23 / 6%);
+}
+
+.crawler-monitor-v4 .progress-track span {
+  background: linear-gradient(90deg, var(--color-primary-dark), var(--color-primary-light));
+}
+
+.crawler-monitor-v4 .progress-track span.danger {
+  background: linear-gradient(90deg, var(--color-danger), #f87171);
+}
+
+.crawler-monitor-v4 .progress-track span.warning {
+  background: linear-gradient(90deg, var(--color-warning), #fbbf24);
+}
+
+.crawler-monitor-v4 .evidence-row .inline-report-button,
+.crawler-monitor-v4 .progress-path-list .inline-report-button {
+  position: relative;
+  min-height: 54px;
+  border-color: color-mix(in srgb, var(--color-border) 82%, transparent);
+  background:
+    linear-gradient(180deg, var(--color-bg-secondary), color-mix(in srgb, var(--color-bg-secondary) 80%, var(--color-bg-tertiary)));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 54%, transparent);
+}
+
+.crawler-monitor-v4 .evidence-row .inline-report-button::after,
+.crawler-monitor-v4 .progress-path-list .inline-report-button::after,
+.crawler-monitor-v4 .evidence-chip::after {
+  content: "";
+  position: absolute;
+  right: 9px;
+  top: 9px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 58%, transparent);
+}
+
+.crawler-monitor-v4 .inline-report-button--not-previewable::after {
+  background: color-mix(in srgb, var(--color-text-muted) 38%, transparent);
+}
+
+.crawler-monitor-v4 .queue-side-head {
+  padding-bottom: 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 74%, transparent);
+}
+
+.crawler-monitor-v4 .diag-card {
+  min-height: 86px;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.crawler-monitor-v4 .diag-card:hover {
+  transform: translateY(-1px);
+}
+
+.crawler-monitor-v4 .diag-card:not(.danger):not(.warning):not(.accent) {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--color-border) 80%, transparent), var(--shadow-card);
+}
+
+.crawler-monitor-v4 .current-card {
+  box-shadow: inset 3px 0 0 var(--color-primary), var(--shadow-surface-2);
+}
+
+.crawler-monitor-v4 .wiki-domain-control-strip {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 6%, var(--color-bg-secondary)), var(--color-bg-secondary));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 58%, transparent);
+}
+
+.crawler-monitor-v4 .code-preview {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .crawler-monitor-v4 .module-tab,
   .crawler-monitor-v4 .stage,
   .crawler-monitor-v4 .drawer-backdrop,
   .crawler-monitor-v4 .report-drawer,
   .crawler-monitor-v4 .queue-card,
+  .crawler-monitor-v4 .task-card,
   .crawler-monitor-v4 .report-item {
     transition-duration: 1ms;
   }

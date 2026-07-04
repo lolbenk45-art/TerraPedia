@@ -1,8 +1,10 @@
 import {
   buildCrawlerUnifiedStatus,
+  crawlerStatusDisplayLabel,
   crawlerStatusRank,
   normalizeCrawlerStatus,
 } from './crawlerMonitorUnifiedStatus.mjs'
+import { nextActionLabel } from '../pages/operations/crawler-monitor.labels.mjs'
 
 const QUIET_TERMINAL_QUEUE_STATUSES = new Set(['completed'])
 
@@ -85,6 +87,53 @@ function queueRisk(item) {
 
 function domainRisk(domain, progressRow, queueItem) {
   return buildCrawlerUnifiedStatus({ domain, progressRow, queueItem }).risk
+}
+
+function riskFromStatus(status) {
+  const normalized = lower(status)
+  if (normalized === 'timed_out') return 'failed'
+  if (normalized === 'completed') return 'healthy'
+  return normalized || 'unknown'
+}
+
+function backendStateStatus(domain) {
+  const status = lower(domain?.state?.status)
+  if (status === 'cancelled') return 'ready'
+  return status
+}
+
+function backendStateDiagnosis(domain, status) {
+  const rawStatus = lower(domain?.state?.status)
+  if (!status) {
+    return {
+      diagnosisGroup: 'state-missing',
+      diagnosisTitle: '状态未同步',
+      rankReason: '后端未输出 domain.state，前端不再推导域主状态',
+      nextActionLabel: '等待后端状态',
+    }
+  }
+  if (rawStatus === 'cancelled') {
+    return {
+      diagnosisGroup: 'ready',
+      diagnosisTitle: '可重新派发',
+      rankReason: '上次已取消，可重新提交后台抓取任务',
+      nextActionLabel: nextActionLabel(domain?.state?.nextAction),
+    }
+  }
+  if (status === 'ready') {
+    return {
+      diagnosisGroup: 'ready',
+      diagnosisTitle: '可重新派发',
+      rankReason: domain?.state?.evidence || domain?.state?.blockerLabel || '可重新提交后台抓取任务，不是当前阻断项',
+      nextActionLabel: nextActionLabel(domain?.state?.nextAction),
+    }
+  }
+  return {
+    diagnosisGroup: riskFromStatus(status),
+    diagnosisTitle: crawlerStatusDisplayLabel(status),
+    rankReason: domain?.state?.evidence || domain?.state?.blockerLabel || '后端 domain.state 权威状态',
+    nextActionLabel: nextActionLabel(domain?.state?.nextAction),
+  }
 }
 
 function progressLabel(row) {
@@ -191,7 +240,7 @@ function diagnosisFor({ domain, progressRow, queueItem, risk, blockerLabel, unif
       diagnosisGroup: 'attention',
       diagnosisTitle: status === 'timed_out' ? '任务超时' : '执行失败',
       rankReason: '失败域优先，需要人工确认日志和报告',
-      nextActionLabel: unifiedStatus?.nextActionLabel || (queueItem ? '终止并清理后重爬' : '启动重爬'),
+      nextActionLabel: unifiedStatus?.nextActionLabel || (queueItem ? '终止清理后重新提交' : '提交正式派发'),
     }
   }
   if (risk === 'stalled') {
@@ -199,7 +248,7 @@ function diagnosisFor({ domain, progressRow, queueItem, risk, blockerLabel, unif
       diagnosisGroup: 'attention',
       diagnosisTitle: '心跳过期',
       rankReason: unifiedStatus?.reason || '心跳过期优先，避免卡住后续队列',
-      nextActionLabel: unifiedStatus?.nextActionLabel || (queueItem ? '终止并清理后重爬' : '启动重爬'),
+      nextActionLabel: unifiedStatus?.nextActionLabel || (queueItem ? '终止清理后重新提交' : '提交正式派发'),
     }
   }
   if (risk === 'blocked') {
@@ -240,15 +289,15 @@ function diagnosisFor({ domain, progressRow, queueItem, risk, blockerLabel, unif
       diagnosisGroup: 'cancelled',
       diagnosisTitle: '已取消',
       rankReason: unifiedStatus?.reason || '队列已取消，旧进度文件可能仍保留运行状态',
-      nextActionLabel: unifiedStatus?.nextActionLabel || '启动重爬',
+      nextActionLabel: unifiedStatus?.nextActionLabel || '提交正式派发',
     }
   }
   if (risk === 'ready') {
     return {
       diagnosisGroup: 'ready',
       diagnosisTitle: domain?.requiresApproval ? '等待确认' : '可执行',
-      rankReason: '可手动启动，不是当前阻断项',
-      nextActionLabel: '启动重爬',
+      rankReason: '可手动提交正式派发，不是当前阻断项',
+      nextActionLabel: '提交正式派发',
     }
   }
   return {
@@ -307,27 +356,30 @@ export function buildDomainTableRows({ domains = [], progressRows = [], dispatch
       emittedKeys.add(matchKey)
     }
     const unifiedStatus = buildCrawlerUnifiedStatus({ domain, progressRow: matchedProgressRow, queueItem: matchedQueueItem })
-    const risk = domainRisk(domain, matchedProgressRow, matchedQueueItem)
+    const backendStatus = backendStateStatus(domain)
+    const status = backendStatus || 'state_missing'
+    const risk = backendStatus ? riskFromStatus(backendStatus) : 'unknown'
     const blockerLabel = formatBlocker(matchedQueueItem)
     const files = evidenceFiles(domain, matchedProgressRow, matchedQueueItem)
-    const diagnosis = diagnosisFor({ domain, progressRow: matchedProgressRow, queueItem: matchedQueueItem, risk, blockerLabel, unifiedStatus })
+    const diagnosis = backendStateDiagnosis(domain, backendStatus)
+    const stateBlockerLabel = domain?.state?.blockerLabel || domain?.state?.blocker || blockerLabel
     return {
       domain: domainFromSources(domain, matchedProgressRow, matchedQueueItem),
       label: labelFromSources(domain, matchedProgressRow, matchedQueueItem),
       actionId: domain?.recommendedActionId || matchedQueueItem?.actionId || matchedProgressRow?.id || '',
       risk,
       ...diagnosis,
-      status: effectiveStatus(domain, matchedProgressRow, matchedQueueItem),
-      statusSource: unifiedStatus.statusSource,
-      statusReason: unifiedStatus.reason,
-      stateConflictLabel: unifiedStatus.conflictLabel,
+      status,
+      statusSource: backendStatus ? 'backend' : 'missing_backend_state',
+      statusReason: backendStatus ? (domain?.state?.evidence || domain?.state?.blockerLabel || '') : diagnosis.rankReason,
+      stateConflictLabel: domain?.state?.blockerLabel || domain?.state?.blocker || '',
       progressLabel: progressLabel(matchedProgressRow),
       heartbeatAt: matchedProgressRow?.progressHeartbeatAt || matchedProgressRow?.lastHeartbeatAt || '',
       queueLabel: queueLabel(matchedQueueItem),
       queueSummary: queueSummary(matchedQueueItem),
       ownerLabel: ownerLabel(matchedQueueItem),
-      blockerLabel,
-      blockerIdentity: blockerIdentity(matchedQueueItem),
+      blockerLabel: stateBlockerLabel,
+      blockerIdentity: domain?.state?.blocker || blockerIdentity(matchedQueueItem),
       reason: rowReason({ domain, progressRow: matchedProgressRow, queueItem: matchedQueueItem, blockerLabel, risk, unifiedStatus }),
       queueId: matchedQueueItem?.queueId || '',
       dispatchId: matchedQueueItem?.dispatchId || '',

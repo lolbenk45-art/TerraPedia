@@ -680,6 +680,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     public CrawlerMonitorDispatchResultDTO controlWikiMonitorDispatch(CrawlerMonitorDispatchRequestDTO request) {
         Path repoRoot = resolveRepoRoot();
         String controlAction = trimToNull(request == null ? null : request.getControlAction());
+        if ("forceReclaimAll".equals(controlAction)) {
+            return reclaimAllWikiMonitorDispatches(repoRoot, "管理员清空运行/队列任务");
+        }
         if ("cancelQueued".equals(controlAction)) {
             return cancelQueuedWikiMonitorDispatch(repoRoot, request);
         }
@@ -697,7 +700,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             .map(item -> resolveWikiMonitorControlRuleFromQueueItem(request, item))
             .orElseGet(() -> resolveWikiMonitorControlRule(request));
         if (!"pause".equals(controlAction) && !"resume".equals(controlAction) && !"cancel".equals(controlAction) && !"retry".equals(controlAction)) {
-            throw new IllegalArgumentException("控制动作不支持 " + (controlAction == null ? "<空>" : controlAction) + "，请使用 pause、resume、cancel、retry 或 cancelQueued。");
+            throw new IllegalArgumentException("控制动作不支持 " + (controlAction == null ? "<空>" : controlAction) + "，请使用 pause、resume、cancel、retry、cancelQueued、forceReclaim 或 forceReclaimAll。");
         }
         ReadResult latestDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
         Map<String, Object> payload = latestDispatch.readable() ? latestDispatch.payload() : Map.of();
@@ -884,6 +887,62 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return result;
     }
 
+    private CrawlerMonitorDispatchResultDTO reclaimAllWikiMonitorDispatches(Path repoRoot, String reason) {
+        String safeReason = firstNonBlank(reason, "管理员清空运行/队列任务");
+        Instant now = Instant.now(clock);
+        List<WikiMonitorQueueItem> activeItems = queueRepository.listItems().stream()
+            .filter(item -> !item.isTerminal())
+            .toList();
+
+        for (ActiveDispatchProcess active : activeDispatchProcesses.values()) {
+            if (active != null && active.process() != null && active.process().isAlive()) {
+                cancellingDispatches.add(active.dispatchId());
+                processLauncher.destroy(active.process());
+            }
+        }
+        activeDispatchProcesses.clear();
+
+        for (Map.Entry<String, Process> entry : activeDomainSmokeProcesses.entrySet()) {
+            Process process = entry.getValue();
+            if (process != null && process.isAlive()) {
+                cancellingDispatches.add(entry.getKey());
+                processLauncher.destroy(process);
+            }
+        }
+        activeDomainSmokeProcesses.clear();
+
+        forceDeleteLock(repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize());
+        forceDeleteLock(repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize());
+
+        for (WikiMonitorQueueItem item : activeItems) {
+            queueRepository.markTerminal(item.getQueueId(), "cancelled", now, safeReason);
+            WikiMonitorRule rule = findWikiMonitorRule(item.getDomain(), item.getActionId());
+            if (rule != null) {
+                writeReclaimTerminalProgressFile(repoRoot, rule, safeReason, now);
+            }
+        }
+
+        LinkedHashMap<String, Object> state = new LinkedHashMap<>();
+        state.put("dispatchId", "force-reclaim-all-" + now.toString());
+        state.put("status", "force_reclaimed_all");
+        state.put("message", safeReason);
+        state.put("controlAction", "forceReclaimAll");
+        state.put("controlledAt", now.toString());
+        state.put("completedAt", now.toString());
+        state.put("cancelledQueueCount", activeItems.size());
+        writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), state);
+
+        cancellingDispatches.clear();
+        invalidateCachedOverview();
+
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(true);
+        result.setQueued(false);
+        result.setStatus("force_reclaimed_all");
+        result.setMessage(safeReason + "，已取消 " + activeItems.size() + " 个非终态队列项。");
+        return result;
+    }
+
     private boolean isDomainSmokeControl(CrawlerMonitorDispatchRequestDTO request) {
         return request != null && "wiki-monitor-domain-smoke".equals(trimToNull(request.getActionId()));
     }
@@ -1020,6 +1079,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private void writeReclaimTerminalProgress(Path repoRoot, String dispatchId, WikiMonitorRule rule, String reason) {
         Path dispatchFile = repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize();
+        Instant now = Instant.now(clock);
         ReadResult current = readJsonMap(dispatchFile);
         LinkedHashMap<String, Object> state = current.readable()
             ? new LinkedHashMap<>(current.payload())
@@ -1032,9 +1092,33 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         state.put("status", "force_reclaimed");
         state.put("message", reason);
         state.put("controlAction", "forceReclaim");
-        state.put("controlledAt", Instant.now(clock).toString());
-        state.put("completedAt", Instant.now(clock).toString());
+        state.put("controlledAt", now.toString());
+        state.put("completedAt", now.toString());
         writeJsonFile(dispatchFile, state);
+
+        writeReclaimTerminalProgressFile(repoRoot, rule, reason, now);
+    }
+
+    private void writeReclaimTerminalProgressFile(Path repoRoot, WikiMonitorRule rule, String reason, Instant now) {
+        String progressPath = rule.progressPath();
+        if (progressPath == null || progressPath.isBlank()) {
+            return;
+        }
+        Path path = repoRoot.resolve(progressPath).normalize();
+        ReadResult current = readJsonMap(path);
+        LinkedHashMap<String, Object> state = current.readable()
+            ? new LinkedHashMap<>(current.payload())
+            : new LinkedHashMap<>();
+        state.putIfAbsent("actionId", rule.actionId());
+        state.putIfAbsent("domain", rule.domain());
+        state.putIfAbsent("childStatusPath", progressPath);
+        state.put("status", "force_reclaimed");
+        state.put("message", reason);
+        state.put("controlAction", "forceReclaim");
+        state.put("controlledAt", now.toString());
+        state.put("completedAt", now.toString());
+        state.put("generatedAt", now.toString());
+        writeJsonFile(path, state);
     }
 
     private void markDomainQueueItemsReclaimed(String domain, String actionId, String reason) {

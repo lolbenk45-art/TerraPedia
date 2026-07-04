@@ -96,23 +96,65 @@ test('crawler monitor formal v4 first screen order matches the design draft', ()
   ])
 })
 
-test('crawler monitor formal v4 exposes the six design modules as real switchable panels', () => {
+test('crawler monitor formal v4 carries the approved high fidelity polish layer', () => {
+  const style = page.slice(page.indexOf('<style scoped>'))
+
+  for (const marker of [
+    '.crawler-monitor-v4 .queue-card::before',
+    '.crawler-monitor-v4 .task-card::before',
+    '.crawler-monitor-v4 .report-item::before',
+    '.crawler-monitor-v4 .evidence-chip::after',
+    '.crawler-monitor-v4 .side-panel',
+    'position: sticky',
+    'scrollbar-color',
+    'box-shadow: var(--shadow-focus)',
+    'linear-gradient(180deg, color-mix(in srgb, #fffbeb',
+    'transform: translateY(-1px)',
+  ]) {
+    assert.ok(style.includes(marker), `missing high fidelity polish marker: ${marker}`)
+  }
+})
+
+test('crawler monitor formal v4 exposes the five approved design modules as real switchable panels', () => {
+  assert.match(page, /const activeMonitorPanel = ref<MonitorPanelKey>\('queue'\)/)
+  assert.match(page, /const FALLBACK_MONITOR_PANEL: MonitorPanelMeta = \{\s*key:\s*'queue'/)
+
   for (const [key, label] of [
-    ['overview', '状态总览'],
-    ['queue', '队列'],
-    ['progress', '进度'],
+    ['overview', '域总览'],
+    ['queue', '队列和派发状态'],
+    ['progress', '真实任务进度'],
     ['reports', '报告'],
-    ['auto', '自动派发'],
-    ['diagnostics', '系统诊断'],
+    ['diagnostics', '诊断'],
   ]) {
     assert.match(page, new RegExp(`key:\\s*'${key}'[\\s\\S]*label:\\s*'${label}'`))
     assert.match(page, new RegExp(`v-show="activeMonitorPanel === '${key}'"`))
     assert.match(page, new RegExp(`monitor-panel-stage--${key}`))
   }
 
+  assert.doesNotMatch(page, /key:\s*'auto'[\s\S]*label:\s*'自动派发'/)
+  assert.doesNotMatch(page, /v-show="activeMonitorPanel === 'auto'"/)
   assert.match(page, /function setActiveMonitorPanel/)
   assert.match(page, /window\.location\.hash/)
   assert.match(page, /module-tab__count/)
+})
+
+test('crawler monitor formal v4 keeps the approved queue triage view stable during refresh and switching', () => {
+  const style = page.slice(page.indexOf('<style scoped>'))
+  const stageSwitching = style.slice(
+    style.indexOf('.crawler-monitor-v4 .stage.switching'),
+    style.indexOf('.crawler-monitor-v4 .view-head')
+  )
+
+  assert.match(page, /class="queue-time"/)
+  assert.match(page, /executionOverviewTiming\(row\)/)
+  assert.match(page, /上海时间 \$\{formatDate\(timeEvent\.value\)\}/)
+  assert.match(page, /timeZone:\s*'Asia\/Shanghai'/)
+  assert.doesNotMatch(page, /return row\?\.timingLabel \|\| row\?\.heartbeatSummary \|\| '暂无时间'/)
+  assert.match(style, /\.crawler-monitor-v4 \.queue-time/)
+  assert.match(stageSwitching, /opacity:\s*0\.5/)
+  assert.doesNotMatch(stageSwitching, /transform:\s*translateY/)
+  assert.match(style, /\.crawler-monitor-v4 \.domain-table[\s\S]*overflow-x:\s*hidden/)
+  assert.match(style, /\.crawler-monitor-v4 \.monitor-table[\s\S]*table-layout:\s*fixed/)
 })
 
 test('crawler monitor formal v4 maps every panel to real page data and actions', () => {
@@ -130,10 +172,6 @@ test('crawler monitor formal v4 maps every panel to real page data and actions',
   )
   const reportsPanel = page.slice(
     page.indexOf('monitor-panel-stage--reports'),
-    page.indexOf('monitor-panel-stage--auto')
-  )
-  const autoPanel = page.slice(
-    page.indexOf('monitor-panel-stage--auto'),
     page.indexOf('monitor-panel-stage--diagnostics')
   )
   const diagnosticsPanel = page.slice(
@@ -151,19 +189,23 @@ test('crawler monitor formal v4 maps every panel to real page data and actions',
   assert.doesNotMatch(overviewPanel, /wiki-live-panel/)
   assert.doesNotMatch(overviewPanel, /wiki-run-control-panel/)
   assert.doesNotMatch(overviewPanel, /wiki-recovery-panel/)
-  assert.match(queuePanel, /executionOverviewRows/)
+  assert.match(queuePanel, /activeExecutionOverviewRows/)
+  assert.match(queuePanel, /historicalExecutionOverviewRows/)
+  assert.doesNotMatch(queuePanel, /v-for="row in executionOverviewRows"/)
   assert.match(queuePanel, /v-for="item in dispatchQueueRows"/)
   assert.match(queuePanel, /cancelQueuedDispatchItem\(item\)/)
   assert.doesNotMatch(queuePanel, /action-card/, 'v4 queue panel should not inherit old action-card presentation')
   assert.doesNotMatch(queuePanel, /class="panel\b/, 'v4 queue panel should not inherit old panel surface')
   assert.doesNotMatch(queuePanel, /panel-head/, 'v4 queue panel should use v4 summary/card header styling')
-  assert.match(progressPanel, /v-for="row in progressDetailRowsByPriority"/)
+  assert.match(progressPanel, /v-for="row in activeProgressRows"/)
+  assert.match(progressPanel, /v-for="row in historicalProgressRows"/)
+  assert.doesNotMatch(progressPanel, /v-for="row in progressDetailRowsByPriority"/)
   assert.match(progressPanel, /progressRowVisiblePathEntries\(row\)/)
   assert.match(progressPanel, /progressRowLogPathEntries\(row\)/)
   assert.match(reportsPanel, /v-for="report in recentReportRows"/)
   assert.match(reportsPanel, /openReportPreview\(report\.path\)/)
-  assert.match(autoPanel, /autoDispatchForm\.enabled/)
-  assert.match(autoPanel, /saveAutoDispatchSettings/)
+  assert.match(diagnosticsPanel, /autoDispatchForm\.enabled/)
+  assert.match(diagnosticsPanel, /saveAutoDispatchSettings/)
   assert.match(diagnosticsPanel, /dataQualitySignals/)
   assert.match(diagnosticsPanel, /blockedDomainFocus/)
   assert.match(diagnosticsPanel, /runtimeStateCards/)
@@ -327,6 +369,79 @@ test('crawler monitor queue cards expose unified status details instead of vague
   assert.doesNotMatch(domainRowsSource, /dispatchQueue:\s*dispatchQueueRows\.value/, 'domain table must see terminal queue items to suppress stale running progress')
 })
 
+test('crawler monitor domain table and selected card prefer backend domain state fields', () => {
+  const overviewPanel = page.slice(
+    page.indexOf('monitor-panel-stage--overview'),
+    page.indexOf('monitor-panel-stage--queue')
+  )
+  const selectedDomainCard = page.slice(
+    page.indexOf('<aside v-if="selectedDomainTableRow" class="current-card">'),
+    page.indexOf('</aside>', page.indexOf('<aside v-if="selectedDomainTableRow" class="current-card">'))
+  )
+
+  assert.match(page, /function domainRowNextActionLabel/)
+  assert.match(page, /function domainRowBlockerLabel/)
+  assert.match(page, /function domainRowEvidencePath/)
+  assert.match(page, /function shouldOfferDomainRowForceReclaim/)
+  assert.match(page, /function canExecuteDomainTableRow/)
+  assert.match(page, /function openDomainTableDispatchConfirm/)
+  assert.match(overviewPanel, /\{\{\s*domainRowStatusLabel\(row\)\s*\}\}/, 'domain table status pill should render backend state label')
+  assert.match(overviewPanel, /domainRowNextActionLabel\(row\)/)
+  assert.match(overviewPanel, /shouldOfferDomainRowForceReclaim\(row\)/)
+  assert.match(page, /function canStartDomainTableRow\(row: any\)[\s\S]*canExecuteDomainTableRow\(row\)/)
+  assert.match(page, /function startDomainTableRow\(row: any\)[\s\S]*openDomainTableDispatchConfirm\(row\)/)
+  assert.doesNotMatch(overviewPanel, /\{\{\s*row\.nextActionLabel\s*\|\|\s*row\.rankReason\s*\}\}/)
+  assert.match(page, /const selectedDomainNextActionLabel = computed\(\(\) => \{[\s\S]*domainRowNextActionLabel\(selectedDomainTableRow\.value\)/)
+  assert.match(page, /const selectedDomainStatusLabel = computed\(\(\) => statusLabel\(domainRowStatus\(selectedDomainTableRow\.value\)\s*\|\|\s*'unknown'\)\)/)
+  assert.match(selectedDomainCard, /domainRowNextActionLabel\(selectedDomainTableRow\)/)
+  assert.match(selectedDomainCard, /domainRowBlockerLabel\(selectedDomainTableRow\)/)
+  assert.match(selectedDomainCard, /domainRowEvidencePath\(selectedDomainTableRow\)/)
+  assert.match(page, /selectedDomainTableBackendEvidenceFile/)
+  assert.match(page, /selectedDomainTableBackendEvidenceFile\.value/)
+})
+
+test('crawler monitor folds row noise into details while keeping primary task state visible', () => {
+  const overviewTable = page.slice(
+    page.indexOf('<table class="monitor-table">'),
+    page.indexOf('<aside v-if="selectedDomainTableRow" class="current-card">')
+  )
+  const selectedDomainCard = page.slice(
+    page.indexOf('<aside v-if="selectedDomainTableRow" class="current-card">'),
+    page.indexOf('</aside>', page.indexOf('<aside v-if="selectedDomainTableRow" class="current-card">'))
+  )
+  const queuePanel = page.slice(
+    page.indexOf('monitor-panel-stage--queue'),
+    page.indexOf('monitor-panel-stage--progress')
+  )
+  const progressPanel = page.slice(
+    page.indexOf('monitor-panel-stage--progress'),
+    page.indexOf('monitor-panel-stage--reports')
+  )
+
+  assert.doesNotMatch(overviewTable, /row\.ownerLabel/, 'domain table rows should not always show ownerLabel')
+  assert.doesNotMatch(overviewTable, /row\.pid/, 'domain table rows should not always show PID')
+  assert.doesNotMatch(overviewTable, /\{\{\s*row\.rankReason\s*\}\}/, 'domain table rows should not repeat rankReason under next action')
+  assert.match(selectedDomainCard, /selectedDomainTableRow\.queueSummary/)
+  assert.match(selectedDomainCard, /selectedDomainHeartbeatMessage/)
+  assert.match(selectedDomainCard, /selectedDomainTableVisibleEvidenceFiles/)
+  assert.match(selectedDomainCard, /showQueueItemLogs/)
+
+  assert.match(queuePanel, /class="queue-card-details"/)
+  assert.match(queuePanel, /executionOverviewNextAction\(row\)/)
+  assert.match(queuePanel, /executionOverviewStatusSource\(row\)/)
+  assert.match(queuePanel, /executionOverviewQueueIdentity\(row\)/)
+  assert.match(queuePanel, /executionOverviewBlocker\(row\)/)
+  assert.match(queuePanel, /executionOverviewTiming\(row\)/)
+
+  assert.match(progressPanel, /class="progress-card-details"/)
+  assert.match(progressPanel, /progressRowNextActionLabel\(row\)/)
+  assert.match(progressPanel, /progressRowStatusSource\(row\)/)
+  assert.match(progressPanel, /progressRowQueueStateLabel\(row\)/)
+  assert.match(progressPanel, /progressRowCoveredDomainLabels\(row\)/)
+  assert.match(progressPanel, /rowSpeedLabel\(row\)/)
+  assert.match(progressPanel, /rowEtaLabel\(row\)/)
+})
+
 test('crawler monitor formal v4 status strip and KPI cards are backed by real signals only', () => {
   const statusSource = page.slice(
     page.indexOf('const v4StatusStrip = computed'),
@@ -346,21 +461,86 @@ test('crawler monitor formal v4 status strip and KPI cards are backed by real si
   assert.match(statusSource, /staleHeartbeatRows/)
   assert.match(statusSource, /savedAutoDispatchEnabled/)
   assert.doesNotMatch(statusSource, /autoDispatchForm\.enabled/, 'status strip must not show unsaved auto-dispatch form state')
-  assert.match(metricSource, /domainTableRows\.value\.length/)
-  assert.match(metricSource, /failedDomainRows\.value\.length/)
-  assert.match(metricSource, /staleHeartbeatRows\.value\.length/)
+  assert.match(metricSource, /highestRiskDomainRow/)
   assert.match(metricSource, /runningDomainRows\.value\.length/)
-  assert.match(metricSource, /savedAutoDispatchEnabled/)
-  assert.match(metricSource, /savedAutoDispatchIntervalMinutes/)
+  assert.match(metricSource, /dispatchQueueRows\.value\.length/)
+  assert.match(metricSource, /recentReportRows\.value\.length/)
+  assert.match(metricSource, /progressDetailRowsByPriority\.value\.reduce/)
+  assert.match(metricSource, /lastOverviewRefreshAt\.value/)
+  assert.doesNotMatch(metricSource, /savedAutoDispatchEnabled/, 'KPI cards should match the approved design draft and keep auto-dispatch in diagnostics')
+  assert.doesNotMatch(metricSource, /savedAutoDispatchIntervalMinutes/, 'KPI cards should match the approved design draft and keep auto-dispatch in diagnostics')
   assert.doesNotMatch(metricSource, /autoDispatchForm\.enabled/, 'KPI cards must not show unsaved auto-dispatch form state')
   assert.doesNotMatch(metricSource, /autoDispatchForm\.sweepIntervalMinutes/, 'KPI cards must not show unsaved auto-dispatch interval')
-  assert.match(panelSource, /badge:\s*savedAutoDispatchLabel\.value/)
+  assert.doesNotMatch(panelSource, /badge:\s*savedAutoDispatchLabel\.value/)
   assert.doesNotMatch(panelSource, /autoDispatchForm/, 'module panel metadata must not show unsaved auto-dispatch form state')
 
-  for (const label of ['正式监控域', '失败域', '心跳过期', '运行中', '自动派发']) {
+  for (const label of ['最需要处理', '运行态', '队列等待', '可点击证据', '最近刷新']) {
     assert.match(metricSource, new RegExp(label))
   }
   assert.match(metricSource, /\]\.slice\(0,\s*5\)/)
+})
+
+test('crawler monitor refresh controls do not resize or recolor blocks while loading', () => {
+  const statusActions = page.slice(
+    page.indexOf('class="status-strip__actions"'),
+    page.indexOf('</div>', page.indexOf('class="status-strip__actions"'))
+  )
+  const formalV4Source = page.slice(page.indexOf('Formal v4 high fidelity'))
+
+  assert.match(statusActions, /aria-busy="loading"/)
+  assert.match(statusActions, />刷新状态</)
+  assert.doesNotMatch(statusActions, /刷新中/)
+  assert.doesNotMatch(statusActions, /spin:\s*loading/)
+  assert.doesNotMatch(formalV4Source, /\.crawler-monitor-v4 \.status-strip--danger/)
+  assert.doesNotMatch(formalV4Source, /\.crawler-monitor-v4 \.status-strip--success/)
+  assert.match(formalV4Source, /\.crawler-monitor-v4 \.status-strip\s*\{[\s\S]*min-height:\s*58px/)
+  assert.match(formalV4Source, /\.crawler-monitor-v4 \.metric\s*\{[\s\S]*min-height:\s*86px/)
+  assert.doesNotMatch(formalV4Source, /\.crawler-monitor-v4 \.metric\.is-danger/)
+  assert.doesNotMatch(formalV4Source, /\.crawler-monitor-v4 \.metric\.is-warning/)
+})
+
+test('crawler monitor progress panel separates current work from historical or failed progress', () => {
+  const progressPanel = page.slice(
+    page.indexOf('monitor-panel-stage--progress'),
+    page.indexOf('monitor-panel-stage--reports')
+  )
+  const progressSource = page.slice(
+    page.indexOf('const progressDetailRowsByPriority = computed'),
+    page.indexOf('const historyRows = computed')
+  )
+
+  assert.match(progressPanel, /class="progress-group progress-group--active"/)
+  assert.match(progressPanel, /正在运行/)
+  assert.match(progressPanel, /v-for="row in activeProgressRows"/)
+  assert.match(progressPanel, /class="progress-group progress-group--history"/)
+  assert.match(progressPanel, /历史与异常/)
+  assert.match(progressPanel, /v-for="row in historicalProgressRows"/)
+  assert.match(progressSource, /const activeProgressRows = computed/)
+  assert.match(progressSource, /const historicalProgressRows = computed/)
+  assert.match(progressSource, /isCurrentProgressRow/)
+  assert.match(progressSource, /isHistoricalProgressRow/)
+})
+
+test('crawler monitor queue panel separates current execution from handled or failed work', () => {
+  const queuePanel = page.slice(
+    page.indexOf('monitor-panel-stage--queue'),
+    page.indexOf('monitor-panel-stage--progress')
+  )
+  const queueSource = page.slice(
+    page.indexOf('const executionOverviewRows = computed'),
+    page.indexOf('const sourceSnapshotRows = computed')
+  )
+
+  assert.match(queuePanel, /class="queue-group queue-group--active"/)
+  assert.match(queuePanel, /正在运行/)
+  assert.match(queuePanel, /v-for="row in activeExecutionOverviewRows"/)
+  assert.match(queuePanel, /class="queue-group queue-group--history"/)
+  assert.match(queuePanel, /已处理\/异常/)
+  assert.match(queuePanel, /v-for="row in historicalExecutionOverviewRows"/)
+  assert.match(queueSource, /const activeExecutionOverviewRows = computed/)
+  assert.match(queueSource, /const historicalExecutionOverviewRows = computed/)
+  assert.match(queueSource, /isCurrentExecutionOverviewRow/)
+  assert.match(queueSource, /isHistoricalExecutionOverviewRow/)
 })
 
 test('crawler monitor keeps request-gate fields out until the backend exposes them', () => {
@@ -397,13 +577,18 @@ test('crawler monitor formal v4 mobile safeguards keep touch targets and wide ta
     formalV4Source,
     /@media \(max-width: 720px\) \{[\s\S]*\.inline-report-button,[\s\S]*\.inline-report-button--compact,[\s\S]*\.icon-close-button\s*\{[\s\S]*min-height:\s*44px/
   )
-  assert.match(formalV4Source, /\.domain-table\s*\{[\s\S]*max-height:\s*520px[\s\S]*max-width:\s*100%[\s\S]*overflow:\s*auto/)
-  assert.doesNotMatch(formalV4Source, /\.domain-table\s*\{[^}]*overflow:\s*hidden/, 'domain table must keep scroll overflow for long 10-domain data')
-  assert.match(formalV4Source, /\.monitor-table\s*\{[\s\S]*min-width:\s*760px/)
+  assert.match(formalV4Source, /\.domain-table\s*\{[\s\S]*max-height:\s*520px[\s\S]*max-width:\s*100%[\s\S]*overflow-y:\s*auto[\s\S]*overflow-x:\s*hidden/)
+  assert.match(formalV4Source, /\.monitor-table\s*\{[\s\S]*min-width:\s*0[\s\S]*table-layout:\s*fixed/)
   assert.match(formalV4Source, /\.status-pill\s*\{[\s\S]*min-height:\s*26px[\s\S]*font-weight:\s*700/)
+  assert.match(page, /class="domain-status-cell"/)
+  assert.match(formalV4Source, /\.domain-status-cell\s*\{[\s\S]*min-height:\s*48px[\s\S]*display:\s*grid/)
+  assert.match(formalV4Source, /\.domain-status-cell \.status-pill\s*\{[\s\S]*min-width:\s*72px[\s\S]*width:\s*72px/)
+  assert.match(page, /normalized === 'ready'\) return '可重新派发'/)
   for (const tone of ['success', 'danger', 'warning', 'info', 'muted']) {
     assert.match(formalV4Source, new RegExp(`\\.crawler-monitor-v4 \\.${tone}\\s*\\{[\\s\\S]*background:`))
   }
+  assert.match(formalV4Source, /\.crawler-monitor-v4 \.ready\s*\{[\s\S]*background:/)
+  assert.match(formalV4Source, /\.crawler-monitor-v4 \.cancelled\s*\{[\s\S]*background:/)
   assert.match(formalV4Source, /\.progress-track\s*\{[\s\S]*height:\s*7px[\s\S]*margin-top:\s*5px/)
   assert.match(formalV4Source, /\.dispatch-queue-row\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)/)
   assert.match(formalV4Source, /\.dispatch-queue-row__meta\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/)
@@ -593,8 +778,12 @@ test('crawler monitor preserves guarded manual execution and destructive cleanup
   assert.match(page, /dispatchConfirmDomainKey/)
   assert.match(page, /openDispatchConfirm/)
   assert.match(page, /confirmWikiDomainDispatch/)
-  assert.match(page, /确认启动重爬/)
-  assert.match(page, /防止误触/)
+  assert.match(page, /确认提交正式派发/)
+  assert.match(page, /创建后台抓取任务/)
+  assert.match(page, /进入正式队列/)
+  assert.match(page, /不是刷新当前页面/)
+  assert.match(page, /不会自动清理旧产物/)
+  assert.doesNotMatch(page, /这里会启动该域重爬/)
   assert.doesNotMatch(page, /@click="executeWikiMonitorTask\(selectedWikiDomain\)"/)
   assert.doesNotMatch(page, /@click\.stop="executeWikiMonitorTask\(domain\)"/)
 
@@ -627,6 +816,9 @@ test('crawler monitor exposes formal manual dispatch controls in the selected do
     assert.ok(selectedDomainCard.includes(marker), `selected domain card should expose ${marker}`)
   }
 
+  assert.match(page, /创建后台抓取任务并进入正式队列|创建一个后台抓取任务并加入正式队列/)
+  assert.match(page, /不是刷新当前页面/)
+
   const primaryActionSource = page.slice(
     page.indexOf('async function handleSelectedWikiDomainPrimaryAction'),
     page.indexOf('function dispatchResultPath')
@@ -653,10 +845,11 @@ test('crawler monitor exposes executable actions directly in domain table rows',
     'cancelDomainTableQueuedRow(row)',
     'canStartDomainTableRow(row)',
     'startDomainTableRow(row)',
-    '启动重爬',
-    '继续',
-    '终止',
-    '取消',
+    '提交正式派发',
+    '继续运行',
+    '终止运行',
+    '取消排队',
+    '查看证据',
   ]) {
     assert.ok(overviewPanel.includes(marker) || page.includes(marker), `domain table should expose ${marker}`)
   }
@@ -938,19 +1131,71 @@ test('forceReclaim 请求负载正确', (t) => {
   assert.equal(payload.queueId, 'q1')
 })
 
-import { resolveDomainState } from '../pages/operations/crawler-monitor.state.mjs'
+test('crawler monitor exposes one-click forceReclaimAll control', () => {
+  const statusActions = page.slice(
+    page.indexOf('class="status-strip__actions"'),
+    page.indexOf('</div>', page.indexOf('class="status-strip__actions"'))
+  )
+  const payload = buildDispatchControlPayload('forceReclaimAll')
 
-test('resolveDomainState 优先用后端 state', () => {
-  const domain = { domain: 'bosses', state: { status: 'cancelled', nextAction: 'recrawl' } }
-  const s = resolveDomainState(domain)
-  assert.equal(s.status, 'cancelled')
-  assert.equal(s.nextAction, 'recrawl')
-  assert.equal(s.source, 'backend')
+  assert.match(statusActions, /forceReclaimAllRunningDispatches/)
+  assert.match(statusActions, /清空运行\/队列/)
+  assert.match(page, /function forceReclaimAllRunningDispatches/)
+  assert.match(page, /controlAction:\s*'forceReclaimAll'/)
+  assert.equal(payload.controlAction, 'forceReclaimAll')
+  assert.equal(payload.domain, null)
+  assert.equal(payload.actionId, null)
+  assert.equal(payload.queueId, null)
 })
 
-test('resolveDomainState 缺 state 时回落旧调解器', () => {
+import { resolveDomainState } from '../pages/operations/crawler-monitor.state.mjs'
+import { nextActionLabel } from '../pages/operations/crawler-monitor.labels.mjs'
+
+test('crawler monitor state maps backend nextAction tokens to Chinese labels', () => {
+  assert.equal(nextActionLabel('resume'), '继续任务')
+  assert.equal(nextActionLabel('observe_or_terminate'), '观察或终止')
+  assert.equal(nextActionLabel('cancel_queued'), '取消排队')
+  assert.equal(nextActionLabel('inspect_blocker'), '查看占用者')
+  assert.equal(nextActionLabel('terminate_and_recrawl'), '终止清理后重新提交')
+  assert.equal(nextActionLabel('recrawl'), '提交正式派发')
+  assert.equal(nextActionLabel('none'), '暂无异常')
+  assert.equal(nextActionLabel('inspect'), '查看证据')
+  assert.equal(nextActionLabel('custom_action'), 'custom_action')
+  assert.equal(nextActionLabel(null), '查看证据')
+  assert.equal(nextActionLabel(''), '查看证据')
+})
+
+test('resolveDomainState 优先用后端 state', () => {
+  const domain = {
+    domain: 'bosses',
+    state: {
+      status: 'blocked',
+      nextAction: 'inspect_blocker',
+      blocker: 'items',
+      blockerLabel: '物品域占用',
+      evidence: 'data/generated/wiki-bosses-progress.latest.json',
+    },
+  }
+  const s = resolveDomainState(domain)
+  assert.deepEqual(s, {
+    status: 'blocked',
+    nextAction: 'inspect_blocker',
+    nextActionLabel: '查看占用者',
+    blocker: 'items',
+    blockerLabel: '物品域占用',
+    evidence: 'data/generated/wiki-bosses-progress.latest.json',
+    source: 'backend',
+  })
+})
+
+test('resolveDomainState 缺 state 时暴露后端状态缺失而不是前端推导', () => {
   const domain = { domain: 'bosses', status: 'running' }
   const s = resolveDomainState(domain, { progressRow: null, queueItem: null })
-  assert.ok(s.status, '回落应产出 status')
-  assert.equal(s.source, 'fallback')
+  assert.equal(s.status, 'state_missing')
+  assert.equal(s.nextAction, 'inspect')
+  assert.equal(s.nextActionLabel, '等待后端状态')
+  assert.equal(s.blocker, null)
+  assert.equal(s.blockerLabel, null)
+  assert.equal(s.evidence, null)
+  assert.equal(s.source, 'missing_backend_state')
 })

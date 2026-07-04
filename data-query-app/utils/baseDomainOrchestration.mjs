@@ -143,7 +143,7 @@ export function buildWikiDomainTestMatrixRow(context = {}) {
     { label: '运行状态', value: flowLabel },
     { label: '冷却保护', value: coolingDown ? `冷却 ${cooldownMinutes || 0} 分钟` : '未冷却' },
     { label: '最近产物', value: outputPath || reportPath || '未生成' },
-    { label: '人工动作', value: canExecute ? '可启动重爬' : '不可重爬' },
+    { label: '人工动作', value: canExecute ? '可提交正式派发' : '不可派发' },
   ]
   const formalItems = [
     { label: '来源指纹', value: resolvedSource },
@@ -155,7 +155,7 @@ export function buildWikiDomainTestMatrixRow(context = {}) {
     { label: '正式运行状态', value: flowLabel || '未知' },
     { label: '正式冷却保护', value: coolingDown ? `冷却 ${cooldownMinutes || 0} 分钟` : '未冷却' },
     { label: '正式最近产物', value: outputPath || reportPath || '未生成' },
-    { label: '正式人工动作', value: canExecute ? '可启动重爬' : '不可重爬' },
+    { label: '正式人工动作', value: canExecute ? '可提交正式派发' : '不可派发' },
   ]
   const sampleItems = [
     { label: '样本状态', value: sampleStatusLabel },

@@ -9,6 +9,10 @@ test('domain table shows paused queue state ahead of stale running progress', ()
         domain: 'items',
         label: 'Items',
         recommendedActionId: 'wiki-core-refresh',
+        state: {
+          status: 'paused',
+          nextAction: 'resume',
+        },
       },
     ],
     progressRows: [
@@ -38,13 +42,17 @@ test('domain table shows paused queue state ahead of stale running progress', ()
   assert.equal(rows[0].nextActionLabel, '继续任务')
 })
 
-test('domain table recommends starting recrawl for failed progress without active queue', () => {
+test('domain table recommends formal dispatch for failed progress without active queue', () => {
   const rows = buildDomainTableRows({
     domains: [
       {
         domain: 'armor_sets',
         label: 'Armor sets',
         recommendedActionId: 'domain-source-armor-sets',
+        state: {
+          status: 'failed',
+          nextAction: 'recrawl',
+        },
       },
     ],
     progressRows: [
@@ -61,16 +69,20 @@ test('domain table recommends starting recrawl for failed progress without activ
   assert.equal(rows.length, 1)
   assert.equal(rows[0].risk, 'failed')
   assert.equal(rows[0].diagnosisTitle, '执行失败')
-  assert.equal(rows[0].nextActionLabel, '启动重爬')
+  assert.equal(rows[0].nextActionLabel, '提交正式派发')
 })
 
-test('domain table shows cancelled queue ahead of stale running progress', () => {
+test('domain table shows previous cancellation as ready to recrawl', () => {
   const rows = buildDomainTableRows({
     domains: [
       {
         domain: 'buffs',
         label: 'Buffs',
         recommendedActionId: 'buff-page-immunity-refresh',
+        state: {
+          status: 'cancelled',
+          nextAction: 'recrawl',
+        },
       },
     ],
     progressRows: [
@@ -95,8 +107,97 @@ test('domain table shows cancelled queue ahead of stale running progress', () =>
   })
 
   assert.equal(rows.length, 1)
-  assert.equal(rows[0].status, 'cancelled')
-  assert.equal(rows[0].risk, 'cancelled')
-  assert.equal(rows[0].diagnosisTitle, '已取消')
-  assert.equal(rows[0].nextActionLabel, '启动重爬')
+  assert.equal(rows[0].status, 'ready')
+  assert.equal(rows[0].risk, 'ready')
+  assert.equal(rows[0].diagnosisTitle, '可重新派发')
+  assert.equal(rows[0].rankReason, '上次已取消，可重新提交后台抓取任务')
+  assert.equal(rows[0].nextActionLabel, '提交正式派发')
+})
+
+test('domain table backend state overrides older terminal queue history', () => {
+  const rows = buildDomainTableRows({
+    domains: [
+      {
+        domain: 'bosses',
+        label: 'Bosses',
+        recommendedActionId: 'domain-source-bosses',
+        state: {
+          status: 'paused',
+          nextAction: 'resume',
+          evidence: 'data/generated/domain-source-bosses-progress.latest.json',
+        },
+      },
+    ],
+    progressRows: [
+      {
+        id: 'domain-source-bosses',
+        status: 'paused',
+        current: 18,
+        total: 33,
+        progressPath: 'data/generated/domain-source-bosses-progress.latest.json',
+      },
+    ],
+    dispatchQueue: [
+      {
+        lane: 'standard',
+        domain: 'bosses',
+        actionId: 'domain-source-bosses',
+        status: 'cancelled',
+        queueId: 'old-cancelled-bosses',
+        completedAt: '2026-07-02T10:41:30Z',
+        progressPath: 'data/generated/domain-source-bosses-progress.latest.json',
+      },
+      {
+        lane: 'standard',
+        domain: 'bosses',
+        actionId: 'domain-source-bosses',
+        status: 'paused',
+        queueId: 'current-paused-bosses',
+        progressPath: 'data/generated/domain-source-bosses-progress.latest.json',
+      },
+    ],
+  })
+
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].status, 'paused')
+  assert.equal(rows[0].risk, 'paused')
+  assert.equal(rows[0].diagnosisTitle, '已暂停')
+  assert.equal(rows[0].statusSource, 'backend')
+})
+
+test('domain table does not infer domain status when backend state is missing', () => {
+  const rows = buildDomainTableRows({
+    domains: [
+      {
+        domain: 'buffs',
+        label: 'Buffs',
+        recommendedActionId: 'buff-page-immunity-refresh',
+      },
+    ],
+    progressRows: [
+      {
+        id: 'buff-page-immunity-refresh',
+        status: 'running',
+        progressPath: 'data/generated/fetch-wiki-buffs-progress.latest.json',
+      },
+    ],
+    dispatchQueue: [
+      {
+        lane: 'standard',
+        domain: 'buffs',
+        coveredDomains: ['buffs'],
+        actionId: 'buff-page-immunity-refresh',
+        status: 'cancelled',
+        queueId: 'old-cancelled-buffs',
+        progressPath: 'data/generated/fetch-wiki-buffs-progress.latest.json',
+      },
+    ],
+  })
+
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].status, 'state_missing')
+  assert.equal(rows[0].risk, 'unknown')
+  assert.equal(rows[0].diagnosisTitle, '状态未同步')
+  assert.equal(rows[0].nextActionLabel, '等待后端状态')
+  assert.equal(rows[0].statusSource, 'missing_backend_state')
 })
