@@ -140,3 +140,28 @@ test('clamps fixture counts above the per-domain limit', async () => {
     assert.equal(entry.actualCount, 10, `${entry.domain} clamps to the 10 record limit`);
   }
 });
+
+test('runs only selected domains and writes selected-domain progress metadata', async () => {
+  const { root, options } = makeTmpRun();
+  const fixture = Object.fromEntries(DOMAIN_IDS.map((domain) => [domain, 10]));
+
+  const report = await runDomainSmoke({
+    ...options,
+    domains: 'items,buffs'
+  }, createFixtureTransport(fixture));
+
+  assert.equal(report.status, 'completed');
+  assert.equal(report.domainCount, 2);
+  assert.deepEqual(report.selectedDomains, ['items', 'buffs']);
+  assert.deepEqual(report.domains.map((entry) => entry.domain), ['items', 'buffs']);
+  assert.ok(fs.existsSync(path.join(root, 'out', 'items.json')), 'expected items output');
+  assert.ok(fs.existsSync(path.join(root, 'out', 'buffs.json')), 'expected buffs output');
+  assert.equal(fs.existsSync(path.join(root, 'out', 'npcs.json')), false, 'npcs should not be downloaded');
+
+  const progress = readJson(path.join(root, 'progress.json'));
+  assert.equal(progress.current, 2);
+  assert.equal(progress.total, 2);
+  assert.deepEqual(progress.selectedDomains, ['items', 'buffs']);
+  assert.equal(progress.queue, 'limit=10; domains=2; selected=items,buffs');
+  assert.deepEqual(progress.domains.map((entry) => entry.domain), ['items', 'buffs']);
+});

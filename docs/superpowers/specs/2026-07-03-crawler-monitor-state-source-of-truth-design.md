@@ -1,0 +1,187 @@
+# 爬虫监控：单一状态真相源 + 租约锁改造 设计
+
+- 日期：2026-07-03
+- 分支基线：`feat/auto-warehouse-ingestion`
+- 状态：待用户评审
+
+## 背景与问题
+
+管理员在爬虫监控页面遇到三类核心困难：
+
+1. **重爬报"被占用"，怎么点都没用**：进程崩溃 / 后端重启 / 被 kill 后锁文件残留，域被锁死最长 120 分钟。
+2. **取消后状态卡住**：队列已取消但进度文件仍显示 running，前端只能显示矛盾、消不掉。
+3. **点取消 / 占用没反应**：后端找不到运行进程时返回死路，管理员无可靠手段回收占用。
+
+此外是可见性问题：看不出当前在跑哪个任务、进度信息过载、各区块状态口径不一致、联动性差。
+
+### 根因
+
+**系统没有单一状态真相源。** 一个域"现在什么情况"要靠 4 份互相独立的数据拼出来：域清单、进度心跳文件、派发队列、派发记录，外加文件锁与 30 分钟冷却。
+
+- 后端 `CrawlerMonitorServiceImpl.java`（约 5482 行）：锁用 `acquireDispatchLock` 以 `CREATE_NEW` 建文件，释放要么 dispatchId 精确匹配、要么等 `WIKI_MONITOR_DISPATCH_LOCK_STALE`（120 分钟）过期；`controlWikiMonitorDispatch` 经 6 层回退找活进程，任一层落空即 `missingActiveDispatch` 死路；取消对排队中 / starting / running / 孤儿各走一套清理，进度文件不一定被清。
+- 前端 `crawlerMonitorUnifiedStatus.mjs`（16 层优先级调解器）+ `crawlerMonitorDomainTable.mjs` / `crawlerMonitorExecutionOverview.mjs`（三源 fuzzy 匹配 + 合成行）：都是在下游兜底上游的混乱。`stateConflict()` 的存在本身证明"取消后残留 running"是已知高频现象。
+
+**结论**：有真 bug（锁泄漏、取消清理不全、控制找不到进程），非纯 UI 问题；UI 已在打补丁，继续加逻辑只会更臃肿；根治方式是给状态建单一真相源 + 可靠的锁生命周期，前端退回"照着显示"。
+
+## 目标
+
+- 管理员能**可靠地取消 → 重爬**，不再被占用卡死。
+- 每个域有**唯一权威状态**，各区块口径一致。
+- 界面一眼看清：某域什么状态、当前在跑谁、该点什么动作。
+
+### 非目标
+
+- 不改爬虫本身的抓取逻辑与数据产物格式。
+- 不改 Redis / 队列以外的基础设施选型（Redis 已在用，不新引依赖）。
+- 不做与本目标无关的重构。
+
+## 方案路线
+
+**B 为目标（单一状态真相源）+ 锁用 C 租约思路（Redis TTL 租约自愈）**。**一次规划三期，但分期 commit、分期可独立验收**（P1 后端回收/租约 → P2 状态机/DTO → P3 前端瘦身），最后由用户统一验收。不做一次性大爆炸落地——每期是独立的可回滚提交，且 P3 以 P2 契约为前置门槛。Redis 已在队列仓库中使用（`StringRedisTemplate` + drain 锁脚本），租约不引入新依赖。
+
+## 架构总览
+
+对每个域，后端在服务端算出唯一权威对象对外暴露：
+
+```
+domain, status, nextAction, blocker, evidence, updatedAt
+```
+
+- `status`：封闭枚举 `idle | queued | starting | running | paused | blocked | stalled | failed | cancelled | completed`，由后端综合队列 + 进度 + 租约算好。补充 `starting`（已认领未出心跳）与 `paused`（已暂停），避免"启动中被当成排队""暂停了页面还像运行中"的回归。
+- `nextAction`：后端给出的建议动作（如 启动重爬 / 取消排队 / 强制回收 / 观察）。
+- `blocker`：占用者标识（域 / 动作 / 派发 id）。
+- `evidence`：日志 / 进度 / 报告 / 输出 / 锁 等文件路径，供详情展开。
+
+前端不再自己拼状态、不再有合成行、不再有 16 层调解器。
+
+## 分期设计
+
+### P1 — 租约锁 + 统一取消/回收（可靠性核心）
+
+**租约锁（替代文件锁作为派发判据，支持共享动作）**
+
+- 每个域一个租约键 `crawler:lease:{domain}`，值含 `dispatchId / actionId / pid / startedAt / coveredDomains`，TTL 90s。
+- **共享动作（一个 action 覆盖多个域）必须原子占用/释放**：一次派发 `coveredDomains = [d1, d2, ...]` 时，用单条 Lua 脚本对全部域的租约键做 **all-or-nothing** 的 `SETNX`——任一域已被占用则整批失败并回滚已写入的键；释放同理，用一条脚本按 `dispatchId` 校验后原子删除该派发持有的全部域租约。避免"占了一半"导致联动域状态错乱。
+- 续租：`watchDispatchProcess` 每 30s 对该派发持有的全部域租约一起续租；进程结束 / 后端停 → 无人续租 → 全部覆盖域的 TTL 到期一起自动空闲。
+- 派发前判据从"锁文件是否存在"改为"该域及本次 `coveredDomains` 的租约是否全部可占"；文件锁降级为只读证据（保留兼容读取，不再作为能否派发的判据）。
+
+**统一取消/回收（合并现有 4 条分叉路径）**
+
+- 新增 `reclaimDomain(domain, reason)`：尽力杀进程 → 释放租约 → **向进度/状态文件写终态**（`cancelled` / `force_reclaimed` + reason + 时间戳，**不删除证据**）→ 队列项标终态 → 触发 drain。对"排队中 / starting / running / 孤儿 / 找不到进程"全部走同一条，每步 best-effort 且幂等（重复调用结果一致）。
+- **关键**：不默认删进度文件。删文件会让页面变成"缺失/未知"、丢掉取消原因与证据；改为写入明确终态，保证管理员事后能看到"为什么被取消/回收"和相关日志报告。
+- `controlWikiMonitorDispatch` 的 6 层回退收敛：找不到活进程时不再返回 `missingActiveDispatch` 死路，改走 `reclaimDomain` 兜底。
+
+**"强制回收占用"动作**
+
+- 后端新增控制动作 `forceReclaim`；无论进程是否找得到，都保证域回到可派发状态。这是"点了没用"的兜底解药。
+
+**P1 边界**：只做可靠性——租约锁、`reclaimDomain`、`forceReclaim`。**P1 不引入新的对外状态字段**，overview 的 status 契约保持不变（避免与 P2 权威契约打架）。
+
+**P1 最小 UI（为了让用户能亲眼验收，而非只跑 API）**：在域处于 `blocked / stalled / 孤儿`（running 但无有效租约/进程）时，展示一个**"强制回收"**按钮，调用后端 `forceReclaim`。实现上复用现有"终止运行"按钮的位置与调用通道，仅新增该动作分支，不改状态渲染逻辑、不动 status 契约。回收成功后 toast/状态卡提示"已回收"，用户可紧接着点"重爬"。
+
+**P1 交付后可验收**：用户在**页面上**完成"强制回收 → 重爬"，API 与 UI 都不再显示旧 running 或以旧占用驳回。
+
+### P2 — 域状态机（单一真相源）
+
+- 后端新增 `CrawlerDomainState`：输入队列项 + 进度 + 租约，输出封闭枚举 `status`（`idle | queued | starting | running | paused | blocked | stalled | failed | cancelled | completed`）+ `nextAction` + `blocker` + `evidence` + `updatedAt`。
+- 将 `crawlerMonitorUnifiedStatus.mjs` 的 16 层优先级逻辑迁移到后端成为权威实现；overview DTO 直接携带这些字段。
+- 状态冲突（"取消了但进度还 running"）在状态机内消解——清理是原子转移，不再有半清理残留。
+
+**状态机硬规则（本问题核心，必须覆盖）**：
+
+- **R1 无租约不 running**：若某域进度为 `running / starting / paused`，但**无有效租约、也无对应活跃队列项/进程**，则状态机**禁止**输出 `running/starting/paused`；改判为 `stalled`（心跳过期、疑似残留），并保留 `conflict` 标注与 `evidence`。
+- **R2 终态优先**：若队列项已是终态（`cancelled / failed / timed_out`）而进度文件仍 running，`status` 以队列终态为准（如 `cancelled / force_reclaimed`），进度冲突降级为 `conflict` 提示，不覆盖权威终态。
+- **R3 谁写终态**：`reclaimDomain` / `forceReclaim` / 租约过期回收器负责把进度/状态文件**写成终态**（幂等）；状态机自身只读不写。即"计算权威状态"（状态机，纯函数）与"落终态"（回收动作）职责分离，避免读路径产生副作用。
+
+**先定 DTO 契约（P2 的交付物，也是 P3 的前置门槛）**：overview 中每个域挂一个权威 `state` 对象：
+
+```
+domain.state = {
+  status,       // 上述封闭枚举
+  nextAction,   // 建议动作
+  blocker,      // { byDomain, byActionId, byDispatchId } | null
+  evidence,     // { logPath, progressPath, reportPath, outputPath, lockPath }
+  updatedAt,
+}
+```
+
+此契约必须先在后端定义并稳定输出、有测试覆盖，**P3 才允许删除前端 fallback**。P2 阶段前端保持双读（优先用 `domain.state`，缺失时回落旧调解器），确保灰度期不崩。
+
+**P2 交付后可验收**：各区块状态口径一致，一处算好；`domain.state` 契约稳定、有测试。
+
+### P3 — 前端瘦身（照着显示）
+
+- **前置门槛**：P2 的 `domain.state` 契约已稳定输出且有测试。满足后，删除 `crawlerMonitorUnifiedStatus.mjs`、域表格 / 执行总览中的三源 fuzzy 匹配与合成行，改用后端权威 `domain.state.status / nextAction`。
+- 进度过载治理：默认只显示 `status + 当前进度 + nextAction`，5 个时间戳 / PID / 证据文件收进"详情"折叠。
+- `crawler-monitor.vue`（约 6875 行）按区块拆分（域表、执行总览、证据抽屉），每块单一职责、可独立测试。
+
+**P3 交付后可验收**：界面清爽，一眼看清每个域状态、在跑谁、该点什么。
+
+## 数据流
+
+1. 派发：写租约 `crawler:lease:{domain}` + 入队 → watch 进程续租。
+2. 运行：进度文件心跳 + 租约续租并行；overview 读取时由域状态机综合三源算出权威 `status`。
+3. 结束 / 取消 / 崩溃：`reclaimDomain`（写终态、释放租约）或租约过期 → 域释放占用可再派发；状态机保证无 running 残留，且保留取消原因与证据。
+4. 前端：只消费 overview 中每域的权威对象，按 `status` 渲染、按 `nextAction` 决定按钮。
+
+## 错误处理与边界
+
+- **进程死但锁在**：租约 TTL 过期自愈（秒级），不再依赖 120 分钟 stale。
+- **后端重启，内存 map 清空**：控制动作走 `reclaimDomain` 兜底，不再死路。
+- **并发取消 + 重爬**：`reclaimDomain` 幂等，drain 串行化保证不双跑。
+- **Redis 不可用**：**拒绝新派发并告警（fail-safe），不回落文件锁作为判据**。理由：Redis 本就是队列的硬依赖（队列仓库已用 `StringRedisTemplate` + drain 锁脚本），Redis 挂时派发链路已不可用；回落到旧文件锁只会重新引入"锁死 120 分钟"这一类被本设计消除的 bug。已在运行的任务不受影响（进程续租失败时按租约过期正常回收）。此策略与"租约为唯一派发判据、文件锁只读"保持一致，无矛盾。
+
+## 测试与验收策略
+
+- **后端**：租约过期自愈、`reclaimDomain` 幂等、并发取消 + 重爬无残留、6 类状态转移正确——单元测试 + 集成测试。
+- **前端**：延续既有偏好——行为测试优先于 `.vue` 源码匹配；离线 / 可注入数据优先于真实网络。对 P3 的状态映射与瘦身做行为测试。
+- **分期独立可验收**：P1 完可靠取消 → 重爬；P2 完口径一致；P3 完界面清爽。
+
+**核心验收 smoke（贯穿三期回归，P1 起必须通过）**：
+
+1. 构造异常态：queue 项 `cancelled` + 进度文件仍 `running` + 锁文件残留（并覆盖共享动作 `coveredDomains` 的联动域）。
+2. 页面点击"强制回收"（`forceReclaim`）。
+3. 再点击"重爬"。
+4. 断言：**API 与 UI 都不再显示 `running`，也不再以"被旧占用"驳回派发**；被回收域及其 `coveredDomains` 联动域全部释放；页面仍能看到上一轮的取消原因与证据（不缺失/未知）。
+
+### 每期测试命令与 staged 范围
+
+**P1（后端锁/回收）**
+
+- `cd back && mvn "-Dtest=CrawlerMonitorServiceImplTest,AdminCrawlerMonitorControllerTest" test`
+- staged 范围仅限：`CrawlerMonitorServiceImpl.java`、`WikiMonitorDispatchQueueRepository.java`、`WikiMonitorQueueItem.java`、`AdminCrawlerMonitorController.java`、相关 DTO、上述测试，以及 P1 最小 UI 按钮对应的前端调用分支。
+- commit 前 `git status --short` 核对，不夹带工作区既有无关改动。
+
+**P2（状态机 / DTO 契约）**
+
+- `cd back && mvn "-Dtest=CrawlerMonitorServiceImplTest,AdminCrawlerMonitorControllerTest" test`
+- `cd data-query-app && node --test tests/crawler-monitor-page-contract.test.mjs`（校验 `domain.state` 契约字段）
+- staged 范围仅限：后端状态机新增类 + overview DTO + 对应测试；前端仅"双读"兼容改动。
+
+**P3（前端瘦身）**
+
+- `cd data-query-app && node --test tests/crawler-monitor-page-contract.test.mjs tests/crawler-monitor-domain-table.test.mjs tests/crawler-monitor-execution-overview.test.mjs`
+- `cd data-query-app && pnpm run check`
+- staged 范围仅限：`crawler-monitor.vue` 拆分产物、`crawlerMonitorDomainTable.mjs`、`crawlerMonitorExecutionOverview.mjs`、删除 `crawlerMonitorUnifiedStatus.mjs`、`types/crawlerMonitor.ts` 及测试。
+
+### 最终统一验证（三期完成后）
+
+- `cd back && mvn "-Dtest=CrawlerMonitorServiceImplTest,AdminCrawlerMonitorControllerTest" test`
+- `cd data-query-app && node --test tests/crawler-monitor-page-contract.test.mjs tests/crawler-monitor-domain-table.test.mjs tests/crawler-monitor-execution-overview.test.mjs`
+- `cd data-query-app && pnpm run check`
+- 本地管理端页面人工验收：强制回收、暂停、重爬。
+
+## 执行编排
+
+- **Agent 分组（避免踩同一文件）**：① 后端锁/回收（`CrawlerMonitorServiceImpl` 锁与 reclaim 区 + 队列仓库）；② 后端状态 DTO（状态机新增类 + overview DTO）；③ 前端显示（`crawler-monitor.vue` 拆分与工具）。**不并发改同一个 `CrawlerMonitorServiceImpl.java` 或 `crawler-monitor.vue` 区块**；②依赖①的租约字段，串行；③依赖②的契约，串行。
+- **残余风险与暂停触发器**：`CrawlerMonitorServiceImpl.java` 过大，P1/P2 易互相踩逻辑。**若实现中发现 lease、queue drain、progress 终态写入三者的先后顺序冲突，先暂停实现，补一张"状态转移表"（含并发时序）再继续。**
+
+## 受影响文件（预估）
+
+- 后端：`CrawlerMonitorServiceImpl.java`、`WikiMonitorDispatchQueueRepository.java`、`WikiMonitorQueueItem.java`、`AdminCrawlerMonitorController.java`、相关 DTO 与测试。
+- 前端：`crawler-monitor.vue`、`crawlerMonitorUnifiedStatus.mjs`、`crawlerMonitorDomainTable.mjs`、`crawlerMonitorExecutionOverview.mjs`、`types/crawlerMonitor.ts` 及对应测试。
+
+## 风险
+
+- 动 5482 行后端单文件，改动面大——以分期 + 测试护栏控制。
+- 租约与现有文件锁并存期需明确判据优先级，避免双判据打架——P1 内明确"租约为准、文件锁只读"。

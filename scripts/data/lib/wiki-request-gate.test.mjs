@@ -375,6 +375,60 @@ test('separate gate instances preserve shared state counters', async () => {
   assert.equal(state.lastRequestAt, '2026-04-29T09:15:46.996Z');
 });
 
+test('runJsonRequest recovers a stale gate state lock directory', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-gate-'));
+  const statePath = path.join(tempDir, 'gate.json');
+  const lockPath = `${statePath}.lock`;
+  fs.mkdirSync(lockPath);
+  const staleTime = new Date(Date.now() - 10 * 60_000);
+  fs.utimesSync(lockPath, staleTime, staleTime);
+
+  const gate = createWikiRequestGate({
+    statePath,
+    stateLockStaleMs: 2 * 60_000,
+    requestProfiles: {
+      revision: { baseDelayMs: 0, jitterMs: 0, maxAttempts: 1, cooldownMs: 10_000 }
+    },
+    sleepFn: async () => {},
+    fetchFn: async () => okJsonResponse({ ok: true })
+  });
+
+  const payload = await gate.runJsonRequest('https://terraria.wiki.gg/api.php?action=query', {
+    profile: 'revision'
+  });
+
+  assert.deepEqual(payload, { ok: true });
+  const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  assert.equal(state.successCount, 1);
+  assert.equal(fs.existsSync(lockPath), false);
+});
+
+test('runJsonRequest does not recover a fresh gate state lock directory', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-gate-'));
+  const statePath = path.join(tempDir, 'gate.json');
+  const lockPath = `${statePath}.lock`;
+  fs.mkdirSync(lockPath);
+
+  const gate = createWikiRequestGate({
+    statePath,
+    stateLockStaleMs: 2 * 60_000,
+    stateLockTimeoutMs: 20,
+    requestProfiles: {
+      revision: { baseDelayMs: 0, jitterMs: 0, maxAttempts: 1, cooldownMs: 10_000 }
+    },
+    sleepFn: async () => {},
+    fetchFn: async () => okJsonResponse({ ok: true })
+  });
+
+  await assert.rejects(
+    () => gate.runJsonRequest('https://terraria.wiki.gg/api.php?action=query', {
+      profile: 'revision'
+    }),
+    /Timed out waiting for wiki request gate state lock/
+  );
+  assert.equal(fs.existsSync(lockPath), true);
+});
+
 test('separate gate processes preserve shared state counters', async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-gate-'));
   const statePath = path.join(tempDir, 'gate.json');

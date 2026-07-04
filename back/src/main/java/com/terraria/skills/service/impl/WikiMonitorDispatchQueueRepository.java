@@ -105,12 +105,12 @@ class WikiMonitorDispatchQueueRepository {
         }
         return withMutation(() -> {
             MirrorPayload mirror = readMirror();
-            Optional<WikiMonitorQueueItem> duplicate = lookupDedupeInMirror(mirror, item.getLane(), item.getActionId());
+            Optional<WikiMonitorQueueItem> duplicate = lookupDedupeInMirror(mirror, item.dedupeKeyPart());
             if (duplicate.isPresent()) {
                 return new EnqueueResult(false, duplicate.get());
             }
             mirror.items.add(item);
-            mirror.dedupe.put(dedupeKey(item.getLane(), item.getActionId()), new DedupeEntry(item.getQueueId(), Instant.now(clock).plus(DEDUPE_TTL)));
+            mirror.dedupe.put(dedupeKey(item.dedupeKeyPart()), new DedupeEntry(item.getQueueId(), Instant.now(clock).plus(DEDUPE_TTL)));
             writeMirror(mirror);
             return new EnqueueResult(true, item);
         });
@@ -225,13 +225,13 @@ class WikiMonitorDispatchQueueRepository {
             item.setCompletedAt(Instant.now(clock));
             item.setMessage(message);
             if (redisTemplate != null) {
-                redisTemplate.delete(dedupeKey(item.getLane(), item.getActionId()));
+                redisTemplate.delete(dedupeKey(item.dedupeKeyPart()));
             }
             return new TransitionResult(true, "failed", item);
         }, mirror -> {
             WikiMonitorQueueItem item = findMirrorItem(mirror, queueId);
             if (item != null) {
-                mirror.dedupe.remove(dedupeKey(item.getLane(), item.getActionId()));
+                mirror.dedupe.remove(dedupeKey(item.dedupeKeyPart()));
             }
         });
     }
@@ -270,6 +270,20 @@ class WikiMonitorDispatchQueueRepository {
         }, mirror -> mirror.dispatches.put(dispatchId, queueId));
     }
 
+    TransitionResult markControlStatus(String queueId, String status, String message) {
+        return mutateItem(queueId, item -> {
+            if (!"paused".equals(status) && !"running".equals(status)) {
+                return new TransitionResult(false, item.getStatus(), item);
+            }
+            if (!"running".equals(item.getStatus()) && !"paused".equals(item.getStatus())) {
+                return new TransitionResult(false, item.getStatus(), item);
+            }
+            item.setStatus(status);
+            item.setMessage(message);
+            return new TransitionResult(true, status, item);
+        });
+    }
+
     TransitionResult markTerminal(String queueId, String status, Instant completedAt, String message) {
         TransitionResult result = mutateItem(queueId, item -> {
             if (!TERMINAL_STATUSES.contains(status)) {
@@ -287,7 +301,7 @@ class WikiMonitorDispatchQueueRepository {
                 if (dispatchId != null) {
                     redisTemplate.delete(dispatchKey(dispatchId));
                 }
-                redisTemplate.delete(dedupeKey(item.getLane(), item.getActionId()));
+                redisTemplate.delete(dedupeKey(item.dedupeKeyPart()));
             }
             return new TransitionResult(true, status, item);
         }, mirror -> {
@@ -296,7 +310,7 @@ class WikiMonitorDispatchQueueRepository {
                 if (item.getDispatchId() != null) {
                     mirror.dispatches.remove(item.getDispatchId());
                 }
-                mirror.dedupe.remove(dedupeKey(item.getLane(), item.getActionId()));
+                mirror.dedupe.remove(dedupeKey(item.dedupeKeyPart()));
                 if ("completed".equals(status) && "standard".equals(item.getLane())) {
                     mirror.cooldowns.put(
                         cooldownKey(item.getLane(), item.getActionId()),
@@ -327,13 +341,13 @@ class WikiMonitorDispatchQueueRepository {
             item.setMessage(message);
             clearClaim(item);
             if (redisTemplate != null) {
-                redisTemplate.delete(dedupeKey(item.getLane(), item.getActionId()));
+                redisTemplate.delete(dedupeKey(item.dedupeKeyPart()));
             }
             return new TransitionResult(true, "cancelled", item);
         }, mirror -> {
             WikiMonitorQueueItem item = findMirrorItem(mirror, queueId);
             if (item != null) {
-                mirror.dedupe.remove(dedupeKey(item.getLane(), item.getActionId()));
+                mirror.dedupe.remove(dedupeKey(item.dedupeKeyPart()));
             }
         });
         return new CancelResult(result.changed(), result.status(), result.item());
@@ -351,7 +365,7 @@ class WikiMonitorDispatchQueueRepository {
             }
             return Optional.empty();
         }
-        return withMutation(() -> lookupDedupeInMirror(readMirror(), lane, actionId));
+        return withMutation(() -> lookupDedupeInMirror(readMirror(), lane + ":" + actionId));
     }
 
     void clearDedupe(String lane, String actionId) {
@@ -533,7 +547,7 @@ class WikiMonitorDispatchQueueRepository {
 
     private EnqueueResult enqueueRedis(WikiMonitorQueueItem item) {
         String itemJson = writeItem(item);
-        String dedupeKey = dedupeKey(item.getLane(), item.getActionId());
+        String dedupeKey = dedupeKey(item.dedupeKeyPart());
         for (int attempt = 0; attempt < 2; attempt++) {
             String result;
             try {
@@ -619,8 +633,8 @@ class WikiMonitorDispatchQueueRepository {
         return "claimed";
     }
 
-    private Optional<WikiMonitorQueueItem> lookupDedupeInMirror(MirrorPayload mirror, String lane, String actionId) {
-        String key = dedupeKey(lane, actionId);
+    private Optional<WikiMonitorQueueItem> lookupDedupeInMirror(MirrorPayload mirror, String dedupeKeyPart) {
+        String key = dedupeKey(dedupeKeyPart);
         DedupeEntry entry = mirror.dedupe.get(key);
         if (entry == null) {
             return Optional.empty();
@@ -824,6 +838,10 @@ class WikiMonitorDispatchQueueRepository {
 
     private String dedupeKey(String lane, String actionId) {
         return KEY_PREFIX + "dedupe:" + lane + ":" + actionId;
+    }
+
+    private String dedupeKey(String dedupeKeyPart) {
+        return KEY_PREFIX + "dedupe:" + dedupeKeyPart;
     }
 
     private String dispatchKey(String dispatchId) {

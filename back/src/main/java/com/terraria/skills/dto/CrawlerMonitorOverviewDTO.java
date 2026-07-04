@@ -93,6 +93,18 @@ public class CrawlerMonitorOverviewDTO {
         private String lastAutoRunAt;
         private String pauseReason;
         private String message;
+        private WikiMonitorDomainStateDTO state;
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class WikiMonitorDomainStateDTO {
+        private String status;
+        private String nextAction;
+        private String blocker;
+        private String blockerLabel;
+        private String evidence;
+        private String updatedAt;
     }
 
     @Data

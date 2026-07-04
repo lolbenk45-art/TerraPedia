@@ -155,7 +155,7 @@ test('matrix row pairs the ten check labels with resolved values', () => {
   assert.equal(value('动作白名单'), 'domain-source-bosses')
   assert.equal(value('冷却保护'), '冷却 30 分钟')
   assert.equal(value('最近产物'), 'data/generated/o.json')
-  assert.equal(value('人工动作'), '不可重爬')
+  assert.equal(value('人工动作'), '不可派发')
 })
 
 test('matrix row falls back to safe placeholders when fields are empty', () => {
@@ -167,7 +167,7 @@ test('matrix row falls back to safe placeholders when fields are empty', () => {
   assert.equal(value('进度文件'), '未生成')
   assert.equal(value('冷却保护'), '未冷却')
   assert.equal(value('最近产物'), '未生成')
-  assert.equal(value('人工动作'), '不可重爬')
+  assert.equal(value('人工动作'), '不可派发')
 })
 
 test('matrix row keeps legacy items while exposing formal and sample channels', () => {
@@ -206,7 +206,7 @@ test('selected domain validation summary separates formal domain and smoke sampl
     formalItems: [
       { label: '正式心跳', value: '心跳正常' },
       { label: '正式进度文件', value: 'data/generated/domain-source-bosses-progress.latest.json' },
-      { label: '正式人工动作', value: '可启动重爬' },
+      { label: '正式人工动作', value: '可提交正式派发' },
     ],
     sampleItems: [
       { label: '样本心跳', value: '样本完成' },

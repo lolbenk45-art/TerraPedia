@@ -49,3 +49,26 @@ test('wiki monitor domain smoke plan clamps every run to 10 records per domain',
     assert.ok(domain.outputPath.endsWith(path.join('reports', 'crawler-monitor', 'manual-smoke-test', `${domain.domain}.json`)));
   }
 });
+
+test('wiki monitor domain smoke plan can target selected domains only', () => {
+  const plan = buildDomainSmokePlan({
+    'run-id': 'manual-selected-smoke-test',
+    domains: 'items,buffs',
+    limit: 10
+  });
+
+  assert.deepEqual(plan.selectedDomains, ['items', 'buffs']);
+  assert.deepEqual(plan.domains.map((domain) => domain.domain), ['items', 'buffs']);
+  assert.equal(plan.domains.length, 2);
+  for (const domain of plan.domains) {
+    assert.equal(domain.limit, 10);
+    assert.ok(domain.outputPath.endsWith(path.join('reports', 'crawler-monitor', 'manual-selected-smoke-test', `${domain.domain}.json`)));
+  }
+});
+
+test('wiki monitor domain smoke plan rejects unknown selected domains', () => {
+  assert.throws(
+    () => buildDomainSmokePlan({ domains: 'items,unknown_domain' }),
+    /Unknown wiki monitor domain smoke domain\(s\): unknown_domain/
+  );
+});

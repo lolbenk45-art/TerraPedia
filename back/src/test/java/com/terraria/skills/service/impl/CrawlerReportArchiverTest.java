@@ -103,6 +103,32 @@ class CrawlerReportArchiverTest {
     }
 
     @Test
+    void shouldPreviewStandardizedViewBusinessJsonAndRejectOtherStandardizedFiles() throws Exception {
+        Path repoRoot = Files.createDirectories(tempDir.resolve("TerraPedia-dev"));
+        Path itemsPath = repoRoot.resolve("data/standardized-view/items/part-0001.json");
+        writeJson(itemsPath, Map.of(
+            "id", 24,
+            "internalName", "WoodenSword",
+            "name", "Wooden Sword"
+        ));
+        Path rejectedPath = repoRoot.resolve("data/standardized-view/items/part-0001.txt");
+        Files.createDirectories(rejectedPath.getParent());
+        Files.writeString(rejectedPath, "not previewable");
+
+        CrawlerReportArchiver archiver = new CrawlerReportArchiver(new ObjectMapper());
+
+        CrawlerMonitorReportDetailDTO detail = archiver.getReportDetail(repoRoot, "data/standardized-view/items/part-0001.json");
+        CrawlerMonitorReportDetailDTO rejected = archiver.getReportDetail(repoRoot, "data/standardized-view/items/part-0001.txt");
+
+        assertTrue(detail.isFound());
+        assertTrue(detail.isReadable());
+        assertEquals("json", detail.getContentType());
+        assertTrue(detail.getContent().contains("\"internalName\" : \"WoodenSword\""));
+        assertFalse(rejected.isFound());
+        assertFalse(rejected.isReadable());
+    }
+
+    @Test
     void shouldPreviewRawWikiJsonOutputsAndRejectOtherRawFiles() throws Exception {
         Path repoRoot = Files.createDirectories(tempDir.resolve("TerraPedia-dev"));
         Path outputPath = repoRoot.resolve("data/terraPedia/raw/wiki/template__getbuffinfo.parsed.latest.json");

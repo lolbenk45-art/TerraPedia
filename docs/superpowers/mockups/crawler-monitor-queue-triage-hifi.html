@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TerraPedia 管理端 · 爬虫队列排查高保真原型</title>
+<style>
+@font-face{font-family:NotoSC;src:url("../../../.superpowers/brainstorm/12379-1782383047/content/assets/noto-sans-sc-regular.ttf") format("truetype");font-weight:400 700}
+@font-face{font-family:NotoSC;src:url("../../../.superpowers/brainstorm/12379-1782383047/content/assets/noto-sans-sc-bold.ttf") format("truetype");font-weight:800 900}
+
+:root{
+  --font-sans:"Plus Jakarta Sans",NotoSC,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --font-display:var(--font-sans);
+  --sidebar-width:288px;
+  --sidebar-collapsed-width:104px;
+  --header-height:72px;
+  --content-max-width:1400px;
+  --content-gutter:clamp(18px,2vw,30px);
+  --color-primary:#0d9488;
+  --color-primary-light:#14b8a6;
+  --color-primary-dark:#0f766e;
+  --color-primary-hover:#0e857b;
+  --color-primary-muted:rgba(13,148,136,.12);
+  --color-primary-strong:rgba(13,148,136,.22);
+  --color-bg-shell:#efede7;
+  --color-bg:#f6f4ef;
+  --color-bg-secondary:#fff;
+  --color-bg-tertiary:#f1eeea;
+  --color-bg-hover:#e7e3dc;
+  --color-bg-elevated:rgba(255,255,255,.86);
+  --color-bg-sidebar:#171512;
+  --color-bg-sidebar-hover:#22201c;
+  --color-bg-sidebar-active:rgba(20,184,166,.18);
+  --color-bg-sidebar-track:rgba(255,255,255,.05);
+  --color-surface-0:rgba(255,255,255,.62);
+  --color-surface-1:rgba(255,255,255,.82);
+  --color-surface-2:#fff;
+  --color-surface-muted:#f2eee7;
+  --color-surface-accent:rgba(20,184,166,.08);
+  --color-border:#ded7ce;
+  --color-border-light:#efeae2;
+  --color-border-strong:rgba(120,113,108,.22);
+  --color-text:#1c1917;
+  --color-text-secondary:#57534e;
+  --color-text-muted:#8e877f;
+  --color-text-inverse:#fafaf9;
+  --color-text-sidebar:#ddd8d1;
+  --color-text-sidebar-muted:#8d847b;
+  --color-text-sidebar-active:#5ff2df;
+  --color-success:#059669;
+  --color-success-bg:rgba(5,150,105,.14);
+  --color-danger:#dc2626;
+  --color-danger-bg:rgba(220,38,38,.12);
+  --color-warning:#d97706;
+  --color-warning-bg:rgba(217,119,6,.14);
+  --color-info:#0284c7;
+  --color-info-bg:rgba(2,132,199,.14);
+  --radius-md:12px;
+  --radius-lg:18px;
+  --radius-xl:24px;
+  --radius-full:999px;
+  --shadow-card:0 10px 30px -24px rgb(28 25 23 / .15);
+  --shadow-surface-1:0 4px 14px -12px rgb(28 25 23 / .12);
+  --shadow-surface-2:0 14px 34px -28px rgb(28 25 23 / .16);
+  --shadow-floating:0 24px 56px -32px rgb(18 16 14 / .28);
+  --shadow-focus:0 0 0 4px color-mix(in srgb,var(--color-primary) 18%,transparent);
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+
+*{box-sizing:border-box}
+html{font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+body{
+  min-height:100vh;margin:0;font-family:var(--font-sans);color:var(--color-text);
+  background:radial-gradient(circle at 50% -12%,color-mix(in srgb,var(--color-primary) 9%,transparent),transparent 42%),linear-gradient(180deg,var(--color-bg-shell),var(--color-bg))
+}
+button{font:inherit;color:inherit}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px}
+strong,small,span,code{min-width:0}
+
+.admin-layout{min-height:100vh;display:grid;grid-template-columns:var(--sidebar-width) minmax(0,1fr);transition:grid-template-columns 240ms var(--ease)}
+.admin-layout.sidebar-collapsed{grid-template-columns:var(--sidebar-collapsed-width) minmax(0,1fr)}
+.sidebar{
+  position:sticky;top:0;height:100vh;z-index:20;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:12px;
+  padding:14px;background:radial-gradient(circle at top left,color-mix(in srgb,var(--color-primary) 12%,transparent),transparent 32%),linear-gradient(180deg,color-mix(in srgb,var(--color-bg-sidebar) 98%,#000),var(--color-bg-sidebar));border-right:1px solid rgba(255,255,255,.04);box-shadow:inset -1px 0 0 rgba(255,255,255,.02);color:var(--color-text-sidebar)
+}
+.sidebar__head{min-height:var(--header-height);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sidebar__brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit}
+.sidebar__brand-icon{width:44px;height:44px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(135deg,var(--color-primary),var(--color-primary-light));color:var(--color-text-inverse);font-weight:900;box-shadow:0 18px 28px -20px color-mix(in srgb,var(--color-primary) 48%,transparent)}
+.sidebar__brand-copy{display:grid;gap:2px}
+.sidebar__brand-copy strong{font-size:16px;font-weight:900}
+.sidebar__brand-copy small{color:var(--color-text-sidebar-muted);font-size:12px}
+.sidebar__toggle,.header__menu,.theme-btn{
+  width:38px;height:38px;border:1px solid rgb(255 255 255 / .08);border-radius:10px;background:color-mix(in srgb,var(--color-bg-sidebar-hover) 88%,transparent);color:var(--color-text-sidebar);display:grid;place-items:center;cursor:pointer;transition:transform 160ms var(--ease),background 160ms var(--ease)
+}
+.sidebar__toggle:hover,.header__menu:hover,.theme-btn:hover{transform:translateY(-1px);background:var(--color-bg-sidebar-hover)}
+.sidebar__summary{padding:12px;border:1px solid rgb(255 255 255 / .08);border-radius:12px;background:rgb(255 255 255 / .04)}
+.sidebar__summary-label{font-size:11px;font-weight:800;color:var(--color-text-sidebar-muted);letter-spacing:.08em;text-transform:uppercase}
+.sidebar__summary strong{display:block;margin-top:4px;font-size:14px}
+.sidebar__summary small{display:block;margin-top:3px;color:var(--color-text-sidebar-muted);font-size:12px;line-height:1.45}
+.sidebar__nav{overflow:auto;display:grid;align-content:start;gap:14px;padding-right:2px}
+.sidebar__section{display:grid;gap:7px}
+.sidebar__section-toggle{height:30px;border:0;background:transparent;color:color-mix(in srgb,var(--color-text-sidebar) 84%,#fff);display:flex;align-items:center;justify-content:space-between;padding:0 7px;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.05em}
+.sidebar__section-count{min-width:20px;height:20px;border-radius:999px;display:grid;place-items:center;background:rgb(255 255 255 / .08);color:var(--color-text-sidebar-muted);font-size:11px}
+.sidebar__section-items{display:grid;gap:4px}
+.sidebar__link{position:relative;min-height:48px;display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:9px;align-items:center;padding:7px 9px;border-radius:11px;text-decoration:none;color:var(--color-text-sidebar);transition:background 160ms var(--ease),color 160ms var(--ease),transform 160ms var(--ease)}
+.sidebar__link:hover{background:color-mix(in srgb,var(--color-bg-sidebar-hover) 78%,transparent);transform:translateX(2px)}
+.sidebar__link--active{color:var(--color-text-sidebar-active);background:linear-gradient(90deg,var(--color-bg-sidebar-track),transparent)}
+.sidebar__link-icon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:rgb(255 255 255 / .06);font-size:14px;font-weight:900}
+.sidebar__link-copy{display:grid;gap:1px}
+.sidebar__link-text{font-size:13px;font-weight:800}
+.sidebar__link-hint{color:var(--color-text-sidebar-muted);font-size:11px;line-height:1.25}
+.sidebar__link-chevron{color:var(--color-text-sidebar-muted)}
+.sidebar__foot{padding-top:8px}
+.sidebar__status{display:flex;align-items:center;gap:9px;padding:10px;border-radius:11px;background:rgb(255 255 255 / .04)}
+.sidebar__status-dot{width:9px;height:9px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 4px rgb(34 197 94 / .14)}
+.sidebar__status-copy strong{display:block;font-size:12px}.sidebar__status-copy span{display:block;color:var(--color-text-sidebar-muted);font-size:11px}
+.sidebar-collapsed .sidebar__brand-copy,.sidebar-collapsed .sidebar__summary,.sidebar-collapsed .sidebar__section-toggle,.sidebar-collapsed .sidebar__link-copy,.sidebar-collapsed .sidebar__link-chevron,.sidebar-collapsed .sidebar__status-copy{display:none}
+.sidebar-collapsed .sidebar__link{grid-template-columns:34px;justify-content:center}
+
+.main{min-width:0}
+.header{
+  min-height:var(--header-height);position:sticky;top:0;z-index:15;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 28px;
+  background:color-mix(in srgb,var(--color-bg-shell) 82%,transparent);backdrop-filter:blur(18px);border-bottom:1px solid color-mix(in srgb,var(--color-border) 70%,transparent)
+}
+.breadcrumb{display:flex;align-items:center;gap:8px;color:var(--color-text-secondary);font-size:12px;font-weight:700}
+.breadcrumb__current{color:var(--color-primary)}
+.header__title{margin:4px 0 0;font-size:25px;line-height:1.16;font-weight:900;font-family:var(--font-display)}
+.header__actions{display:flex;align-items:center;gap:10px}
+.theme-btn{border-color:var(--color-border);background:var(--color-bg-secondary);color:var(--color-text)}
+.header__user{min-height:44px;border:1px solid var(--color-border);border-radius:12px;background:var(--color-bg-secondary);display:flex;align-items:center;gap:10px;padding:6px 10px;box-shadow:var(--shadow-card)}
+.header__user-avatar{width:32px;height:32px;border-radius:999px;background:var(--color-bg-tertiary);display:grid;place-items:center}
+.header__user-copy{display:grid;text-align:left}.header__user-copy strong{font-size:13px}.header__user-copy small{color:var(--color-text-secondary);font-size:11px}
+.content{padding:18px 22px 34px}
+
+.page-wrap{max-width:var(--content-max-width);margin:0 auto;padding:0 0 var(--content-gutter)}
+.page-workspace{display:grid;gap:12px;padding-bottom:24px}
+.status-strip{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px;padding:12px 14px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg-secondary);box-shadow:var(--shadow-card)
+}
+.status-strip__main{display:flex;align-items:center;gap:10px;min-width:0}
+.status-dot{width:12px;height:12px;border-radius:50%;background:currentColor;color:var(--color-warning);box-shadow:0 0 0 5px color-mix(in srgb,currentColor 15%,transparent)}
+.status-strip strong{display:block;font-size:15px;font-weight:900}.status-strip small{display:block;margin-top:2px;color:var(--color-text-secondary);font-size:12px}
+.status-strip__actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+
+.btn{
+  min-height:34px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 11px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg-secondary);color:var(--color-text);font-size:12px;font-weight:800;white-space:nowrap;cursor:pointer;transition:transform 160ms var(--ease),border-color 160ms var(--ease),background 160ms var(--ease),color 160ms var(--ease)
+}
+.btn:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--color-primary) 34%,var(--color-border))}
+.btn:active{transform:translateY(0)}
+.btn-secondary{border-color:color-mix(in srgb,var(--color-primary) 38%,var(--color-border));color:var(--color-primary-dark);background:color-mix(in srgb,var(--color-primary) 7%,var(--color-bg-secondary))}
+.btn-plain--danger{color:var(--color-danger);background:color-mix(in srgb,var(--color-danger) 7%,transparent)}
+.btn.loading .icon{animation:spin 900ms linear infinite}
+.icon{width:14px;height:14px;border:2px solid currentColor;border-radius:4px;display:inline-block}.icon.circle{border-radius:50%}.icon.stop{border-radius:999px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.status-pill{
+  min-height:26px;display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border-radius:999px;font-size:12px;font-weight:800;line-height:1.15;white-space:nowrap
+}
+.status-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}.status-pill.no-dot::before{display:none}
+.success{color:var(--color-success);background:var(--color-success-bg)}.danger{color:var(--color-danger);background:var(--color-danger-bg)}.warning{color:var(--color-warning);background:var(--color-warning-bg)}.info{color:var(--color-info);background:var(--color-info-bg)}.muted{color:var(--color-text-secondary);background:color-mix(in srgb,var(--color-border) 68%,var(--color-bg-secondary))}
+
+.metric-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.metric{min-height:86px;display:grid;align-content:space-between;gap:8px;padding:11px 12px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg-secondary);box-shadow:var(--shadow-card);transition:transform 160ms var(--ease),border-color 160ms var(--ease)}
+.metric:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--color-primary) 24%,var(--color-border))}
+.metric small{color:var(--color-text-secondary);font-size:12px;line-height:1.35}.metric strong{color:var(--color-text);font-size:30px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}.metric span{color:var(--color-text-secondary);font-size:11px;line-height:1.3;overflow-wrap:anywhere}
+
+.module-tabs{display:flex;flex-wrap:wrap;gap:6px}
+.module-tab{min-height:38px;display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border:1px solid var(--color-border);border-radius:999px;background:var(--color-bg-secondary);color:var(--color-text-secondary);font-size:13px;font-weight:700;cursor:pointer;transition:transform 160ms var(--ease),background 160ms var(--ease),color 160ms var(--ease),border-color 160ms var(--ease)}
+.module-tab:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--color-primary) 36%,var(--color-border));color:var(--color-text)}
+.module-tab.active{color:#f8fffe;background:var(--color-primary);border-color:var(--color-primary);box-shadow:0 16px 28px -24px color-mix(in srgb,var(--color-primary) 80%,transparent)}
+.module-tab__count{min-width:18px;height:18px;display:inline-grid;place-items:center;padding:0 5px;border-radius:999px;background:color-mix(in srgb,var(--color-primary) 12%,var(--color-bg));color:var(--color-primary);font-size:11px;font-weight:900}.module-tab.active .module-tab__count{background:rgb(255 255 255 / .22);color:#f8fffe}
+
+.section-card{overflow:hidden;margin-bottom:20px;padding:12px 14px;border-radius:8px;border:1px solid color-mix(in srgb,var(--color-border) 78%,transparent);background:var(--color-bg-secondary);box-shadow:var(--shadow-card)}
+.stage{display:grid;gap:10px;transition:opacity 170ms var(--ease),transform 170ms var(--ease)}.stage.switching{opacity:.32;transform:translateY(8px)}
+.view-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end}.view-head h3{margin:0;font-size:18px;line-height:1.2}.view-head p{margin:4px 0 0;color:var(--color-text-secondary);font-size:12px;line-height:1.42}
+
+.panel{display:none}.panel.active{display:block;animation:panelIn 180ms var(--ease)}@keyframes panelIn{from{opacity:.25;transform:translateY(8px)}to{opacity:1;transform:none}}
+.grid-queue{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.42fr);gap:12px;align-items:start}.queue-list,.side-panel{display:grid;gap:8px;min-width:0}.queue-list{max-height:620px;overflow:auto;padding-right:2px}
+.queue-group{display:grid;gap:8px}.queue-group+.queue-group{padding-top:10px;border-top:1px solid color-mix(in srgb,var(--color-border) 78%,transparent)}.queue-group-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;min-height:44px;padding:2px 0}.queue-group-head h4{margin:0;font-size:13px;font-weight:900}.queue-group-head p{margin:3px 0 0;color:var(--color-text-secondary);font-size:11px;line-height:1.35}
+
+.queue-card,.summary-card,.diag-card,.fake-table{min-width:0;padding:11px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg-secondary);color:var(--color-text);text-align:left;box-shadow:var(--shadow-card)}
+.queue-card{cursor:pointer;transition:transform 160ms var(--ease),border-color 160ms var(--ease),background 160ms var(--ease),box-shadow 160ms var(--ease)}
+.queue-card:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--color-primary) 34%,var(--color-border))}
+.queue-card.selected{background:color-mix(in srgb,var(--color-primary) 7%,var(--color-bg-secondary));border-color:color-mix(in srgb,var(--color-primary) 38%,var(--color-border));box-shadow:inset 3px 0 0 var(--color-primary),var(--shadow-card)}
+.queue-time{display:inline-flex;align-items:center;gap:6px;margin:0 0 7px;color:var(--color-text-secondary);font-size:11px;font-weight:800}.queue-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:7px}.queue-meta strong{display:block;font-size:13px;font-weight:800;line-height:1.35}.queue-meta code{color:var(--color-text-secondary);background:var(--color-bg-secondary);border:1px solid var(--color-border);border-radius:6px;padding:2px 5px}
+.queue-card small{display:block;margin-top:4px;color:var(--color-text-secondary);font-size:11px;line-height:1.38;overflow-wrap:anywhere}.issue-copy{min-height:18px;margin:0 0 8px;color:var(--color-text);font-size:12px;line-height:1.45;overflow-wrap:anywhere}.danger-text{color:var(--color-danger);font-weight:800}.warning-text{color:var(--color-warning);font-weight:800}.info-text{color:var(--color-info);font-weight:800}
+.progress-track{height:7px;margin-top:7px;overflow:hidden;border-radius:999px;background:color-mix(in srgb,var(--color-border) 72%,transparent)}.progress-track span{display:block;height:100%;border-radius:inherit;background:var(--color-primary);transition:width 520ms var(--ease)}.progress-track span.danger{background:var(--color-danger)}.progress-track span.warning{background:var(--color-warning)}
+.queue-primary-insight,.evidence-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}.queue-primary-insight span,.evidence-chip{min-width:0;padding:8px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg-tertiary)}.queue-primary-insight small,.evidence-chip small{display:block;margin:0 0 2px;color:var(--color-text-secondary);font-size:10px;font-weight:800}.queue-primary-insight strong,.evidence-chip strong{display:block;font-size:12px;font-weight:800;line-height:1.25;overflow-wrap:anywhere}.evidence-chip{cursor:pointer;transition:transform 150ms var(--ease),border-color 150ms var(--ease),background 150ms var(--ease)}.evidence-chip:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--color-primary) 34%,var(--color-border));background:var(--color-bg-secondary)}.evidence-chip.missing{opacity:.72;border-style:dashed;cursor:default}.queue-card-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.queue-card-details{margin-top:8px;border-top:1px solid var(--color-border);padding-top:8px}.queue-card-details>summary{cursor:pointer;color:var(--color-text-secondary);font-size:12px;font-weight:800}.queue-insight-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px}.queue-insight-grid span{padding:7px;border:1px solid color-mix(in srgb,var(--color-border) 78%,transparent);border-radius:8px;background:color-mix(in srgb,var(--color-bg-secondary) 62%,transparent)}.queue-insight-grid small{margin:0;color:var(--color-text-secondary);font-size:10px;font-weight:800}.queue-insight-grid strong{display:block;margin-top:2px;font-size:12px;line-height:1.25}
+.summary-card{display:grid;gap:10px}.queue-side-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.queue-side-head h4{margin:0;font-size:15px;line-height:1.3}.queue-side-head p{margin:4px 0 0;color:var(--color-text-secondary);font-size:11px;line-height:1.4}.diag-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.diag-card strong{display:block;font-size:13px;font-weight:800}.diag-card small{display:block;margin-top:4px;color:var(--color-text-secondary);font-size:11px;line-height:1.38}.diag-card.danger{border-color:color-mix(in srgb,#dc2626 34%,var(--color-border));box-shadow:inset 3px 0 0 var(--color-danger),var(--shadow-card)}.diag-card.warning{border-color:color-mix(in srgb,#d97706 34%,var(--color-border));box-shadow:inset 3px 0 0 var(--color-warning),var(--shadow-card)}.diag-card.accent{border-color:color-mix(in srgb,var(--color-primary) 34%,var(--color-border));box-shadow:inset 3px 0 0 var(--color-primary),var(--shadow-card)}
+
+.fake-table{display:grid;gap:8px}.fake-row{display:grid;grid-template-columns:1fr 96px 96px 120px;gap:8px;align-items:center;padding:8px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg-tertiary);font-size:12px}
+.overview-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(330px,390px);gap:12px;align-items:start}.domain-table{max-height:520px;overflow:auto;border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg-secondary)}.monitor-table{width:100%;min-width:760px;border-collapse:collapse}.monitor-table th,.monitor-table td{padding:8px 10px;border-bottom:1px solid color-mix(in srgb,var(--color-border) 78%,transparent);font-size:12px;text-align:left;vertical-align:top}.monitor-table th{position:sticky;top:0;z-index:1;color:var(--color-text-secondary);background:var(--color-bg-tertiary);font-weight:800}.domain-row{cursor:pointer;transition:background 160ms var(--ease),box-shadow 160ms var(--ease)}.domain-row:hover{background:color-mix(in srgb,var(--color-bg-tertiary) 58%,var(--color-bg-secondary))}.domain-row.selected{background:color-mix(in srgb,var(--color-primary) 7%,var(--color-bg-secondary));box-shadow:inset 3px 0 0 var(--color-primary)}.domain-status-cell{min-height:48px;display:grid;align-content:start;gap:4px}.domain-status-cell .status-pill{min-width:72px;width:72px;justify-self:start}.domain-actions{display:flex;flex-wrap:wrap;gap:6px;min-width:150px}.current-card{position:sticky;top:calc(var(--header-height) + 12px);display:grid;gap:10px;padding:12px;border:1px solid color-mix(in srgb,var(--color-primary) 28%,var(--color-border));border-radius:8px;background:var(--color-bg-secondary);box-shadow:var(--shadow-card)}.current-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.current-head h4{margin:5px 0 0;font-size:17px;line-height:1.2}.current-head p{margin:5px 0 0;color:var(--color-text-secondary);font-size:12px;line-height:1.4}.kv-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.kv{min-width:0;padding:9px;border:1px solid color-mix(in srgb,var(--color-border) 82%,transparent);border-radius:8px;background:var(--color-bg-tertiary)}.kv small,.kv strong{display:block;overflow-wrap:anywhere}.kv small{color:var(--color-text-secondary);font-size:11px}.kv strong{font-size:12px}.wiki-domain-control-strip{display:grid;gap:10px;padding:10px;border:1px solid color-mix(in srgb,var(--color-primary) 24%,var(--color-border));border-radius:8px;background:color-mix(in srgb,var(--color-primary) 5%,var(--color-bg-secondary))}.wiki-domain-control-strip strong{font-size:13px;font-weight:900}.wiki-domain-control-strip small{color:var(--color-text-secondary);font-size:12px;line-height:1.45}.wiki-domain-control-actions{display:flex;gap:8px;flex-wrap:wrap}
+.grid-progress,.grid-reports,.grid-diagnostics{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.42fr);gap:12px;align-items:start}.task-list,.report-list,.diagnostic-list{display:grid;gap:8px;max-height:620px;overflow:auto;padding-right:2px}.progress-group{display:grid;gap:8px}.progress-group+.progress-group{padding-top:10px;border-top:1px solid color-mix(in srgb,var(--color-border) 78%,transparent)}.progress-group-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;min-height:44px;padding:2px 0}.progress-group-head h4{margin:0;font-size:13px;font-weight:900}.progress-group-head p{margin:3px 0 0;color:var(--color-text-secondary);font-size:11px;line-height:1.35}.task-card{min-width:0;padding:11px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg-secondary);box-shadow:var(--shadow-card)}.progress-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px}.progress-card-head strong{display:block;font-size:13px;font-weight:800}.progress-card-head small,.progress-card-subtitle{display:block;color:var(--color-text-secondary);font-size:11px;line-height:1.38}.progress-primary-insight{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}.progress-primary-insight span{padding:8px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg-tertiary)}.progress-primary-insight small{display:block;margin:0 0 2px;color:var(--color-text-secondary);font-size:10px;font-weight:800}.progress-primary-insight strong{display:block;font-size:12px}.progress-state-conflict{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;padding:8px;border:1px solid color-mix(in srgb,var(--color-warning) 32%,var(--color-border));border-radius:8px;background:color-mix(in srgb,var(--color-warning-bg) 72%,var(--color-bg-secondary))}.progress-state-conflict strong{display:block;margin-top:2px;color:var(--color-warning);font-size:12px;line-height:1.45}.progress-card-details{margin-top:8px;border-top:1px solid var(--color-border);padding-top:8px}.progress-card-details>summary{cursor:pointer;color:var(--color-text-secondary);font-size:12px;font-weight:800}.progress-insight-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px}.progress-insight-grid span{padding:7px;border:1px solid color-mix(in srgb,var(--color-border) 78%,transparent);border-radius:8px;background:color-mix(in srgb,var(--color-bg-tertiary) 62%,transparent)}
+.report-item{width:100%;cursor:pointer;min-width:0;padding:11px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg-secondary);box-shadow:var(--shadow-card);text-align:left;transition:transform 160ms var(--ease),border-color 160ms var(--ease),background 160ms var(--ease)}.report-item:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--color-primary) 34%,var(--color-border))}.report-item.active{background:color-mix(in srgb,var(--color-primary) 7%,var(--color-bg-secondary));border-color:color-mix(in srgb,var(--color-primary) 38%,var(--color-border));box-shadow:inset 3px 0 0 var(--color-primary),var(--shadow-card)}.report-item strong{display:block;margin-top:6px;font-size:13px}.report-item small{display:block;margin-top:4px;color:var(--color-text-secondary);font-size:11px}.section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}.section-title{margin:0;font-size:15px}.section-subtitle{margin:4px 0 0;color:var(--color-text-secondary);font-size:12px}.empty-line{color:var(--color-text-secondary);font-size:12px}
+
+.drawer-backdrop{position:fixed;inset:0;z-index:1000;background:rgb(18 16 14 / .24);opacity:0;pointer-events:none;transition:opacity 220ms var(--ease)}.drawer-backdrop.open{opacity:1;pointer-events:auto}
+.report-drawer{position:fixed;top:0;right:0;bottom:0;z-index:1001;width:min(620px,calc(100vw - var(--sidebar-width)));display:grid;grid-template-rows:auto minmax(0,1fr);background:var(--color-bg-secondary);border-left:1px solid var(--color-border);box-shadow:var(--shadow-floating);transform:translateX(105%);transition:transform 260ms var(--ease)}.report-drawer.open{transform:translateX(0)}
+.drawer-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:16px 18px;border-bottom:1px solid var(--color-border)}.drawer-head strong{display:block;font-size:15px;overflow-wrap:anywhere}.drawer-head small{display:block;margin-top:4px;color:var(--color-text-secondary);font-size:12px;overflow-wrap:anywhere}.drawer-body{display:grid;align-content:start;gap:12px;min-height:0;padding:16px 18px;overflow:auto}.report-preview__meta{display:flex;gap:6px;flex-wrap:wrap}.drawer-card{display:grid;gap:8px;padding:11px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg-tertiary)}.drawer-card strong{font-size:13px}.drawer-card p{margin:0;color:var(--color-text-secondary);font-size:12px;line-height:1.45}.file-row{display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg-secondary)}.file-row code{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-secondary)}.file-row small{display:block;margin-top:2px;color:var(--color-text-secondary);font-size:11px}
+.code-preview{min-height:0;height:430px;max-width:100%;padding:14px;border-radius:8px;overflow:auto;background:#171512;color:#ddd8d1;font-size:12px;line-height:1.55;white-space:pre-wrap}.log-warning{color:#fbbf24;font-weight:800}.log-danger{color:#f87171;font-weight:800}.log-info{color:#5eead4}
+.toast{position:fixed;right:22px;bottom:22px;z-index:1200;display:flex;align-items:center;gap:10px;min-height:44px;padding:10px 14px;border:1px solid color-mix(in srgb,var(--color-primary) 28%,var(--color-border));border-radius:12px;background:var(--color-bg-secondary);box-shadow:var(--shadow-floating);opacity:0;transform:translateY(18px);pointer-events:none;transition:opacity 200ms var(--ease),transform 200ms var(--ease)}.toast.show{opacity:1;transform:none}
+
+/* High-fidelity polish layer: mirrors the production crawler monitor density while keeping this file self-contained. */
+*{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--color-text-muted) 42%,transparent) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--color-text-muted) 34%,transparent);border:3px solid transparent;border-radius:999px;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:color-mix(in srgb,var(--color-primary) 42%,transparent);border:3px solid transparent;background-clip:content-box}
+.header{background:color-mix(in srgb,var(--color-bg-shell) 88%,rgba(255,255,255,.72));box-shadow:0 1px 0 color-mix(in srgb,var(--color-border) 62%,transparent)}
+.breadcrumb span{display:inline-flex;align-items:center;min-height:22px}.breadcrumb__current{font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px;text-decoration-color:color-mix(in srgb,var(--color-primary) 30%,transparent)}
+.header__title{font-weight:850}
+.theme-btn,.header__user{transition:transform 160ms var(--ease),border-color 160ms var(--ease),box-shadow 160ms var(--ease),background 160ms var(--ease)}
+.theme-btn:hover,.header__user:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--color-primary) 26%,var(--color-border));box-shadow:var(--shadow-surface-2)}
+.content{padding:18px 24px 40px}
+.page-workspace{gap:13px}
+.status-strip{display:grid;grid-template-columns:minmax(0,1fr) auto;min-height:58px;padding:10px 14px;border-color:color-mix(in srgb,var(--color-warning) 26%,var(--color-border));background:linear-gradient(180deg,color-mix(in srgb,#fffbeb 58%,var(--color-bg-secondary)),var(--color-bg-secondary));box-shadow:none}
+.status-strip__main>div{min-width:0}.status-strip strong{font-weight:850;line-height:1.3}.status-strip small{line-height:1.35;overflow-wrap:anywhere}.status-dot{width:10px;height:10px;box-shadow:0 0 0 4px color-mix(in srgb,var(--color-warning) 16%,transparent)}
+.btn{position:relative;min-height:34px;border-color:color-mix(in srgb,var(--color-border) 92%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 68%,transparent);font-weight:750}
+.btn:hover{background:color-mix(in srgb,var(--color-primary) 5%,var(--color-bg-secondary));box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 70%,transparent),var(--shadow-surface-1)}
+.btn:focus-visible,.module-tab:focus-visible,.queue-card:focus-visible,.report-item:focus-visible,.evidence-chip:focus-visible{outline:0;box-shadow:var(--shadow-focus),var(--shadow-card)}
+.btn-secondary{background:linear-gradient(180deg,color-mix(in srgb,var(--color-primary) 9%,var(--color-bg-secondary)),var(--color-bg-secondary))}
+.btn-plain--danger{border-color:color-mix(in srgb,var(--color-danger) 24%,var(--color-border));background:linear-gradient(180deg,color-mix(in srgb,var(--color-danger) 8%,var(--color-bg-secondary)),var(--color-bg-secondary))}
+.status-pill{border:1px solid color-mix(in srgb,currentColor 16%,transparent);font-weight:750}
+.metric{position:relative;overflow:hidden;border-color:color-mix(in srgb,var(--color-border) 84%,transparent);background:linear-gradient(180deg,var(--color-bg-secondary),color-mix(in srgb,var(--color-bg-secondary) 76%,var(--color-bg-tertiary)))}
+.metric::after{content:"";position:absolute;inset:auto 12px 0;height:2px;border-radius:999px;background:color-mix(in srgb,var(--color-primary) 30%,transparent);opacity:.45}
+.metric small{font-weight:760}.metric strong{font-weight:850;letter-spacing:0}
+.metric:first-child strong{font-size:28px}
+.module-tabs{gap:7px}
+.module-tab{box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 68%,transparent)}
+.module-tab.active{box-shadow:0 18px 30px -24px color-mix(in srgb,var(--color-primary) 82%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 24%,transparent)}
+.section-card{padding:14px;border-color:color-mix(in srgb,var(--color-border) 82%,transparent);background:linear-gradient(180deg,var(--color-bg-secondary),color-mix(in srgb,var(--color-bg-secondary) 90%,var(--color-bg-tertiary)));box-shadow:var(--shadow-surface-2)}
+.view-head{padding:2px 2px 4px}.view-head h3{font-weight:850}.view-head p{max-width:820px}
+.queue-list,.task-list,.report-list,.diagnostic-list{max-height:620px;padding-right:6px}
+.side-panel{position:sticky;top:calc(var(--header-height) + 12px);align-self:start}
+.queue-group-head,.progress-group-head{padding:4px 2px}.queue-group-head h4,.progress-group-head h4{font-weight:850}.queue-group-head .status-pill,.progress-group-head .status-pill{min-width:52px}
+.queue-card,.summary-card,.diag-card,.fake-table,.task-card,.report-item,.current-card{border-color:color-mix(in srgb,var(--color-border) 86%,transparent);background:linear-gradient(180deg,var(--color-bg-secondary),color-mix(in srgb,var(--color-bg-secondary) 92%,var(--color-bg-tertiary)));box-shadow:0 10px 26px -24px rgb(28 25 23 / .22)}
+.queue-card,.task-card,.report-item{position:relative;overflow:hidden}
+.queue-card::before,.task-card::before,.report-item::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:transparent;transition:background 160ms var(--ease),opacity 160ms var(--ease)}
+.queue-card:hover,.report-item:hover{box-shadow:var(--shadow-surface-2)}
+.queue-card.selected,.report-item.active{background:linear-gradient(180deg,color-mix(in srgb,var(--color-primary) 7%,var(--color-bg-secondary)),var(--color-bg-secondary));box-shadow:inset 3px 0 0 var(--color-primary),0 14px 34px -28px color-mix(in srgb,var(--color-primary) 42%,rgb(28 25 23 / .2))}
+.queue-card.selected::before,.report-item.active::before{background:var(--color-primary)}
+.queue-card .danger-text,.task-card .danger-text{padding-left:8px;border-left:2px solid color-mix(in srgb,var(--color-danger) 44%,transparent)}
+.queue-card .warning-text,.task-card .warning-text{padding-left:8px;border-left:2px solid color-mix(in srgb,var(--color-warning) 44%,transparent)}
+.queue-card .info-text,.task-card .info-text{padding-left:8px;border-left:2px solid color-mix(in srgb,var(--color-info) 38%,transparent)}
+.queue-time{height:22px;margin-bottom:6px;padding:0 8px;border-radius:999px;background:color-mix(in srgb,var(--color-bg-tertiary) 72%,transparent);font-variant-numeric:tabular-nums}
+.queue-meta strong{font-weight:800}.queue-meta code{background:color-mix(in srgb,var(--color-bg-tertiary) 74%,var(--color-bg-secondary));border-color:color-mix(in srgb,var(--color-border) 78%,transparent);color:var(--color-text-secondary)}
+.issue-copy{margin-bottom:7px;font-weight:650}
+.progress-track{height:8px;background:color-mix(in srgb,var(--color-border) 64%,var(--color-bg-tertiary));box-shadow:inset 0 1px 2px rgb(28 25 23 / .06)}
+.progress-track span{background:linear-gradient(90deg,var(--color-primary-dark),var(--color-primary-light))}
+.progress-track span.danger{background:linear-gradient(90deg,var(--color-danger),#f87171)}
+.progress-track span.warning{background:linear-gradient(90deg,var(--color-warning),#fbbf24)}
+.queue-primary-insight span,.progress-primary-insight span,.queue-insight-grid span,.progress-insight-grid span,.kv,.fake-row{background:linear-gradient(180deg,var(--color-bg-tertiary),color-mix(in srgb,var(--color-bg-tertiary) 78%,var(--color-bg-secondary)))}
+.queue-primary-insight small,.progress-primary-insight small,.evidence-chip small,.kv small,.queue-insight-grid small,.progress-insight-grid small{text-transform:none;font-weight:760}
+.evidence-chip{position:relative;min-height:54px;border-color:color-mix(in srgb,var(--color-border) 82%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 54%,transparent)}
+.evidence-chip::after{content:"";position:absolute;right:9px;top:9px;width:6px;height:6px;border-radius:999px;background:color-mix(in srgb,var(--color-primary) 58%,transparent)}
+.evidence-chip.missing::after{background:color-mix(in srgb,var(--color-text-muted) 38%,transparent)}
+.evidence-chip:hover{box-shadow:var(--shadow-surface-1),inset 0 1px 0 color-mix(in srgb,#fff 58%,transparent)}
+.summary-card{gap:11px}
+.queue-side-head{padding-bottom:2px;border-bottom:1px solid color-mix(in srgb,var(--color-border) 74%,transparent)}
+.diag-card{min-height:86px;transition:transform 160ms var(--ease),border-color 160ms var(--ease),box-shadow 160ms var(--ease)}
+.diag-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-surface-2)}
+.diag-card:not(.danger):not(.warning):not(.accent){box-shadow:inset 3px 0 0 color-mix(in srgb,var(--color-border) 80%,transparent),var(--shadow-card)}
+.current-card{box-shadow:inset 3px 0 0 var(--color-primary),var(--shadow-surface-2)}
+.wiki-domain-control-strip{background:linear-gradient(180deg,color-mix(in srgb,var(--color-primary) 6%,var(--color-bg-secondary)),var(--color-bg-secondary));box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 58%,transparent)}
+.monitor-table th{font-weight:760}.monitor-table tbody tr:last-child td{border-bottom:0}.domain-row.selected{background:color-mix(in srgb,var(--color-primary) 7%,var(--color-bg-secondary))}
+.report-item strong{font-weight:800}.report-item small{font-variant-numeric:tabular-nums}
+.drawer-backdrop{inset:var(--header-height) 0 0 var(--sidebar-width);background:rgb(28 25 23 / .30)}
+.report-drawer{top:var(--header-height);background:var(--color-bg-secondary)}
+.drawer-card{border-color:color-mix(in srgb,var(--color-border) 84%,transparent)}
+.file-row{box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 58%,transparent)}
+.code-preview{font-family:Consolas,"JetBrains Mono",ui-monospace,monospace;line-height:1.62;box-shadow:inset 0 1px 0 rgb(255 255 255 / .04)}
+
+@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important;transition-duration:1ms!important}}
+@media (max-width:1180px){.admin-layout{grid-template-columns:1fr}.sidebar{display:none}.grid-queue{grid-template-columns:1fr}.metric-row{grid-template-columns:repeat(3,minmax(0,1fr))}.report-drawer{width:min(620px,100vw)}}
+</style>
+</head>
+<body>
+<div class="admin-layout" id="layout">
+  <aside class="sidebar">
+    <div class="sidebar__head">
+      <a class="sidebar__brand" href="#">
+        <span class="sidebar__brand-icon">TP</span>
+        <span class="sidebar__brand-copy"><strong>数据管理</strong><small>TerraPedia 管理端</small></span>
+      </a>
+      <button class="sidebar__toggle" id="sidebarToggle" title="折叠侧栏">≡</button>
+    </div>
+    <div class="sidebar__summary"><span class="sidebar__summary-label">工作台</span><strong>Admin</strong><small>统一管理词条、配方与内容发布。</small></div>
+    <nav class="sidebar__nav">
+      <section class="sidebar__section">
+        <button class="sidebar__section-toggle"><span>运营</span><span class="sidebar__section-count">5</span></button>
+        <div class="sidebar__section-items">
+          <a class="sidebar__link" href="#"><span class="sidebar__link-icon">⌂</span><span class="sidebar__link-copy"><span class="sidebar__link-text">总览</span><small class="sidebar__link-hint">数据全景</small></span><span class="sidebar__link-chevron">›</span></a>
+          <a class="sidebar__link sidebar__link--active" href="#"><span class="sidebar__link-icon">⟳</span><span class="sidebar__link-copy"><span class="sidebar__link-text">爬虫监控</span><small class="sidebar__link-hint">队列、进度、报告</small></span><span class="sidebar__link-chevron">›</span></a>
+          <a class="sidebar__link" href="#"><span class="sidebar__link-icon">✓</span><span class="sidebar__link-copy"><span class="sidebar__link-text">数据验收</span><small class="sidebar__link-hint">质量门禁</small></span><span class="sidebar__link-chevron">›</span></a>
+        </div>
+      </section>
+      <section class="sidebar__section">
+        <button class="sidebar__section-toggle"><span>维护</span><span class="sidebar__section-count">4</span></button>
+        <div class="sidebar__section-items">
+          <a class="sidebar__link" href="#"><span class="sidebar__link-icon">□</span><span class="sidebar__link-copy"><span class="sidebar__link-text">分类规则</span><small class="sidebar__link-hint">Taxonomy</small></span><span class="sidebar__link-chevron">›</span></a>
+          <a class="sidebar__link" href="#"><span class="sidebar__link-icon">♫</span><span class="sidebar__link-copy"><span class="sidebar__link-text">音频资源</span><small class="sidebar__link-hint">Assets</small></span><span class="sidebar__link-chevron">›</span></a>
+        </div>
+      </section>
+    </nav>
+    <div class="sidebar__foot"><div class="sidebar__status"><span class="sidebar__status-dot"></span><span class="sidebar__status-copy"><strong>管理工作台</strong><span>v1.0.0</span></span></div></div>
+  </aside>
+
+  <div class="main">
+    <header class="header">
+      <div class="header__main">
+        <div class="breadcrumb"><span>首页</span><span>›</span><span>运营</span><span>›</span><span class="breadcrumb__current">爬虫监控</span></div>
+        <h1 class="header__title">爬虫监控</h1>
+      </div>
+      <div class="header__actions">
+        <button class="theme-btn" title="切换主题">◐</button>
+        <button class="header__user"><span class="header__user-avatar">A</span><span class="header__user-copy"><strong>Admin</strong><small>管理员</small></span><span>⌄</span></button>
+      </div>
+    </header>
+
+    <main class="content content-area">
+      <section class="page-wrap page-workspace crawler-monitor crawler-monitor-v4">
+        <section class="status-strip" aria-live="polite">
+          <div class="status-strip__main"><span class="status-dot"></span><div><strong>Wiki 爬虫监控：队列存在阻塞/异常</strong><small>真实状态来自后端 domain.state 与 dispatchQueue；当前视图以状态一致性和排查证据为优先级。</small></div></div>
+          <div class="status-strip__actions">
+            <span class="status-pill danger">阻塞/异常 4</span><span class="status-pill info">正在运行 2</span><span class="status-pill warning">队列等待 3</span>
+            <button class="btn btn-plain--danger"><span class="icon stop"></span>清空运行/队列</button>
+            <button class="btn btn-secondary" id="refreshBtn"><span class="icon circle"></span><span>刷新状态</span></button>
+          </div>
+        </section>
+
+        <section class="metric-row" aria-label="核心监控指标">
+          <article class="metric"><small>最需要处理</small><strong>Shimmer</strong><span>心跳过期 17 分钟，阻塞后续正式队列</span></article>
+          <article class="metric"><small>运行中</small><strong>2</strong><span>1 个正常，1 个心跳过期</span></article>
+          <article class="metric"><small>队列等待</small><strong>3</strong><span>最前方被 Wiki 抓取锁占用</span></article>
+          <article class="metric"><small>可点击证据</small><strong>18</strong><span>日志 6 / 进度 7 / 报告 5</span></article>
+          <article class="metric"><small>最近刷新</small><strong id="refreshTime">11:17</strong><span>2026-07-04 · Asia/Shanghai</span></article>
+        </section>
+
+        <nav class="module-tabs" aria-label="爬取监控模块">
+          <button class="module-tab" data-panel="overview">域总览<span class="module-tab__count">10</span></button>
+          <button class="module-tab active" data-panel="queue">队列和派发状态<span class="module-tab__count">9</span></button>
+          <button class="module-tab" data-panel="progress">真实任务进度<span class="module-tab__count">14</span></button>
+          <button class="module-tab" data-panel="reports">报告<span class="module-tab__count">8</span></button>
+          <button class="module-tab" data-panel="diagnostics">诊断<span class="module-tab__count">4</span></button>
+        </nav>
+
+        <section class="section-card module-stage-shell">
+          <div class="stage" id="stage">
+            <section class="panel" id="panel-overview">
+              <div class="view-head"><div><h3>域总览</h3><p>按正式版域表呈现状态、进度、下一步和操作，右侧固定展示选中域的证据和派发控制。</p></div><span class="status-pill warning">需处理 4 项</span></div>
+              <div class="overview-layout">
+                <div class="domain-table">
+                  <table class="monitor-table">
+                    <thead><tr><th>域</th><th>状态</th><th>进度</th><th>下一步</th><th>操作</th></tr></thead>
+                    <tbody>
+                      <tr class="domain-row selected"><td><strong>Shimmer</strong><small>shimmer</small></td><td><div class="domain-status-cell"><span class="status-pill danger">停滞</span><small>心跳过期</small></div></td><td><strong>1 / 3</strong><div class="progress-track"><span class="danger" style="width:34%"></span></div></td><td><strong>终止清理后重新提交</strong></td><td><div class="domain-actions"><button class="btn btn-plain--danger">终止</button><button class="btn" data-open="log">证据</button></div></td></tr>
+                      <tr class="domain-row"><td><strong>Bosses</strong><small>bosses</small></td><td><div class="domain-status-cell"><span class="status-pill success">运行中</span><small>正常</small></div></td><td><strong>7 / 14</strong><div class="progress-track"><span style="width:50%"></span></div></td><td><strong>观察或终止</strong></td><td><div class="domain-actions"><button class="btn">暂停</button><button class="btn" data-open="progress">证据</button></div></td></tr>
+                      <tr class="domain-row"><td><strong>Buffs</strong><small>buffs</small></td><td><div class="domain-status-cell"><span class="status-pill danger">可重新派发</span><small>已取消</small></div></td><td><strong>旧进度残留</strong><div class="progress-track"><span class="warning" style="width:100%"></span></div></td><td><strong>提交正式派发</strong></td><td><div class="domain-actions"><button class="btn btn-secondary">提交正式派发</button><button class="btn" data-open="progress">证据</button></div></td></tr>
+                      <tr class="domain-row"><td><strong>Items / NPCs / Projectiles</strong><small>wiki-core-refresh</small></td><td><div class="domain-status-cell"><span class="status-pill warning">队列中</span><small>等待占用</small></div></td><td><strong>等待执行</strong><div class="progress-track"><span class="warning" style="width:8%"></span></div></td><td><strong>取消排队</strong></td><td><div class="domain-actions"><button class="btn btn-plain--danger">取消</button><button class="btn" data-open="lock">证据</button></div></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <aside class="current-card">
+                  <header class="current-head"><div><span class="status-pill danger">心跳过期</span><h4>Shimmer</h4><p>当前停滞，建议先看日志和进度，再决定是否终止运行。</p></div><button class="btn" data-open="log">查看证据</button></header>
+                  <div class="kv-grid"><div class="kv"><small>当前进度</small><strong>1 / 3</strong></div><div class="kv"><small>阻塞/占用</small><strong>Wiki 抓取锁</strong></div><div class="kv"><small>最近心跳</small><strong>2026-07-04 10:58:42 上海</strong></div><div class="kv"><small>建议动作</small><strong>终止清理后重新提交</strong></div><div class="kv"><small>队列详情</small><strong>standard · running</strong></div><div class="kv"><small>进程</small><strong>PID 28451</strong></div></div>
+                  <div class="evidence-grid"><button class="evidence-chip clickable" data-open="log"><small>日志</small><strong>domain-source-shimmer.log</strong></button><button class="evidence-chip clickable" data-open="progress"><small>进度</small><strong>progress.latest.json</strong></button><button class="evidence-chip clickable" data-open="report"><small>报告</small><strong>wiki-shimmer-summary.json</strong></button><button class="evidence-chip clickable" data-open="lock"><small>锁文件</small><strong>wiki.lock</strong></button></div>
+                  <section class="wiki-domain-control-strip"><div><strong>正式派发</strong><small>将创建一个后台抓取任务并加入正式队列；不是刷新当前页面，也不会自动清理旧产物。</small></div><div class="wiki-domain-control-actions"><button class="btn btn-secondary">提交正式派发</button><button class="btn btn-plain--danger">终止任务</button></div></section>
+                </aside>
+              </div>
+            </section>
+
+            <section class="panel active" id="panel-queue">
+              <div class="view-head"><div><h3>队列和派发状态</h3><p>按运行状态分组，并在每条任务首屏显示上海时间、中文问题摘要和可点击证据文件。详细日志从右侧报告抽屉打开。</p></div><span class="status-pill warning">需处理 4 项</span></div>
+              <div class="grid-queue">
+                <div class="queue-list">
+                  <section class="queue-group queue-group--active">
+                    <header class="queue-group-head"><div><h4>正在运行</h4><p>运行、暂停、排队或等待占用释放的未结束项；按上海时间倒序。</p></div><span class="status-pill info">2 项</span></header>
+
+                    <article class="queue-card selected" data-task="shimmer">
+                      <div class="queue-time">上海时间 2026-07-04 10:58:42 · 最后心跳</div>
+                      <div class="queue-meta"><strong>Shimmer 域正式抓取</strong><span class="status-pill danger">心跳过期</span><code>domain-source-shimmer</code></div>
+                      <p class="issue-copy danger-text">问题：队列仍认为任务在运行，但心跳 17 分钟未更新；后续 3 个任务正在等待同一个 Wiki 抓取锁。</p>
+                      <small>建议：先打开日志看最后输出；如果日志没有新行，再终止运行并清理后重新提交正式派发。</small>
+                      <div class="progress-track"><span class="danger" style="width:34%"></span></div>
+                      <div class="queue-primary-insight"><span><small>进度</small><strong>1 / 3</strong></span><span><small>建议动作</small><strong>终止清理后重新提交</strong></span></div>
+                      <div class="evidence-grid">
+                        <button class="evidence-chip clickable" data-open="log"><small>日志</small><strong>看报错栈和最后一条输出</strong></button>
+                        <button class="evidence-chip clickable" data-open="progress"><small>进度</small><strong>domain-source-shimmer-progress.latest.json</strong></button>
+                        <button class="evidence-chip clickable" data-open="report"><small>报告</small><strong>wiki-shimmer-summary.json</strong></button>
+                        <button class="evidence-chip clickable" data-open="lock"><small>锁文件</small><strong>run.runtime/wiki.lock</strong></button>
+                      </div>
+                      <div class="queue-card-actions"><button class="btn btn-secondary" data-open="log">打开日志</button><button class="btn" data-open="progress">打开进度</button><button class="btn btn-plain--danger">终止运行</button></div>
+                      <details class="queue-card-details"><summary>工程详情</summary><div class="queue-insight-grid"><span><small>状态来源</small><strong>queue + progress</strong></span><span><small>队列标识</small><strong>queueId q-shimmer-running</strong></span><span><small>阻塞</small><strong>Wiki 抓取锁</strong></span></div></details>
+                    </article>
+
+                    <article class="queue-card" data-task="bosses">
+                      <div class="queue-time">上海时间 2026-07-04 11:16:05 · 最新心跳</div>
+                      <div class="queue-meta"><strong>Bosses 域正式抓取</strong><span class="status-pill success">运行中</span><code>domain-source-bosses</code></div>
+                      <p class="issue-copy info-text">状态：心跳正常，7/14 已完成，暂无需要人工介入的问题。</p>
+                      <small>报告尚未生成；进度文件持续更新，完成后可从报告抽屉复核最终产物。</small>
+                      <div class="progress-track"><span style="width:50%"></span></div>
+                      <div class="queue-primary-insight"><span><small>进度</small><strong>7 / 14</strong></span><span><small>建议动作</small><strong>观察或终止</strong></span></div>
+                      <div class="evidence-grid"><button class="evidence-chip clickable" data-open="log"><small>日志</small><strong>bosses-refresh.log</strong></button><button class="evidence-chip clickable" data-open="progress"><small>进度</small><strong>domain-source-bosses-progress.latest.json</strong></button><div class="evidence-chip missing"><small>报告</small><strong>运行中，尚未生成</strong></div><div class="evidence-chip missing"><small>锁文件</small><strong>未返回锁路径</strong></div></div>
+                    </article>
+                  </section>
+
+                  <section class="queue-group queue-group--history">
+                    <header class="queue-group-head"><div><h4>已处理 / 异常</h4><p>失败、超时、停滞、取消或状态冲突项；按结束或更新时间倒序。</p></div><span class="status-pill danger">4 项</span></header>
+                    <article class="queue-card" data-task="buffs">
+                      <div class="queue-time">上海时间 2026-07-04 10:47:06 · 结束时间</div>
+                      <div class="queue-meta"><strong>Buffs 免疫页抓取</strong><span class="status-pill danger">状态冲突</span><code>buff-page-immunity-refresh</code></div>
+                      <p class="issue-copy danger-text">问题：队列已取消，但进度文件仍保留 running，页面必须以队列状态为准。</p>
+                      <small>这通常是旧进度文件残留；确认没有后台进程继续写入后，可以重新提交正式派发。</small>
+                      <div class="queue-primary-insight"><span><small>进度</small><strong>旧进度残留</strong></span><span><small>建议动作</small><strong>提交正式派发</strong></span></div>
+                      <div class="evidence-grid"><button class="evidence-chip clickable" data-open="log"><small>日志</small><strong>buffs-refresh.log</strong></button><button class="evidence-chip clickable" data-open="progress"><small>进度</small><strong>fetch-wiki-buffs-progress.latest.json</strong></button><div class="evidence-chip missing"><small>报告</small><strong>未生成最终报告</strong></div><div class="evidence-chip missing"><small>锁文件</small><strong>未返回锁路径</strong></div></div>
+                    </article>
+                  </section>
+
+                  <section class="queue-group queue-group--queued">
+                    <header class="queue-group-head"><div><h4>队列等待</h4><p>按队列位置排序，并直接说明被谁占用。</p></div><span class="status-pill warning">3 项</span></header>
+                    <article class="queue-card" data-task="core">
+                      <div class="queue-time">上海时间 2026-07-04 11:02:11 · 入队时间</div>
+                      <div class="queue-meta"><strong>Items / NPCs / Projectiles 联合抓取</strong><span class="status-pill warning">队列第 1 位</span><code>wiki-core-refresh</code></div>
+                      <p class="issue-copy warning-text">问题：正在等待 Shimmer 域释放 Wiki 抓取锁。</p>
+                      <small>处理 Shimmer 后这条任务会进入运行；如不需要本次抓取，可直接取消排队。</small>
+                      <div class="evidence-grid"><div class="evidence-chip missing"><small>日志</small><strong>排队中，尚未创建</strong></div><button class="evidence-chip clickable" data-open="progress"><small>进度</small><strong>wiki-core-refresh.child-status.json</strong></button><div class="evidence-chip missing"><small>报告</small><strong>排队中，尚未生成</strong></div><button class="evidence-chip clickable" data-open="lock"><small>锁文件</small><strong>run.runtime/wiki.lock</strong></button></div>
+                      <div class="queue-card-actions"><button class="btn btn-plain--danger">取消排队</button></div>
+                    </article>
+                  </section>
+                </div>
+
+                <aside class="side-panel">
+                  <section class="summary-card">
+                    <div class="queue-side-head"><div><h4 id="selectedTitle">选中任务诊断</h4><p>保留当前正式版右侧摘要密度，但把“问题是什么”和“下一步做什么”放在首屏。</p></div><span class="status-pill danger" id="selectedTone">需处理</span></div>
+                    <article class="diag-card danger" id="diagnosisCard"><strong>问题摘要</strong><small id="diagnosisText">Shimmer 任务可能卡住：10:58:42 后无新心跳，后续 3 个任务等待同一 Wiki 抓取锁。</small></article>
+                    <div class="diag-grid"><article class="diag-card accent"><strong>先看日志</strong><small>确认最后 50 行是否还有输出。</small></article><article class="diag-card warning"><strong>再看进度</strong><small>确认 current/total 和 heartbeat 是否停止。</small></article><article class="diag-card"><strong>核对锁</strong><small>确认锁是否仍由当前任务占用。</small></article><article class="diag-card danger"><strong>必要操作</strong><small>终止或取消前先确认证据。</small></article></div>
+                  </section>
+                  <section class="summary-card"><div class="queue-side-head"><div><h4>证据文件</h4><p>每个路径都写清用途，缺失文件明确标出，不再像“假入口”。</p></div></div><div class="evidence-grid"><button class="evidence-chip clickable" data-open="log"><small>日志</small><strong>定位异常栈、最后输出和卡住位置</strong></button><button class="evidence-chip clickable" data-open="progress"><small>进度</small><strong>确认当前 item、心跳和进度</strong></button><button class="evidence-chip clickable" data-open="lock"><small>锁文件</small><strong>确认是否占用 Wiki 抓取锁</strong></button><button class="evidence-chip clickable" data-open="report"><small>报告</small><strong>确认最终产物和缺失项</strong></button></div></section>
+                  <section class="summary-card"><div class="queue-side-head"><div><h4>队列明细</h4><p>保留当前正式页面的队列控制入口。</p></div><span class="status-pill warning">3 项</span></div><article class="queue-card"><div class="queue-meta"><strong>Items / NPCs / Projectiles</strong><span class="status-pill warning">队列中</span></div><small>被 Shimmer 域占用 · queueId q-wiki-core-1</small><div class="queue-insight-grid"><span><small>通道</small><strong>standard</strong></span><span><small>位置</small><strong>第 1 位</strong></span><span><small>动作</small><strong>wiki-core-refresh</strong></span></div><div class="queue-card-actions"><button class="btn btn-plain--danger">取消排队</button></div></article></section>
+                </aside>
+              </div>
+            </section>
+
+            <section class="panel" id="panel-progress">
+              <div class="view-head"><div><h3>真实任务进度</h3><p>按正式版拆成正在运行与历史异常，避免失败项和运行项混在一起。</p></div><span class="status-pill info">14 项</span></div>
+              <div class="grid-progress">
+                <div class="task-list">
+                  <section class="progress-group"><header class="progress-group-head"><div><h4>正在运行</h4><p>当前运行、排队、暂停或等待占用释放的任务。</p></div><span class="status-pill info">2 项</span></header>
+                    <article class="task-card"><div class="progress-card-head"><div><strong>Shimmer 域正式抓取</strong><small>shimmer · domain-source-shimmer</small></div><span class="status-pill danger">心跳过期</span></div><small class="progress-card-subtitle">standard · 1/3 · 上海时间 10:58:42</small><div class="progress-track"><span class="danger" style="width:34%"></span></div><div class="progress-state-conflict"><div><small>状态冲突</small><strong>心跳过期，队列仍占用 Wiki 抓取锁</strong></div><button class="btn" data-open="log">查看日志</button></div><div class="progress-primary-insight"><span><small>进度</small><strong>1 / 3</strong></span><span><small>建议动作</small><strong>终止清理后重新提交</strong></span></div></article>
+                    <article class="task-card"><div class="progress-card-head"><div><strong>Bosses 域正式抓取</strong><small>bosses · domain-source-bosses</small></div><span class="status-pill success">运行中</span></div><small class="progress-card-subtitle">standard · 7/14 · 上海时间 11:16:05</small><div class="progress-track"><span style="width:50%"></span></div><div class="progress-primary-insight"><span><small>进度</small><strong>7 / 14</strong></span><span><small>建议动作</small><strong>观察或终止</strong></span></div></article>
+                  </section>
+                  <section class="progress-group"><header class="progress-group-head"><div><h4>历史与异常</h4><p>失败、超时、完成、取消和不再运行的进度。</p></div><span class="status-pill muted">12 项</span></header>
+                    <article class="task-card"><div class="progress-card-head"><div><strong>Buffs 免疫页抓取</strong><small>buffs · buff-page-immunity-refresh</small></div><span class="status-pill danger">状态冲突</span></div><small class="progress-card-subtitle">queue cancelled · 旧进度 running</small><div class="progress-primary-insight"><span><small>问题</small><strong>旧进度残留</strong></span><span><small>建议动作</small><strong>提交正式派发</strong></span></div><details class="progress-card-details"><summary>工程详情</summary><div class="progress-insight-grid"><span><small>状态来源</small><strong>queue</strong></span><span><small>队列状态</small><strong>cancelled</strong></span><span><small>影响域</small><strong>buffs</strong></span></div></details></article>
+                  </section>
+                </div>
+                <aside class="side-panel"><div class="summary-card"><h4>进度规则</h4><p>只展示后端真实进度和心跳，不用前端推算状态。</p></div><div class="diag-card warning"><small>当前执行状态</small><strong>需注意</strong><small>执行项 14 项，其中 4 项需排查。</small></div></aside>
+              </div>
+            </section>
+
+            <section class="panel" id="panel-reports">
+              <div class="view-head"><div><h3>报告</h3><p>报告页不只列文件，先列问题索引，再给对应日志、进度、报告和锁文件证据。</p></div><span class="status-pill muted">8 项</span></div>
+              <div class="grid-reports">
+                <div class="report-list">
+                  <button class="report-item active" data-open="log"><span class="status-pill danger">异常</span><strong>Shimmer 心跳过期排查包</strong><small>2026-07-04 11:08 上海 · 日志/进度/锁文件</small></button>
+                  <button class="report-item" data-open="progress"><span class="status-pill danger">状态冲突</span><strong>Buffs 队列取消但进度 running</strong><small>2026-07-04 10:47 上海 · 进度残留</small></button>
+                  <button class="report-item" data-open="lock"><span class="status-pill warning">锁占用</span><strong>Wiki 抓取锁占用索引</strong><small>当前 owner: domain-source-shimmer</small></button>
+                  <button class="report-item" data-open="report"><span class="status-pill info">运行历史</span><strong>按上海时间排序的执行时间线</strong><small>包含运行、取消、失败和完成记录</small></button>
+                </div>
+                <aside class="side-panel"><div class="section-head"><div><h4 class="section-title">报告预览</h4><p class="section-subtitle">主页面只放摘要；完整路径和内容在右侧抽屉。</p></div><button class="btn btn-secondary" data-open="log">打开抽屉</button></div><pre class="code-preview">问题索引：
+- Shimmer 心跳过期：先看日志和进度
+- Buffs 状态冲突：队列取消，但旧进度 running
+- Wiki 锁占用：后续 3 个任务等待释放</pre></aside>
+              </div>
+            </section>
+
+            <section class="panel" id="panel-diagnostics">
+              <div class="view-head"><div><h3>诊断</h3><p>保留正式版 summary-card 和 diag-card 密度，集中展示系统诊断、状态冲突和文件缺失。</p></div><span class="status-pill danger">4 项</span></div>
+              <div class="grid-diagnostics">
+                <div class="diagnostic-list">
+                  <div class="diag-grid"><button class="diag-card warning" data-open="lock"><small>当前卡住域</small><strong>Shimmer</strong><small>占用 Wiki 抓取锁，阻塞 3 个队列项。</small></button><button class="diag-card danger" data-open="progress"><small>状态冲突</small><strong>Buffs</strong><small>队列取消，但进度文件仍显示 running。</small></button><article class="diag-card accent"><small>后端状态源</small><strong>domain.state</strong><small>前端不再推导主状态。</small></article><article class="diag-card warning"><small>文件证据</small><strong>2 个缺失</strong><small>部分任务未返回日志或锁路径。</small></article></div>
+                </div>
+                <aside class="side-panel"><div class="summary-card"><h4>系统诊断</h4><p>工程字段、心跳、锁、历史、报告和图片指标集中在低优先级区域。</p></div><div class="diagnostic-list"><article class="diag-card warning"><small>心跳</small><strong>Shimmer 过期 17 分钟</strong><small>最后心跳：2026-07-04 10:58:42 上海</small></article><article class="diag-card"><small>运行历史</small><strong>2026-07-04 11:17</strong><small>最近刷新成功，队列 9 项。</small></article><article class="diag-card"><small>图片指标</small><strong>正常</strong><small>本次队列问题与图片归一化无关。</small></article></div></aside>
+              </div>
+            </section>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<aside class="report-drawer" id="drawer" role="dialog" aria-modal="true" aria-label="报告预览">
+  <header class="drawer-head"><div><strong id="drawerTitle">日志预览：domain-source-shimmer.log</strong><small id="drawerPath">reports/crawler-monitor/domain-source-shimmer.log - 日志用于看最后输出、异常栈和卡住位置。</small></div><button class="btn" id="drawerClose">关闭</button></header>
+  <div class="drawer-body">
+    <div class="report-preview__meta"><span class="status-pill danger" id="drawerKind">日志</span><span class="status-pill success">可读</span><span class="status-pill warning">上海时间</span></div>
+    <section class="drawer-card"><strong>中文简述</strong><p id="drawerSummary">10:58:42 后没有新的心跳记录。当前日志最后停在 Shimmer Transmutation 解析阶段，可能是网络等待、解析循环或进程无输出。</p></section>
+    <div class="file-row"><span class="status-pill danger no-dot">日志</span><div><code>reports/crawler-monitor/domain-source-shimmer.log</code><small>用于定位异常栈、最后输出和卡住位置</small></div><button class="btn btn-secondary">打开</button></div>
+    <div class="file-row"><span class="status-pill info no-dot">进度</span><div><code>data/generated/domain-source-shimmer-progress.latest.json</code><small>用于确认 current/total、lastItem 和 heartbeat</small></div><button class="btn btn-secondary">打开</button></div>
+    <pre class="code-preview" id="drawerContent"><span class="log-info">[2026-07-04 10:55:12 CST]</span> GET /wiki/Shimmer returned 200
+<span class="log-info">[2026-07-04 10:56:01 CST]</span> parsing section: Item transmutations
+<span class="log-warning">[2026-07-04 10:58:42 CST] WARN heartbeat not updated for 10m</span>
+<span class="log-danger">[2026-07-04 11:08:42 CST] ERROR no new progress after timeout window</span>
+  当前 item: Shimmer Transmutation
+  推断：任务可能卡在解析或等待，后续队列被 Wiki 抓取锁阻塞。
+  建议：确认进程是否仍存在；若无输出，终止运行并清理后重新提交正式派发。</pre>
+  </div>
+</aside>
+<div class="toast" id="toast"><span class="status-pill success">已刷新</span><strong>状态已按上海时间重新排序</strong></div>
+
+<script>
+const layout = document.getElementById('layout')
+const stage = document.getElementById('stage')
+const drawer = document.getElementById('drawer')
+const backdrop = document.getElementById('drawerBackdrop')
+const toast = document.getElementById('toast')
+const refreshBtn = document.getElementById('refreshBtn')
+const drawerData = {
+  log: {
+    title: '日志预览：domain-source-shimmer.log',
+    kind: '日志',
+    cls: 'danger',
+    path: 'reports/crawler-monitor/domain-source-shimmer.log - 日志用于看最后输出、异常栈和卡住位置。',
+    summary: '10:58:42 后没有新的心跳记录。当前日志最后停在 Shimmer Transmutation 解析阶段，可能是网络等待、解析循环或进程无输出。',
+    content: `<span class="log-info">[2026-07-04 10:55:12 CST]</span> GET /wiki/Shimmer returned 200
+<span class="log-info">[2026-07-04 10:56:01 CST]</span> parsing section: Item transmutations
+<span class="log-warning">[2026-07-04 10:58:42 CST] WARN heartbeat not updated for 10m</span>
+<span class="log-danger">[2026-07-04 11:08:42 CST] ERROR no new progress after timeout window</span>
+  当前 item: Shimmer Transmutation
+  推断：任务可能卡在解析或等待，后续队列被 Wiki 抓取锁阻塞。`
+  },
+  progress: {
+    title: '进度预览：domain-source-shimmer-progress.latest.json',
+    kind: '进度',
+    cls: 'info',
+    path: 'data/generated/domain-source-shimmer-progress.latest.json - 用于确认 current/total、lastItem 和 heartbeat。',
+    summary: '进度停在 1/3，lastItem 为 Shimmer Transmutation，heartbeat 时间未继续推进。',
+    content: `{
+  "id": "domain-source-shimmer",
+  "status": "running",
+  "current": 1,
+  "total": 3,
+  "lastItem": "Shimmer Transmutation",
+  "heartbeatAt": "2026-07-04T02:58:42Z",
+  "heartbeatAtShanghai": "2026-07-04 10:58:42"
+}`
+  },
+  report: {
+    title: '报告预览：wiki-shimmer-summary.json',
+    kind: '报告',
+    cls: 'warning',
+    path: 'reports/crawler-monitor/wiki-shimmer-summary.json - 用于确认最终产物和缺失项。',
+    summary: '报告未更新到本次任务完成态，因此不能作为成功依据；应优先看日志和进度。',
+    content: `{
+  "domain": "shimmer",
+  "latestCompletedAt": "2026-07-04 09:21:10",
+  "currentRun": "not completed",
+  "diagnosis": "report is stale; inspect progress/log first"
+}`
+  },
+  lock: {
+    title: '锁文件预览：run.runtime/wiki.lock',
+    kind: '锁',
+    cls: 'warning',
+    path: 'reports/backend-refresh/history/run.runtime/wiki.lock - 用于确认 Wiki 抓取锁被谁占用。',
+    summary: '锁仍指向 domain-source-shimmer，说明后续队列等待该任务释放。',
+    content: `{
+  "ownerActionId": "domain-source-shimmer",
+  "ownerDomain": "shimmer",
+  "lockedAtShanghai": "2026-07-04 10:40:11",
+  "blockedQueueCount": 3
+}`
+  }
+}
+function openDrawer(kind='log'){
+  const data = drawerData[kind] || drawerData.log
+  document.getElementById('drawerTitle').textContent = data.title
+  document.getElementById('drawerPath').textContent = data.path
+  document.getElementById('drawerSummary').textContent = data.summary
+  document.getElementById('drawerContent').innerHTML = data.content
+  const pill = document.getElementById('drawerKind')
+  pill.className = `status-pill ${data.cls}`
+  pill.textContent = data.kind
+  drawer.classList.add('open')
+  backdrop.classList.add('open')
+}
+function closeDrawer(){ drawer.classList.remove('open'); backdrop.classList.remove('open') }
+document.getElementById('sidebarToggle').addEventListener('click',()=>layout.classList.toggle('sidebar-collapsed'))
+document.getElementById('drawerClose').addEventListener('click',closeDrawer)
+backdrop.addEventListener('click',closeDrawer)
+document.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();openDrawer(el.dataset.open)}))
+document.querySelectorAll('.queue-card[data-task]').forEach(card=>card.addEventListener('click',()=>{
+  document.querySelectorAll('.queue-card[data-task]').forEach(c=>c.classList.remove('selected'))
+  card.classList.add('selected')
+  const task = card.dataset.task
+  const text = {
+    shimmer:'Shimmer 任务可能卡住：10:58:42 后无新心跳，后续 3 个任务等待同一 Wiki 抓取锁。',
+    bosses:'Bosses 正在正常运行：心跳正常，7/14 已完成，暂无需要人工介入的问题。',
+    buffs:'Buffs 存在状态冲突：队列已取消，但旧进度文件仍保留 running。',
+    core:'Core refresh 正在等待：被 Shimmer 持有的 Wiki 抓取锁阻塞。'
+  }[task]
+  document.getElementById('diagnosisText').textContent = text
+}))
+document.querySelectorAll('.module-tab').forEach(tab=>tab.addEventListener('click',()=>{
+  const panel = tab.dataset.panel
+  document.querySelectorAll('.module-tab').forEach(t=>t.classList.remove('active'))
+  tab.classList.add('active')
+  stage.classList.add('switching')
+  setTimeout(()=>{
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'))
+    document.getElementById(`panel-${panel}`).classList.add('active')
+    stage.classList.remove('switching')
+  },150)
+}))
+refreshBtn.addEventListener('click',()=>{
+  refreshBtn.classList.add('loading')
+  stage.classList.add('switching')
+  setTimeout(()=>{
+    refreshBtn.classList.remove('loading')
+    stage.classList.remove('switching')
+    document.getElementById('refreshTime').textContent = '11:18'
+    toast.classList.add('show')
+    setTimeout(()=>toast.classList.remove('show'),1800)
+  },850)
+})
+</script>
+</body>
+</html>

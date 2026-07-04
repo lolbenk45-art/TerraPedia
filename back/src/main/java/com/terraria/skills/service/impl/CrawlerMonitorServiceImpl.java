@@ -149,6 +149,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private final WikiMonitorDispatchQueueRepository queueRepository;
     private final CrawlerReportArchiver reportArchiver;
     private final ProcessLauncher processLauncher;
+    private final CrawlerDomainStateReducer domainStateReducer = new CrawlerDomainStateReducer();
     private final Map<String, ActiveDispatchProcess> activeDispatchProcesses = new ConcurrentHashMap<>();
     private final Map<String, Process> activeDomainSmokeProcesses = new ConcurrentHashMap<>();
     private final Map<String, Map<String, Object>> queueStartMetadata = new ConcurrentHashMap<>();
@@ -296,6 +297,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 asString(payload.get("reportPath")),
                 asString(payload.get("progressPath")),
                 asString(payload.get("lockPath")),
+                asString(payload.get("outputPath")),
                 asString(payload.get("logPath"))
             );
         }
@@ -316,6 +318,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private CrawlerMonitorOverviewDTO computeOverview() {
         Path repoRoot = resolveRepoRoot();
+        queueRepository.withDrainLock("overview-reconcile", "all", false, () -> reconcileQueueRuntimeState(repoRoot));
         CrawlerMonitorOverviewDTO.MonitorFileDTO daemon = readRuntimeMonitorState(repoRoot, REDIS_BACKEND_DAEMON_KEY, DAEMON_HEARTBEAT, false);
         CrawlerMonitorOverviewDTO.MonitorFileDTO scheduler = readRuntimeMonitorState(repoRoot, REDIS_BACKEND_SCHEDULER_KEY, SCHEDULER_STATE, false);
         CrawlerMonitorOverviewDTO.MonitorFileDTO lock = readRuntimeMonitorState(repoRoot, REDIS_BACKEND_LOCK_KEY, LOCK_FILE, false);
@@ -386,7 +389,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         WikiMonitorQueueItem item = new WikiMonitorQueueItem();
         item.setLane(lane);
         item.setDomain(requestedDomain);
-        item.setCoveredDomains(coveredDomainsFor(actionId));
+        item.setCoveredDomains(coveredDomainsFromMetadata(actionId, metadata));
         item.setActionId(actionId);
         item.setRequestedAt(Instant.now(clock));
         item.setRequestedBy("admin");
@@ -396,6 +399,20 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         WikiMonitorDispatchQueueRepository.EnqueueResult result = queueRepository.enqueue(item, cooldownUntil);
         invalidateCachedOverview();
         return result;
+    }
+
+    private List<String> coveredDomainsFromMetadata(String actionId, Map<String, Object> metadata) {
+        Object rawCoveredDomains = metadata == null ? null : metadata.get("coveredDomains");
+        if (rawCoveredDomains instanceof List<?> rawList) {
+            List<String> covered = rawList.stream()
+                .map(value -> value == null ? "" : String.valueOf(value).trim())
+                .filter(value -> !value.isBlank())
+                .toList();
+            if (!covered.isEmpty()) {
+                return covered;
+            }
+        }
+        return coveredDomainsFor(actionId);
     }
 
     private void attachQueueBlocker(Path repoRoot, WikiMonitorQueueItem item, String lane, String actionId, Instant cooldownUntil) {
@@ -499,7 +516,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             item.getQueueId(),
             start.getDispatchId(),
             rule,
-            new DispatchPaths(start.getReportPath(), start.getProgressPath(), start.getLockPath(), start.getLogPath()),
+            new DispatchPaths(start.getReportPath(), start.getProgressPath(), start.getLockPath(), start.getOutputPath(), start.getLogPath()),
             start.getProcess()
         );
     }
@@ -552,6 +569,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         result.setQueueId(item.getQueueId());
         result.setDispatchId(item.getDispatchId());
         result.setDomain(item.getDomain());
+        result.setCoveredDomains(item.getCoveredDomains());
         result.setActionId(item.getActionId());
         result.setStatus(item.getStatus());
         result.setRequestedAt(formatInstant(item.getRequestedAt()));
@@ -662,8 +680,17 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     public CrawlerMonitorDispatchResultDTO controlWikiMonitorDispatch(CrawlerMonitorDispatchRequestDTO request) {
         Path repoRoot = resolveRepoRoot();
         String controlAction = trimToNull(request == null ? null : request.getControlAction());
+        if ("forceReclaimAll".equals(controlAction)) {
+            return reclaimAllWikiMonitorDispatches(repoRoot, "管理员清空运行/队列任务");
+        }
         if ("cancelQueued".equals(controlAction)) {
             return cancelQueuedWikiMonitorDispatch(repoRoot, request);
+        }
+        if ("forceReclaim".equals(controlAction)) {
+            WikiMonitorRule reclaimRule = controlQueueItem(request)
+                .map(item -> resolveWikiMonitorControlRuleFromQueueItem(request, item))
+                .orElseGet(() -> resolveWikiMonitorControlRule(request));
+            return reclaimDomain(repoRoot, reclaimRule, "管理员强制回收占用");
         }
         if (isDomainSmokeControl(request)) {
             return controlWikiMonitorDomainSmoke(repoRoot, request);
@@ -673,7 +700,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             .map(item -> resolveWikiMonitorControlRuleFromQueueItem(request, item))
             .orElseGet(() -> resolveWikiMonitorControlRule(request));
         if (!"pause".equals(controlAction) && !"resume".equals(controlAction) && !"cancel".equals(controlAction) && !"retry".equals(controlAction)) {
-            throw new IllegalArgumentException("控制动作不支持 " + (controlAction == null ? "<空>" : controlAction) + "，请使用 pause、resume、cancel、retry 或 cancelQueued。");
+            throw new IllegalArgumentException("控制动作不支持 " + (controlAction == null ? "<空>" : controlAction) + "，请使用 pause、resume、cancel、retry、cancelQueued、forceReclaim 或 forceReclaimAll。");
         }
         ReadResult latestDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
         Map<String, Object> payload = latestDispatch.readable() ? latestDispatch.payload() : Map.of();
@@ -765,6 +792,16 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             state.put("completedAt", Instant.now(clock).toString());
         }
         writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), state);
+        WikiMonitorDispatchQueueRepository.TransitionResult controlTransition = null;
+        if (!"cancel".equals(controlAction)) {
+            Optional<WikiMonitorQueueItem> itemToSync = controlQueueItem.isPresent()
+                ? controlQueueItem
+                : queueRepository.findByDispatchId(dispatchId);
+            if (itemToSync.isPresent()) {
+                controlTransition = queueRepository.markControlStatus(itemToSync.get().getQueueId(), status, message);
+                invalidateCachedOverview();
+            }
+        }
         WikiMonitorDispatchQueueRepository.TransitionResult cancelTransition = null;
         if ("cancel".equals(controlAction)) {
             releaseDispatchLock(repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize(), dispatchId);
@@ -789,7 +826,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
 
         CrawlerMonitorDispatchResultDTO result = acceptedDispatch(rule, dispatchId, paths, status, message);
-        controlQueueItem.map(WikiMonitorQueueItem::getQueueId).ifPresent(result::setQueueId);
+        if (controlTransition != null && controlTransition.item() != null) {
+            result.setQueueId(controlTransition.item().getQueueId());
+        } else {
+            controlQueueItem.map(WikiMonitorQueueItem::getQueueId).ifPresent(result::setQueueId);
+        }
         return result;
     }
 
@@ -843,6 +884,62 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             return result;
         }
         result.setMessage("队列任务当前状态为 " + cancelResult.status() + "，不能按排队任务取消；请刷新阶段进度后重试。");
+        return result;
+    }
+
+    private CrawlerMonitorDispatchResultDTO reclaimAllWikiMonitorDispatches(Path repoRoot, String reason) {
+        String safeReason = firstNonBlank(reason, "管理员清空运行/队列任务");
+        Instant now = Instant.now(clock);
+        List<WikiMonitorQueueItem> activeItems = queueRepository.listItems().stream()
+            .filter(item -> !item.isTerminal())
+            .toList();
+
+        for (ActiveDispatchProcess active : activeDispatchProcesses.values()) {
+            if (active != null && active.process() != null && active.process().isAlive()) {
+                cancellingDispatches.add(active.dispatchId());
+                processLauncher.destroy(active.process());
+            }
+        }
+        activeDispatchProcesses.clear();
+
+        for (Map.Entry<String, Process> entry : activeDomainSmokeProcesses.entrySet()) {
+            Process process = entry.getValue();
+            if (process != null && process.isAlive()) {
+                cancellingDispatches.add(entry.getKey());
+                processLauncher.destroy(process);
+            }
+        }
+        activeDomainSmokeProcesses.clear();
+
+        forceDeleteLock(repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize());
+        forceDeleteLock(repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize());
+
+        for (WikiMonitorQueueItem item : activeItems) {
+            queueRepository.markTerminal(item.getQueueId(), "cancelled", now, safeReason);
+            WikiMonitorRule rule = findWikiMonitorRule(item.getDomain(), item.getActionId());
+            if (rule != null) {
+                writeReclaimTerminalProgressFile(repoRoot, rule, safeReason, now);
+            }
+        }
+
+        LinkedHashMap<String, Object> state = new LinkedHashMap<>();
+        state.put("dispatchId", "force-reclaim-all-" + now.toString());
+        state.put("status", "force_reclaimed_all");
+        state.put("message", safeReason);
+        state.put("controlAction", "forceReclaimAll");
+        state.put("controlledAt", now.toString());
+        state.put("completedAt", now.toString());
+        state.put("cancelledQueueCount", activeItems.size());
+        writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), state);
+
+        cancellingDispatches.clear();
+        invalidateCachedOverview();
+
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(true);
+        result.setQueued(false);
+        result.setStatus("force_reclaimed_all");
+        result.setMessage(safeReason + "，已取消 " + activeItems.size() + " 个非终态队列项。");
         return result;
     }
 
@@ -916,6 +1013,128 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return markRunningQueueItemCancelled(dispatchId, message);
     }
 
+    private CrawlerMonitorDispatchResultDTO reclaimDomain(Path repoRoot, WikiMonitorRule rule, String reason) {
+        String domain = rule.domain();
+        String actionId = rule.actionId();
+        String safeReason = firstNonBlank(reason, "已强制回收占用");
+
+        // 1) 尽力杀掉仍活着的进程（找不到也无妨——幂等）
+        ActiveDispatchProcess active = findActiveDispatchProcess(rule);
+        if (active == null) {
+            active = reconstructDispatchFromLock(repoRoot, rule);
+        }
+        String dispatchId = active == null ? null : active.dispatchId();
+        if (active != null && active.process() != null && active.process().isAlive()) {
+            cancellingDispatches.add(dispatchId);
+            processLauncher.destroy(active.process());
+        }
+        if (dispatchId != null) {
+            activeDispatchProcesses.remove(dispatchId);
+        }
+
+        // 2) 释放本域所属 lane 的锁（best-effort，不误删其它 lane）
+        Path standardLock = repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
+        Path smokeLock = repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize();
+        boolean smokeLane = actionId != null && actionId.startsWith("wiki-monitor-domain-smoke");
+        if (smokeLane) {
+            forceDeleteLock(smokeLock);
+        } else {
+            forceDeleteLock(standardLock);
+        }
+
+        // 3) 写终态证据（不删进度/派发文件）
+        writeReclaimTerminalProgress(repoRoot, dispatchId, rule, safeReason);
+
+        // 4) 队列项标终态（本域 + 覆盖域，全部幂等）。
+        //    注：这是尽力而为；drain 前的并发入队窗口极小，滑入项会被下次回收/drain 收敛。
+        markDomainQueueItemsReclaimed(domain, actionId, safeReason);
+        for (String covered : coveredDomainsFor(actionId)) {
+            markDomainQueueItemsReclaimed(covered, actionId, safeReason);
+        }
+
+        // 5) 触发 drain，让后续排队项可启动
+        drainWikiMonitorDispatchQueue("force-reclaim", true);
+        if (dispatchId != null) {
+            cancellingDispatches.remove(dispatchId);
+        }
+        invalidateCachedOverview();
+
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(true);
+        result.setDomain(domain);
+        result.setActionId(actionId);
+        result.setStatus("force_reclaimed");
+        result.setQueued(false);
+        result.setMessage(safeReason);
+        return result;
+    }
+
+    private void forceDeleteLock(Path lockPath) {
+        try {
+            Files.deleteIfExists(lockPath);
+        } catch (IOException ignored) {
+            log.warn("Failed to delete lock {}: {}", lockPath, ignored.getMessage());
+        }
+    }
+
+    private void writeReclaimTerminalProgress(Path repoRoot, String dispatchId, WikiMonitorRule rule, String reason) {
+        Path dispatchFile = repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize();
+        Instant now = Instant.now(clock);
+        ReadResult current = readJsonMap(dispatchFile);
+        LinkedHashMap<String, Object> state = current.readable()
+            ? new LinkedHashMap<>(current.payload())
+            : new LinkedHashMap<>();
+        if (dispatchId != null) {
+            state.putIfAbsent("dispatchId", dispatchId);
+        }
+        state.putIfAbsent("domain", rule.domain());
+        state.putIfAbsent("actionId", rule.actionId());
+        state.put("status", "force_reclaimed");
+        state.put("message", reason);
+        state.put("controlAction", "forceReclaim");
+        state.put("controlledAt", now.toString());
+        state.put("completedAt", now.toString());
+        writeJsonFile(dispatchFile, state);
+
+        writeReclaimTerminalProgressFile(repoRoot, rule, reason, now);
+    }
+
+    private void writeReclaimTerminalProgressFile(Path repoRoot, WikiMonitorRule rule, String reason, Instant now) {
+        String progressPath = rule.progressPath();
+        if (progressPath == null || progressPath.isBlank()) {
+            return;
+        }
+        Path path = repoRoot.resolve(progressPath).normalize();
+        ReadResult current = readJsonMap(path);
+        LinkedHashMap<String, Object> state = current.readable()
+            ? new LinkedHashMap<>(current.payload())
+            : new LinkedHashMap<>();
+        state.putIfAbsent("actionId", rule.actionId());
+        state.putIfAbsent("domain", rule.domain());
+        state.putIfAbsent("childStatusPath", progressPath);
+        state.put("status", "force_reclaimed");
+        state.put("message", reason);
+        state.put("controlAction", "forceReclaim");
+        state.put("controlledAt", now.toString());
+        state.put("completedAt", now.toString());
+        state.put("generatedAt", now.toString());
+        writeJsonFile(path, state);
+    }
+
+    private void markDomainQueueItemsReclaimed(String domain, String actionId, String reason) {
+        for (WikiMonitorQueueItem item : queueRepository.listItems()) {
+            if (item.isTerminal()) {
+                continue;
+            }
+            boolean matchesDomain = domain != null && domain.equals(item.getDomain());
+            boolean matchesAction = actionId != null && actionId.equals(item.getActionId());
+            boolean matchesCovered = item.getCoveredDomains() != null && item.getCoveredDomains().contains(domain);
+            if (matchesDomain || matchesAction || matchesCovered) {
+                queueRepository.markTerminal(item.getQueueId(), "cancelled", Instant.now(clock), reason);
+            }
+        }
+    }
+
     private void drainWikiMonitorDispatchQueue(String reason) {
         drainWikiMonitorDispatchQueue(reason, false);
     }
@@ -930,7 +1149,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private void reconcileQueueRuntimeState(Path repoRoot) {
+        ReadResult latestDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+        Map<String, Object> latestPayload = latestDispatch.readable() ? latestDispatch.payload() : Map.of();
         for (WikiMonitorQueueItem item : queueRepository.listItems()) {
+            if (reconcileQueueItemFromLatestDispatch(item, latestPayload)) {
+                continue;
+            }
             if ("starting".equals(item.getStatus())) {
                 reconcileStartingQueueItem(repoRoot, item);
                 continue;
@@ -958,6 +1182,47 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             releaseLaneLock(repoRoot, item.getLane(), item.getDispatchId());
             invalidateCachedOverview();
         }
+    }
+
+    private boolean reconcileQueueItemFromLatestDispatch(WikiMonitorQueueItem item, Map<String, Object> latestPayload) {
+        if (item == null || latestPayload == null || latestPayload.isEmpty()) {
+            return false;
+        }
+        String latestStatus = asString(latestPayload.get("status"));
+        if (!"paused".equals(latestStatus) && !"running".equals(latestStatus)) {
+            return false;
+        }
+        String itemStatus = item.getStatus();
+        if (!"paused".equals(itemStatus) && !"running".equals(itemStatus)) {
+            return false;
+        }
+        if (latestStatus.equals(itemStatus)) {
+            return false;
+        }
+        if (!latestDispatchMatchesQueueItem(item, latestPayload)) {
+            return false;
+        }
+        String message = firstNonBlank(asString(latestPayload.get("message")), "dispatch " + latestStatus)
+            + "（已从 latest dispatch 自动校准）";
+        WikiMonitorDispatchQueueRepository.TransitionResult transition =
+            queueRepository.markControlStatus(item.getQueueId(), latestStatus, message);
+        if (transition.changed()) {
+            invalidateCachedOverview();
+        }
+        return transition.changed();
+    }
+
+    private boolean latestDispatchMatchesQueueItem(WikiMonitorQueueItem item, Map<String, Object> latestPayload) {
+        String queueId = asString(latestPayload.get("queueId"));
+        if (queueId != null && queueId.equals(item.getQueueId())) {
+            return true;
+        }
+        String dispatchId = asString(latestPayload.get("dispatchId"));
+        if (dispatchId != null && dispatchId.equals(item.getDispatchId())) {
+            return true;
+        }
+        return Objects.equals(asString(latestPayload.get("domain")), item.getDomain())
+            && Objects.equals(asString(latestPayload.get("actionId")), item.getActionId());
     }
 
     private void reconcileStartingQueueItem(Path repoRoot, WikiMonitorQueueItem item) {
@@ -1114,16 +1379,33 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return dispatchWikiMonitorTask(repoRoot, rule, metadata);
     }
 
-    @Override
     public CrawlerMonitorDispatchResultDTO dispatchWikiMonitorDomainSmoke() {
+        return dispatchWikiMonitorDomainSmoke(new CrawlerMonitorDispatchRequestDTO());
+    }
+
+    @Override
+    public CrawlerMonitorDispatchResultDTO dispatchWikiMonitorDomainSmoke(CrawlerMonitorDispatchRequestDTO request) {
         Path repoRoot = resolveRepoRoot();
         pruneDispatchArtifacts(repoRoot);
+        List<String> selectedDomains = normalizeDomainSmokeDomains(request);
+        String queueMode = normalizeDomainSmokeQueueMode(request);
+        if ("per_domain".equals(queueMode)) {
+            return dispatchWikiMonitorDomainSmokePerDomain(repoRoot, selectedDomains);
+        }
+        return dispatchWikiMonitorDomainSmokeGrouped(repoRoot, selectedDomains);
+    }
+
+    private CrawlerMonitorDispatchResultDTO dispatchWikiMonitorDomainSmokeGrouped(Path repoRoot, List<String> selectedDomains) {
+        String requestedDomain = isAllDomainSmoke(selectedDomains) ? "all" : "selected";
         WikiMonitorDispatchQueueRepository.EnqueueResult enqueue = enqueueWikiMonitorRequest(
             repoRoot,
             "domain_smoke",
-            "all",
+            requestedDomain,
             "wiki-monitor-domain-smoke",
-            Map.of("message", "domain smoke accepted")
+            Map.of(
+                "message", domainSmokeAcceptedMessage(selectedDomains),
+                "coveredDomains", selectedDomains
+            )
         );
         WikiMonitorQueueItem item = enqueue.item();
         if (!enqueue.created()) {
@@ -1138,7 +1420,84 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (!claim.claimed() || claim.item().isEmpty()) {
             return dispatchResponseFromQueueItem(repoRoot, queueRepository.findItem(item.getQueueId()).orElse(item));
         }
-        return startWikiMonitorQueueItem(repoRoot, claim.item().get(), Map.of("message", "domain smoke accepted"));
+        return startWikiMonitorQueueItem(repoRoot, claim.item().get(), Map.of("message", domainSmokeAcceptedMessage(selectedDomains)));
+    }
+
+    private CrawlerMonitorDispatchResultDTO dispatchWikiMonitorDomainSmokePerDomain(Path repoRoot, List<String> selectedDomains) {
+        List<WikiMonitorQueueItem> items = new ArrayList<>();
+        for (String domain : selectedDomains) {
+            WikiMonitorDispatchQueueRepository.EnqueueResult enqueue = enqueueWikiMonitorRequest(
+                repoRoot,
+                "domain_smoke",
+                domain,
+                "wiki-monitor-domain-smoke",
+                Map.of(
+                    "message", domainSmokeAcceptedMessage(List.of(domain)),
+                    "coveredDomains", List.of(domain)
+                )
+            );
+            items.add(enqueue.item());
+        }
+        WikiMonitorQueueItem first = items.isEmpty() ? null : items.get(0);
+        if (first == null) {
+            return dispatchResponseFromQueueItem(repoRoot, null);
+        }
+        if (!canClaimImmediateQueueItem(repoRoot, first)) {
+            return dispatchResponseFromQueueItem(repoRoot, first);
+        }
+        WikiMonitorDispatchQueueRepository.ClaimResult claim =
+            queueRepository.claimForStart(first.getQueueId(), queueClaimOwner(first.getLane()));
+        invalidateCachedOverview();
+        if (!claim.claimed() || claim.item().isEmpty()) {
+            return dispatchResponseFromQueueItem(repoRoot, queueRepository.findItem(first.getQueueId()).orElse(first));
+        }
+        return startWikiMonitorQueueItem(repoRoot, claim.item().get(), Map.of("message", domainSmokeAcceptedMessage(first.getCoveredDomains())));
+    }
+
+    private List<String> normalizeDomainSmokeDomains(CrawlerMonitorDispatchRequestDTO request) {
+        List<String> rawDomains = request == null ? null : request.getDomains();
+        if ((rawDomains == null || rawDomains.isEmpty()) && request != null && trimToNull(request.getDomain()) != null && !"all".equals(request.getDomain())) {
+            rawDomains = List.of(request.getDomain());
+        }
+        if (rawDomains == null || rawDomains.isEmpty()) {
+            return WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS;
+        }
+        List<String> normalized = rawDomains.stream()
+            .map(value -> value == null ? "" : value.trim())
+            .filter(value -> !value.isBlank())
+            .distinct()
+            .toList();
+        if (normalized.isEmpty()) {
+            return WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS;
+        }
+        List<String> unknown = normalized.stream()
+            .filter(domain -> !WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS.contains(domain))
+            .toList();
+        if (!unknown.isEmpty()) {
+            throw new IllegalArgumentException("Unknown wiki monitor domain smoke domain(s): " + String.join(", ", unknown));
+        }
+        return WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS.stream()
+            .filter(normalized::contains)
+            .toList();
+    }
+
+    private String normalizeDomainSmokeQueueMode(CrawlerMonitorDispatchRequestDTO request) {
+        String value = request == null ? null : trimToNull(request.getQueueMode());
+        if (value == null || "single".equals(value)) {
+            return "single";
+        }
+        if ("per_domain".equals(value)) {
+            return "per_domain";
+        }
+        throw new IllegalArgumentException("Unsupported domain smoke queueMode: " + value);
+    }
+
+    private boolean isAllDomainSmoke(List<String> domains) {
+        return domains != null && domains.size() == WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS.size() && domains.containsAll(WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS);
+    }
+
+    private String domainSmokeAcceptedMessage(List<String> domains) {
+        return "domain smoke accepted: " + String.join(",", domains == null || domains.isEmpty() ? WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS : domains);
     }
 
     @Override
@@ -1172,9 +1531,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         Map<String, Object> sourcePayload = sourceState.readable() ? sourceState.payload() : Map.of();
         Map<String, Map<String, Object>> sourceByKey = sourceMap(sourcePayload.get("sources"));
 
+        List<WikiMonitorQueueItem> queueItemsForState = queueRepository.listItems();
         List<CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO> domains = WIKI_MONITOR_RULES.stream()
             .filter(WikiMonitorRule::wikiDomain)
-            .map(rule -> buildWikiMonitorDomain(repoRoot, rule, sourcePayload, sourceByKey.get(rule.sourceKey()), dispatchPayload))
+            .map(rule -> buildWikiMonitorDomain(repoRoot, rule, sourcePayload, sourceByKey.get(rule.sourceKey()), dispatchPayload, queueItemsForState))
             .toList();
         List<CrawlerMonitorOverviewDTO.WikiMonitorDispatchPlanDTO> dispatchPlan =
             buildDispatchPlanFromDetection(sourcePayload, sourceByKey, dispatchPayload);
@@ -1254,7 +1614,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         WikiMonitorRule rule,
         Map<String, Object> sourcePayload,
         Map<String, Object> source,
-        Map<String, Object> dispatchPayload
+        Map<String, Object> dispatchPayload,
+        List<WikiMonitorQueueItem> queueItems
     ) {
         CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO domain = new CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO();
         domain.setDomain(rule.domain());
@@ -1285,6 +1646,41 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (lastAutoRunAt != null && rule.domain().equals(asString(dispatchPayload.get("domain")))) {
             domain.setLastAutoRunAt(lastAutoRunAt);
         }
+
+        java.util.function.Predicate<WikiMonitorQueueItem> matchesDomain = item ->
+            rule.domain().equals(item.getDomain())
+            || rule.actionId().equals(item.getActionId())
+            || (item.getCoveredDomains() != null && item.getCoveredDomains().contains(rule.domain()));
+
+        WikiMonitorQueueItem queueItem = queueItems.stream()
+            .filter(item -> !item.isTerminal())
+            .filter(matchesDomain)
+            .findFirst()
+            .orElseGet(() -> queueItems.stream()
+                .filter(matchesDomain)
+                .reduce((first, second) -> second)  // 取最后一个(通常最近)终态匹配项
+                .orElse(null));
+
+        CrawlerDomainStateReducer.Input reducerInput = CrawlerDomainStateReducer.Input.builder()
+            .queueStatus(queueItem == null ? null : queueItem.getStatus())
+            .progressStatus(dispatchStatus)
+            .domainStatus(domain.getStatus())
+            .blockedByDomain(queueItem == null ? null : queueItem.getBlockedByDomain())
+            .blockedByActionId(queueItem == null ? null : queueItem.getBlockedByActionId())
+            .blockedByDispatchId(queueItem == null ? null : queueItem.getBlockedByDispatchId())
+            .leaseExpiresAt(queueItem == null ? null : queueItem.getClaimExpiresAt())
+            .now(Instant.now(clock))
+            .build();
+        CrawlerDomainStateReducer.State reduced = domainStateReducer.reduce(reducerInput);
+
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainStateDTO stateDto = new CrawlerMonitorOverviewDTO.WikiMonitorDomainStateDTO();
+        stateDto.setStatus(reduced.status());
+        stateDto.setNextAction(reduced.nextAction());
+        stateDto.setBlocker(reduced.blocker());
+        stateDto.setBlockerLabel(reduced.blockerLabel());
+        stateDto.setEvidence(firstNonBlank(domain.getProgressPath(), asString(dispatchPayload.get("reportPath"))));
+        stateDto.setUpdatedAt(Instant.now(clock).toString());
+        domain.setState(stateDto);
         return domain;
     }
 
@@ -1712,7 +2108,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     /**
      * Implements the "终止并清理文件" (terminate and clean up files) contract surfaced by the cancel
-     * dialog: removes the report, log and progress artifacts produced by this dispatch. Deletions are
+     * dialog: removes the report, output, log and progress artifacts produced by this dispatch. Deletions are
      * confined to the {@code reports/} and {@code data/generated/} namespaces inside the repo, and the
      * shared dispatch state/lock index files are never touched.
      */
@@ -1721,6 +2117,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             return;
         }
         deleteDispatchArtifact(repoRoot, paths.reportPath());
+        deleteDispatchArtifact(repoRoot, paths.outputPath());
         deleteDispatchArtifact(repoRoot, paths.logPath());
         deleteDispatchArtifact(repoRoot, paths.progressPath());
     }
@@ -2027,10 +2424,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         String timestamp = Instant.now(clock).toString();
         String dispatchId = "wiki-monitor-domain-smoke-" + timestamp.replaceAll("[^0-9A-Za-z]+", "-") + "-" + UUID.randomUUID().toString().substring(0, 8);
         String queueId = queueItem == null ? null : trimToNull(queueItem.getQueueId());
+        List<String> coveredDomains = domainSmokeCoveredDomains(queueItem);
         Path lockPath = repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize();
         LinkedHashMap<String, Object> lockPayload = new LinkedHashMap<>();
         lockPayload.put("dispatchId", dispatchId);
-        lockPayload.put("domain", "all");
+        lockPayload.put("domain", queueItem == null ? "all" : firstNonBlank(queueItem.getDomain(), "all"));
+        lockPayload.put("coveredDomains", coveredDomains);
         lockPayload.put("actionId", "wiki-monitor-domain-smoke");
         lockPayload.put("limit", WIKI_MONITOR_DOMAIN_SMOKE_LIMIT);
         lockPayload.put("lockedAt", timestamp);
@@ -2060,7 +2459,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         String outputDir = "reports/crawler-monitor/" + dispatchId;
         String progressPath = toDisplayPath(repoRoot, repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE).normalize());
         String logPath = "reports/crawler-monitor/" + dispatchId + ".log";
-        LaunchRequest launchRequest = buildDomainSmokeLaunchRequest(repoRoot, dispatchId, reportPath, outputDir, progressPath, logPath);
+        LaunchRequest launchRequest = buildDomainSmokeLaunchRequest(repoRoot, dispatchId, reportPath, outputDir, progressPath, logPath, coveredDomains);
         try {
             Process process = processLauncher.launch(launchRequest);
             long pid = safePid(process);
@@ -2209,11 +2608,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             : rule.progressPath();
         String lockPath = toDisplayPath(repoRoot, repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize());
         String logPath = "reports/crawler-monitor/wiki-monitor-dispatch-" + dispatchId + ".log";
-        return new DispatchPaths(reportPath, progressPath, lockPath, logPath);
+        return new DispatchPaths(reportPath, progressPath, lockPath, null, logPath);
     }
 
     private DispatchPaths buildLegacyDispatchPaths(WikiMonitorRule rule) {
-        return new DispatchPaths(null, rule.progressPath(), null, null);
+        return new DispatchPaths(null, rule.progressPath(), null, null, null);
     }
 
     private DispatchPaths dispatchPathsFromQueueItem(WikiMonitorQueueItem item, WikiMonitorRule rule) {
@@ -2224,6 +2623,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             firstNonBlank(item.getReportPath(), null),
             firstNonBlank(item.getProgressPath(), rule.progressPath()),
             firstNonBlank(item.getLockPath(), null),
+            firstNonBlank(item.getOutputPath(), null),
             firstNonBlank(item.getLogPath(), null)
         );
     }
@@ -2311,22 +2711,33 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         String reportPath,
         String outputDir,
         String progressPath,
-        String logPath
+        String logPath,
+        List<String> domains
     ) {
-        List<String> command = List.of(
-            "node",
-            "scripts/data/monitor/wiki-monitor-domain-smoke.mjs",
-            "--limit=" + WIKI_MONITOR_DOMAIN_SMOKE_LIMIT,
-            "--run-id=" + dispatchId,
-            "--report-path=" + reportPath,
-            "--output-dir=" + outputDir,
-            "--progress-path=" + progressPath
-        );
+        List<String> command = new ArrayList<>();
+        command.add("node");
+        command.add("scripts/data/monitor/wiki-monitor-domain-smoke.mjs");
+        command.add("--limit=" + WIKI_MONITOR_DOMAIN_SMOKE_LIMIT);
+        command.add("--run-id=" + dispatchId);
+        command.add("--report-path=" + reportPath);
+        command.add("--output-dir=" + outputDir);
+        command.add("--progress-path=" + progressPath);
+        List<String> selectedDomains = domains == null || domains.isEmpty() ? WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS : domains;
+        if (!isAllDomainSmoke(selectedDomains)) {
+            command.add("--domains=" + String.join(",", selectedDomains));
+        }
         Map<String, String> environment = new LinkedHashMap<>();
         environment.put("WORKTREE_ROOT", repoRoot.toString());
         environment.put("TERRAPEDIA_CRAWLER_ACTION_ID", "wiki-monitor-domain-smoke");
         environment.put("TERRAPEDIA_CRAWLER_PROGRESS_PATH", progressPath);
         return new LaunchRequest(command, repoRoot.toFile(), environment, repoRoot.resolve(logPath).normalize().toFile());
+    }
+
+    private List<String> domainSmokeCoveredDomains(WikiMonitorQueueItem queueItem) {
+        if (queueItem == null || queueItem.getCoveredDomains() == null || queueItem.getCoveredDomains().isEmpty()) {
+            return WIKI_MONITOR_DOMAIN_SMOKE_DOMAINS;
+        }
+        return queueItem.getCoveredDomains();
     }
 
     private CrawlerMonitorDispatchResultDTO smokeDispatchResult(
@@ -5079,7 +5490,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         boolean wikiDomain
     ) {}
 
-    record DispatchPaths(String reportPath, String progressPath, String lockPath, String logPath) {}
+    record DispatchPaths(String reportPath, String progressPath, String lockPath, String outputPath, String logPath) {}
 
     record ActiveDispatchProcess(String dispatchId, String domain, String actionId, Process process, DispatchPaths paths) {}
 

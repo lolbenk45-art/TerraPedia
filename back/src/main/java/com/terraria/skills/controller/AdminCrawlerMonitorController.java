@@ -72,9 +72,12 @@ public class AdminCrawlerMonitorController {
 
     @PostMapping("/test-domain-smoke")
     @Operation(summary = "Dispatch a bounded wiki monitor domain smoke test")
-    public ApiResponse<CrawlerMonitorDispatchResultDTO> dispatchTestDomainSmoke(HttpServletRequest httpRequest) {
+    public ApiResponse<CrawlerMonitorDispatchResultDTO> dispatchTestDomainSmoke(
+        HttpServletRequest httpRequest,
+        @RequestBody(required = false) CrawlerMonitorDispatchRequestDTO request
+    ) {
         requireAdminRole(httpRequest);
-        return ApiResponse.success(crawlerMonitorService.dispatchWikiMonitorDomainSmoke());
+        return ApiResponse.success(crawlerMonitorService.dispatchWikiMonitorDomainSmoke(request));
     }
 
     @PostMapping("/test-domain-smoke/cleanup")
