@@ -2709,6 +2709,41 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void shouldForceReclaimCooldownQueueItemIntoRunningDispatch() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "dispatchId", "recent",
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "status", "completed",
+            "completedAt", "2026-06-14T01:00:00Z"
+        ));
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:20:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchResultDTO queued = service.dispatchWikiMonitorTask(dispatchRequest("bosses", "domain-source-bosses"));
+        assertEquals("blocked_cooldown", queued.getStatus());
+        assertEquals(0, launcher.launchCount);
+
+        CrawlerMonitorDispatchRequestDTO reclaim = dispatchRequest("bosses", "domain-source-bosses");
+        reclaim.setControlAction("forceReclaim");
+        reclaim.setQueueId(queued.getQueueId());
+        CrawlerMonitorDispatchResultDTO reclaimed = service.controlWikiMonitorDispatch(reclaim);
+
+        assertTrue(reclaimed.isAccepted());
+        assertEquals("force_reclaimed", reclaimed.getStatus());
+        assertEquals(1, launcher.launchCount);
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals("running", queueItems.get(0).get("status"));
+        assertNull(queueItems.get(0).get("cooldownUntil"));
+    }
+
+    @Test
     void shouldDedupeSharedWikiCoreRefreshAcrossCoveredDomains() throws Exception {
         writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
             "dispatchId", "existing",

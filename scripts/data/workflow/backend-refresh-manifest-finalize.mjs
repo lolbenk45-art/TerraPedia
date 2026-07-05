@@ -41,13 +41,15 @@ const WIKI_SINGLE_SOURCE_ACTIONS = new Map([
 export function finalizeBackendRefreshActionIngestionManifest({
   actionId,
   manifestPath = DEFAULT_WIKI_SOURCE_MANIFEST_PATH,
+  sharedDataRoot = null,
   worktreeRoot = resolveProjectPath()
 } = {}) {
+  const wikiRawRoot = path.join(sharedDataRoot ?? sharedDataPath(), 'raw', 'wiki');
   if (actionId === 'wiki-core-refresh') {
-    return finalizeWikiCoreRefresh({ manifestPath, worktreeRoot });
+    return finalizeWikiCoreRefresh({ manifestPath, wikiRawRoot });
   }
   if (WIKI_SINGLE_SOURCE_ACTIONS.has(actionId)) {
-    return finalizeSingleWikiSourceRefresh({ actionId, manifestPath, worktreeRoot });
+    return finalizeSingleWikiSourceRefresh({ actionId, manifestPath, wikiRawRoot });
   }
   if (actionId === 'biome-sync') {
     return finalizeBiomeSync({ manifestPath, worktreeRoot });
@@ -55,10 +57,10 @@ export function finalizeBackendRefreshActionIngestionManifest({
   return [];
 }
 
-function finalizeWikiCoreRefresh({ manifestPath, worktreeRoot }) {
+function finalizeWikiCoreRefresh({ manifestPath, wikiRawRoot }) {
   const finalized = [];
   for (const source of WIKI_CORE_SOURCES) {
-    const outputPath = path.join(worktreeRoot, 'data', 'raw', 'wiki', source.outputFile);
+    const outputPath = path.join(wikiRawRoot, source.outputFile);
     advanceWikiIngestionManifestForSource({
       sourceKey: source.sourceKey,
       locator: source.locator,
@@ -72,18 +74,18 @@ function finalizeWikiCoreRefresh({ manifestPath, worktreeRoot }) {
   return finalized;
 }
 
-function finalizeSingleWikiSourceRefresh({ actionId, manifestPath, worktreeRoot }) {
+function finalizeSingleWikiSourceRefresh({ actionId, manifestPath, wikiRawRoot }) {
   const sourceKey = WIKI_SINGLE_SOURCE_ACTIONS.get(actionId);
   const source = WIKI_CORE_SOURCES.find((entry) => entry.sourceKey === sourceKey);
   if (!source) {
     return [];
   }
-  finalizeWikiCoreSource({ source, manifestPath, worktreeRoot });
+  finalizeWikiCoreSource({ source, manifestPath, wikiRawRoot });
   return [source.sourceKey];
 }
 
-function finalizeWikiCoreSource({ source, manifestPath, worktreeRoot }) {
-  const outputPath = path.join(worktreeRoot, 'data', 'raw', 'wiki', source.outputFile);
+function finalizeWikiCoreSource({ source, manifestPath, wikiRawRoot }) {
+  const outputPath = path.join(wikiRawRoot, source.outputFile);
   advanceWikiIngestionManifestForSource({
     sourceKey: source.sourceKey,
     locator: source.locator,

@@ -1046,8 +1046,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         // 3) 写终态证据（不删进度/派发文件）
         writeReclaimTerminalProgress(repoRoot, dispatchId, rule, safeReason, queueItem, active == null ? null : active.paths());
 
-        // 4) 队列项标终态（本域 + 覆盖域，全部幂等）。
+        // 4) 清掉该 action 的冷却，并释放等待项；真正运行中的旧项标终态。
         //    注：这是尽力而为；drain 前的并发入队窗口极小，滑入项会被下次回收/drain 收敛。
+        queueRepository.clearCooldown("standard", actionId);
         markDomainQueueItemsReclaimed(domain, actionId, safeReason);
         for (String covered : coveredDomainsFor(actionId)) {
             markDomainQueueItemsReclaimed(covered, actionId, safeReason);
@@ -1149,7 +1150,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             boolean matchesAction = actionId != null && actionId.equals(item.getActionId());
             boolean matchesCovered = item.getCoveredDomains() != null && item.getCoveredDomains().contains(domain);
             if (matchesDomain || matchesAction || matchesCovered) {
-                queueRepository.markTerminal(item.getQueueId(), "cancelled", Instant.now(clock), reason);
+                if (item.isWaiting()) {
+                    queueRepository.releaseWaitingItemToQueued(item.getQueueId(), "已释放占用，等待队列调度。");
+                } else {
+                    queueRepository.markTerminal(item.getQueueId(), "cancelled", Instant.now(clock), reason);
+                }
             }
         }
     }

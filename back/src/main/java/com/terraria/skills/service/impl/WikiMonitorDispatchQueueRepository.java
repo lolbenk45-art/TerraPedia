@@ -215,6 +215,23 @@ class WikiMonitorDispatchQueueRepository {
         });
     }
 
+    TransitionResult releaseWaitingItemToQueued(String queueId, String message) {
+        return mutateItem(queueId, item -> {
+            if (!"queued".equals(item.getStatus()) && !"blocked_cooldown".equals(item.getStatus())) {
+                return new TransitionResult(false, item.getStatus(), item);
+            }
+            clearClaim(item);
+            item.setStatus("queued");
+            item.setMessage(message);
+            item.setBlockedByDispatchId(null);
+            item.setBlockedByDomain(null);
+            item.setBlockedByActionId(null);
+            item.setBlockedSince(null);
+            item.setCooldownUntil(null);
+            return new TransitionResult(true, "queued", item);
+        });
+    }
+
     TransitionResult markExpiredStartingFailed(String queueId, String message) {
         return mutateItem(queueId, item -> {
             if (!"starting".equals(item.getStatus())) {
@@ -379,6 +396,22 @@ class WikiMonitorDispatchQueueRepository {
         withMutation(() -> {
             MirrorPayload mirror = readMirror();
             mirror.dedupe.remove(dedupeKey(lane, actionId));
+            writeMirror(mirror);
+            return null;
+        });
+    }
+
+    void clearCooldown(String lane, String actionId) {
+        if (lane == null || actionId == null) {
+            return;
+        }
+        if (redisTemplate != null) {
+            redisTemplate.delete(cooldownKey(lane, actionId));
+            return;
+        }
+        withMutation(() -> {
+            MirrorPayload mirror = readMirror();
+            mirror.cooldowns.remove(cooldownKey(lane, actionId));
             writeMirror(mirror);
             return null;
         });
