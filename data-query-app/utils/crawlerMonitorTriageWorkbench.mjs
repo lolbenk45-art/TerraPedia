@@ -1,3 +1,5 @@
+import { formatShanghaiDateLabel } from './crawlerMonitorTime.mjs'
+
 const ATTENTION_STATUSES = new Set([
   'attention',
   'blocked',
@@ -264,7 +266,18 @@ function operationProgressRank(row) {
 }
 
 function operationProgressStatus(row) {
+  const status = lower(row?.status)
+  if (status === 'completed' || status === 'success') return status
   return rowStatus(row) || 'unknown'
+}
+
+function operationProgressLabel(row) {
+  const status = operationProgressStatus(row)
+  if (status === 'completed' || status === 'success') return normalize(row?.reason || row?.rankReason || '已完成')
+  if (row?.progressLabel && row.progressLabel !== '--') return row.progressLabel
+  if (row?.isRunning) return '运行中'
+  if (queueStatus(row)) return '队列中'
+  return '未开始'
 }
 
 function buildOperationProgressRows(rows) {
@@ -280,7 +293,7 @@ function buildOperationProgressRows(rows) {
       ...row,
       status: operationProgressStatus(row),
       statusLabel: row?.diagnosisTitle || row?.status || operationProgressStatus(row),
-      progressLabel: row?.progressLabel || (row?.isRunning ? '运行中' : queueStatus(row) ? '队列中' : '未开始'),
+      progressLabel: operationProgressLabel(row),
     }))
 }
 
@@ -391,12 +404,41 @@ function historyStatus(row) {
   return lower(row?.displayStatus || row?.status || row?.progressKind || row?.sourceProgressRow?.status || row?.sourceQueueItem?.status) || 'unknown'
 }
 
+function historyEventLabel(row) {
+  const status = historyStatus(row)
+  if (status === 'completed' && row?.completedAt) return ['完成', row.completedAt]
+  if ((status === 'failed' || status === 'error') && row?.completedAt) return ['失败', row.completedAt]
+  if ((status === 'timed_out' || status === 'timeout') && row?.completedAt) return ['超时', row.completedAt]
+  if (status === 'cancelled' && row?.completedAt) return ['取消', row.completedAt]
+  if (row?.updatedAt) return ['更新', row.updatedAt]
+  if (row?.startedAt) return ['启动', row.startedAt]
+  if (row?.requestedAt) return ['请求', row.requestedAt]
+  return ['', '']
+}
+
 function historyTime(row) {
-  return normalize(row?.timingLabel || row?.startedAt || row?.completedAt || row?.updatedAt || row?.requestedAt)
+  const timingLabel = normalize(row?.timingLabel)
+  if (timingLabel) return timingLabel
+  const [label, value] = historyEventLabel(row)
+  const timeLabel = formatShanghaiDateLabel(value)
+  if (label && timeLabel) return `${label}于 ${timeLabel}`
+  return normalize(value)
 }
 
 function historyTitle(row) {
   return normalize(row?.primaryLabel || row?.label || row?.actionId || row?.id || row?.sourceProgressRow?.label || row?.sourceQueueItem?.actionId || '未命名任务')
+}
+
+function historyReason(row) {
+  const message = normalize(row?.statusReason || row?.message || row?.heartbeatSummary || row?.progressStaleReason)
+  const status = historyStatus(row)
+  const exitCode = message.match(/exit code\s+(-?\d+)/i)?.[1]
+  if (status === 'completed' && exitCode === '0') return '已完成，退出码 0'
+  if (status === 'completed') return '已完成'
+  if ((status === 'failed' || status === 'error') && exitCode) return `执行失败，退出码 ${exitCode}`
+  if (status === 'timed_out' || status === 'timeout') return '任务超时'
+  if (status === 'cancelled') return '已取消'
+  return message
 }
 
 function sameDomain(row, domain) {
@@ -418,7 +460,7 @@ function mergeIntoHistory(map, row, domain, fallbackKind) {
     title: historyTitle(row),
     status: historyStatus(row),
     timeLabel: historyTime(row),
-    reason: normalize(row?.statusReason || row?.message || row?.heartbeatSummary || row?.progressStaleReason),
+    reason: historyReason(row),
     progressPath: normalize(row?.progressPath || row?.progressSource),
     reportPath: normalize(row?.reportPath),
     logPath: normalize(row?.logPath),
@@ -428,7 +470,7 @@ function mergeIntoHistory(map, row, domain, fallbackKind) {
   if (kind && !existing.sourceKinds.includes(kind)) existing.sourceKinds.push(kind)
   if (!existing.status || existing.status === 'unknown') existing.status = historyStatus(row)
   existing.timeLabel ||= historyTime(row)
-  existing.reason ||= normalize(row?.statusReason || row?.message || row?.heartbeatSummary || row?.progressStaleReason)
+  existing.reason ||= historyReason(row)
   existing.progressPath ||= normalize(row?.progressPath || row?.progressSource)
   existing.reportPath ||= normalize(row?.reportPath)
   existing.logPath ||= normalize(row?.logPath)
@@ -473,6 +515,13 @@ function artifactLabel(path) {
   return '产物'
 }
 
+function displayTime(value) {
+  const raw = normalize(value)
+  if (!raw) return ''
+  const timeLabel = formatShanghaiDateLabel(raw)
+  return timeLabel || raw
+}
+
 export function buildDomainDetailViewModel({
   row = null,
   executionRows = [],
@@ -510,11 +559,11 @@ export function buildDomainDetailViewModel({
       ['当前状态', normalize(row.diagnosisTitle || row.status || '未知')],
       ['进度', normalize(row.progressLabel || '--')],
       ['数据新鲜度', normalize(row.sourceSummary || '未记录')],
-      ['最近心跳', normalize(row.heartbeatAt || '未记录')],
+      ['最近心跳', displayTime(row.heartbeatAt) || '未记录'],
       ['被谁占用', normalize(row.blockerLabel || row.ownerLabel || '无')],
       ['任务编号·通道', normalize(row.queueSummary || row.queueId || '无队列')],
       ['上次运行结果', normalize(row.reason || row.rankReason || '暂无')],
-      ['下次自动扫描', normalize(row.nextScanAt || '按系统设置')],
+      ['下次自动扫描', displayTime(row.nextScanAt) || '按系统设置'],
     ].map(([label, value]) => ({ label, value })),
     taskHistory,
     queueItems,

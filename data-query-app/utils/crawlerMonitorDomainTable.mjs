@@ -4,10 +4,12 @@ import {
   crawlerStatusRank,
   normalizeCrawlerStatus,
 } from './crawlerMonitorUnifiedStatus.mjs'
+import { formatShanghaiDate, formatShanghaiDateLabel } from './crawlerMonitorTime.mjs'
 import { nextActionLabel } from '../pages/operations/crawler-monitor.labels.mjs'
 
 const QUIET_TERMINAL_QUEUE_STATUSES = new Set(['completed'])
 const ACTIVE_QUEUE_STATUSES = new Set(['queued', 'blocked_cooldown', 'starting', 'running', 'paused'])
+const TERMINAL_QUEUE_STATUSES = new Set(['completed', 'failed', 'timed_out', 'cancelled'])
 
 function normalize(value) {
   return String(value || '').trim()
@@ -166,22 +168,38 @@ function cooldownQueueDiagnosis(queueItem, unifiedStatus) {
   }
 }
 
-const SHANGHAI_DATE_FORMATTER = new Intl.DateTimeFormat('zh-CN', {
-  timeZone: 'Asia/Shanghai',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-  second: '2-digit',
-  hour12: false,
-})
+function terminalQueueStatus(item) {
+  const status = lower(item?.status)
+  return TERMINAL_QUEUE_STATUSES.has(status) ? status : ''
+}
 
-function formatShanghaiDate(value) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return normalize(value)
-  const parts = Object.fromEntries(SHANGHAI_DATE_FORMATTER.formatToParts(date).map((part) => [part.type, part.value]))
-  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`
+function terminalQueueTime(item) {
+  return normalize(item?.completedAt || item?.updatedAt || item?.startedAt || item?.requestedAt)
+}
+
+function terminalQueueResultLabel(item) {
+  const status = terminalQueueStatus(item)
+  const timeLabel = formatShanghaiDateLabel(terminalQueueTime(item))
+  if (status === 'completed') return timeLabel ? `完成于 ${timeLabel}` : '最近已完成'
+  if (status === 'failed') return timeLabel ? `失败于 ${timeLabel}` : '最近失败'
+  if (status === 'timed_out') return timeLabel ? `超时于 ${timeLabel}` : '最近超时'
+  if (status === 'cancelled') return timeLabel ? `取消于 ${timeLabel}` : '最近已取消'
+  return ''
+}
+
+function terminalQueueDiagnosis(queueItem, domain) {
+  const status = terminalQueueStatus(queueItem)
+  const resultLabel = terminalQueueResultLabel(queueItem)
+  if (!status || !resultLabel) return null
+  if (status === 'completed') {
+    return {
+      diagnosisGroup: 'healthy',
+      diagnosisTitle: '最近已完成',
+      rankReason: resultLabel,
+      nextActionLabel: nextActionLabel(domain?.state?.nextAction),
+    }
+  }
+  return null
 }
 
 function progressLabel(row) {
@@ -211,6 +229,8 @@ function labelFromSources(domain, progressRow, queueItem) {
 
 function queueLabel(item) {
   if (!item) return '无标准队列'
+  const terminalResult = terminalQueueResultLabel(item)
+  if (terminalResult) return terminalResult.replace(/^完成/, '已完成').replace(/^失败/, '已失败').replace(/^超时/, '已超时').replace(/^取消/, '已取消')
   const position = Number(item.position || item.lanePosition || 0)
   const lanePosition = Number(item.lanePosition || 0)
   if (lanePosition > 0) return `通道第 ${lanePosition} 位`
@@ -374,6 +394,8 @@ function effectiveStatus(domain, progressRow, queueItem) {
 }
 
 function rowReason({ domain, progressRow, queueItem, blockerLabel, risk, unifiedStatus }) {
+  const terminalResult = terminalQueueResultLabel(queueItem)
+  if (terminalResult && lower(queueItem?.status) === 'completed') return terminalResult
   const explicit = domain?.reason
     || unifiedStatus?.conflictLabel
     || progressRow?.progressStaleReason
@@ -418,12 +440,13 @@ export function buildDomainTableRows({ domains = [], progressRows = [], dispatch
     }
     const unifiedStatus = buildCrawlerUnifiedStatus({ domain, progressRow: matchedProgressRow, queueItem: matchedQueueItem })
     const backendStatus = backendStateStatus(domain)
-    const status = backendStatus || 'state_missing'
-    const risk = backendStatus ? riskFromStatus(backendStatus) : 'unknown'
+    const terminalDiagnosis = backendStatus === 'ready' ? terminalQueueDiagnosis(matchedQueueItem, domain) : null
+    const status = terminalDiagnosis?.diagnosisGroup === 'healthy' ? 'completed' : (backendStatus || 'state_missing')
+    const risk = backendStatus ? (terminalDiagnosis?.diagnosisGroup === 'healthy' ? 'healthy' : riskFromStatus(backendStatus)) : 'unknown'
     const blockerLabel = formatBlocker(matchedQueueItem)
     const files = evidenceFiles(domain, matchedProgressRow, matchedQueueItem)
     const cooldownOnlyQueue = isCooldownOnlyQueueItem(matchedQueueItem)
-    const diagnosis = cooldownOnlyQueue ? cooldownQueueDiagnosis(matchedQueueItem, unifiedStatus) : backendStateDiagnosis(domain, backendStatus)
+    const diagnosis = cooldownOnlyQueue ? cooldownQueueDiagnosis(matchedQueueItem, unifiedStatus) : (terminalDiagnosis || backendStateDiagnosis(domain, backendStatus))
     const stateBlockerLabel = cooldownOnlyQueue ? '' : (domain?.state?.blockerLabel || domain?.state?.blocker || blockerLabel)
     return {
       domain: domainFromSources(domain, matchedProgressRow, matchedQueueItem),

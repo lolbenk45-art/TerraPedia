@@ -211,6 +211,37 @@ test('triage workbench uses a compact operations progress strip instead of all d
   assert.equal(view.operationProgressSummary.readyCount, 1)
 })
 
+test('operation progress strip shows completed domains with Shanghai completion time', () => {
+  const view = buildTriageWorkbench({
+    domainRows: [
+      {
+        domain: 'biomes',
+        label: 'Biomes',
+        status: 'completed',
+        risk: 'healthy',
+        diagnosisGroup: 'healthy',
+        diagnosisTitle: '最近已完成',
+        rankReason: '完成于 2026-07-05 20:10:50，上海时间',
+        reason: '完成于 2026-07-05 20:10:50，上海时间',
+        progressLabel: '--',
+        sourceDomain: {
+          domain: 'biomes',
+          recommendedActionId: 'biome-sync',
+          state: { status: 'ready', nextAction: 'recrawl' },
+        },
+        queueItem: {
+          status: 'completed',
+        },
+      },
+    ],
+  })
+
+  assert.equal(view.focusMode, 'operations')
+  assert.equal(view.operationProgressRows[0].status, 'completed')
+  assert.equal(view.operationProgressRows[0].statusLabel, '最近已完成')
+  assert.equal(view.operationProgressRows[0].progressLabel, '完成于 2026-07-05 20:10:50，上海时间')
+})
+
 test('operation rows expose explicit flow labels for queued and running domains', () => {
   const view = buildTriageWorkbench({
     domainRows: [
@@ -457,7 +488,7 @@ test('manual dispatch guard explains why a click cannot start a domain', () => {
   }), '该域已有任务运行中')
   assert.equal(wikiDomainManualDispatchBlockReason({
     recommendedActionId: 'wiki-core-refresh',
-    cooldownUntil: '2026-07-05T12:00:00Z',
+    cooldownUntil: '2099-07-05T12:00:00Z',
   }), '冷却中，等待当前队列冷却结束')
 })
 
@@ -478,7 +509,7 @@ test('domain operation model blocks start when domain is paused or actively cool
     risk: 'ready',
     sourceDomain: {
       recommendedActionId: 'domain-source-items',
-      cooldownUntil: '2026-07-05T12:00:00Z',
+      cooldownUntil: '2099-07-05T12:00:00Z',
     },
   }).primaryAction, null)
 })
@@ -533,6 +564,42 @@ test('domain detail view model merges task history and artifacts for a single do
   assert.equal(detail.taskHistory.length, 1)
   assert.equal(detail.taskHistory[0].sourceKinds.includes('queue'), true)
   assert.deepEqual(detail.artifacts.map((file) => file.path), ['reports/bosses.json', 'reports/bosses.log'])
+})
+
+test('domain detail view model formats overview and history times in Shanghai timezone', () => {
+  const detail = buildDomainDetailViewModel({
+    row: {
+      domain: 'biomes',
+      label: 'Biomes',
+      status: 'healthy',
+      risk: 'healthy',
+      diagnosisTitle: '最近已完成',
+      rankReason: '完成于 2026-07-05 20:10:50，上海时间',
+      heartbeatAt: '2026-07-05T13:12:12.438Z',
+      queueSummary: '标准派发 · 已完成于 2026-07-05 20:10:50，上海时间',
+    },
+    executionRows: [],
+    progressRows: [],
+    queueRows: [
+      {
+        queueId: 'queue-biomes-completed',
+        domain: 'biomes',
+        actionId: 'biome-sync',
+        status: 'completed',
+        completedAt: '2026-07-05T12:10:50.232Z',
+        startedAt: '2026-07-05T12:04:06.909Z',
+        message: 'completed with exit code 0',
+      },
+    ],
+  })
+
+  const overview = Object.fromEntries(detail.overviewFields.map((field) => [field.label, field.value]))
+
+  assert.equal(overview['最近心跳'], '2026-07-05 21:12:12，上海时间')
+  assert.equal(overview['任务编号·通道'], '标准派发 · 已完成于 2026-07-05 20:10:50，上海时间')
+  assert.equal(detail.taskHistory.length, 1)
+  assert.equal(detail.taskHistory[0].timeLabel, '完成于 2026-07-05 20:10:50，上海时间')
+  assert.equal(detail.taskHistory[0].reason, '已完成，退出码 0')
 })
 
 test('task history merges execution, progress, and queue rows by domain action', () => {

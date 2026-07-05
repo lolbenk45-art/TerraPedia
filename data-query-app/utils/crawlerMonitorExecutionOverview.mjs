@@ -4,6 +4,7 @@ import {
   crawlerStatusRank,
   normalizeCrawlerStatus,
 } from './crawlerMonitorUnifiedStatus.mjs'
+import { formatShanghaiDateLabel } from './crawlerMonitorTime.mjs'
 
 const DOMAIN_LABELS = {
   items: 'Items',
@@ -341,12 +342,17 @@ function queueIdentityLabel(item) {
 
 function timingLabel(item, progressRow) {
   const values = [
-    item?.requestedAt ? `请求 ${item.requestedAt}` : '',
-    item?.startedAt ? `启动 ${item.startedAt}` : '',
-    item?.completedAt ? `结束 ${item.completedAt}` : '',
-    progressRow?.progressHeartbeatAt ? `心跳 ${progressRow.progressHeartbeatAt}` : '',
-    progressRow?.lastHeartbeatAt ? `心跳 ${progressRow.lastHeartbeatAt}` : '',
-    progressRow?.updatedAt ? `更新 ${progressRow.updatedAt}` : '',
+    timePart('请求', item?.requestedAt),
+    timePart('启动', item?.startedAt),
+    timePart('结束', item?.completedAt),
+    timePart('心跳', progressRow?.progressHeartbeatAt),
+    timePart('心跳', progressRow?.lastHeartbeatAt),
+    timePart('更新', progressRow?.updatedAt),
   ].filter(Boolean)
   return values.join(' · ') || '暂无时间'
+}
+
+function timePart(label, value) {
+  const timeLabel = formatShanghaiDateLabel(value)
+  return timeLabel ? `${label} ${timeLabel}` : ''
 }

@@ -206,6 +206,45 @@ test('domain table binds domain actions to the latest matching terminal queue it
   assert.equal(rows[0].queueItem.progressPath, 'reports/backend-refresh/history/latest.runtime/recipe-reference-sync.child-status.json')
 })
 
+test('domain table shows latest completed queue result before ready recrawl action', () => {
+  const rows = buildDomainTableRows({
+    domains: [
+      {
+        domain: 'biomes',
+        label: 'Biomes',
+        recommendedActionId: 'biome-sync',
+        state: {
+          status: 'ready',
+          nextAction: 'recrawl',
+          evidence: 'reports/backend-refresh/history/run.runtime/biome-sync.child-status.json',
+        },
+      },
+    ],
+    progressRows: [],
+    dispatchQueue: [
+      {
+        lane: 'standard',
+        domain: 'biomes',
+        coveredDomains: ['biomes'],
+        actionId: 'biome-sync',
+        status: 'completed',
+        queueId: 'queue-biomes-completed',
+        startedAt: '2026-07-05T12:04:06.909Z',
+        completedAt: '2026-07-05T12:10:50.232Z',
+        message: 'completed with exit code 0',
+        progressPath: 'reports/backend-refresh/history/run.runtime/biome-sync.child-status.json',
+      },
+    ],
+  })
+
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].diagnosisTitle, '最近已完成')
+  assert.equal(rows[0].rankReason, '完成于 2026-07-05 20:10:50，上海时间')
+  assert.equal(rows[0].reason, '完成于 2026-07-05 20:10:50，上海时间')
+  assert.equal(rows[0].queueSummary, '标准派发 · 已完成于 2026-07-05 20:10:50，上海时间')
+  assert.equal(rows[0].nextActionLabel, '提交正式派发')
+})
+
 test('domain table treats self-blocked cooldown queue item as cooldown instead of occupation', () => {
   const rows = buildDomainTableRows({
     domains: [
