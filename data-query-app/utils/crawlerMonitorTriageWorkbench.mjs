@@ -12,7 +12,6 @@ const ATTENTION_STATUSES = new Set([
 
 const RUNNING_STATUSES = new Set(['running', 'active', 'starting'])
 const IDLE_STATUSES = new Set(['ready', 'queued', 'paused', 'cancelled', 'missing'])
-const ACTIVE_QUEUE_STATUSES = new Set(['queued', 'blocked_cooldown', 'starting', 'running', 'paused'])
 const PAUSABLE_STATUSES = new Set(['running', 'starting'])
 const RESUMABLE_STATUSES = new Set(['paused'])
 const FORCE_RECLAIM_STATUSES = new Set(['blocked', 'failed', 'error', 'timed_out', 'timeout', 'stalled', 'state_missing', 'unknown'])
@@ -81,24 +80,46 @@ function queueStatus(row) {
   return lower(row?.queueItem?.status || row?.queueStatus)
 }
 
+const MANUAL_DISPATCH_ACTIVE_STATUSES = new Set(['queued', 'blocked_cooldown', 'starting', 'running', 'paused'])
+
+export function wikiDomainManualDispatchBlockReason(input = {}, now = new Date()) {
+  const domain = input?.sourceDomain || input || {}
+  if (!normalize(domain?.recommendedActionId)) return '没有可执行的白名单动作'
+  if (domain?.pauseReason) return normalize(domain.pauseReason)
+
+  const status = lower(input?.queueStatus || input?.status || domain?.state?.status || domain?.status)
+  if (status === 'running' || status === 'starting') return '该域已有任务运行中'
+  if (status === 'queued') return '该域已在队列中'
+  if (status === 'paused') return '该域任务已暂停，请先继续或终止'
+  if (status === 'blocked') return '该域任务被阻断'
+  if (status === 'blocked_cooldown') return '冷却中，等待当前队列冷却结束'
+
+  const queue = queueStatus(input)
+  if (MANUAL_DISPATCH_ACTIVE_STATUSES.has(queue)) {
+    if (queue === 'queued') return '该域已在队列中'
+    if (queue === 'blocked_cooldown') return '冷却中，等待当前队列冷却结束'
+    if (queue === 'paused') return '该域任务已暂停，请先继续或终止'
+    return '该域已有任务运行中'
+  }
+
+  const cooldownUntil = normalize(domain?.cooldownUntil || input?.cooldownUntil)
+  if (cooldownUntil) {
+    const cooldownMs = Date.parse(cooldownUntil)
+    const nowMs = now instanceof Date ? now.getTime() : Date.parse(String(now))
+    if (!Number.isFinite(cooldownMs) || !Number.isFinite(nowMs) || cooldownMs > nowMs) {
+      return '冷却中，等待当前队列冷却结束'
+    }
+  }
+
+  return ''
+}
+
 function operationStatus(row) {
   return lower(row?.sourceDomain?.state?.status || row?.triageStatus || row?.risk || row?.status || row?.diagnosisGroup)
 }
 
-function hasDispatchAction(row) {
-  return Boolean(normalize(row?.sourceDomain?.recommendedActionId))
-}
-
-function isCoolingDown(row) {
-  const domain = row?.sourceDomain || {}
-  return Boolean(domain.cooldownUntil)
-}
-
 function canStartDomainOperation(row) {
-  if (!hasDispatchAction(row)) return false
-  if (row?.sourceDomain?.pauseReason) return false
-  if (isCoolingDown(row)) return false
-  return !ACTIVE_QUEUE_STATUSES.has(queueStatus(row))
+  return !wikiDomainManualDispatchBlockReason(row)
 }
 
 function action(action, label, tone = 'secondary', icon = 'panel') {

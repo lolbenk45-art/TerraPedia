@@ -131,6 +131,7 @@ import {
 import {
   buildDomainDetailViewModel,
   buildTriageWorkbench,
+  wikiDomainManualDispatchBlockReason,
 } from '~/utils/crawlerMonitorTriageWorkbench.mjs'
 import {
   BASE_DOMAIN_ORCHESTRATION_STEPS,
@@ -1442,8 +1443,10 @@ async function handleSelectedWikiDomainPrimaryAction() {
     return
   }
   if (canExecuteWikiDomain(domain)) {
-    openDispatchConfirm(domain)
+    await executeWikiMonitorTask(domain)
+    return
   }
+  showToast(wikiDomainDisabledReason(domain) || '当前域不能派发', 'warning')
 }
 
 function dispatchResultPath(kind: 'progress' | 'report' | 'lock') {
@@ -1620,12 +1623,7 @@ function canStartDomainTableRow(row: any) {
 }
 
 function canExecuteDomainTableRow(row: any) {
-  const domain = row?.sourceDomain || null
-  if (!domain?.recommendedActionId) return false
-  if (domain.pauseReason) return false
-  if (isWikiDomainCoolingDown(domain)) return false
-  if (row?.queueItem && ['queued', 'blocked_cooldown', 'starting', 'running', 'paused'].includes(queueItemStatus(row.queueItem))) return false
-  return true
+  return !wikiDomainManualDispatchBlockReason(row)
 }
 
 function shouldOfferDomainRowForceReclaim(row: any) {
@@ -1646,14 +1644,24 @@ function pauseDomainTableRow(row: any) {
   if (row?.queueItem) return controlProgressTask(queueItemAsProgressRow(row.queueItem), 'pause')
 }
 
-function startDomainTableRow(row: any) {
+async function startDomainTableRow(row: any) {
   selectDomainTableRow(row)
-  openDomainTableDispatchConfirm(row)
+  const domain = row?.sourceDomain || null
+  const blockedReason = wikiDomainManualDispatchBlockReason(row)
+  if (!domain || blockedReason) {
+    showToast(blockedReason || '当前行没有可派发的域', 'warning')
+    return
+  }
+  await executeWikiMonitorTask(domain)
 }
 
 function openDomainTableDispatchConfirm(row: any) {
   const domain = row?.sourceDomain || null
-  if (!domain || !canExecuteDomainTableRow(row)) return
+  const blockedReason = wikiDomainManualDispatchBlockReason(row)
+  if (!domain || blockedReason) {
+    showToast(blockedReason || '当前行没有可派发的域', 'warning')
+    return
+  }
   selectWikiDomain(domain)
   dispatchConfirmDomainKey.value = wikiDomainKey(domain)
 }
@@ -1855,13 +1863,7 @@ function isWikiDispatchTarget(target: CrawlerMonitorWikiDomain | CrawlerMonitorW
 }
 
 function wikiDomainDisabledReason(domain: CrawlerMonitorWikiDomain) {
-  if (!domain.recommendedActionId) return '没有可执行的白名单动作'
-  if (domain.status === 'running') return '该域已有任务运行中'
-  if (domain.status === 'blocked') return '该域任务被阻断'
-  if (domain.status === 'failed') return ''
-  if (domain.pauseReason) return domain.pauseReason
-  if (isWikiDomainCoolingDown(domain)) return `冷却中：${domain.cooldownMinutes} 分钟`
-  return ''
+  return wikiDomainManualDispatchBlockReason(domain)
 }
 
 function isWikiDomainCoolingDown(domain: CrawlerMonitorWikiDomain) {
@@ -2217,14 +2219,22 @@ async function executeWikiMonitorTask(target: CrawlerMonitorWikiDomain | Crawler
   let domain: CrawlerMonitorWikiDomain | null = null
   let actionId: string | null | undefined = null
   if (isWikiDispatchTarget(target)) {
-    if (wikiDispatchDisabledReason(target)) return
+    const dispatchBlockedReason = wikiDispatchDisabledReason(target)
+    if (dispatchBlockedReason) {
+      showToast(dispatchBlockedReason, 'warning')
+      return
+    }
     domain = wikiDispatchDomain(target)
     actionId = target.actionId
   } else {
     domain = target
     actionId = target.recommendedActionId
   }
-  if (!domain?.domain || !actionId || !canExecuteWikiDomain(domain)) return
+  const domainBlockedReason = domain ? wikiDomainDisabledReason(domain) : ''
+  if (!domain?.domain || !actionId || domainBlockedReason) {
+    showToast(domainBlockedReason || '当前域缺少派发动作，不能开始爬取', 'warning')
+    return
+  }
   selectWikiDomain(domain)
   wikiDispatchLoading.value = domain.domain
   try {

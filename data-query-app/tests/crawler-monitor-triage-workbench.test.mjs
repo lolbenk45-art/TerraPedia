@@ -7,6 +7,7 @@ import {
   buildTriageWorkbench,
   filterLogLines,
   mergeDomainTaskHistory,
+  wikiDomainManualDispatchBlockReason,
 } from '../utils/crawlerMonitorTriageWorkbench.mjs'
 
 const rows = [
@@ -429,6 +430,30 @@ test('domain operation model allows manual start when a domain only defines cool
     tone: 'primary',
     icon: 'play',
   })
+})
+
+test('manual dispatch guard does not block manual start for automatic cooldown policy', () => {
+  assert.equal(wikiDomainManualDispatchBlockReason({
+    recommendedActionId: 'wiki-core-refresh',
+    cooldownMinutes: 30,
+    lastAutoRunAt: '2026-07-05T10:45:53.621Z',
+  }), '')
+})
+
+test('manual dispatch guard explains why a click cannot start a domain', () => {
+  assert.equal(wikiDomainManualDispatchBlockReason({}), '没有可执行的白名单动作')
+  assert.equal(wikiDomainManualDispatchBlockReason({
+    recommendedActionId: 'wiki-core-refresh',
+    pauseReason: '人工暂停',
+  }), '人工暂停')
+  assert.equal(wikiDomainManualDispatchBlockReason({
+    recommendedActionId: 'wiki-core-refresh',
+    queueStatus: 'running',
+  }), '该域已有任务运行中')
+  assert.equal(wikiDomainManualDispatchBlockReason({
+    recommendedActionId: 'wiki-core-refresh',
+    cooldownUntil: '2026-07-05T12:00:00Z',
+  }), '冷却中，等待当前队列冷却结束')
 })
 
 test('domain operation model blocks start when domain is paused or actively cooling down', () => {
