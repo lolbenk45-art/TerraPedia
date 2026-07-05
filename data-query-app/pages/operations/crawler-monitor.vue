@@ -15,7 +15,7 @@
     <DomainDetailDrawer
       :open="domainDetailDrawerOpen"
       :detail="selectedDomainDetailViewModel"
-      :source-row="selectedDomainTableRow"
+      :source-row="selectedTriageDomainRow"
       :log-content="domainLogContent"
       :log-loading="domainLogLoading"
       @close="closeDomainDetailDrawer"
@@ -549,8 +549,14 @@ const triageWorkbench = computed<Record<string, any>>(() => buildTriageWorkbench
   recentUpdatedCount: recentReportRows.value.length,
   now: lastOverviewRefreshAt.value || new Date().toISOString(),
 } as any) as Record<string, any>)
+const selectedTriageDomainRow = computed(() => {
+  const selected = selectedDomainTableRow.value
+  if (!selected) return null
+  const selectedKey = selectedDomainTableRowKey(selected)
+  return (triageWorkbench.value?.allRows || []).find((row: any) => selectedDomainTableRowKey(row) === selectedKey) || selected
+})
 const selectedDomainDetailViewModel = computed<Record<string, any> | null>(() => buildDomainDetailViewModel({
-  row: selectedDomainTableRow.value,
+  row: selectedTriageDomainRow.value,
   executionRows: executionOverviewRows.value,
   progressRows: progressDetailRowsByPriority.value,
   queueRows: rawDispatchQueueRows.value,

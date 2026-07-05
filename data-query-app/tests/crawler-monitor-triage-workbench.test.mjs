@@ -183,7 +183,24 @@ test('triage workbench exposes direct domain operation buttons', () => {
   )
 })
 
-test('domain operation model blocks start when domain is paused or cooling down', () => {
+test('domain operation model allows manual start when a domain only defines cooldown policy', () => {
+  assert.deepEqual(buildDomainOperationModel({
+    domain: 'items',
+    status: 'state_missing',
+    risk: 'unknown',
+    sourceDomain: {
+      recommendedActionId: 'wiki-core-refresh',
+      cooldownMinutes: 30,
+    },
+  }).primaryAction, {
+    action: 'start',
+    label: '开始爬',
+    tone: 'primary',
+    icon: 'play',
+  })
+})
+
+test('domain operation model blocks start when domain is paused or actively cooling down', () => {
   assert.equal(buildDomainOperationModel({
     domain: 'items',
     status: 'ready',
@@ -200,7 +217,7 @@ test('domain operation model blocks start when domain is paused or cooling down'
     risk: 'ready',
     sourceDomain: {
       recommendedActionId: 'domain-source-items',
-      cooldownMinutes: 20,
+      cooldownUntil: '2026-07-05T12:00:00Z',
     },
   }).primaryAction, null)
 })

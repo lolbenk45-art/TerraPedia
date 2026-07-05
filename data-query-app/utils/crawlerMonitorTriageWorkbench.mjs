@@ -91,8 +91,7 @@ function hasDispatchAction(row) {
 
 function isCoolingDown(row) {
   const domain = row?.sourceDomain || {}
-  const minutes = Number(domain.cooldownMinutes || 0)
-  return Boolean((Number.isFinite(minutes) && minutes > 0) || domain.cooldownUntil)
+  return Boolean(domain.cooldownUntil)
 }
 
 function canStartDomainOperation(row) {

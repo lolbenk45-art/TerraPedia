@@ -79,6 +79,11 @@ test('domain detail drawer owns single-domain overview, history, queue, artifact
   }
 })
 
+test('domain detail drawer receives decorated triage rows with operation buttons', () => {
+  assert.match(page, /selectedTriageDomainRow/)
+  assert.match(page, /:source-row="selectedTriageDomainRow"/)
+})
+
 test('activity and system drawers move secondary content out of the first screen', () => {
   assert.match(activityDrawer, /跨域任务流/)
   assert.match(activityDrawer, /activity-list/)
