@@ -867,6 +867,7 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 .operation-row {
   min-height: 54px;
   gap: 10px;
+  flex-wrap: wrap;
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-sm);
   background: var(--color-surface-2);
@@ -874,8 +875,8 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 }
 
 .operation-row__main {
-  min-width: 180px;
-  flex: 1 1 220px;
+  min-width: 0;
+  flex: 1 1 160px;
   gap: 8px;
   border: 0;
   background: transparent;
@@ -886,6 +887,7 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 }
 
 .operation-row__main strong {
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1276,6 +1278,9 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 
 .flow-pill {
   flex: 0 0 auto;
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   min-height: 24px;
   display: inline-flex;
   align-items: center;

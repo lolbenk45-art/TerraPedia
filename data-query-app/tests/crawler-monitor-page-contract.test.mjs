@@ -131,6 +131,10 @@ test('domain detail drawer auto-loads the first available log file', () => {
 test('crawler monitor constrains long status text and paths instead of stretching layout', () => {
   assert.match(triageBoard, /\.triage-status__main\s*>\s*div\s*\{[\s\S]*min-width:\s*0/)
   assert.match(triageBoard, /\.triage-status__main strong,\s*\.triage-status__main small\s*\{[\s\S]*overflow-wrap:\s*anywhere/)
+  assert.match(triageBoard, /\.operation-row\s*\{[\s\S]*flex-wrap:\s*wrap/)
+  assert.match(triageBoard, /\.operation-row__main\s*\{[\s\S]*min-width:\s*0[\s\S]*flex:\s*1 1 160px/)
+  assert.match(triageBoard, /\.operation-row__main strong\s*\{[\s\S]*flex:\s*1 1 auto[\s\S]*text-overflow:\s*ellipsis/)
+  assert.match(triageBoard, /\.flow-pill\s*\{[\s\S]*max-width:\s*96px[\s\S]*text-overflow:\s*ellipsis/)
   assert.match(triageBoard, /\.operation-row__meta\s*\{[\s\S]*min-width:\s*0[\s\S]*overflow:\s*hidden[\s\S]*text-overflow:\s*ellipsis/)
   assert.match(triageBoard, /\.domain-table-shell\s*\{[\s\S]*overflow-x:\s*auto/)
   assert.match(activityDrawer, /\.activity-item\s*>\s*div\s*\{[\s\S]*min-width:\s*0/)
