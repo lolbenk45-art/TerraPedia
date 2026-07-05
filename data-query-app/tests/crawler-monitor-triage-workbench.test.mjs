@@ -221,8 +221,8 @@ test('operation progress strip shows completed domains with Shanghai completion 
         risk: 'healthy',
         diagnosisGroup: 'healthy',
         diagnosisTitle: '最近已完成',
-        rankReason: '完成于 2026-07-05 20:10:50，上海时间',
-        reason: '完成于 2026-07-05 20:10:50，上海时间',
+        rankReason: '完成 07-05 20:10',
+        reason: '完成 07-05 20:10',
         progressLabel: '--',
         sourceDomain: {
           domain: 'biomes',
@@ -239,7 +239,7 @@ test('operation progress strip shows completed domains with Shanghai completion 
   assert.equal(view.focusMode, 'operations')
   assert.equal(view.operationProgressRows[0].status, 'completed')
   assert.equal(view.operationProgressRows[0].statusLabel, '最近已完成')
-  assert.equal(view.operationProgressRows[0].progressLabel, '完成于 2026-07-05 20:10:50，上海时间')
+  assert.equal(view.operationProgressRows[0].progressLabel, '完成 07-05 20:10')
 })
 
 test('operation rows expose explicit flow labels for queued and running domains', () => {
@@ -536,7 +536,7 @@ test('domain detail view model merges task history and artifacts for a single do
         domain: 'bosses',
         actionId: 'domain-source-bosses',
         displayStatus: 'failed',
-        timingLabel: '上海时间 2026-07-04 08:00',
+        timingLabel: '2026-07-04 08:00',
         reportPath: 'reports/bosses.json',
       },
     ],
@@ -574,9 +574,9 @@ test('domain detail view model formats overview and history times in Shanghai ti
       status: 'healthy',
       risk: 'healthy',
       diagnosisTitle: '最近已完成',
-      rankReason: '完成于 2026-07-05 20:10:50，上海时间',
+      rankReason: '完成 07-05 20:10',
       heartbeatAt: '2026-07-05T13:12:12.438Z',
-      queueSummary: '标准派发 · 已完成于 2026-07-05 20:10:50，上海时间',
+      queueSummary: '标准派发 · 已完成 07-05 20:10',
     },
     executionRows: [],
     progressRows: [],
@@ -595,10 +595,10 @@ test('domain detail view model formats overview and history times in Shanghai ti
 
   const overview = Object.fromEntries(detail.overviewFields.map((field) => [field.label, field.value]))
 
-  assert.equal(overview['最近心跳'], '2026-07-05 21:12:12，上海时间')
-  assert.equal(overview['任务编号·通道'], '标准派发 · 已完成于 2026-07-05 20:10:50，上海时间')
+  assert.equal(overview['最近心跳'], '07-05 21:12')
+  assert.equal(overview['任务编号·通道'], '标准派发 · 已完成 07-05 20:10')
   assert.equal(detail.taskHistory.length, 1)
-  assert.equal(detail.taskHistory[0].timeLabel, '完成于 2026-07-05 20:10:50，上海时间')
+  assert.equal(detail.taskHistory[0].timeLabel, '完成 07-05 20:10')
   assert.equal(detail.taskHistory[0].reason, '已完成，退出码 0')
 })
 

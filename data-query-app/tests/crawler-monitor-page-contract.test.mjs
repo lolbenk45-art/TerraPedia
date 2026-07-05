@@ -127,3 +127,13 @@ test('domain detail drawer auto-loads the first available log file', () => {
   assert.ok(page.includes('firstLogPath'), 'missing first log path lookup')
   assert.ok(page.includes('loadDomainLog(firstLogPath)'), 'missing first log autoload call')
 })
+
+test('crawler monitor constrains long status text and paths instead of stretching layout', () => {
+  assert.match(triageBoard, /\.triage-status__main\s*>\s*div\s*\{[\s\S]*min-width:\s*0/)
+  assert.match(triageBoard, /\.triage-status__main strong,\s*\.triage-status__main small\s*\{[\s\S]*overflow-wrap:\s*anywhere/)
+  assert.match(triageBoard, /\.operation-row__meta\s*\{[\s\S]*min-width:\s*0[\s\S]*overflow:\s*hidden[\s\S]*text-overflow:\s*ellipsis/)
+  assert.match(triageBoard, /\.domain-table-shell\s*\{[\s\S]*overflow-x:\s*auto/)
+  assert.match(activityDrawer, /\.activity-item\s*>\s*div\s*\{[\s\S]*min-width:\s*0/)
+  assert.match(activityDrawer, /\.activity-item header strong,\s*\.activity-item small,\s*\.activity-item p\s*\{[\s\S]*overflow-wrap:\s*anywhere/)
+  assert.match(systemDrawer, /\.report-row strong\s*\{[\s\S]*min-width:\s*0[\s\S]*overflow:\s*hidden[\s\S]*text-overflow:\s*ellipsis/)
+})

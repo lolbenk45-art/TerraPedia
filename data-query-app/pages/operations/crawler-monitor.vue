@@ -1841,7 +1841,7 @@ function executionOverviewBlocker(row: any) {
 
 function executionOverviewTiming(row: any) {
   const timeEvent = executionOverviewTimeEvent(row)
-  if (timeEvent) return `上海时间 ${formatDate(timeEvent.value)} · ${timeEvent.label}`
+  if (timeEvent) return `${formatDate(timeEvent.value)} · ${timeEvent.label}`
   const fallback = String(row?.heartbeatSummary || '').trim()
   return fallback || '暂无时间'
 }

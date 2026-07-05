@@ -111,6 +111,10 @@ defineEmits<{
   padding: 12px;
 }
 
+.activity-item > div {
+  min-width: 0;
+}
+
 .activity-item--failed,
 .activity-item--blocked,
 .activity-item--stalled,
@@ -136,6 +140,12 @@ defineEmits<{
 .activity-item p {
   margin: 8px 0 0;
   color: var(--color-text-secondary);
+}
+
+.activity-item header strong,
+.activity-item small,
+.activity-item p {
+  overflow-wrap: anywhere;
 }
 
 .activity-item small {

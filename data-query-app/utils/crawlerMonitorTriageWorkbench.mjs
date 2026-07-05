@@ -421,7 +421,7 @@ function historyTime(row) {
   if (timingLabel) return timingLabel
   const [label, value] = historyEventLabel(row)
   const timeLabel = formatShanghaiDateLabel(value)
-  if (label && timeLabel) return `${label}于 ${timeLabel}`
+  if (label && timeLabel) return `${label} ${timeLabel}`
   return normalize(value)
 }
 

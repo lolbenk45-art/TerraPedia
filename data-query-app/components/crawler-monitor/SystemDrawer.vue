@@ -233,11 +233,20 @@ function updateInterval(event: Event) {
 }
 
 .report-row span {
+  flex: 0 0 auto;
   color: var(--color-primary-dark);
   font-weight: 700;
 }
 
+.report-row strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .report-row small {
+  flex: 0 0 auto;
   margin-left: auto;
   color: var(--color-text-muted);
 }

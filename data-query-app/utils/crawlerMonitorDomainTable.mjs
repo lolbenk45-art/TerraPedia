@@ -4,7 +4,7 @@ import {
   crawlerStatusRank,
   normalizeCrawlerStatus,
 } from './crawlerMonitorUnifiedStatus.mjs'
-import { formatShanghaiDate, formatShanghaiDateLabel } from './crawlerMonitorTime.mjs'
+import { formatShanghaiDateLabel } from './crawlerMonitorTime.mjs'
 import { nextActionLabel } from '../pages/operations/crawler-monitor.labels.mjs'
 
 const QUIET_TERMINAL_QUEUE_STATUSES = new Set(['completed'])
@@ -163,7 +163,7 @@ function cooldownQueueDiagnosis(queueItem, unifiedStatus) {
   return {
     diagnosisGroup: 'queued',
     diagnosisTitle: '冷却排队',
-    rankReason: queueItem?.cooldownUntil ? `冷却到 ${formatShanghaiDate(queueItem.cooldownUntil)}，上海时间，到点后自动启动` : (unifiedStatus?.reason || '等待冷却结束后自动启动'),
+    rankReason: queueItem?.cooldownUntil ? `冷却到 ${formatShanghaiDateLabel(queueItem.cooldownUntil)}，自动启动` : (unifiedStatus?.reason || '等待冷却结束后自动启动'),
     nextActionLabel: queueItem?.queueId ? '取消排队' : '等待或取消排队',
   }
 }
@@ -180,10 +180,10 @@ function terminalQueueTime(item) {
 function terminalQueueResultLabel(item) {
   const status = terminalQueueStatus(item)
   const timeLabel = formatShanghaiDateLabel(terminalQueueTime(item))
-  if (status === 'completed') return timeLabel ? `完成于 ${timeLabel}` : '最近已完成'
-  if (status === 'failed') return timeLabel ? `失败于 ${timeLabel}` : '最近失败'
-  if (status === 'timed_out') return timeLabel ? `超时于 ${timeLabel}` : '最近超时'
-  if (status === 'cancelled') return timeLabel ? `取消于 ${timeLabel}` : '最近已取消'
+  if (status === 'completed') return timeLabel ? `完成 ${timeLabel}` : '最近已完成'
+  if (status === 'failed') return timeLabel ? `失败 ${timeLabel}` : '最近失败'
+  if (status === 'timed_out') return timeLabel ? `超时 ${timeLabel}` : '最近超时'
+  if (status === 'cancelled') return timeLabel ? `取消 ${timeLabel}` : '最近已取消'
   return ''
 }
 

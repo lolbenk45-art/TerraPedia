@@ -459,9 +459,14 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   min-width: 0;
 }
 
+.triage-status__main > div {
+  min-width: 0;
+}
+
 .triage-status__main strong,
 .triage-status__main small {
   display: block;
+  overflow-wrap: anywhere;
 }
 
 .triage-status__main small {
@@ -944,7 +949,12 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 }
 
 .operation-row__meta {
-  flex: 0 0 96px;
+  flex: 1 1 112px;
+  min-width: 0;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 12px;
   font-weight: 700;
 }
@@ -1111,6 +1121,7 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 .domain-table-shell {
   max-height: 560px;
   overflow: auto;
+  overflow-x: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface-2);

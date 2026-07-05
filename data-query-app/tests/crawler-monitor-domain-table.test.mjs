@@ -239,9 +239,9 @@ test('domain table shows latest completed queue result before ready recrawl acti
 
   assert.equal(rows.length, 1)
   assert.equal(rows[0].diagnosisTitle, '最近已完成')
-  assert.equal(rows[0].rankReason, '完成于 2026-07-05 20:10:50，上海时间')
-  assert.equal(rows[0].reason, '完成于 2026-07-05 20:10:50，上海时间')
-  assert.equal(rows[0].queueSummary, '标准派发 · 已完成于 2026-07-05 20:10:50，上海时间')
+  assert.equal(rows[0].rankReason, '完成 07-05 20:10')
+  assert.equal(rows[0].reason, '完成 07-05 20:10')
+  assert.equal(rows[0].queueSummary, '标准派发 · 已完成 07-05 20:10')
   assert.equal(rows[0].nextActionLabel, '提交正式派发')
 })
 
@@ -275,7 +275,7 @@ test('domain table treats self-blocked cooldown queue item as cooldown instead o
 
   assert.equal(rows.length, 1)
   assert.equal(rows[0].diagnosisTitle, '冷却排队')
-  assert.equal(rows[0].rankReason, '冷却到 2026-07-05 19:15:53，上海时间，到点后自动启动')
+  assert.equal(rows[0].rankReason, '冷却到 07-05 19:15，自动启动')
   assert.equal(rows[0].blockerLabel, '')
   assert.equal(rows[0].blockerIdentity, '')
   assert.equal(rows[0].reason.includes('biome-sync 占用'), false)
