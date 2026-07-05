@@ -16,8 +16,11 @@
       :open="domainDetailDrawerOpen"
       :detail="selectedDomainDetailViewModel"
       :source-row="selectedDomainTableRow"
+      :log-content="domainLogContent"
+      :log-loading="domainLogLoading"
       @close="closeDomainDetailDrawer"
       @preview="openReportPreview"
+      @load-log="loadDomainLog"
       @domain-action="handleDomainBoardAction"
     />
 
@@ -1042,6 +1045,24 @@ async function saveAutoDispatchSettings() {
   }
 }
 
+const domainLogContent = ref('')
+const domainLogLoading = ref(false)
+
+async function loadDomainLog(path?: string | null) {
+  if (!path) return
+  domainLogLoading.value = true
+  try {
+    const response: any = await get('/admin/crawler-monitor/report', { path })
+    const detail = (response?.data ?? response) || null
+    domainLogContent.value = detail?.content || detail?.errorMessage || '（该日志暂无可读内容）'
+  } catch (error: any) {
+    console.error('Failed to load crawler monitor log:', error)
+    domainLogContent.value = error?.data?.message || error?.message || '加载日志失败'
+  } finally {
+    domainLogLoading.value = false
+  }
+}
+
 async function openReportPreview(path?: string | null) {
   if (!isPreviewableReportPath(path) && !isPreviewableProgressPath(path) && !isPreviewableGeneratedJsonPath(path)) return
   selectedReportPath.value = path || null
@@ -1094,11 +1115,13 @@ function selectDomainTableRow(row: any) {
 
 function openDomainDetailDrawer(row: any) {
   selectDomainTableRow(row)
+  domainLogContent.value = ''
   domainDetailDrawerOpen.value = true
 }
 
 function closeDomainDetailDrawer() {
   domainDetailDrawerOpen.value = false
+  domainLogContent.value = ''
 }
 
 function updateAutoDispatchDraft(settings: Record<string, any>) {
@@ -3168,7 +3191,7 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 .report-drawer-backdrop {
   position: fixed;
   inset: 0;
-  z-index: calc(var(--z-modal) - 1);
+  z-index: calc(var(--z-modal) + 5);
   pointer-events: none;
   opacity: 0;
   background: var(--color-bg-sidebar-scrim);
@@ -3183,8 +3206,8 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 .report-drawer {
   position: fixed;
   inset: 0 0 0 auto;
-  z-index: var(--z-modal);
-  width: min(620px, 100vw);
+  z-index: calc(var(--z-modal) + 6);
+  width: min(680px, 100vw);
   display: grid;
   grid-template-rows: auto 1fr;
   gap: 12px;

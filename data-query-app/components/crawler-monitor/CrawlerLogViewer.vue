@@ -34,16 +34,20 @@
       </button>
     </div>
 
-    <ol v-if="filteredLines.length" class="log-viewer__lines">
+    <div v-if="loading" class="log-viewer__empty">
+      <TerminalSquare :size="22" />
+      <span>加载日志内容中…</span>
+    </div>
+    <ol v-else-if="filteredLines.length" class="log-viewer__lines">
       <li v-for="line in filteredLines" :key="line.lineNumber" :class="`log-viewer__line--${line.level.toLowerCase()}`">
-        <span>{{ line.lineNumber }}</span>
+        <span class="log-viewer__no">{{ line.lineNumber }}</span>
         <strong>{{ line.level }}</strong>
         <code>{{ line.text }}</code>
       </li>
     </ol>
     <div v-else class="log-viewer__empty">
       <TerminalSquare :size="22" />
-      <span>{{ content ? '没有匹配的日志行' : '选择日志文件后在右侧预览完整内容' }}</span>
+      <span>{{ content ? '没有匹配的日志行' : '点击上方日志文件，在此内联查看内容' }}</span>
     </div>
   </section>
 </template>
@@ -60,6 +64,7 @@ defineEmits<{
 const props = defineProps<{
   content?: string
   files?: Array<{ label?: string, path: string }>
+  loading?: boolean
 }>()
 
 const levels = ['ERROR', 'WARN', 'INFO']
@@ -169,50 +174,68 @@ function toggleLevel(level: string) {
 
 .log-viewer__lines {
   margin: 0;
-  padding: 0;
+  padding: 6px 0;
   list-style: none;
-  max-height: 360px;
+  max-height: min(60vh, 520px);
   overflow: auto;
-  border: 1px solid var(--color-border);
+  border: 1px solid #2b3a36;
   border-radius: var(--radius-md);
-  background: var(--color-bg-sidebar);
+  /* 柔和的深青灰控制台底色，比纯黑更耐看 */
+  background: #1b2320;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, Menlo, Consolas, monospace;
 }
 
 .log-viewer__line {
-  min-height: 28px;
+  align-items: flex-start;
+  min-height: 24px;
   gap: 10px;
-  padding: 5px 10px;
-  color: var(--color-text-sidebar);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 3px 12px;
+  color: #d5dbd7;
   font-size: 12px;
+  line-height: 1.65;
 }
 
-.log-viewer__line span {
-  width: 38px;
-  color: var(--color-text-sidebar-muted);
+.log-viewer__no {
+  flex: 0 0 auto;
+  width: 40px;
+  text-align: right;
+  color: #5f6f69;
   font-variant-numeric: tabular-nums;
+  user-select: none;
 }
 
 .log-viewer__line strong {
-  width: 48px;
+  flex: 0 0 auto;
+  width: 46px;
   font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #8fa39c;
 }
 
 .log-viewer__line code {
+  min-width: 0;
+  flex: 1 1 auto;
   white-space: pre-wrap;
-  color: inherit;
+  overflow-wrap: anywhere;
+  color: #cdd6d2;
+}
+
+/* 级别配色：柔和不刺眼，仅错误行加极淡底色引导视线 */
+.log-viewer__line--error {
+  background: rgba(220, 38, 38, 0.1);
 }
 
 .log-viewer__line--error strong {
-  color: color-mix(in srgb, var(--color-danger) 58%, var(--color-text-inverse));
+  color: #f0968c;
 }
 
 .log-viewer__line--warn strong {
-  color: color-mix(in srgb, var(--color-warning) 62%, var(--color-text-inverse));
+  color: #e2b06a;
 }
 
 .log-viewer__line--info strong {
-  color: color-mix(in srgb, var(--color-info) 62%, var(--color-text-inverse));
+  color: #6bb2a6;
 }
 
 .log-viewer__empty {

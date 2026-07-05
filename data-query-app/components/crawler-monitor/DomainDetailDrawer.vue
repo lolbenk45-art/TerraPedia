@@ -99,7 +99,12 @@
         </section>
 
         <section v-else class="drawer-pane">
-          <CrawlerLogViewer :files="detail?.logFiles || []" @preview="$emit('preview', $event)" />
+          <CrawlerLogViewer
+            :content="logContent"
+            :loading="logLoading"
+            :files="detail?.logFiles || []"
+            @preview="$emit('load-log', $event)"
+          />
         </section>
       </div>
     </aside>
@@ -126,11 +131,14 @@ const props = defineProps<{
   open: boolean
   detail: Record<string, any> | null
   sourceRow?: Record<string, any> | null
+  logContent?: string
+  logLoading?: boolean
 }>()
 
 defineEmits<{
   close: []
   preview: [path: string]
+  'load-log': [path: string]
   'domain-action': [action: string, row: Record<string, any> | null | undefined]
 }>()
 
@@ -157,7 +165,7 @@ const tabs = computed(() => [
   position: fixed;
   inset: 0 0 0 auto;
   z-index: calc(var(--z-modal) + 1);
-  width: min(680px, 100vw);
+  width: min(720px, 100vw);
   display: grid;
   grid-template-rows: auto auto auto 1fr;
   gap: 14px;
@@ -271,7 +279,8 @@ const tabs = computed(() => [
 
 .domain-drawer__body {
   min-height: 0;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding-right: 4px;
 }
 
@@ -425,9 +434,13 @@ const tabs = computed(() => [
   text-align: left;
 }
 
+.artifact-row {
+  overflow: hidden;
+}
+
 .artifact-row > span {
-  flex: 1 1 auto;
-  min-width: 0;
+  flex: 0 0 auto;
+  max-width: 45%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -438,11 +451,13 @@ const tabs = computed(() => [
 }
 
 .artifact-row code {
+  flex: 1 1 auto;
+  min-width: 0;
   margin-left: auto;
-  max-width: 62%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: right;
   color: var(--color-text-muted);
 }
 
