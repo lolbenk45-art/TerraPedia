@@ -236,6 +236,7 @@ test('domain table treats self-blocked cooldown queue item as cooldown instead o
 
   assert.equal(rows.length, 1)
   assert.equal(rows[0].diagnosisTitle, '冷却排队')
+  assert.equal(rows[0].rankReason, '冷却到 2026-07-05 19:15:53，上海时间，到点后自动启动')
   assert.equal(rows[0].blockerLabel, '')
   assert.equal(rows[0].blockerIdentity, '')
   assert.equal(rows[0].reason.includes('biome-sync 占用'), false)

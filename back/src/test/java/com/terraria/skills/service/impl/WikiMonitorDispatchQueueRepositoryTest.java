@@ -143,21 +143,21 @@ class WikiMonitorDispatchQueueRepositoryTest {
 
         repository.mirrorSnapshot();
         Map<String, Object> runningMirror = readMirror();
-        assertTrue(((Map<?, ?>) runningMirror.get("dedupe")).containsKey("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:domain_smoke:wiki-monitor-domain-smoke"));
         assertTrue(((Map<?, ?>) runningMirror.get("dispatches")).containsKey("dispatch-running"));
+        assertTrue(((Map<?, ?>) runningMirror.get("dedupe")).containsKey("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:domain_smoke:wiki-monitor-domain-smoke:all"));
 
         assertFalse(repository.cancelQueued(running.getQueueId(), "运行中不能取消队列").cancelled());
-        assertTrue(repository.dedupeLookup("domain_smoke", "wiki-monitor-domain-smoke").isPresent());
+        assertTrue(((Map<?, ?>) readMirror().get("dedupe")).containsKey("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:domain_smoke:wiki-monitor-domain-smoke:all"));
         assertTrue(repository.findByDispatchId("dispatch-running").isPresent());
         WikiMonitorDispatchQueueRepository.TransitionResult invalidTerminal =
             repository.markTerminal(running.getQueueId(), "running", BASE_TIME.plusSeconds(7), "无效终态");
         assertFalse(invalidTerminal.changed());
-        assertTrue(repository.dedupeLookup("domain_smoke", "wiki-monitor-domain-smoke").isPresent());
+        assertTrue(((Map<?, ?>) readMirror().get("dedupe")).containsKey("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:domain_smoke:wiki-monitor-domain-smoke:all"));
         assertTrue(repository.findByDispatchId("dispatch-running").isPresent());
 
         repository.markTerminal(running.getQueueId(), "failed", BASE_TIME.plusSeconds(8), "失败");
         assertTrue(repository.findByDispatchId("dispatch-running").isEmpty());
-        assertTrue(repository.dedupeLookup("domain_smoke", "wiki-monitor-domain-smoke").isEmpty());
+        assertFalse(((Map<?, ?>) readMirror().get("dedupe")).containsKey("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:domain_smoke:wiki-monitor-domain-smoke:all"));
 
         WikiMonitorQueueItem expiredStarting = newItem("standard", "buffs", "buff-page-immunity-refresh", BASE_TIME.minus(Duration.ofDays(10)));
         repository.enqueue(expiredStarting, null);

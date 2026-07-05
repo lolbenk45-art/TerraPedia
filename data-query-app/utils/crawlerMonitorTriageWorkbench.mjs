@@ -165,7 +165,8 @@ export function buildDomainOperationModel(row) {
   let primaryAction = null
 
   if (primaryQueueStatus === 'queued' || primaryQueueStatus === 'blocked_cooldown') {
-    primaryAction = action('cancel', '取消排队', 'danger', 'circle-stop')
+    primaryAction = action('force-reclaim', '强制启动', 'primary', 'play')
+    appendAction(secondaryActions, action('cancel', '取消排队', 'danger', 'circle-stop'))
   } else if (RESUMABLE_STATUSES.has(primaryQueueStatus)) {
     primaryAction = action('resume', '继续', 'primary', 'play')
     appendAction(secondaryActions, action('cancel', '终止', 'danger', 'circle-stop'))

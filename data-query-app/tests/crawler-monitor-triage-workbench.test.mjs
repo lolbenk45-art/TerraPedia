@@ -202,7 +202,7 @@ test('triage workbench uses a compact operations progress strip instead of all d
     view.operationProgressRows.map((row) => [row.domain, row.status, row.primaryAction?.label]),
     [
       ['projectiles', 'running', '暂停'],
-      ['npcs', 'queued', '取消排队'],
+      ['npcs', 'queued', '强制启动'],
       ['items', 'healthy', '开始爬'],
     ]
   )
@@ -365,6 +365,7 @@ test('triage workbench exposes direct domain operation buttons', () => {
       {
         domain: 'bosses',
         label: 'Bosses',
+        actionId: 'domain-source-bosses',
         status: 'queued',
         risk: 'queued',
         queueItem: {
@@ -406,9 +407,13 @@ test('triage workbench exposes direct domain operation buttons', () => {
   )
 
   assert.equal(actionByDomain.items, '开始爬')
-  assert.equal(actionByDomain.bosses, '取消排队')
+  assert.equal(actionByDomain.bosses, '强制启动')
   assert.equal(actionByDomain.npcs, '暂停')
   assert.equal(actionByDomain.buffs, '继续')
+  assert.deepEqual(
+    view.allRows.find((row) => row.domain === 'bosses').secondaryActions.map((action) => action.label),
+    ['取消排队']
+  )
   assert.deepEqual(
     view.allRows.find((row) => row.domain === 'npcs').secondaryActions.map((action) => action.label),
     ['终止']

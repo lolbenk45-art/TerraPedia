@@ -161,9 +161,27 @@ function cooldownQueueDiagnosis(queueItem, unifiedStatus) {
   return {
     diagnosisGroup: 'queued',
     diagnosisTitle: '冷却排队',
-    rankReason: queueItem?.cooldownUntil ? `冷却到 ${queueItem.cooldownUntil}，到点后自动启动` : (unifiedStatus?.reason || '等待冷却结束后自动启动'),
+    rankReason: queueItem?.cooldownUntil ? `冷却到 ${formatShanghaiDate(queueItem.cooldownUntil)}，上海时间，到点后自动启动` : (unifiedStatus?.reason || '等待冷却结束后自动启动'),
     nextActionLabel: queueItem?.queueId ? '取消排队' : '等待或取消排队',
   }
+}
+
+const SHANGHAI_DATE_FORMATTER = new Intl.DateTimeFormat('zh-CN', {
+  timeZone: 'Asia/Shanghai',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+})
+
+function formatShanghaiDate(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return normalize(value)
+  const parts = Object.fromEntries(SHANGHAI_DATE_FORMATTER.formatToParts(date).map((part) => [part.type, part.value]))
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`
 }
 
 function progressLabel(row) {

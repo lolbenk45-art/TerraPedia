@@ -1679,15 +1679,22 @@ function cancelDomainTableRunningRow(row: any) {
 async function forceReclaimDomainTableRow(row: any) {
   selectDomainTableRow(row)
   const payload = buildDispatchControlPayload('forceReclaim', row)
-  if (import.meta.client && !window.confirm(`确认强制释放占用并重试：${row?.label || row?.domain || row?.actionId || '当前域'}？\n任务编号：${row?.queueId || row?.dispatchId || '无'}\n证据：${domainRowEvidencePath(row) || row?.progressRow?.progressPath || '无'}`)) return
+  const actionLabel = forceReclaimActionLabel(row)
+  if (import.meta.client && !window.confirm(`确认${actionLabel}：${row?.label || row?.domain || row?.actionId || '当前域'}？\n任务编号：${row?.queueId || row?.dispatchId || '无'}\n证据：${domainRowEvidencePath(row) || row?.progressRow?.progressPath || '无'}`)) return
   try {
     const response: any = await post('/admin/crawler-monitor/dispatch/control', payload)
     latestDispatchResult.value = (response?.data ?? response) || null
-    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || '已提交强制回收', latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || `已提交${actionLabel}`, latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
     await loadOverview()
   } catch (error: any) {
-    showToast(error?.data?.message || error?.message || '强制回收失败', 'error')
+    showToast(error?.data?.message || error?.message || `${actionLabel}失败`, 'error')
   }
+}
+
+function forceReclaimActionLabel(row: any) {
+  const status = queueItemStatus(row?.queueItem)
+  if (status === 'queued' || status === 'blocked_cooldown') return '强制启动'
+  return '强制释放占用并重试'
 }
 
 async function forceReclaimAllRunningDispatches() {
