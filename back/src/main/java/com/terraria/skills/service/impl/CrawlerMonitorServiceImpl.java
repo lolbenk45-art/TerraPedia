@@ -431,10 +431,6 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             item.setBlockedSince(parseInstant(asString(payload.get("lockedAt"))));
             return;
         }
-        if (cooldownUntil != null && cooldownUntil.isAfter(Instant.now(clock))) {
-            item.setBlockedByActionId(actionId);
-            item.setBlockedSince(Instant.now(clock));
-        }
     }
 
     private CrawlerMonitorDispatchResultDTO startWikiMonitorQueueItem(

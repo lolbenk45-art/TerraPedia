@@ -148,6 +148,7 @@ export function buildCrawlerUnifiedStatus({ domain = null, progressRow = null, q
 
 function queueEffectiveStatus(item) {
   if (!item) return ''
+  if (isCooldownOnlyQueueItem(item)) return 'queued'
   const status = normalizeCrawlerStatus(item.status)
   if (hasQueueBlocker(item) || status.includes('blocked')) return 'blocked'
   if (status === 'cancel_failed') return 'failed'
@@ -169,7 +170,19 @@ function domainEffectiveStatus(domain) {
 }
 
 function hasQueueBlocker(item) {
+  if (isCooldownOnlyQueueItem(item)) return false
   return Boolean(item?.blockedByDomain || item?.blockedByActionId || item?.blockedByDispatchId)
+}
+
+function isCooldownOnlyQueueItem(item) {
+  if (!item) return false
+  const rawStatus = String(item.status || '').trim().toLowerCase()
+  const selfActionBlocker = item.blockedByActionId && item.actionId && item.blockedByActionId === item.actionId
+  return rawStatus === 'blocked_cooldown'
+    && Boolean(item.cooldownUntil)
+    && !item.blockedByDomain
+    && !item.blockedByDispatchId
+    && (!item.blockedByActionId || selfActionBlocker)
 }
 
 function stateConflict(queueStatus, progressStatus) {

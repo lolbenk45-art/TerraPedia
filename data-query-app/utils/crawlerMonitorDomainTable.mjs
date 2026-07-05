@@ -157,6 +157,15 @@ function backendStateDiagnosis(domain, status) {
   }
 }
 
+function cooldownQueueDiagnosis(queueItem, unifiedStatus) {
+  return {
+    diagnosisGroup: 'queued',
+    diagnosisTitle: '冷却排队',
+    rankReason: queueItem?.cooldownUntil ? `冷却到 ${queueItem.cooldownUntil}，到点后自动启动` : (unifiedStatus?.reason || '等待冷却结束后自动启动'),
+    nextActionLabel: queueItem?.queueId ? '取消排队' : '等待或取消排队',
+  }
+}
+
 function progressLabel(row) {
   if (!row) return '--'
   const current = row.current ?? row.overallCurrent
@@ -192,14 +201,27 @@ function queueLabel(item) {
   return status || '队列中'
 }
 
+function isCooldownOnlyQueueItem(item) {
+  if (!item) return false
+  const rawStatus = String(item.status || '').trim().toLowerCase()
+  const selfActionBlocker = item.blockedByActionId && item.actionId && item.blockedByActionId === item.actionId
+  return rawStatus === 'blocked_cooldown'
+    && Boolean(item.cooldownUntil)
+    && !item.blockedByDomain
+    && !item.blockedByDispatchId
+    && (!item.blockedByActionId || selfActionBlocker)
+}
+
 function formatBlocker(item) {
   if (!item) return ''
+  if (isCooldownOnlyQueueItem(item)) return ''
   const blocker = item.blockedByDomain || item.blockedByActionId || item.blockedByDispatchId
   return blocker ? `被 ${blocker} 堵塞` : ''
 }
 
 function blockerIdentity(item) {
   if (!item) return ''
+  if (isCooldownOnlyQueueItem(item)) return ''
   return [
     item.blockedByDomain ? `域 ${item.blockedByDomain}` : '',
     item.blockedByActionId ? `动作 ${item.blockedByActionId}` : '',
@@ -382,8 +404,9 @@ export function buildDomainTableRows({ domains = [], progressRows = [], dispatch
     const risk = backendStatus ? riskFromStatus(backendStatus) : 'unknown'
     const blockerLabel = formatBlocker(matchedQueueItem)
     const files = evidenceFiles(domain, matchedProgressRow, matchedQueueItem)
-    const diagnosis = backendStateDiagnosis(domain, backendStatus)
-    const stateBlockerLabel = domain?.state?.blockerLabel || domain?.state?.blocker || blockerLabel
+    const cooldownOnlyQueue = isCooldownOnlyQueueItem(matchedQueueItem)
+    const diagnosis = cooldownOnlyQueue ? cooldownQueueDiagnosis(matchedQueueItem, unifiedStatus) : backendStateDiagnosis(domain, backendStatus)
+    const stateBlockerLabel = cooldownOnlyQueue ? '' : (domain?.state?.blockerLabel || domain?.state?.blocker || blockerLabel)
     return {
       domain: domainFromSources(domain, matchedProgressRow, matchedQueueItem),
       label: labelFromSources(domain, matchedProgressRow, matchedQueueItem),

@@ -206,6 +206,41 @@ test('domain table binds domain actions to the latest matching terminal queue it
   assert.equal(rows[0].queueItem.progressPath, 'reports/backend-refresh/history/latest.runtime/recipe-reference-sync.child-status.json')
 })
 
+test('domain table treats self-blocked cooldown queue item as cooldown instead of occupation', () => {
+  const rows = buildDomainTableRows({
+    domains: [
+      {
+        domain: 'biomes',
+        label: 'Biomes',
+        recommendedActionId: 'biome-sync',
+        state: {
+          status: 'blocked',
+          nextAction: 'cancel_queue',
+        },
+      },
+    ],
+    progressRows: [],
+    dispatchQueue: [
+      {
+        lane: 'standard',
+        domain: 'biomes',
+        coveredDomains: ['biomes'],
+        actionId: 'biome-sync',
+        status: 'blocked_cooldown',
+        queueId: 'queue-biomes-cooldown',
+        blockedByActionId: 'biome-sync',
+        cooldownUntil: '2026-07-05T11:15:53.622Z',
+      },
+    ],
+  })
+
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].diagnosisTitle, '冷却排队')
+  assert.equal(rows[0].blockerLabel, '')
+  assert.equal(rows[0].blockerIdentity, '')
+  assert.equal(rows[0].reason.includes('biome-sync 占用'), false)
+})
+
 test('domain table does not infer domain status when backend state is missing', () => {
   const rows = buildDomainTableRows({
     domains: [

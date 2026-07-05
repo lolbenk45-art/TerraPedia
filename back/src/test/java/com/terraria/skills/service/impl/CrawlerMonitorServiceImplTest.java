@@ -2695,10 +2695,18 @@ class CrawlerMonitorServiceImplTest {
         assertEquals(true, result.getQueued());
         assertEquals(1, result.getQueuePosition());
         assertEquals("2026-06-14T01:30:00Z", result.getCooldownUntil());
+        assertNull(result.getBlockedByDispatchId());
+        assertNull(result.getBlockedByDomain());
+        assertNull(result.getBlockedByActionId());
+        assertNull(result.getBlockedSince());
         assertNotNull(result.getQueueId());
         assertEquals(result.getQueueId(), duplicate.getQueueId());
         assertEquals("blocked_cooldown", duplicate.getStatus());
         assertEquals("2026-06-14T01:30:00Z", duplicate.getCooldownUntil());
+        assertNull(duplicate.getBlockedByDispatchId());
+        assertNull(duplicate.getBlockedByDomain());
+        assertNull(duplicate.getBlockedByActionId());
+        assertNull(duplicate.getBlockedSince());
         assertEquals(0, launcher.launchCount);
 
         Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
@@ -2706,6 +2714,10 @@ class CrawlerMonitorServiceImplTest {
         assertEquals(1, queueItems.size());
         assertEquals("blocked_cooldown", queueItems.get(0).get("status"));
         assertEquals("2026-06-14T01:30:00Z", queueItems.get(0).get("cooldownUntil"));
+        assertFalse(queueItems.get(0).containsKey("blockedByDispatchId"));
+        assertFalse(queueItems.get(0).containsKey("blockedByDomain"));
+        assertFalse(queueItems.get(0).containsKey("blockedByActionId"));
+        assertFalse(queueItems.get(0).containsKey("blockedSince"));
     }
 
     @Test
