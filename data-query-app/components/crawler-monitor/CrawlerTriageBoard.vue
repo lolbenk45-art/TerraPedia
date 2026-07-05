@@ -967,6 +967,7 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 }
 
 .domain-tile {
+  min-width: 0;
   min-height: 166px;
   display: grid;
   grid-template-rows: auto 1fr auto auto;
@@ -981,6 +982,7 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 
 .domain-tile header {
   gap: 8px;
+  min-width: 0;
 }
 
 .domain-tile header strong {
@@ -993,6 +995,10 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 
 .domain-tile header span:last-child {
   flex: 0 0 auto;
+  max-width: 88px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .domain-tile header span:last-child {
@@ -1012,6 +1018,8 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 }
 
 .tile-progress {
+  min-width: 0;
+  width: 100%;
   height: 6px;
   border-radius: var(--radius-full);
   overflow: hidden;
@@ -1064,6 +1072,15 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 .domain-tile footer {
   justify-content: space-between;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+.domain-tile footer small {
+  min-width: 0;
+  flex: 1 1 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .domain-tile__actions {
