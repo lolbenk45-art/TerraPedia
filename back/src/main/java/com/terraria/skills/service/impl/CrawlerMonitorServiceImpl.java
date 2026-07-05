@@ -2832,6 +2832,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                     status = exitCode == 0 ? "completed" : "failed";
                     message = status + " with exit code " + exitCode;
                 }
+                writeTerminalFailureSummaryToEmptyLog(repoRoot, paths, dispatchId, rule, status, message);
                 LinkedHashMap<String, Object> state = buildDispatchState(dispatchId, rule, status, asString(currentDispatch.payload().get("startedAt")),
                     Instant.now(clock).toString(), paths, message);
                 preserveDispatchMetadata(currentDispatch.payload(), state);
@@ -2853,6 +2854,42 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }, "wiki-monitor-dispatch-" + dispatchId);
         thread.setDaemon(true);
         thread.start();
+    }
+
+    private void writeTerminalFailureSummaryToEmptyLog(
+        Path repoRoot,
+        DispatchPaths paths,
+        String dispatchId,
+        WikiMonitorRule rule,
+        String status,
+        String message
+    ) {
+        if (!"failed".equals(status) && !"timed_out".equals(status)) {
+            return;
+        }
+        if (paths == null || paths.logPath() == null || paths.logPath().isBlank()) {
+            return;
+        }
+        Path logPath = repoRoot.resolve(paths.logPath()).normalize();
+        try {
+            if (Files.exists(logPath) && Files.size(logPath) > 0) {
+                return;
+            }
+            Files.createDirectories(logPath.getParent());
+            String summary = String.join(System.lineSeparator(),
+                "[crawler-monitor] dispatch terminal failure",
+                "dispatchId=" + dispatchId,
+                "domain=" + rule.domain(),
+                "actionId=" + rule.actionId(),
+                "status=" + status,
+                "message=" + firstNonBlank(message, "dispatch failed"),
+                "recordedAt=" + Instant.now(clock),
+                ""
+            );
+            Files.writeString(logPath, summary, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        } catch (IOException exception) {
+            log.warn("Failed to write terminal summary to crawler monitor log {}.", logPath, exception);
+        }
     }
 
     private boolean isWikiMonitorDispatchTerminalStatus(String status) {

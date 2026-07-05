@@ -67,8 +67,8 @@ const props = defineProps<{
   loading?: boolean
 }>()
 
-const levels = ['ERROR', 'WARN', 'INFO']
-const selectedLevels = ref<Array<string>>(['ERROR', 'WARN', 'INFO'])
+const levels = ['ERROR', 'WARN', 'INFO', 'OTHER']
+const selectedLevels = ref<Array<string>>(['ERROR', 'WARN', 'INFO', 'OTHER'])
 const search = ref('')
 const files = computed(() => Array.isArray(props.files) ? props.files : [])
 const content = computed(() => props.content || '')

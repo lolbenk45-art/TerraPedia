@@ -2509,6 +2509,28 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldWriteTerminalFailureSummaryToEmptyDispatchLog() throws Exception {
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new CompletedProcess(2));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(dispatchRequest("bosses", "domain-source-bosses"));
+
+        assertTrue(result.isAccepted());
+        waitUntilQueueStatus(result.getQueueId(), "failed");
+        Path logPath = launcher.lastRequest.logFile().toPath();
+        assertTrue(Files.exists(logPath));
+        String logContent = Files.readString(logPath);
+        assertTrue(logContent.contains("domain=bosses"));
+        assertTrue(logContent.contains("actionId=domain-source-bosses"));
+        assertTrue(logContent.contains("failed with exit code 2"));
+    }
+
+    @Test
     void shouldLaunchNpcLootBackfillDryRunThroughBackendRefreshDispatchPath() throws Exception {
         RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(

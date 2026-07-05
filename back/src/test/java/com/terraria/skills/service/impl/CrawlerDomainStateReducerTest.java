@@ -162,4 +162,17 @@ class CrawlerDomainStateReducerTest {
             .queueStatus("cancelled").now(now).build();
         assertEquals("recrawl", reducer.reduce(in).nextAction());
     }
+
+    @Test
+    void completedProgressOverridesUnknownDomainStateAsReady() {
+        CrawlerDomainStateReducer.Input in = CrawlerDomainStateReducer.Input.builder()
+            .queueStatus("completed")
+            .progressStatus("completed")
+            .domainStatus("unknown")
+            .now(now)
+            .build();
+        CrawlerDomainStateReducer.State state = reducer.reduce(in);
+        assertEquals("ready", state.status());
+        assertEquals("recrawl", state.nextAction());
+    }
 }

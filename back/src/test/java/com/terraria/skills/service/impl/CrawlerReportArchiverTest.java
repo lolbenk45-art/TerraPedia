@@ -227,6 +227,35 @@ class CrawlerReportArchiverTest {
     }
 
     @Test
+    void shouldPreviewEmptyCrawlerMonitorLogFromQueueTerminalMessage() throws Exception {
+        Path repoRoot = Files.createDirectories(tempDir.resolve("TerraPedia-dev"));
+        Path logDir = Files.createDirectories(repoRoot.resolve("reports/crawler-monitor"));
+        Path logPath = logDir.resolve("wiki-monitor-dispatch-empty.log");
+        Files.writeString(logPath, "", StandardOpenOption.CREATE);
+        writeJson(logDir.resolve("wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "items", List.of(Map.of(
+                "dispatchId", "wiki-monitor-empty",
+                "domain", "buffs",
+                "actionId", "buff-page-immunity-refresh",
+                "status", "failed",
+                "logPath", "reports/crawler-monitor/wiki-monitor-dispatch-empty.log",
+                "message", "failed with exit code 143"
+            ))
+        ));
+
+        CrawlerReportArchiver archiver = new CrawlerReportArchiver(new ObjectMapper());
+
+        CrawlerMonitorReportDetailDTO detail = archiver.getReportDetail(repoRoot, "reports/crawler-monitor/wiki-monitor-dispatch-empty.log");
+
+        assertTrue(detail.isFound());
+        assertTrue(detail.isReadable());
+        assertEquals("text", detail.getContentType());
+        assertTrue(detail.getContent().contains("domain=buffs"));
+        assertTrue(detail.getContent().contains("actionId=buff-page-immunity-refresh"));
+        assertTrue(detail.getContent().contains("failed with exit code 143"));
+    }
+
+    @Test
     void shouldRejectLogFilesOutsideCrawlerMonitorDir() throws Exception {
         Path repoRoot = Files.createDirectories(tempDir.resolve("TerraPedia-dev"));
         Path logDir = Files.createDirectories(repoRoot.resolve("reports/other"));

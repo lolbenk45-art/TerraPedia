@@ -35,6 +35,8 @@ public class CrawlerDomainStateReducer {
             status = progress;
         } else if (isOneOf(queue, "cancelled") || isOneOf(progress, "cancelled") || isOneOf(domain, "cancelled")) {
             status = "ready";
+        } else if (isOneOf(queue, "completed") || isOneOf(progress, "completed")) {
+            status = "ready";
         } else if ("paused".equals(queue)) {
             status = "paused";
         } else if ("paused".equals(progress)) {

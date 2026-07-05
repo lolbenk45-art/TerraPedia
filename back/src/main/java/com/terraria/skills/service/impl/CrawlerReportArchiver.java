@@ -135,7 +135,11 @@ public class CrawlerReportArchiver {
         try {
             byte[] bytes = readPreviewBytes(resolved, REPORT_PREVIEW_MAX_BYTES);
             detail.setTruncated(detail.getSizeBytes() != null && detail.getSizeBytes() > REPORT_PREVIEW_MAX_BYTES);
-            detail.setContent(formatReportPreviewContent(resolved, bytes, detail.isTruncated()));
+            String content = formatReportPreviewContent(resolved, bytes, detail.isTruncated());
+            if (content.isBlank() && isCrawlerMonitorLogPath(repoRoot, resolved)) {
+                content = firstNonBlank(synthesizedCrawlerMonitorLogSummary(repoRoot, resolved), content);
+            }
+            detail.setContent(content);
             detail.setReadable(true);
         } catch (IOException exception) {
             detail.setReadable(false);
@@ -435,6 +439,41 @@ public class CrawlerReportArchiver {
             return "text";
         }
         return "text";
+    }
+
+    private boolean isCrawlerMonitorLogPath(Path repoRoot, Path path) {
+        String displayPath = toDisplayPath(repoRoot, path).toLowerCase(Locale.ROOT).replace('\\', '/');
+        return displayPath.startsWith("reports/crawler-monitor/") && displayPath.endsWith(".log");
+    }
+
+    private String synthesizedCrawlerMonitorLogSummary(Path repoRoot, Path logPath) {
+        String displayPath = toDisplayPath(repoRoot, logPath);
+        ReadResult queue = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json").normalize());
+        Object items = queue.payload().get("items");
+        if (!(items instanceof List<?> rows)) {
+            return null;
+        }
+        for (Object row : rows) {
+            if (!(row instanceof Map<?, ?> item)) {
+                continue;
+            }
+            if (!displayPath.equals(asString(item.get("logPath")))) {
+                continue;
+            }
+            String status = asString(item.get("status"));
+            String message = firstNonBlank(asString(item.get("message")), "log file is empty");
+            return String.join(System.lineSeparator(),
+                "[crawler-monitor] empty log fallback",
+                "dispatchId=" + firstNonBlank(asString(item.get("dispatchId")), "unknown"),
+                "domain=" + firstNonBlank(asString(item.get("domain")), "unknown"),
+                "actionId=" + firstNonBlank(asString(item.get("actionId")), "unknown"),
+                "status=" + firstNonBlank(status, "unknown"),
+                "message=" + message,
+                "logPath=" + displayPath,
+                ""
+            );
+        }
+        return null;
     }
 
     private CrawlerMonitorOverviewDTO.MonitorReportDTO toReportDTO(Path repoRoot, Path path) {

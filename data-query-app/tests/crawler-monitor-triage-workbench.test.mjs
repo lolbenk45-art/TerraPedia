@@ -487,3 +487,23 @@ test('log filtering supports level and search without changing line numbers', ()
     [3, 'ERROR', '2026-07-04 ERROR failed bosses'],
   ])
 })
+
+test('log filtering can show ordinary json and command output lines by default', () => {
+  const lines = filterLogLines({
+    content: [
+      '{',
+      '  "status": "completed",',
+      '  "records": 33',
+      '}',
+    ].join('\n'),
+    levels: ['ERROR', 'WARN', 'INFO', 'OTHER'],
+    search: '',
+  })
+
+  assert.deepEqual(lines.map((line) => [line.lineNumber, line.level, line.text]), [
+    [1, 'OTHER', '{'],
+    [2, 'OTHER', '  "status": "completed",'],
+    [3, 'OTHER', '  "records": 33'],
+    [4, 'OTHER', '}'],
+  ])
+})

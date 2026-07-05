@@ -96,5 +96,14 @@ test('activity and system drawers move secondary content out of the first screen
 test('log viewer filters by level and search through pure helper', () => {
   assert.match(logViewer, /filterLogLines/)
   assert.match(logViewer, /selectedLevels/)
+  assert.match(logViewer, /'OTHER'/)
   assert.match(logViewer, /搜索日志/)
+})
+
+test('domain detail drawer auto-loads the first available log file', () => {
+  assert.ok(page.includes('currentDomainLogPath'), 'missing current log path tracker')
+  assert.ok(page.includes('watch('), 'missing drawer log autoload watcher')
+  assert.ok(page.includes('[domainDetailDrawerOpen, selectedDomainDetailViewModel]'), 'watcher must react to drawer + selected domain')
+  assert.ok(page.includes('firstLogPath'), 'missing first log path lookup')
+  assert.ok(page.includes('loadDomainLog(firstLogPath)'), 'missing first log autoload call')
 })

@@ -1053,9 +1053,11 @@ async function saveAutoDispatchSettings() {
 
 const domainLogContent = ref('')
 const domainLogLoading = ref(false)
+const currentDomainLogPath = ref('')
 
 async function loadDomainLog(path?: string | null) {
   if (!path) return
+  currentDomainLogPath.value = path
   domainLogLoading.value = true
   try {
     const response: any = await get('/admin/crawler-monitor/report', { path })
@@ -1068,6 +1070,21 @@ async function loadDomainLog(path?: string | null) {
     domainLogLoading.value = false
   }
 }
+
+watch([domainDetailDrawerOpen, selectedDomainDetailViewModel], ([open, detail]) => {
+  if (!open) {
+    currentDomainLogPath.value = ''
+    return
+  }
+  const firstLogPath = String(detail?.logFiles?.[0]?.path || '').trim()
+  if (!firstLogPath) {
+    currentDomainLogPath.value = ''
+    domainLogContent.value = ''
+    return
+  }
+  if (firstLogPath === currentDomainLogPath.value) return
+  void loadDomainLog(firstLogPath)
+})
 
 async function openReportPreview(path?: string | null) {
   if (!isPreviewableReportPath(path) && !isPreviewableProgressPath(path) && !isPreviewableGeneratedJsonPath(path)) return
@@ -1095,6 +1112,8 @@ function closeSelectedDomainDrawer() {
   selectedWikiDomainKey.value = ''
   domainDetailDrawerOpen.value = false
   hasAutoSelectedDomain.value = true
+  currentDomainLogPath.value = ''
+  domainLogContent.value = ''
 }
 
 function wikiDomainKey(domain: CrawlerMonitorWikiDomain | null | undefined) {
@@ -1121,12 +1140,14 @@ function selectDomainTableRow(row: any) {
 
 function openDomainDetailDrawer(row: any) {
   selectDomainTableRow(row)
+  currentDomainLogPath.value = ''
   domainLogContent.value = ''
   domainDetailDrawerOpen.value = true
 }
 
 function closeDomainDetailDrawer() {
   domainDetailDrawerOpen.value = false
+  currentDomainLogPath.value = ''
   domainLogContent.value = ''
 }
 
