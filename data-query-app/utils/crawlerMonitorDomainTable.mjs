@@ -292,12 +292,30 @@ function evidenceFiles(domain, progressRow, queueItem) {
     ['报告', progressRow?.reportPath || queueItem?.reportPath],
     ['输出', progressRow?.outputPath],
     ['锁', queueItem?.lockPath],
-  ].filter(([, path]) => Boolean(path)).map(([label, path]) => ({ label, path }))
+  ].filter(([, path]) => Boolean(path)).map(([label, path]) => ({
+    label,
+    path,
+    previewable: isPreviewableEvidencePath(path),
+    statusLabel: isPreviewableEvidencePath(path) ? '可预览' : label === '锁' ? '可能已清理' : '路径记录',
+  }))
 }
 
 function evidenceSummary(files) {
-  if (!files.length) return '无可打开证据'
-  return files.map((file) => file.label).join('、')
+  if (!files.length) return '无证据记录'
+  const previewableCount = files.filter((file) => file.previewable).length
+  const labels = files.map((file) => file.label).join('、')
+  return previewableCount ? labels : `${labels}（仅记录）`
+}
+
+function isPreviewableEvidencePath(path) {
+  const normalized = normalize(path).replace(/\\/g, '/').toLowerCase()
+  if (!normalized || normalized.startsWith('redis://')) return false
+  if (normalized.includes('*') || normalized.includes('?')) return false
+  if (normalized.includes('lock')) return false
+  if (normalized.startsWith('reports/') || normalized.startsWith('back/target/surefire-reports/')) {
+    return ['.json', '.md', '.xml', '.txt', '.log'].some((suffix) => normalized.endsWith(suffix))
+  }
+  return normalized.startsWith('data/generated/') && normalized.endsWith('.json')
 }
 
 function shortValue(value) {

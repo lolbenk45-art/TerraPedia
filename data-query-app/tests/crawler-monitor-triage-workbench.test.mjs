@@ -560,10 +560,81 @@ test('domain detail view model merges task history and artifacts for a single do
   })
 
   assert.equal(detail.title, 'Bosses')
-  assert.equal(detail.identity, 'bosses · queue-bosses · PID 1234')
+  assert.equal(detail.identity, 'Boss · 队列记录 · PID 1234')
   assert.equal(detail.taskHistory.length, 1)
   assert.equal(detail.taskHistory[0].sourceKinds.includes('queue'), true)
   assert.deepEqual(detail.artifacts.map((file) => file.path), ['reports/bosses.json', 'reports/bosses.log'])
+  assert.deepEqual(
+    detail.artifacts.map((file) => [file.title, file.statusLabel, file.previewable, file.sourceLabel]),
+    [
+      ['运行报告', '可预览', true, '域状态'],
+      ['运行日志', '可读取', true, '域状态'],
+    ]
+  )
+  assert.equal(detail.artifacts[0].description, '任务结束报告或诊断结果')
+  assert.equal(detail.logFiles[0].title, '运行日志')
+  assert.equal(detail.queueItems[0].title, 'Boss')
+  assert.equal(detail.queueItems[0].statusLabel, '执行失败')
+  assert.equal(detail.queueItems[0].meta, '队列记录')
+})
+
+test('domain detail marks volatile queue paths as recorded paths instead of guaranteed files', () => {
+  const detail = buildDomainDetailViewModel({
+    row: {
+      domain: 'items',
+      label: 'Items',
+      status: 'queued',
+      diagnosisTitle: '等待执行',
+      files: [
+        { label: '锁', path: 'reports/crawler-monitor/wiki-monitor-dispatch.lock.json' },
+        { label: '输出', path: 'data/generated/wiki-item-pages*.json' },
+      ],
+    },
+    queueRows: [
+      {
+        queueId: 'queue-items',
+        domain: 'items',
+        actionId: 'wiki-core-refresh',
+        status: 'queued',
+        lockPath: 'reports/crawler-monitor/wiki-monitor-dispatch.lock.json',
+        outputPath: 'data/generated/wiki-item-pages*.json',
+      },
+    ],
+  })
+
+  assert.deepEqual(
+    detail.artifacts.map((file) => [file.title, file.statusLabel, file.previewable]),
+    [
+      ['运行锁', '可能已清理', false],
+      ['爬取数据', '路径模板', false],
+    ]
+  )
+  assert.equal(detail.artifacts[0].description, '调度锁文件，任务结束或清理后通常不存在')
+  assert.equal(detail.artifacts[1].description, '包含通配符的输出路径模板，不代表单个可打开文件')
+})
+
+test('domain detail does not mark missing unreadable or redis artifacts as previewable', () => {
+  const detail = buildDomainDetailViewModel({
+    row: {
+      domain: 'bosses',
+      label: 'Bosses',
+      status: 'failed',
+      files: [
+        { label: '报告', path: 'reports/missing-bosses.json', found: false },
+        { label: '日志', path: 'reports/crawler-monitor/bosses.log', readable: false },
+        { label: '进度', path: 'redis://crawler-progress/bosses' },
+      ],
+    },
+  })
+
+  assert.deepEqual(
+    detail.artifacts.map((file) => [file.title, file.statusLabel, file.previewable]),
+    [
+      ['运行报告', '文件不存在', false],
+      ['运行日志', '不可读取', false],
+      ['进度快照', '路径记录', false],
+    ]
+  )
 })
 
 test('domain detail view model formats overview and history times in Shanghai timezone', () => {
@@ -596,7 +667,7 @@ test('domain detail view model formats overview and history times in Shanghai ti
   const overview = Object.fromEntries(detail.overviewFields.map((field) => [field.label, field.value]))
 
   assert.equal(overview['最近心跳'], '07-05 21:12')
-  assert.equal(overview['任务编号·通道'], '标准派发 · 已完成 07-05 20:10')
+  assert.equal(overview['任务记录'], '标准派发 · 已完成 07-05 20:10')
   assert.equal(detail.taskHistory.length, 1)
   assert.equal(detail.taskHistory[0].timeLabel, '完成 07-05 20:10')
   assert.equal(detail.taskHistory[0].reason, '已完成，退出码 0')

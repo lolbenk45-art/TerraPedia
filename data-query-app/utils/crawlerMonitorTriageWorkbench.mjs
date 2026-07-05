@@ -1,4 +1,6 @@
 import { formatShanghaiDateLabel } from './crawlerMonitorTime.mjs'
+import { crawlerStatusDisplayLabel } from './crawlerMonitorUnifiedStatus.mjs'
+import { wikiDomainChineseName } from './crawlerMonitorDisplay.mjs'
 
 const ATTENTION_STATUSES = new Set([
   'attention',
@@ -426,7 +428,9 @@ function historyTime(row) {
 }
 
 function historyTitle(row) {
-  return normalize(row?.primaryLabel || row?.label || row?.actionId || row?.id || row?.sourceProgressRow?.label || row?.sourceQueueItem?.actionId || '未命名任务')
+  const domain = normalize(row?.domain || row?.sourceQueueItem?.domain || row?.sourceProgressRow?.domain || row?.progressPayload?.domain)
+  if (domain) return wikiDomainChineseName({ domain, label: normalize(row?.label || row?.primaryLabel) })
+  return normalizeDisplayLabel(row?.primaryLabel || row?.label || row?.actionId || row?.id || row?.sourceProgressRow?.label || row?.sourceQueueItem?.actionId, '未命名任务')
 }
 
 function historyReason(row) {
@@ -459,21 +463,25 @@ function mergeIntoHistory(map, row, domain, fallbackKind) {
     actionId: actionKey(row),
     title: historyTitle(row),
     status: historyStatus(row),
+    statusLabel: crawlerStatusDisplayLabel(historyStatus(row)),
     timeLabel: historyTime(row),
     reason: historyReason(row),
     progressPath: normalize(row?.progressPath || row?.progressSource),
     reportPath: normalize(row?.reportPath),
     logPath: normalize(row?.logPath),
+    outputPath: normalize(row?.outputPath || row?.progressPayload?.outputPath),
     sourceKinds: [],
   }
   const kind = sourceKind(row, fallbackKind)
   if (kind && !existing.sourceKinds.includes(kind)) existing.sourceKinds.push(kind)
   if (!existing.status || existing.status === 'unknown') existing.status = historyStatus(row)
+  existing.statusLabel ||= crawlerStatusDisplayLabel(existing.status)
   existing.timeLabel ||= historyTime(row)
   existing.reason ||= historyReason(row)
   existing.progressPath ||= normalize(row?.progressPath || row?.progressSource)
   existing.reportPath ||= normalize(row?.reportPath)
   existing.logPath ||= normalize(row?.logPath)
+  existing.outputPath ||= normalize(row?.outputPath || row?.progressPayload?.outputPath)
   map.set(key, existing)
 }
 
@@ -500,19 +508,136 @@ function uniqueArtifacts(files) {
     const path = normalize(file?.path || file)
     if (!path || seen.has(path)) continue
     seen.add(path)
-    result.push({
+    result.push(decorateArtifact({
+      ...(typeof file === 'object' && file ? file : {}),
       label: normalize(file?.label) || artifactLabel(path),
       path,
-    })
+      sourceLabel: normalize(file?.sourceLabel),
+    }))
   }
   return result
 }
 
 function artifactLabel(path) {
+  if (/lock/i.test(path)) return '锁'
   if (/\.log$/i.test(path)) return '日志'
   if (/progress/i.test(path)) return '进度'
+  if (/data\/generated/i.test(path)) return '输出'
   if (/report|\.json$/i.test(path)) return '报告'
   return '产物'
+}
+
+function artifactKind(label, path) {
+  const normalizedLabel = lower(label)
+  const normalizedPath = lower(path)
+  if (normalizedLabel.includes('锁') || normalizedPath.includes('lock')) return 'lock'
+  if (normalizedLabel.includes('日志') || normalizedPath.endsWith('.log')) return 'log'
+  if (normalizedLabel.includes('进度') || normalizedPath.includes('progress')) return 'progress'
+  if (normalizedLabel.includes('输出') || normalizedPath.includes('data/generated')) return 'output'
+  if (normalizedLabel.includes('报告') || normalizedPath.includes('report')) return 'report'
+  return 'artifact'
+}
+
+function isPathTemplate(path) {
+  return /[*?]/.test(path)
+}
+
+function isPreviewableArtifactPath(path) {
+  const normalized = normalize(path).replace(/\\/g, '/').toLowerCase()
+  if (!normalized || normalized.startsWith('redis://') || isPathTemplate(normalized)) return false
+  if (normalized.startsWith('reports/crawler-monitor/') && normalized.endsWith('.log')) return true
+  if (normalized.startsWith('reports/') || normalized.startsWith('back/target/surefire-reports/')) {
+    return ['.json', '.md', '.xml', '.txt', '.log'].some((suffix) => normalized.endsWith(suffix))
+  }
+  return normalized.startsWith('data/generated/') && normalized.endsWith('.json')
+}
+
+function decorateArtifact(file) {
+  const path = normalize(file?.path)
+  const label = normalize(file?.label) || artifactLabel(path)
+  const kind = artifactKind(label, path)
+  const missing = file?.found === false
+  const unreadable = file?.readable === false || Boolean(file?.errorMessage)
+  const previewable = kind !== 'lock' && !missing && !unreadable && isPreviewableArtifactPath(path)
+  const template = isPathTemplate(path)
+  const metadata = {
+    report: ['运行报告', '任务结束报告或诊断结果'],
+    progress: ['进度快照', '任务进度 JSON，用于判断当前阶段和心跳'],
+    output: ['爬取数据', template ? '包含通配符的输出路径模板，不代表单个可打开文件' : '爬虫产出的数据文件'],
+    log: ['运行日志', '子进程输出和错误日志'],
+    lock: ['运行锁', '调度锁文件，任务结束或清理后通常不存在'],
+    artifact: ['运行产物', '任务记录里的关联路径'],
+  }[kind]
+  return {
+    label,
+    path,
+    kind,
+    title: metadata[0],
+    description: metadata[1],
+    statusLabel: artifactStatusLabel({ template, missing, unreadable, kind, previewable }),
+    previewable,
+    found: file?.found,
+    readable: file?.readable,
+    errorMessage: normalize(file?.errorMessage),
+    sourceLabel: normalize(file?.sourceLabel) || '任务历史',
+  }
+}
+
+function artifactStatusLabel({ template, missing, unreadable, kind, previewable }) {
+  if (template) return '路径模板'
+  if (missing) return '文件不存在'
+  if (unreadable) return '不可读取'
+  if (kind === 'lock') return '可能已清理'
+  if (previewable) return kind === 'log' ? '可读取' : '可预览'
+  return '路径记录'
+}
+
+function historyArtifacts(item) {
+  return [
+    item.reportPath ? { label: '报告', path: item.reportPath, sourceLabel: '任务历史' } : null,
+    item.progressPath ? { label: '进度', path: item.progressPath, sourceLabel: '任务历史' } : null,
+    item.outputPath ? { label: '输出', path: item.outputPath, sourceLabel: '任务历史' } : null,
+    item.logPath ? { label: '日志', path: item.logPath, sourceLabel: '任务历史' } : null,
+  ].filter(Boolean).map(decorateArtifact)
+}
+
+function decorateQueueItem(item) {
+  const blocker = normalize(item?.blockedByDomain || item?.blockedByActionId || item?.blockedByDispatchId)
+  const meta = [
+    '队列记录',
+    item?.pid ? `PID ${item.pid}` : '',
+  ].filter(Boolean).join(' · ')
+  return {
+    ...item,
+    title: queueItemTitle(item),
+    statusLabel: crawlerStatusDisplayLabel(item?.status),
+    meta: meta || '无任务编号',
+    detail: blocker ? `等待 ${blockerDisplayLabel(blocker)} 释放` : normalizeDisplayLabel(item?.message || item?.lane, '标准派发记录'),
+  }
+}
+
+function queueItemTitle(item) {
+  const domain = normalize(item?.domain)
+  if (domain) return wikiDomainChineseName({ domain })
+  return normalizeDisplayLabel(item?.label || item?.actionId || item?.dispatchId, '未命名任务')
+}
+
+function blockerDisplayLabel(value) {
+  const text = normalize(value)
+  const key = domainKey(text
+    .replace(/^domain-source-/i, '')
+    .replace(/^wiki-/, '')
+    .replace(/-refresh$/i, ''))
+  if (key && key !== 'wiki' && key !== 'domain' && key !== 'source') return wikiDomainChineseName({ domain: key })
+  return '另一个运行任务'
+}
+
+function normalizeDisplayLabel(value, fallback = '') {
+  const text = normalize(value)
+  if (!text) return fallback
+  if (/^(domain-source-|wiki-|queue-|dispatch-)/i.test(text)) return fallback
+  if (/[\\/]/.test(text) || text.startsWith('redis://')) return fallback
+  return text
 }
 
 function displayTime(value) {
@@ -530,24 +655,22 @@ export function buildDomainDetailViewModel({
 } = {}) {
   if (!row) return null
   const domain = row.domain || row.actionId || row.label
+  const domainDisplayName = wikiDomainChineseName({ domain: normalize(row.domain), label: normalize(row.label) })
   const taskHistory = mergeDomainTaskHistory({ domain, executionRows, progressRows, queueRows })
+    .map((item) => ({ ...item, files: historyArtifacts(item) }))
   const artifacts = uniqueArtifacts([
-    ...(Array.isArray(row.files) ? row.files : []),
-    ...taskHistory.flatMap((item) => [
-      item.reportPath ? { label: '报告', path: item.reportPath } : null,
-      item.progressPath ? { label: '进度', path: item.progressPath } : null,
-      item.logPath ? { label: '日志', path: item.logPath } : null,
-    ]).filter(Boolean),
+    ...(Array.isArray(row.files) ? row.files.map((file) => ({ ...file, sourceLabel: '域状态' })) : []),
+    ...taskHistory.flatMap((item) => item.files),
   ])
-  const queueItems = queueRows.filter((item) => sameDomain(item, domain))
+  const queueItems = queueRows.filter((item) => sameDomain(item, domain)).map(decorateQueueItem)
   return {
     key: normalize(row.domain || row.actionId || row.label),
     title: normalize(row.label || row.domain || '未知域'),
     status: rowStatus(row),
-    statusLabel: normalize(row.diagnosisTitle || row.status || '未知状态'),
+    statusLabel: normalize(row.diagnosisTitle) || crawlerStatusDisplayLabel(rowStatus(row)),
     identity: [
-      normalize(row.domain || row.actionId),
-      normalize(row.queueId || row.dispatchId),
+      domainDisplayName,
+      row.queueId || row.dispatchId ? '队列记录' : '',
       row.pid ? `PID ${row.pid}` : '',
     ].filter(Boolean).join(' · '),
     diagnosis: {
@@ -556,12 +679,12 @@ export function buildDomainDetailViewModel({
       nextActionLabel: normalize(row.nextActionLabel || '查看详情'),
     },
     overviewFields: [
-      ['当前状态', normalize(row.diagnosisTitle || row.status || '未知')],
+      ['当前状态', normalize(row.diagnosisTitle) || crawlerStatusDisplayLabel(rowStatus(row))],
       ['进度', normalize(row.progressLabel || '--')],
       ['数据新鲜度', normalize(row.sourceSummary || '未记录')],
       ['最近心跳', displayTime(row.heartbeatAt) || '未记录'],
       ['被谁占用', normalize(row.blockerLabel || row.ownerLabel || '无')],
-      ['任务编号·通道', normalize(row.queueSummary || row.queueId || '无队列')],
+      ['任务记录', normalize(row.queueSummary) || (row.queueId || row.dispatchId ? '队列记录' : '无队列')],
       ['上次运行结果', normalize(row.reason || row.rankReason || '暂无')],
       ['下次自动扫描', displayTime(row.nextScanAt) || '按系统设置'],
     ].map(([label, value]) => ({ label, value })),

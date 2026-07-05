@@ -38,9 +38,9 @@
         :aria-label="`${metric.label}：${metric.value}，${metric.note}`"
         @click="handleMetricClick(metric)"
       >
-        <small>{{ metric.label }}</small>
-        <strong>{{ metric.value }}</strong>
-        <span>{{ metric.note }}</span>
+        <small :title="metric.label">{{ metric.label }}</small>
+        <strong :title="String(metric.value)">{{ metric.value }}</strong>
+        <span :title="metric.note">{{ metric.note }}</span>
       </button>
     </section>
 
@@ -58,24 +58,24 @@
           <header>
             <span class="status-dot-small" :class="`status-dot-small--${row.triageStatus}`"></span>
             <div>
-              <h3>{{ row.label || row.domain }}</h3>
-              <small>{{ row.domain || row.actionId || '未知域' }}</small>
+              <h3 :title="row.label || row.domain">{{ row.label || row.domain }}</h3>
+              <small :title="row.domain || '未知域'">{{ row.domain || '未知域' }}</small>
             </div>
-            <span class="status-pill" :class="row.triageStatus">{{ row.diagnosisTitle || row.status }}</span>
+            <span class="status-pill" :class="row.triageStatus">{{ row.diagnosisTitle || row.statusLabel || '未知状态' }}</span>
           </header>
-          <p>{{ row.rankReason || row.reason || '暂无诊断原因' }}</p>
+          <p :title="row.rankReason || row.reason || '暂无诊断原因'">{{ row.rankReason || row.reason || '暂无诊断原因' }}</p>
           <dl>
             <div>
               <dt>进度</dt>
-              <dd>{{ row.progressLabel || '--' }}</dd>
+              <dd :title="row.progressLabel || '--'">{{ row.progressLabel || '--' }}</dd>
             </div>
             <div>
               <dt>最近活动</dt>
-              <dd>{{ row.heartbeatAt || '未记录' }}</dd>
+              <dd :title="row.heartbeatAt || '未记录'">{{ row.heartbeatAt || '未记录' }}</dd>
             </div>
             <div>
               <dt>下一步</dt>
-              <dd>{{ row.nextActionLabel || '查看详情' }}</dd>
+              <dd :title="row.nextActionLabel || '查看详情'">{{ row.nextActionLabel || '查看详情' }}</dd>
             </div>
           </dl>
           <div class="attention-card__actions">
@@ -116,13 +116,13 @@
           <article v-for="row in operationProgressRows" :key="rowKey(row)" class="operation-row" :class="`operation-row--${row.triageStatus}`">
             <button type="button" class="operation-row__main" @click="$emit('open-domain', row)">
               <span class="status-dot-small" :class="`status-dot-small--${row.triageStatus}`"></span>
-              <strong>{{ row.label || row.domain }}</strong>
-              <small class="flow-pill" :class="`flow-pill--${row.triageStatus}`">{{ row.flowLabel || row.statusLabel || row.status }}</small>
+              <strong :title="row.label || row.domain">{{ row.label || row.domain }}</strong>
+              <small class="flow-pill" :class="`flow-pill--${row.triageStatus}`">{{ row.flowLabel || row.statusLabel || '未知状态' }}</small>
             </button>
             <div class="operation-row__progress" :aria-label="`${row.label || row.domain} 进度 ${row.progressLabel || '未记录'}`">
               <span :style="{ width: progressWidth(row.progressLabel) }"></span>
             </div>
-            <span class="operation-row__meta">{{ row.flowDetail || row.progressLabel || row.nextActionLabel || '待命' }}</span>
+            <span class="operation-row__meta" :title="row.flowDetail || row.progressLabel || row.nextActionLabel || '待命'">{{ row.flowDetail || row.progressLabel || row.nextActionLabel || '待命' }}</span>
             <div class="operation-row__actions">
               <button
                 v-if="row.primaryAction"
@@ -196,15 +196,15 @@
         <article v-for="row in filteredRows" :key="rowKey(row)" class="domain-tile" :class="`domain-tile--${row.triageStatus}`" @click="$emit('open-domain', row)">
           <header>
             <span class="status-dot-small" :class="`status-dot-small--${row.triageStatus}`"></span>
-            <strong>{{ row.label || row.domain }}</strong>
-            <span class="status-pill" :class="row.triageStatus">{{ row.flowLabel || row.diagnosisTitle || row.status }}</span>
+            <strong :title="row.label || row.domain">{{ row.label || row.domain }}</strong>
+            <span class="status-pill" :class="row.triageStatus">{{ row.flowLabel || row.diagnosisTitle || row.statusLabel || '未知状态' }}</span>
           </header>
-          <p>{{ row.flowDetail || row.rankReason || row.reason || '暂无补充' }}</p>
+          <p :title="row.flowDetail || row.rankReason || row.reason || '暂无补充'">{{ row.flowDetail || row.rankReason || row.reason || '暂无补充' }}</p>
           <div class="tile-progress">
             <span :style="{ width: progressWidth(row.progressLabel) }"></span>
           </div>
           <footer>
-            <small>{{ row.nextActionLabel || '查看详情' }}</small>
+            <small :title="row.nextActionLabel || '查看详情'">{{ row.nextActionLabel || '查看详情' }}</small>
             <div class="domain-tile__actions">
               <button
                 v-if="row.primaryAction"
@@ -240,10 +240,10 @@
           </thead>
           <tbody>
             <tr v-for="row in filteredRows" :key="rowKey(row)" :class="`domain-row--${row.triageStatus}`">
-              <td><strong>{{ row.label || row.domain }}</strong><small>{{ row.domain || row.actionId }}</small></td>
-              <td><span class="status-pill" :class="row.triageStatus">{{ row.diagnosisTitle || row.status }}</span></td>
+              <td><strong>{{ row.label || row.domain }}</strong><small>{{ row.domain || '未知域' }}</small></td>
+              <td><span class="status-pill" :class="row.triageStatus">{{ row.diagnosisTitle || row.statusLabel || '未知状态' }}</span></td>
               <td>{{ row.sourceSummary || '未记录' }}</td>
-              <td>{{ row.queueSummary || row.actionId || '无任务' }}</td>
+              <td>{{ row.queueSummary || '无任务' }}</td>
               <td>{{ row.heartbeatAt || '未记录' }}</td>
               <td>{{ row.nextActionLabel || '查看详情' }}</td>
               <td>
@@ -526,6 +526,7 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   min-height: 112px;
   display: block;
   width: 100%;
+  min-width: 0;
   border-radius: var(--radius-md);
   padding: 13px;
   text-align: left;
@@ -546,8 +547,15 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 }
 
 .kpi-card small,
-.kpi-card span {
+.kpi-card span,
+.kpi-card strong {
   display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.kpi-card small,
+.kpi-card span {
   color: var(--color-text-secondary);
 }
 
@@ -626,6 +634,7 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 }
 
 .attention-card {
+  min-width: 0;
   padding: 14px;
 }
 
@@ -682,6 +691,11 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 
 .attention-card p {
   margin: 12px 0;
+}
+
+.attention-card p,
+.attention-card dd {
+  overflow-wrap: anywhere;
 }
 
 .attention-card dl {

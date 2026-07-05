@@ -20,18 +20,26 @@
     </header>
 
     <div v-if="files.length" class="log-viewer__files">
-      <button
-        v-for="file in files"
-        :key="file.path"
-        type="button"
-        class="log-viewer__file"
-        :title="file.path"
-        @click="$emit('preview', file.path)"
-      >
-        <FileText :size="15" />
-        <span>{{ file.label || '日志' }}</span>
-        <code>{{ file.path }}</code>
-      </button>
+      <template v-for="file in files" :key="file.path">
+        <button
+          v-if="file.previewable"
+          type="button"
+          class="log-viewer__file"
+          :title="file.path"
+          @click="$emit('preview', file.path)"
+        >
+          <FileText :size="15" />
+          <span>{{ file.title || file.label || '运行日志' }}</span>
+          <small>{{ file.statusLabel || '可读取' }}</small>
+          <code>{{ file.path }}</code>
+        </button>
+        <div v-else class="log-viewer__file log-viewer__file--readonly" :title="file.path">
+          <FileText :size="15" />
+          <span>{{ file.title || file.label || '运行日志' }}</span>
+          <small>{{ file.statusLabel || '路径记录' }}</small>
+          <code>{{ file.path }}</code>
+        </div>
+      </template>
     </div>
 
     <div v-if="loading" class="log-viewer__empty">
@@ -67,7 +75,7 @@ defineEmits<{
 
 const props = defineProps<{
   content?: string
-  files?: Array<{ label?: string, path: string }>
+  files?: Array<{ label?: string, title?: string, statusLabel?: string, previewable?: boolean, path: string }>
   loading?: boolean
 }>()
 
@@ -167,13 +175,48 @@ function toggleLevel(level: string) {
   cursor: pointer;
 }
 
+.log-viewer__file--readonly {
+  cursor: default;
+  color: var(--color-text-secondary);
+}
+
+.log-viewer__file span,
+.log-viewer__file small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.log-viewer__file span {
+  flex: 0 1 auto;
+  font-weight: 700;
+}
+
+.log-viewer__file small {
+  flex: 0 0 auto;
+  max-width: 76px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-muted);
+  color: var(--color-primary-dark);
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.log-viewer__file--readonly small {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+}
+
 .log-viewer__file code {
   margin-left: auto;
+  min-width: 0;
   max-width: 60%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .log-viewer__lines {

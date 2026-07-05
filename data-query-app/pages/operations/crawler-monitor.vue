@@ -562,9 +562,9 @@ const selectedDomainDetailViewModel = computed<Record<string, any> | null>(() =>
   progressRows: progressDetailRowsByPriority.value,
   queueRows: rawDispatchQueueRows.value,
 } as any) as Record<string, any> | null)
-const activityDrawerRows = computed(() => executionOverviewRows.value.length
+const activityDrawerRows = computed(() => (executionOverviewRows.value.length
   ? executionOverviewRows.value
-  : progressDetailRowsByPriority.value)
+  : progressDetailRowsByPriority.value).map((row: any) => activityDisplayRow(row)))
 const failedDomainRows = computed(() => domainTableRows.value.filter((row) => statusTone(row.risk || row.status) === 'danger'))
 const runningDomainRows = computed(() => domainTableRows.value.filter((row) => {
   const status = String(row.status || row.risk || '').toLowerCase()
@@ -1059,6 +1059,11 @@ const currentDomainLogPath = ref('')
 async function loadDomainLog(path?: string | null) {
   if (!path) return
   currentDomainLogPath.value = path
+  if (!isPreviewableDomainLogPath(path)) {
+    domainLogLoading.value = false
+    domainLogContent.value = '该日志路径只是运行记录，文件可能已清理、是路径模板，或不允许在页面内读取。'
+    return
+  }
   domainLogLoading.value = true
   try {
     const response: any = await get('/admin/crawler-monitor/report', { path })
@@ -1077,7 +1082,7 @@ watch([domainDetailDrawerOpen, selectedDomainDetailViewModel], ([open, detail]) 
     currentDomainLogPath.value = ''
     return
   }
-  const firstLogPath = String(detail?.logFiles?.[0]?.path || '').trim()
+  const firstLogPath = String((detail?.logFiles || []).find((file: any) => file?.previewable && isPreviewableDomainLogPath(file.path))?.path || '').trim()
   if (!firstLogPath) {
     currentDomainLogPath.value = ''
     domainLogContent.value = ''
@@ -1550,13 +1555,13 @@ function queueItemVisiblePathEntries(item: CrawlerMonitorWikiQueueItem | null | 
     { label: '报告', path: item?.reportPath || '' },
     { label: '输出', path: item?.outputPath || '' },
     { label: '锁', path: item?.lockPath || '' },
-  ].filter((entry) => Boolean(entry.path))
+  ].filter((entry) => isPreviewableProgressPath(entry.path))
 }
 
 function queueItemLogPathEntries(item: CrawlerMonitorWikiQueueItem | null | undefined) {
   return [
     { label: '日志', path: item?.logPath || '' },
-  ].filter((entry) => Boolean(entry.path))
+  ].filter((entry) => isPreviewableDomainLogPath(entry.path))
 }
 
 function queueItemLogKey(item: CrawlerMonitorWikiQueueItem | null | undefined) {
@@ -2494,6 +2499,66 @@ function statusLabel(status?: string | null) {
   return normalized || '未知'
 }
 
+function activityDisplayRow(row: any) {
+  const displayStatus = String(row?.displayStatus || rowStatus(row) || row?.status || 'unknown').toLowerCase()
+  return {
+    ...row,
+    displayStatus,
+    displayStatusLabel: cleanActivityText(row?.displayStatusLabel) || statusLabel(displayStatus),
+    activityTitle: cleanActivityText(row?.activityTitle) || activityDomainLabel(row),
+    activityMeta: cleanActivityText(row?.activityMeta) || activityTimeLabel(row),
+    activityDetail: cleanActivityText(row?.activityDetail) || activityFallbackDetail(displayStatus),
+  }
+}
+
+function activityDomainLabel(row: any) {
+  const domain = String(row?.domain || row?.progressPayload?.domain || row?.sourceQueueItem?.domain || row?.sourceProgressRow?.domain || '').trim()
+  if (domain) return wikiDomainChineseName({ domain, label: cleanActivityText(row?.label || row?.primaryLabel) })
+  const label = cleanActivityText(row?.primaryLabel || row?.label)
+  if (label) return label
+  const action = String(row?.actionId || row?.id || row?.action?.id || '').toLowerCase()
+  if (action.includes('buff')) return 'Buff'
+  if (action.includes('boss')) return 'Boss'
+  if (action.includes('npc')) return 'NPC'
+  if (action.includes('item')) return '物品'
+  if (action.includes('recipe')) return '配方'
+  if (action.includes('biome')) return '群系'
+  return '未知域'
+}
+
+function activityTimeLabel(row: any) {
+  const timing = cleanActivityText(String(row?.timingLabel || '').split(' · ')[0])
+  if (timing) return `${timing} · ${activityRecordKind(row)}`
+  const time = row?.completedAt || row?.updatedAt || row?.startedAt || row?.requestedAt || row?.progressUpdatedAt
+  return `${time ? formatDate(time) : '暂无时间'} · ${activityRecordKind(row)}`
+}
+
+function activityRecordKind(row: any) {
+  if (row?.kind === 'queue' || row?.sourceQueueItem) return '队列记录'
+  if (row?.kind === 'progress' || row?.progressPayload || row?.action) return '进度记录'
+  return '任务记录'
+}
+
+function activityFallbackDetail(status: string) {
+  if (status === 'running') return '任务正在运行，观察进度和心跳'
+  if (status === 'queued') return '任务已进入队列，等待调度'
+  if (status === 'stalled') return '心跳过期，建议查看日志或终止清理'
+  if (status === 'failed' || status === 'error') return '执行失败，请查看该域日志和报告'
+  if (status === 'cancelled') return '任务已取消'
+  if (status === 'completed') return '任务已完成'
+  return '暂无补充'
+}
+
+function cleanActivityText(value?: unknown) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  if (/^(domain-source-|wiki-monitor-|queue-|progress:|task:)/i.test(text)) return ''
+  if (/\bqueueId\b/i.test(text)) return ''
+  if (/(^|[\s:])(?:data\/generated|reports\/|back\/target\/surefire-reports\/|redis:\/\/)/i.test(text)) return ''
+  if (/[\\/][^\s]+\.(json|log|txt|md|xml)$/i.test(text)) return ''
+  return text
+}
+
 function runtimeStateCard(key: string, label: string, file: any) {
   const payload = file?.payload || {}
   const status = payload.status || file?.status || fileStateText(file)
@@ -2786,8 +2851,8 @@ function progressRowVisiblePathEntries(row: ProgressRow | null | undefined) {
     { label: '进度', path: row.progressSource || row.progressPath || row.action?.childStatusPath || '' },
     { label: '报告', path: row.reportPath || '' },
     { label: '输出', path: row.outputPath || row.progressPayload?.outputPath || '' },
-  ].filter((entry) => entry.path)
-  if (!entries.length && rowSourcePath(row)) return [{ label: '来源', path: rowSourcePath(row) }]
+  ].filter((entry) => isPreviewableProgressPath(entry.path))
+  if (!entries.length && isPreviewableProgressPath(rowSourcePath(row))) return [{ label: '来源', path: rowSourcePath(row) }]
   return entries
 }
 
@@ -2796,7 +2861,7 @@ function progressRowLogPathEntries(row: ProgressRow | null | undefined) {
   if (row.sourceQueueItem) return queueItemLogPathEntries(row.sourceQueueItem)
   return [
     { label: '日志', path: row.progressPayload?.logPath || '' },
-  ].filter((entry) => Boolean(entry.path))
+  ].filter((entry) => isPreviewableDomainLogPath(entry.path))
 }
 
 function progressRowQueueLogKey(row: ProgressRow | null | undefined) {
@@ -2929,9 +2994,10 @@ function isPreviewableReportPath(path?: string | null) {
   const normalized = String(path || '').replace(/\\/g, '/').toLowerCase()
   if (!normalized) return false
   if (normalized.includes('*') || normalized.includes('?')) return false
+  if (normalized.includes('lock')) return false
   if (normalized.startsWith('reports/crawler-monitor/') && normalized.endsWith('.log')) return true
   const allowedRoot = normalized.startsWith('reports/') || normalized.startsWith('back/target/surefire-reports/')
-  const allowedSuffix = ['.json', '.md', '.xml', '.txt'].some((suffix) => normalized.endsWith(suffix))
+  const allowedSuffix = ['.json', '.md', '.xml', '.txt', '.log'].some((suffix) => normalized.endsWith(suffix))
   return allowedRoot && allowedSuffix
 }
 
@@ -2951,6 +3017,14 @@ function isPreviewableGeneratedJsonPath(path?: string | null) {
     normalized.startsWith('data/generated/')
     || normalized.startsWith('data/terrapedia/raw/wiki/')
   )
+}
+
+function isPreviewableDomainLogPath(path?: string | null) {
+  const normalized = String(path || '').replace(/\\/g, '/').toLowerCase()
+  if (!normalized || normalized.startsWith('redis://')) return false
+  if (normalized.includes('*') || normalized.includes('?')) return false
+  if (!normalized.endsWith('.log')) return false
+  return normalized.startsWith('reports/') || normalized.startsWith('back/target/surefire-reports/')
 }
 
 function dispatchBlockerLabel(result?: CrawlerMonitorDispatchResult | null) {
@@ -3281,9 +3355,14 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   gap: 12px;
 }
 
+.report-drawer header > div {
+  min-width: 0;
+}
+
 .report-drawer header strong,
 .report-drawer header small {
   display: block;
+  overflow-wrap: anywhere;
 }
 
 .report-drawer header small {
@@ -3332,6 +3411,8 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 .drawer-content {
   margin: 0;
   overflow: auto;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   white-space: pre-wrap;
   color: var(--color-text);
   font-size: 12px;

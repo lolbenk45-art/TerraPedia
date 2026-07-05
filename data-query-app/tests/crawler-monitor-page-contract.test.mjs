@@ -87,6 +87,14 @@ test('domain detail drawer receives decorated triage rows with operation buttons
 test('activity and system drawers move secondary content out of the first screen', () => {
   assert.match(activityDrawer, /跨域任务流/)
   assert.match(activityDrawer, /activity-list/)
+  assert.match(activityDrawer, /row\.activityTitle/)
+  assert.match(activityDrawer, /row\.displayStatusLabel/)
+  assert.match(activityDrawer, /row\.activityDetail/)
+  assert.doesNotMatch(activityDrawer, /row\.statusReason\s*\|\|/)
+  assert.doesNotMatch(activityDrawer, /row\.message\s*\|\|/)
+  assert.doesNotMatch(triageBoard, /row\.domain\s*\|\|\s*row\.actionId/)
+  assert.doesNotMatch(triageBoard, /row\.queueSummary\s*\|\|\s*row\.actionId/)
+  assert.doesNotMatch(domainDrawer, />\s*\{\{ item\.status\s*\}\}/)
   assert.match(systemDrawer, /报告库/)
   assert.match(systemDrawer, /自动派发/)
   assert.match(systemDrawer, /dataQualitySignals/)
@@ -104,6 +112,18 @@ test('log viewer keeps readable base line styling for every level', () => {
   assert.ok(logViewer.includes("['log-viewer__line'"), 'log rows must include the base readable line class')
   assert.match(logViewer, /log-viewer__line--other strong/)
   assert.match(logViewer, /log-viewer__line--other code/)
+})
+
+test('domain drawers distinguish previewable files from recorded paths', () => {
+  assert.match(domainDrawer, /file\.previewable/)
+  assert.match(domainDrawer, /artifact-row--readonly/)
+  assert.match(domainDrawer, /file\.statusLabel/)
+  assert.match(domainDrawer, /file\.description/)
+  assert.match(domainDrawer, /file\.sourceLabel/)
+  assert.match(logViewer, /file\.previewable/)
+  assert.match(logViewer, /log-viewer__file--readonly/)
+  assert.match(page, /isPreviewableDomainLogPath/)
+  assert.match(page, /normalized\.includes\('lock'\)/)
 })
 
 test('triage board has distinct visual states for queued running and ready tiles', () => {
@@ -146,4 +166,9 @@ test('crawler monitor constrains long status text and paths instead of stretchin
   assert.match(activityDrawer, /\.activity-item\s*>\s*div\s*\{[\s\S]*min-width:\s*0/)
   assert.match(activityDrawer, /\.activity-item header strong,\s*\.activity-item small,\s*\.activity-item p\s*\{[\s\S]*overflow-wrap:\s*anywhere/)
   assert.match(systemDrawer, /\.report-row strong\s*\{[\s\S]*min-width:\s*0[\s\S]*overflow:\s*hidden[\s\S]*text-overflow:\s*ellipsis/)
+  assert.match(triageBoard, /\.kpi-card small,\s*\.kpi-card span,\s*\.kpi-card strong\s*\{[\s\S]*overflow-wrap:\s*anywhere/)
+  assert.match(triageBoard, /\.attention-card\s*\{[\s\S]*min-width:\s*0/)
+  assert.match(triageBoard, /\.attention-card p,\s*\.attention-card dd\s*\{[\s\S]*overflow-wrap:\s*anywhere/)
+  assert.match(domainDrawer, /\.domain-drawer__head > div\s*\{[\s\S]*min-width:\s*0/)
+  assert.match(page, /\.drawer-content\s*\{[\s\S]*overflow-wrap:\s*anywhere/)
 })

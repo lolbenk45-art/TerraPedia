@@ -72,14 +72,25 @@
             <div>
               <header>
                 <strong>{{ item.title }}</strong>
-                <span class="status-pill" :class="item.status">{{ item.status }}</span>
+                <span class="status-pill" :class="item.status">{{ item.statusLabel || '未知状态' }}</span>
               </header>
               <small>{{ item.timeLabel || '暂无时间' }}</small>
               <p>{{ item.reason || '暂无结果说明' }}</p>
-              <div class="timeline-files">
-                <button v-if="item.progressPath" type="button" @click="$emit('preview', item.progressPath)">进度</button>
-                <button v-if="item.reportPath" type="button" @click="$emit('preview', item.reportPath)">报告</button>
-                <button v-if="item.logPath" type="button" @click="$emit('preview', item.logPath)">日志</button>
+              <div v-if="item.files?.length" class="timeline-files">
+                <template v-for="file in item.files" :key="file.path">
+                  <button
+                    v-if="file.previewable"
+                    type="button"
+                    class="timeline-file"
+                    :title="file.path"
+                    @click="$emit('preview', file.path)"
+                  >
+                    {{ file.title || file.label }}
+                  </button>
+                  <span v-else class="timeline-file timeline-file--readonly" :title="file.path">
+                    {{ file.title || file.label }} · {{ file.statusLabel || '路径记录' }}
+                  </span>
+                </template>
               </div>
             </div>
           </article>
@@ -88,20 +99,41 @@
 
         <section v-else-if="activeTab === 'queue'" class="drawer-pane queue-list">
           <article v-for="item in detail?.queueItems || []" :key="item.queueId || item.dispatchId || item.actionId" class="queue-row">
-            <strong>{{ item.actionId || '未命名动作' }}</strong>
-            <span class="status-pill" :class="item.status || 'unknown'">{{ item.status || '未知' }}</span>
-            <small>{{ item.queueId || item.dispatchId || '无任务编号' }}</small>
-            <code v-if="item.pid">PID {{ item.pid }}</code>
+            <strong>{{ item.title || '未命名任务' }}</strong>
+            <span class="status-pill" :class="item.status || 'unknown'">{{ item.statusLabel || '未知' }}</span>
+            <small>{{ item.detail || '暂无补充' }}</small>
+            <code>{{ item.meta || '队列记录' }}</code>
           </article>
           <p v-if="!detail?.queueItems?.length" class="empty-line">当前没有队列项</p>
         </section>
 
         <section v-else-if="activeTab === 'artifacts'" class="drawer-pane artifact-list">
-          <button v-for="file in detail?.artifacts || []" :key="file.path" type="button" class="artifact-row" @click="$emit('preview', file.path)">
-            <FileJson :size="17" />
-            <span>{{ file.label }}</span>
-            <code>{{ file.path }}</code>
-          </button>
+          <template v-for="file in detail?.artifacts || []" :key="file.path">
+            <button
+              v-if="file.previewable"
+              type="button"
+              class="artifact-row"
+              :title="file.path"
+              @click="$emit('preview', file.path)"
+            >
+              <FileJson :size="17" />
+              <span class="artifact-row__main">
+                <strong>{{ file.title || file.label }}</strong>
+                <small>{{ file.sourceLabel || '任务记录' }} · {{ file.description || '可打开的运行产物' }}</small>
+              </span>
+              <span class="artifact-row__status">{{ file.statusLabel || '可预览' }}</span>
+              <code>{{ file.path }}</code>
+            </button>
+            <div v-else class="artifact-row artifact-row--readonly" :title="file.path">
+              <FileJson :size="17" />
+              <span class="artifact-row__main">
+                <strong>{{ file.title || file.label }}</strong>
+                <small>{{ file.sourceLabel || '任务记录' }} · {{ file.description || '仅记录路径，不代表当前可打开' }}</small>
+              </span>
+              <span class="artifact-row__status">{{ file.statusLabel || '路径记录' }}</span>
+              <code>{{ file.path }}</code>
+            </div>
+          </template>
           <p v-if="!detail?.artifacts?.length" class="empty-line">暂无产物文件</p>
         </section>
 
@@ -218,10 +250,15 @@ function operationButtonClass(operation?: Record<string, any>) {
   gap: 14px;
 }
 
+.domain-drawer__head > div {
+  min-width: 0;
+}
+
 .domain-drawer__head h2 {
   margin: 8px 0 4px;
   font-size: 24px;
   line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .domain-drawer__head code {
@@ -243,7 +280,7 @@ function operationButtonClass(operation?: Record<string, any>) {
 
 .diagnosis-banner {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 10px;
   border: 1px solid var(--color-border);
   border-left: 3px solid var(--color-primary);
@@ -265,6 +302,7 @@ function operationButtonClass(operation?: Record<string, any>) {
 .diagnosis-banner strong,
 .diagnosis-banner span {
   display: block;
+  overflow-wrap: anywhere;
 }
 
 .diagnosis-banner span {
@@ -406,18 +444,33 @@ function operationButtonClass(operation?: Record<string, any>) {
   margin-top: 10px;
 }
 
-.timeline-files button,
+.timeline-file,
 .artifact-row {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface-2);
   color: var(--color-text);
+}
+
+button.timeline-file,
+button.artifact-row {
   cursor: pointer;
 }
 
-.timeline-files button {
+.timeline-file {
+  display: inline-flex;
+  align-items: center;
   min-height: 30px;
   padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  max-width: 100%;
+}
+
+.timeline-file--readonly,
+.artifact-row--readonly {
+  cursor: default;
+  color: var(--color-text-secondary);
 }
 
 .queue-list,
@@ -454,8 +507,8 @@ function operationButtonClass(operation?: Record<string, any>) {
 
 .artifact-row {
   gap: 10px;
-  min-height: 44px;
-  padding: 8px 10px;
+  min-height: 56px;
+  padding: 9px 10px;
   text-align: left;
 }
 
@@ -463,12 +516,42 @@ function operationButtonClass(operation?: Record<string, any>) {
   overflow: hidden;
 }
 
-.artifact-row > span {
-  flex: 0 0 auto;
-  max-width: 45%;
+.artifact-row__main {
+  flex: 1 1 180px;
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.artifact-row__main strong,
+.artifact-row__main small {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.artifact-row__main small {
+  color: var(--color-text-secondary);
+}
+
+.artifact-row__status {
+  flex: 0 0 auto;
+  max-width: 86px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-muted);
+  color: var(--color-primary-dark);
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.artifact-row--readonly .artifact-row__status {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .artifact-row svg {
@@ -483,7 +566,7 @@ function operationButtonClass(operation?: Record<string, any>) {
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: right;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .empty-line {

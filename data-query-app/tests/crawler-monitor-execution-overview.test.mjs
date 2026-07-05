@@ -31,7 +31,7 @@ test('execution overview includes active dispatch queue rows even without progre
   assert.equal(rows[0].domain, 'town_npc_maintenance')
   assert.equal(rows[0].actionId, 'domain-source-town-npc-maintenance')
   assert.equal(rows[0].status, 'running')
-  assert.equal(rows[0].primaryLabel, 'Town NPC maintenance')
+  assert.equal(rows[0].primaryLabel, '城镇 NPC 维护')
   assert.equal(rows[0].logPath, 'reports/crawler-monitor/wiki-monitor-dispatch-d-1.log')
 })
 
@@ -271,6 +271,10 @@ test('execution overview uses terminal queue state ahead of stale running progre
   assert.match(rows[0].timingLabel, /结束 07-02 19:58/)
   assert.equal(rows[0].progressStatus, 'running')
   assert.equal(rows[0].message, 'dispatch cancelled')
+  assert.equal(rows[0].displayStatusLabel, '已取消')
+  assert.equal(rows[0].activityTitle, 'Buff')
+  assert.equal(rows[0].activityMeta, '结束 07-02 19:58 · 队列记录')
+  assert.equal(rows[0].activityDetail, '队列已取消，旧进度文件仍保留运行状态')
 })
 
 test('execution overview infers progress domains from progress payload before generic domain-source id parsing', () => {

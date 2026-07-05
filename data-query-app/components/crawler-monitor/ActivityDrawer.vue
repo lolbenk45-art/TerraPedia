@@ -17,11 +17,11 @@
           <span class="activity-node"></span>
           <div>
             <header>
-              <strong>{{ row.primaryLabel || row.label || row.actionId || '未命名任务' }}</strong>
-              <span class="status-pill" :class="row.displayStatus || row.status || 'unknown'">{{ row.displayStatus || row.status || '未知' }}</span>
+              <strong>{{ row.activityTitle || '未知域' }}</strong>
+              <span class="status-pill" :class="row.displayStatus || row.status || 'unknown'">{{ row.displayStatusLabel || '未知' }}</span>
             </header>
-            <small>{{ row.timingLabel || row.updatedAt || row.completedAt || '暂无时间' }}</small>
-            <p>{{ row.statusReason || row.message || row.heartbeatSummary || row.secondaryLabel || '暂无补充' }}</p>
+            <small>{{ row.activityMeta || '暂无时间' }}</small>
+            <p>{{ row.activityDetail || '暂无补充' }}</p>
           </div>
         </article>
         <p v-if="!rows.length" class="empty-line">暂无活动</p>

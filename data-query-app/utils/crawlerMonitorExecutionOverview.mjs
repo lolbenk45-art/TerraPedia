@@ -1,22 +1,23 @@
 import { progressRowsFromOverview, rowStatus } from './crawlerMonitorProgressRows.mjs'
 import {
   buildCrawlerUnifiedStatus,
+  crawlerStatusDisplayLabel,
   crawlerStatusRank,
   normalizeCrawlerStatus,
 } from './crawlerMonitorUnifiedStatus.mjs'
 import { formatShanghaiDateLabel } from './crawlerMonitorTime.mjs'
 
 const DOMAIN_LABELS = {
-  items: 'Items',
-  npcs: 'NPCs',
-  projectiles: 'Projectiles',
-  armor_sets: 'Armor sets',
-  buffs: 'Buffs',
-  biomes: 'Biomes',
-  recipes: 'Recipes',
-  bosses: 'Bosses',
-  town_npc_maintenance: 'Town NPC maintenance',
-  shimmer: 'Shimmer',
+  items: '物品',
+  npcs: 'NPC',
+  projectiles: '射弹',
+  armor_sets: '盔甲套装',
+  buffs: 'Buff',
+  biomes: '群系',
+  recipes: '配方',
+  bosses: 'Boss',
+  town_npc_maintenance: '城镇 NPC 维护',
+  shimmer: '微光',
 }
 
 const ACTIONABLE_QUEUE_STATUSES = new Set([
@@ -104,7 +105,7 @@ function buildQueueOverviewRow(item, progressRow) {
   const progressPath = firstNonEmpty(item.progressPath, progressRow?.progressPath, progressRow?.progressSource)
   const unifiedStatus = buildCrawlerUnifiedStatus({ queueItem: item, progressRow })
 
-  return {
+  const row = {
     key: `queue:${item.queueId || item.dispatchId || stableKey(domain, actionId, progressPath)}`,
     kind: 'queue',
     domain,
@@ -135,45 +136,47 @@ function buildQueueOverviewRow(item, progressRow) {
     sourceQueueItem: item,
     sourceProgressRow: progressRow || null,
   }
+  return withActivityDisplay(row)
 }
 
-function buildProgressOverviewRow(row) {
-  const domain = domainFromProgress(row)
-  const actionId = String(row.id || row.action?.id || '')
-  const progressPath = firstNonEmpty(row.progressPath, row.progressSource)
-  const unifiedStatus = buildCrawlerUnifiedStatus({ progressRow: row })
+function buildProgressOverviewRow(progressRow) {
+  const domain = domainFromProgress(progressRow)
+  const actionId = String(progressRow.id || progressRow.action?.id || '')
+  const progressPath = firstNonEmpty(progressRow.progressPath, progressRow.progressSource)
+  const unifiedStatus = buildCrawlerUnifiedStatus({ progressRow })
 
-  return {
-    key: `progress:${stableKey(domain, actionId, progressPath || row.reportPath || row.rowKey)}`,
+  const row = {
+    key: `progress:${stableKey(domain, actionId, progressPath || progressRow.reportPath || progressRow.rowKey)}`,
     kind: 'progress',
     domain,
     actionId,
-    status: rowStatus(row),
+    status: rowStatus(progressRow),
     displayStatus: unifiedStatus.effectiveStatus,
     statusSource: unifiedStatus.statusSource,
     statusReason: unifiedStatus.reason,
     nextActionLabel: unifiedStatus.nextActionLabel,
     stateConflictLabel: unifiedStatus.conflictLabel,
-    progressStatus: rowStatus(row),
+    progressStatus: rowStatus(progressRow),
     queuePosition: null,
-    message: row.queueState || row.action?.message || row.action?.phase || '',
-    heartbeatSummary: heartbeatSummary(row),
+    message: progressRow.queueState || progressRow.action?.message || progressRow.action?.phase || '',
+    heartbeatSummary: heartbeatSummary(progressRow),
     blockerLabel: '',
     queueIdentityLabel: '无队列',
-    timingLabel: timingLabel(null, row),
+    timingLabel: timingLabel(null, progressRow),
     pid: '',
-    primaryLabel: progressPrimaryLabel(row, domain),
-    secondaryLabel: actionId || row.label || '未命名动作',
-    current: row.current ?? null,
-    total: row.total ?? null,
-    percent: row.percent ?? null,
-    logPath: row.logPath || '',
-    reportPath: row.reportPath || '',
+    primaryLabel: progressPrimaryLabel(progressRow, domain),
+    secondaryLabel: actionId || progressRow.label || '未命名动作',
+    current: progressRow.current ?? null,
+    total: progressRow.total ?? null,
+    percent: progressRow.percent ?? null,
+    logPath: progressRow.logPath || '',
+    reportPath: progressRow.reportPath || '',
     progressPath,
-    lockPath: row.lockPath || '',
+    lockPath: progressRow.lockPath || '',
     sourceQueueItem: null,
-    sourceProgressRow: row,
+    sourceProgressRow: progressRow,
   }
+  return withActivityDisplay(row)
 }
 
 function indexProgressRows(rows) {
@@ -338,6 +341,49 @@ function queueIdentityLabel(item) {
     item.dispatchId ? `dispatch ${item.dispatchId}` : '',
     item.pid ? `PID ${item.pid}` : '',
   ].filter(Boolean).join(' · ')
+}
+
+function activityRecordKind(row) {
+  if (row?.kind === 'queue') return '队列记录'
+  if (row?.kind === 'progress') return '进度记录'
+  return '任务记录'
+}
+
+function activityTitle(row) {
+  return normalizeDisplayText(row?.primaryLabel || domainLabel(row?.domain), '未知域')
+}
+
+function normalizeDisplayText(value, fallback = '') {
+  const text = String(value || '').trim()
+  if (!text) return fallback
+  if (/^(domain-source-|wiki-|queue-|progress:|task:)/i.test(text)) return fallback
+  if (/[\\/].+\.(json|log|txt|md|xml)$/i.test(text)) return fallback
+  return text
+}
+
+function activityDetail(row) {
+  const candidates = [
+    row?.stateConflictLabel,
+    row?.statusReason,
+    row?.message,
+    row?.heartbeatSummary,
+  ].map((value) => normalizeDisplayText(value)).filter(Boolean)
+  return candidates[0] || '暂无补充'
+}
+
+function activityMeta(row) {
+  const timing = String(row?.timingLabel || '').split(' · ')[0] || '暂无时间'
+  return `${timing} · ${activityRecordKind(row)}`
+}
+
+function withActivityDisplay(row) {
+  return {
+    ...row,
+    displayStatusLabel: crawlerStatusDisplayLabel(row.displayStatus || row.status),
+    activityTitle: activityTitle(row),
+    activityMeta: activityMeta(row),
+    activityDetail: activityDetail(row),
+  }
 }
 
 function timingLabel(item, progressRow) {
