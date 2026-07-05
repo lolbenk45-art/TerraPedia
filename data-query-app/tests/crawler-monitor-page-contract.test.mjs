@@ -100,6 +100,26 @@ test('log viewer filters by level and search through pure helper', () => {
   assert.match(logViewer, /搜索日志/)
 })
 
+test('log viewer keeps readable base line styling for every level', () => {
+  assert.ok(logViewer.includes("['log-viewer__line'"), 'log rows must include the base readable line class')
+  assert.match(logViewer, /log-viewer__line--other strong/)
+  assert.match(logViewer, /log-viewer__line--other code/)
+})
+
+test('triage board has distinct visual states for queued running and ready tiles', () => {
+  for (const marker of [
+    'domain-tile--queued',
+    'domain-tile--running',
+    'domain-tile--ready',
+    'status-pill.queued',
+    'status-pill.ready',
+    'flowLabel',
+    'flowDetail',
+  ]) {
+    assert.ok(triageBoard.includes(marker), `missing visual state marker: ${marker}`)
+  }
+})
+
 test('domain detail drawer auto-loads the first available log file', () => {
   assert.ok(page.includes('currentDomainLogPath'), 'missing current log path tracker')
   assert.ok(page.includes('watch('), 'missing drawer log autoload watcher')

@@ -39,7 +39,11 @@
       <span>加载日志内容中…</span>
     </div>
     <ol v-else-if="filteredLines.length" class="log-viewer__lines">
-      <li v-for="line in filteredLines" :key="line.lineNumber" :class="`log-viewer__line--${line.level.toLowerCase()}`">
+      <li
+        v-for="line in filteredLines"
+        :key="line.lineNumber"
+        :class="['log-viewer__line', `log-viewer__line--${line.level.toLowerCase()}`]"
+      >
         <span class="log-viewer__no">{{ line.lineNumber }}</span>
         <strong>{{ line.level }}</strong>
         <code>{{ line.text }}</code>
@@ -190,7 +194,7 @@ function toggleLevel(level: string) {
   min-height: 24px;
   gap: 10px;
   padding: 3px 12px;
-  color: #d5dbd7;
+  color: #eef5f1;
   font-size: 12px;
   line-height: 1.65;
 }
@@ -199,7 +203,7 @@ function toggleLevel(level: string) {
   flex: 0 0 auto;
   width: 40px;
   text-align: right;
-  color: #5f6f69;
+  color: #9db0a9;
   font-variant-numeric: tabular-nums;
   user-select: none;
 }
@@ -210,7 +214,7 @@ function toggleLevel(level: string) {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: #8fa39c;
+  color: #b8c8c1;
 }
 
 .log-viewer__line code {
@@ -218,7 +222,7 @@ function toggleLevel(level: string) {
   flex: 1 1 auto;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  color: #cdd6d2;
+  color: #edf5f1;
 }
 
 /* 级别配色：柔和不刺眼，仅错误行加极淡底色引导视线 */
@@ -236,6 +240,14 @@ function toggleLevel(level: string) {
 
 .log-viewer__line--info strong {
   color: #6bb2a6;
+}
+
+.log-viewer__line--other strong {
+  color: #d7e1dc;
+}
+
+.log-viewer__line--other code {
+  color: #f3faf6;
 }
 
 .log-viewer__empty {

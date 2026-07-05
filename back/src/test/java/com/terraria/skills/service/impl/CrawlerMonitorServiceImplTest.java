@@ -4959,4 +4959,59 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("biomes", bosses.getState().getBlocker());
         assertEquals("域 biomes", bosses.getState().getBlockerLabel());
     }
+
+    @Test
+    void overviewDomainStateUsesCurrentLockBlockerForQueuedDomain() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "dispatchId", "d-town-running",
+            "domain", "town_npc_maintenance",
+            "actionId", "domain-source-town-npc-maintenance",
+            "lockedAt", "2026-06-14T01:30:00Z",
+            "pid", ProcessHandle.current().pid(),
+            "startedAt", "2026-06-14T01:30:00Z"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:31:00Z",
+            "items", List.of(
+                Map.ofEntries(
+                    Map.entry("queueId", "q-town-running"),
+                    Map.entry("dispatchId", "d-town-running"),
+                    Map.entry("lane", "standard"),
+                    Map.entry("domain", "town_npc_maintenance"),
+                    Map.entry("coveredDomains", List.of("town_npc_maintenance")),
+                    Map.entry("actionId", "domain-source-town-npc-maintenance"),
+                    Map.entry("status", "running"),
+                    Map.entry("requestedAt", "2026-06-14T01:29:00Z"),
+                    Map.entry("startedAt", "2026-06-14T01:30:00Z"),
+                    Map.entry("pid", ProcessHandle.current().pid())
+                ),
+                Map.ofEntries(
+                    Map.entry("queueId", "q-bosses-queued"),
+                    Map.entry("lane", "standard"),
+                    Map.entry("domain", "bosses"),
+                    Map.entry("coveredDomains", List.of("bosses")),
+                    Map.entry("actionId", "domain-source-bosses"),
+                    Map.entry("status", "queued"),
+                    Map.entry("requestedAt", "2026-06-14T01:31:00Z"),
+                    Map.entry("blockedByDomain", "biomes"),
+                    Map.entry("blockedByActionId", "biome-sync"),
+                    Map.entry("blockedByDispatchId", "d-biomes-old")
+                )
+            ),
+            "dedupe", Map.of(), "dispatches", Map.of("d-town-running", "q-town-running")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC), (StringRedisTemplate) null
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO bosses = overview.getWikiMonitor().getDomains().stream()
+            .filter(d -> "bosses".equals(d.getDomain())).findFirst().orElseThrow();
+
+        assertNotNull(bosses.getState());
+        assertEquals("queued", bosses.getState().getStatus());
+        assertEquals("town_npc_maintenance", bosses.getState().getBlocker());
+        assertEquals("域 town_npc_maintenance", bosses.getState().getBlockerLabel());
+    }
 }

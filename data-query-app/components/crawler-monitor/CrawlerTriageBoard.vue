@@ -117,12 +117,12 @@
             <button type="button" class="operation-row__main" @click="$emit('open-domain', row)">
               <span class="status-dot-small" :class="`status-dot-small--${row.triageStatus}`"></span>
               <strong>{{ row.label || row.domain }}</strong>
-              <small>{{ row.statusLabel || row.status }}</small>
+              <small class="flow-pill" :class="`flow-pill--${row.triageStatus}`">{{ row.flowLabel || row.statusLabel || row.status }}</small>
             </button>
             <div class="operation-row__progress" :aria-label="`${row.label || row.domain} 进度 ${row.progressLabel || '未记录'}`">
               <span :style="{ width: progressWidth(row.progressLabel) }"></span>
             </div>
-            <span class="operation-row__meta">{{ row.progressLabel || row.nextActionLabel || '待命' }}</span>
+            <span class="operation-row__meta">{{ row.flowDetail || row.progressLabel || row.nextActionLabel || '待命' }}</span>
             <div class="operation-row__actions">
               <button
                 v-if="row.primaryAction"
@@ -197,9 +197,9 @@
           <header>
             <span class="status-dot-small" :class="`status-dot-small--${row.triageStatus}`"></span>
             <strong>{{ row.label || row.domain }}</strong>
-            <span>{{ row.diagnosisTitle || row.status }}</span>
+            <span class="status-pill" :class="row.triageStatus">{{ row.flowLabel || row.diagnosisTitle || row.status }}</span>
           </header>
-          <p>{{ row.rankReason || row.reason || '暂无补充' }}</p>
+          <p>{{ row.flowDetail || row.rankReason || row.reason || '暂无补充' }}</p>
           <div class="tile-progress">
             <span :style="{ width: progressWidth(row.progressLabel) }"></span>
           </div>
@@ -912,8 +912,27 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   background: var(--color-info);
 }
 
+.operation-row--running {
+  border-color: var(--color-info);
+  background: var(--color-info-muted);
+}
+
+.operation-row--queued {
+  border-color: var(--color-warning);
+  background: var(--color-warning-muted);
+}
+
+.operation-row--ready {
+  border-color: var(--color-success);
+  background: var(--color-success-muted);
+}
+
 .operation-row--queued .operation-row__progress span {
   background: var(--color-warning);
+}
+
+.operation-row--ready .operation-row__progress span {
+  background: var(--color-success);
 }
 
 .operation-row--failed .operation-row__progress span,
@@ -997,6 +1016,29 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 
 .domain-tile--running .tile-progress span {
   background: var(--color-info);
+}
+
+.domain-tile--running {
+  border-color: var(--color-info);
+  background: var(--color-info-muted);
+}
+
+.domain-tile--queued {
+  border-color: var(--color-warning);
+  background: var(--color-warning-muted);
+}
+
+.domain-tile--ready {
+  border-color: var(--color-success);
+  background: var(--color-success-muted);
+}
+
+.domain-tile--queued .tile-progress span {
+  background: var(--color-warning);
+}
+
+.domain-tile--ready .tile-progress span {
+  background: var(--color-success);
 }
 
 .domain-tile--failed .tile-progress span,
@@ -1170,6 +1212,14 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   background: var(--color-info);
 }
 
+.status-dot-small--queued {
+  background: var(--color-warning);
+}
+
+.status-dot-small--ready {
+  background: var(--color-success);
+}
+
 .status-dot-small--healthy,
 .status-dot-small--completed,
 .status-dot-small--success {
@@ -1196,9 +1246,48 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   color: var(--color-info);
 }
 
+.status-pill.queued {
+  background: var(--color-warning-muted);
+  color: var(--color-warning);
+}
+
+.status-pill.ready {
+  background: var(--color-success-muted);
+  color: var(--color-success);
+}
+
 .status-pill.healthy,
 .status-pill.completed,
 .status-pill.success {
+  background: var(--color-success-muted);
+  color: var(--color-success);
+}
+
+.flow-pill {
+  flex: 0 0 auto;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-full);
+  padding: 0 8px;
+  background: var(--color-surface-1);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.flow-pill--running {
+  background: var(--color-info-muted);
+  color: var(--color-info);
+}
+
+.flow-pill--queued {
+  background: var(--color-warning-muted);
+  color: var(--color-warning);
+}
+
+.flow-pill--ready {
   background: var(--color-success-muted);
   color: var(--color-success);
 }

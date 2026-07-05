@@ -110,6 +110,32 @@ function appendAction(actions, next) {
   actions.push(next)
 }
 
+function queueBlockerText(row) {
+  return normalize(row?.blockerLabel || row?.sourceDomain?.state?.blockerLabel || row?.queueItem?.blockedByDomain)
+}
+
+function flowLabel(row, status = rowStatus(row)) {
+  if (status === 'running' || status === 'starting' || status === 'active') return '正在爬取'
+  if (status === 'queued') return '排队等待'
+  if (status === 'paused') return '已暂停'
+  if (status === 'ready') return '可重新派发'
+  if (status === 'healthy' || status === 'completed' || status === 'success') return '已完成'
+  if (status === 'failed' || status === 'error') return '执行失败'
+  if (status === 'timed_out' || status === 'timeout') return '任务超时'
+  if (status === 'stalled') return '心跳停滞'
+  if (status === 'blocked') return '被占用'
+  return normalize(row?.diagnosisTitle || row?.status || status || '未知状态')
+}
+
+function flowDetail(row, status = rowStatus(row)) {
+  const blocker = queueBlockerText(row)
+  if (status === 'queued' && blocker) return `等待${blocker}释放锁`
+  if (status === 'queued') return normalize(row?.queueSummary || row?.rankReason || '等待前序任务释放锁')
+  if (status === 'running' || status === 'starting' || status === 'active') return normalize(row?.reason || row?.progressLabel || row?.rankReason || '观察进度和日志')
+  if (status === 'ready') return normalize(row?.nextActionLabel || '可以手动开始爬取')
+  return normalize(row?.reason || row?.rankReason || row?.progressLabel || row?.nextActionLabel || '')
+}
+
 export function buildDomainOperationModel(row) {
   const status = operationStatus(row)
   const queue = queueStatus(row)
@@ -155,6 +181,8 @@ function decorateDomainRow(row) {
   return {
     ...row,
     triageStatus: status,
+    flowLabel: flowLabel(row, status),
+    flowDetail: flowDetail(row, status),
     needsAttention: isAttentionRow(row),
     isRunning: isRunningRow(row),
     isIdle: isIdleRow(row),

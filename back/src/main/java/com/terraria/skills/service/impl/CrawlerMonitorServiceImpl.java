@@ -1681,13 +1681,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 .orElse(null));
         String queueProgressStatus = queueProgressStatus(repoRoot, queueItem);
 
+        QueueBlocker queueBlocker = queueBlockerForDomainState(repoRoot, queueItem);
         CrawlerDomainStateReducer.Input reducerInput = CrawlerDomainStateReducer.Input.builder()
             .queueStatus(queueItem == null ? null : queueItem.getStatus())
             .progressStatus(firstNonBlank(dispatchStatus, queueProgressStatus))
             .domainStatus(domain.getStatus())
-            .blockedByDomain(queueItem == null ? null : queueItem.getBlockedByDomain())
-            .blockedByActionId(queueItem == null ? null : queueItem.getBlockedByActionId())
-            .blockedByDispatchId(queueItem == null ? null : queueItem.getBlockedByDispatchId())
+            .blockedByDomain(queueBlocker.blockedByDomain())
+            .blockedByActionId(queueBlocker.blockedByActionId())
+            .blockedByDispatchId(queueBlocker.blockedByDispatchId())
             .leaseExpiresAt(queueItem == null ? null : queueItem.getClaimExpiresAt())
             .now(Instant.now(clock))
             .build();
@@ -1702,6 +1703,29 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         stateDto.setUpdatedAt(Instant.now(clock).toString());
         domain.setState(stateDto);
         return domain;
+    }
+
+    private QueueBlocker queueBlockerForDomainState(Path repoRoot, WikiMonitorQueueItem queueItem) {
+        if (queueItem == null || !queueItem.isWaiting()) {
+            return QueueBlocker.EMPTY;
+        }
+        Path lockPath = "domain_smoke".equals(queueItem.getLane())
+            ? repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize()
+            : repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
+        ReadResult lock = readJsonMap(lockPath);
+        if (lock.readable()) {
+            Map<String, Object> payload = lock.payload();
+            return new QueueBlocker(
+                asString(payload.get("dispatchId")),
+                asString(payload.get("domain")),
+                asString(payload.get("actionId"))
+            );
+        }
+        return new QueueBlocker(
+            queueItem.getBlockedByDispatchId(),
+            queueItem.getBlockedByDomain(),
+            queueItem.getBlockedByActionId()
+        );
     }
 
     private String queueProgressStatus(Path repoRoot, WikiMonitorQueueItem queueItem) {
@@ -5590,6 +5614,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     ) {}
 
     record DispatchPaths(String reportPath, String progressPath, String lockPath, String outputPath, String logPath) {}
+
+    record QueueBlocker(String blockedByDispatchId, String blockedByDomain, String blockedByActionId) {
+        static final QueueBlocker EMPTY = new QueueBlocker(null, null, null);
+    }
 
     record ActiveDispatchProcess(String dispatchId, String domain, String actionId, Process process, DispatchPaths paths) {}
 

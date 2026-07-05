@@ -210,6 +210,77 @@ test('triage workbench uses a compact operations progress strip instead of all d
   assert.equal(view.operationProgressSummary.readyCount, 1)
 })
 
+test('operation rows expose explicit flow labels for queued and running domains', () => {
+  const view = buildTriageWorkbench({
+    domainRows: [
+      {
+        domain: 'bosses',
+        label: 'Bosses',
+        status: 'queued',
+        risk: 'queued',
+        diagnosisGroup: 'queued',
+        diagnosisTitle: '等待执行',
+        blockerLabel: '域 town_npc_maintenance',
+        rankReason: '等待当前运行域释放锁',
+        progressLabel: '0/33',
+        sourceDomain: {
+          domain: 'bosses',
+          recommendedActionId: 'domain-source-bosses',
+          state: { status: 'queued', blockerLabel: '域 town_npc_maintenance' },
+        },
+        queueItem: { status: 'queued' },
+      },
+      {
+        domain: 'town_npc_maintenance',
+        label: 'Town NPC maintenance',
+        status: 'running',
+        risk: 'running',
+        diagnosisGroup: 'active',
+        diagnosisTitle: '正在运行',
+        progressLabel: '7/49',
+        sourceDomain: {
+          domain: 'town_npc_maintenance',
+          recommendedActionId: 'domain-source-town-npc-maintenance',
+          state: { status: 'running' },
+        },
+        queueItem: { status: 'running' },
+      },
+    ],
+  })
+
+  assert.deepEqual(
+    view.operationProgressRows.map((row) => [row.domain, row.flowLabel, row.flowDetail]),
+    [
+      ['town_npc_maintenance', '正在爬取', '7/49'],
+      ['bosses', '排队等待', '等待域 town_npc_maintenance释放锁'],
+    ]
+  )
+})
+
+test('operation flow details prefer conflict reasons over evidence paths', () => {
+  const view = buildTriageWorkbench({
+    domainRows: [
+      {
+        domain: 'buffs',
+        label: 'Buffs',
+        status: 'failed',
+        risk: 'failed',
+        diagnosisGroup: 'attention',
+        diagnosisTitle: '执行失败',
+        rankReason: 'data/generated/fetch-wiki-buffs-progress.latest.json',
+        reason: '队列已是执行失败，进度文件仍保留 正在运行',
+        sourceDomain: {
+          domain: 'buffs',
+          recommendedActionId: 'buff-page-immunity-refresh',
+          state: { status: 'failed' },
+        },
+      },
+    ],
+  })
+
+  assert.equal(view.attentionRows[0].flowDetail, '队列已是执行失败，进度文件仍保留 正在运行')
+})
+
 test('triage workbench exposes clickable metric targets for navigation and filtering', () => {
   const view = buildTriageWorkbench({
     domainRows: [
