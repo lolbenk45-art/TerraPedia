@@ -117,9 +117,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final String REDIS_BACKEND_ACTION_PROGRESS_PREFIX = "terrapedia:crawler:backend-refresh:action:";
     private static final String REDIS_BACKEND_ACTION_PROGRESS_SUFFIX = ":progress";
     private static final List<WikiMonitorRule> WIKI_MONITOR_RULES = List.of(
-        backendRule("items", "Items", "wiki.module.iteminfo", "Module:Iteminfo/data", "wiki-core-refresh"),
-        backendRule("npcs", "NPCs", "wiki.module.npcinfo", "Module:Npcinfo/data", "wiki-core-refresh"),
-        backendRule("projectiles", "Projectiles", "wiki.module.projectileinfo", "Module:Projectileinfo/data", "wiki-core-refresh"),
+        backendRule("items", "Items", "wiki.module.iteminfo", "Module:Iteminfo/data", "wiki-items-refresh"),
+        backendRule("npcs", "NPCs", "wiki.module.npcinfo", "Module:Npcinfo/data", "wiki-npcs-refresh"),
+        backendRule("projectiles", "Projectiles", "wiki.module.projectileinfo", "Module:Projectileinfo/data", "wiki-projectiles-refresh"),
         directRule("buffs", "Buffs", "wiki.page.template_getbuffinfo", "Template:GetBuffInfo", "buff-page-immunity-refresh",
             "data/generated/fetch-wiki-buffs-progress.latest.json",
             List.of("node", "scripts/data/fetch/fetch-wiki-buffs.mjs", "--progress-path=data/generated/fetch-wiki-buffs-progress.latest.json")),
@@ -3864,6 +3864,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
         List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> tasks = new ArrayList<>();
         tasks.add(buildWikiCoreRefreshTask(repoRoot, latestRun));
+        tasks.add(buildWikiModuleRefreshTask(repoRoot, latestRun, "wiki-items-refresh", "Wiki items refresh", "items module -> generated item JSON"));
+        tasks.add(buildWikiModuleRefreshTask(repoRoot, latestRun, "wiki-npcs-refresh", "Wiki NPCs refresh", "NPC module -> generated NPC JSON"));
+        tasks.add(buildWikiModuleRefreshTask(repoRoot, latestRun, "wiki-projectiles-refresh", "Wiki projectiles refresh", "projectile module -> generated projectile JSON"));
         tasks.add(buildBuffFetchRefreshTask(repoRoot, buffFetchProgress));
         tasks.add(buildWorldContextFetchRefreshTask(repoRoot, worldContextFetchProgress));
         tasks.add(buildDomainSourceSnapshotTask(
@@ -4098,6 +4101,33 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             : firstNonBlank(action.getMessage(), firstNonBlank(action.getPhase(), "backend refresh action")));
         task.setNextStep("Keep backend-refresh heartbeat current before dependent item/NPC fetches.");
         task.setDataStage("wiki API -> generated core JSON");
+        task.setReportPath(latestRun == null ? null : firstNonBlank(latestRun.getPath(), latestRun.getSummaryPath()));
+        task.setUpdatedAt(latestRun == null ? null : latestRun.getGeneratedAt());
+        if (action != null) {
+            copyTaskProgressFromAction(task, action);
+            ReadResult childStatus = readBackendActionProgressState(repoRoot, action);
+            task.setProgressPath(toDisplayPath(repoRoot, childStatus));
+            applyProgressFileMetadata(task, repoRoot, childStatus);
+            applyReadableProgressState(task);
+        }
+        return task;
+    }
+
+    private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildWikiModuleRefreshTask(
+        Path repoRoot,
+        CrawlerMonitorOverviewDTO.MonitorRunDTO latestRun,
+        String actionId,
+        String label,
+        String dataStage
+    ) {
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask(actionId, label, "fetch", "p0");
+        CrawlerMonitorOverviewDTO.MonitorActionDTO action = findAction(latestRun, actionId);
+        task.setStatus(action == null ? "pending" : firstNonBlank(action.getStatus(), "pending"));
+        task.setQueueState(action == null
+            ? "manual wiki module refresh"
+            : firstNonBlank(action.getMessage(), firstNonBlank(action.getPhase(), "manual wiki module refresh")));
+        task.setNextStep("Run only this domain when operators need a scoped crawler refresh.");
+        task.setDataStage(dataStage);
         task.setReportPath(latestRun == null ? null : firstNonBlank(latestRun.getPath(), latestRun.getSummaryPath()));
         task.setUpdatedAt(latestRun == null ? null : latestRun.getGeneratedAt());
         if (action != null) {

@@ -32,6 +32,12 @@ const WIKI_CORE_SOURCES = [
   }
 ];
 
+const WIKI_SINGLE_SOURCE_ACTIONS = new Map([
+  ['wiki-items-refresh', 'wiki.module.iteminfo'],
+  ['wiki-npcs-refresh', 'wiki.module.npcinfo'],
+  ['wiki-projectiles-refresh', 'wiki.module.projectileinfo']
+]);
+
 export function finalizeBackendRefreshActionIngestionManifest({
   actionId,
   manifestPath = DEFAULT_WIKI_SOURCE_MANIFEST_PATH,
@@ -39,6 +45,9 @@ export function finalizeBackendRefreshActionIngestionManifest({
 } = {}) {
   if (actionId === 'wiki-core-refresh') {
     return finalizeWikiCoreRefresh({ manifestPath, worktreeRoot });
+  }
+  if (WIKI_SINGLE_SOURCE_ACTIONS.has(actionId)) {
+    return finalizeSingleWikiSourceRefresh({ actionId, manifestPath, worktreeRoot });
   }
   if (actionId === 'biome-sync') {
     return finalizeBiomeSync({ manifestPath, worktreeRoot });
@@ -61,6 +70,28 @@ function finalizeWikiCoreRefresh({ manifestPath, worktreeRoot }) {
     finalized.push(source.sourceKey);
   }
   return finalized;
+}
+
+function finalizeSingleWikiSourceRefresh({ actionId, manifestPath, worktreeRoot }) {
+  const sourceKey = WIKI_SINGLE_SOURCE_ACTIONS.get(actionId);
+  const source = WIKI_CORE_SOURCES.find((entry) => entry.sourceKey === sourceKey);
+  if (!source) {
+    return [];
+  }
+  finalizeWikiCoreSource({ source, manifestPath, worktreeRoot });
+  return [source.sourceKey];
+}
+
+function finalizeWikiCoreSource({ source, manifestPath, worktreeRoot }) {
+  const outputPath = path.join(worktreeRoot, 'data', 'raw', 'wiki', source.outputFile);
+  advanceWikiIngestionManifestForSource({
+    sourceKey: source.sourceKey,
+    locator: source.locator,
+    entityFamily: source.entityFamily,
+    sourceKind: source.sourceKind,
+    outputPath,
+    manifestPath
+  });
 }
 
 function finalizeBiomeSync({ manifestPath, worktreeRoot }) {

@@ -29,11 +29,19 @@
     </section>
 
     <section class="kpi-row" aria-label="核心指标">
-      <article v-for="metric in metrics" :key="metric.key" class="kpi-card" :class="`kpi-card--${metric.tone}`">
+      <button
+        v-for="metric in metrics"
+        :key="metric.key"
+        type="button"
+        class="kpi-card"
+        :class="`kpi-card--${metric.tone}`"
+        :aria-label="`${metric.label}：${metric.value}，${metric.note}`"
+        @click="handleMetricClick(metric)"
+      >
         <small>{{ metric.label }}</small>
         <strong>{{ metric.value }}</strong>
         <span>{{ metric.note }}</span>
-      </article>
+      </button>
     </section>
 
     <section class="attention-section" aria-label="需要处理">
@@ -98,36 +106,40 @@
         </article>
       </div>
 
-      <div v-else-if="focusCards.length" class="focus-domain-grid">
-        <article v-for="row in focusCards" :key="rowKey(row)" class="domain-tile domain-tile--compact" :class="`domain-tile--${row.triageStatus}`" @click="$emit('open-domain', row)">
-          <header>
-            <span class="status-dot-small" :class="`status-dot-small--${row.triageStatus}`"></span>
-            <strong>{{ row.label || row.domain }}</strong>
-            <span>{{ row.diagnosisTitle || row.status }}</span>
-          </header>
-          <p>{{ row.rankReason || row.reason || '暂无补充' }}</p>
-          <div class="tile-progress">
-            <span :style="{ width: progressWidth(row.progressLabel) }"></span>
-          </div>
-          <footer>
-            <small>{{ row.nextActionLabel || '查看详情' }}</small>
-            <div class="domain-tile__actions">
+      <div v-else-if="operationProgressRows.length" class="operation-strip">
+        <div class="operation-strip__summary">
+          <span><strong>{{ operationProgressSummary.runningCount || 0 }}</strong><small>运行</small></span>
+          <span><strong>{{ operationProgressSummary.queuedCount || 0 }}</strong><small>排队</small></span>
+          <span><strong>{{ operationProgressSummary.readyCount || 0 }}</strong><small>可启动</small></span>
+        </div>
+        <div class="operation-strip__rows">
+          <article v-for="row in operationProgressRows" :key="rowKey(row)" class="operation-row" :class="`operation-row--${row.triageStatus}`">
+            <button type="button" class="operation-row__main" @click="$emit('open-domain', row)">
+              <span class="status-dot-small" :class="`status-dot-small--${row.triageStatus}`"></span>
+              <strong>{{ row.label || row.domain }}</strong>
+              <small>{{ row.statusLabel || row.status }}</small>
+            </button>
+            <div class="operation-row__progress" :aria-label="`${row.label || row.domain} 进度 ${row.progressLabel || '未记录'}`">
+              <span :style="{ width: progressWidth(row.progressLabel) }"></span>
+            </div>
+            <span class="operation-row__meta">{{ row.progressLabel || row.nextActionLabel || '待命' }}</span>
+            <div class="operation-row__actions">
               <button
                 v-if="row.primaryAction"
                 type="button"
                 :class="tileOperationButtonClass(row.primaryAction)"
                 :aria-label="`${row.label || row.domain}：${row.primaryAction.label}`"
-                @click.stop="$emit('domain-action', row.primaryAction.action, row)"
+                @click="$emit('domain-action', row.primaryAction.action, row)"
               >
                 <component :is="operationIcon(row.primaryAction.icon)" :size="15" />
                 <span>{{ row.primaryAction.label }}</span>
               </button>
-              <button type="button" class="tile-icon-action" aria-label="打开域详情" @click.stop="$emit('open-domain', row)">
+              <button type="button" class="tile-icon-action" aria-label="打开域详情" @click="$emit('open-domain', row)">
                 <PanelRightOpen :size="15" />
               </button>
             </div>
-          </footer>
-        </article>
+          </article>
+        </div>
       </div>
 
       <div v-else class="attention-empty">
@@ -284,7 +296,7 @@ const props = defineProps<{
   forceReclaimAllLoading?: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   refresh: []
   'force-reclaim-all': []
   'open-activity': []
@@ -308,6 +320,8 @@ const focusTitle = computed(() => props.viewModel?.focusTitle || (focusMode.valu
 const focusDescription = computed(() => props.viewModel?.focusDescription || '')
 const focusRows = computed(() => props.viewModel?.focusRows || [])
 const focusCards = computed(() => props.viewModel?.focusCards || focusRows.value)
+const operationProgressRows = computed(() => props.viewModel?.operationProgressRows || [])
+const operationProgressSummary = computed(() => props.viewModel?.operationProgressSummary || {})
 const filteredRows = computed(() => {
   const needle = search.value.trim().toLowerCase()
   return allRows.value.filter((row: any) => {
@@ -341,6 +355,33 @@ function showAttentionTable() {
   tableFilter.value = 'attention'
   viewMode.value = 'table'
   requestAnimationFrame(() => allDomainsSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+}
+
+function jumpToDomains(filter = 'all') {
+  tableFilter.value = filter
+  viewMode.value = filter === 'all' ? viewMode.value : 'table'
+  requestAnimationFrame(() => allDomainsSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+}
+
+function handleMetricClick(metric: Record<string, any>) {
+  const target = metric?.target || {}
+  if (target.kind === 'activity') {
+    emit('open-activity')
+    return
+  }
+  if (target.kind === 'system') {
+    emit('open-system')
+    return
+  }
+  if (target.kind === 'attention') {
+    if (focusMode.value === 'attention') {
+      requestAnimationFrame(() => document.querySelector('.attention-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+      return
+    }
+    jumpToDomains(target.filter || 'attention')
+    return
+  }
+  jumpToDomains(target.filter || 'all')
 }
 
 function operationIcon(icon?: string) {
@@ -390,6 +431,9 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 .overflow-bar,
 .overflow-chips,
 .overflow-chip,
+.operation-row,
+.operation-row__main,
+.operation-row__actions,
 .domain-tile header,
 .domain-tile footer,
 .domain-tile__actions,
@@ -475,8 +519,25 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 
 .kpi-card {
   min-height: 112px;
+  display: block;
+  width: 100%;
   border-radius: var(--radius-md);
   padding: 13px;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  transition: transform var(--transition-fast) var(--ease-standard), box-shadow var(--transition-fast) var(--ease-standard);
+}
+
+.kpi-card:hover,
+.kpi-card:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-surface-2);
+}
+
+.kpi-card:focus-visible {
+  outline: 0;
+  box-shadow: var(--shadow-focus);
 }
 
 .kpi-card small,
@@ -757,6 +818,123 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   gap: 12px;
 }
 
+.operation-strip {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.operation-strip__summary {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.operation-strip__summary span {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  padding: 10px 12px;
+}
+
+.operation-strip__summary strong {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--color-text);
+}
+
+.operation-strip__summary small {
+  color: var(--color-text-secondary);
+  font-weight: 700;
+}
+
+.operation-strip__rows {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.operation-row {
+  min-height: 54px;
+  gap: 10px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  padding: 8px;
+}
+
+.operation-row__main {
+  min-width: 180px;
+  flex: 1 1 220px;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.operation-row__main strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.operation-row__main small,
+.operation-row__meta {
+  color: var(--color-text-secondary);
+}
+
+.operation-row__progress {
+  flex: 1 1 180px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: var(--color-bg-tertiary);
+}
+
+.operation-row__progress span {
+  display: block;
+  min-width: 4px;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+}
+
+.operation-row--running .operation-row__progress span {
+  background: var(--color-info);
+}
+
+.operation-row--queued .operation-row__progress span {
+  background: var(--color-warning);
+}
+
+.operation-row--failed .operation-row__progress span,
+.operation-row--blocked .operation-row__progress span,
+.operation-row--stalled .operation-row__progress span,
+.operation-row--timed_out .operation-row__progress span,
+.operation-row--state_missing .operation-row__progress span {
+  background: var(--color-danger);
+}
+
+.operation-row__meta {
+  flex: 0 0 96px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.operation-row__actions {
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
 .domain-tile {
   min-height: 166px;
   display: grid;
@@ -841,6 +1019,16 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 
 .domain-tile footer button {
   width: 34px;
+  height: 34px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-1);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.operation-row__actions .tile-icon-action,
+.operation-row__actions .tile-operation-action {
   height: 34px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -1044,6 +1232,30 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 
   .kpi-row {
     grid-template-columns: 1fr;
+  }
+
+  .operation-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .operation-strip__summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .operation-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .operation-row__main,
+  .operation-row__progress,
+  .operation-row__meta {
+    width: 100%;
+    flex-basis: auto;
+  }
+
+  .operation-row__actions {
+    justify-content: flex-end;
   }
 
   .toolbar {

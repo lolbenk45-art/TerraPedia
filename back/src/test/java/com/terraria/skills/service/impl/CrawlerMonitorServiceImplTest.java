@@ -37,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -1889,8 +1890,8 @@ class CrawlerMonitorServiceImplTest {
         assertEquals(1, wikiMonitor.getSummary().getChangedCount());
         assertEquals(1, wikiMonitor.getSummary().getPendingApprovalCount());
         assertEquals("changed", items.getStatus());
-        assertEquals("wiki-core-refresh", items.getRecommendedActionId());
-        assertEquals("reports/backend-refresh/history/<run>.runtime/wiki-core-refresh.child-status.json", items.getProgressPath());
+        assertEquals("wiki-items-refresh", items.getRecommendedActionId());
+        assertEquals("reports/backend-refresh/history/<run>.runtime/wiki-items-refresh.child-status.json", items.getProgressPath());
         assertTrue(items.isRequiresApproval());
         assertTrue(items.isAutoEligible());
         assertEquals("changed-only", items.getDispatchMode());
@@ -1904,6 +1905,28 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("items", wikiMonitor.getPendingDispatches().get(0).getDomain());
         assertEquals("pending_approval", wikiMonitor.getPendingDispatches().get(0).getStatus());
         assertEquals("awaiting approval", wikiMonitor.getPendingDispatches().get(0).getMessage());
+    }
+
+    @Test
+    void shouldExposeIndependentWikiModuleActionsForManualDomainDispatch() {
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T00:05:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO.WikiMonitorDTO wikiMonitor = service.getOverview().getWikiMonitor();
+
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO items = wikiDomainById(wikiMonitor.getDomains(), "items");
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO npcs = wikiDomainById(wikiMonitor.getDomains(), "npcs");
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO projectiles = wikiDomainById(wikiMonitor.getDomains(), "projectiles");
+
+        assertEquals("wiki-items-refresh", items.getRecommendedActionId());
+        assertEquals("reports/backend-refresh/history/<run>.runtime/wiki-items-refresh.child-status.json", items.getProgressPath());
+        assertEquals("wiki-npcs-refresh", npcs.getRecommendedActionId());
+        assertEquals("reports/backend-refresh/history/<run>.runtime/wiki-npcs-refresh.child-status.json", npcs.getProgressPath());
+        assertEquals("wiki-projectiles-refresh", projectiles.getRecommendedActionId());
+        assertEquals("reports/backend-refresh/history/<run>.runtime/wiki-projectiles-refresh.child-status.json", projectiles.getProgressPath());
     }
 
     @Test
@@ -2004,7 +2027,7 @@ class CrawlerMonitorServiceImplTest {
                 "requiresFullRefetch", false
             ),
             "recommendedActions", List.of(
-                "node TerraPedia-dev/scripts/data/workflow/run-backend-data-refresh.mjs --steps=wiki-core-refresh"
+                "node TerraPedia-dev/scripts/data/workflow/run-backend-data-refresh.mjs --steps=wiki-npcs-refresh"
             ),
             "sources", List.of(
                 Map.of(
@@ -2063,20 +2086,20 @@ class CrawlerMonitorServiceImplTest {
         assertTrue(first.getReason().contains("full refetch"));
 
         CrawlerMonitorOverviewDTO.WikiMonitorDispatchPlanDTO second = wikiMonitor.getDispatchPlan().get(1);
-        assertEquals("wiki-core-refresh", second.getActionId());
-        assertEquals(List.of("items", "npcs", "projectiles"), second.getCoveredDomains());
+        assertEquals("wiki-npcs-refresh", second.getActionId());
+        assertEquals(List.of("npcs"), second.getCoveredDomains());
         assertEquals("p1_changed", second.getPriority());
         assertTrue(second.getReason().contains("npcs"));
         assertFalse(second.getReason().contains("items changed"));
         assertEquals(
-            "node TerraPedia-dev/scripts/data/workflow/run-backend-data-refresh.mjs --steps=wiki-core-refresh",
+            "node TerraPedia-dev/scripts/data/workflow/run-backend-data-refresh.mjs --steps=wiki-npcs-refresh",
             second.getAdvisoryNote()
         );
 
-        long corePlanCount = wikiMonitor.getDispatchPlan().stream()
-            .filter(plan -> "wiki-core-refresh".equals(plan.getActionId()))
+        long npcPlanCount = wikiMonitor.getDispatchPlan().stream()
+            .filter(plan -> "wiki-npcs-refresh".equals(plan.getActionId()))
             .count();
-        assertEquals(1, corePlanCount);
+        assertEquals(1, npcPlanCount);
         assertEquals(List.of("bosses", "npcs"), wikiMonitor.getPendingDispatches().stream()
             .map(CrawlerMonitorOverviewDTO.WikiMonitorDispatchDTO::getDomain)
             .toList());
@@ -2108,7 +2131,7 @@ class CrawlerMonitorServiceImplTest {
         writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
             "dispatchId", "recent-core",
             "domain", "items",
-            "actionId", "wiki-core-refresh",
+            "actionId", "wiki-npcs-refresh",
             "status", "completed",
             "completedAt", "2026-06-20T00:45:00Z"
         ));
@@ -2122,7 +2145,7 @@ class CrawlerMonitorServiceImplTest {
         List<CrawlerMonitorOverviewDTO.WikiMonitorDispatchPlanDTO> plan = service.getOverview().getWikiMonitor().getDispatchPlan();
 
         assertEquals("domain-source-bosses", plan.get(0).getActionId());
-        assertEquals("wiki-core-refresh", plan.get(1).getActionId());
+        assertEquals("wiki-npcs-refresh", plan.get(1).getActionId());
         assertEquals("p9_cooldown", plan.get(1).getPriority());
         assertTrue(plan.get(1).getReason().contains("cooldown"));
     }
@@ -2250,7 +2273,7 @@ class CrawlerMonitorServiceImplTest {
             launcher
         );
 
-        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-core-refresh"));
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-items-refresh"));
 
         assertTrue(result.isAccepted());
         assertEquals("running", result.getStatus());
@@ -2258,10 +2281,10 @@ class CrawlerMonitorServiceImplTest {
         assertEquals(false, result.getQueued());
         assertNull(result.getQueuePosition());
         assertEquals("items", result.getDomain());
-        assertEquals("wiki-core-refresh", result.getActionId());
+        assertEquals("wiki-items-refresh", result.getActionId());
         assertTrue(result.getReportPath().startsWith("reports/backend-refresh/history/backend-data-refresh-wiki-monitor-2026-06-14T01-00-00Z-"));
         assertTrue(result.getProgressPath().startsWith("reports/backend-refresh/history/backend-data-refresh-wiki-monitor-2026-06-14T01-00-00Z-"));
-        assertTrue(result.getProgressPath().endsWith(".runtime/wiki-core-refresh.child-status.json"));
+        assertTrue(result.getProgressPath().endsWith(".runtime/wiki-items-refresh.child-status.json"));
         assertEquals("reports/crawler-monitor/wiki-monitor-dispatch.lock.json", result.getLockPath());
 
         CrawlerMonitorServiceImpl.LaunchRequest launch = launcher.lastRequest;
@@ -2269,12 +2292,12 @@ class CrawlerMonitorServiceImplTest {
             "node",
             "scripts/data/workflow/run-backend-data-refresh.mjs",
             "--mode=apply",
-            "--steps=wiki-core-refresh",
+            "--steps=wiki-items-refresh",
             "--output=" + result.getReportPath()
         ), launch.command());
         assertEquals(repoRoot.toFile(), launch.directory());
         assertEquals(repoRoot.toString(), launch.environment().get("WORKTREE_ROOT"));
-        assertEquals("wiki-core-refresh", launch.environment().get("TERRAPEDIA_CRAWLER_ACTION_ID"));
+        assertEquals("wiki-items-refresh", launch.environment().get("TERRAPEDIA_CRAWLER_ACTION_ID"));
         assertEquals(result.getProgressPath(), launch.environment().get("TERRAPEDIA_CRAWLER_PROGRESS_PATH"));
         assertTrue(launch.logFile().getPath().replace('\\', '/').endsWith(".log"));
 
@@ -2391,10 +2414,12 @@ class CrawlerMonitorServiceImplTest {
 
         assertEquals("completed", sweep.getStatus());
         assertEquals(4, sweep.getDetected().size());
-        assertEquals(2, sweep.getDispatched().size());
-        assertEquals("wiki-core-refresh", sweep.getDispatched().get(0).get("actionId"));
-        assertEquals(List.of("items", "npcs"), sweep.getDispatched().get(0).get("domains"));
-        assertEquals("buff-page-immunity-refresh", sweep.getDispatched().get(1).get("actionId"));
+        assertEquals(3, sweep.getDispatched().size());
+        assertEquals("wiki-items-refresh", sweep.getDispatched().get(0).get("actionId"));
+        assertEquals(List.of("items"), sweep.getDispatched().get(0).get("domains"));
+        assertEquals("wiki-npcs-refresh", sweep.getDispatched().get(1).get("actionId"));
+        assertEquals(List.of("npcs"), sweep.getDispatched().get(1).get("domains"));
+        assertEquals("buff-page-immunity-refresh", sweep.getDispatched().get(2).get("actionId"));
         assertEquals(1, sweep.getSkipped().size());
         assertEquals("bosses", sweep.getSkipped().get(0).get("domain"));
         assertEquals("not_auto_eligible", sweep.getSkipped().get(0).get("reason"));
@@ -2404,11 +2429,13 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("auto-dispatch", latest.get("dispatchSource"));
         Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
         List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
-        assertEquals(2, queueItems.size());
+        assertEquals(3, queueItems.size());
         assertEquals(latest.get("queueId"), queueItems.get(0).get("queueId"));
         assertEquals("running", queueItems.get(0).get("status"));
-        assertEquals("buff-page-immunity-refresh", queueItems.get(1).get("actionId"));
+        assertEquals("wiki-npcs-refresh", queueItems.get(1).get("actionId"));
         assertEquals("queued", queueItems.get(1).get("status"));
+        assertEquals("buff-page-immunity-refresh", queueItems.get(2).get("actionId"));
+        assertEquals("queued", queueItems.get(2).get("status"));
     }
 
     @Test
@@ -2449,9 +2476,9 @@ class CrawlerMonitorServiceImplTest {
         ), launcher.requests.get(0).command());
         assertEquals("source-update-monitor-check", launcher.requests.get(0).environment().get("TERRAPEDIA_CRAWLER_ACTION_ID"));
         assertEquals("data/generated/source-update-monitor-progress.latest.json", launcher.requests.get(0).environment().get("TERRAPEDIA_CRAWLER_PROGRESS_PATH"));
-        assertEquals("wiki-core-refresh", launcher.requests.get(1).environment().get("TERRAPEDIA_CRAWLER_ACTION_ID"));
+        assertEquals("wiki-items-refresh", launcher.requests.get(1).environment().get("TERRAPEDIA_CRAWLER_ACTION_ID"));
         assertEquals(1, sweep.getDispatched().size());
-        assertEquals("wiki-core-refresh", sweep.getDispatched().get(0).get("actionId"));
+        assertEquals("wiki-items-refresh", sweep.getDispatched().get(0).get("actionId"));
         assertEquals(List.of("items"), sweep.getDispatched().get(0).get("domains"));
         Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
         assertNotNull(latest.get("queueId"));
@@ -2520,7 +2547,7 @@ class CrawlerMonitorServiceImplTest {
         writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
             "dispatchId", "existing",
             "domain", "items",
-            "actionId", "wiki-core-refresh",
+            "actionId", "wiki-items-refresh",
             "lockedAt", "2026-06-19T11:10:58.716Z"
         ));
         RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
@@ -2531,8 +2558,8 @@ class CrawlerMonitorServiceImplTest {
             launcher
         );
 
-        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-core-refresh"));
-        CrawlerMonitorDispatchResultDTO duplicate = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-core-refresh"));
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-items-refresh"));
+        CrawlerMonitorDispatchResultDTO duplicate = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-items-refresh"));
 
         assertTrue(result.isAccepted());
         assertEquals("queued", result.getStatus());
@@ -2541,11 +2568,11 @@ class CrawlerMonitorServiceImplTest {
         assertNotNull(result.getQueueId());
         assertTrue(result.getQueueMessage().contains("第 1 位"));
         assertTrue(result.getQueueMessage().contains("items"));
-        assertTrue(result.getQueueMessage().contains("wiki-core-refresh"));
+        assertTrue(result.getQueueMessage().contains("wiki-items-refresh"));
         assertEquals("reports/crawler-monitor/wiki-monitor-dispatch.lock.json", result.getLockPath());
         assertEquals("existing", result.getBlockedByDispatchId());
         assertEquals("items", result.getBlockedByDomain());
-        assertEquals("wiki-core-refresh", result.getBlockedByActionId());
+        assertEquals("wiki-items-refresh", result.getBlockedByActionId());
         assertEquals("2026-06-19T11:10:58.716Z", result.getBlockedSince());
         assertEquals(result.getQueueId(), duplicate.getQueueId());
         assertEquals("queued", duplicate.getStatus());
@@ -2559,7 +2586,7 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("queued", queueItems.get(0).get("status"));
         assertEquals("existing", queueItems.get(0).get("blockedByDispatchId"));
         assertEquals("items", queueItems.get(0).get("blockedByDomain"));
-        assertEquals("wiki-core-refresh", queueItems.get(0).get("blockedByActionId"));
+        assertEquals("wiki-items-refresh", queueItems.get(0).get("blockedByActionId"));
         assertEquals("2026-06-19T11:10:58.716Z", queueItems.get(0).get("blockedSince"));
     }
 
@@ -2614,7 +2641,7 @@ class CrawlerMonitorServiceImplTest {
             launcher
         );
 
-        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-core-refresh"));
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-items-refresh"));
 
         assertTrue(result.isAccepted());
         assertEquals("running", result.getStatus());
@@ -2675,18 +2702,21 @@ class CrawlerMonitorServiceImplTest {
             launcher
         );
 
-        CrawlerMonitorDispatchResultDTO items = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-core-refresh"));
-        CrawlerMonitorDispatchResultDTO npcs = service.dispatchWikiMonitorTask(dispatchRequest("npcs", "wiki-core-refresh"));
+        CrawlerMonitorDispatchResultDTO items = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-items-refresh"));
+        CrawlerMonitorDispatchResultDTO npcs = service.dispatchWikiMonitorTask(dispatchRequest("npcs", "wiki-npcs-refresh"));
 
         assertTrue(items.isAccepted());
         assertTrue(npcs.isAccepted());
         assertEquals("queued", items.getStatus());
-        assertEquals(items.getQueueId(), npcs.getQueueId());
+        assertEquals("queued", npcs.getStatus());
+        assertNotEquals(items.getQueueId(), npcs.getQueueId());
         Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
         List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
-        assertEquals(1, queueItems.size());
+        assertEquals(2, queueItems.size());
         assertEquals("items", queueItems.get(0).get("domain"));
-        assertEquals(List.of("items", "npcs", "projectiles"), queueItems.get(0).get("coveredDomains"));
+        assertEquals(List.of("items"), queueItems.get(0).get("coveredDomains"));
+        assertEquals("npcs", queueItems.get(1).get("domain"));
+        assertEquals(List.of("npcs"), queueItems.get(1).get("coveredDomains"));
         assertEquals(0, launcher.launchCount);
     }
 
@@ -2699,7 +2729,7 @@ class CrawlerMonitorServiceImplTest {
             Clock.fixed(Instant.parse("2026-06-14T01:00:00Z"), ZoneOffset.UTC),
             launcher
         );
-        CrawlerMonitorDispatchResultDTO items = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-core-refresh"));
+        CrawlerMonitorDispatchResultDTO items = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-items-refresh"));
         assertTrue(items.isAccepted());
         waitUntil(() -> {
             try {
@@ -2730,13 +2760,13 @@ class CrawlerMonitorServiceImplTest {
             launcher
         );
 
-        CrawlerMonitorDispatchResultDTO npcs = service.dispatchWikiMonitorTask(dispatchRequest("npcs", "wiki-core-refresh"));
+        CrawlerMonitorDispatchResultDTO itemsAgain = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-items-refresh"));
 
-        assertTrue(npcs.isAccepted());
-        assertEquals("blocked_cooldown", npcs.getStatus());
-        assertEquals("2026-06-14T01:30:00Z", npcs.getCooldownUntil());
-        assertEquals(true, npcs.getQueued());
-        assertEquals(1, npcs.getQueuePosition());
+        assertTrue(itemsAgain.isAccepted());
+        assertEquals("blocked_cooldown", itemsAgain.getStatus());
+        assertEquals("2026-06-14T01:30:00Z", itemsAgain.getCooldownUntil());
+        assertEquals(true, itemsAgain.getQueued());
+        assertEquals(1, itemsAgain.getQueuePosition());
     }
 
     @Test
@@ -2964,10 +2994,10 @@ class CrawlerMonitorServiceImplTest {
             Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
             launcher
         );
-        CrawlerMonitorDispatchResultDTO running = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-core-refresh"));
+        CrawlerMonitorDispatchResultDTO running = service.dispatchWikiMonitorTask(dispatchRequest("items", "wiki-items-refresh"));
         CrawlerMonitorDispatchResultDTO queued = service.dispatchWikiMonitorTask(dispatchRequest("buffs", "buff-page-immunity-refresh"));
 
-        CrawlerMonitorDispatchRequestDTO cancel = dispatchRequest("npcs", "wiki-core-refresh");
+        CrawlerMonitorDispatchRequestDTO cancel = dispatchRequest("npcs", "wiki-npcs-refresh");
         cancel.setControlAction("cancel");
         cancel.setQueueId(running.getQueueId());
         CrawlerMonitorDispatchResultDTO cancelled = service.controlWikiMonitorDispatch(cancel);
@@ -3239,7 +3269,7 @@ class CrawlerMonitorServiceImplTest {
             launcher
         );
         CrawlerMonitorDispatchResultDTO firstQueued = service.dispatchWikiMonitorTask(dispatchRequest("buffs", "buff-page-immunity-refresh"));
-        CrawlerMonitorDispatchResultDTO secondQueued = service.dispatchWikiMonitorTask(dispatchRequest("npcs", "wiki-core-refresh"));
+        CrawlerMonitorDispatchResultDTO secondQueued = service.dispatchWikiMonitorTask(dispatchRequest("npcs", "wiki-npcs-refresh"));
         Files.delete(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"));
 
         CrawlerMonitorDispatchRequestDTO cancelQueued = new CrawlerMonitorDispatchRequestDTO();
@@ -3376,7 +3406,7 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void shouldRejectSharedWikiMonitorControlActionWithoutDomainInChinese() {
+    void shouldRejectLegacyWikiCoreMonitorControlActionInChinese() {
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
         CrawlerMonitorDispatchRequestDTO request = new CrawlerMonitorDispatchRequestDTO();
         request.setActionId("wiki-core-refresh");
@@ -3387,7 +3417,7 @@ class CrawlerMonitorServiceImplTest {
             () -> service.controlWikiMonitorDispatch(request)
         );
 
-        assertEquals("动作 wiki-core-refresh 对应多个域，请先选择具体域后再操作。", exception.getMessage());
+        assertEquals("动作 wiki-core-refresh 不在允许的 Wiki 派发任务中。", exception.getMessage());
     }
 
     @Test

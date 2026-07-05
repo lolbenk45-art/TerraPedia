@@ -58,6 +58,40 @@ test('wiki-core-refresh finalizes item npc and projectile ingestion fingerprints
   }
 });
 
+test('single wiki module refresh finalizes only its matching ingestion fingerprint', async () => {
+  const finalizeModule = await import('./backend-refresh-manifest-finalize.mjs');
+
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-single-wiki-manifest-finalize-'));
+  const worktreeRoot = path.join(tempDir, 'worktree');
+  const manifestPath = path.join(tempDir, 'manifest.json');
+  const rawDir = path.join(worktreeRoot, 'data', 'raw', 'wiki');
+  fs.mkdirSync(rawDir, { recursive: true });
+  fs.writeFileSync(manifestPath, JSON.stringify({ records: [] }), 'utf8');
+  fs.writeFileSync(path.join(rawDir, 'module__npcinfo__data.latest.json'), JSON.stringify({
+    fetchedAt: '2026-06-20T00:01:00.000Z',
+    moduleContent: 'npc-content',
+    moduleTitle: 'Module:Npcinfo/data',
+    pageId: 101,
+    pageTitle: 'Module:Npcinfo/data',
+    revisionId: 201,
+    revisionTimestamp: '2026-06-20T00:01:00Z',
+    sourceKey: 'wiki.module.npcinfo',
+    entityFamily: 'npcs'
+  }), 'utf8');
+
+  await finalizeModule.finalizeBackendRefreshActionIngestionManifest({
+    actionId: 'wiki-npcs-refresh',
+    manifestPath,
+    worktreeRoot
+  });
+
+  const manifest = loadWikiSourceManifest(manifestPath);
+  assert.equal(manifest.records.length, 1);
+  assert.equal(manifest.records[0].sourceKey, 'wiki.module.npcinfo');
+  assert.equal(manifest.records[0].entityFamily, 'npcs');
+  assert.equal(manifest.records[0].contentHash, createContentHash('npc-content'));
+});
+
 test('biome-sync finalizes Forest page identity after action success', async () => {
   const finalizeModule = await import('./backend-refresh-manifest-finalize.mjs');
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-biome-manifest-finalize-'));

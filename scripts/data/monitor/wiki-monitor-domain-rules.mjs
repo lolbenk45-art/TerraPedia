@@ -4,27 +4,27 @@ export const WIKI_MONITOR_DOMAIN_RULES = [
     'Items',
     'wiki.module.iteminfo',
     'Module:Iteminfo/data',
-    'wiki-core-refresh',
-    backendProgress('wiki-core-refresh'),
-    ['node', 'scripts/data/workflow/run-backend-data-refresh.mjs', '--mode=apply', '--steps=wiki-core-refresh', '--output=<reportPath>']
+    'wiki-items-refresh',
+    backendProgress('wiki-items-refresh'),
+    ['node', 'scripts/data/workflow/run-backend-data-refresh.mjs', '--mode=apply', '--steps=wiki-items-refresh', '--output=<reportPath>']
   ),
   rule(
     'npcs',
     'NPCs',
     'wiki.module.npcinfo',
     'Module:Npcinfo/data',
-    'wiki-core-refresh',
-    backendProgress('wiki-core-refresh'),
-    ['node', 'scripts/data/workflow/run-backend-data-refresh.mjs', '--mode=apply', '--steps=wiki-core-refresh', '--output=<reportPath>']
+    'wiki-npcs-refresh',
+    backendProgress('wiki-npcs-refresh'),
+    ['node', 'scripts/data/workflow/run-backend-data-refresh.mjs', '--mode=apply', '--steps=wiki-npcs-refresh', '--output=<reportPath>']
   ),
   rule(
     'projectiles',
     'Projectiles',
     'wiki.module.projectileinfo',
     'Module:Projectileinfo/data',
-    'wiki-core-refresh',
-    backendProgress('wiki-core-refresh'),
-    ['node', 'scripts/data/workflow/run-backend-data-refresh.mjs', '--mode=apply', '--steps=wiki-core-refresh', '--output=<reportPath>']
+    'wiki-projectiles-refresh',
+    backendProgress('wiki-projectiles-refresh'),
+    ['node', 'scripts/data/workflow/run-backend-data-refresh.mjs', '--mode=apply', '--steps=wiki-projectiles-refresh', '--output=<reportPath>']
   ),
   rule(
     'buffs',

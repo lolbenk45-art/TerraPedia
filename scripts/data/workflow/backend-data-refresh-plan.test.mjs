@@ -18,6 +18,9 @@ test('buildBackendDataRefreshPlan returns the default primary backend refresh ac
 
   assert.deepEqual(ids, [
     'wiki-core-refresh',
+    'wiki-items-refresh',
+    'wiki-npcs-refresh',
+    'wiki-projectiles-refresh',
     'item-pages-refresh',
     'recipe-reference-sync',
     'item-detail-sync',
@@ -38,6 +41,22 @@ test('buildBackendDataRefreshPlan returns the default primary backend refresh ac
     'scripts/data/workflow/run-wiki-sync.mjs',
     '--mode=apply',
     '--entity=items,npcs,projectiles,bosses,biomes,categories'
+  ]);
+
+  assert.deepEqual(plan.actions.find((action) => action.id === 'wiki-items-refresh').args, [
+    'scripts/data/workflow/run-wiki-sync.mjs',
+    '--mode=apply',
+    '--entity=items'
+  ]);
+  assert.deepEqual(plan.actions.find((action) => action.id === 'wiki-npcs-refresh').args, [
+    'scripts/data/workflow/run-wiki-sync.mjs',
+    '--mode=apply',
+    '--entity=npcs'
+  ]);
+  assert.deepEqual(plan.actions.find((action) => action.id === 'wiki-projectiles-refresh').args, [
+    'scripts/data/workflow/run-wiki-sync.mjs',
+    '--mode=apply',
+    '--entity=projectiles'
   ]);
 
   const recipeReferenceSync = plan.actions.find((action) => action.id === 'recipe-reference-sync');
@@ -139,11 +158,11 @@ test('buildBackendDataRefreshPlan allows overriding item page limit', () => {
 });
 
 test('buildBackendDataRefreshPlan allows selecting a subset of action ids', () => {
-  const plan = buildBackendDataRefreshPlan({ steps: ['wiki-core-refresh', 'town-npc-fetch'] });
+  const plan = buildBackendDataRefreshPlan({ steps: ['wiki-items-refresh', 'town-npc-fetch'] });
 
   assert.deepEqual(
     plan.actions.map((action) => action.id),
-    ['wiki-core-refresh']
+    ['wiki-items-refresh']
   );
 });
 
@@ -173,10 +192,10 @@ test('buildBackendDataRefreshReport summarizes action statuses', () => {
     { id: 'item-pages-refresh', status: 'failed', durationMs: 300 }
   ]);
 
-  assert.equal(report.totalActions, 13);
+  assert.equal(report.totalActions, 16);
   assert.equal(report.completedActions, 1);
   assert.equal(report.failedActions, 1);
-  assert.equal(report.pendingActions, 11);
+  assert.equal(report.pendingActions, 14);
   assert.equal(report.runningActions, 0);
   assert.equal(report.actions[0].status, 'completed');
   assert.equal(report.actions[0].childStatusPath, 'reports/backend-refresh/history/run.runtime/wiki-core-refresh.child-status.json');
@@ -186,7 +205,7 @@ test('buildBackendDataRefreshReport summarizes action statuses', () => {
   assert.equal(report.actions[0].phase, 'apply');
   assert.equal(report.actions[0].message, 'completed wiki sync');
   assert.equal(report.actions[0].lastHeartbeatAt, '2026-04-29T00:00:05.000Z');
-  assert.equal(report.actions[1].status, 'failed');
+  assert.equal(report.actions.find((action) => action.id === 'item-pages-refresh').status, 'failed');
 });
 
 test('buildBackendDataRefreshReport counts running action statuses', () => {
@@ -220,6 +239,9 @@ test('resolvePendingBackendDataRefreshActions skips completed actions for resume
   assert.deepEqual(
     resolvePendingBackendDataRefreshActions(plan, report).map((action) => action.id),
     [
+      'wiki-items-refresh',
+      'wiki-npcs-refresh',
+      'wiki-projectiles-refresh',
       'item-pages-refresh',
       'recipe-reference-sync',
       'item-detail-sync',

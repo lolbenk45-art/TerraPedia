@@ -186,8 +186,62 @@ function matchesFilter(row, filter) {
   return true
 }
 
-function metric(key, label, value, note, tone = 'muted') {
-  return { key, label, value: String(value), note, tone }
+const OPERATION_PROGRESS_RANK = {
+  running: 0,
+  active: 0,
+  starting: 0,
+  queued: 1,
+  paused: 2,
+  failed: 3,
+  error: 3,
+  timed_out: 3,
+  timeout: 3,
+  stalled: 3,
+  state_missing: 3,
+  unknown: 3,
+  healthy: 4,
+  ready: 4,
+  completed: 5,
+  success: 5,
+}
+
+function metric(key, label, value, note, tone = 'muted', target = null) {
+  return { key, label, value: String(value), note, tone, target }
+}
+
+function operationProgressRank(row) {
+  return OPERATION_PROGRESS_RANK[rowStatus(row)] ?? 6
+}
+
+function operationProgressStatus(row) {
+  return rowStatus(row) || 'unknown'
+}
+
+function buildOperationProgressRows(rows) {
+  return rows
+    .filter((row) => row.isRunning || queueStatus(row) || row.primaryAction || row.progressLabel)
+    .sort((left, right) =>
+      operationProgressRank(left) - operationProgressRank(right)
+      || rowTimeMs(right) - rowTimeMs(left)
+      || normalize(left?.label || left?.domain).localeCompare(normalize(right?.label || right?.domain), 'zh-CN')
+    )
+    .slice(0, 6)
+    .map((row) => ({
+      ...row,
+      status: operationProgressStatus(row),
+      statusLabel: row?.diagnosisTitle || row?.status || operationProgressStatus(row),
+      progressLabel: row?.progressLabel || (row?.isRunning ? '运行中' : queueStatus(row) ? '队列中' : '未开始'),
+    }))
+}
+
+function buildOperationProgressSummary(rows) {
+  const queuedRows = rows.filter((row) => queueStatus(row) === 'queued')
+  return {
+    runningCount: rows.filter((row) => row.isRunning).length,
+    queuedCount: queuedRows.length,
+    readyCount: rows.filter((row) => row.primaryAction?.action === 'start').length,
+    totalCount: rows.length,
+  }
 }
 
 export function buildTriageWorkbench({
@@ -202,12 +256,14 @@ export function buildTriageWorkbench({
   const rows = domainRows.map(decorateDomainRow).sort(compareDomainRows)
   const attentionRows = rows.filter((row) => row.needsAttention).sort(compareDomainRows)
   const runningRows = rows.filter((row) => row.isRunning)
+  const operationProgressRows = attentionRows.length ? [] : buildOperationProgressRows(rows)
+  const operationProgressSummary = buildOperationProgressSummary(rows)
   const capped = Math.max(1, Number(maxAttentionCards) || 4)
   const attentionCards = attentionRows.slice(0, capped)
   const overflowAttentionRows = attentionRows.slice(capped)
   const focusMode = attentionRows.length ? 'attention' : 'operations'
   const focusRows = focusMode === 'attention' ? attentionRows : rows
-  const focusCards = focusMode === 'attention' ? attentionCards : rows
+  const focusCards = focusMode === 'attention' ? attentionCards : []
   const searchText = lower(search)
   const tableRows = rows
     .filter((row) => matchesFilter(row, tableFilter))
@@ -221,11 +277,11 @@ export function buildTriageWorkbench({
       subtitle: `${rows.length} 个基础域 · 自动派发${autoDispatchEnabled ? '开启' : '关闭'}`,
     },
     metrics: [
-      metric('domains', '基础域', rows.length, '纳入自动监控的基础域', 'info'),
-      metric('running', '正在爬取', runningRows.length, '当前有心跳或队列占用', runningRows.length ? 'info' : 'muted'),
-      metric('attention', '需要处理', attentionRows.length, attentionRows.length ? '优先处理上方问题域' : '暂无异常', attentionRows.length ? 'danger' : 'success'),
-      metric('updated', '今日已更新', recentUpdatedCount, '来自最近报告/历史记录', recentUpdatedCount ? 'success' : 'muted'),
-      metric('dispatch', '自动派发', autoDispatchEnabled ? '开' : '关', autoDispatchEnabled ? '按设置自动扫描' : '仅手动派发', autoDispatchEnabled ? 'success' : 'muted'),
+      metric('domains', '基础域', rows.length, '纳入自动监控的基础域', 'info', { kind: 'domains', filter: 'all' }),
+      metric('running', '正在爬取', runningRows.length, '当前有心跳或队列占用', runningRows.length ? 'info' : 'muted', { kind: 'domains', filter: 'running' }),
+      metric('attention', '需要处理', attentionRows.length, attentionRows.length ? '优先处理上方问题域' : '暂无异常', attentionRows.length ? 'danger' : 'success', { kind: 'attention', filter: 'attention' }),
+      metric('updated', '今日已更新', recentUpdatedCount, '来自最近报告/历史记录', recentUpdatedCount ? 'success' : 'muted', { kind: 'activity' }),
+      metric('dispatch', '自动派发', autoDispatchEnabled ? '开' : '关', autoDispatchEnabled ? '按设置自动扫描' : '仅手动派发', autoDispatchEnabled ? 'success' : 'muted', { kind: 'system' }),
     ],
     attentionRows,
     attentionCards,
@@ -234,9 +290,11 @@ export function buildTriageWorkbench({
     focusTitle: focusMode === 'attention' ? '需要处理' : '基础域爬取',
     focusDescription: focusMode === 'attention'
       ? '最严重的问题域优先显示，超过上限后进入汇总条。'
-      : '常用域进度和启停操作提前显示，下方仍保留完整卡片板/表格。',
+      : '快速定位正在运行、排队和可启动的基础域，下方仍保留完整卡片板/表格。',
     focusRows,
     focusCards,
+    operationProgressRows,
+    operationProgressSummary,
     overflowSummary: {
       count: overflowAttentionRows.length,
       label: overflowAttentionRows.length ? `还有 ${overflowAttentionRows.length} 个待处理` : '',

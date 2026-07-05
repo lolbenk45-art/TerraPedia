@@ -14,6 +14,36 @@ export function buildBackendDataRefreshPlan(options = {}) {
       ]
     },
     {
+      id: 'wiki-items-refresh',
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'scripts/data/workflow/run-wiki-sync.mjs',
+        '--mode=apply',
+        '--entity=items'
+      ]
+    },
+    {
+      id: 'wiki-npcs-refresh',
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'scripts/data/workflow/run-wiki-sync.mjs',
+        '--mode=apply',
+        '--entity=npcs'
+      ]
+    },
+    {
+      id: 'wiki-projectiles-refresh',
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'scripts/data/workflow/run-wiki-sync.mjs',
+        '--mode=apply',
+        '--entity=projectiles'
+      ]
+    },
+    {
       id: 'item-pages-refresh',
       runner: 'node',
       timeoutMs: timeoutMs ?? 20 * 60 * 1000,

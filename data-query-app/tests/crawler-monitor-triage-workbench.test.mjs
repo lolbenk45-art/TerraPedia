@@ -138,9 +138,114 @@ test('triage workbench shows operation progress in the top section when no domai
   assert.equal(view.focusMode, 'operations')
   assert.equal(view.focusTitle, '基础域爬取')
   assert.deepEqual(view.focusRows.map((row) => row.domain), view.allRows.map((row) => row.domain))
-  assert.deepEqual(view.focusCards.map((row) => row.domain), view.allRows.map((row) => row.domain))
+  assert.deepEqual(view.focusCards, [])
+  assert.deepEqual(view.operationProgressRows.map((row) => row.domain), ['projectiles', 'items'])
   assert.equal(view.focusRows.find((row) => row.domain === 'items').primaryAction.label, '开始爬')
   assert.equal(view.focusRows.find((row) => row.domain === 'projectiles').primaryAction.label, '暂停')
+})
+
+test('triage workbench uses a compact operations progress strip instead of all domain cards', () => {
+  const healthyRows = [
+    {
+      domain: 'items',
+      label: 'Items',
+      status: 'healthy',
+      risk: 'healthy',
+      diagnosisGroup: 'healthy',
+      progressLabel: '80 / 100',
+      sourceDomain: {
+        domain: 'items',
+        recommendedActionId: 'wiki-items-refresh',
+        state: { status: 'healthy' },
+      },
+    },
+    {
+      domain: 'npcs',
+      label: 'NPCs',
+      status: 'queued',
+      risk: 'queued',
+      diagnosisGroup: 'queued',
+      progressLabel: '0 / 24',
+      sourceDomain: {
+        domain: 'npcs',
+        recommendedActionId: 'wiki-npcs-refresh',
+        state: { status: 'queued' },
+      },
+      queueItem: {
+        status: 'queued',
+      },
+    },
+    {
+      domain: 'projectiles',
+      label: 'Projectiles',
+      status: 'running',
+      risk: 'running',
+      diagnosisGroup: 'active',
+      progressLabel: '40%',
+      sourceDomain: {
+        domain: 'projectiles',
+        recommendedActionId: 'wiki-projectiles-refresh',
+        state: { status: 'running' },
+      },
+      queueItem: {
+        status: 'running',
+      },
+    },
+  ]
+
+  const view = buildTriageWorkbench({ domainRows: healthyRows })
+
+  assert.equal(view.focusMode, 'operations')
+  assert.deepEqual(view.focusCards, [])
+  assert.deepEqual(
+    view.operationProgressRows.map((row) => [row.domain, row.status, row.primaryAction?.label]),
+    [
+      ['projectiles', 'running', '暂停'],
+      ['npcs', 'queued', '取消排队'],
+      ['items', 'healthy', '开始爬'],
+    ]
+  )
+  assert.equal(view.operationProgressSummary.runningCount, 1)
+  assert.equal(view.operationProgressSummary.queuedCount, 1)
+  assert.equal(view.operationProgressSummary.readyCount, 1)
+})
+
+test('triage workbench exposes clickable metric targets for navigation and filtering', () => {
+  const view = buildTriageWorkbench({
+    domainRows: [
+      {
+        domain: 'items',
+        label: 'Items',
+        status: 'healthy',
+        risk: 'healthy',
+        diagnosisGroup: 'healthy',
+      },
+      {
+        domain: 'projectiles',
+        label: 'Projectiles',
+        status: 'running',
+        risk: 'running',
+        diagnosisGroup: 'active',
+      },
+      {
+        domain: 'bosses',
+        label: 'Bosses',
+        status: 'failed',
+        risk: 'failed',
+        diagnosisGroup: 'attention',
+      },
+    ],
+    recentUpdatedCount: 2,
+    autoDispatchEnabled: true,
+  })
+
+  const targets = Object.fromEntries(view.metrics.map((metric) => [metric.key, metric.target]))
+
+  assert.deepEqual(targets.domains, { kind: 'domains', filter: 'all' })
+  assert.deepEqual(targets.running, { kind: 'domains', filter: 'running' })
+  assert.deepEqual(targets.attention, { kind: 'attention', filter: 'attention' })
+  assert.deepEqual(targets.updated, { kind: 'activity' })
+  assert.deepEqual(targets.dispatch, { kind: 'system' })
 })
 
 test('triage workbench keeps the top section in attention mode when errors exist', () => {

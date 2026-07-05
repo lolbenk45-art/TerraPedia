@@ -56,14 +56,44 @@ test('wiki monitor domains merge source state into changed and pending approval 
 
   assert.equal(items.status, 'changed');
   assert.equal(items.changed, true);
-  assert.equal(items.recommendedActionId, 'wiki-core-refresh');
-  assert.equal(items.progressPath, 'reports/backend-refresh/history/<run>.runtime/wiki-core-refresh.child-status.json');
+  assert.equal(items.recommendedActionId, 'wiki-items-refresh');
+  assert.equal(items.progressPath, 'reports/backend-refresh/history/<run>.runtime/wiki-items-refresh.child-status.json');
   assert.equal(items.requiresApproval, true);
   assert.match(items.message, /awaiting approval/i);
 });
 
+test('wiki monitor core module domains expose independent backend actions', () => {
+  const actionByDomain = new Map(WIKI_MONITOR_DOMAIN_RULES.map((rule) => [rule.domain, rule]));
+
+  assert.equal(actionByDomain.get('items').recommendedActionId, 'wiki-items-refresh');
+  assert.equal(actionByDomain.get('npcs').recommendedActionId, 'wiki-npcs-refresh');
+  assert.equal(actionByDomain.get('projectiles').recommendedActionId, 'wiki-projectiles-refresh');
+
+  assert.deepEqual(actionByDomain.get('items').command, [
+    'node',
+    'scripts/data/workflow/run-backend-data-refresh.mjs',
+    '--mode=apply',
+    '--steps=wiki-items-refresh',
+    '--output=<reportPath>'
+  ]);
+  assert.deepEqual(actionByDomain.get('npcs').command, [
+    'node',
+    'scripts/data/workflow/run-backend-data-refresh.mjs',
+    '--mode=apply',
+    '--steps=wiki-npcs-refresh',
+    '--output=<reportPath>'
+  ]);
+  assert.deepEqual(actionByDomain.get('projectiles').command, [
+    'node',
+    'scripts/data/workflow/run-backend-data-refresh.mjs',
+    '--mode=apply',
+    '--steps=wiki-projectiles-refresh',
+    '--output=<reportPath>'
+  ]);
+});
+
 test('wiki monitor action resolver rejects unknown domain action pairs', () => {
-  assert.equal(resolveWikiMonitorAction('items', 'wiki-core-refresh').actionId, 'wiki-core-refresh');
+  assert.equal(resolveWikiMonitorAction('items', 'wiki-items-refresh').actionId, 'wiki-items-refresh');
   assert.throws(
     () => resolveWikiMonitorAction('items', 'domain-source-shimmer'),
     /not allowed/
@@ -77,7 +107,7 @@ test('wiki monitor rules expose executable command arrays and canonical progress
     'node',
     'scripts/data/workflow/run-backend-data-refresh.mjs',
     '--mode=apply',
-    '--steps=wiki-core-refresh',
+    '--steps=wiki-items-refresh',
     '--output=<reportPath>'
   ]);
   assert.deepEqual(actionByDomain.get('bosses').command, [
