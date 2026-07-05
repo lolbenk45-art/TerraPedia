@@ -205,6 +205,9 @@ export function buildTriageWorkbench({
   const capped = Math.max(1, Number(maxAttentionCards) || 4)
   const attentionCards = attentionRows.slice(0, capped)
   const overflowAttentionRows = attentionRows.slice(capped)
+  const focusMode = attentionRows.length ? 'attention' : 'operations'
+  const focusRows = focusMode === 'attention' ? attentionRows : rows
+  const focusCards = focusMode === 'attention' ? attentionCards : rows
   const searchText = lower(search)
   const tableRows = rows
     .filter((row) => matchesFilter(row, tableFilter))
@@ -227,6 +230,13 @@ export function buildTriageWorkbench({
     attentionRows,
     attentionCards,
     overflowAttentionRows,
+    focusMode,
+    focusTitle: focusMode === 'attention' ? '需要处理' : '基础域爬取',
+    focusDescription: focusMode === 'attention'
+      ? '最严重的问题域优先显示，超过上限后进入汇总条。'
+      : '常用域进度和启停操作提前显示，下方仍保留完整卡片板/表格。',
+    focusRows,
+    focusCards,
     overflowSummary: {
       count: overflowAttentionRows.length,
       label: overflowAttentionRows.length ? `还有 ${overflowAttentionRows.length} 个待处理` : '',

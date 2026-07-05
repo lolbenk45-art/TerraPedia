@@ -4415,6 +4415,62 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void forceReclaimBackendDomainWritesActualQueueProgressPathInsteadOfRunTemplate() throws Exception {
+        Path actualProgressPath = repoRoot.resolve("reports/backend-refresh/history/backend-data-refresh-wiki-monitor-2026-07-05T03-30-38Z-test.runtime/recipe-reference-sync.child-status.json");
+        writeJson(actualProgressPath, Map.of(
+            "actionId", "recipe-reference-sync",
+            "status", "failed",
+            "message", "failed before reclaim"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-07-05T03:31:00Z",
+            "items", List.of(Map.ofEntries(
+                Map.entry("queueId", "queue-recipes-failed"),
+                Map.entry("dispatchId", "dispatch-recipes-failed"),
+                Map.entry("lane", "standard"),
+                Map.entry("domain", "recipes"),
+                Map.entry("actionId", "recipe-reference-sync"),
+                Map.entry("status", "failed"),
+                Map.entry("message", "failed with exit code 1"),
+                Map.entry("requestedAt", "2026-07-05T03:30:00Z"),
+                Map.entry("completedAt", "2026-07-05T03:30:38Z"),
+                Map.entry("progressPath", "reports/backend-refresh/history/backend-data-refresh-wiki-monitor-2026-07-05T03-30-38Z-test.runtime/recipe-reference-sync.child-status.json")
+            )),
+            "dedupe", Map.of(),
+            "dispatches", Map.of("dispatch-recipes-failed", "queue-recipes-failed")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot,
+            Clock.fixed(Instant.parse("2026-07-05T04:00:00Z"), ZoneOffset.UTC),
+            (org.springframework.data.redis.core.StringRedisTemplate) null
+        );
+        CrawlerMonitorDispatchRequestDTO request = new CrawlerMonitorDispatchRequestDTO();
+        request.setDomain("recipes");
+        request.setActionId("recipe-reference-sync");
+        request.setQueueId("queue-recipes-failed");
+        request.setControlAction("forceReclaim");
+
+        CrawlerMonitorDispatchResultDTO result = service.controlWikiMonitorDispatch(request);
+
+        assertTrue(result.isAccepted());
+        Map<String, Object> latest = readJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+        assertEquals("recipes", latest.get("domain"));
+        assertEquals("recipe-reference-sync", latest.get("actionId"));
+        assertEquals("reports/backend-refresh/history/backend-data-refresh-wiki-monitor-2026-07-05T03-30-38Z-test.runtime/recipe-reference-sync.child-status.json", latest.get("progressPath"));
+        Map<String, Object> progress = readJson(actualProgressPath);
+        assertEquals("force_reclaimed", progress.get("status"));
+        assertEquals("管理员强制回收占用", progress.get("message"));
+        assertFalse(Files.exists(repoRoot.resolve("reports/backend-refresh/history/<run>.runtime/recipe-reference-sync.child-status.json")));
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO recipes = overview.getWikiMonitor().getDomains().stream()
+            .filter(d -> "recipes".equals(d.getDomain())).findFirst().orElseThrow();
+        assertEquals("ready", recipes.getState().getStatus());
+        assertEquals("recrawl", recipes.getState().getNextAction());
+    }
+
+    @Test
     void shouldBeIdempotentWhenForceReclaimCalledTwice() throws Exception {
         writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
             "generatedAt", "2026-06-14T01:00:00Z",
@@ -4628,6 +4684,51 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("ready", bosses.getState().getStatus(), "force_reclaimed 是上次结果，域当前状态应可重爬");
         assertEquals("recrawl", bosses.getState().getNextAction());
         assertFalse("running".equals(bosses.getState().getStatus()));
+    }
+
+    @Test
+    void overviewDomainStateUsesQueueProgressForceReclaimedWhenLatestDispatchIsAnotherDomain() throws Exception {
+        Path recipeProgressPath = repoRoot.resolve("reports/backend-refresh/history/backend-data-refresh-recipes.runtime/recipe-reference-sync.child-status.json");
+        writeJson(recipeProgressPath, Map.of(
+            "actionId", "recipe-reference-sync",
+            "status", "force_reclaimed",
+            "message", "管理员强制回收占用"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "dispatchId", "d-biomes",
+            "domain", "biomes",
+            "actionId", "biome-sync",
+            "status", "force_reclaimed",
+            "progressPath", "reports/backend-refresh/history/backend-data-refresh-biomes.runtime/biome-sync.child-status.json"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-07-05T04:00:00Z",
+            "items", List.of(Map.ofEntries(
+                Map.entry("queueId", "queue-recipes-failed"),
+                Map.entry("dispatchId", "d-recipes"),
+                Map.entry("lane", "standard"),
+                Map.entry("domain", "recipes"),
+                Map.entry("actionId", "recipe-reference-sync"),
+                Map.entry("status", "failed"),
+                Map.entry("completedAt", "2026-07-05T03:30:38Z"),
+                Map.entry("progressPath", "reports/backend-refresh/history/backend-data-refresh-recipes.runtime/recipe-reference-sync.child-status.json")
+            )),
+            "dedupe", Map.of(),
+            "dispatches", Map.of("d-recipes", "queue-recipes-failed")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot,
+            Clock.fixed(Instant.parse("2026-07-05T04:00:00Z"), ZoneOffset.UTC),
+            (org.springframework.data.redis.core.StringRedisTemplate) null
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO recipes = overview.getWikiMonitor().getDomains().stream()
+            .filter(d -> "recipes".equals(d.getDomain())).findFirst().orElseThrow();
+
+        assertEquals("ready", recipes.getState().getStatus());
+        assertEquals("recrawl", recipes.getState().getNextAction());
+        assertEquals("reports/backend-refresh/history/backend-data-refresh-recipes.runtime/recipe-reference-sync.child-status.json", recipes.getState().getEvidence());
     }
 
     @Test

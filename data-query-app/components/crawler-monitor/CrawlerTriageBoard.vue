@@ -39,13 +39,13 @@
     <section class="attention-section" aria-label="需要处理">
       <header class="section-head">
         <div>
-          <h2>需要处理</h2>
-          <p>最严重的问题域优先显示，超过上限后进入汇总条。</p>
+          <h2>{{ focusTitle }}</h2>
+          <p>{{ focusDescription }}</p>
         </div>
-        <span class="count-pill">{{ viewModel?.attentionRows?.length || 0 }} 个</span>
+        <span class="count-pill">{{ focusRows.length }} 个</span>
       </header>
 
-      <div v-if="attentionCards.length" class="attention-grid">
+      <div v-if="focusMode === 'attention' && attentionCards.length" class="attention-grid">
         <article v-for="row in attentionCards" :key="rowKey(row)" class="attention-card" :class="`attention-card--${row.triageStatus}`">
           <header>
             <span class="status-dot-small" :class="`status-dot-small--${row.triageStatus}`"></span>
@@ -98,9 +98,40 @@
         </article>
       </div>
 
+      <div v-else-if="focusCards.length" class="focus-domain-grid">
+        <article v-for="row in focusCards" :key="rowKey(row)" class="domain-tile domain-tile--compact" :class="`domain-tile--${row.triageStatus}`" @click="$emit('open-domain', row)">
+          <header>
+            <span class="status-dot-small" :class="`status-dot-small--${row.triageStatus}`"></span>
+            <strong>{{ row.label || row.domain }}</strong>
+            <span>{{ row.diagnosisTitle || row.status }}</span>
+          </header>
+          <p>{{ row.rankReason || row.reason || '暂无补充' }}</p>
+          <div class="tile-progress">
+            <span :style="{ width: progressWidth(row.progressLabel) }"></span>
+          </div>
+          <footer>
+            <small>{{ row.nextActionLabel || '查看详情' }}</small>
+            <div class="domain-tile__actions">
+              <button
+                v-if="row.primaryAction"
+                type="button"
+                :class="tileOperationButtonClass(row.primaryAction)"
+                :aria-label="`${row.label || row.domain}：${row.primaryAction.label}`"
+                @click.stop="$emit('domain-action', row.primaryAction.action, row)"
+              >
+                <component :is="operationIcon(row.primaryAction.icon)" :size="15" />
+                <span>{{ row.primaryAction.label }}</span>
+              </button>
+              <button type="button" class="tile-icon-action" aria-label="打开域详情" @click.stop="$emit('open-domain', row)">
+                <PanelRightOpen :size="15" />
+              </button>
+            </div>
+          </footer>
+        </article>
+      </div>
+
       <div v-else class="attention-empty">
-        <CheckCircle2 :size="24" />
-        <span>全部正常</span>
+        <span>暂无基础域</span>
       </div>
 
       <div v-if="overflowRows.length" class="overflow-bar">
@@ -235,7 +266,6 @@ import { computed, ref } from 'vue'
 import {
   Activity,
   ArrowDownToLine,
-  CheckCircle2,
   CircleStop,
   LayoutGrid,
   PanelRightOpen,
@@ -273,6 +303,11 @@ const metrics = computed(() => props.viewModel?.metrics || [])
 const attentionCards = computed(() => props.viewModel?.attentionCards || [])
 const overflowRows = computed(() => props.viewModel?.overflowAttentionRows || [])
 const allRows = computed(() => props.viewModel?.allRows || [])
+const focusMode = computed(() => props.viewModel?.focusMode || 'operations')
+const focusTitle = computed(() => props.viewModel?.focusTitle || (focusMode.value === 'attention' ? '需要处理' : '基础域爬取'))
+const focusDescription = computed(() => props.viewModel?.focusDescription || '')
+const focusRows = computed(() => props.viewModel?.focusRows || [])
+const focusCards = computed(() => props.viewModel?.focusCards || focusRows.value)
 const filteredRows = computed(() => {
   const needle = search.value.trim().toLowerCase()
   return allRows.value.filter((row: any) => {
@@ -715,6 +750,7 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   color: var(--color-primary-dark);
 }
 
+.focus-domain-grid,
 .domain-board {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -728,6 +764,10 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   gap: 10px;
   padding: 12px;
   cursor: pointer;
+}
+
+.domain-tile--compact {
+  min-height: 144px;
 }
 
 .domain-tile header {

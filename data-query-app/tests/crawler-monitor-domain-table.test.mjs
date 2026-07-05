@@ -165,6 +165,47 @@ test('domain table backend state overrides older terminal queue history', () => 
   assert.equal(rows[0].statusSource, 'backend')
 })
 
+test('domain table binds domain actions to the latest matching terminal queue item', () => {
+  const rows = buildDomainTableRows({
+    domains: [
+      {
+        domain: 'recipes',
+        label: 'Recipes',
+        recommendedActionId: 'recipe-reference-sync',
+        state: {
+          status: 'failed',
+          nextAction: 'terminate_and_recrawl',
+        },
+      },
+    ],
+    progressRows: [],
+    dispatchQueue: [
+      {
+        lane: 'standard',
+        domain: 'recipes',
+        actionId: 'recipe-reference-sync',
+        status: 'failed',
+        queueId: 'old-recipes',
+        completedAt: '2026-07-03T11:03:43Z',
+        progressPath: 'reports/backend-refresh/history/old.runtime/recipe-reference-sync.child-status.json',
+      },
+      {
+        lane: 'standard',
+        domain: 'recipes',
+        actionId: 'recipe-reference-sync',
+        status: 'failed',
+        queueId: 'latest-recipes',
+        completedAt: '2026-07-05T03:30:38Z',
+        progressPath: 'reports/backend-refresh/history/latest.runtime/recipe-reference-sync.child-status.json',
+      },
+    ],
+  })
+
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].queueId, 'latest-recipes')
+  assert.equal(rows[0].queueItem.progressPath, 'reports/backend-refresh/history/latest.runtime/recipe-reference-sync.child-status.json')
+})
+
 test('domain table does not infer domain status when backend state is missing', () => {
   const rows = buildDomainTableRows({
     domains: [

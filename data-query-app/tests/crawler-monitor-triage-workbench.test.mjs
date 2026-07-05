@@ -100,6 +100,61 @@ test('triage workbench caps attention cards and keeps overflow as chips', () => 
   assert.equal(view.statusStrip.title, '5 个域需要处理 · 1 正在爬')
 })
 
+test('triage workbench shows operation progress in the top section when no domain needs attention', () => {
+  const healthyRows = [
+    {
+      domain: 'items',
+      label: 'Items',
+      status: 'healthy',
+      risk: 'healthy',
+      diagnosisGroup: 'healthy',
+      progressLabel: '80 / 100',
+      sourceDomain: {
+        domain: 'items',
+        recommendedActionId: 'wiki-core-refresh',
+        state: { status: 'healthy' },
+      },
+    },
+    {
+      domain: 'projectiles',
+      label: 'Projectiles',
+      status: 'running',
+      risk: 'running',
+      diagnosisGroup: 'active',
+      progressLabel: '40%',
+      sourceDomain: {
+        domain: 'projectiles',
+        recommendedActionId: 'wiki-core-refresh',
+        state: { status: 'running' },
+      },
+      queueItem: {
+        status: 'running',
+      },
+    },
+  ]
+
+  const view = buildTriageWorkbench({ domainRows: healthyRows })
+
+  assert.equal(view.focusMode, 'operations')
+  assert.equal(view.focusTitle, '基础域爬取')
+  assert.deepEqual(view.focusRows.map((row) => row.domain), view.allRows.map((row) => row.domain))
+  assert.deepEqual(view.focusCards.map((row) => row.domain), view.allRows.map((row) => row.domain))
+  assert.equal(view.focusRows.find((row) => row.domain === 'items').primaryAction.label, '开始爬')
+  assert.equal(view.focusRows.find((row) => row.domain === 'projectiles').primaryAction.label, '暂停')
+})
+
+test('triage workbench keeps the top section in attention mode when errors exist', () => {
+  const view = buildTriageWorkbench({
+    domainRows: rows,
+    maxAttentionCards: 4,
+  })
+
+  assert.equal(view.focusMode, 'attention')
+  assert.equal(view.focusTitle, '需要处理')
+  assert.deepEqual(view.focusCards.map((row) => row.domain), view.attentionCards.map((row) => row.domain))
+  assert.equal(view.focusRows.length, view.attentionRows.length)
+})
+
 test('triage workbench filters all-domain rows without pagination', () => {
   const attention = buildTriageWorkbench({ domainRows: rows, tableFilter: 'attention', search: '状态' })
   assert.deepEqual(attention.tableRows.map((row) => row.domain), ['buffs'])

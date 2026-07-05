@@ -67,10 +67,11 @@ function finalizeBiomeSync({ manifestPath, worktreeRoot }) {
   const outputPath = path.join(worktreeRoot, 'data', 'generated', 'wiki-biomes.latest.json');
   const payload = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
   const forest = (Array.isArray(payload.records) ? payload.records : [])
-    .find((record) => record?.pageTitle === 'Forest' || record?.requestedPageTitle === 'Forest');
+    .find((record) => biomeRecordTitle(record) === 'Forest');
   if (!forest) {
     throw new Error('Cannot finalize biome-sync manifest: Forest record missing from wiki-biomes.latest.json');
   }
+  const forestTitle = biomeRecordTitle(forest) ?? 'Forest';
   advanceWikiIngestionManifestForSource({
     sourceKey: 'wiki.page.biomes_anchor',
     locator: 'Forest',
@@ -80,11 +81,17 @@ function finalizeBiomeSync({ manifestPath, worktreeRoot }) {
     manifestPath,
     record: {
       ...forest,
+      pageTitle: forest.pageTitle ?? forestTitle,
+      requestedPageTitle: forest.requestedPageTitle ?? forestTitle,
       contentHash: null,
       fetchedAt: payload.generatedAt ?? forest.fetchedAt ?? null
     }
   });
   return ['wiki.page.biomes_anchor'];
+}
+
+function biomeRecordTitle(record) {
+  return record?.pageTitle ?? record?.requestedPageTitle ?? record?.title ?? null;
 }
 
 export function defaultWikiSourceManifestPath() {

@@ -109,3 +109,36 @@ test('biome-sync finalizes Forest page identity after action success', async () 
   assert.equal(manifest.records[0].revisionTimestamp, '2026-06-20T01:30:00Z');
   assert.equal(manifest.records[0].contentHash, null);
 });
+
+test('biome-sync accepts current generated biome records that expose title only', async () => {
+  const finalizeModule = await import('./backend-refresh-manifest-finalize.mjs');
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-biome-title-manifest-finalize-'));
+  const worktreeRoot = path.join(tempDir, 'worktree');
+  const manifestPath = path.join(tempDir, 'manifest.json');
+  const generatedDir = path.join(worktreeRoot, 'data', 'generated');
+  fs.mkdirSync(generatedDir, { recursive: true });
+  fs.writeFileSync(manifestPath, JSON.stringify({ records: [] }), 'utf8');
+  fs.writeFileSync(path.join(generatedDir, 'wiki-biomes.latest.json'), JSON.stringify({
+    generatedAt: '2026-07-05T02:00:00.000Z',
+    records: [
+      {
+        pageId: 2,
+        title: 'Forest',
+        revisionId: 20,
+        revisionTimestamp: '2026-07-05T01:30:00Z'
+      }
+    ]
+  }), 'utf8');
+
+  await finalizeModule.finalizeBackendRefreshActionIngestionManifest({
+    actionId: 'biome-sync',
+    manifestPath,
+    worktreeRoot
+  });
+
+  const manifest = loadWikiSourceManifest(manifestPath);
+  assert.equal(manifest.records.length, 1);
+  assert.equal(manifest.records[0].pageTitle, 'Forest');
+  assert.equal(manifest.records[0].requestedPageTitle, 'Forest');
+  assert.equal(manifest.records[0].revisionId, 20);
+});

@@ -17,6 +17,7 @@ public class CrawlerDomainStateReducer {
         String queue = normalize(in.queueStatus());
         String progress = normalize(in.progressStatus());
         String domain = normalize(in.domainStatus());
+        boolean forceReclaimed = isForceReclaimed(in.progressStatus()) || isForceReclaimed(in.domainStatus());
         boolean hasBlocker = in.blockedByDomain() != null || in.blockedByActionId() != null || in.blockedByDispatchId() != null;
         boolean leaseValid = in.leaseExpiresAt() != null && in.leaseExpiresAt().isAfter(in.now());
         boolean queueActive = isOneOf(queue, "running", "starting", "paused", "queued");
@@ -26,7 +27,9 @@ public class CrawlerDomainStateReducer {
         boolean progressActiveNoLease = ACTIVE_PROGRESS.contains(progress) && !leaseValid && !queueActive;
 
         String status;
-        if (isOneOf(queue, "failed", "timed_out")) {
+        if (forceReclaimed) {
+            status = "ready";
+        } else if (isOneOf(queue, "failed", "timed_out")) {
             status = queue;
         } else if (isOneOf(progress, "failed", "timed_out")) {
             status = progress;
@@ -91,6 +94,10 @@ public class CrawlerDomainStateReducer {
             if (option.equals(value)) return true;
         }
         return false;
+    }
+
+    private static boolean isForceReclaimed(String value) {
+        return value != null && "force_reclaimed".equals(value.trim().toLowerCase());
     }
 
     private static String normalize(String value) {

@@ -7,6 +7,7 @@ import {
 import { nextActionLabel } from '../pages/operations/crawler-monitor.labels.mjs'
 
 const QUIET_TERMINAL_QUEUE_STATUSES = new Set(['completed'])
+const ACTIVE_QUEUE_STATUSES = new Set(['queued', 'blocked_cooldown', 'starting', 'running', 'paused'])
 
 function normalize(value) {
   return String(value || '').trim()
@@ -83,6 +84,26 @@ function queueRisk(item) {
   if (status === 'failed') return 'failed'
   if (status === 'timed_out') return 'timed_out'
   return ''
+}
+
+function rowTimeMs(row) {
+  const value = row?.completedAt || row?.updatedAt || row?.startedAt || row?.requestedAt || row?.generatedAt || row?.lastHeartbeatAt || ''
+  const ms = Date.parse(value)
+  return Number.isFinite(ms) ? ms : 0
+}
+
+function selectBestQueueItem(items, predicate) {
+  const matches = items.filter(predicate)
+  if (!matches.length) return null
+  const active = matches.filter((item) => ACTIVE_QUEUE_STATUSES.has(lower(item?.status)))
+  const pool = active.length ? active : matches
+  return [...pool].sort((left, right) => rowTimeMs(right) - rowTimeMs(left))[0] || null
+}
+
+function selectBestProgressRow(rows, predicate) {
+  const matches = rows.filter(predicate)
+  if (!matches.length) return null
+  return [...matches].sort((left, right) => rowTimeMs(right) - rowTimeMs(left))[0] || null
 }
 
 function domainRisk(domain, progressRow, queueItem) {
@@ -207,7 +228,7 @@ function ownerLabel(item) {
 function evidenceFiles(domain, progressRow, queueItem) {
   return [
     ['日志', queueItem?.logPath || progressRow?.logPath],
-    ['进度', progressRow?.progressPath || domain?.progressPath],
+    ['进度', progressRow?.progressPath || queueItem?.progressPath || domain?.progressPath],
     ['报告', progressRow?.reportPath || queueItem?.reportPath],
     ['输出', progressRow?.outputPath],
     ['锁', queueItem?.lockPath],
@@ -339,13 +360,13 @@ export function buildDomainTableRows({ domains = [], progressRows = [], dispatch
     const key = domainKey(domain)
     const actionKey = lower(domain?.recommendedActionId)
     const matchedProgressRow = progressRow || ((key || actionKey)
-      ? formalProgressRows.find((row) =>
+      ? selectBestProgressRow(formalProgressRows, (row) =>
         (key && (domainKey(row) === key || progressDomainKey(row) === key))
         || (actionKey && progressActionKey(row) === actionKey)
       )
       : null) || null
     const matchedQueueItem = queueItem || ((key || actionKey)
-      ? standardQueueItems.find((item) =>
+      ? selectBestQueueItem(standardQueueItems, (item) =>
         (key && queueDomainKey(item) === key)
         || (actionKey && lower(item?.actionId) === actionKey)
       )

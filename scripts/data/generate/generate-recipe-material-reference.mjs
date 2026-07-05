@@ -25,11 +25,21 @@ import {
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 
 const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
-
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = getProjectRoot();
 const sharedDataRoot = resolveSharedDataRoot();
+const mysql = loadMysqlModule();
+
+function loadMysqlModule() {
+  try {
+    return require('mysql2/promise');
+  } catch (error) {
+    if (error?.code !== 'MODULE_NOT_FOUND') {
+      throw error;
+    }
+    return createRequire(path.join(repoRoot, 'data-query-app', 'package.json'))('mysql2/promise');
+  }
+}
 
 const LIVE_RECIPE_PROVIDER = 'wiki_gg';
 const RECIPE_SOURCE_TYPE = 'wiki_gg_live_english_recipes';

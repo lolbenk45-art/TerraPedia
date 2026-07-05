@@ -28,6 +28,30 @@ class CrawlerDomainStateReducerTest {
     }
 
     @Test
+    void forceReclaimedProgressClearsStaleFailedQueue() {
+        CrawlerDomainStateReducer.Input in = CrawlerDomainStateReducer.Input.builder()
+            .queueStatus("failed")
+            .progressStatus("force_reclaimed")
+            .now(now)
+            .build();
+        CrawlerDomainStateReducer.State state = reducer.reduce(in);
+        assertEquals("ready", state.status());
+        assertEquals("recrawl", state.nextAction());
+    }
+
+    @Test
+    void forceReclaimedProgressClearsStaleTimedOutQueue() {
+        CrawlerDomainStateReducer.Input in = CrawlerDomainStateReducer.Input.builder()
+            .queueStatus("timed_out")
+            .progressStatus("force_reclaimed")
+            .now(now)
+            .build();
+        CrawlerDomainStateReducer.State state = reducer.reduce(in);
+        assertEquals("ready", state.status());
+        assertEquals("recrawl", state.nextAction());
+    }
+
+    @Test
     void runningWithoutValidLeaseBecomesStalled() {
         CrawlerDomainStateReducer.Input in = CrawlerDomainStateReducer.Input.builder()
             .progressStatus("running")

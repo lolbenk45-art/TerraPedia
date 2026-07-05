@@ -687,10 +687,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             return cancelQueuedWikiMonitorDispatch(repoRoot, request);
         }
         if ("forceReclaim".equals(controlAction)) {
-            WikiMonitorRule reclaimRule = controlQueueItem(request)
+            Optional<WikiMonitorQueueItem> reclaimQueueItem = controlQueueItem(request);
+            WikiMonitorRule reclaimRule = reclaimQueueItem
                 .map(item -> resolveWikiMonitorControlRuleFromQueueItem(request, item))
                 .orElseGet(() -> resolveWikiMonitorControlRule(request));
-            return reclaimDomain(repoRoot, reclaimRule, "管理员强制回收占用");
+            return reclaimDomain(repoRoot, reclaimRule, "管理员强制回收占用", reclaimQueueItem.orElse(null));
         }
         if (isDomainSmokeControl(request)) {
             return controlWikiMonitorDomainSmoke(repoRoot, request);
@@ -918,7 +919,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             queueRepository.markTerminal(item.getQueueId(), "cancelled", now, safeReason);
             WikiMonitorRule rule = findWikiMonitorRule(item.getDomain(), item.getActionId());
             if (rule != null) {
-                writeReclaimTerminalProgressFile(repoRoot, rule, safeReason, now);
+                writeReclaimTerminalProgressFile(repoRoot, rule, safeReason, now, item, null);
             }
         }
 
@@ -1013,7 +1014,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return markRunningQueueItemCancelled(dispatchId, message);
     }
 
-    private CrawlerMonitorDispatchResultDTO reclaimDomain(Path repoRoot, WikiMonitorRule rule, String reason) {
+    private CrawlerMonitorDispatchResultDTO reclaimDomain(Path repoRoot, WikiMonitorRule rule, String reason, WikiMonitorQueueItem queueItem) {
         String domain = rule.domain();
         String actionId = rule.actionId();
         String safeReason = firstNonBlank(reason, "已强制回收占用");
@@ -1043,7 +1044,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
 
         // 3) 写终态证据（不删进度/派发文件）
-        writeReclaimTerminalProgress(repoRoot, dispatchId, rule, safeReason);
+        writeReclaimTerminalProgress(repoRoot, dispatchId, rule, safeReason, queueItem, active == null ? null : active.paths());
 
         // 4) 队列项标终态（本域 + 覆盖域，全部幂等）。
         //    注：这是尽力而为；drain 前的并发入队窗口极小，滑入项会被下次回收/drain 收敛。
@@ -1077,7 +1078,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
     }
 
-    private void writeReclaimTerminalProgress(Path repoRoot, String dispatchId, WikiMonitorRule rule, String reason) {
+    private void writeReclaimTerminalProgress(Path repoRoot, String dispatchId, WikiMonitorRule rule, String reason, WikiMonitorQueueItem queueItem, DispatchPaths activePaths) {
         Path dispatchFile = repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize();
         Instant now = Instant.now(clock);
         ReadResult current = readJsonMap(dispatchFile);
@@ -1087,8 +1088,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (dispatchId != null) {
             state.putIfAbsent("dispatchId", dispatchId);
         }
-        state.putIfAbsent("domain", rule.domain());
-        state.putIfAbsent("actionId", rule.actionId());
+        String progressPath = reclaimProgressPath(rule, queueItem, activePaths);
+        state.put("domain", rule.domain());
+        state.put("actionId", rule.actionId());
+        if (progressPath != null) {
+            state.put("progressPath", progressPath);
+        }
         state.put("status", "force_reclaimed");
         state.put("message", reason);
         state.put("controlAction", "forceReclaim");
@@ -1096,11 +1101,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         state.put("completedAt", now.toString());
         writeJsonFile(dispatchFile, state);
 
-        writeReclaimTerminalProgressFile(repoRoot, rule, reason, now);
+        writeReclaimTerminalProgressFile(repoRoot, progressPath, rule, reason, now);
     }
 
-    private void writeReclaimTerminalProgressFile(Path repoRoot, WikiMonitorRule rule, String reason, Instant now) {
-        String progressPath = rule.progressPath();
+    private void writeReclaimTerminalProgressFile(Path repoRoot, WikiMonitorRule rule, String reason, Instant now, WikiMonitorQueueItem queueItem, DispatchPaths activePaths) {
+        writeReclaimTerminalProgressFile(repoRoot, reclaimProgressPath(rule, queueItem, activePaths), rule, reason, now);
+    }
+
+    private void writeReclaimTerminalProgressFile(Path repoRoot, String progressPath, WikiMonitorRule rule, String reason, Instant now) {
         if (progressPath == null || progressPath.isBlank()) {
             return;
         }
@@ -1119,6 +1127,17 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         state.put("completedAt", now.toString());
         state.put("generatedAt", now.toString());
         writeJsonFile(path, state);
+    }
+
+    private String reclaimProgressPath(WikiMonitorRule rule, WikiMonitorQueueItem queueItem, DispatchPaths activePaths) {
+        String progressPath = firstNonBlank(
+            activePaths == null ? null : activePaths.progressPath(),
+            firstNonBlank(queueItem == null ? null : queueItem.getProgressPath(), rule.progressPath())
+        );
+        if (progressPath == null || progressPath.isBlank() || progressPath.contains("<")) {
+            return null;
+        }
+        return progressPath;
     }
 
     private void markDomainQueueItemsReclaimed(String domain, String actionId, String reason) {
@@ -1660,10 +1679,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 .filter(matchesDomain)
                 .reduce((first, second) -> second)  // 取最后一个(通常最近)终态匹配项
                 .orElse(null));
+        String queueProgressStatus = queueProgressStatus(repoRoot, queueItem);
 
         CrawlerDomainStateReducer.Input reducerInput = CrawlerDomainStateReducer.Input.builder()
             .queueStatus(queueItem == null ? null : queueItem.getStatus())
-            .progressStatus(dispatchStatus)
+            .progressStatus(firstNonBlank(dispatchStatus, queueProgressStatus))
             .domainStatus(domain.getStatus())
             .blockedByDomain(queueItem == null ? null : queueItem.getBlockedByDomain())
             .blockedByActionId(queueItem == null ? null : queueItem.getBlockedByActionId())
@@ -1678,10 +1698,22 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         stateDto.setNextAction(reduced.nextAction());
         stateDto.setBlocker(reduced.blocker());
         stateDto.setBlockerLabel(reduced.blockerLabel());
-        stateDto.setEvidence(firstNonBlank(domain.getProgressPath(), asString(dispatchPayload.get("reportPath"))));
+        stateDto.setEvidence(firstNonBlank(queueItem == null ? null : queueItem.getProgressPath(), firstNonBlank(domain.getProgressPath(), asString(dispatchPayload.get("reportPath")))));
         stateDto.setUpdatedAt(Instant.now(clock).toString());
         domain.setState(stateDto);
         return domain;
+    }
+
+    private String queueProgressStatus(Path repoRoot, WikiMonitorQueueItem queueItem) {
+        String progressPath = queueItem == null ? null : queueItem.getProgressPath();
+        if (progressPath == null || progressPath.isBlank() || progressPath.contains("<")) {
+            return null;
+        }
+        ReadResult progress = readJsonMap(repoRoot.resolve(progressPath).normalize());
+        if (!progress.readable()) {
+            return null;
+        }
+        return asString(progress.payload().get("status"));
     }
 
     private List<CrawlerMonitorOverviewDTO.WikiMonitorDispatchDTO> buildPendingDispatches(
