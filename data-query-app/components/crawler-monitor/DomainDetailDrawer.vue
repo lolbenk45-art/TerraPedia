@@ -353,6 +353,15 @@ const tabs = computed(() => [
   gap: 8px;
 }
 
+.timeline-item header strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.timeline-item header .status-pill {
+  flex: 0 0 auto;
+}
+
 .timeline-item p {
   color: var(--color-text-secondary);
   margin: 8px 0 0;
@@ -384,7 +393,8 @@ const tabs = computed(() => [
 }
 
 .queue-row {
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px 10px;
   justify-content: space-between;
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
@@ -392,7 +402,19 @@ const tabs = computed(() => [
   padding: 10px;
 }
 
+.queue-row strong {
+  flex: 1 1 160px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.queue-row .status-pill {
+  flex: 0 0 auto;
+}
+
+.queue-row small,
 .queue-row code {
+  overflow-wrap: anywhere;
   color: var(--color-text-secondary);
 }
 
@@ -401,6 +423,18 @@ const tabs = computed(() => [
   min-height: 44px;
   padding: 8px 10px;
   text-align: left;
+}
+
+.artifact-row > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.artifact-row svg {
+  flex: 0 0 auto;
 }
 
 .artifact-row code {
@@ -427,6 +461,7 @@ const tabs = computed(() => [
   color: var(--color-primary-dark);
   font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .status-pill.failed,

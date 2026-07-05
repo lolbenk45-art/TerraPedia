@@ -479,9 +479,24 @@ function showAttentionTable() {
   gap: 10px;
 }
 
+.attention-card header > div {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .attention-card h3 {
   margin: 0;
   font-size: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attention-card header small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .attention-card header small,
@@ -494,6 +509,7 @@ function showAttentionTable() {
 
 .attention-card header .status-pill {
   margin-left: auto;
+  flex: 0 0 auto;
 }
 
 .attention-card p {
@@ -652,9 +668,15 @@ function showAttentionTable() {
 }
 
 .domain-tile header strong {
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.domain-tile header span:last-child {
+  flex: 0 0 auto;
 }
 
 .domain-tile header span:last-child {
@@ -665,6 +687,12 @@ function showAttentionTable() {
 
 .domain-tile p {
   margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 .tile-progress {
@@ -740,6 +768,17 @@ function showAttentionTable() {
   border-bottom: 1px solid var(--color-border-light);
   padding: 10px;
   vertical-align: top;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.domain-table th:last-child,
+.domain-table td:last-child {
+  width: 92px;
+}
+
+.domain-table td strong {
+  overflow-wrap: anywhere;
 }
 
 .domain-table td {
