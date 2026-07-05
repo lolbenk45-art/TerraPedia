@@ -44,17 +44,24 @@
             </div>
           </div>
           <div class="drawer-actions">
-            <button type="button" class="btn btn-secondary" @click="$emit('domain-action', 'open', sourceRow)">
-              <Eye :size="15" />
-              <span>查看详情</span>
+            <button
+              v-if="primaryAction"
+              type="button"
+              :class="operationButtonClass(primaryAction)"
+              @click="$emit('domain-action', primaryAction.action, sourceRow)"
+            >
+              <component :is="operationIcon(primaryAction.icon)" :size="15" />
+              <span>{{ primaryAction.label }}</span>
             </button>
-            <button type="button" class="btn btn-plain btn-plain--danger" @click="$emit('domain-action', 'force-reclaim', sourceRow)">
-              <TimerReset :size="15" />
-              <span>强制释放占用</span>
-            </button>
-            <button type="button" class="btn btn-plain btn-plain--danger" @click="$emit('domain-action', 'cancel', sourceRow)">
-              <CircleStop :size="15" />
-              <span>终止任务</span>
+            <button
+              v-for="operation in secondaryActions"
+              :key="operation.action"
+              type="button"
+              :class="operationButtonClass(operation)"
+              @click="$emit('domain-action', operation.action, sourceRow)"
+            >
+              <component :is="operationIcon(operation.icon)" :size="15" />
+              <span>{{ operation.label }}</span>
             </button>
           </div>
         </section>
@@ -117,10 +124,11 @@ import {
   AlertTriangle,
   CircleStop,
   Clock3,
-  Eye,
   FileJson,
   History,
   ListTree,
+  Pause,
+  Play,
   ScrollText,
   TimerReset,
   X,
@@ -144,6 +152,8 @@ defineEmits<{
 
 const activeTab = ref('overview')
 const sourceRow = computed(() => props.sourceRow || null)
+const primaryAction = computed(() => sourceRow.value?.primaryAction || null)
+const secondaryActions = computed(() => sourceRow.value?.secondaryActions || [])
 const tabs = computed(() => [
   { key: 'overview', label: '概览', icon: ListTree, count: null },
   { key: 'history', label: '任务历史', icon: History, count: props.detail?.taskHistory?.length || 0 },
@@ -151,6 +161,21 @@ const tabs = computed(() => [
   { key: 'artifacts', label: '产物', icon: FileJson, count: props.detail?.artifacts?.length || 0 },
   { key: 'logs', label: '日志', icon: ScrollText, count: props.detail?.logFiles?.length || 0 },
 ])
+
+function operationIcon(icon?: string) {
+  if (icon === 'play') return Play
+  if (icon === 'pause') return Pause
+  if (icon === 'circle-stop') return CircleStop
+  if (icon === 'timer-reset') return TimerReset
+  return ListTree
+}
+
+function operationButtonClass(operation?: Record<string, any>) {
+  return [
+    'btn',
+    operation?.tone === 'primary' ? 'btn-primary' : operation?.tone === 'danger' ? 'btn-plain btn-plain--danger' : 'btn-secondary',
+  ]
+}
 </script>
 
 <style scoped>

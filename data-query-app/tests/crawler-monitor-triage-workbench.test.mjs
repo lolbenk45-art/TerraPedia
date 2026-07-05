@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import {
   buildDomainDetailViewModel,
+  buildDomainOperationModel,
   buildTriageWorkbench,
   filterLogLines,
   mergeDomainTaskHistory,
@@ -113,6 +114,95 @@ test('triage workbench filters all-domain rows without pagination', () => {
   }))
   const large = buildTriageWorkbench({ domainRows: manyRows })
   assert.equal(large.tableVirtualized, true)
+})
+
+test('triage workbench exposes direct domain operation buttons', () => {
+  const view = buildTriageWorkbench({
+    domainRows: [
+      {
+        domain: 'items',
+        label: 'Items',
+        status: 'healthy',
+        risk: 'healthy',
+        sourceDomain: {
+          domain: 'items',
+          recommendedActionId: 'domain-source-items',
+          state: { status: 'healthy' },
+        },
+      },
+      {
+        domain: 'bosses',
+        label: 'Bosses',
+        status: 'queued',
+        risk: 'queued',
+        queueItem: {
+          queueId: 'queue-bosses',
+          status: 'queued',
+        },
+      },
+      {
+        domain: 'npcs',
+        label: 'NPCs',
+        status: 'running',
+        risk: 'running',
+        sourceDomain: {
+          domain: 'npcs',
+          recommendedActionId: 'domain-source-npcs',
+          state: { status: 'running' },
+        },
+        queueItem: {
+          queueId: 'queue-npcs',
+          status: 'running',
+        },
+      },
+      {
+        domain: 'buffs',
+        label: 'Buffs',
+        status: 'paused',
+        risk: 'paused',
+        sourceDomain: {
+          domain: 'buffs',
+          recommendedActionId: 'domain-source-buffs',
+          state: { status: 'paused' },
+        },
+      },
+    ],
+  })
+
+  const actionByDomain = Object.fromEntries(
+    view.allRows.map((row) => [row.domain, row.primaryAction?.label])
+  )
+
+  assert.equal(actionByDomain.items, '开始爬')
+  assert.equal(actionByDomain.bosses, '取消排队')
+  assert.equal(actionByDomain.npcs, '暂停')
+  assert.equal(actionByDomain.buffs, '继续')
+  assert.deepEqual(
+    view.allRows.find((row) => row.domain === 'npcs').secondaryActions.map((action) => action.label),
+    ['终止']
+  )
+})
+
+test('domain operation model blocks start when domain is paused or cooling down', () => {
+  assert.equal(buildDomainOperationModel({
+    domain: 'items',
+    status: 'ready',
+    risk: 'ready',
+    sourceDomain: {
+      recommendedActionId: 'domain-source-items',
+      pauseReason: '人工暂停',
+    },
+  }).primaryAction, null)
+
+  assert.equal(buildDomainOperationModel({
+    domain: 'items',
+    status: 'ready',
+    risk: 'ready',
+    sourceDomain: {
+      recommendedActionId: 'domain-source-items',
+      cooldownMinutes: 20,
+    },
+  }).primaryAction, null)
 })
 
 test('domain detail view model merges task history and artifacts for a single domain', () => {

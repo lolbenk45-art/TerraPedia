@@ -1137,11 +1137,13 @@ function handleDomainBoardAction(action: string, row: any) {
   if (action === 'force-reclaim') return forceReclaimDomainTableRow(row)
   if (action === 'cancel') {
     selectDomainTableRow(row)
-    if (row.sourceDomain) return openCancelConfirm(row.sourceDomain)
     if (canCancelDomainTableQueuedRow(row)) return cancelDomainTableQueuedRow(row)
+    if (row.sourceDomain) return openCancelConfirm(row.sourceDomain)
     if (canCancelDomainTableRunningRow(row)) return cancelDomainTableRunningRow(row)
     return
   }
+  if (action === 'pause') return pauseDomainTableRow(row)
+  if (action === 'resume') return resumeDomainTableRow(row)
   if (action === 'start') return startDomainTableRow(row)
 }
 
@@ -1587,9 +1589,7 @@ function canResumeDomainTableRow(row: any) {
 }
 
 function canStartDomainTableRow(row: any) {
-  if (!canExecuteDomainTableRow(row)) return false
-  if (row?.queueItem && ['queued', 'blocked_cooldown', 'starting', 'running', 'paused'].includes(queueItemStatus(row.queueItem))) return false
-  return ['failed', 'stalled', 'ready', 'completed', 'cancelled', 'missing'].includes(String(domainRowStatus(row) || row?.risk || row?.status || '').toLowerCase())
+  return canExecuteDomainTableRow(row)
 }
 
 function canExecuteDomainTableRow(row: any) {
@@ -1598,7 +1598,7 @@ function canExecuteDomainTableRow(row: any) {
   if (domain.pauseReason) return false
   if (isWikiDomainCoolingDown(domain)) return false
   if (row?.queueItem && ['queued', 'blocked_cooldown', 'starting', 'running', 'paused'].includes(queueItemStatus(row.queueItem))) return false
-  return ['failed', 'stalled', 'ready', 'completed', 'cancelled', 'missing'].includes(String(domainRowStatus(row) || row?.risk || row?.status || '').toLowerCase())
+  return true
 }
 
 function shouldOfferDomainRowForceReclaim(row: any) {
@@ -1610,6 +1610,13 @@ function resumeDomainTableRow(row: any) {
   const domain = row?.sourceDomain || null
   if (domain && canResumeWikiDomain(domain)) return controlWikiMonitorTask(domain, 'resume')
   if (row?.queueItem) return controlProgressTask(queueItemAsProgressRow(row.queueItem), 'resume')
+}
+
+function pauseDomainTableRow(row: any) {
+  selectDomainTableRow(row)
+  const domain = row?.sourceDomain || null
+  if (domain && canPauseWikiDomain(domain)) return controlWikiMonitorTask(domain, 'pause')
+  if (row?.queueItem) return controlProgressTask(queueItemAsProgressRow(row.queueItem), 'pause')
 }
 
 function startDomainTableRow(row: any) {

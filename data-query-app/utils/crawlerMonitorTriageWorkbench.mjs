@@ -12,6 +12,10 @@ const ATTENTION_STATUSES = new Set([
 
 const RUNNING_STATUSES = new Set(['running', 'active', 'starting'])
 const IDLE_STATUSES = new Set(['ready', 'queued', 'paused', 'cancelled', 'missing'])
+const ACTIVE_QUEUE_STATUSES = new Set(['queued', 'blocked_cooldown', 'starting', 'running', 'paused'])
+const PAUSABLE_STATUSES = new Set(['running', 'starting'])
+const RESUMABLE_STATUSES = new Set(['paused'])
+const FORCE_RECLAIM_STATUSES = new Set(['blocked', 'failed', 'error', 'timed_out', 'timeout', 'stalled', 'state_missing', 'unknown'])
 const STATUS_RANK = {
   blocked: 0,
   failed: 1,
@@ -73,6 +77,73 @@ function isIdleRow(row) {
   return IDLE_STATUSES.has(rowStatus(row))
 }
 
+function queueStatus(row) {
+  return lower(row?.queueItem?.status || row?.queueStatus)
+}
+
+function operationStatus(row) {
+  return lower(row?.sourceDomain?.state?.status || row?.triageStatus || row?.risk || row?.status || row?.diagnosisGroup)
+}
+
+function hasDispatchAction(row) {
+  return Boolean(normalize(row?.sourceDomain?.recommendedActionId))
+}
+
+function isCoolingDown(row) {
+  const domain = row?.sourceDomain || {}
+  const minutes = Number(domain.cooldownMinutes || 0)
+  return Boolean((Number.isFinite(minutes) && minutes > 0) || domain.cooldownUntil)
+}
+
+function canStartDomainOperation(row) {
+  if (!hasDispatchAction(row)) return false
+  if (row?.sourceDomain?.pauseReason) return false
+  if (isCoolingDown(row)) return false
+  return !ACTIVE_QUEUE_STATUSES.has(queueStatus(row))
+}
+
+function action(action, label, tone = 'secondary', icon = 'panel') {
+  return { action, label, tone, icon }
+}
+
+function appendAction(actions, next) {
+  if (!next || actions.some((item) => item.action === next.action)) return
+  actions.push(next)
+}
+
+export function buildDomainOperationModel(row) {
+  const status = operationStatus(row)
+  const queue = queueStatus(row)
+  const primaryQueueStatus = queue || status
+  const secondaryActions = []
+  let primaryAction = null
+
+  if (primaryQueueStatus === 'queued' || primaryQueueStatus === 'blocked_cooldown') {
+    primaryAction = action('cancel', '取消排队', 'danger', 'circle-stop')
+  } else if (RESUMABLE_STATUSES.has(primaryQueueStatus)) {
+    primaryAction = action('resume', '继续', 'primary', 'play')
+    appendAction(secondaryActions, action('cancel', '终止', 'danger', 'circle-stop'))
+  } else if (PAUSABLE_STATUSES.has(primaryQueueStatus)) {
+    if (row?.sourceDomain) {
+      primaryAction = action('pause', '暂停', 'secondary', 'pause')
+      appendAction(secondaryActions, action('cancel', '终止', 'danger', 'circle-stop'))
+    } else {
+      primaryAction = action('cancel', '终止', 'danger', 'circle-stop')
+    }
+  } else if (canStartDomainOperation(row)) {
+    primaryAction = action('start', '开始爬', 'primary', 'play')
+  }
+
+  if (FORCE_RECLAIM_STATUSES.has(status) && primaryAction?.action !== 'force-reclaim') {
+    appendAction(secondaryActions, action('force-reclaim', '强制释放', 'danger', 'timer-reset'))
+  }
+
+  return {
+    primaryAction,
+    secondaryActions,
+  }
+}
+
 function compareDomainRows(left, right) {
   return statusRank(left) - statusRank(right)
     || rowTimeMs(left) - rowTimeMs(right)
@@ -81,12 +152,15 @@ function compareDomainRows(left, right) {
 
 function decorateDomainRow(row) {
   const status = rowStatus(row)
+  const operations = buildDomainOperationModel({ ...row, triageStatus: status })
   return {
     ...row,
     triageStatus: status,
     needsAttention: isAttentionRow(row),
     isRunning: isRunningRow(row),
     isIdle: isIdleRow(row),
+    primaryAction: operations.primaryAction,
+    secondaryActions: operations.secondaryActions,
     searchText: [
       row?.label,
       row?.domain,
@@ -95,6 +169,8 @@ function decorateDomainRow(row) {
       row?.diagnosisTitle,
       row?.rankReason,
       row?.nextActionLabel,
+      operations.primaryAction?.label,
+      ...(operations.secondaryActions || []).map((item) => item.label),
       row?.queueSummary,
       row?.sourceSummary,
     ].map(normalize).join(' ').toLowerCase(),

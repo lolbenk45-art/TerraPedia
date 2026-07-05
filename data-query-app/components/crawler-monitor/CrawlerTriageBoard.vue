@@ -71,13 +71,24 @@
             </div>
           </dl>
           <div class="attention-card__actions">
-            <button type="button" class="btn btn-plain btn-plain--danger" @click="$emit('domain-action', 'force-reclaim', row)">
-              <TimerReset :size="15" />
-              <span>强制释放并重试</span>
+            <button
+              v-if="row.primaryAction"
+              type="button"
+              :class="operationButtonClass(row.primaryAction)"
+              @click="$emit('domain-action', row.primaryAction.action, row)"
+            >
+              <component :is="operationIcon(row.primaryAction.icon)" :size="15" />
+              <span>{{ row.primaryAction.label }}</span>
             </button>
-            <button type="button" class="btn btn-plain btn-plain--danger" @click="$emit('domain-action', 'cancel', row)">
-              <CircleStop :size="15" />
-              <span>终止</span>
+            <button
+              v-for="operation in row.secondaryActions || []"
+              :key="operation.action"
+              type="button"
+              :class="operationButtonClass(operation)"
+              @click="$emit('domain-action', operation.action, row)"
+            >
+              <component :is="operationIcon(operation.icon)" :size="15" />
+              <span>{{ operation.label }}</span>
             </button>
             <button type="button" class="btn btn-secondary" @click="$emit('open-domain', row)">
               <PanelRightOpen :size="15" />
@@ -151,9 +162,21 @@
           </div>
           <footer>
             <small>{{ row.nextActionLabel || '查看详情' }}</small>
-            <button type="button" aria-label="打开域详情" @click.stop="$emit('open-domain', row)">
-              <PanelRightOpen :size="15" />
-            </button>
+            <div class="domain-tile__actions">
+              <button
+                v-if="row.primaryAction"
+                type="button"
+                :class="tileOperationButtonClass(row.primaryAction)"
+                :aria-label="`${row.label || row.domain}：${row.primaryAction.label}`"
+                @click.stop="$emit('domain-action', row.primaryAction.action, row)"
+              >
+                <component :is="operationIcon(row.primaryAction.icon)" :size="15" />
+                <span>{{ row.primaryAction.label }}</span>
+              </button>
+              <button type="button" class="tile-icon-action" aria-label="打开域详情" @click.stop="$emit('open-domain', row)">
+                <PanelRightOpen :size="15" />
+              </button>
+            </div>
           </footer>
         </article>
         <p v-if="!filteredRows.length" class="empty-line">没有匹配的基础域</p>
@@ -181,10 +204,21 @@
               <td>{{ row.heartbeatAt || '未记录' }}</td>
               <td>{{ row.nextActionLabel || '查看详情' }}</td>
               <td>
-                <button type="button" class="table-action" @click="$emit('open-domain', row)">
-                  <PanelRightOpen :size="15" />
-                  <span>详情</span>
-                </button>
+                <div class="table-actions">
+                  <button
+                    v-if="row.primaryAction"
+                    type="button"
+                    :class="tableOperationButtonClass(row.primaryAction)"
+                    @click="$emit('domain-action', row.primaryAction.action, row)"
+                  >
+                    <component :is="operationIcon(row.primaryAction.icon)" :size="15" />
+                    <span>{{ row.primaryAction.label }}</span>
+                  </button>
+                  <button type="button" class="table-action" @click="$emit('open-domain', row)">
+                    <PanelRightOpen :size="15" />
+                    <span>详情</span>
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -205,6 +239,8 @@ import {
   CircleStop,
   LayoutGrid,
   PanelRightOpen,
+  Pause,
+  Play,
   RefreshCw,
   Search,
   Settings2,
@@ -271,6 +307,35 @@ function showAttentionTable() {
   viewMode.value = 'table'
   requestAnimationFrame(() => allDomainsSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
 }
+
+function operationIcon(icon?: string) {
+  if (icon === 'play') return Play
+  if (icon === 'pause') return Pause
+  if (icon === 'circle-stop') return CircleStop
+  if (icon === 'timer-reset') return TimerReset
+  return PanelRightOpen
+}
+
+function operationButtonClass(operation?: Record<string, any>) {
+  return [
+    'btn',
+    operation?.tone === 'primary' ? 'btn-primary' : operation?.tone === 'danger' ? 'btn-plain btn-plain--danger' : 'btn-secondary',
+  ]
+}
+
+function tileOperationButtonClass(operation?: Record<string, any>) {
+  return [
+    'tile-operation-action',
+    operation?.tone === 'primary' ? 'tile-operation-action--primary' : operation?.tone === 'danger' ? 'tile-operation-action--danger' : '',
+  ]
+}
+
+function tableOperationButtonClass(operation?: Record<string, any>) {
+  return [
+    'table-action',
+    operation?.tone === 'primary' ? 'table-action--primary' : operation?.tone === 'danger' ? 'table-action--danger' : '',
+  ]
+}
 </script>
 
 <style scoped>
@@ -292,8 +357,10 @@ function showAttentionTable() {
 .overflow-chip,
 .domain-tile header,
 .domain-tile footer,
+.domain-tile__actions,
 .search-field,
-.table-action {
+.table-action,
+.table-actions {
   display: flex;
   align-items: center;
 }
@@ -727,16 +794,48 @@ function showAttentionTable() {
   gap: 10px;
 }
 
+.domain-tile__actions {
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
 .domain-tile footer button {
   width: 34px;
   height: 34px;
-  display: grid;
-  place-items: center;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface-1);
   color: var(--color-text);
   cursor: pointer;
+}
+
+.tile-icon-action {
+  display: grid;
+  place-items: center;
+}
+
+.tile-operation-action {
+  min-width: 78px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 9px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tile-operation-action--primary {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.tile-operation-action--danger {
+  border-color: var(--color-danger);
+  background: var(--color-danger-muted);
+  color: var(--color-danger);
 }
 
 .domain-table-shell {
@@ -774,7 +873,7 @@ function showAttentionTable() {
 
 .domain-table th:last-child,
 .domain-table td:last-child {
-  width: 92px;
+  width: 174px;
 }
 
 .domain-table td strong {
@@ -800,6 +899,22 @@ function showAttentionTable() {
   color: var(--color-text);
   padding: 0 8px;
   cursor: pointer;
+}
+
+.table-actions {
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.table-action--primary {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.table-action--danger {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
 }
 
 .table-note,
