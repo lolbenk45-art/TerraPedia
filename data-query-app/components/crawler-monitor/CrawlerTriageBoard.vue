@@ -110,7 +110,7 @@
         <div class="operation-strip__summary">
           <span><strong>{{ operationProgressSummary.runningCount || 0 }}</strong><small>运行</small></span>
           <span><strong>{{ operationProgressSummary.queuedCount || 0 }}</strong><small>排队</small></span>
-          <span><strong>{{ operationProgressSummary.readyCount || 0 }}</strong><small>可启动</small></span>
+          <span><strong>{{ operationProgressSummary.readyCount || 0 }}</strong><small>可启</small></span>
         </div>
         <div class="operation-strip__rows">
           <article v-for="row in operationProgressRows" :key="rowKey(row)" class="operation-row" :class="`operation-row--${row.triageStatus}`">
@@ -119,10 +119,14 @@
               <strong :title="row.label || row.domain">{{ row.label || row.domain }}</strong>
               <small class="flow-pill" :class="`flow-pill--${row.triageStatus}`">{{ row.flowLabel || row.statusLabel || '未知状态' }}</small>
             </button>
-            <div class="operation-row__progress" :aria-label="`${row.label || row.domain} 进度 ${row.progressLabel || '未记录'}`">
-              <span :style="{ width: progressWidth(row.progressLabel) }"></span>
+            <div class="operation-row__progress-group">
+              <div class="operation-row__progress" :aria-label="`${row.label || row.domain} 进度 ${row.progressLabel || '未记录'}`">
+                <span :style="{ width: progressWidth(row.progressLabel) }"></span>
+              </div>
+              <small :title="row.progressLabel || '未记录'">{{ row.progressLabel || '--' }}</small>
             </div>
-            <span class="operation-row__meta" :title="row.flowDetail || row.progressLabel || row.nextActionLabel || '待命'">{{ row.flowDetail || row.progressLabel || row.nextActionLabel || '待命' }}</span>
+            <span class="operation-row__task" :title="row.taskLabel || row.flowDetail || row.nextActionLabel || '待命'">{{ row.taskLabel || row.flowDetail || row.nextActionLabel || '待命' }}</span>
+            <span class="operation-row__eta" :title="row.etaLabel || '预计 --'">{{ row.etaLabel || '预计 --' }}</span>
             <div class="operation-row__actions">
               <button
                 v-if="row.primaryAction"
@@ -839,37 +843,41 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 
 .operation-strip {
   display: grid;
-  grid-template-columns: 180px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
 }
 
 .operation-strip__summary {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 8px;
+  gap: 6px;
 }
 
 .operation-strip__summary span {
-  min-height: 52px;
+  min-height: 36px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 6px;
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-sm);
   background: var(--color-surface-2);
-  padding: 10px 12px;
+  padding: 7px 9px;
 }
 
 .operation-strip__summary strong {
-  font-size: 22px;
+  font-size: 17px;
   line-height: 1;
   color: var(--color-text);
+  font-variant-numeric: tabular-nums;
 }
 
 .operation-strip__summary small {
   color: var(--color-text-secondary);
+  font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .operation-strip__rows {
@@ -879,18 +887,19 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 }
 
 .operation-row {
-  min-height: 54px;
-  gap: 10px;
-  flex-wrap: wrap;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: minmax(150px, 0.9fr) minmax(150px, 1.1fr) minmax(150px, 1.2fr) minmax(84px, 0.45fr) auto;
+  align-items: center;
+  gap: 8px;
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-sm);
   background: var(--color-surface-2);
-  padding: 8px;
+  padding: 7px 8px;
 }
 
 .operation-row__main {
   min-width: 0;
-  flex: 1 1 160px;
   gap: 8px;
   border: 0;
   background: transparent;
@@ -909,12 +918,21 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 }
 
 .operation-row__main small,
-.operation-row__meta {
+.operation-row__task,
+.operation-row__eta {
   color: var(--color-text-secondary);
 }
 
+.operation-row__progress-group {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(70px, 1fr) minmax(44px, auto);
+  align-items: center;
+  gap: 8px;
+}
+
 .operation-row__progress {
-  flex: 1 1 180px;
+  min-width: 0;
   height: 8px;
   border-radius: var(--radius-full);
   overflow: hidden;
@@ -964,10 +982,10 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   background: var(--color-danger);
 }
 
-.operation-row__meta {
-  flex: 1 1 112px;
+.operation-row__progress-group small,
+.operation-row__task,
+.operation-row__eta {
   min-width: 0;
-  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -975,9 +993,23 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   font-weight: 700;
 }
 
+.operation-row__progress-group small {
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.operation-row__task {
+  color: var(--color-text);
+}
+
+.operation-row__eta {
+  text-align: right;
+}
+
 .operation-row__actions {
-  flex: 0 0 auto;
+  justify-self: end;
   gap: 6px;
+  min-width: 0;
 }
 
 .domain-tile {
@@ -1379,19 +1411,24 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   }
 
   .operation-row {
+    grid-template-columns: 1fr;
     align-items: stretch;
-    flex-direction: column;
   }
 
   .operation-row__main,
-  .operation-row__progress,
-  .operation-row__meta {
+  .operation-row__progress-group,
+  .operation-row__task,
+  .operation-row__eta {
     width: 100%;
-    flex-basis: auto;
+  }
+
+  .operation-row__eta {
+    text-align: left;
   }
 
   .operation-row__actions {
     justify-content: flex-end;
+    justify-self: stretch;
   }
 
   .toolbar {

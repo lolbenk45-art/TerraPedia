@@ -282,7 +282,81 @@ function operationProgressLabel(row) {
   return '未开始'
 }
 
-function buildOperationProgressRows(rows) {
+function progressPayload(row) {
+  return row?.progressRow?.progressPayload || row?.progressPayload || row?.progressRow || {}
+}
+
+function progressNumber(value) {
+  const number = Number(value)
+  return Number.isFinite(number) ? number : null
+}
+
+function progressCurrent(row) {
+  const payload = progressPayload(row)
+  return progressNumber(payload.current ?? payload.overallCurrent ?? row?.progressRow?.current ?? row?.progressRow?.overallCurrent)
+}
+
+function progressTotal(row) {
+  const payload = progressPayload(row)
+  return progressNumber(payload.total ?? payload.overallTotal ?? row?.progressRow?.total ?? row?.progressRow?.overallTotal)
+}
+
+function currentTaskLabel(row) {
+  const status = operationProgressStatus(row)
+  const payload = progressPayload(row)
+  if (status === 'queued') return normalize(row?.blockerLabel || row?.queueSummary || row?.rankReason || '等待前序任务')
+  if (status === 'completed' || status === 'success') return normalize(row?.reason || row?.rankReason || '已完成')
+  if (status === 'ready' || status === 'healthy') return normalize(row?.nextActionLabel || '待启动')
+
+  const explicit = normalize(
+    payload.currentItem
+    || payload.currentTitle
+    || payload.currentPage
+    || payload.pageTitle
+    || payload.itemName
+    || payload.item
+  )
+  if (explicit) return `正在爬：${explicit}`
+
+  const message = normalize(payload.message || row?.reason || row?.rankReason)
+  const messageTail = message.match(/(?:\d+\s*\/\s*\d+|[0-9]+(?:\.[0-9]+)?%)\s*[:：]\s*(.+)$/)?.[1]
+  if (messageTail) return `正在爬：${messageTail.trim()}`
+  if (message) return message
+
+  return normalize(payload.phase || row?.flowDetail || row?.progressLabel || '观察进度')
+}
+
+function formatEtaMs(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) return ''
+  const minutes = Math.max(1, Math.round(ms / 60000))
+  if (minutes < 120) return `预计剩余 ${minutes} 分钟`
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  return `预计剩余 ${hours}小时${rest ? `${rest}分` : ''}`
+}
+
+function etaLabel(row, now) {
+  const status = operationProgressStatus(row)
+  if (status === 'completed' || status === 'success') return '已完成'
+  if (status === 'queued') return '等待启动'
+  if (status === 'ready' || status === 'healthy') return '可启动'
+
+  const current = progressCurrent(row)
+  const total = progressTotal(row)
+  if (!current || !total || current >= total) return '预计 --'
+
+  const payload = progressPayload(row)
+  const startedAt = normalize(payload.startedAt || row?.progressRow?.startedAt || row?.startedAt)
+  const startedMs = Date.parse(startedAt)
+  const nowMs = now instanceof Date ? now.getTime() : Date.parse(String(now || ''))
+  if (!Number.isFinite(startedMs) || !Number.isFinite(nowMs) || nowMs <= startedMs) return '预计 --'
+
+  const elapsedMs = nowMs - startedMs
+  const remainingMs = (elapsedMs / current) * Math.max(total - current, 0)
+  return formatEtaMs(remainingMs) || '预计 --'
+}
+
+function buildOperationProgressRows(rows, now) {
   return rows
     .filter((row) => row.isRunning || queueStatus(row) || row.primaryAction || row.progressLabel)
     .sort((left, right) =>
@@ -296,6 +370,8 @@ function buildOperationProgressRows(rows) {
       status: operationProgressStatus(row),
       statusLabel: row?.diagnosisTitle || row?.status || operationProgressStatus(row),
       progressLabel: operationProgressLabel(row),
+      taskLabel: currentTaskLabel(row),
+      etaLabel: etaLabel(row, now),
     }))
 }
 
@@ -321,7 +397,7 @@ export function buildTriageWorkbench({
   const rows = domainRows.map(decorateDomainRow).sort(compareDomainRows)
   const attentionRows = rows.filter((row) => row.needsAttention).sort(compareDomainRows)
   const runningRows = rows.filter((row) => row.isRunning)
-  const operationProgressRows = attentionRows.length ? [] : buildOperationProgressRows(rows)
+  const operationProgressRows = attentionRows.length ? [] : buildOperationProgressRows(rows, now)
   const operationProgressSummary = buildOperationProgressSummary(rows)
   const capped = Math.max(1, Number(maxAttentionCards) || 4)
   const attentionCards = attentionRows.slice(0, capped)

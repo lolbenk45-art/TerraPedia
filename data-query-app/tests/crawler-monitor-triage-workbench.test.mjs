@@ -244,6 +244,7 @@ test('operation progress strip shows completed domains with Shanghai completion 
 
 test('operation rows expose explicit flow labels for queued and running domains', () => {
   const view = buildTriageWorkbench({
+    now: '2026-07-06T09:20:12.184Z',
     domainRows: [
       {
         domain: 'bosses',
@@ -275,6 +276,19 @@ test('operation rows expose explicit flow labels for queued and running domains'
           recommendedActionId: 'domain-source-town-npc-maintenance',
           state: { status: 'running' },
         },
+        progressRow: {
+          status: 'running',
+          current: 32,
+          total: 388,
+          progressPayload: {
+            current: 32,
+            total: 388,
+            message: 'scraping rendered immunity pages 32/388: Slow',
+            phase: 'buff-page-immunities',
+            startedAt: '2026-07-06T09:13:42.577Z',
+            generatedAt: '2026-07-06T09:20:12.184Z',
+          },
+        },
         queueItem: { status: 'running' },
       },
     ],
@@ -287,6 +301,9 @@ test('operation rows expose explicit flow labels for queued and running domains'
       ['bosses', '排队等待', '等待域 town_npc_maintenance释放锁'],
     ]
   )
+  const runningRow = view.operationProgressRows.find((row) => row.domain === 'town_npc_maintenance')
+  assert.equal(runningRow.taskLabel, '正在爬：Slow')
+  assert.equal(runningRow.etaLabel, '预计剩余 72 分钟')
 })
 
 test('operation flow details prefer conflict reasons over evidence paths', () => {
