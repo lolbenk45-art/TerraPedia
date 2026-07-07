@@ -353,6 +353,42 @@ class AdminCrawlerMonitorControllerTest {
     }
 
     @Test
+    void shouldPassBuffResumeModeWithoutClientStatePath() throws Exception {
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(true);
+        result.setDomain("buffs");
+        result.setActionId("buff-page-immunity-refresh");
+        result.setStatus("running");
+        result.setResumeMode("resume");
+        result.setResumeStatePath("data/generated/resume/buff-page-immunity-refresh.resume.json");
+        result.setProgressPath("data/generated/fetch-wiki-buffs-progress.latest.json");
+        result.setMessage("dispatch accepted");
+
+        when(crawlerMonitorService.dispatchWikiMonitorTask(argThat(request ->
+            "buffs".equals(request.getDomain())
+                && "buff-page-immunity-refresh".equals(request.getActionId())
+                && "resume".equals(request.getResumeMode())
+        ))).thenReturn(result);
+
+        mockMvc.perform(post("/admin/crawler-monitor/dispatch")
+                .contentType("application/json")
+                .content("{\"domain\":\"buffs\",\"actionId\":\"buff-page-immunity-refresh\",\"resumeMode\":\"resume\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.accepted").value(true))
+            .andExpect(jsonPath("$.data.domain").value("buffs"))
+            .andExpect(jsonPath("$.data.actionId").value("buff-page-immunity-refresh"))
+            .andExpect(jsonPath("$.data.resumeMode").value("resume"))
+            .andExpect(jsonPath("$.data.resumeStatePath").value("data/generated/resume/buff-page-immunity-refresh.resume.json"));
+
+        verify(crawlerMonitorService).dispatchWikiMonitorTask(argThat(request ->
+            "buffs".equals(request.getDomain())
+                && "buff-page-immunity-refresh".equals(request.getActionId())
+                && "resume".equals(request.getResumeMode())
+        ));
+    }
+
+    @Test
     void shouldPassFailureModeWhenDispatchingCrawlerMonitorTask() throws Exception {
         CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
         result.setAccepted(true);

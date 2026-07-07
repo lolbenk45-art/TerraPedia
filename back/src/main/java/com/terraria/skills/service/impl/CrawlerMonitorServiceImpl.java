@@ -117,23 +117,27 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final String REDIS_BACKEND_ACTION_PROGRESS_PREFIX = "terrapedia:crawler:backend-refresh:action:";
     private static final String REDIS_BACKEND_ACTION_PROGRESS_SUFFIX = ":progress";
     private static final String TOWN_NPC_RESUME_STATE_PATH = "data/generated/resume/domain-source-town-npc-maintenance.resume.json";
+    private static final String BUFF_RESUME_STATE_PATH = "data/generated/resume/buff-page-immunity-refresh.resume.json";
+    private static final String BOSS_RESUME_STATE_PATH = "data/generated/resume/domain-source-bosses.resume.json";
     private static final String TOWN_NPC_FAILURE_MODE_CRASH_AFTER_PARTIAL = "townNpcCrashAfterPartial";
     private static final Set<String> WIKI_MONITOR_RESUME_MODES = Set.of("fresh", "resume", "auto");
     private static final List<WikiMonitorRule> WIKI_MONITOR_RULES = List.of(
         backendRule("items", "Items", "wiki.module.iteminfo", "Module:Iteminfo/data", "wiki-items-refresh"),
         backendRule("npcs", "NPCs", "wiki.module.npcinfo", "Module:Npcinfo/data", "wiki-npcs-refresh"),
         backendRule("projectiles", "Projectiles", "wiki.module.projectileinfo", "Module:Projectileinfo/data", "wiki-projectiles-refresh"),
-        directRule("buffs", "Buffs", "wiki.page.template_getbuffinfo", "Template:GetBuffInfo", "buff-page-immunity-refresh",
+        resumableDirectRule("buffs", "Buffs", "wiki.page.template_getbuffinfo", "Template:GetBuffInfo", "buff-page-immunity-refresh",
             "data/generated/fetch-wiki-buffs-progress.latest.json",
-            List.of("node", "scripts/data/fetch/fetch-wiki-buffs.mjs", "--progress-path=data/generated/fetch-wiki-buffs-progress.latest.json")),
+            List.of("node", "scripts/data/fetch/fetch-wiki-buffs.mjs", "--progress-path=data/generated/fetch-wiki-buffs-progress.latest.json"),
+            BUFF_RESUME_STATE_PATH),
         directRule("armor_sets", "Armor sets", "wiki.module.armorsetbonuses", "Module:ArmorSetBonuses", "domain-source-armor-sets",
             "data/generated/domain-source-armor-sets-progress.latest.json",
             List.of("node", "scripts/data/fetch/fetch-wiki-armorsetbonuses.mjs", "--progress-path=data/generated/domain-source-armor-sets-progress.latest.json")),
         backendRule("recipes", "Recipes", "wiki.zh.recipes", "zh recipe source coverage", "recipe-reference-sync"),
         backendRule("biomes", "Biomes", "wiki.page.biomes_anchor", "Forest", "biome-sync"),
-        directRule("bosses", "Bosses", "wiki.domain.bosses", "Boss source snapshot pages", "domain-source-bosses",
+        resumableDirectRule("bosses", "Bosses", "wiki.domain.bosses", "Boss source snapshot pages", "domain-source-bosses",
             "data/generated/domain-source-bosses-progress.latest.json",
-            List.of("node", "scripts/data/fetch/fetch-wiki-bosses.mjs", "--progress-path=data/generated/domain-source-bosses-progress.latest.json")),
+            List.of("node", "scripts/data/fetch/fetch-wiki-bosses.mjs", "--progress-path=data/generated/domain-source-bosses-progress.latest.json"),
+            BOSS_RESUME_STATE_PATH),
         resumableDirectRule("town_npc_maintenance", "Town NPC maintenance", "wiki.domain.town_npc_maintenance", "Town NPC maintenance source page", "domain-source-town-npc-maintenance",
             "data/generated/domain-source-town-npc-maintenance-progress.latest.json",
             List.of("node", "scripts/data/fetch/fetch-wiki-town-npc-maintenance.mjs", "--progress-path=data/generated/domain-source-town-npc-maintenance-progress.latest.json"),
@@ -390,7 +394,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
         if (!rule.resumeSupported()) {
             if ("fresh".equals(resumeMode)) {
-                return Map.of("resumeMode", resumeMode);
+                return Map.of();
             }
             throw new IllegalArgumentException("动作 " + rule.actionId() + " 不支持断点续爬。");
         }
@@ -1725,6 +1729,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             return rejectedDispatch(rule, "retry_limit", "该 Wiki 派发任务已达到重试次数上限，请检查报告后手动重新加入队列。");
         }
         LinkedHashMap<String, Object> metadata = new LinkedHashMap<>();
+        String inheritedResumeMode = trimToNull(asString(latestPayload.get("resumeMode")));
+        if (inheritedResumeMode != null) {
+            metadata.put("resumeMode", inheritedResumeMode);
+            String inheritedResumeStatePath = trimToNull(asString(latestPayload.get("resumeStatePath")));
+            if (inheritedResumeStatePath != null) {
+                metadata.put("resumeStatePath", inheritedResumeStatePath);
+            }
+        }
         metadata.put("retryOf", failedDispatchId);
         metadata.put("retryCount", retryCount + 1);
         metadata.put("retryReason", firstNonBlank(asString(latestPayload.get("message")), "previous dispatch failed"));
@@ -2801,8 +2813,20 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 message
             );
         } catch (IOException exception) {
-            writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(),
-                buildDispatchState(dispatchId, rule, "failed", timestamp, Instant.now(clock).toString(), dispatchPaths, exception.getMessage()));
+            LinkedHashMap<String, Object> failedState = buildDispatchState(
+                dispatchId,
+                rule,
+                "failed",
+                timestamp,
+                Instant.now(clock).toString(),
+                dispatchPaths,
+                exception.getMessage()
+            );
+            failedState.putAll(effectiveMetadata);
+            if (queueId != null) {
+                failedState.put("queueId", queueId);
+            }
+            writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), failedState);
             releaseDispatchLock(lockPath, dispatchId);
             return queueStartResult(
                 queueId,

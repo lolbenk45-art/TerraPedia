@@ -9,13 +9,25 @@ import {
   buildActionProgressPayload,
   writeJsonFile
 } from '../workflow/backend-refresh-runtime-state.mjs';
+import {
+  buildResumeProgressFields,
+  computeInputFingerprint,
+  createResumeState,
+  derivePartialPath,
+  loadResumeState,
+  makeSkipChecker,
+  markCompleted,
+  resolveResumeDecision
+} from '../lib/crawler-resume-state.mjs';
 
 const repoRoot = getProjectRoot();
 
 const API_URL = 'https://terraria.wiki.gg/api.php';
 const ACTION_ID = 'domain-source-bosses';
+const RESUME_MODE_VALUE = 'keyed_items';
 const DEFAULT_OUTPUT_PATH = path.join(repoRoot, 'data', 'generated', 'wiki-bosses.latest.json');
 const DEFAULT_PROGRESS_PATH = path.join(repoRoot, 'data', 'generated', 'domain-source-bosses-progress.latest.json');
+const DEFAULT_RESUME_STATE_PATH = path.join(repoRoot, 'data', 'generated', 'resume', 'domain-source-bosses.resume.json');
 
 const GROUP_CONFIG = {
   'Pre-Hardmode bosses': { groupType: 'PRE_HARDMODE', groupNameZh: '困难模式之前的 Boss' },
@@ -32,12 +44,17 @@ await main().catch((error) => {
 async function main(argv = process.argv.slice(2)) {
   const generatedAt = new Date().toISOString();
   const dateTag = generatedAt.slice(0, 10);
-  const args = parseArgs(argv);
-  const outputJsonPath = path.resolve(args['output-json'] ?? DEFAULT_OUTPUT_PATH);
-  const reportPath = path.resolve(args['report-json'] ?? path.join(repoRoot, 'reports', `wiki-bosses-fetch-${dateTag}.json`));
-  const progressPath = path.resolve(args['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_PROGRESS_PATH);
+  const options = parseArgs(argv);
+  const outputJsonPath = path.resolve(options['output-json'] ?? DEFAULT_OUTPUT_PATH);
+  const reportPath = path.resolve(options['report-json'] ?? path.join(repoRoot, 'reports', `wiki-bosses-fetch-${dateTag}.json`));
+  const progressPath = path.resolve(options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_PROGRESS_PATH);
   const canonicalProgressPath = path.resolve(DEFAULT_PROGRESS_PATH);
-  const maxRecords = parseNonNegativeInteger(args['max-records'], null);
+  const maxRecords = parseNonNegativeInteger(options['max-records'], null);
+  const requestedResumeMode = String(options['resume-mode'] ?? 'fresh');
+  const resumeStatePath = path.resolve(process.cwd(), options['resume-state'] ?? DEFAULT_RESUME_STATE_PATH);
+  let lastResumeFields = null;
+  let lastProgressCurrent = 0;
+  let lastProgressTotal = 0;
 
   const writeProgress = (progress) => {
     const progressPayload = {
@@ -73,24 +90,60 @@ async function main(argv = process.argv.slice(2)) {
     if (maxRecords != null && bossEntries.length > maxRecords) {
       throw new Error(`Discovered ${bossEntries.length} boss records, exceeding --max-records=${maxRecords}`);
     }
+    const resume = buildBossResumeContext({
+      bossEntries,
+      requestedResumeMode,
+      statePath: resumeStatePath
+    });
+    lastResumeFields = resume.progressFields();
+    lastProgressCurrent = resume.completedCount();
+    lastProgressTotal = resume.total;
     writeProgress({
       status: 'running',
       phase: 'discover',
       message: `discovered ${bossEntries.length} boss records`,
       current: 0,
-      total: bossEntries.length
+      total: bossEntries.length,
+      resumeFields: lastResumeFields
     });
 
     const records = await mapWithConcurrency(bossEntries, 1, async (entry, index) => {
+      lastResumeFields = resume.progressFields();
+      lastProgressCurrent = resume.completedCount();
+      lastProgressTotal = bossEntries.length;
       writeProgress({
         status: 'running',
         phase: 'hydrate',
         message: `fetching ${entry.titleEn}`,
         current: index + 1,
-        total: bossEntries.length
+        total: bossEntries.length,
+        resumeFields: lastResumeFields
       });
-      return hydrateBossEntry(entry);
+      if (resume.shouldSkip(entry.pageTitleEn)) {
+        return resume.partialStore[String(entry.pageTitleEn)];
+      }
+      const record = await hydrateBossEntry(entry);
+      if (!isValidBossPartialRecord(record)) {
+        return record;
+      }
+      resume.partialStore[String(entry.pageTitleEn)] = record;
+      writeJsonFile(resume.partialPath, resume.partialStore);
+      runResumeCrashHook('after-partial-before-mark', { key: entry.pageTitleEn, attempted: index + 1 }, resume);
+      markCompleted({ statePath: resume.statePath, state: resume.state, key: entry.pageTitleEn });
+      runResumeCrashHook('after-mark', { key: entry.pageTitleEn, attempted: index + 1 }, resume);
+      return record;
     });
+    lastResumeFields = resume.progressFields();
+    lastProgressCurrent = resume.completedCount();
+    lastProgressTotal = bossEntries.length;
+    if (resume.completedCount() < bossEntries.length) {
+      const failedCount = records.filter((record) => record?.status === 'error').length;
+      const error = new Error(`${resume.completedCount()}/${bossEntries.length} boss records 完成；${failedCount} 个页面抓取或解析失败`);
+      error.resumeFields = lastResumeFields;
+      error.resumeCurrent = lastProgressCurrent;
+      error.resumeTotal = lastProgressTotal;
+      throw error;
+    }
     const sortedRecords = records
       .filter((record) => record != null)
       .sort((a, b) => a.progressionOrder - b.progressionOrder);
@@ -140,7 +193,8 @@ async function main(argv = process.argv.slice(2)) {
       phase: 'write',
       message: `finished boss source fetch; records=${sortedRecords.length}`,
       current: bossEntries.length,
-      total: bossEntries.length
+      total: bossEntries.length,
+      resumeFields: resume.progressFields()
     });
 
     console.log(JSON.stringify(report, null, 2));
@@ -149,8 +203,15 @@ async function main(argv = process.argv.slice(2)) {
       status: 'failed',
       phase: isMaxRecordsError(error) ? 'discover' : 'error',
       message: error instanceof Error ? error.message : String(error),
-      current: 0,
-      total: 0,
+      current: error && typeof error === 'object' && Number.isInteger(error.resumeCurrent)
+        ? error.resumeCurrent
+        : lastProgressCurrent,
+      total: error && typeof error === 'object' && Number.isInteger(error.resumeTotal)
+        ? error.resumeTotal
+        : lastProgressTotal,
+      resumeFields: error && typeof error === 'object' && error.resumeFields
+        ? error.resumeFields
+        : lastResumeFields,
       nextStep: 'check wiki boss source availability or lower the requested scope'
     });
     throw error;
@@ -167,6 +228,7 @@ function buildBossProgressPayload({
   progressPath,
   outputPath,
   reportPath,
+  resumeFields = null,
   nextStep = null,
   generatedAt = new Date().toISOString()
 } = {}) {
@@ -186,8 +248,143 @@ function buildBossProgressPayload({
   });
   payload.outputPath = outputPath ?? null;
   payload.reportPath = reportPath ?? null;
+  if (resumeFields) Object.assign(payload, resumeFields);
   if (nextStep) payload.nextStep = nextStep;
   return payload;
+}
+
+function buildBossResumeContext({
+  bossEntries,
+  requestedResumeMode = 'fresh',
+  statePath = DEFAULT_RESUME_STATE_PATH
+} = {}) {
+  const resolvedStatePath = path.resolve(process.cwd(), statePath);
+  const partialPath = derivePartialPath(resolvedStatePath);
+  const validKeys = (bossEntries ?? []).map((entry) => entry.pageTitleEn);
+  const duplicateKeys = findDuplicateKeys(validKeys);
+  if (duplicateKeys.length > 0) {
+    throw new Error(`Duplicate boss resume keys: ${duplicateKeys.join(', ')}`);
+  }
+  const inputFingerprint = computeInputFingerprint(bossEntries ?? [], {
+    normalizeEntry: (entry) => ({
+      pageTitleEn: String(entry.pageTitleEn ?? ''),
+      titleEn: String(entry.titleEn ?? ''),
+      groupType: String(entry.groupType ?? ''),
+      progressionOrder: String(entry.progressionOrder ?? '')
+    })
+  });
+  const priorState = loadResumeState(resolvedStatePath);
+  const priorPartialStore = fs.existsSync(partialPath) ? loadJsonObject(partialPath) : null;
+  const failureState = priorState ?? createResumeState({
+    actionId: ACTION_ID,
+    resumeMode: RESUME_MODE_VALUE,
+    inputFingerprint
+  });
+  const decision = resolveResumeDecision({
+    mode: requestedResumeMode,
+    state: priorState,
+    actionId: ACTION_ID,
+    resumeMode: RESUME_MODE_VALUE,
+    inputFingerprint,
+    partialStore: priorPartialStore,
+    validKeys,
+    getRecordKey: (record) => record.pageTitleEn,
+    isValidRecord: isValidBossPartialRecord
+  });
+  if (decision.action === 'fail') {
+    const error = new Error(`resume 校验失败(${decision.reason})：请用 --resume-mode=fresh 重跑，或确认输入未变`);
+    error.resumeFields = buildResumeProgressFields(failureState, validKeys.length);
+    error.resumeCurrent = countCompletedKeysInScope(failureState, validKeys);
+    error.resumeTotal = validKeys.length;
+    throw error;
+  }
+
+  const resuming = decision.action === 'resume';
+  const state = resuming
+    ? priorState
+    : createResumeState({ actionId: ACTION_ID, resumeMode: RESUME_MODE_VALUE, inputFingerprint });
+  const partialStore = resuming ? priorPartialStore : {};
+  if (!resuming) {
+    fs.rmSync(resolvedStatePath, { force: true });
+    fs.rmSync(partialPath, { force: true });
+    writeJsonFile(partialPath, partialStore);
+    writeJsonFile(resolvedStatePath, state);
+  }
+  const shouldSkip = makeSkipChecker(state, partialStore, {
+    getRecordKey: (record) => record.pageTitleEn,
+    isValidRecord: isValidBossPartialRecord
+  });
+
+  return {
+    statePath: resolvedStatePath,
+    partialPath,
+    state,
+    partialStore,
+    total: validKeys.length,
+    shouldSkip,
+    completedCount: () => countCompletedKeysInScope(state, validKeys),
+    progressFields: () => buildResumeProgressFields(state, validKeys.length)
+  };
+}
+
+function isValidBossPartialRecord(record) {
+  return Boolean(
+    record
+      && typeof record === 'object'
+      && !Array.isArray(record)
+      && typeof record.pageTitleEn === 'string'
+      && typeof record.titleEn === 'string'
+      && typeof record.groupType === 'string'
+      && typeof record.groupNameEn === 'string'
+      && typeof record.groupNameZh === 'string'
+      && Number.isFinite(record.progressionOrder)
+      && Number.isFinite(record.orderWithinGroup)
+      && record.status === 'ok'
+      && Number.isFinite(record.pageId)
+      && Number.isFinite(record.revisionId)
+      && typeof record.revisionTimestamp === 'string'
+      && typeof record.sourceUrl === 'string'
+  );
+}
+
+function countCompletedKeysInScope(state, validKeys = []) {
+  const validKeySet = new Set(validKeys.map((key) => String(key)));
+  return new Set((state?.completedKeys || [])
+    .map((key) => String(key))
+    .filter((key) => validKeySet.has(key))).size;
+}
+
+function findDuplicateKeys(keys = []) {
+  const seen = new Set();
+  const duplicates = new Set();
+  for (const key of keys.map((value) => String(value))) {
+    if (seen.has(key)) {
+      duplicates.add(key);
+    }
+    seen.add(key);
+  }
+  return [...duplicates];
+}
+
+function loadJsonObject(filePath) {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function runResumeCrashHook(point, detail, resume) {
+  if (process.env.TERRAPEDIA_BOSS_ENABLE_CRASH_HOOK !== '1') return;
+  const crashPoint = process.env.TERRAPEDIA_BOSS_CRASH_POINT || 'after-partial-before-mark';
+  const crashAfter = parseNonNegativeInteger(process.env.TERRAPEDIA_BOSS_CRASH_AFTER, 1);
+  if (point !== crashPoint || Number(detail?.attempted ?? 0) < crashAfter) return;
+  const error = new Error(`intentional boss resume crash at ${point}`);
+  error.resumeFields = resume.progressFields();
+  error.resumeCurrent = resume.completedCount();
+  error.resumeTotal = resume.total;
+  throw error;
 }
 
 async function fetchBossSections() {

@@ -4,8 +4,14 @@ import path from 'node:path';
 
 import { writeJsonFile } from '../workflow/backend-refresh-runtime-state.mjs';
 
-export function computeInputFingerprint(entries) {
-  const normalized = [...entries].map(normalizeFingerprintEntry).sort();
+export function computeInputFingerprint(entries, options = {}) {
+  const normalizeEntry = typeof options.normalizeEntry === 'function'
+    ? options.normalizeEntry
+    : normalizeFingerprintEntry;
+  const normalized = [...entries].map((entry) => {
+    const normalizedEntry = normalizeEntry(entry);
+    return typeof normalizedEntry === 'string' ? normalizedEntry : JSON.stringify(normalizedEntry);
+  }).sort();
   return createHash('sha256').update(JSON.stringify(normalized)).digest('hex');
 }
 
@@ -19,6 +25,11 @@ function normalizeFingerprintEntry(entry) {
     });
   }
   return String(entry);
+}
+
+function recordKeyFor(record, fallbackKey, getRecordKey) {
+  if (typeof getRecordKey === 'function') return String(getRecordKey(record));
+  return String(record?.gameId ?? fallbackKey ?? '');
 }
 
 export function createResumeState({ actionId, resumeMode, inputFingerprint }) {
@@ -60,6 +71,7 @@ export function resolveResumeDecision({
   partialStore,
   isValidRecord,
   validKeys,
+  getRecordKey,
 }) {
   if (!['fresh', 'resume', 'auto'].includes(mode)) {
     return { action: 'fail', reason: 'invalid-mode' };
@@ -74,7 +86,7 @@ export function resolveResumeDecision({
     return { action: 'fresh', reason: `auto-downgrade:${stateVerdict.reason}` };
   }
 
-  const partialVerdict = verifyResumePartialStore({ state, partialStore, isValidRecord, validKeys });
+  const partialVerdict = verifyResumePartialStore({ state, partialStore, isValidRecord, validKeys, getRecordKey });
   if (!partialVerdict.ok) {
     if (mode === 'resume') {
       return {
@@ -101,6 +113,7 @@ export function verifyResumePartialStore({
   partialStore,
   isValidRecord = defaultIsValidPartialRecord,
   validKeys = null,
+  getRecordKey,
 }) {
   if (partialStore == null) return { ok: false, reason: 'partial-missing-store', missingKeys: [] };
   if (!partialStore || typeof partialStore !== 'object' || Array.isArray(partialStore)) {
@@ -125,7 +138,7 @@ export function verifyResumePartialStore({
     if (!record || typeof record !== 'object' || Array.isArray(record)) {
       return { ok: false, reason: 'partial-invalid-record', missingKeys: [] };
     }
-    if (String(record.gameId ?? '') !== key) {
+    if (recordKeyFor(record, key, getRecordKey) !== key) {
       return { ok: false, reason: 'partial-key-mismatch', missingKeys: [] };
     }
     if (!isValidRecord(record, key)) {
@@ -136,7 +149,11 @@ export function verifyResumePartialStore({
   return { ok: true, reason: 'valid', missingKeys: [] };
 }
 
-export function makeSkipChecker(state, partialStore = {}, isValidRecord = defaultIsValidPartialRecord) {
+export function makeSkipChecker(state, partialStore = {}, isValidRecordOrOptions = defaultIsValidPartialRecord) {
+  const { getRecordKey, isValidRecord = defaultIsValidPartialRecord } =
+    typeof isValidRecordOrOptions === 'function'
+      ? { isValidRecord: isValidRecordOrOptions }
+      : (isValidRecordOrOptions ?? {});
   const done = new Set((state?.completedKeys || []).map((key) => String(key)));
   return (key) => {
     const strKey = String(key);
@@ -146,7 +163,7 @@ export function makeSkipChecker(state, partialStore = {}, isValidRecord = defaul
         && record
         && typeof record === 'object'
         && !Array.isArray(record)
-        && String(record.gameId ?? '') === strKey
+        && recordKeyFor(record, strKey, getRecordKey) === strKey
         && isValidRecord(record, strKey)
     );
   };

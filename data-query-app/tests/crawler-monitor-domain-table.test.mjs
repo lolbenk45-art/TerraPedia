@@ -114,6 +114,28 @@ test('domain table shows previous cancellation as ready to recrawl', () => {
   assert.equal(rows[0].nextActionLabel, '提交正式派发')
 })
 
+test('domain table preserves Buff resume capability metadata on source domain', () => {
+  const rows = buildDomainTableRows({
+    domains: [
+      {
+        domain: 'buffs',
+        label: 'Buffs',
+        recommendedActionId: 'buff-page-immunity-refresh',
+        resumeSupported: true,
+        resumeStatePath: 'data/generated/resume/buff-page-immunity-refresh.resume.json',
+        restartBehavior: 'resume-dispatch',
+        state: { status: 'failed', nextAction: 'continue_crawl' },
+      },
+    ],
+    progressRows: [],
+    dispatchQueue: [],
+  })
+
+  assert.equal(rows[0].sourceDomain.resumeSupported, true)
+  assert.equal(rows[0].sourceDomain.resumeStatePath, 'data/generated/resume/buff-page-immunity-refresh.resume.json')
+  assert.equal(rows[0].sourceDomain.restartBehavior, 'resume-dispatch')
+})
+
 test('domain table backend state overrides older terminal queue history', () => {
   const rows = buildDomainTableRows({
     domains: [

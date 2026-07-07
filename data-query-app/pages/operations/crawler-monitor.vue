@@ -154,7 +154,7 @@ import {
   wikiHeartbeatSummary,
 } from '~/utils/crawlerMonitorDisplay.mjs'
 import { buildCrawlerUnifiedStatus } from '~/utils/crawlerMonitorUnifiedStatus.mjs'
-import { shouldOfferForceReclaim, buildDispatchControlPayload } from './crawler-monitor.control.mjs'
+import { shouldOfferForceReclaim, buildDispatchControlPayload, buildResumeDispatchPayload } from './crawler-monitor.control.mjs'
 import { resolveDomainState } from './crawler-monitor.state.mjs'
 import ActivityDrawer from '~/components/crawler-monitor/ActivityDrawer.vue'
 import CrawlerTriageBoard from '~/components/crawler-monitor/CrawlerTriageBoard.vue'
@@ -1654,22 +1654,14 @@ function pauseDomainTableRow(row: any) {
 
 async function continueDomainTableRow(row: any) {
   selectDomainTableRow(row)
-  const domain = row?.sourceDomain || null
-  const domainId = domain?.domain || row?.domain || ''
-  const actionId = domain?.recommendedActionId || row?.actionId || ''
-  const resumeStatePath = domain?.resumeStatePath || row?.resumeStatePath || ''
-  if (!domainId || !actionId || !domain?.resumeSupported || !resumeStatePath) {
+  const decision = buildResumeDispatchPayload(row)
+  if (!decision.ok) {
     showToast('当前域缺少续传状态，不能接着爬', 'warning')
     return
   }
-  wikiDispatchLoading.value = domainId
+  wikiDispatchLoading.value = decision.domainId
   try {
-    const response: any = await post('/admin/crawler-monitor/dispatch', {
-      domain: domainId,
-      actionId,
-      resumeMode: 'resume',
-      resumeStatePath,
-    })
+    const response: any = await post('/admin/crawler-monitor/dispatch', decision.payload)
     latestDispatchResult.value = (response?.data ?? response) || null
     showToast(dispatchFeedbackMessage(latestDispatchResult.value) || '已提交接着爬', latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
     await loadOverview()

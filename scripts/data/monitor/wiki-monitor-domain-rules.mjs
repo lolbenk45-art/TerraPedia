@@ -33,7 +33,12 @@ export const WIKI_MONITOR_DOMAIN_RULES = [
     'Template:GetBuffInfo',
     'buff-page-immunity-refresh',
     'data/generated/fetch-wiki-buffs-progress.latest.json',
-    ['node', 'scripts/data/fetch/fetch-wiki-buffs.mjs', '--progress-path=data/generated/fetch-wiki-buffs-progress.latest.json']
+    ['node', 'scripts/data/fetch/fetch-wiki-buffs.mjs', '--progress-path=data/generated/fetch-wiki-buffs-progress.latest.json'],
+    {
+      resumeSupported: true,
+      resumeStatePath: 'data/generated/resume/buff-page-immunity-refresh.resume.json',
+      restartBehavior: 'resume-dispatch'
+    }
   ),
   rule(
     'armor_sets',
@@ -69,7 +74,12 @@ export const WIKI_MONITOR_DOMAIN_RULES = [
     'Boss source snapshot pages',
     'domain-source-bosses',
     'data/generated/domain-source-bosses-progress.latest.json',
-    ['node', 'scripts/data/fetch/fetch-wiki-bosses.mjs', '--progress-path=data/generated/domain-source-bosses-progress.latest.json']
+    ['node', 'scripts/data/fetch/fetch-wiki-bosses.mjs', '--progress-path=data/generated/domain-source-bosses-progress.latest.json'],
+    {
+      resumeSupported: true,
+      resumeStatePath: 'data/generated/resume/domain-source-bosses.resume.json',
+      restartBehavior: 'resume-dispatch'
+    }
   ),
   rule(
     'town_npc_maintenance',
@@ -78,7 +88,12 @@ export const WIKI_MONITOR_DOMAIN_RULES = [
     'Town NPC maintenance source page',
     'domain-source-town-npc-maintenance',
     'data/generated/domain-source-town-npc-maintenance-progress.latest.json',
-    ['node', 'scripts/data/fetch/fetch-wiki-town-npc-maintenance.mjs', '--progress-path=data/generated/domain-source-town-npc-maintenance-progress.latest.json']
+    ['node', 'scripts/data/fetch/fetch-wiki-town-npc-maintenance.mjs', '--progress-path=data/generated/domain-source-town-npc-maintenance-progress.latest.json'],
+    {
+      resumeSupported: true,
+      resumeStatePath: 'data/generated/resume/domain-source-town-npc-maintenance.resume.json',
+      restartBehavior: 'resume-dispatch'
+    }
   ),
   rule(
     'shimmer',
@@ -126,7 +141,7 @@ export function resolveWikiMonitorAction(domain, actionId) {
   return ruleEntry;
 }
 
-function rule(domain, label, sourceKey, locator, recommendedActionId, progressPath, command) {
+function rule(domain, label, sourceKey, locator, recommendedActionId, progressPath, command, options = {}) {
   return {
     domain,
     label,
@@ -143,7 +158,11 @@ function rule(domain, label, sourceKey, locator, recommendedActionId, progressPa
     maxConcurrent: 1,
     failureCircuitBreaker: 'disabled until auto dispatch is enabled',
     lastAutoRunAt: null,
-    pauseReason: null
+    pauseReason: null,
+    resumeSupported: Boolean(options.resumeSupported),
+    resumeMode: options.resumeMode ?? 'fresh',
+    resumeStatePath: options.resumeStatePath ?? null,
+    restartBehavior: options.restartBehavior ?? 'fresh'
   };
 }
 

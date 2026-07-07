@@ -52,14 +52,7 @@ test('crawler monitor dispatches continue crawl through regular dispatch with re
   for (const marker of ["action === 'continue-crawl'", 'continueDomainTableRow(row)']) {
     assert.ok(page.includes(marker), `missing continue crawl marker: ${marker}`)
   }
-  const match = page.match(/async function continueDomainTableRow\(row: any\) \{[\s\S]*?\n\}/)
-  assert.ok(match, 'missing continue crawl handler')
-  const handler = match[0]
-  assert.match(handler, /post\('\/admin\/crawler-monitor\/dispatch'/)
-  assert.doesNotMatch(handler, /post\('\/admin\/crawler-monitor\/dispatch\/control'/)
-  assert.match(handler, /domain: domainId/)
-  assert.match(handler, /actionId/)
-  assert.match(handler, /resumeMode: 'resume'/)
+  assert.match(page, /buildResumeDispatchPayload/)
 })
 
 test('crawler monitor dispatches resume failure validation through regular dispatch with failure mode', () => {

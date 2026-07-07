@@ -87,15 +87,19 @@ test('boss source fetch honors explicit progress path and fails before hydration
 
 test('boss source fetch uses TERRAPEDIA_CRAWLER_PROGRESS_PATH when CLI progress path is absent', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-bosses-env-progress-'));
+  const worktreeRoot = path.join(tempDir, 'worktree');
   const progressPath = path.join(tempDir, 'env-progress.json');
   const outputPath = path.join(tempDir, 'out', 'wiki-bosses.latest.json');
   const reportPath = path.join(tempDir, 'reports', 'wiki-bosses-fetch.json');
   const mockApiPath = writeBossMock(tempDir);
 
+  fs.mkdirSync(worktreeRoot, { recursive: true });
+
   const result = runScript([
     `--output-json=${outputPath}`,
     `--report-json=${reportPath}`
   ], {
+    WORKTREE_ROOT: worktreeRoot,
     TERRAPEDIA_CRAWLER_PROGRESS_PATH: progressPath,
     TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
   });

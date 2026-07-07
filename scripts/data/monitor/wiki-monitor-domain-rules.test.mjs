@@ -100,6 +100,33 @@ test('wiki monitor action resolver rejects unknown domain action pairs', () => {
   );
 });
 
+test('wiki monitor rules expose resume metadata for supported domains only', () => {
+  const actionByDomain = new Map(WIKI_MONITOR_DOMAIN_RULES.map((rule) => [rule.domain, rule]));
+  const townNpc = actionByDomain.get('town_npc_maintenance');
+  const buffs = actionByDomain.get('buffs');
+  const bosses = actionByDomain.get('bosses');
+  const shimmer = actionByDomain.get('shimmer');
+
+  assert.equal(townNpc.resumeSupported, true);
+  assert.equal(townNpc.resumeMode, 'fresh');
+  assert.equal(townNpc.resumeStatePath, 'data/generated/resume/domain-source-town-npc-maintenance.resume.json');
+  assert.equal(townNpc.restartBehavior, 'resume-dispatch');
+
+  assert.equal(buffs.resumeSupported, true);
+  assert.equal(buffs.resumeMode, 'fresh');
+  assert.equal(buffs.resumeStatePath, 'data/generated/resume/buff-page-immunity-refresh.resume.json');
+  assert.equal(buffs.restartBehavior, 'resume-dispatch');
+
+  assert.equal(bosses.resumeSupported, true);
+  assert.equal(bosses.resumeMode, 'fresh');
+  assert.equal(bosses.resumeStatePath, 'data/generated/resume/domain-source-bosses.resume.json');
+  assert.equal(bosses.restartBehavior, 'resume-dispatch');
+
+  assert.equal(shimmer.resumeSupported, false);
+  assert.equal(shimmer.resumeStatePath, null);
+  assert.equal(shimmer.restartBehavior, 'fresh');
+});
+
 test('wiki monitor rules expose executable command arrays and canonical progress paths for every domain', () => {
   const actionByDomain = new Map(WIKI_MONITOR_DOMAIN_RULES.map((rule) => [rule.domain, rule]));
 

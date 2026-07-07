@@ -2702,6 +2702,71 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldLaunchBuffDispatchWithResumeArgumentsWhenRequested() throws Exception {
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchRequestDTO request = dispatchRequest("buffs", "buff-page-immunity-refresh");
+        request.setResumeMode("resume");
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(request);
+
+        assertTrue(result.isAccepted());
+        assertTrue(launcher.lastRequest.command().contains("--resume-mode=resume"));
+        assertTrue(launcher.lastRequest.command().contains("--resume-state=data/generated/resume/buff-page-immunity-refresh.resume.json"));
+        Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+        assertEquals("resume", latest.get("resumeMode"));
+        assertEquals("data/generated/resume/buff-page-immunity-refresh.resume.json", latest.get("resumeStatePath"));
+    }
+
+    @Test
+    void shouldLaunchBossDispatchWithResumeArgumentsWhenRequested() throws Exception {
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchRequestDTO request = dispatchRequest("bosses", "domain-source-bosses");
+        request.setResumeMode("resume");
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(request);
+
+        assertTrue(result.isAccepted());
+        assertTrue(launcher.lastRequest.command().contains("--resume-mode=resume"));
+        assertTrue(launcher.lastRequest.command().contains("--resume-state=data/generated/resume/domain-source-bosses.resume.json"));
+        Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+        assertEquals("resume", latest.get("resumeMode"));
+        assertEquals("data/generated/resume/domain-source-bosses.resume.json", latest.get("resumeStatePath"));
+    }
+
+    @Test
+    void shouldPreserveResumeMetadataWhenDispatchLaunchFails() throws Exception {
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new IOException("spawn failed"));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchRequestDTO request = dispatchRequest("bosses", "domain-source-bosses");
+        request.setResumeMode("resume");
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(request);
+
+        assertFalse(result.isAccepted());
+        Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+        assertEquals("failed", latest.get("status"));
+        assertEquals("resume", latest.get("resumeMode"));
+        assertEquals("data/generated/resume/domain-source-bosses.resume.json", latest.get("resumeStatePath"));
+    }
+
+    @Test
     void shouldLaunchTownNpcMaintenanceDispatchWithCrashHookForFailureValidation() throws Exception {
         RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
@@ -2740,7 +2805,7 @@ class CrawlerMonitorServiceImplTest {
     @Test
     void shouldRejectResumeModeForDispatchWithoutResumeSupport() {
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
-        CrawlerMonitorDispatchRequestDTO request = dispatchRequest("bosses", "domain-source-bosses");
+        CrawlerMonitorDispatchRequestDTO request = dispatchRequest("shimmer", "domain-source-shimmer");
         request.setResumeMode("resume");
 
         IllegalArgumentException exception = assertThrows(
@@ -2748,7 +2813,7 @@ class CrawlerMonitorServiceImplTest {
             () -> service.dispatchWikiMonitorTask(request)
         );
 
-        assertEquals("动作 domain-source-bosses 不支持断点续爬。", exception.getMessage());
+        assertEquals("动作 domain-source-shimmer 不支持断点续爬。", exception.getMessage());
     }
 
     @Test
@@ -2773,6 +2838,97 @@ class CrawlerMonitorServiceImplTest {
         assertEquals(StartStatus.STARTED, result.getStatus());
         assertTrue(launcher.lastRequest.command().contains("--resume-mode=resume"));
         assertTrue(launcher.lastRequest.command().contains("--resume-state=data/generated/resume/domain-source-town-npc-maintenance.resume.json"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldPreserveResumeModeWhenQueuedBuffDispatchStartsLater() throws Exception {
+        ControllableBlockingProcess firstProcess = new ControllableBlockingProcess();
+        ControllableBlockingProcess secondProcess = new ControllableBlockingProcess();
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(List.of(firstProcess, secondProcess));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchResultDTO running = service.dispatchWikiMonitorTask(dispatchRequest("bosses", "domain-source-bosses"));
+        CrawlerMonitorDispatchRequestDTO resumeRequest = dispatchRequest("buffs", "buff-page-immunity-refresh");
+        resumeRequest.setResumeMode("resume");
+
+        CrawlerMonitorDispatchResultDTO queued = service.dispatchWikiMonitorTask(resumeRequest);
+
+        assertTrue(running.isAccepted());
+        assertTrue(queued.isAccepted());
+        assertEquals(true, queued.getQueued());
+        assertEquals("resume", queued.getResumeMode());
+        assertEquals("data/generated/resume/buff-page-immunity-refresh.resume.json", queued.getResumeStatePath());
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> items = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals("resume", items.get(1).get("resumeMode"));
+        assertEquals("data/generated/resume/buff-page-immunity-refresh.resume.json", items.get(1).get("resumeStatePath"));
+        assertTrue(((Map<?, ?>) queueMirror.get("dedupe"))
+            .containsKey("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:buff-page-immunity-refresh:resumeMode:resume"));
+
+        CrawlerMonitorDispatchRequestDTO cancel = dispatchRequest("bosses", "domain-source-bosses");
+        cancel.setControlAction("cancel");
+        service.controlWikiMonitorDispatch(cancel);
+
+        assertEquals(2, launcher.launchCount);
+        assertTrue(launcher.lastRequest.command().contains("--resume-mode=resume"));
+        assertTrue(launcher.lastRequest.command().contains("--resume-state=data/generated/resume/buff-page-immunity-refresh.resume.json"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldHandleResumeModeMatrixForResumableAndNonResumableRules() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "dispatchId", "active-dispatch",
+            "domain", "items",
+            "actionId", "wiki-items-refresh",
+            "lockedAt", "2026-06-14T01:04:00Z"
+        ));
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+
+        CrawlerMonitorDispatchRequestDTO buffFreshRequest = dispatchRequest("buffs", "buff-page-immunity-refresh");
+        buffFreshRequest.setResumeMode("fresh");
+        CrawlerMonitorDispatchResultDTO buffFresh = service.dispatchWikiMonitorTask(buffFreshRequest);
+        CrawlerMonitorDispatchRequestDTO buffAutoRequest = dispatchRequest("buffs", "buff-page-immunity-refresh");
+        buffAutoRequest.setResumeMode("auto");
+        CrawlerMonitorDispatchResultDTO buffAuto = service.dispatchWikiMonitorTask(buffAutoRequest);
+        CrawlerMonitorDispatchRequestDTO bossesResumeRequest = dispatchRequest("bosses", "domain-source-bosses");
+        bossesResumeRequest.setResumeMode("resume");
+        CrawlerMonitorDispatchResultDTO bossesResume = service.dispatchWikiMonitorTask(bossesResumeRequest);
+        CrawlerMonitorDispatchResultDTO shimmerDefault = service.dispatchWikiMonitorTask(dispatchRequest("shimmer", "domain-source-shimmer"));
+        CrawlerMonitorDispatchRequestDTO shimmerFreshRequest = dispatchRequest("shimmer", "domain-source-shimmer");
+        shimmerFreshRequest.setResumeMode("fresh");
+        CrawlerMonitorDispatchResultDTO shimmerFresh = service.dispatchWikiMonitorTask(shimmerFreshRequest);
+        CrawlerMonitorDispatchRequestDTO shimmerResumeRequest = dispatchRequest("shimmer", "domain-source-shimmer");
+        shimmerResumeRequest.setResumeMode("resume");
+
+        assertThrows(IllegalArgumentException.class, () -> service.dispatchWikiMonitorTask(shimmerResumeRequest));
+        assertTrue(buffFresh.isAccepted());
+        assertTrue(buffAuto.isAccepted());
+        assertTrue(bossesResume.isAccepted());
+        assertTrue(shimmerDefault.isAccepted());
+        assertTrue(shimmerFresh.isAccepted());
+        assertEquals("resume", bossesResume.getResumeMode());
+        assertEquals("data/generated/resume/domain-source-bosses.resume.json", bossesResume.getResumeStatePath());
+        assertNull(shimmerDefault.getResumeMode());
+        assertNull(shimmerFresh.getResumeMode());
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        Map<String, Object> dedupe = (Map<String, Object>) queueMirror.get("dedupe");
+        assertTrue(dedupe.containsKey("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:buff-page-immunity-refresh:resumeMode:fresh"));
+        assertTrue(dedupe.containsKey("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:buff-page-immunity-refresh:resumeMode:auto"));
+        assertTrue(dedupe.containsKey("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:domain-source-bosses:resumeMode:resume"));
+        assertTrue(dedupe.containsKey("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:domain-source-shimmer"));
+        assertFalse(dedupe.containsKey("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:domain-source-shimmer:resumeMode:fresh"));
     }
 
     @Test
@@ -3180,6 +3336,61 @@ class CrawlerMonitorServiceImplTest {
         assertEquals(2, latest.get("retryCount"));
         assertEquals("retry", latest.get("controlAction"));
         assertEquals("retrying failed dispatch failed-bosses-run", latest.get("message"));
+    }
+
+    @Test
+    void shouldRetryResumeDispatchWithOriginalResumeMetadata() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "dispatchId", "failed-buff-run",
+            "domain", "buffs",
+            "actionId", "buff-page-immunity-refresh",
+            "status", "failed",
+            "resumeMode", "resume",
+            "resumeStatePath", "data/generated/resume/buff-page-immunity-refresh.resume.json",
+            "retryCount", 0,
+            "message", "previous resume dispatch failed"
+        ));
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-20T01:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+
+        CrawlerMonitorDispatchRequestDTO retry = dispatchRequest("buffs", "buff-page-immunity-refresh");
+        retry.setControlAction("retry");
+        CrawlerMonitorDispatchResultDTO result = service.controlWikiMonitorDispatch(retry);
+
+        assertTrue(result.isAccepted());
+        assertTrue(launcher.lastRequest.command().contains("--resume-mode=resume"));
+        assertTrue(launcher.lastRequest.command().contains("--resume-state=data/generated/resume/buff-page-immunity-refresh.resume.json"));
+        Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+        assertEquals("resume", latest.get("resumeMode"));
+        assertEquals("data/generated/resume/buff-page-immunity-refresh.resume.json", latest.get("resumeStatePath"));
+
+        Path freshRetryRepoRoot = Files.createDirectories(tempDir.resolve("TerraPedia-fresh-retry"));
+        writeJson(freshRetryRepoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "dispatchId", "failed-buff-fresh-run",
+            "domain", "buffs",
+            "actionId", "buff-page-immunity-refresh",
+            "status", "failed",
+            "resumeMode", "fresh",
+            "retryCount", 0,
+            "message", "previous fresh dispatch failed"
+        ));
+        service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            freshRetryRepoRoot,
+            Clock.fixed(Instant.parse("2026-06-20T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+
+        result = service.controlWikiMonitorDispatch(retry);
+
+        assertTrue(result.isAccepted());
+        assertTrue(launcher.lastRequest.command().contains("--resume-mode=fresh"));
+        assertFalse(launcher.lastRequest.command().stream().anyMatch((part) -> part.startsWith("--resume-state=")));
     }
 
     @Test
@@ -5252,6 +5463,7 @@ class CrawlerMonitorServiceImplTest {
         private int launchCount;
         private String legacyActionId;
         private Process legacyProcess;
+        private IOException exception;
 
         RecordingProcessLauncher(Process process) {
             this.process = process;
@@ -5263,10 +5475,19 @@ class CrawlerMonitorServiceImplTest {
             this.processes = new ArrayList<>(processes);
         }
 
+        RecordingProcessLauncher(IOException exception) {
+            this.process = null;
+            this.processes = null;
+            this.exception = exception;
+        }
+
         @Override
         public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) throws IOException {
             this.lastRequest = request;
             this.launchCount++;
+            if (exception != null) {
+                throw exception;
+            }
             if (processes != null && launchCount <= processes.size()) {
                 return processes.get(launchCount - 1);
             }
@@ -5753,6 +5974,8 @@ class CrawlerMonitorServiceImplTest {
         CrawlerMonitorOverviewDTO overview = service.getOverview();
         CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO bosses = overview.getWikiMonitor().getDomains().stream()
             .filter(d -> "bosses".equals(d.getDomain())).findFirst().orElseThrow();
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO shimmer = overview.getWikiMonitor().getDomains().stream()
+            .filter(d -> "shimmer".equals(d.getDomain())).findFirst().orElseThrow();
 
         assertNotNull(bosses.getState(), "域应带 state 权威对象");
         assertEquals("ready", bosses.getState().getStatus(), "force_reclaimed 是上次结果，域当前状态应可重爬");
@@ -5903,7 +6126,7 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void overviewDeclaresTownNpcResumeCapabilityOnlyForResumeSupportedDomain() {
+    void overviewDeclaresResumeCapabilityForSupportedDomains() {
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
             new ObjectMapper(), repoRoot,
             Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC), (StringRedisTemplate) null
@@ -5912,15 +6135,28 @@ class CrawlerMonitorServiceImplTest {
         CrawlerMonitorOverviewDTO overview = service.getOverview();
         CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO townNpc = overview.getWikiMonitor().getDomains().stream()
             .filter(d -> "town_npc_maintenance".equals(d.getDomain())).findFirst().orElseThrow();
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO buffs = overview.getWikiMonitor().getDomains().stream()
+            .filter(d -> "buffs".equals(d.getDomain())).findFirst().orElseThrow();
         CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO bosses = overview.getWikiMonitor().getDomains().stream()
             .filter(d -> "bosses".equals(d.getDomain())).findFirst().orElseThrow();
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO shimmer = overview.getWikiMonitor().getDomains().stream()
+            .filter(d -> "shimmer".equals(d.getDomain())).findFirst().orElseThrow();
 
         assertTrue(townNpc.isResumeSupported());
         assertEquals("fresh", townNpc.getResumeMode());
         assertEquals("data/generated/resume/domain-source-town-npc-maintenance.resume.json", townNpc.getResumeStatePath());
         assertEquals("resume-dispatch", townNpc.getRestartBehavior());
-        assertFalse(bosses.isResumeSupported());
-        assertEquals("fresh", bosses.getRestartBehavior());
+        assertTrue(buffs.isResumeSupported());
+        assertEquals("fresh", buffs.getResumeMode());
+        assertEquals("data/generated/resume/buff-page-immunity-refresh.resume.json", buffs.getResumeStatePath());
+        assertEquals("resume-dispatch", buffs.getRestartBehavior());
+        assertTrue(bosses.isResumeSupported());
+        assertEquals("fresh", bosses.getResumeMode());
+        assertEquals("data/generated/resume/domain-source-bosses.resume.json", bosses.getResumeStatePath());
+        assertEquals("resume-dispatch", bosses.getRestartBehavior());
+        assertFalse(shimmer.isResumeSupported());
+        assertNull(shimmer.getResumeStatePath());
+        assertEquals("fresh", shimmer.getRestartBehavior());
     }
 
     @Test

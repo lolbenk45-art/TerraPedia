@@ -519,6 +519,35 @@ test('triage workbench decorates resumable failed town npc row with continue cra
   assert.equal(view.attentionCards[0].primaryAction.action, 'continue-crawl')
 })
 
+test('triage workbench decorates resumable failed Buff row with continue crawl action', () => {
+  const view = buildTriageWorkbench({
+    domainRows: [
+      {
+        domain: 'buffs',
+        label: 'Buffs',
+        status: 'failed',
+        risk: 'failed',
+        diagnosisGroup: 'attention',
+        recommendedActionId: 'buff-page-immunity-refresh',
+        sourceDomain: {
+          domain: 'buffs',
+          recommendedActionId: 'buff-page-immunity-refresh',
+          resumeSupported: true,
+          resumeStatePath: 'data/generated/resume/buff-page-immunity-refresh.resume.json',
+          restartBehavior: 'resume-dispatch',
+          state: { status: 'failed', nextAction: 'continue_crawl' },
+        },
+      },
+    ],
+  })
+
+  const operation = view.allRows.find((row) => row.domain === 'buffs')
+
+  assert.equal(operation.primaryAction.action, 'continue-crawl')
+  assert.equal(operation.secondaryActions.some((action) => action.action === 'make-resume-failure'), false)
+  assert.equal(operation.secondaryActions.some((action) => action.action === 'fail-current'), false)
+})
+
 test('domain operation model offers crash failure validation for town npc maintenance only', () => {
   const townNpc = buildDomainOperationModel({
     domain: 'town_npc_maintenance',

@@ -13,3 +13,18 @@ export function buildDispatchControlPayload(controlAction, row = {}) {
     queueId: row.queueId || null,
   }
 }
+
+export function buildResumeDispatchPayload(row = {}) {
+  const domain = row.sourceDomain || null
+  const domainId = domain?.domain || row.domain || ''
+  const actionId = domain?.recommendedActionId || row.actionId || ''
+  const resumeStatePath = domain?.resumeStatePath || row.resumeStatePath || ''
+  if (!domainId || !actionId || !domain?.resumeSupported || !resumeStatePath) {
+    return { ok: false }
+  }
+  return {
+    ok: true,
+    domainId,
+    payload: { domain: domainId, actionId, resumeMode: 'resume' },
+  }
+}

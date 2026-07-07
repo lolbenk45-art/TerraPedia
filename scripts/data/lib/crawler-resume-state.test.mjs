@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -48,6 +49,39 @@ test('fingerprint is order independent and changes with seed set or descriptors'
   assert.notEqual(a, d);
 });
 
+test('default fingerprint keeps legacy string-normalizer hash shape', () => {
+  const entries = [
+    { gameId: 3, internalName: 'C', pageTitle: 'C', nameZh: '三' },
+    { gameId: 1, internalName: 'A', pageTitle: 'A', nameZh: '一' },
+  ];
+  const legacyNormalized = entries.map((entry) => JSON.stringify({
+    gameId: String(entry.gameId ?? ''),
+    internalName: String(entry.internalName ?? ''),
+    pageTitle: String(entry.pageTitle ?? ''),
+    nameZh: String(entry.nameZh ?? ''),
+  })).sort();
+  const legacyFingerprint = createHash('sha256').update(JSON.stringify(legacyNormalized)).digest('hex');
+
+  assert.equal(computeInputFingerprint(entries), legacyFingerprint);
+});
+
+test('default fingerprint normalizer silently collapses non-Town-NPC-shaped entries that only differ by id', () => {
+  const fpA = computeInputFingerprint([
+    { id: 1, internalName: 'Poisoned', pageTitle: 'Poisoned' },
+    { id: 2, internalName: 'OnFire', pageTitle: 'On Fire!' },
+  ]);
+  const fpB = computeInputFingerprint([
+    { id: 99, internalName: 'Poisoned', pageTitle: 'Poisoned' },
+    { id: 100, internalName: 'OnFire', pageTitle: 'On Fire!' },
+  ]);
+
+  assert.equal(
+    fpA,
+    fpB,
+    'documents the trap: default normalizer is blind to id, so id-only changes are invisible without a custom normalizeEntry',
+  );
+});
+
 test('verifyResumeState rejects action, mode, and fingerprint mismatches', () => {
   const fp = computeInputFingerprint([1, 2]);
   const state = createResumeState({ actionId: ACTION, resumeMode: MODE, inputFingerprint: fp });
@@ -77,6 +111,86 @@ test('derivePartialPath never overwrites a non-resume state path', () => {
 });
 
 const completeRecord = (record, key) => record && record.gameId === Number(key) && record.payload === 'complete';
+
+test('partial consistency supports custom record keys for buff records', () => {
+  const fp = computeInputFingerprint([
+    { id: 21, internalName: 'Poisoned', pageTitle: 'Poisoned' },
+    { id: 22, internalName: 'OnFire', pageTitle: 'On Fire!' },
+  ], {
+    normalizeEntry: (entry) => ({
+      id: String(entry.id ?? ''),
+      internalName: String(entry.internalName ?? ''),
+      pageTitle: String(entry.pageTitle ?? ''),
+    }),
+  });
+  const state = createResumeState({
+    actionId: 'buff-page-immunity-refresh',
+    resumeMode: 'keyed_items',
+    inputFingerprint: fp,
+    metadata: { phase: 'buff-page-immunities' },
+  });
+  state.completedKeys.push(21);
+  const partialStore = {
+    21: { buffId: 21, sourceEvidence: { parseStatus: 'parsed' } },
+  };
+  const verdict = verifyResumePartialStore({
+    state,
+    partialStore,
+    validKeys: [21, 22],
+    getRecordKey: (record) => record.buffId,
+    isValidRecord: (record) => record?.sourceEvidence?.parseStatus === 'parsed',
+  });
+
+  assert.equal(verdict.ok, true);
+  assert.equal(resolveResumeDecision({
+    mode: 'resume',
+    state,
+    actionId: 'buff-page-immunity-refresh',
+    resumeMode: 'keyed_items',
+    inputFingerprint: fp,
+    partialStore,
+    validKeys: [21, 22],
+    getRecordKey: (record) => record.buffId,
+    isValidRecord: (record) => record?.sourceEvidence?.parseStatus === 'parsed',
+  }).action, 'resume');
+
+  const shouldSkip = makeSkipChecker(state, partialStore, {
+    getRecordKey: (record) => record.buffId,
+    isValidRecord: (record) => record?.sourceEvidence?.parseStatus === 'parsed',
+  });
+  assert.equal(shouldSkip(21), true);
+  assert.equal(shouldSkip(22), false);
+});
+
+test('makeSkipChecker keeps legacy isValidRecord signature with a compound predicate', () => {
+  const fp = computeInputFingerprint([1]);
+  const state = createResumeState({ actionId: ACTION, resumeMode: MODE, inputFingerprint: fp });
+  state.completedKeys.push(1);
+  const partialStore = { 1: { gameId: 1, payload: 'complete' } };
+
+  const shouldSkip = makeSkipChecker(
+    state,
+    partialStore,
+    (record, key) => String(record.gameId) === String(key) && record.payload === 'complete',
+  );
+
+  assert.equal(shouldSkip(1), true);
+});
+
+test('makeSkipChecker keeps legacy two-argument key predicate', () => {
+  const fp = computeInputFingerprint([1]);
+  const state = createResumeState({ actionId: ACTION, resumeMode: MODE, inputFingerprint: fp });
+  state.completedKeys.push(1);
+  const partialStore = { 1: { gameId: 1 } };
+
+  const shouldSkip = makeSkipChecker(
+    state,
+    partialStore,
+    (record, key) => String(record.gameId) === String(key),
+  );
+
+  assert.equal(shouldSkip(1), true);
+});
 
 test('partial consistency fails when completed keys are missing from partial store', () => {
   const fp = computeInputFingerprint([1, 2]);

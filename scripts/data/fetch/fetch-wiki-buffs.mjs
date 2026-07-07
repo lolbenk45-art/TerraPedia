@@ -14,6 +14,7 @@ import {
   shouldKeepSnapshot,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
 import { reportHeartbeat } from '../lib/crawler-heartbeat.mjs';
 import { writeCrawlerMonitorRedisState } from '../lib/crawler-monitor-redis-state.mjs';
 import { advanceWikiIngestionManifestForSource } from '../lib/wiki-sync-manifest.mjs';
@@ -22,14 +23,28 @@ import {
   writeJsonFile
 } from '../workflow/backend-refresh-runtime-state.mjs';
 import {
+  buildResumeProgressFields,
+  computeInputFingerprint,
+  createResumeState,
+  derivePartialPath,
+  loadResumeState,
+  makeSkipChecker,
+  markCompleted,
+  resolveResumeDecision
+} from '../lib/crawler-resume-state.mjs';
+import {
   parseBuffPageEvidence,
   parseBuffPageImmunityFacts
 } from './buff-immunity-page-parser.mjs';
 
+const repoRoot = getProjectRoot();
+const ACTION_ID = 'buff-page-immunity-refresh';
+const RESUME_MODE_VALUE = 'keyed_items';
 const DEFAULT_TEMPLATE_TITLE = 'Template:GetBuffInfo';
 const DEFAULT_LANGS = ['en', 'zh'];
 const EXPAND_BATCH_SIZE = 25;
 const DEFAULT_BUFF_PROGRESS_PATH = sharedDataPath('generated', 'fetch-wiki-buffs-progress.latest.json');
+const DEFAULT_BUFF_RESUME_STATE_PATH = path.join(repoRoot, 'data', 'generated', 'resume', `${ACTION_ID}.resume.json`);
 
 async function main(argv = process.argv.slice(2)) {
   const options = parseCliArgs(argv);
@@ -41,151 +56,200 @@ async function main(argv = process.argv.slice(2)) {
   const manifestPath = options['manifest-path'] ? path.resolve(process.cwd(), options['manifest-path']) : null;
   const keepSnapshot = shouldKeepSnapshot(options);
   const startedAt = new Date().toISOString();
+  let lastResumeFields = null;
+  let lastProgressCurrent = 0;
+  let lastProgressTotal = 0;
 
-  ensureDir(rawDir);
-  ensureDir(reportDir);
-  await emitBuffHeartbeat('running', { phase: 'module' });
-  writeBuffFetchProgress(progressPath, {
-    status: 'running',
-    phase: 'module',
-    message: 'fetching Template:GetBuffInfo and preparing localized buff expansion',
-    current: 0,
-    total: 0,
-    startedAt
-  });
+  try {
+    ensureDir(rawDir);
+    ensureDir(reportDir);
+    await emitBuffHeartbeat('running', { phase: 'module' });
+    writeBuffFetchProgress(progressPath, {
+      status: 'running',
+      phase: 'module',
+      message: 'fetching Template:GetBuffInfo and preparing localized buff expansion',
+      current: 0,
+      total: 0,
+      startedAt
+    });
 
-  const result = await fetchWikiModuleContent({ moduleTitle: templateTitle });
-  const timestamp = new Date().toISOString().replaceAll(':', '-');
-  const baseName = templateTitle.replaceAll(':', '__').replaceAll('/', '__').replaceAll(' ', '_').toLowerCase();
-  const latestJsonPath = path.join(rawDir, `${baseName}.latest.json`);
-  const latestMarkupPath = path.join(rawDir, `${baseName}.latest.wikitext`);
-  const latestParsedPath = path.join(rawDir, `${baseName}.parsed.latest.json`);
-  const snapshotJsonPath = path.join(rawDir, `${baseName}.${timestamp}.json`);
-  const snapshotParsedPath = path.join(rawDir, `${baseName}.parsed.${timestamp}.json`);
-  const reportPath = path.join(reportDir, `fetch-${baseName}-${timestamp}.json`);
+    const result = await fetchWikiModuleContent({ moduleTitle: templateTitle });
+    const timestamp = new Date().toISOString().replaceAll(':', '-');
+    const baseName = templateTitle.replaceAll(':', '__').replaceAll('/', '__').replaceAll(' ', '_').toLowerCase();
+    const latestJsonPath = path.join(rawDir, `${baseName}.latest.json`);
+    const latestMarkupPath = path.join(rawDir, `${baseName}.latest.wikitext`);
+    const latestParsedPath = path.join(rawDir, `${baseName}.parsed.latest.json`);
+    const snapshotJsonPath = path.join(rawDir, `${baseName}.${timestamp}.json`);
+    const snapshotParsedPath = path.join(rawDir, `${baseName}.parsed.${timestamp}.json`);
+    const reportPath = path.join(reportDir, `fetch-${baseName}-${timestamp}.json`);
 
-  const baseBuffs = parseBaseBuffDatabase(result.moduleContent);
-  const localizedByLang = {};
-  writeBuffFetchProgress(progressPath, {
-    status: 'running',
-    phase: 'expand',
-    message: `expanding localized fields for ${baseBuffs.length} buff(s) across ${langs.length} language(s)`,
-    current: 0,
-    total: baseBuffs.length,
-    overallCurrent: 0,
-    overallTotal: baseBuffs.length,
-    startedAt
-  });
+    const baseBuffs = parseBaseBuffDatabase(result.moduleContent);
+    const localizedByLang = {};
+    writeBuffFetchProgress(progressPath, {
+      status: 'running',
+      phase: 'expand',
+      message: `expanding localized fields for ${baseBuffs.length} buff(s) across ${langs.length} language(s)`,
+      current: 0,
+      total: baseBuffs.length,
+      overallCurrent: 0,
+      overallTotal: baseBuffs.length,
+      startedAt
+    });
 
-  for (const lang of langs) {
-    localizedByLang[lang] = await expandLocalizedBuffFields(baseBuffs.map((buff) => buff.id), lang);
-  }
+    for (const lang of langs) {
+      localizedByLang[lang] = await expandLocalizedBuffFields(baseBuffs.map((buff) => buff.id), lang);
+    }
 
-  const relations = loadBuffRelations();
-  const pageFacts = await collectBuffPageImmunityFacts({
-    buffs: baseBuffs,
-    localizedByLang,
-    enabled: options['skip-buff-page-immunities'] !== true && options['skip-buff-page-immunities'] !== 'true',
-    progressCallback: ({ current, total, pageTitle }) => {
-      writeBuffFetchProgress(progressPath, {
-        status: 'running',
-        phase: 'buff-page-immunities',
-        message: `scraping rendered immunity pages ${current}/${total}: ${pageTitle}`,
-        current,
-        total,
-        overallCurrent: current,
-        overallTotal: total,
-        startedAt
+    const pageImmunityEnabled = options['skip-buff-page-immunities'] !== true && options['skip-buff-page-immunities'] !== 'true';
+    const resume = pageImmunityEnabled
+      ? buildBuffPageImmunityResumeContext({
+        baseBuffs,
+        localizedByLang,
+        requestedResumeMode: String(options['resume-mode'] ?? 'fresh'),
+        statePath: path.resolve(process.cwd(), options['resume-state'] ?? DEFAULT_BUFF_RESUME_STATE_PATH)
+      })
+      : null;
+    lastResumeFields = resume?.progressFields() ?? null;
+    lastProgressTotal = resume?.total ?? 0;
+    lastProgressCurrent = resume?.completedCount() ?? 0;
+
+    const relations = loadBuffRelations();
+    const pageFacts = await collectBuffPageImmunityFacts({
+      buffs: baseBuffs,
+      localizedByLang,
+      enabled: pageImmunityEnabled,
+      resume,
+      progressCallback: ({ current, total, pageTitle }) => {
+        lastResumeFields = resume?.progressFields() ?? lastResumeFields;
+        lastProgressCurrent = resume?.completedCount() ?? current;
+        lastProgressTotal = total;
+        writeBuffFetchProgress(progressPath, {
+          status: 'running',
+          phase: 'buff-page-immunities',
+          message: `scraping rendered immunity pages ${current}/${total}: ${pageTitle}`,
+          current,
+          total,
+          overallCurrent: current,
+          overallTotal: total,
+          startedAt,
+          resumeFields: lastResumeFields
+        });
+      }
+    });
+    const completedPageFacts = resume?.completedCount() ?? pageFacts.size;
+    const totalPageFacts = resume?.total ?? pageFacts.size;
+    if (pageImmunityEnabled && completedPageFacts < totalPageFacts) {
+      lastProgressCurrent = completedPageFacts;
+      lastProgressTotal = totalPageFacts;
+      lastResumeFields = resume?.progressFields() ?? lastResumeFields;
+      throw new Error(`${completedPageFacts}/${totalPageFacts} buffs 完成，其余抓取或解析失败`);
+    }
+    const buffs = buildBuffRecords({
+      baseBuffs,
+      localizedByLang,
+      langs,
+      relations,
+      pageFacts
+    });
+
+    const parsedPayload = {
+      source: 'terraria.wiki.gg:Template:GetBuffInfo',
+      sourceApi: result.apiUrl,
+      sourcePageTitle: result.pageTitle,
+      sourceRevisionTimestamp: result.revisionTimestamp,
+      fetchedAt: result.fetchedAt,
+      totalBuffs: buffs.length,
+      langs,
+      buffs
+    };
+
+    writeJson(latestJsonPath, result);
+    if (keepSnapshot) {
+      writeJson(snapshotJsonPath, result);
+    }
+    fs.writeFileSync(latestMarkupPath, result.moduleContent);
+    writeJson(latestParsedPath, parsedPayload);
+    if (keepSnapshot) {
+      writeJson(snapshotParsedPath, parsedPayload);
+    }
+
+    const debuffCount = buffs.filter((buff) => buff.type === 'debuff').length;
+    const buffCount = buffs.filter((buff) => buff.type === 'buff').length;
+    const sourcedBuffCount = buffs.filter((buff) => buff.sourceItemCount > 0).length;
+
+    writeJson(reportPath, {
+      moduleTitle: result.moduleTitle,
+      sourceApi: result.apiUrl,
+      pageTitle: result.pageTitle,
+      pageId: result.pageId,
+      revisionTimestamp: result.revisionTimestamp,
+      fetchedAt: result.fetchedAt,
+      totalBuffs: buffs.length,
+      buffCount,
+      debuffCount,
+      sourcedBuffCount,
+      buffPageImmunityFactCount: pageFacts.size,
+      langs,
+      latestJsonPath,
+      latestMarkupPath,
+      latestParsedPath,
+      snapshotJsonPath: keepSnapshot ? snapshotJsonPath : null,
+      snapshotParsedPath: keepSnapshot ? snapshotParsedPath : null
+    });
+    if (manifestPath) {
+      advanceWikiIngestionManifestForSource({
+        sourceKey: 'wiki.page.template_getbuffinfo',
+        locator: DEFAULT_TEMPLATE_TITLE,
+        entityFamily: 'buffs',
+        sourceKind: 'template',
+        outputPath: latestJsonPath,
+        manifestPath
       });
     }
-  });
-  const buffs = buildBuffRecords({
-    baseBuffs,
-    localizedByLang,
-    langs,
-    relations,
-    pageFacts
-  });
-
-  const parsedPayload = {
-    source: 'terraria.wiki.gg:Template:GetBuffInfo',
-    sourceApi: result.apiUrl,
-    sourcePageTitle: result.pageTitle,
-    sourceRevisionTimestamp: result.revisionTimestamp,
-    fetchedAt: result.fetchedAt,
-    totalBuffs: buffs.length,
-    langs,
-    buffs
-  };
-
-  writeJson(latestJsonPath, result);
-  if (keepSnapshot) {
-    writeJson(snapshotJsonPath, result);
-  }
-  fs.writeFileSync(latestMarkupPath, result.moduleContent);
-  writeJson(latestParsedPath, parsedPayload);
-  if (keepSnapshot) {
-    writeJson(snapshotParsedPath, parsedPayload);
-  }
-
-  const debuffCount = buffs.filter((buff) => buff.type === 'debuff').length;
-  const buffCount = buffs.filter((buff) => buff.type === 'buff').length;
-  const sourcedBuffCount = buffs.filter((buff) => buff.sourceItemCount > 0).length;
-
-  writeJson(reportPath, {
-    moduleTitle: result.moduleTitle,
-    sourceApi: result.apiUrl,
-    pageTitle: result.pageTitle,
-    pageId: result.pageId,
-    revisionTimestamp: result.revisionTimestamp,
-    fetchedAt: result.fetchedAt,
-    totalBuffs: buffs.length,
-    buffCount,
-    debuffCount,
-    sourcedBuffCount,
-    buffPageImmunityFactCount: pageFacts.size,
-    langs,
-    latestJsonPath,
-    latestMarkupPath,
-    latestParsedPath,
-    snapshotJsonPath: keepSnapshot ? snapshotJsonPath : null,
-    snapshotParsedPath: keepSnapshot ? snapshotParsedPath : null
-  });
-  if (manifestPath) {
-    advanceWikiIngestionManifestForSource({
-      sourceKey: 'wiki.page.template_getbuffinfo',
-      locator: DEFAULT_TEMPLATE_TITLE,
-      entityFamily: 'buffs',
-      sourceKind: 'template',
-      outputPath: latestJsonPath,
-      manifestPath
+    writeBuffFetchProgress(progressPath, {
+      status: 'completed',
+      phase: 'write',
+      message: `finished buff fetch; buffs=${buffs.length}; page immunity facts=${pageFacts.size}`,
+      current: buffs.length,
+      total: buffs.length,
+      overallCurrent: buffs.length,
+      overallTotal: buffs.length,
+      startedAt,
+      outputPath: latestParsedPath,
+      reportPath,
+      resumeFields: resume?.progressFields() ?? lastResumeFields
     });
-  }
-  writeBuffFetchProgress(progressPath, {
-    status: 'completed',
-    phase: 'write',
-    message: `finished buff fetch; buffs=${buffs.length}; page immunity facts=${pageFacts.size}`,
-    current: buffs.length,
-    total: buffs.length,
-    overallCurrent: buffs.length,
-    overallTotal: buffs.length,
-    startedAt,
-    outputPath: latestParsedPath,
-    reportPath
-  });
-  await emitBuffHeartbeat('completed', { phase: 'write', totalBuffs: buffs.length, reportPath });
+    await emitBuffHeartbeat('completed', { phase: 'write', totalBuffs: buffs.length, reportPath });
 
-  console.log(`Fetched template: ${result.pageTitle}`);
-  console.log(`Revision timestamp: ${result.revisionTimestamp ?? 'unknown'}`);
-  console.log(`Total buffs: ${buffs.length}`);
-  console.log(`Buffs: ${buffCount}`);
-  console.log(`Debuffs: ${debuffCount}`);
-  console.log(`Buffs with source items: ${sourcedBuffCount}`);
-  console.log(`Buffs with page immunity facts: ${pageFacts.size}`);
-  console.log(`Latest JSON: ${latestJsonPath}`);
-  console.log(`Latest parsed JSON: ${latestParsedPath}`);
-  console.log(`Latest wikitext: ${latestMarkupPath}`);
-  console.log(`Report: ${reportPath}`);
+    console.log(`Fetched template: ${result.pageTitle}`);
+    console.log(`Revision timestamp: ${result.revisionTimestamp ?? 'unknown'}`);
+    console.log(`Total buffs: ${buffs.length}`);
+    console.log(`Buffs: ${buffCount}`);
+    console.log(`Debuffs: ${debuffCount}`);
+    console.log(`Buffs with source items: ${sourcedBuffCount}`);
+    console.log(`Buffs with page immunity facts: ${pageFacts.size}`);
+    console.log(`Latest JSON: ${latestJsonPath}`);
+    console.log(`Latest parsed JSON: ${latestParsedPath}`);
+    console.log(`Latest wikitext: ${latestMarkupPath}`);
+    console.log(`Report: ${reportPath}`);
+  } catch (error) {
+    const errorResumeFields = error && typeof error === 'object' ? error.resumeFields : null;
+    const errorProgressCurrent = error && typeof error === 'object' && Number.isInteger(error.resumeCurrent)
+      ? error.resumeCurrent
+      : lastProgressCurrent;
+    const errorProgressTotal = error && typeof error === 'object' && Number.isInteger(error.resumeTotal)
+      ? error.resumeTotal
+      : lastProgressTotal;
+    writeFailedBuffFetchProgress({
+      progressPath,
+      startedAt,
+      error,
+      current: errorProgressCurrent,
+      total: errorProgressTotal,
+      resumeFields: errorResumeFields ?? lastResumeFields
+    });
+    throw error;
+  }
 }
 
 export function buildBuffRecords({
@@ -235,6 +299,99 @@ export function buildBuffRecords({
   });
 }
 
+export function buildBuffPageImmunityResumeContext({
+  baseBuffs,
+  localizedByLang,
+  requestedResumeMode = 'fresh',
+  statePath = DEFAULT_BUFF_RESUME_STATE_PATH
+} = {}) {
+  const resolvedStatePath = path.resolve(process.cwd(), statePath);
+  const partialPath = derivePartialPath(resolvedStatePath);
+  const immunitySeeds = buildBuffPageImmunitySeeds({ baseBuffs, localizedByLang });
+  const validKeys = immunitySeeds.map((seed) => seed.id);
+  const inputFingerprint = computeInputFingerprint(immunitySeeds, {
+    normalizeEntry: (entry) => ({
+      id: String(entry.id ?? ''),
+      internalName: String(entry.internalName ?? ''),
+      pageTitle: String(entry.pageTitle ?? '')
+    })
+  });
+  const priorState = loadResumeState(resolvedStatePath);
+  const priorPartialStore = fs.existsSync(partialPath) ? loadJsonObject(partialPath) : null;
+  const failureState = priorState ?? createResumeState({ actionId: ACTION_ID, resumeMode: RESUME_MODE_VALUE, inputFingerprint });
+  const decision = resolveResumeDecision({
+    mode: requestedResumeMode,
+    state: priorState,
+    actionId: ACTION_ID,
+    resumeMode: RESUME_MODE_VALUE,
+    inputFingerprint,
+    partialStore: priorPartialStore,
+    getRecordKey: (record) => record.buffId,
+    validKeys,
+    isValidRecord: isValidBuffPageImmunityPartialRecord
+  });
+  if (decision.action === 'fail') {
+    const error = new Error(`resume 校验失败(${decision.reason})：请用 --resume-mode=fresh 重跑，或确认输入未变`);
+    error.resumeFields = buildResumeProgressFields(failureState, immunitySeeds.length);
+    error.resumeCurrent = new Set((failureState.completedKeys || []).map((key) => String(key))).size;
+    error.resumeTotal = immunitySeeds.length;
+    throw error;
+  }
+
+  const resuming = decision.action === 'resume';
+  const state = resuming
+    ? priorState
+    : createResumeState({ actionId: ACTION_ID, resumeMode: RESUME_MODE_VALUE, inputFingerprint });
+  const partialStore = resuming ? priorPartialStore : {};
+  if (!resuming) {
+    fs.rmSync(resolvedStatePath, { force: true });
+    fs.rmSync(partialPath, { force: true });
+    writeJsonFile(partialPath, partialStore);
+    writeJsonFile(resolvedStatePath, state);
+  }
+  const shouldSkip = makeSkipChecker(state, partialStore, {
+    getRecordKey: (record) => record.buffId,
+    isValidRecord: isValidBuffPageImmunityPartialRecord
+  });
+
+  return {
+    action: decision.action,
+    reason: decision.reason,
+    statePath: resolvedStatePath,
+    partialPath,
+    state,
+    partialStore,
+    total: immunitySeeds.length,
+    validKeys,
+    shouldSkip,
+    completedCount: () => new Set((state.completedKeys || []).map((key) => String(key))).size,
+    progressFields: () => buildResumeProgressFields(state, immunitySeeds.length)
+  };
+}
+
+function buildBuffPageImmunitySeeds({ baseBuffs, localizedByLang } = {}) {
+  return (baseBuffs ?? [])
+    .filter((buff) => Number.isInteger(buff?.id))
+    .map((buff) => ({
+      id: buff.id,
+      internalName: buff.internalName,
+      pageTitle: pickBuffPageTitle(buff, localizedByLang)
+    }));
+}
+
+function isValidBuffPageImmunityPartialRecord(record) {
+  return record?.sourceEvidence?.parseStatus === 'parsed';
+}
+
+function loadJsonObject(filePath) {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function collectBuffPageImmunityFacts({
   buffs,
   localizedByLang,
@@ -242,7 +399,9 @@ export async function collectBuffPageImmunityFacts({
   fetchRenderedHtml = fetchWikiRenderedHtml,
   fetchPagePayload = null,
   sampleLimit = 10,
-  progressCallback = null
+  progressCallback = null,
+  resume = null,
+  crashIfConfigured = () => {}
 } = {}) {
   const factsByBuffId = new Map();
   if (!enabled) {
@@ -251,6 +410,7 @@ export async function collectBuffPageImmunityFacts({
 
   const total = Array.isArray(buffs) ? buffs.filter((buff) => Number.isInteger(buff?.id)).length : 0;
   let current = 0;
+  let attempted = 0;
 
   for (const buff of buffs ?? []) {
     if (!Number.isInteger(buff.id)) {
@@ -271,31 +431,74 @@ export async function collectBuffPageImmunityFacts({
       continue;
     }
 
-    try {
-      const pagePayload = fetchPagePayload
-        ? await fetchPagePayload({ pageTitle })
-        : await fetchDefaultBuffPagePayload({ pageTitle, fetchRenderedHtml });
-      const facts = parseBuffPageEvidence({
-        buffId: buff.id,
-        buffName: buff.englishName ?? pageTitle,
-        pageTitle: pagePayload.pageTitle ?? pageTitle,
-        canonicalPageTitle: pagePayload.canonicalPageTitle ?? pagePayload.pageTitle ?? pageTitle,
-        revisionId: pagePayload.revisionId ?? null,
-        revisionTimestamp: pagePayload.revisionTimestamp ?? null,
-        html: pagePayload.html,
-        wikitext: pagePayload.wikitext,
-        sections: pagePayload.sections,
-        sampleLimit
-      });
-      if (facts) {
-        factsByBuffId.set(buff.id, facts);
+    if (resume?.shouldSkip(buff.id)) {
+      factsByBuffId.set(buff.id, resume.partialStore[String(buff.id)]);
+      continue;
+    }
+
+    const facts = await fetchBuffPageImmunityFact({
+      buff,
+      pageTitle,
+      fetchPagePayload,
+      fetchRenderedHtml,
+      sampleLimit
+    });
+    if (facts) {
+      attempted += 1;
+      factsByBuffId.set(buff.id, facts);
+      if (resume) {
+        resume.partialStore[String(buff.id)] = facts;
+        writeJsonFile(resume.partialPath, resume.partialStore);
+        runResumeCrashHook(crashIfConfigured, 'after-partial-before-mark', { buffId: buff.id, attempted }, resume);
+        markCompleted({ statePath: resume.statePath, state: resume.state, key: buff.id });
+        runResumeCrashHook(crashIfConfigured, 'after-mark', { buffId: buff.id, attempted }, resume);
       }
-    } catch (error) {
-      console.warn(`Failed to parse buff page immunities for ${pageTitle}: ${error.message}`);
     }
   }
 
   return factsByBuffId;
+}
+
+function runResumeCrashHook(crashIfConfigured, point, detail, resume) {
+  try {
+    crashIfConfigured(point, detail);
+  } catch (error) {
+    if (error && typeof error === 'object' && resume) {
+      error.resumeFields = resume.progressFields();
+      error.resumeCurrent = resume.completedCount();
+      error.resumeTotal = resume.total;
+    }
+    throw error;
+  }
+}
+
+async function fetchBuffPageImmunityFact({
+  buff,
+  pageTitle,
+  fetchPagePayload,
+  fetchRenderedHtml,
+  sampleLimit
+} = {}) {
+  try {
+    const pagePayload = fetchPagePayload
+      ? await fetchPagePayload({ pageTitle })
+      : await fetchDefaultBuffPagePayload({ pageTitle, fetchRenderedHtml });
+    return parseBuffPageEvidence({
+      buffId: buff.id,
+      buffName: buff.englishName ?? pageTitle,
+      pageTitle: pagePayload.pageTitle ?? pageTitle,
+      canonicalPageTitle: pagePayload.canonicalPageTitle ?? pagePayload.pageTitle ?? pageTitle,
+      revisionId: pagePayload.revisionId ?? null,
+      revisionTimestamp: pagePayload.revisionTimestamp ?? null,
+      html: pagePayload.html,
+      wikitext: pagePayload.wikitext,
+      sections: pagePayload.sections,
+      sampleLimit
+    });
+  } catch (error) {
+    console.warn(`Failed to parse buff page immunities for ${pageTitle}: ${error.message}`);
+    return null;
+  }
 }
 
 async function fetchDefaultBuffPagePayload({ pageTitle, fetchRenderedHtml } = {}) {
@@ -315,11 +518,12 @@ function writeBuffFetchProgress(progressPath, {
   overallTotal = total,
   startedAt,
   outputPath = null,
-  reportPath = null
+  reportPath = null,
+  resumeFields = null
 } = {}) {
   const generatedAt = new Date().toISOString();
   const payload = buildActionProgressPayload({
-    actionId: 'buff-page-immunity-refresh',
+    actionId: ACTION_ID,
     status,
     phase,
     message,
@@ -332,6 +536,9 @@ function writeBuffFetchProgress(progressPath, {
     lastHeartbeatAt: generatedAt,
     childStatusPath: progressPath
   });
+  if (resumeFields) {
+    Object.assign(payload, resumeFields);
+  }
   if (outputPath) {
     payload.outputPath = outputPath;
   }
@@ -346,6 +553,27 @@ function writeBuffFetchProgress(progressPath, {
     stateId: 'buff-page-immunity-refresh:progress',
     payload
   }).catch(() => {});
+}
+
+export function writeFailedBuffFetchProgress({
+  progressPath,
+  startedAt,
+  error,
+  current = 0,
+  total = 0,
+  resumeFields = null
+} = {}) {
+  writeBuffFetchProgress(progressPath, {
+    status: 'failed',
+    phase: 'error',
+    message: `buff fetch failed: ${error instanceof Error ? error.message : String(error)}`,
+    current,
+    total,
+    overallCurrent: current,
+    overallTotal: total,
+    startedAt,
+    resumeFields
+  });
 }
 
 function pickBuffPageTitle(buff, localizedByLang) {
