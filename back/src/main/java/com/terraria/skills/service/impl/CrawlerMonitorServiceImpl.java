@@ -116,6 +116,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final String REDIS_BUFF_PROGRESS_KEY = "terrapedia:crawler:buff-page-immunity-refresh:progress";
     private static final String REDIS_BACKEND_ACTION_PROGRESS_PREFIX = "terrapedia:crawler:backend-refresh:action:";
     private static final String REDIS_BACKEND_ACTION_PROGRESS_SUFFIX = ":progress";
+    private static final String TOWN_NPC_RESUME_STATE_PATH = "data/generated/resume/domain-source-town-npc-maintenance.resume.json";
+    private static final String TOWN_NPC_FAILURE_MODE_CRASH_AFTER_PARTIAL = "townNpcCrashAfterPartial";
+    private static final Set<String> WIKI_MONITOR_RESUME_MODES = Set.of("fresh", "resume", "auto");
     private static final List<WikiMonitorRule> WIKI_MONITOR_RULES = List.of(
         backendRule("items", "Items", "wiki.module.iteminfo", "Module:Iteminfo/data", "wiki-items-refresh"),
         backendRule("npcs", "NPCs", "wiki.module.npcinfo", "Module:Npcinfo/data", "wiki-npcs-refresh"),
@@ -131,9 +134,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         directRule("bosses", "Bosses", "wiki.domain.bosses", "Boss source snapshot pages", "domain-source-bosses",
             "data/generated/domain-source-bosses-progress.latest.json",
             List.of("node", "scripts/data/fetch/fetch-wiki-bosses.mjs", "--progress-path=data/generated/domain-source-bosses-progress.latest.json")),
-        directRule("town_npc_maintenance", "Town NPC maintenance", "wiki.domain.town_npc_maintenance", "Town NPC maintenance source page", "domain-source-town-npc-maintenance",
+        resumableDirectRule("town_npc_maintenance", "Town NPC maintenance", "wiki.domain.town_npc_maintenance", "Town NPC maintenance source page", "domain-source-town-npc-maintenance",
             "data/generated/domain-source-town-npc-maintenance-progress.latest.json",
-            List.of("node", "scripts/data/fetch/fetch-wiki-town-npc-maintenance.mjs", "--progress-path=data/generated/domain-source-town-npc-maintenance-progress.latest.json")),
+            List.of("node", "scripts/data/fetch/fetch-wiki-town-npc-maintenance.mjs", "--progress-path=data/generated/domain-source-town-npc-maintenance-progress.latest.json"),
+            TOWN_NPC_RESUME_STATE_PATH),
         directRule("shimmer", "Shimmer", "wiki.domain.shimmer", "Shimmer source page", "domain-source-shimmer",
             "data/generated/domain-source-shimmer-progress.latest.json",
             List.of("node", "scripts/data/fetch/fetch-wiki-shimmer-page.mjs", "--progress-path=data/generated/domain-source-shimmer-progress.latest.json")),
@@ -352,7 +356,51 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         Path repoRoot = resolveRepoRoot();
         pruneDispatchArtifacts(repoRoot);
         WikiMonitorRule rule = resolveWikiMonitorRule(request);
-        return dispatchWikiMonitorTask(repoRoot, rule, Map.of());
+        return dispatchWikiMonitorTask(repoRoot, rule, dispatchMetadata(rule, request));
+    }
+
+    private Map<String, Object> dispatchMetadata(WikiMonitorRule rule, CrawlerMonitorDispatchRequestDTO request) {
+        LinkedHashMap<String, Object> metadata = new LinkedHashMap<>();
+        metadata.putAll(resumeDispatchMetadata(rule, request.getResumeMode()));
+        metadata.putAll(failureDispatchMetadata(rule, request.getFailureMode()));
+        return metadata;
+    }
+
+    private Map<String, Object> resumeDispatchMetadata(WikiMonitorRule rule, String requestedResumeMode) {
+        String resumeMode = trimToNull(requestedResumeMode);
+        if (resumeMode == null) {
+            return Map.of();
+        }
+        resumeMode = resumeMode.toLowerCase(Locale.ROOT);
+        if (!WIKI_MONITOR_RESUME_MODES.contains(resumeMode)) {
+            throw new IllegalArgumentException("续爬模式 " + requestedResumeMode + " 不支持。");
+        }
+        if (!rule.resumeSupported()) {
+            if ("fresh".equals(resumeMode)) {
+                return Map.of("resumeMode", resumeMode);
+            }
+            throw new IllegalArgumentException("动作 " + rule.actionId() + " 不支持断点续爬。");
+        }
+        LinkedHashMap<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put("resumeMode", resumeMode);
+        if (!"fresh".equals(resumeMode)) {
+            metadata.put("resumeStatePath", rule.resumeStatePath());
+        }
+        return metadata;
+    }
+
+    private Map<String, Object> failureDispatchMetadata(WikiMonitorRule rule, String requestedFailureMode) {
+        String failureMode = trimToNull(requestedFailureMode);
+        if (failureMode == null) {
+            return Map.of();
+        }
+        if (!TOWN_NPC_FAILURE_MODE_CRASH_AFTER_PARTIAL.equals(failureMode)) {
+            throw new IllegalArgumentException("制造失败模式 " + requestedFailureMode + " 不支持。");
+        }
+        if (!"town_npc_maintenance".equals(rule.domain()) || !"domain-source-town-npc-maintenance".equals(rule.actionId())) {
+            throw new IllegalArgumentException("动作 " + rule.actionId() + " 不支持制造断点失败。");
+        }
+        return Map.of("failureMode", failureMode);
     }
 
     private CrawlerMonitorDispatchResultDTO dispatchWikiMonitorTask(Path repoRoot, WikiMonitorRule rule, Map<String, Object> metadata) {
@@ -393,6 +441,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         item.setActionId(actionId);
         item.setRequestedAt(Instant.now(clock));
         item.setRequestedBy("admin");
+        item.setResumeMode(asString(metadata.get("resumeMode")));
+        item.setResumeStatePath(asString(metadata.get("resumeStatePath")));
+        item.setFailureMode(asString(metadata.get("failureMode")));
         item.setMessage(firstNonBlank(asString(metadata.get("message")), "已加入队列"));
         Instant cooldownUntil = cooldownUntilFor(repoRoot, lane, actionId).orElse(null);
         attachQueueBlocker(repoRoot, item, lane, actionId, cooldownUntil);
@@ -570,6 +621,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         result.setStatus(item.getStatus());
         result.setRequestedAt(formatInstant(item.getRequestedAt()));
         result.setProgressPath(item.getProgressPath());
+        result.setResumeMode(item.getResumeMode());
+        result.setResumeStatePath(item.getResumeStatePath());
         result.setLockPath(firstNonBlank(item.getLockPath(), executorForLenient(item).map(executor -> executor.lockPath(repoRoot)).orElse(null)));
         result.setReportPath(item.getReportPath());
         result.setBlockedByDispatchId(item.getBlockedByDispatchId());
@@ -696,8 +749,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         WikiMonitorRule rule = controlQueueItem
             .map(item -> resolveWikiMonitorControlRuleFromQueueItem(request, item))
             .orElseGet(() -> resolveWikiMonitorControlRule(request));
-        if (!"pause".equals(controlAction) && !"resume".equals(controlAction) && !"cancel".equals(controlAction) && !"retry".equals(controlAction)) {
-            throw new IllegalArgumentException("控制动作不支持 " + (controlAction == null ? "<空>" : controlAction) + "，请使用 pause、resume、cancel、retry、cancelQueued、forceReclaim 或 forceReclaimAll。");
+        if (!"pause".equals(controlAction) && !"resume".equals(controlAction) && !"cancel".equals(controlAction) && !"retry".equals(controlAction) && !"failForResumeValidation".equals(controlAction)) {
+            throw new IllegalArgumentException("控制动作不支持 " + (controlAction == null ? "<空>" : controlAction) + "，请使用 pause、resume、cancel、retry、failForResumeValidation、cancelQueued、forceReclaim 或 forceReclaimAll。");
+        }
+        if ("failForResumeValidation".equals(controlAction)
+            && (!"town_npc_maintenance".equals(rule.domain()) || !"domain-source-town-npc-maintenance".equals(rule.actionId()))) {
+            throw new IllegalArgumentException("动作 " + rule.actionId() + " 不支持制造当前任务失败。");
         }
         ReadResult latestDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
         Map<String, Object> payload = latestDispatch.readable() ? latestDispatch.payload() : Map.of();
@@ -755,14 +812,16 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         String status = switch (controlAction) {
             case "pause" -> "paused";
             case "resume" -> "running";
+            case "failForResumeValidation" -> "failed";
             default -> "cancelled";
         };
         String message = switch (controlAction) {
             case "pause" -> "dispatch paused";
             case "resume" -> "dispatch resumed";
+            case "failForResumeValidation" -> "dispatch failed for resume validation";
             default -> "dispatch cancelled";
         };
-        if ("cancel".equals(controlAction)) {
+        if ("cancel".equals(controlAction) || "failForResumeValidation".equals(controlAction)) {
             cancellingDispatches.add(dispatchId);
         }
         boolean signalSent = switch (controlAction) {
@@ -771,7 +830,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             default -> processLauncher.destroy(active.process());
         };
         if (!signalSent) {
-            if ("cancel".equals(controlAction)) {
+            if ("cancel".equals(controlAction) || "failForResumeValidation".equals(controlAction)) {
                 cancellingDispatches.remove(dispatchId);
             }
             return rejectedDispatch(rule, "uncontrollable", "派发进程控制信号发送失败；请刷新阶段进度后重试，或检查后端进程权限。");
@@ -785,12 +844,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         state.put("message", message);
         state.put("controlAction", controlAction);
         state.put("controlledAt", Instant.now(clock).toString());
-        if ("cancel".equals(controlAction)) {
+        if ("cancel".equals(controlAction) || "failForResumeValidation".equals(controlAction)) {
             state.put("completedAt", Instant.now(clock).toString());
         }
         writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), state);
         WikiMonitorDispatchQueueRepository.TransitionResult controlTransition = null;
-        if (!"cancel".equals(controlAction)) {
+        if (!"cancel".equals(controlAction) && !"failForResumeValidation".equals(controlAction)) {
             Optional<WikiMonitorQueueItem> itemToSync = controlQueueItem.isPresent()
                 ? controlQueueItem
                 : queueRepository.findByDispatchId(dispatchId);
@@ -821,10 +880,26 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             }
             drainWikiMonitorDispatchQueue("active-cancel-standard", true);
         }
+        WikiMonitorDispatchQueueRepository.TransitionResult failureTransition = null;
+        if ("failForResumeValidation".equals(controlAction)) {
+            releaseDispatchLock(repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize(), dispatchId);
+            activeDispatchProcesses.remove(dispatchId);
+            Optional<WikiMonitorQueueItem> itemToFail = controlQueueItem.isPresent()
+                ? controlQueueItem
+                : queueRepository.findByDispatchId(dispatchId);
+            if (itemToFail.isPresent()) {
+                failureTransition = queueRepository.markTerminal(itemToFail.get().getQueueId(), "failed", Instant.now(clock), message);
+                invalidateCachedOverview();
+            }
+            cancellingDispatches.remove(dispatchId);
+            drainWikiMonitorDispatchQueue("active-fail-standard", true);
+        }
 
         CrawlerMonitorDispatchResultDTO result = acceptedDispatch(rule, dispatchId, paths, status, message);
         if (controlTransition != null && controlTransition.item() != null) {
             result.setQueueId(controlTransition.item().getQueueId());
+        } else if (failureTransition != null && failureTransition.item() != null) {
+            result.setQueueId(failureTransition.item().getQueueId());
         } else {
             controlQueueItem.map(WikiMonitorQueueItem::getQueueId).ifPresent(result::setQueueId);
         }
@@ -1173,13 +1248,13 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         Map<String, Object> latestPayload = latestDispatch.readable() ? latestDispatch.payload() : Map.of();
         for (WikiMonitorQueueItem item : queueRepository.listItems()) {
             if (reconcileQueueItemFromLatestDispatch(item, latestPayload)) {
-                continue;
+                item = queueRepository.findItem(item.getQueueId()).orElse(item);
             }
             if ("starting".equals(item.getStatus())) {
                 reconcileStartingQueueItem(repoRoot, item);
                 continue;
             }
-            if (!"running".equals(item.getStatus())) {
+            if (!"running".equals(item.getStatus()) && !"paused".equals(item.getStatus())) {
                 continue;
             }
             if (cancellingDispatches.contains(item.getDispatchId())) {
@@ -1193,6 +1268,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             if (handle.isPresent() && handle.get().isAlive()) {
                 continue;
             }
+            if ("paused".equals(item.getStatus())) {
+                markOrphanedPausedQueueItemFailed(repoRoot, item);
+                continue;
+            }
             queueRepository.markTerminal(
                 item.getQueueId(),
                 "timed_out",
@@ -1202,6 +1281,74 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             releaseLaneLock(repoRoot, item.getLane(), item.getDispatchId());
             invalidateCachedOverview();
         }
+    }
+
+    private void markOrphanedPausedQueueItemFailed(Path repoRoot, WikiMonitorQueueItem item) {
+        Instant now = Instant.now(clock);
+        String queueMessage = "暂停任务进程已不存在，已释放队列；可使用断点续传重新发起。";
+        WikiMonitorDispatchQueueRepository.TransitionResult transition =
+            queueRepository.markTerminal(item.getQueueId(), "failed", now, queueMessage);
+        if (!transition.changed()) {
+            return;
+        }
+        WikiMonitorRule rule = findWikiMonitorRule(item.getDomain(), item.getActionId());
+        String dispatchMessage = "paused dispatch orphaned by backend restart";
+        markLatestDispatchFailedIfMatches(repoRoot, item, dispatchMessage, now);
+        if (rule != null) {
+            writeTerminalProgressFile(
+                repoRoot,
+                firstNonBlank(item.getProgressPath(), rule.progressPath()),
+                rule,
+                "failed",
+                dispatchMessage,
+                now
+            );
+        }
+        releaseLaneLock(repoRoot, item.getLane(), item.getDispatchId());
+        invalidateCachedOverview();
+    }
+
+    private void markLatestDispatchFailedIfMatches(Path repoRoot, WikiMonitorQueueItem item, String message, Instant completedAt) {
+        Path statePath = repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize();
+        ReadResult state = readJsonMap(statePath);
+        if (!state.readable() || !latestDispatchMatchesQueueItem(item, state.payload())) {
+            return;
+        }
+        String status = asString(state.payload().get("status"));
+        if (!"paused".equals(status) && !"running".equals(status)) {
+            return;
+        }
+        LinkedHashMap<String, Object> merged = new LinkedHashMap<>(state.payload());
+        merged.put("status", "failed");
+        merged.put("message", message);
+        merged.put("completedAt", completedAt.toString());
+        writeJsonFile(statePath, merged);
+    }
+
+    private void writeTerminalProgressFile(
+        Path repoRoot,
+        String progressPath,
+        WikiMonitorRule rule,
+        String status,
+        String message,
+        Instant completedAt
+    ) {
+        if (progressPath == null || progressPath.isBlank()) {
+            return;
+        }
+        Path path = repoRoot.resolve(progressPath).normalize();
+        ReadResult current = readJsonMap(path);
+        LinkedHashMap<String, Object> state = current.readable()
+            ? new LinkedHashMap<>(current.payload())
+            : new LinkedHashMap<>();
+        state.putIfAbsent("actionId", rule.actionId());
+        state.putIfAbsent("domain", rule.domain());
+        state.putIfAbsent("childStatusPath", progressPath);
+        state.put("status", status);
+        state.put("message", message);
+        state.put("completedAt", completedAt.toString());
+        state.put("generatedAt", completedAt.toString());
+        writeJsonFile(path, state);
     }
 
     private boolean reconcileQueueItemFromLatestDispatch(WikiMonitorQueueItem item, Map<String, Object> latestPayload) {
@@ -1609,6 +1756,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 dto.setLockPath(item.getLockPath());
                 dto.setOutputPath(item.getOutputPath());
                 dto.setLogPath(firstNonBlank(item.getLogPath(), queueItemLogPath(item)));
+                dto.setResumeMode(item.getResumeMode());
+                dto.setResumeStatePath(item.getResumeStatePath());
                 dto.setMessage(item.getMessage());
                 queueRepository.positionFor(item.getQueueId()).ifPresent(position -> {
                     dto.setPosition(position.position());
@@ -1652,6 +1801,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         domain.setCooldownMinutes(WIKI_MONITOR_DISPATCH_COOLDOWN.toMinutes());
         domain.setMaxConcurrent(1L);
         domain.setFailureCircuitBreaker("disabled until auto dispatch is enabled");
+        domain.setResumeSupported(rule.resumeSupported());
+        domain.setResumeMode(rule.defaultResumeMode());
+        domain.setResumeStatePath(rule.resumeStatePath());
+        domain.setRestartBehavior(rule.restartBehavior());
 
         boolean changed = Boolean.TRUE.equals(source == null ? null : source.get("changed"));
         domain.setChanged(changed);
@@ -2115,7 +2268,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private ActiveDispatchProcess reconstructDispatchFromQueueItem(WikiMonitorRule rule, WikiMonitorQueueItem item) {
-        if (item == null || !"running".equals(item.getStatus())) {
+        if (item == null || (!"running".equals(item.getStatus()) && !"paused".equals(item.getStatus()))) {
             return null;
         }
         if (!rule.domain().equals(item.getDomain()) || !rule.actionId().equals(item.getActionId())) {
@@ -2416,9 +2569,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
         DispatchPaths dispatchPaths = buildDispatchPaths(repoRoot, rule, dispatchId);
         Map<String, Object> queueMetadata = queueId == null ? Map.of() : queueStartMetadata.getOrDefault(queueId, Map.of());
-        Map<String, Object> effectiveMetadata = metadata == null || metadata.isEmpty()
-            ? queueMetadata
-            : metadata;
+        LinkedHashMap<String, Object> effectiveMetadata = new LinkedHashMap<>();
+        effectiveMetadata.putAll(queueMetadata);
+        effectiveMetadata.putAll(resumeMetadataFromQueueItem(queueItem));
+        if (metadata != null) {
+            effectiveMetadata.putAll(metadata);
+        }
         String message = firstNonBlank(
             queueItem == null ? null : queueItem.getMessage(),
             firstNonBlank(asString(effectiveMetadata.get("message")), "dispatch accepted")
@@ -2430,7 +2586,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
         writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), state);
 
-        LaunchRequest launchRequest = buildLaunchRequest(repoRoot, rule, dispatchPaths);
+        LaunchRequest launchRequest = buildLaunchRequest(repoRoot, rule, dispatchPaths, effectiveMetadata);
         try {
             Process process = processLauncher.launch(launchRequest);
             long pid = safePid(process);
@@ -2475,6 +2631,26 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 exception.getMessage()
             );
         }
+    }
+
+    private Map<String, Object> resumeMetadataFromQueueItem(WikiMonitorQueueItem queueItem) {
+        if (queueItem == null) {
+            return Map.of();
+        }
+        LinkedHashMap<String, Object> metadata = new LinkedHashMap<>();
+        String resumeMode = trimToNull(queueItem.getResumeMode());
+        if (resumeMode != null) {
+            metadata.put("resumeMode", resumeMode);
+        }
+        String resumeStatePath = trimToNull(queueItem.getResumeStatePath());
+        if (resumeStatePath != null) {
+            metadata.put("resumeStatePath", resumeStatePath);
+        }
+        String failureMode = trimToNull(queueItem.getFailureMode());
+        if (failureMode != null) {
+            metadata.put("failureMode", failureMode);
+        }
+        return metadata;
     }
 
     private WikiMonitorQueueStartResult startDomainSmokeQueueItemRaw(Path repoRoot, WikiMonitorQueueItem queueItem) {
@@ -2744,7 +2920,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return payload;
     }
 
-    private LaunchRequest buildLaunchRequest(Path repoRoot, WikiMonitorRule rule, DispatchPaths paths) {
+    private LaunchRequest buildLaunchRequest(Path repoRoot, WikiMonitorRule rule, DispatchPaths paths, Map<String, Object> metadata) {
         List<String> command = new ArrayList<>();
         for (String token : rule.command()) {
             if ("<reportPath>".equals(token)) {
@@ -2755,11 +2931,47 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 command.add(token);
             }
         }
+        String resumeMode = normalizeLaunchResumeMode(metadata);
+        if (resumeMode != null && rule.resumeSupported()) {
+            command.add("--resume-mode=" + resumeMode);
+            String resumeStatePath = firstNonBlank(asString(metadata.get("resumeStatePath")), rule.resumeStatePath());
+            if (!"fresh".equals(resumeMode) && resumeStatePath != null) {
+                command.add("--resume-state=" + resumeStatePath);
+            }
+        }
         Map<String, String> environment = new LinkedHashMap<>();
         environment.put("WORKTREE_ROOT", repoRoot.toString());
         environment.put("TERRAPEDIA_CRAWLER_ACTION_ID", rule.actionId());
         environment.put("TERRAPEDIA_CRAWLER_PROGRESS_PATH", paths.progressPath());
+        applyFailureModeEnvironment(environment, rule, metadata);
         return new LaunchRequest(command, repoRoot.toFile(), environment, repoRoot.resolve(paths.logPath()).normalize().toFile());
+    }
+
+    private void applyFailureModeEnvironment(Map<String, String> environment, WikiMonitorRule rule, Map<String, Object> metadata) {
+        String failureMode = trimToNull(asString(metadata == null ? null : metadata.get("failureMode")));
+        if (failureMode == null) {
+            return;
+        }
+        if (!TOWN_NPC_FAILURE_MODE_CRASH_AFTER_PARTIAL.equals(failureMode)
+            || !"town_npc_maintenance".equals(rule.domain())
+            || !"domain-source-town-npc-maintenance".equals(rule.actionId())) {
+            throw new IllegalArgumentException("动作 " + rule.actionId() + " 不支持制造断点失败。");
+        }
+        environment.put("TERRAPEDIA_CRAWLER_FAILURE_MODE", failureMode);
+        environment.put("TERRAPEDIA_TOWN_NPC_ENABLE_CRASH_HOOK", "1");
+        environment.put("TERRAPEDIA_TOWN_NPC_CRASH_AFTER", "2");
+    }
+
+    private String normalizeLaunchResumeMode(Map<String, Object> metadata) {
+        String resumeMode = trimToNull(asString(metadata == null ? null : metadata.get("resumeMode")));
+        if (resumeMode == null) {
+            return null;
+        }
+        resumeMode = resumeMode.toLowerCase(Locale.ROOT);
+        if (!WIKI_MONITOR_RESUME_MODES.contains(resumeMode)) {
+            throw new IllegalArgumentException("续爬模式 " + resumeMode + " 不支持。");
+        }
+        return resumeMode;
     }
 
     private LaunchRequest buildDomainSmokeLaunchRequest(
@@ -5530,7 +5742,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             backendProgressTemplate(actionId),
             List.of("node", "scripts/data/workflow/run-backend-data-refresh.mjs", "--mode=apply", "--steps=" + actionId, "--output=<reportPath>"),
             true,
-            true
+            true,
+            false,
+            "fresh",
+            null,
+            "fresh"
         );
     }
 
@@ -5543,7 +5759,20 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         String progressPath,
         List<String> command
     ) {
-        return new WikiMonitorRule(domain, label, sourceKey, locator, actionId, progressPath, command, false, true);
+        return new WikiMonitorRule(domain, label, sourceKey, locator, actionId, progressPath, command, false, true, false, "fresh", null, "fresh");
+    }
+
+    private static WikiMonitorRule resumableDirectRule(
+        String domain,
+        String label,
+        String sourceKey,
+        String locator,
+        String actionId,
+        String progressPath,
+        List<String> command,
+        String resumeStatePath
+    ) {
+        return new WikiMonitorRule(domain, label, sourceKey, locator, actionId, progressPath, command, false, true, true, "fresh", resumeStatePath, "resume-dispatch");
     }
 
     private static WikiMonitorRule operationalBackendRule(String domain, String label, String sourceKey, String locator, String actionId) {
@@ -5556,7 +5785,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             backendProgressTemplate(actionId),
             List.of("node", "scripts/data/workflow/run-backend-data-refresh.mjs", "--mode=apply", "--steps=" + actionId, "--output=<reportPath>"),
             true,
-            false
+            false,
+            false,
+            "fresh",
+            null,
+            "fresh"
         );
     }
 
@@ -5611,7 +5844,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         String progressPath,
         List<String> command,
         boolean backendRefresh,
-        boolean wikiDomain
+        boolean wikiDomain,
+        boolean resumeSupported,
+        String defaultResumeMode,
+        String resumeStatePath,
+        String restartBehavior
     ) {}
 
     record DispatchPaths(String reportPath, String progressPath, String lockPath, String outputPath, String logPath) {}

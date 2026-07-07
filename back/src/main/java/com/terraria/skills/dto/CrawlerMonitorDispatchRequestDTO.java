@@ -12,4 +12,6 @@ public class CrawlerMonitorDispatchRequestDTO {
     private String actionId;
     private String controlAction;
     private String queueId;
+    private String resumeMode;
+    private String failureMode;
 }

@@ -2509,6 +2509,135 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldLaunchTownNpcMaintenanceDispatchWithResumeArgumentsWhenRequested() throws Exception {
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchRequestDTO request = dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance");
+        request.setResumeMode("resume");
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(request);
+
+        assertTrue(result.isAccepted());
+        assertTrue(launcher.lastRequest.command().contains("--resume-mode=resume"));
+        assertTrue(launcher.lastRequest.command().contains("--resume-state=data/generated/resume/domain-source-town-npc-maintenance.resume.json"));
+        Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+        assertEquals("resume", latest.get("resumeMode"));
+        assertEquals("data/generated/resume/domain-source-town-npc-maintenance.resume.json", latest.get("resumeStatePath"));
+    }
+
+    @Test
+    void shouldLaunchTownNpcMaintenanceDispatchWithCrashHookForFailureValidation() throws Exception {
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchRequestDTO request = dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance");
+        request.setFailureMode("townNpcCrashAfterPartial");
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(request);
+
+        assertTrue(result.isAccepted());
+        assertEquals("townNpcCrashAfterPartial", launcher.lastRequest.environment().get("TERRAPEDIA_CRAWLER_FAILURE_MODE"));
+        assertEquals("1", launcher.lastRequest.environment().get("TERRAPEDIA_TOWN_NPC_ENABLE_CRASH_HOOK"));
+        assertEquals("2", launcher.lastRequest.environment().get("TERRAPEDIA_TOWN_NPC_CRASH_AFTER"));
+        Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+        assertEquals("townNpcCrashAfterPartial", latest.get("failureMode"));
+    }
+
+    @Test
+    void shouldRejectCrashHookFailureValidationForNonTownNpcDispatch() {
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+        CrawlerMonitorDispatchRequestDTO request = dispatchRequest("bosses", "domain-source-bosses");
+        request.setFailureMode("townNpcCrashAfterPartial");
+
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> service.dispatchWikiMonitorTask(request)
+        );
+
+        assertEquals("动作 domain-source-bosses 不支持制造断点失败。", exception.getMessage());
+    }
+
+    @Test
+    void shouldRejectResumeModeForDispatchWithoutResumeSupport() {
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+        CrawlerMonitorDispatchRequestDTO request = dispatchRequest("bosses", "domain-source-bosses");
+        request.setResumeMode("resume");
+
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> service.dispatchWikiMonitorTask(request)
+        );
+
+        assertEquals("动作 domain-source-bosses 不支持断点续爬。", exception.getMessage());
+    }
+
+    @Test
+    void shouldPreserveResumeModeWhenQueuedTownNpcDispatchStartsLater() throws Exception {
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new PidAwareBlockingProcess(62621L));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-21T02:15:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        WikiMonitorQueueItem item = queueItem(
+            "wiki-monitor-queue-20260621021500-resume1",
+            "standard",
+            "town_npc_maintenance",
+            "domain-source-town-npc-maintenance"
+        );
+        item.setResumeMode("resume");
+
+        WikiMonitorQueueStartResult result = service.standardQueueExecutorForTesting().start(repoRoot, item);
+
+        assertEquals(StartStatus.STARTED, result.getStatus());
+        assertTrue(launcher.lastRequest.command().contains("--resume-mode=resume"));
+        assertTrue(launcher.lastRequest.command().contains("--resume-state=data/generated/resume/domain-source-town-npc-maintenance.resume.json"));
+    }
+
+    @Test
+    void shouldNotDedupeTownNpcResumeDispatchIntoExistingFreshQueueItem() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "dispatchId", "active-dispatch",
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "lockedAt", "2026-06-14T01:04:00Z"
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            new RecordingProcessLauncher(new BlockingProcess())
+        );
+
+        CrawlerMonitorDispatchResultDTO fresh = service.dispatchWikiMonitorTask(dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance"));
+        CrawlerMonitorDispatchRequestDTO resumeRequest = dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance");
+        resumeRequest.setResumeMode("resume");
+        CrawlerMonitorDispatchResultDTO resume = service.dispatchWikiMonitorTask(resumeRequest);
+
+        assertTrue(fresh.isAccepted());
+        assertTrue(resume.isAccepted());
+        assertNotEquals(fresh.getQueueId(), resume.getQueueId());
+        assertNull(fresh.getResumeMode());
+        assertEquals("resume", resume.getResumeMode());
+        assertEquals("data/generated/resume/domain-source-town-npc-maintenance.resume.json", resume.getResumeStatePath());
+
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> items = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals(2, items.size());
+        assertEquals("resume", items.get(1).get("resumeMode"));
+    }
+
+    @Test
     void shouldWriteTerminalFailureSummaryToEmptyDispatchLog() throws Exception {
         RecordingProcessLauncher launcher = new RecordingProcessLauncher(new CompletedProcess(2));
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
@@ -3020,6 +3149,46 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void shouldMarkCurrentTownNpcDispatchFailedForResumeValidation() throws Exception {
+        ControllableBlockingProcess process = new ControllableBlockingProcess();
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(process);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorTask(dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance"));
+
+        CrawlerMonitorDispatchRequestDTO fail = dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance");
+        fail.setControlAction("failForResumeValidation");
+        fail.setQueueId(started.getQueueId());
+        CrawlerMonitorDispatchResultDTO failed = service.controlWikiMonitorDispatch(fail);
+
+        assertTrue(started.isAccepted());
+        assertTrue(failed.isAccepted());
+        assertEquals("failed", failed.getStatus());
+        assertEquals("dispatch failed for resume validation", failed.getMessage());
+        assertEquals(started.getQueueId(), failed.getQueueId());
+        assertEquals(1, process.terminateCount);
+        assertFalse(process.isAlive());
+        assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+
+        Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+        assertEquals("failed", latest.get("status"));
+        assertEquals("failForResumeValidation", latest.get("controlAction"));
+        assertEquals("dispatch failed for resume validation", latest.get("message"));
+        assertEquals("2026-06-14T01:05:00Z", latest.get("completedAt"));
+
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals(started.getQueueId(), queueItems.get(0).get("queueId"));
+        assertEquals("failed", queueItems.get(0).get("status"));
+        assertEquals("2026-06-14T01:05:00Z", queueItems.get(0).get("completedAt"));
+    }
+
+    @Test
     void shouldDrainNextStandardQueueItemAfterActiveCancel() throws Exception {
         ControllableBlockingProcess firstProcess = new ControllableBlockingProcess();
         ControllableBlockingProcess secondProcess = new ControllableBlockingProcess();
@@ -3471,7 +3640,7 @@ class CrawlerMonitorServiceImplTest {
             () -> service.controlWikiMonitorDispatch(request)
         );
 
-        assertEquals("控制动作不支持 refresh，请使用 pause、resume、cancel、retry、cancelQueued、forceReclaim 或 forceReclaimAll。", exception.getMessage());
+        assertEquals("控制动作不支持 refresh，请使用 pause、resume、cancel、retry、failForResumeValidation、cancelQueued、forceReclaim 或 forceReclaimAll。", exception.getMessage());
     }
 
     @Test
@@ -3589,7 +3758,7 @@ class CrawlerMonitorServiceImplTest {
                 Map.entry("status", "running"),
                 Map.entry("requestedAt", "2026-06-14T01:03:00Z"),
                 Map.entry("startedAt", "2026-06-14T01:04:00Z"),
-                Map.entry("pid", 2000000000L),
+                Map.entry("pid", ProcessHandle.current().pid()),
                 Map.entry("progressPath", "data/generated/fetch-wiki-buffs-progress.latest.json"),
                 Map.entry("message", "已加入队列")
             )),
@@ -3616,6 +3785,212 @@ class CrawlerMonitorServiceImplTest {
         List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
         assertEquals("paused", queueItems.get(0).get("status"));
         assertEquals("dispatch paused（已从 latest dispatch 自动校准）", queueItems.get(0).get("message"));
+    }
+
+    @Test
+    void shouldFailOrphanedPausedQueueItemAndProgressOnOverview() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.ofEntries(
+            Map.entry("queueId", "wiki-monitor-queue-town-npc"),
+            Map.entry("dispatchId", "wiki-monitor-dispatch-town-npc"),
+            Map.entry("domain", "town_npc_maintenance"),
+            Map.entry("actionId", "domain-source-town-npc-maintenance"),
+            Map.entry("status", "paused"),
+            Map.entry("controlAction", "pause"),
+            Map.entry("message", "dispatch paused"),
+            Map.entry("controlledAt", "2026-06-14T01:05:00Z"),
+            Map.entry("progressPath", "data/generated/domain-source-town-npc-maintenance-progress.latest.json"),
+            Map.entry("resumeMode", "resume"),
+            Map.entry("resumeStatePath", "data/generated/resume/domain-source-town-npc-maintenance.resume.json")
+        ));
+        writeJson(repoRoot.resolve("data/generated/domain-source-town-npc-maintenance-progress.latest.json"), Map.of(
+            "actionId", "domain-source-town-npc-maintenance",
+            "domain", "town_npc_maintenance",
+            "status", "running",
+            "current", 15,
+            "total", 39,
+            "lastHeartbeatAt", "2026-06-14T01:04:00Z",
+            "generatedAt", "2026-06-14T01:04:00Z"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:05:00Z",
+            "items", List.of(Map.ofEntries(
+                Map.entry("queueId", "wiki-monitor-queue-town-npc"),
+                Map.entry("dispatchId", "wiki-monitor-dispatch-town-npc"),
+                Map.entry("lane", "standard"),
+                Map.entry("domain", "town_npc_maintenance"),
+                Map.entry("coveredDomains", List.of("town_npc_maintenance")),
+                Map.entry("actionId", "domain-source-town-npc-maintenance"),
+                Map.entry("status", "paused"),
+                Map.entry("requestedAt", "2026-06-14T01:03:00Z"),
+                Map.entry("startedAt", "2026-06-14T01:04:00Z"),
+                Map.entry("pid", 2000000000L),
+                Map.entry("processStartedAt", "2026-06-14T01:04:00Z"),
+                Map.entry("progressPath", "data/generated/domain-source-town-npc-maintenance-progress.latest.json"),
+                Map.entry("resumeMode", "resume"),
+                Map.entry("resumeStatePath", "data/generated/resume/domain-source-town-npc-maintenance.resume.json"),
+                Map.entry("message", "dispatch paused")
+            )),
+            "dedupe", Map.of("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:domain-source-town-npc-maintenance:resumeMode:resume", Map.of(
+                "queueId", "wiki-monitor-queue-town-npc",
+                "expiresAt", "2026-06-15T01:00:00Z"
+            )),
+            "dispatches", Map.of("wiki-monitor-dispatch-town-npc", "wiki-monitor-queue-town-npc")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:10:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO.WikiMonitorQueueItemDTO queueItem = service.getOverview()
+            .getWikiMonitor()
+            .getDispatchQueue()
+            .stream()
+            .filter(item -> "wiki-monitor-queue-town-npc".equals(item.getQueueId()))
+            .findFirst()
+            .orElseThrow();
+
+        assertEquals("failed", queueItem.getStatus());
+        assertEquals("暂停任务进程已不存在，已释放队列；可使用断点续传重新发起。", queueItem.getMessage());
+        assertEquals("2026-06-14T01:10:00Z", queueItem.getCompletedAt());
+
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals("failed", queueItems.get(0).get("status"));
+        assertFalse(((Map<?, ?>) queueMirror.get("dedupe")).containsKey("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:domain-source-town-npc-maintenance:resumeMode:resume"));
+        assertFalse(((Map<?, ?>) queueMirror.get("dispatches")).containsKey("wiki-monitor-dispatch-town-npc"));
+
+        Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+        assertEquals("failed", latest.get("status"));
+        assertEquals("paused dispatch orphaned by backend restart", latest.get("message"));
+        assertEquals("2026-06-14T01:10:00Z", latest.get("completedAt"));
+
+        Map<String, Object> progress = readJsonMap(repoRoot.resolve("data/generated/domain-source-town-npc-maintenance-progress.latest.json"));
+        assertEquals("failed", progress.get("status"));
+        assertEquals("paused dispatch orphaned by backend restart", progress.get("message"));
+        assertEquals("2026-06-14T01:10:00Z", progress.get("completedAt"));
+    }
+
+    @Test
+    void shouldNotLetPausedLatestDispatchMaskDeadRunningQueueItemOnOverview() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "queueId", "wiki-monitor-queue-buffs",
+            "dispatchId", "wiki-monitor-dispatch-buffs",
+            "domain", "buffs",
+            "actionId", "buff-page-immunity-refresh",
+            "status", "paused",
+            "controlAction", "pause",
+            "message", "dispatch paused",
+            "controlledAt", "2026-06-14T01:05:00Z",
+            "progressPath", "data/generated/fetch-wiki-buffs-progress.latest.json"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:04:00Z",
+            "items", List.of(Map.ofEntries(
+                Map.entry("queueId", "wiki-monitor-queue-buffs"),
+                Map.entry("dispatchId", "wiki-monitor-dispatch-buffs"),
+                Map.entry("lane", "standard"),
+                Map.entry("domain", "buffs"),
+                Map.entry("coveredDomains", List.of("buffs")),
+                Map.entry("actionId", "buff-page-immunity-refresh"),
+                Map.entry("status", "running"),
+                Map.entry("requestedAt", "2026-06-14T01:03:00Z"),
+                Map.entry("startedAt", "2026-06-14T01:04:00Z"),
+                Map.entry("pid", 2000000000L),
+                Map.entry("processStartedAt", "2026-06-14T01:04:00Z"),
+                Map.entry("progressPath", "data/generated/fetch-wiki-buffs-progress.latest.json"),
+                Map.entry("message", "dispatch running")
+            )),
+            "dedupe", Map.of("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:buff-page-immunity-refresh", Map.of(
+                "queueId", "wiki-monitor-queue-buffs",
+                "expiresAt", "2026-06-15T01:00:00Z"
+            )),
+            "dispatches", Map.of("wiki-monitor-dispatch-buffs", "wiki-monitor-queue-buffs")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:10:00Z"), ZoneOffset.UTC)
+        );
+
+        service.getOverview();
+
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals("failed", queueItems.get(0).get("status"));
+        assertFalse(((Map<?, ?>) queueMirror.get("dedupe")).containsKey("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:buff-page-immunity-refresh"));
+    }
+
+    @Test
+    void shouldReleaseOrphanedPausedQueueItemAndDrainNextQueuedItem() throws Exception {
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "queueId", "wiki-monitor-queue-town-npc",
+            "dispatchId", "wiki-monitor-dispatch-town-npc",
+            "domain", "town_npc_maintenance",
+            "actionId", "domain-source-town-npc-maintenance",
+            "status", "paused",
+            "message", "dispatch paused",
+            "progressPath", "data/generated/domain-source-town-npc-maintenance-progress.latest.json"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:05:00Z",
+            "items", List.of(
+                Map.ofEntries(
+                    Map.entry("queueId", "wiki-monitor-queue-town-npc"),
+                    Map.entry("dispatchId", "wiki-monitor-dispatch-town-npc"),
+                    Map.entry("lane", "standard"),
+                    Map.entry("domain", "town_npc_maintenance"),
+                    Map.entry("coveredDomains", List.of("town_npc_maintenance")),
+                    Map.entry("actionId", "domain-source-town-npc-maintenance"),
+                    Map.entry("status", "paused"),
+                    Map.entry("requestedAt", "2026-06-14T01:03:00Z"),
+                    Map.entry("startedAt", "2026-06-14T01:04:00Z"),
+                    Map.entry("pid", 2000000000L),
+                    Map.entry("processStartedAt", "2026-06-14T01:04:00Z"),
+                    Map.entry("progressPath", "data/generated/domain-source-town-npc-maintenance-progress.latest.json"),
+                    Map.entry("message", "dispatch paused")
+                ),
+                Map.ofEntries(
+                    Map.entry("queueId", "wiki-monitor-queue-armor"),
+                    Map.entry("lane", "standard"),
+                    Map.entry("domain", "armor_sets"),
+                    Map.entry("coveredDomains", List.of("armor_sets")),
+                    Map.entry("actionId", "domain-source-armor-sets"),
+                    Map.entry("status", "queued"),
+                    Map.entry("requestedAt", "2026-06-14T01:04:30Z"),
+                    Map.entry("progressPath", "data/generated/domain-source-armor-sets-progress.latest.json"),
+                    Map.entry("message", "已加入队列")
+                )
+            ),
+            "dedupe", Map.of(
+                "terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:domain-source-town-npc-maintenance", Map.of(
+                    "queueId", "wiki-monitor-queue-town-npc",
+                    "expiresAt", "2026-06-15T01:00:00Z"
+                ),
+                "terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:domain-source-armor-sets", Map.of(
+                    "queueId", "wiki-monitor-queue-armor",
+                    "expiresAt", "2026-06-15T01:00:00Z"
+                )
+            ),
+            "dispatches", Map.of("wiki-monitor-dispatch-town-npc", "wiki-monitor-queue-town-npc")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:10:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+
+        service.scheduledWikiMonitorQueueDrainSweep();
+
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals("failed", queueItems.get(0).get("status"));
+        assertEquals("running", queueItems.get(1).get("status"));
+        assertNotNull(queueItems.get(1).get("dispatchId"));
+        assertEquals(1, launcher.launchCount);
+        assertTrue(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
     }
 
     @Test
@@ -4925,6 +5300,27 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("ready", bosses.getState().getStatus(),
             "cancelled 是上次结果，域当前状态应显示可重爬而不是已取消");
         assertEquals("recrawl", bosses.getState().getNextAction());
+    }
+
+    @Test
+    void overviewDeclaresTownNpcResumeCapabilityOnlyForResumeSupportedDomain() {
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC), (StringRedisTemplate) null
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO townNpc = overview.getWikiMonitor().getDomains().stream()
+            .filter(d -> "town_npc_maintenance".equals(d.getDomain())).findFirst().orElseThrow();
+        CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO bosses = overview.getWikiMonitor().getDomains().stream()
+            .filter(d -> "bosses".equals(d.getDomain())).findFirst().orElseThrow();
+
+        assertTrue(townNpc.isResumeSupported());
+        assertEquals("fresh", townNpc.getResumeMode());
+        assertEquals("data/generated/resume/domain-source-town-npc-maintenance.resume.json", townNpc.getResumeStatePath());
+        assertEquals("resume-dispatch", townNpc.getRestartBehavior());
+        assertFalse(bosses.isResumeSupported());
+        assertEquals("fresh", bosses.getRestartBehavior());
     }
 
     @Test

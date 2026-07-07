@@ -321,6 +321,70 @@ class AdminCrawlerMonitorControllerTest {
     }
 
     @Test
+    void shouldPassResumeModeWhenDispatchingCrawlerMonitorTask() throws Exception {
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(true);
+        result.setDomain("town_npc_maintenance");
+        result.setActionId("domain-source-town-npc-maintenance");
+        result.setStatus("running");
+        result.setProgressPath("data/generated/domain-source-town-npc-maintenance-progress.latest.json");
+        result.setMessage("dispatch accepted");
+
+        when(crawlerMonitorService.dispatchWikiMonitorTask(argThat(request ->
+            "town_npc_maintenance".equals(request.getDomain())
+                && "domain-source-town-npc-maintenance".equals(request.getActionId())
+                && "resume".equals(request.getResumeMode())
+        ))).thenReturn(result);
+
+        mockMvc.perform(post("/admin/crawler-monitor/dispatch")
+                .contentType("application/json")
+                .content("{\"domain\":\"town_npc_maintenance\",\"actionId\":\"domain-source-town-npc-maintenance\",\"resumeMode\":\"resume\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.accepted").value(true))
+            .andExpect(jsonPath("$.data.domain").value("town_npc_maintenance"))
+            .andExpect(jsonPath("$.data.actionId").value("domain-source-town-npc-maintenance"));
+
+        verify(crawlerMonitorService).dispatchWikiMonitorTask(argThat(request ->
+            "town_npc_maintenance".equals(request.getDomain())
+                && "domain-source-town-npc-maintenance".equals(request.getActionId())
+                && "resume".equals(request.getResumeMode())
+        ));
+    }
+
+    @Test
+    void shouldPassFailureModeWhenDispatchingCrawlerMonitorTask() throws Exception {
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(true);
+        result.setDomain("town_npc_maintenance");
+        result.setActionId("domain-source-town-npc-maintenance");
+        result.setStatus("running");
+        result.setProgressPath("data/generated/domain-source-town-npc-maintenance-progress.latest.json");
+        result.setMessage("dispatch accepted");
+
+        when(crawlerMonitorService.dispatchWikiMonitorTask(argThat(request ->
+            "town_npc_maintenance".equals(request.getDomain())
+                && "domain-source-town-npc-maintenance".equals(request.getActionId())
+                && "townNpcCrashAfterPartial".equals(request.getFailureMode())
+        ))).thenReturn(result);
+
+        mockMvc.perform(post("/admin/crawler-monitor/dispatch")
+                .contentType("application/json")
+                .content("{\"domain\":\"town_npc_maintenance\",\"actionId\":\"domain-source-town-npc-maintenance\",\"failureMode\":\"townNpcCrashAfterPartial\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.accepted").value(true))
+            .andExpect(jsonPath("$.data.domain").value("town_npc_maintenance"))
+            .andExpect(jsonPath("$.data.actionId").value("domain-source-town-npc-maintenance"));
+
+        verify(crawlerMonitorService).dispatchWikiMonitorTask(argThat(request ->
+            "town_npc_maintenance".equals(request.getDomain())
+                && "domain-source-town-npc-maintenance".equals(request.getActionId())
+                && "townNpcCrashAfterPartial".equals(request.getFailureMode())
+        ));
+    }
+
+    @Test
     void shouldReturnBadRequestForRejectedCrawlerMonitorDispatch() throws Exception {
         when(crawlerMonitorService.dispatchWikiMonitorTask(argThat(request ->
             "items".equals(request.getDomain()) && "domain-source-shimmer".equals(request.getActionId())

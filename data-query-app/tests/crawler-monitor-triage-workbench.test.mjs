@@ -468,6 +468,180 @@ test('triage workbench exposes direct domain operation buttons', () => {
   )
 })
 
+test('domain operation model offers continue crawl for failed or stalled resumable domains', () => {
+  for (const status of ['failed', 'stalled']) {
+    const operation = buildDomainOperationModel({
+      domain: 'town_npc_maintenance',
+      status,
+      risk: status,
+      sourceDomain: {
+        domain: 'town_npc_maintenance',
+        recommendedActionId: 'domain-source-town-npc-maintenance',
+        resumeSupported: true,
+        resumeStatePath: 'data/generated/resume/town-npc-maintenance.json',
+        state: { status },
+      },
+    })
+
+    assert.deepEqual(operation.primaryAction, {
+      action: 'continue-crawl',
+      label: '接着爬',
+      tone: 'primary',
+      icon: 'play',
+    })
+  }
+})
+
+test('triage workbench decorates resumable failed town npc row with continue crawl action', () => {
+  const view = buildTriageWorkbench({
+    domainRows: [
+      {
+        domain: 'town_npc_maintenance',
+        label: 'Town NPC maintenance',
+        status: 'failed',
+        risk: 'failed',
+        diagnosisGroup: 'attention',
+        sourceDomain: {
+          domain: 'town_npc_maintenance',
+          recommendedActionId: 'domain-source-town-npc-maintenance',
+          resumeSupported: true,
+          resumeStatePath: 'data/generated/resume/domain-source-town-npc-maintenance.resume.json',
+          state: { status: 'failed' },
+        },
+      },
+    ],
+  })
+
+  const row = view.allRows.find((item) => item.domain === 'town_npc_maintenance')
+
+  assert.equal(row.primaryAction.action, 'continue-crawl')
+  assert.equal(row.primaryAction.label, '接着爬')
+  assert.equal(view.attentionCards[0].primaryAction.action, 'continue-crawl')
+})
+
+test('domain operation model offers crash failure validation for town npc maintenance only', () => {
+  const townNpc = buildDomainOperationModel({
+    domain: 'town_npc_maintenance',
+    status: 'ready',
+    risk: 'ready',
+    sourceDomain: {
+      domain: 'town_npc_maintenance',
+      recommendedActionId: 'domain-source-town-npc-maintenance',
+      resumeSupported: true,
+      resumeStatePath: 'data/generated/resume/domain-source-town-npc-maintenance.resume.json',
+      state: { status: 'ready' },
+    },
+  })
+  const bosses = buildDomainOperationModel({
+    domain: 'bosses',
+    status: 'ready',
+    risk: 'ready',
+    sourceDomain: {
+      domain: 'bosses',
+      recommendedActionId: 'domain-source-bosses',
+      state: { status: 'ready' },
+    },
+  })
+
+  assert.deepEqual(townNpc.secondaryActions.find((action) => action.action === 'make-resume-failure'), {
+    action: 'make-resume-failure',
+    label: '制造断点失败',
+    tone: 'secondary',
+    icon: 'timer-reset',
+  })
+  assert.equal(bosses.secondaryActions.some((action) => action.action === 'make-resume-failure'), false)
+})
+
+test('domain operation model offers current failure validation while town npc is running or paused', () => {
+  for (const status of ['running', 'paused']) {
+    const operation = buildDomainOperationModel({
+      domain: 'town_npc_maintenance',
+      status,
+      risk: status,
+      queueItem: { status, queueId: `town-npc-${status}` },
+      sourceDomain: {
+        domain: 'town_npc_maintenance',
+        recommendedActionId: 'domain-source-town-npc-maintenance',
+        resumeSupported: true,
+        resumeStatePath: 'data/generated/resume/domain-source-town-npc-maintenance.resume.json',
+        state: { status },
+      },
+    })
+
+    assert.deepEqual(operation.secondaryActions.find((action) => action.action === 'fail-current'), {
+      action: 'fail-current',
+      label: '制造失败',
+      tone: 'danger',
+      icon: 'timer-reset',
+    })
+    assert.equal(operation.secondaryActions.some((action) => action.action === 'make-resume-failure'), false)
+  }
+})
+
+test('domain operation model hides failure validation while town npc is only queued or starting', () => {
+  for (const status of ['queued', 'blocked_cooldown', 'starting']) {
+    const operation = buildDomainOperationModel({
+      domain: 'town_npc_maintenance',
+      status,
+      risk: status,
+      queueItem: { status, queueId: `town-npc-${status}` },
+      sourceDomain: {
+        domain: 'town_npc_maintenance',
+        recommendedActionId: 'domain-source-town-npc-maintenance',
+        resumeSupported: true,
+        resumeStatePath: 'data/generated/resume/domain-source-town-npc-maintenance.resume.json',
+        state: { status },
+      },
+    })
+
+    assert.equal(operation.secondaryActions.some((action) => action.action === 'fail-current'), false)
+    assert.equal(operation.secondaryActions.some((action) => action.action === 'make-resume-failure'), false)
+  }
+})
+
+test('domain operation model does not offer continue crawl without resume state capability', () => {
+  for (const sourceDomain of [
+    { resumeSupported: false, resumeStatePath: 'data/generated/resume/town-npc.json' },
+    { resumeSupported: true, resumeStatePath: '' },
+  ]) {
+    const operation = buildDomainOperationModel({
+      domain: 'town_npc_maintenance',
+      status: 'failed',
+      risk: 'failed',
+      sourceDomain: {
+        domain: 'town_npc_maintenance',
+        recommendedActionId: 'domain-source-town-npc-maintenance',
+        state: { status: 'failed' },
+        ...sourceDomain,
+      },
+    })
+
+    assert.notEqual(operation.primaryAction?.action, 'continue-crawl')
+  }
+})
+
+test('domain operation model keeps paused resume separate from failed continue crawl', () => {
+  const operation = buildDomainOperationModel({
+    domain: 'buffs',
+    status: 'paused',
+    risk: 'paused',
+    sourceDomain: {
+      domain: 'buffs',
+      recommendedActionId: 'domain-source-buffs',
+      resumeSupported: true,
+      resumeStatePath: 'data/generated/resume/buffs.json',
+      state: { status: 'paused' },
+    },
+  })
+
+  assert.deepEqual(operation.primaryAction, {
+    action: 'resume',
+    label: '继续',
+    tone: 'primary',
+    icon: 'play',
+  })
+})
+
 test('domain operation model allows manual start when a domain only defines cooldown policy', () => {
   assert.deepEqual(buildDomainOperationModel({
     domain: 'items',

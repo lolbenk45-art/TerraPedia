@@ -10,6 +10,13 @@ import { nextActionLabel } from '../pages/operations/crawler-monitor.labels.mjs'
 const QUIET_TERMINAL_QUEUE_STATUSES = new Set(['completed'])
 const ACTIVE_QUEUE_STATUSES = new Set(['queued', 'blocked_cooldown', 'starting', 'running', 'paused'])
 const TERMINAL_QUEUE_STATUSES = new Set(['completed', 'failed', 'timed_out', 'cancelled'])
+const QUEUE_CONTROL_STATUS_RANK = {
+  starting: 0,
+  running: 0,
+  paused: 0,
+  queued: 1,
+  blocked_cooldown: 1,
+}
 
 function normalize(value) {
   return String(value || '').trim()
@@ -99,7 +106,10 @@ function selectBestQueueItem(items, predicate) {
   if (!matches.length) return null
   const active = matches.filter((item) => ACTIVE_QUEUE_STATUSES.has(lower(item?.status)))
   const pool = active.length ? active : matches
-  return [...pool].sort((left, right) => rowTimeMs(right) - rowTimeMs(left))[0] || null
+  return [...pool].sort((left, right) =>
+    (QUEUE_CONTROL_STATUS_RANK[lower(left?.status)] ?? 2) - (QUEUE_CONTROL_STATUS_RANK[lower(right?.status)] ?? 2)
+    || rowTimeMs(right) - rowTimeMs(left)
+  )[0] || null
 }
 
 function selectBestProgressRow(rows, predicate) {

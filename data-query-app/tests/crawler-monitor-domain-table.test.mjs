@@ -165,6 +165,62 @@ test('domain table backend state overrides older terminal queue history', () => 
   assert.equal(rows[0].statusSource, 'backend')
 })
 
+test('domain table keeps the running queue item as the controlling row over newer queued validation work', () => {
+  const rows = buildDomainTableRows({
+    domains: [
+      {
+        domain: 'town_npc_maintenance',
+        label: 'Town NPC maintenance',
+        recommendedActionId: 'domain-source-town-npc-maintenance',
+        resumeSupported: true,
+        resumeStatePath: 'data/generated/resume/domain-source-town-npc-maintenance.resume.json',
+        state: {
+          status: 'running',
+          nextAction: 'pause_or_cancel',
+        },
+      },
+    ],
+    progressRows: [
+      {
+        id: 'domain-source-town-npc-maintenance',
+        status: 'running',
+        current: 20,
+        total: 39,
+        progressPath: 'data/generated/domain-source-town-npc-maintenance-progress.latest.json',
+      },
+    ],
+    dispatchQueue: [
+      {
+        lane: 'standard',
+        domain: 'town_npc_maintenance',
+        actionId: 'domain-source-town-npc-maintenance',
+        status: 'running',
+        queueId: 'current-town-npc-run',
+        startedAt: '2026-07-06T13:13:34.659963669Z',
+        progressPath: 'data/generated/domain-source-town-npc-maintenance-progress.latest.json',
+      },
+      {
+        lane: 'standard',
+        domain: 'town_npc_maintenance',
+        actionId: 'domain-source-town-npc-maintenance',
+        status: 'queued',
+        queueId: 'newer-town-npc-failure-validation',
+        requestedAt: '2026-07-06T13:13:48.931105415Z',
+        blockedByDispatchId: 'wiki-monitor-2026-07-06T13-13-34-659963669Z-3cee1a1b',
+        blockedByDomain: 'town_npc_maintenance',
+        blockedByActionId: 'domain-source-town-npc-maintenance',
+        failureMode: 'townNpcCrashAfterPartial',
+      },
+    ],
+  })
+
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].status, 'running')
+  assert.equal(rows[0].risk, 'running')
+  assert.equal(rows[0].queueId, 'current-town-npc-run')
+  assert.equal(rows[0].queueItem.status, 'running')
+})
+
 test('domain table binds domain actions to the latest matching terminal queue item', () => {
   const rows = buildDomainTableRows({
     domains: [

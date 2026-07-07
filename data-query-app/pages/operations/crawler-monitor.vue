@@ -1177,6 +1177,9 @@ function handleDomainBoardAction(action: string, row: any) {
   }
   if (action === 'pause') return pauseDomainTableRow(row)
   if (action === 'resume') return resumeDomainTableRow(row)
+  if (action === 'continue-crawl') return continueDomainTableRow(row)
+  if (action === 'fail-current') return failCurrentDomainTableRow(row)
+  if (action === 'make-resume-failure') return makeResumeFailureDomainTableRow(row)
   if (action === 'start') return startDomainTableRow(row)
 }
 
@@ -1647,6 +1650,89 @@ function pauseDomainTableRow(row: any) {
   const domain = row?.sourceDomain || null
   if (domain && canPauseWikiDomain(domain)) return controlWikiMonitorTask(domain, 'pause')
   if (row?.queueItem) return controlProgressTask(queueItemAsProgressRow(row.queueItem), 'pause')
+}
+
+async function continueDomainTableRow(row: any) {
+  selectDomainTableRow(row)
+  const domain = row?.sourceDomain || null
+  const domainId = domain?.domain || row?.domain || ''
+  const actionId = domain?.recommendedActionId || row?.actionId || ''
+  const resumeStatePath = domain?.resumeStatePath || row?.resumeStatePath || ''
+  if (!domainId || !actionId || !domain?.resumeSupported || !resumeStatePath) {
+    showToast('当前域缺少续传状态，不能接着爬', 'warning')
+    return
+  }
+  wikiDispatchLoading.value = domainId
+  try {
+    const response: any = await post('/admin/crawler-monitor/dispatch', {
+      domain: domainId,
+      actionId,
+      resumeMode: 'resume',
+      resumeStatePath,
+    })
+    latestDispatchResult.value = (response?.data ?? response) || null
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || '已提交接着爬', latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    await loadOverview()
+  } catch (error: any) {
+    showToast(error?.data?.message || error?.message || '提交接着爬失败', 'error')
+  } finally {
+    wikiDispatchLoading.value = ''
+  }
+}
+
+async function makeResumeFailureDomainTableRow(row: any) {
+  selectDomainTableRow(row)
+  const domain = row?.sourceDomain || null
+  const domainId = domain?.domain || row?.domain || ''
+  const actionId = domain?.recommendedActionId || row?.actionId || ''
+  if (domainId !== 'town_npc_maintenance' || actionId !== 'domain-source-town-npc-maintenance' || !domain?.resumeSupported) {
+    showToast('当前域不能制造断点失败', 'warning')
+    return
+  }
+  wikiDispatchLoading.value = domainId
+  try {
+    const response: any = await post('/admin/crawler-monitor/dispatch', {
+      domain: domainId,
+      actionId,
+      failureMode: 'townNpcCrashAfterPartial',
+    })
+    latestDispatchResult.value = (response?.data ?? response) || null
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || '已提交断点失败验收任务', latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    await loadOverview()
+  } catch (error: any) {
+    showToast(error?.data?.message || error?.message || '提交断点失败验收任务失败', 'error')
+  } finally {
+    wikiDispatchLoading.value = ''
+  }
+}
+
+async function failCurrentDomainTableRow(row: any) {
+  selectDomainTableRow(row)
+  const domain = row?.sourceDomain || null
+  const domainId = domain?.domain || row?.domain || ''
+  const actionId = domain?.recommendedActionId || row?.actionId || ''
+  const queueId = row?.queueItem?.queueId || row?.queueId || ''
+  if (domainId !== 'town_npc_maintenance' || actionId !== 'domain-source-town-npc-maintenance' || !domain?.resumeSupported || !queueId) {
+    showToast('当前任务不能制造失败', 'warning')
+    return
+  }
+  if (import.meta.client && !window.confirm('确认把当前 Town NPC maintenance 任务标记为失败？运行进程会被终止，已有断点状态会保留用于接着爬。')) return
+  wikiDispatchLoading.value = domainId
+  try {
+    const response: any = await post('/admin/crawler-monitor/dispatch/control', {
+      domain: domainId,
+      actionId,
+      queueId,
+      controlAction: 'failForResumeValidation',
+    })
+    latestDispatchResult.value = (response?.data ?? response) || null
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || '已制造当前任务失败', latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    await loadOverview()
+  } catch (error: any) {
+    showToast(error?.data?.message || error?.message || '制造当前任务失败失败', 'error')
+  } finally {
+    wikiDispatchLoading.value = ''
+  }
 }
 
 async function startDomainTableRow(row: any) {

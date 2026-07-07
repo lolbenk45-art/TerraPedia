@@ -19,6 +19,7 @@ const IDLE_STATUSES = new Set(['ready', 'queued', 'paused', 'cancelled', 'missin
 const PAUSABLE_STATUSES = new Set(['running', 'starting'])
 const RESUMABLE_STATUSES = new Set(['paused'])
 const FORCE_RECLAIM_STATUSES = new Set(['blocked', 'failed', 'error', 'timed_out', 'timeout', 'stalled', 'state_missing', 'unknown'])
+const CONTINUE_CRAWL_STATUSES = new Set(['failed', 'stalled'])
 const STATUS_RANK = {
   blocked: 0,
   failed: 1,
@@ -85,6 +86,7 @@ function queueStatus(row) {
 }
 
 const MANUAL_DISPATCH_ACTIVE_STATUSES = new Set(['queued', 'blocked_cooldown', 'starting', 'running', 'paused'])
+const ACTIVE_DOMAIN_OPERATION_STATUSES = new Set(['queued', 'blocked_cooldown', 'blocked', 'starting', 'running', 'active', 'paused'])
 
 export function wikiDomainManualDispatchBlockReason(input = {}, now = new Date()) {
   const domain = input?.sourceDomain || input || {}
@@ -124,6 +126,34 @@ function operationStatus(row) {
 
 function canStartDomainOperation(row) {
   return !wikiDomainManualDispatchBlockReason(row)
+}
+
+function canContinueDomainOperation(row, status = operationStatus(row)) {
+  const sourceDomain = row?.sourceDomain || {}
+  return CONTINUE_CRAWL_STATUSES.has(status)
+    && sourceDomain.resumeSupported === true
+    && Boolean(normalize(sourceDomain.resumeStatePath || row?.resumeStatePath))
+}
+
+function canMakeResumeFailure(row) {
+  const sourceDomain = row?.sourceDomain || {}
+  const status = operationStatus(row)
+  const queue = queueStatus(row)
+  return sourceDomain.domain === 'town_npc_maintenance'
+    && sourceDomain.recommendedActionId === 'domain-source-town-npc-maintenance'
+    && sourceDomain.resumeSupported === true
+    && !ACTIVE_DOMAIN_OPERATION_STATUSES.has(status)
+    && !ACTIVE_DOMAIN_OPERATION_STATUSES.has(queue)
+}
+
+function canFailCurrentForResumeValidation(row) {
+  const sourceDomain = row?.sourceDomain || {}
+  const status = operationStatus(row)
+  const queue = queueStatus(row)
+  return sourceDomain.domain === 'town_npc_maintenance'
+    && sourceDomain.recommendedActionId === 'domain-source-town-npc-maintenance'
+    && sourceDomain.resumeSupported === true
+    && (['running', 'paused'].includes(status) || ['running', 'paused'].includes(queue))
 }
 
 function action(action, label, tone = 'secondary', icon = 'panel') {
@@ -181,12 +211,20 @@ export function buildDomainOperationModel(row) {
     } else {
       primaryAction = action('cancel', '终止', 'danger', 'circle-stop')
     }
+  } else if (canContinueDomainOperation(row, status)) {
+    primaryAction = action('continue-crawl', '接着爬', 'primary', 'play')
   } else if (canStartDomainOperation(row)) {
     primaryAction = action('start', '开始爬', 'primary', 'play')
   }
 
   if (FORCE_RECLAIM_STATUSES.has(status) && primaryAction?.action !== 'force-reclaim') {
     appendAction(secondaryActions, action('force-reclaim', '强制释放', 'danger', 'timer-reset'))
+  }
+  if (canFailCurrentForResumeValidation(row)) {
+    appendAction(secondaryActions, action('fail-current', '制造失败', 'danger', 'timer-reset'))
+  }
+  if (canMakeResumeFailure(row)) {
+    appendAction(secondaryActions, action('make-resume-failure', '制造断点失败', 'secondary', 'timer-reset'))
   }
 
   return {

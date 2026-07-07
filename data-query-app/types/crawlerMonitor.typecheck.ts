@@ -344,6 +344,19 @@ const dispatchResult: CrawlerMonitorDispatchResult = {
 
 void dispatchResult
 
+const resumableWikiDomain = {
+  domain: 'town_npc_maintenance',
+  label: 'Town NPC maintenance',
+  status: 'failed',
+  recommendedActionId: 'domain-source-town-npc-maintenance',
+  resumeSupported: true,
+  resumeMode: 'resume',
+  resumeStatePath: 'data/generated/resume/town-npc-maintenance.json',
+  restartBehavior: 'resume-from-state',
+} satisfies import('~/types/crawlerMonitor').CrawlerMonitorWikiDomain
+
+void resumableWikiDomain
+
 const testState: CrawlerMonitorTestState = {
   generatedAt: '2026-04-28T00:00:00Z',
   path: 'reports/backend-refresh/manual-monitor-test.json',

@@ -37,6 +37,7 @@ class WikiMonitorDispatchQueueRepository {
     static final String KEY_PREFIX = "terrapedia:crawler:wiki-monitor:dispatch-queue:";
     private static final String IDS_KEY = KEY_PREFIX + "ids";
     private static final String DRAIN_LOCK_KEY = KEY_PREFIX + "drain-lock";
+    private static final String RESTORE_LOCK_KEY = KEY_PREFIX + "restore-lock";
     private static final Path MIRROR_PATH = Path.of("reports", "crawler-monitor", "wiki-monitor-dispatch-queue.latest.json");
     private static final Duration CLAIM_LEASE = Duration.ofMinutes(5);
     private static final Duration DEDUPE_TTL = Duration.ofHours(24);
@@ -118,18 +119,7 @@ class WikiMonitorDispatchQueueRepository {
 
     List<WikiMonitorQueueItem> listItems() {
         if (redisTemplate != null) {
-            if (redisTemplate.opsForList() == null) {
-                return List.of();
-            }
-            List<String> ids = redisTemplate.opsForList().range(IDS_KEY, 0, -1);
-            if (ids == null || ids.isEmpty()) {
-                return List.of();
-            }
-            List<WikiMonitorQueueItem> items = new ArrayList<>();
-            for (String id : ids) {
-                findItem(id).ifPresent(items::add);
-            }
-            return items;
+            return listRedisItems(true);
         }
         return withMutation(() -> new ArrayList<>(readMirror().items));
     }
@@ -474,8 +464,8 @@ class WikiMonitorDispatchQueueRepository {
                 return snapshotFrom(mirror.items, mirror.cooldowns);
             });
         }
-        List<WikiMonitorQueueItem> items = listItems();
-        Map<String, CooldownEntry> cooldowns = Map.of();
+        List<WikiMonitorQueueItem> items = listRedisItems(false);
+        Map<String, CooldownEntry> cooldowns = readRedisCooldowns();
         QueueSnapshot snapshot = new QueueSnapshot(
             Instant.now(clock),
             items,
@@ -647,6 +637,116 @@ class WikiMonitorDispatchQueueRepository {
             writeMirror(mirror);
             return result;
         });
+    }
+
+    private void restoreRedisFromMirrorIfEmpty() {
+        if (redisTemplate == null || redisTemplate.opsForList() == null || redisTemplate.opsForValue() == null) {
+            return;
+        }
+        mutationLock.lock();
+        String owner = restoreOwner();
+        boolean acquired = false;
+        try {
+            List<String> currentIds = redisTemplate.opsForList().range(IDS_KEY, 0, -1);
+            if (currentIds != null && !currentIds.isEmpty()) {
+                return;
+            }
+            acquired = Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(RESTORE_LOCK_KEY, owner, 30, TimeUnit.SECONDS));
+            if (!acquired) {
+                return;
+            }
+            currentIds = redisTemplate.opsForList().range(IDS_KEY, 0, -1);
+            if (currentIds != null && !currentIds.isEmpty()) {
+                return;
+            }
+            MirrorPayload mirror = readMirror();
+            if (mirror.items.isEmpty()) {
+                return;
+            }
+            for (WikiMonitorQueueItem item : mirror.items) {
+                if (item.getQueueId() == null || item.getQueueId().isBlank()) {
+                    continue;
+                }
+                String existingJson = redisTemplate.opsForValue().get(itemKey(item.getQueueId()));
+                WikiMonitorQueueItem restoredItem = item;
+                if (existingJson == null || existingJson.isBlank()) {
+                    redisTemplate.opsForValue().set(itemKey(item.getQueueId()), writeItem(item));
+                } else {
+                    try {
+                        restoredItem = objectMapper.readValue(existingJson, WikiMonitorQueueItem.class);
+                    } catch (IOException ignored) {
+                        restoredItem = item;
+                    }
+                }
+                redisTemplate.opsForList().rightPush(IDS_KEY, item.getQueueId());
+                if (!restoredItem.isTerminal() && restoredItem.getDispatchId() != null && !restoredItem.getDispatchId().isBlank()) {
+                    redisTemplate.opsForValue().set(dispatchKey(restoredItem.getDispatchId()), restoredItem.getQueueId());
+                }
+                if (restoredItem.isDedupeActive()) {
+                    redisTemplate.opsForValue().set(dedupeKey(restoredItem.dedupeKeyPart()), restoredItem.getQueueId(), DEDUPE_TTL.toSeconds(), TimeUnit.SECONDS);
+                }
+            }
+            for (Map.Entry<String, CooldownEntry> entry : mirror.cooldowns.entrySet()) {
+                redisTemplate.opsForValue().set(entry.getKey(), writeValue(entry.getValue()));
+            }
+        } finally {
+            if (acquired) {
+                redisTemplate.execute(RELEASE_DRAIN_LOCK_SCRIPT, List.of(RESTORE_LOCK_KEY), owner);
+            }
+            mutationLock.unlock();
+        }
+    }
+
+    private String restoreOwner() {
+        return "queue-restore:" + hostName() + ":" + ManagementFactory.getRuntimeMXBean().getName() + ":" + UUID.randomUUID();
+    }
+
+    private List<WikiMonitorQueueItem> listRedisItems(boolean allowMirrorRestore) {
+        if (redisTemplate.opsForList() == null) {
+            return List.of();
+        }
+        List<String> ids = redisTemplate.opsForList().range(IDS_KEY, 0, -1);
+        if ((ids == null || ids.isEmpty()) && allowMirrorRestore) {
+            restoreRedisFromMirrorIfEmpty();
+            ids = redisTemplate.opsForList().range(IDS_KEY, 0, -1);
+        }
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        List<WikiMonitorQueueItem> items = new ArrayList<>();
+        for (String id : ids) {
+            findItem(id).ifPresent(items::add);
+        }
+        return items;
+    }
+
+    private Map<String, CooldownEntry> readRedisCooldowns() {
+        if (redisTemplate == null || redisTemplate.opsForValue() == null) {
+            return Map.of();
+        }
+        Set<String> keys;
+        try {
+            keys = redisTemplate.keys(KEY_PREFIX + "cooldown:*");
+        } catch (RuntimeException exception) {
+            return Map.of();
+        }
+        if (keys == null || keys.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, CooldownEntry> cooldowns = new LinkedHashMap<>();
+        for (String key : keys) {
+            String json = redisTemplate.opsForValue().get(key);
+            if (json == null || json.isBlank()) {
+                continue;
+            }
+            try {
+                CooldownEntry entry = objectMapper.readValue(json, CooldownEntry.class);
+                cooldowns.put(key, entry);
+            } catch (IOException ignored) {
+                // Skip malformed cooldown snapshots; queue items remain authoritative.
+            }
+        }
+        return cooldowns;
     }
 
     private String claimItem(WikiMonitorQueueItem item, String owner) {
