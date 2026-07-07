@@ -170,6 +170,177 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void shouldFailStartingItemWhenExpiredLockEvidenceProcessIsDeadAndReleaseLock() throws Exception {
+        seedStandardStartingQueueItem("queue-expired-starting", "domain-source-bosses");
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "queueId", "queue-expired-starting",
+            "dispatchId", "drifted-starting-dispatch",
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "lockedAt", "2026-06-14T01:00:00Z",
+            "pid", 2_000_000_000L,
+            "startedAt", "2026-06-14T01:00:00Z"
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:10:00Z"), ZoneOffset.UTC),
+            new RecordingProcessLauncher(new BlockingProcess())
+        );
+
+        service.scheduledWikiMonitorQueueDrainSweep();
+
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals("failed", queueItems.get(0).get("status"));
+        assertFalse(queueItems.get(0).containsKey("claimOwner"));
+        assertFalse(((Map<?, ?>) queueMirror.get("dedupe")).containsKey("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:domain-source-bosses"));
+        assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldKeepStartingItemWhenExpiredLockEvidenceProcessIsAlive() throws Exception {
+        Instant processStart = ProcessHandle.current().info().startInstant().orElseThrow();
+        seedStandardStartingQueueItem("queue-expired-starting", "domain-source-bosses");
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "queueId", "queue-expired-starting",
+            "dispatchId", "starting-live-dispatch",
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "lockedAt", "2026-06-14T01:00:00Z",
+            "pid", ProcessHandle.current().pid(),
+            "startedAt", processStart.toString()
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:10:00Z"), ZoneOffset.UTC),
+            new RecordingProcessLauncher(new BlockingProcess())
+        );
+
+        service.scheduledWikiMonitorQueueDrainSweep();
+
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals("starting", queueItems.get(0).get("status"));
+        assertTrue(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldNotReleaseStartingLockWhenQueueIdDoesNotMatch() throws Exception {
+        seedStandardStartingQueueItem("queue-expired-starting", "domain-source-bosses");
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "queueId", "queue-other",
+            "dispatchId", "other-dispatch",
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "lockedAt", "2026-06-14T01:00:00Z",
+            "pid", 2_000_000_000L,
+            "startedAt", "2026-06-14T01:00:00Z"
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:10:00Z"), ZoneOffset.UTC),
+            new RecordingProcessLauncher(new BlockingProcess())
+        );
+
+        service.scheduledWikiMonitorQueueDrainSweep();
+
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals("failed", queueItems.get(0).get("status"));
+        Map<String, Object> lock = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"));
+        assertEquals("queue-other", lock.get("queueId"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldFailStartingItemWhenLatestDispatchEvidenceProcessIsDead() throws Exception {
+        seedStandardStartingQueueItem("queue-expired-starting", "domain-source-bosses");
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "queueId", "queue-expired-starting",
+            "dispatchId", "latest-dead-dispatch",
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "status", "running",
+            "pid", 2_000_000_000L,
+            "startedAt", "2026-06-14T01:00:00Z"
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:10:00Z"), ZoneOffset.UTC),
+            new RecordingProcessLauncher(new BlockingProcess())
+        );
+
+        service.scheduledWikiMonitorQueueDrainSweep();
+
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals("failed", queueItems.get(0).get("status"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldKeepStartingItemWhenLatestDispatchEvidenceProcessIsAlive() throws Exception {
+        Instant processStart = ProcessHandle.current().info().startInstant().orElseThrow();
+        seedStandardStartingQueueItem("queue-expired-starting", "domain-source-bosses");
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "queueId", "queue-expired-starting",
+            "dispatchId", "latest-live-dispatch",
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "status", "running",
+            "pid", ProcessHandle.current().pid(),
+            "startedAt", processStart.toString()
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:10:00Z"), ZoneOffset.UTC),
+            new RecordingProcessLauncher(new BlockingProcess())
+        );
+
+        service.scheduledWikiMonitorQueueDrainSweep();
+
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals("starting", queueItems.get(0).get("status"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldNotReleaseStartingLegacyLockWithoutQueueId() throws Exception {
+        seedStandardStartingQueueItem("queue-expired-starting", "domain-source-bosses");
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "dispatchId", "legacy-lock-without-queue",
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "lockedAt", "2026-06-14T01:00:00Z",
+            "pid", 2_000_000_000L,
+            "startedAt", "2026-06-14T01:00:00Z"
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:10:00Z"), ZoneOffset.UTC),
+            new RecordingProcessLauncher(new BlockingProcess())
+        );
+
+        service.scheduledWikiMonitorQueueDrainSweep();
+
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals("failed", queueItems.get(0).get("status"));
+        Map<String, Object> lock = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"));
+        assertEquals("legacy-lock-without-queue", lock.get("dispatchId"));
+    }
+
+    @Test
     void shouldExposeRecentTerminalDispatchQueueItemsInOverview() throws Exception {
         writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
             "generatedAt", "2026-06-22T00:16:46Z",
@@ -4149,6 +4320,27 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldKeepDomainSmokeLockShapeWithoutPidOnStart() throws Exception {
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-21T02:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorDomainSmoke();
+
+        assertTrue(result.isAccepted());
+        assertEquals("running", result.getStatus());
+        Map<String, Object> lock = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json"));
+        assertEquals(result.getQueueId(), lock.get("queueId"));
+        assertEquals(result.getDispatchId(), lock.get("dispatchId"));
+        assertFalse(lock.containsKey("pid"));
+        assertFalse(lock.containsKey("startedAt"));
+    }
+
+    @Test
     void shouldQueueWikiMonitorDomainSmokeWhenLockAlreadyExists() throws Exception {
         writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json"), Map.of(
             "dispatchId", "existing",
@@ -4173,6 +4365,75 @@ class CrawlerMonitorServiceImplTest {
         assertNotNull(result.getQueueId());
         assertEquals("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json", result.getLockPath());
         assertEquals(0, launcher.launchCount);
+    }
+
+    @Test
+    void shouldNotReleaseDomainSmokeStaleLockWithoutPid() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json"), Map.of(
+            "dispatchId", "smoke-without-runtime",
+            "domain", "all",
+            "actionId", "wiki-monitor-domain-smoke",
+            "lockedAt", "2026-06-19T09:00:00Z"
+        ));
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-19T12:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorDomainSmoke();
+
+        assertTrue(result.isAccepted());
+        assertEquals("queued", result.getStatus());
+        assertEquals(0, launcher.launchCount);
+        Map<String, Object> lock = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json"));
+        assertEquals("smoke-without-runtime", lock.get("dispatchId"));
+        assertFalse(lock.containsKey("pid"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldNotAutoReleaseDomainSmokeDeadLockWithoutRuntimeMetadata() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json"), Map.of(
+            "queueId", "queue-smoke-paused",
+            "dispatchId", "smoke-without-runtime",
+            "domain", "all",
+            "actionId", "wiki-monitor-domain-smoke",
+            "lockedAt", "2026-06-19T11:00:00Z"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-19T11:00:00Z",
+            "items", List.of(Map.ofEntries(
+                Map.entry("queueId", "queue-smoke-paused"),
+                Map.entry("dispatchId", "smoke-without-runtime"),
+                Map.entry("lane", "domain_smoke"),
+                Map.entry("domain", "all"),
+                Map.entry("actionId", "wiki-monitor-domain-smoke"),
+                Map.entry("status", "paused"),
+                Map.entry("requestedAt", "2026-06-19T10:59:00Z"),
+                Map.entry("startedAt", "2026-06-19T11:00:00Z"),
+                Map.entry("pid", 2_000_000_000L),
+                Map.entry("lockPath", "reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json")
+            )),
+            "dispatches", Map.of("smoke-without-runtime", "queue-smoke-paused")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-19T11:10:00Z"), ZoneOffset.UTC),
+            new RecordingProcessLauncher(new BlockingProcess())
+        );
+
+        service.getOverview();
+
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals("failed", queueItems.get(0).get("status"));
+        Map<String, Object> lock = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json"));
+        assertEquals("smoke-without-runtime", lock.get("dispatchId"));
+        assertFalse(lock.containsKey("pid"));
     }
 
     @Test
@@ -4375,6 +4636,256 @@ class CrawlerMonitorServiceImplTest {
         Map<String, Object> latest = readJsonMap(statePath);
         assertEquals("timed_out", latest.get("status"));
         assertTrue(String.valueOf(latest.get("message")).startsWith("dispatch timed out"));
+    }
+
+    @Test
+    void shouldCalculateEffectiveDispatchTimeoutFromOriginalProcessStart() {
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC)
+        );
+        service.setDispatchTimeoutForTesting(Duration.ofMinutes(90));
+        Instant now = Instant.parse("2026-06-14T02:00:00Z");
+
+        assertEquals(Duration.ofMinutes(90), service.effectiveDispatchTimeout(now, now));
+        assertEquals(Duration.ofMinutes(30), service.effectiveDispatchTimeout(now.minus(Duration.ofMinutes(60)), now));
+        assertEquals(Duration.ZERO, service.effectiveDispatchTimeout(now.minus(Duration.ofMinutes(200)), now));
+        assertEquals(Duration.ofMinutes(90), service.effectiveDispatchTimeout(now.plus(Duration.ofMinutes(5)), now));
+        assertEquals(Duration.ofMinutes(90), service.effectiveDispatchTimeout(null, now));
+    }
+
+    @Test
+    void shouldRecoverStandardDispatchWithRemainingTimeoutAfterRestart() throws Exception {
+        TimeoutRecordingProcess process = new TimeoutRecordingProcess();
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(process) {
+            @Override
+            public Process recoverRecordedProcess(long pid, String recordedStartedAt) {
+                return pid == 62626L ? process : null;
+            }
+        };
+        seedRecoveredRunningStandardDispatch("queue-recovered-running", "recovered-dispatch", 62626L, "2026-06-14T01:59:59.250Z");
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        service.setDispatchTimeoutForTesting(Duration.ofSeconds(1));
+
+        service.reconcileActiveDispatchesOnStartup();
+        waitUntil(() -> process.observedTimeoutMillis >= 0L);
+        waitUntilQueueStatus("queue-recovered-running", "timed_out");
+
+        assertEquals(250L, process.observedTimeoutMillis);
+    }
+
+    @Test
+    void shouldRecoverStandardDispatchWithQueueProcessStartWhenLockStartedAtMissing() throws Exception {
+        TimeoutRecordingProcess process = new TimeoutRecordingProcess();
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(process) {
+            @Override
+            public Process recoverRecordedProcess(long pid, String recordedStartedAt) {
+                return pid == 62628L ? process : null;
+            }
+        };
+        seedRecoveredRunningStandardDispatch("queue-recovered-fallback", "recovered-fallback-dispatch", 62628L, "2026-06-14T01:59:59.250Z");
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "queueId", "queue-recovered-fallback",
+            "dispatchId", "recovered-fallback-dispatch",
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "lockedAt", "2026-06-14T01:00:00Z",
+            "pid", 62628L
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "queueId", "queue-recovered-fallback",
+            "dispatchId", "recovered-fallback-dispatch",
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "status", "running",
+            "message", "dispatch running",
+            "pid", 62628L,
+            "progressPath", "data/generated/domain-source-bosses-progress.latest.json",
+            "reportPath", "reports/backend-refresh/history/backend-data-refresh-recovered-fallback-dispatch.json",
+            "logPath", "reports/crawler-monitor/wiki-monitor-dispatch-recovered-fallback-dispatch.log"
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        service.setDispatchTimeoutForTesting(Duration.ofSeconds(1));
+
+        service.reconcileActiveDispatchesOnStartup();
+        waitUntil(() -> process.observedTimeoutMillis >= 0L);
+        waitUntilQueueStatus("queue-recovered-fallback", "timed_out");
+
+        assertEquals(250L, process.observedTimeoutMillis);
+    }
+
+    @Test
+    void shouldNotRecoverStandardDispatchWithoutAnyPersistentStartEvidence() throws Exception {
+        boolean[] recoverCalled = {false};
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(new BlockingProcess()) {
+            @Override
+            public Process recoverRecordedProcess(long pid, String recordedStartedAt) {
+                recoverCalled[0] = true;
+                return super.recoverRecordedProcess(pid, recordedStartedAt);
+            }
+        };
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "queueId", "queue-recovered-without-start",
+            "dispatchId", "recovered-without-start-dispatch",
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "pid", ProcessHandle.current().pid()
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "queueId", "queue-recovered-without-start",
+            "dispatchId", "recovered-without-start-dispatch",
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "status", "running",
+            "message", "dispatch running",
+            "pid", ProcessHandle.current().pid(),
+            "progressPath", "data/generated/domain-source-bosses-progress.latest.json",
+            "reportPath", "reports/backend-refresh/history/backend-data-refresh-recovered-without-start-dispatch.json",
+            "logPath", "reports/crawler-monitor/wiki-monitor-dispatch-recovered-without-start-dispatch.log"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T02:00:00Z",
+            "items", List.of(Map.ofEntries(
+                Map.entry("queueId", "queue-recovered-without-start"),
+                Map.entry("dispatchId", "recovered-without-start-dispatch"),
+                Map.entry("lane", "standard"),
+                Map.entry("domain", "bosses"),
+                Map.entry("actionId", "domain-source-bosses"),
+                Map.entry("status", "running"),
+                Map.entry("requestedAt", "2026-06-14T01:00:00Z"),
+                Map.entry("pid", ProcessHandle.current().pid()),
+                Map.entry("progressPath", "data/generated/domain-source-bosses-progress.latest.json"),
+                Map.entry("lockPath", "reports/crawler-monitor/wiki-monitor-dispatch.lock.json")
+            )),
+            "dedupe", Map.of("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:domain-source-bosses", Map.of(
+                "queueId", "queue-recovered-without-start",
+                "expiresAt", "2026-06-15T01:00:00Z"
+            )),
+            "dispatches", Map.of("recovered-without-start-dispatch", "queue-recovered-without-start")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+
+        service.reconcileActiveDispatchesOnStartup();
+        service.getOverview();
+
+        assertFalse(recoverCalled[0]);
+        assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+        Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+        assertEquals("failed", latest.get("status"));
+        assertEquals("failed", firstQueueItemMirror().get("status"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldImmediatelyTimeOutRecoveredOverBudgetDispatch() throws Exception {
+        ControllableBlockingProcess process = new ControllableBlockingProcess();
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(process) {
+            @Override
+            public Process recoverRecordedProcess(long pid, String recordedStartedAt) {
+                return pid == 62627L ? process : null;
+            }
+        };
+        seedRecoveredRunningStandardDispatch("queue-recovered-overbudget", "recovered-overbudget-dispatch", 62627L, "2026-06-14T01:59:58Z");
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        service.setDispatchTimeoutForTesting(Duration.ofSeconds(1));
+
+        service.reconcileActiveDispatchesOnStartup();
+        waitUntilQueueStatus("queue-recovered-overbudget", "timed_out");
+
+        assertEquals(1, process.terminateCount);
+        assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        assertFalse(((Map<?, ?>) queueMirror.get("dispatches")).containsKey("recovered-overbudget-dispatch"));
+        assertFalse(((Map<?, ?>) queueMirror.get("dedupe")).containsKey("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:domain-source-bosses"));
+        Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+        assertEquals("timed_out", latest.get("status"));
+        Map<String, Object> progress = readJsonMap(repoRoot.resolve("data/generated/domain-source-bosses-progress.latest.json"));
+        assertEquals("timed_out", progress.get("status"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldSyncRecoveredWatcherTerminalToQueueByQueueId() throws Exception {
+        ControllableBlockingProcess process = new ControllableBlockingProcess();
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(process) {
+            @Override
+            public Process recoverRecordedProcess(long pid, String recordedStartedAt) {
+                return pid == 62629L ? process : null;
+            }
+        };
+        seedRecoveredRunningStandardDispatch("queue-recovered-complete", "recovered-complete-dispatch", 62629L, "2026-06-14T01:30:00Z");
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        service.setDispatchTimeoutForTesting(Duration.ofMinutes(90));
+
+        service.reconcileActiveDispatchesOnStartup();
+        process.complete(0);
+        waitUntilQueueStatus("queue-recovered-complete", "completed");
+
+        Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+        assertEquals("completed", latest.get("status"));
+        assertEquals("queue-recovered-complete", latest.get("queueId"));
+        assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        assertFalse(((Map<?, ?>) queueMirror.get("dispatches")).containsKey("recovered-complete-dispatch"));
+        assertFalse(((Map<?, ?>) queueMirror.get("dedupe")).containsKey("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:domain-source-bosses"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldNotLetTerminalLatestLeaveRunningQueueBlockingLane() throws Exception {
+        Instant processStart = ProcessHandle.current().info().startInstant().orElseThrow();
+        seedRecoveredRunningStandardDispatch("queue-terminal-latest", "terminal-latest-dispatch", ProcessHandle.current().pid(), processStart.toString());
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.of(
+            "queueId", "queue-terminal-latest",
+            "dispatchId", "terminal-latest-dispatch",
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "status", "completed",
+            "message", "completed with exit code 0",
+            "startedAt", "2026-06-14T01:00:00Z",
+            "completedAt", "2026-06-14T01:30:00Z",
+            "pid", ProcessHandle.current().pid()
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC),
+            new RecordingProcessLauncher(new BlockingProcess())
+        );
+
+        service.getOverview();
+
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals("completed", queueItems.get(0).get("status"));
+        assertEquals("2026-06-14T01:30:00Z", queueItems.get(0).get("completedAt"));
+        assertFalse(((Map<?, ?>) queueMirror.get("dispatches")).containsKey("terminal-latest-dispatch"));
     }
 
     @Test
@@ -4583,6 +5094,17 @@ class CrawlerMonitorServiceImplTest {
         });
     }
 
+    private void waitUntilDispatchStatus(String dispatchId, String status) throws InterruptedException {
+        waitUntil(() -> {
+            try {
+                Map<String, Object> latest = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"));
+                return dispatchId.equals(latest.get("dispatchId")) && status.equals(latest.get("status"));
+            } catch (Exception exception) {
+                return false;
+            }
+        });
+    }
+
     private Map<String, Object> readJsonMap(Path path) throws IOException {
         return new ObjectMapper().readValue(Files.readString(path), new TypeReference<>() {});
     }
@@ -4603,6 +5125,74 @@ class CrawlerMonitorServiceImplTest {
         item.setStatus("starting");
         item.setRequestedAt(Instant.parse("2026-06-21T01:59:00Z"));
         return item;
+    }
+
+    private void seedStandardStartingQueueItem(String queueId, String actionId) throws IOException {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:00:00Z",
+            "items", List.of(Map.ofEntries(
+                Map.entry("queueId", queueId),
+                Map.entry("lane", "standard"),
+                Map.entry("domain", "bosses"),
+                Map.entry("actionId", actionId),
+                Map.entry("status", "starting"),
+                Map.entry("requestedAt", "2026-06-14T00:59:00Z"),
+                Map.entry("claimOwner", "test-owner"),
+                Map.entry("claimedAt", "2026-06-14T01:00:00Z"),
+                Map.entry("claimExpiresAt", "2026-06-14T01:05:00Z")
+            )),
+            "dedupe", Map.of("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:" + actionId, Map.of(
+                "queueId", queueId,
+                "expiresAt", "2026-06-15T01:00:00Z"
+            ))
+        ));
+    }
+
+    private void seedRecoveredRunningStandardDispatch(String queueId, String dispatchId, long pid, String processStartedAt) throws IOException {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "queueId", queueId,
+            "dispatchId", dispatchId,
+            "domain", "bosses",
+            "actionId", "domain-source-bosses",
+            "lockedAt", "2026-06-14T01:00:00Z",
+            "pid", pid,
+            "startedAt", processStartedAt
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.ofEntries(
+            Map.entry("queueId", queueId),
+            Map.entry("dispatchId", dispatchId),
+            Map.entry("domain", "bosses"),
+            Map.entry("actionId", "domain-source-bosses"),
+            Map.entry("status", "running"),
+            Map.entry("message", "dispatch running"),
+            Map.entry("startedAt", processStartedAt),
+            Map.entry("pid", pid),
+            Map.entry("progressPath", "data/generated/domain-source-bosses-progress.latest.json"),
+            Map.entry("reportPath", "reports/backend-refresh/history/backend-data-refresh-" + dispatchId + ".json"),
+            Map.entry("logPath", "reports/crawler-monitor/wiki-monitor-dispatch-" + dispatchId + ".log")
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:00:00Z",
+            "items", List.of(Map.ofEntries(
+                Map.entry("queueId", queueId),
+                Map.entry("dispatchId", dispatchId),
+                Map.entry("lane", "standard"),
+                Map.entry("domain", "bosses"),
+                Map.entry("actionId", "domain-source-bosses"),
+                Map.entry("status", "running"),
+                Map.entry("requestedAt", "2026-06-14T00:59:00Z"),
+                Map.entry("startedAt", "2026-06-14T01:00:00Z"),
+                Map.entry("pid", pid),
+                Map.entry("processStartedAt", processStartedAt),
+                Map.entry("progressPath", "data/generated/domain-source-bosses-progress.latest.json"),
+                Map.entry("lockPath", "reports/crawler-monitor/wiki-monitor-dispatch.lock.json")
+            )),
+            "dedupe", Map.of("terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:domain-source-bosses", Map.of(
+                "queueId", queueId,
+                "expiresAt", "2026-06-15T01:00:00Z"
+            )),
+            "dispatches", Map.of(dispatchId, queueId)
+        ));
     }
 
     private void writeJson(Path path, Map<String, Object> payload) throws IOException {
@@ -5072,6 +5662,16 @@ class CrawlerMonitorServiceImplTest {
         private List<ControllableBlockingProcess> children = List.of();
     }
 
+    private static class TimeoutRecordingProcess extends ControllableBlockingProcess {
+        private volatile long observedTimeoutMillis = -1L;
+
+        @Override
+        public boolean waitFor(long timeout, TimeUnit unit) {
+            observedTimeoutMillis = unit.toMillis(timeout);
+            return false;
+        }
+    }
+
     private static class PidAwareBlockingProcess extends ControllableBlockingProcess {
         private final long pid;
 
@@ -5469,19 +6069,32 @@ class CrawlerMonitorServiceImplTest {
      * to make {@code processStartMatches} conservatively return true), and heartbeatAt (progress staleness).
      */
     private void seedRunningTownNpcQueueItem(long pid, String processStartedAt, String heartbeatAt) throws IOException {
+        seedTownNpcQueueItem("running", pid, processStartedAt, heartbeatAt);
+    }
+
+    private void seedTownNpcQueueItem(String status, long pid, String processStartedAt, String heartbeatAt) throws IOException {
         writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.ofEntries(
             Map.entry("queueId", "wiki-monitor-queue-town-npc"),
             Map.entry("dispatchId", "wiki-monitor-dispatch-town-npc"),
             Map.entry("domain", "town_npc_maintenance"),
             Map.entry("actionId", "domain-source-town-npc-maintenance"),
-            Map.entry("status", "running"),
+            Map.entry("status", status),
             Map.entry("message", "dispatch running"),
             Map.entry("progressPath", "data/generated/domain-source-town-npc-maintenance-progress.latest.json")
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.ofEntries(
+            Map.entry("queueId", "wiki-monitor-queue-town-npc"),
+            Map.entry("dispatchId", "wiki-monitor-dispatch-town-npc"),
+            Map.entry("domain", "town_npc_maintenance"),
+            Map.entry("actionId", "domain-source-town-npc-maintenance"),
+            Map.entry("lockedAt", "2026-06-14T01:04:00Z"),
+            Map.entry("pid", pid),
+            Map.entry("startedAt", firstNonNull(processStartedAt, "2026-06-14T01:04:00Z"))
         ));
         writeJson(repoRoot.resolve("data/generated/domain-source-town-npc-maintenance-progress.latest.json"), Map.of(
             "actionId", "domain-source-town-npc-maintenance",
             "domain", "town_npc_maintenance",
-            "status", "running",
+            "status", status,
             "current", 15,
             "total", 39,
             "lastHeartbeatAt", heartbeatAt,
@@ -5494,7 +6107,7 @@ class CrawlerMonitorServiceImplTest {
         item.put("domain", "town_npc_maintenance");
         item.put("coveredDomains", List.of("town_npc_maintenance"));
         item.put("actionId", "domain-source-town-npc-maintenance");
-        item.put("status", "running");
+        item.put("status", status);
         item.put("requestedAt", "2026-06-14T01:03:00Z");
         item.put("startedAt", "2026-06-14T01:04:00Z");
         item.put("pid", pid);
@@ -5510,6 +6123,10 @@ class CrawlerMonitorServiceImplTest {
         ));
     }
 
+    private static String firstNonNull(String value, String fallback) {
+        return value == null ? fallback : value;
+    }
+
     @SuppressWarnings("unchecked")
     private Map<String, Object> firstQueueItemMirror() throws IOException {
         Map<String, Object> mirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
@@ -5518,11 +6135,13 @@ class CrawlerMonitorServiceImplTest {
 
     @Test
     void shouldConvergeAliveButStartTimeMismatchedRunningItemAsDead() throws Exception {
-        // c.1: the PID is alive (our own JVM), but the recorded launch time is far newer than the live
-        // process's real start → processStartMatches returns false → treated as PID reuse / dead.
+        // c.1: the PID is alive (our own JVM), but its actual OS start is far later than the dispatch's
+        // recorded launch time. That is the real PID-reuse shape: an old crawler died, then the PID was
+        // reused by a newer process.
+        Instant currentProcessStart = ProcessHandle.current().info().startInstant().orElseThrow();
         seedRunningTownNpcQueueItem(
             ProcessHandle.current().pid(),
-            "2099-01-01T00:00:00Z",
+            currentProcessStart.minus(Duration.ofHours(1)).toString(),
             STUCK_RECOVERY_NOW.toString());
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
             new ObjectMapper(), repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC));
@@ -5530,6 +6149,25 @@ class CrawlerMonitorServiceImplTest {
         service.getOverview();
 
         assertEquals("timed_out", firstQueueItemMirror().get("status"));
+        assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+    }
+
+    @Test
+    void shouldConvergeAliveButFutureStartTimeMismatchedRunningItemAsDead() throws Exception {
+        // c.1 reverse guard: a recorded launch time far after the live PID's actual OS start is also not
+        // the recorded crawler process.
+        Instant currentProcessStart = ProcessHandle.current().info().startInstant().orElseThrow();
+        seedRunningTownNpcQueueItem(
+            ProcessHandle.current().pid(),
+            currentProcessStart.plus(Duration.ofHours(1)).toString(),
+            STUCK_RECOVERY_NOW.toString());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC));
+
+        service.getOverview();
+
+        assertEquals("timed_out", firstQueueItemMirror().get("status"));
+        assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
     }
 
     @Test
@@ -5546,6 +6184,216 @@ class CrawlerMonitorServiceImplTest {
         service.getOverview();
 
         assertEquals("timed_out", firstQueueItemMirror().get("status"));
+        assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldConvergeTrackedActiveRunningItemWhenHeartbeatIsStale() throws Exception {
+        ControllableBlockingProcess process = new ControllableBlockingProcess();
+        RecordingProcessLauncher launcher = new RecordingProcessLauncher(process);
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC), launcher);
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorTask(
+            dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance"));
+        writeJson(repoRoot.resolve(started.getProgressPath()), Map.of(
+            "actionId", "domain-source-town-npc-maintenance",
+            "domain", "town_npc_maintenance",
+            "status", "running",
+            "current", 15,
+            "total", 39,
+            "lastHeartbeatAt", STUCK_RECOVERY_NOW.minus(Duration.ofMinutes(30)).toString(),
+            "generatedAt", STUCK_RECOVERY_NOW.minus(Duration.ofMinutes(30)).toString()
+        ));
+
+        service.getOverview();
+        waitUntilDispatchStatus(started.getDispatchId(), "failed");
+
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals(started.getQueueId(), queueItems.get(0).get("queueId"));
+        assertEquals("timed_out", queueItems.get(0).get("status"));
+        assertEquals(1, process.terminateCount);
+        assertFalse(process.isAlive());
+        assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+    }
+
+    @Test
+    void shouldNotConvergePausedItemOnlyBecauseHeartbeatIsStale() throws Exception {
+        seedTownNpcQueueItem(
+            "paused",
+            ProcessHandle.current().pid(),
+            null,
+            STUCK_RECOVERY_NOW.minus(Duration.ofMinutes(30)).toString());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC));
+
+        service.getOverview();
+
+        assertEquals("paused", firstQueueItemMirror().get("status"));
+        assertTrue(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+    }
+
+    @Test
+    void shouldForceReleaseDriftedLockForDeadRunningItemWhenQueueIdMatches() throws Exception {
+        seedRunningTownNpcQueueItem(
+            2_000_000_000L,
+            "2026-06-14T01:04:00Z",
+            STUCK_RECOVERY_NOW.toString());
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "queueId", "wiki-monitor-queue-town-npc",
+            "dispatchId", "drifted-town-npc-lock",
+            "domain", "town_npc_maintenance",
+            "actionId", "domain-source-town-npc-maintenance",
+            "lockedAt", "2026-06-14T01:04:00Z",
+            "pid", 2_000_000_000L,
+            "startedAt", "2026-06-14T01:04:00Z"
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC));
+
+        service.getOverview();
+
+        assertEquals("timed_out", firstQueueItemMirror().get("status"));
+        assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+    }
+
+    @Test
+    void shouldForceReleaseLegacyDriftedLockForDeadRunningItemWhenDomainActionMatch() throws Exception {
+        seedRunningTownNpcQueueItem(
+            2_000_000_000L,
+            "2026-06-14T01:04:00Z",
+            STUCK_RECOVERY_NOW.toString());
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "dispatchId", "legacy-drifted-town-npc-lock",
+            "domain", "town_npc_maintenance",
+            "actionId", "domain-source-town-npc-maintenance",
+            "lockedAt", "2026-06-14T01:04:00Z",
+            "pid", 2_000_000_000L,
+            "startedAt", "2026-06-14T01:04:00Z"
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC));
+
+        service.getOverview();
+
+        assertEquals("timed_out", firstQueueItemMirror().get("status"));
+        assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+    }
+
+    @Test
+    void shouldNotReleaseDriftedLockWhenQueueIdDiffersEvenIfDomainActionMatches() throws Exception {
+        seedRunningTownNpcQueueItem(
+            2_000_000_000L,
+            "2026-06-14T01:04:00Z",
+            STUCK_RECOVERY_NOW.toString());
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "queueId", "queue-other",
+            "dispatchId", "other-town-npc-lock",
+            "domain", "town_npc_maintenance",
+            "actionId", "domain-source-town-npc-maintenance",
+            "lockedAt", "2026-06-14T01:04:00Z",
+            "pid", 2_000_000_000L,
+            "startedAt", "2026-06-14T01:04:00Z"
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC));
+
+        service.getOverview();
+
+        assertEquals("timed_out", firstQueueItemMirror().get("status"));
+        Map<String, Object> lock = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"));
+        assertEquals("queue-other", lock.get("queueId"));
+    }
+
+    @Test
+    void shouldNotReleaseDriftedLockOwnedByLiveProcess() throws Exception {
+        Instant processStart = ProcessHandle.current().info().startInstant().orElseThrow();
+        seedRunningTownNpcQueueItem(
+            2_000_000_000L,
+            "2026-06-14T01:04:00Z",
+            STUCK_RECOVERY_NOW.toString());
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "queueId", "wiki-monitor-queue-town-npc",
+            "dispatchId", "wiki-monitor-dispatch-town-npc",
+            "domain", "town_npc_maintenance",
+            "actionId", "domain-source-town-npc-maintenance",
+            "lockedAt", "2026-06-14T01:04:00Z",
+            "pid", ProcessHandle.current().pid(),
+            "startedAt", processStart.toString()
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC));
+
+        service.getOverview();
+
+        assertEquals("timed_out", firstQueueItemMirror().get("status"));
+        assertTrue(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+    }
+
+    @Test
+    void shouldReleaseDriftedLockForOrphanedPausedDeadItem() throws Exception {
+        seedTownNpcQueueItem(
+            "paused",
+            2_000_000_000L,
+            "2026-06-14T01:04:00Z",
+            STUCK_RECOVERY_NOW.toString());
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "queueId", "wiki-monitor-queue-town-npc",
+            "dispatchId", "drifted-paused-town-npc-lock",
+            "domain", "town_npc_maintenance",
+            "actionId", "domain-source-town-npc-maintenance",
+            "lockedAt", "2026-06-14T01:04:00Z",
+            "pid", 2_000_000_000L,
+            "startedAt", "2026-06-14T01:04:00Z"
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC));
+
+        service.getOverview();
+
+        assertEquals("failed", firstQueueItemMirror().get("status"));
+        assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json")));
+    }
+
+    @Test
+    void shouldNotReleaseDriftedDomainSmokeLockWithoutRuntimeMetadata() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json"), Map.of(
+            "queueId", "queue-smoke-running",
+            "dispatchId", "drifted-smoke-lock",
+            "domain", "all",
+            "actionId", "wiki-monitor-domain-smoke",
+            "lockedAt", "2026-06-19T11:00:00Z"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-19T11:00:00Z",
+            "items", List.of(Map.ofEntries(
+                Map.entry("queueId", "queue-smoke-running"),
+                Map.entry("dispatchId", "smoke-queue-dispatch"),
+                Map.entry("lane", "domain_smoke"),
+                Map.entry("domain", "all"),
+                Map.entry("actionId", "wiki-monitor-domain-smoke"),
+                Map.entry("status", "running"),
+                Map.entry("requestedAt", "2026-06-19T10:59:00Z"),
+                Map.entry("startedAt", "2026-06-19T11:00:00Z"),
+                Map.entry("pid", 2_000_000_000L),
+                Map.entry("lockPath", "reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json")
+            )),
+            "dispatches", Map.of("smoke-queue-dispatch", "queue-smoke-running")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-19T11:10:00Z"), ZoneOffset.UTC),
+            new RecordingProcessLauncher(new BlockingProcess())
+        );
+
+        service.getOverview();
+
+        assertEquals("timed_out", firstQueueItemMirror().get("status"));
+        Map<String, Object> lock = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json"));
+        assertEquals("drifted-smoke-lock", lock.get("dispatchId"));
+        assertFalse(lock.containsKey("pid"));
     }
 
     @Test

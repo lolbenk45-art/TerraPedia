@@ -167,6 +167,19 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         this.dispatchTimeout = timeout == null ? WIKI_MONITOR_DISPATCH_TIMEOUT : timeout;
     }
 
+    Duration effectiveDispatchTimeout(Instant processStartedAt, Instant now) {
+        if (processStartedAt == null) {
+            return dispatchTimeout;
+        }
+        Instant safeNow = now == null ? Instant.now(clock) : now;
+        Duration elapsed = Duration.between(processStartedAt, safeNow);
+        if (elapsed.isNegative()) {
+            return dispatchTimeout;
+        }
+        Duration remaining = dispatchTimeout.minus(elapsed);
+        return remaining.isNegative() ? Duration.ZERO : remaining;
+    }
+
     WikiMonitorQueueExecutor standardQueueExecutorForTesting() {
         return new StandardWikiMonitorQueueExecutor();
     }
@@ -255,12 +268,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 return;
             }
             long pid = asLong(payload.get("pid"));
-            Optional<ProcessHandle> handle = pid > 0 ? ProcessHandle.of(pid) : Optional.empty();
-            if (handle.isPresent() && handle.get().isAlive() && processStartMatches(handle.get(), asString(payload.get("startedAt")))) {
+            String processStartedAt = recoveredProcessStartedAt(repoRoot, dispatchId, payload);
+            Process process = pid > 0 && processStartedAt != null ? processLauncher.recoverRecordedProcess(pid, processStartedAt) : null;
+            if (process != null && process.isAlive()) {
                 DispatchPaths paths = reconstructDispatchPaths(repoRoot, dispatchId, rule);
-                Process process = new HandleBackedProcess(handle.get());
                 activeDispatchProcesses.put(dispatchId, new ActiveDispatchProcess(dispatchId, domain, actionId, process, paths));
-                watchDispatchProcess(repoRoot, null, dispatchId, rule, paths, process);
+                watchDispatchProcess(repoRoot, recoveredQueueId(repoRoot, dispatchId, payload), dispatchId, rule, paths, process, parseInstant(processStartedAt));
                 log.info("Recovered running wiki monitor dispatch {} (pid={}) after restart.", dispatchId, pid);
             } else {
                 convergeOrphanedDispatch(repoRoot, lockPath, dispatchId, rule);
@@ -564,7 +577,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             start.getDispatchId(),
             rule,
             new DispatchPaths(start.getReportPath(), start.getProgressPath(), start.getLockPath(), start.getOutputPath(), start.getLogPath()),
-            start.getProcess()
+            start.getProcess(),
+            start.getProcessStartedAt()
         );
     }
 
@@ -1260,7 +1274,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             if (cancellingDispatches.contains(item.getDispatchId())) {
                 continue;
             }
-            if (hasTrackedActiveQueueProcess(item)) {
+            if (hasHealthyTrackedActiveQueueProcess(repoRoot, item)) {
                 continue;
             }
             if (runtimeProcessIsHealthy(repoRoot, item)) {
@@ -1276,7 +1290,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 Instant.now(clock),
                 "运行进程已不存在，队列项已标记为超时。"
             );
-            releaseLaneLock(repoRoot, item.getLane(), item.getDispatchId());
+            releaseLaneLockForDeadItem(repoRoot, item);
             invalidateCachedOverview();
         }
     }
@@ -1302,7 +1316,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 now
             );
         }
-        releaseLaneLock(repoRoot, item.getLane(), item.getDispatchId());
+        releaseLaneLockForDeadItem(repoRoot, item);
         invalidateCachedOverview();
     }
 
@@ -1323,7 +1337,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (!processStartMatches(handle.get(), formatInstant(item.getProcessStartedAt()))) {
             return false;
         }
-        if (runtimeHeartbeatIsStale(repoRoot, item)) {
+        if ("running".equals(item.getStatus()) && runtimeHeartbeatIsStale(repoRoot, item)) {
             return false;
         }
         return true;
@@ -1389,7 +1403,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             return false;
         }
         String latestStatus = asString(latestPayload.get("status"));
-        if (!"paused".equals(latestStatus) && !"running".equals(latestStatus)) {
+        if (!"paused".equals(latestStatus) && !"running".equals(latestStatus) && !isWikiMonitorDispatchTerminalStatus(latestStatus)) {
             return false;
         }
         String itemStatus = item.getStatus();
@@ -1399,17 +1413,80 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (latestStatus.equals(itemStatus)) {
             return false;
         }
-        if (!latestDispatchMatchesQueueItem(item, latestPayload)) {
+        if (!latestDispatchSafelyMatchesQueueItem(item, latestPayload)) {
             return false;
         }
         String message = firstNonBlank(asString(latestPayload.get("message")), "dispatch " + latestStatus)
             + "（已从 latest dispatch 自动校准）";
+        if (isWikiMonitorDispatchTerminalStatus(latestStatus)) {
+            Instant completedAt = parseInstant(asString(latestPayload.get("completedAt")));
+            WikiMonitorDispatchQueueRepository.TransitionResult transition = queueRepository.markTerminal(
+                item.getQueueId(),
+                latestStatus,
+                completedAt == null ? Instant.now(clock) : completedAt,
+                message
+            );
+            if (transition.changed()) {
+                invalidateCachedOverview();
+            }
+            return transition.changed();
+        }
         WikiMonitorDispatchQueueRepository.TransitionResult transition =
             queueRepository.markControlStatus(item.getQueueId(), latestStatus, message);
         if (transition.changed()) {
             invalidateCachedOverview();
         }
         return transition.changed();
+    }
+
+    private String recoveredQueueId(Path repoRoot, String dispatchId, Map<String, Object> lockPayload) {
+        String queueId = asString(lockPayload == null ? null : lockPayload.get("queueId"));
+        if (queueId != null) {
+            return queueId;
+        }
+        ReadResult latest = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+        if (latest.readable() && Objects.equals(dispatchId, asString(latest.payload().get("dispatchId")))) {
+            queueId = asString(latest.payload().get("queueId"));
+            if (queueId != null) {
+                return queueId;
+            }
+        }
+        return queueRepository.findByDispatchId(dispatchId).map(WikiMonitorQueueItem::getQueueId).orElse(null);
+    }
+
+    private String recoveredProcessStartedAt(Path repoRoot, String dispatchId, Map<String, Object> lockPayload) {
+        String startedAt = firstValidInstantString(
+            asString(lockPayload == null ? null : lockPayload.get("processStartedAt")),
+            asString(lockPayload == null ? null : lockPayload.get("startedAt"))
+        );
+        if (startedAt != null) {
+            return startedAt;
+        }
+        ReadResult latest = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+        if (latest.readable() && Objects.equals(dispatchId, asString(latest.payload().get("dispatchId")))) {
+            startedAt = firstValidInstantString(
+                asString(latest.payload().get("processStartedAt")),
+                asString(latest.payload().get("startedAt"))
+            );
+            if (startedAt != null) {
+                return startedAt;
+            }
+        }
+        return queueRepository.findByDispatchId(dispatchId)
+            .map(item -> firstValidInstantString(formatInstant(item.getProcessStartedAt()), formatInstant(item.getStartedAt())))
+            .orElseGet(() -> firstValidInstantString(asString(lockPayload == null ? null : lockPayload.get("lockedAt"))));
+    }
+
+    private String firstValidInstantString(String... candidates) {
+        if (candidates == null) {
+            return null;
+        }
+        for (String candidate : candidates) {
+            if (parseInstant(candidate) != null) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     private boolean latestDispatchMatchesQueueItem(WikiMonitorQueueItem item, Map<String, Object> latestPayload) {
@@ -1425,37 +1502,73 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             && Objects.equals(asString(latestPayload.get("actionId")), item.getActionId());
     }
 
+    private boolean latestDispatchSafelyMatchesQueueItem(WikiMonitorQueueItem item, Map<String, Object> latestPayload) {
+        String queueId = asString(latestPayload.get("queueId"));
+        if (queueId != null) {
+            return queueId.equals(item.getQueueId());
+        }
+        String dispatchId = asString(latestPayload.get("dispatchId"));
+        if (dispatchId != null && item.getDispatchId() != null) {
+            return dispatchId.equals(item.getDispatchId());
+        }
+        return Objects.equals(asString(latestPayload.get("domain")), item.getDomain())
+            && Objects.equals(asString(latestPayload.get("actionId")), item.getActionId());
+    }
+
     private void reconcileStartingQueueItem(Path repoRoot, WikiMonitorQueueItem item) {
         Instant claimExpiresAt = item.getClaimExpiresAt();
         if (claimExpiresAt != null && claimExpiresAt.isAfter(Instant.now(clock))) {
             return;
         }
-        if (hasDurableQueueEvidence(repoRoot, item)) {
+        if (hasLiveDurableQueueEvidence(repoRoot, item)) {
             return;
         }
         queueRepository.markExpiredStartingFailed(
             item.getQueueId(),
-            "队列项启动超时，未检测到对应运行进程；请重新加入队列。"
+            "队列项启动超时，未检测到存活运行进程；请重新加入队列。"
         );
+        releaseStartingLaneLockForDeadEvidence(repoRoot, item);
         invalidateCachedOverview();
     }
 
-    private boolean hasDurableQueueEvidence(Path repoRoot, WikiMonitorQueueItem item) {
+    private boolean hasLiveDurableQueueEvidence(Path repoRoot, WikiMonitorQueueItem item) {
         Path lockPath = "domain_smoke".equals(item.getLane())
             ? repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize()
             : repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
         ReadResult lock = readJsonMap(lockPath);
-        if (lock.readable() && item.getQueueId().equals(asString(lock.payload().get("queueId")))) {
+        if (hasLiveQueueEvidence(lock, item.getQueueId())) {
             return true;
         }
         if (!"standard".equals(item.getLane())) {
             return false;
         }
         ReadResult latest = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
-        return latest.readable() && item.getQueueId().equals(asString(latest.payload().get("queueId")));
+        return hasLiveQueueEvidence(latest, item.getQueueId());
     }
 
-    private boolean hasTrackedActiveQueueProcess(WikiMonitorQueueItem item) {
+    private boolean hasLiveQueueEvidence(ReadResult evidence, String queueId) {
+        if (!evidence.readable() || queueId == null || !queueId.equals(asString(evidence.payload().get("queueId")))) {
+            return false;
+        }
+        return hasRecordedProcessRuntime(evidence.payload()) && isRecordedProcessAlive(evidence.payload());
+    }
+
+    private void releaseStartingLaneLockForDeadEvidence(Path repoRoot, WikiMonitorQueueItem item) {
+        if (item == null || !"standard".equals(item.getLane()) || item.getQueueId() == null) {
+            return;
+        }
+        Path lockPath = repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
+        ReadResult lock = readJsonMap(lockPath);
+        if (!lock.readable() || !item.getQueueId().equals(asString(lock.payload().get("queueId")))) {
+            return;
+        }
+        if (isRecordedProcessAlive(lock.payload())) {
+            return;
+        }
+        forceDeleteLock(lockPath);
+    }
+
+    private boolean hasHealthyTrackedActiveQueueProcess(Path repoRoot, WikiMonitorQueueItem item) {
         if (item == null || item.getDispatchId() == null) {
             return false;
         }
@@ -1464,7 +1577,49 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             return process != null && process.isAlive();
         }
         ActiveDispatchProcess active = activeDispatchProcesses.get(item.getDispatchId());
-        return active != null && active.process().isAlive();
+        if (active == null || !active.process().isAlive()) {
+            return false;
+        }
+        if ("running".equals(item.getStatus()) && runtimeHeartbeatIsStale(repoRoot, item)) {
+            processLauncher.destroy(active.process());
+            activeDispatchProcesses.remove(item.getDispatchId());
+            return false;
+        }
+        return true;
+    }
+
+    private void releaseLaneLockForDeadItem(Path repoRoot, WikiMonitorQueueItem item) {
+        if (item == null) {
+            return;
+        }
+        Path lockPath = "domain_smoke".equals(item.getLane())
+            ? repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize()
+            : repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
+        ReadResult lock = readJsonMap(lockPath);
+        if (!lock.readable()) {
+            return;
+        }
+        if ("domain_smoke".equals(item.getLane())) {
+            return;
+        }
+        if (isRecordedProcessAlive(lock.payload())) {
+            return;
+        }
+        if (deadLockBelongsToQueueItem(lock.payload(), item, true)) {
+            forceDeleteLock(lockPath);
+        }
+    }
+
+    private boolean deadLockBelongsToQueueItem(Map<String, Object> payload, WikiMonitorQueueItem item, boolean allowLegacyFallback) {
+        String lockQueueId = asString(payload.get("queueId"));
+        if (lockQueueId != null) {
+            return lockQueueId.equals(item.getQueueId());
+        }
+        if (!allowLegacyFallback || !"standard".equals(item.getLane())) {
+            return false;
+        }
+        return Objects.equals(asString(payload.get("domain")), item.getDomain())
+            && Objects.equals(asString(payload.get("actionId")), item.getActionId());
     }
 
     private CrawlerMonitorDispatchResultDTO cancelOrphanedRunningQueueItem(
@@ -2329,9 +2484,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     /**
-     * Guards against PID reuse: the OS process must not have started measurably before the dispatch
-     * was recorded. A small tolerance absorbs clock skew between the recorded timestamp and the
-     * kernel-reported start time.
+     * Guards against PID reuse: the OS process start time must be close to the dispatch's recorded
+     * launch time. A small tolerance absorbs clock skew between the recorded timestamp and the
+     * kernel-reported start time, while rejecting both older and newer unrelated processes that reused
+     * the PID.
      */
     private static boolean processStartMatches(ProcessHandle handle, String recordedStartedAt) {
         if (recordedStartedAt == null) {
@@ -2343,7 +2499,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
         try {
             Instant recorded = Instant.parse(recordedStartedAt);
-            return !processStart.get().isBefore(recorded.minus(Duration.ofMinutes(2)));
+            return Duration.between(recorded, processStart.get()).abs().compareTo(Duration.ofMinutes(2)) <= 0;
         } catch (RuntimeException exception) {
             return true;
         }
@@ -2627,7 +2783,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             recordDispatchRuntime(repoRoot, lockPath, dispatchId, pid, timestamp);
             activeDispatchProcesses.put(dispatchId, new ActiveDispatchProcess(dispatchId, rule.domain(), rule.actionId(), process, dispatchPaths));
             if (queueId == null) {
-                watchDispatchProcess(repoRoot, null, dispatchId, rule, dispatchPaths, process);
+                watchDispatchProcess(repoRoot, null, dispatchId, rule, dispatchPaths, process, processStartedAt);
             }
             return queueStartResult(
                 queueId,
@@ -2848,6 +3004,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             if (Duration.between(Instant.parse(lockedAt), Instant.now(clock)).compareTo(WIKI_MONITOR_DISPATCH_LOCK_STALE) <= 0) {
                 return;
             }
+            if (isDomainSmokeLockPath(lockPath) && !hasRecordedProcessRuntime(payload)) {
+                return;
+            }
             if (isRecordedProcessAlive(payload)) {
                 log.warn("Wiki monitor dispatch lock {} is past the stale threshold but its recorded process (pid={}) is still alive; keeping the lock.",
                     lockPath, asLong(payload.get("pid")));
@@ -2856,6 +3015,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             Files.deleteIfExists(lockPath);
         } catch (RuntimeException | IOException ignored) {
         }
+    }
+
+    private boolean isDomainSmokeLockPath(Path lockPath) {
+        return lockPath != null && WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE.getFileName().equals(lockPath.getFileName());
+    }
+
+    private boolean hasRecordedProcessRuntime(Map<String, Object> payload) {
+        return payload != null && asLong(payload.get("pid")) > 0 && asString(payload.get("startedAt")) != null;
     }
 
     private boolean isRecordedProcessAlive(Map<String, Object> payload) {
@@ -3068,8 +3235,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private void watchDispatchProcess(Path repoRoot, String queueIdOrNull, String dispatchId, WikiMonitorRule rule, DispatchPaths paths, Process process) {
-        Duration timeout = dispatchTimeout;
+    private void watchDispatchProcess(Path repoRoot, String queueIdOrNull, String dispatchId, WikiMonitorRule rule, DispatchPaths paths, Process process, Instant processStartedAt) {
+        Duration timeout = effectiveDispatchTimeout(processStartedAt, Instant.now(clock));
         Thread thread = new Thread(() -> {
             boolean timedOut = false;
             boolean controlledCancel = false;
@@ -3098,6 +3265,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 if (timedOut) {
                     status = "timed_out";
                     message = "dispatch timed out after " + timeout.toMinutes() + " minutes";
+                    writeTerminalProgressFile(repoRoot, paths.progressPath(), rule, status, message, Instant.now(clock));
                 } else {
                     status = exitCode == 0 ? "completed" : "failed";
                     message = status + " with exit code " + exitCode;
@@ -3170,7 +3338,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private void preserveDispatchMetadata(Map<String, Object> currentPayload, LinkedHashMap<String, Object> target) {
-        for (String key : List.of("retryOf", "retryCount", "retryReason", "controlAction", "controlledAt", "pid")) {
+        for (String key : List.of("queueId", "retryOf", "retryCount", "retryReason", "controlAction", "controlledAt", "pid")) {
             if (currentPayload.containsKey(key)) {
                 target.put(key, currentPayload.get(key));
             }
@@ -5913,6 +6081,17 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     interface ProcessLauncher {
         Process launch(LaunchRequest request) throws IOException;
+
+        default Process recoverRecordedProcess(long pid, String recordedStartedAt) {
+            if (pid <= 0) {
+                return null;
+            }
+            Optional<ProcessHandle> handle = ProcessHandle.of(pid);
+            if (handle.isEmpty() || !handle.get().isAlive() || !processStartMatches(handle.get(), recordedStartedAt)) {
+                return null;
+            }
+            return new HandleBackedProcess(handle.get());
+        }
 
         default Process findLegacyProcess(LegacyProcessRequest request) {
             if (request == null || request.actionId() == null || request.commandNeedles().isEmpty()) {
