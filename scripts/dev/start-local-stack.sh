@@ -350,9 +350,13 @@ start_redis_if_needed() {
     exit 1
   fi
 
+  local redis_data_dir
+  redis_data_dir="$report_dir/redis-$TP_REDIS_PORT"
+  ensure_dir "$redis_data_dir"
+
   start_background "redis-$TP_REDIS_PORT" "$REPO_ROOT" \
-    "redis-server --port $TP_REDIS_PORT --bind $TP_REDIS_HOST --protected-mode yes --requirepass <redacted> --databases 64" \
-    "$redis_cmd" --port "$TP_REDIS_PORT" --bind "$TP_REDIS_HOST" --protected-mode yes --requirepass "$TP_REDIS_PASSWORD" --databases 64
+    "redis-server --port $TP_REDIS_PORT --bind $TP_REDIS_HOST --protected-mode yes --requirepass <redacted> --databases 64 --dir $redis_data_dir --dbfilename dump-$TP_REDIS_PORT.rdb --appendonly yes --appendfilename appendonly-$TP_REDIS_PORT.aof" \
+    "$redis_cmd" --port "$TP_REDIS_PORT" --bind "$TP_REDIS_HOST" --protected-mode yes --requirepass "$TP_REDIS_PASSWORD" --databases 64 --dir "$redis_data_dir" --dbfilename "dump-$TP_REDIS_PORT.rdb" --appendonly yes --appendfilename "appendonly-$TP_REDIS_PORT.aof"
 
   if ! wait_port "$TP_REDIS_HOST" "$TP_REDIS_PORT" 15; then
     log_error "Redis $TP_REDIS_PORT failed to start. Check $(log_path "redis-$TP_REDIS_PORT")"

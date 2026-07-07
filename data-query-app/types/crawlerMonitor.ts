@@ -1,4 +1,5 @@
 export type CrawlerMonitorPayload = Record<string, any>
+export type CrawlerMonitorResumeMode = 'resume' | string
 
 export interface CrawlerMonitorFile {
   found?: boolean
@@ -30,6 +31,9 @@ export interface CrawlerMonitorAction {
   percent?: number | null
   phase?: string | null
   message?: string | null
+  resumeMode?: CrawlerMonitorResumeMode | null
+  resumeStatePath?: string | null
+  restartBehavior?: string | null
   queue?: string | null
   dataStage?: string | null
   nextStep?: string | null
@@ -130,6 +134,10 @@ export interface CrawlerMonitorRegisteredTask {
   progressStale?: boolean
   progressStaleReason?: string | null
   progressKind?: string | null
+  resumeSupported?: boolean
+  resumeMode?: CrawlerMonitorResumeMode | null
+  resumeStatePath?: string | null
+  restartBehavior?: string | null
   updatedAt?: string | null
 }
 
@@ -170,6 +178,10 @@ export interface CrawlerMonitorWikiDomain {
   cooldownMinutes?: number | null
   maxConcurrent?: number | null
   failureCircuitBreaker?: string | null
+  resumeSupported?: boolean
+  resumeMode?: CrawlerMonitorResumeMode | null
+  resumeStatePath?: string | null
+  restartBehavior?: string | null
   lastAutoRunAt?: string | null
   pauseReason?: string | null
   message?: string | null
@@ -183,6 +195,9 @@ export interface CrawlerMonitorWikiDispatch {
   status?: string | null
   commandPreview?: string | null
   progressPath?: string | null
+  resumeMode?: CrawlerMonitorResumeMode | null
+  resumeStatePath?: string | null
+  restartBehavior?: string | null
   lockPath?: string | null
   reportPath?: string | null
   requestedAt?: string | null
@@ -214,6 +229,9 @@ export interface CrawlerMonitorWikiQueueItem {
   blockedSince?: string | null
   cooldownUntil?: string | null
   progressPath?: string | null
+  resumeMode?: CrawlerMonitorResumeMode | null
+  resumeStatePath?: string | null
+  restartBehavior?: string | null
   reportPath?: string | null
   lockPath?: string | null
   outputPath?: string | null
@@ -231,6 +249,10 @@ export interface CrawlerMonitorDispatchPlan {
   status?: string | null
   commandPreview?: string | null
   progressPath?: string | null
+  resumeSupported?: boolean
+  resumeMode?: CrawlerMonitorResumeMode | null
+  resumeStatePath?: string | null
+  restartBehavior?: string | null
   reportPath?: string | null
   message?: string | null
 }
@@ -258,6 +280,9 @@ export interface CrawlerMonitorDispatchResult {
   status?: string | null
   requestedAt?: string | null
   progressPath?: string | null
+  resumeMode?: CrawlerMonitorResumeMode | null
+  resumeStatePath?: string | null
+  restartBehavior?: string | null
   lockPath?: string | null
   reportPath?: string | null
   outputPath?: string | null

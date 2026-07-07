@@ -48,6 +48,55 @@ test('crawler monitor keeps the existing backend endpoints and control actions w
   }
 })
 
+test('crawler monitor dispatches continue crawl through regular dispatch with resume mode', () => {
+  for (const marker of ["action === 'continue-crawl'", 'continueDomainTableRow(row)']) {
+    assert.ok(page.includes(marker), `missing continue crawl marker: ${marker}`)
+  }
+  const match = page.match(/async function continueDomainTableRow\(row: any\) \{[\s\S]*?\n\}/)
+  assert.ok(match, 'missing continue crawl handler')
+  const handler = match[0]
+  assert.match(handler, /post\('\/admin\/crawler-monitor\/dispatch'/)
+  assert.doesNotMatch(handler, /post\('\/admin\/crawler-monitor\/dispatch\/control'/)
+  assert.match(handler, /domain: domainId/)
+  assert.match(handler, /actionId/)
+  assert.match(handler, /resumeMode: 'resume'/)
+})
+
+test('crawler monitor dispatches resume failure validation through regular dispatch with failure mode', () => {
+  for (const marker of ["action === 'make-resume-failure'", 'makeResumeFailureDomainTableRow(row)']) {
+    assert.ok(page.includes(marker), `missing failure validation marker: ${marker}`)
+  }
+  const match = page.match(/async function makeResumeFailureDomainTableRow\(row: any\) \{[\s\S]*?\n\}/)
+  assert.ok(match, 'missing failure validation handler')
+  const handler = match[0]
+  assert.match(handler, /post\('\/admin\/crawler-monitor\/dispatch'/)
+  assert.doesNotMatch(handler, /post\('\/admin\/crawler-monitor\/dispatch\/control'/)
+  assert.match(handler, /domain: domainId/)
+  assert.match(handler, /actionId/)
+  assert.match(handler, /failureMode: 'townNpcCrashAfterPartial'/)
+})
+
+test('crawler monitor can mark the current town npc task failed through dispatch control', () => {
+  for (const marker of ["action === 'fail-current'", 'failCurrentDomainTableRow(row)']) {
+    assert.ok(page.includes(marker), `missing current failure marker: ${marker}`)
+  }
+  const match = page.match(/async function failCurrentDomainTableRow\(row: any\) \{[\s\S]*?\n\}/)
+  assert.ok(match, 'missing current failure handler')
+  const handler = match[0]
+  assert.match(handler, /post\('\/admin\/crawler-monitor\/dispatch\/control'/)
+  assert.doesNotMatch(handler, /post\('\/admin\/crawler-monitor\/dispatch',/)
+  assert.match(handler, /controlAction: 'failForResumeValidation'/)
+  assert.match(handler, /queueId/)
+  assert.match(handler, /domain: domainId/)
+  assert.match(handler, /actionId/)
+})
+
+test('crawler monitor keeps paused resume routed through dispatch control', () => {
+  assert.match(page, /if \(action === 'resume'\) return resumeDomainTableRow\(row\)/)
+  assert.match(page, /controlWikiMonitorTask\(domain, 'resume'\)/)
+  assert.match(page, /post\('\/admin\/crawler-monitor\/dispatch\/control'/)
+})
+
 test('triage board implements capped attention, overflow chips, and card/table switching', () => {
   for (const marker of [
     'attentionCards',

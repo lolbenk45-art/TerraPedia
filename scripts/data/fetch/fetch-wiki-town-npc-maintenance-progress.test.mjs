@@ -63,7 +63,10 @@ test('town npc maintenance fetch writes completed progress to explicit path with
     env: {
       ...process.env,
       WORKTREE_ROOT: worktreeRoot,
-      TERRAPEDIA_TOWN_NPC_MAINTENANCE_MOCK_HTML: mockHtmlPath
+      TERRAPEDIA_TOWN_NPC_MAINTENANCE_MOCK_HTML: mockHtmlPath,
+      TERRAPEDIA_TOWN_NPC_ENABLE_CRASH_HOOK: '',
+      TERRAPEDIA_TOWN_NPC_CRASH_AFTER: '',
+      TERRAPEDIA_TOWN_NPC_CRASH_POINT: ''
     }
   });
 
@@ -137,7 +140,10 @@ test('default town npc maintenance progress path follows WORKTREE_ROOT when omit
     env: {
       ...process.env,
       WORKTREE_ROOT: worktreeRoot,
-      TERRAPEDIA_TOWN_NPC_MAINTENANCE_MOCK_HTML: mockHtmlPath
+      TERRAPEDIA_TOWN_NPC_MAINTENANCE_MOCK_HTML: mockHtmlPath,
+      TERRAPEDIA_TOWN_NPC_ENABLE_CRASH_HOOK: '',
+      TERRAPEDIA_TOWN_NPC_CRASH_AFTER: '',
+      TERRAPEDIA_TOWN_NPC_CRASH_POINT: ''
     }
   });
 
@@ -183,7 +189,10 @@ test('town npc maintenance progress path can be supplied by env', () => {
       ...process.env,
       WORKTREE_ROOT: worktreeRoot,
       TERRAPEDIA_CRAWLER_PROGRESS_PATH: progressPath,
-      TERRAPEDIA_TOWN_NPC_MAINTENANCE_MOCK_HTML: mockHtmlPath
+      TERRAPEDIA_TOWN_NPC_MAINTENANCE_MOCK_HTML: mockHtmlPath,
+      TERRAPEDIA_TOWN_NPC_ENABLE_CRASH_HOOK: '',
+      TERRAPEDIA_TOWN_NPC_CRASH_AFTER: '',
+      TERRAPEDIA_TOWN_NPC_CRASH_POINT: ''
     }
   });
 

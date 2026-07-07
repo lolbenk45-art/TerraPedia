@@ -38,6 +38,9 @@ class WikiMonitorQueueItem {
     private String lockPath;
     private String outputPath;
     private String logPath;
+    private String resumeMode;
+    private String resumeStatePath;
+    private String failureMode;
     private String message;
 
     boolean isTerminal() {
@@ -57,10 +60,12 @@ class WikiMonitorQueueItem {
     }
 
     String dedupeKeyPart() {
+        String resumePart = resumeMode == null || resumeMode.isBlank() ? "" : ":resumeMode:" + resumeMode.trim();
+        String failurePart = failureMode == null || failureMode.isBlank() ? "" : ":failureMode:" + failureMode.trim();
         if ("domain_smoke".equals(lane) && domain != null && !domain.isBlank()) {
-            return lane + ":" + actionId + ":" + domain;
+            return lane + ":" + actionId + ":" + domain + resumePart + failurePart;
         }
-        return lane + ":" + actionId;
+        return lane + ":" + actionId + resumePart + failurePart;
     }
 
     public String getQueueId() {
@@ -269,6 +274,30 @@ class WikiMonitorQueueItem {
 
     public void setLogPath(String logPath) {
         this.logPath = logPath;
+    }
+
+    public String getResumeMode() {
+        return resumeMode;
+    }
+
+    public void setResumeMode(String resumeMode) {
+        this.resumeMode = resumeMode;
+    }
+
+    public String getResumeStatePath() {
+        return resumeStatePath;
+    }
+
+    public void setResumeStatePath(String resumeStatePath) {
+        this.resumeStatePath = resumeStatePath;
+    }
+
+    public String getFailureMode() {
+        return failureMode;
+    }
+
+    public void setFailureMode(String failureMode) {
+        this.failureMode = failureMode;
     }
 
     public String getMessage() {

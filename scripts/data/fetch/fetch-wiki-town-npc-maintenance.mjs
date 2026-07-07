@@ -7,6 +7,16 @@ import { fileURLToPath } from 'node:url';
 import { parseCliArgs } from '../lib/wiki-item-utils.mjs';
 import { writeJsonFile } from '../workflow/backend-refresh-runtime-state.mjs';
 import { createWikiRequestGate } from '../lib/wiki-request-gate.mjs';
+import {
+  buildResumeProgressFields,
+  computeInputFingerprint,
+  createResumeState,
+  derivePartialPath,
+  loadResumeState,
+  makeSkipChecker,
+  markCompleted,
+  resolveResumeDecision,
+} from '../lib/crawler-resume-state.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,7 +27,8 @@ const ZH_WIKI_ORIGIN = 'https://terraria.wiki.gg/zh';
 const ACTION_ID = 'domain-source-town-npc-maintenance';
 const LATEST_FILE_NAME = 'wiki-town-npc-maintenance.latest.json';
 const PROGRESS_FILE_NAME = 'domain-source-town-npc-maintenance-progress.latest.json';
-const CLI_OPTIONS = ['--source', '--output', '--snapshot-output', '--progress-path', '--delay-ms', '--limit'];
+const CLI_OPTIONS = ['--source', '--output', '--snapshot-output', '--progress-path', '--delay-ms', '--limit', '--resume-mode', '--resume-state'];
+const RESUME_MODE_VALUE = 'keyed_items';
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 const MAX_REQUEST_RETRIES = 3;
 
@@ -50,6 +61,9 @@ async function main(argv = process.argv.slice(2)) {
   const progressPath = resolveProgressPath(args['progress-path']);
   const canonicalProgressPath = canonicalProgressPathFor();
   const startedAt = new Date().toISOString();
+  let lastResumeProgressFields = {};
+  let lastProgressCurrent = 0;
+  let lastProgressTotal = 0;
 
   try {
     let seeds = loadTownNpcSeeds(sourcePath);
@@ -58,34 +72,86 @@ async function main(argv = process.argv.slice(2)) {
       seeds = seeds.slice(0, Math.max(0, limit));
     }
 
+    const resumeMode = String(args['resume-mode'] ?? 'fresh');
+    const statePath = path.resolve(String(args['resume-state'] ?? path.join(worktreeRoot(), 'data', 'generated', 'resume', `${ACTION_ID}.resume.json`)));
+    const partialPath = derivePartialPath(statePath);
+    const inputFingerprint = computeInputFingerprint(seeds);
+    const priorState = loadResumeState(statePath);
+    const priorPartialStore = fs.existsSync(partialPath) ? loadJsonObject(partialPath) : null;
+    lastResumeProgressFields = buildResumeProgressFields(
+      priorState ?? createResumeState({ actionId: ACTION_ID, resumeMode: RESUME_MODE_VALUE, inputFingerprint }),
+      seeds.length
+    );
+    lastProgressCurrent = new Set((priorState?.completedKeys || []).map((key) => String(key))).size;
+    lastProgressTotal = seeds.length;
+
+    const decision = resolveResumeDecision({
+      mode: resumeMode,
+      state: priorState,
+      actionId: ACTION_ID,
+      resumeMode: RESUME_MODE_VALUE,
+      inputFingerprint,
+      partialStore: priorPartialStore,
+      isValidRecord: isCompleteTownNpcPartialRecord,
+      validKeys: seeds.map((seed) => seed.gameId),
+    });
+    if (decision.action === 'fail') {
+      throw new Error(`resume 校验失败(${decision.reason})：请用 --resume-mode=fresh 重跑，或确认输入未变`);
+    }
+
+    const resuming = decision.action === 'resume';
+    const state = resuming
+      ? priorState
+      : createResumeState({ actionId: ACTION_ID, resumeMode: RESUME_MODE_VALUE, inputFingerprint });
+    const partialStore = resuming ? priorPartialStore : {};
+    if (!resuming) {
+      fs.rmSync(statePath, { force: true });
+      fs.rmSync(partialPath, { force: true });
+    }
+    const shouldSkip = makeSkipChecker(state, partialStore, isCompleteTownNpcPartialRecord);
+    const crashHookEnabled = process.env.TERRAPEDIA_TOWN_NPC_ENABLE_CRASH_HOOK === '1';
+    const crashAfter = crashHookEnabled ? toNullableInteger(process.env.TERRAPEDIA_TOWN_NPC_CRASH_AFTER) : null;
+    const crashPoint = normalizeText(process.env.TERRAPEDIA_TOWN_NPC_CRASH_POINT) || 'after-mark';
+    lastResumeProgressFields = buildResumeProgressFields(state, seeds.length);
+    lastProgressCurrent = new Set((state.completedKeys || []).map((key) => String(key))).size;
+    lastProgressTotal = seeds.length;
+
     writeProgress(progressPath, buildProgressPayload({
       status: 'running',
       phase: 'fetch',
-      message: 'starting town NPC maintenance fetch',
-      current: 0,
+      message: `starting town NPC maintenance fetch (${decision.action})`,
+      current: lastProgressCurrent,
       total: seeds.length,
       outputPath,
       reportPath: snapshotPath,
       startedAt,
-      nextStep: 'fetch town NPC wiki pages'
+      nextStep: 'fetch town NPC wiki pages',
+      ...lastResumeProgressFields
     }), canonicalProgressPath);
 
     const client = buildClient();
-    const records = await crawlRecords({
+    const { records, scraped, skipped } = await crawlRecords({
       client,
       seeds,
       delayMs: Math.max(0, Number(args['delay-ms'] ?? 1600) || 0),
-      progressCallback: (current, total, seed) => writeProgress(progressPath, buildProgressPayload({
-        status: 'running',
-        phase: 'fetch',
-        message: `fetching town NPC page ${seed.pageTitle}`,
-        current,
-        total,
-        outputPath,
-        reportPath: snapshotPath,
-        startedAt,
-        nextStep: 'continue town NPC wiki page fetch'
-      }), canonicalProgressPath)
+      resume: { state, statePath, partialPath, partialStore, shouldSkip, crashAfter, crashPoint },
+      progressCallback: (current, total, seed) => {
+        lastProgressCurrent = current;
+        lastProgressTotal = total;
+        lastResumeProgressFields = buildResumeProgressFields(state, seeds.length);
+        writeProgress(progressPath, buildProgressPayload({
+          status: 'running',
+          phase: 'fetch',
+          message: `fetching town NPC page ${seed.pageTitle}`,
+          current,
+          total,
+          outputPath,
+          reportPath: snapshotPath,
+          startedAt,
+          nextStep: 'continue town NPC wiki page fetch',
+          ...lastResumeProgressFields
+        }), canonicalProgressPath);
+      }
     });
 
     const payload = {
@@ -109,7 +175,8 @@ async function main(argv = process.argv.slice(2)) {
       total: seeds.length,
       outputPath,
       reportPath: snapshotPath,
-      startedAt
+      startedAt,
+      ...buildResumeProgressFields(state, seeds.length)
     }), canonicalProgressPath);
 
     process.stdout.write(`${JSON.stringify({
@@ -118,6 +185,8 @@ async function main(argv = process.argv.slice(2)) {
       progress: progressPath,
       seedCount: seeds.length,
       scrapedCount: payload.summary.scrapedCount,
+      fetchedCount: scraped,
+      skippedCount: skipped,
       errorCount: payload.summary.errorCount,
       shopItems: payload.summary.shopItemCount
     }, null, 2)}\n`);
@@ -127,12 +196,13 @@ async function main(argv = process.argv.slice(2)) {
       status: 'failed',
       phase: 'error',
       message: `town NPC maintenance fetch failed: ${error instanceof Error ? error.message : String(error)}`,
-      current: 0,
-      total: 0,
+      current: lastProgressCurrent,
+      total: lastProgressTotal,
       outputPath,
       reportPath: snapshotPath,
       startedAt,
-      nextStep: 'inspect error and rerun the town NPC maintenance fetch'
+      nextStep: 'inspect error and rerun the town NPC maintenance fetch',
+      ...lastResumeProgressFields
     }), canonicalProgressPath);
     process.stderr.write(`${error instanceof Error ? error.stack || error.message : String(error)}\n`);
     return 1;
@@ -198,7 +268,8 @@ function buildProgressPayload({
   outputPath,
   reportPath,
   startedAt,
-  nextStep = null
+  nextStep = null,
+  resume = null
 }) {
   const generatedAt = new Date().toISOString();
   const payload = {
@@ -217,6 +288,9 @@ function buildProgressPayload({
   };
   if (nextStep) {
     payload.nextStep = nextStep;
+  }
+  if (resume) {
+    payload.resume = resume;
   }
   return payload;
 }
@@ -263,18 +337,29 @@ function loadTownNpcSeeds(sourcePath) {
   return seeds.sort((first, second) => first.gameId - second.gameId);
 }
 
-async function crawlRecords({ client, seeds, delayMs, progressCallback }) {
-  const records = [];
+async function crawlRecords({ client, seeds, delayMs, progressCallback, resume }) {
+  const partialStore = resume.partialStore;
+  let scraped = 0;
+  let skipped = 0;
   for (let index = 0; index < seeds.length; index += 1) {
     const seed = seeds[index];
-    if (index > 0) {
+    const key = seed.gameId;
+
+    if (resume.shouldSkip(key)) {
+      skipped += 1;
+      progressCallback?.(new Set((resume.state.completedKeys || []).map((doneKey) => String(doneKey))).size, seeds.length, seed);
+      continue;
+    }
+
+    if (scraped > 0) {
       await sleep(delayMs + Math.floor(Math.random() * 400));
     }
-    progressCallback?.(index, seeds.length, seed);
+    progressCallback?.(new Set((resume.state.completedKeys || []).map((doneKey) => String(doneKey))).size, seeds.length, seed);
+    let record;
     try {
-      records.push(await fetchTownNpcRecord(client, seed));
+      record = await fetchTownNpcRecord(client, seed);
     } catch (error) {
-      records.push({
+      record = {
         gameId: seed.gameId,
         internalName: seed.internalName,
         pageTitle: seed.pageTitle,
@@ -287,11 +372,36 @@ async function crawlRecords({ client, seeds, delayMs, progressCallback }) {
         moveInConditions: [],
         suggestedGamePeriodId: null,
         suggestedGamePeriodReason: null
-      });
+      };
     }
-    progressCallback?.(index + 1, seeds.length, seed);
+
+    partialStore[String(key)] = record;
+    writeJsonAtomic(resume.partialPath, partialStore);
+    const attempted = scraped + 1;
+    if (resume.crashPoint === 'after-partial-before-mark' && resume.crashAfter != null && attempted >= resume.crashAfter) {
+      crashForTest('test crash after partial before markCompleted');
+    }
+    markCompleted({ statePath: resume.statePath, state: resume.state, key });
+    scraped += 1;
+    progressCallback?.(new Set((resume.state.completedKeys || []).map((doneKey) => String(doneKey))).size, seeds.length, seed);
+    if ((resume.crashPoint == null || resume.crashPoint === 'after-mark') && resume.crashAfter != null && scraped >= resume.crashAfter) {
+      crashForTest('test crash after markCompleted');
+    }
   }
-  return records;
+
+  const missingOutputKeys = seeds
+    .map((seed) => String(seed.gameId))
+    .filter((key) => !Object.prototype.hasOwnProperty.call(partialStore, key));
+  if (missingOutputKeys.length > 0) {
+    throw new Error(`partial store missing fetched records: ${missingOutputKeys.join(', ')}`);
+  }
+
+  const records = seeds.map((seed) => partialStore[String(seed.gameId)]);
+  return { records, scraped, skipped };
+}
+
+function crashForTest(message) {
+  throw new Error(message);
 }
 
 async function fetchTownNpcRecord(client, seed) {
@@ -849,6 +959,34 @@ function parseJsonObject(value) {
   } catch {
     return {};
   }
+}
+
+function loadJsonObject(filePath) {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function isCompleteTownNpcPartialRecord(record, key) {
+  return Boolean(
+    record
+      && typeof record === 'object'
+      && !Array.isArray(record)
+      && String(record.gameId ?? '') === String(key)
+      && typeof record.internalName === 'string'
+      && typeof record.pageTitle === 'string'
+      && typeof record.pageUrl === 'string'
+      && typeof record.fetchedAt === 'string'
+      && Array.isArray(record.shopItems)
+      && typeof record.shopItemCount === 'number'
+      && Array.isArray(record.livingPreferences)
+      && Array.isArray(record.moveInConditions)
+      && Object.prototype.hasOwnProperty.call(record, 'suggestedGamePeriodId')
+      && Object.prototype.hasOwnProperty.call(record, 'suggestedGamePeriodReason')
+  );
 }
 
 function writeJsonAtomic(filePath, payload) {

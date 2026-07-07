@@ -20,8 +20,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -323,6 +325,166 @@ class WikiMonitorDispatchQueueRepositoryTest {
 
     @Test
     @SuppressWarnings("unchecked")
+    void redisListItemsRestoresQueueFromMirrorWhenRedisIdsAreEmpty() throws Exception {
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        ValueOperations<String, String> valueOperations = mock(ValueOperations.class);
+        ListOperations<String, String> listOperations = mock(ListOperations.class);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(redisTemplate.opsForList()).thenReturn(listOperations);
+        when(valueOperations.setIfAbsent(
+            eq("terrapedia:crawler:wiki-monitor:dispatch-queue:restore-lock"),
+            anyString(),
+            eq(30L),
+            eq(TimeUnit.SECONDS)
+        )).thenReturn(true);
+        AtomicBoolean restoredIds = new AtomicBoolean(false);
+        when(listOperations.range("terrapedia:crawler:wiki-monitor:dispatch-queue:ids", 0, -1))
+            .thenAnswer(invocation -> restoredIds.get() ? List.of("queue-from-mirror") : List.of());
+        when(listOperations.rightPush("terrapedia:crawler:wiki-monitor:dispatch-queue:ids", "queue-from-mirror"))
+            .thenAnswer(invocation -> {
+                restoredIds.set(true);
+                return 1L;
+            });
+
+        writeMirror(Map.ofEntries(
+            Map.entry("generatedAt", "2026-06-21T00:00:00Z"),
+            Map.entry("items", List.of(Map.ofEntries(
+                Map.entry("queueId", "queue-from-mirror"),
+                Map.entry("dispatchId", "dispatch-from-mirror"),
+                Map.entry("lane", "standard"),
+                Map.entry("domain", "town_npc_maintenance"),
+                Map.entry("coveredDomains", List.of("town_npc_maintenance")),
+                Map.entry("actionId", "domain-source-town-npc-maintenance"),
+                Map.entry("status", "running"),
+                Map.entry("requestedAt", "2026-06-21T00:00:00Z"),
+                Map.entry("startedAt", "2026-06-21T00:01:00Z"),
+                Map.entry("pid", 12345L),
+                Map.entry("processStartedAt", "2026-06-21T00:01:00Z"),
+                Map.entry("resumeMode", "resume"),
+                Map.entry("message", "dispatch running")
+            ))),
+            Map.entry("dedupe", Map.of(
+                "terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:domain-source-town-npc-maintenance:resumeMode:resume",
+                Map.of("queueId", "queue-from-mirror", "expiresAt", "2026-06-22T00:00:00Z")
+            )),
+            Map.entry("dispatches", Map.of("dispatch-from-mirror", "queue-from-mirror")),
+            Map.entry("cooldowns", Map.of(
+                "terrapedia:crawler:wiki-monitor:dispatch-queue:cooldown:standard:domain-source-town-npc-maintenance",
+                Map.of(
+                    "lane", "standard",
+                    "actionId", "domain-source-town-npc-maintenance",
+                    "completedDispatchId", "dispatch-completed",
+                    "completedAt", "2026-06-20T23:00:00Z",
+                    "cooldownUntil", "2026-06-20T23:30:00Z"
+                )
+            ))
+        ));
+        WikiMonitorQueueItem restored = newItem("standard", "town_npc_maintenance", "domain-source-town-npc-maintenance", BASE_TIME);
+        restored.setQueueId("queue-from-mirror");
+        restored.setDispatchId("dispatch-from-mirror");
+        restored.setStatus("running");
+        restored.setStartedAt(Instant.parse("2026-06-21T00:01:00Z"));
+        restored.setPid(12345L);
+        restored.setProcessStartedAt(Instant.parse("2026-06-21T00:01:00Z"));
+        restored.setResumeMode("resume");
+        when(valueOperations.get("terrapedia:crawler:wiki-monitor:dispatch-queue:item:queue-from-mirror"))
+            .thenReturn(null)
+            .thenReturn(queueJson(restored));
+
+        WikiMonitorDispatchQueueRepository repository = new WikiMonitorDispatchQueueRepository(
+            objectMapper,
+            repoRoot,
+            redisTemplate,
+            Clock.fixed(BASE_TIME, ZoneOffset.UTC)
+        );
+
+        List<WikiMonitorQueueItem> items = repository.listItems();
+
+        assertEquals(1, items.size());
+        assertEquals("queue-from-mirror", items.get(0).getQueueId());
+        assertEquals("running", items.get(0).getStatus());
+        verify(listOperations).rightPush("terrapedia:crawler:wiki-monitor:dispatch-queue:ids", "queue-from-mirror");
+        verify(valueOperations).set(eq("terrapedia:crawler:wiki-monitor:dispatch-queue:item:queue-from-mirror"), anyString());
+        verify(valueOperations).set("terrapedia:crawler:wiki-monitor:dispatch-queue:dispatch:dispatch-from-mirror", "queue-from-mirror");
+        verify(valueOperations).set(
+            "terrapedia:crawler:wiki-monitor:dispatch-queue:dedupe:standard:domain-source-town-npc-maintenance:resumeMode:resume",
+            "queue-from-mirror",
+            86400L,
+            TimeUnit.SECONDS
+        );
+        verify(valueOperations).set(eq("terrapedia:crawler:wiki-monitor:dispatch-queue:cooldown:standard:domain-source-town-npc-maintenance"), anyString());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void redisMirrorSnapshotDoesNotRestoreStaleMirrorWhenRedisIdsAreEmpty() throws Exception {
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        ValueOperations<String, String> valueOperations = mock(ValueOperations.class);
+        ListOperations<String, String> listOperations = mock(ListOperations.class);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(redisTemplate.opsForList()).thenReturn(listOperations);
+        when(listOperations.range("terrapedia:crawler:wiki-monitor:dispatch-queue:ids", 0, -1)).thenReturn(List.of());
+        writeMirror(Map.of(
+            "generatedAt", "2026-06-21T00:00:00Z",
+            "items", List.of(Map.of(
+                "queueId", "stale-queue",
+                "lane", "standard",
+                "domain", "bosses",
+                "actionId", "domain-source-bosses",
+                "status", "queued",
+                "requestedAt", "2026-06-21T00:00:00Z"
+            ))
+        ));
+        WikiMonitorDispatchQueueRepository repository = new WikiMonitorDispatchQueueRepository(
+            objectMapper,
+            repoRoot,
+            redisTemplate,
+            Clock.fixed(BASE_TIME, ZoneOffset.UTC)
+        );
+
+        WikiMonitorDispatchQueueRepository.QueueSnapshot snapshot = repository.mirrorSnapshot();
+
+        assertTrue(snapshot.items().isEmpty());
+        assertTrue(((List<?>) readMirror().get("items")).isEmpty());
+        verify(listOperations, never()).rightPush(anyString(), anyString());
+        verify(valueOperations, never()).set(eq("terrapedia:crawler:wiki-monitor:dispatch-queue:item:stale-queue"), anyString());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void redisMirrorSnapshotPersistsCooldownsForMirrorRestore() throws Exception {
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        ValueOperations<String, String> valueOperations = mock(ValueOperations.class);
+        ListOperations<String, String> listOperations = mock(ListOperations.class);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(redisTemplate.opsForList()).thenReturn(listOperations);
+        when(listOperations.range("terrapedia:crawler:wiki-monitor:dispatch-queue:ids", 0, -1)).thenReturn(List.of());
+        String cooldownKey = "terrapedia:crawler:wiki-monitor:dispatch-queue:cooldown:standard:domain-source-town-npc-maintenance";
+        when(redisTemplate.keys("terrapedia:crawler:wiki-monitor:dispatch-queue:cooldown:*")).thenReturn(Set.of(cooldownKey));
+        when(valueOperations.get(cooldownKey)).thenReturn(objectMapper.findAndRegisterModules().writeValueAsString(
+            new WikiMonitorDispatchQueueRepository.CooldownEntry(
+                "standard",
+                "domain-source-town-npc-maintenance",
+                "dispatch-completed",
+                BASE_TIME,
+                BASE_TIME.plus(Duration.ofMinutes(30))
+            )
+        ));
+        WikiMonitorDispatchQueueRepository repository = new WikiMonitorDispatchQueueRepository(
+            objectMapper,
+            repoRoot,
+            redisTemplate,
+            Clock.fixed(BASE_TIME, ZoneOffset.UTC)
+        );
+
+        repository.mirrorSnapshot();
+
+        Map<String, Object> mirror = readMirror();
+        assertTrue(((Map<?, ?>) mirror.get("cooldowns")).containsKey(cooldownKey));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     void redisEnqueueCleansDedupeWhenScriptThrows() {
         StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
         ValueOperations<String, String> valueOperations = mock(ValueOperations.class);
@@ -484,6 +646,12 @@ class WikiMonitorDispatchQueueRepositoryTest {
             Files.readString(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json")),
             MAP_TYPE
         );
+    }
+
+    private void writeMirror(Map<String, Object> mirror) throws Exception {
+        Path path = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json");
+        Files.createDirectories(path.getParent());
+        objectMapper.writerWithDefaultPrettyPrinter().writeValue(path.toFile(), mirror);
     }
 
     private String queueJson(WikiMonitorQueueItem item) throws Exception {

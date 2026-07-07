@@ -472,6 +472,9 @@ test('start launches shared redis through start_background with setsid and extra
   assert.match(source, /start_background "redis-\$TP_REDIS_PORT" "\$REPO_ROOT"/);
   assert.match(source, /--databases 64/);
   assert.match(source, /--requirepass <redacted> --databases 64/);
+  assert.match(source, /--appendonly yes/);
+  assert.match(source, /--dir "\$redis_data_dir"/);
+  assert.match(source, /--dbfilename "dump-\$TP_REDIS_PORT\.rdb"/);
   assert.doesNotMatch(source, /nohup "\$redis_cmd" --port/);
 });
 

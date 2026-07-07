@@ -92,6 +92,10 @@ public class CrawlerMonitorOverviewDTO {
         private String failureCircuitBreaker;
         private String lastAutoRunAt;
         private String pauseReason;
+        private boolean resumeSupported;
+        private String resumeMode;
+        private String resumeStatePath;
+        private String restartBehavior;
         private String message;
         private WikiMonitorDomainStateDTO state;
     }
@@ -160,6 +164,8 @@ public class CrawlerMonitorOverviewDTO {
         private String lockPath;
         private String outputPath;
         private String logPath;
+        private String resumeMode;
+        private String resumeStatePath;
         private String message;
         private Integer position;
         private Integer lanePosition;
