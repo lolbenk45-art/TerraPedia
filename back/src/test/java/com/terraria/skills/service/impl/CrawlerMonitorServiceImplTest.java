@@ -5457,4 +5457,109 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("town_npc_maintenance", bosses.getState().getBlocker());
         assertEquals("域 town_npc_maintenance", bosses.getState().getBlockerLabel());
     }
+
+    // --- c.1 / c.3: reconcile must converge alive-but-unhealthy running items, not only dead PIDs ---
+
+    private static final Instant STUCK_RECOVERY_NOW = Instant.parse("2026-06-14T02:00:00Z");
+
+    /**
+     * Seeds a single running town_npc queue item (plus matching latest-dispatch + progress files) so that
+     * {@code reconcileQueueRuntimeState} runs against it on the next overview. The three health axes are
+     * driven by the parameters: pid (liveness), processStartedAt (PID-reuse / start-time match — pass null
+     * to make {@code processStartMatches} conservatively return true), and heartbeatAt (progress staleness).
+     */
+    private void seedRunningTownNpcQueueItem(long pid, String processStartedAt, String heartbeatAt) throws IOException {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.latest.json"), Map.ofEntries(
+            Map.entry("queueId", "wiki-monitor-queue-town-npc"),
+            Map.entry("dispatchId", "wiki-monitor-dispatch-town-npc"),
+            Map.entry("domain", "town_npc_maintenance"),
+            Map.entry("actionId", "domain-source-town-npc-maintenance"),
+            Map.entry("status", "running"),
+            Map.entry("message", "dispatch running"),
+            Map.entry("progressPath", "data/generated/domain-source-town-npc-maintenance-progress.latest.json")
+        ));
+        writeJson(repoRoot.resolve("data/generated/domain-source-town-npc-maintenance-progress.latest.json"), Map.of(
+            "actionId", "domain-source-town-npc-maintenance",
+            "domain", "town_npc_maintenance",
+            "status", "running",
+            "current", 15,
+            "total", 39,
+            "lastHeartbeatAt", heartbeatAt,
+            "generatedAt", heartbeatAt
+        ));
+        Map<String, Object> item = new java.util.LinkedHashMap<>();
+        item.put("queueId", "wiki-monitor-queue-town-npc");
+        item.put("dispatchId", "wiki-monitor-dispatch-town-npc");
+        item.put("lane", "standard");
+        item.put("domain", "town_npc_maintenance");
+        item.put("coveredDomains", List.of("town_npc_maintenance"));
+        item.put("actionId", "domain-source-town-npc-maintenance");
+        item.put("status", "running");
+        item.put("requestedAt", "2026-06-14T01:03:00Z");
+        item.put("startedAt", "2026-06-14T01:04:00Z");
+        item.put("pid", pid);
+        if (processStartedAt != null) {
+            item.put("processStartedAt", processStartedAt);
+        }
+        item.put("progressPath", "data/generated/domain-source-town-npc-maintenance-progress.latest.json");
+        item.put("message", "dispatch running");
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:05:00Z",
+            "items", List.of(item),
+            "dispatches", Map.of("wiki-monitor-dispatch-town-npc", "wiki-monitor-queue-town-npc")
+        ));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> firstQueueItemMirror() throws IOException {
+        Map<String, Object> mirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        return ((List<Map<String, Object>>) mirror.get("items")).get(0);
+    }
+
+    @Test
+    void shouldConvergeAliveButStartTimeMismatchedRunningItemAsDead() throws Exception {
+        // c.1: the PID is alive (our own JVM), but the recorded launch time is far newer than the live
+        // process's real start → processStartMatches returns false → treated as PID reuse / dead.
+        seedRunningTownNpcQueueItem(
+            ProcessHandle.current().pid(),
+            "2099-01-01T00:00:00Z",
+            STUCK_RECOVERY_NOW.toString());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC));
+
+        service.getOverview();
+
+        assertEquals("timed_out", firstQueueItemMirror().get("status"));
+    }
+
+    @Test
+    void shouldConvergeAliveButHeartbeatStaleRunningItemAsDead() throws Exception {
+        // c.3: PID alive + start time healthy (null → match), but the progress heartbeat is 30 minutes old
+        // (> 10 minute stale threshold) → the process is wedged → treated as dead.
+        seedRunningTownNpcQueueItem(
+            ProcessHandle.current().pid(),
+            null,
+            STUCK_RECOVERY_NOW.minus(Duration.ofMinutes(30)).toString());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC));
+
+        service.getOverview();
+
+        assertEquals("timed_out", firstQueueItemMirror().get("status"));
+    }
+
+    @Test
+    void shouldNotConvergeHealthyAliveRunningItem() throws Exception {
+        // reverse guard: alive + start time healthy + fresh heartbeat → must stay running (no false kill).
+        seedRunningTownNpcQueueItem(
+            ProcessHandle.current().pid(),
+            null,
+            STUCK_RECOVERY_NOW.toString());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot, Clock.fixed(STUCK_RECOVERY_NOW, ZoneOffset.UTC));
+
+        service.getOverview();
+
+        assertEquals("running", firstQueueItemMirror().get("status"));
+    }
 }

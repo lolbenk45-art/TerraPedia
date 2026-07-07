@@ -1263,9 +1263,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             if (hasTrackedActiveQueueProcess(item)) {
                 continue;
             }
-            Long pid = item.getPid();
-            Optional<ProcessHandle> handle = pid == null || pid <= 0 ? Optional.empty() : ProcessHandle.of(pid);
-            if (handle.isPresent() && handle.get().isAlive()) {
+            if (runtimeProcessIsHealthy(repoRoot, item)) {
                 continue;
             }
             if ("paused".equals(item.getStatus())) {
@@ -1306,6 +1304,41 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
         releaseLaneLock(repoRoot, item.getLane(), item.getDispatchId());
         invalidateCachedOverview();
+    }
+
+    /**
+     * A tracked queue process counts as healthy only when its recorded PID is alive, the OS process start
+     * time still matches what we launched (defends against PID reuse — c.1), and its progress heartbeat is
+     * not stale (defends against an alive-but-wedged process — c.3). Any failure means the dispatch is
+     * treated as dead and converged by the caller. Missing metadata is treated as healthy (conservative:
+     * never converge a task we lack evidence against). Mirrors the liveness discipline already used by the
+     * startup reconcile and dispatch reconstruction paths ({@code processStartMatches}).
+     */
+    private boolean runtimeProcessIsHealthy(Path repoRoot, WikiMonitorQueueItem item) {
+        Long pid = item.getPid();
+        Optional<ProcessHandle> handle = pid == null || pid <= 0 ? Optional.empty() : ProcessHandle.of(pid);
+        if (handle.isEmpty() || !handle.get().isAlive()) {
+            return false;
+        }
+        if (!processStartMatches(handle.get(), formatInstant(item.getProcessStartedAt()))) {
+            return false;
+        }
+        if (runtimeHeartbeatIsStale(repoRoot, item)) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean runtimeHeartbeatIsStale(Path repoRoot, WikiMonitorQueueItem item) {
+        String progressPath = item.getProgressPath();
+        if (progressPath == null || progressPath.isBlank()) {
+            return false;
+        }
+        ReadResult progress = readJsonMap(repoRoot.resolve(progressPath).normalize());
+        if (!progress.readable()) {
+            return false;
+        }
+        return progressHeartbeatIsStale(progress);
     }
 
     private void markLatestDispatchFailedIfMatches(Path repoRoot, WikiMonitorQueueItem item, String message, Instant completedAt) {
