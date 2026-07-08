@@ -208,14 +208,14 @@ test('covered source manifest is not advanced during raw child fetch completion'
     const planPath = path.join(tempDir, 'plan.json');
     const progressPath = path.join(tempDir, 'progress.json');
     const fakeChildPath = path.join(tempDir, 'fake-child.mjs');
-    const rawWikiDir = path.join(worktreeRoot, 'data', 'raw', 'wiki');
+    const rawWikiDir = path.join(tempDir, 'data', 'terraPedia', 'raw', 'wiki');
     const iteminfoPath = path.join(rawWikiDir, 'module__iteminfo__data.latest.json');
 
     fs.mkdirSync(rawWikiDir, { recursive: true });
     fs.writeFileSync(fakeChildPath, 'process.exit(0);\n', 'utf8');
     fs.writeFileSync(iteminfoPath, JSON.stringify({
       fetchedAt: '2026-06-20T00:00:00.000Z',
-      moduleContent: 'return { changed = true }',
+      moduleContent: 'return { ["data"] = [=[{ "_terrariaversion": "1.4.4.9", "1": { "name": "Iron Pickaxe", "internalName": "IronPickaxe", "pick": 40, "maxStack": 1 } }]=] }',
       pageId: 123,
       pageTitle: 'Module:Iteminfo/data',
       revisionId: 456,
@@ -279,4 +279,191 @@ test('covered source manifest is not advanced during raw child fetch completion'
     const iteminfoRecord = manifest.records.find((record) => record.sourceKey === 'wiki.module.iteminfo');
     assert.equal(iteminfoRecord.contentHash, 'previous-hash');
     assert.equal(iteminfoRecord.revisionId, 222);
+});
+
+test('items apply normalizes wiki item module after raw source refresh', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-sync-normalize-items-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const manifestPath = path.join(tempDir, 'manifest.json');
+    const planPath = path.join(tempDir, 'plan.json');
+    const progressPath = path.join(tempDir, 'progress.json');
+    const fakeChildPath = path.join(tempDir, 'write-iteminfo.mjs');
+    const rawWikiDir = path.join(tempDir, 'data', 'terraPedia', 'raw', 'wiki');
+    const normalizedPath = path.join(tempDir, 'data', 'terraPedia', 'normalized', 'items.wiki.json');
+
+    fs.mkdirSync(rawWikiDir, { recursive: true });
+    fs.writeFileSync(fakeChildPath, `
+      import fs from 'node:fs';
+      import path from 'node:path';
+      const rawDir = ${JSON.stringify(rawWikiDir)};
+      fs.mkdirSync(rawDir, { recursive: true });
+      fs.writeFileSync(path.join(rawDir, 'module__iteminfo__data.latest.json'), JSON.stringify({
+        apiUrl: 'https://terraria.wiki.gg/api.php',
+        pageTitle: 'Module:Iteminfo/data',
+        revisionId: 456,
+        revisionTimestamp: '2026-06-20T00:00:00Z',
+        fetchedAt: '2026-06-20T00:00:00.000Z',
+        moduleContent: 'return { ["data"] = [=[{ "_terrariaversion": "1.4.4.9", "1": { "name": "Iron Pickaxe", "internalName": "IronPickaxe", "pick": 40, "maxStack": 1 } }]=] }'
+      }));
+    `, 'utf8');
+    fs.writeFileSync(manifestPath, JSON.stringify({ records: [], schemaVersion: '1.0.0' }), 'utf8');
+    fs.writeFileSync(planPath, JSON.stringify({
+      actions: [{
+        id: 'items-refresh',
+        entityFamily: 'items',
+        type: 'run_script',
+        command: process.execPath,
+        args: [fakeChildPath],
+        sourceKeys: ['wiki.module.iteminfo'],
+        status: 'pending'
+      }],
+      generatedAt: '2026-06-20T00:00:00.000Z',
+      requestedEntities: ['items'],
+      resumeToken: 'test-normalize-items',
+      runMode: 'plan'
+    }), 'utf8');
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      '--mode=resume',
+      '--entity=items',
+      `--manifest-path=${manifestPath}`,
+      `--plan-path=${planPath}`,
+      `--progress-path=${progressPath}`
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+      }
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.equal(fs.existsSync(normalizedPath), true);
+    const normalized = JSON.parse(fs.readFileSync(normalizedPath, 'utf8'));
+    assert.equal(normalized.totalItems, 1);
+    assert.equal(normalized.items[0].internalName, 'IronPickaxe');
+});
+
+test('items apply marks action failed when post-refresh normalization fails', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-sync-normalize-fail-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const manifestPath = path.join(tempDir, 'manifest.json');
+    const planPath = path.join(tempDir, 'plan.json');
+    const progressPath = path.join(tempDir, 'progress.json');
+    const fakeChildPath = path.join(tempDir, 'no-iteminfo.mjs');
+
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+    fs.writeFileSync(fakeChildPath, 'process.exit(0);\n', 'utf8');
+    fs.writeFileSync(manifestPath, JSON.stringify({ records: [], schemaVersion: '1.0.0' }), 'utf8');
+    fs.writeFileSync(planPath, JSON.stringify({
+      actions: [{
+        id: 'items-refresh',
+        entityFamily: 'items',
+        type: 'run_script',
+        command: process.execPath,
+        args: [fakeChildPath],
+        sourceKeys: ['wiki.module.iteminfo'],
+        status: 'pending'
+      }],
+      generatedAt: '2026-06-20T00:00:00.000Z',
+      requestedEntities: ['items'],
+      resumeToken: 'test-normalize-fail',
+      runMode: 'plan'
+    }), 'utf8');
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      '--mode=resume',
+      '--entity=items',
+      `--manifest-path=${manifestPath}`,
+      `--plan-path=${planPath}`,
+      `--progress-path=${progressPath}`
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+      }
+    });
+
+    assert.notEqual(result.status, 0);
+    const plan = JSON.parse(fs.readFileSync(planPath, 'utf8'));
+    assert.equal(plan.actions[0].status, 'failed');
+    const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
+    assert.equal(progress.status, 'failed');
+    assert.match(progress.message, /failed items-refresh/);
+});
+
+test('items apply normalizes existing raw module when no source action is planned', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-sync-normalize-noop-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const manifestPath = path.join(tempDir, 'manifest.json');
+    const monitorStatePath = path.join(tempDir, 'monitor-state.json');
+    const planPath = path.join(tempDir, 'plan.json');
+    const progressPath = path.join(tempDir, 'progress.json');
+    const rawWikiDir = path.join(tempDir, 'data', 'terraPedia', 'raw', 'wiki');
+    const rawPath = path.join(rawWikiDir, 'module__iteminfo__data.latest.json');
+    const normalizedPath = path.join(tempDir, 'data', 'terraPedia', 'normalized', 'items.wiki.json');
+
+    fs.mkdirSync(rawWikiDir, { recursive: true });
+    fs.writeFileSync(rawPath, JSON.stringify({
+      apiUrl: 'https://terraria.wiki.gg/api.php',
+      pageTitle: 'Module:Iteminfo/data',
+      revisionId: 456,
+      revisionTimestamp: '2026-06-20T00:00:00Z',
+      fetchedAt: '2026-06-20T00:00:00.000Z',
+      moduleContent: 'return { ["data"] = [=[{ "_terrariaversion": "1.4.4.9", "1": { "name": "Iron Pickaxe", "internalName": "IronPickaxe", "pick": 40, "maxStack": 1 } }]=] }'
+    }), 'utf8');
+    fs.writeFileSync(manifestPath, JSON.stringify({
+      records: [{
+        contentHash: 'existing',
+        entityFamily: 'items',
+        key: 'items|module|wiki.module.iteminfo|en|Module:Iteminfo/data',
+        lang: 'en',
+        localPath: rawPath,
+        pageTitle: 'Module:Iteminfo/data',
+        requestedPageTitle: 'Module:Iteminfo/data',
+        revisionTimestamp: '2026-06-20T00:00:00Z',
+        sourceKey: 'wiki.module.iteminfo',
+        sourceKind: 'module',
+        status: 'ok'
+      }],
+      schemaVersion: '1.0.0'
+    }), 'utf8');
+    fs.writeFileSync(monitorStatePath, JSON.stringify({
+      sources: [{
+        key: 'wiki.module.iteminfo',
+        entityFamily: 'items',
+        revisionTimestamp: '2026-06-20T00:00:00Z',
+        changed: false,
+        status: 'ok'
+      }]
+    }), 'utf8');
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      '--mode=apply',
+      '--entity=items',
+      `--manifest-path=${manifestPath}`,
+      `--monitor-state=${monitorStatePath}`,
+      `--plan-path=${planPath}`,
+      `--progress-path=${progressPath}`
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+      }
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const plan = JSON.parse(fs.readFileSync(planPath, 'utf8'));
+    assert.equal(plan.actions.length, 0);
+    assert.equal(fs.existsSync(normalizedPath), true);
+    const normalized = JSON.parse(fs.readFileSync(normalizedPath, 'utf8'));
+    assert.equal(normalized.items[0].internalName, 'IronPickaxe');
 });

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -9,11 +10,14 @@ import { parseCliArgs, sharedDataPath } from '../lib/wiki-item-utils.mjs';
 import { buildRecipeReferenceImportArgs } from './recipe-reference-import-args.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const sourceRoot = path.resolve(__dirname, '..', '..', '..');
 const repoRoot = getProjectRoot();
 
 const buildScriptPath = path.join(repoRoot, 'scripts', 'data', 'fetch', 'build-item-relations-bundle.mjs');
 const importRecipesScriptPath = path.join(repoRoot, 'scripts', 'data', 'import', 'import-recipes-from-external-data.mjs');
 const auditScriptPath = path.join(repoRoot, 'scripts', 'data', 'audit', 'reconcile-live-recipe-coverage.mjs');
+const normalizeItemsScriptPath = path.join(sourceRoot, 'scripts', 'data', 'normalize', 'normalize-wiki-items.mjs');
 
 if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
   main();
@@ -23,16 +27,19 @@ function main() {
   const options = parseCliArgs(process.argv.slice(2));
   const relationsOutputPath = resolvePathOption(options['relations-output'] ?? options.output, sharedDataPath('normalized', 'item-relations.bundle.json'));
   const recipeReferencePath = resolvePathOption(options['recipe-reference'], path.join(repoRoot, 'data', 'generated', 'recipe-material-reference.json'));
+  const explicitInput = typeof options.input === 'string' && options.input.trim() !== '';
+  const itemsInput = ensureRecipeReferenceItemsInput({
+    inputPath: explicitInput ? options.input.trim() : sharedDataPath('normalized', 'items.wiki.json'),
+    explicitInput
+  });
 
   const buildArgs = [
+    `--input=${itemsInput.inputPath}`,
     `--output=${relationsOutputPath}`,
     `--recipe-reference=${recipeReferencePath}`,
     '--refresh-recipe-reference=true'
   ];
 
-  if (typeof options.input === 'string' && options.input.trim() !== '') {
-    buildArgs.push(`--input=${options.input.trim()}`);
-  }
   if (typeof options['item-pages'] === 'string' && options['item-pages'].trim() !== '') {
     buildArgs.push(`--item-pages=${options['item-pages'].trim()}`);
   }
@@ -62,6 +69,44 @@ function main() {
   runScript(importRecipesScriptPath, importArgs, 'recipe db import');
   runScript(auditScriptPath, importArgs, 'post-import live recipe reconciliation');
   console.log('Recipe reference sync pipeline finished successfully');
+}
+
+export function ensureRecipeReferenceItemsInput({
+  inputPath = sharedDataPath('normalized', 'items.wiki.json'),
+  rawItemModulePath = sharedDataPath('raw', 'wiki', 'module__iteminfo__data.latest.json'),
+  explicitInput = false,
+  normalizeScriptPath = normalizeItemsScriptPath,
+  cwd = repoRoot,
+  env = process.env
+} = {}) {
+  const resolvedInputPath = path.resolve(cwd, inputPath);
+  if (fs.existsSync(resolvedInputPath)) {
+    return { inputPath: resolvedInputPath, normalizedFromRaw: false };
+  }
+  if (explicitInput) {
+    throw new Error(`Recipe reference input does not exist: ${resolvedInputPath}`);
+  }
+
+  const resolvedRawPath = path.resolve(cwd, rawItemModulePath);
+  if (!fs.existsSync(resolvedRawPath)) {
+    throw new Error(
+      `缺少物品模块同步输出，无法生成配方关系：${resolvedInputPath} 不存在，且 raw module ${resolvedRawPath} 不存在。请先运行 wiki-items-refresh / 物品模块同步。`
+    );
+  }
+
+  const result = spawnSync(process.execPath, [
+    normalizeScriptPath,
+    `--input=${resolvedRawPath}`,
+    `--output=${resolvedInputPath}`
+  ], {
+    cwd,
+    env,
+    stdio: 'inherit'
+  });
+  if (result.status !== 0) {
+    throw new Error('Failed to normalize wiki items before recipe reference sync');
+  }
+  return { inputPath: resolvedInputPath, normalizedFromRaw: true };
 }
 
 export function buildRecipeReferencePipelineImportArgs(options = {}, recipeReferencePath) {

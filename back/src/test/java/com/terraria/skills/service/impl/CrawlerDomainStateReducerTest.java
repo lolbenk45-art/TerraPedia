@@ -28,27 +28,27 @@ class CrawlerDomainStateReducerTest {
     }
 
     @Test
-    void forceReclaimedProgressClearsStaleFailedQueue() {
+    void forceReclaimedProgressDoesNotClearFailedQueue() {
         CrawlerDomainStateReducer.Input in = CrawlerDomainStateReducer.Input.builder()
             .queueStatus("failed")
             .progressStatus("force_reclaimed")
             .now(now)
             .build();
         CrawlerDomainStateReducer.State state = reducer.reduce(in);
-        assertEquals("ready", state.status());
-        assertEquals("recrawl", state.nextAction());
+        assertEquals("failed", state.status());
+        assertEquals("terminate_and_recrawl", state.nextAction());
     }
 
     @Test
-    void forceReclaimedProgressClearsStaleTimedOutQueue() {
+    void forceReclaimedProgressDoesNotClearTimedOutQueue() {
         CrawlerDomainStateReducer.Input in = CrawlerDomainStateReducer.Input.builder()
             .queueStatus("timed_out")
             .progressStatus("force_reclaimed")
             .now(now)
             .build();
         CrawlerDomainStateReducer.State state = reducer.reduce(in);
-        assertEquals("ready", state.status());
-        assertEquals("recrawl", state.nextAction());
+        assertEquals("timed_out", state.status());
+        assertEquals("terminate_and_recrawl", state.nextAction());
     }
 
     @Test
@@ -87,6 +87,20 @@ class CrawlerDomainStateReducerTest {
         assertEquals("queued", state.status());
         assertEquals("cancel_queued", state.nextAction());
         assertEquals("域 bosses", state.blockerLabel());
+    }
+
+    @Test
+    void blockedCooldownWithBlockerStaysQueuedAndKeepsBlocker() {
+        CrawlerDomainStateReducer.Input in = CrawlerDomainStateReducer.Input.builder()
+            .queueStatus("blocked_cooldown")
+            .blockedByDomain("town_npc_maintenance")
+            .blockedByActionId("domain-source-town-npc-maintenance")
+            .now(now)
+            .build();
+        CrawlerDomainStateReducer.State state = reducer.reduce(in);
+        assertEquals("queued", state.status());
+        assertEquals("cancel_queued", state.nextAction());
+        assertEquals("域 town_npc_maintenance", state.blockerLabel());
     }
 
     @Test
@@ -141,10 +155,10 @@ class CrawlerDomainStateReducerTest {
             CrawlerDomainStateReducer.Input.builder().queueStatus("error").now(now).build()).status());
         assertEquals("timed_out", reducer.reduce(
             CrawlerDomainStateReducer.Input.builder().queueStatus("timeout").now(now).build()).status());
-        // locked / blocked_cooldown → blocked（经由 queue blocked 分支）
+        // locked → blocked；blocked_cooldown 是已入队等待态
         assertEquals("blocked", reducer.reduce(
             CrawlerDomainStateReducer.Input.builder().queueStatus("locked").now(now).build()).status());
-        assertEquals("blocked", reducer.reduce(
+        assertEquals("queued", reducer.reduce(
             CrawlerDomainStateReducer.Input.builder().queueStatus("blocked_cooldown").now(now).build()).status());
     }
 

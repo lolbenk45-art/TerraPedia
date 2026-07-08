@@ -54,7 +54,8 @@
         <div class="settings-card">
           <label>
             <span>启用自动派发</span>
-            <input type="checkbox" :checked="autoDispatchForm?.enabled" @change="updateEnabled" />
+            <span class="settings-card__state">{{ autoDispatchStateLabel }}</span>
+            <input type="checkbox" :checked="autoDispatchForm?.enabled === true" @change="updateEnabled" />
           </label>
           <label>
             <span>扫描间隔</span>
@@ -62,7 +63,8 @@
               type="number"
               min="5"
               step="5"
-              :value="autoDispatchForm?.sweepIntervalMinutes || 60"
+              placeholder="未返回"
+              :value="autoDispatchIntervalValue"
               @change="updateInterval"
             />
           </label>
@@ -77,6 +79,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Files, Save, ShieldAlert, SlidersHorizontal, X } from 'lucide-vue-next'
 
 const props = defineProps<{
@@ -95,6 +98,17 @@ const emit = defineEmits<{
   'save-auto-dispatch': []
 }>()
 
+const autoDispatchStateLabel = computed(() => {
+  if (props.autoDispatchForm?.enabled === true) return '已开启'
+  if (props.autoDispatchForm?.enabled === false) return '已关闭'
+  return '未返回'
+})
+
+const autoDispatchIntervalValue = computed(() => {
+  const value = Number(props.autoDispatchForm?.sweepIntervalMinutes)
+  return Number.isFinite(value) && value > 0 ? value : ''
+})
+
 function updateEnabled(event: Event) {
   emit('update-auto-dispatch', {
     ...props.autoDispatchForm,
@@ -103,10 +117,11 @@ function updateEnabled(event: Event) {
 }
 
 function updateInterval(event: Event) {
-  const value = Number((event.target as HTMLInputElement | null)?.value)
+  const raw = String((event.target as HTMLInputElement | null)?.value || '').trim()
+  const value = Number(raw)
   emit('update-auto-dispatch', {
     ...props.autoDispatchForm,
-    sweepIntervalMinutes: Number.isFinite(value) && value > 0 ? value : 60,
+    sweepIntervalMinutes: raw && Number.isFinite(value) && value > 0 ? value : undefined,
   })
 }
 </script>
@@ -259,6 +274,14 @@ function updateInterval(event: Event) {
   border-radius: var(--radius-sm);
   background: var(--color-surface-2);
   padding: 8px 10px;
+}
+
+.settings-card__state {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .settings-card input[type='number'] {

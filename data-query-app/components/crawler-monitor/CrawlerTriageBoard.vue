@@ -74,6 +74,10 @@
               <dd :title="row.heartbeatAt || '未记录'">{{ row.heartbeatAt || '未记录' }}</dd>
             </div>
             <div>
+              <dt>任务模式</dt>
+              <dd :title="row.taskLabel || '未记录'">{{ row.taskLabel || '未记录' }}</dd>
+            </div>
+            <div>
               <dt>下一步</dt>
               <dd :title="row.nextActionLabel || '查看详情'">{{ row.nextActionLabel || '查看详情' }}</dd>
             </div>
@@ -204,6 +208,7 @@
             <span class="status-pill" :class="row.triageStatus">{{ row.flowLabel || row.diagnosisTitle || row.statusLabel || '未知状态' }}</span>
           </header>
           <p :title="row.flowDetail || row.rankReason || row.reason || '暂无补充'">{{ row.flowDetail || row.rankReason || row.reason || '暂无补充' }}</p>
+          <small class="domain-tile__mode" :title="row.taskLabel || '未配置'">动作模式：{{ row.taskLabel || '未配置' }}</small>
           <div class="tile-progress">
             <span :style="{ width: progressWidth(row.progressLabel) }"></span>
           </div>
@@ -236,7 +241,7 @@
               <th>基础域</th>
               <th>状态</th>
               <th>新鲜度</th>
-              <th>当前任务</th>
+              <th>动作模式</th>
               <th>最近活动</th>
               <th>下一步</th>
               <th>操作</th>
@@ -247,7 +252,7 @@
               <td><strong>{{ row.label || row.domain }}</strong><small>{{ row.domain || '未知域' }}</small></td>
               <td><span class="status-pill" :class="row.triageStatus">{{ row.diagnosisTitle || row.statusLabel || '未知状态' }}</span></td>
               <td>{{ row.sourceSummary || '未记录' }}</td>
-              <td>{{ row.queueSummary || '无任务' }}</td>
+              <td><strong>{{ row.taskLabel || '未配置' }}</strong><small>{{ row.queueSummary || '无队列记录' }}</small></td>
               <td>{{ row.heartbeatAt || '未记录' }}</td>
               <td>{{ row.nextActionLabel || '查看详情' }}</td>
               <td>
@@ -684,6 +689,7 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 .attention-card p,
 .attention-card dt,
 .domain-tile p,
+.domain-tile__mode,
 .domain-tile footer small {
   color: var(--color-text-secondary);
 }
@@ -704,7 +710,7 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 
 .attention-card dl {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   margin: 0;
 }
@@ -731,6 +737,15 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   gap: 8px;
   flex-wrap: wrap;
   margin-top: 12px;
+}
+
+.domain-tile__mode {
+  display: block;
+  min-width: 0;
+  margin: -2px 0 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .attention-empty {

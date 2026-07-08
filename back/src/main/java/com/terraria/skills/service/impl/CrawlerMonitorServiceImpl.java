@@ -755,10 +755,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
         if ("forceReclaim".equals(controlAction)) {
             Optional<WikiMonitorQueueItem> reclaimQueueItem = controlQueueItem(request);
-            WikiMonitorRule reclaimRule = reclaimQueueItem
-                .map(item -> resolveWikiMonitorControlRuleFromQueueItem(request, item))
-                .orElseGet(() -> resolveWikiMonitorControlRule(request));
-            return reclaimDomain(repoRoot, reclaimRule, "管理员强制回收占用", reclaimQueueItem.orElse(null));
+            ForceReclaimTarget reclaimTarget = resolveForceReclaimTarget(request, reclaimQueueItem);
+            return reclaimDomain(repoRoot, reclaimTarget.rule(), "管理员强制回收占用", reclaimTarget.queueItem());
         }
         if (isDomainSmokeControl(request)) {
             return controlWikiMonitorDomainSmoke(repoRoot, request);
@@ -1202,6 +1200,13 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (progressPath == null || progressPath.isBlank()) {
             return;
         }
+        writeReclaimTerminalPayload(repoRoot, progressPath, rule, reason, now);
+        for (String siblingPath : reclaimRuntimeSiblingPaths(progressPath)) {
+            writeReclaimTerminalPayload(repoRoot, siblingPath, rule, reason, now);
+        }
+    }
+
+    private void writeReclaimTerminalPayload(Path repoRoot, String progressPath, WikiMonitorRule rule, String reason, Instant now) {
         Path path = repoRoot.resolve(progressPath).normalize();
         ReadResult current = readJsonMap(path);
         LinkedHashMap<String, Object> state = current.readable()
@@ -1217,6 +1222,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         state.put("completedAt", now.toString());
         state.put("generatedAt", now.toString());
         writeJsonFile(path, state);
+    }
+
+    private List<String> reclaimRuntimeSiblingPaths(String progressPath) {
+        if (progressPath == null || !progressPath.endsWith(".child-status.json")) {
+            return List.of();
+        }
+        String prefix = progressPath.substring(0, progressPath.length() - ".child-status.json".length());
+        return List.of(prefix + ".heartbeat.json", prefix + ".snapshot.json");
     }
 
     private String reclaimProgressPath(WikiMonitorRule rule, WikiMonitorQueueItem queueItem, DispatchPaths activePaths) {
@@ -2379,6 +2392,66 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private Optional<WikiMonitorQueueItem> controlQueueItem(CrawlerMonitorDispatchRequestDTO request) {
         String queueId = trimToNull(request == null ? null : request.getQueueId());
         return queueId == null ? Optional.empty() : queueRepository.findItem(queueId);
+    }
+
+    private ForceReclaimTarget resolveForceReclaimTarget(CrawlerMonitorDispatchRequestDTO request, Optional<WikiMonitorQueueItem> requestedItem) {
+        if (requestedItem.isEmpty()) {
+            return new ForceReclaimTarget(resolveWikiMonitorControlRule(request), null);
+        }
+        WikiMonitorQueueItem item = requestedItem.get();
+        Optional<WikiMonitorQueueItem> blockerItem = forceReclaimBlockerQueueItem(item);
+        if (blockerItem.isPresent()) {
+            WikiMonitorQueueItem blocker = blockerItem.get();
+            return new ForceReclaimTarget(resolveWikiMonitorControlRuleFromQueueItem(request, blocker), blocker);
+        }
+        Optional<WikiMonitorRule> blockerRule = forceReclaimBlockerRule(item);
+        if (blockerRule.isPresent()) {
+            return new ForceReclaimTarget(blockerRule.get(), null);
+        }
+        return new ForceReclaimTarget(resolveWikiMonitorControlRuleFromQueueItem(request, item), item);
+    }
+
+    private Optional<WikiMonitorQueueItem> forceReclaimBlockerQueueItem(WikiMonitorQueueItem item) {
+        if (item == null || !item.isWaiting()) {
+            return Optional.empty();
+        }
+        String blockedByDispatchId = trimToNull(item.getBlockedByDispatchId());
+        if (blockedByDispatchId != null) {
+            Optional<WikiMonitorQueueItem> blocker = queueRepository.findByDispatchId(blockedByDispatchId)
+                .filter(candidate -> !candidate.isTerminal());
+            if (blocker.isPresent()) {
+                return blocker;
+            }
+        }
+        String blockedByDomain = trimToNull(item.getBlockedByDomain());
+        String blockedByActionId = trimToNull(item.getBlockedByActionId());
+        if (blockedByDomain == null && blockedByActionId == null) {
+            return Optional.empty();
+        }
+        return queueRepository.listItems().stream()
+            .filter(candidate -> !candidate.isTerminal())
+            .filter(candidate -> !candidate.isWaiting())
+            .filter(candidate -> blockedByDomain == null || blockedByDomain.equals(candidate.getDomain()))
+            .filter(candidate -> blockedByActionId == null || blockedByActionId.equals(candidate.getActionId()))
+            .findFirst();
+    }
+
+    private Optional<WikiMonitorRule> forceReclaimBlockerRule(WikiMonitorQueueItem item) {
+        if (item == null || !item.isWaiting()) {
+            return Optional.empty();
+        }
+        String blockedByDomain = trimToNull(item.getBlockedByDomain());
+        String blockedByActionId = trimToNull(item.getBlockedByActionId());
+        if (blockedByActionId == null) {
+            return Optional.empty();
+        }
+        if (blockedByDomain != null) {
+            return Optional.ofNullable(findWikiMonitorRule(blockedByDomain, blockedByActionId));
+        }
+        List<WikiMonitorRule> matches = WIKI_MONITOR_RULES.stream()
+            .filter(rule -> rule.actionId().equals(blockedByActionId))
+            .toList();
+        return matches.size() == 1 ? Optional.of(matches.get(0)) : Optional.empty();
     }
 
     private WikiMonitorRule resolveWikiMonitorControlRuleFromQueueItem(CrawlerMonitorDispatchRequestDTO request, WikiMonitorQueueItem item) {
@@ -6081,6 +6154,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     record QueueBlocker(String blockedByDispatchId, String blockedByDomain, String blockedByActionId) {
         static final QueueBlocker EMPTY = new QueueBlocker(null, null, null);
     }
+
+    record ForceReclaimTarget(WikiMonitorRule rule, WikiMonitorQueueItem queueItem) {}
 
     record ActiveDispatchProcess(String dispatchId, String domain, String actionId, Process process, DispatchPaths paths) {}
 

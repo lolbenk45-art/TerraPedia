@@ -675,9 +675,11 @@ function withGateStateLock(filePath, work, {
   while (true) {
     try {
       fs.mkdirSync(lockPath);
+      writeGateStateLockOwner(lockPath);
       break;
     } catch (error) {
       if (error?.code !== 'EEXIST') {
+        fs.rmSync(lockPath, { recursive: true, force: true });
         throw error;
       }
       recoverStaleGateStateLock(lockPath, staleMs);
@@ -695,6 +697,20 @@ function withGateStateLock(filePath, work, {
   }
 }
 
+function writeGateStateLockOwner(lockPath) {
+  try {
+    fs.writeFileSync(path.join(lockPath, 'owner.json'), `${JSON.stringify({
+      pid: process.pid,
+      ppid: process.ppid,
+      hostname: os.hostname(),
+      createdAt: new Date().toISOString()
+    }, null, 2)}\n`, 'utf8');
+  } catch (error) {
+    fs.rmSync(lockPath, { recursive: true, force: true });
+    throw error;
+  }
+}
+
 function recoverStaleGateStateLock(lockPath, staleMs) {
   let stats;
   try {
@@ -708,9 +724,35 @@ function recoverStaleGateStateLock(lockPath, staleMs) {
   if (!stats.isDirectory()) {
     return;
   }
+  const owner = readGateStateLockOwner(lockPath);
+  if (owner?.pid != null && (owner.hostname == null || owner.hostname === os.hostname()) && !isProcessAlive(owner.pid)) {
+    fs.rmSync(lockPath, { recursive: true, force: true });
+    return;
+  }
   const lockAgeMs = Date.now() - stats.mtimeMs;
   if (Number.isFinite(lockAgeMs) && lockAgeMs > staleMs) {
     fs.rmSync(lockPath, { recursive: true, force: true });
+  }
+}
+
+function readGateStateLockOwner(lockPath) {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(path.join(lockPath, 'owner.json'), 'utf8'));
+    return {
+      hostname: typeof parsed.hostname === 'string' ? parsed.hostname : null,
+      pid: Number.isInteger(parsed.pid) && parsed.pid > 0 ? parsed.pid : null
+    };
+  } catch {
+    return null;
+  }
+}
+
+function isProcessAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error?.code === 'EPERM';
   }
 }
 

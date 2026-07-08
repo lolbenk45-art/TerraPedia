@@ -169,6 +169,46 @@ function queueBlockerText(row) {
   return normalize(row?.blockerLabel || row?.sourceDomain?.state?.blockerLabel || row?.queueItem?.blockedByDomain)
 }
 
+function rowActionId(row) {
+  return normalize(row?.sourceDomain?.recommendedActionId || row?.recommendedActionId || row?.actionId)
+}
+
+function actionModeLabel(row) {
+  const actionId = rowActionId(row)
+  if (actionId === 'wiki-items-refresh') return '物品模块检查并同步'
+  if (actionId === 'item-pages-refresh') return '物品页面按需爬取'
+  if (actionId === 'wiki-npcs-refresh') return 'NPC 模块检查并同步'
+  if (actionId === 'wiki-projectiles-refresh') return '射弹模块检查并同步'
+  if (actionId === 'wiki-core-refresh') return 'Wiki 核心检查并同步'
+  if (actionId === 'recipe-reference-sync') return '配方关系同步'
+  if (actionId === 'biome-sync') return '群系同步'
+  return actionId
+}
+
+function startActionLabel(row) {
+  const actionId = rowActionId(row)
+  if (actionId === 'wiki-items-refresh') return '检查并同步物品模块'
+  if (actionId === 'item-pages-refresh') return '按需爬物品页'
+  if (actionId === 'wiki-core-refresh') return '检查并同步核心'
+  if (actionId === 'wiki-npcs-refresh') return '检查并同步 NPC'
+  if (actionId === 'wiki-projectiles-refresh') return '检查并同步射弹'
+  if (actionId === 'recipe-reference-sync') return '同步配方关系'
+  if (actionId === 'biome-sync') return '同步群系'
+  return '开始爬'
+}
+
+function actionExecutionLabel(row) {
+  const actionId = rowActionId(row)
+  if (actionId === 'wiki-items-refresh') return '先检查 Wiki 模块 revision；有变化才同步源，同时确保本地 normalized/items.wiki.json 存在'
+  if (actionId === 'wiki-core-refresh') return '先检查核心 Wiki 模块 revision；有变化才同步 items/NPC/射弹等模块源'
+  if (actionId === 'wiki-npcs-refresh') return '先检查 NPC 模块 revision；有变化才同步 NPC 模块源'
+  if (actionId === 'wiki-projectiles-refresh') return '先检查射弹模块 revision；有变化才同步射弹模块源'
+  if (actionId === 'item-pages-refresh') return '按 only-changed 和限量参数爬取物品详情页，不等同于物品模块同步'
+  if (actionId === 'recipe-reference-sync') return '读取物品 normalized 输出，刷新配方参考并构建关系包'
+  if (actionId === 'biome-sync') return '抓取群系页面族并生成群系源快照'
+  return actionId ? `执行 ${actionId}` : '未记录'
+}
+
 function flowLabel(row, status = rowStatus(row)) {
   if (status === 'running' || status === 'starting' || status === 'active') return '正在爬取'
   if (status === 'queued') return '排队等待'
@@ -187,7 +227,7 @@ function flowDetail(row, status = rowStatus(row)) {
   if (status === 'queued' && blocker) return `等待${blocker}释放锁`
   if (status === 'queued') return normalize(row?.queueSummary || row?.rankReason || '等待前序任务释放锁')
   if (status === 'running' || status === 'starting' || status === 'active') return normalize(row?.reason || row?.progressLabel || row?.rankReason || '观察进度和日志')
-  if (status === 'ready') return normalize(row?.nextActionLabel || '可以手动开始爬取')
+  if (status === 'ready') return normalize(row?.nextActionLabel || actionModeLabel(row) || '可以手动开始爬取')
   return normalize(row?.reason || row?.rankReason || row?.progressLabel || row?.nextActionLabel || '')
 }
 
@@ -199,8 +239,7 @@ export function buildDomainOperationModel(row) {
   let primaryAction = null
 
   if (primaryQueueStatus === 'queued' || primaryQueueStatus === 'blocked_cooldown') {
-    primaryAction = action('force-reclaim', '强制启动', 'primary', 'play')
-    appendAction(secondaryActions, action('cancel', '取消排队', 'danger', 'circle-stop'))
+    primaryAction = action('cancel', '取消排队', 'secondary', 'circle-stop')
   } else if (RESUMABLE_STATUSES.has(primaryQueueStatus)) {
     primaryAction = action('resume', '继续', 'primary', 'play')
     appendAction(secondaryActions, action('cancel', '终止', 'danger', 'circle-stop'))
@@ -214,7 +253,7 @@ export function buildDomainOperationModel(row) {
   } else if (canContinueDomainOperation(row, status)) {
     primaryAction = action('continue-crawl', '接着爬', 'primary', 'play')
   } else if (canStartDomainOperation(row)) {
-    primaryAction = action('start', '开始爬', 'primary', 'play')
+    primaryAction = action('start', startActionLabel(row), 'primary', 'play')
   }
 
   if (FORCE_RECLAIM_STATUSES.has(status) && primaryAction?.action !== 'force-reclaim') {
@@ -247,6 +286,7 @@ function decorateDomainRow(row) {
     triageStatus: status,
     flowLabel: flowLabel(row, status),
     flowDetail: flowDetail(row, status),
+    taskLabel: actionModeLabel(row),
     needsAttention: isAttentionRow(row),
     isRunning: isRunningRow(row),
     isIdle: isIdleRow(row),
@@ -428,7 +468,7 @@ export function buildTriageWorkbench({
   maxAttentionCards = 4,
   tableFilter = 'all',
   search = '',
-  autoDispatchEnabled = false,
+  autoDispatchEnabled = null,
   recentUpdatedCount = 0,
   now = new Date().toISOString(),
 } = {}) {
@@ -444,6 +484,7 @@ export function buildTriageWorkbench({
   const focusRows = focusMode === 'attention' ? attentionRows : rows
   const focusCards = focusMode === 'attention' ? attentionCards : []
   const searchText = lower(search)
+  const autoDispatchState = autoDispatchDisplay(autoDispatchEnabled)
   const tableRows = rows
     .filter((row) => matchesFilter(row, tableFilter))
     .filter((row) => !searchText || row.searchText.includes(searchText))
@@ -453,14 +494,14 @@ export function buildTriageWorkbench({
     statusStrip: {
       tone: attentionRows.length ? 'danger' : runningRows.length ? 'info' : 'success',
       title: `${attentionRows.length} 个域需要处理 · ${runningRows.length} 正在爬`,
-      subtitle: `${rows.length} 个基础域 · 自动派发${autoDispatchEnabled ? '开启' : '关闭'}`,
+      subtitle: `${rows.length} 个基础域 · 自动派发${autoDispatchState.subtitle}`,
     },
     metrics: [
       metric('domains', '基础域', rows.length, '纳入自动监控的基础域', 'info', { kind: 'domains', filter: 'all' }),
       metric('running', '正在爬取', runningRows.length, '当前有心跳或队列占用', runningRows.length ? 'info' : 'muted', { kind: 'domains', filter: 'running' }),
       metric('attention', '需要处理', attentionRows.length, attentionRows.length ? '优先处理上方问题域' : '暂无异常', attentionRows.length ? 'danger' : 'success', { kind: 'attention', filter: 'attention' }),
       metric('updated', '今日已更新', recentUpdatedCount, '来自最近报告/历史记录', recentUpdatedCount ? 'success' : 'muted', { kind: 'activity' }),
-      metric('dispatch', '自动派发', autoDispatchEnabled ? '开' : '关', autoDispatchEnabled ? '按设置自动扫描' : '仅手动派发', autoDispatchEnabled ? 'success' : 'muted', { kind: 'system' }),
+      metric('dispatch', '自动派发', autoDispatchState.value, autoDispatchState.note, autoDispatchState.tone, { kind: 'system' }),
     ],
     attentionRows,
     attentionCards,
@@ -484,6 +525,16 @@ export function buildTriageWorkbench({
     search,
     tableVirtualized: rows.length >= 50,
   }
+}
+
+function autoDispatchDisplay(value) {
+  if (value === true) {
+    return { subtitle: '开启', value: '开', note: '按设置自动扫描', tone: 'success' }
+  }
+  if (value === false) {
+    return { subtitle: '关闭', value: '关', note: '仅手动派发', tone: 'muted' }
+  }
+  return { subtitle: '未返回配置', value: '未返回', note: '后端未返回自动派发配置', tone: 'warning' }
 }
 
 function sourceKind(row, fallback) {
@@ -666,13 +717,24 @@ function isPreviewableArtifactPath(path) {
   return normalized.startsWith('data/generated/') && normalized.endsWith('.json')
 }
 
+function hasExplicitFileState(file) {
+  return Object.hasOwn(file || {}, 'found')
+    || Object.hasOwn(file || {}, 'readable')
+    || Object.hasOwn(file || {}, 'sizeBytes')
+}
+
 function decorateArtifact(file) {
   const path = normalize(file?.path)
   const label = normalize(file?.label) || artifactLabel(path)
   const kind = artifactKind(label, path)
   const missing = file?.found === false
   const unreadable = file?.readable === false || Boolean(file?.errorMessage)
-  const previewable = kind !== 'lock' && !missing && !unreadable && isPreviewableArtifactPath(path)
+  const explicitlyRecorded = hasExplicitFileState(file)
+  const previewable = kind !== 'lock'
+    && !missing
+    && !unreadable
+    && (kind !== 'log' || explicitlyRecorded)
+    && isPreviewableArtifactPath(path)
   const template = isPathTemplate(path)
   const metadata = {
     report: ['运行报告', '任务结束报告或诊断结果'],
@@ -686,15 +748,31 @@ function decorateArtifact(file) {
     label,
     path,
     kind,
+    kindLabel: metadata[0],
+    icon: artifactIcon(kind),
     title: metadata[0],
     description: metadata[1],
     statusLabel: artifactStatusLabel({ template, missing, unreadable, kind, previewable }),
+    statusTone: artifactStatusTone({ template, missing, unreadable, kind, previewable }),
+    timeLabel: artifactTimeLabel(file),
     previewable,
     found: file?.found,
     readable: file?.readable,
     errorMessage: normalize(file?.errorMessage),
     sourceLabel: normalize(file?.sourceLabel) || '任务历史',
+    sizeBytes: Number.isFinite(Number(file?.sizeBytes)) ? Number(file.sizeBytes) : null,
   }
+}
+
+function artifactIcon(kind) {
+  return {
+    report: 'file-json',
+    progress: 'activity',
+    output: 'database',
+    log: 'scroll-text',
+    lock: 'lock-keyhole',
+    artifact: 'file-text',
+  }[kind] || 'file-text'
 }
 
 function artifactStatusLabel({ template, missing, unreadable, kind, previewable }) {
@@ -706,13 +784,39 @@ function artifactStatusLabel({ template, missing, unreadable, kind, previewable 
   return '路径记录'
 }
 
+function artifactStatusTone({ template, missing, unreadable, kind, previewable }) {
+  if (missing || unreadable) return 'danger'
+  if (template || kind === 'lock') return 'warning'
+  if (previewable) return 'success'
+  return 'neutral'
+}
+
+function artifactTimeLabel(file) {
+  const fileTime = displayTime(file?.modifiedAt || file?.mtime || file?.lastModifiedAt)
+  if (fileTime) return `文件更新 ${fileTime}`
+  const recordTime = displayTime(file?.updatedAt || file?.generatedAt)
+  if (recordTime) return `记录更新 ${recordTime}`
+  return normalize(file?.timeLabel)
+}
+
 function historyArtifacts(item) {
   return [
-    item.reportPath ? { label: '报告', path: item.reportPath, sourceLabel: '任务历史' } : null,
-    item.progressPath ? { label: '进度', path: item.progressPath, sourceLabel: '任务历史' } : null,
     item.outputPath ? { label: '输出', path: item.outputPath, sourceLabel: '任务历史' } : null,
-    item.logPath ? { label: '日志', path: item.logPath, sourceLabel: '任务历史' } : null,
   ].filter(Boolean).map(decorateArtifact)
+}
+
+function shouldShowCrawlerOutput(file) {
+  if (!file || file.kind !== 'output') return false
+  if (file.found === false || file.readable === false || file.errorMessage) return false
+  if (isPathTemplate(file.path)) return false
+  return file.previewable
+}
+
+function shouldShowLogFile(file) {
+  if (!file || file.kind !== 'log') return false
+  if (file.found !== true || file.readable === false || file.errorMessage) return false
+  if (Number(file.sizeBytes) <= 0) return false
+  return file.previewable
 }
 
 function decorateQueueItem(item) {
@@ -725,9 +829,49 @@ function decorateQueueItem(item) {
     ...item,
     title: queueItemTitle(item),
     statusLabel: crawlerStatusDisplayLabel(item?.status),
+    statusTone: queueStatusTone(item?.status),
+    timeLabel: queueTimeLabel(item),
     meta: meta || '无任务编号',
     detail: blocker ? `等待 ${blockerDisplayLabel(blocker)} 释放` : normalizeDisplayLabel(item?.message || item?.lane, '标准派发记录'),
   }
+}
+
+function queueStatusTone(status) {
+  const normalized = lower(status)
+  if (['failed', 'error', 'timed_out', 'timeout', 'stalled', 'blocked'].includes(normalized)) return 'danger'
+  if (['completed', 'success', 'healthy'].includes(normalized)) return 'success'
+  if (['running', 'starting', 'active'].includes(normalized)) return 'info'
+  if (['queued', 'blocked_cooldown', 'paused'].includes(normalized)) return 'warning'
+  return 'neutral'
+}
+
+function queueTimeLabel(item) {
+  const status = lower(item?.status)
+  const candidates = [
+    ['completed', '完成', item?.completedAt],
+    ['failed', '失败', item?.completedAt],
+    ['timed_out', '超时', item?.completedAt],
+    ['cancelled', '取消', item?.completedAt],
+    ['blocked_cooldown', '冷却至', item?.cooldownUntil],
+    ['blocked', '阻塞', item?.blockedSince],
+    ['queued', '请求', item?.requestedAt],
+    ['starting', '启动', item?.startedAt || item?.processStartedAt],
+    ['running', '启动', item?.startedAt || item?.processStartedAt],
+    ['paused', '启动', item?.startedAt || item?.processStartedAt],
+  ]
+  for (const [wanted, label, value] of candidates) {
+    if (status !== wanted) continue
+    const time = displayTime(value)
+    if (time) return `${label} ${time}`
+  }
+  const fallback = [
+    ['完成', item?.completedAt],
+    ['启动', item?.startedAt || item?.processStartedAt],
+    ['阻塞', item?.blockedSince],
+    ['请求', item?.requestedAt],
+  ].find(([, value]) => displayTime(value))
+  if (!fallback) return ''
+  return `${fallback[0]} ${displayTime(fallback[1])}`
 }
 
 function queueItemTitle(item) {
@@ -770,12 +914,14 @@ export function buildDomainDetailViewModel({
   if (!row) return null
   const domain = row.domain || row.actionId || row.label
   const domainDisplayName = wikiDomainChineseName({ domain: normalize(row.domain), label: normalize(row.label) })
+  const actionId = rowActionId(row)
   const taskHistory = mergeDomainTaskHistory({ domain, executionRows, progressRows, queueRows })
     .map((item) => ({ ...item, files: historyArtifacts(item) }))
-  const artifacts = uniqueArtifacts([
+  const decoratedFiles = uniqueArtifacts([
     ...(Array.isArray(row.files) ? row.files.map((file) => ({ ...file, sourceLabel: '域状态' })) : []),
     ...taskHistory.flatMap((item) => item.files),
   ])
+  const artifacts = decoratedFiles.filter(shouldShowCrawlerOutput)
   const queueItems = queueRows.filter((item) => sameDomain(item, domain)).map(decorateQueueItem)
   return {
     key: normalize(row.domain || row.actionId || row.label),
@@ -797,15 +943,17 @@ export function buildDomainDetailViewModel({
       ['进度', normalize(row.progressLabel || '--')],
       ['数据新鲜度', normalize(row.sourceSummary || '未记录')],
       ['最近心跳', displayTime(row.heartbeatAt) || '未记录'],
-      ['被谁占用', normalize(row.blockerLabel || row.ownerLabel || '无')],
+      ['当前占用', normalize(row.blockerLabel || row.ownerLabel || '无当前占用')],
+      ['动作模式', actionModeLabel(row) || '未记录'],
+      ['动作ID', actionId || '未记录'],
+      ['执行逻辑', actionExecutionLabel(row)],
       ['任务记录', normalize(row.queueSummary) || (row.queueId || row.dispatchId ? '队列记录' : '无队列')],
       ['上次运行结果', normalize(row.reason || row.rankReason || '暂无')],
-      ['下次自动扫描', displayTime(row.nextScanAt) || '按系统设置'],
     ].map(([label, value]) => ({ label, value })),
     taskHistory,
     queueItems,
     artifacts,
-    logFiles: artifacts.filter((file) => /\.log$/i.test(file.path) || file.label === '日志'),
+    logFiles: decoratedFiles.filter(shouldShowLogFile),
   }
 }
 

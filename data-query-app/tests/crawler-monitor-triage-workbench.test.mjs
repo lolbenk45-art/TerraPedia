@@ -101,6 +101,18 @@ test('triage workbench caps attention cards and keeps overflow as chips', () => 
   assert.equal(view.statusStrip.title, '5 个域需要处理 · 1 正在爬')
 })
 
+test('triage workbench does not show missing auto dispatch config as disabled', () => {
+  const view = buildTriageWorkbench({
+    domainRows: [],
+    now: '2026-07-04T01:00:00Z',
+  })
+  const dispatchMetric = view.metrics.find((metric) => metric.key === 'dispatch')
+
+  assert.equal(view.statusStrip.subtitle, '0 个基础域 · 自动派发未返回配置')
+  assert.equal(dispatchMetric.value, '未返回')
+  assert.equal(dispatchMetric.note, '后端未返回自动派发配置')
+})
+
 test('triage workbench shows operation progress in the top section when no domain needs attention', () => {
   const healthyRows = [
     {
@@ -141,7 +153,8 @@ test('triage workbench shows operation progress in the top section when no domai
   assert.deepEqual(view.focusRows.map((row) => row.domain), view.allRows.map((row) => row.domain))
   assert.deepEqual(view.focusCards, [])
   assert.deepEqual(view.operationProgressRows.map((row) => row.domain), ['projectiles', 'items'])
-  assert.equal(view.focusRows.find((row) => row.domain === 'items').primaryAction.label, '开始爬')
+  assert.equal(view.focusRows.find((row) => row.domain === 'items').primaryAction.label, '检查并同步核心')
+  assert.equal(view.focusRows.find((row) => row.domain === 'items').taskLabel, 'Wiki 核心检查并同步')
   assert.equal(view.focusRows.find((row) => row.domain === 'projectiles').primaryAction.label, '暂停')
 })
 
@@ -202,8 +215,8 @@ test('triage workbench uses a compact operations progress strip instead of all d
     view.operationProgressRows.map((row) => [row.domain, row.status, row.primaryAction?.label]),
     [
       ['projectiles', 'running', '暂停'],
-      ['npcs', 'queued', '强制启动'],
-      ['items', 'healthy', '开始爬'],
+      ['npcs', 'queued', '取消排队'],
+      ['items', 'healthy', '检查并同步物品模块'],
     ]
   )
   assert.equal(view.operationProgressSummary.runningCount, 1)
@@ -455,12 +468,12 @@ test('triage workbench exposes direct domain operation buttons', () => {
   )
 
   assert.equal(actionByDomain.items, '开始爬')
-  assert.equal(actionByDomain.bosses, '强制启动')
+  assert.equal(actionByDomain.bosses, '取消排队')
   assert.equal(actionByDomain.npcs, '暂停')
   assert.equal(actionByDomain.buffs, '继续')
   assert.deepEqual(
     view.allRows.find((row) => row.domain === 'bosses').secondaryActions.map((action) => action.label),
-    ['取消排队']
+    []
   )
   assert.deepEqual(
     view.allRows.find((row) => row.domain === 'npcs').secondaryActions.map((action) => action.label),
@@ -682,7 +695,7 @@ test('domain operation model allows manual start when a domain only defines cool
     },
   }).primaryAction, {
     action: 'start',
-    label: '开始爬',
+    label: '检查并同步核心',
     tone: 'primary',
     icon: 'play',
   })
@@ -747,7 +760,8 @@ test('domain detail view model merges task history and artifacts for a single do
       pid: 1234,
       files: [
         { label: '报告', path: 'reports/bosses.json' },
-        { label: '日志', path: 'reports/bosses.log' },
+        { label: '日志', path: 'reports/bosses.log', found: true, readable: true, sizeBytes: 80 },
+        { label: '输出', path: 'data/generated/wiki-bosses.latest.json' },
       ],
     },
     executionRows: [
@@ -774,6 +788,8 @@ test('domain detail view model merges task history and artifacts for a single do
         domain: 'bosses',
         actionId: 'domain-source-bosses',
         status: 'failed',
+        requestedAt: '2026-07-04T00:00:00Z',
+        completedAt: '2026-07-04T00:30:00Z',
         logPath: 'reports/bosses.log',
       },
     ],
@@ -783,22 +799,24 @@ test('domain detail view model merges task history and artifacts for a single do
   assert.equal(detail.identity, 'Boss · 队列记录 · PID 1234')
   assert.equal(detail.taskHistory.length, 1)
   assert.equal(detail.taskHistory[0].sourceKinds.includes('queue'), true)
-  assert.deepEqual(detail.artifacts.map((file) => file.path), ['reports/bosses.json', 'reports/bosses.log'])
+  assert.deepEqual(detail.taskHistory[0].files.map((file) => file.path), [])
+  assert.deepEqual(detail.artifacts.map((file) => file.path), ['data/generated/wiki-bosses.latest.json'])
   assert.deepEqual(
-    detail.artifacts.map((file) => [file.title, file.statusLabel, file.previewable, file.sourceLabel]),
+    detail.artifacts.map((file) => [file.title, file.statusLabel, file.previewable, file.sourceLabel, file.icon, file.statusTone]),
     [
-      ['运行报告', '可预览', true, '域状态'],
-      ['运行日志', '可读取', true, '域状态'],
+      ['爬取数据', '可预览', true, '域状态', 'database', 'success'],
     ]
   )
-  assert.equal(detail.artifacts[0].description, '任务结束报告或诊断结果')
+  assert.equal(detail.artifacts[0].description, '爬虫产出的数据文件')
   assert.equal(detail.logFiles[0].title, '运行日志')
   assert.equal(detail.queueItems[0].title, 'Boss')
   assert.equal(detail.queueItems[0].statusLabel, '执行失败')
   assert.equal(detail.queueItems[0].meta, '队列记录')
+  assert.equal(detail.queueItems[0].timeLabel, '失败 07-04 08:30')
+  assert.equal(detail.queueItems[0].statusTone, 'danger')
 })
 
-test('domain detail marks volatile queue paths as recorded paths instead of guaranteed files', () => {
+test('domain detail keeps volatile lock and output templates out of crawler outputs', () => {
   const detail = buildDomainDetailViewModel({
     row: {
       domain: 'items',
@@ -822,18 +840,11 @@ test('domain detail marks volatile queue paths as recorded paths instead of guar
     ],
   })
 
-  assert.deepEqual(
-    detail.artifacts.map((file) => [file.title, file.statusLabel, file.previewable]),
-    [
-      ['运行锁', '可能已清理', false],
-      ['爬取数据', '路径模板', false],
-    ]
-  )
-  assert.equal(detail.artifacts[0].description, '调度锁文件，任务结束或清理后通常不存在')
-  assert.equal(detail.artifacts[1].description, '包含通配符的输出路径模板，不代表单个可打开文件')
+  assert.deepEqual(detail.artifacts, [])
+  assert.deepEqual(detail.logFiles, [])
 })
 
-test('domain detail does not mark missing unreadable or redis artifacts as previewable', () => {
+test('domain detail keeps missing reports, progress snapshots, and unreadable logs out of crawler outputs', () => {
   const detail = buildDomainDetailViewModel({
     row: {
       domain: 'bosses',
@@ -843,18 +854,37 @@ test('domain detail does not mark missing unreadable or redis artifacts as previ
         { label: '报告', path: 'reports/missing-bosses.json', found: false },
         { label: '日志', path: 'reports/crawler-monitor/bosses.log', readable: false },
         { label: '进度', path: 'redis://crawler-progress/bosses' },
+        { label: '输出', path: 'data/generated/wiki-bosses.latest.json' },
       ],
     },
   })
 
   assert.deepEqual(
-    detail.artifacts.map((file) => [file.title, file.statusLabel, file.previewable]),
+    detail.artifacts.map((file) => [file.title, file.statusLabel, file.previewable, file.icon, file.statusTone]),
     [
-      ['运行报告', '文件不存在', false],
-      ['运行日志', '不可读取', false],
-      ['进度快照', '路径记录', false],
+      ['爬取数据', '可预览', true, 'database', 'success'],
     ]
   )
+  assert.deepEqual(detail.logFiles, [])
+})
+
+test('domain detail log tab only shows logs verified as readable and non-empty', () => {
+  const detail = buildDomainDetailViewModel({
+    row: {
+      domain: 'bosses',
+      label: 'Bosses',
+      status: 'failed',
+      files: [
+        { label: '运行日志', path: 'reports/crawler-monitor/missing.log' },
+        { label: '运行日志', path: 'reports/crawler-monitor/empty.log', found: true, readable: true, sizeBytes: 0 },
+        { label: '运行日志', path: 'reports/crawler-monitor/bosses-current.txt', found: true, readable: true, sizeBytes: 42 },
+      ],
+    },
+  })
+
+  assert.equal(detail.logFiles.length, 1)
+  assert.equal(detail.logFiles[0].title, '运行日志')
+  assert.equal(detail.logFiles[0].path, 'reports/crawler-monitor/bosses-current.txt')
 })
 
 test('domain detail view model formats overview and history times in Shanghai timezone', () => {
@@ -888,9 +918,49 @@ test('domain detail view model formats overview and history times in Shanghai ti
 
   assert.equal(overview['最近心跳'], '07-05 21:12')
   assert.equal(overview['任务记录'], '标准派发 · 已完成 07-05 20:10')
+  assert.equal(Object.hasOwn(overview, '下次自动扫描'), false)
   assert.equal(detail.taskHistory.length, 1)
   assert.equal(detail.taskHistory[0].timeLabel, '完成 07-05 20:10')
   assert.equal(detail.taskHistory[0].reason, '已完成，退出码 0')
+  assert.equal(detail.queueItems[0].timeLabel, '完成 07-05 20:10')
+})
+
+test('domain detail exposes item module sync mode separately from item page crawl', () => {
+  const detail = buildDomainDetailViewModel({
+    row: {
+      domain: 'items',
+      label: 'Items',
+      status: 'ready',
+      sourceDomain: {
+        domain: 'items',
+        recommendedActionId: 'wiki-items-refresh',
+      },
+    },
+  })
+
+  const overview = Object.fromEntries(detail.overviewFields.map((field) => [field.label, field.value]))
+  assert.equal(overview['动作模式'], '物品模块检查并同步')
+  assert.equal(overview['动作ID'], 'wiki-items-refresh')
+})
+
+test('domain detail explains current occupancy and wiki check/sync action semantics', () => {
+  const detail = buildDomainDetailViewModel({
+    row: {
+      domain: 'items',
+      label: 'Items',
+      status: 'ready',
+      ownerLabel: '无当前占用',
+      sourceDomain: {
+        domain: 'items',
+        recommendedActionId: 'wiki-items-refresh',
+      },
+    },
+  })
+
+  const overview = Object.fromEntries(detail.overviewFields.map((field) => [field.label, field.value]))
+  assert.equal(overview['当前占用'], '无当前占用')
+  assert.match(overview['执行逻辑'], /检查.*变化.*同步/)
+  assert.equal(detail.diagnosis.nextActionLabel, '查看详情')
 })
 
 test('task history merges execution, progress, and queue rows by domain action', () => {

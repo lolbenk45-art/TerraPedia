@@ -19,7 +19,7 @@
       :log-content="domainLogContent"
       :log-loading="domainLogLoading"
       @close="closeDomainDetailDrawer"
-      @preview="openReportPreview"
+      @preview="(path) => openReportPreview(path, 'domain-drawer')"
       @load-log="loadDomainLog"
       @domain-action="handleDomainBoardAction"
     />
@@ -80,10 +80,22 @@
 
     <div
       class="report-drawer-backdrop"
-      :class="{ open: Boolean(selectedReportPath || reportPreview || reportPreviewError) }"
+      :class="{
+        open: reportPreviewOpen,
+        'report-drawer-backdrop--over-domain': reportPreviewOverDomainDrawer,
+      }"
       @click="closeReportPreview"
     ></div>
-    <aside class="report-drawer" :class="{ open: Boolean(selectedReportPath || reportPreview || reportPreviewError) }" role="dialog" aria-modal="true" aria-label="报告预览">
+    <aside
+      class="report-drawer"
+      :class="{
+        open: reportPreviewOpen,
+        'report-drawer--over-domain': reportPreviewOverDomainDrawer,
+      }"
+      role="dialog"
+      aria-modal="true"
+      aria-label="报告预览"
+    >
       <header>
         <div>
           <strong>{{ reportPreview?.name || selectedReportPath || '报告预览' }}</strong>
@@ -154,7 +166,7 @@ import {
   wikiHeartbeatSummary,
 } from '~/utils/crawlerMonitorDisplay.mjs'
 import { buildCrawlerUnifiedStatus } from '~/utils/crawlerMonitorUnifiedStatus.mjs'
-import { shouldOfferForceReclaim, buildDispatchControlPayload, buildResumeDispatchPayload } from './crawler-monitor.control.mjs'
+import { shouldOfferForceReclaim, buildDispatchControlPayload, buildResumeDispatchPayload, forceReclaimActionLabel } from './crawler-monitor.control.mjs'
 import { resolveDomainState } from './crawler-monitor.state.mjs'
 import ActivityDrawer from '~/components/crawler-monitor/ActivityDrawer.vue'
 import CrawlerTriageBoard from '~/components/crawler-monitor/CrawlerTriageBoard.vue'
@@ -191,14 +203,6 @@ type MonitorPanelMeta = {
   badge: string
   count: number | string
 }
-const FALLBACK_MONITOR_PANEL: MonitorPanelMeta = {
-  key: 'queue',
-  label: '队列和派发状态',
-  title: '队列和派发状态',
-  subtitle: '当前未结束项和已处理/异常项分开展示，运行中的任务始终在上方。',
-  badge: '运行 0 / 已处理 0',
-  count: 0,
-}
 
 const overview = ref<CrawlerMonitorOverview | null>(null)
 const loading = ref(false)
@@ -209,6 +213,7 @@ const selectedReportPath = ref<string | null>(null)
 const reportPreview = ref<CrawlerMonitorReportDetail | null>(null)
 const reportPreviewLoading = ref(false)
 const reportPreviewError = ref('')
+const reportPreviewLayer = ref<'page' | 'domain-drawer'>('page')
 const lastOverviewRefreshAt = ref<string | null>(null)
 const wikiDispatchLoading = ref('')
 const wikiControlLoading = ref('')
@@ -217,9 +222,7 @@ const queueControlLoading = ref('')
 const forceReclaimAllLoading = ref(false)
 const autoDispatchSaving = ref(false)
 const autoDispatchForm = reactive<CrawlerMonitorAutoDispatchSettings>({
-  enabled: false,
   mode: 'changed-only',
-  sweepIntervalMinutes: 60,
 })
 const hiddenNoiseKeys = ref<Set<string>>(new Set())
 const visibleQueueLogKeys = ref<Set<string>>(new Set())
@@ -237,6 +240,9 @@ let refreshTimer: ReturnType<typeof setInterval> | null = null
 const refreshFailureStreak = ref(0)
 const authRefreshHalted = ref(false)
 let panelSwitchTimer: ReturnType<typeof setTimeout> | null = null
+
+const reportPreviewOpen = computed(() => Boolean(selectedReportPath.value || reportPreview.value || reportPreviewError.value))
+const reportPreviewOverDomainDrawer = computed(() => reportPreviewOpen.value && domainDetailDrawerOpen.value && reportPreviewLayer.value === 'domain-drawer')
 
 async function fetchCrawlerMonitorOverview() {
   const response: any = await get('/admin/crawler-monitor/overview')
@@ -462,12 +468,15 @@ const dataQualityAttentionCount = computed(() =>
   dataQualitySignals.value.filter((signal) => ['danger', 'warning'].includes(String(signal.tone || ''))).length)
 const dispatchPlanRows = computed<any[]>(() => Array.isArray(wikiMonitor.value?.dispatchPlan || wikiMonitorWithPlanBFields.value.dispatchPlan) ? (wikiMonitor.value?.dispatchPlan || wikiMonitorWithPlanBFields.value.dispatchPlan) : [])
 const wikiDispatchModeLabel = computed(() => statusLabel(wikiMonitor.value?.dispatchMode || 'manual'))
-const wikiAutoDispatchLabel = computed(() => wikiMonitor.value?.autoDispatchEnabled ? '已开启' : '已关闭')
-const savedAutoDispatchEnabled = computed(() => Boolean(wikiMonitor.value?.autoDispatchSettings?.enabled ?? wikiMonitor.value?.autoDispatchEnabled))
-const savedAutoDispatchLabel = computed(() => savedAutoDispatchEnabled.value ? '已开启' : '已关闭')
+const savedAutoDispatchEnabled = computed<boolean | null>(() => {
+  const value = wikiMonitor.value?.autoDispatchSettings?.enabled ?? wikiMonitor.value?.autoDispatchEnabled
+  return typeof value === 'boolean' ? value : null
+})
+const wikiAutoDispatchLabel = computed(() => savedAutoDispatchEnabled.value === null ? '未返回配置' : savedAutoDispatchEnabled.value ? '已开启' : '已关闭')
+const savedAutoDispatchLabel = computed(() => wikiAutoDispatchLabel.value)
 const savedAutoDispatchIntervalMinutes = computed(() => {
   const settingsInterval = Number(wikiMonitor.value?.autoDispatchSettings?.sweepIntervalMinutes)
-  return Number.isFinite(settingsInterval) && settingsInterval > 0 ? settingsInterval : 60
+  return Number.isFinite(settingsInterval) && settingsInterval > 0 ? settingsInterval : null
 })
 const domainRuntimeSummaryRows = computed(() => wikiDomainRows.value
   .map((domain) => domainRuntimeSummaryRow(domain))
@@ -586,7 +595,7 @@ const v4StatusStrip = computed(() => {
   const subtitle = [
     `正式域 ${formatNumber(domainTableRows.value.length)} 个`,
     `队列 ${formatNumber(dispatchQueueRows.value.length)} 项`,
-    `自动派发${savedAutoDispatchEnabled.value ? '开启' : '关闭'}`,
+    `自动派发${savedAutoDispatchEnabled.value === null ? '未返回配置' : savedAutoDispatchEnabled.value ? '开启' : '关闭'}`,
     lastOverviewRefreshAt.value ? `刷新 ${formatDate(lastOverviewRefreshAt.value)}` : '暂无刷新',
   ].join(' · ')
   return {
@@ -688,7 +697,7 @@ const monitorPanels = computed<MonitorPanelMeta[]>(() => [
     count: dataQualityAttentionCount.value,
   },
 ])
-const activeMonitorPanelMeta = computed<MonitorPanelMeta>(() => monitorPanels.value.find((panel) => panel.key === activeMonitorPanel.value) || FALLBACK_MONITOR_PANEL)
+const activeMonitorPanelMeta = computed<MonitorPanelMeta>(() => monitorPanels.value.find((panel) => panel.key === activeMonitorPanel.value) || monitorPanels.value[0] as MonitorPanelMeta)
 
 function normalizeMonitorPanelKey(value?: string | null): MonitorPanelKey | null {
   const normalized = String(value || '').replace(/^#/, '').trim()
@@ -961,10 +970,14 @@ watch(domainTableRows, (rows) => {
   }
 }, { immediate: true })
 
-watch(() => wikiMonitor.value?.autoDispatchSettings, (settings) => {
-  autoDispatchForm.enabled = Boolean(settings?.enabled)
+watch(() => ({
+  settings: wikiMonitor.value?.autoDispatchSettings,
+  enabled: wikiMonitor.value?.autoDispatchEnabled,
+}), ({ settings, enabled }) => {
+  autoDispatchForm.enabled = typeof settings?.enabled === 'boolean' ? settings.enabled : typeof enabled === 'boolean' ? enabled : undefined
   autoDispatchForm.mode = settings?.mode || 'changed-only'
-  autoDispatchForm.sweepIntervalMinutes = Math.max(1, Number(settings?.sweepIntervalMinutes || 60))
+  const interval = Number(settings?.sweepIntervalMinutes)
+  autoDispatchForm.sweepIntervalMinutes = Number.isFinite(interval) && interval > 0 ? Math.max(1, interval) : undefined
 }, { immediate: true })
 
 onMounted(async () => {
@@ -1033,16 +1046,18 @@ async function loadOverview() {
 async function saveAutoDispatchSettings() {
   autoDispatchSaving.value = true
   try {
+    const interval = Number(autoDispatchForm.sweepIntervalMinutes)
     const payload = {
       enabled: Boolean(autoDispatchForm.enabled),
       mode: 'changed-only',
-      sweepIntervalMinutes: Math.max(1, Number(autoDispatchForm.sweepIntervalMinutes || 60)),
+      sweepIntervalMinutes: Number.isFinite(interval) && interval > 0 ? Math.max(1, interval) : 60,
     }
     const response: any = await put('/admin/crawler-monitor/auto-dispatch', payload)
     const saved = (response?.data ?? response) || payload
-    autoDispatchForm.enabled = Boolean(saved.enabled)
+    autoDispatchForm.enabled = typeof saved.enabled === 'boolean' ? saved.enabled : payload.enabled
     autoDispatchForm.mode = saved.mode || 'changed-only'
-    autoDispatchForm.sweepIntervalMinutes = Math.max(1, Number(saved.sweepIntervalMinutes || payload.sweepIntervalMinutes))
+    const savedInterval = Number(saved.sweepIntervalMinutes)
+    autoDispatchForm.sweepIntervalMinutes = Number.isFinite(savedInterval) && savedInterval > 0 ? Math.max(1, savedInterval) : payload.sweepIntervalMinutes
     showToast('自动派发设置已保存', 'success')
     await loadOverview()
   } catch (error: any) {
@@ -1092,8 +1107,9 @@ watch([domainDetailDrawerOpen, selectedDomainDetailViewModel], ([open, detail]) 
   void loadDomainLog(firstLogPath)
 })
 
-async function openReportPreview(path?: string | null) {
+async function openReportPreview(path?: string | null, layer: 'page' | 'domain-drawer' = 'page') {
   if (!isPreviewableReportPath(path) && !isPreviewableProgressPath(path) && !isPreviewableGeneratedJsonPath(path)) return
+  reportPreviewLayer.value = layer
   selectedReportPath.value = path || null
   reportPreviewLoading.value = true
   reportPreviewError.value = ''
@@ -1158,10 +1174,10 @@ function closeDomainDetailDrawer() {
 }
 
 function updateAutoDispatchDraft(settings: Record<string, any>) {
-  autoDispatchForm.enabled = Boolean(settings.enabled)
+  autoDispatchForm.enabled = typeof settings.enabled === 'boolean' ? settings.enabled : undefined
   autoDispatchForm.mode = settings.mode || autoDispatchForm.mode || 'changed-only'
   const interval = Number(settings.sweepIntervalMinutes)
-  autoDispatchForm.sweepIntervalMinutes = Number.isFinite(interval) && interval > 0 ? interval : 60
+  autoDispatchForm.sweepIntervalMinutes = Number.isFinite(interval) && interval > 0 ? interval : undefined
 }
 
 function handleDomainBoardAction(action: string, row: any) {
@@ -1772,12 +1788,6 @@ async function forceReclaimDomainTableRow(row: any) {
   } catch (error: any) {
     showToast(error?.data?.message || error?.message || `${actionLabel}失败`, 'error')
   }
-}
-
-function forceReclaimActionLabel(row: any) {
-  const status = queueItemStatus(row?.queueItem)
-  if (status === 'queued' || status === 'blocked_cooldown') return '强制启动'
-  return '强制释放占用并重试'
 }
 
 async function forceReclaimAllRunningDispatches() {
@@ -2487,6 +2497,7 @@ function closeReportPreview() {
   reportPreview.value = null
   reportPreviewError.value = ''
   reportPreviewLoading.value = false
+  reportPreviewLayer.value = 'page'
 }
 
 function isPreviewLoading(path?: string | null) {
@@ -3101,7 +3112,8 @@ function isPreviewableDomainLogPath(path?: string | null) {
   const normalized = String(path || '').replace(/\\/g, '/').toLowerCase()
   if (!normalized || normalized.startsWith('redis://')) return false
   if (normalized.includes('*') || normalized.includes('?')) return false
-  if (!normalized.endsWith('.log')) return false
+  const logSuffixes = ['.log', '.txt']
+  if (!logSuffixes.some((suffix) => normalized.endsWith(suffix))) return false
   return normalized.startsWith('reports/') || normalized.startsWith('back/target/surefire-reports/')
 }
 
@@ -3393,8 +3405,8 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 
 .report-drawer-backdrop {
   position: fixed;
-  inset: 0;
-  z-index: calc(var(--z-modal) + 5);
+  inset: var(--header-height) 0 0 var(--sidebar-width);
+  z-index: var(--z-page-popover);
   pointer-events: none;
   opacity: 0;
   background: var(--color-bg-sidebar-scrim);
@@ -3406,10 +3418,15 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   opacity: 1;
 }
 
+.report-drawer-backdrop--over-domain {
+  inset: 0;
+  z-index: calc(var(--z-modal) + 2);
+}
+
 .report-drawer {
   position: fixed;
-  inset: 0 0 0 auto;
-  z-index: calc(var(--z-modal) + 6);
+  inset: var(--header-height) 0 0 auto;
+  z-index: var(--z-page-popover);
   width: min(680px, 100vw);
   display: grid;
   grid-template-rows: auto 1fr;
@@ -3424,6 +3441,11 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 
 .report-drawer.open {
   transform: translateX(0);
+}
+
+.report-drawer--over-domain {
+  inset: 0 0 0 auto;
+  z-index: calc(var(--z-modal) + 3);
 }
 
 .report-drawer header {

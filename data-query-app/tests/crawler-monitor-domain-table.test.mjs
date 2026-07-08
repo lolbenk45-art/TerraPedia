@@ -323,6 +323,50 @@ test('domain table shows latest completed queue result before ready recrawl acti
   assert.equal(rows[0].nextActionLabel, '提交正式派发')
 })
 
+test('domain table does not report terminal queue pid as current owner', () => {
+  const rows = buildDomainTableRows({
+    domains: [
+      {
+        domain: 'recipes',
+        label: 'Recipes',
+        recommendedActionId: 'recipe-reference-sync',
+        state: {
+          status: 'ready',
+          nextAction: 'recrawl',
+        },
+      },
+    ],
+    progressRows: [
+      {
+        id: 'recipe-reference-sync',
+        status: 'running',
+        progressPath: 'reports/backend-refresh/history/run.runtime/recipe-reference-sync.snapshot.json',
+      },
+    ],
+    dispatchQueue: [
+      {
+        lane: 'standard',
+        domain: 'recipes',
+        coveredDomains: ['recipes'],
+        actionId: 'recipe-reference-sync',
+        status: 'cancelled',
+        queueId: 'queue-recipes-reclaimed',
+        startedAt: '2026-07-08T12:14:46.230Z',
+        completedAt: '2026-07-08T12:21:51.824Z',
+        pid: 135647,
+        progressPath: 'reports/backend-refresh/history/run.runtime/recipe-reference-sync.child-status.json',
+        message: '管理员清空运行/队列任务',
+      },
+    ],
+  })
+
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].ownerLabel, '无当前占用')
+  assert.equal(rows[0].queueSummary, '标准派发 · 已取消 07-08 20:21')
+  assert.equal(rows[0].pid, '')
+  assert.equal(rows[0].blockerLabel, '')
+})
+
 test('domain table treats self-blocked cooldown queue item as cooldown instead of occupation', () => {
   const rows = buildDomainTableRows({
     domains: [

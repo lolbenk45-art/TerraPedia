@@ -5751,8 +5751,147 @@ class CrawlerMonitorServiceImplTest {
         CrawlerMonitorOverviewDTO overview = service.getOverview();
         CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO recipes = overview.getWikiMonitor().getDomains().stream()
             .filter(d -> "recipes".equals(d.getDomain())).findFirst().orElseThrow();
-        assertEquals("ready", recipes.getState().getStatus());
-        assertEquals("recrawl", recipes.getState().getNextAction());
+        assertEquals("failed", recipes.getState().getStatus());
+        assertEquals("terminate_and_recrawl", recipes.getState().getNextAction());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void forceReclaimBackendDomainMarksRuntimeHeartbeatAndSnapshotTerminal() throws Exception {
+        Path runtimeDir = repoRoot.resolve("reports/backend-refresh/history/backend-data-refresh-wiki-monitor-2026-07-08T12-14-46Z-test.runtime");
+        Path childStatusPath = runtimeDir.resolve("recipe-reference-sync.child-status.json");
+        Path heartbeatPath = runtimeDir.resolve("recipe-reference-sync.heartbeat.json");
+        Path snapshotPath = runtimeDir.resolve("recipe-reference-sync.snapshot.json");
+        for (Path path : List.of(childStatusPath, heartbeatPath, snapshotPath)) {
+            writeJson(path, Map.of(
+                "actionId", "recipe-reference-sync",
+                "domain", "recipes",
+                "status", "running",
+                "message", "running recipe-reference-sync",
+                "current", 0,
+                "total", 1,
+                "lastHeartbeatAt", "2026-07-08T12:14:46Z",
+                "childStatusPath", "reports/backend-refresh/history/backend-data-refresh-wiki-monitor-2026-07-08T12-14-46Z-test.runtime/recipe-reference-sync.child-status.json"
+            ));
+        }
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-07-08T12:14:46Z",
+            "items", List.of(Map.ofEntries(
+                Map.entry("queueId", "queue-recipes-running"),
+                Map.entry("dispatchId", "dispatch-recipes-running"),
+                Map.entry("lane", "standard"),
+                Map.entry("domain", "recipes"),
+                Map.entry("coveredDomains", List.of("recipes")),
+                Map.entry("actionId", "recipe-reference-sync"),
+                Map.entry("status", "running"),
+                Map.entry("message", "running recipe-reference-sync"),
+                Map.entry("requestedAt", "2026-07-08T12:14:46Z"),
+                Map.entry("startedAt", "2026-07-08T12:14:46Z"),
+                Map.entry("pid", 2000000000L),
+                Map.entry("progressPath", "reports/backend-refresh/history/backend-data-refresh-wiki-monitor-2026-07-08T12-14-46Z-test.runtime/recipe-reference-sync.child-status.json")
+            )),
+            "dedupe", Map.of(),
+            "dispatches", Map.of("dispatch-recipes-running", "queue-recipes-running")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot,
+            Clock.fixed(Instant.parse("2026-07-08T12:21:51Z"), ZoneOffset.UTC),
+            (org.springframework.data.redis.core.StringRedisTemplate) null
+        );
+        CrawlerMonitorDispatchRequestDTO request = new CrawlerMonitorDispatchRequestDTO();
+        request.setDomain("recipes");
+        request.setActionId("recipe-reference-sync");
+        request.setQueueId("queue-recipes-running");
+        request.setControlAction("forceReclaim");
+
+        CrawlerMonitorDispatchResultDTO result = service.controlWikiMonitorDispatch(request);
+
+        assertTrue(result.isAccepted());
+        for (Path path : List.of(childStatusPath, heartbeatPath, snapshotPath)) {
+            Map<String, Object> payload = readJson(path);
+            assertEquals("force_reclaimed", payload.get("status"), path.toString());
+            assertEquals("管理员强制回收占用", payload.get("message"));
+            assertEquals("forceReclaim", payload.get("controlAction"));
+            assertNotNull(payload.get("completedAt"));
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void forceReclaimBlockedQueueItemReclaimsCurrentBlockerInsteadOfWaitingItem() throws Exception {
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"), Map.of(
+            "dispatchId", "d-biomes-running",
+            "domain", "biomes",
+            "actionId", "biome-sync",
+            "lockedAt", "2026-06-14T01:00:00Z",
+            "pid", 2000000000L,
+            "startedAt", "2026-06-14T01:00:00Z"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:02:00Z",
+            "items", List.of(
+                Map.ofEntries(
+                    Map.entry("queueId", "q-biomes-running"),
+                    Map.entry("dispatchId", "d-biomes-running"),
+                    Map.entry("lane", "standard"),
+                    Map.entry("domain", "biomes"),
+                    Map.entry("coveredDomains", List.of("biomes")),
+                    Map.entry("actionId", "biome-sync"),
+                    Map.entry("status", "running"),
+                    Map.entry("requestedAt", "2026-06-14T00:59:00Z"),
+                    Map.entry("startedAt", "2026-06-14T01:00:00Z"),
+                    Map.entry("pid", 2000000000L),
+                    Map.entry("progressPath", "data/generated/wiki-biomes-progress.latest.json")
+                ),
+                Map.ofEntries(
+                    Map.entry("queueId", "q-bosses-queued"),
+                    Map.entry("lane", "standard"),
+                    Map.entry("domain", "bosses"),
+                    Map.entry("coveredDomains", List.of("bosses")),
+                    Map.entry("actionId", "domain-source-bosses"),
+                    Map.entry("status", "queued"),
+                    Map.entry("requestedAt", "2026-06-14T01:01:00Z"),
+                    Map.entry("blockedByDomain", "biomes"),
+                    Map.entry("blockedByActionId", "biome-sync"),
+                    Map.entry("blockedByDispatchId", "d-biomes-running")
+                )
+            ),
+            "dedupe", Map.of(),
+            "dispatches", Map.of("d-biomes-running", "q-biomes-running")
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(), repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T02:00:00Z"), ZoneOffset.UTC),
+            (org.springframework.data.redis.core.StringRedisTemplate) null
+        );
+        CrawlerMonitorDispatchRequestDTO request = new CrawlerMonitorDispatchRequestDTO();
+        request.setDomain("bosses");
+        request.setActionId("domain-source-bosses");
+        request.setQueueId("q-bosses-queued");
+        request.setControlAction("forceReclaim");
+
+        CrawlerMonitorDispatchResultDTO result = service.controlWikiMonitorDispatch(request);
+
+        assertTrue(result.isAccepted());
+        assertEquals("biomes", result.getDomain());
+        assertEquals("biome-sync", result.getActionId());
+        Map<String, Object> queue = readJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> items = (List<Map<String, Object>>) queue.get("items");
+        Map<String, Object> running = items.stream()
+            .filter(item -> "q-biomes-running".equals(item.get("queueId")))
+            .findFirst()
+            .orElseThrow();
+        assertEquals("cancelled", running.get("status"));
+        Map<String, Object> blockerProgress = readJson(repoRoot.resolve("data/generated/wiki-biomes-progress.latest.json"));
+        assertEquals("biomes", blockerProgress.get("domain"));
+        assertEquals("biome-sync", blockerProgress.get("actionId"));
+        assertEquals("force_reclaimed", blockerProgress.get("status"));
+        Map<String, Object> waiting = items.stream()
+            .filter(item -> "q-bosses-queued".equals(item.get("queueId")))
+            .findFirst()
+            .orElseThrow();
+        assertTrue(List.of("queued", "running").contains(waiting.get("status")));
+        assertFalse(waiting.containsKey("blockedByDispatchId"));
     }
 
     @Test
@@ -5984,7 +6123,7 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void overviewDomainStateUsesQueueProgressForceReclaimedWhenLatestDispatchIsAnotherDomain() throws Exception {
+    void overviewDomainStateKeepsFailedQueueWhenProgressWasForceReclaimed() throws Exception {
         Path recipeProgressPath = repoRoot.resolve("reports/backend-refresh/history/backend-data-refresh-recipes.runtime/recipe-reference-sync.child-status.json");
         writeJson(recipeProgressPath, Map.of(
             "actionId", "recipe-reference-sync",
@@ -6023,8 +6162,8 @@ class CrawlerMonitorServiceImplTest {
         CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO recipes = overview.getWikiMonitor().getDomains().stream()
             .filter(d -> "recipes".equals(d.getDomain())).findFirst().orElseThrow();
 
-        assertEquals("ready", recipes.getState().getStatus());
-        assertEquals("recrawl", recipes.getState().getNextAction());
+        assertEquals("failed", recipes.getState().getStatus());
+        assertEquals("terminate_and_recrawl", recipes.getState().getNextAction());
         assertEquals("reports/backend-refresh/history/backend-data-refresh-recipes.runtime/recipe-reference-sync.child-status.json", recipes.getState().getEvidence());
     }
 

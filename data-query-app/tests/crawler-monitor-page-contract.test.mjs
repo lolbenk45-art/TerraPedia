@@ -116,6 +116,8 @@ test('domain detail drawer owns single-domain overview, history, queue, artifact
     'taskHistory',
     'queueItems',
     'artifacts',
+    "label: '爬取数据'",
+    '暂无爬取数据产物',
   ]) {
     assert.ok(domainDrawer.includes(marker), `missing domain drawer marker: ${marker}`)
   }
@@ -146,8 +148,10 @@ test('activity and system drawers move secondary content out of the first screen
 test('log viewer filters by level and search through pure helper', () => {
   assert.match(logViewer, /filterLogLines/)
   assert.match(logViewer, /selectedLevels/)
+  assert.match(logViewer, /'DEBUG'/)
   assert.match(logViewer, /'OTHER'/)
   assert.match(logViewer, /搜索日志/)
+  assert.match(logViewer, /暂无可读取日志文件/)
 })
 
 test('log viewer keeps readable base line styling for every level', () => {
@@ -162,9 +166,15 @@ test('domain drawers distinguish previewable files from recorded paths', () => {
   assert.match(domainDrawer, /file\.statusLabel/)
   assert.match(domainDrawer, /file\.description/)
   assert.match(domainDrawer, /file\.sourceLabel/)
+  assert.match(domainDrawer, /artifactIcon\(file\.icon/)
+  assert.match(domainDrawer, /artifact-row--\$\{file\.statusTone/)
+  assert.match(domainDrawer, /file\.timeLabel/)
   assert.match(logViewer, /file\.previewable/)
   assert.match(logViewer, /log-viewer__file--readonly/)
+  assert.match(logViewer, /log-viewer__file--\$\{file\.statusTone/)
+  assert.match(logViewer, /file\.timeLabel/)
   assert.match(page, /isPreviewableDomainLogPath/)
+  assert.match(page, /logSuffixes\.some\(\(suffix\) => normalized\.endsWith\(suffix\)\)/)
   assert.match(page, /normalized\.includes\('lock'\)/)
 })
 
@@ -182,12 +192,30 @@ test('triage board has distinct visual states for queued running and ready tiles
   }
 })
 
+test('triage board shows crawler action mode on attention cards tiles and table rows', () => {
+  assert.match(triageBoard, /<dt>任务模式<\/dt>/)
+  assert.match(triageBoard, /row\.taskLabel \|\| '未记录'/)
+  assert.match(triageBoard, /domain-tile__mode/)
+  assert.match(triageBoard, /<th>动作模式<\/th>/)
+  assert.match(triageBoard, /row\.taskLabel \|\| '未配置'/)
+})
+
 test('domain detail drawer auto-loads the first available log file', () => {
   assert.ok(page.includes('currentDomainLogPath'), 'missing current log path tracker')
   assert.ok(page.includes('watch('), 'missing drawer log autoload watcher')
   assert.ok(page.includes('[domainDetailDrawerOpen, selectedDomainDetailViewModel]'), 'watcher must react to drawer + selected domain')
   assert.ok(page.includes('firstLogPath'), 'missing first log path lookup')
   assert.ok(page.includes('loadDomainLog(firstLogPath)'), 'missing first log autoload call')
+})
+
+test('report preview opened from the domain drawer sits above the domain drawer only in that context', () => {
+  assert.match(page, /reportPreviewOpen/)
+  assert.match(page, /reportPreviewOverDomainDrawer/)
+  assert.match(page, /'report-drawer-backdrop--over-domain':\s*reportPreviewOverDomainDrawer/)
+  assert.match(page, /'report-drawer--over-domain':\s*reportPreviewOverDomainDrawer/)
+  assert.match(page, /\.report-drawer-backdrop--over-domain\s*\{[\s\S]*z-index:\s*calc\(var\(--z-modal\) \+ 2\)/)
+  assert.match(page, /\.report-drawer--over-domain\s*\{[\s\S]*z-index:\s*calc\(var\(--z-modal\) \+ 3\)/)
+  assert.match(page, /\.report-drawer--over-domain\s*\{[\s\S]*inset:\s*0 0 0 auto/)
 })
 
 test('crawler monitor constrains long status text and paths instead of stretching layout', () => {
@@ -213,5 +241,20 @@ test('crawler monitor constrains long status text and paths instead of stretchin
   assert.match(triageBoard, /\.attention-card\s*\{[\s\S]*min-width:\s*0/)
   assert.match(triageBoard, /\.attention-card p,\s*\.attention-card dd\s*\{[\s\S]*overflow-wrap:\s*anywhere/)
   assert.match(domainDrawer, /\.domain-drawer__head > div\s*\{[\s\S]*min-width:\s*0/)
+  assert.match(domainDrawer, /\.drawer-pane\s*\{[\s\S]*min-width:\s*0/)
+  assert.match(logViewer, /\.log-viewer\s*\{[\s\S]*min-width:\s*0/)
+  assert.match(logViewer, /\.log-viewer__file\s*\{[\s\S]*width:\s*100%/)
+  assert.match(logViewer, /\.log-viewer__lines\s*\{[\s\S]*min-width:\s*0/)
   assert.match(page, /\.drawer-content\s*\{[\s\S]*overflow-wrap:\s*anywhere/)
+})
+
+test('crawler monitor page does not use fake numeric fallback data', () => {
+  assert.doesNotMatch(page, /FALLBACK_MONITOR_PANEL/)
+  assert.doesNotMatch(page, /运行 0 \/ 已处理 0/)
+  assert.doesNotMatch(page, /count:\s*0,\s*\n\s*}/)
+  assert.doesNotMatch(page, /settings\?\.sweepIntervalMinutes\s*\|\|\s*60/)
+  assert.doesNotMatch(systemDrawer, /autoDispatchForm\?\.sweepIntervalMinutes\s*\|\|\s*60/)
+  assert.doesNotMatch(systemDrawer, /sweepIntervalMinutes:\s*Number\.isFinite\(value\)\s*&&\s*value\s*>\s*0\s*\?\s*value\s*:\s*60/)
+  assert.doesNotMatch(page, /Boolean\(saved\.enabled\)/)
+  assert.match(page, /monitorPanels\.value\[0\]/)
 })

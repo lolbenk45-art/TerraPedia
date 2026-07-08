@@ -24,19 +24,21 @@
         <button
           v-if="file.previewable"
           type="button"
-          class="log-viewer__file"
+          :class="['log-viewer__file', `log-viewer__file--${file.statusTone || 'neutral'}`]"
           :title="file.path"
           @click="$emit('preview', file.path)"
         >
           <FileText :size="15" />
           <span>{{ file.title || file.label || '运行日志' }}</span>
           <small>{{ file.statusLabel || '可读取' }}</small>
+          <small v-if="file.timeLabel" class="log-viewer__file-time">{{ file.timeLabel }}</small>
           <code>{{ file.path }}</code>
         </button>
-        <div v-else class="log-viewer__file log-viewer__file--readonly" :title="file.path">
+        <div v-else :class="['log-viewer__file', 'log-viewer__file--readonly', `log-viewer__file--${file.statusTone || 'neutral'}`]" :title="file.path">
           <FileText :size="15" />
           <span>{{ file.title || file.label || '运行日志' }}</span>
           <small>{{ file.statusLabel || '路径记录' }}</small>
+          <small v-if="file.timeLabel" class="log-viewer__file-time">{{ file.timeLabel }}</small>
           <code>{{ file.path }}</code>
         </div>
       </template>
@@ -59,7 +61,7 @@
     </ol>
     <div v-else class="log-viewer__empty">
       <TerminalSquare :size="22" />
-      <span>{{ content ? '没有匹配的日志行' : '点击上方日志文件，在此内联查看内容' }}</span>
+      <span>{{ emptyMessage }}</span>
     </div>
   </section>
 </template>
@@ -75,15 +77,20 @@ defineEmits<{
 
 const props = defineProps<{
   content?: string
-  files?: Array<{ label?: string, title?: string, statusLabel?: string, previewable?: boolean, path: string }>
+  files?: Array<{ label?: string, title?: string, statusLabel?: string, statusTone?: string, timeLabel?: string, previewable?: boolean, path: string }>
   loading?: boolean
 }>()
 
-const levels = ['ERROR', 'WARN', 'INFO', 'OTHER']
-const selectedLevels = ref<Array<string>>(['ERROR', 'WARN', 'INFO', 'OTHER'])
+const levels = ['ERROR', 'WARN', 'INFO', 'DEBUG', 'OTHER']
+const selectedLevels = ref<Array<string>>(['ERROR', 'WARN', 'INFO', 'DEBUG', 'OTHER'])
 const search = ref('')
 const files = computed(() => Array.isArray(props.files) ? props.files : [])
 const content = computed(() => props.content || '')
+const emptyMessage = computed(() => {
+  if (content.value) return '没有匹配的日志行'
+  if (!files.value.length) return '暂无可读取日志文件'
+  return '点击上方日志文件，在此内联查看内容'
+})
 const filteredLines = computed(() => filterLogLines({
   content: content.value,
   levels: selectedLevels.value,
@@ -103,6 +110,8 @@ function toggleLevel(level: string) {
 .log-viewer {
   display: grid;
   gap: 12px;
+  width: 100%;
+  min-width: 0;
 }
 
 .log-viewer__toolbar,
@@ -118,6 +127,7 @@ function toggleLevel(level: string) {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .log-viewer__levels {
@@ -162,10 +172,15 @@ function toggleLevel(level: string) {
   flex-direction: column;
   align-items: stretch;
   gap: 8px;
+  width: 100%;
+  min-width: 0;
 }
 
 .log-viewer__file {
   gap: 8px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   min-height: 40px;
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-sm);
@@ -195,7 +210,7 @@ function toggleLevel(level: string) {
 
 .log-viewer__file small {
   flex: 0 0 auto;
-  max-width: 76px;
+  max-width: 112px;
   border-radius: var(--radius-full);
   background: var(--color-primary-muted);
   color: var(--color-primary-dark);
@@ -204,15 +219,36 @@ function toggleLevel(level: string) {
   font-weight: 700;
 }
 
-.log-viewer__file--readonly small {
+.log-viewer__file-time {
+  max-width: 160px;
+  font-variant-numeric: tabular-nums;
+}
+
+.log-viewer__file--neutral small {
   background: var(--color-bg-tertiary);
   color: var(--color-text-secondary);
+}
+
+.log-viewer__file--success small {
+  background: var(--color-success-muted);
+  color: var(--color-success);
+}
+
+.log-viewer__file--warning small {
+  background: var(--color-warning-muted);
+  color: var(--color-warning);
+}
+
+.log-viewer__file--danger small {
+  background: var(--color-danger-muted);
+  color: var(--color-danger);
 }
 
 .log-viewer__file code {
   margin-left: auto;
   min-width: 0;
   max-width: 60%;
+  flex: 1 1 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -220,6 +256,9 @@ function toggleLevel(level: string) {
 }
 
 .log-viewer__lines {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
   margin: 0;
   padding: 6px 0;
   list-style: none;
@@ -283,6 +322,14 @@ function toggleLevel(level: string) {
 
 .log-viewer__line--info strong {
   color: #6bb2a6;
+}
+
+.log-viewer__line--debug strong {
+  color: #91a4bc;
+}
+
+.log-viewer__line--debug code {
+  color: #dbe7ef;
 }
 
 .log-viewer__line--other strong {

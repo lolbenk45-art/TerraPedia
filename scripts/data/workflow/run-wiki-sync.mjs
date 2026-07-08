@@ -35,11 +35,13 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const sourceRoot = path.resolve(__dirname, '..', '..', '..');
 const repoRoot = resolveProjectPath();
 const generatedRoot = path.resolve(repoRoot, 'data', 'generated');
 const DEFAULT_WIKI_SYNC_PROGRESS_PATH = path.join(generatedRoot, 'wiki-sync-progress.latest.json');
 const sharedRawWikiRoot = sharedDataPath('raw', 'wiki');
 const seedScriptPath = path.join(repoRoot, 'scripts', 'data', 'workflow', 'seed-wiki-source-manifest.mjs');
+const normalizeItemsScriptPath = path.join(sourceRoot, 'scripts', 'data', 'normalize', 'normalize-wiki-items.mjs');
 const zhEnrichScriptPath = path.join(repoRoot, 'scripts', 'data', 'workflow', 'run-zh-enrich.mjs');
 const imageSyncScriptPath = path.join(repoRoot, 'scripts', 'data', 'workflow', 'run-image-sync.mjs');
 const OWNER_ADVANCED_SOURCE_KEYS = new Set([
@@ -501,6 +503,21 @@ async function runApply({ resume }) {
       throw new Error(`Workflow action failed: ${action.id}`);
     }
 
+    try {
+      runPostActionStep(action);
+    } catch (error) {
+      plan = markAction(plan, action.id, 'failed');
+      saveWikiSyncPlan(planPath, plan);
+      writeWikiSyncProgress({
+        status: 'failed',
+        phase: resume ? 'resume' : 'apply',
+        message: `failed ${action.id}: ${error.message}`,
+        current: actionIndex,
+        total: plan.actions.length
+      });
+      throw error;
+    }
+
     if (action.entityFamily !== 'item_pages' && !hasOwnerAdvancedSourceKey(action)) {
       manifest = await updateManifestForEntity(manifest, action.entityFamily);
       saveWikiSourceManifest(manifestPath, manifest);
@@ -515,6 +532,19 @@ async function runApply({ resume }) {
       current: actionIndex + 1,
       total: plan.actions.length
     });
+  }
+
+  try {
+    ensureRequestedEntityOutputs();
+  } catch (error) {
+    writeWikiSyncProgress({
+      status: 'failed',
+      phase: resume ? 'resume' : 'apply',
+      message: `failed post-refresh output check: ${error.message}`,
+      current: plan.actions.length,
+      total: plan.actions.length
+    });
+    throw error;
   }
 
   writeWikiSyncProgress({
@@ -584,6 +614,35 @@ function buildItemPageAction(config, rawOptions) {
     sourceKeys: config.sourceKeys,
     status: 'pending'
   };
+}
+
+function runPostActionStep(action) {
+  if (action?.entityFamily !== 'items') {
+    return;
+  }
+  normalizeWikiItems();
+}
+
+function ensureRequestedEntityOutputs() {
+  if (!requestedEntities.includes('items')) {
+    return;
+  }
+  const rawItemModulePath = sharedDataPath('raw', 'wiki', 'module__iteminfo__data.latest.json');
+  if (!fs.existsSync(rawItemModulePath)) {
+    return;
+  }
+  normalizeWikiItems();
+}
+
+function normalizeWikiItems() {
+  const result = spawnSync(process.execPath, [normalizeItemsScriptPath], {
+    cwd: repoRoot,
+    env: process.env,
+    stdio: 'inherit'
+  });
+  if (result.status !== 0) {
+    throw new Error('Workflow post-action failed: normalize wiki items');
+  }
 }
 
 function buildZhAction(config, rawOptions) {

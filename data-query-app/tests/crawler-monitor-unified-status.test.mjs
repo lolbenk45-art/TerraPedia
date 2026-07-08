@@ -52,6 +52,26 @@ test('unified status treats paused queue as paused instead of running', () => {
   assert.equal(status.hasConflict, true)
 })
 
+test('unified status treats blocked cooldown queue with blocker as queued wait state', () => {
+  const status = buildCrawlerUnifiedStatus({
+    queueItem: {
+      status: 'blocked_cooldown',
+      queueId: 'q-armor-waiting',
+      domain: 'armor_sets',
+      actionId: 'domain-source-armor-sets',
+      blockedByDomain: 'town_npc_maintenance',
+      blockedByActionId: 'domain-source-town-npc-maintenance',
+      message: '已加入队列',
+    },
+  })
+
+  assert.equal(status.effectiveStatus, 'queued')
+  assert.equal(status.statusSource, 'queue')
+  assert.equal(status.displayLabel, '等待执行')
+  assert.equal(status.nextActionLabel, '取消排队')
+  assert.match(status.reason, /等待.*town_npc_maintenance.*释放/)
+})
+
 test('unified status promotes stale progress above running queue', () => {
   const status = buildCrawlerUnifiedStatus({
     queueItem: {

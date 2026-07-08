@@ -1,7 +1,7 @@
 const STATUS_ALIASES = {
   error: 'failed',
   timeout: 'timed_out',
-  blocked_cooldown: 'blocked',
+  blocked_cooldown: 'queued',
   locked: 'blocked',
   force_reclaimed: 'cancelled',
 }
@@ -94,6 +94,9 @@ export function buildCrawlerUnifiedStatus({ domain = null, progressRow = null, q
   } else if (progressStatus === 'stalled') {
     effectiveStatus = 'stalled'
     statusSource = 'progress'
+  } else if (queueStatus === 'queued') {
+    effectiveStatus = 'queued'
+    statusSource = 'queue'
   } else if (queueHasBlocker || queueStatus === 'blocked') {
     effectiveStatus = 'blocked'
     statusSource = 'queue'
@@ -106,9 +109,6 @@ export function buildCrawlerUnifiedStatus({ domain = null, progressRow = null, q
   } else if (['running', 'starting'].includes(progressStatus)) {
     effectiveStatus = progressStatus
     statusSource = 'progress'
-  } else if (queueStatus === 'queued') {
-    effectiveStatus = 'queued'
-    statusSource = 'queue'
   } else if (progressStatus === 'queued') {
     effectiveStatus = 'queued'
     statusSource = 'progress'
@@ -148,6 +148,8 @@ export function buildCrawlerUnifiedStatus({ domain = null, progressRow = null, q
 
 function queueEffectiveStatus(item) {
   if (!item) return ''
+  const rawStatus = String(item.status || '').trim().toLowerCase()
+  if (rawStatus === 'blocked_cooldown') return 'queued'
   if (isCooldownOnlyQueueItem(item)) return 'queued'
   const status = normalizeCrawlerStatus(item.status)
   if (hasQueueBlocker(item) || status.includes('blocked')) return 'blocked'
@@ -171,6 +173,7 @@ function domainEffectiveStatus(domain) {
 
 function hasQueueBlocker(item) {
   if (isCooldownOnlyQueueItem(item)) return false
+  if (String(item?.status || '').trim().toLowerCase() === 'blocked_cooldown') return false
   return Boolean(item?.blockedByDomain || item?.blockedByActionId || item?.blockedByDispatchId)
 }
 
@@ -217,7 +220,10 @@ function statusReason({ effectiveStatus, statusSource, domain, progressRow, queu
     return progressRow?.progressStaleReason || progressRow?.message || queueItem?.message || domain?.reason || '失败域优先，需要人工确认日志和报告'
   }
   if (effectiveStatus === 'running') return queueItem?.message || progressRow?.message || '任务正在运行，观察心跳和实时进度'
-  if (effectiveStatus === 'queued') return queueItem?.message || progressRow?.queueState || '任务正在等待队列执行'
+  if (effectiveStatus === 'queued') {
+    const blocker = queueItem?.blockedByDomain || queueItem?.blockedByActionId || queueItem?.blockedByDispatchId
+    return blocker ? `等待 ${blocker} 释放锁` : queueItem?.message || progressRow?.queueState || '任务正在等待队列执行'
+  }
   if (effectiveStatus === 'ready') return domain?.reason || '可手动提交正式派发'
   if (statusSource === 'none') return '无运行队列或异常信号'
   return domain?.reason || progressRow?.message || queueItem?.message || ''

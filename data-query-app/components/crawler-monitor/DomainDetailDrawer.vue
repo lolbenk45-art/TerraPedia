@@ -102,6 +102,7 @@
             <strong>{{ item.title || '未命名任务' }}</strong>
             <span class="status-pill" :class="item.status || 'unknown'">{{ item.statusLabel || '未知' }}</span>
             <small>{{ item.detail || '暂无补充' }}</small>
+            <small class="queue-row__time">{{ item.timeLabel || '暂无时间' }}</small>
             <code>{{ item.meta || '队列记录' }}</code>
           </article>
           <p v-if="!detail?.queueItems?.length" class="empty-line">当前没有队列项</p>
@@ -112,29 +113,35 @@
             <button
               v-if="file.previewable"
               type="button"
-              class="artifact-row"
+              :class="['artifact-row', `artifact-row--${file.statusTone || 'neutral'}`]"
               :title="file.path"
               @click="$emit('preview', file.path)"
             >
-              <FileJson :size="17" />
+              <component :is="artifactIcon(file.icon)" :size="17" />
               <span class="artifact-row__main">
                 <strong>{{ file.title || file.label }}</strong>
-                <small>{{ file.sourceLabel || '任务记录' }} · {{ file.description || '可打开的运行产物' }}</small>
+                <small>
+                  {{ file.sourceLabel || '任务记录' }} · {{ file.description || '可打开的运行产物' }}
+                  <template v-if="file.timeLabel"> · {{ file.timeLabel }}</template>
+                </small>
               </span>
               <span class="artifact-row__status">{{ file.statusLabel || '可预览' }}</span>
               <code>{{ file.path }}</code>
             </button>
-            <div v-else class="artifact-row artifact-row--readonly" :title="file.path">
-              <FileJson :size="17" />
+            <div v-else :class="['artifact-row', 'artifact-row--readonly', `artifact-row--${file.statusTone || 'neutral'}`]" :title="file.path">
+              <component :is="artifactIcon(file.icon)" :size="17" />
               <span class="artifact-row__main">
                 <strong>{{ file.title || file.label }}</strong>
-                <small>{{ file.sourceLabel || '任务记录' }} · {{ file.description || '仅记录路径，不代表当前可打开' }}</small>
+                <small>
+                  {{ file.sourceLabel || '任务记录' }} · {{ file.description || '仅记录路径，不代表当前可打开' }}
+                  <template v-if="file.timeLabel"> · {{ file.timeLabel }}</template>
+                </small>
               </span>
               <span class="artifact-row__status">{{ file.statusLabel || '路径记录' }}</span>
               <code>{{ file.path }}</code>
             </div>
           </template>
-          <p v-if="!detail?.artifacts?.length" class="empty-line">暂无产物文件</p>
+          <p v-if="!detail?.artifacts?.length" class="empty-line">暂无爬取数据产物</p>
         </section>
 
         <section v-else class="drawer-pane">
@@ -153,12 +160,16 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import {
+  Activity,
   AlertTriangle,
   CircleStop,
   Clock3,
+  Database,
   FileJson,
+  FileText,
   History,
   ListTree,
+  LockKeyhole,
   Pause,
   Play,
   ScrollText,
@@ -190,7 +201,7 @@ const tabs = computed(() => [
   { key: 'overview', label: '概览', icon: ListTree, count: null },
   { key: 'history', label: '任务历史', icon: History, count: props.detail?.taskHistory?.length || 0 },
   { key: 'queue', label: '队列', icon: Clock3, count: props.detail?.queueItems?.length || 0 },
-  { key: 'artifacts', label: '产物', icon: FileJson, count: props.detail?.artifacts?.length || 0 },
+  { key: 'artifacts', label: '爬取数据', icon: FileJson, count: props.detail?.artifacts?.length || 0 },
   { key: 'logs', label: '日志', icon: ScrollText, count: props.detail?.logFiles?.length || 0 },
 ])
 
@@ -200,6 +211,15 @@ function operationIcon(icon?: string) {
   if (icon === 'circle-stop') return CircleStop
   if (icon === 'timer-reset') return TimerReset
   return ListTree
+}
+
+function artifactIcon(icon?: string) {
+  if (icon === 'activity') return Activity
+  if (icon === 'database') return Database
+  if (icon === 'file-json') return FileJson
+  if (icon === 'lock-keyhole') return LockKeyhole
+  if (icon === 'scroll-text') return ScrollText
+  return FileText
 }
 
 function operationButtonClass(operation?: Record<string, any>) {
@@ -350,6 +370,7 @@ function operationButtonClass(operation?: Record<string, any>) {
 .drawer-pane {
   display: grid;
   gap: 14px;
+  min-width: 0;
 }
 
 .field-grid {
@@ -505,6 +526,10 @@ button.artifact-row {
   color: var(--color-text-secondary);
 }
 
+.queue-row__time {
+  font-variant-numeric: tabular-nums;
+}
+
 .artifact-row {
   gap: 10px;
   min-height: 56px;
@@ -549,9 +574,24 @@ button.artifact-row {
   font-weight: 700;
 }
 
-.artifact-row--readonly .artifact-row__status {
+.artifact-row--neutral .artifact-row__status {
   background: var(--color-bg-tertiary);
   color: var(--color-text-secondary);
+}
+
+.artifact-row--success .artifact-row__status {
+  background: var(--color-success-muted);
+  color: var(--color-success);
+}
+
+.artifact-row--warning .artifact-row__status {
+  background: var(--color-warning-muted);
+  color: var(--color-warning);
+}
+
+.artifact-row--danger .artifact-row__status {
+  background: var(--color-danger-muted);
+  color: var(--color-danger);
 }
 
 .artifact-row svg {

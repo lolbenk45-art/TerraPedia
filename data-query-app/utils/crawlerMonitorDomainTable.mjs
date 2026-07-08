@@ -291,6 +291,7 @@ function queueSummary(item) {
 
 function ownerLabel(item) {
   if (!item) return '正式域'
+  if (terminalQueueStatus(item)) return '无当前占用'
   const pid = item.pid ? ` · PID ${item.pid}` : ''
   return `${queueLaneLabel(item)}${pid}`
 }
@@ -496,7 +497,7 @@ export function buildDomainTableRows({ domains = [], progressRows = [], dispatch
       reason: rowReason({ domain, progressRow: matchedProgressRow, queueItem: matchedQueueItem, blockerLabel, risk, unifiedStatus }),
       queueId: matchedQueueItem?.queueId || '',
       dispatchId: matchedQueueItem?.dispatchId || '',
-      pid: matchedQueueItem?.pid || '',
+      pid: terminalQueueStatus(matchedQueueItem) ? '' : (matchedQueueItem?.pid || ''),
       sourceSummary: sourceSummary(domain),
       evidenceSummary: evidenceSummary(files),
       files,

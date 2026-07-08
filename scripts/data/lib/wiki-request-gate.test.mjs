@@ -429,6 +429,77 @@ test('runJsonRequest does not recover a fresh gate state lock directory', async 
   assert.equal(fs.existsSync(lockPath), true);
 });
 
+test('runJsonRequest recovers a fresh gate state lock owned by a dead process', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-gate-dead-owner-'));
+  const statePath = path.join(tempDir, 'gate.json');
+  const lockPath = `${statePath}.lock`;
+  fs.mkdirSync(lockPath);
+  fs.writeFileSync(path.join(lockPath, 'owner.json'), JSON.stringify({
+    pid: 999_999_999,
+    createdAt: new Date().toISOString()
+  }), 'utf8');
+
+  const gate = createWikiRequestGate({
+    statePath,
+    stateLockStaleMs: 2 * 60_000,
+    stateLockTimeoutMs: 50,
+    requestProfiles: {
+      revision: { baseDelayMs: 0, jitterMs: 0, maxAttempts: 1, cooldownMs: 10_000 }
+    },
+    sleepFn: async () => {},
+    fetchFn: async () => okJsonResponse({ ok: true })
+  });
+
+  const payload = await gate.runJsonRequest('https://terraria.wiki.gg/api.php?action=query', {
+    profile: 'revision'
+  });
+
+  assert.deepEqual(payload, { ok: true });
+  const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  assert.equal(state.successCount, 1);
+  assert.equal(fs.existsSync(lockPath), false);
+});
+
+test('runJsonRequest writes owner metadata while holding the gate state lock', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-gate-owner-'));
+  const statePath = path.join(tempDir, 'gate.json');
+  const lockPath = `${statePath}.lock`;
+  let ownerMetadata = null;
+
+  const gate = createWikiRequestGate({
+    statePath,
+    requestProfiles: {
+      revision: { baseDelayMs: 0, jitterMs: 0, maxAttempts: 1, cooldownMs: 10_000 }
+    },
+    sleepFn: async () => {},
+    fetchFn: async () => okJsonResponse({ ok: true })
+  });
+
+  await gate.runJsonRequest('https://terraria.wiki.gg/api.php?action=query', {
+    profile: 'revision'
+  });
+
+  const originalWriteFileSync = fs.writeFileSync;
+  fs.writeFileSync = function writeFileSyncSpy(filePath, data, ...args) {
+    if (String(filePath) === path.join(lockPath, 'owner.json')) {
+      ownerMetadata = JSON.parse(String(data));
+    }
+    return originalWriteFileSync.call(this, filePath, data, ...args);
+  };
+
+  try {
+    await gate.runJsonRequest('https://terraria.wiki.gg/api.php?action=query', {
+      profile: 'revision'
+    });
+  } finally {
+    fs.writeFileSync = originalWriteFileSync;
+  }
+
+  assert.equal(ownerMetadata.pid, process.pid);
+  assert.equal(typeof ownerMetadata.createdAt, 'string');
+  assert.match(ownerMetadata.hostname, /\S/);
+});
+
 test('separate gate processes preserve shared state counters', async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-gate-'));
   const statePath = path.join(tempDir, 'gate.json');

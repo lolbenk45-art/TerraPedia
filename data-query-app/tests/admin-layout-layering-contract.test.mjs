@@ -59,9 +59,10 @@ test('page-owned fixed drawers stay below admin navigation and reserve shell spa
   assert.match(armorAttributesPage, /\.detail-drawer\s*\{[\s\S]*z-index:\s*var\(--z-page-popover\)/)
   assert.doesNotMatch(armorAttributesPage, /\.detail-drawer\s*\{[\s\S]*inset:\s*0;[\s\S]*z-index:\s*60/)
 
-  assert.match(crawlerMonitorPage, /\.report-preview-shell\s*\{[\s\S]*inset:\s*var\(--header-height\) 0 0 var\(--sidebar-width\)/)
-  assert.match(crawlerMonitorPage, /\.report-preview-shell\s*\{[\s\S]*z-index:\s*var\(--z-page-popover\)/)
-  assert.doesNotMatch(crawlerMonitorPage, /\.report-preview-shell\s*\{[\s\S]*inset:\s*0;[\s\S]*z-index:\s*80/)
+  assert.match(crawlerMonitorPage, /\.report-drawer-backdrop\s*\{[\s\S]*inset:\s*var\(--header-height\) 0 0 var\(--sidebar-width\)/)
+  assert.match(crawlerMonitorPage, /\.report-drawer\s*\{[\s\S]*inset:\s*var\(--header-height\) 0 0 auto/)
+  assert.match(crawlerMonitorPage, /\.report-drawer\s*\{[\s\S]*z-index:\s*var\(--z-page-popover\)/)
+  assert.doesNotMatch(crawlerMonitorPage, /\.report-drawer\s*\{[\s\S]*inset:\s*0;[\s\S]*z-index:\s*calc\(var\(--z-modal\)/)
 })
 
 test('active sidebar navigation scrolls the selected menu item into view', () => {
