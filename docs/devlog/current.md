@@ -32,7 +32,7 @@ Last updated: 2026-07-09 18:18 CST by main agent
   - branch: `docs/current-governance-specs`
   - worktree: `/home/lolben/TerraPedia`
   - status: `closed`
-  - commit: `commit SHA pending in final response`
+  - commit: `b0d4e4e`
 - `docs/devlog/entries/2026-07-09-old-governance-doc-refresh.md`
   - branch: `docs/old-governance-doc-refresh`
   - worktree: `/home/lolben/TerraPedia`

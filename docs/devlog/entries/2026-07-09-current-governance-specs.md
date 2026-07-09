@@ -81,7 +81,7 @@
 
 ## Commits
 
-- `commit SHA pending in final response`
+- `b0d4e4e`
 
 ## Optional: State Changes
 
@@ -103,5 +103,5 @@
 - [x] Validation recorded.
 - [x] Residual risks recorded.
 - [x] Follow-up is `none` or points to a new task.
-- [x] Commit SHA, `commit SHA pending in final response`, or stop reason recorded.
+- [x] Commit SHA, `b0d4e4e`, or stop reason recorded.
 - [x] `docs/devlog/current.md` updated.
