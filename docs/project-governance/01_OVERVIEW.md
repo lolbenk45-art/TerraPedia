@@ -1,5 +1,12 @@
 # 项目总览
 
+> Status: `stale-reference`
+> Last reviewed: 2026-07-09
+> Use this as April 2026 background only. Current project facts live in
+> `00_CURRENT_SPEC.md`, `00_WORKFLOW.md`, `current/PROJECT_CONTROL.md`,
+> `docs/project-management/current-status.md`, and `docs/devlog/current.md`.
+> Revalidate dated capability claims against current code before planning work.
+
 ## 项目定义
 
 **TerraPedia** 不再只是一个“泰拉瑞亚中文百科站”规划稿，而是一个已经进入实现阶段的游戏数据平台项目。

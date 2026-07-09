@@ -1,5 +1,12 @@
 # 需求分析
 
+> Status: `stale-reference`
+> Last reviewed: 2026-07-09
+> Use this as an April 2026 requirements baseline, not as current priority
+> authority. Current priorities and blockers live in
+> `current/PROJECT_CONTROL.md`, `docs/project-management/current-status.md`,
+> and `docs/project-management/risk-register.md`.
+
 ## 文档目标
 
 本文档按 **2026-04-10** 的仓库现状重写，目标不是继续描述纯设想中的百科站，而是明确：

@@ -18,13 +18,14 @@ If files conflict, the lower number wins.
 - `00_CURRENT_SPEC.md` - concise current spec for future agents.
 - `00_WORKFLOW.md` - current TerraPedia execution workflow.
 - `current/PROJECT_CONTROL.md` - current progress-control panel and stale-document routing.
-- `01_OVERVIEW.md` - broader April 2026 overview; verify dated claims before relying on them.
-- `02_REQUIREMENTS.md` - April 2026 requirements baseline; revalidate against current code before using.
-- `06_UI_UX_GUIDELINES.md` - UI vocabulary/reference; current UI still requires code inspection.
+- `01_OVERVIEW.md` - `stale-reference` with status banner; broader April 2026 overview, not current phase authority.
+- `02_REQUIREMENTS.md` - `stale-reference` with status banner; April 2026 requirements baseline, not current priority authority.
+- `06_UI_UX_GUIDELINES.md` - `reference` with status banner; UI vocabulary/reference, current UI still requires code inspection.
 
 ## Stale Or Historical Root Files
 
-The following root files are useful historical/reference material but are not current execution authority:
+The following root files now carry status banners. They are useful historical or
+reference material but are not current execution authority:
 
 - `03_TECH_STACK.md` - contains Astro/SSG-era choices; current maintained lines are Nuxt, Spring Boot, and data tooling.
 - `04_ARCHITECTURE.md` - contains static content-collection architecture; current runtime facts must come from code and current spec.

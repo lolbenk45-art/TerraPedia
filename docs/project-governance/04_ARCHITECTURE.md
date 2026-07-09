@@ -1,5 +1,12 @@
 # 架构设计
 
+> Status: `historical-planning`
+> Last reviewed: 2026-07-09
+> This document describes an older static-content architecture and must not be
+> used as current architecture authority. Current architecture facts must come
+> from `00_CURRENT_SPEC.md`, `00_WORKFLOW.md`, current code, and fresh runtime or
+> data evidence.
+
 ## 系统架构总览
 
 ```mermaid

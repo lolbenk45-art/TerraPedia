@@ -1,5 +1,11 @@
 # 监控与运维
 
+> Status: `reference-stale`
+> Last reviewed: 2026-07-09
+> Use this as historical operations background only. Current operations,
+> startup, smoke, and quality-gate authority lives in `00_WORKFLOW.md`,
+> `docs/runbooks/`, `scripts/dev/`, and fresh validation records.
+
 本文档描述 TerraPedia（类泰拉瑞亚 Wiki）项目的监控体系与运维方案。技术栈：Astro SSG 静态站点、Cloudflare Pages、GitHub、GitHub Actions。Solo 开发者场景。
 
 ---

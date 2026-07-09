@@ -1,6 +1,12 @@
 # TerraPedia UI/UX 设计规范
 
-> 类泰拉瑞亚 Wiki 网站设计规范文档  
+> Status: `reference`
+> Last reviewed: 2026-07-09
+> Use this for design vocabulary and UI intent only. Technical-stack statements
+> in this file may be historical; inspect `front-nuxt/`, `data-query-app/`, and
+> current UI code before implementing screens or components.
+
+> 类泰拉瑞亚 Wiki 网站设计规范文档
 > 技术栈：Astro + Tailwind CSS | Solo 开发者
 
 ---

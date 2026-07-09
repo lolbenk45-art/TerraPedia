@@ -1,7 +1,13 @@
 # TerraPedia 上线检查清单
 
-> 项目：TerraPedia（类泰拉瑞亚 Wiki 网站）  
-> 技术栈：Astro SSG + Cloudflare Pages  
+> Status: `reference-stale`
+> Last reviewed: 2026-07-09
+> Use this as a historical release-checklist reference only. Current release,
+> staging, or public-readiness claims require fresh Bash gates, route checks,
+> data-readiness evidence, and project-management decision records.
+
+> 项目：TerraPedia（类泰拉瑞亚 Wiki 网站）
+> 技术栈：Astro SSG + Cloudflare Pages
 > 团队：Solo 开发者
 
 ---

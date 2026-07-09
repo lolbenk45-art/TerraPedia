@@ -24,6 +24,10 @@ unless the current spec or this file explicitly points to them.
 
 ## Governance File Status
 
+Root governance files reviewed on 2026-07-09 carry status banners. Treat those
+banners as routing aids; keep current project facts and progress in the control
+records listed above.
+
 | File or area | Status | How to use |
 | --- | --- | --- |
 | `00_CURRENT_SPEC.md` | authoritative | Current project fact sheet and source-of-truth order. |
@@ -51,7 +55,7 @@ Document-level judgment as of 2026-07-09:
 
 - The project is past the May public-preview status recorded in `docs/project-management/current-status.md`.
 - Recent July work is concentrated around crawler monitor reliability, crawler resume/recovery protocol, and documentation governance.
-- The immediate management need is not another long plan. It is keeping current authority, status, risk, and active plans synchronized.
+- The immediate management need is not another long plan. It is keeping current authority, status, risk, active plans, and old-document routing synchronized.
 - Any release or public-readiness claim still needs fresh validation; no runtime/backend/frontend/data gate was run for this governance audit.
 
 ## Priority Lanes

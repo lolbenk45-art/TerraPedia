@@ -1,5 +1,11 @@
 # CI/CD 与部署
 
+> Status: `historical-planning`
+> Last reviewed: 2026-07-09
+> This document contains old Cloudflare/Astro deployment assumptions. Do not use
+> it as current CI/CD or deployment authority without a fresh deployment/runbook
+> decision and validation evidence.
+
 本文档描述 TerraPedia（类泰拉瑞亚 Wiki）项目的持续集成/持续部署方案。技术栈：Astro SSG、Cloudflare Pages、GitHub、GitHub Actions。Solo 开发者场景。
 
 ---

@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-09 17:44 CST by main agent
+Last updated: 2026-07-09 18:02 CST by main agent
 
 ## Open Work
 
@@ -10,12 +10,13 @@ Last updated: 2026-07-09 17:44 CST by main agent
 
 - Project documentation governance naming has been normalized and committed locally.
 - Current project status, risk register, decision log, project control, and spec impact rules have been synchronized for commit.
+- Old root governance documents now carry status banners and current-authority routing.
 - No app runtime feature code or data changed.
 
 ## Next Agent Should Start Here
 
 - Preserve stale/historical governance document bodies unless a current routing/source-of-truth reference needs repair.
-- For progress control, compare `docs/project-governance/current/PROJECT_CONTROL.md`, `docs/project-management/current-status.md`, and `docs/project-management/risk-register.md`.
+- Keep latest project state in `00_CURRENT_SPEC.md`, `PROJECT_CONTROL.md`, project-management records, and devlog rather than old root planning bodies.
 
 ## Current Risks
 
@@ -25,6 +26,11 @@ Last updated: 2026-07-09 17:44 CST by main agent
 
 ## Recently Closed
 
+- `docs/devlog/entries/2026-07-09-old-governance-doc-refresh.md`
+  - branch: `docs/old-governance-doc-refresh`
+  - worktree: `/home/lolben/TerraPedia`
+  - status: `closed`
+  - commit: `commit SHA pending in final response`
 - `docs/devlog/entries/2026-07-09-project-status-risk-sync.md`
   - branch: `docs/project-status-risk-sync`
   - worktree: `/home/lolben/TerraPedia`

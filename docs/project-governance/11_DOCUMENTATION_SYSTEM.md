@@ -1,5 +1,11 @@
 # TerraPedia 文档体系规范
 
+> Status: `reference-stale`
+> Last reviewed: 2026-07-09
+> Use this as historical documentation-design background only. Current
+> documentation placement and source-of-truth rules live in `AGENTS.md`,
+> `00_CURRENT_SPEC.md`, `INDEX.md`, and `current/PROJECT_CONTROL.md`.
+
 > 适用于类泰拉瑞亚 Wiki 网站 TerraPedia 的文档体系设计。技术栈：Astro SSG，Solo 开发者。
 
 ---

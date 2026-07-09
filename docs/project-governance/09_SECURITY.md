@@ -1,5 +1,11 @@
 # 安全方案
 
+> Status: `reference-stale`
+> Last reviewed: 2026-07-09
+> Use this as a historical security checklist only. Current security decisions
+> must be revalidated against the maintained Nuxt frontends, Spring Boot backend,
+> data tooling, local stack, and deployment target before implementation.
+
 ## 安全概述
 
 TerraPedia 作为静态站点（SSG），安全风险相对动态应用大幅降低——无服务端运行时、无数据库、无用户输入处理。但仍需在以下几个层面建立防护。

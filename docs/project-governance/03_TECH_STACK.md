@@ -1,5 +1,12 @@
 # 技术选型
 
+> Status: `historical-planning`
+> Last reviewed: 2026-07-09
+> This document contains older Astro/SSG-era technology planning and is not
+> current execution authority. Current maintained lines are `front-nuxt/`,
+> `data-query-app/`, `back/`, and `scripts/data/` + `data/`; use
+> `00_CURRENT_SPEC.md` and current code before making tech-stack decisions.
+
 ## 方案对比总览
 
 针对游戏 Wiki 类网站，主要有三条技术路线可选。下面从多个维度进行对比分析。

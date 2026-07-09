@@ -1,5 +1,11 @@
 # TerraPedia 测试策略
 
+> Status: `historical-planning`
+> Last reviewed: 2026-07-09
+> This document contains older SSG/Pagefind-era testing assumptions. Current
+> validation authority is `00_WORKFLOW.md`, package scripts, and task-specific
+> validation recorded in devlog or audits.
+
 > 本文档定义 TerraPedia（类泰拉瑞亚 Wiki 静态站点）的测试策略。技术栈：Astro + Tailwind CSS + Pagefind，数据存储在 Content Collections（YAML/JSON）。Solo 开发者场景。
 
 ---
@@ -86,7 +92,7 @@ describe('引用完整性', () => {
     const validItemIds = new Set(items.map((i) => i.data.id));
 
     for (const recipe of recipes) {
-      expect(validItemIds.has(recipe.data.result), 
+      expect(validItemIds.has(recipe.data.result),
         `配方 ${recipe.id} 的 result "${recipe.data.result}" 不存在`
       ).toBe(true);
 
@@ -118,7 +124,7 @@ describe('图片引用校验', () => {
 
     for (const item of items) {
       const iconPath = resolve(publicDir, item.data.icon);
-      expect(existsSync(iconPath), 
+      expect(existsSync(iconPath),
         `物品 ${item.data.id} 的 icon "${item.data.icon}" 不存在`
       ).toBe(true);
     }
@@ -177,7 +183,7 @@ describe('Schema 验证', () => {
     const items = await getCollection('items');
     for (const item of items) {
       const result = ItemSchema.safeParse(item.data);
-      expect(result.success, 
+      expect(result.success,
         `物品 ${item.id}: ${result.success ? '' : JSON.stringify(result.error.issues)}`
       ).toBe(true);
     }

@@ -64,7 +64,7 @@ P2 UI work is allowed only after P0 governance/status synchronization and P1 cra
 
 ## Current Blockers And Risks
 
-- Stale root governance files `03`, `04`, and `07-12` remain in place as reference/history and must not drive current execution.
+- Stale root governance files `03`, `04`, and `07-12` remain in place as reference/history, carry status banners, and must not drive current execution.
 - `docs/project-management/risk-register.md` is the current risk surface; old May risk rows are historical unless revalidated into the current table.
 - Release, staging, or public-readiness claims remain blocked until fresh Bash gate, route, and data-readiness evidence exists.
 - Crawler monitor and resume/recovery stabilization remains P1 until current plans and validation evidence show the reliability loop is stable.
