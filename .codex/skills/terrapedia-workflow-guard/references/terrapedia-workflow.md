@@ -1,24 +1,29 @@
 # TerraPedia Workflow Reference
 
-This is the skill reference copy of the TerraPedia repo workflow. If the active repo contains the main workflow doc under `project-plan/` with the `00_` prefix, that file is the source of truth.
+This is the skill reference copy of the TerraPedia repo workflow. If the active repo contains `project-plan/00_协作开发标准流程.md`, that exact file is the source of truth.
 
 ## Repo Defaults
 
 - Default local DB: `terria_v1_local`
-- Default start entrypoint: `scripts/dev/start-local-stack.ps1`
-- Default stop entrypoint: `scripts/dev/stop-local-stack.ps1`
-- Default local config file: `scripts/dev/local-stack.config.json`
+- Default start entrypoint: `scripts/dev/start-local-stack.sh`
+- Default stop entrypoint: `scripts/dev/stop-local-stack.sh`
+- Default local config template: `scripts/dev/config/local-stack.config.example.json`
+- Bash / WSL is the local automation path. Same-name `.ps1` files are temporary compatibility wrappers only.
 
 Common commands:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-local-stack.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\stop-local-stack.ps1
+```bash
+bash ./scripts/dev/start-local-stack.sh
+bash ./scripts/dev/stop-local-stack.sh
 cd back
-mvn "-Dtest=ClassA,ClassB" test
+mvn -Dtest=ClassA,ClassB test
 mvn test
 cd data-query-app
 pnpm run check
+pnpm run test
+cd front-nuxt
+pnpm run check
+bash ./scripts/dev/quality-gate.sh
 git status --short
 git diff --cached --stat
 ```
@@ -37,6 +42,10 @@ git diff --cached --stat
 Stop if any of these is true:
 
 - goal and success criteria are not restated
+- required devlog state is unknown for non-trivial work
+- devlog-required work is proceeding without `terrapedia-devlog-guard` loaded
+- multi-agent work has no devlog coordinator or ownership boundary
+- multi-agent conflict has no recorded owner, serialization order, or integrated validation plan
 - environment facts are not verified
 - scope and target files are not locked
 - validation is undefined
@@ -49,6 +58,9 @@ Minimum validation means at least one of:
 - backend: compile + targeted tests
 - frontend: typecheck, build check, or page validation
 - data: dry run, DB count check, or sample verification
+- docs/process-only: `git diff --check` plus targeted consistency scans
+- skill changes: skill validator for each touched skill plus `git diff --check`
+- workflow or multi-agent rule changes: targeted re-review for material findings before `ready-for-commit`
 
 ## Standard Steps
 
@@ -60,6 +72,7 @@ Required output:
 - success criteria
 - what is out of scope
 - task type
+- devlog state: git-only, reused entry, or new entry
 
 Checklist:
 
@@ -67,6 +80,7 @@ Checklist:
 - [ ] I know what counts as done
 - [ ] I know what is out of scope
 - [ ] I know the task type
+- [ ] I know whether this task needs `docs/devlog/`
 
 ### 2. Environment Verification
 
@@ -155,6 +169,7 @@ Required output:
 - resolved issues
 - remaining risks
 - unrelated issues discovered during the task
+- whether any devlog entry was closed, left active, or not needed
 
 Checklist:
 
@@ -171,11 +186,24 @@ git status --short
 git diff --cached --stat
 ```
 
+Before commit:
+
+- re-evaluate whether devlog is required
+- parse `docs/devlog/entries/*.md` status sections for `active`, `blocked`, `ready-for-commit`, and `closed` with pending SHA
+- stop if `docs/devlog/current.md` omits an open entry
+- stop if material read-only review findings or `COMMIT BLOCKED: required devlog update` are unrecorded or recorded but unresolved
+- run status/staged-stat checks before closeout edits and again after closeout edits and staging
+- for one-commit devlog closeout, set the entry to `closed` before commit only after review gates are clear, with result, validation, residual risks, follow-up, and `commit SHA pending in final response`; remove it from `current.md` Open Work
+- keep completed but uncommitted work as `ready-for-commit`
+- use git-only only for tiny local changes where no future handoff is needed and no devlog-required category applies; do not use git-only for workflow, skill, data, crawler, API, UI, validation-gate, or multi-agent work
+- use `type(scope): action` commit messages. Allowed types are `feat`, `fix`, `test`, `docs`, `chore`, `refactor`, and `data`. Do not use `[code]` as the primary convention.
+
 Checklist:
 
 - [ ] Staged files are task-related only
-- [ ] Minimum validation is done or blocked with explanation
-- [ ] Commit message states the behavior change clearly
+- [ ] Minimum validation is done, or this is an abandoned/no-op/intentionally stopped closeout with explicit validation blocker
+- [ ] Commit message uses `type(scope): action` and states the behavior change clearly
+- [ ] Devlog closeout state is correct, or git-only exception is explicitly justified
 
 ## Multi-Agent SOP
 
@@ -189,8 +217,13 @@ Not allowed:
 - same file
 - same page section
 - same DB table field
+- same generated contract
+- same status model
+- same fixture
+- same route constant
+- same permission model
 - same long-running script
-- same process port lifecycle
+- same service lifecycle
 
 Before parallel work:
 
@@ -198,6 +231,19 @@ Before parallel work:
 - define forbidden files
 - define result collection
 - check for shared write targets
+- if using devlog, assign one coordinator for `docs/devlog/current.md`
+- use separate child entries for true parallel devlog writes
+- only the parent entry may represent task-level `ready-for-commit` or `closed`
+- parent work cannot become `ready-for-commit` while a child entry is unresolved `blocked`; blocked children need explicit stop reason plus named owner and follow-up entry
+- define producer/consumer contract handoff, consumer acknowledgement, and cross-boundary validation
+
+If a multi-agent conflict appears:
+
+- stop parallel writes to the conflicting target
+- stop dependent consumer work until the coordinator restates owner and valid contract
+- record `integration-conflict` in the active devlog entry
+- record conflicting agents, files or state, last known valid contract, serialization order, and required validation
+- assign exactly one owner before work resumes
 
 For data tasks:
 
@@ -237,8 +283,9 @@ Recommended order:
 
 Check first:
 
-- `scripts/dev/local-stack.config.json`
-- `scripts/dev/start-local-stack.ps1`
+- `scripts/dev/config/local-stack.config.json` for local-only config
+- `scripts/dev/config/local-stack.config.example.json` for committed template
+- `scripts/dev/start-local-stack.sh`
 
 ## Emergency Exception Template
 
@@ -300,8 +347,12 @@ Check first:
 - [ ] Ran git status --short
 - [ ] Ran git diff --cached --stat
 - [ ] Staged files are task-related only
-- [ ] Minimum validation is done or blocked with explanation
-- [ ] Commit message clearly states the behavior change
+- [ ] Re-evaluated whether devlog is required and scanned `docs/devlog/entries/*.md` open state
+- [ ] No unrecorded or recorded-but-unresolved material review findings / `needs-coordinator-decision`
+- [ ] If closing a devlog entry, review gates are clear and result, validation, risks, follow-up, and `commit SHA pending in final response` are recorded
+- [ ] Git-only exception is only for a tiny local change outside workflow / skill / data / crawler / API / UI / validation-gate / multi-agent work, and is recorded before commit in the active entry or commit message body with scope, changed paths, validation, no-handoff reason, and why no devlog-required category applies
+- [ ] Minimum validation is done, or this is an abandoned/no-op/intentionally stopped closeout with explicit validation blocker
+- [ ] Commit message uses `type(scope): action` and clearly states the behavior change
 ```
 
 ### Pre-Backfill Checklist

@@ -55,11 +55,15 @@ Safe response: show diff and branch state, then recommend split, checkpoint comm
 
 Always run `git status --short` and `git diff --cached --stat`.
 
+For TerraPedia repos, read `docs/devlog/current.md` when it exists and parse `docs/devlog/entries/*.md` status sections for `active`, `blocked`, `ready-for-commit`, and `closed` with pending SHA before commit. Use `terrapedia-devlog-guard` / `terrapedia-task-commit` for devlog-required work.
+
 Hard stop when:
 
 - a commit is requested but nothing is staged
 - staged files include unrelated scope
 - staged content has not been reviewed
+- the commit message does not summarize the staged behavior with `type(scope): action`; allowed types are `feat`, `fix`, `test`, `docs`, `chore`, `refactor`, and `data`
+- TerraPedia devlog-required work has stale, missing, pending-SHA, or unresolved devlog state
 
 Safe auto-actions: `git add <explicit-file-list>`, `git diff --cached --name-status`.
 
@@ -74,6 +78,7 @@ Always verify:
 - ahead/behind state is known
 - minimum validation is done
 - remote identity and permission source are clear
+- TerraPedia devlog state is not stale after scanning `docs/devlog/current.md` when present and parsing `docs/devlog/entries/*.md`
 
 Safe auto-actions: `git fetch`, `git push --dry-run`, `git ls-remote --heads origin <branch>`.
 
@@ -84,6 +89,7 @@ Hard stop when:
 - credential identity is unclear
 - remote permission is missing
 - required verification has not run
+- TerraPedia devlog-required work has unresolved `active`, `blocked`, `ready-for-commit`, pending-SHA `closed`, recorded unresolved review findings, `needs-coordinator-decision`, or unrecorded material review findings on the relevant branch/worktree or shared scope
 
 ### 5. Finish
 
@@ -93,6 +99,8 @@ Force an explicit closeout path:
 - push and open PR
 - keep branch for later
 - clean up local finished branch or worktree
+
+For TerraPedia repos, parse `docs/devlog/entries/*.md` and do not clean a branch or worktree while `docs/devlog/current.md` or an open entry still points to unresolved, `ready-for-commit`, or pending-SHA work on that branch or shared scope. Preserve unrelated open entries from other branches.
 
 Safe auto-actions: list merged branches, list worktrees, show cleanup candidates, remove clean local task worktrees, delete clean local task branches after merge and push when the exact local `HEAD` is recoverable from the remote.
 

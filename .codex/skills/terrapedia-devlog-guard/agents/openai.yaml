@@ -1,0 +1,4 @@
+interface:
+  display_name: "TerraPedia Devlog Guard"
+  short_description: "Keep TerraPedia devlog state current for agent handoff."
+  default_prompt: "Use $terrapedia-devlog-guard when starting, continuing, or closing TerraPedia development work that needs traceable handoff context."

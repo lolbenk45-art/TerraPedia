@@ -37,6 +37,8 @@ Stop. Don't proceed to Step 2.
 
 **If tests pass:** Continue to Step 2.
 
+For TerraPedia repos, read `docs/devlog/current.md` when it exists and parse `docs/devlog/entries/*.md` status sections for `active`, `blocked`, `ready-for-commit`, and pending-SHA `closed`. Do not present merge, PR, push, or cleanup as complete while the relevant branch/worktree or shared scope has `active`, `blocked`, `ready-for-commit`, or pending-SHA work; push/PR/cleanup require the entry to be `closed` with a real commit or a durable git-only exception. Material review blockers must be recorded and resolved or deferred with owner, and commit closeout rules from `terrapedia-devlog-guard` / `terrapedia-task-commit` must have been followed.
+
 ### Step 2: Determine Base Branch
 
 ```bash
@@ -110,6 +112,8 @@ git branch -r --contains HEAD
 ```
 
 Then: Report that the remote branch/PR exists and the local branch/worktree is intentionally preserved until merge, unless the user explicitly asked for local cleanup.
+
+For TerraPedia repos, include the devlog state in the report: durable git-only exception recorded or entry closed before commit. Do not push, create PR, merge, or clean local state when `docs/devlog/current.md` or parsed entries still point to unresolved, `ready-for-commit`, or pending-SHA work on this branch or shared scope. Preserve unrelated open entries from other branches.
 
 #### Option 3: Keep As-Is
 

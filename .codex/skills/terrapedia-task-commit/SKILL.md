@@ -12,21 +12,29 @@ Turn a finished TerraPedia task into one clean git commit. This is a close-out s
 ## Workflow
 
 1. Confirm the task is complete and validation has passed.
-2. Run:
+2. REQUIRED SUB-SKILL: load `terrapedia-devlog-guard` before commit closeout. Read `docs/devlog/current.md` if it exists and parse `docs/devlog/entries/*.md` status sections for `active`, `blocked`, `ready-for-commit`, and `closed` with `commit SHA pending in final response`.
+3. Re-evaluate devlog requirement using `terrapedia-devlog-guard` criteria. If the task is non-trivial or changes workflow, skills, data, crawler, API, UI, validation gates, or multi-agent state, stop unless a devlog entry exists. Do not use git-only for those categories.
+4. If a tiny local change is git-only, record a durable exception before commit in the active entry or commit message body with scope, changed paths, validation, no-handoff reason, and why no devlog-required category applies. Final-response-only is not durable.
+5. Stop if the current conversation contains unrecorded material read-only review findings, `COMMIT BLOCKED: required devlog update`, or recorded unresolved review findings / `needs-coordinator-decision` in the active entry.
+6. Run:
 
 ```powershell
 git status --short
 git diff --cached --stat
 ```
 
-3. Stage only files from the current task. Never use `git add .`.
-4. If scope is mixed, unstage unrelated files and keep the commit focused.
-5. Commit with a short conventional message:
-   - `feat: ...`
-   - `fix: ...`
-   - `docs: ...`
-   - `chore: ...`
-6. After commit, run:
+7. Stage only files from the current task. Never use `git add .`.
+8. If scope is mixed, unstage unrelated files and keep the commit focused.
+9. If a devlog entry exists and this commit closes it, ensure review gates are clear and it records result, validation, residual risks, follow-up, and `commit SHA pending in final response`; set it to `closed` and remove it from `docs/devlog/current.md` Open Work before commit. If completed work will remain uncommitted, keep `ready-for-commit`.
+10. Run `git status --short` and `git diff --cached --stat` again after closeout edits and staging. If a pending-SHA closed entry exists but the commit cannot proceed, stop and either complete the commit immediately or reopen/demote the entry to `active` before any other work.
+11. Commit with `type(scope): action`:
+   - Types: `feat`, `fix`, `test`, `docs`, `chore`, `refactor`, `data`.
+   - Scope: short module or workflow name, such as `article`, `auth`, `admin`, `api`, `crawler`, `devlog`, or `workflow`.
+   - Action: imperative behavior summary.
+   - Examples: `feat(article): support editing existing articles`, `test(auth): cover registration validation`, `fix(auth): handle null email validation`.
+   - Do not use `[code]` as the primary convention. Review-driven fixes use the real type; put `Review finding: ...` in the commit body when the source matters.
+12. Do not edit devlog solely to backfill the SHA after a one-commit closeout. Report the commit SHA in the final response. If the SHA must be written into the entry, make an explicit second devlog-closeout commit and say so.
+13. After commit, run:
 
 ```powershell
 git status --short --branch
@@ -34,8 +42,8 @@ git branch -vv
 git worktree list --porcelain
 ```
 
-7. Report the commit SHA, branch state, and any remaining local worktrees or branches related to this task.
-8. If the user asked to push, run the `git-hygiene-guard` pre-push checks, push the current branch, then run the post-push closeout below.
+14. Report the commit SHA, branch state, devlog closeout policy used, and any remaining local worktrees or branches related to this task.
+15. If the user asked to push, run the `git-hygiene-guard` pre-push checks, push the current branch, then run the post-push closeout below.
 
 ## Post-Push Closeout
 
@@ -73,6 +81,9 @@ If any check fails, stop and report the blocker instead of deleting anything.
 - Do not push unless the user asks.
 - Do not use `--amend`, `reset --hard`, or history rewrites.
 - Do not commit unverified work.
+- Do not leave a task devlog entry stale when committing work that used one.
+- Do not use git-only for workflow, skill, data, crawler, API, UI, validation-gate, or multi-agent work.
+- Do not create a post-commit dirty worktree only to backfill a SHA unless intentionally making a second devlog-closeout commit.
 - After merge into the target branch and push, local task branch/worktree cleanup is expected when remote recovery is verified, no local-only commits exist, and the worktree is clean.
 - After push or PR creation without merge, preserve the local task branch/worktree unless the user explicitly asks for local cleanup.
 - Never delete remote branches unless the user explicitly asks.
