@@ -22,6 +22,12 @@ Use this order when deciding project progress, priority, or next work:
 Older governance files can explain intent, but they do not control progress
 unless the current spec or this file explicitly points to them.
 
+Use these current companion files for implementation planning details:
+
+- `CURRENT_TECH_STACK.md` - maintained stack summary.
+- `CURRENT_ARCHITECTURE.md` - maintained architecture and data/acceptance-chain summary.
+- `CURRENT_VALIDATION_AND_RELEASE.md` - maintained validation and release boundary summary.
+
 ## Governance File Status
 
 Root governance files reviewed on 2026-07-09 carry status banners. Treat those
@@ -34,6 +40,9 @@ records listed above.
 | `00_WORKFLOW.md` | authoritative | Current task execution, validation, devlog, and commit SOP. |
 | `INDEX.md` | authoritative index | Classifies governance documents and placement rules. |
 | `current/PROJECT_CONTROL.md` | current | Progress control and stale-document routing. |
+| `current/CURRENT_TECH_STACK.md` | current | Maintained stack summary for current development. |
+| `current/CURRENT_ARCHITECTURE.md` | current | Maintained architecture and data/acceptance-chain summary. |
+| `current/CURRENT_VALIDATION_AND_RELEASE.md` | current | Maintained validation and release boundary summary. |
 | `current/homepage-aggregation-todo-2026-05-20.md` | deferred | Specific homepage data/API gap; do not treat as global project priority. |
 | `01_OVERVIEW.md` | stale-reference | April 2026 overview. Useful context, not current phase authority. |
 | `02_REQUIREMENTS.md` | stale-reference | April 2026 requirements baseline. Revalidate against code before using. |
@@ -55,7 +64,7 @@ Document-level judgment as of 2026-07-09:
 
 - The project is past the May public-preview status recorded in `docs/project-management/current-status.md`.
 - Recent July work is concentrated around crawler monitor reliability, crawler resume/recovery protocol, and documentation governance.
-- The immediate management need is not another long plan. It is keeping current authority, status, risk, active plans, and old-document routing synchronized.
+- The immediate management need is not another long plan. It is keeping current authority, status, risk, active plans, current companion docs, and old-document routing synchronized.
 - Any release or public-readiness claim still needs fresh validation; no runtime/backend/frontend/data gate was run for this governance audit.
 
 ## Priority Lanes

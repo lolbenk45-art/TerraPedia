@@ -18,6 +18,9 @@ If files conflict, the lower number wins.
 - `00_CURRENT_SPEC.md` - concise current spec for future agents.
 - `00_WORKFLOW.md` - current TerraPedia execution workflow.
 - `current/PROJECT_CONTROL.md` - current progress-control panel and stale-document routing.
+- `current/CURRENT_TECH_STACK.md` - maintained stack summary for current development.
+- `current/CURRENT_ARCHITECTURE.md` - maintained architecture and data/acceptance-chain summary.
+- `current/CURRENT_VALIDATION_AND_RELEASE.md` - maintained validation and release boundary summary.
 - `01_OVERVIEW.md` - `stale-reference` with status banner; broader April 2026 overview, not current phase authority.
 - `02_REQUIREMENTS.md` - `stale-reference` with status banner; April 2026 requirements baseline, not current priority authority.
 - `06_UI_UX_GUIDELINES.md` - `reference` with status banner; UI vocabulary/reference, current UI still requires code inspection.
