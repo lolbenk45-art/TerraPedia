@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-09 23:00 CST by main agent
+Last updated: 2026-07-09 23:34 CST by main agent
 
 ## Open Work
 
@@ -13,6 +13,7 @@ Last updated: 2026-07-09 23:00 CST by main agent
 - Old root governance documents now carry status banners and current-authority routing.
 - Current governance companion docs now cover maintained tech stack, architecture, API contracts, and validation/release boundaries.
 - Current API contract documentation has been added as a companion governance doc for commit.
+- Concrete API response and test evidence formats have been added to the API contract doc for commit.
 - No app runtime feature code or data changed.
 
 ## Next Agent Should Start Here
@@ -21,6 +22,7 @@ Last updated: 2026-07-09 23:00 CST by main agent
 - Keep latest project state in `00_CURRENT_SPEC.md`, `PROJECT_CONTROL.md`, project-management records, and devlog rather than old root planning bodies.
 - Keep `CURRENT_TECH_STACK.md`, `CURRENT_ARCHITECTURE.md`, `CURRENT_API_CONTRACTS.md`, and `CURRENT_VALIDATION_AND_RELEASE.md` aligned with package scripts, runtime config, API route/response/auth changes, data chain, and gate behavior changes.
 - For future API work, start from `docs/project-governance/current/CURRENT_API_CONTRACTS.md` and update the matching devlog entry for that task.
+- For future API tests, record compact returned-data evidence in devlog and put full machine-readable payloads under `reports/api-smoke/` when useful.
 
 ## Current Risks
 
@@ -30,6 +32,11 @@ Last updated: 2026-07-09 23:00 CST by main agent
 
 ## Recently Closed
 
+- `docs/devlog/entries/2026-07-09-api-response-test-format.md`
+  - branch: `docs/current-api-contracts`
+  - worktree: `/home/lolben/TerraPedia`
+  - status: `closed`
+  - commit: `commit SHA pending in final response`
 - `docs/devlog/entries/2026-07-09-current-api-contracts.md`
   - branch: `docs/current-api-contracts`
   - worktree: `/home/lolben/TerraPedia`
