@@ -36,7 +36,6 @@ data-query-app/
 scripts/
 data/
 docs/
-project-plan/
 reports/
 task/
 .worktrees/
@@ -323,13 +322,13 @@ reports/relation/
 
 ```text
 docs/plans/
-project-plan/active/
+docs/project-governance/current/
 ```
 
 规则：
 
 - 任务级执行计划优先放 `docs/plans/`。
-- 项目级里程碑优先放 `project-plan/active/`。
+- 项目级里程碑优先放 `docs/project-governance/current/`。
 - 文件名建议：`YYYY-MM-DD_english-slug_中文标题.md`。
 
 ### 历史计划
@@ -337,7 +336,7 @@ project-plan/active/
 放置位置：
 
 ```text
-project-plan/archive/
+docs/project-governance/archive/
 ```
 
 规则：
@@ -357,7 +356,7 @@ task/YYYY-MM-DD_topic/
 
 - `task/` 默认不进入 git。
 - 只保存本地过程材料。
-- 通过评审的结论必须提升到 `docs/` 或 `project-plan/`。
+- 通过评审的结论必须提升到 `docs/` 或 `docs/project-governance/`。
 
 固定子目录：
 
@@ -496,7 +495,7 @@ data-query-app/
 | 导出数据 | `data/exports/` | 视体量决定 | 可再生成 |
 | 长期审计报告 | `docs/audits/` | 是 | 结论性报告 |
 | 临时运行报告 | `reports/runtime/` | 否 | 可再生成 |
-| 当前计划 | `docs/plans/` 或 `project-plan/active/` | 是 | 可执行计划 |
+| 当前计划 | `docs/plans/` 或 `docs/project-governance/current/` | 是 | 可执行计划 |
 | 本地任务上下文 | `task/<task>/` | 否 | 草稿、日志、过程材料 |
 | 本地配置 | `scripts/dev/config/local-stack.config.json` | 否 | 不提交 |
 | 构建产物 | `dist/`、`.nuxt/`、`.output/`、`target/` | 否 | 可重建 |
@@ -513,4 +512,3 @@ data-query-app/
 6. 迁移后更新相关 README 或索引。
 
 禁止直接删除不明来源文件。先确认用途，再处理。
-

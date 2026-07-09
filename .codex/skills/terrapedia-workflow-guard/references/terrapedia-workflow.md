@@ -1,6 +1,6 @@
 # TerraPedia Workflow Reference
 
-This is the skill reference copy of the TerraPedia repo workflow. If the active repo contains `project-plan/00_协作开发标准流程.md`, that exact file is the source of truth.
+This is the skill reference copy of the TerraPedia repo workflow. If the active repo contains `docs/project-governance/00_WORKFLOW.md`, that exact file is the source of truth.
 
 ## Repo Defaults
 

@@ -4,11 +4,11 @@
 
 归档规则：
 
-- 先在 `project-plan/INDEX.md` 标注状态。
+- 先在 `docs/project-governance/INDEX.md` 标注状态。
 - 再移动文件。
 - 如果文件仍被文档引用，先更新引用或保留兼容说明。
 - 历史正文可能保留旧路径、旧根目录布局或当时的绝对路径；除非影响当前索引或当前执行入口，不批量改写旧路径。
-- `project-plan/plan-/**` 是独立的历史 legacy cluster，不从那里批量搬入 archive。
+- `docs/project-governance/legacy/**` 是独立的历史 legacy cluster，不从那里批量搬入 archive。
 
 ## 当前分区
 

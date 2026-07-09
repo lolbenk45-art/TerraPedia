@@ -12,6 +12,6 @@
 ## 落位规则
 
 - 当前有效的结构规则、边界定义、目录职责和跨模块约束放在这里。
-- 任务级执行计划放 `docs/plans/`，项目级长期计划和 SOP 放 `project-plan/`。
-- 已过期的架构讨论不要继续放这里，应迁入 `project-plan/archive/` 或保留在原历史位置并由索引标注。
+- 任务级执行计划放 `docs/plans/`，项目级长期计划和 SOP 放 `docs/project-governance/`。
+- 已过期的架构讨论不要继续放这里，应迁入 `docs/project-governance/archive/` 或保留在原历史位置并由索引标注。
 - 临时分析先放 `task/<date>_<topic>/docs/`，确认后再提升到本目录。

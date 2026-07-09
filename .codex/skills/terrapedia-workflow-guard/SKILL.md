@@ -19,7 +19,7 @@ Apply the TerraPedia repo workflow before implementation so work does not jump s
 
 ## Source Of Truth
 
-If the current repo contains `project-plan/00_协作开发标准流程.md`, read it first and follow it. That exact file is the repo SOP source of truth.
+If the current repo contains `docs/project-governance/00_WORKFLOW.md`, read it first and follow it. That exact file is the repo SOP source of truth.
 
 If that file is missing or unavailable, read:
 

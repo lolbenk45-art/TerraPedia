@@ -13,7 +13,7 @@
 ## 落位规则
 
 - 结论性 Markdown 报告放这里。
-- 可直接执行的修复计划放 `docs/plans/`，项目级里程碑和历史计划放 `project-plan/`。
+- 可直接执行的修复计划放 `docs/plans/`，项目级里程碑和历史计划放 `docs/project-governance/`。
 - 项目状态、决策日志和迁移记录放 `docs/project-management/`。
 - 大体量 JSON、CSV、日志优先放 `task/<task>/data/` 或 `reports/runtime/`。
 - 可重新生成的本地运行报告不要放这里。

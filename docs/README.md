@@ -7,6 +7,7 @@
 - `architecture/`：架构设计、目录结构、文件落位规则；入口见 [architecture/README.md](./architecture/README.md)。
 - `audits/`：长期保留的审计报告；入口见 [audits/README.md](./audits/README.md)。
 - `plans/`：任务级执行计划；入口见 [plans/README.md](./plans/README.md)。
+- `project-governance/`：项目级当前事实、SOP、长期计划、参考材料和历史计划；入口见 [project-governance/INDEX.md](./project-governance/INDEX.md)。
 - `project-management/`：项目状态、决策、风险和迁移记录；入口见 [project-management/README.md](./project-management/README.md)。
 - `runbooks/`：可重复执行的运行和排障手册；入口见 [runbooks/README.md](./runbooks/README.md)。
 - `research/`：调研材料。
@@ -14,7 +15,7 @@
 
 ## 规则
 
-- 项目级长期计划、SOP、总览和历史项目计划归 `project-plan/` 管理。
+- 项目级当前事实、长期计划、SOP、总览和历史项目计划归 `docs/project-governance/` 管理。
 - 任务级、可执行、可验收的计划放 `docs/plans/`。
 - 临时过程材料先放 `task/`。
 - 可重新生成的运行输出放 `reports/runtime/`。

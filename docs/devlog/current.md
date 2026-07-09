@@ -1,30 +1,35 @@
 # Current Devlog
 
-Last updated: 2026-07-09 15:00 CST by main agent
+Last updated: 2026-07-09 16:02 CST by main agent
 
 ## Open Work
 
-- None.
+- none
 
 ## Current State
 
-- Current task state: `closed`; devlog traceability workflow is being committed with `commit SHA pending in final response`.
-- Changed surface is process/docs/skills only; no app runtime code changed.
+- Project documentation governance naming has been normalized and closed for commit.
+- Changed surface is docs/process/skills plus the project-root helper sentinel required by the renamed governance directory; no app runtime feature code or data changed.
 
 ## Next Agent Should Start Here
 
-- No active devlog work. If commit fails before completion, reopen `docs/devlog/entries/2026-07-08-devlog-traceability.md` to `active` before other work.
+- Preserve historical archive bodies unless a current routing/source-of-truth reference needs repair.
+- Use `AGENTS.md` first, then `docs/project-governance/00_CURRENT_SPEC.md`, then `docs/project-governance/00_WORKFLOW.md`.
 
 ## Current Risks
 
-- No automated enforcement yet; process depends on agents loading and following the guard skill.
-- Future follow-up exists for a lightweight devlog status/current checker before CI enforcement or after repeated stale-state incidents.
-- Keep entries compact; optional multi-agent/review sections should be added only when used.
+- Historical documents still mention the old `project-plan/` path as archival context by design.
+- Large rename diff is expected because the retired `project-plan/` tree moved under `docs/project-governance/`.
 
 ## Recently Closed
 
+- `docs/devlog/entries/2026-07-09-project-governance-rename.md`
+  - branch: `main`
+  - worktree: `/home/lolben/TerraPedia`
+  - status: `closed`
+  - commit: `commit SHA pending in final response`
 - `docs/devlog/entries/2026-07-08-devlog-traceability.md`
   - branch: `feat/devlog-traceability`
   - worktree: `/home/lolben/TerraPedia`
   - status: `closed`
-  - commit: `commit SHA pending in final response`
+  - commit: `3c642b2`

@@ -48,7 +48,8 @@ git diff --name-status
 - `docs/plans/*.md`
 - `docs/superpowers/plans/*.md`
 - `docs/superpowers/specs/*.md`
-- `project-plan/00_*.md`
+- `docs/project-governance/00_CURRENT_SPEC.md`
+- `docs/project-governance/00_WORKFLOW.md`
 - `docs/project-management/current-status.md`
 - `docs/project-management/risk-register.md`
 - `docs/project-management/decision-log.md`
@@ -163,5 +164,5 @@ Do not duplicate the full daily report in these files.
 - Separate committed work from uncommitted work.
 - Mark uncertain classifications as suspected or tentative.
 - Prefer specific risks: missing tests, plan drift, stale docs, unmanaged data chain ownership, unclear API contracts, weak acceptance gates, or ignored dirty worktree.
-- Do not repeat long background from `project-plan/00_*.md`; cite only the current phase, risk, or gate when relevant.
+- Do not repeat long background from `docs/project-governance/00_CURRENT_SPEC.md` or `docs/project-governance/00_WORKFLOW.md`; cite only the current phase, risk, or gate when relevant.
 - If the user asks for a pure chat summary, skip file writes but keep the same management structure.

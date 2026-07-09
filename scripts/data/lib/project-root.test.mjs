@@ -17,7 +17,7 @@ test('getProjectRoot resolves repository root from current module path', () => {
 
   assert.equal(path.isAbsolute(projectRoot), true);
   assert.equal(fs.existsSync(path.join(projectRoot, 'scripts')), true);
-  assert.equal(fs.existsSync(path.join(projectRoot, 'project-plan')), true);
+  assert.equal(fs.existsSync(path.join(projectRoot, 'docs', 'project-governance')), true);
 });
 
 test('resolveProjectPath joins paths relative to repository root', () => {
@@ -42,7 +42,7 @@ test('resolveSharedDataRoot uses primary worktree shared data directory for link
   fs.mkdirSync(path.join(primaryRoot, 'data', 'terraPedia'), { recursive: true });
   fs.mkdirSync(gitWorktreeDir, { recursive: true });
   fs.mkdirSync(path.join(linkedRoot, 'scripts'), { recursive: true });
-  fs.mkdirSync(path.join(linkedRoot, 'project-plan'), { recursive: true });
+  fs.mkdirSync(path.join(linkedRoot, 'docs', 'project-governance'), { recursive: true });
   fs.writeFileSync(path.join(linkedRoot, '.git'), `gitdir: ${gitWorktreeDir}\n`, 'utf8');
 
   const moduleUrl = pathToFileURL(path.join(getProjectRoot(), 'scripts', 'data', 'lib', 'project-root.mjs')).href;

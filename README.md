@@ -6,8 +6,8 @@ TerraPedia is a Terraria knowledge base project with:
 - `front`: user-facing frontend
 - `data-query-app`: admin/data-query frontend
 - `data`: data layers and generated datasets used by import and sync tooling
-- `docs`: current architecture, audits, plans, runbooks, research notes, and `superpowers` outputs
-- `project-plan`: project-level scope, architecture, workflow, milestone docs, and historical plan index
+- `docs`: current architecture, audits, plans, project governance, runbooks, research notes, and `superpowers` outputs
+- `docs/project-governance`: current project facts, workflow, long-term plans, reference docs, and historical project planning records
 - `reports`: local logs, screenshots, benchmarks, and other generated run artifacts; long-lived reports should move to `docs/audits`
 - `scripts`: local automation, grouped by `dev`, `data`, `lib`, and `tooling`
 
@@ -15,6 +15,9 @@ TerraPedia is a Terraria knowledge base project with:
 
 Current structure rules live in:
 
+- `AGENTS.md`
+- `docs/project-governance/00_CURRENT_SPEC.md`
+- `docs/project-governance/INDEX.md`
 - `docs/architecture/project-structure-redesign-2026-04-27.md`
 - `docs/architecture/file-placement-rules.md`
 
@@ -22,6 +25,7 @@ Before creating new files, decide whether they are code, data, reports, plans, l
 
 Important target boundaries:
 
+- Project-level current facts and governance: `docs/project-governance/`
 - Long-lived audit reports: `docs/audits/`
 - Task-level execution plans: `docs/plans/`
 - Local task context: `task/`

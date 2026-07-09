@@ -128,7 +128,7 @@ function isRepositoryRoot(directory) {
   return (
     fs.existsSync(path.join(directory, '.git')) &&
     fs.existsSync(path.join(directory, 'scripts')) &&
-    fs.existsSync(path.join(directory, 'project-plan'))
+    fs.existsSync(path.join(directory, 'docs', 'project-governance'))
   );
 }
 
