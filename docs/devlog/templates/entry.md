@@ -33,6 +33,10 @@
 - Results:
 - Not run:
 
+When recording validation scans, avoid writing sensitive search literals in a way
+that makes this entry match the same scan later. Prefer describing the scan
+scope and result, or exclude the entry/template/SOP files from the scan target.
+
 ## Result
 
 - Completed:
@@ -136,6 +140,10 @@ Keep one top-level `## Status` section. The first non-empty line after it must b
 ## Optional: State Changes
 
 Record only meaningful state changes: goal, direction, scope, blocker, validation, review finding, conflict, risk, follow-up, commit, or handoff target.
+
+Do not paste full validation commands when their search literals are also the
+thing being checked. A future broad `rg` can otherwise match this entry instead
+of the project state being audited.
 
 ### YYYY-MM-DD HH:mm
 

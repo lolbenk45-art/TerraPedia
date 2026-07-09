@@ -17,9 +17,26 @@ If files conflict, the lower number wins.
 
 - `00_CURRENT_SPEC.md` - concise current spec for future agents.
 - `00_WORKFLOW.md` - current TerraPedia execution workflow.
-- `01_OVERVIEW.md` - broader project overview; verify dated claims before relying on them.
-- `04_ARCHITECTURE.md` - architecture notes; current runtime facts still need code/runtime confirmation.
-- `11_DOCUMENTATION_SYSTEM.md` - documentation-system notes; this index and current spec override older placement wording.
+- `current/PROJECT_CONTROL.md` - current progress-control panel and stale-document routing.
+- `01_OVERVIEW.md` - broader April 2026 overview; verify dated claims before relying on them.
+- `02_REQUIREMENTS.md` - April 2026 requirements baseline; revalidate against current code before using.
+- `06_UI_UX_GUIDELINES.md` - UI vocabulary/reference; current UI still requires code inspection.
+
+## Stale Or Historical Root Files
+
+The following root files are useful historical/reference material but are not current execution authority:
+
+- `03_TECH_STACK.md` - contains Astro/SSG-era choices; current maintained lines are Nuxt, Spring Boot, and data tooling.
+- `04_ARCHITECTURE.md` - contains static content-collection architecture; current runtime facts must come from code and current spec.
+- `07_TESTING_STRATEGY.md` - contains SSG/Pagefind-era testing strategy; use `00_WORKFLOW.md` and package scripts for current gates.
+- `08_CICD_DEPLOYMENT.md` - contains old Cloudflare/Astro deployment assumptions.
+- `09_SECURITY.md` - checklist reference only; deployment/runtime assumptions require revalidation.
+- `10_OPERATIONS.md` - static-site operations reference only.
+- `11_DOCUMENTATION_SYSTEM.md` - template/reference only; this index and current spec override older placement wording.
+- `12_RELEASE_CHECKLIST.md` - checklist reference only; release status lives in project-management docs and fresh validation evidence.
+
+Do not delete or bulk rewrite these files in routine tasks. If one becomes
+current again, first update this index and `current/PROJECT_CONTROL.md`.
 
 ## Directory Rules
 

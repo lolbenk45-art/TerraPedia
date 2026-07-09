@@ -2,33 +2,30 @@
 
 ## Date
 
-2026-05-24
+2026-07-09
 
 ## Current Phase
 
-Phase C public preview stabilization.
+Project governance reset and crawler reliability stabilization.
 
 ## Active Sequence
 
-V0.1 public preview has completed the local release-decision evidence loop on local `main`.
+Document-level judgment: July work is focused on crawler monitor reliability, crawler resume/recovery hardening, and project documentation governance.
 
-Next sequence:
+Current sequence:
 
-P0 push/staging/release handling decision -> P0 warning-debt branch selection -> P1 NPC zh-name coverage gate -> P2 UI polish and feature expansion.
+P0 governance/status synchronization -> P1 crawler monitor and resume/recovery stabilization -> P2 homepage aggregation and public UI polish.
 
 ## Current Gate Boundary
 
-CI v1 is a CI-safe gate and is not equivalent to the local full gate.
-The local full gate remains `scripts/dev/quality-gate.ps1`.
+Current workflow authority is `docs/project-governance/00_WORKFLOW.md`.
+Bash/WSL is the primary local automation path. The full local gate is:
 
-As of 2026-05-24:
+```bash
+bash ./scripts/dev/quality-gate.sh
+```
 
-- Domain freshness is current: `freshCount=45`, `missingCount=0`, `staleCount=0`, `unknownCount=0`.
-- Domain A-grade final closeout has no generated blockers: `summary.generatedBlockedCount=0`, `summary.generatedWarningCount=18`, `overallStatus=warning`.
-- Front Nuxt preview final smoke passed on the local Task 5 stack: public route check `24` routes, visual gate `failureCount=0`, `warningCount=0`, typecheck exit `0`.
-- Local stack preview closeout smoke passed from the Task 6 worktree: backend `18088`, admin `3001`, front `5174`, Redis `6380`, MinIO public `9000`, built-in smoke `passed=9 failed=0`, public route smoke `13/13` returned `200`.
-- Preview release decision status is `release-decision-ready`: enough committed evidence exists for a push/staging/release decision, while 18 A-grade warning panels remain visible.
-- Public V0.1 should still be described as preview unless the operator separately approves the push/staging/release path and accepts the documented warning debt.
+No runtime/backend/frontend/data gate was run for the 2026-07-09 governance audit. Treat old May release evidence as historical until rerun.
 
 ## Data Chain Boundary
 
@@ -37,11 +34,9 @@ UI/API must not generate evidence, refresh data, or query DB as gate evidence.
 
 ## Public Domain Boundary
 
-The V0.1 Nuxt public preview now exposes public pages for Items, NPCs, Bosses, Buffs, Projectiles, Armor Sets, Biomes, Crafting, Categories, Search, Articles, and About.
+The May V0.1 Nuxt public preview evidence covered Items, NPCs, Bosses, Buffs, Projectiles, Armor Sets, Biomes, Crafting, Categories, Search, Articles, and About. Treat that evidence as historical until the current Bash gate and route checks are rerun.
 
-This preview surface does not override Domain Acceptance. Current public-blocking policy: missing or unknown evidence blocks. `public-blocking stale` is warning by default; only explicit `accepted-warning` may continue to readiness-only evaluation, and stale evidence cannot make a domain route-ready.
-
-The 2026-05-24 remaining-blocker repair closed the four Group B source snapshot blockers with durable gate-consumed evidence. Task 1 of the preview closeout loop initially found only `terria_v1_local` and `terria_v1_relation`, then the operator provided the Windows MySQL source and `terria_v1_maint` was restored into WSL `127.0.0.1:13306`. Task 2 generated Boss image lineage evidence and reclassified `bosses/imageReadiness` from blocked to warning; the warning is a real contract gap (`missing_relation_image_rows`, `missing_projection_rows`) but no longer blocks on missing evidence. Task 3 regenerated relation coverage and reclassified `projectiles/relationReadiness` from blocked to warning; the old `nameZh.gap=1006` was stale evidence, and fresh `projectiles.nameZh.gap=0`. Task 4 final closeout confirmed freshness `pass` and A-grade gate exit `0` with 18 warning panels. Task 5 front-nuxt final smoke passed after stabilizing the route readiness wait for the visual checker. Task 6 local stack closeout smoke passed from the updated main-derived worktree and confirmed backend/admin/front route reachability without stale process roots. Task 7 recorded the preview release decision as `release-decision-ready` for operator release/staging choice. A blocker is cleared only when the gate-consumed evidence is durable across machines; local-only ignored evidence is classification support, not closure.
+Public surface readiness still does not override Domain Acceptance. Missing or unknown evidence blocks; stale evidence is warning-only unless a current decision explicitly accepts it as `accepted-warning`. A blocker is cleared only when gate-consumed evidence is durable across machines; local-only ignored evidence is classification support, not closure.
 
 ## Monitor Boundary
 
@@ -50,17 +45,24 @@ Future DB-backed or real-time crawler diagnostics must be marked `notGateEvidenc
 
 ## Local Self-start Boundary
 
-Local self-start acceptance is runtime-only. `verify-local-stack.ps1`, `start-local-stack.ps1`, `smoke-local-stack.ps1`, and `stop-local-stack.ps1` do not change acceptance readiness.
+Local self-start acceptance is runtime-only. Current maintained entrypoints are Bash/WSL scripts:
+
+```bash
+bash ./scripts/dev/start-local-stack.sh
+bash ./scripts/dev/stop-local-stack.sh
+```
+
+Legacy `.ps1` local-stack scripts may appear in older May records or compatibility wrappers, but they are not current workflow authority and do not change acceptance readiness.
 Smoke is read-only business probing and report writing under `reports/local-start`; it must not generate evidence, refresh data, run storage sync, or bypass manifest -> report evidence -> freshness audit -> manual refresh plan -> quality gate.
 
 ## P2 Status
 
-P2 UI work is allowed only after the P0 blocker triage and burn-down path is under control. New public feature expansion should not be prioritized ahead of the Domain A-grade blocker triage unless explicitly accepted as preview-only work.
+P2 UI work is allowed only after P0 governance/status synchronization and P1 crawler/data reliability control points are stable. New public feature expansion should not be prioritized ahead of crawler/data reliability work unless explicitly accepted as preview-only work.
 
 ## Next Actions
 
-- Decide whether to push local `main` to `origin/main`, open a PR, or keep the preview local; local `main` is ahead of remote after the V0.1 preview and closeout merges.
-- Open `plan/public-v0.1-release-or-staging-2026-05-24` if the operator wants external release/staging handling.
-- Open `fix/boss-image-relation-projection-readiness-2026-05-24` if Boss image warning debt should be burned down before stronger release language.
-- Add an automatic NPC zh-name gate in the next data-quality iteration. Current evidence shows `npc-id-row-images.json` can contain Chinese names while `npcs.name_zh` may still regress to empty if a write path skips zh persistence. Add a DB/API coverage check so this fails before UI review.
-- Run staging or preview-origin smoke before any external release claim.
+- Finish classifying and controlling `docs/project-governance/` so old planning files do not drive current execution.
+- Keep `docs/project-governance/current/PROJECT_CONTROL.md` aligned with `docs/project-management/current-status.md`.
+- Continue crawler monitor/resume stabilization from the current July plans before broad public feature expansion.
+- Decide whether to push local `main`, open a PR, or keep the governance rename local; local `main` is currently ahead of `origin/main`.
+- Rerun runtime/backend/frontend/data gates before making any release, staging, or public-readiness claim.

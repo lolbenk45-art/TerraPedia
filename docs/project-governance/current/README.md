@@ -8,4 +8,5 @@
 
 ## Active TODOs
 
+- `PROJECT_CONTROL.md`：当前项目进度控制面板，说明如何读取治理目录、哪些文件是旧规划、P0/P1/P2 如何推进。
 - `homepage-aggregation-todo-2026-05-20.md`：记录首页改造后续的聚合接口、最近更新、热门/浏览量和阶段筛选数据缺口。

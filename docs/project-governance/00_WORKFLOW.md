@@ -431,6 +431,7 @@ git diff --cached --stat
 - 提交前必须重新判断是否需要 devlog；若 devlog-required 工作缺少 entry，不得提交。workflow、skill、data、crawler、API、UI、validation-gate 或 multi-agent 工作不得使用 git-only
 - entry 状态必须按顶层 `## Status` 后第一行 code span 解析，只接受 `active`、`blocked`、`ready-for-commit`、`closed`；不得用全文 `rg` 匹配历史说明或示例里的状态词
 - 提交前解析 `docs/devlog/entries/*.md` 中的 `active`、`blocked`、`ready-for-commit`、以及带 `commit SHA pending in final response` 的 `closed` 状态，确认 `docs/devlog/current.md` 未遗漏当前 branch / worktree 或共享范围的 open entry
+- 对敏感字面量做一致性扫描时，不得把记录该扫描命令、模板示例或 SOP 示例的文档纳入同一轮判定范围；否则扫描会命中自己的记录文本。需要检查 devlog 状态时，必须解析结构化字段，例如 `## Status` 与 `## Commits`，不得用全文字符串命中作为完成/阻断依据
 - `docs/devlog/current.md` 的时间必须是 `Last updated: YYYY-MM-DD HH:mm CST by <updater>`；未来时间、非 CST / 模糊时间、超过 24 小时且没有 `Freshness note: still valid as of YYYY-MM-DD HH:mm CST by <updater>` 的 `ready-for-commit` 都视为 stale
 - 若当前会话包含未记录的 material read-only review findings，或 active entry 中有已记录但未解决的 review findings、`needs-coordinator-decision`、或 `COMMIT BLOCKED: required devlog update`，不得提交
 - 若本次 commit 将关闭 devlog entry，先运行 `git status --short` 与 `git diff --cached --stat`；确认 review gate 已清空，entry 已记录结果、验证、风险与 follow-up 后，标记为 `closed`，写明 `commit SHA pending in final response`，并从 `docs/devlog/current.md` Open Work 移除；closeout 修改和 staging 后再次运行 status / staged-stat，避免 commit 失败后遗留 closed pending entry
@@ -688,6 +689,7 @@ git diff --cached --stat
 - [ ] 已执行 git diff --cached --stat
 - [ ] staged 仅包含本次任务相关文件
 - [ ] 已重新判断 devlog 是否需要，并扫描 `docs/devlog/entries/*.md` open 状态
+- [ ] 敏感字面量扫描已排除命令记录、模板示例和 SOP 示例；devlog 状态按结构化字段解析
 - [ ] 没有未记录或已记录但未解决的 material review findings / `needs-coordinator-decision`
 - [ ] 若 closing devlog entry，review gate 已清空，且 entry 已记录结果、验证、风险、follow-up、`commit SHA pending in final response`
 - [ ] git-only 例外仅用于 tiny local change 且不属于 workflow / skill / data / crawler / API / UI / validation-gate / multi-agent；提交前已在 active entry 或 commit message body 持久记录 scope / changed paths / validation / no-handoff reason / 为什么不属于 devlog-required 类别；final-response-only 不算持久记录
