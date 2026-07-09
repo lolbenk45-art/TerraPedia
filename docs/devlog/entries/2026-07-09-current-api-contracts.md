@@ -70,7 +70,7 @@
 
 ## Commits
 
-- `commit SHA pending in final response`
+- `e85be2a`
 
 ## Optional: State Changes
 
@@ -97,5 +97,5 @@
 - [x] Cross-review findings are fixed and re-reviewed, rejected with reason, or deferred with owner and follow-up.
 - [x] Producer/consumer contract acknowledgement is current, if applicable.
 - [x] Cross-boundary validation is recorded. If blocked, status is `blocked` or intentionally stopped, not `ready-for-commit`.
-- [x] Commit SHA, `commit SHA pending in final response`, or stop reason recorded.
+- [x] Commit SHA, `e85be2a`, or stop reason recorded.
 - [x] `docs/devlog/current.md` updated.
