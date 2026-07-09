@@ -60,7 +60,7 @@ P0:
 
 - Keep `00_CURRENT_SPEC.md`, `00_WORKFLOW.md`, `docs/devlog/current.md`, and `docs/project-management/current-status.md` synchronized.
 - Do not let stale `03-12` planning documents drive implementation or release decisions.
-- Make an explicit push/PR/local-only decision for local `main` when the operator is ready.
+- Make an explicit push/PR/local-only decision for local governance/status branches when the operator is ready.
 
 P1:
 

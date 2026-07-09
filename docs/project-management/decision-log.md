@@ -122,3 +122,10 @@ Decision: V0.1 public preview is `release-decision-ready` based on committed clo
 Reason: Domain A-grade final closeout has `generatedBlockedCount=0`, Front Nuxt visual smoke passes, and local stack closeout smoke passes. The A-grade gate still has warning panels and local `main` has not been pushed.
 Evidence: `docs/audits/2026-05-24_domain-a-grade-final-closeout.md`, `docs/audits/2026-05-24_front-nuxt-preview-final-smoke.md`, `docs/audits/2026-05-24_local-stack-preview-closeout-smoke.md`, `docs/audits/2026-05-24_preview-release-decision.md`.
 Expected follow-up: Open `plan/public-v0.1-release-or-staging-2026-05-24` or choose a local-only checkpoint; open warning-debt branches if stronger release wording is required.
+
+## D-2026-07-09-01: Current risk register uses July risk themes
+
+Decision: `docs/project-management/risk-register.md` records current July risk themes instead of carrying the full May row set as active risks.
+Reason: The May rows were tied to May gate and release evidence. Current governance treats that evidence as historical until fresh Bash gates, route checks, and data-readiness checks are rerun.
+Evidence: `docs/project-governance/current/PROJECT_CONTROL.md`, `docs/project-management/current-status.md`, and the 2026-07-09 governance reset commits.
+Expected follow-up: Revalidate any May risk before promoting it back into the current risk table or closing it as resolved.

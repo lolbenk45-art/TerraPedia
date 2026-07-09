@@ -62,4 +62,15 @@ Update this spec when a task changes:
 - documentation placement rules
 - workflow rules that future agents must follow
 
-Do not update this spec for ordinary bug fixes, temporary investigation notes, command logs, or one-off task progress. Record those in devlog, plans, audits, or project-management files.
+When a task changes project progress, active focus, project risk, durable
+management decisions, or handoff state, update the corresponding current record
+in the same task:
+
+- handoff state: `docs/devlog/current.md`
+- current phase, blockers, and next priorities: `docs/project-management/current-status.md`
+- active project risks: `docs/project-management/risk-register.md`
+- durable management decisions: `docs/project-management/decision-log.md`
+
+Do not update this spec for ordinary bug fixes, temporary investigation notes,
+command logs, or one-off task progress. Record those in devlog, plans, audits,
+or project-management files.

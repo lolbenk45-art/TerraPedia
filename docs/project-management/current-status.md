@@ -19,13 +19,16 @@ P0 governance/status synchronization -> P1 crawler monitor and resume/recovery s
 ## Current Gate Boundary
 
 Current workflow authority is `docs/project-governance/00_WORKFLOW.md`.
+Current progress-control authority is `docs/project-governance/current/PROJECT_CONTROL.md`.
 Bash/WSL is the primary local automation path. The full local gate is:
 
 ```bash
 bash ./scripts/dev/quality-gate.sh
 ```
 
-No runtime/backend/frontend/data gate was run for the 2026-07-09 governance audit. Treat old May release evidence as historical until rerun.
+No runtime/backend/frontend/data gate was run for the 2026-07-09 governance
+audit or the current status/risk synchronization task. Treat old May release
+evidence as historical until rerun.
 
 ## Data Chain Boundary
 
@@ -59,10 +62,17 @@ Smoke is read-only business probing and report writing under `reports/local-star
 
 P2 UI work is allowed only after P0 governance/status synchronization and P1 crawler/data reliability control points are stable. New public feature expansion should not be prioritized ahead of crawler/data reliability work unless explicitly accepted as preview-only work.
 
+## Current Blockers And Risks
+
+- Stale root governance files `03`, `04`, and `07-12` remain in place as reference/history and must not drive current execution.
+- `docs/project-management/risk-register.md` is the current risk surface; old May risk rows are historical unless revalidated into the current table.
+- Release, staging, or public-readiness claims remain blocked until fresh Bash gate, route, and data-readiness evidence exists.
+- Crawler monitor and resume/recovery stabilization remains P1 until current plans and validation evidence show the reliability loop is stable.
+
 ## Next Actions
 
-- Finish classifying and controlling `docs/project-governance/` so old planning files do not drive current execution.
 - Keep `docs/project-governance/current/PROJECT_CONTROL.md` aligned with `docs/project-management/current-status.md`.
+- Keep `docs/project-governance/00_CURRENT_SPEC.md`, `docs/devlog/current.md`, and project-management records synchronized when project facts or risks change.
 - Continue crawler monitor/resume stabilization from the current July plans before broad public feature expansion.
-- Decide whether to push local `main`, open a PR, or keep the governance rename local; local `main` is currently ahead of `origin/main`.
+- Decide whether to push or PR the local governance/status branches when the operator is ready.
 - Rerun runtime/backend/frontend/data gates before making any release, staging, or public-readiness claim.
