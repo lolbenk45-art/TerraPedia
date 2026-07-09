@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-09 18:02 CST by main agent
+Last updated: 2026-07-09 18:03 CST by main agent
 
 ## Open Work
 
@@ -30,7 +30,7 @@ Last updated: 2026-07-09 18:02 CST by main agent
   - branch: `docs/old-governance-doc-refresh`
   - worktree: `/home/lolben/TerraPedia`
   - status: `closed`
-  - commit: `commit SHA pending in final response`
+  - commit: `0cea2d6`
 - `docs/devlog/entries/2026-07-09-project-status-risk-sync.md`
   - branch: `docs/project-status-risk-sync`
   - worktree: `/home/lolben/TerraPedia`
