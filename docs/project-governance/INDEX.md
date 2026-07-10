@@ -28,22 +28,17 @@ If files conflict, the lower number wins.
 - `02_REQUIREMENTS.md` - `stale-reference` with status banner; April 2026 requirements baseline, not current priority authority.
 - `06_UI_UX_GUIDELINES.md` - `reference` with status banner; UI vocabulary/reference, current UI still requires code inspection.
 
-## Stale Or Historical Root Files
+## Removed Stale Root Documents
 
-The following root files now carry status banners. They are useful historical or
-reference material but are not current execution authority:
+Root governance documents `03`, `04`, and `07-12` were
+removed from the current tree on 2026-07-10 because they contained obsolete
+technology, architecture, testing, deployment, security, operations,
+documentation, or release guidance.
 
-- `03_TECH_STACK.md` - contains Astro/SSG-era choices; current maintained lines are Nuxt, Spring Boot, and data tooling.
-- `04_ARCHITECTURE.md` - contains static content-collection architecture; current runtime facts must come from code and current spec.
-- `07_TESTING_STRATEGY.md` - contains SSG/Pagefind-era testing strategy; use `00_WORKFLOW.md` and package scripts for current gates.
-- `08_CICD_DEPLOYMENT.md` - contains old Cloudflare/Astro deployment assumptions.
-- `09_SECURITY.md` - checklist reference only; deployment/runtime assumptions require revalidation.
-- `10_OPERATIONS.md` - static-site operations reference only.
-- `11_DOCUMENTATION_SYSTEM.md` - template/reference only; this index and current spec override older placement wording.
-- `12_RELEASE_CHECKLIST.md` - checklist reference only; release status lives in project-management docs and fresh validation evidence.
-
-Do not delete or bulk rewrite these files in routine tasks. If one becomes
-current again, first update this index and `current/PROJECT_CONTROL.md`.
+Git history preserves their original content for audit and rollback. Do not
+recreate those root paths or route current work to their historical bodies.
+Use `00_CURRENT_SPEC.md`, `00_WORKFLOW.md`, and the maintained files under
+`current/` instead.
 
 ## Directory Rules
 

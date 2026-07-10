@@ -19,8 +19,9 @@ Use this order when deciding project progress, priority, or next work:
 6. `docs/project-management/decision-log.md` - durable management decisions.
 7. Current plans in `docs/plans/`, `docs/superpowers/plans/`, and this directory.
 
-Older governance files can explain intent, but they do not control progress
-unless the current spec or this file explicitly points to them.
+Only files explicitly listed by the current spec, index, or this control panel
+may guide current work. Historical intent remains available through Git,
+`archive/`, and `legacy/`, but does not control progress.
 
 Use these current companion files for implementation planning details:
 
@@ -32,9 +33,9 @@ Use these current companion files for implementation planning details:
 
 ## Governance File Status
 
-Root governance files reviewed on 2026-07-09 carry status banners. Treat those
-banners as routing aids; keep current project facts and progress in the control
-records listed above.
+The table lists files and areas that remain in the current tree. Obsolete root
+documents `03`, `04`, and `07-12` were intentionally removed on 2026-07-10 and
+are recoverable only from Git history.
 
 | File or area | Status | How to use |
 | --- | --- | --- |
@@ -50,15 +51,8 @@ records listed above.
 | `current/homepage-aggregation-todo-2026-05-20.md` | deferred | Specific homepage data/API gap; do not treat as global project priority. |
 | `01_OVERVIEW.md` | stale-reference | April 2026 overview. Useful context, not current phase authority. |
 | `02_REQUIREMENTS.md` | stale-reference | April 2026 requirements baseline. Revalidate against code before using. |
-| `03_TECH_STACK.md` | historical-planning | Contains Astro/SSG-era choices that no longer match maintained Nuxt/Spring lines. |
-| `04_ARCHITECTURE.md` | historical-planning | Contains content-collection/static-site architecture. Use current code/spec instead. |
 | `06_UI_UX_GUIDELINES.md` | reference | Design vocabulary only; current UI patterns still require live code inspection. |
-| `07_TESTING_STRATEGY.md` | historical-planning | Contains SSG/Pagefind-era testing strategy. Use `00_WORKFLOW.md` and package scripts. |
-| `08_CICD_DEPLOYMENT.md` | historical-planning | Contains old Cloudflare/Astro deployment assumptions. Revalidate before use. |
-| `09_SECURITY.md` | reference-stale | Security checklist ideas only; environment/deployment assumptions may be stale. |
-| `10_OPERATIONS.md` | reference-stale | Static-site monitoring ideas only; not current operations authority. |
-| `11_DOCUMENTATION_SYSTEM.md` | reference-stale | Templates only. Current placement rules live in spec and index. |
-| `12_RELEASE_CHECKLIST.md` | reference-stale | Release checklist ideas only; current release status lives in project-management docs. |
+| Removed root `03`, `04`, and `07-12` | removed | Do not recreate or use as current guidance; Git history is audit-only recovery. |
 | `reference/` | non-authoritative reference | Use for background, then verify against current code and current spec. |
 | `archive/` and `legacy/` | historical | Do not use as active instructions. Do not bulk rewrite. |
 
@@ -76,7 +70,7 @@ Document-level judgment as of 2026-07-09:
 P0:
 
 - Keep `00_CURRENT_SPEC.md`, `00_WORKFLOW.md`, `docs/devlog/current.md`, and `docs/project-management/current-status.md` synchronized.
-- Do not let stale `03-12` planning documents drive implementation or release decisions.
+- Keep removed root `03`, `04`, and `07-12` paths absent and route work through maintained current companions.
 - Make an explicit push/PR/local-only decision for local governance/status branches when the operator is ready.
 
 P1:
@@ -100,5 +94,6 @@ When a task changes project progress:
 4. Update `docs/project-management/decision-log.md` only for durable management decisions.
 5. Update `00_CURRENT_SPEC.md` only when current project facts or source-of-truth rules change.
 
-Do not update old planning files just to make them sound current. Mark their
-status in `INDEX.md` or open a dedicated cleanup task.
+Do not restore removed root planning files just to reuse old wording. Open a
+new current companion or dedicated, freshly validated plan when guidance is
+missing.

@@ -71,7 +71,7 @@ P2 UI work is allowed only after P0 governance/status synchronization and P1 cra
 
 ## Current Blockers And Risks
 
-- Stale root governance files `03`, `04`, and `07-12` remain in place as reference/history, carry status banners, and must not drive current execution.
+- Stale root governance files `03`, `04`, and `07-12` were removed from the current tree on 2026-07-10; Git history remains audit-only recovery, not current authority.
 - Current companion docs now define stack, code style, architecture, API
   contract, validation, and release boundaries; they must be updated when
   package scripts, runtime config, API route families, response/auth contracts,

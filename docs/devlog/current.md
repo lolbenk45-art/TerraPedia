@@ -1,33 +1,16 @@
 # Current Devlog
 
-Last updated: 2026-07-10 18:30 CST by main agent
-
-## Active Branch
-
-- `docs/remove-stale-governance`
-
-## Active Focus
-
-- Remove eight stale root governance documents while preserving current
-  authority routing and historical audit evidence.
+Last updated: 2026-07-10 21:13 CST by main agent
 
 ## Open Work
 
-- `docs/devlog/entries/2026-07-10-remove-stale-governance-docs.md`
-  - owner: main agent
-  - status: `active`
-  - branch: `docs/remove-stale-governance`
-  - worktree:
-    `/home/lolben/.config/superpowers/worktrees/TerraPedia/remove-stale-governance`
-  - parent/child: parent task; no child entries
-  - dependencies or blocked-by: written-spec approval before implementation
-  - contract handoff: not applicable; documentation-governance-only task
+- none
 
 ## Current State
 
 - Project documentation governance naming has been normalized and committed locally.
 - Current project status, risk register, decision log, project control, and spec impact rules have been synchronized for commit.
-- Old root governance documents now carry status banners and current-authority routing.
+- Stale root governance files `03`, `04`, and `07-12` were removed from the current tree; maintained companion docs remain the implementation authority.
 - Current governance companion docs now cover maintained tech stack, code style,
   architecture, API contracts, and validation/release boundaries.
 - Current code-style governance now includes a human-readable authority, root
@@ -42,11 +25,7 @@ Last updated: 2026-07-10 18:30 CST by main agent
 
 ## Next Agent Should Start Here
 
-- Continue from
-  `docs/devlog/entries/2026-07-10-remove-stale-governance-docs.md`; do not
-  delete files until the written design is approved and an implementation plan
-  is audited.
-- Preserve stale/historical governance document bodies unless a current routing/source-of-truth reference needs repair.
+- Do not recreate removed root governance files `03`, `04`, or `07-12`; use Git history only for audit or rollback and add freshly validated current guidance when needed.
 - Keep latest project state in `00_CURRENT_SPEC.md`, `PROJECT_CONTROL.md`, project-management records, and devlog rather than old root planning bodies.
 - Keep `CURRENT_TECH_STACK.md`, `CURRENT_CODE_STYLE.md`,
   `CURRENT_ARCHITECTURE.md`, `CURRENT_API_CONTRACTS.md`, and
@@ -61,7 +40,7 @@ Last updated: 2026-07-10 18:30 CST by main agent
 ## Current Risks
 
 - Historical documents still mention the old `project-plan/` path as archival context by design.
-- Root governance files `03`, `04`, and `07-12` contain old planning-era assumptions and should not be used as current execution authority without revalidation.
+- Historical devlog entries still mention removed root paths by design; those records are provenance, not live authority.
 - Current risk themes are document-level judgments until fresh runtime/backend/frontend/data gates and crawler reliability checks are run.
 - Code style is not currently enforced by Prettier, ESLint, or Spotless; Stage 1
   must not claim those gates are active.
@@ -70,6 +49,11 @@ Last updated: 2026-07-10 18:30 CST by main agent
 
 ## Recently Closed
 
+- `docs/devlog/entries/2026-07-10-remove-stale-governance-docs.md`
+  - branch: `docs/remove-stale-governance`
+  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/remove-stale-governance`
+  - status: `closed`
+  - commit: commit SHA pending in final response
 - `docs/devlog/entries/2026-07-10-code-style-governance.md`
   - branch: `docs/current-code-style`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/current-code-style`

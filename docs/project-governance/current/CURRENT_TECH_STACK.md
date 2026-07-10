@@ -100,5 +100,6 @@ The following old planning assumptions are not current stack authority:
 - Cloudflare Pages as the default deployment target.
 - Static-site-only security, operations, release, or CI/CD conclusions.
 
-Use old root governance files only through their status banners and routing in
-`INDEX.md` and `PROJECT_CONTROL.md`.
+Removed root governance files `03`, `04`, and `07-12` are available only
+through Git history for audit or rollback. Use maintained current companions for
+implementation guidance.
