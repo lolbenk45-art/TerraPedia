@@ -57,7 +57,7 @@ Stage 1 goal with a broader cleanup.
 - Create: `scripts/dev/code-style-governance.test.mjs`
 - Modify: `docs/devlog/entries/2026-07-10-code-style-governance.md`
 
-- [ ] **Step 1: Create the focused governance test**
+- [x] **Step 1: Create the focused governance test**
 
 Create `scripts/dev/code-style-governance.test.mjs` with exactly this content:
 
@@ -88,8 +88,8 @@ test('root editorconfig defines the Stage 1 formatting baseline', () => {
   assert.match(editorConfig, /^end_of_line = lf$/m);
   assert.match(editorConfig, /^insert_final_newline = true$/m);
   assert.match(editorConfig, /^trim_trailing_whitespace = true$/m);
-  assert.match(editorConfig, /\[\*\.\{js,ts,mjs,cjs,vue,css,scss,json,jsonc,yml,yaml,sql,sh,bash\}\]\nindent_size = 2/);
-  assert.match(editorConfig, /\[\*\.\{java,kt,kts,groovy,xml,ps1\}\]\nindent_size = 4/);
+  assert.match(editorConfig, /\[\*\.\{js,ts,mjs,cjs,vue,css,scss,json,jsonc,yml,yaml,sql,sh,bash,ps1\}\]\nindent_size = 2/);
+  assert.match(editorConfig, /\[\*\.\{java,kt,kts,groovy,xml\}\]\nindent_size = 4/);
   assert.match(editorConfig, /\[\*\.py\]\nindent_size = 4/);
   assert.match(editorConfig, /\[\*\.md\][\s\S]*trim_trailing_whitespace = false/);
   assert.match(editorConfig, /\[Makefile\]\nindent_style = tab/);
@@ -117,6 +117,10 @@ test('current code style separates active rules from planned enforcement', () =>
   assert.match(style, /EditorConfig is the active machine-readable baseline/);
   assert.match(style, /Prettier, ESLint, and Spotless are not currently enforced/);
   assert.match(style, /Do not mass-format unrelated existing files/);
+  assert.match(style, /behavior changes that have a practical focused automated test/);
+  assert.match(style, /Exceptions follow the task workflow/);
+  assert.match(style, /Semantic-lint remediation can change behavior/);
+  assert.match(style, /normal tests and behavior-oriented commits/);
 });
 
 test('current governance routes contributors to the code style authority', () => {
@@ -140,7 +144,7 @@ test('current governance routes contributors to the code style authority', () =>
 });
 ```
 
-- [ ] **Step 2: Run the test and verify the expected red state**
+- [x] **Step 2: Run the test and verify the expected red state**
 
 Run from repository root:
 
@@ -153,7 +157,7 @@ Expected: exit code `1`, three failed tests. The failures must identify missing
 If the command errors for syntax/import reasons, fix the test until it fails only
 for the missing Stage 1 behavior.
 
-- [ ] **Step 3: Record the red evidence and immutable contract**
+- [x] **Step 3: Record the red evidence and immutable contract**
 
 Run `date '+%Y-%m-%d %H:%M CST'` and use its exact output as the heading for a
 new state-change item in
@@ -173,7 +177,7 @@ Do not stage or commit the red state.
 ### Task 2: Implement The Two Sources In Parallel
 
 Task 2 starts only after Task 1 is red for the expected reason. Agents A and B
-must acknowledge design contract v1 in their return message and must not run
+must acknowledge design contract v2 in their return message and must not run
 `git add` or `git commit` in the shared worktree.
 
 #### Task 2A: Agent A Creates The EditorConfig Baseline
@@ -182,7 +186,7 @@ must acknowledge design contract v1 in their return message and must not run
 
 - Create: `.editorconfig`
 
-- [ ] **Step 1: Create `.editorconfig`**
+- [x] **Step 1: Create `.editorconfig`**
 
 Create the file with exactly this content:
 
@@ -196,10 +200,10 @@ insert_final_newline = true
 indent_style = space
 trim_trailing_whitespace = true
 
-[*.{js,ts,mjs,cjs,vue,css,scss,json,jsonc,yml,yaml,sql,sh,bash}]
+[*.{js,ts,mjs,cjs,vue,css,scss,json,jsonc,yml,yaml,sql,sh,bash,ps1}]
 indent_size = 2
 
-[*.{java,kt,kts,groovy,xml,ps1}]
+[*.{java,kt,kts,groovy,xml}]
 indent_size = 4
 
 [*.py]
@@ -213,7 +217,7 @@ trim_trailing_whitespace = false
 indent_style = tab
 ```
 
-- [ ] **Step 2: Validate the owned file without formatting sources**
+- [x] **Step 2: Validate the owned file without formatting sources**
 
 Run:
 
@@ -226,12 +230,12 @@ git status --short -- .editorconfig
 Expected: the rule matrix is visible, diff check exits `0`, and only
 `.editorconfig` is reported in the agent-owned scope.
 
-- [ ] **Step 3: Return the handoff**
+- [x] **Step 3: Return the handoff**
 
 Return:
 
 ```text
-Contract acknowledged: design contract v1
+Contract acknowledged: design contract v2
 Changed: .editorconfig
 Validation: commands and exit results
 Existing files formatted: none
@@ -244,7 +248,7 @@ Residual concerns: none, or exact rule conflict
 
 - Create: `docs/project-governance/current/CURRENT_CODE_STYLE.md`
 
-- [ ] **Step 1: Create the current style document**
+- [x] **Step 1: Create the current style document**
 
 Create the file with exactly this content:
 
@@ -350,13 +354,17 @@ explicitly authorizes wider formatting.
   the command flow; document any deliberate exception.
 - Bash/WSL remains the maintained automation path. PowerShell files are
   compatibility wrappers unless a current runbook says otherwise.
+- Use 2-space indentation in PowerShell compatibility wrappers to preserve the
+  dominant tracked convention.
 - Destructive, data-writing, crawler, import, backfill, and service-lifecycle
   operations must remain explicit and follow their repository guards.
 
 ## Tests
 
-- Add tests before implementation for behavior changes and verify the expected
-  red result before the minimal green implementation.
+- For behavior changes that have a practical focused automated test, add the
+  test before implementation and verify the expected red result before the
+  minimal green implementation. Exceptions follow the task workflow and must
+  record the selected validation and reason.
 - Prefer deterministic behavior assertions over implementation-detail snapshots.
 - Keep fixtures minimal and name the contract they represent.
 - Use the narrowest validation that proves the changed surface, then broaden
@@ -376,10 +384,13 @@ explicitly authorizes wider formatting.
 
 Future tooling is introduced in separate focused tasks:
 
-1. Establish clean, pinned, non-blocking formatter/linter configurations for
-   each maintained frontend or backend line.
-2. Migrate existing files in reviewable formatting-only commits.
-3. Add read-only checks to the full quality gate only after the relevant
+1. Establish clean, pinned, non-blocking formatter and semantic-linter
+   configurations for each maintained frontend or backend line.
+2. Migrate formatter baselines in reviewable formatting-only commits.
+3. Handle semantic-lint remediation separately. Semantic-lint remediation can
+   change behavior, so use normal tests and behavior-oriented commits for those
+   fixes.
+4. Add read-only checks to the full quality gate only after the relevant
    maintained line has a clean baseline.
 
 Automatic write/format commands must not run inside the quality gate. A future
@@ -387,7 +398,7 @@ tool configuration that conflicts with this document or `.editorconfig` must
 resolve and document the rule change in the same task.
 ```
 
-- [ ] **Step 2: Validate the owned document**
+- [x] **Step 2: Validate the owned document**
 
 Run:
 
@@ -400,12 +411,12 @@ rg -n 'EditorConfig is the active|not currently enforced|Do not mass-format' doc
 Expected: diff check exits `0`, all ten headings are returned, and active versus
 planned enforcement wording is present.
 
-- [ ] **Step 3: Return the handoff**
+- [x] **Step 3: Return the handoff**
 
 Return:
 
 ```text
-Contract acknowledged: design contract v1
+Contract acknowledged: design contract v2
 Changed: docs/project-governance/current/CURRENT_CODE_STYLE.md
 Validation: commands and exit results
 Enforcement claim: EditorConfig active; Prettier/ESLint/Spotless planned
@@ -427,7 +438,7 @@ Residual concerns: none, or exact unsupported repository claim
 The coordinator performs these edits only after Agents A and B return and the
 diff confirms they touched only their assigned files.
 
-- [ ] **Step 1: Add the contributor routing rule**
+- [x] **Step 1: Add the contributor routing rule**
 
 In `AGENTS.md`, add this bullet under `## Work Rules` immediately after the
 scope rule:
@@ -437,7 +448,7 @@ scope rule:
   `.editorconfig` for new or modified code; do not mass-format unrelated files.
 ```
 
-- [ ] **Step 2: Add current governance entrypoints**
+- [x] **Step 2: Add current governance entrypoints**
 
 In `docs/project-governance/INDEX.md`, add this item after
 `CURRENT_TECH_STACK.md`:
@@ -467,7 +478,7 @@ Also add this status-table row after `CURRENT_TECH_STACK.md`:
 | `current/CURRENT_CODE_STYLE.md` | current | Maintained code style and EditorConfig baseline; formatter/linter gates remain staged. |
 ```
 
-- [ ] **Step 3: Describe the real tool boundary in the tech-stack summary**
+- [x] **Step 3: Describe the real tool boundary in the tech-stack summary**
 
 In `docs/project-governance/current/CURRENT_TECH_STACK.md`, add this section
 before `## Local Automation`:
@@ -485,7 +496,7 @@ before `## Local Automation`:
   migrations documented by the current style authority.
 ```
 
-- [ ] **Step 4: Synchronize current project status**
+- [x] **Step 4: Synchronize current project status**
 
 In `docs/project-management/current-status.md`:
 
@@ -508,7 +519,7 @@ In `docs/project-management/current-status.md`:
   baseline migrations before adding read-only style checks to the full gate.
 ```
 
-- [ ] **Step 5: Record the current style-drift risk**
+- [x] **Step 5: Record the current style-drift risk**
 
 In `docs/project-management/risk-register.md`:
 
@@ -519,7 +530,7 @@ In `docs/project-management/risk-register.md`:
 | R-2026-07-10-01 | Code style can drift because only EditorConfig is active and formatter/linter gates are not yet enforced. | active | New and modified code can remain structurally valid while accumulating inconsistent formatting or semantic lint debt. | `CURRENT_CODE_STYLE.md` and root `.editorconfig` establish Stage 1; package/Maven style tools remain explicitly staged. | Add pinned frontend/backend tools in separate baseline migrations, then activate read-only gates only after each maintained line is clean. | 2026-07-10 |
 ```
 
-- [ ] **Step 6: Run the focused test for the first green result**
+- [x] **Step 6: Run the focused test for the first green result**
 
 Run:
 
@@ -529,7 +540,7 @@ node --test scripts/dev/code-style-governance.test.mjs
 
 Expected: three tests pass, zero fail.
 
-- [ ] **Step 7: Run docs/process checks**
+- [x] **Step 7: Run docs/process checks**
 
 Run:
 
@@ -550,12 +561,12 @@ entrypoint; changed paths remain inside this plan.
 - Modify: `docs/devlog/current.md`
 - Modify: `docs/devlog/entries/2026-07-10-code-style-governance.md`
 
-- [ ] **Step 1: Record producer acknowledgement and integrated validation**
+- [x] **Step 1: Record producer acknowledgement and integrated validation**
 
 Update the parent devlog entry:
 
-- Agent A status: `completed`; consumer acknowledgement: design contract v1.
-- Agent B status: `completed`; consumer acknowledgement: design contract v1.
+- Agent A status: `completed`; consumer acknowledgement: design contract v2.
+- Agent B status: `completed`; consumer acknowledgement: design contract v2.
 - Record the focused test command/result and `git diff --check` result.
 - Record changed paths by module and write `See git for code-level diff details.`
 - Keep overall status `active` until Agent C review is resolved.
@@ -563,7 +574,7 @@ Update the parent devlog entry:
 Update `docs/devlog/current.md` timestamp and current state, but keep this entry
 under Open Work with status `active` and dependency `read-only cross-review`.
 
-- [ ] **Step 2: Dispatch Agent C for read-only review**
+- [x] **Step 2: Dispatch Agent C for read-only review**
 
 Provide Agent C:
 
@@ -578,7 +589,7 @@ Provide Agent C:
 Expected: Agent C returns either no material findings or concrete findings for
 coordinator resolution.
 
-- [ ] **Step 3: Resolve and record review findings**
+- [x] **Step 3: Resolve and record review findings**
 
 For every material finding:
 
@@ -599,7 +610,7 @@ Do not move to closeout while a finding is unresolved or marked
 - Modify: `docs/devlog/current.md`
 - Modify: `docs/devlog/entries/2026-07-10-code-style-governance.md`
 
-- [ ] **Step 1: Run fresh final validation**
+- [x] **Step 1: Run fresh final validation**
 
 Run from repository root:
 
@@ -613,7 +624,7 @@ git diff --stat
 Expected: three tests pass, diff check exits `0`, and all changed paths belong to
 Stage 1.
 
-- [ ] **Step 2: Close the devlog for one-commit implementation closeout**
+- [x] **Step 2: Close the devlog for one-commit implementation closeout**
 
 Before changing status, run:
 
@@ -640,7 +651,7 @@ Update `docs/devlog/current.md`:
   `commit: pending in final response`;
 - update timestamp, current state, next start point, and current risks.
 
-- [ ] **Step 3: Stage only Stage 1 paths and inspect staged scope**
+- [x] **Step 3: Stage only Stage 1 paths and inspect staged scope**
 
 Run with the explicit path list:
 
@@ -657,6 +668,7 @@ git add .editorconfig \
   docs/project-management/risk-register.md \
   docs/devlog/current.md \
   docs/devlog/entries/2026-07-10-code-style-governance.md \
+  docs/superpowers/specs/2026-07-10-code-style-governance-design.md \
   docs/superpowers/plans/2026-07-10-code-style-governance.md
 git status --short
 git diff --cached --stat
@@ -704,8 +716,10 @@ merge, or clean them until the user chooses the integration path.
   Stage 1 diff contains no application/dependency/gate changes.
 - Critical defects: none.
 - Important defects: none after removing the timestamp placeholder, correcting
-  routed-file counting, and adding execution-continuity and branch-disposition
-  rules.
+  routed-file counting, adding execution-continuity and branch-disposition
+  rules, aligning PowerShell to the tracked 2-space baseline, scoping test-first
+  guidance to practical focused tests, and separating semantic lint remediation
+  from formatting-only migrations.
 - Agent split: Agent A owns `.editorconfig`; Agent B owns only the current style
   document; the coordinator owns tests/routing/devlog; Agent C is read-only.
 - Smoke test: `node --test scripts/dev/code-style-governance.test.mjs` must fail

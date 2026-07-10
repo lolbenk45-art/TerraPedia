@@ -80,7 +80,8 @@ Separate follow-up tasks will establish clean baselines before enforcement:
 - Public and admin Nuxt packages: introduce a shared Prettier policy and an
   ESLint policy compatible with Nuxt 4 and Vue 3. Add explicit `format`,
   `format:check`, and semantic `lint` commands; do not keep `lint` as a typecheck
-  alias.
+  alias. Establish formatter baselines separately from semantic lint
+  remediation because lint fixes can change behavior.
 - Spring backend: introduce Spotless with a pinned Java formatter and explicit
   `spotless:apply` / `spotless:check` commands.
 - Script languages: assess shell and Python tools independently. Do not add
@@ -102,7 +103,8 @@ Gate activation requires:
 - pinned tool versions and committed lockfile/plugin configuration;
 - documented local fix commands;
 - focused tests for package-script or Maven wiring;
-- a separate formatting-only commit when broad formatting is unavoidable;
+- a separate formatting-only commit when broad formatter output is unavoidable;
+- normal focused tests and behavior-oriented commits for semantic lint fixes;
 - devlog and validation evidence showing that behavior checks still pass.
 
 ## Stage 1 Rule Matrix
@@ -112,8 +114,8 @@ The root `.editorconfig` will define these minimum rules:
 | Files | Indent | Other rules |
 | --- | --- | --- |
 | All text files | spaces by default | UTF-8, LF, final newline, trim trailing whitespace |
-| Java, Kotlin-like Java support, Groovy, XML, PowerShell | 4 spaces | no formatter-specific import rules |
-| JavaScript, TypeScript, MJS, CJS, Vue, CSS, SCSS, JSON, YAML, SQL, shell | 2 spaces | preserve local semantic conventions |
+| Java, Kotlin-like Java support, Groovy, XML | 4 spaces | no formatter-specific import rules |
+| JavaScript, TypeScript, MJS, CJS, Vue, CSS, SCSS, JSON, YAML, SQL, shell, PowerShell | 2 spaces | preserve local semantic conventions |
 | Python | 4 spaces | compatible with PEP 8 indentation |
 | Markdown | 2-space list indentation | preserve trailing whitespace for intentional hard breaks |
 | Makefiles | tabs | preserve make syntax |
@@ -133,7 +135,9 @@ The style document will define the following human-readable rules:
   2-space shell indentation, quote shell expansions, and make destructive or
   data-writing operations explicit.
 - Tests: behavior-oriented names, deterministic fixtures, temporary paths for
-  generated output, and validation proportional to the changed surface.
+  generated output, and validation proportional to the changed surface. Use
+  test-first for behavior changes with a practical focused automated test;
+  workflow-defined exceptions remain authoritative.
 - Documentation and commits: current-authority routing, concise comments/docs,
   and `type(scope): action` commit messages from the existing workflow.
 
@@ -194,7 +198,7 @@ After the focused test is red, parallel implementation may use:
 - Agent C: read-only cross-review after integration, covering rule consistency,
   authority routing, and scope.
 
-Agents A and B consume this design as immutable contract version 1. They must
+Agents A and B consume this design as immutable contract version 2. They must
 not modify each other's files, governance indexes, tests, package files, Maven
 files, quality-gate scripts, or devlog files. The coordinator integrates and
 runs the focused test after both return. Any conflicting rule interpretation

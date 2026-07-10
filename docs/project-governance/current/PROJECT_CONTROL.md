@@ -1,7 +1,7 @@
 # Project Progress Control
 
 Status: current-control-panel
-Last updated: 2026-07-09
+Last updated: 2026-07-10
 
 This file is the project-level control panel for agents. It does not replace
 `00_CURRENT_SPEC.md`, `00_WORKFLOW.md`, or `docs/devlog/current.md`; it explains
@@ -25,6 +25,7 @@ unless the current spec or this file explicitly points to them.
 Use these current companion files for implementation planning details:
 
 - `CURRENT_TECH_STACK.md` - maintained stack summary.
+- `CURRENT_CODE_STYLE.md` - maintained code style and staged tool-adoption boundary.
 - `CURRENT_ARCHITECTURE.md` - maintained architecture and data/acceptance-chain summary.
 - `CURRENT_VALIDATION_AND_RELEASE.md` - maintained validation and release boundary summary.
 
@@ -41,6 +42,7 @@ records listed above.
 | `INDEX.md` | authoritative index | Classifies governance documents and placement rules. |
 | `current/PROJECT_CONTROL.md` | current | Progress control and stale-document routing. |
 | `current/CURRENT_TECH_STACK.md` | current | Maintained stack summary for current development. |
+| `current/CURRENT_CODE_STYLE.md` | current | Maintained code style and EditorConfig baseline; formatter/linter gates remain staged. |
 | `current/CURRENT_ARCHITECTURE.md` | current | Maintained architecture and data/acceptance-chain summary. |
 | `current/CURRENT_VALIDATION_AND_RELEASE.md` | current | Maintained validation and release boundary summary. |
 | `current/homepage-aggregation-todo-2026-05-20.md` | deferred | Specific homepage data/API gap; do not treat as global project priority. |

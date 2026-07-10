@@ -1,7 +1,7 @@
 # Current Tech Stack
 
 Status: current
-Last updated: 2026-07-09
+Last updated: 2026-07-10
 
 This file records the maintained implementation stack for current development.
 It replaces old Astro/SSG planning documents as the technology entrypoint. Use
@@ -66,6 +66,17 @@ Data/tooling stack:
 - Default local database name in current spec: `terria_v1_local`.
 - Acceptance evidence must flow through manifest, report evidence, freshness audit, manual refresh plan, quality gate, then UI/API.
 - UI/API code must not generate acceptance evidence or query the DB as gate evidence.
+
+## Code Style Baseline
+
+- Current human-readable authority:
+  `docs/project-governance/current/CURRENT_CODE_STYLE.md`.
+- Root `.editorconfig` is the active machine-readable editor baseline.
+- Frontend Prettier/ESLint and backend Spotless are not currently enforced.
+- Existing frontend `check` commands remain type/contract checks, and Maven
+  remains compile/test validation; do not relabel them as style gates.
+- Formatter/linter adoption and full-gate activation require separate baseline
+  migrations documented by the current style authority.
 
 ## Local Automation
 

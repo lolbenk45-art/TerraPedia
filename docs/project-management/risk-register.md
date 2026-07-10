@@ -1,6 +1,6 @@
 # TerraPedia Risk Register
 
-Last updated: 2026-07-09
+Last updated: 2026-07-10
 
 This file lists current project-management risks. Older May 2026 risk rows were
 collapsed into current risk themes on 2026-07-09 because their original evidence
@@ -17,3 +17,4 @@ rerun.
 | R-2026-07-09-06 | Gate-consumed evidence may be local-only or stale. | active | A blocker may look closed on one machine but be unrecoverable or outdated on another checkout. | May risk records and current status preserve the manifest -> report evidence -> freshness audit -> manual refresh plan -> quality gate chain. | Require tracked or durable gate-consumed evidence before closing blockers; treat stale evidence as warning unless explicitly accepted. | 2026-07-09 |
 | R-2026-07-09-07 | Local automation authority can regress from Bash/WSL back to old PowerShell assumptions. | active | Agents may run compatibility wrappers or old local-stack assumptions as current gates. | `00_CURRENT_SPEC.md`, `00_WORKFLOW.md`, and `current-status.md` identify Bash/WSL scripts as the maintained path and `.ps1` as compatibility wrappers unless a current runbook says otherwise. | Keep command examples and gates aligned to Bash/WSL in current docs; only reference `.ps1` as historical or compatibility context. | 2026-07-09 |
 | R-2026-07-09-08 | Current companion docs can drift from package scripts, runtime config, or quality-gate behavior. | active | Agents may trust stale stack, architecture, validation, or release summaries after code changes. | `CURRENT_TECH_STACK.md`, `CURRENT_ARCHITECTURE.md`, and `CURRENT_VALIDATION_AND_RELEASE.md` were added as current routing docs on 2026-07-09. | Update the companion docs in the same task when package scripts, Nuxt config, backend stack, data chain, local stack, or gate behavior changes. | 2026-07-09 |
+| R-2026-07-10-01 | Code style can drift because only EditorConfig is active and formatter/linter gates are not yet enforced. | active | New and modified code can remain structurally valid while accumulating inconsistent formatting or semantic lint debt. | `CURRENT_CODE_STYLE.md` and root `.editorconfig` establish Stage 1; package/Maven style tools remain explicitly staged. | Add pinned frontend/backend tools in separate baseline migrations, then activate read-only gates only after each maintained line is clean. | 2026-07-10 |

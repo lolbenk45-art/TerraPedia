@@ -40,6 +40,8 @@ The old `project-plan/` root is retired. Use `docs/project-governance/`.
 - For non-trivial work, decide whether to reuse/create a devlog entry. Workflow, skill, data, crawler, API, UI, validation, multi-agent, or multi-step work needs devlog traceability.
 - Inspect real entrypoints, runtime state, data source chain, reusable scripts, and existing reports before changing behavior.
 - Keep edits scoped. Do not rewrite historical documents just to modernize old wording.
+- Follow `docs/project-governance/current/CURRENT_CODE_STYLE.md` and the root
+  `.editorconfig` for new or modified code; do not mass-format unrelated files.
 - Do not use destructive git commands such as `git reset --hard`, `git checkout -- <path>`, or broad cleanup unless the user explicitly asks.
 - Do not use `git add .`; stage explicit paths only.
 

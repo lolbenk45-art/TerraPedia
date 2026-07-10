@@ -10,6 +10,7 @@
 
 - `PROJECT_CONTROL.md`：当前项目进度控制面板，说明如何读取治理目录、哪些文件是旧规划、P0/P1/P2 如何推进。
 - `CURRENT_TECH_STACK.md`：当前维护技术栈摘要，用于替代旧 Astro/SSG 技术选型文档作为开发入口。
+- `CURRENT_CODE_STYLE.md`：当前代码风格、EditorConfig 基线和格式化/检查工具分阶段接入边界。
 - `CURRENT_ARCHITECTURE.md`：当前架构、数据链路和验收链路摘要，用于替代旧静态站点架构文档作为开发入口。
 - `CURRENT_VALIDATION_AND_RELEASE.md`：当前验证、质量门禁和发布边界摘要，用于替代旧测试/CI/CD/上线 checklist 作为开发入口。
 - `homepage-aggregation-todo-2026-05-20.md`：记录首页改造后续的聚合接口、最近更新、热门/浏览量和阶段筛选数据缺口。

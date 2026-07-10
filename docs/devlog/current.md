@@ -1,17 +1,10 @@
 # Current Devlog
 
-Last updated: 2026-07-10 16:17 CST by main agent
+Last updated: 2026-07-10 17:03 CST by main agent
 
 ## Open Work
 
-- `docs/devlog/entries/2026-07-10-code-style-governance.md`
-  - owner: main agent
-  - status: `active`
-  - branch: `docs/current-code-style`
-  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/current-code-style`
-  - parent/child: parent task; Agents A/B producers and Agent C reviewer pending dispatch
-  - dependencies/blocked-by: focused governance test must reach expected red state before producer dispatch
-  - contract handoff: design contract v1; consumer acknowledgement pending
+- none
 
 ## Current State
 
@@ -19,8 +12,10 @@ Last updated: 2026-07-10 16:17 CST by main agent
 - Current project status, risk register, decision log, project control, and spec impact rules have been synchronized for commit.
 - Old root governance documents now carry status banners and current-authority routing.
 - Current governance companion docs now cover maintained tech stack, architecture, and validation/release boundaries.
-- Code-style governance design is active on an isolated branch; implementation
-  plan is execution-ready and implementation has not started.
+- Current code-style governance now includes a human-readable authority, root
+  EditorConfig baseline, focused consistency test, and synchronized routing.
+- Stage 1 validation passed: focused test 3/3, routing scan, diff check, exact
+  14-path scope, and Agent C cross-review.
 - No app runtime feature code or data changed.
 
 ## Next Agent Should Start Here
@@ -28,9 +23,9 @@ Last updated: 2026-07-10 16:17 CST by main agent
 - Preserve stale/historical governance document bodies unless a current routing/source-of-truth reference needs repair.
 - Keep latest project state in `00_CURRENT_SPEC.md`, `PROJECT_CONTROL.md`, project-management records, and devlog rather than old root planning bodies.
 - Keep `CURRENT_TECH_STACK.md`, `CURRENT_ARCHITECTURE.md`, and `CURRENT_VALIDATION_AND_RELEASE.md` aligned with package scripts, runtime config, data chain, and gate behavior changes.
-- Start from Task 1 in
-  `docs/superpowers/plans/2026-07-10-code-style-governance.md`; confirm the
-  focused test is red before dispatching the two producer agents.
+- Use `CURRENT_CODE_STYLE.md` and root `.editorconfig` for new or modified code.
+- Introduce formatter and semantic-linter baselines in separate frontend/backend
+  tasks before adding read-only checks to the full gate.
 
 ## Current Risks
 
@@ -39,9 +34,16 @@ Last updated: 2026-07-10 16:17 CST by main agent
 - Current risk themes are document-level judgments until fresh runtime/backend/frontend/data gates and crawler reliability checks are run.
 - Code style is not currently enforced by Prettier, ESLint, or Spotless; Stage 1
   must not claim those gates are active.
+- Formatter/linter enforcement remains intentionally deferred to separate
+  baseline migrations.
 
 ## Recently Closed
 
+- `docs/devlog/entries/2026-07-10-code-style-governance.md`
+  - branch: `docs/current-code-style`
+  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/current-code-style`
+  - status: `closed`
+  - commit: pending in final response
 - `docs/devlog/entries/2026-07-09-current-governance-specs.md`
   - branch: `docs/current-governance-specs`
   - worktree: `/home/lolben/TerraPedia`
