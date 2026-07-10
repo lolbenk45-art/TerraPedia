@@ -22,6 +22,7 @@ If files conflict, the lower number wins.
 - `current/CURRENT_CODE_STYLE.md` - maintained code-style rules and staged
   formatter/linter adoption boundary.
 - `current/CURRENT_ARCHITECTURE.md` - maintained architecture and data/acceptance-chain summary.
+- `current/CURRENT_API_CONTRACTS.md` - maintained API contract, route-family, response, auth, and validation summary.
 - `current/CURRENT_VALIDATION_AND_RELEASE.md` - maintained validation and release boundary summary.
 - `01_OVERVIEW.md` - `stale-reference` with status banner; broader April 2026 overview, not current phase authority.
 - `02_REQUIREMENTS.md` - `stale-reference` with status banner; April 2026 requirements baseline, not current priority authority.

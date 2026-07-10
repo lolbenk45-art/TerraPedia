@@ -27,6 +27,7 @@ Use these current companion files for implementation planning details:
 - `CURRENT_TECH_STACK.md` - maintained stack summary.
 - `CURRENT_CODE_STYLE.md` - maintained code style and staged tool-adoption boundary.
 - `CURRENT_ARCHITECTURE.md` - maintained architecture and data/acceptance-chain summary.
+- `CURRENT_API_CONTRACTS.md` - maintained API contract and route-family summary.
 - `CURRENT_VALIDATION_AND_RELEASE.md` - maintained validation and release boundary summary.
 
 ## Governance File Status
@@ -44,6 +45,7 @@ records listed above.
 | `current/CURRENT_TECH_STACK.md` | current | Maintained stack summary for current development. |
 | `current/CURRENT_CODE_STYLE.md` | current | Maintained code style and EditorConfig baseline; formatter/linter gates remain staged. |
 | `current/CURRENT_ARCHITECTURE.md` | current | Maintained architecture and data/acceptance-chain summary. |
+| `current/CURRENT_API_CONTRACTS.md` | current | Maintained API contract, route-family, response, auth, and validation summary. |
 | `current/CURRENT_VALIDATION_AND_RELEASE.md` | current | Maintained validation and release boundary summary. |
 | `current/homepage-aggregation-todo-2026-05-20.md` | deferred | Specific homepage data/API gap; do not treat as global project priority. |
 | `01_OVERVIEW.md` | stale-reference | April 2026 overview. Useful context, not current phase authority. |

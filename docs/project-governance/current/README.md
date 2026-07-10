@@ -12,5 +12,6 @@
 - `CURRENT_TECH_STACK.md`：当前维护技术栈摘要，用于替代旧 Astro/SSG 技术选型文档作为开发入口。
 - `CURRENT_CODE_STYLE.md`：当前代码风格、EditorConfig 基线和格式化/检查工具分阶段接入边界。
 - `CURRENT_ARCHITECTURE.md`：当前架构、数据链路和验收链路摘要，用于替代旧静态站点架构文档作为开发入口。
+- `CURRENT_API_CONTRACTS.md`：当前接口合同、路由族、响应 envelope、鉴权边界和验证要求摘要。
 - `CURRENT_VALIDATION_AND_RELEASE.md`：当前验证、质量门禁和发布边界摘要，用于替代旧测试/CI/CD/上线 checklist 作为开发入口。
 - `homepage-aggregation-todo-2026-05-20.md`：记录首页改造后续的聚合接口、最近更新、热门/浏览量和阶段筛选数据缺口。

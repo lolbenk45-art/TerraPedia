@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-10 17:03 CST by main agent
+Last updated: 2026-07-10 18:14 CST by main agent
 
 ## Open Work
 
@@ -11,21 +11,31 @@ Last updated: 2026-07-10 17:03 CST by main agent
 - Project documentation governance naming has been normalized and committed locally.
 - Current project status, risk register, decision log, project control, and spec impact rules have been synchronized for commit.
 - Old root governance documents now carry status banners and current-authority routing.
-- Current governance companion docs now cover maintained tech stack, architecture, and validation/release boundaries.
+- Current governance companion docs now cover maintained tech stack, code style,
+  architecture, API contracts, and validation/release boundaries.
 - Current code-style governance now includes a human-readable authority, root
   EditorConfig baseline, focused consistency test, and synchronized routing.
 - Stage 1 validation passed: focused test 3/3, routing scan, diff check, exact
   14-path scope, and Agent C cross-review.
+- Current API contract documentation is available as a companion governance
+  doc with concrete response and test evidence formats.
+- API contract integration review approved the nine-file merge scope and the
+  three current-state conflict resolutions with no remaining findings.
 - No app runtime feature code or data changed.
 
 ## Next Agent Should Start Here
 
 - Preserve stale/historical governance document bodies unless a current routing/source-of-truth reference needs repair.
 - Keep latest project state in `00_CURRENT_SPEC.md`, `PROJECT_CONTROL.md`, project-management records, and devlog rather than old root planning bodies.
-- Keep `CURRENT_TECH_STACK.md`, `CURRENT_ARCHITECTURE.md`, and `CURRENT_VALIDATION_AND_RELEASE.md` aligned with package scripts, runtime config, data chain, and gate behavior changes.
+- Keep `CURRENT_TECH_STACK.md`, `CURRENT_CODE_STYLE.md`,
+  `CURRENT_ARCHITECTURE.md`, `CURRENT_API_CONTRACTS.md`, and
+  `CURRENT_VALIDATION_AND_RELEASE.md` aligned with package scripts, runtime
+  config, API route/response/auth changes, data chain, and gate behavior changes.
 - Use `CURRENT_CODE_STYLE.md` and root `.editorconfig` for new or modified code.
 - Introduce formatter and semantic-linter baselines in separate frontend/backend
   tasks before adding read-only checks to the full gate.
+- For future API work, start from `docs/project-governance/current/CURRENT_API_CONTRACTS.md` and update the matching devlog entry for that task.
+- For future API tests, record compact returned-data evidence in devlog and put full machine-readable payloads under `reports/api-smoke/` when useful.
 
 ## Current Risks
 
@@ -44,6 +54,16 @@ Last updated: 2026-07-10 17:03 CST by main agent
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/current-code-style`
   - status: `closed`
   - commit: `2912dc0`
+- `docs/devlog/entries/2026-07-09-api-response-test-format.md`
+  - branch: `docs/current-api-contracts`
+  - worktree: `/home/lolben/TerraPedia`
+  - status: `closed`
+  - commit: `7e88521`
+- `docs/devlog/entries/2026-07-09-current-api-contracts.md`
+  - branch: `docs/current-api-contracts`
+  - worktree: `/home/lolben/TerraPedia`
+  - status: `closed`
+  - commit: `e85be2a`
 - `docs/devlog/entries/2026-07-09-current-governance-specs.md`
   - branch: `docs/current-governance-specs`
   - worktree: `/home/lolben/TerraPedia`

@@ -20,10 +20,12 @@ P0 governance/status synchronization -> P1 crawler monitor and resume/recovery s
 
 Current workflow authority is `docs/project-governance/00_WORKFLOW.md`.
 Current progress-control authority is `docs/project-governance/current/PROJECT_CONTROL.md`.
-Current stack, code style, architecture, and validation/release summaries live in
+Current stack, code style, architecture, API contract, and validation/release
+summaries live in
 `docs/project-governance/current/CURRENT_TECH_STACK.md`,
 `docs/project-governance/current/CURRENT_CODE_STYLE.md`,
-`docs/project-governance/current/CURRENT_ARCHITECTURE.md`, and
+`docs/project-governance/current/CURRENT_ARCHITECTURE.md`,
+`docs/project-governance/current/CURRENT_API_CONTRACTS.md`, and
 `docs/project-governance/current/CURRENT_VALIDATION_AND_RELEASE.md`.
 Bash/WSL is the primary local automation path. The full local gate is:
 
@@ -70,7 +72,10 @@ P2 UI work is allowed only after P0 governance/status synchronization and P1 cra
 ## Current Blockers And Risks
 
 - Stale root governance files `03`, `04`, and `07-12` remain in place as reference/history, carry status banners, and must not drive current execution.
-- Current companion docs now define stack, architecture, validation, and release boundaries; they must be updated when package scripts, runtime config, data chain, or gate behavior changes.
+- Current companion docs now define stack, code style, architecture, API
+  contract, validation, and release boundaries; they must be updated when
+  package scripts, runtime config, API route families, response/auth contracts,
+  data chain, or gate behavior changes.
 - Code style now has a current document and EditorConfig baseline, but
   Prettier/ESLint/Spotless and strong style gates remain staged until each
   maintained line has a clean baseline.
@@ -81,7 +86,8 @@ P2 UI work is allowed only after P0 governance/status synchronization and P1 cra
 ## Next Actions
 
 - Keep `docs/project-governance/current/PROJECT_CONTROL.md` aligned with `docs/project-management/current-status.md`.
-- Keep current stack, architecture, validation, and release summaries aligned with code and workflow changes.
+- Keep current stack, code style, architecture, API contract, validation, and
+  release summaries aligned with code and workflow changes.
 - Introduce frontend and backend formatter/linter tooling through separate
   baseline migrations before adding read-only style checks to the full gate.
 - Keep `docs/project-governance/00_CURRENT_SPEC.md`, `docs/devlog/current.md`, and project-management records synchronized when project facts or risks change.
