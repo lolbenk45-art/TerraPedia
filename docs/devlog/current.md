@@ -1,10 +1,27 @@
 # Current Devlog
 
-Last updated: 2026-07-10 18:14 CST by main agent
+Last updated: 2026-07-10 18:30 CST by main agent
+
+## Active Branch
+
+- `docs/remove-stale-governance`
+
+## Active Focus
+
+- Remove eight stale root governance documents while preserving current
+  authority routing and historical audit evidence.
 
 ## Open Work
 
-- none
+- `docs/devlog/entries/2026-07-10-remove-stale-governance-docs.md`
+  - owner: main agent
+  - status: `active`
+  - branch: `docs/remove-stale-governance`
+  - worktree:
+    `/home/lolben/.config/superpowers/worktrees/TerraPedia/remove-stale-governance`
+  - parent/child: parent task; no child entries
+  - dependencies or blocked-by: written-spec approval before implementation
+  - contract handoff: not applicable; documentation-governance-only task
 
 ## Current State
 
@@ -25,6 +42,10 @@ Last updated: 2026-07-10 18:14 CST by main agent
 
 ## Next Agent Should Start Here
 
+- Continue from
+  `docs/devlog/entries/2026-07-10-remove-stale-governance-docs.md`; do not
+  delete files until the written design is approved and an implementation plan
+  is audited.
 - Preserve stale/historical governance document bodies unless a current routing/source-of-truth reference needs repair.
 - Keep latest project state in `00_CURRENT_SPEC.md`, `PROJECT_CONTROL.md`, project-management records, and devlog rather than old root planning bodies.
 - Keep `CURRENT_TECH_STACK.md`, `CURRENT_CODE_STYLE.md`,
