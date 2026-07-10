@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-10 16:05 CST by main agent
+Last updated: 2026-07-10 16:17 CST by main agent
 
 ## Open Work
 
@@ -9,8 +9,8 @@ Last updated: 2026-07-10 16:05 CST by main agent
   - status: `active`
   - branch: `docs/current-code-style`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/current-code-style`
-  - parent/child: parent task; implementation agents pending plan approval
-  - dependencies/blocked-by: written design review before implementation planning
+  - parent/child: parent task; Agents A/B producers and Agent C reviewer pending dispatch
+  - dependencies/blocked-by: focused governance test must reach expected red state before producer dispatch
   - contract handoff: design contract v1; consumer acknowledgement pending
 
 ## Current State
@@ -20,7 +20,7 @@ Last updated: 2026-07-10 16:05 CST by main agent
 - Old root governance documents now carry status banners and current-authority routing.
 - Current governance companion docs now cover maintained tech stack, architecture, and validation/release boundaries.
 - Code-style governance design is active on an isolated branch; implementation
-  has not started.
+  plan is execution-ready and implementation has not started.
 - No app runtime feature code or data changed.
 
 ## Next Agent Should Start Here
@@ -28,8 +28,9 @@ Last updated: 2026-07-10 16:05 CST by main agent
 - Preserve stale/historical governance document bodies unless a current routing/source-of-truth reference needs repair.
 - Keep latest project state in `00_CURRENT_SPEC.md`, `PROJECT_CONTROL.md`, project-management records, and devlog rather than old root planning bodies.
 - Keep `CURRENT_TECH_STACK.md`, `CURRENT_ARCHITECTURE.md`, and `CURRENT_VALIDATION_AND_RELEASE.md` aligned with package scripts, runtime config, data chain, and gate behavior changes.
-- Review `docs/superpowers/specs/2026-07-10-code-style-governance-design.md`,
-  then write the Stage 1 implementation plan before editing style/config files.
+- Start from Task 1 in
+  `docs/superpowers/plans/2026-07-10-code-style-governance.md`; confirm the
+  focused test is red before dispatching the two producer agents.
 
 ## Current Risks
 
