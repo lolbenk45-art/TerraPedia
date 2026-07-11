@@ -362,7 +362,8 @@
   - Wired devlog checkpoints into TerraPedia workflow and task commit closeout.
   - Added lightweight `type(scope): action` commit message convention.
 - Not completed:
-  - Actual commit SHA is pending final response after commit.
+  - Remote push and local cleanup were not recorded in this entry; the task
+    implementation itself was committed as `3c642b2`.
 
 ## Residual Risks
 
@@ -379,8 +380,7 @@
 
 ## Commits
 
-- Pending.
-- Commit SHA pending in final response.
+- Implementation commit: `3c642b2`.
 
 ## Closeout Checklist
 

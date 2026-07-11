@@ -1,13 +1,53 @@
 # Current Devlog
 
-Last updated: 2026-07-10 21:13 CST by main agent
+Last updated: 2026-07-11 21:38 CST by Codex
 
 ## Open Work
 
-- none
+- `docs/devlog/entries/2026-07-11-crawler-monitor-queue-state-root-cause.md`
+  - owner: Codex
+  - status: active
+  - branch: `fix/crawler-monitor-queue-state`
+  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-monitor-queue-state`
+  - parent/child: none
+  - dependencies or blocked-by: live stack is stopped; historical and offline analysis can continue
+  - contract handoff: V2 hard-cutover design written; user review is required before implementation planning
 
 ## Current State
 
+- Crawler monitor queue/status root-cause analysis is active on an isolated
+  worktree based on `origin/main@99cd26d`.
+- The offline root-cause verdict is complete: the implementation still has
+  multiple writable queue/runtime/status sources without a shared generation
+  or fencing token, and the planned Redis domain lease was never implemented.
+- The user confirmed all four visible failures recur, so cancellation,
+  restart recovery, queue advancement, and cross-panel consistency form one
+  acceptance contract.
+- The required operator contract is continuous state visibility, explicit
+  health/ownership errors, and bounded automatic convergence for every
+  non-terminal state.
+- The primary acceptance case is now legacy/current queue conflict: legacy
+  records must remain available as history but must never block, dedupe, own, or
+  determine progress for the live queue.
+- The user approved the V2 hard-cutover direction. The written design at
+  `docs/superpowers/specs/2026-07-11-crawler-monitor-queue-v2-hard-cutover-design.md`
+  is awaiting user review before implementation planning.
+- The design gives each attempt queueId, attemptId, fenceToken, stateVersion,
+  and stateStoreEpoch; makes overview pure read; assigns convergence to a
+  background reconciler; and requires a deadline for every non-terminal state.
+- Written-spec self-review passed placeholder, JSON example, code-fence,
+  reference, structured devlog, pending-SHA, and diff checks. No business code
+  or runtime state changed.
+- Queue logs are part of the same acceptance contract. Current history merging
+  collapses attempts by domain/action, log availability is not returned with
+  queue rows, and retained log files do not consistently carry queue identity.
+- Historical evidence confirms the mismatch: 154 queue rows reference a log,
+  only 21 files remain, 6 are empty, and none of the 15 non-empty files contain
+  their queueId. The domain detail history can therefore select an older run's
+  status/log while a newer attempt exists.
+- Current focused backend and admin tests pass, so the investigation is tracing
+  uncovered cross-source and restart behavior rather than reacting to a failing
+  unit test.
 - Project documentation governance naming has been normalized and committed locally.
 - Current project status, risk register, decision log, project control, and spec impact rules have been synchronized for commit.
 - Stale root governance files `03`, `04`, and `07-12` were removed from the current tree; maintained companion docs remain the implementation authority.
@@ -25,6 +65,11 @@ Last updated: 2026-07-10 21:13 CST by main agent
 
 ## Next Agent Should Start Here
 
+- Continue from the active crawler-monitor root-cause entry. Ask the user to
+  review the written V2 design. On approval, invoke `writing-plans`; on requested
+  changes, repair the design and repeat its self-review before planning.
+- Keep crawler execution, data writes, Redis clearing, and service lifecycle
+  changes out of the analysis phase.
 - Do not recreate removed root governance files `03`, `04`, or `07-12`; use Git history only for audit or rollback and add freshly validated current guidance when needed.
 - Keep latest project state in `00_CURRENT_SPEC.md`, `PROJECT_CONTROL.md`, project-management records, and devlog rather than old root planning bodies.
 - Keep `CURRENT_TECH_STACK.md`, `CURRENT_CODE_STYLE.md`,
@@ -39,6 +84,15 @@ Last updated: 2026-07-10 21:13 CST by main agent
 
 ## Current Risks
 
+- The local stack is stopped and the latest retained crawler runtime evidence is
+  dated 2026-07-08, so live behavior is not yet freshly reproduced.
+- Current queue history and log retention are misaligned: queue history keeps
+  substantially more attempts than the crawler-monitor log pruner, so a stored
+  logPath is not evidence that a readable log still exists.
+- The written design's default deadlines are proposed values and do not become
+  implementation authority until the user approves the written spec.
+- `test/playwright-baseline` is active in another worktree and overlaps
+  frontend dependency files; later integration must be serialized.
 - Historical documents still mention the old `project-plan/` path as archival context by design.
 - Historical devlog entries still mention removed root paths by design; those records are provenance, not live authority.
 - Current risk themes are document-level judgments until fresh runtime/backend/frontend/data gates and crawler reliability checks are run.
@@ -53,7 +107,7 @@ Last updated: 2026-07-10 21:13 CST by main agent
   - branch: `docs/remove-stale-governance`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/remove-stale-governance`
   - status: `closed`
-  - commit: commit SHA pending in final response
+  - commit: `99cd26d`
 - `docs/devlog/entries/2026-07-10-code-style-governance.md`
   - branch: `docs/current-code-style`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/current-code-style`
