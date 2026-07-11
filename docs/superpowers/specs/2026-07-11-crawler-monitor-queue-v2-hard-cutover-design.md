@@ -3,7 +3,7 @@
 - 日期：2026-07-11
 - 分支：`fix/crawler-monitor-queue-state`
 - 基线：`origin/main@99cd26d`
-- 状态：V2 方向已获用户批准，书面规格待用户复审
+- 状态：书面规格已获用户复审批准，实施计划已完成并通过文档自审，待选择执行方式
 - 上一版设计：`docs/superpowers/specs/2026-07-03-crawler-monitor-state-source-of-truth-design.md`
 
 ## 1. 决策摘要
@@ -168,10 +168,12 @@ Redis V2 状态 + Redis Stream 事件
 | `CrawlerAttemptStateMachine` | 校验允许的状态转换、deadline 和 reasonCode | 文件 IO；进程控制；自动修复 |
 | `CrawlerAttemptSupervisor` | 启动/收养精确匹配进程、续租、等待退出、强制终止 | 模糊查找“可能属于该域”的进程 |
 | `CrawlerQueueV2Reconciler` | 定时检查 deadline、租约、进程和心跳并执行有界收敛 | 被 overview GET 隐式调用 |
+| `CrawlerQueueV2RecoveryService` | 精确收养同 epoch 进程；为显式 reset 准备 interrupted history 和 quarantine 清单 | 自动创建 epoch；从 manifest/V1 恢复 live |
+| `CrawlerQueueEngineRouter` | 原子耐久 engine/epoch/reservation/first-mutation 标记和 fail-closed 路由 | 根据 Redis 可用性回退 V1；在 overview 中隐式修复状态 |
 | `CrawlerQueueV2EventBridge` | 从 Redis Stream 读取已提交事件并通过认证 SSE 传输 | 绕过 repository 写事件；作为第二份状态真相源 |
 | `CrawlerAttemptArtifactStore` | attempt 目录、manifest、progress、log 元数据与保留策略 | 参与调度、dedupe 或 ownership |
 | `CrawlerLegacyHistoryAdapter` | 把不可变 cutover snapshot 和 V1 归档规范化为只读 legacy history | 读取切换后的 V1 live keys；返回 current、allowedActions 或 live blocker |
-| `CrawlerQueueV2CutoverService` | 一次性生成 cutover manifest、初始化 epoch、验证 V1 隔离 | 双写 V1/V2；把 V1 非终态导入 live V2 |
+| `CrawlerQueueV2CutoverService` | 一次性生成 cutover manifest、初始化 epoch、验证 V1 隔离；编排显式 reset recovery | 双写 V1/V2；把 V1/manifest 非终态导入 live V2；自动 reset |
 
 现有 `CrawlerMonitorServiceImpl` 只保留 API 编排和已有非队列监控职责。V2 状态机、
 repository、reconciler 和 supervisor 必须拆成独立类，不能继续把状态所有权逻辑堆进
@@ -191,7 +193,10 @@ terrapedia:crawler:wiki-monitor:v2:
 
 | Key | 类型 | 用途 |
 | --- | --- | --- |
+| `meta:engine` | string | `v1`、`maintenance` 或 `v2`；Redis 侧路由状态 |
 | `meta:epoch` | string | 当前 `stateStoreEpoch` |
+| `meta:active-cutover-id` | string | 当前生效的硬切换 ID |
+| `meta:first-live-mutation-at` | string | 第一条真实 V2 mutation 的 Redis 原子确认时间；回滚边界证据 |
 | `meta:fence-sequence` | counter | 生成全局单调 `fenceToken` |
 | `queue:{queueId}` | JSON/string | 不可变排队意图，以及原子更新的当前 attempt 引用和 retry 关系 |
 | `attempt:{attemptId}` | JSON/string | 唯一权威生命周期状态 |
@@ -201,9 +206,19 @@ terrapedia:crawler:wiki-monitor:v2:
 | `dedupe:{dedupeKey}` | string + TTL | 仅指向当前非终态 attempt |
 | `events` | Redis Stream | 已提交状态事件和健康事件 |
 | `cutover:{cutoverId}` | JSON/string | 一次性切换结果、V1 快照摘要和校验信息 |
+| `state-store-reset:{resetId}` | JSON/string | epoch 重置恢复的幂等结果和新 epoch |
 
 禁止在 V2 增加“Redis 为空就从 JSON 恢复 live queue”的逻辑。磁盘 manifest 和日志
 只用于历史、审计和人工诊断。
+
+仓库内另有原子写入的耐久路由标记
+`reports/crawler-monitor/v2/cutover-state.json`。它记录 engine、cutoverId、epoch、
+`mutationReservationAt` 和 `firstLiveMutationAt`，不能由 Redis 是否可用推断或覆盖。
+所有 read-modify-write 使用同目录文件锁串行化并在锁内重新读取，避免多个后端进程用
+旧内存状态互相覆盖；临时文件在原子替换前必须 force 到磁盘，支持时再 force 父目录。
+真实 V2 mutation 前必须先写 reservation；Redis Lua 成功后再用其返回的
+`meta:first-live-mutation-at` 确认本地标记。两份证据不一致时进入 maintenance，只读
+展示明确错误，不得回退 V1。
 
 ### 6.2 Queue 记录
 
@@ -357,6 +372,8 @@ reasonCode；需要等待 cooldown 的 attempt 使用有 eligibleAt 和 deadline
 - 独立调度每 5 秒扫描非终态 attempt，也在 enqueue、进程退出、租约或 heartbeat
   变化时被事件触发。
 - 每轮记录 `lastReconciledAt`、扫描数量、收敛数量、失败数量和最老未收敛时长。
+- 每轮 mutation 前必须通过耐久 router gate；本地标记为 maintenance 时，即使 Redis
+  `meta:engine` 仍是 v2，也不得 claim、续租、转换 attempt 或写 Redis health。
 - 只通过 repository CAS 转换状态，不直接改 Redis JSON。
 - 同一 attempt 的多个 reconciler 竞争由 expected stateVersion 消解。
 - overview 只读取 reconciler 结果，不触发 reconciliation。
@@ -468,13 +485,26 @@ V2 key 和 lease 尚在时，reconciler 可以收养运行进程，但必须同�
 ### 9.3 V2 namespace 为空或 epoch 变化
 
 - 禁止从 V1 mirror、V1 latest dispatch、旧 progress 或日志重建 live queue。
+- 耐久标记已经到达 V2、但 Redis `meta:epoch` 缺失或身份不一致时，启动恢复只进入
+  `maintenance/STATE_STORE_RESET`；不得在普通启动或 overview 读取中自动创建 epoch。
 - 从 attempt manifest 只读生成历史记录，并把当时的非终态显示为
   `interrupted/STATE_STORE_RESET`。
-- recovery 先根据 V2 attempt manifest、PID 和 processStartedAt 查找可能仍存活的旧
+- 操作者使用带固定确认短语和幂等 resetId 的显式 reset recovery。它先记录 Redis
+  当前 observed epoch（可为空），并在原子初始化时再次比较，防止准备期间状态变化。
+  recovery 再根据 V2
+  attempt manifest、PID 和 processStartedAt 查找可能仍存活的旧
   受管进程，尽力终止并确认退出。无法确认时，在新 epoch 为受影响 domain 写有
   deadline 的 quarantine，并返回 `ORPHAN_PROCESS_UNCONFIRMED`；它是 V2 显式安全
   状态，不是从旧队列恢复出的 live attempt。
-- 初始化新 epoch 后 live queue 为空；继续执行必须由用户或调度器创建新 V2 queue。
+- observed epoch 存在时，Redis live 中没有 manifest 的 attempt 也必须先生成合成
+  attempt-scoped manifest 并按精确 PID/start time 处理，不能在 reset 时静默丢失身份。
+- `initialize-reset-epoch.lua` 在 observed epoch 仍匹配时一次性写入新 epoch、当前
+  cutoverId、空 live/ready 索引、
+  reset 记录和事件；若耐久标记已存在不可逆时间，同时恢复
+  `meta:first-live-mutation-at`。旧 epoch 的 dedupe、lease 和 quarantine 在身份校验时
+  必须被忽略，不能阻塞新 epoch。
+- 初始化新 epoch 后 live queue 为空；manifest 只转为 interrupted history，继续执行
+  必须由用户或调度器创建新 V2 queue。
   只有仍处于显式 quarantine 的 domain 会被暂时拒绝，并展示原因和到期时间。
 - 旧 epoch 的进程和写入一律因 epoch/fence 校验失败，不得复活。
 
@@ -549,11 +579,14 @@ available | empty | missing | expired | forbidden
 - `legacyHistory`
 
 `queueHealth`/`reconcilerHealth` 至少包含 `status`（`healthy | degraded |
-unavailable`）、`lastReconciledAt`、`overdueAttemptCount`、
+unavailable | maintenance`）、`lastReconciledAt`、`overdueAttemptCount`、
 `oldestOverdueDurationMs`、`streamLagMs` 和最近一次 reasonCode。
 
 `domainStates.currentAttemptId` 只能来自 V2 live attempt。V1 记录只出现在
 `legacyHistory`，并固定 `source: legacy-v1`、`live: false`、`allowedActions: []`。
+V2 reset 前的 manifest 只进入 `attemptHistory`，每行携带自己的 stateStoreEpoch；旧
+epoch 非终态固定为 `interrupted/STATE_STORE_RESET` 且 `allowedActions: []`，不能成为
+domain current。
 
 ### 11.2 控制命令
 
@@ -635,6 +668,7 @@ status、reasonCode 和 generatedAt。
 | `LEGACY_PROCESS_UNCONFIRMED` | cutover 无法确认 V1 运行进程已经退出，切换被中止 |
 | `STATE_STORE_UNAVAILABLE` | Redis V2 状态存储不可用 |
 | `STATE_STORE_RESET` | V2 namespace/epoch 已重置，旧 attempt 不得恢复 live |
+| `FIRST_MUTATION_OUTCOME_UNCERTAIN` | 已耐久预留首次 V2 mutation，但 Redis 结果无法确认；系统保持维护只读 |
 | `ORPHAN_PROCESS_UNCONFIRMED` | Redis 重置后无法确认旧 V2 进程已退出，domain 暂时隔离 |
 | `DEDUPED_ACTIVE_ATTEMPT` | 相同 dedupeKey 已有 V2 非终态 attempt |
 | `OWNERSHIP_CONFLICT` | covered domain 已被另一个有效 V2 attempt 占用 |
@@ -687,7 +721,14 @@ reasonCode 和具体建议。
 
 ### 13.3 回滚边界
 
-- 第一条真实 V2 mutation 发生前，可以撤销开关并回到 V1。
+- 第一条真实 V2 mutation 前，先原子写耐久 `mutationReservationAt`，再调用 Redis
+  Lua；Lua 在同一操作中设置并返回 `meta:first-live-mutation-at`，最后确认耐久
+  `firstLiveMutationAt`。
+- 只有耐久 reservation、耐久 first mutation 和 Redis first mutation 三者都不存在
+  时，才可以撤销开关并回到 V1。
+- reservation 已写但 Redis 调用失败、超时或返回结果不完整时，结果属于不确定：保持
+  maintenance，返回 `FIRST_MUTATION_OUTCOME_UNCERTAIN`，不得自动清除 reservation 或
+  假定“没有写入”。恢复方式是核对 Redis 证据后确认，或执行显式新 epoch 前滚恢复。
 - 第一条真实 V2 mutation 发生后，禁止自动恢复 V1 live 调度，否则会重新引入双权威。
 - 此后若发现严重问题，回滚方式是进入维护只读、保留 V2 证据并修复/前滚；不能让
   V1 mirror 接管 V2 当前状态。
@@ -701,6 +742,8 @@ reasonCode 和具体建议。
 | 队列不推进 | 当前 attempt 心跳过期且进程消失 | deadline 内 stalled -> timed_out，释放 lease 后下一项自动 starting |
 | 页面状态互相矛盾 | 同域存在多轮 mixed terminal progress/log | 所有 current 区块显示同一 attemptId/stateVersion；历史一 attempt 一行 |
 | 新旧队列冲突 | V1 dedupe/dispatch/锁均存在 | V2 admission 完全忽略 V1，占用判断只看 V2 lease |
+| epoch 丢失后卡住 | 耐久 V2 标记存在但 Redis epoch 缺失，旧 dedupe/lease/quarantine 仍在 | 页面明确 maintenance/STATE_STORE_RESET；不自动恢复 live；显式 reset 生成空的新 epoch，旧 epoch 占用不阻塞 |
+| 首次写入结果不明 | 本地 reservation 已写，Redis 调用超时或响应丢失 | maintenance/FIRST_MUTATION_OUTCOME_UNCERTAIN；核对或前滚恢复，绝不自动回退 V1 |
 | 日志无法判断 | 当前日志增长、旧日志过期、另一轮日志仍存在 | 抽屉绑定 attemptId 自动更新；分别显示 available/expired，不串轮次 |
 | 旧进程继续写 | 旧 attempt 在新 attempt 启动后写 progress | STALE_FENCE_TOKEN 告警；新 attempt 状态和进度不变 |
 | GET 改状态 | 重复调用 overview | Redis stateVersion、队列顺序和 Stream 长度不变 |
@@ -720,8 +763,10 @@ reasonCode 和具体建议。
 - cancel 正常退出、强制退出和无法确认退出三条路径。
 - overview 纯读取。
 - Redis 不可用 fail-closed。
+- 首次 mutation reservation 的成功确认、响应丢失和重启核对；不确定结果禁止 V1 回滚。
 - cutover 幂等；重复执行同一 cutoverId 不会重复导入或改变 V1。
-- namespace reset 只生成 interrupted history，不恢复 live。
+- namespace reset 只生成 interrupted history，不恢复 live；同一 resetId 幂等。
+- 旧 epoch dedupe、lease 和 quarantine 不阻塞新 epoch，同 epoch 占用仍严格生效。
 - attempt 日志 availability 与统一保留策略。
 - SSE cursor、断线续传、乱序和 epoch 变化。
 
@@ -794,18 +839,23 @@ reasonCode 和具体建议。
 | 取消时误杀 PID 复用进程 | attemptId、fenceToken、PID、processStartedAt 四项同时校验 |
 | 长任务被误判超时 | running 使用滚动 heartbeat deadline，不使用固定总运行时长 |
 | Redis 故障期间进程仍写数据 | supervisor 续租失败停止接纳进度并终止受管进程；旧写入受 epoch/fence 隔离 |
+| 首次 Redis 写入成功但本地确认前崩溃 | 先耐久 reservation，再由 Redis 原子写 first mutation；重启只凭 Redis 证据确认，否则维护只读 |
+| epoch reset 误把旧证据恢复为 live | reset 必须显式确认、幂等且生成空索引；manifest 只写 interrupted history，旧 epoch 占用按身份失效 |
 | V1 历史过大或格式不一致 | legacy adapter 只读、容错规范化、永不参与 live 计算 |
 | SSE 连接不稳定 | stream cursor 重连 + gap reload + 3 秒轮询兜底 |
 | 日志保留增加磁盘占用 | 与 attempt 元数据统一 100 条/7 天保留，并提供显式终态清理 |
 | 与 Playwright 分支冲突 | 本任务禁止修改依赖、lockfile 和 Playwright 配置；集成时串行处理共享文件 |
 
-## 18. 书面规格复审门禁
+## 18. 书面规格复审结果与实施门禁
 
-本规格获用户复审批准前：
+用户已于 2026-07-11 复审并批准本书面规格。实施计划已在
+`docs/superpowers/plans/2026-07-11-crawler-monitor-queue-v2-hard-cutover.md` 中拆成
+15 个测试先行、可逐项验证的任务，并完成文档自审。
 
-- 不编写 implementation plan。
-- 不修改业务代码、测试、Redis、数据库或服务状态。
+用户选择执行方式并进入实施前：
+
+- 不修改业务代码或测试。
+- 不写入 Redis、数据库或服务状态。
 - 不启动爬虫或执行 cutover。
 
-用户批准后，下一步使用 `writing-plans` 把本设计拆成测试先行、可逐项验证的实施计划，
-再进入代码实现。
+文档检查点提交后，由用户选择 subagent-driven 或 inline execution 进入代码实现。

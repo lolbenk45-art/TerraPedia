@@ -62,11 +62,25 @@
   attemptId, fenceToken, stateVersion, and stateStoreEpoch; overview is pure
   read, reconciliation is a background responsibility, and every non-terminal
   state has a deadline and explicit reasonCode.
+- Plan-audit hardening: the first real V2 mutation is a two-phase durable
+  boundary. The router writes and forces `mutationReservationAt` before the
+  Redis Lua call; Redis atomically returns `firstLiveMutationAt`; the router
+  confirms that exact value afterward. Any ambiguous result stays maintenance
+  with `FIRST_MUTATION_OUTCOME_UNCERTAIN` and cannot roll back to V1.
+- Plan-audit hardening: a missing or conflicting Redis epoch is never rebuilt
+  automatically. An authenticated, idempotent reset records the observed epoch,
+  interrupts exact old manifests/processes, initializes an empty new epoch only
+  if the observation still matches, restores only durable irreversible metadata,
+  and applies bounded quarantine for unconfirmed processes.
+- Old-epoch dedupe, lease, and quarantine payloads are stale evidence rather
+  than blockers. Same-epoch ownership remains strict. Durable maintenance is
+  also the final gate for reconciler and startup recovery mutations even if
+  Redis `meta:engine` still says V2.
 - The July 3 design's Redis per-domain TTL lease was not implemented. Current
   `domain.state` receives the queue start-claim expiry, which is cleared by
   `markRunning`; an active queue item then bypasses missing lease evidence.
-- Do not implement another symptom-specific condition before the user approves
-  a state-ownership design and one failing restart/cancel acceptance scenario.
+- Do not implement another symptom-specific condition outside the approved V2
+  state-ownership design and its failing restart/cancel acceptance scenarios.
 - Rejected options:
   - Editing UI status priority before verifying the backend state chain.
   - Clearing Redis, queue mirrors, locks, progress files, or database state as
@@ -82,10 +96,11 @@
   and focused tests.
 - Data: Read-only inspection of current queue mirror, latest dispatch, and
   referenced progress evidence. No database or crawler writes.
-- Docs/process: Record confirmed facts, validation, risks, and the eventual
-  approved design. The written V2 design is now present and awaits user review.
-- Out of scope: Crawler execution, data refresh/import/backfill, service restart,
-  database mutation, and business-code implementation before design approval.
+- Docs/process: Record confirmed facts, validation, risks, the approved written
+  design, and the executable implementation plan now being prepared.
+- Out of scope for the planning checkpoint: crawler execution, data
+  refresh/import/backfill, service restart, database mutation, and business-code
+  implementation.
 
 ## Validation
 
@@ -145,6 +160,15 @@
   - Written design self-review passed: no placeholders were found, all 24 code
     fences are balanced, all 4 JSON examples parse, referenced local files
     exist, and `git diff --check` passes.
+  - Implementation plan self-review passed: 15 tasks, 298 balanced code fences,
+    all 16 design-coverage rows, no forbidden placeholders or obsolete type
+    names, unique create declarations, valid modify/create paths, one explicit
+    reset Lua declaration, and no bare acceptance-test method signatures.
+  - Targeted type/structure checks passed: all `CutoverState`, `EngineState`, and
+    `InitializeResetEpochResult` examples use the declared constructor arity;
+    all seven combined acceptance tests have concrete bodies; reset/reservation,
+    maintenance gate, old-epoch isolation, and frontend maintenance/history
+    contracts are present.
   - Structured devlog scan now reports only this active entry and no closed
     entry with pending SHA. Historical commit facts were repaired to
     `3c642b2` and `99cd26d` without changing their task decisions.
@@ -176,10 +200,15 @@
     acceptance tests.
   - Completed the written-spec self-review for placeholders, internal
     consistency, scope, ambiguity, example syntax, and devlog commit hygiene.
+  - Completed and self-reviewed the 15-task implementation plan at
+    `docs/superpowers/plans/2026-07-11-crawler-monitor-queue-v2-hard-cutover.md`.
+  - Repaired the plan's first-mutation crash window, explicit epoch-reset
+    recovery, cross-epoch dedupe/lease/quarantine behavior, durable maintenance
+    mutation gate, reset-history projection, and combined acceptance test bodies.
 - Not completed:
-  - User review of the written design, implementation plan, business-code
-    implementation, fresh live reproduction, integrated restart/cancel
-    acceptance test, full validation, or implementation commit.
+  - Business-code implementation, fresh live reproduction, integrated
+    restart/cancel/reset acceptance tests, full implementation validation, live
+    cutover, or implementation commit.
 
 ## Residual Risks
 
@@ -195,17 +224,20 @@
 - The Playwright workflow task is active in a separate worktree; this task must
   avoid its frontend dependency files and serialize any later shared devlog
   integration.
-- The written design includes configurable default deadlines that still need
-  user review before they become an implementation contract.
+- The approved default deadlines remain unproven runtime assumptions until
+  fake-clock and integration tests pass during implementation.
+- The durable reservation/file-lock protocol, explicit reset Lua, synthetic
+  manifest handling, maintenance router gate, and old-epoch isolation are still
+  design/plan contracts rather than verified runtime behavior.
 
 ## Follow-up
 
-- Owner: Codex. Ask the user to review
-  `docs/superpowers/specs/2026-07-11-crawler-monitor-queue-v2-hard-cutover-design.md`.
-  If approved, invoke `writing-plans`; if changes are requested, repair and
-  re-review the written design before planning. Do not implement business code
-  before this gate clears.
+- Owner: Codex. Commit the completed design/plan/devlog documentation checkpoint,
+  then ask the user to choose subagent-driven or inline execution. Do not
+  implement business code during this planning checkpoint.
 
 ## Commits
 
-- Pending.
+- `04a7f53 docs(crawler): design V2 queue hard cutover`
+- Implementation-plan documentation checkpoint: SHA will be reported in the
+  handoff response; implementation remains active after this commit.

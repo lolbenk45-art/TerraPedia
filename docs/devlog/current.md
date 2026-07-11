@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-11 21:38 CST by Codex
+Last updated: 2026-07-12 00:02 CST by Codex
 
 ## Open Work
 
@@ -11,7 +11,7 @@ Last updated: 2026-07-11 21:38 CST by Codex
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-monitor-queue-state`
   - parent/child: none
   - dependencies or blocked-by: live stack is stopped; historical and offline analysis can continue
-  - contract handoff: V2 hard-cutover design written; user review is required before implementation planning
+  - contract handoff: written V2 hard-cutover design approved; 15-task implementation plan is complete and self-reviewed, no business implementation has started, and the documentation checkpoint is ready to commit
 
 ## Current State
 
@@ -29,12 +29,27 @@ Last updated: 2026-07-11 21:38 CST by Codex
 - The primary acceptance case is now legacy/current queue conflict: legacy
   records must remain available as history but must never block, dedupe, own, or
   determine progress for the live queue.
-- The user approved the V2 hard-cutover direction. The written design at
+- The user reviewed and approved the written V2 hard-cutover design at
   `docs/superpowers/specs/2026-07-11-crawler-monitor-queue-v2-hard-cutover-design.md`
-  is awaiting user review before implementation planning.
+  and implementation planning is now active.
 - The design gives each attempt queueId, attemptId, fenceToken, stateVersion,
   and stateStoreEpoch; makes overview pure read; assigns convergence to a
   background reconciler; and requires a deadline for every non-terminal state.
+- The implementation plan is complete with 15 RED -> GREEN tasks spanning the
+  V2 model, Redis/Lua fencing, exact process ownership, bounded reconciliation,
+  pure overview, authenticated SSE, attempt logs, hard cutover, isolated smoke,
+  readiness audit, and live cutover gates.
+- Plan audit closed two additional fail-closed gaps: the first real V2 mutation
+  now uses a durable reservation before Redis plus exact confirmation after it,
+  and missing/conflicting Redis epochs require an explicit idempotent reset that
+  creates an empty new epoch instead of restoring manifests as live work.
+- Old-epoch dedupe, lease, and quarantine evidence is identity-scoped and cannot
+  block a new epoch; durable maintenance also gates reconciler and startup
+  recovery writes even if Redis still reports V2.
+- Plan self-review passes: 15 tasks, 298 balanced plan fences, 24 balanced design
+  fences, 4 parsed design JSON examples, 16 design coverage rows, 7 concrete
+  combined acceptance test bodies, exact path declarations, constructor arity,
+  placeholder/obsolete-name scans, and `git diff --check`.
 - Written-spec self-review passed placeholder, JSON example, code-fence,
   reference, structured devlog, pending-SHA, and diff checks. No business code
   or runtime state changed.
@@ -65,9 +80,11 @@ Last updated: 2026-07-11 21:38 CST by Codex
 
 ## Next Agent Should Start Here
 
-- Continue from the active crawler-monitor root-cause entry. Ask the user to
-  review the written V2 design. On approval, invoke `writing-plans`; on requested
-  changes, repair the design and repeat its self-review before planning.
+- Commit the completed design/plan/devlog documentation checkpoint with explicit
+  paths only, then ask the user to choose subagent-driven or inline execution.
+- On implementation start, follow the plan task by task and preserve its
+  authorization gates: fixture-stack execution, live cutover, and first
+  irreversible V2 mutation each require their stated confirmation.
 - Keep crawler execution, data writes, Redis clearing, and service lifecycle
   changes out of the analysis phase.
 - Do not recreate removed root governance files `03`, `04`, or `07-12`; use Git history only for audit or rollback and add freshly validated current guidance when needed.
@@ -89,8 +106,12 @@ Last updated: 2026-07-11 21:38 CST by Codex
 - Current queue history and log retention are misaligned: queue history keeps
   substantially more attempts than the crawler-monitor log pruner, so a stored
   logPath is not evidence that a readable log still exists.
-- The written design's default deadlines are proposed values and do not become
-  implementation authority until the user approves the written spec.
+- The approved default deadlines still require fake-clock and integration
+  validation during implementation before they can be treated as proven runtime
+  behavior.
+- The reservation, durable router lock, explicit epoch reset, old-epoch
+  isolation, and maintenance mutation gate are plan contracts only until their
+  focused and isolated-prefix tests pass during implementation.
 - `test/playwright-baseline` is active in another worktree and overlaps
   frontend dependency files; later integration must be serialized.
 - Historical documents still mention the old `project-plan/` path as archival context by design.
