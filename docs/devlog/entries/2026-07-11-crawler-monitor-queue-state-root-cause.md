@@ -180,6 +180,19 @@
   - One initial Task 1 GREEN run reported a JUnit temporary-directory cleanup
     race after all business assertions passed. The exact affected case passed
     1/1 on a fresh rerun, then the complete 184-test selection passed cleanly.
+  - Task 2 TDD: `CrawlerAttemptStateMachineTest` first failed to compile because
+    the V2 contract types did not exist. The implemented contract and registry
+    selection then passed 6/6 focused tests.
+  - The final crawler-monitor compatibility selection passed 188/188 after the
+    exact temporary-file race case passed 1/1 and the complete selection passed
+    on a fresh rerun. The transient error occurred while a report-directory walk
+    observed an atomic-write `.tmp` path after it had already been renamed; no
+    business assertion failed in that run.
+  - The broad backend suite ran 1012 tests and reported 6 failures plus 1 error.
+    Five failures and the controller-test error reproduce in the same focused
+    selection on `main`; the remaining old monitor cancellation case passes 1/1
+    on both `main` and this branch. These baseline/order-sensitive failures are
+    outside the V2 contract scope and prevent claiming a clean broad-suite gate.
 - Not run:
   - Crawler execution, local-stack startup, database checks, full quality gate,
     or browser acceptance.
@@ -217,8 +230,13 @@
     `CrawlerMonitorActionRegistry` and `CrawlerMonitorActionDefinition`, then
     routing the existing service through that single immutable registry. See
     git for code-level diff details.
+  - Implemented Task 2 by defining the complete V2 status and reason vocabulary,
+    immutable queue/attempt/event records, configuration defaults, the exact
+    transition matrix, operator actions, and deadline calculation for every
+    non-terminal state. V2 cutover and fixture flags remain disabled by default.
+    See git for code-level diff details.
 - Not completed:
-  - Tasks 2-15, fresh live reproduction, integrated
+  - Tasks 3-15, fresh live reproduction, integrated
     restart/cancel/reset acceptance tests, full implementation validation, live
     cutover, or implementation commit.
 
@@ -236,15 +254,16 @@
 - The standardized Playwright workflow is now locally merged into this branch;
   real E2E still requires its dedicated isolated prerequisites and must not use
   ordinary local data or credentials.
-- The approved default deadlines remain unproven runtime assumptions until
-  fake-clock and integration tests pass during implementation.
+- The approved default deadlines now pass fake-clock state-machine tests but
+  remain unproven runtime assumptions until repository/reconciler integration
+  and isolated runtime tests pass.
 - The durable reservation/file-lock protocol, explicit reset Lua, synthetic
   manifest handling, maintenance router gate, and old-epoch isolation are still
   design/plan contracts rather than verified runtime behavior.
 
 ## Follow-up
 
-- Owner: Codex. Continue inline from Task 2 of the committed V2 hard-cutover
+- Owner: Codex. Continue inline from Task 3 of the committed V2 hard-cutover
   plan. Preserve the plan's explicit authorization gates for fixture-stack
   execution, live cutover, and the first irreversible V2 mutation.
 
@@ -252,5 +271,6 @@
 
 - `04a7f53 docs(crawler): design V2 queue hard cutover`
 - `8aead48 docs(crawler): plan V2 queue hard cutover`
-- Main-baseline merge: SHA pending in final response; implementation remains
-  active after this merge.
+- `ce32aeb chore(crawler): merge verified main baseline`
+- `723f2d0 refactor(crawler): extract monitor action registry`
+- Task 2 implementation commit: pending.

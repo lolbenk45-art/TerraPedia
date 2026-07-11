@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-12 07:16 CST by Codex
+Last updated: 2026-07-12 07:31 CST by Codex
 
 ## Open Work
 
@@ -11,7 +11,7 @@ Last updated: 2026-07-12 07:16 CST by Codex
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-monitor-queue-state`
   - parent/child: none
   - dependencies or blocked-by: live stack is stopped; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
-  - contract handoff: Task 1 action-registry extraction is implemented and validated; continue with Task 2 state model, reason catalog, deadlines, and pure state machine
+  - contract handoff: Tasks 1-2 are implemented and validated; continue with Task 3 V2 namespace and atomic enqueue/dedupe repository
 
 ## Current State
 
@@ -45,6 +45,14 @@ Last updated: 2026-07-12 07:16 CST by Codex
 - Task 1 validation passed 184/184 focused backend tests. One full-suite run
   hit a temporary-directory cleanup race after all assertions passed; the exact
   case and the complete suite both passed on fresh reruns.
+- Task 2 is implemented: the V2 contract now defines 13 lifecycle states, 24
+  structured reason codes, immutable queue/attempt/event records, configuration
+  defaults, the approved transition matrix, allowed actions, and a deadline for
+  every non-terminal state. No V2 repository or runtime mutation is active yet.
+- Task 2 and the existing crawler-monitor compatibility selection pass 188/188
+  focused backend tests after an exact 1/1 rerun closed a pre-existing atomic
+  temporary-file traversal race. The broad backend suite still has unrelated
+  failures that reproduce on `main`; they are not being folded into this task.
 - Plan audit closed two additional fail-closed gaps: the first real V2 mutation
   now uses a durable reservation before Redis plus exact confirmation after it,
   and missing/conflicting Redis epochs require an explicit idempotent reset that
@@ -93,7 +101,7 @@ Last updated: 2026-07-12 07:16 CST by Codex
 
 ## Next Agent Should Start Here
 
-- Continue inline from Task 2 of the committed V2 hard-cutover plan using
+- Continue inline from Task 3 of the committed V2 hard-cutover plan using
   test-first implementation and the plan's task-level validation checkpoints.
 - On implementation start, follow the plan task by task and preserve its
   authorization gates: fixture-stack execution, live cutover, and first
@@ -121,9 +129,9 @@ Last updated: 2026-07-12 07:16 CST by Codex
 - Current queue history and log retention are misaligned: queue history keeps
   substantially more attempts than the crawler-monitor log pruner, so a stored
   logPath is not evidence that a readable log still exists.
-- The approved default deadlines still require fake-clock and integration
-  validation during implementation before they can be treated as proven runtime
-  behavior.
+- The approved default deadlines pass fake-clock state-machine validation but
+  still require repository/reconciler integration and isolated runtime evidence
+  before they can be treated as proven operational behavior.
 - The reservation, durable router lock, explicit epoch reset, old-epoch
   isolation, and maintenance mutation gate are plan contracts only until their
   focused and isolated-prefix tests pass during implementation.

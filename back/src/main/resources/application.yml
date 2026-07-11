@@ -120,6 +120,16 @@ terraria:
     image-fetch-via-gate: ${TERRAPEDIA_IMAGE_FETCH_VIA_GATE:true}
     image-fetch-gate-url: ${TERRAPEDIA_IMAGE_FETCH_GATE_URL:http://127.0.0.1:18099/fetch-image}
     user-agent: ${TERRAPEDIA_WIKI_USER_AGENT:TerraPedia/2.0 (+https://terraria.wiki.gg/api.php)}
+    queue-v2:
+      cutover-allowed: ${TERRAPEDIA_CRAWLER_QUEUE_V2_CUTOVER_ALLOWED:false}
+      fixture-enabled: ${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_ENABLED:false}
+      reconcile-interval: 5s
+      reconciler-stale-after: 15s
+      lease-ttl: 90s
+      lease-renew-interval: 30s
+      running-heartbeat-deadline: 90s
+      terminal-retention-count: 100
+      terminal-retention-age: 7d
     cross-db:
       maint-database: ${TERRAPEDIA_DB_MAINT:terria_v1_maint}
       relation-database: ${TERRAPEDIA_DB_RELATION:terria_v1_relation}

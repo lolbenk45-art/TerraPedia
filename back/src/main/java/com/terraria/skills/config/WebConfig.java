@@ -31,6 +31,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
     SecurityNetworkProperties.class,
     HttpRateLimitProperties.class,
     AdminJobLockProperties.class,
+    CrawlerQueueV2Properties.class,
     MailProperties.class
 })
 public class WebConfig implements WebMvcConfigurer {
