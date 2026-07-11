@@ -135,6 +135,7 @@ public class UserAuthController {
     ) {
         String refreshToken = readCookie(httpRequest, userAuthProperties.getRefreshCookieName());
         if (refreshToken == null || refreshToken.isBlank()) {
+            clearAuthCookies(httpResponse);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.error(HttpStatus.UNAUTHORIZED.value(), "Refresh session is missing"));
         }

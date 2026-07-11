@@ -12,7 +12,8 @@
 - Branch: `fix/crawler-monitor-queue-state`
 - Worktree:
   `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-monitor-queue-state`
-- Base: `origin/main@99cd26d`.
+- Base: created from `origin/main@99cd26d`; synchronized with verified local
+  `main@3b1aa50` before implementation.
 - Related docs:
   - `docs/superpowers/specs/2026-07-11-crawler-monitor-queue-v2-hard-cutover-design.md`
   - `docs/superpowers/specs/2026-07-03-crawler-monitor-state-source-of-truth-design.md`
@@ -221,9 +222,9 @@
   be reproduced freshly, but the user confirmed that all four known variants
   occur. The repair must pass a combined cancel/restart/queue/UI contract rather
   than selecting only one symptom.
-- The Playwright workflow task is active in a separate worktree; this task must
-  avoid its frontend dependency files and serialize any later shared devlog
-  integration.
+- The standardized Playwright workflow is now locally merged into this branch;
+  real E2E still requires its dedicated isolated prerequisites and must not use
+  ordinary local data or credentials.
 - The approved default deadlines remain unproven runtime assumptions until
   fake-clock and integration tests pass during implementation.
 - The durable reservation/file-lock protocol, explicit reset Lua, synthetic
@@ -232,12 +233,13 @@
 
 ## Follow-up
 
-- Owner: Codex. Commit the completed design/plan/devlog documentation checkpoint,
-  then ask the user to choose subagent-driven or inline execution. Do not
-  implement business code during this planning checkpoint.
+- Owner: Codex. Continue inline from Task 1 of the committed V2 hard-cutover
+  plan. Preserve the plan's explicit authorization gates for fixture-stack
+  execution, live cutover, and the first irreversible V2 mutation.
 
 ## Commits
 
 - `04a7f53 docs(crawler): design V2 queue hard cutover`
-- Implementation-plan documentation checkpoint: SHA will be reported in the
-  handoff response; implementation remains active after this commit.
+- `8aead48 docs(crawler): plan V2 queue hard cutover`
+- Main-baseline merge: SHA pending in final response; implementation remains
+  active after this merge.

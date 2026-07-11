@@ -11,6 +11,28 @@ on:
 jobs:
   quality-gate:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: terrapedia_e2e_ci
+          MYSQL_ROOT_HOST: '%'
+        ports:
+          - 3306/tcp
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pterrapedia_e2e_ci"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7
+        ports:
+          - 6379/tcp
+        options: >-
+          --health-cmd="redis-cli -h 127.0.0.1 ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
     steps:
       - uses: actions/checkout@v4
 
@@ -33,6 +55,11 @@ jobs:
       - name: Enable pnpm
         run: corepack enable
 
+      - name: Install isolated E2E clients
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes mysql-client redis-tools
+
       - name: Install front Nuxt dependencies
         working-directory: front-nuxt
         run: pnpm install --frozen-lockfile
@@ -41,8 +68,37 @@ jobs:
         working-directory: data-query-app
         run: pnpm install --frozen-lockfile
 
+      - name: Install Playwright Chromium
+        working-directory: front-nuxt
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Discover isolated Chromium executable
+        id: chromium
+        working-directory: front-nuxt
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+        run: |
+          chromium_executable="$(node --input-type=module -e "import { chromium } from '@playwright/test'; process.stdout.write(chromium.executablePath())")"
+          test -x "$chromium_executable"
+          echo "executable=$chromium_executable" >> "$GITHUB_OUTPUT"
+
       - name: Run CI-safe quality gate
         shell: bash
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+          TERRAPEDIA_E2E_ENABLED: '1'
+          TERRAPEDIA_E2E_MYSQL_HOST: 127.0.0.1
+          TERRAPEDIA_E2E_MYSQL_PORT: ${{ job.services.mysql.ports['3306'] }}
+          TERRAPEDIA_E2E_MYSQL_USERNAME: root
+          TERRAPEDIA_E2E_MYSQL_PASSWORD: terrapedia_e2e_ci
+          TERRAPEDIA_E2E_REDIS_HOST: 127.0.0.1
+          TERRAPEDIA_E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
+          TERRAPEDIA_E2E_REDIS_DATABASE: '15'
+          TERRAPEDIA_E2E_BACKEND_PORT: '18080'
+          TERRAPEDIA_E2E_FRONTEND_PORT: '15176'
+          TERRAPEDIA_E2E_CHROMIUM_EXECUTABLE: ${{ steps.chromium.outputs.executable }}
         run: |
           # Bash-first migration target. If P1 has not landed yet, fail with
           # an explicit migration message instead of silently using PowerShell.

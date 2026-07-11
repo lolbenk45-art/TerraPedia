@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-12 00:02 CST by Codex
+Last updated: 2026-07-12 07:01 CST by Codex
 
 ## Open Work
 
@@ -10,13 +10,13 @@ Last updated: 2026-07-12 00:02 CST by Codex
   - branch: `fix/crawler-monitor-queue-state`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-monitor-queue-state`
   - parent/child: none
-  - dependencies or blocked-by: live stack is stopped; historical and offline analysis can continue
-  - contract handoff: written V2 hard-cutover design approved; 15-task implementation plan is complete and self-reviewed, no business implementation has started, and the documentation checkpoint is ready to commit
+  - dependencies or blocked-by: live stack is stopped; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
+  - contract handoff: written V2 hard-cutover design approved; 15-task implementation plan is committed and self-reviewed, `main@3b1aa50` is integrated, and no business implementation has started
 
 ## Current State
 
 - Crawler monitor queue/status root-cause analysis is active on an isolated
-  worktree based on `origin/main@99cd26d`.
+  worktree synchronized with the verified local baseline `main@3b1aa50`.
 - The offline root-cause verdict is complete: the implementation still has
   multiple writable queue/runtime/status sources without a shared generation
   or fencing token, and the planned Redis domain lease was never implemented.
@@ -76,12 +76,19 @@ Last updated: 2026-07-12 00:02 CST by Codex
   doc with concrete response and test evidence formats.
 - API contract integration review approved the nine-file merge scope and the
   three current-state conflict resolutions with no remaining findings.
-- No app runtime feature code or data changed.
+- The standardized user-auth functional-testing baseline is committed and
+  locally merged into `main`; this branch now includes its isolated E2E
+  profile, Playwright contract, private artifact handling, and quality-gate
+  wiring without sharing an active worktree.
+- Fresh post-merge validation passed: backend focused tests 42/42, frontend
+  full check/build and unit tests 11/11, runner/gate isolation tests 53/53,
+  script syntax checks, and `git diff --check`.
+- Real E2E execution remains pending dedicated MySQL credentials, free loopback runner ports, and explicit Chromium executable environment; neither ordinary local data nor real email may be used as a substitute.
 
 ## Next Agent Should Start Here
 
-- Commit the completed design/plan/devlog documentation checkpoint with explicit
-  paths only, then ask the user to choose subagent-driven or inline execution.
+- Continue inline from Task 1 of the committed V2 hard-cutover plan using
+  test-first implementation and the plan's task-level validation checkpoints.
 - On implementation start, follow the plan task by task and preserve its
   authorization gates: fixture-stack execution, live cutover, and first
   irreversible V2 mutation each require their stated confirmation.
@@ -98,6 +105,8 @@ Last updated: 2026-07-12 00:02 CST by Codex
   tasks before adding read-only checks to the full gate.
 - For future API work, start from `docs/project-governance/current/CURRENT_API_CONTRACTS.md` and update the matching devlog entry for that task.
 - For future API tests, record compact returned-data evidence in devlog and put full machine-readable payloads under `reports/api-smoke/` when useful.
+- Run real browser/CI acceptance only when the dedicated isolated prerequisites are available. Do not start the real runner with ordinary local data, ordinary credentials, or real email.
+- For new features, reuse the user-auth structure: feature contract, frontend unit boundaries, backend API contract tests, isolated browser smoke, regression matrix, and gate evidence.
 
 ## Current Risks
 
@@ -112,8 +121,6 @@ Last updated: 2026-07-12 00:02 CST by Codex
 - The reservation, durable router lock, explicit epoch reset, old-epoch
   isolation, and maintenance mutation gate are plan contracts only until their
   focused and isolated-prefix tests pass during implementation.
-- `test/playwright-baseline` is active in another worktree and overlaps
-  frontend dependency files; later integration must be serialized.
 - Historical documents still mention the old `project-plan/` path as archival context by design.
 - Historical devlog entries still mention removed root paths by design; those records are provenance, not live authority.
 - Current risk themes are document-level judgments until fresh runtime/backend/frontend/data gates and crawler reliability checks are run.
@@ -121,8 +128,15 @@ Last updated: 2026-07-12 00:02 CST by Codex
   must not claim those gates are active.
 - Formatter/linter enforcement remains intentionally deferred to separate
   baseline migrations.
+- Existing frontend build emits non-failing environment DBus, sourcemap, and preview-asset warnings; they are unrelated to Task 1 and remain outside this scope.
 
 ## Recently Closed
+
+- `docs/devlog/entries/2026-07-11-playwright-baseline.md`
+  - branch: `test/playwright-baseline`
+  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/playwright-baseline`
+  - status: `closed`
+  - commit: `1257d76`
 
 - `docs/devlog/entries/2026-07-10-remove-stale-governance-docs.md`
   - branch: `docs/remove-stale-governance`

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { UserArticle, UserArticleUpsertPayload, UserProfile } from '~/types/public-api'
+import { validateEmail, validatePassword, validateVerificationCode } from '~/lib/userAuthValidation.mjs'
 import {
   changeUserPassword,
   createUserArticle,
@@ -25,31 +26,28 @@ import {
   withdrawUserArticle as withdrawUserArticleRequest,
 } from '~/composables/useUserApi'
 
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d).{10,64}$/
-const verificationCodePattern = /^\d{4,8}$/
-
 const requireEmail = (email: string) => {
-  const value = email.trim()
-  if (!emailPattern.test(value)) {
+  const result = validateEmail(email)
+  if (!result.ok) {
     throw new Error('请输入有效邮箱。')
   }
-  return value
+  return result.value
 }
 
 const requirePassword = (password: string) => {
-  if (!passwordPattern.test(password)) {
+  const result = validatePassword(password)
+  if (!result.ok) {
     throw new Error('密码需为 10-64 位，并同时包含字母和数字。')
   }
-  return password
+  return result.value
 }
 
 const requireVerificationCode = (code: string) => {
-  const value = code.trim()
-  if (!verificationCodePattern.test(value)) {
+  const result = validateVerificationCode(code)
+  if (!result.ok) {
     throw new Error('验证码需为 4-8 位数字。')
   }
-  return value
+  return result.value
 }
 
 const trimOptional = (value: string, max: number, label: string) => {

@@ -148,6 +148,39 @@ test('github quality gate calls ci script on ubuntu bash runner', () => {
   assert.doesNotMatch(source, /verify-local-stack\.(ps1|sh)/i);
 });
 
+test('github quality gate provisions isolated E2E services and Chromium', () => {
+  const source = fs.readFileSync('.github/workflows/quality-gate.yml', 'utf8');
+
+  assert.match(source, /services:\s*\n\s*mysql:\s*\n\s*image: mysql:8\.4/);
+  assert.match(source, /mysql:[\s\S]*MYSQL_ROOT_HOST: '%'/);
+  assert.match(source, /services:[\s\S]*mysql:[\s\S]*--health-cmd=.*127\.0\.0\.1/);
+  assert.match(source, /services:\s*\n[\s\S]*redis:\s*\n\s*image: redis:7/);
+  assert.match(source, /services:[\s\S]*redis:[\s\S]*--health-cmd=.*127\.0\.0\.1/);
+  assert.match(source, /mysql-client/);
+  assert.match(source, /redis-tools/);
+  assert.match(source, /PLAYWRIGHT_BROWSERS_PATH/);
+  assert.match(source, /pnpm exec playwright install --with-deps chromium/);
+  assert.match(
+    source,
+    /chromium_executable="\$\(node --input-type=module -e "import \{ chromium \} from '@playwright\/test'; process\.stdout\.write\(chromium\.executablePath\(\)\)"\)"/,
+  );
+  assert.doesNotMatch(source, /chromium_executable=.*\\"import \{ chromium \}/);
+  assert.match(source, /test -x "\$chromium_executable"/);
+  assert.match(source, /TERRAPEDIA_E2E_CHROMIUM_EXECUTABLE/);
+
+  assert.match(source, /TERRAPEDIA_E2E_MYSQL_HOST: 127\.0\.0\.1/);
+  assert.match(source, /TERRAPEDIA_E2E_MYSQL_PORT: \$\{\{ job\.services\.mysql\.ports\['3306'\] \}\}/);
+  assert.match(source, /TERRAPEDIA_E2E_REDIS_HOST: 127\.0\.0\.1/);
+  assert.match(source, /TERRAPEDIA_E2E_REDIS_PORT: \$\{\{ job\.services\.redis\.ports\['6379'\] \}\}/);
+  assert.match(source, /TERRAPEDIA_E2E_REDIS_DATABASE: '15'/);
+
+  const backendPort = source.match(/TERRAPEDIA_E2E_BACKEND_PORT: '([0-9]+)'/);
+  const frontendPort = source.match(/TERRAPEDIA_E2E_FRONTEND_PORT: '([0-9]+)'/);
+  assert.ok(backendPort, 'CI must provide a backend E2E port');
+  assert.ok(frontendPort, 'CI must provide a frontend E2E port');
+  assert.notEqual(backendPort[1], frontendPort[1], 'CI backend and frontend ports must differ');
+});
+
 test('PowerShell quality gate wrappers delegate to Bash entrypoints', () => {
   const localWrapper = fs.readFileSync('scripts/dev/quality-gate.ps1', 'utf8');
   const ciWrapper = fs.readFileSync('scripts/dev/quality-gate-ci.ps1', 'utf8');
@@ -156,6 +189,23 @@ test('PowerShell quality gate wrappers delegate to Bash entrypoints', () => {
   assert.match(ciWrapper, /quality-gate-ci\.sh/);
   assert.doesNotMatch(localWrapper, /Domain acceptance full dry-run/);
   assert.doesNotMatch(ciWrapper, /Backend acceptance contract tests/);
+});
+
+test('quality gates reserve the named isolated user-auth browser smoke step', () => {
+  const localSource = fs.readFileSync('scripts/dev/quality-gate.sh', 'utf8');
+  const ciSource = fs.readFileSync('scripts/dev/quality-gate-ci.sh', 'utf8');
+
+  for (const source of [localSource, ciSource]) {
+    assert.match(source, /run_step "Front Nuxt checks and build" front-nuxt pnpm run test/);
+    assert.doesNotMatch(source, /TP_FRONT_PROJECT_DIR/);
+    assert.match(source, /^\s*run_step "User-auth isolated browser smoke" \. bash scripts\/dev\/run-user-auth-e2e\.sh --smoke$/m);
+    assert.match(source, /--skip-front also skips User-auth isolated browser smoke/);
+    assert.ok(
+      source.indexOf('run_step "User-auth isolated browser smoke"')
+        > source.indexOf('run_step "Front Nuxt checks and build" front-nuxt pnpm run test'),
+      'the smoke must follow the frontend package test',
+    );
+  }
 });
 
 function escapeRegExp(value) {

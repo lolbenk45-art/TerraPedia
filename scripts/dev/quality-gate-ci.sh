@@ -69,7 +69,10 @@ run_step "Backend acceptance contract tests" back mvn \
   test
 
 if ! $skip_front; then
-  run_step "Front Nuxt checks and build" "$TP_FRONT_PROJECT_DIR" pnpm run test
+  run_step "Front Nuxt checks and build" front-nuxt pnpm run test
+  run_step "User-auth isolated browser smoke" . bash scripts/dev/run-user-auth-e2e.sh --smoke
+else
+  printf '\nquality-gate-ci: --skip-front also skips User-auth isolated browser smoke.\n'
 fi
 
 if ! $skip_admin; then
