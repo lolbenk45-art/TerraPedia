@@ -92,8 +92,8 @@
   - Focused contract extended through red-green repair and integrated 6/6.
   - Task-level specification, quality, and final integrated re-reviews approved.
 - Not completed:
-  - Implementation commit, fast-forward integration, push, remote verification,
-    and cleanup follow this closeout immediately.
+  - Push, remote verification, and local cleanup were not recorded in this
+    entry; the implementation itself was committed as `99cd26d`.
 
 ## Residual Risks
 
@@ -111,7 +111,7 @@
 ## Commits
 
 - Design commit: `40b41e7`.
-- Implementation commit: commit SHA pending in final response.
+- Implementation commit: `99cd26d`.
 
 ## Optional: Multi-Agent Coordination
 
