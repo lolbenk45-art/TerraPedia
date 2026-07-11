@@ -30,11 +30,26 @@ Historical docs do not override current spec or workflow.
 - Start stack: `bash ./scripts/dev/start-local-stack.sh`
 - Stop stack: `bash ./scripts/dev/stop-local-stack.sh`
 - Full quality gate: `bash ./scripts/dev/quality-gate.sh`
+- Isolated user-auth browser smoke: `bash ./scripts/dev/run-user-auth-e2e.sh --smoke`
+- Isolated user-auth browser regression: `bash ./scripts/dev/run-user-auth-e2e.sh --regression`
 - Backend focused tests: run Maven from `back/`
 - Public frontend checks: run `pnpm run check` from `front-nuxt/`
 - Admin frontend checks: run `pnpm run check` or `pnpm run test` from `data-query-app/`
 
 Bash/WSL is the primary local automation path. Matching `.ps1` files are compatibility wrappers unless a current runbook says otherwise.
+
+The user-auth E2E runner is an explicit isolated boundary: it accepts only
+loopback MySQL and Redis, creates a run-derived disposable database, uses Redis
+DB `15`, and exposes verification codes only through the E2E profile's
+run-secret mailbox. Full local and CI quality gates require its smoke suite;
+`--skip-front` also omits that dependent evidence and reports the limitation.
+The runner requires E2E-scoped consent, credentials, service ports, runner
+ports, and Chromium executable path. It must never infer a database name,
+credentials, or target from ordinary local-stack configuration.
+Its durable browser evidence lives only under
+`reports/e2e/<run-id>/artifacts`: the runner creates and validates private
+current-user directories, and Playwright rejects an unprepared, symbolic-link,
+or group/other-readable artifact path before it creates a report.
 
 ## Documentation Placement
 
