@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Context
 
@@ -263,9 +263,11 @@
 
 ## Follow-up
 
-- Owner: Codex. Continue inline from Task 3 of the committed V2 hard-cutover
-  plan. Preserve the plan's explicit authorization gates for fixture-stack
-  execution, live cutover, and the first irreversible V2 mutation.
+- Owner: Codex. Continue in
+  `docs/devlog/entries/2026-07-12-crawler-queue-v2-runtime.md` from Task 3 of
+  the committed V2 hard-cutover plan. Preserve the plan's explicit
+  authorization gates for fixture-stack execution, live cutover, and the first
+  irreversible V2 mutation.
 
 ## Commits
 
@@ -273,4 +275,5 @@
 - `8aead48 docs(crawler): plan V2 queue hard cutover`
 - `ce32aeb chore(crawler): merge verified main baseline`
 - `723f2d0 refactor(crawler): extract monitor action registry`
-- Task 2 implementation commit: pending.
+- `755713f feat(crawler): define V2 attempt state contract`
+- Branch/devlog closeout: commit SHA pending in final response.

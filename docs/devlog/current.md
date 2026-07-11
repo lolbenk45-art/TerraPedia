@@ -1,22 +1,23 @@
 # Current Devlog
 
-Last updated: 2026-07-12 07:31 CST by Codex
+Last updated: 2026-07-12 07:34 CST by Codex
 
 ## Open Work
 
-- `docs/devlog/entries/2026-07-11-crawler-monitor-queue-state-root-cause.md`
+- `docs/devlog/entries/2026-07-12-crawler-queue-v2-runtime.md`
   - owner: Codex
   - status: active
-  - branch: `fix/crawler-monitor-queue-state`
-  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-monitor-queue-state`
+  - branch: `fix/crawler-queue-v2-runtime`
+  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
   - parent/child: none
   - dependencies or blocked-by: live stack is stopped; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
-  - contract handoff: Tasks 1-2 are implemented and validated; continue with Task 3 V2 namespace and atomic enqueue/dedupe repository
+  - contract handoff: Tasks 1-2 are committed at `723f2d0` and `755713f`; continue with Task 3 V2 namespace and atomic enqueue/dedupe repository
 
 ## Current State
 
-- Crawler monitor queue/status root-cause analysis is active on an isolated
-  worktree synchronized with the verified local baseline `main@3b1aa50`.
+- Crawler monitor queue/status root-cause analysis and the first two V2
+  foundation tasks are complete; runtime implementation continues on the
+  isolated follow-up branch `fix/crawler-queue-v2-runtime`.
 - The offline root-cause verdict is complete: the implementation still has
   multiple writable queue/runtime/status sources without a shared generation
   or fencing token, and the planned Redis domain lease was never implemented.
@@ -145,6 +146,12 @@ Last updated: 2026-07-12 07:31 CST by Codex
 - Existing frontend build emits non-failing environment DBus, sourcemap, and preview-asset warnings; they are unrelated to Task 1 and remain outside this scope.
 
 ## Recently Closed
+
+- `docs/devlog/entries/2026-07-11-crawler-monitor-queue-state-root-cause.md`
+  - branch: `fix/crawler-monitor-queue-state`
+  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-monitor-queue-state`
+  - status: `closed`
+  - commit: branch closeout commit pending in final response
 
 - `docs/devlog/entries/2026-07-11-playwright-baseline.md`
   - branch: `test/playwright-baseline`
