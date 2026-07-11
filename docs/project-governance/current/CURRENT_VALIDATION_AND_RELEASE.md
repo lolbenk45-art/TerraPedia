@@ -1,7 +1,7 @@
 # Current Validation And Release
 
 Status: current
-Last updated: 2026-07-09
+Last updated: 2026-07-12
 
 This file records current validation and release boundaries for development
 planning. It does not claim that any gate has passed unless this file cites a
@@ -62,6 +62,32 @@ Full local quality gate:
 bash ./scripts/dev/quality-gate.sh
 ```
 
+Isolated user-auth browser suites:
+
+```bash
+bash scripts/dev/run-user-auth-e2e.sh --smoke
+bash scripts/dev/run-user-auth-e2e.sh --regression
+```
+
+Before the full local gate, explicitly export the runner's required isolated
+E2E variables. The optional MySQL and Redis endpoint overrides must remain
+loopback-only; Redis must use DB `15`.
+
+```bash
+export TERRAPEDIA_E2E_ENABLED=1
+export TERRAPEDIA_E2E_MYSQL_USERNAME='<isolated-mysql-user>'
+export TERRAPEDIA_E2E_MYSQL_PASSWORD='<isolated-mysql-password>'
+export TERRAPEDIA_E2E_BACKEND_PORT=18080
+export TERRAPEDIA_E2E_FRONTEND_PORT=15176
+export TERRAPEDIA_E2E_CHROMIUM_EXECUTABLE="$(cd front-nuxt && node --input-type=module -e "import { chromium } from '@playwright/test'; process.stdout.write(chromium.executablePath())")"
+# Optional loopback-only overrides: TERRAPEDIA_E2E_MYSQL_HOST/PORT and TERRAPEDIA_E2E_REDIS_HOST/PORT.
+```
+
+Missing values fail with the runner's targeted prerequisite message. The
+runner never infers database names, credentials, or target services from
+ordinary local-stack configuration such as `TERRAPEDIA_DB_URL` or
+`TERRAPEDIA_LOCAL_STACK_CONFIG`.
+
 ## Quality Gate Contents
 
 `scripts/dev/quality-gate.sh` currently includes:
@@ -72,7 +98,7 @@ bash ./scripts/dev/quality-gate.sh
 - Domain acceptance A-grade gate with blocked failure enabled.
 - Cross-DB referential integrity audit in quick mode by default, or full mode with `--full-data-audit`.
 - Backend domain acceptance focused tests and broad Maven tests unless skipped.
-- Public frontend package test unless skipped. Keep `front-nuxt/package.json` scripts aligned with this gate before relying on a full run.
+- Public frontend package test followed by the mandatory isolated user-auth browser smoke unless skipped. Keep `front-nuxt/package.json` scripts aligned with this gate before relying on a full run.
 - Admin package test unless skipped.
 
 The gate supports skip flags for scoped validation:
@@ -85,6 +111,24 @@ bash ./scripts/dev/quality-gate.sh --full-data-audit
 ```
 
 Use skip flags only when the task scope justifies them and record the limitation.
+In particular, `--skip-front` skips the dependent isolated browser smoke and
+cannot provide full user-auth gate evidence.
+
+## Isolated User-Auth E2E Boundary
+
+The runner starts a dedicated E2E profile against a run-derived disposable
+MySQL database, loopback Redis DB `15`, and an E2E-only verification-code
+mailbox protected by a per-run secret. It rejects ordinary datasource/local
+stack configuration, remote hosts, inherited database names, and missing
+explicit consent or credentials before any service action. CI provisions its
+own MySQL, Redis, clients, and Chromium; no local configuration secret is used.
+Browser reports are runner artifacts under `reports/e2e/<run-id>/` and do not
+replace the mandatory smoke result in the full local or CI quality gate.
+The durable `artifacts/` subtree, its report directories, and its files are
+private to the current user (`0700` directories and `0600` files). The runner
+fails before any data client if a report path is a symbolic link or an unsafe
+pre-existing run/artifact tree; the Playwright configuration applies the same
+fail-closed check before browser work begins.
 
 ## Local Stack
 

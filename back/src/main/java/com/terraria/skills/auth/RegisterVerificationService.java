@@ -1,17 +1,12 @@
 package com.terraria.skills.auth;
 
-import com.terraria.skills.mail.MailProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.security.SecureRandom;
 import java.util.HexFormat;
 import java.util.concurrent.TimeUnit;
 
@@ -22,13 +17,8 @@ public class RegisterVerificationService {
 
     private final RegisterVerificationProperties properties;
     private final StringRedisTemplate redisTemplate;
-    private final JavaMailSender mailSender;
-    private final MailProperties mailProperties;
-
-    @Value("${spring.mail.username:}")
-    private String mailUsername;
-
-    private final SecureRandom random = new SecureRandom();
+    private final VerificationCodeDelivery verificationCodeDelivery;
+    private final VerificationCodeGenerator verificationCodeGenerator;
 
     public SendCodeResult sendCode(String email, String ipAddress) {
         return sendCode(VerificationScene.REGISTER, email, ipAddress);
@@ -57,7 +47,7 @@ public class RegisterVerificationService {
 
         try {
             enforceSendQuota(scene, normalizedEmail, normalizedIp);
-            String code = generateCode(properties.getCodeLength());
+            String code = verificationCodeGenerator.generate(properties.getCodeLength());
             String debugVerificationCode = deliverCode(scene, normalizedEmail, code, properties.getCodeTtlSeconds());
             redisTemplate.opsForValue().set(codeKey(scene, normalizedEmail), hashCode(normalizedEmail, code), properties.getCodeTtlSeconds(), TimeUnit.SECONDS);
             clearVerifyFailures(scene, normalizedEmail, normalizedIp);
@@ -155,32 +145,21 @@ public class RegisterVerificationService {
     }
 
     private String deliverCode(VerificationScene scene, String email, String code, long ttlSeconds) {
-        String from = resolveFromAddress();
-        if (mailProperties.isEnabled() && from != null && !from.isBlank()) {
-            try {
-                String subjectPrefix = blankToDefault(mailProperties.getSubjectPrefix(), "[TerraPedia]");
-
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setFrom(from.trim());
-                message.setTo(email);
-                message.setSubject(subjectPrefix + " " + scene.subjectSuffix());
-                message.setText(buildBody(scene, code, ttlSeconds));
-                mailSender.send(message);
-                return null;
-            } catch (Exception exception) {
-                if (!properties.isLocalDevFallbackEnabled()) {
-                    throw exception;
-                }
-                log.warn("Failed to send {} verification email={}, falling back to local dev code", scene.keyPrefix(), email, exception);
-            }
-        } else if (!properties.isLocalDevFallbackEnabled()) {
-            if (!mailProperties.isEnabled()) {
-                throw new IllegalArgumentException("Email verification is disabled");
-            }
-            throw new IllegalArgumentException("Email sender is not configured");
+        boolean delivered = verificationCodeDelivery.deliver(
+            email,
+            scene.subjectSuffix(),
+            buildBody(scene, code, ttlSeconds),
+            code
+        );
+        if (delivered) {
+            return null;
         }
 
-        log.info("Local dev verification code scene={} email={} code={} ttlSeconds={}", scene.keyPrefix(), email, code, ttlSeconds);
+        if (!properties.isLocalDevFallbackEnabled()) {
+            throw new IllegalArgumentException("Verification email delivery is unavailable");
+        }
+
+        log.info("Using local development verification fallback for scene={}", scene.keyPrefix());
         return code;
     }
 
@@ -194,22 +173,6 @@ public class RegisterVerificationService {
             "This code is valid for " + minutes + " minute(s).",
             "If you did not request this, please ignore this email."
         );
-    }
-
-    private String resolveFromAddress() {
-        if (mailProperties.getFromAddress() != null && !mailProperties.getFromAddress().isBlank()) {
-            return mailProperties.getFromAddress();
-        }
-        return mailUsername;
-    }
-
-    private String generateCode(int length) {
-        int safeLength = Math.max(4, Math.min(length, 8));
-        StringBuilder builder = new StringBuilder(safeLength);
-        for (int i = 0; i < safeLength; i++) {
-            builder.append(random.nextInt(10));
-        }
-        return builder.toString();
     }
 
     private String hashCode(String email, String code) {
@@ -242,13 +205,6 @@ public class RegisterVerificationService {
 
     private String normalize(String value) {
         return value == null ? "" : value.trim().toLowerCase();
-    }
-
-    private String blankToDefault(String value, String defaultValue) {
-        if (value == null || value.isBlank()) {
-            return defaultValue;
-        }
-        return value.trim();
     }
 
     private boolean constantTimeEquals(String left, String right) {

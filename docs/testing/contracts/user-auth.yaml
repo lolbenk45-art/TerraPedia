@@ -1,0 +1,490 @@
+version: 2
+feature: user-auth
+cases:
+  - id: AUTH-LOGIN-001
+    level: e2e
+    priority: P0
+    precondition:
+      account:
+        fixture: e2e-existing-account
+        state: active
+      browser:
+        authCookies: absent
+    request:
+      method: POST
+      path: /api/user-auth/login
+      body:
+        email:
+          fixture: e2e-existing-account-email
+          matcher: valid-email
+        password:
+          fixture: e2e-existing-account-password
+          matcher: valid-password
+          redacted: true
+    expect:
+      transport:
+        httpStatus: 200
+      envelope:
+        success: true
+        statusCode: 200
+      cookies:
+        assertion: present
+        values:
+          - name: tp_user_access
+            httpOnly: true
+            path: /
+            sameSite: configured-policy
+            maxAge: positive
+          - name: tp_user_refresh
+            httpOnly: true
+            path: /
+            sameSite: configured-policy
+            maxAge: positive
+      ui:
+        route: /user
+        state: authenticated-dashboard-visible
+      writes:
+        userAccount: last-login-updated
+        authSession: created
+        refreshToken: created
+    cleanup:
+      browserCookies: clear
+      e2eData:
+        account: remove
+
+  - id: AUTH-LOGIN-002
+    level: e2e
+    priority: P0
+    precondition:
+      account:
+        fixture: e2e-existing-account
+        state: active
+      browser:
+        authCookies: absent
+    request:
+      method: POST
+      path: /api/user-auth/login
+      body:
+        email:
+          fixture: e2e-existing-account-email
+          matcher: valid-email
+        password:
+          fixture: incorrect-password
+          matcher: valid-password
+          redacted: true
+    expect:
+      transport:
+        httpStatus: 400
+      envelope:
+        success: false
+        statusCode: 400
+      cookies:
+        assertion: absent
+        names:
+          - tp_user_access
+          - tp_user_refresh
+      ui:
+        route: /user/login
+        state: login-error-visible
+      writes:
+        userAccount: unchanged
+        authSession: not-created
+        refreshToken: not-created
+    cleanup:
+      browserCookies: clear
+      e2eData:
+        account: remove
+
+  - id: AUTH-LOGIN-003
+    level: unit-and-api
+    priority: P0
+    precondition:
+      client:
+        form: login
+        requestInFlight: false
+      directApi:
+        browserAuthCookies: absent
+    request:
+      path: /api/user-auth/login
+      body:
+        email:
+          fixture: malformed-email
+          matcher: invalid-email
+        password:
+          fixture: valid-password
+          matcher: valid-password
+          redacted: true
+      variants:
+        client:
+          method: client-validation
+          requestIssued: false
+        directApi:
+          method: POST
+    expect:
+      client:
+        transport:
+          requestIssued: false
+        envelope:
+          present: false
+        cookies:
+          assertion: absent
+          names:
+            - tp_user_access
+            - tp_user_refresh
+        ui:
+          route: /user/login
+          state: email-validation-error-visible
+        writes:
+          userAccount: unchanged
+          authSession: not-created
+          refreshToken: not-created
+      directApi:
+        transport:
+          httpStatus: 400
+        envelope:
+          success: false
+          statusCode: 400
+        cookies:
+          assertion: absent
+          names:
+            - tp_user_access
+            - tp_user_refresh
+        ui:
+          route: /user/login
+          state: no-authenticated-state-created
+        writes:
+          userAccount: unchanged
+          authSession: not-created
+          refreshToken: not-created
+    cleanup:
+      clientForm: reset
+      browserCookies: clear
+
+  - id: AUTH-REGISTER-001
+    level: e2e
+    priority: P0
+    precondition:
+      account:
+        fixture: e2e-new-account
+        state: absent
+      mailbox:
+        fixture: e2e-registration-code
+        state: valid
+    request:
+      method: POST
+      path: /api/user-auth/register
+      body:
+        email:
+          fixture: e2e-new-account-email
+          matcher: valid-email
+        password:
+          fixture: e2e-new-account-password
+          matcher: valid-password
+          redacted: true
+        displayName:
+          fixture: e2e-display-name
+          matcher: optional-display-name
+        verificationCode:
+          fixture: e2e-registration-code
+          matcher: 4-to-8-digits
+          redacted: true
+    expect:
+      transport:
+        httpStatus: 201
+      envelope:
+        success: true
+        statusCode: 200
+      cookies:
+        assertion: present
+        values:
+          - name: tp_user_access
+            httpOnly: true
+            path: /
+            sameSite: configured-policy
+            maxAge: positive
+          - name: tp_user_refresh
+            httpOnly: true
+            path: /
+            sameSite: configured-policy
+            maxAge: positive
+      ui:
+        route: /user
+        state: authenticated-dashboard-visible
+      writes:
+        userAccount: created
+        authSession: created
+        refreshToken: created
+    cleanup:
+      browserCookies: clear
+      e2eData:
+        account: remove
+        mailbox: remove
+
+  - id: AUTH-REGISTER-002
+    level: e2e
+    priority: P0
+    precondition:
+      account:
+        fixture: e2e-existing-account
+        state: active
+      browser:
+        authCookies: absent
+    request:
+      method: POST
+      path: /api/user-auth/register
+      body:
+        email:
+          fixture: e2e-existing-account-email
+          matcher: valid-email
+        password:
+          fixture: valid-registration-password
+          matcher: valid-password
+          redacted: true
+        displayName:
+          fixture: e2e-display-name
+          matcher: optional-display-name
+        verificationCode:
+          fixture: valid-shape-code
+          matcher: 4-to-8-digits
+          redacted: true
+    expect:
+      transport:
+        httpStatus: 400
+      envelope:
+        success: false
+        statusCode: 400
+      cookies:
+        assertion: absent
+        names:
+          - tp_user_access
+          - tp_user_refresh
+      ui:
+        route: /user/register
+        state: registration-error-visible
+      writes:
+        userAccount: unchanged
+        authSession: not-created
+        refreshToken: not-created
+    cleanup:
+      browserCookies: clear
+      e2eData:
+        account: remove
+
+  - id: AUTH-REGISTER-003
+    level: unit
+    priority: P0
+    precondition:
+      client:
+        form: register
+        requestInFlight: false
+    request:
+      method: client-validation
+      path: /api/user-auth/register
+      body:
+        email:
+          fixture: valid-email
+          matcher: valid-email
+        password:
+          fixture: invalid-password-boundary
+          matcher: invalid-password
+          redacted: true
+        verificationCode:
+          fixture: valid-shape-code
+          matcher: 4-to-8-digits
+          redacted: true
+    expect:
+      transport:
+        requestIssued: false
+      envelope:
+        present: false
+      cookies:
+        assertion: absent
+        names:
+          - tp_user_access
+          - tp_user_refresh
+      ui:
+        route: /user/register
+        state: password-validation-error-visible
+      writes:
+        userAccount: unchanged
+        authSession: not-created
+        refreshToken: not-created
+    cleanup:
+      clientForm: reset
+
+  - id: AUTH-REGISTER-004
+    level: unit-and-api
+    priority: P0
+    precondition:
+      client:
+        form: register
+        requestInFlight: false
+      directApi:
+        account:
+          fixture: e2e-new-account
+          state: absent
+        verificationCode:
+          fixture: wrong-or-expired-valid-shape-code
+          state: rejected
+    request:
+      path: /api/user-auth/register
+      body:
+        email:
+          fixture: e2e-new-account-email
+          matcher: valid-email
+        password:
+          fixture: valid-registration-password
+          matcher: valid-password
+          redacted: true
+        displayName:
+          fixture: e2e-display-name
+          matcher: optional-display-name
+        verificationCode:
+          client:
+            fixture: malformed-code
+            matcher: invalid-4-to-8-digit-code
+            redacted: true
+          directApi:
+            fixture: wrong-or-expired-valid-shape-code
+            matcher: 4-to-8-digits
+            redacted: true
+      variants:
+        client:
+          method: client-validation
+          requestIssued: false
+        directApi:
+          method: POST
+    expect:
+      client:
+        transport:
+          requestIssued: false
+        envelope:
+          present: false
+        cookies:
+          assertion: absent
+          names:
+            - tp_user_access
+            - tp_user_refresh
+        ui:
+          route: /user/register
+          state: verification-code-validation-error-visible
+        writes:
+          userAccount: unchanged
+          authSession: not-created
+          refreshToken: not-created
+      directApi:
+        transport:
+          httpStatus: 400
+        envelope:
+          success: false
+          statusCode: 400
+        cookies:
+          assertion: absent
+          names:
+            - tp_user_access
+            - tp_user_refresh
+        ui:
+          route: /user/register
+          state: registration-error-visible
+        writes:
+          userAccount: unchanged
+          authSession: not-created
+          refreshToken: not-created
+    cleanup:
+      clientForm: reset
+      browserCookies: clear
+      e2eData:
+        account: remove-if-created
+        mailbox: remove
+
+  - id: AUTH-SESSION-001
+    level: e2e
+    priority: P0
+    precondition:
+      browser:
+        refreshCookie:
+          variants:
+            missing:
+              name: tp_user_refresh
+              sent: false
+            invalid:
+              name: tp_user_refresh
+              fixture: revoked-refresh-token
+              redacted: true
+              sent: true
+        authenticatedSession: absent
+    request:
+      method: POST
+      path: /api/user-auth/refresh
+      body: {}
+    expect:
+      transport:
+        httpStatus: 401
+      envelope:
+        success: false
+        statusCode: 401
+      cookies:
+        assertion: cleared
+        values:
+          - name: tp_user_access
+            httpOnly: true
+            path: /
+            sameSite: configured-policy
+            maxAge: 0
+          - name: tp_user_refresh
+            httpOnly: true
+            path: /
+            sameSite: configured-policy
+            maxAge: 0
+      ui:
+        route: /user/login
+        state: protected-page-redirected-to-guest-login
+      writes:
+        userAccount: unchanged
+        authSession: not-created
+        refreshToken: not-created
+    cleanup:
+      browserCookies: clear
+
+  - id: AUTH-SESSION-002
+    level: e2e
+    priority: P0
+    precondition:
+      browser:
+        authCookies: present
+      account:
+        fixture: e2e-existing-account
+        state: active
+    request:
+      method: POST
+      path: /api/user-auth/logout
+      body: {}
+    expect:
+      transport:
+        httpStatus: 200
+      envelope:
+        success: true
+        statusCode: 200
+      cookies:
+        assertion: cleared
+        values:
+          - name: tp_user_access
+            httpOnly: true
+            path: /
+            sameSite: configured-policy
+            maxAge: 0
+          - name: tp_user_refresh
+            httpOnly: true
+            path: /
+            sameSite: configured-policy
+            maxAge: 0
+      ui:
+        route: /user/login
+        state: guest-login-visible
+      writes:
+        userAccount: unchanged
+        authSession: revoked
+        refreshToken: revoked
+    cleanup:
+      e2eData:
+        account: remove

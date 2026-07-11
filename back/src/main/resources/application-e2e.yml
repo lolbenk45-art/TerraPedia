@@ -1,0 +1,44 @@
+spring:
+  config:
+    activate:
+      on-profile: e2e
+  datasource:
+    url: ${TERRAPEDIA_E2E_DB_URL:}
+    username: ${TERRAPEDIA_E2E_DB_USERNAME:}
+    password: ${TERRAPEDIA_E2E_DB_PASSWORD:}
+  data:
+    redis:
+      host: ${TERRAPEDIA_E2E_REDIS_HOST:127.0.0.1}
+      port: ${TERRAPEDIA_E2E_REDIS_PORT:6379}
+      password: ${TERRAPEDIA_E2E_REDIS_PASSWORD:}
+      database: 15
+  redis:
+    host: ${TERRAPEDIA_E2E_REDIS_HOST:127.0.0.1}
+    port: ${TERRAPEDIA_E2E_REDIS_PORT:6379}
+    password: ${TERRAPEDIA_E2E_REDIS_PASSWORD:}
+    database: 15
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration
+
+server:
+  address: 127.0.0.1
+
+terrapedia:
+  e2e:
+    enabled: false
+    run-id: ${TERRAPEDIA_E2E_RUN_ID:}
+    run-secret: ${TERRAPEDIA_E2E_RUN_SECRET:}
+
+terraria:
+  auth:
+    admin:
+      password: ${TERRAPEDIA_E2E_ADMIN_PASSWORD:e2e-admin-password-not-for-production}
+      token-secret: ${TERRAPEDIA_E2E_ADMIN_TOKEN_SECRET:e2e-admin-token-secret-not-for-production-0123456789}
+    user:
+      token-secret: ${TERRAPEDIA_E2E_USER_TOKEN_SECRET:e2e-user-token-secret-not-for-production-0123456789}
+  security:
+    register-verification:
+      local-dev-fallback-enabled: false
+  mail:
+    enabled: false
