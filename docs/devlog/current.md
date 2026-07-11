@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-12 07:01 CST by Codex
+Last updated: 2026-07-12 07:16 CST by Codex
 
 ## Open Work
 
@@ -11,7 +11,7 @@ Last updated: 2026-07-12 07:01 CST by Codex
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-monitor-queue-state`
   - parent/child: none
   - dependencies or blocked-by: live stack is stopped; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
-  - contract handoff: written V2 hard-cutover design approved; 15-task implementation plan is committed and self-reviewed, `main@3b1aa50` is integrated, and no business implementation has started
+  - contract handoff: Task 1 action-registry extraction is implemented and validated; continue with Task 2 state model, reason catalog, deadlines, and pure state machine
 
 ## Current State
 
@@ -39,6 +39,12 @@ Last updated: 2026-07-12 07:01 CST by Codex
   V2 model, Redis/Lua fencing, exact process ownership, bounded reconciliation,
   pure overview, authenticated SSE, attempt logs, hard cutover, isolated smoke,
   readiness audit, and live cutover gates.
+- Task 1 is implemented: all 12 approved V1 actions now come from one immutable
+  registry shared with the future V2 path; commands, progress paths, resume
+  settings, dispatch behavior, and control behavior remain unchanged.
+- Task 1 validation passed 184/184 focused backend tests. One full-suite run
+  hit a temporary-directory cleanup race after all assertions passed; the exact
+  case and the complete suite both passed on fresh reruns.
 - Plan audit closed two additional fail-closed gaps: the first real V2 mutation
   now uses a durable reservation before Redis plus exact confirmation after it,
   and missing/conflicting Redis epochs require an explicit idempotent reset that
@@ -87,7 +93,7 @@ Last updated: 2026-07-12 07:01 CST by Codex
 
 ## Next Agent Should Start Here
 
-- Continue inline from Task 1 of the committed V2 hard-cutover plan using
+- Continue inline from Task 2 of the committed V2 hard-cutover plan using
   test-first implementation and the plan's task-level validation checkpoints.
 - On implementation start, follow the plan task by task and preserve its
   authorization gates: fixture-stack execution, live cutover, and first

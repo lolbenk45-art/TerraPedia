@@ -173,6 +173,13 @@
   - Structured devlog scan now reports only this active entry and no closed
     entry with pending SHA. Historical commit facts were repaired to
     `3c642b2` and `99cd26d` without changing their task decisions.
+  - Task 1 TDD: `CrawlerMonitorActionRegistryTest` first failed to compile
+    because the registry and immutable definition did not exist. After the
+    extraction, the registry, service, and queue repository suite passed
+    184/184 with no changed V1 command or queue assertion.
+  - One initial Task 1 GREEN run reported a JUnit temporary-directory cleanup
+    race after all business assertions passed. The exact affected case passed
+    1/1 on a fresh rerun, then the complete 184-test selection passed cleanly.
 - Not run:
   - Crawler execution, local-stack startup, database checks, full quality gate,
     or browser acceptance.
@@ -206,8 +213,12 @@
   - Repaired the plan's first-mutation crash window, explicit epoch-reset
     recovery, cross-epoch dedupe/lease/quarantine behavior, durable maintenance
     mutation gate, reset-history projection, and combined acceptance test bodies.
+  - Implemented Task 1 by extracting the existing 12 approved actions into
+    `CrawlerMonitorActionRegistry` and `CrawlerMonitorActionDefinition`, then
+    routing the existing service through that single immutable registry. See
+    git for code-level diff details.
 - Not completed:
-  - Business-code implementation, fresh live reproduction, integrated
+  - Tasks 2-15, fresh live reproduction, integrated
     restart/cancel/reset acceptance tests, full implementation validation, live
     cutover, or implementation commit.
 
@@ -233,7 +244,7 @@
 
 ## Follow-up
 
-- Owner: Codex. Continue inline from Task 1 of the committed V2 hard-cutover
+- Owner: Codex. Continue inline from Task 2 of the committed V2 hard-cutover
   plan. Preserve the plan's explicit authorization gates for fixture-stack
   execution, live cutover, and the first irreversible V2 mutation.
 
