@@ -4,6 +4,7 @@ public enum CrawlerQueueV2ReasonCode {
     LEGACY_CUTOVER("V1 活动记录已在硬切换时中断并归档。", "从历史重新执行会创建全新的 V2 任务。"),
     LEGACY_PROCESS_UNCONFIRMED("无法确认 V1 运行进程已经退出，V2 切换已中止。", "检查清单中的 PID 和启动时间，确认进程退出后重新执行切换。"),
     STATE_STORE_UNAVAILABLE("V2 状态存储不可用，写操作已关闭。", "恢复 Redis 后刷新页面；不要回退到 V1 队列。"),
+    SSE_SUBSCRIBER_LIMIT("Crawler SSE 订阅数已达到安全上限。", "关闭不再使用的管理端页面后重试；不要通过重复连接绕过上限。"),
     STATE_STORE_RESET("V2 状态空间或 epoch 已重置，旧任务不会恢复为实时任务。", "检查中断历史并按需创建新的 V2 任务。"),
     FIRST_MUTATION_OUTCOME_UNCERTAIN("首次 V2 写入已经预留，但 Redis 结果无法确认，系统已进入维护只读。", "核对 Redis 首次写入证据；若无法确认，执行显式新 epoch 前滚恢复，禁止回退 V1。"),
     ORPHAN_PROCESS_UNCONFIRMED("无法确认旧 V2 进程已经退出，相关域正在安全隔离。", "等待隔离到期或确认旧进程退出后再重试。"),
@@ -24,6 +25,7 @@ public enum CrawlerQueueV2ReasonCode {
     LOG_EMPTY("日志文件存在但没有内容。", "等待活动任务继续写入或检查进程是否真正启动。"),
     LOG_MISSING("本次 attempt 没有形成可读日志。", "查看 manifest 和进程启动错误。"),
     LOG_EXPIRED("日志已按统一保留策略清理。", "使用保留的 manifest 查看运行身份和终态。"),
+    ATTEMPT_ARTIFACT_UNAVAILABLE("V2 attempt 日志证据不可读取，未被误判为缺失。", "检查 attempt manifest、目录完整性、符号链接和磁盘 I/O；修复后刷新日志。"),
     LOG_FORBIDDEN("日志路径不在允许的 attempt 目录内。", "使用 attemptId 重新请求日志，不要提交任意路径。");
 
     private final String messageZh;

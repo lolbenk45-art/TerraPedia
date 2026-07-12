@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-13 04:45 CST by Codex
+Last updated: 2026-07-13 07:06 CST by Codex
 
 ## Open Work
 
@@ -11,7 +11,7 @@ Last updated: 2026-07-13 04:45 CST by Codex
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
   - parent/child: none
   - dependencies or blocked-by: local stack is running for user acceptance; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
-  - contract handoff: Tasks 1-5 are committed through `af762c2`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 6 exact worker progress identity is committed at `06c8df2`; Task 7 fenced process supervision is committed at `7df042b`; Task 8 bounded convergence/recovery is committed at `04b684a`; Task 9 durable routing, pure overview, and watcher fencing are approved and ready for a focused commit
+  - contract handoff: Tasks 1-5 are committed through `af762c2`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 6 exact worker progress identity is committed at `06c8df2`; Task 7 fenced process supervision is committed at `7df042b`; Task 8 bounded convergence/recovery is committed at `04b684a`; Task 9 durable routing, pure overview, and watcher fencing are committed at `024acdc`; Task 10 HTTP/log/SSE contract is reviewed and ready for a focused checkpoint
 
 ## Current State
 
@@ -100,7 +100,7 @@ Last updated: 2026-07-13 04:45 CST by Codex
   fail-closes reset responses whose reset ID, epoch, or irreversible timestamp
   does not match the submitted command. Fresh focused validation passes
   156/156 with final specification and code-quality approvals.
-- Task 9 is validated and approved for a focused checkpoint: the durable
+- Task 9 is committed at `024acdc`: the durable
   router serializes every V1/V2 mutation with maintenance/reset marker writes,
   V2 overview reads have no live-queue side effects, old/legacy evidence stays
   history-only, and asynchronous exit watchers independently acquire the same

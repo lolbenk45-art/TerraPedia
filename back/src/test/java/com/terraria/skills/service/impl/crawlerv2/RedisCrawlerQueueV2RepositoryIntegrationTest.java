@@ -332,9 +332,11 @@ class RedisCrawlerQueueV2RepositoryIntegrationTest {
             )
         );
         assertTrue(redis.hasKey(prefix + "health:reconciler"));
-        List<CrawlerQueueV2Repository.EventEnvelope> events = repository.readEvents(
+        CrawlerQueueV2Repository.EventReadResult eventRead = repository.readEvents(
             "0-0", 20, Duration.ofMillis(1)
         );
+        assertFalse(eventRead.gap());
+        List<CrawlerQueueV2Repository.EventEnvelope> events = eventRead.events();
         assertTrue(events.size() >= 5);
         assertEquals("queue.created", events.get(0).event().type());
         assertEquals("queue.health-changed", events.get(events.size() - 1).event().type());

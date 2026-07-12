@@ -3,13 +3,16 @@ package com.terraria.skills.service.impl.crawlerv2;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.terraria.skills.config.CrawlerQueueV2Properties;
+import com.terraria.skills.dto.CrawlerAttemptLogDetailDTO;
 import com.terraria.skills.dto.CrawlerQueueV2OverviewDTO;
 import com.terraria.skills.service.impl.CrawlerMonitorActionRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
@@ -32,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -52,11 +56,12 @@ class CrawlerQueueV2ApplicationServiceTest {
     private final CrawlerQueueV2Reconciler reconciler = mock(CrawlerQueueV2Reconciler.class);
     private final CrawlerAttemptArtifactStore artifactStore = mock(CrawlerAttemptArtifactStore.class);
     private final CrawlerLegacyHistoryAdapter legacyHistory = mock(CrawlerLegacyHistoryAdapter.class);
+    private CrawlerQueueV2Properties properties;
     private CrawlerQueueV2ApplicationService service;
 
     @BeforeEach
     void setUp() {
-        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        properties = new CrawlerQueueV2Properties();
         when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
         when(router.readDurableState()).thenReturn(new CrawlerQueueEngineRouter.CutoverState(
             2,
@@ -141,6 +146,143 @@ class CrawlerQueueV2ApplicationServiceTest {
         assertEquals(409, exception.httpStatus().value());
         assertEquals(CrawlerQueueV2ReasonCode.STALE_STATE_VERSION, exception.reasonCode());
         verify(supervisor, never()).cancel(any());
+    }
+
+    @Test
+    void returnsExplicitUnavailableLogsWhenTheReadRacesWithMissingOrExpiredArtifacts() {
+        when(artifactStore.logMetadata(any(), any())).thenReturn(new CrawlerAttemptLogMetadata(
+            "attempt-1",
+            "reports/crawler-monitor/v2/2026-07-13/attempt-1/run.log",
+            CrawlerAttemptLogAvailability.AVAILABLE,
+            true,
+            13L,
+            NOW,
+            NOW.plus(Duration.ofDays(7)),
+            null
+        ));
+        when(artifactStore.readLog(any(), anyLong(), anyInt(), any())).thenThrow(
+            new IllegalStateException("attempt 日志不可用：missing"),
+            new IllegalStateException("attempt 日志不可用：expired")
+        );
+
+        CrawlerAttemptLogDetailDTO missing = service.getAttemptLog("attempt-1", 0L, 1_024);
+        CrawlerAttemptLogDetailDTO expired = service.getAttemptLog("attempt-1", 0L, 1_024);
+
+        assertEquals("missing", missing.getAvailability());
+        assertEquals("LOG_MISSING", missing.getReasonCode());
+        assertEquals("", missing.getContent());
+        assertEquals("expired", expired.getAvailability());
+        assertEquals("LOG_EXPIRED", expired.getReasonCode());
+        assertEquals("", expired.getContent());
+    }
+
+    @Test
+    void createsSseEmittersWithTheConfiguredFiniteTimeout() {
+        properties.setSseSessionTimeout(Duration.ofSeconds(30));
+
+        SseEmitter emitter = service.subscribeEvents("0-0");
+
+        assertEquals(30_000L, emitter.getTimeout());
+    }
+
+    @Test
+    void fallsBackToAFiniteSseTimeoutWhenConfigurationAttemptsToDisableIt() {
+        properties.setSseSessionTimeout(Duration.ZERO);
+
+        SseEmitter emitter = service.subscribeEvents("0-0");
+
+        assertEquals(Duration.ofMinutes(5).toMillis(), emitter.getTimeout());
+    }
+
+    @Test
+    void surfacesUnexpectedLogMetadataFailuresAsStructuredArtifactUnavailable() {
+        when(artifactStore.logMetadata(any(), any())).thenThrow(
+            new IllegalStateException("读取 attempt 日志元数据失败")
+        );
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> service.getAttemptLog("attempt-1", 0L, 1_024)
+        );
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, exception.httpStatus());
+        assertEquals(CrawlerQueueV2ReasonCode.ATTEMPT_ARTIFACT_UNAVAILABLE, exception.reasonCode());
+    }
+
+    @Test
+    void surfacesUnexpectedLogReadFailuresAsStructuredArtifactUnavailable() {
+        when(artifactStore.logMetadata(any(), any())).thenReturn(new CrawlerAttemptLogMetadata(
+            "attempt-1",
+            "reports/crawler-monitor/v2/2026-07-13/attempt-1/run.log",
+            CrawlerAttemptLogAvailability.AVAILABLE,
+            true,
+            13L,
+            NOW,
+            NOW.plus(Duration.ofDays(7)),
+            null
+        ));
+        when(artifactStore.readLog(any(), anyLong(), anyInt(), any())).thenThrow(
+            new IllegalStateException("读取 attempt 日志失败")
+        );
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> service.getAttemptLog("attempt-1", 0L, 1_024)
+        );
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, exception.httpStatus());
+        assertEquals(CrawlerQueueV2ReasonCode.ATTEMPT_ARTIFACT_UNAVAILABLE, exception.reasonCode());
+    }
+
+    @Test
+    void surfacesAMalformedAttemptManifestAsStructuredArtifactUnavailable() throws Exception {
+        Path manifestPath = tempRepoRoot.resolve(
+            "reports/crawler-monitor/v2/2026-07-13/attempt-corrupt/attempt-manifest.json"
+        );
+        Files.createDirectories(manifestPath.getParent());
+        Files.writeString(manifestPath, "{ malformed manifest");
+        CrawlerAttemptArtifactStore diskArtifacts = new CrawlerAttemptArtifactStore(
+            new ObjectMapper().registerModule(new JavaTimeModule()),
+            tempRepoRoot,
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            properties
+        );
+        CrawlerQueueV2ApplicationService diskService = new CrawlerQueueV2ApplicationService(
+            router,
+            repository,
+            new CrawlerAttemptStateMachine(properties),
+            supervisor,
+            reconciler,
+            diskArtifacts,
+            CrawlerMonitorActionRegistry.defaults(),
+            legacyHistory,
+            properties,
+            Clock.fixed(NOW, ZoneOffset.UTC)
+        );
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> diskService.getAttemptLog("attempt-corrupt", 0L, 1_024)
+        );
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, exception.httpStatus());
+        assertEquals(CrawlerQueueV2ReasonCode.ATTEMPT_ARTIFACT_UNAVAILABLE, exception.reasonCode());
+        assertTrue(exception.getCause() instanceof IllegalStateException);
+    }
+
+    @Test
+    void preservesForbiddenAttemptLogFailuresAsLogForbidden() {
+        when(artifactStore.logMetadata(any(), any())).thenThrow(
+            new SecurityException("attempt 日志路径不允许读取")
+        );
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> service.getAttemptLog("attempt-1", 0L, 1_024)
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.httpStatus());
+        assertEquals(CrawlerQueueV2ReasonCode.LOG_FORBIDDEN, exception.reasonCode());
     }
 
     @Test

@@ -1,10 +1,12 @@
 package com.terraria.skills.service.impl.crawlerv2;
 
 import com.terraria.skills.config.CrawlerQueueV2Properties;
+import com.terraria.skills.dto.CrawlerAttemptLogDetailDTO;
 import com.terraria.skills.dto.CrawlerQueueV2OverviewDTO;
 import com.terraria.skills.service.impl.CrawlerMonitorActionDefinition;
 import com.terraria.skills.service.impl.CrawlerMonitorActionRegistry;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -42,6 +44,7 @@ public class CrawlerQueueV2ApplicationService {
     private final CrawlerLegacyHistoryAdapter legacyHistory;
     private final CrawlerQueueV2Properties properties;
     private final Clock clock;
+    private final CrawlerQueueV2EventBridge eventBridge;
     private volatile OverviewSnapshot lastSuccessfulSnapshot;
 
     public CrawlerQueueV2ApplicationService(
@@ -66,6 +69,19 @@ public class CrawlerQueueV2ApplicationService {
         this.legacyHistory = Objects.requireNonNull(legacyHistory, "legacyHistory");
         this.properties = Objects.requireNonNull(properties, "properties");
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.eventBridge = new CrawlerQueueV2EventBridge(repository, properties, clock);
+    }
+
+    public SseEmitter subscribeEvents(String after) {
+        return eventBridge.subscribe(after, () -> new SseEmitter(sseSessionTimeoutMillis()));
+    }
+
+    public void pollEvents() {
+        eventBridge.pollAndBroadcast();
+    }
+
+    public void sendEventHeartbeat() {
+        eventBridge.sendHeartbeat();
     }
 
     public DispatchResult enqueue(EnqueueCommand command) {
@@ -236,6 +252,68 @@ public class CrawlerQueueV2ApplicationService {
     public DispatchResult control(ControlCommand command) {
         requireControl(command);
         return router.withMutationPermit(permit -> controlUnderPermit(command, permit));
+    }
+
+    public CrawlerAttemptLogDetailDTO getAttemptLog(String attemptId, long offset, int maxBytes) {
+        if (blank(attemptId)) {
+            throw new IllegalArgumentException("V2 attemptId 不可为空");
+        }
+        long safeOffset = Math.max(0L, offset);
+        int safeMaxBytes = Math.max(1, Math.min(262_144, maxBytes));
+        CrawlerAttemptLogMetadata metadata;
+        try {
+            metadata = artifactStore.logMetadata(attemptId, clock.instant());
+        } catch (SecurityException exception) {
+            throw forbiddenLog(exception);
+        } catch (IllegalStateException exception) {
+            CrawlerAttemptLogAvailability availability = unavailableLogAvailability(exception);
+            if (availability == null) {
+                throw artifactReadFailure(exception);
+            }
+            return unavailableLog(
+                attemptId,
+                safeOffset,
+                availability,
+                availability == CrawlerAttemptLogAvailability.EXPIRED
+                    ? CrawlerQueueV2ReasonCode.LOG_EXPIRED
+                    : CrawlerQueueV2ReasonCode.LOG_MISSING
+            );
+        }
+        if (metadata.availability() == CrawlerAttemptLogAvailability.FORBIDDEN) {
+            throw forbiddenLog(null);
+        }
+        CrawlerAttemptLogDetailDTO detail = logDetail(metadata, safeOffset);
+        if (!metadata.previewable()) {
+            return detail;
+        }
+        try {
+            CrawlerAttemptArtifactStore.LogChunk chunk = artifactStore.readLog(
+                attemptId,
+                safeOffset,
+                safeMaxBytes,
+                clock.instant()
+            );
+            detail.setOffset(chunk.offset());
+            detail.setNextOffset(chunk.nextOffset());
+            detail.setContent(chunk.content());
+            detail.setTruncated(chunk.truncated());
+            return detail;
+        } catch (SecurityException exception) {
+            throw forbiddenLog(exception);
+        } catch (IllegalStateException exception) {
+            CrawlerAttemptLogAvailability availability = unavailableLogAvailability(exception);
+            if (availability == null) {
+                throw artifactReadFailure(exception);
+            }
+            return unavailableLog(
+                attemptId,
+                safeOffset,
+                availability,
+                availability == CrawlerAttemptLogAvailability.EXPIRED
+                    ? CrawlerQueueV2ReasonCode.LOG_EXPIRED
+                    : CrawlerQueueV2ReasonCode.LOG_MISSING
+            );
+        }
     }
 
     private DispatchResult controlUnderPermit(
@@ -838,6 +916,73 @@ public class CrawlerQueueV2ApplicationService {
         }
     }
 
+    private static CrawlerAttemptLogDetailDTO logDetail(CrawlerAttemptLogMetadata metadata, long offset) {
+        CrawlerAttemptLogDetailDTO detail = new CrawlerAttemptLogDetailDTO();
+        detail.setAttemptId(metadata.attemptId());
+        detail.setPath(metadata.path());
+        detail.setAvailability(metadata.availability().value());
+        detail.setPreviewable(metadata.previewable());
+        detail.setSizeBytes(metadata.sizeBytes());
+        detail.setLastWriteAt(metadata.lastWriteAt());
+        detail.setRetentionExpiresAt(metadata.retentionExpiresAt());
+        detail.setReasonCode(metadata.reasonCode() == null ? null : metadata.reasonCode().name());
+        detail.setOffset(offset);
+        detail.setNextOffset(offset);
+        detail.setContent("");
+        detail.setTruncated(false);
+        return detail;
+    }
+
+    private static CrawlerAttemptLogDetailDTO unavailableLog(
+        String attemptId,
+        long offset,
+        CrawlerAttemptLogAvailability availability,
+        CrawlerQueueV2ReasonCode reasonCode
+    ) {
+        return logDetail(new CrawlerAttemptLogMetadata(
+            attemptId,
+            null,
+            availability,
+            false,
+            null,
+            null,
+            null,
+            reasonCode
+        ), offset);
+    }
+
+    private static CrawlerQueueV2Exception forbiddenLog(Throwable cause) {
+        return new CrawlerQueueV2Exception(
+            HttpStatus.FORBIDDEN,
+            CrawlerQueueV2ReasonCode.LOG_FORBIDDEN,
+            CrawlerQueueV2ReasonCode.LOG_FORBIDDEN.messageZh(),
+            cause
+        );
+    }
+
+    private static CrawlerQueueV2Exception artifactReadFailure(Throwable cause) {
+        return new CrawlerQueueV2Exception(
+            HttpStatus.SERVICE_UNAVAILABLE,
+            CrawlerQueueV2ReasonCode.ATTEMPT_ARTIFACT_UNAVAILABLE,
+            "读取 V2 attempt 日志失败",
+            cause
+        );
+    }
+
+    private static CrawlerAttemptLogAvailability unavailableLogAvailability(
+        IllegalStateException exception
+    ) {
+        String message = exception.getMessage();
+        if (message == null) {
+            return null;
+        }
+        return switch (message) {
+            case "attempt 日志不可用：missing" -> CrawlerAttemptLogAvailability.MISSING;
+            case "attempt 日志不可用：expired" -> CrawlerAttemptLogAvailability.EXPIRED;
+            default -> null;
+        };
+    }
+
     private static <T> List<T> safeList(List<T> values) {
         return values == null ? List.of() : List.copyOf(values);
     }
@@ -852,6 +997,14 @@ public class CrawlerQueueV2ApplicationService {
 
     private static boolean blank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private long sseSessionTimeoutMillis() {
+        Duration configured = properties.getSseSessionTimeout();
+        Duration timeout = configured == null || configured.isNegative() || configured.isZero()
+            ? Duration.ofMinutes(5)
+            : configured;
+        return Math.max(1L, timeout.toMillis());
     }
 
     private static CrawlerQueueV2Exception staleStateVersion() {

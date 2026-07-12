@@ -556,11 +556,35 @@ class RedisCrawlerQueueV2RepositoryTest {
         when(streams.read(any(StreamReadOptions.class), any(StreamOffset.class))).thenReturn(List.of());
         RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
 
-        assertTrue(repository.readEvents("0-0", 10, Duration.ZERO).isEmpty());
+        CrawlerQueueV2Repository.EventReadResult result = repository.readEvents("0-0", 10, Duration.ZERO);
+
+        assertFalse(result.gap());
+        assertTrue(result.events().isEmpty());
+        assertEquals("0-0", result.nextCursor());
 
         ArgumentCaptor<StreamReadOptions> options = ArgumentCaptor.forClass(StreamReadOptions.class);
         verify(streams).read(options.capture(), any(StreamOffset.class));
         assertFalse(options.getValue().isBlocking());
+    }
+
+    @Test
+    void shouldReturnAGapWithoutReadingWhenTheRequestedCursorWasTrimmed() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        StreamOperations<String, Object, Object> streams = mock(StreamOperations.class);
+        MapRecord<String, Object, Object> first = MapRecord.create(
+            "terrapedia:crawler:wiki-monitor:v2:events",
+            Map.<Object, Object>of("payload", "{}")
+        ).withId(RecordId.of("20-0"));
+        when(redis.opsForStream()).thenReturn(streams);
+        when(streams.range(anyString(), any(Range.class), any(Limit.class))).thenReturn(List.of(first));
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+
+        CrawlerQueueV2Repository.EventReadResult result = repository.readEvents("1-0", 10, Duration.ZERO);
+
+        assertTrue(result.gap());
+        assertTrue(result.events().isEmpty());
+        assertEquals("20-0", result.nextCursor());
+        verify(streams, never()).read(any(StreamReadOptions.class), any(StreamOffset.class));
     }
 
     @Test

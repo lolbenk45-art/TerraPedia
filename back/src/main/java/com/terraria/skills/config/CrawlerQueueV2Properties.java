@@ -27,6 +27,8 @@ public class CrawlerQueueV2Properties {
     private Duration terminalRetentionAge = Duration.ofDays(7);
     private int terminalRetentionCount = 100;
     private Duration sseHeartbeatInterval = Duration.ofSeconds(10);
+    private Duration sseSessionTimeout = Duration.ofMinutes(5);
+    private int sseMaxSubscribers = 32;
     private boolean cutoverAllowed;
     private boolean fixtureEnabled;
 }

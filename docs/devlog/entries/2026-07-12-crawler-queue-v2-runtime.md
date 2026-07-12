@@ -133,6 +133,35 @@
   latch-interleaving evidence plus reset/confirmation/history regressions. The
   affected goal, source authority, no-write boundaries, and Task 10 API-field
   deferral remain unchanged; the repaired Task 9 plan is execution-ready.
+- Task 10 plan audit found one Important execution-scope omission before code
+  edits: its required `EventReadResult` contract replaces the repository
+  interface method and therefore must also modify the Redis implementation,
+  its focused unit test, and its isolated-prefix integration test. The plan and
+  serialized implementer allowlist now include exactly those three paths; no
+  API goal, authorization boundary, real Redis operation, or runtime scope
+  changed.
+- Task 10 independent specification review is `CHANGES_REQUIRED` with two
+  Important source findings: normalized `..` report paths could bypass the
+  V2 attempt-artifact path rejection, and a metadata-to-read expiry race could
+  escape as a generic error rather than an explicit log availability result.
+  The repair scope now includes the matching monitor-service and V2-application
+  tests for RED -> GREEN coverage. The review's broader five-class command is
+  not validation evidence because it hit unrelated V1 monitor-test instability;
+  the findings must be repaired and re-reviewed before Task 10 can proceed.
+- Task 10 implementation now exposes attempt-keyed incremental logs, exact
+  V2 controls, structured 409/503 responses, authenticated cursor-aware SSE,
+  and gap-aware Redis Stream reads. Review repairs keep missing/expired logs as
+  explicit `200` results, make damaged artifacts a distinct 503, bound SSE
+  sessions and fan-out, and reject normalized or symbolic-link report paths
+  into V2 attempt evidence.
+- Final Task 10 review found and closed two further protocol defects with
+  RED -> GREEN regressions: a pre-subscription V2 failure now returns a
+  structured JSON response even when a browser sends `Accept: text/event-stream`,
+  and connected SSE clients retain typed reasons such as `STATE_STORE_RESET`
+  instead of reporting every event-read failure as Redis unavailability. Final
+  specification and code-quality re-reviews are `APPROVED`; the task is ready
+  for its focused checkpoint. No service, crawler, Redis, database, or generated
+  data operation occurred.
 
 ## Scope
 
@@ -582,9 +611,16 @@
   `BUILD SUCCESS`; the seven-class routing/application/reconciler/recovery/
   supervisor/monitor/overview selection passes 329/329 with zero failures,
   errors, or skips; and `git diff --check` is clean. Specification and
-  code-quality re-reviews are both `APPROVED`. The focused Task 9 commit is
-  now the next action; no crawler, service lifecycle, Redis/database mutation,
-  fixture stack, or generated-data operation was run.
+  code-quality re-reviews are both `APPROVED`. The focused Task 9 checkpoint
+  is committed at `024acdc`; no crawler, service lifecycle, Redis/database
+  mutation, fixture stack, or generated-data operation was run.
+- Task 10 final coordinator gate passes 288/288 across controller 30,
+  EventBridge 13, Redis repository 45, application service 20, and monitor
+  service 180 tests, with zero failures, errors, or skips; `git diff --check`
+  is clean. One earlier reviewer combined run hit the documented V1
+  temporary-directory atomic-rename cleanup race without an assertion failure;
+  fresh coordinator reruns did not reproduce it. The environment-gated Redis
+  integration test remains intentionally unrun, and no real Redis was used.
 
 ## Result
 
@@ -598,8 +634,9 @@
   code-level diff details.
 - Task 7 is checkpointed at `7df042b` after its final specification and
   code-quality approvals; Task 8 is checkpointed at `04b684a`; and Task 9 is
-  validated, approved, and ready for its focused checkpoint commit.
-- Not completed: Tasks 10-15 and the end-to-end stuck-queue acceptance contract.
+  checkpointed at `024acdc` after its final specification and code-quality
+  approvals.
+- Not completed: Tasks 11-15 and the end-to-end stuck-queue acceptance contract.
 
 ## Residual Risks
 
@@ -619,9 +656,10 @@
 
 ## Follow-up
 
-- Owner: Codex. Commit Task 9, then continue Task 10 test-first with structured
-  V2 API errors, attempt-keyed logs, and authenticated SSE. Do not perform the
-  fixture-stack, first irreversible V2 mutation, or live-cutover actions.
+- Owner: Codex. Checkpoint Task 10, then continue Task 11 test-first with one
+  authoritative V2 admin attempt model, authenticated SSE, and a three-second
+  fallback. Do not perform the fixture-stack, first irreversible V2 mutation,
+  or live-cutover actions.
 
 ## Commits
 
@@ -634,3 +672,4 @@
 - `06c8df2` `feat(crawler): bind progress to V2 attempts`
 - `7df042b` `feat(crawler): supervise exact V2 processes`
 - `04b684a` `feat(crawler): bound V2 queue convergence`
+- `024acdc` `feat(crawler): route V2 queue as single authority`

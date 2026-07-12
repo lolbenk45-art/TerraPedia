@@ -2,9 +2,14 @@ package com.terraria.skills.handler;
 
 import com.terraria.skills.auth.AdminAccessDeniedException;
 import com.terraria.skills.common.ApiResponse;
+import com.terraria.skills.dto.CrawlerQueueV2ErrorDTO;
 import com.terraria.skills.service.CrawlerMonitorRedisUnavailableException;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Exception;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ReasonCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -18,6 +23,21 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(CrawlerQueueV2Exception.class)
+    public ResponseEntity<ApiResponse<CrawlerQueueV2ErrorDTO>> handleCrawlerQueueV2(
+        CrawlerQueueV2Exception exception
+    ) {
+        CrawlerQueueV2ReasonCode reason = exception.reasonCode();
+        CrawlerQueueV2ErrorDTO data = new CrawlerQueueV2ErrorDTO();
+        data.setReasonCode(reason.name());
+        data.setMessageZh(reason.messageZh());
+        data.setSuggestedAction(reason.suggestedAction());
+        return ResponseEntity
+            .status(exception.httpStatus())
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(ApiResponse.error(exception.httpStatus().value(), reason.messageZh(), data));
+    }
 
     @ExceptionHandler(NoResourceFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)

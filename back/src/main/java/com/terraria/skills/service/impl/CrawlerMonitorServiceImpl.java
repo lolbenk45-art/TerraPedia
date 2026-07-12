@@ -3,6 +3,7 @@ package com.terraria.skills.service.impl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.terraria.skills.dto.CrawlerAttemptLogDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchRequestDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorAutoDispatchDTO;
@@ -23,6 +24,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.io.File;
@@ -524,15 +526,47 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     @Override
     public CrawlerMonitorReportDetailDTO getReportDetail(String path) {
+        if (isV2AttemptArtifactPath(path)) {
+            throw new CrawlerQueueV2Exception(
+                HttpStatus.FORBIDDEN,
+                CrawlerQueueV2ReasonCode.LOG_FORBIDDEN
+            );
+        }
         return reportArchiver.getReportDetail(resolveRepoRoot(), path);
     }
 
+    private boolean isV2AttemptArtifactPath(String path) {
+        if (path == null) {
+            return false;
+        }
+        try {
+            Path repoRoot = resolveRepoRoot().toAbsolutePath().normalize();
+            Path requested = Path.of(path.replace('\\', '/'));
+            Path resolved = (requested.isAbsolute() ? requested : repoRoot.resolve(requested))
+                .toAbsolutePath()
+                .normalize();
+            Path v2ArtifactRoot = repoRoot.resolve("reports/crawler-monitor/v2").normalize();
+            if (resolved.startsWith(v2ArtifactRoot)) {
+                return true;
+            }
+            if (!Files.exists(resolved) || !Files.exists(v2ArtifactRoot)) {
+                return false;
+            }
+            return resolved.toRealPath().startsWith(v2ArtifactRoot.toRealPath());
+        } catch (java.io.IOException | SecurityException | java.nio.file.InvalidPathException ignored) {
+            return false;
+        }
+    }
+
     @Override
-    public CrawlerMonitorDispatchResultDTO dispatchWikiMonitorTask(CrawlerMonitorDispatchRequestDTO request) {
+    public CrawlerMonitorDispatchResultDTO dispatchWikiMonitorTask(
+        CrawlerMonitorDispatchRequestDTO request,
+        String requestedBy
+    ) {
         return queueEngineRouter.withMutationPermit(permit -> {
             CrawlerQueueEngineMode mode = permit.mode();
             if (mode == CrawlerQueueEngineMode.V2) {
-                return dispatchV2WikiMonitorTask(request);
+                return dispatchV2WikiMonitorTask(request, requestedBy);
             }
             if (mode != CrawlerQueueEngineMode.V1) {
                 throw legacyWriteBlocked(mode);
@@ -544,7 +578,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         });
     }
 
-    private CrawlerMonitorDispatchResultDTO dispatchV2WikiMonitorTask(CrawlerMonitorDispatchRequestDTO request) {
+    private CrawlerMonitorDispatchResultDTO dispatchV2WikiMonitorTask(
+        CrawlerMonitorDispatchRequestDTO request,
+        String requestedBy
+    ) {
         CrawlerMonitorActionDefinition rule = resolveWikiMonitorRule(request);
         CrawlerQueueV2ApplicationService service = Objects.requireNonNull(
             queueV2ApplicationService,
@@ -556,8 +593,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 rule.actionId(),
                 "standard",
                 request.getResumeMode(),
-                "crawler-monitor",
-                null
+                requireOperator(requestedBy, "requestedBy"),
+                request.getLegacyQueueId()
             )
         );
         invalidateCachedOverview();
@@ -969,8 +1006,82 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     @Override
-    public CrawlerMonitorDispatchResultDTO controlWikiMonitorDispatch(CrawlerMonitorDispatchRequestDTO request) {
-        return withLegacyMutationPermit("V1 crawler monitor control", () -> controlWikiMonitorDispatchUnderPermit(request));
+    public CrawlerMonitorDispatchResultDTO controlWikiMonitorDispatch(
+        CrawlerMonitorDispatchRequestDTO request,
+        String operator
+    ) {
+        return queueEngineRouter.withMutationPermit(permit -> {
+            CrawlerQueueEngineMode mode = permit.mode();
+            if (mode == CrawlerQueueEngineMode.V2) {
+                return controlV2WikiMonitorDispatch(request, operator);
+            }
+            if (mode != CrawlerQueueEngineMode.V1) {
+                throw legacyWriteBlocked(mode);
+            }
+            return controlWikiMonitorDispatchUnderPermit(request);
+        });
+    }
+
+    private CrawlerMonitorDispatchResultDTO controlV2WikiMonitorDispatch(
+        CrawlerMonitorDispatchRequestDTO request,
+        String operator
+    ) {
+        if (request == null || trimToNull(request.getAttemptId()) == null || request.getExpectedStateVersion() == null) {
+            throw new IllegalArgumentException("V2 控制请求必须提供 attemptId 和 expectedStateVersion");
+        }
+        CrawlerQueueV2ApplicationService service = Objects.requireNonNull(
+            queueV2ApplicationService,
+            "V2 router requires CrawlerQueueV2ApplicationService"
+        );
+        CrawlerQueueV2ApplicationService.DispatchResult result = service.control(
+            new CrawlerQueueV2ApplicationService.ControlCommand(
+                request.getQueueId(),
+                request.getAttemptId(),
+                request.getExpectedStateVersion(),
+                request.getControlAction(),
+                requireOperator(operator, "operator")
+            )
+        );
+        invalidateCachedOverview();
+        return v2DispatchResponse(result);
+    }
+
+    @Override
+    public CrawlerAttemptLogDetailDTO getAttemptLog(String attemptId, long offset, int maxBytes) {
+        CrawlerQueueEngineMode mode = overviewQueueMode();
+        if (mode == CrawlerQueueEngineMode.V1) {
+            throw new IllegalArgumentException("V1 队列不支持按 attemptId 读取 V2 日志");
+        }
+        return Objects.requireNonNull(
+            queueV2ApplicationService,
+            "V2 router requires CrawlerQueueV2ApplicationService"
+        ).getAttemptLog(attemptId, offset, maxBytes);
+    }
+
+    @Override
+    public SseEmitter subscribeEvents(String after) {
+        CrawlerQueueEngineMode mode = queueEngineRouter.mode();
+        if (mode != CrawlerQueueEngineMode.V2) {
+            throw legacyWriteBlocked(mode);
+        }
+        return Objects.requireNonNull(
+            queueV2ApplicationService,
+            "V2 router requires CrawlerQueueV2ApplicationService"
+        ).subscribeEvents(after);
+    }
+
+    @Scheduled(fixedDelay = 1_000L)
+    void pollV2EventSubscribers() {
+        if (queueV2ApplicationService != null) {
+            queueV2ApplicationService.pollEvents();
+        }
+    }
+
+    @Scheduled(fixedDelay = 1_000L)
+    void heartbeatV2EventSubscribers() {
+        if (queueV2ApplicationService != null) {
+            queueV2ApplicationService.sendEventHeartbeat();
+        }
     }
 
     private CrawlerMonitorDispatchResultDTO controlWikiMonitorDispatchUnderPermit(CrawlerMonitorDispatchRequestDTO request) {
@@ -3613,6 +3724,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String requireOperator(String value, String field) {
+        String normalized = trimToNull(value);
+        if (normalized == null) {
+            throw new IllegalArgumentException(field + " 不可为空");
+        }
+        return normalized;
     }
 
     private void watchDispatchProcess(Path repoRoot, String queueIdOrNull, String dispatchId, CrawlerMonitorActionDefinition rule, DispatchPaths paths, Process process, Instant processStartedAt) {

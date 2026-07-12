@@ -4054,17 +4054,24 @@ git commit -m "feat(crawler): route V2 queue as single authority"
 
 - Create: `back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2EventBridgeTest.java`
 - Modify: `back/src/test/java/com/terraria/skills/controller/AdminCrawlerMonitorControllerTest.java`
+- Modify: `back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImplTest.java`
+- Modify: `back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ApplicationServiceTest.java`
 - Create: `back/src/main/java/com/terraria/skills/dto/CrawlerQueueV2ErrorDTO.java`
 - Create: `back/src/main/java/com/terraria/skills/dto/CrawlerAttemptLogDetailDTO.java`
 - Create: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2EventBridge.java`
 - Modify: `back/src/main/java/com/terraria/skills/common/ApiResponse.java`
+- Modify: `back/src/main/java/com/terraria/skills/config/CrawlerQueueV2Properties.java`
 - Modify: `back/src/main/java/com/terraria/skills/handler/GlobalExceptionHandler.java`
 - Modify: `back/src/main/java/com/terraria/skills/dto/CrawlerMonitorDispatchRequestDTO.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/CrawlerMonitorService.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java`
 - Modify: `back/src/main/java/com/terraria/skills/controller/AdminCrawlerMonitorController.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Repository.java`
+- Modify: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2Repository.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ApplicationService.java`
+- Modify: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ReasonCode.java`
+- Modify: `back/src/test/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2RepositoryTest.java`
+- Modify: `back/src/test/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2RepositoryIntegrationTest.java`
 
 - [ ] **Step 1: Write failing controller tests for stale controls and attempt-keyed logs**
 
@@ -4483,6 +4490,13 @@ The Redis implementation must compare `after` with the stream's first available 
 - remove subscribers on completion, timeout, or send failure;
 - surface Redis unavailability as `queue.health-changed/STATE_STORE_UNAVAILABLE` before completing connections.
 
+Use a finite emitter timeout and a bounded subscriber count. A scheduled poll must
+read Redis once from the oldest subscriber cursor, then fan out only newer events
+to each subscriber. Before an emitter is established, structured V2 failures must
+still negotiate as JSON even when the client sent `Accept: text/event-stream`; after
+an emitter is established, preserve any typed V2 reason code in the health event and
+map only unknown runtime storage failures to `STATE_STORE_UNAVAILABLE`.
+
 Use this constructor for production and the fake-clock tests:
 
 ```java
@@ -4530,9 +4544,13 @@ Expected: all selected tests pass; stale controls return structured 409; Redis o
 - [ ] **Step 10: Commit the V2 HTTP and event contract**
 
 ```bash
-git add back/src/main/java/com/terraria/skills/dto/CrawlerQueueV2ErrorDTO.java back/src/main/java/com/terraria/skills/dto/CrawlerAttemptLogDetailDTO.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2EventBridge.java back/src/main/java/com/terraria/skills/common/ApiResponse.java back/src/main/java/com/terraria/skills/handler/GlobalExceptionHandler.java back/src/main/java/com/terraria/skills/dto/CrawlerMonitorDispatchRequestDTO.java back/src/main/java/com/terraria/skills/service/CrawlerMonitorService.java back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java back/src/main/java/com/terraria/skills/controller/AdminCrawlerMonitorController.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Repository.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ApplicationService.java back/src/test/java/com/terraria/skills/controller/AdminCrawlerMonitorControllerTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2EventBridgeTest.java
+git add back/src/main/java/com/terraria/skills/dto/CrawlerQueueV2ErrorDTO.java back/src/main/java/com/terraria/skills/dto/CrawlerAttemptLogDetailDTO.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2EventBridge.java back/src/main/java/com/terraria/skills/common/ApiResponse.java back/src/main/java/com/terraria/skills/handler/GlobalExceptionHandler.java back/src/main/java/com/terraria/skills/dto/CrawlerMonitorDispatchRequestDTO.java back/src/main/java/com/terraria/skills/service/CrawlerMonitorService.java back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java back/src/main/java/com/terraria/skills/controller/AdminCrawlerMonitorController.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Repository.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2Repository.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ApplicationService.java back/src/test/java/com/terraria/skills/controller/AdminCrawlerMonitorControllerTest.java back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImplTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ApplicationServiceTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2EventBridgeTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2RepositoryTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2RepositoryIntegrationTest.java
 git commit -m "feat(crawler): stream structured V2 status"
 ```
+
+The Task 10 staging scope also includes
+`CrawlerQueueV2Properties.java` and `CrawlerQueueV2ReasonCode.java` for the
+finite-SSE and explicit artifact/error-reason contracts.
 
 ### Task 11: Make the admin page consume one V2 attempt model with SSE and a three-second fallback
 

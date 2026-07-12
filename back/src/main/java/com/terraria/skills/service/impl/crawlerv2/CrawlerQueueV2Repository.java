@@ -31,7 +31,7 @@ public interface CrawlerQueueV2Repository {
 
     List<CrawlerQueueV2Attempt> findTerminalAttempts(int limit, Instant sinceInclusive);
 
-    List<EventEnvelope> readEvents(String after, int count, Duration blockFor);
+    EventReadResult readEvents(String after, int count, Duration blockFor);
 
     String latestStreamCursor();
 
@@ -155,6 +155,12 @@ public interface CrawlerQueueV2Repository {
     ) {}
 
     record EventEnvelope(String streamId, CrawlerQueueV2Event event) {}
+
+    record EventReadResult(boolean gap, List<EventEnvelope> events, String nextCursor) {
+        public EventReadResult {
+            events = events == null ? List.of() : List.copyOf(events);
+        }
+    }
 
     record ReconcilerHealth(
         Instant lastReconciledAt,

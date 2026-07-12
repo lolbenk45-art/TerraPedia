@@ -19,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -402,9 +403,23 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
     }
 
     @Override
-    public List<EventEnvelope> readEvents(String after, int count, Duration blockFor) {
-        if (after == null || after.isBlank() || count < 1 || blockFor == null || blockFor.isNegative()) {
+    public EventReadResult readEvents(String after, int count, Duration blockFor) {
+        if (!isStreamId(after) || count < 1 || blockFor == null || blockFor.isNegative()) {
             throw new IllegalArgumentException("V2 event read 参数无效");
+        }
+        List<MapRecord<String, Object, Object>> firstRecords = redis(
+            "读取 V2 首个 event cursor",
+            () -> redisTemplate.opsForStream().range(
+                key("events"),
+                Range.<String>unbounded(),
+                Limit.limit().count(1)
+            )
+        );
+        if (firstRecords != null && !firstRecords.isEmpty()) {
+            String firstAvailable = firstRecords.get(0).getId().getValue();
+            if (!"0-0".equals(after) && compareStreamIds(after, firstAvailable) < 0) {
+                return new EventReadResult(true, List.of(), firstAvailable);
+            }
         }
         StreamReadOptions readOptions = StreamReadOptions.empty().count(count);
         if (!blockFor.isZero()) {
@@ -419,7 +434,7 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
             )
         );
         if (records == null || records.isEmpty()) {
-            return List.of();
+            return new EventReadResult(false, List.of(), after);
         }
         List<EventEnvelope> result = new ArrayList<>(records.size());
         for (MapRecord<String, Object, Object> record : records) {
@@ -436,7 +451,21 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
                 throw stateStoreReset("V2 event payload 无法解析", exception);
             }
         }
-        return List.copyOf(result);
+        String nextCursor = result.get(result.size() - 1).streamId();
+        return new EventReadResult(false, result, nextCursor);
+    }
+
+    private static boolean isStreamId(String value) {
+        return value != null && value.matches("[0-9]+-[0-9]+");
+    }
+
+    private static int compareStreamIds(String left, String right) {
+        String[] leftParts = left.split("-", -1);
+        String[] rightParts = right.split("-", -1);
+        int milliseconds = new BigInteger(leftParts[0]).compareTo(new BigInteger(rightParts[0]));
+        return milliseconds != 0
+            ? milliseconds
+            : new BigInteger(leftParts[1]).compareTo(new BigInteger(rightParts[1]));
     }
 
     @Override

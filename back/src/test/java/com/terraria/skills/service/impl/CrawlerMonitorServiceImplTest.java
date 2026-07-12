@@ -23,6 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
@@ -137,6 +138,27 @@ class CrawlerMonitorServiceImplTest {
         assertEquals(first.getStreamCursor(), second.getStreamCursor());
         verify(v2Service).overview();
         verifyNoInteractions(legacyQueue);
+    }
+
+    @Test
+    void v2EventSubscriptionPreservesStateStoreUnavailableInsteadOfDowngradingToConflict() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        WikiMonitorDispatchQueueRepository legacyQueue = mock(WikiMonitorDispatchQueueRepository.class);
+        when(router.mode()).thenThrow(new CrawlerQueueV2Exception(
+            HttpStatus.SERVICE_UNAVAILABLE,
+            CrawlerQueueV2ReasonCode.STATE_STORE_UNAVAILABLE
+        ));
+        CrawlerMonitorServiceImpl service = v2Service(router, v2Service, legacyQueue);
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> service.subscribeEvents("0-0")
+        );
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, exception.httpStatus());
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_UNAVAILABLE, exception.reasonCode());
+        verifyNoInteractions(v2Service);
     }
 
     @Test
@@ -2042,6 +2064,47 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("json", detail.getContentType());
         assertTrue(detail.getContent().contains("\"status\" : \"ok\""));
         assertTrue(detail.getContent().contains("\"blockingCount\" : 0"));
+    }
+
+    @Test
+    void shouldRejectNormalizedTraversalIntoV2AttemptLogBeforeReportPreview() throws Exception {
+        Path v2LogPath = repoRoot.resolve(
+            "reports/crawler-monitor/v2/2026-07-13/attempt-1/run.log"
+        );
+        Files.createDirectories(v2LogPath.getParent());
+        Files.writeString(v2LogPath, "V2 attempt log must not be exposed by report preview.");
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> service.getReportDetail(
+                "reports/crawler-monitor/legacy/../v2/2026-07-13/attempt-1/run.log"
+            )
+        );
+
+        assertEquals(CrawlerQueueV2ReasonCode.LOG_FORBIDDEN, exception.reasonCode());
+    }
+
+    @Test
+    void shouldRejectReportPreviewSymlinkThatResolvesIntoAV2AttemptLog() throws Exception {
+        Path v2LogPath = repoRoot.resolve(
+            "reports/crawler-monitor/v2/2026-07-13/attempt-1/run.log"
+        );
+        Files.createDirectories(v2LogPath.getParent());
+        Files.writeString(v2LogPath, "V2 attempt log must not be exposed through a report symlink.");
+        Path symlinkPath = repoRoot.resolve("reports/crawler-monitor/legacy/attempt-log-alias.log");
+        Files.createDirectories(symlinkPath.getParent());
+        Files.createSymbolicLink(symlinkPath, v2LogPath);
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> service.getReportDetail("reports/crawler-monitor/legacy/attempt-log-alias.log")
+        );
+
+        assertEquals(CrawlerQueueV2ReasonCode.LOG_FORBIDDEN, exception.reasonCode());
     }
 
     @Test

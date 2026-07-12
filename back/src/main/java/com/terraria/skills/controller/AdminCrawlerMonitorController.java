@@ -4,6 +4,7 @@ import com.terraria.skills.auth.AdminAccessDeniedException;
 import com.terraria.skills.auth.AdminAuthenticationInterceptor;
 import com.terraria.skills.auth.AdminTokenClaims;
 import com.terraria.skills.common.ApiResponse;
+import com.terraria.skills.dto.CrawlerAttemptLogDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorAutoDispatchDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchRequestDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
@@ -17,14 +18,18 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.MediaType;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
 
@@ -59,15 +64,40 @@ public class AdminCrawlerMonitorController {
     @PostMapping("/dispatch")
     @Operation(summary = "Dispatch an approved crawler monitor task")
     public ApiResponse<CrawlerMonitorDispatchResultDTO> dispatch(HttpServletRequest httpRequest, @RequestBody CrawlerMonitorDispatchRequestDTO request) {
-        requireAdminRole(httpRequest);
-        return ApiResponse.success(crawlerMonitorService.dispatchWikiMonitorTask(request));
+        AdminTokenClaims claims = requireAdminRole(httpRequest);
+        return ApiResponse.success(crawlerMonitorService.dispatchWikiMonitorTask(request, claims.getUsername()));
     }
 
     @PostMapping("/dispatch/control")
     @Operation(summary = "Pause or resume an active crawler monitor dispatch")
     public ApiResponse<CrawlerMonitorDispatchResultDTO> controlDispatch(HttpServletRequest httpRequest, @RequestBody CrawlerMonitorDispatchRequestDTO request) {
-        requireAdminRole(httpRequest);
-        return ApiResponse.success(crawlerMonitorService.controlWikiMonitorDispatch(request));
+        AdminTokenClaims claims = requireAdminRole(httpRequest);
+        return ApiResponse.success(crawlerMonitorService.controlWikiMonitorDispatch(request, claims.getUsername()));
+    }
+
+    @GetMapping("/attempts/{attemptId}/log")
+    @Operation(summary = "Read a V2 crawler attempt log incrementally")
+    public ApiResponse<CrawlerAttemptLogDetailDTO> attemptLog(
+        HttpServletRequest request,
+        @PathVariable String attemptId,
+        @RequestParam(defaultValue = "0") long offset,
+        @RequestParam(defaultValue = "262144") int maxBytes
+    ) {
+        requireAdminRole(request);
+        return ApiResponse.success(crawlerMonitorService.getAttemptLog(attemptId, offset, maxBytes));
+    }
+
+    @GetMapping("/events")
+    @Operation(summary = "Subscribe to V2 crawler monitor events")
+    public SseEmitter events(
+        HttpServletRequest request,
+        HttpServletResponse response,
+        @RequestParam(defaultValue = "0-0") String after
+    ) {
+        requireAdminRole(request);
+        SseEmitter emitter = crawlerMonitorService.subscribeEvents(after);
+        response.setContentType(MediaType.TEXT_EVENT_STREAM_VALUE);
+        return emitter;
     }
 
     @PostMapping("/test-domain-smoke")
@@ -123,10 +153,14 @@ public class AdminCrawlerMonitorController {
         return ApiResponse.success(crawlerMonitorService.resetTestState());
     }
 
-    private void requireAdminRole(HttpServletRequest httpRequest) {
+    private AdminTokenClaims requireAdminRole(HttpServletRequest httpRequest) {
         Object attribute = httpRequest.getAttribute(AdminAuthenticationInterceptor.ADMIN_CLAIMS_ATTRIBUTE);
         if (!(attribute instanceof AdminTokenClaims claims) || !"ADMIN".equalsIgnoreCase(claims.getRole())) {
             throw new AdminAccessDeniedException("无权执行该操作");
         }
+        if (claims.getUsername() == null || claims.getUsername().isBlank()) {
+            throw new AdminAccessDeniedException("管理员身份缺少用户名");
+        }
+        return claims;
     }
 }
