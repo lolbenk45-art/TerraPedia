@@ -9,9 +9,134 @@ import {
   buildActionProgressPayload,
   buildActionRuntimePaths,
   buildActionSnapshotPayload,
+  crawlerAttemptIdentityFromEnv,
+  createCrawlerAttemptProgressSequencer,
   mergeActionProgressFields,
+  prepareCrawlerChildProgressPath,
+  readActionProgressFile,
   writeJsonFile
 } from './backend-refresh-runtime-state.mjs';
+
+test('crawlerAttemptIdentityFromEnv requires the complete V2 identity', () => {
+  assert.equal(crawlerAttemptIdentityFromEnv({ TERRAPEDIA_CRAWLER_QUEUE_ID: 'queue-1' }), null);
+  assert.deepEqual(crawlerAttemptIdentityFromEnv({
+    TERRAPEDIA_CRAWLER_QUEUE_ID: 'queue-1',
+    TERRAPEDIA_CRAWLER_ATTEMPT_ID: 'attempt-1',
+    TERRAPEDIA_CRAWLER_FENCE_TOKEN: '142',
+    TERRAPEDIA_CRAWLER_STATE_STORE_EPOCH: 'epoch-1',
+    TERRAPEDIA_CRAWLER_INITIAL_STATE_VERSION: '3',
+    TERRAPEDIA_CRAWLER_PROGRESS_SEQUENCE: '7'
+  }), {
+    queueId: 'queue-1',
+    attemptId: 'attempt-1',
+    fenceToken: 142,
+    stateStoreEpoch: 'epoch-1',
+    stateVersion: 3,
+    progressSequence: 7
+  });
+});
+
+test('V2 progress sequencer increases from both env and observed child progress', () => {
+  const sequencer = createCrawlerAttemptProgressSequencer({
+    TERRAPEDIA_CRAWLER_QUEUE_ID: 'queue-1',
+    TERRAPEDIA_CRAWLER_ATTEMPT_ID: 'attempt-1',
+    TERRAPEDIA_CRAWLER_FENCE_TOKEN: '142',
+    TERRAPEDIA_CRAWLER_STATE_STORE_EPOCH: 'epoch-1',
+    TERRAPEDIA_CRAWLER_INITIAL_STATE_VERSION: '3',
+    TERRAPEDIA_CRAWLER_PROGRESS_SEQUENCE: '7'
+  });
+
+  assert.equal(sequencer.next({ status: 'running' }).progressSequence, 8);
+  const afterChild = sequencer.next({ status: 'completed' }, { observedProgressSequence: 20 });
+  assert.equal(afterChild.progressSequence, 21);
+  assert.equal(afterChild.attemptId, 'attempt-1');
+  assert.equal(afterChild.fenceToken, 142);
+});
+
+test('V1 payload remains byte-compatible when the complete V2 identity is absent', () => {
+  const sequencer = createCrawlerAttemptProgressSequencer({
+    TERRAPEDIA_CRAWLER_QUEUE_ID: 'partial-queue-only'
+  });
+  assert.deepEqual(sequencer.next({ actionId: 'wiki-items-refresh', status: 'running' }), {
+    actionId: 'wiki-items-refresh',
+    status: 'running'
+  });
+});
+
+test('backend refresh wrapper isolates V2 canonical progress from child progress', () => {
+  const source = fs.readFileSync(new URL('./run-backend-data-refresh.mjs', import.meta.url), 'utf8');
+
+  assert.match(source, /crawlerAttemptIdentityFromEnv\(process\.env\)/);
+  assert.match(source, /path\.join\(path\.dirname\(canonicalProgressPath\), 'child-progress\.json'\)/);
+  assert.match(source, /TERRAPEDIA_CRAWLER_PROGRESS_PATH: options\.childProgressPath/);
+  assert.match(source, /childEnv\.TERRAPEDIA_CRAWLER_PROGRESS_SEQUENCE = String\(options\.initialProgressSequence\)/);
+  assert.match(source, /observedProgressSequence: childProgress\?\.progressSequence/);
+  assert.match(source, /prepareCrawlerChildProgressPath\(childProgressPath\)/);
+  assert.match(source, /childProgress\?\.progressReadable === true/);
+});
+
+test('prepareCrawlerChildProgressPath removes stale child evidence before a V2 worker starts', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-stale-child-progress-'));
+  const childProgressPath = path.join(tempDir, 'child-progress.json');
+  fs.writeFileSync(childProgressPath, JSON.stringify({ status: 'completed', progressSequence: 99 }), 'utf8');
+
+  prepareCrawlerChildProgressPath(childProgressPath);
+
+  assert.equal(fs.existsSync(childProgressPath), false);
+});
+
+test('readActionProgressFile marks malformed child evidence unreadable without refreshing liveness', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-malformed-child-progress-'));
+  const childProgressPath = path.join(tempDir, 'child-progress.json');
+  fs.writeFileSync(childProgressPath, '{not-json', 'utf8');
+
+  const progress = readActionProgressFile(childProgressPath);
+
+  assert.equal(progress.progressReadable, false);
+  assert.equal(progress.childStatusPath, childProgressPath);
+  assert.equal(progress.phase, 'monitor');
+  assert.equal(progress.message, 'progress file is not readable');
+  assert.equal(progress.generatedAt, undefined);
+  assert.equal(progress.lastHeartbeatAt, undefined);
+});
+
+test('readActionProgressFile rejects valid JSON that does not satisfy the progress contract', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-invalid-child-progress-'));
+  const childProgressPath = path.join(tempDir, 'child-progress.json');
+
+  for (const invalidPayload of [[], 42, {}]) {
+    fs.writeFileSync(childProgressPath, JSON.stringify(invalidPayload), 'utf8');
+    const progress = readActionProgressFile(childProgressPath);
+
+    assert.equal(progress.progressReadable, false);
+    assert.equal(progress.message, 'progress file is not contract-valid');
+    assert.equal(progress.generatedAt, undefined);
+    assert.equal(progress.lastHeartbeatAt, undefined);
+  }
+});
+
+test('readActionProgressFile accepts an object-shaped progress contract with existing liveness', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-valid-child-progress-'));
+  const childProgressPath = path.join(tempDir, 'child-progress.json');
+  writeJsonFile(childProgressPath, buildActionProgressPayload({
+    actionId: 'wiki-items-refresh',
+    status: 'running',
+    generatedAt: '2026-07-12T02:00:00.000Z',
+    lastHeartbeatAt: '2026-07-12T02:00:00.000Z',
+    childStatusPath: childProgressPath,
+    phase: 'fetch',
+    message: 'fetching items',
+    current: 1,
+    total: 10
+  }));
+
+  const progress = readActionProgressFile(childProgressPath);
+
+  assert.equal(progress.progressReadable, true);
+  assert.equal(progress.lastHeartbeatAt, '2026-07-12T02:00:00.000Z');
+  assert.equal(progress.current, 1);
+  assert.equal(progress.total, 10);
+});
 
 test('buildActionRuntimePaths creates deterministic per-action runtime paths', () => {
   const paths = buildActionRuntimePaths({

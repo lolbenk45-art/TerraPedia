@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -24,7 +24,7 @@ test('town npc maintenance script declares stable progress contract constants', 
   assert.match(source, /writeJsonFile/);
 });
 
-test('town npc maintenance fetch writes completed progress to explicit path without network', () => {
+test('town npc maintenance fetch writes V2 identity in running and completed progress without network', async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-town-npc-maintenance-'));
   const worktreeRoot = path.join(tempDir, 'feature-worktree');
   const sourcePath = path.join(tempDir, 'npc-standardized-map.json');
@@ -44,25 +44,40 @@ test('town npc maintenance fetch writes completed progress to explicit path with
           name: 'Wizard',
           extras: { townNPC: true }
         })
+      },
+      17: {
+        gameId: 17,
+        internalName: 'Merchant',
+        nameZh: '商人',
+        rawJson: JSON.stringify({
+          name: 'Merchant',
+          extras: { townNPC: true }
+        })
       }
     }
   }), 'utf8');
   fs.writeFileSync(mockHtmlPath, buildMockNpcHtml(), 'utf8');
 
-  const result = spawnSync(process.execPath, [
+  const childRun = spawnWithResult(process.execPath, [
     scriptPath,
     `--source=${sourcePath}`,
     `--output=${outputPath}`,
     `--snapshot-output=${snapshotPath}`,
     `--progress-path=${progressPath}`,
-    '--limit=1',
-    '--delay-ms=0'
+    '--limit=2',
+    '--delay-ms=500'
   ], {
     cwd: repoRoot,
     encoding: 'utf8',
     env: {
       ...process.env,
       WORKTREE_ROOT: worktreeRoot,
+      TERRAPEDIA_CRAWLER_QUEUE_ID: 'queue-town-npc-1',
+      TERRAPEDIA_CRAWLER_ATTEMPT_ID: 'attempt-town-npc-1',
+      TERRAPEDIA_CRAWLER_FENCE_TOKEN: '142',
+      TERRAPEDIA_CRAWLER_STATE_STORE_EPOCH: 'epoch-town-npc-1',
+      TERRAPEDIA_CRAWLER_INITIAL_STATE_VERSION: '3',
+      TERRAPEDIA_CRAWLER_PROGRESS_SEQUENCE: '7',
       TERRAPEDIA_TOWN_NPC_MAINTENANCE_MOCK_HTML: mockHtmlPath,
       TERRAPEDIA_TOWN_NPC_ENABLE_CRASH_HOOK: '',
       TERRAPEDIA_TOWN_NPC_CRASH_AFTER: '',
@@ -70,12 +85,18 @@ test('town npc maintenance fetch writes completed progress to explicit path with
     }
   });
 
+  const runningProgress = await waitForProgress(progressPath, (progress) => progress.status === 'running');
+  const canonicalProgressPath = path.join(worktreeRoot, 'data', 'generated', 'domain-source-town-npc-maintenance-progress.latest.json');
+  const canonicalRunningProgress = await waitForProgress(canonicalProgressPath, (progress) => progress.status === 'running');
+  assertCrawlerAttemptIdentity(runningProgress);
+  assertCrawlerAttemptIdentity(canonicalRunningProgress);
+
+  const result = await childRun.result;
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.equal(fs.existsSync(progressPath), true);
   assert.equal(fs.readdirSync(path.dirname(progressPath)).some((name) => name.endsWith('.tmp')), false);
 
   const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
-  const canonicalProgressPath = path.join(worktreeRoot, 'data', 'generated', 'domain-source-town-npc-maintenance-progress.latest.json');
   const canonicalProgress = JSON.parse(fs.readFileSync(canonicalProgressPath, 'utf8'));
   assert.equal(progress.actionId, 'domain-source-town-npc-maintenance');
   assert.equal(progress.status, 'completed');
@@ -83,21 +104,25 @@ test('town npc maintenance fetch writes completed progress to explicit path with
   assert.match(progress.generatedAt, /^\d{4}-\d{2}-\d{2}T/);
   assert.match(progress.lastHeartbeatAt, /^\d{4}-\d{2}-\d{2}T/);
   assert.equal(path.resolve(progress.childStatusPath), progressPath);
-  assert.equal(progress.current, 1);
-  assert.equal(progress.total, 1);
+  assert.equal(progress.current, 2);
+  assert.equal(progress.total, 2);
   assert.equal(path.resolve(progress.outputPath), outputPath);
   assert.equal(path.resolve(progress.reportPath), snapshotPath);
   assert.match(progress.message, /finished town NPC maintenance fetch/);
+  assertCrawlerAttemptIdentity(progress);
   assert.equal(canonicalProgress.status, 'completed');
   assert.equal(path.resolve(canonicalProgress.childStatusPath), canonicalProgressPath);
   assert.equal(path.resolve(canonicalProgress.outputPath), outputPath);
+  assertCrawlerAttemptIdentity(canonicalProgress);
+  assert.equal(canonicalProgress.progressSequence, progress.progressSequence);
 
   const output = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
   assert.equal(output.entity, 'wiki_town_npc_maintenance');
-  assert.equal(output.totalTownNpcs, 1);
-  assert.equal(output.summary.scrapedCount, 1);
-  assert.equal(output.records[0].internalName, 'Wizard');
-  assert.deepEqual(output.records[0].livingPreferences, [
+  assert.equal(output.totalTownNpcs, 2);
+  assert.equal(output.summary.scrapedCount, 2);
+  const wizard = output.records.find((record) => record.internalName === 'Wizard');
+  assert.ok(wizard);
+  assert.deepEqual(wizard.livingPreferences, [
     { targetType: 'biome', preference: 'like', targetName: 'Forest', targetNameZh: null, sourceText: 'Likes Forest' },
     { targetType: 'npc', preference: 'like', targetName: 'Princess', targetNameZh: null, sourceText: 'Likes Princess' },
     { targetType: 'biome', preference: 'dislike', targetName: '沙漠', targetNameZh: null, sourceText: '反感 沙漠' },
@@ -105,6 +130,47 @@ test('town npc maintenance fetch writes completed progress to explicit path with
     { targetType: 'npc', preference: 'hate', targetName: 'Angler', targetNameZh: null, sourceText: 'Hates Angler' },
   ]);
 });
+
+function assertCrawlerAttemptIdentity(progress) {
+  assert.equal(progress.queueId, 'queue-town-npc-1');
+  assert.equal(progress.attemptId, 'attempt-town-npc-1');
+  assert.equal(progress.fenceToken, 142);
+  assert.equal(progress.stateStoreEpoch, 'epoch-town-npc-1');
+  assert.equal(progress.stateVersion, 3);
+  assert.ok(progress.progressSequence > 7);
+}
+
+function spawnWithResult(command, args, options) {
+  const child = spawn(command, args, options);
+  let stdout = '';
+  let stderr = '';
+  child.stdout.on('data', (chunk) => {
+    stdout += chunk;
+  });
+  child.stderr.on('data', (chunk) => {
+    stderr += chunk;
+  });
+  return {
+    result: new Promise((resolve) => {
+      child.on('close', (status) => resolve({ status, stdout, stderr }));
+      child.on('error', (error) => resolve({ status: 1, stdout, stderr: `${stderr}${error.stack || error.message}` }));
+    })
+  };
+}
+
+async function waitForProgress(filePath, predicate) {
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    try {
+      const progress = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      if (predicate(progress)) {
+        return progress;
+      }
+    } catch {}
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error(`Timed out waiting for progress: ${filePath}`);
+}
 
 test('default town npc maintenance progress path follows WORKTREE_ROOT when omitted', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-town-npc-maintenance-default-'));

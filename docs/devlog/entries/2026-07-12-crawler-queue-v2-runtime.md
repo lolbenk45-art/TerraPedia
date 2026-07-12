@@ -42,10 +42,11 @@
   error and the triage board made attention and queue progress mutually
   exclusive. Neutral idle is now healthy, but unknown with unclassified
   runtime evidence remains explicit and inspectable.
-- Task 3 implementation is now active. Its boundary is Redis-only V2 admission:
-  production keys must stay under the fixed V2 prefix, enqueue/dedupe must be
-  one Lua mutation, and Redis or namespace uncertainty must fail closed without
-  reading V1 queue state or filesystem mirrors.
+- Task 6 implementation is now active. Its boundary is worker progress identity:
+  complete V2 environments must attach queueId, attemptId, fenceToken,
+  stateStoreEpoch, stateVersion, and monotonic progressSequence to every
+  canonical progress write, while incomplete environments preserve the V1
+  payload shape exactly.
 
 ## Scope
 
@@ -173,6 +174,30 @@
   read-only reviewer found no remaining Critical, Important, or Moderate
   finding. No Redis, crawler, database, fixture stack, or service lifecycle was
   accessed.
+- Task 6 starts test-first with the shared identity parser and progress
+  sequencer, followed by the backend-refresh canonical/child progress split,
+  Town-NPC custom progress, and domain-smoke identity evidence. No crawler,
+  Redis mutation, database write, or service lifecycle action is authorized.
+- Task 6 initial read-only review blocks commit pending re-review. Resolver:
+  Codex. Accepted findings: a stale V2 `child-progress.json` can be proxied into
+  a later action before its worker writes, and malformed child JSON can be
+  converted into a fresh canonical heartbeat that hides unreadable/stalled
+  evidence. Rejected finding: requiring
+  `TERRAPEDIA_CRAWLER_PROGRESS_SEQUENCE` as a sixth mandatory environment
+  identity conflicts with the approved Task 6 contract, which defaults an
+  absent sequence to zero while requiring the other five identity values and
+  emits a positive sequence on the first V2 write. Re-review is required after
+  stale-child cleanup and fail-closed malformed-child regression tests pass.
+- Task 6 final GREEN and re-review: complete V2 progress carries queueId,
+  attemptId, fenceToken, stateStoreEpoch, stateVersion, and a monotonic
+  progressSequence; incomplete V2 environments retain V1 payload and path
+  behavior. The backend-refresh wrapper owns canonical progress while children
+  write `child-progress.json`, clears stale child evidence before each action,
+  and refuses to refresh canonical liveness from malformed or contract-invalid
+  child JSON. Town-NPC running/final evidence and domain-smoke evidence are
+  covered with offline fixtures. The seven plan commands passed 65/65 tests;
+  focused syntax checks and `git diff --check` passed. Final read-only review
+  found no remaining Critical, Important, or Moderate finding.
 
 ## Result
 
@@ -182,7 +207,7 @@
   fenced ownership and event-storage primitives and Task 5's attempt-scoped
   evidence/log/retention store are also complete. See git for code-level diff
   details.
-- Not completed: Tasks 6-15 and the end-to-end stuck-queue acceptance contract.
+- Not completed: Tasks 7-15 and the end-to-end stuck-queue acceptance contract.
 
 ## Residual Risks
 
@@ -191,6 +216,8 @@
 - Task 5 artifact primitives are not yet connected to worker progress,
   supervisor process ownership, reconciler convergence, overview/API/SSE, hard
   cutover, or combined acceptance.
+- Task 6 binds worker progress to exact V2 attempts but does not yet provide the
+  Task 7 fenced process supervisor, PID/start-marker ownership, or control path.
 - Task 4 repository primitives are not yet wired into the V1 live path; this
   checkpoint does not claim the recurring production queue stall is fixed.
 - The local stack is running for user acceptance. This checkpoint does not
@@ -199,8 +226,8 @@
 
 ## Follow-up
 
-- Owner: Codex. Continue Task 6 test-first with exact V2 identity in every
-  worker progress write; do not wire V2 into the V1 live path.
+- Owner: Codex. Continue Task 7 test-first with exact process launch/control
+  through the fenced supervisor; do not wire V2 into the V1 live path.
 
 ## Commits
 
@@ -209,4 +236,5 @@
 - `99b5cdd` `feat(crawler): add isolated V2 queue namespace`
 - `b81fe45` `feat(crawler): fence V2 attempts and leases`
 - `7cbb748` `docs(devlog): record crawler handoff commit sha`
-- Task 5 focused commit SHA pending in final response.
+- `af762c2` `feat(crawler): isolate V2 attempt evidence`
+- Task 6 focused commit SHA pending in final response.

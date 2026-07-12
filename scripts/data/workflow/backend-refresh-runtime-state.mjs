@@ -75,9 +75,10 @@ export function buildActionProgressPayload({
   percent = null,
   generatedAt = new Date().toISOString(),
   lastHeartbeatAt = generatedAt,
-  childStatusPath = null
+  childStatusPath = null,
+  observedProgressSequence = null
 } = {}) {
-  return mergeActionProgressFields({
+  const payload = mergeActionProgressFields({
     actionId: String(actionId ?? ''),
     generatedAt,
     status
@@ -95,6 +96,70 @@ export function buildActionProgressPayload({
     startedAt,
     total
   });
+  return attachCrawlerAttemptIdentity(payload, { observedProgressSequence });
+}
+
+export function crawlerAttemptIdentityFromEnv(env = process.env) {
+  const queueId = normalizeIdentityText(env.TERRAPEDIA_CRAWLER_QUEUE_ID);
+  const attemptId = normalizeIdentityText(env.TERRAPEDIA_CRAWLER_ATTEMPT_ID);
+  const stateStoreEpoch = normalizeIdentityText(env.TERRAPEDIA_CRAWLER_STATE_STORE_EPOCH);
+  const fenceToken = finiteNumberOrNull(env.TERRAPEDIA_CRAWLER_FENCE_TOKEN);
+  const stateVersion = finiteNumberOrNull(env.TERRAPEDIA_CRAWLER_INITIAL_STATE_VERSION);
+  const progressSequence = finiteNumberOrNull(env.TERRAPEDIA_CRAWLER_PROGRESS_SEQUENCE) ?? 0;
+  if (!queueId || !attemptId || !stateStoreEpoch || fenceToken == null || stateVersion == null) {
+    return null;
+  }
+  return { queueId, attemptId, fenceToken, stateStoreEpoch, stateVersion, progressSequence };
+}
+
+export function createCrawlerAttemptProgressSequencer(env = process.env) {
+  const identity = crawlerAttemptIdentityFromEnv(env);
+  let sequence = identity?.progressSequence ?? 0;
+  return {
+    next(payload, { observedProgressSequence = null } = {}) {
+      if (!identity) return payload;
+      sequence = Math.max(sequence, finiteNumberOrNull(observedProgressSequence) ?? 0) + 1;
+      return {
+        ...payload,
+        queueId: identity.queueId,
+        attemptId: identity.attemptId,
+        fenceToken: identity.fenceToken,
+        stateStoreEpoch: identity.stateStoreEpoch,
+        stateVersion: identity.stateVersion,
+        progressSequence: sequence
+      };
+    }
+  };
+}
+
+const defaultCrawlerAttemptProgressSequencer = createCrawlerAttemptProgressSequencer();
+
+export function attachCrawlerAttemptIdentity(payload, options = {}) {
+  return defaultCrawlerAttemptProgressSequencer.next(payload, options);
+}
+
+export function prepareCrawlerChildProgressPath(filePath) {
+  if (!filePath) return;
+  fs.rmSync(filePath, { force: true });
+}
+
+export function readActionProgressFile(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) {
+    return null;
+  }
+  try {
+    const payload = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    if (!isCrawlerProgressPayload(payload)) {
+      return unreadableActionProgress(filePath, 'progress file is not contract-valid');
+    }
+    return {
+      ...payload,
+      childStatusPath: payload.childStatusPath ?? filePath,
+      progressReadable: true
+    };
+  } catch {
+    return unreadableActionProgress(filePath, 'progress file is not readable');
+  }
 }
 
 export function mergeActionProgressFields(payload, progress) {
@@ -149,6 +214,53 @@ function sleepSync(ms) {
 function sanitizeActionId(value) {
   const text = String(value ?? 'action').trim().replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '');
   return text || 'action';
+}
+
+function normalizeIdentityText(value) {
+  const text = String(value ?? '').trim();
+  return text || null;
+}
+
+function finiteNumberOrNull(value) {
+  if (value == null || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function isCrawlerProgressPayload(payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return false;
+  }
+  const requiredTextFields = [
+    'actionId',
+    'status',
+    'generatedAt',
+    'lastHeartbeatAt',
+    'childStatusPath',
+    'phase',
+    'message'
+  ];
+  if (requiredTextFields.some((field) => !normalizeIdentityText(payload[field]))) {
+    return false;
+  }
+  if (!['running', 'completed', 'failed', 'queued', 'stalled'].includes(String(payload.status))) {
+    return false;
+  }
+  if (!Number.isFinite(Date.parse(String(payload.generatedAt)))
+    || !Number.isFinite(Date.parse(String(payload.lastHeartbeatAt)))) {
+    return false;
+  }
+  return ['current', 'total'].every((field) => Object.hasOwn(payload, field)
+    && (payload[field] == null || finiteNumberOrNull(payload[field]) != null));
+}
+
+function unreadableActionProgress(filePath, message) {
+  return {
+    childStatusPath: filePath,
+    message,
+    phase: 'monitor',
+    progressReadable: false
+  };
 }
 
 function normalizeProgressFields(progress) {

@@ -5,7 +5,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { parseCliArgs } from '../lib/wiki-item-utils.mjs';
-import { writeJsonFile } from '../workflow/backend-refresh-runtime-state.mjs';
+import {
+  attachCrawlerAttemptIdentity,
+  writeJsonFile
+} from '../workflow/backend-refresh-runtime-state.mjs';
 import { createWikiRequestGate } from '../lib/wiki-request-gate.mjs';
 import {
   buildResumeProgressFields,
@@ -292,7 +295,7 @@ function buildProgressPayload({
   if (resume) {
     payload.resume = resume;
   }
-  return payload;
+  return attachCrawlerAttemptIdentity(payload);
 }
 
 function writeProgress(filePath, payload, canonicalPath = null) {

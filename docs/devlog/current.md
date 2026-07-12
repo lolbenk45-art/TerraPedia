@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-12 10:30 CST by Codex
+Last updated: 2026-07-12 10:55 CST by Codex
 
 ## Open Work
 
@@ -11,7 +11,7 @@ Last updated: 2026-07-12 10:30 CST by Codex
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
   - parent/child: none
   - dependencies or blocked-by: local stack is running for user acceptance; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
-  - contract handoff: Tasks 1-4 are committed through `b81fe45`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 5 attempt-scoped artifacts, log availability, and unified retention passed final review, with its focused commit SHA reported in handoff/final response; continue with Task 6 worker progress identity
+  - contract handoff: Tasks 1-5 are committed through `af762c2`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 6 exact worker progress identity passed 65/65 tests and final review and is included in this branch checkpoint; continue with Task 7 fenced process supervision
 
 ## Current State
 
@@ -80,6 +80,12 @@ Last updated: 2026-07-12 10:30 CST by Codex
   minimum retention rule of the newest 100 terminal attempts or seven days.
 - Fresh Task 5 compatibility validation passed 42/42 tests and final read-only
   review found no remaining Critical, Important, or Moderate finding.
+- Task 6 is implemented with complete V2 identity on worker progress,
+  monotonic child-observed sequencing, wrapper-owned canonical progress,
+  isolated `child-progress.json`, stale-child cleanup, and fail-closed malformed
+  or contract-invalid child evidence. Fresh Task 6 validation passed 65/65
+  tests, focused syntax checks, and `git diff --check`; final review found no
+  remaining Critical, Important, or Moderate finding.
 - Plan audit closed two additional fail-closed gaps: the first real V2 mutation
   now uses a durable reservation before Redis plus exact confirmation after it,
   and missing/conflicting Redis epochs require an explicit idempotent reset that
@@ -128,7 +134,7 @@ Last updated: 2026-07-12 10:30 CST by Codex
 
 ## Next Agent Should Start Here
 
-- Continue inline with Task 6 of the committed V2 hard-cutover plan using
+- Continue inline with Task 7 of the committed V2 hard-cutover plan using
   test-first implementation and the plan's task-level validation checkpoints.
 - On implementation start, follow the plan task by task and preserve its
   authorization gates: fixture-stack execution, live cutover, and first
