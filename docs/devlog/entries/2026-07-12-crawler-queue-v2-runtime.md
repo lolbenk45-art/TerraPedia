@@ -42,6 +42,10 @@
   error and the triage board made attention and queue progress mutually
   exclusive. Neutral idle is now healthy, but unknown with unclassified
   runtime evidence remains explicit and inspectable.
+- Task 3 implementation is now active. Its boundary is Redis-only V2 admission:
+  production keys must stay under the fixed V2 prefix, enqueue/dedupe must be
+  one Lua mutation, and Redis or namespace uncertainty must fail closed without
+  reading V1 queue state or filesystem mirrors.
 
 ## Scope
 
@@ -91,32 +95,61 @@
   queue history remains visible in detail but does not inflate the active KPI.
 - Not run: crawler execution, fixture stack, database writes/checks, shared
   Redis clearing/mutation, or live cutover.
+- Task 3 baseline: `CrawlerAttemptStateMachineTest` passed 4/4 before repository
+  tests or production files were added.
+- Task 3 review coordination: Codex remains coordinator and sole writer. A
+  read-only reviewer owns the new repository/interface/exception/engine-mode,
+  Lua resource, and focused test review; it may not edit files, access shared
+  Redis, run services/crawlers, or update devlog/current. Return format is
+  severity-ranked findings with file/line evidence and a readiness verdict.
+- Task 3 initial review verdict: commit blocked and re-review required. Resolver:
+  Codex. Findings: Lua must preflight TTL, payloads, and all key types before
+  its first write so a later Redis type/argument error cannot leave partial
+  queue state; Java and Lua must reject mismatched epoch/queue/attempt/event
+  identity; malformed current dedupe evidence must fail closed instead of
+  blocking forever or being deleted; successful results require a positive
+  integral stateVersion; engine metadata must be read as one coherent snapshot.
+  The isolated real-Redis old-epoch/zero-partial-write proof remains owned by
+  Task 4's unique-prefix integration test and may not use shared Redis.
+- Task 3 final GREEN: the focused repository/state-machine selection passed
+  16/16, then the compatibility selection
+  `CrawlerMonitorActionRegistryTest,CrawlerAttemptStateMachineTest,RedisCrawlerQueueV2RepositoryTest`
+  passed 18/18 with no failures, errors, or skips.
+- Task 3 final re-review verdict: ready to commit. All reported identity, epoch,
+  TTL, coherent-snapshot, positive-version, and Lua preflight findings are
+  closed. No Critical, Important, or Moderate finding remains in Task 3 scope.
+  The real-Redis zero-partial-write and old-epoch proof remains explicitly
+  assigned to Task 4 rather than being treated as Task 3 evidence.
 
 ## Result
 
-- Completed: branch handoff contract, Tasks 1-2 prerequisite commits, and the
-  focused idle/queue visibility compatibility checkpoint. When no crawl exists,
-  idle domains render as `空闲正常`; active queue count, filtering, navigation,
-  history, and logs stay visible alongside attention states.
-- Not completed: Tasks 3-15 and the end-to-end stuck-queue acceptance contract.
+- Completed: branch handoff contract, Tasks 1-2 prerequisite commits, the
+  focused idle/queue visibility compatibility checkpoint, and Task 3's fixed
+  V2 Redis namespace plus fail-closed atomic enqueue/dedupe boundary. See git
+  for code-level diff details.
+- Not completed: Tasks 4-15 and the end-to-end stuck-queue acceptance contract.
 
 ## Residual Risks
 
 - The current application still uses the V1 live queue path; this handoff does
   not claim the recurring queue/status problem is fixed.
-- Redis atomicity, fencing, reconciler convergence, restart isolation, SSE,
-  attempt-bound logs, hard cutover, and combined acceptance remain unimplemented.
+- Claim fencing, lease renewal, progress CAS, retry, reconciler convergence,
+  restart isolation, SSE, attempt-bound logs, hard cutover, and combined
+  acceptance remain unimplemented.
+- Task 3 has mocked Redis coverage only. The isolated real-Redis test for
+  zero-partial-write behavior and old-epoch dedupe isolation remains in Task 4.
 - The local stack is running for user acceptance. This checkpoint does not
   validate V2 runtime deadlines, reconciler convergence, restart fencing, or
   legacy/current queue isolation.
 
 ## Follow-up
 
-- Owner: Codex. After the user accepts this focused checkpoint, begin Task 3 by
-  writing the failing V2 repository tests, then implement only the isolated
-  namespace and atomic enqueue/dedupe contract.
+- Owner: Codex. Continue Task 4 test-first with atomic claim, fencing, lease
+  renewal, progress CAS, retry, Stream events, and isolated-prefix Redis
+  integration; do not wire V2 into the V1 live path.
 
 ## Commits
 
 - `591101e` `docs(crawler): define idle queue visibility contract`
-- Compatibility implementation commit pending in final response.
+- `2ecc179` `fix(crawler-monitor): show idle and queue state clearly`
+- Task 3 focused commit SHA pending in final response.

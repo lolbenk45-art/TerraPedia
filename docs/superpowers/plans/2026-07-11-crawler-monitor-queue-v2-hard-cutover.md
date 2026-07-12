@@ -99,7 +99,7 @@
 - Create: `back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistry.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java`
 
-- [ ] **Step 1: Write the failing characterization test**
+- [x] **Step 1: Write the failing characterization test**
 
 ```java
 package com.terraria.skills.service.impl;
@@ -228,7 +228,7 @@ private static CrawlerQueueV2Attempt attempt(CrawlerQueueV2Status status, Instan
 }
 ```
 
-- [ ] **Step 2: Run the test and verify RED**
+- [x] **Step 2: Run the test and verify RED**
 
 Run:
 
@@ -239,7 +239,7 @@ mvn -Dtest=CrawlerMonitorActionRegistryTest test
 
 Expected: compilation fails with `cannot find symbol` for `CrawlerMonitorActionRegistry` and `CrawlerMonitorActionDefinition`.
 
-- [ ] **Step 3: Add the immutable definition and complete registry**
+- [x] **Step 3: Add the immutable definition and complete registry**
 
 Create `CrawlerMonitorActionDefinition.java` with this public contract:
 
@@ -419,7 +419,7 @@ In `CrawlerMonitorServiceImpl.java` make these exact mechanical changes:
 - Delete the old `backendRule`, `directRule`, `resumableDirectRule`, `operationalBackendRule`, `backendProgressTemplate`, and `WikiMonitorRule` declarations.
 - Do not change dispatch behavior, control behavior, queue persistence, or commands in this task.
 
-- [ ] **Step 4: Run registry and existing service tests and verify GREEN**
+- [x] **Step 4: Run registry and existing service tests and verify GREEN**
 
 Run:
 
@@ -430,7 +430,7 @@ mvn -Dtest=CrawlerMonitorActionRegistryTest,CrawlerMonitorServiceImplTest,WikiMo
 
 Expected: all selected tests pass and no existing action command, resume rule, or V1 queue test changes its assertion.
 
-- [ ] **Step 5: Commit the extraction**
+- [x] **Step 5: Commit the extraction**
 
 ```bash
 git add back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionDefinition.java back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistry.java back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistryTest.java
@@ -453,7 +453,7 @@ git commit -m "refactor(crawler): extract monitor action registry"
 - Modify: `back/src/main/java/com/terraria/skills/config/WebConfig.java`
 - Modify: `back/src/main/resources/application.yml`
 
-- [ ] **Step 1: Write failing transition and fake-clock deadline tests**
+- [x] **Step 1: Write failing transition and fake-clock deadline tests**
 
 The test must enumerate every allowed pair, reject terminal reversal, prove every non-terminal deadline, and prove `allowedActions` is derived:
 
@@ -553,7 +553,7 @@ class CrawlerAttemptStateMachineTest {
 }
 ```
 
-- [ ] **Step 2: Run the test and verify RED**
+- [x] **Step 2: Run the test and verify RED**
 
 Run:
 
@@ -564,7 +564,7 @@ mvn -Dtest=CrawlerAttemptStateMachineTest test
 
 Expected: compilation fails because the V2 types do not exist.
 
-- [ ] **Step 3: Add configuration, canonical records, and the complete status vocabulary**
+- [x] **Step 3: Add configuration, canonical records, and the complete status vocabulary**
 
 Use this configuration shape and defaults:
 
@@ -788,7 +788,7 @@ public record CrawlerQueueV2Event(
 ) {}
 ```
 
-- [ ] **Step 4: Implement the pure transition matrix and deadline policy**
+- [x] **Step 4: Implement the pure transition matrix and deadline policy**
 
 `CrawlerAttemptStateMachine` must expose these methods:
 
@@ -868,7 +868,7 @@ queue-v2:
   terminal-retention-age: 7d
 ```
 
-- [ ] **Step 5: Run focused tests and verify GREEN**
+- [x] **Step 5: Run focused tests and verify GREEN**
 
 Run:
 
@@ -879,7 +879,7 @@ mvn -Dtest=CrawlerAttemptStateMachineTest,CrawlerMonitorActionRegistryTest test
 
 Expected: all tests pass; the fake-clock assertion proves `running` uses `lastHeartbeatAt + 90 seconds`, and every non-terminal enum value has a non-null deadline.
 
-- [ ] **Step 6: Commit the V2 contract core**
+- [x] **Step 6: Commit the V2 contract core**
 
 ```bash
 git add back/src/main/java/com/terraria/skills/config/CrawlerQueueV2Properties.java back/src/main/java/com/terraria/skills/config/WebConfig.java back/src/main/resources/application.yml back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Status.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ReasonCode.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Artifacts.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Queue.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Attempt.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Event.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerAttemptStateMachine.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerAttemptStateMachineTest.java
@@ -897,7 +897,7 @@ git commit -m "feat(crawler): define V2 attempt state contract"
 - Create: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2Repository.java`
 - Create: `back/src/main/resources/redis/crawler-queue-v2/create-queue.lua`
 
-- [ ] **Step 1: Write failing repository isolation, dedupe, and Redis-offline tests**
+- [x] **Step 1: Write failing repository isolation, dedupe, and Redis-offline tests**
 
 Use a mocked `StringRedisTemplate` and capture every key passed to Lua:
 
@@ -1018,7 +1018,7 @@ class RedisCrawlerQueueV2RepositoryTest {
 }
 ```
 
-- [ ] **Step 2: Run the test and verify RED**
+- [x] **Step 2: Run the test and verify RED**
 
 Run:
 
@@ -1029,7 +1029,7 @@ mvn -Dtest=RedisCrawlerQueueV2RepositoryTest test
 
 Expected: compilation fails because the repository, engine mode, and exception types do not exist.
 
-- [ ] **Step 3: Define the repository boundary and structured exception**
+- [x] **Step 3: Define the repository boundary and structured exception**
 
 Create `CrawlerQueueEngineMode.java`:
 
@@ -1150,7 +1150,7 @@ public interface CrawlerQueueV2Repository {
 }
 ```
 
-- [ ] **Step 4: Add the atomic create-queue Lua script**
+- [x] **Step 4: Add the atomic create-queue Lua script**
 
 `create-queue.lua` receives exactly ten keys and ten arguments.
 
@@ -1254,7 +1254,7 @@ return cjson.encode({
 })
 ```
 
-- [ ] **Step 5: Implement the Redis adapter without a V1 or file fallback**
+- [x] **Step 5: Implement the Redis adapter without a V1 or file fallback**
 
 `RedisCrawlerQueueV2Repository` must:
 
@@ -1314,7 +1314,7 @@ List<String> keys = List.of(
 );
 ```
 
-- [ ] **Step 6: Run repository tests and verify GREEN**
+- [x] **Step 6: Run repository tests and verify GREEN**
 
 Run:
 
@@ -1325,7 +1325,7 @@ mvn -Dtest=RedisCrawlerQueueV2RepositoryTest,CrawlerAttemptStateMachineTest test
 
 Expected: all tests pass; captured keys contain only the V2 prefix; Redis failure is HTTP 503 with `STATE_STORE_UNAVAILABLE`; dedupe returns only a current-epoch existing attempt identity. Task 4's Redis-backed integration test must additionally seed an old-epoch non-terminal attempt behind the same dedupe key and prove a new-epoch enqueue returns `CREATED`, not `DEDUPED`.
 
-- [ ] **Step 7: Commit the namespace and enqueue boundary**
+- [x] **Step 7: Commit the namespace and enqueue boundary**
 
 ```bash
 git add back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueEngineMode.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Exception.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Repository.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2Repository.java back/src/main/resources/redis/crawler-queue-v2/create-queue.lua back/src/test/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2RepositoryTest.java

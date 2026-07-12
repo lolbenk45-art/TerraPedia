@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-12 08:26 CST by Codex
+Last updated: 2026-07-12 09:19 CST by Codex
 
 ## Open Work
 
@@ -11,7 +11,7 @@ Last updated: 2026-07-12 08:26 CST by Codex
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
   - parent/child: none
   - dependencies or blocked-by: local stack is running for user acceptance; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
-  - contract handoff: Tasks 1-2 are committed at `723f2d0` and `755713f`; idle/queue visibility design is committed at `591101e`; after acceptance continue with Task 3 V2 namespace and atomic enqueue/dedupe repository
+  - contract handoff: Tasks 1-2 are committed at `723f2d0` and `755713f`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 3 V2 namespace and atomic enqueue/dedupe is ready for its focused commit, then continue with Task 4 claim/fencing/lease/CAS/retry/Stream work
 
 ## Current State
 
@@ -65,6 +65,9 @@ Last updated: 2026-07-12 08:26 CST by Codex
   tabs visible. No crawler, database write, or Redis clear was performed.
 - Focused validation for this checkpoint passes: backend reducer 21/21, admin
   typecheck, and admin unit tests 251/251.
+- Task 3 is implemented with a Redis-only, fail-closed repository boundary,
+  fixed V2 namespace, and one atomic enqueue/dedupe Lua mutation. The final
+  compatibility selection passed 18/18 tests with no failures or skips.
 - Plan audit closed two additional fail-closed gaps: the first real V2 mutation
   now uses a durable reservation before Redis plus exact confirmation after it,
   and missing/conflicting Redis epochs require an explicit idempotent reset that
@@ -113,7 +116,7 @@ Last updated: 2026-07-12 08:26 CST by Codex
 
 ## Next Agent Should Start Here
 
-- Continue inline from Task 3 of the committed V2 hard-cutover plan using
+- Continue inline with Task 4 of the committed V2 hard-cutover plan using
   test-first implementation and the plan's task-level validation checkpoints.
 - On implementation start, follow the plan task by task and preserve its
   authorization gates: fixture-stack execution, live cutover, and first
@@ -148,6 +151,8 @@ Last updated: 2026-07-12 08:26 CST by Codex
 - The reservation, durable router lock, explicit epoch reset, old-epoch
   isolation, and maintenance mutation gate are plan contracts only until their
   focused and isolated-prefix tests pass during implementation.
+- Task 3 uses mocked Redis verification. Its zero-partial-write and old-epoch
+  behavior still require Task 4's isolated-prefix real-Redis integration test.
 - Historical documents still mention the old `project-plan/` path as archival context by design.
 - Historical devlog entries still mention removed root paths by design; those records are provenance, not live authority.
 - Current risk themes are document-level judgments until fresh runtime/backend/frontend/data gates and crawler reliability checks are run.
@@ -163,7 +168,7 @@ Last updated: 2026-07-12 08:26 CST by Codex
   - branch: `fix/crawler-monitor-queue-state`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-monitor-queue-state`
   - status: `closed`
-  - commit: branch closeout commit pending in final response
+  - commit: `7f8906c`
 
 - `docs/devlog/entries/2026-07-11-playwright-baseline.md`
   - branch: `test/playwright-baseline`
