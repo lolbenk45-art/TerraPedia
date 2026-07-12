@@ -162,6 +162,24 @@ const cssOrder = [
       violations.push(`${path}: contains blocked primitive contract pattern ${blocked}`)
     }
   }
+
+  for (const marker of [
+    '.page-head--command:not(.biome-environment-hero)',
+    '.page-head--command .page-head-inner > div',
+    '.page-head--command .page-head-inner p',
+    '.page-head-action-short {\n  display: none;',
+    '@media (min-width: 721px)',
+    '.page-head:not(.biome-environment-hero) {\n    display: none;',
+    'border: 0',
+    'background: transparent',
+  ]) {
+    requireIncludes(
+      path,
+      content,
+      marker,
+      `thin page-head and mobile command mode must include ${marker}`,
+    )
+  }
 }
 
 {

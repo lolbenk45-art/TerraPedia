@@ -403,14 +403,17 @@ watch(() => route.query, hydrateNpcStateFromRoute)
     <TerraNav />
     <TerraBreadcrumb />
 
-    <div class="page-head entity-head">
+    <div class="page-head entity-head page-head--command">
       <div class="page-head-inner">
         <div>
           <span class="eyebrow">{{ npcVisualLoading ? '加载资料' : npcFallbackUnavailable ? '资料暂未载入' : `${totalNpcs.toLocaleString('zh-CN')} 个角色与敌怪` }}</span>
           <h1>NPC 图鉴</h1>
           <p>保留 NPC 档案的角色式浏览，同时使用和物品图鉴一致的分类、搜索与分页控制。</p>
         </div>
-        <a class="primary-button" href="/bosses">进入 Boss 路线</a>
+        <a class="primary-button" href="/bosses">
+          <span class="page-head-action-full">进入 Boss 路线</span>
+          <span class="page-head-action-short">Boss 路线</span>
+        </a>
       </div>
     </div>
 

@@ -1541,10 +1541,15 @@ for (const path of scanFiles) {
       'padding-inline: 0',
       '.page-head:not(.biome-environment-hero)',
       '.page-head:not(.biome-environment-hero) .page-head-inner',
+      '.page-head--command:not(.biome-environment-hero)',
+      '.page-head--command .page-head-inner > div',
+      '.page-head--command .page-head-inner p',
+      '.page-head-action-short',
+      'white-space: nowrap',
       'min-height: 0',
       'display: grid',
-      'border: 1px solid var(--tp-color-border)',
-      'border-radius: var(--tp-radius-panel)',
+      'border: 0',
+      'background: transparent',
       'box-shadow: none',
       '.page-head:not(.biome-environment-hero) h1',
       '.page-head:not(.biome-environment-hero) h2',
@@ -1575,6 +1580,8 @@ for (const path of scanFiles) {
 
   if (path === 'pages/npcs/index.vue') {
     for (const marker of [
+      'page-head entity-head page-head--command',
+      'page-head-action-short',
       'usePublicNpcs',
       'npcCards',
       'pagination',
@@ -3280,6 +3287,10 @@ for (const path of scanFiles) {
   }
 
   if (path === 'pages/items/index.vue') {
+    if (!content.includes('page-head page-head--command')) {
+      violations.push(`${path}: item catalog header must opt into the mobile command modifier`)
+    }
+
     if (!content.includes(':source-image="item.sourceImage"')) {
       violations.push(`${path}: item wall images must pass the original backend image URL to PreviewImage for debugging`)
     }

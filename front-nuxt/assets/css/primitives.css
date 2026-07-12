@@ -45,7 +45,7 @@
   margin-inline: auto;
   border-bottom: 0;
   background: transparent;
-  padding: var(--tp-space-4) 0 var(--tp-space-3);
+  padding: var(--tp-space-3) 0 var(--tp-space-2);
 }
 
 .page-head:not(.biome-environment-hero) .page-head-inner {
@@ -57,11 +57,11 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--tp-space-3);
   align-items: center;
-  border: 1px solid var(--tp-color-border);
-  border-radius: var(--tp-radius-panel);
-  background: var(--tp-color-surface-soft);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   box-shadow: none;
-  padding: var(--tp-space-2) var(--tp-space-4);
+  padding: 0;
 }
 
 .page-head:not(.biome-environment-hero) .page-head-inner > * {
@@ -71,6 +71,10 @@
 .page-head:not(.biome-environment-hero) .page-head-inner > :where(a, button, .primary-button, .secondary-button) {
   justify-self: end;
   max-width: 100%;
+}
+
+.page-head-action-short {
+  display: none;
 }
 
 .page-head:not(.biome-environment-hero) h1,
@@ -441,6 +445,12 @@
   color: var(--text-positive);
 }
 
+@media (min-width: 721px) {
+  .page-head:not(.biome-environment-hero) {
+    display: none;
+  }
+}
+
 @media (max-width: 720px) {
   .tp-page-shell {
     gap: var(--tp-space-4);
@@ -453,12 +463,51 @@
 
   .page-head:not(.biome-environment-hero) .page-head-inner {
     grid-template-columns: 1fr;
-    padding: var(--tp-space-3);
+    padding: 0;
   }
 
   .page-head:not(.biome-environment-hero) .page-head-inner > :where(a, button, .primary-button, .secondary-button) {
     justify-self: start;
     width: fit-content;
+  }
+
+  .page-head--command:not(.biome-environment-hero) {
+    padding-block: var(--tp-space-2);
+  }
+
+  .page-head--command:not(.biome-environment-hero) .page-head-inner {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--tp-space-2);
+  }
+
+  .page-head--command .page-head-inner > div {
+    display: flex;
+    align-items: center;
+    gap: var(--tp-space-2);
+    white-space: nowrap;
+  }
+
+  .page-head--command .page-head-inner h1 {
+    order: -1;
+    margin: 0;
+    font-size: var(--tp-font-size-title-sm);
+  }
+
+  .page-head--command .page-head-inner p {
+    display: none;
+  }
+
+  .page-head--command .page-head-inner > :where(a, button, .primary-button, .secondary-button) {
+    justify-self: end;
+    min-height: var(--tp-touch-target);
+  }
+
+  .page-head--command .page-head-action-full {
+    display: none;
+  }
+
+  .page-head--command .page-head-action-short {
+    display: inline;
   }
 
   .tp-page-head :where(p),
