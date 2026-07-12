@@ -54,6 +54,38 @@
   `mutate-attempt.lua`, and an exact append-event Lua resource if required.
   The agent may not edit devlog/current, commit, access Redis/database, run
   crawlers, or change service lifecycle.
+- Task 8 is active under the same coordinator. One serialized implementer owns
+  only the Task 8 V2 repository/reconciler/recovery/artifact files and their
+  focused tests; it must not edit devlog files, run a crawler, mutate a shared
+  Redis namespace or database, or change service lifecycle. Fresh
+  specification then code-quality review follow before the focused commit.
+- The first Task 8 implementer was interrupted by an external agent-service
+  `503` after preserving its RED tests and in-progress uncommitted code. A
+  replacement serialized implementer must recompile the inherited diff before
+  changing it, continue test-first, and report any new blocker; no runtime or
+  shared-state operation occurred.
+- Task 8 implementation now has fresh focused Green evidence (reconciler 23,
+  recovery 11, Redis repository 38, supervisor 58; 130 total) plus
+  `mvn test-compile` and `git diff --check`. It remains uncommitted pending
+  independent specification review, code-quality review, and coordinator
+  rerun; no fixture, Redis, database, crawler, or service-lifecycle action
+  was performed.
+- Task 8 independent specification review is `CHANGES_REQUIRED`; commit is
+  blocked. Critical: reconciler/recovery are not Spring-managed, so schedules
+  and startup recovery are inert; unconfirmed old/missing-Redis process
+  termination lacks a bounded isolation. Important: reset clears the only
+  quarantine discovery index, future `RETRY_WAIT` work can be claimed before
+  eligible time, and reset Lua is only text/mocked-adapter tested. Moderate:
+  adoption accepts too-weak progress evidence and canonical manifest listing
+  does not validate the date segment. Resolver: the serialized Task 8
+  implementer must add focused RED regressions and repair all findings, then
+  obtain fresh specification re-review before code-quality review. Generated
+  data remains user-owned and excluded from scope/staging.
+- Task 8 is now ready for its focused commit. The replacement implementer
+  closed the Spring wiring, current-epoch quarantine, ready-time, canonical
+  manifest, strict adoption, reset-Lua, watchdog fail-visible, and reset-result
+  binding gaps with RED -> GREEN regressions. Final specification and
+  code-quality re-reviews are `APPROVED`; see Validation for fresh evidence.
 
 ## Scope
 
@@ -392,6 +424,15 @@
   `APPROVED`, with no material finding. The coordinator independently reran the
   six-class gate at 126/126, `mvn test-compile`, `git diff --check`, and the
   residual-process scan before commit preparation.
+- Task 8 final validation: `CrawlerQueueV2ReconcilerTest`,
+  `CrawlerQueueV2RecoveryServiceTest`, `CrawlerAttemptSupervisorTest`, and
+  `RedisCrawlerQueueV2RepositoryTest` pass 156/156 with zero failures, errors,
+  or skips; `mvn test-compile` and `git diff --check` pass. Final reviews
+  approve Spring-managed scheduling/recovery, current-epoch quarantine,
+  future-retry eligibility, pure quarantine discovery, strict restart adoption,
+  canonical manifests, fail-visible watchdog errors, and reset response binding
+  to reset ID, epoch, and irreversible timestamp. The environment-gated Redis
+  reset-Lua integration suite remains intentionally unexecuted.
 
 ## Result
 
@@ -403,7 +444,10 @@
   to exact V2 identity, and Task 7 adds exact suspended process-group launch,
   progress/control fencing, and exit-before-release supervision. See git for
   code-level diff details.
-- Not completed: Tasks 8-15 and the end-to-end stuck-queue acceptance contract.
+- Task 7 is checkpointed at `7df042b` after its final specification and
+  code-quality approvals; Task 8 is ready for its focused commit and Task 9 is
+  the next serialized implementation step.
+- Not completed: Tasks 9-15 and the end-to-end stuck-queue acceptance contract.
 
 ## Residual Risks
 
@@ -417,11 +461,14 @@
 - The local stack is running for user acceptance. This checkpoint does not
   validate V2 runtime deadlines, reconciler convergence, restart fencing, or
   legacy/current queue isolation.
+- The isolated Redis reset-Lua integration suite is environment-gated and was
+  not executed because no dedicated `TERRAPEDIA_TEST_REDIS_*` namespace was
+  explicitly authorized. It must run before readiness/cutover claims.
 
 ## Follow-up
 
-- Owner: Codex. Continue Task 8 test-first with bounded reconciliation and
-  recovery; do not wire V2 into the V1 live path.
+- Owner: Codex. Commit Task 8, then continue Task 9 test-first with durable
+  routing and a pure V2 overview; do not wire V2 into the V1 live path.
 
 ## Commits
 
@@ -432,4 +479,4 @@
 - `7cbb748` `docs(devlog): record crawler handoff commit sha`
 - `af762c2` `feat(crawler): isolate V2 attempt evidence`
 - `06c8df2` `feat(crawler): bind progress to V2 attempts`
-- Task 7 focused commit SHA pending in final response.
+- `7df042b` `feat(crawler): supervise exact V2 processes`

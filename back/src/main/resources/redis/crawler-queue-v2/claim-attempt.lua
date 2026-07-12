@@ -25,10 +25,12 @@ end
 local domainCount = tonumber(ARGV[9])
 local leaseTtl = tonumber(ARGV[7])
 local expectedVersion = tonumber(ARGV[4])
+local enteredAtMillis = tonumber(ARGV[13])
 local coveredDomains = decodeObject(ARGV[12])
 if not domainCount or domainCount < 1 or domainCount % 1 ~= 0
   or not leaseTtl or leaseTtl < 1 or leaseTtl % 1 ~= 0
   or not expectedVersion or expectedVersion < 1 or expectedVersion % 1 ~= 0
+  or not enteredAtMillis or enteredAtMillis % 1 ~= 0
   or not coveredDomains or #coveredDomains ~= domainCount then
   return cjson.encode({code = 'INVALID_COMMAND'})
 end
@@ -94,8 +96,16 @@ end
 if attempt.status ~= 'queued' and attempt.status ~= 'retry_wait' then
   return cjson.encode({code = 'INVALID_STATUS', actualStatus = attempt.status})
 end
-if redis.call('ZSCORE', KEYS[6], attempt.attemptId) == false then
+local readyScore = redis.call('ZSCORE', KEYS[6], attempt.attemptId)
+if readyScore == false then
   return cjson.encode({code = 'STATE_STORE_INCONSISTENT'})
+end
+readyScore = tonumber(readyScore)
+if not readyScore then
+  return cjson.encode({code = 'STATE_STORE_INCONSISTENT'})
+end
+if readyScore > enteredAtMillis then
+  return cjson.encode({code = 'NOT_YET_ELIGIBLE'})
 end
 if redis.call('GET', KEYS[7]) ~= attempt.attemptId then
   return cjson.encode({code = 'STATE_STORE_INCONSISTENT'})

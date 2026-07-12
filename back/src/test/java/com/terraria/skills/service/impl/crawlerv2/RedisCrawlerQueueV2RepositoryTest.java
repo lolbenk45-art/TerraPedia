@@ -9,6 +9,9 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.SetOperations;
+import org.springframework.data.redis.core.ZSetOperations;
+import org.springframework.data.redis.core.DefaultTypedTuple;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.connection.stream.StreamReadOptions;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -19,13 +22,17 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -380,6 +387,26 @@ class RedisCrawlerQueueV2RepositoryTest {
     }
 
     @Test
+    void claimMustReturnNotYetEligibleWhenTheReadyScoreIsAfterTheEnteredTime() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+            .thenReturn("{\"code\":\"NOT_YET_ELIGIBLE\"}");
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+
+        CrawlerQueueV2Repository.ClaimResult result = assertDoesNotThrow(() -> repository.claim(
+            new CrawlerQueueV2Repository.ClaimCommand(
+                "epoch-1", "queue-1", "attempt-1", "standard", "standard:domain-source-bosses:fresh",
+                1L, NOW, NOW.plusSeconds(90), Duration.ofSeconds(90), List.of("bosses"),
+                event("attempt.transitioned", 2L)
+            )
+        ));
+
+        assertEquals("NOT_YET_ELIGIBLE", result.code().name());
+        assertEquals(0L, result.stateVersion());
+        assertTrue(result.fenceToken() == null);
+    }
+
+    @Test
     void shouldSurfaceStaleVersionAndStaleFenceWithoutRetrying() {
         StringRedisTemplate redis = mock(StringRedisTemplate.class);
         when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
@@ -426,7 +453,8 @@ class RedisCrawlerQueueV2RepositoryTest {
             "mutate-attempt.lua", List.of("stateStoreEpoch", "attemptId", "fenceToken", "stateVersion", "XADD"),
             "renew-leases.lua", List.of("stateStoreEpoch", "attemptId", "fenceToken"),
             "create-retry.lua", List.of("stateStoreEpoch", "attemptId", "stateVersion", "XADD"),
-            "write-health.lua", List.of("stateStoreEpoch", "XADD")
+            "write-health.lua", List.of("stateStoreEpoch", "XADD"),
+            "write-quarantine.lua", List.of("stateStoreEpoch", "attemptId", "fenceToken", "ZADD")
         );
         for (Map.Entry<String, List<String>> entry : requiredTerms.entrySet()) {
             String source = new ClassPathResource("redis/crawler-queue-v2/" + entry.getKey())
@@ -713,12 +741,442 @@ class RedisCrawlerQueueV2RepositoryTest {
         verifyNoInteractions(redis);
     }
 
+    @Test
+    void initializeResetEpochMustUseExactlyTwelveV2KeysAndPreserveTheIrreversibleTimestamp() throws Exception {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+            .thenReturn("{\"code\":\"RESET\",\"resetId\":\"reset-1\",\"stateStoreEpoch\":\"epoch-new\",\"streamCursor\":\"42-0\",\"firstLiveMutationAt\":\"2026-07-11T12:59:00Z\"}");
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+
+        CrawlerQueueV2Repository.InitializeResetEpochResult result = repository.initializeResetEpoch(resetCommand());
+
+        assertFalse(result.idempotent());
+        assertEquals("epoch-new", result.stateStoreEpoch());
+        assertEquals(Instant.parse("2026-07-11T12:59:00Z"), result.firstLiveMutationAt());
+        ArgumentCaptor<RedisScript<String>> script = ArgumentCaptor.forClass(RedisScript.class);
+        ArgumentCaptor<List<String>> keys = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<Object[]> arguments = ArgumentCaptor.forClass(Object[].class);
+        verify(redis).execute(script.capture(), keys.capture(), arguments.capture());
+        assertEquals(List.of(
+            "terrapedia:crawler:wiki-monitor:v2:meta:engine",
+            "terrapedia:crawler:wiki-monitor:v2:meta:epoch",
+            "terrapedia:crawler:wiki-monitor:v2:meta:active-cutover-id",
+            "terrapedia:crawler:wiki-monitor:v2:meta:first-live-mutation-at",
+            "terrapedia:crawler:wiki-monitor:v2:meta:fence-sequence",
+            "terrapedia:crawler:wiki-monitor:v2:index:attempts:live",
+            "terrapedia:crawler:wiki-monitor:v2:index:attempts:terminal",
+            "terrapedia:crawler:wiki-monitor:v2:index:queues",
+            "terrapedia:crawler:wiki-monitor:v2:lane:standard:ready",
+            "terrapedia:crawler:wiki-monitor:v2:lane:exclusive:ready",
+            "terrapedia:crawler:wiki-monitor:v2:events",
+            "terrapedia:crawler:wiki-monitor:v2:state-store-reset:reset-1"
+        ), keys.getValue());
+        assertEquals(8, arguments.getValue().length);
+        assertEquals("cutover-1", arguments.getValue()[0]);
+        assertEquals("reset-1", arguments.getValue()[1]);
+        assertEquals("epoch-old", arguments.getValue()[2]);
+        assertEquals("epoch-new", arguments.getValue()[3]);
+        assertEquals("2026-07-11T12:59:00Z", arguments.getValue()[4]);
+        assertEquals(NOW.toString(), arguments.getValue()[5]);
+        assertEquals("operator", arguments.getValue()[6]);
+        assertEquals("state-store.reset", objectMapper.readTree((String) arguments.getValue()[7]).path("type").asText());
+        String source = script.getValue().getScriptAsString();
+        assertTrue(source.contains("KEYS[6]"));
+        assertTrue(source.contains("KEYS[10]"));
+        assertFalse(source.contains("SCAN"));
+        assertFalse(source.contains("'KEYS'"));
+        assertFalse(source.contains("FLUSHDB"));
+        assertFalse(source.contains("FLUSHALL"));
+        assertFalse(source.contains("dispatch-queue"));
+        assertFalse(source.contains("mirror"));
+        assertFalse(source.contains("fallback"));
+    }
+
+    @Test
+    void initializeResetEpochMustTreatAnExistingResetRecordAsIdempotent() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+            .thenReturn("{\"code\":\"ALREADY_RESET\",\"resetId\":\"reset-1\",\"stateStoreEpoch\":\"epoch-new\",\"streamCursor\":\"42-0\",\"firstLiveMutationAt\":\"2026-07-11T12:59:00Z\"}");
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+
+        CrawlerQueueV2Repository.InitializeResetEpochResult result = repository.initializeResetEpoch(resetCommand());
+
+        assertTrue(result.idempotent());
+        assertEquals("reset-1", result.resetId());
+        assertEquals("42-0", result.streamCursor());
+    }
+
+    @Test
+    void initializeResetEpochMustRejectAnAlreadyResetResponseWithADifferentEpoch() {
+        assertInitializeResetEpochResponseRejected(
+            resetCommand(),
+            "{\"code\":\"ALREADY_RESET\",\"resetId\":\"reset-1\",\"stateStoreEpoch\":\"epoch-other\",\"streamCursor\":\"42-0\",\"firstLiveMutationAt\":\"2026-07-11T12:59:00Z\"}"
+        );
+    }
+
+    @Test
+    void initializeResetEpochMustRejectAResetResponseWithADifferentResetId() {
+        assertInitializeResetEpochResponseRejected(
+            resetCommand(),
+            "{\"code\":\"RESET\",\"resetId\":\"reset-other\",\"stateStoreEpoch\":\"epoch-new\",\"streamCursor\":\"42-0\",\"firstLiveMutationAt\":\"2026-07-11T12:59:00Z\"}"
+        );
+    }
+
+    @Test
+    void initializeResetEpochMustRejectResetResponsesWithInconsistentIrreversibleEvidence() {
+        assertAll(
+            () -> assertInitializeResetEpochResponseRejected(
+                resetCommand(),
+                "{\"code\":\"RESET\",\"resetId\":\"reset-1\",\"stateStoreEpoch\":\"epoch-new\",\"streamCursor\":\"42-0\",\"firstLiveMutationAt\":\"2026-07-11T12:58:00Z\"}"
+            ),
+            () -> assertInitializeResetEpochResponseRejected(
+                resetCommand(),
+                "{\"code\":\"RESET\",\"resetId\":\"reset-1\",\"stateStoreEpoch\":\"epoch-new\",\"streamCursor\":\"42-0\",\"firstLiveMutationAt\":null}"
+            ),
+            () -> assertInitializeResetEpochResponseRejected(
+                resetCommand(null),
+                "{\"code\":\"RESET\",\"resetId\":\"reset-1\",\"stateStoreEpoch\":\"epoch-new\",\"streamCursor\":\"42-0\",\"firstLiveMutationAt\":\"2026-07-11T12:59:00Z\"}"
+            )
+        );
+    }
+
+    @Test
+    void initializeResetEpochMustMapObservedEpochMismatchToAStructuredMaintenanceError() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+            .thenReturn("{\"code\":\"OBSERVED_EPOCH_MISMATCH\"}");
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> repository.initializeResetEpoch(resetCommand())
+        );
+
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_RESET, exception.reasonCode());
+        assertEquals(409, exception.httpStatus().value());
+    }
+
+    @Test
+    void initializeResetEpochMustMapAnEngineV1ResultToAStructuredMaintenanceError() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+            .thenReturn("{\"code\":\"ENGINE_IS_V1\"}");
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> repository.initializeResetEpoch(resetCommand())
+        );
+
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_RESET, exception.reasonCode());
+        assertEquals(409, exception.httpStatus().value());
+    }
+
+    @Test
+    void initializeResetEpochMustMapACutoverIdMismatchToAStructuredMaintenanceError() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+            .thenReturn("{\"code\":\"CUTOVER_ID_MISMATCH\"}");
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> repository.initializeResetEpoch(resetCommand())
+        );
+
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_RESET, exception.reasonCode());
+        assertEquals(409, exception.httpStatus().value());
+    }
+
+    @Test
+    void initializeResetEpochLuaMustAllowMissingCutoverMetadataAndReturnTheExactResetCodes() throws Exception {
+        String source = new ClassPathResource("redis/crawler-queue-v2/initialize-reset-epoch.lua")
+            .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+
+        assertTrue(source.contains("if engine == 'v1' then return cjson.encode({code = 'ENGINE_IS_V1'}) end"));
+        assertTrue(source.contains("if currentCutover and currentCutover ~= ARGV[1] then"));
+        assertTrue(source.contains("code = 'CUTOVER_ID_MISMATCH'"));
+        assertTrue(source.contains("if currentFirstLiveMutationAt and (ARGV[5] == '' or currentFirstLiveMutationAt ~= ARGV[5]) then"));
+        assertTrue(source.contains("if not currentFirstLiveMutationAt and ARGV[5] ~= '' then"));
+    }
+
+    @Test
+    void initializeResetEpochMustPassAnEmptyObservedEpochForAnActuallyMissingNamespaceEpoch() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+            .thenReturn("{\"code\":\"RESET\",\"resetId\":\"reset-1\",\"stateStoreEpoch\":\"epoch-new\",\"streamCursor\":\"42-0\",\"firstLiveMutationAt\":null}");
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+        CrawlerQueueV2Repository.InitializeResetEpochCommand existing = resetCommand();
+        CrawlerQueueV2Repository.InitializeResetEpochCommand missingEpoch = new CrawlerQueueV2Repository.InitializeResetEpochCommand(
+            existing.resetId(),
+            existing.activeCutoverId(),
+            null,
+            existing.newEpoch(),
+            null,
+            existing.resetAt(),
+            existing.operator(),
+            existing.event()
+        );
+
+        CrawlerQueueV2Repository.InitializeResetEpochResult result = repository.initializeResetEpoch(missingEpoch);
+
+        assertEquals("epoch-new", result.stateStoreEpoch());
+        ArgumentCaptor<Object[]> arguments = ArgumentCaptor.forClass(Object[].class);
+        verify(redis).execute(any(RedisScript.class), anyList(), arguments.capture());
+        assertEquals("", arguments.getValue()[2]);
+        assertEquals("", arguments.getValue()[4]);
+    }
+
+    @Test
+    void findReadyAttemptsMustMergeBothReadyLanesByScoreBeforeReadingExactAttemptRecords() throws Exception {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        ZSetOperations<String, String> ready = mock(ZSetOperations.class);
+        ValueOperations<String, String> values = mock(ValueOperations.class);
+        when(redis.opsForZSet()).thenReturn(ready);
+        when(redis.opsForValue()).thenReturn(values);
+        when(ready.rangeByScoreWithScores(
+            "terrapedia:crawler:wiki-monitor:v2:lane:standard:ready",
+            Double.NEGATIVE_INFINITY,
+            (double) NOW.toEpochMilli(),
+            0L,
+            10L
+        )).thenReturn(Set.of(new DefaultTypedTuple<>("attempt-standard", 20D)));
+        when(ready.rangeByScoreWithScores(
+            "terrapedia:crawler:wiki-monitor:v2:lane:exclusive:ready",
+            Double.NEGATIVE_INFINITY,
+            (double) NOW.toEpochMilli(),
+            0L,
+            10L
+        )).thenReturn(Set.of(new DefaultTypedTuple<>("attempt-exclusive", 10D)));
+        CrawlerQueueV2Attempt exclusive = readyAttempt("attempt-exclusive", "exclusive", CrawlerQueueV2Status.QUEUED);
+        CrawlerQueueV2Attempt standard = readyAttempt("attempt-standard", "standard", CrawlerQueueV2Status.RETRY_WAIT);
+        List<String> exactAttemptKeys = List.of(
+            "terrapedia:crawler:wiki-monitor:v2:attempt:attempt-exclusive",
+            "terrapedia:crawler:wiki-monitor:v2:attempt:attempt-standard"
+        );
+        ObjectMapper canonical = objectMapper.copy().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        when(values.multiGet(eq(exactAttemptKeys))).thenReturn(List.of(
+            canonical.writeValueAsString(exclusive),
+            canonical.writeValueAsString(standard)
+        ));
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+
+        List<CrawlerQueueV2Attempt> attempts = repository.findReadyAttempts(10);
+
+        assertEquals(List.of("attempt-exclusive", "attempt-standard"), attempts.stream()
+            .map(CrawlerQueueV2Attempt::attemptId)
+            .toList());
+        verify(ready).rangeByScoreWithScores(
+            "terrapedia:crawler:wiki-monitor:v2:lane:standard:ready",
+            Double.NEGATIVE_INFINITY,
+            (double) NOW.toEpochMilli(),
+            0L,
+            10L
+        );
+        verify(ready).rangeByScoreWithScores(
+            "terrapedia:crawler:wiki-monitor:v2:lane:exclusive:ready",
+            Double.NEGATIVE_INFINITY,
+            (double) NOW.toEpochMilli(),
+            0L,
+            10L
+        );
+        verify(ready, never()).rangeWithScores(any(), anyLong(), anyLong());
+    }
+
+    @Test
+    void claimAttemptLuaMustRejectAReadyScoreAfterTheEnteredAtMillis() throws Exception {
+        String source = new ClassPathResource("redis/crawler-queue-v2/claim-attempt.lua")
+            .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+
+        assertTrue(source.contains("local enteredAtMillis = tonumber(ARGV[13])"));
+        assertTrue(source.contains("local readyScore = redis.call('ZSCORE', KEYS[6], attempt.attemptId)"));
+        assertTrue(source.contains("if readyScore > enteredAtMillis then"));
+        assertTrue(source.contains("code = 'NOT_YET_ELIGIBLE'"));
+    }
+
+    @Test
+    void readReconcilerHealthMustDecodeTheStoredBoundedHealthSnapshot() throws Exception {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        ValueOperations<String, String> values = mock(ValueOperations.class);
+        when(redis.opsForValue()).thenReturn(values);
+        CrawlerQueueV2Repository.ReconcilerHealth health = new CrawlerQueueV2Repository.ReconcilerHealth(
+            NOW, 4L, 3L, 1L, 2L, 500L, CrawlerQueueV2ReasonCode.RECONCILER_STALE
+        );
+        ObjectMapper canonical = objectMapper.copy().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        when(values.get("terrapedia:crawler:wiki-monitor:v2:health:reconciler"))
+            .thenReturn(canonical.writeValueAsString(health));
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+
+        CrawlerQueueV2Repository.ReconcilerHealth result = repository.readReconcilerHealth().orElseThrow();
+
+        assertEquals(health, result);
+    }
+
+    @Test
+    void writeQuarantineMustAtomicallyWriteTheCurrentEpochPayloadAndExpiryRegistry() throws Exception {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        ValueOperations<String, String> values = mock(ValueOperations.class);
+        when(redis.opsForValue()).thenReturn(values);
+        when(values.multiGet(eq(List.of(
+            "terrapedia:crawler:wiki-monitor:v2:meta:engine",
+            "terrapedia:crawler:wiki-monitor:v2:meta:epoch",
+            "terrapedia:crawler:wiki-monitor:v2:meta:active-cutover-id",
+            "terrapedia:crawler:wiki-monitor:v2:meta:first-live-mutation-at"
+        )))).thenReturn(List.of("v2", "epoch-1", "cutover-1", NOW.toString()));
+        when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+            .thenReturn("{\"code\":\"WRITTEN\"}");
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+        CrawlerQueueV2Repository.QuarantineCommand command = new CrawlerQueueV2Repository.QuarantineCommand(
+            "epoch-1", "bosses", "queue-1", "attempt-1", 42L,
+            NOW.plus(Duration.ofMinutes(2)), CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED
+        );
+
+        repository.writeQuarantine(command);
+
+        ArgumentCaptor<RedisScript<String>> script = ArgumentCaptor.forClass(RedisScript.class);
+        ArgumentCaptor<List<String>> keys = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<Object[]> arguments = ArgumentCaptor.forClass(Object[].class);
+        verify(redis).execute(script.capture(), keys.capture(), arguments.capture());
+        assertEquals(List.of(
+            "terrapedia:crawler:wiki-monitor:v2:meta:engine",
+            "terrapedia:crawler:wiki-monitor:v2:meta:epoch",
+            "terrapedia:crawler:wiki-monitor:v2:domain:bosses:quarantine",
+            "terrapedia:crawler:wiki-monitor:v2:index:quarantines"
+        ), keys.getValue());
+        assertEquals("epoch-1", arguments.getValue()[0]);
+        assertEquals("bosses", arguments.getValue()[1]);
+        assertEquals(NOW.plus(Duration.ofMinutes(2)).toEpochMilli(), Long.parseLong((String) arguments.getValue()[3]));
+        assertEquals(Duration.ofMinutes(2).toMillis(), Long.parseLong((String) arguments.getValue()[4]));
+        assertEquals("epoch-1", objectMapper.readTree((String) arguments.getValue()[2]).path("stateStoreEpoch").asText());
+        assertEquals("attempt-1", objectMapper.readTree((String) arguments.getValue()[2]).path("attemptId").asText());
+        assertTrue(script.getValue().getScriptAsString().contains("KEYS[4]"));
+        assertTrue(script.getValue().getScriptAsString().contains("ZADD"));
+    }
+
+    @Test
+    void findQuarantinesMustUseAReadOnlyBoundedExpiryRegistryWithoutQueueIndexDiscovery() throws Exception {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        ValueOperations<String, String> values = mock(ValueOperations.class);
+        ZSetOperations<String, String> registry = mock(ZSetOperations.class);
+        SetOperations<String, String> queues = mock(SetOperations.class);
+        when(redis.opsForValue()).thenReturn(values);
+        when(redis.opsForZSet()).thenReturn(registry);
+        when(redis.opsForSet()).thenReturn(queues);
+        List<String> engineKeys = List.of(
+            "terrapedia:crawler:wiki-monitor:v2:meta:engine",
+            "terrapedia:crawler:wiki-monitor:v2:meta:epoch",
+            "terrapedia:crawler:wiki-monitor:v2:meta:active-cutover-id",
+            "terrapedia:crawler:wiki-monitor:v2:meta:first-live-mutation-at"
+        );
+        when(values.multiGet(eq(engineKeys))).thenReturn(List.of("v2", "epoch-1", "cutover-1", NOW.toString()));
+        when(queues.members("terrapedia:crawler:wiki-monitor:v2:index:queues")).thenReturn(Set.of());
+        ObjectMapper canonical = objectMapper.copy().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        String registryKey = "terrapedia:crawler:wiki-monitor:v2:index:quarantines";
+        when(registry.rangeByScore(
+            registryKey,
+            Math.nextUp((double) NOW.toEpochMilli()),
+            Double.POSITIVE_INFINITY,
+            0L,
+            256L
+        )).thenReturn(Set.of("bosses", "npcs"));
+        CrawlerQueueV2Repository.DomainQuarantine currentEpoch = new CrawlerQueueV2Repository.DomainQuarantine(
+            "epoch-1", "bosses", "queue-1", "attempt-current", 8L,
+            NOW.plus(Duration.ofMinutes(2)), CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED
+        );
+        CrawlerQueueV2Repository.DomainQuarantine oldEpoch = new CrawlerQueueV2Repository.DomainQuarantine(
+            "epoch-old", "npcs", "queue-1", "attempt-old", 7L,
+            NOW.plus(Duration.ofMinutes(2)), CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED
+        );
+        when(values.multiGet(eq(List.of(
+            "terrapedia:crawler:wiki-monitor:v2:domain:bosses:quarantine",
+            "terrapedia:crawler:wiki-monitor:v2:domain:npcs:quarantine"
+        )))).thenReturn(List.of(
+            canonical.writeValueAsString(currentEpoch),
+            canonical.writeValueAsString(oldEpoch)
+        ));
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+
+        List<CrawlerQueueV2Repository.DomainQuarantine> quarantines = repository.findQuarantines();
+
+        assertEquals(List.of(currentEpoch), quarantines);
+        verify(registry, never()).remove(any(), any());
+        verify(registry).rangeByScore(
+            registryKey,
+            Math.nextUp((double) NOW.toEpochMilli()),
+            Double.POSITIVE_INFINITY,
+            0L,
+            256L
+        );
+        verify(redis, never()).opsForSet();
+        verify(redis, never()).keys(any());
+    }
+
     private RedisCrawlerQueueV2Repository repository(StringRedisTemplate redis, String prefix) {
         return new RedisCrawlerQueueV2Repository(
             objectMapper,
             redis,
             Clock.fixed(NOW, ZoneOffset.UTC),
             prefix
+        );
+    }
+
+    private CrawlerQueueV2Repository.InitializeResetEpochCommand resetCommand() {
+        return resetCommand(Instant.parse("2026-07-11T12:59:00Z"));
+    }
+
+    private CrawlerQueueV2Repository.InitializeResetEpochCommand resetCommand(Instant irreversibleAt) {
+        return new CrawlerQueueV2Repository.InitializeResetEpochCommand(
+            "reset-1",
+            "cutover-1",
+            "epoch-old",
+            "epoch-new",
+            irreversibleAt,
+            NOW,
+            "operator",
+            new CrawlerQueueV2Event(
+                "state-store.reset",
+                "epoch-new",
+                null,
+                null,
+                null,
+                null,
+                null,
+                CrawlerQueueV2ReasonCode.STATE_STORE_RESET,
+                NOW
+            )
+        );
+    }
+
+    private void assertInitializeResetEpochResponseRejected(
+        CrawlerQueueV2Repository.InitializeResetEpochCommand command,
+        String response
+    ) {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class))).thenReturn(response);
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> repository.initializeResetEpoch(command)
+        );
+
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_RESET, exception.reasonCode());
+        assertEquals(503, exception.httpStatus().value());
+    }
+
+    private CrawlerQueueV2Attempt readyAttempt(
+        String attemptId,
+        String lane,
+        CrawlerQueueV2Status status
+    ) {
+        CrawlerQueueV2Attempt source = command().attempt();
+        return new CrawlerQueueV2Attempt(
+            source.contractVersion(), source.stateStoreEpoch(), "queue-" + attemptId, attemptId,
+            null, source.stateVersion(), status, lane, source.domain(), source.coveredDomains(),
+            source.actionId(), source.retryOfAttemptId(), source.requestedAt(), source.eligibleAt(),
+            source.enteredAt(), source.startedAt(), source.completedAt(), source.lastHeartbeatAt(),
+            source.deadlineAt(), source.pid(), source.processStartedAt(), source.progressSequence(), source.phase(),
+            source.current(), source.total(), source.workerMessage(), source.reasonCode(), source.artifacts()
         );
     }
 

@@ -27,6 +27,8 @@ public interface CrawlerQueueV2Repository {
 
     List<CrawlerQueueV2Attempt> findLiveAttempts();
 
+    List<CrawlerQueueV2Attempt> findReadyAttempts(int limit);
+
     List<CrawlerQueueV2Attempt> findTerminalAttempts(int limit, Instant sinceInclusive);
 
     List<EventEnvelope> readEvents(String after, int count, Duration blockFor);
@@ -34,6 +36,14 @@ public interface CrawlerQueueV2Repository {
     void appendEvent(CrawlerQueueV2Event event);
 
     void writeReconcilerHealth(ReconcilerHealth health, CrawlerQueueV2Event event);
+
+    Optional<ReconcilerHealth> readReconcilerHealth();
+
+    InitializeResetEpochResult initializeResetEpoch(InitializeResetEpochCommand command);
+
+    void writeQuarantine(QuarantineCommand command);
+
+    List<DomainQuarantine> findQuarantines();
 
     record EngineState(
         CrawlerQueueEngineMode mode,
@@ -82,7 +92,8 @@ public interface CrawlerQueueV2Repository {
     enum ClaimCode {
         CLAIMED,
         OWNERSHIP_CONFLICT,
-        QUARANTINED
+        QUARANTINED,
+        NOT_YET_ELIGIBLE
     }
 
     record ClaimResult(
@@ -151,5 +162,44 @@ public interface CrawlerQueueV2Repository {
         long overdueAttemptCount,
         long oldestOverdueDurationMs,
         CrawlerQueueV2ReasonCode reasonCode
+    ) {}
+
+    record QuarantineCommand(
+        String expectedEpoch,
+        String domain,
+        String queueId,
+        String attemptId,
+        Long fenceToken,
+        Instant expiresAt,
+        CrawlerQueueV2ReasonCode reasonCode
+    ) {}
+
+    record DomainQuarantine(
+        String stateStoreEpoch,
+        String domain,
+        String queueId,
+        String attemptId,
+        Long fenceToken,
+        Instant expiresAt,
+        CrawlerQueueV2ReasonCode reasonCode
+    ) {}
+
+    record InitializeResetEpochCommand(
+        String resetId,
+        String activeCutoverId,
+        String observedEpoch,
+        String newEpoch,
+        Instant irreversibleAt,
+        Instant resetAt,
+        String operator,
+        CrawlerQueueV2Event event
+    ) {}
+
+    record InitializeResetEpochResult(
+        String resetId,
+        String stateStoreEpoch,
+        String streamCursor,
+        Instant firstLiveMutationAt,
+        boolean idempotent
     ) {}
 }

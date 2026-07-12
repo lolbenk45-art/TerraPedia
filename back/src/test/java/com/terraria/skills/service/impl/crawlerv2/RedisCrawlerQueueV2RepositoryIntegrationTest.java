@@ -119,6 +119,85 @@ class RedisCrawlerQueueV2RepositoryIntegrationTest {
     }
 
     @Test
+    void shouldDiscoverCurrentQuarantineAfterQueueIndexIsClearedAndKeepDirectClaimProtection() {
+        CrawlerQueueV2Repository.CreateQueueCommand command = createCommand(
+            "queue-current", "attempt-current", List.of("bosses")
+        );
+        repository.createQueue(command);
+        CrawlerQueueV2Repository.QuarantineCommand quarantine = new CrawlerQueueV2Repository.QuarantineCommand(
+            "epoch-current",
+            "bosses",
+            command.queue().queueId(),
+            "attempt-isolated",
+            17L,
+            NOW.plus(Duration.ofMinutes(2)),
+            CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED
+        );
+        repository.writeQuarantine(quarantine);
+        redis.delete(prefix + "index:queues");
+
+        List<CrawlerQueueV2Repository.DomainQuarantine> discovered = repository.findQuarantines();
+        CrawlerQueueV2Repository.ClaimResult claim = repository.claim(claimCommand(command));
+
+        assertEquals(1, discovered.size());
+        assertEquals("bosses", discovered.get(0).domain());
+        assertEquals("attempt-isolated", discovered.get(0).attemptId());
+        assertEquals(CrawlerQueueV2Repository.ClaimCode.QUARANTINED, claim.code());
+        assertEquals("attempt-isolated", claim.ownerAttemptId());
+        assertFalse(redis.hasKey(prefix + "domain:bosses:lease"));
+    }
+
+    @Test
+    void shouldResetAllFiveFixedIndexesAndReturnTheRecordedResetIdempotently() {
+        populateFixedResetIndexes();
+        CrawlerQueueV2Repository.InitializeResetEpochCommand command = resetCommand(
+            "reset-1", "epoch-current", "epoch-reset"
+        );
+
+        CrawlerQueueV2Repository.InitializeResetEpochResult reset = repository.initializeResetEpoch(command);
+        CrawlerQueueV2Repository.InitializeResetEpochResult repeated = repository.initializeResetEpoch(command);
+
+        assertFalse(reset.idempotent());
+        assertEquals("epoch-reset", reset.stateStoreEpoch());
+        assertTrue(repeated.idempotent());
+        assertEquals(reset.resetId(), repeated.resetId());
+        assertEquals(reset.streamCursor(), repeated.streamCursor());
+        assertEquals("v2", redis.opsForValue().get(prefix + "meta:engine"));
+        assertEquals("epoch-reset", redis.opsForValue().get(prefix + "meta:epoch"));
+        assertEquals("cutover-current", redis.opsForValue().get(prefix + "meta:active-cutover-id"));
+        assertFiveFixedResetIndexesAreCleared();
+    }
+
+    @Test
+    void shouldRejectObservedEpochMismatchWithoutClearingFixedIndexes() {
+        populateFixedResetIndexes();
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> repository.initializeResetEpoch(resetCommand("reset-observed-mismatch", "epoch-other", "epoch-reset"))
+        );
+
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_RESET, exception.reasonCode());
+        assertEquals("epoch-current", redis.opsForValue().get(prefix + "meta:epoch"));
+        assertFiveFixedResetIndexesRemainPresent();
+    }
+
+    @Test
+    void shouldRejectCutoverMismatchWithoutClearingFixedIndexes() {
+        populateFixedResetIndexes();
+        redis.opsForValue().set(prefix + "meta:active-cutover-id", "cutover-other");
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> repository.initializeResetEpoch(resetCommand("reset-cutover-mismatch", "epoch-current", "epoch-reset"))
+        );
+
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_RESET, exception.reasonCode());
+        assertEquals("epoch-current", redis.opsForValue().get(prefix + "meta:epoch"));
+        assertFiveFixedResetIndexesRemainPresent();
+    }
+
+    @Test
     void shouldKeepMultiDomainClaimAllOrNothingAndFenceEveryMutation() throws Exception {
         CrawlerQueueV2Repository.CreateQueueCommand command = createCommand(
             "queue-current", "attempt-current", List.of("bosses", "npcs")
@@ -466,6 +545,58 @@ class RedisCrawlerQueueV2RepositoryIntegrationTest {
                 null
             )
         );
+    }
+
+    private CrawlerQueueV2Repository.InitializeResetEpochCommand resetCommand(
+        String resetId,
+        String observedEpoch,
+        String newEpoch
+    ) {
+        return new CrawlerQueueV2Repository.InitializeResetEpochCommand(
+            resetId,
+            "cutover-current",
+            observedEpoch,
+            newEpoch,
+            null,
+            NOW,
+            "integration-test",
+            new CrawlerQueueV2Event(
+                "state-store.reset",
+                newEpoch,
+                null,
+                null,
+                null,
+                null,
+                null,
+                CrawlerQueueV2ReasonCode.STATE_STORE_RESET,
+                NOW
+            )
+        );
+    }
+
+    private void populateFixedResetIndexes() {
+        redis.opsForValue().set(prefix + "meta:active-cutover-id", "cutover-current");
+        redis.opsForSet().add(prefix + "index:attempts:live", "attempt-live");
+        redis.opsForZSet().add(prefix + "index:attempts:terminal", "attempt-terminal", NOW.toEpochMilli());
+        redis.opsForSet().add(prefix + "index:queues", "queue-current");
+        redis.opsForZSet().add(prefix + "lane:standard:ready", "attempt-standard", NOW.toEpochMilli());
+        redis.opsForZSet().add(prefix + "lane:exclusive:ready", "attempt-exclusive", NOW.toEpochMilli());
+    }
+
+    private void assertFiveFixedResetIndexesAreCleared() {
+        assertFalse(redis.hasKey(prefix + "index:attempts:live"));
+        assertFalse(redis.hasKey(prefix + "index:attempts:terminal"));
+        assertFalse(redis.hasKey(prefix + "index:queues"));
+        assertFalse(redis.hasKey(prefix + "lane:standard:ready"));
+        assertFalse(redis.hasKey(prefix + "lane:exclusive:ready"));
+    }
+
+    private void assertFiveFixedResetIndexesRemainPresent() {
+        assertTrue(redis.hasKey(prefix + "index:attempts:live"));
+        assertTrue(redis.hasKey(prefix + "index:attempts:terminal"));
+        assertTrue(redis.hasKey(prefix + "index:queues"));
+        assertTrue(redis.hasKey(prefix + "lane:standard:ready"));
+        assertTrue(redis.hasKey(prefix + "lane:exclusive:ready"));
     }
 
     private record LeaseEvidence(

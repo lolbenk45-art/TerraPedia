@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-12 19:45 CST by Codex
+Last updated: 2026-07-13 00:24 CST by Codex
 
 ## Open Work
 
@@ -11,7 +11,7 @@ Last updated: 2026-07-12 19:45 CST by Codex
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
   - parent/child: none
   - dependencies or blocked-by: local stack is running for user acceptance; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
-  - contract handoff: Tasks 1-5 are committed through `af762c2`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 6 exact worker progress identity is committed at `06c8df2`; Task 7 fenced process supervision is approved and ready for its focused commit
+  - contract handoff: Tasks 1-5 are committed through `af762c2`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 6 exact worker progress identity is committed at `06c8df2`; Task 7 fenced process supervision is committed at `7df042b`; Task 8 bounded convergence/recovery is ready for its focused commit
 
 ## Current State
 
@@ -86,13 +86,20 @@ Last updated: 2026-07-12 19:45 CST by Codex
   or contract-invalid child evidence. Fresh Task 6 validation passed 65/65
   tests, focused syntax checks, and `git diff --check`; final review found no
   remaining Critical, Important, or Moderate finding.
-- Task 7 is approved for commit. It supervises an exact suspended process
+- Task 7 is committed at `7df042b`. It supervises an exact suspended process
   group, persists write-once PID/start identity, admits only monotonic exact
   progress, performs authority-safe pause/resume/cancel, and confirms the whole
   group exits before ownership release. Fresh coordinator validation passes
   126/126 plus `mvn test-compile`, `git diff --check`, and a clean residual
   process scan; final specification and code-quality reviews report no material
   finding.
+- Task 8 is ready for its focused commit. It wires the V2 reconciler and
+  recovery service into Spring, makes every non-terminal state converge within
+  a deadline, exposes watchdog/store failures instead of reporting false
+  health, isolates unconfirmed historical processes in the current epoch, and
+  fail-closes reset responses whose reset ID, epoch, or irreversible timestamp
+  does not match the submitted command. Fresh focused validation passes
+  156/156 with final specification and code-quality approvals.
 - Plan audit closed two additional fail-closed gaps: the first real V2 mutation
   now uses a durable reservation before Redis plus exact confirmation after it,
   and missing/conflicting Redis epochs require an explicit idempotent reset that
@@ -141,9 +148,9 @@ Last updated: 2026-07-12 19:45 CST by Codex
 
 ## Next Agent Should Start Here
 
-- After the Task 7 focused commit, continue inline with Task 8 of the committed
-  V2 hard-cutover plan: bounded reconciliation and recovery without resurrecting
-  old work. Preserve Task 7 exact process-group ownership and authorization
+- After the Task 8 focused commit, continue Task 9 of the committed V2
+  hard-cutover plan: durable engine routing, pure V2 overview, exact controls,
+  and read-only legacy history. Preserve Task 8 maintenance and recovery
   boundaries.
 - On implementation start, follow the plan task by task and preserve its
   authorization gates: fixture-stack execution, live cutover, and first
@@ -182,6 +189,10 @@ Last updated: 2026-07-12 19:45 CST by Codex
 - Task 4 proves repository atomicity and Task 7 provides the process supervisor,
   but V2 is still not routed into the live application and has no reconciler
   consuming these primitives yet.
+- Task 8 includes isolated Redis/Lua reset integration coverage, but it remains
+  unexecuted because no explicitly authorized `TERRAPEDIA_TEST_REDIS_*`
+  namespace is configured; do not treat the offline unit checks as a live Redis
+  reset proof.
 - Historical documents still mention the old `project-plan/` path as archival context by design.
 - Historical devlog entries still mention removed root paths by design; those records are provenance, not live authority.
 - Current risk themes are document-level judgments until fresh runtime/backend/frontend/data gates and crawler reliability checks are run.

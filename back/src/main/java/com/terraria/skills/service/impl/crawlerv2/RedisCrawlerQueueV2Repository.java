@@ -11,6 +11,7 @@ import org.springframework.data.redis.connection.stream.ReadOffset;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.connection.stream.StreamReadOptions;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.http.HttpStatus;
 
 import java.time.Clock;
@@ -29,6 +30,7 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
     public static final String PRODUCTION_PREFIX = "terrapedia:crawler:wiki-monitor:v2:";
 
     private static final long MAX_DEDUPE_TTL_MILLIS = Duration.ofDays(30).toMillis();
+    private static final int QUARANTINE_REGISTRY_READ_LIMIT = 256;
     private static final DefaultRedisScript<String> CREATE_QUEUE_SCRIPT = createQueueScript();
     private static final DefaultRedisScript<String> CLAIM_ATTEMPT_SCRIPT = script("claim-attempt.lua");
     private static final DefaultRedisScript<String> MUTATE_ATTEMPT_SCRIPT = script("mutate-attempt.lua");
@@ -36,6 +38,8 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
     private static final DefaultRedisScript<String> CREATE_RETRY_SCRIPT = script("create-retry.lua");
     private static final DefaultRedisScript<String> APPEND_EVENT_SCRIPT = script("append-event.lua");
     private static final DefaultRedisScript<String> WRITE_HEALTH_SCRIPT = script("write-health.lua");
+    private static final DefaultRedisScript<String> WRITE_QUARANTINE_SCRIPT = script("write-quarantine.lua");
+    private static final DefaultRedisScript<String> INITIALIZE_RESET_EPOCH_SCRIPT = script("initialize-reset-epoch.lua");
 
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redisTemplate;
@@ -53,7 +57,7 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
         return script;
     }
 
-    RedisCrawlerQueueV2Repository(
+    public RedisCrawlerQueueV2Repository(
         ObjectMapper objectMapper,
         StringRedisTemplate redisTemplate,
         Clock clock,
@@ -175,7 +179,8 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
             Integer.toString(domains.size()),
             command.lane(),
             command.dedupeKey(),
-            writeJson(domains)
+            writeJson(domains),
+            Long.toString(command.enteredAt().toEpochMilli())
         };
         String rawResult = redis(
             "claim V2 attempt",
@@ -328,6 +333,55 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
     }
 
     @Override
+    public List<CrawlerQueueV2Attempt> findReadyAttempts(int limit) {
+        if (limit < 1) {
+            throw new IllegalArgumentException("ready attempt 查询 limit 必须为正数");
+        }
+        double nowScore = (double) clock.instant().toEpochMilli();
+        Set<ZSetOperations.TypedTuple<String>> standard = redis(
+            "读取 V2 standard ready attempts",
+            () -> redisTemplate.opsForZSet().rangeByScoreWithScores(
+                key("lane:standard:ready"),
+                Double.NEGATIVE_INFINITY,
+                nowScore,
+                0L,
+                limit
+            )
+        );
+        Set<ZSetOperations.TypedTuple<String>> exclusive = redis(
+            "读取 V2 exclusive ready attempts",
+            () -> redisTemplate.opsForZSet().rangeByScoreWithScores(
+                key("lane:exclusive:ready"),
+                Double.NEGATIVE_INFINITY,
+                nowScore,
+                0L,
+                limit
+            )
+        );
+        List<ReadyCandidate> candidates = new ArrayList<>();
+        addReadyAttemptIds(candidates, standard, "standard");
+        addReadyAttemptIds(candidates, exclusive, "exclusive");
+        List<String> ordered = candidates.stream()
+            .sorted((left, right) -> {
+                int score = Double.compare(left.score(), right.score());
+                return score != 0 ? score : left.attemptId().compareTo(right.attemptId());
+            })
+            .map(ReadyCandidate::attemptId)
+            .distinct()
+            .limit(limit)
+            .toList();
+        List<CrawlerQueueV2Attempt> attempts = readAttempts(ordered);
+        for (CrawlerQueueV2Attempt attempt : attempts) {
+            if ((attempt.status() != CrawlerQueueV2Status.QUEUED
+                && attempt.status() != CrawlerQueueV2Status.RETRY_WAIT)
+                || ("standard".equals(attempt.lane()) == false && "exclusive".equals(attempt.lane()) == false)) {
+                throw stateStoreReset("V2 ready index 指向不可 claim attempt：" + attempt.attemptId());
+            }
+        }
+        return attempts;
+    }
+
+    @Override
     public List<CrawlerQueueV2Attempt> findTerminalAttempts(int limit, Instant sinceInclusive) {
         if (limit < 1 || sinceInclusive == null) {
             throw new IllegalArgumentException("terminal attempt 查询参数无效");
@@ -460,6 +514,283 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
         JsonNode result = parseScriptResult("write-health", requireScriptResult("write-health", rawResult));
         if (!"WRITTEN".equals(text(result, "code"))) {
             throwForMutationCode("write-health", text(result, "code"));
+        }
+    }
+
+    @Override
+    public Optional<ReconcilerHealth> readReconcilerHealth() {
+        String raw = redis(
+            "读取 V2 reconciler health",
+            () -> redisTemplate.opsForValue().get(key("health:reconciler"))
+        );
+        if (raw == null || raw.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            ReconcilerHealth health = objectMapper.readValue(raw, ReconcilerHealth.class);
+            if (health.lastReconciledAt() == null
+                || health.scannedCount() < 0L
+                || health.convergedCount() < 0L
+                || health.failureCount() < 0L
+                || health.overdueAttemptCount() < 0L
+                || health.oldestOverdueDurationMs() < 0L) {
+                throw stateStoreReset("V2 reconciler health 内容无效");
+            }
+            return Optional.of(health);
+        } catch (CrawlerQueueV2Exception exception) {
+            throw exception;
+        } catch (JsonProcessingException exception) {
+            throw stateStoreReset("V2 reconciler health 无法解析", exception);
+        }
+    }
+
+    @Override
+    public InitializeResetEpochResult initializeResetEpoch(InitializeResetEpochCommand command) {
+        Objects.requireNonNull(command, "command");
+        validateInitializeResetEpoch(command);
+        List<String> keys = List.of(
+            key("meta:engine"),
+            key("meta:epoch"),
+            key("meta:active-cutover-id"),
+            key("meta:first-live-mutation-at"),
+            key("meta:fence-sequence"),
+            key("index:attempts:live"),
+            key("index:attempts:terminal"),
+            key("index:queues"),
+            key("lane:standard:ready"),
+            key("lane:exclusive:ready"),
+            key("events"),
+            key("state-store-reset:" + command.resetId())
+        );
+        Object[] arguments = {
+            command.activeCutoverId(),
+            command.resetId(),
+            command.observedEpoch() == null ? "" : command.observedEpoch(),
+            command.newEpoch(),
+            command.irreversibleAt() == null ? "" : command.irreversibleAt().toString(),
+            command.resetAt().toString(),
+            command.operator(),
+            writeJson(command.event())
+        };
+        String rawResult = redis(
+            "初始化 V2 reset epoch",
+            () -> redisTemplate.execute(INITIALIZE_RESET_EPOCH_SCRIPT, keys, arguments)
+        );
+        return parseInitializeResetEpoch(command, requireScriptResult("initialize-reset-epoch", rawResult));
+    }
+
+    @Override
+    public void writeQuarantine(QuarantineCommand command) {
+        Objects.requireNonNull(command, "command");
+        validateQuarantineCommand(command);
+        Instant now = clock.instant();
+        long ttlMillis = durationMillis(Duration.between(now, command.expiresAt()), "quarantine TTL");
+        long expiresAtMillis;
+        try {
+            expiresAtMillis = command.expiresAt().toEpochMilli();
+        } catch (ArithmeticException exception) {
+            throw invalidMutation("V2 quarantine 到期时间超出毫秒范围");
+        }
+        DomainQuarantine quarantine = new DomainQuarantine(
+            command.expectedEpoch(),
+            command.domain(),
+            command.queueId(),
+            command.attemptId(),
+            command.fenceToken(),
+            command.expiresAt(),
+            command.reasonCode()
+        );
+        List<String> keys = List.of(
+            key("meta:engine"),
+            key("meta:epoch"),
+            key("domain:" + command.domain() + ":quarantine"),
+            key("index:quarantines")
+        );
+        Object[] arguments = {
+            command.expectedEpoch(),
+            command.domain(),
+            writeJson(quarantine),
+            Long.toString(expiresAtMillis),
+            Long.toString(ttlMillis)
+        };
+        String rawResult = redis(
+            "写入 V2 domain quarantine",
+            () -> redisTemplate.execute(WRITE_QUARANTINE_SCRIPT, keys, arguments)
+        );
+        JsonNode result = parseScriptResult("write-quarantine", requireScriptResult("write-quarantine", rawResult));
+        if (!"WRITTEN".equals(text(result, "code"))) {
+            throwForMutationCode("write-quarantine", text(result, "code"));
+        }
+    }
+
+    @Override
+    public List<DomainQuarantine> findQuarantines() {
+        EngineState engine = readEngineState();
+        if (engine.mode() != CrawlerQueueEngineMode.V2
+            || engine.stateStoreEpoch() == null
+            || engine.stateStoreEpoch().isBlank()) {
+            return List.of();
+        }
+        Instant now = clock.instant();
+        double nowScore = (double) now.toEpochMilli();
+        String registryKey = key("index:quarantines");
+        List<String> orderedDomains = orderedQuarantineDomains(redis(
+            "读取当前 V2 quarantine registry members",
+            () -> redisTemplate.opsForZSet().rangeByScore(
+                registryKey,
+                Math.nextUp(nowScore),
+                Double.POSITIVE_INFINITY,
+                0L,
+                QUARANTINE_REGISTRY_READ_LIMIT
+            )
+        ));
+        if (orderedDomains.isEmpty()) {
+            return List.of();
+        }
+        List<String> rawValues = redis(
+            "读取 V2 domain quarantines",
+            () -> redisTemplate.opsForValue().multiGet(
+                orderedDomains.stream().map(domain -> key("domain:" + domain + ":quarantine")).toList()
+            )
+        );
+        if (rawValues == null || rawValues.size() != orderedDomains.size()) {
+            throw stateStoreReset("V2 quarantine 读取结果不完整");
+        }
+        List<DomainQuarantine> quarantines = new ArrayList<>();
+        for (int index = 0; index < rawValues.size(); index++) {
+            String raw = rawValues.get(index);
+            if (raw == null || raw.isBlank()) {
+                continue;
+            }
+            try {
+                DomainQuarantine quarantine = objectMapper.readValue(raw, DomainQuarantine.class);
+                if (!Objects.equals(orderedDomains.get(index), quarantine.domain())) {
+                    throw stateStoreReset("V2 domain quarantine 身份不一致：" + orderedDomains.get(index));
+                }
+                if (Objects.equals(engine.stateStoreEpoch(), quarantine.stateStoreEpoch())
+                    && quarantine.expiresAt() != null
+                    && quarantine.expiresAt().isAfter(now)) {
+                    quarantines.add(quarantine);
+                }
+            } catch (CrawlerQueueV2Exception exception) {
+                throw exception;
+            } catch (JsonProcessingException exception) {
+                throw stateStoreReset("V2 domain quarantine 无法解析：" + orderedDomains.get(index), exception);
+            }
+        }
+        return quarantines.stream().sorted((left, right) -> left.domain().compareTo(right.domain())).toList();
+    }
+
+    private List<String> orderedQuarantineDomains(Set<String> domains) {
+        if (domains == null || domains.isEmpty()) {
+            return List.of();
+        }
+        if (domains.stream().anyMatch(this::isBlank)) {
+            throw stateStoreReset("V2 quarantine registry 包含无效 domain");
+        }
+        return domains.stream().sorted().toList();
+    }
+
+    private void addReadyAttemptIds(
+        List<ReadyCandidate> candidates,
+        Set<ZSetOperations.TypedTuple<String>> tuples,
+        String lane
+    ) {
+        if (tuples == null) {
+            return;
+        }
+        for (ZSetOperations.TypedTuple<String> tuple : tuples) {
+            if (tuple == null
+                || isBlank(tuple.getValue())
+                || tuple.getScore() == null
+                || !Double.isFinite(tuple.getScore())) {
+                throw stateStoreReset("V2 " + lane + " ready index 包含无效成员");
+            }
+            candidates.add(new ReadyCandidate(tuple.getValue(), tuple.getScore()));
+        }
+    }
+
+    private void validateInitializeResetEpoch(InitializeResetEpochCommand command) {
+        CrawlerQueueV2Event event = Objects.requireNonNull(command.event(), "event");
+        if (isBlank(command.resetId())
+            || isBlank(command.activeCutoverId())
+            || isBlank(command.newEpoch())
+            || command.resetAt() == null
+            || isBlank(command.operator())
+            || isBlank(event.type())
+            || !"state-store.reset".equals(event.type())
+            || !Objects.equals(command.newEpoch(), event.stateStoreEpoch())
+            || event.queueId() != null
+            || event.attemptId() != null
+            || event.fenceToken() != null
+            || event.stateVersion() != null
+            || event.status() != null
+            || event.reasonCode() != CrawlerQueueV2ReasonCode.STATE_STORE_RESET
+            || event.generatedAt() == null) {
+            throw invalidMutation("V2 initialize reset epoch 参数无效");
+        }
+        if (command.observedEpoch() != null && command.observedEpoch().isBlank()) {
+            throw invalidMutation("V2 observed epoch 不能是空白文本");
+        }
+    }
+
+    private InitializeResetEpochResult parseInitializeResetEpoch(
+        InitializeResetEpochCommand command,
+        String rawResult
+    ) {
+        JsonNode result = parseScriptResult("initialize-reset-epoch", rawResult);
+        String code = text(result, "code");
+        if (!"RESET".equals(code) && !"ALREADY_RESET".equals(code)) {
+            if ("OBSERVED_EPOCH_MISMATCH".equals(code)
+                || "CUTOVER_ID_MISMATCH".equals(code)
+                || "CUTOVER_MISMATCH".equals(code)
+                || "FIRST_MUTATION_MISMATCH".equals(code)
+                || "ENGINE_IS_V1".equals(code)
+                || "ENGINE_NOT_V2".equals(code)) {
+                throw conflict(CrawlerQueueV2ReasonCode.STATE_STORE_RESET, "initialize-reset-epoch", code);
+            }
+            throw stateStoreReset("V2 initialize-reset-epoch 返回未知结果：" + code);
+        }
+        try {
+            String firstLiveMutationAt = text(result, "firstLiveMutationAt");
+            String resetId = requiredText(result, "resetId");
+            String stateStoreEpoch = requiredText(result, "stateStoreEpoch");
+            Instant parsedFirstLiveMutationAt = firstLiveMutationAt == null || firstLiveMutationAt.isBlank()
+                ? null
+                : Instant.parse(firstLiveMutationAt);
+            if (!Objects.equals(command.resetId(), resetId)) {
+                throw stateStoreReset("V2 initialize-reset-epoch 返回的 resetId 与命令不一致");
+            }
+            if (!Objects.equals(command.newEpoch(), stateStoreEpoch)) {
+                throw stateStoreReset("V2 initialize-reset-epoch 返回的 stateStoreEpoch 与命令不一致");
+            }
+            if (!Objects.equals(command.irreversibleAt(), parsedFirstLiveMutationAt)) {
+                throw stateStoreReset("V2 initialize-reset-epoch 返回的 firstLiveMutationAt 与命令不一致");
+            }
+            return new InitializeResetEpochResult(
+                resetId,
+                stateStoreEpoch,
+                requiredText(result, "streamCursor"),
+                parsedFirstLiveMutationAt,
+                "ALREADY_RESET".equals(code)
+            );
+        } catch (CrawlerQueueV2Exception exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw stateStoreReset("V2 initialize-reset-epoch 返回缺少 reset 证据", exception);
+        }
+    }
+
+    private void validateQuarantineCommand(QuarantineCommand command) {
+        if (isBlank(command.expectedEpoch())
+            || isBlank(command.domain())
+            || isBlank(command.queueId())
+            || isBlank(command.attemptId())
+            || command.fenceToken() == null
+            || command.fenceToken() < 1L
+            || command.expiresAt() == null
+            || command.reasonCode() == null) {
+            throw invalidMutation("V2 quarantine 参数无效");
         }
     }
 
@@ -642,6 +973,9 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
                     ? CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED
                     : CrawlerQueueV2ReasonCode.OWNERSHIP_CONFLICT
             );
+        }
+        if ("NOT_YET_ELIGIBLE".equals(code)) {
+            return new ClaimResult(ClaimCode.NOT_YET_ELIGIBLE, null, null, 0L, null, null);
         }
         throwForMutationCode("claim-attempt", code);
         throw stateStoreReset("V2 claim-attempt 未返回结果");
@@ -972,4 +1306,6 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
             null
         );
     }
+
+    private record ReadyCandidate(String attemptId, double score) {}
 }

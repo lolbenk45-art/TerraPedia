@@ -21,8 +21,10 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -37,6 +39,7 @@ import java.util.stream.Stream;
 public class CrawlerAttemptArtifactStore {
 
     private static final Pattern ATTEMPT_ID = Pattern.compile("[A-Za-z0-9._-]+");
+    private static final Pattern ATTEMPT_DATE = Pattern.compile("\\d{4}-\\d{2}-\\d{2}");
     private static final String MANIFEST_FILE = "attempt-manifest.json";
     private static final String PROGRESS_FILE = "progress.json";
     private static final String LOG_FILE = "run.log";
@@ -47,6 +50,7 @@ public class CrawlerAttemptArtifactStore {
     private final Path repoRoot;
     private final Clock clock;
     private final CrawlerQueueV2Properties properties;
+    private volatile List<String> manifestDiagnostics = List.of();
 
     public CrawlerAttemptArtifactStore(
         ObjectMapper objectMapper,
@@ -146,6 +150,77 @@ public class CrawlerAttemptArtifactStore {
         } catch (IOException exception) {
             throw artifactFailure("读取 attempt manifest", path, exception);
         }
+    }
+
+    /**
+     * Lists only canonical V2 attempt manifests. Broken files are diagnostics,
+     * never substitute live state, and never make this listing fail open.
+     */
+    public synchronized List<CrawlerAttemptManifest> listManifests() {
+        Path root = v2Root();
+        if (!Files.isDirectory(root, LinkOption.NOFOLLOW_LINKS)) {
+            manifestDiagnostics = List.of();
+            return List.of();
+        }
+        List<String> diagnostics = new ArrayList<>();
+        List<Path> paths;
+        try {
+            requireNoSymbolicLinks(repoRoot, root);
+            try (Stream<Path> stream = Files.find(
+                root,
+                3,
+                (path, attributes) -> attributes.isRegularFile()
+                    && MANIFEST_FILE.equals(path.getFileName().toString())
+            )) {
+                paths = stream.sorted().toList();
+            }
+        } catch (RuntimeException | IOException exception) {
+            manifestDiagnostics = List.of("无法枚举 V2 attempt manifests：" + exception.getMessage());
+            return List.of();
+        }
+
+        List<CrawlerAttemptManifest> manifests = new ArrayList<>();
+        for (Path path : paths) {
+            try {
+                Path normalized = path.toAbsolutePath().normalize();
+                Path directory = normalized.getParent();
+                if (directory == null
+                    || directory.getParent() == null
+                    || directory.getParent().getParent() == null
+                    || !directory.getParent().getParent().equals(root)) {
+                    diagnostics.add("忽略非 canonical manifest 路径：" + normalized);
+                    continue;
+                }
+                if (!isCanonicalAttemptDateDirectory(directory.getParent())) {
+                    diagnostics.add("忽略非 canonical manifest 日期目录：" + normalized);
+                    continue;
+                }
+                requireNoSymbolicLinks(repoRoot, normalized);
+                try (FileChannel channel = FileChannel.open(
+                    normalized,
+                    StandardOpenOption.READ,
+                    LinkOption.NOFOLLOW_LINKS
+                )) {
+                    CrawlerAttemptManifest manifest = objectMapper.readValue(
+                        Channels.newInputStream(channel),
+                        CrawlerAttemptManifest.class
+                    );
+                    if (!directory.getFileName().toString().equals(manifest.attemptId())) {
+                        diagnostics.add("忽略 identity 不匹配 manifest：" + normalized);
+                        continue;
+                    }
+                    manifests.add(manifest);
+                }
+            } catch (RuntimeException | IOException exception) {
+                diagnostics.add("无法读取 V2 attempt manifest：" + path + "：" + exception.getMessage());
+            }
+        }
+        manifestDiagnostics = List.copyOf(diagnostics);
+        return manifests.stream().sorted(Comparator.comparing(CrawlerAttemptManifest::attemptId)).toList();
+    }
+
+    public List<String> manifestDiagnostics() {
+        return manifestDiagnostics;
     }
 
     public synchronized void writeManifest(CrawlerAttemptManifest manifest) {
@@ -672,8 +747,11 @@ public class CrawlerAttemptArtifactStore {
         if (updatedFence != null && updatedFence <= 0) {
             throw new IllegalArgumentException("attempt manifest fenceToken 必须为正数");
         }
-        if (existingFence != null && !Objects.equals(existingFence, updatedFence)) {
+        if (existingFence != null && existingFence > 0L && !Objects.equals(existingFence, updatedFence)) {
             throw new IllegalArgumentException("attempt manifest fenceToken 不允许变化");
+        }
+        if (existingFence != null && existingFence <= 0L && updatedFence != null) {
+            throw new IllegalArgumentException("无效的 attempt manifest fenceToken 只能归一化为空");
         }
         if (existing.pid() != null
             && (!Objects.equals(existing.pid(), updated.pid())
@@ -801,6 +879,20 @@ public class CrawlerAttemptArtifactStore {
 
     private Path v2Root() {
         return repoRoot.resolve("reports/crawler-monitor/v2").toAbsolutePath().normalize();
+    }
+
+    private boolean isCanonicalAttemptDateDirectory(Path dateDirectory) {
+        String date = dateDirectory.getFileName().toString();
+        if (!ATTEMPT_DATE.matcher(date).matches()) {
+            return false;
+        }
+        try {
+            return date.equals(DateTimeFormatter.ISO_LOCAL_DATE.format(
+                LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE)
+            ));
+        } catch (DateTimeParseException exception) {
+            return false;
+        }
     }
 
     private String storedPath(Path path) {
