@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-12 09:19 CST by Codex
+Last updated: 2026-07-12 09:55 CST by Codex
 
 ## Open Work
 
@@ -11,7 +11,7 @@ Last updated: 2026-07-12 09:19 CST by Codex
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
   - parent/child: none
   - dependencies or blocked-by: local stack is running for user acceptance; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
-  - contract handoff: Tasks 1-2 are committed at `723f2d0` and `755713f`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 3 V2 namespace and atomic enqueue/dedupe is ready for its focused commit, then continue with Task 4 claim/fencing/lease/CAS/retry/Stream work
+  - contract handoff: Tasks 1-3 are committed through `99b5cdd`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 4 atomic claim/fencing/lease/CAS/retry/Stream storage is ready for its focused commit, then continue with Task 5 attempt artifacts and retention
 
 ## Current State
 
@@ -68,6 +68,12 @@ Last updated: 2026-07-12 09:19 CST by Codex
 - Task 3 is implemented with a Redis-only, fail-closed repository boundary,
   fixed V2 namespace, and one atomic enqueue/dedupe Lua mutation. The final
   compatibility selection passed 18/18 tests with no failures or skips.
+- Task 4 is implemented with atomic multi-domain claim, monotonic fencing,
+  all-or-nothing lease renewal, state-version/progress CAS, terminal ownership
+  release, retry creation, reconciler health, and ordered Stream events.
+- Fresh Task 4 validation passed 30/30 tests, including three isolated real
+  Redis cases under a unique prefix; no shared Redis, crawler, or database was
+  touched.
 - Plan audit closed two additional fail-closed gaps: the first real V2 mutation
   now uses a durable reservation before Redis plus exact confirmation after it,
   and missing/conflicting Redis epochs require an explicit idempotent reset that
@@ -116,7 +122,7 @@ Last updated: 2026-07-12 09:19 CST by Codex
 
 ## Next Agent Should Start Here
 
-- Continue inline with Task 4 of the committed V2 hard-cutover plan using
+- Continue inline with Task 5 of the committed V2 hard-cutover plan using
   test-first implementation and the plan's task-level validation checkpoints.
 - On implementation start, follow the plan task by task and preserve its
   authorization gates: fixture-stack execution, live cutover, and first
@@ -148,11 +154,12 @@ Last updated: 2026-07-12 09:19 CST by Codex
 - The approved default deadlines pass fake-clock state-machine validation but
   still require repository/reconciler integration and isolated runtime evidence
   before they can be treated as proven operational behavior.
-- The reservation, durable router lock, explicit epoch reset, old-epoch
-  isolation, and maintenance mutation gate are plan contracts only until their
-  focused and isolated-prefix tests pass during implementation.
-- Task 3 uses mocked Redis verification. Its zero-partial-write and old-epoch
-  behavior still require Task 4's isolated-prefix real-Redis integration test.
+- The reservation, durable router lock, explicit epoch reset, and maintenance
+  mutation gate remain plan contracts until their focused and isolated-prefix
+  tests pass during later implementation tasks.
+- Task 4 proves repository atomicity in an isolated Redis instance, but V2 is
+  still not routed into the live application and has no process supervisor or
+  reconciler consuming these primitives yet.
 - Historical documents still mention the old `project-plan/` path as archival context by design.
 - Historical devlog entries still mention removed root paths by design; those records are provenance, not live authority.
 - Current risk themes are document-level judgments until fresh runtime/backend/frontend/data gates and crawler reliability checks are run.

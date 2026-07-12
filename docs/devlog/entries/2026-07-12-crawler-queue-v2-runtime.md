@@ -120,36 +120,58 @@
   closed. No Critical, Important, or Moderate finding remains in Task 3 scope.
   The real-Redis zero-partial-write and old-epoch proof remains explicitly
   assigned to Task 4 rather than being treated as Task 3 evidence.
+- Task 4 RED -> GREEN evidence: the first extended test compile failed because
+  claim/mutation contracts did not exist; targeted REDs then exposed Redis
+  `BLOCK 0` infinite waiting, missing transition enforcement, terminal writes
+  without ownership release, incomplete Lua preflight, and an empty-fence
+  bypass after lease expiry.
+- Task 4 implementation now carries exact queue/lane/dedupe/domain identity in
+  typed commands; performs atomic multi-domain claim, monotonic fence creation,
+  all-or-nothing renewals, state/progress CAS, transition validation, terminal
+  release, retry, health, and ordered Stream event writes. See git for
+  code-level diff details.
+- Task 4 final validation passed 30/30: repository unit 21, isolated real-Redis
+  integration 3, state machine 4, and action registry compatibility 2. The
+  Redis tests used a temporary loopback instance with persistence disabled, a
+  UUID V2 test prefix, exact-prefix cleanup, and no `FLUSHDB`/`FLUSHALL`, shared
+  Redis, crawler, database, or project-stack access.
+- Task 4 self-review verdict: ready to commit. The review closed stale/missing
+  fence writes, illegal transitions, partial writes on wrong Redis key types,
+  old-epoch dedupe/lease/quarantine blocking, terminal ownership leaks,
+  non-monotonic progress, non-atomic lease renewal, retry identity drift, and
+  non-blocking event reads. No unresolved Critical or Important finding remains
+  in Task 4 scope.
 
 ## Result
 
 - Completed: branch handoff contract, Tasks 1-2 prerequisite commits, the
   focused idle/queue visibility compatibility checkpoint, and Task 3's fixed
-  V2 Redis namespace plus fail-closed atomic enqueue/dedupe boundary. See git
-  for code-level diff details.
-- Not completed: Tasks 4-15 and the end-to-end stuck-queue acceptance contract.
+  V2 Redis namespace plus fail-closed atomic enqueue/dedupe boundary. Task 4's
+  fenced ownership and event-storage primitives are also complete. See git for
+  code-level diff details.
+- Not completed: Tasks 5-15 and the end-to-end stuck-queue acceptance contract.
 
 ## Residual Risks
 
 - The current application still uses the V1 live queue path; this handoff does
   not claim the recurring queue/status problem is fixed.
-- Claim fencing, lease renewal, progress CAS, retry, reconciler convergence,
-  restart isolation, SSE, attempt-bound logs, hard cutover, and combined
-  acceptance remain unimplemented.
-- Task 3 has mocked Redis coverage only. The isolated real-Redis test for
-  zero-partial-write behavior and old-epoch dedupe isolation remains in Task 4.
+- Attempt artifacts, exact process ownership, reconciler convergence, restart
+  isolation, SSE, attempt-bound logs, hard cutover, and combined acceptance
+  remain unimplemented.
+- Task 4 repository primitives are not yet wired into the V1 live path; this
+  checkpoint does not claim the recurring production queue stall is fixed.
 - The local stack is running for user acceptance. This checkpoint does not
   validate V2 runtime deadlines, reconciler convergence, restart fencing, or
   legacy/current queue isolation.
 
 ## Follow-up
 
-- Owner: Codex. Continue Task 4 test-first with atomic claim, fencing, lease
-  renewal, progress CAS, retry, Stream events, and isolated-prefix Redis
-  integration; do not wire V2 into the V1 live path.
+- Owner: Codex. Continue Task 5 test-first with attempt-scoped artifacts, log
+  availability, and unified retention; do not wire V2 into the V1 live path.
 
 ## Commits
 
 - `591101e` `docs(crawler): define idle queue visibility contract`
 - `2ecc179` `fix(crawler-monitor): show idle and queue state clearly`
-- Task 3 focused commit SHA pending in final response.
+- `99b5cdd` `feat(crawler): add isolated V2 queue namespace`
+- Task 4 focused commit SHA pending in final response.

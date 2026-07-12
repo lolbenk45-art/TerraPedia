@@ -1346,7 +1346,15 @@ git commit -m "feat(crawler): add isolated V2 queue namespace"
 - Create: `back/src/main/resources/redis/crawler-queue-v2/create-retry.lua`
 - Create: `back/src/main/resources/redis/crawler-queue-v2/write-health.lua`
 
-- [ ] **Step 1: Extend the failing tests for all-or-nothing ownership and stale-writer rejection**
+Implementation correction locked during RED -> GREEN review: `ClaimCommand`
+and `MutationCommand` carry `queueId`, `lane`, `dedupeKey`, and the exact
+covered-domain identity needed to address every Redis key without an
+out-of-script mixed snapshot. Claim events receive the generated fence token
+inside Lua; mutation Lua mirrors the Task 2 transition matrix, requires exact
+stored fence identity even after lease expiry, and requires every terminal
+write to release ownership atomically.
+
+- [x] **Step 1: Extend the failing tests for all-or-nothing ownership and stale-writer rejection**
 
 Add these tests to `RedisCrawlerQueueV2RepositoryTest`:
 
@@ -1359,7 +1367,8 @@ void shouldPassAllCoveredDomainLeasesToOneAtomicClaim() {
     RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
 
     CrawlerQueueV2Repository.ClaimResult result = repository.claim(new CrawlerQueueV2Repository.ClaimCommand(
-        "epoch-1", "attempt-1", 1L, Instant.parse("2026-07-11T13:00:10Z"),
+        "epoch-1", "queue-1", "attempt-1", "standard",
+        "standard:domain-source-bosses:fresh", 1L, Instant.parse("2026-07-11T13:00:10Z"),
         Instant.parse("2026-07-11T13:02:10Z"), Duration.ofSeconds(90),
         List.of("bosses", "npcs"), event("attempt.transitioned", 2L)
     ));
@@ -1415,7 +1424,7 @@ private CrawlerQueueV2Event event(String type, long stateVersion) {
         "epoch-1",
         "queue-1",
         "attempt-1",
-        142L,
+        null,
         stateVersion,
         CrawlerQueueV2Status.STARTING,
         null,
@@ -1430,7 +1439,11 @@ private CrawlerQueueV2Repository.MutationCommand mutation(
 ) {
     return new CrawlerQueueV2Repository.MutationCommand(
         "epoch-1",
+        "queue-1",
         "attempt-1",
+        "standard",
+        "standard:domain-source-bosses:fresh",
+        List.of("bosses"),
         fenceToken,
         stateVersion,
         CrawlerQueueV2Status.RUNNING,
@@ -1454,7 +1467,7 @@ private CrawlerQueueV2Repository.MutationCommand mutation(
 
 Add a resource-contract test that reads every Lua file and asserts it contains `stateStoreEpoch`, `attemptId`, `fenceToken`, `stateVersion`, and `XADD` where applicable. It must also assert no script contains `dispatch-queue`, `wiki-monitor-dispatch`, or `restoreRedisFromMirrorIfEmpty`.
 
-- [ ] **Step 2: Run the extended test and verify RED**
+- [x] **Step 2: Run the extended test and verify RED**
 
 Run:
 
@@ -1465,7 +1478,7 @@ mvn -Dtest=RedisCrawlerQueueV2RepositoryTest test
 
 Expected: compilation fails because claim/mutation commands and methods are not defined.
 
-- [ ] **Step 3: Extend the repository interface with typed atomic commands**
+- [x] **Step 3: Extend the repository interface with typed atomic commands**
 
 Add these contracts to `CrawlerQueueV2Repository`:
 
@@ -1488,7 +1501,10 @@ void writeReconcilerHealth(ReconcilerHealth health, CrawlerQueueV2Event event);
 
 record ClaimCommand(
     String expectedEpoch,
+    String queueId,
     String attemptId,
+    String lane,
+    String dedupeKey,
     long expectedStateVersion,
     Instant enteredAt,
     Instant deadlineAt,
@@ -1514,7 +1530,11 @@ record ClaimResult(
 
 record MutationCommand(
     String expectedEpoch,
+    String queueId,
     String attemptId,
+    String lane,
+    String dedupeKey,
+    List<String> coveredDomains,
     Long expectedFenceToken,
     long expectedStateVersion,
     CrawlerQueueV2Status targetStatus,
@@ -1568,7 +1588,7 @@ record ReconcilerHealth(
 ) {}
 ```
 
-- [ ] **Step 4: Implement `claim-attempt.lua` with all-or-nothing leases**
+- [x] **Step 4: Implement `claim-attempt.lua` with all-or-nothing leases**
 
 The script returns `CLAIMED`, `OWNERSHIP_CONFLICT`, or `QUARANTINED`; only `CLAIMED` carries a new fence token. It must validate engine, epoch, `attemptId`, expected version, and status before checking every lease. It must not mutate any lease until every domain is free. Use this algorithm in the script:
 
@@ -1656,7 +1676,7 @@ return cjson.encode({
 
 The Java key order is: `meta:engine`, `meta:epoch`, `events`, `meta:fence-sequence`, `attempt:{id}`, `lane:{lane}:ready`, `dedupe:{key}`, then one `domain:{domain}:lease` key per sorted covered domain, then one matching `domain:{domain}:quarantine` key per domain. Pass the domain count as argument 8. Lease and quarantine payloads from another epoch are stale evidence and must not block the current epoch; malformed current keys fail closed with `STATE_STORE_RESET`.
 
-- [ ] **Step 5: Implement mutation, renewal, retry, and health scripts**
+- [x] **Step 5: Implement mutation, renewal, retry, and health scripts**
 
 `mutate-attempt.lua` must enforce all four identities before changing state:
 
@@ -1682,7 +1702,7 @@ After validation it must update only the supplied fields, increment `stateVersio
 
 `write-health.lua` must set `health:reconciler` and emit `queue.health-changed` in one script. Health writes do not set `meta:first-live-mutation-at` because they do not create or control crawler work.
 
-- [ ] **Step 6: Add a safe optional real-Redis integration test**
+- [x] **Step 6: Add a safe optional real-Redis integration test**
 
 `RedisCrawlerQueueV2RepositoryIntegrationTest` must:
 
@@ -1697,7 +1717,7 @@ After validation it must update only the supplied fields, increment `stateVersio
 
 The test must never call `FLUSHDB`, `FLUSHALL`, or delete the production prefix.
 
-- [ ] **Step 7: Run unit tests, then the isolated Redis test when configured**
+- [x] **Step 7: Run unit tests, then the isolated Redis test when configured**
 
 Run:
 
@@ -1709,7 +1729,7 @@ mvn -Dtest=RedisCrawlerQueueV2RepositoryIntegrationTest test
 
 Expected without Redis environment variables: unit tests pass and the integration test is skipped by assumption. Expected with the isolated Redis variables: both commands pass, the test-created prefix is removed, and no V1 key is read or written.
 
-- [ ] **Step 8: Commit atomic ownership and event storage**
+- [x] **Step 8: Commit atomic ownership and event storage**
 
 ```bash
 git add back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Repository.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2Repository.java back/src/main/resources/redis/crawler-queue-v2/claim-attempt.lua back/src/main/resources/redis/crawler-queue-v2/mutate-attempt.lua back/src/main/resources/redis/crawler-queue-v2/renew-leases.lua back/src/main/resources/redis/crawler-queue-v2/create-retry.lua back/src/main/resources/redis/crawler-queue-v2/write-health.lua back/src/test/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2RepositoryTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2RepositoryIntegrationTest.java

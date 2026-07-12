@@ -6,15 +6,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.connection.stream.ReadOffset;
+import org.springframework.data.redis.connection.stream.StreamOffset;
+import org.springframework.data.redis.connection.stream.StreamReadOptions;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.http.HttpStatus;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
 
 public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
@@ -23,6 +30,11 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
 
     private static final long MAX_DEDUPE_TTL_MILLIS = Duration.ofDays(30).toMillis();
     private static final DefaultRedisScript<String> CREATE_QUEUE_SCRIPT = createQueueScript();
+    private static final DefaultRedisScript<String> CLAIM_ATTEMPT_SCRIPT = script("claim-attempt.lua");
+    private static final DefaultRedisScript<String> MUTATE_ATTEMPT_SCRIPT = script("mutate-attempt.lua");
+    private static final DefaultRedisScript<String> RENEW_LEASES_SCRIPT = script("renew-leases.lua");
+    private static final DefaultRedisScript<String> CREATE_RETRY_SCRIPT = script("create-retry.lua");
+    private static final DefaultRedisScript<String> WRITE_HEALTH_SCRIPT = script("write-health.lua");
 
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redisTemplate;
@@ -30,8 +42,12 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
     private final String prefix;
 
     private static DefaultRedisScript<String> createQueueScript() {
+        return script("create-queue.lua");
+    }
+
+    private static DefaultRedisScript<String> script(String fileName) {
         DefaultRedisScript<String> script = new DefaultRedisScript<>();
-        script.setLocation(new ClassPathResource("redis/crawler-queue-v2/create-queue.lua"));
+        script.setLocation(new ClassPathResource("redis/crawler-queue-v2/" + fileName));
         script.setResultType(String.class);
         return script;
     }
@@ -130,6 +146,168 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
     }
 
     @Override
+    public ClaimResult claim(ClaimCommand command) {
+        Objects.requireNonNull(command, "command");
+        Objects.requireNonNull(command.event(), "event");
+        List<String> domains = validateClaimCommand(command);
+        long leaseTtlMillis = durationMillis(command.leaseTtl(), "claim lease TTL");
+        List<String> keys = new ArrayList<>(List.of(
+            key("meta:engine"),
+            key("meta:epoch"),
+            key("events"),
+            key("meta:fence-sequence"),
+            key("attempt:" + command.attemptId()),
+            key("lane:" + command.lane() + ":ready"),
+            key("dedupe:" + command.dedupeKey())
+        ));
+        domains.forEach(domain -> keys.add(key("domain:" + domain + ":lease")));
+        domains.forEach(domain -> keys.add(key("domain:" + domain + ":quarantine")));
+        Object[] arguments = {
+            command.expectedEpoch(),
+            command.queueId(),
+            command.attemptId(),
+            Long.toString(command.expectedStateVersion()),
+            command.enteredAt().toString(),
+            command.deadlineAt().toString(),
+            Long.toString(leaseTtlMillis),
+            writeJson(command.event()),
+            Integer.toString(domains.size()),
+            command.lane(),
+            command.dedupeKey(),
+            writeJson(domains)
+        };
+        String rawResult = redis(
+            "claim V2 attempt",
+            () -> redisTemplate.execute(CLAIM_ATTEMPT_SCRIPT, keys, arguments)
+        );
+        return parseClaimResult(requireScriptResult("claim-attempt", rawResult));
+    }
+
+    @Override
+    public MutationResult mutate(MutationCommand command) {
+        Objects.requireNonNull(command, "command");
+        List<String> domains = validateMutationCommand(command);
+        long retainedTtlMillis = command.retainedOwnershipTtl() == null
+            ? 0L
+            : durationMillis(command.retainedOwnershipTtl(), "retained ownership TTL");
+        List<String> keys = new ArrayList<>(List.of(
+            key("meta:engine"),
+            key("meta:epoch"),
+            key("attempt:" + command.attemptId()),
+            key("events"),
+            key("index:attempts:live"),
+            key("index:attempts:terminal"),
+            key("lane:" + command.lane() + ":ready"),
+            key("dedupe:" + command.dedupeKey())
+        ));
+        domains.forEach(domain -> keys.add(key("domain:" + domain + ":lease")));
+        Object[] arguments = {
+            command.expectedEpoch(),
+            command.queueId(),
+            command.attemptId(),
+            command.lane(),
+            command.dedupeKey(),
+            nullable(command.expectedFenceToken()),
+            Long.toString(command.expectedStateVersion()),
+            command.targetStatus().value(),
+            command.reasonCode() == null ? "" : command.reasonCode().name(),
+            command.enteredAt().toString(),
+            nullable(command.deadlineAt()),
+            nullable(command.lastHeartbeatAt()),
+            nullable(command.progressSequence()),
+            nullable(command.phase()),
+            nullable(command.current()),
+            nullable(command.total()),
+            nullable(command.workerMessage()),
+            nullable(command.pid()),
+            nullable(command.processStartedAt()),
+            command.releaseOwnership() ? "1" : "0",
+            Long.toString(retainedTtlMillis),
+            command.eventType(),
+            Instant.now(clock).toString(),
+            Integer.toString(domains.size()),
+            writeJson(domains),
+            Long.toString(command.enteredAt().toEpochMilli())
+        };
+        String rawResult = redis(
+            "mutate V2 attempt",
+            () -> redisTemplate.execute(MUTATE_ATTEMPT_SCRIPT, keys, arguments)
+        );
+        return parseMutationResult("mutate-attempt", requireScriptResult("mutate-attempt", rawResult));
+    }
+
+    @Override
+    public boolean renewLeases(RenewLeaseCommand command) {
+        Objects.requireNonNull(command, "command");
+        List<String> domains = validateRenewCommand(command);
+        long ttlMillis = durationMillis(command.leaseTtl(), "lease renewal TTL");
+        List<String> keys = new ArrayList<>(List.of(key("meta:engine"), key("meta:epoch")));
+        domains.forEach(domain -> keys.add(key("domain:" + domain + ":lease")));
+        Object[] arguments = {
+            command.expectedEpoch(),
+            command.queueId(),
+            command.attemptId(),
+            Long.toString(command.fenceToken()),
+            Long.toString(ttlMillis),
+            Integer.toString(domains.size())
+        };
+        String rawResult = redis(
+            "renew V2 leases",
+            () -> redisTemplate.execute(RENEW_LEASES_SCRIPT, keys, arguments)
+        );
+        JsonNode result = parseScriptResult("renew-leases", requireScriptResult("renew-leases", rawResult));
+        String code = text(result, "code");
+        if ("RENEWED".equals(code)) {
+            return true;
+        }
+        if ("LEASE_RENEW_FAILED".equals(code)) {
+            return false;
+        }
+        throwForMutationCode("renew-leases", code);
+        return false;
+    }
+
+    @Override
+    public MutationResult createRetry(CreateRetryCommand command) {
+        Objects.requireNonNull(command, "command");
+        Objects.requireNonNull(command.updatedQueue(), "updatedQueue");
+        Objects.requireNonNull(command.attempt(), "attempt");
+        Objects.requireNonNull(command.event(), "event");
+        long ttlMillis = validateRetryCommand(command);
+        CrawlerQueueV2Queue queue = command.updatedQueue();
+        CrawlerQueueV2Attempt attempt = command.attempt();
+        List<String> keys = List.of(
+            key("meta:engine"),
+            key("meta:epoch"),
+            key("queue:" + queue.queueId()),
+            key("attempt:" + attempt.retryOfAttemptId()),
+            key("attempt:" + attempt.attemptId()),
+            key("lane:" + attempt.lane() + ":ready"),
+            key("dedupe:" + queue.dedupeKey()),
+            key("index:attempts:live"),
+            key("index:queues"),
+            key("meta:first-live-mutation-at"),
+            key("events")
+        );
+        Object[] arguments = {
+            command.expectedEpoch(),
+            writeJson(queue),
+            writeJson(attempt),
+            Long.toString(command.expectedPriorStateVersion()),
+            Long.toString(command.readyScore()),
+            Long.toString(ttlMillis),
+            writeJson(command.event()),
+            Instant.now(clock).toString(),
+            attempt.retryOfAttemptId()
+        };
+        String rawResult = redis(
+            "create V2 retry",
+            () -> redisTemplate.execute(CREATE_RETRY_SCRIPT, keys, arguments)
+        );
+        return parseMutationResult("create-retry", requireScriptResult("create-retry", rawResult));
+    }
+
+    @Override
     public Optional<CrawlerQueueV2Queue> findQueue(String queueId) {
         return readRecord("queue", queueId, CrawlerQueueV2Queue.class);
     }
@@ -137,6 +315,389 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
     @Override
     public Optional<CrawlerQueueV2Attempt> findAttempt(String attemptId) {
         return readRecord("attempt", attemptId, CrawlerQueueV2Attempt.class);
+    }
+
+    @Override
+    public List<CrawlerQueueV2Attempt> findLiveAttempts() {
+        Set<String> attemptIds = redis(
+            "读取 V2 live attempt index",
+            () -> redisTemplate.opsForSet().members(key("index:attempts:live"))
+        );
+        return readAttempts(attemptIds == null ? List.of() : attemptIds.stream().sorted().toList());
+    }
+
+    @Override
+    public List<CrawlerQueueV2Attempt> findTerminalAttempts(int limit, Instant sinceInclusive) {
+        if (limit < 1 || sinceInclusive == null) {
+            throw new IllegalArgumentException("terminal attempt 查询参数无效");
+        }
+        Set<String> attemptIds = redis(
+            "读取 V2 terminal attempt index",
+            () -> redisTemplate.opsForZSet().reverseRangeByScore(
+                key("index:attempts:terminal"),
+                sinceInclusive.toEpochMilli(),
+                Double.POSITIVE_INFINITY,
+                0,
+                limit
+            )
+        );
+        return readAttempts(attemptIds == null ? List.of() : List.copyOf(attemptIds));
+    }
+
+    @Override
+    public List<EventEnvelope> readEvents(String after, int count, Duration blockFor) {
+        if (after == null || after.isBlank() || count < 1 || blockFor == null || blockFor.isNegative()) {
+            throw new IllegalArgumentException("V2 event read 参数无效");
+        }
+        StreamReadOptions readOptions = StreamReadOptions.empty().count(count);
+        if (!blockFor.isZero()) {
+            readOptions = readOptions.block(blockFor);
+        }
+        StreamReadOptions finalReadOptions = readOptions;
+        List<MapRecord<String, Object, Object>> records = redis(
+            "读取 V2 events",
+            () -> redisTemplate.opsForStream().read(
+                finalReadOptions,
+                StreamOffset.create(key("events"), ReadOffset.from(after))
+            )
+        );
+        if (records == null || records.isEmpty()) {
+            return List.of();
+        }
+        List<EventEnvelope> result = new ArrayList<>(records.size());
+        for (MapRecord<String, Object, Object> record : records) {
+            Object payload = record.getValue().get("payload");
+            if (!(payload instanceof String rawPayload) || rawPayload.isBlank()) {
+                throw stateStoreReset("V2 event 缺少 payload");
+            }
+            try {
+                result.add(new EventEnvelope(
+                    record.getId().getValue(),
+                    objectMapper.readValue(rawPayload, CrawlerQueueV2Event.class)
+                ));
+            } catch (JsonProcessingException exception) {
+                throw stateStoreReset("V2 event payload 无法解析", exception);
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    @Override
+    public void writeReconcilerHealth(ReconcilerHealth health, CrawlerQueueV2Event event) {
+        Objects.requireNonNull(health, "health");
+        Objects.requireNonNull(event, "event");
+        if (health.lastReconciledAt() == null
+            || health.scannedCount() < 0L
+            || health.convergedCount() < 0L
+            || health.failureCount() < 0L
+            || health.overdueAttemptCount() < 0L
+            || health.oldestOverdueDurationMs() < 0L
+            || isBlank(event.stateStoreEpoch())
+            || event.generatedAt() == null
+            || event.queueId() != null
+            || event.attemptId() != null
+            || event.fenceToken() != null
+            || event.stateVersion() != null
+            || event.status() != null
+            || !"queue.health-changed".equals(event.type())) {
+            throw invalidMutation("V2 reconciler health payload 无效");
+        }
+        List<String> keys = List.of(
+            key("meta:engine"),
+            key("meta:epoch"),
+            key("health:reconciler"),
+            key("events")
+        );
+        Object[] arguments = {
+            event.stateStoreEpoch(),
+            writeJson(health),
+            writeJson(event)
+        };
+        String rawResult = redis(
+            "write V2 reconciler health",
+            () -> redisTemplate.execute(WRITE_HEALTH_SCRIPT, keys, arguments)
+        );
+        JsonNode result = parseScriptResult("write-health", requireScriptResult("write-health", rawResult));
+        if (!"WRITTEN".equals(text(result, "code"))) {
+            throwForMutationCode("write-health", text(result, "code"));
+        }
+    }
+
+    private List<String> validateClaimCommand(ClaimCommand command) {
+        List<String> domains = sortedDomains(command.coveredDomains());
+        CrawlerQueueV2Event event = command.event();
+        if (isBlank(command.expectedEpoch())
+            || isBlank(command.queueId())
+            || isBlank(command.attemptId())
+            || isBlank(command.lane())
+            || isBlank(command.dedupeKey())
+            || command.expectedStateVersion() < 1L
+            || command.enteredAt() == null
+            || command.deadlineAt() == null
+            || !command.deadlineAt().isAfter(command.enteredAt())
+            || event.generatedAt() == null
+            || !Objects.equals(command.expectedEpoch(), event.stateStoreEpoch())
+            || !Objects.equals(command.queueId(), event.queueId())
+            || !Objects.equals(command.attemptId(), event.attemptId())
+            || event.fenceToken() != null
+            || !Objects.equals(event.stateVersion(), command.expectedStateVersion() + 1L)
+            || event.status() != CrawlerQueueV2Status.STARTING
+            || !"attempt.transitioned".equals(event.type())) {
+            throw invalidMutation("V2 claim 身份、版本或事件无效");
+        }
+        return domains;
+    }
+
+    private List<String> validateMutationCommand(MutationCommand command) {
+        List<String> domains = sortedDomains(command.coveredDomains());
+        if (isBlank(command.expectedEpoch())
+            || isBlank(command.queueId())
+            || isBlank(command.attemptId())
+            || isBlank(command.lane())
+            || isBlank(command.dedupeKey())
+            || command.expectedStateVersion() < 1L
+            || command.targetStatus() == null
+            || command.enteredAt() == null
+            || isBlank(command.eventType())
+            || (command.targetStatus() == CrawlerQueueV2Status.RUNNING
+                && command.lastHeartbeatAt() == null)
+            || (command.targetStatus().terminal() && command.deadlineAt() != null)
+            || (!command.targetStatus().terminal() && command.deadlineAt() == null)
+            || command.targetStatus().terminal() != command.releaseOwnership()
+            || (command.expectedFenceToken() != null && command.expectedFenceToken() < 1L)
+            || (command.progressSequence() != null && command.progressSequence() < 0L)
+            || (command.current() != null && command.current() < 0L)
+            || (command.total() != null && command.total() < 0L)
+            || (command.current() != null && command.total() != null
+                && command.current() > command.total())
+            || (command.pid() != null && command.pid() < 1L)
+            || (command.releaseOwnership() && command.retainedOwnershipTtl() != null)) {
+            throw invalidMutation("V2 attempt mutation 身份或状态无效");
+        }
+        return domains;
+    }
+
+    private List<String> validateRenewCommand(RenewLeaseCommand command) {
+        List<String> domains = sortedDomains(command.coveredDomains());
+        if (isBlank(command.expectedEpoch())
+            || isBlank(command.queueId())
+            || isBlank(command.attemptId())
+            || command.fenceToken() < 1L) {
+            throw invalidMutation("V2 lease renewal 身份无效");
+        }
+        return domains;
+    }
+
+    private long validateRetryCommand(CreateRetryCommand command) {
+        CrawlerQueueV2Queue queue = command.updatedQueue();
+        CrawlerQueueV2Attempt attempt = command.attempt();
+        CrawlerQueueV2Event event = command.event();
+        long ttlMillis = durationMillis(command.dedupeTtl(), "retry dedupe TTL");
+        if (ttlMillis > MAX_DEDUPE_TTL_MILLIS
+            || isBlank(command.expectedEpoch())
+            || command.expectedPriorStateVersion() < 1L
+            || queue.contractVersion() != 2
+            || attempt.contractVersion() != 2
+            || !Objects.equals(command.expectedEpoch(), queue.stateStoreEpoch())
+            || !Objects.equals(command.expectedEpoch(), attempt.stateStoreEpoch())
+            || !Objects.equals(command.expectedEpoch(), event.stateStoreEpoch())
+            || isBlank(queue.queueId())
+            || isBlank(attempt.attemptId())
+            || isBlank(attempt.retryOfAttemptId())
+            || !Objects.equals(queue.queueId(), attempt.queueId())
+            || !Objects.equals(queue.queueId(), event.queueId())
+            || !Objects.equals(queue.currentAttemptId(), attempt.attemptId())
+            || !Objects.equals(attempt.attemptId(), event.attemptId())
+            || !queue.attemptIds().contains(attempt.retryOfAttemptId())
+            || !queue.attemptIds().get(queue.attemptIds().size() - 1).equals(attempt.attemptId())
+            || attempt.stateVersion() != 1L
+            || !Objects.equals(event.stateVersion(), 1L)
+            || (attempt.status() != CrawlerQueueV2Status.QUEUED
+                && attempt.status() != CrawlerQueueV2Status.RETRY_WAIT)
+            || event.status() != attempt.status()
+            || !"attempt.created".equals(event.type())
+            || event.generatedAt() == null
+            || attempt.fenceToken() != null
+            || event.fenceToken() != null
+            || attempt.deadlineAt() == null
+            || isBlank(queue.lane())
+            || isBlank(queue.dedupeKey())
+            || !Objects.equals(queue.lane(), attempt.lane())
+            || !Objects.equals(queue.coveredDomains(), attempt.coveredDomains())) {
+            throw invalidMutation("V2 retry payload 身份或状态无效");
+        }
+        sortedDomains(queue.coveredDomains());
+        return ttlMillis;
+    }
+
+    private List<String> sortedDomains(List<String> coveredDomains) {
+        if (coveredDomains == null || coveredDomains.isEmpty() || coveredDomains.stream().anyMatch(this::isBlank)) {
+            throw invalidMutation("V2 coveredDomains 不能为空");
+        }
+        Set<String> unique = new HashSet<>(coveredDomains);
+        if (unique.size() != coveredDomains.size()) {
+            throw invalidMutation("V2 coveredDomains 不能重复");
+        }
+        return unique.stream().sorted().toList();
+    }
+
+    private long durationMillis(Duration duration, String field) {
+        if (duration == null) {
+            throw invalidMutation("V2 " + field + " 缺失");
+        }
+        long millis;
+        try {
+            millis = duration.toMillis();
+        } catch (ArithmeticException exception) {
+            throw invalidMutation("V2 " + field + " 超出毫秒范围");
+        }
+        if (millis < 1L || millis > MAX_DEDUPE_TTL_MILLIS) {
+            throw invalidMutation("V2 " + field + " 无效");
+        }
+        return millis;
+    }
+
+    private ClaimResult parseClaimResult(String rawResult) {
+        JsonNode result = parseScriptResult("claim-attempt", rawResult);
+        String code = text(result, "code");
+        if ("CLAIMED".equals(code)) {
+            return new ClaimResult(
+                ClaimCode.CLAIMED,
+                requiredText(result, "attemptId"),
+                requiredPositiveLong(result, "fenceToken"),
+                requiredPositiveLong(result, "stateVersion"),
+                null,
+                null
+            );
+        }
+        if ("OWNERSHIP_CONFLICT".equals(code) || "QUARANTINED".equals(code)) {
+            return new ClaimResult(
+                "QUARANTINED".equals(code) ? ClaimCode.QUARANTINED : ClaimCode.OWNERSHIP_CONFLICT,
+                null,
+                null,
+                0L,
+                requiredText(result, "ownerAttemptId"),
+                "QUARANTINED".equals(code)
+                    ? CrawlerQueueV2ReasonCode.ORPHAN_PROCESS_UNCONFIRMED
+                    : CrawlerQueueV2ReasonCode.OWNERSHIP_CONFLICT
+            );
+        }
+        throwForMutationCode("claim-attempt", code);
+        throw stateStoreReset("V2 claim-attempt 未返回结果");
+    }
+
+    private MutationResult parseMutationResult(String operation, String rawResult) {
+        JsonNode result = parseScriptResult(operation, rawResult);
+        String code = text(result, "code");
+        if ("MUTATED".equals(code) || "RETRY_CREATED".equals(code)) {
+            JsonNode attemptNode = result.path("attempt");
+            if (!attemptNode.isObject()) {
+                throw stateStoreReset("V2 " + operation + " 返回缺少 attempt");
+            }
+            try {
+                return new MutationResult(
+                    objectMapper.treeToValue(attemptNode, CrawlerQueueV2Attempt.class),
+                    requiredText(result, "streamId")
+                );
+            } catch (JsonProcessingException exception) {
+                throw stateStoreReset("V2 " + operation + " attempt 无法解析", exception);
+            }
+        }
+        throwForMutationCode(operation, code);
+        throw stateStoreReset("V2 " + operation + " 未返回结果");
+    }
+
+    private JsonNode parseScriptResult(String operation, String rawResult) {
+        try {
+            JsonNode result = objectMapper.readTree(rawResult);
+            if (!result.isObject()) {
+                throw stateStoreReset("V2 " + operation + " 返回不是对象");
+            }
+            return result;
+        } catch (JsonProcessingException exception) {
+            throw stateStoreReset("V2 " + operation + " 返回无法解析", exception);
+        }
+    }
+
+    private String requireScriptResult(String operation, String rawResult) {
+        if (rawResult == null || rawResult.isBlank()) {
+            throw stateStoreReset("V2 " + operation + " 未返回结果");
+        }
+        return rawResult;
+    }
+
+    private void throwForMutationCode(String operation, String code) {
+        if ("STATE_STORE_INCONSISTENT".equals(code)) {
+            throw stateStoreReset("V2 " + operation + " 状态存储内容不一致");
+        }
+        if ("STALE_STATE_VERSION".equals(code)) {
+            throw conflict(CrawlerQueueV2ReasonCode.STALE_STATE_VERSION, operation, code);
+        }
+        if ("STALE_FENCE_TOKEN".equals(code)
+            || "STALE_PROGRESS_SEQUENCE".equals(code)
+            || "STALE_ATTEMPT".equals(code)
+            || "LEASE_RENEW_FAILED".equals(code)) {
+            throw conflict(CrawlerQueueV2ReasonCode.STALE_FENCE_TOKEN, operation, code);
+        }
+        if ("OWNERSHIP_CONFLICT".equals(code)) {
+            throw conflict(CrawlerQueueV2ReasonCode.OWNERSHIP_CONFLICT, operation, code);
+        }
+        if ("ENGINE_NOT_V2".equals(code)
+            || "STALE_EPOCH".equals(code)
+            || "INVALID_STATUS".equals(code)
+            || "INVALID_COMMAND".equals(code)
+            || "IDENTITY_EXISTS".equals(code)) {
+            throw conflict(CrawlerQueueV2ReasonCode.STATE_STORE_RESET, operation, code);
+        }
+        throw stateStoreReset("V2 " + operation + " 返回未知结果：" + code);
+    }
+
+    private CrawlerQueueV2Exception conflict(
+        CrawlerQueueV2ReasonCode reasonCode,
+        String operation,
+        String code
+    ) {
+        return new CrawlerQueueV2Exception(
+            HttpStatus.CONFLICT,
+            reasonCode,
+            "V2 " + operation + " 被拒绝：" + code,
+            null
+        );
+    }
+
+    private List<CrawlerQueueV2Attempt> readAttempts(List<String> attemptIds) {
+        if (attemptIds.isEmpty()) {
+            return List.of();
+        }
+        List<String> keys = attemptIds.stream().map(id -> key("attempt:" + id)).toList();
+        List<String> rawAttempts = redis(
+            "批量读取 V2 attempts",
+            () -> redisTemplate.opsForValue().multiGet(keys)
+        );
+        if (rawAttempts == null || rawAttempts.size() != keys.size()) {
+            throw stateStoreReset("V2 attempt index 与记录不一致");
+        }
+        List<CrawlerQueueV2Attempt> attempts = new ArrayList<>(rawAttempts.size());
+        for (int index = 0; index < rawAttempts.size(); index++) {
+            String raw = rawAttempts.get(index);
+            if (raw == null || raw.isBlank()) {
+                throw stateStoreReset("V2 attempt index 指向缺失记录：" + attemptIds.get(index));
+            }
+            try {
+                CrawlerQueueV2Attempt attempt = objectMapper.readValue(raw, CrawlerQueueV2Attempt.class);
+                if (!Objects.equals(attemptIds.get(index), attempt.attemptId())) {
+                    throw stateStoreReset("V2 attempt index 身份不一致：" + attemptIds.get(index));
+                }
+                attempts.add(attempt);
+            } catch (JsonProcessingException exception) {
+                throw stateStoreReset("V2 attempt 无法解析：" + attemptIds.get(index), exception);
+            }
+        }
+        return List.copyOf(attempts);
+    }
+
+    private String nullable(Object value) {
+        return value == null ? "" : value.toString();
     }
 
     private EnqueueResult parseEnqueueResult(String rawResult) {
