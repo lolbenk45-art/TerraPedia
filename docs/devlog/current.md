@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-12 07:34 CST by Codex
+Last updated: 2026-07-12 18:48 CST by Codex
 
 ## Open Work
 
@@ -14,6 +14,11 @@ Last updated: 2026-07-12 07:34 CST by Codex
   - contract handoff: Tasks 1-2 are committed at `723f2d0` and `755713f`; continue with Task 3 V2 namespace and atomic enqueue/dedupe repository
 
 ## Current State
+
+- Page-head density implementation is closed for commit on
+  `review/page-head-inner-density`: the user-selected C desktop treatment,
+  mobile item/NPC command headers, contracts, browser acceptance, and public
+  frontend gate are recorded. Commit SHA is pending in the final response.
 
 - Crawler monitor queue/status root-cause analysis and the first two V2
   foundation tasks are complete; runtime implementation continues on the
@@ -146,6 +151,11 @@ Last updated: 2026-07-12 07:34 CST by Codex
 - Existing frontend build emits non-failing environment DBus, sourcemap, and preview-asset warnings; they are unrelated to Task 1 and remain outside this scope.
 
 ## Recently Closed
+
+- `docs/devlog/entries/2026-07-12-page-head-density.md`
+  - branch: `review/page-head-inner-density`
+  - status: `closed`
+  - commit: pending in final response
 
 - `docs/devlog/entries/2026-07-11-crawler-monitor-queue-state-root-cause.md`
   - branch: `fix/crawler-monitor-queue-state`

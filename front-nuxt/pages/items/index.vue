@@ -532,7 +532,7 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
     <TerraNav />
     <TerraBreadcrumb />
 
-    <div class="page-head">
+    <div class="page-head page-head--command">
       <div class="page-head-inner">
         <div>
           <span class="eyebrow">{{ catalogVisualLoading ? '加载资料' : catalogFallbackUnavailable ? '资料暂未载入' : `${totalItems.toLocaleString('zh-CN')} 个物品` }}</span>
