@@ -141,23 +141,56 @@
   non-monotonic progress, non-atomic lease renewal, retry identity drift, and
   non-blocking event reads. No unresolved Critical or Important finding remains
   in Task 4 scope.
+- Task 5 is active with a test-first scope limited to attempt-scoped directories,
+  atomic manifests, attemptId-keyed log metadata/reads, terminal-only audited
+  cleanup, and the shared newest-100-or-seven-day retention selection. It does
+  not wire artifacts into the supervisor, API, or V1 live path.
+- Task 5 initial review verdict: commit blocked and re-review required. Resolver:
+  Codex. Findings: deletion must verify stored terminal state rather than trust a
+  caller status; partial deletion and repeated cleanup must preserve audit
+  evidence; manifest writes must reject immutable identity drift; retention
+  expiry must begin at terminal completion and enforce the minimum 100-count /
+  seven-day contract; UTF-8 log chunks must not split multibyte characters.
+  Static symlinks and final file opens also require no-follow enforcement; the
+  stronger parent-directory swap threat is limited to a malicious local process
+  with repository write access and will be documented and re-reviewed against
+  the actual local-filesystem trust boundary.
+- Task 5 second review closed the original terminal-state, immutable identity,
+  symlink-boundary, minimum-retention, and UTF-8 findings, but commit remains
+  blocked pending another re-review. New findings: concurrent cleanup/expiry
+  can interleave and overwrite audit history; retention must validate every
+  manifest identity and expirable path before its first mutation; artifact path
+  roles must reject progress/log aliases and reserved manifest/temp names.
+  Resolver: Codex. The revised gate requires concurrency and two-pass retention
+  regression tests plus artifact-role coverage before Task 5 can commit.
+- Task 5 final GREEN and re-review: artifact writes are serialized, retention
+  performs a complete identity/path preflight before its first mutation,
+  progress/log roles cannot alias, final file opens reject symbolic links,
+  cleanup stages evidence before atomically recording audit state, and UTF-8
+  chunks preserve byte offsets without splitting Chinese characters. The final
+  compatibility selection passed 42/42 (artifact store 15, repository 21,
+  state machine 4, action registry 2), `git diff --check` passed, and the final
+  read-only reviewer found no remaining Critical, Important, or Moderate
+  finding. No Redis, crawler, database, fixture stack, or service lifecycle was
+  accessed.
 
 ## Result
 
 - Completed: branch handoff contract, Tasks 1-2 prerequisite commits, the
   focused idle/queue visibility compatibility checkpoint, and Task 3's fixed
   V2 Redis namespace plus fail-closed atomic enqueue/dedupe boundary. Task 4's
-  fenced ownership and event-storage primitives are also complete. See git for
-  code-level diff details.
-- Not completed: Tasks 5-15 and the end-to-end stuck-queue acceptance contract.
+  fenced ownership and event-storage primitives and Task 5's attempt-scoped
+  evidence/log/retention store are also complete. See git for code-level diff
+  details.
+- Not completed: Tasks 6-15 and the end-to-end stuck-queue acceptance contract.
 
 ## Residual Risks
 
 - The current application still uses the V1 live queue path; this handoff does
   not claim the recurring queue/status problem is fixed.
-- Attempt artifacts, exact process ownership, reconciler convergence, restart
-  isolation, SSE, attempt-bound logs, hard cutover, and combined acceptance
-  remain unimplemented.
+- Task 5 artifact primitives are not yet connected to worker progress,
+  supervisor process ownership, reconciler convergence, overview/API/SSE, hard
+  cutover, or combined acceptance.
 - Task 4 repository primitives are not yet wired into the V1 live path; this
   checkpoint does not claim the recurring production queue stall is fixed.
 - The local stack is running for user acceptance. This checkpoint does not
@@ -166,12 +199,14 @@
 
 ## Follow-up
 
-- Owner: Codex. Continue Task 5 test-first with attempt-scoped artifacts, log
-  availability, and unified retention; do not wire V2 into the V1 live path.
+- Owner: Codex. Continue Task 6 test-first with exact V2 identity in every
+  worker progress write; do not wire V2 into the V1 live path.
 
 ## Commits
 
 - `591101e` `docs(crawler): define idle queue visibility contract`
 - `2ecc179` `fix(crawler-monitor): show idle and queue state clearly`
 - `99b5cdd` `feat(crawler): add isolated V2 queue namespace`
-- Task 4 focused commit SHA pending in final response.
+- `b81fe45` `feat(crawler): fence V2 attempts and leases`
+- `7cbb748` `docs(devlog): record crawler handoff commit sha`
+- Task 5 focused commit SHA pending in final response.
