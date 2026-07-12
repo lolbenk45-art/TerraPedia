@@ -531,6 +531,165 @@ class RedisCrawlerQueueV2RepositoryTest {
     }
 
     @Test
+    void appendEventMustLetLuaDeriveCurrentFencingFieldsAtomically() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+            .thenReturn("{\"code\":\"APPENDED\",\"streamId\":\"1000-2\"}");
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+        CrawlerQueueV2Event event = new CrawlerQueueV2Event(
+            "attempt.progress-rejected", "epoch-1", "queue-1", "attempt-1", 141L, 7L,
+            CrawlerQueueV2Status.PAUSED, CrawlerQueueV2ReasonCode.STALE_FENCE_TOKEN, NOW
+        );
+
+        repository.appendEvent(event);
+
+        ArgumentCaptor<RedisScript<String>> script = ArgumentCaptor.forClass(RedisScript.class);
+        ArgumentCaptor<List<String>> keys = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<Object[]> arguments = ArgumentCaptor.forClass(Object[].class);
+        verify(redis).execute(script.capture(), keys.capture(), arguments.capture());
+        assertEquals(List.of(
+            "terrapedia:crawler:wiki-monitor:v2:meta:engine",
+            "terrapedia:crawler:wiki-monitor:v2:meta:epoch",
+            "terrapedia:crawler:wiki-monitor:v2:attempt:attempt-1",
+            "terrapedia:crawler:wiki-monitor:v2:events"
+        ), keys.getValue());
+        assertEquals("epoch-1", arguments.getValue()[0]);
+        assertEquals("queue-1", arguments.getValue()[1]);
+        assertEquals("attempt-1", arguments.getValue()[2]);
+        assertEquals("attempt.progress-rejected", arguments.getValue()[3]);
+        assertEquals("STALE_FENCE_TOKEN", arguments.getValue()[4]);
+        assertEquals(NOW.toString(), arguments.getValue()[5]);
+        assertEquals(6, arguments.getValue().length);
+        String source = script.getValue().getScriptAsString();
+        assertTrue(source.contains("fenceToken = attempt.fenceToken"));
+        assertTrue(source.contains("stateVersion = attempt.stateVersion"));
+        assertTrue(source.contains("status = attempt.status"));
+        assertTrue(source.contains("redis.call('XADD', KEYS[4], '*', 'payload', cjson.encode(event))"));
+        assertFalse(source.contains("event.fenceToken"));
+        assertFalse(source.contains("event.stateVersion"));
+        assertFalse(source.contains("event.status"));
+    }
+
+    @Test
+    void appendEventMustAcceptWatcherFailureEvidence() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+            .thenReturn("{\"code\":\"APPENDED\",\"streamId\":\"1000-3\"}");
+        RedisCrawlerQueueV2Repository repository = repository(
+            redis,
+            RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX
+        );
+        CrawlerQueueV2Event event = new CrawlerQueueV2Event(
+            "attempt.watcher-failed", "epoch-1", "queue-1", "attempt-1", 142L, 8L,
+            CrawlerQueueV2Status.RUNNING, CrawlerQueueV2ReasonCode.RECONCILER_STALE, NOW
+        );
+
+        repository.appendEvent(event);
+
+        ArgumentCaptor<RedisScript<String>> script = ArgumentCaptor.forClass(RedisScript.class);
+        ArgumentCaptor<Object[]> arguments = ArgumentCaptor.forClass(Object[].class);
+        verify(redis).execute(script.capture(), anyList(), arguments.capture());
+        assertEquals("attempt.watcher-failed", arguments.getValue()[3]);
+        assertEquals("RECONCILER_STALE", arguments.getValue()[4]);
+        String source = script.getValue().getScriptAsString();
+        assertTrue(source.contains("ARGV[4] == 'attempt.watcher-failed'"));
+        assertTrue(source.contains("ARGV[5] == 'RECONCILER_STALE'"));
+    }
+
+    @Test
+    void shouldAllowOnlyUnconfirmedTerminationFailureToRetainOwnership() throws Exception {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        CrawlerQueueV2Attempt failed = failedUnconfirmedAttempt();
+        when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+            .thenReturn("{\"code\":\"MUTATED\",\"attempt\":"
+                + objectMapper.copy().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                    .writeValueAsString(failed)
+                + ",\"streamId\":\"1000-3\"}");
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+        CrawlerQueueV2Repository.MutationCommand command = unconfirmedTerminationMutation();
+
+        CrawlerQueueV2Repository.MutationResult result = repository.mutate(command);
+
+        assertEquals(CrawlerQueueV2Status.FAILED, result.attempt().status());
+        assertEquals(CrawlerQueueV2ReasonCode.PROCESS_TERMINATION_UNCONFIRMED, result.attempt().reasonCode());
+        ArgumentCaptor<RedisScript<String>> script = ArgumentCaptor.forClass(RedisScript.class);
+        ArgumentCaptor<Object[]> arguments = ArgumentCaptor.forClass(Object[].class);
+        verify(redis).execute(script.capture(), anyList(), arguments.capture());
+        assertEquals("0", arguments.getValue()[19]);
+        assertEquals(Long.toString(Duration.ofMinutes(2).toMillis()), arguments.getValue()[20]);
+        String source = script.getValue().getScriptAsString();
+        assertTrue(source.contains("PROCESS_TERMINATION_UNCONFIRMED"));
+        assertTrue(source.contains("PEXPIRE"));
+        assertTrue(source.contains("redis.call('PEXPIRE', KEYS[8], ARGV[21])"));
+        int firstWrite = source.indexOf("redis.call('SET', KEYS[3]");
+        assertBeforeFirstWrite(
+            source,
+            "retainedUnconfirmedTermination and dedupeOwner and dedupeOwner ~= attempt.attemptId",
+            firstWrite
+        );
+        assertTrue(source.contains(
+            "redis.call('SET', KEYS[8], attempt.attemptId, 'PX', ARGV[21])"
+        ));
+    }
+
+    @Test
+    void processStartedMutationMustBeWriteOnceForAnEmptyStartingIdentity() throws Exception {
+        String source = new ClassPathResource("redis/crawler-queue-v2/mutate-attempt.lua")
+            .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        int firstWrite = source.indexOf("redis.call('SET', KEYS[3]");
+
+        assertBeforeFirstWrite(source, "ARGV[22] == 'attempt.process-started'", firstWrite);
+        assertBeforeFirstWrite(source, "attempt.status ~= 'starting'", firstWrite);
+        assertBeforeFirstWrite(source, "attempt.pid ~= nil", firstWrite);
+        assertBeforeFirstWrite(source, "attempt.processStartedAt ~= nil", firstWrite);
+        assertBeforeFirstWrite(source, "ARGV[18] == ''", firstWrite);
+        assertBeforeFirstWrite(source, "ARGV[19] == ''", firstWrite);
+    }
+
+    @Test
+    void nonProcessStartedMutationMustRejectProcessIdentityBeforeRedis() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+        CrawlerQueueV2Repository.MutationCommand source = mutation(8L, 142L, 9L);
+        CrawlerQueueV2Repository.MutationCommand invalid = new CrawlerQueueV2Repository.MutationCommand(
+            source.expectedEpoch(), source.queueId(), source.attemptId(), source.lane(), source.dedupeKey(),
+            source.coveredDomains(), source.expectedFenceToken(), source.expectedStateVersion(),
+            source.targetStatus(), source.reasonCode(), source.enteredAt(), source.deadlineAt(),
+            source.lastHeartbeatAt(), source.progressSequence(), source.phase(), source.current(),
+            source.total(), source.workerMessage(), 12345L, NOW.minusSeconds(1),
+            source.releaseOwnership(), source.retainedOwnershipTtl(), source.eventType()
+        );
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> repository.mutate(invalid)
+        );
+
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_RESET, exception.reasonCode());
+        verifyNoInteractions(redis);
+    }
+
+    @Test
+    void processStartedMutationMustRequireBothPidAndStartInstantBeforeRedis() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+        CrawlerQueueV2Repository.MutationCommand invalid = new CrawlerQueueV2Repository.MutationCommand(
+            "epoch-1", "queue-1", "attempt-1", "standard", "standard:domain-source-bosses:fresh",
+            List.of("bosses"), 142L, 2L, CrawlerQueueV2Status.STARTING, null,
+            NOW, NOW.plusSeconds(90), null, null, null, null, null, null,
+            12345L, null, false, null, "attempt.process-started"
+        );
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> repository.mutate(invalid)
+        );
+
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_RESET, exception.reasonCode());
+        verifyNoInteractions(redis);
+    }
+
+    @Test
     void shouldRejectTerminalMutationWithoutAtomicOwnershipRelease() {
         StringRedisTemplate redis = mock(StringRedisTemplate.class);
         RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
@@ -579,8 +738,8 @@ class RedisCrawlerQueueV2RepositoryTest {
             "epoch-1", "queue-1", "attempt-1", "standard", "standard:domain-source-bosses:fresh",
             List.of("bosses"), fenceToken, stateVersion,
             CrawlerQueueV2Status.RUNNING, null, NOW, NOW.plusSeconds(90), NOW,
-            progressSequence, "crawl-pages", 1L, 10L, "running", 12345L,
-            NOW.minusSeconds(1), false, null, "attempt.progressed"
+            progressSequence, "crawl-pages", 1L, 10L, "running", null,
+            null, false, null, "attempt.progressed"
         );
     }
 
@@ -588,8 +747,18 @@ class RedisCrawlerQueueV2RepositoryTest {
         return new CrawlerQueueV2Repository.MutationCommand(
             "epoch-1", "queue-1", "attempt-1", "standard", "standard:domain-source-bosses:fresh",
             List.of("bosses"), 142L, 2L, CrawlerQueueV2Status.COMPLETED, null,
-            NOW, null, NOW, 1L, "complete", 10L, 10L, "completed", 12345L,
-            NOW.minusSeconds(1), true, null, "attempt.transitioned"
+            NOW, null, NOW, 1L, "complete", 10L, 10L, "completed", null,
+            null, true, null, "attempt.transitioned"
+        );
+    }
+
+    private CrawlerQueueV2Repository.MutationCommand unconfirmedTerminationMutation() {
+        return new CrawlerQueueV2Repository.MutationCommand(
+            "epoch-1", "queue-1", "attempt-1", "standard", "standard:domain-source-bosses:fresh",
+            List.of("bosses"), 142L, 2L, CrawlerQueueV2Status.FAILED,
+            CrawlerQueueV2ReasonCode.PROCESS_TERMINATION_UNCONFIRMED,
+            NOW, null, NOW, 1L, "terminating", 1L, 10L, "unconfirmed", null,
+            null, false, Duration.ofMinutes(2), "attempt.transitioned"
         );
     }
 
@@ -601,6 +770,17 @@ class RedisCrawlerQueueV2RepositoryTest {
             source.actionId(), null, source.requestedAt(), source.eligibleAt(), NOW, NOW.minusSeconds(1),
             NOW, NOW, null, 12345L, NOW.minusSeconds(1), 1L, "complete", 10L, 10L,
             "completed", null, source.artifacts()
+        );
+    }
+
+    private CrawlerQueueV2Attempt failedUnconfirmedAttempt() {
+        CrawlerQueueV2Attempt source = command().attempt();
+        return new CrawlerQueueV2Attempt(
+            2, "epoch-1", "queue-1", "attempt-1", 142L, 3L,
+            CrawlerQueueV2Status.FAILED, source.lane(), source.domain(), source.coveredDomains(),
+            source.actionId(), null, source.requestedAt(), source.eligibleAt(), NOW, NOW.minusSeconds(1),
+            NOW, NOW, null, 12345L, NOW.minusSeconds(1), 1L, "terminating", 1L, 10L,
+            "unconfirmed", CrawlerQueueV2ReasonCode.PROCESS_TERMINATION_UNCONFIRMED, source.artifacts()
         );
     }
 

@@ -6,6 +6,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CrawlerMonitorActionRegistryTest {
@@ -72,6 +73,36 @@ class CrawlerMonitorActionRegistryTest {
         assertEquals(
             "data/generated/domain-source-bosses-progress.latest.json",
             bosses.progressPath()
+        );
+    }
+
+    @Test
+    void directActionMustAllowNullReportPathWhenItsCommandHasNoReportPlaceholder() {
+        CrawlerMonitorActionDefinition bosses = CrawlerMonitorActionRegistry.defaults()
+            .require("bosses", "domain-source-bosses");
+
+        assertEquals(
+            List.of(
+                "node",
+                "scripts/data/fetch/fetch-wiki-bosses.mjs",
+                "--progress-path=reports/crawler-monitor/v2/attempt-1/progress.json"
+            ),
+            bosses.renderCommand(null, "reports/crawler-monitor/v2/attempt-1/progress.json")
+        );
+    }
+
+    @Test
+    void backendActionMustRejectMissingReportPathWhenItsCommandNeedsThePlaceholder() {
+        CrawlerMonitorActionDefinition items = CrawlerMonitorActionRegistry.defaults()
+            .require("items", "wiki-items-refresh");
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> items.renderCommand(null, "reports/crawler-monitor/v2/attempt-1/progress.json")
+        );
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> items.renderCommand(" ", "reports/crawler-monitor/v2/attempt-1/progress.json")
         );
     }
 }

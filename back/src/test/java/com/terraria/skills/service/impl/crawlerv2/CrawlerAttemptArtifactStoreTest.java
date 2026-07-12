@@ -1,6 +1,7 @@
 package com.terraria.skills.service.impl.crawlerv2;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.terraria.skills.config.CrawlerQueueV2Properties;
 import org.junit.jupiter.api.Test;
@@ -56,6 +57,68 @@ class CrawlerAttemptArtifactStoreTest {
         assertEquals("attempt-1", manifest.attemptId());
         assertEquals(prepared.progressPath(), manifest.progressPath());
         assertEquals(prepared.logPath(), manifest.logPath());
+    }
+
+    @Test
+    void shouldReadLegacyManifestWithoutProcessIdentityFields() throws Exception {
+        ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+        CrawlerAttemptArtifactStore store = store(objectMapper, new CrawlerQueueV2Properties());
+        CrawlerAttemptArtifactStore.PreparedArtifacts prepared = store.prepare(
+            "epoch-1", "queue-1", "attempt-1", "bosses", "domain-source-bosses", NOW
+        );
+        Path manifestPath = prepared.directory().resolve("attempt-manifest.json");
+        ObjectNode legacyManifest = (ObjectNode) objectMapper.readTree(manifestPath.toFile());
+        legacyManifest.remove(List.of("pid", "processStartedAt"));
+        objectMapper.writeValue(manifestPath.toFile(), legacyManifest);
+
+        CrawlerAttemptManifest manifest = store.readManifest("attempt-1").orElseThrow();
+
+        assertNull(manifest.pid());
+        assertNull(manifest.processStartedAt());
+        assertEquals("attempt-1", manifest.attemptId());
+    }
+
+    @Test
+    void malformedProgressMustUseDedicatedPayloadFailure() throws Exception {
+        CrawlerAttemptArtifactStore store = store();
+        CrawlerAttemptArtifactStore.PreparedArtifacts prepared = store.prepare(
+            "epoch-1", "queue-1", "attempt-1", "bosses", "domain-source-bosses", NOW
+        );
+        Files.writeString(prepared.directory().resolve("progress.json"), "{broken-json");
+
+        assertThrows(
+            CrawlerAttemptArtifactStore.InvalidProgressPayloadException.class,
+            () -> store.readProgress("attempt-1")
+        );
+    }
+
+    @Test
+    void progressPathSecurityFailureMustRemainASecurityFailure() {
+        CrawlerAttemptArtifactStore store = store();
+        CrawlerAttemptArtifactStore.PreparedArtifacts prepared = store.prepare(
+            "epoch-1", "queue-1", "attempt-1", "bosses", "domain-source-bosses", NOW
+        );
+        CrawlerAttemptManifest manifest = store.readManifest("attempt-1").orElseThrow();
+        store.writeManifest(withArtifactPaths(
+            manifest,
+            prepared.logPath(),
+            manifest.logPath(),
+            manifest.reportPath(),
+            manifest.outputPath()
+        ));
+
+        assertThrows(SecurityException.class, () -> store.readProgress("attempt-1"));
+    }
+
+    @Test
+    void progressIoFailureMustRemainAnArtifactFailure() throws Exception {
+        CrawlerAttemptArtifactStore store = store();
+        CrawlerAttemptArtifactStore.PreparedArtifacts prepared = store.prepare(
+            "epoch-1", "queue-1", "attempt-1", "bosses", "domain-source-bosses", NOW
+        );
+        Files.createDirectory(prepared.directory().resolve("progress.json"));
+
+        assertThrows(IllegalStateException.class, () -> store.readProgress("attempt-1"));
     }
 
     @Test
@@ -291,6 +354,20 @@ class CrawlerAttemptArtifactStoreTest {
             fenced, fenced.contractVersion(), fenced.stateStoreEpoch(), fenced.queueId(),
             2L, fenced.domain(), fenced.actionId()
         )));
+
+        CrawlerAttemptManifest processRecorded = withManifestProcessIdentity(
+            fenced,
+            12345L,
+            NOW.minusSeconds(1)
+        );
+        store.writeManifest(processRecorded);
+        assertEquals(12345L, store.readManifest("attempt-1").orElseThrow().pid());
+        assertThrows(IllegalArgumentException.class, () -> store.writeManifest(
+            withManifestProcessIdentity(processRecorded, 54321L, NOW)
+        ));
+        assertThrows(IllegalArgumentException.class, () -> store.writeManifest(
+            withManifestProcessIdentity(processRecorded, null, null)
+        ));
     }
 
     @Test
@@ -507,7 +584,8 @@ class CrawlerAttemptArtifactStoreTest {
         return new CrawlerAttemptManifest(
             manifest.contractVersion(), manifest.stateStoreEpoch(), manifest.queueId(), manifest.attemptId(),
             manifest.fenceToken(), manifest.domain(), manifest.actionId(), status, manifest.startedAt(),
-            completedAt, manifest.reasonCode(), manifest.exitCode(), manifest.progressPath(), manifest.logPath(),
+            completedAt, manifest.reasonCode(), manifest.exitCode(), manifest.pid(), manifest.processStartedAt(),
+            manifest.progressPath(), manifest.logPath(),
             manifest.reportPath(), manifest.outputPath(), manifest.retentionExpiresAt(),
             manifest.artifactsExpiredAt(), manifest.cleanedAt(), manifest.cleanedBy(), manifest.cleanedPaths()
         );
@@ -525,7 +603,8 @@ class CrawlerAttemptArtifactStoreTest {
         return new CrawlerAttemptManifest(
             contractVersion, stateStoreEpoch, queueId, manifest.attemptId(), fenceToken, domain, actionId,
             manifest.status(), manifest.startedAt(), manifest.completedAt(), manifest.reasonCode(),
-            manifest.exitCode(), manifest.progressPath(), manifest.logPath(), manifest.reportPath(),
+            manifest.exitCode(), manifest.pid(), manifest.processStartedAt(), manifest.progressPath(),
+            manifest.logPath(), manifest.reportPath(),
             manifest.outputPath(), manifest.retentionExpiresAt(), manifest.artifactsExpiredAt(),
             manifest.cleanedAt(), manifest.cleanedBy(), manifest.cleanedPaths()
         );
@@ -541,9 +620,25 @@ class CrawlerAttemptArtifactStoreTest {
         return new CrawlerAttemptManifest(
             manifest.contractVersion(), manifest.stateStoreEpoch(), manifest.queueId(), manifest.attemptId(),
             manifest.fenceToken(), manifest.domain(), manifest.actionId(), manifest.status(), manifest.startedAt(),
-            manifest.completedAt(), manifest.reasonCode(), manifest.exitCode(), progressPath, logPath,
+            manifest.completedAt(), manifest.reasonCode(), manifest.exitCode(), manifest.pid(),
+            manifest.processStartedAt(), progressPath, logPath,
             reportPath, outputPath, manifest.retentionExpiresAt(), manifest.artifactsExpiredAt(),
             manifest.cleanedAt(), manifest.cleanedBy(), manifest.cleanedPaths()
+        );
+    }
+
+    private CrawlerAttemptManifest withManifestProcessIdentity(
+        CrawlerAttemptManifest manifest,
+        Long pid,
+        Instant processStartedAt
+    ) {
+        return new CrawlerAttemptManifest(
+            manifest.contractVersion(), manifest.stateStoreEpoch(), manifest.queueId(), manifest.attemptId(),
+            manifest.fenceToken(), manifest.domain(), manifest.actionId(), manifest.status(), manifest.startedAt(),
+            manifest.completedAt(), manifest.reasonCode(), manifest.exitCode(), pid, processStartedAt,
+            manifest.progressPath(), manifest.logPath(), manifest.reportPath(), manifest.outputPath(),
+            manifest.retentionExpiresAt(), manifest.artifactsExpiredAt(), manifest.cleanedAt(),
+            manifest.cleanedBy(), manifest.cleanedPaths()
         );
     }
 

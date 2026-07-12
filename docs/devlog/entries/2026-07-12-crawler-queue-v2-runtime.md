@@ -42,11 +42,18 @@
   error and the triage board made attention and queue progress mutually
   exclusive. Neutral idle is now healthy, but unknown with unclassified
   runtime evidence remains explicit and inspectable.
-- Task 6 implementation is now active. Its boundary is worker progress identity:
-  complete V2 environments must attach queueId, attemptId, fenceToken,
-  stateStoreEpoch, stateVersion, and monotonic progressSequence to every
-  canonical progress write, while incomplete environments preserve the V1
-  payload shape exactly.
+- Task 7 implementation is now active. Its boundary is exact process
+  supervision: launch and control must use queue/attempt/fence/epoch identity,
+  exact PID plus process start instant, monotonic progress sequence, and
+  confirmed process exit before ownership release.
+- Task 7 uses one serialized implementation agent under primary Codex as the
+  devlog coordinator. The agent may edit only the seven planned production
+  files and `CrawlerAttemptSupervisorTest.java`. Coordinator review found two
+  plan-to-runtime contract gaps, so the minimum implementation scope also
+  includes `RedisCrawlerQueueV2Repository`, its focused test,
+  `mutate-attempt.lua`, and an exact append-event Lua resource if required.
+  The agent may not edit devlog/current, commit, access Redis/database, run
+  crawlers, or change service lifecycle.
 
 ## Scope
 
@@ -198,6 +205,193 @@
   covered with offline fixtures. The seven plan commands passed 65/65 tests;
   focused syntax checks and `git diff --check` passed. Final read-only review
   found no remaining Critical, Important, or Moderate finding.
+- Task 7 starts test-first with the plan's supervisor RED selection. Its
+  validation boundary is the focused in-memory backend tests only; no crawler,
+  shared Redis, database, fixture stack, or service lifecycle operation is
+  authorized. Spec compliance review must pass before code-quality review.
+- Task 7 scope correction: the original file list could only add
+  `appendEvent` as a mock/default interface method and the existing Java/Lua
+  mutation guards reject the approved
+  `FAILED/PROCESS_TERMINATION_UNCONFIRMED + retained ownership` state. The
+  coordinator expanded the focused Redis implementation/test scope so stale
+  writer evidence is durably appended and two-minute isolation is executable,
+  rather than leaving mock-only behavior. See git for code-level diff details.
+- Task 7 RED -> GREEN evidence: the supervisor test first failed at test compile
+  with 17 expected missing-contract errors; the Redis repository test then
+  failed because the concrete repository had no `appendEvent` implementation.
+  The final coordinator rerun passed 63/63 across supervisor, artifact store,
+  Redis repository, and state machine tests with no failures, errors, or skips.
+  Self-review regressions also proved and closed unsupported STARTING liveness
+  refresh and foreign artifact paths that merely contained the attemptId.
+- Task 7 review coordination: a fresh read-only spec reviewer owns exact
+  comparison against Task 7 and the approved design. It may inspect only the
+  Task 7 implementation/tests and referenced contracts, may not edit files or
+  run live Redis/process/crawler/service operations, and must return
+  severity-ranked findings plus a spec-compliance verdict. Code-quality review
+  remains blocked until this reviewer approves.
+- Task 7 initial spec review verdict: `CHANGES_REQUIRED`; commit and
+  code-quality review remain blocked. Resolver: the same serialized
+  implementation agent under primary Codex. Material findings: duplicate or
+  concurrent start can overwrite PID identity and an old exit watcher can
+  terminalize/release a newer process; launch-CAS failure can orphan an
+  unregistered process; resume/cancel can signal from stale epoch/state
+  snapshots; real null `reportPath` artifacts NPE before direct-action launch;
+  non-running worker statuses can refresh RUNNING liveness; progress and stale
+  event decisions use caller snapshots instead of reloaded Redis authority;
+  and the production launcher lacks focused evidence for its exact process
+  behavior. Re-review is required after each material finding has a RED ->
+  GREEN regression and the full focused selection passes.
+- Task 7 review-fix scope also updates the isolated Redis integration fixture's
+  mutation version chain: PID/start identity is now written only by the
+  write-once `attempt.process-started` mutation, so later progress/terminal
+  fixtures may no longer repeat process identity. The integration test source
+  is in scope for contract alignment, but no Redis instance or fixture stack is
+  authorized in this task.
+- Task 7 review fixes are implemented with regressions for duplicate/concurrent
+  start, launch-CAS cleanup, old watcher identity, stale control snapshots,
+  current-authority progress/event CAS, non-running liveness rejection, null
+  report rendering, write-once PID/start, two-minute dedupe/lease isolation,
+  state-store error propagation, and the production launcher's controlled
+  cwd/env/log/exact lookup/SIGSTOP/SIGCONT behavior. The fresh coordinator
+  six-class selection passed 86/86 with no failures, errors, or skips;
+  `test-compile` and `git diff --check` also pass. The isolated Redis runtime
+  integration remains intentionally unrun. Spec re-review is required before
+  code-quality review.
+- Task 7 spec re-review closed every initial finding except one Important
+  durable-event race. The current stale-progress path reloads the attempt and
+  then performs one exact-version append; a concurrent state advance between
+  those operations can reject the append and leave no `STALE_FENCE_TOKEN`
+  evidence. Resolver remains the serialized implementation agent. Commit and
+  code-quality review stay blocked until the event append derives current
+  authority atomically or passes a bounded reload/retry regression and spec
+  re-review.
+- The remaining durable-event race is fixed by moving current fence token,
+  state version, and status derivation into the atomic append-event Lua script;
+  caller snapshots can no longer make a concurrent stale-event append fail on
+  version/status drift. The fresh coordinator six-class gate again passed
+  86/86. Final spec re-review remains required before code-quality review.
+- Task 7 final spec re-review verdict: `APPROVED`. All prior Critical,
+  Important, and Moderate specification findings are closed; the reviewer
+  independently passed its safe 82-test selection and `git diff --check`.
+  A fresh read-only code-quality reviewer now owns maintainability, concurrency,
+  process-tree, error-handling, Java/Lua consistency, and test-quality review.
+  Commit remains blocked until that review has no unresolved material finding.
+- Task 7 code-quality review verdict: `CHANGES_REQUIRED`; commit remains
+  blocked and the entry stays `active`. Resolver: the serialized Task 7
+  implementation owner under Codex; re-review is required after RED -> GREEN
+  regressions. Critical findings are root-only exit/pause confirmation that can
+  release ownership while descendants still run, and reset recovery treating a
+  missing Redis attempt as confirmed even though the durable manifest does not
+  store PID/start instant. Important findings are missing durable compensation
+  after post-PID-CAS failures, cross-instance pause/resume signal-authority
+  races, retained termination failing to atomically restore/reject dedupe, and
+  progress ingestion hiding storage/security failures or retryable CAS races as
+  `INVALID_PAYLOAD`. Moderate findings require bounded keyed-lock/process-map
+  cleanup, watcher failure handling, removal of the redundant post-terminal
+  lease renewal, and real descendant/concurrency tests. No Redis integration,
+  crawler, database, shared Redis, or service lifecycle operation was run.
+- Task 7 code-quality review fixes are implemented test-first. The launcher now
+  owns a Linux/WSL session/process group, signals the exact negative PGID only
+  after PID/start/session validation, and confirms the group is empty before
+  exit acknowledgement. Durable manifests store write-once PID/start identity;
+  missing Redis attempts no longer imply confirmed termination. Post-PID-CAS
+  failures compensate from the returned stateVersion, cross-instance STOP/CONT
+  authority drift is reloaded and safely compensated, cancellation resumes a
+  stopped group before graceful termination, retained termination atomically
+  restores or validates dedupe, and progress parse failures are distinguished
+  from storage/security errors with one bounded CAS retry. Reclaimable attempt
+  serialization, watcher cleanup/evidence, and the redundant post-terminal
+  lease renewal are also addressed. See git for code-level diff details.
+- Fresh Task 7 review-fix validation passes 108/108 across launcher 7, state
+  machine 4, artifact store 19, Redis repository 27, supervisor 47, and action
+  registry 4 tests; `mvn test-compile` reports BUILD SUCCESS and
+  `git diff --check` is clean. The controlled production-launcher regressions
+  left no descendant process. The final self-review also corrected a real
+  watcher-failure append-event Java/Lua contract mismatch before this gate.
+  Code-quality re-review is now required; Redis integration, crawler, database,
+  shared Redis, fixture stack, and service lifecycle remain intentionally unrun.
+- Task 7 code-quality re-review verdict remains `CHANGES_REQUIRED`; commit stays
+  blocked and the entry remains `active`. One Critical finding remains: launcher
+  failures before returning `ManagedProcess` can kill only the root and leave an
+  unregistered descendant. Two Important findings remain: post-PID-CAS
+  compensation needs a bounded current-authority reload/retry when progress has
+  advanced stateVersion, and `/proc` group inspection must distinguish a
+  vanished PID from unreadable/malformed member evidence instead of treating an
+  incomplete scan as an empty group. Resolver remains the serialized Task 7
+  implementation owner under Codex. Each finding requires a focused RED ->
+  GREEN regression and another code-quality re-review. The reviewer confirmed
+  all other prior findings closed and independently passed the 108-test focused
+  gate, `mvn test-compile`, and `git diff --check`; no Redis integration,
+  crawler, database, shared Redis, fixture stack, or service lifecycle ran.
+- The final Task 7 review-fix round is implemented. Pre-return launcher failure
+  now carries typed known identity and cleanup confirmation, kills the exact
+  process group, and proves it empty before reporting confirmed cleanup;
+  unconfirmed cleanup becomes retained
+  `FAILED/PROCESS_TERMINATION_UNCONFIRMED`. `/proc` inspection distinguishes
+  present, absent, and error evidence so unreadable or malformed members cannot
+  confirm exit or pause. Post-PID-CAS compensation performs one bounded
+  current-authority reload/retry only while epoch, queue, attempt, fence,
+  PID/start identity, and non-terminal intent still match; cancel, terminal,
+  and foreign authority are not overwritten. See git for code-level diff
+  details.
+- Fresh validation after these fixes passes 120/120 across launcher 12, state
+  machine 4, artifact store 19, Redis repository 27, supervisor 54, and action
+  registry 4 tests. `mvn test-compile` reports BUILD SUCCESS,
+  `git diff --check` and the targeted trailing-whitespace scan are clean, and
+  the residual-process scan found no controlled descendants. Final
+  code-quality re-review is required before commit. Live Redis integration,
+  crawler, database, shared Redis, fixture stack, and service lifecycle remain
+  intentionally unrun.
+- Final code-quality re-review still returns `CHANGES_REQUIRED` with one
+  Critical finding. A launched worker can emit its first heartbeat before the
+  `attempt.process-started` CAS, advancing `STARTING` to `RUNNING`; if the PID
+  CAS then fails and process-group cleanup is unconfirmed, current mutation
+  rules cannot attach PID/start identity to RUNNING and no retained canonical
+  identity is durable. The typed pre-return path has the same risk when cleanup
+  is unconfirmed and startInstant is unavailable. Resolver remains the
+  serialized Task 7 implementation owner under Codex. The next fix must use a
+  pre-exec suspended launch handshake so no worker or descendant can run before
+  exact PID/start authority, manifest, and watcher registration are durable;
+  both early-heartbeat and incomplete-identity paths require RED -> GREEN tests
+  and another re-review. The reviewer confirmed every other prior finding
+  closed and independently passed the 120-test gate, `mvn test-compile`,
+  `git diff --check`, and residual-process scan. No live integration ran.
+- The pre-registration authority race is now addressed with an argv-safe
+  `setsid` wrapper that stops itself before `exec` of the worker. Launcher
+  return requires exact root PID/session/process-group identity and a stopped
+  group, so worker heartbeat and descendant creation cannot precede the
+  process-started CAS. Supervisor ordering is now PID/start CAS, process map,
+  manifest, watcher, then initial exact `CONT`; any pre-CONT or CONT failure
+  performs exact forced group cleanup and bounded canonical compensation. See
+  git for code-level diff details.
+- Fresh suspended-launch validation passes 126/126 across launcher 14, state
+  machine 4, artifact store 19, Redis repository 27, supervisor 58, and action
+  registry 4 tests. `mvn test-compile` reports BUILD SUCCESS,
+  `git diff --check` and targeted trailing-whitespace scans are clean. An
+  earlier intentionally failing RED run left one stopped wrapper; it was
+  removed by exact PGID and the final residual-process scan is clean. Final
+  code-quality re-review remains required. No Redis integration, crawler,
+  database, shared Redis, fixture stack, or service lifecycle ran.
+- Final re-review confirms the suspended-launch Critical and every prior
+  production finding closed, but returns `CHANGES_REQUIRED` for one Moderate
+  test-hygiene gap. The real-process
+  `processStartedCasFailureMustKillStoppedGroupBeforeWorkerRuns` regression has
+  no `try/finally` fallback, so an unexpected assertion failure can leave its
+  stopped wrapper/process group alive. Resolver remains the serialized Task 7
+  implementation owner under Codex. Add emergency exact-group cleanup without
+  moving or weakening the pre-cleanup `NOT_FOUND` proof, then repeat the
+  focused gate and re-review. The reviewer independently passed 126/126,
+  `mvn test-compile`, `git diff --check`, and a clean residual-process scan.
+- The Moderate real-process test cleanup finding is fixed without production
+  changes. The CAS-failure regression now uses `try/finally` emergency exact
+  group cleanup while preserving the behavioral `NOT_FOUND` assertion before
+  fallback cleanup. A deliberately injected assertion failure left no residual
+  process; after restoration the targeted test and fresh six-class 126/126 gate
+  pass. `mvn test-compile`, `git diff --check`, whitespace, and final
+  residual-process scans are clean. Final code-quality re-review verdict:
+  `APPROVED`, with no material finding. The coordinator independently reran the
+  six-class gate at 126/126, `mvn test-compile`, `git diff --check`, and the
+  residual-process scan before commit preparation.
 
 ## Result
 
@@ -205,19 +399,19 @@
   focused idle/queue visibility compatibility checkpoint, and Task 3's fixed
   V2 Redis namespace plus fail-closed atomic enqueue/dedupe boundary. Task 4's
   fenced ownership and event-storage primitives and Task 5's attempt-scoped
-  evidence/log/retention store are also complete. See git for code-level diff
-  details.
-- Not completed: Tasks 7-15 and the end-to-end stuck-queue acceptance contract.
+  evidence/log/retention store are also complete. Task 6 binds worker progress
+  to exact V2 identity, and Task 7 adds exact suspended process-group launch,
+  progress/control fencing, and exit-before-release supervision. See git for
+  code-level diff details.
+- Not completed: Tasks 8-15 and the end-to-end stuck-queue acceptance contract.
 
 ## Residual Risks
 
 - The current application still uses the V1 live queue path; this handoff does
   not claim the recurring queue/status problem is fixed.
-- Task 5 artifact primitives are not yet connected to worker progress,
-  supervisor process ownership, reconciler convergence, overview/API/SSE, hard
-  cutover, or combined acceptance.
-- Task 6 binds worker progress to exact V2 attempts but does not yet provide the
-  Task 7 fenced process supervisor, PID/start-marker ownership, or control path.
+- Task 5 artifacts, Task 6 progress identity, and Task 7 supervision are not yet
+  connected to reconciler convergence, overview/API/SSE, hard cutover, or
+  combined acceptance.
 - Task 4 repository primitives are not yet wired into the V1 live path; this
   checkpoint does not claim the recurring production queue stall is fixed.
 - The local stack is running for user acceptance. This checkpoint does not
@@ -226,8 +420,8 @@
 
 ## Follow-up
 
-- Owner: Codex. Continue Task 7 test-first with exact process launch/control
-  through the fenced supervisor; do not wire V2 into the V1 live path.
+- Owner: Codex. Continue Task 8 test-first with bounded reconciliation and
+  recovery; do not wire V2 into the V1 live path.
 
 ## Commits
 
@@ -237,4 +431,5 @@
 - `b81fe45` `feat(crawler): fence V2 attempts and leases`
 - `7cbb748` `docs(devlog): record crawler handoff commit sha`
 - `af762c2` `feat(crawler): isolate V2 attempt evidence`
-- Task 6 focused commit SHA pending in final response.
+- `06c8df2` `feat(crawler): bind progress to V2 attempts`
+- Task 7 focused commit SHA pending in final response.

@@ -212,20 +212,27 @@ class RedisCrawlerQueueV2RepositoryIntegrationTest {
         );
         assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_RESET, invalidTransition.reasonCode());
 
+        CrawlerQueueV2Repository.MutationResult processStarted = repository.mutate(
+            processStartedCommand(command, claimed.fenceToken(), 2L)
+        );
+        assertEquals(3L, processStarted.attempt().stateVersion());
+        assertEquals(12345L, processStarted.attempt().pid());
+        assertEquals(NOW.plusSeconds(10), processStarted.attempt().processStartedAt());
+
         CrawlerQueueV2Repository.MutationResult running = repository.mutate(mutationCommand(
-            command, claimed.fenceToken(), 2L, CrawlerQueueV2Status.RUNNING, 1L, false
+            command, claimed.fenceToken(), 3L, CrawlerQueueV2Status.RUNNING, 1L, false
         ));
-        assertEquals(3L, running.attempt().stateVersion());
+        assertEquals(4L, running.attempt().stateVersion());
         CrawlerQueueV2Exception staleProgress = assertThrows(
             CrawlerQueueV2Exception.class,
             () -> repository.mutate(mutationCommand(
-                command, claimed.fenceToken(), 3L, CrawlerQueueV2Status.RUNNING, 1L, false
+                command, claimed.fenceToken(), 4L, CrawlerQueueV2Status.RUNNING, 1L, false
             ))
         );
         assertEquals(CrawlerQueueV2ReasonCode.STALE_FENCE_TOKEN, staleProgress.reasonCode());
 
         CrawlerQueueV2Repository.MutationResult terminal = repository.mutate(
-            mutationCommand(command, claimed.fenceToken(), 3L, CrawlerQueueV2Status.COMPLETED, 2L, true)
+            mutationCommand(command, claimed.fenceToken(), 4L, CrawlerQueueV2Status.COMPLETED, 2L, true)
         );
         assertEquals(CrawlerQueueV2Status.COMPLETED, terminal.attempt().status());
         assertFalse(redis.hasKey(prefix + "domain:bosses:lease"));
@@ -342,13 +349,45 @@ class RedisCrawlerQueueV2RepositoryIntegrationTest {
             10L,
             10L,
             terminal ? "completed" : "running",
-            12345L,
-            NOW.plusSeconds(10),
+            null,
+            null,
             releaseOwnership,
             null,
-            targetStatus == CrawlerQueueV2Status.RUNNING && stateVersion >= 3L
+            targetStatus == CrawlerQueueV2Status.RUNNING
                 ? "attempt.progressed"
                 : "attempt.transitioned"
+        );
+    }
+
+    private CrawlerQueueV2Repository.MutationCommand processStartedCommand(
+        CrawlerQueueV2Repository.CreateQueueCommand command,
+        long fenceToken,
+        long stateVersion
+    ) {
+        return new CrawlerQueueV2Repository.MutationCommand(
+            "epoch-current",
+            command.queue().queueId(),
+            command.attempt().attemptId(),
+            command.attempt().lane(),
+            command.queue().dedupeKey(),
+            command.attempt().coveredDomains(),
+            fenceToken,
+            stateVersion,
+            CrawlerQueueV2Status.STARTING,
+            null,
+            NOW.plusSeconds(15),
+            NOW.plusSeconds(130),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            12345L,
+            NOW.plusSeconds(10),
+            false,
+            null,
+            "attempt.process-started"
         );
     }
 
@@ -373,7 +412,7 @@ class RedisCrawlerQueueV2RepositoryIntegrationTest {
             )
         );
         return new CrawlerQueueV2Repository.CreateRetryCommand(
-            "epoch-current", queue, attempt, 4L, NOW.plusSeconds(30).toEpochMilli(),
+            "epoch-current", queue, attempt, 5L, NOW.plusSeconds(30).toEpochMilli(),
             Duration.ofMinutes(10),
             new CrawlerQueueV2Event(
                 "attempt.created", "epoch-current", queue.queueId(), attempt.attemptId(),

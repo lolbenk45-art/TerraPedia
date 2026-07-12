@@ -82,7 +82,11 @@ end
 if not terminalStatuses[ARGV[8]] and ARGV[11] == '' then
   return cjson.encode({code = 'INVALID_COMMAND'})
 end
-if (terminalStatuses[ARGV[8]] and ARGV[20] ~= '1')
+local retainedUnconfirmedTermination = ARGV[8] == 'failed'
+  and ARGV[9] == 'PROCESS_TERMINATION_UNCONFIRMED'
+  and ARGV[20] == '0'
+  and retainedTtl > 0
+if (terminalStatuses[ARGV[8]] and ARGV[20] ~= '1' and not retainedUnconfirmedTermination)
   or (not terminalStatuses[ARGV[8]] and ARGV[20] ~= '0') then
   return cjson.encode({code = 'INVALID_COMMAND'})
 end
@@ -135,8 +139,23 @@ end
 if tonumber(attempt.stateVersion) ~= expectedVersion then
   return cjson.encode({code = 'STALE_STATE_VERSION', actualStateVersion = attempt.stateVersion})
 end
+local processStartedMutation = ARGV[22] == 'attempt.process-started'
+if processStartedMutation then
+  if attempt.status ~= 'starting'
+    or ARGV[8] ~= 'starting'
+    or (attempt.pid ~= nil and attempt.pid ~= cjson.null)
+    or (attempt.processStartedAt ~= nil and attempt.processStartedAt ~= cjson.null)
+    or ARGV[18] == ''
+    or ARGV[19] == '' then
+    return cjson.encode({code = 'INVALID_STATUS', actualStatus = attempt.status})
+  end
+elseif ARGV[18] ~= '' or ARGV[19] ~= '' then
+  return cjson.encode({code = 'INVALID_COMMAND'})
+end
 local sameStateProgress = attempt.status == ARGV[8]
-  and (ARGV[22] == 'attempt.progressed' or ARGV[22] == 'attempt.heartbeat')
+  and (ARGV[22] == 'attempt.progressed'
+    or ARGV[22] == 'attempt.heartbeat'
+    or ARGV[22] == 'attempt.process-started')
 if not sameStateProgress
   and (not allowedTransitions[attempt.status] or not allowedTransitions[attempt.status][ARGV[8]]) then
   return cjson.encode({code = 'INVALID_STATUS', actualStatus = attempt.status})
@@ -147,6 +166,9 @@ end
 
 local dedupeOwner = redis.call('GET', KEYS[8])
 if ARGV[20] == '1' and dedupeOwner and dedupeOwner ~= attempt.attemptId then
+  return cjson.encode({code = 'STATE_STORE_INCONSISTENT'})
+end
+if retainedUnconfirmedTermination and dedupeOwner and dedupeOwner ~= attempt.attemptId then
   return cjson.encode({code = 'STATE_STORE_INCONSISTENT'})
 end
 
@@ -201,9 +223,11 @@ local event = {
 }
 
 redis.call('SET', KEYS[3], cjson.encode(attempt))
-if ARGV[20] == '1' then
+if terminalStatuses[ARGV[8]] then
   redis.call('ZREM', KEYS[7], attempt.attemptId)
   redis.call('SREM', KEYS[5], attempt.attemptId)
+end
+if ARGV[20] == '1' then
   if dedupeOwner == attempt.attemptId then
     redis.call('DEL', KEYS[8])
   end
@@ -220,6 +244,11 @@ if ARGV[20] == '1' then
     end
   end
 elseif retainedTtl > 0 then
+  if dedupeOwner == attempt.attemptId then
+    redis.call('PEXPIRE', KEYS[8], ARGV[21])
+  elseif not dedupeOwner then
+    redis.call('SET', KEYS[8], attempt.attemptId, 'PX', ARGV[21])
+  end
   for offset = 0, domainCount - 1 do
     redis.call('PEXPIRE', KEYS[9 + offset], ARGV[21])
   end

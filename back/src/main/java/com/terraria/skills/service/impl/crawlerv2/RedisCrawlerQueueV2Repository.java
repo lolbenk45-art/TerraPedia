@@ -34,6 +34,7 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
     private static final DefaultRedisScript<String> MUTATE_ATTEMPT_SCRIPT = script("mutate-attempt.lua");
     private static final DefaultRedisScript<String> RENEW_LEASES_SCRIPT = script("renew-leases.lua");
     private static final DefaultRedisScript<String> CREATE_RETRY_SCRIPT = script("create-retry.lua");
+    private static final DefaultRedisScript<String> APPEND_EVENT_SCRIPT = script("append-event.lua");
     private static final DefaultRedisScript<String> WRITE_HEALTH_SCRIPT = script("write-health.lua");
 
     private final ObjectMapper objectMapper;
@@ -383,6 +384,45 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
     }
 
     @Override
+    public void appendEvent(CrawlerQueueV2Event event) {
+        Objects.requireNonNull(event, "event");
+        boolean staleProgressEvidence = "attempt.progress-rejected".equals(event.type())
+            && event.reasonCode() == CrawlerQueueV2ReasonCode.STALE_FENCE_TOKEN;
+        boolean watcherFailureEvidence = "attempt.watcher-failed".equals(event.type())
+            && event.reasonCode() == CrawlerQueueV2ReasonCode.RECONCILER_STALE;
+        if (isBlank(event.type())
+            || isBlank(event.stateStoreEpoch())
+            || isBlank(event.queueId())
+            || isBlank(event.attemptId())
+            || event.generatedAt() == null
+            || (!staleProgressEvidence && !watcherFailureEvidence)) {
+            throw invalidMutation("V2 append-event 身份或原因无效");
+        }
+        List<String> keys = List.of(
+            key("meta:engine"),
+            key("meta:epoch"),
+            key("attempt:" + event.attemptId()),
+            key("events")
+        );
+        Object[] arguments = {
+            event.stateStoreEpoch(),
+            event.queueId(),
+            event.attemptId(),
+            event.type(),
+            event.reasonCode().name(),
+            event.generatedAt().toString()
+        };
+        String rawResult = redis(
+            "append V2 event",
+            () -> redisTemplate.execute(APPEND_EVENT_SCRIPT, keys, arguments)
+        );
+        JsonNode result = parseScriptResult("append-event", requireScriptResult("append-event", rawResult));
+        if (!"APPENDED".equals(text(result, "code"))) {
+            throwForMutationCode("append-event", text(result, "code"));
+        }
+    }
+
+    @Override
     public void writeReconcilerHealth(ReconcilerHealth health, CrawlerQueueV2Event event) {
         Objects.requireNonNull(health, "health");
         Objects.requireNonNull(event, "event");
@@ -450,6 +490,13 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
 
     private List<String> validateMutationCommand(MutationCommand command) {
         List<String> domains = sortedDomains(command.coveredDomains());
+        boolean processStartedMutation = "attempt.process-started".equals(command.eventType());
+        boolean hasPid = command.pid() != null;
+        boolean hasProcessStartedAt = command.processStartedAt() != null;
+        boolean retainedUnconfirmedTermination = command.targetStatus() == CrawlerQueueV2Status.FAILED
+            && command.reasonCode() == CrawlerQueueV2ReasonCode.PROCESS_TERMINATION_UNCONFIRMED
+            && !command.releaseOwnership()
+            && command.retainedOwnershipTtl() != null;
         if (isBlank(command.expectedEpoch())
             || isBlank(command.queueId())
             || isBlank(command.attemptId())
@@ -463,7 +510,10 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
                 && command.lastHeartbeatAt() == null)
             || (command.targetStatus().terminal() && command.deadlineAt() != null)
             || (!command.targetStatus().terminal() && command.deadlineAt() == null)
-            || command.targetStatus().terminal() != command.releaseOwnership()
+            || (command.targetStatus().terminal()
+                && !command.releaseOwnership()
+                && !retainedUnconfirmedTermination)
+            || (!command.targetStatus().terminal() && command.releaseOwnership())
             || (command.expectedFenceToken() != null && command.expectedFenceToken() < 1L)
             || (command.progressSequence() != null && command.progressSequence() < 0L)
             || (command.current() != null && command.current() < 0L)
@@ -471,8 +521,19 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
             || (command.current() != null && command.total() != null
                 && command.current() > command.total())
             || (command.pid() != null && command.pid() < 1L)
-            || (command.releaseOwnership() && command.retainedOwnershipTtl() != null)) {
+            || (processStartedMutation
+                && (command.targetStatus() != CrawlerQueueV2Status.STARTING
+                    || !hasPid
+                    || !hasProcessStartedAt))
+            || (!processStartedMutation && (hasPid || hasProcessStartedAt))
+            || (command.releaseOwnership() && command.retainedOwnershipTtl() != null)
+            || (!retainedUnconfirmedTermination
+                && !command.releaseOwnership()
+                && command.retainedOwnershipTtl() != null)) {
             throw invalidMutation("V2 attempt mutation 身份或状态无效");
+        }
+        if (retainedUnconfirmedTermination) {
+            durationMillis(command.retainedOwnershipTtl(), "retained ownership TTL");
         }
         return domains;
     }

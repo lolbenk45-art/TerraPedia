@@ -31,6 +31,8 @@ public interface CrawlerQueueV2Repository {
 
     List<EventEnvelope> readEvents(String after, int count, Duration blockFor);
 
+    void appendEvent(CrawlerQueueV2Event event);
+
     void writeReconcilerHealth(ReconcilerHealth health, CrawlerQueueV2Event event);
 
     record EngineState(

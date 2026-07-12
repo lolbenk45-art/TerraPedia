@@ -1,5 +1,6 @@
 package com.terraria.skills.service.impl.crawlerv2;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.config.CrawlerQueueV2Properties;
 
@@ -104,6 +105,8 @@ public class CrawlerAttemptArtifactStore {
             null,
             null,
             null,
+            null,
+            null,
             progressPath,
             logPath,
             null,
@@ -153,6 +156,37 @@ public class CrawlerAttemptArtifactStore {
         CrawlerAttemptManifest existing = readManifest(manifest.attemptId()).orElseThrow();
         validateManifestUpdate(existing, manifest);
         writeManifestAt(path.getParent(), manifest);
+    }
+
+    public Optional<CrawlerAttemptProgressPayload> readProgress(String attemptId) {
+        CrawlerAttemptManifest manifest = requireManifest(attemptId);
+        Path directory = requireAttemptDirectory(attemptId);
+        Path progressPath = requireInsideAttempt(directory, manifest.progressPath());
+        Path expectedPath = directory.resolve(PROGRESS_FILE).toAbsolutePath().normalize();
+        if (!progressPath.equals(expectedPath)) {
+            throw new SecurityException("attempt progress path role mismatch");
+        }
+        if (!Files.exists(progressPath, LinkOption.NOFOLLOW_LINKS)) {
+            return Optional.empty();
+        }
+        requireNoSymbolicLinks(repoRoot, progressPath);
+        try (FileChannel channel = FileChannel.open(
+            progressPath,
+            StandardOpenOption.READ,
+            LinkOption.NOFOLLOW_LINKS
+        )) {
+            return Optional.of(objectMapper.readValue(
+                Channels.newInputStream(channel),
+                CrawlerAttemptProgressPayload.class
+            ));
+        } catch (JsonProcessingException exception) {
+            throw new InvalidProgressPayloadException(
+                "attempt progress JSON/contract 无效：" + progressPath,
+                exception
+            );
+        } catch (IOException exception) {
+            throw artifactFailure("读取 attempt progress", progressPath, exception);
+        }
     }
 
     public CrawlerAttemptLogMetadata logMetadata(String attemptId, Instant now) {
@@ -312,7 +346,8 @@ public class CrawlerAttemptArtifactStore {
         CrawlerAttemptManifest cleanedManifest = new CrawlerAttemptManifest(
             manifest.contractVersion(), manifest.stateStoreEpoch(), manifest.queueId(), manifest.attemptId(),
             manifest.fenceToken(), manifest.domain(), manifest.actionId(), status, manifest.startedAt(),
-            manifest.completedAt(), manifest.reasonCode(), manifest.exitCode(), manifest.progressPath(),
+            manifest.completedAt(), manifest.reasonCode(), manifest.exitCode(), manifest.pid(),
+            manifest.processStartedAt(), manifest.progressPath(),
             manifest.logPath(), manifest.reportPath(), manifest.outputPath(), manifest.retentionExpiresAt(),
             manifest.artifactsExpiredAt(), cleanedAt, operator, staged.storedPaths()
         );
@@ -334,7 +369,8 @@ public class CrawlerAttemptArtifactStore {
         CrawlerAttemptManifest expiredManifest = new CrawlerAttemptManifest(
             manifest.contractVersion(), manifest.stateStoreEpoch(), manifest.queueId(), manifest.attemptId(),
             manifest.fenceToken(), manifest.domain(), manifest.actionId(), manifest.status(), manifest.startedAt(),
-            manifest.completedAt(), manifest.reasonCode(), manifest.exitCode(), manifest.progressPath(),
+            manifest.completedAt(), manifest.reasonCode(), manifest.exitCode(), manifest.pid(),
+            manifest.processStartedAt(), manifest.progressPath(),
             manifest.logPath(), manifest.reportPath(), manifest.outputPath(), manifest.retentionExpiresAt(),
             expiredAt, manifest.cleanedAt(), manifest.cleanedBy(), manifest.cleanedPaths()
         );
@@ -408,7 +444,8 @@ public class CrawlerAttemptArtifactStore {
         return new CrawlerAttemptManifest(
             manifest.contractVersion(), attempt.stateStoreEpoch(), attempt.queueId(), attempt.attemptId(),
             attempt.fenceToken(), attempt.domain(), attempt.actionId(), attempt.status(), attempt.startedAt(),
-            attempt.completedAt(), attempt.reasonCode(), manifest.exitCode(), manifest.progressPath(),
+            attempt.completedAt(), attempt.reasonCode(), manifest.exitCode(), attempt.pid(),
+            attempt.processStartedAt(), manifest.progressPath(),
             manifest.logPath(), manifest.reportPath(), manifest.outputPath(), retentionExpiresAt,
             manifest.artifactsExpiredAt(), manifest.cleanedAt(), manifest.cleanedBy(), manifest.cleanedPaths()
         );
@@ -638,6 +675,11 @@ public class CrawlerAttemptArtifactStore {
         if (existingFence != null && !Objects.equals(existingFence, updatedFence)) {
             throw new IllegalArgumentException("attempt manifest fenceToken 不允许变化");
         }
+        if (existing.pid() != null
+            && (!Objects.equals(existing.pid(), updated.pid())
+                || !Objects.equals(existing.processStartedAt(), updated.processStartedAt()))) {
+            throw new IllegalArgumentException("attempt manifest 进程身份不允许变化或清除");
+        }
     }
 
     private CrawlerAttemptManifest requireManifest(String attemptId) {
@@ -791,6 +833,12 @@ public class CrawlerAttemptArtifactStore {
         String progressPath,
         String logPath
     ) {}
+
+    public static final class InvalidProgressPayloadException extends IllegalArgumentException {
+        public InvalidProgressPayloadException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
 
     public record LogChunk(
         long offset,

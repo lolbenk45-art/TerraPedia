@@ -26,8 +26,12 @@ public record CrawlerMonitorActionDefinition(
     }
 
     public List<String> renderCommand(String reportPath, String attemptProgressPath) {
+        boolean reportRequired = command.stream().anyMatch(token -> token.contains("<reportPath>"));
+        if (reportRequired && (reportPath == null || reportPath.isBlank())) {
+            throw new IllegalArgumentException("reportPath 不能为空：actionId=" + actionId);
+        }
         return command.stream()
-            .map(token -> token.replace("<reportPath>", reportPath))
+            .map(token -> reportRequired ? token.replace("<reportPath>", reportPath) : token)
             .map(token -> token.startsWith("--progress-path=")
                 ? "--progress-path=" + attemptProgressPath
                 : token.replace("<progressPath>", attemptProgressPath))

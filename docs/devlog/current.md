@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-12 10:55 CST by Codex
+Last updated: 2026-07-12 19:45 CST by Codex
 
 ## Open Work
 
@@ -11,7 +11,7 @@ Last updated: 2026-07-12 10:55 CST by Codex
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
   - parent/child: none
   - dependencies or blocked-by: local stack is running for user acceptance; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
-  - contract handoff: Tasks 1-5 are committed through `af762c2`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 6 exact worker progress identity passed 65/65 tests and final review and is included in this branch checkpoint; continue with Task 7 fenced process supervision
+  - contract handoff: Tasks 1-5 are committed through `af762c2`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 6 exact worker progress identity is committed at `06c8df2`; Task 7 fenced process supervision is approved and ready for its focused commit
 
 ## Current State
 
@@ -86,6 +86,13 @@ Last updated: 2026-07-12 10:55 CST by Codex
   or contract-invalid child evidence. Fresh Task 6 validation passed 65/65
   tests, focused syntax checks, and `git diff --check`; final review found no
   remaining Critical, Important, or Moderate finding.
+- Task 7 is approved for commit. It supervises an exact suspended process
+  group, persists write-once PID/start identity, admits only monotonic exact
+  progress, performs authority-safe pause/resume/cancel, and confirms the whole
+  group exits before ownership release. Fresh coordinator validation passes
+  126/126 plus `mvn test-compile`, `git diff --check`, and a clean residual
+  process scan; final specification and code-quality reviews report no material
+  finding.
 - Plan audit closed two additional fail-closed gaps: the first real V2 mutation
   now uses a durable reservation before Redis plus exact confirmation after it,
   and missing/conflicting Redis epochs require an explicit idempotent reset that
@@ -134,8 +141,10 @@ Last updated: 2026-07-12 10:55 CST by Codex
 
 ## Next Agent Should Start Here
 
-- Continue inline with Task 7 of the committed V2 hard-cutover plan using
-  test-first implementation and the plan's task-level validation checkpoints.
+- After the Task 7 focused commit, continue inline with Task 8 of the committed
+  V2 hard-cutover plan: bounded reconciliation and recovery without resurrecting
+  old work. Preserve Task 7 exact process-group ownership and authorization
+  boundaries.
 - On implementation start, follow the plan task by task and preserve its
   authorization gates: fixture-stack execution, live cutover, and first
   irreversible V2 mutation each require their stated confirmation.
@@ -170,9 +179,9 @@ Last updated: 2026-07-12 10:55 CST by Codex
 - The reservation, durable router lock, explicit epoch reset, and maintenance
   mutation gate remain plan contracts until their focused and isolated-prefix
   tests pass during later implementation tasks.
-- Task 4 proves repository atomicity in an isolated Redis instance, but V2 is
-  still not routed into the live application and has no process supervisor or
-  reconciler consuming these primitives yet.
+- Task 4 proves repository atomicity and Task 7 provides the process supervisor,
+  but V2 is still not routed into the live application and has no reconciler
+  consuming these primitives yet.
 - Historical documents still mention the old `project-plan/` path as archival context by design.
 - Historical devlog entries still mention removed root paths by design; those records are provenance, not live authority.
 - Current risk themes are document-level judgments until fresh runtime/backend/frontend/data gates and crawler reliability checks are run.
