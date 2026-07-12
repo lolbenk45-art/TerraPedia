@@ -31,11 +31,19 @@
 - Preserve `queueId + attemptId + fenceToken + stateVersion + stateStoreEpoch`
   as the live identity contract established by Task 2 at `755713f`.
 - Do not add another V1 compatibility writer or symptom-specific UI priority.
+- User acceptance found that the current admin UI treats a successfully loaded
+  empty domain as unknown and hides queue activity whenever attention rows
+  exist. The approved frontend correction keeps health and queue activity as
+  parallel signals, documented in
+  `docs/superpowers/specs/2026-07-12-crawler-monitor-idle-queue-visibility-design.md`.
 
 ## Scope
 
 - Frontend: Tasks 10-11 and 13 only after backend overview/SSE/log contracts
   exist and pass their producer tests.
+- Frontend compatibility correction: healthy idle mapping, active queue KPI and
+  navigation, and simultaneous attention/queue visibility may proceed without
+  changing the V2 producer contract.
 - Backend: Tasks 3-10 and 12-15 of the approved plan, beginning with the V2
   repository and atomic Redis operations.
 - Data: no database writes; fixture Redis prefixes only at the plan's explicit
