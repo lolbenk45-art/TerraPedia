@@ -1,0 +1,855 @@
+package com.terraria.skills.service.impl.crawlerv2;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.terraria.skills.config.CrawlerQueueV2Properties;
+import com.terraria.skills.dto.CrawlerQueueV2OverviewDTO;
+import com.terraria.skills.service.impl.CrawlerMonitorActionRegistry;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.http.HttpStatus;
+
+import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+class CrawlerQueueV2ApplicationServiceTest {
+
+    private static final Instant NOW = Instant.parse("2026-07-13T01:00:00Z");
+
+    @TempDir
+    Path tempRepoRoot;
+
+    private final CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+    private final CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+    private final CrawlerQueueEngineRouter.MutationPermit mutationPermit = mock(CrawlerQueueEngineRouter.MutationPermit.class);
+    private final CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+    private final CrawlerQueueV2Reconciler reconciler = mock(CrawlerQueueV2Reconciler.class);
+    private final CrawlerAttemptArtifactStore artifactStore = mock(CrawlerAttemptArtifactStore.class);
+    private final CrawlerLegacyHistoryAdapter legacyHistory = mock(CrawlerLegacyHistoryAdapter.class);
+    private CrawlerQueueV2ApplicationService service;
+
+    @BeforeEach
+    void setUp() {
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        when(router.readDurableState()).thenReturn(new CrawlerQueueEngineRouter.CutoverState(
+            2,
+            CrawlerQueueEngineMode.V2,
+            "cutover-1",
+            "epoch-1",
+            NOW,
+            NOW.minusSeconds(2),
+            NOW.minusSeconds(1)
+        ));
+        when(mutationPermit.mode()).thenAnswer(invocation -> router.mode());
+        when(mutationPermit.durableState()).thenAnswer(invocation -> router.readDurableState());
+        org.mockito.Mockito.doAnswer(invocation -> {
+            CrawlerQueueEngineMode expected = invocation.getArgument(0);
+            assertEquals(expected, mutationPermit.mode());
+            return null;
+        }).when(mutationPermit).requireMode(any());
+        when(router.withMutationPermit(any())).thenAnswer(invocation -> {
+            java.util.function.Function<CrawlerQueueEngineRouter.MutationPermit, ?> operation = invocation.getArgument(0);
+            return operation.apply(mutationPermit);
+        });
+        when(legacyHistory.read()).thenReturn(List.of());
+        when(repository.findQuarantines()).thenReturn(List.of());
+        when(repository.latestStreamCursor()).thenReturn("0-0");
+        when(artifactStore.logMetadata(any(), any())).thenAnswer(invocation -> new CrawlerAttemptLogMetadata(
+            invocation.getArgument(0),
+            null,
+            CrawlerAttemptLogAvailability.MISSING,
+            false,
+            null,
+            null,
+            NOW.plus(Duration.ofDays(7)),
+            CrawlerQueueV2ReasonCode.LOG_MISSING
+        ));
+        service = new CrawlerQueueV2ApplicationService(
+            router,
+            repository,
+            new CrawlerAttemptStateMachine(properties),
+            supervisor,
+            reconciler,
+            artifactStore,
+            CrawlerMonitorActionRegistry.defaults(),
+            legacyHistory,
+            properties,
+            Clock.fixed(NOW, ZoneOffset.UTC)
+        );
+    }
+
+    @Test
+    void buildsOverviewWithoutAnyRepositoryMutation() {
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.findLiveAttempts()).thenReturn(List.of(runningAttempt()));
+        when(repository.findTerminalAttempts(100, NOW.minus(Duration.ofDays(7))))
+            .thenReturn(List.of(completedAttempt("attempt-old")));
+        when(repository.readReconcilerHealth()).thenReturn(Optional.of(healthyReconciler()));
+
+        CrawlerQueueV2ApplicationService.OverviewSnapshot first = service.overview();
+        CrawlerQueueV2ApplicationService.OverviewSnapshot second = service.overview();
+
+        assertEquals(2, first.queueContractVersion());
+        assertEquals("attempt-1", first.domainStates().get(0).currentAttemptId());
+        assertEquals(first.liveQueue().get(0).stateVersion(), second.liveQueue().get(0).stateVersion());
+        verify(repository, never()).createQueue(any());
+        verify(repository, never()).claim(any());
+        verify(repository, never()).mutate(any());
+        verify(repository, never()).renewLeases(any());
+        verify(repository, never()).writeReconcilerHealth(any(), any());
+    }
+
+    @Test
+    void rejectsAStaleExactControlBeforeSendingASignal() {
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.findAttempt("attempt-1")).thenReturn(Optional.of(runningAttempt()));
+
+        CrawlerQueueV2ApplicationService.ControlCommand stale =
+            new CrawlerQueueV2ApplicationService.ControlCommand(
+                "queue-1", "attempt-1", 6L, "cancel", "admin"
+            );
+
+        CrawlerQueueV2Exception exception = assertThrows(CrawlerQueueV2Exception.class, () -> service.control(stale));
+
+        assertEquals(409, exception.httpStatus().value());
+        assertEquals(CrawlerQueueV2ReasonCode.STALE_STATE_VERSION, exception.reasonCode());
+        verify(supervisor, never()).cancel(any());
+    }
+
+    @Test
+    void keepsTerminalAttemptsAndImmutableLegacyRowsSeparateFromCurrentDomainState() {
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.findLiveAttempts()).thenReturn(List.of(runningAttempt()));
+        when(repository.findTerminalAttempts(anyInt(), any())).thenReturn(List.of(
+            completedAttempt("attempt-a"),
+            failedAttempt("attempt-b")
+        ));
+        when(legacyHistory.read()).thenReturn(List.of(legacyRow("legacy-q1")));
+
+        CrawlerQueueV2ApplicationService.OverviewSnapshot snapshot = service.overview();
+
+        assertEquals(List.of("attempt-a", "attempt-b"), snapshot.attemptHistory().stream()
+            .map(CrawlerQueueV2OverviewDTO.AttemptDTO::attemptId)
+            .toList());
+        assertTrue(snapshot.legacyHistory().stream().allMatch(row ->
+            !row.live() && row.allowedActions().isEmpty() && "legacy-v1".equals(row.source())
+        ));
+        assertEquals("attempt-1", snapshot.domainStates().get(0).currentAttemptId());
+    }
+
+    @Test
+    void returnsClearlyUnavailableCachedSnapshotAfterAReadFailure() {
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.findLiveAttempts()).thenReturn(List.of(runningAttempt()));
+        when(repository.findTerminalAttempts(anyInt(), any())).thenReturn(List.of());
+        when(repository.readReconcilerHealth()).thenReturn(Optional.of(healthyReconciler()));
+        CrawlerQueueV2ApplicationService.OverviewSnapshot realtime = service.overview();
+        when(repository.readEngineState()).thenThrow(new CrawlerQueueV2Exception(
+            HttpStatus.SERVICE_UNAVAILABLE,
+            CrawlerQueueV2ReasonCode.STATE_STORE_UNAVAILABLE
+        ));
+
+        CrawlerQueueV2ApplicationService.OverviewSnapshot cached = service.overview();
+
+        assertEquals(realtime.generatedAt(), cached.generatedAt());
+        assertEquals("unavailable", cached.queueHealth().status());
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_UNAVAILABLE, cached.queueHealth().reasonCode());
+    }
+
+    @Test
+    void maintenanceReturnsNoActionableLiveRowsAndExposesRouterReason() {
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.MAINTENANCE);
+        when(router.lastReasonCode()).thenReturn(CrawlerQueueV2ReasonCode.FIRST_MUTATION_OUTCOME_UNCERTAIN);
+        when(router.readDurableState()).thenReturn(new CrawlerQueueEngineRouter.CutoverState(
+            2,
+            CrawlerQueueEngineMode.MAINTENANCE,
+            "cutover-1",
+            "epoch-1",
+            NOW,
+            NOW.minusSeconds(1),
+            null
+        ));
+
+        CrawlerQueueV2ApplicationService.OverviewSnapshot snapshot = service.overview();
+
+        assertEquals("maintenance", snapshot.queueHealth().status());
+        assertEquals(CrawlerQueueV2ReasonCode.FIRST_MUTATION_OUTCOME_UNCERTAIN, snapshot.queueHealth().reasonCode());
+        assertTrue(snapshot.liveQueue().isEmpty());
+        assertTrue(snapshot.domainStates().isEmpty());
+    }
+
+    @Test
+    void enqueueConfirmsTheExactLuaFirstMutationBeforeReportingSuccess() {
+        when(router.readDurableState()).thenReturn(new CrawlerQueueEngineRouter.CutoverState(
+            2,
+            CrawlerQueueEngineMode.V2,
+            "cutover-1",
+            "epoch-1",
+            NOW,
+            null,
+            null
+        ));
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.createQueue(any())).thenReturn(new CrawlerQueueV2Repository.EnqueueResult(
+            CrawlerQueueV2Repository.EnqueueCode.CREATED,
+            "queue-created",
+            "attempt-created",
+            1L,
+            null,
+            NOW
+        ));
+        when(artifactStore.prepare(any(), any(), any(), any(), any(), any())).thenReturn(
+            new CrawlerAttemptArtifactStore.PreparedArtifacts(
+                Path.of("/tmp/attempt-created"),
+                "reports/crawler-monitor/v2/2026-07-13/attempt-created/attempt-manifest.json",
+                "reports/crawler-monitor/v2/2026-07-13/attempt-created/progress.json",
+                "reports/crawler-monitor/v2/2026-07-13/attempt-created/run.log"
+            )
+        );
+
+        CrawlerQueueV2ApplicationService.DispatchResult result = service.enqueue(
+            new CrawlerQueueV2ApplicationService.EnqueueCommand(
+                "bosses", "domain-source-bosses", "standard", "fresh", "admin", null
+            )
+        );
+
+        assertTrue(result.accepted());
+        assertEquals("queue-created", result.queueId());
+        assertEquals("attempt-created", result.attemptId());
+        verify(router).reserveFirstLiveMutation(NOW);
+        verify(router).confirmFirstLiveMutation(NOW);
+    }
+
+    @Test
+    void neverCreatesAnotherManifestForADedupedAttempt() {
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.createQueue(any())).thenReturn(new CrawlerQueueV2Repository.EnqueueResult(
+            CrawlerQueueV2Repository.EnqueueCode.DEDUPED,
+            "queue-existing",
+            "attempt-existing",
+            8L,
+            CrawlerQueueV2ReasonCode.DEDUPED_ACTIVE_ATTEMPT,
+            NOW.minusSeconds(1)
+        ));
+
+        CrawlerQueueV2ApplicationService.DispatchResult result = service.enqueue(
+            new CrawlerQueueV2ApplicationService.EnqueueCommand(
+                "bosses", "domain-source-bosses", "standard", "fresh", "admin", null
+            )
+        );
+
+        assertFalse(result.accepted());
+        assertEquals("attempt-existing", result.attemptId());
+        assertEquals(CrawlerQueueV2ReasonCode.DEDUPED_ACTIVE_ATTEMPT, result.reasonCode());
+        verify(artifactStore, never()).prepare(any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void returnsMaintenanceInsteadOfCreatingADuplicateWhenDurableConfirmationIsAmbiguous() {
+        when(router.readDurableState()).thenReturn(new CrawlerQueueEngineRouter.CutoverState(
+            2,
+            CrawlerQueueEngineMode.V2,
+            "cutover-1",
+            "epoch-1",
+            NOW,
+            NOW.minusSeconds(1),
+            null
+        ));
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.createQueue(any())).thenReturn(new CrawlerQueueV2Repository.EnqueueResult(
+            CrawlerQueueV2Repository.EnqueueCode.CREATED,
+            "queue-created",
+            "attempt-created",
+            1L,
+            null,
+            NOW
+        ));
+        org.mockito.Mockito.doThrow(new IllegalStateException("durable fs failed"))
+            .when(router).confirmFirstLiveMutation(NOW);
+
+        CrawlerQueueV2Exception exception = assertThrows(CrawlerQueueV2Exception.class, () -> service.enqueue(
+            new CrawlerQueueV2ApplicationService.EnqueueCommand(
+                "bosses", "domain-source-bosses", "standard", "fresh", "admin", null
+            )
+        ));
+
+        assertEquals(CrawlerQueueV2ReasonCode.FIRST_MUTATION_OUTCOME_UNCERTAIN, exception.reasonCode());
+        verify(router).markMutationUncertain();
+    }
+
+    @Test
+    void enqueueKeepsTheMarkerTransitionOutUntilItsRedisConfirmationCompletes() throws Exception {
+        CrawlerQueueV2Repository localRepository = mock(CrawlerQueueV2Repository.class);
+        CrawlerQueueEngineRouter durableRouter = durableRouter(localRepository);
+        durableRouter.writeState(cutoverState(CrawlerQueueEngineMode.V2, null, null));
+        CrawlerQueueEngineRouter.CutoverState current = durableRouter.readDurableState();
+        CrawlerQueueEngineRouter.CutoverState maintenance = new CrawlerQueueEngineRouter.CutoverState(
+            current.contractVersion(),
+            CrawlerQueueEngineMode.MAINTENANCE,
+            current.cutoverId(),
+            current.stateStoreEpoch(),
+            NOW,
+            NOW,
+            NOW
+        );
+        CrawlerAttemptArtifactStore localArtifacts = mock(CrawlerAttemptArtifactStore.class);
+        CrawlerAttemptSupervisor localSupervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerQueueV2Reconciler localReconciler = mock(CrawlerQueueV2Reconciler.class);
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        CrawlerLegacyHistoryAdapter localLegacyHistory = mock(CrawlerLegacyHistoryAdapter.class);
+        CrawlerQueueV2ApplicationService localService = new CrawlerQueueV2ApplicationService(
+            durableRouter,
+            localRepository,
+            new CrawlerAttemptStateMachine(properties),
+            localSupervisor,
+            localReconciler,
+            localArtifacts,
+            CrawlerMonitorActionRegistry.defaults(),
+            localLegacyHistory,
+            properties,
+            Clock.fixed(NOW, ZoneOffset.UTC)
+        );
+        when(localRepository.readEngineState()).thenReturn(
+            engineV2WithoutFirstMutation(),
+            engineV2WithoutFirstMutation(),
+            engineV2()
+        );
+        when(localArtifacts.prepare(any(), any(), any(), any(), any(), any())).thenReturn(
+            new CrawlerAttemptArtifactStore.PreparedArtifacts(
+                Path.of("/tmp/attempt-created"),
+                "reports/crawler-monitor/v2/2026-07-13/attempt-created/attempt-manifest.json",
+                "reports/crawler-monitor/v2/2026-07-13/attempt-created/progress.json",
+                "reports/crawler-monitor/v2/2026-07-13/attempt-created/run.log"
+            )
+        );
+
+        CountDownLatch redisEntered = new CountDownLatch(1);
+        CountDownLatch releaseRedis = new CountDownLatch(1);
+        CountDownLatch markerCallingWrite = new CountDownLatch(1);
+        CountDownLatch markerPersisted = new CountDownLatch(1);
+        AtomicInteger order = new AtomicInteger();
+        AtomicInteger redisMutationOrder = new AtomicInteger();
+        AtomicInteger manifestOrder = new AtomicInteger();
+        AtomicInteger markerOrder = new AtomicInteger();
+        org.mockito.Mockito.doAnswer(invocation -> {
+            redisEntered.countDown();
+            awaitLatch(releaseRedis);
+            redisMutationOrder.set(order.incrementAndGet());
+            return new CrawlerQueueV2Repository.EnqueueResult(
+                CrawlerQueueV2Repository.EnqueueCode.CREATED,
+                "queue-created",
+                "attempt-created",
+                1L,
+                null,
+                NOW
+            );
+        }).when(localRepository).createQueue(any());
+        org.mockito.Mockito.doAnswer(invocation -> {
+            manifestOrder.set(order.incrementAndGet());
+            return new CrawlerAttemptArtifactStore.PreparedArtifacts(
+                Path.of("/tmp/attempt-created"),
+                "reports/crawler-monitor/v2/2026-07-13/attempt-created/attempt-manifest.json",
+                "reports/crawler-monitor/v2/2026-07-13/attempt-created/progress.json",
+                "reports/crawler-monitor/v2/2026-07-13/attempt-created/run.log"
+            );
+        }).when(localArtifacts).prepare(any(), any(), any(), any(), any(), any());
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Future<CrawlerQueueV2ApplicationService.DispatchResult> enqueue = null;
+        Thread marker = null;
+        Throwable primaryFailure = null;
+        try {
+            enqueue = executor.submit(() -> localService.enqueue(
+                new CrawlerQueueV2ApplicationService.EnqueueCommand(
+                    "bosses", "domain-source-bosses", "standard", "fresh", "admin", null
+                )
+            ));
+            awaitLatch(redisEntered);
+            marker = new Thread(() -> {
+                markerCallingWrite.countDown();
+                durableRouter.writeState(maintenance);
+                markerOrder.set(order.incrementAndGet());
+                markerPersisted.countDown();
+            }, "enqueue-maintenance-marker");
+            marker.start();
+            awaitLatch(markerCallingWrite);
+            awaitRouterLockContention(marker, markerPersisted);
+
+            releaseRedis.countDown();
+            assertTrue(enqueue.get(2, TimeUnit.SECONDS).accepted());
+            assertTrue(markerPersisted.await(2, TimeUnit.SECONDS), "maintenance marker did not complete");
+            assertTrue(redisMutationOrder.get() > 0, "Redis mutation did not complete");
+            assertTrue(manifestOrder.get() > redisMutationOrder.get(), "manifest must follow Redis confirmation");
+            assertTrue(markerOrder.get() > manifestOrder.get(), "maintenance must persist after the admitted enqueue");
+        } catch (Exception | Error failure) {
+            primaryFailure = failure;
+            throw failure;
+        } finally {
+            releaseRedis.countDown();
+            finishInterleaving(marker, executor, enqueue, primaryFailure, "enqueue maintenance interleaving");
+        }
+    }
+
+    @Test
+    void controlKeepsTheMarkerTransitionOutUntilItsSupervisorSignalCompletes() throws Exception {
+        CrawlerQueueV2Repository localRepository = mock(CrawlerQueueV2Repository.class);
+        CrawlerQueueEngineRouter durableRouter = durableRouter(localRepository);
+        durableRouter.writeState(cutoverState(
+            CrawlerQueueEngineMode.V2,
+            NOW.minusSeconds(1),
+            NOW
+        ));
+        CrawlerQueueEngineRouter.CutoverState maintenance = maintenanceState(durableRouter.readDurableState());
+        CrawlerAttemptArtifactStore localArtifacts = mock(CrawlerAttemptArtifactStore.class);
+        CrawlerAttemptSupervisor localSupervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerQueueV2Reconciler localReconciler = mock(CrawlerQueueV2Reconciler.class);
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        CrawlerQueueV2ApplicationService localService = new CrawlerQueueV2ApplicationService(
+            durableRouter,
+            localRepository,
+            new CrawlerAttemptStateMachine(properties),
+            localSupervisor,
+            localReconciler,
+            localArtifacts,
+            CrawlerMonitorActionRegistry.defaults(),
+            mock(CrawlerLegacyHistoryAdapter.class),
+            properties,
+            Clock.fixed(NOW, ZoneOffset.UTC)
+        );
+        CrawlerQueueV2Attempt running = runningAttempt();
+        CrawlerQueueV2Attempt cancelRequested = withStatus(running, CrawlerQueueV2Status.CANCEL_REQUESTED);
+        when(localRepository.readEngineState()).thenReturn(engineV2());
+        when(localRepository.findAttempt(running.attemptId())).thenReturn(Optional.of(running));
+        when(localRepository.findQueue(running.queueId())).thenReturn(Optional.of(queueFor(running)));
+        when(localRepository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(cancelRequested, "1-0"));
+
+        CountDownLatch signalEntered = new CountDownLatch(1);
+        CountDownLatch releaseSignal = new CountDownLatch(1);
+        CountDownLatch markerCallingWrite = new CountDownLatch(1);
+        CountDownLatch markerPersisted = new CountDownLatch(1);
+        AtomicInteger order = new AtomicInteger();
+        AtomicInteger signalOrder = new AtomicInteger();
+        AtomicInteger markerOrder = new AtomicInteger();
+        org.mockito.Mockito.doAnswer(invocation -> {
+            signalEntered.countDown();
+            awaitLatch(releaseSignal);
+            signalOrder.set(order.incrementAndGet());
+            return cancelRequested;
+        }).when(localSupervisor).cancel(cancelRequested);
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Future<CrawlerQueueV2ApplicationService.DispatchResult> control = null;
+        Thread marker = null;
+        Throwable primaryFailure = null;
+        try {
+            control = executor.submit(() -> localService.control(
+                new CrawlerQueueV2ApplicationService.ControlCommand(
+                    running.queueId(), running.attemptId(), running.stateVersion(), "cancel", "admin"
+                )
+            ));
+            awaitLatch(signalEntered);
+            marker = new Thread(() -> {
+                markerCallingWrite.countDown();
+                durableRouter.writeState(maintenance);
+                markerOrder.set(order.incrementAndGet());
+                markerPersisted.countDown();
+            }, "control-maintenance-marker");
+            marker.start();
+            awaitLatch(markerCallingWrite);
+            awaitRouterLockContention(marker, markerPersisted);
+
+            releaseSignal.countDown();
+            assertTrue(control.get(2, TimeUnit.SECONDS).accepted());
+            assertTrue(markerPersisted.await(2, TimeUnit.SECONDS), "maintenance marker did not complete");
+            assertTrue(signalOrder.get() > 0, "supervisor signal did not complete");
+            assertTrue(markerOrder.get() > signalOrder.get(), "maintenance must persist after the admitted signal");
+        } catch (Exception | Error failure) {
+            primaryFailure = failure;
+            throw failure;
+        } finally {
+            releaseSignal.countDown();
+            finishInterleaving(marker, executor, control, primaryFailure, "control maintenance interleaving");
+        }
+    }
+
+    @Test
+    void rejectsEveryControlRetryAndCleanupBeforeEffectsWhenFirstMutationIsUnconfirmed() {
+        CrawlerQueueEngineRouter.CutoverState unconfirmed = cutoverState(
+            CrawlerQueueEngineMode.V2,
+            NOW.minusSeconds(1),
+            null
+        );
+        when(router.readDurableState()).thenReturn(unconfirmed);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+
+        CrawlerQueueV2Exception control = assertThrows(CrawlerQueueV2Exception.class, () -> service.control(
+            new CrawlerQueueV2ApplicationService.ControlCommand("queue-1", "attempt-1", 7L, "cancel", "admin")
+        ));
+        CrawlerQueueV2Exception retry = assertThrows(CrawlerQueueV2Exception.class, () -> service.control(
+            new CrawlerQueueV2ApplicationService.ControlCommand("queue-1", "attempt-1", 7L, "retry", "admin")
+        ));
+        CrawlerQueueV2Exception cleanup = assertThrows(CrawlerQueueV2Exception.class, () -> service.cleanup(
+            new CrawlerQueueV2ApplicationService.CleanupCommand("attempt-1", 7L, "admin")
+        ));
+
+        assertEquals(CrawlerQueueV2ReasonCode.FIRST_MUTATION_OUTCOME_UNCERTAIN, control.reasonCode());
+        assertEquals(CrawlerQueueV2ReasonCode.FIRST_MUTATION_OUTCOME_UNCERTAIN, retry.reasonCode());
+        assertEquals(CrawlerQueueV2ReasonCode.FIRST_MUTATION_OUTCOME_UNCERTAIN, cleanup.reasonCode());
+        verifyNoInteractions(repository, supervisor, artifactStore);
+    }
+
+    @Test
+    void allowsConfirmedFirstMutationControlEffects() {
+        CrawlerQueueV2Attempt running = runningAttempt();
+        CrawlerQueueV2Attempt cancelRequested = withStatus(running, CrawlerQueueV2Status.CANCEL_REQUESTED);
+        when(repository.findAttempt(running.attemptId())).thenReturn(Optional.of(running));
+        when(repository.findQueue(running.queueId())).thenReturn(Optional.of(queueFor(running)));
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(cancelRequested, "1-0"));
+        when(supervisor.cancel(cancelRequested)).thenReturn(cancelRequested);
+
+        CrawlerQueueV2ApplicationService.DispatchResult result = service.control(
+            new CrawlerQueueV2ApplicationService.ControlCommand(
+                running.queueId(), running.attemptId(), running.stateVersion(), "cancel", "admin"
+            )
+        );
+
+        assertTrue(result.accepted());
+        verify(supervisor).cancel(cancelRequested);
+    }
+
+    @Test
+    void oldEpochLiveIndexesAndManifestsBecomeOneResetHistoryRowOnly() {
+        CrawlerQueueV2Attempt oldLive = withEpoch(attempt("attempt-old-live", CrawlerQueueV2Status.RUNNING), "epoch-old");
+        CrawlerAttemptManifest oldManifest = new CrawlerAttemptManifest(
+            2,
+            "epoch-old",
+            oldLive.queueId(),
+            oldLive.attemptId(),
+            oldLive.fenceToken(),
+            oldLive.domain(),
+            oldLive.actionId(),
+            CrawlerQueueV2Status.RUNNING,
+            oldLive.startedAt(),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            List.of()
+        );
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.findLiveAttempts()).thenReturn(List.of(oldLive));
+        when(repository.findTerminalAttempts(anyInt(), any())).thenReturn(List.of());
+        when(repository.readReconcilerHealth()).thenReturn(Optional.empty());
+        when(artifactStore.listManifests()).thenReturn(List.of(oldManifest));
+
+        CrawlerQueueV2ApplicationService.OverviewSnapshot snapshot = service.overview();
+
+        assertTrue(snapshot.liveQueue().isEmpty());
+        assertTrue(snapshot.domainStates().isEmpty());
+        assertEquals(1, snapshot.attemptHistory().size());
+        CrawlerQueueV2OverviewDTO.AttemptDTO history = snapshot.attemptHistory().get(0);
+        assertEquals("attempt-old-live", history.attemptId());
+        assertEquals("epoch-old", history.stateStoreEpoch());
+        assertEquals("interrupted", history.status());
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_RESET, history.reasonCode());
+        assertTrue(history.allowedActions().isEmpty());
+    }
+
+    private static CrawlerQueueV2Repository.EngineState engineV2() {
+        return new CrawlerQueueV2Repository.EngineState(CrawlerQueueEngineMode.V2, "epoch-1", "cutover-1", NOW.toString());
+    }
+
+    private static CrawlerQueueV2Repository.EngineState engineV2WithoutFirstMutation() {
+        return new CrawlerQueueV2Repository.EngineState(CrawlerQueueEngineMode.V2, "epoch-1", "cutover-1", null);
+    }
+
+    private CrawlerQueueEngineRouter durableRouter(CrawlerQueueV2Repository localRepository) {
+        return new CrawlerQueueEngineRouter(
+            new ObjectMapper().registerModule(new JavaTimeModule()),
+            localRepository,
+            tempRepoRoot,
+            Clock.fixed(NOW, ZoneOffset.UTC)
+        );
+    }
+
+    private static CrawlerQueueEngineRouter.CutoverState cutoverState(
+        CrawlerQueueEngineMode mode,
+        Instant reservation,
+        Instant firstMutation
+    ) {
+        return new CrawlerQueueEngineRouter.CutoverState(
+            2,
+            mode,
+            "cutover-1",
+            "epoch-1",
+            NOW,
+            reservation,
+            firstMutation
+        );
+    }
+
+    private static CrawlerQueueEngineRouter.CutoverState maintenanceState(
+        CrawlerQueueEngineRouter.CutoverState current
+    ) {
+        return new CrawlerQueueEngineRouter.CutoverState(
+            current.contractVersion(),
+            CrawlerQueueEngineMode.MAINTENANCE,
+            current.cutoverId(),
+            current.stateStoreEpoch(),
+            NOW,
+            current.mutationReservationAt(),
+            current.firstLiveMutationAt()
+        );
+    }
+
+    private static void awaitLatch(CountDownLatch latch) {
+        try {
+            if (!latch.await(2, TimeUnit.SECONDS)) {
+                throw new AssertionError("timed out waiting for deterministic test interleaving");
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError(exception);
+        }
+    }
+
+    private static void awaitRouterLockContention(Thread marker, CountDownLatch markerPersisted)
+        throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+        while (System.nanoTime() < deadline) {
+            Thread.State state = marker.getState();
+            boolean waitingInRouter = Arrays.stream(marker.getStackTrace()).anyMatch(frame ->
+                frame.getClassName().equals(CrawlerQueueEngineRouter.class.getName())
+                    && frame.getMethodName().equals("locked")
+            );
+            if (markerPersisted.getCount() == 1
+                && waitingInRouter
+                && (state == Thread.State.WAITING || state == Thread.State.BLOCKED)) {
+                return;
+            }
+            Thread.sleep(5L);
+        }
+        throw new AssertionError("maintenance writer did not wait on the real router lock");
+    }
+
+    private static void finishInterleaving(
+        Thread marker,
+        ExecutorService executor,
+        Future<?> operation,
+        Throwable primaryFailure,
+        String description
+    ) {
+        StringBuilder problems = new StringBuilder();
+        executor.shutdown();
+        if (operation != null && !operation.isDone()) {
+            try {
+                operation.get(2, TimeUnit.SECONDS);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                appendCleanupProblem(problems, "operation wait interrupted");
+            } catch (Exception exception) {
+                appendCleanupProblem(problems, "operation did not finish: " + exception.getClass().getSimpleName());
+            }
+        }
+        if (marker != null) {
+            try {
+                marker.join(2_000L);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                appendCleanupProblem(problems, "marker join interrupted");
+            }
+        }
+        try {
+            if (!executor.awaitTermination(2, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+                if (!executor.awaitTermination(2, TimeUnit.SECONDS)) {
+                    appendCleanupProblem(problems, "executor did not terminate");
+                }
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            appendCleanupProblem(problems, "executor termination interrupted");
+        }
+        if (marker != null && marker.isAlive()) {
+            marker.interrupt();
+            try {
+                marker.join(2_000L);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                appendCleanupProblem(problems, "marker cleanup join interrupted");
+            }
+            if (marker.isAlive()) {
+                appendCleanupProblem(problems, "marker thread is still alive");
+            }
+        }
+        if (problems.length() == 0) {
+            return;
+        }
+        AssertionError cleanupFailure = new AssertionError(description + " cleanup incomplete: " + problems);
+        if (primaryFailure == null) {
+            throw cleanupFailure;
+        }
+        primaryFailure.addSuppressed(cleanupFailure);
+    }
+
+    private static void appendCleanupProblem(StringBuilder problems, String problem) {
+        if (problems.length() > 0) {
+            problems.append("; ");
+        }
+        problems.append(problem);
+    }
+
+    private static CrawlerQueueV2Repository.ReconcilerHealth healthyReconciler() {
+        return new CrawlerQueueV2Repository.ReconcilerHealth(NOW, 1L, 0L, 0L, 0L, 0L, null);
+    }
+
+    private static CrawlerQueueV2Attempt runningAttempt() {
+        return attempt("attempt-1", CrawlerQueueV2Status.RUNNING);
+    }
+
+    private static CrawlerQueueV2Attempt completedAttempt(String attemptId) {
+        return attempt(attemptId, CrawlerQueueV2Status.COMPLETED);
+    }
+
+    private static CrawlerQueueV2Attempt failedAttempt(String attemptId) {
+        return attempt(attemptId, CrawlerQueueV2Status.FAILED);
+    }
+
+    private static CrawlerQueueV2Attempt attempt(String attemptId, CrawlerQueueV2Status status) {
+        boolean terminal = status.terminal();
+        String queueId = "attempt-1".equals(attemptId) ? "queue-1" : "queue-" + attemptId;
+        return new CrawlerQueueV2Attempt(
+            2,
+            "epoch-1",
+            queueId,
+            attemptId,
+            terminal ? 9L : 7L,
+            terminal ? 9L : 7L,
+            status,
+            "standard",
+            "bosses",
+            List.of("bosses"),
+            "domain-source-bosses",
+            null,
+            NOW.minus(Duration.ofMinutes(2)),
+            NOW.minus(Duration.ofMinutes(2)),
+            NOW.minus(Duration.ofMinutes(2)),
+            NOW.minus(Duration.ofMinutes(2)),
+            terminal ? NOW.minusSeconds(10) : null,
+            terminal ? NOW.minusSeconds(20) : NOW,
+            terminal ? null : NOW.plusSeconds(90),
+            terminal ? null : 12345L,
+            terminal ? null : NOW.minus(Duration.ofMinutes(2)).minusSeconds(1),
+            5L,
+            "crawl-pages",
+            terminal ? 10L : 5L,
+            10L,
+            status.value(),
+            status == CrawlerQueueV2Status.FAILED ? CrawlerQueueV2ReasonCode.PROCESS_EXIT_NONZERO : null,
+            new CrawlerQueueV2Artifacts(
+                "reports/crawler-monitor/v2/2026-07-13/" + attemptId + "/progress.json",
+                "reports/crawler-monitor/v2/2026-07-13/" + attemptId + "/run.log",
+                null,
+                null
+            )
+        );
+    }
+
+    private static CrawlerQueueV2Attempt withStatus(
+        CrawlerQueueV2Attempt source,
+        CrawlerQueueV2Status status
+    ) {
+        return new CrawlerQueueV2Attempt(
+            source.contractVersion(), source.stateStoreEpoch(), source.queueId(), source.attemptId(),
+            source.fenceToken(), source.stateVersion() + 1L, status, source.lane(), source.domain(),
+            source.coveredDomains(), source.actionId(), source.retryOfAttemptId(), source.requestedAt(),
+            source.eligibleAt(), source.enteredAt(), source.startedAt(), source.completedAt(),
+            source.lastHeartbeatAt(), source.deadlineAt(), source.pid(), source.processStartedAt(),
+            source.progressSequence(), source.phase(), source.current(), source.total(), source.workerMessage(),
+            source.reasonCode(), source.artifacts()
+        );
+    }
+
+    private static CrawlerQueueV2Attempt withEpoch(CrawlerQueueV2Attempt source, String epoch) {
+        return new CrawlerQueueV2Attempt(
+            source.contractVersion(), epoch, source.queueId(), source.attemptId(), source.fenceToken(),
+            source.stateVersion(), source.status(), source.lane(), source.domain(), source.coveredDomains(),
+            source.actionId(), source.retryOfAttemptId(), source.requestedAt(), source.eligibleAt(), source.enteredAt(),
+            source.startedAt(), source.completedAt(), source.lastHeartbeatAt(), source.deadlineAt(), source.pid(),
+            source.processStartedAt(), source.progressSequence(), source.phase(), source.current(), source.total(),
+            source.workerMessage(), source.reasonCode(), source.artifacts()
+        );
+    }
+
+    private static CrawlerQueueV2Queue queueFor(CrawlerQueueV2Attempt attempt) {
+        return new CrawlerQueueV2Queue(
+            2,
+            attempt.stateStoreEpoch(),
+            attempt.queueId(),
+            attempt.lane(),
+            attempt.domain(),
+            attempt.coveredDomains(),
+            attempt.actionId(),
+            attempt.lane() + ":" + attempt.actionId(),
+            attempt.requestedAt(),
+            "admin",
+            attempt.attemptId(),
+            List.of(attempt.attemptId()),
+            null
+        );
+    }
+
+    private static CrawlerQueueV2OverviewDTO.LegacyAttemptDTO legacyRow(String queueId) {
+        return new CrawlerQueueV2OverviewDTO.LegacyAttemptDTO(
+            "legacy-v1",
+            false,
+            queueId,
+            "legacy-v1:" + queueId,
+            "bosses",
+            "domain-source-bosses",
+            "interrupted",
+            NOW.minus(Duration.ofDays(1)),
+            NOW.minus(Duration.ofDays(1)).plusSeconds(30),
+            CrawlerQueueV2ReasonCode.LEGACY_CUTOVER,
+            CrawlerQueueV2ReasonCode.LEGACY_CUTOVER.messageZh(),
+            List.of(),
+            null
+        );
+    }
+}

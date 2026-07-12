@@ -23,26 +23,27 @@ public class CrawlerQueueV2Reconciler {
     private final CrawlerAttemptStateMachine stateMachine;
     private final CrawlerQueueV2Properties properties;
     private final Clock clock;
+    private final CrawlerQueueEngineRouter router;
 
     public CrawlerQueueV2Reconciler(
         CrawlerQueueV2Repository repository,
         CrawlerAttemptSupervisor supervisor,
         CrawlerAttemptStateMachine stateMachine,
         CrawlerQueueV2Properties properties,
-        Clock clock
+        Clock clock,
+        CrawlerQueueEngineRouter router
     ) {
         this.repository = Objects.requireNonNull(repository, "repository");
         this.supervisor = Objects.requireNonNull(supervisor, "supervisor");
         this.stateMachine = Objects.requireNonNull(stateMachine, "stateMachine");
         this.properties = Objects.requireNonNull(properties, "properties");
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.router = Objects.requireNonNull(router, "router");
     }
 
     @Scheduled(fixedDelayString = "${terraria.crawler.queue-v2.reconcile-interval:PT5S}")
     public void scheduledReconcile() {
-        if (v2Engine().isPresent()) {
-            reconcileNow();
-        }
+        reconcileNow();
     }
 
     @Scheduled(fixedDelayString = "${terraria.crawler.queue-v2.reconcile-interval:PT5S}")
@@ -52,6 +53,22 @@ public class CrawlerQueueV2Reconciler {
 
     public ReconcileResult reconcileNow() {
         Instant now = clock.instant();
+        try {
+            return router.withMutationPermit(permit -> reconcileUnderPermit(now, permit));
+        } catch (RuntimeException ignored) {
+            return new MutableCounts().result(true);
+        }
+    }
+
+    private ReconcileResult reconcileUnderPermit(
+        Instant now,
+        CrawlerQueueEngineRouter.MutationPermit permit
+    ) {
+        try {
+            permit.requireMode(CrawlerQueueEngineMode.V2);
+        } catch (CrawlerQueueV2Exception exception) {
+            return new MutableCounts().result(true);
+        }
         CrawlerQueueV2Repository.EngineState engine = null;
         MutableCounts counts = new MutableCounts();
         try {
@@ -76,6 +93,22 @@ public class CrawlerQueueV2Reconciler {
 
     public WatchdogResult watchdogNow() {
         Instant now = clock.instant();
+        try {
+            return router.withMutationPermit(permit -> watchdogUnderPermit(now, permit));
+        } catch (RuntimeException ignored) {
+            return new WatchdogResult(false, 0L, 0L, true);
+        }
+    }
+
+    private WatchdogResult watchdogUnderPermit(
+        Instant now,
+        CrawlerQueueEngineRouter.MutationPermit permit
+    ) {
+        try {
+            permit.requireMode(CrawlerQueueEngineMode.V2);
+        } catch (CrawlerQueueV2Exception exception) {
+            return new WatchdogResult(false, 0L, 0L, true);
+        }
         CrawlerQueueV2Repository.EngineState engine = null;
         CrawlerQueueV2Repository.ReconcilerHealth previous = null;
         long overdue = 0L;
@@ -409,15 +442,6 @@ public class CrawlerQueueV2Reconciler {
             CrawlerQueueV2ReasonCode.STATE_STORE_UNAVAILABLE
         );
         writeHealth(epoch, health, now);
-    }
-
-    private Optional<CrawlerQueueV2Repository.EngineState> v2Engine() {
-        try {
-            CrawlerQueueV2Repository.EngineState engine = repository.readEngineState();
-            return isV2(engine) ? Optional.of(engine) : Optional.empty();
-        } catch (RuntimeException exception) {
-            return Optional.empty();
-        }
     }
 
     private boolean isV2(CrawlerQueueV2Repository.EngineState engine) {

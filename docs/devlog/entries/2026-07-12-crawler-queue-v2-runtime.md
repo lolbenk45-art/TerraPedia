@@ -81,11 +81,58 @@
   implementer must add focused RED regressions and repair all findings, then
   obtain fresh specification re-review before code-quality review. Generated
   data remains user-owned and excluded from scope/staging.
-- Task 8 is now ready for its focused commit. The replacement implementer
+- Task 8 is checkpointed at `04b684a`. The replacement implementer
   closed the Spring wiring, current-epoch quarantine, ready-time, canonical
   manifest, strict adoption, reset-Lua, watchdog fail-visible, and reset-result
   binding gaps with RED -> GREEN regressions. Final specification and
   code-quality re-reviews are `APPROVED`; see Validation for fresh evidence.
+- Task 9 is active under the same coordinator. One serialized implementer owns
+  only the durable router, V2 overview/application service, immutable legacy
+  history adapter, matching DTO/service integration, `CrawlerAttemptSupervisor`
+  router injection/async watcher guard, and the focused Task 9 tests. It may
+  update only the Task 9 backend/config/test paths named by the plan, including
+  the existing router interleaving tests; it must not edit devlog files,
+  generated data, Task 10+ HTTP/UI files, run a crawler, mutate a shared Redis
+  namespace or database, or change service lifecycle. Task 9 must start from
+  failing router/application/supervisor tests and obtain fresh specification
+  then code-quality review before its focused commit.
+- The first Task 9 implementation turn closed the router/cursor contract gap
+  (`RedisCrawlerQueueV2RepositoryTest` 44/44 and application-service tests
+  8/8) but stopped before monitor-service integration. A replacement
+  serialized implementer now owns the remaining Task 9 scope; its first
+  inherited compile failure is the planned V2 monitor constructor/test seam.
+- The replacement turn saved the monitor-service V2 routing integration, then
+  stopped at the next focused compile boundary: reconciler and recovery tests
+  already expect the Task 9 durable-router constructor, while those production
+  services still expose the five-argument constructors. The next serialized
+  owner must add the durable V2 mutation gates there before resuming monitor
+  integration validation; no production runtime or shared state was touched.
+- Task 9 now routes V2 dispatch/overview through the durable router, and its
+  reconciler/recovery production constructors require that router before any
+  background mutation can occur. The external control request does not yet
+  contain `attemptId` or `expectedStateVersion`; Task 10 owns that request/API
+  expansion. Until then the monitor service rejects V2 requests from the V1
+  control path rather than sending them to legacy state; the Task 9 application
+  service already enforces exact V2 queue/attempt/version controls directly.
+- Task 9 specification review is `CHANGES_REQUIRED`; commit is blocked. The
+  router samples mode under a short file lock, then releases it before every
+  irreversible V2/V1 mutation. A concurrent durable maintenance marker can
+  therefore land after admission while enqueue, control, retry, cleanup,
+  reconciler/watchdog, recovery, or V1 background work continues writing. The
+  resolver must first add RED latch-interleaving coverage and then a shared
+  cross-process mutation permit/fence spanning admission through all irreversible
+  effects, serialized with maintenance/cutover/reset marker writes. The review
+  also requires RED -> GREEN repairs for reset timestamp preservation,
+  confirmed-first-mutation gating of control/retry/cleanup, and old-epoch live
+  index history projection. A fresh spec re-review then code-quality review are
+  required before commit.
+- The coordinator repaired the Task 9 plan at
+  `docs/superpowers/plans/2026-07-11-crawler-monitor-queue-v2-hard-cutover.md`:
+  the durable router now needs a permit spanning each whole routed mutation,
+  marker writes must serialize with that permit, and the focused gate includes
+  latch-interleaving evidence plus reset/confirmation/history regressions. The
+  affected goal, source authority, no-write boundaries, and Task 10 API-field
+  deferral remain unchanged; the repaired Task 9 plan is execution-ready.
 
 ## Scope
 
@@ -433,6 +480,111 @@
   canonical manifests, fail-visible watchdog errors, and reset response binding
   to reset ID, epoch, and irreversible timestamp. The environment-gated Redis
   reset-Lua integration suite remains intentionally unexecuted.
+- Task 9 current focused gate passes 249/249 across engine router, V2
+  application service, reconciler, recovery, monitor service, and overview
+  builder tests. The durable router blocks reconciler/watchdog/recovery writes
+  outside V2, monitor V2 overview avoids V1 live-queue reads, and V2 dispatch
+  does not touch the legacy queue. `git diff --check` passes. Specification
+  review is the next required gate; no service, crawler, Redis, database, or
+  fixture-stack operation was run.
+- Task 9 specification review invalidates the current 249/249 commit claim:
+  the gate lacks interleaving evidence for a durable maintenance write racing
+  an already admitted mutation. Review findings are Critical (cross-process
+  permit), Important (reset marker timestamp contradiction and unconfirmed
+  first-mutation controls), and Moderate (old-epoch live-index history loss).
+  The Task 9 entry remains `active`; no commit or service/data operation is
+  authorized until the resolver supplies RED -> GREEN evidence and re-review.
+- Task 9 review repairs are implemented test-first. The initial five-class RED
+  recorded 8 expected failures: maintenance could persist while paused enqueue,
+  control signal, reconciler health, recovery manifest, or V1 launch effects
+  continued; reset lost its reservation; unconfirmed control/retry/cleanup did
+  not fail closed; and old-epoch history disappeared. The router now supplies
+  a cross-process mutation permit shared by marker writes and whole V1/V2
+  effect scopes. Permit coverage includes enqueue/control/retry/cleanup,
+  reconciler/watchdog, recovery, V1 dispatch/control/drain/background work,
+  and the V1 cached/live overview projection. Router reset preserves a valid
+  confirmation pair, unconfirmed first-mutation actions reject before effects,
+  and old-epoch indexed work projects as reset history. The fresh six-class
+  focused gate passes 262/262 and `git diff --check` passes; independent
+  specification re-review is now required before code-quality review. No live
+  service, crawler, Redis, database, fixture, or generated-data operation ran.
+- Task 9 specification re-review remains `CHANGES_REQUIRED`; commit is still
+  blocked. Critical: `CrawlerAttemptSupervisor` registers a later
+  `ProcessHandle.onExit` callback outside the caller's permit, so after
+  maintenance/reset persists it can still mutate Redis, write a manifest, or
+  append watcher evidence. The resolver must inject the router into supervisor
+  and acquire a fresh V2 permit around normal exit, watcher failure, and
+  handler-exception paths, with permit-before-attempt-lock ordering. Moderate:
+  the first latch tests counted down before the marker thread actually called
+  `writeState` and used a 250ms non-persistence timeout, which can pass from
+  scheduler delay. Repair requires observable ordering/lock contention proofs
+  for both marker-before-callback and callback-before-marker cases, plus the
+  async watcher acceptance matrix. Independent six-class validation remains
+  262/262 but omits `CrawlerAttemptSupervisorTest`, so it cannot close this
+  finding. Fresh spec re-review then code-quality review remain mandatory.
+- The Task 9 plan is repaired for this reviewer finding: it now names the
+  supervisor/configuration paths, requires fresh V2 permit acquisition around
+  every asynchronous exit path before the attempt lock, prohibits fallback
+  watcher events after permit denial, and adds callback-before-marker plus
+  marker-before-callback acceptance tests. Existing interleavings must prove
+  observed contention/order rather than rely on a 250ms scheduling window.
+  Codex remains the sole devlog coordinator; one serialized implementation
+  owner may change only the plan-listed code/tests. No runtime/shared-state
+  operation is authorized.
+- Watcher repair implementation has fresh RED evidence (the new nine-argument
+  supervisor constructor tests failed against the old constructor), a focused
+  supervisor GREEN run (63/63), a five-class focused run (312/312), `mvn
+  test-compile`, and `git diff --check`. Its first specification self-review is
+  `CHANGES_REQUIRED`: the mock router-denial case does not prove that a real
+  durable maintenance/reset marker already persisted before normal exit,
+  watcher failure, and exit-handler exception blocks all Redis, manifest, and
+  event effects. The contention test also needs failure-safe latch release and
+  thread join. Resolver: re-dispatch the serialized watcher implementer for
+  those RED -> GREEN regressions, then repeat independent specification and
+  code-quality reviews. Task 9 remains active and commit-blocked.
+- Independent Task 9 watcher specification re-review is `APPROVED`: no
+  Critical, Important, or Moderate finding remains. It verified router-to-
+  attempt-lock order; real persisted-maintenance zero/nonzero exit, watcher,
+  and handler-failure denial; observable callback-before-marker ordering with
+  failure-safe thread cleanup; and replacement of all relevant 250ms timing
+  assertions. Reviewer validation passed 139/139 across supervisor/application/
+  reconciler/recovery plus 177/177 monitor tests on fresh rerun. One combined
+  monitor run hit the documented temp-directory cleanup race, whose isolated
+  and full-class reruns passed. Code-quality review and coordinator full gate
+  remain required before any commit.
+- Task 9 watcher code-quality review is `CHANGES_REQUIRED`, so commit remains
+  blocked. Important: the real-router interleaving tests in application,
+  reconciler, recovery, and monitor paths release their blocking latch in
+  `finally` but do not join their separately created marker thread or await
+  the executor after a failed assertion. That can leave a marker blocked in
+  `router.writeState()` and pollute later tests. Resolver: retain marker/future
+  handles outside the success path, unconditionally release, join/assert marker
+  termination, and await executor termination while preserving the primary
+  failure. Re-run focused tests, then repeat code-quality review. No production
+  watcher ordering/denial defect was found.
+- The serialized resolver repaired all eight real-router marker interleavings,
+  including the adjacent application control case: each now retains its marker,
+  future, executor, and primary failure outside the success path; `finally`
+  releases latches, joins the marker, awaits operation/executor termination,
+  and records cleanup failure as suppressed when a primary assertion already
+  failed. Fresh five-class validation passed 316/316 plus `mvn test-compile`
+  and `git diff --check`. A focused code-quality re-review is now required;
+  Task 9 stays active and commit-blocked until that re-review passes.
+- Focused Task 9 watcher code-quality re-review is `APPROVED`: all eight
+  interleavings now release their latch and run a shared cleanup that awaits
+  executor work, joins/verifies the marker, escalates if necessary, and
+  preserves the primary assertion with suppressed cleanup diagnostics. The
+  observed real-router contention and ordering assertions remain unchanged;
+  no scope regression was found. A fresh coordinator seven-class gate,
+  `mvn test-compile`, `git diff --check`, and pre-commit scope review remain
+  required before Task 9 can become ready-for-commit.
+- Task 9 coordinator closeout gate is green: `mvn test-compile` reports
+  `BUILD SUCCESS`; the seven-class routing/application/reconciler/recovery/
+  supervisor/monitor/overview selection passes 329/329 with zero failures,
+  errors, or skips; and `git diff --check` is clean. Specification and
+  code-quality re-reviews are both `APPROVED`. The focused Task 9 commit is
+  now the next action; no crawler, service lifecycle, Redis/database mutation,
+  fixture stack, or generated-data operation was run.
 
 ## Result
 
@@ -445,9 +597,9 @@
   progress/control fencing, and exit-before-release supervision. See git for
   code-level diff details.
 - Task 7 is checkpointed at `7df042b` after its final specification and
-  code-quality approvals; Task 8 is ready for its focused commit and Task 9 is
-  the next serialized implementation step.
-- Not completed: Tasks 9-15 and the end-to-end stuck-queue acceptance contract.
+  code-quality approvals; Task 8 is checkpointed at `04b684a`; and Task 9 is
+  validated, approved, and ready for its focused checkpoint commit.
+- Not completed: Tasks 10-15 and the end-to-end stuck-queue acceptance contract.
 
 ## Residual Risks
 
@@ -467,8 +619,9 @@
 
 ## Follow-up
 
-- Owner: Codex. Commit Task 8, then continue Task 9 test-first with durable
-  routing and a pure V2 overview; do not wire V2 into the V1 live path.
+- Owner: Codex. Commit Task 9, then continue Task 10 test-first with structured
+  V2 API errors, attempt-keyed logs, and authenticated SSE. Do not perform the
+  fixture-stack, first irreversible V2 mutation, or live-cutover actions.
 
 ## Commits
 
@@ -480,3 +633,4 @@
 - `af762c2` `feat(crawler): isolate V2 attempt evidence`
 - `06c8df2` `feat(crawler): bind progress to V2 attempts`
 - `7df042b` `feat(crawler): supervise exact V2 processes`
+- `04b684a` `feat(crawler): bound V2 queue convergence`

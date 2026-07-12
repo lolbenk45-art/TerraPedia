@@ -6,6 +6,9 @@ import com.terraria.skills.service.impl.crawlerv2.CrawlerAttemptArtifactStore;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerAttemptProcessLauncher;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerAttemptStateMachine;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerAttemptSupervisor;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerLegacyHistoryAdapter;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueEngineRouter;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ApplicationService;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Reconciler;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2RecoveryService;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Repository;
@@ -45,6 +48,21 @@ public class CrawlerQueueV2Configuration {
     }
 
     @Bean
+    public CrawlerQueueEngineRouter crawlerQueueEngineRouter(
+        ObjectMapper objectMapper,
+        CrawlerQueueV2Repository repository,
+        Clock crawlerQueueV2Clock,
+        @Value("${terrapedia.crawler.queue-v2.repo-root:}") String configuredRepoRoot
+    ) {
+        return new CrawlerQueueEngineRouter(
+            objectMapper,
+            repository,
+            resolveRepoRoot(configuredRepoRoot),
+            crawlerQueueV2Clock
+        );
+    }
+
+    @Bean
     public CrawlerAttemptStateMachine crawlerAttemptStateMachine(CrawlerQueueV2Properties properties) {
         return new CrawlerAttemptStateMachine(properties);
     }
@@ -65,6 +83,19 @@ public class CrawlerQueueV2Configuration {
     }
 
     @Bean
+    public CrawlerLegacyHistoryAdapter crawlerLegacyHistoryAdapter(
+        ObjectMapper objectMapper,
+        CrawlerQueueEngineRouter router,
+        @Value("${terrapedia.crawler.queue-v2.repo-root:}") String configuredRepoRoot
+    ) {
+        return new CrawlerLegacyHistoryAdapter(
+            objectMapper,
+            resolveRepoRoot(configuredRepoRoot),
+            router
+        );
+    }
+
+    @Bean
     public CrawlerAttemptProcessLauncher crawlerAttemptProcessLauncher() {
         return new ProcessBuilderCrawlerAttemptLauncher();
     }
@@ -78,6 +109,7 @@ public class CrawlerQueueV2Configuration {
         CrawlerAttemptStateMachine stateMachine,
         CrawlerQueueV2Properties properties,
         Clock crawlerQueueV2Clock,
+        CrawlerQueueEngineRouter router,
         @Value("${terrapedia.crawler.queue-v2.repo-root:}") String configuredRepoRoot
     ) {
         return new CrawlerAttemptSupervisor(
@@ -88,7 +120,8 @@ public class CrawlerQueueV2Configuration {
             stateMachine,
             properties,
             resolveRepoRoot(configuredRepoRoot),
-            crawlerQueueV2Clock
+            crawlerQueueV2Clock,
+            router
         );
     }
 
@@ -98,9 +131,10 @@ public class CrawlerQueueV2Configuration {
         CrawlerAttemptSupervisor supervisor,
         CrawlerAttemptStateMachine stateMachine,
         CrawlerQueueV2Properties properties,
-        Clock crawlerQueueV2Clock
+        Clock crawlerQueueV2Clock,
+        CrawlerQueueEngineRouter router
     ) {
-        return new CrawlerQueueV2Reconciler(repository, supervisor, stateMachine, properties, crawlerQueueV2Clock);
+        return new CrawlerQueueV2Reconciler(repository, supervisor, stateMachine, properties, crawlerQueueV2Clock, router);
     }
 
     @Bean
@@ -110,13 +144,42 @@ public class CrawlerQueueV2Configuration {
         CrawlerAttemptSupervisor supervisor,
         CrawlerAttemptStateMachine stateMachine,
         CrawlerQueueV2Properties properties,
-        Clock crawlerQueueV2Clock
+        Clock crawlerQueueV2Clock,
+        CrawlerQueueEngineRouter router
     ) {
         return new CrawlerQueueV2RecoveryService(
             repository,
             artifactStore,
             supervisor,
             stateMachine,
+            properties,
+            crawlerQueueV2Clock,
+            router
+        );
+    }
+
+    @Bean
+    public CrawlerQueueV2ApplicationService crawlerQueueV2ApplicationService(
+        CrawlerQueueEngineRouter router,
+        CrawlerQueueV2Repository repository,
+        CrawlerAttemptStateMachine stateMachine,
+        CrawlerAttemptSupervisor supervisor,
+        CrawlerQueueV2Reconciler reconciler,
+        CrawlerAttemptArtifactStore artifactStore,
+        CrawlerMonitorActionRegistry actionRegistry,
+        CrawlerLegacyHistoryAdapter legacyHistory,
+        CrawlerQueueV2Properties properties,
+        Clock crawlerQueueV2Clock
+    ) {
+        return new CrawlerQueueV2ApplicationService(
+            router,
+            repository,
+            stateMachine,
+            supervisor,
+            reconciler,
+            artifactStore,
+            actionRegistry,
+            legacyHistory,
             properties,
             crawlerQueueV2Clock
         );

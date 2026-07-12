@@ -28,6 +28,7 @@ public class CrawlerAttemptSupervisor {
     private final CrawlerQueueV2Properties properties;
     private final Path repoRoot;
     private final Clock clock;
+    private final CrawlerQueueEngineRouter router;
     private final Map<String, CrawlerAttemptProcessLauncher.ManagedProcess> processes =
         new ConcurrentHashMap<>();
     private final Map<String, LockEntry> attemptLocks = new ConcurrentHashMap<>();
@@ -40,7 +41,8 @@ public class CrawlerAttemptSupervisor {
         CrawlerAttemptStateMachine stateMachine,
         CrawlerQueueV2Properties properties,
         Path repoRoot,
-        Clock clock
+        Clock clock,
+        CrawlerQueueEngineRouter router
     ) {
         this.repository = Objects.requireNonNull(repository, "repository");
         this.artifactStore = Objects.requireNonNull(artifactStore, "artifactStore");
@@ -50,6 +52,7 @@ public class CrawlerAttemptSupervisor {
         this.properties = Objects.requireNonNull(properties, "properties");
         this.repoRoot = Objects.requireNonNull(repoRoot, "repoRoot").toAbsolutePath().normalize();
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.router = Objects.requireNonNull(router, "router");
     }
 
     public CrawlerQueueV2Attempt start(CrawlerQueueV2Attempt attempt) {
@@ -606,15 +609,23 @@ public class CrawlerAttemptSupervisor {
         Throwable watcherFailure
     ) {
         try {
-            if (watcherFailure != null) {
-                throw new IllegalStateException("crawler process watcher 异常", watcherFailure);
-            }
-            withAttemptLock(identity.attemptId(), () -> {
-                handleProcessExit(identity, process);
+            router.withMutationPermit(permit -> {
+                permit.requireMode(CrawlerQueueEngineMode.V2);
+                try {
+                    if (watcherFailure != null) {
+                        throw new IllegalStateException("crawler process watcher 异常", watcherFailure);
+                    }
+                    withAttemptLock(identity.attemptId(), () -> {
+                        handleProcessExit(identity, process);
+                        return null;
+                    });
+                } catch (RuntimeException exception) {
+                    appendWatcherFailureEvent(identity);
+                }
                 return null;
             });
         } catch (RuntimeException exception) {
-            appendWatcherFailureEvent(identity);
+            // A denied or failed durable admission must leave no terminal/event side effect.
         } finally {
             processes.remove(identity.attemptId(), process);
         }

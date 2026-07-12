@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-13 00:24 CST by Codex
+Last updated: 2026-07-13 04:45 CST by Codex
 
 ## Open Work
 
@@ -11,7 +11,7 @@ Last updated: 2026-07-13 00:24 CST by Codex
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
   - parent/child: none
   - dependencies or blocked-by: local stack is running for user acceptance; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
-  - contract handoff: Tasks 1-5 are committed through `af762c2`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 6 exact worker progress identity is committed at `06c8df2`; Task 7 fenced process supervision is committed at `7df042b`; Task 8 bounded convergence/recovery is ready for its focused commit
+  - contract handoff: Tasks 1-5 are committed through `af762c2`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 6 exact worker progress identity is committed at `06c8df2`; Task 7 fenced process supervision is committed at `7df042b`; Task 8 bounded convergence/recovery is committed at `04b684a`; Task 9 durable routing, pure overview, and watcher fencing are approved and ready for a focused commit
 
 ## Current State
 
@@ -93,13 +93,19 @@ Last updated: 2026-07-13 00:24 CST by Codex
   126/126 plus `mvn test-compile`, `git diff --check`, and a clean residual
   process scan; final specification and code-quality reviews report no material
   finding.
-- Task 8 is ready for its focused commit. It wires the V2 reconciler and
+- Task 8 is committed at `04b684a`. It wires the V2 reconciler and
   recovery service into Spring, makes every non-terminal state converge within
   a deadline, exposes watchdog/store failures instead of reporting false
   health, isolates unconfirmed historical processes in the current epoch, and
   fail-closes reset responses whose reset ID, epoch, or irreversible timestamp
   does not match the submitted command. Fresh focused validation passes
   156/156 with final specification and code-quality approvals.
+- Task 9 is validated and approved for a focused checkpoint: the durable
+  router serializes every V1/V2 mutation with maintenance/reset marker writes,
+  V2 overview reads have no live-queue side effects, old/legacy evidence stays
+  history-only, and asynchronous exit watchers independently acquire the same
+  permit before touching terminal evidence. The fresh focused backend gate
+  passes 329/329 plus `mvn test-compile` and `git diff --check`.
 - Plan audit closed two additional fail-closed gaps: the first real V2 mutation
   now uses a durable reservation before Redis plus exact confirmation after it,
   and missing/conflicting Redis epochs require an explicit idempotent reset that
@@ -148,10 +154,10 @@ Last updated: 2026-07-13 00:24 CST by Codex
 
 ## Next Agent Should Start Here
 
-- After the Task 8 focused commit, continue Task 9 of the committed V2
-  hard-cutover plan: durable engine routing, pure V2 overview, exact controls,
-  and read-only legacy history. Preserve Task 8 maintenance and recovery
-  boundaries.
+- Commit the reviewed Task 9 checkpoint, then continue Task 10 of the committed
+  V2 hard-cutover plan: structured 409/503 errors, attempt-keyed logs, and
+  authenticated SSE. Preserve Task 8 maintenance/recovery and Task 9 durable
+  mutation-permit boundaries.
 - On implementation start, follow the plan task by task and preserve its
   authorization gates: fixture-stack execution, live cutover, and first
   irreversible V2 mutation each require their stated confirmation.
@@ -183,12 +189,13 @@ Last updated: 2026-07-13 00:24 CST by Codex
 - The approved default deadlines pass fake-clock state-machine validation but
   still require repository/reconciler integration and isolated runtime evidence
   before they can be treated as proven operational behavior.
-- The reservation, durable router lock, explicit epoch reset, and maintenance
-  mutation gate remain plan contracts until their focused and isolated-prefix
-  tests pass during later implementation tasks.
-- Task 4 proves repository atomicity and Task 7 provides the process supervisor,
-  but V2 is still not routed into the live application and has no reconciler
-  consuming these primitives yet.
+- The durable reservation/router permit/maintenance mutation gate now has
+  focused offline evidence, but the isolated Redis reset-Lua integration suite
+  and the later fixture acceptance matrix remain required before readiness or
+  live-cutover claims.
+- Task 9 routes the V2 application source after a durable cutover marker, but
+  no cutover marker or first irreversible V2 mutation has been created; the
+  currently running local environment remains on its existing V1 live path.
 - Task 8 includes isolated Redis/Lua reset integration coverage, but it remains
   unexecuted because no explicitly authorized `TERRAPEDIA_TEST_REDIS_*`
   namespace is configured; do not treat the offline unit checks as a live Redis

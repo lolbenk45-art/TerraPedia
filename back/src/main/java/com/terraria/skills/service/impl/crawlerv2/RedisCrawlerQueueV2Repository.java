@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.domain.Range;
+import org.springframework.data.redis.connection.Limit;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.ReadOffset;
@@ -435,6 +437,22 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
             }
         }
         return List.copyOf(result);
+    }
+
+    @Override
+    public String latestStreamCursor() {
+        List<MapRecord<String, Object, Object>> records = redis(
+            "读取 V2 最新 event cursor",
+            () -> redisTemplate.opsForStream().reverseRange(
+                key("events"),
+                Range.<String>unbounded(),
+                Limit.limit().count(1)
+            )
+        );
+        if (records == null || records.isEmpty()) {
+            return null;
+        }
+        return records.get(0).getId().getValue();
     }
 
     @Override

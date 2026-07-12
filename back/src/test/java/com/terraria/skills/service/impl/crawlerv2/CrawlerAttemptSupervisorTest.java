@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -44,7 +46,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -536,20 +540,312 @@ class CrawlerAttemptSupervisorTest {
     void watcherFailureMustAlwaysRemoveTheRegistryAndAppendBoundedReconcilerEvidence() {
         CrawlerQueueV2Attempt request = startingAttempt(142L, 2L);
         FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
-        CrawlerAttemptSupervisor supervisor = supervisor(new FakeLauncher(process), request);
+        RouterFixture routerFixture = v2Router();
+        CrawlerAttemptSupervisor supervisor = supervisor(
+            new FakeLauncher(process),
+            request,
+            CrawlerMonitorActionRegistry.defaults(),
+            new CrawlerQueueV2Properties(),
+            routerFixture.router()
+        );
         supervisor.start(request);
         CrawlerQueueV2Attempt recorded = latestAttempt();
         when(repository.findAttempt("attempt-1"))
             .thenThrow(new IllegalStateException("watcher lookup failed"))
             .thenReturn(Optional.of(recorded));
+        doAnswer(invocation -> {
+            assertTrue(routerFixture.permitHeld().get(), "watcher fallback evidence must stay inside the permit");
+            return null;
+        }).when(repository).appendEvent(any());
 
         process.completeExit(0);
 
         assertEquals(0, supervisor.managedProcessCount());
-        verify(repository).appendEvent(argThat(event ->
+        verify(routerFixture.router()).withMutationPermit(any());
+        verify(routerFixture.permit()).requireMode(CrawlerQueueEngineMode.V2);
+        verify(repository, times(1)).appendEvent(argThat(event ->
             event.type().equals("attempt.watcher-failed")
                 && event.reasonCode() == CrawlerQueueV2ReasonCode.RECONCILER_STALE
         ));
+    }
+
+    @Test
+    void deniedPermitBeforeNormalExitOnlyRemovesTheManagedProcessRegistry() {
+        CrawlerQueueV2Attempt request = startingAttempt(142L, 2L);
+        FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
+        FakeLauncher launcher = new FakeLauncher(process);
+        CrawlerAttemptSupervisor supervisor = supervisor(
+            launcher,
+            request,
+            CrawlerMonitorActionRegistry.defaults(),
+            new CrawlerQueueV2Properties(),
+            deniedRouter()
+        );
+        supervisor.start(request);
+        List<String> callsBeforeExit = launcher.calls();
+        clearInvocations(repository, artifactStore);
+
+        process.completeExit(0);
+
+        assertEquals(0, supervisor.managedProcessCount());
+        assertEquals(callsBeforeExit, launcher.calls());
+        verify(repository, never()).mutate(any());
+        verify(repository, never()).appendEvent(any());
+        verify(artifactStore, never()).writeManifest(any());
+    }
+
+    @Test
+    void deniedPermitBeforeWatcherFailureOnlyRemovesTheManagedProcessRegistry() {
+        CrawlerQueueV2Attempt request = startingAttempt(142L, 2L);
+        FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
+        FakeLauncher launcher = new FakeLauncher(process);
+        CrawlerAttemptSupervisor supervisor = supervisor(
+            launcher,
+            request,
+            CrawlerMonitorActionRegistry.defaults(),
+            new CrawlerQueueV2Properties(),
+            deniedRouter()
+        );
+        supervisor.start(request);
+        List<String> callsBeforeExit = launcher.calls();
+        clearInvocations(repository, artifactStore);
+
+        process.completeWatcherFailure(new IllegalStateException("watcher completion failed"));
+
+        assertEquals(0, supervisor.managedProcessCount());
+        assertEquals(callsBeforeExit, launcher.calls());
+        verify(repository, never()).mutate(any());
+        verify(repository, never()).appendEvent(any());
+        verify(artifactStore, never()).writeManifest(any());
+    }
+
+    @Test
+    void deniedPermitBeforeHandlerFailureOnlyRemovesTheManagedProcessRegistry() {
+        CrawlerQueueV2Attempt request = startingAttempt(142L, 2L);
+        FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
+        FakeLauncher launcher = new FakeLauncher(process);
+        CrawlerAttemptSupervisor supervisor = supervisor(
+            launcher,
+            request,
+            CrawlerMonitorActionRegistry.defaults(),
+            new CrawlerQueueV2Properties(),
+            deniedRouter()
+        );
+        supervisor.start(request);
+        List<String> callsBeforeExit = launcher.calls();
+        clearInvocations(repository, artifactStore);
+        when(repository.findAttempt("attempt-1")).thenThrow(new IllegalStateException("handler lookup failed"));
+
+        process.completeExit(0);
+
+        assertEquals(0, supervisor.managedProcessCount());
+        assertEquals(callsBeforeExit, launcher.calls());
+        verify(repository, never()).findAttempt("attempt-1");
+        verify(repository, never()).mutate(any());
+        verify(repository, never()).appendEvent(any());
+        verify(artifactStore, never()).writeManifest(any());
+    }
+
+    @Test
+    void routerFailureDuringWatcherAdmissionOnlyRemovesTheManagedProcessRegistry() {
+        CrawlerQueueV2Attempt request = startingAttempt(142L, 2L);
+        FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
+        FakeLauncher launcher = new FakeLauncher(process);
+        CrawlerAttemptSupervisor supervisor = supervisor(
+            launcher,
+            request,
+            CrawlerMonitorActionRegistry.defaults(),
+            new CrawlerQueueV2Properties(),
+            failingRouter()
+        );
+        supervisor.start(request);
+        List<String> callsBeforeExit = launcher.calls();
+        clearInvocations(repository, artifactStore);
+
+        process.completeExit(0);
+
+        assertEquals(0, supervisor.managedProcessCount());
+        assertEquals(callsBeforeExit, launcher.calls());
+        verify(repository, never()).mutate(any());
+        verify(repository, never()).appendEvent(any());
+        verify(artifactStore, never()).writeManifest(any());
+    }
+
+    @Test
+    void persistedMaintenanceBeforeZeroExitOnlyRemovesTheManagedProcessRegistry() {
+        assertPersistedMaintenanceBlocksTerminalExit(0);
+    }
+
+    @Test
+    void persistedMaintenanceBeforeNonzeroExitOnlyRemovesTheManagedProcessRegistry() {
+        assertPersistedMaintenanceBlocksTerminalExit(17);
+    }
+
+    @Test
+    void persistedMaintenanceBeforeWatcherFailureOnlyRemovesTheManagedProcessRegistry() {
+        CrawlerQueueV2Attempt request = startingAttempt(142L, 2L);
+        FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
+        FakeLauncher launcher = new FakeLauncher(process);
+        CrawlerQueueEngineRouter durableRouter = durableRouter();
+        CrawlerAttemptSupervisor supervisor = supervisor(
+            launcher,
+            request,
+            CrawlerMonitorActionRegistry.defaults(),
+            new CrawlerQueueV2Properties(),
+            durableRouter
+        );
+        supervisor.start(request);
+        persistMaintenanceMarker(durableRouter);
+        List<String> callsBeforeExit = launcher.calls();
+        clearInvocations(repository, artifactStore);
+
+        process.completeWatcherFailure(new IllegalStateException("watcher completion failed"));
+
+        assertEquals(0, supervisor.managedProcessCount());
+        assertEquals(callsBeforeExit, launcher.calls());
+        verify(repository, never()).mutate(any());
+        verify(artifactStore, never()).writeManifest(any());
+        verify(repository, never()).appendEvent(any());
+        verify(repository, never()).findAttempt("attempt-1");
+    }
+
+    @Test
+    void persistedMaintenanceBeforeHandlerFailureOnlyRemovesTheManagedProcessRegistry() {
+        CrawlerQueueV2Attempt request = startingAttempt(142L, 2L);
+        FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
+        FakeLauncher launcher = new FakeLauncher(process);
+        CrawlerQueueEngineRouter durableRouter = durableRouter();
+        CrawlerAttemptSupervisor supervisor = supervisor(
+            launcher,
+            request,
+            CrawlerMonitorActionRegistry.defaults(),
+            new CrawlerQueueV2Properties(),
+            durableRouter
+        );
+        supervisor.start(request);
+        CrawlerQueueV2Attempt recorded = latestAttempt();
+        when(repository.findAttempt("attempt-1"))
+            .thenThrow(new IllegalStateException("handler lookup failed"))
+            .thenReturn(Optional.of(recorded));
+        persistMaintenanceMarker(durableRouter);
+        List<String> callsBeforeExit = launcher.calls();
+        clearInvocations(repository, artifactStore);
+
+        process.completeExit(0);
+
+        assertEquals(0, supervisor.managedProcessCount());
+        assertEquals(callsBeforeExit, launcher.calls());
+        verify(repository, never()).mutate(any());
+        verify(artifactStore, never()).writeManifest(any());
+        verify(repository, never()).appendEvent(any());
+        verify(repository, never()).findAttempt("attempt-1");
+    }
+
+    @Test
+    void watcherPermitSerializesTerminalManifestBeforeDurableMaintenanceMarker() throws Exception {
+        CrawlerQueueV2Attempt request = startingAttempt(142L, 2L);
+        FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
+        FakeLauncher launcher = new FakeLauncher(process);
+        CrawlerQueueEngineRouter durableRouter = new CrawlerQueueEngineRouter(
+            objectMapper,
+            repository,
+            repoRoot,
+            Clock.fixed(NOW, ZoneOffset.UTC)
+        );
+        when(repository.readEngineState()).thenReturn(new CrawlerQueueV2Repository.EngineState(
+            CrawlerQueueEngineMode.V2,
+            "epoch-1",
+            "cutover-1",
+            NOW.minusSeconds(60).toString()
+        ));
+        durableRouter.writeState(new CrawlerQueueEngineRouter.CutoverState(
+            2,
+            CrawlerQueueEngineMode.V2,
+            "cutover-1",
+            "epoch-1",
+            NOW,
+            NOW.minusSeconds(61),
+            NOW.minusSeconds(60)
+        ));
+        CrawlerQueueEngineRouter.CutoverState current = durableRouter.readDurableState();
+        CrawlerQueueEngineRouter.CutoverState maintenance = new CrawlerQueueEngineRouter.CutoverState(
+            current.contractVersion(),
+            CrawlerQueueEngineMode.MAINTENANCE,
+            current.cutoverId(),
+            current.stateStoreEpoch(),
+            NOW.plusSeconds(1),
+            current.mutationReservationAt(),
+            current.firstLiveMutationAt()
+        );
+        CrawlerAttemptSupervisor supervisor = supervisor(
+            launcher,
+            request,
+            CrawlerMonitorActionRegistry.defaults(),
+            new CrawlerQueueV2Properties(),
+            durableRouter
+        );
+        supervisor.start(request);
+        CrawlerQueueV2Attempt started = latestAttempt();
+        when(artifactStore.readProgress("attempt-1")).thenReturn(Optional.of(progress(
+            "queue-1", "attempt-1", 142L, "epoch-1", 1L, "running", NOW.plusSeconds(1)
+        )));
+        supervisor.ingestProgress(started);
+
+        CountDownLatch terminalMutationEntered = new CountDownLatch(1);
+        CountDownLatch releaseTerminalMutation = new CountDownLatch(1);
+        CountDownLatch markerPersisted = new CountDownLatch(1);
+        AtomicInteger order = new AtomicInteger();
+        AtomicInteger terminalMutationOrder = new AtomicInteger();
+        AtomicInteger terminalManifestOrder = new AtomicInteger();
+        AtomicInteger markerOrder = new AtomicInteger();
+        doAnswer(invocation -> {
+            CrawlerQueueV2Repository.MutationCommand command = invocation.getArgument(0);
+            if (command.targetStatus().terminal()) {
+                terminalMutationEntered.countDown();
+                awaitLatch(releaseTerminalMutation, "terminal watcher mutation release");
+                terminalMutationOrder.set(order.incrementAndGet());
+            }
+            CrawlerQueueV2Attempt updated = apply(latestAttempt(), command);
+            latestAttempt.set(updated);
+            return new CrawlerQueueV2Repository.MutationResult(updated, "1-0");
+        }).when(repository).mutate(any());
+        doAnswer(invocation -> {
+            CrawlerAttemptManifest manifest = invocation.getArgument(0);
+            if (manifest.status().terminal()) {
+                terminalManifestOrder.set(order.incrementAndGet());
+            }
+            return null;
+        }).when(artifactStore).writeManifest(any());
+
+        Thread markerThread = new Thread(() -> {
+            durableRouter.writeState(maintenance);
+            markerOrder.set(order.incrementAndGet());
+            markerPersisted.countDown();
+        }, "durable-maintenance-marker");
+        CompletableFuture<Void> watcher = CompletableFuture.runAsync(() -> process.completeExit(0));
+        try {
+            awaitLatch(terminalMutationEntered, "terminal watcher mutation entry");
+            markerThread.start();
+            awaitRouterLockContention(markerThread, markerPersisted);
+
+            releaseTerminalMutation.countDown();
+            watcher.get(2, TimeUnit.SECONDS);
+            assertTrue(markerPersisted.await(2, TimeUnit.SECONDS), "maintenance marker did not complete");
+            markerThread.join(2_000L);
+            assertFalse(markerThread.isAlive(), "maintenance marker thread did not finish");
+
+            assertTrue(terminalMutationOrder.get() > 0, "terminal mutation was not recorded");
+            assertTrue(terminalManifestOrder.get() > terminalMutationOrder.get(), "terminal manifest must follow mutation");
+            assertTrue(markerOrder.get() > terminalManifestOrder.get(), "maintenance must persist after terminal evidence");
+        } finally {
+            releaseTerminalMutation.countDown();
+            try {
+                watcher.get(2, TimeUnit.SECONDS);
+            } catch (Exception ignored) {
+                // The primary assertion reports callback failures; cleanup must still release the marker thread.
+            }
+            markerThread.join(2_000L);
+        }
     }
 
     @Test
@@ -1041,7 +1337,14 @@ class CrawlerAttemptSupervisorTest {
     void processExitZeroMustReloadLatestAttemptAndCompleteIt() {
         CrawlerQueueV2Attempt attempt = startingAttempt(142L, 2L);
         FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
-        CrawlerAttemptSupervisor supervisor = supervisor(new FakeLauncher(process), attempt);
+        RouterFixture routerFixture = v2Router();
+        CrawlerAttemptSupervisor supervisor = supervisor(
+            new FakeLauncher(process),
+            attempt,
+            CrawlerMonitorActionRegistry.defaults(),
+            new CrawlerQueueV2Properties(),
+            routerFixture.router()
+        );
         supervisor.start(attempt);
         CrawlerQueueV2Attempt started = latestAttempt();
         when(artifactStore.readProgress("attempt-1")).thenReturn(Optional.of(progress(
@@ -1051,10 +1354,15 @@ class CrawlerAttemptSupervisorTest {
 
         process.completeExit(0);
 
+        verify(routerFixture.router()).withMutationPermit(any());
+        verify(routerFixture.permit()).requireMode(CrawlerQueueEngineMode.V2);
         verify(repository).mutate(argThat(command ->
             command.targetStatus() == CrawlerQueueV2Status.COMPLETED
                 && command.reasonCode() == null
                 && command.releaseOwnership()
+        ));
+        verify(artifactStore).writeManifest(argThat(manifest ->
+            manifest.status() == CrawlerQueueV2Status.COMPLETED && manifest.exitCode() == 0
         ));
     }
 
@@ -1358,8 +1666,64 @@ class CrawlerAttemptSupervisorTest {
             launcher,
             initialAttempt,
             CrawlerMonitorActionRegistry.defaults(),
-            new CrawlerQueueV2Properties()
+            new CrawlerQueueV2Properties(),
+            v2Router().router()
         );
+    }
+
+    private void assertPersistedMaintenanceBlocksTerminalExit(int exitCode) {
+        CrawlerQueueV2Attempt request = startingAttempt(142L, 2L);
+        FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
+        FakeLauncher launcher = new FakeLauncher(process);
+        CrawlerQueueEngineRouter durableRouter = durableRouter();
+        CrawlerAttemptSupervisor supervisor = supervisor(
+            launcher,
+            request,
+            CrawlerMonitorActionRegistry.defaults(),
+            new CrawlerQueueV2Properties(),
+            durableRouter
+        );
+        supervisor.start(request);
+        CrawlerQueueV2Attempt started = latestAttempt();
+        when(artifactStore.readProgress("attempt-1")).thenReturn(Optional.of(progress(
+            "queue-1", "attempt-1", 142L, "epoch-1", 1L, "running", NOW.plusSeconds(1)
+        )));
+        supervisor.ingestProgress(started);
+        assertEquals(CrawlerQueueV2Status.RUNNING, latestAttempt().status());
+        persistMaintenanceMarker(durableRouter);
+        List<String> callsBeforeExit = launcher.calls();
+        clearInvocations(repository, artifactStore);
+
+        process.completeExit(exitCode);
+
+        assertEquals(0, supervisor.managedProcessCount());
+        assertEquals(callsBeforeExit, launcher.calls());
+        verify(repository, never()).mutate(any());
+        verify(artifactStore, never()).writeManifest(any());
+        verify(repository, never()).appendEvent(any());
+        verify(repository, never()).findAttempt("attempt-1");
+    }
+
+    private CrawlerQueueEngineRouter durableRouter() {
+        return new CrawlerQueueEngineRouter(
+            objectMapper,
+            repository,
+            repoRoot,
+            Clock.fixed(NOW, ZoneOffset.UTC)
+        );
+    }
+
+    private void persistMaintenanceMarker(CrawlerQueueEngineRouter router) {
+        router.writeState(new CrawlerQueueEngineRouter.CutoverState(
+            2,
+            CrawlerQueueEngineMode.MAINTENANCE,
+            "cutover-1",
+            "epoch-1",
+            NOW,
+            null,
+            null
+        ));
+        assertEquals(CrawlerQueueEngineMode.MAINTENANCE, router.readDurableState().mode());
     }
 
     private CrawlerAttemptSupervisor supervisor(
@@ -1367,6 +1731,16 @@ class CrawlerAttemptSupervisorTest {
         CrawlerQueueV2Attempt initialAttempt,
         CrawlerMonitorActionRegistry actionRegistry,
         CrawlerQueueV2Properties properties
+    ) {
+        return supervisor(launcher, initialAttempt, actionRegistry, properties, v2Router().router());
+    }
+
+    private CrawlerAttemptSupervisor supervisor(
+        CrawlerAttemptProcessLauncher launcher,
+        CrawlerQueueV2Attempt initialAttempt,
+        CrawlerMonitorActionRegistry actionRegistry,
+        CrawlerQueueV2Properties properties,
+        CrawlerQueueEngineRouter router
     ) {
         AtomicReference<CrawlerQueueV2Attempt> current = new AtomicReference<>(initialAttempt);
         when(repository.requireEpoch()).thenReturn("epoch-1");
@@ -1395,7 +1769,8 @@ class CrawlerAttemptSupervisorTest {
             new CrawlerAttemptStateMachine(properties),
             properties,
             repoRoot,
-            Clock.fixed(NOW, ZoneOffset.UTC)
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            router
         );
         latestAttempt = current;
         return supervisor;
@@ -1503,12 +1878,83 @@ class CrawlerAttemptSupervisorTest {
             new CrawlerAttemptStateMachine(properties),
             properties,
             repoRoot,
-            Clock.fixed(NOW, ZoneOffset.UTC)
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            v2Router().router()
         );
+    }
+
+    private RouterFixture v2Router() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        CrawlerQueueEngineRouter.MutationPermit permit = mock(CrawlerQueueEngineRouter.MutationPermit.class);
+        AtomicBoolean permitHeld = new AtomicBoolean();
+        when(permit.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        doNothing().when(permit).requireMode(CrawlerQueueEngineMode.V2);
+        when(router.withMutationPermit(any())).thenAnswer(invocation -> {
+            Function<CrawlerQueueEngineRouter.MutationPermit, ?> operation = invocation.getArgument(0);
+            permitHeld.set(true);
+            try {
+                return operation.apply(permit);
+            } finally {
+                permitHeld.set(false);
+            }
+        });
+        return new RouterFixture(router, permit, permitHeld);
+    }
+
+    private CrawlerQueueEngineRouter deniedRouter() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.withMutationPermit(any())).thenThrow(new CrawlerQueueV2Exception(
+            HttpStatus.CONFLICT,
+            CrawlerQueueV2ReasonCode.STATE_STORE_RESET
+        ));
+        return router;
+    }
+
+    private CrawlerQueueEngineRouter failingRouter() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.withMutationPermit(any())).thenThrow(new IllegalStateException("router lock failed"));
+        return router;
+    }
+
+    private static void awaitLatch(CountDownLatch latch, String description) {
+        try {
+            if (!latch.await(2, TimeUnit.SECONDS)) {
+                throw new AssertionError("timed out waiting for " + description);
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError("interrupted while waiting for " + description, exception);
+        }
+    }
+
+    private static void awaitRouterLockContention(Thread marker, CountDownLatch markerPersisted)
+        throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+        while (System.nanoTime() < deadline) {
+            Thread.State state = marker.getState();
+            boolean waitingInRouter = Arrays.stream(marker.getStackTrace()).anyMatch(frame ->
+                frame.getClassName().equals(CrawlerQueueEngineRouter.class.getName())
+                    && frame.getMethodName().equals("locked")
+            );
+            if (markerPersisted.getCount() == 1
+                && waitingInRouter
+                && (state == Thread.State.WAITING || state == Thread.State.BLOCKED)) {
+                return;
+            }
+            Thread.sleep(5L);
+        }
+        throw new AssertionError("maintenance writer did not wait on the real router lock");
     }
 
     private CrawlerQueueV2Attempt latestAttempt() {
         return latestAttempt.get();
+    }
+
+    private record RouterFixture(
+        CrawlerQueueEngineRouter router,
+        CrawlerQueueEngineRouter.MutationPermit permit,
+        AtomicBoolean permitHeld
+    ) {
     }
 
     private void assertPostCasCompensationDoesNotOverwrite(
@@ -1993,6 +2439,11 @@ class CrawlerAttemptSupervisorTest {
             exitCode = code;
             alive = false;
             exitFuture.complete(handle);
+        }
+
+        private void completeWatcherFailure(Throwable failure) {
+            alive = false;
+            exitFuture.completeExceptionally(failure);
         }
 
         @Override

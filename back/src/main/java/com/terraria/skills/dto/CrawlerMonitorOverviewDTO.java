@@ -26,6 +26,15 @@ public class CrawlerMonitorOverviewDTO {
     private Long heartbeatStaleAfterMs;
     private ImageNormalizationSummaryDTO imageNormalization;
     private WikiMonitorDTO wikiMonitor;
+    private Integer queueContractVersion;
+    private String stateStoreEpoch;
+    private String streamCursor;
+    private CrawlerQueueV2OverviewDTO.HealthDTO queueHealth;
+    private CrawlerQueueV2OverviewDTO.HealthDTO reconcilerHealth;
+    private List<CrawlerQueueV2OverviewDTO.AttemptDTO> liveQueue = new ArrayList<>();
+    private List<CrawlerQueueV2OverviewDTO.DomainStateDTO> domainStates = new ArrayList<>();
+    private List<CrawlerQueueV2OverviewDTO.AttemptDTO> attemptHistory = new ArrayList<>();
+    private List<CrawlerQueueV2OverviewDTO.LegacyAttemptDTO> legacyHistory = new ArrayList<>();
     private List<String> staleHeartbeats = new ArrayList<>();
     private List<MonitorRunDTO> history = new ArrayList<>();
     private List<MonitorReportDTO> recentReports = new ArrayList<>();

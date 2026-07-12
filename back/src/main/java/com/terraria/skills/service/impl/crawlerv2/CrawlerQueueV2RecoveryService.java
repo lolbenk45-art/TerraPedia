@@ -25,6 +25,7 @@ public class CrawlerQueueV2RecoveryService {
     private final CrawlerAttemptStateMachine stateMachine;
     private final CrawlerQueueV2Properties properties;
     private final Clock clock;
+    private final CrawlerQueueEngineRouter router;
     private volatile RecoveryResult lastRecoveryResult;
 
     public CrawlerQueueV2RecoveryService(
@@ -33,7 +34,8 @@ public class CrawlerQueueV2RecoveryService {
         CrawlerAttemptSupervisor supervisor,
         CrawlerAttemptStateMachine stateMachine,
         CrawlerQueueV2Properties properties,
-        Clock clock
+        Clock clock,
+        CrawlerQueueEngineRouter router
     ) {
         this.repository = Objects.requireNonNull(repository, "repository");
         this.artifactStore = Objects.requireNonNull(artifactStore, "artifactStore");
@@ -41,6 +43,7 @@ public class CrawlerQueueV2RecoveryService {
         this.stateMachine = Objects.requireNonNull(stateMachine, "stateMachine");
         this.properties = Objects.requireNonNull(properties, "properties");
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.router = Objects.requireNonNull(router, "router");
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -51,6 +54,28 @@ public class CrawlerQueueV2RecoveryService {
     public RecoveryResult recoverOnStartup() {
         Instant checkedAt = clock.instant();
         try {
+            router.reconcileFirstMutationReservation();
+            return router.withMutationPermit(permit -> recoverUnderPermit(checkedAt, permit));
+        } catch (CrawlerQueueV2Exception exception) {
+            return readOnlyRecovery(CrawlerQueueEngineMode.MAINTENANCE, exception.reasonCode(), checkedAt);
+        } catch (RuntimeException exception) {
+            return remember(new RecoveryResult(
+                true,
+                CrawlerQueueV2ReasonCode.STATE_STORE_UNAVAILABLE,
+                null,
+                checkedAt
+            ));
+        }
+    }
+
+    private RecoveryResult recoverUnderPermit(
+        Instant checkedAt,
+        CrawlerQueueEngineRouter.MutationPermit permit
+    ) {
+            CrawlerQueueEngineMode routedMode = permit.mode();
+            if (routedMode != CrawlerQueueEngineMode.V2) {
+                return readOnlyRecovery(routedMode, null, checkedAt);
+            }
             CrawlerQueueV2Repository.EngineState engine = repository.readEngineState();
             if (engine.mode() != CrawlerQueueEngineMode.V2) {
                 return remember(new RecoveryResult(false, null, engine.stateStoreEpoch(), checkedAt));
@@ -93,19 +118,13 @@ public class CrawlerQueueV2RecoveryService {
                 stallWithoutProcessSearch(unmatchedRedisAttempt, checkedAt);
             }
             return remember(new RecoveryResult(false, null, engine.stateStoreEpoch(), checkedAt));
-        } catch (CrawlerQueueV2Exception exception) {
-            return remember(new RecoveryResult(true, exception.reasonCode(), null, checkedAt));
-        } catch (RuntimeException exception) {
-            return remember(new RecoveryResult(
-                true,
-                CrawlerQueueV2ReasonCode.STATE_STORE_UNAVAILABLE,
-                null,
-                checkedAt
-            ));
-        }
     }
 
     public ResetPreparation prepareStateStoreReset(String observedEpoch) {
+        return router.withMutationPermit(permit -> prepareStateStoreResetUnderPermit(observedEpoch));
+    }
+
+    private ResetPreparation prepareStateStoreResetUnderPermit(String observedEpoch) {
         Instant now = clock.instant();
         Map<String, CrawlerAttemptManifest> manifests = new HashMap<>();
         for (CrawlerAttemptManifest manifest : artifactStore.listManifests()) {
@@ -158,6 +177,30 @@ public class CrawlerQueueV2RecoveryService {
     private RecoveryResult remember(RecoveryResult result) {
         lastRecoveryResult = result;
         return result;
+    }
+
+    private RecoveryResult readOnlyRecovery(
+        CrawlerQueueEngineMode mode,
+        CrawlerQueueV2ReasonCode failureReason,
+        Instant checkedAt
+    ) {
+        CrawlerQueueEngineRouter.CutoverState durable = null;
+        try {
+            durable = router.readDurableState();
+        } catch (RuntimeException ignored) {
+            // Router state is unavailable, so report the structured routing reason below.
+        }
+        boolean resetRequired = mode != CrawlerQueueEngineMode.V1;
+        CrawlerQueueV2ReasonCode reason = failureReason == null ? router.lastReasonCode() : failureReason;
+        if (resetRequired && reason == null) {
+            reason = CrawlerQueueV2ReasonCode.STATE_STORE_RESET;
+        }
+        return remember(new RecoveryResult(
+            resetRequired,
+            reason,
+            durable == null ? null : durable.stateStoreEpoch(),
+            checkedAt
+        ));
     }
 
     private boolean isAdoptable(

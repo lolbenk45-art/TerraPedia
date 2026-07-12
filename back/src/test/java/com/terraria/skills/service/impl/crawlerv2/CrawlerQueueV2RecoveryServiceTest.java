@@ -15,8 +15,15 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -63,6 +70,150 @@ class CrawlerQueueV2RecoveryServiceTest {
         verify(repository, never()).mutate(any());
         verifyNoInteractions(supervisor);
         assertFalse(Files.exists(repoRoot.resolve("reports/crawler-monitor/v2")));
+    }
+
+    @Test
+    void durableMaintenanceReturnsReadOnlyRecoveryHealthWithoutAdoptingOrMutatingAnything() {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = mock(CrawlerAttemptArtifactStore.class);
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        CrawlerQueueEngineRouter.CutoverState durable = new CrawlerQueueEngineRouter.CutoverState(
+            2,
+            CrawlerQueueEngineMode.MAINTENANCE,
+            "cutover-1",
+            "epoch-1",
+            NOW,
+            NOW.minusSeconds(1),
+            null
+        );
+        when(router.reconcileFirstMutationReservation()).thenReturn(durable);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.MAINTENANCE);
+        when(router.readDurableState()).thenReturn(durable);
+        when(router.lastReasonCode()).thenReturn(CrawlerQueueV2ReasonCode.FIRST_MUTATION_OUTCOME_UNCERTAIN);
+        configureMutationPermit(router);
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        CrawlerQueueV2RecoveryService recovery = new CrawlerQueueV2RecoveryService(
+            repository,
+            artifacts,
+            supervisor,
+            new CrawlerAttemptStateMachine(properties),
+            properties,
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            router
+        );
+
+        CrawlerQueueV2RecoveryService.RecoveryResult result = recovery.recoverOnStartup();
+
+        assertTrue(result.resetRequired());
+        assertEquals(CrawlerQueueV2ReasonCode.FIRST_MUTATION_OUTCOME_UNCERTAIN, result.reasonCode());
+        assertEquals("epoch-1", result.stateStoreEpoch());
+        verifyNoInteractions(repository, artifacts, supervisor);
+    }
+
+    @Test
+    void recoveryKeepsTheMarkerTransitionOutUntilItsManifestRewriteCompletes() throws Exception {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = mock(CrawlerAttemptArtifactStore.class);
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        CrawlerQueueEngineRouter router = new CrawlerQueueEngineRouter(
+            objectMapper,
+            repository,
+            repoRoot,
+            Clock.fixed(NOW, ZoneOffset.UTC)
+        );
+        router.writeState(new CrawlerQueueEngineRouter.CutoverState(
+            2,
+            CrawlerQueueEngineMode.V2,
+            "cutover-1",
+            "epoch-1",
+            NOW,
+            NOW.minusSeconds(61),
+            NOW.minusSeconds(60)
+        ));
+        CrawlerQueueEngineRouter.CutoverState maintenance = maintenanceState(router.readDurableState());
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of());
+        when(artifacts.listManifests()).thenReturn(List.of(new CrawlerAttemptManifest(
+            2,
+            "epoch-old",
+            "queue-old",
+            "attempt-old",
+            7L,
+            "bosses",
+            "domain-source-bosses",
+            CrawlerQueueV2Status.RUNNING,
+            NOW.minus(Duration.ofMinutes(1)),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            List.of()
+        )));
+
+        CountDownLatch manifestEntered = new CountDownLatch(1);
+        CountDownLatch releaseManifest = new CountDownLatch(1);
+        CountDownLatch markerCallingWrite = new CountDownLatch(1);
+        CountDownLatch markerPersisted = new CountDownLatch(1);
+        AtomicInteger order = new AtomicInteger();
+        AtomicInteger manifestOrder = new AtomicInteger();
+        AtomicInteger markerOrder = new AtomicInteger();
+        org.mockito.Mockito.doAnswer(invocation -> {
+            manifestEntered.countDown();
+            awaitLatch(releaseManifest);
+            manifestOrder.set(order.incrementAndGet());
+            return null;
+        }).when(artifacts).writeManifest(any());
+        CrawlerQueueV2RecoveryService recovery = new CrawlerQueueV2RecoveryService(
+            repository,
+            artifacts,
+            supervisor,
+            new CrawlerAttemptStateMachine(properties),
+            properties,
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            router
+        );
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Future<CrawlerQueueV2RecoveryService.RecoveryResult> recovered = null;
+        Thread marker = null;
+        Throwable primaryFailure = null;
+        try {
+            recovered = executor.submit(recovery::recoverOnStartup);
+            awaitLatch(manifestEntered);
+            marker = new Thread(() -> {
+                markerCallingWrite.countDown();
+                router.writeState(maintenance);
+                markerOrder.set(order.incrementAndGet());
+                markerPersisted.countDown();
+            }, "recovery-maintenance-marker");
+            marker.start();
+            awaitLatch(markerCallingWrite);
+            awaitRouterLockContention(marker, markerPersisted);
+
+            releaseManifest.countDown();
+            assertFalse(recovered.get(2, TimeUnit.SECONDS).resetRequired());
+            assertTrue(markerPersisted.await(2, TimeUnit.SECONDS), "maintenance marker did not complete");
+            assertTrue(manifestOrder.get() > 0, "recovery manifest rewrite did not complete");
+            assertTrue(markerOrder.get() > manifestOrder.get(), "maintenance must persist after the manifest rewrite");
+        } catch (Exception | Error failure) {
+            primaryFailure = failure;
+            throw failure;
+        } finally {
+            releaseManifest.countDown();
+            finishInterleaving(marker, executor, recovered, primaryFailure, "recovery maintenance interleaving");
+        }
     }
 
     @Test
@@ -547,8 +698,137 @@ class CrawlerQueueV2RecoveryServiceTest {
             supervisor,
             new CrawlerAttemptStateMachine(properties),
             properties,
-            Clock.fixed(NOW, ZoneOffset.UTC)
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            v2Router()
         );
+    }
+
+    private CrawlerQueueEngineRouter v2Router() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        configureMutationPermit(router);
+        return router;
+    }
+
+    private static void configureMutationPermit(CrawlerQueueEngineRouter router) {
+        CrawlerQueueEngineRouter.MutationPermit permit = mock(CrawlerQueueEngineRouter.MutationPermit.class);
+        when(permit.mode()).thenAnswer(invocation -> router.mode());
+        when(permit.durableState()).thenAnswer(invocation -> router.readDurableState());
+        when(router.withMutationPermit(any())).thenAnswer(invocation -> {
+            java.util.function.Function<CrawlerQueueEngineRouter.MutationPermit, ?> operation = invocation.getArgument(0);
+            return operation.apply(permit);
+        });
+    }
+
+    private static CrawlerQueueEngineRouter.CutoverState maintenanceState(
+        CrawlerQueueEngineRouter.CutoverState current
+    ) {
+        return new CrawlerQueueEngineRouter.CutoverState(
+            current.contractVersion(),
+            CrawlerQueueEngineMode.MAINTENANCE,
+            current.cutoverId(),
+            current.stateStoreEpoch(),
+            NOW,
+            current.mutationReservationAt(),
+            current.firstLiveMutationAt()
+        );
+    }
+
+    private static void awaitLatch(CountDownLatch latch) {
+        try {
+            if (!latch.await(2, TimeUnit.SECONDS)) {
+                throw new AssertionError("timed out waiting for deterministic test interleaving");
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError(exception);
+        }
+    }
+
+    private static void awaitRouterLockContention(Thread marker, CountDownLatch markerPersisted)
+        throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+        while (System.nanoTime() < deadline) {
+            Thread.State state = marker.getState();
+            boolean waitingInRouter = Arrays.stream(marker.getStackTrace()).anyMatch(frame ->
+                frame.getClassName().equals(CrawlerQueueEngineRouter.class.getName())
+                    && frame.getMethodName().equals("locked")
+            );
+            if (markerPersisted.getCount() == 1
+                && waitingInRouter
+                && (state == Thread.State.WAITING || state == Thread.State.BLOCKED)) {
+                return;
+            }
+            Thread.sleep(5L);
+        }
+        throw new AssertionError("maintenance writer did not wait on the real router lock");
+    }
+
+    private static void finishInterleaving(
+        Thread marker,
+        ExecutorService executor,
+        Future<?> operation,
+        Throwable primaryFailure,
+        String description
+    ) {
+        StringBuilder problems = new StringBuilder();
+        executor.shutdown();
+        if (operation != null && !operation.isDone()) {
+            try {
+                operation.get(2, TimeUnit.SECONDS);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                appendCleanupProblem(problems, "operation wait interrupted");
+            } catch (Exception exception) {
+                appendCleanupProblem(problems, "operation did not finish: " + exception.getClass().getSimpleName());
+            }
+        }
+        if (marker != null) {
+            try {
+                marker.join(2_000L);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                appendCleanupProblem(problems, "marker join interrupted");
+            }
+        }
+        try {
+            if (!executor.awaitTermination(2, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+                if (!executor.awaitTermination(2, TimeUnit.SECONDS)) {
+                    appendCleanupProblem(problems, "executor did not terminate");
+                }
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            appendCleanupProblem(problems, "executor termination interrupted");
+        }
+        if (marker != null && marker.isAlive()) {
+            marker.interrupt();
+            try {
+                marker.join(2_000L);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                appendCleanupProblem(problems, "marker cleanup join interrupted");
+            }
+            if (marker.isAlive()) {
+                appendCleanupProblem(problems, "marker thread is still alive");
+            }
+        }
+        if (problems.length() == 0) {
+            return;
+        }
+        AssertionError cleanupFailure = new AssertionError(description + " cleanup incomplete: " + problems);
+        if (primaryFailure == null) {
+            throw cleanupFailure;
+        }
+        primaryFailure.addSuppressed(cleanupFailure);
+    }
+
+    private static void appendCleanupProblem(StringBuilder problems, String problem) {
+        if (problems.length() > 0) {
+            problems.append("; ");
+        }
+        problems.append(problem);
     }
 
     private CrawlerAttemptArtifactStore artifactStore() {

@@ -12,9 +12,13 @@ import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.data.redis.core.SetOperations;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.data.redis.core.DefaultTypedTuple;
+import org.springframework.data.redis.connection.Limit;
+import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.connection.stream.StreamReadOptions;
 import org.springframework.data.redis.core.script.RedisScript;
+import org.springframework.data.domain.Range;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -33,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -556,6 +561,28 @@ class RedisCrawlerQueueV2RepositoryTest {
         ArgumentCaptor<StreamReadOptions> options = ArgumentCaptor.forClass(StreamReadOptions.class);
         verify(streams).read(options.capture(), any(StreamOffset.class));
         assertFalse(options.getValue().isBlocking());
+    }
+
+    @Test
+    void latestStreamCursorReadsOnlyTheNewestEventWithoutMutatingTheStream() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        StreamOperations<String, Object, Object> streams = mock(StreamOperations.class);
+        MapRecord<String, Object, Object> newest = MapRecord.create(
+            "terrapedia:crawler:wiki-monitor:v2:events",
+            Map.<Object, Object>of("payload", "{}")
+        ).withId(RecordId.of("1710000000000-3"));
+        when(redis.opsForStream()).thenReturn(streams);
+        when(streams.reverseRange(anyString(), any(Range.class), any(Limit.class))).thenReturn(List.of(newest));
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+
+        assertEquals("1710000000000-3", repository.latestStreamCursor());
+
+        ArgumentCaptor<Range<String>> range = ArgumentCaptor.forClass(Range.class);
+        ArgumentCaptor<Limit> limit = ArgumentCaptor.forClass(Limit.class);
+        verify(streams).reverseRange(eq("terrapedia:crawler:wiki-monitor:v2:events"), range.capture(), limit.capture());
+        assertEquals(Range.unbounded(), range.getValue());
+        assertEquals(1, limit.getValue().getCount());
+        verify(redis, never()).execute(any(RedisScript.class), anyList(), any(Object[].class));
     }
 
     @Test
