@@ -62,6 +62,23 @@ public class MinioManagedImageUrlPolicy implements ManagedImageUrlPolicy {
     }
 
     @Override
+    public List<String> trustedManagedImageReadUrlPrefixes() {
+        LinkedHashSet<String> prefixes = new LinkedHashSet<>(trustedManagedImageUrlPrefixes());
+        MinioConnectionDetails connectionDetails = connectionDetailsProvider.getIfAvailable();
+        String defaultObjectPrefix = connectionDetails == null
+            ? properties.getObjectPrefix()
+            : connectionDetails.objectPrefix();
+
+        for (String objectPrefix : resolveTrustedObjectPrefixes(defaultObjectPrefix, properties.getManagedImageObjectPrefixes())) {
+            for (String legacyOrigin : legacyImageOrigins()) {
+                addPrefix(prefixes, legacyOrigin, resolveBucket(), objectPrefix);
+            }
+        }
+
+        return List.copyOf(prefixes);
+    }
+
+    @Override
     public Optional<String> normalizeManagedImagePath(String value) {
         String normalized = trimToNull(value);
         if (normalized == null) {

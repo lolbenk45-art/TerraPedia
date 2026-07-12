@@ -11,6 +11,10 @@ public interface ManagedImageUrlPolicy {
 
     List<String> trustedManagedImageUrlPrefixes();
 
+    default List<String> trustedManagedImageReadUrlPrefixes() {
+        return trustedManagedImageUrlPrefixes();
+    }
+
     default Optional<String> normalizeManagedImagePath(String value) {
         String normalizedValue = trimToNull(value);
         if (normalizedValue == null || !isManagedImageUrl(normalizedValue)) {

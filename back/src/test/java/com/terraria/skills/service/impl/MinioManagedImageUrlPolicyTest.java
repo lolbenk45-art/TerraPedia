@@ -79,6 +79,21 @@ class MinioManagedImageUrlPolicyTest {
     }
 
     @Test
+    void shouldExposeConfiguredLegacyOriginsOnlyForReadSidePrefixMatching() {
+        MinioStorageProperties properties = configuredProperties("items");
+        properties.setLegacyImageOrigins("http://localhost:9000");
+        MinioManagedImageUrlPolicy policy = new MinioManagedImageUrlPolicy(
+            properties,
+            connectionDetailsProvider(connectionDetails("http://minio:9000", "https://cdn.example.com"))
+        );
+
+        assertTrue(policy.trustedManagedImageReadUrlPrefixes()
+            .contains("http://localhost:9000/terrapedia-images/items/"));
+        assertFalse(policy.trustedManagedImageUrlPrefixes()
+            .contains("http://localhost:9000/terrapedia-images/items/"));
+    }
+
+    @Test
     void shouldTreatNpcAndProjectilePrefixesAsManagedWhenConfigured() {
         MinioManagedImageUrlPolicy policy = new MinioManagedImageUrlPolicy(
             configuredProperties("npcs,projectiles"),

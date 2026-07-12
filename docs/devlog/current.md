@@ -147,6 +147,12 @@ Last updated: 2026-07-12 18:46 CST by Codex
 
 ## Recently Closed
 
+- `docs/devlog/entries/2026-07-12-item-image-minio-fallback-investigation.md`
+  - branch: `investigate/item-image-minio-fallback`
+  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/investigate-item-image-minio-fallback`
+  - status: `closed`
+  - commit: branch closeout commit pending in final response
+
 - `docs/devlog/entries/2026-07-11-crawler-monitor-queue-state-root-cause.md`
   - branch: `fix/crawler-monitor-queue-state`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-monitor-queue-state`
