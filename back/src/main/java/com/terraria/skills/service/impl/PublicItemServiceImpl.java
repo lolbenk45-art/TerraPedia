@@ -197,7 +197,7 @@ public class PublicItemServiceImpl implements PublicItemService {
             normalizeSortDirection(safeQuery.getSortDirection()),
             limit,
             offset,
-            managedImagePrefixes()
+            managedImageReadPrefixes()
         );
         applyPublicCategoryFields(records);
 
@@ -210,7 +210,7 @@ public class PublicItemServiceImpl implements PublicItemService {
     @Override
     @Cacheable(cacheNames = "item:public:detail", key = "#root.target.buildPublicDetailCacheKey(#id)", sync = true)
     public PublicItemDetailDTO getPublicItemById(Long id) {
-        PublicItemDetailDTO item = itemMapper.selectPublicItemDetailById(id, managedImagePrefixes());
+        PublicItemDetailDTO item = itemMapper.selectPublicItemDetailById(id, managedImageReadPrefixes());
         applyPublicCategoryFields(item);
         return item;
     }
@@ -231,7 +231,7 @@ public class PublicItemServiceImpl implements PublicItemService {
         return itemMapper.selectPublicItemSuggestions(
             normalizedKeyword,
             normalizeSuggestionLimit(limit),
-            managedImagePrefixes()
+            managedImageReadPrefixes()
         );
     }
 
@@ -613,13 +613,18 @@ public class PublicItemServiceImpl implements PublicItemService {
         return managedImageUrlPolicy.normalizeManagedImagePathForDomain(value, domain).orElse(null);
     }
 
-    private List<String> managedImagePrefixes() {
-        List<String> prefixes = managedImageUrlPolicy.trustedManagedImageUrlPrefixes();
-        return prefixes == null ? List.of() : prefixes;
+    private List<String> managedImageReadPrefixes() {
+        List<String> readPrefixes = managedImageUrlPolicy.trustedManagedImageReadUrlPrefixes();
+        if (readPrefixes != null && !readPrefixes.isEmpty()) {
+            return readPrefixes;
+        }
+
+        List<String> writePrefixes = managedImageUrlPolicy.trustedManagedImageUrlPrefixes();
+        return writePrefixes == null ? List.of() : writePrefixes;
     }
 
     private String managedImagePrefixFingerprint() {
-        List<String> prefixes = managedImagePrefixes();
+        List<String> prefixes = managedImageReadPrefixes();
         if (prefixes.isEmpty()) {
             return "none";
         }

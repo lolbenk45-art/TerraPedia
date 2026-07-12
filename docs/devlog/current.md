@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-12 07:34 CST by Codex
+Last updated: 2026-07-12 18:27 CST by Codex
 
 ## Open Work
 
@@ -146,6 +146,12 @@ Last updated: 2026-07-12 07:34 CST by Codex
 - Existing frontend build emits non-failing environment DBus, sourcemap, and preview-asset warnings; they are unrelated to Task 1 and remain outside this scope.
 
 ## Recently Closed
+
+- `docs/devlog/entries/2026-07-12-item-image-minio-fallback-investigation.md`
+  - branch: `investigate/item-image-minio-fallback`
+  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/investigate-item-image-minio-fallback`
+  - status: `closed`
+  - commit: branch closeout commit pending in final response
 
 - `docs/devlog/entries/2026-07-11-crawler-monitor-queue-state-root-cause.md`
   - branch: `fix/crawler-monitor-queue-state`

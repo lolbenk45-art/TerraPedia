@@ -93,6 +93,26 @@ class PublicItemServiceImplTest {
     }
 
     @Test
+    void shouldUseReadSideImagePrefixesForPublicItemList() {
+        List<String> readPrefixes = List.of(
+            "http://minio:9000/terrapedia-images/items/",
+            "http://localhost:9000/terrapedia-images/items/"
+        );
+        PageQuery query = new PageQuery();
+        query.setPage(1);
+        query.setLimit(10);
+
+        when(managedImageUrlPolicy.trustedManagedImageReadUrlPrefixes()).thenReturn(readPrefixes);
+        when(itemMapper.countItemsWithSearch(eq(""), isNull(), isNull(), isNull(), isNull())).thenReturn(0L);
+        when(itemMapper.selectPublicItemsWithSearch(eq(""), isNull(), isNull(), isNull(), isNull(), eq("id"), eq("asc"), eq(10L), eq(0L), eq(readPrefixes)))
+            .thenReturn(List.of());
+
+        publicItemService.getPublicItems(query);
+
+        verify(itemMapper).selectPublicItemsWithSearch(eq(""), isNull(), isNull(), isNull(), isNull(), eq("id"), eq("asc"), eq(10L), eq(0L), eq(readPrefixes));
+    }
+
+    @Test
     void shouldResolveCategoryDescendantsForPublicListFilters() {
         PageQuery query = new PageQuery();
         query.setPage(1);
