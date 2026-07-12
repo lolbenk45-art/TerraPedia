@@ -556,6 +556,7 @@ const triageWorkbench = computed<Record<string, any>>(() => buildTriageWorkbench
   domainRows: domainTableRows.value,
   maxAttentionCards: 4,
   autoDispatchEnabled: savedAutoDispatchEnabled.value,
+  activeQueueCount: activeDispatchQueueRows.value.length,
   recentUpdatedCount: recentReportRows.value.length,
   now: lastOverviewRefreshAt.value || new Date().toISOString(),
 } as any) as Record<string, any>)

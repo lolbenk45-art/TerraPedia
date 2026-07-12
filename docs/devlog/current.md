@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-12 07:34 CST by Codex
+Last updated: 2026-07-12 08:26 CST by Codex
 
 ## Open Work
 
@@ -10,8 +10,8 @@ Last updated: 2026-07-12 07:34 CST by Codex
   - branch: `fix/crawler-queue-v2-runtime`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
   - parent/child: none
-  - dependencies or blocked-by: live stack is stopped; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
-  - contract handoff: Tasks 1-2 are committed at `723f2d0` and `755713f`; continue with Task 3 V2 namespace and atomic enqueue/dedupe repository
+  - dependencies or blocked-by: local stack is running for user acceptance; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
+  - contract handoff: Tasks 1-2 are committed at `723f2d0` and `755713f`; idle/queue visibility design is committed at `591101e`; after acceptance continue with Task 3 V2 namespace and atomic enqueue/dedupe repository
 
 ## Current State
 
@@ -54,6 +54,17 @@ Last updated: 2026-07-12 07:34 CST by Codex
   focused backend tests after an exact 1/1 rerun closed a pre-existing atomic
   temporary-file traversal race. The broad backend suite still has unrelated
   failures that reproduce on `main`; they are not being folded into this task.
+- The focused idle/queue compatibility checkpoint now maps evidence-free
+  `unknown` to healthy idle, displays `空闲正常`, adds an exact active-queue KPI
+  with queue filtering/navigation, and keeps attention, queue, history, and log
+  access visible at the same time. Unknown with unclassified runtime evidence
+  remains explicit.
+- Fresh acceptance evidence from the running stack: overview HTTP `200`, API
+  healthy/unknown counts `9/0`, rendered idle-normal/unknown counts `14/0`, one
+  existing paused Boss queue row shown by the queue KPI/filter, and queue/log
+  tabs visible. No crawler, database write, or Redis clear was performed.
+- Focused validation for this checkpoint passes: backend reducer 21/21, admin
+  typecheck, and admin unit tests 251/251.
 - Plan audit closed two additional fail-closed gaps: the first real V2 mutation
   now uses a durable reservation before Redis plus exact confirmation after it,
   and missing/conflicting Redis epochs require an explicit idempotent reset that
@@ -125,8 +136,9 @@ Last updated: 2026-07-12 07:34 CST by Codex
 
 ## Current Risks
 
-- The local stack is stopped and the latest retained crawler runtime evidence is
-  dated 2026-07-08, so live behavior is not yet freshly reproduced.
+- The local stack is running for acceptance, but the existing paused Boss queue
+  item is visibility evidence only; no crawler was started and no V2 runtime
+  convergence behavior has been exercised.
 - Current queue history and log retention are misaligned: queue history keeps
   substantially more attempts than the crawler-monitor log pruner, so a stored
   logPath is not evidence that a readable log still exists.

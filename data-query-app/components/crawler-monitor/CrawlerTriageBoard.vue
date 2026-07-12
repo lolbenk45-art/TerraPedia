@@ -41,6 +41,10 @@
         <small :title="metric.label">{{ metric.label }}</small>
         <strong :title="String(metric.value)">{{ metric.value }}</strong>
         <span :title="metric.note">{{ metric.note }}</span>
+        <span class="kpi-card__jump">
+          {{ metric.actionLabel || '查看' }}
+          <ArrowRight :size="14" aria-hidden="true" />
+        </span>
       </button>
     </section>
 
@@ -110,7 +114,7 @@
         </article>
       </div>
 
-      <div v-else-if="operationProgressRows.length" class="operation-strip">
+      <div v-if="operationProgressRows.length" class="operation-strip">
         <div class="operation-strip__summary">
           <span><strong>{{ operationProgressSummary.runningCount || 0 }}</strong><small>运行</small></span>
           <span><strong>{{ operationProgressSummary.queuedCount || 0 }}</strong><small>排队</small></span>
@@ -150,7 +154,7 @@
         </div>
       </div>
 
-      <div v-else class="attention-empty">
+      <div v-if="!attentionCards.length && !operationProgressRows.length" class="attention-empty">
         <span>暂无基础域</span>
       </div>
 
@@ -185,6 +189,7 @@
             <option value="all">全部</option>
             <option value="attention">需处理</option>
             <option value="running">运行</option>
+            <option value="queue">队列</option>
             <option value="healthy">最新</option>
           </select>
           <div class="segmented" role="group" aria-label="显示方式">
@@ -287,6 +292,7 @@ import { computed, ref } from 'vue'
 import {
   Activity,
   ArrowDownToLine,
+  ArrowRight,
   CircleStop,
   LayoutGrid,
   PanelRightOpen,
@@ -337,6 +343,7 @@ const filteredRows = computed(() => {
     const status = String(row.triageStatus || row.risk || row.status || '').toLowerCase()
     if (tableFilter.value === 'attention' && !row.needsAttention) return false
     if (tableFilter.value === 'running' && !row.isRunning) return false
+    if (tableFilter.value === 'queue' && !row.hasActiveQueue) return false
     if (tableFilter.value === 'healthy' && (row.needsAttention || row.isRunning || status !== 'healthy')) return false
     if (!needle) return true
     return String(row.searchText || `${row.label} ${row.domain} ${row.diagnosisTitle} ${row.rankReason}`).toLowerCase().includes(needle)
@@ -519,7 +526,7 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 
 .kpi-row {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -561,6 +568,16 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   display: block;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.kpi-card .kpi-card__jump {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--color-primary);
+  font-weight: 600;
 }
 
 .kpi-card small,

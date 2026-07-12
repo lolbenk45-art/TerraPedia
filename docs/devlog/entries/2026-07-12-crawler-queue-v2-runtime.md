@@ -36,6 +36,12 @@
   exist. The approved frontend correction keeps health and queue activity as
   parallel signals, documented in
   `docs/superpowers/specs/2026-07-12-crawler-monitor-idle-queue-visibility-design.md`.
+- The compatibility root cause is split across producer and presentation: the
+  reducer preserved a neutral `domainStatus=unknown` even without runtime
+  evidence, while the admin adapter treated every missing backend state as an
+  error and the triage board made attention and queue progress mutually
+  exclusive. Neutral idle is now healthy, but unknown with unclassified
+  runtime evidence remains explicit and inspectable.
 
 ## Scope
 
@@ -51,8 +57,9 @@
 - Docs/process: keep this entry, the current index, and validation evidence
   synchronized at task checkpoints.
 - Out of scope without explicit authorization: real crawler execution, shared
-  Redis clearing, service restart, database mutation, fixture-stack execution,
-  first irreversible V2 mutation, and live cutover.
+  Redis clearing, database mutation, fixture-stack execution, first
+  irreversible V2 mutation, and live cutover. The local stack and a final
+  backend restart were used only for the user's requested acceptance session.
 
 ## Validation
 
@@ -63,14 +70,34 @@
   - The broad backend suite has unrelated baseline and order-sensitive failures
     documented in the prior entry and reproduced against local `main` where
     applicable; no broad-suite success is claimed.
-- Next required validation: Task 3 RED/GREEN commands and exact file scope from
-  the approved plan.
-- Not run: crawler execution, fixture stack, local stack, database checks,
-  shared Redis mutation, browser acceptance, or live cutover.
+- Idle/queue compatibility RED -> GREEN evidence:
+  - The new backend neutral-unknown test failed before the reducer change and
+    passed after it; the final focused reducer selection passed 21/21.
+  - The new domain-table idle fallback, raw queue KPI, queue filter, concurrent
+    attention/progress rendering, and KPI navigation contracts failed before
+    implementation and passed after their focused changes.
+  - Admin typecheck passed and the maintained unit suite passed 251/251.
+  - Fresh commit-gate reruns passed: backend reducer 21/21, admin typecheck,
+    admin unit tests 251/251, and `git diff --check`.
+- Fresh local API/browser acceptance after the backend restart:
+  - overview HTTP status `200`, API healthy domains `9`, API unknown domains
+    `0`;
+  - rendered idle-normal rows `14`, unknown-state rows `0`;
+  - queue KPI text `活动队列 1 点击查看排队与占用信息 查看队列`;
+  - clicking the queue KPI selected filter `queue` and displayed exactly one
+    active row;
+  - queue and log tabs remained visible in domain detail.
+- The one visible active record is the existing paused Boss task. Terminal
+  queue history remains visible in detail but does not inflate the active KPI.
+- Not run: crawler execution, fixture stack, database writes/checks, shared
+  Redis clearing/mutation, or live cutover.
 
 ## Result
 
-- Completed: branch handoff contract and Tasks 1-2 prerequisite commits.
+- Completed: branch handoff contract, Tasks 1-2 prerequisite commits, and the
+  focused idle/queue visibility compatibility checkpoint. When no crawl exists,
+  idle domains render as `空闲正常`; active queue count, filtering, navigation,
+  history, and logs stay visible alongside attention states.
 - Not completed: Tasks 3-15 and the end-to-end stuck-queue acceptance contract.
 
 ## Residual Risks
@@ -79,14 +106,17 @@
   not claim the recurring queue/status problem is fixed.
 - Redis atomicity, fencing, reconciler convergence, restart isolation, SSE,
   attempt-bound logs, hard cutover, and combined acceptance remain unimplemented.
-- The local stack is stopped, so current live behavior is not freshly
-  reproduced and no runtime deadline has operational evidence yet.
+- The local stack is running for user acceptance. This checkpoint does not
+  validate V2 runtime deadlines, reconciler convergence, restart fencing, or
+  legacy/current queue isolation.
 
 ## Follow-up
 
-- Owner: Codex. Begin Task 3 by writing the failing V2 repository tests, then
-  implement only the isolated namespace and atomic enqueue/dedupe contract.
+- Owner: Codex. After the user accepts this focused checkpoint, begin Task 3 by
+  writing the failing V2 repository tests, then implement only the isolated
+  namespace and atomic enqueue/dedupe contract.
 
 ## Commits
 
-- Pending.
+- `591101e` `docs(crawler): define idle queue visibility contract`
+- Compatibility implementation commit pending in final response.

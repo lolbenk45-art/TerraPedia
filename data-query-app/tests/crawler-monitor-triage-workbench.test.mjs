@@ -113,6 +113,68 @@ test('triage workbench does not show missing auto dispatch config as disabled', 
   assert.equal(dispatchMetric.note, '后端未返回自动派发配置')
 })
 
+test('triage workbench exposes active queue KPI without counting terminal history', () => {
+  const domainRows = [
+    {
+      domain: 'items',
+      label: 'Items',
+      status: 'queued',
+      risk: 'queued',
+      queueItem: { queueId: 'queue-items', status: 'queued' },
+    },
+    {
+      domain: 'npcs',
+      label: 'NPCs',
+      status: 'running',
+      risk: 'running',
+      queueItem: { queueId: 'queue-npcs', status: 'running' },
+    },
+    {
+      domain: 'biomes',
+      label: 'Biomes',
+      status: 'completed',
+      risk: 'healthy',
+      queueItem: { queueId: 'queue-biomes', status: 'completed' },
+    },
+  ]
+
+  const derivedView = buildTriageWorkbench({ domainRows })
+  const derivedMetric = derivedView.metrics.find((metric) => metric.key === 'queue')
+  assert.equal(derivedMetric.value, '2')
+
+  const exactView = buildTriageWorkbench({ domainRows, activeQueueCount: 3 })
+  const queueMetric = exactView.metrics.find((metric) => metric.key === 'queue')
+  assert.equal(queueMetric.value, '3')
+  assert.equal(queueMetric.note, '点击查看排队与占用信息')
+  assert.deepEqual(queueMetric.target, { kind: 'domains', filter: 'queue' })
+  assert.equal(queueMetric.actionLabel, '查看队列')
+})
+
+test('triage workbench keeps active queue rows visible alongside many attention rows', () => {
+  const failedRows = Array.from({ length: 7 }, (_, index) => ({
+    domain: `failed_${index}`,
+    label: `Failed ${index}`,
+    status: 'failed',
+    risk: 'failed',
+    diagnosisGroup: 'attention',
+    diagnosisTitle: '执行失败',
+  }))
+  const queuedRow = {
+    domain: 'items',
+    label: 'Items',
+    status: 'queued',
+    risk: 'queued',
+    diagnosisGroup: 'queued',
+    queueItem: { queueId: 'queue-items', status: 'queued' },
+  }
+
+  const view = buildTriageWorkbench({ domainRows: [...failedRows, queuedRow] })
+
+  assert.equal(view.focusMode, 'attention')
+  assert.deepEqual(view.operationProgressRows.map((row) => row.domain), ['items'])
+  assert.equal(view.operationProgressRows.some((row) => row.risk === 'failed'), false)
+})
+
 test('triage workbench shows operation progress in the top section when no domain needs attention', () => {
   const healthyRows = [
     {
@@ -155,6 +217,7 @@ test('triage workbench shows operation progress in the top section when no domai
   assert.deepEqual(view.operationProgressRows.map((row) => row.domain), ['projectiles', 'items'])
   assert.equal(view.focusRows.find((row) => row.domain === 'items').primaryAction.label, '检查并同步核心')
   assert.equal(view.focusRows.find((row) => row.domain === 'items').taskLabel, 'Wiki 核心检查并同步')
+  assert.equal(view.focusRows.find((row) => row.domain === 'items').flowLabel, '空闲正常')
   assert.equal(view.focusRows.find((row) => row.domain === 'projectiles').primaryAction.label, '暂停')
 })
 

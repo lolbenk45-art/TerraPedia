@@ -55,7 +55,7 @@ public class CrawlerDomainStateReducer {
             status = progress;
         } else if ("queued".equals(queue) || "queued".equals(progress)) {
             status = "queued";
-        } else if (!domain.isEmpty()) {
+        } else if (!domain.isEmpty() && (!"unknown".equals(domain) || !queue.isEmpty() || !progress.isEmpty())) {
             status = domain;
         } else {
             status = "healthy";

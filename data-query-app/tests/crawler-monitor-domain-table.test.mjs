@@ -403,6 +403,49 @@ test('domain table treats self-blocked cooldown queue item as cooldown instead o
   assert.equal(rows[0].reason.includes('biome-sync 占用'), false)
 })
 
+test('domain table treats a loaded domain without runtime evidence as healthy idle', () => {
+  const rows = buildDomainTableRows({
+    domains: [
+      {
+        domain: 'items',
+        label: 'Items',
+        recommendedActionId: 'wiki-items-refresh',
+      },
+    ],
+    progressRows: [],
+    dispatchQueue: [],
+  })
+
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].status, 'healthy')
+  assert.equal(rows[0].risk, 'healthy')
+  assert.equal(rows[0].diagnosisGroup, 'healthy')
+  assert.equal(rows[0].diagnosisTitle, '空闲正常')
+  assert.equal(rows[0].rankReason, '当前没有运行或排队任务')
+  assert.equal(rows[0].statusSource, 'idle_fallback')
+})
+
+test('domain table labels backend healthy state as idle normal when no task is active', () => {
+  const rows = buildDomainTableRows({
+    domains: [
+      {
+        domain: 'items',
+        label: 'Items',
+        recommendedActionId: 'wiki-items-refresh',
+        state: { status: 'healthy', nextAction: 'none' },
+      },
+    ],
+    progressRows: [],
+    dispatchQueue: [],
+  })
+
+  assert.equal(rows[0].status, 'healthy')
+  assert.equal(rows[0].risk, 'healthy')
+  assert.equal(rows[0].diagnosisTitle, '空闲正常')
+  assert.equal(rows[0].rankReason, '当前没有运行或排队任务')
+  assert.equal(rows[0].statusSource, 'backend')
+})
+
 test('domain table does not infer domain status when backend state is missing', () => {
   const rows = buildDomainTableRows({
     domains: [

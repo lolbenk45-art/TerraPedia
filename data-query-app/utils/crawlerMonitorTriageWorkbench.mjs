@@ -16,6 +16,7 @@ const ATTENTION_STATUSES = new Set([
 
 const RUNNING_STATUSES = new Set(['running', 'active', 'starting'])
 const IDLE_STATUSES = new Set(['ready', 'queued', 'paused', 'cancelled', 'missing'])
+const ACTIVE_QUEUE_VISIBILITY_STATUSES = new Set(['queued', 'blocked_cooldown', 'starting', 'running', 'paused'])
 const PAUSABLE_STATUSES = new Set(['running', 'starting'])
 const RESUMABLE_STATUSES = new Set(['paused'])
 const FORCE_RECLAIM_STATUSES = new Set(['blocked', 'failed', 'error', 'timed_out', 'timeout', 'stalled', 'state_missing', 'unknown'])
@@ -214,7 +215,8 @@ function flowLabel(row, status = rowStatus(row)) {
   if (status === 'queued') return '排队等待'
   if (status === 'paused') return '已暂停'
   if (status === 'ready') return '可重新派发'
-  if (status === 'healthy' || status === 'completed' || status === 'success') return '已完成'
+  if (status === 'healthy') return '空闲正常'
+  if (status === 'completed' || status === 'success') return '已完成'
   if (status === 'failed' || status === 'error') return '执行失败'
   if (status === 'timed_out' || status === 'timeout') return '任务超时'
   if (status === 'stalled') return '心跳停滞'
@@ -280,6 +282,7 @@ function compareDomainRows(left, right) {
 
 function decorateDomainRow(row) {
   const status = rowStatus(row)
+  const hasActiveQueue = ACTIVE_QUEUE_VISIBILITY_STATUSES.has(queueStatus(row))
   const operations = buildDomainOperationModel({ ...row, triageStatus: status })
   return {
     ...row,
@@ -290,6 +293,7 @@ function decorateDomainRow(row) {
     needsAttention: isAttentionRow(row),
     isRunning: isRunningRow(row),
     isIdle: isIdleRow(row),
+    hasActiveQueue,
     primaryAction: operations.primaryAction,
     secondaryActions: operations.secondaryActions,
     searchText: [
@@ -313,6 +317,7 @@ function matchesFilter(row, filter) {
   if (normalized === 'all') return true
   if (normalized === 'attention') return row.needsAttention
   if (normalized === 'running') return row.isRunning
+  if (normalized === 'queue') return row.hasActiveQueue
   if (normalized === 'idle') return row.isIdle
   if (normalized === 'healthy') return !row.needsAttention && !row.isRunning && !row.isIdle
   return true
@@ -337,8 +342,8 @@ const OPERATION_PROGRESS_RANK = {
   success: 5,
 }
 
-function metric(key, label, value, note, tone = 'muted', target = null) {
-  return { key, label, value: String(value), note, tone, target }
+function metric(key, label, value, note, tone = 'muted', target = null, actionLabel = '查看') {
+  return { key, label, value: String(value), note, tone, target, actionLabel }
 }
 
 function operationProgressRank(row) {
@@ -469,14 +474,23 @@ export function buildTriageWorkbench({
   tableFilter = 'all',
   search = '',
   autoDispatchEnabled = null,
+  activeQueueCount = null,
   recentUpdatedCount = 0,
   now = new Date().toISOString(),
 } = {}) {
   const rows = domainRows.map(decorateDomainRow).sort(compareDomainRows)
   const attentionRows = rows.filter((row) => row.needsAttention).sort(compareDomainRows)
   const runningRows = rows.filter((row) => row.isRunning)
-  const operationProgressRows = attentionRows.length ? [] : buildOperationProgressRows(rows, now)
+  const activeQueueRows = rows.filter((row) => row.hasActiveQueue)
+  const operationSourceRows = attentionRows.length
+    ? rows.filter((row) => row.isRunning || row.hasActiveQueue)
+    : rows
+  const operationProgressRows = buildOperationProgressRows(operationSourceRows, now)
   const operationProgressSummary = buildOperationProgressSummary(rows)
+  const parsedActiveQueueCount = Number(activeQueueCount)
+  const queueMetricCount = activeQueueCount == null || !Number.isFinite(parsedActiveQueueCount)
+    ? activeQueueRows.length
+    : Math.max(0, parsedActiveQueueCount)
   const capped = Math.max(1, Number(maxAttentionCards) || 4)
   const attentionCards = attentionRows.slice(0, capped)
   const overflowAttentionRows = attentionRows.slice(capped)
@@ -497,11 +511,12 @@ export function buildTriageWorkbench({
       subtitle: `${rows.length} 个基础域 · 自动派发${autoDispatchState.subtitle}`,
     },
     metrics: [
-      metric('domains', '基础域', rows.length, '纳入自动监控的基础域', 'info', { kind: 'domains', filter: 'all' }),
-      metric('running', '正在爬取', runningRows.length, '当前有心跳或队列占用', runningRows.length ? 'info' : 'muted', { kind: 'domains', filter: 'running' }),
-      metric('attention', '需要处理', attentionRows.length, attentionRows.length ? '优先处理上方问题域' : '暂无异常', attentionRows.length ? 'danger' : 'success', { kind: 'attention', filter: 'attention' }),
-      metric('updated', '今日已更新', recentUpdatedCount, '来自最近报告/历史记录', recentUpdatedCount ? 'success' : 'muted', { kind: 'activity' }),
-      metric('dispatch', '自动派发', autoDispatchState.value, autoDispatchState.note, autoDispatchState.tone, { kind: 'system' }),
+      metric('domains', '基础域', rows.length, '纳入自动监控的基础域', 'info', { kind: 'domains', filter: 'all' }, '查看全部'),
+      metric('running', '正在爬取', runningRows.length, '当前有心跳或队列占用', runningRows.length ? 'info' : 'muted', { kind: 'domains', filter: 'running' }, '查看运行'),
+      metric('queue', '活动队列', queueMetricCount, queueMetricCount ? '点击查看排队与占用信息' : '暂无排队任务', queueMetricCount ? 'info' : 'success', { kind: 'domains', filter: 'queue' }, '查看队列'),
+      metric('attention', '需要处理', attentionRows.length, attentionRows.length ? '优先处理上方问题域' : '暂无异常', attentionRows.length ? 'danger' : 'success', { kind: 'attention', filter: 'attention' }, '处理问题'),
+      metric('updated', '今日已更新', recentUpdatedCount, '来自最近报告/历史记录', recentUpdatedCount ? 'success' : 'muted', { kind: 'activity' }, '查看活动'),
+      metric('dispatch', '自动派发', autoDispatchState.value, autoDispatchState.note, autoDispatchState.tone, { kind: 'system' }, '系统设置'),
     ],
     attentionRows,
     attentionCards,

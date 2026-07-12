@@ -95,6 +95,14 @@ function queueRisk(item) {
   return ''
 }
 
+function hasRuntimeStateEvidence(progressRow, queueItem) {
+  const progressStatus = progressRisk(progressRow)
+  const queueStatus = queueRisk(queueItem)
+  return Boolean(progressStatus)
+    || ACTIVE_QUEUE_STATUSES.has(lower(queueItem?.status))
+    || ['blocked', 'failed', 'timed_out'].includes(queueStatus)
+}
+
 function rowTimeMs(row) {
   const value = row?.completedAt || row?.updatedAt || row?.startedAt || row?.requestedAt || row?.generatedAt || row?.lastHeartbeatAt || ''
   const ms = Date.parse(value)
@@ -161,11 +169,28 @@ function backendStateDiagnosis(domain, status) {
       nextActionLabel: nextActionLabel(domain?.state?.nextAction),
     }
   }
+  if (status === 'healthy') {
+    return {
+      diagnosisGroup: 'healthy',
+      diagnosisTitle: '空闲正常',
+      rankReason: domain?.state?.evidence || '当前没有运行或排队任务',
+      nextActionLabel: nextActionLabel(domain?.state?.nextAction),
+    }
+  }
   return {
     diagnosisGroup: riskFromStatus(status),
     diagnosisTitle: crawlerStatusDisplayLabel(status),
     rankReason: domain?.state?.evidence || domain?.state?.blockerLabel || '后端 domain.state 权威状态',
     nextActionLabel: nextActionLabel(domain?.state?.nextAction),
+  }
+}
+
+function idleFallbackDiagnosis() {
+  return {
+    diagnosisGroup: 'healthy',
+    diagnosisTitle: '空闲正常',
+    rankReason: '当前没有运行或排队任务',
+    nextActionLabel: '可按需开始爬取',
   }
 }
 
@@ -433,7 +458,7 @@ function rowReason({ domain, progressRow, queueItem, blockerLabel, risk, unified
     || queueItem?.message
     || blockerLabel
   if (explicit) return explicit
-  if (risk === 'healthy' && !progressRow && !queueItem) return '样本爬取状态已隔离，正式域暂无异常'
+  if (risk === 'healthy' && !progressRow && !queueItem) return '当前没有运行或排队任务'
   return ''
 }
 
@@ -469,13 +494,16 @@ export function buildDomainTableRows({ domains = [], progressRows = [], dispatch
     }
     const unifiedStatus = buildCrawlerUnifiedStatus({ domain, progressRow: matchedProgressRow, queueItem: matchedQueueItem })
     const backendStatus = backendStateStatus(domain)
+    const idleFallback = !backendStatus && !hasRuntimeStateEvidence(matchedProgressRow, matchedQueueItem)
     const terminalDiagnosis = backendStatus === 'ready' ? terminalQueueDiagnosis(matchedQueueItem, domain) : null
-    const status = terminalDiagnosis?.diagnosisGroup === 'healthy' ? 'completed' : (backendStatus || 'state_missing')
-    const risk = backendStatus ? (terminalDiagnosis?.diagnosisGroup === 'healthy' ? 'healthy' : riskFromStatus(backendStatus)) : 'unknown'
+    const status = idleFallback ? 'healthy' : terminalDiagnosis?.diagnosisGroup === 'healthy' ? 'completed' : (backendStatus || 'state_missing')
+    const risk = idleFallback ? 'healthy' : backendStatus ? (terminalDiagnosis?.diagnosisGroup === 'healthy' ? 'healthy' : riskFromStatus(backendStatus)) : 'unknown'
     const blockerLabel = formatBlocker(matchedQueueItem)
     const files = evidenceFiles(domain, matchedProgressRow, matchedQueueItem)
     const cooldownOnlyQueue = isCooldownOnlyQueueItem(matchedQueueItem)
-    const diagnosis = cooldownOnlyQueue ? cooldownQueueDiagnosis(matchedQueueItem, unifiedStatus) : (terminalDiagnosis || backendStateDiagnosis(domain, backendStatus))
+    const diagnosis = cooldownOnlyQueue
+      ? cooldownQueueDiagnosis(matchedQueueItem, unifiedStatus)
+      : (terminalDiagnosis || (idleFallback ? idleFallbackDiagnosis() : backendStateDiagnosis(domain, backendStatus)))
     const stateBlockerLabel = cooldownOnlyQueue ? '' : (domain?.state?.blockerLabel || domain?.state?.blocker || blockerLabel)
     return {
       domain: domainFromSources(domain, matchedProgressRow, matchedQueueItem),
@@ -484,7 +512,7 @@ export function buildDomainTableRows({ domains = [], progressRows = [], dispatch
       risk,
       ...diagnosis,
       status,
-      statusSource: backendStatus ? 'backend' : 'missing_backend_state',
+      statusSource: backendStatus ? 'backend' : idleFallback ? 'idle_fallback' : 'missing_backend_state',
       statusReason: backendStatus ? (domain?.state?.evidence || domain?.state?.blockerLabel || '') : diagnosis.rankReason,
       stateConflictLabel: domain?.state?.blockerLabel || domain?.state?.blocker || '',
       progressLabel: progressLabel(matchedProgressRow),

@@ -105,6 +105,15 @@ test('triage board implements capped attention, overflow chips, and card/table s
   }
 })
 
+test('triage board keeps queue visibility and KPI navigation available during attention states', () => {
+  assert.match(triageBoard, /<option value="queue">队列<\/option>/)
+  assert.match(triageBoard, /metric\.actionLabel/)
+  assert.match(triageBoard, /tableFilter\.value === 'queue' && !row\.hasActiveQueue/)
+  assert.match(triageBoard, /v-if="operationProgressRows\.length" class="operation-strip"/)
+  assert.doesNotMatch(triageBoard, /v-else-if="operationProgressRows\.length"/)
+  assert.match(page, /activeQueueCount:\s*activeDispatchQueueRows\.value\.length/)
+})
+
 test('domain detail drawer owns single-domain overview, history, queue, artifacts, and logs', () => {
   for (const marker of [
     "{ key: 'overview'",
