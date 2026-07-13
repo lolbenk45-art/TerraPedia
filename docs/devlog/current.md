@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-13 21:48 CST by Codex
+Last updated: 2026-07-13 22:08 CST by Codex
 
 ## Open Work
 
@@ -10,8 +10,8 @@ Last updated: 2026-07-13 21:48 CST by Codex
   - branch: `fix/crawler-queue-v2-runtime`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
   - parent/child: none
-  - dependencies or blocked-by: Task 14 readiness audit is complete; user authorized the normal-namespace cutover and first fixture mutation. Broad Maven and quality-gate baseline failures remain outside crawler scope and are recorded in the readiness audit.
-  - contract handoff: Tasks 1-13 are checkpointed through `e7b5d2f`; the pending watcher-fence repair and Task 14 audit must be committed before Task 15. V2 focused backend 493/493, worker 68/68, admin 284/284/check/build, and isolated fixture smoke 14/14 are current evidence.
+  - dependencies or blocked-by: Task 14 readiness audit is complete; user authorized the normal-namespace cutover and first fixture mutation. A zero-work cutover entered maintenance because the optional idle V1 lock file was treated as required; the focused reader repair is ready to checkpoint before explicit forward recovery. Broad Maven and quality-gate baseline failures remain outside crawler scope and are recorded in the readiness audit.
+  - contract handoff: Tasks 1-13 are checkpointed through `e7b5d2f`; V2 focused backend 493/493, worker 68/68, admin 284/284/check/build, and isolated fixture smoke 14/14 are current evidence. The new reader/cutover/config selection passes 20/20; the immutable failed cutover manifest and maintenance marker must be preserved while Task 15 proceeds through the authenticated recovery path.
 
 ## Current State
 
@@ -22,9 +22,13 @@ Last updated: 2026-07-13 21:48 CST by Codex
 - The V1 watcher race found during final review is repaired: an interrupted
   watcher cannot manufacture a timeout or drain work, and cancellation fences
   stay in place until watcher teardown. The fresh 493-test V2 selection passes.
-- Task 15 is next: commit the focused repair/readiness record, then apply the
-  user-authorized normal-namespace cutover. Do not run a real crawler or clear
-  Redis; the only first mutation remains the no-network fixture action.
+- Task 15 is in durable maintenance after a read-only V1 snapshot: it found no
+  non-terminal row or recorded process, but an absent normal idle lock was
+  misclassified as a source error. The new test-first repair keeps mirror and
+  latest-dispatch sources required while treating only an absent lock as an
+  empty lock. Commit it, restart the backend, then use the explicit
+  authenticated forward-recovery path; do not clear Redis or start a real
+  crawler. The only first mutation remains the no-network fixture action.
 - The first Task 15 normal-stack startup failed closed before opening port 18192:
   fixture action enablement without a `:test:` namespace passed an empty legacy
   prefix to the immutable V1 reader. A RED configuration regression reproduced

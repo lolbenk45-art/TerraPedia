@@ -132,6 +132,29 @@ class CrawlerLegacySnapshotReaderTest {
     }
 
     @Test
+    void acceptsAnAbsentIdleLockWhenAllRequiredLegacyEvidenceIsTerminal() throws Exception {
+        writeSources("""
+            {"items":[{"queueId":"queue-completed","dispatchId":"dispatch-completed","status":"completed"}]}
+            """, """
+            {"queueId":"queue-completed","dispatchId":"dispatch-completed","status":"completed"}
+            """, "{}");
+        Files.delete(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch.lock.json"));
+
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        @SuppressWarnings("unchecked")
+        Cursor<String> cursor = mock(Cursor.class);
+        when(redis.scan(org.mockito.ArgumentMatchers.any(ScanOptions.class))).thenReturn(cursor);
+        when(cursor.hasNext()).thenReturn(false);
+
+        CrawlerLegacySnapshotReader.LegacySnapshot snapshot = reader(redis)
+            .snapshot("cutover-idle-lock", "abc123", NOW);
+
+        assertTrue(snapshot.sourceErrors().isEmpty());
+        assertEquals("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", snapshot.lockSha256());
+        assertTrue(snapshot.nonTerminalItems().isEmpty());
+    }
+
+    @Test
     void recordsRedisScanFailureAsCutoverBlockingEvidence() throws Exception {
         writeSources("{}", "{}", "{}");
         StringRedisTemplate redis = mock(StringRedisTemplate.class);

@@ -65,7 +65,7 @@ public class CrawlerLegacySnapshotReader {
         List<String> errors = new ArrayList<>();
         byte[] mirror = readRequired(MIRROR, errors);
         byte[] latest = readRequired(LATEST, errors);
-        byte[] lock = readRequired(LOCK, errors);
+        byte[] lock = readOptionalEmpty(LOCK, errors);
         List<LegacyQueueItem> queueItems = mergeLegacyEvidence(mirror, latest, lock, errors);
         List<LegacyQueueItem> nonTerminal = queueItems.stream().filter(item -> !terminal(item.status())).toList();
         List<RecordedProcess> processes = nonTerminal.stream()
@@ -287,6 +287,25 @@ public class CrawlerLegacySnapshotReader {
     private byte[] readRequired(Path relative, List<String> errors) {
         Path source = repoRoot.resolve(relative).normalize();
         if (!source.startsWith(repoRoot) || !Files.isRegularFile(source)) {
+            errors.add("legacy source missing: " + relative);
+            return new byte[0];
+        }
+        try {
+            return Files.readAllBytes(source);
+        } catch (IOException exception) {
+            errors.add("legacy source unreadable: " + relative + " (" + exception.getClass().getSimpleName() + ")");
+            return new byte[0];
+        }
+    }
+
+    private byte[] readOptionalEmpty(Path relative, List<String> errors) {
+        Path source = repoRoot.resolve(relative).normalize();
+        if (!source.startsWith(repoRoot)) {
+            errors.add("legacy source missing: " + relative);
+            return new byte[0];
+        }
+        if (!Files.exists(source)) return new byte[0];
+        if (!Files.isRegularFile(source)) {
             errors.add("legacy source missing: " + relative);
             return new byte[0];
         }

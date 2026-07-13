@@ -660,6 +660,18 @@
   enablement was made to retain the production V1 read-only prefix. The
   configuration/property/snapshot-reader selection passed 12/12. This focused
   repair is pending checkpoint before a normal-stack restart.
+- The authorized normal-namespace cutover then entered durable maintenance and
+  returned `409` before any V2 mutation. The immutable V1 snapshot recorded
+  only terminal rows, no recorded process, and five historical V1 Redis keys;
+  its sole source error was the absent idle lock file. Root cause: the reader
+  treated `wiki-monitor-dispatch.lock.json` as required although an idle V1
+  monitor removes it. The new regression first failed on that exact state, then
+  passed after making only the absent lock read as empty; missing/unreadable
+  mirror and latest-dispatch evidence remain fail-closed. Focused snapshot,
+  cutover-service, and configuration tests passed 20/20. The durable
+  maintenance marker and immutable failed-attempt manifest are preserved for
+  forward recovery; no Redis key was cleared, no database was written, and no
+  crawler was started.
 
 - Completed: branch handoff contract, Tasks 1-2 prerequisite commits, the
   focused idle/queue visibility compatibility checkpoint, and Task 3's fixed
