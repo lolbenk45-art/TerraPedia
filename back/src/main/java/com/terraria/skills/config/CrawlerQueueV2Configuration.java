@@ -255,9 +255,15 @@ public class CrawlerQueueV2Configuration {
     }
 
     private String resolveLegacySnapshotPrefix(CrawlerQueueV2Properties properties) {
-        if (properties.isFixtureEnabled()) {
-            return properties.resolveFixtureLegacyNamespace();
+        String fixtureNamespace = properties.resolveRedisNamespace();
+        if (!properties.isFixtureEnabled()
+            || RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX.equals(fixtureNamespace)) {
+            return CrawlerLegacySnapshotReader.PRODUCTION_V1_PREFIX;
         }
-        return CrawlerLegacySnapshotReader.PRODUCTION_V1_PREFIX;
+        String fixtureLegacyNamespace = properties.resolveFixtureLegacyNamespace();
+        if (fixtureLegacyNamespace.isBlank()) {
+            throw new IllegalStateException("fixture 测试 V2 namespace 必须同时配置 fixture legacy namespace");
+        }
+        return fixtureLegacyNamespace;
     }
 }

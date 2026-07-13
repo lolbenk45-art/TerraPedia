@@ -25,6 +25,13 @@ Last updated: 2026-07-13 21:48 CST by Codex
 - Task 15 is next: commit the focused repair/readiness record, then apply the
   user-authorized normal-namespace cutover. Do not run a real crawler or clear
   Redis; the only first mutation remains the no-network fixture action.
+- The first Task 15 normal-stack startup failed closed before opening port 18192:
+  fixture action enablement without a `:test:` namespace passed an empty legacy
+  prefix to the immutable V1 reader. A RED configuration regression reproduced
+  that exact exception; the repair now uses the production V1 read-only prefix
+  unless a real fixture V2 namespace is configured. The focused configuration,
+  property, and snapshot-reader selection passed 12/12; this repair must be
+  committed before restarting the normal maintenance stack.
 
 - Task 12 now provides an explicit administrator-only V1-to-V2 maintenance
   cutover, immutable read-only V1 evidence, an empty fresh V2 epoch, a

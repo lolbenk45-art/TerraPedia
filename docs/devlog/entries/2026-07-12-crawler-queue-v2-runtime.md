@@ -653,6 +653,13 @@
   before those state changes. The live run must preserve V1 history, never
   clear Redis, and use only `crawler_queue_v2_fixture/crawler-queue-v2-fixture`
   for its first irreversible V2 mutation.
+- The first normal-stack launch exposed a Task 15 configuration gap before any
+  HTTP port, cutover, or Redis mutation: enabling the fixture action without a
+  `:test:` V2 override selected an empty legacy prefix. A new configuration
+  regression failed with that exact reader exception, then passed after normal
+  enablement was made to retain the production V1 read-only prefix. The
+  configuration/property/snapshot-reader selection passed 12/12. This focused
+  repair is pending checkpoint before a normal-stack restart.
 
 - Completed: branch handoff contract, Tasks 1-2 prerequisite commits, the
   focused idle/queue visibility compatibility checkpoint, and Task 3's fixed
