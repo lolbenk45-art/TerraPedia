@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 class CrawlerLegacySnapshotReaderTest {
 
@@ -150,6 +151,28 @@ class CrawlerLegacySnapshotReaderTest {
         CrawlerLegacySnapshotReader.LegacySnapshot snapshot = reader(redis).snapshot("cutover-1", "abc123", NOW);
 
         assertTrue(snapshot.sourceErrors().stream().anyMatch(error -> error.contains("legacy Redis scan returned null cursor")));
+    }
+
+    @Test
+    void scansOnlyTheConfiguredFixtureLegacyPrefix() throws Exception {
+        writeSources("{}", "{}", "{}");
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        @SuppressWarnings("unchecked")
+        Cursor<String> cursor = mock(Cursor.class);
+        when(redis.scan(org.mockito.ArgumentMatchers.any(ScanOptions.class))).thenReturn(cursor);
+        when(cursor.hasNext()).thenReturn(false);
+
+        new CrawlerLegacySnapshotReader(
+            new ObjectMapper().registerModule(new JavaTimeModule()),
+            redis,
+            repoRoot,
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            "terrapedia:crawler:wiki-monitor:dispatch-queue:test:fixture:"
+        ).snapshot("cutover-fixture", "abc123", NOW);
+
+        org.mockito.ArgumentCaptor<ScanOptions> options = org.mockito.ArgumentCaptor.forClass(ScanOptions.class);
+        verify(redis).scan(options.capture());
+        assertEquals("terrapedia:crawler:wiki-monitor:dispatch-queue:test:fixture:*", options.getValue().getPattern());
     }
 
     private CrawlerLegacySnapshotReader reader(StringRedisTemplate redis) {

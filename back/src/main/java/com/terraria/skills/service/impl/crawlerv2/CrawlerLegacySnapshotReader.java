@@ -24,7 +24,7 @@ import java.util.Objects;
 /** Read-only, bounded V1 evidence capture for an explicit V2 cutover. */
 public class CrawlerLegacySnapshotReader {
 
-    private static final String V1_PREFIX = "terrapedia:crawler:wiki-monitor:dispatch-queue:";
+    public static final String PRODUCTION_V1_PREFIX = "terrapedia:crawler:wiki-monitor:dispatch-queue:";
     private static final int SCAN_LIMIT = 10_000;
     private static final Path MIRROR = Path.of("reports", "crawler-monitor", "wiki-monitor-dispatch-queue.latest.json");
     private static final Path LATEST = Path.of("reports", "crawler-monitor", "wiki-monitor-dispatch.latest.json");
@@ -34,12 +34,24 @@ public class CrawlerLegacySnapshotReader {
     private final StringRedisTemplate redisTemplate;
     private final Path repoRoot;
     private final Clock clock;
+    private final String legacyPrefix;
 
     public CrawlerLegacySnapshotReader(ObjectMapper objectMapper, StringRedisTemplate redisTemplate, Path repoRoot, Clock clock) {
+        this(objectMapper, redisTemplate, repoRoot, clock, PRODUCTION_V1_PREFIX);
+    }
+
+    public CrawlerLegacySnapshotReader(
+        ObjectMapper objectMapper,
+        StringRedisTemplate redisTemplate,
+        Path repoRoot,
+        Clock clock,
+        String legacyPrefix
+    ) {
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper").copy().findAndRegisterModules();
         this.redisTemplate = Objects.requireNonNull(redisTemplate, "redisTemplate");
         this.repoRoot = Objects.requireNonNull(repoRoot, "repoRoot").toAbsolutePath().normalize();
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.legacyPrefix = requireLegacyPrefix(legacyPrefix);
     }
 
     public LegacySnapshot snapshot(String cutoverId, String gitSha, Instant capturedAt) {
@@ -145,7 +157,7 @@ public class CrawlerLegacySnapshotReader {
         List<V1KeySummary> summaries = new ArrayList<>();
         Cursor<String> cursor = null;
         try {
-            cursor = redisTemplate.scan(ScanOptions.scanOptions().match(V1_PREFIX + "*").count(256).build());
+            cursor = redisTemplate.scan(ScanOptions.scanOptions().match(legacyPrefix + "*").count(256).build());
             if (cursor == null) {
                 errors.add("legacy Redis scan returned null cursor");
                 return List.of();
@@ -357,6 +369,13 @@ public class CrawlerLegacySnapshotReader {
     private static boolean terminal(String status) {
         return "completed".equalsIgnoreCase(status) || "failed".equalsIgnoreCase(status)
             || "cancelled".equalsIgnoreCase(status) || "interrupted".equalsIgnoreCase(status);
+    }
+
+    private static String requireLegacyPrefix(String value) {
+        if (value == null || value.isBlank() || !value.endsWith(":")) {
+            throw new IllegalArgumentException("legacy Redis prefix 必须非空且以冒号结尾");
+        }
+        return value;
     }
 
     private static boolean blank(String value) { return value == null || value.isBlank(); }

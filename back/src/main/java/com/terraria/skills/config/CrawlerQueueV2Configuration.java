@@ -177,7 +177,8 @@ public class CrawlerQueueV2Configuration {
             objectMapper,
             redisTemplate,
             resolveFixtureRoot(configuredRepoRoot, properties),
-            crawlerQueueV2Clock
+            crawlerQueueV2Clock,
+            resolveLegacySnapshotPrefix(properties)
         );
     }
 
@@ -251,5 +252,12 @@ public class CrawlerQueueV2Configuration {
         Path repositoryRoot = resolveRepoRoot(configuredRepoRoot);
         properties.resolveFixtureLegacyNamespace();
         return properties.resolveFixtureRoot(repositoryRoot);
+    }
+
+    private String resolveLegacySnapshotPrefix(CrawlerQueueV2Properties properties) {
+        if (properties.isFixtureEnabled()) {
+            return properties.resolveFixtureLegacyNamespace();
+        }
+        return CrawlerLegacySnapshotReader.PRODUCTION_V1_PREFIX;
     }
 }

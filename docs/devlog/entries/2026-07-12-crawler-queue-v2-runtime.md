@@ -683,6 +683,13 @@
   exposes accurate available/expired attempt-log evidence. Fresh focused
   validation passed `CrawlerQueueV2AcceptanceTest` 7/7; no service, crawler,
   Redis, database, or fixture-stack operation occurred.
+- Fixture-stack preparation found a configuration boundary defect before any
+  runtime operation: the supplied fixture legacy namespace was validated but
+  the legacy snapshot reader still scanned the production V1 prefix. The
+  reader now receives the fixture prefix only when fixture mode is enabled,
+  and the guarded smoke supplies legacy source evidence only under the fixture
+  root. A focused regression verifies the exact Scan pattern. Fresh Task 13
+  cross-layer evidence passed: fixture 3/3, backend 122/122, and admin 32/32.
 - Task 11 now renders only the authoritative V2 attempt model: authenticated
   SSE plus a three-second fallback, visible queue/reconciler health, exact
   control identity, Chinese lifecycle states, V2-only activity, and attempt

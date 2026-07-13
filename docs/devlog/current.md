@@ -43,6 +43,9 @@ Last updated: 2026-07-13 20:35 CST by Codex
   row per attempt with exact available/expired log evidence. A fresh focused
   `CrawlerQueueV2AcceptanceTest` run passed 7/7; fixture-stack smoke remains
   a separate, unperformed gate.
+- Fixture cutover isolation additionally routes legacy snapshot scans to the
+  configured `:test:` legacy prefix and uses fixture-root source evidence, so
+  the smoke cutover cannot inspect production V1 keys or reports.
 
 - Crawler monitor queue/status root-cause analysis and the first two V2
   foundation tasks are complete; runtime implementation continues on the
