@@ -25,7 +25,7 @@ Make the admin review workspace and article-editor preview render draft and pend
 - Admin sanitizer and editor-reference support for the `boss` reference type, including widening `useArticleEditor.ts`'s `SUPPORTED_REFERENCE_TYPES` allow-list.
 - Value validation (not just attribute-name allow-listing) for the new recipe-tree embed attributes (`data-tp-item-id`, `data-tp-max-depth`, `data-tp-embed-type`), matching the rigor already applied to `.tp-content-ref`.
 - Real keyboard-focus support for recipe graph nodes and popovers in the shared renderer (see Failure and Accessibility Rules).
-- An explicit pre-release decision for content-reference navigation: either a reduced `/entities/{items|npcs|bosses}?search=` list link or a non-navigating information popover, since no per-entity deep-linkable detail route exists yet.
+- Accessible non-navigating content-reference information popovers; no reduced entity-list link, since no per-entity deep-linkable detail route exists yet.
 - Keeping `ArticleEditorWorkspace.vue`'s preview panel mounted (not `v-if`-unmounted) across inspector-tab switches, so the per-embed identity diff actually persists across a reference-panel round trip.
 - Contract-first tests, type checks, builds, and authenticated local review-page acceptance when a session is available.
 
@@ -63,7 +63,7 @@ Today's renderer (`front-nuxt/utils/recipeHierarchyGraphRenderer.ts`) also hardc
 
 The admin component resolves `.tp-content-ref` with the already available `POST /public/content-references/resolve` contract, deduping by `type:id` and retaining item, NPC, and boss information-popover behavior. This task deliberately does not refactor the public article's existing resolver/popover into `shared/article-runtime/`; that extraction would enlarge the public-page regression surface without being necessary to repair the two admin hosts. A future dedicated task may extract it after the admin behavior is proven.
 
-Admin has no per-record deep-linkable item/NPC/boss route: `data-query-app/pages/entities/[type].vue` opens details in an in-page modal and supports a plural list route with `?search=`. Whether the preview ships a reduced link to `/entities/{items|npcs|bosses}?search={label}` or keeps the information popover non-navigating remains an explicit user decision before release; implementation must not silently choose either behavior.
+Admin has no per-record deep-linkable item/NPC/boss route: `data-query-app/pages/entities/[type].vue` opens details in an in-page modal and supports a plural list route with `?search=`. The user chose accessible non-navigating information popovers for this task; no filtered-list fallback href is emitted. A future deep-linkable admin detail route remains outside this scope.
 
 ### Shared styles
 
@@ -107,7 +107,7 @@ Before production code, add a focused admin contract test that fails until it ve
 - reference and tree selectors, sequence protection, local failure states, admin tree fetches, and shared renderer imports are present;
 - no iframe or public-article URL is used for admin preview.
 
-The current admin test command is Node's built-in test runner and has no browser DOM harness. Before writing production runtime code, add `happy-dom` as a `data-query-app` development dependency and write the focused behavioral test with `node --test`: mount the renderer/enhancement pass against a fixture with a recipe tree and content reference; simulate Tab focus and `Escape`; assert a body-portaled popover has its direct portal theme class; and simulate an unrelated prop change to prove an unchanged embed is not fetched or torn down. In the editor host, assert an open/close reference-panel round trip preserves the mounted preview. If the user approves the filtered entity-list link, assert its exact route; otherwise assert no navigational href is emitted.
+The current admin test command is Node's built-in test runner and has neither a browser DOM nor a TypeScript loader. Before writing production runtime code, add `happy-dom` and `tsx` as `data-query-app` development dependencies; change the unit-test command to `node --import tsx --test tests/*.test.mjs`; and write the focused behavioral test by importing the shared TypeScript renderer into a happy-dom fixture. Simulate Tab focus and `Escape`; assert a body-portaled popover has its direct portal theme class; and simulate an unrelated prop change to prove an unchanged embed is not fetched or torn down. In the editor host, assert an open/close reference-panel round trip preserves the mounted preview. The approved non-navigating reference-popover decision means no navigational href is emitted.
 
 After the RED run, implement the smallest shared runtime and admin component needed for the test, run the focused test to GREEN, then run admin typecheck/unit/build, public frontend check, and a local authenticated review-page acceptance for a draft or pending article containing images, all three reference types, and a recipe-tree embed.
 
@@ -116,5 +116,5 @@ Because this task edits the renderer and CSS that `/articles/*` and the public r
 ## Validation and Commit Boundaries
 
 - The admin preview task owns the existing uncommitted `data-query-app/utils/articleEditor.ts` sanitizer change.
-- The unrelated user-editor hydration fix is validated and committed separately before or after this task; it is never staged with the admin preview files.
-- The shared-runtime extraction, admin preview, tests, and task devlog closeout form the admin-preview commit.
+- The pre-existing user-editor hydration fix is validated and committed as a standalone checkpoint before shared-runtime extraction, because that extraction also changes `UserArticleRichEditor.vue`; it is never staged with the admin preview files.
+- Commit 1 is the shared-runtime extraction, cross-project alias configuration, public compatibility wrapper, renderer tests, and public runtime validation. Commit 2 is the admin preview component, admin test harness, sanitizer/boss-picker updates, host integration, and task devlog closeout.

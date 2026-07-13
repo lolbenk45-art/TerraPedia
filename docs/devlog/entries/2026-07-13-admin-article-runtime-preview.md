@@ -10,7 +10,7 @@
 - Branch: `review/front-nuxt-visual`
 - Worktree: `/home/lolben/TerraPedia`
 - Base: `aca2de1`
-- Related docs: `docs/superpowers/specs/2026-07-13-admin-article-runtime-preview-design.md`
+- Related docs: `docs/superpowers/specs/2026-07-13-admin-article-runtime-preview-design.md`, `docs/superpowers/plans/2026-07-13-admin-article-runtime-preview.md`
 - Related prior entries: `docs/devlog/entries/2026-07-12-article-embedded-recipe-tree-light.md` is closed; its renderer is the source contract, not this task's commit scope.
 
 ## Direction / Decisions
@@ -35,7 +35,7 @@
 
 ## Result
 
-- Completed: written design approved in chat; task scope, commit boundary, and acceptance contract recorded. A subsequent source audit confirmed the existing renderer/class, entity-route, editor-lifecycle, and boss-endpoint facts used by the design, and revised the spec for the public `1–5` embed-depth contract, body-portaled popover theme scope, explicit three-request tree queue, and a concrete Node + happy-dom behavioral-test harness. The current documents enumerate nine prior review topics, but no independent review artifact records their round count; treat the source-audited rules in the current spec as authority.
+- Completed: written design approved in chat; task scope, commit boundary, and acceptance contract recorded. A subsequent source audit confirmed the existing renderer/class, entity-route, editor-lifecycle, and boss-endpoint facts used by the design, and revised the spec for the public `1–5` embed-depth contract, body-portaled popover theme scope, explicit three-request tree queue, and a concrete Node + happy-dom behavioral-test harness. The user selected two focused commits and non-navigating content-reference popovers. The task-level RED→GREEN implementation plan is recorded under `docs/superpowers/plans/`.
 - Not completed: the import-boundary spike, dependency/test-harness addition, implementation, and RED→GREEN validation.
 
 ## Residual Risks
@@ -47,9 +47,9 @@
 ## Follow-up
 
 - Owner: Codex.
-- Sequencing: (1) run the cross-project-import spike first, before writing any real shared-runtime code — if it fails or is unexpectedly costly, stop and revisit the `shared/article-runtime/` premise instead of pushing through; (2) add the specified happy-dom harness and write/run the focused RED contract; (3) implement to GREEN; (4) run the public-article visual check called out in the spec's Test-First Plan before calling the shared-runtime extraction done.
-- Open decision, deferred by the user to whoever implements — do not decide silently, surface it back to the user: land this as the single admin-preview commit currently described in "Validation and Commit Boundaries," or stage it as spike (no commit) → shared-runtime extraction (verified against the public site, its own commit) → admin-specific pieces (component, host integration, sanitizer, boss UI, tests). The user's stated reasoning for preferring staged commits, if chosen: easier to isolate where things break given how many independent pieces this now touches.
-- Open decision, chosen as a pragmatic default during review but not yet user-approved — confirm before shipping: admin's content-reference detail link resolves to a filtered `/entities/{items|npcs|bosses}?search=` list page instead of a true per-record deep link, because no per-record admin detail route exists today. This is a deliberate reduced-parity substitute for the public site's one-click `/items/:id`-style links, decided as the lowest-scope option during review — the user asked for this to be surfaced as a judgment call for Codex to bring back to them, not treated as settled.
+- Sequencing: (1) checkpoint the existing user-editor hydration fix separately because shared extraction touches the same file; (2) run the cross-project-import spike before real shared-runtime code — if it fails or is unexpectedly costly, stop and revisit the `shared/article-runtime/` premise; (3) write/run and commit the shared-runtime RED→GREEN scope; (4) add `happy-dom` plus `tsx`, change the admin test runner to load TypeScript, write/run the admin RED contract, then implement to GREEN; (5) run public and authenticated-admin runtime validation.
+- User decision recorded: use two focused commits — shared runtime first, then admin integration — rather than one mixed commit.
+- User decision recorded: content references use accessible non-navigating information popovers in this task; no filtered-list fallback href is emitted.
 
 ## Commits
 
