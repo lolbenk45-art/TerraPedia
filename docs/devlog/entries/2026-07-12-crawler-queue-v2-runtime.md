@@ -673,10 +673,16 @@
   that ignores graceful termination receives TERM then KILL, emits
   cancel-requested before cancelled, and only then permits the next queued
   attempt to start. Three scenarios remain; see git for code-level diff details.
-- The fifth matrix regression is ready for a focused checkpoint: an
+- The fifth matrix regression is checkpointed at `94b0398`: an
   unconfirmed termination remains failed with an explicit reason, retaining
   domain isolation so the next queued attempt cannot start under a potentially
-  live process. Two scenarios remain; see git for code-level diff details.
+  live process. See git for code-level diff details.
+- The sixth and seventh matrix regressions are ready for a focused checkpoint:
+  repeated V2 overview reads leave attempt version, ready order, and event
+  count unchanged; terminal history retains exactly one row per attempt and
+  exposes accurate available/expired attempt-log evidence. Fresh focused
+  validation passed `CrawlerQueueV2AcceptanceTest` 7/7; no service, crawler,
+  Redis, database, or fixture-stack operation occurred.
 - Task 11 now renders only the authoritative V2 attempt model: authenticated
   SSE plus a three-second fallback, visible queue/reconciler health, exact
   control identity, Chinese lifecycle states, V2-only activity, and attempt
@@ -710,20 +716,16 @@
   isolated-prefix fixture smoke; real cutover, the first irreversible V2
   mutation, service restart, and any shared Redis action remain explicitly
   unauthorized.
-- Task 13's offline fixture tests do not prove the seven combined queue/status/
-  log scenarios or authenticated stack smoke. Those checks remain release
-  blockers before readiness or live-cutover claims.
-- Deadline convergence, stale-fence rejection, and forced cancellation are now
-  covered alongside legacy conflict. Unconfirmed-termination isolation, pure
-  overview, and exact mixed-log history remain required before Task 13 is
-  complete.
+- Task 13's offline matrix now covers all seven planned queue/status/log
+  scenarios, but it cannot prove authenticated stack smoke. That runtime check
+  remains a release blocker before readiness or live-cutover claims.
 
 ## Follow-up
 
-- Owner: Codex. Commit the Task 13 deadline/stale-fence matrix checkpoint,
-  then complete the remaining four in-memory scenarios and guarded smoke
-  script without executing it. Do not perform fixture-stack execution, the
-  first irreversible V2 mutation, or live cutover without their explicit gates.
+- Owner: Codex. Commit the pure-overview/attempt-log matrix checkpoint, then
+  create the guarded smoke script and execute it only through the explicitly
+  authorized isolated fixture stack. Do not perform the first irreversible V2
+  mutation or live cutover until the documented live gates have passed.
 
 ## Commits
 

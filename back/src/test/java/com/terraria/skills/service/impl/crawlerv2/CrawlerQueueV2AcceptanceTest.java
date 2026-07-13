@@ -3,6 +3,7 @@ package com.terraria.skills.service.impl.crawlerv2;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.terraria.skills.config.CrawlerQueueV2Properties;
+import com.terraria.skills.dto.CrawlerQueueV2OverviewDTO;
 import com.terraria.skills.service.impl.CrawlerMonitorActionRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -154,6 +156,38 @@ class CrawlerQueueV2AcceptanceTest {
             harness.overview().domainStates().get(0).reasonCode());
     }
 
+    @Test
+    void repeatedOverviewReadsDoNotChangeVersionOrderOrEventCount() {
+        CrawlerQueueV2ApplicationService.DispatchResult created = harness.enqueue("bosses", "fixture-a", "fresh");
+        harness.ackRunning(created.attemptId(), 1L, 10L);
+        long versionBefore = harness.attempt(created.attemptId()).stateVersion();
+        long eventsBefore = harness.eventCount();
+
+        CrawlerQueueV2ApplicationService.OverviewSnapshot first = harness.overview();
+        CrawlerQueueV2ApplicationService.OverviewSnapshot second = harness.overview();
+
+        assertEquals(versionBefore, harness.attempt(created.attemptId()).stateVersion());
+        assertEquals(eventsBefore, harness.eventCount());
+        assertEquals(first.liveQueue(), second.liveQueue());
+        assertEquals(first.streamCursor(), second.streamCursor());
+    }
+
+    @Test
+    void mixedTerminalRunsRemainOneHistoryRowPerAttemptWithExactLogs() {
+        harness.seedTerminalAttempt("queue-a", "attempt-a", CrawlerQueueV2Status.COMPLETED);
+        harness.seedTerminalAttempt("queue-b", "attempt-b", CrawlerQueueV2Status.FAILED);
+        harness.writeLog("attempt-a", "completed A\n");
+        harness.expireLog("attempt-b");
+
+        Map<String, CrawlerQueueV2OverviewDTO.AttemptDTO> history = new LinkedHashMap<>();
+        harness.overview().attemptHistory().forEach(row -> history.put(row.attemptId(), row));
+        assertEquals(Set.of("attempt-a", "attempt-b"), history.keySet());
+        assertEquals(CrawlerAttemptLogAvailability.AVAILABLE, history.get("attempt-a").log().availability());
+        assertEquals(CrawlerAttemptLogAvailability.EXPIRED, history.get("attempt-b").log().availability());
+        assertEquals("completed A\n", harness.readLog("attempt-a", 0L).content());
+        assertEquals(CrawlerQueueV2ReasonCode.LOG_EXPIRED, history.get("attempt-b").log().reasonCode());
+    }
+
     private static final class MutableClock extends Clock {
         private Instant now;
 
@@ -219,6 +253,7 @@ class CrawlerQueueV2AcceptanceTest {
         Optional<String> dedupeForAttempt(String attemptId) { return repository.dedupeForAttempt(attemptId); }
         CrawlerQueueV2Event latestAttemptEvent() { return repository.latestAttemptEvent(); }
         CrawlerQueueV2ReasonCode latestRejectedProgressReason() { return repository.latestRejectedProgressReason(); }
+        long eventCount() { return repository.eventCount(); }
         void setTermination(String attemptId, Termination termination) { launcher.termination.put(attemptId, termination); }
         List<String> signals(String attemptId) { return launcher.signals(attemptId); }
         int signalOrder(String attemptId, String signal) { return sequence.indexOf("signal:" + attemptId + ":" + signal); }
@@ -270,6 +305,38 @@ class CrawlerQueueV2AcceptanceTest {
             reconcile();
             CrawlerQueueV2Attempt old = attempt(first.attemptId());
             return new QueuePair(old.queueId(), old.attemptId(), old.fenceToken(), second.queueId(), second.attemptId());
+        }
+
+        void seedTerminalAttempt(String queueId, String attemptId, CrawlerQueueV2Status status) {
+            CrawlerQueueV2Attempt attempt = new CrawlerQueueV2Attempt(
+                2, epoch(), queueId, attemptId, 1L, 2L, status, "standard", "bosses", List.of("bosses"),
+                "domain-source-bosses", null, now(), now(), now(), now(), now(), now(), null,
+                null, null, 0L, "done", 1L, 1L, "done", null, new CrawlerQueueV2Artifacts(null, null, null, null)
+            );
+            repository.seed(new CrawlerQueueV2Queue(
+                2, epoch(), queueId, "standard", "bosses", List.of("bosses"), "domain-source-bosses",
+                "terminal:" + attemptId, now(), "acceptance", attemptId, List.of(attemptId), null
+            ), attempt);
+            artifacts.prepare(epoch(), queueId, attemptId, "bosses", "domain-source-bosses", now());
+            CrawlerAttemptManifest prepared = artifacts.readManifest(attemptId).orElseThrow();
+            artifacts.writeManifest(new CrawlerAttemptManifest(
+                2, epoch(), queueId, attemptId, 1L, "bosses", "domain-source-bosses", status, now(), now(),
+                null, null, null, null, prepared.progressPath(), prepared.logPath(), null, null,
+                null, null, null, null, List.of()
+            ));
+        }
+
+        void writeLog(String attemptId, String content) {
+            try {
+                Files.writeString(root.resolve(artifacts.readManifest(attemptId).orElseThrow().logPath()), content);
+            } catch (IOException exception) {
+                throw new AssertionError(exception);
+            }
+        }
+
+        void expireLog(String attemptId) { artifacts.expireArtifacts(attemptId, now()); }
+        CrawlerAttemptArtifactStore.LogChunk readLog(String attemptId, long offset) {
+            return artifacts.readLog(attemptId, offset, 1024, now());
         }
 
         void seedLegacyConflict(String queueId, String domain, String actionId, String dedupe) {
@@ -396,6 +463,11 @@ class CrawlerQueueV2AcceptanceTest {
         @Override public void writeQuarantine(QuarantineCommand command) { throw unexpected("writeQuarantine"); }
         @Override public List<DomainQuarantine> findQuarantines() { return List.copyOf(quarantines); }
 
+        private void seed(CrawlerQueueV2Queue queue, CrawlerQueueV2Attempt attempt) {
+            queues.put(queue.queueId(), queue);
+            attempts.put(attempt.attemptId(), attempt);
+        }
+
         private void requireEpoch(String expected) { if (!epoch.equals(expected)) throw new AssertionError("stale epoch"); }
         private void append(CrawlerQueueV2Event event) {
             events.add(new EventEnvelope((events.size() + 1) + "-0", event));
@@ -421,6 +493,7 @@ class CrawlerQueueV2AcceptanceTest {
                 .map(CrawlerQueueV2Event::reasonCode)
                 .orElse(null);
         }
+        private long eventCount() { return events.size(); }
         private int statusOrder(String attemptId, CrawlerQueueV2Status status) {
             return sequence.indexOf("status:" + attemptId + ":" + status);
         }

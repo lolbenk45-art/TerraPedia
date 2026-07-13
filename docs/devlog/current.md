@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-13 19:20 CST by Codex
+Last updated: 2026-07-13 20:35 CST by Codex
 
 ## Open Work
 
@@ -11,7 +11,7 @@ Last updated: 2026-07-13 19:20 CST by Codex
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
   - parent/child: none
   - dependencies or blocked-by: local stack is stopped; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
-  - contract handoff: Tasks 1-5 are committed through `af762c2`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 6 exact worker progress identity is committed at `06c8df2`; Task 7 fenced process supervision is committed at `7df042b`; Task 8 bounded convergence/recovery is committed at `04b684a`; Task 9 durable routing, pure overview, and watcher fencing are committed at `024acdc`; Task 10 HTTP/log/SSE contract is committed at `331da55`; Task 11 authoritative V2 admin state is committed at `86dfeb8`; Task 12 hard-cutover checkpoint is committed at `bead133`; Task 13 fixture-isolation and first four matrix checks are committed at `d2f100a`, `29c1e70`, `7c3948b`, and `f587b98`; unconfirmed-termination isolation is ready for a focused commit, while two acceptance cases and the smoke script remain open
+  - contract handoff: Tasks 1-5 are committed through `af762c2`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 6 exact worker progress identity is committed at `06c8df2`; Task 7 fenced process supervision is committed at `7df042b`; Task 8 bounded convergence/recovery is committed at `04b684a`; Task 9 durable routing, pure overview, and watcher fencing are committed at `024acdc`; Task 10 HTTP/log/SSE contract is committed at `331da55`; Task 11 authoritative V2 admin state is committed at `86dfeb8`; Task 12 hard-cutover checkpoint is committed at `bead133`; Task 13 fixture-isolation and its seven offline matrix scenarios are ready for checkpoint, while the guarded smoke script remains open
 
 ## Current State
 
@@ -38,6 +38,11 @@ Last updated: 2026-07-13 19:20 CST by Codex
   progress at the current attempt ingress without changing current state.
 - It also proves a TERM-ignoring process receives forced termination before
   cancellation is terminal and before the next queued attempt begins.
+- The complete offline matrix now additionally proves repeated overview reads
+  are pure (no version/order/Stream mutation) and terminal history keeps one
+  row per attempt with exact available/expired log evidence. A fresh focused
+  `CrawlerQueueV2AcceptanceTest` run passed 7/7; fixture-stack smoke remains
+  a separate, unperformed gate.
 
 - Crawler monitor queue/status root-cause analysis and the first two V2
   foundation tasks are complete; runtime implementation continues on the
