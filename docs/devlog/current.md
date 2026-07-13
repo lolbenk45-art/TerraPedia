@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-13 20:35 CST by Codex
+Last updated: 2026-07-13 21:48 CST by Codex
 
 ## Open Work
 
@@ -10,10 +10,21 @@ Last updated: 2026-07-13 20:35 CST by Codex
   - branch: `fix/crawler-queue-v2-runtime`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
   - parent/child: none
-  - dependencies or blocked-by: local stack is stopped; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
-  - contract handoff: Tasks 1-5 are committed through `af762c2`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 6 exact worker progress identity is committed at `06c8df2`; Task 7 fenced process supervision is committed at `7df042b`; Task 8 bounded convergence/recovery is committed at `04b684a`; Task 9 durable routing, pure overview, and watcher fencing are committed at `024acdc`; Task 10 HTTP/log/SSE contract is committed at `331da55`; Task 11 authoritative V2 admin state is committed at `86dfeb8`; Task 12 hard-cutover checkpoint is committed at `bead133`; Task 13 fixture-isolation and its seven offline matrix scenarios are ready for checkpoint, while the guarded smoke script remains open
+  - dependencies or blocked-by: Task 14 readiness audit is complete; user authorized the normal-namespace cutover and first fixture mutation. Broad Maven and quality-gate baseline failures remain outside crawler scope and are recorded in the readiness audit.
+  - contract handoff: Tasks 1-13 are checkpointed through `e7b5d2f`; the pending watcher-fence repair and Task 14 audit must be committed before Task 15. V2 focused backend 493/493, worker 68/68, admin 284/284/check/build, and isolated fixture smoke 14/14 are current evidence.
 
 ## Current State
+
+- Task 14 pre-cutover evidence is recorded in
+  `docs/audits/crawler-monitor-queue-v2-pre-cutover.md`. The isolated fixture
+  stack completed all 14 checks without touching a production namespace or
+  running a real crawler.
+- The V1 watcher race found during final review is repaired: an interrupted
+  watcher cannot manufacture a timeout or drain work, and cancellation fences
+  stay in place until watcher teardown. The fresh 493-test V2 selection passes.
+- Task 15 is next: commit the focused repair/readiness record, then apply the
+  user-authorized normal-namespace cutover. Do not run a real crawler or clear
+  Redis; the only first mutation remains the no-network fixture action.
 
 - Task 12 now provides an explicit administrator-only V1-to-V2 maintenance
   cutover, immutable read-only V1 evidence, an empty fresh V2 epoch, a

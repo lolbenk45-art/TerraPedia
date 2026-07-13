@@ -1268,7 +1268,6 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             activeDispatchProcesses.remove(dispatchId);
             cleanupDispatchArtifacts(repoRoot, paths);
             cancelTransition = markRunningQueueItemCancelled(controlQueueItem.orElse(null), dispatchId, message);
-            cancellingDispatches.remove(dispatchId);
             if (controlQueueItem.isPresent() && !cancelTransition.changed() && cancelTransition.item() == null) {
                 CrawlerMonitorDispatchResultDTO result = rejectedDispatch(
                     rule,
@@ -1295,7 +1294,6 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 failureTransition = queueRepository.markTerminal(itemToFail.get().getQueueId(), "failed", Instant.now(clock), message);
                 invalidateCachedOverview();
             }
-            cancellingDispatches.remove(dispatchId);
             drainWikiMonitorDispatchQueue("active-fail-standard", true);
         }
 
@@ -1464,7 +1462,6 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         releaseDispatchLock(repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize(), dispatchId);
         markRunningQueueItemCancelled(dispatchId, "已终止 10 域样本爬取；样本产物可继续查看或手动清理。");
         drainWikiMonitorDispatchQueue("active-cancel-smoke", true);
-        cancellingDispatches.remove(dispatchId);
         return smokeDispatchResult(dispatchId, true, "cancelled", "已终止 10 域样本爬取；样本产物可继续查看或手动清理。");
     }
 
@@ -3795,6 +3792,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         Duration timeout = effectiveDispatchTimeout(processStartedAt, Instant.now(clock));
         Thread thread = new Thread(() -> {
             boolean timedOut = false;
+            boolean watcherInterrupted = false;
             int exitCode = -1;
             try {
                 if (process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
@@ -3806,23 +3804,29 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 }
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
+                watcherInterrupted = true;
             } finally {
                 boolean terminalTimedOut = timedOut;
                 int terminalExitCode = exitCode;
-                runLegacyBackgroundMutation("V1 standard dispatch terminal watcher", () ->
-                    completeWatchedStandardDispatch(
-                        repoRoot,
-                        queueIdOrNull,
-                        dispatchId,
-                        rule,
-                        paths,
-                        process,
-                        timeout,
-                        terminalTimedOut,
-                        terminalExitCode
-                    )
-                );
+                if (watcherInterrupted) {
+                    log.debug("Skipping V1 standard dispatch terminal mutation because watcher {} was interrupted.", dispatchId);
+                } else {
+                    runLegacyBackgroundMutation("V1 standard dispatch terminal watcher", () ->
+                        completeWatchedStandardDispatch(
+                            repoRoot,
+                            queueIdOrNull,
+                            dispatchId,
+                            rule,
+                            paths,
+                            process,
+                            timeout,
+                            terminalTimedOut,
+                            terminalExitCode
+                        )
+                    );
+                }
                 activeDispatchProcesses.remove(dispatchId);
+                cancellingDispatches.remove(dispatchId);
             }
         }, "wiki-monitor-dispatch-" + dispatchId);
         thread.setDaemon(true);
@@ -3931,6 +3935,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         Duration timeout = dispatchTimeout;
         Thread thread = new Thread(() -> {
             boolean timedOut = false;
+            boolean watcherInterrupted = false;
             Integer exitCode = null;
             try {
                 if (process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
@@ -3942,22 +3947,28 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 }
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
+                watcherInterrupted = true;
             } finally {
                 boolean terminalTimedOut = timedOut;
                 Integer terminalExitCode = exitCode;
-                runLegacyBackgroundMutation("V1 domain smoke terminal watcher", () ->
-                    completeWatchedDomainSmoke(
-                        repoRoot,
-                        queueIdOrNull,
-                        dispatchId,
-                        lockPath,
-                        process,
-                        timeout,
-                        terminalTimedOut,
-                        terminalExitCode
-                    )
-                );
+                if (watcherInterrupted) {
+                    log.debug("Skipping V1 domain smoke terminal mutation because watcher {} was interrupted.", dispatchId);
+                } else {
+                    runLegacyBackgroundMutation("V1 domain smoke terminal watcher", () ->
+                        completeWatchedDomainSmoke(
+                            repoRoot,
+                            queueIdOrNull,
+                            dispatchId,
+                            lockPath,
+                            process,
+                            timeout,
+                            terminalTimedOut,
+                            terminalExitCode
+                        )
+                    );
+                }
                 activeDomainSmokeProcesses.remove(dispatchId);
+                cancellingDispatches.remove(dispatchId);
             }
         }, "wiki-monitor-domain-smoke-" + dispatchId);
         thread.setDaemon(true);

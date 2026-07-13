@@ -30,6 +30,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.nio.file.Files;
@@ -4813,6 +4815,123 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void shouldLeaveV1SmokeStateUntouchedWhenItsWatcherIsInterrupted() throws Exception {
+        String dispatchId = "watcher-interrupted";
+        String queueId = "queue-watcher-interrupted";
+        Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json");
+        writeJson(lockPath, Map.of(
+            "queueId", queueId,
+            "dispatchId", dispatchId,
+            "domain", "all",
+            "actionId", "wiki-monitor-domain-smoke"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:05:00Z",
+            "items", List.of(Map.ofEntries(
+                Map.entry("queueId", queueId),
+                Map.entry("dispatchId", dispatchId),
+                Map.entry("lane", "domain_smoke"),
+                Map.entry("domain", "all"),
+                Map.entry("actionId", "wiki-monitor-domain-smoke"),
+                Map.entry("status", "running"),
+                Map.entry("requestedAt", "2026-06-14T01:00:00Z"),
+                Map.entry("startedAt", "2026-06-14T01:05:00Z"),
+                Map.entry("lockPath", "reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json")
+            )),
+            "dedupe", Map.of(),
+            "dispatches", Map.of(dispatchId, queueId)
+        ));
+        InterruptingProcess process = new InterruptingProcess();
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+        Method watcher = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "watchDomainSmokeProcess", Path.class, String.class, String.class, Path.class, Process.class
+        );
+        watcher.setAccessible(true);
+
+        watcher.invoke(service, repoRoot, queueId, dispatchId, lockPath, process);
+
+        assertTrue(process.waitCalled.await(2, TimeUnit.SECONDS), "watcher did not await the process");
+        waitUntil(() -> Thread.getAllStackTraces().keySet().stream()
+            .noneMatch(thread -> ("wiki-monitor-domain-smoke-" + dispatchId).equals(thread.getName())));
+
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals("running", queueItems.get(0).get("status"));
+        assertTrue(Files.exists(lockPath));
+    }
+
+    @Test
+    void shouldKeepTheSmokeCancellationFenceUntilItsWatcherExits() throws Exception {
+        ControllableBlockingProcess process = new ControllableBlockingProcess();
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new CrawlerMonitorServiceImpl.ProcessLauncher() {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+                return process;
+            }
+
+            @Override
+            public boolean destroy(Process ignored) {
+                return true;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorDomainSmoke();
+        CrawlerMonitorDispatchRequestDTO cancel = new CrawlerMonitorDispatchRequestDTO();
+        cancel.setActionId("wiki-monitor-domain-smoke");
+        cancel.setControlAction("cancel");
+
+        CrawlerMonitorDispatchResultDTO cancelled = service.controlWikiMonitorDispatch(cancel);
+
+        assertTrue(cancelled.isAccepted());
+        assertTrue(cancellingDispatches(service).contains(started.getDispatchId()));
+
+        process.complete(143);
+        waitUntil(() -> !cancellingDispatches(service).contains(started.getDispatchId()));
+    }
+
+    @Test
+    void shouldKeepTheStandardFailureFenceUntilItsWatcherExits() throws Exception {
+        ControllableBlockingProcess process = new ControllableBlockingProcess();
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new CrawlerMonitorServiceImpl.ProcessLauncher() {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+                return process;
+            }
+
+            @Override
+            public boolean destroy(Process ignored) {
+                return true;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorTask(
+            dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance")
+        );
+        CrawlerMonitorDispatchRequestDTO fail = dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance");
+        fail.setControlAction("failForResumeValidation");
+        fail.setQueueId(started.getQueueId());
+
+        CrawlerMonitorDispatchResultDTO failed = service.controlWikiMonitorDispatch(fail);
+
+        assertTrue(failed.isAccepted());
+        assertTrue(cancellingDispatches(service).contains(started.getDispatchId()));
+
+        process.complete(1);
+        waitUntil(() -> !cancellingDispatches(service).contains(started.getDispatchId()));
+    }
+
+    @Test
     void shouldOverlayPausedWikiMonitorDispatchStatusOnRegisteredTaskProgress() throws Exception {
         writeJson(repoRoot.resolve("data/generated/fetch-wiki-buffs-progress.latest.json"), Map.ofEntries(
             Map.entry("actionId", "buff-page-immunity-refresh"),
@@ -6053,6 +6172,17 @@ class CrawlerMonitorServiceImplTest {
         });
     }
 
+    @SuppressWarnings("unchecked")
+    private java.util.Set<String> cancellingDispatches(CrawlerMonitorServiceImpl service) {
+        try {
+            Field field = CrawlerMonitorServiceImpl.class.getDeclaredField("cancellingDispatches");
+            field.setAccessible(true);
+            return (java.util.Set<String>) field.get(service);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError("Unable to inspect V1 watcher cancellation fence", exception);
+        }
+    }
+
     private Map<String, Object> readJsonMap(Path path) throws IOException {
         return new ObjectMapper().readValue(Files.readString(path), new TypeReference<>() {});
     }
@@ -6749,6 +6879,16 @@ class CrawlerMonitorServiceImplTest {
         @Override
         public java.io.InputStream getErrorStream() {
             return java.io.InputStream.nullInputStream();
+        }
+    }
+
+    private static class InterruptingProcess extends BlockingProcess {
+        private final CountDownLatch waitCalled = new CountDownLatch(1);
+
+        @Override
+        public boolean waitFor(long timeout, TimeUnit unit) throws InterruptedException {
+            waitCalled.countDown();
+            throw new InterruptedException("test watcher interruption");
         }
     }
 

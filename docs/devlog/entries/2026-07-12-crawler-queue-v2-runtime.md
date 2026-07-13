@@ -628,6 +628,32 @@
 
 ## Result
 
+## Task 14 Readiness Update (2026-07-13)
+
+- The guarded isolated fixture smoke completed 14/14 checks using only a
+  `:test:` V2 namespace, matching test legacy prefix, Redis DB 4, and a
+  removable fixture root. It proves the complete queue/status/log/reset matrix
+  without a real crawler, database write, shared Redis clear, or production
+  namespace mutation.
+- Fresh Task 14 validation: V2 focused backend 493/493; worker/fixture
+  contracts 68/68; admin unit suite 284/284; admin typecheck and build passed;
+  `git diff --check` passed. See
+  `docs/audits/crawler-monitor-queue-v2-pre-cutover.md` for the exact scope.
+- Final review also found a V1 watcher cancellation race. The pending focused
+  repair leaves state untouched on watcher interruption and retains its
+  cancellation fence until watcher teardown; the three regression tests are
+  included in the 493-test backend result.
+- Fresh broad Maven result is 1333 tests with 6 failures and 1 error in
+  unrelated port-cleaner, audio-controller, item-SQL, and recipe-import paths;
+  none differs from this branch's merge base. The project quality gate stops at
+  an unrelated `TP_FRONT_PROJECT_DIR` versus hardcoded `front-nuxt` assertion.
+  Both are recorded baseline blockers, not crawler-pass claims.
+- Task 15 remains active. The user authorized normal-namespace cutover and the
+  no-network first mutation, but the watcher/readiness checkpoint must commit
+  before those state changes. The live run must preserve V1 history, never
+  clear Redis, and use only `crawler_queue_v2_fixture/crawler-queue-v2-fixture`
+  for its first irreversible V2 mutation.
+
 - Completed: branch handoff contract, Tasks 1-2 prerequisite commits, the
   focused idle/queue visibility compatibility checkpoint, and Task 3's fixed
   V2 Redis namespace plus fail-closed atomic enqueue/dedupe boundary. Task 4's
