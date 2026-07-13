@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { ApiResponse, ArticleComment, ContentReferenceResolveInput, NormalizedContentReference, PublicItemRecipeTree, PublicItemRecipeTreeNode, PublicItemRecipeTreeVariant, UserArticle } from '~/types/public-api'
 import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
+import { resetPreviewImageVisibleCenter } from '~/utils/previewImageVisibleCenter'
+import { renderRecipeHierarchyGraph } from '~/utils/recipeHierarchyGraphRenderer'
+import { buildCraftingRecipeModel } from '~/composables/useCraftingRecipeModel'
 import { unwrapApiResponse, usePublicApiFetch } from '~/composables/usePublicApi'
 import { contentReferenceKey, resolvePublicContentReferences } from '~/composables/usePublicContentReferences'
 import { fetchPublicRecipeTree } from '~/composables/usePublicRecipeTree'
@@ -499,22 +502,30 @@ const recipeTreeItemImage = (tree: PublicItemRecipeTree | null | undefined) => s
   tree?.item?.iconUrl,
 ), 'src')
 
-const isDefaultRecipeTreeVariant = (variant: PublicItemRecipeTreeVariant) => {
-  const text = firstRecipeTreeText(variant.versionScope, variant.variantKey, variant.variantLabel).toLowerCase()
-  return /(^|[^a-z])(pc|desktop|default|电脑版|电脑|默认)([^a-z]|$)/i.test(text)
-}
-
 const recipeTreeRootNodes = (tree: PublicItemRecipeTree | null | undefined): PublicItemRecipeTreeNode[] => {
   if (!tree) return []
   const variants = Array.isArray(tree.variants) ? tree.variants : []
-  const preferredVariant = variants.find(variant => isDefaultRecipeTreeVariant(variant) && Array.isArray(variant.roots) && variant.roots.length > 0)
-    || variants.find(variant => Array.isArray(variant.roots) && variant.roots.length > 0)
-  const preferredRoots = Array.isArray(preferredVariant?.roots) ? preferredVariant.roots : []
-  if (preferredRoots.length) return preferredRoots.slice(0, 1)
+  const preferredRoots = variants.find(variant => Array.isArray(variant.roots) && variant.roots.length > 0)?.roots
+  if (Array.isArray(preferredRoots) && preferredRoots[0]) return [preferredRoots[0]]
   for (const nodes of [tree.materials, tree.ingredients, tree.children, tree.nodes]) {
-    if (Array.isArray(nodes) && nodes.length) return nodes.slice(0, 1)
+    if (Array.isArray(nodes) && nodes[0]) return [nodes[0]]
   }
   return []
+}
+
+const articleRecipeTreeVariantKey = (variant: PublicItemRecipeTreeVariant, index: number) =>
+  firstRecipeTreeText(variant.variantKey, variant.variantLabel, index) || `variant-${index}`
+
+const resolveArticleRecipeTreeSelection = (tree: PublicItemRecipeTree | null | undefined, variantKey = '', recipeKey = '') => {
+  const model = buildCraftingRecipeModel(tree, variantKey, recipeKey)
+  const rawVariants = Array.isArray(tree?.variants) ? tree.variants : []
+  const rawVariant = rawVariants.find((variant, index) => articleRecipeTreeVariantKey(variant, index) === model.activeVariant?.key)
+    ?? rawVariants[0]
+    ?? null
+  const rawRoots = Array.isArray(rawVariant?.roots) ? rawVariant.roots : []
+  const recipeIndex = model.activeVariant?.options.findIndex(option => option.key === model.activeRecipe?.key) ?? -1
+  const root = rawRoots[recipeIndex] ?? rawRoots[0] ?? (rawVariants.length === 0 ? recipeTreeRootNodes(tree)[0] : null)
+  return { model, root }
 }
 
 const recipeTreeStationCount = (tree: PublicItemRecipeTree | null | undefined) => {
@@ -747,17 +758,44 @@ const recipeTreeGraphChildren = (node: PublicItemRecipeTreeNode, depth: number, 
   return mergeArticleRecipeTreeSameItemSiblings(candidates).slice(0, 18)
 }
 
-const ARTICLE_RECIPE_GRAPH_CARD_WIDTH = 102
-const ARTICLE_RECIPE_GRAPH_OPTION_SOURCE_WIDTH = 150
-const ARTICLE_RECIPE_GRAPH_CARD_HEIGHT = 54
+const ARTICLE_RECIPE_GRAPH_CARD_WIDTH = 132
+const ARTICLE_RECIPE_GRAPH_OPTION_SOURCE_WIDTH = 160
+const ARTICLE_RECIPE_GRAPH_CARD_HEIGHT = 100
+const ARTICLE_RECIPE_GRAPH_OPTION_ROW_RENDERED_HEIGHT = 30
+const ARTICLE_RECIPE_GRAPH_OPTION_ROW_GAP = 3
+const ARTICLE_RECIPE_GRAPH_OPTION_COPY_ALLOWANCE = 43
+const ARTICLE_RECIPE_GRAPH_ALTERNATIVE_ROW_HEIGHT = 34
+const ARTICLE_RECIPE_GRAPH_STATION_IMAGE_SIZE = 48
+const ARTICLE_RECIPE_GRAPH_STATION_RAIL_WIDTH = 52
+const ARTICLE_RECIPE_GRAPH_STATION_GAP = 2
+const ARTICLE_RECIPE_GRAPH_STATION_CARD_HEIGHT_PADDING = 10
 const ARTICLE_RECIPE_GRAPH_X_GAP = 6
 const ARTICLE_RECIPE_GRAPH_Y_GAP = 10
 const ARTICLE_RECIPE_GRAPH_PADDING = 14
-const ARTICLE_RECIPE_GRAPH_MIN_SCALE = 0.48
 const ARTICLE_RECIPE_GRAPH_MAX_SCALE = 1
 const ARTICLE_RECIPE_GRAPH_MIN_MANUAL_SCALE = 0.6
 const ARTICLE_RECIPE_GRAPH_MAX_MANUAL_SCALE = 1.8
 const ARTICLE_RECIPE_GRAPH_MANUAL_SCALE_STEP = 0.1
+const ARTICLE_RECIPE_GRAPH_VIEWPORT_GUTTER = 4
+const ARTICLE_RECIPE_TREE_WIDE_BREAKPOINT = 960
+
+const resolveArticleRecipeTreeAvailableWidth = (containerWidth: number, paddingLeft: number, paddingRight: number) =>
+  Math.max(1, containerWidth - Math.max(0, paddingLeft) - Math.max(0, paddingRight))
+
+const resolveArticleRecipeTreeFrameWidth = (contentWidth: number, bodyPanelContentWidth: number, viewportWidth: number) => {
+  const safeContentWidth = Math.max(1, contentWidth)
+  const safeBodyPanelWidth = Math.max(1, bodyPanelContentWidth)
+  return viewportWidth >= ARTICLE_RECIPE_TREE_WIDE_BREAKPOINT
+    ? Math.max(safeContentWidth, safeBodyPanelWidth)
+    : safeContentWidth
+}
+
+const resolveArticleRecipeTreeBaseScale = (layoutWidth: number, layoutHeight: number, availableWidth: number) => {
+  const safeWidth = Math.max(1, availableWidth - ARTICLE_RECIPE_GRAPH_VIEWPORT_GUTTER)
+  const widthScale = safeWidth / Math.max(layoutWidth, 1)
+  const heightScale = 520 / Math.max(layoutHeight, 1)
+  return Math.min(ARTICLE_RECIPE_GRAPH_MAX_SCALE, widthScale, heightScale)
+}
 
 const buildArticleRecipeTreeGraphLayout = (node: PublicItemRecipeTreeNode, depth: number, maxDepth: number, indexPath = '0', isRoot = false): any => {
   let normalizedNode = node
@@ -877,10 +915,21 @@ const recipeTreeNodeCardWidth = (node: PublicItemRecipeTreeNode) =>
 
 const recipeTreeNodeCardHeight = (node: PublicItemRecipeTreeNode) => {
   const optionRows = articleRecipeTreeOptionGroups(node).length
-  if (optionRows > 0) return Math.max(ARTICLE_RECIPE_GRAPH_CARD_HEIGHT, 12 + optionRows * 24)
+  if (optionRows > 0) return Math.max(
+    ARTICLE_RECIPE_GRAPH_CARD_HEIGHT,
+    ARTICLE_RECIPE_GRAPH_OPTION_COPY_ALLOWANCE
+      + optionRows * ARTICLE_RECIPE_GRAPH_OPTION_ROW_RENDERED_HEIGHT
+      + Math.max(0, optionRows - 1) * ARTICLE_RECIPE_GRAPH_OPTION_ROW_GAP,
+  )
+  const stationCount = Math.min(recipeTreeNodeStations(node).length, 2)
+  const stationHeight = stationCount
+    ? stationCount * ARTICLE_RECIPE_GRAPH_STATION_IMAGE_SIZE
+      + Math.max(0, stationCount - 1) * ARTICLE_RECIPE_GRAPH_STATION_GAP
+      + ARTICLE_RECIPE_GRAPH_STATION_CARD_HEIGHT_PADDING
+    : 0
   const members = articleRecipeTreeGroupMembers(node).length
-  if (members <= 1) return ARTICLE_RECIPE_GRAPH_CARD_HEIGHT
-  return Math.max(ARTICLE_RECIPE_GRAPH_CARD_HEIGHT, 20 + Math.ceil(members / 2) * 22 + 14)
+  if (members <= 1) return Math.max(ARTICLE_RECIPE_GRAPH_CARD_HEIGHT, stationHeight)
+  return Math.max(ARTICLE_RECIPE_GRAPH_CARD_HEIGHT, stationHeight, 40 + Math.ceil(members / 2) * ARTICLE_RECIPE_GRAPH_ALTERNATIVE_ROW_HEIGHT + 14)
 }
 
 const articleRecipeTreeRelationLabel = (node: PublicItemRecipeTreeNode, depth: number, isRoot = false) => {
@@ -935,6 +984,7 @@ const createArticleRecipeTreePreviewImage = (imageUrl: string, label: string, wi
   preview.className = `item-art tp-preview-image${imageUrl ? '' : ' is-fallback'}`
   preview.setAttribute('data-fallback', articleRecipeTreeFirstGlyph(label))
   if (imageUrl) {
+    preview.setAttribute('data-source-image', imageUrl)
     const img = document.createElement('img')
     img.src = imageUrl
     img.alt = label
@@ -942,6 +992,14 @@ const createArticleRecipeTreePreviewImage = (imageUrl: string, label: string, wi
     img.height = height
     img.loading = 'lazy'
     img.decoding = 'async'
+    img.dataset.previewVisibleCenter = 'contain-only'
+    img.addEventListener('load', () => resetPreviewImageVisibleCenter(preview))
+    img.addEventListener('error', () => {
+      resetPreviewImageVisibleCenter(preview)
+      preview.classList.add('is-fallback')
+      preview.setAttribute('role', 'img')
+      preview.setAttribute('aria-label', label)
+    })
     preview.append(img)
   } else {
     preview.setAttribute('role', 'img')
@@ -1069,6 +1127,10 @@ const createArticleRecipeTreeGraphPositionedNode = (layoutNode: any) => {
       alternatives.append(createArticleRecipeTreePreviewImage(recipeTreeGroupMemberImage(member), recipeTreeGroupMemberName(member), 22, 22))
     }
     main.append(alternatives)
+    const quantity = document.createElement('span')
+    quantity.className = 'recipe-hierarchy-quantity'
+    quantity.textContent = recipeTreeNodeQuantity(layoutNode.node, layoutNode.isRoot)
+    main.append(quantity)
   } else {
     main.append(createArticleRecipeTreePreviewImage(recipeTreeNodeImage(layoutNode.node), recipeTreeNodeName(layoutNode.node), layoutNode.isRoot ? 34 : 30, layoutNode.isRoot ? 34 : 30))
     const quantity = document.createElement('span')
@@ -1076,6 +1138,11 @@ const createArticleRecipeTreeGraphPositionedNode = (layoutNode: any) => {
     quantity.textContent = recipeTreeNodeQuantity(layoutNode.node, layoutNode.isRoot)
     main.append(quantity)
   }
+
+  const copy = document.createElement('span')
+  copy.className = 'article-recipe-tree__graph-node-copy'
+  copy.textContent = recipeTreeNodeName(layoutNode.node)
+  main.append(copy)
 
   card.append(main)
   if (stations.length && !optionGroups.length) {
@@ -1087,7 +1154,7 @@ const createArticleRecipeTreeGraphPositionedNode = (layoutNode: any) => {
       const badge = document.createElement('span')
       badge.className = 'recipe-hierarchy-station-badge'
       badge.title = recipeTreeStationName(station)
-      badge.append(createArticleRecipeTreePreviewImage(recipeTreeStationImage(station), recipeTreeStationName(station), 18, 18))
+      badge.append(createArticleRecipeTreePreviewImage(recipeTreeStationImage(station), recipeTreeStationName(station), ARTICLE_RECIPE_GRAPH_STATION_IMAGE_SIZE, ARTICLE_RECIPE_GRAPH_STATION_IMAGE_SIZE))
       stationRail.append(badge)
     }
     card.append(stationRail)
@@ -1143,7 +1210,7 @@ const updateArticleRecipeTreeZoom = (graph: HTMLElement) => {
   const baseScale = Number(graph.dataset.baseScale || '1')
   const manualScale = Number(graph.dataset.manualScale || '1')
   const layoutHeight = Number(graph.dataset.layoutHeight || '0')
-  const scale = Math.max(ARTICLE_RECIPE_GRAPH_MIN_SCALE, Math.min(ARTICLE_RECIPE_GRAPH_MAX_MANUAL_SCALE, baseScale * manualScale))
+  const scale = Math.max(baseScale * ARTICLE_RECIPE_GRAPH_MIN_MANUAL_SCALE, Math.min(ARTICLE_RECIPE_GRAPH_MAX_MANUAL_SCALE, baseScale * manualScale))
   graph.style.setProperty('--recipe-overview-scale', String(scale))
   graph.style.setProperty('--recipe-overview-pan-x', `${Number(graph.dataset.panX || '0')}px`)
   graph.style.setProperty('--recipe-overview-pan-y', `${Number(graph.dataset.panY || '0')}px`)
@@ -1196,30 +1263,42 @@ const enableArticleRecipeTreeInteractions = (graph: HTMLElement) => {
 
 const appendArticleRecipeTreeGraph = (container: HTMLElement, roots: PublicItemRecipeTreeNode[], maxDepth: number) => {
   if (!roots.length) return
-  const layout = layoutArticleRecipeTreeGraphForest(roots, maxDepth)
-  if (!layout.nodes.length) return
-  const graph = document.createElement('div')
-  graph.className = 'article-recipe-tree__graph crafting-screen recipe-hierarchy-tree recipe-overview-tree'
-  graph.setAttribute('data-crafting-role', 'recipe-hierarchy-tree')
-  const availableWidth = Math.max(280, container.clientWidth ? container.clientWidth - 2 : 720)
-  const widthScale = availableWidth / Math.max(layout.width, 1)
-  const heightScale = 520 / Math.max(layout.height, 1)
-  const scale = Math.max(ARTICLE_RECIPE_GRAPH_MIN_SCALE, Math.min(ARTICLE_RECIPE_GRAPH_MAX_SCALE, widthScale, heightScale))
-  graph.style.setProperty('--recipe-overview-width', `${layout.width}px`)
-  graph.style.setProperty('--recipe-overview-height', `${layout.height}px`)
-  graph.dataset.baseScale = String(scale)
-  graph.dataset.manualScale = '1'
-  graph.dataset.layoutHeight = String(layout.height)
-  graph.dataset.panX = '0'
-  graph.dataset.panY = '0'
-  const canvas = document.createElement('div')
-  canvas.className = 'recipe-overview-canvas'
-  canvas.append(createArticleRecipeTreeGraphLineCanvas(layout))
-  for (const layoutNode of layout.nodes) canvas.append(createArticleRecipeTreeGraphPositionedNode(layoutNode))
-  graph.append(canvas)
+  const containerStyle = getComputedStyle(container)
+  const containerPaddingLeft = Number.parseFloat(containerStyle.paddingLeft) || 0
+  const containerPaddingRight = Number.parseFloat(containerStyle.paddingRight) || 0
+  const contentWidth = resolveArticleRecipeTreeAvailableWidth(
+    container.clientWidth || 720,
+    containerPaddingLeft,
+    containerPaddingRight,
+  )
+  const bodyPanel = container.closest<HTMLElement>('.article-body-panel')
+  const bodyPanelStyle = bodyPanel ? getComputedStyle(bodyPanel) : null
+  const bodyPanelContentWidth = bodyPanel && bodyPanelStyle
+    ? resolveArticleRecipeTreeAvailableWidth(
+        bodyPanel.clientWidth,
+        Number.parseFloat(bodyPanelStyle.paddingLeft) || 0,
+        Number.parseFloat(bodyPanelStyle.paddingRight) || 0,
+      )
+    : contentWidth
+  const availableWidth = resolveArticleRecipeTreeFrameWidth(contentWidth, bodyPanelContentWidth, window.innerWidth)
+  if (availableWidth > contentWidth) {
+    const containerBorderWidth = (Number.parseFloat(containerStyle.borderLeftWidth) || 0) + (Number.parseFloat(containerStyle.borderRightWidth) || 0)
+    container.dataset.articleRecipeTreeWide = 'true'
+    container.style.setProperty('--article-recipe-tree-wide-width', `${availableWidth + containerPaddingLeft + containerPaddingRight + containerBorderWidth}px`)
+  } else {
+    delete container.dataset.articleRecipeTreeWide
+    container.style.removeProperty('--article-recipe-tree-wide-width')
+  }
+  const graph = renderRecipeHierarchyGraph({
+    roots,
+    maxDepth,
+    availableWidth,
+    resolveImageUrl: imageUrl => sanitizeArticleUrl(imageUrl, 'src'),
+    popoverOwner: 'article',
+  })
+  if (!graph) return
+  graph.classList.add('article-recipe-tree__graph')
   const link = container.querySelector('.article-recipe-tree__link')
-  updateArticleRecipeTreeZoom(graph)
-  enableArticleRecipeTreeInteractions(graph)
   if (link) container.insertBefore(graph, link)
   else container.append(graph)
 }
@@ -1278,6 +1357,66 @@ const renderArticleRecipeTreeShell = (node: HTMLElement, state: 'loading' | 'rea
   }
 }
 
+const appendArticleRecipeTreeSelectors = (
+  node: HTMLElement,
+  selection: any,
+  onVariantSelect: any,
+  onRecipeSelect: any,
+) => {
+  const activeVariant = selection.model.activeVariant
+  if (!activeVariant) return
+  const fragment = document.createDocumentFragment()
+  const appendSelector = (
+    role: string,
+    label: string,
+    entries: any[],
+    activeKey: string,
+    onSelect: any,
+  ) => {
+    if (entries.length < 2) return
+    const selector = document.createElement('section')
+    selector.className = `article-recipe-tree__selector ${role === 'variant-selector' ? 'recipe-variant-selector' : 'recipe-option-selector'} tp-toolbar`
+    selector.dataset.articleRecipeRole = role
+    selector.setAttribute('aria-label', label)
+    for (const entry of entries) {
+      const button = document.createElement('button')
+      button.className = `tp-control recipe-selector-button${entry.key === activeKey ? ' active' : ''}`
+      button.type = 'button'
+      button.dataset.articleRecipeRole = role
+      if (role === 'variant-selector') button.dataset.articleRecipeVariantKey = entry.key
+      else button.dataset.articleRecipeOptionKey = entry.key
+      button.setAttribute('aria-pressed', String(entry.key === activeKey))
+      const title = document.createElement('b')
+      title.textContent = entry.label
+      const summary = document.createElement('span')
+      summary.textContent = entry.meta
+      button.append(title, summary)
+      button.addEventListener('click', () => onSelect(entry.key))
+      selector.append(button)
+    }
+    fragment.append(selector)
+  }
+
+  appendSelector(
+    'variant-selector',
+    '配方版本',
+    selection.model.variants.map((variant: any) => ({ key: variant.key, label: variant.label, meta: variant.meta })),
+    activeVariant.key,
+    onVariantSelect,
+  )
+  appendSelector(
+    'recipe-option-selector',
+    '配方方案',
+    activeVariant.options.map((option: any) => ({ key: option.key, label: option.label, meta: option.summary || option.output.title })),
+    selection.model.activeRecipe?.key || '',
+    onRecipeSelect,
+  )
+  if (!fragment.childNodes.length) return
+  const link = node.querySelector('.article-recipe-tree__link')
+  if (link) node.insertBefore(fragment, link)
+  else node.append(fragment)
+}
+
 const renderArticleRecipeTreeResult = (node: HTMLElement, tree: PublicItemRecipeTree | null, itemId: string, maxDepth: number, label: string) => {
   const title = recipeTreeItemName(tree, label) || label || `物品 #${itemId}`
   const href = `/crafting?itemId=${encodeURIComponent(itemId)}&maxDepth=${maxDepth}`
@@ -1288,20 +1427,27 @@ const renderArticleRecipeTreeResult = (node: HTMLElement, tree: PublicItemRecipe
     })
     return
   }
-  const roots = recipeTreeRootNodes(tree)
   const variantCount = Array.isArray(tree.variants) ? tree.variants.length : 0
-  const stationCount = recipeTreeStationCount(tree)
-  renderArticleRecipeTreeShell(node, 'ready', title, '文章嵌入的合成树摘要', {
-    imageUrl: recipeTreeItemImage(tree),
-    href,
-    stats: [
-      variantCount ? `${variantCount} 个版本` : '默认版本',
-      '默认路线',
-      stationCount ? `${stationCount} 个制作站` : '制作站未记录',
-      `深度 ${maxDepth}`,
-    ],
-  })
-  appendArticleRecipeTreeGraph(node, roots, maxDepth)
+  const renderSelection = (variantKey = '', recipeKey = '') => {
+    const selection = resolveArticleRecipeTreeSelection(tree, variantKey, recipeKey)
+    const activeVariant = selection.model.activeVariant
+    renderArticleRecipeTreeShell(node, 'ready', title, '文章嵌入的合成树摘要', {
+      imageUrl: recipeTreeItemImage(tree),
+      href,
+      stats: [
+        variantCount ? `${variantCount} 个版本` : '默认版本',
+        `深度 ${maxDepth}`,
+      ],
+    })
+    appendArticleRecipeTreeSelectors(
+      node,
+      selection,
+      (nextVariantKey: string) => renderSelection(nextVariantKey),
+      (nextRecipeKey: string) => renderSelection(activeVariant?.key || variantKey, nextRecipeKey),
+    )
+    appendArticleRecipeTreeGraph(node, selection.root ? [selection.root] : [], maxDepth)
+  }
+  renderSelection()
 }
 
 const loadArticleRecipeTreeEmbeds = async () => {
@@ -2804,6 +2950,13 @@ onMounted(() => {
   line-height: 1.35;
 }
 
+@media (min-width: 960px) {
+  .article-content-text :deep(.tp-recipe-tree[data-article-recipe-tree-wide="true"]) {
+    width: var(--article-recipe-tree-wide-width);
+    max-width: none;
+  }
+}
+
 .article-content-text :deep(.tp-recipe-tree[data-tp-resolved="loading"]) {
   border-style: dashed;
   color: var(--text-muted);
@@ -2881,9 +3034,26 @@ onMounted(() => {
   white-space: nowrap;
 }
 
+.article-content-text :deep(.article-recipe-tree__selector) {
+  flex: 0 0 auto;
+  min-width: min(100%, 260px);
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 8px;
+}
+
+.article-content-text :deep(.article-recipe-tree__selector .recipe-selector-button) {
+  flex: 0 0 min(240px, calc(100vw - 84px));
+  min-width: 0;
+}
+
 .article-content-text :deep(.article-recipe-tree__graph) {
   --article-recipe-graph-node-size: 56px;
   --article-recipe-graph-line: color-mix(in srgb, var(--accent-gold) 58%, var(--index-line));
+  --article-recipe-tree-node-image-size: 48px;
+  --article-recipe-tree-alternative-image-size: 32px;
+  --article-recipe-tree-station-image-size: 48px;
+  --article-recipe-tree-station-rail-width: 52px;
   --recipe-overview-pan-x: 0px;
   --recipe-overview-pan-y: 0px;
   position: relative;
@@ -2914,6 +3084,113 @@ onMounted(() => {
   vector-effect: non-scaling-stroke;
 }
 
+.article-content-text :deep(.article-recipe-tree__graph .recipe-overview-edge) {
+  stroke: var(--article-recipe-graph-line);
+  stroke-width: 1.5;
+}
+
+.article-content-text :deep(.article-recipe-tree__graph .recipe-hierarchy-card) {
+  border-color: color-mix(in srgb, var(--accent-gold) 62%, var(--index-line));
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent-gold) 8%, transparent), transparent 72%),
+    color-mix(in srgb, var(--panel) 94%, var(--index-bg));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text-strong) 12%, transparent),
+    0 7px 16px color-mix(in srgb, var(--index-bg) 34%, transparent);
+}
+
+.article-content-text :deep(.article-recipe-tree__graph .recipe-hierarchy-main) {
+  align-content: center;
+  gap: 2px;
+}
+
+.article-content-text :deep(.article-recipe-tree__graph .tp-preview-image img) {
+  display: block;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.article-content-text :deep(.article-recipe-tree__graph .recipe-hierarchy-main > .tp-preview-image) {
+  width: var(--article-recipe-tree-node-image-size);
+  height: var(--article-recipe-tree-node-image-size);
+  --tp-preview-image-size: var(--article-recipe-tree-node-image-size);
+  --tp-preview-fallback-icon-size: calc(var(--article-recipe-tree-node-image-size) * 0.72);
+}
+
+.article-content-text :deep(.article-recipe-tree__graph .recipe-hierarchy-main > .tp-preview-image img) {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+}
+
+.article-content-text :deep(.article-recipe-tree__graph .recipe-hierarchy-card.has-stations) {
+  grid-template-columns: minmax(0, 1fr) var(--article-recipe-tree-station-rail-width);
+}
+
+.article-content-text :deep(.article-recipe-tree__graph .recipe-hierarchy-station-rail) {
+  width: var(--article-recipe-tree-station-rail-width);
+  padding-left: 3px;
+}
+
+.article-content-text :deep(.article-recipe-tree__graph .recipe-hierarchy-station-badge) {
+  width: var(--article-recipe-tree-station-image-size);
+  height: var(--article-recipe-tree-station-image-size);
+}
+
+.article-content-text :deep(.article-recipe-tree__graph .recipe-hierarchy-station-badge .tp-preview-image) {
+  width: var(--article-recipe-tree-station-image-size);
+  height: var(--article-recipe-tree-station-image-size);
+  --tp-preview-image-size: var(--article-recipe-tree-station-image-size);
+  --tp-preview-fallback-icon-size: calc(var(--article-recipe-tree-station-image-size) * 0.72);
+}
+
+.article-content-text :deep(.article-recipe-tree__graph .recipe-hierarchy-station-badge .tp-preview-image img) {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+}
+
+.article-content-text :deep(.article-recipe-tree__graph .recipe-hierarchy-alt-images) {
+  grid-template-columns: repeat(2, var(--article-recipe-tree-alternative-image-size));
+  gap: 2px;
+}
+
+.article-content-text :deep(.article-recipe-tree__graph .recipe-hierarchy-alt-images .tp-preview-image) {
+  width: var(--article-recipe-tree-alternative-image-size);
+  height: var(--article-recipe-tree-alternative-image-size);
+  --tp-preview-image-size: var(--article-recipe-tree-alternative-image-size);
+  --tp-preview-fallback-icon-size: calc(var(--article-recipe-tree-alternative-image-size) * 0.72);
+}
+
+.article-content-text :deep(.article-recipe-tree__graph .article-recipe-tree__graph-node-copy) {
+  display: -webkit-box;
+  width: 100%;
+  overflow: hidden;
+  color: var(--text-strong);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  text-align: center;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.article-content-text :deep(.article-recipe-tree__graph .recipe-hierarchy-quantity) {
+  color: var(--text-strong);
+  font-size: 10px;
+}
+
 .article-content-text :deep(.article-recipe-tree__graph-node-position) {
   position: absolute;
   display: grid;
@@ -2934,16 +3211,6 @@ onMounted(() => {
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, var(--text-strong) 8%, transparent),
     0 8px 20px color-mix(in srgb, var(--index-bg) 54%, transparent);
-}
-
-.article-content-text :deep(.article-recipe-tree__graph-node img) {
-  display: block;
-  width: 38px;
-  height: 38px;
-  margin: 0;
-  border: 0;
-  border-radius: 0;
-  object-fit: contain;
 }
 
 .article-content-text :deep(.article-recipe-tree__graph-fallback) {
@@ -3171,7 +3438,8 @@ onMounted(() => {
 
 .article-content-text :deep(img) {
   display: block;
-  width: min(100%, 720px);
+  width: auto;
+  max-width: 100%;
   height: auto;
   margin: 20px 0;
   border: 1px solid var(--index-line);

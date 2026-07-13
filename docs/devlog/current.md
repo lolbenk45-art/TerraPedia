@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-12 07:34 CST by Codex
+Last updated: 2026-07-13 17:49 CST by Codex
 
 ## Open Work
 
@@ -15,6 +15,8 @@ Last updated: 2026-07-12 07:34 CST by Codex
 
 ## Current State
 
+- Article embedded-tree visual correction is closed for commit on `review/front-nuxt-visual`: both hosts call the shared renderer; public article body image sizing matches the editor; and shared model display normalizes verbose raw variant metadata. Full frontend check passed at 2026-07-13 17:49 CST. The next task is the separately reported admin review-preview parity defect.
+- Article detail embedded-tree correction is ready for visual acceptance on `review/front-nuxt-visual`: PC recipe-tree embeds now use the article body panel rather than the `76ch` prose column, without changing the sidebar, body copy, or mobile. Fresh `/articles/fw` Chromium evidence at 1440px reports a `935px` graph frame, scale `0.5457`, all 23 nodes inside, no sidebar overlap or document overflow, and complete station previews increased to `26.19px`.
 - Crawler monitor queue/status root-cause analysis and the first two V2
   foundation tasks are complete; runtime implementation continues on the
   isolated follow-up branch `fix/crawler-queue-v2-runtime`.
@@ -102,6 +104,7 @@ Last updated: 2026-07-12 07:34 CST by Codex
 
 ## Next Agent Should Start Here
 
+- On `review/front-nuxt-visual`, have the user inspect `http://localhost:15177/articles/fw`: PC FW trees should occupy the article body panel, show all 23 nodes, and retain complete `26.19px` minimum station previews. If readability remains insufficient at a materially narrower desktop, use a separate layout-mode design rather than restoring a clipping scale floor. Commit only on request.
 - Continue inline from Task 3 of the committed V2 hard-cutover plan using
   test-first implementation and the plan's task-level validation checkpoints.
 - On implementation start, follow the plan task by task and preserve its
@@ -125,6 +128,7 @@ Last updated: 2026-07-12 07:34 CST by Codex
 
 ## Current Risks
 
+- Dense article recipe trees use width-fit scaling with the wider PC article-body frame, so the FW `1706px` graph begins entirely inside a `935px` graph frame at 1440px. Its square station source frames are complete and unshifted with `contain` fitting at `26.19×26.19px`; only a narrower-desktop readability concern would require a future layout-mode decision.
 - The local stack is stopped and the latest retained crawler runtime evidence is
   dated 2026-07-08, so live behavior is not yet freshly reproduced.
 - Current queue history and log retention are misaligned: queue history keeps

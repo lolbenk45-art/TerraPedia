@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import {
   USER_ARTICLE_EDITOR_PLACEHOLDER,
   buildUserArticleInlineStyle,
@@ -13,6 +15,10 @@ import {
   setUserArticleUnorderedList,
   unwrapUserArticleTypingPlaceholders,
 } from '../lib/userArticleEditorDom.mjs'
+
+const editorSource = readFileSync(resolve(process.cwd(), 'components/user/UserArticleRichEditor.vue'), 'utf8')
+assert.ok(editorSource.includes("from '~/utils/recipeHierarchyGraphRenderer'"), 'editor must import the shared recipe hierarchy graph renderer')
+assert.ok(editorSource.includes('renderRecipeHierarchyGraph'), 'editor must render recipe graphs through the shared renderer')
 
 const assertIncludes = (value, marker, message) => {
   assert.ok(value.includes(marker), `${message}\nactual: ${value}`)

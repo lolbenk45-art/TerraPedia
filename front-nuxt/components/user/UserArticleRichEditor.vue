@@ -24,6 +24,7 @@ import {
 import type { NormalizedContentReference, PublicItemRecipeTree, PublicItemRecipeTreeNode, PublicItemRecipeTreeVariant } from '~/types/public-api'
 import { searchPublicContentReferences } from '~/composables/usePublicContentReferences'
 import { fetchPublicRecipeTree } from '~/composables/usePublicRecipeTree'
+import { renderRecipeHierarchyGraph } from '~/utils/recipeHierarchyGraphRenderer'
 
 const props = withDefaults(defineProps<{
   modelValue: string
@@ -425,7 +426,14 @@ const editorRecipeTreeItemName = (tree: PublicItemRecipeTree | null | undefined,
   fallback,
 )
 
-const renderEditorRecipeTreeShell = (node: HTMLElement, state: 'loading' | 'ready' | 'missing' | 'error', title: string, description: string) => {
+const editorRecipeTreeItemImage = (tree: PublicItemRecipeTree | null | undefined) => editorRecipeTreeImage(firstEditorRecipeTreeText(
+  tree?.item?.previewImage,
+  tree?.item?.imageUrl,
+  tree?.item?.image,
+  tree?.item?.iconUrl,
+))
+
+const renderEditorRecipeTreeShell = (node: HTMLElement, state: 'loading' | 'ready' | 'missing' | 'error', title: string, description: string, options: { imageUrl?: string, stats?: string[] } = {}) => {
   node.dataset.tpResolved = state
   node.setAttribute('contenteditable', 'false')
   node.setAttribute('role', 'group')
@@ -433,13 +441,37 @@ const renderEditorRecipeTreeShell = (node: HTMLElement, state: 'loading' | 'read
   node.replaceChildren()
 
   const header = document.createElement('div')
-  header.className = 'editor-recipe-tree__header'
+  header.className = 'article-recipe-tree__header'
+  const thumb = document.createElement('span')
+  thumb.className = 'article-recipe-tree__thumb'
+  thumb.setAttribute('aria-hidden', 'true')
+  if (options.imageUrl) {
+    const image = document.createElement('img')
+    image.src = options.imageUrl
+    image.alt = ''
+    image.loading = 'lazy'
+    image.decoding = 'async'
+    thumb.append(image)
+  } else thumb.textContent = '合'
+  const copy = document.createElement('span')
+  copy.className = 'article-recipe-tree__copy'
   const titleNode = document.createElement('strong')
   titleNode.textContent = title
   const descriptionNode = document.createElement('small')
   descriptionNode.textContent = description
-  header.append(titleNode, descriptionNode)
+  copy.append(titleNode, descriptionNode)
+  header.append(thumb, copy)
   node.append(header)
+  if (options.stats?.length) {
+    const stats = document.createElement('div')
+    stats.className = 'article-recipe-tree__stats'
+    for (const statText of options.stats) {
+      const stat = document.createElement('span')
+      stat.textContent = statText
+      stats.append(stat)
+    }
+    node.append(stats)
+  }
 }
 
 const mergeEditorRecipeTreeAlternativeChildren = (options: PublicItemRecipeTreeNode[]): PublicItemRecipeTreeNode[] => {
@@ -1013,29 +1045,16 @@ const enableEditorRecipeTreeInteractions = (graph: HTMLElement) => {
 }
 
 const appendEditorRecipeTreeGraph = (container: HTMLElement, roots: PublicItemRecipeTreeNode[], maxDepth: number) => {
-  const layout = layoutEditorRecipeTreeGraphForest(roots, maxDepth)
-  if (!layout.nodes.length) return
-  const graph = document.createElement('div')
-  graph.className = 'editor-recipe-tree__graph crafting-screen recipe-hierarchy-tree recipe-overview-tree'
-  graph.setAttribute('data-crafting-role', 'recipe-hierarchy-tree')
   const availableWidth = Math.max(280, container.clientWidth ? container.clientWidth - 2 : 680)
-  const widthScale = availableWidth / Math.max(layout.width, 1)
-  const heightScale = 520 / Math.max(layout.height, 1)
-  const scale = Math.max(EDITOR_RECIPE_GRAPH_MIN_SCALE, Math.min(EDITOR_RECIPE_GRAPH_MAX_SCALE, widthScale, heightScale))
-  graph.style.setProperty('--recipe-overview-width', `${layout.width}px`)
-  graph.style.setProperty('--recipe-overview-height', `${layout.height}px`)
-  graph.dataset.baseScale = String(scale)
-  graph.dataset.manualScale = '1'
-  graph.dataset.layoutHeight = String(layout.height)
-  graph.dataset.panX = '0'
-  graph.dataset.panY = '0'
-  const canvas = document.createElement('div')
-  canvas.className = 'recipe-overview-canvas'
-  canvas.append(createEditorRecipeTreeGraphLineCanvas(layout))
-  for (const layoutNode of layout.nodes) canvas.append(createEditorRecipeTreeGraphPositionedNode(layoutNode))
-  graph.append(canvas)
-  updateEditorRecipeTreeZoom(graph)
-  enableEditorRecipeTreeInteractions(graph)
+  const graph = renderRecipeHierarchyGraph({
+    roots,
+    maxDepth,
+    availableWidth,
+    resolveImageUrl: imageUrl => editorRecipeTreeImage(imageUrl),
+    popoverOwner: 'editor',
+  })
+  if (!graph) return
+  graph.classList.add('editor-recipe-tree__graph')
   container.append(graph)
 }
 
@@ -1047,7 +1066,10 @@ const renderEditorRecipeTreeResult = (node: HTMLElement, tree: PublicItemRecipeT
   }
   const roots = editorRecipeTreeRootNodes(tree)
   const variantCount = Array.isArray(tree.variants) ? tree.variants.length : 0
-  renderEditorRecipeTreeShell(node, 'ready', title, `${variantCount ? `${variantCount} 个版本` : '默认版本'} · 深度 ${maxDepth}`)
+  renderEditorRecipeTreeShell(node, 'ready', title, '文章嵌入的合成树摘要', {
+    imageUrl: editorRecipeTreeItemImage(tree),
+    stats: [variantCount ? `${variantCount} 个版本` : '默认版本', `深度 ${maxDepth}`],
+  })
   appendEditorRecipeTreeGraph(node, roots, maxDepth)
 }
 
@@ -3080,10 +3102,10 @@ onBeforeUnmount(() => {
 
 .user-rich-editor__surface :deep(.tp-recipe-tree) {
   display: grid;
-  min-height: 96px;
-  margin: 14px 0;
-  padding: 12px;
-  gap: 10px;
+  min-height: 112px;
+  margin: 24px 0;
+  padding: 14px;
+  gap: 12px;
   overflow-x: auto;
   border: 1px solid color-mix(in srgb, var(--accent-gold) 36%, var(--index-line));
   border-radius: 8px;
@@ -3106,24 +3128,41 @@ onBeforeUnmount(() => {
   border-color: color-mix(in srgb, var(--danger) 40%, var(--index-line));
 }
 
-.user-rich-editor__surface :deep(.editor-recipe-tree__header) {
+.user-rich-editor__surface :deep(.article-recipe-tree__header) {
   display: grid;
-  gap: 3px;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-width: 260px;
 }
 
-.user-rich-editor__surface :deep(.editor-recipe-tree__header strong) {
+.user-rich-editor__surface :deep(.article-recipe-tree__thumb) {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent-gold) 34%, var(--index-line));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent-gold) 12%, transparent);
   color: var(--accent-gold);
-  font-size: 14px;
   font-weight: 900;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
 }
 
-.user-rich-editor__surface :deep(.editor-recipe-tree__header small) {
+.user-rich-editor__surface :deep(.article-recipe-tree__thumb img) {
+  width: 100%; height: 100%; margin: 0; border: 0; border-radius: 0; object-fit: contain;
+}
+
+.user-rich-editor__surface :deep(.article-recipe-tree__copy) { display: grid; min-width: 0; gap: 4px; }
+.user-rich-editor__surface :deep(.article-recipe-tree__copy strong) { color: var(--text-strong); font-size: 16px; line-height: 1.25; overflow-wrap: anywhere; }
+.user-rich-editor__surface :deep(.article-recipe-tree__copy small) {
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 800;
 }
+
+.user-rich-editor__surface :deep(.article-recipe-tree__stats) { display: flex; flex-wrap: wrap; gap: 8px; min-width: 260px; }
+.user-rich-editor__surface :deep(.article-recipe-tree__stats span) { padding: 4px 8px; border: 1px solid color-mix(in srgb, var(--index-line) 82%, transparent); border-radius: 6px; background: color-mix(in srgb, var(--panel) 42%, transparent); color: var(--text-muted); font-size: 12px; font-weight: 850; white-space: nowrap; }
 
 .user-rich-editor__surface :deep(.editor-recipe-tree__graph) {
   --editor-recipe-graph-node-size: 52px;

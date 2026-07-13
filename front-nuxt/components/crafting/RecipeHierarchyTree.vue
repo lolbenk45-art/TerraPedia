@@ -774,6 +774,7 @@ onBeforeUnmount(() => {
                       :alt="nodeTitle(material)"
                       :fallback="firstGlyph(nodeTitle(material))"
                       fallback-icon="icon-items"
+                      :auto-center-visible="false"
                       width="18"
                       height="18"
                     />
@@ -795,12 +796,13 @@ onBeforeUnmount(() => {
                 :alt="memberTitle(member)"
                 :fallback="firstGlyph(memberTitle(member))"
                 fallback-icon="icon-items"
+                :auto-center-visible="false"
               width="22"
               height="22"
             />
           </span>
             <template v-else>
-              <CommonPreviewImage :src="node.image" :alt="node.title" :fallback="firstGlyph(node.title)" fallback-icon="icon-items" width="30" height="30" />
+              <CommonPreviewImage :src="node.image" :alt="node.title" :fallback="firstGlyph(node.title)" fallback-icon="icon-items" :auto-center-visible="false" width="30" height="30" />
               <span class="recipe-hierarchy-quantity">{{ node.quantity }}</span>
             </template>
           </span>
@@ -815,6 +817,7 @@ onBeforeUnmount(() => {
               :alt="stationTitle(station)"
               :fallback="firstGlyph(stationTitle(station))"
               fallback-icon="icon-crafting"
+              :auto-center-visible="false"
               width="18"
               height="18"
             />
@@ -840,6 +843,7 @@ onBeforeUnmount(() => {
             :alt="image.title"
             :fallback="firstGlyph(image.title)"
             fallback-icon="icon-items"
+            :auto-center-visible="false"
             width="26"
             height="26"
           />
