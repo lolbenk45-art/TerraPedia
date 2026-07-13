@@ -11,7 +11,7 @@ Last updated: 2026-07-13 19:20 CST by Codex
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
   - parent/child: none
   - dependencies or blocked-by: local stack is stopped; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
-  - contract handoff: Tasks 1-5 are committed through `af762c2`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 6 exact worker progress identity is committed at `06c8df2`; Task 7 fenced process supervision is committed at `7df042b`; Task 8 bounded convergence/recovery is committed at `04b684a`; Task 9 durable routing, pure overview, and watcher fencing are committed at `024acdc`; Task 10 HTTP/log/SSE contract is committed at `331da55`; Task 11 authoritative V2 admin state is committed at `86dfeb8`; Task 12 hard-cutover checkpoint is committed at `bead133`; Task 13 fixture-isolation and first matrix checkpoint are committed at `d2f100a` and `29c1e70`; heartbeat advance and stale-fence matrix coverage is ready for a focused commit, while four acceptance cases and the smoke script remain open
+  - contract handoff: Tasks 1-5 are committed through `af762c2`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 6 exact worker progress identity is committed at `06c8df2`; Task 7 fenced process supervision is committed at `7df042b`; Task 8 bounded convergence/recovery is committed at `04b684a`; Task 9 durable routing, pure overview, and watcher fencing are committed at `024acdc`; Task 10 HTTP/log/SSE contract is committed at `331da55`; Task 11 authoritative V2 admin state is committed at `86dfeb8`; Task 12 hard-cutover checkpoint is committed at `bead133`; Task 13 fixture-isolation and first three matrix checks are committed at `d2f100a`, `29c1e70`, and `7c3948b`; forced-cancel matrix coverage is ready for a focused commit, while three acceptance cases and the smoke script remain open
 
 ## Current State
 
@@ -36,6 +36,8 @@ Last updated: 2026-07-13 19:20 CST by Codex
 - The matrix now also proves deadline convergence releases terminal ownership
   before a later ready scan advances the next attempt, and rejects old fenced
   progress at the current attempt ingress without changing current state.
+- It also proves a TERM-ignoring process receives forced termination before
+  cancellation is terminal and before the next queued attempt begins.
 
 - Crawler monitor queue/status root-cause analysis and the first two V2
   foundation tasks are complete; runtime implementation continues on the

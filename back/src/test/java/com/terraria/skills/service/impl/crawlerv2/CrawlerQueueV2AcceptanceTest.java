@@ -47,6 +47,8 @@ class CrawlerQueueV2AcceptanceTest {
         String secondAttemptId
     ) {}
 
+    private enum Termination { EXIT_ON_TERM, IGNORE_TERM_EXIT_ON_KILL, NEVER_CONFIRMED }
+
     @BeforeEach
     void setUp() {
         harness = AcceptanceHarness.create(repoRoot, NOW);
@@ -113,6 +115,24 @@ class CrawlerQueueV2AcceptanceTest {
         assertEquals(CrawlerQueueV2ReasonCode.STALE_FENCE_TOKEN, harness.latestRejectedProgressReason());
     }
 
+    @Test
+    void ignoredGracefulTerminationUsesForcedExitBeforeQueueAdvances() {
+        CrawlerQueueV2ApplicationService.DispatchResult first = harness.enqueue("bosses", "fixture-a", "fresh");
+        CrawlerQueueV2ApplicationService.DispatchResult second = harness.enqueue("bosses", "fixture-b", "fresh");
+        harness.ackRunning(first.attemptId(), 1L, 10L);
+        harness.setTermination(first.attemptId(), Termination.IGNORE_TERM_EXIT_ON_KILL);
+
+        harness.cancel(first.attemptId());
+
+        assertEquals(List.of("TERM", "KILL"), harness.signals(first.attemptId()));
+        assertEquals(List.of(CrawlerQueueV2Status.CANCEL_REQUESTED, CrawlerQueueV2Status.CANCELLED),
+            harness.statusEvents(first.attemptId()));
+        assertTrue(harness.signalOrder(first.attemptId(), "KILL")
+            < harness.statusOrder(first.attemptId(), CrawlerQueueV2Status.CANCELLED));
+        harness.reconcile();
+        assertEquals(CrawlerQueueV2Status.STARTING, harness.attempt(second.attemptId()).status());
+    }
+
     private static final class MutableClock extends Clock {
         private Instant now;
 
@@ -131,20 +151,23 @@ class CrawlerQueueV2AcceptanceTest {
         private final CrawlerAttemptArtifactStore artifacts;
         private final ObjectMapper mapper;
         private final Path root;
+        private final List<String> sequence = new ArrayList<>();
+        private final FakeLauncher launcher;
 
         private AcceptanceHarness(Path root, Instant now) {
             this.root = root;
             clock = new MutableClock(now);
             CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
             mapper = new ObjectMapper().registerModule(new JavaTimeModule());
-            repository = new InMemoryRepository(now);
+            repository = new InMemoryRepository(now, sequence);
             CrawlerQueueEngineRouter router = new CrawlerQueueEngineRouter(mapper, repository, root, clock);
             router.writeState(new CrawlerQueueEngineRouter.CutoverState(
                 2, CrawlerQueueEngineMode.V2, "cutover-fixture", repository.epoch, now, now, now
             ));
             artifacts = new CrawlerAttemptArtifactStore(mapper, root, clock, properties);
+            launcher = new FakeLauncher(sequence);
             supervisor = new CrawlerAttemptSupervisor(repository, artifacts,
-                CrawlerMonitorActionRegistry.defaults(), new FakeLauncher(), new CrawlerAttemptStateMachine(properties),
+                CrawlerMonitorActionRegistry.defaults(), launcher, new CrawlerAttemptStateMachine(properties),
                 properties, root, clock, router);
             reconciler = new CrawlerQueueV2Reconciler(repository, supervisor,
                 new CrawlerAttemptStateMachine(properties), properties, clock, router);
@@ -174,6 +197,18 @@ class CrawlerQueueV2AcceptanceTest {
         Optional<String> dedupeForAttempt(String attemptId) { return repository.dedupeForAttempt(attemptId); }
         CrawlerQueueV2Event latestAttemptEvent() { return repository.latestAttemptEvent(); }
         CrawlerQueueV2ReasonCode latestRejectedProgressReason() { return repository.latestRejectedProgressReason(); }
+        void setTermination(String attemptId, Termination termination) { launcher.termination.put(attemptId, termination); }
+        List<String> signals(String attemptId) { return launcher.signals(attemptId); }
+        int signalOrder(String attemptId, String signal) { return sequence.indexOf("signal:" + attemptId + ":" + signal); }
+        int statusOrder(String attemptId, CrawlerQueueV2Status status) { return repository.statusOrder(attemptId, status); }
+        List<CrawlerQueueV2Status> statusEvents(String attemptId) { return repository.statusEventsAfterCancelRequested(attemptId); }
+
+        void cancel(String attemptId) {
+            CrawlerQueueV2Attempt current = attempt(attemptId);
+            service.control(new CrawlerQueueV2ApplicationService.ControlCommand(
+                current.queueId(), current.attemptId(), current.stateVersion(), "cancel", "acceptance"
+            ));
+        }
 
         void ackRunning(String attemptId, long current, long total) {
             CrawlerQueueV2Attempt attempt = attempt(attemptId);
@@ -235,6 +270,7 @@ class CrawlerQueueV2AcceptanceTest {
     private static final class InMemoryRepository implements CrawlerQueueV2Repository {
         private final String epoch = "epoch-fixture";
         private final Instant firstMutationAt;
+        private final List<String> sequence;
         private final Map<String, CrawlerQueueV2Queue> queues = new LinkedHashMap<>();
         private final Map<String, CrawlerQueueV2Attempt> attempts = new LinkedHashMap<>();
         private final Map<String, String> dedupe = new LinkedHashMap<>();
@@ -244,7 +280,10 @@ class CrawlerQueueV2AcceptanceTest {
         private long fence;
         private boolean deferReadyClaimAfterRelease;
 
-        private InMemoryRepository(Instant now) { firstMutationAt = now; }
+        private InMemoryRepository(Instant now, List<String> sequence) {
+            firstMutationAt = now;
+            this.sequence = sequence;
+        }
         @Override public EngineState readEngineState() { return new EngineState(CrawlerQueueEngineMode.V2, epoch, "cutover-fixture", firstMutationAt.toString()); }
         @Override public String requireEpoch() { return epoch; }
         @Override public synchronized EnqueueResult createQueue(CreateQueueCommand command) {
@@ -293,7 +332,7 @@ class CrawlerQueueV2AcceptanceTest {
             if (command.releaseOwnership()) {
                 leases.entrySet().removeIf(entry -> entry.getValue().equals(updated.attemptId()));
                 dedupe.remove(command.dedupeKey(), updated.attemptId());
-                deferReadyClaimAfterRelease = true;
+                deferReadyClaimAfterRelease = command.targetStatus() == CrawlerQueueV2Status.TIMED_OUT;
             }
             append(new CrawlerQueueV2Event(command.eventType(), epoch, updated.queueId(), updated.attemptId(), updated.fenceToken(),
                 updated.stateVersion(), updated.status(), updated.reasonCode(), command.enteredAt()));
@@ -328,7 +367,12 @@ class CrawlerQueueV2AcceptanceTest {
         @Override public List<DomainQuarantine> findQuarantines() { return List.of(); }
 
         private void requireEpoch(String expected) { if (!epoch.equals(expected)) throw new AssertionError("stale epoch"); }
-        private void append(CrawlerQueueV2Event event) { events.add(new EventEnvelope((events.size() + 1) + "-0", event)); }
+        private void append(CrawlerQueueV2Event event) {
+            events.add(new EventEnvelope((events.size() + 1) + "-0", event));
+            if (event.attemptId() != null && event.status() != null) {
+                sequence.add("status:" + event.attemptId() + ":" + event.status());
+            }
+        }
         private Optional<String> lease(String domain) { return Optional.ofNullable(leases.get(domain)); }
         private Optional<String> dedupeForAttempt(String attemptId) {
             return dedupe.entrySet().stream().filter(entry -> entry.getValue().equals(attemptId)).map(Map.Entry::getKey).findFirst();
@@ -343,6 +387,13 @@ class CrawlerQueueV2AcceptanceTest {
                 .reduce((first, second) -> second)
                 .map(CrawlerQueueV2Event::reasonCode)
                 .orElse(null);
+        }
+        private int statusOrder(String attemptId, CrawlerQueueV2Status status) {
+            return sequence.indexOf("status:" + attemptId + ":" + status);
+        }
+        private List<CrawlerQueueV2Status> statusEventsAfterCancelRequested(String attemptId) {
+            return events.stream().map(EventEnvelope::event).filter(event -> attemptId.equals(event.attemptId()))
+                .map(CrawlerQueueV2Event::status).dropWhile(status -> status != CrawlerQueueV2Status.CANCEL_REQUESTED).toList();
         }
         private static AssertionError unexpected(String method) { return new AssertionError("unexpected repository call: " + method); }
         private static CrawlerQueueV2Attempt replace(CrawlerQueueV2Attempt prior, Long token, long version, CrawlerQueueV2Status status,
@@ -360,22 +411,58 @@ class CrawlerQueueV2AcceptanceTest {
     }
 
     private static final class FakeLauncher implements CrawlerAttemptProcessLauncher {
-        @Override public ManagedProcess launch(LaunchSpec spec) { return new FakeProcess(); }
-        @Override public ProcessLookup findExact(ProcessIdentity identity) { return new ProcessLookup(LookupCode.NOT_FOUND, null); }
+        private final List<String> sequence;
+        private final Map<String, Termination> termination = new LinkedHashMap<>();
+        private final Map<String, List<String>> signals = new LinkedHashMap<>();
+        private final Map<Long, FakeProcess> processes = new LinkedHashMap<>();
+        private long nextPid = 12345L;
+
+        private FakeLauncher(List<String> sequence) { this.sequence = sequence; }
+        @Override public ManagedProcess launch(LaunchSpec spec) {
+            FakeProcess process = new FakeProcess(nextPid++, spec.environment().get("TERRAPEDIA_CRAWLER_ATTEMPT_ID"));
+            processes.put(process.pid(), process);
+            return process;
+        }
+        @Override public ProcessLookup findExact(ProcessIdentity identity) {
+            FakeProcess process = processes.get(identity.pid());
+            if (process == null || !process.alive || !process.startedAt().equals(identity.processStartedAt())) {
+                return new ProcessLookup(LookupCode.NOT_FOUND, null);
+            }
+            return new ProcessLookup(LookupCode.FOUND, process);
+        }
         @Override public boolean pause(ManagedProcess process) { return true; }
         @Override public boolean resume(ManagedProcess process) { return true; }
-        @Override public boolean terminateGracefully(ManagedProcess process) { return true; }
-        @Override public boolean terminateForcibly(ManagedProcess process) { return true; }
-        @Override public boolean awaitExit(ManagedProcess process, Duration timeout) { return true; }
+        @Override public boolean terminateGracefully(ManagedProcess process) { signal((FakeProcess) process, "TERM"); return true; }
+        @Override public boolean terminateForcibly(ManagedProcess process) { signal((FakeProcess) process, "KILL"); return true; }
+        @Override public boolean awaitExit(ManagedProcess process, Duration timeout) {
+            FakeProcess fake = (FakeProcess) process;
+            boolean forced = signals(fake.attemptId).contains("KILL");
+            Termination mode = termination.getOrDefault(fake.attemptId, Termination.EXIT_ON_TERM);
+            boolean exits = mode == Termination.EXIT_ON_TERM || (mode == Termination.IGNORE_TERM_EXIT_ON_KILL && forced);
+            if (exits) fake.alive = false;
+            return exits;
+        }
         @Override public boolean isPaused(ManagedProcess process) { return false; }
+        private void signal(FakeProcess process, String signal) {
+            signals.computeIfAbsent(process.attemptId, ignored -> new ArrayList<>()).add(signal);
+            sequence.add("signal:" + process.attemptId + ":" + signal);
+        }
+        private List<String> signals(String attemptId) { return signals.getOrDefault(attemptId, List.of()); }
     }
 
     private static final class FakeProcess implements CrawlerAttemptProcessLauncher.ManagedProcess {
         private final ProcessHandle handle = mock(ProcessHandle.class);
-        private FakeProcess() { when(handle.onExit()).thenReturn(new CompletableFuture<>()); }
-        @Override public long pid() { return 12345L; }
+        private final long pid;
+        private final String attemptId;
+        private boolean alive = true;
+        private FakeProcess(long pid, String attemptId) {
+            this.pid = pid;
+            this.attemptId = attemptId;
+            when(handle.onExit()).thenReturn(new CompletableFuture<>());
+        }
+        @Override public long pid() { return pid; }
         @Override public Instant startedAt() { return NOW; }
-        @Override public boolean isAlive() { return true; }
+        @Override public boolean isAlive() { return alive; }
         @Override public int exitValue() { return 0; }
         @Override public ProcessHandle handle() { return handle; }
     }

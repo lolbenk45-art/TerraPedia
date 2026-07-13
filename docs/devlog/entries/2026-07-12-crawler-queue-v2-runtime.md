@@ -669,6 +669,10 @@
   before B begins on a later ready scan, and A's old fenced progress payload is
   rejected at B's real progress ingress without changing B. Four scenarios
   remain; see git for code-level diff details.
+- The fourth matrix regression is ready for a focused checkpoint: a process
+  that ignores graceful termination receives TERM then KILL, emits
+  cancel-requested before cancelled, and only then permits the next queued
+  attempt to start. Three scenarios remain; see git for code-level diff details.
 - Task 11 now renders only the authoritative V2 attempt model: authenticated
   SSE plus a three-second fallback, visible queue/reconciler health, exact
   control identity, Chinese lifecycle states, V2-only activity, and attempt
@@ -705,9 +709,10 @@
 - Task 13's offline fixture tests do not prove the seven combined queue/status/
   log scenarios or authenticated stack smoke. Those checks remain release
   blockers before readiness or live-cutover claims.
-- Deadline convergence and stale-fence rejection are now covered alongside
-  legacy conflict. Termination isolation, pure overview, and exact mixed-log
-  history remain required before Task 13 is complete.
+- Deadline convergence, stale-fence rejection, and forced cancellation are now
+  covered alongside legacy conflict. Unconfirmed-termination isolation, pure
+  overview, and exact mixed-log history remain required before Task 13 is
+  complete.
 
 ## Follow-up
 
