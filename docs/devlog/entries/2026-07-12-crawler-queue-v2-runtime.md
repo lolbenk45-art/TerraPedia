@@ -682,6 +682,16 @@
   68/68. This repair must be deployed before repeating the same idempotent
   forward-recovery request; no V2 live attempt, Redis clear, database write,
   or crawler has occurred.
+- The deployed maintenance-mode guard then reached the reset Lua transition but
+  still returned `503`: Redis represents a missing first-mutation marker as
+  Lua `false`, while the Java contract accepts only an ISO timestamp or JSON
+  null. The first isolated real-Redis maintenance/missing-epoch regression
+  failed with `Text 'false' could not be parsed`; it passes after the Lua
+  response records JSON `null` for absent first-mutation evidence. The test
+  used a generated `:test:` prefix on DB 4 and verified exact-prefix cleanup.
+  The current production-like namespace is still only maintenance metadata
+  with no epoch, queue, attempt, event, or first-mutation marker. Deploy this
+  final reset-response repair before a new resetId request.
 
 - Completed: branch handoff contract, Tasks 1-2 prerequisite commits, the
   focused idle/queue visibility compatibility checkpoint, and Task 3's fixed

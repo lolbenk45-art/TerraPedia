@@ -10,8 +10,8 @@ Last updated: 2026-07-13 22:08 CST by Codex
   - branch: `fix/crawler-queue-v2-runtime`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
   - parent/child: none
-  - dependencies or blocked-by: Task 14 readiness audit is complete; user authorized the normal-namespace cutover and first fixture mutation. The zero-work cutover remains safely in maintenance: the reader repair is committed, while a newly found reset-Lua maintenance-mode regression is validated locally and needs deployment before the same idempotent recovery request is repeated. Broad Maven and quality-gate baseline failures remain outside crawler scope and are recorded in the readiness audit.
-  - contract handoff: Tasks 1-13 are checkpointed through `e7b5d2f`; V2 focused backend 493/493, worker 68/68, admin 284/284/check/build, and isolated fixture smoke 14/14 are current evidence. The reader/cutover/config selection passes 20/20 and the reset-Lua selection passes 68/68; preserve the immutable failed cutover manifest and maintenance marker while Task 15 proceeds through the authenticated recovery path.
+  - dependencies or blocked-by: Task 14 readiness audit is complete; user authorized the normal-namespace cutover and first fixture mutation. The zero-work cutover remains safely in maintenance: the reader and maintenance-mode reset repairs are committed, while the final reset-response null-contract repair has a passing isolated real-Redis regression and needs deployment before a new resetId recovery request. Broad Maven and quality-gate baseline failures remain outside crawler scope and are recorded in the readiness audit.
+  - contract handoff: Tasks 1-13 are checkpointed through `e7b5d2f`; V2 focused backend 493/493, worker 68/68, admin 284/284/check/build, and isolated fixture smoke 14/14 are current evidence. The reader/cutover/config selection passes 20/20, the maintenance reset selection 68/68, and the isolated real-Redis maintenance reset 1/1; preserve the immutable failed cutover manifest and maintenance marker while Task 15 proceeds through the authenticated recovery path.
 
 ## Current State
 
@@ -26,11 +26,12 @@ Last updated: 2026-07-13 22:08 CST by Codex
   non-terminal row or recorded process, but an absent normal idle lock was
   misclassified as a source error. The committed reader repair keeps mirror and
   latest-dispatch sources required while treating only an absent lock as an
-  empty lock. Its first explicit recovery exposed a second fail-closed gap:
-  begin-cutover persists Redis `maintenance`, while reset Lua accepted only
-  `v2`. Commit/deploy the focused maintenance-mode reset repair, then repeat
-  the same authenticated recovery request; do not clear Redis or start a real
-  crawler. The only first mutation remains the no-network fixture action.
+  empty lock. Forward recovery exposed two reset-Lua gaps: it first rejected
+  the legitimate Redis `maintenance` mode, then encoded an absent
+  first-mutation marker as boolean `false` rather than null. The second repair
+  now has an isolated real-Redis regression; deploy it, then submit a new
+  authenticated resetId request. Do not clear Redis or start a real crawler.
+  The only first mutation remains the no-network fixture action.
 - The first Task 15 normal-stack startup failed closed before opening port 18192:
   fixture action enablement without a `:test:` namespace passed an empty legacy
   prefix to the immutable V1 reader. A RED configuration regression reproduced

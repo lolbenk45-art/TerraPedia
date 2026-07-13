@@ -169,6 +169,22 @@ class RedisCrawlerQueueV2RepositoryIntegrationTest {
     }
 
     @Test
+    void shouldResetAMaintenanceNamespaceWhoseEpochWasNeverInitialized() {
+        redis.opsForValue().set(prefix + "meta:engine", "maintenance");
+        redis.delete(prefix + "meta:epoch");
+        redis.opsForValue().set(prefix + "meta:active-cutover-id", "cutover-current");
+
+        CrawlerQueueV2Repository.InitializeResetEpochResult result = repository.initializeResetEpoch(
+            resetCommand("reset-maintenance", null, "epoch-reset")
+        );
+
+        assertFalse(result.idempotent());
+        assertEquals("epoch-reset", result.stateStoreEpoch());
+        assertEquals("v2", redis.opsForValue().get(prefix + "meta:engine"));
+        assertEquals("epoch-reset", redis.opsForValue().get(prefix + "meta:epoch"));
+    }
+
+    @Test
     void shouldRejectObservedEpochMismatchWithoutClearingFixedIndexes() {
         populateFixedResetIndexes();
 

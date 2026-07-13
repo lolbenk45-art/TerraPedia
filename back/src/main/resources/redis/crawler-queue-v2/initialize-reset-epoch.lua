@@ -58,7 +58,7 @@ if priorResetRaw then
     resetId = priorReset.resetId,
     stateStoreEpoch = priorReset.stateStoreEpoch,
     streamCursor = priorReset.streamCursor,
-    firstLiveMutationAt = currentFirstLiveMutationAt or priorReset.firstLiveMutationAt
+    firstLiveMutationAt = currentFirstLiveMutationAt or priorReset.firstLiveMutationAt or cjson.null
   })
 end
 
@@ -112,5 +112,5 @@ return cjson.encode({
   resetId = ARGV[2],
   stateStoreEpoch = ARGV[4],
   streamCursor = streamCursor,
-  firstLiveMutationAt = currentFirstLiveMutationAt
+  firstLiveMutationAt = currentFirstLiveMutationAt or cjson.null
 })
