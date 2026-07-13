@@ -12,6 +12,8 @@ import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
+import com.terraria.skills.dto.CrawlerQueueV2CutoverRequestDTO;
+import com.terraria.skills.dto.CrawlerQueueV2CutoverResultDTO;
 import com.terraria.skills.dto.WikiImageLocalizationCacheMetricsDTO;
 import com.terraria.skills.handler.GlobalExceptionHandler;
 import com.terraria.skills.service.CrawlerMonitorRedisUnavailableException;
@@ -483,6 +485,75 @@ class AdminCrawlerMonitorControllerTest {
             .andExpect(jsonPath("$.statusCode").value(403));
 
         verifyNoInteractions(crawlerMonitorService);
+    }
+
+    @Test
+    void shouldForwardAuthenticatedOperatorAndExactCutoverConfirmation() throws Exception {
+        CrawlerQueueV2CutoverResultDTO result = new CrawlerQueueV2CutoverResultDTO();
+        result.setCutoverId("cutover-1");
+        result.setEngineMode("v2");
+        result.setStateStoreEpoch("epoch-new");
+        result.setV2LiveAttemptCount(0);
+        when(crawlerMonitorService.cutoverCrawlerQueueV2(argThat(payload ->
+            "cutover-1".equals(payload.getCutoverId())
+                && "CUTOVER_CRAWLER_QUEUE_V2".equals(payload.getConfirmation())
+                && "abc123".equals(payload.getGitSha())
+        ), eq("admin"))).thenReturn(result);
+
+        mockMvc.perform(post("/admin/crawler-monitor/cutover")
+                .contentType("application/json")
+                .content("{\"cutoverId\":\"cutover-1\",\"confirmation\":\"CUTOVER_CRAWLER_QUEUE_V2\",\"gitSha\":\"abc123\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.engineMode").value("v2"))
+            .andExpect(jsonPath("$.data.stateStoreEpoch").value("epoch-new"))
+            .andExpect(jsonPath("$.data.v2LiveAttemptCount").value(0));
+
+        verify(crawlerMonitorService).cutoverCrawlerQueueV2(any(CrawlerQueueV2CutoverRequestDTO.class), eq("admin"));
+    }
+
+    @Test
+    void shouldForwardRollbackAndResetConfirmationPhrasesToAuthenticatedServiceMethods() throws Exception {
+        CrawlerQueueV2CutoverResultDTO rollback = new CrawlerQueueV2CutoverResultDTO();
+        rollback.setEngineMode("v1");
+        CrawlerQueueV2CutoverResultDTO reset = new CrawlerQueueV2CutoverResultDTO();
+        reset.setResetId("reset-1");
+        reset.setEngineMode("v2");
+        when(crawlerMonitorService.rollbackCrawlerQueueV2(argThat(payload ->
+            "ROLLBACK_CRAWLER_QUEUE_V2".equals(payload.getConfirmation())
+        ), eq("admin"))).thenReturn(rollback);
+        when(crawlerMonitorService.recoverCrawlerQueueV2Epoch(argThat(payload ->
+            "RESET_CRAWLER_QUEUE_V2_EPOCH".equals(payload.getConfirmation())
+                && "reset-1".equals(payload.getResetId())
+        ), eq("admin"))).thenReturn(reset);
+
+        mockMvc.perform(post("/admin/crawler-monitor/cutover/rollback")
+                .contentType("application/json")
+                .content("{\"cutoverId\":\"cutover-1\",\"confirmation\":\"ROLLBACK_CRAWLER_QUEUE_V2\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.engineMode").value("v1"));
+        mockMvc.perform(post("/admin/crawler-monitor/cutover/recover-state-store-reset")
+                .contentType("application/json")
+                .content("{\"cutoverId\":\"cutover-1\",\"resetId\":\"reset-1\",\"confirmation\":\"RESET_CRAWLER_QUEUE_V2_EPOCH\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.resetId").value("reset-1"));
+
+        verify(crawlerMonitorService).rollbackCrawlerQueueV2(any(CrawlerQueueV2CutoverRequestDTO.class), eq("admin"));
+        verify(crawlerMonitorService).recoverCrawlerQueueV2Epoch(any(CrawlerQueueV2CutoverRequestDTO.class), eq("admin"));
+    }
+
+    @Test
+    void shouldExposeHealthyEpochResetRejectionAsAConflict() throws Exception {
+        when(crawlerMonitorService.recoverCrawlerQueueV2Epoch(any(CrawlerQueueV2CutoverRequestDTO.class), eq("admin")))
+            .thenThrow(new CrawlerQueueV2Exception(HttpStatus.CONFLICT, CrawlerQueueV2ReasonCode.STATE_STORE_RESET));
+
+        mockMvc.perform(post("/admin/crawler-monitor/cutover/recover-state-store-reset")
+                .contentType("application/json")
+                .content("{\"cutoverId\":\"cutover-1\",\"resetId\":\"reset-1\",\"confirmation\":\"RESET_CRAWLER_QUEUE_V2_EPOCH\"}"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.statusCode").value(409))
+            .andExpect(jsonPath("$.data.reasonCode").value("STATE_STORE_RESET"));
     }
 
     @Test

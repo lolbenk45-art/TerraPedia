@@ -642,6 +642,15 @@
   approvals.
 - Task 10 is checkpointed at `331da55` after final specification and
   code-quality approvals.
+- Task 12 is ready for its focused checkpoint: it adds an administrator-only,
+  durable V1-to-V2 cutover and rollback/reset boundary. The V1 snapshot is
+  bounded and read-only; scan/source errors, conflicting evidence, and
+  unconfirmed recorded processes keep durable and Redis routing in maintenance.
+  Completion creates an empty V2 live queue and does not copy V1 work. All
+  three Lua transitions use the same JSON-string record protocol and the
+  common Redis Stream `payload` contract, preventing a cutover record type or
+  event-field mismatch from silently stalling operator visibility. See git for
+  code-level diff details.
 - Task 11 now renders only the authoritative V2 attempt model: authenticated
   SSE plus a three-second fallback, visible queue/reconciler health, exact
   control identity, Chinese lifecycle states, V2-only activity, and attempt
@@ -652,7 +661,9 @@
   typecheck, and `git diff --check`; final specification and code-quality
   re-reviews are `APPROVED`. No service, crawler, Redis, database, or generated
   data operation occurred. See git for code-level diff details.
-- Not completed: Tasks 12-15 and the end-to-end stuck-queue acceptance contract.
+- Not completed: Task 13's combined acceptance harness and guarded fixture
+  smoke, Task 14 readiness audit, Task 15 live cutover, and the end-to-end
+  stuck-queue acceptance contract.
 
 ## Residual Risks
 
@@ -669,12 +680,17 @@
 - The isolated Redis reset-Lua integration suite is environment-gated and was
   not executed because no dedicated `TERRAPEDIA_TEST_REDIS_*` namespace was
   explicitly authorized. It must run before readiness/cutover claims.
+- Task 12's Lua/resource and mocked repository tests cannot substitute for the
+  isolated-prefix fixture smoke; real cutover, the first irreversible V2
+  mutation, service restart, and any shared Redis action remain explicitly
+  unauthorized.
 
 ## Follow-up
 
-- Owner: Codex. Continue Task 12 test-first with the explicit idempotent
-  V1-to-V2 cutover boundary. Do not perform fixture-stack execution, the first
-  irreversible V2 mutation, or live cutover without their explicit gates.
+- Owner: Codex. Commit Task 12 as a focused checkpoint, then complete Task 13
+  offline acceptance coverage without touching runtime state. Do not perform
+  fixture-stack execution, the first irreversible V2 mutation, or live cutover
+  without their explicit gates.
 
 ## Commits
 

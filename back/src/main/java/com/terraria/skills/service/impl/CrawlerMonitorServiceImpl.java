@@ -10,11 +10,14 @@ import com.terraria.skills.dto.CrawlerMonitorAutoDispatchDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
+import com.terraria.skills.dto.CrawlerQueueV2CutoverRequestDTO;
+import com.terraria.skills.dto.CrawlerQueueV2CutoverResultDTO;
 import com.terraria.skills.service.CrawlerMonitorService;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueEngineMode;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueEngineRouter;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Exception;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ApplicationService;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2CutoverService;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ReasonCode;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -139,6 +142,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private final ProcessLauncher processLauncher;
     private final CrawlerQueueEngineRouter queueEngineRouter;
     private final CrawlerQueueV2ApplicationService queueV2ApplicationService;
+    private CrawlerQueueV2CutoverService queueV2CutoverService;
     private final CrawlerDomainStateReducer domainStateReducer = new CrawlerDomainStateReducer();
     private final Map<String, ActiveDispatchProcess> activeDispatchProcesses = new ConcurrentHashMap<>();
     private final Map<String, Process> activeDomainSmokeProcesses = new ConcurrentHashMap<>();
@@ -265,6 +269,50 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         this.processLauncher = processLauncher == null ? new ProcessBuilderLauncher() : processLauncher;
         this.queueEngineRouter = queueEngineRouter == null ? CrawlerQueueEngineRouter.v1Only() : queueEngineRouter;
         this.queueV2ApplicationService = queueV2ApplicationService;
+    }
+
+    @Autowired
+    void setQueueV2CutoverService(CrawlerQueueV2CutoverService queueV2CutoverService) {
+        this.queueV2CutoverService = Objects.requireNonNull(queueV2CutoverService, "queueV2CutoverService");
+    }
+
+    @Override
+    public CrawlerQueueV2CutoverResultDTO cutoverCrawlerQueueV2(
+        CrawlerQueueV2CutoverRequestDTO request,
+        String operator
+    ) {
+        return requireQueueV2CutoverService().cutover(request, operator);
+    }
+
+    @Override
+    public CrawlerQueueV2CutoverResultDTO rollbackCrawlerQueueV2(
+        CrawlerQueueV2CutoverRequestDTO request,
+        String operator
+    ) {
+        if (request == null) {
+            throw new IllegalArgumentException("cutover rollback 请求不能为空");
+        }
+        return requireQueueV2CutoverService().rollback(request.getCutoverId(), request.getConfirmation(), operator);
+    }
+
+    @Override
+    public CrawlerQueueV2CutoverResultDTO recoverCrawlerQueueV2Epoch(
+        CrawlerQueueV2CutoverRequestDTO request,
+        String operator
+    ) {
+        return requireQueueV2CutoverService().recoverStateStoreReset(request, operator);
+    }
+
+    private CrawlerQueueV2CutoverService requireQueueV2CutoverService() {
+        if (queueV2CutoverService == null) {
+            throw new CrawlerQueueV2Exception(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                CrawlerQueueV2ReasonCode.STATE_STORE_UNAVAILABLE,
+                "V2 cutover service 未完成 Spring 装配",
+                null
+            );
+        }
+        return queueV2CutoverService;
     }
 
     private CrawlerQueueEngineMode requireLegacyMutationMode() {

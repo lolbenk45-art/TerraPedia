@@ -313,6 +313,42 @@ public class CrawlerQueueEngineRouter {
     }
 
     /**
+     * The sole durable V2-to-V1 transition. The caller has already completed
+     * the matching atomic Redis rollback; this method only permits it before
+     * a reservation or a first live mutation can make legacy scheduling unsafe.
+     */
+    public CutoverState completeRollback(String cutoverId) {
+        if (isBlank(cutoverId)) {
+            throw new IllegalArgumentException("cutoverId 不能为空");
+        }
+        return locked(current -> {
+            if (current == null || current.mode() == CrawlerQueueEngineMode.V1) {
+                return new CutoverState(2, CrawlerQueueEngineMode.V1, null, null, clock.instant(), null, null);
+            }
+            if (!Objects.equals(cutoverId, current.cutoverId())
+                || current.mutationReservationAt() != null
+                || current.firstLiveMutationAt() != null) {
+                throw new CrawlerQueueV2Exception(
+                    HttpStatus.CONFLICT,
+                    CrawlerQueueV2ReasonCode.CUTOVER_ROLLBACK_FORBIDDEN
+                );
+            }
+            CutoverState rolledBack = new CutoverState(
+                2,
+                CrawlerQueueEngineMode.V1,
+                null,
+                null,
+                clock.instant(),
+                null,
+                null
+            );
+            writeStateAtomically(rolledBack);
+            remember(CrawlerQueueEngineMode.V1, null);
+            return rolledBack;
+        });
+    }
+
+    /**
      * Task 12 writes this immutable file once. The adapter deliberately cannot
      * derive a live V1 location from the current V1 queue repository.
      */

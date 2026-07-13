@@ -7,6 +7,8 @@ import com.terraria.skills.dto.CrawlerMonitorDispatchRequestDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
+import com.terraria.skills.dto.CrawlerQueueV2CutoverRequestDTO;
+import com.terraria.skills.dto.CrawlerQueueV2CutoverResultDTO;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
@@ -32,6 +34,21 @@ public interface CrawlerMonitorService {
 
     CrawlerMonitorDispatchResultDTO controlWikiMonitorDispatch(
         CrawlerMonitorDispatchRequestDTO request,
+        String operator
+    );
+
+    CrawlerQueueV2CutoverResultDTO cutoverCrawlerQueueV2(
+        CrawlerQueueV2CutoverRequestDTO request,
+        String operator
+    );
+
+    CrawlerQueueV2CutoverResultDTO rollbackCrawlerQueueV2(
+        CrawlerQueueV2CutoverRequestDTO request,
+        String operator
+    );
+
+    CrawlerQueueV2CutoverResultDTO recoverCrawlerQueueV2Epoch(
+        CrawlerQueueV2CutoverRequestDTO request,
         String operator
     );
 

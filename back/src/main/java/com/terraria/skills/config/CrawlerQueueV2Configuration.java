@@ -7,8 +7,10 @@ import com.terraria.skills.service.impl.crawlerv2.CrawlerAttemptProcessLauncher;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerAttemptStateMachine;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerAttemptSupervisor;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerLegacyHistoryAdapter;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerLegacySnapshotReader;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueEngineRouter;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ApplicationService;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2CutoverService;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Reconciler;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2RecoveryService;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Repository;
@@ -23,6 +25,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.util.UUID;
 
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(CrawlerQueueV2Properties.class)
@@ -155,6 +158,43 @@ public class CrawlerQueueV2Configuration {
             properties,
             crawlerQueueV2Clock,
             router
+        );
+    }
+
+    @Bean
+    public CrawlerLegacySnapshotReader crawlerLegacySnapshotReader(
+        ObjectMapper objectMapper,
+        StringRedisTemplate redisTemplate,
+        Clock crawlerQueueV2Clock,
+        @Value("${terrapedia.crawler.queue-v2.repo-root:}") String configuredRepoRoot
+    ) {
+        return new CrawlerLegacySnapshotReader(
+            objectMapper,
+            redisTemplate,
+            resolveRepoRoot(configuredRepoRoot),
+            crawlerQueueV2Clock
+        );
+    }
+
+    @Bean
+    public CrawlerQueueV2CutoverService crawlerQueueV2CutoverService(
+        CrawlerQueueV2Properties properties,
+        CrawlerQueueV2Repository repository,
+        CrawlerLegacySnapshotReader snapshotReader,
+        CrawlerAttemptProcessLauncher launcher,
+        CrawlerQueueV2RecoveryService recoveryService,
+        CrawlerQueueEngineRouter router,
+        Clock crawlerQueueV2Clock
+    ) {
+        return new CrawlerQueueV2CutoverService(
+            properties,
+            repository,
+            snapshotReader,
+            launcher,
+            recoveryService,
+            router,
+            crawlerQueueV2Clock,
+            () -> "epoch-" + UUID.randomUUID()
         );
     }
 

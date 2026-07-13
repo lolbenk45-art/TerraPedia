@@ -1,6 +1,8 @@
 package com.terraria.skills.service.impl.crawlerv2;
 
 public enum CrawlerQueueV2ReasonCode {
+    CUTOVER_NOT_ENABLED("V2 切换入口未在当前环境启用。", "设置 TERRAPEDIA_CRAWLER_QUEUE_V2_CUTOVER_ALLOWED=true 后重新启动并复核维护窗口。"),
+    CUTOVER_ROLLBACK_FORBIDDEN("V2 已发生真实写入或首次写入结果无法排除，禁止恢复 V1 实时调度。", "进入维护只读并修复或前滚 V2；不要让 V1 mirror 接管当前状态。"),
     LEGACY_CUTOVER("V1 活动记录已在硬切换时中断并归档。", "从历史重新执行会创建全新的 V2 任务。"),
     LEGACY_PROCESS_UNCONFIRMED("无法确认 V1 运行进程已经退出，V2 切换已中止。", "检查清单中的 PID 和启动时间，确认进程退出后重新执行切换。"),
     STATE_STORE_UNAVAILABLE("V2 状态存储不可用，写操作已关闭。", "恢复 Redis 后刷新页面；不要回退到 V1 队列。"),

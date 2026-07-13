@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-13 17:45 CST by Codex
+Last updated: 2026-07-13 19:20 CST by Codex
 
 ## Open Work
 
@@ -11,9 +11,21 @@ Last updated: 2026-07-13 17:45 CST by Codex
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
   - parent/child: none
   - dependencies or blocked-by: local stack is stopped; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
-  - contract handoff: Tasks 1-5 are committed through `af762c2`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 6 exact worker progress identity is committed at `06c8df2`; Task 7 fenced process supervision is committed at `7df042b`; Task 8 bounded convergence/recovery is committed at `04b684a`; Task 9 durable routing, pure overview, and watcher fencing are committed at `024acdc`; Task 10 HTTP/log/SSE contract is committed at `331da55`; Task 11 authoritative V2 admin state passed final review and is ready for its focused checkpoint
+  - contract handoff: Tasks 1-5 are committed through `af762c2`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 6 exact worker progress identity is committed at `06c8df2`; Task 7 fenced process supervision is committed at `7df042b`; Task 8 bounded convergence/recovery is committed at `04b684a`; Task 9 durable routing, pure overview, and watcher fencing are committed at `024acdc`; Task 10 HTTP/log/SSE contract is committed at `331da55`; Task 11 authoritative V2 admin state is committed at `86dfeb8`; Task 12 hard-cutover checkpoint is ready for its focused commit, while Task 13 fixture files remain intentionally unstaged
 
 ## Current State
+
+- Task 12 now provides an explicit administrator-only V1-to-V2 maintenance
+  cutover, immutable read-only V1 evidence, an empty fresh V2 epoch, a
+  pre-mutation-only rollback boundary, and explicit forward-only epoch reset.
+  The cutover record uses one fail-closed JSON-string protocol across all Lua
+  transitions, and its Redis Stream event uses the same `payload` field as all
+  other V2 events. No cutover, Redis mutation, crawler, database operation, or
+  service lifecycle action has been performed.
+- Task 13 has only its offline no-network fixture and registry characterization
+  work in the working tree. Its in-memory acceptance matrix, guarded smoke
+  script, fixture stack execution, readiness audit, and live-cutover gates are
+  still open and must not be folded into the Task 12 checkpoint.
 
 - Crawler monitor queue/status root-cause analysis and the first two V2
   foundation tasks are complete; runtime implementation continues on the
@@ -154,10 +166,10 @@ Last updated: 2026-07-13 17:45 CST by Codex
 
 ## Next Agent Should Start Here
 
-- Commit the reviewed Task 9 checkpoint, then continue Task 10 of the committed
-  V2 hard-cutover plan: structured 409/503 errors, attempt-keyed logs, and
-  authenticated SSE. Preserve Task 8 maintenance/recovery and Task 9 durable
-  mutation-permit boundaries.
+- Commit the reviewed Task 12 checkpoint, keeping the partial Task 13 fixture
+  files and all user-generated data out of its staged scope. Then continue the
+  Task 13 in-memory acceptance matrix and guarded smoke-script implementation
+  without executing the smoke script.
 - On implementation start, follow the plan task by task and preserve its
   authorization gates: fixture-stack execution, live cutover, and first
   irreversible V2 mutation each require their stated confirmation.
@@ -179,9 +191,8 @@ Last updated: 2026-07-13 17:45 CST by Codex
 
 ## Current Risks
 
-- The local stack is running for acceptance, but the existing paused Boss queue
-  item is visibility evidence only; no crawler was started and no V2 runtime
-  convergence behavior has been exercised.
+- The local stack is stopped; no crawler was started and no V2 runtime
+  convergence, cutover, or restart behavior has been exercised.
 - Current queue history and log retention are misaligned: queue history keeps
   substantially more attempts than the crawler-monitor log pruner, so a stored
   V1 logPath is not evidence that a readable log still exists. Task 5 defines

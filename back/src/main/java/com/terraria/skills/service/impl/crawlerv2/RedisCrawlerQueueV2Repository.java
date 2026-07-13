@@ -43,6 +43,9 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
     private static final DefaultRedisScript<String> WRITE_HEALTH_SCRIPT = script("write-health.lua");
     private static final DefaultRedisScript<String> WRITE_QUARANTINE_SCRIPT = script("write-quarantine.lua");
     private static final DefaultRedisScript<String> INITIALIZE_RESET_EPOCH_SCRIPT = script("initialize-reset-epoch.lua");
+    private static final DefaultRedisScript<String> BEGIN_CUTOVER_SCRIPT = script("begin-cutover.lua");
+    private static final DefaultRedisScript<String> COMPLETE_CUTOVER_SCRIPT = script("complete-cutover.lua");
+    private static final DefaultRedisScript<String> ROLLBACK_CUTOVER_SCRIPT = script("rollback-cutover.lua");
 
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redisTemplate;
@@ -592,6 +595,55 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
     }
 
     @Override
+    public BeginCutoverResult beginCutover(BeginCutoverCommand command) {
+        Objects.requireNonNull(command, "command");
+        String raw = redis("开始 V2 cutover", () -> redisTemplate.execute(BEGIN_CUTOVER_SCRIPT,
+            List.of(key("meta:engine"), key("meta:active-cutover-id"), key("cutover:lock"), key("cutover:" + command.cutoverId())),
+            command.cutoverId(), command.requestedAt().toString(), command.requestedBy(), Long.toString(durationMillis(command.lockTtl(), "cutover lock TTL"))));
+        JsonNode result = parseScriptResult("begin-cutover", requireScriptResult("begin-cutover", raw));
+        String code = text(result, "code");
+        if ("STARTED".equals(code)) return BeginCutoverResult.started(command.cutoverId());
+        if ("ALREADY_COMPLETED".equals(code)) return BeginCutoverResult.alreadyCompleted(command.cutoverId());
+        throwForMutationCode("begin-cutover", code);
+        throw stateStoreReset("begin-cutover 未返回结果");
+    }
+
+    @Override
+    public CompleteCutoverResult completeCutover(CompleteCutoverCommand command) {
+        Objects.requireNonNull(command, "command");
+        String raw = redis("完成 V2 cutover", () -> redisTemplate.execute(COMPLETE_CUTOVER_SCRIPT,
+            List.of(key("meta:engine"), key("meta:epoch"), key("meta:active-cutover-id"), key("meta:first-live-mutation-at"), key("cutover:lock"), key("index:attempts:live"), key("events"), key("cutover:" + command.cutoverId())),
+            command.cutoverId(), command.stateStoreEpoch(), command.manifestPath(), command.manifestSha256(), command.completedAt().toString(), command.completedBy(), writeJson(command.event())));
+        JsonNode result = parseScriptResult("complete-cutover", requireScriptResult("complete-cutover", raw));
+        String code = text(result, "code");
+        if (!"COMPLETED".equals(code) && !"ALREADY_COMPLETED".equals(code)) { throwForMutationCode("complete-cutover", code); }
+        return new CompleteCutoverResult(command.cutoverId(), requiredText(result, "stateStoreEpoch"), requiredText(result, "streamCursor"), "ALREADY_COMPLETED".equals(code));
+    }
+
+    @Override
+    public RollbackCutoverResult rollbackCutover(RollbackCutoverCommand command) {
+        Objects.requireNonNull(command, "command");
+        String raw = redis("回滚 V2 cutover", () -> redisTemplate.execute(ROLLBACK_CUTOVER_SCRIPT,
+            List.of(key("meta:engine"), key("meta:active-cutover-id"), key("meta:first-live-mutation-at"), key("cutover:lock"), key("cutover:" + command.cutoverId())), command.cutoverId(), command.rolledBackAt().toString(), command.operator()));
+        JsonNode result = parseScriptResult("rollback-cutover", requireScriptResult("rollback-cutover", raw));
+        if ("FIRST_LIVE_MUTATION_EXISTS".equals(text(result, "code"))) throw new CrawlerQueueV2Exception(HttpStatus.CONFLICT, CrawlerQueueV2ReasonCode.CUTOVER_ROLLBACK_FORBIDDEN);
+        if (!"ROLLED_BACK".equals(text(result, "code"))) throwForMutationCode("rollback-cutover", text(result, "code"));
+        return new RollbackCutoverResult(command.cutoverId(), true);
+    }
+
+    @Override
+    public Optional<CutoverRecord> readCutover(String cutoverId) {
+        if (isBlank(cutoverId)) throw new IllegalArgumentException("cutoverId 不能为空");
+        String raw = redis("读取 V2 cutover", () -> redisTemplate.opsForValue().get(key("cutover:" + cutoverId)));
+        if (isBlank(raw)) return Optional.empty();
+        try {
+            return Optional.of(objectMapper.readValue(raw, CutoverRecord.class));
+        } catch (JsonProcessingException exception) {
+            throw stateStoreReset("V2 cutover record 无法解析", exception);
+        }
+    }
+
+    @Override
     public InitializeResetEpochResult initializeResetEpoch(InitializeResetEpochCommand command) {
         Objects.requireNonNull(command, "command");
         validateInitializeResetEpoch(command);
@@ -808,7 +860,7 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
             if (!Objects.equals(command.resetId(), resetId)) {
                 throw stateStoreReset("V2 initialize-reset-epoch 返回的 resetId 与命令不一致");
             }
-            if (!Objects.equals(command.newEpoch(), stateStoreEpoch)) {
+            if (!"ALREADY_RESET".equals(code) && !Objects.equals(command.newEpoch(), stateStoreEpoch)) {
                 throw stateStoreReset("V2 initialize-reset-epoch 返回的 stateStoreEpoch 与命令不一致");
             }
             if (!Objects.equals(command.irreversibleAt(), parsedFirstLiveMutationAt)) {

@@ -51,6 +51,107 @@ class RedisCrawlerQueueV2RepositoryTest {
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @Test
+    void shouldBeginCutoverInV2MaintenanceWithoutReadingOrCopyingV1Keys() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+            .thenReturn("{\"code\":\"STARTED\",\"cutoverId\":\"cutover-1\"}");
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+
+        CrawlerQueueV2Repository.BeginCutoverResult result = repository.beginCutover(
+            new CrawlerQueueV2Repository.BeginCutoverCommand("cutover-1", NOW, "admin", Duration.ofMinutes(5))
+        );
+
+        assertTrue(result.started());
+        assertFalse(result.alreadyCompleted());
+        ArgumentCaptor<List<String>> keys = ArgumentCaptor.forClass(List.class);
+        verify(redis).execute(any(RedisScript.class), keys.capture(), any(Object[].class));
+        assertTrue(keys.getValue().stream().allMatch(key -> key.startsWith(RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX)));
+        assertTrue(keys.getValue().stream().noneMatch(key -> key.contains("dispatch-queue")));
+    }
+
+    @Test
+    void shouldCompleteOnlyWithZeroLiveAttemptsAndMapIdempotentResult() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+            .thenReturn("{\"code\":\"ALREADY_COMPLETED\",\"cutoverId\":\"cutover-1\",\"stateStoreEpoch\":\"epoch-1\",\"streamCursor\":\"20-0\"}");
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+
+        CrawlerQueueV2Repository.CompleteCutoverResult result = repository.completeCutover(
+            new CrawlerQueueV2Repository.CompleteCutoverCommand("cutover-1", "epoch-1", "reports/crawler-monitor/v2/cutovers/cutover-1/cutover-manifest.json", "sha", NOW, "admin", event("cutover.completed", 1L))
+        );
+
+        assertTrue(result.idempotent());
+        assertEquals("epoch-1", result.stateStoreEpoch());
+    }
+
+    @Test
+    void cutoverLuaUsesOneJsonStringRecordProtocolAndPayloadStreamEvents() throws Exception {
+        String source = new ClassPathResource("redis/crawler-queue-v2/complete-cutover.lua")
+            .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        String begin = new ClassPathResource("redis/crawler-queue-v2/begin-cutover.lua")
+            .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        String rollback = new ClassPathResource("redis/crawler-queue-v2/rollback-cutover.lua")
+            .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+
+        assertTrue(source.contains("redis.call('SET', KEYS[8], cjson.encode"));
+        assertTrue(source.contains("record.status == 'started'"));
+        assertTrue(source.contains("record.cutoverId == ARGV[1]"));
+        assertTrue(source.contains("record.status == 'completed'"));
+        assertTrue(source.contains("redis.call('GET', KEYS[1]) ~= 'maintenance'"));
+        assertTrue(source.contains("redis.call('GET', KEYS[3]) ~= ARGV[1]"));
+        assertTrue(source.contains("'payload', ARGV[7]"));
+        assertFalse(source.contains("'event', ARGV[7]"));
+        assertTrue(begin.contains("redis.call('SET', KEYS[4], cjson.encode"));
+        assertTrue(begin.contains("record.status == 'started'"));
+        assertTrue(begin.contains("record.cutoverId == ARGV[1]"));
+        assertTrue(rollback.contains("record.status ~= 'completed'"));
+        assertTrue(rollback.contains("redis.call('SET', KEYS[5], cjson.encode"));
+        assertFalse(begin.contains("HSET"));
+        assertFalse(source.contains("HSET"));
+        assertFalse(rollback.contains("HSET"));
+    }
+
+    @Test
+    void beginCutoverLuaAdmitsOnlyV1OrItsOwnMaintenanceAndRejectsOtherLiveModes() throws Exception {
+        String source = new ClassPathResource("redis/crawler-queue-v2/begin-cutover.lua")
+            .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+
+        assertTrue(source.contains("if started and not (engine == 'maintenance' and activeCutoverId == ARGV[1])"));
+        assertTrue(source.contains("if not started and engine ~= false and engine ~= 'v1'"));
+        assertTrue(source.contains("ENGINE_MODE_CONFLICT"));
+        assertTrue(source.contains("redis.call('GET', KEYS[3])"));
+    }
+
+    @Test
+    void shouldRollbackOnlyBeforeFirstLiveMutationAndMapLuaRejection() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+            .thenReturn("{\"code\":\"FIRST_LIVE_MUTATION_EXISTS\"}");
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+
+        CrawlerQueueV2Exception exception = assertThrows(CrawlerQueueV2Exception.class, () -> repository.rollbackCutover(
+            new CrawlerQueueV2Repository.RollbackCutoverCommand("cutover-1", NOW, "admin")
+        ));
+
+        assertEquals(CrawlerQueueV2ReasonCode.CUTOVER_ROLLBACK_FORBIDDEN, exception.reasonCode());
+    }
+
+    @Test
+    void shouldReadCompletedCutoverRecordFromTheV2Namespace() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        ValueOperations<String, String> values = mock(ValueOperations.class);
+        when(redis.opsForValue()).thenReturn(values);
+        when(values.get(RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX + "cutover:cutover-1"))
+            .thenReturn("{\"cutoverId\":\"cutover-1\",\"status\":\"completed\",\"stateStoreEpoch\":\"epoch-1\",\"manifestPath\":\"reports/crawler-monitor/v2/cutovers/cutover-1/cutover-manifest.json\",\"manifestSha256\":\"sha\",\"completedAt\":\"2026-07-11T13:00:00Z\",\"completedBy\":\"admin\"}");
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+
+        CrawlerQueueV2Repository.CutoverRecord result = repository.readCutover("cutover-1").orElseThrow();
+
+        assertEquals("epoch-1", result.stateStoreEpoch());
+        assertEquals("admin", result.completedBy());
+    }
+
+    @Test
     void shouldCreateQueueUsingOnlyTheV2Namespace() {
         StringRedisTemplate redis = mock(StringRedisTemplate.class);
         when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
@@ -858,11 +959,16 @@ class RedisCrawlerQueueV2RepositoryTest {
     }
 
     @Test
-    void initializeResetEpochMustRejectAnAlreadyResetResponseWithADifferentEpoch() {
-        assertInitializeResetEpochResponseRejected(
-            resetCommand(),
-            "{\"code\":\"ALREADY_RESET\",\"resetId\":\"reset-1\",\"stateStoreEpoch\":\"epoch-other\",\"streamCursor\":\"42-0\",\"firstLiveMutationAt\":\"2026-07-11T12:59:00Z\"}"
-        );
+    void initializeResetEpochMustReturnTheStoredEpochForAnAlreadyAppliedResetId() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+            .thenReturn("{\"code\":\"ALREADY_RESET\",\"resetId\":\"reset-1\",\"stateStoreEpoch\":\"epoch-other\",\"streamCursor\":\"42-0\",\"firstLiveMutationAt\":\"2026-07-11T12:59:00Z\"}");
+        RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
+
+        CrawlerQueueV2Repository.InitializeResetEpochResult result = repository.initializeResetEpoch(resetCommand());
+
+        assertTrue(result.idempotent());
+        assertEquals("epoch-other", result.stateStoreEpoch());
     }
 
     @Test

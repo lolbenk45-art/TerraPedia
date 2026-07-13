@@ -11,6 +11,8 @@ import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
+import com.terraria.skills.dto.CrawlerQueueV2CutoverRequestDTO;
+import com.terraria.skills.dto.CrawlerQueueV2CutoverResultDTO;
 import com.terraria.skills.dto.WikiImageLocalizationCacheMetricsDTO;
 import com.terraria.skills.service.CrawlerMonitorService;
 import com.terraria.skills.service.WikiImageLocalizationService;
@@ -73,6 +75,36 @@ public class AdminCrawlerMonitorController {
     public ApiResponse<CrawlerMonitorDispatchResultDTO> controlDispatch(HttpServletRequest httpRequest, @RequestBody CrawlerMonitorDispatchRequestDTO request) {
         AdminTokenClaims claims = requireAdminRole(httpRequest);
         return ApiResponse.success(crawlerMonitorService.controlWikiMonitorDispatch(request, claims.getUsername()));
+    }
+
+    @PostMapping("/cutover")
+    @Operation(summary = "Explicitly cut over the crawler live queue to V2")
+    public ApiResponse<CrawlerQueueV2CutoverResultDTO> cutover(
+        HttpServletRequest request,
+        @RequestBody CrawlerQueueV2CutoverRequestDTO payload
+    ) {
+        AdminTokenClaims claims = requireAdminRole(request);
+        return ApiResponse.success(crawlerMonitorService.cutoverCrawlerQueueV2(payload, claims.getUsername()));
+    }
+
+    @PostMapping("/cutover/rollback")
+    @Operation(summary = "Roll back crawler queue V2 only before its first live mutation")
+    public ApiResponse<CrawlerQueueV2CutoverResultDTO> rollbackCutover(
+        HttpServletRequest request,
+        @RequestBody CrawlerQueueV2CutoverRequestDTO payload
+    ) {
+        AdminTokenClaims claims = requireAdminRole(request);
+        return ApiResponse.success(crawlerMonitorService.rollbackCrawlerQueueV2(payload, claims.getUsername()));
+    }
+
+    @PostMapping("/cutover/recover-state-store-reset")
+    @Operation(summary = "Explicitly reset a mismatched crawler V2 state-store epoch")
+    public ApiResponse<CrawlerQueueV2CutoverResultDTO> recoverStateStoreReset(
+        HttpServletRequest request,
+        @RequestBody CrawlerQueueV2CutoverRequestDTO payload
+    ) {
+        AdminTokenClaims claims = requireAdminRole(request);
+        return ApiResponse.success(crawlerMonitorService.recoverCrawlerQueueV2Epoch(payload, claims.getUsername()));
     }
 
     @GetMapping("/attempts/{attemptId}/log")

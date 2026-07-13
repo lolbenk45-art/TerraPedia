@@ -41,6 +41,14 @@ public interface CrawlerQueueV2Repository {
 
     Optional<ReconcilerHealth> readReconcilerHealth();
 
+    BeginCutoverResult beginCutover(BeginCutoverCommand command);
+
+    CompleteCutoverResult completeCutover(CompleteCutoverCommand command);
+
+    RollbackCutoverResult rollbackCutover(RollbackCutoverCommand command);
+
+    Optional<CutoverRecord> readCutover(String cutoverId);
+
     InitializeResetEpochResult initializeResetEpoch(InitializeResetEpochCommand command);
 
     void writeQuarantine(QuarantineCommand command);
@@ -210,4 +218,15 @@ public interface CrawlerQueueV2Repository {
         Instant firstLiveMutationAt,
         boolean idempotent
     ) {}
+
+    record BeginCutoverCommand(String cutoverId, Instant requestedAt, String requestedBy, Duration lockTtl) {}
+    record BeginCutoverResult(String cutoverId, boolean started, boolean alreadyCompleted) {
+        public static BeginCutoverResult started(String cutoverId) { return new BeginCutoverResult(cutoverId, true, false); }
+        public static BeginCutoverResult alreadyCompleted(String cutoverId) { return new BeginCutoverResult(cutoverId, false, true); }
+    }
+    record CompleteCutoverCommand(String cutoverId, String stateStoreEpoch, String manifestPath, String manifestSha256, Instant completedAt, String completedBy, CrawlerQueueV2Event event) {}
+    record CompleteCutoverResult(String cutoverId, String stateStoreEpoch, String streamCursor, boolean idempotent) {}
+    record RollbackCutoverCommand(String cutoverId, Instant rolledBackAt, String operator) {}
+    record RollbackCutoverResult(String cutoverId, boolean rolledBack) {}
+    record CutoverRecord(String cutoverId, String status, String stateStoreEpoch, String manifestPath, String manifestSha256, Instant completedAt, String completedBy) {}
 }
