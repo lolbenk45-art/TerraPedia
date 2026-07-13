@@ -13,6 +13,7 @@ function read(relativePath) {
 
 const page = read('pages/operations/crawler-monitor.vue')
 const triageBoard = read('components/crawler-monitor/CrawlerTriageBoard.vue')
+const queueHealthBanner = read('components/crawler-monitor/CrawlerQueueHealthBanner.vue')
 const domainDrawer = read('components/crawler-monitor/DomainDetailDrawer.vue')
 const activityDrawer = read('components/crawler-monitor/ActivityDrawer.vue')
 const systemDrawer = read('components/crawler-monitor/SystemDrawer.vue')
@@ -111,7 +112,12 @@ test('triage board keeps queue visibility and KPI navigation available during at
   assert.match(triageBoard, /tableFilter\.value === 'queue' && !row\.hasActiveQueue/)
   assert.match(triageBoard, /v-if="operationProgressRows\.length" class="operation-strip"/)
   assert.doesNotMatch(triageBoard, /v-else-if="operationProgressRows\.length"/)
-  assert.match(page, /activeQueueCount:\s*activeDispatchQueueRows\.value\.length/)
+  assert.match(page, /activeQueueCount:\s*v2State\.value \? v2AttemptRows\.value\.length : activeDispatchQueueRows\.value\.length/)
+})
+
+test('V2 domain selection does not collapse idle domains into one unknown key', () => {
+  assert.match(page, /if \(row\?\.v2Attempt\) return crawlerV2DomainSelectionKey\(row\)/)
+  assert.doesNotMatch(page, /crawlerV2DomainSelectionKey\(row\) \|\| 'v2-domain:unknown'/)
 })
 
 test('domain detail drawer owns single-domain overview, history, queue, artifacts, and logs', () => {
@@ -217,6 +223,205 @@ test('domain detail drawer auto-loads the first available log file', () => {
   assert.ok(page.includes('loadDomainLog(firstLogPath)'), 'missing first log autoload call')
 })
 
+test('V2 monitor uses authenticated fetch SSE, visible health, and a fixed three-second fallback', () => {
+  assert.match(page, /createCrawlerMonitorEventClient/)
+  assert.match(page, /resolveApiUrl\('\/admin\/crawler-monitor\/events'\)/)
+  assert.match(page, /getAdminBearerHeaders/)
+  assert.match(page, /V2_FALLBACK_INTERVAL_MS\s*=\s*3000/)
+  assert.match(page, /CrawlerQueueHealthBanner/)
+  assert.doesNotMatch(page, /\bEventSource\b/)
+})
+
+test('V2 stream handling preserves normal event cursors and replaces them only for explicit recovery cursors', () => {
+  assert.match(page, /syncCrawlerMonitorPageEventCursor/)
+  assert.doesNotMatch(page, /v2EventClient\?\.setCursor\(decision\.nextCursor\)/)
+})
+
+test('queue health banner renders each unhealthy queue and reconciler detail without dropping the recovery action', () => {
+  assert.match(queueHealthBanner, /healthEntries/)
+  assert.match(queueHealthBanner, /entry\.reasonCode/)
+  assert.match(queueHealthBanner, /entry\.messageZh/)
+  assert.match(queueHealthBanner, /entry\.suggestedAction/)
+  assert.match(queueHealthBanner, /entry\.snapshotGeneratedAt/)
+  assert.match(queueHealthBanner, /entry\.overdueAttemptCount/)
+  assert.doesNotMatch(queueHealthBanner, /messageZh \|\| .*suggestedAction/)
+})
+
+test('queue health banner shows the unhealthy reconciler entry own snapshot and overdue metrics', () => {
+  assert.match(queueHealthBanner, /snapshotGeneratedAt:\s*health\.snapshotGeneratedAt/)
+  assert.match(queueHealthBanner, /overdueAttemptCount:\s*health\.overdueAttemptCount/)
+  assert.match(queueHealthBanner, /oldestOverdueDurationMs:\s*health\.oldestOverdueDurationMs/)
+  assert.match(queueHealthBanner, /entry\.snapshotGeneratedAt/)
+  assert.match(queueHealthBanner, /entry\.overdueAttemptCount/)
+  assert.match(queueHealthBanner, /entry\.oldestOverdueDurationMs/)
+})
+
+test('V2 board and drawer expose the phase plus relative heartbeat and deadline labels', () => {
+  assert.match(triageBoard, /row\.phaseLabel/)
+  assert.match(triageBoard, /row\.heartbeatAgeLabel/)
+  assert.match(triageBoard, /row\.deadlineLabel/)
+  assert.match(domainDrawer, /detail\?\.phaseLabel/)
+  assert.match(domainDrawer, /detail\?\.heartbeatAgeLabel/)
+  assert.match(domainDrawer, /detail\?\.deadlineLabel/)
+})
+
+test('V2 domain rows provide a Chinese raw-status label for triage surfaces', () => {
+  assert.match(page, /crawlerStatusDisplayLabel/)
+  assert.match(page, /statusLabel:\s*crawlerStatusDisplayLabel\(status\)/)
+  assert.match(page, /diagnosisTitle:\s*crawlerStatusDisplayLabel\(status\)/)
+})
+
+test('V2 monitor controls and logs use the immutable attempt identity', () => {
+  assert.match(page, /buildV2ControlPayload/)
+  assert.match(page, /canRunV2Control/)
+  assert.match(page, /stateVersion/)
+  assert.match(page, /currentDomainLogAttemptId/)
+  assert.match(page, /currentDomainLogOffset/)
+  assert.match(page, /\/admin\/crawler-monitor\/attempts\/\$\{encodeURIComponent\(attemptId\)\}\/log/)
+  assert.match(page, /日志已创建但暂无内容/)
+  assert.match(page, /日志已过保留期，manifest 仍可查看/)
+  assert.match(page, /日志路径不符合 attempt 安全策略/)
+})
+
+test('V2 controls expose immutable-key pending state on every matching board and drawer action', () => {
+  assert.match(page, /createV2ControlPendingGuard/)
+  assert.match(page, /:is-control-pending="isV2ControlPending"/)
+  const buttonContaining = (source, marker, occurrence = 0) => {
+    const matches = [...source.matchAll(/<button\b[\s\S]*?<\/button>/g)]
+      .map((match) => match[0])
+      .filter((button) => button.includes(marker))
+    assert.ok(matches[occurrence], `missing V2 control surface: ${marker} #${occurrence + 1}`)
+    return matches[occurrence]
+  }
+  const v2ControlSurfaces = [
+    buttonContaining(triageBoard, 'operationButtonClass(row.primaryAction)'),
+    buttonContaining(triageBoard, 'tileOperationButtonClass(row.primaryAction)', 0),
+    buttonContaining(triageBoard, 'tileOperationButtonClass(row.primaryAction)', 1),
+    buttonContaining(triageBoard, 'tableOperationButtonClass(row.primaryAction)'),
+    buttonContaining(domainDrawer, 'operationButtonClass(primaryAction)'),
+  ]
+
+  for (const button of v2ControlSurfaces) {
+    assert.match(button, /:disabled="isControlPending\([^)]*\.action\)"/)
+    assert.match(button, /:aria-busy="isControlPending\([^)]*\.action\)"/)
+  }
+})
+
+test('V2 operation rows use a bounded identity and timing layout without overflow', () => {
+  assert.match(triageBoard, /operation-row--v2/)
+  assert.match(triageBoard, /grid-template-columns:\s*minmax\(150px,\s*1fr\)\s+minmax\(150px,\s*1fr\)\s+minmax\(0,\s*1fr\)\s+auto/)
+  assert.match(triageBoard, /\.operation-row__v2-meta\s*\{[\s\S]*min-width:\s*0/)
+  assert.match(triageBoard, /\.operation-row__v2-meta small\s*\{[\s\S]*overflow:\s*hidden[\s\S]*text-overflow:\s*ellipsis/)
+  assert.match(triageBoard, /operation-row__identity[^\n]*:title=/)
+  assert.match(triageBoard, /operation-row__timing[^\n]*:title=/)
+})
+
+test('V2 stream authorization failures stay visible with accessible relogin guidance', () => {
+  assert.match(page, /v-if="v2StreamAuthError"/)
+  assert.match(page, /role="alert"/)
+  assert.match(page, /重新登录或刷新登录状态/)
+  assert.match(page, /lastOverviewRefreshAt/)
+  assert.match(page, /v2StreamAuthError\.value\s*=\s*''/)
+})
+
+test('V2 REST authentication failure retains the snapshot and shows the persistent relogin alert', () => {
+  const start = page.indexOf('async function loadOverview()')
+  const end = page.indexOf('\nfunction syncMonitorTransport()', start)
+  assert.ok(start >= 0 && end > start, 'loadOverview handler must be present')
+  const loadOverview = page.slice(start, end)
+
+  assert.match(loadOverview, /await refreshOverview\(\)[\s\S]*?v2StreamAuthError\.value\s*=\s*''/)
+  assert.match(loadOverview, /statusCode === 401 \|\| statusCode === 403/)
+  assert.match(loadOverview, /if \(v2State\.value\)\s*\{\s*v2StreamAuthError\.value\s*=\s*'登录已失效或无访问权限，已停止自动刷新，请重新登录'/)
+  assert.match(page, /<section v-if="v2StreamAuthError"[\s\S]*?role="alert"/)
+})
+
+test('V2 REST authentication failure tears down the SSE reference before a later overview reconnects', () => {
+  const start = page.indexOf('async function loadOverview()')
+  const end = page.indexOf('\nfunction syncMonitorTransport()', start)
+  const loadOverview = page.slice(start, end)
+  assert.match(loadOverview, /v2Transport\.handleRestAuthFailure\(\)/)
+  assert.match(page, /v2Transport\.syncAfterOverview/)
+})
+
+test('V2 log and control authentication failures share the persistent transport halt path', () => {
+  const logStart = page.indexOf('async function loadV2DomainLog')
+  const logEnd = page.indexOf('\nwatch([domainDetailDrawerOpen', logStart)
+  const logLoader = page.slice(logStart, logEnd)
+  assert.match(logLoader, /isV2AuthFailure\(error\)/)
+  assert.match(logLoader, /haltV2TransportForAuthFailure\(\)/)
+  assert.match(page, /onAuthFailure:\s*\(\)\s*=>\s*haltV2TransportForAuthFailure\(\)/)
+})
+
+test('V2 REST authentication halt is page-persistent and ignores stale log failures', () => {
+  const haltStart = page.indexOf('function haltV2TransportForAuthFailure()')
+  const haltEnd = page.indexOf('\nfunction syncMonitorTransport()', haltStart)
+  const halt = page.slice(haltStart, haltEnd)
+  assert.match(halt, /authRefreshHalted\.value\s*=\s*true/)
+  assert.match(halt, /v2SseConnected\.value\s*=\s*false/)
+  assert.match(halt, /v2StreamAuthError\.value\s*=\s*'登录已失效或无访问权限，已停止自动刷新，请重新登录'/)
+
+  const logStart = page.indexOf('async function loadV2DomainLog')
+  const logEnd = page.indexOf('\nwatch([domainDetailDrawerOpen', logStart)
+  const logLoader = page.slice(logStart, logEnd)
+  assert.ok(
+    logLoader.indexOf('if (!v2LogRequestFence.isCurrent(request)) return')
+      < logLoader.indexOf('if (isV2AuthFailure(error))'),
+    'stale log failures must not halt the current V2 transport',
+  )
+})
+
+test('V2 domain selection uses domain plus attempt identity and activity does not read V1 execution rows', () => {
+  assert.match(page, /crawlerV2DomainSelectionKey/)
+  assert.match(page, /buildV2ExecutionOverviewRows/)
+  assert.match(page, /v2State\.value\s*\?\s*buildV2ExecutionOverviewRows/)
+})
+
+test('V2 history log buttons load by attempt identity while legacy paths keep report previews', () => {
+  assert.match(domainDrawer, /file\.attemptId\s*\?\s*\$emit\('load-log', \{ attemptId: file\.attemptId \}\)/)
+  assert.match(domainDrawer, /:\s*\$emit\('preview', file\.path\)/)
+})
+
+test('V2 log lifecycle keeps a manual history selection across overview updates', () => {
+  assert.match(page, /createV2LogSelectionModel/)
+  assert.match(page, /v2LogSelection\.sync/)
+  assert.match(page, /v2LogSelection\.select/)
+})
+
+test('manual legacy log paths block V2 overview autoload until the user selects a current attempt', () => {
+  const logStart = page.indexOf('async function loadDomainLog')
+  const logEnd = page.indexOf('\nasync function loadV2DomainLog', logStart)
+  const legacyLoader = page.slice(logStart, logEnd)
+  const watcherStart = page.indexOf('watch([domainDetailDrawerOpen, selectedDomainDetailViewModel]')
+  const watcherEnd = page.indexOf('\nwatch(() =>', watcherStart)
+  const overviewWatcher = page.slice(watcherStart, watcherEnd)
+
+  assert.match(legacyLoader, /v2LogSelection\.selectPath\(path\)/)
+  assert.match(legacyLoader, /v2LogRequestFence\.invalidate\(\)/)
+  assert.match(legacyLoader, /const request = v2LogRequestFence\.begin\(`path:\$\{path\}`\)/)
+  assert.match(legacyLoader, /if \(!v2LogRequestFence\.isCurrent\(request\)\) return/)
+  assert.match(legacyLoader, /if \(v2LogRequestFence\.isCurrent\(request\)\) domainLogLoading\.value = false/)
+  assert.match(page, /let activeDomainLogKey = ''/)
+  assert.match(overviewWatcher, /if \(domainKey !== activeDomainLogKey\)\s*\{[\s\S]*?v2LogRequestFence\.invalidate\(\)/)
+  assert.match(overviewWatcher, /v2LogSelection\.current\(\)\.mode\s*===\s*'manual-path'/)
+})
+
+test('manual legacy path clears V2 attempt state so selecting the same attempt restarts at offset zero', () => {
+  const logStart = page.indexOf('async function loadDomainLog')
+  const logEnd = page.indexOf('\nasync function loadV2DomainLog', logStart)
+  const legacyLoader = page.slice(logStart, logEnd)
+
+  assert.match(legacyLoader, /currentDomainLogAttemptId\.value\s*=\s*''/)
+  assert.match(legacyLoader, /currentDomainLogOffset\.value\s*=\s*0/)
+  assert.match(legacyLoader, /currentDomainLogMetadata\.value\s*=\s*null/)
+  assert.match(legacyLoader, /domainLogContent\.value\s*=\s*''/)
+})
+
+test('V2 mode hides the legacy force-reclaim-all control outside backend allowedActions', () => {
+  assert.match(page, /:v2-mode="Boolean\(v2State\)"/)
+  assert.match(triageBoard, /v-if="!v2Mode"[\s\S]*force-reclaim-all/)
+})
+
 test('report preview opened from the domain drawer sits above the domain drawer only in that context', () => {
   assert.match(page, /reportPreviewOpen/)
   assert.match(page, /reportPreviewOverDomainDrawer/)
@@ -225,6 +430,21 @@ test('report preview opened from the domain drawer sits above the domain drawer 
   assert.match(page, /\.report-drawer-backdrop--over-domain\s*\{[\s\S]*z-index:\s*calc\(var\(--z-modal\) \+ 2\)/)
   assert.match(page, /\.report-drawer--over-domain\s*\{[\s\S]*z-index:\s*calc\(var\(--z-modal\) \+ 3\)/)
   assert.match(page, /\.report-drawer--over-domain\s*\{[\s\S]*inset:\s*0 0 0 auto/)
+})
+
+test('report preview fences stale A/B responses and invalidates requests on close', () => {
+  const openStart = page.indexOf('async function openReportPreview')
+  const openEnd = page.indexOf('\nfunction closeSelectedDomainDrawer', openStart)
+  const openPreview = page.slice(openStart, openEnd)
+  const closeStart = page.indexOf('function closeReportPreview()')
+  const closeEnd = page.indexOf('\nfunction isPreviewLoading', closeStart)
+  const closePreview = page.slice(closeStart, closeEnd)
+
+  assert.match(page, /const reportPreviewRequestFence = createAttemptLogRequestFence\(\)/)
+  assert.match(openPreview, /const request = reportPreviewRequestFence\.begin\(`report:\$\{path\}`\)/)
+  assert.match(openPreview, /if \(!reportPreviewRequestFence\.isCurrent\(request\)\) return/)
+  assert.match(openPreview, /if \(reportPreviewRequestFence\.isCurrent\(request\)\) reportPreviewLoading\.value = false/)
+  assert.match(closePreview, /reportPreviewRequestFence\.invalidate\(\)/)
 })
 
 test('crawler monitor constrains long status text and paths instead of stretching layout', () => {

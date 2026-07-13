@@ -83,6 +83,52 @@ export function buildExecutionOverviewRows(overview = {}) {
   return rows.sort((left, right) => overviewRowRank(left) - overviewRowRank(right))
 }
 
+/**
+ * @param {{ liveQueue?: any[], attemptHistory?: any[] }} input
+ */
+export function buildV2ExecutionOverviewRows({ liveQueue = [], attemptHistory = [] } = {}) {
+  const attempts = new Map()
+  for (const attempt of [...(Array.isArray(liveQueue) ? liveQueue : []), ...(Array.isArray(attemptHistory) ? attemptHistory : [])]) {
+    const attemptId = String(attempt?.attemptId || '').trim()
+    if (attemptId && !attempts.has(attemptId)) attempts.set(attemptId, attempt)
+  }
+  return [...attempts.values()].map((attempt) => {
+    const domain = normalizeDomain(attempt.domain)
+    const status = normalizeStatus(attempt.status)
+    const current = Number(attempt.current)
+    const total = Number(attempt.total)
+    const progressLabel = Number.isFinite(current) && Number.isFinite(total) && total > 0
+      ? `${current} / ${total}`
+      : '暂无可计算进度'
+    return withActivityDisplay({
+      key: `v2-attempt:${attempt.attemptId}`,
+      kind: 'v2-attempt',
+      v2Attempt: true,
+      queueId: attempt.queueId || '',
+      attemptId: attempt.attemptId,
+      stateStoreEpoch: attempt.stateStoreEpoch || '',
+      stateVersion: attempt.stateVersion,
+      domain,
+      coveredDomains: Array.isArray(attempt.coveredDomains) ? attempt.coveredDomains : [],
+      actionId: attempt.actionId || '',
+      status,
+      displayStatus: status,
+      statusSource: 'v2',
+      statusReason: attempt.messageZh || attempt.reasonCode || '',
+      message: attempt.messageZh || '',
+      heartbeatSummary: attempt.lastHeartbeatAt || '',
+      timingLabel: timingLabel(attempt, null),
+      queueIdentityLabel: `队列 ${attempt.queueId || '未返回'} · 尝试 ${attempt.attemptId}`,
+      primaryLabel: domainLabel(domain),
+      secondaryLabel: attempt.actionId || 'V2 尝试',
+      current: Number.isFinite(current) ? current : null,
+      total: Number.isFinite(total) ? total : null,
+      percent: Number(attempt.percent) || null,
+      progressLabel,
+    })
+  }).sort((left, right) => overviewRowRank(left) - overviewRowRank(right))
+}
+
 export function executionOverviewStatus(rows = []) {
   if (!Array.isArray(rows) || rows.length === 0) return 'idle'
   let bestStatus = 'idle'

@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  buildV2AttemptDisplayModel,
   buildDomainDetailViewModel,
   buildDomainOperationModel,
   buildTriageWorkbench,
@@ -1061,6 +1062,194 @@ test('task history merges execution, progress, and queue rows by domain action',
   assert.equal(history.length, 1)
   assert.equal(history[0].status, 'stalled')
   assert.deepEqual(history[0].sourceKinds.sort(), ['progress', 'queue'])
+})
+
+test('V2 task history stays one row per attempt without V1 source merging', () => {
+  const history = mergeDomainTaskHistory({
+    domain: 'bosses',
+    attemptRows: [
+      { attemptId: 'attempt-old', queueId: 'queue-old', domain: 'bosses', actionId: 'domain-source-bosses', status: 'completed', stateStoreEpoch: 'epoch-0', allowedActions: ['cancel'] },
+      { attemptId: 'attempt-current', queueId: 'queue-current', domain: 'bosses', actionId: 'domain-source-bosses', status: 'running', stateStoreEpoch: 'epoch-1', allowedActions: ['pause'] },
+    ],
+    executionRows: [{ domain: 'bosses', actionId: 'domain-source-bosses', status: 'failed' }],
+  })
+
+  assert.deepEqual(history.map((row) => row.attemptId), ['attempt-current', 'attempt-old'])
+  assert.deepEqual(history.map((row) => row.allowedActions), [[], []])
+  assert.equal(history[0].stateStoreEpoch, 'epoch-1')
+})
+
+test('V2 history matches a selected covered domain and exposes each attempt log state by attempt identity', () => {
+  const detail = buildDomainDetailViewModel({
+    row: {
+      v2Attempt: true,
+      domain: 'bosses',
+      label: 'Bosses',
+      status: 'running',
+      queueId: 'queue-shared',
+      attemptId: 'attempt-current',
+      stateVersion: 8,
+      log: { availability: 'available', previewable: true },
+    },
+    attemptRows: [
+      { attemptId: 'attempt-current', queueId: 'queue-shared', domain: 'items', coveredDomains: ['items', 'bosses'], actionId: 'domain-source-items', status: 'running', log: { availability: 'available', previewable: true } },
+      { attemptId: 'attempt-expired', queueId: 'queue-old', domain: 'items', coveredDomains: ['items', 'bosses'], actionId: 'domain-source-items', status: 'completed', log: { availability: 'expired', previewable: false } },
+      { attemptId: 'attempt-missing', queueId: 'queue-missing', domain: 'items', coveredDomains: ['items', 'bosses'], actionId: 'domain-source-items', status: 'completed', log: { availability: 'missing', previewable: false } },
+    ],
+    executionRows: [{ domain: 'bosses', actionId: 'domain-source-bosses', status: 'failed' }],
+  })
+
+  assert.deepEqual(detail.taskHistory.map((item) => item.attemptId), [
+    'attempt-current', 'attempt-expired', 'attempt-missing',
+  ])
+  assert.equal(detail.taskHistory.some((item) => item.status === 'failed'), false)
+  const historyLogs = detail.taskHistory.flatMap((item) => item.files).filter((file) => file.attemptId)
+  assert.deepEqual(historyLogs.map((file) => [file.attemptId, file.previewable, file.statusLabel]), [
+    ['attempt-current', true, '可读取'],
+    ['attempt-expired', false, '日志已过保留期，manifest 仍可查看'],
+    ['attempt-missing', false, '本轮任务未形成日志'],
+  ])
+})
+
+test('V2 legacy history keeps its legacy log path preview and never becomes an attempt endpoint entry', () => {
+  const detail = buildDomainDetailViewModel({
+    row: { v2Attempt: true, domain: 'bosses', status: 'running', queueId: 'queue-current', attemptId: 'attempt-current', stateVersion: 8 },
+    attemptRows: [{
+      source: 'legacy-v1', live: false, queueId: 'legacy-queue', attemptId: 'legacy-v1:legacy-queue',
+      domain: 'bosses', actionId: 'domain-source-bosses', status: 'interrupted',
+      log: { path: 'reports/crawler-monitor/legacy-bosses.log', previewable: true },
+    }],
+  })
+  const legacyFile = detail.taskHistory[0].files[0]
+
+  assert.equal(legacyFile.path, 'reports/crawler-monitor/legacy-bosses.log')
+  assert.equal(legacyFile.attemptId, undefined)
+  assert.equal(legacyFile.previewable, true)
+  assert.equal(detail.logFiles.some((file) => file.path === 'reports/crawler-monitor/legacy-bosses.log' && !file.attemptId), true)
+  assert.equal(detail.logFiles.some((file) => file.attemptId === 'legacy-v1:legacy-queue'), false)
+})
+
+test('V2 attempt display model provides Chinese phase and deterministic heartbeat/deadline ages', () => {
+  const display = buildV2AttemptDisplayModel({
+    phase: 'fetch-pages',
+    lastHeartbeatAt: '2026-07-13T00:00:00Z',
+    deadlineAt: '2026-07-13T00:03:00Z',
+  }, '2026-07-13T00:01:30Z')
+  const overdue = buildV2AttemptDisplayModel({
+    phase: 'apply',
+    lastHeartbeatAt: '2026-07-13T00:00:00Z',
+    deadlineAt: '2026-07-13T00:01:00Z',
+  }, '2026-07-13T00:03:00Z')
+
+  assert.equal(display.phaseLabel, '抓取页面')
+  assert.equal(display.heartbeatAgeLabel, '心跳距今 1分30秒')
+  assert.equal(display.deadlineLabel, '剩余 1分30秒')
+  assert.equal(overdue.phaseLabel, '应用数据')
+  assert.equal(overdue.deadlineLabel, '已超期 2分钟')
+})
+
+test('V1 domain detail does not gain V2-only detail fields', () => {
+  const detail = buildDomainDetailViewModel({
+    row: {
+      domain: 'items',
+      label: 'Items',
+      status: 'healthy',
+      risk: 'healthy',
+      queueId: 'legacy-queue-items',
+      attemptId: 'legacy-attempt-items',
+      stateVersion: 7,
+      stateStoreEpoch: 'legacy-epoch',
+      deadlineAt: '2026-07-13T00:03:00Z',
+      reasonCode: 'STATE_STORE_RESET',
+      log: { availability: 'available', lastWriteAt: '2026-07-13T00:01:00Z', retentionExpiresAt: '2026-07-20T00:00:00Z' },
+    },
+  })
+
+  const labels = detail.overviewFields.map((field) => field.label)
+  assert.equal(labels.some((label) => [
+    '阶段', '心跳距今', '截止倒计时',
+    '队列 ID', '尝试 ID', '状态版本', '状态存储 epoch',
+    '截止时间', '原因码', '日志状态', '日志最后写入', '日志保留至',
+  ].includes(label)), false)
+  assert.equal(detail.logFiles.some((file) => file.attemptId === 'legacy-attempt-items'), false)
+})
+
+test('V2 domain detail retains its authoritative identity, deadline, reason, and attempt log metadata', () => {
+  const detail = buildDomainDetailViewModel({
+    row: {
+      v2Attempt: true,
+      domain: 'items',
+      label: 'Items',
+      status: 'running',
+      queueId: 'queue-items',
+      attemptId: 'attempt-items',
+      stateVersion: 8,
+      stateStoreEpoch: 'epoch-1',
+      deadlineAt: '2026-07-13T00:03:00Z',
+      reasonCode: 'LEASE_LOST',
+      log: { availability: 'available', previewable: true, lastWriteAt: '2026-07-13T00:01:00Z', retentionExpiresAt: '2026-07-20T00:00:00Z' },
+    },
+  })
+
+  const labels = detail.overviewFields.map((field) => field.label)
+  for (const label of ['队列 ID', '尝试 ID', '状态版本', '状态存储 epoch', '截止时间', '截止倒计时', '原因码', '日志状态', '日志最后写入', '日志保留至']) {
+    assert.equal(labels.includes(label), true)
+  }
+  assert.equal(detail.logFiles.some((file) => file.attemptId === 'attempt-items'), true)
+})
+
+test('V2 domain detail exposes the backend suggested action without changing V1 fields', () => {
+  const detail = buildDomainDetailViewModel({
+    row: {
+      v2Attempt: true,
+      domain: 'items',
+      label: 'Items',
+      status: 'failed',
+      queueId: 'queue-items',
+      attemptId: 'attempt-items',
+      stateVersion: 8,
+      suggestedAction: '检查状态存储并执行受控恢复',
+    },
+  })
+
+  assert.equal(detail.overviewFields.find((field) => field.label === '建议操作')?.value, '检查状态存储并执行受控恢复')
+})
+
+test('V2 retry wait and requested controls remain active while interrupted attempts need attention', () => {
+  const view = buildTriageWorkbench({
+    domainRows: [
+      { v2Attempt: true, domain: 'items', status: 'retry_wait', queueStatus: 'retry_wait', allowedActions: [] },
+      { v2Attempt: true, domain: 'bosses', status: 'pause_requested', queueStatus: 'pause_requested', allowedActions: [] },
+      { v2Attempt: true, domain: 'buffs', status: 'cancel_requested', queueStatus: 'cancel_requested', allowedActions: [] },
+      { v2Attempt: true, domain: 'recipes', status: 'interrupted', queueStatus: 'interrupted', allowedActions: [] },
+    ],
+  })
+  const rowsByDomain = new Map(view.allRows.map((row) => [row.domain, row]))
+
+  assert.equal(rowsByDomain.get('items').hasActiveQueue, true)
+  assert.equal(rowsByDomain.get('bosses').isRunning, true)
+  assert.equal(rowsByDomain.get('buffs').isRunning, true)
+  assert.equal(rowsByDomain.get('recipes').needsAttention, true)
+  assert.equal(rowsByDomain.get('recipes').hasActiveQueue, false)
+})
+
+test('V2 transitional and interrupted queue rows preserve Chinese labels and severity tones in the drawer', () => {
+  const detail = buildDomainDetailViewModel({
+    row: { v2Attempt: true, domain: 'items', status: 'running', queueId: 'queue-current', attemptId: 'attempt-current', stateVersion: 8 },
+    queueRows: [
+      { queueId: 'retry', attemptId: 'retry-attempt', domain: 'items', status: 'retry_wait' },
+      { queueId: 'pause', attemptId: 'pause-attempt', domain: 'items', status: 'pause_requested' },
+      { queueId: 'cancel', attemptId: 'cancel-attempt', domain: 'items', status: 'cancel_requested' },
+      { queueId: 'interrupted', attemptId: 'interrupted-attempt', domain: 'items', status: 'interrupted' },
+    ],
+  })
+
+  assert.deepEqual(detail.queueItems.map((item) => [item.statusLabel, item.statusTone]), [
+    ['等待重试', 'warning'],
+    ['暂停请求中', 'info'],
+    ['取消请求中', 'info'],
+    ['已中断', 'danger'],
+  ])
 })
 
 test('log filtering supports level and search without changing line numbers', () => {

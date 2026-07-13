@@ -17,7 +17,7 @@
           <Settings2 :size="16" />
           <span>系统</span>
         </button>
-        <button type="button" class="btn btn-plain btn-plain--danger" :disabled="forceReclaimAllLoading" @click="$emit('force-reclaim-all')">
+        <button v-if="!v2Mode" type="button" class="btn btn-plain btn-plain--danger" :disabled="forceReclaimAllLoading" @click="$emit('force-reclaim-all')">
           <TimerReset :size="16" />
           <span>{{ forceReclaimAllLoading ? '处理中' : '清空运行/队列' }}</span>
         </button>
@@ -91,6 +91,8 @@
               v-if="row.primaryAction"
               type="button"
               :class="operationButtonClass(row.primaryAction)"
+              :disabled="isControlPending(row, row.primaryAction.action)"
+              :aria-busy="isControlPending(row, row.primaryAction.action)"
               @click="$emit('domain-action', row.primaryAction.action, row)"
             >
               <component :is="operationIcon(row.primaryAction.icon)" :size="15" />
@@ -101,6 +103,8 @@
               :key="operation.action"
               type="button"
               :class="operationButtonClass(operation)"
+              :disabled="isControlPending(row, operation.action)"
+              :aria-busy="isControlPending(row, operation.action)"
               @click="$emit('domain-action', operation.action, row)"
             >
               <component :is="operationIcon(operation.icon)" :size="15" />
@@ -121,7 +125,7 @@
           <span><strong>{{ operationProgressSummary.readyCount || 0 }}</strong><small>可启</small></span>
         </div>
         <div class="operation-strip__rows">
-          <article v-for="row in operationProgressRows" :key="rowKey(row)" class="operation-row" :class="`operation-row--${row.triageStatus}`">
+          <article v-for="row in operationProgressRows" :key="rowKey(row)" class="operation-row" :class="[`operation-row--${row.triageStatus}`, { 'operation-row--v2': row.v2Attempt }]">
             <button type="button" class="operation-row__main" @click="$emit('open-domain', row)">
               <span class="status-dot-small" :class="`status-dot-small--${row.triageStatus}`"></span>
               <strong :title="row.label || row.domain">{{ row.label || row.domain }}</strong>
@@ -133,14 +137,24 @@
               </div>
               <small :title="row.progressLabel || '未记录'">{{ row.progressLabel || '--' }}</small>
             </div>
-            <span class="operation-row__task" :title="row.taskLabel || row.flowDetail || row.nextActionLabel || '待命'">{{ row.taskLabel || row.flowDetail || row.nextActionLabel || '待命' }}</span>
-            <span class="operation-row__eta" :title="row.etaLabel || '预计 --'">{{ row.etaLabel || '预计 --' }}</span>
+            <div v-if="row.v2Attempt" class="operation-row__v2-meta">
+              <span class="operation-row__task" :title="row.phaseLabel">{{ row.phaseLabel }}</span>
+              <span class="operation-row__eta" :title="row.deadlineLabel">{{ row.deadlineLabel }}</span>
+              <small class="operation-row__timing" :title="row.heartbeatAgeLabel">{{ row.heartbeatAgeLabel }}</small>
+              <small class="operation-row__identity" :title="`queueId ${row.queueId} · attemptId ${row.attemptId}`">队列 {{ shortId(row.queueId) }} · 尝试 {{ shortId(row.attemptId) }}</small>
+            </div>
+            <template v-else>
+              <span class="operation-row__task" :title="row.taskLabel || row.flowDetail || row.nextActionLabel || '待命'">{{ row.taskLabel || row.flowDetail || row.nextActionLabel || '待命' }}</span>
+              <span class="operation-row__eta" :title="row.etaLabel || '预计 --'">{{ row.etaLabel || '预计 --' }}</span>
+            </template>
             <div class="operation-row__actions">
               <button
                 v-if="row.primaryAction"
                 type="button"
                 :class="tileOperationButtonClass(row.primaryAction)"
                 :aria-label="`${row.label || row.domain}：${row.primaryAction.label}`"
+                :disabled="isControlPending(row, row.primaryAction.action)"
+                :aria-busy="isControlPending(row, row.primaryAction.action)"
                 @click="$emit('domain-action', row.primaryAction.action, row)"
               >
                 <component :is="operationIcon(row.primaryAction.icon)" :size="15" />
@@ -225,6 +239,8 @@
                 type="button"
                 :class="tileOperationButtonClass(row.primaryAction)"
                 :aria-label="`${row.label || row.domain}：${row.primaryAction.label}`"
+                :disabled="isControlPending(row, row.primaryAction.action)"
+                :aria-busy="isControlPending(row, row.primaryAction.action)"
                 @click.stop="$emit('domain-action', row.primaryAction.action, row)"
               >
                 <component :is="operationIcon(row.primaryAction.icon)" :size="15" />
@@ -249,6 +265,7 @@
               <th>动作模式</th>
               <th>最近活动</th>
               <th>下一步</th>
+              <th>队列/尝试</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -258,14 +275,17 @@
               <td><span class="status-pill" :class="row.triageStatus">{{ row.diagnosisTitle || row.statusLabel || '未知状态' }}</span></td>
               <td>{{ row.sourceSummary || '未记录' }}</td>
               <td><strong>{{ row.taskLabel || '未配置' }}</strong><small>{{ row.queueSummary || '无队列记录' }}</small></td>
-              <td>{{ row.heartbeatAt || '未记录' }}</td>
+              <td>{{ row.v2Attempt ? row.heartbeatAgeLabel : row.heartbeatAt || '未记录' }}</td>
               <td>{{ row.nextActionLabel || '查看详情' }}</td>
+              <td><code v-if="row.attemptId" :title="`queueId ${row.queueId} · attemptId ${row.attemptId}`">{{ shortId(row.queueId) }} / {{ shortId(row.attemptId) }}</code><span v-else>--</span></td>
               <td>
                 <div class="table-actions">
                   <button
                     v-if="row.primaryAction"
                     type="button"
                     :class="tableOperationButtonClass(row.primaryAction)"
+                    :disabled="isControlPending(row, row.primaryAction.action)"
+                    :aria-busy="isControlPending(row, row.primaryAction.action)"
                     @click="$emit('domain-action', row.primaryAction.action, row)"
                   >
                     <component :is="operationIcon(row.primaryAction.icon)" :size="15" />
@@ -308,7 +328,9 @@ import {
 const props = defineProps<{
   viewModel: Record<string, any>
   loading?: boolean
+  v2Mode?: boolean
   forceReclaimAllLoading?: boolean
+  isControlPending?: (row: Record<string, any>, action: string) => boolean
 }>()
 
 const emit = defineEmits<{
@@ -352,6 +374,15 @@ const filteredRows = computed(() => {
 
 function rowKey(row: any) {
   return row?.domain || row?.actionId || row?.queueId || row?.label || 'unknown'
+}
+
+function shortId(value: unknown) {
+  const text = String(value || '')
+  return text.length > 12 ? `${text.slice(0, 12)}…` : text || '--'
+}
+
+function isControlPending(row: Record<string, any>, action: string) {
+  return Boolean(props.isControlPending?.(row, action))
 }
 
 function progressWidth(value?: string) {
@@ -930,6 +961,10 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   padding: 7px 8px;
 }
 
+.operation-row--v2 {
+  grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) minmax(0, 1fr) auto;
+}
+
 .operation-row__main {
   min-width: 0;
   gap: 8px;
@@ -1042,6 +1077,27 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   justify-self: end;
   gap: 6px;
   min-width: 0;
+}
+
+.operation-row__v2-meta {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 8px;
+  align-items: center;
+}
+
+.operation-row__v2-meta small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.operation-row__identity {
+  font-variant-numeric: tabular-nums;
 }
 
 .domain-tile {
@@ -1450,7 +1506,8 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   .operation-row__main,
   .operation-row__progress-group,
   .operation-row__task,
-  .operation-row__eta {
+  .operation-row__eta,
+  .operation-row__v2-meta {
     width: 100%;
   }
 

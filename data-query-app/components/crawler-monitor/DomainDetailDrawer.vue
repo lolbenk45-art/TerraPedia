@@ -43,11 +43,14 @@
               <strong>{{ field.value }}</strong>
             </div>
           </div>
+          <p v-if="detail?.v2Attempt" class="v2-timing">{{ detail?.phaseLabel }} · {{ detail?.heartbeatAgeLabel }} · {{ detail?.deadlineLabel }}</p>
           <div class="drawer-actions">
             <button
               v-if="primaryAction"
               type="button"
               :class="operationButtonClass(primaryAction)"
+              :disabled="isControlPending(sourceRow, primaryAction.action)"
+              :aria-busy="isControlPending(sourceRow, primaryAction.action)"
               @click="$emit('domain-action', primaryAction.action, sourceRow)"
             >
               <component :is="operationIcon(primaryAction.icon)" :size="15" />
@@ -58,6 +61,8 @@
               :key="operation.action"
               type="button"
               :class="operationButtonClass(operation)"
+              :disabled="isControlPending(sourceRow, operation.action)"
+              :aria-busy="isControlPending(sourceRow, operation.action)"
               @click="$emit('domain-action', operation.action, sourceRow)"
             >
               <component :is="operationIcon(operation.icon)" :size="15" />
@@ -75,6 +80,7 @@
                 <span class="status-pill" :class="item.status">{{ item.statusLabel || '未知状态' }}</span>
               </header>
               <small>{{ item.timeLabel || '暂无时间' }}</small>
+              <small v-if="item.stateStoreEpoch">状态存储 epoch：{{ item.stateStoreEpoch }}</small>
               <p>{{ item.reason || '暂无结果说明' }}</p>
               <div v-if="item.files?.length" class="timeline-files">
                 <template v-for="file in item.files" :key="file.path">
@@ -83,7 +89,7 @@
                     type="button"
                     class="timeline-file"
                     :title="file.path"
-                    @click="$emit('preview', file.path)"
+                    @click="file.attemptId ? $emit('load-log', { attemptId: file.attemptId }) : $emit('preview', file.path)"
                   >
                     {{ file.title || file.label }}
                   </button>
@@ -184,12 +190,13 @@ const props = defineProps<{
   sourceRow?: Record<string, any> | null
   logContent?: string
   logLoading?: boolean
+  isControlPending?: (row: Record<string, any> | null, action: string) => boolean
 }>()
 
 defineEmits<{
   close: []
   preview: [path: string]
-  'load-log': [path: string]
+  'load-log': [selection: string | { attemptId: string }]
   'domain-action': [action: string, row: Record<string, any> | null | undefined]
 }>()
 
@@ -227,6 +234,10 @@ function operationButtonClass(operation?: Record<string, any>) {
     'btn',
     operation?.tone === 'primary' ? 'btn-primary' : operation?.tone === 'danger' ? 'btn-plain btn-plain--danger' : 'btn-secondary',
   ]
+}
+
+function isControlPending(row: Record<string, any> | null, action: string) {
+  return Boolean(props.isControlPending?.(row, action))
 }
 </script>
 

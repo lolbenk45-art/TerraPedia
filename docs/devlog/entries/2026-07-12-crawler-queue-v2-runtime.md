@@ -162,6 +162,10 @@
   specification and code-quality re-reviews are `APPROVED`; the task is ready
   for its focused checkpoint. No service, crawler, Redis, database, or generated
   data operation occurred.
+- Task 10 is checkpointed at `331da55` after final coordinator validation.
+  Task 11 now owns the admin consumer: it must render only the backend V2
+  attempt identity, authenticated SSE events, visible health, attempt-keyed
+  logs, and the fixed three-second fallback without reintroducing V1 inference.
 
 ## Scope
 
@@ -636,7 +640,19 @@
   code-quality approvals; Task 8 is checkpointed at `04b684a`; and Task 9 is
   checkpointed at `024acdc` after its final specification and code-quality
   approvals.
-- Not completed: Tasks 11-15 and the end-to-end stuck-queue acceptance contract.
+- Task 10 is checkpointed at `331da55` after final specification and
+  code-quality approvals.
+- Task 11 now renders only the authoritative V2 attempt model: authenticated
+  SSE plus a three-second fallback, visible queue/reconciler health, exact
+  control identity, Chinese lifecycle states, V2-only activity, and attempt
+  logs that preserve legacy path previews. Its selection and preview reads use
+  current-request fences across attempt changes, path changes, domain changes,
+  and close actions, so stale responses cannot replace the selected evidence.
+  The final coordinator gate passed 148/148 focused Node tests, admin
+  typecheck, and `git diff --check`; final specification and code-quality
+  re-reviews are `APPROVED`. No service, crawler, Redis, database, or generated
+  data operation occurred. See git for code-level diff details.
+- Not completed: Tasks 12-15 and the end-to-end stuck-queue acceptance contract.
 
 ## Residual Risks
 
@@ -656,10 +672,9 @@
 
 ## Follow-up
 
-- Owner: Codex. Checkpoint Task 10, then continue Task 11 test-first with one
-  authoritative V2 admin attempt model, authenticated SSE, and a three-second
-  fallback. Do not perform the fixture-stack, first irreversible V2 mutation,
-  or live-cutover actions.
+- Owner: Codex. Continue Task 12 test-first with the explicit idempotent
+  V1-to-V2 cutover boundary. Do not perform fixture-stack execution, the first
+  irreversible V2 mutation, or live cutover without their explicit gates.
 
 ## Commits
 
@@ -673,3 +688,4 @@
 - `7df042b` `feat(crawler): supervise exact V2 processes`
 - `04b684a` `feat(crawler): bound V2 queue convergence`
 - `024acdc` `feat(crawler): route V2 queue as single authority`
+- `331da55` `feat(crawler): stream structured V2 status`

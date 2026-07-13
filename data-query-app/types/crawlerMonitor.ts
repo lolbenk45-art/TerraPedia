@@ -322,7 +322,97 @@ export interface CrawlerMonitorWikiMonitor {
   dispatchQueue?: CrawlerMonitorWikiQueueItem[]
 }
 
+export interface CrawlerQueueV2Health {
+  status: 'healthy' | 'degraded' | 'unavailable' | 'maintenance'
+  snapshotGeneratedAt?: string | null
+  lastReconciledAt?: string | null
+  overdueAttemptCount?: number | null
+  oldestOverdueDurationMs?: number | null
+  streamLagMs?: number | null
+  reasonCode?: string | null
+  messageZh?: string | null
+  suggestedAction?: string | null
+}
+
+export interface CrawlerQueueV2LogMetadata {
+  attemptId: string
+  path?: string | null
+  availability: 'available' | 'empty' | 'missing' | 'expired' | 'forbidden'
+  previewable: boolean
+  sizeBytes?: number | null
+  lastWriteAt?: string | null
+  retentionExpiresAt?: string | null
+  reasonCode?: string | null
+}
+
+export interface CrawlerQueueV2Attempt {
+  queueId: string
+  attemptId: string
+  stateStoreEpoch: string
+  fenceToken?: number | null
+  stateVersion: number
+  status: string
+  lane?: string | null
+  domain: string
+  coveredDomains: string[]
+  actionId: string
+  phase?: string | null
+  current?: number | null
+  total?: number | null
+  requestedAt?: string | null
+  startedAt?: string | null
+  completedAt?: string | null
+  lastHeartbeatAt?: string | null
+  deadlineAt?: string | null
+  reasonCode?: string | null
+  messageZh?: string | null
+  suggestedAction?: string | null
+  allowedActions: string[]
+  log?: CrawlerQueueV2LogMetadata | null
+}
+
+export interface CrawlerQueueV2DomainState {
+  domain: string
+  currentAttemptId?: string | null
+  stateVersion?: number | null
+  status?: string | null
+  phase?: string | null
+  current?: number | null
+  total?: number | null
+  lastHeartbeatAt?: string | null
+  deadlineAt?: string | null
+  reasonCode?: string | null
+  messageZh?: string | null
+  suggestedAction?: string | null
+  allowedActions: string[]
+}
+
+export interface CrawlerQueueV2LegacyAttempt {
+  source: string
+  live: false
+  queueId: string
+  attemptId: string
+  domain: string
+  actionId: string
+  status: string
+  requestedAt?: string | null
+  completedAt?: string | null
+  reasonCode?: string | null
+  messageZh?: string | null
+  allowedActions: []
+  log?: CrawlerQueueV2LogMetadata | null
+}
+
 export interface CrawlerMonitorOverview {
+  queueContractVersion?: number | null
+  stateStoreEpoch?: string | null
+  streamCursor?: string | null
+  queueHealth?: CrawlerQueueV2Health | null
+  reconcilerHealth?: CrawlerQueueV2Health | null
+  liveQueue?: CrawlerQueueV2Attempt[]
+  domainStates?: CrawlerQueueV2DomainState[]
+  attemptHistory?: CrawlerQueueV2Attempt[]
+  legacyHistory?: CrawlerQueueV2LegacyAttempt[]
   generatedAt?: string | null
   repoRoot?: string | null
   daemon?: CrawlerMonitorFile | null

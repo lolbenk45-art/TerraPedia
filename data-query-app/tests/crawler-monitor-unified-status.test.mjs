@@ -3,7 +3,10 @@ import assert from 'node:assert/strict'
 
 import {
   buildCrawlerUnifiedStatus,
+  crawlerStatusDisplayLabel,
   crawlerStatusRank,
+  isCrawlerActiveStatus,
+  isCrawlerTerminalStatus,
   normalizeCrawlerStatus,
 } from '../utils/crawlerMonitorUnifiedStatus.mjs'
 
@@ -101,4 +104,18 @@ test('unified status ranks states consistently for all monitor sections', () => 
   assert.ok(crawlerStatusRank('stalled') < crawlerStatusRank('running'))
   assert.ok(crawlerStatusRank('paused') < crawlerStatusRank('queued'))
   assert.ok(crawlerStatusRank('running') < crawlerStatusRank('cancelled'))
+})
+
+test('V2 transitional and interrupted statuses have Chinese labels plus lifecycle classification', () => {
+  assert.deepEqual([
+    crawlerStatusDisplayLabel('retry_wait'),
+    crawlerStatusDisplayLabel('pause_requested'),
+    crawlerStatusDisplayLabel('cancel_requested'),
+    crawlerStatusDisplayLabel('interrupted'),
+  ], ['等待重试', '暂停请求中', '取消请求中', '已中断'])
+  assert.equal(isCrawlerActiveStatus('retry_wait'), true)
+  assert.equal(isCrawlerActiveStatus('pause_requested'), true)
+  assert.equal(isCrawlerActiveStatus('cancel_requested'), true)
+  assert.equal(isCrawlerTerminalStatus('interrupted'), true)
+  assert.ok(crawlerStatusRank('interrupted') < crawlerStatusRank('queued'))
 })

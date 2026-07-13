@@ -1,9 +1,25 @@
 <template>
   <div class="page-wrap page-workspace crawler-monitor crawler-monitor-triage">
+    <CrawlerQueueHealthBanner
+      v-if="v2State && (isUnhealthyV2Health(v2State.queueHealth) || isUnhealthyV2Health(v2State.reconcilerHealth))"
+      :health="v2State.queueHealth"
+      :reconciler-health="v2State.reconcilerHealth"
+    />
+    <section v-if="v2StreamAuthError" class="stream-auth-warning" role="alert" aria-live="assertive">
+      <AlertTriangle :size="20" aria-hidden="true" />
+      <div>
+        <strong>实时状态连接需要重新登录</strong>
+        <p>{{ v2StreamAuthError }}</p>
+        <p>请重新登录或刷新登录状态后再继续监控；当前已加载的队列快照会保留在页面中。</p>
+        <small v-if="lastOverviewRefreshAt">最后一次快照：{{ lastOverviewRefreshAt }}</small>
+      </div>
+    </section>
     <CrawlerTriageBoard
       :view-model="triageWorkbench"
       :loading="loading"
+      :v2-mode="Boolean(v2State)"
       :force-reclaim-all-loading="forceReclaimAllLoading"
+      :is-control-pending="isV2ControlPending"
       @refresh="loadOverview"
       @force-reclaim-all="forceReclaimAllRunningDispatches"
       @open-activity="activityDrawerOpen = true"
@@ -18,6 +34,7 @@
       :source-row="selectedTriageDomainRow"
       :log-content="domainLogContent"
       :log-loading="domainLogLoading"
+      :is-control-pending="isV2ControlPending"
       @close="closeDomainDetailDrawer"
       @preview="(path) => openReportPreview(path, 'domain-drawer')"
       @load-log="loadDomainLog"
@@ -132,7 +149,7 @@ import {
   TimerReset,
   X,
 } from 'lucide-vue-next'
-import { get, post, put } from '~/composables/useApi'
+import { get, getAdminBearerHeaders, post, put, resolveApiUrl } from '~/composables/useApi'
 import { showToast } from '~/composables/useToast'
 import {
   hasLiveSourceSnapshotProgress,
@@ -158,18 +175,21 @@ import {
   buildDomainTableEvidence,
   buildDomainTableRows,
 } from '~/utils/crawlerMonitorDomainTable.mjs'
-import { buildExecutionOverviewRows, executionOverviewStatus } from '~/utils/crawlerMonitorExecutionOverview.mjs'
+import { buildExecutionOverviewRows, buildV2ExecutionOverviewRows, executionOverviewStatus } from '~/utils/crawlerMonitorExecutionOverview.mjs'
 import {
   crawlerStatusChineseLabel,
   wikiCooldownExplanation,
   wikiDomainChineseName,
   wikiHeartbeatSummary,
 } from '~/utils/crawlerMonitorDisplay.mjs'
-import { buildCrawlerUnifiedStatus } from '~/utils/crawlerMonitorUnifiedStatus.mjs'
-import { shouldOfferForceReclaim, buildDispatchControlPayload, buildResumeDispatchPayload, forceReclaimActionLabel } from './crawler-monitor.control.mjs'
+import { buildCrawlerUnifiedStatus, crawlerStatusDisplayLabel } from '~/utils/crawlerMonitorUnifiedStatus.mjs'
+import { buildV2ControlPayload, canRunV2Control, createV2ControlPendingGuard, executeV2ControlRequest, isV2AuthFailure, shouldOfferForceReclaim, buildDispatchControlPayload, buildResumeDispatchPayload, forceReclaimActionLabel, v2ControlPendingKey } from './crawler-monitor.control.mjs'
+import { applyCrawlerV2Event, applyIncrementalAttemptLog, buildCrawlerV2ViewState, createAttemptLogRequestFence, createV2LogSelectionModel, crawlerV2DomainSelectionKey, isCrawlerQueueV2Overview, resolveCurrentV2LogAttemptId } from './crawler-monitor.v2-state.mjs'
+import { createCrawlerMonitorEventClient, createCrawlerMonitorV2Transport, syncCrawlerMonitorPageEventCursor } from './crawler-monitor.events.mjs'
 import { resolveDomainState } from './crawler-monitor.state.mjs'
 import ActivityDrawer from '~/components/crawler-monitor/ActivityDrawer.vue'
 import CrawlerTriageBoard from '~/components/crawler-monitor/CrawlerTriageBoard.vue'
+import CrawlerQueueHealthBanner from '~/components/crawler-monitor/CrawlerQueueHealthBanner.vue'
 import DomainDetailDrawer from '~/components/crawler-monitor/DomainDetailDrawer.vue'
 import SystemDrawer from '~/components/crawler-monitor/SystemDrawer.vue'
 import type {
@@ -183,6 +203,7 @@ import type {
   CrawlerMonitorWikiDispatch,
   CrawlerMonitorWikiDomain,
   CrawlerMonitorWikiQueueItem,
+  CrawlerQueueV2Attempt,
 } from '~/types/crawlerMonitor'
 
 definePageMeta({ title: '爬取监控', navSection: '/operations/crawler-monitor', headerVariant: 'compact' })
@@ -214,6 +235,7 @@ const reportPreview = ref<CrawlerMonitorReportDetail | null>(null)
 const reportPreviewLoading = ref(false)
 const reportPreviewError = ref('')
 const reportPreviewLayer = ref<'page' | 'domain-drawer'>('page')
+const reportPreviewRequestFence = createAttemptLogRequestFence()
 const lastOverviewRefreshAt = ref<string | null>(null)
 const wikiDispatchLoading = ref('')
 const wikiControlLoading = ref('')
@@ -240,6 +262,32 @@ let refreshTimer: ReturnType<typeof setInterval> | null = null
 const refreshFailureStreak = ref(0)
 const authRefreshHalted = ref(false)
 let panelSwitchTimer: ReturnType<typeof setTimeout> | null = null
+let v2ReloadTimer: ReturnType<typeof setTimeout> | null = null
+const v2SseConnected = ref(false)
+const v2StreamAuthError = ref('')
+const v2ControlPendingGuard = createV2ControlPendingGuard()
+const v2ControlPendingKeys = ref<Set<string>>(new Set())
+const V2_FALLBACK_INTERVAL_MS = 3000
+const v2Transport = createCrawlerMonitorV2Transport({
+  createClient: createCrawlerMonitorEventClient,
+  loadOverview: () => { void loadOverview() },
+  onConnected: () => {
+    v2SseConnected.value = true
+    clearRefreshTimer()
+  },
+  onDisconnected: () => {
+    v2SseConnected.value = false
+  },
+  onAuthFailure: () => {
+    v2SseConnected.value = false
+    authRefreshHalted.value = true
+    v2StreamAuthError.value = '登录已失效或无访问权限，已停止自动刷新，请重新登录'
+    clearRefreshTimer()
+    showToast(v2StreamAuthError.value, 'error')
+  },
+  isVisible: () => typeof document === 'undefined' || !document.hidden,
+  fallbackIntervalMs: V2_FALLBACK_INTERVAL_MS,
+})
 
 const reportPreviewOpen = computed(() => Boolean(selectedReportPath.value || reportPreview.value || reportPreviewError.value))
 const reportPreviewOverDomainDrawer = computed(() => reportPreviewOpen.value && domainDetailDrawerOpen.value && reportPreviewLayer.value === 'domain-drawer')
@@ -525,11 +573,54 @@ const effectiveRefreshIntervalMs = computed(() => {
   return Math.min(base * factor, 60000)
 })
 const refreshStale = computed(() => Boolean(overview.value?.refreshStale))
-const domainTableRows = computed(() => buildDomainTableRows({
-  domains: visibleWikiDomainRows.value,
-  progressRows: progressRows.value,
-  dispatchQueue: rawDispatchQueueRows.value,
+const v2State = computed(() => isCrawlerQueueV2Overview(overview.value || {}) ? buildCrawlerV2ViewState(overview.value || {}) : null)
+const v2AttemptRows = computed<CrawlerQueueV2Attempt[]>(() => v2State.value?.liveQueue || [])
+const v2DomainRows = computed(() => (v2State.value?.domainStates || []).map((domainState: any) => {
+  const attempt = v2State.value?.currentByDomain.get(domainState.domain) || null
+  const current = Number(attempt?.current ?? domainState.current)
+  const total = Number(attempt?.total ?? domainState.total)
+  const progressLabel = Number.isFinite(current) && Number.isFinite(total) && total > 0
+    ? `${current} / ${total}`
+    : '暂无可计算进度'
+  const status = String(domainState.status || attempt?.status || 'unknown').toLowerCase()
+  const allowedActions = Array.isArray(attempt?.allowedActions) ? attempt.allowedActions : []
+  return {
+    v2Attempt: true,
+    domain: domainState.domain,
+    label: wikiDomainChineseName({ domain: domainState.domain }),
+    status,
+    statusLabel: crawlerStatusDisplayLabel(status),
+    diagnosisTitle: crawlerStatusDisplayLabel(status),
+    risk: status,
+    queueStatus: attempt?.status || status,
+    queueId: attempt?.queueId || '',
+    attemptId: attempt?.attemptId || '',
+    actionId: attempt?.actionId || '',
+    stateStoreEpoch: attempt?.stateStoreEpoch || overview.value?.stateStoreEpoch || '',
+    stateVersion: Number(attempt?.stateVersion ?? domainState.stateVersion ?? 0),
+    allowedActions,
+    phase: attempt?.phase || domainState.phase || '',
+    current: Number.isFinite(current) ? current : null,
+    total: Number.isFinite(total) ? total : null,
+    progressLabel,
+    heartbeatAt: attempt?.lastHeartbeatAt || domainState.lastHeartbeatAt || '',
+    deadlineAt: attempt?.deadlineAt || domainState.deadlineAt || '',
+    reasonCode: attempt?.reasonCode || domainState.reasonCode || '',
+    reason: attempt?.messageZh || domainState.messageZh || '',
+    rankReason: attempt?.messageZh || domainState.messageZh || '',
+    nextActionLabel: attempt?.suggestedAction || domainState.suggestedAction || '查看详情',
+    queueSummary: attempt ? `队列 ${attempt.queueId} · 尝试 ${attempt.attemptId}` : '无当前 V2 尝试',
+    sourceSummary: attempt?.phase || 'V2 队列状态',
+    log: attempt?.log || null,
+  }
 }))
+const domainTableRows = computed<any[]>(() => v2State.value
+  ? v2DomainRows.value
+  : buildDomainTableRows({
+    domains: visibleWikiDomainRows.value,
+    progressRows: progressRows.value,
+    dispatchQueue: rawDispatchQueueRows.value,
+  }))
 const selectedDomainTableRow = computed(() => {
   const rows = domainTableRows.value
   if (!rows.length) return null
@@ -556,7 +647,7 @@ const triageWorkbench = computed<Record<string, any>>(() => buildTriageWorkbench
   domainRows: domainTableRows.value,
   maxAttentionCards: 4,
   autoDispatchEnabled: savedAutoDispatchEnabled.value,
-  activeQueueCount: activeDispatchQueueRows.value.length,
+  activeQueueCount: v2State.value ? v2AttemptRows.value.length : activeDispatchQueueRows.value.length,
   recentUpdatedCount: recentReportRows.value.length,
   now: lastOverviewRefreshAt.value || new Date().toISOString(),
 } as any) as Record<string, any>)
@@ -570,11 +661,19 @@ const selectedDomainDetailViewModel = computed<Record<string, any> | null>(() =>
   row: selectedTriageDomainRow.value,
   executionRows: executionOverviewRows.value,
   progressRows: progressDetailRowsByPriority.value,
-  queueRows: rawDispatchQueueRows.value,
+  queueRows: v2State.value ? v2AttemptRows.value : rawDispatchQueueRows.value,
+  attemptRows: v2State.value
+    ? [...(v2State.value?.attemptHistory || []), ...(v2State.value?.legacyHistory || [])]
+    : null,
 } as any) as Record<string, any> | null)
-const activityDrawerRows = computed(() => (executionOverviewRows.value.length
-  ? executionOverviewRows.value
-  : progressDetailRowsByPriority.value).map((row: any) => activityDisplayRow(row)))
+const activityDrawerRows = computed(() => (v2State.value
+  ? buildV2ExecutionOverviewRows({
+    liveQueue: v2State.value.liveQueue,
+    attemptHistory: v2State.value.attemptHistory,
+  })
+  : executionOverviewRows.value.length
+    ? executionOverviewRows.value
+    : progressDetailRowsByPriority.value).map((row: any) => activityDisplayRow(row)))
 const failedDomainRows = computed(() => domainTableRows.value.filter((row) => statusTone(row.risk || row.status) === 'danger'))
 const runningDomainRows = computed(() => domainTableRows.value.filter((row) => {
   const status = String(row.status || row.risk || '').toLowerCase()
@@ -993,7 +1092,7 @@ onMounted(async () => {
       lastOverviewRefreshAt.value = new Date().toISOString()
     }
   }
-  syncAutoRefresh()
+  syncMonitorTransport()
   if (import.meta.client) {
     document.addEventListener('visibilitychange', handleVisibilityChange)
   }
@@ -1001,6 +1100,9 @@ onMounted(async () => {
 
 onUnmounted(() => {
   clearRefreshTimer()
+  stopV2EventStream()
+  clearV2FallbackPolling()
+  if (v2ReloadTimer) clearTimeout(v2ReloadTimer)
   if (panelSwitchTimer) {
     clearTimeout(panelSwitchTimer)
     panelSwitchTimer = null
@@ -1011,11 +1113,11 @@ onUnmounted(() => {
 })
 
 watch(autoRefresh, () => {
-  syncAutoRefresh()
+  syncMonitorTransport()
 })
 
 watch(effectiveRefreshIntervalMs, () => {
-  syncAutoRefresh()
+  syncMonitorTransport()
 })
 
 async function loadOverview() {
@@ -1027,14 +1129,16 @@ async function loadOverview() {
     lastOverviewRefreshAt.value = new Date().toISOString()
     refreshFailureStreak.value = 0
     authRefreshHalted.value = false
+    v2StreamAuthError.value = ''
+    syncMonitorTransport()
   } catch (error: any) {
     console.error('Failed to load crawler monitor overview:', error)
     const statusCode = Number(error?.statusCode ?? error?.response?.status ?? error?.data?.statusCode ?? 0)
     if (statusCode === 401 || statusCode === 403) {
-      authRefreshHalted.value = true
-      autoRefresh.value = false
-      clearRefreshTimer()
-      showToast('登录已失效或无访问权限，已停止自动刷新，请重新登录', 'error')
+      haltV2TransportForAuthFailure()
+      if (v2State.value) {
+        v2StreamAuthError.value = '登录已失效或无访问权限，已停止自动刷新，请重新登录'
+      }
       return
     }
     refreshFailureStreak.value = Math.min(refreshFailureStreak.value + 1, 6)
@@ -1042,6 +1146,80 @@ async function loadOverview() {
   } finally {
     loading.value = false
   }
+}
+
+function haltV2TransportForAuthFailure() {
+  authRefreshHalted.value = true
+  v2SseConnected.value = false
+  v2StreamAuthError.value = '登录已失效或无访问权限，已停止自动刷新，请重新登录'
+  autoRefresh.value = false
+  v2Transport.handleRestAuthFailure()
+  clearRefreshTimer()
+}
+
+function syncMonitorTransport() {
+  if (v2State.value) {
+    clearRefreshTimer()
+    if (!authRefreshHalted.value) startV2EventStream()
+    return
+  }
+  stopV2EventStream()
+  clearV2FallbackPolling()
+  syncAutoRefresh()
+}
+
+function isUnhealthyV2Health(health: any) {
+  return Boolean(health?.status && health.status !== 'healthy')
+}
+
+function startV2EventStream() {
+  if (!import.meta.client || authRefreshHalted.value) return
+  const token = getAdminBearerHeaders().Authorization?.replace(/^Bearer\s+/i, '') || ''
+  if (!token) {
+    haltV2TransportForAuthFailure()
+    return
+  }
+  v2Transport.syncAfterOverview({
+    url: resolveApiUrl('/admin/crawler-monitor/events'),
+    token,
+    after: v2State.value?.streamCursor || '',
+    onEvent: (frame: any) => handleV2StreamEvent(frame),
+  })
+}
+
+function stopV2EventStream() {
+  v2Transport.stop()
+  v2SseConnected.value = false
+}
+
+function startV2FallbackPolling(intervalMs = V2_FALLBACK_INTERVAL_MS) {
+  if (!v2State.value || authRefreshHalted.value || !import.meta.client) return
+  v2Transport.onDisconnect({ fallbackIntervalMs: intervalMs })
+}
+
+function clearV2FallbackPolling() {
+  v2Transport.clearFallback()
+}
+
+function handleV2StreamEvent(frame: any) {
+  const payload = frame?.data && typeof frame.data === 'object' ? frame.data : {}
+  const decision = applyCrawlerV2Event(v2State.value, {
+    ...payload,
+    type: frame?.event,
+    nextCursor: payload.nextCursor,
+  })
+  if (decision.action === 'ignore') return
+  syncCrawlerMonitorPageEventCursor({ client: v2Transport.getClient(), frame, decision })
+  if (decision.reason === 'stream-gap' || decision.reason === 'epoch-changed') {
+    if (v2ReloadTimer) clearTimeout(v2ReloadTimer)
+    void loadOverview()
+    return
+  }
+  if (v2ReloadTimer) clearTimeout(v2ReloadTimer)
+  v2ReloadTimer = setTimeout(() => {
+    v2ReloadTimer = null
+    void loadOverview()
+  }, 100)
 }
 
 async function saveAutoDispatchSettings() {
@@ -1071,11 +1249,31 @@ async function saveAutoDispatchSettings() {
 const domainLogContent = ref('')
 const domainLogLoading = ref(false)
 const currentDomainLogPath = ref('')
+const currentDomainLogAttemptId = ref('')
+const currentDomainLogOffset = ref(0)
+const currentDomainLogMetadata = ref<Record<string, any> | null>(null)
+const v2LogRequestFence = createAttemptLogRequestFence()
+const v2LogSelection = createV2LogSelectionModel()
+let activeDomainLogKey = ''
 
-async function loadDomainLog(path?: string | null) {
+async function loadDomainLog(selection?: string | { attemptId: string } | null) {
+  if (selection && typeof selection === 'object' && selection.attemptId) {
+    v2LogSelection.select(selection.attemptId, selectedTriageDomainRow.value?.attemptId)
+    await loadV2DomainLog(selection.attemptId)
+    return
+  }
+  const path = typeof selection === 'string' ? selection : ''
   if (!path) return
+  v2LogSelection.selectPath(path)
+  currentDomainLogAttemptId.value = ''
+  currentDomainLogOffset.value = 0
+  currentDomainLogMetadata.value = null
+  domainLogContent.value = ''
+  v2LogRequestFence.invalidate()
+  const request = v2LogRequestFence.begin(`path:${path}`)
   currentDomainLogPath.value = path
   if (!isPreviewableDomainLogPath(path)) {
+    if (!v2LogRequestFence.isCurrent(request)) return
     domainLogLoading.value = false
     domainLogContent.value = '该日志路径只是运行记录，文件可能已清理、是路径模板，或不允许在页面内读取。'
     return
@@ -1083,19 +1281,104 @@ async function loadDomainLog(path?: string | null) {
   domainLogLoading.value = true
   try {
     const response: any = await get('/admin/crawler-monitor/report', { path })
+    if (!v2LogRequestFence.isCurrent(request)) return
     const detail = (response?.data ?? response) || null
     domainLogContent.value = detail?.content || detail?.errorMessage || '（该日志暂无可读内容）'
   } catch (error: any) {
+    if (!v2LogRequestFence.isCurrent(request)) return
     console.error('Failed to load crawler monitor log:', error)
     domainLogContent.value = error?.data?.message || error?.message || '加载日志失败'
   } finally {
-    domainLogLoading.value = false
+    if (v2LogRequestFence.isCurrent(request)) domainLogLoading.value = false
+  }
+}
+
+async function loadV2DomainLog(attemptId: string, reset = attemptId !== currentDomainLogAttemptId.value) {
+  if (!attemptId) return
+  const request = v2LogRequestFence.begin(attemptId)
+  if (reset) {
+    currentDomainLogMetadata.value = null
+    currentDomainLogAttemptId.value = attemptId
+    currentDomainLogOffset.value = 0
+    domainLogContent.value = ''
+  }
+  domainLogLoading.value = true
+  try {
+    const response: any = await get(`/admin/crawler-monitor/attempts/${encodeURIComponent(attemptId)}/log`, {
+      offset: reset ? 0 : currentDomainLogOffset.value,
+      maxBytes: 262144,
+    })
+    if (!v2LogRequestFence.isCurrent(request)) return
+    const detail = (response?.data ?? response) || {}
+    currentDomainLogMetadata.value = detail
+    const availability = String(detail.availability || '').toLowerCase()
+    const updated = applyIncrementalAttemptLog({
+      attemptId: currentDomainLogAttemptId.value,
+      content: domainLogContent.value,
+      offset: currentDomainLogOffset.value,
+    }, {
+      ...detail,
+      attemptId,
+      reset,
+    })
+    currentDomainLogAttemptId.value = updated.attemptId
+    currentDomainLogOffset.value = updated.offset
+    if (availability === 'available') {
+      domainLogContent.value = updated.content
+    } else if (availability === 'empty') {
+      domainLogContent.value = '日志已创建但暂无内容'
+    } else if (availability === 'missing') {
+      domainLogContent.value = '本轮任务未形成日志'
+    } else if (availability === 'expired') {
+      domainLogContent.value = '日志已过保留期，manifest 仍可查看'
+    } else if (availability === 'forbidden') {
+      domainLogContent.value = '日志路径不符合 attempt 安全策略'
+    } else {
+      domainLogContent.value = detail.reasonCode || '日志状态未知'
+    }
+  } catch (error: any) {
+    if (!v2LogRequestFence.isCurrent(request)) return
+    if (isV2AuthFailure(error)) {
+      haltV2TransportForAuthFailure()
+      return
+    }
+    domainLogContent.value = error?.data?.messageZh || error?.data?.message || error?.message || '加载日志失败'
+  } finally {
+    if (v2LogRequestFence.isCurrent(request)) domainLogLoading.value = false
   }
 }
 
 watch([domainDetailDrawerOpen, selectedDomainDetailViewModel], ([open, detail]) => {
   if (!open) {
+    activeDomainLogKey = ''
     currentDomainLogPath.value = ''
+    currentDomainLogAttemptId.value = ''
+    currentDomainLogOffset.value = 0
+    currentDomainLogMetadata.value = null
+    v2LogRequestFence.invalidate()
+    v2LogSelection.sync({ open: false })
+    return
+  }
+  const domainKey = String(selectedTriageDomainRow.value?.domain || '')
+  if (domainKey !== activeDomainLogKey) {
+    activeDomainLogKey = domainKey
+    v2LogRequestFence.invalidate()
+    currentDomainLogPath.value = ''
+    currentDomainLogAttemptId.value = ''
+    currentDomainLogOffset.value = 0
+    currentDomainLogMetadata.value = null
+    domainLogContent.value = ''
+    domainLogLoading.value = false
+  }
+  const currentV2AttemptId = resolveCurrentV2LogAttemptId({ selectedRow: selectedTriageDomainRow.value, detail })
+  const v2AttemptId = v2LogSelection.sync({
+    open: true,
+    domainKey,
+    currentAttemptId: currentV2AttemptId,
+  }).attemptId
+  if (v2LogSelection.current().mode === 'manual-path') return
+  if (v2AttemptId) {
+    if (v2AttemptId !== currentDomainLogAttemptId.value) void loadV2DomainLog(v2AttemptId, true)
     return
   }
   const firstLogPath = String((detail?.logFiles || []).find((file: any) => file?.previewable && isPreviewableDomainLogPath(file.path))?.path || '').trim()
@@ -1108,25 +1391,38 @@ watch([domainDetailDrawerOpen, selectedDomainDetailViewModel], ([open, detail]) 
   void loadDomainLog(firstLogPath)
 })
 
+watch(() => {
+  const row: any = selectedTriageDomainRow.value
+  return [row?.attemptId, row?.log?.sizeBytes, row?.log?.lastWriteAt, row?.log?.availability]
+}, ([attemptId]) => {
+  if (v2LogSelection.current().mode === 'follow-current' && domainDetailDrawerOpen.value && attemptId && attemptId === currentDomainLogAttemptId.value) {
+    void loadV2DomainLog(String(attemptId), false)
+  }
+})
+
 async function openReportPreview(path?: string | null, layer: 'page' | 'domain-drawer' = 'page') {
   if (!isPreviewableReportPath(path) && !isPreviewableProgressPath(path) && !isPreviewableGeneratedJsonPath(path)) return
+  const request = reportPreviewRequestFence.begin(`report:${path}`)
   reportPreviewLayer.value = layer
   selectedReportPath.value = path || null
+  reportPreview.value = null
   reportPreviewLoading.value = true
   reportPreviewError.value = ''
   try {
     const response: any = await get('/admin/crawler-monitor/report', { path })
+    if (!reportPreviewRequestFence.isCurrent(request)) return
     reportPreview.value = (response?.data ?? response) || null
     if (reportPreview.value?.errorMessage) {
       reportPreviewError.value = reportPreview.value.errorMessage
     }
   } catch (error: any) {
+    if (!reportPreviewRequestFence.isCurrent(request)) return
     console.error('Failed to load crawler monitor report preview:', error)
     reportPreview.value = null
     reportPreviewError.value = error?.data?.message || error?.message || '加载报告预览失败'
     showToast(reportPreviewError.value, 'error')
   } finally {
-    reportPreviewLoading.value = false
+    if (reportPreviewRequestFence.isCurrent(request)) reportPreviewLoading.value = false
   }
 }
 
@@ -1136,6 +1432,7 @@ function closeSelectedDomainDrawer() {
   domainDetailDrawerOpen.value = false
   hasAutoSelectedDomain.value = true
   currentDomainLogPath.value = ''
+  currentDomainLogAttemptId.value = ''
   domainLogContent.value = ''
 }
 
@@ -1164,6 +1461,7 @@ function selectDomainTableRow(row: any) {
 function openDomainDetailDrawer(row: any) {
   selectDomainTableRow(row)
   currentDomainLogPath.value = ''
+  currentDomainLogAttemptId.value = ''
   domainLogContent.value = ''
   domainDetailDrawerOpen.value = true
 }
@@ -1171,6 +1469,7 @@ function openDomainDetailDrawer(row: any) {
 function closeDomainDetailDrawer() {
   domainDetailDrawerOpen.value = false
   currentDomainLogPath.value = ''
+  currentDomainLogAttemptId.value = ''
   domainLogContent.value = ''
 }
 
@@ -1184,6 +1483,7 @@ function updateAutoDispatchDraft(settings: Record<string, any>) {
 function handleDomainBoardAction(action: string, row: any) {
   if (!row) return
   if (action === 'open') return openDomainDetailDrawer(row)
+  if (row.v2Attempt) return controlV2Attempt(row, action)
   if (action === 'force-reclaim') return forceReclaimDomainTableRow(row)
   if (action === 'cancel') {
     selectDomainTableRow(row)
@@ -1200,7 +1500,54 @@ function handleDomainBoardAction(action: string, row: any) {
   if (action === 'start') return startDomainTableRow(row)
 }
 
+async function controlV2Attempt(row: any, controlAction: string) {
+  if (!canRunV2Control(row, controlAction)) {
+    showToast('当前操作未获后端允许，请刷新状态后再试', 'warning')
+    return
+  }
+  if (!v2ControlPendingGuard.tryAcquire(row, controlAction)) return
+  syncV2ControlPendingKeys()
+  try {
+    if (controlAction === 'cancel' && import.meta.client && !window.confirm('确认终止当前 V2 尝试任务？')) return
+    await executeV2ControlRequest({
+      post,
+      path: '/admin/crawler-monitor/dispatch/control',
+      payload: buildV2ControlPayload(controlAction, row),
+      onSuccess: async (data: any) => {
+        latestDispatchResult.value = data
+        showToast((latestDispatchResult.value as any)?.messageZh || '控制指令已提交', 'success')
+        await loadOverview()
+      },
+      onStale: async (data: any) => {
+        showToast(data?.messageZh || '任务状态已变化，请刷新后重试', 'warning')
+        await loadOverview()
+      },
+      onAuthFailure: () => haltV2TransportForAuthFailure(),
+      onError: (data: any, error: any) => {
+        showToast(data?.messageZh || data?.message || error?.message || '控制任务失败', 'error')
+      },
+    })
+  } finally {
+    v2ControlPendingGuard.release(row, controlAction)
+    syncV2ControlPendingKeys()
+  }
+}
+
+function syncV2ControlPendingKeys() {
+  v2ControlPendingKeys.value = new Set(v2ControlPendingGuard.pendingKeys())
+}
+
+function isV2ControlPending(row: Record<string, any> | null | undefined, controlAction: string) {
+  if (!row?.v2Attempt) return false
+  try {
+    return v2ControlPendingKeys.value.has(v2ControlPendingKey(row, controlAction))
+  } catch {
+    return false
+  }
+}
+
 function selectedDomainTableRowKey(row: any) {
+  if (row?.v2Attempt) return crawlerV2DomainSelectionKey(row)
   return [
     row?.queueId ? `queue:${row.queueId}` : '',
     row?.dispatchId ? `dispatch:${row.dispatchId}` : '',
@@ -2494,6 +2841,7 @@ async function cancelRunningDispatchItem(item: CrawlerMonitorWikiQueueItem) {
 }
 
 function closeReportPreview() {
+  reportPreviewRequestFence.invalidate()
   selectedReportPath.value = null
   reportPreview.value = null
   reportPreviewError.value = ''
@@ -2524,6 +2872,7 @@ function noiseKey(...parts: Array<string | null | undefined>) {
 
 function syncAutoRefresh() {
   clearRefreshTimer()
+  if (v2State.value) return
   if (!autoRefresh.value || authRefreshHalted.value || !import.meta.client) return
   if (typeof document !== 'undefined' && document.hidden) return
   refreshTimer = setInterval(() => {
@@ -2544,6 +2893,12 @@ function handleVisibilityChange() {
   if (typeof document === 'undefined') return
   if (document.hidden) {
     clearRefreshTimer()
+    stopV2EventStream()
+    clearV2FallbackPolling()
+    return
+  }
+  if (v2State.value) {
+    syncMonitorTransport()
     return
   }
   if (autoRefresh.value && !authRefreshHalted.value) {
@@ -2868,11 +3223,11 @@ function isOperationalProgressRow(row: ProgressRow) {
 function statusTone(status?: string | null) {
   const normalized = String(status || '').toLowerCase()
   if (['completed', 'success', 'ok', 'readable', 'free'].includes(normalized)) return 'success'
-  if (['failed', 'error', 'missing', 'read error', 'blocked', 'timed_out'].includes(normalized)) return 'danger'
-  if (['running', 'active'].includes(normalized)) return 'info'
+  if (['failed', 'error', 'missing', 'read error', 'blocked', 'timed_out', 'interrupted'].includes(normalized)) return 'danger'
+  if (['running', 'active', 'pause_requested', 'cancel_requested'].includes(normalized)) return 'info'
   if (normalized === 'ready') return 'ready'
   if (normalized === 'cancelled') return 'cancelled'
-  if (['pending', 'sleeping', 'locked', 'queued', 'blocked_cooldown', 'starting', 'stalled', 'warning', 'paused'].includes(normalized)) return 'warning'
+  if (['pending', 'sleeping', 'locked', 'queued', 'retry_wait', 'blocked_cooldown', 'starting', 'stalled', 'warning', 'paused'].includes(normalized)) return 'warning'
   return 'muted'
 }
 
@@ -3402,6 +3757,26 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.stream-auth-warning {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  border: 1px solid var(--color-danger);
+  border-left: 4px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-muted);
+  color: var(--color-text);
+  padding: 12px 14px;
+}
+
+.stream-auth-warning p,
+.stream-auth-warning small {
+  display: block;
+  margin: 4px 0 0;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
 }
 
 .report-drawer-backdrop {

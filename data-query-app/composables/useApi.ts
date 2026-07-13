@@ -75,6 +75,17 @@ const getBaseURL = () => {
   return config.public.apiBase || ''
 }
 
+export const getAdminBearerHeaders = () => {
+  const token = useCookie<string | null>(TOKEN_COOKIE_KEY).value
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+export const resolveApiUrl = (url: string) => {
+  const base = getBaseURL().replace(/\/$/, '')
+  const normalized = normalizeUrl(url)
+  return `${base}${normalized}`
+}
+
 const callHook = (hooks: ApiFetchHook | ApiFetchHook[] | undefined, context: any) => {
   if (!hooks) return
   if (Array.isArray(hooks)) {

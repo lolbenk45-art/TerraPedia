@@ -4566,8 +4566,12 @@ finite-SSE and explicit artifact/error-reason contracts.
 - Modify: `data-query-app/types/crawlerMonitor.typecheck.ts`
 - Modify: `data-query-app/composables/useApi.ts`
 - Modify: `data-query-app/pages/operations/crawler-monitor.vue`
+- Modify: `data-query-app/utils/crawlerMonitorExecutionOverview.mjs`
 - Modify: `data-query-app/utils/crawlerMonitorTriageWorkbench.mjs`
+- Modify: `data-query-app/tests/crawler-monitor-execution-overview.test.mjs`
 - Modify: `data-query-app/tests/crawler-monitor-triage-workbench.test.mjs`
+- Modify: `data-query-app/utils/crawlerMonitorUnifiedStatus.mjs`
+- Modify: `data-query-app/tests/crawler-monitor-unified-status.test.mjs`
 - Modify: `data-query-app/tests/crawler-monitor-page-contract.test.mjs`
 - Create: `data-query-app/components/crawler-monitor/CrawlerQueueHealthBanner.vue`
 - Modify: `data-query-app/components/crawler-monitor/CrawlerTriageBoard.vue`
@@ -5037,7 +5041,7 @@ Expected: all Node tests and Nuxt typecheck pass; page contract asserts `EventSo
 - [ ] **Step 13: Commit the V2 admin state model**
 
 ```bash
-git add data-query-app/types/crawlerMonitor.ts data-query-app/types/crawlerMonitor.typecheck.ts data-query-app/composables/useApi.ts data-query-app/pages/operations/crawler-monitor.v2-state.mjs data-query-app/pages/operations/crawler-monitor.v2-state.test.mjs data-query-app/pages/operations/crawler-monitor.events.mjs data-query-app/pages/operations/crawler-monitor.events.test.mjs data-query-app/pages/operations/crawler-monitor.control.mjs data-query-app/pages/operations/crawler-monitor.control.test.mjs data-query-app/pages/operations/crawler-monitor.vue data-query-app/utils/crawlerMonitorTriageWorkbench.mjs data-query-app/tests/crawler-monitor-triage-workbench.test.mjs data-query-app/tests/crawler-monitor-page-contract.test.mjs data-query-app/components/crawler-monitor/CrawlerQueueHealthBanner.vue data-query-app/components/crawler-monitor/CrawlerTriageBoard.vue data-query-app/components/crawler-monitor/DomainDetailDrawer.vue data-query-app/components/crawler-monitor/CrawlerLogViewer.vue
+git add data-query-app/types/crawlerMonitor.ts data-query-app/types/crawlerMonitor.typecheck.ts data-query-app/composables/useApi.ts data-query-app/pages/operations/crawler-monitor.v2-state.mjs data-query-app/pages/operations/crawler-monitor.v2-state.test.mjs data-query-app/pages/operations/crawler-monitor.events.mjs data-query-app/pages/operations/crawler-monitor.events.test.mjs data-query-app/pages/operations/crawler-monitor.control.mjs data-query-app/pages/operations/crawler-monitor.control.test.mjs data-query-app/pages/operations/crawler-monitor.vue data-query-app/utils/crawlerMonitorExecutionOverview.mjs data-query-app/utils/crawlerMonitorTriageWorkbench.mjs data-query-app/utils/crawlerMonitorUnifiedStatus.mjs data-query-app/tests/crawler-monitor-execution-overview.test.mjs data-query-app/tests/crawler-monitor-triage-workbench.test.mjs data-query-app/tests/crawler-monitor-unified-status.test.mjs data-query-app/tests/crawler-monitor-page-contract.test.mjs data-query-app/components/crawler-monitor/CrawlerQueueHealthBanner.vue data-query-app/components/crawler-monitor/CrawlerTriageBoard.vue data-query-app/components/crawler-monitor/DomainDetailDrawer.vue data-query-app/components/crawler-monitor/CrawlerLogViewer.vue
 git commit -m "feat(crawler): render authoritative V2 attempts"
 ```
 
