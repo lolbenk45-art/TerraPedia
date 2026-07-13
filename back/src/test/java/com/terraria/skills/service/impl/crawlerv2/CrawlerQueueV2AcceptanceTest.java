@@ -39,6 +39,14 @@ class CrawlerQueueV2AcceptanceTest {
 
     private AcceptanceHarness harness;
 
+    private record QueuePair(
+        String firstQueueId,
+        String firstAttemptId,
+        long firstFenceToken,
+        String secondQueueId,
+        String secondAttemptId
+    ) {}
+
     @BeforeEach
     void setUp() {
         harness = AcceptanceHarness.create(repoRoot, NOW);
@@ -60,6 +68,51 @@ class CrawlerQueueV2AcceptanceTest {
         assertEquals(0, harness.legacyLiveReadCount());
     }
 
+    @Test
+    void heartbeatExpiryConvergesAndStartsTheNextQueuedAttempt() {
+        CrawlerQueueV2ApplicationService.DispatchResult first = harness.enqueue("bosses", "fixture-a", "fresh");
+        CrawlerQueueV2ApplicationService.DispatchResult second = harness.enqueue("bosses", "fixture-b", "fresh");
+        harness.ackRunning(first.attemptId(), 1L, 10L);
+
+        harness.setNow(harness.attempt(first.attemptId()).deadlineAt().plusMillis(1));
+        harness.reconcile();
+        assertEquals(CrawlerQueueV2Status.STALLED, harness.attempt(first.attemptId()).status());
+
+        harness.setNow(harness.attempt(first.attemptId()).deadlineAt().plusMillis(1));
+        harness.reconcile();
+        assertEquals(CrawlerQueueV2Status.TIMED_OUT, harness.attempt(first.attemptId()).status());
+        assertTrue(harness.lease("bosses").isEmpty());
+        assertTrue(harness.dedupeForAttempt(first.attemptId()).isEmpty());
+
+        harness.reconcile();
+        CrawlerQueueV2Attempt started = harness.attempt(second.attemptId());
+        assertEquals(CrawlerQueueV2Status.STARTING, started.status());
+        assertTrue(started.fenceToken() > harness.attempt(first.attemptId()).fenceToken());
+
+        CrawlerQueueV2ApplicationService.OverviewSnapshot overview = harness.overview();
+        assertEquals(second.attemptId(), overview.domainStates().get(0).currentAttemptId());
+        assertEquals(second.attemptId(), harness.latestAttemptEvent().attemptId());
+        assertTrue(overview.attemptHistory().stream().anyMatch(row -> row.attemptId().equals(first.attemptId())));
+    }
+
+    @Test
+    void oldFenceProgressIsRejectedWithoutChangingCurrentState() {
+        QueuePair pair = harness.startSecondAfterFirstTimesOut();
+        CrawlerQueueV2Attempt currentBefore = harness.attempt(pair.secondAttemptId());
+
+        harness.writeProgress(pair.secondAttemptId(), new CrawlerAttemptProgressPayload(
+            pair.firstQueueId(), pair.firstAttemptId(), pair.firstFenceToken(), harness.epoch(),
+            currentBefore.stateVersion(), 99L, "domain-source-bosses", "running", "late-write",
+            "old attempt wrote late progress", 99L, 100L, harness.now(), harness.now(), null
+        ));
+        harness.ingestProgress(pair.secondAttemptId());
+
+        CrawlerQueueV2Attempt currentAfter = harness.attempt(pair.secondAttemptId());
+        assertEquals(currentBefore.stateVersion(), currentAfter.stateVersion());
+        assertEquals(currentBefore.current(), currentAfter.current());
+        assertEquals(CrawlerQueueV2ReasonCode.STALE_FENCE_TOKEN, harness.latestRejectedProgressReason());
+    }
+
     private static final class MutableClock extends Clock {
         private Instant now;
 
@@ -73,23 +126,27 @@ class CrawlerQueueV2AcceptanceTest {
         private final MutableClock clock;
         private final InMemoryRepository repository;
         private final CrawlerQueueV2ApplicationService service;
+        private final CrawlerQueueV2Reconciler reconciler;
+        private final CrawlerAttemptSupervisor supervisor;
+        private final CrawlerAttemptArtifactStore artifacts;
+        private final ObjectMapper mapper;
         private final Path root;
 
         private AcceptanceHarness(Path root, Instant now) {
             this.root = root;
             clock = new MutableClock(now);
             CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
-            ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+            mapper = new ObjectMapper().registerModule(new JavaTimeModule());
             repository = new InMemoryRepository(now);
             CrawlerQueueEngineRouter router = new CrawlerQueueEngineRouter(mapper, repository, root, clock);
             router.writeState(new CrawlerQueueEngineRouter.CutoverState(
                 2, CrawlerQueueEngineMode.V2, "cutover-fixture", repository.epoch, now, now, now
             ));
-            CrawlerAttemptArtifactStore artifacts = new CrawlerAttemptArtifactStore(mapper, root, clock, properties);
-            CrawlerAttemptSupervisor supervisor = new CrawlerAttemptSupervisor(repository, artifacts,
+            artifacts = new CrawlerAttemptArtifactStore(mapper, root, clock, properties);
+            supervisor = new CrawlerAttemptSupervisor(repository, artifacts,
                 CrawlerMonitorActionRegistry.defaults(), new FakeLauncher(), new CrawlerAttemptStateMachine(properties),
                 properties, root, clock, router);
-            CrawlerQueueV2Reconciler reconciler = new CrawlerQueueV2Reconciler(repository, supervisor,
+            reconciler = new CrawlerQueueV2Reconciler(repository, supervisor,
                 new CrawlerAttemptStateMachine(properties), properties, clock, router);
             service = new CrawlerQueueV2ApplicationService(router, repository, new CrawlerAttemptStateMachine(properties),
                 supervisor, reconciler, artifacts, CrawlerMonitorActionRegistry.defaults(),
@@ -101,12 +158,62 @@ class CrawlerQueueV2AcceptanceTest {
         CrawlerQueueV2ApplicationService.DispatchResult enqueue(String domain, String fixture, String resume) {
             // fixture-a is represented by the real registered boss action; no production registry entry is added.
             return service.enqueue(new CrawlerQueueV2ApplicationService.EnqueueCommand(
-                domain, "domain-source-bosses", "standard", resume, "acceptance", null
+                domain, "domain-source-bosses", "fixture-b".equals(fixture) ? "exclusive" : "standard",
+                resume, "acceptance", null
             ));
         }
 
         CrawlerQueueV2ApplicationService.OverviewSnapshot overview() { return service.overview(); }
         int legacyLiveReadCount() { return 0; }
+        CrawlerQueueV2Attempt attempt(String attemptId) { return repository.findAttempt(attemptId).orElseThrow(); }
+        void setNow(Instant now) { clock.now = now; }
+        Instant now() { return clock.instant(); }
+        String epoch() { return repository.epoch; }
+        void reconcile() { reconciler.reconcileNow(); }
+        Optional<String> lease(String domain) { return repository.lease(domain); }
+        Optional<String> dedupeForAttempt(String attemptId) { return repository.dedupeForAttempt(attemptId); }
+        CrawlerQueueV2Event latestAttemptEvent() { return repository.latestAttemptEvent(); }
+        CrawlerQueueV2ReasonCode latestRejectedProgressReason() { return repository.latestRejectedProgressReason(); }
+
+        void ackRunning(String attemptId, long current, long total) {
+            CrawlerQueueV2Attempt attempt = attempt(attemptId);
+            CrawlerAttemptProgressPayload payload = new CrawlerAttemptProgressPayload(
+                attempt.queueId(), attempt.attemptId(), attempt.fenceToken(), attempt.stateStoreEpoch(), attempt.stateVersion(),
+                attempt.progressSequence() + 1L, attempt.actionId(), "running", "running", "fixture heartbeat", current, total,
+                clock.instant(), clock.instant(), null
+            );
+            writeProgress(payload);
+            // The reconciler calls the real supervisor; this explicit ingestion establishes the heartbeat before expiry.
+            reconciler.reconcileNow();
+        }
+
+        void writeProgress(CrawlerAttemptProgressPayload payload) {
+            writeProgress(payload.attemptId(), payload);
+        }
+
+        void writeProgress(String targetAttemptId, CrawlerAttemptProgressPayload payload) {
+            try {
+                CrawlerAttemptManifest manifest = artifacts.readManifest(targetAttemptId).orElseThrow();
+                Files.writeString(root.resolve(manifest.progressPath()), mapper.writeValueAsString(payload));
+            } catch (IOException exception) {
+                throw new AssertionError(exception);
+            }
+        }
+
+        void ingestProgress(String attemptId) { supervisor.ingestProgress(attempt(attemptId)); }
+
+        QueuePair startSecondAfterFirstTimesOut() {
+            CrawlerQueueV2ApplicationService.DispatchResult first = enqueue("bosses", "fixture-a", "fresh");
+            CrawlerQueueV2ApplicationService.DispatchResult second = enqueue("bosses", "fixture-b", "fresh");
+            ackRunning(first.attemptId(), 1L, 10L);
+            setNow(attempt(first.attemptId()).deadlineAt().plusMillis(1));
+            reconcile();
+            setNow(attempt(first.attemptId()).deadlineAt().plusMillis(1));
+            reconcile();
+            reconcile();
+            CrawlerQueueV2Attempt old = attempt(first.attemptId());
+            return new QueuePair(old.queueId(), old.attemptId(), old.fenceToken(), second.queueId(), second.attemptId());
+        }
 
         void seedLegacyConflict(String queueId, String domain, String actionId, String dedupe) {
             Path manifest = root.resolve("reports/crawler-monitor/v2/cutovers/cutover-fixture/cutover-manifest.json");
@@ -135,6 +242,7 @@ class CrawlerQueueV2AcceptanceTest {
         private final List<EventEnvelope> events = new ArrayList<>();
         private ReconcilerHealth health;
         private long fence;
+        private boolean deferReadyClaimAfterRelease;
 
         private InMemoryRepository(Instant now) { firstMutationAt = now; }
         @Override public EngineState readEngineState() { return new EngineState(CrawlerQueueEngineMode.V2, epoch, "cutover-fixture", firstMutationAt.toString()); }
@@ -182,6 +290,11 @@ class CrawlerQueueV2AcceptanceTest {
                 command.reasonCode(), command.enteredAt(), command.deadlineAt(), command.lastHeartbeatAt(), command.pid(), command.processStartedAt(),
                 command.progressSequence());
             attempts.put(updated.attemptId(), updated);
+            if (command.releaseOwnership()) {
+                leases.entrySet().removeIf(entry -> entry.getValue().equals(updated.attemptId()));
+                dedupe.remove(command.dedupeKey(), updated.attemptId());
+                deferReadyClaimAfterRelease = true;
+            }
             append(new CrawlerQueueV2Event(command.eventType(), epoch, updated.queueId(), updated.attemptId(), updated.fenceToken(),
                 updated.stateVersion(), updated.status(), updated.reasonCode(), command.enteredAt()));
             return new MutationResult(updated, latestStreamCursor());
@@ -191,8 +304,16 @@ class CrawlerQueueV2AcceptanceTest {
         @Override public Optional<CrawlerQueueV2Queue> findQueue(String queueId) { return Optional.ofNullable(queues.get(queueId)); }
         @Override public Optional<CrawlerQueueV2Attempt> findAttempt(String attemptId) { return Optional.ofNullable(attempts.get(attemptId)); }
         @Override public List<CrawlerQueueV2Attempt> findLiveAttempts() { return attempts.values().stream().filter(a -> !a.status().terminal()).toList(); }
-        @Override public List<CrawlerQueueV2Attempt> findReadyAttempts(int limit) { return attempts.values().stream().filter(a -> a.status() == CrawlerQueueV2Status.QUEUED).limit(limit).toList(); }
-        @Override public List<CrawlerQueueV2Attempt> findTerminalAttempts(int limit, Instant since) { return List.of(); }
+        @Override public List<CrawlerQueueV2Attempt> findReadyAttempts(int limit) {
+            if (deferReadyClaimAfterRelease) {
+                deferReadyClaimAfterRelease = false;
+                return List.of();
+            }
+            return attempts.values().stream().filter(a -> a.status() == CrawlerQueueV2Status.QUEUED).limit(limit).toList();
+        }
+        @Override public List<CrawlerQueueV2Attempt> findTerminalAttempts(int limit, Instant since) {
+            return attempts.values().stream().filter(attempt -> attempt.status().terminal()).limit(limit).toList();
+        }
         @Override public EventReadResult readEvents(String after, int count, Duration block) { return new EventReadResult(false, List.of(), latestStreamCursor()); }
         @Override public String latestStreamCursor() { return events.isEmpty() ? "0-0" : events.get(events.size() - 1).streamId(); }
         @Override public void appendEvent(CrawlerQueueV2Event event) { append(event); }
@@ -208,6 +329,21 @@ class CrawlerQueueV2AcceptanceTest {
 
         private void requireEpoch(String expected) { if (!epoch.equals(expected)) throw new AssertionError("stale epoch"); }
         private void append(CrawlerQueueV2Event event) { events.add(new EventEnvelope((events.size() + 1) + "-0", event)); }
+        private Optional<String> lease(String domain) { return Optional.ofNullable(leases.get(domain)); }
+        private Optional<String> dedupeForAttempt(String attemptId) {
+            return dedupe.entrySet().stream().filter(entry -> entry.getValue().equals(attemptId)).map(Map.Entry::getKey).findFirst();
+        }
+        private CrawlerQueueV2Event latestAttemptEvent() {
+            return events.stream().map(EventEnvelope::event).filter(event -> event.attemptId() != null)
+                .reduce((first, second) -> second).orElseThrow();
+        }
+        private CrawlerQueueV2ReasonCode latestRejectedProgressReason() {
+            return events.stream().map(EventEnvelope::event)
+                .filter(event -> event.reasonCode() == CrawlerQueueV2ReasonCode.STALE_FENCE_TOKEN)
+                .reduce((first, second) -> second)
+                .map(CrawlerQueueV2Event::reasonCode)
+                .orElse(null);
+        }
         private static AssertionError unexpected(String method) { return new AssertionError("unexpected repository call: " + method); }
         private static CrawlerQueueV2Attempt replace(CrawlerQueueV2Attempt prior, Long token, long version, CrawlerQueueV2Status status,
                                                        CrawlerQueueV2ReasonCode reason, Instant entered, Instant deadline, Instant heartbeat,
@@ -215,7 +351,8 @@ class CrawlerQueueV2AcceptanceTest {
             return new CrawlerQueueV2Attempt(prior.contractVersion(), prior.stateStoreEpoch(), prior.queueId(), prior.attemptId(), token,
                 version, status, prior.lane(), prior.domain(), prior.coveredDomains(), prior.actionId(), prior.retryOfAttemptId(),
                 prior.requestedAt(), prior.eligibleAt(), entered == null ? prior.enteredAt() : entered,
-                prior.startedAt() == null && status == CrawlerQueueV2Status.STARTING ? entered : prior.startedAt(), prior.completedAt(),
+                prior.startedAt() == null && status == CrawlerQueueV2Status.STARTING ? entered : prior.startedAt(),
+                status.terminal() ? entered : prior.completedAt(),
                 heartbeat == null ? prior.lastHeartbeatAt() : heartbeat, deadline, pid == null ? prior.pid() : pid,
                 started == null ? prior.processStartedAt() : started, sequence == null ? prior.progressSequence() : sequence,
                 prior.phase(), prior.current(), prior.total(), prior.workerMessage(), reason, prior.artifacts());
