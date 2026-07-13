@@ -144,6 +144,17 @@ evidence, data freshness, or quality gates.
 
 ## Release Boundary
 
+### Crawler Monitor V2 Operational Gate
+
+Before changing a live crawler-monitor epoch, pass the focused V2 backend,
+worker/fixture, admin contract, and isolated-prefix smoke checks recorded in
+the task audit. Runtime acceptance then verifies an empty V2 cutover, durable
+first-mutation reservation/confirmation, rollback denial, attempt-scoped
+progress/log/SSE, exact cancellation ordering, V1 inactivity, and restart with
+temporary cutover/fixture switches disabled. A broad Maven or full quality-gate
+failure outside this scope is not V2 acceptance evidence; record its baseline
+status explicitly. The detailed sequence is in the V2 cutover runbook.
+
 Do not make release, staging, public-readiness, or A-grade readiness claims
 unless fresh evidence is available for the relevant surfaces.
 

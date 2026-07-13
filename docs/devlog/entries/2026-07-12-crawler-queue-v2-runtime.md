@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed` — commit SHA pending in final response
 
 ## Context
 
@@ -628,6 +628,48 @@
 
 ## Result
 
+## Task 15 Cutover Completion (2026-07-13)
+
+- Authenticated forward recovery completed the earlier maintenance-only cutover
+  with reset ID `crawler-v2-forward-repair-20260713T143028Z`. The durable V2
+  epoch is `epoch-8fc9c183-8a2a-439e-9cc3-1bcb64ebbde8`; no V1 non-terminal
+  row or recorded V1 process was imported as live work.
+- Two authenticated overview reads before the first mutation were stable:
+  contract version 2, empty live/history, healthy queue/reconciler, and the
+  same Stream cursor. The first authorized operation dispatched only the
+  no-network fixture. Its durable reservation
+  (`2026-07-13T14:36:52.730669041Z`) preceded matching Redis/durable first
+  mutation confirmation (`2026-07-13T14:36:52.749809515Z`). Rollback returned
+  `409/CUTOVER_ROLLBACK_FORBIDDEN`.
+- Fixture attempt `attempt-86ce03a3-3f9d-4990-a0dc-c8fa76ee0fa4` progressed
+  queued -> starting -> running -> completed. SSE delivered queue/attempt
+  events, its log grew from empty to 571 bytes, and history retained it with an
+  available log. No network crawler or database write was run.
+- Second fixture attempt `attempt-67a960ed-ef35-492d-a2a9-c924343554bc` used
+  exact queue/attempt/state-version cancellation. Stream evidence records
+  `cancel_requested` before confirmed `cancelled`; manifest, progress, and log
+  evidence remain retained. V1 key/file checksum snapshots stayed unchanged
+  across two 15-second legacy drain intervals.
+- The standard `start-local-stack.sh --reuse-existing` recovery path restarted
+  the backend on Redis DB 4 with cutover and fixture switches both false. It
+  retained V2 routing, the same epoch, terminal-only two-attempt history,
+  healthy queue/reconciler state, and an authenticated SSE connection.
+- Task 10/11 follow-up assertions are fresh: controller/event bridge 46/46 and
+  admin monitor contracts 86/86. The V2 runbook and current governance
+  contracts now reflect the live authority.
+- Final closeout validation: fresh focused controller/EventBridge tests passed
+  46/46; `data-query-app` typecheck passed and its unit suite passed 284/284;
+  `git diff --check` and targeted V2 contract/runbook scans passed. The full
+  `mvn test` run remains a pre-existing baseline blocker (1336 tests: six
+  failures and one error in `LegacyLocalBackendPortCleanerTest` twice,
+  `AdminAudioAssetControllerTest`, `ItemMapperPreferredImageSqlTest` three
+  times, and `AdminWikiZhRecipeImportControllerTest`); no crawler V2 test
+  failed. The full quality gate likewise stops in its first stage after 229/230
+  data-workflow tests because `local-stack.test.mjs` expects the obsolete
+  `$TP_FRONT_PROJECT_DIR` invocation while `quality-gate.sh` uses fixed
+  `front-nuxt`. These unrelated baseline failures are recorded, not treated as
+  V2 acceptance evidence.
+
 ## Task 14 Readiness Update (2026-07-13)
 
 - The guarded isolated fixture smoke completed 14/14 checks using only a
@@ -813,10 +855,9 @@
 
 ## Follow-up
 
-- Owner: Codex. Commit the pure-overview/attempt-log matrix checkpoint, then
-  create the guarded smoke script and execute it only through the explicitly
-  authorized isolated fixture stack. Do not perform the first irreversible V2
-  mutation or live cutover until the documented live gates have passed.
+- No new live mutation is required. Fixture mode and the temporary cutover
+  switch remain disabled; future real crawler operations require ordinary
+  operator authorization and exact V2 attempt identity.
 
 ## Commits
 

@@ -38,6 +38,15 @@ Historical docs do not override current spec or workflow.
 
 Bash/WSL is the primary local automation path. Matching `.ps1` files are compatibility wrappers unless a current runbook says otherwise.
 
+Crawler monitor live state uses Redis V2 attempt state under the fixed prefix
+`terrapedia:crawler:wiki-monitor:v2:`. It is the only live queue authority:
+every control and progress write carries exact attempt identity, every
+non-terminal state is deadline-bound, and overview is a pure read. V1 crawler
+queue records are immutable cutover history only and cannot block, dedupe,
+restore, own, or report V2 live work. See
+`docs/runbooks/crawler-monitor-queue-v2-cutover.md` for the authenticated
+cutover, first-mutation, reset, and restart procedure.
+
 The user-auth E2E runner is an explicit isolated boundary: it accepts only
 loopback MySQL and Redis, creates a run-derived disposable database, uses Redis
 DB `15`, and exposes verification codes only through the E2E profile's

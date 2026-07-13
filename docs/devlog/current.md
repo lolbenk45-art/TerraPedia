@@ -1,96 +1,22 @@
 # Current Devlog
 
-Last updated: 2026-07-13 22:08 CST by Codex
+Last updated: 2026-07-13 23:00 CST by Codex
 
 ## Open Work
 
-- `docs/devlog/entries/2026-07-12-crawler-queue-v2-runtime.md`
-  - owner: Codex
-  - status: active
-  - branch: `fix/crawler-queue-v2-runtime`
-  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
-  - parent/child: none
-  - dependencies or blocked-by: Task 14 readiness audit is complete; user authorized the normal-namespace cutover and first fixture mutation. The zero-work cutover remains safely in maintenance: the reader and maintenance-mode reset repairs are committed, while the final reset-response null-contract repair has a passing isolated real-Redis regression and needs deployment before a new resetId recovery request. Broad Maven and quality-gate baseline failures remain outside crawler scope and are recorded in the readiness audit.
-  - contract handoff: Tasks 1-13 are checkpointed through `e7b5d2f`; V2 focused backend 493/493, worker 68/68, admin 284/284/check/build, and isolated fixture smoke 14/14 are current evidence. The reader/cutover/config selection passes 20/20, the maintenance reset selection 68/68, and the isolated real-Redis maintenance reset 1/1; preserve the immutable failed cutover manifest and maintenance marker while Task 15 proceeds through the authenticated recovery path.
 
 ## Current State
 
-- Task 14 pre-cutover evidence is recorded in
-  `docs/audits/crawler-monitor-queue-v2-pre-cutover.md`. The isolated fixture
-  stack completed all 14 checks without touching a production namespace or
-  running a real crawler.
-- The V1 watcher race found during final review is repaired: an interrupted
-  watcher cannot manufacture a timeout or drain work, and cancellation fences
-  stay in place until watcher teardown. The fresh 493-test V2 selection passes.
-- Task 15 is in durable maintenance after a read-only V1 snapshot: it found no
-  non-terminal row or recorded process, but an absent normal idle lock was
-  misclassified as a source error. The committed reader repair keeps mirror and
-  latest-dispatch sources required while treating only an absent lock as an
-  empty lock. Forward recovery exposed two reset-Lua gaps: it first rejected
-  the legitimate Redis `maintenance` mode, then encoded an absent
-  first-mutation marker as boolean `false` rather than null. The second repair
-  now has an isolated real-Redis regression; deploy it, then submit a new
-  authenticated resetId request. Do not clear Redis or start a real crawler.
-  The only first mutation remains the no-network fixture action.
-- The first Task 15 normal-stack startup failed closed before opening port 18192:
-  fixture action enablement without a `:test:` namespace passed an empty legacy
-  prefix to the immutable V1 reader. A RED configuration regression reproduced
-  that exact exception; the repair now uses the production V1 read-only prefix
-  unless a real fixture V2 namespace is configured. The focused configuration,
-  property, and snapshot-reader selection passed 12/12; this repair must be
-  committed before restarting the normal maintenance stack.
+- Crawler Queue V2 is cut over on `fix/crawler-queue-v2-runtime`. The durable
+  epoch is `epoch-8fc9c183-8a2a-439e-9cc3-1bcb64ebbde8`; V1 is immutable history
+  and V2 is the sole live queue authority. Two no-network fixture attempts
+  proved first-mutation fencing, SSE/log visibility, exact cancellation, and
+  V1 inactivity. The stack is running on backend `18192`, admin `13005`, Redis
+  DB `4`; cutover and fixture switches are disabled after acceptance.
 
-- Task 12 now provides an explicit administrator-only V1-to-V2 maintenance
-  cutover, immutable read-only V1 evidence, an empty fresh V2 epoch, a
-  pre-mutation-only rollback boundary, and explicit forward-only epoch reset.
-  The cutover record uses one fail-closed JSON-string protocol across all Lua
-  transitions, and its Redis Stream event uses the same `payload` field as all
-  other V2 events. No cutover, Redis mutation, crawler, database operation, or
-  service lifecycle action has been performed.
-- Task 13 now has a no-network fixture with monotonic progress, TERM-ignore,
-  and stall modes; fixture-only action admission; fail-closed test namespace
-  and storage-root checks; and separate code-worktree versus fixture-artifact
-  roots. Its in-memory acceptance matrix, guarded smoke script, fixture stack
-  execution, readiness audit, and live-cutover gates remain open and must not
-  be inferred from the offline fixture checks.
-- The first Task 13 matrix regression connects real V2 application,
-  supervisor, reconciler, artifact, router, and legacy-history components to a
-  test-only in-memory repository. It proves a legacy running row remains
-  read-only history while a new V2 attempt is admitted; the timeout, stale
-  fence, cancellation, pure-read, and mixed-log cases remain open.
-- The matrix now also proves deadline convergence releases terminal ownership
-  before a later ready scan advances the next attempt, and rejects old fenced
-  progress at the current attempt ingress without changing current state.
-- It also proves a TERM-ignoring process receives forced termination before
-  cancellation is terminal and before the next queued attempt begins.
-- The complete offline matrix now additionally proves repeated overview reads
-  are pure (no version/order/Stream mutation) and terminal history keeps one
-  row per attempt with exact available/expired log evidence. A fresh focused
-  `CrawlerQueueV2AcceptanceTest` run passed 7/7; fixture-stack smoke remains
-  a separate, unperformed gate.
-- Fixture cutover isolation additionally routes legacy snapshot scans to the
-  configured `:test:` legacy prefix and uses fixture-root source evidence, so
-  the smoke cutover cannot inspect production V1 keys or reports.
-- The first fixture-stack start was fail-closed before opening the backend:
-  `reconcile-interval: 5s` is valid for property binding but invalid for
-  `@Scheduled(fixedDelayString)`. The runtime default is now ISO-8601 `PT5S`,
-  with an enabled-scheduling context regression. No fixture action, cutover,
-  or Redis mutation was sent.
-- The first authenticated fixture smoke reached the isolated V2 cutover and
-  overview checks (1–3) then correctly stopped at fixture dispatch. The V2
-  monitor adapter was still validating that test-only action against the V1
-  registry. It now admits the exact fixture only on the V2 route; V1 remains
-  unchanged. The smoke default API base also now includes the local `/api`
-  context path. Its cleanup trap removed the first run's fixture state.
-- The following run passed checks 1–11, including stale-version-safe cancel
-  and missing-epoch maintenance. Reset then exposed a Lua type-contract bug:
-  `index:queues` is a ZSET at runtime but reset expected a SET. The corrected
-  Lua contract has a focused regression; fixture cleanup again removed only
-  its own state before any Task 14/15 action.
-
-- Crawler monitor queue/status root-cause analysis and the first two V2
-  foundation tasks are complete; runtime implementation continues on the
-  isolated follow-up branch `fix/crawler-queue-v2-runtime`.
+- Crawler monitor queue/status root-cause analysis, all 15 V2 implementation
+  tasks, and the authorized local cutover are complete on
+  `fix/crawler-queue-v2-runtime`.
 - The offline root-cause verdict is complete: the implementation still has
   multiple writable queue/runtime/status sources without a shared generation
   or fencing token, and the planned Redis domain lease was never implemented.
@@ -227,15 +153,9 @@ Last updated: 2026-07-13 22:08 CST by Codex
 
 ## Next Agent Should Start Here
 
-- Commit the reviewed Task 12 checkpoint, keeping the partial Task 13 fixture
-  files and all user-generated data out of its staged scope. Then continue the
-  Task 13 in-memory acceptance matrix and guarded smoke-script implementation
-  without executing the smoke script.
-- On implementation start, follow the plan task by task and preserve its
-  authorization gates: fixture-stack execution, live cutover, and first
-  irreversible V2 mutation each require their stated confirmation.
-- Keep crawler execution, data writes, Redis clearing, and service lifecycle
-  changes out of the analysis phase.
+- The Crawler Queue V2 entry is ready for its focused documentation commit.
+  Preserve user-generated `data/generated/wiki-bosses.latest.json` and
+  `data/generated/resume/` outside staging.
 - Do not recreate removed root governance files `03`, `04`, or `07-12`; use Git history only for audit or rollback and add freshly validated current guidance when needed.
 - Keep latest project state in `00_CURRENT_SPEC.md`, `PROJECT_CONTROL.md`, project-management records, and devlog rather than old root planning bodies.
 - Keep `CURRENT_TECH_STACK.md`, `CURRENT_CODE_STYLE.md`,
@@ -252,26 +172,10 @@ Last updated: 2026-07-13 22:08 CST by Codex
 
 ## Current Risks
 
-- The local stack is stopped; no crawler was started and no V2 runtime
-  convergence, cutover, or restart behavior has been exercised.
-- Current queue history and log retention are misaligned: queue history keeps
-  substantially more attempts than the crawler-monitor log pruner, so a stored
-  V1 logPath is not evidence that a readable log still exists. Task 5 defines
-  the V2 replacement, but it is not yet wired into the supervisor or API.
-- The approved default deadlines pass fake-clock state-machine validation but
-  still require repository/reconciler integration and isolated runtime evidence
-  before they can be treated as proven operational behavior.
-- The durable reservation/router permit/maintenance mutation gate now has
-  focused offline evidence, but the isolated Redis reset-Lua integration suite
-  and the later fixture acceptance matrix remain required before readiness or
-  live-cutover claims.
-- Task 9 routes the V2 application source after a durable cutover marker, but
-  no cutover marker or first irreversible V2 mutation has been created; the
-  currently running local environment remains on its existing V1 live path.
-- Task 8 includes isolated Redis/Lua reset integration coverage, but it remains
-  unexecuted because no explicitly authorized `TERRAPEDIA_TEST_REDIS_*`
-  namespace is configured; do not treat the offline unit checks as a live Redis
-  reset proof.
+- Broad Maven and full quality-gate baseline failures remain outside V2 scope;
+  do not report them as V2 acceptance success.
+- Fixture mode is disabled. Future real crawler work must retain exact V2
+  identity and receive ordinary operator authorization.
 - Historical documents still mention the old `project-plan/` path as archival context by design.
 - Historical devlog entries still mention removed root paths by design; those records are provenance, not live authority.
 - Current risk themes are document-level judgments until fresh runtime/backend/frontend/data gates and crawler reliability checks are run.
@@ -282,6 +186,12 @@ Last updated: 2026-07-13 22:08 CST by Codex
 - Existing frontend build emits non-failing environment DBus, sourcemap, and preview-asset warnings; they are unrelated to Task 1 and remain outside this scope.
 
 ## Recently Closed
+
+- `docs/devlog/entries/2026-07-12-crawler-queue-v2-runtime.md`
+  - branch: `fix/crawler-queue-v2-runtime`
+  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
+  - status: `closed`
+  - commit: pending in final response
 
 - `docs/devlog/entries/2026-07-11-crawler-monitor-queue-state-root-cause.md`
   - branch: `fix/crawler-monitor-queue-state`
