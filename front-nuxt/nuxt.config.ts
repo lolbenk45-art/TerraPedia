@@ -1,5 +1,8 @@
 import { resolveFrontRuntimeConfig } from './utils/runtimeConfig.mjs'
 import tailwindcss from '@tailwindcss/vite'
+import { fileURLToPath } from 'node:url'
+
+const articleRuntimeDir = fileURLToPath(new URL('../shared/article-runtime', import.meta.url))
 
 const {
   backendApiBase,
@@ -19,12 +22,17 @@ export default defineNuxtConfig({
   devtools: { enabled: process.env.NUXT_DEVTOOLS === 'true' },
   modules: ['@pinia/nuxt'],
 
+  alias: {
+    '#article-runtime': articleRuntimeDir,
+  },
+
   devServer: {
     port: 5176,
     host: 'localhost',
   },
 
   css: [
+    '../shared/article-runtime/recipeHierarchyGraph.css',
     '~/assets/css/app.css',
     '~/assets/css/detail-layout.css',
     '~/assets/css/tokens.css',

@@ -1,6 +1,9 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { fileURLToPath } from 'node:url'
+
 const terrapediaBackendOrigin = (process.env.TERRAPEDIA_BACKEND_ORIGIN || 'http://localhost:18088').replace(/\/$/, '')
 const terrapediaImageOrigin = (process.env.TERRAPEDIA_IMAGE_ORIGIN || process.env.TERRAPEDIA_MINIO_PUBLIC_ENDPOINT || 'http://localhost:19000').replace(/\/$/, '')
+const articleRuntimeDir = fileURLToPath(new URL('../shared/article-runtime', import.meta.url))
 
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
@@ -15,7 +18,11 @@ export default defineNuxtConfig({
 
   modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss'],
 
-  css: ['~/assets/css/variables.css', '~/assets/css/main.css'],
+  alias: {
+    '#article-runtime': articleRuntimeDir,
+  },
+
+  css: ['../shared/article-runtime/recipeHierarchyGraph.css', '~/assets/css/variables.css', '~/assets/css/main.css'],
 
   vite: {
     optimizeDeps: {

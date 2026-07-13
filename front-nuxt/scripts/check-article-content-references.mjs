@@ -29,6 +29,9 @@ const articleStyleSource = articlePageSource.match(/<style[^>]*>([\s\S]*?)<\/sty
 const craftingStyleSource = readFileSync(join(root, 'assets/css/domains/crafting.css'), 'utf8')
 const craftingHierarchySource = readFileSync(join(root, 'components/crafting/RecipeHierarchyTree.vue'), 'utf8')
 const recipeHierarchyGraphRendererSource = readFileSync(join(root, 'utils/recipeHierarchyGraphRenderer.ts'), 'utf8')
+const sharedRecipeHierarchyGraphRendererPath = join(root, '..', 'shared/article-runtime/recipeHierarchyGraphRenderer.ts')
+if (!existsSync(sharedRecipeHierarchyGraphRendererPath)) throw new Error('recipe graph renderer must move to the root shared article runtime')
+const sharedRecipeHierarchyGraphRendererSource = readFileSync(sharedRecipeHierarchyGraphRendererPath, 'utf8')
 
 const extractFunction = (source, name) => {
   const marker = `const ${name} = `
@@ -155,8 +158,12 @@ if (!articlePageSource.includes('renderArticleRecipeTreeResult')) throw new Erro
 if (!articlePageSource.includes('data-tp-resolved')) throw new Error('article recipe tree embeds must expose runtime resolved state')
 if (!articlePageSource.includes('<Teleport to="body">')) throw new Error('article reference preview must teleport to body so fixed positioning is not affected by transformed article panels')
 if (!articleStyleSource.includes('.article-recipe-tree__graph')) throw new Error('article recipe tree graph must define hierarchy graph styles')
-if (!recipeHierarchyGraphRendererSource.includes("document.createElementNS('http://www.w3.org/2000/svg', 'svg')")) throw new Error('shared recipe tree graph renderer must use an SVG line canvas like the crafting page')
-if (!recipeHierarchyGraphRendererSource.includes('recipe-overview-tree') || !recipeHierarchyGraphRendererSource.includes('recipe-hierarchy-card')) throw new Error('shared recipe tree graph renderer must reuse the crafting overview tree DOM classes')
+if (!recipeHierarchyGraphRendererSource.includes("from '#article-runtime/recipeHierarchyGraphRenderer'")) throw new Error('public recipe graph adapter must import the root shared renderer through its Nuxt alias')
+if (!sharedRecipeHierarchyGraphRendererSource.includes("document.createElementNS('http://www.w3.org/2000/svg', 'svg')")) throw new Error('shared recipe tree graph renderer must use an SVG line canvas like the crafting page')
+if (!sharedRecipeHierarchyGraphRendererSource.includes('recipe-overview-tree') || !sharedRecipeHierarchyGraphRendererSource.includes('recipe-hierarchy-card')) throw new Error('shared recipe tree graph renderer must reuse the crafting overview tree DOM classes')
+if (!sharedRecipeHierarchyGraphRendererSource.includes('tp-article-runtime-popover') || !sharedRecipeHierarchyGraphRendererSource.includes('popoverThemeClass')) throw new Error('shared renderer must mark body portals with the caller theme class')
+if (!sharedRecipeHierarchyGraphRendererSource.includes('holder.tabIndex = 0') || !sharedRecipeHierarchyGraphRendererSource.includes("addEventListener('keydown'")) throw new Error('shared renderer nodes must support keyboard popover controls')
+if (!sharedRecipeHierarchyGraphRendererSource.includes('suppressFocusShow')) throw new Error('shared renderer must prevent Escape focus restoration from reopening its popover')
 if (!/\bimport\s*\{[^}]*\bbuildCraftingRecipeModel\b[^}]*\}\s*from\s*['"]~\/composables\/useCraftingRecipeModel['"]/.test(articlePageSource)) throw new Error('article recipe tree must reuse the crafting recipe selection model')
 if (!articlePageSource.includes('dataset.articleRecipeRole')) throw new Error('article recipe tree must expose local version and recipe selectors for multi-recipe results')
 if (extractFunction(articlePageSource, 'recipeTreeRootNodes').includes('slice(0, 1)')) throw new Error('article recipe tree must not truncate multi-recipe roots to the first entry')

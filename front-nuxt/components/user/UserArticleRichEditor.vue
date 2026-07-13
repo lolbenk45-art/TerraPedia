@@ -1052,6 +1052,7 @@ const appendEditorRecipeTreeGraph = (container: HTMLElement, roots: PublicItemRe
     availableWidth,
     resolveImageUrl: imageUrl => editorRecipeTreeImage(imageUrl),
     popoverOwner: 'editor',
+    popoverThemeClass: 'tp-article-runtime-popover--public',
   })
   if (!graph) return
   graph.classList.add('editor-recipe-tree__graph')

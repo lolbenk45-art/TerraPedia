@@ -1295,6 +1295,7 @@ const appendArticleRecipeTreeGraph = (container: HTMLElement, roots: PublicItemR
     availableWidth,
     resolveImageUrl: imageUrl => sanitizeArticleUrl(imageUrl, 'src'),
     popoverOwner: 'article',
+    popoverThemeClass: 'tp-article-runtime-popover--public',
   })
   if (!graph) return
   graph.classList.add('article-recipe-tree__graph')
