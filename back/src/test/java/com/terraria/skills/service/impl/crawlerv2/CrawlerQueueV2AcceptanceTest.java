@@ -133,6 +133,27 @@ class CrawlerQueueV2AcceptanceTest {
         assertEquals(CrawlerQueueV2Status.STARTING, harness.attempt(second.attemptId()).status());
     }
 
+    @Test
+    void unconfirmedTerminationShowsAnErrorAndKeepsTheDomainIsolated() {
+        CrawlerQueueV2ApplicationService.DispatchResult first = harness.enqueue("bosses", "fixture-a", "fresh");
+        CrawlerQueueV2ApplicationService.DispatchResult second = harness.enqueue("bosses", "fixture-b", "fresh");
+        harness.ackRunning(first.attemptId(), 1L, 10L);
+        harness.setTermination(first.attemptId(), Termination.NEVER_CONFIRMED);
+
+        harness.cancel(first.attemptId());
+        harness.reconcile();
+
+        CrawlerQueueV2Attempt failed = harness.attempt(first.attemptId());
+        assertEquals(CrawlerQueueV2Status.FAILED, failed.status());
+        assertEquals(CrawlerQueueV2ReasonCode.PROCESS_TERMINATION_UNCONFIRMED, failed.reasonCode());
+        assertEquals(CrawlerQueueV2Status.QUEUED, harness.attempt(second.attemptId()).status());
+        assertEquals(first.attemptId(), harness.lease("bosses").orElseThrow());
+        assertEquals(CrawlerQueueV2ReasonCode.PROCESS_TERMINATION_UNCONFIRMED,
+            harness.quarantine("bosses").orElseThrow().reasonCode());
+        assertEquals(CrawlerQueueV2ReasonCode.PROCESS_TERMINATION_UNCONFIRMED,
+            harness.overview().domainStates().get(0).reasonCode());
+    }
+
     private static final class MutableClock extends Clock {
         private Instant now;
 
@@ -194,6 +215,7 @@ class CrawlerQueueV2AcceptanceTest {
         String epoch() { return repository.epoch; }
         void reconcile() { reconciler.reconcileNow(); }
         Optional<String> lease(String domain) { return repository.lease(domain); }
+        Optional<CrawlerQueueV2Repository.DomainQuarantine> quarantine(String domain) { return repository.quarantine(domain); }
         Optional<String> dedupeForAttempt(String attemptId) { return repository.dedupeForAttempt(attemptId); }
         CrawlerQueueV2Event latestAttemptEvent() { return repository.latestAttemptEvent(); }
         CrawlerQueueV2ReasonCode latestRejectedProgressReason() { return repository.latestRejectedProgressReason(); }
@@ -276,6 +298,7 @@ class CrawlerQueueV2AcceptanceTest {
         private final Map<String, String> dedupe = new LinkedHashMap<>();
         private final Map<String, String> leases = new LinkedHashMap<>();
         private final List<EventEnvelope> events = new ArrayList<>();
+        private final List<DomainQuarantine> quarantines = new ArrayList<>();
         private ReconcilerHealth health;
         private long fence;
         private boolean deferReadyClaimAfterRelease;
@@ -333,6 +356,11 @@ class CrawlerQueueV2AcceptanceTest {
                 leases.entrySet().removeIf(entry -> entry.getValue().equals(updated.attemptId()));
                 dedupe.remove(command.dedupeKey(), updated.attemptId());
                 deferReadyClaimAfterRelease = command.targetStatus() == CrawlerQueueV2Status.TIMED_OUT;
+            } else if (command.retainedOwnershipTtl() != null) {
+                for (String domain : command.coveredDomains()) {
+                    quarantines.add(new DomainQuarantine(epoch, domain, updated.queueId(), updated.attemptId(),
+                        updated.fenceToken(), firstMutationAt.plus(command.retainedOwnershipTtl()), command.reasonCode()));
+                }
             }
             append(new CrawlerQueueV2Event(command.eventType(), epoch, updated.queueId(), updated.attemptId(), updated.fenceToken(),
                 updated.stateVersion(), updated.status(), updated.reasonCode(), command.enteredAt()));
@@ -342,7 +370,9 @@ class CrawlerQueueV2AcceptanceTest {
         @Override public MutationResult createRetry(CreateRetryCommand command) { throw unexpected("createRetry"); }
         @Override public Optional<CrawlerQueueV2Queue> findQueue(String queueId) { return Optional.ofNullable(queues.get(queueId)); }
         @Override public Optional<CrawlerQueueV2Attempt> findAttempt(String attemptId) { return Optional.ofNullable(attempts.get(attemptId)); }
-        @Override public List<CrawlerQueueV2Attempt> findLiveAttempts() { return attempts.values().stream().filter(a -> !a.status().terminal()).toList(); }
+        @Override public List<CrawlerQueueV2Attempt> findLiveAttempts() {
+            return attempts.values().stream().filter(attempt -> !attempt.status().terminal() || leases.containsValue(attempt.attemptId())).toList();
+        }
         @Override public List<CrawlerQueueV2Attempt> findReadyAttempts(int limit) {
             if (deferReadyClaimAfterRelease) {
                 deferReadyClaimAfterRelease = false;
@@ -364,7 +394,7 @@ class CrawlerQueueV2AcceptanceTest {
         @Override public Optional<CutoverRecord> readCutover(String cutoverId) { throw unexpected("readCutover"); }
         @Override public InitializeResetEpochResult initializeResetEpoch(InitializeResetEpochCommand command) { throw unexpected("initializeResetEpoch"); }
         @Override public void writeQuarantine(QuarantineCommand command) { throw unexpected("writeQuarantine"); }
-        @Override public List<DomainQuarantine> findQuarantines() { return List.of(); }
+        @Override public List<DomainQuarantine> findQuarantines() { return List.copyOf(quarantines); }
 
         private void requireEpoch(String expected) { if (!epoch.equals(expected)) throw new AssertionError("stale epoch"); }
         private void append(CrawlerQueueV2Event event) {
@@ -374,6 +404,9 @@ class CrawlerQueueV2AcceptanceTest {
             }
         }
         private Optional<String> lease(String domain) { return Optional.ofNullable(leases.get(domain)); }
+        private Optional<DomainQuarantine> quarantine(String domain) {
+            return quarantines.stream().filter(quarantine -> domain.equals(quarantine.domain())).reduce((first, second) -> second);
+        }
         private Optional<String> dedupeForAttempt(String attemptId) {
             return dedupe.entrySet().stream().filter(entry -> entry.getValue().equals(attemptId)).map(Map.Entry::getKey).findFirst();
         }

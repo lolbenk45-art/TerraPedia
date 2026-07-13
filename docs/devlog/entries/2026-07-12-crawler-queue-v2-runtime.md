@@ -673,6 +673,10 @@
   that ignores graceful termination receives TERM then KILL, emits
   cancel-requested before cancelled, and only then permits the next queued
   attempt to start. Three scenarios remain; see git for code-level diff details.
+- The fifth matrix regression is ready for a focused checkpoint: an
+  unconfirmed termination remains failed with an explicit reason, retaining
+  domain isolation so the next queued attempt cannot start under a potentially
+  live process. Two scenarios remain; see git for code-level diff details.
 - Task 11 now renders only the authoritative V2 attempt model: authenticated
   SSE plus a three-second fallback, visible queue/reconciler health, exact
   control identity, Chinese lifecycle states, V2-only activity, and attempt
