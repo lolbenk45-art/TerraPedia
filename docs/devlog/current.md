@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-13 20:26 CST by Codex
+Last updated: 2026-07-13 20:35 CST by Codex
 
 ## Open Work
 
@@ -9,7 +9,7 @@ Last updated: 2026-07-13 20:26 CST by Codex
   - status: active
   - branch: `review/front-nuxt-visual`
   - worktree: `/home/lolben/TerraPedia`
-  - parent/child: none
+  - parent/child: parent; `2026-07-13-user-article-editor-hydration.md` is its isolated prerequisite checkpoint
   - dependencies or blocked-by: no backend/data mutation; authenticated local-admin acceptance requires a valid session
   - contract handoff: first checkpoint the existing user-editor hydration fix separately because shared extraction touches its file; then run the disposable cross-project-import spike and the shared-runtime RED→GREEN commit. Add `happy-dom` plus `tsx` before the admin RED contract; the graph accepts valid embed depths `1–5`, and body-portaled popovers require their direct host-theme class. User decisions: use two focused new-feature commits and ship non-navigating reference popovers.
 
@@ -24,7 +24,7 @@ Last updated: 2026-07-13 20:26 CST by Codex
 
 ## Current State
 
-- The admin article runtime-preview design is approved on `review/front-nuxt-visual` and source-audited after its review additions. Current admin review and editor preview hosts stop at sanitized `v-html`; the new task will add one shared runtime-preview component for image URL handling, item/NPC/boss references, and recipe-tree hydration without using a public-page iframe. The user selected two focused commits and non-navigating reference popovers. Implementation, including a disposable cross-project-import spike and focused RED contracts, has not started.
+- The admin article runtime-preview design is approved on `review/front-nuxt-visual` and source-audited after its review additions. Current admin review and editor preview hosts stop at sanitized `v-html`; the new task will add one shared runtime-preview component for image URL handling, item/NPC/boss references, and recipe-tree hydration without using a public-page iframe. The user selected two focused commits and non-navigating reference popovers. The isolated editor hydration prerequisite is validated and closing in its own checkpoint commit; the alias spike and focused RED contracts have not started.
 - Article embedded-tree visual correction is closed for commit on `review/front-nuxt-visual`: both hosts call the shared renderer; public article body image sizing matches the editor; and shared model display normalizes verbose raw variant metadata. Full frontend check passed at 2026-07-13 17:49 CST. The next task is the separately reported admin review-preview parity defect.
 - Article detail embedded-tree correction is ready for visual acceptance on `review/front-nuxt-visual`: PC recipe-tree embeds now use the article body panel rather than the `76ch` prose column, without changing the sidebar, body copy, or mobile. Fresh `/articles/fw` Chromium evidence at 1440px reports a `935px` graph frame, scale `0.5457`, all 23 nodes inside, no sidebar overlap or document overflow, and complete station previews increased to `26.19px`.
 - Crawler monitor queue/status root-cause analysis and the first two V2
@@ -114,7 +114,7 @@ Last updated: 2026-07-13 20:26 CST by Codex
 
 ## Next Agent Should Start Here
 
-- On `review/front-nuxt-visual`, execute `docs/superpowers/plans/2026-07-13-admin-article-runtime-preview.md` in order: first checkpoint and commit the existing user-editor hydration fix; then run the disposable alias spike, shared-runtime RED→GREEN and its first new-feature commit; then run `happy-dom` + `tsx` admin RED→GREEN and the second new-feature commit. Keep `data-query-app/utils/articleEditor.ts` with the admin task. The user chose two focused new-feature commits and non-navigating content-reference popovers.
+- On `review/front-nuxt-visual`, the hydration checkpoint has fresh focused evidence and is closing in its commit. Then execute `docs/superpowers/plans/2026-07-13-admin-article-runtime-preview.md` from the disposable alias spike, shared-runtime RED→GREEN and its first new-feature commit; then run `happy-dom` + `tsx` admin RED→GREEN and the second new-feature commit. Keep `data-query-app/utils/articleEditor.ts` with the admin task. The user chose two focused new-feature commits and non-navigating content-reference popovers.
 - On `review/front-nuxt-visual`, have the user inspect `http://localhost:15177/articles/fw`: PC FW trees should occupy the article body panel, show all 23 nodes, and retain complete `26.19px` minimum station previews. If readability remains insufficient at a materially narrower desktop, use a separate layout-mode design rather than restoring a clipping scale floor. Commit only on request.
 - Continue inline from Task 3 of the committed V2 hard-cutover plan using
   test-first implementation and the plan's task-level validation checkpoints.

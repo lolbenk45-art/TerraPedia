@@ -1261,13 +1261,11 @@ const syncEditorFromModel = async () => {
   const normalizedCurrentHtml = sanitizeEditorHtml(editor.innerHTML)
   if (normalizedNextHtml === lastEmittedEditorHtml && normalizedCurrentHtml === normalizedNextHtml) {
     updateHistoryButtons()
-    void loadEditorRecipeTreeEmbeds()
     return
   }
   if (editor.innerHTML === nextHtml || sanitizeEditorHtml(editor.innerHTML) === normalizedNextHtml) {
     editorHistory.reset(normalizedNextHtml)
     updateHistoryButtons()
-    void loadEditorRecipeTreeEmbeds()
     return
   }
   syncingFromModel.value = true
