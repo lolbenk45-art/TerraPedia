@@ -658,6 +658,12 @@
   worktree while progress/log artifacts use the isolated root, preventing an
   external fixture directory from hiding the fixture script. See git for
   code-level diff details.
+- The first Task 13 acceptance-matrix regression is ready for its own focused
+  checkpoint. It uses the real V2 application, supervisor, reconciler,
+  artifact, router, and legacy-history chain with a test-only in-memory
+  repository to prove legacy running history cannot block V2 admission. The
+  other six required scenarios remain unimplemented; see git for code-level
+  diff details.
 - Task 11 now renders only the authoritative V2 attempt model: authenticated
   SSE plus a three-second fallback, visible queue/reconciler health, exact
   control identity, Chinese lifecycle states, V2-only activity, and attempt
@@ -694,11 +700,14 @@
 - Task 13's offline fixture tests do not prove the seven combined queue/status/
   log scenarios or authenticated stack smoke. Those checks remain release
   blockers before readiness or live-cutover claims.
+- Only the legacy-conflict matrix scenario is covered so far. Deadline
+  convergence, stale-fence rejection, termination isolation, pure overview,
+  and exact mixed-log history remain required before Task 13 is complete.
 
 ## Follow-up
 
-- Owner: Codex. Commit the Task 13 fixture-isolation checkpoint, then complete
-  its in-memory seven-scenario acceptance coverage and guarded smoke script
+- Owner: Codex. Commit the first Task 13 legacy-conflict matrix regression,
+  then complete the remaining six in-memory scenarios and guarded smoke script
   without executing it. Do not perform fixture-stack execution, the first
   irreversible V2 mutation, or live cutover without their explicit gates.
 
