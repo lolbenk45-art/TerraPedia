@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-13 18:47 CST by Codex
+Last updated: 2026-07-13 19:55 CST by Codex
 
 ## Open Work
 
@@ -11,7 +11,7 @@ Last updated: 2026-07-13 18:47 CST by Codex
   - worktree: `/home/lolben/TerraPedia`
   - parent/child: none
   - dependencies or blocked-by: no backend/data mutation; authenticated local-admin acceptance requires a valid session
-  - contract handoff: create one admin runtime-preview component, share a framework-neutral recipe graph core, and keep the existing user-editor hydration patch out of this task's commit
+  - contract handoff: read the current design and Follow-up before starting. Run the disposable cross-project-import spike first; then add the specified happy-dom harness and execute the focused RED contract. The graph accepts valid embed depths `1–5`; body-portaled popovers require their direct host-theme class and cannot inherit only from the preview root. Two decisions remain explicitly deferred: commit staging, and whether the admin reference popover emits a reduced filtered-list link. Keep the existing user-editor hydration patch out of this task's commit either way.
 
 - `docs/devlog/entries/2026-07-12-crawler-queue-v2-runtime.md`
   - owner: Codex
@@ -24,7 +24,7 @@ Last updated: 2026-07-13 18:47 CST by Codex
 
 ## Current State
 
-- The admin article runtime-preview design is approved on `review/front-nuxt-visual`. Current admin review and editor preview hosts stop at sanitized `v-html`; the new task will add one shared runtime-preview component for image URL handling, item/NPC/boss references, and recipe-tree hydration without using a public-page iframe.
+- The admin article runtime-preview design is approved on `review/front-nuxt-visual` and source-audited after its review additions. Current admin review and editor preview hosts stop at sanitized `v-html`; the new task will add one shared runtime-preview component for image URL handling, item/NPC/boss references, and recipe-tree hydration without using a public-page iframe. Implementation, including a disposable cross-project-import spike and a focused Node + happy-dom RED contract, has not started.
 - Article embedded-tree visual correction is closed for commit on `review/front-nuxt-visual`: both hosts call the shared renderer; public article body image sizing matches the editor; and shared model display normalizes verbose raw variant metadata. Full frontend check passed at 2026-07-13 17:49 CST. The next task is the separately reported admin review-preview parity defect.
 - Article detail embedded-tree correction is ready for visual acceptance on `review/front-nuxt-visual`: PC recipe-tree embeds now use the article body panel rather than the `76ch` prose column, without changing the sidebar, body copy, or mobile. Fresh `/articles/fw` Chromium evidence at 1440px reports a `935px` graph frame, scale `0.5457`, all 23 nodes inside, no sidebar overlap or document overflow, and complete station previews increased to `26.19px`.
 - Crawler monitor queue/status root-cause analysis and the first two V2
@@ -114,7 +114,7 @@ Last updated: 2026-07-13 18:47 CST by Codex
 
 ## Next Agent Should Start Here
 
-- On `review/front-nuxt-visual`, run the new focused admin-preview contract in RED before changing production code. Keep `data-query-app/utils/articleEditor.ts` with the admin-preview task and keep the separate `front-nuxt/components/user/UserArticleRichEditor.vue` hydration fix unstaged from it.
+- On `review/front-nuxt-visual`, first run the disposable cross-project-import spike described in the design spec; remove its temporary import/configuration before proceeding. If it fails or is materially costly, revisit the `shared/article-runtime/` premise. Then add the specified happy-dom test harness and run the focused admin-preview contract in RED before production code. Keep `data-query-app/utils/articleEditor.ts` with the admin-preview task and keep the separate `front-nuxt/components/user/UserArticleRichEditor.vue` hydration fix unstaged from it. Before finalizing, surface the two deferred decisions: commit staging and the reduced admin content-reference list link.
 - On `review/front-nuxt-visual`, have the user inspect `http://localhost:15177/articles/fw`: PC FW trees should occupy the article body panel, show all 23 nodes, and retain complete `26.19px` minimum station previews. If readability remains insufficient at a materially narrower desktop, use a separate layout-mode design rather than restoring a clipping scale floor. Commit only on request.
 - Continue inline from Task 3 of the committed V2 hard-cutover plan using
   test-first implementation and the plan's task-level validation checkpoints.
@@ -139,7 +139,7 @@ Last updated: 2026-07-13 18:47 CST by Codex
 
 ## Current Risks
 
-- The root shared recipe-runtime source and CSS alias must be proven by both Nuxt build paths; local authenticated admin acceptance also needs a valid session and suitable article fixture.
+- The root shared recipe-runtime alias must be proven by both Nuxt build paths with a disposable spike. Replacing the renderer's hardcoded `crafting-screen` class and adding keyboard-focus support touches code already shipped to the public article page and rich editor, so validation needs a real running-page visual check on `/articles/*`, not just typecheck/build. Body-portaled popovers must receive their direct public/admin theme class; they cannot inherit preview-root variables. Local authenticated admin acceptance also needs a valid session and suitable article fixture.
 - Dense article recipe trees use width-fit scaling with the wider PC article-body frame, so the FW `1706px` graph begins entirely inside a `935px` graph frame at 1440px. Its square station source frames are complete and unshifted with `contain` fitting at `26.19×26.19px`; only a narrower-desktop readability concern would require a future layout-mode decision.
 - The local stack is stopped and the latest retained crawler runtime evidence is
   dated 2026-07-08, so live behavior is not yet freshly reproduced.

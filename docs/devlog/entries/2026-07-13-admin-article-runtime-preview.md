@@ -35,17 +35,21 @@
 
 ## Result
 
-- Completed: written design approved in chat; task scope, commit boundary, and acceptance contract recorded.
-- Not completed: implementation and RED→GREEN validation.
+- Completed: written design approved in chat; task scope, commit boundary, and acceptance contract recorded. A subsequent source audit confirmed the existing renderer/class, entity-route, editor-lifecycle, and boss-endpoint facts used by the design, and revised the spec for the public `1–5` embed-depth contract, body-portaled popover theme scope, explicit three-request tree queue, and a concrete Node + happy-dom behavioral-test harness. The current documents enumerate nine prior review topics, but no independent review artifact records their round count; treat the source-audited rules in the current spec as authority.
+- Not completed: the import-boundary spike, dependency/test-harness addition, implementation, and RED→GREEN validation.
 
 ## Residual Risks
 
-- Both Nuxt apps must resolve the root shared source and CSS consistently; typecheck/build prove the alias boundary before the task can be ready for commit.
+- The cross-project import boundary is unverified: neither `data-query-app` nor `front-nuxt` has a workspace file, root `package.json`, or `nuxt.config.ts` alias/extends today, so nothing currently lets either app import from a new `shared/` directory. The spec's "Cross-project import boundary" section requires a throwaway spike (trivial exported constant, alias + tsconfig path in both apps, dev/typecheck/build all resolving it, `server.fs.allow` widened if needed) before any real shared-runtime code is written. If the spike fails or is materially costly, stop and revisit the premise rather than pushing through.
+- This task edits renderer/CSS that `/articles/*` and the public rich editor already ship today (replacing the hardcoded `crafting-screen` class and adding tabindex/keyboard handling). Typecheck/build passing is not sufficient evidence the public side is visually unchanged — validate against a running `/articles/*` page, matching the bar this same renderer was held to by `2026-07-12-article-recipe-preview-parity-design.md` and `2026-07-13-article-recipe-tree-pc-wide-layout-design.md`.
 - Admin page acceptance needs an authorized local admin session and an article containing the required embed/reference examples.
 
 ## Follow-up
 
-- Owner: Codex. Write and run the focused RED contract before implementation.
+- Owner: Codex.
+- Sequencing: (1) run the cross-project-import spike first, before writing any real shared-runtime code — if it fails or is unexpectedly costly, stop and revisit the `shared/article-runtime/` premise instead of pushing through; (2) add the specified happy-dom harness and write/run the focused RED contract; (3) implement to GREEN; (4) run the public-article visual check called out in the spec's Test-First Plan before calling the shared-runtime extraction done.
+- Open decision, deferred by the user to whoever implements — do not decide silently, surface it back to the user: land this as the single admin-preview commit currently described in "Validation and Commit Boundaries," or stage it as spike (no commit) → shared-runtime extraction (verified against the public site, its own commit) → admin-specific pieces (component, host integration, sanitizer, boss UI, tests). The user's stated reasoning for preferring staged commits, if chosen: easier to isolate where things break given how many independent pieces this now touches.
+- Open decision, chosen as a pragmatic default during review but not yet user-approved — confirm before shipping: admin's content-reference detail link resolves to a filtered `/entities/{items|npcs|bosses}?search=` list page instead of a true per-record deep link, because no per-record admin detail route exists today. This is a deliberate reduced-parity substitute for the public site's one-click `/items/:id`-style links, decided as the lowest-scope option during review — the user asked for this to be surfaced as a judgment call for Codex to bring back to them, not treated as settled.
 
 ## Commits
 
