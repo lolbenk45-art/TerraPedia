@@ -672,6 +672,16 @@
   maintenance marker and immutable failed-attempt manifest are preserved for
   forward recovery; no Redis key was cleared, no database was written, and no
   crawler was started.
+- The first explicit forward-recovery request returned `503/STATE_STORE_RESET`
+  without changing the durable marker or Redis metadata. Runtime evidence
+  showed the intentional `begin-cutover.lua` maintenance engine state, while
+  `initialize-reset-epoch.lua` incorrectly accepted only `v2`. A new Lua
+  contract regression failed against that exact condition, then passed after
+  allowing only `v2` or `maintenance` (V1 and every other value still fail
+  closed). The focused repository, cutover, and snapshot selection passed
+  68/68. This repair must be deployed before repeating the same idempotent
+  forward-recovery request; no V2 live attempt, Redis clear, database write,
+  or crawler has occurred.
 
 - Completed: branch handoff contract, Tasks 1-2 prerequisite commits, the
   focused idle/queue visibility compatibility checkpoint, and Task 3's fixed
