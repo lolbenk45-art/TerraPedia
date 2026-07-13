@@ -88,6 +88,56 @@ class CrawlerAttemptSupervisorTest {
     }
 
     @Test
+    void startsTheHiddenFixtureDefinitionWithoutAddingItToTheProductionRegistry() {
+        CrawlerQueueV2Attempt attempt = withAction(
+            startingAttempt(142L, 2L),
+            "crawler_queue_v2_fixture",
+            "crawler-queue-v2-fixture"
+        );
+        FakeLauncher launcher = new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT));
+        CrawlerAttemptSupervisor supervisor = supervisor(launcher, attempt);
+
+        supervisor.start(attempt);
+
+        assertEquals(
+            List.of("node", "scripts/data/monitor/crawler-queue-v2-fixture.mjs", "--progress-path="
+                + attempt.artifacts().progressPath(), "--heartbeats=20", "--interval-ms=250"),
+            launcher.lastLaunchSpec().command()
+        );
+        assertFalse(CrawlerMonitorActionRegistry.defaults().all().stream()
+            .anyMatch(action -> "crawler-queue-v2-fixture".equals(action.actionId())));
+    }
+
+    @Test
+    void keepsFixtureExecutionInTheWorktreeWhileWritingArtifactsToAnExternalFixtureRoot() throws IOException {
+        Path fixtureRoot = Files.createTempDirectory("crawler-v2-fixture-artifacts-");
+        CrawlerQueueV2Attempt attempt = withAction(
+            startingAttempt(142L, 2L),
+            "crawler_queue_v2_fixture",
+            "crawler-queue-v2-fixture"
+        );
+        FakeLauncher launcher = new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT));
+        CrawlerAttemptSupervisor supervisor = supervisor(
+            launcher,
+            attempt,
+            CrawlerMonitorActionRegistry.defaults(),
+            new CrawlerQueueV2Properties(),
+            v2Router().router(),
+            repoRoot,
+            fixtureRoot
+        );
+
+        supervisor.start(attempt);
+
+        Path externalProgress = fixtureRoot.resolve(attempt.artifacts().progressPath()).normalize();
+        assertEquals(repoRoot.toAbsolutePath().normalize(), launcher.lastLaunchSpec().directory());
+        assertEquals(externalProgress, Path.of(launcher.lastLaunchSpec().environment()
+            .get("TERRAPEDIA_CRAWLER_PROGRESS_PATH")));
+        assertTrue(launcher.lastLaunchSpec().command().contains("--progress-path=" + externalProgress));
+        assertEquals(fixtureRoot.resolve(attempt.artifacts().logPath()).normalize(), launcher.lastLaunchSpec().logPath());
+    }
+
+    @Test
     void launchSpecMustDefensivelyCopyCommandAndEnvironment() {
         List<String> command = new ArrayList<>(List.of("node", "worker.mjs"));
         Map<String, String> environment = new LinkedHashMap<>(Map.of("QUEUE_ID", "queue-1"));
@@ -1740,6 +1790,37 @@ class CrawlerAttemptSupervisorTest {
         CrawlerQueueV2Attempt initialAttempt,
         CrawlerMonitorActionRegistry actionRegistry,
         CrawlerQueueV2Properties properties,
+        CrawlerQueueEngineRouter router,
+        Path worktreeRoot,
+        Path artifactRoot
+    ) {
+        AtomicReference<CrawlerQueueV2Attempt> current = new AtomicReference<>(initialAttempt);
+        when(repository.requireEpoch()).thenReturn("epoch-1");
+        when(repository.findQueue("queue-1")).thenReturn(Optional.of(queue()));
+        when(repository.findAttempt("attempt-1")).thenAnswer(ignored -> Optional.ofNullable(current.get()));
+        when(repository.readEngineState()).thenReturn(new CrawlerQueueV2Repository.EngineState(
+            CrawlerQueueEngineMode.V2, "epoch-1", "cutover-1", NOW.minusSeconds(60).toString()
+        ));
+        when(repository.renewLeases(any())).thenReturn(true);
+        when(repository.mutate(any())).thenAnswer(invocation -> {
+            CrawlerQueueV2Repository.MutationCommand command = invocation.getArgument(0);
+            CrawlerQueueV2Attempt updated = apply(current.get(), command);
+            current.set(updated);
+            return new CrawlerQueueV2Repository.MutationResult(updated, "1-0");
+        });
+        when(artifactStore.readManifest("attempt-1")).thenReturn(Optional.of(manifest(initialAttempt, null)));
+        latestAttempt = current;
+        return new CrawlerAttemptSupervisor(
+            repository, artifactStore, actionRegistry, launcher, new CrawlerAttemptStateMachine(properties), properties,
+            worktreeRoot, artifactRoot, Clock.fixed(NOW, ZoneOffset.UTC), router
+        );
+    }
+
+    private CrawlerAttemptSupervisor supervisor(
+        CrawlerAttemptProcessLauncher launcher,
+        CrawlerQueueV2Attempt initialAttempt,
+        CrawlerMonitorActionRegistry actionRegistry,
+        CrawlerQueueV2Properties properties,
         CrawlerQueueEngineRouter router
     ) {
         AtomicReference<CrawlerQueueV2Attempt> current = new AtomicReference<>(initialAttempt);
@@ -2029,6 +2110,22 @@ class CrawlerAttemptSupervisorTest {
             attempt.lastHeartbeatAt(), attempt.deadlineAt(), attempt.pid(), attempt.processStartedAt(),
             attempt.progressSequence(), attempt.phase(), attempt.current(), attempt.total(),
             attempt.workerMessage(), attempt.reasonCode(), artifacts
+        );
+    }
+
+    private CrawlerQueueV2Attempt withAction(
+        CrawlerQueueV2Attempt attempt,
+        String domain,
+        String actionId
+    ) {
+        return new CrawlerQueueV2Attempt(
+            attempt.contractVersion(), attempt.stateStoreEpoch(), attempt.queueId(), attempt.attemptId(),
+            attempt.fenceToken(), attempt.stateVersion(), attempt.status(), attempt.lane(), domain,
+            List.of(domain), actionId, attempt.retryOfAttemptId(), attempt.requestedAt(),
+            attempt.eligibleAt(), attempt.enteredAt(), attempt.startedAt(), attempt.completedAt(),
+            attempt.lastHeartbeatAt(), attempt.deadlineAt(), attempt.pid(), attempt.processStartedAt(),
+            attempt.progressSequence(), attempt.phase(), attempt.current(), attempt.total(),
+            attempt.workerMessage(), attempt.reasonCode(), attempt.artifacts()
         );
     }
 

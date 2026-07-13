@@ -651,6 +651,13 @@
   common Redis Stream `payload` contract, preventing a cutover record type or
   event-field mismatch from silently stalling operator visibility. See git for
   code-level diff details.
+- Task 13 fixture-isolation checkpoint is ready for its focused commit. The
+  fixture remains absent from the approved twelve production actions, is
+  rejected when disabled, and is constrained to an explicit test Redis
+  namespace and safe fixture root. Its process starts from the real code
+  worktree while progress/log artifacts use the isolated root, preventing an
+  external fixture directory from hiding the fixture script. See git for
+  code-level diff details.
 - Task 11 now renders only the authoritative V2 attempt model: authenticated
   SSE plus a three-second fallback, visible queue/reconciler health, exact
   control identity, Chinese lifecycle states, V2-only activity, and attempt
@@ -684,13 +691,16 @@
   isolated-prefix fixture smoke; real cutover, the first irreversible V2
   mutation, service restart, and any shared Redis action remain explicitly
   unauthorized.
+- Task 13's offline fixture tests do not prove the seven combined queue/status/
+  log scenarios or authenticated stack smoke. Those checks remain release
+  blockers before readiness or live-cutover claims.
 
 ## Follow-up
 
-- Owner: Codex. Commit Task 12 as a focused checkpoint, then complete Task 13
-  offline acceptance coverage without touching runtime state. Do not perform
-  fixture-stack execution, the first irreversible V2 mutation, or live cutover
-  without their explicit gates.
+- Owner: Codex. Commit the Task 13 fixture-isolation checkpoint, then complete
+  its in-memory seven-scenario acceptance coverage and guarded smoke script
+  without executing it. Do not perform fixture-stack execution, the first
+  irreversible V2 mutation, or live cutover without their explicit gates.
 
 ## Commits
 

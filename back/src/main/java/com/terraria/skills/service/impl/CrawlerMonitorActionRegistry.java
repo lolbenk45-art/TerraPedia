@@ -45,6 +45,35 @@ public class CrawlerMonitorActionRegistry {
             ));
     }
 
+    /**
+     * A deliberately unregistered action used only by the isolated V2 smoke
+     * harness. Keeping it out of {@link #all()} preserves the approved list
+     * of production crawler actions.
+     */
+    public static CrawlerMonitorActionDefinition fixture() {
+        return new CrawlerMonitorActionDefinition(
+            "crawler_queue_v2_fixture",
+            "Crawler queue V2 fixture",
+            "fixture.crawler.queue.v2",
+            "no-network fixture",
+            "crawler-queue-v2-fixture",
+            "<progressPath>",
+            List.of(
+                "node",
+                "scripts/data/monitor/crawler-queue-v2-fixture.mjs",
+                "--progress-path=<progressPath>",
+                "--heartbeats=20",
+                "--interval-ms=250"
+            ),
+            false,
+            false,
+            false,
+            "fresh",
+            null,
+            "fresh"
+        );
+    }
+
     private static List<CrawlerMonitorActionDefinition> defaultActions() {
         return List.of(
             backend("items", "Items", "wiki.module.iteminfo", "Module:Iteminfo/data", "wiki-items-refresh", true),

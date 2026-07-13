@@ -195,6 +195,27 @@ class CrawlerQueueV2ApplicationServiceTest {
     }
 
     @Test
+    void rejectsTheFixtureActionWithForbiddenWhenFixtureExecutionIsDisabled() {
+        when(repository.readEngineState()).thenReturn(engineV2());
+
+        CrawlerQueueV2Exception exception = assertThrows(CrawlerQueueV2Exception.class, () -> service.enqueue(
+            new CrawlerQueueV2ApplicationService.EnqueueCommand(
+                "crawler_queue_v2_fixture",
+                "crawler-queue-v2-fixture",
+                "standard",
+                "fresh",
+                "admin",
+                null
+            )
+        ));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.httpStatus());
+        assertEquals(CrawlerQueueV2ReasonCode.CUTOVER_NOT_ENABLED, exception.reasonCode());
+        assertTrue(exception.getMessage().contains("fixture"));
+        verify(repository, never()).createQueue(any());
+    }
+
+    @Test
     void surfacesUnexpectedLogMetadataFailuresAsStructuredArtifactUnavailable() {
         when(artifactStore.logMetadata(any(), any())).thenThrow(
             new IllegalStateException("读取 attempt 日志元数据失败")

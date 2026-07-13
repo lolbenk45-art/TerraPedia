@@ -847,6 +847,18 @@ public class CrawlerQueueV2ApplicationService {
     }
 
     private CrawlerMonitorActionDefinition requireExactAction(String domain, String actionId) {
+        if ("crawler_queue_v2_fixture".equals(domain)
+            && "crawler-queue-v2-fixture".equals(actionId)) {
+            if (!properties.isFixtureEnabled()) {
+                throw new CrawlerQueueV2Exception(
+                    HttpStatus.FORBIDDEN,
+                    CrawlerQueueV2ReasonCode.CUTOVER_NOT_ENABLED,
+                    "fixture execution is disabled in this environment",
+                    null
+                );
+            }
+            return CrawlerMonitorActionRegistry.fixture();
+        }
         CrawlerMonitorActionDefinition action = actionRegistry.require(domain, actionId);
         if (!Objects.equals(domain, action.domain()) || !Objects.equals(actionId, action.actionId())) {
             throw new IllegalArgumentException("V2 enqueue 必须使用 registry 中精确的 domain/actionId");

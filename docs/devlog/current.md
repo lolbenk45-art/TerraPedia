@@ -11,7 +11,7 @@ Last updated: 2026-07-13 19:20 CST by Codex
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
   - parent/child: none
   - dependencies or blocked-by: local stack is stopped; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
-  - contract handoff: Tasks 1-5 are committed through `af762c2`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 6 exact worker progress identity is committed at `06c8df2`; Task 7 fenced process supervision is committed at `7df042b`; Task 8 bounded convergence/recovery is committed at `04b684a`; Task 9 durable routing, pure overview, and watcher fencing are committed at `024acdc`; Task 10 HTTP/log/SSE contract is committed at `331da55`; Task 11 authoritative V2 admin state is committed at `86dfeb8`; Task 12 hard-cutover checkpoint is ready for its focused commit, while Task 13 fixture files remain intentionally unstaged
+  - contract handoff: Tasks 1-5 are committed through `af762c2`; idle/queue visibility is committed at `591101e` and `2ecc179`; Task 6 exact worker progress identity is committed at `06c8df2`; Task 7 fenced process supervision is committed at `7df042b`; Task 8 bounded convergence/recovery is committed at `04b684a`; Task 9 durable routing, pure overview, and watcher fencing are committed at `024acdc`; Task 10 HTTP/log/SSE contract is committed at `331da55`; Task 11 authoritative V2 admin state is committed at `86dfeb8`; Task 12 hard-cutover checkpoint is committed at `bead133`; Task 13 fixture-isolation checkpoint is ready for its focused commit, while its acceptance matrix and smoke script remain open
 
 ## Current State
 
@@ -22,10 +22,12 @@ Last updated: 2026-07-13 19:20 CST by Codex
   transitions, and its Redis Stream event uses the same `payload` field as all
   other V2 events. No cutover, Redis mutation, crawler, database operation, or
   service lifecycle action has been performed.
-- Task 13 has only its offline no-network fixture and registry characterization
-  work in the working tree. Its in-memory acceptance matrix, guarded smoke
-  script, fixture stack execution, readiness audit, and live-cutover gates are
-  still open and must not be folded into the Task 12 checkpoint.
+- Task 13 now has a no-network fixture with monotonic progress, TERM-ignore,
+  and stall modes; fixture-only action admission; fail-closed test namespace
+  and storage-root checks; and separate code-worktree versus fixture-artifact
+  roots. Its in-memory acceptance matrix, guarded smoke script, fixture stack
+  execution, readiness audit, and live-cutover gates remain open and must not
+  be inferred from the offline fixture checks.
 
 - Crawler monitor queue/status root-cause analysis and the first two V2
   foundation tasks are complete; runtime implementation continues on the

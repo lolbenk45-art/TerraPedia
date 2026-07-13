@@ -40,13 +40,14 @@ public class CrawlerQueueV2Configuration {
     public CrawlerQueueV2Repository crawlerQueueV2Repository(
         ObjectMapper objectMapper,
         StringRedisTemplate redisTemplate,
-        Clock crawlerQueueV2Clock
+        Clock crawlerQueueV2Clock,
+        CrawlerQueueV2Properties properties
     ) {
         return new RedisCrawlerQueueV2Repository(
             objectMapper,
             redisTemplate,
             crawlerQueueV2Clock,
-            RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX
+            properties.resolveRedisNamespace()
         );
     }
 
@@ -55,12 +56,13 @@ public class CrawlerQueueV2Configuration {
         ObjectMapper objectMapper,
         CrawlerQueueV2Repository repository,
         Clock crawlerQueueV2Clock,
+        CrawlerQueueV2Properties properties,
         @Value("${terrapedia.crawler.queue-v2.repo-root:}") String configuredRepoRoot
     ) {
         return new CrawlerQueueEngineRouter(
             objectMapper,
             repository,
-            resolveRepoRoot(configuredRepoRoot),
+            resolveFixtureRoot(configuredRepoRoot, properties),
             crawlerQueueV2Clock
         );
     }
@@ -79,7 +81,7 @@ public class CrawlerQueueV2Configuration {
     ) {
         return new CrawlerAttemptArtifactStore(
             objectMapper,
-            resolveRepoRoot(configuredRepoRoot),
+            resolveFixtureRoot(configuredRepoRoot, properties),
             crawlerQueueV2Clock,
             properties
         );
@@ -89,11 +91,12 @@ public class CrawlerQueueV2Configuration {
     public CrawlerLegacyHistoryAdapter crawlerLegacyHistoryAdapter(
         ObjectMapper objectMapper,
         CrawlerQueueEngineRouter router,
+        CrawlerQueueV2Properties properties,
         @Value("${terrapedia.crawler.queue-v2.repo-root:}") String configuredRepoRoot
     ) {
         return new CrawlerLegacyHistoryAdapter(
             objectMapper,
-            resolveRepoRoot(configuredRepoRoot),
+            resolveFixtureRoot(configuredRepoRoot, properties),
             router
         );
     }
@@ -123,6 +126,7 @@ public class CrawlerQueueV2Configuration {
             stateMachine,
             properties,
             resolveRepoRoot(configuredRepoRoot),
+            resolveFixtureRoot(configuredRepoRoot, properties),
             crawlerQueueV2Clock,
             router
         );
@@ -166,12 +170,13 @@ public class CrawlerQueueV2Configuration {
         ObjectMapper objectMapper,
         StringRedisTemplate redisTemplate,
         Clock crawlerQueueV2Clock,
+        CrawlerQueueV2Properties properties,
         @Value("${terrapedia.crawler.queue-v2.repo-root:}") String configuredRepoRoot
     ) {
         return new CrawlerLegacySnapshotReader(
             objectMapper,
             redisTemplate,
-            resolveRepoRoot(configuredRepoRoot),
+            resolveFixtureRoot(configuredRepoRoot, properties),
             crawlerQueueV2Clock
         );
     }
@@ -240,5 +245,11 @@ public class CrawlerQueueV2Configuration {
             }
         }
         return workingDirectory;
+    }
+
+    private Path resolveFixtureRoot(String configuredRepoRoot, CrawlerQueueV2Properties properties) {
+        Path repositoryRoot = resolveRepoRoot(configuredRepoRoot);
+        properties.resolveFixtureLegacyNamespace();
+        return properties.resolveFixtureRoot(repositoryRoot);
     }
 }

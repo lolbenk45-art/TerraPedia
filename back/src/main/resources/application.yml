@@ -123,6 +123,9 @@ terraria:
     queue-v2:
       cutover-allowed: ${TERRAPEDIA_CRAWLER_QUEUE_V2_CUTOVER_ALLOWED:false}
       fixture-enabled: ${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_ENABLED:false}
+      fixture-namespace-prefix: ${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_NAMESPACE:}
+      fixture-legacy-namespace-prefix: ${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_LEGACY_NAMESPACE:}
+      fixture-root: ${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_ROOT:}
       reconcile-interval: 5s
       reconciler-stale-after: 15s
       lease-ttl: 90s

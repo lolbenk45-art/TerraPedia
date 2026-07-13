@@ -26,7 +26,8 @@ public class CrawlerAttemptSupervisor {
     private final CrawlerAttemptProcessLauncher launcher;
     private final CrawlerAttemptStateMachine stateMachine;
     private final CrawlerQueueV2Properties properties;
-    private final Path repoRoot;
+    private final Path worktreeRoot;
+    private final Path artifactRoot;
     private final Clock clock;
     private final CrawlerQueueEngineRouter router;
     private final Map<String, CrawlerAttemptProcessLauncher.ManagedProcess> processes =
@@ -44,13 +45,40 @@ public class CrawlerAttemptSupervisor {
         Clock clock,
         CrawlerQueueEngineRouter router
     ) {
+        this(
+            repository,
+            artifactStore,
+            actionRegistry,
+            launcher,
+            stateMachine,
+            properties,
+            repoRoot,
+            repoRoot,
+            clock,
+            router
+        );
+    }
+
+    public CrawlerAttemptSupervisor(
+        CrawlerQueueV2Repository repository,
+        CrawlerAttemptArtifactStore artifactStore,
+        CrawlerMonitorActionRegistry actionRegistry,
+        CrawlerAttemptProcessLauncher launcher,
+        CrawlerAttemptStateMachine stateMachine,
+        CrawlerQueueV2Properties properties,
+        Path worktreeRoot,
+        Path artifactRoot,
+        Clock clock,
+        CrawlerQueueEngineRouter router
+    ) {
         this.repository = Objects.requireNonNull(repository, "repository");
         this.artifactStore = Objects.requireNonNull(artifactStore, "artifactStore");
         this.actionRegistry = Objects.requireNonNull(actionRegistry, "actionRegistry");
         this.launcher = Objects.requireNonNull(launcher, "launcher");
         this.stateMachine = Objects.requireNonNull(stateMachine, "stateMachine");
         this.properties = Objects.requireNonNull(properties, "properties");
-        this.repoRoot = Objects.requireNonNull(repoRoot, "repoRoot").toAbsolutePath().normalize();
+        this.worktreeRoot = Objects.requireNonNull(worktreeRoot, "worktreeRoot").toAbsolutePath().normalize();
+        this.artifactRoot = Objects.requireNonNull(artifactRoot, "artifactRoot").toAbsolutePath().normalize();
         this.clock = Objects.requireNonNull(clock, "clock");
         this.router = Objects.requireNonNull(router, "router");
     }
@@ -68,23 +96,20 @@ public class CrawlerAttemptSupervisor {
             if (current.pid() != null || current.processStartedAt() != null) {
                 throw new IllegalStateException("STARTING attempt 已记录进程身份：" + current.attemptId());
             }
-            CrawlerMonitorActionDefinition definition = actionRegistry.require(
-                current.domain(),
-                current.actionId()
-            );
+            CrawlerMonitorActionDefinition definition = resolveLaunchAction(current);
             requireExactManifest(current);
             resolveAttemptPath(current, current.artifacts().progressPath());
             Path logPath = resolveAttemptPath(current, current.artifacts().logPath());
             List<String> command = new ArrayList<>(definition.renderCommand(
-                current.artifacts().reportPath(),
-                current.artifacts().progressPath()
+                launchArtifactPath(current.artifacts().reportPath()),
+                launchArtifactPath(current.artifacts().progressPath())
             ));
             Map<String, String> environment = launchEnvironment(current);
             CrawlerAttemptProcessLauncher.ManagedProcess process;
             try {
                 process = launcher.launch(new CrawlerAttemptProcessLauncher.LaunchSpec(
                     command,
-                    repoRoot,
+                    worktreeRoot,
                     environment,
                     logPath
                 ));
@@ -233,6 +258,19 @@ public class CrawlerAttemptSupervisor {
         }
         writeManifest(updated, null);
         return new ProgressResult(ProgressCode.ACCEPTED, updated);
+    }
+
+    /**
+     * The fixture is intentionally absent from the public action registry.
+     * Only an attempt already admitted by the application-service fixture gate
+     * can reach this supervisor path.
+     */
+    private CrawlerMonitorActionDefinition resolveLaunchAction(CrawlerQueueV2Attempt attempt) {
+        if ("crawler_queue_v2_fixture".equals(attempt.domain())
+            && "crawler-queue-v2-fixture".equals(attempt.actionId())) {
+            return CrawlerMonitorActionRegistry.fixture();
+        }
+        return actionRegistry.require(attempt.domain(), attempt.actionId());
     }
 
     private CrawlerQueueV2Attempt mutateProgress(
@@ -712,7 +750,7 @@ public class CrawlerAttemptSupervisor {
 
     private Map<String, String> launchEnvironment(CrawlerQueueV2Attempt attempt) {
         Map<String, String> environment = new LinkedHashMap<>();
-        environment.put("WORKTREE_ROOT", repoRoot.toString());
+        environment.put("WORKTREE_ROOT", worktreeRoot.toString());
         environment.put("TERRAPEDIA_CRAWLER_ACTION_ID", attempt.actionId());
         environment.put("TERRAPEDIA_CRAWLER_QUEUE_ID", attempt.queueId());
         environment.put("TERRAPEDIA_CRAWLER_ATTEMPT_ID", attempt.attemptId());
@@ -720,7 +758,7 @@ public class CrawlerAttemptSupervisor {
         environment.put("TERRAPEDIA_CRAWLER_STATE_STORE_EPOCH", attempt.stateStoreEpoch());
         environment.put("TERRAPEDIA_CRAWLER_INITIAL_STATE_VERSION", Long.toString(attempt.stateVersion()));
         environment.put("TERRAPEDIA_CRAWLER_PROGRESS_SEQUENCE", Long.toString(attempt.progressSequence()));
-        environment.put("TERRAPEDIA_CRAWLER_PROGRESS_PATH", attempt.artifacts().progressPath());
+        environment.put("TERRAPEDIA_CRAWLER_PROGRESS_PATH", launchArtifactPath(attempt.artifacts().progressPath()));
         return environment;
     }
 
@@ -1033,13 +1071,24 @@ public class CrawlerAttemptSupervisor {
         if (storedPath == null || storedPath.isBlank()) {
             throw new IllegalArgumentException("attempt artifact path 不能为空");
         }
-        Path resolved = repoRoot.resolve(storedPath).toAbsolutePath().normalize();
-        if (!resolved.startsWith(repoRoot)
+        Path resolved = artifactRoot.resolve(storedPath).toAbsolutePath().normalize();
+        if (!resolved.startsWith(artifactRoot)
             || !resolved.toString().contains(java.io.File.separator + attempt.attemptId()
                 + java.io.File.separator)) {
             throw new SecurityException("attempt artifact path 不属于当前 attempt");
         }
         return resolved;
+    }
+
+    private String launchArtifactPath(String storedPath) {
+        if (storedPath == null || storedPath.isBlank() || worktreeRoot.equals(artifactRoot)) {
+            return storedPath;
+        }
+        Path resolved = artifactRoot.resolve(storedPath).toAbsolutePath().normalize();
+        if (!resolved.startsWith(artifactRoot)) {
+            throw new SecurityException("attempt artifact path escapes fixture root");
+        }
+        return resolved.toString();
     }
 
     private CrawlerAttemptManifest requireExactManifest(CrawlerQueueV2Attempt attempt) {

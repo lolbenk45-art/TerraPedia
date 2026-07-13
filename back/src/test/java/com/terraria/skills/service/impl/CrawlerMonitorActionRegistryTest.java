@@ -105,4 +105,32 @@ class CrawlerMonitorActionRegistryTest {
             () -> items.renderCommand(" ", "reports/crawler-monitor/v2/attempt-1/progress.json")
         );
     }
+
+    @Test
+    void shouldExposeFixtureOnlyOutsideTheApprovedProductionActionSet() {
+        CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
+
+        assertFalse(registry.all().stream()
+            .map(CrawlerMonitorActionDefinition::actionId)
+            .anyMatch("crawler-queue-v2-fixture"::equals));
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> registry.require("crawler_queue_v2_fixture", "crawler-queue-v2-fixture")
+        );
+
+        CrawlerMonitorActionDefinition fixture = CrawlerMonitorActionRegistry.fixture();
+
+        assertEquals("crawler_queue_v2_fixture", fixture.domain());
+        assertEquals("crawler-queue-v2-fixture", fixture.actionId());
+        assertEquals(
+            List.of(
+                "node",
+                "scripts/data/monitor/crawler-queue-v2-fixture.mjs",
+                "--progress-path=<progressPath>",
+                "--heartbeats=20",
+                "--interval-ms=250"
+            ),
+            fixture.command()
+        );
+    }
 }
