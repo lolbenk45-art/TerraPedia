@@ -690,6 +690,13 @@
   and the guarded smoke supplies legacy source evidence only under the fixture
   root. A focused regression verifies the exact Scan pattern. Fresh Task 13
   cross-layer evidence passed: fixture 3/3, backend 122/122, and admin 32/32.
+- The authorized fixture-stack start then exposed a second startup-only gap:
+  application YAML used relaxed `5s` duration text for a scheduler annotation
+  which accepts ISO-8601 duration text or milliseconds. A scheduling-enabled
+  context regression failed with the exact `Invalid fixedDelayString value
+  "5s"` error, then passed with `PT5S`; the application default is corrected.
+  The backend never opened its HTTP port, so no fixture action, cutover, or
+  Redis mutation was executed in this failed start.
 - Task 11 now renders only the authoritative V2 attempt model: authenticated
   SSE plus a three-second fallback, visible queue/reconciler health, exact
   control identity, Chinese lifecycle states, V2-only activity, and attempt

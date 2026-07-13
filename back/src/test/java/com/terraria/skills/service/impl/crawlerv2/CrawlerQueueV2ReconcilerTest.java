@@ -12,6 +12,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 
@@ -524,6 +525,7 @@ class CrawlerQueueV2ReconcilerTest {
         }
         new ApplicationContextRunner()
             .withUserConfiguration(runtimeConfiguration, V2RuntimeTestDependencies.class)
+            .withPropertyValues("terraria.crawler.queue-v2.reconcile-interval=PT5S")
             .run(context -> {
                 assertTrue(context.isRunning(), () -> String.valueOf(context.getStartupFailure()));
                 assertEquals(1, context.getBeansOfType(CrawlerQueueV2Repository.class).size());
@@ -798,6 +800,7 @@ class CrawlerQueueV2ReconcilerTest {
     }
 
     @Configuration(proxyBeanMethods = false)
+    @EnableScheduling
     static class V2RuntimeTestDependencies {
 
         @Bean
