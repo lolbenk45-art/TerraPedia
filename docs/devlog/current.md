@@ -57,6 +57,11 @@ Last updated: 2026-07-13 20:35 CST by Codex
   registry. It now admits the exact fixture only on the V2 route; V1 remains
   unchanged. The smoke default API base also now includes the local `/api`
   context path. Its cleanup trap removed the first run's fixture state.
+- The following run passed checks 1–11, including stale-version-safe cancel
+  and missing-epoch maintenance. Reset then exposed a Lua type-contract bug:
+  `index:queues` is a ZSET at runtime but reset expected a SET. The corrected
+  Lua contract has a focused regression; fixture cleanup again removed only
+  its own state before any Task 14/15 action.
 
 - Crawler monitor queue/status root-cause analysis and the first two V2
   foundation tasks are complete; runtime implementation continues on the

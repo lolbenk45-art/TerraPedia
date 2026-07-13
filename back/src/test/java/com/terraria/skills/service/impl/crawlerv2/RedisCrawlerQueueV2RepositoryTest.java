@@ -1051,6 +1051,7 @@ class RedisCrawlerQueueV2RepositoryTest {
             .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
 
         assertTrue(source.contains("if engine == 'v1' then return cjson.encode({code = 'ENGINE_IS_V1'}) end"));
+        assertTrue(source.contains("'set', 'zset', 'zset', 'zset', 'zset', 'stream', 'string'"));
         assertTrue(source.contains("if currentCutover and currentCutover ~= ARGV[1] then"));
         assertTrue(source.contains("code = 'CUTOVER_ID_MISMATCH'"));
         assertTrue(source.contains("if currentFirstLiveMutationAt and (ARGV[5] == '' or currentFirstLiveMutationAt ~= ARGV[5]) then"));

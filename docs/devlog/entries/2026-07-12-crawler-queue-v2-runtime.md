@@ -705,6 +705,10 @@
   V1 routing continues to use the original registry. A focused RED -> GREEN
   monitor-service regression proves the fixture reaches V2 without a legacy
   queue read. The failed run's trap cleaned its exact prefixes/root.
+- A subsequent runtime smoke run passed checks 1–11. Its reset step exposed
+  `initialize-reset-epoch.lua` treating `index:queues` as a SET while the
+  normal queue writer creates it as a ZSET. The exact resource regression now
+  locks the ZSET type; the failed run cleaned only its own prefixes/root.
 - Task 11 now renders only the authoritative V2 attempt model: authenticated
   SSE plus a three-second fallback, visible queue/reconciler health, exact
   control identity, Chinese lifecycle states, V2-only activity, and attempt

@@ -52,6 +52,16 @@ if (!Array.isArray(value) || value.length < Number(process.env.EXPECTED)) proces
 NODE
 }
 
+json_attempt_state_version() {
+  JSON_INPUT="$1" ATTEMPT_ID="$2" node --input-type=module <<'NODE'
+const root = JSON.parse(process.env.JSON_INPUT || '');
+const attempt = (root.data?.liveQueue || []).find((value) => value?.attemptId === process.env.ATTEMPT_ID);
+const version = Number(attempt?.stateVersion);
+if (!Number.isSafeInteger(version) || version < 1) process.exit(1);
+process.stdout.write(String(version));
+NODE
+}
+
 api_get() {
   curl --fail-with-body --silent --show-error \
     -H "Authorization: Bearer ${TERRAPEDIA_ADMIN_TOKEN}" \
@@ -197,6 +207,9 @@ json_equals "$SECOND" data.attemptId "$ATTEMPT_ID"
 pass '7/14 verified active-attempt dedupe'
 
 # 8. Exact cancel reports request-before-terminal and releases ownership.
+CURRENT_FOR_CANCEL="$(api_get /admin/crawler-monitor/overview)"
+STATE_VERSION="$(json_attempt_state_version "$CURRENT_FOR_CANCEL" "$ATTEMPT_ID")" \
+  || die 'current live attempt version is unavailable for exact cancellation'
 CANCEL="$(api_post /admin/crawler-monitor/dispatch/control "{\"queueId\":\"${QUEUE_ID}\",\"attemptId\":\"${ATTEMPT_ID}\",\"expectedStateVersion\":${STATE_VERSION},\"controlAction\":\"cancel\"}")"
 json_equals "$CANCEL" data.attemptId "$ATTEMPT_ID"
 pass '8/14 issued exact V2 cancellation request'

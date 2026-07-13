@@ -20,7 +20,9 @@ function run(overrides = {}) {
 
 test('crawler queue V2 smoke exists and refuses unsafe fixture environments before any request', () => {
   assert.equal(existsSync(script), true);
-  assert.match(readFileSync(script, 'utf8'), /http:\/\/127\.0\.0\.1:\$\{APP_PORT:-18088\}\/api/);
+  const source = readFileSync(script, 'utf8');
+  assert.match(source, /http:\/\/127\.0\.0\.1:\$\{APP_PORT:-18088\}\/api/);
+  assert.match(source, /json_attempt_state_version/);
 
   const disabled = run();
   assert.notEqual(disabled.status, 0);

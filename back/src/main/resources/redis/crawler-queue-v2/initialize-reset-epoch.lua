@@ -24,7 +24,7 @@ if isBlank(ARGV[1]) or isBlank(ARGV[2]) or isBlank(ARGV[4])
 end
 
 local expectedTypes = {
-  'string', 'string', 'string', 'string', 'string', 'set', 'zset', 'set', 'zset', 'zset', 'stream', 'string'
+  'string', 'string', 'string', 'string', 'string', 'set', 'zset', 'zset', 'zset', 'zset', 'stream', 'string'
 }
 for index = 1, 12 do
   local actualType = keyType(KEYS[index])
