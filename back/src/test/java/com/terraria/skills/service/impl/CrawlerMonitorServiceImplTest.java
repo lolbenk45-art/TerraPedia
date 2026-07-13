@@ -20,6 +20,7 @@ import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Status;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -224,6 +225,32 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("queue-v2", result.getQueueId());
         assertEquals("attempt-v2", result.getAttemptId());
         verify(v2Service).enqueue(any());
+        verifyNoInteractions(legacyQueue);
+    }
+
+    @Test
+    void v2FixtureDispatchReachesTheV2ApplicationWithoutEnteringTheLegacyRegistry() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        WikiMonitorDispatchQueueRepository legacyQueue = mock(WikiMonitorDispatchQueueRepository.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-fixture", "attempt-fixture", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        CrawlerMonitorServiceImpl service = v2Service(router, v2Service, legacyQueue);
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(dispatchRequest(
+            "crawler_queue_v2_fixture", "crawler-queue-v2-fixture"
+        ));
+
+        assertEquals("attempt-fixture", result.getAttemptId());
+        ArgumentCaptor<CrawlerQueueV2ApplicationService.EnqueueCommand> command = ArgumentCaptor.forClass(
+            CrawlerQueueV2ApplicationService.EnqueueCommand.class
+        );
+        verify(v2Service).enqueue(command.capture());
+        assertEquals("crawler_queue_v2_fixture", command.getValue().domain());
+        assertEquals("crawler-queue-v2-fixture", command.getValue().actionId());
         verifyNoInteractions(legacyQueue);
     }
 

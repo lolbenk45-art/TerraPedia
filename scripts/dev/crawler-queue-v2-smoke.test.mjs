@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import test from 'node:test';
@@ -20,6 +20,7 @@ function run(overrides = {}) {
 
 test('crawler queue V2 smoke exists and refuses unsafe fixture environments before any request', () => {
   assert.equal(existsSync(script), true);
+  assert.match(readFileSync(script, 'utf8'), /http:\/\/127\.0\.0\.1:\$\{APP_PORT:-18088\}\/api/);
 
   const disabled = run();
   assert.notEqual(disabled.status, 0);

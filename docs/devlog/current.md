@@ -51,6 +51,12 @@ Last updated: 2026-07-13 20:35 CST by Codex
   `@Scheduled(fixedDelayString)`. The runtime default is now ISO-8601 `PT5S`,
   with an enabled-scheduling context regression. No fixture action, cutover,
   or Redis mutation was sent.
+- The first authenticated fixture smoke reached the isolated V2 cutover and
+  overview checks (1–3) then correctly stopped at fixture dispatch. The V2
+  monitor adapter was still validating that test-only action against the V1
+  registry. It now admits the exact fixture only on the V2 route; V1 remains
+  unchanged. The smoke default API base also now includes the local `/api`
+  context path. Its cleanup trap removed the first run's fixture state.
 
 - Crawler monitor queue/status root-cause analysis and the first two V2
   foundation tasks are complete; runtime implementation continues on the

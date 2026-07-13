@@ -630,7 +630,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         CrawlerMonitorDispatchRequestDTO request,
         String requestedBy
     ) {
-        CrawlerMonitorActionDefinition rule = resolveWikiMonitorRule(request);
+        CrawlerMonitorActionDefinition rule = resolveV2WikiMonitorRule(request);
         CrawlerQueueV2ApplicationService service = Objects.requireNonNull(
             queueV2ApplicationService,
             "V2 router requires CrawlerQueueV2ApplicationService"
@@ -2802,6 +2802,15 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             .filter(rule -> rule.domain().equals(domain) && rule.actionId().equals(actionId))
             .findFirst()
             .orElseThrow(() -> new IllegalArgumentException("动作 " + actionId + " 不允许用于域 " + domain + "。"));
+    }
+
+    private CrawlerMonitorActionDefinition resolveV2WikiMonitorRule(CrawlerMonitorDispatchRequestDTO request) {
+        String domain = trimToNull(request == null ? null : request.getDomain());
+        String actionId = trimToNull(request == null ? null : request.getActionId());
+        if ("crawler_queue_v2_fixture".equals(domain) && "crawler-queue-v2-fixture".equals(actionId)) {
+            return CrawlerMonitorActionRegistry.fixture();
+        }
+        return resolveWikiMonitorRule(request);
     }
 
     private CrawlerMonitorActionDefinition resolveWikiMonitorControlRule(CrawlerMonitorDispatchRequestDTO request) {

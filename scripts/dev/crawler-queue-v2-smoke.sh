@@ -119,7 +119,7 @@ case "$FIXTURE_ROOT" in
 esac
 [[ "$FIXTURE_ROOT" != /tmp && "$FIXTURE_ROOT" != / ]] || die 'fixture root is not a removable child directory'
 
-TERRAPEDIA_API_BASE="${TERRAPEDIA_API_BASE:-http://127.0.0.1:${APP_PORT:-18088}}"
+TERRAPEDIA_API_BASE="${TERRAPEDIA_API_BASE:-http://127.0.0.1:${APP_PORT:-18088}/api}"
 TERRAPEDIA_REDIS_HOST="${TERRAPEDIA_REDIS_HOST:-127.0.0.1}"
 TERRAPEDIA_REDIS_PORT="${TERRAPEDIA_REDIS_PORT:-6380}"
 require_command curl

@@ -697,6 +697,14 @@
   "5s"` error, then passed with `PT5S`; the application default is corrected.
   The backend never opened its HTTP port, so no fixture action, cutover, or
   Redis mutation was executed in this failed start.
+- The next isolated smoke run passed checks 1–3 (exact legacy seed, V2
+  cutover, pure empty overview) and stopped at fixture dispatch with the
+  structured source error that the V1-only monitor registry rejected the
+  test-only action. The V2 route now recognizes only the exact fixture pair
+  before invoking the V2 application, which still enforces `fixtureEnabled`;
+  V1 routing continues to use the original registry. A focused RED -> GREEN
+  monitor-service regression proves the fixture reaches V2 without a legacy
+  queue read. The failed run's trap cleaned its exact prefixes/root.
 - Task 11 now renders only the authoritative V2 attempt model: authenticated
   SSE plus a three-second fallback, visible queue/reconciler health, exact
   control identity, Chinese lifecycle states, V2-only activity, and attempt
