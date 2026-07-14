@@ -30,7 +30,7 @@ export function diffArticleReviewEvents(prevPendingIds, articles) {
         level: 'warning',
         title: `《${article?.title || '未命名文章'}》提交审核`,
         detail: article?.authorDisplayName ? `作者：${article.authorDisplayName}` : '',
-        link: `/articles?reviewId=${id}`,
+        link: `/article-editor/${id}`,
         createdAt: Date.now(),
       })
     }

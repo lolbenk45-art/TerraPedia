@@ -16,7 +16,7 @@ test('a brand-new pending article produces a submitted-for-review event', () => 
   assert.equal(events[0].level, 'warning')
   assert.match(events[0].title, /关于史莱姆的一切/)
   assert.match(events[0].detail, /小明/)
-  assert.equal(events[0].link, '/articles?reviewId=12')
+  assert.equal(events[0].link, '/article-editor/12')
   assert.equal(typeof events[0].createdAt, 'number')
   assert.deepEqual(nextState, [12])
 })

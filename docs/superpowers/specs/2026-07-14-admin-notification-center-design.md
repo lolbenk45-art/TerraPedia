@@ -3,7 +3,7 @@
 - 日期：2026-07-14
 - 分支：`review/front-nuxt-visual`
 - 目标目录：`data-query-app/`（layouts/default.vue、stores/、composables/、新增 notifications 模块）
-- 状态：**已确认，待写实现计划**（范围、数据来源、展示形式见第 6 节，持久化方案与扩展点见第 3.2.1/3.3 节，均已经用户确认）
+- 状态：**已实现并通过本地真实栈验收**（范围、数据来源、展示形式见第 6 节）
 
 ---
 
@@ -37,7 +37,7 @@ NotificationEvent {
   level: 'info' | 'warning' | 'danger'
   title: string
   detail?: string
-  link: string         // 点击跳转目标，如 /articles?id=123 或 /operations/crawler-monitor?domain=townNpc
+  link: string         // 点击跳转目标，如 /article-editor/123 或 /operations/crawler-monitor?domain=townNpc
   createdAt: number    // epoch ms，来自本地 diff 出该事件的时刻
 }
 ```
@@ -45,7 +45,7 @@ NotificationEvent {
 ### 3.2 数据源模块（纯函数，输入状态 + 拉取结果，输出事件数组）
 
 - `data-query-app/notifications/articleReviewSource.mjs`
-  - 轮询 `GET /admin/articles?status=PENDING_REVIEW`
+  - 后端没有审核态过滤参数；轮询 `GET /admin/articles` 的 `updatedAt` 倒序前 100 条并在前端过滤 `reviewStatus === 'PENDING_REVIEW'`
   - 与上一次已知的 pending 文章 id 集合做 diff，新进入该集合的文章产出 `article_submitted_for_review` 事件（`level: 'warning'`）
   - 输入输出均为纯数据，不直接持有 `fetch`，调用方（store）负责请求与调度，source 模块只做"上一状态 + 新数据 → 事件数组 + 新状态"的转换，便于单测注入
 
@@ -78,7 +78,7 @@ NotificationSource {
   - `events: NotificationEvent[]`（最近事件，做长度上限，如 100 条，防止无限增长）
   - `readIds: string[]`（已读事件 id；用数组而非 `Set`，因为持久化插件默认走 JSON 序列化，`Set` 无法直接序列化）
   - `unreadCount` 计算属性
-- 已读状态与最近事件列表的持久化改用 `@pinia-plugin-persistedstate/nuxt`（需新增依赖，项目目前未安装任何 Pinia 持久化插件），在 store 定义里对 `events`/`readIds` 声明 `persist: { pick: [...] }`，不再手写 localStorage 读写逻辑。persist key 需要按当前登录管理员 id 隔离（如 `notif:{userId}`），具体做法（动态 key 函数 or 登录/切换账号时手动清空重挂载 store）留到实现阶段验证插件 API 支持程度后再定
+- 已读状态与最近事件列表使用锁定在 3.x 的 `@pinia-plugin-persistedstate/nuxt` 持久化；配置采用 3.x 的 `paths` API，保存 `events`/`readIds`/`ownerUsername`，并在登录用户名变化时清空上一用户数据。Nuxt 默认存储载体是 Cookie。
 - 新增一个 `level: 'danger'` 的事件时，调用现有 `showToast(title, 'warning')` 做一次性弹出提醒（复用现有机制，不新造 toast 系统）
 
 ### 3.4 UI
@@ -97,14 +97,14 @@ NotificationSource {
 ## 4. 错误处理
 
 - 单个 source 拉取失败：记录一次 `console.warn`，不产出新事件，不清空已有事件列表，不影响另一个 source 的轮询
-- 持久化插件读写 localStorage 失败（如隐私模式）：内存态仍正常工作，只是刷新后已读状态和历史丢失，不抛出运行时错误阻断页面
+- 持久化插件读写 Cookie 失败时：内存态仍正常工作，只是刷新后已读状态和历史丢失，不抛出运行时错误阻断页面
 
 ## 5. 测试策略
 
 沿用本项目对 crawler-monitor 已确立的测试原则：行为测试优于对 `.vue` 源码做正则匹配，离线可注入优于真实网络请求。
 
 - `articleReviewSource.mjs` / `crawlerMonitorSource.mjs`：纯函数单测，喂入"上一状态快照 + mock 拉取结果"，断言产出的事件数组与新状态，不发真实网络请求
-- `stores/notifications.ts`：注入 mock source（伪造定时轮询结果）测试合并去重、已读状态、localStorage 持久化、danger 事件触发 toast 等行为
+- `stores/notifications.ts`：注入 mock source（伪造定时轮询结果）测试合并去重、已读状态、持久化字段、danger 事件触发 toast 等行为
 - 铃铛面板组件：挂载后注入 store 状态断言渲染与交互行为（点击跳转、标记已读、徽章数字），不对组件源码做字符串匹配
 
 ## 6. 范围确认（已获用户确认）
