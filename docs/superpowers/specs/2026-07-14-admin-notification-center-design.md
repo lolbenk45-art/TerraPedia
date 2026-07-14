@@ -61,9 +61,9 @@ NotificationEvent {
 - 分别调度两个 source 各自的轮询定时器，互相独立：一个 source 请求失败不影响另一个
 - 合并两个 source 产出的事件，按 `id` 去重，维护：
   - `events: NotificationEvent[]`（最近事件，做长度上限，如 100 条，防止无限增长）
-  - `readIds: Set<string>`（已读事件 id）
+  - `readIds: string[]`（已读事件 id；用数组而非 `Set`，因为持久化插件默认走 JSON 序列化，`Set` 无法直接序列化）
   - `unreadCount` 计算属性
-- 已读状态与最近事件列表写入 `localStorage`，key 按当前登录管理员 id 隔离（如 `notif:{userId}`），刷新页面后不丢失
+- 已读状态与最近事件列表的持久化改用 `@pinia-plugin-persistedstate/nuxt`（需新增依赖，项目目前未安装任何 Pinia 持久化插件），在 store 定义里对 `events`/`readIds` 声明 `persist: { pick: [...] }`，不再手写 localStorage 读写逻辑。persist key 需要按当前登录管理员 id 隔离（如 `notif:{userId}`），具体做法（动态 key 函数 or 登录/切换账号时手动清空重挂载 store）留到实现阶段验证插件 API 支持程度后再定
 - 新增一个 `level: 'danger'` 的事件时，调用现有 `showToast(title, 'warning')` 做一次性弹出提醒（复用现有机制，不新造 toast 系统）
 
 ### 3.4 UI
@@ -82,7 +82,7 @@ NotificationEvent {
 ## 4. 错误处理
 
 - 单个 source 拉取失败：记录一次 `console.warn`，不产出新事件，不清空已有事件列表，不影响另一个 source 的轮询
-- localStorage 读写失败（如隐私模式）：内存态仍正常工作，只是刷新后已读状态和历史丢失，不抛出运行时错误阻断页面
+- 持久化插件读写 localStorage 失败（如隐私模式）：内存态仍正常工作，只是刷新后已读状态和历史丢失，不抛出运行时错误阻断页面
 
 ## 5. 测试策略
 
