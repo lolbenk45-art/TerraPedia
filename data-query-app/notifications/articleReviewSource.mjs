@@ -43,12 +43,18 @@ export const articleReviewSource = {
   key: 'article-review',
   intervalMs: 30000,
   async fetch() {
+    // No server-side reviewStatus filter exists on this endpoint, so we fetch the
+    // max page size and filter client-side. Sorted by updatedAt desc so a newly
+    // submitted article stays near the front — once total articles exceed 100,
+    // an old pending-review article could fall outside this page and silently
+    // never notify.
     const response = await get('/admin/articles', {
-      status: 'PENDING_REVIEW',
       page: 1,
-      limit: 50,
+      limit: 100,
+      sortBy: 'updatedAt',
+      sortOrder: 'desc',
     })
-    return extractArticleList(response)
+    return extractArticleList(response).filter((article) => article?.reviewStatus === 'PENDING_REVIEW')
   },
   diff: diffArticleReviewEvents,
 }
