@@ -16,7 +16,13 @@ export default defineNuxtConfig({
 
   srcDir: '.',
 
-  modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss'],
+  // `@pinia-plugin-persistedstate/nuxt` is deprecated/unmaintained, but it's currently the only
+  // way to get Nuxt-module Pinia persistence on Pinia 2.x: upstream `pinia-plugin-persistedstate`
+  // folded its Nuxt support into a `/nuxt` export starting at v4, which requires Pinia 3.
+  // The `pnpm.overrides` pin in package.json (`pinia-plugin-persistedstate@^3.2.3`) is what keeps
+  // this peer-compatible with our `pinia@^2.3.0`. Once this project upgrades to Pinia 3, drop both
+  // this package and the override, and import `pinia-plugin-persistedstate/nuxt` directly instead.
+  modules: ['@pinia/nuxt', '@pinia-plugin-persistedstate/nuxt', '@nuxtjs/tailwindcss'],
 
   alias: {
     '#article-runtime': articleRuntimeDir,
