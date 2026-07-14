@@ -54,6 +54,21 @@ NotificationEvent {
   - 复用 `crawlerMonitorTriageWorkbench.mjs` 导出的 triage 分类函数得到每个域当前的 `triageStatus`
   - 与上一次已知的每域 `triageStatus` 做 diff，状态跃迁为 `blocked/failed/timed_out/stalled/state_missing` 时产出对应事件（`level: 'danger'`），跃迁回正常状态时**不产出事件**（避免"已恢复"刷屏，恢复情况仍可在铃铛面板里通过该事件消失来体现）
 
+#### 3.2.1 统一接口（为未来新增来源预留）
+
+两个 source 模块都实现同一个形状，作为以后新增来源（如评论审核）时唯一需要遵守的契约：
+
+```
+NotificationSource {
+  key: string                 // 'article-review' | 'crawler-monitor' | ...
+  intervalMs: number
+  fetch(): Promise<RawData>   // 调用对应 REST 接口
+  diff(prevState, rawData): { events: NotificationEvent[], nextState: any }
+}
+```
+
+`stores/notifications.ts` 内部维护一个 `sources: NotificationSource[]` 数组，调度循环对数组做遍历，不写死"文章审核"和"爬虫监控"两个具体名字。第一期数组里只放这两个 source 实例；以后新增一类事件，只需要新写一个符合上述接口的 `.mjs` 模块并 `push` 进这个数组，store 的调度、去重、已读、持久化、UI 渲染都不需要改动。
+
 ### 3.3 中央调度 store
 
 `data-query-app/stores/notifications.ts`（Pinia，Composition API 风格，参照 `stores/statistics.ts` 的 `loading/fetch` 模式）：
@@ -104,3 +119,14 @@ NotificationEvent {
 
 - 新增评论审核等其他事件来源：只需新增一个 source 模块 + 在 store 里注册，不改动 UI 和调度框架
 - 后端聚合接口：如果前端轮询的网络开销或跨设备一致性成为问题，可以将 source 模块的 diff 逻辑下沉到后端，前端 store 改为消费单一聚合接口，UI 层不受影响
+
+**明确不做的事**：项目里目前还有 4 处直接读写 `window.localStorage` 的代码，与本次的通知中心无关，本期**不**顺带迁移：
+
+| 文件 | 用途 |
+|---|---|
+| `components/ThemeSwitcher.vue` | 深色/浅色主题 |
+| `composables/useArticleEditor.ts` | 文章编辑器草稿自动保存 |
+| `layouts/default.vue` | 侧边栏展开/收起状态 |
+| `pages/operations/crawler-monitor-test.vue` | 刷新间隔设置（测试页） |
+
+这些都是各自组件/composable 内的局部标量状态，跟通知中心要解决的"跨页面共享一份持续更新的事件列表"不是同一类问题，谈不上"全部迁到 Pinia"的必要性——迁移它们本身代价也不高（都是简单的 getItem/setItem，改造成一两个小 store 即可），但属于与本次目标无关的范围外重构，不在本次方案中顺带处理。安装 `@pinia-plugin-persistedstate/nuxt` 之后，如果之后想顺手把这几处也迁移掉，成本会更低（依赖已经装好、用法已经在通知中心里验证过），但那是一次独立的小任务。
