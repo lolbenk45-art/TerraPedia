@@ -7,7 +7,7 @@
     "build": "nuxt build",
     "lint": "pnpm run check",
     "check": "nuxt typecheck",
-    "test:unit": "node --test tests/*.test.mjs",
+    "test:unit": "node --import tsx --test tests/*.test.mjs",
     "test": "pnpm run check && pnpm run test:unit && pnpm run build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
@@ -28,6 +28,8 @@
   },
   "devDependencies": {
     "@nuxtjs/tailwindcss": "^6.12.2",
+    "happy-dom": "^20.10.6",
+    "tsx": "^4.23.1",
     "typescript": "^5.6.3",
     "vue-tsc": "^3.2.6"
   }
