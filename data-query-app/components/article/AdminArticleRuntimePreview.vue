@@ -233,6 +233,7 @@ onBeforeUnmount(() => {
 .admin-article-runtime-preview__head img { width: 100%; border: 1px solid var(--color-border); border-radius: var(--radius-md); object-fit: cover; }
 .admin-article-runtime-preview__body { display: grid; gap: 12px; min-width: 0; overflow: auto; }
 .admin-article-runtime-preview__body :deep(img) { width: auto; max-width: 100%; height: auto; }
+.admin-article-runtime-preview__body :deep(.tp-preview-image img) { width: 100%; max-width: none; height: 100%; aspect-ratio: 1 / 1; object-fit: contain; }
 .admin-article-runtime-preview__body :deep(.tp-content-ref) { display: inline-flex; width: 1.875em; height: 1.875em; vertical-align: -.35em; cursor: pointer; }
 .admin-article-runtime-preview__body :deep(.tp-content-ref img) { width: 100%; height: 100%; object-fit: contain; }
 .admin-article-runtime-preview__body :deep(.tp-recipe-tree--failed) { border: 1px dashed var(--color-border); border-radius: var(--radius-md); color: var(--color-text-secondary); padding: 12px; }

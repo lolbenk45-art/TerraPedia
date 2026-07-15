@@ -152,6 +152,11 @@ Last updated: 2026-07-14 05:32 CST by Codex
 
 ## Recently Closed
 
+- `docs/devlog/entries/2026-07-14-admin-recipe-graph-style-cascade.md`
+  - branch: `review/front-nuxt-visual`
+  - status: `closed`
+  - commit: commit SHA pending in final response
+
 - `docs/devlog/entries/2026-07-14-admin-notification-center-acceptance.md`
   - branch: `review/front-nuxt-visual`
   - status: `closed`

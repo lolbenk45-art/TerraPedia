@@ -46,6 +46,22 @@ test('both admin article hosts delegate preview rendering to one runtime compone
   assert.doesNotMatch(preview, /iframe|\/articles\//)
 })
 
+test('admin preview preserves shared graph image dimensions after generic article image styling', () => {
+  const preview = read('components/article/AdminArticleRuntimePreview.vue')
+  const genericImageRule = preview.indexOf(':deep(img) { width: auto; max-width: 100%; height: auto; }')
+  const graphImageRule = preview.indexOf(':deep(.tp-preview-image img) { width: 100%; max-width: none; height: 100%;')
+
+  assert.ok(genericImageRule >= 0, 'admin preview must retain generic article image sizing')
+  assert.ok(graphImageRule > genericImageRule, 'admin preview must restore explicit shared graph image dimensions after generic article image sizing')
+  assert.match(preview, /:deep\(\.tp-preview-image img\) \{ width: 100%; max-width: none; height: 100%; aspect-ratio: 1 \/ 1; object-fit: contain; \}/)
+})
+
+test('shared graph preview frames contain their absolutely positioned images in every host', () => {
+  const graphStyles = readRepositoryFile('shared/article-runtime/recipeHierarchyGraph.css')
+
+  assert.match(graphStyles, /\.tp-article-runtime \.tp-preview-image \{(?=[^}]*position: relative;)(?=[^}]*display: grid;)(?=[^}]*place-items: center;)(?=[^}]*width: 48px;)(?=[^}]*height: 48px;)(?=[^}]*min-width: 0;)(?=[^}]*min-height: 0;)(?=[^}]*overflow: hidden;)[^}]*\}/)
+})
+
 test('sanitizer canonicalizes only valid recipe-tree embed attributes', () => {
   const window = new Window()
   globalThis.window = window
