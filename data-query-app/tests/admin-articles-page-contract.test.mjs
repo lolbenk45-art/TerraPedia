@@ -139,7 +139,7 @@ test('admin article editor opens content references in the side inspector while 
   assert.match(articleEditorComposable, /normalizeArticleContentReference/)
   assert.match(articleEditorComposable, /buildContentReferenceHtml/)
   assert.match(articleEditorComposable, /Array\.isArray\(response\?\.data\)/)
-  assert.match(articleEditorComposable, /SUPPORTED_REFERENCE_TYPES: ContentReferenceType\[] = \['item', 'npc'\]/)
+  assert.match(articleEditorComposable, /SUPPORTED_REFERENCE_TYPES: ContentReferenceType\[] = \['item', 'npc', 'boss'\]/)
   assert.match(articleEditorComposable, /label\.length > MAX_REFERENCE_LABEL_LENGTH/)
   assert.match(articleEditorComposable, /isSafeReferenceImageUrl/)
   assert.match(articleEditorComposable, /encodeAttributeValue\(normalized\.label\)/)

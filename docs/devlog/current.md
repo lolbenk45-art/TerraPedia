@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-12 18:48 CST by Codex
+Last updated: 2026-07-15 17:18 CST by Codex
 
 ## Open Work
 
@@ -125,6 +125,8 @@ Last updated: 2026-07-12 18:48 CST by Codex
 
 ## Current Risks
 
+- The root shared recipe-runtime alias must be proven by both Nuxt build paths with a disposable spike. Replacing the renderer's hardcoded `crafting-screen` class and adding keyboard-focus support touches code already shipped to the public article page and rich editor, so validation needs a real running-page visual check on `/articles/*`, not just typecheck/build. Body-portaled popovers must receive their direct public/admin theme class; they cannot inherit preview-root variables. Local authenticated admin acceptance also needs a valid session and suitable article fixture.
+- Dense article recipe trees use width-fit scaling with the wider PC article-body frame, so the FW `1706px` graph begins entirely inside a `935px` graph frame at 1440px. Its square station source frames are complete and unshifted with `contain` fitting at `26.19×26.19px`; only a narrower-desktop readability concern would require a future layout-mode decision.
 - The local stack is stopped and the latest retained crawler runtime evidence is
   dated 2026-07-08, so live behavior is not yet freshly reproduced.
 - Current queue history and log retention are misaligned: queue history keeps
@@ -157,6 +159,16 @@ Last updated: 2026-07-12 18:48 CST by Codex
   - branch: `review/page-head-inner-density`
   - status: `closed`
   - commit: pending in final response
+
+- `docs/devlog/entries/2026-07-14-admin-recipe-graph-style-cascade.md`
+  - branch: `review/front-nuxt-visual`
+  - status: `closed`
+  - commit: `28e38a1`
+
+- `docs/devlog/entries/2026-07-14-admin-notification-center-acceptance.md`
+  - branch: `review/front-nuxt-visual`
+  - status: `closed`
+  - commit: `5fab6d4`
 
 - `docs/devlog/entries/2026-07-11-crawler-monitor-queue-state-root-cause.md`
   - branch: `fix/crawler-monitor-queue-state`

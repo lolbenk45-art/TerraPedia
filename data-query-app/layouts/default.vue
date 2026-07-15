@@ -137,6 +137,8 @@
         <div class="header__actions">
           <ThemeSwitcher />
 
+          <NotificationBell />
+
           <div ref="userMenuRef" class="header__user-wrap">
             <button
               type="button"
@@ -227,6 +229,7 @@ const MOBILE_BREAKPOINT = 980
 
 const route = useRoute()
 const authStore = useAuthStore()
+const notificationsStore = useNotificationsStore()
 
 const isDesktopCollapsed = ref(false)
 const isMobile = ref(false)
@@ -531,12 +534,16 @@ onMounted(() => {
   window.addEventListener('resize', syncViewportState)
   window.addEventListener('pointerdown', handleDocumentPointerDown)
   window.addEventListener('keydown', handleWindowKeydown)
+
+  notificationsStore.startPolling()
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', syncViewportState)
   window.removeEventListener('pointerdown', handleDocumentPointerDown)
   window.removeEventListener('keydown', handleWindowKeydown)
+
+  notificationsStore.stopPolling()
 })
 </script>
 

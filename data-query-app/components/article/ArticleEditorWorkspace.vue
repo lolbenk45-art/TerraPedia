@@ -482,19 +482,17 @@
                 </button>
               </div>
 
-              <div v-if="editor.sidePanel === 'preview'" ref="previewRef" class="preview-panel">
-                <article class="article-preview">
-                  <header class="article-preview__head">
-                    <p class="article-preview__label">读者预览</p>
-                    <h2>{{ editor.form.title || '文章标题' }}</h2>
-                    <p>{{ editor.form.summary || '这里会展示摘要，方便你检查列表卡片和导语语气。' }}</p>
-                  </header>
-                  <img v-if="editor.coverPreviewSrc" :src="editor.coverPreviewSrc" alt="封面预览" class="article-preview__cover" />
-                  <div class="article-preview__body" v-html="editor.previewHtml" />
-                </article>
+              <div v-show="editor.sidePanel === 'preview'" ref="previewRef" class="preview-panel">
+                <AdminArticleRuntimePreview
+                  :html="editor.form.contentHtml"
+                  :title="editor.form.title"
+                  :summary="editor.form.summary"
+                  :cover-image="editor.coverPreviewSrc"
+                  mode="editor"
+                />
               </div>
 
-              <div v-else-if="editor.sidePanel === 'outline'" class="outline-panel">
+              <div v-show="editor.sidePanel === 'outline'" class="outline-panel">
                 <div v-if="editor.outline.length" class="outline-list">
                   <button
                     v-for="item in editor.outline"
@@ -511,7 +509,7 @@
                 <p v-else class="empty-copy">还没有识别到小标题，长文建议补充结构层级。</p>
               </div>
 
-              <div v-else-if="editor.sidePanel === 'references'" class="reference-panel">
+              <div v-show="editor.sidePanel === 'references'" class="reference-panel">
                 <section v-if="editor.referencePanelOpen" class="document-inspector__references" aria-label="资料引用">
                   <div class="document-inspector__head">
                     <div>
@@ -536,13 +534,20 @@
                     >
                       物品
                     </button>
-                    <button
-                      type="button"
-                      :class="{ active: editor.referenceSearchType === 'npc' }"
-                      @click="editor.referenceSearchType = 'npc'; editor.searchArticleContentReferences()"
-                    >
-                      NPC
-                    </button>
+                  <button
+                    type="button"
+                    :class="{ active: editor.referenceSearchType === 'npc' }"
+                    @click="editor.referenceSearchType = 'npc'; editor.searchArticleContentReferences()"
+                  >
+                    NPC
+                  </button>
+                  <button
+                    type="button"
+                    :class="{ active: editor.referenceSearchType === 'boss' }"
+                    @click="editor.referenceSearchType = 'boss'; editor.searchArticleContentReferences()"
+                  >
+                    Boss
+                  </button>
                   </div>
 
                   <div class="reference-display" role="group" aria-label="显示方式">
@@ -591,7 +596,7 @@
                 </section>
               </div>
 
-              <div v-else class="quality-panel">
+              <div v-show="editor.sidePanel === 'quality'" class="quality-panel">
                 <div class="quality-panel__metric">
                   <strong>{{ editor.wordCount }}</strong>
                   <span>总字数</span>

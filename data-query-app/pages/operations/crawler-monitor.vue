@@ -204,6 +204,8 @@ type MonitorPanelMeta = {
   count: number | string
 }
 
+const route = useRoute()
+
 const overview = ref<CrawlerMonitorOverview | null>(null)
 const loading = ref(false)
 const autoRefresh = ref(true)
@@ -993,7 +995,10 @@ onMounted(async () => {
     }
   }
   syncAutoRefresh()
+
   if (import.meta.client) {
+    const initialDomainKey = route.query.domain
+    openDomainDetailFromQuery(Array.isArray(initialDomainKey) ? initialDomainKey[0] : initialDomainKey)
     document.addEventListener('visibilitychange', handleVisibilityChange)
   }
 })
@@ -1150,6 +1155,20 @@ function selectWikiDomain(domain: CrawlerMonitorWikiDomain | null | undefined) {
   selectedDomainTableKey.value = matchedRow ? selectedDomainTableRowKey(matchedRow) : `domain:${domainKeyValue}`
   hasAutoSelectedDomain.value = true
 }
+
+function openDomainDetailFromQuery(domainKey: string | null | undefined) {
+  if (!domainKey) return
+  const matchedDomain = wikiDomainRows.value.find((domain) => domain.domain === domainKey)
+  if (matchedDomain) {
+    selectWikiDomain(matchedDomain)
+    domainDetailDrawerOpen.value = true
+  }
+}
+
+watch(() => route.query.domain, (domainKey) => {
+  const key = Array.isArray(domainKey) ? domainKey[0] : domainKey
+  openDomainDetailFromQuery(key)
+})
 
 function selectDomainTableRow(row: any) {
   if (!row) return

@@ -75,6 +75,15 @@ const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
 const normalizeKey = (...values: unknown[]) => displayText(...values).replace(/\s+/g, '-').toLowerCase()
 const truthyFlag = (value: unknown) => value === true || value === 1 || value === '1' || String(value ?? '').toLowerCase() === 'true'
 
+// API labels are identifiers/source metadata, not stable reader-facing copy.
+// Keep them for keys and sorting, but make every consuming surface use the
+// same short localized display contract.
+const normalizedVariantLabel = (value: unknown, index: number) => {
+  const raw = displayText(value)
+  const chinese = raw.match(/[\u4e00-\u9fff][\u4e00-\u9fff\s·/-]{0,18}/)?.[0]?.trim()
+  return chinese || `版本 ${index + 1}`
+}
+
 const nodeState = (node: PublicItemRecipeTreeNode): CraftingNodeState => ({
   expandable: truthyFlag(node.expandable),
   cycleDetected: truthyFlag(node.cycleDetected),
@@ -261,8 +270,8 @@ const variantView = (variant: PublicItemRecipeTreeVariant, index: number): Craft
 
   return {
     key,
-    label: displayText(variant.variantLabel, variant.variantKey, '默认变体'),
-    meta: `${variant.recipeCount ?? options.length} 条配方 · ${variant.versionScope || '版本未标注'}`,
+    label: normalizedVariantLabel(variant.variantLabel, index),
+    meta: `${variant.recipeCount ?? options.length} 条配方`,
     options,
   }
 }

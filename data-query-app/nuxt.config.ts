@@ -1,6 +1,9 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { fileURLToPath } from 'node:url'
+
 const terrapediaBackendOrigin = (process.env.TERRAPEDIA_BACKEND_ORIGIN || 'http://localhost:18088').replace(/\/$/, '')
 const terrapediaImageOrigin = (process.env.TERRAPEDIA_IMAGE_ORIGIN || process.env.TERRAPEDIA_MINIO_PUBLIC_ENDPOINT || 'http://localhost:19000').replace(/\/$/, '')
+const articleRuntimeDir = fileURLToPath(new URL('../shared/article-runtime', import.meta.url))
 
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
@@ -13,9 +16,19 @@ export default defineNuxtConfig({
 
   srcDir: '.',
 
-  modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss'],
+  // `@pinia-plugin-persistedstate/nuxt` is deprecated/unmaintained, but it's currently the only
+  // way to get Nuxt-module Pinia persistence on Pinia 2.x: upstream `pinia-plugin-persistedstate`
+  // folded its Nuxt support into a `/nuxt` export starting at v4, which requires Pinia 3.
+  // The `pnpm.overrides` pin in package.json (`pinia-plugin-persistedstate@^3.2.3`) is what keeps
+  // this peer-compatible with our `pinia@^2.3.0`. Once this project upgrades to Pinia 3, drop both
+  // this package and the override, and import `pinia-plugin-persistedstate/nuxt` directly instead.
+  modules: ['@pinia/nuxt', '@pinia-plugin-persistedstate/nuxt', '@nuxtjs/tailwindcss'],
 
-  css: ['~/assets/css/variables.css', '~/assets/css/main.css'],
+  alias: {
+    '#article-runtime': articleRuntimeDir,
+  },
+
+  css: ['../shared/article-runtime/recipeHierarchyGraph.css', '~/assets/css/variables.css', '~/assets/css/main.css'],
 
   vite: {
     optimizeDeps: {

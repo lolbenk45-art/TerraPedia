@@ -50,13 +50,15 @@
       <div class="review-shell">
         <main class="review-reader">
           <article class="reader-preview" aria-label="读者预览">
-            <header class="reader-preview__head">
-              <p class="review-eyebrow">读者预览</p>
-              <h2>{{ article.title || '未命名文章' }}</h2>
-              <p v-if="article.summary">{{ article.summary }}</p>
-              <img v-if="article.coverImage" :src="article.coverImage" :alt="`${article.title} 封面`" class="reader-preview__cover" />
-            </header>
-            <div v-if="previewHtml" class="reader-preview__body" v-html="previewHtml" />
+            <p class="review-eyebrow">读者预览</p>
+            <AdminArticleRuntimePreview
+              v-if="previewHtml"
+              :html="previewHtml"
+              :title="article.title"
+              :summary="article.summary"
+              :cover-image="article.coverImage"
+              mode="review"
+            />
             <p v-else class="review-empty-copy">暂无正文内容。</p>
           </article>
         </main>

@@ -31,7 +31,7 @@ const allowedAttrs: Record<string, Set<string>> = {
   h5: new Set(['style']),
   h6: new Set(['style']),
   span: new Set(['style', 'class', 'aria-hidden', 'contenteditable', 'data-tp-ref-type', 'data-tp-ref-id', 'data-tp-ref-label', 'data-tp-ref-image', 'data-tp-ref-display']),
-  div: new Set(['style']),
+  div: new Set(['style', 'class', 'data-tp-embed-type', 'data-tp-item-id', 'data-tp-max-depth', 'data-tp-label']),
   pre: new Set(['style']),
   code: new Set(['style']),
   ul: new Set(['style']),
@@ -46,6 +46,13 @@ const contentReferenceDataAttrs = new Set([
   'data-tp-ref-label',
   'data-tp-ref-image',
   'data-tp-ref-display',
+])
+
+const recipeTreeDataAttrs = new Set([
+  'data-tp-embed-type',
+  'data-tp-item-id',
+  'data-tp-max-depth',
+  'data-tp-label',
 ])
 
 export const escapeHtml = (value: string) => value
@@ -158,7 +165,7 @@ const stripContentReferenceAttributes = (element: Element) => {
   }
 }
 
-const normalizeContentReferenceElement = (element: Element) => {
+const normalizeContentReferenceElement = (element: Element, hadUnexpectedDataAttribute = false) => {
   const classes = (element.getAttribute('class') || '').split(/\s+/).filter(Boolean)
   if (!classes.includes('tp-content-ref')) return false
 
@@ -170,11 +177,11 @@ const normalizeContentReferenceElement = (element: Element) => {
   const displayMode = normalizeReferenceDisplayMode(element.getAttribute('data-tp-ref-display'))
   const styleValue = element.getAttribute('style')
   const style = styleValue ? sanitizeInlineStyle(styleValue) : ''
-  const hasUnexpectedDataAttr = Array.from(element.attributes).some(attribute => {
+  const hasUnexpectedDataAttr = hadUnexpectedDataAttribute || Array.from(element.attributes).some(attribute => {
     const attrName = attribute.name.toLowerCase()
     return attrName.startsWith('data-tp-') && !contentReferenceDataAttrs.has(attrName)
   })
-  const isValid = ['item', 'npc'].includes(type)
+  const isValid = ['item', 'npc', 'boss'].includes(type)
     && /^\d{1,12}$/.test(id)
     && label.length > 0
     && label.length <= 80
@@ -232,11 +239,61 @@ const normalizeContentReferenceElement = (element: Element) => {
   return true
 }
 
-const normalizeSpanClass = (element: Element) => {
+const stripRecipeTreeEmbedAttributes = (element: Element) => {
+  element.removeAttribute('class')
+  element.removeAttribute('style')
+  for (const attribute of Array.from(element.attributes)) {
+    if (attribute.name.toLowerCase().startsWith('data-tp-')) {
+      element.removeAttribute(attribute.name)
+    }
+  }
+}
+
+const normalizeRecipeTreeEmbedElement = (element: Element, hadUnexpectedDataAttribute = false) => {
+  const classes = (element.getAttribute('class') || '').split(/\s+/).filter(Boolean)
+  if (!classes.includes('tp-recipe-tree')) {
+    element.removeAttribute('class')
+    return false
+  }
+
+  const embedType = (element.getAttribute('data-tp-embed-type') || '').trim()
+  const itemId = (element.getAttribute('data-tp-item-id') || '').trim()
+  const depthText = (element.getAttribute('data-tp-max-depth') || '').trim()
+  const depth = Number(depthText)
+  const label = (element.getAttribute('data-tp-label') || '').replace(/\s+/g, ' ').trim()
+  const hasUnexpectedDataAttr = hadUnexpectedDataAttribute || Array.from(element.attributes).some(attribute => {
+    const attrName = attribute.name.toLowerCase()
+    return attrName.startsWith('data-tp-') && !recipeTreeDataAttrs.has(attrName)
+  })
+  const isValid = embedType === 'recipe-tree'
+    && /^\d{1,12}$/.test(itemId)
+    && /^\d+$/.test(depthText)
+    && Number.isInteger(depth)
+    && depth >= 1
+    && depth <= 5
+    && label.length > 0
+    && label.length <= 80
+    && !hasUnexpectedDataAttr
+
+  if (!isValid) {
+    stripRecipeTreeEmbedAttributes(element)
+    return false
+  }
+
+  element.setAttribute('class', 'tp-article-embed tp-recipe-tree')
+  element.setAttribute('data-tp-embed-type', 'recipe-tree')
+  element.setAttribute('data-tp-item-id', itemId)
+  element.setAttribute('data-tp-max-depth', String(depth))
+  element.setAttribute('data-tp-label', label)
+  element.removeAttribute('style')
+  return true
+}
+
+const normalizeSpanClass = (element: Element, hadUnexpectedDataAttribute = false) => {
   const classes = (element.getAttribute('class') || '').split(/\s+/).filter(Boolean)
   if (!classes.length) return
   if (classes.includes('tp-content-ref')) {
-    normalizeContentReferenceElement(element)
+    normalizeContentReferenceElement(element, hadUnexpectedDataAttribute)
     return
   }
   if (classes.includes('tp-content-ref-fallback')) {
@@ -259,6 +316,7 @@ const sanitizeElement = (element: Element) => {
     return
   }
 
+  let hadUnexpectedDataAttribute = false
   for (const attribute of Array.from(element.attributes)) {
     const attrName = attribute.name.toLowerCase()
     const attrValue = attribute.value
@@ -269,6 +327,7 @@ const sanitizeElement = (element: Element) => {
 
     const tagAllowed = allowedAttrs[tagName]
     if (!tagAllowed || !tagAllowed.has(attrName)) {
+      if (attrName.startsWith('data-tp-')) hadUnexpectedDataAttribute = true
       element.removeAttribute(attribute.name)
       continue
     }
@@ -308,7 +367,7 @@ const sanitizeElement = (element: Element) => {
   }
 
   if (tagName === 'span') {
-    normalizeSpanClass(element)
+    normalizeSpanClass(element, hadUnexpectedDataAttribute)
     const isReference = (element.getAttribute('class') || '').split(/\s+/).includes('tp-content-ref')
     const isReferenceFallback = (element.getAttribute('class') || '').split(/\s+/).includes('tp-content-ref-fallback')
     if (!isReference && !isReferenceFallback) {
@@ -320,6 +379,10 @@ const sanitizeElement = (element: Element) => {
       element.removeAttribute('aria-hidden')
       element.removeAttribute('contenteditable')
     }
+  }
+
+  if (tagName === 'div') {
+    normalizeRecipeTreeEmbedElement(element, hadUnexpectedDataAttribute)
   }
 }
 
@@ -340,7 +403,7 @@ export const sanitizeArticleHtml = (raw: string) => {
 
   const root = createRichRoot(source)
   if (!root) {
-    return source
+    return escapeHtml(stripTags(source))
   }
 
   walkRichTree(root)

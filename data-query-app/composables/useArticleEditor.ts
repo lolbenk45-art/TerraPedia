@@ -19,7 +19,7 @@ type SaveStatus = 'idle' | 'dirty' | 'autosaved' | 'saving' | 'saved' | 'error'
 type EditorBlockStyle = 'p' | 'h1' | 'h2' | 'h3' | 'blockquote'
 type EditorLineHeight = '1.5' | '1.75' | '2'
 type EditorTextIndent = '0' | '2em' | '4em'
-type ContentReferenceType = 'item' | 'npc'
+type ContentReferenceType = 'item' | 'npc' | 'boss'
 type ContentReferenceSearchType = ContentReferenceType | 'all'
 type ContentReferenceDisplayMode = 'image' | 'text'
 
@@ -48,7 +48,7 @@ const CROP_VIEWPORT_HEIGHT = 315
 const CROP_OUTPUT_WIDTH = 1280
 const CROP_OUTPUT_HEIGHT = 720
 const BLOCK_SELECTOR = 'p,h1,h2,h3,h4,blockquote,li'
-const SUPPORTED_REFERENCE_TYPES: ContentReferenceType[] = ['item', 'npc']
+const SUPPORTED_REFERENCE_TYPES: ContentReferenceType[] = ['item', 'npc', 'boss']
 const MAX_REFERENCE_LABEL_LENGTH = 80
 
 const normalizeSnapshot = (snapshot: LocalDraftSnapshot) => ({
@@ -572,7 +572,7 @@ export const useArticleEditor = (initialArticleId: number | null) => {
     const sequence = ++referenceSearchSequence
     referenceSearchLoading.value = true
     referenceSearchError.value = ''
-    const types = referenceSearchType.value === 'all' ? 'item,npc' : referenceSearchType.value
+    const types = referenceSearchType.value === 'all' ? 'item,npc,boss' : referenceSearchType.value
     try {
       const response = await get('/public/content-references', {
         q: referenceSearchText.value.trim(),

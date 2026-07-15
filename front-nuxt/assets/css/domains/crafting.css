@@ -704,6 +704,17 @@
   --tp-preview-fallback-icon-size: 22px;
 }
 
+.recipe-overview-node .tp-preview-image img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+}
+
 .recipe-overview-node.is-root .tp-preview-image {
   width: 34px;
   height: 34px;
@@ -933,6 +944,38 @@
   touch-action: none;
   user-select: none;
 }
+
+/* Shared article/editor embed renderer.  Host shells may set width, but graph
+ * content must retain the same readable geometry in both surfaces. */
+.recipe-hierarchy-tree--article-embed {
+  --recipe-overview-pan-x: 0px;
+  --recipe-overview-pan-y: 0px;
+  position: relative;
+  flex: 0 0 auto;
+  min-width: max-content;
+  margin: 2px auto 0;
+}
+
+.recipe-hierarchy-tree--article-embed .recipe-hierarchy-card {
+  border-color: color-mix(in srgb, var(--accent-gold) 62%, var(--index-line));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent-gold) 8%, transparent), transparent 72%), color-mix(in srgb, var(--panel) 94%, var(--index-bg));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-strong) 12%, transparent), 0 7px 16px color-mix(in srgb, var(--index-bg) 34%, transparent);
+}
+
+.recipe-hierarchy-tree--article-embed .recipe-hierarchy-main { align-content: center; gap: 2px; }
+.recipe-hierarchy-tree--article-embed .tp-preview-image img { display: block; margin: 0; border: 0; border-radius: 0; }
+.recipe-hierarchy-tree--article-embed .recipe-hierarchy-main > .tp-preview-image { width: 48px; height: 48px; --tp-preview-image-size: 48px; --tp-preview-fallback-icon-size: 34px; }
+.recipe-hierarchy-tree--article-embed .recipe-hierarchy-main > .tp-preview-image img,
+.recipe-hierarchy-tree--article-embed .recipe-hierarchy-station-badge .tp-preview-image img { position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: 1 / 1; max-width: none; max-height: none; object-fit: contain; }
+.recipe-hierarchy-tree--article-embed .recipe-hierarchy-card.has-stations { grid-template-columns: minmax(0, 1fr) 52px; }
+.recipe-hierarchy-tree--article-embed .recipe-hierarchy-station-rail { width: 52px; padding-left: 3px; }
+.recipe-hierarchy-tree--article-embed .recipe-hierarchy-station-badge,
+.recipe-hierarchy-tree--article-embed .recipe-hierarchy-station-badge .tp-preview-image { width: 48px; height: 48px; --tp-preview-image-size: 48px; --tp-preview-fallback-icon-size: 34px; }
+.recipe-hierarchy-tree--article-embed .recipe-hierarchy-alt-images { grid-template-columns: repeat(2, 32px); gap: 2px; }
+.recipe-hierarchy-tree--article-embed .recipe-hierarchy-alt-images .tp-preview-image { width: 32px; height: 32px; --tp-preview-image-size: 32px; --tp-preview-fallback-icon-size: 23px; }
+.recipe-hierarchy-tree--article-embed .recipe-hierarchy-graph-node-copy { display: -webkit-box; width: 100%; overflow: hidden; color: var(--text-strong); font-size: 11px; font-weight: 850; line-height: 1.15; overflow-wrap: anywhere; text-align: center; text-overflow: ellipsis; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.recipe-hierarchy-tree--article-embed .recipe-hierarchy-quantity { color: var(--text-strong); font-size: 10px; }
+.recipe-hierarchy-tree--article-embed .recipe-overview-edge { stroke: color-mix(in srgb, var(--accent-gold) 58%, var(--index-line)); stroke-width: 1.5; }
 
 .recipe-overview-tree.is-panning {
   cursor: grabbing;
