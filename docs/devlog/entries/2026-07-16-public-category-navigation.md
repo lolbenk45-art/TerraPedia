@@ -14,6 +14,7 @@
 - Base: local `main` at `e2bad1b`
 - Related docs:
   - `docs/superpowers/specs/2026-07-16-public-category-navigation-design.md`
+  - `docs/superpowers/plans/2026-07-16-public-category-navigation.md`
   - `docs/project-governance/current/CURRENT_API_CONTRACTS.md`
 - Related prior entries: none
 
@@ -22,6 +23,9 @@
 - Chosen approach: add a public backend category navigation endpoint that owns
   the six semantic route/filter/category-code mappings and returns real
   category IDs, children, and item totals.
+- The user approved the written design and selected inline execution. The
+  executable plan uses backend-first RED -> GREEN checkpoints followed by the
+  frontend consumer, stack restart, and runtime acceptance.
 - Reasoning: the user chose a backend contract so the category index, category
   detail, and item catalog cannot drift into separate mappings.
 - Rejected options:
@@ -47,18 +51,23 @@
   - live read-only probes of category tree, statistics, category IDs, and the
     current category/item routes;
   - design self-review and documentation consistency scans before checkpoint.
+  - plan header, task, contract-term, placeholder, code-fence, checkbox, and
+    `git diff --check` scans.
 - Results:
   - confirmed the category pages are static while the real category and public
     item APIs are available;
   - the user approved the backend contract, frontend behavior, failure rules,
     test design, and scope.
+  - implementation plan self-review passed with 7 tasks, 64 balanced fences,
+    35 executable checkboxes, no placeholder markers, and no diff errors.
 - Not run: implementation tests and runtime acceptance; implementation has not
   started.
 
 ## Result
 
-- Completed: design decisions are approved and recorded.
-- Not completed: implementation plan, implementation, and runtime acceptance.
+- Completed: design decisions and the inline executable implementation plan are
+  approved and recorded.
+- Not completed: implementation and runtime acceptance.
 
 ## Residual Risks
 
@@ -67,9 +76,10 @@
 
 ## Follow-up
 
-- User reviews the written specification; after approval, create the detailed
-  implementation plan and execute it test-first.
+- Execute `docs/superpowers/plans/2026-07-16-public-category-navigation.md`
+  inline with `executing-plans`, beginning with the backend RED tests.
 
 ## Commits
 
-- Design checkpoint pending.
+- Design checkpoint: `4221724` (`docs(categories): design public navigation contract`).
+- Implementation-plan checkpoint pending.

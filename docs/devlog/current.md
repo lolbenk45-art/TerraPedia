@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-16 17:04 CST by Codex
+Last updated: 2026-07-16 17:22 CST by Codex
 
 ## Open Work
 
@@ -10,7 +10,7 @@ Last updated: 2026-07-16 17:04 CST by Codex
   - branch: `codex/continue-dev-20260715`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/continue-dev-20260715`
   - parent/child: none
-  - dependencies or blocked-by: written specification awaits user review before implementation planning
+  - dependencies or blocked-by: approved design and executable plan are complete; inline implementation is authorized
   - contract handoff: approved design adds `GET /api/categories/navigation` as the source for six semantic category routes, item filters, real category scopes, children, and matching item totals
 
 - `docs/devlog/entries/2026-07-12-crawler-queue-v2-runtime.md`
@@ -24,9 +24,9 @@ Last updated: 2026-07-16 17:04 CST by Codex
 
 ## Current State
 
-- Public category navigation design is approved and written on
-  `codex/continue-dev-20260715`; implementation has not started and waits for
-  written-spec review followed by an implementation plan.
+- Public category navigation design and seven-task implementation plan are
+  approved and written on `codex/continue-dev-20260715`; implementation is
+  authorized and starts with backend RED tests.
 
 - Crawler monitor queue/status root-cause analysis and the first two V2
   foundation tasks are complete; runtime implementation continues on the
@@ -115,9 +115,9 @@ Last updated: 2026-07-16 17:04 CST by Codex
 
 ## Next Agent Should Start Here
 
-- Review `docs/superpowers/specs/2026-07-16-public-category-navigation-design.md`;
-  after user approval, write the implementation plan before changing backend
-  or frontend code.
+- Execute `docs/superpowers/plans/2026-07-16-public-category-navigation.md`
+  inline from Task 1, preserving backend-first RED -> GREEN validation and the
+  fail-closed frontend filter boundary.
 
 - Continue inline from Task 3 of the committed V2 hard-cutover plan using
   test-first implementation and the plan's task-level validation checkpoints.
