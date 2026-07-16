@@ -106,6 +106,22 @@ class ItemMapperPreferredImageSqlTest {
     }
 
     @Test
+    void categoryScopedCountShouldMatchPrimaryOrActiveRelationWithoutDuplicateRows() throws Exception {
+        String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ItemMapper.xml"));
+        String countSql = selectSql(mapperXml, "countItemsWithSearch");
+
+        assertTrue(countSql.contains("SELECT COUNT(*)"));
+        assertTrue(countSql.contains("i.deleted = 0"));
+        assertTrue(countSql.contains("i.category_id IN"));
+        assertTrue(countSql.contains("OR EXISTS ("));
+        assertTrue(countSql.contains("icr_filter.item_id = i.id"));
+        assertTrue(countSql.contains("icr_filter.deleted = 0"));
+        assertTrue(countSql.contains("icr_filter.status = 1"));
+        assertFalse(countSql.contains("JOIN item_category_rel"),
+            "EXISTS must preserve one count row per item when several relations match");
+    }
+
+    @Test
     void pagedItemListShouldNotSelectRawSourceNpcsJsonLongText() throws Exception {
         String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ItemMapper.xml"));
 

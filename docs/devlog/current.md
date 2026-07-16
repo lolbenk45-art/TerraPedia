@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-16 17:22 CST by Codex
+Last updated: 2026-07-16 17:30 CST by Codex
 
 ## Open Work
 
@@ -10,8 +10,8 @@ Last updated: 2026-07-16 17:22 CST by Codex
   - branch: `codex/continue-dev-20260715`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/continue-dev-20260715`
   - parent/child: none
-  - dependencies or blocked-by: approved design and executable plan are complete; inline implementation is authorized
-  - contract handoff: approved design adds `GET /api/categories/navigation` as the source for six semantic category routes, item filters, real category scopes, children, and matching item totals
+  - dependencies or blocked-by: backend producer contract is implemented and focused tests pass; frontend consumer and runtime acceptance remain
+  - contract handoff: `GET /api/categories/navigation` returns the six semantic category routes, filter keys, real descendant scopes, immediate children, and matching item totals; missing configured codes return HTTP 503 without partial data
 
 - `docs/devlog/entries/2026-07-12-crawler-queue-v2-runtime.md`
   - owner: Codex
@@ -25,8 +25,9 @@ Last updated: 2026-07-16 17:22 CST by Codex
 ## Current State
 
 - Public category navigation design and seven-task implementation plan are
-  approved and written on `codex/continue-dev-20260715`; implementation is
-  authorized and starts with backend RED tests.
+  approved and written on `codex/continue-dev-20260715`; backend RED -> GREEN
+  implementation passes its six focused assertions and frontend consumption is
+  next.
 
 - Crawler monitor queue/status root-cause analysis and the first two V2
   foundation tasks are complete; runtime implementation continues on the
@@ -145,6 +146,9 @@ Last updated: 2026-07-16 17:22 CST by Codex
 - Public category navigation totals must use the same primary-category,
   relation-category, and descendant scope as `/public/items`; missing category
   codes must fail closed rather than show unrelated fallback items.
+- The existing full `ItemMapperPreferredImageSqlTest` has three unrelated
+  image-projection assertion failures against unchanged XML; the category-count
+  method and all new navigation tests pass when selected precisely.
 
 - The root shared recipe-runtime alias must be proven by both Nuxt build paths with a disposable spike. Replacing the renderer's hardcoded `crafting-screen` class and adding keyboard-focus support touches code already shipped to the public article page and rich editor, so validation needs a real running-page visual check on `/articles/*`, not just typecheck/build. Body-portaled popovers must receive their direct public/admin theme class; they cannot inherit preview-root variables. Local authenticated admin acceptance also needs a valid session and suitable article fixture.
 - Dense article recipe trees use width-fit scaling with the wider PC article-body frame, so the FW `1706px` graph begins entirely inside a `935px` graph frame at 1440px. Its square station source frames are complete and unshifted with `contain` fitting at `26.19×26.19px`; only a narrower-desktop readability concern would require a future layout-mode decision.

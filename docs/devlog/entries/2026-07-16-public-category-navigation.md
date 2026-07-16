@@ -26,6 +26,10 @@
 - The user approved the written design and selected inline execution. The
   executable plan uses backend-first RED -> GREEN checkpoints followed by the
   frontend consumer, stack restart, and runtime acceptance.
+- Backend producer contract implemented: `GET /api/categories/navigation`
+  returns the six ordered entries and fails with the standard HTTP 503 envelope
+  before counting anything when a configured category code is missing. See git
+  for code-level diff details.
 - Reasoning: the user chose a backend contract so the category index, category
   detail, and item catalog cannot drift into separate mappings.
 - Rejected options:
@@ -53,6 +57,7 @@
   - design self-review and documentation consistency scans before checkpoint.
   - plan header, task, contract-term, placeholder, code-fence, checkbox, and
     `git diff --check` scans.
+  - `cd back && mvn '-Dtest=CategoryNavigationServiceImplTest,CategoryControllerTest,ItemMapperPreferredImageSqlTest#categoryScopedCountShouldMatchPrimaryOrActiveRelationWithoutDuplicateRows' test`.
 - Results:
   - confirmed the category pages are static while the real category and public
     item APIs are available;
@@ -60,14 +65,19 @@
     test design, and scope.
   - implementation plan self-review passed with 7 tasks, 64 balanced fences,
     35 executable checkboxes, no placeholder markers, and no diff errors.
+  - backend RED failed on the eight expected missing navigation symbols; GREEN
+    passed 6/6 selected assertions with zero failures or errors.
+  - the broader existing `ItemMapperPreferredImageSqlTest` still has three
+    unrelated image-projection assertion failures against unchanged mapper XML;
+    the new category-count characterization passes independently.
 - Not run: implementation tests and runtime acceptance; implementation has not
   started.
 
 ## Result
 
-- Completed: design decisions and the inline executable implementation plan are
-  approved and recorded.
-- Not completed: implementation and runtime acceptance.
+- Completed: design, implementation plan, backend DTO/service/controller
+  contract, fail-closed behavior, and focused backend tests.
+- Not completed: frontend consumer, integrated review, and runtime acceptance.
 
 ## Residual Risks
 
@@ -82,4 +92,5 @@
 ## Commits
 
 - Design checkpoint: `4221724` (`docs(categories): design public navigation contract`).
-- Implementation-plan checkpoint pending.
+- Implementation-plan checkpoint: `256cf52` (`docs(categories): plan public navigation implementation`).
+- Backend contract checkpoint pending.
