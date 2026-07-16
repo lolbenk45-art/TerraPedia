@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-16 17:30 CST by Codex
+Last updated: 2026-07-16 17:38 CST by Codex
 
 ## Open Work
 
@@ -10,8 +10,8 @@ Last updated: 2026-07-16 17:30 CST by Codex
   - branch: `codex/continue-dev-20260715`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/continue-dev-20260715`
   - parent/child: none
-  - dependencies or blocked-by: backend producer contract is implemented and focused tests pass; frontend consumer and runtime acceptance remain
-  - contract handoff: `GET /api/categories/navigation` returns the six semantic category routes, filter keys, real descendant scopes, immediate children, and matching item totals; missing configured codes return HTTP 503 without partial data
+  - dependencies or blocked-by: backend producer and frontend consumer are implemented and focused/static gates pass; API documentation, integrated review, and restarted-stack acceptance remain
+  - contract handoff: `GET /api/categories/navigation` returns the six semantic category routes, filter keys, real descendant scopes, immediate children, and matching item totals; three public pages consume it and navigation filters fail closed on unavailable data
 
 - `docs/devlog/entries/2026-07-12-crawler-queue-v2-runtime.md`
   - owner: Codex
@@ -26,7 +26,8 @@ Last updated: 2026-07-16 17:30 CST by Codex
 
 - Public category navigation design and seven-task implementation plan are
   approved and written on `codex/continue-dev-20260715`; backend RED -> GREEN
-  implementation passes its six focused assertions and frontend consumption is
+  passes six focused assertions and the frontend contract/full check passes.
+  Durable API docs, integrated review, stack restart, and live acceptance are
   next.
 
 - Crawler monitor queue/status root-cause analysis and the first two V2

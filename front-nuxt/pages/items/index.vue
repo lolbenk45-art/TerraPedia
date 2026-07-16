@@ -30,6 +30,7 @@ type CatalogCategoryFilter = {
   key: string
   label: string
   categoryCodes?: readonly string[]
+  navigationSlug?: string
   gamePeriodId?: number
 }
 
@@ -58,8 +59,8 @@ const catalogCategoryGroups: readonly CatalogCategoryGroup[] = [
     label: '战斗',
     caption: '武器 / 防具 / Boss',
     filters: [
-      { key: 'weapon', label: '武器', categoryCodes: ['WEAPON', 'WEAPON_MELEE', 'WEAPON_RANGED', 'WEAPON_MAGIC', 'WEAPON_SUMMON'] },
-      { key: 'armor', label: '盔甲', categoryCodes: ['ARMOR'] },
+      { key: 'weapon', label: '武器', navigationSlug: 'weapons' },
+      { key: 'armor', label: '盔甲', navigationSlug: 'armor' },
       { key: 'accessory', label: '饰品', categoryCodes: ['ACCESSORY'] },
       { key: 'ammo', label: '弹药', categoryCodes: ['AMMUNITION'] },
       { key: 'summon', label: '召唤', categoryCodes: ['WEAPON_SUMMON', 'CONSUMABLE_SUMMON'] },
@@ -71,7 +72,7 @@ const catalogCategoryGroups: readonly CatalogCategoryGroup[] = [
     label: '制作',
     caption: '材料 / 机关 / 工作站',
     filters: [
-      { key: 'material', label: '材料', categoryCodes: ['MATERIAL'] },
+      { key: 'material', label: '材料', navigationSlug: 'materials' },
       { key: 'ore', label: '矿石', categoryCodes: ['MATERIAL_ORE'] },
       { key: 'bar', label: '锭', categoryCodes: ['MATERIAL_BAR'] },
       { key: 'station', label: '工作站', categoryCodes: ['FURNITURE_CRAFTING_STATION'] },
@@ -84,7 +85,7 @@ const catalogCategoryGroups: readonly CatalogCategoryGroup[] = [
     label: '探索',
     caption: '工具 / 照明 / 宝箱',
     filters: [
-      { key: 'tool', label: '工具', categoryCodes: ['TOOL'] },
+      { key: 'tool', label: '工具', navigationSlug: 'tools' },
       { key: 'mount', label: '坐骑', categoryCodes: ['MOUNT'] },
       { key: 'pet', label: '宠物', categoryCodes: ['PET'] },
       { key: 'lighting', label: '照明', categoryCodes: ['FURNITURE_LIGHT'] },
@@ -99,7 +100,7 @@ const catalogCategoryGroups: readonly CatalogCategoryGroup[] = [
     filters: [
       { key: 'block', label: '方块', categoryCodes: ['MATERIAL_BLOCK'] },
       { key: 'wall', label: '墙', categoryCodes: ['MATERIAL_WALL'] },
-      { key: 'furniture', label: '家具', categoryCodes: ['FURNITURE'] },
+      { key: 'furniture', label: '家具', navigationSlug: 'furniture' },
       { key: 'door', label: '门', categoryCodes: ['FURNITURE_FUNCTIONAL'] },
       { key: 'platform', label: '平台', categoryCodes: ['MATERIAL_BLOCK'] },
       { key: 'decor', label: '装饰', categoryCodes: ['FURNITURE_DECORATION'] },
@@ -110,7 +111,7 @@ const catalogCategoryGroups: readonly CatalogCategoryGroup[] = [
     label: '消耗',
     caption: '药水 / 食物 / 事件',
     filters: [
-      { key: 'potion', label: '药水', categoryCodes: ['CONSUMABLE_POTION'] },
+      { key: 'potion', label: '药水', navigationSlug: 'potions' },
       { key: 'food', label: '食物', categoryCodes: ['CONSUMABLE_FOOD'] },
       { key: 'buff', label: '增益', categoryCodes: ['CONSUMABLE_POTION', 'CONSUMABLE_FOOD'] },
       { key: 'bait', label: '鱼饵', categoryCodes: ['AMMUNITION_TOOL_BAIT'] },
@@ -144,6 +145,21 @@ const readStoredPageSize = () => {
     return selectedPageSize.value
   }
 }
+
+const hydrateCatalogStateFromRoute = () => {
+  const filter = firstQueryValue(route.query.filter)
+  const search = String(firstQueryValue(route.query.q) ?? '')
+  const queryPageSize = firstQueryValue(route.query.pageSize)
+
+  selectedPageSize.value = queryPageSize ? parsePageSize(queryPageSize) : readStoredPageSize()
+  currentPage.value = parsePositiveInteger(route.query.page, 1)
+  activeFilter.value = quickFilters.some((item) => item.key === filter) ? filter as QuickFilterKey : 'all'
+  searchQuery.value = search
+  debouncedSearchQuery.value = search
+}
+
+hydrateCatalogStateFromRoute()
+
 const backendSearch = computed(() => debouncedSearchQuery.value.trim())
 const toNumberOrNull = (value: unknown) => {
   const numberValue = Number(value)
@@ -154,6 +170,13 @@ const flattenCategories = (categories: PublicCategory[] = []): PublicCategory[] 
   category,
   ...flattenCategories(category.children ?? []),
 ])
+
+const {
+  data: categoryNavigation,
+  pending: categoryNavigationPending,
+  error: categoryNavigationError,
+  refresh: refreshCategoryNavigation,
+} = await usePublicCategoryNavigation()
 
 const { data: publicItemCategories } = await useAsyncData(
   'public-item-category-tree',
@@ -186,12 +209,34 @@ const categoryByCode = computed(() => {
 
 const defaultCategoryGroup = catalogCategoryGroups[0]!
 const selectedFilter = computed<CatalogCategoryFilter>(() => quickFilters.find((filter) => filter.key === activeFilter.value) ?? allCategoryFilter)
+const selectedNavigationEntry = computed(() => {
+  const navigationSlug = selectedFilter.value.navigationSlug
+  return navigationSlug
+    ? categoryNavigation.value?.find((entry) => entry.slug === navigationSlug)
+    : undefined
+})
+const navigationFilterRequired = computed(() => Boolean(selectedFilter.value.navigationSlug))
+const navigationFilterReady = computed(() => !navigationFilterRequired.value || Boolean(selectedNavigationEntry.value))
+const navigationFilterUnavailable = computed(() => (
+  navigationFilterRequired.value
+  && !categoryNavigationPending.value
+  && (Boolean(categoryNavigationError.value) || !selectedNavigationEntry.value)
+))
 const selectedFilterGroup = computed<CatalogCategoryGroup>(() => (
   catalogCategoryGroups.find((group) => group.filters.some((filter) => filter.key === selectedFilter.value.key))
   ?? defaultCategoryGroup
 ))
-const activeFilterPath = computed(() => `${selectedFilterGroup.value.label} / ${selectedFilter.value.label}`)
+const activeFilterLabel = computed(() => selectedNavigationEntry.value?.name || selectedFilter.value.label)
+const activeFilterPath = computed(() => `${selectedFilterGroup.value.label} / ${activeFilterLabel.value}`)
 const selectedCategoryIds = computed(() => {
+  if (selectedFilter.value.navigationSlug) {
+    return Array.from(new Set(
+      (selectedNavigationEntry.value?.categoryIds ?? [])
+        .map(toNumberOrNull)
+        .filter((id): id is number => id != null && id > 0),
+    ))
+  }
+
   const categoryCodes = selectedFilter.value.categoryCodes
 
   if (!categoryCodes) return []
@@ -225,15 +270,28 @@ const {
   pending: itemsPending,
   error: itemsError,
   refresh: refreshPublicItems,
-} = await usePublicItems(() => publicItemsQuery.value)
+} = await usePublicItems(
+  () => publicItemsQuery.value,
+  {
+    enabled: () => navigationFilterReady.value,
+    allowFallback: () => !navigationFilterRequired.value,
+  },
+)
 
 const catalogItems = computed(() => {
   const items = publicItemsResult.value?.items
   return Array.isArray(items) ? items : fallbackCatalogItems
 })
 const pagination = computed(() => publicItemsResult.value?.pagination)
-const catalogRawLoading = computed(() => !catalogClientReady.value || itemsPending.value)
-const catalogFallbackUnavailable = computed(() => catalogClientReady.value && !itemsPending.value && publicItemsResult.value?.source !== 'api')
+const catalogApiLoading = computed(() => !catalogClientReady.value || itemsPending.value)
+const catalogRawLoading = computed(() => (
+  catalogApiLoading.value
+  || (navigationFilterRequired.value && categoryNavigationPending.value)
+))
+const catalogFallbackUnavailable = computed(() => (
+  navigationFilterUnavailable.value
+  || (catalogClientReady.value && !itemsPending.value && publicItemsResult.value?.source !== 'api')
+))
 const catalogDisplayItems = computed(() => (catalogVisualLoading.value || catalogFallbackUnavailable.value) ? [] : catalogItems.value)
 const totalItems = computed(() => (catalogVisualLoading.value || catalogFallbackUnavailable.value) ? 0 : pagination.value?.total ?? catalogDisplayItems.value.length)
 const pageLimit = computed(() => pagination.value?.limit ?? pagination.value?.size ?? selectedPageSize.value)
@@ -242,9 +300,10 @@ const canGoPrevious = computed(() => currentPage.value > 1)
 const canGoNext = computed(() => currentPage.value < totalPages.value)
 const catalogDockCurrentPage = computed(() => catalogVisualLoading.value ? 1 : currentPage.value)
 const catalogDockTotalPages = computed(() => catalogVisualLoading.value ? 1 : totalPages.value)
-const dataSourceState = computed(() => publicItemsResult.value?.source ?? 'fallback')
+const dataSourceState = computed(() => navigationFilterUnavailable.value
+  ? 'navigation-unavailable'
+  : publicItemsResult.value?.source ?? 'fallback')
 const publicStatusLabel = computed(() => catalogVisualLoading.value ? '加载中' : catalogFallbackUnavailable.value || itemsError.value ? '未载入' : '已更新')
-const activeFilterLabel = computed(() => selectedFilter.value.label)
 const catalogLoadingSlotCount = computed(() => Math.min(selectedPageSize.value, 50))
 const shouldUseApiPagedItems = computed(() => publicItemsResult.value?.source === 'api')
 const shouldApplyLocalCategoryFilter = computed(() => publicItemsResult.value?.source !== 'api')
@@ -418,6 +477,16 @@ const resetCatalogFilters = () => {
   currentPage.value = 1
 }
 
+const retryCatalogData = async () => {
+  if (navigationFilterRequired.value) {
+    await refreshCategoryNavigation()
+  }
+
+  if (!navigationFilterRequired.value || selectedNavigationEntry.value) {
+    await refreshPublicItems()
+  }
+}
+
 const updateCatalogRouteQuery = () => {
   const query = {
     ...route.query,
@@ -429,20 +498,6 @@ const updateCatalogRouteQuery = () => {
 
   void router.replace({ query })
 }
-
-const hydrateCatalogStateFromRoute = () => {
-  const filter = firstQueryValue(route.query.filter)
-  const search = String(firstQueryValue(route.query.q) ?? '')
-  const queryPageSize = firstQueryValue(route.query.pageSize)
-
-  selectedPageSize.value = queryPageSize ? parsePageSize(queryPageSize) : readStoredPageSize()
-  currentPage.value = parsePositiveInteger(route.query.page, 1)
-  activeFilter.value = quickFilters.some((item) => item.key === filter) ? filter as QuickFilterKey : 'all'
-  searchQuery.value = search
-  debouncedSearchQuery.value = search
-}
-
-hydrateCatalogStateFromRoute()
 
 watch(catalogItems, (items) => {
   if (!focusedItemId.value && items[0]) {
@@ -536,7 +591,7 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
       <div class="page-head-inner">
         <div>
           <span class="eyebrow">{{ catalogVisualLoading ? '加载资料' : catalogFallbackUnavailable ? '资料暂未载入' : `${totalItems.toLocaleString('zh-CN')} 个物品` }}</span>
-          <h1>物品图鉴</h1>
+          <h1>{{ activeFilter === 'all' ? '物品图鉴' : `${activeFilterLabel}图鉴` }}</h1>
           <p>图标墙是主浏览界面。搜索、分类和分页统一基于完整资料库。</p>
         </div>
       </div>
@@ -742,7 +797,7 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
                     v-if="catalogFallbackUnavailable"
                     class="small-button active"
                     type="button"
-                    @click="refreshPublicItems()"
+                    @click="retryCatalogData"
                   >
                     重新加载
                   </button>

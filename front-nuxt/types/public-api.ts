@@ -39,6 +39,26 @@ export type PublicCategory = {
   children?: PublicCategory[] | null
 }
 
+export type PublicCategoryNavigationChild = {
+  id: number
+  code: string
+  name: string
+}
+
+export type PublicCategoryNavigationEntry = {
+  slug: string
+  filterKey: string
+  name: string
+  description?: string | null
+  icon?: string | null
+  categoryPath: string
+  itemPath: string
+  categoryCodes: string[]
+  categoryIds: number[]
+  itemCount: number
+  children: PublicCategoryNavigationChild[]
+}
+
 export type PublicItemListItem = {
   id?: number | string | null
   itemId?: number | string | null
@@ -582,7 +602,7 @@ export type PublicItemsResult = {
   items: CatalogItem[]
   rawItems: PublicItemListItem[]
   pagination: Pagination
-  source: 'api' | 'fallback'
+  source: 'api' | 'fallback' | 'unavailable'
 }
 
 export type PublicArmorSetQuery = {

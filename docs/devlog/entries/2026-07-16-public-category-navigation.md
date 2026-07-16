@@ -30,6 +30,11 @@
   returns the six ordered entries and fails with the standard HTTP 503 envelope
   before counting anything when a configured category code is missing. See git
   for code-level diff details.
+- Frontend consumer contract implemented: category index/detail and the six
+  approved catalog filters use the navigation response; navigation filters
+  disable item requests while unresolved and never use sample fallback data.
+  Existing non-navigation item filters retain their prior behavior. See git for
+  code-level diff details.
 - Reasoning: the user chose a backend contract so the category index, category
   detail, and item catalog cannot drift into separate mappings.
 - Rejected options:
@@ -58,6 +63,8 @@
   - plan header, task, contract-term, placeholder, code-fence, checkbox, and
     `git diff --check` scans.
   - `cd back && mvn '-Dtest=CategoryNavigationServiceImplTest,CategoryControllerTest,ItemMapperPreferredImageSqlTest#categoryScopedCountShouldMatchPrimaryOrActiveRelationWithoutDuplicateRows' test`.
+  - `cd front-nuxt && node scripts/check-category-navigation-contract.mjs`.
+  - `cd front-nuxt && pnpm run check`.
 - Results:
   - confirmed the category pages are static while the real category and public
     item APIs are available;
@@ -70,14 +77,19 @@
   - the broader existing `ItemMapperPreferredImageSqlTest` still has three
     unrelated image-projection assertion failures against unchanged mapper XML;
     the new category-count characterization passes independently.
+  - frontend navigation contract passed after its expected RED report of 27
+    static/missing integration markers; the full public frontend check and Nuxt
+    typecheck passed. Existing non-failing Chromium DBus/GPU and Node
+    deprecation warnings remain unrelated.
 - Not run: implementation tests and runtime acceptance; implementation has not
   started.
 
 ## Result
 
-- Completed: design, implementation plan, backend DTO/service/controller
-  contract, fail-closed behavior, and focused backend tests.
-- Not completed: frontend consumer, integrated review, and runtime acceptance.
+- Completed: design, plan, backend producer, frontend consumer, fail-closed
+  navigation filtering, focused backend tests, and full frontend checks.
+- Not completed: durable API documentation, integrated review, and runtime
+  acceptance after stack restart.
 
 ## Residual Risks
 
@@ -93,4 +105,5 @@
 
 - Design checkpoint: `4221724` (`docs(categories): design public navigation contract`).
 - Implementation-plan checkpoint: `256cf52` (`docs(categories): plan public navigation implementation`).
-- Backend contract checkpoint pending.
+- Backend contract checkpoint: `adbf9dd` (`feat(categories): expose public navigation contract`).
+- Frontend consumer checkpoint pending.
