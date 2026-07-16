@@ -70,39 +70,7 @@ const closeMenu = () => {
   activeMenu.value = null
 }
 
-const mobileNavOpen = ref(false)
-
-const toggleMobileNav = () => {
-  mobileNavOpen.value = !mobileNavOpen.value
-}
-
-const closeMobileNav = () => {
-  mobileNavOpen.value = false
-}
-
-const syncMobileNavScrollLock = (open: boolean) => {
-  if (!import.meta.client) return
-  document.body.style.overflow = open ? 'hidden' : ''
-}
-
-const onMobileNavKeydown = (event: KeyboardEvent) => {
-  if (event.key === 'Escape') {
-    closeMobileNav()
-  }
-}
-
-watch(mobileNavOpen, (open) => {
-  syncMobileNavScrollLock(open)
-  if (!import.meta.client) return
-  // Esc 需要全局监听:打开抽屉后焦点仍在汉堡按钮上，不会经过抽屉内元素。
-  if (open) {
-    document.addEventListener('keydown', onMobileNavKeydown)
-  } else {
-    document.removeEventListener('keydown', onMobileNavKeydown)
-  }
-})
-
-watch(() => route.fullPath, closeMobileNav)
+const { mobileNavOpen, toggleMobileNav, closeMobileNav } = useMobileNavDrawer()
 
 const accountInitials = computed(() => {
   const source = authStore.displayName || authStore.user?.email || 'TP'
@@ -145,13 +113,7 @@ onMounted(() => {
   })
 })
 
-onBeforeUnmount(() => {
-  closeMenu()
-  syncMobileNavScrollLock(false)
-  if (import.meta.client) {
-    document.removeEventListener('keydown', onMobileNavKeydown)
-  }
-})
+onBeforeUnmount(closeMenu)
 </script>
 
 <template>
