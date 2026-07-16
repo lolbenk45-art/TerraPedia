@@ -1,10 +1,15 @@
 package com.terraria.skills.service.impl;
 
 import com.terraria.skills.dto.CategoryDTO;
+import com.terraria.skills.dto.CategoryItemCountDTO;
+import com.terraria.skills.dto.CategoryNavigationChildAggregateDTO;
+import com.terraria.skills.dto.CategoryNavigationParentScopeMembershipDTO;
+import com.terraria.skills.dto.CategoryNavigationScopeMembershipDTO;
 import com.terraria.skills.mapper.ItemMapper;
 import com.terraria.skills.service.CategoryManagementService;
 import com.terraria.skills.service.CategoryNavigationService;
 import com.terraria.skills.service.CategoryNavigationUnavailableException;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import com.terraria.skills.vo.CategoryNavigationChildVO;
 import com.terraria.skills.vo.CategoryNavigationVO;
 import lombok.RequiredArgsConstructor;
@@ -39,15 +44,39 @@ public class CategoryNavigationServiceImpl implements CategoryNavigationService 
 
     private final CategoryManagementService categoryManagementService;
     private final ItemMapper itemMapper;
+    private final ManagedImageUrlPolicy managedImageUrlPolicy;
 
     @Override
     public List<CategoryNavigationVO> getNavigation() {
         Map<Long, CategoryDTO> categoryById = categoryManagementService.getCategoryMap();
         Map<String, CategoryDTO> categoryByCode = indexCategoriesByCode(categoryById);
         validateConfiguredCodes(categoryByCode);
+        Map<NavigationDefinition, ParentScope> parentScopesByDefinition = new LinkedHashMap<>();
+        Map<NavigationDefinition, List<ChildScope>> childScopesByDefinition = new LinkedHashMap<>();
+        for (NavigationDefinition definition : DEFINITIONS) {
+            List<CategoryDTO> roots = definition.categoryCodes().stream()
+                .map(code -> categoryByCode.get(normalizeCode(code)))
+                .toList();
+            parentScopesByDefinition.put(
+                definition,
+                new ParentScope(roots.get(0), resolveCategoryIds(roots))
+            );
+            childScopesByDefinition.put(
+                definition,
+                resolveChildScopes(definition, categoryById, categoryByCode)
+            );
+        }
+        Map<Long, Long> parentCounts = resolveParentCounts(parentScopesByDefinition);
+        Map<Long, ChildAggregate> childAggregates = resolveChildAggregates(childScopesByDefinition);
 
         return DEFINITIONS.stream()
-            .map(definition -> buildEntry(definition, categoryById, categoryByCode))
+            .map(definition -> buildEntry(
+                definition,
+                parentScopesByDefinition.get(definition),
+                childScopesByDefinition.getOrDefault(definition, List.of()),
+                parentCounts,
+                childAggregates
+            ))
             .toList();
     }
 
@@ -76,18 +105,19 @@ public class CategoryNavigationServiceImpl implements CategoryNavigationService 
 
     private CategoryNavigationVO buildEntry(
         NavigationDefinition definition,
-        Map<Long, CategoryDTO> categoryById,
-        Map<String, CategoryDTO> categoryByCode
+        ParentScope parentScope,
+        List<ChildScope> childScopes,
+        Map<Long, Long> parentCounts,
+        Map<Long, ChildAggregate> childAggregates
     ) {
-        List<CategoryDTO> roots = definition.categoryCodes().stream()
-            .map(code -> categoryByCode.get(normalizeCode(code)))
-            .toList();
-        CategoryDTO primaryRoot = roots.get(0);
-        Set<Long> rootIds = roots.stream()
-            .map(CategoryDTO::getId)
-            .filter(Objects::nonNull)
-            .collect(LinkedHashSet::new, LinkedHashSet::add, LinkedHashSet::addAll);
-        List<Long> categoryIds = resolveCategoryIds(roots);
+        CategoryDTO primaryRoot = parentScope.category();
+        List<Long> categoryIds = parentScope.categoryIds();
+        Long itemCount = parentCounts.get(primaryRoot.getId());
+        if (itemCount == null) {
+            throw new CategoryNavigationUnavailableException(
+                "Missing parent navigation count: " + primaryRoot.getCode()
+            );
+        }
 
         CategoryNavigationVO entry = new CategoryNavigationVO();
         entry.setSlug(definition.slug());
@@ -99,8 +129,10 @@ public class CategoryNavigationServiceImpl implements CategoryNavigationService 
         entry.setItemPath("/items?filter=" + definition.filterKey());
         entry.setCategoryCodes(definition.categoryCodes());
         entry.setCategoryIds(categoryIds);
-        entry.setItemCount(itemMapper.countItemsWithSearch("", null, categoryIds, null, null));
-        entry.setChildren(resolveImmediateChildren(categoryById, rootIds));
+        entry.setItemCount(itemCount);
+        entry.setChildren(childScopes.stream()
+            .map(scope -> toChild(scope, childAggregates.get(scope.category().getId())))
+            .toList());
         return entry;
     }
 
@@ -119,24 +151,135 @@ public class CategoryNavigationServiceImpl implements CategoryNavigationService 
         return new ArrayList<>(categoryIds);
     }
 
-    private List<CategoryNavigationChildVO> resolveImmediateChildren(
-        Map<Long, CategoryDTO> categoryById,
-        Set<Long> rootIds
+    private Map<Long, Long> resolveParentCounts(
+        Map<NavigationDefinition, ParentScope> parentScopesByDefinition
     ) {
+        List<CategoryNavigationParentScopeMembershipDTO> memberships = parentScopesByDefinition.values().stream()
+            .flatMap(scope -> scope.categoryIds().stream()
+                .map(categoryId -> new CategoryNavigationParentScopeMembershipDTO(scope.category().getId(), categoryId)))
+            .toList();
+        List<CategoryItemCountDTO> rows = itemMapper.selectCategoryNavigationParentCounts(memberships);
+        Map<Long, Long> parentCounts = new LinkedHashMap<>();
+        for (CategoryItemCountDTO row : rows == null ? List.<CategoryItemCountDTO>of() : rows) {
+            if (row == null || row.getCategoryId() == null || row.getCount() < 0
+                || parentCounts.containsKey(row.getCategoryId())) {
+                throw new CategoryNavigationUnavailableException("Malformed parent navigation count");
+            }
+            parentCounts.put(row.getCategoryId(), row.getCount());
+        }
+        Set<Long> expectedParentIds = parentScopesByDefinition.values().stream()
+            .map(ParentScope::category)
+            .map(CategoryDTO::getId)
+            .collect(LinkedHashSet::new, LinkedHashSet::add, LinkedHashSet::addAll);
+        if (!parentCounts.keySet().equals(expectedParentIds)) {
+            throw new CategoryNavigationUnavailableException("Incomplete parent navigation counts");
+        }
+        return parentCounts;
+    }
+
+    private List<ChildScope> resolveChildScopes(
+        NavigationDefinition definition,
+        Map<Long, CategoryDTO> categoryById,
+        Map<String, CategoryDTO> categoryByCode
+    ) {
+        Set<Long> rootIds = definition.categoryCodes().stream()
+            .map(code -> categoryByCode.get(normalizeCode(code)))
+            .map(CategoryDTO::getId)
+            .filter(Objects::nonNull)
+            .collect(LinkedHashSet::new, LinkedHashSet::add, LinkedHashSet::addAll);
+
         return categoryById.values().stream()
             .filter(Objects::nonNull)
             .filter(category -> rootIds.contains(category.getParentId()))
             .sorted(CATEGORY_ORDER)
-            .map(this::toChild)
+            .map(category -> new ChildScope(category, resolveCategoryIds(List.of(category))))
             .toList();
     }
 
-    private CategoryNavigationChildVO toChild(CategoryDTO category) {
+    private Map<Long, ChildAggregate> resolveChildAggregates(
+        Map<NavigationDefinition, List<ChildScope>> childScopesByDefinition
+    ) {
+        List<ChildScope> childScopes = childScopesByDefinition.values().stream()
+            .flatMap(List::stream)
+            .toList();
+        if (childScopes.isEmpty()) {
+            return Map.of();
+        }
+
+        List<CategoryNavigationScopeMembershipDTO> scopeMemberships = childScopes.stream()
+            .flatMap(scope -> scope.categoryIds().stream()
+                .map(categoryId -> new CategoryNavigationScopeMembershipDTO(scope.category().getId(), categoryId)))
+            .toList();
+        List<CategoryNavigationChildAggregateDTO> rows = itemMapper.selectCategoryNavigationChildAggregates(
+            scopeMemberships,
+            managedImageReadPrefixes()
+        );
+        Map<Long, ChildAggregate> aggregates = new LinkedHashMap<>();
+        for (CategoryNavigationChildAggregateDTO row : rows == null ? List.<CategoryNavigationChildAggregateDTO>of() : rows) {
+            if (row == null || row.getChildId() == null || row.getItemCount() < 0 || aggregates.containsKey(row.getChildId())) {
+                throw new CategoryNavigationUnavailableException("Malformed child navigation aggregate");
+            }
+            String image = normalizeManagedImage(row.getImage(), row.getChildId());
+            aggregates.put(row.getChildId(), new ChildAggregate(row.getItemCount(), image));
+        }
+        for (ChildScope childScope : childScopes) {
+            Long childId = childScope.category().getId();
+            if (!aggregates.containsKey(childId)) {
+                throw new CategoryNavigationUnavailableException(
+                    "Missing child navigation aggregate: " + childScope.category().getCode()
+                );
+            }
+        }
+        if (aggregates.size() != childScopes.size()) {
+            throw new CategoryNavigationUnavailableException("Unexpected child navigation aggregate");
+        }
+        return aggregates;
+    }
+
+    private CategoryNavigationChildVO toChild(ChildScope scope, ChildAggregate aggregate) {
+        CategoryDTO category = scope.category();
+        if (aggregate == null || category.getId() == null || category.getCode() == null || category.getCode().isBlank()
+            || scope.categoryIds().isEmpty()) {
+            throw new CategoryNavigationUnavailableException("Malformed child navigation scope");
+        }
         CategoryNavigationChildVO child = new CategoryNavigationChildVO();
         child.setId(category.getId());
         child.setCode(category.getCode());
         child.setName(category.getName());
+        child.setCategoryIds(scope.categoryIds());
+        child.setItemPath("/items?category=" + category.getCode());
+        child.setItemCount(aggregate.itemCount());
+        child.setImage(aggregate.image());
         return child;
+    }
+
+    private List<String> managedImageReadPrefixes() {
+        List<String> readPrefixes = managedImageUrlPolicy.trustedManagedImageReadUrlPrefixes();
+        if (readPrefixes != null && !readPrefixes.isEmpty()) {
+            return itemImagePrefixes(readPrefixes);
+        }
+        List<String> writePrefixes = managedImageUrlPolicy.trustedManagedImageUrlPrefixes();
+        return writePrefixes == null ? List.of() : itemImagePrefixes(writePrefixes);
+    }
+
+    private List<String> itemImagePrefixes(List<String> prefixes) {
+        return prefixes.stream()
+            .filter(Objects::nonNull)
+            .map(String::trim)
+            .filter(prefix -> !prefix.isEmpty())
+            .filter(prefix -> prefix.toLowerCase(Locale.ROOT).contains("/terrapedia-images/items/"))
+            .distinct()
+            .toList();
+    }
+
+    private String normalizeManagedImage(String image, Long childId) {
+        if (image == null) {
+            return null;
+        }
+        return managedImageUrlPolicy.normalizeManagedImagePathForDomain(image, "items")
+            .orElseThrow(() -> new CategoryNavigationUnavailableException(
+                "Invalid child navigation image for category " + childId
+            ));
     }
 
     private String normalizeCode(String code) {
@@ -144,5 +287,14 @@ public class CategoryNavigationServiceImpl implements CategoryNavigationService 
     }
 
     private record NavigationDefinition(String slug, String filterKey, List<String> categoryCodes) {
+    }
+
+    private record ChildScope(CategoryDTO category, List<Long> categoryIds) {
+    }
+
+    private record ParentScope(CategoryDTO category, List<Long> categoryIds) {
+    }
+
+    private record ChildAggregate(long itemCount, String image) {
     }
 }

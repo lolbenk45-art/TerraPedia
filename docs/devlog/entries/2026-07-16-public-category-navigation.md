@@ -145,4 +145,4 @@
 - Backend contract checkpoint: `adbf9dd` (`feat(categories): expose public navigation contract`).
 - Frontend consumer checkpoint: `2b68aa8` (`feat(categories): connect public navigation pages`).
 - Review-fix and API-contract checkpoint: `4ce3947` (`fix(categories): enforce fail-closed navigation`).
-- Runtime-acceptance closeout: commit SHA pending in final response.
+- Runtime-acceptance closeout: `3fa24d6` (`docs(categories): record navigation acceptance`).

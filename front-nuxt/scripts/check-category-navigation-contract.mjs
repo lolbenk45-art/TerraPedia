@@ -34,6 +34,11 @@ const categoryDetail = requireFile('pages/categories/[id].vue')
 const itemsPage = requireFile('pages/items/index.vue')
 const packageJson = requireFile('package.json')
 
+const searchInputWatcher = itemsPage.match(/watch\(searchQuery, \(\) => \{[\s\S]*?\n\}\, \{ flush: 'sync' \}\)/)?.[0] ?? ''
+if (!searchInputWatcher) {
+  violations.push('pages/items/index.vue: must keep an identifiable raw search input debounce watcher')
+}
+
 requireIncludes('types/public-api.ts', publicTypes, 'PublicCategoryNavigationEntry', 'must define the navigation response type')
 requireIncludes('types/public-api.ts', publicTypes, "source: 'api' | 'fallback' | 'unavailable'", 'must model fail-closed item results')
 requireIncludes('composables/usePublicCategoryNavigation.ts', navigationComposable, "'/categories/navigation'", 'must fetch the backend navigation endpoint')
@@ -44,21 +49,24 @@ requireIncludes('pages/categories/index.vue', categoryIndex, 'entry.categoryPath
 requireIncludes('pages/categories/[id].vue', categoryDetail, 'route.params.id', 'detail must resolve the semantic route slug')
 requireIncludes('pages/categories/[id].vue', categoryDetail, 'category.itemPath', 'detail action must use the backend item path')
 requireIncludes('pages/categories/[id].vue', categoryDetail, 'category.children', 'detail must render real immediate children')
+requireIncludes('pages/categories/[id].vue', categoryDetail, ':href="child.itemPath"', 'every child card must use its backend-owned item path')
+requireIncludes('pages/categories/[id].vue', categoryDetail, '<CommonPreviewImage', 'every child card must render its managed image or semantic fallback')
+requireIncludes('pages/categories/[id].vue', categoryDetail, 'child.itemCount', 'every child card must render its relation-aware item total')
+requireIncludes('pages/categories/[id].vue', categoryDetail, '查看图鉴', 'every child card must expose a visible navigation affordance')
 requireIncludes('pages/categories/[id].vue', categoryDetail, 'watch(unknownCategory', 'detail must react when a reused route changes to an unknown slug')
 requireIncludes('pages/categories/[id].vue', categoryDetail, 'role="alert"', 'detail errors must be announced accessibly')
-forbidIncludes('pages/categories/[id].vue', categoryDetail, 'navigateTo(', 'detail must remain an intermediate page')
 requireIncludes('pages/categories/index.vue', categoryIndex, 'role="alert"', 'index errors must be announced accessibly')
 requireIncludes('pages/items/index.vue', itemsPage, 'navigationSlug', 'six public filters must identify navigation entries')
-requireIncludes('pages/items/index.vue', itemsPage, 'selectedNavigationEntry', 'item scope must resolve from backend navigation')
-requireIncludes('pages/items/index.vue', itemsPage, 'allowFallback: () => !navigationFilterRequired.value', 'navigation filters must disable sample fallback')
-requireIncludes('pages/items/index.vue', itemsPage, 'enabled: () => navigationFilterReady.value', 'navigation filters must disable requests until resolved')
-requireIncludes(
-  'pages/items/index.vue',
-  itemsPage,
-  '&& !categoryNavigationError.value\n  && selectedCategoryIds.value.length > 0',
-  'navigation readiness must require a settled successful response and non-empty ID scope',
-)
-requireIncludes('pages/items/index.vue', itemsPage, 'if (navigationFilterReady.value)', 'retry must not request items after a failed navigation refresh')
+requireIncludes('pages/items/index.vue', itemsPage, 'route.query.category', 'item deep links must read the exact child category code')
+requireIncludes('pages/items/index.vue', itemsPage, 'resolvePublicCategoryNavigationSelection', 'item scope must use the shared exact child and parent resolver')
+requireIncludes('pages/items/index.vue', itemsPage, 'navigationScopeRequired', 'parent and child navigation must share one request gate')
+requireIncludes('pages/items/index.vue', itemsPage, 'allowFallback: () => !navigationScopeRequired.value', 'required navigation scopes must disable sample fallback')
+requireIncludes('pages/items/index.vue', itemsPage, 'enabled: () => navigationScopeReady.value', 'required navigation scopes must disable requests until resolved')
+requireIncludes('pages/items/index.vue', itemsPage, 'category: selectedCategoryCode.value ?? undefined', 'search and paging must preserve the stable child category query')
+requireIncludes('pages/items/index.vue', itemsPage, 'selectedCategoryCode.value = null', 'ordinary quick filters must clear the child category query')
+requireIncludes('pages/items/index.vue', itemsPage, 'href="/items"', 'unknown child categories must offer a complete-catalog recovery link')
+requireIncludes('pages/items/index.vue', itemsPage, 'if (navigationScopeReady.value)', 'retry must not request items after a failed navigation refresh')
+forbidIncludes('pages/items/index.vue', searchInputWatcher, 'currentPage.value = 1', 'raw search input must not reset paging before its debounced route query is ready')
 requireIncludes('package.json', packageJson, 'check:category-navigation', 'main frontend gate must run the navigation contract check')
 
 for (const total of ['932', '684', '122', '1186', '1408', '318']) {

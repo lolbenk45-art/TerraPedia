@@ -398,9 +398,13 @@ runtime payload.
       "itemCount": 488,
       "children": [
         {
-          "id": 315,
-          "code": "WEAPON_MELEE",
-          "name": "近战武器"
+          "id": 316,
+          "code": "WEAPON_OTHER",
+          "name": "其他武器",
+          "categoryIds": [316, 342, 341],
+          "itemPath": "/items?category=WEAPON_OTHER",
+          "itemCount": 36,
+          "image": "/terrapedia-images/items/2026/04/08/example.png"
         }
       ]
     }
@@ -415,7 +419,13 @@ runtime payload.
     `furniture`, and `tools` order;
   - `categoryIds` contains each configured category and all descendants;
   - `itemCount` uses the public item-list predicate: primary category or active
-    `item_category_rel`, with one count row per item.
+    `item_category_rel`, with one count row per item;
+  - every immediate child supplies its complete descendant `categoryIds`, a
+    stable exact-code `itemPath`, relation-aware `itemCount`, and nullable
+    representative `image`;
+  - child counts and images are grouped across all children rather than queried
+    once per child; the representative image is the first item by ascending ID
+    with a usable managed item image, skipping missing, demo, and placed images.
 - Error response:
   - `503`: any configured category code is missing; `success=false`,
     `statusCode=503`, and no partial `data` list.
@@ -427,11 +437,14 @@ runtime payload.
   - existing `/api/categories` and `/api/categories/items` responses remain
     unchanged;
   - catalog filters outside the six navigation entries retain their existing
-    frontend category-code behavior.
+    frontend category-code behavior;
+  - child catalog URLs use `/items?category=<exact-code>` while parent URLs keep
+    `/items?filter=<key>`; child code matching is case-sensitive and unknown
+    child codes issue no unfiltered item request or sample fallback.
 - Validation:
   - `CategoryNavigationServiceImplTest`
   - `CategoryControllerTest`
-  - `ItemMapperPreferredImageSqlTest#categoryScopedCountShouldMatchPrimaryOrActiveRelationWithoutDuplicateRows`
+  - `ItemMapperCategoryNavigationAggregateSqlTest`
   - `front-nuxt/scripts/check-category-navigation-contract.mjs`
   - restarted local-stack API and page acceptance recorded in the task devlog.
 

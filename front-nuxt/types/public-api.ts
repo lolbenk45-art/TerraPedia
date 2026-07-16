@@ -43,6 +43,10 @@ export type PublicCategoryNavigationChild = {
   id: number
   code: string
   name: string
+  categoryIds: number[]
+  itemPath: string
+  itemCount: number
+  image: string | null
 }
 
 export type PublicCategoryNavigationEntry = {

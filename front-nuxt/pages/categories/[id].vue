@@ -72,15 +72,28 @@ useSeoMeta({
         </section>
 
         <section v-if="category.children.length" class="category-detail-grid">
-          <article
-            v-for="(child, index) in category.children"
+          <a
+            v-for="child in category.children"
             :key="child.id"
-            class="support-panel category-branch category-branch-card"
-            :class="{ active: index === 0 }"
+            class="support-panel category-branch category-branch-card category-child-link"
+            :href="child.itemPath"
           >
-            <b>{{ child.name }}</b>
-            <span>{{ child.code }}</span>
-          </article>
+            <CommonPreviewImage
+              class="category-child-image"
+              :src="child.image"
+              :alt="`${child.name}分类代表物品`"
+              :fallback="child.name"
+              fallback-icon="icon-category"
+              width="72"
+              height="72"
+            />
+            <span class="category-child-copy">
+              <b>{{ child.name }}</b>
+              <span>{{ child.code }}</span>
+              <small>{{ child.itemCount.toLocaleString('zh-CN') }} 个物品</small>
+            </span>
+            <strong class="category-child-action">查看图鉴 <span aria-hidden="true">→</span></strong>
+          </a>
         </section>
 
         <section v-else class="search-suggestion-band support-panel">

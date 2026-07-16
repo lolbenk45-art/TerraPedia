@@ -1,17 +1,8 @@
 # Current Devlog
 
-Last updated: 2026-07-16 18:38 CST by Codex
+Last updated: 2026-07-17 03:14 CST by Codex
 
 ## Open Work
-
-- `docs/devlog/entries/2026-07-16-public-category-child-navigation.md`
-  - owner: Codex
-  - status: active
-  - branch: `codex/continue-dev-20260715`
-  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/continue-dev-20260715`
-  - parent/child: child follow-up of `docs/devlog/entries/2026-07-16-public-category-navigation.md`
-  - dependencies or blocked-by: written design review, implementation plan, test-first implementation, and runtime acceptance
-  - contract handoff: all immediate category children will receive stable code URLs, complete descendant scopes, relation-aware totals, and managed representative images through the existing navigation API
 
 - `docs/devlog/entries/2026-07-12-crawler-queue-v2-runtime.md`
   - owner: Codex
@@ -24,10 +15,10 @@ Last updated: 2026-07-16 18:38 CST by Codex
 
 ## Current State
 
-- Public category child navigation design is approved in chat and written for
-  review. Root cause is confirmed: current child DTOs expose only id/code/name,
-  while nine immediate children have deeper descendants and therefore cannot
-  safely use one numeric category ID as their public scope.
+- Public category child navigation implementation and runtime acceptance are
+  closed for the user-requested checkpoint and local merge. Six parents expose
+  34 image-backed child routes; exact scopes, counts, fail-closed behavior,
+  search/paging state, and local Chromium behavior are verified.
 
 - Crawler monitor queue/status root-cause analysis and the first two V2
   foundation tasks are complete; runtime implementation continues on the
@@ -116,11 +107,6 @@ Last updated: 2026-07-16 18:38 CST by Codex
 
 ## Next Agent Should Start Here
 
-- After user review, write the implementation plan for
-  `docs/superpowers/specs/2026-07-16-public-category-child-navigation-design.md`
-  and execute backend/frontend RED -> GREEN checkpoints on
-  `codex/continue-dev-20260715`.
-
 - Continue inline from Task 3 of the committed V2 hard-cutover plan using
   test-first implementation and the plan's task-level validation checkpoints.
 - On implementation start, follow the plan task by task and preserve its
@@ -144,9 +130,9 @@ Last updated: 2026-07-16 18:38 CST by Codex
 
 ## Current Risks
 
-- Public category child routes must resolve complete descendant scopes and the
-  same primary-or-active-relation predicate as the item catalog; representative
-  images must stay inside the managed item-image boundary.
+- Public category totals and representative images depend on current local data
+  and may change after refresh; the grouped relation-aware contract, managed
+  image boundary, and runtime reconciliation remain the acceptance gates.
 
 - The root shared recipe-runtime alias must be proven by both Nuxt build paths with a disposable spike. Replacing the renderer's hardcoded `crafting-screen` class and adding keyboard-focus support touches code already shipped to the public article page and rich editor, so validation needs a real running-page visual check on `/articles/*`, not just typecheck/build. Body-portaled popovers must receive their direct public/admin theme class; they cannot inherit preview-root variables. Local authenticated admin acceptance also needs a valid session and suitable article fixture.
 - Dense article recipe trees use width-fit scaling with the wider PC article-body frame, so the FW `1706px` graph begins entirely inside a `935px` graph frame at 1440px. Its square station source frames are complete and unshifted with `contain` fitting at `26.19×26.19px`; only a narrower-desktop readability concern would require a future layout-mode decision.
@@ -173,6 +159,12 @@ Last updated: 2026-07-16 18:38 CST by Codex
 ## Recently Closed
 
 - `docs/devlog/entries/2026-07-16-public-category-navigation.md`
+  - branch: `codex/continue-dev-20260715`
+  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/continue-dev-20260715`
+  - status: `closed`
+  - commit: `3fa24d6`
+
+- `docs/devlog/entries/2026-07-16-public-category-child-navigation.md`
   - branch: `codex/continue-dev-20260715`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/continue-dev-20260715`
   - status: `closed`

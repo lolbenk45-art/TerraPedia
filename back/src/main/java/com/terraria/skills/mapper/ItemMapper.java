@@ -2,6 +2,9 @@ package com.terraria.skills.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.terraria.skills.dto.CategoryNavigationChildAggregateDTO;
+import com.terraria.skills.dto.CategoryNavigationParentScopeMembershipDTO;
+import com.terraria.skills.dto.CategoryNavigationScopeMembershipDTO;
 import com.terraria.skills.dto.CategoryItemCountDTO;
 import com.terraria.skills.dto.ItemDTO;
 import com.terraria.skills.dto.PublicItemDetailDTO;
@@ -50,6 +53,15 @@ public interface ItemMapper extends BaseMapper<Item> {
     );
 
     List<CategoryItemCountDTO> countItemsByCategoryIds(@Param("categoryIds") List<Long> categoryIds);
+
+    List<CategoryItemCountDTO> selectCategoryNavigationParentCounts(
+        @Param("parentScopeMemberships") List<CategoryNavigationParentScopeMembershipDTO> parentScopeMemberships
+    );
+
+    List<CategoryNavigationChildAggregateDTO> selectCategoryNavigationChildAggregates(
+        @Param("scopeMemberships") List<CategoryNavigationScopeMembershipDTO> scopeMemberships,
+        @Param("managedImagePrefixes") List<String> managedImagePrefixes
+    );
 
     long countActiveItems();
 

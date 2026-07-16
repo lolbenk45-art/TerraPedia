@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { fallbackCatalogItems, usePublicItems } from '~/composables/usePublicItems'
 import type { CatalogItem, PublicCategory, PublicItemQuery } from '~/types/public-api'
-import { hasResolvedNavigationScope } from '~/utils/publicCategoryNavigation'
+import { resolvePublicCategoryNavigationSelection } from '~/utils/publicCategoryNavigation'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,6 +17,7 @@ const catalogWallTopRef = ref<HTMLElement | null>(null)
 const searchQuery = ref('')
 const debouncedSearchQuery = ref('')
 const activeFilter = ref('all')
+const selectedCategoryCode = ref<string | null>(null)
 const currentPage = ref(1)
 const selectedPageSize = ref(defaultCatalogPageSize)
 const focusedItemId = ref<string | null>(null)
@@ -149,12 +150,16 @@ const readStoredPageSize = () => {
 
 const hydrateCatalogStateFromRoute = () => {
   const filter = firstQueryValue(route.query.filter)
+  const category = firstQueryValue(route.query.category)
   const search = String(firstQueryValue(route.query.q) ?? '')
   const queryPageSize = firstQueryValue(route.query.pageSize)
 
   selectedPageSize.value = queryPageSize ? parsePageSize(queryPageSize) : readStoredPageSize()
   currentPage.value = parsePositiveInteger(route.query.page, 1)
-  activeFilter.value = quickFilters.some((item) => item.key === filter) ? filter as QuickFilterKey : 'all'
+  selectedCategoryCode.value = category == null ? null : String(category)
+  activeFilter.value = selectedCategoryCode.value == null && quickFilters.some((item) => item.key === filter)
+    ? filter as QuickFilterKey
+    : 'all'
   searchQuery.value = search
   debouncedSearchQuery.value = search
 }
@@ -210,28 +215,39 @@ const categoryByCode = computed(() => {
 
 const defaultCategoryGroup = catalogCategoryGroups[0]!
 const selectedFilter = computed<CatalogCategoryFilter>(() => quickFilters.find((filter) => filter.key === activeFilter.value) ?? allCategoryFilter)
-const selectedNavigationEntry = computed(() => {
-  const navigationSlug = selectedFilter.value.navigationSlug
-  return navigationSlug
-    ? categoryNavigation.value?.find((entry) => entry.slug === navigationSlug)
-    : undefined
-})
-const navigationFilterRequired = computed(() => Boolean(selectedFilter.value.navigationSlug))
+const selectedParentNavigationSlug = computed(() => (
+  selectedCategoryCode.value == null ? selectedFilter.value.navigationSlug ?? null : null
+))
+const navigationSelection = computed(() => resolvePublicCategoryNavigationSelection(
+  categoryNavigation.value ?? [],
+  selectedCategoryCode.value,
+  selectedParentNavigationSlug.value,
+  categoryNavigationPending.value,
+  Boolean(categoryNavigationError.value),
+))
+const navigationScopeRequired = computed(() => navigationSelection.value.required)
+const navigationScopeReady = computed(() => navigationSelection.value.ready)
+const navigationScopeUnavailable = computed(() => navigationSelection.value.unavailable)
 const selectedFilterGroup = computed<CatalogCategoryGroup>(() => (
   catalogCategoryGroups.find((group) => group.filters.some((filter) => filter.key === selectedFilter.value.key))
   ?? defaultCategoryGroup
 ))
-const activeFilterLabel = computed(() => selectedNavigationEntry.value?.name || selectedFilter.value.label)
-const activeFilterPath = computed(() => `${selectedFilterGroup.value.label} / ${activeFilterLabel.value}`)
+const activeFilterLabel = computed(() => (
+  navigationSelection.value.child?.name
+  || navigationSelection.value.parent?.name
+  || selectedFilter.value.label
+))
+const activeFilterPath = computed(() => navigationSelection.value.child && navigationSelection.value.parent
+  ? `${navigationSelection.value.parent.name} / ${navigationSelection.value.child.name}`
+  : `${selectedFilterGroup.value.label} / ${activeFilterLabel.value}`)
+const catalogTitle = computed(() => (
+  activeFilter.value === 'all' && selectedCategoryCode.value == null
+    ? '物品图鉴'
+    : `${activeFilterLabel.value}图鉴`
+))
 const selectedCategoryIds = computed(() => {
-  if (selectedFilter.value.navigationSlug) {
-    if (!hasResolvedNavigationScope(selectedNavigationEntry.value)) return []
-
-    return Array.from(new Set(
-      (selectedNavigationEntry.value?.categoryIds ?? [])
-        .map(toNumberOrNull)
-        .filter((id): id is number => id != null && id > 0),
-    ))
+  if (navigationScopeRequired.value) {
+    return navigationSelection.value.categoryIds
   }
 
   const categoryCodes = selectedFilter.value.categoryCodes
@@ -243,17 +259,6 @@ const selectedCategoryIds = computed(() => {
     return categoryId ? [categoryId] : []
   })
 })
-
-const navigationFilterReady = computed(() => !navigationFilterRequired.value || (
-  !categoryNavigationPending.value
-  && !categoryNavigationError.value
-  && selectedCategoryIds.value.length > 0
-))
-const navigationFilterUnavailable = computed(() => (
-  navigationFilterRequired.value
-  && !categoryNavigationPending.value
-  && (Boolean(categoryNavigationError.value) || selectedCategoryIds.value.length === 0)
-))
 
 const selectedCategoryId = computed(() => {
   const categoryIds = selectedCategoryIds.value
@@ -281,8 +286,8 @@ const {
 } = await usePublicItems(
   () => publicItemsQuery.value,
   {
-    enabled: () => navigationFilterReady.value,
-    allowFallback: () => !navigationFilterRequired.value,
+    enabled: () => navigationScopeReady.value,
+    allowFallback: () => !navigationScopeRequired.value,
   },
 )
 
@@ -294,11 +299,17 @@ const pagination = computed(() => publicItemsResult.value?.pagination)
 const catalogApiLoading = computed(() => !catalogClientReady.value || itemsPending.value)
 const catalogRawLoading = computed(() => (
   catalogApiLoading.value
-  || (navigationFilterRequired.value && categoryNavigationPending.value)
+  || (navigationScopeRequired.value && categoryNavigationPending.value)
 ))
 const catalogFallbackUnavailable = computed(() => (
-  navigationFilterUnavailable.value
+  navigationScopeUnavailable.value
   || (catalogClientReady.value && !itemsPending.value && publicItemsResult.value?.source !== 'api')
+))
+const unknownChildCategory = computed(() => (
+  selectedCategoryCode.value != null
+  && navigationScopeUnavailable.value
+  && !categoryNavigationError.value
+  && navigationSelection.value.child == null
 ))
 const catalogDisplayItems = computed(() => (catalogVisualLoading.value || catalogFallbackUnavailable.value) ? [] : catalogItems.value)
 const totalItems = computed(() => (catalogVisualLoading.value || catalogFallbackUnavailable.value) ? 0 : pagination.value?.total ?? catalogDisplayItems.value.length)
@@ -308,7 +319,7 @@ const canGoPrevious = computed(() => currentPage.value > 1)
 const canGoNext = computed(() => currentPage.value < totalPages.value)
 const catalogDockCurrentPage = computed(() => catalogVisualLoading.value ? 1 : currentPage.value)
 const catalogDockTotalPages = computed(() => catalogVisualLoading.value ? 1 : totalPages.value)
-const dataSourceState = computed(() => navigationFilterUnavailable.value
+const dataSourceState = computed(() => navigationScopeUnavailable.value
   ? 'navigation-unavailable'
   : publicItemsResult.value?.source ?? 'fallback')
 const publicStatusLabel = computed(() => catalogVisualLoading.value ? '加载中' : catalogFallbackUnavailable.value || itemsError.value ? '未载入' : '已更新')
@@ -420,6 +431,7 @@ const setFocusedItem = (item: CatalogItem) => {
 }
 
 const setActiveFilter = (filter: QuickFilterKey) => {
+  selectedCategoryCode.value = null
   activeFilter.value = filter
   currentPage.value = 1
   void scrollCatalogWallToTop()
@@ -481,16 +493,17 @@ const clearSearch = () => {
 const resetCatalogFilters = () => {
   searchQuery.value = ''
   debouncedSearchQuery.value = ''
+  selectedCategoryCode.value = null
   activeFilter.value = 'all'
   currentPage.value = 1
 }
 
 const retryCatalogData = async () => {
-  if (navigationFilterRequired.value) {
+  if (navigationScopeRequired.value) {
     await refreshCategoryNavigation()
   }
 
-  if (navigationFilterReady.value) {
+  if (navigationScopeReady.value) {
     await refreshPublicItems()
   }
 }
@@ -501,6 +514,7 @@ const updateCatalogRouteQuery = () => {
     page: currentPage.value > 1 ? String(currentPage.value) : undefined,
     pageSize: selectedPageSize.value !== defaultCatalogPageSize ? String(selectedPageSize.value) : undefined,
     filter: activeFilter.value !== 'all' ? activeFilter.value : undefined,
+    category: selectedCategoryCode.value ?? undefined,
     q: debouncedSearchQuery.value.trim() || undefined,
   }
 
@@ -525,7 +539,6 @@ watch(searchQuery, () => {
     clearTimeout(searchDebounceTimer)
   }
 
-  currentPage.value = 1
   searchDebounceTimer = setTimeout(() => {
     debouncedSearchQuery.value = searchQuery.value
   }, 300)
@@ -572,7 +585,7 @@ watch(totalPages, (pages) => {
 })
 
 watch(
-  [currentPage, selectedPageSize, activeFilter, debouncedSearchQuery],
+  [currentPage, selectedPageSize, activeFilter, selectedCategoryCode, debouncedSearchQuery],
   updateCatalogRouteQuery,
   { flush: 'post' },
 )
@@ -599,7 +612,7 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
       <div class="page-head-inner">
         <div>
           <span class="eyebrow">{{ catalogVisualLoading ? '加载资料' : catalogFallbackUnavailable ? '资料暂未载入' : `${totalItems.toLocaleString('zh-CN')} 个物品` }}</span>
-          <h1>{{ activeFilter === 'all' ? '物品图鉴' : `${activeFilterLabel}图鉴` }}</h1>
+          <h1>{{ catalogTitle }}</h1>
           <p>图标墙是主浏览界面。搜索、分类和分页统一基于完整资料库。</p>
         </div>
       </div>
@@ -800,7 +813,7 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
 
                 <div v-else key="catalog-wall-empty" class="catalog-empty-state">
                   <b>{{ catalogFallbackUnavailable ? '资料暂未载入' : '没有匹配物品' }}</b>
-                  <span>{{ catalogFallbackUnavailable ? '当前资料暂时没有载入成功，请稍后重试。' : '调整搜索词或切回全部分类。' }}</span>
+                  <span>{{ unknownChildCategory ? `未找到分类代码 ${selectedCategoryCode}，未发送未筛选请求。` : catalogFallbackUnavailable ? '当前资料暂时没有载入成功，请稍后重试。' : '调整搜索词或切回全部分类。' }}</span>
                   <button
                     v-if="catalogFallbackUnavailable"
                     class="small-button active"
@@ -809,6 +822,7 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
                   >
                     重新加载
                   </button>
+                  <a v-if="catalogFallbackUnavailable" class="small-button" href="/items">查看完整物品图鉴</a>
                   <button v-else class="small-button active" type="button" @click="resetCatalogFilters">重置筛选</button>
                 </div>
               </Transition>

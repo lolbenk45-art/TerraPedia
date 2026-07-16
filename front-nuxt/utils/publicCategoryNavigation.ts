@@ -17,6 +17,7 @@ type NavigationScopeLike = {
 }
 
 const nonEmptyString = (value: unknown) => typeof value === 'string' && value.trim() ? value.trim() : null
+const exactNonEmptyString = (value: unknown) => typeof value === 'string' && value.trim() ? value : null
 
 export const normalizeNavigationCategoryIds = (value: unknown): number[] => {
   if (
@@ -43,10 +44,36 @@ const normalizeChildren = (value: unknown): PublicCategoryNavigationChild[] | nu
 
     const child = candidate as Record<string, unknown>
     const id = child.id
-    const code = nonEmptyString(child.code)
+    const code = exactNonEmptyString(child.code)
     const name = nonEmptyString(child.name)
-    if (typeof id !== 'number' || !Number.isInteger(id) || id <= 0 || !code || !name) return null
-    children.push({ id, code, name })
+    const categoryIds = normalizeNavigationCategoryIds(child.categoryIds)
+    const itemPath = exactNonEmptyString(child.itemPath)
+    const itemCount = child.itemCount
+    const image = child.image
+    const imageValid = image == null
+      || (typeof image === 'string' && image.startsWith('/terrapedia-images/items/'))
+    if (
+      typeof id !== 'number'
+      || !Number.isInteger(id)
+      || id <= 0
+      || !code
+      || !name
+      || categoryIds.length === 0
+      || itemPath !== `/items?category=${code}`
+      || typeof itemCount !== 'number'
+      || !Number.isInteger(itemCount)
+      || itemCount < 0
+      || !imageValid
+    ) return null
+    children.push({
+      id,
+      code,
+      name,
+      categoryIds,
+      itemPath,
+      itemCount,
+      image: typeof image === 'string' ? image : null,
+    })
   }
   return children
 }
@@ -115,3 +142,70 @@ export const isUnknownCategorySlug = (
   pending: boolean,
   failed: boolean,
 ) => !pending && !failed && !entries.some((entry) => entry.slug === slug)
+
+export type ResolvedPublicCategoryNavigationChild = {
+  parent: PublicCategoryNavigationEntry
+  child: PublicCategoryNavigationChild
+}
+
+export const resolvePublicCategoryNavigationChild = (
+  entries: readonly PublicCategoryNavigationEntry[],
+  categoryCode: string,
+): ResolvedPublicCategoryNavigationChild | null => {
+  for (const parent of entries) {
+    const child = parent.children.find((candidate) => candidate.code === categoryCode)
+    if (child) return { parent, child }
+  }
+  return null
+}
+
+export type PublicCategoryNavigationSelection = {
+  mode: 'none' | 'parent' | 'child'
+  required: boolean
+  ready: boolean
+  unavailable: boolean
+  parent: PublicCategoryNavigationEntry | null
+  child: PublicCategoryNavigationChild | null
+  categoryIds: number[]
+}
+
+export const resolvePublicCategoryNavigationSelection = (
+  entries: readonly PublicCategoryNavigationEntry[],
+  categoryCode: string | null,
+  parentSlug: string | null,
+  pending: boolean,
+  failed: boolean,
+): PublicCategoryNavigationSelection => {
+  const required = categoryCode != null || parentSlug != null
+  if (!required) {
+    return {
+      mode: 'none',
+      required: false,
+      ready: true,
+      unavailable: false,
+      parent: null,
+      child: null,
+      categoryIds: [],
+    }
+  }
+
+  const resolvedChild = categoryCode == null
+    ? null
+    : resolvePublicCategoryNavigationChild(entries, categoryCode)
+  const resolvedParent = categoryCode == null && parentSlug != null
+    ? entries.find((entry) => entry.slug === parentSlug) ?? null
+    : resolvedChild?.parent ?? null
+  const child = resolvedChild?.child ?? null
+  const categoryIds = child?.categoryIds ?? resolvedParent?.categoryIds ?? []
+  const resolved = hasResolvedNavigationScope({ categoryIds })
+
+  return {
+    mode: child ? 'child' : resolvedParent ? 'parent' : categoryCode != null ? 'child' : 'parent',
+    required: true,
+    ready: !pending && !failed && resolved,
+    unavailable: !pending && (failed || !resolved),
+    parent: resolvedParent,
+    child,
+    categoryIds,
+  }
+}
