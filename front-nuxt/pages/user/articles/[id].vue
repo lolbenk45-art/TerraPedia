@@ -112,6 +112,160 @@ const {
 } = coverCropper
 const coverPreviewSrc = computed(() => coverPreviewUrl.value || resolvePreviewImageUrl(form.coverImage))
 
+const articleDraftStorageKey = computed(() => `terrapedia:article-draft:${articleId.value}`)
+
+type StoredArticleDraft = {
+  savedAt: string
+  title: string
+  slug: string
+  summary: string
+  coverImage: string
+  contentHtml: string
+}
+
+const serializeArticleDraftForm = () => JSON.stringify({
+  title: form.title,
+  slug: form.slug,
+  summary: form.summary,
+  coverImage: form.coverImage,
+  contentHtml: form.contentHtml,
+})
+
+const serializeStoredArticleDraft = (draft: StoredArticleDraft) => JSON.stringify({
+  title: draft.title,
+  slug: draft.slug,
+  summary: draft.summary,
+  coverImage: draft.coverImage,
+  contentHtml: draft.contentHtml,
+})
+
+const articleDraftBaseline = ref(serializeArticleDraftForm())
+const restorableDraft = ref<StoredArticleDraft | null>(null)
+let articleDraftSaveTimer: ReturnType<typeof setTimeout> | null = null
+
+const hasUnsavedArticleChanges = computed(() => serializeArticleDraftForm() !== articleDraftBaseline.value)
+
+const restorableDraftSavedAtLabel = computed(() => {
+  const savedAt = restorableDraft.value?.savedAt
+  if (!savedAt) return ''
+  const savedDate = new Date(savedAt)
+  if (Number.isNaN(savedDate.getTime())) return ''
+  const twoDigits = (part: number) => String(part).padStart(2, '0')
+  return `${savedDate.getFullYear()}-${twoDigits(savedDate.getMonth() + 1)}-${twoDigits(savedDate.getDate())} ${twoDigits(savedDate.getHours())}:${twoDigits(savedDate.getMinutes())}`
+})
+
+const readStoredArticleDraft = (): StoredArticleDraft | null => {
+  // localStorage can throw in private mode; the local draft is best-effort.
+  try {
+    const raw = window.localStorage.getItem(articleDraftStorageKey.value)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<StoredArticleDraft> | null
+    if (!parsed || typeof parsed !== 'object') return null
+    const draft = {
+      savedAt: String(parsed.savedAt || ''),
+      title: String(parsed.title || ''),
+      slug: String(parsed.slug || ''),
+      summary: String(parsed.summary || ''),
+      coverImage: String(parsed.coverImage || ''),
+      contentHtml: String(parsed.contentHtml || ''),
+    }
+    if (!draft.title.trim() && !draft.contentHtml.trim()) return null
+    return draft
+  } catch {
+    return null
+  }
+}
+
+const clearStoredArticleDraft = () => {
+  try {
+    window.localStorage.removeItem(articleDraftStorageKey.value)
+  } catch {
+    // Ignore storage failures; the local draft is an extra safety net only.
+  }
+}
+
+const persistArticleDraft = () => {
+  if (!hasUnsavedArticleChanges.value) return
+  try {
+    window.localStorage.setItem(articleDraftStorageKey.value, JSON.stringify({
+      savedAt: new Date().toISOString(),
+      title: form.title,
+      slug: form.slug,
+      summary: form.summary,
+      coverImage: form.coverImage,
+      contentHtml: form.contentHtml,
+    }))
+  } catch {
+    // Ignore storage failures; the local draft is an extra safety net only.
+  }
+}
+
+const scheduleArticleDraftSave = () => {
+  if (!import.meta.client) return
+  if (articleDraftSaveTimer) clearTimeout(articleDraftSaveTimer)
+  articleDraftSaveTimer = setTimeout(() => {
+    articleDraftSaveTimer = null
+    persistArticleDraft()
+  }, 3000)
+}
+
+watch(form, scheduleArticleDraftSave)
+
+const detectRestorableArticleDraft = () => {
+  if (!canEditArticle.value) return
+  const draft = readStoredArticleDraft()
+  if (!draft) return
+  if (serializeStoredArticleDraft(draft) === serializeArticleDraftForm()) {
+    // The stored copy matches the server content, so it was already consumed.
+    clearStoredArticleDraft()
+    return
+  }
+  restorableDraft.value = draft
+}
+
+const restoreArticleDraft = () => {
+  const draft = restorableDraft.value
+  if (!draft) return
+  form.title = draft.title
+  form.slug = draft.slug
+  form.summary = draft.summary
+  form.coverImage = draft.coverImage
+  form.contentHtml = draft.contentHtml
+  clearPendingCoverSelection()
+  restorableDraft.value = null
+}
+
+const discardArticleDraft = () => {
+  clearStoredArticleDraft()
+  restorableDraft.value = null
+}
+
+const handleArticleEditorBeforeUnload = (event: BeforeUnloadEvent) => {
+  if (!hasUnsavedArticleChanges.value) return
+  // Chromium only shows the native confirm dialog when returnValue is set.
+  event.preventDefault()
+  event.returnValue = ''
+}
+
+onBeforeRouteLeave(() => {
+  if (!hasUnsavedArticleChanges.value) return true
+  return window.confirm('文章还有未保存的修改，确定离开吗？最新内容已自动暂存到本地草稿。')
+})
+
+onMounted(() => {
+  window.addEventListener('beforeunload', handleArticleEditorBeforeUnload)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', handleArticleEditorBeforeUnload)
+  if (articleDraftSaveTimer) {
+    clearTimeout(articleDraftSaveTimer)
+    articleDraftSaveTimer = null
+    // Flush the pending debounce so a confirmed leave keeps the newest copy.
+    persistArticleDraft()
+  }
+})
+
 const formatReviewStatus = (status: string) => {
   const map: Record<string, string> = {
     DRAFT: '草稿',
@@ -139,6 +293,8 @@ const syncForm = (nextArticle: UserArticle) => {
   form.coverImage = nextArticle.coverImage || ''
   form.contentHtml = nextArticle.contentHtml || nextArticle.contentMarkdown || ''
   clearPendingCoverSelection()
+  // The form now mirrors the server copy, so the leave guards start clean.
+  articleDraftBaseline.value = serializeArticleDraftForm()
 }
 
 const reportEditorError = (message: string) => {
@@ -148,13 +304,16 @@ const reportEditorError = (message: string) => {
 const persistCurrentDraft = async () => {
   const uploadedCover = pendingCoverFile.value ? await uploadUserArticleImage(pendingCoverFile.value) : null
   const contentHtml = await uploadUserArticleEmbeddedImages(form.contentHtml)
-  return await authStore.updateUserArticle(articleId.value, {
+  const updatedArticle = await authStore.updateUserArticle(articleId.value, {
     title: form.title,
     slug: form.slug,
     summary: form.summary,
     coverImage: uploadedCover?.url || form.coverImage,
     contentHtml,
   })
+  // The server now owns this content; drop the local safety copy.
+  clearStoredArticleDraft()
+  return updatedArticle
 }
 
 const loadArticle = async () => {
@@ -162,6 +321,7 @@ const loadArticle = async () => {
   success.value = ''
   try {
     syncForm(await authStore.fetchUserArticle(articleId.value))
+    detectRestorableArticleDraft()
   } catch (exception: unknown) {
     error.value = exception instanceof Error ? exception.message : '文章加载失败。'
   } finally {
@@ -200,6 +360,8 @@ const withdrawArticle = async () => {
   success.value = ''
   try {
     syncForm(await authStore.withdrawUserArticle(articleId.value))
+    // Back to an editable draft: a stored local draft may be restorable again.
+    detectRestorableArticleDraft()
     success.value = '投稿已撤回为草稿。'
   } catch (exception: unknown) {
     error.value = exception instanceof Error ? exception.message : '撤回投稿失败。'
@@ -212,6 +374,8 @@ const offlineArticle = async () => {
   success.value = ''
   try {
     syncForm(await authStore.offlineUserArticle(articleId.value))
+    // Offline articles are editable again: surface any stored local draft.
+    detectRestorableArticleDraft()
     success.value = '文章已下架，可继续编辑。'
   } catch (exception: unknown) {
     error.value = exception instanceof Error ? exception.message : '下架文章失败。'
@@ -224,6 +388,9 @@ const deleteArticle = async () => {
   success.value = ''
   try {
     await authStore.deleteUserArticle(articleId.value)
+    // The article is gone; its local safety copy has nothing to restore into.
+    clearStoredArticleDraft()
+    articleDraftBaseline.value = serializeArticleDraftForm()
     await navigateTo('/user/articles')
   } catch (exception: unknown) {
     error.value = exception instanceof Error ? exception.message : '删除草稿失败。'
@@ -285,6 +452,13 @@ onMounted(() => {
           <CommonTpSkeleton type="line" short />
           <CommonTpSkeleton type="line" />
         </section>
+        <div v-if="restorableDraft" class="user-form-status article-draft-restore" role="status">
+          <span>检测到未提交的本地草稿{{ restorableDraftSavedAtLabel ? `（自动保存于 ${restorableDraftSavedAtLabel}）` : '' }}，是否恢复到编辑器？</span>
+          <span class="article-draft-restore__actions">
+            <button class="secondary-button" type="button" :disabled="!canEditArticle" @click="restoreArticleDraft">恢复草稿</button>
+            <button class="secondary-button" type="button" @click="discardArticleDraft">丢弃</button>
+          </span>
+        </div>
         <p v-if="success" class="user-form-status user-form-success">{{ success }}</p>
         <p v-if="error" class="user-form-status user-form-error">{{ error }}</p>
 
@@ -618,6 +792,20 @@ onMounted(() => {
   border-radius: 8px;
   background: color-mix(in srgb, var(--index-surface) 70%, transparent);
   pointer-events: none;
+}
+
+.article-draft-restore {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.article-draft-restore__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .article-document-head {
