@@ -224,18 +224,16 @@ import {
   Users,
 } from 'lucide-vue-next'
 
-const SIDEBAR_STORAGE_KEY = 'terrapedia-admin-sidebar-collapsed'
 const MOBILE_BREAKPOINT = 980
 
 const route = useRoute()
 const authStore = useAuthStore()
 const notificationsStore = useNotificationsStore()
+const uiPreferences = useUiPreferencesStore()
 
-const isDesktopCollapsed = ref(false)
 const isMobile = ref(false)
 const isMobileNavOpen = ref(false)
 const userOpen = ref(false)
-const collapsedMenuSectionLabels = ref<Set<string>>(new Set())
 const userMenuRef = ref<HTMLElement | null>(null)
 const sidebarNavRef = ref<HTMLElement | null>(null)
 const menuLinkRefs = new Map<string, HTMLElement>()
@@ -256,6 +254,7 @@ type MenuItem = {
 type MenuSection = {
   label: string
   items: MenuItem[]
+  defaultCollapsed?: boolean
 }
 
 type HeaderVariant = 'default' | 'compact'
@@ -309,6 +308,7 @@ const menuSections: MenuSection[] = [
   },
   {
     label: '数据运维',
+    defaultCollapsed: true,
     items: [
       { name: '爬取监控', path: '/operations/crawler-monitor', hint: '查看刷新进度与运行日志', icon: Activity },
       { name: '数据源验收', path: '/operations/data-source-acceptance', hint: '查看数据源替换准入状态', icon: ShieldCheck },
@@ -319,6 +319,7 @@ const menuSections: MenuSection[] = [
   },
   {
     label: '资产工具',
+    defaultCollapsed: true,
     items: [
       { name: '盔甲属性表', path: '/operations/armor-attributes', hint: '核验单件装备字段', icon: FileSearch },
       { name: '音频资产', path: '/operations/audio-assets', hint: '查看 BGM 与 NPC 音效入库状态', icon: Music },
@@ -329,25 +330,20 @@ const menuSections: MenuSection[] = [
 
 const flatMenuItems = menuSections.flatMap((section) => section.items)
 const flatMenuEntries = menuSections.flatMap((section) => section.items.map((item) => ({ section, item })))
+const defaultCollapsedSectionLabels = menuSections
+  .filter((section) => section.defaultCollapsed)
+  .map((section) => section.label)
 
-const desktopCollapsed = computed(() => !isMobile.value && isDesktopCollapsed.value)
+const desktopCollapsed = computed(() => !isMobile.value && uiPreferences.desktopSidebarCollapsed)
 const headerVariant = computed<HeaderVariant>(() => (route.meta.headerVariant === 'compact' ? 'compact' : 'default'))
 const sidebarToggleLabel = computed(() => (desktopCollapsed.value ? '展开侧栏' : '折叠侧栏'))
 
 function toggleMenuSection(label: string) {
-  const next = new Set(collapsedMenuSectionLabels.value)
-
-  if (next.has(label)) {
-    next.delete(label)
-  } else {
-    next.add(label)
-  }
-
-  collapsedMenuSectionLabels.value = next
+  uiPreferences.toggleSection(label)
 }
 
 function isMenuSectionCollapsed(label: string) {
-  return !desktopCollapsed.value && collapsedMenuSectionLabels.value.has(label)
+  return !desktopCollapsed.value && uiPreferences.isSectionCollapsed(label)
 }
 
 const currentPageTitle = computed(() => {
@@ -447,10 +443,8 @@ async function revealActiveMenuItem() {
   const activeEntry = findActiveMenuEntry()
   if (!activeEntry) return
 
-  if (!desktopCollapsed.value && collapsedMenuSectionLabels.value.has(activeEntry.section.label)) {
-    const next = new Set(collapsedMenuSectionLabels.value)
-    next.delete(activeEntry.section.label)
-    collapsedMenuSectionLabels.value = next
+  if (!desktopCollapsed.value) {
+    uiPreferences.expandSection(activeEntry.section.label)
   }
 
   await nextTick()
@@ -459,16 +453,6 @@ async function revealActiveMenuItem() {
   if (!activeLink || !sidebarNavRef.value?.contains(activeLink)) return
 
   scrollSidebarLinkIntoView(activeLink)
-}
-
-function readDesktopCollapsePreference() {
-  if (typeof window === 'undefined') return false
-  return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1'
-}
-
-function writeDesktopCollapsePreference(nextValue: boolean) {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(SIDEBAR_STORAGE_KEY, nextValue ? '1' : '0')
 }
 
 function syncViewportState() {
@@ -483,9 +467,7 @@ function syncViewportState() {
 }
 
 function toggleDesktopCollapse() {
-  const nextValue = !isDesktopCollapsed.value
-  isDesktopCollapsed.value = nextValue
-  writeDesktopCollapsePreference(nextValue)
+  uiPreferences.setDesktopCollapsed(!uiPreferences.desktopSidebarCollapsed)
   userOpen.value = false
 }
 
@@ -527,7 +509,7 @@ watch(
 )
 
 onMounted(() => {
-  isDesktopCollapsed.value = readDesktopCollapsePreference()
+  uiPreferences.applySectionDefaults(defaultCollapsedSectionLabels)
   syncViewportState()
   revealActiveMenuItem()
 

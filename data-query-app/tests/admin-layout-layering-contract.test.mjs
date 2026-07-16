@@ -70,7 +70,7 @@ test('active sidebar navigation scrolls the selected menu item into view', () =>
   assert.match(layout, /:ref="\(\(el\) => setMenuLinkRef\(item\.path, el\)\)"/)
   assert.match(layout, /function findActiveMenuEntry\(\)/)
   assert.match(layout, /function revealActiveMenuItem\(\)/)
-  assert.match(layout, /next\.delete\(activeEntry\.section\.label\)/)
+  assert.match(layout, /uiPreferences\.expandSection\(activeEntry\.section\.label\)/)
   assert.match(layout, /function scrollSidebarLinkIntoView\(activeLink: HTMLElement\)/)
   assert.match(layout, /sidebarNav\.scrollTop = nextScrollTop/)
   assert.doesNotMatch(layout, /behavior:\s*'smooth'/)
