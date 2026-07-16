@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DOMPurify from 'dompurify'
 import type { ApiResponse, ArticleComment, ContentReferenceResolveInput, NormalizedContentReference, PublicItemRecipeTree, PublicItemRecipeTreeNode, PublicItemRecipeTreeVariant, UserArticle } from '~/types/public-api'
 import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
 import { resetPreviewImageVisibleCenter } from '~/utils/previewImageVisibleCenter'
@@ -325,6 +326,59 @@ const sanitizeArticleAttributes = (tagName: string, rawAttributes: string) => {
   return attributes.length ? ` ${attributes.join(' ')}` : ''
 }
 
+const ARTICLE_SANITIZER_ALLOWED_TAGS = ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'code', 'pre', 'blockquote', 'ul', 'ol', 'li', 'h2', 'h3', 'h4', 'a', 'img', 'span', 'div', 'figure', 'figcaption']
+const ARTICLE_SANITIZER_DATA_ATTRIBUTES = ['data-tp-ref-type', 'data-tp-ref-id', 'data-tp-ref-label', 'data-tp-ref-image', 'data-tp-ref-display', 'data-tp-embed-type', 'data-tp-item-id', 'data-tp-max-depth', 'data-tp-label']
+const ARTICLE_SANITIZER_CONFIG = {
+  ALLOWED_TAGS: ARTICLE_SANITIZER_ALLOWED_TAGS,
+  ALLOWED_ATTR: ['href', 'title', 'src', 'alt', 'style', 'class', 'rel', 'loading', 'decoding', ...ARTICLE_SANITIZER_DATA_ATTRIBUTES],
+  ALLOW_DATA_ATTR: false,
+  // The uponSanitizeElement hook already validates these values through
+  // sanitizeArticleAttributes; DOMPurify's URI heuristic would otherwise drop
+  // free-text labels that contain a colon.
+  ADD_URI_SAFE_ATTR: ARTICLE_SANITIZER_DATA_ATTRIBUTES,
+}
+
+const decodeSanitizedArticleAttributeValue = (value: string) => value
+  .replace(/&quot;/g, '"')
+  .replace(/&#39;/g, "'")
+  .replace(/&lt;/g, '<')
+  .replace(/&gt;/g, '>')
+  .replace(/&amp;/g, '&')
+
+const createArticleDomPurifier = () => {
+  // DOMPurify needs a real DOM window. On the server (and anywhere else
+  // without one) sanitizeArticleHtml keeps its regex whitelist fallback, so
+  // SSR output stays sanitized without an isomorphic build dependency.
+  if (!import.meta.client) return null
+  const purifier = DOMPurify(window)
+  if (!purifier.isSupported) return null
+  purifier.addHook('uponSanitizeElement', (node, data) => {
+    if (node.nodeType !== 1) return
+    if (!ARTICLE_SANITIZER_ALLOWED_TAGS.includes(data.tagName)) return
+    const element = node as Element
+    // Reuse sanitizeArticleAttributes so the DOMPurify path enforces the exact
+    // per-tag attribute policy of the regex fallback, including the
+    // tp-content-ref / tp-recipe-tree validation and rel/loading additions.
+    const rawAttributes = Array.from(element.attributes)
+      .map(attribute => `${attribute.name}="${String(attribute.value).replace(/"/g, '&quot;')}"`)
+      .join(' ')
+    const safeAttributes = sanitizeArticleAttributes(data.tagName, rawAttributes)
+    for (const attribute of Array.from(element.attributes)) {
+      element.removeAttribute(attribute.name)
+    }
+    const safeAttributePattern = /([\w-]+)="([^"]*)"/g
+    let attributeMatch: RegExpExecArray | null
+    while ((attributeMatch = safeAttributePattern.exec(safeAttributes)) !== null) {
+      const safeName = attributeMatch[1]
+      if (!safeName) continue
+      element.setAttribute(safeName, decodeSanitizedArticleAttributeValue(attributeMatch[2] ?? ''))
+    }
+  })
+  return purifier
+}
+
+const articleDomPurifier = createArticleDomPurifier()
+
 const renderInlineArticleText = (value: string) => escapeArticleHtml(value.trim())
   .replace(/`([^`]+)`/g, '<code>$1</code>')
   .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
@@ -441,6 +495,17 @@ const sanitizeArticleHtml = (value: string) => {
         : '<span class="tp-content-ref-fallback" aria-hidden="true">图</span>'
       return `<span${safeAttributes}>${inner}</span>`
     })
+  // Client path: DOMPurify parses and filters the preprocessed markup through
+  // the hook-backed whitelist above. The regex whitelist below stays as the
+  // shared fallback for SSR and for extracted contract fixtures, where no
+  // purifier instance exists.
+  const activeArticleDomPurifier = typeof articleDomPurifier === 'undefined' ? null : articleDomPurifier
+  if (activeArticleDomPurifier) {
+    const purified = activeArticleDomPurifier.sanitize(stripped, ARTICLE_SANITIZER_CONFIG)
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+    return purified || '<p>这篇文章暂时没有正文内容。</p>'
+  }
   const allowedTags = new Set(['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'code', 'pre', 'blockquote', 'ul', 'ol', 'li', 'h2', 'h3', 'h4', 'a', 'img', 'span', 'div', 'figure', 'figcaption'])
   const voidTags = new Set(['br', 'img'])
   let result = ''
