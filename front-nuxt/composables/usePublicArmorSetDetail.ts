@@ -19,7 +19,8 @@ const missingPublicArmorSetDetail = (): PublicArmorSetDetailResult => ({
 })
 
 export const normalizePublicArmorSetDetail = (raw: PublicArmorSetListItem | null | undefined): PublicArmorSetDetailResult => {
-  if (!raw) return missingPublicArmorSetDetail()
+  // 后端对不存在的套装返回 success 信封但无 data，unwrapApiResponse 会原样返回信封，用 id 兜底判缺失。
+  if (!raw || raw.id == null) return missingPublicArmorSetDetail()
 
   const catalogItem = normalizePublicArmorSet(raw, 0)
   return {
@@ -47,7 +48,6 @@ export const usePublicArmorSetDetail = (armorSetId: MaybeRefOrGetter<string | nu
   () => `public-armor-set-detail:${normalizeArmorSetId(toValue(armorSetId)) || 'missing'}`,
   () => fetchPublicArmorSetDetail(toValue(armorSetId)),
   {
-    server: false,
     default: missingPublicArmorSetDetail,
   },
 )

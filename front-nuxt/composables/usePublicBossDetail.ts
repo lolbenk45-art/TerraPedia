@@ -53,7 +53,6 @@ export const usePublicBossDetail = (bossId: MaybeRefOrGetter<string | number>) =
   () => `public-boss-detail-${normalizeBossId(toValue(bossId)) || 'missing'}`,
   () => fetchPublicBossDetail(toValue(bossId)),
   {
-    server: false,
     watch: [() => toValue(bossId)],
     default: missingPublicBossDetail,
   },

@@ -73,7 +73,6 @@ export const usePublicBiomeDetail = (biomeId: MaybeRefOrGetter<string | number>)
   () => `public-biome-detail-${normalizeBiomeId(toValue(biomeId)) || 'missing'}`,
   () => fetchPublicBiomeDetail(toValue(biomeId)),
   {
-    server: false,
     watch: [() => toValue(biomeId)],
     default: missingPublicBiomeDetail,
   },

@@ -5,6 +5,11 @@ import type { PublicBuffFactSummary } from '~/types/public-api'
 const route = useRoute()
 const buffId = computed(() => String(route.params.id ?? '').trim())
 const { data: buffDetailResult, pending: buffDetailPending, error: buffDetailError } = await usePublicBuffDetail(buffId)
+
+if (!buffDetailResult.value?.detail) {
+  throw createError({ statusCode: 404, statusMessage: 'Buff not found' })
+}
+
 const buffDetailClientReady = ref(false)
 
 const firstText = (...values: unknown[]) => {
@@ -25,7 +30,7 @@ const buffItem = computed(() => buffDetailResult.value?.item ?? null)
 const sources = computed(() => buffDetailResult.value?.sources ?? [])
 const inflicters = computed(() => buffDetailResult.value?.inflicters ?? [])
 const immuneTargets = computed(() => buffDetailResult.value?.immuneTargets ?? [])
-const buffDetailVisualLoading = computed(() => !buffDetailClientReady.value || (buffDetailPending.value && !buffDetail.value))
+const buffDetailVisualLoading = computed(() => !buffDetail.value && (!buffDetailClientReady.value || buffDetailPending.value))
 const buffNotFound = computed(() => buffDetailClientReady.value && !buffDetailPending.value && !buffDetail.value)
 
 const buffName = computed(() => firstText(buffDetail.value?.nameZh, buffDetail.value?.name, buffDetail.value?.internalName, `效果 ${buffId.value}`))
@@ -38,6 +43,7 @@ const buffTypeLabel = computed(() => buffItem.value?.typeLabel ?? '效果')
 useSeoMeta({
   title: () => `TerraPedia · ${buffName.value}`,
   description: () => `${buffName.value} 的公开 Buff 资料详情，包含来源、施加者和免疫目标。`,
+  ogImage: () => buffImage.value || undefined,
 })
 
 const factName = (fact: PublicBuffFactSummary, index: number) => firstText(

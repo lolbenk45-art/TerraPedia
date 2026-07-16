@@ -105,7 +105,6 @@ export const usePublicItemDetail = (itemId: MaybeRefOrGetter<string | number>) =
   () => `public-item-detail-${normalizeItemId(toValue(itemId)) || 'missing'}`,
   () => fetchPublicItemDetailBundle(toValue(itemId)),
   {
-    server: false,
     default: missingPublicItemDetailBundle,
   },
 )

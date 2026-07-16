@@ -26,6 +26,11 @@ const historyStore = useUserHistoryStore()
 
 const itemId = computed(() => String(route.params.id ?? '').trim())
 const { data: detailBundle, pending: detailPending, error: detailError } = await usePublicItemDetail(itemId)
+
+if (!detailBundle.value?.item) {
+  throw createError({ statusCode: 404, statusMessage: 'Item not found' })
+}
+
 const detailClientReady = ref(false)
 const selectedRecipeVariantKey = ref('')
 const favoriteError = ref('')
@@ -109,7 +114,7 @@ const safeItemSourceNoteText = (...values: unknown[]) => {
 
 const rawBundle = computed<PublicItemDetailBundle>(() => detailBundle.value)
 const detailItem = computed<PublicItemDetail | null>(() => rawBundle.value.item)
-const detailLoadingState = computed(() => !detailClientReady.value || (detailPending.value && !detailItem.value))
+const detailLoadingState = computed(() => !detailItem.value && (!detailClientReady.value || detailPending.value))
 const notFoundState = computed(() => detailClientReady.value && !detailPending.value && !detailItem.value)
 
 const itemName = computed(() => firstText(
@@ -123,6 +128,7 @@ const itemName = computed(() => firstText(
 useSeoMeta({
   title: () => `TerraPedia · ${itemName.value}`,
   description: () => `${itemName.value} 的公开资料详情，包含图片、价格、来源、配方和关联资料。`,
+  ogImage: () => itemImage.value || undefined,
 })
 
 const itemEnglishName = computed(() => safeItemDisplayText(detailItem.value?.nameEn))
@@ -855,9 +861,11 @@ watch(itemFavoriteId, () => {
   void loadItemFavoriteStatus()
 })
 
+// 不用 immediate:SSR 已带数据时 setup 期同步触发 record 会把 authStore.loading 置 true，
+// 造成 TerraNav 登录态 hydration mismatch;首载由 onMounted 补记录。
 watch(itemHistoryId, () => {
   void recordItemHistoryOnce()
-}, { immediate: true })
+})
 
 onMounted(() => {
   detailClientReady.value = true

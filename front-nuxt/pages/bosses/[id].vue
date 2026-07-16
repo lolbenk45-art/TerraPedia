@@ -17,7 +17,6 @@ import type { TerrariaPriceToken } from '~/utils/price'
 const route = useRoute()
 const detailLayout = useDetailLayout({ kind: 'boss', density: 'readable' })
 const bossClientReady = ref(false)
-const bossDetailVisualLoading = ref(true)
 const bossDetailVisualLoadingMinimumMs = 180
 let bossDetailVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
 let bossDetailVisualLoadingStartedAt = Date.now()
@@ -31,6 +30,10 @@ const {
   refresh: refreshBossDetail,
 } = await usePublicBossDetail(bossRouteId)
 
+if (!bossBundle.value?.detail) {
+  throw createError({ statusCode: 404, statusMessage: 'Boss not found' })
+}
+
 const bossDetail = computed(() => bossBundle.value?.detail ?? null)
 const bossCard = computed(() => bossBundle.value?.item ?? null)
 const bossMembers = computed(() => bossBundle.value?.members ?? [])
@@ -38,7 +41,8 @@ const bossReferenceMembers = computed(() => bossBundle.value?.referenceMembers ?
 const bossVisibleMembers = computed(() => bossMembers.value.length ? bossMembers.value : bossReferenceMembers.value)
 const bossUsesReferenceMembers = computed(() => !bossMembers.value.length && bossReferenceMembers.value.length > 0)
 const bossLootEntries = computed(() => bossBundle.value?.lootEntries ?? [])
-const bossRawLoading = computed(() => !bossClientReady.value || bossPending.value)
+const bossRawLoading = computed(() => !bossDetail.value && (!bossClientReady.value || bossPending.value))
+const bossDetailVisualLoading = ref(bossRawLoading.value)
 const bossMissing = computed(() => bossClientReady.value && !bossPending.value && !bossDetail.value)
 const bossTitle = computed(() => bossCard.value?.displayName || bossDetail.value?.nameZh || bossDetail.value?.name || 'Boss 详情')
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
@@ -68,6 +72,7 @@ const bossTypeLabel = computed(() => {
 useSeoMeta({
   title: () => `TerraPedia · ${bossTitle.value}`,
   description: () => `${bossTitle.value} 的公开 Boss 资料详情，包含成员、掉落和推进信息。`,
+  ogImage: () => bossCard.value?.image || undefined,
 })
 
 const entryImage = (value: { itemImage?: string | null; imageUrl?: string | null }) => resolvePreviewImageUrl(value.itemImage || value.imageUrl || '')

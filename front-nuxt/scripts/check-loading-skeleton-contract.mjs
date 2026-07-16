@@ -139,7 +139,7 @@ assertMarkers('pages/items/[id].vue', [
   ':aria-busy="detailLoadingState"',
   '<CommonPreviewImage',
   'detailClientReady',
-  '!detailClientReady.value || (detailPending.value && !detailItem.value)',
+  '!detailItem.value && (!detailClientReady.value || detailPending.value)',
   'detailClientReady.value && !detailPending.value && !detailItem.value',
   ':src="itemImage"',
   '<RecipeSummaryCard',

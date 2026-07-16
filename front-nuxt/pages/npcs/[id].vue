@@ -27,6 +27,10 @@ const { data: aggregateBundle, pending: aggregatePending, error: aggregateError 
   include,
 )
 
+if (invalidNpcId.value || !aggregateBundle.value?.aggregate?.npc) {
+  throw createError({ statusCode: 404, statusMessage: 'NPC not found' })
+}
+
 const aggregate = computed(() => invalidNpcId.value ? null : aggregateBundle.value?.aggregate ?? null)
 const npc = computed(() => aggregate.value?.npc ?? null)
 const loot = computed(() => aggregate.value?.loot ?? [])
@@ -80,6 +84,7 @@ const secondaryName = computed(() => {
 useSeoMeta({
   title: () => `TerraPedia · ${displayName.value}`,
   description: () => `${displayName.value} 的公开 NPC 资料详情，包含基础数值、生活偏好、掉落、出售物品和状态效果关系。`,
+  ogImage: () => portraitImage.value || undefined,
 })
 
 const npcWikiAssets = computed(() => npc.value?.wikiAssets ?? npc.value?.wiki_assets ?? null)

@@ -4,7 +4,6 @@ import type { PublicBiomeItemRelation, PublicBiomeItemSource, PublicBiomeNpcRela
 
 const route = useRoute()
 const biomeClientReady = ref(false)
-const biomeDetailVisualLoading = ref(true)
 const biomeDetailVisualLoadingMinimumMs = 180
 let biomeDetailVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
 let biomeDetailVisualLoadingStartedAt = Date.now()
@@ -18,6 +17,10 @@ const {
   refresh: refreshBiomeDetail,
 } = await usePublicBiomeDetail(biomeRouteId)
 
+if (!biomeBundle.value?.detail) {
+  throw createError({ statusCode: 404, statusMessage: 'Biome not found' })
+}
+
 const biomeDetail = computed(() => biomeBundle.value?.detail ?? null)
 const biomeTile = computed(() => biomeBundle.value?.item ?? null)
 const biomeResources = computed(() => biomeBundle.value?.resources ?? [])
@@ -25,7 +28,8 @@ const biomeRelations = computed(() => biomeBundle.value?.relations ?? [])
 const biomeItemBiomes = computed(() => biomeBundle.value?.itemBiomes ?? [])
 const biomeNpcBiomes = computed(() => biomeBundle.value?.npcBiomes ?? [])
 const biomeItemSources = computed(() => biomeBundle.value?.itemSources ?? [])
-const biomeRawLoading = computed(() => !biomeClientReady.value || biomePending.value)
+const biomeRawLoading = computed(() => !biomeDetail.value && (!biomeClientReady.value || biomePending.value))
+const biomeDetailVisualLoading = ref(biomeRawLoading.value)
 const biomeMissing = computed(() => biomeClientReady.value && !biomePending.value && !biomeDetail.value)
 const biomeTitle = computed(() => biomeTile.value?.displayName || biomeDetail.value?.nameZh || biomeDetail.value?.nameEn || '群系详情')
 const biomeTrailItems = computed(() => [
@@ -37,6 +41,7 @@ const biomeTrailItems = computed(() => [
 useSeoMeta({
   title: () => `TerraPedia · ${biomeTitle.value}`,
   description: () => `${biomeTitle.value} 的公开群系资料详情，包含资源、来源和关联生态。`,
+  ogImage: () => biomeTile.value?.image || undefined,
 })
 
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'

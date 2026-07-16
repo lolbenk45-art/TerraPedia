@@ -74,7 +74,6 @@ export const usePublicBuffDetail = (buffId: MaybeRefOrGetter<string | number>) =
   () => `public-buff-detail:${normalizeBuffId(toValue(buffId)) || 'missing'}`,
   () => fetchPublicBuffDetail(toValue(buffId)),
   {
-    server: false,
     default: missingPublicBuffDetail,
   },
 )
