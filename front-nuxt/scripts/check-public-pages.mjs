@@ -1594,7 +1594,7 @@ for (const path of scanFiles) {
       'usePublicNpcs',
       'npcCards',
       'pagination',
-      ':href="npc.detailPath"',
+      ':to="npc.detailPath"',
       'v-for="npc in visibleNpcCards"',
       "npcResult.value?.source === 'api'",
       'npc-card-loading',

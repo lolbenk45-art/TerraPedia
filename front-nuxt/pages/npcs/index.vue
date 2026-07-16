@@ -504,12 +504,12 @@ watch(() => route.query, hydrateNpcStateFromRoute)
           </div>
 
           <div v-else key="npc-grid" class="npc-board">
-            <a
+            <NuxtLink
               v-for="npc in visibleNpcCards"
               :key="npc.id"
               class="npc-card"
               :class="{ active: npc.id === selectedNpc?.id, danger: npc.isBoss }"
-              :href="npc.detailPath"
+              :to="npc.detailPath"
               :aria-current="npc.id === selectedNpc?.id ? 'true' : undefined"
               @focus="setFocusedNpc(npc)"
               @mouseenter="setFocusedNpc(npc)"
@@ -519,7 +519,7 @@ watch(() => route.query, hydrateNpcStateFromRoute)
               </i>
               <div><b>{{ npc.displayName }}</b><span>{{ [npcKindLabel(npc), npcTaxonomyMeta(npc).label, npcRelationCountLabel(npc)].filter(Boolean).join(' · ') }}</span></div>
               <em>详情</em>
-            </a>
+            </NuxtLink>
           </div>
         </Transition>
 
@@ -553,7 +553,7 @@ watch(() => route.query, hydrateNpcStateFromRoute)
           <div><b>{{ selectedNpc?.isFriendly ? '友好' : '生态' }}</b><span>关系</span></div>
           <div><b>{{ selectedNpc?.shopEntryCount ?? 0 }}/{{ selectedNpc?.lootEntryCount ?? 0 }}</b><span>出售/掉落</span></div>
         </div>
-        <a v-if="selectedNpc" class="primary-button full-button" :href="selectedNpc.detailPath">打开详情</a>
+        <NuxtLink v-if="selectedNpc" class="primary-button full-button" :to="selectedNpc.detailPath">打开详情</NuxtLink>
       </aside>
     </main>
 

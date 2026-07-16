@@ -288,11 +288,11 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
 
       <template v-else-if="biomeDisplayItems.length">
         <section v-if="biomeShowFeatured" class="biome-feature-grid" aria-label="重点群系">
-          <a
+          <NuxtLink
             v-for="biome in biomeFeaturedItems"
             :key="`featured-${biome.id}`"
             class="biome-tile biome-feature-card"
-            :href="biome.detailPath"
+            :to="biome.detailPath"
           >
             <div class="biome-tile-art">
               <CommonPreviewImage
@@ -326,15 +326,15 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
               <span class="biome-tile-description">{{ biome.description }}</span>
             </div>
             <em class="biome-tile-meta">{{ formatBiomeResourceLabel(biome.resourceCount, biome.relationCount) }}</em>
-          </a>
+          </NuxtLink>
         </section>
 
         <section class="biome-board biome-list-grid" aria-label="群系列表">
-          <a
+          <NuxtLink
             v-for="biome in biomeListItems"
             :key="biome.id"
             class="biome-tile"
-            :href="biome.detailPath"
+            :to="biome.detailPath"
           >
             <div class="biome-tile-art">
               <CommonPreviewImage
@@ -361,7 +361,7 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
               </div>
             </div>
             <em class="biome-tile-meta">查看详情</em>
-          </a>
+          </NuxtLink>
         </section>
       </template>
 

@@ -220,12 +220,12 @@ onBeforeUnmount(() => {
       </section>
 
       <section v-else-if="buffDisplayItems.length" class="effect-grid" aria-label="Buff 列表">
-        <a
+        <NuxtLink
           v-for="buff in buffDisplayItems"
           :key="buff.id"
           class="effect-card"
           :class="{ active: buff.typeLabel === '增益', debuff: buff.typeLabel === '减益' }"
-          :href="buff.detailPath"
+          :to="buff.detailPath"
         >
           <i>
             <CommonPreviewImage
@@ -245,7 +245,7 @@ onBeforeUnmount(() => {
             <div><dt>来源</dt><dd>{{ buff.sourceCount ?? 0 }}</dd></div>
             <div><dt>免疫</dt><dd>{{ buff.immuneCount ?? 0 }}</dd></div>
           </dl>
-        </a>
+        </NuxtLink>
       </section>
 
       <section v-else class="search-suggestion-band support-panel">

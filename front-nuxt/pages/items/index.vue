@@ -425,6 +425,7 @@ const updateCatalogRouteQuery = () => {
     pageSize: selectedPageSize.value !== defaultCatalogPageSize ? String(selectedPageSize.value) : undefined,
     filter: activeFilter.value !== 'all' ? activeFilter.value : undefined,
     q: debouncedSearchQuery.value.trim() || undefined,
+    search: undefined,
   }
 
   void router.replace({ query })
@@ -432,7 +433,7 @@ const updateCatalogRouteQuery = () => {
 
 const hydrateCatalogStateFromRoute = () => {
   const filter = firstQueryValue(route.query.filter)
-  const search = String(firstQueryValue(route.query.q) ?? '')
+  const search = String(firstQueryValue(route.query.q ?? route.query.search) ?? '')
   const queryPageSize = firstQueryValue(route.query.pageSize)
 
   selectedPageSize.value = queryPageSize ? parsePageSize(queryPageSize) : readStoredPageSize()
@@ -694,12 +695,12 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
                 />
 
                 <div v-else-if="visibleWallItems.length" key="catalog-wall-grid" class="catalog-wall-grid" aria-label="物品图标墙">
-                  <a
+                  <NuxtLink
                     v-for="item in visibleWallItems"
                     :key="`wall-${item.id}`"
                     class="catalog-wall-cell"
                     :class="[item.visualTone, { active: focusedItem?.id === item.id }]"
-                    :href="item.detailPath"
+                    :to="item.detailPath"
                     :aria-current="focusedItem?.id === item.id ? 'true' : undefined"
                     :aria-label="item.displayName"
                     :title="`${item.displayName} · ${item.category}`"
@@ -732,7 +733,7 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
                         <span v-if="item.priceLabel">{{ item.priceLabel }}</span>
                       </span>
                     </span>
-                  </a>
+                  </NuxtLink>
                 </div>
 
                 <div v-else key="catalog-wall-empty" class="catalog-empty-state">

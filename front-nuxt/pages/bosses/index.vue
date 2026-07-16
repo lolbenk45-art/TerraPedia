@@ -261,13 +261,13 @@ onBeforeUnmount(() => {
           <div class="node-meta boss-node-meta"><b><CommonTpSkeleton type="line" /></b><em><CommonTpSkeleton type="line" short /></em></div>
         </article>
 
-        <a
+        <NuxtLink
           v-for="boss in bossDisplayItems"
           v-else
           :key="boss.id"
           class="boss-node"
           :class="{ active: boss.progressionOrder === 1 }"
-          :href="boss.detailPath"
+          :to="boss.detailPath"
         >
           <i class="boss-node-visual">
             <CommonPreviewImage
@@ -292,14 +292,14 @@ onBeforeUnmount(() => {
               height="104"
             />
           </i>
-          <span class="boss-node-type">{{ boss.type }}</span>
+          <span class="boss-node-type">{{ bossTypeLabel(String(boss.type ?? '').toLowerCase()) }}</span>
           <h3>{{ boss.displayName }}</h3>
           <p class="boss-node-summary">{{ boss.summary }}</p>
           <div class="node-meta boss-node-meta">
             <b>{{ boss.progressionOrder === null ? '顺序未标注' : `#${boss.progressionOrder}` }}</b>
             <em>{{ boss.uniqueLootItemCount ?? 0 }} 件掉落 · {{ boss.memberCount ?? 0 }} 个成员</em>
           </div>
-        </a>
+        </NuxtLink>
       </section>
 
       <section v-if="!bossVisualLoading && !bossDisplayItems.length" class="search-suggestion-band support-panel">
