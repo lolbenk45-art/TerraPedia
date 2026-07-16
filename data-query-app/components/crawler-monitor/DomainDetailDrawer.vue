@@ -6,7 +6,7 @@
         <div>
           <span class="status-pill" :class="detail?.status || 'unknown'">{{ detail?.statusLabel || '未知状态' }}</span>
           <h2>{{ detail?.title || '域详情' }}</h2>
-          <code>{{ detail?.identity || '无任务编号' }}</code>
+          <code :title="detail?.identity || '无任务编号'">{{ detail?.identity || '无任务编号' }}</code>
         </div>
         <button type="button" class="icon-button" aria-label="关闭域详情" @click="$emit('close')">
           <X :size="18" />
@@ -69,6 +69,64 @@
               <span>{{ operation.label }}</span>
             </button>
           </div>
+          <section v-if="operationGroups.length" class="operation-catalog" aria-label="域操作目录">
+            <header>
+              <div>
+                <h3>可执行操作</h3>
+                <p>按检查同步、直接抓取、数据处理与入库、数据回填与差异检查分组。</p>
+              </div>
+            </header>
+            <section v-for="group in operationGroups" :key="group.key" class="operation-group">
+              <h4>{{ group.label }}</h4>
+              <div class="operation-grid">
+                <article v-for="operation in group.operations" :key="operation.actionId" class="operation-card">
+                  <header>
+                    <strong>{{ operation.labelZh }}</strong>
+                    <span v-if="operation.confirmationLevel === 'destructive'" class="operation-risk">高风险</span>
+                  </header>
+                  <p>{{ operation.descriptionZh || '后端未提供操作说明' }}</p>
+                  <dl>
+                    <div><dt>来源</dt><dd>{{ operation.sourceLocator || '脚本未提供' }}</dd></div>
+                    <div><dt>预计请求</dt><dd>{{ formatEstimatedCount(operation.estimatedRequests) }}</dd></div>
+                    <div><dt>预计记录</dt><dd>{{ formatEstimatedCount(operation.estimatedRecords) }}</dd></div>
+                    <div><dt>文件写入</dt><dd>{{ operation.fileWriteSummary || '无文件写入' }}</dd></div>
+                  </dl>
+                  <p v-if="operation.shortTask" class="operation-note">短任务，可能在刷新前完成</p>
+                  <p class="operation-note">{{ operation.resumeSupported ? '支持从数据断点继续' : '不支持数据级断点' }}</p>
+                  <div class="operation-card__actions">
+                    <button
+                      type="button"
+                      :class="['btn', operation.confirmationLevel === 'destructive' ? 'btn-plain btn-plain--danger' : 'btn-primary']"
+                      :disabled="!canStartOperation(operation)"
+                      :aria-describedby="operationStartDescriptionId(operation)"
+                      @click="$emit('operation-start', operation, sourceRow)"
+                    >
+                      <Play :size="15" />
+                      <span>{{ operation.labelZh }}</span>
+                    </button>
+                    <small :id="operationStartDescriptionId(operation)">
+                      {{ operationStartDisabledReason(operation) || '当前域可以开始此操作' }}
+                    </small>
+                    <template v-if="operation.pauseSupported">
+                      <button
+                        type="button"
+                        class="btn btn-secondary"
+                        :disabled="!canPauseOperation(operation)"
+                        :aria-describedby="pauseDescriptionId(operation)"
+                        @click="$emit('domain-action', 'pause', sourceRow)"
+                      >
+                        <Pause :size="15" />
+                        <span>暂停任务</span>
+                      </button>
+                      <small :id="pauseDescriptionId(operation)">
+                        {{ canPauseOperation(operation) ? '暂停当前运行任务' : '任务运行后可暂停' }}
+                      </small>
+                    </template>
+                  </div>
+                </article>
+              </div>
+            </section>
+          </section>
         </section>
 
         <section v-else-if="activeTab === 'history'" class="drawer-pane timeline">
@@ -80,8 +138,20 @@
                 <span class="status-pill" :class="item.status">{{ item.statusLabel || '未知状态' }}</span>
               </header>
               <small>{{ item.timeLabel || '暂无时间' }}</small>
-              <small v-if="item.stateStoreEpoch">状态存储 epoch：{{ item.stateStoreEpoch }}</small>
+              <small v-if="item.stateStoreEpoch">状态存储 epoch：{{ shortCrawlerIdentity(item.stateStoreEpoch) }}</small>
               <p>{{ item.reason || '暂无结果说明' }}</p>
+              <dl v-if="item.attemptId && isTerminalAttempt(item)" class="timeline-result" aria-label="任务结果计数">
+                <div><dt>操作</dt><dd>{{ item.plan?.labelZh || item.plan?.operationId || '脚本未提供' }}</dd></div>
+                <div><dt>模式</dt><dd>{{ item.plan?.mode || '脚本未提供' }}</dd></div>
+                <div><dt>来源</dt><dd>{{ item.plan?.sourceLocator || '脚本未提供' }}</dd></div>
+                <div><dt>写入</dt><dd>{{ item.plan?.fileWriteSummary || '脚本未提供' }}</dd></div>
+                <div><dt>计划</dt><dd>{{ formatResultCount(item.result?.plannedCount) }}</dd></div>
+                <div><dt>实际</dt><dd>{{ formatResultCount(item.result?.actualCount) }}</dd></div>
+                <div><dt>跳过</dt><dd>{{ formatResultCount(item.result?.skippedCount) }}</dd></div>
+                <div><dt>失败</dt><dd>{{ formatResultCount(item.result?.failedCount) }}</dd></div>
+                <div><dt>结果</dt><dd>{{ resultKindLabel(item.result?.resultKind) }}</dd></div>
+                <div><dt>断点</dt><dd>{{ resumeOutcomeLabel(item.result?.resumeOutcome) }}</dd></div>
+              </dl>
               <div v-if="item.files?.length" class="timeline-files">
                 <template v-for="file in item.files" :key="file.path">
                   <button
@@ -97,6 +167,20 @@
                     {{ file.title || file.label }} · {{ file.statusLabel || '路径记录' }}
                   </span>
                 </template>
+              </div>
+              <div v-if="item.allowedActions?.length" class="drawer-actions timeline-actions">
+                <button
+                  v-for="operation in historyOperations(item)"
+                  :key="operation.action"
+                  type="button"
+                  :class="operationButtonClass(operation)"
+                  :disabled="isControlPending(item, operation.action)"
+                  :aria-busy="isControlPending(item, operation.action)"
+                  @click="$emit('history-domain-action', operation.action, item)"
+                >
+                  <component :is="operationIcon(operation.icon)" :size="15" />
+                  <span>{{ operation.label }}</span>
+                </button>
               </div>
             </div>
           </article>
@@ -183,6 +267,9 @@ import {
   X,
 } from 'lucide-vue-next'
 import CrawlerLogViewer from './CrawlerLogViewer.vue'
+import { formatEstimatedCount, groupOperationCatalog, resultKindLabel, resumeOutcomeLabel, retryLabel } from '~/utils/crawlerMonitorOperationCatalog.mjs'
+import { shortCrawlerIdentity } from '~/utils/crawlerMonitorTriageWorkbench.mjs'
+import type { CrawlerQueueV2Operation } from '~/types/crawlerMonitor'
 
 const props = defineProps<{
   open: boolean
@@ -198,12 +285,16 @@ defineEmits<{
   preview: [path: string]
   'load-log': [selection: string | { attemptId: string }]
   'domain-action': [action: string, row: Record<string, any> | null | undefined]
+  'operation-start': [operation: CrawlerQueueV2Operation, row: Record<string, any> | null]
+  'history-domain-action': [action: string, row: Record<string, any>]
 }>()
 
 const activeTab = ref('overview')
 const sourceRow = computed(() => props.sourceRow || null)
 const primaryAction = computed(() => sourceRow.value?.primaryAction || null)
 const secondaryActions = computed(() => sourceRow.value?.secondaryActions || [])
+const operationGroups = computed(() => groupOperationCatalog(sourceRow.value ? [sourceRow.value] : [])
+  .filter((group) => group.operations.length))
 const tabs = computed(() => [
   { key: 'overview', label: '概览', icon: ListTree, count: null },
   { key: 'history', label: '任务历史', icon: History, count: props.detail?.taskHistory?.length || 0 },
@@ -218,6 +309,20 @@ function operationIcon(icon?: string) {
   if (icon === 'circle-stop') return CircleStop
   if (icon === 'timer-reset') return TimerReset
   return ListTree
+}
+
+function historyOperations(item: Record<string, any>) {
+  const labels: Record<string, { label: string; tone: string; icon: string }> = {
+    retry: {
+      label: retryLabel(item.plan || { mode: 'fresh', resumeSupported: item.resumeSupported === true }),
+      tone: 'primary',
+      icon: 'timer-reset',
+    },
+    cleanup: { label: '清理证据', tone: 'danger', icon: 'circle-stop' },
+  }
+  return (Array.isArray(item.allowedActions) ? item.allowedActions : [])
+    .filter((name: string) => Boolean(labels[name]))
+    .map((name: string) => ({ action: name, ...labels[name] }))
 }
 
 function artifactIcon(icon?: string) {
@@ -238,6 +343,46 @@ function operationButtonClass(operation?: Record<string, any>) {
 
 function isControlPending(row: Record<string, any> | null, action: string) {
   return Boolean(props.isControlPending?.(row, action))
+}
+
+function canPauseOperation(operation: Record<string, any>) {
+  const status = String(sourceRow.value?.status || '').toLowerCase()
+  return operation?.pauseSupported === true
+    && ['running', 'starting'].includes(status)
+    && sourceRow.value?.actionId === operation.actionId
+    && sourceRow.value?.allowedActions?.includes('pause')
+}
+
+function operationStartDisabledReason(_operation: Record<string, any>) {
+  const status = String(sourceRow.value?.status || '').toLowerCase()
+  if (['queued', 'starting', 'running', 'pause_requested', 'paused', 'cancel_requested', 'retry_wait'].includes(status)) {
+    return '当前域已有任务，需等待结束或先处理当前任务'
+  }
+  if (sourceRow.value?.startAllowed === true) return ''
+  return '当前状态不允许开始新任务'
+}
+
+function canStartOperation(operation: Record<string, any>) {
+  return !operationStartDisabledReason(operation)
+}
+
+function operationStartDescriptionId(operation: Record<string, any>) {
+  return `operation-start-${String(operation?.actionId || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '-')}`
+}
+
+function isTerminalAttempt(item: Record<string, any>) {
+  return ['completed', 'failed', 'cancelled', 'timed_out', 'interrupted'].includes(String(item?.status || '').toLowerCase())
+}
+
+function formatResultCount(value: unknown) {
+  const number = Number(value)
+  return value !== null && value !== undefined && Number.isFinite(number)
+    ? number.toLocaleString('zh-CN')
+    : '脚本未提供'
+}
+
+function pauseDescriptionId(operation: Record<string, any>) {
+  return `operation-pause-${String(operation?.actionId || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '-')}`
 }
 </script>
 
@@ -416,6 +561,120 @@ function isControlPending(row: Record<string, any> | null, action: string) {
   flex-wrap: wrap;
 }
 
+.operation-catalog,
+.operation-group,
+.operation-card,
+.operation-card header,
+.operation-card dl,
+.operation-card dl div,
+.operation-card__actions {
+  min-width: 0;
+}
+
+.operation-catalog {
+  display: grid;
+  gap: 16px;
+  border-top: 1px solid var(--color-border-light);
+  padding-top: 16px;
+}
+
+.operation-catalog h3,
+.operation-catalog h4,
+.operation-catalog p {
+  margin: 0;
+}
+
+.operation-catalog > header p,
+.operation-card > p,
+.operation-note {
+  margin-top: 5px;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.operation-group {
+  display: grid;
+  gap: 8px;
+}
+
+.operation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.operation-card {
+  display: grid;
+  gap: 10px;
+  max-width: 100%;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-1);
+  padding: 12px;
+  overflow-wrap: anywhere;
+}
+
+.operation-card header,
+.operation-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.operation-card header strong {
+  flex: 1 1 180px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.operation-risk {
+  border-radius: var(--radius-full);
+  background: var(--color-danger-muted);
+  color: var(--color-danger);
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.operation-card dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.operation-card dl div {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.operation-card dt {
+  color: var(--color-text-muted);
+}
+
+.operation-card dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.operation-card__actions .btn {
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.operation-card__actions .btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.operation-card__actions small {
+  flex: 1 1 100%;
+  color: var(--color-text-muted);
+}
+
 .timeline {
   position: relative;
 }
@@ -469,6 +728,40 @@ function isControlPending(row: Record<string, any> | null, action: string) {
 .timeline-item p {
   color: var(--color-text-secondary);
   margin: 8px 0 0;
+}
+
+.timeline-result {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 10px 0 0;
+}
+
+.timeline-result div {
+  min-width: 0;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  padding: 7px;
+}
+
+.timeline-result dt,
+.timeline-result dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.timeline-result dt {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.timeline-result dd {
+  margin-top: 3px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
 }
 
 .timeline-files {
@@ -678,6 +971,14 @@ button.artifact-row {
 
   .field-grid {
     grid-template-columns: 1fr;
+  }
+
+  .operation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline-result {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

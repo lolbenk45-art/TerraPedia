@@ -5,12 +5,53 @@ import {
   applyIncrementalAttemptLog,
   applyCrawlerV2Event,
   buildCrawlerV2ViewState,
+  buildV2DomainOperationRows,
   createAttemptLogRequestFence,
   createV2LogSelectionModel,
   crawlerV2DomainSelectionKey,
   isCrawlerQueueV2Overview,
+  latestActionableV2AttemptsByDomain,
+  latestV2TerminalAttemptsByDomain,
   resolveCurrentV2LogAttemptId,
 } from './crawler-monitor.v2-state.mjs'
+
+test('idle current state stays separate from the latest terminal result', () => {
+  const [row] = buildV2DomainOperationRows({
+    queueContractVersion: 2,
+    stateStoreEpoch: 'epoch-1',
+    liveQueue: [],
+    domainStates: [{
+      domain: 'bosses',
+      currentAttemptId: null,
+      status: 'idle',
+      current: null,
+      total: null,
+      allowedActions: ['start'],
+      operations: [{ operationId: 'fresh', actionId: 'domain-source-bosses', mode: 'fresh' }],
+    }],
+    attemptHistory: [{
+      attemptId: 'attempt-completed',
+      queueId: 'queue-completed',
+      stateStoreEpoch: 'epoch-1',
+      domain: 'bosses',
+      coveredDomains: ['bosses'],
+      actionId: 'domain-source-bosses',
+      status: 'completed',
+      completedAt: '2026-07-16T00:00:00Z',
+      current: 33,
+      total: 33,
+      result: { plannedCount: 33, actualCount: 33, resultKind: 'fetched' },
+    }],
+  })
+
+  assert.equal(row.status, 'idle')
+  assert.equal(row.currentAttemptId, null)
+  assert.equal(row.currentAttempt, null)
+  assert.equal(row.current, null)
+  assert.equal(row.latestResult.status, 'completed')
+  assert.equal(row.latestResult.result.resultKind, 'fetched')
+  assert.equal(row.latestResult.current, 33)
+})
 
 const overview = {
   queueContractVersion: 2,
@@ -76,6 +117,104 @@ test('V2 history keeps one row per attempt even when domain and action match', (
   assert.deepEqual(state.attemptHistory[0].allowedActions, [])
   assert.equal(state.legacyHistory[0].live, false)
   assert.deepEqual(state.legacyHistory[0].allowedActions, [])
+})
+
+test('V2 history preserves controls only for attempts in the current epoch', () => {
+  const state = buildCrawlerV2ViewState({
+    ...overview,
+    attemptHistory: [
+      { ...overview.attemptHistory[0], stateStoreEpoch: 'epoch-1', allowedActions: ['retry', 'cleanup'] },
+      { ...overview.attemptHistory[1], allowedActions: ['cleanup'] },
+    ],
+  })
+
+  assert.deepEqual(state.attemptHistory[0].allowedActions, ['retry', 'cleanup'])
+  assert.deepEqual(state.attemptHistory[1].allowedActions, [])
+})
+
+test('only the latest terminal attempt per domain may expose retry', () => {
+  const attempts = [
+    {
+      attemptId: 'attempt-failed-old',
+      stateStoreEpoch: 'epoch-1',
+      coveredDomains: ['bosses'],
+      status: 'failed',
+      completedAt: '2026-07-14T08:00:00Z',
+      allowedActions: ['retry', 'cleanup'],
+    },
+    {
+      attemptId: 'attempt-completed-new',
+      stateStoreEpoch: 'epoch-1',
+      coveredDomains: ['bosses'],
+      status: 'completed',
+      completedAt: '2026-07-14T09:00:00Z',
+      allowedActions: ['cleanup'],
+    },
+    {
+      attemptId: 'attempt-failed-current',
+      stateStoreEpoch: 'epoch-1',
+      coveredDomains: ['buffs'],
+      status: 'failed',
+      completedAt: '2026-07-14T10:00:00Z',
+      allowedActions: ['retry', 'cleanup'],
+    },
+    {
+      attemptId: 'attempt-old-epoch',
+      stateStoreEpoch: 'epoch-0',
+      coveredDomains: ['items'],
+      status: 'failed',
+      completedAt: '2026-07-14T11:00:00Z',
+      allowedActions: ['retry', 'cleanup'],
+    },
+  ]
+
+  const byDomain = latestActionableV2AttemptsByDomain(attempts, 'epoch-1')
+
+  assert.equal(byDomain.has('bosses'), false)
+  assert.equal(byDomain.get('buffs')?.attemptId, 'attempt-failed-current')
+  assert.equal(byDomain.has('items'), false)
+})
+
+test('idle domains project their latest real current-epoch terminal attempt', () => {
+  const byDomain = latestV2TerminalAttemptsByDomain([
+    {
+      attemptId: 'attempt-completed-old', queueId: 'queue-old', stateStoreEpoch: 'epoch-1',
+      domain: 'bosses', coveredDomains: ['bosses'], status: 'completed',
+      completedAt: '2026-07-14T08:00:00Z', phase: 'crawl-pages', current: 20, total: 33,
+    },
+    {
+      attemptId: 'attempt-completed-real', queueId: 'queue-real', stateStoreEpoch: 'epoch-1',
+      domain: 'bosses', coveredDomains: ['bosses'], status: 'completed',
+      completedAt: '2026-07-14T09:00:00Z', phase: 'write', current: 33, total: 33,
+      outputPath: 'data/generated/wiki-bosses.latest.json',
+    },
+    {
+      attemptId: 'attempt-other-epoch', queueId: 'queue-other', stateStoreEpoch: 'epoch-0',
+      domain: 'buffs', coveredDomains: ['buffs'], status: 'completed',
+      completedAt: '2026-07-14T10:00:00Z', phase: 'write', current: 99, total: 99,
+    },
+  ], 'epoch-1')
+
+  assert.equal(byDomain.get('bosses')?.attemptId, 'attempt-completed-real')
+  assert.equal(byDomain.get('bosses')?.phase, 'write')
+  assert.equal(byDomain.get('bosses')?.current, 33)
+  assert.equal(byDomain.get('bosses')?.total, 33)
+  assert.equal(byDomain.has('buffs'), false)
+})
+
+test('latest terminal selection is deterministic when timestamps are absent or invalid', () => {
+  const byDomain = latestActionableV2AttemptsByDomain([
+    {
+      attemptId: 'attempt-failed-v9', stateStoreEpoch: 'epoch-1', coveredDomains: ['bosses'],
+      status: 'failed', completedAt: 'invalid', stateVersion: 9, allowedActions: ['retry', 'cleanup'],
+    },
+    {
+      attemptId: 'attempt-completed-v10', stateStoreEpoch: 'epoch-1', coveredDomains: ['bosses'],
+      status: 'completed', stateVersion: 10, allowedActions: ['cleanup'],
+    },
+  ], 'epoch-1')
+
+  assert.equal(byDomain.has('bosses'), false)
 })
 
 test('same-epoch higher version requests a full overview reload', () => {

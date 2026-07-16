@@ -5,6 +5,7 @@ import com.terraria.skills.auth.AdminAuthenticationInterceptor;
 import com.terraria.skills.auth.AdminTokenClaims;
 import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.dto.CrawlerAttemptLogDetailDTO;
+import com.terraria.skills.dto.CrawlerDomainStartRequestDTO;
 import com.terraria.skills.dto.CrawlerMonitorAutoDispatchDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchRequestDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
@@ -68,6 +69,26 @@ public class AdminCrawlerMonitorController {
     public ApiResponse<CrawlerMonitorDispatchResultDTO> dispatch(HttpServletRequest httpRequest, @RequestBody CrawlerMonitorDispatchRequestDTO request) {
         AdminTokenClaims claims = requireAdminRole(httpRequest);
         return ApiResponse.success(crawlerMonitorService.dispatchWikiMonitorTask(request, claims.getUsername()));
+    }
+
+    @PostMapping("/domains/{domain}/start")
+    @Operation(summary = "Start a registered crawler domain through V2")
+    public ApiResponse<CrawlerMonitorDispatchResultDTO> startDomain(
+        HttpServletRequest request,
+        @PathVariable String domain,
+        @RequestBody(required = false) CrawlerDomainStartRequestDTO payload
+    ) {
+        AdminTokenClaims claims = requireAdminRole(request);
+        String operationId = payload == null ? null : payload.getOperationId();
+        String resumeMode = payload == null ? null : payload.getResumeMode();
+        boolean confirmed = payload != null && Boolean.TRUE.equals(payload.getConfirmed());
+        return ApiResponse.success(crawlerMonitorService.startCrawlerDomain(
+            domain,
+            operationId,
+            resumeMode,
+            confirmed,
+            claims.getUsername()
+        ));
     }
 
     @PostMapping("/dispatch/control")

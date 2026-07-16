@@ -468,13 +468,20 @@ test('start resolves a per-worktree slot and offsets app ports plus redis db', (
 
 test('start launches shared redis through start_background with setsid and extra databases', () => {
   const source = startSource();
+  const runtimeConfig = fs.readFileSync('scripts/dev/lib/runtime-config.sh', 'utf8');
 
   assert.match(source, /start_background "redis-\$TP_REDIS_PORT" "\$REPO_ROOT"/);
   assert.match(source, /--databases 64/);
   assert.match(source, /--requirepass <redacted> --databases 64/);
   assert.match(source, /--appendonly yes/);
+  assert.match(runtimeConfig, /TP_REDIS_DATA_DIR/);
+  assert.match(runtimeConfig, /\.local\/share\/terrapedia\/redis/);
+  assert.match(source, /resolved_redis_data_dir/);
+  assert.match(source, /CONFIG GET dir/);
+  assert.match(source, /shared Redis data directory mismatch/i);
   assert.match(source, /--dir "\$redis_data_dir"/);
   assert.match(source, /--dbfilename "dump-\$TP_REDIS_PORT\.rdb"/);
+  assert.doesNotMatch(source, /redis_data_dir="\$report_dir\/redis-\$TP_REDIS_PORT"/);
   assert.doesNotMatch(source, /nohup "\$redis_cmd" --port/);
 });
 

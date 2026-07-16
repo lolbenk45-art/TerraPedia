@@ -119,6 +119,31 @@ class RedisCrawlerQueueV2RepositoryIntegrationTest {
     }
 
     @Test
+    void shouldTerminalizePausedAttemptAsFailedAndReleaseOwnership() {
+        CrawlerQueueV2Repository.CreateQueueCommand command = createCommand(
+            "queue-paused", "attempt-paused", List.of("bosses")
+        );
+        repository.createQueue(command);
+        CrawlerQueueV2Repository.ClaimResult claimed = repository.claim(claimCommand(command));
+        repository.mutate(mutationCommand(
+            command, claimed.fenceToken(), 2L, CrawlerQueueV2Status.RUNNING, 1L, false
+        ));
+        repository.mutate(mutationCommand(
+            command, claimed.fenceToken(), 3L, CrawlerQueueV2Status.PAUSE_REQUESTED, 2L, false
+        ));
+        repository.mutate(mutationCommand(
+            command, claimed.fenceToken(), 4L, CrawlerQueueV2Status.PAUSED, 3L, false
+        ));
+
+        CrawlerQueueV2Repository.MutationResult failed = repository.mutate(mutationCommand(
+            command, claimed.fenceToken(), 5L, CrawlerQueueV2Status.FAILED, 4L, true
+        ));
+
+        assertEquals(CrawlerQueueV2Status.FAILED, failed.attempt().status());
+        assertFalse(redis.hasKey(prefix + "domain:bosses:lease"));
+    }
+
+    @Test
     void shouldDiscoverCurrentQuarantineAfterQueueIndexIsClearedAndKeepDirectClaimProtection() {
         CrawlerQueueV2Repository.CreateQueueCommand command = createCommand(
             "queue-current", "attempt-current", List.of("bosses")
@@ -182,6 +207,19 @@ class RedisCrawlerQueueV2RepositoryIntegrationTest {
         assertEquals("epoch-reset", result.stateStoreEpoch());
         assertEquals("v2", redis.opsForValue().get(prefix + "meta:engine"));
         assertEquals("epoch-reset", redis.opsForValue().get(prefix + "meta:epoch"));
+    }
+
+    @Test
+    void shouldInitializeANewEmptyEpochWhenTheEntireNamespaceIsMissing() {
+        CrawlerQueueV2Repository.InitializeResetEpochResult result = repository.initializeResetEpoch(
+            resetCommand("reset-missing-namespace", null, "epoch-reset")
+        );
+
+        assertFalse(result.idempotent());
+        assertEquals("epoch-reset", result.stateStoreEpoch());
+        assertEquals("v2", redis.opsForValue().get(prefix + "meta:engine"));
+        assertEquals("epoch-reset", redis.opsForValue().get(prefix + "meta:epoch"));
+        assertEquals("cutover-current", redis.opsForValue().get(prefix + "meta:active-cutover-id"));
     }
 
     @Test
@@ -256,17 +294,31 @@ class RedisCrawlerQueueV2RepositoryIntegrationTest {
             Duration.ofSeconds(90)
         );
         Long beforeFailedRenew = redis.getExpire(prefix + "domain:bosses:lease", TimeUnit.MILLISECONDS);
+        Long beforeFailedDedupeRenew = redis.getExpire(
+            prefix + "dedupe:" + command.queue().dedupeKey(),
+            TimeUnit.MILLISECONDS
+        );
         assertFalse(repository.renewLeases(new CrawlerQueueV2Repository.RenewLeaseCommand(
             "epoch-current", "queue-current", "attempt-current", claimed.fenceToken(),
-            List.of("bosses", "npcs"), Duration.ofSeconds(90)
+            command.queue().dedupeKey(), List.of("bosses", "npcs"), Duration.ofSeconds(90)
         )));
         Long afterFailedRenew = redis.getExpire(prefix + "domain:bosses:lease", TimeUnit.MILLISECONDS);
+        Long afterFailedDedupeRenew = redis.getExpire(
+            prefix + "dedupe:" + command.queue().dedupeKey(),
+            TimeUnit.MILLISECONDS
+        );
         assertTrue(afterFailedRenew <= beforeFailedRenew);
+        assertTrue(afterFailedDedupeRenew <= beforeFailedDedupeRenew);
         redis.opsForValue().set(prefix + "domain:npcs:lease", currentLease, Duration.ofSeconds(90));
+        redis.expire(prefix + "dedupe:" + command.queue().dedupeKey(), Duration.ofSeconds(5));
         assertTrue(repository.renewLeases(new CrawlerQueueV2Repository.RenewLeaseCommand(
             "epoch-current", "queue-current", "attempt-current", claimed.fenceToken(),
-            List.of("bosses", "npcs"), Duration.ofSeconds(90)
+            command.queue().dedupeKey(), List.of("bosses", "npcs"), Duration.ofSeconds(90)
         )));
+        assertTrue(redis.getExpire(
+            prefix + "dedupe:" + command.queue().dedupeKey(),
+            TimeUnit.SECONDS
+        ) > 80L);
         CrawlerQueueV2Exception staleVersion = assertThrows(
             CrawlerQueueV2Exception.class,
             () -> repository.mutate(mutationCommand(

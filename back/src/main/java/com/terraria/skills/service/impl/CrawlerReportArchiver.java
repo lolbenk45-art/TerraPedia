@@ -9,6 +9,7 @@ import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileTime;
@@ -293,7 +294,7 @@ public class CrawlerReportArchiver {
         Path testReportsRoot = repoRoot.resolve("back").resolve("target").resolve("surefire-reports").normalize();
         Path generatedRoot = repoRoot.resolve("data").resolve("generated").normalize();
         Path standardizedViewRoot = repoRoot.resolve("data").resolve("standardized-view").normalize();
-        Path rawWikiRoot = repoRoot.resolve("data").resolve("terraPedia").resolve("raw").resolve("wiki").normalize();
+        Path rawWikiRoot = resolveSharedDataRoot(repoRoot).resolve("raw").resolve("wiki").normalize();
         boolean standardizedViewJson = normalized.startsWith(standardizedViewRoot) && isJsonFile(normalized);
         boolean rawWikiJson = normalized.startsWith(rawWikiRoot) && isJsonFile(normalized);
         if (!normalized.startsWith(reportsRoot)
@@ -514,6 +515,10 @@ public class CrawlerReportArchiver {
             return null;
         }
         Path path = Path.of(text);
+        if (!path.isAbsolute() && path.normalize().startsWith(Path.of("data", "terraPedia"))) {
+            Path sharedRelative = Path.of("data", "terraPedia").relativize(path.normalize());
+            return resolveSharedDataRoot(repoRoot).resolve(sharedRelative).normalize();
+        }
         Path resolved = path.isAbsolute() ? path.normalize() : repoRoot.resolve(path).normalize();
         return resolved.startsWith(repoRoot) ? resolved : null;
     }
@@ -579,10 +584,64 @@ public class CrawlerReportArchiver {
             if (normalized.startsWith(repoRoot)) {
                 return repoRoot.relativize(normalized).toString().replace('\\', '/');
             }
+            Path sharedDataRoot = resolveSharedDataRoot(repoRoot);
+            if (normalized.startsWith(sharedDataRoot)) {
+                return Path.of("data", "terraPedia")
+                    .resolve(sharedDataRoot.relativize(normalized))
+                    .toString()
+                    .replace('\\', '/');
+            }
         } catch (IllegalArgumentException ignored) {
             return normalized.toString();
         }
         return normalized.toString();
+    }
+
+    private Path resolveSharedDataRoot(Path repoRoot) {
+        String configured = firstNonBlank(
+            System.getenv("TERRAPEDIA_SHARED_DATA_ROOT"),
+            System.getenv("TERRAPEDIA_SOURCE_DATA_DIR")
+        );
+        if (configured != null) {
+            Path configuredPath = Path.of(configured);
+            return (configuredPath.isAbsolute() ? configuredPath : repoRoot.resolve(configuredPath))
+                .toAbsolutePath()
+                .normalize();
+        }
+        Path primaryRoot = resolvePrimaryWorktreeRoot(repoRoot);
+        return (primaryRoot == null ? repoRoot : primaryRoot)
+            .resolve("data")
+            .resolve("terraPedia")
+            .toAbsolutePath()
+            .normalize();
+    }
+
+    private Path resolvePrimaryWorktreeRoot(Path repoRoot) {
+        Path gitFile = repoRoot.resolve(".git");
+        if (!Files.isRegularFile(gitFile)) {
+            return null;
+        }
+        try {
+            String content = Files.readString(gitFile, StandardCharsets.UTF_8).trim();
+            if (!content.regionMatches(true, 0, "gitdir:", 0, "gitdir:".length())) {
+                return null;
+            }
+            Path gitDir = repoRoot.resolve(content.substring("gitdir:".length()).trim())
+                .toAbsolutePath()
+                .normalize();
+            Path worktrees = gitDir.getParent();
+            if (worktrees == null || worktrees.getFileName() == null
+                || !"worktrees".equals(worktrees.getFileName().toString())) {
+                return null;
+            }
+            Path commonGitDir = worktrees.getParent();
+            Path primaryRoot = commonGitDir == null ? null : commonGitDir.getParent();
+            return primaryRoot != null && Files.isDirectory(primaryRoot.resolve(".git"))
+                ? primaryRoot
+                : null;
+        } catch (IOException | InvalidPathException ignored) {
+            return null;
+        }
     }
 
     private String readLastModifiedIso(Path path) {

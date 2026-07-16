@@ -119,3 +119,7 @@ test('V2 transitional and interrupted statuses have Chinese labels plus lifecycl
   assert.equal(isCrawlerTerminalStatus('interrupted'), true)
   assert.ok(crawlerStatusRank('interrupted') < crawlerStatusRank('queued'))
 })
+
+test('V2 idle status renders as idle normal', () => {
+  assert.equal(crawlerStatusDisplayLabel('idle'), '空闲正常')
+})

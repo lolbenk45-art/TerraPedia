@@ -3,13 +3,21 @@ import assert from 'node:assert/strict'
 
 import {
   buildV2AttemptDisplayModel,
+  buildV2DomainOperationModel,
   buildDomainDetailViewModel,
   buildDomainOperationModel,
   buildTriageWorkbench,
   filterLogLines,
+  shortCrawlerIdentity,
   mergeDomainTaskHistory,
   wikiDomainManualDispatchBlockReason,
 } from '../utils/crawlerMonitorTriageWorkbench.mjs'
+
+test('crawler identities keep their prefix and only expose the final five characters', () => {
+  assert.equal(shortCrawlerIdentity('queue-4f42c893-5969-4eae-8784-02da0f653728'), 'queue-…53728')
+  assert.equal(shortCrawlerIdentity('attempt-2a5259b9-d872-407e-9098-605096fbf9a9'), 'attempt-…bf9a9')
+  assert.equal(shortCrawlerIdentity('queue-123'), 'queue-123')
+})
 
 const rows = [
   {
@@ -473,6 +481,22 @@ test('triage workbench filters all-domain rows without pagination', () => {
   assert.equal(large.tableVirtualized, true)
 })
 
+test('triage workbench treats V2 idle domains as normal idle rows', () => {
+  const idleDomain = {
+    domain: 'items',
+    label: 'Items',
+    status: 'idle',
+    risk: 'idle',
+    diagnosisTitle: '空闲正常',
+  }
+
+  const view = buildTriageWorkbench({ domainRows: [idleDomain], tableFilter: 'healthy' })
+
+  assert.equal(view.tableRows.length, 1)
+  assert.equal(view.tableRows[0].flowLabel, '空闲正常')
+  assert.equal(view.tableRows[0].isIdle, true)
+})
+
 test('triage workbench exposes direct domain operation buttons', () => {
   const view = buildTriageWorkbench({
     domainRows: [
@@ -656,6 +680,112 @@ test('domain operation model offers crash failure validation for town npc mainte
     icon: 'timer-reset',
   })
   assert.equal(bosses.secondaryActions.some((action) => action.action === 'make-resume-failure'), false)
+})
+
+test('V2 idle domain exposes a dedicated start operation', () => {
+  const operation = buildV2DomainOperationModel({
+    status: 'idle',
+    allowedActions: ['start'],
+  })
+
+  assert.deepEqual(operation.primaryAction, {
+    action: 'start',
+    label: '开始爬',
+    tone: 'primary',
+    icon: 'play',
+  })
+})
+
+test('V2 retry label distinguishes resumable and full requeue attempts', () => {
+  const resumable = buildV2DomainOperationModel({
+    status: 'failed',
+    resumeSupported: true,
+    allowedActions: ['retry', 'cleanup'],
+  })
+  const restart = buildV2DomainOperationModel({
+    status: 'failed',
+    resumeSupported: false,
+    allowedActions: ['retry', 'cleanup'],
+  })
+
+  assert.equal(resumable.primaryAction.label, '从断点继续爬取')
+  assert.equal(restart.primaryAction.label, '重新抓取')
+  assert.deepEqual(resumable.secondaryActions.map((item) => item.label), ['清理证据'])
+})
+
+test('V2 terminal history exposes its output as crawler data', () => {
+  const detail = buildDomainDetailViewModel({
+    row: { domain: 'bosses', label: 'Boss', v2Attempt: true },
+    attemptRows: [{
+      attemptId: 'attempt-bosses', domain: 'bosses', coveredDomains: ['bosses'], status: 'completed',
+      progressPath: 'reports/crawler-monitor/v2/progress.json',
+      outputPath: '/home/test/worktree/data/generated/wiki-bosses.latest.json',
+      reportPath: '/home/test/worktree/reports/wiki-bosses-fetch-2026-07-14.json',
+    }],
+  })
+
+  assert.deepEqual(detail.artifacts.map((file) => file.kind), ['output'])
+  assert.equal(detail.artifacts[0].path, 'data/generated/wiki-bosses.latest.json')
+  assert.deepEqual(detail.taskHistory[0].files.map((file) => file.kind), ['output', 'progress', 'report', 'log'])
+  assert.equal(detail.taskHistory[0].files.find((file) => file.kind === 'progress')?.path, 'reports/crawler-monitor/v2/progress.json')
+  const recordedReport = detail.taskHistory[0].files.find((file) => file.kind === 'report')
+  assert.equal(recordedReport?.path, '/home/test/worktree/reports/wiki-bosses-fetch-2026-07-14.json')
+  assert.equal(recordedReport?.previewable, false)
+  assert.equal(recordedReport?.statusLabel, '路径记录')
+})
+
+test('V2 task history retains exact terminal controls', () => {
+  const history = mergeDomainTaskHistory({
+    domain: 'bosses',
+    attemptRows: [{
+      queueId: 'queue-bosses', attemptId: 'attempt-failed', stateVersion: 9,
+      stateStoreEpoch: 'epoch-1', domain: 'bosses', coveredDomains: ['bosses'],
+      status: 'failed', resumeSupported: true, allowedActions: ['retry', 'cleanup'],
+    }],
+  })
+
+  assert.deepEqual(history[0].allowedActions, ['retry', 'cleanup'])
+  assert.equal(history[0].resumeSupported, true)
+})
+
+test('V2 task history suppresses retry on an older failure after a newer completion', () => {
+  const history = mergeDomainTaskHistory({
+    domain: 'bosses',
+    attemptRows: [
+      {
+        queueId: 'queue-failed', attemptId: 'attempt-failed', stateVersion: 9,
+        domain: 'bosses', coveredDomains: ['bosses'], status: 'failed',
+        completedAt: '2026-07-14T08:00:00Z', allowedActions: ['retry', 'cleanup'],
+      },
+      {
+        queueId: 'queue-completed', attemptId: 'attempt-completed', stateVersion: 11,
+        domain: 'bosses', coveredDomains: ['bosses'], status: 'completed',
+        completedAt: '2026-07-14T09:00:00Z', allowedActions: ['cleanup'],
+      },
+    ],
+  })
+
+  assert.deepEqual(history.find((row) => row.attemptId === 'attempt-failed').allowedActions, ['cleanup'])
+})
+
+test('V2 task history ignores newer old-epoch rows when choosing current retry', () => {
+  const history = mergeDomainTaskHistory({
+    domain: 'bosses',
+    attemptRows: [
+      {
+        queueId: 'queue-current', attemptId: 'attempt-current-failed', stateVersion: 9,
+        stateStoreEpoch: 'epoch-1', domain: 'bosses', coveredDomains: ['bosses'], status: 'failed',
+        completedAt: '2026-07-14T08:00:00Z', allowedActions: ['retry', 'cleanup'],
+      },
+      {
+        queueId: 'queue-old', attemptId: 'attempt-old-completed', stateVersion: 11,
+        stateStoreEpoch: 'epoch-0', domain: 'bosses', coveredDomains: ['bosses'], status: 'completed',
+        completedAt: '2026-07-14T09:00:00Z', allowedActions: [],
+      },
+    ],
+  })
+
+  assert.deepEqual(history.find((row) => row.attemptId === 'attempt-current-failed').allowedActions, ['retry', 'cleanup'])
 })
 
 test('domain operation model offers current failure validation while town npc is running or paused', () => {
@@ -1196,6 +1326,74 @@ test('V2 domain detail retains its authoritative identity, deadline, reason, and
     assert.equal(labels.includes(label), true)
   }
   assert.equal(detail.logFiles.some((file) => file.attemptId === 'attempt-items'), true)
+})
+
+test('V2 domain detail shortens identity labels without changing control identity', () => {
+  const queueId = 'queue-4f42c893-5969-4eae-8784-02da0f653728'
+  const attemptId = 'attempt-2a5259b9-d872-407e-9098-605096fbf9a9'
+  const detail = buildDomainDetailViewModel({
+    row: { v2Attempt: true, domain: 'bosses', status: 'completed', queueId, attemptId, log: { availability: 'available', previewable: true } },
+  })
+
+  assert.equal(detail.overviewFields.find((field) => field.label === '队列 ID')?.value, 'queue-…53728')
+  assert.equal(detail.overviewFields.find((field) => field.label === '尝试 ID')?.value, 'attempt-…bf9a9')
+  assert.equal(detail.logFiles.find((file) => file.attemptId === attemptId)?.attemptId, attemptId)
+  assert.match(detail.logFiles.find((file) => file.attemptId === attemptId)?.title, /attempt-…bf9a9/)
+})
+
+test('V2 terminal errors promote backend retry as the primary recovery action', () => {
+  const operations = buildV2DomainOperationModel({ status: 'timed_out', allowedActions: ['retry', 'cleanup'] })
+  assert.deepEqual(operations.primaryAction, { action: 'retry', label: '重新抓取', tone: 'primary', icon: 'timer-reset' })
+  assert.equal(operations.secondaryActions[0]?.action, 'cleanup')
+})
+
+test('repaired NPC failure and armor completion project truthful controls progress artifacts and logs', () => {
+  const npc = {
+    v2Attempt: true,
+    domain: 'npcs',
+    status: 'failed',
+    reasonCode: 'ATTEMPT_START_FAILED',
+    diagnosisTitle: '任务取得执行权后未能启动进程。',
+    suggestedAction: '查看 attempt 身份与启动配置；修复后重新排队。',
+    queueId: 'queue-npcs',
+    attemptId: 'attempt-npcs',
+    stateVersion: 4,
+    allowedActions: ['retry', 'cleanup'],
+    log: { availability: 'missing', previewable: false },
+  }
+  const armor = {
+    v2Attempt: true,
+    domain: 'armor_sets',
+    status: 'completed',
+    phase: 'write',
+    progressLabel: '1 / 1',
+    current: 1,
+    total: 1,
+    queueId: 'queue-armor',
+    attemptId: 'attempt-armor',
+    stateVersion: 5,
+    allowedActions: ['cleanup'],
+    outputPath: '/home/lolben/TerraPedia/data/terraPedia/raw/wiki/module__armorsetbonuses.latest.json',
+    log: { availability: 'available', previewable: true },
+  }
+
+  const npcOperations = buildV2DomainOperationModel(npc)
+  const npcDetail = buildDomainDetailViewModel({ row: npc })
+  const armorDetail = buildDomainDetailViewModel({ row: armor, attemptRows: [armor] })
+  const triage = buildTriageWorkbench({ domainRows: [npc, armor] })
+
+  assert.equal(npcOperations.primaryAction?.label, '重新抓取')
+  assert.equal(npcDetail.overviewFields.find((field) => field.label === '原因码')?.value, 'ATTEMPT_START_FAILED')
+  assert.equal(npcDetail.overviewFields.find((field) => field.label === '日志状态')?.value, '本轮任务未形成日志')
+  assert.match(npcDetail.overviewFields.find((field) => field.label === '建议操作')?.value, /重新排队/)
+  assert.equal(npcDetail.logFiles[0]?.previewable, false)
+
+  assert.equal(armorDetail.overviewFields.find((field) => field.label === '阶段')?.value, '执行阶段：write')
+  assert.equal(armorDetail.overviewFields.find((field) => field.label === '进度')?.value, '1 / 1')
+  assert.equal(armorDetail.overviewFields.find((field) => field.label === '日志状态')?.value, '可读取')
+  assert.equal(armorDetail.logFiles.some((file) => file.previewable), true)
+  assert.equal(armorDetail.artifacts.some((file) => file.path.endsWith('module__armorsetbonuses.latest.json')), true)
+  assert.equal(triage.attentionCards.some((row) => row.domain === 'armor_sets'), false)
 })
 
 test('V2 domain detail exposes the backend suggested action without changing V1 fields', () => {

@@ -87,6 +87,10 @@ public interface CrawlerAttemptProcessLauncher {
 
         int exitValue();
 
+        default boolean exitCodeAvailable() {
+            return true;
+        }
+
         ProcessHandle handle();
     }
 }

@@ -57,8 +57,17 @@ exit produces `cancelled`; retain manifest, progress, and log evidence.
 ## State-Store Reset
 
 When the durable V2 marker and Redis epoch disagree, keep maintenance mode and
-temporarily enable `TERRAPEDIA_CRAWLER_QUEUE_V2_CUTOVER_ALLOWED=true` only to
-submit this authenticated forward repair:
+first inspect Redis `CONFIG GET dir` and all configured logical databases. If a
+shared Redis was started from another worktree's old `reports/local-start`
+directory while the matching V2 AOF/RDB still exists, restore only the affected
+worktree database and fixed V2 prefix into the configured global Redis store.
+Do not use forward reset for this persistence-directory mismatch, because an
+empty epoch would discard recoverable queue history and live-state evidence.
+
+Only when the matching Redis authority is genuinely unavailable, temporarily
+enable `TERRAPEDIA_CRAWLER_QUEUE_V2_CUTOVER_ALLOWED=true` and submit the
+authenticated forward repair below. Keep maintenance mode while the durable
+marker and Redis epoch disagree:
 
 ```http
 POST /api/admin/crawler-monitor/cutover/recover-state-store-reset

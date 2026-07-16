@@ -4,11 +4,15 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+import * as runtimeState from './backend-refresh-runtime-state.mjs';
+
 import {
   buildActionHeartbeatPayload,
   buildActionProgressPayload,
+  buildActionResultSummary,
   buildActionRuntimePaths,
   buildActionSnapshotPayload,
+  buildCrawlerWorkSummary,
   crawlerAttemptIdentityFromEnv,
   createCrawlerAttemptProgressSequencer,
   mergeActionProgressFields,
@@ -16,6 +20,90 @@ import {
   readActionProgressFile,
   writeJsonFile
 } from './backend-refresh-runtime-state.mjs';
+
+test('crawler work summary separates resumed work from checkpoint skips', () => {
+  assert.deepEqual(buildCrawlerWorkSummary({
+    status: 'completed',
+    current: 32,
+    total: 32,
+    skippedCount: 12,
+    resumeAction: 'resume',
+    resumeReason: 'valid-state',
+    estimatedRequests: 32,
+    estimatedRecords: 32
+  }), {
+    plannedCount: 32,
+    actualCount: 20,
+    skippedCount: 12,
+    failedCount: 0,
+    estimatedRequests: 32,
+    estimatedRecords: 32,
+    resultKind: 'fetched',
+    resumeOutcome: 'resumed'
+  });
+});
+
+test('crawler work summary reports invalid checkpoint fallback and failed units truthfully', () => {
+  assert.deepEqual(buildCrawlerWorkSummary({
+    status: 'failed',
+    current: 20,
+    total: 33,
+    skippedCount: 12,
+    resumeAction: 'fresh',
+    resumeReason: 'auto-downgrade:fingerprint-mismatch'
+  }), {
+    plannedCount: 33,
+    actualCount: 8,
+    skippedCount: 12,
+    failedCount: 13,
+    estimatedRequests: null,
+    estimatedRecords: null,
+    resultKind: 'failed',
+    resumeOutcome: 'checkpoint_invalid_fresh'
+  });
+});
+
+test('crawler work summary marks non-resumable short crawlers explicitly', () => {
+  assert.deepEqual(buildCrawlerWorkSummary({
+    status: 'completed',
+    current: 3,
+    total: 3,
+    estimatedRequests: 3
+  }), {
+    plannedCount: 3,
+    actualCount: 3,
+    skippedCount: 0,
+    failedCount: 0,
+    estimatedRequests: 3,
+    estimatedRecords: null,
+    resultKind: 'fetched',
+    resumeOutcome: 'not_supported'
+  });
+});
+
+test('backend action result summary distinguishes no-change preview apply and failure', () => {
+  assert.deepEqual(buildActionResultSummary({
+    actionId: 'wiki-items-refresh', status: 'completed', current: 0, total: 0,
+  }), {
+    plannedCount: 0,
+    actualCount: 0,
+    skippedCount: 0,
+    failedCount: 0,
+    estimatedRequests: null,
+    estimatedRecords: null,
+    resultKind: 'no_change',
+    resumeOutcome: 'not_supported',
+  });
+  assert.equal(buildActionResultSummary({
+    actionId: 'biome-preview', status: 'completed', current: 1, total: 1,
+  }).resultKind, 'preview_completed');
+  assert.equal(buildActionResultSummary({
+    actionId: 'npc-loot-apply', status: 'completed', current: 1, total: 1,
+  }).resultKind, 'database_applied');
+  assert.equal(buildActionResultSummary({
+    actionId: 'wiki-items-force-refresh', status: 'failed', current: 0, total: 1,
+  }).failedCount, 1);
+});
 
 test('crawlerAttemptIdentityFromEnv requires the complete V2 identity', () => {
   assert.equal(crawlerAttemptIdentityFromEnv({ TERRAPEDIA_CRAWLER_QUEUE_ID: 'queue-1' }), null);
@@ -72,7 +160,80 @@ test('backend refresh wrapper isolates V2 canonical progress from child progress
   assert.match(source, /childEnv\.TERRAPEDIA_CRAWLER_PROGRESS_SEQUENCE = String\(options\.initialProgressSequence\)/);
   assert.match(source, /observedProgressSequence: childProgress\?\.progressSequence/);
   assert.match(source, /prepareCrawlerChildProgressPath\(childProgressPath\)/);
-  assert.match(source, /childProgress\?\.progressReadable === true/);
+  assert.match(source, /buildBackendWrapperHeartbeatProgress/);
+  assert.match(source, /initialProgress/);
+});
+
+test('backend refresh wrapper refreshes canonical liveness when child progress is absent', () => {
+  assert.equal(typeof runtimeState.buildBackendWrapperHeartbeatProgress, 'function');
+  const initialProgress = buildActionProgressPayload({
+    actionId: 'recipe-reference-sync',
+    status: 'running',
+    phase: 'action',
+    message: 'running recipe-reference-sync',
+    current: 0,
+    total: 1,
+    generatedAt: '2026-07-17T00:00:00.000Z',
+    lastHeartbeatAt: '2026-07-17T00:00:00.000Z',
+    childStatusPath: '/tmp/child-progress.json'
+  });
+
+  const heartbeat = runtimeState.buildBackendWrapperHeartbeatProgress({
+    actionId: 'recipe-reference-sync',
+    childProgress: null,
+    canonicalProgress: initialProgress,
+    initialProgress,
+    generatedAt: '2026-07-17T00:02:00.000Z',
+    childStatusPath: '/tmp/child-progress.json'
+  });
+
+  assert.equal(heartbeat.status, 'running');
+  assert.equal(heartbeat.current, 0);
+  assert.equal(heartbeat.total, 1);
+  assert.equal(heartbeat.lastHeartbeatAt, '2026-07-17T00:02:00.000Z');
+});
+
+test('direct crawler heartbeat republishes the latest logical progress while work waits', async () => {
+  assert.equal(typeof runtimeState.createCrawlerProgressHeartbeat, 'function');
+  const writes = [];
+  const initialTimestamp = new Date(Date.now() - 60_000).toISOString();
+  const heartbeat = runtimeState.createCrawlerProgressHeartbeat({
+    intervalMs: 5,
+    writeProgress: (progress) => writes.push({ ...progress })
+  });
+
+  heartbeat.publish({
+    status: 'running',
+    phase: 'fetch',
+    current: 1,
+    total: 3,
+    generatedAt: initialTimestamp,
+    lastHeartbeatAt: initialTimestamp
+  });
+  await new Promise((resolve) => setTimeout(resolve, 24));
+  heartbeat.stop();
+
+  assert.ok(writes.length >= 2, `expected periodic heartbeat writes, got ${writes.length}`);
+  assert.equal(writes.at(-1).status, 'running');
+  assert.equal(writes.at(-1).phase, 'fetch');
+  assert.equal(writes.at(-1).current, 1);
+  assert.equal(writes.at(-1).total, 3);
+  assert.ok(Date.parse(writes.at(-1).generatedAt) > Date.parse(initialTimestamp));
+  assert.equal(writes.at(-1).lastHeartbeatAt, writes.at(-1).generatedAt);
+});
+
+test('all registered direct crawlers keep periodic progress alive during request-gate waits', () => {
+  for (const relativePath of [
+    '../fetch/fetch-wiki-armorsetbonuses.mjs',
+    '../fetch/fetch-wiki-shimmer-page.mjs',
+    '../fetch/fetch-wiki-bosses.mjs',
+    '../fetch/fetch-wiki-buffs.mjs',
+    '../fetch/fetch-wiki-town-npc-maintenance.mjs'
+  ]) {
+    const source = fs.readFileSync(new URL(relativePath, import.meta.url), 'utf8');
+    assert.match(source, /createCrawlerProgressHeartbeat/, `${relativePath} must create a periodic heartbeat`);
+    assert.match(source, /progressHeartbeat\.stop\(\)/, `${relativePath} must stop its heartbeat`);
+  }
 });
 
 test('prepareCrawlerChildProgressPath removes stale child evidence before a V2 worker starts', () => {
@@ -195,6 +356,36 @@ test('buildActionProgressPayload normalizes live progress counters', () => {
     status: 'running',
     total: 5
   });
+});
+
+test('progress payload preserves real plan result and resume summary fields', () => {
+  const payload = buildActionProgressPayload({
+    actionId: 'domain-source-bosses',
+    status: 'completed',
+    phase: 'write',
+    message: 'finished boss crawl',
+    current: 20,
+    total: 33,
+    plannedCount: 33,
+    actualCount: 20,
+    skippedCount: 12,
+    failedCount: 1,
+    estimatedRequests: 33,
+    estimatedRecords: null,
+    resultKind: 'fetched',
+    resumeOutcome: 'resumed',
+    generatedAt: '2026-07-16T09:00:00.000Z',
+    childStatusPath: 'reports/crawler-monitor/v2/attempt-1/child-progress.json',
+  });
+
+  assert.equal(payload.plannedCount, 33);
+  assert.equal(payload.actualCount, 20);
+  assert.equal(payload.skippedCount, 12);
+  assert.equal(payload.failedCount, 1);
+  assert.equal(payload.estimatedRequests, 33);
+  assert.equal(payload.estimatedRecords, null);
+  assert.equal(payload.resultKind, 'fetched');
+  assert.equal(payload.resumeOutcome, 'resumed');
 });
 
 test('mergeActionProgressFields copies progress fields without dropping lifecycle fields', () => {

@@ -138,8 +138,44 @@ public interface CrawlerQueueV2Repository {
         Instant processStartedAt,
         boolean releaseOwnership,
         Duration retainedOwnershipTtl,
-        String eventType
-    ) {}
+        String eventType,
+        String reportPath,
+        String outputPath
+    ) {
+        MutationCommand(
+            String expectedEpoch,
+            String queueId,
+            String attemptId,
+            String lane,
+            String dedupeKey,
+            List<String> coveredDomains,
+            Long expectedFenceToken,
+            long expectedStateVersion,
+            CrawlerQueueV2Status targetStatus,
+            CrawlerQueueV2ReasonCode reasonCode,
+            Instant enteredAt,
+            Instant deadlineAt,
+            Instant lastHeartbeatAt,
+            Long progressSequence,
+            String phase,
+            Long current,
+            Long total,
+            String workerMessage,
+            Long pid,
+            Instant processStartedAt,
+            boolean releaseOwnership,
+            Duration retainedOwnershipTtl,
+            String eventType
+        ) {
+            this(
+                expectedEpoch, queueId, attemptId, lane, dedupeKey, coveredDomains,
+                expectedFenceToken, expectedStateVersion, targetStatus, reasonCode,
+                enteredAt, deadlineAt, lastHeartbeatAt, progressSequence, phase,
+                current, total, workerMessage, pid, processStartedAt, releaseOwnership,
+                retainedOwnershipTtl, eventType, null, null
+            );
+        }
+    }
 
     record MutationResult(CrawlerQueueV2Attempt attempt, String streamId) {}
 
@@ -148,6 +184,7 @@ public interface CrawlerQueueV2Repository {
         String queueId,
         String attemptId,
         long fenceToken,
+        String dedupeKey,
         List<String> coveredDomains,
         Duration leaseTtl
     ) {}

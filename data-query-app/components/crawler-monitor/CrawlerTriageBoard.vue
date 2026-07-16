@@ -141,7 +141,7 @@
               <span class="operation-row__task" :title="row.phaseLabel">{{ row.phaseLabel }}</span>
               <span class="operation-row__eta" :title="row.deadlineLabel">{{ row.deadlineLabel }}</span>
               <small class="operation-row__timing" :title="row.heartbeatAgeLabel">{{ row.heartbeatAgeLabel }}</small>
-              <small class="operation-row__identity" :title="`queueId ${row.queueId} · attemptId ${row.attemptId}`">队列 {{ shortId(row.queueId) }} · 尝试 {{ shortId(row.attemptId) }}</small>
+              <small class="operation-row__identity" :title="`队列 ${shortId(row.queueId)} · 尝试 ${shortId(row.attemptId)}`">队列 {{ shortId(row.queueId) }} · 尝试 {{ shortId(row.attemptId) }}</small>
             </div>
             <template v-else>
               <span class="operation-row__task" :title="row.taskLabel || row.flowDetail || row.nextActionLabel || '待命'">{{ row.taskLabel || row.flowDetail || row.nextActionLabel || '待命' }}</span>
@@ -227,6 +227,18 @@
             <span class="status-pill" :class="row.triageStatus">{{ row.flowLabel || row.diagnosisTitle || row.statusLabel || '未知状态' }}</span>
           </header>
           <p :title="row.flowDetail || row.rankReason || row.reason || '暂无补充'">{{ row.flowDetail || row.rankReason || row.reason || '暂无补充' }}</p>
+          <dl class="domain-tile__state-pair">
+            <div>
+              <dt>当前状态</dt>
+              <dd :title="row.currentStatusLabel || row.diagnosisTitle || row.statusLabel || '未知状态'">
+                {{ row.currentStatusLabel || row.diagnosisTitle || row.statusLabel || '未知状态' }}
+              </dd>
+            </div>
+            <div>
+              <dt>上次结果</dt>
+              <dd :title="row.latestResultLabel || '暂无历史结果'">{{ row.latestResultLabel || '暂无历史结果' }}</dd>
+            </div>
+          </dl>
           <small class="domain-tile__mode" :title="row.taskLabel || '未配置'">动作模式：{{ row.taskLabel || '未配置' }}</small>
           <div class="tile-progress">
             <span :style="{ width: progressWidth(row.progressLabel) }"></span>
@@ -260,7 +272,8 @@
           <thead>
             <tr>
               <th>基础域</th>
-              <th>状态</th>
+              <th>当前状态</th>
+              <th>上次结果</th>
               <th>新鲜度</th>
               <th>动作模式</th>
               <th>最近活动</th>
@@ -272,12 +285,13 @@
           <tbody>
             <tr v-for="row in filteredRows" :key="rowKey(row)" :class="`domain-row--${row.triageStatus}`">
               <td><strong>{{ row.label || row.domain }}</strong><small>{{ row.domain || '未知域' }}</small></td>
-              <td><span class="status-pill" :class="row.triageStatus">{{ row.diagnosisTitle || row.statusLabel || '未知状态' }}</span></td>
+              <td><span class="status-pill" :class="row.triageStatus">{{ row.currentStatusLabel || row.diagnosisTitle || row.statusLabel || '未知状态' }}</span></td>
+              <td>{{ row.latestResultLabel || '暂无历史结果' }}</td>
               <td>{{ row.sourceSummary || '未记录' }}</td>
               <td><strong>{{ row.taskLabel || '未配置' }}</strong><small>{{ row.queueSummary || '无队列记录' }}</small></td>
               <td>{{ row.v2Attempt ? row.heartbeatAgeLabel : row.heartbeatAt || '未记录' }}</td>
               <td>{{ row.nextActionLabel || '查看详情' }}</td>
-              <td><code v-if="row.attemptId" :title="`queueId ${row.queueId} · attemptId ${row.attemptId}`">{{ shortId(row.queueId) }} / {{ shortId(row.attemptId) }}</code><span v-else>--</span></td>
+              <td><code v-if="row.attemptId" :title="`队列 ${shortId(row.queueId)} · 尝试 ${shortId(row.attemptId)}`">{{ shortId(row.queueId) }} / {{ shortId(row.attemptId) }}</code><span v-else>--</span></td>
               <td>
                 <div class="table-actions">
                   <button
@@ -324,6 +338,7 @@ import {
   Table2,
   TimerReset,
 } from 'lucide-vue-next'
+import { shortCrawlerIdentity } from '~/utils/crawlerMonitorTriageWorkbench.mjs'
 
 const props = defineProps<{
   viewModel: Record<string, any>
@@ -366,7 +381,7 @@ const filteredRows = computed(() => {
     if (tableFilter.value === 'attention' && !row.needsAttention) return false
     if (tableFilter.value === 'running' && !row.isRunning) return false
     if (tableFilter.value === 'queue' && !row.hasActiveQueue) return false
-    if (tableFilter.value === 'healthy' && (row.needsAttention || row.isRunning || status !== 'healthy')) return false
+    if (tableFilter.value === 'healthy' && (row.needsAttention || row.isRunning || !['healthy', 'idle'].includes(status))) return false
     if (!needle) return true
     return String(row.searchText || `${row.label} ${row.domain} ${row.diagnosisTitle} ${row.rankReason}`).toLowerCase().includes(needle)
   })
@@ -377,8 +392,7 @@ function rowKey(row: any) {
 }
 
 function shortId(value: unknown) {
-  const text = String(value || '')
-  return text.length > 12 ? `${text.slice(0, 12)}…` : text || '--'
+  return shortCrawlerIdentity(value)
 }
 
 function isControlPending(row: Record<string, any>, action: string) {
@@ -1014,18 +1028,34 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   background: var(--color-primary);
 }
 
-.operation-row--running .operation-row__progress span {
+.operation-row--running .operation-row__progress span,
+.operation-row--starting .operation-row__progress span,
+.operation-row--pause_requested .operation-row__progress span {
   background: var(--color-info);
 }
 
-.operation-row--running {
+.operation-row--running,
+.operation-row--starting,
+.operation-row--pause_requested {
   border-color: var(--color-info);
   background: var(--color-info-muted);
 }
 
-.operation-row--queued {
+.operation-row--queued,
+.operation-row--retry_wait {
   border-color: var(--color-warning);
   background: var(--color-warning-muted);
+}
+
+.operation-row--paused {
+  border-color: var(--color-primary);
+  background: var(--color-primary-muted);
+}
+
+.operation-row--cancel_requested,
+.operation-row--interrupted {
+  border-color: var(--color-danger);
+  background: var(--color-danger-muted);
 }
 
 .operation-row--ready {
@@ -1033,8 +1063,13 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   background: var(--color-success-muted);
 }
 
-.operation-row--queued .operation-row__progress span {
+.operation-row--queued .operation-row__progress span,
+.operation-row--retry_wait .operation-row__progress span {
   background: var(--color-warning);
+}
+
+.operation-row--paused .operation-row__progress span {
+  background: var(--color-primary);
 }
 
 .operation-row--ready .operation-row__progress span {
@@ -1102,12 +1137,20 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 
 .domain-tile {
   min-width: 0;
+  max-width: 100%;
   min-height: 166px;
   display: grid;
   grid-template-rows: auto 1fr auto auto;
   gap: 10px;
   padding: 12px;
   cursor: pointer;
+}
+
+.domain-tile > *,
+.domain-tile header > *,
+.domain-tile footer > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .domain-tile--compact {
@@ -1151,6 +1194,41 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   overflow-wrap: anywhere;
 }
 
+.domain-tile__state-pair {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.domain-tile__state-pair div {
+  min-width: 0;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-1);
+  padding: 7px 8px;
+}
+
+.domain-tile__state-pair dt,
+.domain-tile__state-pair dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.domain-tile__state-pair dt {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.domain-tile__state-pair dd {
+  margin-top: 3px;
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .tile-progress {
   min-width: 0;
   width: 100%;
@@ -1168,18 +1246,39 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   background: var(--color-primary);
 }
 
-.domain-tile--running .tile-progress span {
+.domain-tile--running .tile-progress span,
+.domain-tile--starting .tile-progress span,
+.domain-tile--pause_requested .tile-progress span {
   background: var(--color-info);
 }
 
-.domain-tile--running {
+.domain-tile--running,
+.domain-tile--starting,
+.domain-tile--pause_requested {
   border-color: var(--color-info);
   background: var(--color-info-muted);
 }
 
-.domain-tile--queued {
+.domain-tile--queued,
+.domain-tile--retry_wait {
   border-color: var(--color-warning);
   background: var(--color-warning-muted);
+}
+
+.domain-tile--paused {
+  border-color: var(--color-primary);
+  background: var(--color-primary-muted);
+}
+
+.domain-tile--cancel_requested,
+.domain-tile--interrupted,
+.domain-tile--failed,
+.domain-tile--blocked,
+.domain-tile--stalled,
+.domain-tile--timed_out,
+.domain-tile--state_missing {
+  border-color: var(--color-danger);
+  background: var(--color-danger-muted);
 }
 
 .domain-tile--ready {
@@ -1187,8 +1286,13 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   background: var(--color-success-muted);
 }
 
-.domain-tile--queued .tile-progress span {
+.domain-tile--queued .tile-progress span,
+.domain-tile--retry_wait .tile-progress span {
   background: var(--color-warning);
+}
+
+.domain-tile--paused .tile-progress span {
+  background: var(--color-primary);
 }
 
 .domain-tile--ready .tile-progress span {
@@ -1215,6 +1319,13 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.domain-tile__mode,
+.domain-tile footer small,
+.domain-tile code {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .domain-tile__actions {
@@ -1282,6 +1393,7 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 
 .domain-table {
   width: 100%;
+  min-width: 1180px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -1372,12 +1484,19 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   background: var(--color-danger);
 }
 
-.status-dot-small--running {
+.status-dot-small--running,
+.status-dot-small--starting,
+.status-dot-small--pause_requested {
   background: var(--color-info);
 }
 
-.status-dot-small--queued {
+.status-dot-small--queued,
+.status-dot-small--retry_wait {
   background: var(--color-warning);
+}
+
+.status-dot-small--paused {
+  background: var(--color-primary);
 }
 
 .status-dot-small--ready {
@@ -1385,6 +1504,7 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 }
 
 .status-dot-small--healthy,
+.status-dot-small--idle,
 .status-dot-small--completed,
 .status-dot-small--success {
   background: var(--color-success);
@@ -1405,14 +1525,28 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   color: var(--color-danger);
 }
 
-.status-pill.running {
+.status-pill.running,
+.status-pill.starting,
+.status-pill.pause_requested {
   background: var(--color-info-muted);
   color: var(--color-info);
 }
 
-.status-pill.queued {
+.status-pill.queued,
+.status-pill.retry_wait {
   background: var(--color-warning-muted);
   color: var(--color-warning);
+}
+
+.status-pill.paused {
+  background: var(--color-primary-muted);
+  color: var(--color-primary);
+}
+
+.status-pill.cancel_requested,
+.status-pill.interrupted {
+  background: var(--color-danger-muted);
+  color: var(--color-danger);
 }
 
 .status-pill.ready {
@@ -1421,6 +1555,7 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
 }
 
 .status-pill.healthy,
+.status-pill.idle,
 .status-pill.completed,
 .status-pill.success {
   background: var(--color-success-muted);
@@ -1444,17 +1579,37 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   white-space: nowrap;
 }
 
-.flow-pill--running {
+.flow-pill--running,
+.flow-pill--starting,
+.flow-pill--pause_requested {
   background: var(--color-info-muted);
   color: var(--color-info);
 }
 
-.flow-pill--queued {
+.flow-pill--queued,
+.flow-pill--retry_wait {
   background: var(--color-warning-muted);
   color: var(--color-warning);
 }
 
+.flow-pill--paused {
+  background: var(--color-primary-muted);
+  color: var(--color-primary);
+}
+
+.flow-pill--cancel_requested,
+.flow-pill--interrupted,
+.flow-pill--timed_out {
+  background: var(--color-danger-muted);
+  color: var(--color-danger);
+}
+
 .flow-pill--ready {
+  background: var(--color-success-muted);
+  color: var(--color-success);
+}
+
+.flow-pill--idle {
   background: var(--color-success-muted);
   color: var(--color-success);
 }

@@ -26,12 +26,15 @@ end
 if redis.call('GET', KEYS[2]) ~= ARGV[1] then
   return cjson.encode({code = 'STALE_EPOCH'})
 end
+if keyType(KEYS[3]) ~= 'string' or redis.call('GET', KEYS[3]) ~= ARGV[3] then
+  return cjson.encode({code = 'LEASE_RENEW_FAILED'})
+end
 
 for offset = 0, domainCount - 1 do
-  if keyType(KEYS[3 + offset]) ~= 'string' then
+  if keyType(KEYS[4 + offset]) ~= 'string' then
     return cjson.encode({code = 'LEASE_RENEW_FAILED'})
   end
-  local owner = decodeObject(redis.call('GET', KEYS[3 + offset]))
+  local owner = decodeObject(redis.call('GET', KEYS[4 + offset]))
   if not owner
     or owner.stateStoreEpoch ~= ARGV[1]
     or owner.queueId ~= ARGV[2]
@@ -41,7 +44,8 @@ for offset = 0, domainCount - 1 do
   end
 end
 
+redis.call('PEXPIRE', KEYS[3], ARGV[5])
 for offset = 0, domainCount - 1 do
-  redis.call('PEXPIRE', KEYS[3 + offset], ARGV[5])
+  redis.call('PEXPIRE', KEYS[4 + offset], ARGV[5])
 end
 return cjson.encode({code = 'RENEWED', attemptId = ARGV[3], fenceToken = tonumber(ARGV[4])})

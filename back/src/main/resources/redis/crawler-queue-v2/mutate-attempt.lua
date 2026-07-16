@@ -47,10 +47,10 @@ local knownStatuses = {
 local allowedTransitions = {
   queued = {starting = true, cancelled = true, timed_out = true},
   retry_wait = {starting = true, cancelled = true, timed_out = true},
-  starting = {running = true, cancel_requested = true, stalled = true, failed = true},
+  starting = {running = true, cancel_requested = true, stalled = true, completed = true, failed = true},
   running = {pause_requested = true, cancel_requested = true, completed = true, failed = true, stalled = true},
   pause_requested = {paused = true, cancel_requested = true, stalled = true, failed = true},
-  paused = {running = true, cancel_requested = true, stalled = true},
+  paused = {running = true, cancel_requested = true, stalled = true, failed = true},
   cancel_requested = {cancelled = true, failed = true},
   stalled = {starting = true, running = true, paused = true, cancel_requested = true, timed_out = true, failed = true},
   completed = {},
@@ -91,6 +91,9 @@ if (terminalStatuses[ARGV[8]] and ARGV[20] ~= '1' and not retainedUnconfirmedTer
   return cjson.encode({code = 'INVALID_COMMAND'})
 end
 if ARGV[20] == '1' and retainedTtl ~= 0 then
+  return cjson.encode({code = 'INVALID_COMMAND'})
+end
+if (ARGV[27] ~= '' or ARGV[28] ~= '') and not terminalStatuses[ARGV[8]] then
   return cjson.encode({code = 'INVALID_COMMAND'})
 end
 
@@ -205,6 +208,13 @@ if ARGV[16] ~= '' then attempt.total = tonumber(ARGV[16]) end
 if ARGV[17] ~= '' then attempt.workerMessage = ARGV[17] end
 if ARGV[18] ~= '' then attempt.pid = tonumber(ARGV[18]) end
 if ARGV[19] ~= '' then attempt.processStartedAt = ARGV[19] end
+if ARGV[27] ~= '' or ARGV[28] ~= '' then
+  if type(attempt.artifacts) ~= 'table' then
+    return cjson.encode({code = 'STATE_STORE_INCONSISTENT'})
+  end
+  if ARGV[27] ~= '' then attempt.artifacts.reportPath = ARGV[27] end
+  if ARGV[28] ~= '' then attempt.artifacts.outputPath = ARGV[28] end
+end
 attempt.stateVersion = expectedVersion + 1
 if terminalStatuses[ARGV[8]] then
   attempt.completedAt = ARGV[10]

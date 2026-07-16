@@ -557,6 +557,35 @@ class AdminCrawlerMonitorControllerTest {
     }
 
     @Test
+    void shouldStartARegisteredDomainThroughTheDedicatedEndpoint() throws Exception {
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(true);
+        result.setStatus("queued");
+        when(crawlerMonitorService.startCrawlerDomain(
+            "items",
+            "force",
+            "fresh",
+            true,
+            "admin"
+        )).thenReturn(result);
+
+        mockMvc.perform(post("/admin/crawler-monitor/domains/items/start")
+                .contentType("application/json")
+                .content("{\"operationId\":\"force\",\"resumeMode\":\"fresh\",\"confirmed\":true}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.accepted").value(true))
+            .andExpect(jsonPath("$.data.status").value("queued"));
+
+        verify(crawlerMonitorService).startCrawlerDomain(
+            "items",
+            "force",
+            "fresh",
+            true,
+            "admin"
+        );
+    }
+
+    @Test
     void shouldGetAndUpdateCrawlerMonitorAutoDispatchSettings() throws Exception {
         CrawlerMonitorAutoDispatchDTO current = new CrawlerMonitorAutoDispatchDTO();
         current.setEnabled(false);

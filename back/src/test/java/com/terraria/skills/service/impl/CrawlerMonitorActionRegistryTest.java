@@ -12,22 +12,79 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CrawlerMonitorActionRegistryTest {
 
     @Test
-    void shouldExposeTheExistingApprovedActionsWithoutChangingCommands() {
+    void exposesNineteenOperationsWithBackendOwnedSemanticsAndExtensibleResumeCapability() {
+        CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
+
+        assertEquals(19, registry.all().size());
+        assertEquals(List.of("check", "force"), registry.operations("items").stream()
+            .map(CrawlerMonitorActionDefinition::operationId)
+            .toList());
+        assertEquals("check", registry.requireDefaultOperation("items").operationId());
+        assertEquals(
+            "destructive",
+            registry.requireOperation("items", "force").confirmationLevel()
+        );
+        assertEquals(
+            "write",
+            registry.requireOperation("npc_loot", "apply").databaseAccess()
+        );
+        assertTrue(registry.requireOperation("bosses", "fresh").resumeSupported());
+        assertFalse(registry.requireOperation("armor_sets", "fresh").resumeSupported());
+        assertEquals(
+            List.of("buffs", "bosses", "town_npc_maintenance"),
+            registry.all().stream()
+                .filter(CrawlerMonitorActionDefinition::resumeSupported)
+                .map(CrawlerMonitorActionDefinition::domain)
+                .toList()
+        );
+    }
+
+    @Test
+    void resolvesOnlyUnambiguousStartsAndEnforcesDestructiveConfirmation() {
+        CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> registry.resolveStartOperation("items", null, false)
+        );
+        assertEquals(
+            "fresh",
+            registry.resolveStartOperation("bosses", null, false).operationId()
+        );
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> registry.resolveStartOperation("items", "force", false)
+        );
+        assertEquals(
+            "wiki-items-force-refresh",
+            registry.resolveStartOperation("items", "force", true).actionId()
+        );
+    }
+
+    @Test
+    void shouldExposeTheApprovedOperationActionsAndKeepHistoricalIdsResolvable() {
         CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
 
         assertEquals(List.of(
             "wiki-items-refresh",
+            "wiki-items-force-refresh",
             "wiki-npcs-refresh",
+            "wiki-npcs-force-refresh",
             "wiki-projectiles-refresh",
+            "wiki-projectiles-force-refresh",
             "buff-page-immunity-refresh",
             "domain-source-armor-sets",
             "recipe-reference-sync",
+            "recipe-reference-apply",
+            "biome-preview",
             "biome-sync",
             "domain-source-bosses",
             "domain-source-town-npc-maintenance",
             "domain-source-shimmer",
             "npc-loot-backfill",
-            "boss-loot-backfill"
+            "npc-loot-apply",
+            "boss-loot-backfill",
+            "boss-loot-apply"
         ), registry.all().stream().map(CrawlerMonitorActionDefinition::actionId).toList());
 
         CrawlerMonitorActionDefinition townNpc = registry.require(
@@ -55,6 +112,48 @@ class CrawlerMonitorActionRegistryTest {
     }
 
     @Test
+    void allTwelveRegisteredDomainsRenderAnAttemptScopedLaunchCommand() {
+        CrawlerMonitorActionRegistry registry = CrawlerMonitorActionRegistry.defaults();
+        String base = "reports/crawler-monitor/v2/2026-07-14/attempt-test/";
+        String progressPath = base + "progress.json";
+
+        assertEquals(List.of(
+            "items",
+            "npcs",
+            "projectiles",
+            "buffs",
+            "armor_sets",
+            "recipes",
+            "biomes",
+            "bosses",
+            "town_npc_maintenance",
+            "shimmer",
+            "npc_loot",
+            "boss_loot"
+        ), registry.all().stream().map(CrawlerMonitorActionDefinition::domain).distinct().toList());
+
+        for (CrawlerMonitorActionDefinition action : registry.all()) {
+            String reportPath = action.backendRefresh() ? base + "report.json" : null;
+            List<String> command = action.renderCommand(
+                reportPath,
+                progressPath,
+                action.defaultResumeMode()
+            );
+
+            assertFalse(command.isEmpty(), action.actionId());
+            assertTrue(command.stream().noneMatch(token -> token.contains("<reportPath>")), action.actionId());
+            assertTrue(command.stream().noneMatch(token -> token.contains("<progressPath>")), action.actionId());
+            assertTrue(command.stream().noneMatch(token ->
+                token.startsWith("--progress-path=")
+                    && !token.equals("--progress-path=" + progressPath)
+            ), action.actionId());
+            if (action.backendRefresh()) {
+                assertTrue(command.contains("--output=" + reportPath), action.actionId());
+            }
+        }
+    }
+
+    @Test
     void shouldRenderAttemptScopedProgressWithoutChangingTheStoredV1Template() {
         CrawlerMonitorActionDefinition bosses = CrawlerMonitorActionRegistry.defaults()
             .require("bosses", "domain-source-bosses");
@@ -74,6 +173,42 @@ class CrawlerMonitorActionRegistryTest {
             "data/generated/domain-source-bosses-progress.latest.json",
             bosses.progressPath()
         );
+    }
+
+    @Test
+    void resumableActionMustRenderTheEffectiveResumeContract() {
+        CrawlerMonitorActionDefinition bosses = CrawlerMonitorActionRegistry.defaults()
+            .require("bosses", "domain-source-bosses");
+
+        assertEquals(
+            List.of(
+                "node",
+                "scripts/data/fetch/fetch-wiki-bosses.mjs",
+                "--progress-path=reports/crawler-monitor/v2/attempt-1/progress.json",
+                "--resume-mode=auto",
+                "--resume-state=data/generated/resume/domain-source-bosses.resume.json"
+            ),
+            bosses.renderCommand(null, "reports/crawler-monitor/v2/attempt-1/progress.json", "auto")
+        );
+    }
+
+    @Test
+    void nonResumableActionMustRejectResumeModesOtherThanFresh() {
+        CrawlerMonitorActionDefinition shimmer = CrawlerMonitorActionRegistry.defaults()
+            .require("shimmer", "domain-source-shimmer");
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> shimmer.renderCommand(null, "reports/crawler-monitor/v2/attempt-1/progress.json", "auto")
+        );
+    }
+
+    @Test
+    void shimmerOperationEstimateMatchesItsThreeRequestProgressPlan() {
+        CrawlerMonitorActionDefinition shimmer = CrawlerMonitorActionRegistry.defaults()
+            .require("shimmer", "domain-source-shimmer");
+
+        assertEquals(3L, shimmer.estimatedRequests());
     }
 
     @Test

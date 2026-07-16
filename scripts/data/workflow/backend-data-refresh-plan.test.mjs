@@ -140,6 +140,43 @@ test('buildBackendDataRefreshPlan can select bounded wiki audio asset refresh on
   ]);
 });
 
+test('backend refresh plan keeps check force preview and apply commands distinct', () => {
+  const plan = buildBackendDataRefreshPlan({
+    steps: [
+      'wiki-items-refresh',
+      'wiki-items-force-refresh',
+      'recipe-reference-sync',
+      'recipe-reference-apply',
+      'biome-preview',
+      'biome-sync',
+      'npc-loot-backfill',
+      'npc-loot-apply',
+      'boss-loot-backfill',
+      'boss-loot-apply',
+    ],
+  });
+  const action = (id) => plan.actions.find((entry) => entry.id === id);
+
+  assert.deepEqual(action('wiki-items-force-refresh').args.slice(-2), [
+    '--entity=items',
+    '--force=true',
+  ]);
+  assert.ok(!action('wiki-items-refresh').args.includes('--force=true'));
+  assert.ok(action('recipe-reference-sync').args.includes('--apply=false'));
+  assert.ok(action('recipe-reference-apply').args.includes('--apply=true'));
+  assert.ok(action('biome-preview').args.includes('--apply=false'));
+  assert.ok(action('biome-sync').args.includes('--apply=true'));
+  assert.ok(action('npc-loot-backfill').args.includes('--dry-run=true'));
+  assert.ok(action('npc-loot-apply').args.includes('--dry-run=false'));
+  assert.ok(action('boss-loot-backfill').args.includes('--dry-run=true'));
+  assert.ok(action('boss-loot-apply').args.includes('--dry-run=false'));
+
+  const defaultIds = buildBackendDataRefreshPlan().actions.map((entry) => entry.id);
+  assert.ok(!defaultIds.includes('wiki-items-force-refresh'));
+  assert.ok(!defaultIds.includes('recipe-reference-apply'));
+  assert.ok(!defaultIds.includes('npc-loot-apply'));
+});
+
 test('run-backend-data-refresh replaces output path placeholders before spawning actions', () => {
   const source = fs.readFileSync(path.join(__dirname, 'run-backend-data-refresh.mjs'), 'utf8');
 
@@ -187,7 +224,15 @@ test('buildBackendDataRefreshReport summarizes action statuses', () => {
       percent: 100,
       phase: 'apply',
       message: 'completed wiki sync',
-      lastHeartbeatAt: '2026-04-29T00:00:05.000Z'
+      lastHeartbeatAt: '2026-04-29T00:00:05.000Z',
+      plannedCount: 5,
+      actualCount: 5,
+      skippedCount: 0,
+      failedCount: 0,
+      estimatedRequests: 5,
+      estimatedRecords: null,
+      resultKind: 'fetched',
+      resumeOutcome: 'not_supported'
     },
     { id: 'item-pages-refresh', status: 'failed', durationMs: 300 }
   ]);
@@ -205,6 +250,14 @@ test('buildBackendDataRefreshReport summarizes action statuses', () => {
   assert.equal(report.actions[0].phase, 'apply');
   assert.equal(report.actions[0].message, 'completed wiki sync');
   assert.equal(report.actions[0].lastHeartbeatAt, '2026-04-29T00:00:05.000Z');
+  assert.equal(report.actions[0].plannedCount, 5);
+  assert.equal(report.actions[0].actualCount, 5);
+  assert.equal(report.actions[0].skippedCount, 0);
+  assert.equal(report.actions[0].failedCount, 0);
+  assert.equal(report.actions[0].estimatedRequests, 5);
+  assert.equal(report.actions[0].estimatedRecords, null);
+  assert.equal(report.actions[0].resultKind, 'fetched');
+  assert.equal(report.actions[0].resumeOutcome, 'not_supported');
   assert.equal(report.actions.find((action) => action.id === 'item-pages-refresh').status, 'failed');
 });
 

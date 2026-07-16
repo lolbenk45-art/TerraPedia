@@ -24,6 +24,18 @@ export function buildBackendDataRefreshPlan(options = {}) {
       ]
     },
     {
+      id: 'wiki-items-force-refresh',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'scripts/data/workflow/run-wiki-sync.mjs',
+        '--mode=apply',
+        '--entity=items',
+        '--force=true'
+      ]
+    },
+    {
       id: 'wiki-npcs-refresh',
       runner: 'node',
       timeoutMs: timeoutMs ?? 20 * 60 * 1000,
@@ -34,6 +46,18 @@ export function buildBackendDataRefreshPlan(options = {}) {
       ]
     },
     {
+      id: 'wiki-npcs-force-refresh',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'scripts/data/workflow/run-wiki-sync.mjs',
+        '--mode=apply',
+        '--entity=npcs',
+        '--force=true'
+      ]
+    },
+    {
       id: 'wiki-projectiles-refresh',
       runner: 'node',
       timeoutMs: timeoutMs ?? 20 * 60 * 1000,
@@ -41,6 +65,18 @@ export function buildBackendDataRefreshPlan(options = {}) {
         'scripts/data/workflow/run-wiki-sync.mjs',
         '--mode=apply',
         '--entity=projectiles'
+      ]
+    },
+    {
+      id: 'wiki-projectiles-force-refresh',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'scripts/data/workflow/run-wiki-sync.mjs',
+        '--mode=apply',
+        '--entity=projectiles',
+        '--force=true'
       ]
     },
     {
@@ -61,7 +97,19 @@ export function buildBackendDataRefreshPlan(options = {}) {
       timeoutMs: timeoutMs ?? 15 * 60 * 1000,
       args: [
         'scripts/data/pipeline/run-recipe-reference-sync-pipeline.mjs',
-        '--recipe-reference=reports/backend-refresh/recipe-material-reference.latest.json'
+        '--recipe-reference=reports/backend-refresh/recipe-material-reference.latest.json',
+        '--apply=false'
+      ]
+    },
+    {
+      id: 'recipe-reference-apply',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 15 * 60 * 1000,
+      args: [
+        'scripts/data/pipeline/run-recipe-reference-sync-pipeline.mjs',
+        '--recipe-reference=reports/backend-refresh/recipe-material-reference.latest.json',
+        '--apply=true'
       ]
     },
     {
@@ -84,6 +132,17 @@ export function buildBackendDataRefreshPlan(options = {}) {
       ]
     },
     {
+      id: 'npc-loot-apply',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'scripts/data/import/import-normal-npc-loot-to-db.mjs',
+        '--dry-run=false',
+        '--report-json=<outputPath>'
+      ]
+    },
+    {
       id: 'boss-loot-backfill',
       runner: 'node',
       timeoutMs: timeoutMs ?? 20 * 60 * 1000,
@@ -94,12 +153,33 @@ export function buildBackendDataRefreshPlan(options = {}) {
       ]
     },
     {
+      id: 'boss-loot-apply',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'scripts/data/import/import-boss-loot-to-db.mjs',
+        '--dry-run=false',
+        '--report-json=<outputPath>'
+      ]
+    },
+    {
       id: 'boss-sync',
       runner: 'node',
       timeoutMs: timeoutMs ?? 20 * 60 * 1000,
       args: [
         'scripts/data/pipeline/run-boss-sync-pipeline.mjs',
         '--apply=true'
+      ]
+    },
+    {
+      id: 'biome-preview',
+      manualOnly: true,
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'scripts/data/pipeline/run-biome-sync-pipeline.mjs',
+        '--apply=false'
       ]
     },
     {
@@ -164,7 +244,7 @@ export function buildBackendDataRefreshPlan(options = {}) {
   return {
     generatedAt: new Date().toISOString(),
     actions: requestedSteps.length === 0
-      ? actions
+      ? actions.filter((action) => !action.manualOnly)
       : actions.filter((action) => requestedSteps.includes(action.id))
   };
 }
@@ -190,7 +270,15 @@ export function buildBackendDataRefreshReport(plan, actionResults = []) {
       phase: result.phase ?? null,
       message: result.message ?? null,
       lastHeartbeatAt: result.lastHeartbeatAt ?? null,
-      updatedAt: result.updatedAt ?? null
+      updatedAt: result.updatedAt ?? null,
+      plannedCount: finiteOrNull(result.plannedCount),
+      actualCount: finiteOrNull(result.actualCount),
+      skippedCount: finiteOrNull(result.skippedCount),
+      failedCount: finiteOrNull(result.failedCount),
+      estimatedRequests: finiteOrNull(result.estimatedRequests),
+      estimatedRecords: finiteOrNull(result.estimatedRecords),
+      resultKind: result.resultKind ?? null,
+      resumeOutcome: result.resumeOutcome ?? null
     };
   });
 
@@ -223,6 +311,14 @@ function normalizePositiveInteger(value, fallback) {
     return fallback;
   }
   return Math.trunc(numeric);
+}
+
+function finiteOrNull(value) {
+  if (value == null || value === '') {
+    return null;
+  }
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
 }
 
 function normalizeSteps(value) {

@@ -41,8 +41,10 @@ public class CrawlerAttemptArtifactStore {
     private static final Pattern ATTEMPT_ID = Pattern.compile("[A-Za-z0-9._-]+");
     private static final Pattern ATTEMPT_DATE = Pattern.compile("\\d{4}-\\d{2}-\\d{2}");
     private static final String MANIFEST_FILE = "attempt-manifest.json";
+    private static final String OPERATION_PLAN_FILE = "operation-plan.json";
     private static final String PROGRESS_FILE = "progress.json";
     private static final String LOG_FILE = "run.log";
+    private static final String REPORT_FILE = "report.json";
     private static final int MIN_TERMINAL_RETENTION_COUNT = 100;
     private static final Duration MIN_TERMINAL_RETENTION_AGE = Duration.ofDays(7);
 
@@ -72,13 +74,56 @@ public class CrawlerAttemptArtifactStore {
         String actionId,
         Instant requestedAt
     ) {
+        Instant preparedAt = requestedAt == null ? clock.instant() : requestedAt;
+        Path directory = attemptDirectory(preparedAt, attemptId);
+        return prepare(
+            epoch,
+            queueId,
+            attemptId,
+            domain,
+            actionId,
+            preparedAt,
+            new CrawlerQueueV2Artifacts(
+                storedPath(directory.resolve(PROGRESS_FILE)),
+                storedPath(directory.resolve(LOG_FILE)),
+                null,
+                null
+            )
+        );
+    }
+
+    public synchronized PreparedArtifacts prepare(
+        String epoch,
+        String queueId,
+        String attemptId,
+        String domain,
+        String actionId,
+        Instant requestedAt,
+        CrawlerQueueV2Artifacts artifacts
+    ) {
         requireText(epoch, "epoch");
         requireText(queueId, "queueId");
         requireText(domain, "domain");
         requireText(actionId, "actionId");
         validateAttemptId(attemptId);
+        Objects.requireNonNull(artifacts, "artifacts");
         Instant preparedAt = requestedAt == null ? clock.instant() : requestedAt;
         Path directory = attemptDirectory(preparedAt, attemptId);
+        String expectedProgressPath = storedPath(directory.resolve(PROGRESS_FILE));
+        String expectedLogPath = storedPath(directory.resolve(LOG_FILE));
+        String expectedReportPath = storedPath(directory.resolve(REPORT_FILE));
+        if (!Objects.equals(expectedProgressPath, artifacts.progressPath())) {
+            throw new IllegalArgumentException("progressPath 必须位于当前 attempt 目录");
+        }
+        if (!Objects.equals(expectedLogPath, artifacts.logPath())) {
+            throw new IllegalArgumentException("logPath 必须位于当前 attempt 目录");
+        }
+        if (artifacts.reportPath() != null && !Objects.equals(expectedReportPath, artifacts.reportPath())) {
+            throw new IllegalArgumentException("reportPath 必须位于当前 attempt 目录");
+        }
+        if (artifacts.outputPath() != null) {
+            throw new IllegalArgumentException("attempt 执行前 outputPath 必须为空");
+        }
         requireNoSymbolicLinks(repoRoot, directory);
         if (Files.exists(directory, LinkOption.NOFOLLOW_LINKS) || readManifest(attemptId).isPresent()) {
             throw new IllegalStateException("attempt artifacts 已存在：" + attemptId);
@@ -94,8 +139,6 @@ public class CrawlerAttemptArtifactStore {
         requireNoSymbolicLinks(repoRoot, directory);
 
         String manifestPath = storedPath(directory.resolve(MANIFEST_FILE));
-        String progressPath = storedPath(directory.resolve(PROGRESS_FILE));
-        String logPath = storedPath(directory.resolve(LOG_FILE));
         CrawlerAttemptManifest manifest = new CrawlerAttemptManifest(
             2,
             epoch,
@@ -111,10 +154,10 @@ public class CrawlerAttemptArtifactStore {
             null,
             null,
             null,
-            progressPath,
-            logPath,
-            null,
-            null,
+            artifacts.progressPath(),
+            artifacts.logPath(),
+            artifacts.reportPath(),
+            artifacts.outputPath(),
             null,
             null,
             null,
@@ -122,7 +165,7 @@ public class CrawlerAttemptArtifactStore {
             List.of()
         );
         writeManifestAt(directory, manifest);
-        return new PreparedArtifacts(directory, manifestPath, progressPath, logPath);
+        return new PreparedArtifacts(directory, manifestPath, artifacts.progressPath(), artifacts.logPath());
     }
 
     public Optional<CrawlerAttemptManifest> readManifest(String attemptId) {
@@ -261,6 +304,51 @@ public class CrawlerAttemptArtifactStore {
             );
         } catch (IOException exception) {
             throw artifactFailure("读取 attempt progress", progressPath, exception);
+        }
+    }
+
+    public synchronized void writeOperationPlan(
+        String attemptId,
+        CrawlerOperationPlanSnapshot plan
+    ) {
+        Objects.requireNonNull(plan, "plan");
+        CrawlerAttemptManifest manifest = requireManifest(attemptId);
+        if (!Objects.equals(manifest.actionId(), plan.actionId())) {
+            throw new IllegalArgumentException("operation plan actionId 与 attempt manifest 不匹配");
+        }
+        Path directory = requireAttemptDirectory(attemptId);
+        Path planPath = directory.resolve(OPERATION_PLAN_FILE).toAbsolutePath().normalize();
+        if (!planPath.startsWith(directory.toAbsolutePath().normalize())) {
+            throw new SecurityException("operation plan path escapes attempt directory");
+        }
+        requireNoSymbolicLinks(repoRoot, planPath);
+        if (Files.exists(planPath, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IllegalStateException("operation plan 已存在：" + attemptId);
+        }
+        writeJsonAt(planPath, plan, "写入 operation plan");
+    }
+
+    public Optional<CrawlerOperationPlanSnapshot> readOperationPlan(String attemptId) {
+        requireManifest(attemptId);
+        Path directory = requireAttemptDirectory(attemptId);
+        Path planPath = directory.resolve(OPERATION_PLAN_FILE).toAbsolutePath().normalize();
+        requireNoSymbolicLinks(repoRoot, planPath);
+        if (!Files.exists(planPath, LinkOption.NOFOLLOW_LINKS)) {
+            return Optional.empty();
+        }
+        try (FileChannel channel = FileChannel.open(
+            planPath,
+            StandardOpenOption.READ,
+            LinkOption.NOFOLLOW_LINKS
+        )) {
+            return Optional.of(objectMapper.readValue(
+                Channels.newInputStream(channel),
+                CrawlerOperationPlanSnapshot.class
+            ));
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("operation plan JSON 无效：" + planPath, exception);
+        } catch (IOException exception) {
+            throw artifactFailure("读取 operation plan", planPath, exception);
         }
     }
 
@@ -561,8 +649,12 @@ public class CrawlerAttemptArtifactStore {
         List<String> storedPaths = new ArrayList<>();
         storedPaths.add(manifest.progressPath());
         storedPaths.add(manifest.logPath());
-        addStoredPath(storedPaths, manifest.reportPath());
-        addStoredPath(storedPaths, manifest.outputPath());
+        addAttemptOwnedStoredPath(storedPaths, directory, manifest.reportPath());
+        addAttemptOwnedStoredPath(
+            storedPaths,
+            directory,
+            storedPath(directory.resolve(OPERATION_PLAN_FILE))
+        );
         if (storedPaths.get(0) == null || storedPaths.get(0).isBlank()
             || storedPaths.get(1) == null || storedPaths.get(1).isBlank()) {
             throw new IllegalStateException("attempt progress/log path 不能为空");
@@ -606,6 +698,16 @@ public class CrawlerAttemptArtifactStore {
             }
         }
         return new EvidenceTargets(storedPaths, paths);
+    }
+
+    private void addAttemptOwnedStoredPath(List<String> storedPaths, Path directory, String storedPath) {
+        if (storedPath == null || storedPath.isBlank()) {
+            return;
+        }
+        Path resolved = repoRoot.resolve(storedPath).toAbsolutePath().normalize();
+        if (resolved.startsWith(directory.toAbsolutePath().normalize())) {
+            storedPaths.add(storedPath);
+        }
     }
 
     private void commitStagedDeletion(
@@ -820,6 +922,31 @@ public class CrawlerAttemptArtifactStore {
             }
         } catch (IOException exception) {
             throw artifactFailure("写入 attempt manifest", path, exception);
+        } finally {
+            try {
+                Files.deleteIfExists(temp);
+            } catch (IOException ignored) {
+                // Preserve the original write failure; stale temp files remain visible to diagnostics.
+            }
+        }
+    }
+
+    private void writeJsonAt(Path path, Object payload, String action) {
+        Path temp = path.resolveSibling(path.getFileName() + "." + UUID.randomUUID() + ".tmp");
+        try {
+            objectMapper.writeValue(temp.toFile(), payload);
+            try {
+                Files.move(
+                    temp,
+                    path,
+                    StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING
+                );
+            } catch (AtomicMoveNotSupportedException unsupported) {
+                Files.move(temp, path, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException exception) {
+            throw artifactFailure(action, path, exception);
         } finally {
             try {
                 Files.deleteIfExists(temp);

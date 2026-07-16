@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { parseCliArgs } from '../lib/wiki-item-utils.mjs';
 import {
   attachCrawlerAttemptIdentity,
+  buildCrawlerWorkSummary,
+  createCrawlerProgressHeartbeat,
   writeJsonFile
 } from '../workflow/backend-refresh-runtime-state.mjs';
 import { createWikiRequestGate } from '../lib/wiki-request-gate.mjs';
@@ -67,6 +69,18 @@ async function main(argv = process.argv.slice(2)) {
   let lastResumeProgressFields = {};
   let lastProgressCurrent = 0;
   let lastProgressTotal = 0;
+  let lastResumeAction = null;
+  let lastResumeReason = null;
+  let lastResumeSkippedCount = 0;
+  const buildCurrentProgressPayload = (progress) => buildProgressPayload({
+    ...progress,
+    resumeAction: lastResumeAction,
+    resumeReason: lastResumeReason,
+    resumeSkippedCount: lastResumeSkippedCount
+  });
+  const progressHeartbeat = createCrawlerProgressHeartbeat({
+    writeProgress: (progress) => writeProgress(progressPath, progress, canonicalProgressPath)
+  });
 
   try {
     let seeds = loadTownNpcSeeds(sourcePath);
@@ -112,6 +126,11 @@ async function main(argv = process.argv.slice(2)) {
       fs.rmSync(partialPath, { force: true });
     }
     const shouldSkip = makeSkipChecker(state, partialStore, isCompleteTownNpcPartialRecord);
+    lastResumeAction = decision.action;
+    lastResumeReason = decision.reason;
+    lastResumeSkippedCount = resuming
+      ? new Set((state.completedKeys || []).map((key) => String(key))).size
+      : 0;
     const crashHookEnabled = process.env.TERRAPEDIA_TOWN_NPC_ENABLE_CRASH_HOOK === '1';
     const crashAfter = crashHookEnabled ? toNullableInteger(process.env.TERRAPEDIA_TOWN_NPC_CRASH_AFTER) : null;
     const crashPoint = normalizeText(process.env.TERRAPEDIA_TOWN_NPC_CRASH_POINT) || 'after-mark';
@@ -119,7 +138,7 @@ async function main(argv = process.argv.slice(2)) {
     lastProgressCurrent = new Set((state.completedKeys || []).map((key) => String(key))).size;
     lastProgressTotal = seeds.length;
 
-    writeProgress(progressPath, buildProgressPayload({
+    progressHeartbeat.publish(buildCurrentProgressPayload({
       status: 'running',
       phase: 'fetch',
       message: `starting town NPC maintenance fetch (${decision.action})`,
@@ -130,7 +149,7 @@ async function main(argv = process.argv.slice(2)) {
       startedAt,
       nextStep: 'fetch town NPC wiki pages',
       ...lastResumeProgressFields
-    }), canonicalProgressPath);
+    }));
 
     const client = buildClient();
     const { records, scraped, skipped } = await crawlRecords({
@@ -142,7 +161,7 @@ async function main(argv = process.argv.slice(2)) {
         lastProgressCurrent = current;
         lastProgressTotal = total;
         lastResumeProgressFields = buildResumeProgressFields(state, seeds.length);
-        writeProgress(progressPath, buildProgressPayload({
+        progressHeartbeat.publish(buildCurrentProgressPayload({
           status: 'running',
           phase: 'fetch',
           message: `fetching town NPC page ${seed.pageTitle}`,
@@ -153,7 +172,7 @@ async function main(argv = process.argv.slice(2)) {
           startedAt,
           nextStep: 'continue town NPC wiki page fetch',
           ...lastResumeProgressFields
-        }), canonicalProgressPath);
+        }));
       }
     });
 
@@ -170,17 +189,18 @@ async function main(argv = process.argv.slice(2)) {
 
     writeJsonAtomic(outputPath, payload);
     writeJsonAtomic(snapshotPath, payload);
-    writeProgress(progressPath, buildProgressPayload({
+    progressHeartbeat.publish(buildCurrentProgressPayload({
       status: 'completed',
       phase: 'write',
       message: 'finished town NPC maintenance fetch',
       current: seeds.length,
       total: seeds.length,
+      failedCount: payload.summary.errorCount,
       outputPath,
       reportPath: snapshotPath,
       startedAt,
       ...buildResumeProgressFields(state, seeds.length)
-    }), canonicalProgressPath);
+    }));
 
     process.stdout.write(`${JSON.stringify({
       output: outputPath,
@@ -195,7 +215,7 @@ async function main(argv = process.argv.slice(2)) {
     }, null, 2)}\n`);
     return 0;
   } catch (error) {
-    writeProgress(progressPath, buildProgressPayload({
+    progressHeartbeat.publish(buildCurrentProgressPayload({
       status: 'failed',
       phase: 'error',
       message: `town NPC maintenance fetch failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -206,9 +226,11 @@ async function main(argv = process.argv.slice(2)) {
       startedAt,
       nextStep: 'inspect error and rerun the town NPC maintenance fetch',
       ...lastResumeProgressFields
-    }), canonicalProgressPath);
+    }));
     process.stderr.write(`${error instanceof Error ? error.stack || error.message : String(error)}\n`);
     return 1;
+  } finally {
+    progressHeartbeat.stop();
   }
 }
 
@@ -268,14 +290,28 @@ function buildProgressPayload({
   message,
   current,
   total,
+  failedCount = null,
   outputPath,
   reportPath,
   startedAt,
   nextStep = null,
-  resume = null
+  resume = null,
+  resumeAction = null,
+  resumeReason = null,
+  resumeSkippedCount = 0
 }) {
   const generatedAt = new Date().toISOString();
   const payload = {
+    ...buildCrawlerWorkSummary({
+      status,
+      current,
+      total,
+      skippedCount: resumeSkippedCount,
+      failedCount,
+      estimatedRecords: total,
+      resumeAction,
+      resumeReason
+    }),
     actionId: ACTION_ID,
     status,
     generatedAt,

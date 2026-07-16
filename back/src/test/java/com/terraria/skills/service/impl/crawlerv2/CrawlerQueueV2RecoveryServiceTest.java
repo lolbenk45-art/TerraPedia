@@ -299,6 +299,7 @@ class CrawlerQueueV2RecoveryServiceTest {
         writeProgress(artifacts, live, live.stateVersion(), NOW.minusSeconds(1));
         when(repository.readEngineState()).thenReturn(engine("epoch-1"));
         when(repository.findLiveAttempts()).thenReturn(List.of(live));
+        when(supervisor.recoverExactProcess(live, false)).thenReturn(true);
         CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
 
         CrawlerQueueV2RecoveryService.RecoveryResult result = recovery.recoverOnStartup();
@@ -306,7 +307,44 @@ class CrawlerQueueV2RecoveryServiceTest {
         assertFalse(result.resetRequired());
         assertEquals("epoch-1", result.stateStoreEpoch());
         verify(repository, never()).mutate(any());
-        verifyNoInteractions(supervisor);
+        verify(supervisor).recoverExactProcess(live, false);
+    }
+
+    @Test
+    void normalRestartKeepsPausedOnlyWhenTheExactProcessIsStillStopped() {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = artifactStore();
+        CrawlerQueueV2Attempt paused = attempt("attempt-paused", CrawlerQueueV2Status.PAUSED, "epoch-1", 89L);
+        writeManifest(artifacts, paused, CrawlerQueueV2Status.PAUSED);
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of(paused));
+        when(supervisor.recoverExactProcess(paused, true)).thenReturn(true);
+        CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
+
+        recovery.recoverOnStartup();
+
+        verify(supervisor).recoverExactProcess(paused, true);
+        verify(repository, never()).mutate(any());
+    }
+
+    @Test
+    void normalRestartContinuesAnExactCancelRequestImmediately() {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerAttemptArtifactStore artifacts = artifactStore();
+        CrawlerQueueV2Attempt cancelling = attempt(
+            "attempt-cancelling", CrawlerQueueV2Status.CANCEL_REQUESTED, "epoch-1", 90L
+        );
+        writeManifest(artifacts, cancelling, CrawlerQueueV2Status.CANCEL_REQUESTED);
+        when(repository.readEngineState()).thenReturn(engine("epoch-1"));
+        when(repository.findLiveAttempts()).thenReturn(List.of(cancelling));
+        when(supervisor.cancel(cancelling)).thenReturn(withStatus(cancelling, CrawlerQueueV2Status.CANCELLED));
+        CrawlerQueueV2RecoveryService recovery = recovery(repository, artifacts, supervisor);
+
+        recovery.recoverOnStartup();
+
+        verify(supervisor).cancel(cancelling);
     }
 
     @ParameterizedTest(name = "{0}")

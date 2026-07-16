@@ -231,6 +231,24 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void dedicatedDomainStartRejectsResumeModesOtherThanFresh() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        WikiMonitorDispatchQueueRepository legacyQueue = mock(WikiMonitorDispatchQueueRepository.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerMonitorServiceImpl service = v2Service(router, v2Service, legacyQueue);
+
+        IllegalArgumentException error = assertThrows(
+            IllegalArgumentException.class,
+            () -> service.startCrawlerDomain("bosses", "fresh", "auto", false, "admin")
+        );
+
+        assertEquals("首次开始只允许 fresh；断点继续必须通过 retry", error.getMessage());
+        verify(v2Service, never()).enqueue(any());
+        verifyNoInteractions(legacyQueue);
+    }
+
+    @Test
     void v2FixtureDispatchReachesTheV2ApplicationWithoutEnteringTheLegacyRegistry() {
         CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
         CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
@@ -2109,6 +2127,62 @@ class CrawlerMonitorServiceImplTest {
             CrawlerQueueV2Exception.class,
             () -> service.getReportDetail(
                 "reports/crawler-monitor/legacy/../v2/2026-07-13/attempt-1/run.log"
+            )
+        );
+
+        assertEquals(CrawlerQueueV2ReasonCode.LOG_FORBIDDEN, exception.reasonCode());
+    }
+
+    @Test
+    void shouldPreviewOnlyTheFixedReportJsonInsideAV2AttemptDirectory() throws Exception {
+        Path attemptDirectory = repoRoot.resolve(
+            "reports/crawler-monitor/v2/2026-07-14/attempt-123/report.json"
+        ).getParent();
+        writeJson(attemptDirectory.resolve("report.json"), Map.of(
+            "status", "completed",
+            "completedActions", 1
+        ));
+        writeJson(attemptDirectory.resolve("progress.json"), Map.of(
+            "attemptId", "attempt-123",
+            "status", "completed"
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        CrawlerMonitorReportDetailDTO detail = service.getReportDetail(
+            "reports/crawler-monitor/v2/2026-07-14/attempt-123/report.json"
+        );
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> service.getReportDetail(
+                "reports/crawler-monitor/v2/2026-07-14/attempt-123/progress.json"
+            )
+        );
+
+        assertTrue(detail.isFound());
+        assertTrue(detail.isReadable());
+        assertTrue(detail.getContent().contains("\"completedActions\" : 1"));
+        assertEquals(CrawlerQueueV2ReasonCode.LOG_FORBIDDEN, exception.reasonCode());
+    }
+
+    @Test
+    void shouldRejectV2AttemptReportPreviewThroughAnAttemptDirectorySymlink() throws Exception {
+        Path realAttemptDirectory = repoRoot.resolve(
+            "reports/crawler-monitor/v2/2026-07-14/attempt-real"
+        );
+        writeJson(realAttemptDirectory.resolve("report.json"), Map.of(
+            "attemptId", "attempt-real",
+            "status", "completed"
+        ));
+        Path aliasAttemptDirectory = realAttemptDirectory.resolveSibling("attempt-alias");
+        Files.createSymbolicLink(aliasAttemptDirectory, realAttemptDirectory);
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> service.getReportDetail(
+                "reports/crawler-monitor/v2/2026-07-14/attempt-alias/report.json"
             )
         );
 

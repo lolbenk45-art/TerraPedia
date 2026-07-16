@@ -239,7 +239,9 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
             Instant.now(clock).toString(),
             Integer.toString(domains.size()),
             writeJson(domains),
-            Long.toString(command.enteredAt().toEpochMilli())
+            Long.toString(command.enteredAt().toEpochMilli()),
+            nullable(command.reportPath()),
+            nullable(command.outputPath())
         };
         String rawResult = redis(
             "mutate V2 attempt",
@@ -253,7 +255,11 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
         Objects.requireNonNull(command, "command");
         List<String> domains = validateRenewCommand(command);
         long ttlMillis = durationMillis(command.leaseTtl(), "lease renewal TTL");
-        List<String> keys = new ArrayList<>(List.of(key("meta:engine"), key("meta:epoch")));
+        List<String> keys = new ArrayList<>(List.of(
+            key("meta:engine"),
+            key("meta:epoch"),
+            key("dedupe:" + command.dedupeKey())
+        ));
         domains.forEach(domain -> keys.add(key("domain:" + domain + ":lease")));
         Object[] arguments = {
             command.expectedEpoch(),
@@ -959,7 +965,9 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
             || (command.releaseOwnership() && command.retainedOwnershipTtl() != null)
             || (!retainedUnconfirmedTermination
                 && !command.releaseOwnership()
-                && command.retainedOwnershipTtl() != null)) {
+                && command.retainedOwnershipTtl() != null)
+            || ((!isBlank(command.reportPath()) || !isBlank(command.outputPath()))
+                && !command.targetStatus().terminal())) {
             throw invalidMutation("V2 attempt mutation 身份或状态无效");
         }
         if (retainedUnconfirmedTermination) {
@@ -973,6 +981,7 @@ public class RedisCrawlerQueueV2Repository implements CrawlerQueueV2Repository {
         if (isBlank(command.expectedEpoch())
             || isBlank(command.queueId())
             || isBlank(command.attemptId())
+            || isBlank(command.dedupeKey())
             || command.fenceToken() < 1L) {
             throw invalidMutation("V2 lease renewal 身份无效");
         }

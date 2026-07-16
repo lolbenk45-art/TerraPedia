@@ -110,7 +110,7 @@ public class CrawlerQueueV2ApplicationService {
         String queueId = "queue-" + UUID.randomUUID();
         String attemptId = "attempt-" + UUID.randomUUID();
         String dedupeKey = lane + ":" + action.actionId() + ":" + resumeMode;
-        CrawlerQueueV2Artifacts artifacts = deterministicArtifacts(now, attemptId);
+        CrawlerQueueV2Artifacts artifacts = deterministicArtifacts(now, attemptId, action);
         CrawlerQueueV2Attempt attempt = new CrawlerQueueV2Attempt(
             2,
             engine.stateStoreEpoch(),
@@ -222,8 +222,10 @@ public class CrawlerQueueV2ApplicationService {
                 attemptId,
                 action.domain(),
                 action.actionId(),
-                now
+                now,
+                artifacts
             );
+            artifactStore.writeOperationPlan(attemptId, planSnapshot(action, now));
         } catch (RuntimeException exception) {
             throw new CrawlerQueueV2Exception(
                 HttpStatus.SERVICE_UNAVAILABLE,
@@ -320,9 +322,10 @@ public class CrawlerQueueV2ApplicationService {
         ControlCommand command,
         CrawlerQueueEngineRouter.MutationPermit permit
     ) {
-        requireConfirmedV2Mutation(permit);
+        CrawlerQueueEngineRouter.CutoverState durable = requireConfirmedV2Mutation(permit);
         CrawlerQueueV2Attempt current = repository.findAttempt(command.attemptId())
             .orElseThrow(() -> stateStoreConflict("V2 attempt 不存在或已经被清理"));
+        requireCurrentEpoch(current, durable.stateStoreEpoch());
         if (!Objects.equals(command.queueId(), current.queueId())) {
             throw stateStoreConflict("queueId 与 attemptId 不匹配");
         }
@@ -332,6 +335,9 @@ public class CrawlerQueueV2ApplicationService {
         List<String> allowedActions = stateMachine.allowedActions(current.status());
         if (!allowedActions.contains(command.controlAction())) {
             throw stateStoreConflict("当前 V2 状态不允许控制动作：" + command.controlAction());
+        }
+        if ("retry".equals(command.controlAction())) {
+            requireLatestTerminalAttempt(current, durable.stateStoreEpoch());
         }
         return switch (command.controlAction()) {
             case "cancel" -> cancel(current);
@@ -373,7 +379,7 @@ public class CrawlerQueueV2ApplicationService {
                 .filter(attempt -> Objects.equals(engine.stateStoreEpoch(), attempt.stateStoreEpoch()))
                 .map(this::attemptRow)
                 .toList();
-            List<CrawlerQueueV2OverviewDTO.DomainStateDTO> domainRows = domainRows(liveRows);
+            List<CrawlerQueueV2OverviewDTO.DomainStateDTO> domainRows = domainRows(liveRows, true);
             List<CrawlerQueueV2OverviewDTO.AttemptDTO> history = historyRows(engine.stateStoreEpoch(), live, terminal);
             CrawlerQueueV2OverviewDTO.HealthDTO queueHealth = health(
                 "healthy",
@@ -418,9 +424,10 @@ public class CrawlerQueueV2ApplicationService {
         CleanupCommand command,
         CrawlerQueueEngineRouter.MutationPermit permit
     ) {
-        requireConfirmedV2Mutation(permit);
+        CrawlerQueueEngineRouter.CutoverState durable = requireConfirmedV2Mutation(permit);
         CrawlerQueueV2Attempt current = repository.findAttempt(command.attemptId())
             .orElseThrow(() -> stateStoreConflict("V2 attempt 不存在或已经被清理"));
+        requireCurrentEpoch(current, durable.stateStoreEpoch());
         if (current.stateVersion() != command.expectedStateVersion()) {
             throw staleStateVersion();
         }
@@ -467,6 +474,8 @@ public class CrawlerQueueV2ApplicationService {
             .orElseThrow(() -> stateStoreConflict("V2 retry 缺少 queue 记录"));
         Instant now = clock.instant();
         String nextAttemptId = "attempt-" + UUID.randomUUID();
+        CrawlerMonitorActionDefinition action = requireExactAction(prior.domain(), prior.actionId());
+        CrawlerQueueV2Artifacts artifacts = deterministicArtifacts(now, nextAttemptId, action);
         CrawlerQueueV2Status retryStatus = CrawlerQueueV2Status.RETRY_WAIT;
         CrawlerQueueV2Attempt next = new CrawlerQueueV2Attempt(
             2,
@@ -496,7 +505,7 @@ public class CrawlerQueueV2ApplicationService {
             null,
             "retry queued",
             null,
-            deterministicArtifacts(now, nextAttemptId)
+            artifacts
         );
         List<String> ids = new ArrayList<>(existingQueue.attemptIds());
         ids.add(nextAttemptId);
@@ -536,7 +545,16 @@ public class CrawlerQueueV2ApplicationService {
                 )
             )
         );
-        artifactStore.prepare(engine.stateStoreEpoch(), prior.queueId(), nextAttemptId, prior.domain(), prior.actionId(), now);
+        artifactStore.prepare(
+            engine.stateStoreEpoch(),
+            prior.queueId(),
+            nextAttemptId,
+            prior.domain(),
+            prior.actionId(),
+            now,
+            artifacts
+        );
+        artifactStore.writeOperationPlan(nextAttemptId, planSnapshot(action, now));
         reconciler.reconcileNow();
         return fromAttempt(result == null || result.attempt() == null ? next : result.attempt());
     }
@@ -594,8 +612,14 @@ public class CrawlerQueueV2ApplicationService {
         List<CrawlerQueueV2Attempt> terminal
     ) {
         Map<String, CrawlerQueueV2OverviewDTO.AttemptDTO> rows = new LinkedHashMap<>();
+        Map<String, CrawlerQueueV2Attempt> latestTerminalByDomain = latestTerminalByDomain(currentEpoch, terminal);
         for (CrawlerQueueV2Attempt attempt : terminal) {
-            rows.putIfAbsent(attempt.attemptId(), attemptRow(attempt));
+            rows.putIfAbsent(attempt.attemptId(), attemptRow(
+                attempt,
+                attemptArtifacts(attempt),
+                Objects.equals(currentEpoch, attempt.stateStoreEpoch()),
+                isLatestForCoveredDomains(attempt, latestTerminalByDomain)
+            ));
         }
         LinkedHashSet<String> indexed = new LinkedHashSet<>();
         safeList(live).stream()
@@ -643,13 +667,20 @@ public class CrawlerQueueV2ApplicationService {
             reason,
             message(reason),
             suggestedAction(reason),
+            false,
             List.of(),
-            safeLogMetadata(manifest.attemptId())
+            manifest.progressPath(),
+            manifest.outputPath(),
+            manifest.reportPath(),
+            safeLogMetadata(manifest.attemptId()),
+            planRow(safeOperationPlan(manifest.attemptId())),
+            resultRow(safeProgress(manifest.attemptId()))
         );
     }
 
     private List<CrawlerQueueV2OverviewDTO.DomainStateDTO> domainRows(
-        List<CrawlerQueueV2OverviewDTO.AttemptDTO> live
+        List<CrawlerQueueV2OverviewDTO.AttemptDTO> live,
+        boolean startAllowed
     ) {
         Map<String, CrawlerQueueV2OverviewDTO.DomainStateDTO> domains = new LinkedHashMap<>();
         for (CrawlerQueueV2OverviewDTO.AttemptDTO attempt : live) {
@@ -667,15 +698,91 @@ public class CrawlerQueueV2ApplicationService {
                     attempt.reasonCode(),
                     attempt.messageZh(),
                     attempt.suggestedAction(),
-                    attempt.allowedActions()
+                    attempt.allowedActions(),
+                    operationRows(domain)
                 ));
             }
+        }
+        for (CrawlerMonitorActionDefinition action : actionRegistry.all()) {
+            domains.putIfAbsent(action.domain(), idleDomainRow(action.domain(), startAllowed));
         }
         return List.copyOf(domains.values());
     }
 
+    private CrawlerQueueV2OverviewDTO.DomainStateDTO idleDomainRow(String domain, boolean startAllowed) {
+        return new CrawlerQueueV2OverviewDTO.DomainStateDTO(
+            domain,
+            null,
+            null,
+            "idle",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            startAllowed ? List.of("start") : List.of(),
+            operationRows(domain)
+        );
+    }
+
+    private List<CrawlerQueueV2OverviewDTO.OperationDTO> operationRows(String domain) {
+        return actionRegistry.operations(domain).stream()
+            .map(action -> new CrawlerQueueV2OverviewDTO.OperationDTO(
+                action.operationId(),
+                action.actionId(),
+                action.labelZh(),
+                action.category(),
+                action.mode(),
+                action.descriptionZh(),
+                action.networkAccess(),
+                action.sourceLocator(),
+                action.fileWriteSummary(),
+                action.databaseAccess(),
+                action.estimatedRequests(),
+                action.estimatedRecords(),
+                action.shortTask(),
+                action.pauseSupported(),
+                action.resumeSupported(),
+                action.resumeStatePath(),
+                action.confirmationLevel(),
+                action.defaultOperation()
+            ))
+            .toList();
+    }
+
     private CrawlerQueueV2OverviewDTO.AttemptDTO attemptRow(CrawlerQueueV2Attempt attempt) {
+        return attemptRow(attempt, attemptArtifacts(attempt));
+    }
+
+    private CrawlerQueueV2OverviewDTO.AttemptDTO attemptRow(
+        CrawlerQueueV2Attempt attempt,
+        AttemptArtifacts artifacts
+    ) {
+        return attemptRow(attempt, artifacts, true);
+    }
+
+    private CrawlerQueueV2OverviewDTO.AttemptDTO attemptRow(
+        CrawlerQueueV2Attempt attempt,
+        AttemptArtifacts artifacts,
+        boolean actionable
+    ) {
+        return attemptRow(attempt, artifacts, actionable, true);
+    }
+
+    private CrawlerQueueV2OverviewDTO.AttemptDTO attemptRow(
+        CrawlerQueueV2Attempt attempt,
+        AttemptArtifacts artifacts,
+        boolean actionable,
+        boolean latestForCoveredDomains
+    ) {
         CrawlerQueueV2ReasonCode reason = attempt.reasonCode();
+        List<String> allowedActions = actionable ? stateMachine.allowedActions(attempt.status()) : List.of();
+        if (!latestForCoveredDomains) {
+            allowedActions = allowedActions.stream().filter(action -> !"retry".equals(action)).toList();
+        }
         return new CrawlerQueueV2OverviewDTO.AttemptDTO(
             attempt.queueId(),
             attempt.attemptId(),
@@ -698,8 +805,113 @@ public class CrawlerQueueV2ApplicationService {
             reason,
             message(reason),
             suggestedAction(reason),
-            attempt.status().terminal() ? List.of() : stateMachine.allowedActions(attempt.status()),
-            safeLogMetadata(attempt.attemptId())
+            resumeSupported(attempt.domain(), attempt.actionId()),
+            allowedActions,
+            artifacts.progressPath(),
+            artifacts.outputPath(),
+            artifacts.reportPath(),
+            safeLogMetadata(attempt.attemptId()),
+            artifacts.plan(),
+            artifacts.result()
+        );
+    }
+
+    private AttemptArtifacts attemptArtifacts(CrawlerQueueV2Attempt attempt) {
+        CrawlerQueueV2Artifacts artifacts = attempt.artifacts();
+        CrawlerQueueV2OverviewDTO.PlanDTO plan = planRow(safeOperationPlan(attempt.attemptId()));
+        CrawlerQueueV2OverviewDTO.ResultDTO result = resultRow(safeProgress(attempt.attemptId()));
+        if (artifacts == null) {
+            return new AttemptArtifacts(null, null, null, plan, result);
+        }
+        return new AttemptArtifacts(
+            artifacts.progressPath(),
+            artifacts.outputPath(),
+            artifacts.reportPath(),
+            plan,
+            result
+        );
+    }
+
+    private CrawlerOperationPlanSnapshot safeOperationPlan(String attemptId) {
+        try {
+            return artifactStore.readOperationPlan(attemptId).orElse(null);
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private CrawlerAttemptProgressPayload safeProgress(String attemptId) {
+        try {
+            return artifactStore.readProgress(attemptId).orElse(null);
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private static CrawlerQueueV2OverviewDTO.PlanDTO planRow(CrawlerOperationPlanSnapshot plan) {
+        if (plan == null) {
+            return null;
+        }
+        return new CrawlerQueueV2OverviewDTO.PlanDTO(
+            plan.operationId(), plan.actionId(), plan.labelZh(), plan.mode(), plan.networkAccess(),
+            plan.sourceLocator(), plan.fileWriteSummary(), plan.databaseAccess(),
+            plan.estimatedRequests(), plan.estimatedRecords(), plan.pauseSupported(),
+            plan.resumeSupported(), plan.resumeStatePath(), plan.confirmationLevel(), plan.capturedAt()
+        );
+    }
+
+    private static CrawlerQueueV2OverviewDTO.ResultDTO resultRow(CrawlerAttemptProgressPayload progress) {
+        if (progress == null) {
+            return null;
+        }
+        boolean hasSummary = progress.plannedCount() != null
+            || progress.actualCount() != null
+            || progress.skippedCount() != null
+            || progress.failedCount() != null
+            || progress.estimatedRequests() != null
+            || progress.estimatedRecords() != null
+            || !blank(progress.resultKind())
+            || !blank(progress.resumeOutcome());
+        if (!hasSummary) {
+            return null;
+        }
+        return new CrawlerQueueV2OverviewDTO.ResultDTO(
+            progress.plannedCount(), progress.actualCount(), progress.skippedCount(),
+            progress.failedCount(), progress.estimatedRequests(), progress.estimatedRecords(),
+            progress.resultKind(), progress.resumeOutcome()
+        );
+    }
+
+    private boolean resumeSupported(String domain, String actionId) {
+        try {
+            return actionRegistry.require(domain, actionId).resumeSupported();
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
+    }
+
+    private static CrawlerOperationPlanSnapshot planSnapshot(
+        CrawlerMonitorActionDefinition action,
+        Instant capturedAt
+    ) {
+        return new CrawlerOperationPlanSnapshot(
+            action.operationId(), action.actionId(), action.labelZh(), action.mode(),
+            action.networkAccess(), action.sourceLocator(), action.fileWriteSummary(),
+            action.databaseAccess(), action.estimatedRequests(), action.estimatedRecords(),
+            action.pauseSupported(), action.resumeSupported(), action.resumeStatePath(),
+            action.confirmationLevel(), capturedAt
+        );
+    }
+
+    private record AttemptArtifacts(
+        String progressPath,
+        String outputPath,
+        String reportPath,
+        CrawlerQueueV2OverviewDTO.PlanDTO plan,
+        CrawlerQueueV2OverviewDTO.ResultDTO result
+    ) {
+        private static final AttemptArtifacts EMPTY = new AttemptArtifacts(
+            null, null, null, null, null
         );
     }
 
@@ -781,7 +993,7 @@ public class CrawlerQueueV2ApplicationService {
             health,
             health,
             List.of(),
-            List.of(),
+            domainRows(List.of(), false),
             cached == null ? List.of() : cached.attemptHistory(),
             cached == null ? List.of() : cached.legacyHistory()
         );
@@ -805,6 +1017,61 @@ public class CrawlerQueueV2ApplicationService {
             throw stateStoreConflict("durable cutover 与 Redis V2 identity 不一致");
         }
         return engine;
+    }
+
+    private void requireCurrentEpoch(CrawlerQueueV2Attempt attempt, String currentEpoch) {
+        if (!Objects.equals(currentEpoch, attempt.stateStoreEpoch())) {
+            throw stateStoreConflict("旧 epoch V2 attempt 只可查看历史，不允许控制或清理");
+        }
+    }
+
+    private void requireLatestTerminalAttempt(CrawlerQueueV2Attempt attempt, String currentEpoch) {
+        List<CrawlerQueueV2Attempt> terminal = safeList(
+            repository.findTerminalAttempts(HISTORY_LIMIT, clock.instant().minus(HISTORY_AGE))
+        );
+        if (!isLatestForCoveredDomains(attempt, latestTerminalByDomain(currentEpoch, terminal))) {
+            throw staleStateVersion();
+        }
+    }
+
+    private Map<String, CrawlerQueueV2Attempt> latestTerminalByDomain(
+        String currentEpoch,
+        List<CrawlerQueueV2Attempt> terminal
+    ) {
+        Map<String, CrawlerQueueV2Attempt> latest = new LinkedHashMap<>();
+        safeList(terminal).stream()
+            .filter(attempt -> attempt.status().terminal())
+            .filter(attempt -> Objects.equals(currentEpoch, attempt.stateStoreEpoch()))
+            .sorted(this::compareTerminalAttemptsNewestFirst)
+            .forEach(attempt -> attempt.coveredDomains().forEach(domain -> latest.putIfAbsent(domain, attempt)));
+        return latest;
+    }
+
+    private int compareTerminalAttemptsNewestFirst(CrawlerQueueV2Attempt left, CrawlerQueueV2Attempt right) {
+        Instant leftTime = left.completedAt() != null ? left.completedAt() : left.requestedAt();
+        Instant rightTime = right.completedAt() != null ? right.completedAt() : right.requestedAt();
+        int timeComparison = Comparator.nullsLast(Comparator.<Instant>reverseOrder()).compare(leftTime, rightTime);
+        if (timeComparison != 0) {
+            return timeComparison;
+        }
+        int versionComparison = Long.compare(right.stateVersion(), left.stateVersion());
+        return versionComparison != 0
+            ? versionComparison
+            : Comparator.nullsLast(Comparator.<String>reverseOrder()).compare(left.attemptId(), right.attemptId());
+    }
+
+    private boolean isLatestForCoveredDomains(
+        CrawlerQueueV2Attempt attempt,
+        Map<String, CrawlerQueueV2Attempt> latestTerminalByDomain
+    ) {
+        return !attempt.coveredDomains().isEmpty() && attempt.coveredDomains().stream().allMatch(domain ->
+            Objects.equals(
+                attempt.attemptId(),
+                Optional.ofNullable(latestTerminalByDomain.get(domain))
+                    .map(CrawlerQueueV2Attempt::attemptId)
+                    .orElse(null)
+            )
+        );
     }
 
     private void confirmOrValidateFirstMutation(
@@ -884,10 +1151,15 @@ public class CrawlerQueueV2ApplicationService {
         return mode;
     }
 
-    private CrawlerQueueV2Artifacts deterministicArtifacts(Instant requestedAt, String attemptId) {
+    private CrawlerQueueV2Artifacts deterministicArtifacts(
+        Instant requestedAt,
+        String attemptId,
+        CrawlerMonitorActionDefinition action
+    ) {
         String date = DateTimeFormatter.ISO_LOCAL_DATE.withZone(ZoneOffset.UTC).format(requestedAt);
         String base = "reports/crawler-monitor/v2/" + date + "/" + attemptId + "/";
-        return new CrawlerQueueV2Artifacts(base + "progress.json", base + "run.log", null, null);
+        String reportPath = action.backendRefresh() ? base + "report.json" : null;
+        return new CrawlerQueueV2Artifacts(base + "progress.json", base + "run.log", reportPath, null);
     }
 
     private DispatchResult fromAttempt(CrawlerQueueV2Attempt attempt) {
@@ -907,7 +1179,7 @@ public class CrawlerQueueV2ApplicationService {
             reason,
             message(reason),
             suggestedAction(reason),
-            attempt.status().terminal() ? List.of() : stateMachine.allowedActions(attempt.status())
+            stateMachine.allowedActions(attempt.status())
         );
     }
 

@@ -49,13 +49,72 @@ public final class CrawlerQueueV2OverviewDTO {
         CrawlerQueueV2ReasonCode reasonCode,
         String messageZh,
         String suggestedAction,
+        boolean resumeSupported,
         List<String> allowedActions,
-        CrawlerAttemptLogMetadata log
+        String progressPath,
+        String outputPath,
+        String reportPath,
+        CrawlerAttemptLogMetadata log,
+        PlanDTO plan,
+        ResultDTO result
     ) {
         public AttemptDTO {
             coveredDomains = coveredDomains == null ? List.of() : List.copyOf(coveredDomains);
             allowedActions = allowedActions == null ? List.of() : List.copyOf(allowedActions);
         }
+    }
+
+    public record PlanDTO(
+        String operationId,
+        String actionId,
+        String labelZh,
+        String mode,
+        boolean networkAccess,
+        String sourceLocator,
+        String fileWriteSummary,
+        String databaseAccess,
+        Long estimatedRequests,
+        Long estimatedRecords,
+        boolean pauseSupported,
+        boolean resumeSupported,
+        String resumeStatePath,
+        String confirmationLevel,
+        Instant capturedAt
+    ) {
+    }
+
+    public record ResultDTO(
+        Long plannedCount,
+        Long actualCount,
+        Long skippedCount,
+        Long failedCount,
+        Long estimatedRequests,
+        Long estimatedRecords,
+        String resultKind,
+        String resumeOutcome
+    ) {
+    }
+
+    public record OperationDTO(
+        String operationId,
+        String actionId,
+        String labelZh,
+        String category,
+        String mode,
+        String descriptionZh,
+        boolean networkAccess,
+        String sourceLocator,
+        String fileWriteSummary,
+        String databaseAccess,
+        Long estimatedRequests,
+        Long estimatedRecords,
+        boolean shortTask,
+        boolean pauseSupported,
+        boolean resumeSupported,
+        String resumeStatePath,
+        String confirmationLevel,
+        boolean defaultOperation
+    ) {
     }
 
     public record DomainStateDTO(
@@ -71,10 +130,12 @@ public final class CrawlerQueueV2OverviewDTO {
         CrawlerQueueV2ReasonCode reasonCode,
         String messageZh,
         String suggestedAction,
-        List<String> allowedActions
+        List<String> allowedActions,
+        List<OperationDTO> operations
     ) {
         public DomainStateDTO {
             allowedActions = allowedActions == null ? List.of() : List.copyOf(allowedActions);
+            operations = operations == null ? List.of() : List.copyOf(operations);
         }
     }
 

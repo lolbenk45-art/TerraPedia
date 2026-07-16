@@ -106,6 +106,7 @@ function shellQuote(value) {
 const dbHost = env('TERRAPEDIA_DB_HOST', get(['database', 'host'], '127.0.0.1'));
 const dbPort = env('TERRAPEDIA_DB_PORT', get(['database', 'port'], 3306));
 const dbName = env('TERRAPEDIA_DB_NAME', get(['database', 'name'], 'terria_v1_local'));
+const redisPort = env('TERRAPEDIA_REDIS_PORT', get(['redis', 'port'], 6380));
 const mailUsername = env('TERRAPEDIA_MAIL_USERNAME', get(['mail', 'username'], ''));
 const minioEndpoint = trimTrailingSlash(env('TERRAPEDIA_MINIO_ENDPOINT', get(['minio', 'endpoint'], 'http://127.0.0.1:19000')));
 const minioPublicEndpoint = trimTrailingSlash(env('TERRAPEDIA_MINIO_PUBLIC_ENDPOINT', get(['minio', 'publicEndpoint'], 'http://localhost:19000')));
@@ -128,10 +129,11 @@ const values = {
   TP_DB_PASSWORD: env('TERRAPEDIA_DB_PASSWORD', get(['database', 'password'], 'root')),
   TP_DB_URL: env('TERRAPEDIA_DB_URL', get(['database', 'url'], `jdbc:mysql://${dbHost}:${dbPort}/${dbName}?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true`)),
   TP_REDIS_HOST: env('TERRAPEDIA_REDIS_HOST', get(['redis', 'host'], '127.0.0.1')),
-  TP_REDIS_PORT: env('TERRAPEDIA_REDIS_PORT', get(['redis', 'port'], 6380)),
+  TP_REDIS_PORT: redisPort,
   TP_REDIS_DATABASE: env('TERRAPEDIA_REDIS_DATABASE', get(['redis', 'database'], 0)),
   TP_REDIS_PASSWORD: env('TERRAPEDIA_REDIS_PASSWORD', get(['redis', 'password'], 'root')),
   TP_REDIS_SERVER_EXE: env('TERRAPEDIA_REDIS_SERVER_EXE', get(['redis', 'serverExe'], '')),
+  TP_REDIS_DATA_DIR: env('TERRAPEDIA_REDIS_DATA_DIR', get(['redis', 'dataDir'], `${process.env.HOME || root}/.local/share/terrapedia/redis/redis-${redisPort}`)),
   TP_BACKEND_PORT: env('APP_PORT', get(['backend', 'port'], 18088)),
   TP_FRONT_PROJECT_DIR: env('TERRAPEDIA_FRONT_PROJECT_DIR', get(['front', 'projectDir'], 'front-nuxt')),
   TP_FRONT_PORT: env('TERRAPEDIA_FRONT_PORT', get(['front', 'port'], 5174)),

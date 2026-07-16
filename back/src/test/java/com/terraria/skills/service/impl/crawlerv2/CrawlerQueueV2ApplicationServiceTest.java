@@ -31,11 +31,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -123,12 +126,51 @@ class CrawlerQueueV2ApplicationServiceTest {
 
         assertEquals(2, first.queueContractVersion());
         assertEquals("attempt-1", first.domainStates().get(0).currentAttemptId());
+        assertEquals(12, first.domainStates().size());
+        assertEquals(1, first.domainStates().stream().filter(state ->
+            "bosses".equals(state.domain()) && "attempt-1".equals(state.currentAttemptId())
+        ).count());
+        assertEquals(11, first.domainStates().stream().filter(state ->
+            state.currentAttemptId() == null && "idle".equals(state.status())
+        ).count());
         assertEquals(first.liveQueue().get(0).stateVersion(), second.liveQueue().get(0).stateVersion());
         verify(repository, never()).createQueue(any());
         verify(repository, never()).claim(any());
         verify(repository, never()).mutate(any());
         verify(repository, never()).renewLeases(any());
         verify(repository, never()).writeReconcilerHealth(any(), any());
+    }
+
+    @Test
+    void projectsAllRegisteredDomainsAsIdleWhenNoLiveAttemptExists() {
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.findLiveAttempts()).thenReturn(List.of());
+        when(repository.findTerminalAttempts(100, NOW.minus(Duration.ofDays(7)))).thenReturn(List.of());
+        when(repository.readReconcilerHealth()).thenReturn(Optional.of(healthyReconciler()));
+
+        CrawlerQueueV2ApplicationService.OverviewSnapshot snapshot = service.overview();
+
+        assertEquals(List.of(
+            "items", "npcs", "projectiles", "buffs", "armor_sets", "recipes", "biomes", "bosses",
+            "town_npc_maintenance", "shimmer", "npc_loot", "boss_loot"
+        ), snapshot.domainStates().stream().map(CrawlerQueueV2OverviewDTO.DomainStateDTO::domain).toList());
+        assertTrue(snapshot.domainStates().stream().allMatch(state ->
+            state.currentAttemptId() == null
+                && state.stateVersion() == null
+                && "idle".equals(state.status())
+                && state.reasonCode() == null
+                && state.allowedActions().equals(List.of("start"))
+        ));
+        CrawlerQueueV2OverviewDTO.DomainStateDTO items = snapshot.domainStates().stream()
+            .filter(state -> "items".equals(state.domain()))
+            .findFirst()
+            .orElseThrow();
+        assertEquals(List.of("check", "force"), items.operations().stream()
+            .map(CrawlerQueueV2OverviewDTO.OperationDTO::operationId)
+            .toList());
+        verify(repository, never()).createQueue(any());
+        verify(repository, never()).claim(any());
+        verify(repository, never()).mutate(any());
     }
 
     @Test
@@ -321,10 +363,75 @@ class CrawlerQueueV2ApplicationServiceTest {
         assertEquals(List.of("attempt-a", "attempt-b"), snapshot.attemptHistory().stream()
             .map(CrawlerQueueV2OverviewDTO.AttemptDTO::attemptId)
             .toList());
+        assertEquals(List.of("cleanup"), snapshot.attemptHistory().get(0).allowedActions());
+        assertEquals(List.of("retry", "cleanup"), snapshot.attemptHistory().get(1).allowedActions());
         assertTrue(snapshot.legacyHistory().stream().allMatch(row ->
             !row.live() && row.allowedActions().isEmpty() && "legacy-v1".equals(row.source())
         ));
         assertEquals("attempt-1", snapshot.domainStates().get(0).currentAttemptId());
+    }
+
+    @Test
+    void oldEpochTerminalAttemptsRemainReadableWithoutActions() {
+        CrawlerQueueV2Attempt oldFailed = withEpoch(failedAttempt("attempt-old-failed"), "epoch-old");
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.findLiveAttempts()).thenReturn(List.of());
+        when(repository.findTerminalAttempts(anyInt(), any())).thenReturn(List.of(oldFailed));
+
+        CrawlerQueueV2OverviewDTO.AttemptDTO history = service.overview().attemptHistory().get(0);
+
+        assertEquals("epoch-old", history.stateStoreEpoch());
+        assertEquals("failed", history.status());
+        assertTrue(history.allowedActions().isEmpty());
+    }
+
+    @Test
+    void exposesOnlyRedisCommittedTerminalArtifactsWhenProgressConflicts() {
+        CrawlerQueueV2Attempt completed = withArtifacts(
+            completedAttempt("attempt-bosses"),
+            new CrawlerQueueV2Artifacts(
+                "reports/crawler-monitor/v2/progress.json",
+                "reports/crawler-monitor/v2/run.log",
+                "reports/committed-report.json",
+                "data/generated/committed-output.json"
+            )
+        );
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.findLiveAttempts()).thenReturn(List.of());
+        when(repository.findTerminalAttempts(anyInt(), any())).thenReturn(List.of(completed));
+        when(artifactStore.readManifest("attempt-bosses")).thenReturn(Optional.of(new CrawlerAttemptManifest(
+            2, "epoch-1", completed.queueId(), "attempt-bosses", completed.fenceToken(), "bosses",
+            "domain-source-bosses", CrawlerQueueV2Status.COMPLETED, completed.startedAt(), completed.completedAt(),
+            null, 0, null, null, "reports/crawler-monitor/v2/progress.json", null, null, null,
+            null, null, null, null, List.of()
+        )));
+        when(artifactStore.readProgress("attempt-bosses")).thenReturn(Optional.of(new CrawlerAttemptProgressPayload(
+            completed.queueId(), "attempt-bosses", completed.fenceToken(), "epoch-1", completed.stateVersion(), 71L,
+            "domain-source-bosses", "completed", "write", "finished", 33L, 33L, NOW, NOW,
+            "reports/crawler-monitor/v2/progress.json",
+            "data/generated/wiki-bosses.latest.json", "reports/wiki-bosses-fetch-2026-07-14.json",
+            33L, 20L, 12L, 1L, 33L, null, "fetched", "resumed"
+        )));
+        when(artifactStore.readOperationPlan("attempt-bosses")).thenReturn(Optional.of(
+            new CrawlerOperationPlanSnapshot(
+                "fresh", "domain-source-bosses", "重新抓取 Boss 页面", "fresh", true,
+                "Boss source snapshot pages", "更新 Boss 来源、报告和断点文件", "none",
+                33L, null, true, true, "data/generated/resume/domain-source-bosses.resume.json",
+                "summary", NOW
+            )
+        ));
+
+        CrawlerQueueV2OverviewDTO.AttemptDTO history = service.overview().attemptHistory().get(0);
+
+        assertEquals("reports/crawler-monitor/v2/progress.json", history.progressPath());
+        assertEquals("data/generated/committed-output.json", history.outputPath());
+        assertEquals("reports/committed-report.json", history.reportPath());
+        assertEquals("fresh", history.plan().operationId());
+        assertEquals("fetched", history.result().resultKind());
+        assertEquals(33L, history.result().plannedCount());
+        assertEquals(20L, history.result().actualCount());
+        assertEquals(12L, history.result().skippedCount());
+        assertEquals(1L, history.result().failedCount());
     }
 
     @Test
@@ -347,7 +454,7 @@ class CrawlerQueueV2ApplicationServiceTest {
     }
 
     @Test
-    void maintenanceReturnsNoActionableLiveRowsAndExposesRouterReason() {
+    void maintenanceKeepsRegisteredDomainsVisibleAndExposesRouterReason() {
         when(router.mode()).thenReturn(CrawlerQueueEngineMode.MAINTENANCE);
         when(router.lastReasonCode()).thenReturn(CrawlerQueueV2ReasonCode.FIRST_MUTATION_OUTCOME_UNCERTAIN);
         when(router.readDurableState()).thenReturn(new CrawlerQueueEngineRouter.CutoverState(
@@ -365,7 +472,12 @@ class CrawlerQueueV2ApplicationServiceTest {
         assertEquals("maintenance", snapshot.queueHealth().status());
         assertEquals(CrawlerQueueV2ReasonCode.FIRST_MUTATION_OUTCOME_UNCERTAIN, snapshot.queueHealth().reasonCode());
         assertTrue(snapshot.liveQueue().isEmpty());
-        assertTrue(snapshot.domainStates().isEmpty());
+        assertEquals(12, snapshot.domainStates().size());
+        assertTrue(snapshot.domainStates().stream().allMatch(state ->
+            state.currentAttemptId() == null
+                && "idle".equals(state.status())
+                && state.allowedActions().isEmpty()
+        ));
     }
 
     @Test
@@ -388,7 +500,7 @@ class CrawlerQueueV2ApplicationServiceTest {
             null,
             NOW
         ));
-        when(artifactStore.prepare(any(), any(), any(), any(), any(), any())).thenReturn(
+        when(artifactStore.prepare(any(), any(), any(), any(), any(), any(), any())).thenReturn(
             new CrawlerAttemptArtifactStore.PreparedArtifacts(
                 Path.of("/tmp/attempt-created"),
                 "reports/crawler-monitor/v2/2026-07-13/attempt-created/attempt-manifest.json",
@@ -408,6 +520,44 @@ class CrawlerQueueV2ApplicationServiceTest {
         assertEquals("attempt-created", result.attemptId());
         verify(router).reserveFirstLiveMutation(NOW);
         verify(router).confirmFirstLiveMutation(NOW);
+        verify(artifactStore).writeOperationPlan(
+            argThat(attemptId -> attemptId.startsWith("attempt-")),
+            argThat(plan -> "fresh".equals(plan.operationId())
+                && "domain-source-bosses".equals(plan.actionId()))
+        );
+    }
+
+    @Test
+    void backendAndDirectEnqueueUseActionScopedArtifactContracts() {
+        when(repository.readEngineState()).thenReturn(engineV2());
+        List<CrawlerQueueV2Attempt> createdAttempts = new java.util.ArrayList<>();
+        when(repository.createQueue(any())).thenAnswer(invocation -> {
+            CrawlerQueueV2Repository.CreateQueueCommand command = invocation.getArgument(0);
+            createdAttempts.add(command.attempt());
+            return new CrawlerQueueV2Repository.EnqueueResult(
+                CrawlerQueueV2Repository.EnqueueCode.CREATED,
+                command.queue().queueId(),
+                command.attempt().attemptId(),
+                command.attempt().stateVersion(),
+                null,
+                NOW.minusSeconds(1)
+            );
+        });
+
+        service.enqueue(new CrawlerQueueV2ApplicationService.EnqueueCommand(
+            "npcs", "wiki-npcs-refresh", "standard", "fresh", "admin", null
+        ));
+        service.enqueue(new CrawlerQueueV2ApplicationService.EnqueueCommand(
+            "armor_sets", "domain-source-armor-sets", "standard", "fresh", "admin", null
+        ));
+
+        CrawlerQueueV2Attempt backend = createdAttempts.get(0);
+        CrawlerQueueV2Attempt direct = createdAttempts.get(1);
+        assertEquals(
+            "reports/crawler-monitor/v2/2026-07-13/" + backend.attemptId() + "/report.json",
+            backend.artifacts().reportPath()
+        );
+        assertNull(direct.artifacts().reportPath());
     }
 
     @Test
@@ -504,7 +654,7 @@ class CrawlerQueueV2ApplicationServiceTest {
             engineV2WithoutFirstMutation(),
             engineV2()
         );
-        when(localArtifacts.prepare(any(), any(), any(), any(), any(), any())).thenReturn(
+        when(localArtifacts.prepare(any(), any(), any(), any(), any(), any(), any())).thenReturn(
             new CrawlerAttemptArtifactStore.PreparedArtifacts(
                 Path.of("/tmp/attempt-created"),
                 "reports/crawler-monitor/v2/2026-07-13/attempt-created/attempt-manifest.json",
@@ -542,7 +692,7 @@ class CrawlerQueueV2ApplicationServiceTest {
                 "reports/crawler-monitor/v2/2026-07-13/attempt-created/progress.json",
                 "reports/crawler-monitor/v2/2026-07-13/attempt-created/run.log"
             );
-        }).when(localArtifacts).prepare(any(), any(), any(), any(), any(), any());
+        }).when(localArtifacts).prepare(any(), any(), any(), any(), any(), any(), any());
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
         Future<CrawlerQueueV2ApplicationService.DispatchResult> enqueue = null;
@@ -708,6 +858,152 @@ class CrawlerQueueV2ApplicationServiceTest {
     }
 
     @Test
+    void retryCreatesANewAttemptManifestAndTriggersReconciliation() {
+        CrawlerQueueV2Attempt failed = failedAttempt("attempt-failed-retry");
+        when(router.readDurableState()).thenReturn(new CrawlerQueueEngineRouter.CutoverState(
+            2, CrawlerQueueEngineMode.V2, "cutover-1", "epoch-1", NOW, NOW.minusSeconds(2), NOW.minusSeconds(1)
+        ));
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.findAttempt(failed.attemptId())).thenReturn(Optional.of(failed));
+        when(repository.findTerminalAttempts(anyInt(), any())).thenReturn(List.of(failed));
+        when(repository.findQueue(failed.queueId())).thenReturn(Optional.of(queueFor(failed)));
+        when(repository.createRetry(any())).thenAnswer(invocation -> {
+            CrawlerQueueV2Repository.CreateRetryCommand command = invocation.getArgument(0);
+            return new CrawlerQueueV2Repository.MutationResult(command.attempt(), "2-0");
+        });
+
+        CrawlerQueueV2ApplicationService.DispatchResult result = service.control(
+            new CrawlerQueueV2ApplicationService.ControlCommand(
+                failed.queueId(), failed.attemptId(), failed.stateVersion(), "retry", "admin"
+            )
+        );
+
+        assertTrue(result.accepted());
+        assertEquals(CrawlerQueueV2Status.RETRY_WAIT, result.status());
+        assertNotEquals(failed.attemptId(), result.attemptId());
+        verify(repository).createRetry(argThat(command ->
+            failed.attemptId().equals(command.attempt().retryOfAttemptId())
+                && command.updatedQueue().currentAttemptId().equals(command.attempt().attemptId())
+        ));
+        verify(artifactStore).prepare(
+            eq("epoch-1"), eq(failed.queueId()), eq(result.attemptId()),
+            eq("bosses"), eq("domain-source-bosses"), eq(NOW),
+            argThat(artifacts -> artifacts.progressPath().endsWith("/" + result.attemptId() + "/progress.json")
+                && artifacts.logPath().endsWith("/" + result.attemptId() + "/run.log")
+                && artifacts.reportPath() == null
+                && artifacts.outputPath() == null)
+        );
+        verify(reconciler).reconcileNow();
+    }
+
+    @Test
+    void backendAndDirectRetryKeepActionScopedArtifactContracts() {
+        CrawlerQueueV2Attempt backendFailure = withDomainAction(
+            failedAttempt("attempt-npcs-failed"),
+            "npcs",
+            "wiki-npcs-refresh"
+        );
+        CrawlerQueueV2Attempt directFailure = withDomainAction(
+            failedAttempt("attempt-armor-failed"),
+            "armor_sets",
+            "domain-source-armor-sets"
+        );
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.findAttempt(backendFailure.attemptId())).thenReturn(Optional.of(backendFailure));
+        when(repository.findAttempt(directFailure.attemptId())).thenReturn(Optional.of(directFailure));
+        when(repository.findTerminalAttempts(anyInt(), any())).thenReturn(List.of(backendFailure, directFailure));
+        when(repository.findQueue(backendFailure.queueId())).thenReturn(Optional.of(queueFor(backendFailure)));
+        when(repository.findQueue(directFailure.queueId())).thenReturn(Optional.of(queueFor(directFailure)));
+        List<CrawlerQueueV2Attempt> retriedAttempts = new java.util.ArrayList<>();
+        when(repository.createRetry(any())).thenAnswer(invocation -> {
+            CrawlerQueueV2Repository.CreateRetryCommand command = invocation.getArgument(0);
+            retriedAttempts.add(command.attempt());
+            return new CrawlerQueueV2Repository.MutationResult(command.attempt(), "2-0");
+        });
+
+        service.control(new CrawlerQueueV2ApplicationService.ControlCommand(
+            backendFailure.queueId(), backendFailure.attemptId(), backendFailure.stateVersion(), "retry", "admin"
+        ));
+        service.control(new CrawlerQueueV2ApplicationService.ControlCommand(
+            directFailure.queueId(), directFailure.attemptId(), directFailure.stateVersion(), "retry", "admin"
+        ));
+
+        CrawlerQueueV2Attempt backendRetry = retriedAttempts.get(0);
+        CrawlerQueueV2Attempt directRetry = retriedAttempts.get(1);
+        assertEquals(
+            "reports/crawler-monitor/v2/2026-07-13/" + backendRetry.attemptId() + "/report.json",
+            backendRetry.artifacts().reportPath()
+        );
+        assertNull(directRetry.artifacts().reportPath());
+    }
+
+    @Test
+    void oldEpochRetryAndCleanupAreRejectedBeforeAnyEffect() {
+        CrawlerQueueV2Attempt oldFailed = withEpoch(failedAttempt("attempt-old-failed"), "epoch-old");
+        when(repository.findAttempt(oldFailed.attemptId())).thenReturn(Optional.of(oldFailed));
+        when(repository.readEngineState()).thenReturn(engineV2());
+
+        CrawlerQueueV2Exception retry = assertThrows(CrawlerQueueV2Exception.class, () -> service.control(
+            new CrawlerQueueV2ApplicationService.ControlCommand(
+                oldFailed.queueId(), oldFailed.attemptId(), oldFailed.stateVersion(), "retry", "admin"
+            )
+        ));
+        CrawlerQueueV2Exception cleanup = assertThrows(CrawlerQueueV2Exception.class, () -> service.cleanup(
+            new CrawlerQueueV2ApplicationService.CleanupCommand(
+                oldFailed.attemptId(), oldFailed.stateVersion(), "admin"
+            )
+        ));
+
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_RESET, retry.reasonCode());
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_RESET, cleanup.reasonCode());
+        verify(repository, never()).createRetry(any());
+        verify(artifactStore, never()).cleanupArtifacts(any(), any(), any(), any());
+        verify(repository, never()).appendEvent(any());
+    }
+
+    @Test
+    void olderCurrentEpochFailureCannotRetryAfterNewerCompletionOnAnotherQueue() {
+        CrawlerQueueV2Attempt oldFailed = failedAttempt("attempt-failed-old");
+        CrawlerQueueV2Attempt newerCompleted = withStatus(
+            completedAttempt("attempt-completed-new"),
+            CrawlerQueueV2Status.COMPLETED
+        );
+        when(repository.findAttempt(oldFailed.attemptId())).thenReturn(Optional.of(oldFailed));
+        when(repository.findTerminalAttempts(anyInt(), any())).thenReturn(List.of(oldFailed, newerCompleted));
+
+        CrawlerQueueV2Exception retry = assertThrows(CrawlerQueueV2Exception.class, () -> service.control(
+            new CrawlerQueueV2ApplicationService.ControlCommand(
+                oldFailed.queueId(), oldFailed.attemptId(), oldFailed.stateVersion(), "retry", "admin"
+            )
+        ));
+
+        assertEquals(CrawlerQueueV2ReasonCode.STALE_STATE_VERSION, retry.reasonCode());
+        verify(repository, never()).createRetry(any());
+        verify(artifactStore, never()).prepare(any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void overviewExposesRetryOnlyOnLatestCurrentEpochTerminalAttemptPerDomain() {
+        CrawlerQueueV2Attempt oldFailed = failedAttempt("attempt-failed-old");
+        CrawlerQueueV2Attempt newerCompleted = withStatus(
+            completedAttempt("attempt-completed-new"),
+            CrawlerQueueV2Status.COMPLETED
+        );
+        when(repository.readEngineState()).thenReturn(engineV2());
+        when(repository.findLiveAttempts()).thenReturn(List.of());
+        when(repository.findTerminalAttempts(anyInt(), any())).thenReturn(List.of(oldFailed, newerCompleted));
+
+        List<CrawlerQueueV2OverviewDTO.AttemptDTO> history = service.overview().attemptHistory();
+
+        assertEquals(List.of("cleanup"), history.stream()
+            .filter(row -> row.attemptId().equals(oldFailed.attemptId()))
+            .findFirst().orElseThrow().allowedActions());
+        assertEquals(List.of("cleanup"), history.stream()
+            .filter(row -> row.attemptId().equals(newerCompleted.attemptId()))
+            .findFirst().orElseThrow().allowedActions());
+    }
+
+    @Test
     void oldEpochLiveIndexesAndManifestsBecomeOneResetHistoryRowOnly() {
         CrawlerQueueV2Attempt oldLive = withEpoch(attempt("attempt-old-live", CrawlerQueueV2Status.RUNNING), "epoch-old");
         CrawlerAttemptManifest oldManifest = new CrawlerAttemptManifest(
@@ -744,7 +1040,10 @@ class CrawlerQueueV2ApplicationServiceTest {
         CrawlerQueueV2ApplicationService.OverviewSnapshot snapshot = service.overview();
 
         assertTrue(snapshot.liveQueue().isEmpty());
-        assertTrue(snapshot.domainStates().isEmpty());
+        assertEquals(12, snapshot.domainStates().size());
+        assertTrue(snapshot.domainStates().stream().allMatch(state ->
+            state.currentAttemptId() == null && "idle".equals(state.status())
+        ));
         assertEquals(1, snapshot.attemptHistory().size());
         CrawlerQueueV2OverviewDTO.AttemptDTO history = snapshot.attemptHistory().get(0);
         assertEquals("attempt-old-live", history.attemptId());
@@ -977,6 +1276,37 @@ class CrawlerQueueV2ApplicationServiceTest {
             source.startedAt(), source.completedAt(), source.lastHeartbeatAt(), source.deadlineAt(), source.pid(),
             source.processStartedAt(), source.progressSequence(), source.phase(), source.current(), source.total(),
             source.workerMessage(), source.reasonCode(), source.artifacts()
+        );
+    }
+
+    private static CrawlerQueueV2Attempt withArtifacts(
+        CrawlerQueueV2Attempt source,
+        CrawlerQueueV2Artifacts artifacts
+    ) {
+        return new CrawlerQueueV2Attempt(
+            source.contractVersion(), source.stateStoreEpoch(), source.queueId(), source.attemptId(),
+            source.fenceToken(), source.stateVersion(), source.status(), source.lane(), source.domain(),
+            source.coveredDomains(), source.actionId(), source.retryOfAttemptId(), source.requestedAt(),
+            source.eligibleAt(), source.enteredAt(), source.startedAt(), source.completedAt(),
+            source.lastHeartbeatAt(), source.deadlineAt(), source.pid(), source.processStartedAt(),
+            source.progressSequence(), source.phase(), source.current(), source.total(), source.workerMessage(),
+            source.reasonCode(), artifacts
+        );
+    }
+
+    private static CrawlerQueueV2Attempt withDomainAction(
+        CrawlerQueueV2Attempt source,
+        String domain,
+        String actionId
+    ) {
+        return new CrawlerQueueV2Attempt(
+            source.contractVersion(), source.stateStoreEpoch(), source.queueId(), source.attemptId(),
+            source.fenceToken(), source.stateVersion(), source.status(), source.lane(), domain,
+            List.of(domain), actionId, source.retryOfAttemptId(), source.requestedAt(), source.eligibleAt(),
+            source.enteredAt(), source.startedAt(), source.completedAt(), source.lastHeartbeatAt(),
+            source.deadlineAt(), source.pid(), source.processStartedAt(), source.progressSequence(),
+            source.phase(), source.current(), source.total(), source.workerMessage(), source.reasonCode(),
+            source.artifacts()
         );
     }
 

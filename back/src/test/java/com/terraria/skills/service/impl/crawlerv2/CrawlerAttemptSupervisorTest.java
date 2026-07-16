@@ -85,6 +85,81 @@ class CrawlerAttemptSupervisorTest {
         assertEquals(attempt.artifacts().logPath(), storedPath(spec.logPath()));
         assertEquals(repoRoot.toAbsolutePath().normalize(), spec.directory());
         assertTrue(spec.command().contains("--progress-path=" + attempt.artifacts().progressPath()));
+        assertTrue(spec.command().contains("--resume-mode=fresh"));
+        assertTrue(spec.command().contains("--resume-state=data/generated/resume/domain-source-bosses.resume.json"));
+    }
+
+    @Test
+    void resumableRetryLaunchesWithAutoResumeMode() {
+        CrawlerQueueV2Attempt attempt = withRetryOf(startingAttempt(142L, 2L), "attempt-prior");
+        FakeLauncher launcher = new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT));
+        CrawlerAttemptSupervisor supervisor = supervisor(launcher, attempt);
+
+        supervisor.start(attempt);
+
+        assertTrue(launcher.lastLaunchSpec().command().contains("--resume-mode=auto"));
+        assertTrue(launcher.lastLaunchSpec().command().contains(
+            "--resume-state=data/generated/resume/domain-source-bosses.resume.json"
+        ));
+    }
+
+    @Test
+    void recoveryRegistersOnlyTheExactExpectedProcessStateAndIsIdempotent() {
+        CrawlerQueueV2Attempt running = runningAttempt(142L, 7L, 11L);
+        FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
+        FakeLauncher launcher = new FakeLauncher(process);
+        CrawlerAttemptSupervisor supervisor = supervisor(launcher, running);
+
+        assertTrue(supervisor.recoverExactProcess(running, false));
+        assertTrue(supervisor.recoverExactProcess(running, false));
+        assertEquals(1, supervisor.managedProcessCount());
+
+        process.paused = true;
+        assertFalse(supervisor.recoverExactProcess(running, false));
+        CrawlerQueueV2Attempt paused = withStatus(running, CrawlerQueueV2Status.PAUSED, 7L);
+        latestAttempt.set(paused);
+        assertTrue(supervisor.recoverExactProcess(paused, true));
+    }
+
+    @Test
+    void recoveredProcessWithoutExitCodeMustConvergeToFailedAndReleaseOwnership() {
+        CrawlerQueueV2Attempt running = runningAttempt(142L, 7L, 11L);
+        FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
+        FakeLauncher launcher = new FakeLauncher(process);
+        CrawlerAttemptSupervisor supervisor = supervisor(launcher, running);
+
+        assertTrue(supervisor.recoverExactProcess(running, false));
+
+        process.completeExitWithoutCode();
+
+        verify(repository).mutate(argThat(command ->
+            command.targetStatus() == CrawlerQueueV2Status.FAILED
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.PROCESS_EXIT_CODE_UNAVAILABLE
+                && command.releaseOwnership()
+        ));
+        verify(artifactStore).writeManifest(argThat(manifest ->
+            manifest.status() == CrawlerQueueV2Status.FAILED && manifest.exitCode() == null
+        ));
+        assertEquals(0, supervisor.managedProcessCount());
+    }
+
+    @Test
+    void recoveredPausedProcessWithoutExitCodeMustConvergeToFailedAndReleaseOwnership() {
+        CrawlerQueueV2Attempt paused = withStatus(runningAttempt(142L, 7L, 11L), CrawlerQueueV2Status.PAUSED, 7L);
+        FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
+        process.paused = true;
+        CrawlerAttemptSupervisor supervisor = supervisor(new FakeLauncher(process), paused);
+
+        assertTrue(supervisor.recoverExactProcess(paused, true));
+
+        process.completeExitWithoutCode();
+
+        verify(repository).mutate(argThat(command ->
+            command.targetStatus() == CrawlerQueueV2Status.FAILED
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.PROCESS_EXIT_CODE_UNAVAILABLE
+                && command.releaseOwnership()
+        ));
+        assertEquals(0, supervisor.managedProcessCount());
     }
 
     @Test
@@ -170,10 +245,17 @@ class CrawlerAttemptSupervisorTest {
         CrawlerAttemptSupervisor supervisor = supervisor(launcher, foreignPath);
         when(artifactStore.readManifest("attempt-1")).thenReturn(Optional.of(manifest(canonical, null)));
 
-        assertThrows(SecurityException.class, () -> supervisor.start(foreignPath));
+        CrawlerAttemptSupervisor.StartResult result = supervisor.start(foreignPath);
 
+        assertTrue(result.terminalized());
+        assertFalse(result.started());
+        assertEquals(CrawlerQueueV2ReasonCode.ATTEMPT_START_FAILED, result.attempt().reasonCode());
         assertEquals(null, launcher.lastLaunchSpec());
-        verify(repository, never()).mutate(any());
+        verify(repository).mutate(argThat(command ->
+            command.targetStatus() == CrawlerQueueV2Status.FAILED
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.ATTEMPT_START_FAILED
+                && command.releaseOwnership()
+        ));
     }
 
     @Test
@@ -235,7 +317,7 @@ class CrawlerAttemptSupervisorTest {
             latestAttempt.set(updated);
             return new CrawlerQueueV2Repository.MutationResult(updated, "handshake-1");
         }).when(repository).mutate(any());
-        CompletableFuture<CrawlerQueueV2Attempt> started = CompletableFuture.supplyAsync(
+        CompletableFuture<CrawlerAttemptSupervisor.StartResult> started = CompletableFuture.supplyAsync(
             () -> supervisor.start(request)
         );
         CrawlerQueueV2Attempt recorded = null;
@@ -245,14 +327,14 @@ class CrawlerAttemptSupervisorTest {
             assertFalse(Files.exists(childPidPath));
 
             releaseCas.countDown();
-            recorded = started.get(2, TimeUnit.SECONDS);
+            recorded = started.get(2, TimeUnit.SECONDS).attempt();
             assertTrue(awaitFile(markerPath, Duration.ofSeconds(2)));
             assertTrue(awaitFile(childPidPath, Duration.ofSeconds(2)));
         } finally {
             releaseCas.countDown();
             if (recorded == null) {
                 try {
-                    recorded = started.get(2, TimeUnit.SECONDS);
+                    recorded = started.get(2, TimeUnit.SECONDS).attempt();
                 } catch (Exception ignored) {
                     // The identity may still be unavailable only if launch itself failed.
                 }
@@ -305,7 +387,7 @@ class CrawlerAttemptSupervisorTest {
         }).when(repository).mutate(any());
         CrawlerQueueV2Attempt recorded = null;
         try {
-            recorded = supervisor.start(request);
+            recorded = supervisor.start(request).attempt();
 
             assertEquals("attempt.process-started", firstWriter.get());
             assertTrue(awaitFile(markerPath, Duration.ofSeconds(2)));
@@ -366,12 +448,59 @@ class CrawlerAttemptSupervisorTest {
         );
         CrawlerAttemptSupervisor supervisor = supervisor(launcher, request);
 
-        assertThrows(IllegalStateException.class, () -> supervisor.start(request));
+        CrawlerAttemptSupervisor.StartResult result = supervisor.start(request);
 
+        assertFalse(result.started());
+        assertTrue(result.terminalized());
+        assertEquals(CrawlerQueueV2Status.FAILED, result.attempt().status());
+        assertEquals(CrawlerQueueV2ReasonCode.ATTEMPT_START_FAILED, result.attempt().reasonCode());
         verify(repository).mutate(argThat(command ->
             command.expectedStateVersion() == 2L
                 && command.targetStatus() == CrawlerQueueV2Status.FAILED
-                && command.reasonCode() == null
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.ATTEMPT_START_FAILED
+                && command.releaseOwnership()
+        ));
+    }
+
+    @Test
+    void launcherIoFailureWithoutAProcessMustTerminalizeImmediately() {
+        CrawlerQueueV2Attempt request = startingAttempt(142L, 2L);
+        FakeLauncher launcher = new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT));
+        launcher.launchFailure = new IOException("executable not found");
+        CrawlerAttemptSupervisor supervisor = supervisor(launcher, request);
+
+        CrawlerAttemptSupervisor.StartResult result = supervisor.start(request);
+
+        assertFalse(result.started());
+        assertTrue(result.terminalized());
+        assertEquals(CrawlerQueueV2Status.FAILED, result.attempt().status());
+        assertEquals(CrawlerQueueV2ReasonCode.ATTEMPT_START_FAILED, result.attempt().reasonCode());
+        verify(repository).mutate(argThat(command ->
+            command.expectedStateVersion() == 2L
+                && command.targetStatus() == CrawlerQueueV2Status.FAILED
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.ATTEMPT_START_FAILED
+                && command.workerMessage().startsWith("process launch failed:")
+                && command.releaseOwnership()
+        ));
+    }
+
+    @Test
+    void missingExactManifestMustTerminalizeBeforeLaunching() {
+        CrawlerQueueV2Attempt request = startingAttempt(142L, 2L);
+        FakeLauncher launcher = new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT));
+        CrawlerAttemptSupervisor supervisor = supervisor(launcher, request);
+        when(artifactStore.readManifest(request.attemptId())).thenReturn(Optional.empty());
+
+        CrawlerAttemptSupervisor.StartResult result = supervisor.start(request);
+
+        assertFalse(result.started());
+        assertTrue(result.terminalized());
+        assertEquals(CrawlerQueueV2ReasonCode.ATTEMPT_START_FAILED, result.attempt().reasonCode());
+        assertEquals(0, launcher.launchCount());
+        verify(repository).mutate(argThat(command ->
+            command.targetStatus() == CrawlerQueueV2Status.FAILED
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.ATTEMPT_START_FAILED
+                && command.workerMessage().startsWith("launch validation failed:")
                 && command.releaseOwnership()
         ));
     }
@@ -442,17 +571,15 @@ class CrawlerAttemptSupervisorTest {
         IllegalStateException manifestFailure = new IllegalStateException("manifest write failed");
         doThrow(manifestFailure).doNothing().when(artifactStore).writeManifest(any());
 
-        IllegalStateException thrown = assertThrows(
-            IllegalStateException.class,
-            () -> supervisor.start(request)
-        );
+        CrawlerAttemptSupervisor.StartResult result = supervisor.start(request);
 
-        assertEquals(manifestFailure, thrown);
+        assertTrue(result.terminalized());
+        assertFalse(result.started());
         verify(repository).mutate(argThat(command ->
             command.expectedStateVersion() == 3L
                 && command.targetStatus() == CrawlerQueueV2Status.FAILED
                 && command.releaseOwnership()
-                && command.reasonCode() == null
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.ATTEMPT_START_FAILED
         ));
         assertEquals(List.of("forced", "wait:PT5S"), launcher.calls());
     }
@@ -489,13 +616,15 @@ class CrawlerAttemptSupervisorTest {
         launcher.exitAfterForcedWait = true;
         CrawlerAttemptSupervisor supervisor = supervisor(launcher, request);
 
-        assertThrows(IllegalStateException.class, () -> supervisor.start(request));
+        CrawlerAttemptSupervisor.StartResult result = supervisor.start(request);
 
+        assertTrue(result.terminalized());
+        assertFalse(result.started());
         assertEquals(List.of("resume", "forced", "wait:PT5S"), launcher.calls());
         verify(repository).mutate(argThat(command ->
             command.expectedStateVersion() == 3L
                 && command.targetStatus() == CrawlerQueueV2Status.FAILED
-                && command.reasonCode() == null
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.ATTEMPT_START_FAILED
                 && command.releaseOwnership()
         ));
     }
@@ -532,11 +661,10 @@ class CrawlerAttemptSupervisorTest {
             return new CrawlerQueueV2Repository.MutationResult(updated, mutation + "-0");
         }).when(repository).mutate(any());
 
-        assertEquals(
-            manifestFailure,
-            assertThrows(IllegalStateException.class, () -> supervisor.start(request))
-        );
+        CrawlerAttemptSupervisor.StartResult result = supervisor.start(request);
 
+        assertTrue(result.terminalized());
+        assertFalse(result.started());
         assertEquals(3, mutations.get());
         assertEquals(CrawlerQueueV2Status.FAILED, latestAttempt().status());
         verify(repository).mutate(argThat(command ->
@@ -950,6 +1078,60 @@ class CrawlerAttemptSupervisorTest {
             command.targetStatus() == CrawlerQueueV2Status.CANCELLED && command.releaseOwnership()
         ));
         verify(artifactStore, never()).cleanupArtifacts(anyString(), any(), anyString(), any());
+    }
+
+    @Test
+    void failedLeaseRenewalTerminatesTheExactProcessBeforeReleasingOwnership() {
+        CrawlerQueueV2Attempt running = runningAttempt(142L, 7L, 11L);
+        FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
+        FakeLauncher launcher = spy(new FakeLauncher(process));
+        launcher.exitAfterGracefulWait = true;
+        CrawlerAttemptSupervisor supervisor = supervisor(launcher, running);
+
+        CrawlerQueueV2Attempt result = supervisor.handleLeaseRenewalFailure(running);
+
+        assertEquals(CrawlerQueueV2Status.FAILED, result.status());
+        assertEquals(CrawlerQueueV2ReasonCode.LEASE_RENEW_FAILED, result.reasonCode());
+        assertEquals(List.of("graceful", "wait:PT15S"), launcher.calls());
+        InOrder order = inOrder(repository, launcher);
+        order.verify(repository).mutate(argThat(command ->
+            command.targetStatus() == CrawlerQueueV2Status.STALLED
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.LEASE_RENEW_FAILED
+                && !command.releaseOwnership()
+        ));
+        order.verify(launcher).terminateGracefully(process);
+        order.verify(launcher).awaitExit(process, Duration.ofSeconds(15));
+        order.verify(repository).mutate(argThat(command ->
+            command.targetStatus() == CrawlerQueueV2Status.FAILED
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.LEASE_RENEW_FAILED
+                && command.releaseOwnership()
+        ));
+        verify(repository, never()).writeQuarantine(any());
+    }
+
+    @Test
+    void failedLeaseRenewalQuarantinesEveryCoveredDomainWhenTerminationIsUnconfirmed() {
+        CrawlerQueueV2Attempt running = runningAttempt(142L, 7L, 11L);
+        FakeLauncher launcher = new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT));
+        CrawlerAttemptSupervisor supervisor = supervisor(launcher, running);
+
+        CrawlerQueueV2Attempt result = supervisor.handleLeaseRenewalFailure(running);
+
+        assertEquals(CrawlerQueueV2Status.FAILED, result.status());
+        assertEquals(CrawlerQueueV2ReasonCode.PROCESS_TERMINATION_UNCONFIRMED, result.reasonCode());
+        verify(repository).writeQuarantine(argThat(command ->
+            command.expectedEpoch().equals(running.stateStoreEpoch())
+                && command.domain().equals("bosses")
+                && command.attemptId().equals(running.attemptId())
+                && command.fenceToken().equals(running.fenceToken())
+                && command.expiresAt().equals(NOW.plus(Duration.ofMinutes(2)))
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.PROCESS_TERMINATION_UNCONFIRMED
+        ));
+        verify(repository).mutate(argThat(command ->
+            command.targetStatus() == CrawlerQueueV2Status.FAILED
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.PROCESS_TERMINATION_UNCONFIRMED
+                && command.releaseOwnership()
+        ));
     }
 
     @Test
@@ -1417,6 +1599,76 @@ class CrawlerAttemptSupervisorTest {
     }
 
     @Test
+    void processExitZeroMustMergeExactCompletedProgressIntoTheTerminalMutation() {
+        CrawlerQueueV2Attempt attempt = startingAttempt(142L, 2L);
+        FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
+        CrawlerAttemptSupervisor supervisor = supervisor(new FakeLauncher(process), attempt);
+        supervisor.start(attempt);
+        String outputPath = "data/terraPedia/raw/wiki/module__armorsetbonuses.latest.json";
+        when(artifactStore.readProgress("attempt-1")).thenReturn(Optional.of(
+            new CrawlerAttemptProgressPayload(
+                "queue-1",
+                "attempt-1",
+                142L,
+                "epoch-1",
+                99L,
+                2L,
+                "domain-source-bosses",
+                "completed",
+                "write",
+                "completed",
+                1L,
+                1L,
+                NOW.plusSeconds(2),
+                NOW.plusSeconds(2),
+                null,
+                outputPath,
+                null
+            )
+        ));
+
+        process.completeExit(0);
+
+        verify(repository).mutate(argThat(command ->
+            command.targetStatus() == CrawlerQueueV2Status.COMPLETED
+                && command.progressSequence() == 2L
+                && "write".equals(command.phase())
+                && command.current() == 1L
+                && command.total() == 1L
+                && outputPath.equals(command.outputPath())
+                && command.reportPath() == null
+                && command.releaseOwnership()
+        ));
+        assertEquals(2L, latestAttempt().progressSequence());
+        assertEquals("write", latestAttempt().phase());
+        assertEquals(1L, latestAttempt().current());
+        assertEquals(1L, latestAttempt().total());
+        assertEquals(outputPath, latestAttempt().artifacts().outputPath());
+    }
+
+    @Test
+    void completedProgressMustNotReleaseOwnershipWhileTheProcessIsActive() {
+        CrawlerQueueV2Attempt attempt = runningAttempt(142L, 5L, 1L);
+        when(artifactStore.readProgress("attempt-1")).thenReturn(Optional.of(
+            new CrawlerAttemptProgressPayload(
+                "queue-1", "attempt-1", 142L, "epoch-1", 99L, 2L,
+                "domain-source-bosses", "completed", "write", "completed",
+                1L, 1L, NOW.plusSeconds(2), NOW.plusSeconds(2), null,
+                "data/terraPedia/raw/wiki/module__armorsetbonuses.latest.json", null
+            )
+        ));
+        CrawlerAttemptSupervisor supervisor = supervisor(
+            new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT)),
+            attempt
+        );
+
+        CrawlerAttemptSupervisor.ProgressResult result = supervisor.ingestProgress(attempt);
+
+        assertEquals(CrawlerAttemptSupervisor.ProgressCode.INVALID_PAYLOAD, result.code());
+        verify(repository, never()).mutate(any());
+    }
+
+    @Test
     void processExitNonzeroMustFailWithReasonAndReleaseOwnership() {
         CrawlerQueueV2Attempt attempt = startingAttempt(142L, 2L);
         FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
@@ -1433,6 +1685,80 @@ class CrawlerAttemptSupervisorTest {
         verify(repository).mutate(argThat(command ->
             command.targetStatus() == CrawlerQueueV2Status.FAILED
                 && command.reasonCode() == CrawlerQueueV2ReasonCode.PROCESS_EXIT_NONZERO
+                && command.releaseOwnership()
+        ));
+    }
+
+    @Test
+    void processExitNonzeroMustMergeExactFailedProgressDetails() {
+        CrawlerQueueV2Attempt attempt = startingAttempt(142L, 2L);
+        FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
+        CrawlerAttemptSupervisor supervisor = supervisor(new FakeLauncher(process), attempt);
+        supervisor.start(attempt);
+        when(artifactStore.readProgress("attempt-1")).thenReturn(Optional.of(
+            new CrawlerAttemptProgressPayload(
+                "queue-1", "attempt-1", 142L, "epoch-1", 99L, 2L,
+                "domain-source-bosses", "failed", "write", "source unavailable",
+                1L, 1L, NOW.plusSeconds(2), NOW.plusSeconds(2), null,
+                "data/terraPedia/raw/wiki/module__armorsetbonuses.latest.json", null
+            )
+        ));
+
+        process.completeExit(17);
+
+        verify(repository).mutate(argThat(command ->
+            command.targetStatus() == CrawlerQueueV2Status.FAILED
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.PROCESS_EXIT_NONZERO
+                && command.progressSequence() == 2L
+                && "source unavailable".equals(command.workerMessage())
+                && command.releaseOwnership()
+        ));
+    }
+
+    @Test
+    void staleCompletedProgressMustBeIgnoredAfterConfirmedSuccessfulExit() {
+        CrawlerQueueV2Attempt attempt = startingAttempt(142L, 2L);
+        FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
+        CrawlerAttemptSupervisor supervisor = supervisor(new FakeLauncher(process), attempt);
+        supervisor.start(attempt);
+        when(artifactStore.readProgress("attempt-1")).thenReturn(Optional.of(
+            new CrawlerAttemptProgressPayload(
+                "queue-1", "attempt-1", 999L, "epoch-old", 99L, 2L,
+                "domain-source-bosses", "completed", "write", "stale completed",
+                1L, 1L, NOW.plusSeconds(2), NOW.plusSeconds(2), null,
+                "foreign-output.json", null
+            )
+        ));
+
+        process.completeExit(0);
+
+        verify(repository).mutate(argThat(command ->
+            command.targetStatus() == CrawlerQueueV2Status.COMPLETED
+                && command.progressSequence() == null
+                && command.outputPath() == null
+                && command.releaseOwnership()
+        ));
+    }
+
+    @Test
+    void malformedTerminalProgressMustNotBlockExitDerivedCompletion() {
+        CrawlerQueueV2Attempt attempt = startingAttempt(142L, 2L);
+        FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
+        CrawlerAttemptSupervisor supervisor = supervisor(new FakeLauncher(process), attempt);
+        supervisor.start(attempt);
+        when(artifactStore.readProgress("attempt-1")).thenThrow(
+            new CrawlerAttemptArtifactStore.InvalidProgressPayloadException(
+                "broken terminal progress",
+                new IOException("invalid json")
+            )
+        );
+
+        process.completeExit(0);
+
+        verify(repository).mutate(argThat(command ->
+            command.targetStatus() == CrawlerQueueV2Status.COMPLETED
+                && command.progressSequence() == null
+                && command.outputPath() == null
                 && command.releaseOwnership()
         ));
     }
@@ -2078,6 +2404,12 @@ class CrawlerAttemptSupervisorTest {
         CrawlerQueueV2Repository.MutationCommand command
     ) {
         Instant completedAt = command.targetStatus().terminal() ? command.enteredAt() : attempt.completedAt();
+        CrawlerQueueV2Artifacts artifacts = new CrawlerQueueV2Artifacts(
+            attempt.artifacts().progressPath(),
+            attempt.artifacts().logPath(),
+            command.reportPath() == null ? attempt.artifacts().reportPath() : command.reportPath(),
+            command.outputPath() == null ? attempt.artifacts().outputPath() : command.outputPath()
+        );
         return new CrawlerQueueV2Attempt(
             attempt.contractVersion(), attempt.stateStoreEpoch(), attempt.queueId(), attempt.attemptId(),
             attempt.fenceToken(), attempt.stateVersion() + 1L, command.targetStatus(), attempt.lane(),
@@ -2094,7 +2426,7 @@ class CrawlerAttemptSupervisorTest {
             command.current() == null ? attempt.current() : command.current(),
             command.total() == null ? attempt.total() : command.total(),
             command.workerMessage() == null ? attempt.workerMessage() : command.workerMessage(),
-            command.reasonCode(), attempt.artifacts()
+            command.reasonCode(), artifacts
         );
     }
 
@@ -2122,6 +2454,18 @@ class CrawlerAttemptSupervisorTest {
             attempt.contractVersion(), attempt.stateStoreEpoch(), attempt.queueId(), attempt.attemptId(),
             attempt.fenceToken(), attempt.stateVersion(), attempt.status(), attempt.lane(), domain,
             List.of(domain), actionId, attempt.retryOfAttemptId(), attempt.requestedAt(),
+            attempt.eligibleAt(), attempt.enteredAt(), attempt.startedAt(), attempt.completedAt(),
+            attempt.lastHeartbeatAt(), attempt.deadlineAt(), attempt.pid(), attempt.processStartedAt(),
+            attempt.progressSequence(), attempt.phase(), attempt.current(), attempt.total(),
+            attempt.workerMessage(), attempt.reasonCode(), attempt.artifacts()
+        );
+    }
+
+    private CrawlerQueueV2Attempt withRetryOf(CrawlerQueueV2Attempt attempt, String priorAttemptId) {
+        return new CrawlerQueueV2Attempt(
+            attempt.contractVersion(), attempt.stateStoreEpoch(), attempt.queueId(), attempt.attemptId(),
+            attempt.fenceToken(), attempt.stateVersion(), attempt.status(), attempt.lane(), attempt.domain(),
+            attempt.coveredDomains(), attempt.actionId(), priorAttemptId, attempt.requestedAt(),
             attempt.eligibleAt(), attempt.enteredAt(), attempt.startedAt(), attempt.completedAt(),
             attempt.lastHeartbeatAt(), attempt.deadlineAt(), attempt.pid(), attempt.processStartedAt(),
             attempt.progressSequence(), attempt.phase(), attempt.current(), attempt.total(),
@@ -2519,6 +2863,7 @@ class CrawlerAttemptSupervisorTest {
         private boolean alive;
         private boolean paused;
         private int exitCode;
+        private boolean exitCodeUnavailable;
         private boolean failOnExitRegistration;
 
         private FakeProcess(long pid, Instant startedAt, boolean alive) {
@@ -2534,6 +2879,12 @@ class CrawlerAttemptSupervisorTest {
 
         private void completeExit(int code) {
             exitCode = code;
+            alive = false;
+            exitFuture.complete(handle);
+        }
+
+        private void completeExitWithoutCode() {
+            exitCodeUnavailable = true;
             alive = false;
             exitFuture.complete(handle);
         }
@@ -2563,7 +2914,15 @@ class CrawlerAttemptSupervisorTest {
             if (alive) {
                 throw new IllegalThreadStateException("process is still alive");
             }
+            if (exitCodeUnavailable) {
+                throw new IllegalStateException("recovered process exit code is unavailable");
+            }
             return exitCode;
+        }
+
+        @Override
+        public boolean exitCodeAvailable() {
+            return !exitCodeUnavailable;
         }
 
         @Override

@@ -1,3 +1,10 @@
+import {
+  latestActionableV2AttemptsByDomain,
+  latestV2TerminalAttemptsByDomain,
+} from '../../utils/crawlerMonitorV2Attempts.mjs'
+
+export { latestActionableV2AttemptsByDomain, latestV2TerminalAttemptsByDomain } from '../../utils/crawlerMonitorV2Attempts.mjs'
+
 function asArray(value) {
   return Array.isArray(value) ? value : []
 }
@@ -124,9 +131,28 @@ export function buildCrawlerV2ViewState(overview = {}) {
     attemptsById,
     currentByDomain,
     domainStates: asArray(overview.domainStates),
-    attemptHistory: uniqueAttempts(overview.attemptHistory).map((row) => ({ ...row, allowedActions: [] })),
+    attemptHistory: uniqueAttempts(overview.attemptHistory).map((row) => ({
+      ...row,
+      allowedActions: row?.stateStoreEpoch === overview.stateStoreEpoch ? asArray(row?.allowedActions) : [],
+    })),
     legacyHistory: asArray(overview.legacyHistory).map(historicalLegacyRow),
   }
+}
+
+export function buildV2DomainOperationRows(overview = {}) {
+  const state = buildCrawlerV2ViewState(overview)
+  if (!state) return []
+  const latestByDomain = latestV2TerminalAttemptsByDomain(state.attemptHistory, state.stateStoreEpoch)
+  return state.domainStates.map((domainState) => {
+    const domain = String(domainState?.domain || '').trim()
+    const currentAttempt = state.currentByDomain.get(domain) || null
+    return {
+      ...domainState,
+      currentAttemptId: currentAttempt?.attemptId || domainState?.currentAttemptId || null,
+      currentAttempt,
+      latestResult: latestByDomain.get(domain) || null,
+    }
+  })
 }
 
 export function applyCrawlerV2Event(state, event = {}) {

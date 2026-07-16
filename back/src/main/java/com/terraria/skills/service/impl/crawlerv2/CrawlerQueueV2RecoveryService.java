@@ -109,7 +109,13 @@ public class CrawlerQueueV2RecoveryService {
                     interruptHistoricalManifest(engine.stateStoreEpoch(), manifest, checkedAt);
                     continue;
                 }
-                if (!isAdoptable(engine.stateStoreEpoch(), redisAttempt, manifest, checkedAt)) {
+                if (redisAttempt.status() == CrawlerQueueV2Status.CANCEL_REQUESTED) {
+                    supervisor.cancel(redisAttempt);
+                    continue;
+                }
+                boolean paused = redisAttempt.status() == CrawlerQueueV2Status.PAUSED;
+                if (!isAdoptable(engine.stateStoreEpoch(), redisAttempt, manifest, checkedAt)
+                    || !supervisor.recoverExactProcess(redisAttempt, paused)) {
                     stallWithoutProcessSearch(redisAttempt, checkedAt);
                 }
             }
@@ -217,8 +223,9 @@ public class CrawlerQueueV2RecoveryService {
             || !Objects.equals(manifest.fenceToken(), attempt.fenceToken())
             || !Objects.equals(manifest.domain(), attempt.domain())
             || !Objects.equals(manifest.actionId(), attempt.actionId())
-            || manifest.status() != CrawlerQueueV2Status.RUNNING
-            || attempt.status() != CrawlerQueueV2Status.RUNNING
+            || manifest.status() != attempt.status()
+            || (attempt.status() != CrawlerQueueV2Status.RUNNING
+                && attempt.status() != CrawlerQueueV2Status.PAUSED)
             || !Objects.equals(manifest.pid(), attempt.pid())
             || !Objects.equals(manifest.processStartedAt(), attempt.processStartedAt())
             || attempt.fenceToken() == null
@@ -226,6 +233,9 @@ public class CrawlerQueueV2RecoveryService {
             || attempt.pid() == null
             || attempt.processStartedAt() == null) {
             return false;
+        }
+        if (attempt.status() == CrawlerQueueV2Status.PAUSED) {
+            return true;
         }
         Optional<CrawlerAttemptProgressPayload> payload;
         try {

@@ -154,6 +154,28 @@ class CrawlerReportArchiverTest {
     }
 
     @Test
+    void shouldPreviewRawWikiJsonFromPrimaryWorktreeSharedDataRoot() throws Exception {
+        Path primaryRoot = Files.createDirectories(tempDir.resolve("TerraPedia"));
+        Path primaryGit = Files.createDirectories(primaryRoot.resolve(".git/worktrees/feature"));
+        Path repoRoot = Files.createDirectories(tempDir.resolve("worktrees/TerraPedia/feature"));
+        Files.writeString(repoRoot.resolve(".git"), "gitdir: " + primaryGit + "\n");
+        Path outputPath = primaryRoot.resolve(
+            "data/terraPedia/raw/wiki/module__armorsetbonuses.latest.json"
+        );
+        writeJson(outputPath, Map.of("moduleTitle", "Module:ArmorSetBonuses"));
+        CrawlerReportArchiver archiver = new CrawlerReportArchiver(new ObjectMapper());
+
+        CrawlerMonitorReportDetailDTO detail = archiver.getReportDetail(
+            repoRoot,
+            "data/terraPedia/raw/wiki/module__armorsetbonuses.latest.json"
+        );
+
+        assertTrue(detail.isFound());
+        assertTrue(detail.isReadable());
+        assertTrue(detail.getContent().contains("Module:ArmorSetBonuses"));
+    }
+
+    @Test
     void shouldRejectRawWikiPreviewPathTraversalOutsideRawWikiRoot() throws Exception {
         Path repoRoot = Files.createDirectories(tempDir.resolve("TerraPedia-dev"));
         Path outsideRawWiki = repoRoot.resolve("data/terraPedia/raw/outside.json");

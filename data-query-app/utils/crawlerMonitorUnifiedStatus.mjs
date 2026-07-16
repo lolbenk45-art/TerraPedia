@@ -29,6 +29,7 @@ const STATUS_LABELS = {
   completed: '已完成',
   ready: '可执行',
   healthy: '暂无异常',
+  idle: '空闲正常',
   missing: '缺少状态',
   unknown: '未知状态',
 }
@@ -50,6 +51,7 @@ const STATUS_RANK = {
   cancelled: 55,
   ready: 60,
   completed: 70,
+  idle: 80,
   healthy: 90,
   missing: 95,
   unknown: 99,

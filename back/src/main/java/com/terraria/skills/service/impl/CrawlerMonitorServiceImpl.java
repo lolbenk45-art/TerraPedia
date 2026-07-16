@@ -129,8 +129,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final String REDIS_BACKEND_ACTION_PROGRESS_SUFFIX = ":progress";
     private static final String TOWN_NPC_FAILURE_MODE_CRASH_AFTER_PARTIAL = "townNpcCrashAfterPartial";
     private static final Set<String> WIKI_MONITOR_RESUME_MODES = Set.of("fresh", "resume", "auto");
+    private static final CrawlerMonitorActionRegistry CRAWLER_MONITOR_ACTION_REGISTRY =
+        CrawlerMonitorActionRegistry.defaults();
     private static final List<CrawlerMonitorActionDefinition> WIKI_MONITOR_RULES =
-        CrawlerMonitorActionRegistry.defaults().all();
+        CRAWLER_MONITOR_ACTION_REGISTRY.defaultOperations();
 
     private final ObjectMapper objectMapper;
     private final Path repoRootOverride;
@@ -454,7 +456,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private CrawlerMonitorActionDefinition findWikiMonitorRule(String domain, String actionId) {
-        return WIKI_MONITOR_RULES.stream()
+        return CRAWLER_MONITOR_ACTION_REGISTRY.all().stream()
             .filter(rule -> rule.domain().equals(domain) && rule.actionId().equals(actionId))
             .findFirst()
             .orElse(null);
@@ -574,13 +576,52 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     @Override
     public CrawlerMonitorReportDetailDTO getReportDetail(String path) {
-        if (isV2AttemptArtifactPath(path)) {
+        if (isV2AttemptArtifactPath(path) && !isAllowedV2AttemptReportPath(path)) {
             throw new CrawlerQueueV2Exception(
                 HttpStatus.FORBIDDEN,
                 CrawlerQueueV2ReasonCode.LOG_FORBIDDEN
             );
         }
         return reportArchiver.getReportDetail(resolveRepoRoot(), path);
+    }
+
+    private boolean isAllowedV2AttemptReportPath(String path) {
+        if (path == null) {
+            return false;
+        }
+        try {
+            Path repoRoot = resolveRepoRoot().toAbsolutePath().normalize();
+            Path requested = Path.of(path.replace('\\', '/'));
+            Path resolved = (requested.isAbsolute() ? requested : repoRoot.resolve(requested))
+                .toAbsolutePath()
+                .normalize();
+            Path v2ArtifactRoot = repoRoot.resolve("reports/crawler-monitor/v2").normalize();
+            if (!resolved.startsWith(v2ArtifactRoot)) {
+                return false;
+            }
+            Path relative = v2ArtifactRoot.relativize(resolved);
+            if (relative.getNameCount() != 3
+                || !relative.getName(0).toString().matches("\\d{4}-\\d{2}-\\d{2}")
+                || !relative.getName(1).toString().startsWith("attempt-")
+                || !"report.json".equals(relative.getName(2).toString())) {
+                return false;
+            }
+            if (!Files.exists(resolved)) {
+                return true;
+            }
+            Path current = v2ArtifactRoot;
+            for (Path component : relative) {
+                current = current.resolve(component);
+                if (Files.isSymbolicLink(current)) {
+                    return false;
+                }
+            }
+            return !Files.isSymbolicLink(resolved)
+                && Files.isRegularFile(resolved)
+                && resolved.toRealPath().startsWith(v2ArtifactRoot.toRealPath());
+        } catch (java.io.IOException | SecurityException | java.nio.file.InvalidPathException ignored) {
+            return false;
+        }
     }
 
     private boolean isV2AttemptArtifactPath(String path) {
@@ -623,6 +664,32 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             pruneDispatchArtifacts(repoRoot);
             CrawlerMonitorActionDefinition rule = resolveWikiMonitorRule(request);
             return dispatchWikiMonitorTask(repoRoot, rule, dispatchMetadata(rule, request));
+        });
+    }
+
+    @Override
+    public CrawlerMonitorDispatchResultDTO startCrawlerDomain(
+        String domain,
+        String operationId,
+        String resumeMode,
+        boolean confirmed,
+        String requestedBy
+    ) {
+        String effectiveResumeMode = resumeMode == null || resumeMode.isBlank() ? "fresh" : resumeMode;
+        if (!"fresh".equals(effectiveResumeMode)) {
+            throw new IllegalArgumentException("首次开始只允许 fresh；断点继续必须通过 retry");
+        }
+        CrawlerMonitorActionDefinition rule = CrawlerMonitorActionRegistry.defaults()
+            .resolveStartOperation(domain, operationId, confirmed);
+        CrawlerMonitorDispatchRequestDTO request = new CrawlerMonitorDispatchRequestDTO();
+        request.setDomain(rule.domain());
+        request.setActionId(rule.actionId());
+        request.setResumeMode("fresh");
+        return queueEngineRouter.withMutationPermit(permit -> {
+            if (permit.mode() != CrawlerQueueEngineMode.V2) {
+                throw legacyWriteBlocked(permit.mode());
+            }
+            return dispatchV2WikiMonitorTask(request, requestedBy);
         });
     }
 

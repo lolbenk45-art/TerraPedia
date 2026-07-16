@@ -25,10 +25,10 @@ class CrawlerAttemptStateMachineTest {
         Set<String> allowed = Set.of(
             "queued->starting", "queued->cancelled", "queued->timed_out",
             "retry_wait->starting", "retry_wait->cancelled", "retry_wait->timed_out",
-            "starting->running", "starting->cancel_requested", "starting->stalled", "starting->failed",
+            "starting->running", "starting->cancel_requested", "starting->stalled", "starting->completed", "starting->failed",
             "running->pause_requested", "running->cancel_requested", "running->completed", "running->failed", "running->stalled",
             "pause_requested->paused", "pause_requested->cancel_requested", "pause_requested->stalled", "pause_requested->failed",
-            "paused->running", "paused->cancel_requested", "paused->stalled",
+            "paused->running", "paused->cancel_requested", "paused->stalled", "paused->failed",
             "cancel_requested->cancelled", "cancel_requested->failed",
             "stalled->starting", "stalled->running", "stalled->paused", "stalled->cancel_requested", "stalled->timed_out", "stalled->failed"
         );

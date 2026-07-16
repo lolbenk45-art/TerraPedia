@@ -117,6 +117,14 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
                     if (!rootStat.stat().belongsToIsolatedGroup(identity.pid())) {
                         return new ProcessLookup(LookupCode.INSPECTION_UNAVAILABLE, null);
                     }
+                    GroupInspection group = inspectGroup(identity.pid());
+                    if (!group.available()) {
+                        return new ProcessLookup(LookupCode.INSPECTION_UNAVAILABLE, null);
+                    }
+                    List<ProcStat> activeMembers = activeMembers(group);
+                    if (activeMembers.isEmpty()) {
+                        return new ProcessLookup(LookupCode.NOT_FOUND, null);
+                    }
                     return new ProcessLookup(
                         LookupCode.FOUND,
                         new RecoveredManagedProcess(identity, root)
@@ -126,10 +134,11 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
                 if (!group.available()) {
                     return new ProcessLookup(LookupCode.INSPECTION_UNAVAILABLE, null);
                 }
-                if (group.members().isEmpty()) {
+                List<ProcStat> activeMembers = activeMembers(group);
+                if (activeMembers.isEmpty()) {
                     return new ProcessLookup(LookupCode.NOT_FOUND, null);
                 }
-                ProcessHandle representative = ProcessHandle.of(group.members().get(0).pid())
+                ProcessHandle representative = ProcessHandle.of(activeMembers.get(0).pid())
                     .orElse(null);
                 if (representative != null) {
                     return new ProcessLookup(
@@ -175,7 +184,7 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
             if (!group.available()) {
                 return false;
             }
-            if (group.members().isEmpty()) {
+            if (activeMembers(group).isEmpty()) {
                 return true;
             }
             if (System.nanoTime() >= deadline) {
@@ -196,20 +205,15 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
             return false;
         }
         GroupInspection group = inspectGroup(process.pid());
-        if (!group.available() || group.members().isEmpty()) {
+        if (!group.available() || activeMembers(group).isEmpty()) {
             return false;
         }
-        boolean foundActive = false;
-        for (ProcStat member : group.members()) {
-            if (member.isExited()) {
-                continue;
-            }
-            foundActive = true;
+        for (ProcStat member : activeMembers(group)) {
             if (!member.isStopped()) {
                 return false;
             }
         }
-        return foundActive;
+        return true;
     }
 
     private boolean signalExactGroup(ManagedProcess process, String signal) {
@@ -380,6 +384,12 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
         }
     }
 
+    private List<ProcStat> activeMembers(GroupInspection group) {
+        return group.members().stream()
+            .filter(member -> !member.isExited())
+            .toList();
+    }
+
     private boolean isNumericProcessDirectory(Path path) {
         String name = path.getFileName().toString();
         if (name.isEmpty()) {
@@ -445,7 +455,7 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
         @Override
         public boolean isAlive() {
             GroupInspection group = inspectGroup(pid());
-            return group.available() && !group.members().isEmpty();
+            return group.available() && !activeMembers(group).isEmpty();
         }
 
         @Override
@@ -481,7 +491,7 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
         @Override
         public boolean isAlive() {
             GroupInspection group = inspectGroup(pid());
-            return group.available() && !group.members().isEmpty();
+            return group.available() && !activeMembers(group).isEmpty();
         }
 
         @Override
@@ -490,6 +500,11 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
                 throw new IllegalThreadStateException("process group is still alive");
             }
             throw new IllegalStateException("recovered process exit code is unavailable");
+        }
+
+        @Override
+        public boolean exitCodeAvailable() {
+            return false;
         }
 
         @Override

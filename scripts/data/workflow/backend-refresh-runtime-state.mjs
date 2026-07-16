@@ -76,6 +76,17 @@ export function buildActionProgressPayload({
   generatedAt = new Date().toISOString(),
   lastHeartbeatAt = generatedAt,
   childStatusPath = null,
+  outputPath = null,
+  reportPath = null,
+  nextStep = null,
+  plannedCount = undefined,
+  actualCount = undefined,
+  skippedCount = undefined,
+  failedCount = undefined,
+  estimatedRequests = undefined,
+  estimatedRecords = undefined,
+  resultKind = undefined,
+  resumeOutcome = undefined,
   observedProgressSequence = null
 } = {}) {
   const payload = mergeActionProgressFields({
@@ -89,14 +100,166 @@ export function buildActionProgressPayload({
     batchOffset,
     lastHeartbeatAt,
     message,
+    nextStep,
     overallCurrent,
     overallTotal,
+    outputPath,
     percent,
     phase,
+    reportPath,
+    plannedCount,
+    actualCount,
+    skippedCount,
+    failedCount,
+    estimatedRequests,
+    estimatedRecords,
+    resultKind,
+    resumeOutcome,
     startedAt,
     total
   });
   return attachCrawlerAttemptIdentity(payload, { observedProgressSequence });
+}
+
+export function buildBackendWrapperHeartbeatProgress({
+  actionId,
+  childProgress = null,
+  canonicalProgress = null,
+  initialProgress = null,
+  generatedAt = new Date().toISOString(),
+  childStatusPath = null
+} = {}) {
+  const progress = childProgress?.progressReadable === true
+    ? childProgress
+    : canonicalProgress?.progressReadable === true
+      ? canonicalProgress
+      : initialProgress;
+  return buildActionProgressPayload({
+    ...progress,
+    actionId,
+    status: progress?.status ?? 'running',
+    phase: progress?.phase ?? 'action',
+    message: progress?.message ?? `running ${actionId}`,
+    current: progress?.current ?? null,
+    total: progress?.total ?? null,
+    generatedAt,
+    lastHeartbeatAt: generatedAt,
+    childStatusPath: progress?.childStatusPath ?? childStatusPath,
+    observedProgressSequence: progress?.progressSequence,
+    ...buildActionResultSummary({
+      actionId,
+      status: progress?.status ?? 'running',
+      current: progress?.current ?? null,
+      total: progress?.total ?? null,
+      progress
+    })
+  });
+}
+
+export function createCrawlerProgressHeartbeat({
+  writeProgress,
+  intervalMs = normalizeHeartbeatInterval(process.env.TERRAPEDIA_CRAWLER_HEARTBEAT_MS)
+} = {}) {
+  if (typeof writeProgress !== 'function') {
+    throw new TypeError('writeProgress is required');
+  }
+  let latestProgress = null;
+  let timer = null;
+
+  const stop = () => {
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+  };
+  const ensureTimer = () => {
+    if (timer) return;
+    timer = setInterval(() => {
+      if (latestProgress?.status === 'running') {
+        const heartbeatAt = new Date().toISOString();
+        writeProgress({
+          ...latestProgress,
+          generatedAt: heartbeatAt,
+          lastHeartbeatAt: heartbeatAt
+        });
+      }
+    }, intervalMs);
+    timer.unref?.();
+  };
+  const publish = (progress) => {
+    latestProgress = { ...progress };
+    writeProgress(latestProgress);
+    if (latestProgress.status === 'running') {
+      ensureTimer();
+    } else {
+      stop();
+    }
+  };
+
+  return { publish, stop };
+}
+
+export function buildActionResultSummary({
+  actionId,
+  status,
+  current = null,
+  total = null,
+  progress = null
+} = {}) {
+  const plannedCount = normalizeNullableNumber(progress?.plannedCount)
+    ?? normalizeNullableNumber(total);
+  const actualCount = normalizeNullableNumber(progress?.actualCount)
+    ?? normalizeNullableNumber(current);
+  const failed = String(status ?? progress?.status ?? '').toLowerCase() === 'failed';
+  const resultKind = VALID_RESULT_KINDS.has(String(progress?.resultKind ?? ''))
+    ? String(progress.resultKind)
+    : inferResultKind(actionId, status, total);
+  const resumeOutcome = VALID_RESUME_OUTCOMES.has(String(progress?.resumeOutcome ?? ''))
+    ? String(progress.resumeOutcome)
+    : 'not_supported';
+
+  return {
+    plannedCount,
+    actualCount,
+    skippedCount: normalizeNullableNumber(progress?.skippedCount) ?? 0,
+    failedCount: normalizeNullableNumber(progress?.failedCount) ?? (failed ? 1 : 0),
+    estimatedRequests: normalizeNullableNumber(progress?.estimatedRequests),
+    estimatedRecords: normalizeNullableNumber(progress?.estimatedRecords),
+    resultKind,
+    resumeOutcome
+  };
+}
+
+export function buildCrawlerWorkSummary({
+  status = 'running',
+  current = null,
+  total = null,
+  skippedCount = 0,
+  failedCount = null,
+  estimatedRequests = null,
+  estimatedRecords = null,
+  resumeAction = null,
+  resumeReason = null
+} = {}) {
+  const planned = normalizeNullableNumber(total);
+  const completed = normalizeNullableNumber(current);
+  const skipped = Math.max(0, normalizeNullableNumber(skippedCount) ?? 0);
+  const actual = completed == null ? null : Math.max(0, completed - skipped);
+  const normalizedStatus = String(status ?? '').trim().toLowerCase();
+  const inferredFailed = normalizedStatus === 'failed'
+    ? Math.max(1, planned == null || completed == null ? 1 : planned - completed)
+    : 0;
+
+  return {
+    plannedCount: planned,
+    actualCount: actual,
+    skippedCount: skipped,
+    failedCount: Math.max(0, normalizeNullableNumber(failedCount) ?? inferredFailed),
+    estimatedRequests: normalizeNullableNumber(estimatedRequests),
+    estimatedRecords: normalizeNullableNumber(estimatedRecords),
+    resultKind: inferCrawlerResultKind(normalizedStatus),
+    resumeOutcome: inferCrawlerResumeOutcome(resumeAction, resumeReason)
+  };
 }
 
 export function crawlerAttemptIdentityFromEnv(env = process.env) {
@@ -227,6 +390,11 @@ function finiteNumberOrNull(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+function normalizeHeartbeatInterval(value) {
+  const intervalMs = Number(value);
+  return Number.isFinite(intervalMs) && intervalMs > 0 ? Math.trunc(intervalMs) : 30_000;
+}
+
 function isCrawlerProgressPayload(payload) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     return false;
@@ -275,6 +443,27 @@ function normalizeProgressFields(progress) {
   const overallCurrent = normalizeNullableNumber(progress.overallCurrent);
   const overallTotal = normalizeNullableNumber(progress.overallTotal);
   const result = {};
+  for (const field of [
+    'plannedCount',
+    'actualCount',
+    'skippedCount',
+    'failedCount',
+    'estimatedRequests',
+    'estimatedRecords'
+  ]) {
+    if (progress[field] !== undefined) {
+      const normalized = normalizeNullableNumber(progress[field]);
+      if (normalized != null || progress[field] === null) {
+        result[field] = normalized;
+      }
+    }
+  }
+  if (VALID_RESULT_KINDS.has(String(progress.resultKind ?? ''))) {
+    result.resultKind = String(progress.resultKind);
+  }
+  if (VALID_RESUME_OUTCOMES.has(String(progress.resumeOutcome ?? ''))) {
+    result.resumeOutcome = String(progress.resumeOutcome);
+  }
   if (batchLimit != null) {
     result.batchLimit = batchLimit;
   }
@@ -299,11 +488,20 @@ function normalizeProgressFields(progress) {
   if (overallTotal != null) {
     result.overallTotal = overallTotal;
   }
+  if (progress.outputPath) {
+    result.outputPath = String(progress.outputPath);
+  }
   if (percent != null) {
     result.percent = percent;
   }
   if (progress.phase) {
     result.phase = String(progress.phase);
+  }
+  if (progress.reportPath) {
+    result.reportPath = String(progress.reportPath);
+  }
+  if (progress.nextStep) {
+    result.nextStep = String(progress.nextStep);
   }
   if (progress.startedAt) {
     result.startedAt = String(progress.startedAt);
@@ -312,6 +510,74 @@ function normalizeProgressFields(progress) {
     result.total = total;
   }
   return result;
+}
+
+const VALID_RESULT_KINDS = new Set([
+  'no_change',
+  'fetched',
+  'generated',
+  'preview_completed',
+  'database_applied',
+  'cancelled',
+  'failed'
+]);
+
+const VALID_RESUME_OUTCOMES = new Set([
+  'fresh',
+  'resumed',
+  'checkpoint_invalid_fresh',
+  'not_supported'
+]);
+
+function inferResultKind(actionId, status, total) {
+  const normalizedStatus = String(status ?? '').toLowerCase();
+  if (['queued', 'running', 'stalled'].includes(normalizedStatus)) return undefined;
+  if (normalizedStatus === 'failed') return 'failed';
+  if (normalizedStatus === 'cancelled') return 'cancelled';
+  const normalizedActionId = String(actionId ?? '');
+  if ([
+    'wiki-items-refresh',
+    'wiki-npcs-refresh',
+    'wiki-projectiles-refresh'
+  ].includes(normalizedActionId) && normalizeNullableNumber(total) === 0) {
+    return 'no_change';
+  }
+  if ([
+    'recipe-reference-sync',
+    'biome-preview',
+    'npc-loot-backfill',
+    'boss-loot-backfill'
+  ].includes(normalizedActionId)) {
+    return 'preview_completed';
+  }
+  if ([
+    'recipe-reference-apply',
+    'biome-sync',
+    'npc-loot-apply',
+    'boss-loot-apply'
+  ].includes(normalizedActionId)) {
+    return 'database_applied';
+  }
+  if (normalizedActionId.startsWith('wiki-')) {
+    return 'fetched';
+  }
+  return 'generated';
+}
+
+function inferCrawlerResultKind(status) {
+  if (status === 'completed') return 'fetched';
+  if (status === 'failed') return 'failed';
+  if (status === 'cancelled') return 'cancelled';
+  return undefined;
+}
+
+function inferCrawlerResumeOutcome(action, reason) {
+  if (action === 'resume') return 'resumed';
+  if (action === 'fresh' && String(reason ?? '').startsWith('auto-downgrade:')) {
+    return 'checkpoint_invalid_fresh';
+  }
+  if (action === 'fresh') return 'fresh';
+  return 'not_supported';
 }
 
 function normalizeNullableNumber(value) {

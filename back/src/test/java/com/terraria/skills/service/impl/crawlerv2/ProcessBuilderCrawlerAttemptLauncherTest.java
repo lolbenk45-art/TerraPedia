@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
@@ -55,6 +56,73 @@ class ProcessBuilderCrawlerAttemptLauncherTest {
         assertTrue(log.startsWith("before\n"));
         assertTrue(log.contains("out:exact-env:" + tempDir.toAbsolutePath()));
         assertTrue(log.contains("err-line"));
+    }
+
+    @Test
+    void immediateExitMustNotRemainAliveAsACompletedGroupMember() throws Exception {
+        assumeLinuxProcessTools();
+        CrawlerAttemptProcessLauncher.ManagedProcess process = launchAndResume(
+            new CrawlerAttemptProcessLauncher.LaunchSpec(
+                List.of("sh", "-c", "printf done"),
+                tempDir,
+                Map.of(),
+                tempDir.resolve("short.log")
+            )
+        );
+
+        assertNotNull(process.handle().onExit().get(2, TimeUnit.SECONDS));
+        assertTrue(launcher.awaitExit(process, Duration.ofSeconds(2)));
+        assertFalse(process.isAlive());
+        assertEquals(
+            CrawlerAttemptProcessLauncher.LookupCode.NOT_FOUND,
+            launcher.findExact(new CrawlerAttemptProcessLauncher.ProcessIdentity(
+                process.pid(),
+                process.startedAt()
+            )).code()
+        );
+        assertTrue(process.exitCodeAvailable());
+        assertEquals(0, process.exitValue());
+    }
+
+    @Test
+    void exitedProcMemberMustNotKeepTheProcessGroupAlive() throws Exception {
+        assumeLinuxProcessTools();
+        AtomicLong exitedPid = new AtomicLong(-1L);
+        ProcessBuilderCrawlerAttemptLauncher exitedInspector = new ProcessBuilderCrawlerAttemptLauncher(
+            null,
+            null,
+            statPath -> {
+                String stat = Files.readString(statPath);
+                if (!statPath.getParent().getFileName().toString().equals(Long.toString(exitedPid.get()))) {
+                    return stat;
+                }
+                int commandEnd = stat.lastIndexOf(')');
+                return stat.substring(0, commandEnd + 2) + "Z" + stat.substring(commandEnd + 3);
+            }
+        );
+        CrawlerAttemptProcessLauncher.ManagedProcess process = launchAndResume(
+            exitedInspector,
+            new CrawlerAttemptProcessLauncher.LaunchSpec(
+                List.of("sleep", "30"),
+                tempDir,
+                Map.of(),
+                tempDir.resolve("exited-member.log")
+            )
+        );
+        exitedPid.set(process.pid());
+        try {
+            assertTrue(exitedInspector.awaitExit(process, Duration.ofMillis(100)));
+            assertFalse(process.isAlive());
+            assertEquals(
+                CrawlerAttemptProcessLauncher.LookupCode.NOT_FOUND,
+                exitedInspector.findExact(new CrawlerAttemptProcessLauncher.ProcessIdentity(
+                    process.pid(),
+                    process.startedAt()
+                )).code()
+            );
+        } finally {
+            forceRawGroupCleanup(process.pid(), -1L);
+        }
     }
 
     @Test

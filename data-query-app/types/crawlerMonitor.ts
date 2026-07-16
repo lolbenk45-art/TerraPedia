@@ -345,6 +345,57 @@ export interface CrawlerQueueV2LogMetadata {
   reasonCode?: string | null
 }
 
+export interface CrawlerQueueV2Plan {
+  operationId: string
+  actionId: string
+  labelZh: string
+  mode: 'check' | 'force' | 'fresh' | 'preview' | 'apply' | string
+  networkAccess: boolean
+  sourceLocator?: string | null
+  fileWriteSummary?: string | null
+  databaseAccess: 'none' | 'read' | 'write' | string
+  estimatedRequests?: number | null
+  estimatedRecords?: number | null
+  pauseSupported: boolean
+  resumeSupported: boolean
+  resumeStatePath?: string | null
+  confirmationLevel: 'summary' | 'destructive' | string
+  capturedAt?: string | null
+}
+
+export interface CrawlerQueueV2Result {
+  plannedCount?: number | null
+  actualCount?: number | null
+  skippedCount?: number | null
+  failedCount?: number | null
+  estimatedRequests?: number | null
+  estimatedRecords?: number | null
+  resultKind?: 'no_change' | 'fetched' | 'generated' | 'preview_completed' | 'database_applied' | 'cancelled' | 'failed' | string | null
+  resumeOutcome?: 'fresh' | 'resumed' | 'checkpoint_invalid_fresh' | 'not_supported' | string | null
+}
+
+export interface CrawlerQueueV2Operation {
+  domain?: string
+  operationId: string
+  actionId: string
+  labelZh: string
+  category: 'check_sync' | 'direct_crawl' | 'data_process' | 'backfill' | string
+  mode: 'check' | 'force' | 'fresh' | 'preview' | 'apply' | string
+  descriptionZh?: string | null
+  networkAccess: boolean
+  sourceLocator?: string | null
+  fileWriteSummary?: string | null
+  databaseAccess: 'none' | 'read' | 'write' | string
+  estimatedRequests?: number | null
+  estimatedRecords?: number | null
+  shortTask: boolean
+  pauseSupported: boolean
+  resumeSupported: boolean
+  resumeStatePath?: string | null
+  confirmationLevel: 'summary' | 'destructive' | string
+  defaultOperation: boolean
+}
+
 export interface CrawlerQueueV2Attempt {
   queueId: string
   attemptId: string
@@ -367,8 +418,14 @@ export interface CrawlerQueueV2Attempt {
   reasonCode?: string | null
   messageZh?: string | null
   suggestedAction?: string | null
+  resumeSupported?: boolean
   allowedActions: string[]
+  progressPath?: string | null
+  outputPath?: string | null
+  reportPath?: string | null
   log?: CrawlerQueueV2LogMetadata | null
+  plan?: CrawlerQueueV2Plan | null
+  result?: CrawlerQueueV2Result | null
 }
 
 export interface CrawlerQueueV2DomainState {
@@ -385,6 +442,7 @@ export interface CrawlerQueueV2DomainState {
   messageZh?: string | null
   suggestedAction?: string | null
   allowedActions: string[]
+  operations?: CrawlerQueueV2Operation[]
 }
 
 export interface CrawlerQueueV2LegacyAttempt {

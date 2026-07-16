@@ -603,10 +603,12 @@ class RedisCrawlerQueueV2RepositoryTest {
             "terrapedia:crawler:wiki-monitor:v2:dedupe:standard:domain-source-bosses:fresh",
             "terrapedia:crawler:wiki-monitor:v2:domain:bosses:lease"
         ), keys.getValue());
-        assertEquals(26, arguments.getValue().length);
+        assertEquals(28, arguments.getValue().length);
         assertEquals("1", arguments.getValue()[19]);
         assertEquals("0", arguments.getValue()[20]);
         assertEquals(Long.toString(NOW.toEpochMilli()), arguments.getValue()[25]);
+        assertEquals("", arguments.getValue()[26]);
+        assertEquals("", arguments.getValue()[27]);
     }
 
     @Test
@@ -618,7 +620,7 @@ class RedisCrawlerQueueV2RepositoryTest {
 
         boolean renewed = repository.renewLeases(new CrawlerQueueV2Repository.RenewLeaseCommand(
             "epoch-1", "queue-1", "attempt-1", 142L,
-            List.of("npcs", "bosses"), Duration.ofSeconds(90)
+            "standard:domain-source-bosses:fresh", List.of("npcs", "bosses"), Duration.ofSeconds(90)
         ));
 
         assertFalse(renewed);
@@ -627,6 +629,7 @@ class RedisCrawlerQueueV2RepositoryTest {
         assertEquals(List.of(
             "terrapedia:crawler:wiki-monitor:v2:meta:engine",
             "terrapedia:crawler:wiki-monitor:v2:meta:epoch",
+            "terrapedia:crawler:wiki-monitor:v2:dedupe:standard:domain-source-bosses:fresh",
             "terrapedia:crawler:wiki-monitor:v2:domain:bosses:lease",
             "terrapedia:crawler:wiki-monitor:v2:domain:npcs:lease"
         ), keys.getValue());
@@ -824,6 +827,16 @@ class RedisCrawlerQueueV2RepositoryTest {
         assertBeforeFirstWrite(source, "attempt.processStartedAt ~= nil", firstWrite);
         assertBeforeFirstWrite(source, "ARGV[18] == ''", firstWrite);
         assertBeforeFirstWrite(source, "ARGV[19] == ''", firstWrite);
+    }
+
+    @Test
+    void luaStateMatrixAllowsPausedAttemptsToFailAfterProcessExit() throws Exception {
+        String source = new ClassPathResource("redis/crawler-queue-v2/mutate-attempt.lua")
+            .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+
+        assertTrue(source.contains(
+            "paused = {running = true, cancel_requested = true, stalled = true, failed = true}"
+        ));
     }
 
     @Test
@@ -1051,7 +1064,7 @@ class RedisCrawlerQueueV2RepositoryTest {
             .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
 
         assertTrue(source.contains("if engine == 'v1' then return cjson.encode({code = 'ENGINE_IS_V1'}) end"));
-        assertTrue(source.contains("if engine ~= 'v2' and engine ~= 'maintenance' then"));
+        assertTrue(source.contains("if engine and engine ~= 'v2' and engine ~= 'maintenance' then"));
         assertTrue(source.contains("'set', 'zset', 'zset', 'zset', 'zset', 'stream', 'string'"));
         assertTrue(source.contains("if currentCutover and currentCutover ~= ARGV[1] then"));
         assertTrue(source.contains("code = 'CUTOVER_ID_MISMATCH'"));

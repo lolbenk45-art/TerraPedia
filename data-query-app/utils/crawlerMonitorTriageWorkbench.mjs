@@ -1,6 +1,8 @@
 import { formatShanghaiDateLabel } from './crawlerMonitorTime.mjs'
 import { crawlerStatusDisplayLabel } from './crawlerMonitorUnifiedStatus.mjs'
 import { wikiDomainChineseName } from './crawlerMonitorDisplay.mjs'
+import { latestV2TerminalAttempt } from './crawlerMonitorV2Attempts.mjs'
+import { retryLabel } from './crawlerMonitorOperationCatalog.mjs'
 
 const ATTENTION_STATUSES = new Set([
   'attention',
@@ -16,7 +18,7 @@ const ATTENTION_STATUSES = new Set([
 ])
 
 const RUNNING_STATUSES = new Set(['running', 'active', 'starting', 'pause_requested', 'cancel_requested'])
-const IDLE_STATUSES = new Set(['ready', 'queued', 'paused', 'cancelled', 'missing'])
+const IDLE_STATUSES = new Set(['idle', 'ready', 'queued', 'paused', 'cancelled', 'missing'])
 const ACTIVE_QUEUE_VISIBILITY_STATUSES = new Set(['queued', 'blocked_cooldown', 'starting', 'running', 'paused', 'retry_wait', 'pause_requested', 'cancel_requested'])
 const PAUSABLE_STATUSES = new Set(['running', 'starting'])
 const RESUMABLE_STATUSES = new Set(['paused'])
@@ -41,9 +43,18 @@ const STATUS_RANK = {
   queued: 6,
   retry_wait: 6,
   ready: 7,
+  idle: 8,
   healthy: 8,
   completed: 8,
   success: 8,
+}
+
+export function shortCrawlerIdentity(value) {
+  const identity = normalize(value)
+  if (!identity) return '未记录'
+  const prefix = identity.match(/^(queue-|attempt-)/)?.[1] || ''
+  if (identity.length <= 14) return identity
+  return `${prefix || ''}…${identity.slice(-5)}`
 }
 
 function normalize(value) {
@@ -241,6 +252,7 @@ function actionModeLabel(row) {
 }
 
 function startActionLabel(row) {
+  if (row?.defaultOperation?.labelZh) return normalize(row.defaultOperation.labelZh)
   const actionId = rowActionId(row)
   if (actionId === 'wiki-items-refresh') return '检查并同步物品模块'
   if (actionId === 'item-pages-refresh') return '按需爬物品页'
@@ -269,7 +281,7 @@ function flowLabel(row, status = rowStatus(row)) {
   if (status === 'queued') return '排队等待'
   if (status === 'paused') return '已暂停'
   if (status === 'ready') return '可重新派发'
-  if (status === 'healthy') return '空闲正常'
+  if (status === 'idle' || status === 'healthy') return '空闲正常'
   if (status === 'completed' || status === 'success') return '已完成'
   if (status === 'failed' || status === 'error') return '执行失败'
   if (status === 'timed_out' || status === 'timeout') return '任务超时'
@@ -370,12 +382,18 @@ function decorateDomainRow(row, now) {
   }
 }
 
-function buildV2DomainOperationModel(row) {
+export function buildV2DomainOperationModel(row) {
+  const retryOperation = row?.plan || row?.operation || {
+    mode: 'fresh',
+    resumeSupported: row?.resumeSupported === true,
+  }
   const labels = {
-    pause: ['暂停', 'secondary', 'pause'],
-    resume: ['继续', 'primary', 'play'],
+    start: [startActionLabel(row), 'primary', 'play'],
+    pause: ['暂停任务', 'secondary', 'pause'],
+    resume: ['恢复运行', 'primary', 'play'],
     cancel: ['终止', 'danger', 'circle-stop'],
-    retry: ['重试', 'secondary', 'timer-reset'],
+    retry: [retryLabel(retryOperation), 'primary', 'timer-reset'],
+    cleanup: ['清理证据', 'danger', 'circle-stop'],
   }
   const actions = (Array.isArray(row?.allowedActions) ? row.allowedActions : [])
     .filter((name) => Object.hasOwn(labels, name))
@@ -393,7 +411,7 @@ function matchesFilter(row, filter) {
   if (normalized === 'running') return row.isRunning
   if (normalized === 'queue') return row.hasActiveQueue
   if (normalized === 'idle') return row.isIdle
-  if (normalized === 'healthy') return !row.needsAttention && !row.isRunning && !row.isIdle
+  if (normalized === 'healthy') return !row.needsAttention && !row.isRunning
   return true
 }
 
@@ -754,8 +772,11 @@ export function mergeDomainTaskHistory({
   queueRows = [],
 } = {}) {
   if (Array.isArray(attemptRows)) {
-    return attemptRows
-      .filter((row) => row?.attemptId && attemptCoversDomain(row, domain))
+    const terminalStatuses = new Set(['completed', 'failed', 'cancelled', 'timed_out', 'interrupted'])
+    const matchingAttempts = attemptRows.filter((row) => row?.attemptId && attemptCoversDomain(row, domain))
+    const actionableEpochAttempts = matchingAttempts.filter((row) => Array.isArray(row.allowedActions) && row.allowedActions.length)
+    const latestTerminalAttemptId = latestV2TerminalAttempt(actionableEpochAttempts)?.attemptId || ''
+    return matchingAttempts
       .reduce((rows, row) => {
         if (rows.some((item) => item.attemptId === row.attemptId)) return rows
         rows.push({
@@ -766,7 +787,10 @@ export function mergeDomainTaskHistory({
           timeLabel: historyTime(row),
           reason: historyReason(row),
           sourceKinds: ['attempt'],
-          allowedActions: [],
+          allowedActions: terminalStatuses.has(historyStatus(row)) && Array.isArray(row.allowedActions)
+            ? row.allowedActions.filter((name) => name === 'cleanup'
+              || (name === 'retry' && row.attemptId === latestTerminalAttemptId))
+            : [],
         })
         return rows
       }, [])
@@ -789,7 +813,7 @@ function uniqueArtifacts(files) {
   const seen = new Set()
   const result = []
   for (const file of files) {
-    const path = normalize(file?.path || file)
+    const path = normalizeArtifactPath(file?.path || file)
     if (!path || seen.has(path)) continue
     seen.add(path)
     result.push(decorateArtifact({
@@ -800,6 +824,15 @@ function uniqueArtifacts(files) {
     }))
   }
   return result
+}
+
+function normalizeArtifactPath(value) {
+  const path = normalize(value).replace(/\\/g, '/')
+  for (const marker of ['/data/generated/', '/data/terrapedia/raw/', '/reports/']) {
+    const index = path.toLowerCase().indexOf(marker)
+    if (index >= 0) return path.slice(index + 1)
+  }
+  return path
 }
 
 function artifactLabel(path) {
@@ -833,7 +866,8 @@ function isPreviewableArtifactPath(path) {
   if (normalized.startsWith('reports/') || normalized.startsWith('back/target/surefire-reports/')) {
     return ['.json', '.md', '.xml', '.txt', '.log'].some((suffix) => normalized.endsWith(suffix))
   }
-  return normalized.startsWith('data/generated/') && normalized.endsWith('.json')
+  return (normalized.startsWith('data/generated/') || normalized.startsWith('data/terrapedia/raw/'))
+    && normalized.endsWith('.json')
 }
 
 function hasExplicitFileState(file) {
@@ -849,11 +883,14 @@ function decorateArtifact(file) {
   const missing = file?.found === false
   const unreadable = file?.readable === false || Boolean(file?.errorMessage)
   const explicitlyRecorded = hasExplicitFileState(file)
-  const previewable = kind !== 'lock'
+  const derivedPreviewable = kind !== 'lock'
     && !missing
     && !unreadable
     && (kind !== 'log' || explicitlyRecorded)
     && isPreviewableArtifactPath(path)
+  const previewable = typeof file?.previewableOverride === 'boolean'
+    ? file.previewableOverride
+    : derivedPreviewable
   const template = isPathTemplate(path)
   const metadata = {
     report: ['运行报告', '任务结束报告或诊断结果'],
@@ -871,10 +908,11 @@ function decorateArtifact(file) {
     icon: artifactIcon(kind),
     title: metadata[0],
     description: metadata[1],
-    statusLabel: artifactStatusLabel({ template, missing, unreadable, kind, previewable }),
-    statusTone: artifactStatusTone({ template, missing, unreadable, kind, previewable }),
+    statusLabel: normalize(file?.statusLabel) || artifactStatusLabel({ template, missing, unreadable, kind, previewable }),
+    statusTone: normalize(file?.statusTone) || artifactStatusTone({ template, missing, unreadable, kind, previewable }),
     timeLabel: artifactTimeLabel(file),
     previewable,
+    ...(typeof file?.previewableOverride === 'boolean' ? { previewableOverride: file.previewableOverride } : {}),
     found: file?.found,
     readable: file?.readable,
     errorMessage: normalize(file?.errorMessage),
@@ -923,6 +961,28 @@ function historyArtifacts(item, { v2 = false } = {}) {
     item.outputPath ? { label: '输出', path: item.outputPath, sourceLabel: '任务历史' } : null,
   ]
   const isLegacyV1History = item?.source === 'legacy-v1'
+  if (v2 && !isLegacyV1History && normalize(item?.progressPath)) {
+    files.push({
+      label: '进度',
+      path: normalize(item.progressPath),
+      sourceLabel: 'V2 任务历史',
+      previewableOverride: false,
+      statusLabel: '路径记录',
+      statusTone: 'neutral',
+    })
+  }
+  if (v2 && !isLegacyV1History && normalize(item?.reportPath)) {
+    const path = normalize(item.reportPath)
+    const previewable = isV2AttemptReportPath(path)
+    files.push({
+      label: '报告',
+      path,
+      sourceLabel: 'V2 任务历史',
+      previewableOverride: previewable,
+      statusLabel: previewable ? '可预览' : '路径记录',
+      statusTone: previewable ? 'success' : 'neutral',
+    })
+  }
   if (isLegacyV1History && normalize(item?.log?.path || item?.logPath)) {
     const legacyLog = item.log || {}
     files.push({
@@ -941,7 +1001,7 @@ function historyArtifacts(item, { v2 = false } = {}) {
     files.push({
       attemptId: item.attemptId,
       label: 'attempt 日志',
-      title: `尝试 ${item.attemptId} 日志`,
+      title: `尝试 ${shortCrawlerIdentity(item.attemptId)} 日志`,
       path: normalize(log.path) || `attempt:${item.attemptId}`,
       sourceLabel: 'V2 任务历史',
       previewable: log.previewable === true && lower(log.availability) === 'available',
@@ -964,6 +1024,12 @@ function historyArtifacts(item, { v2 = false } = {}) {
       timeLabel: file.timeLabel || decorated.timeLabel,
     }
   })
+}
+
+function isV2AttemptReportPath(path) {
+  return /^reports\/crawler-monitor\/v2\/\d{4}-\d{2}-\d{2}\/attempt-[^/]+\/report\.json$/i.test(
+    normalize(path).replace(/\\/g, '/'),
+  )
 }
 
 function shouldShowCrawlerOutput(file) {
@@ -1090,7 +1156,7 @@ export function buildDomainDetailViewModel({
     attemptId: row.attemptId,
     path: normalize(row.log.path) || `attempt:${row.attemptId}`,
     label: '本轮 attempt 日志',
-    title: `尝试 ${row.attemptId}`,
+    title: `尝试 ${shortCrawlerIdentity(row.attemptId)}`,
     previewable: row.log.previewable === true && row.log.availability === 'available',
     statusLabel: v2LogAvailabilityLabel(row.log.availability),
     statusTone: v2LogAvailabilityTone(row.log.availability),
@@ -1111,10 +1177,10 @@ export function buildDomainDetailViewModel({
     ['截止倒计时', v2Display.deadlineLabel || '未记录'],
   ] : []
   const v2IdentityFields = row?.v2Attempt ? [
-    ['队列 ID', normalize(row.queueId || '未记录')],
-    ['尝试 ID', normalize(row.attemptId || '未记录')],
+    ['队列 ID', shortCrawlerIdentity(row.queueId)],
+    ['尝试 ID', shortCrawlerIdentity(row.attemptId)],
     ['状态版本', row.stateVersion == null ? '未记录' : String(row.stateVersion)],
-    ['状态存储 epoch', normalize(row.stateStoreEpoch || '未记录')],
+    ['状态存储 epoch', shortCrawlerIdentity(row.stateStoreEpoch)],
     ['截止时间', displayTime(row.deadlineAt) || '未记录'],
     ['原因码', normalize(row.reasonCode || '无')],
     ['日志状态', row.log ? v2LogAvailabilityLabel(row.log.availability) : '未返回日志元数据'],
@@ -1140,7 +1206,8 @@ export function buildDomainDetailViewModel({
       nextActionLabel: normalize(row.nextActionLabel || '查看详情'),
     },
     overviewFields: [
-      ['当前状态', normalize(row.diagnosisTitle) || crawlerStatusDisplayLabel(rowStatus(row))],
+      ['当前状态', normalize(row.currentStatusLabel || row.diagnosisTitle) || crawlerStatusDisplayLabel(rowStatus(row))],
+      ['上次结果', normalize(row.latestResultLabel || '暂无历史结果')],
       ['进度', normalize(row.progressLabel || '--')],
       ['数据新鲜度', normalize(row.sourceSummary || '未记录')],
       ...v2OverviewFields.slice(0, 1),
@@ -1154,8 +1221,11 @@ export function buildDomainDetailViewModel({
       ['动作ID', actionId || '未记录'],
       ['执行逻辑', actionExecutionLabel(row)],
       ['任务记录', normalize(row.queueSummary) || (row.queueId || row.dispatchId ? '队列记录' : '无队列')],
-      ['上次运行结果', normalize(row.reason || row.rankReason || '暂无')],
     ].map(([label, value]) => ({ label, value })),
+    operations: Array.isArray(row.operations) ? row.operations : [],
+    currentStatusLabel: normalize(row.currentStatusLabel) || crawlerStatusDisplayLabel(rowStatus(row)),
+    latestResult: row.latestResult || null,
+    latestResultLabel: normalize(row.latestResultLabel || '暂无历史结果'),
     taskHistory,
     queueItems,
     artifacts,

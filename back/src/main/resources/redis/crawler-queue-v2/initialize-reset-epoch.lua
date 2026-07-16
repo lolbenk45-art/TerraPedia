@@ -64,7 +64,7 @@ end
 
 local engine = redis.call('GET', KEYS[1])
 if engine == 'v1' then return cjson.encode({code = 'ENGINE_IS_V1'}) end
-if engine ~= 'v2' and engine ~= 'maintenance' then
+if engine and engine ~= 'v2' and engine ~= 'maintenance' then
   return cjson.encode({code = 'STATE_STORE_INCONSISTENT'})
 end
 

@@ -83,12 +83,43 @@ public class CrawlerAttemptSupervisor {
         this.router = Objects.requireNonNull(router, "router");
     }
 
-    public CrawlerQueueV2Attempt start(CrawlerQueueV2Attempt attempt) {
+    public StartResult start(CrawlerQueueV2Attempt attempt) {
         requireAttempt(attempt);
         return withAttemptLock(attempt.attemptId(), () -> startSerialized(attempt));
     }
 
-    private CrawlerQueueV2Attempt startSerialized(CrawlerQueueV2Attempt attempt) {
+    public boolean recoverExactProcess(CrawlerQueueV2Attempt attempt, boolean requirePaused) {
+        requireAttempt(attempt);
+        return withAttemptLock(attempt.attemptId(), () -> {
+            CrawlerQueueV2Attempt current = requireCurrentSnapshot(attempt, attempt.status());
+            CrawlerAttemptProcessLauncher.ProcessLookup lookup = resolveExactProcess(current);
+            if (lookup.code() != CrawlerAttemptProcessLauncher.LookupCode.FOUND) {
+                return false;
+            }
+            CrawlerAttemptProcessLauncher.ManagedProcess process = lookup.process();
+            if (launcher.isPaused(process) != requirePaused) {
+                return false;
+            }
+            CrawlerAttemptProcessLauncher.ManagedProcess prior = processes.putIfAbsent(
+                current.attemptId(), process
+            );
+            if (prior != null && prior != process) {
+                return false;
+            }
+            if (prior == null) {
+                LaunchIdentity identity = new LaunchIdentity(
+                    current.stateStoreEpoch(), current.queueId(), current.attemptId(), current.fenceToken(),
+                    current.pid(), current.processStartedAt()
+                );
+                process.handle().onExit().whenComplete((ignored, watcherFailure) ->
+                    watchProcessExit(identity, process, watcherFailure)
+                );
+            }
+            return true;
+        });
+    }
+
+    private StartResult startSerialized(CrawlerQueueV2Attempt attempt) {
             CrawlerQueueV2Attempt current = requireCurrentSnapshot(
                 attempt,
                 CrawlerQueueV2Status.STARTING
@@ -96,15 +127,26 @@ public class CrawlerAttemptSupervisor {
             if (current.pid() != null || current.processStartedAt() != null) {
                 throw new IllegalStateException("STARTING attempt 已记录进程身份：" + current.attemptId());
             }
-            CrawlerMonitorActionDefinition definition = resolveLaunchAction(current);
-            requireExactManifest(current);
-            resolveAttemptPath(current, current.artifacts().progressPath());
-            Path logPath = resolveAttemptPath(current, current.artifacts().logPath());
-            List<String> command = new ArrayList<>(definition.renderCommand(
-                launchArtifactPath(current.artifacts().reportPath()),
-                launchArtifactPath(current.artifacts().progressPath())
-            ));
-            Map<String, String> environment = launchEnvironment(current);
+            CrawlerMonitorActionDefinition definition;
+            Path logPath;
+            List<String> command;
+            Map<String, String> environment;
+            try {
+                definition = resolveLaunchAction(current);
+                requireExactManifest(current);
+                resolveAttemptPath(current, current.artifacts().progressPath());
+                logPath = resolveAttemptPath(current, current.artifacts().logPath());
+                CrawlerQueueV2Queue queue = repository.findQueue(current.queueId())
+                    .orElseThrow(() -> new IllegalStateException("V2 queue 不存在：" + current.queueId()));
+                command = new ArrayList<>(definition.renderCommand(
+                    launchArtifactPath(current.artifacts().reportPath()),
+                    launchArtifactPath(current.artifacts().progressPath()),
+                    effectiveResumeMode(current, queue, definition)
+                ));
+                environment = launchEnvironment(current);
+            } catch (RuntimeException exception) {
+                return terminalizeStartFailure(current, "launch validation failed", exception);
+            }
             CrawlerAttemptProcessLauncher.ManagedProcess process;
             try {
                 process = launcher.launch(new CrawlerAttemptProcessLauncher.LaunchSpec(
@@ -114,20 +156,19 @@ public class CrawlerAttemptSupervisor {
                     logPath
                 ));
             } catch (CrawlerAttemptProcessLauncher.LaunchFailureException exception) {
+                IllegalStateException failure = new IllegalStateException(exception.getMessage(), exception);
+                if (exception.cleanupConfirmed()) {
+                    return terminalizeStartFailure(current, "process launch failed", failure);
+                }
                 compensatePreReturnLaunchFailure(current, exception);
-                throw new IllegalStateException(
-                    "启动 crawler attempt 进程失败：" + current.attemptId(),
-                    exception
-                );
+                throw startFailure(current, failure);
             } catch (IOException exception) {
-                throw new IllegalStateException(
-                    "启动 crawler attempt 进程失败：" + current.attemptId(),
-                    exception
-                );
+                return terminalizeStartFailure(current, "process launch failed", exception);
             }
             if (process.startedAt() == null || process.pid() < 1L) {
-                cleanupStoppedLaunch(process, current.attemptId(), null);
-                throw new IllegalStateException("crawler attempt 进程缺少精确身份：" + current.attemptId());
+                IllegalStateException failure = new IllegalStateException("crawler process identity missing");
+                cleanupStoppedLaunch(process, current.attemptId(), failure);
+                return terminalizeStartFailure(current, "process launch failed", failure);
             }
             LaunchIdentity launchIdentity = new LaunchIdentity(
                 current.stateStoreEpoch(),
@@ -177,12 +218,73 @@ public class CrawlerAttemptSupervisor {
                         "启动已登记 crawler process 失败：" + current.attemptId()
                     );
                 }
-                return recorded;
+                return new StartResult(recorded, true, false);
             } catch (RuntimeException exception) {
                 processes.remove(current.attemptId(), process);
-                compensatePostCasLaunchFailure(recorded, process, exception);
+                CrawlerQueueV2Attempt failed = compensatePostCasLaunchFailure(recorded, process, exception);
+                if (failed != null
+                    && failed.reasonCode() == CrawlerQueueV2ReasonCode.ATTEMPT_START_FAILED) {
+                    return new StartResult(failed, false, true);
+                }
                 throw exception;
             }
+    }
+
+    private StartResult terminalizeStartFailure(
+        CrawlerQueueV2Attempt current,
+        String stage,
+        RuntimeException failure
+    ) {
+        CrawlerQueueV2Attempt failed = mutate(
+            current,
+            CrawlerQueueV2Status.FAILED,
+            CrawlerQueueV2ReasonCode.ATTEMPT_START_FAILED,
+            null,
+            current.lastHeartbeatAt(),
+            null,
+            null,
+            null,
+            null,
+            boundedStartFailureMessage(stage, failure),
+            null,
+            null,
+            true,
+            null,
+            "attempt.transitioned"
+        );
+        try {
+            writeManifest(failed, null);
+        } catch (RuntimeException manifestFailure) {
+            failure.addSuppressed(manifestFailure);
+        }
+        return new StartResult(failed, false, true);
+    }
+
+    private StartResult terminalizeStartFailure(
+        CrawlerQueueV2Attempt current,
+        String stage,
+        IOException failure
+    ) {
+        return terminalizeStartFailure(current, stage, new IllegalStateException(failure.getMessage(), failure));
+    }
+
+    private IllegalStateException startFailure(
+        CrawlerQueueV2Attempt current,
+        RuntimeException failure
+    ) {
+        return new IllegalStateException(
+            "启动 crawler attempt 进程失败：" + current.attemptId(),
+            failure
+        );
+    }
+
+    private String boundedStartFailureMessage(String stage, Throwable failure) {
+        String detail = failure.getMessage();
+        if (detail == null || detail.isBlank()) {
+            detail = failure.getClass().getSimpleName();
+        }
+        String message = stage + ": " + detail.replaceAll("[\\r\\n\\t]+", " ").trim();
+        return message.length() <= 240 ? message : message.substring(0, 240);
     }
 
     public ProgressResult ingestProgress(CrawlerQueueV2Attempt attempt) {
@@ -271,6 +373,25 @@ public class CrawlerAttemptSupervisor {
             return CrawlerMonitorActionRegistry.fixture();
         }
         return actionRegistry.require(attempt.domain(), attempt.actionId());
+    }
+
+    private String effectiveResumeMode(
+        CrawlerQueueV2Attempt attempt,
+        CrawlerQueueV2Queue queue,
+        CrawlerMonitorActionDefinition definition
+    ) {
+        if (attempt.retryOfAttemptId() != null) {
+            return definition.resumeSupported() ? "auto" : "fresh";
+        }
+        String dedupeKey = queue.dedupeKey();
+        int separator = dedupeKey == null ? -1 : dedupeKey.lastIndexOf(':');
+        if (separator >= 0 && separator + 1 < dedupeKey.length()) {
+            String persistedMode = dedupeKey.substring(separator + 1);
+            if (List.of("fresh", "resume", "auto").contains(persistedMode)) {
+                return persistedMode;
+            }
+        }
+        return definition.defaultResumeMode();
     }
 
     private CrawlerQueueV2Attempt mutateProgress(
@@ -435,6 +556,94 @@ public class CrawlerAttemptSupervisor {
     public CrawlerQueueV2Attempt cancel(CrawlerQueueV2Attempt attempt) {
         requireAttempt(attempt);
         return withAttemptLock(attempt.attemptId(), () -> cancelSerialized(attempt));
+    }
+
+    public CrawlerQueueV2Attempt handleLeaseRenewalFailure(CrawlerQueueV2Attempt attempt) {
+        requireAttempt(attempt);
+        return withAttemptLock(attempt.attemptId(), () -> handleLeaseRenewalFailureSerialized(attempt));
+    }
+
+    private CrawlerQueueV2Attempt handleLeaseRenewalFailureSerialized(CrawlerQueueV2Attempt attempt) {
+        CrawlerQueueV2Attempt current = loadCurrentAttempt(attempt.attemptId());
+        if (!sameSnapshotIdentity(attempt, current) || current.status().terminal()) {
+            throw new IllegalStateException("crawler attempt lease failure authority 已漂移：" + attempt.attemptId());
+        }
+        if (current.status() == CrawlerQueueV2Status.CANCEL_REQUESTED) {
+            return cancelSerialized(current);
+        }
+        CrawlerQueueV2Attempt stalled = current;
+        if (current.status() != CrawlerQueueV2Status.STALLED) {
+            stateMachine.requireValidTransition(current.status(), CrawlerQueueV2Status.STALLED);
+            Instant stalledAt = clock.instant();
+            stalled = mutate(
+                current,
+                CrawlerQueueV2Status.STALLED,
+                CrawlerQueueV2ReasonCode.LEASE_RENEW_FAILED,
+                stateMachine.deadlineFor(
+                    CrawlerQueueV2Status.STALLED,
+                    stalledAt,
+                    current.lastHeartbeatAt(),
+                    current.eligibleAt()
+                ),
+                current.lastHeartbeatAt(),
+                null,
+                null,
+                null,
+                null,
+                "domain lease renewal failed",
+                null,
+                null,
+                false,
+                null,
+                "attempt.transitioned"
+            );
+        }
+        CrawlerAttemptProcessLauncher.ProcessLookup lookup = resolveExactProcess(stalled);
+        boolean terminationConfirmed = lookup.code() == CrawlerAttemptProcessLauncher.LookupCode.NOT_FOUND
+            || lookup.code() == CrawlerAttemptProcessLauncher.LookupCode.START_TIME_MISMATCH;
+        if (lookup.code() == CrawlerAttemptProcessLauncher.LookupCode.FOUND) {
+            terminationConfirmed = terminateFailedLaunch(lookup.process());
+        }
+        if (!terminationConfirmed) {
+            quarantineDomains(stalled, CrawlerQueueV2ReasonCode.PROCESS_TERMINATION_UNCONFIRMED);
+        }
+        CrawlerQueueV2Attempt failed = mutate(
+            stalled,
+            CrawlerQueueV2Status.FAILED,
+            terminationConfirmed
+                ? CrawlerQueueV2ReasonCode.LEASE_RENEW_FAILED
+                : CrawlerQueueV2ReasonCode.PROCESS_TERMINATION_UNCONFIRMED,
+            null,
+            stalled.lastHeartbeatAt(),
+            null,
+            null,
+            null,
+            null,
+            terminationConfirmed ? "domain lease renewal failed" : "lease lost; process termination unconfirmed",
+            null,
+            null,
+            true,
+            null,
+            "attempt.transitioned"
+        );
+        processes.remove(stalled.attemptId());
+        writeManifest(failed, null);
+        return failed;
+    }
+
+    private void quarantineDomains(CrawlerQueueV2Attempt attempt, CrawlerQueueV2ReasonCode reasonCode) {
+        Instant expiresAt = clock.instant().plus(properties.getUnconfirmedProcessIsolation());
+        for (String domain : attempt.coveredDomains()) {
+            repository.writeQuarantine(new CrawlerQueueV2Repository.QuarantineCommand(
+                attempt.stateStoreEpoch(),
+                domain,
+                attempt.queueId(),
+                attempt.attemptId(),
+                attempt.fenceToken(),
+                expiresAt,
+                reasonCode
+            ));
+        }
     }
 
     private CrawlerQueueV2Attempt cancelSerialized(CrawlerQueueV2Attempt attempt) {
@@ -688,31 +897,67 @@ public class CrawlerAttemptSupervisor {
             transitionTerminationUnconfirmed(attempt);
             return;
         }
-        int exitCode = process.exitValue();
-        CrawlerQueueV2Status target = exitCode == 0
+        boolean exitCodeAvailable = process.exitCodeAvailable();
+        Integer exitCode = exitCodeAvailable ? process.exitValue() : null;
+        CrawlerQueueV2ReasonCode exitReason = exitCodeAvailable
+            ? null
+            : CrawlerQueueV2ReasonCode.PROCESS_EXIT_CODE_UNAVAILABLE;
+        CrawlerQueueV2Status target = exitCode != null && exitCode == 0
             ? CrawlerQueueV2Status.COMPLETED
             : CrawlerQueueV2Status.FAILED;
         if (!stateMachine.canTransition(attempt.status(), target)) {
             return;
         }
+        CrawlerAttemptProgressPayload progress = readTerminalProgress(attempt, exitCode).orElse(null);
         CrawlerQueueV2Attempt terminal = mutate(
             attempt,
             target,
-            exitCode == 0 ? null : CrawlerQueueV2ReasonCode.PROCESS_EXIT_NONZERO,
+            exitReason != null
+                ? exitReason
+                : exitCode == 0 ? null : CrawlerQueueV2ReasonCode.PROCESS_EXIT_NONZERO,
             null,
-            attempt.lastHeartbeatAt(),
-            null,
-            null,
-            null,
-            null,
-            null,
+            progress == null ? attempt.lastHeartbeatAt() : progress.lastHeartbeatAt(),
+            progress == null ? null : progress.progressSequence(),
+            progress == null ? null : progress.phase(),
+            progress == null ? null : progress.current(),
+            progress == null ? null : progress.total(),
+            progress == null ? null : progress.message(),
             null,
             null,
             true,
             null,
-            "attempt.transitioned"
+            "attempt.transitioned",
+            progress == null ? null : progress.reportPath(),
+            progress == null ? null : progress.outputPath()
         );
         writeManifest(terminal, exitCode);
+    }
+
+    private Optional<CrawlerAttemptProgressPayload> readTerminalProgress(
+        CrawlerQueueV2Attempt attempt,
+        Integer exitCode
+    ) {
+        Optional<CrawlerAttemptProgressPayload> progress;
+        try {
+            progress = artifactStore.readProgress(attempt.attemptId());
+        } catch (RuntimeException exception) {
+            return Optional.empty();
+        }
+        if (progress.isEmpty()) {
+            return Optional.empty();
+        }
+        CrawlerAttemptProgressPayload payload = progress.orElseThrow();
+        boolean statusMatchesExit = exitCode != null && exitCode == 0
+            ? "completed".equalsIgnoreCase(payload.status())
+            : "failed".equalsIgnoreCase(payload.status());
+        if (!validPayload(payload)
+            || !progressIdentityMatches(attempt, payload)
+            || !Objects.equals(attempt.actionId(), payload.actionId())
+            || payload.progressSequence() <= attempt.progressSequence()
+            || !statusMatchesExit) {
+            return Optional.empty();
+        }
+        return Optional.of(payload);
     }
 
     private void appendWatcherFailureEvent(LaunchIdentity identity) {
@@ -850,7 +1095,7 @@ public class CrawlerAttemptSupervisor {
         throw unconfirmed;
     }
 
-    private void compensatePostCasLaunchFailure(
+    private CrawlerQueueV2Attempt compensatePostCasLaunchFailure(
         CrawlerQueueV2Attempt recorded,
         CrawlerAttemptProcessLauncher.ManagedProcess process,
         RuntimeException originalFailure
@@ -859,20 +1104,22 @@ public class CrawlerAttemptSupervisor {
         CrawlerQueueV2Attempt authority = recorded;
         for (int mutationAttempt = 0; mutationAttempt < 2; mutationAttempt++) {
             if (!sameLaunchCompensationAuthority(recorded, authority)) {
-                return;
+                return null;
             }
             try {
                 CrawlerQueueV2Attempt failed = mutate(
                     authority,
                     CrawlerQueueV2Status.FAILED,
-                    exitConfirmed ? null : CrawlerQueueV2ReasonCode.PROCESS_TERMINATION_UNCONFIRMED,
+                    exitConfirmed
+                        ? CrawlerQueueV2ReasonCode.ATTEMPT_START_FAILED
+                        : CrawlerQueueV2ReasonCode.PROCESS_TERMINATION_UNCONFIRMED,
                     null,
                     authority.lastHeartbeatAt(),
                     null,
                     null,
                     null,
                     null,
-                    null,
+                    boundedStartFailureMessage("post-registration start failed", originalFailure),
                     null,
                     null,
                     exitConfirmed,
@@ -880,27 +1127,28 @@ public class CrawlerAttemptSupervisor {
                     "attempt.transitioned"
                 );
                 writeManifest(failed, null);
-                return;
+                return failed;
             } catch (CrawlerQueueV2Exception compensationFailure) {
                 if (compensationFailure.reasonCode() != CrawlerQueueV2ReasonCode.STALE_STATE_VERSION
                     || mutationAttempt > 0) {
                     originalFailure.addSuppressed(compensationFailure);
-                    return;
+                    return null;
                 }
                 try {
                     authority = repository.findAttempt(recorded.attemptId()).orElse(null);
                 } catch (RuntimeException reloadFailure) {
                     originalFailure.addSuppressed(reloadFailure);
-                    return;
+                    return null;
                 }
                 if (authority == null) {
-                    return;
+                    return null;
                 }
             } catch (RuntimeException compensationFailure) {
                 originalFailure.addSuppressed(compensationFailure);
-                return;
+                return null;
             }
         }
+        return null;
     }
 
     private boolean sameLaunchCompensationAuthority(
@@ -954,7 +1202,7 @@ public class CrawlerAttemptSupervisor {
                 authority,
                 CrawlerQueueV2Status.FAILED,
                 launchFailure.cleanupConfirmed()
-                    ? null
+                    ? CrawlerQueueV2ReasonCode.ATTEMPT_START_FAILED
                     : CrawlerQueueV2ReasonCode.PROCESS_TERMINATION_UNCONFIRMED,
                 null,
                 authority.lastHeartbeatAt(),
@@ -962,7 +1210,7 @@ public class CrawlerAttemptSupervisor {
                 null,
                 null,
                 null,
-                null,
+                boundedStartFailureMessage("process launch failed", launchFailure),
                 null,
                 null,
                 launchFailure.cleanupConfirmed(),
@@ -1038,6 +1286,33 @@ public class CrawlerAttemptSupervisor {
         java.time.Duration retainedOwnershipTtl,
         String eventType
     ) {
+        return mutate(
+            attempt, targetStatus, reasonCode, deadlineAt, lastHeartbeatAt,
+            progressSequence, phase, current, total, workerMessage, pid,
+            processStartedAt, releaseOwnership, retainedOwnershipTtl, eventType,
+            null, null
+        );
+    }
+
+    private CrawlerQueueV2Attempt mutate(
+        CrawlerQueueV2Attempt attempt,
+        CrawlerQueueV2Status targetStatus,
+        CrawlerQueueV2ReasonCode reasonCode,
+        Instant deadlineAt,
+        Instant lastHeartbeatAt,
+        Long progressSequence,
+        String phase,
+        Long current,
+        Long total,
+        String workerMessage,
+        Long pid,
+        Instant processStartedAt,
+        boolean releaseOwnership,
+        java.time.Duration retainedOwnershipTtl,
+        String eventType,
+        String reportPath,
+        String outputPath
+    ) {
         CrawlerQueueV2Queue queue = repository.findQueue(attempt.queueId())
             .orElseThrow(() -> new IllegalStateException("V2 queue 不存在：" + attempt.queueId()));
         return repository.mutate(new CrawlerQueueV2Repository.MutationCommand(
@@ -1063,7 +1338,9 @@ public class CrawlerAttemptSupervisor {
             processStartedAt,
             releaseOwnership,
             retainedOwnershipTtl,
-            eventType
+            eventType,
+            reportPath,
+            outputPath
         )).attempt();
     }
 
@@ -1122,8 +1399,8 @@ public class CrawlerAttemptSupervisor {
                 existing.contractVersion(), existing.stateStoreEpoch(), existing.queueId(), existing.attemptId(),
                 attempt.fenceToken(), existing.domain(), existing.actionId(), attempt.status(), attempt.startedAt(),
                 attempt.completedAt(), attempt.reasonCode(), exitCode == null ? existing.exitCode() : exitCode,
-                attempt.pid(), attempt.processStartedAt(), existing.progressPath(), existing.logPath(),
-                existing.reportPath(), existing.outputPath(),
+                attempt.pid(), attempt.processStartedAt(), attempt.artifacts().progressPath(),
+                attempt.artifacts().logPath(), attempt.artifacts().reportPath(), attempt.artifacts().outputPath(),
                 existing.retentionExpiresAt(), existing.artifactsExpiredAt(), existing.cleanedAt(),
                 existing.cleanedBy(), existing.cleanedPaths()
             ))
@@ -1151,6 +1428,12 @@ public class CrawlerAttemptSupervisor {
     }
 
     public record ProgressResult(ProgressCode code, CrawlerQueueV2Attempt attempt) {}
+
+    public record StartResult(
+        CrawlerQueueV2Attempt attempt,
+        boolean started,
+        boolean terminalized
+    ) {}
 
     public enum TerminationCode {
         CONFIRMED,

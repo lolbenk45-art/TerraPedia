@@ -12,6 +12,7 @@ function read(relativePath) {
 }
 
 const page = read('pages/operations/crawler-monitor.vue')
+const monitorTestPage = read('pages/operations/crawler-monitor-test.vue')
 const triageBoard = read('components/crawler-monitor/CrawlerTriageBoard.vue')
 const queueHealthBanner = read('components/crawler-monitor/CrawlerQueueHealthBanner.vue')
 const domainDrawer = read('components/crawler-monitor/DomainDetailDrawer.vue')
@@ -115,6 +116,11 @@ test('triage board keeps queue visibility and KPI navigation available during at
   assert.match(page, /activeQueueCount:\s*v2State\.value \? v2AttemptRows\.value\.length : activeDispatchQueueRows\.value\.length/)
 })
 
+test('triage board includes idle V2 domains in the normal filter', () => {
+  assert.match(triageBoard, /\['healthy', 'idle'\]\.includes\(status\)/)
+  assert.match(triageBoard, /status-pill\.idle/)
+})
+
 test('V2 domain selection does not collapse idle domains into one unknown key', () => {
   assert.match(page, /if \(row\?\.v2Attempt\) return crawlerV2DomainSelectionKey\(row\)/)
   assert.doesNotMatch(page, /crawlerV2DomainSelectionKey\(row\) \|\| 'v2-domain:unknown'/)
@@ -207,6 +213,14 @@ test('triage board has distinct visual states for queued running and ready tiles
   }
 })
 
+test('triage board styles every active and recoverable V2 lifecycle without overflowing tiles', () => {
+  for (const state of ['starting', 'running', 'paused', 'queued', 'retry_wait', 'pause_requested', 'cancel_requested', 'timed_out']) {
+    assert.match(triageBoard, new RegExp(`domain-tile--${state.replace('_', '\\_')}`))
+  }
+  assert.match(triageBoard, /overflow-wrap:\s*anywhere/)
+  assert.match(triageBoard, /min-width:\s*0/)
+})
+
 test('triage board shows crawler action mode on attention cards tiles and table rows', () => {
   assert.match(triageBoard, /<dt>任务模式<\/dt>/)
   assert.match(triageBoard, /row\.taskLabel \|\| '未记录'/)
@@ -230,6 +244,114 @@ test('V2 monitor uses authenticated fetch SSE, visible health, and a fixed three
   assert.match(page, /V2_FALLBACK_INTERVAL_MS\s*=\s*3000/)
   assert.match(page, /CrawlerQueueHealthBanner/)
   assert.doesNotMatch(page, /\bEventSource\b/)
+})
+
+test('V2 idle domains start through the dedicated domain endpoint', () => {
+  assert.match(page, /const allowedActions = Array\.isArray\(domainState\?\.allowedActions\)/)
+  assert.match(page, /`\/admin\/crawler-monitor\/domains\/\$\{encodeURIComponent\(domainId\)\}\/start`/)
+  assert.doesNotMatch(page, /startDomainTableRow[\s\S]{0,800}\{ resumeMode: 'fresh' \}/)
+  const handler = page.slice(page.indexOf('function handleDomainBoardAction'), page.indexOf('async function controlV2Attempt'))
+  assert.ok(handler.indexOf("if (action === 'start')") < handler.indexOf('if (row.v2Attempt)'))
+})
+
+test('operation semantics UI shows real catalog preflight and separates current from last result', () => {
+  assert.match(page, /title: '数据采集与同步'/)
+  assert.match(page, /groupOperationCatalog/)
+  assert.match(page, /pendingOperation/)
+  assert.match(page, /执行摘要/)
+  assert.match(page, /当前状态/)
+  assert.match(page, /上次结果/)
+  assert.match(page, /operationId:\s*operation\.operationId/)
+  assert.match(page, /resumeMode:\s*'fresh'/)
+  assert.match(page, /confirmed:\s*operation\.confirmationLevel === 'destructive'/)
+  assert.match(page, /destructiveConfirmed/)
+  assert.match(page, /强制重抓或数据库写入属于高风险操作/)
+  assert.match(page, /短任务，可能在刷新前完成/)
+  assert.match(page, /脚本未提供/)
+  assert.doesNotMatch(page, /const displayedAttempt = attempt \|\| latestV2TerminalAttemptByDomain/)
+})
+
+test('domain cards and table show current status beside the latest terminal result', () => {
+  assert.match(triageBoard, /class="domain-tile__state-pair"/)
+  assert.match(triageBoard, /<dt>当前状态<\/dt>/)
+  assert.match(triageBoard, /row\.currentStatusLabel/)
+  assert.match(triageBoard, /<dt>上次结果<\/dt>/)
+  assert.match(triageBoard, /row\.latestResultLabel/)
+  assert.match(triageBoard, /<th>当前状态<\/th>/)
+  assert.match(triageBoard, /<th>上次结果<\/th>/)
+  assert.match(triageBoard, /\.domain-table\s*\{[\s\S]*min-width:\s*1180px/)
+})
+
+test('operation catalog renders all four backend-owned groups and truthful pause capability', () => {
+  assert.match(domainDrawer, /operationGroups/)
+  assert.match(domainDrawer, /检查同步/)
+  assert.match(domainDrawer, /直接抓取/)
+  assert.match(domainDrawer, /数据处理与入库/)
+  assert.match(domainDrawer, /数据回填与差异检查/)
+  assert.match(domainDrawer, /暂停任务/)
+  assert.match(domainDrawer, /任务运行后可暂停/)
+  assert.match(domainDrawer, /:disabled="!canPauseOperation/)
+  assert.match(domainDrawer, /aria-describedby/)
+  assert.match(domainDrawer, /min-height:\s*44px/)
+  assert.match(domainDrawer, /overflow-wrap:\s*anywhere/)
+  assert.match(domainDrawer, /min-width:\s*0/)
+  assert.doesNotMatch(domainDrawer, /重新排队/)
+})
+
+test('main monitor page renders the complete four-group operation catalog', () => {
+  assert.match(page, /class="operation-catalog"/)
+  assert.match(page, /v-for="group in operationGroups"/)
+  assert.match(page, /v-for="operation in group\.operations"/)
+  assert.match(page, /operationCatalogCount/)
+  assert.match(page, /openCatalogOperationPreflight\(operation\)/)
+  assert.match(page, /:disabled="!canStartCatalogOperation\(operation\)"/)
+  assert.match(page, /catalogOperationDisabledReason\(operation\)/)
+  assert.match(page, /min-height:\s*44px/)
+  assert.match(page, /overflow-wrap:\s*anywhere/)
+  for (const label of ['检查同步', '直接抓取', '数据处理与入库', '数据回填与差异检查']) {
+    assert.match(page, new RegExp(label))
+  }
+})
+
+test('operation catalog disables starts while the domain is not startable and explains why', () => {
+  assert.match(page, /startAllowed:\s*allowedActions\.includes\('start'\)/)
+  assert.match(domainDrawer, /:disabled="!canStartOperation\(operation\)/)
+  assert.match(domainDrawer, /:aria-describedby="operationStartDescriptionId\(operation\)"/)
+  assert.match(domainDrawer, /operationStartDisabledReason\(operation\)/)
+  assert.match(domainDrawer, /当前域已有任务，需等待结束或先处理当前任务/)
+  assert.match(domainDrawer, /当前状态不允许开始新任务/)
+})
+
+test('terminal attempt history shows planned actual skipped and failed result counts', () => {
+  assert.match(domainDrawer, /class="timeline-result"/)
+  assert.match(domainDrawer, /<dt>计划<\/dt>/)
+  assert.match(domainDrawer, /item\.result\?\.plannedCount/)
+  assert.match(domainDrawer, /<dt>实际<\/dt>/)
+  assert.match(domainDrawer, /item\.result\?\.actualCount/)
+  assert.match(domainDrawer, /<dt>跳过<\/dt>/)
+  assert.match(domainDrawer, /item\.result\?\.skippedCount/)
+  assert.match(domainDrawer, /<dt>失败<\/dt>/)
+  assert.match(domainDrawer, /item\.result\?\.failedCount/)
+  assert.match(domainDrawer, /item\.plan\?\.labelZh/)
+  assert.match(domainDrawer, /resultKindLabel\(item\.result\?\.resultKind\)/)
+  assert.match(domainDrawer, /resumeOutcomeLabel\(item\.result\?\.resumeOutcome\)/)
+})
+
+test('V2 terminal history routes retry and cleanup through exact attempt control', () => {
+  assert.match(page, /latestActionableV2AttemptByDomain/)
+  assert.match(page, /allowedActions:\s*controlAttempt\?\.allowedActions/)
+  assert.match(page, /const controlAttempt = actionableAttempt\s*\?\s*\{\s*\.\.\.actionableAttempt,\s*v2Attempt:\s*true\s*\}\s*:\s*null/)
+  assert.match(page, /controlV2Attempt\(row\?\.controlAttempt \|\| row, action\)/)
+  assert.match(page, /history-domain-action/)
+})
+
+test('V2 idle overview keeps latest terminal evidence separate from idle baseline fields', () => {
+  assert.match(page, /latestV2TerminalAttemptByDomain/)
+  assert.match(page, /latestResult/)
+  assert.match(page, /currentStatusLabel/)
+  assert.match(page, /latestResultLabel/)
+  assert.doesNotMatch(page, /displayedAttempt\?\.current \?\? domainState\.current/)
+  assert.doesNotMatch(page, /displayedAttempt\?\.phase \|\| domainState\.phase/)
 })
 
 test('V2 stream handling preserves normal event cursors and replaces them only for explicit recovery cursors', () => {
@@ -314,6 +436,21 @@ test('V2 operation rows use a bounded identity and timing layout without overflo
   assert.match(triageBoard, /\.operation-row__v2-meta small\s*\{[\s\S]*overflow:\s*hidden[\s\S]*text-overflow:\s*ellipsis/)
   assert.match(triageBoard, /operation-row__identity[^\n]*:title=/)
   assert.match(triageBoard, /operation-row__timing[^\n]*:title=/)
+  assert.doesNotMatch(triageBoard, /queueId \$\{row\.queueId\}/)
+  assert.doesNotMatch(triageBoard, /attemptId \$\{row\.attemptId\}/)
+  assert.match(domainDrawer, /shortCrawlerIdentity\(item\.stateStoreEpoch\)/)
+  assert.match(page, /queueSummary: attempt \? `队列 \$\{shortCrawlerIdentity\(attempt\.queueId\)\} · 尝试 \$\{shortCrawlerIdentity\(attempt\.attemptId\)\}`/)
+})
+
+test('crawler monitor test workspace also shortens visible queue and dispatch identities', () => {
+  assert.match(monitorTestPage, /import \{ shortCrawlerIdentity \} from '~\/utils\/crawlerMonitorTriageWorkbench\.mjs'/)
+  assert.match(monitorTestPage, /\{\{ shortCrawlerIdentity\(row\.queueId\) \}\}/)
+  assert.match(monitorTestPage, /任务 \{\{ shortCrawlerIdentity\(domainSmokeResult\.dispatchId\) \}\}/)
+  assert.match(monitorTestPage, /row\.label \|\| row\.domain \|\| shortCrawlerIdentity\(row\.queueId\)/)
+  assert.doesNotMatch(monitorTestPage, /\{\{ row\.queueId \|\| '--' \}\}/)
+  assert.match(page, /shortCrawlerIdentity\(blockedQueue\.queueId\)/)
+  assert.match(page, /shortCrawlerIdentity\(item\.blockedByDispatchId\)/)
+  assert.match(page, /shortCrawlerIdentity\(row\?\.queueId \|\| row\?\.dispatchId\)/)
 })
 
 test('V2 stream authorization failures stay visible with accessible relogin guidance', () => {

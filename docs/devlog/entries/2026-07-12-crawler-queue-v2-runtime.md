@@ -2,7 +2,7 @@
 
 ## Status
 
-`closed` — commit SHA pending in final response
+`closed`
 
 ## Context
 
@@ -861,6 +861,7 @@
 
 ## Commits
 
+- `0bad80d` `docs(crawler): record V2 queue cutover`
 - `591101e` `docs(crawler): define idle queue visibility contract`
 - `2ecc179` `fix(crawler-monitor): show idle and queue state clearly`
 - `99b5cdd` `feat(crawler): add isolated V2 queue namespace`

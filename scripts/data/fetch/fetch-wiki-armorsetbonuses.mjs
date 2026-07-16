@@ -14,6 +14,8 @@ import { getProjectRoot } from '../lib/project-root.mjs';
 import { advanceWikiIngestionManifestForSource } from '../lib/wiki-sync-manifest.mjs';
 import {
   buildActionProgressPayload,
+  buildCrawlerWorkSummary,
+  createCrawlerProgressHeartbeat,
   writeJsonFile
 } from '../workflow/backend-refresh-runtime-state.mjs';
 
@@ -31,8 +33,9 @@ const defaultProgressPath = path.join(root, 'data', 'generated', 'domain-source-
 const progressPath = path.resolve(process.cwd(), options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? defaultProgressPath);
 const manifestPath = options['manifest-path'] ? path.resolve(process.cwd(), options['manifest-path']) : null;
 const startedAt = new Date().toISOString();
+const progressHeartbeat = createCrawlerProgressHeartbeat({ writeProgress });
 
-writeProgress({
+progressHeartbeat.publish({
   status: 'running',
   phase: 'fetch',
   message: 'fetching Module:ArmorSetBonuses',
@@ -139,7 +142,7 @@ try {
       manifestPath
     });
   }
-  writeProgress({
+  progressHeartbeat.publish({
     status: 'completed',
     phase: 'write',
     message: `finished Module:ArmorSetBonuses fetch; records=${records.length}`,
@@ -151,7 +154,7 @@ try {
   });
   console.log(JSON.stringify(report, null, 2));
 } catch (error) {
-  writeProgress({
+  progressHeartbeat.publish({
     status: 'failed',
     phase: 'error',
     message: error instanceof Error ? error.message : String(error),
@@ -161,11 +164,19 @@ try {
     nextStep: 'check Module:ArmorSetBonuses wiki source availability'
   });
   throw error;
+} finally {
+  progressHeartbeat.stop();
 }
 
 function writeProgress(progress) {
   const generatedAt = progress.generatedAt ?? new Date().toISOString();
   writeJsonFile(progressPath, buildActionProgressPayload({
+    ...buildCrawlerWorkSummary({
+      status: progress.status,
+      current: progress.current,
+      total: progress.total,
+      estimatedRequests: 1
+    }),
     ...progress,
     actionId,
     generatedAt,

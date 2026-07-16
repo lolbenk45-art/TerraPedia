@@ -48,8 +48,21 @@ test('armorsetbonuses fetch writes progress and finalizes ingestion manifest aft
   assert.equal(progress.actionId, 'domain-source-armor-sets');
   assert.equal(progress.status, 'completed');
   assert.equal(progress.childStatusPath, progressPath);
+  assert.equal(progress.plannedCount, 1);
+  assert.equal(progress.actualCount, 1);
+  assert.equal(progress.skippedCount, 0);
+  assert.equal(progress.failedCount, 0);
+  assert.equal(progress.estimatedRequests, 1);
+  assert.equal(progress.estimatedRecords, null);
+  assert.equal(progress.resultKind, 'fetched');
+  assert.equal(progress.resumeOutcome, 'not_supported');
 
   const rawPath = path.join(sharedDataRoot, 'raw', 'wiki', 'module__armorsetbonuses.latest.json');
+  assert.equal(progress.outputPath, rawPath);
+  assert.match(
+    progress.reportPath,
+    /reports[\\/]wiki-armorsetbonuses-refresh-\d{4}-\d{2}-\d{2}\.json$/
+  );
   const manifest = loadWikiSourceManifest(manifestPath);
   const record = manifest.records.find((entry) => entry.sourceKey === 'wiki.module.armorsetbonuses');
   assert.ok(record);

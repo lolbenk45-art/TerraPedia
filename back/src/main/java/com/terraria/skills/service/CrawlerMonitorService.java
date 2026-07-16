@@ -28,6 +28,14 @@ public interface CrawlerMonitorService {
         String requestedBy
     );
 
+    CrawlerMonitorDispatchResultDTO startCrawlerDomain(
+        String domain,
+        String operationId,
+        String resumeMode,
+        boolean confirmed,
+        String requestedBy
+    );
+
     default CrawlerMonitorDispatchResultDTO controlWikiMonitorDispatch(CrawlerMonitorDispatchRequestDTO request) {
         return controlWikiMonitorDispatch(request, "system");
     }

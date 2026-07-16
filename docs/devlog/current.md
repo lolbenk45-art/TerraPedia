@@ -1,14 +1,100 @@
 # Current Devlog
 
-Last updated: 2026-07-13 23:00 CST by Codex
+Last updated: 2026-07-17 04:57 CST by Codex
 
 ## Open Work
 
+- No open work on `fix/crawler-queue-v2-runtime`; the two crawler-monitor
+  entries are closed for the imminent focused commit.
+
+## Active Focus
+
+- Create the focused V2 operation-workflow commit, then merge it locally to
+  `main`; keep user-generated acceptance data out of staging.
 
 ## Current State
 
+- All recorded pre-merge and admin-projection blockers are repaired and passed
+  both specification and code-quality re-review. Fresh gates are admin 311/311
+  plus typecheck/build, crawler/workflow 61/61, focused V2 backend 527 with
+  zero failures/errors and `test-compile`, and `git diff --check`.
+
+Historical transition notes follow for provenance; the active summary is above.
+
+- Pre-merge review reopened the two crawler-monitor follow-ups with four
+  Important findings: backend-refresh heartbeat depends on child progress;
+  dedicated first start accepts non-`fresh` resume modes; request-gate waits can
+  outlive direct-crawler V2 heartbeat; and the main page omits the approved
+  four-group 19-operation catalog. Shimmer's request estimate is also lower
+  than its real three-request progress total. Codex owns the repairs and a clean
+  re-review is required before commit.
+
+- A later read-only admin re-review blocks commit on three additional frontend
+  projection defects: idle rows can offer retry/cleanup without carrying the
+  exact terminal attempt control identity; terminal history omits recorded
+  report/progress paths and plan/result semantics; and some table/drawer fields
+  still show full queue/attempt/epoch IDs. Codex owns the serialized repair;
+  no agent may edit shared monitor UI or devlog files in parallel.
+
+- The operation-semantics implementation is ready for commit. Final UI closure
+  explicitly shows current state beside latest result on domain cards/table,
+  disables catalog starts with a visible reason when backend state does not
+  allow `start`, and shows planned/actual/skipped/failed counters on terminal
+  attempt history without fake numbers.
+- Fresh closure gates pass: admin 309/309 plus Nuxt typecheck and production
+  build; offline crawler/workflow 73/73; focused backend 509/509 plus
+  `test-compile`; `git diff --check`; and no residual crawler/import/backfill
+  process. The Redis persistence mismatch is repaired without an empty epoch:
+  source/target stores were backed up, 49 fixed-prefix V2 keys were restored to
+  DB4, DB3's 185 unrelated keys remained intact, and the shared Redis now uses
+  `~/.local/share/terrapedia/redis/redis-16380`. Canonical startup and fresh
+  authenticated overview pass with the original epoch, healthy queue and
+  reconciler, 12 idle/startable domains, 19 operations, and zero live attempts.
+  The stale paused Buff attempt safely converged to `cancelled`; no crawler or
+  database write was started.
+
+- The user completed the 2026-07-15 questionnaire, accepted recommended values
+  for blank rows, selected formal Loot apply, selected single-running-task
+  pause only, and retained the three current checkpoint domains with future
+  extensibility. The approved design is
+  `docs/superpowers/specs/2026-07-16-crawler-monitor-operation-semantics-design.md`;
+  implementation planning is active.
+- A read-only operation-chain audit found that the 12 registered rows are not
+  homogeneous crawler domains: they mix revision-gated sync, direct page/module
+  fetches, local transformation, database apply, and database dry-run actions.
+  Current V2 UI wording collapses those meanings into generic start/completion
+  labels, overlays latest terminal evidence onto current idle rows, and exposes
+  process pause only during the running window. Requirements are intentionally
+  reopened before any further code change.
+
+- Runtime convergence repair is implemented offline. Focused backend tests pass
+  275/275 plus test compilation; crawler progress tests pass 28/28; admin tests
+  pass 301/301 with a successful typecheck/build. The broad backend baseline
+  remains red in seven non-V2 cases and was not changed. No crawler, Redis, or
+  database mutation occurred during these gates.
+- The 2026-07-15 00:19 canonical restart and authenticated read-only preflight
+  pass on the latest code: backend/queue/reconciler are healthy, front returns
+  `200`, admin redirects to login, the durable epoch is unchanged, all 12
+  domains expose `start`, and no non-terminal attempt or crawler writer exists.
+- Final read-only review reports no Critical, Important, or Moderate findings.
+  The authenticated Armor preview resolves the shared primary-worktree raw
+  file as real crawler data with `found=true`, `readable=true`, and 32,048
+  bytes. No domain start, retry, Redis reset, or database write was invoked.
+- Operator-authorized runtime acceptance is complete. A new Armor attempt
+  completed `write 1/1` with available log and real shared raw/report paths. A
+  new NPC attempt produced PID, process start identity, non-empty log,
+  heartbeat/progress sequence, and attempt-scoped report, then completed
+  `apply 1/1` before a cancel request could be submitted. Both domains released
+  ownership; queue/reconciler remain healthy with zero live attempts.
+- Runtime smoke exposed and closed two final gaps: the generic progress builder
+  now retains output/report/next-step paths, and report preview permits only
+  fixed V2 attempt `report.json` files while rejecting logs, progress,
+  traversal, and every symlink component. Final review has no material finding.
+- Fresh closure gates pass: crawler progress 28/28, focused backend 368/368,
+  focused admin 120/120 plus typecheck, report security 16/16, canonical stack
+  startup checks, authenticated API checks, and `git diff --check`.
 - Crawler Queue V2 is cut over on `fix/crawler-queue-v2-runtime`. The durable
-  epoch is `epoch-8fc9c183-8a2a-439e-9cc3-1bcb64ebbde8`; V1 is immutable history
+  epoch is `epoch-8e4f7049-6788-48cd-90b2-9d9ce09e6645`; V1 is immutable history
   and V2 is the sole live queue authority. Two no-network fixture attempts
   proved first-mutation fencing, SSE/log visibility, exact cancellation, and
   V1 inactivity. The stack is running on backend `18192`, admin `13005`, Redis
@@ -153,6 +239,20 @@ Last updated: 2026-07-13 23:00 CST by Codex
 
 ## Next Agent Should Start Here
 
+- The V2 operation-workflow change is closed for commit. After the commit is
+  merged, begin any new request from a new devlog entry; do not reopen this
+  branch for real force-crawl or database apply without explicit authorization.
+
+- The stack is ready for user acceptance at the maintained admin monitor route.
+  If the user selects a real operation, record its exact operation ID and write
+  scope before dispatch. Otherwise the branch is ready for an optional focused
+  commit; preserve all existing user-generated acceptance data.
+- Start from
+  `docs/devlog/entries/2026-07-16-crawler-monitor-operation-semantics.md` and
+  `docs/superpowers/specs/2026-07-16-crawler-monitor-operation-semantics-design.md`.
+  Complete and audit the implementation plan before production code; then use
+  RED -> GREEN tests. Do not run real force-crawl or database apply acceptance
+  without a separate explicit operation-level authorization.
 - The Crawler Queue V2 entry is ready for its focused documentation commit.
   Preserve user-generated `data/generated/wiki-bosses.latest.json` and
   `data/generated/resume/` outside staging.
@@ -187,11 +287,23 @@ Last updated: 2026-07-13 23:00 CST by Codex
 
 ## Recently Closed
 
-- `docs/devlog/entries/2026-07-12-crawler-queue-v2-runtime.md`
+- `docs/devlog/entries/2026-07-16-crawler-monitor-operation-semantics.md`
   - branch: `fix/crawler-queue-v2-runtime`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
   - status: `closed`
   - commit: pending in final response
+
+- `docs/devlog/entries/2026-07-14-crawler-monitor-registered-idle-domains.md`
+  - branch: `fix/crawler-queue-v2-runtime`
+  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
+  - status: `closed`
+  - commit: pending in final response
+
+- `docs/devlog/entries/2026-07-12-crawler-queue-v2-runtime.md`
+  - branch: `fix/crawler-queue-v2-runtime`
+  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
+  - status: `closed`
+  - commit: `0bad80d`
 
 - `docs/devlog/entries/2026-07-11-crawler-monitor-queue-state-root-cause.md`
   - branch: `fix/crawler-monitor-queue-state`

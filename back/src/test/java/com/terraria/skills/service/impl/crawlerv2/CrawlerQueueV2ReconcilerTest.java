@@ -165,6 +165,108 @@ class CrawlerQueueV2ReconcilerTest {
     }
 
     @Test
+    void reconcileRenewsEveryClaimedLiveAttemptBeforeConsideringReadyWork() {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        CrawlerQueueV2Attempt running = attempt(CrawlerQueueV2Status.RUNNING, NOW.plusSeconds(90));
+        when(repository.readEngineState()).thenReturn(engine());
+        when(repository.findLiveAttempts()).thenReturn(List.of(running));
+        when(repository.findQueue(running.queueId())).thenReturn(Optional.of(queue(running)));
+        when(repository.renewLeases(any())).thenReturn(true);
+        when(repository.findAttempt(running.attemptId())).thenReturn(Optional.of(running));
+        when(repository.findReadyAttempts(anyInt())).thenReturn(List.of());
+        CrawlerQueueV2Reconciler reconciler = reconciler(repository, supervisor, properties);
+
+        reconciler.reconcileNow();
+
+        verify(repository).renewLeases(argThat(command ->
+            command.expectedEpoch().equals(running.stateStoreEpoch())
+                && command.queueId().equals(running.queueId())
+                && command.attemptId().equals(running.attemptId())
+                && command.fenceToken() == running.fenceToken()
+                && command.dedupeKey().equals(queue(running).dedupeKey())
+                && command.coveredDomains().equals(running.coveredDomains())
+                && command.leaseTtl().equals(properties.getLeaseTtl())
+        ));
+    }
+
+    @Test
+    void failedLeaseRenewalStallsTheClaimedAttemptBeforeConsideringReadyWork() {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        CrawlerQueueV2Attempt running = attempt(CrawlerQueueV2Status.RUNNING, NOW.plusSeconds(90));
+        when(repository.readEngineState()).thenReturn(engine());
+        when(repository.findLiveAttempts()).thenReturn(List.of(running));
+        when(repository.renewLeases(any())).thenReturn(false);
+        when(repository.findAttempt(running.attemptId())).thenReturn(Optional.of(running));
+        when(repository.findQueue(running.queueId())).thenReturn(Optional.of(queue(running)));
+        when(supervisor.handleLeaseRenewalFailure(running)).thenReturn(updated(
+            running,
+            CrawlerQueueV2Status.FAILED,
+            CrawlerQueueV2ReasonCode.LEASE_RENEW_FAILED
+        ));
+        when(repository.findReadyAttempts(anyInt())).thenReturn(List.of());
+        CrawlerQueueV2Reconciler reconciler = reconciler(repository, supervisor, properties);
+
+        CrawlerQueueV2Reconciler.ReconcileResult result = reconciler.reconcileNow();
+
+        verify(supervisor).handleLeaseRenewalFailure(running);
+        verify(repository, never()).findReadyAttempts(anyInt());
+        assertEquals(1L, result.convergedCount());
+        assertEquals(1L, result.failureCount());
+    }
+
+    @Test
+    void retainedTerminalIsolationIsNotRenewedOrReprocessedAsALiveAttempt() {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        CrawlerQueueV2Attempt isolated = attempt(CrawlerQueueV2Status.RUNNING, NOW.plusSeconds(90));
+        isolated = updated(
+            isolated,
+            CrawlerQueueV2Status.FAILED,
+            CrawlerQueueV2ReasonCode.PROCESS_TERMINATION_UNCONFIRMED
+        );
+        when(repository.readEngineState()).thenReturn(engine());
+        when(repository.findLiveAttempts()).thenReturn(List.of(isolated));
+        when(repository.findReadyAttempts(anyInt())).thenReturn(List.of());
+        CrawlerQueueV2Reconciler reconciler = reconciler(repository, supervisor, properties);
+
+        reconciler.reconcileNow();
+
+        verify(repository, never()).renewLeases(any());
+        verifyNoInteractions(supervisor);
+    }
+
+    @Test
+    void failedLeaseRenewalKeepsCancelRequestedConvergenceOnTheCancelPath() {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        CrawlerQueueV2Attempt cancelling = attempt(CrawlerQueueV2Status.CANCEL_REQUESTED, NOW);
+        when(repository.readEngineState()).thenReturn(engine());
+        when(repository.findLiveAttempts()).thenReturn(List.of(cancelling));
+        when(repository.findQueue(cancelling.queueId())).thenReturn(Optional.of(queue(cancelling)));
+        when(repository.renewLeases(any())).thenReturn(false);
+        when(repository.findAttempt(cancelling.attemptId())).thenReturn(Optional.of(cancelling));
+        when(supervisor.cancel(cancelling)).thenReturn(updated(
+            cancelling,
+            CrawlerQueueV2Status.CANCELLED,
+            null
+        ));
+        CrawlerQueueV2Reconciler reconciler = reconciler(repository, supervisor, properties);
+
+        CrawlerQueueV2Reconciler.ReconcileResult result = reconciler.reconcileNow();
+
+        verify(supervisor).cancel(cancelling);
+        verify(repository, never()).findReadyAttempts(anyInt());
+        assertEquals(1L, result.convergedCount());
+        assertEquals(1L, result.failureCount());
+    }
+
+    @Test
     void reconcileRoundKeepsTheMarkerTransitionOutUntilItsHealthWriteCompletes() throws Exception {
         CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
         CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
@@ -250,6 +352,7 @@ class CrawlerQueueV2ReconcilerTest {
         CrawlerQueueV2Attempt overdue = attempt(status, NOW);
         when(repository.readEngineState()).thenReturn(engine());
         when(repository.findLiveAttempts()).thenReturn(List.of(overdue));
+        when(repository.renewLeases(any())).thenReturn(true);
         when(repository.findAttempt(overdue.attemptId())).thenReturn(Optional.of(overdue));
         when(repository.findQueue(overdue.queueId())).thenReturn(Optional.of(queue(overdue)));
         when(repository.findReadyAttempts(anyInt())).thenReturn(List.of());
@@ -289,6 +392,7 @@ class CrawlerQueueV2ReconcilerTest {
         CrawlerQueueV2Attempt starting = updated(ready, CrawlerQueueV2Status.STARTING, null);
         when(repository.readEngineState()).thenReturn(engine());
         when(repository.findLiveAttempts()).thenReturn(List.of(overdue));
+        when(repository.renewLeases(any())).thenReturn(true);
         when(repository.findAttempt(overdue.attemptId())).thenReturn(Optional.of(overdue));
         when(repository.findAttempt(ready.attemptId())).thenReturn(Optional.of(starting));
         when(repository.findQueue(overdue.queueId())).thenReturn(Optional.of(queue(overdue)));
@@ -306,6 +410,11 @@ class CrawlerQueueV2ReconcilerTest {
             null,
             null
         ));
+        when(supervisor.start(starting)).thenReturn(new CrawlerAttemptSupervisor.StartResult(
+            starting,
+            true,
+            false
+        ));
         CrawlerQueueV2Reconciler reconciler = reconciler(repository, supervisor, properties);
 
         reconciler.reconcileNow();
@@ -317,6 +426,44 @@ class CrawlerQueueV2ReconcilerTest {
         assertEquals(ready.attemptId(), claim.getValue().attemptId());
         assertEquals(ready.stateVersion(), claim.getValue().expectedStateVersion());
         verify(supervisor).start(starting);
+    }
+
+    @Test
+    void terminalizedStartFailureCountsAsConvergedInTheSameRound() {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        CrawlerQueueV2Attempt ready = attempt("attempt-ready", CrawlerQueueV2Status.QUEUED, NOW.plusSeconds(30));
+        CrawlerQueueV2Attempt starting = updated(ready, CrawlerQueueV2Status.STARTING, null);
+        CrawlerQueueV2Attempt failed = updated(
+            starting,
+            CrawlerQueueV2Status.FAILED,
+            CrawlerQueueV2ReasonCode.ATTEMPT_START_FAILED
+        );
+        when(repository.readEngineState()).thenReturn(engine());
+        when(repository.findLiveAttempts()).thenReturn(List.of());
+        when(repository.findReadyAttempts(anyInt())).thenReturn(List.of(ready));
+        when(repository.findQueue(ready.queueId())).thenReturn(Optional.of(queue(ready)));
+        when(repository.findAttempt(ready.attemptId())).thenReturn(Optional.of(starting));
+        when(repository.claim(any())).thenReturn(new CrawlerQueueV2Repository.ClaimResult(
+            CrawlerQueueV2Repository.ClaimCode.CLAIMED,
+            ready.attemptId(),
+            starting.fenceToken(),
+            starting.stateVersion(),
+            null,
+            null
+        ));
+        when(supervisor.start(starting)).thenReturn(new CrawlerAttemptSupervisor.StartResult(
+            failed,
+            false,
+            true
+        ));
+        CrawlerQueueV2Reconciler reconciler = reconciler(repository, supervisor, properties);
+
+        CrawlerQueueV2Reconciler.ReconcileResult result = reconciler.reconcileNow();
+
+        assertEquals(1L, result.convergedCount());
+        assertEquals(0L, result.failureCount());
     }
 
     @Test
@@ -378,6 +525,7 @@ class CrawlerQueueV2ReconcilerTest {
             CrawlerQueueV2ReasonCode.HEARTBEAT_TIMEOUT);
         when(repository.readEngineState()).thenReturn(engine());
         when(repository.findLiveAttempts()).thenReturn(List.of(overdue));
+        when(repository.renewLeases(any())).thenReturn(true);
         when(repository.findAttempt(overdue.attemptId())).thenReturn(Optional.of(overdue), Optional.of(winner));
         when(repository.findQueue(overdue.queueId())).thenReturn(Optional.of(queue(overdue)));
         when(repository.findReadyAttempts(anyInt())).thenReturn(List.of());

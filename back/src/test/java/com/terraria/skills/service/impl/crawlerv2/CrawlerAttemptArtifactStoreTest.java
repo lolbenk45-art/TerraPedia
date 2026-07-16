@@ -60,6 +60,91 @@ class CrawlerAttemptArtifactStoreTest {
     }
 
     @Test
+    void shouldPersistTheExactAttemptArtifactsInTheImmutableManifest() {
+        CrawlerAttemptArtifactStore store = store();
+        String base = "reports/crawler-monitor/v2/2026-07-11/attempt-backend/";
+        CrawlerQueueV2Artifacts artifacts = new CrawlerQueueV2Artifacts(
+            base + "progress.json",
+            base + "run.log",
+            base + "report.json",
+            null
+        );
+
+        CrawlerAttemptArtifactStore.PreparedArtifacts prepared = store.prepare(
+            "epoch-1",
+            "queue-1",
+            "attempt-backend",
+            "npcs",
+            "wiki-npcs-refresh",
+            NOW,
+            artifacts
+        );
+
+        CrawlerAttemptManifest manifest = store.readManifest("attempt-backend").orElseThrow();
+        assertEquals(artifacts.progressPath(), prepared.progressPath());
+        assertEquals(artifacts.logPath(), prepared.logPath());
+        assertEquals(artifacts.progressPath(), manifest.progressPath());
+        assertEquals(artifacts.logPath(), manifest.logPath());
+        assertEquals(artifacts.reportPath(), manifest.reportPath());
+        assertEquals(artifacts.outputPath(), manifest.outputPath());
+    }
+
+    @Test
+    void shouldPersistAnAttemptScopedOperationPlanWithoutLeavingTemporaryFiles() throws Exception {
+        CrawlerAttemptArtifactStore store = store();
+        CrawlerAttemptArtifactStore.PreparedArtifacts prepared = store.prepare(
+            "epoch-1", "queue-1", "attempt-plan", "items", "wiki-items-force-refresh", NOW
+        );
+        CrawlerOperationPlanSnapshot plan = new CrawlerOperationPlanSnapshot(
+            "force",
+            "wiki-items-force-refresh",
+            "强制重抓物品模块",
+            "force",
+            true,
+            "Module:Iteminfo/data",
+            "覆盖物品模块来源和标准化文件",
+            "none",
+            1L,
+            null,
+            true,
+            false,
+            null,
+            "destructive",
+            NOW
+        );
+
+        store.writeOperationPlan("attempt-plan", plan);
+
+        assertEquals(plan, store.readOperationPlan("attempt-plan").orElseThrow());
+        assertTrue(Files.exists(prepared.directory().resolve("operation-plan.json")));
+        try (var files = Files.list(prepared.directory())) {
+            assertTrue(files.noneMatch(path -> path.getFileName().toString().endsWith(".tmp")));
+        }
+    }
+
+    @Test
+    void shouldRejectNonCanonicalAttemptArtifactPaths() {
+        CrawlerAttemptArtifactStore store = store();
+        String base = "reports/crawler-monitor/v2/2026-07-11/attempt-invalid/";
+        CrawlerQueueV2Artifacts invalid = new CrawlerQueueV2Artifacts(
+            base + "progress.json",
+            base + "run.log",
+            "reports/backend-refresh/shared-report.json",
+            null
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> store.prepare(
+            "epoch-1",
+            "queue-1",
+            "attempt-invalid",
+            "npcs",
+            "wiki-npcs-refresh",
+            NOW,
+            invalid
+        ));
+    }
+
+    @Test
     void shouldReadLegacyManifestWithoutProcessIdentityFields() throws Exception {
         ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         CrawlerAttemptArtifactStore store = store(objectMapper, new CrawlerQueueV2Properties());
@@ -202,6 +287,12 @@ class CrawlerAttemptArtifactStoreTest {
         CrawlerAttemptArtifactStore.PreparedArtifacts prepared = store.prepare(
             "epoch-1", "queue-1", "attempt-1", "bosses", "domain-source-bosses", NOW
         );
+        store.writeOperationPlan("attempt-1", new CrawlerOperationPlanSnapshot(
+            "fresh", "domain-source-bosses", "重新抓取 Boss 页面", "fresh", true,
+            "Boss source snapshot pages", "更新 Boss 来源、报告和断点文件", "none",
+            null, null, true, true, "data/generated/resume/domain-source-bosses.resume.json",
+            "summary", NOW
+        ));
         Files.writeString(prepared.directory().resolve("progress.json"), "{\"status\":\"running\"}\n");
         Files.writeString(prepared.directory().resolve("run.log"), "WARN cancelled\n");
 
@@ -225,6 +316,7 @@ class CrawlerAttemptArtifactStoreTest {
         );
         assertTrue(result.deletedPaths().contains(prepared.logPath()));
         assertFalse(Files.exists(prepared.directory().resolve("run.log")));
+        assertFalse(Files.exists(prepared.directory().resolve("operation-plan.json")));
         assertTrue(Files.exists(prepared.directory().resolve("attempt-manifest.json")));
         CrawlerAttemptManifest cleaned = store.readManifest("attempt-1").orElseThrow();
         assertEquals("admin", cleaned.cleanedBy());
@@ -235,6 +327,44 @@ class CrawlerAttemptArtifactStoreTest {
         CrawlerAttemptManifest afterRepeatedCleanup = store.readManifest("attempt-1").orElseThrow();
         assertEquals("admin", afterRepeatedCleanup.cleanedBy());
         assertEquals(cleaned.cleanedPaths(), afterRepeatedCleanup.cleanedPaths());
+    }
+
+    @Test
+    void shouldCleanupAttemptEvidenceWithoutDeletingSharedCrawlerOutput() throws Exception {
+        CrawlerAttemptArtifactStore store = store();
+        CrawlerAttemptArtifactStore.PreparedArtifacts prepared = store.prepare(
+            "epoch-1", "queue-armor", "attempt-armor", "armor_sets",
+            "domain-source-armor-sets", NOW
+        );
+        Path progress = prepared.directory().resolve("progress.json");
+        Path log = prepared.directory().resolve("run.log");
+        Path report = repoRoot.resolve("reports/wiki-armorsetbonuses-refresh-2026-07-14.json");
+        Path output = repoRoot.resolve("data/terraPedia/raw/wiki/module__armorsetbonuses.latest.json");
+        Files.createDirectories(report.getParent());
+        Files.createDirectories(output.getParent());
+        Files.writeString(progress, "{\"status\":\"completed\"}\n");
+        Files.writeString(log, "done\n");
+        Files.writeString(report, "{}\n");
+        Files.writeString(output, "{}\n");
+        CrawlerAttemptManifest manifest = withArtifactPaths(
+            store.readManifest("attempt-armor").orElseThrow(),
+            prepared.progressPath(),
+            prepared.logPath(),
+            report.toString(),
+            output.toString()
+        );
+        store.writeManifest(withStatus(manifest, CrawlerQueueV2Status.COMPLETED, NOW));
+
+        CrawlerAttemptArtifactStore.CleanupResult result = store.cleanupArtifacts(
+            "attempt-armor", CrawlerQueueV2Status.COMPLETED, "admin", NOW
+        );
+
+        assertFalse(Files.exists(progress));
+        assertFalse(Files.exists(log));
+        assertTrue(Files.exists(report));
+        assertTrue(Files.exists(output));
+        assertFalse(result.deletedPaths().contains(report.toString()));
+        assertFalse(result.deletedPaths().contains(output.toString()));
     }
 
     @Test

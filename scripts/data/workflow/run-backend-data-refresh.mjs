@@ -16,8 +16,10 @@ import {
 import {
   buildActionHeartbeatPayload,
   buildActionProgressPayload,
+  buildActionResultSummary,
   buildActionRuntimePaths,
   buildActionSnapshotPayload,
+  buildBackendWrapperHeartbeatProgress,
   crawlerAttemptIdentityFromEnv,
   prepareCrawlerChildProgressPath,
   readActionProgressFile,
@@ -80,7 +82,13 @@ for (const action of actionsToRun) {
     current: 0,
     total: 1,
     generatedAt: startedAtIso,
-    childStatusPath: childProgressPath
+    childStatusPath: childProgressPath,
+    ...buildActionResultSummary({
+      actionId: action.id,
+      status: 'running',
+      current: 0,
+      total: 1
+    })
   });
   actionResults = upsertActionResult(actionResults, {
     id: action.id,
@@ -110,6 +118,7 @@ for (const action of actionsToRun) {
     heartbeatMs,
     canonicalProgressPath,
     childProgressPath,
+    initialProgress,
     initialProgressSequence: initialProgress.progressSequence ?? null,
     isV2Attempt: Boolean(crawlerAttemptIdentity),
     outputPath,
@@ -121,18 +130,27 @@ for (const action of actionsToRun) {
   const completedAtIso = new Date().toISOString();
   const finalStatus = result.status === 0 ? 'completed' : 'failed';
   const childProgress = readActionProgressFile(childProgressPath);
+  const finalCurrent = childProgress?.current ?? (result.status === 0 ? 1 : 0);
+  const finalTotal = childProgress?.total ?? 1;
   const finalProgress = buildActionProgressPayload({
     ...childProgress,
     actionId: action.id,
     status: finalStatus,
     phase: childProgress?.phase ?? 'action',
     message: childProgress?.message ?? `${finalStatus} ${action.id}`,
-    current: childProgress?.current ?? (result.status === 0 ? 1 : null),
-    total: childProgress?.total ?? (result.status === 0 ? 1 : null),
+    current: finalCurrent,
+    total: finalTotal,
     generatedAt: completedAtIso,
     lastHeartbeatAt: completedAtIso,
     childStatusPath: childProgress?.childStatusPath ?? childProgressPath,
-    observedProgressSequence: childProgress?.progressSequence
+    observedProgressSequence: childProgress?.progressSequence,
+    ...buildActionResultSummary({
+      actionId: action.id,
+      status: finalStatus,
+      current: finalCurrent,
+      total: finalTotal,
+      progress: childProgress
+    })
   });
   actionResults = upsertActionResult(actionResults, {
     id: action.id,
@@ -233,7 +251,15 @@ function loadExistingActionResults(outputPath) {
       phase: action.phase ?? null,
       message: action.message ?? null,
       lastHeartbeatAt: action.lastHeartbeatAt ?? null,
-      updatedAt: action.updatedAt ?? null
+      updatedAt: action.updatedAt ?? null,
+      plannedCount: action.plannedCount ?? null,
+      actualCount: action.actualCount ?? null,
+      skippedCount: action.skippedCount ?? null,
+      failedCount: action.failedCount ?? null,
+      estimatedRequests: action.estimatedRequests ?? null,
+      estimatedRecords: action.estimatedRecords ?? null,
+      resultKind: action.resultKind ?? null,
+      resumeOutcome: action.resumeOutcome ?? null
     }))
     : [];
 }
@@ -324,8 +350,11 @@ function runAction(command, args, options = {}) {
 
 function writeActionHeartbeat(options, pid) {
   const childProgress = readActionProgressFile(options.childProgressPath);
-  const progress = options.isV2Attempt && childProgress?.progressReadable === true
-    ? writeCanonicalActionProgress(options, childProgress)
+  const canonicalProgress = options.isV2Attempt
+    ? readActionProgressFile(options.canonicalProgressPath)
+    : null;
+  const progress = options.isV2Attempt
+    ? writeCanonicalActionProgress(options, childProgress, canonicalProgress)
     : childProgress;
   writeJsonFile(options.runtimePaths.heartbeatPath, buildActionHeartbeatPayload({
     actionId: options.action.id,
@@ -338,23 +367,19 @@ function writeActionHeartbeat(options, pid) {
   }));
 }
 
-function writeCanonicalActionProgress(options, childProgress) {
+function writeCanonicalActionProgress(options, childProgress, canonicalProgress) {
   const generatedAt = new Date().toISOString();
-  const canonicalProgress = buildActionProgressPayload({
+  const nextProgress = buildBackendWrapperHeartbeatProgress({
     actionId: options.action.id,
-    status: childProgress.status ?? 'running',
-    phase: childProgress.phase ?? 'action',
-    message: childProgress.message ?? `running ${options.action.id}`,
-    current: childProgress.current ?? null,
-    total: childProgress.total ?? null,
+    childProgress,
+    canonicalProgress,
+    initialProgress: options.initialProgress,
     generatedAt,
-    lastHeartbeatAt: childProgress.lastHeartbeatAt ?? childProgress.generatedAt ?? generatedAt,
-    childStatusPath: childProgress.childStatusPath ?? options.childProgressPath,
-    observedProgressSequence: childProgress?.progressSequence
+    childStatusPath: options.childProgressPath
   });
-  writeJsonFile(options.canonicalProgressPath, canonicalProgress);
-  writeActionProgressState(options.action.id, canonicalProgress);
-  return canonicalProgress;
+  writeJsonFile(options.canonicalProgressPath, nextProgress);
+  writeActionProgressState(options.action.id, nextProgress);
+  return nextProgress;
 }
 
 function normalizePositiveInteger(value, fallback) {
@@ -373,6 +398,14 @@ function toActionProgressResult(progress) {
     percent: progress?.percent ?? null,
     phase: progress?.phase ?? null,
     message: progress?.message ?? null,
-    lastHeartbeatAt: progress?.lastHeartbeatAt ?? progress?.generatedAt ?? null
+    lastHeartbeatAt: progress?.lastHeartbeatAt ?? progress?.generatedAt ?? null,
+    plannedCount: progress?.plannedCount ?? null,
+    actualCount: progress?.actualCount ?? null,
+    skippedCount: progress?.skippedCount ?? null,
+    failedCount: progress?.failedCount ?? null,
+    estimatedRequests: progress?.estimatedRequests ?? null,
+    estimatedRecords: progress?.estimatedRecords ?? null,
+    resultKind: progress?.resultKind ?? null,
+    resumeOutcome: progress?.resumeOutcome ?? null
   };
 }

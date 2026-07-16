@@ -76,12 +76,22 @@ public class CrawlerQueueV2Reconciler {
             if (!isV2(engine)) {
                 return counts.result(true);
             }
+            boolean leasesHealthy = true;
             for (CrawlerQueueV2Attempt liveAttempt : repository.findLiveAttempts()) {
                 counts.scanned++;
+                if (liveAttempt.status().terminal()) {
+                    continue;
+                }
                 observeOverdue(liveAttempt, now, counts);
+                if (!renewClaimedAttempt(engine, liveAttempt, now, counts)) {
+                    leasesHealthy = false;
+                    continue;
+                }
                 reconcileAttempt(engine, liveAttempt, now, counts);
             }
-            counts.converged += claimReadyAttempts(engine, now, counts);
+            if (leasesHealthy) {
+                counts.converged += claimReadyAttempts(engine, now, counts);
+            }
             return counts.result(false);
         } catch (RuntimeException exception) {
             counts.failures++;
@@ -284,6 +294,54 @@ public class CrawlerQueueV2Reconciler {
         }
     }
 
+    private boolean renewClaimedAttempt(
+        CrawlerQueueV2Repository.EngineState engine,
+        CrawlerQueueV2Attempt liveAttempt,
+        Instant now,
+        MutableCounts counts
+    ) {
+        if (liveAttempt.status().terminal()
+            || liveAttempt.fenceToken() == null
+            || !Objects.equals(engine.stateStoreEpoch(), liveAttempt.stateStoreEpoch())) {
+            return true;
+        }
+        CrawlerQueueV2Queue queue = repository.findQueue(liveAttempt.queueId()).orElse(null);
+        if (queue == null
+            || !Objects.equals(liveAttempt.stateStoreEpoch(), queue.stateStoreEpoch())
+            || !Objects.equals(liveAttempt.coveredDomains(), queue.coveredDomains())) {
+            counts.failures++;
+            return false;
+        }
+        boolean renewed = repository.renewLeases(new CrawlerQueueV2Repository.RenewLeaseCommand(
+            liveAttempt.stateStoreEpoch(),
+            liveAttempt.queueId(),
+            liveAttempt.attemptId(),
+            liveAttempt.fenceToken(),
+            queue.dedupeKey(),
+            liveAttempt.coveredDomains(),
+            properties.getLeaseTtl()
+        ));
+        if (renewed) {
+            return true;
+        }
+        counts.failures++;
+        CrawlerQueueV2Attempt current = repository.findAttempt(liveAttempt.attemptId()).orElse(null);
+        if (current == null
+            || current.status().terminal()
+            || current.fenceToken() == null
+            || !Objects.equals(engine.stateStoreEpoch(), current.stateStoreEpoch())) {
+            return false;
+        }
+        if (current.status() == CrawlerQueueV2Status.CANCEL_REQUESTED) {
+            supervisor.cancel(current);
+            counts.converged++;
+            return false;
+        }
+        supervisor.handleLeaseRenewalFailure(current);
+        counts.converged++;
+        return false;
+    }
+
     private long claimReadyAttempts(
         CrawlerQueueV2Repository.EngineState engine,
         Instant now,
@@ -354,8 +412,10 @@ public class CrawlerQueueV2Reconciler {
                     counts.failures++;
                     continue;
                 }
-                supervisor.start(claimed);
-                started++;
+                CrawlerAttemptSupervisor.StartResult outcome = supervisor.start(claimed);
+                if (outcome.started() || outcome.terminalized()) {
+                    started++;
+                }
             }
         } catch (CrawlerQueueV2Exception exception) {
             if (exception.reasonCode() != CrawlerQueueV2ReasonCode.STALE_STATE_VERSION) {

@@ -30,6 +30,10 @@ Historical docs do not override current spec or workflow.
 - Start stack: `bash ./scripts/dev/start-local-stack.sh`
 - Stop stack: `bash ./scripts/dev/stop-local-stack.sh`
 - Full quality gate: `bash ./scripts/dev/quality-gate.sh`
+- Shared local Redis persists outside individual worktrees under
+  `~/.local/share/terrapedia/redis/redis-<port>` by default; each worktree uses
+  its allocated logical database, and startup refuses a reachable Redis whose
+  configured persistence directory does not match.
 - Isolated user-auth browser smoke: `bash ./scripts/dev/run-user-auth-e2e.sh --smoke`
 - Isolated user-auth browser regression: `bash ./scripts/dev/run-user-auth-e2e.sh --regression`
 - Backend focused tests: run Maven from `back/`
