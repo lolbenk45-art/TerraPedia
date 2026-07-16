@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { fallbackCatalogItems, usePublicItems } from '~/composables/usePublicItems'
+import { usePublicItems } from '~/composables/usePublicItems'
 import type { CatalogItem, PublicCategory, PublicItemQuery } from '~/types/public-api'
 
 const route = useRoute()
-const router = useRouter()
 
 useSeoMeta({
   title: 'TerraPedia · 物品图鉴',
@@ -11,7 +10,6 @@ useSeoMeta({
 })
 
 const defaultCatalogPageSize = 24
-const catalogClientReady = ref(false)
 const catalogWallTopRef = ref<HTMLElement | null>(null)
 const searchQuery = ref('')
 const debouncedSearchQuery = ref('')
@@ -19,11 +17,6 @@ const activeFilter = ref('all')
 const currentPage = ref(1)
 const selectedPageSize = ref(defaultCatalogPageSize)
 const focusedItemId = ref<string | null>(null)
-const catalogVisualLoadingMinimumMs = 180
-const catalogVisualLoading = ref(true)
-let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
-let catalogVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
-let catalogVisualLoadingStartedAt = Date.now()
 const catalogPageSizeStorageKey = 'terrapedia:catalog-page-size'
 
 type CatalogCategoryFilter = {
@@ -125,12 +118,6 @@ const pageSizeOptions = [12, 24, 48, 96]
 
 type QuickFilterKey = string
 
-const normalizeSearchText = (value: string) => value.toLocaleLowerCase('zh-CN')
-const firstQueryValue = (value: unknown) => Array.isArray(value) ? value[0] : value
-const parsePositiveInteger = (value: unknown, fallback: number) => {
-  const parsed = Number(firstQueryValue(value))
-  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback
-}
 const parsePageSize = (value: unknown) => {
   const parsed = parsePositiveInteger(value, selectedPageSize.value)
   return pageSizeOptions.includes(parsed) ? parsed : selectedPageSize.value
@@ -227,12 +214,16 @@ const {
   refresh: refreshPublicItems,
 } = await usePublicItems(() => publicItemsQuery.value)
 
+const { clientReady: catalogClientReady, visualLoading: catalogVisualLoading } = useVisualLoading({
+  pending: itemsPending,
+  minimumMs: 180,
+})
+
 const catalogItems = computed(() => {
   const items = publicItemsResult.value?.items
-  return Array.isArray(items) ? items : fallbackCatalogItems
+  return Array.isArray(items) ? items : []
 })
 const pagination = computed(() => publicItemsResult.value?.pagination)
-const catalogRawLoading = computed(() => !catalogClientReady.value || itemsPending.value)
 const catalogFallbackUnavailable = computed(() => catalogClientReady.value && !itemsPending.value && publicItemsResult.value?.source !== 'api')
 const catalogDisplayItems = computed(() => (catalogVisualLoading.value || catalogFallbackUnavailable.value) ? [] : catalogItems.value)
 const totalItems = computed(() => (catalogVisualLoading.value || catalogFallbackUnavailable.value) ? 0 : pagination.value?.total ?? catalogDisplayItems.value.length)
@@ -246,56 +237,11 @@ const dataSourceState = computed(() => publicItemsResult.value?.source ?? 'fallb
 const publicStatusLabel = computed(() => catalogVisualLoading.value ? '加载中' : catalogFallbackUnavailable.value || itemsError.value ? '未载入' : '已更新')
 const activeFilterLabel = computed(() => selectedFilter.value.label)
 const catalogLoadingSlotCount = computed(() => Math.min(selectedPageSize.value, 50))
-const shouldUseApiPagedItems = computed(() => publicItemsResult.value?.source === 'api')
-const shouldApplyLocalCategoryFilter = computed(() => publicItemsResult.value?.source !== 'api')
-const matchFallbackCatalogFilter = (item: CatalogItem, filter: CatalogCategoryFilter) => {
-  if (filter.key === 'all') return true
 
-  const haystack = normalizeSearchText([
-    item.displayName,
-    item.name,
-    item.englishName,
-    item.internalName,
-    item.category,
-    item.categoryPath,
-    item.categoryGroup,
-    item.phase,
-    item.rarity,
-    item.searchText,
-  ].join(' '))
-
-  if (filter.gamePeriodId === 2) {
-    return /困难模式后|困难模式|hardmode/i.test(haystack) && !/困难模式前|pre-hardmode/i.test(haystack)
-  }
-
-  if (filter.gamePeriodId === 1) {
-    return /困难模式前|开荒|boss 前|pre-hardmode/i.test(haystack) || !/困难模式后|困难模式|hardmode/i.test(haystack)
-  }
-
-  if (item.categoryGroup === filter.label || item.category === filter.label || item.categoryPath.includes(filter.label)) {
-    return true
-  }
-
-  return false
-}
-
-const filteredCatalogItems = computed(() => {
-  if (shouldUseApiPagedItems.value) return catalogDisplayItems.value
-
-  const keyword = normalizeSearchText(searchQuery.value.trim())
-
-  return catalogDisplayItems.value.filter((item) => {
-    if (shouldApplyLocalCategoryFilter.value && !matchFallbackCatalogFilter(item, selectedFilter.value)) return false
-    return !keyword || item.searchText.includes(keyword)
-  })
-})
-
-const visibleWallItems = computed(() => filteredCatalogItems.value)
+const visibleWallItems = computed(() => catalogDisplayItems.value)
 const focusedItem = computed<CatalogItem | null>(() => (
   visibleWallItems.value.find((item) => item.id === focusedItemId.value)
-  ?? filteredCatalogItems.value.find((item) => item.id === focusedItemId.value)
   ?? visibleWallItems.value[0]
-  ?? catalogDisplayItems.value[0]
   ?? null
 ))
 const resultSummary = computed(() => {
@@ -307,39 +253,8 @@ const resultSummary = computed(() => {
     return '资料暂未载入'
   }
 
-  const total = totalItems.value.toLocaleString('zh-CN')
-
-  if ((publicItemsResult.value?.source === 'api' && !shouldApplyLocalCategoryFilter.value) || activeFilter.value === 'all') {
-    return `${catalogDisplayItems.value.length} / ${total}`
-  }
-
-  return `${filteredCatalogItems.value.length} / 本页 ${catalogDisplayItems.value.length} / 总计 ${total}`
+  return `${catalogDisplayItems.value.length} / ${totalItems.value.toLocaleString('zh-CN')}`
 })
-
-const clearCatalogVisualLoadingTimer = () => {
-  if (catalogVisualLoadingTimer) {
-    clearTimeout(catalogVisualLoadingTimer)
-    catalogVisualLoadingTimer = null
-  }
-}
-
-const syncCatalogVisualLoading = (isLoading: boolean) => {
-  clearCatalogVisualLoadingTimer()
-
-  if (isLoading) {
-    catalogVisualLoadingStartedAt = Date.now()
-    catalogVisualLoading.value = true
-    return
-  }
-
-  const elapsed = Date.now() - catalogVisualLoadingStartedAt
-  const remaining = Math.max(0, catalogVisualLoadingMinimumMs - elapsed)
-
-  catalogVisualLoadingTimer = setTimeout(() => {
-    catalogVisualLoading.value = false
-    catalogVisualLoadingTimer = null
-  }, remaining)
-}
 
 const scrollCatalogWallToTop = async () => {
   if (!import.meta.client) return
@@ -418,32 +333,28 @@ const resetCatalogFilters = () => {
   currentPage.value = 1
 }
 
-const updateCatalogRouteQuery = () => {
-  const query = {
-    ...route.query,
+useCatalogRouteSync({
+  serialize: () => ({
     page: currentPage.value > 1 ? String(currentPage.value) : undefined,
     pageSize: selectedPageSize.value !== defaultCatalogPageSize ? String(selectedPageSize.value) : undefined,
     filter: activeFilter.value !== 'all' ? activeFilter.value : undefined,
     q: debouncedSearchQuery.value.trim() || undefined,
     search: undefined,
-  }
+  }),
+  hydrate: (query) => {
+    const filter = firstQueryValue(query.filter)
+    const search = String(firstQueryValue(query.q ?? query.search) ?? '')
+    const queryPageSize = firstQueryValue(query.pageSize)
 
-  void router.replace({ query })
-}
-
-const hydrateCatalogStateFromRoute = () => {
-  const filter = firstQueryValue(route.query.filter)
-  const search = String(firstQueryValue(route.query.q ?? route.query.search) ?? '')
-  const queryPageSize = firstQueryValue(route.query.pageSize)
-
-  selectedPageSize.value = queryPageSize ? parsePageSize(queryPageSize) : readStoredPageSize()
-  currentPage.value = parsePositiveInteger(route.query.page, 1)
-  activeFilter.value = quickFilters.some((item) => item.key === filter) ? filter as QuickFilterKey : 'all'
-  searchQuery.value = search
-  debouncedSearchQuery.value = search
-}
-
-hydrateCatalogStateFromRoute()
+    selectedPageSize.value = queryPageSize ? parsePageSize(queryPageSize) : readStoredPageSize()
+    currentPage.value = parsePositiveInteger(query.page, 1)
+    activeFilter.value = quickFilters.some((item) => item.key === filter) ? filter as QuickFilterKey : 'all'
+    searchQuery.value = search
+    debouncedSearchQuery.value = search
+  },
+  watchSources: [currentPage, selectedPageSize, activeFilter, debouncedSearchQuery],
+  search: { input: searchQuery, debounced: debouncedSearchQuery, page: currentPage },
+})
 
 watch(catalogItems, (items) => {
   if (!focusedItemId.value && items[0]) {
@@ -451,43 +362,24 @@ watch(catalogItems, (items) => {
   }
 }, { immediate: true })
 
-watch(filteredCatalogItems, (items) => {
+watch(visibleWallItems, (items) => {
   const firstItem = items[0]
   if (firstItem && !items.some((item) => item.id === focusedItemId.value)) {
     setFocusedItem(firstItem)
   }
 })
 
-watch(searchQuery, () => {
-  if (searchDebounceTimer) {
-    clearTimeout(searchDebounceTimer)
-  }
-
-  currentPage.value = 1
-  searchDebounceTimer = setTimeout(() => {
-    debouncedSearchQuery.value = searchQuery.value
-  }, 300)
-}, { flush: 'sync' })
-
 watch(debouncedSearchQuery, () => {
   currentPage.value = 1
 })
 
 onBeforeUnmount(() => {
-  if (searchDebounceTimer) {
-    clearTimeout(searchDebounceTimer)
-  }
-
-  clearCatalogVisualLoadingTimer()
-
   if (import.meta.client) {
     window.removeEventListener('keydown', handleCatalogPaginationKeydown)
   }
 })
 
 onMounted(() => {
-  catalogClientReady.value = true
-
   if (!firstQueryValue(route.query.pageSize)) {
     selectedPageSize.value = readStoredPageSize()
   }
@@ -509,12 +401,6 @@ watch(totalPages, (pages) => {
   }
 })
 
-watch(
-  [currentPage, selectedPageSize, activeFilter, debouncedSearchQuery],
-  updateCatalogRouteQuery,
-  { flush: 'post' },
-)
-
 watch(selectedPageSize, (pageSize) => {
   if (!import.meta.client) return
 
@@ -522,10 +408,6 @@ watch(selectedPageSize, (pageSize) => {
     window.localStorage.setItem(catalogPageSizeStorageKey, String(pageSize))
   } catch {}
 }, { flush: 'post' })
-
-watch(catalogRawLoading, syncCatalogVisualLoading, { immediate: true })
-
-watch(() => route.query, hydrateCatalogStateFromRoute)
 </script>
 
 <template>

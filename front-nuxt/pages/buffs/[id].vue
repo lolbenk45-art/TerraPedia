@@ -4,7 +4,7 @@ import type { PublicBuffFactSummary } from '~/types/public-api'
 
 const route = useRoute()
 const buffId = computed(() => String(route.params.id ?? '').trim())
-const { data: buffDetailResult, pending: buffDetailPending, error: buffDetailError } = await usePublicBuffDetail(buffId)
+const { data: buffDetailResult, pending: buffDetailPending, error: buffDetailError, refresh: refreshBuffDetail } = await usePublicBuffDetail(buffId)
 
 if (!buffDetailResult.value?.detail) {
   throw createError({ statusCode: 404, statusMessage: 'Buff not found' })
@@ -146,12 +146,13 @@ onMounted(() => {
         </div>
         <div>
           <span class="eyebrow">Buff #{{ buffId || '未知' }}</span>
-          <component :is="'h1'" class="detail-missing-title">没有找到这个效果</component>
-          <p>当前详情资料还没有可渲染内容。</p>
+          <component :is="'h1'" class="detail-missing-title">{{ buffDetailError ? '效果资料加载失败' : '没有找到这个效果' }}</component>
+          <p>{{ buffDetailError ? '加载效果资料时出现异常，可以重试或稍后再来。' : '当前详情资料还没有可渲染内容。' }}</p>
           <div class="tag-row">
             <span class="tag paper">详情缺失</span>
             <span v-if="buffDetailError" class="tag moss">加载异常</span>
           </div>
+          <button v-if="buffDetailError" class="primary-button" type="button" @click="refreshBuffDetail()">重试加载</button>
           <a class="primary-button" href="/buffs">返回 Buff 图鉴</a>
         </div>
       </section>

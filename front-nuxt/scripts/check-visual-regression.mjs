@@ -1270,7 +1270,7 @@ if (!itemsPage.includes('@focus="setFocusedItem(item)"')) {
   failures.push('items page wall cells must update selection on keyboard focus')
 }
 
-if (!itemsPage.includes('debouncedSearchQuery') || !itemsPage.includes('setTimeout')) {
+if (!itemsPage.includes('debouncedSearchQuery') || !itemsPage.includes('debounced: debouncedSearchQuery')) {
   failures.push('items page search query should be debounced before it enters the public item request')
 }
 
@@ -1278,7 +1278,7 @@ if (!itemsPage.includes('resetCatalogFilters')) {
   failures.push('items page empty state should offer a full search/filter reset')
 }
 
-if (!itemsPage.includes('useRoute()') || !itemsPage.includes('useRouter()') || !itemsPage.includes('updateCatalogRouteQuery')) {
+if (!itemsPage.includes('useRoute()') || !itemsPage.includes('useCatalogRouteSync({')) {
   failures.push('items page pagination and filters should sync to URL query for refresh/share')
 }
 

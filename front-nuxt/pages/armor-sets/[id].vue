@@ -58,7 +58,7 @@ const armorClientReady = ref(false)
 const expandedArmorPartKeys = ref(new Set<string>())
 
 const armorSetId = computed(() => String(route.params.id ?? '').trim())
-const { data: armorDetailResult, pending: armorDetailPending, error: armorDetailError } = await usePublicArmorSetDetail(armorSetId)
+const { data: armorDetailResult, pending: armorDetailPending, error: armorDetailError, refresh: refreshArmorDetail } = await usePublicArmorSetDetail(armorSetId)
 
 if (!armorDetailResult.value?.detail) {
   throw createError({ statusCode: 404, statusMessage: 'Armor set not found' })
@@ -2074,12 +2074,13 @@ onMounted(() => {
       <section v-else-if="armorNotFound" class="support-panel armor-detail-hero">
         <div>
           <span class="eyebrow">套装资料</span>
-          <component :is="'h1'" class="detail-missing-title">没有找到这个套装</component>
-          <p>当前详情资料还没有可渲染内容。</p>
+          <component :is="'h1'" class="detail-missing-title">{{ armorDetailError ? '套装资料加载失败' : '没有找到这个套装' }}</component>
+          <p>{{ armorDetailError ? '加载套装资料时出现异常，可以重试或稍后再来。' : '当前详情资料还没有可渲染内容。' }}</p>
           <div class="tag-row">
             <span class="tag paper">详情缺失</span>
             <span v-if="armorDetailError" class="tag moss">加载异常</span>
           </div>
+          <button v-if="armorDetailError" class="primary-button" type="button" @click="refreshArmorDetail()">重试加载</button>
           <a class="primary-button" href="/armor-sets">返回套装路线</a>
         </div>
       </section>

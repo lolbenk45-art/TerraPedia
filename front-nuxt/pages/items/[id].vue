@@ -25,7 +25,7 @@ const favoritesStore = useUserFavoritesStore()
 const historyStore = useUserHistoryStore()
 
 const itemId = computed(() => String(route.params.id ?? '').trim())
-const { data: detailBundle, pending: detailPending, error: detailError } = await usePublicItemDetail(itemId)
+const { data: detailBundle, pending: detailPending, error: detailError, refresh: refreshItemDetail } = await usePublicItemDetail(itemId)
 
 if (!detailBundle.value?.item) {
   throw createError({ statusCode: 404, statusMessage: 'Item not found' })
@@ -884,13 +884,14 @@ onMounted(() => {
     <div v-else-if="notFoundState" :class="['detail-layout', detailLayout.detailShellClass]">
       <section class="detail-hero dark-card">
         <div class="detail-main">
-          <span class="eyebrow">物品 #{{ itemId || '未知' }} · 未找到</span>
-          <strong class="detail-missing-title">没有找到这个物品</strong>
-          <p>暂时没有可显示的物品资料。可以返回物品图鉴重新选择，或稍后再试。</p>
+          <span class="eyebrow">物品 #{{ itemId || '未知' }} · {{ detailError ? '加载失败' : '未找到' }}</span>
+          <strong class="detail-missing-title">{{ detailError ? '物品资料加载失败' : '没有找到这个物品' }}</strong>
+          <p>{{ detailError ? '加载物品资料时出现异常，可以重试或稍后再来。' : '暂时没有可显示的物品资料。可以返回物品图鉴重新选择，或稍后再试。' }}</p>
           <div class="tag-row">
             <span class="tag paper">详情缺失</span>
             <span v-if="detailError" class="tag moss">载入异常</span>
           </div>
+          <button v-if="detailError" class="primary-button" type="button" @click="refreshItemDetail()">重试加载</button>
           <a class="primary-button" href="/items">返回物品图鉴</a>
         </div>
       </section>

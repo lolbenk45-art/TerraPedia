@@ -2,9 +2,6 @@
 import { usePublicProjectiles } from '~/composables/usePublicProjectiles'
 import type { PublicProjectileQuery } from '~/types/public-api'
 
-const route = useRoute()
-const router = useRouter()
-
 useSeoMeta({
   title: 'TerraPedia · 射弹行为库',
   description: '浏览 Terraria 公开射弹资料，按名称、编号、伤害和 AI 样式查询弹道行为。',
@@ -19,7 +16,6 @@ const projectileSortOptions = [
   { value: 'aiStyle', label: 'AI' },
 ] as const
 
-const projectileClientReady = ref(false)
 const projectileWallTopRef = ref<HTMLElement | null>(null)
 const projectileSearchQuery = ref('')
 const debouncedProjectileSearchQuery = ref('')
@@ -27,18 +23,7 @@ const projectileSortBy = ref<PublicProjectileQuery['sortBy']>('id')
 const projectileSortDirection = ref<'asc' | 'desc'>('asc')
 const projectileCurrentPage = ref(1)
 const projectilePageSize = ref(defaultProjectilePageSize)
-const projectileVisualLoading = ref(true)
-const projectileVisualLoadingMinimumMs = 180
-let projectileSearchDebounceTimer: ReturnType<typeof setTimeout> | null = null
-let projectileVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
-let projectileVisualLoadingStartedAt = Date.now()
-let syncingProjectileRouteQuery = false
 
-const firstQueryValue = (value: unknown) => Array.isArray(value) ? value[0] : value
-const parsePositiveInteger = (value: unknown, fallback: number) => {
-  const parsed = Number(firstQueryValue(value))
-  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback
-}
 const parseProjectilePageSize = (value: unknown) => {
   const parsed = parsePositiveInteger(value, defaultProjectilePageSize)
   return projectilePageSizeOptions.includes(parsed) ? parsed : defaultProjectilePageSize
@@ -66,8 +51,12 @@ const {
   refresh: refreshPublicProjectiles,
 } = await usePublicProjectiles(() => projectileListQuery.value)
 
+const { clientReady: projectileClientReady, visualLoading: projectileVisualLoading } = useVisualLoading({
+  pending: projectilesPending,
+  minimumMs: 180,
+})
+
 const projectilePagination = computed(() => publicProjectilesResult.value?.pagination)
-const projectileRawLoading = computed(() => !projectileClientReady.value || projectilesPending.value)
 const projectileApiUnavailable = computed(() => (
   projectileClientReady.value
   && !projectilesPending.value
@@ -108,31 +97,6 @@ const projectileResultSummary = computed(() => {
 })
 const projectileOrbitItems = computed(() => projectileDisplayItems.value.slice(0, 3))
 
-const clearProjectileVisualLoadingTimer = () => {
-  if (projectileVisualLoadingTimer) {
-    clearTimeout(projectileVisualLoadingTimer)
-    projectileVisualLoadingTimer = null
-  }
-}
-
-const syncProjectileVisualLoading = (isLoading: boolean) => {
-  clearProjectileVisualLoadingTimer()
-
-  if (isLoading) {
-    projectileVisualLoadingStartedAt = Date.now()
-    projectileVisualLoading.value = true
-    return
-  }
-
-  const elapsed = Date.now() - projectileVisualLoadingStartedAt
-  const remaining = Math.max(0, projectileVisualLoadingMinimumMs - elapsed)
-
-  projectileVisualLoadingTimer = setTimeout(() => {
-    projectileVisualLoading.value = false
-    projectileVisualLoadingTimer = null
-  }, remaining)
-}
-
 const scrollProjectilesToTop = async () => {
   if (!import.meta.client) return
 
@@ -166,46 +130,26 @@ const setProjectilePageSize = (pageSize: number) => {
   void scrollProjectilesToTop()
 }
 
-const updateProjectileRouteQuery = () => {
-  const query = {
-    ...route.query,
+useCatalogRouteSync({
+  serialize: () => ({
     page: projectileCurrentPage.value > 1 ? String(projectileCurrentPage.value) : undefined,
     pageSize: projectilePageSize.value !== defaultProjectilePageSize ? String(projectilePageSize.value) : undefined,
     q: debouncedProjectileSearchQuery.value.trim() || undefined,
     sortBy: projectileSortBy.value !== 'id' ? projectileSortBy.value : undefined,
     sortDirection: projectileSortDirection.value !== 'asc' ? projectileSortDirection.value : undefined,
-  }
-
-  syncingProjectileRouteQuery = true
-  void router.replace({ query }).finally(() => {
-    syncingProjectileRouteQuery = false
-  })
-}
-
-const hydrateProjectileStateFromRoute = () => {
-  if (syncingProjectileRouteQuery) return
-
-  const search = String(firstQueryValue(route.query.q) ?? '')
-  projectileSearchQuery.value = search
-  debouncedProjectileSearchQuery.value = search
-  projectileCurrentPage.value = parsePositiveInteger(route.query.page, 1)
-  projectilePageSize.value = parseProjectilePageSize(route.query.pageSize)
-  projectileSortBy.value = parseProjectileSort(route.query.sortBy)
-  projectileSortDirection.value = parseProjectileSortDirection(route.query.sortDirection)
-}
-
-hydrateProjectileStateFromRoute()
-
-watch(projectileSearchQuery, () => {
-  if (projectileSearchDebounceTimer) {
-    clearTimeout(projectileSearchDebounceTimer)
-  }
-
-  projectileCurrentPage.value = 1
-  projectileSearchDebounceTimer = setTimeout(() => {
-    debouncedProjectileSearchQuery.value = projectileSearchQuery.value
-  }, 300)
-}, { flush: 'sync' })
+  }),
+  hydrate: (query) => {
+    const search = String(firstQueryValue(query.q) ?? '')
+    projectileSearchQuery.value = search
+    debouncedProjectileSearchQuery.value = search
+    projectileCurrentPage.value = parsePositiveInteger(query.page, 1)
+    projectilePageSize.value = parseProjectilePageSize(query.pageSize)
+    projectileSortBy.value = parseProjectileSort(query.sortBy)
+    projectileSortDirection.value = parseProjectileSortDirection(query.sortDirection)
+  },
+  watchSources: [projectileCurrentPage, projectilePageSize, debouncedProjectileSearchQuery, projectileSortBy, projectileSortDirection],
+  search: { input: projectileSearchQuery, debounced: debouncedProjectileSearchQuery, page: projectileCurrentPage },
+})
 
 watch([projectileSortBy, projectileSortDirection], () => {
   projectileCurrentPage.value = 1
@@ -216,27 +160,6 @@ watch(projectileTotalPages, (pages) => {
   if (projectileCurrentPage.value > pages) {
     projectileCurrentPage.value = pages
   }
-})
-
-watch(
-  [projectileCurrentPage, projectilePageSize, debouncedProjectileSearchQuery, projectileSortBy, projectileSortDirection],
-  updateProjectileRouteQuery,
-  { flush: 'post' },
-)
-
-watch(projectileRawLoading, syncProjectileVisualLoading, { immediate: true })
-watch(() => route.query, hydrateProjectileStateFromRoute)
-
-onMounted(() => {
-  projectileClientReady.value = true
-})
-
-onBeforeUnmount(() => {
-  if (projectileSearchDebounceTimer) {
-    clearTimeout(projectileSearchDebounceTimer)
-  }
-
-  clearProjectileVisualLoadingTimer()
 })
 </script>
 

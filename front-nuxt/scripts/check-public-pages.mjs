@@ -6,20 +6,6 @@ const root = new URL('..', import.meta.url)
 const file = (path) => join(root.pathname, path)
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-const assertApiPagedListBypassesLocalFilters = (violations, path, content, contract) => {
-  for (const marker of contract.markers) {
-    if (!content.includes(marker)) {
-      violations.push(`${path}: API-backed pagination must expose ${marker} before bypassing local filters`)
-    }
-  }
-
-  const filteredBlock = content.match(contract.filteredBlockPattern)?.[0] ?? ''
-
-  if (!filteredBlock.includes(contract.apiBypassMarker)) {
-    violations.push(`${path}: API-paginated results must render the backend page directly before any local filtering`)
-  }
-}
-
 const readCssPxValue = (content, selector, property) => {
   const rule = content.match(new RegExp(`${escapeRegExp(selector)}\\s*\\{([^}]*)\\}`, 'm'))
   if (!rule) {
@@ -380,7 +366,7 @@ const extractPlayerFacingAuditContent = (content) => {
     .filter((value) => /(结构化|追踪|追溯|接口|API|聚合|后端|Public Aggregate|Internal|Trace|\/public\/)/.test(value))
     .filter((value) => !/^[A-Za-z_$][\w$]*Internal[A-Za-z_$][\w$]*$/.test(value))
     .filter((value) => !/^[A-Za-z_$][\w$]*\(entry\.[\s\S]*Internal[A-Za-z_$][\w$]*[\s\S]*\)$/.test(value))
-    .filter((value) => !/\binternalName\b|\bitemInternalName\b/.test(value))
+    .filter((value) => !/\binternalName\b|\bitemInternalName\b|\bstationInternalName\b/.test(value))
     .filter((value) => !value.includes('/public/items/'))
     .join('\n')
 
@@ -1596,7 +1582,7 @@ for (const path of scanFiles) {
       'pagination',
       ':to="npc.detailPath"',
       'v-for="npc in visibleNpcCards"',
-      "npcResult.value?.source === 'api'",
+      "npcResult.value?.source !== 'api'",
       'npc-card-loading',
     ]) {
       if (!content.includes(marker)) {
@@ -1645,19 +1631,21 @@ for (const path of scanFiles) {
       violations.push(`${path}: NPC category drawer must render grouped filters from npcCategoryGroups`)
     }
 
-    assertApiPagedListBypassesLocalFilters(violations, path, content, {
-      filteredBlockPattern: /const\s+filteredNpcCards\s*=\s*computed\(\(\)\s*=>\s*\{[\s\S]*?\n\}\)/,
-      apiBypassMarker: "if (npcResult.value?.source === 'api') return npcDisplayCards.value",
-      markers: [
-        "search: backendSearch.value || undefined",
-        "categoryId: selectedNpcCategoryId.value",
-        'isTownNpc: selectedFilter.value.isTownNpc',
-        'isFriendly: selectedFilter.value.isFriendly',
-        'isBoss: selectedFilter.value.isBoss',
-        "hasShop: selectedFilter.value.hasShop",
-        "hasLoot: selectedFilter.value.hasLoot",
-      ],
-    })
+    assertContainsMarkers(violations, path, content, [
+      "search: backendSearch.value || undefined",
+      "categoryId: selectedNpcCategoryId.value",
+      'isTownNpc: selectedFilter.value.isTownNpc',
+      'isFriendly: selectedFilter.value.isFriendly',
+      'isBoss: selectedFilter.value.isBoss',
+      "hasShop: selectedFilter.value.hasShop",
+      "hasLoot: selectedFilter.value.hasLoot",
+    ], 'NPC list rows must come from the backend page query fields')
+
+    assertOmitsMarkers(violations, path, content, [
+      'matchNpcFilter',
+      'shouldApplyLocalNpcFilter',
+      'filteredNpcCards',
+    ], 'API-paginated NPC results must render the backend page directly without local re-filtering')
 
     if (!content.includes('<CommonPaginationDock') || !content.includes('@page-change="goToPage"') || !content.includes('v-for="pageSize in pageSizeOptions"')) {
       violations.push(`${path}: NPC page dock and drawer must keep reusable paging and page-size controls wired`)
@@ -2374,7 +2362,7 @@ for (const path of scanFiles) {
       'bossType: selectedBossType.value || undefined',
       'type: selectedBossType.value || undefined',
       'type: bossType',
-      'watch([bossCurrentPage, bossDebouncedSearchQuery, selectedBossType]',
+      'watchSources: [bossCurrentPage, bossDebouncedSearchQuery, selectedBossType]',
     ], 'Boss list page must expose bossType filter UI and route query synchronization')
   }
 
@@ -2989,11 +2977,11 @@ for (const path of scanFiles) {
       }
     }
 
-    if (!content.includes('Array.isArray(items) ? items : fallbackCatalogItems')) {
+    if (!content.includes('Array.isArray(items) ? items : []')) {
       violations.push(`${path}: items page must preserve valid empty API result sets instead of replacing them with fallback data`)
     }
 
-    if (!content.includes('!catalogClientReady.value || itemsPending.value')) {
+    if (!content.includes('useVisualLoading({') || !content.includes('pending: itemsPending')) {
       violations.push(`${path}: items page must show loading skeleton through client hydration and while the API page is pending instead of rendering fallback sample data`)
     }
 
@@ -3013,18 +3001,19 @@ for (const path of scanFiles) {
       violations.push(`${path}: items search reset must synchronously reset page state before the API query refreshes`)
     }
 
-    assertApiPagedListBypassesLocalFilters(violations, path, content, {
-      filteredBlockPattern: /const\s+filteredCatalogItems\s*=\s*computed\(\(\)\s*=>\s*\{[\s\S]*?\n\}\)/,
-      apiBypassMarker: 'if (shouldUseApiPagedItems.value) return catalogDisplayItems.value',
-      markers: [
-        "const shouldUseApiPagedItems = computed(() => publicItemsResult.value?.source === 'api')",
-        "const shouldApplyLocalCategoryFilter = computed(() => publicItemsResult.value?.source !== 'api')",
-        "search: backendSearch.value || undefined",
-        'categoryId: selectedCategoryId.value',
-        'categoryIds: selectedCategoryIds.value.length > 0 ? selectedCategoryIds.value : undefined',
-        'gamePeriodId: selectedGamePeriodId.value',
-      ],
-    })
+    assertContainsMarkers(violations, path, content, [
+      "search: backendSearch.value || undefined",
+      'categoryId: selectedCategoryId.value',
+      'categoryIds: selectedCategoryIds.value.length > 0 ? selectedCategoryIds.value : undefined',
+      'gamePeriodId: selectedGamePeriodId.value',
+    ], 'Items page rows must come from the backend page query fields')
+
+    assertOmitsMarkers(violations, path, content, [
+      'fallbackCatalogItems',
+      'matchFallbackCatalogFilter',
+      'shouldApplyLocalCategoryFilter',
+      'filteredCatalogItems',
+    ], 'API-paginated item results must render the backend page directly without local re-filtering or fallback sample data')
 
     assertContainsMarkers(violations, path, content, [
       'item.categoryPath',

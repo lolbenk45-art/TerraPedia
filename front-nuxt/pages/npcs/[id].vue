@@ -22,7 +22,7 @@ const numericNpcId = computed(() => {
   return Number.isInteger(value) && value !== 0 ? value : null
 })
 const invalidNpcId = computed(() => numericNpcId.value == null)
-const { data: aggregateBundle, pending: aggregatePending, error: aggregateError } = await usePublicNpcAggregate(
+const { data: aggregateBundle, pending: aggregatePending, error: aggregateError, refresh: refreshNpcAggregate } = await usePublicNpcAggregate(
   () => numericNpcId.value ?? routeNpcId.value,
   include,
 )
@@ -529,13 +529,14 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
           <span class="item-art tp-preview-image is-fallback" data-fallback="N"></span>
         </div>
         <div class="npc-detail-copy">
-          <span class="eyebrow">NPC #{{ routeNpcId || '未知' }} · 未找到</span>
-          <component :is="'h1'" class="detail-missing-title">没有找到这个 NPC</component>
-          <p>{{ invalidNpcId ? '请从 NPC 图鉴进入对应详情页。' : '暂时没有可显示的 NPC 资料。' }}</p>
+          <span class="eyebrow">NPC #{{ routeNpcId || '未知' }} · {{ aggregateError ? '加载失败' : '未找到' }}</span>
+          <component :is="'h1'" class="detail-missing-title">{{ aggregateError ? 'NPC 资料加载失败' : '没有找到这个 NPC' }}</component>
+          <p>{{ aggregateError ? '加载 NPC 资料时出现异常，可以重试或稍后再来。' : invalidNpcId ? '请从 NPC 图鉴进入对应详情页。' : '暂时没有可显示的 NPC 资料。' }}</p>
           <div class="tag-row">
             <span class="tag paper">详情缺失</span>
             <span v-if="aggregateError" class="tag moss">载入异常</span>
           </div>
+          <button v-if="aggregateError" class="primary-button" type="button" @click="refreshNpcAggregate()">重试加载</button>
           <a class="primary-button" href="/npcs">返回 NPC 图鉴</a>
         </div>
       </section>

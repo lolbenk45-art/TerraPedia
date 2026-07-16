@@ -3,10 +3,6 @@ import { usePublicBiomeDetail } from '~/composables/usePublicBiomeDetail'
 import type { PublicBiomeItemRelation, PublicBiomeItemSource, PublicBiomeNpcRelation, PublicBiomeResource } from '~/types/public-api'
 
 const route = useRoute()
-const biomeClientReady = ref(false)
-const biomeDetailVisualLoadingMinimumMs = 180
-let biomeDetailVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
-let biomeDetailVisualLoadingStartedAt = Date.now()
 
 const biomeRouteId = computed(() => String(route.params.id ?? '').trim())
 
@@ -28,8 +24,11 @@ const biomeRelations = computed(() => biomeBundle.value?.relations ?? [])
 const biomeItemBiomes = computed(() => biomeBundle.value?.itemBiomes ?? [])
 const biomeNpcBiomes = computed(() => biomeBundle.value?.npcBiomes ?? [])
 const biomeItemSources = computed(() => biomeBundle.value?.itemSources ?? [])
-const biomeRawLoading = computed(() => !biomeDetail.value && (!biomeClientReady.value || biomePending.value))
-const biomeDetailVisualLoading = ref(biomeRawLoading.value)
+const { clientReady: biomeClientReady, visualLoading: biomeDetailVisualLoading } = useVisualLoading({
+  pending: biomePending,
+  hasData: () => Boolean(biomeDetail.value),
+  minimumMs: 180,
+})
 const biomeMissing = computed(() => biomeClientReady.value && !biomePending.value && !biomeDetail.value)
 const biomeTitle = computed(() => biomeTile.value?.displayName || biomeDetail.value?.nameZh || biomeDetail.value?.nameEn || '群系详情')
 const biomeTrailItems = computed(() => [
@@ -195,39 +194,6 @@ const sourceDetailText = (source: PublicBiomeItemSource) => {
   const amount = displayText(source.chanceText, source.quantityText, source.conditions, source.notes)
   return amount ? `${sourceName} · ${amount}` : sourceName
 }
-
-const clearBiomeDetailVisualLoadingTimer = () => {
-  if (biomeDetailVisualLoadingTimer) {
-    clearTimeout(biomeDetailVisualLoadingTimer)
-    biomeDetailVisualLoadingTimer = null
-  }
-}
-
-const syncBiomeDetailVisualLoading = (isLoading: boolean) => {
-  clearBiomeDetailVisualLoadingTimer()
-
-  if (isLoading) {
-    biomeDetailVisualLoadingStartedAt = Date.now()
-    biomeDetailVisualLoading.value = true
-    return
-  }
-
-  const elapsed = Date.now() - biomeDetailVisualLoadingStartedAt
-  const remaining = Math.max(0, biomeDetailVisualLoadingMinimumMs - elapsed)
-
-  biomeDetailVisualLoadingTimer = setTimeout(() => {
-    biomeDetailVisualLoading.value = false
-    biomeDetailVisualLoadingTimer = null
-  }, remaining)
-}
-
-watch(biomeRawLoading, syncBiomeDetailVisualLoading, { immediate: true })
-
-onMounted(() => {
-  biomeClientReady.value = true
-})
-
-onBeforeUnmount(clearBiomeDetailVisualLoadingTimer)
 </script>
 
 <template>
@@ -302,8 +268,8 @@ onBeforeUnmount(clearBiomeDetailVisualLoadingTimer)
 
       <section v-else-if="biomeMissing" class="search-suggestion-band support-panel">
         <div>
-          <b>群系详情暂未载入</b>
-          <span>当前 ID 没有返回公开资料，页面不会展示无关内容。</span>
+          <b>{{ biomeError ? '群系详情加载失败' : '群系详情暂未载入' }}</b>
+          <span>{{ biomeError ? '加载群系资料时出现异常，可以重试或稍后再来。' : '当前 ID 没有返回公开资料，页面不会展示无关内容。' }}</span>
         </div>
         <button class="small-button active" type="button" @click="refreshBiomeDetail()">重新加载</button>
       </section>

@@ -2,25 +2,15 @@
 import { usePublicArmorSets } from '~/composables/usePublicArmorSets'
 import type { ArmorSetCatalogItem, EquipmentEffectAttribute, PublicArmorSetQuery } from '~/types/public-api'
 
-const route = useRoute()
-const router = useRouter()
-
 useSeoMeta({
   title: 'TerraPedia · 套装路线',
   description: '浏览 Terraria 公开防具套装资料，查看部件数量、套装效果、词条解析和分页搜索。',
 })
 
-const armorClientReady = ref(false)
 const armorSearchQuery = ref('')
 const armorDebouncedSearchQuery = ref('')
 const armorCurrentPage = ref(1)
 const armorPageSize = ref(24)
-const armorVisualLoading = ref(true)
-const armorVisualLoadingMinimumMs = 180
-let armorSearchDebounceTimer: ReturnType<typeof setTimeout> | null = null
-let armorVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
-let armorVisualLoadingStartedAt = Date.now()
-let syncingArmorRouteQuery = false
 
 const statLabels: Record<string, string> = {
   damage_bonus: '伤害',
@@ -37,12 +27,6 @@ const statLabels: Record<string, string> = {
   special_effect: '特效',
 }
 
-const firstQueryValue = (value: unknown) => Array.isArray(value) ? value[0] : value
-const parsePositiveInteger = (value: unknown, fallback: number) => {
-  const parsed = Number(firstQueryValue(value))
-  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback
-}
-
 const armorListQuery = computed(() => ({
   page: armorCurrentPage.value,
   limit: armorPageSize.value,
@@ -56,8 +40,12 @@ const {
   refresh: refreshPublicArmorSets,
 } = await usePublicArmorSets(() => armorListQuery.value)
 
+const { clientReady: armorClientReady, visualLoading: armorVisualLoading } = useVisualLoading({
+  pending: armorSetsPending,
+  minimumMs: 180,
+})
+
 const armorPagination = computed(() => publicArmorSetsResult.value?.pagination)
-const armorRawLoading = computed(() => !armorClientReady.value || armorSetsPending.value)
 const armorFallbackUnavailable = computed(() => armorClientReady.value && !armorSetsPending.value && publicArmorSetsResult.value?.source !== 'api')
 const armorDisplayItems = computed(() => (armorVisualLoading.value || armorFallbackUnavailable.value) ? [] : publicArmorSetsResult.value?.items ?? [])
 const armorTotalItems = computed(() => (armorVisualLoading.value || armorFallbackUnavailable.value) ? 0 : armorPagination.value?.total ?? armorDisplayItems.value.length)
@@ -75,31 +63,6 @@ const armorSecondaryLabel = (armor: ArmorSetCatalogItem) => (
   armor.englishName || '防具套装'
 )
 
-const clearArmorVisualLoadingTimer = () => {
-  if (armorVisualLoadingTimer) {
-    clearTimeout(armorVisualLoadingTimer)
-    armorVisualLoadingTimer = null
-  }
-}
-
-const syncArmorVisualLoading = (isLoading: boolean) => {
-  clearArmorVisualLoadingTimer()
-
-  if (isLoading) {
-    armorVisualLoadingStartedAt = Date.now()
-    armorVisualLoading.value = true
-    return
-  }
-
-  const elapsed = Date.now() - armorVisualLoadingStartedAt
-  const remaining = Math.max(0, armorVisualLoadingMinimumMs - elapsed)
-
-  armorVisualLoadingTimer = setTimeout(() => {
-    armorVisualLoading.value = false
-    armorVisualLoadingTimer = null
-  }, remaining)
-}
-
 const goToArmorPage = (page: number) => {
   const nextPage = Math.min(Math.max(1, page), armorTotalPages.value)
   if (nextPage === armorCurrentPage.value) return
@@ -114,28 +77,6 @@ const resetArmorSearch = () => {
   armorSearchQuery.value = ''
   armorDebouncedSearchQuery.value = ''
   armorCurrentPage.value = 1
-}
-
-const updateArmorRouteQuery = () => {
-  syncingArmorRouteQuery = true
-  void router.replace({
-    query: {
-      ...route.query,
-      page: armorCurrentPage.value > 1 ? String(armorCurrentPage.value) : undefined,
-      q: armorDebouncedSearchQuery.value.trim() || undefined,
-    },
-  }).finally(() => {
-    syncingArmorRouteQuery = false
-  })
-}
-
-const hydrateArmorStateFromRoute = () => {
-  if (syncingArmorRouteQuery) return
-
-  const search = String(firstQueryValue(route.query.q) ?? '')
-  armorCurrentPage.value = parsePositiveInteger(route.query.page, 1)
-  armorSearchQuery.value = search
-  armorDebouncedSearchQuery.value = search
 }
 
 const numberLabel = (value: number | null | undefined) => (
@@ -188,18 +129,20 @@ const armorSummary = (armor: ArmorSetCatalogItem) => {
   return `${numberLabel(armor.uniqueItemCount)} 个部件 · ${parsedCount}/${totalCount} 条效果`
 }
 
-hydrateArmorStateFromRoute()
-
-watch(armorSearchQuery, () => {
-  if (armorSearchDebounceTimer) {
-    clearTimeout(armorSearchDebounceTimer)
-  }
-
-  armorCurrentPage.value = 1
-  armorSearchDebounceTimer = setTimeout(() => {
-    armorDebouncedSearchQuery.value = armorSearchQuery.value
-  }, 300)
-}, { flush: 'sync' })
+useCatalogRouteSync({
+  serialize: () => ({
+    page: armorCurrentPage.value > 1 ? String(armorCurrentPage.value) : undefined,
+    q: armorDebouncedSearchQuery.value.trim() || undefined,
+  }),
+  hydrate: (query) => {
+    const search = String(firstQueryValue(query.q) ?? '')
+    armorCurrentPage.value = parsePositiveInteger(query.page, 1)
+    armorSearchQuery.value = search
+    armorDebouncedSearchQuery.value = search
+  },
+  watchSources: [armorCurrentPage, armorDebouncedSearchQuery],
+  search: { input: armorSearchQuery, debounced: armorDebouncedSearchQuery, page: armorCurrentPage },
+})
 
 watch(armorDebouncedSearchQuery, () => {
   armorCurrentPage.value = 1
@@ -209,22 +152,6 @@ watch(armorTotalPages, (pages) => {
   if (armorCurrentPage.value > pages) {
     armorCurrentPage.value = pages
   }
-})
-
-watch([armorCurrentPage, armorDebouncedSearchQuery], updateArmorRouteQuery, { flush: 'post' })
-watch(armorRawLoading, syncArmorVisualLoading, { immediate: true })
-watch(() => route.query, hydrateArmorStateFromRoute)
-
-onMounted(() => {
-  armorClientReady.value = true
-})
-
-onBeforeUnmount(() => {
-  if (armorSearchDebounceTimer) {
-    clearTimeout(armorSearchDebounceTimer)
-  }
-
-  clearArmorVisualLoadingTimer()
 })
 </script>
 
