@@ -1196,6 +1196,11 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.detail-missing-title {
+  display: block;
+  margin: 10px 0 0;
+}
+
 .detail-relation-row {
   grid-template-columns: 44px minmax(0, 1fr) auto;
   padding: 10px;
