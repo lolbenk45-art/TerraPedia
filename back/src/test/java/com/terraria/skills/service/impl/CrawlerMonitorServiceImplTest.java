@@ -9,17 +9,29 @@ import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
+import com.terraria.skills.dto.CrawlerQueueV2OverviewDTO;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueEngineMode;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueEngineRouter;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Repository;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Exception;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ApplicationService;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ReasonCode;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Status;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.nio.file.Files;
@@ -32,7 +44,12 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -42,6 +59,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class CrawlerMonitorServiceImplTest {
@@ -64,10 +86,704 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void shouldDeclareSpringInjectionConstructorWhenTestConstructorAlsoExists() throws Exception {
-        Constructor<CrawlerMonitorServiceImpl> constructor = CrawlerMonitorServiceImpl.class.getConstructor(ObjectMapper.class, StringRedisTemplate.class);
+    void shouldUseTheRouterAwareSpringConstructorWhileKeepingThePublicCompatibilityConstructor() throws Exception {
+        Constructor<CrawlerMonitorServiceImpl> compatibilityConstructor = CrawlerMonitorServiceImpl.class.getConstructor(
+            ObjectMapper.class,
+            StringRedisTemplate.class
+        );
+        Constructor<CrawlerMonitorServiceImpl> springConstructor = CrawlerMonitorServiceImpl.class.getConstructor(
+            ObjectMapper.class,
+            StringRedisTemplate.class,
+            CrawlerQueueEngineRouter.class,
+            CrawlerQueueV2ApplicationService.class
+        );
 
-        assertTrue(constructor.isAnnotationPresent(Autowired.class));
+        assertFalse(compatibilityConstructor.isAnnotationPresent(Autowired.class));
+        assertTrue(springConstructor.isAnnotationPresent(Autowired.class));
+    }
+
+    @Test
+    void v2OverviewNeverTouchesTheLegacyLiveQueueOnRepeatedReads() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        WikiMonitorDispatchQueueRepository legacyQueue = mock(WikiMonitorDispatchQueueRepository.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerQueueV2OverviewDTO.HealthDTO health = new CrawlerQueueV2OverviewDTO.HealthDTO(
+            "healthy", Instant.parse("2026-07-13T01:00:00Z"), null, 0L, 0L, 0L, null, null, null
+        );
+        when(v2Service.overview()).thenReturn(new CrawlerQueueV2ApplicationService.OverviewSnapshot(
+            2,
+            "epoch-1",
+            Instant.parse("2026-07-13T01:00:00Z"),
+            "1710000000000-3",
+            health,
+            health,
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of()
+        ));
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-07-13T01:00:00Z"), ZoneOffset.UTC),
+            null,
+            mock(CrawlerMonitorServiceImpl.ProcessLauncher.class),
+            router,
+            v2Service,
+            legacyQueue
+        );
+
+        CrawlerMonitorOverviewDTO first = service.getOverview();
+        CrawlerMonitorOverviewDTO second = service.getOverview();
+
+        assertEquals(2, first.getQueueContractVersion());
+        assertEquals(first.getStreamCursor(), second.getStreamCursor());
+        verify(v2Service).overview();
+        verifyNoInteractions(legacyQueue);
+    }
+
+    @Test
+    void v2EventSubscriptionPreservesStateStoreUnavailableInsteadOfDowngradingToConflict() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        WikiMonitorDispatchQueueRepository legacyQueue = mock(WikiMonitorDispatchQueueRepository.class);
+        when(router.mode()).thenThrow(new CrawlerQueueV2Exception(
+            HttpStatus.SERVICE_UNAVAILABLE,
+            CrawlerQueueV2ReasonCode.STATE_STORE_UNAVAILABLE
+        ));
+        CrawlerMonitorServiceImpl service = v2Service(router, v2Service, legacyQueue);
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> service.subscribeEvents("0-0")
+        );
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, exception.httpStatus());
+        assertEquals(CrawlerQueueV2ReasonCode.STATE_STORE_UNAVAILABLE, exception.reasonCode());
+        verifyNoInteractions(v2Service);
+    }
+
+    @Test
+    void overviewSwitchesToV2MaintenanceBeforeReadingLegacyLiveQueueWhenTheRouterChanges() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        WikiMonitorDispatchQueueRepository legacyQueue = mock(WikiMonitorDispatchQueueRepository.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V1, CrawlerQueueEngineMode.MAINTENANCE);
+        when(router.lastReasonCode()).thenReturn(CrawlerQueueV2ReasonCode.FIRST_MUTATION_OUTCOME_UNCERTAIN);
+        CrawlerQueueV2OverviewDTO.HealthDTO health = new CrawlerQueueV2OverviewDTO.HealthDTO(
+            "maintenance", Instant.parse("2026-07-13T01:00:00Z"), null, 0L, 0L, 0L,
+            CrawlerQueueV2ReasonCode.FIRST_MUTATION_OUTCOME_UNCERTAIN, null, null
+        );
+        when(v2Service.overview()).thenReturn(new CrawlerQueueV2ApplicationService.OverviewSnapshot(
+            2,
+            "epoch-1",
+            Instant.parse("2026-07-13T01:00:00Z"),
+            "1710000000000-3",
+            health,
+            health,
+            List.of(),
+            List.of(),
+            List.of(),
+            List.of()
+        ));
+        CrawlerMonitorServiceImpl service = v2Service(router, v2Service, legacyQueue);
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+
+        assertEquals(2, overview.getQueueContractVersion());
+        verify(v2Service).overview();
+        verifyNoInteractions(legacyQueue);
+    }
+
+    @Test
+    void v2DispatchUsesTheV2ApplicationServiceBeforeAnyLegacyQueueRead() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        WikiMonitorDispatchQueueRepository legacyQueue = mock(WikiMonitorDispatchQueueRepository.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true,
+            true,
+            1,
+            "queue-v2",
+            "attempt-v2",
+            null,
+            1L,
+            CrawlerQueueV2Status.QUEUED,
+            null,
+            null,
+            null,
+            List.of("cancel")
+        ));
+        CrawlerMonitorServiceImpl service = v2Service(router, v2Service, legacyQueue);
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(dispatchRequest(
+            "bosses",
+            "domain-source-bosses"
+        ));
+
+        assertTrue(result.isAccepted());
+        assertEquals("queue-v2", result.getQueueId());
+        assertEquals("attempt-v2", result.getAttemptId());
+        verify(v2Service).enqueue(any());
+        verifyNoInteractions(legacyQueue);
+    }
+
+    @Test
+    void dedicatedDomainStartRejectsResumeModesOtherThanFresh() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        WikiMonitorDispatchQueueRepository legacyQueue = mock(WikiMonitorDispatchQueueRepository.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        CrawlerMonitorServiceImpl service = v2Service(router, v2Service, legacyQueue);
+
+        IllegalArgumentException error = assertThrows(
+            IllegalArgumentException.class,
+            () -> service.startCrawlerDomain("bosses", "fresh", "auto", false, "admin")
+        );
+
+        assertEquals("首次开始只允许 fresh；断点继续必须通过 retry", error.getMessage());
+        verify(v2Service, never()).enqueue(any());
+        verifyNoInteractions(legacyQueue);
+    }
+
+    @Test
+    void v2FixtureDispatchReachesTheV2ApplicationWithoutEnteringTheLegacyRegistry() {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        WikiMonitorDispatchQueueRepository legacyQueue = mock(WikiMonitorDispatchQueueRepository.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.V2);
+        when(v2Service.enqueue(any())).thenReturn(new CrawlerQueueV2ApplicationService.DispatchResult(
+            true, true, 1, "queue-fixture", "attempt-fixture", null, 1L,
+            CrawlerQueueV2Status.QUEUED, null, null, null, List.of("cancel")
+        ));
+        CrawlerMonitorServiceImpl service = v2Service(router, v2Service, legacyQueue);
+
+        CrawlerMonitorDispatchResultDTO result = service.dispatchWikiMonitorTask(dispatchRequest(
+            "crawler_queue_v2_fixture", "crawler-queue-v2-fixture"
+        ));
+
+        assertEquals("attempt-fixture", result.getAttemptId());
+        ArgumentCaptor<CrawlerQueueV2ApplicationService.EnqueueCommand> command = ArgumentCaptor.forClass(
+            CrawlerQueueV2ApplicationService.EnqueueCommand.class
+        );
+        verify(v2Service).enqueue(command.capture());
+        assertEquals("crawler_queue_v2_fixture", command.getValue().domain());
+        assertEquals("crawler-queue-v2-fixture", command.getValue().actionId());
+        verifyNoInteractions(legacyQueue);
+    }
+
+    @Test
+    void durableMaintenanceBlocksEveryV1WritePathAndLeavesTheLegacyQueueUntouched() throws Exception {
+        CrawlerQueueEngineRouter router = mock(CrawlerQueueEngineRouter.class);
+        CrawlerQueueV2ApplicationService v2Service = mock(CrawlerQueueV2ApplicationService.class);
+        WikiMonitorDispatchQueueRepository legacyQueue = mock(WikiMonitorDispatchQueueRepository.class);
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = mock(CrawlerMonitorServiceImpl.ProcessLauncher.class);
+        when(router.mode()).thenReturn(CrawlerQueueEngineMode.MAINTENANCE);
+        when(router.lastReasonCode()).thenReturn(CrawlerQueueV2ReasonCode.FIRST_MUTATION_OUTCOME_UNCERTAIN);
+        CrawlerMonitorServiceImpl service = v2Service(router, v2Service, legacyQueue, launcher);
+        writeJson(repoRoot.resolve("reports/crawler-monitor/auto-dispatch.config.json"), Map.of(
+            "enabled", true,
+            "mode", "changed-only",
+            "sweepIntervalMinutes", 1
+        ));
+
+        CrawlerQueueV2Exception dispatch = assertThrows(CrawlerQueueV2Exception.class,
+            () -> service.dispatchWikiMonitorTask(dispatchRequest("bosses", "domain-source-bosses")));
+        assertEquals(CrawlerQueueV2ReasonCode.FIRST_MUTATION_OUTCOME_UNCERTAIN, dispatch.reasonCode());
+
+        CrawlerMonitorDispatchRequestDTO control = dispatchRequest("bosses", "domain-source-bosses");
+        control.setQueueId("legacy-queue");
+        control.setControlAction("cancel");
+        CrawlerQueueV2Exception controlFailure = assertThrows(CrawlerQueueV2Exception.class,
+            () -> service.controlWikiMonitorDispatch(control));
+        assertEquals(CrawlerQueueV2ReasonCode.FIRST_MUTATION_OUTCOME_UNCERTAIN, controlFailure.reasonCode());
+
+        CrawlerQueueV2Exception smoke = assertThrows(CrawlerQueueV2Exception.class,
+            () -> service.dispatchWikiMonitorDomainSmoke(new CrawlerMonitorDispatchRequestDTO()));
+        assertEquals(CrawlerQueueV2ReasonCode.FIRST_MUTATION_OUTCOME_UNCERTAIN, smoke.reasonCode());
+
+        service.reconcileActiveDispatchesOnStartup();
+        service.scheduledAutoDispatchSweep();
+        service.scheduledWikiMonitorQueueDrainSweep();
+
+        verifyNoInteractions(legacyQueue, launcher);
+        verifyNoInteractions(v2Service);
+    }
+
+    @Test
+    void v1DispatchKeepsTheMarkerTransitionOutUntilProcessLaunchCompletes() throws Exception {
+        CrawlerQueueV2Repository v2Repository = mock(CrawlerQueueV2Repository.class);
+        when(v2Repository.readEngineState()).thenReturn(new CrawlerQueueV2Repository.EngineState(
+            CrawlerQueueEngineMode.V1,
+            null,
+            null,
+            null
+        ));
+        CrawlerQueueEngineRouter router = new CrawlerQueueEngineRouter(
+            new ObjectMapper(),
+            v2Repository,
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-07-13T01:00:00Z"), ZoneOffset.UTC)
+        );
+        CrawlerQueueEngineRouter.CutoverState maintenance = maintenanceMarker();
+        CountDownLatch launchEntered = new CountDownLatch(1);
+        CountDownLatch releaseLaunch = new CountDownLatch(1);
+        CountDownLatch markerCallingWrite = new CountDownLatch(1);
+        CountDownLatch markerPersisted = new CountDownLatch(1);
+        AtomicInteger order = new AtomicInteger();
+        AtomicInteger launchOrder = new AtomicInteger();
+        AtomicInteger markerOrder = new AtomicInteger();
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = mock(CrawlerMonitorServiceImpl.ProcessLauncher.class);
+        when(launcher.launch(any())).thenAnswer(invocation -> {
+            launchEntered.countDown();
+            awaitLatch(releaseLaunch);
+            launchOrder.set(order.incrementAndGet());
+            return new BlockingProcess();
+        });
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-07-13T01:00:00Z"), ZoneOffset.UTC),
+            null,
+            launcher,
+            router,
+            null,
+            null
+        );
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Future<CrawlerMonitorDispatchResultDTO> dispatch = null;
+        Thread marker = null;
+        Throwable primaryFailure = null;
+        try {
+            dispatch = executor.submit(() -> service.dispatchWikiMonitorTask(
+                dispatchRequest("bosses", "domain-source-bosses")
+            ));
+            awaitLatch(launchEntered);
+            marker = new Thread(() -> {
+                markerCallingWrite.countDown();
+                router.writeState(maintenance);
+                markerOrder.set(order.incrementAndGet());
+                markerPersisted.countDown();
+            }, "v1-dispatch-maintenance-marker");
+            marker.start();
+            awaitLatch(markerCallingWrite);
+            awaitRouterLockContention(marker, markerPersisted);
+
+            releaseLaunch.countDown();
+            assertTrue(dispatch.get(2, TimeUnit.SECONDS).isAccepted());
+            assertTrue(markerPersisted.await(2, TimeUnit.SECONDS), "maintenance marker did not complete");
+            assertTrue(launchOrder.get() > 0, "V1 launch did not complete");
+            assertTrue(markerOrder.get() > launchOrder.get(), "maintenance must persist after the V1 launch");
+        } catch (Exception | Error failure) {
+            primaryFailure = failure;
+            throw failure;
+        } finally {
+            releaseLaunch.countDown();
+            finishInterleaving(marker, executor, dispatch, primaryFailure, "V1 dispatch maintenance interleaving");
+        }
+    }
+
+    @Test
+    void v1QueueDrainKeepsTheMarkerTransitionOutUntilReconciliationCompletes() throws Exception {
+        CrawlerQueueV2Repository v2Repository = mock(CrawlerQueueV2Repository.class);
+        when(v2Repository.readEngineState()).thenReturn(new CrawlerQueueV2Repository.EngineState(
+            CrawlerQueueEngineMode.V1,
+            null,
+            null,
+            null
+        ));
+        CrawlerQueueEngineRouter router = new CrawlerQueueEngineRouter(
+            new ObjectMapper(),
+            v2Repository,
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-07-13T01:00:00Z"), ZoneOffset.UTC)
+        );
+        CrawlerQueueEngineRouter.CutoverState maintenance = maintenanceMarker();
+        WikiMonitorDispatchQueueRepository legacyQueue = mock(WikiMonitorDispatchQueueRepository.class);
+        CountDownLatch reconciliationEntered = new CountDownLatch(1);
+        CountDownLatch releaseReconciliation = new CountDownLatch(1);
+        CountDownLatch markerCallingWrite = new CountDownLatch(1);
+        CountDownLatch markerPersisted = new CountDownLatch(1);
+        AtomicInteger order = new AtomicInteger();
+        AtomicInteger reconciliationOrder = new AtomicInteger();
+        AtomicInteger markerOrder = new AtomicInteger();
+        when(legacyQueue.withDrainLock(any(), any(), anyBoolean(), any())).thenAnswer(invocation -> {
+            reconciliationEntered.countDown();
+            awaitLatch(releaseReconciliation);
+            Runnable body = invocation.getArgument(3);
+            body.run();
+            reconciliationOrder.set(order.incrementAndGet());
+            return true;
+        });
+        when(legacyQueue.listItems()).thenReturn(List.of());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-07-13T01:00:00Z"), ZoneOffset.UTC),
+            null,
+            mock(CrawlerMonitorServiceImpl.ProcessLauncher.class),
+            router,
+            null,
+            legacyQueue
+        );
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Future<?> drain = null;
+        Thread marker = null;
+        Throwable primaryFailure = null;
+        try {
+            drain = executor.submit(service::scheduledWikiMonitorQueueDrainSweep);
+            awaitLatch(reconciliationEntered);
+            marker = new Thread(() -> {
+                markerCallingWrite.countDown();
+                router.writeState(maintenance);
+                markerOrder.set(order.incrementAndGet());
+                markerPersisted.countDown();
+            }, "v1-drain-maintenance-marker");
+            marker.start();
+            awaitLatch(markerCallingWrite);
+            awaitRouterLockContention(marker, markerPersisted);
+
+            releaseReconciliation.countDown();
+            drain.get(2, TimeUnit.SECONDS);
+            assertTrue(markerPersisted.await(2, TimeUnit.SECONDS), "maintenance marker did not complete");
+            assertTrue(reconciliationOrder.get() > 0, "V1 reconciliation did not complete");
+            assertTrue(markerOrder.get() > reconciliationOrder.get(), "maintenance must persist after V1 reconciliation");
+        } catch (Exception | Error failure) {
+            primaryFailure = failure;
+            throw failure;
+        } finally {
+            releaseReconciliation.countDown();
+            finishInterleaving(marker, executor, drain, primaryFailure, "V1 drain maintenance interleaving");
+        }
+    }
+
+    @Test
+    void v1OverviewKeepsTheMarkerTransitionOutUntilLegacyLiveProjectionCompletes() throws Exception {
+        CrawlerQueueV2Repository v2Repository = mock(CrawlerQueueV2Repository.class);
+        when(v2Repository.readEngineState()).thenReturn(new CrawlerQueueV2Repository.EngineState(
+            CrawlerQueueEngineMode.V1,
+            null,
+            null,
+            null
+        ));
+        CrawlerQueueEngineRouter router = new CrawlerQueueEngineRouter(
+            new ObjectMapper(),
+            v2Repository,
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-07-13T01:00:00Z"), ZoneOffset.UTC)
+        );
+        CrawlerQueueEngineRouter.CutoverState maintenance = maintenanceMarker();
+        WikiMonitorDispatchQueueRepository legacyQueue = mock(WikiMonitorDispatchQueueRepository.class);
+        CountDownLatch reconciliationCompleted = new CountDownLatch(1);
+        CountDownLatch projectionEntered = new CountDownLatch(1);
+        CountDownLatch releaseProjection = new CountDownLatch(1);
+        CountDownLatch markerCallingWrite = new CountDownLatch(1);
+        CountDownLatch markerPersisted = new CountDownLatch(1);
+        AtomicInteger order = new AtomicInteger();
+        AtomicInteger projectionOrder = new AtomicInteger();
+        AtomicInteger markerOrder = new AtomicInteger();
+        when(legacyQueue.withDrainLock(any(), any(), anyBoolean(), any())).thenAnswer(invocation -> {
+            Runnable body = invocation.getArgument(3);
+            body.run();
+            reconciliationCompleted.countDown();
+            return true;
+        });
+        when(legacyQueue.listItems()).thenAnswer(invocation -> {
+            if (reconciliationCompleted.getCount() == 0) {
+                projectionEntered.countDown();
+                awaitLatch(releaseProjection);
+                projectionOrder.set(order.incrementAndGet());
+            }
+            return List.of();
+        });
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-07-13T01:00:00Z"), ZoneOffset.UTC),
+            null,
+            mock(CrawlerMonitorServiceImpl.ProcessLauncher.class),
+            router,
+            null,
+            legacyQueue
+        );
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Future<CrawlerMonitorOverviewDTO> overview = null;
+        Thread marker = null;
+        Throwable primaryFailure = null;
+        try {
+            overview = executor.submit(service::getOverview);
+            awaitLatch(projectionEntered);
+            marker = new Thread(() -> {
+                markerCallingWrite.countDown();
+                router.writeState(maintenance);
+                markerOrder.set(order.incrementAndGet());
+                markerPersisted.countDown();
+            }, "v1-overview-maintenance-marker");
+            marker.start();
+            awaitLatch(markerCallingWrite);
+            awaitRouterLockContention(marker, markerPersisted);
+
+            releaseProjection.countDown();
+            assertNotNull(overview.get(2, TimeUnit.SECONDS).getWikiMonitor());
+            assertTrue(markerPersisted.await(2, TimeUnit.SECONDS), "maintenance marker did not complete");
+            assertTrue(projectionOrder.get() > 0, "V1 live projection did not complete");
+            assertTrue(markerOrder.get() > projectionOrder.get(), "maintenance must persist after V1 live projection");
+        } catch (Exception | Error failure) {
+            primaryFailure = failure;
+            throw failure;
+        } finally {
+            releaseProjection.countDown();
+            finishInterleaving(marker, executor, overview, primaryFailure, "V1 overview maintenance interleaving");
+        }
+    }
+
+    @Test
+    void v1CachedOverviewKeepsTheMarkerTransitionOutUntilTheCacheSnapshotIsSelected() throws Exception {
+        CrawlerQueueV2Repository v2Repository = mock(CrawlerQueueV2Repository.class);
+        when(v2Repository.readEngineState()).thenReturn(new CrawlerQueueV2Repository.EngineState(
+            CrawlerQueueEngineMode.V1,
+            null,
+            null,
+            null
+        ));
+        AtomicBoolean blockModeSample = new AtomicBoolean(false);
+        CountDownLatch cacheModeSampled = new CountDownLatch(1);
+        CountDownLatch releaseCacheModeSample = new CountDownLatch(1);
+        AtomicInteger order = new AtomicInteger();
+        AtomicInteger cacheSelectionOrder = new AtomicInteger();
+        CrawlerQueueEngineRouter router = new CrawlerQueueEngineRouter(
+            new ObjectMapper(),
+            v2Repository,
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-07-13T01:00:00Z"), ZoneOffset.UTC)
+        ) {
+            @Override
+            public CrawlerQueueEngineMode mode() {
+                CrawlerQueueEngineMode mode = super.mode();
+                if (blockModeSample.get()) {
+                    cacheModeSampled.countDown();
+                    awaitLatch(releaseCacheModeSample);
+                }
+                return mode;
+            }
+
+            @Override
+            public <T> T withMutationPermit(
+                java.util.function.Function<CrawlerQueueEngineRouter.MutationPermit, T> operation
+            ) {
+                return super.withMutationPermit(permit -> {
+                    T result = operation.apply(permit);
+                    if (blockModeSample.get()) {
+                        cacheSelectionOrder.set(order.incrementAndGet());
+                    }
+                    return result;
+                });
+            }
+        };
+        WikiMonitorDispatchQueueRepository legacyQueue = mock(WikiMonitorDispatchQueueRepository.class);
+        when(legacyQueue.listItems()).thenReturn(List.of());
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-07-13T01:00:00Z"), ZoneOffset.UTC),
+            null,
+            mock(CrawlerMonitorServiceImpl.ProcessLauncher.class),
+            router,
+            null,
+            legacyQueue
+        );
+        assertNotNull(service.getOverview().getWikiMonitor());
+        blockModeSample.set(true);
+        CrawlerQueueEngineRouter.CutoverState maintenance = maintenanceMarker();
+
+        CountDownLatch markerCallingWrite = new CountDownLatch(1);
+        CountDownLatch markerPersisted = new CountDownLatch(1);
+        AtomicInteger markerOrder = new AtomicInteger();
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Future<CrawlerMonitorOverviewDTO> cachedOverview = null;
+        Thread marker = null;
+        Throwable primaryFailure = null;
+        try {
+            cachedOverview = executor.submit(service::getOverview);
+            awaitLatch(cacheModeSampled);
+            marker = new Thread(() -> {
+                markerCallingWrite.countDown();
+                router.writeState(maintenance);
+                markerOrder.set(order.incrementAndGet());
+                markerPersisted.countDown();
+            }, "v1-cached-overview-maintenance-marker");
+            marker.start();
+            awaitLatch(markerCallingWrite);
+            awaitRouterLockContention(marker, markerPersisted);
+
+            releaseCacheModeSample.countDown();
+            assertNotNull(cachedOverview.get(2, TimeUnit.SECONDS).getWikiMonitor());
+            assertTrue(markerPersisted.await(2, TimeUnit.SECONDS), "maintenance marker did not complete");
+            assertTrue(cacheSelectionOrder.get() > 0, "cached V1 overview selection did not complete");
+            assertTrue(markerOrder.get() > cacheSelectionOrder.get(), "maintenance must persist after cached V1 selection");
+        } catch (Exception | Error failure) {
+            primaryFailure = failure;
+            throw failure;
+        } finally {
+            releaseCacheModeSample.countDown();
+            finishInterleaving(marker, executor, cachedOverview, primaryFailure, "cached V1 overview maintenance interleaving");
+        }
+    }
+
+    private CrawlerMonitorServiceImpl v2Service(
+        CrawlerQueueEngineRouter router,
+        CrawlerQueueV2ApplicationService v2Service,
+        WikiMonitorDispatchQueueRepository legacyQueue
+    ) {
+        return v2Service(router, v2Service, legacyQueue, mock(CrawlerMonitorServiceImpl.ProcessLauncher.class));
+    }
+
+    private CrawlerMonitorServiceImpl v2Service(
+        CrawlerQueueEngineRouter router,
+        CrawlerQueueV2ApplicationService v2Service,
+        WikiMonitorDispatchQueueRepository legacyQueue,
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher
+    ) {
+        configureMutationPermit(router);
+        return new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-07-13T01:00:00Z"), ZoneOffset.UTC),
+            null,
+            launcher,
+            router,
+            v2Service,
+            legacyQueue
+        );
+    }
+
+    private static void configureMutationPermit(CrawlerQueueEngineRouter router) {
+        CrawlerQueueEngineRouter.MutationPermit permit = mock(CrawlerQueueEngineRouter.MutationPermit.class);
+        when(permit.mode()).thenAnswer(invocation -> router.mode());
+        when(permit.durableState()).thenAnswer(invocation -> router.readDurableState());
+        org.mockito.Mockito.doAnswer(invocation -> {
+            CrawlerQueueEngineMode expected = invocation.getArgument(0);
+            assertEquals(expected, permit.mode());
+            return null;
+        }).when(permit).requireMode(any());
+        when(router.withMutationPermit(any())).thenAnswer(invocation -> {
+            java.util.function.Function<CrawlerQueueEngineRouter.MutationPermit, ?> operation = invocation.getArgument(0);
+            return operation.apply(permit);
+        });
+    }
+
+    private static void awaitLatch(CountDownLatch latch) {
+        try {
+            if (!latch.await(2, TimeUnit.SECONDS)) {
+                throw new AssertionError("timed out waiting for deterministic test interleaving");
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError(exception);
+        }
+    }
+
+    private static CrawlerQueueEngineRouter.CutoverState maintenanceMarker() {
+        return new CrawlerQueueEngineRouter.CutoverState(
+            2,
+            CrawlerQueueEngineMode.MAINTENANCE,
+            "cutover-1",
+            "epoch-1",
+            Instant.parse("2026-07-13T01:00:00Z"),
+            null,
+            null
+        );
+    }
+
+    private static void awaitRouterLockContention(Thread marker, CountDownLatch markerPersisted)
+        throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+        while (System.nanoTime() < deadline) {
+            Thread.State state = marker.getState();
+            boolean waitingInRouter = Arrays.stream(marker.getStackTrace()).anyMatch(frame ->
+                frame.getClassName().equals(CrawlerQueueEngineRouter.class.getName())
+                    && frame.getMethodName().equals("locked")
+            );
+            if (markerPersisted.getCount() == 1
+                && waitingInRouter
+                && (state == Thread.State.WAITING || state == Thread.State.BLOCKED)) {
+                return;
+            }
+            Thread.sleep(5L);
+        }
+        throw new AssertionError("maintenance writer did not wait on the real router lock");
+    }
+
+    private static void finishInterleaving(
+        Thread marker,
+        ExecutorService executor,
+        Future<?> operation,
+        Throwable primaryFailure,
+        String description
+    ) {
+        StringBuilder problems = new StringBuilder();
+        executor.shutdown();
+        if (operation != null && !operation.isDone()) {
+            try {
+                operation.get(2, TimeUnit.SECONDS);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                appendCleanupProblem(problems, "operation wait interrupted");
+            } catch (Exception exception) {
+                appendCleanupProblem(problems, "operation did not finish: " + exception.getClass().getSimpleName());
+            }
+        }
+        if (marker != null) {
+            try {
+                marker.join(2_000L);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                appendCleanupProblem(problems, "marker join interrupted");
+            }
+        }
+        try {
+            if (!executor.awaitTermination(2, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+                if (!executor.awaitTermination(2, TimeUnit.SECONDS)) {
+                    appendCleanupProblem(problems, "executor did not terminate");
+                }
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            appendCleanupProblem(problems, "executor termination interrupted");
+        }
+        if (marker != null && marker.isAlive()) {
+            marker.interrupt();
+            try {
+                marker.join(2_000L);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                appendCleanupProblem(problems, "marker cleanup join interrupted");
+            }
+            if (marker.isAlive()) {
+                appendCleanupProblem(problems, "marker thread is still alive");
+            }
+        }
+        if (problems.length() == 0) {
+            return;
+        }
+        AssertionError cleanupFailure = new AssertionError(description + " cleanup incomplete: " + problems);
+        if (primaryFailure == null) {
+            throw cleanupFailure;
+        }
+        primaryFailure.addSuppressed(cleanupFailure);
+    }
+
+    private static void appendCleanupProblem(StringBuilder problems, String problem) {
+        if (problems.length() > 0) {
+            problems.append("; ");
+        }
+        problems.append(problem);
     }
 
     @Test
@@ -1395,6 +2111,103 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("json", detail.getContentType());
         assertTrue(detail.getContent().contains("\"status\" : \"ok\""));
         assertTrue(detail.getContent().contains("\"blockingCount\" : 0"));
+    }
+
+    @Test
+    void shouldRejectNormalizedTraversalIntoV2AttemptLogBeforeReportPreview() throws Exception {
+        Path v2LogPath = repoRoot.resolve(
+            "reports/crawler-monitor/v2/2026-07-13/attempt-1/run.log"
+        );
+        Files.createDirectories(v2LogPath.getParent());
+        Files.writeString(v2LogPath, "V2 attempt log must not be exposed by report preview.");
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> service.getReportDetail(
+                "reports/crawler-monitor/legacy/../v2/2026-07-13/attempt-1/run.log"
+            )
+        );
+
+        assertEquals(CrawlerQueueV2ReasonCode.LOG_FORBIDDEN, exception.reasonCode());
+    }
+
+    @Test
+    void shouldPreviewOnlyTheFixedReportJsonInsideAV2AttemptDirectory() throws Exception {
+        Path attemptDirectory = repoRoot.resolve(
+            "reports/crawler-monitor/v2/2026-07-14/attempt-123/report.json"
+        ).getParent();
+        writeJson(attemptDirectory.resolve("report.json"), Map.of(
+            "status", "completed",
+            "completedActions", 1
+        ));
+        writeJson(attemptDirectory.resolve("progress.json"), Map.of(
+            "attemptId", "attempt-123",
+            "status", "completed"
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        CrawlerMonitorReportDetailDTO detail = service.getReportDetail(
+            "reports/crawler-monitor/v2/2026-07-14/attempt-123/report.json"
+        );
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> service.getReportDetail(
+                "reports/crawler-monitor/v2/2026-07-14/attempt-123/progress.json"
+            )
+        );
+
+        assertTrue(detail.isFound());
+        assertTrue(detail.isReadable());
+        assertTrue(detail.getContent().contains("\"completedActions\" : 1"));
+        assertEquals(CrawlerQueueV2ReasonCode.LOG_FORBIDDEN, exception.reasonCode());
+    }
+
+    @Test
+    void shouldRejectV2AttemptReportPreviewThroughAnAttemptDirectorySymlink() throws Exception {
+        Path realAttemptDirectory = repoRoot.resolve(
+            "reports/crawler-monitor/v2/2026-07-14/attempt-real"
+        );
+        writeJson(realAttemptDirectory.resolve("report.json"), Map.of(
+            "attemptId", "attempt-real",
+            "status", "completed"
+        ));
+        Path aliasAttemptDirectory = realAttemptDirectory.resolveSibling("attempt-alias");
+        Files.createSymbolicLink(aliasAttemptDirectory, realAttemptDirectory);
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> service.getReportDetail(
+                "reports/crawler-monitor/v2/2026-07-14/attempt-alias/report.json"
+            )
+        );
+
+        assertEquals(CrawlerQueueV2ReasonCode.LOG_FORBIDDEN, exception.reasonCode());
+    }
+
+    @Test
+    void shouldRejectReportPreviewSymlinkThatResolvesIntoAV2AttemptLog() throws Exception {
+        Path v2LogPath = repoRoot.resolve(
+            "reports/crawler-monitor/v2/2026-07-13/attempt-1/run.log"
+        );
+        Files.createDirectories(v2LogPath.getParent());
+        Files.writeString(v2LogPath, "V2 attempt log must not be exposed through a report symlink.");
+        Path symlinkPath = repoRoot.resolve("reports/crawler-monitor/legacy/attempt-log-alias.log");
+        Files.createDirectories(symlinkPath.getParent());
+        Files.createSymbolicLink(symlinkPath, v2LogPath);
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        CrawlerQueueV2Exception exception = assertThrows(
+            CrawlerQueueV2Exception.class,
+            () -> service.getReportDetail("reports/crawler-monitor/legacy/attempt-log-alias.log")
+        );
+
+        assertEquals(CrawlerQueueV2ReasonCode.LOG_FORBIDDEN, exception.reasonCode());
     }
 
     @Test
@@ -4076,6 +4889,123 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void shouldLeaveV1SmokeStateUntouchedWhenItsWatcherIsInterrupted() throws Exception {
+        String dispatchId = "watcher-interrupted";
+        String queueId = "queue-watcher-interrupted";
+        Path lockPath = repoRoot.resolve("reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json");
+        writeJson(lockPath, Map.of(
+            "queueId", queueId,
+            "dispatchId", dispatchId,
+            "domain", "all",
+            "actionId", "wiki-monitor-domain-smoke"
+        ));
+        writeJson(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"), Map.of(
+            "generatedAt", "2026-06-14T01:05:00Z",
+            "items", List.of(Map.ofEntries(
+                Map.entry("queueId", queueId),
+                Map.entry("dispatchId", dispatchId),
+                Map.entry("lane", "domain_smoke"),
+                Map.entry("domain", "all"),
+                Map.entry("actionId", "wiki-monitor-domain-smoke"),
+                Map.entry("status", "running"),
+                Map.entry("requestedAt", "2026-06-14T01:00:00Z"),
+                Map.entry("startedAt", "2026-06-14T01:05:00Z"),
+                Map.entry("lockPath", "reports/crawler-monitor/wiki-monitor-domain-smoke.lock.json")
+            )),
+            "dedupe", Map.of(),
+            "dispatches", Map.of(dispatchId, queueId)
+        ));
+        InterruptingProcess process = new InterruptingProcess();
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+        Method watcher = CrawlerMonitorServiceImpl.class.getDeclaredMethod(
+            "watchDomainSmokeProcess", Path.class, String.class, String.class, Path.class, Process.class
+        );
+        watcher.setAccessible(true);
+
+        watcher.invoke(service, repoRoot, queueId, dispatchId, lockPath, process);
+
+        assertTrue(process.waitCalled.await(2, TimeUnit.SECONDS), "watcher did not await the process");
+        waitUntil(() -> Thread.getAllStackTraces().keySet().stream()
+            .noneMatch(thread -> ("wiki-monitor-domain-smoke-" + dispatchId).equals(thread.getName())));
+
+        Map<String, Object> queueMirror = readJsonMap(repoRoot.resolve("reports/crawler-monitor/wiki-monitor-dispatch-queue.latest.json"));
+        List<Map<String, Object>> queueItems = (List<Map<String, Object>>) queueMirror.get("items");
+        assertEquals("running", queueItems.get(0).get("status"));
+        assertTrue(Files.exists(lockPath));
+    }
+
+    @Test
+    void shouldKeepTheSmokeCancellationFenceUntilItsWatcherExits() throws Exception {
+        ControllableBlockingProcess process = new ControllableBlockingProcess();
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new CrawlerMonitorServiceImpl.ProcessLauncher() {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+                return process;
+            }
+
+            @Override
+            public boolean destroy(Process ignored) {
+                return true;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorDomainSmoke();
+        CrawlerMonitorDispatchRequestDTO cancel = new CrawlerMonitorDispatchRequestDTO();
+        cancel.setActionId("wiki-monitor-domain-smoke");
+        cancel.setControlAction("cancel");
+
+        CrawlerMonitorDispatchResultDTO cancelled = service.controlWikiMonitorDispatch(cancel);
+
+        assertTrue(cancelled.isAccepted());
+        assertTrue(cancellingDispatches(service).contains(started.getDispatchId()));
+
+        process.complete(143);
+        waitUntil(() -> !cancellingDispatches(service).contains(started.getDispatchId()));
+    }
+
+    @Test
+    void shouldKeepTheStandardFailureFenceUntilItsWatcherExits() throws Exception {
+        ControllableBlockingProcess process = new ControllableBlockingProcess();
+        CrawlerMonitorServiceImpl.ProcessLauncher launcher = new CrawlerMonitorServiceImpl.ProcessLauncher() {
+            @Override
+            public Process launch(CrawlerMonitorServiceImpl.LaunchRequest request) {
+                return process;
+            }
+
+            @Override
+            public boolean destroy(Process ignored) {
+                return true;
+            }
+        };
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-06-14T01:05:00Z"), ZoneOffset.UTC),
+            launcher
+        );
+        CrawlerMonitorDispatchResultDTO started = service.dispatchWikiMonitorTask(
+            dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance")
+        );
+        CrawlerMonitorDispatchRequestDTO fail = dispatchRequest("town_npc_maintenance", "domain-source-town-npc-maintenance");
+        fail.setControlAction("failForResumeValidation");
+        fail.setQueueId(started.getQueueId());
+
+        CrawlerMonitorDispatchResultDTO failed = service.controlWikiMonitorDispatch(fail);
+
+        assertTrue(failed.isAccepted());
+        assertTrue(cancellingDispatches(service).contains(started.getDispatchId()));
+
+        process.complete(1);
+        waitUntil(() -> !cancellingDispatches(service).contains(started.getDispatchId()));
+    }
+
+    @Test
     void shouldOverlayPausedWikiMonitorDispatchStatusOnRegisteredTaskProgress() throws Exception {
         writeJson(repoRoot.resolve("data/generated/fetch-wiki-buffs-progress.latest.json"), Map.ofEntries(
             Map.entry("actionId", "buff-page-immunity-refresh"),
@@ -5316,6 +6246,17 @@ class CrawlerMonitorServiceImplTest {
         });
     }
 
+    @SuppressWarnings("unchecked")
+    private java.util.Set<String> cancellingDispatches(CrawlerMonitorServiceImpl service) {
+        try {
+            Field field = CrawlerMonitorServiceImpl.class.getDeclaredField("cancellingDispatches");
+            field.setAccessible(true);
+            return (java.util.Set<String>) field.get(service);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError("Unable to inspect V1 watcher cancellation fence", exception);
+        }
+    }
+
     private Map<String, Object> readJsonMap(Path path) throws IOException {
         return new ObjectMapper().readValue(Files.readString(path), new TypeReference<>() {});
     }
@@ -6012,6 +6953,16 @@ class CrawlerMonitorServiceImplTest {
         @Override
         public java.io.InputStream getErrorStream() {
             return java.io.InputStream.nullInputStream();
+        }
+    }
+
+    private static class InterruptingProcess extends BlockingProcess {
+        private final CountDownLatch waitCalled = new CountDownLatch(1);
+
+        @Override
+        public boolean waitFor(long timeout, TimeUnit unit) throws InterruptedException {
+            waitCalled.countDown();
+            throw new InterruptedException("test watcher interruption");
         }
     }
 

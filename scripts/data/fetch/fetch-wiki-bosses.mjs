@@ -7,6 +7,8 @@ import { fetchWikiApiJson } from '../lib/wiki-item-utils.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   buildActionProgressPayload,
+  buildCrawlerWorkSummary,
+  createCrawlerProgressHeartbeat,
   writeJsonFile
 } from '../workflow/backend-refresh-runtime-state.mjs';
 import {
@@ -53,8 +55,11 @@ async function main(argv = process.argv.slice(2)) {
   const requestedResumeMode = String(options['resume-mode'] ?? 'fresh');
   const resumeStatePath = path.resolve(process.cwd(), options['resume-state'] ?? DEFAULT_RESUME_STATE_PATH);
   let lastResumeFields = null;
+  let lastResumeAction = null;
+  let lastResumeReason = null;
+  let lastResumeSkippedCount = 0;
   let lastProgressCurrent = 0;
-  let lastProgressTotal = 0;
+  let lastProgressTotal = null;
 
   const writeProgress = (progress) => {
     const progressPayload = {
@@ -66,22 +71,29 @@ async function main(argv = process.argv.slice(2)) {
     };
     writeJsonFile(progressPath, buildBossProgressPayload({
       ...progressPayload,
+      resumeAction: lastResumeAction,
+      resumeReason: lastResumeReason,
+      resumeSkippedCount: lastResumeSkippedCount,
       progressPath
     }));
     if (shouldMirrorProgressPath(progressPath, canonicalProgressPath)) {
       writeJsonFile(canonicalProgressPath, buildBossProgressPayload({
         ...progressPayload,
+        resumeAction: lastResumeAction,
+        resumeReason: lastResumeReason,
+        resumeSkippedCount: lastResumeSkippedCount,
         progressPath: canonicalProgressPath
       }));
     }
   };
+  const progressHeartbeat = createCrawlerProgressHeartbeat({ writeProgress });
 
-  writeProgress({
+  progressHeartbeat.publish({
     status: 'running',
     phase: 'start',
     message: 'starting boss source fetch',
     current: 0,
-    total: 0
+    total: null
   });
 
   try {
@@ -95,10 +107,13 @@ async function main(argv = process.argv.slice(2)) {
       requestedResumeMode,
       statePath: resumeStatePath
     });
+    lastResumeAction = resume.action;
+    lastResumeReason = resume.reason;
+    lastResumeSkippedCount = resume.skippedCount;
     lastResumeFields = resume.progressFields();
     lastProgressCurrent = resume.completedCount();
     lastProgressTotal = resume.total;
-    writeProgress({
+    progressHeartbeat.publish({
       status: 'running',
       phase: 'discover',
       message: `discovered ${bossEntries.length} boss records`,
@@ -111,7 +126,7 @@ async function main(argv = process.argv.slice(2)) {
       lastResumeFields = resume.progressFields();
       lastProgressCurrent = resume.completedCount();
       lastProgressTotal = bossEntries.length;
-      writeProgress({
+      progressHeartbeat.publish({
         status: 'running',
         phase: 'hydrate',
         message: `fetching ${entry.titleEn}`,
@@ -188,7 +203,7 @@ async function main(argv = process.argv.slice(2)) {
     fs.writeFileSync(outputJsonPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
     fs.writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
 
-    writeProgress({
+    progressHeartbeat.publish({
       status: 'completed',
       phase: 'write',
       message: `finished boss source fetch; records=${sortedRecords.length}`,
@@ -199,7 +214,7 @@ async function main(argv = process.argv.slice(2)) {
 
     console.log(JSON.stringify(report, null, 2));
   } catch (error) {
-    writeProgress({
+    progressHeartbeat.publish({
       status: 'failed',
       phase: isMaxRecordsError(error) ? 'discover' : 'error',
       message: error instanceof Error ? error.message : String(error),
@@ -215,6 +230,8 @@ async function main(argv = process.argv.slice(2)) {
       nextStep: 'check wiki boss source availability or lower the requested scope'
     });
     throw error;
+  } finally {
+    progressHeartbeat.stop();
   }
 }
 
@@ -229,10 +246,23 @@ function buildBossProgressPayload({
   outputPath,
   reportPath,
   resumeFields = null,
+  resumeAction = null,
+  resumeReason = null,
+  resumeSkippedCount = 0,
   nextStep = null,
   generatedAt = new Date().toISOString()
 } = {}) {
   const payload = buildActionProgressPayload({
+    ...buildCrawlerWorkSummary({
+      status,
+      current,
+      total,
+      skippedCount: resumeSkippedCount,
+      estimatedRequests: total != null && Number.isFinite(Number(total)) ? 1 + (2 * Number(total)) : null,
+      estimatedRecords: total,
+      resumeAction,
+      resumeReason
+    }),
     actionId: ACTION_ID,
     status,
     phase,
@@ -246,6 +276,11 @@ function buildBossProgressPayload({
     lastHeartbeatAt: generatedAt,
     childStatusPath: progressPath
   });
+  if (total == null) {
+    payload.total = null;
+    payload.overallTotal = null;
+    payload.plannedCount = null;
+  }
   payload.outputPath = outputPath ?? null;
   payload.reportPath = reportPath ?? null;
   if (resumeFields) Object.assign(payload, resumeFields);
@@ -314,8 +349,12 @@ function buildBossResumeContext({
     getRecordKey: (record) => record.pageTitleEn,
     isValidRecord: isValidBossPartialRecord
   });
+  const skippedCount = resuming ? countCompletedKeysInScope(state, validKeys) : 0;
 
   return {
+    action: decision.action,
+    reason: decision.reason,
+    skippedCount,
     statePath: resolvedStatePath,
     partialPath,
     state,

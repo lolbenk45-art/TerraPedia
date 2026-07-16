@@ -123,7 +123,12 @@ terraria:
     queue-v2:
       cutover-allowed: ${TERRAPEDIA_CRAWLER_QUEUE_V2_CUTOVER_ALLOWED:false}
       fixture-enabled: ${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_ENABLED:false}
-      reconcile-interval: 5s
+      fixture-namespace-prefix: ${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_NAMESPACE:}
+      fixture-legacy-namespace-prefix: ${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_LEGACY_NAMESPACE:}
+      fixture-root: ${TERRAPEDIA_CRAWLER_QUEUE_V2_FIXTURE_ROOT:}
+      # @Scheduled fixedDelayString accepts ISO-8601 Duration text, unlike the
+      # relaxed Spring Boot Duration binder used by CrawlerQueueV2Properties.
+      reconcile-interval: PT5S
       reconciler-stale-after: 15s
       lease-ttl: 90s
       lease-renew-interval: 30s

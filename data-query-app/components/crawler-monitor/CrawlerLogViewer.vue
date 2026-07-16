@@ -26,7 +26,7 @@
           type="button"
           :class="['log-viewer__file', `log-viewer__file--${file.statusTone || 'neutral'}`]"
           :title="file.path"
-          @click="$emit('preview', file.path)"
+          @click="$emit('preview', file.attemptId ? { attemptId: file.attemptId } : file.path)"
         >
           <FileText :size="15" />
           <span>{{ file.title || file.label || '运行日志' }}</span>
@@ -72,12 +72,12 @@ import { FileText, Search, TerminalSquare } from 'lucide-vue-next'
 import { filterLogLines } from '~/utils/crawlerMonitorTriageWorkbench.mjs'
 
 defineEmits<{
-  preview: [path: string]
+  preview: [selection: string | { attemptId: string }]
 }>()
 
 const props = defineProps<{
   content?: string
-  files?: Array<{ label?: string, title?: string, statusLabel?: string, statusTone?: string, timeLabel?: string, previewable?: boolean, path: string }>
+  files?: Array<{ label?: string, title?: string, statusLabel?: string, statusTone?: string, timeLabel?: string, previewable?: boolean, path: string, attemptId?: string }>
   loading?: boolean
 }>()
 

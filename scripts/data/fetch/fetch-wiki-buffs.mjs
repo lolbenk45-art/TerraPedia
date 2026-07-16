@@ -20,6 +20,8 @@ import { writeCrawlerMonitorRedisState } from '../lib/crawler-monitor-redis-stat
 import { advanceWikiIngestionManifestForSource } from '../lib/wiki-sync-manifest.mjs';
 import {
   buildActionProgressPayload,
+  buildCrawlerWorkSummary,
+  createCrawlerProgressHeartbeat,
   writeJsonFile
 } from '../workflow/backend-refresh-runtime-state.mjs';
 import {
@@ -59,12 +61,18 @@ async function main(argv = process.argv.slice(2)) {
   let lastResumeFields = null;
   let lastProgressCurrent = 0;
   let lastProgressTotal = 0;
+  let lastResumeAction = null;
+  let lastResumeReason = null;
+  let lastResumeSkippedCount = 0;
+  const progressHeartbeat = createCrawlerProgressHeartbeat({
+    writeProgress: (progress) => writeBuffFetchProgress(progressPath, progress)
+  });
 
   try {
     ensureDir(rawDir);
     ensureDir(reportDir);
     await emitBuffHeartbeat('running', { phase: 'module' });
-    writeBuffFetchProgress(progressPath, {
+    progressHeartbeat.publish({
       status: 'running',
       phase: 'module',
       message: 'fetching Template:GetBuffInfo and preparing localized buff expansion',
@@ -85,7 +93,7 @@ async function main(argv = process.argv.slice(2)) {
 
     const baseBuffs = parseBaseBuffDatabase(result.moduleContent);
     const localizedByLang = {};
-    writeBuffFetchProgress(progressPath, {
+    progressHeartbeat.publish({
       status: 'running',
       phase: 'expand',
       message: `expanding localized fields for ${baseBuffs.length} buff(s) across ${langs.length} language(s)`,
@@ -112,6 +120,9 @@ async function main(argv = process.argv.slice(2)) {
     lastResumeFields = resume?.progressFields() ?? null;
     lastProgressTotal = resume?.total ?? 0;
     lastProgressCurrent = resume?.completedCount() ?? 0;
+    lastResumeAction = resume?.action ?? null;
+    lastResumeReason = resume?.reason ?? null;
+    lastResumeSkippedCount = resume?.skippedCount ?? 0;
 
     const relations = loadBuffRelations();
     const pageFacts = await collectBuffPageImmunityFacts({
@@ -123,7 +134,7 @@ async function main(argv = process.argv.slice(2)) {
         lastResumeFields = resume?.progressFields() ?? lastResumeFields;
         lastProgressCurrent = resume?.completedCount() ?? current;
         lastProgressTotal = total;
-        writeBuffFetchProgress(progressPath, {
+        progressHeartbeat.publish({
           status: 'running',
           phase: 'buff-page-immunities',
           message: `scraping rendered immunity pages ${current}/${total}: ${pageTitle}`,
@@ -132,7 +143,10 @@ async function main(argv = process.argv.slice(2)) {
           overallCurrent: current,
           overallTotal: total,
           startedAt,
-          resumeFields: lastResumeFields
+          resumeFields: lastResumeFields,
+          resumeAction: lastResumeAction,
+          resumeReason: lastResumeReason,
+          resumeSkippedCount: lastResumeSkippedCount
         });
       }
     });
@@ -206,7 +220,7 @@ async function main(argv = process.argv.slice(2)) {
         manifestPath
       });
     }
-    writeBuffFetchProgress(progressPath, {
+    progressHeartbeat.publish({
       status: 'completed',
       phase: 'write',
       message: `finished buff fetch; buffs=${buffs.length}; page immunity facts=${pageFacts.size}`,
@@ -217,7 +231,10 @@ async function main(argv = process.argv.slice(2)) {
       startedAt,
       outputPath: latestParsedPath,
       reportPath,
-      resumeFields: resume?.progressFields() ?? lastResumeFields
+      resumeFields: resume?.progressFields() ?? lastResumeFields,
+      resumeAction: lastResumeAction,
+      resumeReason: lastResumeReason,
+      resumeSkippedCount: lastResumeSkippedCount
     });
     await emitBuffHeartbeat('completed', { phase: 'write', totalBuffs: buffs.length, reportPath });
 
@@ -246,9 +263,14 @@ async function main(argv = process.argv.slice(2)) {
       error,
       current: errorProgressCurrent,
       total: errorProgressTotal,
-      resumeFields: errorResumeFields ?? lastResumeFields
+      resumeFields: errorResumeFields ?? lastResumeFields,
+      resumeAction: lastResumeAction,
+      resumeReason: lastResumeReason,
+      resumeSkippedCount: lastResumeSkippedCount
     });
     throw error;
+  } finally {
+    progressHeartbeat.stop();
   }
 }
 
@@ -357,6 +379,9 @@ export function buildBuffPageImmunityResumeContext({
   return {
     action: decision.action,
     reason: decision.reason,
+    skippedCount: resuming
+      ? new Set((state.completedKeys || []).map((key) => String(key))).size
+      : 0,
     statePath: resolvedStatePath,
     partialPath,
     state,
@@ -508,7 +533,7 @@ async function fetchDefaultBuffPagePayload({ pageTitle, fetchRenderedHtml } = {}
   return fetchWikiPagePayload({ pageTitle });
 }
 
-function writeBuffFetchProgress(progressPath, {
+export function buildBuffFetchProgressPayload(progressPath, {
   status,
   phase,
   message,
@@ -519,10 +544,23 @@ function writeBuffFetchProgress(progressPath, {
   startedAt,
   outputPath = null,
   reportPath = null,
-  resumeFields = null
+  resumeFields = null,
+  resumeAction = null,
+  resumeReason = null,
+  resumeSkippedCount = 0
 } = {}) {
   const generatedAt = new Date().toISOString();
+  const discoveredTotal = phase === 'module' && Number(total) === 0 ? null : total;
   const payload = buildActionProgressPayload({
+    ...buildCrawlerWorkSummary({
+      status,
+      current: discoveredTotal == null ? null : current,
+      total: discoveredTotal,
+      skippedCount: resumeSkippedCount,
+      estimatedRecords: discoveredTotal,
+      resumeAction,
+      resumeReason
+    }),
     actionId: ACTION_ID,
     status,
     phase,
@@ -548,6 +586,11 @@ function writeBuffFetchProgress(progressPath, {
   payload.queue = 'buff source refresh';
   payload.dataStage = 'wiki buff pages -> immunity evidence';
   payload.nextStep = 'standardize buffs, rebuild npc bridge, then backfill npc_buff_relations';
+  return payload;
+}
+
+function writeBuffFetchProgress(progressPath, progress = {}) {
+  const payload = buildBuffFetchProgressPayload(progressPath, progress);
   writeJsonFile(progressPath, payload);
   writeCrawlerMonitorRedisState({
     stateId: 'buff-page-immunity-refresh:progress',
@@ -561,7 +604,10 @@ export function writeFailedBuffFetchProgress({
   error,
   current = 0,
   total = 0,
-  resumeFields = null
+  resumeFields = null,
+  resumeAction = null,
+  resumeReason = null,
+  resumeSkippedCount = 0
 } = {}) {
   writeBuffFetchProgress(progressPath, {
     status: 'failed',
@@ -572,7 +618,10 @@ export function writeFailedBuffFetchProgress({
     overallCurrent: current,
     overallTotal: total,
     startedAt,
-    resumeFields
+    resumeFields,
+    resumeAction,
+    resumeReason,
+    resumeSkippedCount
   });
 }
 

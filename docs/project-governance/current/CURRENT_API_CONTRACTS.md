@@ -590,3 +590,19 @@ Rules for returned data:
   Treat those as compatibility debt, not a pattern for new APIs.
 - Current governance work did not run backend, frontend, runtime, database, or
   full quality gates.
+
+### Crawler Monitor V2 Operations
+
+The authenticated crawler-monitor surface exposes pure V2 overview, exact
+attempt control, attemptId-keyed incremental logs, and SSE at
+`/admin/crawler-monitor/events`. V2 overview returns
+`queueContractVersion=2`, `stateStoreEpoch`, `liveQueue`, `attemptHistory`,
+queue/reconciler health, and a Stream cursor. Controls require `queueId`,
+`attemptId`, and `expectedStateVersion`; log reads never accept a client path.
+Before subscription failures, including a `text/event-stream` request, return a
+structured JSON error. Connected SSE preserves typed V2 reasons and clients
+fall back to a three-second overview read.
+
+Cutover routes are administrator-only: `/cutover`, `/cutover/rollback`, and
+`/cutover/recover-state-store-reset`. The confirmation phrases and irreversible
+first-mutation boundary are operational requirements in the V2 cutover runbook.

@@ -311,6 +311,24 @@ const overview: CrawlerMonitorOverview = {
 
 void overview
 
+const v2Overview = {
+  queueContractVersion: 2,
+  stateStoreEpoch: 'epoch-1',
+  streamCursor: '12-0',
+  queueHealth: { status: 'healthy' },
+  reconcilerHealth: { status: 'maintenance', reasonCode: 'STATE_STORE_RESET', messageZh: '状态存储维护中', suggestedAction: '等待维护完成后刷新' },
+  liveQueue: [{
+    queueId: 'queue-1', attemptId: 'attempt-1', stateStoreEpoch: 'epoch-1', stateVersion: 8,
+    status: 'running', domain: 'bosses', coveredDomains: ['bosses'], actionId: 'domain-source-bosses', allowedActions: ['pause'],
+    log: { attemptId: 'attempt-1', availability: 'available', previewable: true, sizeBytes: 24 },
+  }],
+  domainStates: [{ domain: 'bosses', currentAttemptId: 'attempt-1', stateVersion: 8, status: 'running', allowedActions: ['pause'] }],
+  attemptHistory: [],
+  legacyHistory: [{ source: 'legacy-v1', live: false, queueId: 'legacy-1', attemptId: 'legacy-v1:legacy-1', domain: 'bosses', actionId: 'domain-source-bosses', status: 'interrupted', allowedActions: [] }],
+} satisfies CrawlerMonitorOverview
+
+void v2Overview
+
 const reportDetail: CrawlerMonitorReportDetail = {
   found: true,
   readable: true,

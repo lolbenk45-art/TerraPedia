@@ -99,7 +99,7 @@
 - Create: `back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistry.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java`
 
-- [ ] **Step 1: Write the failing characterization test**
+- [x] **Step 1: Write the failing characterization test**
 
 ```java
 package com.terraria.skills.service.impl;
@@ -228,7 +228,7 @@ private static CrawlerQueueV2Attempt attempt(CrawlerQueueV2Status status, Instan
 }
 ```
 
-- [ ] **Step 2: Run the test and verify RED**
+- [x] **Step 2: Run the test and verify RED**
 
 Run:
 
@@ -239,7 +239,7 @@ mvn -Dtest=CrawlerMonitorActionRegistryTest test
 
 Expected: compilation fails with `cannot find symbol` for `CrawlerMonitorActionRegistry` and `CrawlerMonitorActionDefinition`.
 
-- [ ] **Step 3: Add the immutable definition and complete registry**
+- [x] **Step 3: Add the immutable definition and complete registry**
 
 Create `CrawlerMonitorActionDefinition.java` with this public contract:
 
@@ -419,7 +419,7 @@ In `CrawlerMonitorServiceImpl.java` make these exact mechanical changes:
 - Delete the old `backendRule`, `directRule`, `resumableDirectRule`, `operationalBackendRule`, `backendProgressTemplate`, and `WikiMonitorRule` declarations.
 - Do not change dispatch behavior, control behavior, queue persistence, or commands in this task.
 
-- [ ] **Step 4: Run registry and existing service tests and verify GREEN**
+- [x] **Step 4: Run registry and existing service tests and verify GREEN**
 
 Run:
 
@@ -430,7 +430,7 @@ mvn -Dtest=CrawlerMonitorActionRegistryTest,CrawlerMonitorServiceImplTest,WikiMo
 
 Expected: all selected tests pass and no existing action command, resume rule, or V1 queue test changes its assertion.
 
-- [ ] **Step 5: Commit the extraction**
+- [x] **Step 5: Commit the extraction**
 
 ```bash
 git add back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionDefinition.java back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistry.java back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorActionRegistryTest.java
@@ -453,7 +453,7 @@ git commit -m "refactor(crawler): extract monitor action registry"
 - Modify: `back/src/main/java/com/terraria/skills/config/WebConfig.java`
 - Modify: `back/src/main/resources/application.yml`
 
-- [ ] **Step 1: Write failing transition and fake-clock deadline tests**
+- [x] **Step 1: Write failing transition and fake-clock deadline tests**
 
 The test must enumerate every allowed pair, reject terminal reversal, prove every non-terminal deadline, and prove `allowedActions` is derived:
 
@@ -553,7 +553,7 @@ class CrawlerAttemptStateMachineTest {
 }
 ```
 
-- [ ] **Step 2: Run the test and verify RED**
+- [x] **Step 2: Run the test and verify RED**
 
 Run:
 
@@ -564,7 +564,7 @@ mvn -Dtest=CrawlerAttemptStateMachineTest test
 
 Expected: compilation fails because the V2 types do not exist.
 
-- [ ] **Step 3: Add configuration, canonical records, and the complete status vocabulary**
+- [x] **Step 3: Add configuration, canonical records, and the complete status vocabulary**
 
 Use this configuration shape and defaults:
 
@@ -788,7 +788,7 @@ public record CrawlerQueueV2Event(
 ) {}
 ```
 
-- [ ] **Step 4: Implement the pure transition matrix and deadline policy**
+- [x] **Step 4: Implement the pure transition matrix and deadline policy**
 
 `CrawlerAttemptStateMachine` must expose these methods:
 
@@ -868,7 +868,7 @@ queue-v2:
   terminal-retention-age: 7d
 ```
 
-- [ ] **Step 5: Run focused tests and verify GREEN**
+- [x] **Step 5: Run focused tests and verify GREEN**
 
 Run:
 
@@ -879,7 +879,7 @@ mvn -Dtest=CrawlerAttemptStateMachineTest,CrawlerMonitorActionRegistryTest test
 
 Expected: all tests pass; the fake-clock assertion proves `running` uses `lastHeartbeatAt + 90 seconds`, and every non-terminal enum value has a non-null deadline.
 
-- [ ] **Step 6: Commit the V2 contract core**
+- [x] **Step 6: Commit the V2 contract core**
 
 ```bash
 git add back/src/main/java/com/terraria/skills/config/CrawlerQueueV2Properties.java back/src/main/java/com/terraria/skills/config/WebConfig.java back/src/main/resources/application.yml back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Status.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ReasonCode.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Artifacts.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Queue.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Attempt.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Event.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerAttemptStateMachine.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerAttemptStateMachineTest.java
@@ -897,7 +897,7 @@ git commit -m "feat(crawler): define V2 attempt state contract"
 - Create: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2Repository.java`
 - Create: `back/src/main/resources/redis/crawler-queue-v2/create-queue.lua`
 
-- [ ] **Step 1: Write failing repository isolation, dedupe, and Redis-offline tests**
+- [x] **Step 1: Write failing repository isolation, dedupe, and Redis-offline tests**
 
 Use a mocked `StringRedisTemplate` and capture every key passed to Lua:
 
@@ -1018,7 +1018,7 @@ class RedisCrawlerQueueV2RepositoryTest {
 }
 ```
 
-- [ ] **Step 2: Run the test and verify RED**
+- [x] **Step 2: Run the test and verify RED**
 
 Run:
 
@@ -1029,7 +1029,7 @@ mvn -Dtest=RedisCrawlerQueueV2RepositoryTest test
 
 Expected: compilation fails because the repository, engine mode, and exception types do not exist.
 
-- [ ] **Step 3: Define the repository boundary and structured exception**
+- [x] **Step 3: Define the repository boundary and structured exception**
 
 Create `CrawlerQueueEngineMode.java`:
 
@@ -1150,7 +1150,7 @@ public interface CrawlerQueueV2Repository {
 }
 ```
 
-- [ ] **Step 4: Add the atomic create-queue Lua script**
+- [x] **Step 4: Add the atomic create-queue Lua script**
 
 `create-queue.lua` receives exactly ten keys and ten arguments.
 
@@ -1254,7 +1254,7 @@ return cjson.encode({
 })
 ```
 
-- [ ] **Step 5: Implement the Redis adapter without a V1 or file fallback**
+- [x] **Step 5: Implement the Redis adapter without a V1 or file fallback**
 
 `RedisCrawlerQueueV2Repository` must:
 
@@ -1314,7 +1314,7 @@ List<String> keys = List.of(
 );
 ```
 
-- [ ] **Step 6: Run repository tests and verify GREEN**
+- [x] **Step 6: Run repository tests and verify GREEN**
 
 Run:
 
@@ -1325,7 +1325,7 @@ mvn -Dtest=RedisCrawlerQueueV2RepositoryTest,CrawlerAttemptStateMachineTest test
 
 Expected: all tests pass; captured keys contain only the V2 prefix; Redis failure is HTTP 503 with `STATE_STORE_UNAVAILABLE`; dedupe returns only a current-epoch existing attempt identity. Task 4's Redis-backed integration test must additionally seed an old-epoch non-terminal attempt behind the same dedupe key and prove a new-epoch enqueue returns `CREATED`, not `DEDUPED`.
 
-- [ ] **Step 7: Commit the namespace and enqueue boundary**
+- [x] **Step 7: Commit the namespace and enqueue boundary**
 
 ```bash
 git add back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueEngineMode.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Exception.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Repository.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2Repository.java back/src/main/resources/redis/crawler-queue-v2/create-queue.lua back/src/test/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2RepositoryTest.java
@@ -1346,7 +1346,15 @@ git commit -m "feat(crawler): add isolated V2 queue namespace"
 - Create: `back/src/main/resources/redis/crawler-queue-v2/create-retry.lua`
 - Create: `back/src/main/resources/redis/crawler-queue-v2/write-health.lua`
 
-- [ ] **Step 1: Extend the failing tests for all-or-nothing ownership and stale-writer rejection**
+Implementation correction locked during RED -> GREEN review: `ClaimCommand`
+and `MutationCommand` carry `queueId`, `lane`, `dedupeKey`, and the exact
+covered-domain identity needed to address every Redis key without an
+out-of-script mixed snapshot. Claim events receive the generated fence token
+inside Lua; mutation Lua mirrors the Task 2 transition matrix, requires exact
+stored fence identity even after lease expiry, and requires every terminal
+write to release ownership atomically.
+
+- [x] **Step 1: Extend the failing tests for all-or-nothing ownership and stale-writer rejection**
 
 Add these tests to `RedisCrawlerQueueV2RepositoryTest`:
 
@@ -1359,7 +1367,8 @@ void shouldPassAllCoveredDomainLeasesToOneAtomicClaim() {
     RedisCrawlerQueueV2Repository repository = repository(redis, RedisCrawlerQueueV2Repository.PRODUCTION_PREFIX);
 
     CrawlerQueueV2Repository.ClaimResult result = repository.claim(new CrawlerQueueV2Repository.ClaimCommand(
-        "epoch-1", "attempt-1", 1L, Instant.parse("2026-07-11T13:00:10Z"),
+        "epoch-1", "queue-1", "attempt-1", "standard",
+        "standard:domain-source-bosses:fresh", 1L, Instant.parse("2026-07-11T13:00:10Z"),
         Instant.parse("2026-07-11T13:02:10Z"), Duration.ofSeconds(90),
         List.of("bosses", "npcs"), event("attempt.transitioned", 2L)
     ));
@@ -1415,7 +1424,7 @@ private CrawlerQueueV2Event event(String type, long stateVersion) {
         "epoch-1",
         "queue-1",
         "attempt-1",
-        142L,
+        null,
         stateVersion,
         CrawlerQueueV2Status.STARTING,
         null,
@@ -1430,7 +1439,11 @@ private CrawlerQueueV2Repository.MutationCommand mutation(
 ) {
     return new CrawlerQueueV2Repository.MutationCommand(
         "epoch-1",
+        "queue-1",
         "attempt-1",
+        "standard",
+        "standard:domain-source-bosses:fresh",
+        List.of("bosses"),
         fenceToken,
         stateVersion,
         CrawlerQueueV2Status.RUNNING,
@@ -1454,7 +1467,7 @@ private CrawlerQueueV2Repository.MutationCommand mutation(
 
 Add a resource-contract test that reads every Lua file and asserts it contains `stateStoreEpoch`, `attemptId`, `fenceToken`, `stateVersion`, and `XADD` where applicable. It must also assert no script contains `dispatch-queue`, `wiki-monitor-dispatch`, or `restoreRedisFromMirrorIfEmpty`.
 
-- [ ] **Step 2: Run the extended test and verify RED**
+- [x] **Step 2: Run the extended test and verify RED**
 
 Run:
 
@@ -1465,7 +1478,7 @@ mvn -Dtest=RedisCrawlerQueueV2RepositoryTest test
 
 Expected: compilation fails because claim/mutation commands and methods are not defined.
 
-- [ ] **Step 3: Extend the repository interface with typed atomic commands**
+- [x] **Step 3: Extend the repository interface with typed atomic commands**
 
 Add these contracts to `CrawlerQueueV2Repository`:
 
@@ -1488,7 +1501,10 @@ void writeReconcilerHealth(ReconcilerHealth health, CrawlerQueueV2Event event);
 
 record ClaimCommand(
     String expectedEpoch,
+    String queueId,
     String attemptId,
+    String lane,
+    String dedupeKey,
     long expectedStateVersion,
     Instant enteredAt,
     Instant deadlineAt,
@@ -1514,7 +1530,11 @@ record ClaimResult(
 
 record MutationCommand(
     String expectedEpoch,
+    String queueId,
     String attemptId,
+    String lane,
+    String dedupeKey,
+    List<String> coveredDomains,
     Long expectedFenceToken,
     long expectedStateVersion,
     CrawlerQueueV2Status targetStatus,
@@ -1568,7 +1588,7 @@ record ReconcilerHealth(
 ) {}
 ```
 
-- [ ] **Step 4: Implement `claim-attempt.lua` with all-or-nothing leases**
+- [x] **Step 4: Implement `claim-attempt.lua` with all-or-nothing leases**
 
 The script returns `CLAIMED`, `OWNERSHIP_CONFLICT`, or `QUARANTINED`; only `CLAIMED` carries a new fence token. It must validate engine, epoch, `attemptId`, expected version, and status before checking every lease. It must not mutate any lease until every domain is free. Use this algorithm in the script:
 
@@ -1656,7 +1676,7 @@ return cjson.encode({
 
 The Java key order is: `meta:engine`, `meta:epoch`, `events`, `meta:fence-sequence`, `attempt:{id}`, `lane:{lane}:ready`, `dedupe:{key}`, then one `domain:{domain}:lease` key per sorted covered domain, then one matching `domain:{domain}:quarantine` key per domain. Pass the domain count as argument 8. Lease and quarantine payloads from another epoch are stale evidence and must not block the current epoch; malformed current keys fail closed with `STATE_STORE_RESET`.
 
-- [ ] **Step 5: Implement mutation, renewal, retry, and health scripts**
+- [x] **Step 5: Implement mutation, renewal, retry, and health scripts**
 
 `mutate-attempt.lua` must enforce all four identities before changing state:
 
@@ -1682,7 +1702,7 @@ After validation it must update only the supplied fields, increment `stateVersio
 
 `write-health.lua` must set `health:reconciler` and emit `queue.health-changed` in one script. Health writes do not set `meta:first-live-mutation-at` because they do not create or control crawler work.
 
-- [ ] **Step 6: Add a safe optional real-Redis integration test**
+- [x] **Step 6: Add a safe optional real-Redis integration test**
 
 `RedisCrawlerQueueV2RepositoryIntegrationTest` must:
 
@@ -1697,7 +1717,7 @@ After validation it must update only the supplied fields, increment `stateVersio
 
 The test must never call `FLUSHDB`, `FLUSHALL`, or delete the production prefix.
 
-- [ ] **Step 7: Run unit tests, then the isolated Redis test when configured**
+- [x] **Step 7: Run unit tests, then the isolated Redis test when configured**
 
 Run:
 
@@ -1709,7 +1729,7 @@ mvn -Dtest=RedisCrawlerQueueV2RepositoryIntegrationTest test
 
 Expected without Redis environment variables: unit tests pass and the integration test is skipped by assumption. Expected with the isolated Redis variables: both commands pass, the test-created prefix is removed, and no V1 key is read or written.
 
-- [ ] **Step 8: Commit atomic ownership and event storage**
+- [x] **Step 8: Commit atomic ownership and event storage**
 
 ```bash
 git add back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Repository.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2Repository.java back/src/main/resources/redis/crawler-queue-v2/claim-attempt.lua back/src/main/resources/redis/crawler-queue-v2/mutate-attempt.lua back/src/main/resources/redis/crawler-queue-v2/renew-leases.lua back/src/main/resources/redis/crawler-queue-v2/create-retry.lua back/src/main/resources/redis/crawler-queue-v2/write-health.lua back/src/test/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2RepositoryTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2RepositoryIntegrationTest.java
@@ -3289,6 +3309,7 @@ git commit -m "feat(crawler): bound V2 queue convergence"
 - Create: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueEngineRouter.java`
 - Create: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerLegacyHistoryAdapter.java`
 - Create: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ApplicationService.java`
+- Modify: `back/src/main/java/com/terraria/skills/config/CrawlerQueueV2Configuration.java`
 - Modify: `back/src/main/java/com/terraria/skills/dto/CrawlerMonitorOverviewDTO.java`
 - Modify: `back/src/main/java/com/terraria/skills/dto/CrawlerMonitorDispatchResultDTO.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java`
@@ -3297,6 +3318,8 @@ git commit -m "feat(crawler): bound V2 queue convergence"
 - Modify: `back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ReconcilerTest.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2RecoveryService.java`
 - Modify: `back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2RecoveryServiceTest.java`
+- Modify: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerAttemptSupervisor.java`
+- Modify: `back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerAttemptSupervisorTest.java`
 
 - [ ] **Step 1: Write failing router tests that forbid fallback after cutover**
 
@@ -3645,6 +3668,10 @@ Add a reconciler routing test that writes durable maintenance while Redis still 
 
 Add the matching startup-recovery test: durable maintenance plus Redis V2 must not adopt a process, rewrite a manifest, renew a lease, or initialize/reset an epoch. It returns the router reason as read-only recovery health. Normal same-epoch adoption runs only when the durable router resolves to V2.
 
+Add deterministic latch-interleaving regressions: pause an admitted routed mutation immediately before its first irreversible effect, concurrently request durable maintenance, and prove either maintenance waits until that mutation completes or no write/signal occurs after maintenance persists. Cover enqueue through reservation/confirmation, one supervisor control signal, reconciler claim/start or health write, recovery manifest/quarantine effect, and a V1 dispatch/control/background effect. Also prove a confirmed reset preserves its reservation/timestamp pair and remains readable V2; unconfirmed first-mutation control/retry/cleanup reject before touching repository, supervisor, or artifacts; and an old-epoch live-index record plus manifest produces exactly one reset-history row and no live/domain row.
+
+Add async supervisor-watcher regressions. `ProcessHandle.onExit()` runs after the launch caller's routed operation has returned, so it must independently acquire the durable V2 mutation permit before it reloads an attempt, terminally mutates Redis, writes a manifest, or appends watcher evidence. Prove: (a) a maintenance/reset marker already persisted before a normal exit, watcher failure, or exit-handler exception produces no Redis mutation, manifest write, or event and only removes the in-memory process registry; (b) a callback that has acquired its permit and is blocked immediately before its first terminal mutation keeps a concurrent marker writer blocked until callback effects finish; (c) normal confirmed-V2 exit still records its terminal state and manifest, while an in-permit watcher failure still appends one bounded event. All interleaving tests must establish observable contention/order (for example callback-entry and marker-lock latches plus ordered effects), not infer it from a fixed 250ms non-persistence timeout.
+
 - [ ] **Step 3: Run the router/application tests and verify RED**
 
 Run:
@@ -3821,11 +3848,15 @@ Its `mode()` decision table is:
 
 Expose `writeState(CutoverState)` using atomic file replacement and `lastKnownMode()` for diagnostics. Serialize every read-modify-write router method with a process-local `ReentrantLock` plus an exclusive `FileChannel` lock on `reports/crawler-monitor/v2/cutover-state.lock`; each method re-reads the durable JSON while holding both locks before validating and replacing it, so concurrent backend processes, enqueue reservation, cutover, rollback, and reset cannot overwrite one another from stale memory. Write UTF-8 bytes to a sibling temp file, call `FileChannel.force(true)`, atomically move with replace, then best-effort force the parent directory on supported platforms before releasing the locks. A failure before this sequence completes means reservation was not established and Redis must not be called. `lastReasonCode()` is `FIRST_MUTATION_OUTCOME_UNCERTAIN` when a reservation exists without a confirmed first mutation, `STATE_STORE_RESET` when durable V2 identity has no matching Redis epoch, and otherwise the structured routing failure. Never make a Redis exception return V1 when the durable marker has reached maintenance or V2.
 
-`reserveFirstLiveMutation` preserves mode V2, writes `mutationReservationAt` once, and refuses to replace an existing timestamp. `markMutationUncertain` preserves the reservation/cutover/epoch but writes mode maintenance. `confirmFirstLiveMutation` preserves the original reservation, requires a non-null Redis timestamp, writes mode V2, and rejects a conflicting prior confirmation. `reconcileFirstMutationReservation` is called from startup recovery and before accepting another write; it may confirm Redis evidence, but it never clears a reservation or manufactures a successful timestamp. `completeStateStoreReset` changes only the epoch and mode after Task 12's idempotent Redis reset succeeds; when either durable irreversible timestamp exists, the Redis timestamp must match it, otherwise the router remains in maintenance.
+The router must also expose one cross-process durable mutation permit, separate from a read-only `mode()` sample. The permit atomically admits a routed operation and remains held through every irreversible repository, supervisor, artifact, process, or V1 queue effect; maintenance/cutover/reset/rollback marker writes acquire the same permit before replacing durable state. It may be implemented as a permit object or callback, but nested router transitions used by an admitted operation must remain inside the same permit rather than attempting a second file lock. Its ordering guarantee is binary: either a mutation completes before a maintenance marker is persisted, or after that marker is persisted it performs no write, signal, start, cleanup, lease, health, manifest, or V1 queue effect. `mode()` alone is never a mutation permit.
 
-Modify `CrawlerQueueV2Reconciler` so the durable router, not Redis `meta:engine` alone, is the final mutation gate. Its scheduled methods and public `reconcileNow()` return without calling repository mutation/health methods unless `router.mode() == V2`. This guard also covers first-mutation uncertainty, cutover maintenance, and state-store reset maintenance; read-only overview remains available.
+`reserveFirstLiveMutation` preserves mode V2, writes `mutationReservationAt` once, and refuses to replace an existing timestamp. `markMutationUncertain` preserves the reservation/cutover/epoch but writes mode maintenance. `confirmFirstLiveMutation` preserves the original reservation, requires a non-null Redis timestamp, writes mode V2, and rejects a conflicting prior confirmation. `reconcileFirstMutationReservation` is called from startup recovery and before accepting another write; it may confirm Redis evidence, but it never clears a reservation or manufactures a successful timestamp. `completeStateStoreReset` changes only the epoch after Task 12's idempotent Redis reset succeeds; it preserves any confirmed `mutationReservationAt` and `firstLiveMutationAt` pair, and when either durable irreversible timestamp exists the Redis timestamp must match it, otherwise the router remains in maintenance.
 
-Apply the same durable gate to `CrawlerQueueV2RecoveryService.recoverOnStartup()`. Before checking that gate, it may call `router.reconcileFirstMutationReservation()`, which performs Redis reads plus a locked local-marker confirmation only; it does not mutate queue state. Startup adopts or rewrites process state only if that reconciliation leaves the router in V2. Otherwise, even when Redis still says V2, it returns read-only maintenance health. `prepareStateStoreReset` remains callable only from the authenticated Task 12 service after durable maintenance is established.
+Modify `CrawlerQueueV2Reconciler` so the durable router, not Redis `meta:engine` alone, is the final mutation gate. Its scheduled methods, `reconcileNow()`, and watchdog execute their complete mutation/health round under the durable V2 mutation permit; they return before any repository mutation/health method unless admitted as V2. This guard also covers first-mutation uncertainty, cutover maintenance, and state-store reset maintenance; read-only overview remains available.
+
+Apply the same durable permit to `CrawlerQueueV2RecoveryService.recoverOnStartup()`. Before checking that gate, it may call `router.reconcileFirstMutationReservation()`, which performs Redis reads plus a locked local-marker confirmation only; it does not mutate queue state. Startup adopts or rewrites process state only if that reconciliation leaves the router in V2, and it retains the permit through termination, quarantine, manifest, and repository effects. Otherwise, even when Redis still says V2, it returns read-only maintenance health. `prepareStateStoreReset` remains callable only from the authenticated Task 12 service after durable maintenance is established.
+
+Inject the same `CrawlerQueueEngineRouter` into `CrawlerAttemptSupervisor` through `CrawlerQueueV2Configuration`. Its asynchronous `ProcessHandle.onExit()` callback must acquire a fresh permit before its per-attempt lock (`router permit -> attempt lock`) and retain it through normal exit handling, watcher-failure reporting, and handler-exception reporting. If permit admission fails because maintenance/reset is durable, or the router itself fails, the callback may remove only the in-memory process registry; it must not append a fallback watcher event. Do not add a production constructor that bypasses this router.
 
 Update the production constructors of reconciler and recovery service to receive `CrawlerQueueEngineRouter`; update their focused tests with a mocked router defaulting to V2. Do not keep a second production constructor that bypasses the durable gate. Test-only helpers may pass a fixed V2 router mock.
 
@@ -3958,6 +3989,8 @@ Enqueue rules:
 
 Retry and control mutations require an already confirmed durable first mutation. If Redis reports a first-mutation timestamp while the durable marker is missing it, confirm the durable marker before returning; if the timestamps conflict, enter maintenance and return a structured health error rather than selecting either copy silently.
 
+Every enqueue, control, retry, and cleanup operation must hold the durable mutation permit from mode/identity/confirmation validation through its final Redis, supervisor, artifact, manifest, or event effect. If no durable first mutation is confirmed, control/retry/cleanup reject before touching repository, supervisor, or artifacts; they may first reconcile matching Redis evidence under the same permit. An admitted enqueue uses the permit's reservation/confirmation/uncertainty transitions so an intervening maintenance write cannot be re-opened to V2.
+
 Control rules:
 
 - require all four request fields and exact queue/attempt match;
@@ -3989,6 +4022,7 @@ In `CrawlerMonitorServiceImpl`:
 - add an `@Autowired` constructor that also receives `CrawlerQueueEngineRouter` and `CrawlerQueueV2ApplicationService`;
 - make legacy constructors use a V1-only router and a null V2 service;
 - guard `reconcileActiveDispatchesOnStartup`, `scheduledAutoDispatchSweep`, `scheduledWikiMonitorQueueDrainSweep`, `drainWikiMonitorDispatchQueue`, V1 dispatch, and V1 control so they run only in V1 mode;
+- hold the same durable mutation permit around every V1 dispatch, control, drain, startup-reconcile, and scheduled background effect; a cutover/maintenance marker must serialize with an already-admitted V1 effect rather than racing a one-time mode sample;
 - in maintenance mode reject writes with `LEGACY_PROCESS_UNCONFIRMED` or the cutover service's current reason;
 - after a durable cutover exists, decorate overview with the V2 maintenance snapshot even when effective mode is maintenance; never expose changing V1 live rows as current during a reset or ambiguous first mutation;
 - split `buildWikiMonitor(repoRoot)` into `buildWikiMonitor(repoRoot, includeV1LiveQueue)`; when V2 is active, keep source-change/auto-dispatch fields but skip `queueRepository.listItems`, V1 pending dispatch, V1 current selection, drain, restore, and reconcile;
@@ -4002,15 +4036,15 @@ Run:
 
 ```bash
 cd back
-mvn -Dtest=CrawlerQueueEngineRouterTest,CrawlerQueueV2ApplicationServiceTest,CrawlerQueueV2ReconcilerTest,CrawlerQueueV2RecoveryServiceTest,CrawlerMonitorServiceImplTest,CrawlerOverviewBuilderTest test
+mvn -Dtest=CrawlerQueueEngineRouterTest,CrawlerQueueV2ApplicationServiceTest,CrawlerQueueV2ReconcilerTest,CrawlerQueueV2RecoveryServiceTest,CrawlerAttemptSupervisorTest,CrawlerMonitorServiceImplTest,CrawlerOverviewBuilderTest test
 ```
 
-Expected: all selected tests pass; V1 tests remain compatible before cutover; V2 overview is pure; legacy/reset rows cannot become current; stale controls fail before signals; durable maintenance blocks every background mutation even when Redis still says V2.
+Expected: all selected tests pass; V1 tests remain compatible before cutover; V2 overview is pure; legacy/reset rows cannot become current; stale controls fail before signals; confirmed-first-mutation gates every write; and durable maintenance serializes with an already-admitted V1/V2 mutation so no effect occurs after its marker persists, even when Redis still says V2.
 
 - [ ] **Step 10: Commit application routing and overview**
 
 ```bash
-git add back/src/main/java/com/terraria/skills/dto/CrawlerQueueV2OverviewDTO.java back/src/main/java/com/terraria/skills/dto/CrawlerMonitorOverviewDTO.java back/src/main/java/com/terraria/skills/dto/CrawlerMonitorDispatchResultDTO.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueEngineRouter.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerLegacyHistoryAdapter.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ApplicationService.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Repository.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Reconciler.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2RecoveryService.java back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueEngineRouterTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ApplicationServiceTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ReconcilerTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2RecoveryServiceTest.java back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImplTest.java
+git add back/src/main/java/com/terraria/skills/config/CrawlerQueueV2Configuration.java back/src/main/java/com/terraria/skills/dto/CrawlerQueueV2OverviewDTO.java back/src/main/java/com/terraria/skills/dto/CrawlerMonitorOverviewDTO.java back/src/main/java/com/terraria/skills/dto/CrawlerMonitorDispatchResultDTO.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueEngineRouter.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerLegacyHistoryAdapter.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ApplicationService.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Repository.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Reconciler.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2RecoveryService.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerAttemptSupervisor.java back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueEngineRouterTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ApplicationServiceTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ReconcilerTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2RecoveryServiceTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerAttemptSupervisorTest.java back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImplTest.java docs/superpowers/plans/2026-07-11-crawler-monitor-queue-v2-hard-cutover.md docs/devlog/current.md docs/devlog/entries/2026-07-12-crawler-queue-v2-runtime.md
 git commit -m "feat(crawler): route V2 queue as single authority"
 ```
 
@@ -4020,17 +4054,24 @@ git commit -m "feat(crawler): route V2 queue as single authority"
 
 - Create: `back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2EventBridgeTest.java`
 - Modify: `back/src/test/java/com/terraria/skills/controller/AdminCrawlerMonitorControllerTest.java`
+- Modify: `back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImplTest.java`
+- Modify: `back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ApplicationServiceTest.java`
 - Create: `back/src/main/java/com/terraria/skills/dto/CrawlerQueueV2ErrorDTO.java`
 - Create: `back/src/main/java/com/terraria/skills/dto/CrawlerAttemptLogDetailDTO.java`
 - Create: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2EventBridge.java`
 - Modify: `back/src/main/java/com/terraria/skills/common/ApiResponse.java`
+- Modify: `back/src/main/java/com/terraria/skills/config/CrawlerQueueV2Properties.java`
 - Modify: `back/src/main/java/com/terraria/skills/handler/GlobalExceptionHandler.java`
 - Modify: `back/src/main/java/com/terraria/skills/dto/CrawlerMonitorDispatchRequestDTO.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/CrawlerMonitorService.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java`
 - Modify: `back/src/main/java/com/terraria/skills/controller/AdminCrawlerMonitorController.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Repository.java`
+- Modify: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2Repository.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ApplicationService.java`
+- Modify: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ReasonCode.java`
+- Modify: `back/src/test/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2RepositoryTest.java`
+- Modify: `back/src/test/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2RepositoryIntegrationTest.java`
 
 - [ ] **Step 1: Write failing controller tests for stale controls and attempt-keyed logs**
 
@@ -4449,6 +4490,13 @@ The Redis implementation must compare `after` with the stream's first available 
 - remove subscribers on completion, timeout, or send failure;
 - surface Redis unavailability as `queue.health-changed/STATE_STORE_UNAVAILABLE` before completing connections.
 
+Use a finite emitter timeout and a bounded subscriber count. A scheduled poll must
+read Redis once from the oldest subscriber cursor, then fan out only newer events
+to each subscriber. Before an emitter is established, structured V2 failures must
+still negotiate as JSON even when the client sent `Accept: text/event-stream`; after
+an emitter is established, preserve any typed V2 reason code in the health event and
+map only unknown runtime storage failures to `STATE_STORE_UNAVAILABLE`.
+
 Use this constructor for production and the fake-clock tests:
 
 ```java
@@ -4496,9 +4544,13 @@ Expected: all selected tests pass; stale controls return structured 409; Redis o
 - [ ] **Step 10: Commit the V2 HTTP and event contract**
 
 ```bash
-git add back/src/main/java/com/terraria/skills/dto/CrawlerQueueV2ErrorDTO.java back/src/main/java/com/terraria/skills/dto/CrawlerAttemptLogDetailDTO.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2EventBridge.java back/src/main/java/com/terraria/skills/common/ApiResponse.java back/src/main/java/com/terraria/skills/handler/GlobalExceptionHandler.java back/src/main/java/com/terraria/skills/dto/CrawlerMonitorDispatchRequestDTO.java back/src/main/java/com/terraria/skills/service/CrawlerMonitorService.java back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java back/src/main/java/com/terraria/skills/controller/AdminCrawlerMonitorController.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Repository.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ApplicationService.java back/src/test/java/com/terraria/skills/controller/AdminCrawlerMonitorControllerTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2EventBridgeTest.java
+git add back/src/main/java/com/terraria/skills/dto/CrawlerQueueV2ErrorDTO.java back/src/main/java/com/terraria/skills/dto/CrawlerAttemptLogDetailDTO.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2EventBridge.java back/src/main/java/com/terraria/skills/common/ApiResponse.java back/src/main/java/com/terraria/skills/handler/GlobalExceptionHandler.java back/src/main/java/com/terraria/skills/dto/CrawlerMonitorDispatchRequestDTO.java back/src/main/java/com/terraria/skills/service/CrawlerMonitorService.java back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java back/src/main/java/com/terraria/skills/controller/AdminCrawlerMonitorController.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Repository.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2Repository.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ApplicationService.java back/src/test/java/com/terraria/skills/controller/AdminCrawlerMonitorControllerTest.java back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImplTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ApplicationServiceTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2EventBridgeTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2RepositoryTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2RepositoryIntegrationTest.java
 git commit -m "feat(crawler): stream structured V2 status"
 ```
+
+The Task 10 staging scope also includes
+`CrawlerQueueV2Properties.java` and `CrawlerQueueV2ReasonCode.java` for the
+finite-SSE and explicit artifact/error-reason contracts.
 
 ### Task 11: Make the admin page consume one V2 attempt model with SSE and a three-second fallback
 
@@ -4514,8 +4566,12 @@ git commit -m "feat(crawler): stream structured V2 status"
 - Modify: `data-query-app/types/crawlerMonitor.typecheck.ts`
 - Modify: `data-query-app/composables/useApi.ts`
 - Modify: `data-query-app/pages/operations/crawler-monitor.vue`
+- Modify: `data-query-app/utils/crawlerMonitorExecutionOverview.mjs`
 - Modify: `data-query-app/utils/crawlerMonitorTriageWorkbench.mjs`
+- Modify: `data-query-app/tests/crawler-monitor-execution-overview.test.mjs`
 - Modify: `data-query-app/tests/crawler-monitor-triage-workbench.test.mjs`
+- Modify: `data-query-app/utils/crawlerMonitorUnifiedStatus.mjs`
+- Modify: `data-query-app/tests/crawler-monitor-unified-status.test.mjs`
 - Modify: `data-query-app/tests/crawler-monitor-page-contract.test.mjs`
 - Create: `data-query-app/components/crawler-monitor/CrawlerQueueHealthBanner.vue`
 - Modify: `data-query-app/components/crawler-monitor/CrawlerTriageBoard.vue`
@@ -4985,7 +5041,7 @@ Expected: all Node tests and Nuxt typecheck pass; page contract asserts `EventSo
 - [ ] **Step 13: Commit the V2 admin state model**
 
 ```bash
-git add data-query-app/types/crawlerMonitor.ts data-query-app/types/crawlerMonitor.typecheck.ts data-query-app/composables/useApi.ts data-query-app/pages/operations/crawler-monitor.v2-state.mjs data-query-app/pages/operations/crawler-monitor.v2-state.test.mjs data-query-app/pages/operations/crawler-monitor.events.mjs data-query-app/pages/operations/crawler-monitor.events.test.mjs data-query-app/pages/operations/crawler-monitor.control.mjs data-query-app/pages/operations/crawler-monitor.control.test.mjs data-query-app/pages/operations/crawler-monitor.vue data-query-app/utils/crawlerMonitorTriageWorkbench.mjs data-query-app/tests/crawler-monitor-triage-workbench.test.mjs data-query-app/tests/crawler-monitor-page-contract.test.mjs data-query-app/components/crawler-monitor/CrawlerQueueHealthBanner.vue data-query-app/components/crawler-monitor/CrawlerTriageBoard.vue data-query-app/components/crawler-monitor/DomainDetailDrawer.vue data-query-app/components/crawler-monitor/CrawlerLogViewer.vue
+git add data-query-app/types/crawlerMonitor.ts data-query-app/types/crawlerMonitor.typecheck.ts data-query-app/composables/useApi.ts data-query-app/pages/operations/crawler-monitor.v2-state.mjs data-query-app/pages/operations/crawler-monitor.v2-state.test.mjs data-query-app/pages/operations/crawler-monitor.events.mjs data-query-app/pages/operations/crawler-monitor.events.test.mjs data-query-app/pages/operations/crawler-monitor.control.mjs data-query-app/pages/operations/crawler-monitor.control.test.mjs data-query-app/pages/operations/crawler-monitor.vue data-query-app/utils/crawlerMonitorExecutionOverview.mjs data-query-app/utils/crawlerMonitorTriageWorkbench.mjs data-query-app/utils/crawlerMonitorUnifiedStatus.mjs data-query-app/tests/crawler-monitor-execution-overview.test.mjs data-query-app/tests/crawler-monitor-triage-workbench.test.mjs data-query-app/tests/crawler-monitor-unified-status.test.mjs data-query-app/tests/crawler-monitor-page-contract.test.mjs data-query-app/components/crawler-monitor/CrawlerQueueHealthBanner.vue data-query-app/components/crawler-monitor/CrawlerTriageBoard.vue data-query-app/components/crawler-monitor/DomainDetailDrawer.vue data-query-app/components/crawler-monitor/CrawlerLogViewer.vue
 git commit -m "feat(crawler): render authoritative V2 attempts"
 ```
 
@@ -5008,6 +5064,7 @@ git commit -m "feat(crawler): render authoritative V2 attempts"
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueEngineRouter.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerLegacyHistoryAdapter.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ApplicationService.java`
+- Modify: `back/src/main/java/com/terraria/skills/config/CrawlerQueueV2Configuration.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/CrawlerMonitorService.java`
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java`
 - Modify: `back/src/main/java/com/terraria/skills/controller/AdminCrawlerMonitorController.java`
@@ -5719,7 +5776,7 @@ Expected: all selected tests pass; unconfirmed process keeps maintenance; comple
 - [ ] **Step 10: Commit the hard-cutover mechanism**
 
 ```bash
-git add back/src/main/java/com/terraria/skills/dto/CrawlerQueueV2CutoverRequestDTO.java back/src/main/java/com/terraria/skills/dto/CrawlerQueueV2CutoverResultDTO.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerLegacySnapshotReader.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2CutoverService.java back/src/main/resources/redis/crawler-queue-v2/begin-cutover.lua back/src/main/resources/redis/crawler-queue-v2/complete-cutover.lua back/src/main/resources/redis/crawler-queue-v2/rollback-cutover.lua back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ReasonCode.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Repository.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2Repository.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueEngineRouter.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerLegacyHistoryAdapter.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ApplicationService.java back/src/main/java/com/terraria/skills/service/CrawlerMonitorService.java back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java back/src/main/java/com/terraria/skills/controller/AdminCrawlerMonitorController.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerLegacySnapshotReaderTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2CutoverServiceTest.java back/src/test/java/com/terraria/skills/controller/AdminCrawlerMonitorControllerTest.java
+git add back/src/main/java/com/terraria/skills/dto/CrawlerQueueV2CutoverRequestDTO.java back/src/main/java/com/terraria/skills/dto/CrawlerQueueV2CutoverResultDTO.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerLegacySnapshotReader.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2CutoverService.java back/src/main/resources/redis/crawler-queue-v2/begin-cutover.lua back/src/main/resources/redis/crawler-queue-v2/complete-cutover.lua back/src/main/resources/redis/crawler-queue-v2/rollback-cutover.lua back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ReasonCode.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2Repository.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/RedisCrawlerQueueV2Repository.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueEngineRouter.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerLegacyHistoryAdapter.java back/src/main/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2ApplicationService.java back/src/main/java/com/terraria/skills/config/CrawlerQueueV2Configuration.java back/src/main/java/com/terraria/skills/service/CrawlerMonitorService.java back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java back/src/main/java/com/terraria/skills/controller/AdminCrawlerMonitorController.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerLegacySnapshotReaderTest.java back/src/test/java/com/terraria/skills/service/impl/crawlerv2/CrawlerQueueV2CutoverServiceTest.java back/src/test/java/com/terraria/skills/controller/AdminCrawlerMonitorControllerTest.java
 git commit -m "feat(crawler): add explicit V2 hard cutover"
 ```
 

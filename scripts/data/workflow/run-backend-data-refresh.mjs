@@ -16,8 +16,13 @@ import {
 import {
   buildActionHeartbeatPayload,
   buildActionProgressPayload,
+  buildActionResultSummary,
   buildActionRuntimePaths,
   buildActionSnapshotPayload,
+  buildBackendWrapperHeartbeatProgress,
+  crawlerAttemptIdentityFromEnv,
+  prepareCrawlerChildProgressPath,
+  readActionProgressFile,
   writeJsonFile
 } from './backend-refresh-runtime-state.mjs';
 import { writeCrawlerMonitorRedisState } from '../lib/crawler-monitor-redis-state.mjs';
@@ -45,6 +50,11 @@ if (mode !== 'apply') {
   throw new Error(`Unsupported --mode value: ${mode}`);
 }
 
+const crawlerAttemptIdentity = crawlerAttemptIdentityFromEnv(process.env);
+if (crawlerAttemptIdentity && !String(process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? '').trim()) {
+  throw new Error('TERRAPEDIA_CRAWLER_PROGRESS_PATH is required for a V2 crawler attempt');
+}
+
 let actionResults = loadExistingActionResults(outputPath);
 const actionsToRun = resume
   ? resolvePendingBackendDataRefreshActions(plan, buildBackendDataRefreshReport(plan, actionResults))
@@ -55,6 +65,15 @@ for (const action of actionsToRun) {
   const startedAt = Date.now();
   const startedAtIso = new Date(startedAt).toISOString();
   const runtimePaths = buildActionRuntimePaths({ outputPath, actionId: action.id });
+  const canonicalProgressPath = crawlerAttemptIdentity
+    ? path.resolve(String(process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH))
+    : runtimePaths.childStatusPath;
+  const childProgressPath = crawlerAttemptIdentity
+    ? path.join(path.dirname(canonicalProgressPath), 'child-progress.json')
+    : runtimePaths.childStatusPath;
+  if (crawlerAttemptIdentity) {
+    prepareCrawlerChildProgressPath(childProgressPath);
+  }
   const initialProgress = buildActionProgressPayload({
     actionId: action.id,
     status: 'running',
@@ -63,7 +82,13 @@ for (const action of actionsToRun) {
     current: 0,
     total: 1,
     generatedAt: startedAtIso,
-    childStatusPath: runtimePaths.childStatusPath
+    childStatusPath: childProgressPath,
+    ...buildActionResultSummary({
+      actionId: action.id,
+      status: 'running',
+      current: 0,
+      total: 1
+    })
   });
   actionResults = upsertActionResult(actionResults, {
     id: action.id,
@@ -76,7 +101,7 @@ for (const action of actionsToRun) {
     updatedAt: startedAtIso,
     ...toActionProgressResult(initialProgress)
   });
-  writeJsonFile(runtimePaths.childStatusPath, initialProgress);
+  writeJsonFile(canonicalProgressPath, initialProgress);
   writeActionProgressState(action.id, initialProgress);
   writeJsonFile(runtimePaths.snapshotPath, buildActionSnapshotPayload({
     action,
@@ -91,6 +116,11 @@ for (const action of actionsToRun) {
     action,
     cwd: process.cwd(),
     heartbeatMs,
+    canonicalProgressPath,
+    childProgressPath,
+    initialProgress,
+    initialProgressSequence: initialProgress.progressSequence ?? null,
+    isV2Attempt: Boolean(crawlerAttemptIdentity),
     outputPath,
     runtimePaths,
     startedAt,
@@ -99,18 +129,28 @@ for (const action of actionsToRun) {
   });
   const completedAtIso = new Date().toISOString();
   const finalStatus = result.status === 0 ? 'completed' : 'failed';
-  const childProgress = readActionProgress(runtimePaths.childStatusPath);
+  const childProgress = readActionProgressFile(childProgressPath);
+  const finalCurrent = childProgress?.current ?? (result.status === 0 ? 1 : 0);
+  const finalTotal = childProgress?.total ?? 1;
   const finalProgress = buildActionProgressPayload({
     ...childProgress,
     actionId: action.id,
     status: finalStatus,
     phase: childProgress?.phase ?? 'action',
     message: childProgress?.message ?? `${finalStatus} ${action.id}`,
-    current: childProgress?.current ?? (result.status === 0 ? 1 : null),
-    total: childProgress?.total ?? (result.status === 0 ? 1 : null),
+    current: finalCurrent,
+    total: finalTotal,
     generatedAt: completedAtIso,
     lastHeartbeatAt: completedAtIso,
-    childStatusPath: runtimePaths.childStatusPath
+    childStatusPath: childProgress?.childStatusPath ?? childProgressPath,
+    observedProgressSequence: childProgress?.progressSequence,
+    ...buildActionResultSummary({
+      actionId: action.id,
+      status: finalStatus,
+      current: finalCurrent,
+      total: finalTotal,
+      progress: childProgress
+    })
   });
   actionResults = upsertActionResult(actionResults, {
     id: action.id,
@@ -123,7 +163,7 @@ for (const action of actionsToRun) {
     updatedAt: completedAtIso,
     ...toActionProgressResult(finalProgress)
   });
-  writeJsonFile(runtimePaths.childStatusPath, finalProgress);
+  writeJsonFile(canonicalProgressPath, finalProgress);
   writeActionProgressState(action.id, finalProgress);
   writeJsonFile(runtimePaths.snapshotPath, buildActionSnapshotPayload({
     action,
@@ -211,7 +251,15 @@ function loadExistingActionResults(outputPath) {
       phase: action.phase ?? null,
       message: action.message ?? null,
       lastHeartbeatAt: action.lastHeartbeatAt ?? null,
-      updatedAt: action.updatedAt ?? null
+      updatedAt: action.updatedAt ?? null,
+      plannedCount: action.plannedCount ?? null,
+      actualCount: action.actualCount ?? null,
+      skippedCount: action.skippedCount ?? null,
+      failedCount: action.failedCount ?? null,
+      estimatedRequests: action.estimatedRequests ?? null,
+      estimatedRecords: action.estimatedRecords ?? null,
+      resultKind: action.resultKind ?? null,
+      resumeOutcome: action.resumeOutcome ?? null
     }))
     : [];
 }
@@ -235,38 +283,26 @@ function runAction(command, args, options = {}) {
     const actionArgs = Array.isArray(args)
       ? args.map((arg) => typeof arg === 'string' ? arg.replaceAll('<outputPath>', options.outputPath) : arg)
       : [];
+    const childEnv = {
+      ...process.env,
+      TERRAPEDIA_CRAWLER_ACTION_ID: options.action.id,
+      TERRAPEDIA_CRAWLER_PROGRESS_PATH: options.childProgressPath
+    };
+    if (options.initialProgressSequence != null) {
+      childEnv.TERRAPEDIA_CRAWLER_PROGRESS_SEQUENCE = String(options.initialProgressSequence);
+    }
     const child = spawn(command, actionArgs, {
       cwd: options.cwd,
-      env: {
-        ...process.env,
-        TERRAPEDIA_CRAWLER_ACTION_ID: options.action.id,
-        TERRAPEDIA_CRAWLER_PROGRESS_PATH: options.runtimePaths.childStatusPath
-      },
+      env: childEnv,
       stdio: 'inherit'
     });
     let settled = false;
     let timedOut = false;
 
-    writeJsonFile(options.runtimePaths.heartbeatPath, buildActionHeartbeatPayload({
-      actionId: options.action.id,
-      generatedAt: new Date().toISOString(),
-      pid: child.pid,
-      status: 'running',
-      outputPath: options.outputPath,
-      snapshotPath: options.runtimePaths.snapshotPath,
-      progress: readActionProgress(options.runtimePaths.childStatusPath)
-    }));
+    writeActionHeartbeat(options, child.pid);
 
     const heartbeatTimer = setInterval(() => {
-      writeJsonFile(options.runtimePaths.heartbeatPath, buildActionHeartbeatPayload({
-        actionId: options.action.id,
-        generatedAt: new Date().toISOString(),
-        pid: child.pid,
-        status: 'running',
-        outputPath: options.outputPath,
-        snapshotPath: options.runtimePaths.snapshotPath,
-        progress: readActionProgress(options.runtimePaths.childStatusPath)
-      }));
+      writeActionHeartbeat(options, child.pid);
     }, options.heartbeatMs);
 
     const timeoutTimer = Number.isFinite(Number(options.timeoutMs)) && Number(options.timeoutMs) > 0
@@ -312,31 +348,46 @@ function runAction(command, args, options = {}) {
   });
 }
 
+function writeActionHeartbeat(options, pid) {
+  const childProgress = readActionProgressFile(options.childProgressPath);
+  const canonicalProgress = options.isV2Attempt
+    ? readActionProgressFile(options.canonicalProgressPath)
+    : null;
+  const progress = options.isV2Attempt
+    ? writeCanonicalActionProgress(options, childProgress, canonicalProgress)
+    : childProgress;
+  writeJsonFile(options.runtimePaths.heartbeatPath, buildActionHeartbeatPayload({
+    actionId: options.action.id,
+    generatedAt: new Date().toISOString(),
+    pid,
+    status: 'running',
+    outputPath: options.outputPath,
+    snapshotPath: options.runtimePaths.snapshotPath,
+    progress
+  }));
+}
+
+function writeCanonicalActionProgress(options, childProgress, canonicalProgress) {
+  const generatedAt = new Date().toISOString();
+  const nextProgress = buildBackendWrapperHeartbeatProgress({
+    actionId: options.action.id,
+    childProgress,
+    canonicalProgress,
+    initialProgress: options.initialProgress,
+    generatedAt,
+    childStatusPath: options.childProgressPath
+  });
+  writeJsonFile(options.canonicalProgressPath, nextProgress);
+  writeActionProgressState(options.action.id, nextProgress);
+  return nextProgress;
+}
+
 function normalizePositiveInteger(value, fallback) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric) || numeric <= 0) {
     return fallback;
   }
   return Math.trunc(numeric);
-}
-
-function readActionProgress(filePath) {
-  if (!filePath || !fs.existsSync(filePath)) {
-    return null;
-  }
-  try {
-    const payload = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    return {
-      ...payload,
-      childStatusPath: payload.childStatusPath ?? filePath
-    };
-  } catch {
-    return {
-      childStatusPath: filePath,
-      message: 'progress file is not readable',
-      phase: 'monitor'
-    };
-  }
 }
 
 function toActionProgressResult(progress) {
@@ -347,6 +398,14 @@ function toActionProgressResult(progress) {
     percent: progress?.percent ?? null,
     phase: progress?.phase ?? null,
     message: progress?.message ?? null,
-    lastHeartbeatAt: progress?.lastHeartbeatAt ?? progress?.generatedAt ?? null
+    lastHeartbeatAt: progress?.lastHeartbeatAt ?? progress?.generatedAt ?? null,
+    plannedCount: progress?.plannedCount ?? null,
+    actualCount: progress?.actualCount ?? null,
+    skippedCount: progress?.skippedCount ?? null,
+    failedCount: progress?.failedCount ?? null,
+    estimatedRequests: progress?.estimatedRequests ?? null,
+    estimatedRecords: progress?.estimatedRecords ?? null,
+    resultKind: progress?.resultKind ?? null,
+    resumeOutcome: progress?.resumeOutcome ?? null
   };
 }

@@ -117,6 +117,29 @@ class CrawlerDomainStateReducerTest {
     }
 
     @Test
+    void unknownDomainWithoutRuntimeSignalsIsHealthyIdle() {
+        CrawlerDomainStateReducer.Input in = CrawlerDomainStateReducer.Input.builder()
+            .domainStatus("unknown")
+            .now(now)
+            .build();
+        CrawlerDomainStateReducer.State state = reducer.reduce(in);
+        assertEquals("healthy", state.status());
+        assertEquals("none", state.nextAction());
+    }
+
+    @Test
+    void unknownDomainWithUnclassifiedRuntimeSignalRemainsUnknown() {
+        CrawlerDomainStateReducer.Input in = CrawlerDomainStateReducer.Input.builder()
+            .progressStatus("unclassified")
+            .domainStatus("unknown")
+            .now(now)
+            .build();
+        CrawlerDomainStateReducer.State state = reducer.reduce(in);
+        assertEquals("unknown", state.status());
+        assertEquals("inspect", state.nextAction());
+    }
+
+    @Test
     void nextActionForStalledIsRecrawl() {
         CrawlerDomainStateReducer.Input in = CrawlerDomainStateReducer.Input.builder()
             .progressStatus("stalled").now(now).build();

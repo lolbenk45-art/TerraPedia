@@ -349,6 +349,7 @@ async function runPlan() {
   const monitorSourceMap = new Map((monitorState.sources ?? []).map((entry) => [entry.key, entry]));
   const actions = [];
   let estimatedRequests = 0;
+  const forceRequested = booleanOption(options.force, false);
 
   for (const entityName of requestedEntities) {
     const config = ENTITY_CONFIG[entityName];
@@ -393,7 +394,8 @@ async function runPlan() {
     const monitorRecords = config.sourceKeys.map((key) => monitorSourceMap.get(key)).filter(Boolean);
     const hasSourceChange = monitorRecords.some((entry) => entry.changed);
     const missingManifest = manifestRecords.some((entry) => entry == null || !entry.localPath || !fs.existsSync(entry.localPath));
-    if (!hasSourceChange && !missingManifest) {
+    const forceModule = forceRequested && ['items', 'npcs', 'projectiles'].includes(entityName);
+    if (!forceModule && !hasSourceChange && !missingManifest) {
       continue;
     }
 
@@ -401,7 +403,7 @@ async function runPlan() {
       id: `${config.entityFamily}-refresh`,
       entityFamily: config.entityFamily,
       type: 'run_script',
-      reason: hasSourceChange ? 'source_changed' : 'missing_local_snapshot',
+      reason: forceModule ? 'manual_force' : hasSourceChange ? 'source_changed' : 'missing_local_snapshot',
       estimatedRequests: config.estimatedRequests,
       command: process.execPath,
       scriptPath: config.scriptPath,
@@ -458,16 +460,34 @@ async function runApply({ resume }) {
     plan = loadWikiSyncPlan(planPath);
   }
 
+  let actualCount = 0;
+  let skippedCount = 0;
+  let failedCount = 0;
+  const resultSummary = (resultKind = undefined) => ({
+    plannedCount: plan.actions.length,
+    actualCount,
+    skippedCount,
+    failedCount,
+    estimatedRequests: Number.isFinite(Number(plan.estimatedRequests))
+      ? Number(plan.estimatedRequests)
+      : null,
+    estimatedRecords: null,
+    ...(resultKind ? { resultKind } : {}),
+    resumeOutcome: 'not_supported'
+  });
+
   let manifest = loadWikiSourceManifest(manifestPath);
   for (let actionIndex = 0; actionIndex < plan.actions.length; actionIndex += 1) {
     const action = plan.actions[actionIndex];
     if (action.status === 'completed') {
+      skippedCount += 1;
       writeWikiSyncProgress({
         status: 'running',
         phase: resume ? 'resume' : 'apply',
         message: `skipped completed ${action.id}`,
         current: actionIndex + 1,
-        total: plan.actions.length
+        total: plan.actions.length,
+        ...resultSummary()
       });
       continue;
     }
@@ -479,7 +499,8 @@ async function runApply({ resume }) {
       phase: resume ? 'resume' : 'apply',
       message: `running ${action.id} (${actionIndex + 1}/${plan.actions.length})`,
       current: actionIndex,
-      total: plan.actions.length
+      total: plan.actions.length,
+      ...resultSummary()
     });
     const result = spawnSync(action.command, action.args, {
       cwd: repoRoot,
@@ -491,6 +512,7 @@ async function runApply({ resume }) {
       stdio: 'inherit'
     });
     if (result.status !== 0) {
+      failedCount += 1;
       plan = markAction(plan, action.id, 'failed');
       saveWikiSyncPlan(planPath, plan);
       writeWikiSyncProgress({
@@ -498,7 +520,8 @@ async function runApply({ resume }) {
         phase: resume ? 'resume' : 'apply',
         message: `failed ${action.id}`,
         current: actionIndex,
-        total: plan.actions.length
+        total: plan.actions.length,
+        ...resultSummary('failed')
       });
       throw new Error(`Workflow action failed: ${action.id}`);
     }
@@ -506,6 +529,7 @@ async function runApply({ resume }) {
     try {
       runPostActionStep(action);
     } catch (error) {
+      failedCount += 1;
       plan = markAction(plan, action.id, 'failed');
       saveWikiSyncPlan(planPath, plan);
       writeWikiSyncProgress({
@@ -513,7 +537,8 @@ async function runApply({ resume }) {
         phase: resume ? 'resume' : 'apply',
         message: `failed ${action.id}: ${error.message}`,
         current: actionIndex,
-        total: plan.actions.length
+        total: plan.actions.length,
+        ...resultSummary('failed')
       });
       throw error;
     }
@@ -525,24 +550,28 @@ async function runApply({ resume }) {
 
     plan = markAction(plan, action.id, 'completed');
     saveWikiSyncPlan(planPath, plan);
+    actualCount += 1;
     writeWikiSyncProgress({
       status: 'running',
       phase: resume ? 'resume' : 'apply',
       message: `completed ${action.id} (${actionIndex + 1}/${plan.actions.length})`,
       current: actionIndex + 1,
-      total: plan.actions.length
+      total: plan.actions.length,
+      ...resultSummary()
     });
   }
 
   try {
     ensureRequestedEntityOutputs();
   } catch (error) {
+    failedCount += 1;
     writeWikiSyncProgress({
       status: 'failed',
       phase: resume ? 'resume' : 'apply',
       message: `failed post-refresh output check: ${error.message}`,
       current: plan.actions.length,
-      total: plan.actions.length
+      total: plan.actions.length,
+      ...resultSummary('failed')
     });
     throw error;
   }
@@ -552,7 +581,8 @@ async function runApply({ resume }) {
     phase: resume ? 'resume' : 'apply',
     message: `completed ${plan.actions.filter((entry) => entry.status === 'completed').length} wiki sync action(s)`,
     current: plan.actions.length,
-    total: plan.actions.length
+    total: plan.actions.length,
+    ...resultSummary(plan.actions.length === 0 ? 'no_change' : 'fetched')
   });
 
   console.log(JSON.stringify({

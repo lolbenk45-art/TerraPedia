@@ -161,6 +161,14 @@ function backendStateDiagnosis(domain, status) {
       nextActionLabel: nextActionLabel(domain?.state?.nextAction),
     }
   }
+  if (status === 'healthy') {
+    return {
+      diagnosisGroup: 'healthy',
+      diagnosisTitle: '空闲正常',
+      rankReason: domain?.state?.evidence || '当前没有运行或排队任务',
+      nextActionLabel: nextActionLabel(domain?.state?.nextAction),
+    }
+  }
   return {
     diagnosisGroup: riskFromStatus(status),
     diagnosisTitle: crawlerStatusDisplayLabel(status),
@@ -433,7 +441,7 @@ function rowReason({ domain, progressRow, queueItem, blockerLabel, risk, unified
     || queueItem?.message
     || blockerLabel
   if (explicit) return explicit
-  if (risk === 'healthy' && !progressRow && !queueItem) return '样本爬取状态已隔离，正式域暂无异常'
+  if (risk === 'healthy' && !progressRow && !queueItem) return '当前没有运行或排队任务'
   return ''
 }
 
@@ -475,7 +483,9 @@ export function buildDomainTableRows({ domains = [], progressRows = [], dispatch
     const blockerLabel = formatBlocker(matchedQueueItem)
     const files = evidenceFiles(domain, matchedProgressRow, matchedQueueItem)
     const cooldownOnlyQueue = isCooldownOnlyQueueItem(matchedQueueItem)
-    const diagnosis = cooldownOnlyQueue ? cooldownQueueDiagnosis(matchedQueueItem, unifiedStatus) : (terminalDiagnosis || backendStateDiagnosis(domain, backendStatus))
+    const diagnosis = cooldownOnlyQueue
+      ? cooldownQueueDiagnosis(matchedQueueItem, unifiedStatus)
+      : (terminalDiagnosis || backendStateDiagnosis(domain, backendStatus))
     const stateBlockerLabel = cooldownOnlyQueue ? '' : (domain?.state?.blockerLabel || domain?.state?.blocker || blockerLabel)
     return {
       domain: domainFromSources(domain, matchedProgressRow, matchedQueueItem),

@@ -27,10 +27,10 @@ public class CrawlerAttemptStateMachine {
     private static final Map<CrawlerQueueV2Status, Set<CrawlerQueueV2Status>> ALLOWED = Map.ofEntries(
         Map.entry(QUEUED, Set.of(STARTING, CANCELLED, TIMED_OUT)),
         Map.entry(RETRY_WAIT, Set.of(STARTING, CANCELLED, TIMED_OUT)),
-        Map.entry(STARTING, Set.of(RUNNING, CANCEL_REQUESTED, STALLED, FAILED)),
+        Map.entry(STARTING, Set.of(RUNNING, CANCEL_REQUESTED, STALLED, COMPLETED, FAILED)),
         Map.entry(RUNNING, Set.of(PAUSE_REQUESTED, CANCEL_REQUESTED, COMPLETED, FAILED, STALLED)),
         Map.entry(PAUSE_REQUESTED, Set.of(PAUSED, CANCEL_REQUESTED, STALLED, FAILED)),
-        Map.entry(PAUSED, Set.of(RUNNING, CANCEL_REQUESTED, STALLED)),
+        Map.entry(PAUSED, Set.of(RUNNING, CANCEL_REQUESTED, STALLED, FAILED)),
         Map.entry(CANCEL_REQUESTED, Set.of(CANCELLED, FAILED)),
         Map.entry(STALLED, Set.of(STARTING, RUNNING, PAUSED, CANCEL_REQUESTED, TIMED_OUT, FAILED)),
         Map.entry(COMPLETED, Set.of()),

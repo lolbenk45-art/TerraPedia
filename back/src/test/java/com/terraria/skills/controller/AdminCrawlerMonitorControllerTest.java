@@ -5,25 +5,34 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.terraria.skills.auth.AdminAuthenticationInterceptor;
 import com.terraria.skills.auth.AdminTokenClaims;
+import com.terraria.skills.dto.CrawlerAttemptLogDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorAutoDispatchDTO;
+import com.terraria.skills.dto.CrawlerMonitorDispatchRequestDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
+import com.terraria.skills.dto.CrawlerQueueV2CutoverRequestDTO;
+import com.terraria.skills.dto.CrawlerQueueV2CutoverResultDTO;
 import com.terraria.skills.dto.WikiImageLocalizationCacheMetricsDTO;
 import com.terraria.skills.handler.GlobalExceptionHandler;
 import com.terraria.skills.service.CrawlerMonitorRedisUnavailableException;
 import com.terraria.skills.service.CrawlerMonitorService;
 import com.terraria.skills.service.WikiImageLocalizationService;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Exception;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ReasonCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -31,13 +40,20 @@ import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
@@ -71,6 +87,19 @@ class AdminCrawlerMonitorControllerTest {
             .setControllerAdvice(new GlobalExceptionHandler())
             .defaultRequest(get("/").requestAttr(AdminAuthenticationInterceptor.ADMIN_CLAIMS_ATTRIBUTE, adminClaims))
             .build();
+
+        lenient().when(crawlerMonitorService.dispatchWikiMonitorTask(
+            any(CrawlerMonitorDispatchRequestDTO.class),
+            anyString()
+        )).thenAnswer(invocation -> crawlerMonitorService.dispatchWikiMonitorTask(
+            invocation.getArgument(0)
+        ));
+        lenient().when(crawlerMonitorService.controlWikiMonitorDispatch(
+            any(CrawlerMonitorDispatchRequestDTO.class),
+            anyString()
+        )).thenAnswer(invocation -> crawlerMonitorService.controlWikiMonitorDispatch(
+            invocation.getArgument(0)
+        ));
     }
 
     @Test
@@ -317,7 +346,7 @@ class AdminCrawlerMonitorControllerTest {
 
         verify(crawlerMonitorService).dispatchWikiMonitorTask(argThat(request ->
             "bosses".equals(request.getDomain()) && "domain-source-bosses".equals(request.getActionId())
-        ));
+        ), eq("admin"));
     }
 
     @Test
@@ -456,6 +485,104 @@ class AdminCrawlerMonitorControllerTest {
             .andExpect(jsonPath("$.statusCode").value(403));
 
         verifyNoInteractions(crawlerMonitorService);
+    }
+
+    @Test
+    void shouldForwardAuthenticatedOperatorAndExactCutoverConfirmation() throws Exception {
+        CrawlerQueueV2CutoverResultDTO result = new CrawlerQueueV2CutoverResultDTO();
+        result.setCutoverId("cutover-1");
+        result.setEngineMode("v2");
+        result.setStateStoreEpoch("epoch-new");
+        result.setV2LiveAttemptCount(0);
+        when(crawlerMonitorService.cutoverCrawlerQueueV2(argThat(payload ->
+            "cutover-1".equals(payload.getCutoverId())
+                && "CUTOVER_CRAWLER_QUEUE_V2".equals(payload.getConfirmation())
+                && "abc123".equals(payload.getGitSha())
+        ), eq("admin"))).thenReturn(result);
+
+        mockMvc.perform(post("/admin/crawler-monitor/cutover")
+                .contentType("application/json")
+                .content("{\"cutoverId\":\"cutover-1\",\"confirmation\":\"CUTOVER_CRAWLER_QUEUE_V2\",\"gitSha\":\"abc123\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.engineMode").value("v2"))
+            .andExpect(jsonPath("$.data.stateStoreEpoch").value("epoch-new"))
+            .andExpect(jsonPath("$.data.v2LiveAttemptCount").value(0));
+
+        verify(crawlerMonitorService).cutoverCrawlerQueueV2(any(CrawlerQueueV2CutoverRequestDTO.class), eq("admin"));
+    }
+
+    @Test
+    void shouldForwardRollbackAndResetConfirmationPhrasesToAuthenticatedServiceMethods() throws Exception {
+        CrawlerQueueV2CutoverResultDTO rollback = new CrawlerQueueV2CutoverResultDTO();
+        rollback.setEngineMode("v1");
+        CrawlerQueueV2CutoverResultDTO reset = new CrawlerQueueV2CutoverResultDTO();
+        reset.setResetId("reset-1");
+        reset.setEngineMode("v2");
+        when(crawlerMonitorService.rollbackCrawlerQueueV2(argThat(payload ->
+            "ROLLBACK_CRAWLER_QUEUE_V2".equals(payload.getConfirmation())
+        ), eq("admin"))).thenReturn(rollback);
+        when(crawlerMonitorService.recoverCrawlerQueueV2Epoch(argThat(payload ->
+            "RESET_CRAWLER_QUEUE_V2_EPOCH".equals(payload.getConfirmation())
+                && "reset-1".equals(payload.getResetId())
+        ), eq("admin"))).thenReturn(reset);
+
+        mockMvc.perform(post("/admin/crawler-monitor/cutover/rollback")
+                .contentType("application/json")
+                .content("{\"cutoverId\":\"cutover-1\",\"confirmation\":\"ROLLBACK_CRAWLER_QUEUE_V2\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.engineMode").value("v1"));
+        mockMvc.perform(post("/admin/crawler-monitor/cutover/recover-state-store-reset")
+                .contentType("application/json")
+                .content("{\"cutoverId\":\"cutover-1\",\"resetId\":\"reset-1\",\"confirmation\":\"RESET_CRAWLER_QUEUE_V2_EPOCH\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.resetId").value("reset-1"));
+
+        verify(crawlerMonitorService).rollbackCrawlerQueueV2(any(CrawlerQueueV2CutoverRequestDTO.class), eq("admin"));
+        verify(crawlerMonitorService).recoverCrawlerQueueV2Epoch(any(CrawlerQueueV2CutoverRequestDTO.class), eq("admin"));
+    }
+
+    @Test
+    void shouldExposeHealthyEpochResetRejectionAsAConflict() throws Exception {
+        when(crawlerMonitorService.recoverCrawlerQueueV2Epoch(any(CrawlerQueueV2CutoverRequestDTO.class), eq("admin")))
+            .thenThrow(new CrawlerQueueV2Exception(HttpStatus.CONFLICT, CrawlerQueueV2ReasonCode.STATE_STORE_RESET));
+
+        mockMvc.perform(post("/admin/crawler-monitor/cutover/recover-state-store-reset")
+                .contentType("application/json")
+                .content("{\"cutoverId\":\"cutover-1\",\"resetId\":\"reset-1\",\"confirmation\":\"RESET_CRAWLER_QUEUE_V2_EPOCH\"}"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.statusCode").value(409))
+            .andExpect(jsonPath("$.data.reasonCode").value("STATE_STORE_RESET"));
+    }
+
+    @Test
+    void shouldStartARegisteredDomainThroughTheDedicatedEndpoint() throws Exception {
+        CrawlerMonitorDispatchResultDTO result = new CrawlerMonitorDispatchResultDTO();
+        result.setAccepted(true);
+        result.setStatus("queued");
+        when(crawlerMonitorService.startCrawlerDomain(
+            "items",
+            "force",
+            "fresh",
+            true,
+            "admin"
+        )).thenReturn(result);
+
+        mockMvc.perform(post("/admin/crawler-monitor/domains/items/start")
+                .contentType("application/json")
+                .content("{\"operationId\":\"force\",\"resumeMode\":\"fresh\",\"confirmed\":true}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.accepted").value(true))
+            .andExpect(jsonPath("$.data.status").value("queued"));
+
+        verify(crawlerMonitorService).startCrawlerDomain(
+            "items",
+            "force",
+            "fresh",
+            true,
+            "admin"
+        );
     }
 
     @Test
@@ -828,6 +955,151 @@ class AdminCrawlerMonitorControllerTest {
         verify(crawlerMonitorService).controlWikiMonitorDispatch(argThat(request ->
             "forceReclaimAll".equals(request.getControlAction())
         ));
+    }
+
+    @Test
+    void shouldReturnStructuredConflictForAStaleControlVersion() throws Exception {
+        when(crawlerMonitorService.controlWikiMonitorDispatch(any(), eq("admin")))
+            .thenThrow(new CrawlerQueueV2Exception(
+                HttpStatus.CONFLICT,
+                CrawlerQueueV2ReasonCode.STALE_STATE_VERSION
+            ));
+
+        mockMvc.perform(post("/admin/crawler-monitor/dispatch/control")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "queueId": "queue-1",
+                      "attemptId": "attempt-1",
+                      "expectedStateVersion": 7,
+                      "controlAction": "cancel"
+                    }
+                    """))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.statusCode").value(409))
+            .andExpect(jsonPath("$.data.reasonCode").value("STALE_STATE_VERSION"))
+            .andExpect(jsonPath("$.data.messageZh").isNotEmpty())
+            .andExpect(jsonPath("$.data.suggestedAction").isNotEmpty());
+
+        verify(crawlerMonitorService).controlWikiMonitorDispatch(any(), eq("admin"));
+    }
+
+    @Test
+    void shouldReturnStructuredServiceUnavailableForAV2StateStoreOutage() throws Exception {
+        when(crawlerMonitorService.dispatchWikiMonitorTask(any(), eq("admin")))
+            .thenThrow(new CrawlerQueueV2Exception(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                CrawlerQueueV2ReasonCode.STATE_STORE_UNAVAILABLE
+            ));
+
+        mockMvc.perform(post("/admin/crawler-monitor/dispatch")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"domain\":\"bosses\",\"actionId\":\"domain-source-bosses\"}"))
+            .andExpect(status().isServiceUnavailable())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.statusCode").value(503))
+            .andExpect(jsonPath("$.data.reasonCode").value("STATE_STORE_UNAVAILABLE"))
+            .andExpect(jsonPath("$.data.messageZh").isNotEmpty())
+            .andExpect(jsonPath("$.data.suggestedAction").isNotEmpty());
+
+        verify(crawlerMonitorService).dispatchWikiMonitorTask(any(), eq("admin"));
+    }
+
+    @Test
+    void shouldPreviewV2LogByAttemptIdInsteadOfAnArbitraryPath() throws Exception {
+        CrawlerAttemptLogDetailDTO detail = new CrawlerAttemptLogDetailDTO();
+        detail.setAttemptId("attempt-1");
+        detail.setPath("reports/crawler-monitor/v2/2026-07-11/attempt-1/run.log");
+        detail.setAvailability("available");
+        detail.setOffset(0L);
+        detail.setNextOffset(13L);
+        detail.setContent("INFO started\\n");
+        when(crawlerMonitorService.getAttemptLog("attempt-1", 0L, 262_144)).thenReturn(detail);
+
+        mockMvc.perform(get("/admin/crawler-monitor/attempts/attempt-1/log")
+                .param("offset", "0")
+                .param("maxBytes", "262144"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.attemptId").value("attempt-1"))
+            .andExpect(jsonPath("$.data.availability").value("available"))
+            .andExpect(jsonPath("$.data.nextOffset").value(13));
+
+        verify(crawlerMonitorService).getAttemptLog("attempt-1", 0L, 262_144);
+    }
+
+    @Test
+    void shouldReturnStructuredArtifactUnavailableForAnAttemptLogReadFailure() throws Exception {
+        when(crawlerMonitorService.getAttemptLog("attempt-corrupt", 0L, 1_024)).thenThrow(
+            new CrawlerQueueV2Exception(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                CrawlerQueueV2ReasonCode.ATTEMPT_ARTIFACT_UNAVAILABLE
+            )
+        );
+
+        mockMvc.perform(get("/admin/crawler-monitor/attempts/attempt-corrupt/log")
+                .param("offset", "0")
+                .param("maxBytes", "1024"))
+            .andExpect(status().isServiceUnavailable())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.statusCode").value(503))
+            .andExpect(jsonPath("$.data.reasonCode").value("ATTEMPT_ARTIFACT_UNAVAILABLE"))
+            .andExpect(jsonPath("$.data.messageZh").isNotEmpty())
+            .andExpect(jsonPath("$.data.suggestedAction").isNotEmpty());
+
+        verify(crawlerMonitorService).getAttemptLog("attempt-corrupt", 0L, 1_024);
+    }
+
+    @Test
+    void shouldRejectAttemptLogReadsWithoutAnAdminClaim() throws Exception {
+        AdminTokenClaims viewerClaims = AdminTokenClaims.builder()
+            .username("viewer")
+            .displayName("Viewer")
+            .role("VIEWER")
+            .build();
+
+        mockMvc.perform(get("/admin/crawler-monitor/attempts/attempt-1/log")
+                .requestAttr(AdminAuthenticationInterceptor.ADMIN_CLAIMS_ATTRIBUTE, viewerClaims))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.statusCode").value(403));
+
+        verifyNoInteractions(crawlerMonitorService);
+    }
+
+    @Test
+    void shouldStartAnAuthenticatedSseResponseWithoutAcceptingATokenQueryParameter() throws Exception {
+        SseEmitter emitter = new SseEmitter(0L);
+        when(crawlerMonitorService.subscribeEvents("1710000000000-3")).thenReturn(emitter);
+
+        mockMvc.perform(get("/admin/crawler-monitor/events")
+                .param("after", "1710000000000-3")
+                .param("token", "query-token-must-not-be-used"))
+            .andExpect(request().asyncStarted())
+            .andExpect(header().string("Content-Type", containsString("text/event-stream")));
+
+        verify(crawlerMonitorService).subscribeEvents("1710000000000-3");
+    }
+
+    @Test
+    void shouldReturnStructuredServiceUnavailableWhenV2EventSubscriptionCannotReadStateStore() throws Exception {
+        when(crawlerMonitorService.subscribeEvents("0-0")).thenThrow(new CrawlerQueueV2Exception(
+            HttpStatus.SERVICE_UNAVAILABLE,
+            CrawlerQueueV2ReasonCode.STATE_STORE_UNAVAILABLE
+        ));
+
+        mockMvc.perform(get("/admin/crawler-monitor/events")
+                .param("after", "0-0")
+                .accept(MediaType.TEXT_EVENT_STREAM))
+            .andExpect(status().isServiceUnavailable())
+            .andExpect(header().string("Content-Type", containsString(MediaType.APPLICATION_JSON_VALUE)))
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.statusCode").value(503))
+            .andExpect(jsonPath("$.data.reasonCode").value("STATE_STORE_UNAVAILABLE"))
+            .andExpect(jsonPath("$.data.messageZh").isNotEmpty())
+            .andExpect(jsonPath("$.data.suggestedAction").isNotEmpty());
+
+        verify(crawlerMonitorService).subscribeEvents("0-0");
     }
 
     private CrawlerMonitorTestStateDTO testState(String scenario, String daemonStatus, boolean lockFound, long totalActions) {

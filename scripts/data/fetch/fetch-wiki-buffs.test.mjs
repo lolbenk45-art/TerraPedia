@@ -7,6 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import {
+  buildBuffFetchProgressPayload,
   buildBuffRecords,
   collectBuffPageImmunityFacts
 } from './fetch-wiki-buffs.mjs';
@@ -15,6 +16,51 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const scriptPath = path.join(__dirname, 'fetch-wiki-buffs.mjs');
+
+test('buff progress separates resumed page work from checkpoint skips', () => {
+  const payload = buildBuffFetchProgressPayload('/tmp/buff-progress.json', {
+    status: 'completed',
+    phase: 'write',
+    message: 'finished buff page work',
+    current: 32,
+    total: 32,
+    startedAt: '2026-07-16T00:00:00.000Z',
+    resumeFields: {
+      resume: {
+        mode: 'keyed_items',
+        completed: 32,
+        total: 32,
+        inputFingerprint: 'fingerprint'
+      }
+    },
+    resumeAction: 'resume',
+    resumeReason: 'valid-state',
+    resumeSkippedCount: 12
+  });
+
+  assert.equal(payload.plannedCount, 32);
+  assert.equal(payload.actualCount, 20);
+  assert.equal(payload.skippedCount, 12);
+  assert.equal(payload.failedCount, 0);
+  assert.equal(payload.estimatedRecords, 32);
+  assert.equal(payload.resultKind, 'fetched');
+  assert.equal(payload.resumeOutcome, 'resumed');
+});
+
+test('buff startup progress does not report an unknown page plan as zero', () => {
+  const payload = buildBuffFetchProgressPayload('/tmp/buff-progress.json', {
+    status: 'running',
+    phase: 'module',
+    message: 'fetching buff template before page discovery',
+    current: 0,
+    total: 0,
+    startedAt: '2026-07-16T00:00:00.000Z'
+  });
+
+  assert.equal(payload.plannedCount, null);
+  assert.equal(payload.actualCount, null);
+  assert.equal(payload.estimatedRecords, null);
+});
 
 test('buildBuffRecords applies buff page immunity facts over npcinfo fallback and labels sample semantics', () => {
   const baseBuffs = [

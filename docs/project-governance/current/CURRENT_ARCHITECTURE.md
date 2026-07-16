@@ -40,6 +40,16 @@ pattern for admin/data-query workflows.
 
 ## Data And Acceptance Chain
 
+### Crawler Monitor V2
+
+The crawler monitor uses `terrapedia:crawler:wiki-monitor:v2:` as the single
+live authority. Redis stores fenced queues, attempts, leases, and an immutable
+event Stream; attempt artifacts provide manifest/progress/log evidence; the
+supervisor owns exact PID/start-time processes; and the reconciler bounds every
+non-terminal state. The admin surface reads V2 overview plus authenticated SSE
+with a three-second fallback. V1 keys/files are immutable cutover history,
+never a V2 fallback or scheduler input.
+
 Current project-management status defines the acceptance chain:
 
 ```text

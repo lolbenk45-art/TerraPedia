@@ -13,6 +13,8 @@ import {
 import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   buildActionProgressPayload,
+  buildCrawlerWorkSummary,
+  createCrawlerProgressHeartbeat,
   writeJsonFile
 } from '../workflow/backend-refresh-runtime-state.mjs';
 
@@ -36,6 +38,7 @@ async function main(argv = process.argv.slice(2)) {
   const reportPath = path.resolve(options['report-output'] ?? path.join(repoRoot, 'reports', `wiki-shimmer-summary-${dateTag}.md`));
   const progressPath = path.resolve(options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_PROGRESS_PATH);
   const canonicalProgressPath = path.resolve(DEFAULT_PROGRESS_PATH);
+  let lastProgressCurrent = 0;
 
   const writeProgress = (progress) => {
     const progressPayload = {
@@ -56,8 +59,9 @@ async function main(argv = process.argv.slice(2)) {
       }));
     }
   };
+  const progressHeartbeat = createCrawlerProgressHeartbeat({ writeProgress });
 
-  writeProgress({
+  progressHeartbeat.publish({
     status: 'running',
     phase: 'start',
     message: 'starting shimmer source fetch',
@@ -67,7 +71,8 @@ async function main(argv = process.argv.slice(2)) {
 
   try {
     const revision = await fetchRevision(pageTitle, apiUrl);
-    writeProgress({
+    lastProgressCurrent = 1;
+    progressHeartbeat.publish({
       status: 'running',
       phase: 'revision',
       message: `fetched shimmer revision for ${revision.pageTitle}`,
@@ -75,7 +80,8 @@ async function main(argv = process.argv.slice(2)) {
       total: 3
     });
     const sections = await fetchSections(pageTitle, apiUrl);
-    writeProgress({
+    lastProgressCurrent = 2;
+    progressHeartbeat.publish({
       status: 'running',
       phase: 'sections',
       message: `fetched shimmer sections for ${pageTitle}`,
@@ -83,7 +89,8 @@ async function main(argv = process.argv.slice(2)) {
       total: 3
     });
     const html = await fetchRenderedHtml(pageTitle, apiUrl);
-    writeProgress({
+    lastProgressCurrent = 3;
+    progressHeartbeat.publish({
       status: 'running',
       phase: 'html',
       message: `fetched shimmer rendered HTML for ${pageTitle}`,
@@ -110,7 +117,7 @@ async function main(argv = process.argv.slice(2)) {
     ensureDir(path.dirname(reportPath));
     fs.writeFileSync(reportPath, buildMarkdown(payload), 'utf8');
 
-    writeProgress({
+    progressHeartbeat.publish({
       status: 'completed',
       phase: 'write',
       message: `finished shimmer source fetch; sections=${payload.sections.length}`,
@@ -128,15 +135,17 @@ async function main(argv = process.argv.slice(2)) {
       htmlLength: payload.html.length
     }, null, 2));
   } catch (error) {
-    writeProgress({
+    progressHeartbeat.publish({
       status: 'failed',
       phase: 'error',
       message: error instanceof Error ? error.message : String(error),
-      current: 0,
+      current: lastProgressCurrent,
       total: 3,
       nextStep: 'check wiki shimmer page source availability'
     });
     throw error;
+  } finally {
+    progressHeartbeat.stop();
   }
 }
 
@@ -154,6 +163,12 @@ function buildShimmerProgressPayload({
   generatedAt = new Date().toISOString()
 } = {}) {
   const payload = buildActionProgressPayload({
+    ...buildCrawlerWorkSummary({
+      status,
+      current,
+      total,
+      estimatedRequests: total
+    }),
     actionId: ACTION_ID,
     status,
     phase,

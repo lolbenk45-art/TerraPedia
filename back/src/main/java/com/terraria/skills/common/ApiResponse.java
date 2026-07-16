@@ -50,4 +50,13 @@ public class ApiResponse<T> implements Serializable {
         response.setStatusCode(statusCode);
         return response;
     }
+
+    public static <T> ApiResponse<T> error(int statusCode, String message, T data) {
+        ApiResponse<T> response = new ApiResponse<>();
+        response.setSuccess(false);
+        response.setStatusCode(statusCode);
+        response.setMessage(message);
+        response.setData(data);
+        return response;
+    }
 }

@@ -50,6 +50,72 @@ test('item page plan passes explicit only-changed=false to fetch action', () => 
     assert.ok(!plan.actions[0].args.includes('--only-changed=true'));
 });
 
+test('force mode schedules an unchanged module while check mode remains a no-change plan', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-sync-force-module-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const manifestPath = path.join(tempDir, 'manifest.json');
+    const monitorStatePath = path.join(tempDir, 'monitor-state.json');
+    const checkPlanPath = path.join(tempDir, 'check-plan.json');
+    const forcePlanPath = path.join(tempDir, 'force-plan.json');
+    const progressPath = path.join(tempDir, 'progress.json');
+    const localPath = path.join(tempDir, 'module__iteminfo__data.latest.json');
+
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+    fs.writeFileSync(localPath, '{}\n', 'utf8');
+    fs.writeFileSync(manifestPath, JSON.stringify({
+      records: [{
+        entityFamily: 'items',
+        sourceKind: 'module',
+        sourceKey: 'wiki.module.iteminfo',
+        lang: 'en',
+        pageTitle: 'Module:Iteminfo/data',
+        localPath,
+        revisionId: 456,
+      }],
+      schemaVersion: '1.0.0',
+    }), 'utf8');
+    fs.writeFileSync(monitorStatePath, JSON.stringify({
+      sources: [{
+        key: 'wiki.module.iteminfo',
+        changed: false,
+        revisionId: 456,
+      }],
+    }), 'utf8');
+
+    const commonArgs = [
+      scriptPath,
+      '--mode=plan',
+      '--entity=items',
+      `--manifest-path=${manifestPath}`,
+      `--monitor-state=${monitorStatePath}`,
+      `--progress-path=${progressPath}`,
+    ];
+    const check = spawnSync(process.execPath, [
+      ...commonArgs,
+      `--plan-path=${checkPlanPath}`,
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: { ...process.env, WORKTREE_ROOT: worktreeRoot },
+    });
+    const force = spawnSync(process.execPath, [
+      ...commonArgs,
+      '--force=true',
+      `--plan-path=${forcePlanPath}`,
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: { ...process.env, WORKTREE_ROOT: worktreeRoot },
+    });
+
+    assert.equal(check.status, 0, check.stderr || check.stdout);
+    assert.equal(force.status, 0, force.stderr || force.stdout);
+    assert.equal(JSON.parse(fs.readFileSync(checkPlanPath, 'utf8')).actions.length, 0);
+    const forcePlan = JSON.parse(fs.readFileSync(forcePlanPath, 'utf8'));
+    assert.equal(forcePlan.actions.length, 1);
+    assert.equal(forcePlan.actions[0].reason, 'manual_force');
+});
+
 test('armor attributes plan routes to the dedicated wiki armor attributes fetcher', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-sync-armor-attributes-'));
     const worktreeRoot = path.join(tempDir, 'feature-worktree');
@@ -344,6 +410,13 @@ test('items apply normalizes wiki item module after raw source refresh', () => {
     const normalized = JSON.parse(fs.readFileSync(normalizedPath, 'utf8'));
     assert.equal(normalized.totalItems, 1);
     assert.equal(normalized.items[0].internalName, 'IronPickaxe');
+    const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
+    assert.equal(progress.plannedCount, 1);
+    assert.equal(progress.actualCount, 1);
+    assert.equal(progress.skippedCount, 0);
+    assert.equal(progress.failedCount, 0);
+    assert.equal(progress.resultKind, 'fetched');
+    assert.equal(progress.resumeOutcome, 'not_supported');
 });
 
 test('items apply marks action failed when post-refresh normalization fails', () => {
@@ -395,6 +468,10 @@ test('items apply marks action failed when post-refresh normalization fails', ()
     const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
     assert.equal(progress.status, 'failed');
     assert.match(progress.message, /failed items-refresh/);
+    assert.equal(progress.plannedCount, 1);
+    assert.equal(progress.actualCount, 0);
+    assert.equal(progress.failedCount, 1);
+    assert.equal(progress.resultKind, 'failed');
 });
 
 test('items apply normalizes existing raw module when no source action is planned', () => {
@@ -466,4 +543,11 @@ test('items apply normalizes existing raw module when no source action is planne
     assert.equal(fs.existsSync(normalizedPath), true);
     const normalized = JSON.parse(fs.readFileSync(normalizedPath, 'utf8'));
     assert.equal(normalized.items[0].internalName, 'IronPickaxe');
+    const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
+    assert.equal(progress.plannedCount, 0);
+    assert.equal(progress.actualCount, 0);
+    assert.equal(progress.skippedCount, 0);
+    assert.equal(progress.failedCount, 0);
+    assert.equal(progress.resultKind, 'no_change');
+    assert.equal(progress.resumeOutcome, 'not_supported');
 });

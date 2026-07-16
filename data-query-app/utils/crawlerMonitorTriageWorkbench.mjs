@@ -1,6 +1,8 @@
 import { formatShanghaiDateLabel } from './crawlerMonitorTime.mjs'
 import { crawlerStatusDisplayLabel } from './crawlerMonitorUnifiedStatus.mjs'
 import { wikiDomainChineseName } from './crawlerMonitorDisplay.mjs'
+import { latestV2TerminalAttempt } from './crawlerMonitorV2Attempts.mjs'
+import { retryLabel } from './crawlerMonitorOperationCatalog.mjs'
 
 const ATTENTION_STATUSES = new Set([
   'attention',
@@ -12,10 +14,12 @@ const ATTENTION_STATUSES = new Set([
   'stalled',
   'state_missing',
   'unknown',
+  'interrupted',
 ])
 
-const RUNNING_STATUSES = new Set(['running', 'active', 'starting'])
-const IDLE_STATUSES = new Set(['ready', 'queued', 'paused', 'cancelled', 'missing'])
+const RUNNING_STATUSES = new Set(['running', 'active', 'starting', 'pause_requested', 'cancel_requested'])
+const IDLE_STATUSES = new Set(['idle', 'ready', 'queued', 'paused', 'cancelled', 'missing'])
+const ACTIVE_QUEUE_VISIBILITY_STATUSES = new Set(['queued', 'blocked_cooldown', 'starting', 'running', 'paused', 'retry_wait', 'pause_requested', 'cancel_requested'])
 const PAUSABLE_STATUSES = new Set(['running', 'starting'])
 const RESUMABLE_STATUSES = new Set(['paused'])
 const FORCE_RECLAIM_STATUSES = new Set(['blocked', 'failed', 'error', 'timed_out', 'timeout', 'stalled', 'state_missing', 'unknown'])
@@ -25,19 +29,32 @@ const STATUS_RANK = {
   failed: 1,
   error: 1,
   timed_out: 2,
+  interrupted: 2,
   timeout: 2,
   stalled: 2,
   state_missing: 3,
   unknown: 3,
   paused: 4,
+  pause_requested: 4,
+  cancel_requested: 4,
   running: 5,
   active: 5,
   starting: 5,
   queued: 6,
+  retry_wait: 6,
   ready: 7,
+  idle: 8,
   healthy: 8,
   completed: 8,
   success: 8,
+}
+
+export function shortCrawlerIdentity(value) {
+  const identity = normalize(value)
+  if (!identity) return '未记录'
+  const prefix = identity.match(/^(queue-|attempt-)/)?.[1] || ''
+  if (identity.length <= 14) return identity
+  return `${prefix || ''}…${identity.slice(-5)}`
 }
 
 function normalize(value) {
@@ -65,6 +82,55 @@ function rowTimeMs(row) {
   const value = row?.heartbeatAt || row?.updatedAt || row?.startedAt || row?.completedAt || row?.timingAt || ''
   const ms = Date.parse(value)
   return Number.isFinite(ms) ? ms : 0
+}
+
+function durationLabel(ms) {
+  const seconds = Math.max(0, Math.floor(Number(ms) / 1000))
+  if (!Number.isFinite(seconds)) return ''
+  const days = Math.floor(seconds / 86400)
+  const hours = Math.floor((seconds % 86400) / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const restSeconds = seconds % 60
+  const parts = []
+  if (days) parts.push(`${days}天`)
+  if (hours) parts.push(`${hours}小时`)
+  if (minutes) parts.push(`${minutes}${restSeconds ? '分' : '分钟'}`)
+  if (restSeconds || !parts.length) parts.push(`${restSeconds}秒`)
+  return parts.join('')
+}
+
+const V2_PHASE_LABELS = {
+  queued: '排队等待',
+  claim: '领取执行权',
+  claimed: '已领取执行权',
+  starting: '启动任务',
+  running: '运行中',
+  fetch: '抓取数据',
+  'fetch-pages': '抓取页面',
+  crawl: '爬取数据',
+  normalize: '标准化数据',
+  apply: '应用数据',
+  finalize: '收尾处理中',
+  completed: '已完成',
+}
+
+export function buildV2AttemptDisplayModel(attempt = {}, now = new Date()) {
+  const nowMs = now instanceof Date ? now.getTime() : Date.parse(String(now || ''))
+  const heartbeatMs = Date.parse(normalize(attempt?.lastHeartbeatAt))
+  const deadlineMs = Date.parse(normalize(attempt?.deadlineAt))
+  const phase = lower(attempt?.phase).replace(/_/g, '-')
+  const phaseLabel = V2_PHASE_LABELS[phase] || (phase ? `执行阶段：${normalize(attempt.phase)}` : '阶段未上报')
+  const heartbeatAgeLabel = Number.isFinite(nowMs) && Number.isFinite(heartbeatMs)
+    ? `心跳距今 ${durationLabel(nowMs - heartbeatMs)}`
+    : '心跳距今未记录'
+  let deadlineLabel = '截止时间未记录'
+  if (Number.isFinite(nowMs) && Number.isFinite(deadlineMs)) {
+    const remainingMs = deadlineMs - nowMs
+    deadlineLabel = remainingMs >= 0
+      ? `剩余 ${durationLabel(remainingMs)}`
+      : `已超期 ${durationLabel(-remainingMs)}`
+  }
+  return { phaseLabel, heartbeatAgeLabel, deadlineLabel }
 }
 
 function isAttentionRow(row) {
@@ -186,6 +252,7 @@ function actionModeLabel(row) {
 }
 
 function startActionLabel(row) {
+  if (row?.defaultOperation?.labelZh) return normalize(row.defaultOperation.labelZh)
   const actionId = rowActionId(row)
   if (actionId === 'wiki-items-refresh') return '检查并同步物品模块'
   if (actionId === 'item-pages-refresh') return '按需爬物品页'
@@ -214,7 +281,8 @@ function flowLabel(row, status = rowStatus(row)) {
   if (status === 'queued') return '排队等待'
   if (status === 'paused') return '已暂停'
   if (status === 'ready') return '可重新派发'
-  if (status === 'healthy' || status === 'completed' || status === 'success') return '已完成'
+  if (status === 'idle' || status === 'healthy') return '空闲正常'
+  if (status === 'completed' || status === 'success') return '已完成'
   if (status === 'failed' || status === 'error') return '执行失败'
   if (status === 'timed_out' || status === 'timeout') return '任务超时'
   if (status === 'stalled') return '心跳停滞'
@@ -278,9 +346,13 @@ function compareDomainRows(left, right) {
     || normalize(left?.label || left?.domain).localeCompare(normalize(right?.label || right?.domain), 'zh-CN')
 }
 
-function decorateDomainRow(row) {
+function decorateDomainRow(row, now) {
   const status = rowStatus(row)
-  const operations = buildDomainOperationModel({ ...row, triageStatus: status })
+  const v2Display = row?.v2Attempt ? buildV2AttemptDisplayModel(row, now) : {}
+  const hasActiveQueue = ACTIVE_QUEUE_VISIBILITY_STATUSES.has(queueStatus(row))
+  const operations = row?.v2Attempt
+    ? buildV2DomainOperationModel(row)
+    : buildDomainOperationModel({ ...row, triageStatus: status })
   return {
     ...row,
     triageStatus: status,
@@ -290,8 +362,10 @@ function decorateDomainRow(row) {
     needsAttention: isAttentionRow(row),
     isRunning: isRunningRow(row),
     isIdle: isIdleRow(row),
+    hasActiveQueue,
     primaryAction: operations.primaryAction,
     secondaryActions: operations.secondaryActions,
+    ...v2Display,
     searchText: [
       row?.label,
       row?.domain,
@@ -308,13 +382,36 @@ function decorateDomainRow(row) {
   }
 }
 
+export function buildV2DomainOperationModel(row) {
+  const retryOperation = row?.plan || row?.operation || {
+    mode: 'fresh',
+    resumeSupported: row?.resumeSupported === true,
+  }
+  const labels = {
+    start: [startActionLabel(row), 'primary', 'play'],
+    pause: ['暂停任务', 'secondary', 'pause'],
+    resume: ['恢复运行', 'primary', 'play'],
+    cancel: ['终止', 'danger', 'circle-stop'],
+    retry: [retryLabel(retryOperation), 'primary', 'timer-reset'],
+    cleanup: ['清理证据', 'danger', 'circle-stop'],
+  }
+  const actions = (Array.isArray(row?.allowedActions) ? row.allowedActions : [])
+    .filter((name) => Object.hasOwn(labels, name))
+    .map((name) => action(name, ...labels[name]))
+  return {
+    primaryAction: actions[0] || null,
+    secondaryActions: actions.slice(1),
+  }
+}
+
 function matchesFilter(row, filter) {
   const normalized = lower(filter || 'all')
   if (normalized === 'all') return true
   if (normalized === 'attention') return row.needsAttention
   if (normalized === 'running') return row.isRunning
+  if (normalized === 'queue') return row.hasActiveQueue
   if (normalized === 'idle') return row.isIdle
-  if (normalized === 'healthy') return !row.needsAttention && !row.isRunning && !row.isIdle
+  if (normalized === 'healthy') return !row.needsAttention && !row.isRunning
   return true
 }
 
@@ -337,8 +434,8 @@ const OPERATION_PROGRESS_RANK = {
   success: 5,
 }
 
-function metric(key, label, value, note, tone = 'muted', target = null) {
-  return { key, label, value: String(value), note, tone, target }
+function metric(key, label, value, note, tone = 'muted', target = null, actionLabel = '查看') {
+  return { key, label, value: String(value), note, tone, target, actionLabel }
 }
 
 function operationProgressRank(row) {
@@ -469,14 +566,23 @@ export function buildTriageWorkbench({
   tableFilter = 'all',
   search = '',
   autoDispatchEnabled = null,
+  activeQueueCount = null,
   recentUpdatedCount = 0,
   now = new Date().toISOString(),
 } = {}) {
-  const rows = domainRows.map(decorateDomainRow).sort(compareDomainRows)
+  const rows = domainRows.map((row) => decorateDomainRow(row, now)).sort(compareDomainRows)
   const attentionRows = rows.filter((row) => row.needsAttention).sort(compareDomainRows)
   const runningRows = rows.filter((row) => row.isRunning)
-  const operationProgressRows = attentionRows.length ? [] : buildOperationProgressRows(rows, now)
+  const activeQueueRows = rows.filter((row) => row.hasActiveQueue)
+  const operationSourceRows = attentionRows.length
+    ? rows.filter((row) => row.isRunning || row.hasActiveQueue)
+    : rows
+  const operationProgressRows = buildOperationProgressRows(operationSourceRows, now)
   const operationProgressSummary = buildOperationProgressSummary(rows)
+  const parsedActiveQueueCount = Number(activeQueueCount)
+  const queueMetricCount = activeQueueCount == null || !Number.isFinite(parsedActiveQueueCount)
+    ? activeQueueRows.length
+    : Math.max(0, parsedActiveQueueCount)
   const capped = Math.max(1, Number(maxAttentionCards) || 4)
   const attentionCards = attentionRows.slice(0, capped)
   const overflowAttentionRows = attentionRows.slice(capped)
@@ -497,11 +603,12 @@ export function buildTriageWorkbench({
       subtitle: `${rows.length} 个基础域 · 自动派发${autoDispatchState.subtitle}`,
     },
     metrics: [
-      metric('domains', '基础域', rows.length, '纳入自动监控的基础域', 'info', { kind: 'domains', filter: 'all' }),
-      metric('running', '正在爬取', runningRows.length, '当前有心跳或队列占用', runningRows.length ? 'info' : 'muted', { kind: 'domains', filter: 'running' }),
-      metric('attention', '需要处理', attentionRows.length, attentionRows.length ? '优先处理上方问题域' : '暂无异常', attentionRows.length ? 'danger' : 'success', { kind: 'attention', filter: 'attention' }),
-      metric('updated', '今日已更新', recentUpdatedCount, '来自最近报告/历史记录', recentUpdatedCount ? 'success' : 'muted', { kind: 'activity' }),
-      metric('dispatch', '自动派发', autoDispatchState.value, autoDispatchState.note, autoDispatchState.tone, { kind: 'system' }),
+      metric('domains', '基础域', rows.length, '纳入自动监控的基础域', 'info', { kind: 'domains', filter: 'all' }, '查看全部'),
+      metric('running', '正在爬取', runningRows.length, '当前有心跳或队列占用', runningRows.length ? 'info' : 'muted', { kind: 'domains', filter: 'running' }, '查看运行'),
+      metric('queue', '活动队列', queueMetricCount, queueMetricCount ? '点击查看排队与占用信息' : '暂无排队任务', queueMetricCount ? 'info' : 'success', { kind: 'domains', filter: 'queue' }, '查看队列'),
+      metric('attention', '需要处理', attentionRows.length, attentionRows.length ? '优先处理上方问题域' : '暂无异常', attentionRows.length ? 'danger' : 'success', { kind: 'attention', filter: 'attention' }, '处理问题'),
+      metric('updated', '今日已更新', recentUpdatedCount, '来自最近报告/历史记录', recentUpdatedCount ? 'success' : 'muted', { kind: 'activity' }, '查看活动'),
+      metric('dispatch', '自动派发', autoDispatchState.value, autoDispatchState.note, autoDispatchState.tone, { kind: 'system' }, '系统设置'),
     ],
     attentionRows,
     attentionCards,
@@ -619,6 +726,13 @@ function sameDomain(row, domain) {
   return key.includes(wanted)
 }
 
+function attemptCoversDomain(row, domain) {
+  if (sameDomain(row, domain)) return true
+  const wanted = domainKey(domain)
+  return Boolean(wanted && Array.isArray(row?.coveredDomains)
+    && row.coveredDomains.some((coveredDomain) => domainKey(coveredDomain) === wanted))
+}
+
 function mergeIntoHistory(map, row, domain, fallbackKind) {
   if (!row || !sameDomain(row, domain)) return
   const key = historyKey(row, domain)
@@ -652,10 +766,39 @@ function mergeIntoHistory(map, row, domain, fallbackKind) {
 
 export function mergeDomainTaskHistory({
   domain = '',
+  attemptRows = null,
   executionRows = [],
   progressRows = [],
   queueRows = [],
 } = {}) {
+  if (Array.isArray(attemptRows)) {
+    const terminalStatuses = new Set(['completed', 'failed', 'cancelled', 'timed_out', 'interrupted'])
+    const matchingAttempts = attemptRows.filter((row) => row?.attemptId && attemptCoversDomain(row, domain))
+    const actionableEpochAttempts = matchingAttempts.filter((row) => Array.isArray(row.allowedActions) && row.allowedActions.length)
+    const latestTerminalAttemptId = latestV2TerminalAttempt(actionableEpochAttempts)?.attemptId || ''
+    return matchingAttempts
+      .reduce((rows, row) => {
+        if (rows.some((item) => item.attemptId === row.attemptId)) return rows
+        rows.push({
+          ...row,
+          key: `attempt:${row.attemptId}`,
+          title: historyTitle(row),
+          statusLabel: crawlerStatusDisplayLabel(historyStatus(row)),
+          timeLabel: historyTime(row),
+          reason: historyReason(row),
+          sourceKinds: ['attempt'],
+          allowedActions: terminalStatuses.has(historyStatus(row)) && Array.isArray(row.allowedActions)
+            ? row.allowedActions.filter((name) => name === 'cleanup'
+              || (name === 'retry' && row.attemptId === latestTerminalAttemptId))
+            : [],
+        })
+        return rows
+      }, [])
+      .sort((left, right) =>
+        statusRank({ status: left.status }) - statusRank({ status: right.status })
+        || normalize(left.attemptId).localeCompare(normalize(right.attemptId), 'zh-CN')
+      )
+  }
   const map = new Map()
   for (const row of executionRows) mergeIntoHistory(map, row, domain, sourceKind(row, 'queue'))
   for (const row of progressRows) mergeIntoHistory(map, row, domain, 'progress')
@@ -670,7 +813,7 @@ function uniqueArtifacts(files) {
   const seen = new Set()
   const result = []
   for (const file of files) {
-    const path = normalize(file?.path || file)
+    const path = normalizeArtifactPath(file?.path || file)
     if (!path || seen.has(path)) continue
     seen.add(path)
     result.push(decorateArtifact({
@@ -681,6 +824,15 @@ function uniqueArtifacts(files) {
     }))
   }
   return result
+}
+
+function normalizeArtifactPath(value) {
+  const path = normalize(value).replace(/\\/g, '/')
+  for (const marker of ['/data/generated/', '/data/terrapedia/raw/', '/reports/']) {
+    const index = path.toLowerCase().indexOf(marker)
+    if (index >= 0) return path.slice(index + 1)
+  }
+  return path
 }
 
 function artifactLabel(path) {
@@ -714,7 +866,8 @@ function isPreviewableArtifactPath(path) {
   if (normalized.startsWith('reports/') || normalized.startsWith('back/target/surefire-reports/')) {
     return ['.json', '.md', '.xml', '.txt', '.log'].some((suffix) => normalized.endsWith(suffix))
   }
-  return normalized.startsWith('data/generated/') && normalized.endsWith('.json')
+  return (normalized.startsWith('data/generated/') || normalized.startsWith('data/terrapedia/raw/'))
+    && normalized.endsWith('.json')
 }
 
 function hasExplicitFileState(file) {
@@ -730,11 +883,14 @@ function decorateArtifact(file) {
   const missing = file?.found === false
   const unreadable = file?.readable === false || Boolean(file?.errorMessage)
   const explicitlyRecorded = hasExplicitFileState(file)
-  const previewable = kind !== 'lock'
+  const derivedPreviewable = kind !== 'lock'
     && !missing
     && !unreadable
     && (kind !== 'log' || explicitlyRecorded)
     && isPreviewableArtifactPath(path)
+  const previewable = typeof file?.previewableOverride === 'boolean'
+    ? file.previewableOverride
+    : derivedPreviewable
   const template = isPathTemplate(path)
   const metadata = {
     report: ['运行报告', '任务结束报告或诊断结果'],
@@ -752,10 +908,11 @@ function decorateArtifact(file) {
     icon: artifactIcon(kind),
     title: metadata[0],
     description: metadata[1],
-    statusLabel: artifactStatusLabel({ template, missing, unreadable, kind, previewable }),
-    statusTone: artifactStatusTone({ template, missing, unreadable, kind, previewable }),
+    statusLabel: normalize(file?.statusLabel) || artifactStatusLabel({ template, missing, unreadable, kind, previewable }),
+    statusTone: normalize(file?.statusTone) || artifactStatusTone({ template, missing, unreadable, kind, previewable }),
     timeLabel: artifactTimeLabel(file),
     previewable,
+    ...(typeof file?.previewableOverride === 'boolean' ? { previewableOverride: file.previewableOverride } : {}),
     found: file?.found,
     readable: file?.readable,
     errorMessage: normalize(file?.errorMessage),
@@ -799,10 +956,80 @@ function artifactTimeLabel(file) {
   return normalize(file?.timeLabel)
 }
 
-function historyArtifacts(item) {
-  return [
+function historyArtifacts(item, { v2 = false } = {}) {
+  const files = [
     item.outputPath ? { label: '输出', path: item.outputPath, sourceLabel: '任务历史' } : null,
-  ].filter(Boolean).map(decorateArtifact)
+  ]
+  const isLegacyV1History = item?.source === 'legacy-v1'
+  if (v2 && !isLegacyV1History && normalize(item?.progressPath)) {
+    files.push({
+      label: '进度',
+      path: normalize(item.progressPath),
+      sourceLabel: 'V2 任务历史',
+      previewableOverride: false,
+      statusLabel: '路径记录',
+      statusTone: 'neutral',
+    })
+  }
+  if (v2 && !isLegacyV1History && normalize(item?.reportPath)) {
+    const path = normalize(item.reportPath)
+    const previewable = isV2AttemptReportPath(path)
+    files.push({
+      label: '报告',
+      path,
+      sourceLabel: 'V2 任务历史',
+      previewableOverride: previewable,
+      statusLabel: previewable ? '可预览' : '路径记录',
+      statusTone: previewable ? 'success' : 'neutral',
+    })
+  }
+  if (isLegacyV1History && normalize(item?.log?.path || item?.logPath)) {
+    const legacyLog = item.log || {}
+    files.push({
+      legacyPreview: true,
+      label: '旧队列日志',
+      title: '旧队列日志',
+      path: normalize(legacyLog.path || item.logPath),
+      sourceLabel: 'V1 历史记录',
+      previewable: legacyLog.previewable === true,
+      statusLabel: legacyLog.previewable === true ? '可预览' : '路径记录',
+      statusTone: legacyLog.previewable === true ? 'success' : 'neutral',
+    })
+  }
+  if (v2 && item?.attemptId && !isLegacyV1History) {
+    const log = item.log || { availability: 'missing', previewable: false }
+    files.push({
+      attemptId: item.attemptId,
+      label: 'attempt 日志',
+      title: `尝试 ${shortCrawlerIdentity(item.attemptId)} 日志`,
+      path: normalize(log.path) || `attempt:${item.attemptId}`,
+      sourceLabel: 'V2 任务历史',
+      previewable: log.previewable === true && lower(log.availability) === 'available',
+      statusLabel: v2LogAvailabilityLabel(log.availability),
+      statusTone: v2LogAvailabilityTone(log.availability),
+      timeLabel: displayTime(log.lastWriteAt) || displayTime(log.retentionExpiresAt),
+    })
+  }
+  return files.filter(Boolean).map((file) => {
+    const decorated = decorateArtifact(file)
+    if (!file?.attemptId && !file?.legacyPreview) return decorated
+    return {
+      ...decorated,
+      ...(file.attemptId ? { attemptId: file.attemptId } : {}),
+      ...(file.legacyPreview ? { legacyPreview: true } : {}),
+      title: file.title || decorated.title,
+      previewable: file.previewable === true,
+      statusLabel: file.statusLabel || decorated.statusLabel,
+      statusTone: file.statusTone || decorated.statusTone,
+      timeLabel: file.timeLabel || decorated.timeLabel,
+    }
+  })
+}
+
+function isV2AttemptReportPath(path) {
+  return /^reports\/crawler-monitor\/v2\/\d{4}-\d{2}-\d{2}\/attempt-[^/]+\/report\.json$/i.test(
+    normalize(path).replace(/\\/g, '/'),
+  )
 }
 
 function shouldShowCrawlerOutput(file) {
@@ -838,10 +1065,10 @@ function decorateQueueItem(item) {
 
 function queueStatusTone(status) {
   const normalized = lower(status)
-  if (['failed', 'error', 'timed_out', 'timeout', 'stalled', 'blocked'].includes(normalized)) return 'danger'
+  if (['failed', 'error', 'timed_out', 'timeout', 'stalled', 'blocked', 'interrupted'].includes(normalized)) return 'danger'
   if (['completed', 'success', 'healthy'].includes(normalized)) return 'success'
-  if (['running', 'starting', 'active'].includes(normalized)) return 'info'
-  if (['queued', 'blocked_cooldown', 'paused'].includes(normalized)) return 'warning'
+  if (['running', 'starting', 'active', 'pause_requested', 'cancel_requested'].includes(normalized)) return 'info'
+  if (['queued', 'retry_wait', 'blocked_cooldown', 'paused'].includes(normalized)) return 'warning'
   return 'neutral'
 }
 
@@ -910,20 +1137,60 @@ export function buildDomainDetailViewModel({
   executionRows = [],
   progressRows = [],
   queueRows = [],
+  attemptRows = null,
 } = {}) {
   if (!row) return null
   const domain = row.domain || row.actionId || row.label
   const domainDisplayName = wikiDomainChineseName({ domain: normalize(row.domain), label: normalize(row.label) })
   const actionId = rowActionId(row)
-  const taskHistory = mergeDomainTaskHistory({ domain, executionRows, progressRows, queueRows })
-    .map((item) => ({ ...item, files: historyArtifacts(item) }))
+  const v2Display = row?.v2Attempt ? buildV2AttemptDisplayModel(row) : {}
+  const taskHistory = mergeDomainTaskHistory({ domain, attemptRows, executionRows, progressRows, queueRows })
+    .map((item) => ({ ...item, files: historyArtifacts(item, { v2: Boolean(row?.v2Attempt) }) }))
   const decoratedFiles = uniqueArtifacts([
     ...(Array.isArray(row.files) ? row.files.map((file) => ({ ...file, sourceLabel: '域状态' })) : []),
     ...taskHistory.flatMap((item) => item.files),
   ])
   const artifacts = decoratedFiles.filter(shouldShowCrawlerOutput)
-  const queueItems = queueRows.filter((item) => sameDomain(item, domain)).map(decorateQueueItem)
+  const queueItems = queueRows.filter((item) => row?.v2Attempt ? attemptCoversDomain(item, domain) : sameDomain(item, domain)).map(decorateQueueItem)
+  const v2Log = row?.v2Attempt && row?.attemptId && row?.log ? {
+    attemptId: row.attemptId,
+    path: normalize(row.log.path) || `attempt:${row.attemptId}`,
+    label: '本轮 attempt 日志',
+    title: `尝试 ${shortCrawlerIdentity(row.attemptId)}`,
+    previewable: row.log.previewable === true && row.log.availability === 'available',
+    statusLabel: v2LogAvailabilityLabel(row.log.availability),
+    statusTone: v2LogAvailabilityTone(row.log.availability),
+    timeLabel: displayTime(row.log.lastWriteAt) || displayTime(row.log.retentionExpiresAt),
+  } : null
+  const historyLogFiles = taskHistory.flatMap((item) => item.files).filter((file) => file?.attemptId)
+  const legacyHistoryLogFiles = taskHistory.flatMap((item) => item.files)
+    .filter((file) => file?.legacyPreview === true && file?.previewable === true)
+  const logFiles = [...decoratedFiles.filter(shouldShowLogFile), ...legacyHistoryLogFiles, ...historyLogFiles, ...(v2Log ? [v2Log] : [])]
+    .filter((file, index, files) => files.findIndex((candidate) => {
+      const candidateKey = candidate?.attemptId || candidate?.path
+      const fileKey = file?.attemptId || file?.path
+      return candidateKey === fileKey
+    }) === index)
+  const v2OverviewFields = row?.v2Attempt ? [
+    ['阶段', v2Display.phaseLabel || '未记录'],
+    ['心跳距今', v2Display.heartbeatAgeLabel || '未记录'],
+    ['截止倒计时', v2Display.deadlineLabel || '未记录'],
+  ] : []
+  const v2IdentityFields = row?.v2Attempt ? [
+    ['队列 ID', shortCrawlerIdentity(row.queueId)],
+    ['尝试 ID', shortCrawlerIdentity(row.attemptId)],
+    ['状态版本', row.stateVersion == null ? '未记录' : String(row.stateVersion)],
+    ['状态存储 epoch', shortCrawlerIdentity(row.stateStoreEpoch)],
+    ['截止时间', displayTime(row.deadlineAt) || '未记录'],
+    ['原因码', normalize(row.reasonCode || '无')],
+    ['日志状态', row.log ? v2LogAvailabilityLabel(row.log.availability) : '未返回日志元数据'],
+    ['日志最后写入', displayTime(row.log?.lastWriteAt) || '未记录'],
+    ['日志保留至', displayTime(row.log?.retentionExpiresAt) || '未记录'],
+    ['建议操作', normalize(row.suggestedAction || row.nextActionLabel || '未返回建议操作')],
+  ] : []
   return {
+    v2Attempt: Boolean(row?.v2Attempt),
+    ...v2Display,
     key: normalize(row.domain || row.actionId || row.label),
     title: normalize(row.label || row.domain || '未知域'),
     status: rowStatus(row),
@@ -939,22 +1206,45 @@ export function buildDomainDetailViewModel({
       nextActionLabel: normalize(row.nextActionLabel || '查看详情'),
     },
     overviewFields: [
-      ['当前状态', normalize(row.diagnosisTitle) || crawlerStatusDisplayLabel(rowStatus(row))],
+      ['当前状态', normalize(row.currentStatusLabel || row.diagnosisTitle) || crawlerStatusDisplayLabel(rowStatus(row))],
+      ['上次结果', normalize(row.latestResultLabel || '暂无历史结果')],
       ['进度', normalize(row.progressLabel || '--')],
       ['数据新鲜度', normalize(row.sourceSummary || '未记录')],
+      ...v2OverviewFields.slice(0, 1),
       ['最近心跳', displayTime(row.heartbeatAt) || '未记录'],
+      ...v2OverviewFields.slice(1, 2),
+      ...v2IdentityFields.slice(0, 5),
+      ...v2OverviewFields.slice(2, 3),
+      ...v2IdentityFields.slice(5),
       ['当前占用', normalize(row.blockerLabel || row.ownerLabel || '无当前占用')],
       ['动作模式', actionModeLabel(row) || '未记录'],
       ['动作ID', actionId || '未记录'],
       ['执行逻辑', actionExecutionLabel(row)],
       ['任务记录', normalize(row.queueSummary) || (row.queueId || row.dispatchId ? '队列记录' : '无队列')],
-      ['上次运行结果', normalize(row.reason || row.rankReason || '暂无')],
     ].map(([label, value]) => ({ label, value })),
+    operations: Array.isArray(row.operations) ? row.operations : [],
+    currentStatusLabel: normalize(row.currentStatusLabel) || crawlerStatusDisplayLabel(rowStatus(row)),
+    latestResult: row.latestResult || null,
+    latestResultLabel: normalize(row.latestResultLabel || '暂无历史结果'),
     taskHistory,
     queueItems,
     artifacts,
-    logFiles: decoratedFiles.filter(shouldShowLogFile),
+    logFiles,
   }
+}
+
+function v2LogAvailabilityLabel(availability) {
+  return {
+    available: '可读取',
+    empty: '日志已创建但暂无内容',
+    missing: '本轮任务未形成日志',
+    expired: '日志已过保留期，manifest 仍可查看',
+    forbidden: '日志路径不符合 attempt 安全策略',
+  }[lower(availability)] || '日志状态未知'
+}
+
+function v2LogAvailabilityTone(availability) {
+  return lower(availability) === 'available' ? 'success' : lower(availability) === 'empty' ? 'neutral' : 'warning'
 }
 
 function detectLogLevel(text) {

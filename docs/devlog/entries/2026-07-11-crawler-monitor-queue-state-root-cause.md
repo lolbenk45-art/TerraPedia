@@ -276,4 +276,4 @@
 - `ce32aeb chore(crawler): merge verified main baseline`
 - `723f2d0 refactor(crawler): extract monitor action registry`
 - `755713f feat(crawler): define V2 attempt state contract`
-- Branch/devlog closeout: commit SHA pending in final response.
+- `7f8906c docs(devlog): hand off crawler queue V2 runtime`

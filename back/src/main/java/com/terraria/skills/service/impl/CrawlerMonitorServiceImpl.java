@@ -3,20 +3,31 @@ package com.terraria.skills.service.impl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.terraria.skills.dto.CrawlerAttemptLogDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchRequestDTO;
 import com.terraria.skills.dto.CrawlerMonitorDispatchResultDTO;
 import com.terraria.skills.dto.CrawlerMonitorAutoDispatchDTO;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
+import com.terraria.skills.dto.CrawlerQueueV2CutoverRequestDTO;
+import com.terraria.skills.dto.CrawlerQueueV2CutoverResultDTO;
 import com.terraria.skills.service.CrawlerMonitorService;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueEngineMode;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueEngineRouter;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Exception;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ApplicationService;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2CutoverService;
+import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2ReasonCode;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.io.File;
@@ -118,8 +129,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final String REDIS_BACKEND_ACTION_PROGRESS_SUFFIX = ":progress";
     private static final String TOWN_NPC_FAILURE_MODE_CRASH_AFTER_PARTIAL = "townNpcCrashAfterPartial";
     private static final Set<String> WIKI_MONITOR_RESUME_MODES = Set.of("fresh", "resume", "auto");
+    private static final CrawlerMonitorActionRegistry CRAWLER_MONITOR_ACTION_REGISTRY =
+        CrawlerMonitorActionRegistry.defaults();
     private static final List<CrawlerMonitorActionDefinition> WIKI_MONITOR_RULES =
-        CrawlerMonitorActionRegistry.defaults().all();
+        CRAWLER_MONITOR_ACTION_REGISTRY.defaultOperations();
 
     private final ObjectMapper objectMapper;
     private final Path repoRootOverride;
@@ -129,6 +142,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private final WikiMonitorDispatchQueueRepository queueRepository;
     private final CrawlerReportArchiver reportArchiver;
     private final ProcessLauncher processLauncher;
+    private final CrawlerQueueEngineRouter queueEngineRouter;
+    private final CrawlerQueueV2ApplicationService queueV2ApplicationService;
+    private CrawlerQueueV2CutoverService queueV2CutoverService;
     private final CrawlerDomainStateReducer domainStateReducer = new CrawlerDomainStateReducer();
     private final Map<String, ActiveDispatchProcess> activeDispatchProcesses = new ConcurrentHashMap<>();
     private final Map<String, Process> activeDomainSmokeProcesses = new ConcurrentHashMap<>();
@@ -138,6 +154,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final long OVERVIEW_CACHE_TTL_NANOS = TimeUnit.SECONDS.toNanos(2);
     private volatile CrawlerMonitorOverviewDTO cachedOverview;
     private volatile long cachedOverviewAtNanos;
+    private volatile CrawlerQueueEngineMode cachedQueueEngineMode;
 
     void setDispatchTimeoutForTesting(Duration timeout) {
         this.dispatchTimeout = timeout == null ? WIKI_MONITOR_DISPATCH_TIMEOUT : timeout;
@@ -174,9 +191,27 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return resolveSmokeTerminalStatus(resolveRepoRoot(), dispatchId, reportPath, latestPath, progressPath, exitCodeOrNull);
     }
 
-    @Autowired
     public CrawlerMonitorServiceImpl(ObjectMapper objectMapper, @Autowired(required = false) StringRedisTemplate redisTemplate) {
-        this(objectMapper, null, Clock.systemUTC(), redisTemplate);
+        this(objectMapper, null, Clock.systemUTC(), redisTemplate, new ProcessBuilderLauncher());
+    }
+
+    @Autowired
+    public CrawlerMonitorServiceImpl(
+        ObjectMapper objectMapper,
+        @Autowired(required = false) StringRedisTemplate redisTemplate,
+        CrawlerQueueEngineRouter queueEngineRouter,
+        CrawlerQueueV2ApplicationService queueV2ApplicationService
+    ) {
+        this(
+            objectMapper,
+            null,
+            Clock.systemUTC(),
+            redisTemplate,
+            new ProcessBuilderLauncher(),
+            queueEngineRouter,
+            queueV2ApplicationService,
+            null
+        );
     }
 
     CrawlerMonitorServiceImpl(ObjectMapper objectMapper, Path repoRootOverride) {
@@ -202,19 +237,155 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         StringRedisTemplate redisTemplate,
         ProcessLauncher processLauncher
     ) {
+        this(
+            objectMapper,
+            repoRootOverride,
+            clock,
+            redisTemplate,
+            processLauncher,
+            CrawlerQueueEngineRouter.v1Only(),
+            null,
+            null
+        );
+    }
+
+    CrawlerMonitorServiceImpl(
+        ObjectMapper objectMapper,
+        Path repoRootOverride,
+        Clock clock,
+        StringRedisTemplate redisTemplate,
+        ProcessLauncher processLauncher,
+        CrawlerQueueEngineRouter queueEngineRouter,
+        CrawlerQueueV2ApplicationService queueV2ApplicationService,
+        WikiMonitorDispatchQueueRepository queueRepository
+    ) {
         this.objectMapper = objectMapper;
         this.repoRootOverride = repoRootOverride == null ? null : repoRootOverride.toAbsolutePath().normalize();
         this.clock = clock == null ? Clock.systemUTC() : clock;
         this.redisTemplate = redisTemplate;
         this.redisRepository = redisTemplate == null ? null : new CrawlerStateRedisRepository(objectMapper, redisTemplate);
-        this.queueRepository = new WikiMonitorDispatchQueueRepository(
-            objectMapper,
-            resolveRepoRoot(),
-            redisTemplate,
-            this.clock
-        );
+        this.queueRepository = queueRepository == null
+            ? new WikiMonitorDispatchQueueRepository(objectMapper, resolveRepoRoot(), redisTemplate, this.clock)
+            : queueRepository;
         this.reportArchiver = new CrawlerReportArchiver(objectMapper);
         this.processLauncher = processLauncher == null ? new ProcessBuilderLauncher() : processLauncher;
+        this.queueEngineRouter = queueEngineRouter == null ? CrawlerQueueEngineRouter.v1Only() : queueEngineRouter;
+        this.queueV2ApplicationService = queueV2ApplicationService;
+    }
+
+    @Autowired
+    void setQueueV2CutoverService(CrawlerQueueV2CutoverService queueV2CutoverService) {
+        this.queueV2CutoverService = Objects.requireNonNull(queueV2CutoverService, "queueV2CutoverService");
+    }
+
+    @Override
+    public CrawlerQueueV2CutoverResultDTO cutoverCrawlerQueueV2(
+        CrawlerQueueV2CutoverRequestDTO request,
+        String operator
+    ) {
+        return requireQueueV2CutoverService().cutover(request, operator);
+    }
+
+    @Override
+    public CrawlerQueueV2CutoverResultDTO rollbackCrawlerQueueV2(
+        CrawlerQueueV2CutoverRequestDTO request,
+        String operator
+    ) {
+        if (request == null) {
+            throw new IllegalArgumentException("cutover rollback 请求不能为空");
+        }
+        return requireQueueV2CutoverService().rollback(request.getCutoverId(), request.getConfirmation(), operator);
+    }
+
+    @Override
+    public CrawlerQueueV2CutoverResultDTO recoverCrawlerQueueV2Epoch(
+        CrawlerQueueV2CutoverRequestDTO request,
+        String operator
+    ) {
+        return requireQueueV2CutoverService().recoverStateStoreReset(request, operator);
+    }
+
+    private CrawlerQueueV2CutoverService requireQueueV2CutoverService() {
+        if (queueV2CutoverService == null) {
+            throw new CrawlerQueueV2Exception(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                CrawlerQueueV2ReasonCode.STATE_STORE_UNAVAILABLE,
+                "V2 cutover service 未完成 Spring 装配",
+                null
+            );
+        }
+        return queueV2CutoverService;
+    }
+
+    private CrawlerQueueEngineMode requireLegacyMutationMode() {
+        CrawlerQueueEngineMode mode = queueEngineRouter.mode();
+        if (mode == CrawlerQueueEngineMode.V1) {
+            return mode;
+        }
+        throw legacyWriteBlocked(mode);
+    }
+
+    private <T> T withLegacyMutationPermit(String operation, java.util.function.Supplier<T> effect) {
+        return queueEngineRouter.withMutationPermit(permit -> {
+            CrawlerQueueEngineMode mode = permit.mode();
+            if (mode == CrawlerQueueEngineMode.V1) {
+                return effect.get();
+            }
+            throw legacyWriteBlocked(mode);
+        });
+    }
+
+    private <T> T withLegacyBackgroundMutation(
+        String operation,
+        java.util.function.Supplier<T> effect,
+        java.util.function.Supplier<T> skipped
+    ) {
+        try {
+            return queueEngineRouter.withMutationPermit(permit -> {
+                CrawlerQueueEngineMode mode = permit.mode();
+                if (mode != CrawlerQueueEngineMode.V1) {
+                    log.warn("Skipping {} because durable queue routing is {}.", operation, mode.value());
+                    return skipped.get();
+                }
+                return effect.get();
+            });
+        } catch (CrawlerQueueV2Exception exception) {
+            log.warn("Skipping {} because durable queue routing is unavailable: {}", operation, exception.reasonCode());
+            return skipped.get();
+        }
+    }
+
+    private boolean runLegacyBackgroundMutation(String operation, Runnable effect) {
+        return withLegacyBackgroundMutation(operation, () -> {
+            effect.run();
+            return true;
+        }, () -> false);
+    }
+
+    private CrawlerQueueEngineMode overviewQueueMode() {
+        try {
+            return queueEngineRouter.mode();
+        } catch (CrawlerQueueV2Exception exception) {
+            if (queueEngineRouter.lastKnownMode() != CrawlerQueueEngineMode.V1) {
+                return CrawlerQueueEngineMode.MAINTENANCE;
+            }
+            throw exception;
+        }
+    }
+
+    private CrawlerQueueV2Exception legacyWriteBlocked(CrawlerQueueEngineMode mode) {
+        CrawlerQueueV2ReasonCode reason = queueEngineRouter.lastReasonCode();
+        if (reason == null) {
+            reason = mode == CrawlerQueueEngineMode.V2
+                ? CrawlerQueueV2ReasonCode.LEGACY_CUTOVER
+                : CrawlerQueueV2ReasonCode.LEGACY_PROCESS_UNCONFIRMED;
+        }
+        return new CrawlerQueueV2Exception(
+            HttpStatus.CONFLICT,
+            reason,
+            "durable crawler queue routing blocks V1 mutation: " + mode.value(),
+            null
+        );
     }
 
     /**
@@ -225,6 +396,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
      */
     @PostConstruct
     void reconcileActiveDispatchesOnStartup() {
+        runLegacyBackgroundMutation("startup V1 dispatch recovery", this::reconcileActiveDispatchesOnStartupUnderPermit);
+    }
+
+    private void reconcileActiveDispatchesOnStartupUnderPermit() {
         try {
             Path repoRoot = resolveRepoRoot();
             Path lockPath = repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize();
@@ -281,7 +456,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private CrawlerMonitorActionDefinition findWikiMonitorRule(String domain, String actionId) {
-        return WIKI_MONITOR_RULES.stream()
+        return CRAWLER_MONITOR_ACTION_REGISTRY.all().stream()
             .filter(rule -> rule.domain().equals(domain) && rule.actionId().equals(actionId))
             .findFirst()
             .orElse(null);
@@ -308,19 +483,54 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     @Override
     public CrawlerMonitorOverviewDTO getOverview() {
+        CrawlerMonitorOverviewDTO v1Overview = queueEngineRouter.withMutationPermit(ignored -> {
+            if (overviewQueueMode() != CrawlerQueueEngineMode.V1) {
+                return null;
+            }
+            return getOverviewForMode(CrawlerQueueEngineMode.V1);
+        });
+        if (v1Overview != null) {
+            return v1Overview;
+        }
+        return getOverviewForMode(overviewQueueMode());
+    }
+
+    private CrawlerMonitorOverviewDTO getOverviewForMode(CrawlerQueueEngineMode queueMode) {
         CrawlerMonitorOverviewDTO cached = cachedOverview;
-        if (cached != null && (System.nanoTime() - cachedOverviewAtNanos) < OVERVIEW_CACHE_TTL_NANOS) {
+        if (cached != null
+            && queueMode == cachedQueueEngineMode
+            && (System.nanoTime() - cachedOverviewAtNanos) < OVERVIEW_CACHE_TTL_NANOS) {
             return cached;
         }
-        CrawlerMonitorOverviewDTO overview = computeOverview();
+        CrawlerMonitorOverviewDTO overview = computeOverview(queueMode);
         cachedOverview = overview;
         cachedOverviewAtNanos = System.nanoTime();
+        cachedQueueEngineMode = queueMode;
         return overview;
     }
 
-    private CrawlerMonitorOverviewDTO computeOverview() {
+    private CrawlerMonitorOverviewDTO computeOverview(CrawlerQueueEngineMode queueMode) {
+        if (queueMode != CrawlerQueueEngineMode.V1) {
+            return computeOverviewForMode(queueMode);
+        }
+        return queueEngineRouter.withMutationPermit(ignored ->
+            computeOverviewForMode(overviewQueueMode())
+        );
+    }
+
+    private CrawlerMonitorOverviewDTO computeOverviewForMode(CrawlerQueueEngineMode queueMode) {
         Path repoRoot = resolveRepoRoot();
-        queueRepository.withDrainLock("overview-reconcile", "all", false, () -> reconcileQueueRuntimeState(repoRoot));
+        boolean includeV1LiveQueue = queueMode == CrawlerQueueEngineMode.V1;
+        if (includeV1LiveQueue) {
+            runLegacyBackgroundMutation(
+                "V1 overview queue reconciliation",
+                () -> queueRepository.withDrainLock("overview-reconcile", "all", false, () -> reconcileQueueRuntimeState(repoRoot))
+            );
+            // The first mode sample admitted the V1 reconciliation. Re-read
+            // routing before projecting any V1 live state so a marker written
+            // while that admission was pending is rendered as V2 maintenance.
+            includeV1LiveQueue = overviewQueueMode() == CrawlerQueueEngineMode.V1;
+        }
         CrawlerMonitorOverviewDTO.MonitorFileDTO daemon = readRuntimeMonitorState(repoRoot, REDIS_BACKEND_DAEMON_KEY, DAEMON_HEARTBEAT, false);
         CrawlerMonitorOverviewDTO.MonitorFileDTO scheduler = readRuntimeMonitorState(repoRoot, REDIS_BACKEND_SCHEDULER_KEY, SCHEDULER_STATE, false);
         CrawlerMonitorOverviewDTO.MonitorFileDTO lock = readRuntimeMonitorState(repoRoot, REDIS_BACKEND_LOCK_KEY, LOCK_FILE, false);
@@ -338,23 +548,194 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             .registeredTasks(buildRegisteredTasks(repoRoot, latestRun))
             .imageNormalization(buildImageNormalizationSummary(repoRoot))
             .build();
-        overview.setWikiMonitor(buildWikiMonitor(repoRoot));
+        overview.setWikiMonitor(buildWikiMonitor(repoRoot, includeV1LiveQueue));
         applyRedisHeartbeatState(repoRoot, overview);
         applyRefreshStaleState(repoRoot, overview);
+        if (!includeV1LiveQueue) {
+            decorateV2Overview(overview);
+        }
         return overview;
+    }
+
+    private void decorateV2Overview(CrawlerMonitorOverviewDTO overview) {
+        CrawlerQueueV2ApplicationService service = Objects.requireNonNull(
+            queueV2ApplicationService,
+            "V2 router requires CrawlerQueueV2ApplicationService"
+        );
+        CrawlerQueueV2ApplicationService.OverviewSnapshot snapshot = service.overview();
+        overview.setQueueContractVersion(snapshot.queueContractVersion());
+        overview.setStateStoreEpoch(snapshot.stateStoreEpoch());
+        overview.setStreamCursor(snapshot.streamCursor());
+        overview.setQueueHealth(snapshot.queueHealth());
+        overview.setReconcilerHealth(snapshot.reconcilerHealth());
+        overview.setLiveQueue(snapshot.liveQueue());
+        overview.setDomainStates(snapshot.domainStates());
+        overview.setAttemptHistory(snapshot.attemptHistory());
+        overview.setLegacyHistory(snapshot.legacyHistory());
     }
 
     @Override
     public CrawlerMonitorReportDetailDTO getReportDetail(String path) {
+        if (isV2AttemptArtifactPath(path) && !isAllowedV2AttemptReportPath(path)) {
+            throw new CrawlerQueueV2Exception(
+                HttpStatus.FORBIDDEN,
+                CrawlerQueueV2ReasonCode.LOG_FORBIDDEN
+            );
+        }
         return reportArchiver.getReportDetail(resolveRepoRoot(), path);
     }
 
+    private boolean isAllowedV2AttemptReportPath(String path) {
+        if (path == null) {
+            return false;
+        }
+        try {
+            Path repoRoot = resolveRepoRoot().toAbsolutePath().normalize();
+            Path requested = Path.of(path.replace('\\', '/'));
+            Path resolved = (requested.isAbsolute() ? requested : repoRoot.resolve(requested))
+                .toAbsolutePath()
+                .normalize();
+            Path v2ArtifactRoot = repoRoot.resolve("reports/crawler-monitor/v2").normalize();
+            if (!resolved.startsWith(v2ArtifactRoot)) {
+                return false;
+            }
+            Path relative = v2ArtifactRoot.relativize(resolved);
+            if (relative.getNameCount() != 3
+                || !relative.getName(0).toString().matches("\\d{4}-\\d{2}-\\d{2}")
+                || !relative.getName(1).toString().startsWith("attempt-")
+                || !"report.json".equals(relative.getName(2).toString())) {
+                return false;
+            }
+            if (!Files.exists(resolved)) {
+                return true;
+            }
+            Path current = v2ArtifactRoot;
+            for (Path component : relative) {
+                current = current.resolve(component);
+                if (Files.isSymbolicLink(current)) {
+                    return false;
+                }
+            }
+            return !Files.isSymbolicLink(resolved)
+                && Files.isRegularFile(resolved)
+                && resolved.toRealPath().startsWith(v2ArtifactRoot.toRealPath());
+        } catch (java.io.IOException | SecurityException | java.nio.file.InvalidPathException ignored) {
+            return false;
+        }
+    }
+
+    private boolean isV2AttemptArtifactPath(String path) {
+        if (path == null) {
+            return false;
+        }
+        try {
+            Path repoRoot = resolveRepoRoot().toAbsolutePath().normalize();
+            Path requested = Path.of(path.replace('\\', '/'));
+            Path resolved = (requested.isAbsolute() ? requested : repoRoot.resolve(requested))
+                .toAbsolutePath()
+                .normalize();
+            Path v2ArtifactRoot = repoRoot.resolve("reports/crawler-monitor/v2").normalize();
+            if (resolved.startsWith(v2ArtifactRoot)) {
+                return true;
+            }
+            if (!Files.exists(resolved) || !Files.exists(v2ArtifactRoot)) {
+                return false;
+            }
+            return resolved.toRealPath().startsWith(v2ArtifactRoot.toRealPath());
+        } catch (java.io.IOException | SecurityException | java.nio.file.InvalidPathException ignored) {
+            return false;
+        }
+    }
+
     @Override
-    public CrawlerMonitorDispatchResultDTO dispatchWikiMonitorTask(CrawlerMonitorDispatchRequestDTO request) {
-        Path repoRoot = resolveRepoRoot();
-        pruneDispatchArtifacts(repoRoot);
-        CrawlerMonitorActionDefinition rule = resolveWikiMonitorRule(request);
-        return dispatchWikiMonitorTask(repoRoot, rule, dispatchMetadata(rule, request));
+    public CrawlerMonitorDispatchResultDTO dispatchWikiMonitorTask(
+        CrawlerMonitorDispatchRequestDTO request,
+        String requestedBy
+    ) {
+        return queueEngineRouter.withMutationPermit(permit -> {
+            CrawlerQueueEngineMode mode = permit.mode();
+            if (mode == CrawlerQueueEngineMode.V2) {
+                return dispatchV2WikiMonitorTask(request, requestedBy);
+            }
+            if (mode != CrawlerQueueEngineMode.V1) {
+                throw legacyWriteBlocked(mode);
+            }
+            Path repoRoot = resolveRepoRoot();
+            pruneDispatchArtifacts(repoRoot);
+            CrawlerMonitorActionDefinition rule = resolveWikiMonitorRule(request);
+            return dispatchWikiMonitorTask(repoRoot, rule, dispatchMetadata(rule, request));
+        });
+    }
+
+    @Override
+    public CrawlerMonitorDispatchResultDTO startCrawlerDomain(
+        String domain,
+        String operationId,
+        String resumeMode,
+        boolean confirmed,
+        String requestedBy
+    ) {
+        String effectiveResumeMode = resumeMode == null || resumeMode.isBlank() ? "fresh" : resumeMode;
+        if (!"fresh".equals(effectiveResumeMode)) {
+            throw new IllegalArgumentException("首次开始只允许 fresh；断点继续必须通过 retry");
+        }
+        CrawlerMonitorActionDefinition rule = CrawlerMonitorActionRegistry.defaults()
+            .resolveStartOperation(domain, operationId, confirmed);
+        CrawlerMonitorDispatchRequestDTO request = new CrawlerMonitorDispatchRequestDTO();
+        request.setDomain(rule.domain());
+        request.setActionId(rule.actionId());
+        request.setResumeMode("fresh");
+        return queueEngineRouter.withMutationPermit(permit -> {
+            if (permit.mode() != CrawlerQueueEngineMode.V2) {
+                throw legacyWriteBlocked(permit.mode());
+            }
+            return dispatchV2WikiMonitorTask(request, requestedBy);
+        });
+    }
+
+    private CrawlerMonitorDispatchResultDTO dispatchV2WikiMonitorTask(
+        CrawlerMonitorDispatchRequestDTO request,
+        String requestedBy
+    ) {
+        CrawlerMonitorActionDefinition rule = resolveV2WikiMonitorRule(request);
+        CrawlerQueueV2ApplicationService service = Objects.requireNonNull(
+            queueV2ApplicationService,
+            "V2 router requires CrawlerQueueV2ApplicationService"
+        );
+        CrawlerQueueV2ApplicationService.DispatchResult result = service.enqueue(
+            new CrawlerQueueV2ApplicationService.EnqueueCommand(
+                rule.domain(),
+                rule.actionId(),
+                "standard",
+                request.getResumeMode(),
+                requireOperator(requestedBy, "requestedBy"),
+                request.getLegacyQueueId()
+            )
+        );
+        invalidateCachedOverview();
+        return v2DispatchResponse(result);
+    }
+
+    private CrawlerMonitorDispatchResultDTO v2DispatchResponse(
+        CrawlerQueueV2ApplicationService.DispatchResult result
+    ) {
+        CrawlerMonitorDispatchResultDTO response = new CrawlerMonitorDispatchResultDTO();
+        response.setAccepted(result.accepted());
+        response.setQueued(result.queued());
+        response.setQueuePosition(result.queuePosition());
+        response.setQueueId(result.queueId());
+        response.setAttemptId(result.attemptId());
+        response.setFenceToken(result.fenceToken());
+        response.setStateVersion(result.stateVersion());
+        response.setStatus(result.status() == null ? null : result.status().value());
+        response.setReasonCode(result.reasonCode() == null ? null : result.reasonCode().name());
+        response.setMessageZh(result.messageZh());
+        response.setSuggestedAction(result.suggestedAction());
+        response.setAllowedActions(result.allowedActions());
+        response.setMessage(firstNonBlank(result.messageZh(), result.reasonCode() == null
+            ? null
+            : result.reasonCode().messageZh()));
+        return response;
     }
 
     private Map<String, Object> dispatchMetadata(
@@ -415,6 +796,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         CrawlerMonitorActionDefinition rule,
         Map<String, Object> metadata
     ) {
+        requireLegacyMutationMode();
         WikiMonitorDispatchQueueRepository.EnqueueResult enqueue = enqueueWikiMonitorRequest(
             repoRoot,
             "standard",
@@ -735,10 +1117,89 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private void invalidateCachedOverview() {
         cachedOverview = null;
         cachedOverviewAtNanos = 0L;
+        cachedQueueEngineMode = null;
     }
 
     @Override
-    public CrawlerMonitorDispatchResultDTO controlWikiMonitorDispatch(CrawlerMonitorDispatchRequestDTO request) {
+    public CrawlerMonitorDispatchResultDTO controlWikiMonitorDispatch(
+        CrawlerMonitorDispatchRequestDTO request,
+        String operator
+    ) {
+        return queueEngineRouter.withMutationPermit(permit -> {
+            CrawlerQueueEngineMode mode = permit.mode();
+            if (mode == CrawlerQueueEngineMode.V2) {
+                return controlV2WikiMonitorDispatch(request, operator);
+            }
+            if (mode != CrawlerQueueEngineMode.V1) {
+                throw legacyWriteBlocked(mode);
+            }
+            return controlWikiMonitorDispatchUnderPermit(request);
+        });
+    }
+
+    private CrawlerMonitorDispatchResultDTO controlV2WikiMonitorDispatch(
+        CrawlerMonitorDispatchRequestDTO request,
+        String operator
+    ) {
+        if (request == null || trimToNull(request.getAttemptId()) == null || request.getExpectedStateVersion() == null) {
+            throw new IllegalArgumentException("V2 控制请求必须提供 attemptId 和 expectedStateVersion");
+        }
+        CrawlerQueueV2ApplicationService service = Objects.requireNonNull(
+            queueV2ApplicationService,
+            "V2 router requires CrawlerQueueV2ApplicationService"
+        );
+        CrawlerQueueV2ApplicationService.DispatchResult result = service.control(
+            new CrawlerQueueV2ApplicationService.ControlCommand(
+                request.getQueueId(),
+                request.getAttemptId(),
+                request.getExpectedStateVersion(),
+                request.getControlAction(),
+                requireOperator(operator, "operator")
+            )
+        );
+        invalidateCachedOverview();
+        return v2DispatchResponse(result);
+    }
+
+    @Override
+    public CrawlerAttemptLogDetailDTO getAttemptLog(String attemptId, long offset, int maxBytes) {
+        CrawlerQueueEngineMode mode = overviewQueueMode();
+        if (mode == CrawlerQueueEngineMode.V1) {
+            throw new IllegalArgumentException("V1 队列不支持按 attemptId 读取 V2 日志");
+        }
+        return Objects.requireNonNull(
+            queueV2ApplicationService,
+            "V2 router requires CrawlerQueueV2ApplicationService"
+        ).getAttemptLog(attemptId, offset, maxBytes);
+    }
+
+    @Override
+    public SseEmitter subscribeEvents(String after) {
+        CrawlerQueueEngineMode mode = queueEngineRouter.mode();
+        if (mode != CrawlerQueueEngineMode.V2) {
+            throw legacyWriteBlocked(mode);
+        }
+        return Objects.requireNonNull(
+            queueV2ApplicationService,
+            "V2 router requires CrawlerQueueV2ApplicationService"
+        ).subscribeEvents(after);
+    }
+
+    @Scheduled(fixedDelay = 1_000L)
+    void pollV2EventSubscribers() {
+        if (queueV2ApplicationService != null) {
+            queueV2ApplicationService.pollEvents();
+        }
+    }
+
+    @Scheduled(fixedDelay = 1_000L)
+    void heartbeatV2EventSubscribers() {
+        if (queueV2ApplicationService != null) {
+            queueV2ApplicationService.sendEventHeartbeat();
+        }
+    }
+
+    private CrawlerMonitorDispatchResultDTO controlWikiMonitorDispatchUnderPermit(CrawlerMonitorDispatchRequestDTO request) {
         Path repoRoot = resolveRepoRoot();
         String controlAction = trimToNull(request == null ? null : request.getControlAction());
         if ("forceReclaimAll".equals(controlAction)) {
@@ -874,7 +1335,6 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             activeDispatchProcesses.remove(dispatchId);
             cleanupDispatchArtifacts(repoRoot, paths);
             cancelTransition = markRunningQueueItemCancelled(controlQueueItem.orElse(null), dispatchId, message);
-            cancellingDispatches.remove(dispatchId);
             if (controlQueueItem.isPresent() && !cancelTransition.changed() && cancelTransition.item() == null) {
                 CrawlerMonitorDispatchResultDTO result = rejectedDispatch(
                     rule,
@@ -901,7 +1361,6 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 failureTransition = queueRepository.markTerminal(itemToFail.get().getQueueId(), "failed", Instant.now(clock), message);
                 invalidateCachedOverview();
             }
-            cancellingDispatches.remove(dispatchId);
             drainWikiMonitorDispatchQueue("active-fail-standard", true);
         }
 
@@ -1070,7 +1529,6 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         releaseDispatchLock(repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_LOCK_FILE).normalize(), dispatchId);
         markRunningQueueItemCancelled(dispatchId, "已终止 10 域样本爬取；样本产物可继续查看或手动清理。");
         drainWikiMonitorDispatchQueue("active-cancel-smoke", true);
-        cancellingDispatches.remove(dispatchId);
         return smokeDispatchResult(dispatchId, true, "cancelled", "已终止 10 域样本爬取；样本产物可继续查看或手动清理。");
     }
 
@@ -1295,6 +1753,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private void drainWikiMonitorDispatchQueue(String reason, boolean waitIfBusy) {
+        runLegacyBackgroundMutation("V1 queue drain", () -> drainWikiMonitorDispatchQueueUnderPermit(reason, waitIfBusy));
+    }
+
+    private void drainWikiMonitorDispatchQueueUnderPermit(String reason, boolean waitIfBusy) {
         queueRepository.withDrainLock(reason, "all", waitIfBusy, () -> {
             Path repoRoot = resolveRepoRoot();
             reconcileQueueRuntimeState(repoRoot);
@@ -1304,6 +1766,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private void reconcileQueueRuntimeState(Path repoRoot) {
+        requireLegacyMutationMode();
         ReadResult latestDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
         Map<String, Object> latestPayload = latestDispatch.readable() ? latestDispatch.payload() : Map.of();
         for (WikiMonitorQueueItem item : queueRepository.listItems()) {
@@ -1794,6 +2257,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     @Override
     public CrawlerMonitorDispatchResultDTO dispatchWikiMonitorDomainSmoke(CrawlerMonitorDispatchRequestDTO request) {
+        return withLegacyMutationPermit("V1 crawler monitor domain smoke dispatch", () ->
+            dispatchWikiMonitorDomainSmokeUnderPermit(request)
+        );
+    }
+
+    private CrawlerMonitorDispatchResultDTO dispatchWikiMonitorDomainSmokeUnderPermit(CrawlerMonitorDispatchRequestDTO request) {
         Path repoRoot = resolveRepoRoot();
         pruneDispatchArtifacts(repoRoot);
         List<String> selectedDomains = normalizeDomainSmokeDomains(request);
@@ -1911,6 +2380,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     @Override
     public CrawlerMonitorDispatchResultDTO cleanupWikiMonitorDomainSmoke() {
+        return withLegacyMutationPermit("V1 crawler monitor domain smoke cleanup", this::cleanupWikiMonitorDomainSmokeUnderPermit);
+    }
+
+    private CrawlerMonitorDispatchResultDTO cleanupWikiMonitorDomainSmokeUnderPermit() {
         Path repoRoot = resolveRepoRoot();
         Path dir = repoRoot.resolve(CRAWLER_MONITOR_DIR).normalize();
         int deletedCount = 0;
@@ -1933,14 +2406,16 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return result;
     }
 
-    private CrawlerMonitorOverviewDTO.WikiMonitorDTO buildWikiMonitor(Path repoRoot) {
+    private CrawlerMonitorOverviewDTO.WikiMonitorDTO buildWikiMonitor(Path repoRoot, boolean includeV1LiveQueue) {
         ReadResult sourceState = readJsonMap(repoRoot.resolve(WIKI_SOURCE_UPDATE_STATE_FILE).normalize());
-        ReadResult dispatchState = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+        ReadResult dispatchState = includeV1LiveQueue
+            ? readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize())
+            : ReadResult.missing(null);
         Map<String, Object> dispatchPayload = dispatchState.readable() ? dispatchState.payload() : Map.of();
         Map<String, Object> sourcePayload = sourceState.readable() ? sourceState.payload() : Map.of();
         Map<String, Map<String, Object>> sourceByKey = sourceMap(sourcePayload.get("sources"));
 
-        List<WikiMonitorQueueItem> queueItemsForState = queueRepository.listItems();
+        List<WikiMonitorQueueItem> queueItemsForState = includeV1LiveQueue ? queueRepository.listItems() : List.of();
         List<CrawlerMonitorOverviewDTO.WikiMonitorDomainDTO> domains = WIKI_MONITOR_RULES.stream()
             .filter(CrawlerMonitorActionDefinition::wikiDomain)
             .map(rule -> buildWikiMonitorDomain(repoRoot, rule, sourcePayload, sourceByKey.get(rule.sourceKey()), dispatchPayload, queueItemsForState))
@@ -1957,8 +2432,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         monitor.setLastSweep(readLastSweep(repoRoot));
         monitor.setDomains(domains);
         monitor.setDispatchPlan(dispatchPlan);
-        monitor.setDispatchQueue(buildWikiMonitorDispatchQueue());
-        monitor.setPendingDispatches(buildPendingDispatches(repoRoot, domains, dispatchPayload, dispatchPlan));
+        monitor.setDispatchQueue(includeV1LiveQueue ? buildWikiMonitorDispatchQueue() : List.of());
+        monitor.setPendingDispatches(includeV1LiveQueue
+            ? buildPendingDispatches(repoRoot, domains, dispatchPayload, dispatchPlan)
+            : List.of());
 
         CrawlerMonitorOverviewDTO.WikiMonitorSummaryDTO summary = new CrawlerMonitorOverviewDTO.WikiMonitorSummaryDTO();
         summary.setDomainCount(domains.size());
@@ -2389,6 +2866,15 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             .filter(rule -> rule.domain().equals(domain) && rule.actionId().equals(actionId))
             .findFirst()
             .orElseThrow(() -> new IllegalArgumentException("动作 " + actionId + " 不允许用于域 " + domain + "。"));
+    }
+
+    private CrawlerMonitorActionDefinition resolveV2WikiMonitorRule(CrawlerMonitorDispatchRequestDTO request) {
+        String domain = trimToNull(request == null ? null : request.getDomain());
+        String actionId = trimToNull(request == null ? null : request.getActionId());
+        if ("crawler_queue_v2_fixture".equals(domain) && "crawler-queue-v2-fixture".equals(actionId)) {
+            return CrawlerMonitorActionRegistry.fixture();
+        }
+        return resolveWikiMonitorRule(request);
     }
 
     private CrawlerMonitorActionDefinition resolveWikiMonitorControlRule(CrawlerMonitorDispatchRequestDTO request) {
@@ -3361,11 +3847,19 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    private String requireOperator(String value, String field) {
+        String normalized = trimToNull(value);
+        if (normalized == null) {
+            throw new IllegalArgumentException(field + " 不可为空");
+        }
+        return normalized;
+    }
+
     private void watchDispatchProcess(Path repoRoot, String queueIdOrNull, String dispatchId, CrawlerMonitorActionDefinition rule, DispatchPaths paths, Process process, Instant processStartedAt) {
         Duration timeout = effectiveDispatchTimeout(processStartedAt, Instant.now(clock));
         Thread thread = new Thread(() -> {
             boolean timedOut = false;
-            boolean controlledCancel = false;
+            boolean watcherInterrupted = false;
             int exitCode = -1;
             try {
                 if (process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
@@ -3374,50 +3868,83 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                     timedOut = true;
                     log.warn("Wiki monitor dispatch {} ({}/{}) exceeded {} min timeout; reclaiming process tree.",
                         dispatchId, rule.domain(), rule.actionId(), timeout.toMinutes());
-                    processLauncher.destroy(process);
-                }
-                ReadResult currentDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
-                if (cancellingDispatches.contains(dispatchId)) {
-                    controlledCancel = true;
-                    return;
-                }
-                if (currentDispatch.readable()
-                    && dispatchId.equals(asString(currentDispatch.payload().get("dispatchId")))
-                    && isWikiMonitorDispatchTerminalStatus(asString(currentDispatch.payload().get("status")))) {
-                    return;
-                }
-                String status;
-                String message;
-                if (timedOut) {
-                    status = "timed_out";
-                    message = "dispatch timed out after " + timeout.toMinutes() + " minutes";
-                    writeTerminalProgressFile(repoRoot, paths.progressPath(), rule, status, message, Instant.now(clock));
-                } else {
-                    status = exitCode == 0 ? "completed" : "failed";
-                    message = status + " with exit code " + exitCode;
-                }
-                writeTerminalFailureSummaryToEmptyLog(repoRoot, paths, dispatchId, rule, status, message);
-                LinkedHashMap<String, Object> state = buildDispatchState(dispatchId, rule, status, asString(currentDispatch.payload().get("startedAt")),
-                    Instant.now(clock).toString(), paths, message);
-                preserveDispatchMetadata(currentDispatch.payload(), state);
-                writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), state);
-                if (queueIdOrNull != null) {
-                    queueRepository.markTerminal(queueIdOrNull, status, Instant.now(clock), message);
-                    invalidateCachedOverview();
                 }
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
+                watcherInterrupted = true;
             } finally {
-                releaseDispatchLock(repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize(), dispatchId);
-                activeDispatchProcesses.remove(dispatchId);
-                if (!controlledCancel) {
-                    cancellingDispatches.remove(dispatchId);
-                    drainWikiMonitorDispatchQueue("standard-terminal");
+                boolean terminalTimedOut = timedOut;
+                int terminalExitCode = exitCode;
+                if (watcherInterrupted) {
+                    log.debug("Skipping V1 standard dispatch terminal mutation because watcher {} was interrupted.", dispatchId);
+                } else {
+                    runLegacyBackgroundMutation("V1 standard dispatch terminal watcher", () ->
+                        completeWatchedStandardDispatch(
+                            repoRoot,
+                            queueIdOrNull,
+                            dispatchId,
+                            rule,
+                            paths,
+                            process,
+                            timeout,
+                            terminalTimedOut,
+                            terminalExitCode
+                        )
+                    );
                 }
+                activeDispatchProcesses.remove(dispatchId);
+                cancellingDispatches.remove(dispatchId);
             }
         }, "wiki-monitor-dispatch-" + dispatchId);
         thread.setDaemon(true);
         thread.start();
+    }
+
+    private void completeWatchedStandardDispatch(
+        Path repoRoot,
+        String queueIdOrNull,
+        String dispatchId,
+        CrawlerMonitorActionDefinition rule,
+        DispatchPaths paths,
+        Process process,
+        Duration timeout,
+        boolean timedOut,
+        int exitCode
+    ) {
+        if (timedOut) {
+            processLauncher.destroy(process);
+        }
+        ReadResult currentDispatch = readJsonMap(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize());
+        boolean controlledCancel = cancellingDispatches.contains(dispatchId);
+        if (!controlledCancel
+            && !(currentDispatch.readable()
+                && dispatchId.equals(asString(currentDispatch.payload().get("dispatchId")))
+                && isWikiMonitorDispatchTerminalStatus(asString(currentDispatch.payload().get("status"))))) {
+            String status;
+            String message;
+            if (timedOut) {
+                status = "timed_out";
+                message = "dispatch timed out after " + timeout.toMinutes() + " minutes";
+                writeTerminalProgressFile(repoRoot, paths.progressPath(), rule, status, message, Instant.now(clock));
+            } else {
+                status = exitCode == 0 ? "completed" : "failed";
+                message = status + " with exit code " + exitCode;
+            }
+            writeTerminalFailureSummaryToEmptyLog(repoRoot, paths, dispatchId, rule, status, message);
+            LinkedHashMap<String, Object> state = buildDispatchState(dispatchId, rule, status, asString(currentDispatch.payload().get("startedAt")),
+                Instant.now(clock).toString(), paths, message);
+            preserveDispatchMetadata(currentDispatch.payload(), state);
+            writeJsonFile(repoRoot.resolve(WIKI_MONITOR_DISPATCH_FILE).normalize(), state);
+            if (queueIdOrNull != null) {
+                queueRepository.markTerminal(queueIdOrNull, status, Instant.now(clock), message);
+                invalidateCachedOverview();
+            }
+        }
+        releaseDispatchLock(repoRoot.resolve(WIKI_MONITOR_DISPATCH_LOCK_FILE).normalize(), dispatchId);
+        if (!controlledCancel) {
+            cancellingDispatches.remove(dispatchId);
+            drainWikiMonitorDispatchQueue("standard-terminal");
+        }
     }
 
     private void writeTerminalFailureSummaryToEmptyLog(
@@ -3475,8 +4002,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         Duration timeout = dispatchTimeout;
         Thread thread = new Thread(() -> {
             boolean timedOut = false;
+            boolean watcherInterrupted = false;
             Integer exitCode = null;
-            boolean controlledCancel = false;
             try {
                 if (process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
                     exitCode = process.exitValue();
@@ -3484,41 +4011,72 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                     timedOut = true;
                     log.warn("Wiki monitor domain smoke {} exceeded {} min timeout; reclaiming process tree.",
                         dispatchId, timeout.toMinutes());
-                    processLauncher.destroy(process);
                 }
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
+                watcherInterrupted = true;
             } finally {
-                if (cancellingDispatches.contains(dispatchId)) {
-                    controlledCancel = true;
-                    releaseDispatchLock(lockPath, dispatchId);
-                    activeDomainSmokeProcesses.remove(dispatchId);
-                    return;
+                boolean terminalTimedOut = timedOut;
+                Integer terminalExitCode = exitCode;
+                if (watcherInterrupted) {
+                    log.debug("Skipping V1 domain smoke terminal mutation because watcher {} was interrupted.", dispatchId);
+                } else {
+                    runLegacyBackgroundMutation("V1 domain smoke terminal watcher", () ->
+                        completeWatchedDomainSmoke(
+                            repoRoot,
+                            queueIdOrNull,
+                            dispatchId,
+                            lockPath,
+                            process,
+                            timeout,
+                            terminalTimedOut,
+                            terminalExitCode
+                        )
+                    );
                 }
-                String reportPath = "reports/crawler-monitor/" + dispatchId + ".json";
-                String status = resolveSmokeTerminalStatus(
-                    repoRoot,
-                    dispatchId,
-                    reportPath,
-                    "reports/crawler-monitor/wiki-monitor-domain-smoke.latest.json",
-                    toDisplayPath(repoRoot, repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE).normalize()),
-                    timedOut ? null : exitCode
-                );
-                log.debug("Wiki monitor domain smoke {} completed with terminal status {} (queueId={}).",
-                    dispatchId, status, queueIdOrNull);
-                if (queueIdOrNull != null) {
-                    queueRepository.markTerminal(queueIdOrNull, status, Instant.now(clock), "domain smoke " + status);
-                    invalidateCachedOverview();
-                }
-                releaseDispatchLock(lockPath, dispatchId);
                 activeDomainSmokeProcesses.remove(dispatchId);
-                if (!controlledCancel) {
-                    drainWikiMonitorDispatchQueue("smoke-terminal");
-                }
+                cancellingDispatches.remove(dispatchId);
             }
         }, "wiki-monitor-domain-smoke-" + dispatchId);
         thread.setDaemon(true);
         thread.start();
+    }
+
+    private void completeWatchedDomainSmoke(
+        Path repoRoot,
+        String queueIdOrNull,
+        String dispatchId,
+        Path lockPath,
+        Process process,
+        Duration timeout,
+        boolean timedOut,
+        Integer exitCode
+    ) {
+        boolean controlledCancel = cancellingDispatches.contains(dispatchId);
+        if (timedOut) {
+            processLauncher.destroy(process);
+        }
+        if (!controlledCancel) {
+            String reportPath = "reports/crawler-monitor/" + dispatchId + ".json";
+            String status = resolveSmokeTerminalStatus(
+                repoRoot,
+                dispatchId,
+                reportPath,
+                "reports/crawler-monitor/wiki-monitor-domain-smoke.latest.json",
+                toDisplayPath(repoRoot, repoRoot.resolve(WIKI_MONITOR_DOMAIN_SMOKE_PROGRESS_FILE).normalize()),
+                timedOut ? null : exitCode
+            );
+            log.debug("Wiki monitor domain smoke {} completed with terminal status {} (queueId={}).",
+                dispatchId, status, queueIdOrNull);
+            if (queueIdOrNull != null) {
+                queueRepository.markTerminal(queueIdOrNull, status, Instant.now(clock), "domain smoke " + status);
+                invalidateCachedOverview();
+            }
+        }
+        releaseDispatchLock(lockPath, dispatchId);
+        if (!controlledCancel) {
+            drainWikiMonitorDispatchQueue("smoke-terminal");
+        }
     }
 
     private String resolveSmokeTerminalStatus(
@@ -3662,6 +4220,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     @Override
     public CrawlerMonitorAutoDispatchDTO updateAutoDispatchSettings(CrawlerMonitorAutoDispatchDTO settings) {
+        return withLegacyMutationPermit("V1 auto-dispatch settings update", () -> updateAutoDispatchSettingsUnderPermit(settings));
+    }
+
+    private CrawlerMonitorAutoDispatchDTO updateAutoDispatchSettingsUnderPermit(CrawlerMonitorAutoDispatchDTO settings) {
         CrawlerMonitorAutoDispatchDTO normalized = normalizeAutoDispatchSettings(settings);
         Path repoRoot = resolveRepoRoot();
         Path absolutePath = repoRoot.resolve(AUTO_DISPATCH_CONFIG_FILE).normalize();
@@ -3675,6 +4237,14 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     public CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO runAutoDispatchSweepOnce() {
+        return withLegacyBackgroundMutation(
+            "V1 auto-dispatch sweep",
+            this::runAutoDispatchSweepOnceUnderPermit,
+            this::maintenanceAutoDispatchSweep
+        );
+    }
+
+    private CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO runAutoDispatchSweepOnceUnderPermit() {
         Path repoRoot = resolveRepoRoot();
         CrawlerMonitorAutoDispatchDTO settings = readAutoDispatchSettings(repoRoot);
         CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO sweep = new CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO();
@@ -3748,6 +4318,13 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         sweep.setStatus("completed");
         writeLastSweep(repoRoot, sweep);
         return sweep;
+    }
+
+    private CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO maintenanceAutoDispatchSweep() {
+        CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO skipped = new CrawlerMonitorOverviewDTO.WikiMonitorLastSweepDTO();
+        skipped.setCheckedAt(Instant.now(clock).toString());
+        skipped.setStatus("maintenance");
+        return skipped;
     }
 
     private SourceUpdateCheckResult runSourceUpdateMonitorCheck(Path repoRoot) {

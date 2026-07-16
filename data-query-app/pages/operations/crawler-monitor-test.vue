@@ -223,7 +223,7 @@
             <span><small>状态</small><strong>{{ statusLabel(row.status) }}</strong></span>
             <span><small>开始时间</small><strong>{{ formatDate(row.startedAt || row.requestedAt) }}</strong></span>
             <span><small>完成时间</small><strong>{{ formatDate(row.completedAt) }}</strong></span>
-            <span><small>队列</small><strong>{{ row.queueId || '--' }}</strong></span>
+            <span><small>队列</small><strong>{{ shortCrawlerIdentity(row.queueId) }}</strong></span>
           </div>
           <p v-if="row.failureReason" class="domain-smoke-error">
             <strong>错误原因</strong>
@@ -532,7 +532,7 @@
         <span class="status-pill" :class="statusTone(domainSmokeResult.status)">{{ statusLabel(domainSmokeResult.status) }}</span>
       </div>
       <div class="smoke-meta">
-        <span>任务 {{ domainSmokeResult.dispatchId || '--' }}</span>
+        <span>任务 {{ shortCrawlerIdentity(domainSmokeResult.dispatchId) }}</span>
         <span>进度 {{ domainSmokeResult.progressPath || '--' }}</span>
         <span>报告 {{ domainSmokeResult.reportPath || '--' }}</span>
       </div>
@@ -712,6 +712,7 @@ import {
   progressRowsFromOverview,
   rowStatus,
 } from '~/utils/crawlerMonitorProgressRows.mjs'
+import { shortCrawlerIdentity } from '~/utils/crawlerMonitorTriageWorkbench.mjs'
 import type {
   CrawlerMonitorAction,
   CrawlerMonitorFile,
@@ -1367,7 +1368,7 @@ async function cancelDomainSmokeQueuedRow(row: DomainSmokeProgressRow) {
 
 async function cancelDomainSmokeRunningRow(row: DomainSmokeProgressRow) {
   if (!canCancelDomainSmokeRunningRow(row) || !row.queueId || domainSmokeQueueControlLoading.value) return
-  if (import.meta.client && !window.confirm(`确认终止当前域：${row.label || row.domain || row.queueId}？后续排队域会继续执行。`)) {
+  if (import.meta.client && !window.confirm(`确认终止当前域：${row.label || row.domain || shortCrawlerIdentity(row.queueId)}？后续排队域会继续执行。`)) {
     return
   }
   domainSmokeQueueControlLoading.value = row.queueId

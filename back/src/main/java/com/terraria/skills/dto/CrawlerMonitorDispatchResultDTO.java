@@ -10,6 +10,9 @@ import java.util.List;
 public class CrawlerMonitorDispatchResultDTO {
     private boolean accepted;
     private String queueId;
+    private String attemptId;
+    private Long fenceToken;
+    private Long stateVersion;
     private Boolean queued;
     private Integer queuePosition;
     private String dispatchId;
@@ -30,4 +33,8 @@ public class CrawlerMonitorDispatchResultDTO {
     private String queueMessage;
     private String cooldownUntil;
     private String message;
+    private String reasonCode;
+    private String messageZh;
+    private String suggestedAction;
+    private List<String> allowedActions;
 }

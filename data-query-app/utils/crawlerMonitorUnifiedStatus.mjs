@@ -6,9 +6,9 @@ const STATUS_ALIASES = {
   force_reclaimed: 'cancelled',
 }
 
-const TERMINAL_STATUSES = new Set(['failed', 'timed_out', 'cancelled', 'completed'])
-const ACTIVE_PROGRESS_STATUSES = new Set(['running', 'starting', 'paused'])
-const ACTIVE_QUEUE_STATUSES = new Set(['running', 'starting', 'paused', 'queued', 'blocked'])
+const TERMINAL_STATUSES = new Set(['failed', 'timed_out', 'cancelled', 'completed', 'interrupted'])
+const ACTIVE_PROGRESS_STATUSES = new Set(['running', 'starting', 'paused', 'pause_requested', 'cancel_requested'])
+const ACTIVE_QUEUE_STATUSES = new Set(['running', 'starting', 'paused', 'queued', 'blocked', 'retry_wait', 'pause_requested', 'cancel_requested'])
 
 const STATUS_LABELS = {
   failed: '执行失败',
@@ -19,12 +19,17 @@ const STATUS_LABELS = {
   running: '正在运行',
   starting: '启动中',
   queued: '等待执行',
+  retry_wait: '等待重试',
+  pause_requested: '暂停请求中',
+  cancel_requested: '取消请求中',
   pending: '等待执行',
   cancelled: '已取消',
+  interrupted: '已中断',
   force_reclaimed: '已强制回收',
   completed: '已完成',
   ready: '可执行',
   healthy: '暂无异常',
+  idle: '空闲正常',
   missing: '缺少状态',
   unknown: '未知状态',
 }
@@ -34,14 +39,19 @@ const STATUS_RANK = {
   timed_out: 11,
   stalled: 20,
   blocked: 30,
+  interrupted: 32,
   paused: 35,
+  pause_requested: 36,
+  cancel_requested: 37,
   running: 40,
   starting: 41,
   queued: 50,
+  retry_wait: 50,
   pending: 50,
   cancelled: 55,
   ready: 60,
   completed: 70,
+  idle: 80,
   healthy: 90,
   missing: 95,
   unknown: 99,

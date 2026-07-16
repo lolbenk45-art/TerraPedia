@@ -10,7 +10,8 @@
     "host": "127.0.0.1",
     "port": 6380,
     "database": 0,
-    "password": "root"
+    "password": "root",
+    "dataDir": "~/.local/share/terrapedia/redis/redis-6380"
   },
   "backend": {
     "port": 18088

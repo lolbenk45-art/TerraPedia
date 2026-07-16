@@ -30,6 +30,10 @@ Historical docs do not override current spec or workflow.
 - Start stack: `bash ./scripts/dev/start-local-stack.sh`
 - Stop stack: `bash ./scripts/dev/stop-local-stack.sh`
 - Full quality gate: `bash ./scripts/dev/quality-gate.sh`
+- Shared local Redis persists outside individual worktrees under
+  `~/.local/share/terrapedia/redis/redis-<port>` by default; each worktree uses
+  its allocated logical database, and startup refuses a reachable Redis whose
+  configured persistence directory does not match.
 - Isolated user-auth browser smoke: `bash ./scripts/dev/run-user-auth-e2e.sh --smoke`
 - Isolated user-auth browser regression: `bash ./scripts/dev/run-user-auth-e2e.sh --regression`
 - Backend focused tests: run Maven from `back/`
@@ -37,6 +41,15 @@ Historical docs do not override current spec or workflow.
 - Admin frontend checks: run `pnpm run check` or `pnpm run test` from `data-query-app/`
 
 Bash/WSL is the primary local automation path. Matching `.ps1` files are compatibility wrappers unless a current runbook says otherwise.
+
+Crawler monitor live state uses Redis V2 attempt state under the fixed prefix
+`terrapedia:crawler:wiki-monitor:v2:`. It is the only live queue authority:
+every control and progress write carries exact attempt identity, every
+non-terminal state is deadline-bound, and overview is a pure read. V1 crawler
+queue records are immutable cutover history only and cannot block, dedupe,
+restore, own, or report V2 live work. See
+`docs/runbooks/crawler-monitor-queue-v2-cutover.md` for the authenticated
+cutover, first-mutation, reset, and restart procedure.
 
 The user-auth E2E runner is an explicit isolated boundary: it accepts only
 loopback MySQL and Redis, creates a run-derived disposable database, uses Redis

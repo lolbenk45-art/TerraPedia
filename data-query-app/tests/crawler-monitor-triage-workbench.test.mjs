@@ -2,13 +2,22 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  buildV2AttemptDisplayModel,
+  buildV2DomainOperationModel,
   buildDomainDetailViewModel,
   buildDomainOperationModel,
   buildTriageWorkbench,
   filterLogLines,
+  shortCrawlerIdentity,
   mergeDomainTaskHistory,
   wikiDomainManualDispatchBlockReason,
 } from '../utils/crawlerMonitorTriageWorkbench.mjs'
+
+test('crawler identities keep their prefix and only expose the final five characters', () => {
+  assert.equal(shortCrawlerIdentity('queue-4f42c893-5969-4eae-8784-02da0f653728'), 'queue-…53728')
+  assert.equal(shortCrawlerIdentity('attempt-2a5259b9-d872-407e-9098-605096fbf9a9'), 'attempt-…bf9a9')
+  assert.equal(shortCrawlerIdentity('queue-123'), 'queue-123')
+})
 
 const rows = [
   {
@@ -113,6 +122,68 @@ test('triage workbench does not show missing auto dispatch config as disabled', 
   assert.equal(dispatchMetric.note, '后端未返回自动派发配置')
 })
 
+test('triage workbench exposes active queue KPI without counting terminal history', () => {
+  const domainRows = [
+    {
+      domain: 'items',
+      label: 'Items',
+      status: 'queued',
+      risk: 'queued',
+      queueItem: { queueId: 'queue-items', status: 'queued' },
+    },
+    {
+      domain: 'npcs',
+      label: 'NPCs',
+      status: 'running',
+      risk: 'running',
+      queueItem: { queueId: 'queue-npcs', status: 'running' },
+    },
+    {
+      domain: 'biomes',
+      label: 'Biomes',
+      status: 'completed',
+      risk: 'healthy',
+      queueItem: { queueId: 'queue-biomes', status: 'completed' },
+    },
+  ]
+
+  const derivedView = buildTriageWorkbench({ domainRows })
+  const derivedMetric = derivedView.metrics.find((metric) => metric.key === 'queue')
+  assert.equal(derivedMetric.value, '2')
+
+  const exactView = buildTriageWorkbench({ domainRows, activeQueueCount: 3 })
+  const queueMetric = exactView.metrics.find((metric) => metric.key === 'queue')
+  assert.equal(queueMetric.value, '3')
+  assert.equal(queueMetric.note, '点击查看排队与占用信息')
+  assert.deepEqual(queueMetric.target, { kind: 'domains', filter: 'queue' })
+  assert.equal(queueMetric.actionLabel, '查看队列')
+})
+
+test('triage workbench keeps active queue rows visible alongside many attention rows', () => {
+  const failedRows = Array.from({ length: 7 }, (_, index) => ({
+    domain: `failed_${index}`,
+    label: `Failed ${index}`,
+    status: 'failed',
+    risk: 'failed',
+    diagnosisGroup: 'attention',
+    diagnosisTitle: '执行失败',
+  }))
+  const queuedRow = {
+    domain: 'items',
+    label: 'Items',
+    status: 'queued',
+    risk: 'queued',
+    diagnosisGroup: 'queued',
+    queueItem: { queueId: 'queue-items', status: 'queued' },
+  }
+
+  const view = buildTriageWorkbench({ domainRows: [...failedRows, queuedRow] })
+
+  assert.equal(view.focusMode, 'attention')
+  assert.deepEqual(view.operationProgressRows.map((row) => row.domain), ['items'])
+  assert.equal(view.operationProgressRows.some((row) => row.risk === 'failed'), false)
+})
+
 test('triage workbench shows operation progress in the top section when no domain needs attention', () => {
   const healthyRows = [
     {
@@ -155,6 +226,7 @@ test('triage workbench shows operation progress in the top section when no domai
   assert.deepEqual(view.operationProgressRows.map((row) => row.domain), ['projectiles', 'items'])
   assert.equal(view.focusRows.find((row) => row.domain === 'items').primaryAction.label, '检查并同步核心')
   assert.equal(view.focusRows.find((row) => row.domain === 'items').taskLabel, 'Wiki 核心检查并同步')
+  assert.equal(view.focusRows.find((row) => row.domain === 'items').flowLabel, '空闲正常')
   assert.equal(view.focusRows.find((row) => row.domain === 'projectiles').primaryAction.label, '暂停')
 })
 
@@ -409,6 +481,22 @@ test('triage workbench filters all-domain rows without pagination', () => {
   assert.equal(large.tableVirtualized, true)
 })
 
+test('triage workbench treats V2 idle domains as normal idle rows', () => {
+  const idleDomain = {
+    domain: 'items',
+    label: 'Items',
+    status: 'idle',
+    risk: 'idle',
+    diagnosisTitle: '空闲正常',
+  }
+
+  const view = buildTriageWorkbench({ domainRows: [idleDomain], tableFilter: 'healthy' })
+
+  assert.equal(view.tableRows.length, 1)
+  assert.equal(view.tableRows[0].flowLabel, '空闲正常')
+  assert.equal(view.tableRows[0].isIdle, true)
+})
+
 test('triage workbench exposes direct domain operation buttons', () => {
   const view = buildTriageWorkbench({
     domainRows: [
@@ -592,6 +680,112 @@ test('domain operation model offers crash failure validation for town npc mainte
     icon: 'timer-reset',
   })
   assert.equal(bosses.secondaryActions.some((action) => action.action === 'make-resume-failure'), false)
+})
+
+test('V2 idle domain exposes a dedicated start operation', () => {
+  const operation = buildV2DomainOperationModel({
+    status: 'idle',
+    allowedActions: ['start'],
+  })
+
+  assert.deepEqual(operation.primaryAction, {
+    action: 'start',
+    label: '开始爬',
+    tone: 'primary',
+    icon: 'play',
+  })
+})
+
+test('V2 retry label distinguishes resumable and full requeue attempts', () => {
+  const resumable = buildV2DomainOperationModel({
+    status: 'failed',
+    resumeSupported: true,
+    allowedActions: ['retry', 'cleanup'],
+  })
+  const restart = buildV2DomainOperationModel({
+    status: 'failed',
+    resumeSupported: false,
+    allowedActions: ['retry', 'cleanup'],
+  })
+
+  assert.equal(resumable.primaryAction.label, '从断点继续爬取')
+  assert.equal(restart.primaryAction.label, '重新抓取')
+  assert.deepEqual(resumable.secondaryActions.map((item) => item.label), ['清理证据'])
+})
+
+test('V2 terminal history exposes its output as crawler data', () => {
+  const detail = buildDomainDetailViewModel({
+    row: { domain: 'bosses', label: 'Boss', v2Attempt: true },
+    attemptRows: [{
+      attemptId: 'attempt-bosses', domain: 'bosses', coveredDomains: ['bosses'], status: 'completed',
+      progressPath: 'reports/crawler-monitor/v2/progress.json',
+      outputPath: '/home/test/worktree/data/generated/wiki-bosses.latest.json',
+      reportPath: '/home/test/worktree/reports/wiki-bosses-fetch-2026-07-14.json',
+    }],
+  })
+
+  assert.deepEqual(detail.artifacts.map((file) => file.kind), ['output'])
+  assert.equal(detail.artifacts[0].path, 'data/generated/wiki-bosses.latest.json')
+  assert.deepEqual(detail.taskHistory[0].files.map((file) => file.kind), ['output', 'progress', 'report', 'log'])
+  assert.equal(detail.taskHistory[0].files.find((file) => file.kind === 'progress')?.path, 'reports/crawler-monitor/v2/progress.json')
+  const recordedReport = detail.taskHistory[0].files.find((file) => file.kind === 'report')
+  assert.equal(recordedReport?.path, '/home/test/worktree/reports/wiki-bosses-fetch-2026-07-14.json')
+  assert.equal(recordedReport?.previewable, false)
+  assert.equal(recordedReport?.statusLabel, '路径记录')
+})
+
+test('V2 task history retains exact terminal controls', () => {
+  const history = mergeDomainTaskHistory({
+    domain: 'bosses',
+    attemptRows: [{
+      queueId: 'queue-bosses', attemptId: 'attempt-failed', stateVersion: 9,
+      stateStoreEpoch: 'epoch-1', domain: 'bosses', coveredDomains: ['bosses'],
+      status: 'failed', resumeSupported: true, allowedActions: ['retry', 'cleanup'],
+    }],
+  })
+
+  assert.deepEqual(history[0].allowedActions, ['retry', 'cleanup'])
+  assert.equal(history[0].resumeSupported, true)
+})
+
+test('V2 task history suppresses retry on an older failure after a newer completion', () => {
+  const history = mergeDomainTaskHistory({
+    domain: 'bosses',
+    attemptRows: [
+      {
+        queueId: 'queue-failed', attemptId: 'attempt-failed', stateVersion: 9,
+        domain: 'bosses', coveredDomains: ['bosses'], status: 'failed',
+        completedAt: '2026-07-14T08:00:00Z', allowedActions: ['retry', 'cleanup'],
+      },
+      {
+        queueId: 'queue-completed', attemptId: 'attempt-completed', stateVersion: 11,
+        domain: 'bosses', coveredDomains: ['bosses'], status: 'completed',
+        completedAt: '2026-07-14T09:00:00Z', allowedActions: ['cleanup'],
+      },
+    ],
+  })
+
+  assert.deepEqual(history.find((row) => row.attemptId === 'attempt-failed').allowedActions, ['cleanup'])
+})
+
+test('V2 task history ignores newer old-epoch rows when choosing current retry', () => {
+  const history = mergeDomainTaskHistory({
+    domain: 'bosses',
+    attemptRows: [
+      {
+        queueId: 'queue-current', attemptId: 'attempt-current-failed', stateVersion: 9,
+        stateStoreEpoch: 'epoch-1', domain: 'bosses', coveredDomains: ['bosses'], status: 'failed',
+        completedAt: '2026-07-14T08:00:00Z', allowedActions: ['retry', 'cleanup'],
+      },
+      {
+        queueId: 'queue-old', attemptId: 'attempt-old-completed', stateVersion: 11,
+        stateStoreEpoch: 'epoch-0', domain: 'bosses', coveredDomains: ['bosses'], status: 'completed',
+        completedAt: '2026-07-14T09:00:00Z', allowedActions: [],
+      },
+    ],
+  })
+
+  assert.deepEqual(history.find((row) => row.attemptId === 'attempt-current-failed').allowedActions, ['retry', 'cleanup'])
 })
 
 test('domain operation model offers current failure validation while town npc is running or paused', () => {
@@ -998,6 +1192,262 @@ test('task history merges execution, progress, and queue rows by domain action',
   assert.equal(history.length, 1)
   assert.equal(history[0].status, 'stalled')
   assert.deepEqual(history[0].sourceKinds.sort(), ['progress', 'queue'])
+})
+
+test('V2 task history stays one row per attempt without V1 source merging', () => {
+  const history = mergeDomainTaskHistory({
+    domain: 'bosses',
+    attemptRows: [
+      { attemptId: 'attempt-old', queueId: 'queue-old', domain: 'bosses', actionId: 'domain-source-bosses', status: 'completed', stateStoreEpoch: 'epoch-0', allowedActions: ['cancel'] },
+      { attemptId: 'attempt-current', queueId: 'queue-current', domain: 'bosses', actionId: 'domain-source-bosses', status: 'running', stateStoreEpoch: 'epoch-1', allowedActions: ['pause'] },
+    ],
+    executionRows: [{ domain: 'bosses', actionId: 'domain-source-bosses', status: 'failed' }],
+  })
+
+  assert.deepEqual(history.map((row) => row.attemptId), ['attempt-current', 'attempt-old'])
+  assert.deepEqual(history.map((row) => row.allowedActions), [[], []])
+  assert.equal(history[0].stateStoreEpoch, 'epoch-1')
+})
+
+test('V2 history matches a selected covered domain and exposes each attempt log state by attempt identity', () => {
+  const detail = buildDomainDetailViewModel({
+    row: {
+      v2Attempt: true,
+      domain: 'bosses',
+      label: 'Bosses',
+      status: 'running',
+      queueId: 'queue-shared',
+      attemptId: 'attempt-current',
+      stateVersion: 8,
+      log: { availability: 'available', previewable: true },
+    },
+    attemptRows: [
+      { attemptId: 'attempt-current', queueId: 'queue-shared', domain: 'items', coveredDomains: ['items', 'bosses'], actionId: 'domain-source-items', status: 'running', log: { availability: 'available', previewable: true } },
+      { attemptId: 'attempt-expired', queueId: 'queue-old', domain: 'items', coveredDomains: ['items', 'bosses'], actionId: 'domain-source-items', status: 'completed', log: { availability: 'expired', previewable: false } },
+      { attemptId: 'attempt-missing', queueId: 'queue-missing', domain: 'items', coveredDomains: ['items', 'bosses'], actionId: 'domain-source-items', status: 'completed', log: { availability: 'missing', previewable: false } },
+    ],
+    executionRows: [{ domain: 'bosses', actionId: 'domain-source-bosses', status: 'failed' }],
+  })
+
+  assert.deepEqual(detail.taskHistory.map((item) => item.attemptId), [
+    'attempt-current', 'attempt-expired', 'attempt-missing',
+  ])
+  assert.equal(detail.taskHistory.some((item) => item.status === 'failed'), false)
+  const historyLogs = detail.taskHistory.flatMap((item) => item.files).filter((file) => file.attemptId)
+  assert.deepEqual(historyLogs.map((file) => [file.attemptId, file.previewable, file.statusLabel]), [
+    ['attempt-current', true, '可读取'],
+    ['attempt-expired', false, '日志已过保留期，manifest 仍可查看'],
+    ['attempt-missing', false, '本轮任务未形成日志'],
+  ])
+})
+
+test('V2 legacy history keeps its legacy log path preview and never becomes an attempt endpoint entry', () => {
+  const detail = buildDomainDetailViewModel({
+    row: { v2Attempt: true, domain: 'bosses', status: 'running', queueId: 'queue-current', attemptId: 'attempt-current', stateVersion: 8 },
+    attemptRows: [{
+      source: 'legacy-v1', live: false, queueId: 'legacy-queue', attemptId: 'legacy-v1:legacy-queue',
+      domain: 'bosses', actionId: 'domain-source-bosses', status: 'interrupted',
+      log: { path: 'reports/crawler-monitor/legacy-bosses.log', previewable: true },
+    }],
+  })
+  const legacyFile = detail.taskHistory[0].files[0]
+
+  assert.equal(legacyFile.path, 'reports/crawler-monitor/legacy-bosses.log')
+  assert.equal(legacyFile.attemptId, undefined)
+  assert.equal(legacyFile.previewable, true)
+  assert.equal(detail.logFiles.some((file) => file.path === 'reports/crawler-monitor/legacy-bosses.log' && !file.attemptId), true)
+  assert.equal(detail.logFiles.some((file) => file.attemptId === 'legacy-v1:legacy-queue'), false)
+})
+
+test('V2 attempt display model provides Chinese phase and deterministic heartbeat/deadline ages', () => {
+  const display = buildV2AttemptDisplayModel({
+    phase: 'fetch-pages',
+    lastHeartbeatAt: '2026-07-13T00:00:00Z',
+    deadlineAt: '2026-07-13T00:03:00Z',
+  }, '2026-07-13T00:01:30Z')
+  const overdue = buildV2AttemptDisplayModel({
+    phase: 'apply',
+    lastHeartbeatAt: '2026-07-13T00:00:00Z',
+    deadlineAt: '2026-07-13T00:01:00Z',
+  }, '2026-07-13T00:03:00Z')
+
+  assert.equal(display.phaseLabel, '抓取页面')
+  assert.equal(display.heartbeatAgeLabel, '心跳距今 1分30秒')
+  assert.equal(display.deadlineLabel, '剩余 1分30秒')
+  assert.equal(overdue.phaseLabel, '应用数据')
+  assert.equal(overdue.deadlineLabel, '已超期 2分钟')
+})
+
+test('V1 domain detail does not gain V2-only detail fields', () => {
+  const detail = buildDomainDetailViewModel({
+    row: {
+      domain: 'items',
+      label: 'Items',
+      status: 'healthy',
+      risk: 'healthy',
+      queueId: 'legacy-queue-items',
+      attemptId: 'legacy-attempt-items',
+      stateVersion: 7,
+      stateStoreEpoch: 'legacy-epoch',
+      deadlineAt: '2026-07-13T00:03:00Z',
+      reasonCode: 'STATE_STORE_RESET',
+      log: { availability: 'available', lastWriteAt: '2026-07-13T00:01:00Z', retentionExpiresAt: '2026-07-20T00:00:00Z' },
+    },
+  })
+
+  const labels = detail.overviewFields.map((field) => field.label)
+  assert.equal(labels.some((label) => [
+    '阶段', '心跳距今', '截止倒计时',
+    '队列 ID', '尝试 ID', '状态版本', '状态存储 epoch',
+    '截止时间', '原因码', '日志状态', '日志最后写入', '日志保留至',
+  ].includes(label)), false)
+  assert.equal(detail.logFiles.some((file) => file.attemptId === 'legacy-attempt-items'), false)
+})
+
+test('V2 domain detail retains its authoritative identity, deadline, reason, and attempt log metadata', () => {
+  const detail = buildDomainDetailViewModel({
+    row: {
+      v2Attempt: true,
+      domain: 'items',
+      label: 'Items',
+      status: 'running',
+      queueId: 'queue-items',
+      attemptId: 'attempt-items',
+      stateVersion: 8,
+      stateStoreEpoch: 'epoch-1',
+      deadlineAt: '2026-07-13T00:03:00Z',
+      reasonCode: 'LEASE_LOST',
+      log: { availability: 'available', previewable: true, lastWriteAt: '2026-07-13T00:01:00Z', retentionExpiresAt: '2026-07-20T00:00:00Z' },
+    },
+  })
+
+  const labels = detail.overviewFields.map((field) => field.label)
+  for (const label of ['队列 ID', '尝试 ID', '状态版本', '状态存储 epoch', '截止时间', '截止倒计时', '原因码', '日志状态', '日志最后写入', '日志保留至']) {
+    assert.equal(labels.includes(label), true)
+  }
+  assert.equal(detail.logFiles.some((file) => file.attemptId === 'attempt-items'), true)
+})
+
+test('V2 domain detail shortens identity labels without changing control identity', () => {
+  const queueId = 'queue-4f42c893-5969-4eae-8784-02da0f653728'
+  const attemptId = 'attempt-2a5259b9-d872-407e-9098-605096fbf9a9'
+  const detail = buildDomainDetailViewModel({
+    row: { v2Attempt: true, domain: 'bosses', status: 'completed', queueId, attemptId, log: { availability: 'available', previewable: true } },
+  })
+
+  assert.equal(detail.overviewFields.find((field) => field.label === '队列 ID')?.value, 'queue-…53728')
+  assert.equal(detail.overviewFields.find((field) => field.label === '尝试 ID')?.value, 'attempt-…bf9a9')
+  assert.equal(detail.logFiles.find((file) => file.attemptId === attemptId)?.attemptId, attemptId)
+  assert.match(detail.logFiles.find((file) => file.attemptId === attemptId)?.title, /attempt-…bf9a9/)
+})
+
+test('V2 terminal errors promote backend retry as the primary recovery action', () => {
+  const operations = buildV2DomainOperationModel({ status: 'timed_out', allowedActions: ['retry', 'cleanup'] })
+  assert.deepEqual(operations.primaryAction, { action: 'retry', label: '重新抓取', tone: 'primary', icon: 'timer-reset' })
+  assert.equal(operations.secondaryActions[0]?.action, 'cleanup')
+})
+
+test('repaired NPC failure and armor completion project truthful controls progress artifacts and logs', () => {
+  const npc = {
+    v2Attempt: true,
+    domain: 'npcs',
+    status: 'failed',
+    reasonCode: 'ATTEMPT_START_FAILED',
+    diagnosisTitle: '任务取得执行权后未能启动进程。',
+    suggestedAction: '查看 attempt 身份与启动配置；修复后重新排队。',
+    queueId: 'queue-npcs',
+    attemptId: 'attempt-npcs',
+    stateVersion: 4,
+    allowedActions: ['retry', 'cleanup'],
+    log: { availability: 'missing', previewable: false },
+  }
+  const armor = {
+    v2Attempt: true,
+    domain: 'armor_sets',
+    status: 'completed',
+    phase: 'write',
+    progressLabel: '1 / 1',
+    current: 1,
+    total: 1,
+    queueId: 'queue-armor',
+    attemptId: 'attempt-armor',
+    stateVersion: 5,
+    allowedActions: ['cleanup'],
+    outputPath: '/home/lolben/TerraPedia/data/terraPedia/raw/wiki/module__armorsetbonuses.latest.json',
+    log: { availability: 'available', previewable: true },
+  }
+
+  const npcOperations = buildV2DomainOperationModel(npc)
+  const npcDetail = buildDomainDetailViewModel({ row: npc })
+  const armorDetail = buildDomainDetailViewModel({ row: armor, attemptRows: [armor] })
+  const triage = buildTriageWorkbench({ domainRows: [npc, armor] })
+
+  assert.equal(npcOperations.primaryAction?.label, '重新抓取')
+  assert.equal(npcDetail.overviewFields.find((field) => field.label === '原因码')?.value, 'ATTEMPT_START_FAILED')
+  assert.equal(npcDetail.overviewFields.find((field) => field.label === '日志状态')?.value, '本轮任务未形成日志')
+  assert.match(npcDetail.overviewFields.find((field) => field.label === '建议操作')?.value, /重新排队/)
+  assert.equal(npcDetail.logFiles[0]?.previewable, false)
+
+  assert.equal(armorDetail.overviewFields.find((field) => field.label === '阶段')?.value, '执行阶段：write')
+  assert.equal(armorDetail.overviewFields.find((field) => field.label === '进度')?.value, '1 / 1')
+  assert.equal(armorDetail.overviewFields.find((field) => field.label === '日志状态')?.value, '可读取')
+  assert.equal(armorDetail.logFiles.some((file) => file.previewable), true)
+  assert.equal(armorDetail.artifacts.some((file) => file.path.endsWith('module__armorsetbonuses.latest.json')), true)
+  assert.equal(triage.attentionCards.some((row) => row.domain === 'armor_sets'), false)
+})
+
+test('V2 domain detail exposes the backend suggested action without changing V1 fields', () => {
+  const detail = buildDomainDetailViewModel({
+    row: {
+      v2Attempt: true,
+      domain: 'items',
+      label: 'Items',
+      status: 'failed',
+      queueId: 'queue-items',
+      attemptId: 'attempt-items',
+      stateVersion: 8,
+      suggestedAction: '检查状态存储并执行受控恢复',
+    },
+  })
+
+  assert.equal(detail.overviewFields.find((field) => field.label === '建议操作')?.value, '检查状态存储并执行受控恢复')
+})
+
+test('V2 retry wait and requested controls remain active while interrupted attempts need attention', () => {
+  const view = buildTriageWorkbench({
+    domainRows: [
+      { v2Attempt: true, domain: 'items', status: 'retry_wait', queueStatus: 'retry_wait', allowedActions: [] },
+      { v2Attempt: true, domain: 'bosses', status: 'pause_requested', queueStatus: 'pause_requested', allowedActions: [] },
+      { v2Attempt: true, domain: 'buffs', status: 'cancel_requested', queueStatus: 'cancel_requested', allowedActions: [] },
+      { v2Attempt: true, domain: 'recipes', status: 'interrupted', queueStatus: 'interrupted', allowedActions: [] },
+    ],
+  })
+  const rowsByDomain = new Map(view.allRows.map((row) => [row.domain, row]))
+
+  assert.equal(rowsByDomain.get('items').hasActiveQueue, true)
+  assert.equal(rowsByDomain.get('bosses').isRunning, true)
+  assert.equal(rowsByDomain.get('buffs').isRunning, true)
+  assert.equal(rowsByDomain.get('recipes').needsAttention, true)
+  assert.equal(rowsByDomain.get('recipes').hasActiveQueue, false)
+})
+
+test('V2 transitional and interrupted queue rows preserve Chinese labels and severity tones in the drawer', () => {
+  const detail = buildDomainDetailViewModel({
+    row: { v2Attempt: true, domain: 'items', status: 'running', queueId: 'queue-current', attemptId: 'attempt-current', stateVersion: 8 },
+    queueRows: [
+      { queueId: 'retry', attemptId: 'retry-attempt', domain: 'items', status: 'retry_wait' },
+      { queueId: 'pause', attemptId: 'pause-attempt', domain: 'items', status: 'pause_requested' },
+      { queueId: 'cancel', attemptId: 'cancel-attempt', domain: 'items', status: 'cancel_requested' },
+      { queueId: 'interrupted', attemptId: 'interrupted-attempt', domain: 'items', status: 'interrupted' },
+    ],
+  })
+
+  assert.deepEqual(detail.queueItems.map((item) => [item.statusLabel, item.statusTone]), [
+    ['等待重试', 'warning'],
+    ['暂停请求中', 'info'],
+    ['取消请求中', 'info'],
+    ['已中断', 'danger'],
+  ])
 })
 
 test('log filtering supports level and search without changing line numbers', () => {

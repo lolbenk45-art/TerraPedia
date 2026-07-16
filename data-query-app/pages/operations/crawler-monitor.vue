@@ -1,9 +1,25 @@
 <template>
   <div class="page-wrap page-workspace crawler-monitor crawler-monitor-triage">
+    <CrawlerQueueHealthBanner
+      v-if="v2State && (isUnhealthyV2Health(v2State.queueHealth) || isUnhealthyV2Health(v2State.reconcilerHealth))"
+      :health="v2State.queueHealth"
+      :reconciler-health="v2State.reconcilerHealth"
+    />
+    <section v-if="v2StreamAuthError" class="stream-auth-warning" role="alert" aria-live="assertive">
+      <AlertTriangle :size="20" aria-hidden="true" />
+      <div>
+        <strong>实时状态连接需要重新登录</strong>
+        <p>{{ v2StreamAuthError }}</p>
+        <p>请重新登录或刷新登录状态后再继续监控；当前已加载的队列快照会保留在页面中。</p>
+        <small v-if="lastOverviewRefreshAt">最后一次快照：{{ lastOverviewRefreshAt }}</small>
+      </div>
+    </section>
     <CrawlerTriageBoard
       :view-model="triageWorkbench"
       :loading="loading"
+      :v2-mode="Boolean(v2State)"
       :force-reclaim-all-loading="forceReclaimAllLoading"
+      :is-control-pending="isV2ControlPending"
       @refresh="loadOverview"
       @force-reclaim-all="forceReclaimAllRunningDispatches"
       @open-activity="activityDrawerOpen = true"
@@ -12,16 +28,67 @@
       @domain-action="handleDomainBoardAction"
     />
 
+    <section v-if="v2State" class="operation-catalog" aria-labelledby="operation-catalog-title">
+      <header class="operation-catalog__head">
+        <div>
+          <small>操作目录</small>
+          <h2 id="operation-catalog-title">全部 {{ operationCatalogCount }} 个可选操作</h2>
+          <p>按检查同步、直接抓取、数据处理与入库、数据回填与差异检查分组；点击后先看真实执行摘要。</p>
+        </div>
+        <span class="operation-catalog__count">4 组 · {{ operationCatalogCount }} 项</span>
+      </header>
+      <div class="operation-catalog__groups">
+        <section v-for="group in operationGroups" :key="group.key" class="operation-catalog__group">
+          <header>
+            <h3>{{ group.label }}</h3>
+            <small>{{ group.operations.length }} 项</small>
+          </header>
+          <div class="operation-catalog__list">
+            <article
+              v-for="operation in group.operations"
+              :key="`${operation.domain}:${operation.operationId}`"
+              class="operation-catalog__item"
+            >
+              <div class="operation-catalog__item-main">
+                <small>{{ wikiDomainChineseName({ domain: operation.domain }) }}</small>
+                <strong>{{ operation.labelZh }}</strong>
+                <p>{{ operation.descriptionZh || '后端未提供操作说明' }}</p>
+              </div>
+              <dl>
+                <div><dt>模式</dt><dd>{{ operationModeLabel(operation.mode) }}</dd></div>
+                <div><dt>数据库</dt><dd>{{ databaseAccessLabel(operation.databaseAccess) }}</dd></div>
+              </dl>
+              <button
+                type="button"
+                class="operation-catalog__action"
+                :disabled="!canStartCatalogOperation(operation)"
+                :aria-describedby="catalogOperationDescriptionId(operation)"
+                @click="openCatalogOperationPreflight(operation)"
+              >
+                查看并执行
+              </button>
+              <small :id="catalogOperationDescriptionId(operation)" class="operation-catalog__reason">
+                {{ catalogOperationDisabledReason(operation) || (operation.shortTask ? '短任务，可能很快完成' : '先查看执行摘要，再确认开始') }}
+              </small>
+            </article>
+          </div>
+        </section>
+      </div>
+    </section>
+
     <DomainDetailDrawer
       :open="domainDetailDrawerOpen"
       :detail="selectedDomainDetailViewModel"
       :source-row="selectedTriageDomainRow"
       :log-content="domainLogContent"
       :log-loading="domainLogLoading"
+      :is-control-pending="isV2ControlPending"
       @close="closeDomainDetailDrawer"
       @preview="(path) => openReportPreview(path, 'domain-drawer')"
       @load-log="loadDomainLog"
       @domain-action="handleDomainBoardAction"
+      @operation-start="openOperationPreflight"
+      @history-domain-action="handleV2HistoryDomainAction"
     />
 
     <ActivityDrawer
@@ -42,6 +109,61 @@
       @update-auto-dispatch="updateAutoDispatchDraft"
       @save-auto-dispatch="saveAutoDispatchSettings"
     />
+
+    <section
+      v-if="pendingOperation"
+      class="cancel-confirm-panel operation-preflight-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-label="操作执行预检"
+      @click.self="closeOperationPreflight"
+    >
+      <div class="cancel-confirm-panel__body operation-preflight-panel__body">
+        <header class="operation-preflight-panel__head">
+          <div>
+            <small>执行摘要</small>
+            <h2>{{ pendingOperation.labelZh }}</h2>
+            <p>{{ pendingOperation.descriptionZh || '后端未提供操作说明' }}</p>
+          </div>
+          <button type="button" class="icon-close-button" aria-label="关闭操作预检" @click="closeOperationPreflight">
+            <X :size="18" />
+          </button>
+        </header>
+        <dl class="operation-preflight-grid">
+          <div><dt>域</dt><dd>{{ wikiDomainChineseName({ domain: pendingOperationDomain }) }}</dd></div>
+          <div><dt>操作 ID</dt><dd><code>{{ pendingOperation.operationId }}</code></dd></div>
+          <div><dt>网络来源</dt><dd>{{ pendingOperation.networkAccess ? pendingOperation.sourceLocator || '脚本未提供' : '不访问网络' }}</dd></div>
+          <div><dt>预计请求</dt><dd>{{ formatEstimatedCount(pendingOperation.estimatedRequests) }}</dd></div>
+          <div><dt>预计记录</dt><dd>{{ formatEstimatedCount(pendingOperation.estimatedRecords) }}</dd></div>
+          <div><dt>文件写入</dt><dd>{{ pendingOperation.fileWriteSummary || '无文件写入' }}</dd></div>
+          <div><dt>数据库访问</dt><dd>{{ databaseAccessLabel(pendingOperation.databaseAccess) }}</dd></div>
+          <div><dt>暂停能力</dt><dd>{{ pendingOperation.pauseSupported ? '当前运行任务支持暂停' : '不支持进程暂停' }}</dd></div>
+          <div><dt>断点能力</dt><dd>{{ pendingOperation.resumeSupported ? `支持 · ${pendingOperation.resumeStatePath || '状态路径由脚本管理'}` : '不支持数据级断点' }}</dd></div>
+        </dl>
+        <p v-if="pendingOperation.shortTask" class="operation-preflight-note">短任务，可能在刷新前完成</p>
+        <p v-if="pendingOperation.confirmationLevel === 'destructive'" class="operation-preflight-warning" role="alert">
+          强制重抓或数据库写入属于高风险操作，请再次确认影响范围。
+        </p>
+        <label v-if="pendingOperation.confirmationLevel === 'destructive'" class="operation-preflight-confirm">
+          <input v-model="destructiveConfirmed" type="checkbox" />
+          <span>我已核对来源、文件写入与数据库影响，确认继续</span>
+        </label>
+        <small>当前后端目录共 {{ operationGroups.reduce((total, group) => total + group.operations.length, 0) }} 个操作；此处不生成假计划，缺失估算显示“脚本未提供”。</small>
+        <small>域卡片的当前状态与上次结果独立展示，历史完成状态不会覆盖当前空闲状态。</small>
+        <div class="cancel-confirm-panel__actions">
+          <button type="button" class="inline-report-button" @click="closeOperationPreflight">取消</button>
+          <button
+            type="button"
+            :class="['inline-report-button', pendingOperation.confirmationLevel === 'destructive' ? 'inline-report-button--danger' : '']"
+            :disabled="operationStartLoading || (pendingOperation.confirmationLevel === 'destructive' && !destructiveConfirmed)"
+            :aria-busy="operationStartLoading"
+            @click="confirmOperationStart"
+          >
+            {{ operationStartLoading ? '提交中' : `确认执行：${pendingOperation.labelZh}` }}
+          </button>
+        </div>
+      </div>
+    </section>
 
     <section v-if="dispatchConfirmDomain" class="cancel-confirm-panel" role="dialog" aria-modal="true" aria-label="正式派发确认">
       <div class="cancel-confirm-panel__body">
@@ -132,7 +254,7 @@ import {
   TimerReset,
   X,
 } from 'lucide-vue-next'
-import { get, post, put } from '~/composables/useApi'
+import { get, getAdminBearerHeaders, post, put, resolveApiUrl } from '~/composables/useApi'
 import { showToast } from '~/composables/useToast'
 import {
   hasLiveSourceSnapshotProgress,
@@ -143,6 +265,7 @@ import {
 import {
   buildDomainDetailViewModel,
   buildTriageWorkbench,
+  shortCrawlerIdentity,
   wikiDomainManualDispatchBlockReason,
 } from '~/utils/crawlerMonitorTriageWorkbench.mjs'
 import {
@@ -158,18 +281,27 @@ import {
   buildDomainTableEvidence,
   buildDomainTableRows,
 } from '~/utils/crawlerMonitorDomainTable.mjs'
-import { buildExecutionOverviewRows, executionOverviewStatus } from '~/utils/crawlerMonitorExecutionOverview.mjs'
+import { buildExecutionOverviewRows, buildV2ExecutionOverviewRows, executionOverviewStatus } from '~/utils/crawlerMonitorExecutionOverview.mjs'
 import {
   crawlerStatusChineseLabel,
   wikiCooldownExplanation,
   wikiDomainChineseName,
   wikiHeartbeatSummary,
 } from '~/utils/crawlerMonitorDisplay.mjs'
-import { buildCrawlerUnifiedStatus } from '~/utils/crawlerMonitorUnifiedStatus.mjs'
-import { shouldOfferForceReclaim, buildDispatchControlPayload, buildResumeDispatchPayload, forceReclaimActionLabel } from './crawler-monitor.control.mjs'
+import { buildCrawlerUnifiedStatus, crawlerStatusDisplayLabel } from '~/utils/crawlerMonitorUnifiedStatus.mjs'
+import {
+  defaultOperationForDomain,
+  formatEstimatedCount,
+  groupOperationCatalog,
+  resultKindLabel,
+} from '~/utils/crawlerMonitorOperationCatalog.mjs'
+import { buildV2ControlPayload, canRunV2Control, createV2ControlPendingGuard, executeV2ControlRequest, isV2AuthFailure, shouldOfferForceReclaim, buildDispatchControlPayload, buildResumeDispatchPayload, forceReclaimActionLabel, v2ControlPendingKey } from './crawler-monitor.control.mjs'
+import { applyCrawlerV2Event, applyIncrementalAttemptLog, buildCrawlerV2ViewState, createAttemptLogRequestFence, createV2LogSelectionModel, crawlerV2DomainSelectionKey, isCrawlerQueueV2Overview, latestActionableV2AttemptsByDomain, latestV2TerminalAttemptsByDomain, resolveCurrentV2LogAttemptId } from './crawler-monitor.v2-state.mjs'
+import { createCrawlerMonitorEventClient, createCrawlerMonitorV2Transport, syncCrawlerMonitorPageEventCursor } from './crawler-monitor.events.mjs'
 import { resolveDomainState } from './crawler-monitor.state.mjs'
 import ActivityDrawer from '~/components/crawler-monitor/ActivityDrawer.vue'
 import CrawlerTriageBoard from '~/components/crawler-monitor/CrawlerTriageBoard.vue'
+import CrawlerQueueHealthBanner from '~/components/crawler-monitor/CrawlerQueueHealthBanner.vue'
 import DomainDetailDrawer from '~/components/crawler-monitor/DomainDetailDrawer.vue'
 import SystemDrawer from '~/components/crawler-monitor/SystemDrawer.vue'
 import type {
@@ -183,9 +315,11 @@ import type {
   CrawlerMonitorWikiDispatch,
   CrawlerMonitorWikiDomain,
   CrawlerMonitorWikiQueueItem,
+  CrawlerQueueV2Attempt,
+  CrawlerQueueV2Operation,
 } from '~/types/crawlerMonitor'
 
-definePageMeta({ title: '爬取监控', navSection: '/operations/crawler-monitor', headerVariant: 'compact' })
+definePageMeta({ title: '数据采集与同步', navSection: '/operations/crawler-monitor', headerVariant: 'compact' })
 
 type ProgressRow = CrawlerMonitorRegisteredTask & {
   rowKey: string
@@ -216,6 +350,7 @@ const reportPreview = ref<CrawlerMonitorReportDetail | null>(null)
 const reportPreviewLoading = ref(false)
 const reportPreviewError = ref('')
 const reportPreviewLayer = ref<'page' | 'domain-drawer'>('page')
+const reportPreviewRequestFence = createAttemptLogRequestFence()
 const lastOverviewRefreshAt = ref<string | null>(null)
 const wikiDispatchLoading = ref('')
 const wikiControlLoading = ref('')
@@ -238,10 +373,40 @@ const latestDispatchResult = ref<CrawlerMonitorDispatchResult | null>(null)
 const commandPreviewDomainKey = ref('')
 const cancelConfirmDomainKey = ref('')
 const dispatchConfirmDomainKey = ref('')
+const pendingOperation = ref<CrawlerQueueV2Operation | null>(null)
+const pendingOperationDomain = ref('')
+const destructiveConfirmed = ref(false)
+const operationStartLoading = ref(false)
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 const refreshFailureStreak = ref(0)
 const authRefreshHalted = ref(false)
 let panelSwitchTimer: ReturnType<typeof setTimeout> | null = null
+let v2ReloadTimer: ReturnType<typeof setTimeout> | null = null
+const v2SseConnected = ref(false)
+const v2StreamAuthError = ref('')
+const v2ControlPendingGuard = createV2ControlPendingGuard()
+const v2ControlPendingKeys = ref<Set<string>>(new Set())
+const V2_FALLBACK_INTERVAL_MS = 3000
+const v2Transport = createCrawlerMonitorV2Transport({
+  createClient: createCrawlerMonitorEventClient,
+  loadOverview: () => { void loadOverview() },
+  onConnected: () => {
+    v2SseConnected.value = true
+    clearRefreshTimer()
+  },
+  onDisconnected: () => {
+    v2SseConnected.value = false
+  },
+  onAuthFailure: () => {
+    v2SseConnected.value = false
+    authRefreshHalted.value = true
+    v2StreamAuthError.value = '登录已失效或无访问权限，已停止自动刷新，请重新登录'
+    clearRefreshTimer()
+    showToast(v2StreamAuthError.value, 'error')
+  },
+  isVisible: () => typeof document === 'undefined' || !document.hidden,
+  fallbackIntervalMs: V2_FALLBACK_INTERVAL_MS,
+})
 
 const reportPreviewOpen = computed(() => Boolean(selectedReportPath.value || reportPreview.value || reportPreviewError.value))
 const reportPreviewOverDomainDrawer = computed(() => reportPreviewOpen.value && domainDetailDrawerOpen.value && reportPreviewLayer.value === 'domain-drawer')
@@ -527,11 +692,85 @@ const effectiveRefreshIntervalMs = computed(() => {
   return Math.min(base * factor, 60000)
 })
 const refreshStale = computed(() => Boolean(overview.value?.refreshStale))
-const domainTableRows = computed(() => buildDomainTableRows({
-  domains: visibleWikiDomainRows.value,
-  progressRows: progressRows.value,
-  dispatchQueue: rawDispatchQueueRows.value,
+const v2State = computed(() => isCrawlerQueueV2Overview(overview.value || {}) ? buildCrawlerV2ViewState(overview.value || {}) : null)
+const v2AttemptRows = computed<CrawlerQueueV2Attempt[]>(() => v2State.value?.liveQueue || [])
+const latestActionableV2AttemptByDomain = computed(() => latestActionableV2AttemptsByDomain(
+  v2State.value?.attemptHistory || [],
+  overview.value?.stateStoreEpoch,
+))
+const latestV2TerminalAttemptByDomain = computed(() => latestV2TerminalAttemptsByDomain(
+  v2State.value?.attemptHistory || [],
+  overview.value?.stateStoreEpoch,
+))
+const operationGroups = computed(() => groupOperationCatalog(v2State.value?.domainStates || []))
+const operationCatalogCount = computed(() => operationGroups.value.reduce((total, group) => total + group.operations.length, 0))
+const v2DomainRows = computed(() => (v2State.value?.domainStates || []).map((domainState: any) => {
+  const attempt = v2State.value?.currentByDomain.get(domainState.domain) || null
+  const latestResult = latestV2TerminalAttemptByDomain.value.get(domainState.domain) || null
+  const actionableAttempt = attempt || latestActionableV2AttemptByDomain.value.get(domainState.domain) || null
+  const controlAttempt = actionableAttempt ? { ...actionableAttempt, v2Attempt: true } : null
+  const current = Number(attempt?.current ?? domainState.current)
+  const total = Number(attempt?.total ?? domainState.total)
+  const progressLabel = Number.isFinite(current) && Number.isFinite(total) && total > 0
+    ? `${current} / ${total}`
+    : '暂无可计算进度'
+  const status = String(attempt?.status || domainState.status || 'unknown').toLowerCase()
+  const currentStatusLabel = crawlerStatusDisplayLabel(status)
+  const latestResultLabel = latestResult?.result?.resultKind
+    ? resultKindLabel(latestResult.result.resultKind)
+    : latestResult?.status
+      ? crawlerStatusDisplayLabel(latestResult.status)
+      : '暂无历史结果'
+  const allowedActions = Array.isArray(domainState?.allowedActions)
+    ? domainState.allowedActions
+    : (Array.isArray(attempt?.allowedActions) ? attempt.allowedActions : [])
+  return {
+    v2Attempt: true,
+    domain: domainState.domain,
+    label: wikiDomainChineseName({ domain: domainState.domain }),
+    status,
+    statusLabel: crawlerStatusDisplayLabel(status),
+    currentStatusLabel,
+    latestResult,
+    latestResultLabel,
+    diagnosisTitle: crawlerStatusDisplayLabel(status),
+    risk: status,
+    queueStatus: attempt?.status || status,
+    queueId: attempt?.queueId || '',
+    attemptId: attempt?.attemptId || '',
+    actionId: attempt?.actionId || '',
+    stateStoreEpoch: attempt?.stateStoreEpoch || overview.value?.stateStoreEpoch || '',
+    stateVersion: Number(attempt?.stateVersion ?? domainState.stateVersion ?? 0),
+    controlAttempt,
+    allowedActions: controlAttempt?.allowedActions || allowedActions,
+    startAllowed: allowedActions.includes('start'),
+    operations: Array.isArray(domainState?.operations) ? domainState.operations : [],
+    defaultOperation: defaultOperationForDomain(domainState),
+    operation: attempt?.plan || null,
+    plan: controlAttempt?.plan || attempt?.plan || null,
+    resumeSupported: controlAttempt?.plan?.resumeSupported === true || controlAttempt?.resumeSupported === true,
+    phase: attempt?.phase || domainState.phase || '',
+    current: Number.isFinite(current) ? current : null,
+    total: Number.isFinite(total) ? total : null,
+    progressLabel,
+    heartbeatAt: attempt?.lastHeartbeatAt || domainState.lastHeartbeatAt || '',
+    deadlineAt: attempt?.deadlineAt || domainState.deadlineAt || '',
+    reasonCode: attempt?.reasonCode || domainState.reasonCode || '',
+    reason: attempt?.messageZh || domainState.messageZh || '',
+    rankReason: attempt?.messageZh || domainState.messageZh || '',
+    nextActionLabel: controlAttempt?.suggestedAction || domainState.suggestedAction || '查看详情',
+    queueSummary: attempt ? `队列 ${shortCrawlerIdentity(attempt.queueId)} · 尝试 ${shortCrawlerIdentity(attempt.attemptId)}` : '无当前 V2 尝试',
+    sourceSummary: attempt?.phase || 'V2 当前状态',
+    log: attempt?.log || null,
+  }
 }))
+const domainTableRows = computed<any[]>(() => v2State.value
+  ? v2DomainRows.value
+  : buildDomainTableRows({
+    domains: visibleWikiDomainRows.value,
+    progressRows: progressRows.value,
+    dispatchQueue: rawDispatchQueueRows.value,
+  }))
 const selectedDomainTableRow = computed(() => {
   const rows = domainTableRows.value
   if (!rows.length) return null
@@ -558,6 +797,7 @@ const triageWorkbench = computed<Record<string, any>>(() => buildTriageWorkbench
   domainRows: domainTableRows.value,
   maxAttentionCards: 4,
   autoDispatchEnabled: savedAutoDispatchEnabled.value,
+  activeQueueCount: v2State.value ? v2AttemptRows.value.length : activeDispatchQueueRows.value.length,
   recentUpdatedCount: recentReportRows.value.length,
   now: lastOverviewRefreshAt.value || new Date().toISOString(),
 } as any) as Record<string, any>)
@@ -571,11 +811,19 @@ const selectedDomainDetailViewModel = computed<Record<string, any> | null>(() =>
   row: selectedTriageDomainRow.value,
   executionRows: executionOverviewRows.value,
   progressRows: progressDetailRowsByPriority.value,
-  queueRows: rawDispatchQueueRows.value,
+  queueRows: v2State.value ? v2AttemptRows.value : rawDispatchQueueRows.value,
+  attemptRows: v2State.value
+    ? [...(v2State.value?.attemptHistory || []), ...(v2State.value?.legacyHistory || [])]
+    : null,
 } as any) as Record<string, any> | null)
-const activityDrawerRows = computed(() => (executionOverviewRows.value.length
-  ? executionOverviewRows.value
-  : progressDetailRowsByPriority.value).map((row: any) => activityDisplayRow(row)))
+const activityDrawerRows = computed(() => (v2State.value
+  ? buildV2ExecutionOverviewRows({
+    liveQueue: v2State.value.liveQueue,
+    attemptHistory: v2State.value.attemptHistory,
+  })
+  : executionOverviewRows.value.length
+    ? executionOverviewRows.value
+    : progressDetailRowsByPriority.value).map((row: any) => activityDisplayRow(row)))
 const failedDomainRows = computed(() => domainTableRows.value.filter((row) => statusTone(row.risk || row.status) === 'danger'))
 const runningDomainRows = computed(() => domainTableRows.value.filter((row) => {
   const status = String(row.status || row.risk || '').toLowerCase()
@@ -821,7 +1069,7 @@ const blockedDomainFocus = computed(() => {
   if (blockedQueue) {
     return {
       label: queueItemDomainLabel(blockedQueue),
-      detail: `${statusLabel(queueItemStatus(blockedQueue))} · ${queueItemBlockerLabel(blockedQueue)} · ${blockedQueue.queueId || blockedQueue.actionId || '无 queueId'}`,
+      detail: `${statusLabel(queueItemStatus(blockedQueue))} · ${queueItemBlockerLabel(blockedQueue)} · ${blockedQueue.queueId ? shortCrawlerIdentity(blockedQueue.queueId) : blockedQueue.actionId || '无 queueId'}`,
       queueItem: blockedQueue,
       row: null,
     }
@@ -995,7 +1243,7 @@ onMounted(async () => {
     }
   }
   syncAutoRefresh()
-
+  syncMonitorTransport()
   if (import.meta.client) {
     const initialDomainKey = route.query.domain
     openDomainDetailFromQuery(Array.isArray(initialDomainKey) ? initialDomainKey[0] : initialDomainKey)
@@ -1005,6 +1253,9 @@ onMounted(async () => {
 
 onUnmounted(() => {
   clearRefreshTimer()
+  stopV2EventStream()
+  clearV2FallbackPolling()
+  if (v2ReloadTimer) clearTimeout(v2ReloadTimer)
   if (panelSwitchTimer) {
     clearTimeout(panelSwitchTimer)
     panelSwitchTimer = null
@@ -1015,11 +1266,11 @@ onUnmounted(() => {
 })
 
 watch(autoRefresh, () => {
-  syncAutoRefresh()
+  syncMonitorTransport()
 })
 
 watch(effectiveRefreshIntervalMs, () => {
-  syncAutoRefresh()
+  syncMonitorTransport()
 })
 
 async function loadOverview() {
@@ -1031,14 +1282,16 @@ async function loadOverview() {
     lastOverviewRefreshAt.value = new Date().toISOString()
     refreshFailureStreak.value = 0
     authRefreshHalted.value = false
+    v2StreamAuthError.value = ''
+    syncMonitorTransport()
   } catch (error: any) {
     console.error('Failed to load crawler monitor overview:', error)
     const statusCode = Number(error?.statusCode ?? error?.response?.status ?? error?.data?.statusCode ?? 0)
     if (statusCode === 401 || statusCode === 403) {
-      authRefreshHalted.value = true
-      autoRefresh.value = false
-      clearRefreshTimer()
-      showToast('登录已失效或无访问权限，已停止自动刷新，请重新登录', 'error')
+      haltV2TransportForAuthFailure()
+      if (v2State.value) {
+        v2StreamAuthError.value = '登录已失效或无访问权限，已停止自动刷新，请重新登录'
+      }
       return
     }
     refreshFailureStreak.value = Math.min(refreshFailureStreak.value + 1, 6)
@@ -1046,6 +1299,80 @@ async function loadOverview() {
   } finally {
     loading.value = false
   }
+}
+
+function haltV2TransportForAuthFailure() {
+  authRefreshHalted.value = true
+  v2SseConnected.value = false
+  v2StreamAuthError.value = '登录已失效或无访问权限，已停止自动刷新，请重新登录'
+  autoRefresh.value = false
+  v2Transport.handleRestAuthFailure()
+  clearRefreshTimer()
+}
+
+function syncMonitorTransport() {
+  if (v2State.value) {
+    clearRefreshTimer()
+    if (!authRefreshHalted.value) startV2EventStream()
+    return
+  }
+  stopV2EventStream()
+  clearV2FallbackPolling()
+  syncAutoRefresh()
+}
+
+function isUnhealthyV2Health(health: any) {
+  return Boolean(health?.status && health.status !== 'healthy')
+}
+
+function startV2EventStream() {
+  if (!import.meta.client || authRefreshHalted.value) return
+  const token = getAdminBearerHeaders().Authorization?.replace(/^Bearer\s+/i, '') || ''
+  if (!token) {
+    haltV2TransportForAuthFailure()
+    return
+  }
+  v2Transport.syncAfterOverview({
+    url: resolveApiUrl('/admin/crawler-monitor/events'),
+    token,
+    after: v2State.value?.streamCursor || '',
+    onEvent: (frame: any) => handleV2StreamEvent(frame),
+  })
+}
+
+function stopV2EventStream() {
+  v2Transport.stop()
+  v2SseConnected.value = false
+}
+
+function startV2FallbackPolling(intervalMs = V2_FALLBACK_INTERVAL_MS) {
+  if (!v2State.value || authRefreshHalted.value || !import.meta.client) return
+  v2Transport.onDisconnect({ fallbackIntervalMs: intervalMs })
+}
+
+function clearV2FallbackPolling() {
+  v2Transport.clearFallback()
+}
+
+function handleV2StreamEvent(frame: any) {
+  const payload = frame?.data && typeof frame.data === 'object' ? frame.data : {}
+  const decision = applyCrawlerV2Event(v2State.value, {
+    ...payload,
+    type: frame?.event,
+    nextCursor: payload.nextCursor,
+  })
+  if (decision.action === 'ignore') return
+  syncCrawlerMonitorPageEventCursor({ client: v2Transport.getClient(), frame, decision })
+  if (decision.reason === 'stream-gap' || decision.reason === 'epoch-changed') {
+    if (v2ReloadTimer) clearTimeout(v2ReloadTimer)
+    void loadOverview()
+    return
+  }
+  if (v2ReloadTimer) clearTimeout(v2ReloadTimer)
+  v2ReloadTimer = setTimeout(() => {
+    v2ReloadTimer = null
+    void loadOverview()
+  }, 100)
 }
 
 async function saveAutoDispatchSettings() {
@@ -1075,11 +1402,31 @@ async function saveAutoDispatchSettings() {
 const domainLogContent = ref('')
 const domainLogLoading = ref(false)
 const currentDomainLogPath = ref('')
+const currentDomainLogAttemptId = ref('')
+const currentDomainLogOffset = ref(0)
+const currentDomainLogMetadata = ref<Record<string, any> | null>(null)
+const v2LogRequestFence = createAttemptLogRequestFence()
+const v2LogSelection = createV2LogSelectionModel()
+let activeDomainLogKey = ''
 
-async function loadDomainLog(path?: string | null) {
+async function loadDomainLog(selection?: string | { attemptId: string } | null) {
+  if (selection && typeof selection === 'object' && selection.attemptId) {
+    v2LogSelection.select(selection.attemptId, selectedTriageDomainRow.value?.attemptId)
+    await loadV2DomainLog(selection.attemptId)
+    return
+  }
+  const path = typeof selection === 'string' ? selection : ''
   if (!path) return
+  v2LogSelection.selectPath(path)
+  currentDomainLogAttemptId.value = ''
+  currentDomainLogOffset.value = 0
+  currentDomainLogMetadata.value = null
+  domainLogContent.value = ''
+  v2LogRequestFence.invalidate()
+  const request = v2LogRequestFence.begin(`path:${path}`)
   currentDomainLogPath.value = path
   if (!isPreviewableDomainLogPath(path)) {
+    if (!v2LogRequestFence.isCurrent(request)) return
     domainLogLoading.value = false
     domainLogContent.value = '该日志路径只是运行记录，文件可能已清理、是路径模板，或不允许在页面内读取。'
     return
@@ -1087,19 +1434,104 @@ async function loadDomainLog(path?: string | null) {
   domainLogLoading.value = true
   try {
     const response: any = await get('/admin/crawler-monitor/report', { path })
+    if (!v2LogRequestFence.isCurrent(request)) return
     const detail = (response?.data ?? response) || null
     domainLogContent.value = detail?.content || detail?.errorMessage || '（该日志暂无可读内容）'
   } catch (error: any) {
+    if (!v2LogRequestFence.isCurrent(request)) return
     console.error('Failed to load crawler monitor log:', error)
     domainLogContent.value = error?.data?.message || error?.message || '加载日志失败'
   } finally {
-    domainLogLoading.value = false
+    if (v2LogRequestFence.isCurrent(request)) domainLogLoading.value = false
+  }
+}
+
+async function loadV2DomainLog(attemptId: string, reset = attemptId !== currentDomainLogAttemptId.value) {
+  if (!attemptId) return
+  const request = v2LogRequestFence.begin(attemptId)
+  if (reset) {
+    currentDomainLogMetadata.value = null
+    currentDomainLogAttemptId.value = attemptId
+    currentDomainLogOffset.value = 0
+    domainLogContent.value = ''
+  }
+  domainLogLoading.value = true
+  try {
+    const response: any = await get(`/admin/crawler-monitor/attempts/${encodeURIComponent(attemptId)}/log`, {
+      offset: reset ? 0 : currentDomainLogOffset.value,
+      maxBytes: 262144,
+    })
+    if (!v2LogRequestFence.isCurrent(request)) return
+    const detail = (response?.data ?? response) || {}
+    currentDomainLogMetadata.value = detail
+    const availability = String(detail.availability || '').toLowerCase()
+    const updated = applyIncrementalAttemptLog({
+      attemptId: currentDomainLogAttemptId.value,
+      content: domainLogContent.value,
+      offset: currentDomainLogOffset.value,
+    }, {
+      ...detail,
+      attemptId,
+      reset,
+    })
+    currentDomainLogAttemptId.value = updated.attemptId
+    currentDomainLogOffset.value = updated.offset
+    if (availability === 'available') {
+      domainLogContent.value = updated.content
+    } else if (availability === 'empty') {
+      domainLogContent.value = '日志已创建但暂无内容'
+    } else if (availability === 'missing') {
+      domainLogContent.value = '本轮任务未形成日志'
+    } else if (availability === 'expired') {
+      domainLogContent.value = '日志已过保留期，manifest 仍可查看'
+    } else if (availability === 'forbidden') {
+      domainLogContent.value = '日志路径不符合 attempt 安全策略'
+    } else {
+      domainLogContent.value = detail.reasonCode || '日志状态未知'
+    }
+  } catch (error: any) {
+    if (!v2LogRequestFence.isCurrent(request)) return
+    if (isV2AuthFailure(error)) {
+      haltV2TransportForAuthFailure()
+      return
+    }
+    domainLogContent.value = error?.data?.messageZh || error?.data?.message || error?.message || '加载日志失败'
+  } finally {
+    if (v2LogRequestFence.isCurrent(request)) domainLogLoading.value = false
   }
 }
 
 watch([domainDetailDrawerOpen, selectedDomainDetailViewModel], ([open, detail]) => {
   if (!open) {
+    activeDomainLogKey = ''
     currentDomainLogPath.value = ''
+    currentDomainLogAttemptId.value = ''
+    currentDomainLogOffset.value = 0
+    currentDomainLogMetadata.value = null
+    v2LogRequestFence.invalidate()
+    v2LogSelection.sync({ open: false })
+    return
+  }
+  const domainKey = String(selectedTriageDomainRow.value?.domain || '')
+  if (domainKey !== activeDomainLogKey) {
+    activeDomainLogKey = domainKey
+    v2LogRequestFence.invalidate()
+    currentDomainLogPath.value = ''
+    currentDomainLogAttemptId.value = ''
+    currentDomainLogOffset.value = 0
+    currentDomainLogMetadata.value = null
+    domainLogContent.value = ''
+    domainLogLoading.value = false
+  }
+  const currentV2AttemptId = resolveCurrentV2LogAttemptId({ selectedRow: selectedTriageDomainRow.value, detail })
+  const v2AttemptId = v2LogSelection.sync({
+    open: true,
+    domainKey,
+    currentAttemptId: currentV2AttemptId,
+  }).attemptId
+  if (v2LogSelection.current().mode === 'manual-path') return
+  if (v2AttemptId) {
+    if (v2AttemptId !== currentDomainLogAttemptId.value) void loadV2DomainLog(v2AttemptId, true)
     return
   }
   const firstLogPath = String((detail?.logFiles || []).find((file: any) => file?.previewable && isPreviewableDomainLogPath(file.path))?.path || '').trim()
@@ -1112,25 +1544,38 @@ watch([domainDetailDrawerOpen, selectedDomainDetailViewModel], ([open, detail]) 
   void loadDomainLog(firstLogPath)
 })
 
+watch(() => {
+  const row: any = selectedTriageDomainRow.value
+  return [row?.attemptId, row?.log?.sizeBytes, row?.log?.lastWriteAt, row?.log?.availability]
+}, ([attemptId]) => {
+  if (v2LogSelection.current().mode === 'follow-current' && domainDetailDrawerOpen.value && attemptId && attemptId === currentDomainLogAttemptId.value) {
+    void loadV2DomainLog(String(attemptId), false)
+  }
+})
+
 async function openReportPreview(path?: string | null, layer: 'page' | 'domain-drawer' = 'page') {
   if (!isPreviewableReportPath(path) && !isPreviewableProgressPath(path) && !isPreviewableGeneratedJsonPath(path)) return
+  const request = reportPreviewRequestFence.begin(`report:${path}`)
   reportPreviewLayer.value = layer
   selectedReportPath.value = path || null
+  reportPreview.value = null
   reportPreviewLoading.value = true
   reportPreviewError.value = ''
   try {
     const response: any = await get('/admin/crawler-monitor/report', { path })
+    if (!reportPreviewRequestFence.isCurrent(request)) return
     reportPreview.value = (response?.data ?? response) || null
     if (reportPreview.value?.errorMessage) {
       reportPreviewError.value = reportPreview.value.errorMessage
     }
   } catch (error: any) {
+    if (!reportPreviewRequestFence.isCurrent(request)) return
     console.error('Failed to load crawler monitor report preview:', error)
     reportPreview.value = null
     reportPreviewError.value = error?.data?.message || error?.message || '加载报告预览失败'
     showToast(reportPreviewError.value, 'error')
   } finally {
-    reportPreviewLoading.value = false
+    if (reportPreviewRequestFence.isCurrent(request)) reportPreviewLoading.value = false
   }
 }
 
@@ -1140,6 +1585,7 @@ function closeSelectedDomainDrawer() {
   domainDetailDrawerOpen.value = false
   hasAutoSelectedDomain.value = true
   currentDomainLogPath.value = ''
+  currentDomainLogAttemptId.value = ''
   domainLogContent.value = ''
 }
 
@@ -1182,6 +1628,7 @@ function selectDomainTableRow(row: any) {
 function openDomainDetailDrawer(row: any) {
   selectDomainTableRow(row)
   currentDomainLogPath.value = ''
+  currentDomainLogAttemptId.value = ''
   domainLogContent.value = ''
   domainDetailDrawerOpen.value = true
 }
@@ -1189,6 +1636,7 @@ function openDomainDetailDrawer(row: any) {
 function closeDomainDetailDrawer() {
   domainDetailDrawerOpen.value = false
   currentDomainLogPath.value = ''
+  currentDomainLogAttemptId.value = ''
   domainLogContent.value = ''
 }
 
@@ -1202,6 +1650,8 @@ function updateAutoDispatchDraft(settings: Record<string, any>) {
 function handleDomainBoardAction(action: string, row: any) {
   if (!row) return
   if (action === 'open') return openDomainDetailDrawer(row)
+  if (action === 'start') return startDomainTableRow(row)
+  if (row.v2Attempt) return controlV2Attempt(row?.controlAttempt || row, action)
   if (action === 'force-reclaim') return forceReclaimDomainTableRow(row)
   if (action === 'cancel') {
     selectDomainTableRow(row)
@@ -1215,10 +1665,164 @@ function handleDomainBoardAction(action: string, row: any) {
   if (action === 'continue-crawl') return continueDomainTableRow(row)
   if (action === 'fail-current') return failCurrentDomainTableRow(row)
   if (action === 'make-resume-failure') return makeResumeFailureDomainTableRow(row)
-  if (action === 'start') return startDomainTableRow(row)
+}
+
+function openOperationPreflight(operation: CrawlerQueueV2Operation | null | undefined, row: any) {
+  const domainId = String(row?.domain || '')
+  if (!operation || !domainId) {
+    showToast('当前域没有可执行的后端操作', 'warning')
+    return
+  }
+  selectDomainTableRow(row)
+  pendingOperation.value = operation
+  pendingOperationDomain.value = domainId
+  destructiveConfirmed.value = false
+}
+
+function catalogDomainState(operation: CrawlerQueueV2Operation | null | undefined) {
+  return (v2State.value?.domainStates || []).find((domainState: any) => domainState.domain === operation?.domain) || null
+}
+
+function canStartCatalogOperation(operation: CrawlerQueueV2Operation | null | undefined) {
+  if (!operation || operationStartLoading.value) return false
+  const domainState = catalogDomainState(operation)
+  return Array.isArray(domainState?.allowedActions) && domainState.allowedActions.includes('start')
+}
+
+function catalogOperationDisabledReason(operation: CrawlerQueueV2Operation | null | undefined) {
+  if (!operation) return '操作信息不完整'
+  if (operationStartLoading.value) return '正在提交另一个操作'
+  const domainState = catalogDomainState(operation)
+  if (!domainState) return '当前域状态不可用，请刷新后重试'
+  if (Array.isArray(domainState.allowedActions) && domainState.allowedActions.includes('start')) return ''
+  if (['starting', 'running', 'queued', 'retry_wait', 'paused', 'pause_requested', 'cancel_requested'].includes(String(domainState.status || '').toLowerCase())) {
+    return '当前域已有任务，需等待结束或先处理当前任务'
+  }
+  return '当前状态不允许开始新任务'
+}
+
+function catalogOperationDescriptionId(operation: CrawlerQueueV2Operation | null | undefined) {
+  return `catalog-operation-${String(operation?.domain || 'unknown')}-${String(operation?.operationId || 'unknown')}-description`
+}
+
+function openCatalogOperationPreflight(operation: CrawlerQueueV2Operation | null | undefined) {
+  if (!canStartCatalogOperation(operation)) {
+    showToast(catalogOperationDisabledReason(operation), 'warning')
+    return
+  }
+  const row = v2DomainRows.value.find((candidate: any) => candidate.domain === operation?.domain)
+  openOperationPreflight(operation, row || { domain: operation?.domain })
+}
+
+function operationModeLabel(mode: string | null | undefined) {
+  return ({
+    check: '检查',
+    force: '强制重抓',
+    fresh: '重新抓取',
+    preview: '预览',
+    apply: '正式执行',
+  } as Record<string, string>)[String(mode || '')] || '未说明'
+}
+
+function closeOperationPreflight() {
+  if (operationStartLoading.value) return
+  resetOperationPreflight()
+}
+
+function resetOperationPreflight() {
+  pendingOperation.value = null
+  pendingOperationDomain.value = ''
+  destructiveConfirmed.value = false
+}
+
+async function confirmOperationStart() {
+  const operation = pendingOperation.value
+  const domainId = pendingOperationDomain.value
+  if (!operation || !domainId) return
+  if (operation.confirmationLevel === 'destructive' && !destructiveConfirmed.value) {
+    showToast('请先完成高风险操作二次确认', 'warning')
+    return
+  }
+  operationStartLoading.value = true
+  wikiDispatchLoading.value = domainId
+  try {
+    const response: any = await post(
+      `/admin/crawler-monitor/domains/${encodeURIComponent(domainId)}/start`,
+      {
+        operationId: operation.operationId,
+        resumeMode: 'fresh',
+        confirmed: operation.confirmationLevel === 'destructive',
+      },
+    )
+    latestDispatchResult.value = (response?.data ?? response) || null
+    showToast(dispatchFeedbackMessage(latestDispatchResult.value) || `已提交：${operation.labelZh}`, latestDispatchResult.value?.accepted === false ? 'warning' : 'success')
+    resetOperationPreflight()
+    await loadOverview()
+  } catch (error: any) {
+    showToast(error?.data?.message || error?.message || `提交${operation.labelZh}失败`, 'error')
+  } finally {
+    operationStartLoading.value = false
+    wikiDispatchLoading.value = ''
+  }
+}
+
+function handleV2HistoryDomainAction(action: string, row: any) {
+  if (!row?.queueId || !row?.attemptId || !row?.stateVersion) {
+    showToast('历史任务缺少可控制的精确身份', 'warning')
+    return
+  }
+  return controlV2Attempt({ ...row, v2Attempt: true }, action)
+}
+
+async function controlV2Attempt(row: any, controlAction: string) {
+  if (!canRunV2Control(row, controlAction)) {
+    showToast('当前操作未获后端允许，请刷新状态后再试', 'warning')
+    return
+  }
+  if (!v2ControlPendingGuard.tryAcquire(row, controlAction)) return
+  syncV2ControlPendingKeys()
+  try {
+    if (controlAction === 'cancel' && import.meta.client && !window.confirm('确认终止当前 V2 尝试任务？')) return
+    await executeV2ControlRequest({
+      post,
+      path: '/admin/crawler-monitor/dispatch/control',
+      payload: buildV2ControlPayload(controlAction, row),
+      onSuccess: async (data: any) => {
+        latestDispatchResult.value = data
+        showToast((latestDispatchResult.value as any)?.messageZh || '控制指令已提交', 'success')
+        await loadOverview()
+      },
+      onStale: async (data: any) => {
+        showToast(data?.messageZh || '任务状态已变化，请刷新后重试', 'warning')
+        await loadOverview()
+      },
+      onAuthFailure: () => haltV2TransportForAuthFailure(),
+      onError: (data: any, error: any) => {
+        showToast(data?.messageZh || data?.message || error?.message || '控制任务失败', 'error')
+      },
+    })
+  } finally {
+    v2ControlPendingGuard.release(row, controlAction)
+    syncV2ControlPendingKeys()
+  }
+}
+
+function syncV2ControlPendingKeys() {
+  v2ControlPendingKeys.value = new Set(v2ControlPendingGuard.pendingKeys())
+}
+
+function isV2ControlPending(row: Record<string, any> | null | undefined, controlAction: string) {
+  const controlTarget = row?.controlAttempt || row
+  if (!controlTarget?.v2Attempt) return false
+  try {
+    return v2ControlPendingKeys.value.has(v2ControlPendingKey(controlTarget, controlAction))
+  } catch {
+    return false
+  }
 }
 
 function selectedDomainTableRowKey(row: any) {
+  if (row?.v2Attempt) return crawlerV2DomainSelectionKey(row)
   return [
     row?.queueId ? `queue:${row.queueId}` : '',
     row?.dispatchId ? `dispatch:${row.dispatchId}` : '',
@@ -1562,15 +2166,15 @@ function queueItemBlockerLabel(item: CrawlerMonitorWikiQueueItem | null | undefi
   return [
     item.blockedByDomain ? `域 ${item.blockedByDomain}` : '',
     item.blockedByActionId ? `动作 ${item.blockedByActionId}` : '',
-    item.blockedByDispatchId ? `派发 ${item.blockedByDispatchId}` : '',
+    item.blockedByDispatchId ? `派发 ${shortCrawlerIdentity(item.blockedByDispatchId)}` : '',
   ].filter(Boolean).join(' / ')
 }
 
 function queueItemIdentityLabel(item: CrawlerMonitorWikiQueueItem | null | undefined) {
   if (!item) return 'queueId: 未返回'
   return [
-    `queueId: ${item.queueId || '未返回'}`,
-    item.dispatchId ? `dispatchId: ${item.dispatchId}` : '',
+    `queueId: ${item.queueId ? shortCrawlerIdentity(item.queueId) : '未返回'}`,
+    item.dispatchId ? `dispatchId: ${shortCrawlerIdentity(item.dispatchId)}` : '',
     item.pid ? `pid: ${item.pid}` : '',
   ].filter(Boolean).join(' · ')
 }
@@ -1764,6 +2368,9 @@ async function failCurrentDomainTableRow(row: any) {
 
 async function startDomainTableRow(row: any) {
   selectDomainTableRow(row)
+  if (row?.v2Attempt) {
+    return openOperationPreflight(row.defaultOperation, row)
+  }
   const domain = row?.sourceDomain || null
   const blockedReason = wikiDomainManualDispatchBlockReason(row)
   if (!domain || blockedReason) {
@@ -1798,7 +2405,7 @@ async function forceReclaimDomainTableRow(row: any) {
   selectDomainTableRow(row)
   const payload = buildDispatchControlPayload('forceReclaim', row)
   const actionLabel = forceReclaimActionLabel(row)
-  if (import.meta.client && !window.confirm(`确认${actionLabel}：${row?.label || row?.domain || row?.actionId || '当前域'}？\n任务编号：${row?.queueId || row?.dispatchId || '无'}\n证据：${domainRowEvidencePath(row) || row?.progressRow?.progressPath || '无'}`)) return
+  if (import.meta.client && !window.confirm(`确认${actionLabel}：${row?.label || row?.domain || row?.actionId || '当前域'}？\n任务编号：${row?.queueId || row?.dispatchId ? shortCrawlerIdentity(row?.queueId || row?.dispatchId) : '无'}\n证据：${domainRowEvidencePath(row) || row?.progressRow?.progressPath || '无'}`)) return
   try {
     const response: any = await post('/admin/crawler-monitor/dispatch/control', payload)
     latestDispatchResult.value = (response?.data ?? response) || null
@@ -2512,6 +3119,7 @@ async function cancelRunningDispatchItem(item: CrawlerMonitorWikiQueueItem) {
 }
 
 function closeReportPreview() {
+  reportPreviewRequestFence.invalidate()
   selectedReportPath.value = null
   reportPreview.value = null
   reportPreviewError.value = ''
@@ -2542,6 +3150,7 @@ function noiseKey(...parts: Array<string | null | undefined>) {
 
 function syncAutoRefresh() {
   clearRefreshTimer()
+  if (v2State.value) return
   if (!autoRefresh.value || authRefreshHalted.value || !import.meta.client) return
   if (typeof document !== 'undefined' && document.hidden) return
   refreshTimer = setInterval(() => {
@@ -2562,6 +3171,12 @@ function handleVisibilityChange() {
   if (typeof document === 'undefined') return
   if (document.hidden) {
     clearRefreshTimer()
+    stopV2EventStream()
+    clearV2FallbackPolling()
+    return
+  }
+  if (v2State.value) {
+    syncMonitorTransport()
     return
   }
   if (autoRefresh.value && !authRefreshHalted.value) {
@@ -2605,6 +3220,12 @@ function statusLabel(status?: string | null) {
   if (normalized === 'cooldown') return '冷却中'
   if (normalized === 'accepted') return '已接收'
   return normalized || '未知'
+}
+
+function databaseAccessLabel(access?: string | null) {
+  if (access === 'write') return '写入数据库'
+  if (access === 'read') return '只读访问数据库'
+  return '不访问数据库'
 }
 
 function activityDisplayRow(row: any) {
@@ -2886,11 +3507,11 @@ function isOperationalProgressRow(row: ProgressRow) {
 function statusTone(status?: string | null) {
   const normalized = String(status || '').toLowerCase()
   if (['completed', 'success', 'ok', 'readable', 'free'].includes(normalized)) return 'success'
-  if (['failed', 'error', 'missing', 'read error', 'blocked', 'timed_out'].includes(normalized)) return 'danger'
-  if (['running', 'active'].includes(normalized)) return 'info'
+  if (['failed', 'error', 'missing', 'read error', 'blocked', 'timed_out', 'interrupted'].includes(normalized)) return 'danger'
+  if (['running', 'active', 'pause_requested', 'cancel_requested'].includes(normalized)) return 'info'
   if (normalized === 'ready') return 'ready'
   if (normalized === 'cancelled') return 'cancelled'
-  if (['pending', 'sleeping', 'locked', 'queued', 'blocked_cooldown', 'starting', 'stalled', 'warning', 'paused'].includes(normalized)) return 'warning'
+  if (['pending', 'sleeping', 'locked', 'queued', 'retry_wait', 'blocked_cooldown', 'starting', 'stalled', 'warning', 'paused'].includes(normalized)) return 'warning'
   return 'muted'
 }
 
@@ -3342,6 +3963,152 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   background: var(--color-bg);
 }
 
+.operation-catalog {
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+  box-shadow: var(--shadow-sm);
+  padding: 18px;
+}
+
+.operation-catalog__head,
+.operation-catalog__group > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.operation-catalog__head h2,
+.operation-catalog__group h3,
+.operation-catalog__item p {
+  margin: 0;
+}
+
+.operation-catalog__head p {
+  max-width: 720px;
+  margin: 6px 0 0;
+  color: var(--color-text-secondary);
+}
+
+.operation-catalog__count {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--color-info-muted);
+  color: var(--color-info);
+  padding: 6px 10px;
+  font-weight: 700;
+}
+
+.operation-catalog__groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.operation-catalog__group {
+  min-width: 0;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-1);
+  padding: 14px;
+}
+
+.operation-catalog__group > header small,
+.operation-catalog__item-main > small,
+.operation-catalog__reason {
+  color: var(--color-text-muted);
+}
+
+.operation-catalog__list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.operation-catalog__item {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 14px;
+  border-top: 1px solid var(--color-border-light);
+  padding-top: 12px;
+}
+
+.operation-catalog__item-main,
+.operation-catalog__item strong,
+.operation-catalog__item p,
+.operation-catalog__reason {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.operation-catalog__item-main strong {
+  display: block;
+  margin: 3px 0;
+}
+
+.operation-catalog__item p,
+.operation-catalog__reason {
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.operation-catalog__item dl {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+}
+
+.operation-catalog__item dl > div {
+  min-width: 72px;
+}
+
+.operation-catalog__item dt {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.operation-catalog__item dd {
+  margin: 2px 0 0;
+  font-weight: 700;
+}
+
+.operation-catalog__action {
+  min-height: 44px;
+  align-self: end;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  padding: 0 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.operation-catalog__action:hover:not(:disabled),
+.operation-catalog__action:focus-visible {
+  border-color: var(--color-primary);
+  background: var(--color-bg-hover);
+}
+
+.operation-catalog__action:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.operation-catalog__action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.operation-catalog__reason {
+  grid-column: 1 / -1;
+}
+
 .inline-report-button {
   min-height: 38px;
   display: inline-flex;
@@ -3384,6 +4151,90 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   background: var(--color-bg-sidebar-scrim);
 }
 
+.operation-preflight-panel {
+  z-index: calc(var(--z-modal) + 3);
+}
+
+.operation-preflight-panel__body {
+  width: min(720px, 100%);
+  max-height: min(86vh, 760px);
+  overflow-y: auto;
+}
+
+.operation-preflight-panel__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.operation-preflight-panel__head > div {
+  min-width: 0;
+}
+
+.operation-preflight-panel__head small,
+.operation-preflight-panel__body > small {
+  color: var(--color-text-muted);
+}
+
+.operation-preflight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.operation-preflight-grid > div {
+  min-width: 0;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-1);
+  padding: 10px;
+}
+
+.operation-preflight-grid dt {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.operation-preflight-grid dd {
+  margin: 5px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.operation-preflight-note,
+.operation-preflight-warning,
+.operation-preflight-confirm {
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.operation-preflight-note {
+  background: var(--color-info-muted);
+  color: var(--color-info);
+}
+
+.operation-preflight-warning {
+  background: var(--color-danger-muted);
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+.operation-preflight-confirm {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+  border: 1px solid var(--color-danger);
+  cursor: pointer;
+}
+
+.operation-preflight-confirm input {
+  width: 18px;
+  height: 18px;
+}
+
 .cancel-confirm-panel__body {
   width: min(560px, 100%);
   border: 1px solid var(--color-border);
@@ -3420,6 +4271,26 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.stream-auth-warning {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  border: 1px solid var(--color-danger);
+  border-left: 4px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-muted);
+  color: var(--color-text);
+  padding: 12px 14px;
+}
+
+.stream-auth-warning p,
+.stream-auth-warning small {
+  display: block;
+  margin: 4px 0 0;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
 }
 
 .report-drawer-backdrop {
@@ -3541,6 +4412,22 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
 @media (max-width: 760px) {
   .cancel-confirm-panel {
     padding: 12px;
+  }
+
+  .operation-preflight-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .operation-catalog__head,
+  .operation-catalog__group > header,
+  .operation-catalog__item,
+  .operation-catalog__groups {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .operation-catalog__count {
+    justify-self: start;
   }
 
   .report-drawer {

@@ -273,6 +273,11 @@ resolved_minio_credentials_file=""
 if [[ -n "$TP_MINIO_CREDENTIALS_FILE" ]]; then
   resolved_minio_credentials_file="$(resolve_runtime_path "$TP_MINIO_CREDENTIALS_FILE")"
 fi
+resolved_redis_data_dir="$(resolve_runtime_path "$TP_REDIS_DATA_DIR")"
+if [[ -z "$resolved_redis_data_dir" ]]; then
+  log_error "Redis data directory is empty"
+  exit 1
+fi
 
 export APP_PORT="$TP_BACKEND_PORT"
 export TERRAPEDIA_DB_NAME="$TP_DB_NAME"
@@ -332,8 +337,32 @@ preflight_status="passed"
 
 run_snapshot_gc_if_due
 
+verify_shared_redis_data_dir() {
+  case "$TP_REDIS_HOST" in
+    127.0.0.1|localhost|::1)
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+
+  require_command redis-cli
+  local config_output actual_redis_data_dir
+  if ! config_output="$(REDISCLI_AUTH="$TP_REDIS_PASSWORD" redis-cli -h "$TP_REDIS_HOST" -p "$TP_REDIS_PORT" --raw CONFIG GET dir 2>/dev/null)"; then
+    log_error "Unable to verify shared Redis data directory on $TP_REDIS_HOST:$TP_REDIS_PORT"
+    exit 1
+  fi
+  actual_redis_data_dir="$(printf '%s\n' "$config_output" | tail -n 1)"
+  actual_redis_data_dir="$(resolve_runtime_path "$actual_redis_data_dir")"
+  if [[ "$actual_redis_data_dir" != "$resolved_redis_data_dir" ]]; then
+    log_error "Shared Redis data directory mismatch: expected $resolved_redis_data_dir, actual ${actual_redis_data_dir:-<empty>}. Stop the shared Redis with --stop-shared and restore the correct persistent store before restarting."
+    exit 1
+  fi
+}
+
 start_redis_if_needed() {
   if tcp_check "$TP_REDIS_HOST" "$TP_REDIS_PORT" 800; then
+    verify_shared_redis_data_dir
     printf 'redis already running on %s; status=occupied\n' "$TP_REDIS_PORT"
     return 0
   fi
@@ -351,7 +380,7 @@ start_redis_if_needed() {
   fi
 
   local redis_data_dir
-  redis_data_dir="$report_dir/redis-$TP_REDIS_PORT"
+  redis_data_dir="$resolved_redis_data_dir"
   ensure_dir "$redis_data_dir"
 
   start_background "redis-$TP_REDIS_PORT" "$REPO_ROOT" \
@@ -362,6 +391,7 @@ start_redis_if_needed() {
     log_error "Redis $TP_REDIS_PORT failed to start. Check $(log_path "redis-$TP_REDIS_PORT")"
     exit 1
   fi
+  verify_shared_redis_data_dir
 }
 
 start_redis_if_needed

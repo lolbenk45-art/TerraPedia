@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  buildV2ExecutionOverviewRows,
   buildExecutionOverviewRows,
   executionOverviewStatus,
 } from '../utils/crawlerMonitorExecutionOverview.mjs'
@@ -310,4 +311,25 @@ test('execution overview status reflects the most severe current execution row',
   assert.equal(executionOverviewStatus([{ status: 'queued' }, { status: 'running' }]), 'running')
   assert.equal(executionOverviewStatus([{ status: 'running', displayStatus: 'stalled' }, { status: 'queued' }]), 'stalled')
   assert.equal(executionOverviewStatus([{ status: 'cancelled' }, { status: 'failed' }]), 'failed')
+})
+
+test('V2 activity rows ignore conflicting V1 queue and progress sources', () => {
+  const rows = buildV2ExecutionOverviewRows({
+    liveQueue: [{
+      queueId: 'v2-queue', attemptId: 'v2-attempt', domain: 'bosses', coveredDomains: ['bosses'],
+      actionId: 'domain-source-bosses', status: 'running', stateVersion: 8, current: 4, total: 10,
+    }],
+    attemptHistory: [{
+      queueId: 'v2-old', attemptId: 'v2-old-attempt', domain: 'items', coveredDomains: ['items'],
+      actionId: 'domain-source-items', status: 'completed', stateVersion: 4,
+    }],
+    wikiMonitor: { dispatchQueue: [{ queueId: 'legacy-conflict', domain: 'bosses', status: 'failed' }] },
+    registeredTasks: [{ id: 'domain-source-bosses', status: 'stalled' }],
+  })
+
+  assert.deepEqual(rows.map((row) => [row.attemptId, row.status]), [
+    ['v2-attempt', 'running'],
+    ['v2-old-attempt', 'completed'],
+  ])
+  assert.equal(rows.some((row) => row.queueId === 'legacy-conflict' || row.status === 'stalled'), false)
 })

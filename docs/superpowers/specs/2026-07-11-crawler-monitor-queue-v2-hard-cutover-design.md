@@ -1,5 +1,12 @@
 # 爬虫监控队列 V2 硬切换设计
 
+> 实施状态（2026-07-13）：已完成并切换。正常命名空间的 V2 epoch 为
+> `epoch-8fc9c183-8a2a-439e-9cc3-1bcb64ebbde8`，cutover ID 为
+> `crawler-v2-20260713T140215Z`；首次 mutation 于
+> `2026-07-13T14:36:52.749809515Z` 确认。实现检查点见
+> `7df042b`、`04b684a`、`024acdc`、`331da55`、`e7b5d2f` 与 Task 15
+> 修复提交；运行操作以 V2 cutover runbook 为准。
+
 - 日期：2026-07-11
 - 分支：`fix/crawler-monitor-queue-state`
 - 基线：`origin/main@99cd26d`
