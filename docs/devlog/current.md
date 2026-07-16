@@ -1,8 +1,17 @@
 # Current Devlog
 
-Last updated: 2026-07-15 17:18 CST by Codex
+Last updated: 2026-07-16 17:04 CST by Codex
 
 ## Open Work
+
+- `docs/devlog/entries/2026-07-16-public-category-navigation.md`
+  - owner: Codex
+  - status: active
+  - branch: `codex/continue-dev-20260715`
+  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/continue-dev-20260715`
+  - parent/child: none
+  - dependencies or blocked-by: written specification awaits user review before implementation planning
+  - contract handoff: approved design adds `GET /api/categories/navigation` as the source for six semantic category routes, item filters, real category scopes, children, and matching item totals
 
 - `docs/devlog/entries/2026-07-12-crawler-queue-v2-runtime.md`
   - owner: Codex
@@ -14,6 +23,10 @@ Last updated: 2026-07-15 17:18 CST by Codex
   - contract handoff: Tasks 1-2 are committed at `723f2d0` and `755713f`; continue with Task 3 V2 namespace and atomic enqueue/dedupe repository
 
 ## Current State
+
+- Public category navigation design is approved and written on
+  `codex/continue-dev-20260715`; implementation has not started and waits for
+  written-spec review followed by an implementation plan.
 
 - Crawler monitor queue/status root-cause analysis and the first two V2
   foundation tasks are complete; runtime implementation continues on the
@@ -102,6 +115,10 @@ Last updated: 2026-07-15 17:18 CST by Codex
 
 ## Next Agent Should Start Here
 
+- Review `docs/superpowers/specs/2026-07-16-public-category-navigation-design.md`;
+  after user approval, write the implementation plan before changing backend
+  or frontend code.
+
 - Continue inline from Task 3 of the committed V2 hard-cutover plan using
   test-first implementation and the plan's task-level validation checkpoints.
 - On implementation start, follow the plan task by task and preserve its
@@ -124,6 +141,10 @@ Last updated: 2026-07-15 17:18 CST by Codex
 - For new features, reuse the user-auth structure: feature contract, frontend unit boundaries, backend API contract tests, isolated browser smoke, regression matrix, and gate evidence.
 
 ## Current Risks
+
+- Public category navigation totals must use the same primary-category,
+  relation-category, and descendant scope as `/public/items`; missing category
+  codes must fail closed rather than show unrelated fallback items.
 
 - The root shared recipe-runtime alias must be proven by both Nuxt build paths with a disposable spike. Replacing the renderer's hardcoded `crafting-screen` class and adding keyboard-focus support touches code already shipped to the public article page and rich editor, so validation needs a real running-page visual check on `/articles/*`, not just typecheck/build. Body-portaled popovers must receive their direct public/admin theme class; they cannot inherit preview-root variables. Local authenticated admin acceptance also needs a valid session and suitable article fixture.
 - Dense article recipe trees use width-fit scaling with the wider PC article-body frame, so the FW `1706px` graph begins entirely inside a `935px` graph frame at 1440px. Its square station source frames are complete and unshifted with `contain` fitting at `26.19×26.19px`; only a narrower-desktop readability concern would require a future layout-mode decision.
@@ -153,12 +174,12 @@ Last updated: 2026-07-15 17:18 CST by Codex
   - branch: `investigate/item-image-minio-fallback`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/investigate-item-image-minio-fallback`
   - status: `closed`
-  - commit: branch closeout commit pending in final response
+  - commit: `0835bf3`
 
 - `docs/devlog/entries/2026-07-12-page-head-density.md`
   - branch: `review/page-head-inner-density`
   - status: `closed`
-  - commit: pending in final response
+  - commit: `a343bd4`
 
 - `docs/devlog/entries/2026-07-14-admin-recipe-graph-style-cascade.md`
   - branch: `review/front-nuxt-visual`
@@ -174,7 +195,7 @@ Last updated: 2026-07-15 17:18 CST by Codex
   - branch: `fix/crawler-monitor-queue-state`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-monitor-queue-state`
   - status: `closed`
-  - commit: branch closeout commit pending in final response
+  - commit: `7cbb748`
 
 - `docs/devlog/entries/2026-07-11-playwright-baseline.md`
   - branch: `test/playwright-baseline`
