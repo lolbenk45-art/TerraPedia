@@ -1,17 +1,8 @@
 # Current Devlog
 
-Last updated: 2026-07-16 17:58 CST by Codex
+Last updated: 2026-07-16 18:14 CST by Codex
 
 ## Open Work
-
-- `docs/devlog/entries/2026-07-16-public-category-navigation.md`
-  - owner: Codex
-  - status: active
-  - branch: `codex/continue-dev-20260715`
-  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/continue-dev-20260715`
-  - parent/child: none
-  - dependencies or blocked-by: implementation, strict fail-closed review fixes, API documentation, and static/focused gates pass; restarted-stack runtime acceptance remains
-  - contract handoff: `GET /api/categories/navigation` returns the six semantic category routes, filter keys, real descendant scopes, immediate children, and matching item totals; frontend runtime validation rejects incomplete scopes and item requests require settled error-free navigation
 
 - `docs/devlog/entries/2026-07-12-crawler-queue-v2-runtime.md`
   - owner: Codex
@@ -19,16 +10,10 @@ Last updated: 2026-07-16 17:58 CST by Codex
   - branch: `fix/crawler-queue-v2-runtime`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
   - parent/child: none
-  - dependencies or blocked-by: live stack is stopped; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
+  - dependencies or blocked-by: the live stack is running for public category acceptance; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
   - contract handoff: Tasks 1-2 are committed at `723f2d0` and `755713f`; continue with Task 3 V2 namespace and atomic enqueue/dedupe repository
 
 ## Current State
-
-- Public category navigation design and seven-task implementation plan are
-  approved and written on `codex/continue-dev-20260715`; backend RED -> GREEN
-  passes six focused assertions, frontend checks and unit tests pass, and
-  independent re-review has no remaining Critical or Important findings. Stack
-  restart and live acceptance are next.
 
 - Crawler monitor queue/status root-cause analysis and the first two V2
   foundation tasks are complete; runtime implementation continues on the
@@ -117,10 +102,6 @@ Last updated: 2026-07-16 17:58 CST by Codex
 
 ## Next Agent Should Start Here
 
-- Execute `docs/superpowers/plans/2026-07-16-public-category-navigation.md`
-  from Task 7: restart the stack, compare navigation/list totals, and verify the
-  three-page browser journey before closeout.
-
 - Continue inline from Task 3 of the committed V2 hard-cutover plan using
   test-first implementation and the plan's task-level validation checkpoints.
 - On implementation start, follow the plan task by task and preserve its
@@ -144,17 +125,10 @@ Last updated: 2026-07-16 17:58 CST by Codex
 
 ## Current Risks
 
-- Public category navigation totals must use the same primary-category,
-  relation-category, and descendant scope as `/public/items`; missing category
-  codes must fail closed rather than show unrelated fallback items.
-- The existing full `ItemMapperPreferredImageSqlTest` has three unrelated
-  image-projection assertion failures against unchanged XML; the category-count
-  method and all new navigation tests pass when selected precisely.
-
 - The root shared recipe-runtime alias must be proven by both Nuxt build paths with a disposable spike. Replacing the renderer's hardcoded `crafting-screen` class and adding keyboard-focus support touches code already shipped to the public article page and rich editor, so validation needs a real running-page visual check on `/articles/*`, not just typecheck/build. Body-portaled popovers must receive their direct public/admin theme class; they cannot inherit preview-root variables. Local authenticated admin acceptance also needs a valid session and suitable article fixture.
 - Dense article recipe trees use width-fit scaling with the wider PC article-body frame, so the FW `1706px` graph begins entirely inside a `935px` graph frame at 1440px. Its square station source frames are complete and unshifted with `contain` fitting at `26.19×26.19px`; only a narrower-desktop readability concern would require a future layout-mode decision.
-- The local stack is stopped and the latest retained crawler runtime evidence is
-  dated 2026-07-08, so live behavior is not yet freshly reproduced.
+- The local stack is running, but the latest retained crawler runtime evidence
+  is dated 2026-07-08, so crawler live behavior is not yet freshly reproduced.
 - Current queue history and log retention are misaligned: queue history keeps
   substantially more attempts than the crawler-monitor log pruner, so a stored
   logPath is not evidence that a readable log still exists.
@@ -174,6 +148,12 @@ Last updated: 2026-07-16 17:58 CST by Codex
 - Existing frontend build emits non-failing environment DBus, sourcemap, and preview-asset warnings; they are unrelated to Task 1 and remain outside this scope.
 
 ## Recently Closed
+
+- `docs/devlog/entries/2026-07-16-public-category-navigation.md`
+  - branch: `codex/continue-dev-20260715`
+  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/continue-dev-20260715`
+  - status: `closed`
+  - commit: pending in final response
 
 - `docs/devlog/entries/2026-07-12-item-image-minio-fallback-investigation.md`
   - branch: `investigate/item-image-minio-fallback`

@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Context
 
@@ -66,6 +66,13 @@
   - `cd front-nuxt && node scripts/check-category-navigation-contract.mjs`.
   - `cd front-nuxt && pnpm run check`.
   - `cd front-nuxt && pnpm run test:unit`.
+  - `bash ./scripts/dev/stop-local-stack.sh` followed by
+    `bash ./scripts/dev/start-local-stack.sh` and
+    `bash ./scripts/dev/smoke-local-stack.sh`.
+  - live API comparison between `GET /api/categories/navigation` and
+    `GET /api/public/items` using the complete weapon `categoryIds` scope.
+  - headless Playwright acceptance with system Chromium across `/categories`,
+    `/categories/weapons`, `/items?filter=weapon`, and an unknown category.
 - Results:
   - confirmed the category pages are static while the real category and public
     item APIs are available;
@@ -85,6 +92,18 @@
   - review-fix RED tests reproduced partial/invalid category-scope acceptance,
     null item-count coercion, missing reused-route handling, and stale refresh
     request gating; final frontend check passed and unit tests passed 15/15.
+  - restarted-stack smoke passed 10/10; the fresh report is
+    `reports/local-start/smoke-20260716-181157.json`.
+  - the navigation API returned six entries in the approved order and the
+    weapon scope contained 26 category IDs; navigation `itemCount` and the
+    scoped public-item `pagination.total` both returned 488. Five sampled
+    public items each matched the weapon primary or relation scope.
+  - browser acceptance confirmed the 488 total on `/categories`, the semantic
+    `/categories/weapons` intermediate page, five real immediate children,
+    the `/items?filter=weapon` action, the `武器图鉴` title and visible `武器`
+    filter label, full category scope on initial/search/page-2 requests,
+    preserved `filter=weapon` query state, HTTP 404 for an unknown slug, and no
+    page errors.
 - Cross-review:
   - reviewer: `/root/category_navigation_review`;
   - scope: implementation range `256cf52..2b68aa8`, followed by two targeted
@@ -97,25 +116,27 @@
     handling, accessible error announcements, and four focused unit cases;
   - re-review: no remaining Critical or Important findings; ready for runtime
     acceptance. Reviewer did not run tests, so the coordinator reran them.
-- Not run: implementation tests and runtime acceptance; implementation has not
-  started.
+- All planned focused, static, restarted-stack, API, and browser acceptance
+  checks were run.
 
 ## Result
 
 - Completed: design, plan, backend producer, frontend consumer, strict
   fail-closed navigation filtering, durable API contract update, focused
-  backend/frontend tests, full frontend checks, and cross-review.
-- Not completed: runtime acceptance after a real stack restart.
+  backend/frontend tests, full frontend checks, cross-review, real stack
+  restart, API total equivalence, and browser acceptance.
 
 ## Residual Risks
 
-- Navigation and item-list count predicates must be tested for equivalence.
-- Missing category codes must fail closed without unrelated item fallback.
+- No remaining task-specific correctness risk was found. Navigation totals are
+  live data and can change after a data refresh, so the API documentation marks
+  its count and abbreviated IDs as a dated snapshot.
+- Existing non-failing Chromium DBus/GPU and Node deprecation warnings remain
+  outside this task.
 
 ## Follow-up
 
-- Execute `docs/superpowers/plans/2026-07-16-public-category-navigation.md`
-  inline with `executing-plans`, beginning with the backend RED tests.
+- None. Keep the local branch/worktree for any later user-requested integration.
 
 ## Commits
 
@@ -123,4 +144,5 @@
 - Implementation-plan checkpoint: `256cf52` (`docs(categories): plan public navigation implementation`).
 - Backend contract checkpoint: `adbf9dd` (`feat(categories): expose public navigation contract`).
 - Frontend consumer checkpoint: `2b68aa8` (`feat(categories): connect public navigation pages`).
-- Review-fix and API-contract checkpoint pending.
+- Review-fix and API-contract checkpoint: `4ce3947` (`fix(categories): enforce fail-closed navigation`).
+- Runtime-acceptance closeout: commit SHA pending in final response.

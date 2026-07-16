@@ -378,6 +378,9 @@ runtime payload.
 - Response DTO: `CategoryNavigationVO` with `CategoryNavigationChildVO`
 - Auth: public
 - Query params: none
+- Example note: the response below is an abbreviated 2026-07-16 local-data
+  snapshot; `categoryIds`, `children`, and counts can change after a data
+  refresh.
 - Success response:
 
 ```json
@@ -392,7 +395,7 @@ runtime payload.
       "itemPath": "/items?filter=weapon",
       "categoryCodes": ["WEAPON"],
       "categoryIds": [271, 314, 315, 317, 318],
-      "itemCount": 458,
+      "itemCount": 488,
       "children": [
         {
           "id": 315,
