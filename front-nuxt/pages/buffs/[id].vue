@@ -68,8 +68,9 @@ const factImage = (fact: PublicBuffFactSummary) => firstImageUrl(
   fact.image_url,
 )
 
-const relationItems = (items: PublicBuffFactSummary[]) => items.slice(0, 8).map((fact, index) => ({
+const relationItems = (items: PublicBuffFactSummary[], detailBase: '/items' | '/npcs') => items.slice(0, 8).map((fact, index) => ({
   id: firstText(fact.id, fact.sourceId, fact.internalName, index),
+  href: /^\d+$/.test(String(fact.id ?? '')) ? `${detailBase}/${fact.id}` : detailBase,
   name: factName(fact, index),
   meta: factMeta(fact),
   image: factImage(fact),
@@ -83,21 +84,21 @@ const buffRelationSections = computed(() => [
     title: '来源',
     count: sources.value.length,
     empty: '暂无来源记录',
-    items: relationItems(sources.value),
+    items: relationItems(sources.value, '/items'),
   },
   {
     key: 'inflicters',
     title: '施加者',
     count: inflicters.value.length,
     empty: '暂无施加者记录',
-    items: relationItems(inflicters.value),
+    items: relationItems(inflicters.value, '/npcs'),
   },
   {
     key: 'immuneTargets',
     title: '免疫目标',
     count: immuneTargets.value.length,
     empty: '暂无免疫目标记录',
-    items: relationItems(immuneTargets.value),
+    items: relationItems(immuneTargets.value, '/npcs'),
   },
 ])
 
@@ -196,7 +197,7 @@ onMounted(() => {
           </div>
         </template>
         <template v-else-if="section.items.length">
-          <a v-for="item in section.items" :key="String(item.id)" class="detail-relation-link" href="/items">
+          <NuxtLink v-for="item in section.items" :key="String(item.id)" class="detail-relation-link" :to="item.href">
             <CommonPreviewImage
               :src="item.image"
               :alt="item.name"
@@ -207,7 +208,7 @@ onMounted(() => {
             />
             <b>{{ item.name }}</b>
             <span>{{ section.title }} · {{ item.meta }}</span>
-          </a>
+          </NuxtLink>
         </template>
         <div v-else>
           <b>{{ section.title }}</b>
