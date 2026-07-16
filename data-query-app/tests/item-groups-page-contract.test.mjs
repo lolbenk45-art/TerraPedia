@@ -80,9 +80,9 @@ test('item groups page uses Chinese-first canonical name copy', () => {
 test('recipe group navigation points at the unified item group page in recipe scope', () => {
   const layout = read('data-query-app/layouts/default.vue')
   const recipeIndex = read('data-query-app/pages/recipes/index.vue')
-  const recipeGroups = read('data-query-app/pages/recipes/groups.vue')
+  const nuxtConfig = read('data-query-app/nuxt.config.ts')
 
   assert.match(layout, /path:\s*'\/item-groups'/)
   assert.match(recipeIndex, /path:\s*'\/item-groups'[\s\S]*domain:\s*'recipe'/)
-  assert.match(recipeGroups, /navigateTo\(\{\s*path:\s*'\/item-groups'/)
+  assert.match(nuxtConfig, /'\/recipes\/groups':\s*\{\s*redirect:[\s\S]*\/item-groups\?domain=recipe/)
 })
