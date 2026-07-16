@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { fallbackCatalogItems, usePublicItems } from '~/composables/usePublicItems'
 import type { CatalogItem, PublicCategory, PublicItemQuery } from '~/types/public-api'
+import { hasResolvedNavigationScope } from '~/utils/publicCategoryNavigation'
 
 const route = useRoute()
 const router = useRouter()
@@ -216,12 +217,6 @@ const selectedNavigationEntry = computed(() => {
     : undefined
 })
 const navigationFilterRequired = computed(() => Boolean(selectedFilter.value.navigationSlug))
-const navigationFilterReady = computed(() => !navigationFilterRequired.value || Boolean(selectedNavigationEntry.value))
-const navigationFilterUnavailable = computed(() => (
-  navigationFilterRequired.value
-  && !categoryNavigationPending.value
-  && (Boolean(categoryNavigationError.value) || !selectedNavigationEntry.value)
-))
 const selectedFilterGroup = computed<CatalogCategoryGroup>(() => (
   catalogCategoryGroups.find((group) => group.filters.some((filter) => filter.key === selectedFilter.value.key))
   ?? defaultCategoryGroup
@@ -230,6 +225,8 @@ const activeFilterLabel = computed(() => selectedNavigationEntry.value?.name || 
 const activeFilterPath = computed(() => `${selectedFilterGroup.value.label} / ${activeFilterLabel.value}`)
 const selectedCategoryIds = computed(() => {
   if (selectedFilter.value.navigationSlug) {
+    if (!hasResolvedNavigationScope(selectedNavigationEntry.value)) return []
+
     return Array.from(new Set(
       (selectedNavigationEntry.value?.categoryIds ?? [])
         .map(toNumberOrNull)
@@ -246,6 +243,17 @@ const selectedCategoryIds = computed(() => {
     return categoryId ? [categoryId] : []
   })
 })
+
+const navigationFilterReady = computed(() => !navigationFilterRequired.value || (
+  !categoryNavigationPending.value
+  && !categoryNavigationError.value
+  && selectedCategoryIds.value.length > 0
+))
+const navigationFilterUnavailable = computed(() => (
+  navigationFilterRequired.value
+  && !categoryNavigationPending.value
+  && (Boolean(categoryNavigationError.value) || selectedCategoryIds.value.length === 0)
+))
 
 const selectedCategoryId = computed(() => {
   const categoryIds = selectedCategoryIds.value
@@ -482,7 +490,7 @@ const retryCatalogData = async () => {
     await refreshCategoryNavigation()
   }
 
-  if (!navigationFilterRequired.value || selectedNavigationEntry.value) {
+  if (navigationFilterReady.value) {
     await refreshPublicItems()
   }
 }

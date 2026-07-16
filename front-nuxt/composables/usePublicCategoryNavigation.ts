@@ -1,4 +1,5 @@
 import type { PublicCategoryNavigationEntry } from '~/types/public-api'
+import { normalizePublicCategoryNavigation } from '~/utils/publicCategoryNavigation'
 
 export const usePublicCategoryNavigation = () => useAsyncData(
   'public-category-navigation',
@@ -8,8 +9,8 @@ export const usePublicCategoryNavigation = () => useAsyncData(
       throw new Error(response.message || '分类资料暂不可用')
     }
 
-    const entries = unwrapApiResponse(response)
-    if (!Array.isArray(entries) || entries.length !== 6) {
+    const entries = normalizePublicCategoryNavigation(unwrapApiResponse(response))
+    if (!entries) {
       throw new Error('分类导航返回了无效的数据')
     }
 

@@ -65,6 +65,7 @@
   - `cd back && mvn '-Dtest=CategoryNavigationServiceImplTest,CategoryControllerTest,ItemMapperPreferredImageSqlTest#categoryScopedCountShouldMatchPrimaryOrActiveRelationWithoutDuplicateRows' test`.
   - `cd front-nuxt && node scripts/check-category-navigation-contract.mjs`.
   - `cd front-nuxt && pnpm run check`.
+  - `cd front-nuxt && pnpm run test:unit`.
 - Results:
   - confirmed the category pages are static while the real category and public
     item APIs are available;
@@ -81,15 +82,30 @@
     static/missing integration markers; the full public frontend check and Nuxt
     typecheck passed. Existing non-failing Chromium DBus/GPU and Node
     deprecation warnings remain unrelated.
+  - review-fix RED tests reproduced partial/invalid category-scope acceptance,
+    null item-count coercion, missing reused-route handling, and stale refresh
+    request gating; final frontend check passed and unit tests passed 15/15.
+- Cross-review:
+  - reviewer: `/root/category_navigation_review`;
+  - scope: implementation range `256cf52..2b68aa8`, followed by two targeted
+    re-reviews of the uncommitted fixes;
+  - findings: one Critical empty/invalid navigation scope could issue an
+    unfiltered item request; Important reused-route 404, strict mixed-value
+    validation, and failed-refresh request suppression gaps;
+  - disposition: all findings fixed with strict runtime normalization,
+    non-empty settled/error-free readiness, retry gating, reactive unknown-slug
+    handling, accessible error announcements, and four focused unit cases;
+  - re-review: no remaining Critical or Important findings; ready for runtime
+    acceptance. Reviewer did not run tests, so the coordinator reran them.
 - Not run: implementation tests and runtime acceptance; implementation has not
   started.
 
 ## Result
 
-- Completed: design, plan, backend producer, frontend consumer, fail-closed
-  navigation filtering, focused backend tests, and full frontend checks.
-- Not completed: durable API documentation, integrated review, and runtime
-  acceptance after stack restart.
+- Completed: design, plan, backend producer, frontend consumer, strict
+  fail-closed navigation filtering, durable API contract update, focused
+  backend/frontend tests, full frontend checks, and cross-review.
+- Not completed: runtime acceptance after a real stack restart.
 
 ## Residual Risks
 
@@ -106,4 +122,5 @@
 - Design checkpoint: `4221724` (`docs(categories): design public navigation contract`).
 - Implementation-plan checkpoint: `256cf52` (`docs(categories): plan public navigation implementation`).
 - Backend contract checkpoint: `adbf9dd` (`feat(categories): expose public navigation contract`).
-- Frontend consumer checkpoint pending.
+- Frontend consumer checkpoint: `2b68aa8` (`feat(categories): connect public navigation pages`).
+- Review-fix and API-contract checkpoint pending.

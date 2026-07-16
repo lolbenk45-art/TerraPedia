@@ -37,18 +37,28 @@ const packageJson = requireFile('package.json')
 requireIncludes('types/public-api.ts', publicTypes, 'PublicCategoryNavigationEntry', 'must define the navigation response type')
 requireIncludes('types/public-api.ts', publicTypes, "source: 'api' | 'fallback' | 'unavailable'", 'must model fail-closed item results')
 requireIncludes('composables/usePublicCategoryNavigation.ts', navigationComposable, "'/categories/navigation'", 'must fetch the backend navigation endpoint')
-requireIncludes('composables/usePublicCategoryNavigation.ts', navigationComposable, 'entries.length !== 6', 'must reject incomplete navigation responses')
+requireIncludes('composables/usePublicCategoryNavigation.ts', navigationComposable, 'normalizePublicCategoryNavigation', 'must validate complete navigation fields and scopes')
 requireIncludes('composables/usePublicItems.ts', publicItemsComposable, 'unavailablePublicItemsResult', 'must support disabled item loading')
 requireIncludes('pages/categories/index.vue', categoryIndex, 'entry.itemCount', 'category index must render backend totals')
 requireIncludes('pages/categories/index.vue', categoryIndex, 'entry.categoryPath', 'category index must use backend category paths')
 requireIncludes('pages/categories/[id].vue', categoryDetail, 'route.params.id', 'detail must resolve the semantic route slug')
 requireIncludes('pages/categories/[id].vue', categoryDetail, 'category.itemPath', 'detail action must use the backend item path')
 requireIncludes('pages/categories/[id].vue', categoryDetail, 'category.children', 'detail must render real immediate children')
+requireIncludes('pages/categories/[id].vue', categoryDetail, 'watch(unknownCategory', 'detail must react when a reused route changes to an unknown slug')
+requireIncludes('pages/categories/[id].vue', categoryDetail, 'role="alert"', 'detail errors must be announced accessibly')
 forbidIncludes('pages/categories/[id].vue', categoryDetail, 'navigateTo(', 'detail must remain an intermediate page')
+requireIncludes('pages/categories/index.vue', categoryIndex, 'role="alert"', 'index errors must be announced accessibly')
 requireIncludes('pages/items/index.vue', itemsPage, 'navigationSlug', 'six public filters must identify navigation entries')
 requireIncludes('pages/items/index.vue', itemsPage, 'selectedNavigationEntry', 'item scope must resolve from backend navigation')
 requireIncludes('pages/items/index.vue', itemsPage, 'allowFallback: () => !navigationFilterRequired.value', 'navigation filters must disable sample fallback')
 requireIncludes('pages/items/index.vue', itemsPage, 'enabled: () => navigationFilterReady.value', 'navigation filters must disable requests until resolved')
+requireIncludes(
+  'pages/items/index.vue',
+  itemsPage,
+  '&& !categoryNavigationError.value\n  && selectedCategoryIds.value.length > 0',
+  'navigation readiness must require a settled successful response and non-empty ID scope',
+)
+requireIncludes('pages/items/index.vue', itemsPage, 'if (navigationFilterReady.value)', 'retry must not request items after a failed navigation refresh')
 requireIncludes('package.json', packageJson, 'check:category-navigation', 'main frontend gate must run the navigation contract check')
 
 for (const total of ['932', '684', '122', '1186', '1408', '318']) {

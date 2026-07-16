@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-16 17:38 CST by Codex
+Last updated: 2026-07-16 17:58 CST by Codex
 
 ## Open Work
 
@@ -10,8 +10,8 @@ Last updated: 2026-07-16 17:38 CST by Codex
   - branch: `codex/continue-dev-20260715`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/continue-dev-20260715`
   - parent/child: none
-  - dependencies or blocked-by: backend producer and frontend consumer are implemented and focused/static gates pass; API documentation, integrated review, and restarted-stack acceptance remain
-  - contract handoff: `GET /api/categories/navigation` returns the six semantic category routes, filter keys, real descendant scopes, immediate children, and matching item totals; three public pages consume it and navigation filters fail closed on unavailable data
+  - dependencies or blocked-by: implementation, strict fail-closed review fixes, API documentation, and static/focused gates pass; restarted-stack runtime acceptance remains
+  - contract handoff: `GET /api/categories/navigation` returns the six semantic category routes, filter keys, real descendant scopes, immediate children, and matching item totals; frontend runtime validation rejects incomplete scopes and item requests require settled error-free navigation
 
 - `docs/devlog/entries/2026-07-12-crawler-queue-v2-runtime.md`
   - owner: Codex
@@ -26,9 +26,9 @@ Last updated: 2026-07-16 17:38 CST by Codex
 
 - Public category navigation design and seven-task implementation plan are
   approved and written on `codex/continue-dev-20260715`; backend RED -> GREEN
-  passes six focused assertions and the frontend contract/full check passes.
-  Durable API docs, integrated review, stack restart, and live acceptance are
-  next.
+  passes six focused assertions, frontend checks and unit tests pass, and
+  independent re-review has no remaining Critical or Important findings. Stack
+  restart and live acceptance are next.
 
 - Crawler monitor queue/status root-cause analysis and the first two V2
   foundation tasks are complete; runtime implementation continues on the
@@ -118,8 +118,8 @@ Last updated: 2026-07-16 17:38 CST by Codex
 ## Next Agent Should Start Here
 
 - Execute `docs/superpowers/plans/2026-07-16-public-category-navigation.md`
-  inline from Task 1, preserving backend-first RED -> GREEN validation and the
-  fail-closed frontend filter boundary.
+  from Task 7: restart the stack, compare navigation/list totals, and verify the
+  three-page browser journey before closeout.
 
 - Continue inline from Task 3 of the committed V2 hard-cutover plan using
   test-first implementation and the plan's task-level validation checkpoints.

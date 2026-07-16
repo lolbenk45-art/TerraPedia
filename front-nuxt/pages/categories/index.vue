@@ -50,7 +50,7 @@ useSeoMeta({
         </div>
       </section>
 
-      <section v-else-if="error" class="category-map category-atlas support-panel">
+      <section v-else-if="error" class="category-map category-atlas support-panel" role="alert">
         <div class="category-axis category-atlas-axis">
           <span>分类资料暂不可用</span>
           <h2>无法载入真实分类</h2>

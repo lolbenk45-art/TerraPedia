@@ -1,7 +1,7 @@
 # Current API Contracts
 
 Status: current
-Last updated: 2026-07-09
+Last updated: 2026-07-16
 
 This file is the current API contract entrypoint for TerraPedia development. It
 summarizes the source-of-truth order, route families, response envelope,
@@ -367,6 +367,70 @@ a focused contract file under `docs/contracts/`.
 Keep endpoint examples short. If a response has many fields, include the fields
 that define the contract and link to DTO/source or an artifact for the full
 runtime payload.
+
+### GET /api/categories/navigation
+
+- Status: current
+- Owner surface: public frontend
+- Backend source:
+  - `back/src/main/java/com/terraria/skills/controller/CategoryController.java`
+  - `back/src/main/java/com/terraria/skills/service/impl/CategoryNavigationServiceImpl.java`
+- Response DTO: `CategoryNavigationVO` with `CategoryNavigationChildVO`
+- Auth: public
+- Query params: none
+- Success response:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "slug": "weapons",
+      "filterKey": "weapon",
+      "name": "武器",
+      "categoryPath": "/categories/weapons",
+      "itemPath": "/items?filter=weapon",
+      "categoryCodes": ["WEAPON"],
+      "categoryIds": [271, 314, 315, 317, 318],
+      "itemCount": 458,
+      "children": [
+        {
+          "id": 315,
+          "code": "WEAPON_MELEE",
+          "name": "近战武器"
+        }
+      ]
+    }
+  ],
+  "message": "操作成功",
+  "statusCode": 200
+}
+```
+
+- Ordering and scope:
+  - exactly six entries in `weapons`, `armor`, `potions`, `materials`,
+    `furniture`, and `tools` order;
+  - `categoryIds` contains each configured category and all descendants;
+  - `itemCount` uses the public item-list predicate: primary category or active
+    `item_category_rel`, with one count row per item.
+- Error response:
+  - `503`: any configured category code is missing; `success=false`,
+    `statusCode=503`, and no partial `data` list.
+- Frontend consumers:
+  - `front-nuxt/pages/categories/index.vue`
+  - `front-nuxt/pages/categories/[id].vue`
+  - `front-nuxt/pages/items/index.vue`
+- Compatibility notes:
+  - existing `/api/categories` and `/api/categories/items` responses remain
+    unchanged;
+  - catalog filters outside the six navigation entries retain their existing
+    frontend category-code behavior.
+- Validation:
+  - `CategoryNavigationServiceImplTest`
+  - `CategoryControllerTest`
+  - `ItemMapperPreferredImageSqlTest#categoryScopedCountShouldMatchPrimaryOrActiveRelationWithoutDuplicateRows`
+  - `front-nuxt/scripts/check-category-navigation-contract.mjs`
+  - restarted local-stack API and page acceptance recorded in the task devlog.
 
 ## DTO And Type Boundary
 

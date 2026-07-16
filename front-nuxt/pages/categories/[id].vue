@@ -1,12 +1,26 @@
 <script setup lang="ts">
+import { isUnknownCategorySlug } from '~/utils/publicCategoryNavigation'
+
 const route = useRoute()
 const slug = computed(() => String(route.params.id ?? '').trim().toLowerCase())
 const { data: categoryNavigation, pending, error, refresh } = await usePublicCategoryNavigation()
 const category = computed(() => categoryNavigation.value?.find((entry) => entry.slug === slug.value))
+const unknownCategory = computed(() => isUnknownCategorySlug(
+  categoryNavigation.value ?? [],
+  slug.value,
+  pending.value,
+  Boolean(error.value),
+))
 
-if (!error.value && !pending.value && !category.value) {
+if (unknownCategory.value) {
   throw createError({ statusCode: 404, statusMessage: 'Category not found' })
 }
+
+watch(unknownCategory, (isUnknown) => {
+  if (isUnknown) {
+    showError(createError({ statusCode: 404, statusMessage: 'Category not found' }))
+  }
+})
 
 useSeoMeta({
   title: () => category.value ? `TerraPedia · ${category.value.name}` : 'TerraPedia · 分类资料',
@@ -28,7 +42,7 @@ useSeoMeta({
         </div>
       </section>
 
-      <section v-else-if="error" class="category-detail-hero support-panel">
+      <section v-else-if="error" class="category-detail-hero support-panel" role="alert">
         <div>
           <span class="eyebrow">Category unavailable</span>
           <h2>分类资料暂不可用</h2>
