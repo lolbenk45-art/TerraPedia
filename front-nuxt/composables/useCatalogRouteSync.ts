@@ -58,8 +58,9 @@ export const useCatalogRouteSync = ({ serialize, hydrate, watchSources, search }
         clearTimeout(searchDebounceTimer)
       }
 
-      search.page.value = 1
+      // 页码重置必须等防抖落定:同步重置会先用旧搜索词发一次 page=1 请求。
       searchDebounceTimer = setTimeout(() => {
+        search.page.value = 1
         search.debounced.value = search.input.value
       }, catalogSearchDebounceMs)
     }, { flush: 'sync' })

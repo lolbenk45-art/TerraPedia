@@ -3396,13 +3396,15 @@ for (const path of scanFiles) {
 
   if (path === 'pages/categories/[id].vue') {
     for (const marker of [
-      'Category',
-      '物品图鉴查询结果',
-      '查看近战物品',
-      'href="/items?search=近战"',
+      'usePublicCategoryNavigation',
+      'route.params.id',
+      'category.itemCount',
+      'category.children',
+      ':href="category.itemPath"',
+      "createError({ statusCode: 404",
     ]) {
       if (!content.includes(marker)) {
-        violations.push(`${path}: category detail must render stable public category entry marker ${marker}`)
+        violations.push(`${path}: category detail must render backend navigation contract marker ${marker}`)
       }
     }
 

@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-15 17:18 CST by Codex
+Last updated: 2026-07-17 03:14 CST by Codex
 
 ## Open Work
 
@@ -10,10 +10,15 @@ Last updated: 2026-07-15 17:18 CST by Codex
   - branch: `fix/crawler-queue-v2-runtime`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-queue-v2-runtime`
   - parent/child: none
-  - dependencies or blocked-by: live stack is stopped; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
+  - dependencies or blocked-by: the live stack is running for public category acceptance; fixture-stack execution, live cutover, and the first irreversible V2 mutation retain their explicit authorization gates
   - contract handoff: Tasks 1-2 are committed at `723f2d0` and `755713f`; continue with Task 3 V2 namespace and atomic enqueue/dedupe repository
 
 ## Current State
+
+- Public category child navigation implementation and runtime acceptance are
+  closed for the user-requested checkpoint and local merge. Six parents expose
+  34 image-backed child routes; exact scopes, counts, fail-closed behavior,
+  search/paging state, and local Chromium behavior are verified.
 
 - Crawler monitor queue/status root-cause analysis and the first two V2
   foundation tasks are complete; runtime implementation continues on the
@@ -125,10 +130,14 @@ Last updated: 2026-07-15 17:18 CST by Codex
 
 ## Current Risks
 
+- Public category totals and representative images depend on current local data
+  and may change after refresh; the grouped relation-aware contract, managed
+  image boundary, and runtime reconciliation remain the acceptance gates.
+
 - The root shared recipe-runtime alias must be proven by both Nuxt build paths with a disposable spike. Replacing the renderer's hardcoded `crafting-screen` class and adding keyboard-focus support touches code already shipped to the public article page and rich editor, so validation needs a real running-page visual check on `/articles/*`, not just typecheck/build. Body-portaled popovers must receive their direct public/admin theme class; they cannot inherit preview-root variables. Local authenticated admin acceptance also needs a valid session and suitable article fixture.
 - Dense article recipe trees use width-fit scaling with the wider PC article-body frame, so the FW `1706px` graph begins entirely inside a `935px` graph frame at 1440px. Its square station source frames are complete and unshifted with `contain` fitting at `26.19×26.19px`; only a narrower-desktop readability concern would require a future layout-mode decision.
-- The local stack is stopped and the latest retained crawler runtime evidence is
-  dated 2026-07-08, so live behavior is not yet freshly reproduced.
+- The local stack is running, but the latest retained crawler runtime evidence
+  is dated 2026-07-08, so crawler live behavior is not yet freshly reproduced.
 - Current queue history and log retention are misaligned: queue history keeps
   substantially more attempts than the crawler-monitor log pruner, so a stored
   logPath is not evidence that a readable log still exists.
@@ -149,16 +158,28 @@ Last updated: 2026-07-15 17:18 CST by Codex
 
 ## Recently Closed
 
+- `docs/devlog/entries/2026-07-16-public-category-navigation.md`
+  - branch: `codex/continue-dev-20260715`
+  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/continue-dev-20260715`
+  - status: `closed`
+  - commit: `3fa24d6`
+
+- `docs/devlog/entries/2026-07-16-public-category-child-navigation.md`
+  - branch: `codex/continue-dev-20260715`
+  - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/continue-dev-20260715`
+  - status: `closed`
+  - commit: pending in final response
+
 - `docs/devlog/entries/2026-07-12-item-image-minio-fallback-investigation.md`
   - branch: `investigate/item-image-minio-fallback`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/investigate-item-image-minio-fallback`
   - status: `closed`
-  - commit: branch closeout commit pending in final response
+  - commit: `0835bf3`
 
 - `docs/devlog/entries/2026-07-12-page-head-density.md`
   - branch: `review/page-head-inner-density`
   - status: `closed`
-  - commit: pending in final response
+  - commit: `a343bd4`
 
 - `docs/devlog/entries/2026-07-14-admin-recipe-graph-style-cascade.md`
   - branch: `review/front-nuxt-visual`
@@ -174,7 +195,7 @@ Last updated: 2026-07-15 17:18 CST by Codex
   - branch: `fix/crawler-monitor-queue-state`
   - worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/crawler-monitor-queue-state`
   - status: `closed`
-  - commit: branch closeout commit pending in final response
+  - commit: `7cbb748`
 
 - `docs/devlog/entries/2026-07-11-playwright-baseline.md`
   - branch: `test/playwright-baseline`

@@ -430,6 +430,134 @@
         GROUP BY i.category_id
     </select>
 
+    <select id="selectCategoryNavigationParentCounts"
+            resultType="com.terraria.skills.dto.CategoryItemCountDTO">
+        WITH scope_membership AS (
+            <foreach collection="parentScopeMemberships" item="parentScopeMembership" separator=" UNION ALL ">
+                SELECT
+                    #{parentScopeMembership.parentId} AS parent_id,
+                    #{parentScopeMembership.categoryId} AS category_id
+            </foreach>
+        ),
+        scope_parents AS (
+            SELECT DISTINCT parent_id
+            FROM scope_membership
+        ),
+        parent_items AS (
+            SELECT scope_membership.parent_id, i.id AS item_id
+            FROM scope_membership
+            JOIN items i
+              ON i.category_id = scope_membership.category_id
+             AND i.deleted = 0
+            UNION DISTINCT
+            SELECT scope_membership.parent_id, i.id AS item_id
+            FROM scope_membership
+            JOIN item_category_rel icr
+              ON icr.category_id = scope_membership.category_id
+             AND icr.deleted = 0
+             AND icr.status = 1
+            JOIN items i
+              ON i.id = icr.item_id
+             AND i.deleted = 0
+        ),
+        parent_counts AS (
+            SELECT parent_id, COUNT(DISTINCT parent_items.item_id) AS item_count
+            FROM parent_items
+            GROUP BY parent_id
+        )
+        SELECT
+            scope_parents.parent_id AS categoryId,
+            COALESCE(parent_counts.item_count, 0) AS count
+        FROM scope_parents
+        LEFT JOIN parent_counts
+          ON parent_counts.parent_id = scope_parents.parent_id
+        ORDER BY scope_parents.parent_id ASC
+    </select>
+
+    <select id="selectCategoryNavigationChildAggregates"
+            resultType="com.terraria.skills.dto.CategoryNavigationChildAggregateDTO">
+        WITH scope_membership AS (
+            <foreach collection="scopeMemberships" item="scopeMembership" separator=" UNION ALL ">
+                SELECT
+                    #{scopeMembership.childId} AS child_id,
+                    #{scopeMembership.categoryId} AS category_id
+            </foreach>
+        ),
+        scope_children AS (
+            SELECT DISTINCT child_id
+            FROM scope_membership
+        ),
+        scoped_items AS (
+            SELECT scope_membership.child_id, i.id AS item_id
+            FROM scope_membership
+            JOIN items i
+              ON i.category_id = scope_membership.category_id
+             AND i.deleted = 0
+            UNION DISTINCT
+            SELECT scope_membership.child_id, i.id AS item_id
+            FROM scope_membership
+            JOIN item_category_rel icr
+              ON icr.category_id = scope_membership.category_id
+             AND icr.deleted = 0
+             AND icr.status = 1
+            JOIN items i
+              ON i.id = icr.item_id
+             AND i.deleted = 0
+        ),
+        ranked_representative_images AS (
+            SELECT
+                scoped_items.child_id,
+                TRIM(ii.cached_url) AS usable_image,
+                ROW_NUMBER() OVER (
+                    PARTITION BY scoped_items.child_id
+                    ORDER BY
+                        scoped_items.item_id ASC,
+                        CASE WHEN ii.is_primary = 1 THEN 0 ELSE 1 END,
+                        ii.sort_order ASC,
+                        ii.id ASC
+                ) AS representative_rank
+            FROM scoped_items
+            JOIN item_images ii
+              ON ii.item_id = scoped_items.item_id
+             AND ii.deleted = 0
+             AND ii.status = 1
+             AND NULLIF(TRIM(ii.cached_url), '') IS NOT NULL
+             <choose>
+                 <when test="managedImagePrefixes != null and managedImagePrefixes.size() > 0">
+                     AND (
+                         <foreach collection="managedImagePrefixes" item="managedImagePrefix" separator=" OR ">
+                             LEFT(LOWER(TRIM(ii.cached_url)), CHAR_LENGTH(#{managedImagePrefix})) = LOWER(#{managedImagePrefix})
+                         </foreach>
+                     )
+                 </when>
+                 <otherwise>
+                     AND 1 = 0
+                 </otherwise>
+             </choose>
+             AND NOT REGEXP_LIKE(
+                 TRIM(ii.cached_url),
+                 '([(](demo|placed)[)]|%28(demo|placed)%29|(^|[/_[:space:]-])(demo|placed)([._?&amp;#/-]|$))',
+                 'i'
+             )
+        ),
+        child_counts AS (
+            SELECT child_id, COUNT(DISTINCT scoped_items.item_id) AS item_count
+            FROM scoped_items
+            GROUP BY child_id
+        )
+        SELECT
+            scope_children.child_id AS childId,
+            COALESCE(child_counts.item_count, 0) AS itemCount,
+            ranked_representative_images.usable_image AS image
+        FROM scope_children
+        LEFT JOIN child_counts
+          ON child_counts.child_id = scope_children.child_id
+        LEFT JOIN ranked_representative_images
+         ON ranked_representative_images.child_id = scope_children.child_id
+         AND ranked_representative_images.representative_rank = 1
+        ORDER BY scope_children.child_id ASC
+    </select>
+
     <select id="countItemsWithSearch" resultType="long">
         SELECT COUNT(*)
         FROM items i

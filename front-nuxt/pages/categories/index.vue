@@ -1,3 +1,30 @@
+<script setup lang="ts">
+const { data: categoryNavigation, pending, error, refresh } = await usePublicCategoryNavigation()
+
+const navigationEntries = computed(() => categoryNavigation.value ?? [])
+const weaponEntry = computed(() => navigationEntries.value.find((entry) => entry.filterKey === 'weapon'))
+const categoryGroups = computed(() => [
+  { key: 'combat', label: '战斗', caption: '武器 / 防具 / 药水', entries: navigationEntries.value.slice(0, 3) },
+  { key: 'craft-build', label: '制作与建造', caption: '材料 / 家具 / 工具', entries: navigationEntries.value.slice(3, 6) },
+])
+
+const iconClassBySlug: Record<string, string> = {
+  weapons: 'sprite-icon icon-items card-icon',
+  armor: 'sprite-icon icon-armor card-icon',
+  potions: 'sprite-icon icon-buff card-icon',
+  materials: 'sprite-icon icon-material card-icon',
+  furniture: 'sprite-icon icon-category card-icon',
+  tools: 'sprite-icon icon-crafting card-icon',
+}
+
+const categoryIconClass = (slug: string) => iconClassBySlug[slug] ?? 'sprite-icon icon-category card-icon'
+
+useSeoMeta({
+  title: 'TerraPedia · 分类索引',
+  description: '从真实 Terraria 分类资料进入武器、防具、药水、材料、家具与工具图鉴。',
+})
+</script>
+
 <template>
   <section class="screen entity-screen active">
     <TerraNav />
@@ -6,38 +33,66 @@
     <div class="page-head entity-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">/categories · /categories/items</span>
+          <span class="eyebrow">/categories · real item taxonomy</span>
           <h1>分类索引</h1>
-          <p>把玩家最常用的图鉴入口组织成可扫描的资料地图。</p>
+          <p>把玩家最常用的真实图鉴分类组织成可扫描的资料地图。</p>
         </div>
-        <a class="primary-button" href="/categories/weapons">查看武器分类</a>
+        <a v-if="weaponEntry" class="primary-button" :href="weaponEntry.categoryPath">查看{{ weaponEntry.name }}分类</a>
       </div>
     </div>
 
     <main class="support-layout discovery-categories-page">
-      <section class="category-map category-atlas support-panel">
+      <section v-if="pending" class="category-map category-atlas support-panel" aria-busy="true">
+        <div class="category-axis category-atlas-axis">
+          <span>图鉴结构</span>
+          <h2>正在载入真实分类</h2>
+          <p>正在从资料库解析分类范围与物品总数。</p>
+        </div>
+      </section>
+
+      <section v-else-if="error" class="category-map category-atlas support-panel" role="alert">
+        <div class="category-axis category-atlas-axis">
+          <span>分类资料暂不可用</span>
+          <h2>无法载入真实分类</h2>
+          <p>页面不会显示静态总数或示例分类，请重新请求资料。</p>
+          <button class="primary-button" type="button" @click="refresh()">重新加载</button>
+        </div>
+      </section>
+
+      <section v-else class="category-map category-atlas support-panel">
         <div class="category-axis category-atlas-axis">
           <span>图鉴结构</span>
           <h2>从大类到路线入口</h2>
-          <p>从战斗、制作、建造等大类进入常用物品和路线资料。</p>
+          <p>从战斗、制作与建造大类进入当前资料库的物品分类。</p>
           <div class="category-axis-branches">
-            <a class="active" href="/categories/weapons"><b>战斗轴</b><span>武器 / 防具 / 药水</span></a>
-            <a href="/categories/materials"><b>制作轴</b><span>材料 / 工具 / 制作站</span></a>
-            <a href="/categories/furniture"><b>建造轴</b><span>家具 / 方块 / 装饰</span></a>
+            <template v-for="(group, index) in categoryGroups" :key="group.key">
+              <a
+                v-if="group.entries[0]"
+                :class="{ active: index === 0 }"
+                :href="group.entries[0].categoryPath"
+              >
+                <b>{{ group.label }}轴</b>
+                <span>{{ group.caption }}</span>
+              </a>
+            </template>
           </div>
         </div>
+
         <div class="category-column-grid category-branch-grid">
-          <div class="category-branch-cluster">
-            <span class="category-cluster-label">战斗</span>
-            <a class="category-node category-branch-card active" href="/categories/weapons"><span class="sprite-icon icon-items card-icon" aria-hidden="true"></span><b>武器</b><span>近战 / 远程 / 魔法 / 召唤</span><em>932</em></a>
-            <a class="category-node category-branch-card" href="/categories/armor"><span class="sprite-icon icon-armor card-icon" aria-hidden="true"></span><b>防具</b><span>套装、散件、职业路线</span><em>684</em></a>
-            <a class="category-node category-branch-card" href="/categories/potions"><span class="sprite-icon icon-buff card-icon" aria-hidden="true"></span><b>药水</b><span>战斗、探索、钓鱼、建筑</span><em>122</em></a>
-          </div>
-          <div class="category-branch-cluster">
-            <span class="category-cluster-label">制作与建造</span>
-            <a class="category-node category-branch-card" href="/categories/materials"><span class="sprite-icon icon-material card-icon" aria-hidden="true"></span><b>材料</b><span>矿物、灵魂、碎片、事件掉落</span><em>1186</em></a>
-            <a class="category-node category-branch-card" href="/categories/furniture"><span class="sprite-icon icon-category card-icon" aria-hidden="true"></span><b>家具</b><span>制作站、储物、装饰、功能方块</span><em>1408</em></a>
-            <a class="category-node category-branch-card" href="/categories/tools"><span class="sprite-icon icon-crafting card-icon" aria-hidden="true"></span><b>工具</b><span>镐、斧、锤、钓竿、杂项</span><em>318</em></a>
+          <div v-for="group in categoryGroups" :key="group.key" class="category-branch-cluster">
+            <span class="category-cluster-label">{{ group.label }}</span>
+            <a
+              v-for="(entry, index) in group.entries"
+              :key="entry.slug"
+              class="category-node category-branch-card"
+              :class="{ active: group.key === 'combat' && index === 0 }"
+              :href="entry.categoryPath"
+            >
+              <span :class="categoryIconClass(entry.slug)" aria-hidden="true"></span>
+              <b>{{ entry.name }}</b>
+              <span>{{ entry.description || `${entry.children.length} 个直属分类` }}</span>
+              <em>{{ entry.itemCount.toLocaleString('zh-CN') }}</em>
+            </a>
           </div>
         </div>
       </section>

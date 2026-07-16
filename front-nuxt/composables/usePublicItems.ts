@@ -253,7 +253,34 @@ const fallbackPublicItemsResult = (query: PublicItemQuery = {}): PublicItemsResu
   }
 }
 
-export const fetchPublicItems = async (query: PublicItemQuery = {}): Promise<PublicItemsResult> => {
+const unavailablePublicItemsResult = (query: PublicItemQuery = {}): PublicItemsResult => {
+  const page = resolveRequestedPage(query)
+  const limit = resolveRequestedLimit(query)
+
+  return {
+    items: [],
+    rawItems: [],
+    pagination: {
+      total: 0,
+      page,
+      limit,
+      size: limit,
+      totalPages: 1,
+    },
+    source: 'unavailable',
+  }
+}
+
+type FetchPublicItemsOptions = {
+  allowFallback?: boolean
+}
+
+export const fetchPublicItems = async (
+  query: PublicItemQuery = {},
+  options: FetchPublicItemsOptions = {},
+): Promise<PublicItemsResult> => {
+  const { allowFallback = true } = options
+
   try {
     const page = resolveRequestedPage(query)
     const limit = resolveRequestedLimit(query)
@@ -283,7 +310,7 @@ export const fetchPublicItems = async (query: PublicItemQuery = {}): Promise<Pub
     // Pages can stay renderable while the public backend route is being wired.
   }
 
-  return fallbackPublicItemsResult(query)
+  return allowFallback ? fallbackPublicItemsResult(query) : unavailablePublicItemsResult(query)
 }
 
 type FetchPublicItemSuggestionsOptions = {
@@ -343,7 +370,19 @@ export const fetchPublicItemSuggestions = async (
   return allowFallback ? fallbackItemSuggestions(trimmedKeyword, safeLimit) : []
 }
 
-export const usePublicItems = (query: PublicItemQuery | (() => PublicItemQuery) = {}) => {
+type UsePublicItemsOptions = {
+  enabled?: boolean | (() => boolean)
+  allowFallback?: boolean | (() => boolean)
+}
+
+const resolveBooleanOption = (option: boolean | (() => boolean) | undefined, fallback: boolean) => (
+  typeof option === 'function' ? option() : option ?? fallback
+)
+
+export const usePublicItems = (
+  query: PublicItemQuery | (() => PublicItemQuery) = {},
+  options: UsePublicItemsOptions = {},
+) => {
   const resolvedQuery = computed(() => {
     const value = typeof query === 'function' ? query() : query
     const limit = resolveRequestedLimit(value)
@@ -358,14 +397,24 @@ export const usePublicItems = (query: PublicItemQuery | (() => PublicItemQuery) 
       sortDirection: value.sortDirection ?? 'asc',
     } satisfies PublicItemQuery
   })
+  const enabled = computed(() => resolveBooleanOption(options.enabled, true))
+  const allowFallback = computed(() => resolveBooleanOption(options.allowFallback, true))
 
   return useAsyncData(
-    () => `public-items-catalog:${JSON.stringify(resolvedQuery.value)}`,
-    () => fetchPublicItems(resolvedQuery.value),
+    () => `public-items-catalog:${JSON.stringify({
+      query: resolvedQuery.value,
+      enabled: enabled.value,
+      allowFallback: allowFallback.value,
+    })}`,
+    () => enabled.value
+      ? fetchPublicItems(resolvedQuery.value, { allowFallback: allowFallback.value })
+      : Promise.resolve(unavailablePublicItemsResult(resolvedQuery.value)),
     {
       server: false,
-      watch: [resolvedQuery],
-      default: () => fallbackPublicItemsResult(resolvedQuery.value),
+      watch: [resolvedQuery, enabled, allowFallback],
+      default: () => enabled.value && allowFallback.value
+        ? fallbackPublicItemsResult(resolvedQuery.value)
+        : unavailablePublicItemsResult(resolvedQuery.value),
     },
   )
 }

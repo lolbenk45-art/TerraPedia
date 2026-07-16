@@ -3,6 +3,9 @@ package com.terraria.skills.controller;
 import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.dto.CategoryDTO;
 import com.terraria.skills.service.CategoryManagementService;
+import com.terraria.skills.service.CategoryNavigationService;
+import com.terraria.skills.service.CategoryNavigationUnavailableException;
+import com.terraria.skills.vo.CategoryNavigationVO;
 import com.terraria.skills.vo.CategoryVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +31,7 @@ import java.util.stream.Collectors;
 public class CategoryController {
 
     private final CategoryManagementService categoryManagementService;
+    private final CategoryNavigationService categoryNavigationService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<CategoryVO>>> getCategories() {
@@ -41,6 +45,17 @@ public class CategoryController {
         List<CategoryDTO> dtoList = categoryManagementService.buildItemCategoryTree();
         log.info("Returning item-only category tree roots={}", dtoList.size());
         return ResponseEntity.ok(ApiResponse.success(convertTree(dtoList)));
+    }
+
+    @GetMapping("/navigation")
+    public ResponseEntity<ApiResponse<List<CategoryNavigationVO>>> getCategoryNavigation() {
+        try {
+            return ResponseEntity.ok(ApiResponse.success(categoryNavigationService.getNavigation()));
+        } catch (CategoryNavigationUnavailableException e) {
+            log.warn("Public category navigation unavailable: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ApiResponse.error(503, e.getMessage()));
+        }
     }
 
     @GetMapping("/{id}")
