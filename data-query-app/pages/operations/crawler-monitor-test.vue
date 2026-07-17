@@ -19,7 +19,7 @@
             <RefreshCw :size="16" :class="{ spin: loading }" />
             <span>{{ loading ? '刷新中' : '刷新' }}</span>
           </button>
-          <button type="button" class="btn btn-secondary" :disabled="saving || simulationRunning" @click="resetState">
+          <button v-if="isDevEnvironment" type="button" class="btn btn-secondary" :disabled="saving || simulationRunning" @click="resetState">
             <RotateCcw :size="16" />
             <span>重置</span>
           </button>
@@ -456,7 +456,7 @@
       </section>
     </section>
 
-    <section class="section-card simulation-panel">
+    <section v-if="isDevEnvironment" class="section-card simulation-panel">
       <div class="section-head">
         <div>
           <h2 class="section-card__title">定时模拟</h2>
@@ -595,7 +595,7 @@
       <div v-else class="table-empty">{{ domainSmokeDisplayCleared ? '本次展示已清除；重新执行或刷新后可再次查看真实进度。' : '暂无真实下载进度；点击“每域 10 条”后等待下一次自动刷新。' }}</div>
     </section>
 
-    <section class="section-card scenario-panel">
+    <section v-if="isDevEnvironment" class="section-card scenario-panel">
       <div class="section-head">
         <div>
           <h2 class="section-card__title">场景</h2>
@@ -617,7 +617,7 @@
       </div>
     </section>
 
-    <section class="monitor-layout">
+    <section v-if="isDevEnvironment" class="monitor-layout">
       <div class="monitor-main">
         <section class="section-card monitor-panel">
           <div class="section-head">
@@ -725,6 +725,9 @@ import type {
 } from '~/types/crawlerMonitor'
 
 definePageMeta({ title: '监控测试页', navSection: '/operations/crawler-monitor-test', headerVariant: 'compact' })
+
+// test-state 场景模拟器只在 dev 环境可用；域烟雾测试工作台与真实 overview 链路不受影响。
+const isDevEnvironment = import.meta.dev
 
 type StatusCard = {
   label: string
@@ -1219,6 +1222,7 @@ async function loadLiveOverview() {
 }
 
 async function savePayload(nextPayload: Record<string, any>, message = '测试状态已保存') {
+  if (!isDevEnvironment) return false
   saving.value = true
   try {
     const response: any = await put('/admin/crawler-monitor/test-state', nextPayload)
@@ -1260,6 +1264,7 @@ async function applyScenario(key: ScenarioKey) {
 }
 
 async function resetState() {
+  if (!isDevEnvironment) return
   saving.value = true
   try {
     const response: any = await post('/admin/crawler-monitor/test-state/reset')
@@ -1620,6 +1625,7 @@ function sanitizeSimulationDuration(value: number | string | null | undefined) {
 }
 
 async function startTimedSimulation() {
+  if (!isDevEnvironment) return
   if (editorDirty.value) {
     showToast('开始模拟前请保存或重置 JSON 编辑', 'error')
     return
