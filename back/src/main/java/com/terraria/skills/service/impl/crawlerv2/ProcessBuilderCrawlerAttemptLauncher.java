@@ -20,9 +20,14 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
     private static final Duration PRE_RETURN_CLEANUP_WAIT = Duration.ofSeconds(2);
     private static final long GROUP_POLL_MILLIS = 20L;
     private static final int GROUP_LOOKUP_ATTEMPTS = 3;
+    // 进程身份指纹：launch 时注入的 attempt id 环境变量。当 /proc 推导的 startInstant
+    // 因 WSL2 btime 漂移(实测 ~67s)与记录值不符时,用它二次校验，避免把活着的自家
+    // 进程误判为 START_TIME_MISMATCH(→ 上层假终态 + 僵尸 + 双跑)。
+    private static final String ATTEMPT_ID_ENV = "TERRAPEDIA_CRAWLER_ATTEMPT_ID";
     private final StartInstantResolver startInstantResolver;
     private final SessionValidator sessionValidator;
     private final ProcStatSource procStatSource;
+    private final ProcEnvironSource procEnvironSource;
 
     public ProcessBuilderCrawlerAttemptLauncher() {
         this(null, null, Files::readString);
@@ -33,9 +38,23 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
         SessionValidator sessionValidator,
         ProcStatSource procStatSource
     ) {
+        this(startInstantResolver, sessionValidator, procStatSource, defaultEnvironSource());
+    }
+
+    ProcessBuilderCrawlerAttemptLauncher(
+        StartInstantResolver startInstantResolver,
+        SessionValidator sessionValidator,
+        ProcStatSource procStatSource,
+        ProcEnvironSource procEnvironSource
+    ) {
         this.startInstantResolver = startInstantResolver;
         this.sessionValidator = sessionValidator;
         this.procStatSource = Objects.requireNonNull(procStatSource, "procStatSource");
+        this.procEnvironSource = Objects.requireNonNull(procEnvironSource, "procEnvironSource");
+    }
+
+    private static ProcEnvironSource defaultEnvironSource() {
+        return pid -> Files.readAllBytes(PROC_ROOT.resolve(Long.toString(pid)).resolve("environ"));
     }
 
     @Override
@@ -90,7 +109,11 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
                 "无法取得 crawler 子进程精确启动时间：pid=" + process.pid()
             );
         }
-        return new LaunchedManagedProcess(process, startedAt.orElseThrow());
+        return new LaunchedManagedProcess(
+            process,
+            startedAt.orElseThrow(),
+            spec.environment().get(ATTEMPT_ID_ENV)
+        );
     }
 
     @Override
@@ -108,6 +131,17 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
                         return new ProcessLookup(LookupCode.INSPECTION_UNAVAILABLE, null);
                     }
                     if (!identity.processStartedAt().equals(startedAt.orElseThrow())) {
+                        // startInstant 不符：可能是 btime 漂移(自家进程),也可能 pid 被复用
+                        // (别人的进程)。用 attempt-id 指纹裁决,不能笼统当 MISMATCH。
+                        FingerprintVerdict verdict = verifyFingerprint(identity, identity.pid());
+                        if (verdict == FingerprintVerdict.MATCHES) {
+                            return foundOrNotFound(identity, root);
+                        }
+                        if (verdict == FingerprintVerdict.FOREIGN) {
+                            // pid 已被无关进程占用 → 我们的进程确实不在了
+                            return new ProcessLookup(LookupCode.NOT_FOUND, null);
+                        }
+                        // 指纹不可读(权限/竞态)→ 保持原严格语义,不冒险签发控制权
                         return new ProcessLookup(LookupCode.START_TIME_MISMATCH, null);
                     }
                     ProcStatRead rootStat = readProcStat(identity.pid());
@@ -138,7 +172,14 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
                 if (activeMembers.isEmpty()) {
                     return new ProcessLookup(LookupCode.NOT_FOUND, null);
                 }
-                ProcessHandle representative = ProcessHandle.of(activeMembers.get(0).pid())
+                // 根 pid 已不在但组内有活成员：组 id 可能被复用,成员身份不可仅凭
+                // pgid==sid==groupId 断定。有指纹要求时,必须至少一名活成员带对
+                // attempt id 才认领,否则可能是复用该 pgid 的无关 setsid 进程。
+                ProcStat representativeStat = selectRepresentative(identity, activeMembers);
+                if (representativeStat == null) {
+                    return new ProcessLookup(LookupCode.NOT_FOUND, null);
+                }
+                ProcessHandle representative = ProcessHandle.of(representativeStat.pid())
                     .orElse(null);
                 if (representative != null) {
                     return new ProcessLookup(
@@ -151,6 +192,90 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
         } catch (SecurityException | UnsupportedOperationException exception) {
             return new ProcessLookup(LookupCode.INSPECTION_UNAVAILABLE, null);
         }
+    }
+
+    private ProcessLookup foundOrNotFound(ProcessIdentity identity, ProcessHandle root) {
+        ProcStatRead rootStat = readProcStat(identity.pid());
+        if (rootStat.code() != ProcStatReadCode.PRESENT) {
+            return new ProcessLookup(LookupCode.INSPECTION_UNAVAILABLE, null);
+        }
+        if (!rootStat.stat().belongsToIsolatedGroup(identity.pid())) {
+            return new ProcessLookup(LookupCode.INSPECTION_UNAVAILABLE, null);
+        }
+        GroupInspection group = inspectGroup(identity.pid());
+        if (!group.available()) {
+            return new ProcessLookup(LookupCode.INSPECTION_UNAVAILABLE, null);
+        }
+        if (activeMembers(group).isEmpty()) {
+            return new ProcessLookup(LookupCode.NOT_FOUND, null);
+        }
+        return new ProcessLookup(LookupCode.FOUND, new RecoveredManagedProcess(identity, root));
+    }
+
+    // 从组内活成员里挑一个可靠代表。无指纹要求时沿用原行为(取第一个);有要求时
+    // 优先返回指纹匹配的成员,一个都不匹配则拒绝认领(避免误控复用了该 pgid 的进程)。
+    private ProcStat selectRepresentative(ProcessIdentity identity, List<ProcStat> activeMembers) {
+        String expected = identity.attemptId();
+        if (expected == null || expected.isBlank()) {
+            return activeMembers.get(0);
+        }
+        boolean anyReadable = false;
+        for (ProcStat member : activeMembers) {
+            FingerprintVerdict verdict = verifyFingerprint(identity, member.pid());
+            if (verdict == FingerprintVerdict.MATCHES) {
+                return member;
+            }
+            if (verdict != FingerprintVerdict.UNKNOWN) {
+                anyReadable = true;
+            }
+        }
+        // 全部可读且无一匹配 → 是别的组占用了该 pgid;全部不可读 → 无从判定,保守取首个
+        return anyReadable ? null : activeMembers.get(0);
+    }
+
+    private FingerprintVerdict verifyFingerprint(ProcessIdentity identity, long pid) {
+        String expected = identity.attemptId();
+        if (expected == null || expected.isBlank()) {
+            return FingerprintVerdict.UNKNOWN;
+        }
+        String actual = readAttemptIdEnv(pid);
+        if (actual == null) {
+            return FingerprintVerdict.UNKNOWN;
+        }
+        return expected.equals(actual) ? FingerprintVerdict.MATCHES : FingerprintVerdict.FOREIGN;
+    }
+
+    private String readAttemptIdEnv(long pid) {
+        byte[] raw;
+        try {
+            raw = procEnvironSource.read(pid);
+        } catch (IOException | RuntimeException exception) {
+            return null;
+        }
+        if (raw == null || raw.length == 0) {
+            return null;
+        }
+        int start = 0;
+        for (int index = 0; index <= raw.length; index++) {
+            if (index == raw.length || raw[index] == 0) {
+                if (index > start) {
+                    String entry = new String(raw, start, index - start, java.nio.charset.StandardCharsets.UTF_8);
+                    int equals = entry.indexOf('=');
+                    if (equals > 0 && entry.regionMatches(0, ATTEMPT_ID_ENV, 0, equals)
+                        && equals == ATTEMPT_ID_ENV.length()) {
+                        return entry.substring(equals + 1);
+                    }
+                }
+                start = index + 1;
+            }
+        }
+        return null;
+    }
+
+    private enum FingerprintVerdict {
+        MATCHES,
+        FOREIGN,
+        UNKNOWN
     }
 
     @Override
@@ -241,7 +366,7 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
     }
 
     private ProcessIdentity identityOf(ManagedProcess process) {
-        return new ProcessIdentity(process.pid(), process.startedAt());
+        return new ProcessIdentity(process.pid(), process.startedAt(), process.attemptId());
     }
 
     private Optional<Instant> resolveStartInstant(Process process) {
@@ -436,10 +561,12 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
     private final class LaunchedManagedProcess implements ManagedProcess {
         private final Process process;
         private final Instant startedAt;
+        private final String attemptId;
 
-        private LaunchedManagedProcess(Process process, Instant startedAt) {
+        private LaunchedManagedProcess(Process process, Instant startedAt, String attemptId) {
             this.process = Objects.requireNonNull(process, "process");
             this.startedAt = Objects.requireNonNull(startedAt, "startedAt");
+            this.attemptId = attemptId;
         }
 
         @Override
@@ -450,6 +577,11 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
         @Override
         public Instant startedAt() {
             return startedAt;
+        }
+
+        @Override
+        public String attemptId() {
+            return attemptId;
         }
 
         @Override
@@ -486,6 +618,11 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
         @Override
         public Instant startedAt() {
             return identity.processStartedAt();
+        }
+
+        @Override
+        public String attemptId() {
+            return identity.attemptId();
         }
 
         @Override
@@ -574,5 +711,10 @@ public class ProcessBuilderCrawlerAttemptLauncher implements CrawlerAttemptProce
     @FunctionalInterface
     interface ProcStatSource {
         String read(Path statPath) throws IOException;
+    }
+
+    @FunctionalInterface
+    interface ProcEnvironSource {
+        byte[] read(long pid) throws IOException;
     }
 }
