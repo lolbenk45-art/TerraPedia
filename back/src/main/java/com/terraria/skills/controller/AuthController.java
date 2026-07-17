@@ -52,8 +52,8 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .body(ApiResponse.error(HttpStatus.TOO_MANY_REQUESTS.value(), "管理员登录失败次数过多，请稍后再试"));
         }
-        if (!adminAuthProperties.getUsername().equals(username)
-            || !adminAuthProperties.getPassword().equals(request.getPassword())) {
+        if (!constantTimeEquals(adminAuthProperties.getUsername(), username)
+            || !constantTimeEquals(adminAuthProperties.getPassword(), request.getPassword())) {
             adminLoginRateLimitService.recordFailure(username, ipAddress);
             securityAuditService.log("ADMIN_LOGIN_FAILED", "ADMIN", null, null, ipAddress, "username=" + username);
             log.warn("管理员登录失败 username={}", username);
@@ -89,5 +89,16 @@ public class AuthController {
             .displayName(claims.getDisplayName())
             .role(claims.getRole())
             .build();
+    }
+
+    /** 凭据比对必须恒时；朴素 equals 的短路时序可被用来逐字符探测密码。 */
+    private static boolean constantTimeEquals(String expected, String provided) {
+        byte[] expectedBytes = expected == null
+            ? new byte[0]
+            : expected.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] providedBytes = provided == null
+            ? new byte[0]
+            : provided.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return java.security.MessageDigest.isEqual(expectedBytes, providedBytes);
     }
 }

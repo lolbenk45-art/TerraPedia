@@ -22,5 +22,10 @@ public class UserAuthProperties {
         if (!StringUtils.hasText(tokenSecret)) {
             throw new IllegalStateException("Missing required property: terraria.auth.user.token-secret");
         }
+        if (tokenSecret.length() < AdminAuthProperties.MIN_TOKEN_SECRET_LENGTH) {
+            throw new IllegalStateException(
+                "terraria.auth.user.token-secret must be at least "
+                    + AdminAuthProperties.MIN_TOKEN_SECRET_LENGTH + " characters (got " + tokenSecret.length() + ")");
+        }
     }
 }

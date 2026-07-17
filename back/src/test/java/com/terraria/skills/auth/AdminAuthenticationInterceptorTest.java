@@ -22,7 +22,7 @@ class AdminAuthenticationInterceptorTest {
         properties.setUsername("admin");
         properties.setPassword("unit-test-admin-password");
         properties.setDisplayName("管理员");
-        properties.setTokenSecret("unit-test-secret");
+        properties.setTokenSecret("unit-test-secret-that-is-long-enough-0123456789");
         properties.setTokenTtlSeconds(3600L);
 
         jwtService = new AdminJwtService(properties, new ObjectMapper());
