@@ -9,6 +9,7 @@ const {
   backendOrigin: terrapediaBackendOrigin,
   imageOrigin: terrapediaImageOrigin,
   wikiImageGateUrl: terrapediaWikiImageGateUrl,
+  siteUrl: terrapediaSiteUrl,
 } = resolveFrontRuntimeConfig()
 
 // Public image origin is resolved in utils/runtimeConfig.mjs from TERRAPEDIA_IMAGE_ORIGIN
@@ -53,6 +54,7 @@ export default defineNuxtConfig({
     public: {
       apiBase: '/api',
       imageOrigin: terrapediaImageOrigin,
+      siteUrl: terrapediaSiteUrl,
     },
   },
 

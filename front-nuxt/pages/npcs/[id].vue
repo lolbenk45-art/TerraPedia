@@ -81,10 +81,16 @@ const secondaryName = computed(() => {
   return zhName && name && name !== zhName ? name : ''
 })
 
+const toAbsoluteSeoUrl = useAbsoluteSiteUrl()
+
 useSeoMeta({
   title: () => `TerraPedia · ${displayName.value}`,
   description: () => `${displayName.value} 的公开 NPC 资料详情，包含基础数值、生活偏好、掉落、出售物品和状态效果关系。`,
-  ogImage: () => portraitImage.value || undefined,
+  ogImage: () => toAbsoluteSeoUrl(portraitImage.value),
+})
+
+useHead({
+  link: [{ rel: 'canonical', href: () => toAbsoluteSeoUrl(route.path) }],
 })
 
 const npcWikiAssets = computed(() => npc.value?.wikiAssets ?? npc.value?.wiki_assets ?? null)

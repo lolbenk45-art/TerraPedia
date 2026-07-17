@@ -68,10 +68,16 @@ const bossTypeLabel = computed(() => {
   return 'Boss'
 })
 
+const toAbsoluteSeoUrl = useAbsoluteSiteUrl()
+
 useSeoMeta({
   title: () => `TerraPedia · ${bossTitle.value}`,
   description: () => `${bossTitle.value} 的公开 Boss 资料详情，包含成员、掉落和推进信息。`,
-  ogImage: () => bossCard.value?.image || undefined,
+  ogImage: () => toAbsoluteSeoUrl(bossCard.value?.image),
+})
+
+useHead({
+  link: [{ rel: 'canonical', href: () => toAbsoluteSeoUrl(route.path) }],
 })
 
 const entryImage = (value: { itemImage?: string | null; imageUrl?: string | null }) => resolvePreviewImageUrl(value.itemImage || value.imageUrl || '')

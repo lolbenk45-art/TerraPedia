@@ -76,12 +76,17 @@ export const resolveFrontRuntimeConfig = ({ env = process.env, cwd = process.cwd
     envValue(env, 'TERRAPEDIA_IMAGE_FETCH_GATE_URL') || DEFAULT_WIKI_GATE_URL,
   )
 
+  // Public site origin for absolute SEO URLs (og:image/canonical). Empty means
+  // "derive from the incoming request origin" — see useAbsoluteSeo.ts.
+  const siteUrl = trimTrailingSlash(envValue(env, 'TERRAPEDIA_SITE_URL'))
+
   return {
     configPath,
     backendOrigin,
     minioPublicEndpoint,
     imageOrigin,
     wikiImageGateUrl,
+    siteUrl,
     backendApiBase: `${backendOrigin}/api`,
   }
 }
