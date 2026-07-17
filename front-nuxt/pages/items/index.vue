@@ -143,23 +143,37 @@ const readStoredPageSize = () => {
   }
 }
 
-const hydrateCatalogStateFromRoute = () => {
-  const filter = resolveFilterQueryKey(firstQueryValue(route.query.filter))
-  const category = firstQueryValue(route.query.category)
-  const search = String(firstQueryValue(route.query.q) ?? '')
-  const queryPageSize = firstQueryValue(route.query.pageSize)
+// 深链双请求根治(WP-4):路由 hydrate 必须在取数 composable 之前同步执行,
+// 首个请求即带正确 page/分类/搜索词。原手工预水合副本已并入这里的单点 hydrate,
+// legacyFilterAliases(P0-4)兼容逻辑随之保留在单点内,不再重复维护两处。
+useCatalogRouteSync({
+  serialize: () => ({
+    page: currentPage.value > 1 ? String(currentPage.value) : undefined,
+    pageSize: selectedPageSize.value !== defaultCatalogPageSize ? String(selectedPageSize.value) : undefined,
+    filter: activeFilter.value !== 'all' ? activeFilter.value : undefined,
+    category: selectedCategoryCode.value ?? undefined,
+    q: debouncedSearchQuery.value.trim() || undefined,
+    search: undefined,
+  }),
+  hydrate: (query) => {
+    const filter = resolveFilterQueryKey(firstQueryValue(query.filter))
+    const search = String(firstQueryValue(query.q ?? query.search) ?? '')
+    const queryPageSize = firstQueryValue(query.pageSize)
 
-  selectedPageSize.value = queryPageSize ? parsePageSize(queryPageSize) : readStoredPageSize()
-  currentPage.value = parsePositiveInteger(route.query.page, 1)
-  selectedCategoryCode.value = category == null ? null : String(category)
-  activeFilter.value = selectedCategoryCode.value == null && quickFilters.some((item) => item.key === filter)
-    ? filter as QuickFilterKey
-    : 'all'
-  searchQuery.value = search
-  debouncedSearchQuery.value = search
-}
+    const category = firstQueryValue(query.category)
 
-hydrateCatalogStateFromRoute()
+    selectedPageSize.value = queryPageSize ? parsePageSize(queryPageSize) : readStoredPageSize()
+    currentPage.value = parsePositiveInteger(query.page, 1)
+    selectedCategoryCode.value = category == null ? null : String(category)
+    activeFilter.value = selectedCategoryCode.value == null && quickFilters.some((item) => item.key === filter)
+      ? filter as QuickFilterKey
+      : 'all'
+    searchQuery.value = search
+    debouncedSearchQuery.value = search
+  },
+  watchSources: [currentPage, selectedPageSize, activeFilter, selectedCategoryCode, debouncedSearchQuery],
+  search: { input: searchQuery, debounced: debouncedSearchQuery, page: currentPage },
+})
 
 const backendSearch = computed(() => debouncedSearchQuery.value.trim())
 const toNumberOrNull = (value: unknown) => {
@@ -179,7 +193,7 @@ const {
   refresh: refreshCategoryNavigation,
 } = await usePublicCategoryNavigation()
 
-const { data: publicItemCategories } = await useAsyncData(
+const { data: publicItemCategories, pending: itemCategoriesPending } = await useAsyncData(
   'public-item-category-tree',
   async () => {
     try {
@@ -259,6 +273,15 @@ const selectedCategoryId = computed(() => {
   const categoryIds = selectedCategoryIds.value
   return categoryIds.length === 1 ? categoryIds[0] : undefined
 })
+// 深链双请求根治(WP-4):categoryCodes 型筛选(如 mechanism→TOOL_CIRCUIT)需要
+// 客户端 /categories/items 分类树把 code 解析成 id。树未就绪时先不取数,
+// 否则首个请求缺 categoryId、树到位后 watch 再补一次(第二次请求)。
+const catalogCodeScopeReady = computed(() => {
+  if (navigationScopeRequired.value) return true
+  const categoryCodes = selectedFilter.value.categoryCodes
+  if (!categoryCodes || categoryCodes.length === 0) return true
+  return !itemCategoriesPending.value
+})
 const selectedGamePeriodId = computed(() => (
   'gamePeriodId' in selectedFilter.value ? selectedFilter.value.gamePeriodId : undefined
 ))
@@ -281,13 +304,17 @@ const {
 } = await usePublicItems(
   () => publicItemsQuery.value,
   {
-    enabled: () => navigationScopeReady.value,
+    enabled: () => navigationScopeReady.value && catalogCodeScopeReady.value,
     allowFallback: () => !navigationScopeRequired.value,
   },
 )
 
 const { clientReady: catalogClientReady, visualLoading: catalogVisualLoading } = useVisualLoading({
-  pending: computed(() => itemsPending.value || (navigationScopeRequired.value && categoryNavigationPending.value)),
+  pending: computed(() => (
+    itemsPending.value
+    || (navigationScopeRequired.value && categoryNavigationPending.value)
+    || !catalogCodeScopeReady.value
+  )),
   minimumMs: 180,
 })
 
@@ -426,35 +453,6 @@ const retryCatalogData = async () => {
     await refreshPublicItems()
   }
 }
-
-useCatalogRouteSync({
-  serialize: () => ({
-    page: currentPage.value > 1 ? String(currentPage.value) : undefined,
-    pageSize: selectedPageSize.value !== defaultCatalogPageSize ? String(selectedPageSize.value) : undefined,
-    filter: activeFilter.value !== 'all' ? activeFilter.value : undefined,
-    category: selectedCategoryCode.value ?? undefined,
-    q: debouncedSearchQuery.value.trim() || undefined,
-    search: undefined,
-  }),
-  hydrate: (query) => {
-    const filter = resolveFilterQueryKey(firstQueryValue(query.filter))
-    const search = String(firstQueryValue(query.q ?? query.search) ?? '')
-    const queryPageSize = firstQueryValue(query.pageSize)
-
-    const category = firstQueryValue(query.category)
-
-    selectedPageSize.value = queryPageSize ? parsePageSize(queryPageSize) : readStoredPageSize()
-    currentPage.value = parsePositiveInteger(query.page, 1)
-    selectedCategoryCode.value = category == null ? null : String(category)
-    activeFilter.value = selectedCategoryCode.value == null && quickFilters.some((item) => item.key === filter)
-      ? filter as QuickFilterKey
-      : 'all'
-    searchQuery.value = search
-    debouncedSearchQuery.value = search
-  },
-  watchSources: [currentPage, selectedPageSize, activeFilter, selectedCategoryCode, debouncedSearchQuery],
-  search: { input: searchQuery, debounced: debouncedSearchQuery, page: currentPage },
-})
 
 watch(catalogItems, (items) => {
   if (!focusedItemId.value && items[0]) {

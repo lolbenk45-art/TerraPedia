@@ -27,6 +27,23 @@ const statLabels: Record<string, string> = {
   special_effect: '特效',
 }
 
+// 深链双请求根治(WP-4):路由 hydrate 在取数 composable 之前同步执行,
+// 首个请求即带 page/搜索词,避免默认态先发一次、hydrate 后再补一次。
+useCatalogRouteSync({
+  serialize: () => ({
+    page: armorCurrentPage.value > 1 ? String(armorCurrentPage.value) : undefined,
+    q: armorDebouncedSearchQuery.value.trim() || undefined,
+  }),
+  hydrate: (query) => {
+    const search = String(firstQueryValue(query.q) ?? '')
+    armorCurrentPage.value = parsePositiveInteger(query.page, 1)
+    armorSearchQuery.value = search
+    armorDebouncedSearchQuery.value = search
+  },
+  watchSources: [armorCurrentPage, armorDebouncedSearchQuery],
+  search: { input: armorSearchQuery, debounced: armorDebouncedSearchQuery, page: armorCurrentPage },
+})
+
 const armorListQuery = computed(() => ({
   page: armorCurrentPage.value,
   limit: armorPageSize.value,
@@ -128,21 +145,6 @@ const armorSummary = (armor: ArmorSetCatalogItem) => {
   const totalCount = armor.effects.length
   return `${numberLabel(armor.uniqueItemCount)} 个部件 · ${parsedCount}/${totalCount} 条效果`
 }
-
-useCatalogRouteSync({
-  serialize: () => ({
-    page: armorCurrentPage.value > 1 ? String(armorCurrentPage.value) : undefined,
-    q: armorDebouncedSearchQuery.value.trim() || undefined,
-  }),
-  hydrate: (query) => {
-    const search = String(firstQueryValue(query.q) ?? '')
-    armorCurrentPage.value = parsePositiveInteger(query.page, 1)
-    armorSearchQuery.value = search
-    armorDebouncedSearchQuery.value = search
-  },
-  watchSources: [armorCurrentPage, armorDebouncedSearchQuery],
-  search: { input: armorSearchQuery, debounced: armorDebouncedSearchQuery, page: armorCurrentPage },
-})
 
 watch(armorDebouncedSearchQuery, () => {
   armorCurrentPage.value = 1

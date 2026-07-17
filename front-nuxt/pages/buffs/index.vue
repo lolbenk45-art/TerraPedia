@@ -12,6 +12,23 @@ const buffDebouncedSearchQuery = ref('')
 const buffCurrentPage = ref(1)
 const buffPageSize = ref(24)
 
+// 深链双请求根治(WP-4):路由 hydrate 必须在取数 composable 之前同步执行,
+// 首个请求即带上正确的 page/搜索词,避免默认态先发一次、hydrate 后再发一次。
+useCatalogRouteSync({
+  serialize: () => ({
+    page: buffCurrentPage.value > 1 ? String(buffCurrentPage.value) : undefined,
+    q: buffDebouncedSearchQuery.value.trim() || undefined,
+  }),
+  hydrate: (query) => {
+    const search = String(firstQueryValue(query.q) ?? '')
+    buffCurrentPage.value = parsePositiveInteger(query.page, 1)
+    buffSearchQuery.value = search
+    buffDebouncedSearchQuery.value = search
+  },
+  watchSources: [buffCurrentPage, buffDebouncedSearchQuery],
+  search: { input: buffSearchQuery, debounced: buffDebouncedSearchQuery, page: buffCurrentPage },
+})
+
 const buffListQuery = computed(() => ({
   page: buffCurrentPage.value,
   limit: buffPageSize.value,
@@ -60,21 +77,6 @@ const resetBuffSearch = () => {
   buffDebouncedSearchQuery.value = ''
   buffCurrentPage.value = 1
 }
-
-useCatalogRouteSync({
-  serialize: () => ({
-    page: buffCurrentPage.value > 1 ? String(buffCurrentPage.value) : undefined,
-    q: buffDebouncedSearchQuery.value.trim() || undefined,
-  }),
-  hydrate: (query) => {
-    const search = String(firstQueryValue(query.q) ?? '')
-    buffCurrentPage.value = parsePositiveInteger(query.page, 1)
-    buffSearchQuery.value = search
-    buffDebouncedSearchQuery.value = search
-  },
-  watchSources: [buffCurrentPage, buffDebouncedSearchQuery],
-  search: { input: buffSearchQuery, debounced: buffDebouncedSearchQuery, page: buffCurrentPage },
-})
 
 watch(buffDebouncedSearchQuery, () => {
   buffCurrentPage.value = 1

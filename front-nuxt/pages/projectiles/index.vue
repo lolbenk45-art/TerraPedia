@@ -36,6 +36,29 @@ const parseProjectileSortDirection = (value: unknown): 'asc' | 'desc' => (
   String(firstQueryValue(value) ?? '').toLocaleLowerCase() === 'desc' ? 'desc' : 'asc'
 )
 
+// 深链双请求根治(WP-4):路由 hydrate 在取数 composable 之前同步执行,
+// 首个请求即带 page/搜索词/排序,避免默认态先发一次再补发。
+useCatalogRouteSync({
+  serialize: () => ({
+    page: projectileCurrentPage.value > 1 ? String(projectileCurrentPage.value) : undefined,
+    pageSize: projectilePageSize.value !== defaultProjectilePageSize ? String(projectilePageSize.value) : undefined,
+    q: debouncedProjectileSearchQuery.value.trim() || undefined,
+    sortBy: projectileSortBy.value !== 'id' ? projectileSortBy.value : undefined,
+    sortDirection: projectileSortDirection.value !== 'asc' ? projectileSortDirection.value : undefined,
+  }),
+  hydrate: (query) => {
+    const search = String(firstQueryValue(query.q) ?? '')
+    projectileSearchQuery.value = search
+    debouncedProjectileSearchQuery.value = search
+    projectileCurrentPage.value = parsePositiveInteger(query.page, 1)
+    projectilePageSize.value = parseProjectilePageSize(query.pageSize)
+    projectileSortBy.value = parseProjectileSort(query.sortBy)
+    projectileSortDirection.value = parseProjectileSortDirection(query.sortDirection)
+  },
+  watchSources: [projectileCurrentPage, projectilePageSize, debouncedProjectileSearchQuery, projectileSortBy, projectileSortDirection],
+  search: { input: projectileSearchQuery, debounced: debouncedProjectileSearchQuery, page: projectileCurrentPage },
+})
+
 const projectileListQuery = computed(() => ({
   page: projectileCurrentPage.value,
   limit: projectilePageSize.value,
@@ -129,27 +152,6 @@ const setProjectilePageSize = (pageSize: number) => {
   projectileCurrentPage.value = 1
   void scrollProjectilesToTop()
 }
-
-useCatalogRouteSync({
-  serialize: () => ({
-    page: projectileCurrentPage.value > 1 ? String(projectileCurrentPage.value) : undefined,
-    pageSize: projectilePageSize.value !== defaultProjectilePageSize ? String(projectilePageSize.value) : undefined,
-    q: debouncedProjectileSearchQuery.value.trim() || undefined,
-    sortBy: projectileSortBy.value !== 'id' ? projectileSortBy.value : undefined,
-    sortDirection: projectileSortDirection.value !== 'asc' ? projectileSortDirection.value : undefined,
-  }),
-  hydrate: (query) => {
-    const search = String(firstQueryValue(query.q) ?? '')
-    projectileSearchQuery.value = search
-    debouncedProjectileSearchQuery.value = search
-    projectileCurrentPage.value = parsePositiveInteger(query.page, 1)
-    projectilePageSize.value = parseProjectilePageSize(query.pageSize)
-    projectileSortBy.value = parseProjectileSort(query.sortBy)
-    projectileSortDirection.value = parseProjectileSortDirection(query.sortDirection)
-  },
-  watchSources: [projectileCurrentPage, projectilePageSize, debouncedProjectileSearchQuery, projectileSortBy, projectileSortDirection],
-  search: { input: projectileSearchQuery, debounced: debouncedProjectileSearchQuery, page: projectileCurrentPage },
-})
 
 watch([projectileSortBy, projectileSortDirection], () => {
   projectileCurrentPage.value = 1

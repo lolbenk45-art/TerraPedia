@@ -62,7 +62,7 @@ requireIncludes('pages/categories/[id].vue', categoryDetail, 'watch(unknownCateg
 requireIncludes('pages/categories/[id].vue', categoryDetail, 'role="alert"', 'detail errors must be announced accessibly')
 requireIncludes('pages/categories/index.vue', categoryIndex, 'role="alert"', 'index errors must be announced accessibly')
 requireIncludes('pages/items/index.vue', itemsPage, 'navigationSlug', 'six public filters must identify navigation entries')
-requireIncludes('pages/items/index.vue', itemsPage, 'route.query.category', 'item deep links must read the exact child category code')
+requireIncludes('pages/items/index.vue', itemsPage, 'firstQueryValue(query.category)', 'item deep links must read the exact child category code')
 requireIncludes('pages/items/index.vue', itemsPage, 'resolvePublicCategoryNavigationSelection', 'item scope must use the shared exact child and parent resolver')
 requireIncludes('pages/items/index.vue', itemsPage, 'navigationScopeRequired', 'parent and child navigation must share one request gate')
 requireIncludes('pages/items/index.vue', itemsPage, 'allowFallback: () => !navigationScopeRequired.value', 'required navigation scopes must disable sample fallback')
