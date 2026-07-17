@@ -1,7 +1,8 @@
 import { buildUserPostAuthRedirectTarget, buildUserRedirectTarget } from '~/composables/useUserApi'
 
 export default defineNuxtRouteMiddleware(async (to) => {
-  if (!to.path.startsWith('/user')) {
+  // 仅 /user 命名空间需要认证初始化;精确匹配 + 前缀,避免误伤 /users/* 公开作者页
+  if (!(to.path === '/user' || to.path.startsWith('/user/'))) {
     return
   }
 
