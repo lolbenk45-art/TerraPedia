@@ -101,4 +101,78 @@ class AdminAuthenticationInterceptorTest {
         assertTrue(allowed);
         assertNotNull(request.getAttribute(AdminAuthenticationInterceptor.ADMIN_CLAIMS_ATTRIBUTE));
     }
+
+    @RequireAdminAuth
+    static class AnnotatedHandler {
+        public void write() {}
+    }
+
+    static class UnannotatedHandler {
+        public void read() {}
+    }
+
+    private org.springframework.web.method.HandlerMethod handlerFor(Class<?> type, String method) throws Exception {
+        return new org.springframework.web.method.HandlerMethod(
+            type.getDeclaredConstructor().newInstance(),
+            type.getDeclaredMethod(method)
+        );
+    }
+
+    @Test
+    void annotatedHandlerOutsideKnownPathsMustStillRequireAuth() throws Exception {
+        // fail-open 根因: 新端点不在硬编码前缀清单里就直接公开。注解声明后,
+        // 即使路径未登记也必须验 token。
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/future-module/write");
+        request.setServletPath("/future-module/write");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        boolean allowed = interceptor.preHandle(request, response, handlerFor(AnnotatedHandler.class, "write"));
+
+        assertFalse(allowed);
+        assertEquals(401, response.getStatus());
+    }
+
+    @Test
+    void annotatedHandlerAcceptsValidAdminToken() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/future-module/write");
+        request.setServletPath("/future-module/write");
+        request.addHeader("Authorization", "Bearer " + jwtService.createToken(jwtService.issueToken()));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        boolean allowed = interceptor.preHandle(request, response, handlerFor(AnnotatedHandler.class, "write"));
+
+        assertTrue(allowed);
+        assertNotNull(request.getAttribute(AdminAuthenticationInterceptor.ADMIN_CLAIMS_ATTRIBUTE));
+    }
+
+    @Test
+    void unannotatedPublicPathStaysPublic() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/public/items");
+        request.setServletPath("/public/items");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        assertTrue(interceptor.preHandle(request, response, handlerFor(UnannotatedHandler.class, "read")));
+    }
+
+    @Test
+    void tokenWithoutAdminRoleMustBeRejectedOnAdminPaths() throws Exception {
+        // 13/14 写端点只验 token 不验 role; role 校验必须集中在拦截器,
+        // 且 role claim 缺失/非 ADMIN 一律拒绝(解析层不许缺省成 ADMIN)。
+        String forged = jwtService.createToken(AdminTokenClaims.builder()
+            .username("admin")
+            .displayName("管理员")
+            .role("USER")
+            .issuedAt(java.time.Instant.now().getEpochSecond())
+            .expiresAt(java.time.Instant.now().getEpochSecond() + 3600)
+            .build());
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/admin/recipes");
+        request.setServletPath("/admin/recipes");
+        request.addHeader("Authorization", "Bearer " + forged);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        boolean allowed = interceptor.preHandle(request, response, new Object());
+
+        assertFalse(allowed);
+        assertEquals(401, response.getStatus());
+    }
 }

@@ -8,12 +8,14 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 @Component
 public class AdminAuthenticationInterceptor implements HandlerInterceptor {
 
     public static final String ADMIN_CLAIMS_ATTRIBUTE = "adminClaims";
+    private static final String ROLE_ADMIN = "ADMIN";
 
     private final AdminJwtService adminJwtService;
     private final ObjectMapper objectMapper;
@@ -25,7 +27,7 @@ public class AdminAuthenticationInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        if (!requiresAuthentication(request)) {
+        if (!requiresAuthentication(request, handler)) {
             return true;
         }
 
@@ -43,6 +45,12 @@ public class AdminAuthenticationInterceptor implements HandlerInterceptor {
 
         try {
             AdminTokenClaims claims = adminJwtService.parseAndValidate(token);
+            // 管理端令牌必须显式携带 ADMIN role；只验签名不验角色曾让
+            // 13/14 个写端点对任意有效 token 放行。
+            if (!ROLE_ADMIN.equals(claims.getRole())) {
+                writeUnauthorizedResponse(response, "该令牌没有管理员权限");
+                return false;
+            }
             request.setAttribute(ADMIN_CLAIMS_ATTRIBUTE, claims);
             return true;
         } catch (IllegalArgumentException exception) {
@@ -51,14 +59,28 @@ public class AdminAuthenticationInterceptor implements HandlerInterceptor {
         }
     }
 
-    private boolean requiresAuthentication(HttpServletRequest request) {
-        String path = request.getServletPath();
+    private boolean requiresAuthentication(HttpServletRequest request, Object handler) {
         String method = request.getMethod();
-
         if (HttpMethod.OPTIONS.matches(method)) {
             return false;
         }
+        // 注解声明优先：标了 @RequireAdminAuth 的 handler 不依赖下面的
+        // 路径清单，新端点漏登记也不会 fail-open。
+        if (handlerRequiresAdminAuth(handler)) {
+            return true;
+        }
+        return pathRequiresAuthentication(request.getServletPath(), method);
+    }
 
+    private boolean handlerRequiresAdminAuth(Object handler) {
+        if (!(handler instanceof HandlerMethod handlerMethod)) {
+            return false;
+        }
+        return handlerMethod.hasMethodAnnotation(RequireAdminAuth.class)
+            || handlerMethod.getBeanType().isAnnotationPresent(RequireAdminAuth.class);
+    }
+
+    private boolean pathRequiresAuthentication(String path, String method) {
         if ("/auth/me".equals(path)) {
             return true;
         }
