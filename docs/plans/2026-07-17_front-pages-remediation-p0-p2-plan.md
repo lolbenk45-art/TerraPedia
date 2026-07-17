@@ -280,7 +280,7 @@ if (failed) process.exit(1)
 ### WP-6: forbiddenPublicTerms 禁词策略决策(1d)
 
 - **根因更正(v2)**:npcs/[id].vue:488 与 usePublicBuffDetail.ts:28-30 的 `'source' + 'Items'` 拼接 hack,规避的是 `check-public-pages.mjs:260-264` 定义、`:1145-1149` 对全部 scanFiles 执行的**全文件禁词表**(`sourceItems`/`inflictingNpcs`/`immuneNpcs`),不是文章 contract 提取器。修提取器修不掉这两处。
-- **范围内**:与用户确认禁词口径后三选一:① 禁词表改为只扫模板段(script 里消费后端字段名属正常代码)② 为具体行加注释豁免机制 ③ normalize 层重命名字段让页面不再出现禁词。落地后删除两处拼接 hack。
+- **范围内**:**已拍板(2026-07-17,用户选 ①)**:禁词表改为只扫模板段(script 里消费后端字段名属正常代码)。落地后删除两处拼接 hack。
 - **验收**:hack 清零且 check 绿;决策记录写入 `docs/contracts/`(该目录存合同说明)。
 
 ### WP-7: PasswordInput.vue(0.5d)
@@ -329,7 +329,7 @@ if (failed) process.exit(1)
 
 ### WP-14: 小项打包(3d)
 
-skip-link;9–11px 字号 121 处提升至 ≥12px(mobile-typography-fixes 逐条处理并下调棘轮);面包屑清假数据字典+NuxtLink 化;biomes 详情 `<a>` 换 NuxtLink;Footer 统计接 `/statistics/overview` 真值(**纯前端**,后端端点已存在且 `useHomeData.ts:77` 已消费——v2 更正,非跨边界;须保住 `check-public-pages.mjs:1505` 首页 prop marker,若 WP-11.2 已改通道则以新口径为准);search-tool 定位(**开工前要用户拍板:接真值还是下线**);改密成功跳登录页;settings/编辑器补 `aria-live`;categories 数字 id 301;**TerraNav onMounted 的访客 init 双失败请求收敛**(P0-2 遗留,`TerraNav.vue:108`,如加"未登录短路/一次性静默"逻辑);V55 种子迁移补文件(**跨边界:落 `back/db/migration/V55__seed_ac_home_original_articles.sql`,V55 号实测未占用,按后端迁移规范提交;`check-home-j1-index.mjs` 不在主 check 链不构成门禁**);search 页文案统一中文+状态合并。
+skip-link;9–11px 字号 121 处提升至 ≥12px(mobile-typography-fixes 逐条处理并下调棘轮);面包屑清假数据字典+NuxtLink 化;biomes 详情 `<a>` 换 NuxtLink;Footer 统计接 `/statistics/overview` 真值(**纯前端**,后端端点已存在且 `useHomeData.ts:77` 已消费——v2 更正,非跨边界;须保住 `check-public-pages.mjs:1505` 首页 prop marker,若 WP-11.2 已改通道则以新口径为准);search-tool **保留并接真实统计**(已拍板 2026-07-17:复用 useHomeData stats 消灭假计数,页面顶部加「对照原型」标注);改密成功跳登录页;settings/编辑器补 `aria-live`;categories 数字 id 301;**TerraNav onMounted 的访客 init 双失败请求收敛**(P0-2 遗留,`TerraNav.vue:108`,如加"未登录短路/一次性静默"逻辑);V55 种子迁移补文件(**跨边界:落 `back/db/migration/V55__seed_ac_home_original_articles.sql`,V55 号实测未占用,按后端迁移规范提交;`check-home-j1-index.mjs` 不在主 check 链不构成门禁**);search 页文案统一中文+状态合并。
 
 - **验收**:逐项 grep/截图/curl 证据归档 `docs/audits/` 追加记录。
 
