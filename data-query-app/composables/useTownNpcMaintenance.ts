@@ -197,7 +197,9 @@ const COIN_SHORT_LABEL: Record<string, string> = {
 }
 
 export const buildPriceVisual = (item: RefItem, coinIcons: Record<string, string>): PriceToken[] => {
-  const numeric = Number(item?.buyPrice ?? item?.sellPrice)
+  // 维护总览 SQL 别名为 buyPrice/sellPrice, 而 /items/suggestions 返回 ItemVO 原始
+  // 字段 buy/sell — 两种形态都要认, 否则搜索面板的金币 chip 永不渲染
+  const numeric = Number(item?.buyPrice ?? item?.buy ?? item?.sellPrice ?? item?.sell)
   if (!Number.isFinite(numeric) || numeric < 0) return []
 
   const total = Math.max(0, Math.trunc(numeric))

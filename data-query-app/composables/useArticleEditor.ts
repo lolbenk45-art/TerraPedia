@@ -1264,7 +1264,16 @@ export const useArticleEditor = (initialArticleId: number | null) => {
       savedAt: new Date().toISOString(),
       data: toLocalDraftSnapshot(form),
     }
-    localStorage.setItem(draftStorageKey.value, JSON.stringify(payload))
+    try {
+      localStorage.setItem(draftStorageKey.value, JSON.stringify(payload))
+    } catch (error) {
+      // 大图 base64 会触发 QuotaExceededError；吞掉异常会让状态栏继续显示
+      // "已自动保存"而草稿实际早已停写。必须显式转入 error 态提醒用户。
+      saveStatus.value = 'error'
+      showToast('本地草稿保存失败（存储空间不足），请尽快手动保存文章', 'error')
+      console.error('writeLocalDraft failed', error)
+      return
+    }
     lastLocalSavedAt.value = payload.savedAt
     if (isDirty.value && !saving.value) {
       saveStatus.value = 'autosaved'
