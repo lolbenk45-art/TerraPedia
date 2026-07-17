@@ -40,3 +40,27 @@ Audit source: `docs/audits/2026-07-17-admin-backend-audit/`
 - P0 计划中 2 项经边界决策**有意不做**: Npc/Buff delete 级联清理（逻辑删除语义待设计）、后端 test-state @Profile 隔离（转后续）
 - 后续批次: P1 死代码清扫（crawler-monitor ~1000 行、stations 死块、town-npcs 僵尸页）、拦截器注解式鉴权专项、AdminCrudService 骨架——见审计 README 的优先级路线
 - dev server 13004 已重启加载 pinia patch；后端 18191 已重启加载新 mapper
+
+## 2026-07-18 续: P1+P2 批进行中
+
+计划: `docs/superpowers/plans/2026-07-17-admin-p1-p2-batch.md`（已按独立评审 1 blocker + 8 major 修订，评审发现全部内嵌在计划正文的"评审修正"标注里）。事实基线: `docs/audits/2026-07-17-admin-backend-audit/scout-*.md` 三份侦察报告（行号已实地核实）。
+
+进度（15 task）:
+
+- [x] A1 拦截器 ADMIN role 深度防御（`6cd6457`，AdminAuthenticationInterceptorTest 9/9 绿）
+- [ ] A2 鉴权失败统一 401（UnauthenticatedException + 10 副本守护式 + **UserReadingHistoryControllerTest L115-120 断言须迁移 400→401**）
+- [ ] B1 crawler-monitor 32 符号 ~293 行死链（+删 contract 测试 L625 正向锁定）
+- [ ] B2 stations 死块 L409-411+连带 / town-npcs 两僵尸页 1046 行（**硬前置: npc-projection-json-visibility.test.mjs 三处收窄**）/ audio-assets 死 CSS
+- [ ] C1 字体栈 CJK+emoji + login/CategoryTreeNode 换 lucide（本机无 emoji 字体，纯字体栈方案验收不了）
+- [ ] C2 表格裁切（query.vue `data-table-wrap` 孤儿类一行修）+ 竖排折行（**须 flex-wrap:nowrap 非 white-space**）
+- [ ] C3 classification-audit 7 处失效令牌 + AppPagination 翻页
+- [ ] C4 硬编码颜色→令牌（index 五彩 tag 保留 hex，验收是"主题统一"非"视觉一致"）
+- [ ] C5 matchStatuses split 精确匹配 + TOKEN_COOKIE_KEY 导出 + items 白名单（**保留 rarity/relatedCategoryIds/imageUrl 三变换**）
+- [ ] D1 trimToNull 35 份收编（**20+ 在 service/ 侧，git add 覆盖整个 skills/**）
+- [ ] D2 ClientIpResolver 接入 8 处（**blocker 修正: 8 个测试文件构造器须补 mock，仿 UserAuthControllerTest:36**）
+- [ ] D3 CategoryManagement 真实状态码（6 处删 catch + L47 须新建 ResourceNotFoundException）
+- [ ] D4 reviewStatus 过滤（**须 allow-null 包装，normalizeReviewStatus 空值→DRAFT 会误过滤**）+ 删 N+1（**admin-global-comment-management-contract L61/71/72 正向锁定须同步改**）
+- [ ] D5 syncNpcShopEntries conditions 级联 3 用例
+- [ ] D6 formatDateTime 收编（**只并逐字相同的 6 处，tree.vue:192 是 2-digit 版不并**）+ coin-chip 2 份下沉（B2 删掉两份后只剩 2）
+
+执行约定: 按 task 顺序做、每 task 独立提交（commit message 风格照前 12 个）、每 task 跑计划里列的验证命令。B2 依赖先于 D6（coin-chip 份数）。全部完成后收尾: 后端 `mvn test -Dtest='Admin*Test,Auth*Test,*Article*'`（存量 7 失败为已知基线不新增即可）+ `pnpm run check` + `pnpm run test:unit` + 关键页重截图，然后由用户裁决是否合 main。
