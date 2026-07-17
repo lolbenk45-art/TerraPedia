@@ -4,7 +4,21 @@ import { dirname, resolve } from 'node:path'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const pagePath = resolve(__dirname, '../pages/armor-sets/[id].vue')
-const source = readFileSync(pagePath, 'utf8')
+// WP-1 split: 中文效果文案解析引擎迁至 utils/armorEffectParsing.ts。
+// 合同标记可能落在页面或迁出文件,故把它们拼接后统一断言,保持契约不变。
+const contractSourcePaths = [
+  pagePath,
+  resolve(__dirname, '../utils/armorEffectParsing.ts'),
+]
+const source = contractSourcePaths
+  .map((path) => {
+    try {
+      return readFileSync(path, 'utf8')
+    } catch {
+      return ''
+    }
+  })
+  .join('\n')
 
 const requiredMarkers = [
   'armor-build-board',
