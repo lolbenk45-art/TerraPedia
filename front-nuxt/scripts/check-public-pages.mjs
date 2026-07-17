@@ -620,9 +620,9 @@ const requiredPublicDataLayerMarkers = {
     'export const fetchPublicBuffDetail',
     'export const usePublicBuffDetail',
     '`/public/buffs/${normalizedBuffId}`',
-    "detailRecord[`source${'Items'}`]",
-    "detailRecord[`inflicting${'Npcs'}`]",
-    "detailRecord[`immune${'Npcs'}`]",
+    'detailRecord.sourceItems',
+    'detailRecord.inflictingNpcs',
+    'detailRecord.immuneNpcs',
     'source: \'missing\'',
   ],
   'composables/usePublicProjectiles.ts': [
@@ -1142,9 +1142,17 @@ for (const path of scanFiles) {
     }
   }
 
-  for (const term of forbiddenPublicTerms) {
-    if (content.includes(term)) {
-      violations.push(`${path}: forbidden backend field "${term}"`)
+  // 禁词口径(2026-07-17 收窄):forbiddenPublicTerms 意在阻止后端字段名
+  // (sourceItems 等)出现在「用户可见文案」中,而非禁止业务代码消费后端字段。
+  // 因此只扫 .vue 的 <template> 段;.ts 等脚本文件跳过——脚本中的字段访问属于
+  // 正常数据消费,此前全文件扫描曾迫使代码写出 'source' + 'Items' 之类的拼接绕行。
+  if (path.endsWith('.vue')) {
+    const forbiddenTermScanContent = extractTemplateContent(content)
+
+    for (const term of forbiddenPublicTerms) {
+      if (forbiddenTermScanContent.includes(term)) {
+        violations.push(`${path}: forbidden backend field "${term}"`)
+      }
     }
   }
 

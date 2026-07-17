@@ -468,7 +468,7 @@ const relatedItemSections = computed(() => {
   const sections = [
     { title: '掉落相关', entries: (npc.value?.lootItems ?? []) as PublicNpcTraceableItemSummary[] },
     { title: '出售相关', entries: (npc.value?.shopItems ?? []) as PublicNpcTraceableItemSummary[] },
-    { title: '来源相关', entries: (((npc.value as Record<string, unknown> | null)?.['source' + 'Items'] ?? []) as PublicNpcTraceableItemSummary[]) },
+    { title: '来源相关', entries: ((npc.value?.sourceItems ?? []) as PublicNpcTraceableItemSummary[]) },
   ]
 
   return sections.map((section) => ({
