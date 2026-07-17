@@ -25,6 +25,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -56,7 +58,8 @@ class AdminProjectileControllerTest {
 
     @BeforeEach
     void setUp() {
-        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
         AdminProjectileController controller = new AdminProjectileController(
             projectileMapper,
             objectMapper,
@@ -272,5 +275,54 @@ class AdminProjectileControllerTest {
         mockMvc.perform(get("/admin/projectiles/1108"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.nameZh").value("黑曜石之火"));
+    }
+
+    @Test
+    void createMustNotAcceptClientControlledGovernanceFields() throws Exception {
+        // mass assignment 防线: deleted/createdAt/updatedAt/id 由客户端提交也不得入库
+        org.mockito.ArgumentCaptor<Projectile> inserted = org.mockito.ArgumentCaptor.forClass(Projectile.class);
+        when(projectileMapper.selectCount(any())).thenReturn(0L);
+        when(projectileMapper.insert(inserted.capture())).thenAnswer(invocation -> {
+            invocation.getArgument(0, Projectile.class).setId(9L);
+            return 1;
+        });
+        when(projectileMapper.selectById(9L)).thenReturn(new Projectile());
+
+        mockMvc.perform(post("/admin/projectiles")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("""
+                    {"sourceId":901,"internalName":"MassAssign","name":"x",
+                     "deleted":1,"id":777,
+                     "createdAt":"2020-01-01T00:00:00","updatedAt":"2020-01-01T00:00:00"}
+                    """))
+            .andExpect(status().isCreated());
+
+        Projectile persisted = inserted.getValue();
+        org.junit.jupiter.api.Assertions.assertNull(persisted.getDeleted(), "deleted 不接受客户端值");
+        org.junit.jupiter.api.Assertions.assertNull(persisted.getCreatedAt(), "createdAt 不接受客户端值");
+        org.junit.jupiter.api.Assertions.assertNull(persisted.getUpdatedAt(), "updatedAt 不接受客户端值");
+        org.junit.jupiter.api.Assertions.assertEquals(901, persisted.getSourceId());
+        org.junit.jupiter.api.Assertions.assertEquals("MassAssign", persisted.getInternalName());
+    }
+
+    @Test
+    void updateMustNotResurrectSoftDeletedRowsViaDeletedField() throws Exception {
+        Projectile existing = new Projectile();
+        existing.setId(5L);
+        existing.setSourceId(500);
+        existing.setInternalName("Existing");
+        existing.setStatus(1);
+        org.mockito.ArgumentCaptor<Projectile> updated = org.mockito.ArgumentCaptor.forClass(Projectile.class);
+        when(projectileMapper.selectById(5L)).thenReturn(existing);
+        when(projectileMapper.updateById(updated.capture())).thenReturn(1);
+
+        mockMvc.perform(put("/admin/projectiles/5")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"renamed\",\"deleted\":0,\"createdAt\":\"2020-01-01T00:00:00\"}"))
+            .andExpect(status().isOk());
+
+        org.junit.jupiter.api.Assertions.assertNull(updated.getValue().getDeleted());
+        org.junit.jupiter.api.Assertions.assertNull(updated.getValue().getCreatedAt());
+        org.junit.jupiter.api.Assertions.assertEquals("renamed", updated.getValue().getName());
     }
 }

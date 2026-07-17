@@ -101,11 +101,16 @@ public class AdminProjectileController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "sourceId already exists"));
         }
 
-        request.setId(null);
-        if (request.getStatus() == null) request.setStatus(1);
-        projectileMapper.insert(request);
-        Projectile created = projectileMapper.selectById(request.getId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created == null ? null : toDetailPayload(created), "Projectile created"));
+        // 不直接 insert 客户端绑定的 entity：那会放行 deleted/createdAt/updatedAt
+        // 等治理字段(mass assignment)。只复制与 update 路径一致的白名单字段。
+        Projectile created = new Projectile();
+        created.setSourceId(request.getSourceId());
+        created.setInternalName(request.getInternalName().trim());
+        applyEditableFields(created, request);
+        created.setStatus(request.getStatus() == null ? 1 : request.getStatus());
+        projectileMapper.insert(created);
+        Projectile persisted = projectileMapper.selectById(created.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(persisted == null ? null : toDetailPayload(persisted), "Projectile created"));
     }
 
     @PutMapping("/{id}")
@@ -128,26 +133,31 @@ public class AdminProjectileController {
         }
 
         if (request.getInternalName() != null && !request.getInternalName().isBlank()) existing.setInternalName(request.getInternalName().trim());
-        if (request.getName() != null) existing.setName(request.getName());
-        if (request.getNameZh() != null) existing.setNameZh(request.getNameZh());
-        if (request.getImageUrl() != null) existing.setImageUrl(request.getImageUrl());
-        if (request.getAiStyle() != null) existing.setAiStyle(request.getAiStyle());
-        if (request.getDamage() != null) existing.setDamage(request.getDamage());
-        if (request.getKnockBack() != null) existing.setKnockBack(request.getKnockBack());
-        if (request.getPenetrate() != null) existing.setPenetrate(request.getPenetrate());
-        if (request.getTimeLeft() != null) existing.setTimeLeft(request.getTimeLeft());
-        if (request.getWidth() != null) existing.setWidth(request.getWidth());
-        if (request.getHeight() != null) existing.setHeight(request.getHeight());
-        if (request.getScale() != null) existing.setScale(request.getScale());
-        if (request.getFriendly() != null) existing.setFriendly(request.getFriendly());
-        if (request.getHostile() != null) existing.setHostile(request.getHostile());
-        if (request.getTileCollide() != null) existing.setTileCollide(request.getTileCollide());
-        if (request.getRawJson() != null) existing.setRawJson(request.getRawJson());
-        if (request.getSourceItemsJson() != null) existing.setSourceItemsJson(request.getSourceItemsJson());
-        if (request.getSourceNpcsJson() != null) existing.setSourceNpcsJson(request.getSourceNpcsJson());
+        applyEditableFields(existing, request);
         if (request.getStatus() != null) existing.setStatus(request.getStatus());
         projectileMapper.updateById(existing);
         return ResponseEntity.ok(ApiResponse.success(toDetailPayload(projectileMapper.selectById(id)), "Projectile updated"));
+    }
+
+    /** 可编辑字段白名单：create/update 共用；治理字段(id/deleted/时间戳)永不接受客户端值。 */
+    private void applyEditableFields(Projectile target, Projectile request) {
+        if (request.getName() != null) target.setName(request.getName());
+        if (request.getNameZh() != null) target.setNameZh(request.getNameZh());
+        if (request.getImageUrl() != null) target.setImageUrl(request.getImageUrl());
+        if (request.getAiStyle() != null) target.setAiStyle(request.getAiStyle());
+        if (request.getDamage() != null) target.setDamage(request.getDamage());
+        if (request.getKnockBack() != null) target.setKnockBack(request.getKnockBack());
+        if (request.getPenetrate() != null) target.setPenetrate(request.getPenetrate());
+        if (request.getTimeLeft() != null) target.setTimeLeft(request.getTimeLeft());
+        if (request.getWidth() != null) target.setWidth(request.getWidth());
+        if (request.getHeight() != null) target.setHeight(request.getHeight());
+        if (request.getScale() != null) target.setScale(request.getScale());
+        if (request.getFriendly() != null) target.setFriendly(request.getFriendly());
+        if (request.getHostile() != null) target.setHostile(request.getHostile());
+        if (request.getTileCollide() != null) target.setTileCollide(request.getTileCollide());
+        if (request.getRawJson() != null) target.setRawJson(request.getRawJson());
+        if (request.getSourceItemsJson() != null) target.setSourceItemsJson(request.getSourceItemsJson());
+        if (request.getSourceNpcsJson() != null) target.setSourceNpcsJson(request.getSourceNpcsJson());
     }
 
     @DeleteMapping("/{id}")
