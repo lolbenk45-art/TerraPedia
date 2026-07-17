@@ -77,12 +77,17 @@ const submit = async () => {
         </button>
         <label>
           <span>验证码</span>
-          <input v-model.trim="form.verificationCode" type="text" inputmode="numeric" pattern="[0-9]{4,8}" required />
+          <input v-model.trim="form.verificationCode" type="text" inputmode="numeric" pattern="[0-9]{4,8}" autocomplete="one-time-code" required />
         </label>
-        <label>
-          <span>新密码</span>
-          <input v-model="form.newPassword" type="password" autocomplete="new-password" minlength="10" maxlength="64" required />
-        </label>
+        <UserPasswordInput
+          v-model="form.newPassword"
+          input-id="forgot-new-password"
+          label="新密码"
+          autocomplete="new-password"
+          minlength="10"
+          maxlength="64"
+          required
+        />
         <p class="user-field-hint">新密码需为 10-64 位，并同时包含字母和数字。</p>
         <p v-if="status" class="user-form-status user-form-success" aria-live="polite">{{ status }}</p>
         <p v-if="showDebugVerificationCode && debugCode" class="user-field-hint">开发验证码：{{ debugCode }}</p>

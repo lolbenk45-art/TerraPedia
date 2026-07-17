@@ -295,12 +295,12 @@ watch(projectileTotalPages, (pages) => {
               />
             </i>
             <h3>{{ projectile.displayName }}</h3>
-            <p>{{ projectile.summary }}</p>
+            <p v-if="projectile.summary">{{ projectile.summary }}</p>
             <div class="projectile-facts">
               <span>{{ projectile.allegianceLabel }}</span>
-              <span>{{ projectile.aiStyle === null ? 'AI 未标记' : `AI ${projectile.aiStyle}` }}</span>
-              <span>{{ projectile.damage === null ? '伤害未标记' : `伤害 ${projectile.damage}` }}</span>
-              <span>{{ projectile.knockBack === null ? '击退未标记' : `击退 ${projectile.knockBack}` }}</span>
+              <span v-if="projectile.aiStyle !== null">AI {{ projectile.aiStyle }}</span>
+              <span v-if="projectile.damage !== null">伤害 {{ projectile.damage }}</span>
+              <span v-if="projectile.knockBack !== null">击退 {{ projectile.knockBack }}</span>
             </div>
           </article>
         </template>

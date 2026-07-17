@@ -102,10 +102,10 @@ export const normalizePublicProjectile = (raw: PublicProjectileListItem, index =
   const friendly = toBoolean(raw.friendly)
   const allegianceLabel = resolveAllegianceLabel(hostile, friendly)
   const summary = [
-    aiStyle === null ? 'AI 未标记' : `AI ${aiStyle}`,
-    damage === null ? '伤害未标记' : `伤害 ${damage}`,
-    knockBack === null ? '击退未标记' : `击退 ${knockBack}`,
-  ].join(' · ')
+    aiStyle === null ? null : `AI ${aiStyle}`,
+    damage === null ? null : `伤害 ${damage}`,
+    knockBack === null ? null : `击退 ${knockBack}`,
+  ].filter(Boolean).join(' · ')
   const id = projectileId ? String(projectileId) : `${internalName || displayName}-${index + 1}`
   const searchText = normalizeSearchText([
     displayName,
