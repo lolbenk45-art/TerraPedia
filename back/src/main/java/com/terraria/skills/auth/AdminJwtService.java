@@ -98,7 +98,9 @@ public class AdminJwtService {
             return AdminTokenClaims.builder()
                 .username(username)
                 .displayName(String.valueOf(payload.getOrDefault("displayName", authProperties.getDisplayName())))
-                .role(String.valueOf(payload.getOrDefault("role", ROLE_ADMIN)))
+                // role 不缺省: 自家签发的令牌总带 role=ADMIN;缺失即视为异域/伪造
+                // 令牌(如 user 域误配同 secret),交给拦截器按非 ADMIN 拒绝。
+                .role(String.valueOf(payload.getOrDefault("role", "")))
                 .issuedAt(issuedAt)
                 .expiresAt(expiresAt)
                 .build();

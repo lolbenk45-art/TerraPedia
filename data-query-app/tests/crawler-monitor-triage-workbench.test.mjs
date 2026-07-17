@@ -10,6 +10,7 @@ import {
   filterLogLines,
   shortCrawlerIdentity,
   mergeDomainTaskHistory,
+  v2DomainDisplayStatus,
   wikiDomainManualDispatchBlockReason,
 } from '../utils/crawlerMonitorTriageWorkbench.mjs'
 
@@ -1276,6 +1277,296 @@ test('V2 attempt display model provides Chinese phase and deterministic heartbea
   assert.equal(display.deadlineLabel, '剩余 1分30秒')
   assert.equal(overdue.phaseLabel, '应用数据')
   assert.equal(overdue.deadlineLabel, '已超期 2分钟')
+})
+
+test('展开清单等脚本级阶段有中文标签, 未知阶段回退为中文描述', () => {
+  const expand = buildV2AttemptDisplayModel({
+    phase: 'expand',
+    lastHeartbeatAt: '2026-07-13T00:00:00Z',
+    deadlineAt: '2026-07-13T00:03:00Z',
+  }, '2026-07-13T00:00:30Z')
+  const unknown = buildV2AttemptDisplayModel({
+    phase: 'buff_page_immunities',
+    lastHeartbeatAt: '2026-07-13T00:00:00Z',
+    deadlineAt: '2026-07-13T00:03:00Z',
+  }, '2026-07-13T00:00:30Z')
+
+  assert.equal(expand.phaseLabel, '展开待爬清单')
+  // 未知脚本阶段不能裸吐英文 key，要有中文前缀包住
+  assert.match(unknown.phaseLabel, /^执行阶段：/)
+})
+
+test('无进度的启动窗口给出"启动准备中+已进行时长", 有进度后消失', () => {
+  const startingWindow = buildV2AttemptDisplayModel({
+    status: 'running',
+    phase: 'expand',
+    current: 0,
+    total: null,
+    startedAt: '2026-07-13T00:00:00Z',
+    lastHeartbeatAt: '2026-07-13T00:01:00Z',
+    deadlineAt: '2026-07-13T00:03:00Z',
+  }, '2026-07-13T00:01:15Z')
+  const progressing = buildV2AttemptDisplayModel({
+    status: 'running',
+    phase: 'fetch-pages',
+    current: 35,
+    total: 388,
+    startedAt: '2026-07-13T00:00:00Z',
+    lastHeartbeatAt: '2026-07-13T00:01:00Z',
+    deadlineAt: '2026-07-13T00:03:00Z',
+  }, '2026-07-13T00:01:15Z')
+  const terminal = buildV2AttemptDisplayModel({
+    status: 'failed',
+    phase: 'expand',
+    current: 0,
+    total: null,
+    startedAt: '2026-07-13T00:00:00Z',
+    lastHeartbeatAt: '2026-07-13T00:01:00Z',
+    deadlineAt: null,
+  }, '2026-07-13T00:01:15Z')
+
+  assert.equal(startingWindow.startupLabel, '启动准备中 · 已进行 1分15秒')
+  assert.equal(startingWindow.isStartupWindow, true)
+  assert.equal(progressing.startupLabel, null)
+  assert.equal(progressing.isStartupWindow, false)
+  // 终态永远不算启动窗口，否则失败会被"启动准备中"掩盖
+  assert.equal(terminal.startupLabel, null)
+  assert.equal(terminal.isStartupWindow, false)
+})
+
+test('启动窗口缺 startedAt 时退化为无时长文案而不是 NaN', () => {
+  const display = buildV2AttemptDisplayModel({
+    status: 'queued',
+    phase: '',
+    current: null,
+    total: null,
+    lastHeartbeatAt: null,
+    deadlineAt: '2026-07-13T00:03:00Z',
+  }, '2026-07-13T00:01:15Z')
+
+  assert.equal(display.isStartupWindow, true)
+  assert.equal(display.startupLabel, '启动准备中')
+})
+
+test('空闲/就绪域从不显示启动准备中', () => {
+  for (const status of ['idle', 'ready', 'healthy', 'paused', '', undefined]) {
+    const display = buildV2AttemptDisplayModel({
+      status,
+      current: null,
+      total: null,
+      lastHeartbeatAt: null,
+      deadlineAt: null,
+    }, '2026-07-13T00:01:15Z')
+    assert.equal(display.isStartupWindow, false, `status=${status} 不应算启动窗口`)
+    assert.equal(display.startupLabel, null)
+  }
+})
+
+test('启动窗口时长优先用 startedAt, 缺失时回退 requestedAt', () => {
+  const display = buildV2AttemptDisplayModel({
+    status: 'starting',
+    phase: 'claim',
+    current: null,
+    total: null,
+    startedAt: '2026-07-13T00:00:00Z',
+    requestedAt: '2026-07-12T23:59:50Z',
+    lastHeartbeatAt: null,
+    deadlineAt: '2026-07-13T00:03:00Z',
+  }, '2026-07-13T00:02:00Z')
+  const fallback = buildV2AttemptDisplayModel({
+    status: 'queued',
+    requestedAt: '2026-07-13T00:00:00Z',
+    lastHeartbeatAt: null,
+    deadlineAt: '2026-07-13T00:03:00Z',
+  }, '2026-07-13T00:00:40Z')
+
+  assert.equal(display.startupLabel, '启动准备中 · 已进行 2分钟')
+  assert.equal(fallback.startupLabel, '启动准备中 · 已进行 40秒')
+})
+
+test('空闲域上一次终态失败时状态提升为失败并持续可见', () => {
+  const failed = v2DomainDisplayStatus({
+    liveStatus: 'idle',
+    latestResult: { status: 'failed', result: { resultKind: 'crawl-failed' } },
+  })
+  const timedOut = v2DomainDisplayStatus({
+    liveStatus: '',
+    latestResult: { status: 'timed_out' },
+  })
+
+  assert.equal(failed.status, 'failed')
+  assert.equal(failed.elevated, true)
+  assert.match(failed.note, /上次爬取失败/)
+  assert.equal(timedOut.status, 'timed_out')
+  assert.equal(timedOut.elevated, true)
+})
+
+test('有 live 尝试或上次结果为完成/取消时不提升失败态', () => {
+  const running = v2DomainDisplayStatus({
+    liveStatus: 'running',
+    latestResult: { status: 'failed' },
+  })
+  const completed = v2DomainDisplayStatus({
+    liveStatus: 'idle',
+    latestResult: { status: 'completed' },
+  })
+  const cancelled = v2DomainDisplayStatus({
+    liveStatus: 'idle',
+    latestResult: { status: 'cancelled' },
+  })
+  const bare = v2DomainDisplayStatus({ liveStatus: 'idle', latestResult: null })
+
+  // 运行中永远以 live 状态为准，失败历史不能盖住正在跑的任务
+  assert.equal(running.status, 'running')
+  assert.equal(running.elevated, false)
+  assert.equal(completed.status, 'idle')
+  assert.equal(completed.elevated, false)
+  // 用户主动取消不算需要处理的失败
+  assert.equal(cancelled.status, 'idle')
+  assert.equal(bare.status, 'idle')
+})
+
+test('空闲域抽屉回退显示最近一次尝试的身份与时间, 而非满屏未记录', () => {
+  const detail = buildDomainDetailViewModel({
+    row: {
+      v2Attempt: true,
+      domain: 'buffs',
+      label: 'Buff',
+      status: 'idle',
+      queueId: '',
+      attemptId: '',
+      stateStoreEpoch: 'epoch-1',
+      latestResult: {
+        queueId: 'queue-4f42c893-5969-4eae-8784-02da0f653728',
+        attemptId: 'attempt-2a5259b9-d872-407e-9098-605096fbf9a9',
+        status: 'failed',
+        startedAt: '2026-07-17T03:50:09Z',
+        completedAt: '2026-07-17T04:24:39Z',
+        reasonCode: 'PROCESS_EXIT_NONZERO',
+        log: { availability: 'available', previewable: true, lastWriteAt: '2026-07-17T04:24:00Z' },
+      },
+      latestResultLabel: '执行失败',
+    },
+  })
+
+  const overview = Object.fromEntries(detail.overviewFields.map((field) => [field.label, field.value]))
+  // 身份/时间回退到最近一次尝试
+  assert.equal(overview['队列 ID'], 'queue-…53728')
+  assert.equal(overview['尝试 ID'], 'attempt-…bf9a9')
+  assert.match(overview['开始时间'], /07-17/)
+  assert.match(overview['完成时间'], /07-17/)
+  assert.equal(overview['原因码'], 'PROCESS_EXIT_NONZERO')
+  assert.equal(overview['日志状态'], '可读取')
+  // 无 live 尝试时不再渲染纯占位的实时字段
+  assert.equal(Object.hasOwn(overview, '阶段'), false)
+  assert.equal(Object.hasOwn(overview, '心跳距今'), false)
+  assert.equal(Object.hasOwn(overview, '截止倒计时'), false)
+  assert.equal(Object.hasOwn(overview, '状态版本'), false)
+  // 身份组标题标明这是上次尝试, 不冒充当前任务
+  const identityGroup = detail.overviewGroups.find((group) => group.key === 'identity')
+  assert.equal(identityGroup.title, '上次任务身份')
+})
+
+test('从未爬过的空闲域只保留基础字段, 不渲染身份/日志占位组', () => {
+  const detail = buildDomainDetailViewModel({
+    row: { v2Attempt: true, domain: 'biomes', label: '群系', status: 'idle', queueId: '', attemptId: '', latestResult: null },
+  })
+
+  const overview = Object.fromEntries(detail.overviewFields.map((field) => [field.label, field.value]))
+  assert.equal(Object.hasOwn(overview, '队列 ID'), false)
+  assert.equal(Object.hasOwn(overview, '日志状态'), false)
+  assert.equal(Object.hasOwn(overview, '开始时间'), false)
+  assert.equal(overview['上次结果'], '暂无历史结果')
+  assert.equal(detail.overviewGroups.some((group) => group.key === 'identity'), false)
+  assert.equal(detail.overviewGroups.some((group) => group.key === 'log'), false)
+})
+
+test('抽屉 overview 按 当前/上次/身份/日志/动作 分组, overviewFields 保持扁平并集', () => {
+  const detail = buildDomainDetailViewModel({
+    row: {
+      v2Attempt: true,
+      domain: 'items',
+      label: 'Items',
+      status: 'running',
+      queueId: 'queue-items',
+      attemptId: 'attempt-items',
+      stateVersion: 8,
+      stateStoreEpoch: 'epoch-1',
+      deadlineAt: '2026-07-13T00:03:00Z',
+      log: { availability: 'available', previewable: true, lastWriteAt: '2026-07-13T00:01:00Z' },
+    },
+  })
+
+  assert.deepEqual(detail.overviewGroups.map((group) => group.key), ['current', 'last', 'identity', 'log', 'action'])
+  assert.equal(detail.overviewGroups.find((group) => group.key === 'identity').title, '本轮任务身份')
+  const flatCount = detail.overviewGroups.reduce((total, group) => total + group.fields.length, 0)
+  assert.equal(detail.overviewFields.length, flatCount)
+})
+
+test('V1 抽屉 overview 同样分组且不引入 V2 字段', () => {
+  const detail = buildDomainDetailViewModel({
+    row: { domain: 'items', label: 'Items', status: 'ready', ownerLabel: '无当前占用' },
+  })
+
+  assert.equal(detail.overviewGroups.some((group) => group.key === 'identity'), false)
+  const overview = Object.fromEntries(detail.overviewFields.map((field) => [field.label, field.value]))
+  assert.equal(overview['当前占用'], '无当前占用')
+  assert.equal(Object.hasOwn(overview, '开始时间'), false)
+})
+
+test('抽屉数据新鲜度来自真实 wiki revision 对比, 不再显示 phase 假数据', () => {
+  const checked = buildDomainDetailViewModel({
+    row: {
+      v2Attempt: true,
+      domain: 'buffs',
+      label: 'Buff',
+      status: 'idle',
+      queueId: '',
+      attemptId: '',
+      sourceFreshness: {
+        currentValue: '123456',
+        previousValue: '123400',
+        changed: true,
+        locator: 'Template:GetBuffInfo',
+        checkedAt: '2026-07-17T04:24:00Z',
+      },
+    },
+  })
+  const unchecked = buildDomainDetailViewModel({
+    row: {
+      v2Attempt: true,
+      domain: 'items',
+      label: 'Items',
+      status: 'idle',
+      queueId: '',
+      attemptId: '',
+      sourceFreshness: { currentValue: null, previousValue: null, changed: false, checkedAt: null },
+    },
+  })
+
+  const checkedOverview = Object.fromEntries(checked.overviewFields.map((field) => [field.label, field.value]))
+  const uncheckedOverview = Object.fromEntries(unchecked.overviewFields.map((field) => [field.label, field.value]))
+  assert.match(checkedOverview['数据新鲜度'], /有变化/)
+  assert.match(checkedOverview['数据新鲜度'], /07-17/)
+  // 未检查过时诚实说明, 不显示 "当前 未记录 · 上次 未记录" 这类噪音
+  assert.equal(uncheckedOverview['数据新鲜度'], '尚未执行过源检查')
+})
+
+test('V2 行无 sourceFreshness 时数据新鲜度字段不渲染而非显示 phase', () => {
+  const detail = buildDomainDetailViewModel({
+    row: {
+      v2Attempt: true,
+      domain: 'buffs',
+      status: 'running',
+      queueId: 'queue-1',
+      attemptId: 'attempt-1',
+      phase: 'buff-page-immunities',
+      sourceSummary: 'buff-page-immunities',
+    },
+  })
+
+  const overview = Object.fromEntries(detail.overviewFields.map((field) => [field.label, field.value]))
+  assert.equal(Object.hasOwn(overview, '数据新鲜度'), false)
 })
 
 test('V1 domain detail does not gain V2-only detail fields', () => {

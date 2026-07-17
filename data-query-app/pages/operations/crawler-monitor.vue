@@ -5,6 +5,14 @@
       :health="v2State.queueHealth"
       :reconciler-health="v2State.reconcilerHealth"
     />
+    <section v-if="engineModeNotice" class="engine-mode-warning" role="alert" aria-live="assertive">
+      <AlertTriangle :size="20" aria-hidden="true" />
+      <div>
+        <strong>{{ engineModeNotice.title }}</strong>
+        <p>{{ engineModeNotice.detail }}</p>
+        <p>切换步骤见 <code>{{ engineModeNotice.runbookPath }}</code>，或在仓库根目录执行 <code>bash ./scripts/dev/crawler-v2-cutover.sh</code>。</p>
+      </div>
+    </section>
     <section v-if="v2StreamAuthError" class="stream-auth-warning" role="alert" aria-live="assertive">
       <AlertTriangle :size="20" aria-hidden="true" />
       <div>
@@ -266,6 +274,8 @@ import {
   buildDomainDetailViewModel,
   buildTriageWorkbench,
   shortCrawlerIdentity,
+  sourceFreshnessLabel,
+  v2DomainDisplayStatus,
   wikiDomainManualDispatchBlockReason,
 } from '~/utils/crawlerMonitorTriageWorkbench.mjs'
 import {
@@ -296,7 +306,7 @@ import {
   resultKindLabel,
 } from '~/utils/crawlerMonitorOperationCatalog.mjs'
 import { buildV2ControlPayload, canRunV2Control, createV2ControlPendingGuard, executeV2ControlRequest, isV2AuthFailure, shouldOfferForceReclaim, buildDispatchControlPayload, buildResumeDispatchPayload, forceReclaimActionLabel, v2ControlPendingKey } from './crawler-monitor.control.mjs'
-import { applyCrawlerV2Event, applyIncrementalAttemptLog, buildCrawlerV2ViewState, createAttemptLogRequestFence, createV2LogSelectionModel, crawlerV2DomainSelectionKey, isCrawlerQueueV2Overview, latestActionableV2AttemptsByDomain, latestV2TerminalAttemptsByDomain, resolveCurrentV2LogAttemptId } from './crawler-monitor.v2-state.mjs'
+import { applyCrawlerV2Event, applyIncrementalAttemptLog, buildCrawlerV2ViewState, crawlerEngineModeNotice, createAttemptLogRequestFence, createV2LogSelectionModel, crawlerV2DomainSelectionKey, isCrawlerQueueV2Overview, latestActionableV2AttemptsByDomain, latestV2TerminalAttemptsByDomain, resolveCurrentV2LogAttemptId } from './crawler-monitor.v2-state.mjs'
 import { createCrawlerMonitorEventClient, createCrawlerMonitorV2Transport, syncCrawlerMonitorPageEventCursor } from './crawler-monitor.events.mjs'
 import { resolveDomainState } from './crawler-monitor.state.mjs'
 import ActivityDrawer from '~/components/crawler-monitor/ActivityDrawer.vue'
@@ -693,6 +703,7 @@ const effectiveRefreshIntervalMs = computed(() => {
 })
 const refreshStale = computed(() => Boolean(overview.value?.refreshStale))
 const v2State = computed(() => isCrawlerQueueV2Overview(overview.value || {}) ? buildCrawlerV2ViewState(overview.value || {}) : null)
+const engineModeNotice = computed(() => crawlerEngineModeNotice(overview.value))
 const v2AttemptRows = computed<CrawlerQueueV2Attempt[]>(() => v2State.value?.liveQueue || [])
 const latestActionableV2AttemptByDomain = computed(() => latestActionableV2AttemptsByDomain(
   v2State.value?.attemptHistory || [],
@@ -704,6 +715,14 @@ const latestV2TerminalAttemptByDomain = computed(() => latestV2TerminalAttemptsB
 ))
 const operationGroups = computed(() => groupOperationCatalog(v2State.value?.domainStates || []))
 const operationCatalogCount = computed(() => operationGroups.value.reduce((total, group) => total + group.operations.length, 0))
+const wikiDomainFreshnessByKey = computed(() => {
+  const map = new Map<string, any>()
+  for (const domain of wikiDomainRows.value) {
+    const key = String(domain?.domain || '').toLowerCase().replace(/-/g, '_')
+    if (key) map.set(key, domain)
+  }
+  return map
+})
 const v2DomainRows = computed(() => (v2State.value?.domainStates || []).map((domainState: any) => {
   const attempt = v2State.value?.currentByDomain.get(domainState.domain) || null
   const latestResult = latestV2TerminalAttemptByDomain.value.get(domainState.domain) || null
@@ -714,7 +733,10 @@ const v2DomainRows = computed(() => (v2State.value?.domainStates || []).map((dom
   const progressLabel = Number.isFinite(current) && Number.isFinite(total) && total > 0
     ? `${current} / ${total}`
     : '暂无可计算进度'
-  const status = String(attempt?.status || domainState.status || 'unknown').toLowerCase()
+  const liveStatus = String(attempt?.status || domainState.status || 'unknown').toLowerCase()
+  // 失败/超时终态不能只闪 3 秒 toast：无 live 尝试时提升为域显示状态，持续可见
+  const displayStatus = v2DomainDisplayStatus({ liveStatus, latestResult })
+  const status = displayStatus.status
   const currentStatusLabel = crawlerStatusDisplayLabel(status)
   const latestResultLabel = latestResult?.result?.resultKind
     ? resultKindLabel(latestResult.result.resultKind)
@@ -750,17 +772,22 @@ const v2DomainRows = computed(() => (v2State.value?.domainStates || []).map((dom
     plan: controlAttempt?.plan || attempt?.plan || null,
     resumeSupported: controlAttempt?.plan?.resumeSupported === true || controlAttempt?.resumeSupported === true,
     phase: attempt?.phase || domainState.phase || '',
+    startedAt: attempt?.startedAt || '',
+    requestedAt: attempt?.requestedAt || '',
     current: Number.isFinite(current) ? current : null,
     total: Number.isFinite(total) ? total : null,
     progressLabel,
     heartbeatAt: attempt?.lastHeartbeatAt || domainState.lastHeartbeatAt || '',
+    lastHeartbeatAt: attempt?.lastHeartbeatAt || domainState.lastHeartbeatAt || '',
     deadlineAt: attempt?.deadlineAt || domainState.deadlineAt || '',
-    reasonCode: attempt?.reasonCode || domainState.reasonCode || '',
-    reason: attempt?.messageZh || domainState.messageZh || '',
-    rankReason: attempt?.messageZh || domainState.messageZh || '',
+    reasonCode: attempt?.reasonCode || (displayStatus.elevated ? latestResult?.reasonCode : '') || domainState.reasonCode || '',
+    reason: attempt?.messageZh || displayStatus.note || domainState.messageZh || '',
+    rankReason: attempt?.messageZh || displayStatus.note || domainState.messageZh || '',
     nextActionLabel: controlAttempt?.suggestedAction || domainState.suggestedAction || '查看详情',
     queueSummary: attempt ? `队列 ${shortCrawlerIdentity(attempt.queueId)} · 尝试 ${shortCrawlerIdentity(attempt.attemptId)}` : '无当前 V2 尝试',
-    sourceSummary: attempt?.phase || 'V2 当前状态',
+    // 新鲜度=真实 wiki revision 对比; 没有检查记录就诚实置空, 不用 phase 冒充
+    sourceSummary: sourceFreshnessLabel(wikiDomainFreshnessByKey.value.get(String(domainState.domain || '').toLowerCase().replace(/-/g, '_'))) || '',
+    sourceFreshness: wikiDomainFreshnessByKey.value.get(String(domainState.domain || '').toLowerCase().replace(/-/g, '_')) || null,
     log: attempt?.log || null,
   }
 }))
@@ -4271,6 +4298,30 @@ function safeActionFallbackLabel(action?: CrawlerMonitorAction | null) {
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.engine-mode-warning {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  border: 1px solid var(--color-warning);
+  border-left: 4px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  background: var(--color-warning-muted);
+  color: var(--color-text);
+  padding: 12px 14px;
+}
+
+.engine-mode-warning p {
+  display: block;
+  margin: 4px 0 0;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.engine-mode-warning code {
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .stream-auth-warning {

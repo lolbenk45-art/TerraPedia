@@ -249,6 +249,11 @@ public class CrawlerQueueV2Reconciler {
                 return;
             }
             stateMachine.requireValidTransition(current.status(), transition.status());
+            if (transition.status().terminal()) {
+                // 进入终态前先回收 exact 进程组，否则冻结/孤儿进程会在
+                // ledger 收敛后继续存活（占用 request gate 与资源）。
+                supervisor.reapOverdueProcess(current);
+            }
             Instant deadline = transition.status().terminal()
                 ? null
                 : stateMachine.deadlineFor(

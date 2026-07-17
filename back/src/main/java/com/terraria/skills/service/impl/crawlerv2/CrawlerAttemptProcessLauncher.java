@@ -37,7 +37,11 @@ public interface CrawlerAttemptProcessLauncher {
         }
     }
 
-    record ProcessIdentity(long pid, Instant processStartedAt) {}
+    record ProcessIdentity(long pid, Instant processStartedAt, String attemptId) {
+        public ProcessIdentity(long pid, Instant processStartedAt) {
+            this(pid, processStartedAt, null);
+        }
+    }
 
     enum LookupCode {
         FOUND,
@@ -82,6 +86,10 @@ public interface CrawlerAttemptProcessLauncher {
         long pid();
 
         Instant startedAt();
+
+        default String attemptId() {
+            return null;
+        }
 
         boolean isAlive();
 

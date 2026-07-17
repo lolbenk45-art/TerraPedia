@@ -30,6 +30,22 @@ export function isCrawlerQueueV2Overview(overview = {}) {
   return Number(overview?.queueContractVersion) === 2
 }
 
+/**
+ * V2 是唯一 live 队列权威；cutover 状态存在 gitignore 的 reports/ 下，
+ * 未切换的环境会静默回落 V1 且页面此前无任何提示。这里对"已加载但非 V2"
+ * 的 overview 产出显式警告，避免再次在废弃引擎上排障。
+ */
+export function crawlerEngineModeNotice(overview) {
+  if (!overview || typeof overview !== 'object' || !Object.keys(overview).length) return null
+  if (isCrawlerQueueV2Overview(overview)) return null
+  return {
+    engine: 'v1',
+    title: '本环境尚未激活爬虫队列 V2',
+    detail: '当前派发仍在已废弃的 V1 引擎上运行，卡死任务不会自动收敛，状态可能互相矛盾。请先执行 V2 切换。',
+    runbookPath: 'docs/runbooks/crawler-monitor-queue-v2-cutover.md',
+  }
+}
+
 export function crawlerV2DomainSelectionKey(row = {}) {
   const domain = String(row?.domain || '').trim()
   const attemptId = String(row?.attemptId || '').trim()

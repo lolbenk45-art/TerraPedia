@@ -361,6 +361,109 @@ class ProcessBuilderCrawlerAttemptLauncherTest {
     }
 
     @Test
+    void driftedStartInstantWithMatchingAttemptFingerprintMustStillFindAndControlTheGroup() throws Exception {
+        assumeLinuxProcessTools();
+        CrawlerAttemptProcessLauncher.ManagedProcess process = launchAndResume(
+            new CrawlerAttemptProcessLauncher.LaunchSpec(
+                List.of("sh", "-c", "while :; do sleep 1; done"),
+                tempDir,
+                Map.of("TERRAPEDIA_CRAWLER_ATTEMPT_ID", "attempt-drift-check"),
+                tempDir.resolve("drift-match.log")
+            )
+        );
+        try {
+            // WSL2 btime 漂移: 记录的 startInstant 与 /proc 推导值差 67 秒
+            CrawlerAttemptProcessLauncher.ProcessLookup drifted = launcher.findExact(
+                new CrawlerAttemptProcessLauncher.ProcessIdentity(
+                    process.pid(),
+                    process.startedAt().plusSeconds(67),
+                    "attempt-drift-check"
+                )
+            );
+
+            assertEquals(CrawlerAttemptProcessLauncher.LookupCode.FOUND, drifted.code());
+            assertTrue(launcher.pause(drifted.process()));
+            assertTrue(await(Duration.ofSeconds(2), () -> launcher.isPaused(drifted.process())));
+            assertTrue(launcher.resume(drifted.process()));
+            assertTrue(launcher.terminateForcibly(drifted.process()));
+            assertTrue(launcher.awaitExit(drifted.process(), Duration.ofSeconds(2)));
+        } finally {
+            forceGroupCleanup(process, -1L);
+        }
+    }
+
+    @Test
+    void driftedStartInstantWithForeignAttemptFingerprintMustNotBeTreatedAsOursNorSignalled() throws Exception {
+        assumeLinuxProcessTools();
+        CrawlerAttemptProcessLauncher.ManagedProcess process = launchAndResume(
+            new CrawlerAttemptProcessLauncher.LaunchSpec(
+                List.of("sh", "-c", "while :; do sleep 1; done"),
+                tempDir,
+                Map.of("TERRAPEDIA_CRAWLER_ATTEMPT_ID", "attempt-real"),
+                tempDir.resolve("drift-foreign.log")
+            )
+        );
+        try {
+            CrawlerAttemptProcessLauncher.ProcessLookup foreign = launcher.findExact(
+                new CrawlerAttemptProcessLauncher.ProcessIdentity(
+                    process.pid(),
+                    process.startedAt().plusSeconds(67),
+                    "attempt-other"
+                )
+            );
+
+            // pid 被别的 attempt(或复用)占据: 我们的进程已消亡, 而非"找到了"
+            assertEquals(CrawlerAttemptProcessLauncher.LookupCode.NOT_FOUND, foreign.code());
+            assertTrue(process.isAlive());
+        } finally {
+            forceGroupCleanup(process, -1L);
+        }
+    }
+
+    @Test
+    void rootPidReuseWithSurvivingFingerprintedMemberMustStillFindTheGroup() throws Exception {
+        assumeLinuxProcessTools();
+        Path childPidPath = tempDir.resolve("drift-survivor-child.pid");
+        CrawlerAttemptProcessLauncher.ManagedProcess process = launchAndResume(
+            new CrawlerAttemptProcessLauncher.LaunchSpec(
+                List.of(
+                    "sh",
+                    "-c",
+                    "sleep 30 & child=$!; printf '%s' \"$child\" > \"$CHILD_PID_PATH\"; sleep 0.3"
+                ),
+                tempDir,
+                Map.of(
+                    "CHILD_PID_PATH", childPidPath.toString(),
+                    "TERRAPEDIA_CRAWLER_ATTEMPT_ID", "attempt-survivor"
+                ),
+                tempDir.resolve("drift-survivor.log")
+            )
+        );
+        long childPid = -1L;
+        try {
+            assertTrue(await(Duration.ofSeconds(2), () -> Files.exists(childPidPath)));
+            childPid = readPid(childPidPath);
+            assertTrue(await(Duration.ofSeconds(2), () -> !process.handle().isAlive()));
+
+            // 根进程已退出(将来可能被复用), 组内子进程仍在; 漂移身份 + 指纹须能找回
+            CrawlerAttemptProcessLauncher.ProcessLookup lookup = launcher.findExact(
+                new CrawlerAttemptProcessLauncher.ProcessIdentity(
+                    process.pid(),
+                    process.startedAt().plusSeconds(67),
+                    "attempt-survivor"
+                )
+            );
+
+            assertEquals(CrawlerAttemptProcessLauncher.LookupCode.FOUND, lookup.code());
+            assertTrue(launcher.terminateForcibly(lookup.process()));
+            assertTrue(launcher.awaitExit(lookup.process(), Duration.ofSeconds(2)));
+        } finally {
+            forceGroupCleanup(process, childPid);
+        }
+        assertFalse(ProcessHandle.of(childPid).map(ProcessHandle::isAlive).orElse(false));
+    }
+
+    @Test
     void exactLookupMustRejectStartMismatchWithoutSignallingThatPid() {
         ProcessHandle current = ProcessHandle.current();
         Instant actualStart = current.info().startInstant().orElseThrow();

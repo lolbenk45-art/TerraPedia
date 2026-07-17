@@ -180,7 +180,6 @@ public class UserManagementServiceImpl implements UserManagementService {
         return AdminUserResetPasswordResponseDTO.builder()
             .userId(userId)
             .email(user.getEmail())
-            .temporaryPassword(newPassword)
             .build();
     }
 

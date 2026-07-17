@@ -132,10 +132,10 @@
               <small class="flow-pill" :class="`flow-pill--${row.triageStatus}`">{{ row.flowLabel || row.statusLabel || '未知状态' }}</small>
             </button>
             <div class="operation-row__progress-group">
-              <div class="operation-row__progress" :aria-label="`${row.label || row.domain} 进度 ${row.progressLabel || '未记录'}`">
+              <div class="operation-row__progress" :class="{ 'operation-row__progress--indeterminate': row.isStartupWindow }" :aria-label="`${row.label || row.domain} 进度 ${row.startupLabel || row.progressLabel || '未记录'}`">
                 <span :style="{ width: progressWidth(row.progressLabel) }"></span>
               </div>
-              <small :title="row.progressLabel || '未记录'">{{ row.progressLabel || '--' }}</small>
+              <small :title="row.startupLabel || row.progressLabel || '未记录'">{{ row.startupLabel || row.progressLabel || '--' }}</small>
             </div>
             <div v-if="row.v2Attempt" class="operation-row__v2-meta">
               <span class="operation-row__task" :title="row.phaseLabel">{{ row.phaseLabel }}</span>
@@ -159,6 +159,20 @@
               >
                 <component :is="operationIcon(row.primaryAction.icon)" :size="15" />
                 <span>{{ row.primaryAction.label }}</span>
+              </button>
+              <button
+                v-for="operation in row.secondaryActions || []"
+                :key="operation.action"
+                type="button"
+                class="tile-secondary-action"
+                :class="`tile-secondary-action--${operation.tone}`"
+                :aria-label="`${row.label || row.domain}：${operation.label}`"
+                :disabled="isControlPending(row, operation.action)"
+                :aria-busy="isControlPending(row, operation.action)"
+                @click="$emit('domain-action', operation.action, row)"
+              >
+                <component :is="operationIcon(operation.icon)" :size="14" />
+                <span>{{ operation.label }}</span>
               </button>
               <button type="button" class="tile-icon-action" aria-label="打开域详情" @click="$emit('open-domain', row)">
                 <PanelRightOpen :size="15" />
@@ -240,7 +254,8 @@
             </div>
           </dl>
           <small class="domain-tile__mode" :title="row.taskLabel || '未配置'">动作模式：{{ row.taskLabel || '未配置' }}</small>
-          <div class="tile-progress">
+          <small v-if="row.startupLabel" class="tile-startup-note" role="status">{{ row.startupLabel }}</small>
+          <div class="tile-progress" :class="{ 'tile-progress--indeterminate': row.isStartupWindow }">
             <span :style="{ width: progressWidth(row.progressLabel) }"></span>
           </div>
           <footer>
@@ -257,6 +272,20 @@
               >
                 <component :is="operationIcon(row.primaryAction.icon)" :size="15" />
                 <span>{{ row.primaryAction.label }}</span>
+              </button>
+              <button
+                v-for="operation in row.secondaryActions || []"
+                :key="operation.action"
+                type="button"
+                class="tile-secondary-action"
+                :class="`tile-secondary-action--${operation.tone}`"
+                :aria-label="`${row.label || row.domain}：${operation.label}`"
+                :disabled="isControlPending(row, operation.action)"
+                :aria-busy="isControlPending(row, operation.action)"
+                @click.stop="$emit('domain-action', operation.action, row)"
+              >
+                <component :is="operationIcon(operation.icon)" :size="14" />
+                <span>{{ operation.label }}</span>
               </button>
               <button type="button" class="tile-icon-action" aria-label="打开域详情" @click.stop="$emit('open-domain', row)">
                 <PanelRightOpen :size="15" />
@@ -304,6 +333,19 @@
                   >
                     <component :is="operationIcon(row.primaryAction.icon)" :size="15" />
                     <span>{{ row.primaryAction.label }}</span>
+                  </button>
+                  <button
+                    v-for="operation in row.secondaryActions || []"
+                    :key="operation.action"
+                    type="button"
+                    class="tile-secondary-action"
+                    :class="`tile-secondary-action--${operation.tone}`"
+                    :disabled="isControlPending(row, operation.action)"
+                    :aria-busy="isControlPending(row, operation.action)"
+                    @click="$emit('domain-action', operation.action, row)"
+                  >
+                    <component :is="operationIcon(operation.icon)" :size="14" />
+                    <span>{{ operation.label }}</span>
                   </button>
                   <button type="button" class="table-action" @click="$emit('open-domain', row)">
                     <PanelRightOpen :size="15" />
@@ -1614,6 +1656,181 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   color: var(--color-success);
 }
 
+/* 排版对齐覆盖层：只追加覆盖，不改上方锁定规则；置于媒体查询之前以保留窄屏行为 */
+.operation-row {
+  grid-template-columns: minmax(150px, 0.9fr) minmax(150px, 1.1fr) minmax(150px, 1.2fr) minmax(84px, 0.45fr) 196px;
+}
+
+.operation-row--v2 {
+  grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) minmax(0, 1fr) 196px;
+}
+
+.operation-row__actions {
+  justify-self: stretch;
+  justify-content: flex-end;
+}
+
+.operation-row__actions .tile-operation-action {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.operation-row__actions .tile-icon-action {
+  flex: 0 0 auto;
+  width: 34px;
+}
+
+.domain-tile footer .tile-operation-action {
+  width: auto;
+  min-width: 0;
+}
+
+.domain-tile footer .tile-secondary-action {
+  width: auto;
+  height: 30px;
+  min-width: 0;
+}
+
+.tile-operation-action span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 启动窗口/终止按钮/状态区分覆盖层：同样只追加，不改上方锁定规则 */
+.tile-startup-note {
+  display: block;
+  color: var(--color-info);
+  font-weight: 700;
+}
+
+.tile-progress--indeterminate,
+.operation-row__progress--indeterminate {
+  position: relative;
+  overflow: hidden;
+}
+
+.tile-progress--indeterminate span,
+.operation-row__progress--indeterminate span {
+  width: 34% !important;
+  animation: startup-sweep 1.4s var(--ease-standard) infinite;
+}
+
+@keyframes startup-sweep {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(320%);
+  }
+}
+
+.tile-secondary-action {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-1);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tile-secondary-action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.tile-secondary-action--danger {
+  border-color: var(--color-danger-muted);
+  color: var(--color-danger);
+}
+
+.tile-secondary-action--danger:hover:not(:disabled) {
+  background: var(--color-danger-muted);
+}
+
+.tile-secondary-action span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 失败态卡片上主按钮+次按钮并存时允许换行，避免次按钮被压成竖条 */
+.domain-tile__actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  row-gap: 6px;
+}
+
+.domain-tile__actions .tile-secondary-action {
+  max-width: 100%;
+}
+
+/* 状态配色区分：starting 用脉冲区分 running；paused 归 warning(等人处理)；
+   queued 降为中性；cancelled 灰+描边区分 unknown。只用 variables.css 令牌。 */
+.status-dot-small--starting {
+  animation: pulse-info var(--transition-slow) var(--ease-standard) infinite alternate;
+}
+
+@keyframes pulse-info {
+  from {
+    box-shadow: 0 0 0 0 var(--color-info-muted);
+  }
+  to {
+    box-shadow: 0 0 0 6px var(--color-info-muted);
+  }
+}
+
+.status-dot-small--paused,
+.flow-pill--paused .status-dot-small {
+  background: var(--color-warning);
+}
+
+.status-pill.paused,
+.flow-pill--paused {
+  background: var(--color-warning-muted);
+  color: var(--color-warning);
+}
+
+.status-dot-small--queued,
+.status-dot-small--retry_wait {
+  background: var(--color-text-muted);
+}
+
+.status-pill.queued,
+.status-pill.retry_wait,
+.flow-pill--queued,
+.flow-pill--retry_wait {
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+}
+
+.status-dot-small--cancelled {
+  background: var(--color-text-muted);
+}
+
+.status-pill.cancelled,
+.flow-pill--cancelled {
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+}
+
+.domain-tile--paused {
+  border-color: var(--color-warning-muted);
+}
+
+.domain-tile--paused .tile-progress span {
+  background: var(--color-warning);
+}
+
 @keyframes pulse {
   from {
     box-shadow: 0 0 0 0 var(--color-danger-muted);
@@ -1694,7 +1911,10 @@ function tableOperationButtonClass(operation?: Record<string, any>) {
   .attention-card,
   .domain-tile,
   .status-dot-small--blocked,
-  .status-dot-small--stalled {
+  .status-dot-small--stalled,
+  .status-dot-small--starting,
+  .tile-progress--indeterminate span,
+  .operation-row__progress--indeterminate span {
     animation: none;
     transition: none;
   }

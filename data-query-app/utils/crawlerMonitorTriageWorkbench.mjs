@@ -105,6 +105,7 @@ const V2_PHASE_LABELS = {
   claimed: '已领取执行权',
   starting: '启动任务',
   running: '运行中',
+  expand: '展开待爬清单',
   fetch: '抓取数据',
   'fetch-pages': '抓取页面',
   crawl: '爬取数据',
@@ -112,6 +113,51 @@ const V2_PHASE_LABELS = {
   apply: '应用数据',
   finalize: '收尾处理中',
   completed: '已完成',
+}
+
+// 派发后到第一条可计算进度之间的窗口（expand 展开清单可达 90 秒），此前
+// UI 只有 0 进度 + 英文阶段名，用户会误判为启动失败。仅活跃推进态适用：
+// 终态/空闲/暂停都不算启动窗口。
+const V2_STARTUP_ACTIVE_STATUSES = new Set(['queued', 'starting', 'running', 'retry_wait'])
+
+function v2StartupWindow(attempt, nowMs) {
+  const status = lower(attempt?.status)
+  if (!V2_STARTUP_ACTIVE_STATUSES.has(status)) {
+    return { isStartupWindow: false, startupLabel: null }
+  }
+  const current = Number(attempt?.current)
+  const total = Number(attempt?.total)
+  if (Number.isFinite(current) && current > 0 && Number.isFinite(total) && total > 0) {
+    return { isStartupWindow: false, startupLabel: null }
+  }
+  const sinceMs = Date.parse(normalize(attempt?.startedAt)) || Date.parse(normalize(attempt?.requestedAt))
+  if (!Number.isFinite(nowMs) || !Number.isFinite(sinceMs) || nowMs < sinceMs) {
+    return { isStartupWindow: true, startupLabel: '启动准备中' }
+  }
+  return {
+    isStartupWindow: true,
+    startupLabel: `启动准备中 · 已进行 ${durationLabel(nowMs - sinceMs)}`,
+  }
+}
+
+// 失败/超时的终态记录此前只活在 3 秒 toast + 抽屉历史里，主面板马上回落
+// "空闲"，用户会误以为任务已完成。这里把最近一次终态失败提升为域的显示
+// 状态，直到有新的 live 尝试或成功/取消结果覆盖它。
+const V2_FAILURE_RESULT_STATUSES = new Set(['failed', 'timed_out', 'interrupted'])
+const V2_IDLE_LIVE_STATUSES = new Set(['', 'idle', 'ready', 'healthy', 'unknown'])
+
+export function v2DomainDisplayStatus({ liveStatus, latestResult } = {}) {
+  const live = lower(liveStatus)
+  const lastStatus = lower(latestResult?.status)
+  if (!V2_IDLE_LIVE_STATUSES.has(live) || !V2_FAILURE_RESULT_STATUSES.has(lastStatus)) {
+    return { status: live || 'idle', elevated: false, note: null }
+  }
+  const noteByStatus = {
+    failed: '上次爬取失败，尚未重试成功',
+    timed_out: '上次爬取超时，尚未重试成功',
+    interrupted: '上次爬取被中断，尚未重试成功',
+  }
+  return { status: lastStatus, elevated: true, note: noteByStatus[lastStatus] }
 }
 
 export function buildV2AttemptDisplayModel(attempt = {}, now = new Date()) {
@@ -130,7 +176,7 @@ export function buildV2AttemptDisplayModel(attempt = {}, now = new Date()) {
       ? `剩余 ${durationLabel(remainingMs)}`
       : `已超期 ${durationLabel(-remainingMs)}`
   }
-  return { phaseLabel, heartbeatAgeLabel, deadlineLabel }
+  return { phaseLabel, heartbeatAgeLabel, deadlineLabel, ...v2StartupWindow(attempt, nowMs) }
 }
 
 function isAttentionRow(row) {
@@ -1132,6 +1178,20 @@ function displayTime(value) {
   return timeLabel || raw
 }
 
+// 真实的数据新鲜度 = wiki revision 对比结果(wikiMonitor.domains),不是执行阶段。
+// V2 行此前把 phase 塞进 sourceSummary 当新鲜度显示,属于假数据。
+export function sourceFreshnessLabel(freshness) {
+  if (!freshness || typeof freshness !== 'object') return null
+  const checkedAt = displayTime(freshness.checkedAt)
+  if (!checkedAt && !normalize(freshness.currentValue)) return '尚未执行过源检查'
+  const changed = freshness.changed === true ? '有变化' : freshness.changed === false ? '无变化' : '未判断变化'
+  const parts = [changed]
+  if (checkedAt) parts.push(`检查于 ${checkedAt}`)
+  const locator = normalize(freshness.locator)
+  if (locator) parts.push(locator)
+  return parts.join(' · ')
+}
+
 export function buildDomainDetailViewModel({
   row = null,
   executionRows = [],
@@ -1171,25 +1231,72 @@ export function buildDomainDetailViewModel({
       const fileKey = file?.attemptId || file?.path
       return candidateKey === fileKey
     }) === index)
-  const v2OverviewFields = row?.v2Attempt ? [
-    ['阶段', v2Display.phaseLabel || '未记录'],
-    ['心跳距今', v2Display.heartbeatAgeLabel || '未记录'],
-    ['截止倒计时', v2Display.deadlineLabel || '未记录'],
+  const v2 = Boolean(row?.v2Attempt)
+  // 抽屉 overview 此前把 live 字段无条件铺满：空闲域(已爬过多次)打开时
+  // 满屏"未记录/阶段未上报"，用户误以为没有正式记录。live 字段只在有
+  // 当前尝试时渲染；空闲时身份/时间/日志回退到最近一次终态尝试。
+  const hasLiveAttempt = v2 && Boolean(normalize(row.attemptId))
+  const lastAttempt = !hasLiveAttempt && v2 ? (row.latestResult || null) : null
+  const field = (label, value) => ({ label, value })
+  const freshnessLabel = v2 ? sourceFreshnessLabel(row.sourceFreshness) : null
+  const currentFields = [
+    field('当前状态', normalize(row.currentStatusLabel || row.diagnosisTitle) || crawlerStatusDisplayLabel(rowStatus(row))),
+    field('进度', normalize(row.progressLabel || '--')),
+    ...(v2
+      ? (freshnessLabel ? [field('数据新鲜度', freshnessLabel)] : [])
+      : [field('数据新鲜度', normalize(row.sourceSummary || '未记录'))]),
+    ...(hasLiveAttempt ? [field('阶段', v2Display.phaseLabel || '未记录')] : []),
+    field('最近心跳', displayTime(row.heartbeatAt) || '未记录'),
+    ...(hasLiveAttempt ? [
+      field('心跳距今', v2Display.heartbeatAgeLabel || '未记录'),
+      field('截止倒计时', v2Display.deadlineLabel || '未记录'),
+    ] : []),
+    field('当前占用', normalize(row.blockerLabel || row.ownerLabel || '无当前占用')),
+  ]
+  const lastFields = [
+    field('上次结果', normalize(row.latestResultLabel || '暂无历史结果')),
+  ]
+  const identityFields = hasLiveAttempt ? [
+    field('队列 ID', shortCrawlerIdentity(row.queueId)),
+    field('尝试 ID', shortCrawlerIdentity(row.attemptId)),
+    field('状态版本', row.stateVersion == null ? '未记录' : String(row.stateVersion)),
+    field('状态存储 epoch', shortCrawlerIdentity(row.stateStoreEpoch)),
+    field('截止时间', displayTime(row.deadlineAt) || '未记录'),
+    field('原因码', normalize(row.reasonCode || '无')),
+  ] : lastAttempt ? [
+    field('队列 ID', shortCrawlerIdentity(lastAttempt.queueId)),
+    field('尝试 ID', shortCrawlerIdentity(lastAttempt.attemptId)),
+    field('开始时间', displayTime(lastAttempt.startedAt) || '未记录'),
+    field('完成时间', displayTime(lastAttempt.completedAt) || '未记录'),
+    field('原因码', normalize(lastAttempt.reasonCode || '无')),
   ] : []
-  const v2IdentityFields = row?.v2Attempt ? [
-    ['队列 ID', shortCrawlerIdentity(row.queueId)],
-    ['尝试 ID', shortCrawlerIdentity(row.attemptId)],
-    ['状态版本', row.stateVersion == null ? '未记录' : String(row.stateVersion)],
-    ['状态存储 epoch', shortCrawlerIdentity(row.stateStoreEpoch)],
-    ['截止时间', displayTime(row.deadlineAt) || '未记录'],
-    ['原因码', normalize(row.reasonCode || '无')],
-    ['日志状态', row.log ? v2LogAvailabilityLabel(row.log.availability) : '未返回日志元数据'],
-    ['日志最后写入', displayTime(row.log?.lastWriteAt) || '未记录'],
-    ['日志保留至', displayTime(row.log?.retentionExpiresAt) || '未记录'],
-    ['建议操作', normalize(row.suggestedAction || row.nextActionLabel || '未返回建议操作')],
+  const logSource = hasLiveAttempt ? row.log : lastAttempt?.log
+  const logFields = (hasLiveAttempt || lastAttempt) ? [
+    field('日志状态', logSource ? v2LogAvailabilityLabel(logSource.availability) : '未返回日志元数据'),
+    field('日志最后写入', displayTime(logSource?.lastWriteAt) || '未记录'),
+    ...(hasLiveAttempt ? [field('日志保留至', displayTime(logSource?.retentionExpiresAt) || '未记录')] : []),
   ] : []
+  const actionFields = [
+    ...(v2 && (hasLiveAttempt || lastAttempt) ? [field('建议操作', normalize(row.suggestedAction || row.nextActionLabel || '未返回建议操作'))] : []),
+    field('动作模式', actionModeLabel(row) || '未记录'),
+    field('动作ID', actionId || '未记录'),
+    field('执行逻辑', actionExecutionLabel(row)),
+    field('任务记录', normalize(row.queueSummary) || (row.queueId || row.dispatchId ? '队列记录' : '无队列')),
+  ]
+  const overviewGroups = [
+    { key: 'current', title: '当前状态', fields: currentFields },
+    { key: 'last', title: '上次结果', fields: lastFields },
+    ...(identityFields.length ? [{
+      key: 'identity',
+      title: hasLiveAttempt ? '本轮任务身份' : '上次任务身份',
+      fields: identityFields,
+    }] : []),
+    ...(logFields.length ? [{ key: 'log', title: '日志', fields: logFields }] : []),
+    { key: 'action', title: '动作与队列', fields: actionFields },
+  ]
   return {
-    v2Attempt: Boolean(row?.v2Attempt),
+    v2Attempt: v2,
+    hasLiveAttempt,
     ...v2Display,
     key: normalize(row.domain || row.actionId || row.label),
     title: normalize(row.label || row.domain || '未知域'),
@@ -1205,23 +1312,8 @@ export function buildDomainDetailViewModel({
       detail: normalize(row.rankReason || row.reason || '暂无补充'),
       nextActionLabel: normalize(row.nextActionLabel || '查看详情'),
     },
-    overviewFields: [
-      ['当前状态', normalize(row.currentStatusLabel || row.diagnosisTitle) || crawlerStatusDisplayLabel(rowStatus(row))],
-      ['上次结果', normalize(row.latestResultLabel || '暂无历史结果')],
-      ['进度', normalize(row.progressLabel || '--')],
-      ['数据新鲜度', normalize(row.sourceSummary || '未记录')],
-      ...v2OverviewFields.slice(0, 1),
-      ['最近心跳', displayTime(row.heartbeatAt) || '未记录'],
-      ...v2OverviewFields.slice(1, 2),
-      ...v2IdentityFields.slice(0, 5),
-      ...v2OverviewFields.slice(2, 3),
-      ...v2IdentityFields.slice(5),
-      ['当前占用', normalize(row.blockerLabel || row.ownerLabel || '无当前占用')],
-      ['动作模式', actionModeLabel(row) || '未记录'],
-      ['动作ID', actionId || '未记录'],
-      ['执行逻辑', actionExecutionLabel(row)],
-      ['任务记录', normalize(row.queueSummary) || (row.queueId || row.dispatchId ? '队列记录' : '无队列')],
-    ].map(([label, value]) => ({ label, value })),
+    overviewGroups,
+    overviewFields: overviewGroups.flatMap((group) => group.fields),
     operations: Array.isArray(row.operations) ? row.operations : [],
     currentStatusLabel: normalize(row.currentStatusLabel) || crawlerStatusDisplayLabel(rowStatus(row)),
     latestResult: row.latestResult || null,
