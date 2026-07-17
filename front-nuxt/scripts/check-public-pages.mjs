@@ -2433,7 +2433,8 @@ for (const path of scanFiles) {
       'bossMemberRoleLabel(member.bossRole, member.sourceBossCode)',
       'bossMemberPath(member)',
       'bossLootItemPath(entry)',
-      '<NuxtLink v-if="bossLootItemPath(entry)"',
+      // WP-5:掉落行 NuxtLink 渲染迁入 components/detail/DetailRelationRow.vue,页面以 href 传链。
+      ':href="bossLootItemPath(entry)"',
       '召唤与触发',
     ]) {
       if (!content.includes(marker)) {

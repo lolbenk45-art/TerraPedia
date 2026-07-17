@@ -217,6 +217,7 @@ const chanceLabel = (entry: PublicNpcLootEntry | PublicNpcBuffRelation) => {
   if (text) return text
   return entry.chanceValue != null ? `${entry.chanceValue}%` : ''
 }
+const lootEntryMetaLabel = (entry: PublicNpcLootEntry) => [quantityLabel(entry), chanceLabel(entry), lootConditionLabel(entry)].filter(Boolean).join(' · ') || '掉落资料待补充'
 const itemPath = (entry: PublicNpcLootEntry | PublicNpcShopEntry | PublicNpcTraceableItemSummary) => {
   const id = firstText(entry.itemId, 'item_id' in entry ? entry.item_id : undefined)
   return id ? `/items/${id}` : ''
@@ -614,32 +615,32 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
                 </div>
               </div>
               <div v-if="trustedLoot.length" class="source-table dark-table tp-detail-relation-grid">
-                <div v-for="entry in trustedLootVisibleEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
-                  <span class="sprite-frame detail-relation-icon">
-                    <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
-                  </span>
-                  <div class="detail-relation-copy">
-                    <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
-                    <b v-else>{{ entryTitle(entry) }}</b>
-                    <span>{{ [quantityLabel(entry), chanceLabel(entry), lootConditionLabel(entry)].filter(Boolean).join(' · ') || '掉落资料待补充' }}</span>
-                  </div>
-                  <strong class="detail-relation-meta">掉落</strong>
-                </div>
+                <DetailRelationRow
+                  v-for="entry in trustedLootVisibleEntries"
+                  :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)"
+                  :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]"
+                  :image="entryImage(entry)"
+                  :title="entryTitle(entry)"
+                  :fallback-icon="entryFallbackIcon(entry)"
+                  :href="itemPath(entry)"
+                  :meta="lootEntryMetaLabel(entry)"
+                  badge="掉落"
+                />
               </div>
               <details v-if="trustedLootRemainderEntries.length" class="detail-group-remainder">
                 <summary>展开其余 {{ trustedLootRemainderEntries.length }} 条</summary>
                 <div class="source-table dark-table tp-detail-relation-grid">
-                  <div v-for="entry in trustedLootRemainderEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
-                    <span class="sprite-frame detail-relation-icon">
-                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
-                    </span>
-                    <div class="detail-relation-copy">
-                      <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
-                      <b v-else>{{ entryTitle(entry) }}</b>
-                      <span>{{ [quantityLabel(entry), chanceLabel(entry), lootConditionLabel(entry)].filter(Boolean).join(' · ') || '掉落资料待补充' }}</span>
-                    </div>
-                    <strong class="detail-relation-meta">掉落</strong>
-                  </div>
+                  <DetailRelationRow
+                    v-for="entry in trustedLootRemainderEntries"
+                    :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)"
+                    :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]"
+                    :image="entryImage(entry)"
+                    :title="entryTitle(entry)"
+                    :fallback-icon="entryFallbackIcon(entry)"
+                    :href="itemPath(entry)"
+                    :meta="lootEntryMetaLabel(entry)"
+                    badge="掉落"
+                  />
                 </div>
               </details>
               <div v-if="additionalLoot.length" class="detail-subgroup npc-additional-loot">
@@ -648,17 +649,17 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
                   <span>{{ additionalLoot.length }} 条 · 需结合来源记录查看</span>
                 </div>
                 <div class="source-table dark-table tp-detail-relation-grid">
-                  <div v-for="entry in additionalLoot.slice(0, 6)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
-                    <span class="sprite-frame detail-relation-icon">
-                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
-                    </span>
-                    <div class="detail-relation-copy">
-                      <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
-                      <b v-else>{{ entryTitle(entry) }}</b>
-                      <span>{{ [quantityLabel(entry), chanceLabel(entry), lootConditionLabel(entry)].filter(Boolean).join(' · ') || '掉落资料待补充' }}</span>
-                    </div>
-                    <strong class="detail-relation-meta">补充</strong>
-                  </div>
+                  <DetailRelationRow
+                    v-for="entry in additionalLoot.slice(0, 6)"
+                    :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)"
+                    :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]"
+                    :image="entryImage(entry)"
+                    :title="entryTitle(entry)"
+                    :fallback-icon="entryFallbackIcon(entry)"
+                    :href="itemPath(entry)"
+                    :meta="lootEntryMetaLabel(entry)"
+                    badge="补充"
+                  />
                 </div>
               </div>
               <p v-if="!trustedLoot.length && !additionalLoot.length" class="tp-detail-empty">暂时没有整理到掉落物。</p>
@@ -842,6 +843,8 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
   padding: 10px;
 }
 
+/* 掉落行内部结构与样式已随 DetailRelationRow 组件内聚;
+   以下选择器继续服务本页内联商店行(同类名),行为与拆分前一致。 */
 .detail-relation-icon {
   display: grid;
   place-items: center;

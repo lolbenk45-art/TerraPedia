@@ -383,48 +383,36 @@ const bossLootGroups = computed(() => {
                 <span>{{ group.entries.length }} 条 · {{ group.meta }}</span>
               </div>
               <div class="detail-loot-items tp-detail-relation-grid">
-                <div v-for="entry in group.entries.slice(0, 8)" :key="entry.id ?? `${entry.itemId}-${entry.itemName}`" :class="['loot-row detail-loot-row', detailLayout.detailRelationRowClass]">
-                  <CommonPreviewImage
-                    :src="entryImage(entry)"
-                    :alt="lootTitle(entry)"
-                    :fallback="firstGlyph(lootTitle(entry))"
-                    :fallback-icon="bossLootFallbackIcon"
-                    width="44"
-                    height="44"
-                  />
-                  <div class="detail-loot-copy">
-                    <NuxtLink v-if="bossLootItemPath(entry)" :to="bossLootItemPath(entry)" class="detail-loot-link">
-                      <b>{{ lootTitle(entry) }}</b>
-                    </NuxtLink>
-                    <b v-else>{{ lootTitle(entry) }}</b>
-                    <span>{{ bossLootDetailLabel(entry) }}</span>
-                    <span class="detail-loot-evidence">{{ bossLootEvidenceLabel(entry) }}</span>
-                  </div>
-                  <em>{{ bossLootChanceLabel(entry) }}</em>
-                </div>
+                <DetailRelationRow
+                  v-for="entry in group.entries.slice(0, 8)"
+                  :key="entry.id ?? `${entry.itemId}-${entry.itemName}`"
+                  variant="loot"
+                  :class="['loot-row detail-loot-row', detailLayout.detailRelationRowClass]"
+                  :image="entryImage(entry)"
+                  :title="lootTitle(entry)"
+                  :fallback-icon="bossLootFallbackIcon"
+                  :href="bossLootItemPath(entry)"
+                  :meta="bossLootDetailLabel(entry)"
+                  :evidence="bossLootEvidenceLabel(entry)"
+                  :badge="bossLootChanceLabel(entry)"
+                />
               </div>
               <details v-if="group.entries.length > 8" class="detail-group-remainder">
                 <summary>展开其余 {{ group.entries.length - 8 }} 条</summary>
                 <div class="detail-loot-items tp-detail-relation-grid">
-                  <div v-for="entry in group.entries.slice(8)" :key="entry.id ?? `${entry.itemId}-${entry.itemName}`" :class="['loot-row detail-loot-row', detailLayout.detailRelationRowClass]">
-                    <CommonPreviewImage
-                      :src="entryImage(entry)"
-                      :alt="lootTitle(entry)"
-                      :fallback="firstGlyph(lootTitle(entry))"
-                      :fallback-icon="bossLootFallbackIcon"
-                      width="44"
-                      height="44"
-                    />
-                    <div class="detail-loot-copy">
-                      <NuxtLink v-if="bossLootItemPath(entry)" :to="bossLootItemPath(entry)" class="detail-loot-link">
-                        <b>{{ lootTitle(entry) }}</b>
-                      </NuxtLink>
-                      <b v-else>{{ lootTitle(entry) }}</b>
-                      <span>{{ bossLootDetailLabel(entry) }}</span>
-                      <span class="detail-loot-evidence">{{ bossLootEvidenceLabel(entry) }}</span>
-                    </div>
-                    <em>{{ bossLootChanceLabel(entry) }}</em>
-                  </div>
+                  <DetailRelationRow
+                    v-for="entry in group.entries.slice(8)"
+                    :key="entry.id ?? `${entry.itemId}-${entry.itemName}`"
+                    variant="loot"
+                    :class="['loot-row detail-loot-row', detailLayout.detailRelationRowClass]"
+                    :image="entryImage(entry)"
+                    :title="lootTitle(entry)"
+                    :fallback-icon="bossLootFallbackIcon"
+                    :href="bossLootItemPath(entry)"
+                    :meta="bossLootDetailLabel(entry)"
+                    :evidence="bossLootEvidenceLabel(entry)"
+                    :badge="bossLootChanceLabel(entry)"
+                  />
                 </div>
               </details>
             </div>
@@ -667,31 +655,32 @@ const bossLootGroups = computed(() => {
   font-weight: 900;
 }
 
-.detail-loot-row .item-art {
+/* 掉落行内部结构由共享 DetailRelationRow(variant=loot)渲染,行内选择器走 :deep。 */
+.detail-loot-row :deep(.item-art) {
   width: 44px;
   height: 44px;
   overflow: hidden;
 }
 
-.detail-loot-copy,
-.detail-loot-copy b,
-.detail-loot-copy span,
-.detail-loot-copy a,
-.detail-loot-row em,
+:deep(.detail-loot-copy),
+:deep(.detail-loot-copy b),
+:deep(.detail-loot-copy span),
+:deep(.detail-loot-copy a),
+.detail-loot-row :deep(em),
 .detail-member-link b,
 .detail-member-link span {
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.detail-loot-copy {
+:deep(.detail-loot-copy) {
   display: grid;
   gap: 4px;
   grid-column: 2;
   grid-row: 1;
 }
 
-.detail-loot-copy b {
+:deep(.detail-loot-copy b) {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
@@ -702,7 +691,7 @@ const bossLootGroups = computed(() => {
   word-break: normal;
 }
 
-.detail-loot-copy span {
+:deep(.detail-loot-copy span) {
   display: block;
   color: var(--text-muted);
   font-size: 12px;
@@ -710,13 +699,13 @@ const bossLootGroups = computed(() => {
   white-space: normal;
 }
 
-.detail-loot-copy .detail-loot-evidence {
+:deep(.detail-loot-copy .detail-loot-evidence) {
   color: var(--text-subtle);
   font-size: 11px;
   font-weight: 800;
 }
 
-.detail-loot-row em {
+.detail-loot-row :deep(em) {
   grid-column: 2;
   grid-row: 2;
   justify-self: start;
@@ -849,7 +838,7 @@ const bossLootGroups = computed(() => {
     gap: 4px;
   }
 
-  .detail-loot-row em {
+  .detail-loot-row :deep(em) {
     grid-column: 2;
     grid-row: auto;
     justify-self: start;

@@ -207,7 +207,9 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
   const content = read(path)
   for (const [pattern, message] of [
     [
-      String.raw`class="detail-loot-copy"`,
+      // WP-5:掉落行内部结构迁入 components/detail/DetailRelationRow.vue(variant=loot),
+      // 页面侧以 :deep(.detail-loot-copy) 维持同一布局约束。
+      String.raw`:deep\(\.detail-loot-copy\)`,
       'boss loot rows must group item name and details so the chance column cannot squeeze names into narrow fragments',
     ],
     [
