@@ -45,10 +45,10 @@ function loadUiPreferencesStore() {
   return module.exports.useUiPreferencesStore
 }
 
-test('persist config uses paths (3.x plugin) not pick', () => {
+test('persist config uses pick (persistedstate 4.x) not paths', () => {
   const source = fs.readFileSync(path.join(repoRoot, 'stores/uiPreferences.ts'), 'utf8')
-  assert.match(source, /persist:\s*\{[\s\S]*paths:\s*\[/)
-  assert.doesNotMatch(source, /pick:/)
+  assert.match(source, /persist:\s*\{[\s\S]*pick:\s*\[/)
+  assert.doesNotMatch(source, /paths:/)
 })
 
 test('applySectionDefaults seeds collapsed labels once and is idempotent', () => {

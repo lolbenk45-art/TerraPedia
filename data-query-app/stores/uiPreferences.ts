@@ -40,6 +40,6 @@ export const useUiPreferencesStore = defineStore('uiPreferences', () => {
   }
 }, {
   persist: {
-    paths: ['collapsedSectionLabels', 'desktopSidebarCollapsed', 'sectionDefaultsApplied'],
+    pick: ['collapsedSectionLabels', 'desktopSidebarCollapsed', 'sectionDefaultsApplied'],
   },
 })
