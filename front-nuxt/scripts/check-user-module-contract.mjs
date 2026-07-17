@@ -410,8 +410,18 @@ const pageContracts = [
   },
   {
     path: 'pages/articles/[slug].vue',
-    required: ['usePublicApiFetch<UserArticle>', '/articles/slug/', 'useUserFavoritesStore', 'useUserHistoryStore', "loadStatuses('ARTICLE'", 'toggleArticleFavorite', 'recordArticleHistoryOnce', 'recordedArticleHistoryIds', 'import.meta.client', "historyStore.record('ARTICLE'", '收藏文章', '已收藏', 'article.id', 'authorProfilePath', 'resolvePreviewImageUrl', 'articleCoverUrl', 'article.coverImage', 'authorAvatarUrl', 'commentAvatarUrl', 'article-cover-figure', 'article-primary-meta', 'sanitizeArticleHtml', 'renderPlainArticleText', 'sanitizedArticleHtml', 'article-inline-header', 'article-section-title', 'viewCount', 'favoriteCount', 'recommendedArticles', 'article-related-articles', 'article-related-cover', 'article-related-copy', '推荐文章', 'article-toc', 'article-comments', 'articleCommentTargetId', 'focusArticleCommentTarget', 'article-comment-item--targeted', 'articleCommentText', 'loadArticleComments', 'submitArticleComment', 'deleteArticleComment', '/comments'],
+    required: ['usePublicApiFetch<UserArticle>', '/articles/slug/', 'useUserFavoritesStore', 'useUserHistoryStore', "loadStatuses('ARTICLE'", 'toggleArticleFavorite', 'recordArticleHistoryOnce', 'recordedArticleHistoryIds', 'import.meta.client', "historyStore.record('ARTICLE'", '收藏文章', '已收藏', 'article.id', 'authorProfilePath', 'resolvePreviewImageUrl', 'articleCoverUrl', 'article.coverImage', 'authorAvatarUrl', 'article-cover-figure', 'article-primary-meta', 'sanitizeArticleHtml', 'renderPlainArticleText', 'sanitizedArticleHtml', 'article-inline-header', 'article-section-title', 'viewCount', 'favoriteCount', 'recommendedArticles', 'article-related-articles', 'article-related-cover', 'article-related-copy', '推荐文章', 'article-toc', '<ArticleComments :article="article" />', '#article-comments'],
     forbidden: ['公开文章暂未开放', '真实文章待接入', '文章未载入', '没有真实发布数据', 'article-detail-cover-frame', 'article-detail-cover-fallback', '<span class="eyebrow">文章状态</span>', '<span class="eyebrow">推荐跳转</span>'],
+  },
+  {
+    path: 'components/article/ArticleComments.vue',
+    required: ['commentAvatarUrl', 'article-comments', 'article-comment-item--targeted', 'articleCommentText', 'submitArticleComment', 'deleteArticleComment', '/comments'],
+    forbidden: [],
+  },
+  {
+    path: 'composables/useArticleComments.ts',
+    required: ['articleCommentTargetId', 'focusArticleCommentTarget', 'loadArticleComments'],
+    forbidden: [],
   },
   {
     path: 'pages/users/[id].vue',
@@ -436,6 +446,9 @@ for (const contract of pageContracts) {
 }
 
 const publicArticleDetail = assertFile('pages/articles/[slug].vue')
+const publicArticleComments = assertFile('components/article/ArticleComments.vue')
+const publicArticleCommentsComposable = assertFile('composables/useArticleComments.ts')
+const publicArticleCommentsSource = publicArticleComments + publicArticleCommentsComposable + assertFile('components/article/ArticleCommentReplyForm.vue')
 const userArticleRichEditor = assertFile('components/user/UserArticleRichEditor.vue')
 const userArticleCoverCropper = assertFile('composables/useUserArticleCoverCropper.ts')
 for (const marker of [
@@ -449,7 +462,7 @@ for (const marker of [
   'appendArticleComments',
   'appendArticleCommentReplies',
 ]) {
-  assertIncludes('pages/articles/[slug].vue', publicArticleDetail, marker, `public article comments UI must include ${marker}`)
+  assertIncludes('components/article/ArticleComments.vue', publicArticleCommentsSource, marker, `public article comments UI must include ${marker}`)
 }
 for (const marker of ['sanitizeEditorHtml', 'sanitizeEditorElement', 'isSafeEditorUrl', "src.startsWith('file:')", "src.startsWith('blob:')", 'readUserArticleImageAsDataUrl']) {
   assertIncludes('components/user/UserArticleRichEditor.vue', userArticleRichEditor, marker, `user article rich editor must sanitize saved HTML via ${marker}`)
