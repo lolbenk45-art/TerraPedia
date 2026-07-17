@@ -197,7 +197,7 @@ const COIN_SHORT_LABEL: Record<string, string> = {
 }
 
 export const buildPriceVisual = (item: RefItem, coinIcons: Record<string, string>): PriceToken[] => {
-  const numeric = Number(item?.buyPrice ?? item?.sellPrice)
+  const numeric = Number(item?.buyPrice ?? item?.buy ?? item?.sellPrice ?? item?.sell)
   if (!Number.isFinite(numeric) || numeric < 0) return []
 
   const total = Math.max(0, Math.trunc(numeric))
