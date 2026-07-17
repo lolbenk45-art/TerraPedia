@@ -169,17 +169,19 @@ requireRegex(
   /article-detail-loading[\s\S]*<CommonTpSkeleton type="line"[\s\S]*article-detail-loading-sidebar/,
   'article detail loading state must render skeleton body and sidebar placeholders',
 )
+const articleCommentsComponent = read('components/article/ArticleComments.vue')
+const articleCommentsComposable = read('composables/useArticleComments.ts')
 requireRegex(
-  'pages/articles/[slug].vue',
-  articleDetailPage,
+  'components/article/ArticleComments.vue',
+  articleCommentsComponent,
   /v-for="slot in articleCommentLoadingSlotCount"[\s\S]*class="article-comment-item article-comment-item--loading"/,
   'article comments loading state must render repeated skeleton comment rows',
 )
 requireRegex(
-  'pages/articles/[slug].vue',
-  articleDetailPage,
+  'composables/useArticleComments.ts',
+  articleCommentsComposable,
   /const articleCommentLoadingSlotCount = \d+/,
-  'article detail page must define a stable comment loading skeleton slot count',
+  'article comments module must define a stable comment loading skeleton slot count',
 )
 
 requireRegex(

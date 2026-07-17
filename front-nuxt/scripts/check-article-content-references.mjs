@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import ts from 'typescript'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const candidates = [
@@ -124,6 +125,19 @@ const toBrowserJs = (source) => source
   .replace(/const allowedAttributes: Object/g, 'const allowedAttributes')
   .replace(/let match/g, 'let match')
 
+// The DOM recipe-graph renderer now lives in the root shared article runtime
+// (read-only, shared with data-query-app). Rather than reconstruct an
+// in-memory adapter from page functions that no longer exist, the recipe-tree
+// fixture below runs the real shared renderer: its TypeScript source is
+// transpiled to module-free browser JS and exercised inside the same no-module
+// Chromium environment as the extracted page helpers.
+const toRuntimeJs = (source) => ts.transpileModule(source, {
+  compilerOptions: {
+    target: ts.ScriptTarget.ES2020,
+    module: ts.ModuleKind.ESNext,
+  },
+}).outputText.replace(/\bexport\s+/g, '')
+
 const requiredPageSymbols = [
   'sanitizeArticleHtml',
   'sanitizeArticleAttributes',
@@ -167,18 +181,20 @@ if (!sharedRecipeHierarchyGraphRendererSource.includes('suppressFocusShow')) thr
 if (!/\bimport\s*\{[^}]*\bbuildCraftingRecipeModel\b[^}]*\}\s*from\s*['"]~\/composables\/useCraftingRecipeModel['"]/.test(articlePageSource)) throw new Error('article recipe tree must reuse the crafting recipe selection model')
 if (!articlePageSource.includes('dataset.articleRecipeRole')) throw new Error('article recipe tree must expose local version and recipe selectors for multi-recipe results')
 if (extractFunction(articlePageSource, 'recipeTreeRootNodes').includes('slice(0, 1)')) throw new Error('article recipe tree must not truncate multi-recipe roots to the first entry')
-if (!articlePageSource.includes("copy.className = 'article-recipe-tree__graph-node-copy'")) throw new Error('article recipe tree graph nodes must render direct readable labels')
-if (!articlePageSource.includes('recipe-hierarchy-option-row')) throw new Error('article recipe tree graph must reuse crafting page compact recipe option rows')
-if (!articlePageSource.includes('recipe-hierarchy-popover') || !articlePageSource.includes('articleRecipeTreeNodeDetailRows')) throw new Error('article recipe tree graph must expose crafting-style hover basic info popovers')
-if (!articlePageSource.includes('positionArticleRecipeTreePopover') || !articlePageSource.includes('showArticleRecipeTreePopover') || !articlePageSource.includes('hideArticleRecipeTreePopover')) throw new Error('article recipe tree graph popovers must use viewport-bounded fixed positioning')
-if (!articlePageSource.includes('changeArticleRecipeTreeZoomFromWheel') || !articlePageSource.includes('startArticleRecipeTreePan') || !articlePageSource.includes('moveArticleRecipeTreePan') || !articlePageSource.includes('endArticleRecipeTreePan')) throw new Error('article recipe tree graph must expose invisible wheel zoom and drag pan controls')
+// The DOM graph node/popover/interaction implementation now lives in the
+// read-only shared renderer; assert on the shared source instead of the page.
+if (!sharedRecipeHierarchyGraphRendererSource.includes("copy.className = 'recipe-hierarchy-graph-node-copy'")) throw new Error('shared recipe tree graph nodes must render direct readable labels')
+if (!sharedRecipeHierarchyGraphRendererSource.includes('recipe-hierarchy-option-row')) throw new Error('shared recipe tree graph must reuse crafting page compact recipe option rows')
+if (!sharedRecipeHierarchyGraphRendererSource.includes('recipe-hierarchy-popover') || !sharedRecipeHierarchyGraphRendererSource.includes('detailRows')) throw new Error('shared recipe tree graph must expose crafting-style hover basic info popovers')
+if (!sharedRecipeHierarchyGraphRendererSource.includes('positionPopover')) throw new Error('shared recipe tree graph popovers must use viewport-bounded fixed positioning')
+if (!sharedRecipeHierarchyGraphRendererSource.includes("addEventListener('wheel'") || !sharedRecipeHierarchyGraphRendererSource.includes("addEventListener('pointerdown'") || !sharedRecipeHierarchyGraphRendererSource.includes("addEventListener('pointermove'") || !sharedRecipeHierarchyGraphRendererSource.includes("addEventListener('pointerup'")) throw new Error('shared recipe tree graph must expose invisible wheel zoom and drag pan controls')
 if (articlePageSource.includes('article-recipe-tree__zoom') || articlePageSource.includes('createArticleRecipeTreeZoomControls')) throw new Error('article recipe tree graph must not render visible zoom controls')
-if (articlePageSource.includes('filter(child => !isSameRecipeTreeItem(node, child))')) throw new Error('article recipe tree graph must not filter away same-item recipe sources before layout normalization')
+if (sharedRecipeHierarchyGraphRendererSource.includes('filter(child => !sameItem(node, child))')) throw new Error('shared recipe tree graph must not filter away same-item recipe sources before layout normalization')
 if (articleStyleSource.includes('.article-recipe-tree__graph-children::before') || articleStyleSource.includes('.article-recipe-tree__graph-branch::before')) throw new Error('article recipe tree graph must not use flow-layout pseudo-element connector lines')
 if (!articleStyleSource.includes('background-size: 32px 32px, 32px 32px')) throw new Error('article recipe tree graph must use a visible grid background')
 if (articleStyleSource.includes('.article-recipe-tree__relations') || articleStyleSource.includes('.article-recipe-tree__relation-row')) throw new Error('article recipe tree graph must not keep old relation-row styles')
 if (!articleStyleSource.includes('--recipe-overview-pan-x') || !articleStyleSource.includes('touch-action: none')) throw new Error('article recipe tree graph must style invisible drag pan interaction')
-if (!articleStyleSource.includes('.article-recipe-tree__graph .article-recipe-tree__graph-node-copy')) throw new Error('article recipe tree graph must style direct node labels within article scope')
+if (!articleStyleSource.includes('.article-recipe-tree__graph .recipe-hierarchy-graph-node-copy')) throw new Error('article recipe tree graph must style direct node labels within article scope')
 if (!articleStyleSource.includes('--article-recipe-tree-node-image-size: 48px') || !articleStyleSource.includes('.article-recipe-tree__graph .recipe-hierarchy-main > .tp-preview-image')) throw new Error('article recipe tree graph must use readable article-scoped item image dimensions')
 if (!articleStyleSource.includes('--article-recipe-tree-alternative-image-size: 32px') || !articleStyleSource.includes('.article-recipe-tree__graph .recipe-hierarchy-alt-images')) throw new Error('article recipe tree graph must enlarge alternative-material images within article scope')
 if (!articleStyleSource.includes('--article-recipe-tree-station-image-size: 48px') || !articleStyleSource.includes('--article-recipe-tree-station-rail-width: 52px')) throw new Error('article recipe tree graph must reserve a square readable station-preview frame instead of compressing near-square station assets into a short rail')
@@ -199,22 +215,22 @@ const articleRecipeTreeGraphPreviewImageResetRule = /(?:^|\n)\s*\.article-conten
 if (!articleRecipeTreeGraphPreviewImageResetRule || !/\bdisplay\s*:\s*block\b/.test(articleRecipeTreeGraphPreviewImageResetRule[1]) || !/\bmargin\s*:\s*0\s*(?:!\s*important\s*)?(?=\s*(?:;|$))/.test(articleRecipeTreeGraphPreviewImageResetRule[1]) || !/\bborder\s*:\s*0\s*(?:!\s*important\s*)?(?=\s*(?:;|$))/.test(articleRecipeTreeGraphPreviewImageResetRule[1]) || !/\bborder-radius\s*:\s*0\s*(?:!\s*important\s*)?(?=\s*(?:;|$))/.test(articleRecipeTreeGraphPreviewImageResetRule[1])) {
   throw new Error('article recipe tree graph preview images must reset generic article-body image box styling')
 }
-const articleRecipeTreeCardHeight = Number(articlePageSource.match(/const ARTICLE_RECIPE_GRAPH_CARD_HEIGHT = (\d+)/)?.[1])
+const articleRecipeTreeCardHeight = Number(sharedRecipeHierarchyGraphRendererSource.match(/const CARD_HEIGHT = (\d+)/)?.[1])
 if (!Number.isFinite(articleRecipeTreeCardHeight) || articleRecipeTreeCardHeight < 100) {
-  throw new Error('article recipe tree graph must reserve at least 100px for normal image, quantity, and direct-label content')
+  throw new Error('shared recipe tree graph must reserve at least 100px for normal image, quantity, and direct-label content')
 }
-const articleRecipeTreeOptionHeightSource = extractFunction(articlePageSource, 'recipeTreeNodeCardHeight')
+const sharedRecipeTreeCardHeightSource = extractFunction(sharedRecipeHierarchyGraphRendererSource, 'cardHeight')
 for (const marker of [
-  'ARTICLE_RECIPE_GRAPH_OPTION_ROW_RENDERED_HEIGHT',
-  'ARTICLE_RECIPE_GRAPH_OPTION_ROW_GAP',
-  'ARTICLE_RECIPE_GRAPH_OPTION_COPY_ALLOWANCE',
+  'OPTION_ROW_HEIGHT',
+  'OPTION_ROW_GAP',
+  'OPTION_COPY_ALLOWANCE',
 ]) {
-  if (!articlePageSource.includes(`const ${marker} =`) || !articleRecipeTreeOptionHeightSource.includes(marker)) {
-    throw new Error(`article recipe tree option-node layout must calculate height with ${marker}`)
+  if (!sharedRecipeHierarchyGraphRendererSource.includes(`const ${marker} =`) || !sharedRecipeTreeCardHeightSource.includes(marker)) {
+    throw new Error(`shared recipe tree option-node layout must calculate height with ${marker}`)
   }
 }
-if (!articlePageSource.includes('resolveArticleRecipeTreeBaseScale')) {
-  throw new Error('article recipe tree must derive its initial scale from the available viewport instead of clipping wide graphs at a fixed minimum scale')
+if (!sharedRecipeHierarchyGraphRendererSource.includes('options.availableWidth - VIEWPORT_GUTTER')) {
+  throw new Error('shared recipe tree must derive its initial scale from the available viewport instead of clipping wide graphs at a fixed minimum scale')
 }
 if (!articlePageSource.includes('resolveArticleRecipeTreeAvailableWidth')) {
   throw new Error('article recipe tree must exclude its embed padding when calculating the drawable graph width')
@@ -228,12 +244,12 @@ if (!articlePageSource.includes("from '~/utils/recipeHierarchyGraphRenderer'") |
 if (!articlePageSource.includes('data-article-recipe-tree-wide')) {
   throw new Error('article recipe tree must expose a scoped wide-frame marker')
 }
-const articleRecipePreviewFactory = extractFunction(articlePageSource, 'createArticleRecipeTreePreviewImage')
+const articleRecipePreviewFactory = extractFunction(sharedRecipeHierarchyGraphRendererSource, 'createPreview')
 if (/\bsyncPreviewImageVisibleCenter\s*\(/.test(articleRecipePreviewFactory)) {
-  throw new Error('article recipe tree must not translate contained previews inside the scaled graph canvas')
+  throw new Error('shared recipe tree must not translate contained previews inside the scaled graph canvas')
 }
-if (!/dataset\.previewVisibleCenter\s*=\s*'contain-only'/.test(articleRecipePreviewFactory) || !/addEventListener\('load',\s*\(\)\s*=>\s*resetPreviewImageVisibleCenter\(preview\)\)/.test(articleRecipePreviewFactory)) {
-  throw new Error('article recipe tree previews must reset visible-center translation and retain full contain fitting')
+if (!/dataset\.previewVisibleCenter\s*=\s*'contain-only'/.test(articleRecipePreviewFactory) || !/addEventListener\('load',\s*reset\)/.test(articleRecipePreviewFactory)) {
+  throw new Error('shared recipe tree previews must reset visible-center translation and retain full contain fitting')
 }
 if ((craftingHierarchySource.match(/:auto-center-visible="false"/g) || []).length < 5) {
   throw new Error('crafting hierarchy previews must disable alpha translation inside the scaled tree canvas')
@@ -279,76 +295,18 @@ const recipeTreeHelpers = toBrowserJs([
   extractFunction(articlePageSource, 'recipeTreeRootNodes'),
   extractFunction(articlePageSource, 'articleRecipeTreeVariantKey'),
   extractFunction(articlePageSource, 'resolveArticleRecipeTreeSelection'),
-  extractFunction(articlePageSource, 'recipeTreeStationCount'),
-  extractFunction(articlePageSource, 'recipeTreeNodeName'),
-  extractFunction(articlePageSource, 'recipeTreeNodeQuantity'),
-  extractFunction(articlePageSource, 'recipeTreeNodeImage'),
-  extractFunction(articlePageSource, 'recipeTreeStationName'),
-  extractFunction(articlePageSource, 'recipeTreeStationImage'),
-  extractFunction(articlePageSource, 'recipeTreeNodeChildren'),
-  extractFunction(articlePageSource, 'recipeTreeNodeKey'),
-  extractFunction(articlePageSource, 'recipeTreeGroupMemberName'),
-  extractFunction(articlePageSource, 'recipeTreeGroupMemberImage'),
-  extractFunction(articlePageSource, 'recipeTreeNodeGroupMember'),
-  extractFunction(articlePageSource, 'mergeArticleRecipeTreeAlternativeChildren'),
-  extractFunction(articlePageSource, 'mergeArticleRecipeTreeSameItemSiblings'),
-  extractFunction(articlePageSource, 'recipeTreeNodeStations'),
-  extractFunction(articlePageSource, 'isSameRecipeTreeItem'),
-  extractFunction(articlePageSource, 'recipeTreeGraphChildren'),
-  extractFunction(articlePageSource, 'ARTICLE_RECIPE_GRAPH_CARD_WIDTH'),
-  extractFunction(articlePageSource, 'ARTICLE_RECIPE_GRAPH_OPTION_SOURCE_WIDTH'),
-  extractFunction(articlePageSource, 'ARTICLE_RECIPE_GRAPH_CARD_HEIGHT'),
-  extractFunction(articlePageSource, 'ARTICLE_RECIPE_GRAPH_OPTION_ROW_RENDERED_HEIGHT'),
-  extractFunction(articlePageSource, 'ARTICLE_RECIPE_GRAPH_OPTION_ROW_GAP'),
-  extractFunction(articlePageSource, 'ARTICLE_RECIPE_GRAPH_OPTION_COPY_ALLOWANCE'),
-  extractFunction(articlePageSource, 'ARTICLE_RECIPE_GRAPH_ALTERNATIVE_ROW_HEIGHT'),
-  extractFunction(articlePageSource, 'ARTICLE_RECIPE_GRAPH_STATION_IMAGE_SIZE'),
-  extractFunction(articlePageSource, 'ARTICLE_RECIPE_GRAPH_STATION_RAIL_WIDTH'),
-  extractFunction(articlePageSource, 'ARTICLE_RECIPE_GRAPH_STATION_GAP'),
-  extractFunction(articlePageSource, 'ARTICLE_RECIPE_GRAPH_STATION_CARD_HEIGHT_PADDING'),
-  extractFunction(articlePageSource, 'ARTICLE_RECIPE_GRAPH_X_GAP'),
-  extractFunction(articlePageSource, 'ARTICLE_RECIPE_GRAPH_Y_GAP'),
-  extractFunction(articlePageSource, 'ARTICLE_RECIPE_GRAPH_PADDING'),
-  extractFunction(articlePageSource, 'ARTICLE_RECIPE_GRAPH_MAX_SCALE'),
-  extractFunction(articlePageSource, 'ARTICLE_RECIPE_GRAPH_MIN_MANUAL_SCALE'),
-  extractFunction(articlePageSource, 'ARTICLE_RECIPE_GRAPH_MAX_MANUAL_SCALE'),
-  extractFunction(articlePageSource, 'ARTICLE_RECIPE_GRAPH_MANUAL_SCALE_STEP'),
-  extractFunction(articlePageSource, 'ARTICLE_RECIPE_GRAPH_VIEWPORT_GUTTER'),
   extractFunction(articlePageSource, 'ARTICLE_RECIPE_TREE_WIDE_BREAKPOINT'),
   extractFunction(articlePageSource, 'resolveArticleRecipeTreeAvailableWidth'),
   extractFunction(articlePageSource, 'resolveArticleRecipeTreeFrameWidth'),
-  extractFunction(articlePageSource, 'resolveArticleRecipeTreeBaseScale'),
-  extractFunction(articlePageSource, 'buildArticleRecipeTreeGraphLayout'),
-  extractFunction(articlePageSource, 'measureArticleRecipeTreeGraphLayout'),
-  extractFunction(articlePageSource, 'placeArticleRecipeTreeGraphLayout'),
-  extractFunction(articlePageSource, 'layoutArticleRecipeTreeGraphForest'),
-  extractFunction(articlePageSource, 'articleRecipeTreeGroupMembers'),
-  extractFunction(articlePageSource, 'articleRecipeTreeOptionGroups'),
-  extractFunction(articlePageSource, 'recipeTreeNodeCardWidth'),
-  extractFunction(articlePageSource, 'recipeTreeNodeCardHeight'),
-  extractFunction(articlePageSource, 'articleRecipeTreeRelationLabel'),
-  extractFunction(articlePageSource, 'articleRecipeTreeStationSummary'),
-  extractFunction(articlePageSource, 'articleRecipeTreeChildNameSummary'),
-  extractFunction(articlePageSource, 'articleRecipeTreeNodeDetailRows'),
-  extractFunction(articlePageSource, 'articleRecipeTreeFirstGlyph'),
-  extractFunction(articlePageSource, 'createArticleRecipeTreePreviewImage'),
-  extractFunction(articlePageSource, 'createArticleRecipeTreeGraphLineCanvas'),
-  extractFunction(articlePageSource, 'positionArticleRecipeTreePopover'),
-  extractFunction(articlePageSource, 'showArticleRecipeTreePopover'),
-  extractFunction(articlePageSource, 'hideArticleRecipeTreePopover'),
-  extractFunction(articlePageSource, 'createArticleRecipeTreeGraphPositionedNode'),
-  extractFunction(articlePageSource, 'updateArticleRecipeTreeZoom'),
-  extractFunction(articlePageSource, 'changeArticleRecipeTreeZoomFromWheel'),
-  extractFunction(articlePageSource, 'startArticleRecipeTreePan'),
-  extractFunction(articlePageSource, 'moveArticleRecipeTreePan'),
-  extractFunction(articlePageSource, 'endArticleRecipeTreePan'),
-  extractFunction(articlePageSource, 'enableArticleRecipeTreeInteractions'),
   extractFunction(articlePageSource, 'appendArticleRecipeTreeGraph'),
   extractFunction(articlePageSource, 'renderArticleRecipeTreeShell'),
   extractFunction(articlePageSource, 'appendArticleRecipeTreeSelectors'),
   extractFunction(articlePageSource, 'renderArticleRecipeTreeResult'),
   extractFunction(articlePageSource, 'loadArticleRecipeTreeEmbeds'),
 ].join('\n'))
+// The real shared renderer body, transpiled for the no-module fixture. Equivalence
+// is asserted against production behavior by executing this exact source below.
+const sharedRendererRuntime = toRuntimeJs(sharedRecipeHierarchyGraphRendererSource)
 
 writeFileSync(htmlPath, `<!doctype html>
 <html>
@@ -652,29 +610,11 @@ writeFileSync(htmlPath, `<!doctype html>
         const activeRecipe = activeVariant?.options.find(option => option.key === selectedRecipeKey) || activeVariant?.options[0] || null;
         return { variants, activeVariant, activeRecipe };
       };
-      const previewResetCalls = [];
-      const resetPreviewImageVisibleCenter = (root) => {
-        previewResetCalls.push(root);
-      };
       ${recipeTreeHelpers}
-      // The page fixture evaluates extracted host helpers without Nuxt module
-      // resolution. Exercise the historical host contract with an in-memory
-      // adapter; production calls the separately source-checked shared module.
-      const renderRecipeHierarchyGraph = (options) => {
-        const layout = layoutArticleRecipeTreeGraphForest(options.roots, options.maxDepth);
-        if (!layout.nodes.length) return null;
-        const graph = document.createElement('div');
-        graph.className = 'article-recipe-tree__graph recipe-hierarchy-tree--article-embed crafting-screen recipe-hierarchy-tree recipe-overview-tree';
-        graph.setAttribute('data-crafting-role', 'recipe-hierarchy-tree');
-        graph.style.setProperty('--recipe-overview-width', layout.width + 'px');
-        graph.style.setProperty('--recipe-overview-height', layout.height + 'px');
-        graph.dataset.baseScale = String(resolveArticleRecipeTreeBaseScale(layout.width, layout.height, options.availableWidth));
-        graph.dataset.manualScale = '1'; graph.dataset.layoutHeight = String(layout.height); graph.dataset.panX = '0'; graph.dataset.panY = '0';
-        const canvas = document.createElement('div'); canvas.className = 'recipe-overview-canvas';
-        canvas.append(createArticleRecipeTreeGraphLineCanvas(layout));
-        for (const layoutNode of layout.nodes) canvas.append(createArticleRecipeTreeGraphPositionedNode(layoutNode));
-        graph.append(canvas); updateArticleRecipeTreeZoom(graph); enableArticleRecipeTreeInteractions(graph); return graph;
-      };
+      // Real shared renderer source (transpiled from shared/article-runtime),
+      // executed as-is so the fixture asserts production graph behavior instead
+      // of an in-memory reconstruction.
+      ${sharedRendererRuntime}
       const recipeFetchCalls = [];
       const nextTick = () => Promise.resolve();
       const fetchPublicRecipeTree = async (itemId, maxDepth) => {
@@ -785,9 +725,9 @@ writeFileSync(htmlPath, `<!doctype html>
       const recipeOptionButtons = recipeEmbed.querySelectorAll('[data-article-recipe-role="recipe-option-selector"] button');
       assert(recipeOptionButtons.length === 3, 'article recipe tree must expose every root recipe in the selected version');
       assert(recipeGraph.textContent.includes('真永夜刃'), 'article recipe tree should initially render the first selected recipe root');
-      const normalLabeledNodeLayout = layoutArticleRecipeTreeGraphForest([{ itemId: 999, itemNameZh: '普通标签节点' }], 0);
+      const normalLabeledNodeLayout = layoutForest([{ itemId: 999, itemNameZh: '普通标签节点' }], 0);
       assert(normalLabeledNodeLayout.nodes[0]?.height >= 100, 'article recipe tree layout must reserve at least 100px for a normal labeled node');
-      const twoStationLayout = layoutArticleRecipeTreeGraphForest([{ itemId: 998, itemNameZh: '双制作站节点', stations: [{ stationNameZh: '工匠作坊' }, { stationNameZh: '熔炉' }] }], 0);
+      const twoStationLayout = layoutForest([{ itemId: 998, itemNameZh: '双制作站节点', stations: [{ stationNameZh: '工匠作坊' }, { stationNameZh: '熔炉' }] }], 0);
       assert(twoStationLayout.nodes[0]?.height >= 108, 'article recipe tree layout must reserve two full station-preview frames without squeezing them into the normal card height');
       const threeOptionRowsFixture = {
         itemId: 1000,
@@ -799,9 +739,9 @@ writeFileSync(htmlPath, `<!doctype html>
           [{ itemId: 1003, itemNameZh: '材料三' }],
         ],
       };
-      const threeOptionRowsLayout = layoutArticleRecipeTreeGraphForest([threeOptionRowsFixture], 0);
+      const threeOptionRowsLayout = layoutForest([threeOptionRowsFixture], 0);
       assert(threeOptionRowsLayout.nodes[0]?.height >= 139, 'article recipe tree layout must reserve at least 139px for three recipe-option rows and direct label content');
-      assert(resolveArticleRecipeTreeBaseScale(1706, 684, 690) <= (690 - 4) / 1706, 'article recipe tree must fit a wide graph into its visible frame after station previews reserve a readable square size');
+      assert(Math.min(1, (690 - VIEWPORT_GUTTER) / 1706, 520 / 684) <= (690 - 4) / 1706, 'article recipe tree must fit a wide graph into its visible frame after station previews reserve a readable square size');
       assert(resolveArticleRecipeTreeAvailableWidth(691, 14, 14) === 663, 'article recipe tree initial scale must use the padded embed content width instead of its larger border box');
       assert(resolveArticleRecipeTreeFrameWidth(663, 937, 1440) === 937, 'PC article tree must use its article-body content width instead of the narrower prose measure');
       assert(resolveArticleRecipeTreeFrameWidth(663, 937, 768) === 663, 'mobile article tree must retain the prose-width frame');
@@ -810,8 +750,10 @@ writeFileSync(htmlPath, `<!doctype html>
       assert(graphPreview?.querySelector('img')?.getAttribute('data-preview-visible-center') === 'contain-only', 'article recipe tree previews should preserve their complete contain frame inside the scaled graph');
       const graphPreviewImage = graphPreview?.querySelector('img');
       assert(graphPreviewImage, 'article recipe tree graph should render a preview image');
+      graphPreviewImage.style.translate = '3px 4px';
+      graphPreviewImage.style.transform = 'translate(3px, 4px)';
       graphPreviewImage.dispatchEvent(new Event('load'));
-      assert(previewResetCalls.includes(graphPreviewImage.closest('.tp-preview-image')), 'article recipe tree preview load should reset any shared visible-content translation inside the scaled graph');
+      assert(['0 0', '0px 0px', '0px'].includes(graphPreviewImage.style.translate) && graphPreviewImage.style.transform === 'none', 'article recipe tree preview load should reset any shared visible-content translation inside the scaled graph');
       assert(!recipeEmbed.querySelector('.article-recipe-tree__zoom'), 'recipe tree hydration should not render visible zoom controls');
       const initialScale = recipeGraph.style.getPropertyValue('--recipe-overview-scale');
       const initialMinHeight = recipeGraph.style.minHeight;
@@ -837,7 +779,7 @@ writeFileSync(htmlPath, `<!doctype html>
       assert(recipeGraph.querySelector('.recipe-hierarchy-popover')?.textContent.includes('真永夜刃'), 'recipe tree graph hover info should include node names outside graph cards');
       const visibleCardsText = Array.from(recipeGraph.querySelectorAll('.recipe-hierarchy-card')).map(card => card.textContent.trim()).join(' ');
       assert(visibleCardsText.includes('真永夜刃'), 'recipe tree graph cards should render material names as visible text');
-      assert(recipeGraph.querySelectorAll('.article-recipe-tree__graph-node-copy').length > 0, 'recipe tree graph should render direct readable node labels');
+      assert(recipeGraph.querySelectorAll('.recipe-hierarchy-graph-node-copy').length > 0, 'recipe tree graph should render direct readable node labels');
       const alternativeMaterialCard = Array.from(recipeGraph.querySelectorAll('.recipe-hierarchy-card')).find(card => card.textContent.includes('任意铁锭'));
       assert(alternativeMaterialCard?.textContent.includes('x3'), 'recipe tree graph alternative-material cards should retain their quantity');
       assert(!visibleCardsText.includes('秘银砧'), 'recipe tree graph cards should not render station names as visible text');
