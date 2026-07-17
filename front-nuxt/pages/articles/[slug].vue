@@ -356,7 +356,13 @@ const createArticleDomPurifier = () => {
   return purifier
 }
 
-const articleDomPurifier = createArticleDomPurifier()
+// Hydration safety: the server and the client's first frame must produce the
+// exact same v-html string, so both stay on the regex fallback inside
+// sanitizeArticleHtml (articleDomPurifier is null until mount). The DOMPurify
+// path activates from onMounted after nextTick, where the re-sanitized swap is
+// an ordinary reactive update instead of a hydration comparison.
+let articleDomPurifier: ReturnType<typeof createArticleDomPurifier> = null
+const articleDomPurifierReady = ref(false)
 
 const renderInlineArticleText = (value: string) => escapeArticleHtml(value.trim())
   .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -816,6 +822,9 @@ const loadArticleRecipeTreeEmbeds = async () => {
 }
 
 const baseSanitizedArticleHtml = computed(() => {
+  // Depend on the purifier flag so the DOMPurify re-sanitize replaces the
+  // regex-fallback HTML after mount (see articleDomPurifier definition).
+  void articleDomPurifierReady.value
   const raw = String(article.value?.contentHtml ?? article.value?.contentMarkdown ?? '').trim()
   return sanitizeArticleHtml(raw)
 })
@@ -1096,7 +1105,9 @@ const displayedFavoriteCount = computed(() => {
   if (initialArticleFavorite.value.favorite === articleIsFavorite.value) return serverFavorite
   return Math.max(0, serverFavorite + (articleIsFavorite.value ? 1 : -1))
 })
-const articleLoading = computed(() => !articleClientReady.value || (articlePending.value && !article.value))
+// 正文走真 SSR：加载态只看数据请求本身，不再等客户端就绪，
+// SSR/水合首帧直接输出正文 HTML(两端同为 regex 回退净化产物)。
+const articleLoading = computed(() => articlePending.value && !article.value)
 const notFoundState = computed(() => articleClientReady.value && !articlePending.value && (!article.value || articleError.value))
 
 watch(notFoundState, (value) => {
@@ -1151,6 +1162,11 @@ const recordArticleHistoryOnce = async () => {
 
 watch(() => article.value?.id, () => {
   initialArticleFavorite.value = null
+  // TerraNav 水合竞态守护：预挂载阶段(SSR/水合首帧)不触发 authStore.init()，
+  // 否则服务端把导航渲染成"正在检查登录状态"而客户端序列化状态已是访客态。
+  // 首次加载由 onMounted 负责，此 watch 只服务客户端软导航换文章;
+  // recordArticleHistoryOnce 同样由 onMounted 处理首跳。
+  if (!articleClientReady.value) return
   void loadArticleFavoriteStatus()
   void recordArticleHistoryOnce()
 }, { immediate: true })
@@ -1168,6 +1184,12 @@ onMounted(() => {
   void recordArticleHistoryOnce()
   void loadArticleReferences()
   void loadArticleRecipeTreeEmbeds()
+  // Swap to the DOMPurify sanitize path only after hydration has settled;
+  // the resulting v-html update re-triggers the enhancement watch above.
+  void nextTick().then(() => {
+    articleDomPurifier = createArticleDomPurifier()
+    if (articleDomPurifier) articleDomPurifierReady.value = true
+  })
 })
 </script>
 
