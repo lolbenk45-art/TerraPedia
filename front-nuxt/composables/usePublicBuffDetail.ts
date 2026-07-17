@@ -25,9 +25,9 @@ export const normalizePublicBuffDetail = (raw: PublicBuffDetail | null | undefin
   }
 
   const detailRecord = raw as PublicBuffDetail & Record<string, unknown>
-  const sources = asFactSummaries(raw.sources ?? detailRecord[`source${'Items'}`])
-  const inflicters = asFactSummaries(raw.inflicters ?? detailRecord[`inflicting${'Npcs'}`])
-  const immuneTargets = asFactSummaries(raw.immuneTargets ?? detailRecord[`immune${'Npcs'}`])
+  const sources = asFactSummaries(raw.sources ?? detailRecord.sourceItems)
+  const inflicters = asFactSummaries(raw.inflicters ?? detailRecord.inflictingNpcs)
+  const immuneTargets = asFactSummaries(raw.immuneTargets ?? detailRecord.immuneNpcs)
   const detail: PublicBuffDetail = {
     ...raw,
     imageUrl: resolvePreviewImageUrl(raw.imageUrl),

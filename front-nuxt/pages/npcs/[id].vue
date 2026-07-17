@@ -4,13 +4,14 @@ import type {
   PublicNpcLivingPreference,
   PublicNpcLootEntry,
   PublicNpcMoneyDrop,
-  PublicNpcMoneyToken,
   PublicNpcShopCondition,
   PublicNpcShopEntry,
   PublicNpcShopPriceToken,
   PublicNpcTraceableItemSummary,
 } from '~/types/public-api'
 import { buildTerrariaPriceTokens, formatTerrariaPriceTokens, localizeTerrariaPriceShorthandText, resolveTerrariaPriceUnitLabel, type TerrariaPriceToken } from '~/utils/price'
+import { createSafeDisplayText } from '~/utils/publicCopy'
+import { moneyCoinClass, normalizeTerrariaMoneyToken } from '~/utils/terrariaMoney'
 
 const route = useRoute()
 const detailLayout = useDetailLayout({ kind: 'npc', density: 'compact' })
@@ -65,15 +66,8 @@ const buffRelationSections = computed(() => [
 ].filter((section) => section.entries.length > 0))
 
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
-const rawPublicCopyPattern = /{{|}}|<\/?[a-z][\s\S]*?>|https?:\/\/|wiki\.gg|iteminfo|eicons|internal|wiki\s*(?:page|path)|(?:^|[\s_-])shop[\s_/-]*\d+(?:[\s_/-]*\d+)*(?:$|[\s_-])/i
-const safeNpcDisplayText = (...values: unknown[]) => {
-  for (const value of values) {
-    const text = localizeTerrariaPriceShorthandText(firstText(value)).replace(/\s+/g, ' ')
-    if (text && !rawPublicCopyPattern.test(text)) return text
-  }
-
-  return ''
-}
+// 共享安全展示文案(utils/publicCopy):NPC 特有分支 = 渲染前本地化泰拉瑞亚钱币简写。
+const safeNpcDisplayText = createSafeDisplayText(localizeTerrariaPriceShorthandText)
 const displayName = computed(() => safeNpcDisplayText(npc.value?.nameZh, npc.value?.name) || `NPC ${routeNpcId.value}`)
 const secondaryName = computed(() => {
   const zhName = safeNpcDisplayText(npc.value?.nameZh)
@@ -223,6 +217,7 @@ const chanceLabel = (entry: PublicNpcLootEntry | PublicNpcBuffRelation) => {
   if (text) return text
   return entry.chanceValue != null ? `${entry.chanceValue}%` : ''
 }
+const lootEntryMetaLabel = (entry: PublicNpcLootEntry) => [quantityLabel(entry), chanceLabel(entry), lootConditionLabel(entry)].filter(Boolean).join(' · ') || '掉落资料待补充'
 const itemPath = (entry: PublicNpcLootEntry | PublicNpcShopEntry | PublicNpcTraceableItemSummary) => {
   const id = firstText(entry.itemId, 'item_id' in entry ? entry.item_id : undefined)
   return id ? `/items/${id}` : ''
@@ -326,29 +321,11 @@ const shopPriceTokens = (entry: PublicNpcShopEntry): TerrariaPriceToken[] => {
 const shopPriceLabel = (entry: PublicNpcShopEntry) => formatTerrariaPriceTokens(shopPriceTokens(entry))
 const lootConditionLabel = (entry: PublicNpcLootEntry) => safeNpcDisplayText(entry.conditions, entry.notes)
 const buffConditionLabel = (entry: PublicNpcBuffRelation) => safeNpcDisplayText(entry.conditions, entry.notes)
-const npcMoneyCoinClass = (unit: unknown) => {
-  const key = firstText(unit).toLowerCase()
-  if (key === 'platinum' || key === 'pc' || key === 'platinum coin') return 'platinum'
-  if (key === 'gold' || key === 'gc' || key === 'gold coin') return 'gold'
-  if (key === 'silver' || key === 'sc' || key === 'silver coin') return 'silver'
-  if (key === 'copper' || key === 'cc' || key === 'copper coin') return 'copper'
-  return 'unknown'
-}
-const normalizeNpcMoneyToken = (token: PublicNpcMoneyToken): TerrariaPriceToken | null => {
-  const amount = Number(token.amount)
-  const unitLabel = resolveTerrariaPriceUnitLabel(token.unit)
-  if (!Number.isFinite(amount) || amount <= 0 || !unitLabel) return null
-
-  return {
-    unit: firstText(token.unit),
-    amount: Math.trunc(amount),
-    label: unitLabel,
-    iconUrl: resolvePreviewImageUrl(firstText(token.iconUrl, token.icon_url)),
-  }
-}
+// 共享钱币 token 规整(utils/terrariaMoney);coin-mark 视觉在 detail-layout.css。
+const npcMoneyCoinClass = moneyCoinClass
 const npcMoneyDropTokens = (drop: PublicNpcMoneyDrop): TerrariaPriceToken[] => {
   return Array.isArray(drop.tokens)
-    ? drop.tokens.map(normalizeNpcMoneyToken).filter((token): token is TerrariaPriceToken => Boolean(token))
+    ? drop.tokens.map(normalizeTerrariaMoneyToken).filter((token): token is TerrariaPriceToken => Boolean(token))
     : []
 }
 const npcMoneyDropModeLabel = (value: unknown) => {
@@ -491,7 +468,7 @@ const relatedItemSections = computed(() => {
   const sections = [
     { title: '掉落相关', entries: (npc.value?.lootItems ?? []) as PublicNpcTraceableItemSummary[] },
     { title: '出售相关', entries: (npc.value?.shopItems ?? []) as PublicNpcTraceableItemSummary[] },
-    { title: '来源相关', entries: (((npc.value as Record<string, unknown> | null)?.['source' + 'Items'] ?? []) as PublicNpcTraceableItemSummary[]) },
+    { title: '来源相关', entries: ((npc.value?.sourceItems ?? []) as PublicNpcTraceableItemSummary[]) },
   ]
 
   return sections.map((section) => ({
@@ -638,32 +615,32 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
                 </div>
               </div>
               <div v-if="trustedLoot.length" class="source-table dark-table tp-detail-relation-grid">
-                <div v-for="entry in trustedLootVisibleEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
-                  <span class="sprite-frame detail-relation-icon">
-                    <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
-                  </span>
-                  <div class="detail-relation-copy">
-                    <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
-                    <b v-else>{{ entryTitle(entry) }}</b>
-                    <span>{{ [quantityLabel(entry), chanceLabel(entry), lootConditionLabel(entry)].filter(Boolean).join(' · ') || '掉落资料待补充' }}</span>
-                  </div>
-                  <strong class="detail-relation-meta">掉落</strong>
-                </div>
+                <DetailRelationRow
+                  v-for="entry in trustedLootVisibleEntries"
+                  :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)"
+                  :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]"
+                  :image="entryImage(entry)"
+                  :title="entryTitle(entry)"
+                  :fallback-icon="entryFallbackIcon(entry)"
+                  :href="itemPath(entry)"
+                  :meta="lootEntryMetaLabel(entry)"
+                  badge="掉落"
+                />
               </div>
               <details v-if="trustedLootRemainderEntries.length" class="detail-group-remainder">
                 <summary>展开其余 {{ trustedLootRemainderEntries.length }} 条</summary>
                 <div class="source-table dark-table tp-detail-relation-grid">
-                  <div v-for="entry in trustedLootRemainderEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
-                    <span class="sprite-frame detail-relation-icon">
-                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
-                    </span>
-                    <div class="detail-relation-copy">
-                      <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
-                      <b v-else>{{ entryTitle(entry) }}</b>
-                      <span>{{ [quantityLabel(entry), chanceLabel(entry), lootConditionLabel(entry)].filter(Boolean).join(' · ') || '掉落资料待补充' }}</span>
-                    </div>
-                    <strong class="detail-relation-meta">掉落</strong>
-                  </div>
+                  <DetailRelationRow
+                    v-for="entry in trustedLootRemainderEntries"
+                    :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)"
+                    :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]"
+                    :image="entryImage(entry)"
+                    :title="entryTitle(entry)"
+                    :fallback-icon="entryFallbackIcon(entry)"
+                    :href="itemPath(entry)"
+                    :meta="lootEntryMetaLabel(entry)"
+                    badge="掉落"
+                  />
                 </div>
               </details>
               <div v-if="additionalLoot.length" class="detail-subgroup npc-additional-loot">
@@ -672,17 +649,17 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
                   <span>{{ additionalLoot.length }} 条 · 需结合来源记录查看</span>
                 </div>
                 <div class="source-table dark-table tp-detail-relation-grid">
-                  <div v-for="entry in additionalLoot.slice(0, 6)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
-                    <span class="sprite-frame detail-relation-icon">
-                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" :fallback-icon="entryFallbackIcon(entry)" />
-                    </span>
-                    <div class="detail-relation-copy">
-                      <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
-                      <b v-else>{{ entryTitle(entry) }}</b>
-                      <span>{{ [quantityLabel(entry), chanceLabel(entry), lootConditionLabel(entry)].filter(Boolean).join(' · ') || '掉落资料待补充' }}</span>
-                    </div>
-                    <strong class="detail-relation-meta">补充</strong>
-                  </div>
+                  <DetailRelationRow
+                    v-for="entry in additionalLoot.slice(0, 6)"
+                    :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)"
+                    :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]"
+                    :image="entryImage(entry)"
+                    :title="entryTitle(entry)"
+                    :fallback-icon="entryFallbackIcon(entry)"
+                    :href="itemPath(entry)"
+                    :meta="lootEntryMetaLabel(entry)"
+                    badge="补充"
+                  />
                 </div>
               </div>
               <p v-if="!trustedLoot.length && !additionalLoot.length" class="tp-detail-empty">暂时没有整理到掉落物。</p>
@@ -866,6 +843,8 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
   padding: 10px;
 }
 
+/* 掉落行内部结构与样式已随 DetailRelationRow 组件内聚;
+   以下选择器继续服务本页内联商店行(同类名),行为与拆分前一致。 */
 .detail-relation-icon {
   display: grid;
   place-items: center;
@@ -1084,55 +1063,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
   height: 32px;
 }
 
-.npc-money-coin-mark {
-  --coin-core: #d6b15a;
-  --coin-rim: #8b5f17;
-  --coin-shine: rgba(255, 255, 255, 0.72);
-  display: inline-grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  flex: 0 0 32px;
-  border: 2px solid var(--coin-rim);
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at 32% 28%, var(--coin-shine) 0 12%, transparent 13%),
-    radial-gradient(circle at 50% 52%, var(--coin-core) 0 48%, var(--coin-rim) 49% 68%, transparent 69%);
-  box-shadow:
-    inset 0 0 0 2px color-mix(in srgb, var(--coin-core) 45%, transparent),
-    0 1px 3px rgba(0, 0, 0, 0.18);
-}
-
-.npc-money-coin-mark::after {
-  content: "";
-  width: 40%;
-  height: 40%;
-  border: 1px solid color-mix(in srgb, var(--coin-rim) 76%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--coin-core) 74%, transparent);
-}
-
-.npc-money-coin-mark.is-platinum {
-  --coin-core: #e7eef2;
-  --coin-rim: #8c9ba4;
-  --coin-shine: rgba(255, 255, 255, 0.9);
-}
-
-.npc-money-coin-mark.is-gold {
-  --coin-core: #f0c85c;
-  --coin-rim: #9a681c;
-}
-
-.npc-money-coin-mark.is-silver {
-  --coin-core: #c9d2dc;
-  --coin-rim: #6f7f8c;
-  --coin-shine: rgba(255, 255, 255, 0.84);
-}
-
-.npc-money-coin-mark.is-copper {
-  --coin-core: #c77b45;
-  --coin-rim: #7d3f22;
-}
+/* .npc-money-coin-mark 视觉已上移到 assets/css/detail-layout.css(WP-5 共享钱币标记) */
 
 .npc-money-token-copy {
   min-width: 0;

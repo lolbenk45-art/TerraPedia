@@ -10,9 +10,10 @@ import type {
   BossMechanicNoteDTO,
   BossSummonItemDTO,
   PublicBossMoneyDrop,
-  PublicBossMoneyToken,
 } from '~/types/public-api'
 import type { TerrariaPriceToken } from '~/utils/price'
+import { createSafeDisplayText } from '~/utils/publicCopy'
+import { moneyCoinClass, normalizeTerrariaMoneyToken } from '~/utils/terrariaMoney'
 
 const route = useRoute()
 const detailLayout = useDetailLayout({ kind: 'boss', density: 'readable' })
@@ -46,15 +47,8 @@ const bossMissing = computed(() => bossClientReady.value && !bossPending.value &
 const bossTitle = computed(() => bossCard.value?.displayName || bossDetail.value?.nameZh || bossDetail.value?.name || 'Boss 详情')
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
 const displayText = (...values: unknown[]) => values.map((value) => String(value ?? '').trim()).find(Boolean) || ''
-const rawPublicCopyPattern = /{{|}}|<\/?[a-z][\s\S]*?>|https?:\/\/|wiki\.gg|iteminfo|eicons|internal|wiki\s*(?:page|path)|(?:^|[\s_-])shop[\s_/-]*\d+(?:[\s_/-]*\d+)*(?:$|[\s_-])/i
-const safeBossDisplayText = (...values: unknown[]) => {
-  for (const value of values) {
-    const text = displayText(value).replace(/\s+/g, ' ')
-    if (text && !rawPublicCopyPattern.test(text)) return text
-  }
-
-  return ''
-}
+// 共享安全展示文案(utils/publicCopy),Boss 页无特有 transform。
+const safeBossDisplayText = createSafeDisplayText()
 const bossSubtitle = computed(() => safeBossDisplayText(bossCard.value?.englishName, bossDetail.value?.nameEn) || '公开 Boss 资料')
 const bossProgressionLabel = computed(() => (
   bossCard.value?.progressionOrder == null ? '顺序未标注' : `推进 #${bossCard.value.progressionOrder}`
@@ -161,29 +155,11 @@ const bossMoneyModeLabel = (drop: Pick<PublicBossMoneyDrop, 'mode'>) => {
   if (mode === 'master') return '大师'
   return '击败奖励'
 }
-const bossMoneyCoinClass = (unit: unknown) => {
-  const key = displayText(unit).toLowerCase()
-  if (key === 'platinum' || key === 'pc' || key === 'platinum coin') return 'platinum'
-  if (key === 'gold' || key === 'gc' || key === 'gold coin') return 'gold'
-  if (key === 'silver' || key === 'sc' || key === 'silver coin') return 'silver'
-  if (key === 'copper' || key === 'cc' || key === 'copper coin') return 'copper'
-  return 'unknown'
-}
-const normalizeBossMoneyToken = (token: PublicBossMoneyToken): TerrariaPriceToken | null => {
-  const amount = Number(token.amount)
-  const unitLabel = resolveTerrariaPriceUnitLabel(token.unit)
-  if (!Number.isFinite(amount) || amount <= 0 || !unitLabel) return null
-
-  return {
-    unit: displayText(token.unit),
-    amount: Math.trunc(amount),
-    label: unitLabel,
-    iconUrl: resolvePreviewImageUrl(token.iconUrl || ''),
-  }
-}
+// 共享钱币 token 规整(utils/terrariaMoney);coin-mark 视觉在 detail-layout.css。
+const bossMoneyCoinClass = moneyCoinClass
 const bossMoneyDropTokens = (drop: PublicBossMoneyDrop): TerrariaPriceToken[] => {
   return asArray(drop.tokens)
-    .map(normalizeBossMoneyToken)
+    .map(normalizeTerrariaMoneyToken)
     .filter((token): token is TerrariaPriceToken => Boolean(token))
 }
 const bossMoneyDrops = computed(() => asArray(bossDetail.value?.moneyDrops)
@@ -407,48 +383,36 @@ const bossLootGroups = computed(() => {
                 <span>{{ group.entries.length }} 条 · {{ group.meta }}</span>
               </div>
               <div class="detail-loot-items tp-detail-relation-grid">
-                <div v-for="entry in group.entries.slice(0, 8)" :key="entry.id ?? `${entry.itemId}-${entry.itemName}`" :class="['loot-row detail-loot-row', detailLayout.detailRelationRowClass]">
-                  <CommonPreviewImage
-                    :src="entryImage(entry)"
-                    :alt="lootTitle(entry)"
-                    :fallback="firstGlyph(lootTitle(entry))"
-                    :fallback-icon="bossLootFallbackIcon"
-                    width="44"
-                    height="44"
-                  />
-                  <div class="detail-loot-copy">
-                    <NuxtLink v-if="bossLootItemPath(entry)" :to="bossLootItemPath(entry)" class="detail-loot-link">
-                      <b>{{ lootTitle(entry) }}</b>
-                    </NuxtLink>
-                    <b v-else>{{ lootTitle(entry) }}</b>
-                    <span>{{ bossLootDetailLabel(entry) }}</span>
-                    <span class="detail-loot-evidence">{{ bossLootEvidenceLabel(entry) }}</span>
-                  </div>
-                  <em>{{ bossLootChanceLabel(entry) }}</em>
-                </div>
+                <DetailRelationRow
+                  v-for="entry in group.entries.slice(0, 8)"
+                  :key="entry.id ?? `${entry.itemId}-${entry.itemName}`"
+                  variant="loot"
+                  :class="['loot-row detail-loot-row', detailLayout.detailRelationRowClass]"
+                  :image="entryImage(entry)"
+                  :title="lootTitle(entry)"
+                  :fallback-icon="bossLootFallbackIcon"
+                  :href="bossLootItemPath(entry)"
+                  :meta="bossLootDetailLabel(entry)"
+                  :evidence="bossLootEvidenceLabel(entry)"
+                  :badge="bossLootChanceLabel(entry)"
+                />
               </div>
               <details v-if="group.entries.length > 8" class="detail-group-remainder">
                 <summary>展开其余 {{ group.entries.length - 8 }} 条</summary>
                 <div class="detail-loot-items tp-detail-relation-grid">
-                  <div v-for="entry in group.entries.slice(8)" :key="entry.id ?? `${entry.itemId}-${entry.itemName}`" :class="['loot-row detail-loot-row', detailLayout.detailRelationRowClass]">
-                    <CommonPreviewImage
-                      :src="entryImage(entry)"
-                      :alt="lootTitle(entry)"
-                      :fallback="firstGlyph(lootTitle(entry))"
-                      :fallback-icon="bossLootFallbackIcon"
-                      width="44"
-                      height="44"
-                    />
-                    <div class="detail-loot-copy">
-                      <NuxtLink v-if="bossLootItemPath(entry)" :to="bossLootItemPath(entry)" class="detail-loot-link">
-                        <b>{{ lootTitle(entry) }}</b>
-                      </NuxtLink>
-                      <b v-else>{{ lootTitle(entry) }}</b>
-                      <span>{{ bossLootDetailLabel(entry) }}</span>
-                      <span class="detail-loot-evidence">{{ bossLootEvidenceLabel(entry) }}</span>
-                    </div>
-                    <em>{{ bossLootChanceLabel(entry) }}</em>
-                  </div>
+                  <DetailRelationRow
+                    v-for="entry in group.entries.slice(8)"
+                    :key="entry.id ?? `${entry.itemId}-${entry.itemName}`"
+                    variant="loot"
+                    :class="['loot-row detail-loot-row', detailLayout.detailRelationRowClass]"
+                    :image="entryImage(entry)"
+                    :title="lootTitle(entry)"
+                    :fallback-icon="bossLootFallbackIcon"
+                    :href="bossLootItemPath(entry)"
+                    :meta="bossLootDetailLabel(entry)"
+                    :evidence="bossLootEvidenceLabel(entry)"
+                    :badge="bossLootChanceLabel(entry)"
+                  />
                 </div>
               </details>
             </div>
@@ -611,55 +575,7 @@ const bossLootGroups = computed(() => {
   height: 28px;
 }
 
-.boss-money-coin-mark {
-  --coin-core: #d6b15a;
-  --coin-rim: #8b5f17;
-  --coin-shine: rgba(255, 255, 255, 0.72);
-  display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  flex: 0 0 28px;
-  border-radius: 999px;
-  border: 2px solid var(--coin-rim);
-  background:
-    radial-gradient(circle at 32% 28%, var(--coin-shine) 0 12%, transparent 13%),
-    radial-gradient(circle at 50% 52%, var(--coin-core) 0 48%, var(--coin-rim) 49% 68%, transparent 69%);
-  box-shadow:
-    inset 0 0 0 2px color-mix(in srgb, var(--coin-core) 45%, transparent),
-    0 1px 3px rgba(0, 0, 0, 0.18);
-}
-
-.boss-money-coin-mark::after {
-  content: "";
-  width: 40%;
-  height: 40%;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--coin-rim) 76%, transparent);
-  background: color-mix(in srgb, var(--coin-core) 74%, transparent);
-}
-
-.boss-money-coin-mark.is-platinum {
-  --coin-core: #e7eef2;
-  --coin-rim: #8c9ba4;
-  --coin-shine: rgba(255, 255, 255, 0.9);
-}
-
-.boss-money-coin-mark.is-gold {
-  --coin-core: #f0c85c;
-  --coin-rim: #9a681c;
-}
-
-.boss-money-coin-mark.is-silver {
-  --coin-core: #c9d2dc;
-  --coin-rim: #6f7f8c;
-  --coin-shine: rgba(255, 255, 255, 0.84);
-}
-
-.boss-money-coin-mark.is-copper {
-  --coin-core: #c77b45;
-  --coin-rim: #7d3f22;
-}
+/* .boss-money-coin-mark 视觉已上移到 assets/css/detail-layout.css(WP-5 共享钱币标记) */
 
 .boss-money-token-copy {
   min-width: 0;
@@ -739,31 +655,32 @@ const bossLootGroups = computed(() => {
   font-weight: 900;
 }
 
-.detail-loot-row .item-art {
+/* 掉落行内部结构由共享 DetailRelationRow(variant=loot)渲染,行内选择器走 :deep。 */
+.detail-loot-row :deep(.item-art) {
   width: 44px;
   height: 44px;
   overflow: hidden;
 }
 
-.detail-loot-copy,
-.detail-loot-copy b,
-.detail-loot-copy span,
-.detail-loot-copy a,
-.detail-loot-row em,
+:deep(.detail-loot-copy),
+:deep(.detail-loot-copy b),
+:deep(.detail-loot-copy span),
+:deep(.detail-loot-copy a),
+.detail-loot-row :deep(em),
 .detail-member-link b,
 .detail-member-link span {
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.detail-loot-copy {
+:deep(.detail-loot-copy) {
   display: grid;
   gap: 4px;
   grid-column: 2;
   grid-row: 1;
 }
 
-.detail-loot-copy b {
+:deep(.detail-loot-copy b) {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
@@ -774,7 +691,7 @@ const bossLootGroups = computed(() => {
   word-break: normal;
 }
 
-.detail-loot-copy span {
+:deep(.detail-loot-copy span) {
   display: block;
   color: var(--text-muted);
   font-size: 12px;
@@ -782,13 +699,13 @@ const bossLootGroups = computed(() => {
   white-space: normal;
 }
 
-.detail-loot-copy .detail-loot-evidence {
+:deep(.detail-loot-copy .detail-loot-evidence) {
   color: var(--text-subtle);
   font-size: 11px;
   font-weight: 800;
 }
 
-.detail-loot-row em {
+.detail-loot-row :deep(em) {
   grid-column: 2;
   grid-row: 2;
   justify-self: start;
@@ -921,7 +838,7 @@ const bossLootGroups = computed(() => {
     gap: 4px;
   }
 
-  .detail-loot-row em {
+  .detail-loot-row :deep(em) {
     grid-column: 2;
     grid-row: auto;
     justify-self: start;
