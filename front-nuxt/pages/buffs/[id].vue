@@ -4,7 +4,12 @@ import type { PublicBuffFactSummary } from '~/types/public-api'
 
 const route = useRoute()
 const buffId = computed(() => String(route.params.id ?? '').trim())
-const { data: buffDetailResult, pending: buffDetailPending, error: buffDetailError } = await usePublicBuffDetail(buffId)
+const { data: buffDetailResult, pending: buffDetailPending, error: buffDetailError, refresh: refreshBuffDetail } = await usePublicBuffDetail(buffId)
+
+if (!buffDetailResult.value?.detail) {
+  throw createError({ statusCode: 404, statusMessage: 'Buff not found' })
+}
+
 const buffDetailClientReady = ref(false)
 
 const firstText = (...values: unknown[]) => {
@@ -25,7 +30,7 @@ const buffItem = computed(() => buffDetailResult.value?.item ?? null)
 const sources = computed(() => buffDetailResult.value?.sources ?? [])
 const inflicters = computed(() => buffDetailResult.value?.inflicters ?? [])
 const immuneTargets = computed(() => buffDetailResult.value?.immuneTargets ?? [])
-const buffDetailVisualLoading = computed(() => !buffDetailClientReady.value || (buffDetailPending.value && !buffDetail.value))
+const buffDetailVisualLoading = computed(() => !buffDetail.value && (!buffDetailClientReady.value || buffDetailPending.value))
 const buffNotFound = computed(() => buffDetailClientReady.value && !buffDetailPending.value && !buffDetail.value)
 
 const buffName = computed(() => firstText(buffDetail.value?.nameZh, buffDetail.value?.name, buffDetail.value?.internalName, `效果 ${buffId.value}`))
@@ -38,6 +43,7 @@ const buffTypeLabel = computed(() => buffItem.value?.typeLabel ?? '效果')
 useSeoMeta({
   title: () => `TerraPedia · ${buffName.value}`,
   description: () => `${buffName.value} 的公开 Buff 资料详情，包含来源、施加者和免疫目标。`,
+  ogImage: () => buffImage.value || undefined,
 })
 
 const factName = (fact: PublicBuffFactSummary, index: number) => firstText(
@@ -68,8 +74,9 @@ const factImage = (fact: PublicBuffFactSummary) => firstImageUrl(
   fact.image_url,
 )
 
-const relationItems = (items: PublicBuffFactSummary[]) => items.slice(0, 8).map((fact, index) => ({
+const relationItems = (items: PublicBuffFactSummary[], detailBase: '/items' | '/npcs') => items.slice(0, 8).map((fact, index) => ({
   id: firstText(fact.id, fact.sourceId, fact.internalName, index),
+  href: /^\d+$/.test(String(fact.id ?? '')) ? `${detailBase}/${fact.id}` : detailBase,
   name: factName(fact, index),
   meta: factMeta(fact),
   image: factImage(fact),
@@ -83,21 +90,21 @@ const buffRelationSections = computed(() => [
     title: '来源',
     count: sources.value.length,
     empty: '暂无来源记录',
-    items: relationItems(sources.value),
+    items: relationItems(sources.value, '/items'),
   },
   {
     key: 'inflicters',
     title: '施加者',
     count: inflicters.value.length,
     empty: '暂无施加者记录',
-    items: relationItems(inflicters.value),
+    items: relationItems(inflicters.value, '/npcs'),
   },
   {
     key: 'immuneTargets',
     title: '免疫目标',
     count: immuneTargets.value.length,
     empty: '暂无免疫目标记录',
-    items: relationItems(immuneTargets.value),
+    items: relationItems(immuneTargets.value, '/npcs'),
   },
 ])
 
@@ -139,12 +146,13 @@ onMounted(() => {
         </div>
         <div>
           <span class="eyebrow">Buff #{{ buffId || '未知' }}</span>
-          <component :is="'h1'" class="detail-missing-title">没有找到这个效果</component>
-          <p>当前详情资料还没有可渲染内容。</p>
+          <component :is="'h1'" class="detail-missing-title">{{ buffDetailError ? '效果资料加载失败' : '没有找到这个效果' }}</component>
+          <p>{{ buffDetailError ? '加载效果资料时出现异常，可以重试或稍后再来。' : '当前详情资料还没有可渲染内容。' }}</p>
           <div class="tag-row">
             <span class="tag paper">详情缺失</span>
             <span v-if="buffDetailError" class="tag moss">加载异常</span>
           </div>
+          <button v-if="buffDetailError" class="primary-button" type="button" @click="refreshBuffDetail()">重试加载</button>
           <a class="primary-button" href="/buffs">返回 Buff 图鉴</a>
         </div>
       </section>
@@ -196,7 +204,7 @@ onMounted(() => {
           </div>
         </template>
         <template v-else-if="section.items.length">
-          <a v-for="item in section.items" :key="String(item.id)" class="detail-relation-link" href="/items">
+          <NuxtLink v-for="item in section.items" :key="String(item.id)" class="detail-relation-link" :to="item.href">
             <CommonPreviewImage
               :src="item.image"
               :alt="item.name"
@@ -207,7 +215,7 @@ onMounted(() => {
             />
             <b>{{ item.name }}</b>
             <span>{{ section.title }} · {{ item.meta }}</span>
-          </a>
+          </NuxtLink>
         </template>
         <div v-else>
           <b>{{ section.title }}</b>

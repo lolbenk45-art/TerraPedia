@@ -58,6 +58,10 @@ export default defineNuxtConfig({
     },
   },
 
+  routeRules: {
+    '/recipes/groups': { redirect: { to: '/item-groups?domain=recipe', statusCode: 301 } },
+  },
+
   app: {
     pageTransition: {
       name: 'page-shell',

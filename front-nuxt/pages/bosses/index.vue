@@ -2,32 +2,16 @@
 import { usePublicBosses } from '~/composables/usePublicBosses'
 import type { PublicBossQuery } from '~/types/public-api'
 
-const route = useRoute()
-const router = useRouter()
-
 useSeoMeta({
   title: 'TerraPedia · Boss 路线',
   description: '浏览 Terraria 公开 Boss 资料，查看推进顺序、召唤信息、成员和掉落入口。',
 })
 
-const bossClientReady = ref(false)
 const bossSearchQuery = ref('')
 const bossDebouncedSearchQuery = ref('')
 const selectedBossType = ref('')
 const bossCurrentPage = ref(1)
 const bossPageSize = ref(20)
-const bossVisualLoading = ref(true)
-const bossVisualLoadingMinimumMs = 320
-let bossSearchDebounceTimer: ReturnType<typeof setTimeout> | null = null
-let bossVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
-let bossVisualLoadingStartedAt = Date.now()
-let syncingBossRouteQuery = false
-
-const firstQueryValue = (value: unknown) => Array.isArray(value) ? value[0] : value
-const parsePositiveInteger = (value: unknown, fallback: number) => {
-  const parsed = Number(firstQueryValue(value))
-  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback
-}
 
 const bossTypeOptions = [
   { type: '', label: '全部' },
@@ -56,8 +40,12 @@ const {
   refresh: refreshPublicBosses,
 } = await usePublicBosses(() => bossListQuery.value)
 
+const { clientReady: bossClientReady, visualLoading: bossVisualLoading } = useVisualLoading({
+  pending: bossesPending,
+  minimumMs: 320,
+})
+
 const bossPagination = computed(() => publicBossesResult.value?.pagination)
-const bossRawLoading = computed(() => !bossClientReady.value || bossesPending.value)
 const bossApiUnavailable = computed(() => bossClientReady.value && !bossesPending.value && publicBossesResult.value?.source !== 'api')
 const bossItems = computed(() => publicBossesResult.value?.items ?? [])
 const bossDisplayItems = computed(() => (bossVisualLoading.value || bossApiUnavailable.value) ? [] : bossItems.value)
@@ -74,31 +62,6 @@ const bossHeroEyebrow = computed(() => {
   if (bossApiUnavailable.value || bossesError.value) return 'Boss 资料暂未载入'
   return `${bossTotalItems.value.toLocaleString('zh-CN')} 个 Boss`
 })
-
-const clearBossVisualLoadingTimer = () => {
-  if (bossVisualLoadingTimer) {
-    clearTimeout(bossVisualLoadingTimer)
-    bossVisualLoadingTimer = null
-  }
-}
-
-const syncBossVisualLoading = (isLoading: boolean) => {
-  clearBossVisualLoadingTimer()
-
-  if (isLoading) {
-    bossVisualLoadingStartedAt = Date.now()
-    bossVisualLoading.value = true
-    return
-  }
-
-  const elapsed = Date.now() - bossVisualLoadingStartedAt
-  const remaining = Math.max(0, bossVisualLoadingMinimumMs - elapsed)
-
-  bossVisualLoadingTimer = setTimeout(() => {
-    bossVisualLoading.value = false
-    bossVisualLoadingTimer = null
-  }, remaining)
-}
 
 const goToBossPage = (page: number) => {
   const nextPage = Math.min(Math.max(1, page), bossTotalPages.value)
@@ -122,66 +85,30 @@ const resetBossFilters = () => {
   bossCurrentPage.value = 1
 }
 
-const updateBossRouteQuery = () => {
-  syncingBossRouteQuery = true
-  void router.replace({
-    query: {
-      ...route.query,
-      page: bossCurrentPage.value > 1 ? String(bossCurrentPage.value) : undefined,
-      q: bossDebouncedSearchQuery.value.trim() || undefined,
-      type: selectedBossType.value || undefined,
-      bossType: selectedBossType.value || undefined,
-    },
-  }).finally(() => {
-    syncingBossRouteQuery = false
-  })
-}
-
-const hydrateBossStateFromRoute = () => {
-  if (syncingBossRouteQuery) return
-
-  const search = String(firstQueryValue(route.query.q) ?? '')
-  const bossType = String(firstQueryValue(route.query.type ?? route.query.bossType) ?? '')
-  const bossTypeRouteState = { type: bossType }
-  bossCurrentPage.value = parsePositiveInteger(route.query.page, 1)
-  bossSearchQuery.value = search
-  bossDebouncedSearchQuery.value = search
-  selectedBossType.value = bossTypeOptions.some((option) => option.type === bossTypeRouteState.type) ? bossTypeRouteState.type : ''
-}
-
-hydrateBossStateFromRoute()
-
-watch(bossSearchQuery, () => {
-  if (bossSearchDebounceTimer) {
-    clearTimeout(bossSearchDebounceTimer)
-  }
-
-  bossCurrentPage.value = 1
-  bossSearchDebounceTimer = setTimeout(() => {
-    bossDebouncedSearchQuery.value = bossSearchQuery.value
-  }, 300)
-}, { flush: 'sync' })
+useCatalogRouteSync({
+  serialize: () => ({
+    page: bossCurrentPage.value > 1 ? String(bossCurrentPage.value) : undefined,
+    q: bossDebouncedSearchQuery.value.trim() || undefined,
+    type: selectedBossType.value || undefined,
+    bossType: undefined,
+  }),
+  hydrate: (query) => {
+    const search = String(firstQueryValue(query.q) ?? '')
+    const bossType = String(firstQueryValue(query.type ?? query.bossType) ?? '')
+    const bossTypeRouteState = { type: bossType }
+    bossCurrentPage.value = parsePositiveInteger(query.page, 1)
+    bossSearchQuery.value = search
+    bossDebouncedSearchQuery.value = search
+    selectedBossType.value = bossTypeOptions.some((option) => option.type === bossTypeRouteState.type) ? bossTypeRouteState.type : ''
+  },
+  watchSources: [bossCurrentPage, bossDebouncedSearchQuery, selectedBossType],
+  search: { input: bossSearchQuery, debounced: bossDebouncedSearchQuery, page: bossCurrentPage },
+})
 
 watch(bossTotalPages, (pages) => {
   if (bossCurrentPage.value > pages) {
     bossCurrentPage.value = pages
   }
-})
-
-watch([bossCurrentPage, bossDebouncedSearchQuery, selectedBossType], updateBossRouteQuery, { flush: 'post' })
-watch(bossRawLoading, syncBossVisualLoading, { immediate: true })
-watch(() => route.query, hydrateBossStateFromRoute)
-
-onMounted(() => {
-  bossClientReady.value = true
-})
-
-onBeforeUnmount(() => {
-  if (bossSearchDebounceTimer) {
-    clearTimeout(bossSearchDebounceTimer)
-  }
-
-  clearBossVisualLoadingTimer()
 })
 </script>
 
@@ -261,13 +188,13 @@ onBeforeUnmount(() => {
           <div class="node-meta boss-node-meta"><b><CommonTpSkeleton type="line" /></b><em><CommonTpSkeleton type="line" short /></em></div>
         </article>
 
-        <a
+        <NuxtLink
           v-for="boss in bossDisplayItems"
           v-else
           :key="boss.id"
           class="boss-node"
           :class="{ active: boss.progressionOrder === 1 }"
-          :href="boss.detailPath"
+          :to="boss.detailPath"
         >
           <i class="boss-node-visual">
             <CommonPreviewImage
@@ -292,14 +219,14 @@ onBeforeUnmount(() => {
               height="104"
             />
           </i>
-          <span class="boss-node-type">{{ boss.type }}</span>
+          <span class="boss-node-type">{{ bossTypeLabel(String(boss.type ?? '').toLowerCase()) }}</span>
           <h3>{{ boss.displayName }}</h3>
           <p class="boss-node-summary">{{ boss.summary }}</p>
           <div class="node-meta boss-node-meta">
             <b>{{ boss.progressionOrder === null ? '顺序未标注' : `#${boss.progressionOrder}` }}</b>
             <em>{{ boss.uniqueLootItemCount ?? 0 }} 件掉落 · {{ boss.memberCount ?? 0 }} 个成员</em>
           </div>
-        </a>
+        </NuxtLink>
       </section>
 
       <section v-if="!bossVisualLoading && !bossDisplayItems.length" class="search-suggestion-band support-panel">

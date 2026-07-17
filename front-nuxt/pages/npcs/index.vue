@@ -2,7 +2,6 @@
 import type { NpcCatalogCard, PublicNpcQuery } from '~/types/public-api'
 
 const route = useRoute()
-const router = useRouter()
 
 useSeoMeta({
   title: 'TerraPedia · NPC 图鉴',
@@ -10,7 +9,6 @@ useSeoMeta({
 })
 
 const defaultNpcPageSize = 24
-const npcClientReady = ref(false)
 const npcWallTopRef = ref<HTMLElement | null>(null)
 const npcSearch = ref('')
 const debouncedNpcSearch = ref('')
@@ -19,11 +17,6 @@ const selectedNpcCategoryId = ref<number | null>(null)
 const currentPage = ref(1)
 const selectedPageSize = ref(defaultNpcPageSize)
 const focusedNpcId = ref<string | null>(null)
-const npcVisualLoadingMinimumMs = 180
-const npcVisualLoading = ref(true)
-let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
-let npcVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
-let npcVisualLoadingStartedAt = Date.now()
 const npcPageSizeStorageKey = 'terrapedia:npc-page-size'
 
 type NpcCategoryFilter = {
@@ -81,12 +74,6 @@ const pageSizeOptions = [12, 24, 48, 96]
 
 type QuickFilterKey = string
 
-const normalizeSearchText = (value: string) => value.toLocaleLowerCase('zh-CN')
-const firstQueryValue = (value: unknown) => Array.isArray(value) ? value[0] : value
-const parsePositiveInteger = (value: unknown, fallback: number) => {
-  const parsed = Number(firstQueryValue(value))
-  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback
-}
 const parsePageSize = (value: unknown) => {
   const parsed = parsePositiveInteger(value, selectedPageSize.value)
   return pageSizeOptions.includes(parsed) ? parsed : selectedPageSize.value
@@ -129,9 +116,13 @@ const {
   refresh: refreshNpcs,
 } = await usePublicNpcs(() => publicNpcQuery.value)
 
+const { clientReady: npcClientReady, visualLoading: npcVisualLoading } = useVisualLoading({
+  pending: npcPending,
+  minimumMs: 180,
+})
+
 const npcCards = computed<NpcCatalogCard[]>(() => npcResult.value?.npcs ?? [])
 const pagination = computed(() => npcResult.value?.pagination)
-const npcRawLoading = computed(() => !npcClientReady.value || npcPending.value)
 const npcFallbackUnavailable = computed(() => npcClientReady.value && !npcPending.value && npcResult.value?.source !== 'api')
 const npcDisplayCards = computed(() => (npcVisualLoading.value || npcFallbackUnavailable.value) ? [] : npcCards.value)
 const totalNpcs = computed(() => (npcVisualLoading.value || npcFallbackUnavailable.value) ? 0 : pagination.value?.total ?? npcDisplayCards.value.length)
@@ -143,49 +134,18 @@ const npcDockCurrentPage = computed(() => npcVisualLoading.value ? 1 : currentPa
 const npcDockTotalPages = computed(() => npcVisualLoading.value ? 1 : totalPages.value)
 const npcLoadingSlotCount = computed(() => Math.min(selectedPageSize.value, 24))
 const npcStatusText = computed(() => npcVisualLoading.value ? '加载中' : npcFallbackUnavailable.value || npcError.value ? '未载入' : '已更新')
-const shouldApplyLocalNpcFilter = computed(() => npcResult.value?.source !== 'api')
-const npcSourceReady = computed(() => npcResult.value?.source === 'api')
 
-const matchNpcFilter = (npc: NpcCatalogCard, filter: NpcCategoryFilter) => {
-  if (filter.key === 'all') return true
-  if (typeof filter.isTownNpc === 'boolean' && npc.isTownNpc !== filter.isTownNpc) return false
-  if (typeof filter.isFriendly === 'boolean' && npc.isFriendly !== filter.isFriendly) return false
-  if (typeof filter.isBoss === 'boolean' && npc.isBoss !== filter.isBoss) return false
-  if (filter.hasShop === true && npc.shopEntryCount <= 0) return false
-  if (filter.hasLoot === true && npc.lootEntryCount <= 0) return false
-  if (filter.key === 'enemy') return !npc.isTownNpc && !npc.isFriendly
-  return true
-}
-
-const filteredNpcCards = computed(() => {
-  if (npcResult.value?.source === 'api') return npcDisplayCards.value
-
-  const keyword = normalizeSearchText(npcSearch.value.trim())
-
-  return npcDisplayCards.value.filter((npc) => {
-    if (shouldApplyLocalNpcFilter.value && !matchNpcFilter(npc, selectedFilter.value)) return false
-    return !keyword || npc.searchText.includes(keyword)
-  })
-})
-
-const visibleNpcCards = computed(() => filteredNpcCards.value)
+const visibleNpcCards = computed(() => npcDisplayCards.value)
 const selectedNpc = computed<NpcCatalogCard | null>(() => (
   visibleNpcCards.value.find((npc) => npc.id === focusedNpcId.value)
-  ?? filteredNpcCards.value.find((npc) => npc.id === focusedNpcId.value)
   ?? visibleNpcCards.value[0]
-  ?? npcDisplayCards.value[0]
   ?? null
 ))
 const resultSummary = computed(() => {
   if (npcVisualLoading.value) return '加载中'
   if (npcFallbackUnavailable.value) return '资料暂未载入'
 
-  const total = totalNpcs.value.toLocaleString('zh-CN')
-  if ((npcResult.value?.source === 'api' && !shouldApplyLocalNpcFilter.value) || activeFilter.value === 'all') {
-    return `${npcDisplayCards.value.length} / ${total}`
-  }
-
-  return `${filteredNpcCards.value.length} / 本页 ${npcDisplayCards.value.length} / 总计 ${total}`
+  return `${npcDisplayCards.value.length} / ${totalNpcs.value.toLocaleString('zh-CN')}`
 })
 
 const npcKindLabel = (npc: NpcCatalogCard) => {
@@ -210,31 +170,6 @@ const npcRelationCountLabel = (npc: NpcCatalogCard) => [
   npc.lootEntryCount > 0 ? `掉落 ${npc.lootEntryCount}` : '',
   npc.buffRelationCount > 0 ? `效果 ${npc.buffRelationCount}` : '',
 ].filter(Boolean).join(' · ')
-
-const clearNpcVisualLoadingTimer = () => {
-  if (npcVisualLoadingTimer) {
-    clearTimeout(npcVisualLoadingTimer)
-    npcVisualLoadingTimer = null
-  }
-}
-
-const syncNpcVisualLoading = (isLoading: boolean) => {
-  clearNpcVisualLoadingTimer()
-
-  if (isLoading) {
-    npcVisualLoadingStartedAt = Date.now()
-    npcVisualLoading.value = true
-    return
-  }
-
-  const elapsed = Date.now() - npcVisualLoadingStartedAt
-  const remaining = Math.max(0, npcVisualLoadingMinimumMs - elapsed)
-
-  npcVisualLoadingTimer = setTimeout(() => {
-    npcVisualLoading.value = false
-    npcVisualLoadingTimer = null
-  }, remaining)
-}
 
 const scrollNpcWallToTop = async () => {
   if (!import.meta.client) return
@@ -295,9 +230,8 @@ const goToNextPage = () => {
   }
 }
 
-const updateNpcRouteQuery = () => {
-  const query = {
-    ...route.query,
+useCatalogRouteSync({
+  serialize: () => ({
     page: currentPage.value > 1 ? String(currentPage.value) : undefined,
     pageSize: selectedPageSize.value !== defaultNpcPageSize ? String(selectedPageSize.value) : undefined,
     filter: activeFilter.value !== 'all' ? activeFilter.value : undefined,
@@ -305,29 +239,26 @@ const updateNpcRouteQuery = () => {
     categoryId: selectedNpcCategoryId.value == null ? undefined : String(selectedNpcCategoryId.value),
     isTownNpc: selectedFilter.value.isTownNpc === true ? 'true' : undefined,
     town: undefined,
-  }
+  }),
+  hydrate: (query) => {
+    const filter = firstQueryValue(query.filter)
+    const legacyTown = String(firstQueryValue(query.isTownNpc ?? query.town) ?? '').toLowerCase()
+    const search = String(firstQueryValue(query.search ?? query.q) ?? '')
+    const queryPageSize = firstQueryValue(query.pageSize)
+    const categoryId = Number(firstQueryValue(query.categoryId))
 
-  void router.replace({ query })
-}
-
-const hydrateNpcStateFromRoute = () => {
-  const filter = firstQueryValue(route.query.filter)
-  const legacyTown = String(firstQueryValue(route.query.isTownNpc ?? route.query.town) ?? '').toLowerCase()
-  const search = String(firstQueryValue(route.query.search ?? route.query.q) ?? '')
-  const queryPageSize = firstQueryValue(route.query.pageSize)
-  const categoryId = Number(firstQueryValue(route.query.categoryId))
-
-  selectedPageSize.value = queryPageSize ? parsePageSize(queryPageSize) : readStoredPageSize()
-  currentPage.value = parsePositiveInteger(route.query.page, 1)
-  selectedNpcCategoryId.value = Number.isFinite(categoryId) && categoryId > 0 ? Math.floor(categoryId) : null
-  activeFilter.value = quickFilters.some((item) => item.key === filter)
-    ? filter as QuickFilterKey
-    : legacyTown === 'true' || legacyTown === '1' ? 'town' : 'all'
-  npcSearch.value = search
-  debouncedNpcSearch.value = search
-}
-
-hydrateNpcStateFromRoute()
+    selectedPageSize.value = queryPageSize ? parsePageSize(queryPageSize) : readStoredPageSize()
+    currentPage.value = parsePositiveInteger(query.page, 1)
+    selectedNpcCategoryId.value = Number.isFinite(categoryId) && categoryId > 0 ? Math.floor(categoryId) : null
+    activeFilter.value = quickFilters.some((item) => item.key === filter)
+      ? filter as QuickFilterKey
+      : legacyTown === 'true' || legacyTown === '1' ? 'town' : 'all'
+    npcSearch.value = search
+    debouncedNpcSearch.value = search
+  },
+  watchSources: [currentPage, selectedPageSize, activeFilter, debouncedNpcSearch, selectedNpcCategoryId],
+  search: { input: npcSearch, debounced: debouncedNpcSearch, page: currentPage },
+})
 
 watch(npcCards, (items) => {
   if (!focusedNpcId.value && items[0]) {
@@ -335,39 +266,18 @@ watch(npcCards, (items) => {
   }
 }, { immediate: true })
 
-watch(filteredNpcCards, (items) => {
+watch(visibleNpcCards, (items) => {
   const firstNpc = items[0]
   if (firstNpc && !items.some((npc) => npc.id === focusedNpcId.value)) {
     setFocusedNpc(firstNpc)
   }
 })
 
-watch(npcSearch, () => {
-  if (searchDebounceTimer) {
-    clearTimeout(searchDebounceTimer)
-  }
-
-  currentPage.value = 1
-  searchDebounceTimer = setTimeout(() => {
-    debouncedNpcSearch.value = npcSearch.value
-  }, 300)
-}, { flush: 'sync' })
-
 watch(debouncedNpcSearch, () => {
   currentPage.value = 1
 })
 
-onBeforeUnmount(() => {
-  if (searchDebounceTimer) {
-    clearTimeout(searchDebounceTimer)
-  }
-
-  clearNpcVisualLoadingTimer()
-})
-
 onMounted(() => {
-  npcClientReady.value = true
-
   if (!firstQueryValue(route.query.pageSize)) {
     selectedPageSize.value = readStoredPageSize()
   }
@@ -379,12 +289,6 @@ watch(totalPages, (pages) => {
   }
 })
 
-watch(
-  [currentPage, selectedPageSize, activeFilter, debouncedNpcSearch, selectedNpcCategoryId],
-  updateNpcRouteQuery,
-  { flush: 'post' },
-)
-
 watch(selectedPageSize, (pageSize) => {
   if (!import.meta.client) return
 
@@ -392,10 +296,6 @@ watch(selectedPageSize, (pageSize) => {
     window.localStorage.setItem(npcPageSizeStorageKey, String(pageSize))
   } catch {}
 }, { flush: 'post' })
-
-watch(npcRawLoading, syncNpcVisualLoading, { immediate: true })
-
-watch(() => route.query, hydrateNpcStateFromRoute)
 </script>
 
 <template>
@@ -504,12 +404,12 @@ watch(() => route.query, hydrateNpcStateFromRoute)
           </div>
 
           <div v-else key="npc-grid" class="npc-board">
-            <a
+            <NuxtLink
               v-for="npc in visibleNpcCards"
               :key="npc.id"
               class="npc-card"
               :class="{ active: npc.id === selectedNpc?.id, danger: npc.isBoss }"
-              :href="npc.detailPath"
+              :to="npc.detailPath"
               :aria-current="npc.id === selectedNpc?.id ? 'true' : undefined"
               @focus="setFocusedNpc(npc)"
               @mouseenter="setFocusedNpc(npc)"
@@ -519,7 +419,7 @@ watch(() => route.query, hydrateNpcStateFromRoute)
               </i>
               <div><b>{{ npc.displayName }}</b><span>{{ [npcKindLabel(npc), npcTaxonomyMeta(npc).label, npcRelationCountLabel(npc)].filter(Boolean).join(' · ') }}</span></div>
               <em>详情</em>
-            </a>
+            </NuxtLink>
           </div>
         </Transition>
 
@@ -553,7 +453,7 @@ watch(() => route.query, hydrateNpcStateFromRoute)
           <div><b>{{ selectedNpc?.isFriendly ? '友好' : '生态' }}</b><span>关系</span></div>
           <div><b>{{ selectedNpc?.shopEntryCount ?? 0 }}/{{ selectedNpc?.lootEntryCount ?? 0 }}</b><span>出售/掉落</span></div>
         </div>
-        <a v-if="selectedNpc" class="primary-button full-button" :href="selectedNpc.detailPath">打开详情</a>
+        <NuxtLink v-if="selectedNpc" class="primary-button full-button" :to="selectedNpc.detailPath">打开详情</NuxtLink>
       </aside>
     </main>
 

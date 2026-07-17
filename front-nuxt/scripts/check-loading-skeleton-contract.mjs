@@ -124,14 +124,24 @@ assertMarkers('pages/items/index.vue', [
   'catalogClientReady',
   'catalogFallbackUnavailable',
   'catalogDisplayItems',
-  'catalogRawLoading',
   'catalogVisualLoading',
-  'catalogVisualLoadingMinimumMs',
-  'catalogVisualLoadingTimer',
+  'useVisualLoading({',
+  'pending: itemsPending',
+  'minimumMs: 180',
   'catalogDockCurrentPage',
   'catalogDockTotalPages',
-  '!catalogClientReady.value || itemsPending.value',
   '<CommonPreviewImage',
+])
+
+assertMarkers('composables/useVisualLoading.ts', [
+  'export const useVisualLoading',
+  'minimumMs = 180',
+  'const clientReady = ref(false)',
+  '!clientReady.value || pending.value',
+  'hasData ? !hasData() && waitingForData : waitingForData',
+  'setTimeout',
+  'clearTimeout',
+  'onBeforeUnmount(clearVisualLoadingTimer)',
 ])
 
 assertMarkers('pages/items/[id].vue', [
@@ -139,7 +149,7 @@ assertMarkers('pages/items/[id].vue', [
   ':aria-busy="detailLoadingState"',
   '<CommonPreviewImage',
   'detailClientReady',
-  '!detailClientReady.value || (detailPending.value && !detailItem.value)',
+  '!detailItem.value && (!detailClientReady.value || detailPending.value)',
   'detailClientReady.value && !detailPending.value && !detailItem.value',
   ':src="itemImage"',
   '<RecipeSummaryCard',

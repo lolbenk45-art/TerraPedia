@@ -16,11 +16,6 @@ import type { TerrariaPriceToken } from '~/utils/price'
 
 const route = useRoute()
 const detailLayout = useDetailLayout({ kind: 'boss', density: 'readable' })
-const bossClientReady = ref(false)
-const bossDetailVisualLoading = ref(true)
-const bossDetailVisualLoadingMinimumMs = 180
-let bossDetailVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
-let bossDetailVisualLoadingStartedAt = Date.now()
 
 const bossRouteId = computed(() => String(route.params.id ?? '').trim())
 
@@ -31,6 +26,10 @@ const {
   refresh: refreshBossDetail,
 } = await usePublicBossDetail(bossRouteId)
 
+if (!bossBundle.value?.detail) {
+  throw createError({ statusCode: 404, statusMessage: 'Boss not found' })
+}
+
 const bossDetail = computed(() => bossBundle.value?.detail ?? null)
 const bossCard = computed(() => bossBundle.value?.item ?? null)
 const bossMembers = computed(() => bossBundle.value?.members ?? [])
@@ -38,7 +37,11 @@ const bossReferenceMembers = computed(() => bossBundle.value?.referenceMembers ?
 const bossVisibleMembers = computed(() => bossMembers.value.length ? bossMembers.value : bossReferenceMembers.value)
 const bossUsesReferenceMembers = computed(() => !bossMembers.value.length && bossReferenceMembers.value.length > 0)
 const bossLootEntries = computed(() => bossBundle.value?.lootEntries ?? [])
-const bossRawLoading = computed(() => !bossClientReady.value || bossPending.value)
+const { clientReady: bossClientReady, visualLoading: bossDetailVisualLoading } = useVisualLoading({
+  pending: bossPending,
+  hasData: () => Boolean(bossDetail.value),
+  minimumMs: 180,
+})
 const bossMissing = computed(() => bossClientReady.value && !bossPending.value && !bossDetail.value)
 const bossTitle = computed(() => bossCard.value?.displayName || bossDetail.value?.nameZh || bossDetail.value?.name || 'Boss 详情')
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
@@ -68,6 +71,7 @@ const bossTypeLabel = computed(() => {
 useSeoMeta({
   title: () => `TerraPedia · ${bossTitle.value}`,
   description: () => `${bossTitle.value} 的公开 Boss 资料详情，包含成员、掉落和推进信息。`,
+  ogImage: () => bossCard.value?.image || undefined,
 })
 
 const entryImage = (value: { itemImage?: string | null; imageUrl?: string | null }) => resolvePreviewImageUrl(value.itemImage || value.imageUrl || '')
@@ -269,39 +273,6 @@ const bossLootGroups = computed(() => {
     }))
     .filter((group) => group.entries.length > 0)
 })
-
-const clearBossDetailVisualLoadingTimer = () => {
-  if (bossDetailVisualLoadingTimer) {
-    clearTimeout(bossDetailVisualLoadingTimer)
-    bossDetailVisualLoadingTimer = null
-  }
-}
-
-const syncBossDetailVisualLoading = (isLoading: boolean) => {
-  clearBossDetailVisualLoadingTimer()
-
-  if (isLoading) {
-    bossDetailVisualLoadingStartedAt = Date.now()
-    bossDetailVisualLoading.value = true
-    return
-  }
-
-  const elapsed = Date.now() - bossDetailVisualLoadingStartedAt
-  const remaining = Math.max(0, bossDetailVisualLoadingMinimumMs - elapsed)
-
-  bossDetailVisualLoadingTimer = setTimeout(() => {
-    bossDetailVisualLoading.value = false
-    bossDetailVisualLoadingTimer = null
-  }, remaining)
-}
-
-watch(bossRawLoading, syncBossDetailVisualLoading, { immediate: true })
-
-onMounted(() => {
-  bossClientReady.value = true
-})
-
-onBeforeUnmount(clearBossDetailVisualLoadingTimer)
 </script>
 
 <template>
@@ -371,8 +342,8 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
 
       <section v-else-if="bossMissing" class="search-suggestion-band support-panel">
         <div>
-          <b>Boss 详情暂未载入</b>
-          <span>当前 ID 没有返回公开资料，页面不会展示静态样例。</span>
+          <b>{{ bossError ? 'Boss 详情加载失败' : 'Boss 详情暂未载入' }}</b>
+          <span>{{ bossError ? '加载 Boss 资料时出现异常，可以重试或稍后再来。' : '当前 ID 没有返回公开资料，页面不会展示静态样例。' }}</span>
         </div>
         <button class="small-button active" type="button" @click="refreshBossDetail()">重新加载</button>
       </section>

@@ -6,14 +6,9 @@ useSeoMeta({
   description: '浏览 Terraria 公开生态和群系资料，按生态分类、层级、资源和关系进入详情。',
 })
 
-const biomeClientReady = ref(false)
 const biomeSearchQuery = ref('')
 const selectedBiomeGroup = ref('全部')
-const biomeVisualLoading = ref(true)
-const biomeVisualLoadingMinimumMs = 320
 const biomeAllGroupLabel = '全部'
-let biomeVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
-let biomeVisualLoadingStartedAt = Date.now()
 
 const {
   data: publicBiomesResult,
@@ -22,9 +17,13 @@ const {
   refresh: refreshPublicBiomes,
 } = await usePublicBiomes()
 
+const { clientReady: biomeClientReady, visualLoading: biomeVisualLoading } = useVisualLoading({
+  pending: biomesPending,
+  minimumMs: 320,
+})
+
 const normalizeSearchText = (value: string) => value.toLocaleLowerCase('zh-CN')
 const biomeItems = computed(() => publicBiomesResult.value?.items ?? [])
-const biomeRawLoading = computed(() => !biomeClientReady.value || biomesPending.value)
 const biomeApiUnavailable = computed(() => biomeClientReady.value && !biomesPending.value && publicBiomesResult.value?.source !== 'api')
 const biomeLoadingSlotCount = computed(() => 12)
 const biomeGroupOptions = computed(() => {
@@ -97,31 +96,6 @@ const biomeFilterSummary = computed(() => {
   return '全部群系'
 })
 
-const clearBiomeVisualLoadingTimer = () => {
-  if (biomeVisualLoadingTimer) {
-    clearTimeout(biomeVisualLoadingTimer)
-    biomeVisualLoadingTimer = null
-  }
-}
-
-const syncBiomeVisualLoading = (isLoading: boolean) => {
-  clearBiomeVisualLoadingTimer()
-
-  if (isLoading) {
-    biomeVisualLoadingStartedAt = Date.now()
-    biomeVisualLoading.value = true
-    return
-  }
-
-  const elapsed = Date.now() - biomeVisualLoadingStartedAt
-  const remaining = Math.max(0, biomeVisualLoadingMinimumMs - elapsed)
-
-  biomeVisualLoadingTimer = setTimeout(() => {
-    biomeVisualLoading.value = false
-    biomeVisualLoadingTimer = null
-  }, remaining)
-}
-
 const clearBiomeSearch = () => {
   biomeSearchQuery.value = ''
 }
@@ -142,18 +116,11 @@ const formatBiomeResourceLabel = (resourceCount: number, relationCount: number) 
   return '生态条目'
 }
 
-watch(biomeRawLoading, syncBiomeVisualLoading, { immediate: true })
 watch(biomeGroupOptions, (options) => {
   if (!options.some((group) => group.label === selectedBiomeGroup.value)) {
     selectedBiomeGroup.value = biomeAllGroupLabel
   }
 })
-
-onMounted(() => {
-  biomeClientReady.value = true
-})
-
-onBeforeUnmount(clearBiomeVisualLoadingTimer)
 </script>
 
 <template>
@@ -288,11 +255,11 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
 
       <template v-else-if="biomeDisplayItems.length">
         <section v-if="biomeShowFeatured" class="biome-feature-grid" aria-label="重点群系">
-          <a
+          <NuxtLink
             v-for="biome in biomeFeaturedItems"
             :key="`featured-${biome.id}`"
             class="biome-tile biome-feature-card"
-            :href="biome.detailPath"
+            :to="biome.detailPath"
           >
             <div class="biome-tile-art">
               <CommonPreviewImage
@@ -326,15 +293,15 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
               <span class="biome-tile-description">{{ biome.description }}</span>
             </div>
             <em class="biome-tile-meta">{{ formatBiomeResourceLabel(biome.resourceCount, biome.relationCount) }}</em>
-          </a>
+          </NuxtLink>
         </section>
 
         <section class="biome-board biome-list-grid" aria-label="群系列表">
-          <a
+          <NuxtLink
             v-for="biome in biomeListItems"
             :key="biome.id"
             class="biome-tile"
-            :href="biome.detailPath"
+            :to="biome.detailPath"
           >
             <div class="biome-tile-art">
               <CommonPreviewImage
@@ -361,7 +328,7 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
               </div>
             </div>
             <em class="biome-tile-meta">查看详情</em>
-          </a>
+          </NuxtLink>
         </section>
       </template>
 

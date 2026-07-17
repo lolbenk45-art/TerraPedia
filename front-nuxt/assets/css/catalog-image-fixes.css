@@ -842,12 +842,24 @@
   background:
     var(--index-grid-x),
     var(--index-grid-y),
-    rgba(7, 12, 9, 0.88);
+    rgba(7, 12, 9, 0.96);
   background-size: 34px 34px, 34px 34px, auto;
   box-shadow: 0 -8px 22px rgba(0, 0, 0, 0.2);
   padding: 7px;
   backdrop-filter: blur(14px);
   font-variant-numeric: tabular-nums;
+}
+
+/* 悬浮分页坞前的列表/内容容器留出 dock 高度的余量，让末行卡片能完整滚出遮挡区（主题无关） */
+.catalog-wall-content:has(+ .catalog-page-dock),
+.npc-board:has(+ .catalog-page-dock),
+.boss-timeline:has(+ .catalog-page-dock),
+.effect-grid:has(+ .catalog-page-dock),
+.armor-route-band:has(+ .catalog-page-dock),
+.projectile-data-band:has(+ .catalog-page-dock),
+.public-article-list:has(+ .catalog-page-dock) {
+  scroll-margin-bottom: 72px;
+  padding-bottom: 72px;
 }
 
 .catalog-page-dock-summary {
@@ -1392,7 +1404,7 @@
   background:
     var(--index-grid-x),
     var(--index-grid-y),
-    rgba(var(--theme-panel-rgb), 0.88);
+    rgba(var(--theme-panel-rgb), 0.96);
   background-size: 34px 34px, 34px 34px, auto;
   box-shadow: 0 -10px 24px rgba(var(--theme-text-rgb), 0.08);
 }

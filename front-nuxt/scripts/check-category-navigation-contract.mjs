@@ -34,7 +34,12 @@ const categoryDetail = requireFile('pages/categories/[id].vue')
 const itemsPage = requireFile('pages/items/index.vue')
 const packageJson = requireFile('package.json')
 
-const searchInputWatcher = itemsPage.match(/watch\(searchQuery, \(\) => \{[\s\S]*?\n\}\, \{ flush: 'sync' \}\)/)?.[0] ?? ''
+const routeSyncComposable = requireFile('composables/useCatalogRouteSync.ts')
+const searchInputWatcher = itemsPage.match(/watch\(searchQuery, \(\) => \{[\s\S]*?\n\}\, \{ flush: 'sync' \}\)/)?.[0]
+  ?? (itemsPage.includes('search: { input: searchQuery, debounced: debouncedSearchQuery, page: currentPage }')
+    ? routeSyncComposable.match(/watch\(search\.input, \(\) => \{[\s\S]*?\}\, \{ flush: 'sync' \}\)/)?.[0]
+    : undefined)
+  ?? ''
 if (!searchInputWatcher) {
   violations.push('pages/items/index.vue: must keep an identifiable raw search input debounce watcher')
 }
@@ -67,6 +72,7 @@ requireIncludes('pages/items/index.vue', itemsPage, 'selectedCategoryCode.value 
 requireIncludes('pages/items/index.vue', itemsPage, 'href="/items"', 'unknown child categories must offer a complete-catalog recovery link')
 requireIncludes('pages/items/index.vue', itemsPage, 'if (navigationScopeReady.value)', 'retry must not request items after a failed navigation refresh')
 forbidIncludes('pages/items/index.vue', searchInputWatcher, 'currentPage.value = 1', 'raw search input must not reset paging before its debounced route query is ready')
+forbidIncludes('composables/useCatalogRouteSync.ts', searchInputWatcher.split('setTimeout')[0], 'page.value = 1', 'raw search input must not reset paging synchronously before the debounce fires')
 requireIncludes('package.json', packageJson, 'check:category-navigation', 'main frontend gate must run the navigation contract check')
 
 for (const total of ['932', '684', '122', '1186', '1408', '318']) {

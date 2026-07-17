@@ -58,11 +58,15 @@ const armorClientReady = ref(false)
 const expandedArmorPartKeys = ref(new Set<string>())
 
 const armorSetId = computed(() => String(route.params.id ?? '').trim())
-const { data: armorDetailResult, pending: armorDetailPending, error: armorDetailError } = await usePublicArmorSetDetail(armorSetId)
+const { data: armorDetailResult, pending: armorDetailPending, error: armorDetailError, refresh: refreshArmorDetail } = await usePublicArmorSetDetail(armorSetId)
+
+if (!armorDetailResult.value?.detail) {
+  throw createError({ statusCode: 404, statusMessage: 'Armor set not found' })
+}
 
 const armorDetail = computed(() => armorDetailResult.value?.detail ?? null)
 const armorRaw = computed<PublicArmorSetListItem | null>(() => armorDetailResult.value?.raw ?? null)
-const armorDetailVisualLoading = computed(() => !armorClientReady.value || (armorDetailPending.value && !armorDetail.value))
+const armorDetailVisualLoading = computed(() => !armorDetail.value && (!armorClientReady.value || armorDetailPending.value))
 const armorNotFound = computed(() => armorClientReady.value && !armorDetailPending.value && !armorDetail.value)
 
 const armorTitle = computed(() => armorDetail.value?.displayName || `套装 ${armorSetId.value || '详情'}`)
@@ -71,6 +75,7 @@ const armorSubtitle = computed(() => armorDetail.value?.englishName || '公开�
 useSeoMeta({
   title: () => `TerraPedia · ${armorTitle.value}`,
   description: () => `${armorTitle.value} 的公开套装详情，包含套装效果、词条解析与图片分组。`,
+  ogImage: () => armorPrimaryPreview.value || undefined,
 })
 
 const statLabels: Record<string, string> = {
@@ -1933,7 +1938,8 @@ const { data: armorSetRecipeSummaries, pending: armorSetRecipePending } = await 
 const armorVisibleRecipeSummaries = computed(() => armorSetRecipeSummaries.value.slice(0, ARMOR_VISIBLE_RECIPE_LIMIT))
 const armorHiddenRecipeSummaries = computed(() => armorSetRecipeSummaries.value.slice(ARMOR_VISIBLE_RECIPE_LIMIT))
 const armorRecipeUnavailableReason = computed(() => {
-  if (armorSetRecipePending.value) return '正在读取制作配方。'
+  // armorSetRecipeSummaries 走 server: false，SSR/水合初始一律按读取中文案，避免 hydration mismatch。
+  if (armorSetRecipePending.value || !armorClientReady.value) return '正在读取制作配方。'
   if (!armorUniqueRecipeItems.value.length) return '这个套装没有可用于查询配方的部件编号。'
   return '当前资料没有可展示的制作配方，可能是掉落、购买、奖励或装饰性外观来源。'
 })
@@ -2068,12 +2074,13 @@ onMounted(() => {
       <section v-else-if="armorNotFound" class="support-panel armor-detail-hero">
         <div>
           <span class="eyebrow">套装资料</span>
-          <component :is="'h1'" class="detail-missing-title">没有找到这个套装</component>
-          <p>当前详情资料还没有可渲染内容。</p>
+          <component :is="'h1'" class="detail-missing-title">{{ armorDetailError ? '套装资料加载失败' : '没有找到这个套装' }}</component>
+          <p>{{ armorDetailError ? '加载套装资料时出现异常，可以重试或稍后再来。' : '当前详情资料还没有可渲染内容。' }}</p>
           <div class="tag-row">
             <span class="tag paper">详情缺失</span>
             <span v-if="armorDetailError" class="tag moss">加载异常</span>
           </div>
+          <button v-if="armorDetailError" class="primary-button" type="button" @click="refreshArmorDetail()">重试加载</button>
           <a class="primary-button" href="/armor-sets">返回套装路线</a>
         </div>
       </section>

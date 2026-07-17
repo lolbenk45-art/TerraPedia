@@ -506,7 +506,6 @@ export const usePublicNpcAggregate = (
   () => `public-npc-aggregate:${toValue(id)}:${toValue(include)}`,
   () => fetchPublicNpcAggregate(toValue(id), toValue(include)),
   {
-    server: false,
     watch: [() => toValue(id), () => toValue(include)],
     default: () => ({ aggregate: null, source: 'missing' }),
   },

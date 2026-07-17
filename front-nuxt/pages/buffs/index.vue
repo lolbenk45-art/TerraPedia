@@ -2,31 +2,15 @@
 import { usePublicBuffs } from '~/composables/usePublicBuffs'
 import type { PublicBuffQuery } from '~/types/public-api'
 
-const route = useRoute()
-const router = useRouter()
-
 useSeoMeta({
   title: 'TerraPedia · Buff 图鉴',
   description: '浏览 Terraria 公开 Buff 和 Debuff 资料，查看来源数量、免疫关系和效果详情入口。',
 })
 
-const buffClientReady = ref(false)
 const buffSearchQuery = ref('')
 const buffDebouncedSearchQuery = ref('')
 const buffCurrentPage = ref(1)
 const buffPageSize = ref(24)
-const buffVisualLoading = ref(true)
-const buffVisualLoadingMinimumMs = 180
-let buffSearchDebounceTimer: ReturnType<typeof setTimeout> | null = null
-let buffVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
-let buffVisualLoadingStartedAt = Date.now()
-let syncingBuffRouteQuery = false
-
-const firstQueryValue = (value: unknown) => Array.isArray(value) ? value[0] : value
-const parsePositiveInteger = (value: unknown, fallback: number) => {
-  const parsed = Number(firstQueryValue(value))
-  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback
-}
 
 const buffListQuery = computed(() => ({
   page: buffCurrentPage.value,
@@ -43,8 +27,12 @@ const {
   refresh: refreshPublicBuffs,
 } = await usePublicBuffs(() => buffListQuery.value)
 
+const { clientReady: buffClientReady, visualLoading: buffVisualLoading } = useVisualLoading({
+  pending: buffsPending,
+  minimumMs: 180,
+})
+
 const buffPagination = computed(() => publicBuffsResult.value?.pagination)
-const buffRawLoading = computed(() => !buffClientReady.value || buffsPending.value)
 const buffFallbackUnavailable = computed(() => buffClientReady.value && !buffsPending.value && publicBuffsResult.value?.source !== 'api')
 const buffDisplayItems = computed(() => (buffVisualLoading.value || buffFallbackUnavailable.value) ? [] : publicBuffsResult.value?.items ?? [])
 const buffTotalItems = computed(() => (buffVisualLoading.value || buffFallbackUnavailable.value) ? 0 : buffPagination.value?.total ?? buffDisplayItems.value.length)
@@ -56,31 +44,6 @@ const buffHeroEyebrow = computed(() => {
   return `${buffTotalItems.value.toLocaleString('zh-CN')} 个效果`
 })
 const buffLoadingSlotCount = computed(() => Math.min(buffPageSize.value, 36))
-
-const clearBuffVisualLoadingTimer = () => {
-  if (buffVisualLoadingTimer) {
-    clearTimeout(buffVisualLoadingTimer)
-    buffVisualLoadingTimer = null
-  }
-}
-
-const syncBuffVisualLoading = (isLoading: boolean) => {
-  clearBuffVisualLoadingTimer()
-
-  if (isLoading) {
-    buffVisualLoadingStartedAt = Date.now()
-    buffVisualLoading.value = true
-    return
-  }
-
-  const elapsed = Date.now() - buffVisualLoadingStartedAt
-  const remaining = Math.max(0, buffVisualLoadingMinimumMs - elapsed)
-
-  buffVisualLoadingTimer = setTimeout(() => {
-    buffVisualLoading.value = false
-    buffVisualLoadingTimer = null
-  }, remaining)
-}
 
 const goToBuffPage = (page: number) => {
   const nextPage = Math.min(Math.max(1, page), buffTotalPages.value)
@@ -98,40 +61,20 @@ const resetBuffSearch = () => {
   buffCurrentPage.value = 1
 }
 
-const updateBuffRouteQuery = () => {
-  syncingBuffRouteQuery = true
-  void router.replace({
-    query: {
-      ...route.query,
-      page: buffCurrentPage.value > 1 ? String(buffCurrentPage.value) : undefined,
-      q: buffDebouncedSearchQuery.value.trim() || undefined,
-    },
-  }).finally(() => {
-    syncingBuffRouteQuery = false
-  })
-}
-
-const hydrateBuffStateFromRoute = () => {
-  if (syncingBuffRouteQuery) return
-
-  const search = String(firstQueryValue(route.query.q) ?? '')
-  buffCurrentPage.value = parsePositiveInteger(route.query.page, 1)
-  buffSearchQuery.value = search
-  buffDebouncedSearchQuery.value = search
-}
-
-hydrateBuffStateFromRoute()
-
-watch(buffSearchQuery, () => {
-  if (buffSearchDebounceTimer) {
-    clearTimeout(buffSearchDebounceTimer)
-  }
-
-  buffCurrentPage.value = 1
-  buffSearchDebounceTimer = setTimeout(() => {
-    buffDebouncedSearchQuery.value = buffSearchQuery.value
-  }, 300)
-}, { flush: 'sync' })
+useCatalogRouteSync({
+  serialize: () => ({
+    page: buffCurrentPage.value > 1 ? String(buffCurrentPage.value) : undefined,
+    q: buffDebouncedSearchQuery.value.trim() || undefined,
+  }),
+  hydrate: (query) => {
+    const search = String(firstQueryValue(query.q) ?? '')
+    buffCurrentPage.value = parsePositiveInteger(query.page, 1)
+    buffSearchQuery.value = search
+    buffDebouncedSearchQuery.value = search
+  },
+  watchSources: [buffCurrentPage, buffDebouncedSearchQuery],
+  search: { input: buffSearchQuery, debounced: buffDebouncedSearchQuery, page: buffCurrentPage },
+})
 
 watch(buffDebouncedSearchQuery, () => {
   buffCurrentPage.value = 1
@@ -141,22 +84,6 @@ watch(buffTotalPages, (pages) => {
   if (buffCurrentPage.value > pages) {
     buffCurrentPage.value = pages
   }
-})
-
-watch([buffCurrentPage, buffDebouncedSearchQuery], updateBuffRouteQuery, { flush: 'post' })
-watch(buffRawLoading, syncBuffVisualLoading, { immediate: true })
-watch(() => route.query, hydrateBuffStateFromRoute)
-
-onMounted(() => {
-  buffClientReady.value = true
-})
-
-onBeforeUnmount(() => {
-  if (buffSearchDebounceTimer) {
-    clearTimeout(buffSearchDebounceTimer)
-  }
-
-  clearBuffVisualLoadingTimer()
 })
 </script>
 
@@ -220,12 +147,12 @@ onBeforeUnmount(() => {
       </section>
 
       <section v-else-if="buffDisplayItems.length" class="effect-grid" aria-label="Buff 列表">
-        <a
+        <NuxtLink
           v-for="buff in buffDisplayItems"
           :key="buff.id"
           class="effect-card"
           :class="{ active: buff.typeLabel === '增益', debuff: buff.typeLabel === '减益' }"
-          :href="buff.detailPath"
+          :to="buff.detailPath"
         >
           <i>
             <CommonPreviewImage
@@ -245,7 +172,7 @@ onBeforeUnmount(() => {
             <div><dt>来源</dt><dd>{{ buff.sourceCount ?? 0 }}</dd></div>
             <div><dt>免疫</dt><dd>{{ buff.immuneCount ?? 0 }}</dd></div>
           </dl>
-        </a>
+        </NuxtLink>
       </section>
 
       <section v-else class="search-suggestion-band support-panel">

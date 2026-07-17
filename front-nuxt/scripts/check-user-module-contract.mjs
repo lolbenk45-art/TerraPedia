@@ -602,7 +602,8 @@ assertIncludes('pages/items/[id].vue', publicItemDetail, 'recordItemHistoryOnce'
 assertIncludes('pages/items/[id].vue', publicItemDetail, 'recordedItemHistoryIds', 'item detail must dedupe history records')
 assertPattern('pages/items/[id].vue', publicItemDetail, /const itemHistoryId = computed\(\(\) => detailItem\.value \? firstText\(detailItem\.value\.id, detailItem\.value\.itemId\) : ''\)/, 'item history id must come from loaded item entity only')
 assertPattern('pages/items/[id].vue', publicItemDetail, /const recordItemHistoryOnce = async \(\) => \{[\s\S]*import\.meta\.client[\s\S]*historyStore\.record\('ITEM', itemHistoryId\.value\)/, 'item detail history recording must be client-only inside recordItemHistoryOnce')
-assertPattern('pages/items/[id].vue', publicItemDetail, /watch\(itemHistoryId,[\s\S]*recordItemHistoryOnce[\s\S]*immediate: true/, 'item detail history recording must be watch-driven with immediate once guard')
+assertPattern('pages/items/[id].vue', publicItemDetail, /watch\(itemHistoryId,[\s\S]*recordItemHistoryOnce/, 'item detail history recording must be watch-driven with a once guard')
+assertPattern('pages/items/[id].vue', publicItemDetail, /onMounted\(\(\) => \{[\s\S]*recordItemHistoryOnce/, 'item detail history recording must record the SSR-loaded id on mount instead of an immediate watch (hydration mismatch guard)')
 
 const userIndex = assertFile('pages/user/index.vue')
 assertPattern('pages/user/index.vue', userIndex, /v-for="entry in historyStore\.items"/, 'user center history rows must render from historyStore.items')

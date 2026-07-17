@@ -70,6 +70,8 @@ const closeMenu = () => {
   activeMenu.value = null
 }
 
+const { mobileNavOpen, toggleMobileNav, closeMobileNav } = useMobileNavDrawer()
+
 const accountInitials = computed(() => {
   const source = authStore.displayName || authStore.user?.email || 'TP'
   return Array.from(source.trim()).slice(0, 2).join('').toUpperCase() || 'TP'
@@ -137,6 +139,17 @@ onBeforeUnmount(closeMenu)
     </nav>
 
     <div class="site-actions">
+      <button
+        class="nav-mobile-trigger"
+        type="button"
+        aria-label="打开导航菜单"
+        aria-controls="terra-mobile-nav"
+        :aria-expanded="mobileNavOpen"
+        @click="toggleMobileNav"
+      >
+        <span class="nav-mobile-trigger-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+      </button>
+
       <NuxtLink class="icon-button search-action" to="/search" aria-label="搜索">
         <span class="sprite-icon icon-search compact" aria-hidden="true"></span>
       </NuxtLink>
@@ -321,6 +334,89 @@ onBeforeUnmount(closeMenu)
         </div>
       </div>
     </div>
+
+    <!-- site-nav 的 backdrop-filter 会充当 fixed 后代的 containing block，抽屉必须传送到 body 才能全屏定位。 -->
+    <ClientOnly>
+      <Teleport to="body">
+        <div class="mobile-nav-overlay" :class="{ 'is-open': mobileNavOpen }" aria-hidden="true" @click="closeMobileNav"></div>
+        <div
+          id="terra-mobile-nav"
+          class="mobile-nav-drawer"
+          :class="{ 'is-open': mobileNavOpen }"
+          :aria-hidden="!mobileNavOpen"
+        >
+          <nav class="mobile-nav-section" aria-label="移动主导航">
+            <NuxtLink
+              v-for="link in primaryLinks"
+              :key="link.href"
+              class="mobile-nav-link"
+              :class="{ active: isActive(link.href) }"
+              :to="link.href"
+              :tabindex="mobileNavOpen ? 0 : -1"
+              @click="closeMobileNav"
+            ><b>{{ link.label }}</b></NuxtLink>
+            <NuxtLink
+              class="mobile-nav-link"
+              :class="{ active: isActive('/search') }"
+              to="/search"
+              :tabindex="mobileNavOpen ? 0 : -1"
+              @click="closeMobileNav"
+            ><b>全站检索</b></NuxtLink>
+          </nav>
+          <nav class="mobile-nav-section" aria-label="资料资源">
+            <span class="mobile-nav-section-title">资料资源</span>
+            <NuxtLink
+              v-for="link in resourceLinks"
+              :key="link.href"
+              class="mobile-nav-link"
+              :class="{ active: isActive(link.href) }"
+              :to="link.href"
+              :tabindex="mobileNavOpen ? 0 : -1"
+              @click="closeMobileNav"
+            >
+              <b>{{ link.label }}</b>
+              <small>{{ link.desc }}</small>
+            </NuxtLink>
+          </nav>
+          <nav class="mobile-nav-section" aria-label="账号入口">
+            <span class="mobile-nav-section-title">我的账号</span>
+            <NuxtLink class="mobile-nav-link" :class="{ active: isActive('/user') }" to="/user" :tabindex="mobileNavOpen ? 0 : -1" @click="closeMobileNav"><b>用户中心</b></NuxtLink>
+            <NuxtLink class="mobile-nav-link" :class="{ active: isActive('/user/favorites') }" to="/user/favorites" :tabindex="mobileNavOpen ? 0 : -1" @click="closeMobileNav"><b>收藏夹</b></NuxtLink>
+            <NuxtLink class="mobile-nav-link" :class="{ active: isActive('/user/notifications') }" to="/user/notifications" :tabindex="mobileNavOpen ? 0 : -1" @click="closeMobileNav">
+              <b>通知中心</b>
+              <em v-if="unreadNotificationCount" class="mobile-nav-unread">{{ unreadNotificationCount }}</em>
+            </NuxtLink>
+            <NuxtLink class="mobile-nav-link" :class="{ active: isActive('/user/articles') }" to="/user/articles" :tabindex="mobileNavOpen ? 0 : -1" @click="closeMobileNav"><b>我的文章</b></NuxtLink>
+          </nav>
+          <div class="mobile-nav-theme">
+            <span class="mobile-nav-section-title">主题</span>
+            <div
+              class="theme-toggle theme-selector mobile-nav-theme-toggle"
+              :class="{ 'is-switching': themeStore.isSwitching }"
+              role="radiogroup"
+              aria-label="主题"
+            >
+              <button
+                v-for="option in themeOptions"
+                :key="option.value"
+                class="theme-choice"
+                :class="[`theme-choice-${option.value}`, { active: themeStore.theme === option.value }]"
+                type="button"
+                role="radio"
+                :aria-checked="themeStore.theme === option.value"
+                :aria-label="`切换到${option.label}主题`"
+                :disabled="preferencesStore.mutating"
+                :tabindex="mobileNavOpen ? 0 : -1"
+                @click="selectThemePreference(option.value)"
+              >
+                <span aria-hidden="true"></span>
+                <b>{{ option.shortLabel }}</b>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+    </ClientOnly>
   </header>
 </template>
 
