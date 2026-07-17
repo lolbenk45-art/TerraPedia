@@ -5,6 +5,7 @@ import type { UserArticle } from '~/types/public-api'
 import UserArticleRichEditor from '~/components/user/UserArticleRichEditor.vue'
 import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
 import { formatDisplayDateTime } from '~/lib/displayDateTime.mjs'
+import { formatArticleStatus, formatReviewStatus } from '~/lib/userArticleStatus'
 
 const route = useRoute()
 const authStore = useUserAuthStore()
@@ -130,25 +131,6 @@ const {
 // The edit page only surfaces a restorable draft while the article stays
 // editable ("本地副本与服务端一致时自动清除" lives inside the guard).
 const detectRestorableArticleDraft = () => detectRestorableArticleDraftInternal({ canEdit: canEditArticle.value })
-
-const formatReviewStatus = (status: string) => {
-  const map: Record<string, string> = {
-    DRAFT: '草稿',
-    PENDING_REVIEW: '待审核',
-    APPROVED: '已通过',
-    REJECTED: '已退回',
-  }
-  return map[status] || status
-}
-
-const formatArticleStatus = (status: string) => {
-  const map: Record<string, string> = {
-    DRAFT: '草稿',
-    PUBLISHED: '已发布',
-    OFFLINE: '已下架',
-  }
-  return map[status] || status
-}
 
 const syncForm = (nextArticle: UserArticle) => {
   article.value = nextArticle

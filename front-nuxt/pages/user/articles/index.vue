@@ -4,6 +4,7 @@ definePageMeta({ requiresUserAuth: true })
 import type { UserArticle } from '~/types/public-api'
 import { resolvePreviewImageUrl } from '~/composables/usePreviewImage'
 import { formatDisplayDateTime } from '~/lib/displayDateTime.mjs'
+import { formatReviewStatus } from '~/lib/userArticleStatus'
 
 const authStore = useUserAuthStore()
 const error = ref('')
@@ -19,16 +20,6 @@ const articleCategoryOptions = [
   { key: 'offline', label: '已下架' },
   { key: 'rejected', label: '已退回' },
 ]
-
-const formatReviewStatus = (status: string) => {
-  const map: Record<string, string> = {
-    DRAFT: '草稿',
-    PENDING_REVIEW: '待审核',
-    APPROVED: '已通过',
-    REJECTED: '已退回',
-  }
-  return map[status] || status
-}
 
 const formatArticleState = (article: { status: string, reviewStatus: string }) => {
   if (article.status === 'PUBLISHED') return '已发布'
