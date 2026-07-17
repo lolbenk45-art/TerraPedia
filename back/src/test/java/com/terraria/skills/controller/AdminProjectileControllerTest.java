@@ -12,6 +12,7 @@ import com.terraria.skills.service.ManagedItemImageResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -21,10 +22,13 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -272,5 +276,17 @@ class AdminProjectileControllerTest {
         mockMvc.perform(get("/admin/projectiles/1108"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.nameZh").value("黑曜石之火"));
+    }
+
+    @Test
+    void createProjectileIgnoresClientSuppliedDeletedFlag() throws Exception {
+        mockMvc.perform(post("/admin/projectiles")
+                .contentType("application/json")
+                .content("{\"sourceId\":9999,\"internalName\":\"GhostRow\",\"deleted\":1}"))
+            .andExpect(status().isCreated());
+
+        ArgumentCaptor<Projectile> captor = ArgumentCaptor.forClass(Projectile.class);
+        verify(projectileMapper).insert(captor.capture());
+        assertNull(captor.getValue().getDeleted());
     }
 }

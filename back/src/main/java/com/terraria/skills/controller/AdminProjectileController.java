@@ -102,6 +102,7 @@ public class AdminProjectileController {
         }
 
         request.setId(null);
+        request.setDeleted(null);
         if (request.getStatus() == null) request.setStatus(1);
         projectileMapper.insert(request);
         Projectile created = projectileMapper.selectById(request.getId());
