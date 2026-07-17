@@ -1,0 +1,87 @@
+diff --git a/dist/pinia.cjs b/dist/pinia.cjs
+index 7361d77344eff4e15aa9446d76e2e671962eee92..31d8156003225e71419e43a71ce425be7c547fef 100644
+--- a/dist/pinia.cjs
++++ b/dist/pinia.cjs
+@@ -1170,13 +1170,13 @@ function mergeReactiveObjects(target, patchToApply) {
+     }
+     // no need to go through symbols because they cannot be serialized anyway
+     for (const key in patchToApply) {
+-        if (!patchToApply.hasOwnProperty(key))
++        if (!Object.prototype.hasOwnProperty.call(patchToApply, key))
+             continue;
+         const subPatch = patchToApply[key];
+         const targetValue = target[key];
+         if (isPlainObject(targetValue) &&
+             isPlainObject(subPatch) &&
+-            target.hasOwnProperty(key) &&
++            Object.prototype.hasOwnProperty.call(target, key) &&
+             !vueDemi.isRef(subPatch) &&
+             !vueDemi.isReactive(subPatch)) {
+             // NOTE: here I wanted to warn about inconsistent types but it's not possible because in setup stores one might
+@@ -1211,7 +1211,7 @@ function skipHydrate(obj) {
+  * @returns true if `obj` should be hydrated
+  */
+ function shouldHydrate(obj) {
+-    return !isPlainObject(obj) || !obj.hasOwnProperty(skipHydrateSymbol);
++    return !isPlainObject(obj) || !Object.prototype.hasOwnProperty.call(obj, skipHydrateSymbol);
+ }
+ const { assign } = Object;
+ function isComputed(o) {
+diff --git a/dist/pinia.mjs b/dist/pinia.mjs
+index 0092356ccb9046da25e20360292254ea12f8c16a..4a3173e4fe00f4fb6c906c89dec1db953dddfb20 100644
+--- a/dist/pinia.mjs
++++ b/dist/pinia.mjs
+@@ -1168,13 +1168,13 @@ function mergeReactiveObjects(target, patchToApply) {
+     }
+     // no need to go through symbols because they cannot be serialized anyway
+     for (const key in patchToApply) {
+-        if (!patchToApply.hasOwnProperty(key))
++        if (!Object.prototype.hasOwnProperty.call(patchToApply, key))
+             continue;
+         const subPatch = patchToApply[key];
+         const targetValue = target[key];
+         if (isPlainObject(targetValue) &&
+             isPlainObject(subPatch) &&
+-            target.hasOwnProperty(key) &&
++            Object.prototype.hasOwnProperty.call(target, key) &&
+             !isRef(subPatch) &&
+             !isReactive(subPatch)) {
+             // NOTE: here I wanted to warn about inconsistent types but it's not possible because in setup stores one might
+@@ -1209,7 +1209,7 @@ function skipHydrate(obj) {
+  * @returns true if `obj` should be hydrated
+  */
+ function shouldHydrate(obj) {
+-    return !isPlainObject(obj) || !obj.hasOwnProperty(skipHydrateSymbol);
++    return !isPlainObject(obj) || !Object.prototype.hasOwnProperty.call(obj, skipHydrateSymbol);
+ }
+ const { assign } = Object;
+ function isComputed(o) {
+diff --git a/dist/pinia.prod.cjs b/dist/pinia.prod.cjs
+index 959c6611601956bb17dbd78a39b57d6c333817ab..f58e5079ce9895c6fba471e3e87cca74fbdc406e 100644
+--- a/dist/pinia.prod.cjs
++++ b/dist/pinia.prod.cjs
+@@ -189,13 +189,13 @@ function mergeReactiveObjects(target, patchToApply) {
+     }
+     // no need to go through symbols because they cannot be serialized anyway
+     for (const key in patchToApply) {
+-        if (!patchToApply.hasOwnProperty(key))
++        if (!Object.prototype.hasOwnProperty.call(patchToApply, key))
+             continue;
+         const subPatch = patchToApply[key];
+         const targetValue = target[key];
+         if (isPlainObject(targetValue) &&
+             isPlainObject(subPatch) &&
+-            target.hasOwnProperty(key) &&
++            Object.prototype.hasOwnProperty.call(target, key) &&
+             !vueDemi.isRef(subPatch) &&
+             !vueDemi.isReactive(subPatch)) {
+             // NOTE: here I wanted to warn about inconsistent types but it's not possible because in setup stores one might
+@@ -228,7 +228,7 @@ function skipHydrate(obj) {
+  * @returns true if `obj` should be hydrated
+  */
+ function shouldHydrate(obj) {
+-    return !isPlainObject(obj) || !obj.hasOwnProperty(skipHydrateSymbol);
++    return !isPlainObject(obj) || !Object.prototype.hasOwnProperty.call(obj, skipHydrateSymbol);
+ }
+ const { assign } = Object;
+ function isComputed(o) {

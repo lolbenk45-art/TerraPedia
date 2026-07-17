@@ -7,22 +7,27 @@ settings:
 overrides:
   pinia-plugin-persistedstate: ^3.2.3
 
+patchedDependencies:
+  pinia@2.3.1:
+    hash: zwv665bvads4ycy6bx645bts44
+    path: patches/pinia@2.3.1.patch
+
 importers:
 
   .:
     dependencies:
       '@pinia-plugin-persistedstate/nuxt':
         specifier: ^1.2.1
-        version: 1.2.1(@pinia/nuxt@0.11.3(magicast@0.5.2)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3))))(magicast@0.5.2)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))
+        version: 1.2.1(@pinia/nuxt@0.11.3(magicast@0.5.2)(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3))))(magicast@0.5.2)(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))
       '@pinia/nuxt':
         specifier: ^0.11.3
-        version: 0.11.3(magicast@0.5.2)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))
+        version: 0.11.3(magicast@0.5.2)(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))
       '@vueuse/core':
         specifier: ^11.2.0
         version: 11.3.0(vue@3.5.30(typescript@5.9.3))
       '@vueuse/nuxt':
         specifier: ^11.2.0
-        version: 11.3.0(magicast@0.5.2)(nuxt@4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2))(vue@3.5.30(typescript@5.9.3))
+        version: 11.3.0(magicast@0.5.2)(nuxt@4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2))(vue@3.5.30(typescript@5.9.3))
       ini:
         specifier: ^6.0.0
         version: 6.0.0
@@ -34,16 +39,16 @@ importers:
         version: 3.20.0(@types/node@25.5.0)
       nuxt:
         specifier: ^4.0.0
-        version: 4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2)
+        version: 4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2)
       pinia:
         specifier: ^2.3.0
-        version: 2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3))
+        version: 2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3))
       vue:
         specifier: ^3.5.13
         version: 3.5.30(typescript@5.9.3)
       vue-router:
         specifier: ^5.0.3
-        version: 5.0.3(@vue/compiler-sfc@3.5.30)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(vue@3.5.30(typescript@5.9.3))
+        version: 5.0.3(@vue/compiler-sfc@3.5.30)(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(vue@3.5.30(typescript@5.9.3))
     devDependencies:
       '@nuxtjs/tailwindcss':
         specifier: ^6.12.2
@@ -4730,7 +4735,7 @@ snapshots:
     transitivePeerDependencies:
       - magicast
 
-  '@nuxt/nitro-server@4.4.2(@babel/core@7.29.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(nuxt@4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2))(typescript@5.9.3)':
+  '@nuxt/nitro-server@4.4.2(@babel/core@7.29.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(nuxt@4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2))(typescript@5.9.3)':
     dependencies:
       '@babel/plugin-syntax-typescript': 7.28.6(@babel/core@7.29.0)
       '@nuxt/devalue': 2.0.2
@@ -4749,7 +4754,7 @@ snapshots:
       klona: 2.0.6
       mocked-exports: 0.1.1
       nitropack: 2.13.1(mysql2@3.20.0(@types/node@25.5.0))
-      nuxt: 4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2)
+      nuxt: 4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2)
       nypm: 0.6.5
       ohash: 2.0.11
       pathe: 2.0.3
@@ -4816,7 +4821,7 @@ snapshots:
       rc9: 3.0.0
       std-env: 3.10.0
 
-  '@nuxt/vite-builder@4.4.2(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@types/node@25.5.0)(magicast@0.5.2)(nuxt@4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vue-tsc@3.2.6(typescript@5.9.3))(vue@3.5.30(typescript@5.9.3))(yaml@2.8.2)':
+  '@nuxt/vite-builder@4.4.2(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@types/node@25.5.0)(magicast@0.5.2)(nuxt@4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vue-tsc@3.2.6(typescript@5.9.3))(vue@3.5.30(typescript@5.9.3))(yaml@2.8.2)':
     dependencies:
       '@nuxt/kit': 4.4.2(magicast@0.5.2)
       '@rollup/plugin-replace': 6.0.3(rollup@4.59.0)
@@ -4834,7 +4839,7 @@ snapshots:
       magic-string: 0.30.21
       mlly: 1.8.1
       mocked-exports: 0.1.1
-      nuxt: 4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2)
+      nuxt: 4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2)
       nypm: 0.6.5
       pathe: 2.0.3
       pkg-types: 2.3.0
@@ -5153,20 +5158,20 @@ snapshots:
       '@parcel/watcher-win32-ia32': 2.5.6
       '@parcel/watcher-win32-x64': 2.5.6
 
-  '@pinia-plugin-persistedstate/nuxt@1.2.1(@pinia/nuxt@0.11.3(magicast@0.5.2)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3))))(magicast@0.5.2)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))':
+  '@pinia-plugin-persistedstate/nuxt@1.2.1(@pinia/nuxt@0.11.3(magicast@0.5.2)(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3))))(magicast@0.5.2)(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))':
     dependencies:
       '@nuxt/kit': 3.21.2(magicast@0.5.2)
-      '@pinia/nuxt': 0.11.3(magicast@0.5.2)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))
+      '@pinia/nuxt': 0.11.3(magicast@0.5.2)(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))
       defu: 6.1.4
-      pinia-plugin-persistedstate: 3.2.3(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))
+      pinia-plugin-persistedstate: 3.2.3(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))
     transitivePeerDependencies:
       - magicast
       - pinia
 
-  '@pinia/nuxt@0.11.3(magicast@0.5.2)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))':
+  '@pinia/nuxt@0.11.3(magicast@0.5.2)(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))':
     dependencies:
       '@nuxt/kit': 4.4.2(magicast@0.5.2)
-      pinia: 2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3))
+      pinia: 2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3))
     transitivePeerDependencies:
       - magicast
 
@@ -5547,13 +5552,13 @@ snapshots:
 
   '@vueuse/metadata@11.3.0': {}
 
-  '@vueuse/nuxt@11.3.0(magicast@0.5.2)(nuxt@4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2))(vue@3.5.30(typescript@5.9.3))':
+  '@vueuse/nuxt@11.3.0(magicast@0.5.2)(nuxt@4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2))(vue@3.5.30(typescript@5.9.3))':
     dependencies:
       '@nuxt/kit': 3.21.2(magicast@0.5.2)
       '@vueuse/core': 11.3.0(vue@3.5.30(typescript@5.9.3))
       '@vueuse/metadata': 11.3.0
       local-pkg: 0.5.1
-      nuxt: 4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2)
+      nuxt: 4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2)
       vue-demi: 0.14.10(vue@3.5.30(typescript@5.9.3))
     transitivePeerDependencies:
       - '@vue/composition-api'
@@ -6987,16 +6992,16 @@ snapshots:
     dependencies:
       boolbase: 1.0.0
 
-  nuxt@4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2):
+  nuxt@4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2):
     dependencies:
       '@dxup/nuxt': 0.4.0(magicast@0.5.2)(typescript@5.9.3)
       '@nuxt/cli': 3.34.0(@nuxt/schema@4.4.2)(cac@6.7.14)(commander@11.1.0)(magicast@0.5.2)
       '@nuxt/devtools': 3.2.4(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue@3.5.30(typescript@5.9.3))
       '@nuxt/kit': 4.4.2(magicast@0.5.2)
-      '@nuxt/nitro-server': 4.4.2(@babel/core@7.29.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(nuxt@4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2))(typescript@5.9.3)
+      '@nuxt/nitro-server': 4.4.2(@babel/core@7.29.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(nuxt@4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2))(typescript@5.9.3)
       '@nuxt/schema': 4.4.2
       '@nuxt/telemetry': 2.7.0(@nuxt/kit@4.4.2(magicast@0.5.2))
-      '@nuxt/vite-builder': 4.4.2(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@types/node@25.5.0)(magicast@0.5.2)(nuxt@4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vue-tsc@3.2.6(typescript@5.9.3))(vue@3.5.30(typescript@5.9.3))(yaml@2.8.2)
+      '@nuxt/vite-builder': 4.4.2(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@types/node@25.5.0)(magicast@0.5.2)(nuxt@4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(commander@11.1.0)(db0@0.3.4(mysql2@3.20.0(@types/node@25.5.0)))(ioredis@5.10.0)(magicast@0.5.2)(mysql2@3.20.0(@types/node@25.5.0))(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.23.1)(yaml@2.8.2))(vue-tsc@3.2.6(typescript@5.9.3))(yaml@2.8.2))(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.1)(tsx@4.23.1)(typescript@5.9.3)(vue-tsc@3.2.6(typescript@5.9.3))(vue@3.5.30(typescript@5.9.3))(yaml@2.8.2)
       '@unhead/vue': 2.1.12(vue@3.5.30(typescript@5.9.3))
       '@vue/shared': 3.5.30
       c12: 3.3.3(magicast@0.5.2)
@@ -7044,7 +7049,7 @@ snapshots:
       unrouting: 0.1.7
       untyped: 2.0.0
       vue: 3.5.30(typescript@5.9.3)
-      vue-router: 5.0.3(@vue/compiler-sfc@3.5.30)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(vue@3.5.30(typescript@5.9.3))
+      vue-router: 5.0.3(@vue/compiler-sfc@3.5.30)(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(vue@3.5.30(typescript@5.9.3))
     optionalDependencies:
       '@parcel/watcher': 2.5.6
       '@types/node': 25.5.0
@@ -7289,11 +7294,11 @@ snapshots:
 
   pify@2.3.0: {}
 
-  pinia-plugin-persistedstate@3.2.3(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3))):
+  pinia-plugin-persistedstate@3.2.3(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3))):
     dependencies:
-      pinia: 2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3))
+      pinia: 2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3))
 
-  pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)):
+  pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)):
     dependencies:
       '@vue/devtools-api': 6.6.4
       vue: 3.5.30(typescript@5.9.3)
@@ -8233,7 +8238,7 @@ snapshots:
 
   vue-devtools-stub@0.1.0: {}
 
-  vue-router@5.0.3(@vue/compiler-sfc@3.5.30)(pinia@2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(vue@3.5.30(typescript@5.9.3)):
+  vue-router@5.0.3(@vue/compiler-sfc@3.5.30)(pinia@2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3)))(vue@3.5.30(typescript@5.9.3)):
     dependencies:
       '@babel/generator': 7.29.1
       '@vue-macros/common': 3.1.2(vue@3.5.30(typescript@5.9.3))
@@ -8255,7 +8260,7 @@ snapshots:
       yaml: 2.8.2
     optionalDependencies:
       '@vue/compiler-sfc': 3.5.30
-      pinia: 2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3))
+      pinia: 2.3.1(patch_hash=zwv665bvads4ycy6bx645bts44)(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3))
 
   vue-tsc@3.2.6(typescript@5.9.3):
     dependencies:
