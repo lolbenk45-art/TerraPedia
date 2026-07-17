@@ -1264,7 +1264,13 @@ export const useArticleEditor = (initialArticleId: number | null) => {
       savedAt: new Date().toISOString(),
       data: toLocalDraftSnapshot(form),
     }
-    localStorage.setItem(draftStorageKey.value, JSON.stringify(payload))
+    try {
+      localStorage.setItem(draftStorageKey.value, JSON.stringify(payload))
+    } catch (error) {
+      console.warn('[article-editor] local draft write failed', error)
+      saveStatus.value = 'error'
+      return
+    }
     lastLocalSavedAt.value = payload.savedAt
     if (isDirty.value && !saving.value) {
       saveStatus.value = 'autosaved'
