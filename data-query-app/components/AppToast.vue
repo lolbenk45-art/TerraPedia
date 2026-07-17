@@ -15,15 +15,24 @@
           <strong>{{ toastLabel }}</strong>
           <span>{{ toast.message }}</span>
         </div>
+        <button
+          v-if="toast.type === 'error'"
+          type="button"
+          class="app-toast__close"
+          aria-label="关闭提示"
+          @click="dismiss"
+        >
+          <X :size="16" />
+        </button>
       </div>
     </Transition>
   </Teleport>
 </template>
 
 <script setup lang="ts">
-import { CheckCircle2, CircleAlert, TriangleAlert } from 'lucide-vue-next'
+import { CheckCircle2, CircleAlert, TriangleAlert, X } from 'lucide-vue-next'
 
-const { toast } = useToast()
+const { toast, dismiss } = useToast()
 
 const toastIcon = computed(() => {
   if (toast.value?.type === 'error') return CircleAlert
@@ -82,6 +91,27 @@ const toastLabel = computed(() => {
   font-size: 0.875rem;
   line-height: 1.5;
   opacity: 0.92;
+}
+
+.app-toast__close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.app-toast__close:hover {
+  opacity: 1;
+  background: color-mix(in srgb, currentColor 12%, transparent);
 }
 
 .app-toast--success {

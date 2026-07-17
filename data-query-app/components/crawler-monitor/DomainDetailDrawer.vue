@@ -37,13 +37,24 @@
 
       <div class="domain-drawer__body">
         <section v-if="activeTab === 'overview'" class="drawer-pane">
-          <div class="field-grid">
+          <template v-if="detail?.overviewGroups?.length">
+            <div v-for="group in detail.overviewGroups" :key="group.key" class="field-group">
+              <h3 class="field-group__title">{{ group.title }}</h3>
+              <div class="field-grid">
+                <div v-for="field in group.fields" :key="field.label" class="field">
+                  <small>{{ field.label }}</small>
+                  <strong>{{ field.value }}</strong>
+                </div>
+              </div>
+            </div>
+          </template>
+          <div v-else class="field-grid">
             <div v-for="field in detail?.overviewFields || []" :key="field.label" class="field">
               <small>{{ field.label }}</small>
               <strong>{{ field.value }}</strong>
             </div>
           </div>
-          <p v-if="detail?.v2Attempt" class="v2-timing">{{ detail?.phaseLabel }} · {{ detail?.heartbeatAgeLabel }} · {{ detail?.deadlineLabel }}</p>
+          <p v-if="detail?.v2Attempt && detail?.hasLiveAttempt" class="v2-timing">{{ detail?.phaseLabel }} · {{ detail?.heartbeatAgeLabel }} · {{ detail?.deadlineLabel }}</p>
           <div class="drawer-actions">
             <button
               v-if="primaryAction"
@@ -986,5 +997,25 @@ button.artifact-row {
   .domain-drawer {
     animation: none;
   }
+}
+
+/* overview 分组覆盖层：追加规则，把身份/日志/动作分区，扫一眼可辨 */
+.field-group {
+  margin-bottom: 14px;
+}
+
+.field-group:last-of-type {
+  margin-bottom: 0;
+}
+
+.field-group__title {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+  text-transform: none;
+  border-left: 3px solid var(--color-primary);
+  padding-left: 8px;
 }
 </style>
