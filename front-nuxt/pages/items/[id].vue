@@ -2,6 +2,7 @@
 import RecipeSummaryCard from '~/components/crafting/RecipeSummaryCard.vue'
 import { usePublicItemDetail } from '~/composables/usePublicItemDetail'
 import { buildTerrariaPriceTokens, formatTerrariaPriceTokens, localizeTerrariaPriceShorthandText, toPriceNumber, type TerrariaPriceToken } from '~/utils/price'
+import { createSafeDisplayText } from '~/utils/publicCopy'
 import type {
   PublicItemArmorAttribute,
   PublicItemBuffEffect,
@@ -53,15 +54,8 @@ const firstNumberText = (...values: unknown[]) => {
 }
 
 const firstImageUrl = (...values: unknown[]) => resolvePreviewImageUrl(firstText(...values))
-const rawPublicCopyPattern = /{{|}}|<\/?[a-z][\s\S]*?>|https?:\/\/|wiki\.gg|iteminfo|eicons|internal|wiki\s*(?:page|path)|(?:^|[\s_-])shop[\s_/-]*\d+(?:[\s_/-]*\d+)*(?:$|[\s_-])/i
-const safeItemDisplayText = (...values: unknown[]) => {
-  for (const value of values) {
-    const text = firstText(value).replace(/\s+/g, ' ')
-    if (text && !rawPublicCopyPattern.test(text)) return text
-  }
-
-  return ''
-}
+// 共享安全展示文案(utils/publicCopy),物品页无特有 transform。
+const safeItemDisplayText = createSafeDisplayText()
 const mostlyAsciiPattern = /[A-Za-z][A-Za-z\s,'().|/-]{18,}/
 const itemSourcePhraseLabels: Array<[RegExp, string]> = [
   [/\bCrafted by hand\b/gi, '徒手制作'],

@@ -11,6 +11,7 @@ import type {
   PublicNpcTraceableItemSummary,
 } from '~/types/public-api'
 import { buildTerrariaPriceTokens, formatTerrariaPriceTokens, localizeTerrariaPriceShorthandText, resolveTerrariaPriceUnitLabel, type TerrariaPriceToken } from '~/utils/price'
+import { createSafeDisplayText } from '~/utils/publicCopy'
 
 const route = useRoute()
 const detailLayout = useDetailLayout({ kind: 'npc', density: 'compact' })
@@ -65,15 +66,8 @@ const buffRelationSections = computed(() => [
 ].filter((section) => section.entries.length > 0))
 
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
-const rawPublicCopyPattern = /{{|}}|<\/?[a-z][\s\S]*?>|https?:\/\/|wiki\.gg|iteminfo|eicons|internal|wiki\s*(?:page|path)|(?:^|[\s_-])shop[\s_/-]*\d+(?:[\s_/-]*\d+)*(?:$|[\s_-])/i
-const safeNpcDisplayText = (...values: unknown[]) => {
-  for (const value of values) {
-    const text = localizeTerrariaPriceShorthandText(firstText(value)).replace(/\s+/g, ' ')
-    if (text && !rawPublicCopyPattern.test(text)) return text
-  }
-
-  return ''
-}
+// 共享安全展示文案(utils/publicCopy):NPC 特有分支 = 渲染前本地化泰拉瑞亚钱币简写。
+const safeNpcDisplayText = createSafeDisplayText(localizeTerrariaPriceShorthandText)
 const displayName = computed(() => safeNpcDisplayText(npc.value?.nameZh, npc.value?.name) || `NPC ${routeNpcId.value}`)
 const secondaryName = computed(() => {
   const zhName = safeNpcDisplayText(npc.value?.nameZh)

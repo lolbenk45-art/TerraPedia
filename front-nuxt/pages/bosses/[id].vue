@@ -13,6 +13,7 @@ import type {
   PublicBossMoneyToken,
 } from '~/types/public-api'
 import type { TerrariaPriceToken } from '~/utils/price'
+import { createSafeDisplayText } from '~/utils/publicCopy'
 
 const route = useRoute()
 const detailLayout = useDetailLayout({ kind: 'boss', density: 'readable' })
@@ -46,15 +47,8 @@ const bossMissing = computed(() => bossClientReady.value && !bossPending.value &
 const bossTitle = computed(() => bossCard.value?.displayName || bossDetail.value?.nameZh || bossDetail.value?.name || 'Boss 详情')
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
 const displayText = (...values: unknown[]) => values.map((value) => String(value ?? '').trim()).find(Boolean) || ''
-const rawPublicCopyPattern = /{{|}}|<\/?[a-z][\s\S]*?>|https?:\/\/|wiki\.gg|iteminfo|eicons|internal|wiki\s*(?:page|path)|(?:^|[\s_-])shop[\s_/-]*\d+(?:[\s_/-]*\d+)*(?:$|[\s_-])/i
-const safeBossDisplayText = (...values: unknown[]) => {
-  for (const value of values) {
-    const text = displayText(value).replace(/\s+/g, ' ')
-    if (text && !rawPublicCopyPattern.test(text)) return text
-  }
-
-  return ''
-}
+// 共享安全展示文案(utils/publicCopy),Boss 页无特有 transform。
+const safeBossDisplayText = createSafeDisplayText()
 const bossSubtitle = computed(() => safeBossDisplayText(bossCard.value?.englishName, bossDetail.value?.nameEn) || '公开 Boss 资料')
 const bossProgressionLabel = computed(() => (
   bossCard.value?.progressionOrder == null ? '顺序未标注' : `推进 #${bossCard.value.progressionOrder}`

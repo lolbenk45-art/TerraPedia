@@ -1885,7 +1885,7 @@ for (const path of scanFiles) {
       violations.push(`${path}: NPC hero behavior notes must use display-safe text before rendering`)
     }
 
-    if (!content.includes('localizeTerrariaPriceShorthandText(firstText(value))')) {
+    if (!content.includes('createSafeDisplayText(localizeTerrariaPriceShorthandText)')) {
       violations.push(`${path}: NPC hero and relation copy must localize Terraria coin shorthand before rendering public text`)
     }
 
