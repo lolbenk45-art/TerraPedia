@@ -26,6 +26,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+
 @Slf4j
 @RestController
 @RequestMapping("/auth")
@@ -52,8 +55,9 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .body(ApiResponse.error(HttpStatus.TOO_MANY_REQUESTS.value(), "管理员登录失败次数过多，请稍后再试"));
         }
-        if (!adminAuthProperties.getUsername().equals(username)
-            || !adminAuthProperties.getPassword().equals(request.getPassword())) {
+        boolean usernameMatches = constantTimeEquals(adminAuthProperties.getUsername(), username);
+        boolean passwordMatches = constantTimeEquals(adminAuthProperties.getPassword(), request.getPassword());
+        if (!usernameMatches || !passwordMatches) {
             adminLoginRateLimitService.recordFailure(username, ipAddress);
             securityAuditService.log("ADMIN_LOGIN_FAILED", "ADMIN", null, null, ipAddress, "username=" + username);
             log.warn("管理员登录失败 username={}", username);
@@ -89,5 +93,15 @@ public class AuthController {
             .displayName(claims.getDisplayName())
             .role(claims.getRole())
             .build();
+    }
+
+    private boolean constantTimeEquals(String expected, String provided) {
+        if (expected == null || provided == null) {
+            return false;
+        }
+        return MessageDigest.isEqual(
+            expected.getBytes(StandardCharsets.UTF_8),
+            provided.getBytes(StandardCharsets.UTF_8)
+        );
     }
 }
