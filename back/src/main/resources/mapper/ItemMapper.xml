@@ -715,6 +715,8 @@
             i.category_id AS categoryId,
             c.name AS categoryName,
             i.rarity_id AS rarityId,
+            i.buy,
+            i.sell,
             COALESCE(ir.display_name_zh, ir.display_name_en) AS rarity
         FROM items i
         LEFT JOIN category c ON c.id = i.category_id AND c.deleted = 0
