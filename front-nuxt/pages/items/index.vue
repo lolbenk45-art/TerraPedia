@@ -72,7 +72,6 @@ const catalogCategoryGroups: readonly CatalogCategoryGroup[] = [
       { key: 'bar', label: '锭', categoryCodes: ['MATERIAL_BAR'] },
       { key: 'station', label: '工作站', categoryCodes: ['FURNITURE_CRAFTING_STATION'] },
       { key: 'mechanism', label: '机关', categoryCodes: ['TOOL_CIRCUIT'] },
-      { key: 'wiring', label: '电路', categoryCodes: ['TOOL_CIRCUIT'] },
     ],
   },
   {
@@ -85,7 +84,6 @@ const catalogCategoryGroups: readonly CatalogCategoryGroup[] = [
       { key: 'pet', label: '宠物', categoryCodes: ['PET'] },
       { key: 'lighting', label: '照明', categoryCodes: ['FURNITURE_LIGHT'] },
       { key: 'key', label: '钥匙', categoryCodes: ['MATERIAL_KEY'] },
-      { key: 'treasure', label: '宝藏袋', categoryCodes: ['CONSUMABLE_GRAB', 'CONSUMABLE_GRAB_BAG'] },
     ],
   },
   {
@@ -97,7 +95,6 @@ const catalogCategoryGroups: readonly CatalogCategoryGroup[] = [
       { key: 'wall', label: '墙', categoryCodes: ['MATERIAL_WALL'] },
       { key: 'furniture', label: '家具', navigationSlug: 'furniture' },
       { key: 'door', label: '门', categoryCodes: ['FURNITURE_FUNCTIONAL'] },
-      { key: 'platform', label: '平台', categoryCodes: ['MATERIAL_BLOCK'] },
       { key: 'decor', label: '装饰', categoryCodes: ['FURNITURE_DECORATION'] },
     ],
   },
@@ -117,6 +114,17 @@ const catalogCategoryGroups: readonly CatalogCategoryGroup[] = [
 ] satisfies readonly CatalogCategoryGroup[]
 
 const quickFilters = catalogCategoryGroups.flatMap((group) => group.filters)
+// 旧同义筛选项的深链兼容:wiring/platform/treasure 与保留项指向同一分类 code,
+// 2026-07-17 去重后旧 URL 映射到保留 key(P0-4)。
+const legacyFilterAliases: Record<string, string> = {
+  wiring: 'mechanism',
+  platform: 'block',
+  treasure: 'boss-drop',
+}
+const resolveFilterQueryKey = (value: unknown) => {
+  const key = String(value ?? '')
+  return legacyFilterAliases[key] ?? key
+}
 const pageSizeOptions = [12, 24, 48, 96]
 
 type QuickFilterKey = string
@@ -136,7 +144,7 @@ const readStoredPageSize = () => {
 }
 
 const hydrateCatalogStateFromRoute = () => {
-  const filter = firstQueryValue(route.query.filter)
+  const filter = resolveFilterQueryKey(firstQueryValue(route.query.filter))
   const category = firstQueryValue(route.query.category)
   const search = String(firstQueryValue(route.query.q) ?? '')
   const queryPageSize = firstQueryValue(route.query.pageSize)
@@ -429,7 +437,7 @@ useCatalogRouteSync({
     search: undefined,
   }),
   hydrate: (query) => {
-    const filter = firstQueryValue(query.filter)
+    const filter = resolveFilterQueryKey(firstQueryValue(query.filter))
     const search = String(firstQueryValue(query.q ?? query.search) ?? '')
     const queryPageSize = firstQueryValue(query.pageSize)
 
