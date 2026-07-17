@@ -1016,6 +1016,8 @@ const scanFiles = [
   'components/crafting/StationRequirementGroup.vue',
   'components/crafting/RecipeSummaryCard.vue',
   'components/catalog/CatalogWallSkeleton.vue',
+  'components/catalog/CatalogCategoryDrawer.vue',
+  'components/catalog/ArmorSetCard.vue',
   'components/detail/ItemDetailSkeleton.vue',
   'components/search/SuggestionSkeletonRows.vue',
   'components/home/HomeHero.vue',
@@ -2879,14 +2881,14 @@ for (const path of scanFiles) {
       'armorVisualLoading',
       'armorLoadingSlotCount',
       'goToArmorPage',
-      '<NuxtLink',
-      ':to="`/armor-sets/${armor.armorSetId}`"',
+      '<CatalogArmorSetCard',
+      ':armor="armor"',
+      'v-for="armor in armorCatalogCards"',
       '<CommonPaginationDock',
       '<CommonTpSkeleton',
       '<CommonPreviewImage',
       ':aria-busy="armorVisualLoading"',
       '{{ armorHeroEyebrow }}',
-      'armorDisplayItems.filter((entry) => entry.armorSetId)',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: armor sets page must render live public armor data with search, paging, preview images, skeleton loading, and fallback-safe heading via marker ${marker}`)
@@ -2931,11 +2933,12 @@ for (const path of scanFiles) {
       'catalogWallTopRef',
       'scrollIntoView',
       'catalog-category-column',
-      'catalog-category-drawer',
-      'catalog-category-group',
+      'catalog-category-drawer-desktop',
       'catalog-wall-content',
       'catalog-wall-board',
-      'catalog-density-picker',
+      '<CatalogCategoryDrawer',
+      ':groups="catalogCategoryGroups"',
+      ':page-size-options="pageSizeOptions"',
       '<CommonPaginationDock',
       'jump-id="catalog-page-jump"',
       '@page-change="goToPage"',
@@ -2947,19 +2950,11 @@ for (const path of scanFiles) {
       }
     }
 
-    if (!content.includes('武器') || !content.includes('照明') || !content.includes('机关') || !content.includes('Boss 掉落')) {
-      violations.push(`${path}: category drawer must include redundant category coverage for future category API mapping`)
-    }
-
-    if (!content.includes('v-for="group in catalogCategoryGroups"') || !content.includes('v-for="filter in group.filters"')) {
-      violations.push(`${path}: category drawer must render grouped redundant categories from catalogCategoryGroups`)
-    }
-
     if (!content.includes('<CommonPaginationDock') || !content.includes('@page-change="goToPage"')) {
       violations.push(`${path}: light page dock must render through CommonPaginationDock wired to goToPage`)
     }
 
-    if (!content.includes('jump-id="catalog-page-jump"') || !content.includes('v-for="pageSize in pageSizeOptions"')) {
+    if (!content.includes('jump-id="catalog-page-jump"') || !content.includes(':page-size-options="pageSizeOptions"')) {
       violations.push(`${path}: light page dock and drawer must keep reusable jump-page and page-size controls wired`)
     }
 
@@ -3064,6 +3059,44 @@ for (const path of scanFiles) {
 
     if (!content.includes('<CommonPreviewImage') || !content.includes(':source-image="item.sourceImage"')) {
       violations.push(`${path}: item wall cells must use PreviewImage so real API items without managed images render a controlled glyph fallback`)
+    }
+  }
+
+  if (path === 'components/catalog/CatalogCategoryDrawer.vue') {
+    for (const marker of [
+      'catalog-category-drawer',
+      'catalog-category-group',
+      'catalog-density-picker',
+      'v-for="group in groups"',
+      'v-for="filter in group.filters"',
+      'v-for="pageSize in pageSizeOptions"',
+      "'select-filter'",
+      "'select-page-size'",
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: shared item category drawer must render grouped filters and the page-size picker via marker ${marker}`)
+      }
+    }
+  }
+
+  if (path === 'components/catalog/ArmorSetCard.vue') {
+    for (const marker of [
+      'armor-card',
+      'armor-card-body',
+      'armor-benefit-lines',
+      'armor-effect-row',
+      'armorSummary',
+      'armorSecondaryLabel',
+      'shownEffects',
+      'effectToneClass',
+      'effectLabel',
+      "`/armor-sets/${armor.armorSetId}`",
+      "hasDetail ? resolveComponent('NuxtLink') : 'article'",
+      '<CommonPreviewImage',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: shared armor set card must render the live armor card content and link/article shell via marker ${marker}`)
+      }
     }
   }
 

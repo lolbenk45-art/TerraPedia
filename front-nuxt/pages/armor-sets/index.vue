@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { usePublicArmorSets } from '~/composables/usePublicArmorSets'
-import type { ArmorSetCatalogItem, EquipmentEffectAttribute, PublicArmorSetQuery } from '~/types/public-api'
+import type { PublicArmorSetQuery } from '~/types/public-api'
+import { armorSummary, effectLabel, effectToneClass, shownEffects } from '~/utils/armorSetPresentation'
 
 useSeoMeta({
   title: 'TerraPedia · 套装路线',
@@ -11,21 +12,6 @@ const armorSearchQuery = ref('')
 const armorDebouncedSearchQuery = ref('')
 const armorCurrentPage = ref(1)
 const armorPageSize = ref(24)
-
-const statLabels: Record<string, string> = {
-  damage_bonus: '伤害',
-  crit_chance: '暴击',
-  move_speed: '移速',
-  melee_speed: '近战速度',
-  summon_damage: '召唤伤害',
-  minion_capacity: '仆从',
-  ammo_conservation: '弹药节省',
-  defense: '防御',
-  mana_max: '魔力',
-  mana_cost: '魔耗',
-  mining_speed: '挖矿',
-  special_effect: '特效',
-}
 
 // 深链双请求根治(WP-4):路由 hydrate 在取数 composable 之前同步执行,
 // 首个请求即带 page/搜索词,避免默认态先发一次、hydrate 后再补一次。
@@ -76,9 +62,18 @@ const armorHeroEyebrow = computed(() => {
 const armorLoadingSlotCount = computed(() => Math.min(armorPageSize.value, 24))
 const featuredArmor = computed(() => armorDisplayItems.value.find((item) => item.parsedEffects.length >= 3) ?? armorDisplayItems.value[0] ?? null)
 
-const armorSecondaryLabel = (armor: ArmorSetCatalogItem) => (
-  armor.englishName || '防具套装'
-)
+// 卡片渲染顺序:有 armorSetId(可链接详情)的排前,无的降级排后,
+// 与原双 v-for(先 NuxtLink 块后 article 块)顺序一致。收敛为单个 v-for 后
+// 也只对 pieces 遍历一次,消除同帧两次 .filter()。
+const armorCatalogCards = computed(() => {
+  const withDetail = []
+  const withoutDetail = []
+  for (const armor of armorDisplayItems.value) {
+    if (armor.armorSetId) withDetail.push(armor)
+    else withoutDetail.push(armor)
+  }
+  return [...withDetail, ...withoutDetail]
+})
 
 const goToArmorPage = (page: number) => {
   const nextPage = Math.min(Math.max(1, page), armorTotalPages.value)
@@ -94,56 +89,6 @@ const resetArmorSearch = () => {
   armorSearchQuery.value = ''
   armorDebouncedSearchQuery.value = ''
   armorCurrentPage.value = 1
-}
-
-const numberLabel = (value: number | null | undefined) => (
-  value == null ? '未标记' : value.toLocaleString('zh-CN')
-)
-
-const formatEffectValue = (effect: EquipmentEffectAttribute) => {
-  const numeric = Number(effect.valueDecimal)
-  if (!Number.isFinite(numeric)) {
-    return effect.unit === 'boolean' ? '' : ''
-  }
-
-  if (effect.unit === 'percent') return `${numeric > 0 ? '+' : ''}${numeric}%`
-  if (effect.unit === 'multiplier') return `×${numeric}`
-  return `${numeric > 0 ? '+' : ''}${numeric}`
-}
-
-const effectLabel = (effect: EquipmentEffectAttribute) => {
-  const key = String(effect.statKey ?? '')
-  const label = statLabels[key] ?? effect.statLabelZh ?? key
-  const value = formatEffectValue(effect)
-  const scope = effect.classScope && effect.classScope !== 'all' ? ` · ${effect.classScope}` : ''
-  return `${label}${value ? ` ${value}` : ''}${scope}`
-}
-
-const effectToneClass = (effect: EquipmentEffectAttribute) => {
-  const key = String(effect.statKey ?? '')
-  if (/damage|crit|melee|summon|ammo/.test(key)) return 'is-offense'
-  if (/move|speed|dash|acceleration/.test(key)) return 'is-mobility'
-  if (/defense|immunity/.test(key)) return 'is-defense'
-  return 'is-special'
-}
-
-const shownEffects = (armor: ArmorSetCatalogItem, limit = 6) => {
-  const parsed = armor.parsedEffects.length ? armor.parsedEffects : armor.effects
-  return parsed.slice(0, limit)
-}
-
-const benefitLines = (armor: ArmorSetCatalogItem, limit = 4) => (
-  armor.benefitZh
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .slice(0, limit)
-)
-
-const armorSummary = (armor: ArmorSetCatalogItem) => {
-  const parsedCount = armor.parsedEffects.length
-  const totalCount = armor.effects.length
-  return `${numberLabel(armor.uniqueItemCount)} 个部件 · ${parsedCount}/${totalCount} 条效果`
 }
 
 watch(armorDebouncedSearchQuery, () => {
@@ -239,76 +184,12 @@ watch(armorTotalPages, (pages) => {
       </section>
 
       <section v-else-if="armorDisplayItems.length" class="armor-grid" aria-label="套装列表">
-        <NuxtLink
-          v-for="armor in armorDisplayItems.filter((entry) => entry.armorSetId)"
+        <CatalogArmorSetCard
+          v-for="armor in armorCatalogCards"
           :key="armor.id"
-          class="armor-card armor-card-live armor-card-link"
-          :class="{ active: armor.id === featuredArmor?.id }"
-          :to="`/armor-sets/${armor.armorSetId}`"
-          :aria-label="`查看套装 ${armor.displayName}`"
-        >
-          <CommonPreviewImage
-            :src="armor.image"
-            :alt="armor.displayName"
-            :fallback="armor.fallback"
-            fallback-icon="icon-armor"
-            :source-image="armor.sourceImage"
-            width="88"
-            height="92"
-          />
-          <div class="armor-card-body">
-            <span>{{ armorSecondaryLabel(armor) }}</span>
-            <h3>{{ armor.displayName }}</h3>
-            <p>{{ armorSummary(armor) }}</p>
-            <div v-if="armor.benefitZh" class="armor-benefit-lines" aria-label="套装效果">
-              <span v-for="line in benefitLines(armor)" :key="`${armor.id}-${line}`">{{ line }}</span>
-            </div>
-            <div v-if="shownEffects(armor).length" class="armor-effect-row">
-              <span
-                v-for="effect in shownEffects(armor)"
-                :key="`${armor.id}-${effect.statKey}-${effect.rawText}`"
-                :class="effectToneClass(effect)"
-              >
-                {{ effectLabel(effect) }}
-              </span>
-            </div>
-          </div>
-          <em>{{ armor.setCount ?? 1 }} 组</em>
-        </NuxtLink>
-        <article
-          v-for="armor in armorDisplayItems.filter((entry) => !entry.armorSetId)"
-          :key="armor.id"
-          class="armor-card armor-card-live"
-          :class="{ active: armor.id === featuredArmor?.id }"
-        >
-          <CommonPreviewImage
-            :src="armor.image"
-            :alt="armor.displayName"
-            :fallback="armor.fallback"
-            fallback-icon="icon-armor"
-            :source-image="armor.sourceImage"
-            width="88"
-            height="92"
-          />
-          <div class="armor-card-body">
-            <span>{{ armorSecondaryLabel(armor) }}</span>
-            <h3>{{ armor.displayName }}</h3>
-            <p>{{ armorSummary(armor) }}</p>
-            <div v-if="armor.benefitZh" class="armor-benefit-lines" aria-label="套装效果">
-              <span v-for="line in benefitLines(armor)" :key="`${armor.id}-${line}`">{{ line }}</span>
-            </div>
-            <div v-if="shownEffects(armor).length" class="armor-effect-row">
-              <span
-                v-for="effect in shownEffects(armor)"
-                :key="`${armor.id}-${effect.statKey}-${effect.rawText}`"
-                :class="effectToneClass(effect)"
-              >
-                {{ effectLabel(effect) }}
-              </span>
-            </div>
-          </div>
-          <em>{{ armor.setCount ?? 1 }} 组</em>
-        </article>
+          :armor="armor"
+          :active="armor.id === featuredArmor?.id"
+        />
       </section>
 
       <section v-else class="search-suggestion-band support-panel">
