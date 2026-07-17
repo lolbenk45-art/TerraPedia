@@ -24,6 +24,28 @@ const bossTypeOptions = [
 const bossTypeLabel = (type: string) => bossTypeOptions.find((option) => option.type === type)?.label ?? 'Boss'
 const selectedBossTypeLabel = computed(() => bossTypeLabel(selectedBossType.value))
 
+// 深链双请求根治(WP-4):路由 hydrate 在取数 composable 之前同步执行,
+// 首个请求即带 page/搜索词/类型,避免默认态先发一次再补发。
+useCatalogRouteSync({
+  serialize: () => ({
+    page: bossCurrentPage.value > 1 ? String(bossCurrentPage.value) : undefined,
+    q: bossDebouncedSearchQuery.value.trim() || undefined,
+    type: selectedBossType.value || undefined,
+    bossType: undefined,
+  }),
+  hydrate: (query) => {
+    const search = String(firstQueryValue(query.q) ?? '')
+    const bossType = String(firstQueryValue(query.type ?? query.bossType) ?? '')
+    const bossTypeRouteState = { type: bossType }
+    bossCurrentPage.value = parsePositiveInteger(query.page, 1)
+    bossSearchQuery.value = search
+    bossDebouncedSearchQuery.value = search
+    selectedBossType.value = bossTypeOptions.some((option) => option.type === bossTypeRouteState.type) ? bossTypeRouteState.type : ''
+  },
+  watchSources: [bossCurrentPage, bossDebouncedSearchQuery, selectedBossType],
+  search: { input: bossSearchQuery, debounced: bossDebouncedSearchQuery, page: bossCurrentPage },
+})
+
 const bossListQuery = computed(() => ({
   page: bossCurrentPage.value,
   limit: bossPageSize.value,
@@ -84,26 +106,6 @@ const resetBossFilters = () => {
   selectedBossType.value = ''
   bossCurrentPage.value = 1
 }
-
-useCatalogRouteSync({
-  serialize: () => ({
-    page: bossCurrentPage.value > 1 ? String(bossCurrentPage.value) : undefined,
-    q: bossDebouncedSearchQuery.value.trim() || undefined,
-    type: selectedBossType.value || undefined,
-    bossType: undefined,
-  }),
-  hydrate: (query) => {
-    const search = String(firstQueryValue(query.q) ?? '')
-    const bossType = String(firstQueryValue(query.type ?? query.bossType) ?? '')
-    const bossTypeRouteState = { type: bossType }
-    bossCurrentPage.value = parsePositiveInteger(query.page, 1)
-    bossSearchQuery.value = search
-    bossDebouncedSearchQuery.value = search
-    selectedBossType.value = bossTypeOptions.some((option) => option.type === bossTypeRouteState.type) ? bossTypeRouteState.type : ''
-  },
-  watchSources: [bossCurrentPage, bossDebouncedSearchQuery, selectedBossType],
-  search: { input: bossSearchQuery, debounced: bossDebouncedSearchQuery, page: bossCurrentPage },
-})
 
 watch(bossTotalPages, (pages) => {
   if (bossCurrentPage.value > pages) {

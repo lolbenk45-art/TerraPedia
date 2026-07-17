@@ -96,6 +96,39 @@ const selectedFilterGroup = computed<NpcCategoryGroup>(() => (
 ))
 const activeFilterPath = computed(() => `${selectedFilterGroup.value.label} / ${selectedFilter.value.label}`)
 const activeFilterLabel = computed(() => selectedFilter.value.label)
+
+// 深链双请求根治(WP-4):路由 hydrate 在取数 composable 之前同步执行,
+// 首个请求即带 page/分类/搜索词,避免默认态先发一次、hydrate 后再补一次。
+useCatalogRouteSync({
+  serialize: () => ({
+    page: currentPage.value > 1 ? String(currentPage.value) : undefined,
+    pageSize: selectedPageSize.value !== defaultNpcPageSize ? String(selectedPageSize.value) : undefined,
+    filter: activeFilter.value !== 'all' ? activeFilter.value : undefined,
+    search: debouncedNpcSearch.value.trim() || undefined,
+    categoryId: selectedNpcCategoryId.value == null ? undefined : String(selectedNpcCategoryId.value),
+    isTownNpc: selectedFilter.value.isTownNpc === true ? 'true' : undefined,
+    town: undefined,
+  }),
+  hydrate: (query) => {
+    const filter = firstQueryValue(query.filter)
+    const legacyTown = String(firstQueryValue(query.isTownNpc ?? query.town) ?? '').toLowerCase()
+    const search = String(firstQueryValue(query.search ?? query.q) ?? '')
+    const queryPageSize = firstQueryValue(query.pageSize)
+    const categoryId = Number(firstQueryValue(query.categoryId))
+
+    selectedPageSize.value = queryPageSize ? parsePageSize(queryPageSize) : readStoredPageSize()
+    currentPage.value = parsePositiveInteger(query.page, 1)
+    selectedNpcCategoryId.value = Number.isFinite(categoryId) && categoryId > 0 ? Math.floor(categoryId) : null
+    activeFilter.value = quickFilters.some((item) => item.key === filter)
+      ? filter as QuickFilterKey
+      : legacyTown === 'true' || legacyTown === '1' ? 'town' : 'all'
+    npcSearch.value = search
+    debouncedNpcSearch.value = search
+  },
+  watchSources: [currentPage, selectedPageSize, activeFilter, debouncedNpcSearch, selectedNpcCategoryId],
+  search: { input: npcSearch, debounced: debouncedNpcSearch, page: currentPage },
+})
+
 const backendSearch = computed(() => debouncedNpcSearch.value.trim())
 const publicNpcQuery = computed(() => ({
   page: currentPage.value,
@@ -230,36 +263,6 @@ const goToNextPage = () => {
     void scrollNpcWallToTop()
   }
 }
-
-useCatalogRouteSync({
-  serialize: () => ({
-    page: currentPage.value > 1 ? String(currentPage.value) : undefined,
-    pageSize: selectedPageSize.value !== defaultNpcPageSize ? String(selectedPageSize.value) : undefined,
-    filter: activeFilter.value !== 'all' ? activeFilter.value : undefined,
-    search: debouncedNpcSearch.value.trim() || undefined,
-    categoryId: selectedNpcCategoryId.value == null ? undefined : String(selectedNpcCategoryId.value),
-    isTownNpc: selectedFilter.value.isTownNpc === true ? 'true' : undefined,
-    town: undefined,
-  }),
-  hydrate: (query) => {
-    const filter = firstQueryValue(query.filter)
-    const legacyTown = String(firstQueryValue(query.isTownNpc ?? query.town) ?? '').toLowerCase()
-    const search = String(firstQueryValue(query.search ?? query.q) ?? '')
-    const queryPageSize = firstQueryValue(query.pageSize)
-    const categoryId = Number(firstQueryValue(query.categoryId))
-
-    selectedPageSize.value = queryPageSize ? parsePageSize(queryPageSize) : readStoredPageSize()
-    currentPage.value = parsePositiveInteger(query.page, 1)
-    selectedNpcCategoryId.value = Number.isFinite(categoryId) && categoryId > 0 ? Math.floor(categoryId) : null
-    activeFilter.value = quickFilters.some((item) => item.key === filter)
-      ? filter as QuickFilterKey
-      : legacyTown === 'true' || legacyTown === '1' ? 'town' : 'all'
-    npcSearch.value = search
-    debouncedNpcSearch.value = search
-  },
-  watchSources: [currentPage, selectedPageSize, activeFilter, debouncedNpcSearch, selectedNpcCategoryId],
-  search: { input: npcSearch, debounced: debouncedNpcSearch, page: currentPage },
-})
 
 watch(npcCards, (items) => {
   if (!focusedNpcId.value && items[0]) {
