@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-17 12:40 CST by Claude
+Last updated: 2026-07-17 (late) by Claude
 
 ## Open Work
 
@@ -9,6 +9,10 @@ Last updated: 2026-07-17 12:40 CST by Claude
 - Uncommitted work pending user acceptance: triage-board layout fixes,
   V1-engine warning banner, one-shot V2 cutover script. See
   `entries/2026-07-17-crawler-v2-per-env-activation-guard.md`.
+- Admin P0 audit batch is complete (8/8, commits `e6cda9c`..`ad8e9bd`); see
+  `entries/2026-07-17-admin-p0-security-batch.md` for verification evidence
+  and the three explicit follow-ups (backend @Profile for test-state,
+  ItemMapperPreferredImageSqlTest baseline reds, P1 dead-code sweep).
 
 ## Active Focus
 
@@ -54,6 +58,11 @@ Last updated: 2026-07-17 12:40 CST by Claude
   data; their route and fail-closed contracts remain the acceptance boundary.
 
 ## Recently Closed
+
+- `docs/devlog/entries/2026-07-17-admin-p0-security-batch.md`
+  - branch: `dev/post-merge-acceptance`
+  - status: `closed`
+  - commits: `e6cda9c` `f750425` `4db4df8` `462e483` `7a0a82e` `f8f9b3a` `cc287de` `ad8e9bd`
 
 - `docs/devlog/entries/2026-07-17-v2-main-merge-integration.md`
   - branch: `main`
