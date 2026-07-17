@@ -76,14 +76,19 @@ const submit = async () => {
           <span>邮箱</span>
           <input v-model.trim="form.email" type="email" autocomplete="email" required />
         </label>
-        <label>
-          <span>密码</span>
-          <input v-model="form.password" type="password" autocomplete="new-password" minlength="10" maxlength="64" required />
-        </label>
+        <UserPasswordInput
+          v-model="form.password"
+          input-id="register-password"
+          label="密码"
+          autocomplete="new-password"
+          minlength="10"
+          maxlength="64"
+          required
+        />
         <p class="user-field-hint">密码需为 10-64 位，并同时包含字母和数字。</p>
         <label>
           <span>验证码</span>
-          <input v-model.trim="form.verificationCode" type="text" inputmode="numeric" pattern="[0-9]{4,8}" required />
+          <input v-model.trim="form.verificationCode" type="text" inputmode="numeric" pattern="[0-9]{4,8}" autocomplete="one-time-code" required />
         </label>
         <button class="secondary-button" type="button" :disabled="authStore.submitting || !form.email" @click="requestCode">
           {{ authStore.submitting ? '处理中...' : '发送验证码' }}

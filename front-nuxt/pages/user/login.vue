@@ -48,10 +48,13 @@ const submit = async () => {
           <span>邮箱</span>
           <input v-model.trim="form.email" type="email" autocomplete="email" required />
         </label>
-        <label>
-          <span>密码</span>
-          <input v-model="form.password" type="password" autocomplete="current-password" required />
-        </label>
+        <UserPasswordInput
+          v-model="form.password"
+          input-id="login-password"
+          label="密码"
+          autocomplete="current-password"
+          required
+        />
         <p class="user-field-hint">登录状态会安全保存。</p>
         <p v-if="error" class="user-form-status user-form-error" aria-live="polite">{{ error }}</p>
         <button class="primary-button" type="submit" :disabled="authStore.submitting">

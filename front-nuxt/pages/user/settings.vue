@@ -187,14 +187,22 @@ const submitPreferences = async () => {
 
         <form class="user-settings-form" @submit.prevent="submitPassword">
           <span class="eyebrow">密码</span>
-          <label>
-            <span>当前密码</span>
-            <input v-model="passwordForm.currentPassword" type="password" autocomplete="current-password" required />
-          </label>
-          <label>
-            <span>新密码</span>
-            <input v-model="passwordForm.newPassword" type="password" autocomplete="new-password" minlength="10" maxlength="64" required />
-          </label>
+          <UserPasswordInput
+            v-model="passwordForm.currentPassword"
+            input-id="settings-current-password"
+            label="当前密码"
+            autocomplete="current-password"
+            required
+          />
+          <UserPasswordInput
+            v-model="passwordForm.newPassword"
+            input-id="settings-new-password"
+            label="新密码"
+            autocomplete="new-password"
+            minlength="10"
+            maxlength="64"
+            required
+          />
           <p class="user-field-hint">新密码需为 10-64 位，并同时包含字母和数字。</p>
           <p v-if="passwordSuccess" class="user-form-status user-form-success">{{ passwordSuccess }}</p>
           <p v-if="passwordError" class="user-form-status user-form-error">{{ passwordError }}</p>
