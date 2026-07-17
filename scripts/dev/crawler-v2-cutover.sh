@@ -25,6 +25,12 @@ load_runtime_config
 require_command curl
 require_command python3
 
+# start-local-stack.sh serves each worktree on TP_BACKEND_PORT + slot; talking
+# to the un-shifted config port hits nothing (or another worktree's backend).
+TP_SLOT="$(node "$SCRIPT_DIR/lib/slot-allocator.mjs" "${TERRAPEDIA_SLOT_REGISTRY:-$HOME/.terrapedia/local-stack-slots.json}" "$REPO_ROOT")"
+[[ "$TP_SLOT" =~ ^[0-9]+$ ]] || { log_error "Failed to resolve local stack slot for $REPO_ROOT (got: ${TP_SLOT:-<empty>})"; exit 1; }
+TP_BACKEND_PORT=$(( TP_BACKEND_PORT + TP_SLOT ))
+
 state_path="$REPO_ROOT/reports/crawler-monitor/v2/cutover-state.json"
 pid_path="$REPO_ROOT/reports/local-start/back.pid"
 backend_url="http://127.0.0.1:$TP_BACKEND_PORT"
