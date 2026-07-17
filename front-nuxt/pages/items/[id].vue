@@ -125,10 +125,16 @@ const itemName = computed(() => firstText(
   `物品 ${itemId.value}`,
 ))
 
+const toAbsoluteSeoUrl = useAbsoluteSiteUrl()
+
 useSeoMeta({
   title: () => `TerraPedia · ${itemName.value}`,
   description: () => `${itemName.value} 的公开资料详情，包含图片、价格、来源、配方和关联资料。`,
-  ogImage: () => itemImage.value || undefined,
+  ogImage: () => toAbsoluteSeoUrl(itemImage.value),
+})
+
+useHead({
+  link: [{ rel: 'canonical', href: () => toAbsoluteSeoUrl(route.path) }],
 })
 
 const itemEnglishName = computed(() => safeItemDisplayText(detailItem.value?.nameEn))

@@ -37,10 +37,16 @@ const biomeTrailItems = computed(() => [
   { label: biomeTitle.value },
 ])
 
+const toAbsoluteSeoUrl = useAbsoluteSiteUrl()
+
 useSeoMeta({
   title: () => `TerraPedia · ${biomeTitle.value}`,
   description: () => `${biomeTitle.value} 的公开群系资料详情，包含资源、来源和关联生态。`,
-  ogImage: () => biomeTile.value?.image || undefined,
+  ogImage: () => toAbsoluteSeoUrl(biomeTile.value?.image),
+})
+
+useHead({
+  link: [{ rel: 'canonical', href: () => toAbsoluteSeoUrl(route.path) }],
 })
 
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'

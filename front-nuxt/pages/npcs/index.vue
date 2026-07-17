@@ -206,6 +206,7 @@ const resetNpcFilters = () => {
   npcSearch.value = ''
   debouncedNpcSearch.value = ''
   activeFilter.value = 'all'
+  selectedNpcCategoryId.value = null
   currentPage.value = 1
 }
 

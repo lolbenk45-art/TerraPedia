@@ -72,10 +72,16 @@ const armorNotFound = computed(() => armorClientReady.value && !armorDetailPendi
 const armorTitle = computed(() => armorDetail.value?.displayName || `套装 ${armorSetId.value || '详情'}`)
 const armorSubtitle = computed(() => armorDetail.value?.englishName || '公开套装资料')
 
+const toAbsoluteSeoUrl = useAbsoluteSiteUrl()
+
 useSeoMeta({
   title: () => `TerraPedia · ${armorTitle.value}`,
   description: () => `${armorTitle.value} 的公开套装详情，包含套装效果、词条解析与图片分组。`,
-  ogImage: () => armorPrimaryPreview.value || undefined,
+  ogImage: () => toAbsoluteSeoUrl(armorPrimaryPreview.value),
+})
+
+useHead({
+  link: [{ rel: 'canonical', href: () => toAbsoluteSeoUrl(route.path) }],
 })
 
 const statLabels: Record<string, string> = {

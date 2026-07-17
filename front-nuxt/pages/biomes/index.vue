@@ -39,6 +39,27 @@ const biomeGroupOptions = computed(() => {
     ...Array.from(grouped.entries()).map(([label, count]) => ({ label, count })),
   ]
 })
+
+// 搜索/分组入 URL:刷新与分享保留状态(P0-8)。本页无分页,不接 search 防抖选项。
+// 取数是 server:false,hydrate 时分组清单未就绪,先接受原值,数据到位后再校验回落。
+useCatalogRouteSync({
+  serialize: () => ({
+    q: biomeSearchQuery.value.trim() || undefined,
+    group: selectedBiomeGroup.value !== biomeAllGroupLabel ? selectedBiomeGroup.value : undefined,
+  }),
+  hydrate: (query) => {
+    biomeSearchQuery.value = String(firstQueryValue(query.q) ?? '')
+    selectedBiomeGroup.value = String(firstQueryValue(query.group) ?? '') || biomeAllGroupLabel
+  },
+  watchSources: [biomeSearchQuery, selectedBiomeGroup],
+})
+
+watch(biomeItems, (items) => {
+  if (!items.length || selectedBiomeGroup.value === biomeAllGroupLabel) return
+  if (!biomeGroupOptions.value.some((option) => option.label === selectedBiomeGroup.value)) {
+    selectedBiomeGroup.value = biomeAllGroupLabel
+  }
+})
 const biomeDisplayItems = computed(() => {
   if (biomeVisualLoading.value || biomeApiUnavailable.value) return []
 

@@ -106,10 +106,12 @@ const articleEngagementStats = (article: UserArticle) => [
   { label: '收藏', value: article.favoriteCount ?? 0 },
 ]
 
-const loadArticles = async () => {
+const articlePageLimit = 10
+
+const loadArticles = async (page = 1) => {
   error.value = ''
   try {
-    await authStore.fetchUserArticles(1, 10)
+    await authStore.fetchUserArticles(page, articlePageLimit)
   } catch (exception: unknown) {
     error.value = exception instanceof Error ? exception.message : '文章列表加载失败。'
   } finally {
@@ -118,8 +120,23 @@ const loadArticles = async () => {
 }
 
 onMounted(() => {
-  void loadArticles()
+  void loadArticles(1)
 })
+
+const currentArticlePage = computed(() => authStore.articlePagination.page || 1)
+const totalArticlePages = computed(() => Math.max(1, authStore.articlePagination.totalPages || 1))
+const canGoPreviousArticlePage = computed(() => currentArticlePage.value > 1)
+const canGoNextArticlePage = computed(() => currentArticlePage.value < totalArticlePages.value)
+
+const previousArticlePage = () => {
+  if (!canGoPreviousArticlePage.value) return
+  void loadArticles(currentArticlePage.value - 1)
+}
+
+const nextArticlePage = () => {
+  if (!canGoNextArticlePage.value) return
+  void loadArticles(currentArticlePage.value + 1)
+}
 
 const articlesLoading = computed(() => authStore.articlesLoading || !initialArticlesLoaded.value)
 const draftCount = computed(() => authStore.articles.filter((article) => canEditArticle(article)).length)
@@ -313,6 +330,20 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
             </div>
           </article>
         </div>
+
+        <nav
+          v-if="authStore.articlePagination.total > articlePageLimit"
+          class="article-table-pagination"
+          aria-label="文章分页"
+        >
+          <button class="article-page-button" type="button" :disabled="!canGoPreviousArticlePage || articlesLoading" @click="previousArticlePage">
+            上一页
+          </button>
+          <span>{{ currentArticlePage }} / {{ totalArticlePages }} · 共 {{ authStore.articlePagination.total }} 篇</span>
+          <button class="article-page-button" type="button" :disabled="!canGoNextArticlePage || articlesLoading" @click="nextArticlePage">
+            下一页
+          </button>
+        </nav>
       </section>
     </main>
 
@@ -637,6 +668,36 @@ const visibleArticles = computed(() => authStore.articles.filter((article) => ma
   min-height: 36px;
   padding: 8px 12px;
   white-space: nowrap;
+}
+
+/* 分页样式随 markup 一起自 favorites 迁入(scoped 样式跨页不可借用) */
+.article-table-pagination {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  align-items: center;
+  color: var(--text-subtle);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.article-page-button {
+  min-height: 34px;
+  border: 1px solid var(--index-line);
+  border-radius: 999px;
+  padding: 0 14px;
+  color: var(--text-muted);
+  background: var(--index-surface);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.article-page-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 @media (max-width: 1180px) {

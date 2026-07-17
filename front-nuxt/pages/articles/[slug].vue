@@ -96,6 +96,12 @@ const article = computed<UserArticle | null>(() => {
   return nextArticle?.id ? nextArticle : null
 })
 
+// SSR 直达返回真实 HTTP 404,对齐 items/[id] 等详情页口径;
+// 客户端软导航由 notFoundState watch 走 showError(见下方定义处)。
+if (import.meta.server && !article.value) {
+  throw createError({ statusCode: 404, statusMessage: '文章不存在' })
+}
+
 const recommendedArticles = computed<Array<UserArticle & { slug: string }>>(() => {
   const source = (recommendedArticleResponse.value as ApiResponse<UserArticle[]> | null)?.data
   const currentId = article.value?.id == null ? '' : String(article.value.id)
@@ -1976,6 +1982,10 @@ const displayedFavoriteCount = computed(() => {
 })
 const articleLoading = computed(() => !articleClientReady.value || (articlePending.value && !article.value))
 const notFoundState = computed(() => articleClientReady.value && !articlePending.value && (!article.value || articleError.value))
+
+watch(notFoundState, (value) => {
+  if (value) showError({ statusCode: 404, statusMessage: '文章不存在' })
+})
 
 useSeoMeta({
   title: () => `TerraPedia · ${article.value?.title || '文章详情'}`,
