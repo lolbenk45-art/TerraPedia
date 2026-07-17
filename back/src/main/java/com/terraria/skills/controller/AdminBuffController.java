@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -111,6 +112,7 @@ public class AdminBuffController {
     }
 
     @PostMapping
+    @Transactional
     @Operation(summary = "Create buff")
     public ResponseEntity<ApiResponse<Map<String, Object>>> createBuff(@RequestBody Map<String, Object> request) {
         String internalName = trimToNull(request.get("internalName"));
@@ -135,6 +137,7 @@ public class AdminBuffController {
     }
 
     @PutMapping("/{id}")
+    @Transactional
     @Operation(summary = "Update buff")
     public ResponseEntity<ApiResponse<Map<String, Object>>> updateBuff(@PathVariable Long id, @RequestBody Map<String, Object> request) {
         Buff existing = buffMapper.selectById(id);

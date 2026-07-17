@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -294,6 +295,7 @@ public class AdminArmorSetController {
     }
 
     @PostMapping
+    @Transactional
     @Operation(summary = "Create armor set")
     public ResponseEntity<ApiResponse<Map<String, Object>>> createArmorSet(@RequestBody Map<String, Object> request) {
         String sourceKey = firstNonBlank(trimToNull(request.get("sourceKey")), trimToNull(request.get("internalCode")));
@@ -333,6 +335,7 @@ public class AdminArmorSetController {
     }
 
     @PutMapping("/{id}")
+    @Transactional
     @Operation(summary = "Update armor set")
     public ResponseEntity<ApiResponse<Map<String, Object>>> updateArmorSet(@PathVariable Long id, @RequestBody Map<String, Object> request) {
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
@@ -397,6 +400,7 @@ public class AdminArmorSetController {
     }
 
     @DeleteMapping("/{id}")
+    @Transactional
     @Operation(summary = "Delete armor set")
     public ResponseEntity<ApiResponse<Void>> deleteArmorSet(@PathVariable Long id) {
         jdbcTemplate.update("DELETE FROM armor_set_items WHERE armor_set_id = ?", id);
