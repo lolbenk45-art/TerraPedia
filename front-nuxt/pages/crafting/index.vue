@@ -47,11 +47,15 @@ const {
 const {
   data: recipeBundle,
   pending: recipePending,
-  error: recipeError,
+  status: recipeStatus,
   refresh: refreshRecipeTree,
 } = await usePublicRecipeTree(effectiveSelectedItemId, maxDepth)
 
 const recipeTree = computed(() => recipeBundle.value?.tree ?? null)
+// fetcher 吞错永不 reject(usePublicRecipeTree 失败也返回 missing 结果),
+// 必须以 status==='success' 守护:default 值 source 即 'missing',
+// server:false 下首帧 status 为 idle,只判 source 会闪现错误块。
+const recipeMissing = computed(() => recipeStatus.value === 'success' && recipeBundle.value?.source === 'missing')
 const craftingVisualLoading = computed(() => recipePending.value && !recipeTree.value)
 const craftingLoadingSlotCount = 5
 const recipeModel = useCraftingRecipeModel(recipeTree, selectedVariantKey, selectedRecipeKey)
@@ -343,7 +347,7 @@ const saveCurrentRoute = async () => {
 
         <CraftingLegend />
 
-        <section v-if="recipeError" class="tp-panel crafting-empty-state">
+        <section v-if="recipeMissing" class="tp-panel crafting-empty-state">
           <b>配方树暂未载入</b>
           <span>当前目标没有返回公开配方树。</span>
           <button class="small-button active" type="button" @click="refreshRecipeTree()">重新加载</button>
