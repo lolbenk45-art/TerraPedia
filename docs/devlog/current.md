@@ -1,16 +1,22 @@
 # Current Devlog
 
-Last updated: 2026-07-17 05:04 CST by Codex
+Last updated: 2026-07-17 12:40 CST by Claude
 
 ## Open Work
 
-- No shared open work is recorded on `main`. The local merge of
-  `fix/crawler-queue-v2-runtime` is validated and awaiting its merge commit.
+- Post-merge acceptance in progress on branch `dev/post-merge-acceptance`
+  (from local `main` @ `518d9a0`, 31 commits ahead of origin, unpushed).
+- Uncommitted work pending user acceptance: triage-board layout fixes,
+  V1-engine warning banner, one-shot V2 cutover script. See
+  `entries/2026-07-17-crawler-v2-per-env-activation-guard.md`.
 
 ## Active Focus
 
-- Create the validated local V2 merge commit, then leave real force-crawl and
-  database apply as explicit operator-authorized actions.
+- V2 queue engine activated on this worktree
+  (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
+  from checkpoint 147/388 after a V1-era stuck-domain incident.
+- V1 code deletion is deferred until V2 survives several full crawl cycles;
+  boundary audit recorded in the entry above.
 
 ## Current State
 
@@ -29,13 +35,19 @@ Last updated: 2026-07-17 05:04 CST by Codex
 
 ## Next Agent Should Start Here
 
-- After the merge is committed and its targeted gates pass, start new work from
-  a new devlog entry. Do not run real crawler force/apply actions, Redis reset,
-  or database writes without explicit operation-level authorization.
+- Read `entries/2026-07-17-crawler-v2-per-env-activation-guard.md` before any
+  crawler-monitor work. This environment routes V2; other worktrees still
+  route V1 until they run `scripts/dev/crawler-v2-cutover.sh`.
+- Do not run real crawler force/apply actions, Redis reset, or database writes
+  without explicit operation-level authorization.
 
 ## Current Risks
 
 - Broad Maven/full quality-gate baseline failures are outside the V2 scope.
+- 6/8 local worktrees still silently route V1 until cut over; the new banner
+  only appears after they merge this change.
+- V1 defects (fake exit 0 on recovered processes, reducer contradiction
+  swallow) remain in code but are unreachable under V2 routing.
 - Real force-crawl, formal apply, live Redis expiry races, and adversarial HTTP
   preview-path acceptance remain manual/runtime concerns.
 - Public category totals and representative images depend on current local
