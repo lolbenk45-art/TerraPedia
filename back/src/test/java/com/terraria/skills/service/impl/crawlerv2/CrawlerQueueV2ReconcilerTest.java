@@ -9,6 +9,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -380,6 +382,60 @@ class CrawlerQueueV2ReconcilerTest {
         assertEquals(expectedStatus, command.getValue().targetStatus());
         assertEquals(expectedReason, command.getValue().reasonCode());
         assertEquals(expectedStatus.terminal(), command.getValue().releaseOwnership());
+    }
+
+    @Test
+    void terminalOverdueConvergenceMustReapTheRecordedProcessBeforeMutation() {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        CrawlerQueueV2Attempt overdue = attempt(CrawlerQueueV2Status.STALLED, NOW);
+        when(repository.readEngineState()).thenReturn(engine());
+        when(repository.findLiveAttempts()).thenReturn(List.of(overdue));
+        when(repository.renewLeases(any())).thenReturn(true);
+        when(repository.findAttempt(overdue.attemptId())).thenReturn(Optional.of(overdue));
+        when(repository.findQueue(overdue.queueId())).thenReturn(Optional.of(queue(overdue)));
+        when(repository.findReadyAttempts(anyInt())).thenReturn(List.of());
+        when(supervisor.reapOverdueProcess(overdue)).thenReturn(true);
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            updated(overdue, CrawlerQueueV2Status.TIMED_OUT, CrawlerQueueV2ReasonCode.HEARTBEAT_TIMEOUT),
+            "1-0"
+        ));
+        CrawlerQueueV2Reconciler reconciler = reconciler(repository, supervisor, properties);
+
+        reconciler.reconcileNow();
+
+        InOrder order = inOrder(supervisor, repository);
+        order.verify(supervisor).reapOverdueProcess(overdue);
+        order.verify(repository).mutate(argThat(command ->
+            command.targetStatus() == CrawlerQueueV2Status.TIMED_OUT
+        ));
+    }
+
+    @Test
+    void nonTerminalOverdueConvergenceMustNotReapTheProcess() {
+        CrawlerQueueV2Repository repository = mock(CrawlerQueueV2Repository.class);
+        CrawlerAttemptSupervisor supervisor = mock(CrawlerAttemptSupervisor.class);
+        CrawlerQueueV2Properties properties = new CrawlerQueueV2Properties();
+        CrawlerQueueV2Attempt overdue = attempt(CrawlerQueueV2Status.RUNNING, NOW);
+        when(repository.readEngineState()).thenReturn(engine());
+        when(repository.findLiveAttempts()).thenReturn(List.of(overdue));
+        when(repository.renewLeases(any())).thenReturn(true);
+        when(repository.findAttempt(overdue.attemptId())).thenReturn(Optional.of(overdue));
+        when(repository.findQueue(overdue.queueId())).thenReturn(Optional.of(queue(overdue)));
+        when(repository.findReadyAttempts(anyInt())).thenReturn(List.of());
+        when(repository.mutate(any())).thenReturn(new CrawlerQueueV2Repository.MutationResult(
+            updated(overdue, CrawlerQueueV2Status.STALLED, CrawlerQueueV2ReasonCode.HEARTBEAT_TIMEOUT),
+            "1-0"
+        ));
+        CrawlerQueueV2Reconciler reconciler = reconciler(repository, supervisor, properties);
+
+        reconciler.reconcileNow();
+
+        verify(supervisor, never()).reapOverdueProcess(any());
+        verify(repository).mutate(argThat(command ->
+            command.targetStatus() == CrawlerQueueV2Status.STALLED
+        ));
     }
 
     @Test

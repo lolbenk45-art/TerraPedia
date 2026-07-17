@@ -314,9 +314,7 @@ public class CrawlerAttemptSupervisor {
         if (!runningHeartbeat) {
             return new ProgressResult(ProgressCode.INVALID_PAYLOAD, current);
         }
-        if (current.status() != CrawlerQueueV2Status.STARTING
-            && current.status() != CrawlerQueueV2Status.RUNNING
-            && current.status() != CrawlerQueueV2Status.PAUSED) {
+        if (!progressAcceptsHeartbeat(current, payload)) {
             return new ProgressResult(ProgressCode.INVALID_PAYLOAD, current);
         }
 
@@ -335,7 +333,7 @@ public class CrawlerAttemptSupervisor {
             if (payload.progressSequence() <= reloaded.progressSequence()) {
                 return new ProgressResult(ProgressCode.REJECTED_SEQUENCE, reloaded);
             }
-            if (!progressStatusAcceptsHeartbeat(reloaded)) {
+            if (!progressAcceptsHeartbeat(reloaded, payload)) {
                 return new ProgressResult(ProgressCode.INVALID_PAYLOAD, reloaded);
             }
             try {
@@ -352,7 +350,7 @@ public class CrawlerAttemptSupervisor {
                 if (payload.progressSequence() <= retryCurrent.progressSequence()) {
                     return new ProgressResult(ProgressCode.REJECTED_SEQUENCE, retryCurrent);
                 }
-                if (!progressStatusAcceptsHeartbeat(retryCurrent)) {
+                if (!progressAcceptsHeartbeat(retryCurrent, payload)) {
                     return new ProgressResult(ProgressCode.INVALID_PAYLOAD, retryCurrent);
                 }
                 return new ProgressResult(ProgressCode.RETRY_REQUIRED, retryCurrent);
@@ -427,10 +425,23 @@ public class CrawlerAttemptSupervisor {
         );
     }
 
-    private boolean progressStatusAcceptsHeartbeat(CrawlerQueueV2Attempt attempt) {
-        return attempt.status() == CrawlerQueueV2Status.STARTING
-            || attempt.status() == CrawlerQueueV2Status.RUNNING
-            || attempt.status() == CrawlerQueueV2Status.PAUSED;
+    private boolean progressAcceptsHeartbeat(
+        CrawlerQueueV2Attempt attempt,
+        CrawlerAttemptProgressPayload payload
+    ) {
+        if (attempt.status() == CrawlerQueueV2Status.STARTING
+            || attempt.status() == CrawlerQueueV2Status.RUNNING) {
+            return true;
+        }
+        if (attempt.status() != CrawlerQueueV2Status.PAUSED) {
+            return false;
+        }
+        // 暂停期间进程被 SIGSTOP，不会再写心跳；能到这里的 running 心跳要么是
+        // resume 之后的新鲜心跳，要么是暂停前落盘的陈旧文件。陈旧心跳一旦被
+        // 接受会把 PAUSED 翻回 RUNNING，随后心跳停滞 → HEARTBEAT_TIMEOUT 假死。
+        // 只接受晚于暂停生效时间(enteredAt)的心跳。
+        return attempt.enteredAt() == null
+            || payload.lastHeartbeatAt().isAfter(attempt.enteredAt());
     }
 
     public CrawlerQueueV2Attempt pause(CrawlerQueueV2Attempt attempt) {
@@ -707,6 +718,45 @@ public class CrawlerAttemptSupervisor {
         }
     }
 
+    /**
+     * Overdue 收敛进入终态前的孤儿进程回收。冻结(SIGSTOP)的进程组必须先 CONT
+     * 再终止，否则 TERM 会滞留为 pending 信号、进程组以僵尸形态继续占用资源
+     * （本次 buffs 事故的第二个后果）。仅按 exact pid+startInstant 定位，找不到
+     * 即视为已回收；终止未确认时隔离涉及域，与 lease 失败路径同一兜底。
+     */
+    public boolean reapOverdueProcess(CrawlerQueueV2Attempt attempt) {
+        requireAttempt(attempt);
+        return withAttemptLock(attempt.attemptId(), () -> reapOverdueProcessSerialized(attempt));
+    }
+
+    private boolean reapOverdueProcessSerialized(CrawlerQueueV2Attempt attempt) {
+        CrawlerAttemptProcessLauncher.ProcessLookup lookup = resolveExactProcess(attempt);
+        if (lookup.code() == CrawlerAttemptProcessLauncher.LookupCode.NOT_FOUND
+            || lookup.code() == CrawlerAttemptProcessLauncher.LookupCode.START_TIME_MISMATCH) {
+            processes.remove(attempt.attemptId());
+            return true;
+        }
+        boolean confirmed = false;
+        if (lookup.code() == CrawlerAttemptProcessLauncher.LookupCode.FOUND) {
+            CrawlerAttemptProcessLauncher.ManagedProcess process = lookup.process();
+            boolean resumable = !launcher.isPaused(process) || launcher.resume(process);
+            if (resumable) {
+                launcher.terminateGracefully(process);
+                confirmed = launcher.awaitExit(process, properties.getGracefulTerminationWait());
+                if (!confirmed) {
+                    launcher.terminateForcibly(process);
+                    confirmed = launcher.awaitExit(process, properties.getForcedTerminationWait());
+                }
+            }
+        }
+        if (confirmed) {
+            processes.remove(attempt.attemptId());
+        } else {
+            quarantineDomains(attempt, CrawlerQueueV2ReasonCode.PROCESS_TERMINATION_UNCONFIRMED);
+        }
+        return confirmed;
+    }
+
     public TerminationResult terminateRecorded(CrawlerAttemptManifest manifest) {
         Objects.requireNonNull(manifest, "manifest");
         Optional<CrawlerQueueV2Attempt> recorded = repository.findAttempt(manifest.attemptId());
@@ -726,7 +776,8 @@ public class CrawlerAttemptSupervisor {
                 }
                 identity = new CrawlerAttemptProcessLauncher.ProcessIdentity(
                     attempt.pid(),
-                    attempt.processStartedAt()
+                    attempt.processStartedAt(),
+                    attempt.attemptId()
                 );
             } else {
                 identity = manifestIdentity(manifest).orElse(null);
@@ -764,7 +815,8 @@ public class CrawlerAttemptSupervisor {
         }
         return Optional.of(new CrawlerAttemptProcessLauncher.ProcessIdentity(
             manifest.pid(),
-            manifest.processStartedAt()
+            manifest.processStartedAt(),
+            manifest.attemptId()
         ));
     }
 
@@ -989,7 +1041,8 @@ public class CrawlerAttemptSupervisor {
         }
         return launcher.findExact(new CrawlerAttemptProcessLauncher.ProcessIdentity(
             attempt.pid(),
-            attempt.processStartedAt()
+            attempt.processStartedAt(),
+            attempt.attemptId()
         ));
     }
 
@@ -1234,7 +1287,8 @@ public class CrawlerAttemptSupervisor {
             return false;
         }
         CrawlerAttemptProcessLauncher.ProcessLookup lookup = launcher.findExact(
-            new CrawlerAttemptProcessLauncher.ProcessIdentity(process.pid(), process.startedAt())
+            new CrawlerAttemptProcessLauncher.ProcessIdentity(
+                process.pid(), process.startedAt(), process.attemptId())
         );
         if (lookup.code() == CrawlerAttemptProcessLauncher.LookupCode.NOT_FOUND
             || lookup.code() == CrawlerAttemptProcessLauncher.LookupCode.START_TIME_MISMATCH) {
@@ -1252,7 +1306,8 @@ public class CrawlerAttemptSupervisor {
             return false;
         }
         CrawlerAttemptProcessLauncher.ProcessLookup lookup = launcher.findExact(
-            new CrawlerAttemptProcessLauncher.ProcessIdentity(process.pid(), process.startedAt())
+            new CrawlerAttemptProcessLauncher.ProcessIdentity(
+                process.pid(), process.startedAt(), process.attemptId())
         );
         if (lookup.code() == CrawlerAttemptProcessLauncher.LookupCode.NOT_FOUND
             || lookup.code() == CrawlerAttemptProcessLauncher.LookupCode.START_TIME_MISMATCH) {

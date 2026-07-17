@@ -1041,6 +1041,52 @@ class CrawlerAttemptSupervisorTest {
     }
 
     @Test
+    void reapOverdueProcessMustResumeFrozenGroupBeforeTerminationAndConfirmExit() {
+        CrawlerQueueV2Attempt attempt = runningAttempt(142L, 7L, 11L);
+        FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
+        process.paused = true;
+        FakeLauncher launcher = new FakeLauncher(process);
+        launcher.exitAfterGracefulWait = true;
+        CrawlerAttemptSupervisor supervisor = supervisor(launcher, attempt);
+
+        assertTrue(supervisor.reapOverdueProcess(attempt));
+
+        // SIGSTOP 状态下 TERM 会滞留为 pending 信号，必须先 CONT 再优雅终止
+        assertEquals(List.of("isPaused", "resume", "graceful", "wait:PT15S"), launcher.calls());
+        verify(repository, never()).writeQuarantine(any());
+    }
+
+    @Test
+    void reapOverdueProcessMustQuarantineDomainsWhenTerminationUnconfirmed() {
+        CrawlerQueueV2Attempt attempt = runningAttempt(142L, 7L, 11L);
+        FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
+        FakeLauncher launcher = new FakeLauncher(process);
+        CrawlerAttemptSupervisor supervisor = supervisor(launcher, attempt);
+
+        assertFalse(supervisor.reapOverdueProcess(attempt));
+
+        verify(repository).writeQuarantine(argThat(command ->
+            "bosses".equals(command.domain())
+                && command.reasonCode() == CrawlerQueueV2ReasonCode.PROCESS_TERMINATION_UNCONFIRMED
+        ));
+    }
+
+    @Test
+    void reapOverdueProcessIsANoOpWhenNoProcessIdentityIsRecorded() {
+        CrawlerQueueV2Attempt running = runningAttempt(142L, 7L, 11L);
+        CrawlerQueueV2Attempt attempt = copyAttempt(
+            running, running.status(), 7L, running.progressSequence(), null, null
+        );
+        FakeLauncher launcher = new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT));
+        CrawlerAttemptSupervisor supervisor = supervisor(launcher, attempt);
+
+        assertTrue(supervisor.reapOverdueProcess(attempt));
+
+        assertEquals(List.of(), launcher.calls());
+        verify(repository, never()).writeQuarantine(any());
+    }
+
+    @Test
     void shouldWaitForExitBeforeReleasingOwnershipOnCancel() {
         CrawlerQueueV2Attempt attempt = cancelRequestedAttempt();
         FakeProcess process = FakeProcess.alive(12345L, STARTED_AT);
@@ -1380,6 +1426,44 @@ class CrawlerAttemptSupervisorTest {
 
         assertEquals(CrawlerAttemptSupervisor.ProgressCode.INVALID_PAYLOAD, result.code());
         verify(repository, never()).mutate(any());
+    }
+
+    @Test
+    void pausedAttemptMustRejectPrePauseHeartbeatInsteadOfFlippingBackToRunning() {
+        CrawlerQueueV2Attempt attempt = pausedAttempt(142L, 7L, 11L);
+        // 暂停生效时间为 enteredAt(NOW)；该心跳文件是 SIGSTOP 之前写入的陈旧内容
+        when(artifactStore.readProgress("attempt-1")).thenReturn(Optional.of(progress(
+            "queue-1", "attempt-1", 142L, "epoch-1", 12L, "running", NOW.minusSeconds(4)
+        )));
+        CrawlerAttemptSupervisor supervisor = supervisor(
+            new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT)),
+            attempt
+        );
+
+        CrawlerAttemptSupervisor.ProgressResult result = supervisor.ingestProgress(attempt);
+
+        assertEquals(CrawlerAttemptSupervisor.ProgressCode.INVALID_PAYLOAD, result.code());
+        assertEquals(CrawlerQueueV2Status.PAUSED, result.attempt().status());
+        verify(repository, never()).mutate(any());
+    }
+
+    @Test
+    void pausedAttemptMustAcceptPostPauseHeartbeatAndConvergeToRunning() {
+        CrawlerQueueV2Attempt attempt = pausedAttempt(142L, 7L, 11L);
+        Instant freshHeartbeat = NOW.plusSeconds(5);
+        when(artifactStore.readProgress("attempt-1")).thenReturn(Optional.of(progress(
+            "queue-1", "attempt-1", 142L, "epoch-1", 12L, "running", freshHeartbeat
+        )));
+        CrawlerAttemptSupervisor supervisor = supervisor(
+            new FakeLauncher(FakeProcess.alive(12345L, STARTED_AT)),
+            attempt
+        );
+
+        CrawlerAttemptSupervisor.ProgressResult result = supervisor.ingestProgress(attempt);
+
+        assertEquals(CrawlerAttemptSupervisor.ProgressCode.ACCEPTED, result.code());
+        assertEquals(CrawlerQueueV2Status.RUNNING, result.attempt().status());
+        assertEquals(freshHeartbeat, result.attempt().lastHeartbeatAt());
     }
 
     @Test
