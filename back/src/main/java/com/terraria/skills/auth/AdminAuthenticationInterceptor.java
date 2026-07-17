@@ -43,6 +43,10 @@ public class AdminAuthenticationInterceptor implements HandlerInterceptor {
 
         try {
             AdminTokenClaims claims = adminJwtService.parseAndValidate(token);
+            if (!"ADMIN".equalsIgnoreCase(claims.getRole())) {
+                writeUnauthorizedResponse(response, "无权访问管理端接口");
+                return false;
+            }
             request.setAttribute(ADMIN_CLAIMS_ATTRIBUTE, claims);
             return true;
         } catch (IllegalArgumentException exception) {
