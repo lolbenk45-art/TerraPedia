@@ -22,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -129,6 +130,7 @@ public class AdminNpcController {
     }
 
     @PostMapping
+    @Transactional
     @Operation(summary = "Create NPC")
     public ResponseEntity<ApiResponse<Map<String, Object>>> createNpc(@RequestBody Map<String, Object> request) {
         String internalName = trimToNull(request.get("internalName"));
@@ -153,6 +155,7 @@ public class AdminNpcController {
     }
 
     @PutMapping("/{id}")
+    @Transactional
     @Operation(summary = "Update NPC")
     public ResponseEntity<ApiResponse<Map<String, Object>>> updateNpc(@PathVariable Long id, @RequestBody Map<String, Object> request) {
         Npc existing = npcMapper.selectById(id);
@@ -184,6 +187,7 @@ public class AdminNpcController {
     }
 
     @DeleteMapping("/{id}")
+    @Transactional
     @Operation(summary = "Delete NPC")
     public ResponseEntity<ApiResponse<Void>> deleteNpc(@PathVariable Long id) {
         Npc existing = npcMapper.selectById(id);
