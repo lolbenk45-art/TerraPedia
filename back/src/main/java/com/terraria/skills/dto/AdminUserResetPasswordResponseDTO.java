@@ -8,5 +8,4 @@ import lombok.Data;
 public class AdminUserResetPasswordResponseDTO {
     private Long userId;
     private String email;
-    private String temporaryPassword;
 }

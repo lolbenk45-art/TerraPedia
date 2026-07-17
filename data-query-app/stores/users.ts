@@ -100,7 +100,6 @@ export const useUsersStore = defineStore('users', () => {
     return {
       userId: Number(data?.userId ?? id),
       email: String(data?.email ?? ''),
-      temporaryPassword: String(data?.temporaryPassword ?? ''),
     }
   }
 
