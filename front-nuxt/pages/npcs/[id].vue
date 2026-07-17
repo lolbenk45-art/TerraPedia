@@ -4,7 +4,6 @@ import type {
   PublicNpcLivingPreference,
   PublicNpcLootEntry,
   PublicNpcMoneyDrop,
-  PublicNpcMoneyToken,
   PublicNpcShopCondition,
   PublicNpcShopEntry,
   PublicNpcShopPriceToken,
@@ -12,6 +11,7 @@ import type {
 } from '~/types/public-api'
 import { buildTerrariaPriceTokens, formatTerrariaPriceTokens, localizeTerrariaPriceShorthandText, resolveTerrariaPriceUnitLabel, type TerrariaPriceToken } from '~/utils/price'
 import { createSafeDisplayText } from '~/utils/publicCopy'
+import { moneyCoinClass, normalizeTerrariaMoneyToken } from '~/utils/terrariaMoney'
 
 const route = useRoute()
 const detailLayout = useDetailLayout({ kind: 'npc', density: 'compact' })
@@ -320,29 +320,11 @@ const shopPriceTokens = (entry: PublicNpcShopEntry): TerrariaPriceToken[] => {
 const shopPriceLabel = (entry: PublicNpcShopEntry) => formatTerrariaPriceTokens(shopPriceTokens(entry))
 const lootConditionLabel = (entry: PublicNpcLootEntry) => safeNpcDisplayText(entry.conditions, entry.notes)
 const buffConditionLabel = (entry: PublicNpcBuffRelation) => safeNpcDisplayText(entry.conditions, entry.notes)
-const npcMoneyCoinClass = (unit: unknown) => {
-  const key = firstText(unit).toLowerCase()
-  if (key === 'platinum' || key === 'pc' || key === 'platinum coin') return 'platinum'
-  if (key === 'gold' || key === 'gc' || key === 'gold coin') return 'gold'
-  if (key === 'silver' || key === 'sc' || key === 'silver coin') return 'silver'
-  if (key === 'copper' || key === 'cc' || key === 'copper coin') return 'copper'
-  return 'unknown'
-}
-const normalizeNpcMoneyToken = (token: PublicNpcMoneyToken): TerrariaPriceToken | null => {
-  const amount = Number(token.amount)
-  const unitLabel = resolveTerrariaPriceUnitLabel(token.unit)
-  if (!Number.isFinite(amount) || amount <= 0 || !unitLabel) return null
-
-  return {
-    unit: firstText(token.unit),
-    amount: Math.trunc(amount),
-    label: unitLabel,
-    iconUrl: resolvePreviewImageUrl(firstText(token.iconUrl, token.icon_url)),
-  }
-}
+// 共享钱币 token 规整(utils/terrariaMoney);coin-mark 视觉在 detail-layout.css。
+const npcMoneyCoinClass = moneyCoinClass
 const npcMoneyDropTokens = (drop: PublicNpcMoneyDrop): TerrariaPriceToken[] => {
   return Array.isArray(drop.tokens)
-    ? drop.tokens.map(normalizeNpcMoneyToken).filter((token): token is TerrariaPriceToken => Boolean(token))
+    ? drop.tokens.map(normalizeTerrariaMoneyToken).filter((token): token is TerrariaPriceToken => Boolean(token))
     : []
 }
 const npcMoneyDropModeLabel = (value: unknown) => {
@@ -1078,55 +1060,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
   height: 32px;
 }
 
-.npc-money-coin-mark {
-  --coin-core: #d6b15a;
-  --coin-rim: #8b5f17;
-  --coin-shine: rgba(255, 255, 255, 0.72);
-  display: inline-grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  flex: 0 0 32px;
-  border: 2px solid var(--coin-rim);
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at 32% 28%, var(--coin-shine) 0 12%, transparent 13%),
-    radial-gradient(circle at 50% 52%, var(--coin-core) 0 48%, var(--coin-rim) 49% 68%, transparent 69%);
-  box-shadow:
-    inset 0 0 0 2px color-mix(in srgb, var(--coin-core) 45%, transparent),
-    0 1px 3px rgba(0, 0, 0, 0.18);
-}
-
-.npc-money-coin-mark::after {
-  content: "";
-  width: 40%;
-  height: 40%;
-  border: 1px solid color-mix(in srgb, var(--coin-rim) 76%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--coin-core) 74%, transparent);
-}
-
-.npc-money-coin-mark.is-platinum {
-  --coin-core: #e7eef2;
-  --coin-rim: #8c9ba4;
-  --coin-shine: rgba(255, 255, 255, 0.9);
-}
-
-.npc-money-coin-mark.is-gold {
-  --coin-core: #f0c85c;
-  --coin-rim: #9a681c;
-}
-
-.npc-money-coin-mark.is-silver {
-  --coin-core: #c9d2dc;
-  --coin-rim: #6f7f8c;
-  --coin-shine: rgba(255, 255, 255, 0.84);
-}
-
-.npc-money-coin-mark.is-copper {
-  --coin-core: #c77b45;
-  --coin-rim: #7d3f22;
-}
+/* .npc-money-coin-mark 视觉已上移到 assets/css/detail-layout.css(WP-5 共享钱币标记) */
 
 .npc-money-token-copy {
   min-width: 0;
