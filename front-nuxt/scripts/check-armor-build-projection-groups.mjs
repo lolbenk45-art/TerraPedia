@@ -81,7 +81,10 @@ assert.deepEqual(new Set(miningGroups.map((group) => group.partGroups.length)), 
 assert.deepEqual(new Set(miningGroups.flatMap((group) => group.partGroups.map((part) => part.alternatives.length))), new Set([1]), 'Mining variants should not invent alternatives')
 
 const armorDetailSource = readFileSync(new URL('../pages/armor-sets/[id].vue', import.meta.url), 'utf8')
-assert.match(armorDetailSource, /const buildGroups = createArmorSetBuildGroups\(uniqueItems\) as ArmorBuildGroup\[\]\s+return buildGroups/, 'detail page should not merge explicit backend setVariantIndex builds after projection grouping')
-assert.match(armorDetailSource, /buildGroup\.displayItems \?\? buildGroup\.variantItems/, 'detail page should render one representative item per projected slot')
+// WP-1 split: build 计算引擎迁至 composables/useArmorSetBuilds.ts,投影分组断言随代码迁移。
+const armorBuildsComposableSource = readFileSync(new URL('../composables/useArmorSetBuilds.ts', import.meta.url), 'utf8')
+assert.match(armorBuildsComposableSource, /const buildGroups = createArmorSetBuildGroups\(uniqueItems\) as ArmorBuildGroup\[\]\s+return buildGroups/, 'armor builds composable should not merge explicit backend setVariantIndex builds after projection grouping')
+assert.match(armorBuildsComposableSource, /buildGroup\.displayItems \?\? buildGroup\.variantItems/, 'armor builds composable should render one representative item per projected slot')
+assert.ok(armorDetailSource.includes('useArmorSetBuilds'), 'detail page should consume the armor builds composable')
 
 console.log('Armor build projection groups contract passed.')

@@ -348,6 +348,10 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
 {
   const path = 'pages/armor-sets/[id].vue'
   const content = read(path)
+  // WP-1 split: build 计算引擎(armorPieceGroups 等)迁至 composables/useArmorSetBuilds.ts,
+  // 涉及这些实现的断言改为在拼接源上执行,契约不变。
+  const armorBuildsComposable = read('composables/useArmorSetBuilds.ts')
+  const combinedArmorSource = `${content}\n${armorBuildsComposable}`
   for (const [pattern, message] of [
     [
       String.raw`const armorStatGroups = computed`,
@@ -506,7 +510,7 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       'armor set recipe summary must keep Chinese material and station names from wrapping one character per line',
     ],
   ]) {
-    assertPattern(path, content, pattern, message)
+    assertPattern(path, combinedArmorSource, pattern, message)
   }
 
   if (content.includes('armor-detail-icon-stage')) {
