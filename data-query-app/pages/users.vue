@@ -162,10 +162,7 @@ const toggleStatus = async (row: AdminUser) => {
 const handleResetPassword = async (row: AdminUser) => {
   const nextPassword = window.prompt(`请输入 ${row.email} 的新密码（10-64 位，需包含字母和数字）`)
   if (!nextPassword) return
-  const result = await usersStore.resetPassword(row.id, nextPassword)
-  if (result.temporaryPassword) {
-    showToast(`密码已重置：${result.temporaryPassword}`, 'success')
-  }
+  await usersStore.resetPassword(row.id, nextPassword)
 }
 
 const handleCreateUser = async () => {
