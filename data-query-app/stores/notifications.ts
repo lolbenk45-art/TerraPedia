@@ -135,6 +135,6 @@ export const useNotificationsStore = defineStore('notifications', () => {
   }
 }, {
   persist: {
-    paths: ['events', 'readIds', 'ownerUsername'],
+    pick: ['events', 'readIds', 'ownerUsername'],
   },
 })
