@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { NuxtLink } from '#components'
 import type { ArmorSetCatalogItem } from '~/types/public-api'
 import {
   armorSecondaryLabel,
@@ -23,7 +24,7 @@ const hasDetail = computed(() => Boolean(props.armor.armorSetId))
 
 <template>
   <component
-    :is="hasDetail ? resolveComponent('NuxtLink') : 'article'"
+    :is="hasDetail ? NuxtLink : 'article'"
     class="armor-card armor-card-live"
     :class="{ 'armor-card-link': hasDetail, active }"
     :to="hasDetail ? `/armor-sets/${armor.armorSetId}` : undefined"

@@ -28,13 +28,19 @@
   sanitization.
 - Approved error semantics: the base detail succeeds when individual pieces
   fail; failed effects become an empty list and failed recipes are omitted.
+- Runtime acceptance exposed three P1-tail client-navigation blockers outside
+  the aggregate data path: a preview SEO TDZ, a circular armor-build computed,
+  and an unresolved dynamic `NuxtLink`. They were accepted as the minimum
+  repairs required to execute the approved client-navigation smoke, with no
+  API, data, or visual behavior expansion.
 - Rejected options: controller-owned orchestration, adding fields to the list
   DTO, a separate aggregate route, visual changes, and P2 work.
 
 ## Scope
 
 - Frontend: request and consume optional `pieceEffects` / `pieceRecipes`, with
-  field-presence fallback to the existing per-piece calls.
+  field-presence fallback to the existing per-piece calls, plus the three
+  client-navigation blocker repairs and their source contracts.
 - Backend: extend the existing armor detail route, add an aggregate service and
   detail DTO, and share the public recipe-tree copy/sanitizer boundary.
 - Data: read-only existing projections and item/recipe services; no data write.
@@ -45,39 +51,50 @@
 
 ## Validation
 
-- Commands run: branch/worktree/ignore/remote-state checks, read-only chain
-  inspection, spec and plan placeholder/contract scans, plan-audit coverage
-  checks, `git diff --check`, worktree-local `pnpm install`, focused baseline
-  Maven controller tests, and the full public frontend gate.
-- Results: the base worktree is clean; the new task branch is stacked from
-  `cbca943`; current armor, effects, and recipe entrypoints were verified; the
-  existing item aggregate endpoint is deprecated and is not reused as the
-  public contract; the written design and TDD plan self-reviews found no
-  remaining critical or important placeholder, contract, boundary, evidence,
-  continuity, or type-consistency issue. Task 1 baseline passed 5/5 Maven tests
-  and `pnpm run check`; independent spec and quality reviews approved it with no
-  Critical or Important findings and no tracked/untracked scope pollution.
-- Not run: new-code tests and runtime acceptance; implementation has not
-  started.
+- Backend: the final four-class focused Maven suite passed 16/16 with zero
+  failures or errors. Expected test WARN output covered per-piece degradation
+  and public image stripping.
+- Frontend: the full `pnpm run check` passed after the runtime repairs. Known
+  non-failing baseline output remains Chromium DBus/UPower/GPU messages, Node
+  `DEP0205`, and the duplicate `formatEffectValue` auto-import warning.
+- API runtime: armor `155861118` returned successful object-valued
+  `pieceEffects` and `pieceRecipes` maps with keys `3874`, `3875`, and `3876`;
+  the no-include response omitted both properties.
+- Browser runtime: a real catalog-card click navigated to the detail route with
+  one armor-detail request, zero per-piece equipment-effect or recipe-tree
+  requests, zero hydration warnings, zero page errors, zero `NuxtLink`
+  warnings, and the expected detail name rendered.
+- TDD runtime repairs: the public-page SEO-order, armor-build cycle, and
+  explicit `NuxtLink` contracts were observed RED before their minimal fixes
+  and GREEN afterward.
+- Repository/review: committed and uncommitted `git diff --check` passed;
+  final independent review of `refactor/front-p1-tail...HEAD` plus the runtime
+  repairs found no Critical or Important issue.
 
 ## Result
 
-- Completed: user-approved architecture, compatibility/error semantics,
-  written-spec review, and execution-ready TDD implementation plan.
-- Not completed: code, runtime acceptance, review, and closeout.
+- Completed: optional armor piece effects/recipes aggregation, shared public
+  recipe-tree safety boundary, frontend field-presence consumption, legacy
+  fallback preservation, runtime blocker repairs, integrated runtime evidence,
+  and final review.
+- Not completed: local closeout commits are still pending. P2, push, and merge
+  remain outside this task.
 
 ## Residual Risks
 
-- Runtime request-count and hydration evidence require a serving build; they
-  block closeout if no compatible process or service-lifecycle authorization
-  is available.
-- The recipe-tree public image policy currently lives in a controller and must
-  be extracted without mutating cached internal DTOs.
+- `PublicRecipeTreeFacade` uses string-based `BeanUtils` exclusions; a future
+  mutable recipe-node collection needs a matching detached copy and mutation
+  test.
+- Aggregate ownership and the new navigation repairs use strict structural
+  source contracts. Runtime acceptance covers the current behavior, but the
+  armor-build replacement predicate lacks a direct plain/single-variant/
+  multi-variant fixture and harmless formatting changes can trip regex checks.
 
 ## Follow-up
 
-- Execute the committed plan through serialized subagent-driven development on
-  this branch without push or merge.
+- Commit the five runtime blocker/source-contract files, rerun final gates,
+  close this entry, and preserve the local branch/worktree without push or
+  merge. P2 remains a separate task.
 
 ## Commits
 
@@ -93,6 +110,7 @@
 - `f7c43e7` — initial Task 5 frontend aggregate consumer; specification
   review found two contract blind spots.
 - `88d53e8` — harden present-null and shared-resolver contract coverage.
+- Runtime navigation blocker fix commit pending.
 
 ## Optional: Cross-Review
 
@@ -163,6 +181,21 @@
   mutation-resistant coverage is part of Task 5.
 - Remaining risks: Minor — ownership regex is formatting/order sensitive and
   may reject a harmless resolver-call refactor.
+
+### Task 6 integrated review
+
+- Reviewer: fresh final code reviewer.
+- Scope: `refactor/front-p1-tail...8206d074` plus the five uncommitted runtime
+  blocker/source-contract files.
+- Findings: no Critical or Important issue; two Minor test-strength gaps for
+  the armor-build replacement predicate and structural SEO/NuxtLink contracts.
+- Disposition: accepted as non-blocking because the exact runtime failures were
+  reproduced and the final real-click browser smoke covers the integrated path.
+- Re-review required: no.
+- Resolved by: not applicable.
+- Arbitration decision: defer broader executable component/fixture coverage;
+  retain the current runtime evidence and focused source contracts.
+- Decision owner: coordinator.
 
 ## Optional: State Changes
 
@@ -259,6 +292,18 @@
 - Evidence: focused contracts and Nuxt typecheck pass; full reviewer-run
   `pnpm run check` passes; no Critical or Important finding remains.
 
+### 2026-07-19 00:13 CST
+
+- Change: Task 6 runtime authorization cleared the service-lifecycle blocker;
+  integrated API/browser acceptance and final review passed after three
+  independently reproduced P1-tail navigation blockers were repaired by TDD.
+- Reason: the approved plan requires a real catalog client navigation, rendered
+  detail, aggregate request counts, and zero hydration warnings before closeout.
+- Evidence: slot 10 served backend `18198` and frontend `15184`; armor
+  `155861118` exposed both maps; real card click produced one armor request,
+  zero per-piece requests, zero hydration/page/NuxtLink errors, and rendered
+  the expected name. Final review found no Critical or Important issue.
+
 ## Optional: Multi-Agent Coordination
 
 - Coordinator: `/root` (Codex).
@@ -284,8 +329,8 @@
     - Return format: DONE / DONE_WITH_CONCERNS / BLOCKED / NEEDS_CONTEXT,
       commands, results, tracked status, concerns.
   - Tasks 2–5 implementers and reviewers:
-    - Status: pending sequential assignment after the prior task's two-stage
-      review passes.
+    - Status: complete through the required serialized implementation and
+      two-stage review sequence.
     - Task scope: exactly one complete task from the committed plan per fresh
       implementer, followed by fresh spec and quality reviewers.
     - Allowed files: only that task's Files list.
@@ -353,7 +398,8 @@
       module independently triggers its old endpoint family.
     - Return format: complete.
   - Task 6 integration and closeout:
-    - Status: pending Tasks 2–5 and final integrated review.
+    - Status: integration, runtime acceptance, and final review complete;
+      focused repair commit and coordinator closeout remain.
     - Task scope: full focused gates, frontend gate, authorized runtime smoke,
       final review, and coordinator-owned devlog closeout.
     - Allowed files: coordinator-only devlog paths; reviewers are read-only.
@@ -361,8 +407,9 @@
       require a serialized repair task.
     - Dependencies: all implementation tasks and reviews approved.
     - Validation: plan Task 6.
-    - Blockers: missing runtime authorization/process or material review gap.
-    - Handoff notes: no task closeout without runtime request-count evidence.
+    - Blockers: none.
+    - Handoff notes: runtime request-count evidence is recorded above; finish
+      the reviewed repair commit and final closeout without push or merge.
     - Return format: validation evidence, findings, disposition, residual risk.
 - Shared files or state: `PublicItemRecipeController`,
   `PublicArmorSetController`, armor detail page/contracts, git index, and all
@@ -375,7 +422,7 @@
     armor detail `data`; no schema or data change.
   - Version/hash: design `1696f83`, plan `eb85d36`, public recipe producer
     contract `5f0a774`, armor aggregate service `8324bfd`, controller producer
-    contract `78a9220`; frontend consumer acknowledgement is pending.
+    contract `78a9220`, and frontend consumer acknowledgement `88d53e8`.
   - Breaking or compatible: compatible; absent fields trigger legacy fallback.
   - Fixtures/types updated: backend DTO/controller tests and frontend public
     API type/contract.

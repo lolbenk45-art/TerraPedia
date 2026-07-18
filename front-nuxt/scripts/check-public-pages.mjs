@@ -2950,6 +2950,19 @@ for (const path of scanFiles) {
         violations.push(`${path}: armor set detail page must render live public armor detail data with shared detail layout, loading/not-found states, effects, image groups, and list return controls via marker ${marker}`)
       }
     }
+
+    const seoMetaIndex = content.indexOf('useSeoMeta({')
+    const primaryPreviewIndex = content.indexOf('const armorPrimaryPreview = computed')
+    const stringArrayIndex = content.indexOf('const asStringArray =')
+    if (
+      stringArrayIndex === -1
+      || primaryPreviewIndex === -1
+      || seoMetaIndex === -1
+      || stringArrayIndex > primaryPreviewIndex
+      || primaryPreviewIndex > seoMetaIndex
+    ) {
+      violations.push(`${path}: armor primary preview helpers must initialize before the SEO getter reads armorPrimaryPreview during client navigation`)
+    }
   }
 
   if (path === 'pages/items/index.vue') {
@@ -3123,12 +3136,17 @@ for (const path of scanFiles) {
       'effectToneClass',
       'effectLabel',
       "`/armor-sets/${armor.armorSetId}`",
-      "hasDetail ? resolveComponent('NuxtLink') : 'article'",
+      "import { NuxtLink } from '#components'",
+      "hasDetail ? NuxtLink : 'article'",
       '<CommonPreviewImage',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: shared armor set card must render the live armor card content and link/article shell via marker ${marker}`)
       }
+    }
+
+    if (content.includes("resolveComponent('NuxtLink')")) {
+      violations.push(`${path}: dynamic armor links must use the explicit NuxtLink component so catalog cards remain clickable at runtime`)
     }
   }
 

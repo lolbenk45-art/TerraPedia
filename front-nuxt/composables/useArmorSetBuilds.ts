@@ -809,9 +809,12 @@ export function useArmorSetBuilds(deps: ArmorSetBuildsDeps) {
   }
 
   const armorFallbackLeadingFixedPieceEffectLines = (item: PublicArmorSetRelatedItem) => {
-    if (armorHasVariantBuilds.value) return []
     const uniqueItems = uniqueArmorItems(armorRelatedItems.value)
       .sort((left, right) => armorPieceRoleOrder(armorPieceRole(left)) - armorPieceRoleOrder(armorPieceRole(right)))
+    if (
+      armorVariantLabels(uniqueItems).length
+      || armorPieceGroups.value.some((group) => group.items.length > 1)
+    ) return []
     if (uniqueItems.length !== 3) return []
     const itemIndex = uniqueItems.findIndex((candidate) => (
       armorItemKey(candidate) === armorItemKey(item)

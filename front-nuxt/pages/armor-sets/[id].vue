@@ -76,6 +76,15 @@ const armorNotFound = computed(() => armorClientReady.value && !armorDetailPendi
 
 const armorTitle = computed(() => armorDetail.value?.displayName || `套装 ${armorSetId.value || '详情'}`)
 const armorSubtitle = computed(() => armorDetail.value?.englishName || '公开套装资料')
+const asStringArray = (value: unknown): string[] => Array.isArray(value) ? value.map((entry) => String(entry ?? '').trim()).filter(Boolean) : []
+const armorPrimaryPreview = computed(() => {
+  const raw = armorRaw.value
+  return asStringArray(raw?.maleImages ?? raw?.male_images)[0]
+    ?? asStringArray(raw?.femaleImages ?? raw?.female_images)[0]
+    ?? asStringArray(raw?.specialImages ?? raw?.special_images)[0]
+    ?? asStringArray(raw?.fallbackImages ?? raw?.fallback_images)[0]
+    ?? ''
+})
 
 const toAbsoluteSeoUrl = useAbsoluteSiteUrl()
 
@@ -256,7 +265,6 @@ const armorEffectSections = computed(() => {
   }]
 })
 
-const asStringArray = (value: unknown): string[] => Array.isArray(value) ? value.map((entry) => String(entry ?? '').trim()).filter(Boolean) : []
 const asRelatedItems = (value: unknown): PublicArmorSetRelatedItem[] => Array.isArray(value)
   ? value.filter((entry): entry is PublicArmorSetRelatedItem => Boolean(entry && typeof entry === 'object' && !Array.isArray(entry)))
   : []
@@ -560,7 +568,6 @@ const imageGroups = computed(() => ([
 ]).filter((group) => group.images.length))
 const armorPreviewImageTotal = computed(() => imageGroups.value.reduce((total, group) => total + group.images.length, 0))
 const armorPreviewCompactClass = computed(() => armorPreviewImageTotal.value <= 2 ? 'armor-preview-module--compact' : '')
-const armorPrimaryPreview = computed(() => imageGroups.value[0]?.images[0] ?? '')
 const armorPrimaryPreviewIcon = computed(() => imageGroups.value[0]?.icon ?? 'icon-armor')
 
 const factCards = computed(() => ([

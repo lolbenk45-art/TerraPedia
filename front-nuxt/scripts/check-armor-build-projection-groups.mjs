@@ -85,6 +85,9 @@ const armorDetailSource = readFileSync(new URL('../pages/armor-sets/[id].vue', i
 const armorBuildsComposableSource = readFileSync(new URL('../composables/useArmorSetBuilds.ts', import.meta.url), 'utf8')
 assert.match(armorBuildsComposableSource, /const buildGroups = createArmorSetBuildGroups\(uniqueItems\) as ArmorBuildGroup\[\]\s+return buildGroups/, 'armor builds composable should not merge explicit backend setVariantIndex builds after projection grouping')
 assert.match(armorBuildsComposableSource, /buildGroup\.displayItems \?\? buildGroup\.variantItems/, 'armor builds composable should render one representative item per projected slot')
+const fallbackPieceEffectSource = armorBuildsComposableSource.match(/const armorFallbackLeadingFixedPieceEffectLines = \(item:[\s\S]*?\n  }\n\n  const armorBuildPieceEffectLines/)?.[0] ?? ''
+assert.ok(fallbackPieceEffectSource, 'armor builds composable should keep the fixed-piece fallback helper')
+assert.doesNotMatch(fallbackPieceEffectSource, /armorHasVariantBuilds\.value/, 'fixed-piece fallback must not read armorSetBuildCards through armorHasVariantBuilds while those cards are being computed')
 assert.ok(armorDetailSource.includes('useArmorSetBuilds'), 'detail page should consume the armor builds composable')
 
 console.log('Armor build projection groups contract passed.')
