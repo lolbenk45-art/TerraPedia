@@ -88,7 +88,7 @@ git commit -m "fix(back): enforce ADMIN role claim in admin auth interceptor"
 
 **不触碰**: `ArticleCommentController.getOptionalUserId`（L141-147）是唯一"故意容忍无 token"路径，保持原样。
 
-- [ ] **Step 1: 新建异常类**
+- [x] **Step 1: 新建异常类**
 
 ```java
 package com.terraria.skills.auth;
@@ -100,7 +100,7 @@ public class UnauthenticatedException extends RuntimeException {
 }
 ```
 
-- [ ] **Step 2: GlobalExceptionHandler 加条目**（**照抄 L56-61 AdminAccessDeniedException 条目的实际风格: `@ResponseStatus` + 裸 ApiResponse**，不是 ResponseEntity——先读该条目再写）
+- [x] **Step 2: GlobalExceptionHandler 加条目**（**照抄 L56-61 AdminAccessDeniedException 条目的实际风格: `@ResponseStatus` + 裸 ApiResponse**，不是 ResponseEntity——先读该条目再写）
 
 ```java
     @ExceptionHandler(UnauthenticatedException.class)
@@ -110,7 +110,7 @@ public class UnauthenticatedException extends RuntimeException {
     }
 ```
 
-- [ ] **Step 3: 统一 getRequiredClaims 副本为守护式**
+- [x] **Step 3: 统一 getRequiredClaims 副本为守护式**
 
 User 侧模板（**保留现有 6 个副本的 `getUserId() != null` 守卫，不得弱化**）:
 
@@ -128,7 +128,7 @@ User 侧模板（**保留现有 6 个副本的 `getUserId() != null` 守卫，�
 
 逐文件清单见 scout-p2-backend.md 项 2（10 个 controller）。改完 `grep -rn "getRequiredClaims" controller/ | grep -c private` 应仍为 10（只改实现不合并，合并属后续 ArgumentResolver 项）。
 
-- [ ] **Step 4: 验证 + 提交**
+- [x] **Step 4: 验证 + 提交**
 
 ```bash
 cd back && mvn -DskipTests compile && mvn test -Dtest='*Article*,*User*' 2>&1 | grep -E "Tests run.*Fail|BUILD"
