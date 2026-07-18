@@ -1,6 +1,7 @@
 package com.terraria.skills.service.impl;
 
 import com.terraria.skills.common.AdminTextUtils;
+import static com.terraria.skills.common.AdminTextUtils.trimToNull;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -867,7 +868,7 @@ public class PublicBossServiceImpl implements PublicBossService {
             return null;
         }
         for (String value : values) {
-            String normalized = AdminTextUtils.trimToNull(value);
+            String normalized = trimToNull(value);
             if (normalized != null) {
                 return normalized;
             }

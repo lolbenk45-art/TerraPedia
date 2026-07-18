@@ -39,4 +39,29 @@ class AdminTextUtilsTest {
 
         assertEquals("custom value", AdminTextUtils.trimToNull(value));
     }
+
+    @Test
+    void shouldReturnNullForNullUnicodeBlankValue() {
+        assertNull(AdminTextUtils.trimToNullUnicodeBlank(null));
+    }
+
+    @Test
+    void shouldReturnNullForUnicodeOnlyBlankValue() {
+        assertNull(AdminTextUtils.trimToNullUnicodeBlank("\u2003"));
+    }
+
+    @Test
+    void shouldReturnNullForAsciiBlankValueAtUnicodeBoundary() {
+        assertNull(AdminTextUtils.trimToNullUnicodeBlank(" \t\n "));
+    }
+
+    @Test
+    void shouldPreserveUnicodeWhitespaceAroundNonBlankValue() {
+        assertEquals("\u2003Terraria\u2003", AdminTextUtils.trimToNullUnicodeBlank("\u2003Terraria\u2003"));
+    }
+
+    @Test
+    void shouldKeepUnicodeBlankValueForObjectTrimContract() {
+        assertEquals("\u2003", AdminTextUtils.trimToNull("\u2003"));
+    }
 }

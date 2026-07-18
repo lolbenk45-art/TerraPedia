@@ -26,7 +26,7 @@ public class UserAvatarUrlResolver {
             return buildProxyUrl(normalizedObjectKey);
         }
 
-        String normalizedUrl = AdminTextUtils.trimToNull(avatarUrl);
+        String normalizedUrl = AdminTextUtils.trimToNullUnicodeBlank(avatarUrl);
         if (normalizedUrl == null) {
             return null;
         }
@@ -52,7 +52,7 @@ public class UserAvatarUrlResolver {
     }
 
     private String normalizeAvatarObjectKey(String objectKey) {
-        String normalized = AdminTextUtils.trimToNull(objectKey);
+        String normalized = AdminTextUtils.trimToNullUnicodeBlank(objectKey);
         if (normalized == null) {
             return null;
         }
@@ -68,7 +68,7 @@ public class UserAvatarUrlResolver {
     }
 
     private String trimTrailingSlash(String value) {
-        String normalized = AdminTextUtils.trimToNull(value);
+        String normalized = AdminTextUtils.trimToNullUnicodeBlank(value);
         if (normalized == null) {
             return "";
         }

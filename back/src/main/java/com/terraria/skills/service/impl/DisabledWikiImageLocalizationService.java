@@ -60,7 +60,7 @@ public class DisabledWikiImageLocalizationService implements WikiImageLocalizati
 
 
     private URI parseHttpUri(String value) {
-        String normalized = AdminTextUtils.trimToNull(value);
+        String normalized = AdminTextUtils.trimToNullUnicodeBlank(value);
         if (normalized == null) {
             return null;
         }

@@ -1,6 +1,7 @@
 package com.terraria.skills.controller;
 
 import com.terraria.skills.common.AdminTextUtils;
+import static com.terraria.skills.common.AdminTextUtils.trimToNull;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -789,7 +790,7 @@ public class AdminBossController {
 
     private String firstNonBlank(String... values) {
         for (String value : values) {
-            String trimmed = AdminTextUtils.trimToNull(value);
+            String trimmed = trimToNull(value);
             if (trimmed != null) {
                 return trimmed;
             }

@@ -1,6 +1,7 @@
 package com.terraria.skills.service.impl;
 
 import com.terraria.skills.common.AdminTextUtils;
+import static com.terraria.skills.common.AdminTextUtils.trimToNull;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.terraria.skills.dto.AdminRecipeConditionUpsertRequestDTO;
@@ -821,7 +822,7 @@ public class RecipeServiceImpl implements RecipeService {
             return null;
         }
         for (String value : values) {
-            String trimmed = AdminTextUtils.trimToNull(value);
+            String trimmed = trimToNull(value);
             if (trimmed != null) {
                 return trimmed;
             }

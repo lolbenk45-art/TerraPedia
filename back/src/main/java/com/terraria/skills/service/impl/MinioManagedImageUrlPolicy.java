@@ -28,7 +28,7 @@ public class MinioManagedImageUrlPolicy implements ManagedImageUrlPolicy {
 
     @Override
     public boolean isManagedImageUrl(String value) {
-        String normalized = AdminTextUtils.trimToNull(value);
+        String normalized = AdminTextUtils.trimToNullUnicodeBlank(value);
         if (normalized == null) {
             return false;
         }
@@ -82,7 +82,7 @@ public class MinioManagedImageUrlPolicy implements ManagedImageUrlPolicy {
 
     @Override
     public Optional<String> normalizeManagedImagePath(String value) {
-        String normalized = AdminTextUtils.trimToNull(value);
+        String normalized = AdminTextUtils.trimToNullUnicodeBlank(value);
         if (normalized == null) {
             return Optional.empty();
         }
@@ -102,7 +102,7 @@ public class MinioManagedImageUrlPolicy implements ManagedImageUrlPolicy {
     }
 
     private Optional<String> normalizeManagedPath(String path) {
-        String normalizedPath = stripQueryAndFragment(AdminTextUtils.trimToNull(path));
+        String normalizedPath = stripQueryAndFragment(AdminTextUtils.trimToNullUnicodeBlank(path));
         if (normalizedPath == null || !normalizedPath.startsWith("/")) {
             return Optional.empty();
         }
@@ -232,7 +232,7 @@ public class MinioManagedImageUrlPolicy implements ManagedImageUrlPolicy {
     }
 
     private List<String> splitObjectPrefixes(String configuredPrefixes) {
-        String normalized = AdminTextUtils.trimToNull(configuredPrefixes);
+        String normalized = AdminTextUtils.trimToNullUnicodeBlank(configuredPrefixes);
         if (normalized == null) {
             return List.of();
         }
@@ -258,7 +258,7 @@ public class MinioManagedImageUrlPolicy implements ManagedImageUrlPolicy {
     }
 
     private String normalizeEndpoint(String endpoint) {
-        String value = AdminTextUtils.trimToNull(endpoint);
+        String value = AdminTextUtils.trimToNullUnicodeBlank(endpoint);
         if (value == null) {
             return null;
         }
@@ -272,7 +272,7 @@ public class MinioManagedImageUrlPolicy implements ManagedImageUrlPolicy {
     }
 
     private URI parseHttpUri(String value) {
-        String normalized = AdminTextUtils.trimToNull(value);
+        String normalized = AdminTextUtils.trimToNullUnicodeBlank(value);
         if (normalized == null || normalized.startsWith("//")) {
             return null;
         }

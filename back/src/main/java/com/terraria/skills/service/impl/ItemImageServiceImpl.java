@@ -57,7 +57,7 @@ public class ItemImageServiceImpl implements ItemImageService {
         }
 
         Item item = itemMapper.selectById(itemId);
-        String legacyImage = item == null ? null : AdminTextUtils.trimToNull(item.getImage());
+        String legacyImage = item == null ? null : AdminTextUtils.trimToNullUnicodeBlank(item.getImage());
         ItemImageDTO fallback = buildLegacyFallback(itemId, legacyImage);
         return fallback == null ? Collections.emptyList() : List.of(fallback);
     }
@@ -90,8 +90,8 @@ public class ItemImageServiceImpl implements ItemImageService {
         if (preferredUrl == null) {
             return null;
         }
-        dto.setOriginalUrl(AdminTextUtils.trimToNull(dto.getOriginalUrl()));
-        dto.setCachedUrl(AdminTextUtils.trimToNull(dto.getCachedUrl()));
+        dto.setOriginalUrl(AdminTextUtils.trimToNullUnicodeBlank(dto.getOriginalUrl()));
+        dto.setCachedUrl(AdminTextUtils.trimToNullUnicodeBlank(dto.getCachedUrl()));
         dto.setImageUrl(preferredUrl);
         return dto;
     }
@@ -109,8 +109,8 @@ public class ItemImageServiceImpl implements ItemImageService {
 
 
     private String preferredDisplayImageUrl(String originalUrl, String cachedUrl) {
-        String cached = AdminTextUtils.trimToNull(cachedUrl);
-        String original = AdminTextUtils.trimToNull(originalUrl);
+        String cached = AdminTextUtils.trimToNullUnicodeBlank(cachedUrl);
+        String original = AdminTextUtils.trimToNullUnicodeBlank(originalUrl);
         if (isNonItemIconVariant(original) || isNonItemIconVariant(cached)) {
             return null;
         }
@@ -124,12 +124,12 @@ public class ItemImageServiceImpl implements ItemImageService {
     }
 
     private boolean isManagedImageUrl(String value) {
-        String text = AdminTextUtils.trimToNull(value);
+        String text = AdminTextUtils.trimToNullUnicodeBlank(value);
         return text != null && managedImageUrlPolicy.isManagedImageUrl(text);
     }
 
     private static boolean isNonItemIconVariant(String value) {
-        String text = AdminTextUtils.trimToNull(value);
+        String text = AdminTextUtils.trimToNullUnicodeBlank(value);
         if (text == null) {
             return false;
         }

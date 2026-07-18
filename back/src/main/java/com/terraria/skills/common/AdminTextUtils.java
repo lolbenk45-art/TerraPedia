@@ -12,4 +12,11 @@ public final class AdminTextUtils {
         String text = String.valueOf(value).trim();
         return text.isEmpty() ? null : text;
     }
+
+    public static String trimToNullUnicodeBlank(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
 }
