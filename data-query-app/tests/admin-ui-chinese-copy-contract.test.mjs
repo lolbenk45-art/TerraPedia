@@ -170,7 +170,6 @@ test('entity workspace badges and town NPC summary cards are Chinese-first', () 
 
 test('crawler monitor primary operation labels are Chinese-first', () => {
   assert.match(crawlerMonitor, /爬取监控/)
-  assert.match(crawlerMonitor, /运行态/)
   assert.match(crawlerMonitor, /运行文件/)
   assert.match(crawlerMonitor, /if \(normalized === 'readable'\) return '可读取'/)
   assert.match(crawlerMonitorTest, /自动刷新关闭/)

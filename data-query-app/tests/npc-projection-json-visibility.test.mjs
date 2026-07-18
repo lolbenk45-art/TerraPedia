@@ -8,9 +8,19 @@ const entitiesPage = fs.readFileSync(path.join(repoRoot, 'pages', 'entities', '[
 const itemDetail = fs.readFileSync(path.join(repoRoot, 'components', 'ItemDetail.vue'), 'utf8')
 const townNpcWorkbench = fs.readFileSync(path.join(repoRoot, 'components', 'TownNpcWorkbenchModal.vue'), 'utf8')
 const townNpcIndex = fs.readFileSync(path.join(repoRoot, 'pages', 'entities', 'town-npcs', 'index.vue'), 'utf8')
-const townNpcDetail = fs.readFileSync(path.join(repoRoot, 'pages', 'entities', 'town-npcs', '[id]', 'index.vue'), 'utf8')
-const townNpcEdit = fs.readFileSync(path.join(repoRoot, 'pages', 'entities', 'town-npcs', '[id]', 'edit.vue'), 'utf8')
+const townNpcDetailPath = path.join(repoRoot, 'pages', 'entities', 'town-npcs', '[id]', 'index.vue')
+const townNpcEditPath = path.join(repoRoot, 'pages', 'entities', 'town-npcs', '[id]', 'edit.vue')
 const townNpcComposable = fs.readFileSync(path.join(repoRoot, 'composables', 'useTownNpcMaintenance.ts'), 'utf8')
+
+test('legacy town NPC detail and edit pages stay absent', () => {
+  assert.deepEqual(
+    {
+      detail: fs.existsSync(townNpcDetailPath),
+      edit: fs.existsSync(townNpcEditPath),
+    },
+    { detail: false, edit: false }
+  )
+})
 
 test('generic NPC admin config exposes projection JSON fields', () => {
   const npcConfig = entitiesPage.match(/npcs:\s*\{[\s\S]*?\n\s*bosses:/)?.[0] ?? ''
@@ -35,7 +45,7 @@ test('generic NPC admin config exposes Chinese display, form, and search fields'
 test('town NPC shop cards use shared image resolver for itemImageUrl fallbacks', () => {
   assert.match(townNpcComposable, /resolveTownNpcShopItemImage/)
   assert.match(townNpcComposable, /itemImageUrl/)
-  for (const source of [townNpcWorkbench, townNpcIndex, townNpcDetail, townNpcEdit]) {
+  for (const source of [townNpcWorkbench, townNpcIndex]) {
     assert.match(source, /resolveTownNpcShopItemImage/)
   }
 })
@@ -58,15 +68,6 @@ test('town NPC admin image resolvers normalize managed MinIO urls to same-origin
   assert.match(townNpcComposable, /resolveTownNpcMainImage[\s\S]*?normalizeTownNpcImageUrl/)
   assert.match(townNpcComposable, /resolveTownNpcShopItemImage[\s\S]*?normalizeTownNpcImageUrl/)
   assert.match(townNpcComposable, /wikiAssetCards[\s\S]*?normalizeTownNpcImageUrl/)
-})
-
-test('town NPC detail portrait uses shared main image resolver', () => {
-  assert.match(townNpcDetail, /resolveTownNpcMainImage/)
-  assert.match(townNpcDetail, /const mainImageUrl = computed\(\(\) => resolveTownNpcMainImage\(selectedRow\.value\)\)/)
-  assert.match(townNpcDetail, /v-if="mainImageUrl"/)
-  assert.match(townNpcDetail, /:src="mainImageUrl"/)
-  assert.doesNotMatch(townNpcDetail, /v-if="selectedRow\.imageUrl"/)
-  assert.doesNotMatch(townNpcDetail, /:src="selectedRow\.imageUrl"/)
 })
 
 test('town NPC overview and workbench portraits use shared main image resolver', () => {
@@ -185,14 +186,12 @@ test('admin item detail labels parsed source NPC cards as summaries, not raw JSO
 test('town NPC workbench visible operator copy is Chinese-first', () => {
   for (const [source, tokens] of [
     [townNpcIndex, ['城镇 NPC 工作台', '未匹配']],
-    [townNpcDetail, ['城镇 NPC 详情', '商店物品', '已匹配', '未匹配']],
-    [townNpcEdit, ['城镇 NPC 编辑器', '当前商店物品', 'Wiki 建议']],
     [townNpcWorkbench, ['当前商店物品', 'Wiki 建议', '暂无匹配物品']],
   ]) {
     for (const token of tokens) assert.match(source, new RegExp(token))
   }
 
-  for (const source of [townNpcIndex, townNpcDetail, townNpcEdit, townNpcWorkbench]) {
+  for (const source of [townNpcIndex, townNpcWorkbench]) {
     assert.doesNotMatch(source, /TOWN NPC WORKBENCH|TOWN NPC EDITOR|TOWN NPC DETAIL|SHOP ITEMS|MATCHED|UNMATCHED|Current Shop Items|Wiki Suggestions|No matched items/)
   }
 })

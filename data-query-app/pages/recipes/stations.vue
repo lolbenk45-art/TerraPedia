@@ -406,9 +406,6 @@
             description="可以直接在这里新增配方草稿，系统会预置当前制作站。补充原料后即可保存。"
           />
 
-          <div v-if="false && bindingTargetItem && showBindingEditor && showInlineBindingEditor" class="binding-editor">
-            <ItemRecipeEditor v-model="bindingRecipes" :crafting-stations="bindingStationOptions" />
-          </div>
         </div>
       </section>
 
@@ -517,7 +514,6 @@
 <script setup lang="ts">
 import AdminRecipeTreeBranch from '~/components/AdminRecipeTreeBranch.vue'
 import AdminItemLookupInput from '~/components/AdminItemLookupInput.vue'
-import ItemRecipeEditor from '~/components/ItemRecipeEditor.vue'
 import { showToast } from '~/composables/useToast'
 import type {
   CraftingStation,
@@ -581,7 +577,6 @@ const loadingBindingContext = ref(false)
 const savingBindingContext = ref(false)
 const loadingStationUsageItems = ref(false)
 const bindingActionKey = ref('')
-const showBindingEditor = ref(false)
 const bindingStationOptions = ref<CraftingStation[]>([])
 const bindingStationOptionsLoaded = ref(false)
 const stationsPagination = ref<Pagination>({ page: 1, size: 20, total: 0, totalPages: 0 })
@@ -617,7 +612,6 @@ const stationHeroStats = computed(() => {
   ]
 })
 const showDeprecatedFlowPreview = false
-const showInlineBindingEditor = false
 const desktopBindingVariant = computed<ItemRecipeTreeVariant | null>(() => {
   const variants = bindingRecipeTree.value?.variants || []
   return (
@@ -688,7 +682,6 @@ function clearBindingContext() {
   bindingRecipes.value = []
   bindingLoadedRecipes.value = []
   bindingRecipeTree.value = null
-  showBindingEditor.value = false
 }
 
 async function goToRecipeWorkspaceForStation() {
@@ -1217,7 +1210,6 @@ function addBindingRecipeDraft() {
     stations: [{ ...bindingPayload, sortOrder: 1 }],
     conditions: [],
   })
-  showBindingEditor.value = true
   showToast('已新增配方草稿，并预置当前制作站。请补充原料后保存。', 'success')
 }
 
@@ -1898,10 +1890,6 @@ watch(() => route.query, async (query) => {
   border-color: color-mix(in srgb, var(--color-primary) 32%, var(--color-border));
   color: var(--color-primary);
   background: color-mix(in srgb, var(--color-primary) 7%, var(--color-bg-secondary));
-}
-.binding-editor {
-  padding-top: 6px;
-  border-top: 1px dashed color-mix(in srgb, var(--color-border) 90%, transparent);
 }
 .station-list__head { justify-content: space-between; align-items: center; margin-bottom: 18px; }
 .station-list__tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }

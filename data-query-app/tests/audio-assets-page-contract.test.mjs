@@ -172,7 +172,8 @@ test('audio assets page locks responsive sizing and accessibility-critical style
   assert.match(page, /\.playback-state-button\s*\{[\s\S]*min-height:\s*44px/)
   assert.match(page, /\.filter-chip-list\s*\{[\s\S]*display:\s*flex[\s\S]*flex-wrap:\s*wrap[\s\S]*min-width:\s*0/)
   assert.match(page, /\.filter-chip[\s\S]*overflow-wrap:\s*anywhere/)
-  assert.match(page, /\.audio-asset-table\s+th\s*\{[\s\S]*white-space:\s*nowrap/)
+  assert.match(page, /\.data-table\s+th\s*\{[\s\S]*white-space:\s*nowrap/)
+  assert.doesNotMatch(page, /\.audio-asset-table\s+th\s*\{/)
   assert.match(page, /\.table-scroll\s*\{[\s\S]*overflow-x:\s*auto/)
 })
 

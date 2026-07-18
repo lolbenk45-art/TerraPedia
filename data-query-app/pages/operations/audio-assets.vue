@@ -1063,13 +1063,6 @@ onBeforeUnmount(() => {
   min-width: 1320px;
 }
 
-.audio-asset-table th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  white-space: nowrap;
-}
-
 .audio-asset-table td {
   min-width: 0;
 }
@@ -1082,24 +1075,6 @@ onBeforeUnmount(() => {
 .audio-asset-row--selected {
   background: color-mix(in srgb, var(--color-primary) 9%, var(--color-bg-secondary));
   box-shadow: inset 3px 0 0 var(--color-primary);
-}
-
-.pill {
-  display: inline-flex;
-  width: fit-content;
-  min-height: 28px;
-  align-items: center;
-  border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
-  color: var(--color-primary);
-  font-size: 0.78rem;
-  font-weight: 700;
-  padding: 4px 8px;
-}
-
-.pill--muted {
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-secondary);
 }
 
 .playback-column-header,

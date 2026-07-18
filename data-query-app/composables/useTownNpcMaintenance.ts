@@ -149,13 +149,6 @@ export const formatPercent = (value: unknown) => {
 export const resolveKnockBackResist = (row: TownNpcRow | null | undefined) =>
   formatPercent(resolveNpcStat(row, 'knockBackResist'))
 
-export const buildWikiTagLine = (row: TownNpcRow | null | undefined) => {
-  if (!row) return ''
-  const types = Array.isArray(row.wikiDetails?.types) ? row.wikiDetails.types.filter(Boolean) : []
-  const environments = Array.isArray(row.wikiDetails?.environments) ? row.wikiDetails.environments.filter(Boolean) : []
-  return [types.slice(0, 2).join(' / '), environments.slice(0, 2).join(' / ')].filter(Boolean).join(' · ')
-}
-
 export const wikiAssetCards = (row: TownNpcRow | null | undefined): WikiAssetCard[] => {
   if (!row) return []
   const assets = row.wikiAssets || {
