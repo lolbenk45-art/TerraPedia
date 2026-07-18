@@ -288,19 +288,18 @@ git commit -m "refactor(admin): replace hardcoded colors with design tokens"
 
 ### Task C5: audio-assets 精确匹配 + cookie 常量收编 + items 白名单
 
-**2026-07-18 执行状态:** `active`。`630ddb5` 完成 cookie/URL 单一来源、
-精确音频状态 token 与 items 24 字段白名单；`02df27b` 已修 pending submit、
-stale request 与可执行 handler 合同。fresh 复审确认这些 finding 清零，但继续阻断
-在 store 把配方请求失败折叠为合法 `[]`，仍可能解锁后破坏性清空真实配方。
-最终修复允许最小扩展到 `stores/items.ts`，为 edit 调用提供可区分失败的返回契约并
-在失败后保持配方写入门控；不得改变其它调用方默认数组行为或扩展 modal 重构。
+**2026-07-18 执行状态:** `completed`。`630ddb5` 完成 cookie/URL 单一来源、
+精确音频状态 token 与 items 24 字段白名单；`02df27b` 修复 pending submit、
+stale request 与可执行 handler 合同；`2e101c9` 为 edit 提供失败可区分的 strict
+配方读取并保持其它调用方的数组回退。最终 focused 28/28、typecheck、规格与质量
+复审通过，全部 Critical/Important/Minor findings 清零。
 
 **Files:**
 - Modify: `data-query-app/composables/useApi.ts` L5（`const` → `export const TOKEN_COOKIE_KEY`）
 - Modify: `data-query-app/pages/operations/audio-assets.vue`（L588-593 matchStatuses 子串嗅探改 split 精确比较、L603-608 label 版同改；L348 硬编码 cookie 名改 import；L509-513 joinApiUrl 删掉改用 useApi 的 resolveApiUrl）
 - Modify: `data-query-app/pages/items.vue`（L514-519 `Object.assign(form, {...item})` 改为按 resetForm L504 的 25 字段白名单显式 pick）
 
-- [ ] **Step 1: matchStatuses 改法**
+- [x] **Step 1: matchStatuses 改法**
 
 ```ts
 const statusSet = new Set(normalized.split(/[\s,|/]+/).filter(Boolean))
@@ -309,7 +308,7 @@ const statusSet = new Set(normalized.split(/[\s,|/]+/).filter(Boolean))
 
 （以现场语义为准——先读上下文确认 normalized 的来源格式再定分隔符。）
 
-- [ ] **Step 2: items.vue 白名单 pick**
+- [x] **Step 2: items.vue 白名单 pick**
 
 **评审修正**: `resetFormDefaults` 常量不存在（L504 是内联字面量），需先把 resetForm 的字面量抽成模块级常量（24 字段）。且 handleEdit L514-519 有**三个显式变换必须保留**，白名单循环后叠加:
 
@@ -329,7 +328,7 @@ form.imageUrl = item.imageUrl ?? ''
 
 （以现场 L510-522 实际代码为准，目标: 不再把 id/时间戳等非表单字段混入 form。）
 
-- [ ] **Step 3: 验证 + 提交**
+- [x] **Step 3: 验证 + 提交**
 
 ```bash
 cd data-query-app && pnpm run check && node --test tests/audio-assets-page-contract.test.mjs tests/items-progress-column.test.mjs

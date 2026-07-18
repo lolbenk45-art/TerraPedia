@@ -33,7 +33,7 @@
 - Results: backend auth baseline 13 tests, zero failures/errors; admin typecheck passed; worktree clean at creation; `2cbcf99` confirmed as an ancestor of `218dfc0`. A2 observed the expected pre-fix 400-versus-401 red, then passed its focused 4/4 and broad article/user 130/130 runs; quality review additionally passed the 10 owning controller classes at 49/49. B1 observed the expected panel-root absence RED, then passed page contract 54/54, the four-file crawler-monitor bundle 140/140, and admin typecheck; the hardened review-fix contract independently passed 54/54. B2 observed the expected legacy-page absence RED, then passed NPC projection 19/19, approved stale-contract checks 16/16, typecheck, and the full admin unit suite 367/367; quality review independently passed focused contracts 35/35 and the same broad gates. C1 observed the expected font/icon contract RED, then passed focused 9/9, combined 16/16, and typecheck. Browser evidence measured a 24x24 Package and three 18x18 Folder/FileText icons with no structural emojis; screenshots show the icons crisp and non-tofu. C2's final specificity contract observed the expected 10/11 RED under the old `:where` selector and 11/11 GREEN after `fd3689e`; independent typecheck and 11/11 rerun passed. Browser probes at 1280/1130/1024/900/800/761/760 measured all six controls at computed/actual 44px with no document, command-bar, or toolbar overflow; specification and quality re-review reported no remaining findings.
 - C3 initial implementation observed the expected focused 5/8 RED, then passed focused 8/8, admin typecheck, and specification review. Quality review found one Important transactional pagination failure and a related static-test weakness. The repair observed 6/13 RED then 13/13 GREEN, executes the actual aggregation/load/handler functions, and proves deferred commit, failed-target retry, 2→1/zero-result clamping, and waiting-state preservation. Final specification and quality re-review reported no findings.
 - C4 initial implementation observed the expected focused 9/12 RED, then passed focused 12/12, combined 19/19, admin typecheck, diff check, specification review, and light/dark runtime geometry checks. Quality review found three Important accessibility/semantic issues and one related test-quality Minor. The repair observed effective 11/14 RED then 14/14 GREEN and final combined 21/21; independent WCAG checks measured at least 5.30:1 for login text, 5.54:1 for semantic tags, and 6.40:1 for submit endpoints. Fresh specification and quality re-review reported no blocking findings.
-- C5 observed audio 7/10 RED then 10/10 GREEN and items 11/13 RED then 13/13 GREEN; final focused 23/23, admin typecheck, diff check, and specification review passed. Quality review found submission/stale-edit races and a source-only whitelist test. The first repair observed 13/15 RED then 15/15 GREEN and combined 25/25; fresh spec approved, and quality re-review confirmed both findings resolved but found that store errors still collapse to `[]`, allowing a later destructive empty recipe write. Final failure-aware repair and re-review remain pending.
+- C5 observed audio 7/10 RED then 10/10 GREEN and items 11/13 RED then 13/13 GREEN; initial focused 23/23, admin typecheck, diff check, and specification review passed. Quality review found submission/stale-edit races and a source-only whitelist test. The first repair observed 13/15 RED then 15/15 GREEN and combined 25/25; the second observed 15/18 RED then 18/18 GREEN and combined 28/28, preserving default store callers while blocking strict edit failures. Final fresh specification and quality reviews report no findings.
 - Not run: C5-D6 task-focused tests, broad final backend/admin gates, and final runtime smoke remain pending implementation.
 
 ## Result
@@ -41,7 +41,7 @@
 - Completed: isolated worktree, current-main reconciliation, plan audit, A1 coverage verification, A2, B1, B2, C1, and C2 with specification, quality, and required runtime approval.
 - Completed: C3 token repair and transactional shared pagination with specification and quality approval.
 - Completed: C4 accessible token migration, semantic KPI gradients, global categories control delegation, and executable light/dark contrast contract with specification and quality approval.
-- In progress: C5 production requirements, request identity/submission safety, and executable items mapping coverage are implemented and specification-approved, but the quality gate remains blocked on distinguishing recipe fetch failure from a legitimate empty result.
+- Completed: C5 exact audio status/cookie/URL reuse, items whitelist/transforms, request identity/submission safety, failure-aware recipe loads, and executable production-handler/store coverage with final specification and quality approval.
 - Not completed: D1-D6 implementation, final gates, and closeout.
 
 ## Residual Risks
@@ -51,11 +51,11 @@
 - Broad backend baseline has previously documented unrelated failures; final focused gates must prove no new failures.
 - Shared `AppPagination` still has an existing 38px control-height and missing `aria-current` accessibility Minor. It is outside C3's two-file scope and should be handled in a separate component task.
 - C4's focused CSS evaluator supports the current repository hex/rgb/rgba/`var()`/sRGB `color-mix()` subset. It can miss a future cross-semantic KPI mix, decorative page-layer contrast change, or unsupported CSS color syntax; current production expressions were independently checked and remain above 4.5:1.
-- C5's page now gates pending recipe loads and rejects stale results, but `fetchItemRecipes` still returns `[]` for both a legitimate empty response and a caught request error. The edit path needs a failure-aware contract while other existing callers retain their current fallback behavior.
+- C5's source-execution harness is intentionally scoped to the current SFC/store function syntax; future syntax changes may require adapting the extractor. Current store/page bodies and all relevant async orders execute in the 28-test focused suite.
 
 ## Follow-up
 
-- Original C5 implementer adds a minimal failure-aware recipe fetch contract for the edit path and an executable failure regression; fresh specification review must pass before fresh quality re-review. D1 remains blocked until both approve.
+- Coordinator advances the serialized plan to D1 with a fresh implementer; implementation, specification review, and quality review remain sequential.
 
 ## Commits
 
@@ -81,6 +81,8 @@
 - `630ddb5` — implemented C5 cookie/URL reuse, exact audio status tokens, and the items form whitelist; specification-approved but quality-blocked pending recipe-race and executable-test repair.
 - `4e3957e` — recorded the first C5 quality-review blocker.
 - `02df27b` — guarded pending/stale edit recipe loading and added executable handler behavior coverage; its remaining failure-path finding is pending repair.
+- `6d09f62` — recorded the remaining C5 recipe-failure blocker.
+- `2e101c9` — preserved recipes after strict edit-load failure while retaining default caller compatibility; final reviews approved.
 
 ## Optional: Multi-Agent Coordination
 
@@ -88,7 +90,7 @@
 - Parallel work allowed: no implementation parallelism; tasks and review gates are serialized.
 - Agent ownership:
   - Fresh per-task implementer:
-    - Status: A2, B1, B2, C1, C2, C3, and C4 closed; C5 is active in quality-review repair.
+    - Status: A2, B1, B2, C1, C2, C3, C4, and C5 closed; D1 is the next fresh implementation assignment.
     - Task scope: exactly one full task copied from the rebased plan.
     - Allowed files: only that task's explicit file list and directly required focused tests.
     - Forbidden files: `docs/devlog/**`, the plan, data/generated artifacts, unrelated modules, and files owned by later tasks.
@@ -137,6 +139,7 @@
 - C4 review: specification review approved `45c5069..3a1d178` with exact preservation of violet/fuchsia/rose/orange/cyan and no out-of-scope token-layer edits. Quality review found three Important issues: semantic tag and login text/button pairs fall below 4.5:1 in one or both themes, info/warning KPI gradients use unrelated primary endpoints, and the contract does not enforce those semantic/contrast boundaries. The related Minor notes exact single-line CSS assertions are formatting-brittle. Disposition: verified against current token values, kept C4 active, assigned repair to the original implementer, and required fresh spec then quality re-review.
 - C4 repair review: fresh specification review approved both implementation ranges while excluding the coordinator-only `3a8551c` docs commit. Fresh quality review independently verified the test color cascade/compositing/luminance math and the production CSS, reported no Critical or Important findings, and allowed C5 progression. Three non-blocking evaluator boundaries remain: the KPI domain assertion excludes primary but is not a general semantic purity proof; login tests do not model decorative page layers; and the helper intentionally parses only the current CSS color subset.
 - C5 review: specification review approved `cf42f99..630ddb5`. Quality review found two Important items findings: the writable modal permits save before recipes resolve and late A/B requests can cross identities; the whitelist contract only inspects source and can miss removed reset or post-loop metadata writes. Coordinator arbitration: although the async window predates C5, the required new reset makes the empty-recipe submission path directly relevant, so accept a minimal safety repair without modal refactoring. `02df27b` then added dual submission gates, request identity, and production-handler execution. Fresh specification review approved it; quality re-review confirmed both original findings resolved, but found the same destructive chain remains after a caught fetch error because the store returns `[]`. Disposition: accept a minimal failure-aware store option for this edit caller while preserving all other callers' defaults. Minor follow-ups are shared audio token parsing, stronger whitelist exhaustiveness, and the uncovered stale-A-first test order.
+- C5 final review: `2e101c9` added an overloaded strict null-on-error store option used only by item edit, failure state gates, executable default/strict store failure behavior, legal empty success, stale-A-first/current-B-pending, and failed-submit coverage. Fresh specification review approved all three code ranges and caller compatibility. Final fresh quality review confirmed the original two Important findings and the later failure-path Important are resolved, reported no Critical/Important/Minor findings, and allowed D1 progression.
 - Re-review required: no for A2; yes for any later Critical or Important finding.
 - Resolved by: `/root/a2_implementer`; approved by `/root/a2_quality_review`.
 - Arbitration decision: pending only if reviews disagree.
@@ -227,3 +230,9 @@
 - Change: Kept C5 active after its first repair and recorded the remaining recipe-fetch failure path.
 - Reason: pending and stale-request safety now works, but a caught API error is still indistinguishable from a legitimate empty recipe response and can unlock destructive empty submission.
 - Evidence: commit `02df27b`; repair 13/15 RED→15/15 GREEN; combined 25/25; admin typecheck; fresh specification approval; quality re-review confirmed the two original findings resolved and returned `Ready to proceed to D1? No` only for the failure-path ambiguity.
+
+### 2026-07-18 23:53
+
+- Change: Closed the C5 review gate and advanced the serialized handoff to D1.
+- Reason: strict edit-load failure is now distinguishable from legal empty recipes, all pending/stale/failure paths remain write-safe, and final fresh reviews found no remaining issues.
+- Evidence: commit `2e101c9`; final repair 15/18 RED→18/18 GREEN; combined 28/28; admin typecheck; diff checks; final fresh specification approval; final quality review with no Critical/Important/Minor findings and `Ready to proceed to D1? Yes`.

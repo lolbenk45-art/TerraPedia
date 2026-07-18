@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-18 23:36 CST by Codex
+Last updated: 2026-07-18 23:53 CST by Codex
 
 Active branch: `fix/admin-p1-p2-batch`
 
@@ -33,9 +33,9 @@ Active branch: `fix/admin-p1-p2-batch`
   retry, and contraction-clamp behavior coverage. C4 is specification- and
   quality-approved after accessible token contrast, semantic KPI gradients, and
   executable light/dark color contracts. C5 implementation is specification-
-  approved. Its first repair clears pending submit, stale-request, and executable
-  whitelist findings, but C5 remains active because recipe fetch failure is still
-  indistinguishable from a legitimate empty result; do not begin D1 yet.
+  approved. C5 is now specification- and quality-approved after exact audio status,
+  single-source cookie/URL handling, whitelist mapping, recipe request identity,
+  and failure-aware submission safety. Begin D1 next.
 
 - V2 queue engine activated on this worktree
   (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
@@ -77,6 +77,12 @@ Active branch: `fix/admin-p1-p2-batch`
   the remaining failure-path ambiguity: `fetchItemRecipes` catches errors as `[]`,
   so the page can still unlock and later write an empty recipe set.
 
+- C5 final repair `2e101c9` preserves the default array contract while exposing
+  strict null-on-error only to the edit page. Failed loads remain write-blocked,
+  legitimate empty recipes remain savable, stale requests cannot change current
+  state, and production-body contracts pass 28/28. Final fresh specification and
+  quality reviews report no findings.
+
 - Public category child navigation is closed at `4a744dc`: six parent routes
   expose 34 image-backed child categories with verified scope, count, and
   fail-closed behavior.
@@ -93,10 +99,9 @@ Active branch: `fix/admin-p1-p2-batch`
 ## Next Agent Should Start Here
 
 - For admin P1+P2 work, read
-  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then give the C5
-  edit path a failure-aware recipe fetch contract while preserving every other
-  caller's existing array fallback. Failed edit recipe loads must keep recipe
-  writes blocked; preserve exact-token audio behavior and the three form transforms.
+  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then begin D1
+  with a fresh implementer. Relocate all 35 `trimToNull` copies on the current
+  branch, preserve `firstNonBlank`, and checkpoint compilation every five files.
 
 - Read `entries/2026-07-17-crawler-v2-per-env-activation-guard.md` before any
   crawler-monitor work. This environment routes V2; other worktrees still
@@ -106,7 +111,7 @@ Active branch: `fix/admin-p1-p2-batch`
 
 ## Current Risks
 
-- The admin batch has an open C5 quality-review blocker. D1-D6 remain
+- The admin batch currently has no open review blocker. D1-D6 remain
   unimplemented, and their scout line numbers must be relocated on the current
   branch. C4's focused CSS evaluator intentionally supports only the repository's
   current syntax subset and does not model future decorative background layering.
