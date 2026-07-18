@@ -4998,6 +4998,7 @@ function formatArmorPartRole(value: unknown) {
 .data-table th,.data-table td { padding: 13px 14px; border-bottom: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent); text-align: left; vertical-align: middle; }
 .data-table th { position: sticky; top: 0; z-index: 1; background: color-mix(in srgb, var(--color-bg-tertiary) 94%, transparent); color: var(--color-text-secondary); font-weight: 700; white-space: nowrap; }
 .data-table tbody tr:hover { background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg-secondary)); }
+.data-table td:last-child { min-width: 170px; }
 .thumb-wrap { width: 44px; }
 .thumb { width: 44px; height: 44px; object-fit: contain; border-radius: 12px; background: color-mix(in srgb, var(--color-bg-tertiary) 90%, transparent); border: 1px solid var(--color-border); display: grid; place-items: center; overflow: hidden; }
 .thumb-wrap--biome { width: 128px; }
@@ -5013,7 +5014,7 @@ function formatArmorPartRole(value: unknown) {
 .cell-bilingual span { color: var(--color-text-secondary); font-size: 0.8rem; }
 .cell-bilingual strong { color: var(--color-text); margin-right: 6px; }
 .cell-primary__atomic { color: var(--color-text-muted); font-size: 0.78rem; font-family: Consolas, 'SFMono-Regular', 'Liberation Mono', monospace; white-space: normal; word-break: break-all; }
-.row-actions { display: flex; gap: 8px 10px; flex-wrap: wrap; align-items: flex-start; }
+.row-actions { display: flex; gap: 8px 10px; flex-wrap: nowrap; align-items: flex-start; }
 .btn-link--danger { color: var(--color-danger); }
 .pagination-wrap { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--color-border); }
 .editor-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.85fr); gap: 24px; }

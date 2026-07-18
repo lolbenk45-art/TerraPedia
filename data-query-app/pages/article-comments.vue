@@ -816,7 +816,7 @@ onMounted(async () => {
 }
 
 .article-list-toolbar {
-  grid-template-columns: minmax(220px, 1fr) 150px 130px 100px max-content max-content;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) max-content max-content;
 }
 
 .comment-filter-toolbar {

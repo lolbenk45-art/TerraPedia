@@ -498,6 +498,10 @@ onMounted(async () => {
   gap: 24px;
 }
 
+.data-table-wrap {
+  overflow-x: auto;
+}
+
 .query-table {
   min-width: 640px;
 }

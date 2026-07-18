@@ -772,6 +772,7 @@ watch(items, currentItems => {
 .data-table th,.data-table td { padding: 13px 14px; border-bottom: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent); text-align: left; vertical-align: middle; }
 .data-table th { position: sticky; top: 0; z-index: 1; background: color-mix(in srgb, var(--color-bg-tertiary) 94%, transparent); color: var(--color-text-secondary); font-weight: 700; }
 .data-table tbody tr:hover { background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg-secondary)); }
+.data-table td:last-child { min-width: 310px; }
 .name-cell { min-width: 280px; display: flex; gap: 12px; align-items: flex-start; }
 .name-cell__copy { display: grid; gap: 4px; }
 .name-main { color: var(--color-text); font-weight: 700; }
@@ -783,7 +784,7 @@ watch(items, currentItems => {
 .status-toggle--success { background: #d1fae5; color: #065f46; }
 .status-toggle--danger { background: #fee2e2; color: #991b1b; }
 .status-toggle--info { background: var(--color-bg-tertiary); color: var(--color-text-secondary); }
-.row-actions { display: flex; gap: 8px 10px; flex-wrap: wrap; align-items: flex-start; }
+.row-actions { display: flex; gap: 8px 10px; flex-wrap: nowrap; align-items: flex-start; }
 .pagination-wrap { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--color-border); }
 .empty-text { padding: 40px; text-align: center; color: var(--color-text-secondary); }
 .editor-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(300px, .85fr); gap: 24px; }

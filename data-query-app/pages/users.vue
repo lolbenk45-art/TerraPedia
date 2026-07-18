@@ -225,7 +225,7 @@ onMounted(async () => {
 .status { display:inline-flex; align-items:center; justify-content:center; min-height:28px; padding:4px 10px; border-radius:999px; font-size:.75rem; font-weight:700; line-height:1.2; }
 .status--enabled { background:#d1fae5; color:#065f46; }
 .status--disabled { background:#fee2e2; color:#991b1b; }
-.row-actions { display:flex; gap:8px 10px; flex-wrap:wrap; align-items:flex-start; }
+.row-actions { display:flex; gap:8px 10px; flex-wrap:nowrap; align-items:flex-start; }
 .empty-text { padding:40px; text-align:center; color:var(--color-text-secondary); }
 .pagination-wrap { margin-top:20px; padding-top:20px; border-top:1px solid var(--color-border); }
 @media (max-width:1120px) {
