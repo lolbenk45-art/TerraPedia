@@ -337,24 +337,11 @@ type ProgressRow = CrawlerMonitorRegisteredTask & {
   sourceQueueItem?: CrawlerMonitorWikiQueueItem | null
 }
 
-const MONITOR_PANEL_KEYS = ['overview', 'queue', 'progress', 'reports', 'diagnostics'] as const
-type MonitorPanelKey = typeof MONITOR_PANEL_KEYS[number]
-type MonitorPanelMeta = {
-  key: MonitorPanelKey
-  label: string
-  title: string
-  subtitle: string
-  badge: string
-  count: number | string
-}
-
 const route = useRoute()
 
 const overview = ref<CrawlerMonitorOverview | null>(null)
 const loading = ref(false)
 const autoRefresh = ref(true)
-const activeMonitorPanel = ref<MonitorPanelKey>('queue')
-const panelSwitching = ref(false)
 const selectedReportPath = ref<string | null>(null)
 const reportPreview = ref<CrawlerMonitorReportDetail | null>(null)
 const reportPreviewLoading = ref(false)
@@ -390,7 +377,6 @@ const operationStartLoading = ref(false)
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 const refreshFailureStreak = ref(0)
 const authRefreshHalted = ref(false)
-let panelSwitchTimer: ReturnType<typeof setTimeout> | null = null
 let v2ReloadTimer: ReturnType<typeof setTimeout> | null = null
 const v2SseConnected = ref(false)
 const v2StreamAuthError = ref('')
@@ -500,8 +486,6 @@ const registeredTasks = computed<CrawlerMonitorRegisteredTask[]>(() => Array.isA
 const progressRows = computed<ProgressRow[]>(() => progressRowsFromOverview(overview.value))
 const domainSmokeProgressRow = computed<ProgressRow | null>(() => progressRows.value.find((row) => row.id === 'wiki-monitor-domain-smoke') || null)
 const executionOverviewRows = computed(() => buildExecutionOverviewRows(overview.value || {}))
-const activeExecutionOverviewRows = computed(() => executionOverviewRows.value.filter((row) => isCurrentExecutionOverviewRow(row)))
-const historicalExecutionOverviewRows = computed(() => executionOverviewRows.value.filter((row) => isHistoricalExecutionOverviewRow(row)))
 const executionOverviewStatusLabel = computed(() => executionOverviewStatus(executionOverviewRows.value))
 const sourceSnapshotRows = computed<ProgressRow[]>(() => sourceSnapshotRowsFromOverview(overview.value))
 const liveSourceSnapshotActive = computed(() => hasLiveSourceSnapshotProgress(overview.value))
@@ -531,9 +515,6 @@ const progressDetailRows = computed<ProgressRow[]>(() => progressRows.value
 )
 const visibleProgressRowsByPriority = computed<ProgressRow[]>(() => sortRowsByPriority(visibleProgressRows.value))
 const progressDetailRowsByPriority = computed<ProgressRow[]>(() => sortRowsByPriority(progressDetailRows.value))
-const activeProgressRows = computed<ProgressRow[]>(() => progressDetailRowsByPriority.value.filter((row) => isCurrentProgressRow(row)))
-const historicalProgressRows = computed<ProgressRow[]>(() => progressDetailRowsByPriority.value.filter((row) => isHistoricalProgressRow(row)))
-const dispatchQueueRows = computed<CrawlerMonitorWikiQueueItem[]>(() => activeDispatchQueueRows.value)
 const visibleWikiDomainRowsByPriority = computed<CrawlerMonitorWikiDomain[]>(() => sortWikiDomainsByPriority(visibleWikiDomainRows.value))
 const runtimeStateCards = computed(() => [
   runtimeStateCard('daemon', '守护', overview.value?.daemon),
@@ -569,70 +550,6 @@ const healthSignals = computed(() => {
   }
   return signals
 })
-function isRiskHealthTone(tone?: string | null) {
-  return ['danger', 'warning'].includes(String(tone || '').toLowerCase())
-}
-
-const crawlerHealthCards = computed(() => {
-  const highestRiskRow = domainTableRows.value[0] || null
-  const highestRiskTone = highestRiskRow ? statusTone(highestRiskRow.risk || highestRiskRow.status || 'missing') : 'muted'
-  const failedDomainRows = domainTableRows.value.filter((row) => statusTone(row.risk || row.status) === 'danger')
-  const runningDomainRows = domainTableRows.value.filter((row) => ['running'].includes(String(row.status || '').toLowerCase()))
-  const queuedDomainRows = domainTableRows.value.filter((row) => ['queued'].includes(String(row.status || '').toLowerCase()))
-  const queuedRows = dispatchQueueRows.value.length ? dispatchQueueRows.value : queuedDomainRows
-  const staleHeartbeatCount = staleHeartbeatRows.value.length
-  const refreshLabel = lastOverviewRefreshAt.value ? formatDate(lastOverviewRefreshAt.value) : '暂无刷新'
-  return [
-    {
-      key: 'highest-risk',
-      label: '最高风险',
-      value: highestRiskRow ? (highestRiskRow.diagnosisTitle || statusLabel(highestRiskRow.status || 'missing')) : '暂无',
-      note: highestRiskRow ? `${highestRiskRow.label || highestRiskRow.domain || '未知域'} · ${highestRiskRow.rankReason || highestRiskRow.reason || '暂无判断'}` : '暂无域监控数据',
-      tone: highestRiskTone,
-      risk: isRiskHealthTone(highestRiskTone),
-    },
-    {
-      key: 'failed-domains',
-      label: '失败域',
-      value: formatNumber(failedDomainRows.length),
-      note: failedDomainRows.length ? '来自域监控表的失败状态' : '暂无失败域',
-      tone: failedDomainRows.length > 0 ? 'danger' : 'muted',
-      risk: failedDomainRows.length > 0,
-    },
-    {
-      key: 'stale-heartbeats',
-      label: '心跳过期',
-      value: formatNumber(staleHeartbeatCount),
-      note: staleHeartbeatCount ? '来自当前过期心跳列表' : '暂无心跳过期',
-      tone: staleHeartbeatCount > 0 ? 'warning' : 'muted',
-      risk: staleHeartbeatCount > 0,
-    },
-    {
-      key: 'running-domains',
-      label: '运行态',
-      value: formatNumber(runningDomainRows.length),
-      note: runningDomainRows.length ? '来自域监控表的运行中状态' : '暂无运行中域',
-      tone: 'success',
-      risk: false,
-    },
-    {
-      key: 'queued-domains',
-      label: '排队中',
-      value: formatNumber(queuedRows.length),
-      note: queuedRows.length ? '来自队列或域监控表' : '暂无排队任务',
-      tone: queuedRows.length > 0 ? 'info' : 'muted',
-      risk: false,
-    },
-    {
-      key: 'last-refresh',
-      label: '最后刷新',
-      value: refreshLabel,
-      note: autoRefresh.value ? '自动刷新开' : '自动刷新关',
-      tone: autoRefresh.value ? 'success' : 'muted',
-      risk: false,
-    },
-  ]
-})
 const overviewWithPlanBFields = computed<any>(() => overview.value || {})
 const wikiMonitorWithPlanBFields = computed<any>(() => wikiMonitor.value || {})
 const lastAutoDispatchSweep = computed(() => wikiMonitor.value?.lastSweep || null)
@@ -641,8 +558,6 @@ const historyRows = computed<any[]>(() => Array.isArray(overview.value?.history)
 const recentReportRows = computed<any[]>(() => Array.isArray(overview.value?.recentReports) ? overview.value!.recentReports!.slice(0, 5) : [])
 const imageNormalizationRows = computed(() => imageNormalizationMetricRows(overview.value?.imageNormalization))
 const dataQualitySignals = computed(() => buildDataQualitySignals(overview.value || {}))
-const dataQualityAttentionCount = computed(() =>
-  dataQualitySignals.value.filter((signal) => ['danger', 'warning'].includes(String(signal.tone || ''))).length)
 const dispatchPlanRows = computed<any[]>(() => Array.isArray(wikiMonitor.value?.dispatchPlan || wikiMonitorWithPlanBFields.value.dispatchPlan) ? (wikiMonitor.value?.dispatchPlan || wikiMonitorWithPlanBFields.value.dispatchPlan) : [])
 const wikiDispatchModeLabel = computed(() => statusLabel(wikiMonitor.value?.dispatchMode || 'manual'))
 const savedAutoDispatchEnabled = computed<boolean | null>(() => {
@@ -851,150 +766,6 @@ const activityDrawerRows = computed(() => (v2State.value
   : executionOverviewRows.value.length
     ? executionOverviewRows.value
     : progressDetailRowsByPriority.value).map((row: any) => activityDisplayRow(row)))
-const failedDomainRows = computed(() => domainTableRows.value.filter((row) => statusTone(row.risk || row.status) === 'danger'))
-const runningDomainRows = computed(() => domainTableRows.value.filter((row) => {
-  const status = String(row.status || row.risk || '').toLowerCase()
-  return status === 'running'
-}))
-const highestRiskDomainRow = computed(() => domainTableRows.value[0] || null)
-const v4StatusStrip = computed(() => {
-  const row = highestRiskDomainRow.value
-  const failedCount = failedDomainRows.value.length
-  const staleCount = staleHeartbeatRows.value.length
-  const runningCount = runningDomainRows.value.length
-  const title = failedCount > 0 && row
-    ? `当前需要处理：${row.label || row.domain || row.actionId || '未知域'} ${row.diagnosisTitle || statusLabel(row.status || 'failed')}`
-    : staleCount > 0
-      ? `当前需要处理：${formatNumber(staleCount)} 条心跳过期`
-      : runningCount > 0
-        ? `当前运行中：${formatNumber(runningCount)} 个域`
-        : '当前状态稳定'
-  const subtitle = [
-    `正式域 ${formatNumber(domainTableRows.value.length)} 个`,
-    `队列 ${formatNumber(dispatchQueueRows.value.length)} 项`,
-    `自动派发${savedAutoDispatchEnabled.value === null ? '未返回配置' : savedAutoDispatchEnabled.value ? '开启' : '关闭'}`,
-    lastOverviewRefreshAt.value ? `刷新 ${formatDate(lastOverviewRefreshAt.value)}` : '暂无刷新',
-  ].join(' · ')
-  return {
-    title,
-    subtitle,
-    tone: failedCount > 0 ? 'danger' : staleCount > 0 ? 'warning' : runningCount > 0 ? 'info' : 'success',
-    chips: [
-      { label: `${formatNumber(failedCount)} 个失败`, tone: failedCount > 0 ? 'danger' : 'muted' },
-      { label: `${formatNumber(runningCount)} 个运行`, tone: runningCount > 0 ? 'info' : 'muted' },
-      { label: `${formatNumber(staleCount)} 条心跳`, tone: staleCount > 0 ? 'warning' : 'muted' },
-    ],
-  }
-})
-const v4MetricCards = computed(() => {
-  const highestRiskRow = highestRiskDomainRow.value
-  const queuedRows = dispatchQueueRows.value.length
-    ? dispatchQueueRows.value
-    : domainTableRows.value.filter((row) => ['queued'].includes(String(row.status || '').toLowerCase()))
-  const visibleEvidenceCount = recentReportRows.value.length
-    + progressDetailRowsByPriority.value.reduce((total, row) => total + progressRowVisiblePathEntries(row).length + progressRowLogPathEntries(row).length, 0)
-
-  return [
-    {
-      key: 'highest-risk',
-      label: '最需要处理',
-      value: highestRiskRow ? (highestRiskRow.label || highestRiskRow.domain || highestRiskRow.actionId || '未知域') : '暂无',
-      note: highestRiskRow ? `${highestRiskRow.diagnosisTitle || statusLabel(highestRiskRow.status || 'unknown')} · ${highestRiskRow.rankReason || highestRiskRow.reason || '查看证据'}` : '暂无域监控数据',
-      tone: highestRiskRow ? statusTone(highestRiskRow.risk || highestRiskRow.status || 'missing') : 'muted',
-    },
-    {
-      key: 'running-domains',
-      label: '运行态',
-      value: formatNumber(runningDomainRows.value.length),
-      note: runningDomainRows.value.length ? '来自域监控表的运行中状态' : '暂无运行中域',
-      tone: runningDomainRows.value.length ? 'info' : 'muted',
-    },
-    {
-      key: 'queued-domains',
-      label: '队列等待',
-      value: formatNumber(queuedRows.length),
-      note: queuedRows.length ? '来自队列或域监控表' : '暂无排队任务',
-      tone: queuedRows.length ? 'warning' : 'muted',
-    },
-    {
-      key: 'evidence-files',
-      label: '可点击证据',
-      value: formatNumber(visibleEvidenceCount),
-      note: `报告 ${formatNumber(recentReportRows.value.length)} / 进度与日志 ${formatNumber(Math.max(0, visibleEvidenceCount - recentReportRows.value.length))}`,
-      tone: visibleEvidenceCount ? 'info' : 'muted',
-    },
-    {
-      key: 'last-refresh',
-      label: '最近刷新',
-      value: lastOverviewRefreshAt.value ? formatDate(lastOverviewRefreshAt.value) : '暂无刷新',
-      note: autoRefresh.value ? '自动刷新开' : '自动刷新关',
-      tone: autoRefresh.value ? 'success' : 'muted',
-    },
-  ].slice(0, 5)
-})
-const monitorPanels = computed<MonitorPanelMeta[]>(() => [
-  {
-    key: 'overview',
-    label: '域总览',
-    title: '域总览',
-    subtitle: '完整域列表只在这里展示；选中一行后在右侧查看当前域证据。',
-    badge: `${formatNumber(domainTableRows.value.length)} 域`,
-    count: domainTableRows.value.length,
-  },
-  {
-    key: 'queue',
-    label: '队列和派发状态',
-    title: '队列和派发状态',
-    subtitle: '当前未结束项和已处理/异常项分开展示，运行中的任务始终在上方。',
-    badge: `运行 ${formatNumber(activeExecutionOverviewRows.value.length)} / 已处理 ${formatNumber(historicalExecutionOverviewRows.value.length)}`,
-    count: activeDispatchQueueRows.value.length,
-  },
-  {
-    key: 'progress',
-    label: '真实任务进度',
-    title: '真实任务进度',
-    subtitle: '当前执行和历史异常分开展示；不把失败、过去进度与正在运行混排。',
-    badge: `运行 ${formatNumber(activeProgressRows.value.length)} / 历史 ${formatNumber(historicalProgressRows.value.length)}`,
-    count: progressDetailRowsByPriority.value.length,
-  },
-  {
-    key: 'reports',
-    label: '报告',
-    title: '报告和证据文件',
-    subtitle: '展示最近报告和当前对象相关证据，完整路径进入抽屉。',
-    badge: `${formatNumber(recentReportRows.value.length)} 个`,
-    count: recentReportRows.value.length,
-  },
-  {
-    key: 'diagnostics',
-    label: '诊断',
-    title: '诊断',
-    subtitle: '工程字段、心跳、锁、历史和质量指标集中在低优先级区域。',
-    badge: dataQualityAttentionCount.value ? `${formatNumber(dataQualityAttentionCount.value)} 项待查` : '质量正常',
-    count: dataQualityAttentionCount.value,
-  },
-])
-const activeMonitorPanelMeta = computed<MonitorPanelMeta>(() => monitorPanels.value.find((panel) => panel.key === activeMonitorPanel.value) || monitorPanels.value[0] as MonitorPanelMeta)
-
-function normalizeMonitorPanelKey(value?: string | null): MonitorPanelKey | null {
-  const normalized = String(value || '').replace(/^#/, '').trim()
-  return (MONITOR_PANEL_KEYS as readonly string[]).includes(normalized) ? normalized as MonitorPanelKey : null
-}
-
-function setActiveMonitorPanel(panel: MonitorPanelKey) {
-  if (activeMonitorPanel.value === panel) return
-  activeMonitorPanel.value = panel
-  panelSwitching.value = true
-  if (panelSwitchTimer) clearTimeout(panelSwitchTimer)
-  panelSwitchTimer = setTimeout(() => {
-    panelSwitching.value = false
-    panelSwitchTimer = null
-  }, 180)
-  if (import.meta.client) {
-    window.location.hash = panel
-  }
-}
-
 const selectedWikiDomain = computed<CrawlerMonitorWikiDomain | null>(() => {
   const tableRow = selectedDomainTableRow.value
   if (tableRow && !tableRow.sourceDomain) return null
@@ -1091,36 +862,6 @@ const selectedDomainOperatorSummary = computed(() => {
 const selectedWikiRecoveryTitle = computed(() => selectedWikiDomain.value ? wikiDomainRecoveryTitle(selectedWikiDomain.value) : selectedDomainTableRow.value?.diagnosisTitle || '任务详情')
 const selectedWikiRecoveryCopy = computed(() => selectedWikiDomain.value ? wikiDomainRecoveryCopy(selectedWikiDomain.value) : selectedDomainTableRow.value?.reason || selectedDomainTableRow.value?.rankReason || '当前任务没有绑定正式域，请优先查看 queueId、阻塞者、日志和进度文件。')
 const selectedWikiOperationHint = computed(() => selectedWikiDomain.value ? wikiDomainOperationHint(selectedWikiDomain.value) : selectedDomainTableRow.value?.rankReason || '未归属任务只能通过队列控制或证据文件排查。')
-const blockedDomainFocus = computed(() => {
-  const blockedQueue = activeDispatchQueueRows.value.find((item) => queueItemBlockerLabel(item))
-  if (blockedQueue) {
-    return {
-      label: queueItemDomainLabel(blockedQueue),
-      detail: `${statusLabel(queueItemStatus(blockedQueue))} · ${queueItemBlockerLabel(blockedQueue)} · ${blockedQueue.queueId ? shortCrawlerIdentity(blockedQueue.queueId) : blockedQueue.actionId || '无 queueId'}`,
-      queueItem: blockedQueue,
-      row: null,
-    }
-  }
-  const stalledRow = domainTableRows.value.find((row) => ['stalled', 'blocked', 'failed'].includes(String(row.status || row.risk || '').toLowerCase()))
-  if (stalledRow) {
-    return {
-      label: stalledRow.label || stalledRow.domain || stalledRow.actionId || '未知域',
-      detail: `${stalledRow.diagnosisTitle || statusLabel(stalledRow.status)} · ${stalledRow.rankReason || stalledRow.reason || '查看进度和队列'}`,
-      queueItem: stalledRow.queueItem || null,
-      row: stalledRow,
-    }
-  }
-  const stale = staleHeartbeatRows.value[0]
-  if (stale) {
-    return {
-      label: stale.label || stale.domain || stale.id || '心跳过期任务',
-      detail: stale.progressStaleReason || stale.reason || stale.message || formatDate(stale.lastHeartbeatAt || stale.progressHeartbeatAt),
-      queueItem: null,
-      row: null,
-    }
-  }
-  return null
-})
 const selectedWikiDomainProgressCopy = computed(() => {
   const domain = selectedWikiDomain.value
   if (!domain) {
@@ -1258,10 +999,6 @@ watch(() => ({
 }, { immediate: true })
 
 onMounted(async () => {
-  const hashPanel = import.meta.client ? normalizeMonitorPanelKey(window.location.hash) : null
-  if (hashPanel) {
-    activeMonitorPanel.value = hashPanel
-  }
   if (!overview.value) {
     await refreshOverview()
     overview.value = initialOverview.value
@@ -1283,10 +1020,6 @@ onUnmounted(() => {
   stopV2EventStream()
   clearV2FallbackPolling()
   if (v2ReloadTimer) clearTimeout(v2ReloadTimer)
-  if (panelSwitchTimer) {
-    clearTimeout(panelSwitchTimer)
-    panelSwitchTimer = null
-  }
   if (import.meta.client) {
     document.removeEventListener('visibilitychange', handleVisibilityChange)
   }
@@ -1860,20 +1593,6 @@ function selectedDomainTableRowKey(row: any) {
 
 function selectRuntimeDomain(domain: CrawlerMonitorWikiDomain | null | undefined) {
   selectWikiDomain(domain)
-}
-
-function selectBlockedDomainFocus() {
-  const focus = blockedDomainFocus.value
-  if (!focus) return
-  if (focus.row) {
-    selectDomainTableRow(focus.row)
-    setActiveMonitorPanel('overview')
-    return
-  }
-  if (focus.queueItem) {
-    selectQueueItemDomain(focus.queueItem)
-    setActiveMonitorPanel('queue')
-  }
 }
 
 // 首屏默认选中最严重的域，使内联排障面板默认展示（对齐设计稿）
@@ -2510,11 +2229,6 @@ function queueItemAsProgressRow(item: CrawlerMonitorWikiQueueItem): ProgressRow 
     action: null,
     sourceQueueItem: item,
   }
-}
-
-function selectQueueItemDomain(item: CrawlerMonitorWikiQueueItem | null | undefined) {
-  const domain = queueItemDomain(item)
-  if (domain) selectWikiDomain(domain)
 }
 
 function selectExecutionOverviewRow(row: any) {
@@ -3505,24 +3219,6 @@ function isActiveProgressRow(row: ProgressRow) {
   if (['completed', 'report-only'].includes(status)) return false
   if (['running', 'stalled', 'paused', 'queued', 'pending', 'failed', 'error', 'blocked', 'warning'].includes(status)) return true
   return Boolean(row.progressStaleReason || rowHeartbeatAt(row))
-}
-
-function isCurrentProgressRow(row: ProgressRow) {
-  const status = progressRowEffectiveStatus(row)
-  return ['running', 'starting', 'queued', 'pending', 'paused', 'blocked', 'blocked_cooldown'].includes(status)
-}
-
-function isHistoricalProgressRow(row: ProgressRow) {
-  return !isCurrentProgressRow(row)
-}
-
-function isCurrentExecutionOverviewRow(row: any) {
-  const status = String(row?.displayStatus || row?.status || '').toLowerCase()
-  return ['running', 'starting', 'queued', 'pending', 'paused', 'blocked', 'blocked_cooldown'].includes(status)
-}
-
-function isHistoricalExecutionOverviewRow(row: any) {
-  return !isCurrentExecutionOverviewRow(row)
 }
 
 function isOperationalProgressRow(row: ProgressRow) {
