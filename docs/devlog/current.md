@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-18 23:53 CST by Codex
+Last updated: 2026-07-19 00:21 CST by Codex
 
 Active branch: `fix/admin-p1-p2-batch`
 
@@ -35,7 +35,9 @@ Active branch: `fix/admin-p1-p2-batch`
   executable light/dark color contracts. C5 implementation is specification-
   approved. C5 is now specification- and quality-approved after exact audio status,
   single-source cookie/URL handling, whitelist mapping, recipe request identity,
-  and failure-aware submission safety. Begin D1 next.
+  and failure-aware submission safety. D1 initial trimToNull consolidation remains
+  active on Unicode-blank semantic preservation and firstNonBlank body-restoration
+  findings; do not begin D2 yet.
 
 - V2 queue engine activated on this worktree
   (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
@@ -83,6 +85,11 @@ Active branch: `fix/admin-p1-p2-batch`
   state, and production-body contracts pass 28/28. Final fresh specification and
   quality reviews report no findings.
 
+- D1 initial commit `a801455` consolidates 35 local trim helpers with focused
+  5/5 and seven compiling checkpoints. Specification review found two blockers:
+  five original Unicode-blank helpers are not equivalent to `String.trim()`, and
+  seven `firstNonBlank` bodies were textually changed by qualification.
+
 - Public category child navigation is closed at `4a744dc`: six parent routes
   expose 34 image-backed child categories with verified scope, count, and
   fail-closed behavior.
@@ -99,9 +106,10 @@ Active branch: `fix/admin-p1-p2-batch`
 ## Next Agent Should Start Here
 
 - For admin P1+P2 work, read
-  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then begin D1
-  with a fresh implementer. Relocate all 35 `trimToNull` copies on the current
-  branch, preserve `firstNonBlank`, and checkpoint compilation every five files.
+  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then repair D1:
+  preserve the five Unicode-blank helpers through a distinct shared variant and
+  restore the seven `firstNonBlank` bodies with static import, then re-run fresh
+  specification and quality review.
 
 - Read `entries/2026-07-17-crawler-v2-per-env-activation-guard.md` before any
   crawler-monitor work. This environment routes V2; other worktrees still
@@ -111,7 +119,7 @@ Active branch: `fix/admin-p1-p2-batch`
 
 ## Current Risks
 
-- The admin batch currently has no open review blocker. D1-D6 remain
+- The admin batch has an open D1 specification-review blocker. D2-D6 remain
   unimplemented, and their scout line numbers must be relocated on the current
   branch. C4's focused CSS evaluator intentionally supports only the repository's
   current syntax subset and does not model future decorative background layering.
