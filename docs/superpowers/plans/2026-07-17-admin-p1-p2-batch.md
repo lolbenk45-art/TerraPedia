@@ -263,22 +263,22 @@ git commit -m "fix(admin): repair css tokens and add pagination to classificatio
 
 ### Task C4: 硬编码颜色 → 令牌（login/index/categories）
 
-**2026-07-18 执行状态:** `active`。`3a1d178` 已完成初始 token 迁移并通过
-规格审查、focused 19/19、typecheck 与 light/dark 运行态布局验收；质量审查阻断
-在小字号 tag / login 文案与按钮对比度、info/warning KPI 渐变跨色域，以及未覆盖
-这些语义风险的脆弱契约。修复必须保持五组受保护彩虹色与现有 token 层不变，
-并在 fresh 规格/质量复审后才能进入 C5。
+**2026-07-18 执行状态:** `completed`。`3a1d178` 完成初始 token 迁移，
+`06d655b` 修复双主题小字号 tag / login 文案与按钮对比度、info/warning KPI
+渐变跨色域及合同覆盖；最终 focused 21/21、typecheck、light/dark 布局与独立
+WCAG 核算通过，五组彩虹色及现有 token 层保持不变。fresh 规格与质量复审均
+允许进入 C5。
 
 **Files:**
 - Modify: `data-query-app/pages/login.vue`（11 行 hex + 12 处 rgba，映射表见 scout-p1p2-frontend.md 项 4）
 - Modify: `data-query-app/pages/index.vue`（tag 类 L987-997 + script 渐变 L324/332/340/348）
 - Modify: `data-query-app/pages/categories.vue`（删 L600-651 重定义的 .btn/.input，依赖全局样式）
 
-- [ ] **Step 1: 按侦察映射表逐处替换为 var(--color-*) 或 color-mix 派生**
+- [x] **Step 1: 按侦察映射表逐处替换为 var(--color-*) 或 color-mix 派生**
 
 **评审修正两点**: ① 这是**有意的主题统一**（slate→stone 色相迁移），不是等值替换——验收标准为"主题统一、无布局回归"，不是"视觉一致"。② index.vue 的 violet/fuchsia/rose/orange/cyan 五个 tag 色**无现成令牌也无源可派**——决策: 这五色保留 hex 原样不动（它们是数据分类彩虹色板，不属主题色域；收编它们需要新增 palette 令牌层，超出本轮范围），只替换有令牌对应的部分。
 
-- [ ] **Step 2: 截图对比（login/index/categories 三页主题统一、无布局回归），typecheck + admin-layout 测试，提交**
+- [x] **Step 2: 截图对比（login/index/categories 三页主题统一、无布局回归），typecheck + admin-layout 测试，提交**
 
 ```bash
 cd data-query-app && pnpm run check && node --test tests/admin-layout-layering-contract.test.mjs tests/admin-ui-chinese-copy-contract.test.mjs

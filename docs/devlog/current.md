@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-18 22:30 CST by Codex
+Last updated: 2026-07-18 22:52 CST by Codex
 
 Active branch: `fix/admin-p1-p2-batch`
 
@@ -30,9 +30,9 @@ Active branch: `fix/admin-p1-p2-batch`
   are approved. C2 is now specification- and quality-approved after the readable
   responsive layout, brace-bounded contract, and 44px control-height repair.
   C3 is now specification- and quality-approved after transactional page-state,
-  retry, and contraction-clamp behavior coverage. C4 initial token migration is
-  specification-approved but remains active on quality-review contrast, gradient
-  semantics, and test-contract findings; do not begin C5 yet.
+  retry, and contraction-clamp behavior coverage. C4 is specification- and
+  quality-approved after accessible token contrast, semantic KPI gradients, and
+  executable light/dark color contracts. Begin C5 next.
 
 - V2 queue engine activated on this worktree
   (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
@@ -56,12 +56,11 @@ Active branch: `fix/admin-p1-p2-batch`
   commit, failed-target retry, contraction/zero-result clamp, and waiting-state
   preservation. Specification and quality re-review report no remaining findings.
 
-- C4 commit `3a1d178` migrates login/dashboard theme colors and delegates category
-  controls to global styles. Focused contracts pass 19/19, admin typecheck passes,
-  and light/dark runtime geometry has no layout regression. Quality review found
-  three Important issues: sub-4.5:1 small-text contrast, login button/text contrast,
-  and info/warning KPI gradients crossing into the primary color domain; the test
-  contract also needs semantic/contrast coverage and less formatting sensitivity.
+- C4 commits `3a1d178` and `06d655b` migrate login/dashboard theme colors,
+  delegate category controls to global styles, restore >=4.5:1 light/dark normal
+  text contrast, and keep KPI gradients within their semantic domains. Focused
+  contracts pass 21/21, admin typecheck passes, runtime geometry has no layout
+  regression, and fresh specification/quality re-review has no blocking findings.
 
 - Public category child navigation is closed at `4a744dc`: six parent routes
   expose 34 image-backed child categories with verified scope, count, and
@@ -79,10 +78,10 @@ Active branch: `fix/admin-p1-p2-batch`
 ## Next Agent Should Start Here
 
 - For admin P1+P2 work, read
-  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then repair the
-  recorded C4 contrast, KPI-gradient, and contract findings before fresh spec and
-  quality re-review. Preserve the five explicit index tag palette colors and do
-  not add or edit the shared palette/token layer.
+  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then begin C5
+  with a fresh implementer. Preserve the exact-token audio status matching,
+  exported `TOKEN_COOKIE_KEY`, shared `resolveApiUrl`, and all three explicit
+  items-form transforms.
 
 - Read `entries/2026-07-17-crawler-v2-per-env-activation-guard.md` before any
   crawler-monitor work. This environment routes V2; other worktrees still
@@ -92,9 +91,10 @@ Active branch: `fix/admin-p1-p2-batch`
 
 ## Current Risks
 
-- The admin batch has an open C4 quality-review blocker. C5-D6 remain
+- The admin batch currently has no open review blocker. C5-D6 remain
   unimplemented, and their scout line numbers must be relocated on the current
-  branch.
+  branch. C4's focused CSS evaluator intentionally supports only the repository's
+  current syntax subset and does not model future decorative background layering.
 
 - Broad Maven/full quality-gate baseline failures are outside the V2 scope.
 - 6/8 local worktrees still silently route V1 until cut over; the new banner
