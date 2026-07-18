@@ -390,9 +390,9 @@ git commit -m "refactor(back): consolidate 35 trimToNull copies into AdminTextUt
 - Modify: 8 个含 getClientIp 副本的 controller（清单见 scout-p2-backend.md 项 4；全部 @RequiredArgsConstructor 直接加 `private final ClientIpResolver clientIpResolver;` 字段）
 - Modify: **8 个对应测试文件（blocker 修正——它们全部用显式 `new` 构造 controller，加构造参数后必编译崩）**: UserSavedRouteControllerTest:42、UserFavoriteControllerTest:30、AdminArticleCommentControllerTest:43、ArticleCommentControllerTest:46、UserReadingHistoryControllerTest:37、UserNotificationControllerTest:35、AdminArticleControllerTest:33、UserArticleControllerTest:65——每个仿 `UserAuthControllerTest:36` 的现成先例: `mock(ClientIpResolver.class)` 并传入构造器（需要时 stub `resolve` 返回固定 IP）。
 
-- [ ] **Step 1: 逐文件删副本、注入 resolver、调用点改 `clientIpResolver.resolve(request)`**
-- [ ] **Step 2: 8 个测试文件补 mock 构造参数**
-- [ ] **Step 3: 验证 + 提交**（commit message 注明 IP 口径变化）
+- [x] **Step 1: 逐文件删副本、注入 resolver、调用点改 `clientIpResolver.resolve(request)`**
+- [x] **Step 2: 8 个测试文件补 mock 构造参数**
+- [x] **Step 3: 验证 + 提交**（commit message 注明 IP 口径变化）
 
 ```bash
 cd back && mvn test -Dtest='*Article*,*User*,*Auth*' 2>&1 | grep -E "Tests run.*Fail|BUILD"
