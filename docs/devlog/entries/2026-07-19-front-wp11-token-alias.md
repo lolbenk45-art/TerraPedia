@@ -46,4 +46,33 @@
 
 ## Commits
 
-- Pending.
+- `aaa58cf7` — record approved design, executable plan, and preview-only task entry.
+
+## Optional: Multi-Agent Coordination
+
+- Coordinator: `/root`.
+- Parallel work allowed: plan reviews only; implementation is serialized because `tokens.css`, `hifi-preview.css`, and the visual-system contract form one CSS cascade.
+- Agent ownership:
+  - `/root/wp11_plan_spec_review`:
+    - Status: active.
+    - Task scope: read-only specification/plan coverage review.
+    - Allowed files: design, plan, current CSS, and contracts.
+    - Forbidden files: all writes and commits.
+    - Dependencies: `aaa58cf7`.
+    - Validation: identify missing requirements, unsafe scope, and non-executable plan steps.
+    - Blockers: none.
+    - Handoff notes: return severity, exact path/line evidence, and disposition recommendation.
+  - `/root/wp11_cascade_review`:
+    - Status: active.
+    - Task scope: read-only CSS custom-property/cascade equivalence review.
+    - Allowed files: `tokens.css`, `hifi-preview.css`, Nuxt CSS order, and visual contracts.
+    - Forbidden files: all writes and commits.
+    - Dependencies: `aaa58cf7`.
+    - Validation: trace all four themes and flag cycles, specificity losses, or raw-value drift.
+    - Blockers: none.
+    - Handoff notes: return a selector/value mapping and any required plan correction.
+- Shared files or state: none during reviews; coordinator alone owns `docs/devlog/current.md` and this entry.
+- Parent entry: this entry.
+- Serialization rule: both reviews → coordinator resolves plan findings → one implementation agent → spec review → quality review → runtime validation agent.
+- Result merge owner: `/root`.
+- Cross-boundary validation: focused contract, full frontend check, and preview screenshot evidence.
