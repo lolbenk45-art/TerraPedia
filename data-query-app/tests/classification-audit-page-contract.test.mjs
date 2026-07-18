@@ -65,6 +65,54 @@ test('classification audit page has one zero-result empty state per section', ()
   assert.match(page, /v-else\s+class="audit-empty"/)
 })
 
+test('classification audit page uses the maintained semantic color tokens', () => {
+  const page = read(pagePath)
+  const style = page.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1]
+
+  assert.ok(style, 'scoped style block should be present')
+  assert.doesNotMatch(style, /var\(--(?:text|text-muted|border|surface-muted)\)/)
+  assert.equal((style.match(/var\(--color-text\)/g) || []).length, 3)
+  assert.equal((style.match(/var\(--color-text-muted\)/g) || []).length, 2)
+  assert.equal((style.match(/var\(--color-border\)/g) || []).length, 1)
+  assert.equal((style.match(/var\(--color-surface-muted\)/g) || []).length, 1)
+})
+
+test('classification audit requests the current shared page with a fixed page size', () => {
+  const page = read(pagePath)
+
+  assert.match(page, /const PAGE_SIZE = 20/)
+  assert.match(page, /const page = ref\(1\)/)
+  assert.match(
+    page,
+    /get<ClassificationAuditResponse>\(\s*'\/admin\/operations\/classification-audit',\s*\{\s*page:\s*page\.value,\s*limit:\s*PAGE_SIZE,?\s*\}\s*\)/
+  )
+})
+
+test('classification audit aggregates section pagination into one disabled shared pager', () => {
+  const page = read(pagePath)
+  const gridPosition = page.indexOf('</section>', page.indexOf('<section class="audit-section-grid"'))
+  const paginationPosition = page.indexOf('<AppPagination')
+  const handler = page.match(/async function handlePageChange\(nextPage: number\) \{([\s\S]*?)\n\}/)?.[1]
+
+  assert.match(page, /const auditPagination = computed\(\(\) =>/)
+  assert.match(page, /section\.pagination\.totalPages/)
+  assert.match(page, /Math\.ceil\([^\n]+ \/ PAGE_SIZE\)/)
+  assert.ok(paginationPosition > gridPosition, 'shared pagination should follow the five-section grid')
+  assert.match(page, /<AppPagination\s+v-if="auditPagination\.totalPages > 1"/)
+  assert.match(page, /:page="auditPagination\.page"/)
+  assert.match(page, /:total="auditPagination\.total"/)
+  assert.match(page, /:total-pages="auditPagination\.totalPages"/)
+  assert.match(page, /:disabled="loading"/)
+  assert.match(page, /@change="handlePageChange"/)
+  assert.ok(handler, 'async page change handler should be present')
+  assert.match(handler, /Number\.isInteger\(nextPage\)/)
+  assert.match(handler, /nextPage < 1/)
+  assert.match(handler, /nextPage > auditPagination\.value\.totalPages/)
+  assert.match(handler, /nextPage === page\.value/)
+  assert.match(handler, /page\.value = nextPage/)
+  assert.match(handler, /await loadAudit\(\)/)
+})
+
 test('operations navigation includes the classification audit route', () => {
   const layout = read('data-query-app/layouts/default.vue')
 

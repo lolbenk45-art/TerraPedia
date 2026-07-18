@@ -97,6 +97,15 @@
           </footer>
         </article>
       </section>
+
+      <AppPagination
+        v-if="auditPagination.totalPages > 1"
+        :page="auditPagination.page"
+        :total="auditPagination.total"
+        :total-pages="auditPagination.totalPages"
+        :disabled="loading"
+        @change="handlePageChange"
+      />
     </template>
   </div>
 </template>
@@ -143,6 +152,8 @@ interface ClassificationAuditOverview {
 type ClassificationAuditResponse = ApiResponse<ClassificationAuditOverview>
 type SectionKey = keyof ClassificationAuditOverview
 
+const PAGE_SIZE = 20
+
 const sectionConfigs = [
   {
     key: 'uncategorizedItems',
@@ -177,6 +188,7 @@ const sectionConfigs = [
 ] as const
 
 const auditData = ref<ClassificationAuditOverview | null>(null)
+const page = ref(1)
 const loading = ref(false)
 const hasLoaded = ref(false)
 const loadError = ref('')
@@ -194,6 +206,37 @@ const auditSections = computed(() => sectionConfigs.map((config) => {
     rows: Array.isArray(section?.rows) ? section.rows : [],
   }
 }))
+
+const auditPagination = computed(() => {
+  const sections = auditSections.value
+  const responsePage = sections
+    .map(section => Number(section.pagination.page))
+    .find(sectionPage => Number.isInteger(sectionPage) && sectionPage > 0)
+  const total = sections.reduce((sum, section) => {
+    const sectionCount = Number(section.count)
+    return sum + (Number.isFinite(sectionCount) && sectionCount > 0 ? sectionCount : 0)
+  }, 0)
+  const totalPages = sections.reduce((maxTotalPages, section) => {
+    const responseTotalPages = Number(section.pagination.totalPages)
+    const sectionTotal = Number(section.pagination.total ?? section.count)
+    const fallbackTotalPages = Number.isFinite(sectionTotal) && sectionTotal > 0
+      ? Math.ceil(sectionTotal / PAGE_SIZE)
+      : 0
+    const sectionTotalPages = section.pagination.totalPages != null &&
+      Number.isInteger(responseTotalPages) &&
+      responseTotalPages >= fallbackTotalPages
+      ? responseTotalPages
+      : fallbackTotalPages
+
+    return Math.max(maxTotalPages, sectionTotalPages)
+  }, 0)
+
+  return {
+    page: responsePage ?? page.value,
+    total,
+    totalPages,
+  }
+})
 
 const summaryCards = computed(() => {
   const sections = auditSections.value
@@ -216,7 +259,10 @@ async function loadAudit() {
   loadError.value = ''
 
   try {
-    const response = await get<ClassificationAuditResponse>('/admin/operations/classification-audit')
+    const response = await get<ClassificationAuditResponse>('/admin/operations/classification-audit', {
+      page: page.value,
+      limit: PAGE_SIZE,
+    })
     auditData.value = response?.data || null
   } catch (error) {
     loadError.value = error instanceof Error ? error.message : '分类审计结果读取失败'
@@ -224,6 +270,18 @@ async function loadAudit() {
     hasLoaded.value = true
     loading.value = false
   }
+}
+
+async function handlePageChange(nextPage: number) {
+  if (
+    !Number.isInteger(nextPage) ||
+    nextPage < 1 ||
+    nextPage > auditPagination.value.totalPages ||
+    nextPage === page.value
+  ) return
+
+  page.value = nextPage
+  await loadAudit()
 }
 
 function formatNumber(value: unknown) {
@@ -333,13 +391,13 @@ function stringValue(value: unknown): string {
 .audit-section__foot,
 .audit-row__title span,
 .audit-field-grid dt {
-  color: var(--text-muted);
+  color: var(--color-text-muted);
 }
 
 .audit-section__head strong,
 .audit-row__title strong {
   display: block;
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .audit-section__description {
@@ -352,7 +410,7 @@ function stringValue(value: unknown): string {
   padding: 4px 10px;
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.06);
-  color: var(--text);
+  color: var(--color-text);
   font-size: 12px;
   font-weight: 700;
 }
@@ -364,9 +422,9 @@ function stringValue(value: unknown): string {
 
 .audit-row,
 .audit-empty {
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: var(--surface-muted);
+  background: var(--color-surface-muted);
 }
 
 .audit-row {
@@ -381,7 +439,7 @@ function stringValue(value: unknown): string {
   gap: 10px;
   min-height: 76px;
   padding: 14px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
 }
 
 .audit-field-grid {
@@ -404,7 +462,7 @@ function stringValue(value: unknown): string {
 
 .audit-field-grid dd {
   margin: 0;
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .audit-section__foot {
