@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-19 00:54 CST by Codex
+Last updated: 2026-07-19 01:02 CST by Codex
 
 Active branch: `fix/admin-p1-p2-batch`
 
@@ -37,8 +37,9 @@ Active branch: `fix/admin-p1-p2-batch`
   single-source cookie/URL handling, whitelist mapping, recipe request identity,
   and failure-aware submission safety. D1 is specification- and quality-approved
   after Unicode-blank preservation and firstNonBlank body restoration. D2 is
-  specification-approved but quality-blocked: seven controller tests do not yet
-  prove that the resolver IP reaches their service/audit calls.
+  specification-approved but review-blocked: seven controller tests now prove
+  IP propagation, but their resolver verifications still accept an arbitrary
+  request object rather than the actual routed request.
 
 - V2 queue engine activated on this worktree
   (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
@@ -97,10 +98,10 @@ Active branch: `fix/admin-p1-p2-batch`
   reports no findings.
 
 - D2 commit `4ab211e7` removes all eight naive controller IP parsers and injects
-  `ClientIpResolver`; fresh specification review approved it. Quality review
-  blocks progression because seven mocked resolver outputs are not asserted in
-  their service/audit calls. The original D2 implementer owns the focused test
-  repair; then both review stages must rerun.
+  `ClientIpResolver`; `7d6457fc` adds exact fixed-IP propagation tests. Fresh
+  repair specification review blocks progression because all seven resolver
+  verifications still use `any()` instead of the actual routed request. The
+  original D2 implementer owns that tests-only repair; both reviews must rerun.
 
 - Public category child navigation is closed at `4a744dc`: six parent routes
   expose 34 image-backed child categories with verified scope, count, and
@@ -119,9 +120,10 @@ Active branch: `fix/admin-p1-p2-batch`
 
 - For admin P1+P2 work, read
   `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then repair D2
-  test coverage only: assert the fixed `ClientIpResolver` result reaches an
-  affected service/audit call in each of the seven uncovered controllers. Rerun
-  fresh specification review before fresh quality review.
+  test coverage only: constrain each of the seven `ClientIpResolver.resolve`
+  verifications to the actual request routed through the controller, while
+  retaining the exact fixed-IP downstream assertion. Rerun fresh specification
+  review before fresh quality review.
 
 - Read `entries/2026-07-17-crawler-v2-per-env-activation-guard.md` before any
   crawler-monitor work. This environment routes V2; other worktrees still
@@ -131,12 +133,12 @@ Active branch: `fix/admin-p1-p2-batch`
 
 ## Current Risks
 
-- The admin batch has an open D2 quality-review blocker: seven mocks accept
-  `anyString()` rather than asserting the trusted resolver IP at their
-  service/audit boundary. D3-D6 remain unimplemented, and their scout line
-  numbers must be relocated on the current branch. C4's focused CSS evaluator
-  intentionally supports only the repository's current syntax subset and does
-  not model future decorative background layering.
+- The admin batch has an open D2 review blocker: seven tests now assert the
+  trusted resolver IP downstream, but `resolve(any())` does not prove that the
+  actual routed request reaches `ClientIpResolver`. D3-D6 remain unimplemented,
+  and their scout line numbers must be relocated on the current branch. C4's
+  focused CSS evaluator intentionally supports only the repository's current
+  syntax subset and does not model future decorative background layering.
 
 - Broad Maven/full quality-gate baseline failures are outside the V2 scope.
 - 6/8 local worktrees still silently route V1 until cut over; the new banner

@@ -45,7 +45,7 @@
 - Completed: C4 accessible token migration, semantic KPI gradients, global categories control delegation, and executable light/dark contrast contract with specification and quality approval.
 - Completed: C5 exact audio status/cookie/URL reuse, items whitelist/transforms, request identity/submission safety, failure-aware recipe loads, and executable production-handler/store coverage with final specification and quality approval.
 - Completed: D1 35-owner trimToNull consolidation, Unicode-blank preservation, firstNonBlank source preservation, and focused utility coverage with final specification and quality approval.
-- In progress: D2 trusted-proxy resolver migration is specification-approved but quality-blocked on seven missing resolver-result propagation assertions.
+- In progress: D2 trusted-proxy resolver migration is specification-approved but repair specification-blocked because seven resolver verifications accept an arbitrary request object.
 - Not completed: D3-D6 implementation, final gates, and closeout.
 
 ## Residual Risks
@@ -57,11 +57,11 @@
 - C4's focused CSS evaluator supports the current repository hex/rgb/rgba/`var()`/sRGB `color-mix()` subset. It can miss a future cross-semantic KPI mix, decorative page-layer contrast change, or unsupported CSS color syntax; current production expressions were independently checked and remain above 4.5:1.
 - C5's source-execution harness is intentionally scoped to the current SFC/store function syntax; future syntax changes may require adapting the extractor. Current store/page bodies and all relevant async orders execute in the 28-test focused suite.
 - D1's shared helper has a deliberate split: Object `trimToNull` preserves non-ASCII whitespace, while the Unicode-blank variant is limited to the five original `isBlank`/`hasText` owners. The broad backend suite has the same two baseline failures on main and D1: audio stream byte content under broad ordering and Wiki recipe Mockito unnecessary stubbing.
-- D2 production code has no known semantic defect, but seven controller tests stub `ClientIpResolver` while asserting `anyString()` at the downstream service/audit boundary; they would not catch a dropped, replaced, or naive client IP.
+- D2 production code has no known semantic defect. `7d6457fc` now asserts the fixed resolver IP at seven downstream service/audit boundaries, but its seven `resolve(any())` verifications would still accept an incorrect request object.
 
 ## Follow-up
 
-- Original D2 implementer adds one resolver-result propagation assertion per uncovered controller; fresh specification review and then fresh quality review remain mandatory before D3.
+- Original D2 implementer constrains the seven resolver invocations to the actual routed request while retaining exact propagation assertions; fresh specification review and then fresh quality review remain mandatory before D3.
 
 ## Commits
 
@@ -93,6 +93,7 @@
 - `93990ab` — recorded the D1 specification blocker.
 - `d2a8782` — preserved Unicode blank semantics and firstNonBlank source bodies; final reviews approved.
 - `4ab211e7` — replaced eight naive controller IP parsers with trusted-proxy resolver injection; specification-approved, quality-blocked on seven test propagation assertions.
+- `7d6457fc` — asserted seven exact resolver-IP propagation paths; repair specification-blocked until resolver invocations use the actual routed request.
 
 ## Optional: Multi-Agent Coordination
 
@@ -152,7 +153,7 @@
 - C5 final review: `2e101c9` added an overloaded strict null-on-error store option used only by item edit, failure state gates, executable default/strict store failure behavior, legal empty success, stale-A-first/current-B-pending, and failed-submit coverage. Fresh specification review approved all three code ranges and caller compatibility. Final fresh quality review confirmed the original two Important findings and the later failure-path Important are resolved, reported no Critical/Important/Minor findings, and allowed D1 progression.
 - D1 review: specification review verified the 37-path/35-owner scope, local-definition removal, imports, method references, focused utility test, and unchanged firstNonBlank counts, but found a semantic audit error: five originals rely on Unicode-aware blank detection before ASCII trim. It also found seven firstNonBlank bodies changed only by qualification, violating the explicit no-change boundary. Coordinator verified the five baseline bodies and accepted the minimal repair: a separate Unicode-blank utility variant for only those five owners plus static imports that restore the seven original firstNonBlank bodies. Fresh spec then quality re-review is required.
 - D1 final review: `d2a8782` added a Unicode-blank helper used by exactly 24 calls in the five original Unicode-aware owners and restored all seven firstNonBlank bodies byte-identically through static import. Fresh specification review found no issues. Final quality review confirmed both initial blockers resolved, all 35 local definitions removed, method-reference compatibility, focused 10/10, normal compilation, and main-reproduced broad baselines; it reported no Critical/Important/Minor findings and allowed D2 progression.
-- D2 review: specification review approved `4ab211e7` for the exact eight-controller/eight-test scope, resolver injection, removal of naive parsers, request propagation, and no policy changes. Quality review found one Important coverage gap: seven tests mock a fixed resolver IP but verify downstream calls with `anyString()`, so they do not prove trusted resolver output reaches the audit/service boundary. Disposition: keep D2 active; original implementer adds one exact resolver-result assertion and resolver invocation verification for each uncovered controller, followed by fresh spec then quality re-review. Coordinator independently reran `mvn -Dtest='*Article*,*User*,*Auth*' test` (150/150) and `mvn -DskipTests compile` (BUILD SUCCESS) before the test-quality finding; those commands do not clear the missing assertion contract.
+- D2 review: specification review approved `4ab211e7` for the exact eight-controller/eight-test scope, resolver injection, removal of naive parsers, request propagation, and no policy changes. Quality review found one Important coverage gap: seven tests mock a fixed resolver IP but verify downstream calls with `anyString()`, so they do not prove trusted resolver output reaches the audit/service boundary. `7d6457fc` added exact fixed-IP and resolver-invocation assertions, with a seven-call wrong-IP mutation producing 7 failures across 38 tests before restoration. Fresh repair specification review found an Important remaining gap: all seven invocation checks use `resolve(any())`, which does not prove the actual routed request is supplied. Disposition: keep D2 active; original implementer constrains each invocation to the actual request, then fresh specification and quality re-review. Coordinator independently reran `mvn -Dtest='*Article*,*User*,*Auth*' test` (150/150) and `mvn -DskipTests compile` (BUILD SUCCESS) before the first test-quality finding; those commands do not clear the missing request-identity assertion.
 - Re-review required: no for A2; yes for any later Critical or Important finding.
 - Resolved by: `/root/a2_implementer`; approved by `/root/a2_quality_review`.
 - Arbitration decision: pending only if reviews disagree.
@@ -267,3 +268,9 @@
 - Change: Kept D2 active and assigned a tests-only quality repair instead of advancing to D3.
 - Reason: seven mocks accept `anyString()` downstream, so the new trusted-proxy resolver result is not behavior-proven at those service/audit boundaries.
 - Evidence: commit `4ab211e7`; expected constructor RED; owning 41/41 GREEN; coordinator rerun 150/150 and compilation success; fresh specification approval; quality verdict `Ready to proceed to D3? No` pending seven exact resolver-result assertions.
+
+### 2026-07-19 01:02
+
+- Change: Kept D2 active after its tests-only repair and assigned a narrower assertion repair.
+- Reason: `7d6457fc` proves fixed IP propagation but verifies `ClientIpResolver.resolve(any())`, so request identity at the resolver boundary remains unproven.
+- Evidence: expected seven-call mutation RED (38 tests, 7 failures) then final 42 owning/151 broad GREEN and compilation; fresh repair specification verdict `Ready for quality review? No` pending actual-request matchers in all seven tests.
