@@ -7,6 +7,7 @@ import com.terraria.skills.common.PaginationParams;
 import com.terraria.skills.dto.PublicArmorSetListDTO;
 import com.terraria.skills.dto.PublicArmorSetQuery;
 import com.terraria.skills.service.PublicArmorSetService;
+import com.terraria.skills.service.impl.PublicArmorSetAggregateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ import java.util.List;
 public class PublicArmorSetController {
 
     private final PublicArmorSetService publicArmorSetService;
+    private final PublicArmorSetAggregateService publicArmorSetAggregateService;
 
     @GetMapping
     @Operation(summary = "Get public armor set list")
@@ -56,8 +58,11 @@ public class PublicArmorSetController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get public armor set detail")
-    public ResponseEntity<ApiResponse<PublicArmorSetListDTO>> getPublicArmorSetDetail(@PathVariable Long id) {
-        PublicArmorSetListDTO armorSet = publicArmorSetService.getPublicArmorSetById(id);
+    public ResponseEntity<ApiResponse<PublicArmorSetListDTO>> getPublicArmorSetDetail(
+        @PathVariable Long id,
+        @RequestParam(required = false) String include
+    ) {
+        PublicArmorSetListDTO armorSet = publicArmorSetAggregateService.getPublicArmorSetById(id, include);
         if (armorSet == null) {
             return ResponseEntity.ok(ApiResponse.success(null));
         }

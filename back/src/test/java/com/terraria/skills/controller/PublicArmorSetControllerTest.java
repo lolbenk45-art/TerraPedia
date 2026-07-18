@@ -3,10 +3,14 @@ package com.terraria.skills.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.EquipmentEffectAttributeDTO;
+import com.terraria.skills.dto.PublicArmorSetDetailDTO;
 import com.terraria.skills.dto.PublicArmorSetListDTO;
 import com.terraria.skills.dto.PublicArmorSetQuery;
 import com.terraria.skills.dto.PublicArmorSetRelatedItemDTO;
+import com.terraria.skills.dto.PublicItemEquipmentEffectDTO;
+import com.terraria.skills.dto.RecipeTreeResponseDTO;
 import com.terraria.skills.service.PublicArmorSetService;
+import com.terraria.skills.service.impl.PublicArmorSetAggregateService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +23,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,11 +40,17 @@ class PublicArmorSetControllerTest {
     @Mock
     private PublicArmorSetService publicArmorSetService;
 
+    @Mock
+    private PublicArmorSetAggregateService publicArmorSetAggregateService;
+
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        PublicArmorSetController controller = new PublicArmorSetController(publicArmorSetService);
+        PublicArmorSetController controller = new PublicArmorSetController(
+            publicArmorSetService,
+            publicArmorSetAggregateService
+        );
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
             .setMessageConverters(new MappingJackson2HttpMessageConverter(new ObjectMapper()))
             .build();
@@ -176,7 +187,7 @@ class PublicArmorSetControllerTest {
         effect.setParseStatus("parsed");
         armorSet.setEffects(List.of(effect));
 
-        when(publicArmorSetService.getPublicArmorSetById(20L)).thenReturn(armorSet);
+        when(publicArmorSetAggregateService.getPublicArmorSetById(20L, null)).thenReturn(armorSet);
 
         mockMvc.perform(get("/public/armor-sets/20"))
             .andExpect(status().isOk())
@@ -191,9 +202,82 @@ class PublicArmorSetControllerTest {
             .andExpect(jsonPath("$.data.relatedItems[0].setVariantIndex").value(2))
             .andExpect(jsonPath("$.data.relatedItems[0].partIndex").value(0))
             .andExpect(jsonPath("$.data.effects[0].statKey").value("defense"))
-            .andExpect(jsonPath("$.data.fallbackImages[0]").value("http://localhost:9000/terrapedia-images/items/wiki/item-images/solar.png"));
+            .andExpect(jsonPath("$.data.fallbackImages[0]").value("http://localhost:9000/terrapedia-images/items/wiki/item-images/solar.png"))
+            .andExpect(jsonPath("$.data.pieceEffects").doesNotExist())
+            .andExpect(jsonPath("$.data.pieceRecipes").doesNotExist());
 
-        verify(publicArmorSetService).getPublicArmorSetById(20L);
+        verify(publicArmorSetAggregateService).getPublicArmorSetById(20L, null);
+        verify(publicArmorSetService, never()).getPublicArmorSetById(20L);
         verify(publicArmorSetService, never()).getPublicArmorSets(any(PublicArmorSetQuery.class));
+    }
+
+    @Test
+    void shouldExposeCombinedPieceModules() throws Exception {
+        PublicArmorSetDetailDTO detail = new PublicArmorSetDetailDTO();
+        detail.setId(20L);
+        PublicItemEquipmentEffectDTO effect = new PublicItemEquipmentEffectDTO();
+        effect.setItemId(1327L);
+        RecipeTreeResponseDTO recipe = new RecipeTreeResponseDTO();
+        detail.setPieceEffects(Map.of(1327L, List.of(effect)));
+        detail.setPieceRecipes(Map.of(1327L, recipe));
+        when(publicArmorSetAggregateService.getPublicArmorSetById(20L, "piece-effects,recipes"))
+            .thenReturn(detail);
+
+        mockMvc.perform(get("/public/armor-sets/20")
+                .param("include", "piece-effects,recipes"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.pieceEffects.1327[0].itemId").value(1327))
+            .andExpect(jsonPath("$.data.pieceRecipes.1327.variants").isArray());
+
+        verify(publicArmorSetAggregateService)
+            .getPublicArmorSetById(20L, "piece-effects,recipes");
+    }
+
+    @Test
+    void shouldExposeRequestedEmptyPieceEffectsOnly() throws Exception {
+        PublicArmorSetDetailDTO detail = new PublicArmorSetDetailDTO();
+        detail.setId(20L);
+        detail.setPieceEffects(Map.of());
+        detail.setPieceRecipes(null);
+        when(publicArmorSetAggregateService.getPublicArmorSetById(20L, "piece-effects"))
+            .thenReturn(detail);
+
+        mockMvc.perform(get("/public/armor-sets/20")
+                .param("include", "piece-effects"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.pieceEffects").isMap())
+            .andExpect(jsonPath("$.data.pieceRecipes").doesNotExist());
+
+        verify(publicArmorSetAggregateService).getPublicArmorSetById(20L, "piece-effects");
+    }
+
+    @Test
+    void shouldForwardUnknownIncludeWithoutAddingPieceModules() throws Exception {
+        PublicArmorSetListDTO base = new PublicArmorSetListDTO();
+        base.setId(20L);
+        when(publicArmorSetAggregateService.getPublicArmorSetById(20L, "unknown"))
+            .thenReturn(base);
+
+        mockMvc.perform(get("/public/armor-sets/20")
+                .param("include", "unknown"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.id").value(20))
+            .andExpect(jsonPath("$.data.pieceEffects").doesNotExist())
+            .andExpect(jsonPath("$.data.pieceRecipes").doesNotExist());
+
+        verify(publicArmorSetAggregateService).getPublicArmorSetById(20L, "unknown");
+    }
+
+    @Test
+    void shouldPreserveSuccessfulNullResponseForMissingDetail() throws Exception {
+        when(publicArmorSetAggregateService.getPublicArmorSetById(404L, null)).thenReturn(null);
+
+        mockMvc.perform(get("/public/armor-sets/404"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data").doesNotExist());
+
+        verify(publicArmorSetAggregateService).getPublicArmorSetById(404L, null);
+        verify(publicArmorSetService, never()).getPublicArmorSetById(404L);
     }
 }
