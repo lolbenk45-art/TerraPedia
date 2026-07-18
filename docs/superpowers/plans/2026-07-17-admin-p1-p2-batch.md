@@ -220,10 +220,10 @@ git commit -m "fix(admin): CJK/emoji font fallbacks and lucide icons for brand/t
 
 ### Task C2: 表格裁切与竖排折行
 
-**2026-07-18 执行状态:** `active`。实现提交 `b825ecc` 与运行态窄宽修正
-`02ee0a7` 已通过规格复审；质量审查发现 Important：零最小值虽消除裁切，
-但在常用中间视口会把筛选 select 压缩到不可读宽度。C2 保持未完成，须改为
-保留可读控件最小宽度的分级布局并修正 760px contract 后重新审查。
+**2026-07-18 执行状态:** `completed`。`b825ecc`、`02ee0a7`、`635f5ba` 与
+`fd3689e` 已完成局部横滚、操作列单行、分级可读布局、brace-bounded contract
+和 44px 高特异性控件规则；规格复审与质量复审均通过，七个 1280–760px
+视口的运行态盒模型确认无页面级横滚且全部工具栏控件实际高度为 44px。
 
 **Files:**
 - Modify: `data-query-app/pages/query.vue`（L107 `data-table-wrap` 孤儿类——在该页 scoped style 补 `.data-table-wrap { overflow-x: auto; }`）
@@ -233,8 +233,8 @@ git commit -m "fix(admin): CJK/emoji font fallbacks and lucide icons for brand/t
 
 - Modify: `data-query-app/pages/article-comments.vue`（L801-820 toolbar 溢出: 命令栏槽位改 minmax(0,1.2fr)→auto 或按钮 max-content 改 100%，以实测为准）
 
-- [ ] **Step 1: 逐处修改，截图对比验证**（重截 query/items/users/entities-npcs/article-comments/entities-condition-terms）
-- [ ] **Step 2: 验证 + 提交**
+- [x] **Step 1: 逐处修改，截图对比验证**（重截 query/items/users/entities-npcs/article-comments/entities-condition-terms）
+- [x] **Step 2: 验证 + 提交**
 
 ```bash
 cd data-query-app && pnpm run check && node --test tests/items-progress-column.test.mjs

@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-18 20:19 CST by Codex
+Last updated: 2026-07-18 21:03 CST by Codex
 
 Active branch: `fix/admin-p1-p2-batch`
 
@@ -27,9 +27,9 @@ Active branch: `fix/admin-p1-p2-batch`
 
 - Continue the admin/backend P1+P2 batch from current local `main@218dfc0`.
   Do not take code from archived branch `fix/admin-p0-batch`; A2 through C1
-  are approved. C2 remains active: table/action and initial overflow commits
-  passed specification review, but article filter readability must be repaired
-  and quality re-reviewed before C3.
+  are approved. C2 is now specification- and quality-approved after the readable
+  responsive layout, brace-bounded contract, and 44px control-height repair.
+  Begin C3 classification-audit token repair and pagination next.
 
 - V2 queue engine activated on this worktree
   (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
@@ -39,13 +39,13 @@ Active branch: `fix/admin-p1-p2-batch`
 
 ## Current State
 
-- C2 commits `b825ecc` and `02ee0a7` make query/table overflow local, keep
-  action buttons on one row, and close the reproduced article right-edge clip.
-  Browser evidence covers query/items/users/NPC/condition-terms and article
-  viewports 1280/1130/1024/900/800/760; temporary admin/mock/Chrome ports are
-  closed. Quality review is still open because article selects compress to
-  unreadable widths at common intermediate viewports; the 760px contract also
-  needs brace-bounded parsing.
+- C2 commits `b825ecc`, `02ee0a7`, `635f5ba`, and `fd3689e` keep table overflow
+  local, action buttons on one row, and article filters readable across widths.
+  Focused contracts pass 11/11 and admin typecheck passes. Fresh browser geometry
+  at 1280/1130/1024/900/800/761/760 confirms every toolbar control has computed
+  and actual height 44px, stays inside its toolbar, and causes no document,
+  command-bar, or toolbar overflow. Specification and quality re-review have no
+  findings; temporary ports 3010/9223/18088 are closed.
 
 - Public category child navigation is closed at `4a744dc`: six parent routes
   expose 34 image-backed child categories with verified scope, count, and
@@ -63,9 +63,9 @@ Active branch: `fix/admin-p1-p2-batch`
 ## Next Agent Should Start Here
 
 - For admin P1+P2 work, read
-  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then begin
-  with the assigned C2 quality-review repair. Do not start C3 until the original
-  implementer fixes both findings and specification/quality re-review pass.
+  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then begin C3
+  with a fresh implementer. Relocate every classification-audit symbol on the
+  current branch before editing; do not trust old scout line numbers.
 
 - Read `entries/2026-07-17-crawler-v2-per-env-activation-guard.md` before any
   crawler-monitor work. This environment routes V2; other worktrees still
@@ -75,9 +75,8 @@ Active branch: `fix/admin-p1-p2-batch`
 
 ## Current Risks
 
-- C2 is not approved for progression: eliminating overflow by zero-minimum
-  tracks currently makes article status/sort controls unreadable at common
-  desktop/tablet widths. This finding blocks C3 and any batch closeout.
+- The admin batch currently has no open review blocker. C3-D6 remain unimplemented,
+  and their scout line numbers predate the current P0 B implementation.
 
 - Broad Maven/full quality-gate baseline failures are outside the V2 scope.
 - 6/8 local worktrees still silently route V1 until cut over; the new banner
