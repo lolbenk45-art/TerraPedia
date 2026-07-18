@@ -1,8 +1,17 @@
 # Current Devlog
 
-Last updated: 2026-07-17 (late) by Claude
+Last updated: 2026-07-18 17:22 CST by Codex
+
+Active branch: `fix/admin-p1-p2-batch`
 
 ## Open Work
+
+- Admin P1+P2 audit follow-up is active on branch `fix/admin-p1-p2-batch`
+  in worktree `/home/lolben/.config/superpowers/worktrees/TerraPedia/admin-p1-p2-batch`.
+  Owner/coordinator: `/root`; parent entry:
+  `entries/2026-07-18-admin-p1-p2-batch.md`; status: `active`; dependencies:
+  P0 B already merged, A1 verified and skipped; contract handoff: execute A2-D6
+  serially with per-task spec and quality review.
 
 - Post-merge acceptance in progress on branch `dev/post-merge-acceptance`
   (from local `main` @ `518d9a0`, 31 commits ahead of origin, unpushed).
@@ -15,6 +24,10 @@ Last updated: 2026-07-17 (late) by Claude
   ItemMapperPreferredImageSqlTest baseline reds, P1 dead-code sweep).
 
 ## Active Focus
+
+- Continue the admin/backend P1+P2 batch from current local `main@218dfc0`.
+  Do not take code from archived branch `fix/admin-p0-batch`; the next task is
+  A2 missing-claims HTTP 401 normalization.
 
 - V2 queue engine activated on this worktree
   (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
@@ -38,6 +51,10 @@ Last updated: 2026-07-17 (late) by Claude
   and backend test compilation.
 
 ## Next Agent Should Start Here
+
+- For admin P1+P2 work, read
+  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then begin
+  Task A2. Re-locate every old scout line number against current code.
 
 - Read `entries/2026-07-17-crawler-v2-per-env-activation-guard.md` before any
   crawler-monitor work. This environment routes V2; other worktrees still

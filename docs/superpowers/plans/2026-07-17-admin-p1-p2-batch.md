@@ -2,13 +2,19 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 在 `fix/admin-p0-batch` 分支上完成审计遗留的 P0 鉴权收尾、P1 死代码清扫与视觉快修、P2 可安全落地的收编项。
+**Goal:** 在当前 `main` 的独立任务分支上完成审计遗留的 P1 死代码清扫与视觉快修、P2 可安全落地的收编项，并完成尚未被 P0 B 版覆盖的鉴权收尾。
 
-**Architecture:** 延续最小边界原则。事实基线来自三份侦察报告（tmp/admin-audit/scout-*.md），所有行号均已实地核实。每 task 独立提交。
+**Architecture:** 延续最小边界原则。事实基线来自三份已入库侦察报告（`docs/audits/2026-07-17-admin-backend-audit/scout-*.md`）；报告行号基于旧基线，只作符号定位提示，执行每个 task 前必须在当前代码重新定位。每 task 独立提交。
 
 **Tech Stack:** Spring Boot (back/), Nuxt 4 + pnpm (data-query-app/), node:test
 
-**分支:** 继续 `fix/admin-p0-batch`（用户已确认，做完再决定是否合 main）。
+**分支:** `fix/admin-p1-p2-batch`，基于本地 `main@218dfc0`（包含 P0 B 版与抢救文档）。废弃档案分支 `fix/admin-p0-batch` 只允许读取交接说明，不得 cherry-pick 或复制实现。
+
+**2026-07-18 接续修正:**
+
+- `2cbcf99` 是 `218dfc0` 的直接祖先；新增的 `218dfc0` 只修改 crawler V2 cutover 脚本，与本计划目标文件无交集。
+- Task A1 已由 P0 B 版提交 `4db4df8` 的注解式鉴权和拦截器 ADMIN role 校验覆盖；新基线聚焦测试 `AdminAuthenticationInterceptorTest,AuthControllerTest` 为 13/13 通过。本分支不重复实现或取档案分支 `6cd6457`。
+- 本轮实际执行范围为 A2–D6，共 14 个 task；A1 仅保留为已验证的历史前置。
 
 **边界决策记录（执行者不得越过）:**
 1. `/admin/npcs` 双写收口**不做**——syncNpcShopEntries(AdminNpcController) 与 replaceNpcShopEntries(AdminNpcRelationController) 是两条并行实现，唯一化是行为变更需独立设计；本轮只补测试（Task D5）。
@@ -24,14 +30,14 @@
 
 ## 批次 A: P0 鉴权收尾（后端）
 
-### Task A1: 拦截器 role 深度防御
+### Task A1: 拦截器 role 深度防御（已由 P0 B 版覆盖）
 
 **Files:**
 - Modify: `back/src/main/java/com/terraria/skills/auth/AdminAuthenticationInterceptor.java`（L44-47）
 
 侦察已证实 `AdminJwtService.issueToken` L39 恒签 `role=ADMIN` 且是唯一签发路径——此改动是纯深度防御，现存合法 token 全部通过。
 
-- [ ] **Step 1: preHandle 的 try 块内加 role 判断**
+- [x] **Step 1: preHandle 的 try 块内加 role 判断**（`4db4df8` 已覆盖）
 
 原 L44-47:
 
@@ -55,7 +61,7 @@
             return true;
 ```
 
-- [ ] **Step 2: 编译 + 回归 + 冒烟**
+- [x] **Step 2: 编译 + 回归 + 冒烟**（接续基线聚焦测试 13/13 通过；运行态冒烟留待最终验收）
 
 ```bash
 cd back && mvn -DskipTests compile && mvn -Dtest=AdminAuthenticationInterceptorTest,AuthControllerTest test
@@ -64,7 +70,7 @@ cd back && mvn -DskipTests compile && mvn -Dtest=AdminAuthenticationInterceptorT
 # 重启后端后: 正常 token 仍可访问 /api/admin/* (200)
 ```
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**（沿用主线 `4db4df8`；本分支不重复提交）
 
 ```bash
 git add back/src/main/java/com/terraria/skills/auth/AdminAuthenticationInterceptor.java
