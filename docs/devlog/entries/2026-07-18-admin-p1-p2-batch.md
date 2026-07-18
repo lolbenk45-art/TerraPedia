@@ -33,6 +33,7 @@
 - Results: backend auth baseline 13 tests, zero failures/errors; admin typecheck passed; worktree clean at creation; `2cbcf99` confirmed as an ancestor of `218dfc0`. A2 observed the expected pre-fix 400-versus-401 red, then passed its focused 4/4 and broad article/user 130/130 runs; quality review additionally passed the 10 owning controller classes at 49/49. B1 observed the expected panel-root absence RED, then passed page contract 54/54, the four-file crawler-monitor bundle 140/140, and admin typecheck; the hardened review-fix contract independently passed 54/54. B2 observed the expected legacy-page absence RED, then passed NPC projection 19/19, approved stale-contract checks 16/16, typecheck, and the full admin unit suite 367/367; quality review independently passed focused contracts 35/35 and the same broad gates. C1 observed the expected font/icon contract RED, then passed focused 9/9, combined 16/16, and typecheck. Browser evidence measured a 24x24 Package and three 18x18 Folder/FileText icons with no structural emojis; screenshots show the icons crisp and non-tofu. C2's final specificity contract observed the expected 10/11 RED under the old `:where` selector and 11/11 GREEN after `fd3689e`; independent typecheck and 11/11 rerun passed. Browser probes at 1280/1130/1024/900/800/761/760 measured all six controls at computed/actual 44px with no document, command-bar, or toolbar overflow; specification and quality re-review reported no remaining findings.
 - C3 initial implementation observed the expected focused 5/8 RED, then passed focused 8/8, admin typecheck, and specification review. Quality review found one Important transactional pagination failure and a related static-test weakness. The repair observed 6/13 RED then 13/13 GREEN, executes the actual aggregation/load/handler functions, and proves deferred commit, failed-target retry, 2→1/zero-result clamping, and waiting-state preservation. Final specification and quality re-review reported no findings.
 - C4 initial implementation observed the expected focused 9/12 RED, then passed focused 12/12, combined 19/19, admin typecheck, diff check, specification review, and light/dark runtime geometry checks. Quality review found three Important accessibility/semantic issues and one related test-quality Minor. The repair observed effective 11/14 RED then 14/14 GREEN and final combined 21/21; independent WCAG checks measured at least 5.30:1 for login text, 5.54:1 for semantic tags, and 6.40:1 for submit endpoints. Fresh specification and quality re-review reported no blocking findings.
+- C5 observed audio 7/10 RED then 10/10 GREEN and items 11/13 RED then 13/13 GREEN; final focused 23/23, admin typecheck, diff check, and specification review passed. Quality review found two Important issues in the items path: submission/stale-edit races while recipes load and a source-only whitelist test that does not execute `handleEdit`. Repair and re-review remain pending.
 - Not run: C5-D6 task-focused tests, broad final backend/admin gates, and final runtime smoke remain pending implementation.
 
 ## Result
@@ -40,7 +41,8 @@
 - Completed: isolated worktree, current-main reconciliation, plan audit, A1 coverage verification, A2, B1, B2, C1, and C2 with specification, quality, and required runtime approval.
 - Completed: C3 token repair and transactional shared pagination with specification and quality approval.
 - Completed: C4 accessible token migration, semantic KPI gradients, global categories control delegation, and executable light/dark contrast contract with specification and quality approval.
-- Not completed: C5-D6 implementation, final gates, and closeout.
+- In progress: C5 production requirements are implemented and specification-approved, but the quality gate is blocked on recipe request identity/submission safety and executable items mapping coverage.
+- Not completed: D1-D6 implementation, final gates, and closeout.
 
 ## Residual Risks
 
@@ -49,10 +51,11 @@
 - Broad backend baseline has previously documented unrelated failures; final focused gates must prove no new failures.
 - Shared `AppPagination` still has an existing 38px control-height and missing `aria-current` accessibility Minor. It is outside C3's two-file scope and should be handled in a separate component task.
 - C4's focused CSS evaluator supports the current repository hex/rgb/rgba/`var()`/sRGB `color-mix()` subset. It can miss a future cross-semantic KPI mix, decorative page-layer contrast change, or unsupported CSS color syntax; current production expressions were independently checked and remain above 4.5:1.
+- C5's pre-existing edit-recipe load window becomes destructive when the new reset clears recipes before the request resolves; submission must remain gated and late results must not cross item identity. The current items whitelist contract can miss removed reset or post-loop metadata writes.
 
 ## Follow-up
 
-- Coordinator advances the serialized plan to C5 with a fresh implementer; implementation, specification review, and quality review remain sequential.
+- Original C5 implementer repairs the two recorded Important findings with minimal request identity/submission gating and executable `handleEdit` behavior tests; fresh specification review must pass before fresh quality re-review. D1 remains blocked until both approve.
 
 ## Commits
 
@@ -75,6 +78,7 @@
 - `3a1d178` — initial C4 hardcoded-color migration; specification-approved but quality-blocked pending contrast/semantic repair.
 - `3a8551c` — recorded the C4 contrast/semantic quality-review blocker.
 - `06d655b` — restored accessible token contrast, semantic KPI endpoints, and executable light/dark color contracts.
+- `630ddb5` — implemented C5 cookie/URL reuse, exact audio status tokens, and the items form whitelist; specification-approved but quality-blocked pending recipe-race and executable-test repair.
 
 ## Optional: Multi-Agent Coordination
 
@@ -82,7 +86,7 @@
 - Parallel work allowed: no implementation parallelism; tasks and review gates are serialized.
 - Agent ownership:
   - Fresh per-task implementer:
-    - Status: A2, B1, B2, C1, C2, C3, and C4 closed; C5 is the next fresh implementation assignment.
+    - Status: A2, B1, B2, C1, C2, C3, and C4 closed; C5 is active in quality-review repair.
     - Task scope: exactly one full task copied from the rebased plan.
     - Allowed files: only that task's explicit file list and directly required focused tests.
     - Forbidden files: `docs/devlog/**`, the plan, data/generated artifacts, unrelated modules, and files owned by later tasks.
@@ -130,6 +134,7 @@
 - C3 review: specification review approved `4abfd63..c20d7b2`. Quality review found one Important: `handlePageChange` committed `page` before the request, suppressing failed-target retry and allowing contraction to hide the pager on an out-of-range page. It also found the source-only contract did not execute aggregation or async transitions. `dcf214c` changed `loadAudit(targetPage)` to commit data/page only after a final valid response and to re-fetch a clamped page after contraction or zero results; executable tests cover `[2,2]` retry, `[2,1]` clamp, and preservation during the second pending request. Replacement specification and quality reviewers approved `4abfd63..dcf214c` with no Critical, Important, or Minor findings and allowed C4 progression. Existing AppPagination 38px/ARIA limitations remain a non-blocking shared-component follow-up outside C3 scope.
 - C4 review: specification review approved `45c5069..3a1d178` with exact preservation of violet/fuchsia/rose/orange/cyan and no out-of-scope token-layer edits. Quality review found three Important issues: semantic tag and login text/button pairs fall below 4.5:1 in one or both themes, info/warning KPI gradients use unrelated primary endpoints, and the contract does not enforce those semantic/contrast boundaries. The related Minor notes exact single-line CSS assertions are formatting-brittle. Disposition: verified against current token values, kept C4 active, assigned repair to the original implementer, and required fresh spec then quality re-review.
 - C4 repair review: fresh specification review approved both implementation ranges while excluding the coordinator-only `3a8551c` docs commit. Fresh quality review independently verified the test color cascade/compositing/luminance math and the production CSS, reported no Critical or Important findings, and allowed C5 progression. Three non-blocking evaluator boundaries remain: the KPI domain assertion excludes primary but is not a general semantic purity proof; login tests do not model decorative page layers; and the helper intentionally parses only the current CSS color subset.
+- C5 review: specification review approved `cf42f99..630ddb5`. Quality review found two Important items findings: the writable modal permits save before recipes resolve and late A/B requests can cross identities; the whitelist contract only inspects source and can miss removed reset or post-loop metadata writes. Coordinator arbitration: although the async window predates C5, the required new reset makes the empty-recipe submission path directly relevant, so accept a minimal safety repair without modal refactoring. The executable-contract finding is fully in scope. Minor follow-ups are shared audio token parsing and stronger whitelist exhaustiveness if `ItemPayload` grows.
 - Re-review required: no for A2; yes for any later Critical or Important finding.
 - Resolved by: `/root/a2_implementer`; approved by `/root/a2_quality_review`.
 - Arbitration decision: pending only if reviews disagree.
@@ -208,3 +213,9 @@
 - Change: Closed the C4 review gate and advanced the serialized handoff to C5.
 - Reason: the repair restores accessible light/dark contrast, semantic KPI endpoints, and executable coverage without changing shared tokens or the protected data palette; both fresh review stages approved progression.
 - Evidence: commit `06d655b`; effective focused 11/14 RED→14/14 GREEN; combined 21/21; admin typecheck; diff check; independent contrast minima 5.30/5.54/6.40; fresh specification approval; fresh quality review with no Critical/Important findings and `Ready to proceed to C5? Yes`.
+
+### 2026-07-18 23:16
+
+- Change: Kept C5 active and recorded its quality-review repair instead of advancing to D1.
+- Reason: the new reset-backed whitelist needs submission and stale-request safety while recipes load, and its source-only test does not prove missing-field reset, metadata exclusion, non-aliasing, or transforms through the actual handler.
+- Evidence: commit `630ddb5`; audio 7/10 RED→10/10 GREEN; items 11/13 RED→13/13 GREEN; combined 23/23; admin typecheck; specification approval; quality verdict `Ready to proceed to D1? No`; baseline inspection confirmed the async window predates C5 but the empty reset state is newly relevant.

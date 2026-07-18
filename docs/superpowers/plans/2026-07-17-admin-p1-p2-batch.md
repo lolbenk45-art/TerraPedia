@@ -288,6 +288,12 @@ git commit -m "refactor(admin): replace hardcoded colors with design tokens"
 
 ### Task C5: audio-assets 精确匹配 + cookie 常量收编 + items 白名单
 
+**2026-07-18 执行状态:** `active`。`630ddb5` 已完成 cookie/URL 单一来源、
+精确音频状态 token 与 items 24 字段白名单，focused 23/23、typecheck 和规格
+审查通过。质量审查阻断在 items 编辑期间的配方异步竞态与白名单合同未执行真实
+`handleEdit`；修复限于最小提交门控、stale-request identity 及可执行行为合同，
+不得扩展成 modal 重构。修复后须 fresh 规格与质量复审。
+
 **Files:**
 - Modify: `data-query-app/composables/useApi.ts` L5（`const` → `export const TOKEN_COOKIE_KEY`）
 - Modify: `data-query-app/pages/operations/audio-assets.vue`（L588-593 matchStatuses 子串嗅探改 split 精确比较、L603-608 label 版同改；L348 硬编码 cookie 名改 import；L509-513 joinApiUrl 删掉改用 useApi 的 resolveApiUrl）

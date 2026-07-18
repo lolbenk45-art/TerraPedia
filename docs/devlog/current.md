@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-18 22:52 CST by Codex
+Last updated: 2026-07-18 23:16 CST by Codex
 
 Active branch: `fix/admin-p1-p2-batch`
 
@@ -32,7 +32,9 @@ Active branch: `fix/admin-p1-p2-batch`
   C3 is now specification- and quality-approved after transactional page-state,
   retry, and contraction-clamp behavior coverage. C4 is specification- and
   quality-approved after accessible token contrast, semantic KPI gradients, and
-  executable light/dark color contracts. Begin C5 next.
+  executable light/dark color contracts. C5 implementation is specification-
+  approved but remains active on quality-review recipe-race and executable
+  whitelist-contract findings; do not begin D1 yet.
 
 - V2 queue engine activated on this worktree
   (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
@@ -62,6 +64,12 @@ Active branch: `fix/admin-p1-p2-batch`
   contracts pass 21/21, admin typecheck passes, runtime geometry has no layout
   regression, and fresh specification/quality re-review has no blocking findings.
 
+- C5 commit `630ddb5` exports the shared cookie key, reuses `resolveApiUrl`, makes
+  audio match status token-exact, and maps items through a 24-field whitelist.
+  Focused contracts pass 23/23 and admin typecheck passes. Quality review found
+  two Important issues: recipe loading can race submission or a later edit, and
+  the whitelist contract does not execute the actual `handleEdit` behavior.
+
 - Public category child navigation is closed at `4a744dc`: six parent routes
   expose 34 image-backed child categories with verified scope, count, and
   fail-closed behavior.
@@ -78,10 +86,10 @@ Active branch: `fix/admin-p1-p2-batch`
 ## Next Agent Should Start Here
 
 - For admin P1+P2 work, read
-  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then begin C5
-  with a fresh implementer. Preserve the exact-token audio status matching,
-  exported `TOKEN_COOKIE_KEY`, shared `resolveApiUrl`, and all three explicit
-  items-form transforms.
+  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then repair C5's
+  recipe-loading submission/stale-request race and replace the source-only items
+  whitelist assertion with executable `handleEdit` evidence. Preserve the exact-
+  token audio behavior and all three explicit items-form transforms.
 
 - Read `entries/2026-07-17-crawler-v2-per-env-activation-guard.md` before any
   crawler-monitor work. This environment routes V2; other worktrees still
@@ -91,7 +99,7 @@ Active branch: `fix/admin-p1-p2-batch`
 
 ## Current Risks
 
-- The admin batch currently has no open review blocker. C5-D6 remain
+- The admin batch has an open C5 quality-review blocker. D1-D6 remain
   unimplemented, and their scout line numbers must be relocated on the current
   branch. C4's focused CSS evaluator intentionally supports only the repository's
   current syntax subset and does not model future decorative background layering.
