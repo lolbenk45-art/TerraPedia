@@ -11,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -53,6 +54,7 @@ class PublicRecipeTreeFacadeTest {
         RecipeTreeNodeDTO root = new RecipeTreeNodeDTO();
         root.setItemId(1327L);
         root.setItemImage("https://terraria.wiki.gg/Solar_Helmet.png");
+        root.setGroupMemberNames(new ArrayList<>(List.of("Any Iron Bar")));
         root.setGroupMembers(List.of(member));
         root.setStations(List.of(station));
         root.setChildren(List.of(child));
@@ -73,6 +75,8 @@ class PublicRecipeTreeFacadeTest {
         assertNull(result.getVariants().get(0).getRoots().get(0).getStations().get(0).getStationImage());
         assertEquals("/terrapedia-images/items/solar-fragment.png",
             result.getVariants().get(0).getRoots().get(0).getChildren().get(0).getItemImage());
+        result.getVariants().get(0).getRoots().get(0).getGroupMemberNames().add("Any Lead Bar");
+        assertEquals(List.of("Any Iron Bar"), root.getGroupMemberNames());
         assertEquals("https://terraria.wiki.gg/Solar_Helmet.png", source.getItem().getImage());
         assertEquals("https://terraria.wiki.gg/Solar_Helmet.png", root.getItemImage());
         assertEquals("https://terraria.wiki.gg/Fragment.png", member.getImage());

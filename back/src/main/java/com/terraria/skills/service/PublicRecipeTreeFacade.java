@@ -66,7 +66,8 @@ public class PublicRecipeTreeFacade {
 
     private RecipeTreeNodeDTO copyNode(RecipeTreeNodeDTO source) {
         RecipeTreeNodeDTO target = new RecipeTreeNodeDTO();
-        BeanUtils.copyProperties(source, target, "groupMembers", "stations", "children");
+        BeanUtils.copyProperties(source, target, "groupMemberNames", "groupMembers", "stations", "children");
+        target.setGroupMemberNames(new ArrayList<>(safe(source.getGroupMemberNames())));
         List<RecipeGroupMemberDTO> groupMembers = new ArrayList<>();
         for (RecipeGroupMemberDTO member : safe(source.getGroupMembers())) {
             RecipeGroupMemberDTO copied = new RecipeGroupMemberDTO();
