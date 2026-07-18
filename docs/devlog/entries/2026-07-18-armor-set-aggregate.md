@@ -89,6 +89,7 @@
   review found one mutable-list alias.
 - `5f0a774` — detach public recipe group names and close the Task 2 finding.
 - `8324bfd` — add the Task 3 armor aggregate DTO/service and focused tests.
+- `78a9220` — expose the Task 4 optional include controller contract.
 
 ## Optional: Cross-Review
 
@@ -124,6 +125,20 @@
   selective nullable fields, and per-piece degradation are covered.
 - Remaining risks: controller JSON serialization/presence remains owned by
   Task 4 as planned.
+
+### Task 4 controller include contract
+
+- Reviewer: fresh specification and code-quality reviewers.
+- Scope: `d6ebfab1..78a9220`, armor controller and MockMvc contract tests.
+- Findings: none; both reviews approved.
+- Disposition: accepted.
+- Re-review required: no.
+- Resolved by: not applicable.
+- Arbitration decision: none required.
+- Decision owner: coordinator.
+- Rationale: no-include, combined, partial, unknown, and successful-null JSON
+  behavior is covered while list/detail service ownership remains separated.
+- Remaining risks: frontend consumer acknowledgement remains pending Task 5.
 
 ## Optional: State Changes
 
@@ -193,6 +208,15 @@
 - Evidence: focused service tests 5/5; both independent reviews approved; clean
   worktree and diff check.
 
+### 2026-07-18 23:15 CST
+
+- Change: Task 4 passed both review stages without findings; backend producer
+  contract is frozen for Task 5 consumption.
+- Reason: the optional maps now serialize at the existing detail `data` level
+  without changing list or missing-detail behavior.
+- Evidence: four-class focused backend suite 16/16; specification and quality
+  reviews approved; clean worktree.
+
 ## Optional: Multi-Agent Coordination
 
 - Coordinator: `/root` (Codex).
@@ -260,6 +284,18 @@
     - Handoff notes: controller must use the aggregate service and keep list
       reads on `PublicArmorSetService`.
     - Return format: complete.
+  - Task 4 controller contract:
+    - Status: complete at `78a9220`; specification and quality reviews found no
+      issue.
+    - Task scope: optional include binding/delegation and JSON compatibility.
+    - Allowed files: the two Task 4 files in the committed plan.
+    - Forbidden files: service internals/frontend/data/crawler/coordinator docs.
+    - Dependencies: aggregate service `8324bfd`.
+    - Validation: four focused backend classes 16/16.
+    - Blockers: none.
+    - Handoff notes: producer fields are `pieceEffects` and `pieceRecipes`;
+      requested empty maps are present, unrequested maps omitted.
+    - Return format: complete.
   - Task 6 integration and closeout:
     - Status: pending Tasks 2–5 and final integrated review.
     - Task scope: full focused gates, frontend gate, authorized runtime smoke,
@@ -282,8 +318,8 @@
   - Endpoint/schema/state: optional `pieceEffects` / `pieceRecipes` on existing
     armor detail `data`; no schema or data change.
   - Version/hash: design `1696f83`, plan `eb85d36`, public recipe producer
-    contract `5f0a774`, armor aggregate service `8324bfd`; later implementation
-    hashes are recorded per task.
+    contract `5f0a774`, armor aggregate service `8324bfd`, controller producer
+    contract `78a9220`; frontend consumer acknowledgement is pending.
   - Breaking or compatible: compatible; absent fields trigger legacy fallback.
   - Fixtures/types updated: backend DTO/controller tests and frontend public
     API type/contract.
