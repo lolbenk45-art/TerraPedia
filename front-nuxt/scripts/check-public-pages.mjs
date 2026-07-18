@@ -502,6 +502,9 @@ const requiredPublicDataLayerFiles = [
   'components/crafting/RecipeSummaryCard.vue',
   'components/catalog/CatalogWallSkeleton.vue',
   'components/detail/ItemDetailSkeleton.vue',
+  'components/detail/DetailArmorSetSkeleton.vue',
+  'components/detail/ArmorBuildMatrix.vue',
+  'components/detail/ArmorRecipeTable.vue',
   'components/search/SuggestionSkeletonRows.vue',
   'assets/css/loading-skeleton.css',
 ]
@@ -739,6 +742,25 @@ const requiredPublicDataLayerMarkers = {
     'detail-loading-skeleton',
     'CommonTpSkeleton type="icon"',
     'CommonTpSkeleton type="pill"',
+  ],
+  'components/detail/DetailArmorSetSkeleton.vue': [
+    'detailModuleClass: string',
+    'class="armor-detail-loading-skeleton"',
+    'CommonTpSkeleton type="pill"',
+    'aria-hidden="true"',
+    ':class="detailModuleClass"',
+  ],
+  'components/detail/ArmorBuildMatrix.vue': [
+    'v-for="effect in piece.effects"',
+    "'toggle-piece': [key: string]",
+    "@click=\"emit('toggle-piece'",
+    '<CommonPreviewImage',
+  ],
+  'components/detail/ArmorRecipeTable.vue': [
+    'class="armor-crafting-table"',
+    ':rowspan="recipe.stationRowspan"',
+    '<CraftingCompactRecipeMaterials',
+    'class="armor-crafting-empty-state" aria-live="polite"',
   ],
   'components/search/SuggestionSkeletonRows.vue': [
     'SuggestionSkeletonRows',
@@ -2917,9 +2939,10 @@ for (const path of scanFiles) {
       'imageGroups',
       ':class="detailLayout.detailShellClass"',
       ':aria-busy="armorDetailVisualLoading"',
-      '<CommonTpSkeleton',
+      '<DetailArmorSetSkeleton',
+      '<ArmorBuildMatrix',
+      '<ArmorRecipeTable',
       '<CommonPreviewImage',
-      'v-for="effect in piece.effects"',
       'v-for="group in imageGroups"',
       'href="/armor-sets"',
     ]) {
