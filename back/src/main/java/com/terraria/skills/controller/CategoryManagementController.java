@@ -1,6 +1,7 @@
 package com.terraria.skills.controller;
 
 import com.terraria.skills.common.ApiResponse;
+import com.terraria.skills.common.ResourceNotFoundException;
 import com.terraria.skills.dto.CategoryDTO;
 import com.terraria.skills.service.CategoryManagementService;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +46,7 @@ public class CategoryManagementController {
         log.info("获取分类详情，id={}", id);
         CategoryDTO category = categoryManagementService.getCategoryById(id);
         if (category == null) {
-            return ApiResponse.error(404, "分类不存在");
+            throw new ResourceNotFoundException("分类不存在");
         }
         return ApiResponse.success(category);
     }
@@ -106,12 +107,8 @@ public class CategoryManagementController {
     @PostMapping
     public ApiResponse<CategoryDTO> createCategory(@RequestBody CategoryDTO categoryDTO) {
         log.info("创建分类，name={}, parentId={}", categoryDTO.getName(), categoryDTO.getParentId());
-        try {
-            CategoryDTO created = categoryManagementService.createCategory(categoryDTO);
-            return ApiResponse.success(created, "分类创建成功");
-        } catch (IllegalArgumentException e) {
-            return ApiResponse.error(400, e.getMessage());
-        }
+        CategoryDTO created = categoryManagementService.createCategory(categoryDTO);
+        return ApiResponse.success(created, "分类创建成功");
     }
 
     /**
@@ -122,12 +119,8 @@ public class CategoryManagementController {
             @PathVariable Long id,
             @RequestBody CategoryDTO categoryDTO) {
         log.info("更新分类，id={}", id);
-        try {
-            CategoryDTO updated = categoryManagementService.updateCategory(id, categoryDTO);
-            return ApiResponse.success(updated, "分类更新成功");
-        } catch (IllegalArgumentException e) {
-            return ApiResponse.error(400, e.getMessage());
-        }
+        CategoryDTO updated = categoryManagementService.updateCategory(id, categoryDTO);
+        return ApiResponse.success(updated, "分类更新成功");
     }
 
     /**
@@ -138,12 +131,8 @@ public class CategoryManagementController {
             @PathVariable Long id,
             @RequestParam Long newParentId) {
         log.info("更新分类父级，id={}, newParentId={}", id, newParentId);
-        try {
-            CategoryDTO updated = categoryManagementService.updateCategoryParent(id, newParentId);
-            return ApiResponse.success(updated, "分类移动成功");
-        } catch (IllegalArgumentException e) {
-            return ApiResponse.error(400, e.getMessage());
-        }
+        CategoryDTO updated = categoryManagementService.updateCategoryParent(id, newParentId);
+        return ApiResponse.success(updated, "分类移动成功");
     }
 
     /**
@@ -154,12 +143,8 @@ public class CategoryManagementController {
             @PathVariable Long id,
             @RequestParam Integer newSort) {
         log.info("更新分类排序，id={}, newSort={}", id, newSort);
-        try {
-            CategoryDTO updated = categoryManagementService.updateCategorySort(id, newSort);
-            return ApiResponse.success(updated, "排序更新成功");
-        } catch (IllegalArgumentException e) {
-            return ApiResponse.error(400, e.getMessage());
-        }
+        CategoryDTO updated = categoryManagementService.updateCategorySort(id, newSort);
+        return ApiResponse.success(updated, "排序更新成功");
     }
 
     /**
@@ -168,12 +153,8 @@ public class CategoryManagementController {
     @DeleteMapping("/{id}")
     public ApiResponse<Void> deleteCategory(@PathVariable Long id) {
         log.info("删除分类，id={}", id);
-        try {
-            categoryManagementService.deleteCategory(id);
-            return ApiResponse.success(null, "分类删除成功");
-        } catch (IllegalArgumentException e) {
-            return ApiResponse.error(400, e.getMessage());
-        }
+        categoryManagementService.deleteCategory(id);
+        return ApiResponse.success(null, "分类删除成功");
     }
 
     /**
@@ -182,12 +163,8 @@ public class CategoryManagementController {
     @DeleteMapping("/{id}/with-children")
     public ApiResponse<Void> deleteCategoryWithChildren(@PathVariable Long id) {
         log.info("删除分类及其子分类，id={}", id);
-        try {
-            categoryManagementService.deleteCategoryWithChildren(id);
-            return ApiResponse.success(null, "分类及子分类删除成功");
-        } catch (IllegalArgumentException e) {
-            return ApiResponse.error(400, e.getMessage());
-        }
+        categoryManagementService.deleteCategoryWithChildren(id);
+        return ApiResponse.success(null, "分类及子分类删除成功");
     }
 
     /**

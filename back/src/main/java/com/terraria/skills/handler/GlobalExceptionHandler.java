@@ -3,6 +3,7 @@ package com.terraria.skills.handler;
 import com.terraria.skills.auth.AdminAccessDeniedException;
 import com.terraria.skills.auth.UnauthenticatedException;
 import com.terraria.skills.common.ApiResponse;
+import com.terraria.skills.common.ResourceNotFoundException;
 import com.terraria.skills.dto.CrawlerQueueV2ErrorDTO;
 import com.terraria.skills.service.CrawlerMonitorRedisUnavailableException;
 import com.terraria.skills.service.impl.crawlerv2.CrawlerQueueV2Exception;
@@ -45,6 +46,13 @@ public class GlobalExceptionHandler {
     public ApiResponse<Void> handleNoResourceFoundException(NoResourceFoundException e) {
         log.warn("Resource not found path={}", e.getResourcePath());
         return ApiResponse.error(404, "Resource not found: " + e.getResourcePath());
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiResponse<Void> handleResourceNotFound(ResourceNotFoundException e) {
+        log.warn("Resource not found: {}", e.getMessage());
+        return ApiResponse.error(404, e.getMessage());
     }
 
     @ExceptionHandler(CrawlerMonitorRedisUnavailableException.class)
