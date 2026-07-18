@@ -342,18 +342,16 @@ git commit -m "fix(admin): exact status matching, shared cookie constant, item f
 
 ### Task D1: 后端 AdminTextUtils（trimToNull 35 份收编）
 
-**2026-07-19 执行状态:** `active`。`a801455` 已完成初始 35-owner 收编、7 次
-编译 checkpoint 与 focused 5/5，但规格复审发现侦察“全部等价”的前提错误：5 个
-`isBlank`/`StringUtils.hasText` 版本会把 Unicode-only 空白归 null，不能迁移到
-`Object` 版的 `String.trim()` 语义；另有 7 个 `firstNonBlank` 函数体被限定调用
-文本性改写。修复须新增只供前 5 处使用的 Unicode-blank 变体，并用 static import
-恢复 7 个 `firstNonBlank` 的原函数体；随后重新规格/质量复审。
+**2026-07-19 执行状态:** `completed`。`a801455` 完成 35-owner 初始收编，
+`d2a8782` 修复五个 Unicode-blank 语义与七个 `firstNonBlank` 函数体边界。最终
+focused 10/10、编译、fresh 规格和质量复审通过；35 个 local definition 全部移除，
+五个 Unicode owner 的 24 调用与 8 个 shared method reference 均已核验。
 
 **Files:**
 - Create: `back/src/main/java/com/terraria/skills/common/AdminTextUtils.java`
 - Modify: 35 个含 `private ... trimToNull` 的文件（清单见 scout-p2-backend.md 项 3；侦察确认语义全部等价）
 
-- [x] **Step 1: 新建工具类**（初始实现已完成；review-driven Unicode-blank 变体待补）
+- [x] **Step 1: 新建工具类**
 
 ```java
 package com.terraria.skills.common;
@@ -375,8 +373,8 @@ public final class AdminTextUtils {
 
 （签名统一为 Object 入参——侦察确认 String 入参版调用点传 String 也兼容。）
 
-- [ ] **Step 2: 机械替换**——每文件删私有副本、调用点改 `AdminTextUtils.trimToNull(...)`（static import 亦可，对齐各文件风格）。**35 份副本中 20+ 份在 service/、service/impl/（如 ArticleServiceImpl:844、PublicNpcServiceImpl:1406、CrawlerMonitorServiceImpl:3842、BossSummonContractResolver:117），不止 controller/**。8 处 `this::trimToNull` 方法引用改 `AdminTextUtils::trimToNull`（评审已验证 Stream 泛型兼容）。每改 5 个文件跑一次 `mvn -DskipTests compile`。**Review correction:** AdminBiomeController、DisabledWikiImageLocalizationService、ItemImageServiceImpl、MinioManagedImageUrlPolicy、UserAvatarUrlResolver 的原 `isBlank`/`hasText` 语义使用单独的 Unicode-blank 变体；AdminBossController、AdminCraftingStationController、AdminItemGroupController、AdminRecipeGroupController、PublicBossServiceImpl、RecipeServiceImpl、RecipeTreeServiceImpl 的 `firstNonBlank` 函数体通过 static import 保持逐字不变。firstNonBlank **不动**（边界决策 #4）。
-- [ ] **Step 3: 全量回归 + 提交**
+- [x] **Step 2: 机械替换**——每文件删私有副本、调用点改 `AdminTextUtils.trimToNull(...)`（static import 亦可，对齐各文件风格）。**35 份副本中 20+ 份在 service/、service/impl/（如 ArticleServiceImpl:844、PublicNpcServiceImpl:1406、CrawlerMonitorServiceImpl:3842、BossSummonContractResolver:117），不止 controller/**。8 处 `this::trimToNull` 方法引用改 `AdminTextUtils::trimToNull`（评审已验证 Stream 泛型兼容）。每改 5 个文件跑一次 `mvn -DskipTests compile`。**Review correction:** AdminBiomeController、DisabledWikiImageLocalizationService、ItemImageServiceImpl、MinioManagedImageUrlPolicy、UserAvatarUrlResolver 的原 `isBlank`/`hasText` 语义使用单独的 Unicode-blank 变体；AdminBossController、AdminCraftingStationController、AdminItemGroupController、AdminRecipeGroupController、PublicBossServiceImpl、RecipeServiceImpl、RecipeTreeServiceImpl 的 `firstNonBlank` 函数体通过 static import 保持逐字不变。firstNonBlank **不动**（边界决策 #4）。
+- [x] **Step 3: 全量回归 + 提交**
 
 ```bash
 cd back && mvn test -Dtest='Admin*Test,*Article*,Public*Test' 2>&1 | grep -E "Tests run.*Fail|BUILD"
