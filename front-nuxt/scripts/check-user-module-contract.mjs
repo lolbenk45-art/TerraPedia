@@ -326,6 +326,9 @@ assertNotIncludes(
   'account theme selector must persist authenticated user theme preference instead of only changing the local cookie',
 )
 
+const userArticleEditorLayoutPath = 'components/user/UserArticleEditorLayout.vue'
+const userArticleEditorLayout = assertFile(userArticleEditorLayoutPath)
+
 const pageContracts = [
   {
     path: 'pages/user/login.vue',
@@ -437,11 +440,14 @@ const pageContracts = [
 
 for (const contract of pageContracts) {
   const content = assertFile(contract.path)
+  const contractSource = contract.path === 'pages/user/articles/new.vue' || contract.path === 'pages/user/articles/[id].vue'
+    ? content + userArticleEditorLayout
+    : content
   for (const marker of contract.required) {
-    assertIncludes(contract.path, content, marker, `page contract must include ${marker}`)
+    assertIncludes(contract.path, contractSource, marker, `page contract must include ${marker}`)
   }
   for (const marker of contract.forbidden) {
-    assertNotIncludes(contract.path, content, marker, `page must not remain preview-only with ${marker}`)
+    assertNotIncludes(contract.path, contractSource, marker, `page must not remain preview-only with ${marker}`)
   }
 }
 
@@ -552,36 +558,56 @@ for (const marker of [
 assertNotIncludes('pages/articles/[slug].vue', publicArticleDetail, 'articleHeroImageUrl', 'article detail page must not render a large hero cover before the article body')
 assertNotIncludes('pages/articles/[slug].vue', publicArticleDetail, 'firstArticleImageUrl', 'article detail page must not promote body images into a large hero cover')
 
-for (const path of ['pages/user/articles/new.vue', 'pages/user/articles/[id].vue']) {
-  const content = assertFile(path)
-  assertIncludes(path, content, 'writingModeEnabled', 'user article page must expose the selected immersive writing mode toggle')
-  assertIncludes(path, content, 'article-focus-shell--writing', 'user article page must apply the immersive writing layout class')
-  assertIncludes(path, content, 'article-writing-toggle', 'user article page must render a button to control writing mode')
-  assertNotIncludes(path, content, '#08110c', 'user article writing mode must not hard-code the dark design draft background')
-  assertNotIncludes(path, content, '#0f1912', 'user article writing mode must follow theme variables instead of fixed dark surface colors')
-  assertIncludes(path, content, 'useUserArticleCoverCropper', 'user article page must use the shared cover cropper')
-  assertIncludes(path, content, 'pendingCoverFile', 'user article page must defer cover uploads until save')
-  assertIncludes(path, content, 'uploadUserArticleEmbeddedImages', 'user article page must upload embedded images during save')
-  assertIncludes(path, content, 'resolvePreviewImageUrl', 'user article cover preview must resolve backend preview image paths')
-  assertIncludes(path, content, 'cropScale', 'user article page must support zooming selected cover before save')
-  assertIncludes(path, content, 'confirmCoverCrop', 'user article page must apply the cropped cover before save')
-  assertIncludes(path, content, 'user-cover-cropper', 'user article page must render the cover cropper controls')
-  assertNotIncludes(path, content, 'authStore.uploadUserArticleImage(file)', 'user article page must not upload selected cover immediately')
-  assertIncludes(path, content, 'article-focus-shell', 'user article editor must use the selected focus-writing layout shell')
-  assertIncludes(path, content, 'article-focus-rail', 'user article editor must expose a compact left anchor rail')
-  assertIncludes(path, content, 'article-writing-surface', 'user article editor must prioritize the central writing surface')
-  assertIncludes(path, content, 'article-focus-status', 'user article editor must keep publish checks in a right status column')
-  assertIncludes(path, content, 'article-settings-workspace', 'user article editor must move cover and slug controls into a secondary settings section')
-  assertIncludes(path, content, 'article-settings-panel', 'user article editor settings must use a visible optimized settings panel')
-  assertNotIncludes(path, content, '<details>', 'user article editor settings must not hide slug and cover controls in a default details block')
-  assertIncludes(path, content, '公开链接地址', 'user article editor must explain slug as the public link path')
-  assertIncludes(path, content, '选择封面', 'user article cover action must be labeled as choosing a cover')
-  assertNotIncludes(path, content, '裁剪/放大封面', 'user article cover action label must not lead with crop and zoom')
-  assertIncludes(path, content, 'article-review-action', 'user article editor must expose the admin review action in the top action area')
-  assertIncludes(path, content, '提交管理员审核', 'user article editor must label the review action as submitting to admin review')
-  assertPattern(path, content, /id="article-body"[\s\S]*id="article-settings"/, 'user article editor must place the writing body before secondary cover and slug settings')
-  assertIncludes(path, content, 'article-compact-head', 'user article editor must replace the large page head with the selected compact toolbar')
-  assertNotIncludes(path, content, 'page-head entity-head', 'user article editor must not keep the large page head block')
+assertIncludes(userArticleEditorLayoutPath, userArticleEditorLayout, 'defineProps<', 'shared user article editor layout must declare typed props')
+assertIncludes(userArticleEditorLayoutPath, userArticleEditorLayout, 'defineEmits<', 'shared user article editor layout must declare typed emits')
+assertIncludes(userArticleEditorLayoutPath, userArticleEditorLayout, '<slot name="status"', 'shared user article editor layout must expose the create/edit status slot')
+
+for (const contract of [
+  { path: 'pages/user/articles/new.vue', formId: 'new-user-article-form', submitHandler: 'submit' },
+  { path: 'pages/user/articles/[id].vue', formId: 'edit-user-article-form', submitHandler: 'saveDraft' },
+]) {
+  const content = assertFile(contract.path)
+  const editorSource = content + userArticleEditorLayout
+  const lineCount = content.trimEnd().split(/\r?\n/).length
+  if (lineCount >= 400) {
+    violations.push(`${contract.path}: user article editor page must stay below 400 lines (found ${lineCount})`)
+  }
+  assertIncludes(contract.path, content, '<UserArticleEditorLayout', 'user article page must explicitly render the shared editor layout')
+  assertIncludes(contract.path, content, '<main class="tp-page-shell user-article-editor-page">', 'user article page must retain the shared page shell main region')
+  assertPattern(
+    contract.path,
+    content,
+    new RegExp(`<form id="${contract.formId}"[\\s\\S]*@submit\\.prevent="${contract.submitHandler}"`),
+    'user article page must retain its page-owned form id and submit handler',
+  )
+  assertIncludes(contract.path, content, 'writingModeEnabled', 'user article page must expose the selected immersive writing mode toggle')
+  assertIncludes(contract.path, content, 'article-focus-shell--writing', 'user article page must apply the immersive writing layout class')
+  assertIncludes(contract.path, content, 'article-writing-toggle', 'user article page must render a button to control writing mode')
+  assertNotIncludes(contract.path, editorSource, '#08110c', 'user article writing mode must not hard-code the dark design draft background')
+  assertNotIncludes(contract.path, editorSource, '#0f1912', 'user article writing mode must follow theme variables instead of fixed dark surface colors')
+  assertIncludes(contract.path, content, 'useUserArticleCoverCropper', 'user article page must use the shared cover cropper')
+  assertIncludes(contract.path, content, 'pendingCoverFile', 'user article page must defer cover uploads until save')
+  assertIncludes(contract.path, content, 'uploadUserArticleEmbeddedImages', 'user article page must upload embedded images during save')
+  assertIncludes(contract.path, content, 'resolvePreviewImageUrl', 'user article cover preview must resolve backend preview image paths')
+  assertIncludes(contract.path, editorSource, 'cropScale', 'user article page must support zooming selected cover before save')
+  assertIncludes(contract.path, editorSource, 'confirmCoverCrop', 'user article page must apply the cropped cover before save')
+  assertIncludes(contract.path, editorSource, 'user-cover-cropper', 'user article page must render the cover cropper controls')
+  assertNotIncludes(contract.path, editorSource, 'authStore.uploadUserArticleImage(file)', 'user article page must not upload selected cover immediately')
+  assertIncludes(contract.path, editorSource, 'article-focus-shell', 'user article editor must use the selected focus-writing layout shell')
+  assertIncludes(contract.path, editorSource, 'article-focus-rail', 'user article editor must expose a compact left anchor rail')
+  assertIncludes(contract.path, editorSource, 'article-writing-surface', 'user article editor must prioritize the central writing surface')
+  assertIncludes(contract.path, editorSource, 'article-focus-status', 'user article editor must keep publish checks in a right status column')
+  assertIncludes(contract.path, editorSource, 'article-settings-workspace', 'user article editor must move cover and slug controls into a secondary settings section')
+  assertIncludes(contract.path, editorSource, 'article-settings-panel', 'user article editor settings must use a visible optimized settings panel')
+  assertNotIncludes(contract.path, editorSource, '<details>', 'user article editor settings must not hide slug and cover controls in a default details block')
+  assertIncludes(contract.path, editorSource, '公开链接地址', 'user article editor must explain slug as the public link path')
+  assertIncludes(contract.path, editorSource, '选择封面', 'user article cover action must be labeled as choosing a cover')
+  assertNotIncludes(contract.path, editorSource, '裁剪/放大封面', 'user article cover action label must not lead with crop and zoom')
+  assertIncludes(contract.path, content, 'article-review-action', 'user article editor must expose the admin review action in the top action area')
+  assertIncludes(contract.path, content, '提交管理员审核', 'user article editor must label the review action as submitting to admin review')
+  assertPattern(contract.path, editorSource, /id="article-body"[\s\S]*id="article-settings"/, 'user article editor must place the writing body before secondary cover and slug settings')
+  assertIncludes(contract.path, content, 'article-compact-head', 'user article editor must replace the large page head with the selected compact toolbar')
+  assertNotIncludes(contract.path, content, 'page-head entity-head', 'user article editor must not keep the large page head block')
 }
 
 const userArticleEditPage = assertFile('pages/user/articles/[id].vue')

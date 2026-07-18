@@ -109,17 +109,21 @@ if (!editorStyleSource.includes('--recipe-overview-pan-x') || !editorStyleSource
 if (!/const editorRecipeTreeNodeStations =[\s\S]*sameItemChild[\s\S]*isSameEditorRecipeTreeItem/.test(editorComponentSource)) throw new Error('editor recipe tree station lookup must preserve stations from folded same-item recipe nodes')
 const newArticlePageSource = readFileSync(join(root, 'pages/user/articles/new.vue'), 'utf8')
 const editArticlePageSource = readFileSync(join(root, 'pages/user/articles/[id].vue'), 'utf8')
+const articleEditorLayoutSource = readFileSync(join(root, 'components/user/UserArticleEditorLayout.vue'), 'utf8')
+  .replace(/:global\(([^)]+)\)/g, '$1')
 const extractStyleSource = source => source.match(/<style[^>]*>([\s\S]*?)<\/style>/)?.[1] || ''
+const articleEditorLayoutStyleSource = extractStyleSource(articleEditorLayoutSource)
 const articlePageStyleSources = {
-  new: extractStyleSource(newArticlePageSource),
-  edit: extractStyleSource(editArticlePageSource),
+  new: articleEditorLayoutStyleSource,
+  edit: articleEditorLayoutStyleSource,
 }
 
 for (const [pageName, pageSource] of [['new', newArticlePageSource], ['edit', editArticlePageSource]]) {
-  const writingStatusBlocks = extractCssBlocks(pageSource, '.article-focus-shell--writing .article-focus-status')
+  const editorSource = pageSource + articleEditorLayoutSource
+  const writingStatusBlocks = extractCssBlocks(editorSource, '.article-focus-shell--writing .article-focus-status')
   if (writingStatusBlocks.length < 2) throw new Error(`${pageName} article page must define reference panel positioning for desktop and narrow writing mode`)
-  if (!pageSource.includes('id="user-article-reference-panel-target"')) throw new Error(`${pageName} article page must expose an external reference panel target in the side status area`)
-  if (!pageSource.includes('reference-panel-target="#user-article-reference-panel-target"')) throw new Error(`${pageName} article page must pass the external reference panel target to the editor`)
+  if (!editorSource.includes('id="user-article-reference-panel-target"')) throw new Error(`${pageName} article page must expose an external reference panel target in the side status area`)
+  if (!editorSource.includes('reference-panel-target="#user-article-reference-panel-target"')) throw new Error(`${pageName} article page must pass the external reference panel target to the editor`)
   if (!pageSource.includes('@reference-panel-open="writingModeEnabled = true"')) throw new Error(`${pageName} article page must enter writing mode when the reference picker opens`)
   if (!/const compactHeadRef = ref<HTMLElement \| null>\(null\)/.test(pageSource)) throw new Error(`${pageName} article page must track the real writing toolbar element`)
   if (!pageSource.includes('getBoundingClientRect().bottom')) throw new Error(`${pageName} article page must derive the reference panel offset from the toolbar bottom`)
@@ -132,13 +136,13 @@ for (const [pageName, pageSource] of [['new', newArticlePageSource], ['edit', ed
   if (!pageSource.includes('referencePanelResizeObserver?.disconnect()')) throw new Error(`${pageName} article page must clean up the reference panel toolbar ResizeObserver`)
   if (!/<div\s+ref="compactHeadRef"\s+class="article-compact-head"/.test(pageSource)) throw new Error(`${pageName} article page must bind the toolbar element ref in the template`)
   if (!/<form[\s\S]*class="article-focus-shell"[\s\S]*:style="referencePanelShellStyle"/.test(pageSource)) throw new Error(`${pageName} article page must apply the measured panel offset to the writing shell`)
-  if (!/<aside[\s\S]*class="article-focus-status"[\s\S]*id="user-article-reference-panel-target"[\s\S]*<section class="article-status-card"/.test(pageSource)) throw new Error(`${pageName} article page must place the reference panel target before the status card inside article-focus-status`)
-  if (/article-focus-shell--writing\s+\.article-focus-rail,\s*\.article-focus-shell--writing\s+\.article-focus-status/.test(pageSource)) throw new Error(`${pageName} article page must not hide the side reference panel area in writing mode`)
-  if (/article-focus-shell--writing\s+\.article-focus-status\s*\{[^}]*display:\s*none/.test(pageSource)) throw new Error(`${pageName} article page must keep the external reference panel visible in writing mode`)
-  if (!/\.article-focus-shell--writing\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*980px\)\s+320px/.test(pageSource)) throw new Error(`${pageName} article page writing mode must keep a side column for references`)
-  if (!/\.article-compact-head--writing\s*\{[\s\S]*z-index:\s*60;/.test(pageSource)) throw new Error(`${pageName} article page writing toolbar must stay above the reference panel`)
-  if (!/--article-reference-panel-top:\s*clamp\(152px,\s*18dvh,\s*188px\);/.test(pageSource)) throw new Error(`${pageName} article page reference panel must keep a desktop fallback before measurement`)
-  if (!/--user-article-toolbar-top:\s*var\(--article-reference-panel-top\);/.test(pageSource)) throw new Error(`${pageName} article page editor toolbar must use the same measured top as the reference panel`)
+  if (!/<aside[\s\S]*class="article-focus-status"[\s\S]*id="user-article-reference-panel-target"[\s\S]*<section class="article-status-card"/.test(editorSource)) throw new Error(`${pageName} article page must place the reference panel target before the status card inside article-focus-status`)
+  if (/article-focus-shell--writing\s+\.article-focus-rail,\s*\.article-focus-shell--writing\s+\.article-focus-status/.test(editorSource)) throw new Error(`${pageName} article page must not hide the side reference panel area in writing mode`)
+  if (/article-focus-shell--writing\s+\.article-focus-status\s*\{[^}]*display:\s*none/.test(editorSource)) throw new Error(`${pageName} article page must keep the external reference panel visible in writing mode`)
+  if (!/\.article-focus-shell--writing\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*980px\)\s+320px/.test(editorSource)) throw new Error(`${pageName} article page writing mode must keep a side column for references`)
+  if (!/\.article-compact-head--writing\s*\{[\s\S]*z-index:\s*60;/.test(editorSource)) throw new Error(`${pageName} article page writing toolbar must stay above the reference panel`)
+  if (!/--article-reference-panel-top:\s*clamp\(152px,\s*18dvh,\s*188px\);/.test(editorSource)) throw new Error(`${pageName} article page reference panel must keep a desktop fallback before measurement`)
+  if (!/--user-article-toolbar-top:\s*var\(--article-reference-panel-top\);/.test(editorSource)) throw new Error(`${pageName} article page editor toolbar must use the same measured top as the reference panel`)
   for (const block of writingStatusBlocks) {
     if (!/position:\s*fixed;/.test(block)) throw new Error(`${pageName} article page writing reference panel must be fixed in each responsive mode`)
     if (!/top:\s*var\(--article-reference-panel-top\);/.test(block)) throw new Error(`${pageName} article page writing reference panel must use the measured top variable`)
@@ -148,10 +152,10 @@ for (const [pageName, pageSource] of [['new', newArticlePageSource], ['edit', ed
     if (!/--user-article-reference-panel-max-height:\s*calc\(100dvh - var\(--article-reference-panel-top\) - 16px\);/.test(block)) throw new Error(`${pageName} article page writing reference panel max-height must use the measured top variable`)
     if (!/max-height:\s*var\(--user-article-reference-panel-max-height\);/.test(block)) throw new Error(`${pageName} article page writing reference panel must apply the bounded max-height`)
   }
-  if (!/\.article-focus-shell--writing\s+\.article-focus-status\s*\{[\s\S]*position:\s*fixed;[\s\S]*top:\s*var\(--article-reference-panel-top\);[\s\S]*--user-article-reference-panel-max-height:[\s\S]*width:\s*min\(320px,\s*calc\(100vw - 24px\)\);[\s\S]*max-height:\s*var\(--user-article-reference-panel-max-height\);/.test(pageSource)) throw new Error(`${pageName} article page writing mode must pin the reference panel inside the viewport bounds`)
-  if (!/\.article-focus-shell--writing\s+\.article-status-card\s*\{[\s\S]*display:\s*none;/.test(pageSource)) throw new Error(`${pageName} article page writing mode must hide publish or review status cards`)
-  if (/\.article-focus-shell--writing\s+\.article-focus-status\s*\{[^}]*--article-reference-panel-top:\s*150px;/.test(pageSource)) throw new Error(`${pageName} article page must not hard-code the narrow reference panel top on the fixed side panel`)
-  if (!/@media\s*\(max-width:\s*1180px\)\s*\{[\s\S]*\.article-focus-shell--writing\s+\.article-focus-status\s*\{[\s\S]*position:\s*fixed;[\s\S]*top:\s*var\(--article-reference-panel-top\);[\s\S]*width:\s*min\(320px,\s*calc\(100vw - 24px\)\);/.test(pageSource)) throw new Error(`${pageName} article page must keep the reference panel fixed and measured below the writing toolbar on narrow screens`)
+  if (!/\.article-focus-shell--writing\s+\.article-focus-status\s*\{[\s\S]*position:\s*fixed;[\s\S]*top:\s*var\(--article-reference-panel-top\);[\s\S]*--user-article-reference-panel-max-height:[\s\S]*width:\s*min\(320px,\s*calc\(100vw - 24px\)\);[\s\S]*max-height:\s*var\(--user-article-reference-panel-max-height\);/.test(editorSource)) throw new Error(`${pageName} article page writing mode must pin the reference panel inside the viewport bounds`)
+  if (!/\.article-focus-shell--writing\s+\.article-status-card\s*\{[\s\S]*display:\s*none;/.test(editorSource)) throw new Error(`${pageName} article page writing mode must hide publish or review status cards`)
+  if (/\.article-focus-shell--writing\s+\.article-focus-status\s*\{[^}]*--article-reference-panel-top:\s*150px;/.test(editorSource)) throw new Error(`${pageName} article page must not hard-code the narrow reference panel top on the fixed side panel`)
+  if (!/@media\s*\(max-width:\s*1180px\)\s*\{[\s\S]*\.article-focus-shell--writing\s+\.article-focus-status\s*\{[\s\S]*position:\s*fixed;[\s\S]*top:\s*var\(--article-reference-panel-top\);[\s\S]*width:\s*min\(320px,\s*calc\(100vw - 24px\)\);/.test(editorSource)) throw new Error(`${pageName} article page must keep the reference panel fixed and measured below the writing toolbar on narrow screens`)
 }
 if (!/\.user-rich-editor__reference-popover\s*\{[\s\S]*max-height:\s*min\(var\(--user-article-reference-panel-max-height,\s*58dvh\),\s*460px\);/.test(editorComponentSource)) throw new Error('reference picker popover must inherit the page viewport height bound')
 if (!/\.user-rich-editor__reference-results\s*\{[\s\S]*max-height:\s*max\(150px,\s*min\(280px,\s*calc\(var\(--user-article-reference-panel-max-height,\s*58dvh\) - 170px\)\)\);/.test(editorComponentSource)) throw new Error('reference picker results must stay within the bounded popover height')
