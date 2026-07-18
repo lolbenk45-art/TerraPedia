@@ -55,7 +55,7 @@
 - `0c83e48` — share the user article editor form-internal layout.
 - `c0d223b` — restore page/style/contract ownership boundaries after quality review.
 - `4c8ff73` — align public-page armor assertions with extracted component ownership.
-- Final source-ownership and devlog closeout commit SHA pending in final response.
+- `cbca943` — enforce final armor detail source ownership and close the task.
 
 ## Optional: Multi-Agent Coordination
 
@@ -88,7 +88,7 @@
   - Producer: each implementer.
   - Consumer: corresponding contract scripts and coordinator integration.
   - Endpoint/schema/state: no API/schema/state change; compatible source concatenation only.
-  - Version/hash: base `218dfc0`; implementation commits through `4c8ff73`; final closeout SHA pending in final response.
+  - Version/hash: base `218dfc0`; implementation commits through final closeout `cbca943`.
   - Breaking or compatible: compatible refactor.
   - Fixtures/types updated: component props/types and contract source paths only.
   - Consumer acknowledgement: complete through focused mutation checks, Nuxt typecheck, and the final full frontend gate.
