@@ -1,6 +1,7 @@
 package com.terraria.skills.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.terraria.skills.auth.UnauthenticatedException;
 import com.terraria.skills.auth.UserAuthenticationInterceptor;
 import com.terraria.skills.auth.UserTokenClaims;
 import com.terraria.skills.common.ApiResponse;
@@ -185,6 +186,10 @@ public class UserArticleController {
     }
 
     private UserTokenClaims getRequiredClaims(HttpServletRequest request) {
-        return (UserTokenClaims) request.getAttribute(UserAuthenticationInterceptor.USER_CLAIMS_ATTRIBUTE);
+        Object claims = request.getAttribute(UserAuthenticationInterceptor.USER_CLAIMS_ATTRIBUTE);
+        if (!(claims instanceof UserTokenClaims userTokenClaims) || userTokenClaims.getUserId() == null) {
+            throw new UnauthenticatedException("未登录或登录状态已失效");
+        }
+        return userTokenClaims;
     }
 }

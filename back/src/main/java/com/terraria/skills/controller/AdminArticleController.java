@@ -2,6 +2,7 @@ package com.terraria.skills.controller;
 
 import com.terraria.skills.auth.AdminAuthenticationInterceptor;
 import com.terraria.skills.auth.AdminTokenClaims;
+import com.terraria.skills.auth.UnauthenticatedException;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.common.Pagination;
@@ -177,6 +178,10 @@ public class AdminArticleController {
     }
 
     private AdminTokenClaims getRequiredClaims(HttpServletRequest request) {
-        return (AdminTokenClaims) request.getAttribute(AdminAuthenticationInterceptor.ADMIN_CLAIMS_ATTRIBUTE);
+        Object claims = request.getAttribute(AdminAuthenticationInterceptor.ADMIN_CLAIMS_ATTRIBUTE);
+        if (!(claims instanceof AdminTokenClaims adminTokenClaims)) {
+            throw new UnauthenticatedException("未登录或登录状态已失效");
+        }
+        return adminTokenClaims;
     }
 }

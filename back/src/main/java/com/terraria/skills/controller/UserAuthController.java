@@ -3,6 +3,7 @@ package com.terraria.skills.controller;
 import com.terraria.skills.auth.UserAuthProperties;
 import com.terraria.skills.auth.UserAuthenticationInterceptor;
 import com.terraria.skills.auth.UserTokenClaims;
+import com.terraria.skills.auth.UnauthenticatedException;
 import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.dto.UserAuthResponseDTO;
 import com.terraria.skills.dto.UserChangePasswordRequestDTO;
@@ -327,6 +328,10 @@ public class UserAuthController {
     }
 
     private UserTokenClaims getRequiredClaims(HttpServletRequest request) {
-        return (UserTokenClaims) request.getAttribute(UserAuthenticationInterceptor.USER_CLAIMS_ATTRIBUTE);
+        Object claims = request.getAttribute(UserAuthenticationInterceptor.USER_CLAIMS_ATTRIBUTE);
+        if (!(claims instanceof UserTokenClaims userTokenClaims) || userTokenClaims.getUserId() == null) {
+            throw new UnauthenticatedException("未登录或登录状态已失效");
+        }
+        return userTokenClaims;
     }
 }

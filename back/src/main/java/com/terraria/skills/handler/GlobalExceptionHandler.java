@@ -1,6 +1,7 @@
 package com.terraria.skills.handler;
 
 import com.terraria.skills.auth.AdminAccessDeniedException;
+import com.terraria.skills.auth.UnauthenticatedException;
 import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.dto.CrawlerQueueV2ErrorDTO;
 import com.terraria.skills.service.CrawlerMonitorRedisUnavailableException;
@@ -58,6 +59,13 @@ public class GlobalExceptionHandler {
     public ApiResponse<Void> handleAdminAccessDenied(AdminAccessDeniedException e) {
         log.warn("Admin access denied: {}", e.getMessage());
         return ApiResponse.error(403, e.getMessage());
+    }
+
+    @ExceptionHandler(UnauthenticatedException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ApiResponse<Void> handleUnauthenticated(UnauthenticatedException e) {
+        log.warn("Unauthenticated request: {}", e.getMessage());
+        return ApiResponse.error(401, e.getMessage());
     }
 
     @ExceptionHandler(Exception.class)

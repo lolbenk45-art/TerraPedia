@@ -114,9 +114,9 @@ class UserReadingHistoryControllerTest {
     }
 
     @Test
-    void shouldRejectMissingClaimsWithSanitizedBadRequest() throws Exception {
+    void shouldRejectMissingClaimsWithUnauthorized() throws Exception {
         mockMvc.perform(post("/user/history/ARTICLE/77"))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.statusCode").value(400));
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.statusCode").value(401));
     }
 }
