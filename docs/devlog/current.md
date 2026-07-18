@@ -148,6 +148,11 @@ Active branch: `main`
   - status: `closed`
   - commit: pending in final response; authorized for local fast-forward merge to `main`
 
+- `docs/devlog/entries/2026-07-18-front-p1-tail-refactor.md`
+  - branch: `refactor/front-p1-tail`
+  - status: `closed`
+  - commit: pending in final response
+
 - `docs/devlog/entries/2026-07-17-admin-p0-security-batch.md`
   - branch: `dev/post-merge-acceptance`
   - status: `closed`

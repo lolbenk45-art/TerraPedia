@@ -590,9 +590,6 @@ onMounted(() => {
             </div>
 
             <div v-if="armorStatGroups.length" class="armor-effect-sections">
-            <!-- detail layout contract legacy marker: v-for="group in armorStatGroups" -->
-            <!-- detail layout contract legacy marker: class="armor-stat-card-grid" class="armor-effect-card" class="armor-effect-card-value" -->
-            <!-- visual contract marker: armorEffectSections armor-piece-effect-groups armor-effect-card-head.has-stat-art -->
             <ArmorBuildMatrix
               :armor-set-build-cards="armorSetBuildCards"
               :armor-has-variant-builds="armorHasVariantBuilds"

@@ -156,6 +156,11 @@ const assertPattern = (path, content, pattern, message) => {
   }
 }
 
+const removeArmorDesktopStickyRule = (source) => source.replace(
+  /\.armor-side-stack\s*\{(?=[^}]*position:\s*sticky;)(?=[^}]*top:\s*14px;)[^}]*\}/,
+  '',
+)
+
 const countStaticClassAttributesWith = (content, requiredClasses) => {
   return [...content.matchAll(/class="([^"]*)"/g)]
     .filter((match) => {
@@ -350,27 +355,39 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
 {
   const path = 'pages/armor-sets/[id].vue'
   const content = read(path)
-  // WP-1 split: build 计算引擎(armorPieceGroups 等)迁至 composables/useArmorSetBuilds.ts,
-  // 展示模板迁至 components/detail 下的三个组件。涉及这些实现的断言
-  // 改为在拼接源上执行,契约不变。
-  const armorBuildsComposable = read('composables/useArmorSetBuilds.ts')
-  const armorEffectParser = read('utils/armorEffectParsing.ts')
-  const armorPageStyles = read('assets/css/domains/armor-set-detail-page.css')
-  const armorPresentationPaths = [
-    'components/detail/DetailArmorSetSkeleton.vue',
-    'components/detail/ArmorBuildMatrix.vue',
-    'components/detail/ArmorRecipeTable.vue',
-  ]
-  const armorPresentationSources = armorPresentationPaths.map((componentPath) => {
+  const armorPageStylesPath = 'assets/css/domains/armor-set-detail-page.css'
+  const armorSkeletonPath = 'components/detail/DetailArmorSetSkeleton.vue'
+  const armorBuildMatrixPath = 'components/detail/ArmorBuildMatrix.vue'
+  const armorRecipeTablePath = 'components/detail/ArmorRecipeTable.vue'
+  const armorBuildsComposablePath = 'composables/useArmorSetBuilds.ts'
+  const armorEffectParserPath = 'utils/armorEffectParsing.ts'
+  const readRequiredArmorSource = (sourcePath) => {
     try {
-      return read(componentPath)
+      return read(sourcePath)
     } catch {
-      violations.push(`${componentPath}: armor detail presentation component is required`)
+      violations.push(`${sourcePath}: required armor detail contract source is missing`)
       return ''
     }
-  })
-  const combinedArmorPresentationSource = [content, ...armorPresentationSources, armorPageStyles].join('\n')
-  const combinedArmorSource = [combinedArmorPresentationSource, armorBuildsComposable, armorEffectParser].join('\n')
+  }
+  const armorPageStyles = readRequiredArmorSource(armorPageStylesPath)
+  const armorSkeletonSource = readRequiredArmorSource(armorSkeletonPath)
+  const armorBuildMatrixSource = readRequiredArmorSource(armorBuildMatrixPath)
+  const armorRecipeTableSource = readRequiredArmorSource(armorRecipeTablePath)
+  const armorBuildsComposable = readRequiredArmorSource(armorBuildsComposablePath)
+  const armorEffectParser = readRequiredArmorSource(armorEffectParserPath)
+  const combinedArmorPresentationSource = [
+    content,
+    armorPageStyles,
+    armorSkeletonSource,
+    armorBuildMatrixSource,
+    armorRecipeTableSource,
+  ].join('\n')
+  const armorDesktopStickyPattern = String.raw`\.armor-side-stack\s*\{(?=[^}]*display:\s*grid;)(?=[^}]*gap:\s*14px;)(?=[^}]*position:\s*sticky;)(?=[^}]*top:\s*14px;)[^}]*\}`
+  const armorPageStylesWithoutDesktopSticky = removeArmorDesktopStickyRule(armorPageStyles)
+
+  if (new RegExp(armorDesktopStickyPattern, 'm').test(armorPageStylesWithoutDesktopSticky)) {
+    violations.push(`${armorPageStylesPath}: desktop sticky mutation was incorrectly accepted`)
+  }
 
   for (const componentName of ['DetailArmorSetSkeleton', 'ArmorBuildMatrix', 'ArmorRecipeTable']) {
     if (!content.includes(`<${componentName}`)) {
@@ -385,10 +402,6 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
     [
       String.raw`const armorStatGroups = computed`,
       'armor set detail must prioritize grouped numeric stat data',
-    ],
-    [
-      String.raw`class="armor-stat-card-grid"`,
-      'armor set detail must render scan-friendly numeric stat cards instead of a dense table',
     ],
     [
       String.raw`class="armor-analysis-layout"`,
@@ -407,48 +420,12 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       'armor set preview images must render directly under the crafting recipe module in the right rail',
     ],
     [
-      String.raw`\.armor-side-stack\s*\{[\s\S]*display:\s*grid;[\s\S]*gap:\s*14px;[\s\S]*position:\s*sticky;[\s\S]*top:\s*14px;`,
-      'armor set right rail must keep recipe and preview as one sticky vertical stack on desktop',
-    ],
-    [
-      String.raw`grid-template-columns:\s*minmax\(0,\s*2\.35fr\)\s*minmax\(300px,\s*1fr\)`,
-      'armor set detail primary layout must reserve enough width for the three-column recipe table',
-    ],
-    [
-      String.raw`v-for="group in armorStatGroups"`,
-      'armor set detail must render every grouped stat row set',
-    ],
-    [
-      String.raw`class="armor-effect-card"`,
-      'armor set detail must render individual effect cards',
-    ],
-    [
-      String.raw`class="armor-effect-card-value"`,
-      'armor set stat cards must make effect values visually prominent',
-    ],
-    [
       String.raw`class="armor-preview-strip"`,
       'armor set detail must keep preview images compact beside stats',
     ],
     [
-      String.raw`\.armor-module\s*\{[\s\S]*padding:\s*18px;`,
-      'armor set detail modules must add consistent inner padding so content does not sit on card edges',
-    ],
-    [
       String.raw`:class="\[detailLayout.detailModuleClass, armorPreviewCompactClass\]"`,
       'armor set detail must compact the preview module when only a few images are available',
-    ],
-    [
-      String.raw`\.armor-preview-module--compact\s+\.armor-preview-tile\s*:deep\(\.item-art img\)\s*\{[\s\S]*max-width:\s*118px;[\s\S]*max-height:\s*118px;`,
-      'compact armor preview tiles must constrain the actual rendered image, not only the outer frame',
-    ],
-    [
-      String.raw`\.armor-side-stack\s+\.armor-preview-module--compact\s*\{[\s\S]*width:\s*100%;[\s\S]*justify-self:\s*stretch;`,
-      'compact armor preview modules must fill the recipe rail instead of becoming a detached narrow block',
-    ],
-    [
-      String.raw`\.armor-preview-tile\s*:deep\(\.item-art img\)\s*\{[\s\S]*max-width:\s*156px;[\s\S]*max-height:\s*156px;`,
-      'armor preview tiles must constrain the actual rendered image size for large character sprites',
     ],
     [
       String.raw`armor-detail-right-fact-panel-not-primary`,
@@ -463,30 +440,6 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       'armor set detail must expose armor piece data from related items',
     ],
     [
-      String.raw`const armorPieceGroups = computed`,
-      'armor set detail must group interchangeable armor pieces by slot instead of flattening every related item',
-    ],
-    [
-      String.raw`build\.partGroups`,
-      'armor set detail must render grouped armor piece slots inside each build row',
-    ],
-    [
-      String.raw`armor-build-piece-evidence-collapsible`,
-      'armor set detail must render grouped armor piece slots as collapsible summaries',
-    ],
-    [
-      String.raw`class="armor-build-piece-detail-row"[\s\S]*<CommonPreviewImage[\s\S]*:src="resolvePreviewImageUrl\(piece\.item\.image \|\| ''\)"`,
-      'armor set detail must show images for expanded interchangeable armor pieces',
-    ],
-    [
-      String.raw`\.armor-build-piece-detail-row\s*\{[\s\S]*grid-template-columns:\s*32px minmax\(0,\s*1fr\);`,
-      'expanded interchangeable armor piece rows must reserve a compact image column',
-    ],
-    [
-      String.raw`\.armor-build-piece-detail-row\s*:deep\(\.item-art img\)\s*\{[\s\S]*max-width:\s*32px;[\s\S]*max-height:\s*32px;`,
-      'expanded interchangeable armor piece images must not overflow detail rows',
-    ],
-    [
       String.raw`const armorRecipeStationGroupKey`,
       'armor set recipe summary must compare station sets before merging station cells',
     ],
@@ -495,20 +448,8 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       'armor set recipe summary must keep a stable unavailable-state module when no recipe data exists',
     ],
     [
-      String.raw`class="armor-crafting-empty-state"`,
-      'armor set recipe summary must render a designed empty state instead of letting preview images jump upward',
-    ],
-    [
-      String.raw`class="armor-crafting-station-cell is-merged"`,
-      'armor set recipe summary must merge identical station cells without removing the station column',
-    ],
-    [
-      String.raw`rowspan`,
-      'armor set recipe summary must use table semantics for merged identical stations',
-    ],
-    [
-      String.raw`<CraftingCompactRecipeMaterials`,
-      'armor set recipe summary must render compact material images and quantities through the shared component',
+      String.raw`const armorRecipeTableRows`,
+      'armor set recipe summary must build explicit table row models before presentation',
     ],
     [
       String.raw`buildCompactRecipeMaterial\(node,\s*index\)`,
@@ -518,16 +459,132 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       String.raw`buildCompactRecipeStation\(station,\s*index\)`,
       'armor set recipe summary must use the shared compact station parser',
     ],
+  ]) {
+    assertPattern(path, content, pattern, message)
+  }
+
+  for (const [pattern, message] of [
     [
-      String.raw`\.armor-crafting-chip-line\s*\{[\s\S]*text-align:\s*center;`,
+      armorDesktopStickyPattern,
+      'loaded armor right rail must keep recipe and preview as one sticky vertical stack on desktop',
+    ],
+    [
+      String.raw`grid-template-columns:\s*minmax\(0,\s*2\.35fr\)\s*minmax\(300px,\s*1fr\)`,
+      'loaded armor primary layout must reserve enough width for the three-column recipe table',
+    ],
+    [
+      String.raw`\.armor-module\s*\{[^}]*padding:\s*18px;`,
+      'loaded armor modules must add consistent inner padding so content does not sit on card edges',
+    ],
+    [
+      String.raw`\.armor-preview-module--compact\s+\.armor-preview-tile\s*:deep\(\.item-art img\)\s*\{[^}]*max-width:\s*118px;[^}]*max-height:\s*118px;`,
+      'compact armor preview tiles must constrain the actual rendered image, not only the outer frame',
+    ],
+    [
+      String.raw`\.armor-side-stack\s+\.armor-preview-module--compact\s*\{[^}]*width:\s*100%;[^}]*justify-self:\s*stretch;`,
+      'compact armor preview modules must fill the recipe rail instead of becoming a detached narrow block',
+    ],
+    [
+      String.raw`\.armor-preview-tile\s*:deep\(\.item-art img\)\s*\{[^}]*max-width:\s*156px;[^}]*max-height:\s*156px;`,
+      'armor preview tiles must constrain the actual rendered image size for large character sprites',
+    ],
+  ]) {
+    assertPattern(armorPageStylesPath, armorPageStyles, pattern, message)
+  }
+
+  for (const [pattern, message] of [
+    [
+      String.raw`class="armor-detail-loading-skeleton"`,
+      'armor detail loading state must stay in the extracted skeleton component',
+    ],
+    [
+      String.raw`class="armor-side-stack"`,
+      'armor detail skeleton must render its own loading right rail',
+    ],
+    [
+      String.raw`<CommonTpSkeleton`,
+      'armor detail skeleton must use the shared loading primitive',
+    ],
+    [
+      armorDesktopStickyPattern,
+      'armor detail skeleton right rail must keep its own desktop sticky layout',
+    ],
+  ]) {
+    assertPattern(armorSkeletonPath, armorSkeletonSource, pattern, message)
+  }
+
+  for (const [pattern, message] of [
+    [
+      String.raw`class="armor-build-board armor-structured-build-board armor-build-matrix"`,
+      'armor build matrix must render the structured build comparison board',
+    ],
+    [
+      String.raw`v-for="group in build\.statGroups"`,
+      'armor build matrix must render every grouped build stat set',
+    ],
+    [
+      String.raw`v-for="part in build\.partGroups"`,
+      'armor build matrix must render grouped armor piece slots inside each build row',
+    ],
+    [
+      String.raw`armor-build-piece-evidence-collapsible`,
+      'armor build matrix must render grouped armor piece slots as collapsible summaries',
+    ],
+    [
+      String.raw`class="armor-build-piece-detail-row"[\s\S]*<CommonPreviewImage[\s\S]*:src="resolvePreviewImageUrl\(piece\.item\.image \|\| ''\)"`,
+      'armor build matrix must show images for expanded interchangeable armor pieces',
+    ],
+    [
+      String.raw`class="armor-build-summary-stack"`,
+      'armor build matrix must keep totals and set bonuses in one summary stack',
+    ],
+    [
+      String.raw`class="armor-build-total-entry"`,
+      'armor build matrix must render each computed total entry',
+    ],
+    [
+      String.raw`<style scoped>`,
+      'armor build matrix styles must remain scoped to the extracted component',
+    ],
+    [
+      String.raw`\.armor-build-piece-detail-row\s*\{[^}]*grid-template-columns:\s*32px minmax\(0,\s*1fr\);`,
+      'expanded interchangeable armor piece rows must reserve a compact image column',
+    ],
+    [
+      String.raw`\.armor-build-piece-detail-row\s*:deep\(\.item-art img\)\s*\{[^}]*max-width:\s*32px;[^}]*max-height:\s*32px;`,
+      'expanded interchangeable armor piece images must not overflow detail rows',
+    ],
+  ]) {
+    assertPattern(armorBuildMatrixPath, armorBuildMatrixSource, pattern, message)
+  }
+
+  for (const [pattern, message] of [
+    [
+      String.raw`class="armor-crafting-empty-state"`,
+      'armor set recipe summary must render a designed empty state instead of letting preview images jump upward',
+    ],
+    [
+      String.raw`class="armor-crafting-station-cell is-merged"`,
+      'armor set recipe summary must merge identical station cells without removing the station column',
+    ],
+    [
+      String.raw`:rowspan="recipe\.stationRowspan"`,
+      'armor set recipe summary must use table semantics for merged identical stations',
+    ],
+    [
+      String.raw`<CraftingCompactRecipeMaterials`,
+      'armor set recipe summary must render compact material images and quantities through the shared component',
+    ],
+    [
+      String.raw`\.armor-crafting-chip-line\s*\{[^}]*text-align:\s*center;`,
       'armor set recipe material table cell must center the compact child component without flex sizing',
     ],
     [
       String.raw`class="armor-crafting-station-text"`,
-      'armor set recipe summary must show the station image and label in the 25% rail',
+      'armor set recipe summary must show the station image and label in the station rail',
     ],
     [
-      String.raw`\.armor-crafting-station-text\s*\{[\s\S]*display:\s*grid;`,
+      String.raw`\.armor-crafting-station-text\s*\{[^}]*display:\s*grid;`,
       'armor set recipe stations must stack vertically so alternative separators stay centered',
     ],
     [
@@ -538,8 +595,54 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       String.raw`word-break:\s*keep-all;`,
       'armor set recipe summary must keep Chinese material and station names from wrapping one character per line',
     ],
+    [
+      String.raw`<style scoped>`,
+      'armor recipe table styles must remain scoped to the extracted component',
+    ],
+    [
+      String.raw`\.armor-crafting-table\s*\{[^}]*table-layout:\s*fixed;`,
+      'armor recipe table must own its fixed three-column table layout',
+    ],
   ]) {
-    assertPattern(path, combinedArmorSource, pattern, message)
+    assertPattern(armorRecipeTablePath, armorRecipeTableSource, pattern, message)
+  }
+
+  for (const [pattern, message] of [
+    [
+      String.raw`export function useArmorSetBuilds`,
+      'armor build composable must expose the build model',
+    ],
+    [
+      String.raw`const armorPieceGroups = computed`,
+      'armor build composable must group interchangeable armor pieces by slot instead of flattening every related item',
+    ],
+    [
+      String.raw`const armorSetBuildCards = computed`,
+      'armor build composable must construct the presentation build cards',
+    ],
+  ]) {
+    assertPattern(armorBuildsComposablePath, armorBuildsComposable, pattern, message)
+  }
+
+  for (const [pattern, message] of [
+    [
+      String.raw`export const normalizeEffectLine`,
+      'armor effect parser must export effect-line normalization',
+    ],
+    [
+      String.raw`export const armorHighlightedTextSegments`,
+      'armor effect parser must export highlighted text segmentation',
+    ],
+    [
+      String.raw`export const armorEffectFromLine`,
+      'armor effect parser must export single-line effect parsing',
+    ],
+    [
+      String.raw`export const armorEffectLinesFromLine`,
+      'armor effect parser must export compound effect-line parsing',
+    ],
+  ]) {
+    assertPattern(armorEffectParserPath, armorEffectParser, pattern, message)
   }
 
   if (combinedArmorPresentationSource.includes('armor-detail-icon-stage')) {
