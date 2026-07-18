@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-18 21:31 CST by Codex
+Last updated: 2026-07-18 22:04 CST by Codex
 
 Active branch: `fix/admin-p1-p2-batch`
 
@@ -29,8 +29,8 @@ Active branch: `fix/admin-p1-p2-batch`
   Do not take code from archived branch `fix/admin-p0-batch`; A2 through C1
   are approved. C2 is now specification- and quality-approved after the readable
   responsive layout, brace-bounded contract, and 44px control-height repair.
-  C3 implementation is specification-approved but remains in quality-review
-  repair; do not begin C4.
+  C3 is now specification- and quality-approved after transactional page-state,
+  retry, and contraction-clamp behavior coverage. Begin C4 token migration next.
 
 - V2 queue engine activated on this worktree
   (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
@@ -48,12 +48,11 @@ Active branch: `fix/admin-p1-p2-batch`
   command-bar, or toolbar overflow. Specification and quality re-review have no
   findings; temporary ports 3010/9223/18088 are closed.
 
-- C3 commit `c20d7b2` repairs all seven classification-audit tokens and adds the
-  shared five-section pager; focused contracts pass 8/8 and admin typecheck
-  passes. Quality review blocks progression because failed page loads split the
-  requested page from the displayed response page, and a page-count contraction
-  can hide the pager on an out-of-range empty page. The original implementer owns
-  the transactional page-state and clamp/reload repair plus behavior coverage.
+- C3 commits `c20d7b2` and `dcf214c` repair all seven classification-audit tokens
+  and add a transactional shared five-section pager. The final behavior suite
+  passes 13/13 and admin typecheck passes; it executes aggregation, deferred
+  commit, failed-target retry, contraction/zero-result clamp, and waiting-state
+  preservation. Specification and quality re-review report no remaining findings.
 
 - Public category child navigation is closed at `4a744dc`: six parent routes
   expose 34 image-backed child categories with verified scope, count, and
@@ -71,9 +70,9 @@ Active branch: `fix/admin-p1-p2-batch`
 ## Next Agent Should Start Here
 
 - For admin P1+P2 work, read
-  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then resume the
-  assigned C3 quality-review repair. Do not begin C4 until transactional page
-  state, contraction clamping, focused behavior coverage, and quality re-review pass.
+  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then begin C4
+  with a fresh implementer. Preserve the five explicit index tag palette colors
+  and treat slate-to-stone migration as intentional theme unification.
 
 - Read `entries/2026-07-17-crawler-v2-per-env-activation-guard.md` before any
   crawler-monitor work. This environment routes V2; other worktrees still
@@ -83,9 +82,8 @@ Active branch: `fix/admin-p1-p2-batch`
 
 ## Current Risks
 
-- C3 has an open Important review finding: failed or contracted page loads can
-  leave the classification audit pager unretryable or hidden on an empty page.
-  This blocks C4 and any batch closeout.
+- The admin batch currently has no open review blocker. C4-D6 remain unimplemented,
+  and their scout line numbers must be relocated on the current branch.
 
 - Broad Maven/full quality-gate baseline failures are outside the V2 scope.
 - 6/8 local worktrees still silently route V1 until cut over; the new banner

@@ -244,17 +244,16 @@ git commit -m "fix(admin): stop action-column wrapping and right-edge table clip
 
 ### Task C3: classification-audit 令牌修复 + 翻页
 
-**2026-07-18 执行状态:** `active`。实现提交 `c20d7b2` 已通过规格审查，
-但质量审查发现 Important：换页在请求成功前提交 `page`，失败后会让请求页
-与旧响应展示页失配；数据页数收缩时还可能隐藏分页器并把用户困在越界空页。
-须改为事务式提交页状态、对收缩后的末页自动重取，并补状态转换行为合同后复审。
+**2026-07-18 执行状态:** `completed`。`c20d7b2` 完成令牌与初始分页，
+`dcf214c` 将页状态改为请求成功后事务式提交，并在页数收缩或零结果时重取
+clamp 后页面；可执行行为合同覆盖失败重试与 2→1 收缩。规格与质量复审均通过。
 
 **Files:**
 - Modify: `data-query-app/pages/operations/classification-audit.vue`
 
-- [ ] **Step 1: 修 7 处失效令牌**（L336/L342/L355/L367/L369/L384/L407）: `--text`→`--color-text`、`--text-muted`→`--color-text-muted`、`--border`→`--color-border`、`--surface-muted`→`--color-surface-muted`
-- [ ] **Step 2: 加翻页**——后端 L33-40 已支持 page/limit；页面加 `page` ref，请求带 `{ page, limit: 20 }`，复用 `AppPagination` 组件（components/AppPagination.vue）接 pagination 响应
-- [ ] **Step 3: 验证 + 提交**
+- [x] **Step 1: 修 7 处失效令牌**（L336/L342/L355/L367/L369/L384/L407）: `--text`→`--color-text`、`--text-muted`→`--color-text-muted`、`--border`→`--color-border`、`--surface-muted`→`--color-surface-muted`
+- [x] **Step 2: 加翻页**——后端 L33-40 已支持 page/limit；页面加 `page` ref，请求带 `{ page, limit: 20 }`，复用 `AppPagination` 组件（components/AppPagination.vue）接 pagination 响应
+- [x] **Step 3: 验证 + 提交**
 
 ```bash
 cd data-query-app && pnpm run check && node --test tests/classification-audit-page-contract.test.mjs
