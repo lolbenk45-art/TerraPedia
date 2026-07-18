@@ -10,9 +10,8 @@ import com.terraria.skills.dto.RecipeTreeNodeDTO;
 import com.terraria.skills.dto.RecipeTreeResponseDTO;
 import com.terraria.skills.dto.RecipeTreeStationDTO;
 import com.terraria.skills.dto.RecipeTreeVariantDTO;
-import com.terraria.skills.service.ManagedImageUrlPolicy;
+import com.terraria.skills.service.PublicRecipeTreeFacade;
 import com.terraria.skills.service.RecipeService;
-import com.terraria.skills.service.RecipeTreeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +24,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -35,20 +33,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class PublicItemRecipeControllerTest {
 
-    private static final ManagedImageUrlPolicy MANAGED_IMAGE_URL_POLICY = new ManagedImageUrlPolicy() {
-        @Override
-        public boolean isManagedImageUrl(String value) {
-            return value != null && value.startsWith("/terrapedia-images/items/");
-        }
-
-        @Override
-        public List<String> trustedManagedImageUrlPrefixes() {
-            return List.of("/terrapedia-images/items/");
-        }
-    };
-
     @Mock
-    private RecipeTreeService recipeTreeService;
+    private PublicRecipeTreeFacade publicRecipeTreeFacade;
 
     @Mock
     private RecipeService recipeService;
@@ -61,7 +47,7 @@ class PublicItemRecipeControllerTest {
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-        mockMvc = MockMvcBuilders.standaloneSetup(new PublicItemRecipeController(recipeTreeService, recipeService, MANAGED_IMAGE_URL_POLICY))
+        mockMvc = MockMvcBuilders.standaloneSetup(new PublicItemRecipeController(publicRecipeTreeFacade, recipeService))
             .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
             .build();
     }
@@ -71,21 +57,21 @@ class PublicItemRecipeControllerTest {
         RecipeTreeItemDTO item = new RecipeTreeItemDTO();
         item.setId(1L);
         item.setName("Abeemination");
-        item.setImage("https://terraria.wiki.gg/wiki/File:Abeemination.png");
+        item.setImage(null);
 
         RecipeGroupMemberDTO groupMember = new RecipeGroupMemberDTO();
         groupMember.setName("Honey Block");
-        groupMember.setImage("https://terraria.wiki.gg/images/Honey_Block.png");
+        groupMember.setImage(null);
 
         RecipeTreeStationDTO treeStation = new RecipeTreeStationDTO();
         treeStation.setStationName("Water");
-        treeStation.setStationImage("https://static.wikia.nocookie.net/terraria_gamepedia/images/Water.png");
+        treeStation.setStationImage(null);
 
         RecipeTreeNodeDTO root = new RecipeTreeNodeDTO();
         root.setRecipeId(901L);
         root.setItemId(1L);
         root.setItemName("Abeemination");
-        root.setItemImage("https://static.wikia.nocookie.net/terraria_gamepedia/images/Abeemination.png");
+        root.setItemImage(null);
         root.setGroupMembers(List.of(groupMember));
         root.setStations(List.of(treeStation));
 
@@ -97,7 +83,7 @@ class PublicItemRecipeControllerTest {
         RecipeTreeNodeDTO fakeManagedPathChild = new RecipeTreeNodeDTO();
         fakeManagedPathChild.setItemId(3L);
         fakeManagedPathChild.setItemName("Fake");
-        fakeManagedPathChild.setItemImage("https://example.com/terrapedia-images/items/fake.png");
+        fakeManagedPathChild.setItemImage(null);
         root.setChildren(List.of(managedChild, fakeManagedPathChild));
 
         RecipeTreeVariantDTO variant = new RecipeTreeVariantDTO();
@@ -108,7 +94,7 @@ class PublicItemRecipeControllerTest {
         response.setItem(item);
         response.setVariants(List.of(variant));
 
-        when(recipeTreeService.getRecipeTreeByItemId(1L, 4)).thenReturn(response);
+        when(publicRecipeTreeFacade.getPublicRecipeTree(1L, 4)).thenReturn(response);
 
         mockMvc.perform(get("/public/items/1/recipe-tree")
                 .param("maxDepth", "4")
@@ -123,11 +109,7 @@ class PublicItemRecipeControllerTest {
             .andExpect(jsonPath("$.data.variants[0].roots[0].children[0].itemImage").value("/terrapedia-images/items/stinger.png"))
             .andExpect(jsonPath("$.data.variants[0].roots[0].children[1].itemImage").doesNotExist());
 
-        assertEquals("https://terraria.wiki.gg/wiki/File:Abeemination.png", response.getItem().getImage());
-        assertEquals("https://static.wikia.nocookie.net/terraria_gamepedia/images/Abeemination.png", root.getItemImage());
-        assertEquals("https://terraria.wiki.gg/images/Honey_Block.png", groupMember.getImage());
-        assertEquals("https://static.wikia.nocookie.net/terraria_gamepedia/images/Water.png", treeStation.getStationImage());
-        verify(recipeTreeService).getRecipeTreeByItemId(1L, 4);
+        verify(publicRecipeTreeFacade).getPublicRecipeTree(1L, 4);
     }
 
     @Test
