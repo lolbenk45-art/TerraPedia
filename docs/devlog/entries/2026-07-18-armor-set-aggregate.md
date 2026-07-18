@@ -2,7 +2,7 @@
 
 ## Status
 
-`active`
+`closed`
 
 ## Context
 
@@ -76,9 +76,8 @@
 - Completed: optional armor piece effects/recipes aggregation, shared public
   recipe-tree safety boundary, frontend field-presence consumption, legacy
   fallback preservation, runtime blocker repairs, integrated runtime evidence,
-  and final review.
-- Not completed: local closeout commits are still pending. P2, push, and merge
-  remain outside this task.
+  final review, and local branch handoff.
+- Not completed: P2, push, and merge remain outside this task.
 
 ## Residual Risks
 
@@ -92,9 +91,7 @@
 
 ## Follow-up
 
-- Commit the five runtime blocker/source-contract files, rerun final gates,
-  close this entry, and preserve the local branch/worktree without push or
-  merge. P2 remains a separate task.
+- P2 remains a separate task; no automatic merge, push, or worktree cleanup.
 
 ## Commits
 
@@ -110,7 +107,9 @@
 - `f7c43e7` — initial Task 5 frontend aggregate consumer; specification
   review found two contract blind spots.
 - `88d53e8` — harden present-null and shared-resolver contract coverage.
-- Runtime navigation blocker fix commit pending.
+- `97b956d2` — restore armor catalog/detail client navigation and record the
+  integrated runtime evidence.
+- `commit SHA pending in final response` — close the WP-10 local handoff.
 
 ## Optional: Cross-Review
 
