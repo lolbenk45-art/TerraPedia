@@ -26,14 +26,16 @@
 
 ## Validation
 
-- Commands run: source/contract inspection before plan creation.
-- Results: the original one-file alias wording would cycle for border/surface/shadow tokens; revised two-file ownership preserves selector specificity.
-- Not run: baseline frontend gate, RED/GREEN contract, screenshots.
+- Baseline completed before plan repair: `cd front-nuxt && pnpm install --frozen-lockfile`, `node scripts/check-visual-system-contract.mjs`, and `pnpm run check` all exited `0`.
+- Commands run: source/contract inspection before plan creation and two independent read-only plan reviews.
+- Results: the original one-file alias wording would cycle for border/surface/shadow tokens; revised two-file ownership preserves selector specificity. The original plan did not prove all values/blocks and named a screenshot harness that neither sets a theme nor compares images.
+- Not run: RED/GREEN ownership contract, dedicated theme-aware parity capture/comparison, and post-migration full frontend check.
 
 ## Result
 
-- Completed: approved design and executable plan drafted.
-- Not completed: plan review, implementation, validation, and local commits.
+- Completed: approved design and executable plan drafted; two independent reviews returned material plan findings.
+- Completed: repaired plan/spec re-review; selector ownership, runtime-theme terminology, commit preflight, visual parity acceptance, shell execution, and harness-evidence handoff are executable.
+- Not completed: documentation checkpoint, implementation, validation, and local commits.
 
 ## Residual Risks
 
@@ -54,7 +56,7 @@
 - Parallel work allowed: plan reviews only; implementation is serialized because `tokens.css`, `hifi-preview.css`, and the visual-system contract form one CSS cascade.
 - Agent ownership:
   - `/root/wp11_plan_spec_review`:
-    - Status: active.
+    - Status: completed; critical runtime acceptance and important ownership/preflight findings require repair.
     - Task scope: read-only specification/plan coverage review.
     - Allowed files: design, plan, current CSS, and contracts.
     - Forbidden files: all writes and commits.
@@ -63,7 +65,7 @@
     - Blockers: none.
     - Handoff notes: return severity, exact path/line evidence, and disposition recommendation.
   - `/root/wp11_cascade_review`:
-    - Status: active.
+    - Status: completed; no cascade cycle in the intended design, but important contract coverage and alias-ownership corrections require repair.
     - Task scope: read-only CSS custom-property/cascade equivalence review.
     - Allowed files: `tokens.css`, `hifi-preview.css`, Nuxt CSS order, and visual contracts.
     - Forbidden files: all writes and commits.
@@ -73,6 +75,10 @@
     - Handoff notes: return a selector/value mapping and any required plan correction.
 - Shared files or state: none during reviews; coordinator alone owns `docs/devlog/current.md` and this entry.
 - Parent entry: this entry.
-- Serialization rule: both reviews → coordinator resolves plan findings → one implementation agent → spec review → quality review → runtime validation agent.
+- Review disposition: both findings are accepted. The plan now requires exact selector-block assertions, all five non-accent values in root/light-family/warm-slate, root `--tp-color-accent: var(--gold)`, hifi-only aliases, three runtime themes, mandatory staged-scope checks, and a cookie-aware SHA-256 parity harness.
+- Re-review: `/root/wp11_plan_spec_review` accepted the first-round critical fixes but found two important execution gaps: repeated `cd front-nuxt` in the baseline command and no pre-commit devlog evidence for Task 2 capture/blocker. Coordinator accepted both; repaired-plan re-review remains required.
+- Re-review: `/root/wp11_cascade_review` approved the repaired CSS cascade/value plan with no findings; it confirmed raw semantic ownership, hifi-only aliases, selector specificity, root accent direction, and `light` compatibility normalization.
+- Re-review: `/root/wp11_plan_spec_review` approved both execution repairs with no remaining important finding. Plan is execution-ready; implementation remains serialized until the documentation checkpoint is committed.
+- Serialization rule: both reviews → coordinator resolves/commits plan findings → repaired-plan re-review → one implementation agent → spec review → quality review → runtime validation agent.
 - Result merge owner: `/root`.
 - Cross-boundary validation: focused contract, full frontend check, and preview screenshot evidence.
