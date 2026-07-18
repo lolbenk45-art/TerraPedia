@@ -6,6 +6,7 @@ import com.terraria.skills.auth.UserAuthenticationInterceptor;
 import com.terraria.skills.auth.UserTokenClaims;
 import com.terraria.skills.dto.UserReadingHistoryDTO;
 import com.terraria.skills.handler.GlobalExceptionHandler;
+import com.terraria.skills.security.ClientIpResolver;
 import com.terraria.skills.service.UserReadingHistoryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,11 +32,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class UserReadingHistoryControllerTest {
 
     private final UserReadingHistoryService userReadingHistoryService = mock(UserReadingHistoryService.class);
+    private final ClientIpResolver clientIpResolver = mock(ClientIpResolver.class);
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new UserReadingHistoryController(userReadingHistoryService))
+        when(clientIpResolver.resolve(org.mockito.ArgumentMatchers.any())).thenReturn("203.0.113.9");
+        mockMvc = MockMvcBuilders.standaloneSetup(new UserReadingHistoryController(userReadingHistoryService, clientIpResolver))
             .setControllerAdvice(new GlobalExceptionHandler())
             .setMessageConverters(new org.springframework.http.converter.json.MappingJackson2HttpMessageConverter(new ObjectMapper()))
             .build();

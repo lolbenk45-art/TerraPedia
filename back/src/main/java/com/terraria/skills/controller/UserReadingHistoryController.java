@@ -8,6 +8,7 @@ import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.common.Pagination;
 import com.terraria.skills.common.PaginationParams;
 import com.terraria.skills.dto.UserReadingHistoryDTO;
+import com.terraria.skills.security.ClientIpResolver;
 import com.terraria.skills.service.UserReadingHistoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,6 +32,7 @@ import java.util.List;
 public class UserReadingHistoryController {
 
     private final UserReadingHistoryService userReadingHistoryService;
+    private final ClientIpResolver clientIpResolver;
 
     @PostMapping("/{targetType}/{targetId}")
     @Operation(summary = "Record current user's reading history")
@@ -40,7 +42,7 @@ public class UserReadingHistoryController {
         HttpServletRequest request
     ) {
         UserTokenClaims claims = getRequiredClaims(request);
-        UserReadingHistoryDTO history = userReadingHistoryService.record(claims.getUserId(), targetType, targetId, getClientIp(request));
+        UserReadingHistoryDTO history = userReadingHistoryService.record(claims.getUserId(), targetType, targetId, clientIpResolver.resolve(request));
         return ResponseEntity.ok(ApiResponse.success(history, "Reading history recorded"));
     }
 
@@ -71,7 +73,7 @@ public class UserReadingHistoryController {
         HttpServletRequest request
     ) {
         UserTokenClaims claims = getRequiredClaims(request);
-        UserReadingHistoryDTO history = userReadingHistoryService.remove(claims.getUserId(), targetType, targetId, getClientIp(request));
+        UserReadingHistoryDTO history = userReadingHistoryService.remove(claims.getUserId(), targetType, targetId, clientIpResolver.resolve(request));
         return ResponseEntity.ok(ApiResponse.success(history, "Reading history removed"));
     }
 
@@ -83,11 +85,4 @@ public class UserReadingHistoryController {
         return userTokenClaims;
     }
 
-    private String getClientIp(HttpServletRequest request) {
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            return forwardedFor.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
-    }
 }

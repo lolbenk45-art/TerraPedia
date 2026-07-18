@@ -12,6 +12,7 @@ import com.terraria.skills.dto.UserArticleUpsertRequestDTO;
 import com.terraria.skills.entity.Article;
 import com.terraria.skills.mapper.ArticleMapper;
 import com.terraria.skills.mapper.ArticleReviewLogMapper;
+import com.terraria.skills.security.ClientIpResolver;
 import com.terraria.skills.service.ArticleService;
 import com.terraria.skills.service.ObjectStorageService;
 import com.terraria.skills.service.SecurityAuditService;
@@ -58,11 +59,13 @@ class UserArticleControllerTest {
 
         private final ArticleService articleService = mock(ArticleService.class);
         private final ObjectStorageService objectStorageService = mock(ObjectStorageService.class);
+        private final ClientIpResolver clientIpResolver = mock(ClientIpResolver.class);
         private MockMvc mockMvc;
 
         @BeforeEach
         void setUp() {
-            mockMvc = MockMvcBuilders.standaloneSetup(new UserArticleController(articleService, objectStorageService))
+            when(clientIpResolver.resolve(any())).thenReturn("203.0.113.9");
+            mockMvc = MockMvcBuilders.standaloneSetup(new UserArticleController(articleService, objectStorageService, clientIpResolver))
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(new ObjectMapper()))
                 .build();
         }

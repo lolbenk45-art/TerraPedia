@@ -6,6 +6,7 @@ import com.terraria.skills.auth.UserAuthenticationInterceptor;
 import com.terraria.skills.auth.UserTokenClaims;
 import com.terraria.skills.dto.UserNotificationDTO;
 import com.terraria.skills.handler.GlobalExceptionHandler;
+import com.terraria.skills.security.ClientIpResolver;
 import com.terraria.skills.service.UserNotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,11 +29,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class UserNotificationControllerTest {
 
     private final UserNotificationService userNotificationService = mock(UserNotificationService.class);
+    private final ClientIpResolver clientIpResolver = mock(ClientIpResolver.class);
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new UserNotificationController(userNotificationService))
+        when(clientIpResolver.resolve(org.mockito.ArgumentMatchers.any())).thenReturn("203.0.113.9");
+        mockMvc = MockMvcBuilders.standaloneSetup(new UserNotificationController(userNotificationService, clientIpResolver))
             .setControllerAdvice(new GlobalExceptionHandler())
             .setMessageConverters(new MappingJackson2HttpMessageConverter(new ObjectMapper()))
             .build();

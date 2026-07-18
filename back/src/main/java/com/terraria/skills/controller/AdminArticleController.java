@@ -12,6 +12,7 @@ import com.terraria.skills.dto.ArticleReviewLogDTO;
 import com.terraria.skills.dto.ArticleReviewRequestDTO;
 import com.terraria.skills.dto.ArticleStatusUpdateRequestDTO;
 import com.terraria.skills.dto.ArticleUpsertRequestDTO;
+import com.terraria.skills.security.ClientIpResolver;
 import com.terraria.skills.service.ArticleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -41,6 +42,7 @@ import java.util.List;
 public class AdminArticleController {
 
     private final ArticleService articleService;
+    private final ClientIpResolver clientIpResolver;
 
     @GetMapping
     @Operation(summary = "Get admin articles")
@@ -76,7 +78,7 @@ public class AdminArticleController {
         AdminTokenClaims claims = getRequiredClaims(httpRequest);
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiResponse.success(
-                articleService.createArticle(request, claims.getUsername(), getClientIp(httpRequest)),
+                articleService.createArticle(request, claims.getUsername(), clientIpResolver.resolve(httpRequest)),
                 "Article created"
             ));
     }
@@ -90,7 +92,7 @@ public class AdminArticleController {
     ) {
         AdminTokenClaims claims = getRequiredClaims(httpRequest);
         return ResponseEntity.ok(ApiResponse.success(
-            articleService.updateArticle(id, request, claims.getUsername(), getClientIp(httpRequest)),
+            articleService.updateArticle(id, request, claims.getUsername(), clientIpResolver.resolve(httpRequest)),
             "Article updated"
         ));
     }
@@ -104,7 +106,7 @@ public class AdminArticleController {
     ) {
         AdminTokenClaims claims = getRequiredClaims(httpRequest);
         return ResponseEntity.ok(ApiResponse.success(
-            articleService.updateStatus(id, request.getStatus(), claims.getUsername(), getClientIp(httpRequest)),
+            articleService.updateStatus(id, request.getStatus(), claims.getUsername(), clientIpResolver.resolve(httpRequest)),
             "Article status updated"
         ));
     }
@@ -114,7 +116,7 @@ public class AdminArticleController {
     public ResponseEntity<ApiResponse<ArticleDTO>> submitReview(@PathVariable Long id, HttpServletRequest httpRequest) {
         AdminTokenClaims claims = getRequiredClaims(httpRequest);
         return ResponseEntity.ok(ApiResponse.success(
-            articleService.submitReview(id, claims.getUsername(), getClientIp(httpRequest)),
+            articleService.submitReview(id, claims.getUsername(), clientIpResolver.resolve(httpRequest)),
             "Article submitted for review"
         ));
     }
@@ -128,7 +130,7 @@ public class AdminArticleController {
     ) {
         AdminTokenClaims claims = getRequiredClaims(httpRequest);
         return ResponseEntity.ok(ApiResponse.success(
-            articleService.reviewArticle(id, request.getAction(), request.getComment(), claims.getUsername(), getClientIp(httpRequest)),
+            articleService.reviewArticle(id, request.getAction(), request.getComment(), claims.getUsername(), clientIpResolver.resolve(httpRequest)),
             "Article reviewed"
         ));
     }
@@ -138,7 +140,7 @@ public class AdminArticleController {
     public ResponseEntity<ApiResponse<ArticleDTO>> publishArticle(@PathVariable Long id, HttpServletRequest httpRequest) {
         AdminTokenClaims claims = getRequiredClaims(httpRequest);
         return ResponseEntity.ok(ApiResponse.success(
-            articleService.publishArticle(id, claims.getUsername(), getClientIp(httpRequest)),
+            articleService.publishArticle(id, claims.getUsername(), clientIpResolver.resolve(httpRequest)),
             "Article published"
         ));
     }
@@ -148,7 +150,7 @@ public class AdminArticleController {
     public ResponseEntity<ApiResponse<ArticleDTO>> offlineArticle(@PathVariable Long id, HttpServletRequest httpRequest) {
         AdminTokenClaims claims = getRequiredClaims(httpRequest);
         return ResponseEntity.ok(ApiResponse.success(
-            articleService.offlineArticle(id, claims.getUsername(), getClientIp(httpRequest)),
+            articleService.offlineArticle(id, claims.getUsername(), clientIpResolver.resolve(httpRequest)),
             "Article offline"
         ));
     }
@@ -167,14 +169,6 @@ public class AdminArticleController {
         ApiResponse<List<ArticleReviewLogDTO>> response = ApiResponse.success(reviewLogPage.getRecords());
         response.setPagination(new Pagination(reviewLogPage.getTotal(), (int) reviewLogPage.getCurrent(), (int) reviewLogPage.getSize()));
         return ResponseEntity.ok(response);
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
     }
 
     private AdminTokenClaims getRequiredClaims(HttpServletRequest request) {

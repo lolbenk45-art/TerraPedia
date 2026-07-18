@@ -9,6 +9,7 @@ import com.terraria.skills.common.Pagination;
 import com.terraria.skills.common.PaginationParams;
 import com.terraria.skills.dto.UserSavedRouteDTO;
 import com.terraria.skills.dto.UserSavedRouteRequestDTO;
+import com.terraria.skills.security.ClientIpResolver;
 import com.terraria.skills.service.UserSavedRouteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,6 +35,7 @@ import java.util.List;
 public class UserSavedRouteController {
 
     private final UserSavedRouteService userSavedRouteService;
+    private final ClientIpResolver clientIpResolver;
 
     @PostMapping
     @Operation(summary = "Save current user's crafting route")
@@ -42,7 +44,7 @@ public class UserSavedRouteController {
         HttpServletRequest httpRequest
     ) {
         UserTokenClaims claims = getRequiredClaims(httpRequest);
-        UserSavedRouteDTO route = userSavedRouteService.saveRoute(claims.getUserId(), request, getClientIp(httpRequest));
+        UserSavedRouteDTO route = userSavedRouteService.saveRoute(claims.getUserId(), request, clientIpResolver.resolve(httpRequest));
         return ResponseEntity.ok(ApiResponse.success(route, "Saved route updated"));
     }
 
@@ -67,7 +69,7 @@ public class UserSavedRouteController {
     @Operation(summary = "Remove current user's saved route")
     public ResponseEntity<ApiResponse<UserSavedRouteDTO>> removeRoute(@PathVariable Long id, HttpServletRequest httpRequest) {
         UserTokenClaims claims = getRequiredClaims(httpRequest);
-        UserSavedRouteDTO route = userSavedRouteService.removeRoute(claims.getUserId(), id, getClientIp(httpRequest));
+        UserSavedRouteDTO route = userSavedRouteService.removeRoute(claims.getUserId(), id, clientIpResolver.resolve(httpRequest));
         return ResponseEntity.ok(ApiResponse.success(route, "Saved route removed"));
     }
 
@@ -79,11 +81,4 @@ public class UserSavedRouteController {
         return userTokenClaims;
     }
 
-    private String getClientIp(HttpServletRequest request) {
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            return forwardedFor.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
-    }
 }

@@ -10,6 +10,7 @@ import com.terraria.skills.common.PaginationParams;
 import com.terraria.skills.dto.ArticleCommentCreateRequestDTO;
 import com.terraria.skills.dto.ArticleCommentDTO;
 import com.terraria.skills.dto.ArticleCommentReplyCreateRequestDTO;
+import com.terraria.skills.security.ClientIpResolver;
 import com.terraria.skills.service.ArticleCommentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -35,6 +36,7 @@ import java.util.List;
 public class ArticleCommentController {
 
     private final ArticleCommentService articleCommentService;
+    private final ClientIpResolver clientIpResolver;
 
     @GetMapping
     @Operation(summary = "Get published article comments")
@@ -79,7 +81,7 @@ public class ArticleCommentController {
         HttpServletRequest httpRequest
     ) {
         UserTokenClaims claims = getRequiredClaims(httpRequest);
-        ArticleCommentDTO comment = articleCommentService.createComment(claims.getUserId(), articleId, request.getContent(), getClientIp(httpRequest));
+        ArticleCommentDTO comment = articleCommentService.createComment(claims.getUserId(), articleId, request.getContent(), clientIpResolver.resolve(httpRequest));
         return ResponseEntity.ok(ApiResponse.success(comment, "Comment created"));
     }
 
@@ -98,7 +100,7 @@ public class ArticleCommentController {
             commentId,
             request.getReplyToCommentId(),
             request.getContent(),
-            getClientIp(httpRequest)
+            clientIpResolver.resolve(httpRequest)
         );
         return ResponseEntity.ok(ApiResponse.success(comment, "Comment reply created"));
     }
@@ -111,7 +113,7 @@ public class ArticleCommentController {
         HttpServletRequest httpRequest
     ) {
         UserTokenClaims claims = getRequiredClaims(httpRequest);
-        ArticleCommentDTO comment = articleCommentService.deleteOwnComment(claims.getUserId(), articleId, commentId, getClientIp(httpRequest));
+        ArticleCommentDTO comment = articleCommentService.deleteOwnComment(claims.getUserId(), articleId, commentId, clientIpResolver.resolve(httpRequest));
         return ResponseEntity.ok(ApiResponse.success(comment, "Comment deleted"));
     }
 
@@ -123,7 +125,7 @@ public class ArticleCommentController {
         HttpServletRequest httpRequest
     ) {
         UserTokenClaims claims = getRequiredClaims(httpRequest);
-        ArticleCommentDTO comment = articleCommentService.likeComment(claims.getUserId(), articleId, commentId, getClientIp(httpRequest));
+        ArticleCommentDTO comment = articleCommentService.likeComment(claims.getUserId(), articleId, commentId, clientIpResolver.resolve(httpRequest));
         return ResponseEntity.ok(ApiResponse.success(comment, "Comment liked"));
     }
 
@@ -135,7 +137,7 @@ public class ArticleCommentController {
         HttpServletRequest httpRequest
     ) {
         UserTokenClaims claims = getRequiredClaims(httpRequest);
-        ArticleCommentDTO comment = articleCommentService.unlikeComment(claims.getUserId(), articleId, commentId, getClientIp(httpRequest));
+        ArticleCommentDTO comment = articleCommentService.unlikeComment(claims.getUserId(), articleId, commentId, clientIpResolver.resolve(httpRequest));
         return ResponseEntity.ok(ApiResponse.success(comment, "Comment unliked"));
     }
 
@@ -155,11 +157,4 @@ public class ArticleCommentController {
         return userTokenClaims;
     }
 
-    private String getClientIp(HttpServletRequest request) {
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            return forwardedFor.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
-    }
 }

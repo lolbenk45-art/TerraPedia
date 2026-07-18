@@ -10,6 +10,7 @@ import com.terraria.skills.common.PaginationParams;
 import com.terraria.skills.dto.ArticleDTO;
 import com.terraria.skills.dto.FileUploadResultDTO;
 import com.terraria.skills.dto.UserArticleUpsertRequestDTO;
+import com.terraria.skills.security.ClientIpResolver;
 import com.terraria.skills.service.ArticleService;
 import com.terraria.skills.service.ObjectStorageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,6 +43,7 @@ public class UserArticleController {
 
     private final ArticleService articleService;
     private final ObjectStorageService objectStorageService;
+    private final ClientIpResolver clientIpResolver;
 
     @GetMapping
     @Operation(summary = "Get current user articles")
@@ -83,7 +85,7 @@ public class UserArticleController {
                 claims.getUserId(),
                 request,
                 claims.getDisplayName(),
-                getClientIp(httpRequest)
+                clientIpResolver.resolve(httpRequest)
             ),
             "Article created"
         ));
@@ -114,7 +116,7 @@ public class UserArticleController {
                 id,
                 request,
                 claims.getDisplayName(),
-                getClientIp(httpRequest)
+                clientIpResolver.resolve(httpRequest)
             ),
             "Article updated"
         ));
@@ -132,7 +134,7 @@ public class UserArticleController {
                 claims.getUserId(),
                 id,
                 claims.getDisplayName(),
-                getClientIp(httpRequest)
+                clientIpResolver.resolve(httpRequest)
             ),
             "Article submitted for review"
         ));
@@ -175,14 +177,6 @@ public class UserArticleController {
             articleService.offlineUserArticle(claims.getUserId(), id),
             "Article taken offline"
         ));
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
     }
 
     private UserTokenClaims getRequiredClaims(HttpServletRequest request) {

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.auth.UserAuthenticationInterceptor;
 import com.terraria.skills.auth.UserTokenClaims;
 import com.terraria.skills.dto.UserFavoriteStatusDTO;
+import com.terraria.skills.security.ClientIpResolver;
 import com.terraria.skills.service.UserFavoriteService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,11 +24,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class UserFavoriteControllerTest {
 
     private final UserFavoriteService userFavoriteService = mock(UserFavoriteService.class);
+    private final ClientIpResolver clientIpResolver = mock(ClientIpResolver.class);
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new UserFavoriteController(userFavoriteService))
+        when(clientIpResolver.resolve(org.mockito.ArgumentMatchers.any())).thenReturn("203.0.113.9");
+        mockMvc = MockMvcBuilders.standaloneSetup(new UserFavoriteController(userFavoriteService, clientIpResolver))
             .setMessageConverters(new org.springframework.http.converter.json.MappingJackson2HttpMessageConverter(new ObjectMapper()))
             .build();
     }

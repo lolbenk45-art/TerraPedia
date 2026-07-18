@@ -9,6 +9,7 @@ import com.terraria.skills.common.Pagination;
 import com.terraria.skills.common.PaginationParams;
 import com.terraria.skills.dto.AdminArticleCommentDTO;
 import com.terraria.skills.dto.AdminArticleCommentStatusRequestDTO;
+import com.terraria.skills.security.ClientIpResolver;
 import com.terraria.skills.service.AdminArticleCommentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -35,6 +36,7 @@ import java.util.List;
 public class AdminArticleCommentController {
 
     private final AdminArticleCommentService adminArticleCommentService;
+    private final ClientIpResolver clientIpResolver;
 
     @GetMapping
     @Operation(summary = "Get admin article comments")
@@ -90,7 +92,7 @@ public class AdminArticleCommentController {
             request.getStatus(),
             request.getReason(),
             claims.getUsername(),
-            getClientIp(httpRequest)
+            clientIpResolver.resolve(httpRequest)
         );
         return ResponseEntity.ok(ApiResponse.success(comment, "Comment status updated"));
     }
@@ -103,11 +105,4 @@ public class AdminArticleCommentController {
         return adminTokenClaims;
     }
 
-    private String getClientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
-    }
 }

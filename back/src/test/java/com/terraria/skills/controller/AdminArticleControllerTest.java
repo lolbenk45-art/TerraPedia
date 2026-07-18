@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.auth.AdminAuthenticationInterceptor;
 import com.terraria.skills.auth.AdminTokenClaims;
 import com.terraria.skills.dto.ArticleDTO;
+import com.terraria.skills.security.ClientIpResolver;
 import com.terraria.skills.service.ArticleService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,12 +26,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AdminArticleControllerTest {
 
     private ArticleService articleService;
+    private ClientIpResolver clientIpResolver;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         articleService = mock(ArticleService.class);
-        mockMvc = MockMvcBuilders.standaloneSetup(new AdminArticleController(articleService))
+        clientIpResolver = mock(ClientIpResolver.class);
+        when(clientIpResolver.resolve(org.mockito.ArgumentMatchers.any())).thenReturn("203.0.113.9");
+        mockMvc = MockMvcBuilders.standaloneSetup(new AdminArticleController(articleService, clientIpResolver))
             .setMessageConverters(new MappingJackson2HttpMessageConverter(new ObjectMapper()))
             .build();
     }
@@ -63,7 +67,7 @@ class AdminArticleControllerTest {
 
     @Test
     void shouldOfflinePublishedArticleThroughAdminAction() throws Exception {
-        when(articleService.offlineArticle(eq(7L), eq("admin"), anyString()))
+        when(articleService.offlineArticle(eq(7L), eq("admin"), eq("203.0.113.9")))
             .thenReturn(article(7L, "Guide", null, "OFFLINE", "APPROVED"));
 
         mockMvc.perform(post("/admin/articles/7/offline")
@@ -71,7 +75,8 @@ class AdminArticleControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.status").value("OFFLINE"));
 
-        verify(articleService).offlineArticle(eq(7L), eq("admin"), anyString());
+        verify(articleService).offlineArticle(eq(7L), eq("admin"), eq("203.0.113.9"));
+        verify(clientIpResolver).resolve(org.mockito.ArgumentMatchers.any());
     }
 
     @Test

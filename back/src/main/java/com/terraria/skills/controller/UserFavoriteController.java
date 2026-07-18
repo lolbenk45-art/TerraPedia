@@ -9,6 +9,7 @@ import com.terraria.skills.common.Pagination;
 import com.terraria.skills.common.PaginationParams;
 import com.terraria.skills.dto.UserFavoriteDTO;
 import com.terraria.skills.dto.UserFavoriteStatusDTO;
+import com.terraria.skills.security.ClientIpResolver;
 import com.terraria.skills.service.UserFavoriteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,6 +34,7 @@ import java.util.Map;
 public class UserFavoriteController {
 
     private final UserFavoriteService userFavoriteService;
+    private final ClientIpResolver clientIpResolver;
 
     @GetMapping
     @Operation(summary = "Get current user's favorites")
@@ -80,7 +82,7 @@ public class UserFavoriteController {
         HttpServletRequest request
     ) {
         UserTokenClaims claims = getRequiredClaims(request);
-        UserFavoriteStatusDTO status = userFavoriteService.favoriteItem(claims.getUserId(), itemId, getClientIp(request));
+        UserFavoriteStatusDTO status = userFavoriteService.favoriteItem(claims.getUserId(), itemId, clientIpResolver.resolve(request));
         return ResponseEntity.ok(ApiResponse.success(status, "Item favorited"));
     }
 
@@ -91,7 +93,7 @@ public class UserFavoriteController {
         HttpServletRequest request
     ) {
         UserTokenClaims claims = getRequiredClaims(request);
-        UserFavoriteStatusDTO status = userFavoriteService.unfavoriteItem(claims.getUserId(), itemId, getClientIp(request));
+        UserFavoriteStatusDTO status = userFavoriteService.unfavoriteItem(claims.getUserId(), itemId, clientIpResolver.resolve(request));
         return ResponseEntity.ok(ApiResponse.success(status, "Item unfavorited"));
     }
 
@@ -102,7 +104,7 @@ public class UserFavoriteController {
         HttpServletRequest request
     ) {
         UserTokenClaims claims = getRequiredClaims(request);
-        UserFavoriteStatusDTO status = userFavoriteService.favoriteArticle(claims.getUserId(), articleId, getClientIp(request));
+        UserFavoriteStatusDTO status = userFavoriteService.favoriteArticle(claims.getUserId(), articleId, clientIpResolver.resolve(request));
         return ResponseEntity.ok(ApiResponse.success(status, "Article favorited"));
     }
 
@@ -113,7 +115,7 @@ public class UserFavoriteController {
         HttpServletRequest request
     ) {
         UserTokenClaims claims = getRequiredClaims(request);
-        UserFavoriteStatusDTO status = userFavoriteService.unfavoriteArticle(claims.getUserId(), articleId, getClientIp(request));
+        UserFavoriteStatusDTO status = userFavoriteService.unfavoriteArticle(claims.getUserId(), articleId, clientIpResolver.resolve(request));
         return ResponseEntity.ok(ApiResponse.success(status, "Article unfavorited"));
     }
 
@@ -125,11 +127,4 @@ public class UserFavoriteController {
         return userTokenClaims;
     }
 
-    private String getClientIp(HttpServletRequest request) {
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            return forwardedFor.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
-    }
 }

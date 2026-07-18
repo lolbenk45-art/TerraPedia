@@ -8,6 +8,7 @@ import com.terraria.skills.auth.UserTokenClaims;
 import com.terraria.skills.dto.ArticleCommentCreateRequestDTO;
 import com.terraria.skills.dto.ArticleCommentDTO;
 import com.terraria.skills.handler.GlobalExceptionHandler;
+import com.terraria.skills.security.ClientIpResolver;
 import com.terraria.skills.service.ArticleCommentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ArticleCommentControllerTest {
 
     private final ArticleCommentService articleCommentService = mock(ArticleCommentService.class);
+    private final ClientIpResolver clientIpResolver = mock(ClientIpResolver.class);
     private final ObjectMapper objectMapper = new ObjectMapper()
         .findAndRegisterModules()
         .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -43,7 +45,8 @@ class ArticleCommentControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new ArticleCommentController(articleCommentService))
+        when(clientIpResolver.resolve(org.mockito.ArgumentMatchers.any())).thenReturn("203.0.113.9");
+        mockMvc = MockMvcBuilders.standaloneSetup(new ArticleCommentController(articleCommentService, clientIpResolver))
             .setControllerAdvice(new GlobalExceptionHandler())
             .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
             .build();

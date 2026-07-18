@@ -7,6 +7,7 @@ import com.terraria.skills.auth.UserTokenClaims;
 import com.terraria.skills.dto.UserSavedRouteDTO;
 import com.terraria.skills.dto.UserSavedRouteRequestDTO;
 import com.terraria.skills.handler.GlobalExceptionHandler;
+import com.terraria.skills.security.ClientIpResolver;
 import com.terraria.skills.service.UserSavedRouteService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,12 +35,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class UserSavedRouteControllerTest {
 
     private final UserSavedRouteService userSavedRouteService = mock(UserSavedRouteService.class);
+    private final ClientIpResolver clientIpResolver = mock(ClientIpResolver.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new UserSavedRouteController(userSavedRouteService))
+        when(clientIpResolver.resolve(org.mockito.ArgumentMatchers.any())).thenReturn("203.0.113.9");
+        mockMvc = MockMvcBuilders.standaloneSetup(new UserSavedRouteController(userSavedRouteService, clientIpResolver))
             .setControllerAdvice(new GlobalExceptionHandler())
             .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
             .build();

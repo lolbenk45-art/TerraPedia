@@ -8,6 +8,7 @@ import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.common.Pagination;
 import com.terraria.skills.common.PaginationParams;
 import com.terraria.skills.dto.UserNotificationDTO;
+import com.terraria.skills.security.ClientIpResolver;
 import com.terraria.skills.service.UserNotificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,6 +32,7 @@ import java.util.Map;
 public class UserNotificationController {
 
     private final UserNotificationService userNotificationService;
+    private final ClientIpResolver clientIpResolver;
 
     @GetMapping
     @Operation(summary = "Get current user's notifications")
@@ -61,7 +63,7 @@ public class UserNotificationController {
     @Operation(summary = "Mark current user's notification read")
     public ResponseEntity<ApiResponse<UserNotificationDTO>> markRead(@PathVariable Long id, HttpServletRequest request) {
         UserTokenClaims claims = getRequiredClaims(request);
-        UserNotificationDTO notification = userNotificationService.markRead(claims.getUserId(), id, getClientIp(request));
+        UserNotificationDTO notification = userNotificationService.markRead(claims.getUserId(), id, clientIpResolver.resolve(request));
         return ResponseEntity.ok(ApiResponse.success(notification, "Notification marked read"));
     }
 
@@ -69,7 +71,7 @@ public class UserNotificationController {
     @Operation(summary = "Mark all current user's notifications read")
     public ResponseEntity<ApiResponse<Map<String, Integer>>> markAllRead(HttpServletRequest request) {
         UserTokenClaims claims = getRequiredClaims(request);
-        int updated = userNotificationService.markAllRead(claims.getUserId(), getClientIp(request));
+        int updated = userNotificationService.markAllRead(claims.getUserId(), clientIpResolver.resolve(request));
         return ResponseEntity.ok(ApiResponse.success(Map.of("updated", updated), "Notifications marked read"));
     }
 
@@ -81,11 +83,4 @@ public class UserNotificationController {
         return userTokenClaims;
     }
 
-    private String getClientIp(HttpServletRequest request) {
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            return forwardedFor.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
-    }
 }
