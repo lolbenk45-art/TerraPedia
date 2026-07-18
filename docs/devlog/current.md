@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-18 23:16 CST by Codex
+Last updated: 2026-07-18 23:36 CST by Codex
 
 Active branch: `fix/admin-p1-p2-batch`
 
@@ -33,8 +33,9 @@ Active branch: `fix/admin-p1-p2-batch`
   retry, and contraction-clamp behavior coverage. C4 is specification- and
   quality-approved after accessible token contrast, semantic KPI gradients, and
   executable light/dark color contracts. C5 implementation is specification-
-  approved but remains active on quality-review recipe-race and executable
-  whitelist-contract findings; do not begin D1 yet.
+  approved. Its first repair clears pending submit, stale-request, and executable
+  whitelist findings, but C5 remains active because recipe fetch failure is still
+  indistinguishable from a legitimate empty result; do not begin D1 yet.
 
 - V2 queue engine activated on this worktree
   (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
@@ -70,6 +71,12 @@ Active branch: `fix/admin-p1-p2-batch`
   two Important issues: recipe loading can race submission or a later edit, and
   the whitelist contract does not execute the actual `handleEdit` behavior.
 
+- C5 repair commit `02df27b` adds template/function submission gates, generation
+  identity, and executable deferred handler tests; focused contracts pass 25/25.
+  Fresh quality re-review confirmed those two findings are resolved, then found
+  the remaining failure-path ambiguity: `fetchItemRecipes` catches errors as `[]`,
+  so the page can still unlock and later write an empty recipe set.
+
 - Public category child navigation is closed at `4a744dc`: six parent routes
   expose 34 image-backed child categories with verified scope, count, and
   fail-closed behavior.
@@ -86,10 +93,10 @@ Active branch: `fix/admin-p1-p2-batch`
 ## Next Agent Should Start Here
 
 - For admin P1+P2 work, read
-  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then repair C5's
-  recipe-loading submission/stale-request race and replace the source-only items
-  whitelist assertion with executable `handleEdit` evidence. Preserve the exact-
-  token audio behavior and all three explicit items-form transforms.
+  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then give the C5
+  edit path a failure-aware recipe fetch contract while preserving every other
+  caller's existing array fallback. Failed edit recipe loads must keep recipe
+  writes blocked; preserve exact-token audio behavior and the three form transforms.
 
 - Read `entries/2026-07-17-crawler-v2-per-env-activation-guard.md` before any
   crawler-monitor work. This environment routes V2; other worktrees still

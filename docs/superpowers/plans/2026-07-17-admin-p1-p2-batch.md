@@ -288,11 +288,12 @@ git commit -m "refactor(admin): replace hardcoded colors with design tokens"
 
 ### Task C5: audio-assets 精确匹配 + cookie 常量收编 + items 白名单
 
-**2026-07-18 执行状态:** `active`。`630ddb5` 已完成 cookie/URL 单一来源、
-精确音频状态 token 与 items 24 字段白名单，focused 23/23、typecheck 和规格
-审查通过。质量审查阻断在 items 编辑期间的配方异步竞态与白名单合同未执行真实
-`handleEdit`；修复限于最小提交门控、stale-request identity 及可执行行为合同，
-不得扩展成 modal 重构。修复后须 fresh 规格与质量复审。
+**2026-07-18 执行状态:** `active`。`630ddb5` 完成 cookie/URL 单一来源、
+精确音频状态 token 与 items 24 字段白名单；`02df27b` 已修 pending submit、
+stale request 与可执行 handler 合同。fresh 复审确认这些 finding 清零，但继续阻断
+在 store 把配方请求失败折叠为合法 `[]`，仍可能解锁后破坏性清空真实配方。
+最终修复允许最小扩展到 `stores/items.ts`，为 edit 调用提供可区分失败的返回契约并
+在失败后保持配方写入门控；不得改变其它调用方默认数组行为或扩展 modal 重构。
 
 **Files:**
 - Modify: `data-query-app/composables/useApi.ts` L5（`const` → `export const TOKEN_COOKIE_KEY`）
