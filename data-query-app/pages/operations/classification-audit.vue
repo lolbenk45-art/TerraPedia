@@ -15,7 +15,7 @@
         </div>
 
         <div class="toolbar-top action-cluster toolbar-top--hero">
-          <button type="button" class="btn btn-secondary" :disabled="loading" @click="loadAudit">
+          <button type="button" class="btn btn-secondary" :disabled="loading" @click="loadAudit()">
             <RefreshCw :size="16" :class="{ spin: loading }" />
             <span>{{ loading ? '刷新中' : '刷新' }}</span>
           </button>
@@ -150,7 +150,6 @@ interface ClassificationAuditOverview {
 }
 
 type ClassificationAuditResponse = ApiResponse<ClassificationAuditOverview>
-type SectionKey = keyof ClassificationAuditOverview
 
 const PAGE_SIZE = 20
 
@@ -195,20 +194,21 @@ const loadError = ref('')
 
 const isInitialLoading = computed(() => loading.value && !hasLoaded.value)
 
-const auditSections = computed(() => sectionConfigs.map((config) => {
-  const section = auditData.value?.[config.key as SectionKey]
-  return {
-    config,
-    key: section?.key || config.key,
-    label: section?.label || config.title,
-    count: Number(section?.count ?? 0),
-    pagination: section?.pagination || {},
-    rows: Array.isArray(section?.rows) ? section.rows : [],
-  }
-}))
+function buildAuditSections(overview: ClassificationAuditOverview | null) {
+  return sectionConfigs.map((config) => {
+    const section = overview?.[config.key]
+    return {
+      config,
+      key: section?.key || config.key,
+      label: section?.label || config.title,
+      count: Number(section?.count ?? 0),
+      pagination: section?.pagination || {},
+      rows: Array.isArray(section?.rows) ? section.rows : [],
+    }
+  })
+}
 
-const auditPagination = computed(() => {
-  const sections = auditSections.value
+function aggregateAuditPagination(sections: ReturnType<typeof buildAuditSections>, fallbackPage: number) {
   const responsePage = sections
     .map(section => Number(section.pagination.page))
     .find(sectionPage => Number.isInteger(sectionPage) && sectionPage > 0)
@@ -232,11 +232,14 @@ const auditPagination = computed(() => {
   }, 0)
 
   return {
-    page: responsePage ?? page.value,
+    page: responsePage ?? fallbackPage,
     total,
     totalPages,
   }
-})
+}
+
+const auditSections = computed(() => buildAuditSections(auditData.value))
+const auditPagination = computed(() => aggregateAuditPagination(auditSections.value, page.value))
 
 const summaryCards = computed(() => {
   const sections = auditSections.value
@@ -254,16 +257,33 @@ onMounted(() => {
   loadAudit()
 })
 
-async function loadAudit() {
+async function loadAudit(targetPage = page.value) {
   loading.value = true
   loadError.value = ''
 
   try {
-    const response = await get<ClassificationAuditResponse>('/admin/operations/classification-audit', {
-      page: page.value,
-      limit: PAGE_SIZE,
-    })
-    auditData.value = response?.data || null
+    let requestPage = Number.isInteger(targetPage) && targetPage > 0 ? targetPage : page.value
+
+    while (true) {
+      const response = await get<ClassificationAuditResponse>('/admin/operations/classification-audit', {
+        page: requestPage,
+        limit: PAGE_SIZE,
+      })
+      const nextAuditData = response?.data || null
+      const nextPagination = aggregateAuditPagination(buildAuditSections(nextAuditData), requestPage)
+      const clampedPage = nextPagination.totalPages > 0
+        ? Math.min(nextPagination.page, nextPagination.totalPages)
+        : 1
+
+      if (clampedPage !== nextPagination.page) {
+        requestPage = clampedPage
+        continue
+      }
+
+      auditData.value = nextAuditData
+      page.value = nextPagination.page
+      return
+    }
   } catch (error) {
     loadError.value = error instanceof Error ? error.message : '分类审计结果读取失败'
   } finally {
@@ -280,8 +300,7 @@ async function handlePageChange(nextPage: number) {
     nextPage === page.value
   ) return
 
-  page.value = nextPage
-  await loadAudit()
+  await loadAudit(nextPage)
 }
 
 function formatNumber(value: unknown) {
