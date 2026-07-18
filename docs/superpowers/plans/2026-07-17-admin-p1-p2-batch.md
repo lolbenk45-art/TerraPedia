@@ -220,6 +220,11 @@ git commit -m "fix(admin): CJK/emoji font fallbacks and lucide icons for brand/t
 
 ### Task C2: 表格裁切与竖排折行
 
+**2026-07-18 执行状态:** `active`。实现提交 `b825ecc` 与运行态窄宽修正
+`02ee0a7` 已通过规格复审；质量审查发现 Important：零最小值虽消除裁切，
+但在常用中间视口会把筛选 select 压缩到不可读宽度。C2 保持未完成，须改为
+保留可读控件最小宽度的分级布局并修正 760px contract 后重新审查。
+
 **Files:**
 - Modify: `data-query-app/pages/query.vue`（L107 `data-table-wrap` 孤儿类——在该页 scoped style 补 `.data-table-wrap { overflow-x: auto; }`）
 - Modify: `data-query-app/pages/entities/[type].vue` L5016 附近、`pages/items.vue` L786 附近、`pages/users.vue` L228 附近

@@ -31,22 +31,23 @@
 
 - Commands run: focused backend auth baseline; admin dependency install with frozen lockfile; admin typecheck; branch/base/ancestry checks; A2 focused and broad controller regressions; B1 crawler-monitor page contracts; B2 focused contracts and full admin unit suite; C1 icon/font contracts, typecheck, DOM inspection, and Playwright screenshots.
 - Results: backend auth baseline 13 tests, zero failures/errors; admin typecheck passed; worktree clean at creation; `2cbcf99` confirmed as an ancestor of `218dfc0`. A2 observed the expected pre-fix 400-versus-401 red, then passed its focused 4/4 and broad article/user 130/130 runs; quality review additionally passed the 10 owning controller classes at 49/49. B1 observed the expected panel-root absence RED, then passed page contract 54/54, the four-file crawler-monitor bundle 140/140, and admin typecheck; the hardened review-fix contract independently passed 54/54. B2 observed the expected legacy-page absence RED, then passed NPC projection 19/19, approved stale-contract checks 16/16, typecheck, and the full admin unit suite 367/367; quality review independently passed focused contracts 35/35 and the same broad gates. C1 observed the expected font/icon contract RED, then passed focused 9/9, combined 16/16, and typecheck. Browser evidence measured a 24x24 Package and three 18x18 Folder/FileText icons with no structural emojis; screenshots show the icons crisp and non-tofu.
-- Not run: task-focused tests, broad backend/admin gates, screenshots, and runtime smoke remain pending implementation.
+- Not run: C3-D6 task-focused tests, broad final backend/admin gates, and final runtime smoke remain pending implementation. C2 focused/type/runtime evidence exists, but its quality-review repair is still open.
 
 ## Result
 
 - Completed: isolated worktree, current-main reconciliation, plan audit, A1 coverage verification, A2, B1, B2, and C1 with specification, quality, and runtime icon approval.
-- Not completed: C2-D6 implementation, final gates, and closeout.
+- In review repair: C2 table/action changes and the first runtime overflow correction are committed and specification-approved, but quality review found unreadably compressed article filters at common intermediate widths.
+- Not completed: C2 quality repair, C3-D6 implementation, final gates, and closeout.
 
 ## Residual Risks
 
 - Scout line numbers predate P0 B and must be relocated before every task.
-- UI screenshot acceptance requires a later local runtime check; no service lifecycle action is authorized in the setup stage.
+- C2 runtime screenshots are stored in the ignored `reports/admin-p1-p2/c2-visual/` directory. Snap Chromium still does not rasterize CJK text reliably; exact DOM/computed-box measurements remain the acceptance source for this environment.
 - Broad backend baseline has previously documented unrelated failures; final focused gates must prove no new failures.
 
 ## Follow-up
 
-- Coordinator `/root` advances to C2 with a fresh serialized implementer and repeats the two-stage review gate.
+- Coordinator `/root` keeps C2 active, returns the Important responsive-usability finding and the Minor media-contract finding to the original C2 implementer, then repeats specification and quality review before C3.
 
 ## Commits
 
@@ -57,6 +58,8 @@
 - `c9afd60` — hardened the crawler-monitor dead-root absence contract after quality review.
 - `4a3e38a` — removed the confirmed stations/town-NPC/audio dead surfaces and aligned their contracts.
 - `7549fae` — added CJK/emoji fallbacks and Lucide brand/tree icons.
+- `b825ecc` — added local table overflow, nowrap action columns, initial article toolbar shrinkability, and the focused C2 layout contract.
+- `02ee0a7` — made the article command-bar outer tracks shrinkable after the coordinator reproduced a 1024px right-edge clip; superseded by the still-open control-readability review finding.
 
 ## Optional: Multi-Agent Coordination
 
@@ -64,7 +67,7 @@
 - Parallel work allowed: no implementation parallelism; tasks and review gates are serialized.
 - Agent ownership:
   - Fresh per-task implementer:
-    - Status: A2, B1, B2, and C1 closed; pending fresh C2 dispatch.
+    - Status: A2, B1, B2, and C1 closed; C2 active with a quality-review repair assigned to the original implementer.
     - Task scope: exactly one full task copied from the rebased plan.
     - Allowed files: only that task's explicit file list and directly required focused tests.
     - Forbidden files: `docs/devlog/**`, the plan, data/generated artifacts, unrelated modules, and files owned by later tasks.
@@ -108,6 +111,7 @@
 - B1 review: specification review confirmed exact 32-symbol deletion and protected-chain preservation. Quality review found one Minor brittle/misplaced absence assertion; `c9afd60` moved it to the panel replacement contract and broadened it to whole-symbol checks. Quality re-review reported no remaining findings.
 - B2 review: specification review confirmed the exact eight-file scope, live parent/workbench preservation, and two minimal stale-contract corrections. Quality review independently passed focused contracts 35/35, typecheck, and full unit 367/367 with no findings.
 - C1 review: specification review confirmed the exact font stack, icon sizes/semantics, accessibility hiding, and four-file scope. Quality review found one non-blocking Minor that the source contract is more formatting-sensitive than necessary; deferred to `/root` for final batch test-contract cleanup. Runtime screenshots confirmed crisp Package/Folder/FileText rendering with measured 24px/18px bounds and no structural emoji.
+- C2 review: specification review approved `1eee05f..02ee0a7` after a coordinator browser probe found and fixed an outer command-bar overflow at 1024px/800px. Quality review then found one Important: the zero-minimum filter tracks remove overflow by compressing select controls to roughly 40-65px at common 1280px/1024px/900px viewports, making labels and values unreadable. It also found one Minor: the 760px media-query regex may cross closing braces. Both findings are assigned to the original C2 implementer for a readable tiered layout, stronger contract, runtime re-probe, and re-review.
 - Re-review required: no for A2; yes for any later Critical or Important finding.
 - Resolved by: `/root/a2_implementer`; approved by `/root/a2_quality_review`.
 - Arbitration decision: pending only if reviews disagree.
@@ -150,3 +154,9 @@
 - Change: Closed the C1 review/runtime gate and advanced the serialized handoff to C2.
 - Reason: code/spec/quality gates passed and isolated browser evidence proved the brand/tree SVG icons render at the intended sizes without emoji/tofu dependence.
 - Evidence: expected RED, focused 9/9, combined 16/16, admin typecheck, specification approval, quality approval, DOM font/icon measurements, ignored screenshots under `reports/admin-p1-p2/c1-visual/`, and confirmed admin port shutdown.
+
+### 2026-07-18 20:19
+
+- Change: Kept C2 active and recorded its quality-review repair instead of advancing to C3.
+- Reason: runtime evidence proved right-edge overflow was removed, but quality review showed the zero-minimum article filter tracks make controls unreadably narrow at common intermediate viewports; the focused 760px contract also has a brace-scope weakness.
+- Evidence: commits `b825ecc` and `02ee0a7`; specification re-approval; fresh typecheck and focused 9/9; browser measurements for query/items/users/NPC/condition-terms and article viewports 1280/1130/1024/900/800/760; quality verdict `Ready to proceed to C3? No`; all temporary ports closed.

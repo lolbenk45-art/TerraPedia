@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-18 19:21 CST by Codex
+Last updated: 2026-07-18 20:19 CST by Codex
 
 Active branch: `fix/admin-p1-p2-batch`
 
@@ -27,7 +27,9 @@ Active branch: `fix/admin-p1-p2-batch`
 
 - Continue the admin/backend P1+P2 batch from current local `main@218dfc0`.
   Do not take code from archived branch `fix/admin-p0-batch`; A2 through C1
-  are approved and the next task is C2 table overflow/action wrapping repair.
+  are approved. C2 remains active: table/action and initial overflow commits
+  passed specification review, but article filter readability must be repaired
+  and quality re-reviewed before C3.
 
 - V2 queue engine activated on this worktree
   (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
@@ -36,6 +38,14 @@ Active branch: `fix/admin-p1-p2-batch`
   boundary audit recorded in the entry above.
 
 ## Current State
+
+- C2 commits `b825ecc` and `02ee0a7` make query/table overflow local, keep
+  action buttons on one row, and close the reproduced article right-edge clip.
+  Browser evidence covers query/items/users/NPC/condition-terms and article
+  viewports 1280/1130/1024/900/800/760; temporary admin/mock/Chrome ports are
+  closed. Quality review is still open because article selects compress to
+  unreadable widths at common intermediate viewports; the 760px contract also
+  needs brace-bounded parsing.
 
 - Public category child navigation is closed at `4a744dc`: six parent routes
   expose 34 image-backed child categories with verified scope, count, and
@@ -54,7 +64,8 @@ Active branch: `fix/admin-p1-p2-batch`
 
 - For admin P1+P2 work, read
   `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then begin
-  Task C2. Re-locate every old scout line number against current code.
+  with the assigned C2 quality-review repair. Do not start C3 until the original
+  implementer fixes both findings and specification/quality re-review pass.
 
 - Read `entries/2026-07-17-crawler-v2-per-env-activation-guard.md` before any
   crawler-monitor work. This environment routes V2; other worktrees still
@@ -63,6 +74,10 @@ Active branch: `fix/admin-p1-p2-batch`
   without explicit operation-level authorization.
 
 ## Current Risks
+
+- C2 is not approved for progression: eliminating overflow by zero-minimum
+  tracks currently makes article status/sort controls unreadable at common
+  desktop/tablet widths. This finding blocks C3 and any batch closeout.
 
 - Broad Maven/full quality-gate baseline failures are outside the V2 scope.
 - 6/8 local worktrees still silently route V1 until cut over; the new banner
