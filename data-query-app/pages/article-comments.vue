@@ -819,7 +819,8 @@ onMounted(async () => {
   grid-template-columns: minmax(220px, 1fr) 150px 130px 100px max-content max-content;
 }
 
-.article-list-toolbar :where(.comment-input, .page-btn) {
+.article-list-toolbar .comment-input,
+.article-list-toolbar .page-btn {
   min-height: 44px;
 }
 

@@ -132,18 +132,24 @@ for (const { name, page, minimumActionWidth } of [
 test('article list command bar stacks a readable six-track toolbar by default', () => {
   const commandBarRule = getCssRule(articleCommentsPage, '.article-list-command-bar')
   const toolbarRule = getCssRule(articleCommentsPage, '.article-list-toolbar')
-  const controlRule = getCssRule(articleCommentsPage, '.article-list-toolbar :where(.comment-input, .page-btn)')
   const commandBarTracks = splitGridTracks(getDeclaration(commandBarRule, 'grid-template-columns'))
   const toolbarTracks = splitGridTracks(getDeclaration(toolbarRule, 'grid-template-columns'))
-  const controlHeight = Number.parseFloat(getDeclaration(controlRule, 'min-height'))
 
   assert.deepEqual(commandBarTracks, ['1fr'])
   assert.equal(toolbarTracks.length, 6)
   assert.ok((getReadableFractionTrackMinimum(toolbarTracks[0]) ?? 0) >= 220)
   assert.deepEqual(toolbarTracks.slice(1, 4), ['150px', '130px', '100px'])
   assert.deepEqual(toolbarTracks.slice(4), ['max-content', 'max-content'])
-  assert.match(getDeclaration(controlRule, 'min-height'), /^\d+(?:\.\d+)?px$/)
-  assert.ok(controlHeight >= 44)
+})
+
+test('article list toolbar uses a higher-specificity accessible control height override', () => {
+  const controlRule = articleCommentsPage.match(/\.article-list-toolbar\s+\.comment-input\s*,\s*\.article-list-toolbar\s+\.page-btn\s*\{([^}]*)\}/)?.[1] ?? ''
+  const controlHeightValue = getDeclaration(controlRule, 'min-height')
+
+  assert.notEqual(controlRule, '')
+  assert.match(controlHeightValue, /^\d+(?:\.\d+)?px$/)
+  assert.ok(Number.parseFloat(controlHeightValue) >= 44)
+  assert.doesNotMatch(articleCommentsPage, /\.article-list-toolbar\s+:where\(\.comment-input,\s*\.page-btn\)\s*\{[^}]*min-height/)
 })
 
 test('article list toolbar uses four readable filter tracks at the intermediate breakpoint', () => {
