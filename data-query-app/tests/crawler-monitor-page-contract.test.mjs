@@ -30,6 +30,8 @@ test('crawler monitor mounts the triage workbench and drawers instead of old top
   assert.match(page, /buildDomainDetailViewModel/)
 
   assert.doesNotMatch(page, /<nav class="module-tabs"/)
+  assert.doesNotMatch(page, /\bmonitorPanels\b/)
+  assert.doesNotMatch(page, /\bMONITOR_PANEL_KEYS\b/)
   assert.doesNotMatch(page, /v-show="activeMonitorPanel === 'queue'"/)
   assert.doesNotMatch(page, /v-show="activeMonitorPanel === 'progress'"/)
   assert.doesNotMatch(page, /v-show="activeMonitorPanel === 'reports'"/)
@@ -621,5 +623,4 @@ test('crawler monitor page does not use fake numeric fallback data', () => {
   assert.doesNotMatch(systemDrawer, /autoDispatchForm\?\.sweepIntervalMinutes\s*\|\|\s*60/)
   assert.doesNotMatch(systemDrawer, /sweepIntervalMinutes:\s*Number\.isFinite\(value\)\s*&&\s*value\s*>\s*0\s*\?\s*value\s*:\s*60/)
   assert.doesNotMatch(page, /Boolean\(saved\.enabled\)/)
-  assert.doesNotMatch(page, /monitorPanels\.value\[0\]/)
 })
