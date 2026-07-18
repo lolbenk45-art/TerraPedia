@@ -930,7 +930,12 @@ export const useItemsStore = defineStore('items', () => {
     }
   }
 
-  const fetchItemRecipes = async (id: number) => {
+  async function fetchItemRecipes(id: number): Promise<ItemRecipeRelation[]>
+  async function fetchItemRecipes(id: number, options: { nullOnError: true }): Promise<ItemRecipeRelation[] | null>
+  async function fetchItemRecipes(
+    id: number,
+    options?: { nullOnError?: boolean },
+  ): Promise<ItemRecipeRelation[] | null> {
     try {
       const response = await get(`/items/${id}/recipes`)
       const source = response?.data ?? response
@@ -938,7 +943,7 @@ export const useItemsStore = defineStore('items', () => {
     } catch (error) {
       console.error('Failed to fetch item recipes:', error)
       showToast('获取物品配方失败', 'error')
-      return []
+      return options?.nullOnError ? null : []
     }
   }
 

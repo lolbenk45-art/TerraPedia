@@ -328,7 +328,7 @@
       </div>
       <template #footer>
         <button type="button" class="btn btn-secondary" @click="formVisible = false">取消</button>
-        <button type="button" class="btn btn-strong" :disabled="submitting || recipeLoading" @click="handleFormSubmit">{{ submitting ? '提交中...' : isEdit ? '保存更改' : '创建物品' }}</button>
+        <button type="button" class="btn btn-strong" :disabled="submitting || recipeLoading || recipeLoadFailed" @click="handleFormSubmit">{{ submitting ? '提交中...' : isEdit ? '保存更改' : '创建物品' }}</button>
       </template>
     </AppModal>
   </div>
@@ -403,6 +403,7 @@ const isEdit = ref(false)
 const editingId = ref<number | null>(null)
 const submitting = ref(false)
 const recipeLoading = ref(false)
+const recipeLoadFailed = ref(false)
 const uploadingImage = ref(false)
 const recipeDrafts = ref<ItemRecipePayload[]>([])
 const form = reactive<ItemPayload>(createFormDefaults())
@@ -547,6 +548,7 @@ function resetForm() {
 function handleAdd() {
   editRequestGeneration += 1
   recipeLoading.value = false
+  recipeLoadFailed.value = false
   isEdit.value = false
   selectedItem.value = null
   resetForm()
@@ -555,6 +557,7 @@ function handleAdd() {
 async function handleEdit(item: Item) {
   const requestGeneration = ++editRequestGeneration
   recipeLoading.value = true
+  recipeLoadFailed.value = false
   resetForm()
   isEdit.value = true
   editingId.value = item.id
@@ -569,8 +572,12 @@ async function handleEdit(item: Item) {
   form.imageUrl = item.imageUrl ?? ''
   formVisible.value = true
   try {
-    const recipes = await itemsStore.fetchItemRecipes(item.id)
+    const recipes = await itemsStore.fetchItemRecipes(item.id, { nullOnError: true })
     if (requestGeneration !== editRequestGeneration) return
+    if (recipes === null) {
+      recipeLoadFailed.value = true
+      return
+    }
     recipeDrafts.value = toRecipeDrafts(recipes)
   } finally {
     if (requestGeneration === editRequestGeneration) {
@@ -580,7 +587,7 @@ async function handleEdit(item: Item) {
 }
 
 async function handleFormSubmit() {
-  if (recipeLoading.value) return
+  if (recipeLoading.value || recipeLoadFailed.value) return
   if (!form.name.trim()) { showToast('请输入物品名称', 'warning'); return }
   if (form.categoryId == null) { showToast('请选择分类', 'warning'); return }
   submitting.value = true

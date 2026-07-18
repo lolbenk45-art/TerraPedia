@@ -10,6 +10,7 @@ const entitiesPage = readPage('entities', '[type].vue')
 const itemsPage = readPage('items.vue')
 const queryPage = readPage('query.vue')
 const usersPage = readPage('users.vue')
+const itemsStoreSource = fs.readFileSync(path.join(repoRoot, 'stores', 'items.ts'), 'utf8')
 
 const ITEM_FORM_FIELDS = [
   'name',
@@ -97,6 +98,21 @@ const getObjectLiteral = (source, constantName) => {
   return `{${getBalancedBlock(source, openingBraceIndex)}}`
 }
 
+const getStoreActionBody = (source, name) => {
+  const arrowMatch = new RegExp(`const\\s+${name}(?:\\s*:[^=]+)?\\s*=\\s*async\\s*\\([^)]*\\)\\s*=>\\s*\\{`).exec(source)
+  if (arrowMatch) {
+    const openingBraceIndex = arrowMatch.index + arrowMatch[0].lastIndexOf('{')
+    return getBalancedBlock(source, openingBraceIndex)
+  }
+
+  const functionPattern = new RegExp(`async\\s+function\\s+${name}\\([^)]*\\)(?:\\s*:\\s*[^\\n{]+)?\\s*\\{`, 'g')
+  const matches = Array.from(source.matchAll(functionPattern))
+  assert.ok(matches.length > 0, `missing store action ${name}`)
+  const implementation = matches.at(-1)
+  const openingBraceIndex = implementation.index + implementation[0].lastIndexOf('{')
+  return getBalancedBlock(source, openingBraceIndex)
+}
+
 const deferred = () => {
   let resolve
   const promise = new Promise((resolvePromise) => {
@@ -115,10 +131,14 @@ const createItemsPageHarness = ({ fetchItemRecipes = async () => [] } = {}) => {
   const selectedItem = { value: null }
   const formVisible = { value: false }
   const recipeLoading = { value: false }
+  const recipeLoadFailed = { value: false }
   const submitting = { value: false }
-  const calls = { updateItem: [], createItem: [], updateItemRecipes: [], toasts: [] }
+  const calls = { fetchItemRecipes: [], updateItem: [], createItem: [], updateItemRecipes: [], toasts: [] }
   const itemsStore = {
-    fetchItemRecipes,
+    fetchItemRecipes(...args) {
+      calls.fetchItemRecipes.push(args)
+      return fetchItemRecipes(...args)
+    },
     async updateItem(id, payload) {
       calls.updateItem.push({ id, payload })
       return { id, ...payload }
@@ -152,6 +172,7 @@ const createItemsPageHarness = ({ fetchItemRecipes = async () => [] } = {}) => {
     'itemsStore',
     'toRecipeDrafts',
     'recipeLoading',
+    'recipeLoadFailed',
     'submitting',
     'showToast',
     `
@@ -173,8 +194,9 @@ const createItemsPageHarness = ({ fetchItemRecipes = async () => [] } = {}) => {
     formVisible,
     recipeDrafts,
     itemsStore,
-    recipes => recipes.map(recipe => ({ ...recipe })),
+    recipes => (Array.isArray(recipes) ? recipes : []).map(recipe => ({ ...recipe })),
     recipeLoading,
+    recipeLoadFailed,
     submitting,
     (message, tone) => calls.toasts.push({ message, tone }),
   )
@@ -187,11 +209,35 @@ const createItemsPageHarness = ({ fetchItemRecipes = async () => [] } = {}) => {
     formVisible,
     isEdit,
     recipeDrafts,
+    recipeLoadFailed,
     recipeLoading,
     selectedItem,
     submitting,
   }
 }
+
+test('item recipe store action preserves array callers and exposes failure to explicit callers', async () => {
+  const toasts = []
+  const fetchItemRecipes = new Function(
+    'get',
+    'normalizeItemRecipe',
+    'showToast',
+    'console',
+    `return async function fetchItemRecipes(id, options) {${getStoreActionBody(itemsStoreSource, 'fetchItemRecipes')}}`,
+  )(
+    async () => { throw new Error('recipe request failed') },
+    recipe => recipe,
+    (message, tone) => toasts.push({ message, tone }),
+    { error() {} },
+  )
+
+  assert.deepEqual(await fetchItemRecipes(1), [])
+  assert.equal(await fetchItemRecipes(1, { nullOnError: true }), null)
+  assert.deepEqual(toasts, [
+    { message: '获取物品配方失败', tone: 'error' },
+    { message: '获取物品配方失败', tone: 'error' },
+  ])
+})
 
 const getMediaBlock = (source, maxWidth) => {
   const mediaPattern = new RegExp(`@media\\s*\\(\\s*max-width\\s*:\\s*${maxWidth}px\\s*\\)\\s*\\{`)
@@ -326,8 +372,61 @@ test('items edit blocks destructive submit while recipes are loading', async () 
   assert.equal(harness.calls.updateItem.length, 0)
   assert.equal(harness.calls.createItem.length, 0)
   assert.equal(harness.calls.updateItemRecipes.length, 0)
-  assert.match(itemsPage, /:disabled="submitting \|\| recipeLoading"/)
-  assert.match(getFunctionBody(itemsPage, 'handleFormSubmit'), /if\s*\(recipeLoading\.value\)\s*return/)
+  assert.match(itemsPage, /:disabled="submitting \|\| recipeLoading \|\| recipeLoadFailed"/)
+  assert.match(getFunctionBody(itemsPage, 'handleFormSubmit'), /if\s*\(recipeLoading\.value \|\| recipeLoadFailed\.value\)\s*return/)
+})
+
+test('items edit keeps save blocked after recipe failure but unlocks for legitimate empty recipes', async () => {
+  const failedHarness = createItemsPageHarness({ fetchItemRecipes: async () => null })
+  await failedHarness.handleEdit({ id: 12, name: 'Failed Item', categoryId: 3, rarity: '白色' })
+  await failedHarness.handleFormSubmit()
+
+  assert.deepEqual(failedHarness.calls.fetchItemRecipes, [[12, { nullOnError: true }]])
+  assert.equal(failedHarness.recipeLoading.value, false)
+  assert.equal(failedHarness.recipeLoadFailed.value, true)
+  assert.equal(failedHarness.calls.updateItem.length, 0)
+  assert.equal(failedHarness.calls.createItem.length, 0)
+  assert.equal(failedHarness.calls.updateItemRecipes.length, 0)
+
+  const emptyHarness = createItemsPageHarness({ fetchItemRecipes: async () => [] })
+  await emptyHarness.handleEdit({ id: 13, name: 'Empty Item', categoryId: 4, rarity: '白色' })
+  await emptyHarness.handleFormSubmit()
+
+  assert.deepEqual(emptyHarness.calls.fetchItemRecipes, [[13, { nullOnError: true }]])
+  assert.equal(emptyHarness.recipeLoading.value, false)
+  assert.equal(emptyHarness.recipeLoadFailed.value, false)
+  assert.equal(emptyHarness.calls.updateItem.length, 1)
+  assert.equal(emptyHarness.calls.updateItemRecipes.length, 1)
+  assert.deepEqual(emptyHarness.calls.updateItemRecipes[0].recipes, [])
+})
+
+test('stale recipe completion cannot unlock save while the current edit is pending', async () => {
+  const requests = new Map()
+  const harness = createItemsPageHarness({
+    fetchItemRecipes(id) {
+      const request = deferred()
+      requests.set(id, request)
+      return request.promise
+    },
+  })
+
+  const editA = harness.handleEdit({ id: 31, name: 'Item A', categoryId: 3, rarity: '白色' })
+  const editB = harness.handleEdit({ id: 32, name: 'Item B', categoryId: 4, rarity: '蓝色' })
+  requests.get(31).resolve(null)
+  await editA
+
+  assert.equal(harness.editingId.value, 32)
+  assert.equal(harness.recipeLoading.value, true)
+  assert.equal(harness.recipeLoadFailed.value, false)
+  await harness.handleFormSubmit()
+  assert.equal(harness.calls.updateItem.length, 0)
+  assert.equal(harness.calls.updateItemRecipes.length, 0)
+
+  requests.get(32).resolve([{ recipe: 'B' }])
+  await editB
+  assert.equal(harness.recipeLoading.value, false)
+  assert.equal(harness.recipeLoadFailed.value, false)
+  assert.deepEqual(harness.recipeDrafts.value, [{ recipe: 'B' }])
 })
 
 test('items edit keeps the newest recipes when requests resolve out of order and invalidates on add', async () => {
