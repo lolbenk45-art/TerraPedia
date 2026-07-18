@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -118,5 +119,19 @@ class UserReadingHistoryControllerTest {
         mockMvc.perform(post("/user/history/ARTICLE/77"))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.statusCode").value(401));
+    }
+
+    @Test
+    void shouldRejectClaimsWithoutUserIdAsUnauthorized() throws Exception {
+        mockMvc.perform(post("/user/history/ARTICLE/77")
+                .requestAttr(UserAuthenticationInterceptor.USER_CLAIMS_ATTRIBUTE, UserTokenClaims.builder()
+                    .email("user@example.com")
+                    .build()))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.statusCode").value(401))
+            .andExpect(jsonPath("$.message").value("未登录或登录状态已失效"));
+
+        verifyNoInteractions(userReadingHistoryService);
     }
 }

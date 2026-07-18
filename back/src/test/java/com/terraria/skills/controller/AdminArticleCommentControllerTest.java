@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -121,6 +122,20 @@ class AdminArticleCommentControllerTest {
 
         verify(adminArticleCommentService, org.mockito.Mockito.never())
             .updateCommentStatus(eq(77L), eq(9L), anyString(), isNull(), eq("admin"), anyString());
+    }
+
+    @Test
+    void shouldRejectWrongTypeAdminClaimsAsUnauthorized() throws Exception {
+        mockMvc.perform(patch("/admin/articles/77/comments/9/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"HIDDEN\",\"reason\":\"spam\"}")
+                .requestAttr(AdminAuthenticationInterceptor.ADMIN_CLAIMS_ATTRIBUTE, "not-admin-claims"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.statusCode").value(401))
+            .andExpect(jsonPath("$.message").value("未登录或登录状态已失效"));
+
+        verifyNoInteractions(adminArticleCommentService);
     }
 
     private AdminArticleCommentDTO comment(Long id, Long articleId, String status) {
