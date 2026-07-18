@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-18 18:40 CST by Codex
+Last updated: 2026-07-18 19:21 CST by Codex
 
 Active branch: `fix/admin-p1-p2-batch`
 
@@ -26,8 +26,8 @@ Active branch: `fix/admin-p1-p2-batch`
 ## Active Focus
 
 - Continue the admin/backend P1+P2 batch from current local `main@218dfc0`.
-  Do not take code from archived branch `fix/admin-p0-batch`; A2, B1, and B2
-  are approved and the next task is C1 font/icon fallback cleanup.
+  Do not take code from archived branch `fix/admin-p0-batch`; A2 through C1
+  are approved and the next task is C2 table overflow/action wrapping repair.
 
 - V2 queue engine activated on this worktree
   (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
@@ -54,7 +54,7 @@ Active branch: `fix/admin-p1-p2-batch`
 
 - For admin P1+P2 work, read
   `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then begin
-  Task C1. Re-locate every old scout line number against current code.
+  Task C2. Re-locate every old scout line number against current code.
 
 - Read `entries/2026-07-17-crawler-v2-per-env-activation-guard.md` before any
   crawler-monitor work. This environment routes V2; other worktrees still

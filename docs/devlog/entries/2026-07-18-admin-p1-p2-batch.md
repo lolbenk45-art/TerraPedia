@@ -29,14 +29,14 @@
 
 ## Validation
 
-- Commands run: focused backend auth baseline; admin dependency install with frozen lockfile; admin typecheck; branch/base/ancestry checks; A2 focused and broad controller regressions; B1 crawler-monitor page contracts; B2 focused contracts, admin typecheck, and full admin unit suite.
-- Results: backend auth baseline 13 tests, zero failures/errors; admin typecheck passed; worktree clean at creation; `2cbcf99` confirmed as an ancestor of `218dfc0`. A2 observed the expected pre-fix 400-versus-401 red, then passed its focused 4/4 and broad article/user 130/130 runs; quality review additionally passed the 10 owning controller classes at 49/49. B1 observed the expected panel-root absence RED, then passed page contract 54/54, the four-file crawler-monitor bundle 140/140, and admin typecheck; the hardened review-fix contract independently passed 54/54. B2 observed the expected legacy-page absence RED, then passed NPC projection 19/19, approved stale-contract checks 16/16, typecheck, and the full admin unit suite 367/367; quality review independently passed focused contracts 35/35 and the same broad gates.
+- Commands run: focused backend auth baseline; admin dependency install with frozen lockfile; admin typecheck; branch/base/ancestry checks; A2 focused and broad controller regressions; B1 crawler-monitor page contracts; B2 focused contracts and full admin unit suite; C1 icon/font contracts, typecheck, DOM inspection, and Playwright screenshots.
+- Results: backend auth baseline 13 tests, zero failures/errors; admin typecheck passed; worktree clean at creation; `2cbcf99` confirmed as an ancestor of `218dfc0`. A2 observed the expected pre-fix 400-versus-401 red, then passed its focused 4/4 and broad article/user 130/130 runs; quality review additionally passed the 10 owning controller classes at 49/49. B1 observed the expected panel-root absence RED, then passed page contract 54/54, the four-file crawler-monitor bundle 140/140, and admin typecheck; the hardened review-fix contract independently passed 54/54. B2 observed the expected legacy-page absence RED, then passed NPC projection 19/19, approved stale-contract checks 16/16, typecheck, and the full admin unit suite 367/367; quality review independently passed focused contracts 35/35 and the same broad gates. C1 observed the expected font/icon contract RED, then passed focused 9/9, combined 16/16, and typecheck. Browser evidence measured a 24x24 Package and three 18x18 Folder/FileText icons with no structural emojis; screenshots show the icons crisp and non-tofu.
 - Not run: task-focused tests, broad backend/admin gates, screenshots, and runtime smoke remain pending implementation.
 
 ## Result
 
-- Completed: isolated worktree, current-main reconciliation, plan audit, A1 coverage verification, A2, B1, and B2 with specification and quality approval.
-- Not completed: C1-D6 implementation, final gates, and closeout.
+- Completed: isolated worktree, current-main reconciliation, plan audit, A1 coverage verification, A2, B1, B2, and C1 with specification, quality, and runtime icon approval.
+- Not completed: C2-D6 implementation, final gates, and closeout.
 
 ## Residual Risks
 
@@ -46,7 +46,7 @@
 
 ## Follow-up
 
-- Coordinator `/root` advances to C1 with a fresh serialized implementer and repeats the two-stage review gate.
+- Coordinator `/root` advances to C2 with a fresh serialized implementer and repeats the two-stage review gate.
 
 ## Commits
 
@@ -56,6 +56,7 @@
 - `b8bee99` — removed the 32-symbol crawler-monitor panel-era dead chain.
 - `c9afd60` — hardened the crawler-monitor dead-root absence contract after quality review.
 - `4a3e38a` — removed the confirmed stations/town-NPC/audio dead surfaces and aligned their contracts.
+- `7549fae` — added CJK/emoji fallbacks and Lucide brand/tree icons.
 
 ## Optional: Multi-Agent Coordination
 
@@ -63,7 +64,7 @@
 - Parallel work allowed: no implementation parallelism; tasks and review gates are serialized.
 - Agent ownership:
   - Fresh per-task implementer:
-    - Status: A2, B1, and B2 closed; pending fresh C1 dispatch.
+    - Status: A2, B1, B2, and C1 closed; pending fresh C2 dispatch.
     - Task scope: exactly one full task copied from the rebased plan.
     - Allowed files: only that task's explicit file list and directly required focused tests.
     - Forbidden files: `docs/devlog/**`, the plan, data/generated artifacts, unrelated modules, and files owned by later tasks.
@@ -106,12 +107,13 @@
 - Disposition: fixed by `7b6d071`; quality re-review independently passed the focused tests 10/10 and reported no remaining Critical, Important, or Minor issues.
 - B1 review: specification review confirmed exact 32-symbol deletion and protected-chain preservation. Quality review found one Minor brittle/misplaced absence assertion; `c9afd60` moved it to the panel replacement contract and broadened it to whole-symbol checks. Quality re-review reported no remaining findings.
 - B2 review: specification review confirmed the exact eight-file scope, live parent/workbench preservation, and two minimal stale-contract corrections. Quality review independently passed focused contracts 35/35, typecheck, and full unit 367/367 with no findings.
+- C1 review: specification review confirmed the exact font stack, icon sizes/semantics, accessibility hiding, and four-file scope. Quality review found one non-blocking Minor that the source contract is more formatting-sensitive than necessary; deferred to `/root` for final batch test-contract cleanup. Runtime screenshots confirmed crisp Package/Folder/FileText rendering with measured 24px/18px bounds and no structural emoji.
 - Re-review required: no for A2; yes for any later Critical or Important finding.
 - Resolved by: `/root/a2_implementer`; approved by `/root/a2_quality_review`.
 - Arbitration decision: pending only if reviews disagree.
 - Decision owner: `/root`.
 - Rationale: two-stage review is required by the selected execution workflow.
-- Remaining risks: none specific to A2, B1, or B2; batch-wide risks remain listed above.
+- Remaining risks: the C1 source contract has a non-blocking formatting-sensitivity Minor. Snap Chromium did not rasterize CJK text despite correct DOM/font state and an accessible user YaHei font; this is recorded as a screenshot-environment limitation, while the task's icon non-tofu acceptance passed. Standalone admin dev also warned that the shared article-runtime CSS is outside its Vite allow list; login/categories evidence was unaffected and the temporary server was stopped.
 
 ### 2026-07-18 17:22
 
@@ -142,3 +144,9 @@
 - Change: Closed the B2 review gate and advanced the serialized handoff to C1.
 - Reason: all confirmed dead surfaces and their stale contracts were removed without losing live routes or behavior, and both review stages approved the result.
 - Evidence: expected absence RED, focused contracts 35/35, admin typecheck, full unit suite 367/367, specification approval, and quality review with no findings.
+
+### 2026-07-18 19:21
+
+- Change: Closed the C1 review/runtime gate and advanced the serialized handoff to C2.
+- Reason: code/spec/quality gates passed and isolated browser evidence proved the brand/tree SVG icons render at the intended sizes without emoji/tofu dependence.
+- Evidence: expected RED, focused 9/9, combined 16/16, admin typecheck, specification approval, quality approval, DOM font/icon measurements, ignored screenshots under `reports/admin-p1-p2/c1-visual/`, and confirmed admin port shutdown.

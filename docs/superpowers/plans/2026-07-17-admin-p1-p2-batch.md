@@ -200,7 +200,7 @@ git commit -m "refactor(admin): remove dead binding editor, zombie town-npc page
 
 **评审修正**: 本机 fc-list emoji 字体命中 0——只改字体栈在本环境（及同类无 emoji 字体的部署环境）仍是豆腐块。采用双保险: 字体栈补回退（对有字体的环境生效）+ 首屏品牌位/树图标改 lucide 图标（本项目已广泛使用 lucide-vue-next，彻底消除字体依赖）。
 
-- [ ] **Step 1: 改 --font-sans**
+- [x] **Step 1: 改 --font-sans**
 
 ```css
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
@@ -208,9 +208,9 @@ git commit -m "refactor(admin): remove dead binding editor, zombie town-npc page
 
 （--font-display L5 继承 var(--font-sans) 无需改。）
 
-- [ ] **Step 2: login.vue Logo 与 CategoryTreeNode 图标换 lucide**（对齐两文件现有 import 风格；login 的 `.login-card__logo` 容器样式保留，内容物换 `<Package :size="24" />`；树节点按 hasChildren 分支 `<Folder>`/`<FileText>`）
+- [x] **Step 2: login.vue Logo 与 CategoryTreeNode 图标换 lucide**（对齐两文件现有 import 风格；login 的 `.login-card__logo` 容器样式保留，内容物换 `<Package :size="24" />`；树节点按 hasChildren 分支 `<Folder>`/`<FileText>`）
 
-- [ ] **Step 3: 截图验证 login 品牌位与 categories 树图标为清晰图标（非方框），typecheck，提交**
+- [x] **Step 3: 截图验证 login 品牌位与 categories 树图标为清晰图标（非方框），typecheck，提交**
 
 ```bash
 cd data-query-app && pnpm run check
