@@ -84,7 +84,27 @@
 - `1696f83` — define the armor-set aggregate design contract.
 - `eb85d36` — define the audited TDD implementation plan.
 - `6434a03` — lock serialized execution coordination.
-- Baseline-evidence commit pending.
+- `4e6fe02` — record the clean Task 1 baseline and review evidence.
+- `2b28764` — initial Task 2 public recipe-tree facade implementation; spec
+  review fix pending.
+
+## Optional: Cross-Review
+
+- Reviewer: fresh Task 2 specification reviewer.
+- Scope: `4e6fe02..2b28764`, public recipe-tree facade and controller rewiring.
+- Findings: Important — `RecipeTreeNodeDTO.groupMemberNames` remains shallow
+  copied through `BeanUtils`, so the public result can mutate cached source
+  state; the facade test did not cover this mutable-list alias.
+- Disposition: needs fix by the original Task 2 implementer.
+- Re-review required: yes, specification review before quality review.
+- Resolved by: pending.
+- Arbitration decision: accept the finding; it directly violates the approved
+  deep-copy boundary.
+- Decision owner: coordinator.
+- Rationale: all mutable nested collections exposed publicly must be detached
+  from the recipe-tree cache, even when they do not carry images.
+- Remaining risks: quality review is blocked until the fix and spec re-review
+  pass.
 
 ## Optional: State Changes
 
@@ -127,6 +147,14 @@
 - Evidence: Maven controller tests 5/5, full frontend gate exit 0, clean
   tracked/staged/untracked scans, spec review approved, quality review found no
   Critical or Important issue.
+
+### 2026-07-18 22:37 CST
+
+- Change: Task 2 remains active after specification review found a mutable-list
+  alias across the public/cached recipe-tree boundary.
+- Reason: `groupMemberNames` was not excluded from `BeanUtils` shallow copying.
+- Evidence: reviewer traced the shared list from `PublicRecipeTreeFacade` to
+  `RecipeTreeNodeDTO`; the existing test fixture omitted the field.
 
 ## Optional: Multi-Agent Coordination
 
