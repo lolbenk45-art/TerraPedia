@@ -16,6 +16,7 @@ interface Props {
   settingsDescription: string
   statusAnchorLabel: string
   statusHeading: string
+  writingMode?: boolean
   editable?: boolean
   busy?: boolean
   loading?: boolean
@@ -34,6 +35,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  writingMode: false,
   editable: true,
   busy: false,
   loading: false,
@@ -94,7 +96,7 @@ const cropScaleModel = computed({
 </script>
 
 <template>
-  <nav class="article-focus-rail" aria-label="文章编辑区块">
+  <nav class="article-focus-rail" :class="{ 'article-focus-rail--writing': writingMode }" aria-label="文章编辑区块">
     <a href="/user/articles">我的文章</a>
     <a href="#article-meta">标题摘要</a>
     <a href="#article-body">正文</a>
@@ -102,7 +104,7 @@ const cropScaleModel = computed({
     <a href="#article-submit">{{ statusAnchorLabel }}</a>
   </nav>
 
-  <section class="article-writing-surface">
+  <section class="article-writing-surface" :class="{ 'article-writing-surface--writing': writingMode }">
     <slot v-if="loading" name="loading"></slot>
     <div v-if="restorableDraft" class="user-form-status article-draft-restore" role="status">
       <span>检测到未提交的本地草稿{{ restorableDraftSavedAtLabel ? `（自动保存于 ${restorableDraftSavedAtLabel}）` : '' }}，是否恢复到编辑器？</span>
@@ -144,7 +146,7 @@ const cropScaleModel = computed({
       />
     </section>
 
-    <section id="article-settings" class="article-settings-workspace">
+    <section id="article-settings" class="article-settings-workspace" :class="{ 'article-settings-workspace--writing': writingMode }">
       <div class="article-settings-panel">
         <div class="article-settings-panel__head">
           <div>
@@ -217,9 +219,9 @@ const cropScaleModel = computed({
     </template>
   </section>
 
-  <aside id="article-submit" class="article-focus-status">
+  <aside id="article-submit" class="article-focus-status" :class="{ 'article-focus-status--writing': writingMode }">
     <div id="user-article-reference-panel-target" class="article-reference-side-target" aria-live="polite"></div>
-    <section class="article-status-card">
+    <section class="article-status-card" :class="{ 'article-status-card--writing': writingMode }">
       <span class="eyebrow">{{ statusHeading }}</span>
       <div class="material-row" :class="{ done: form.title.trim(), missing: !form.title.trim() }"><b>标题</b><span>{{ form.title.trim() ? '已填写' : '必填' }}</span></div>
       <div class="material-row" :class="{ done: form.contentHtml.trim(), missing: !form.contentHtml.trim() }"><b>正文</b><span>{{ form.contentHtml.trim() ? '已填写' : '必填' }}</span></div>
@@ -229,112 +231,19 @@ const cropScaleModel = computed({
 </template>
 
 <style scoped>
-:global(.article-compact-head) {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  width: min(1500px, calc(100% - 32px));
-  min-height: 68px;
-  margin: 0 auto 16px;
-  padding: 10px 12px 10px 16px;
-  border: 1px solid var(--index-line);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--panel) 94%, transparent);
-  box-shadow: var(--shadow);
-}
-
-:global(.article-compact-head__title) {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-:global(.article-compact-head__dot) {
-  width: 9px;
-  height: 9px;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  background: var(--accent-gold);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-gold) 14%, transparent);
-}
-
-:global(.article-compact-head__title > div) {
-  min-width: 0;
-}
-
-:global(.article-compact-head__title span:not(.article-compact-head__dot)) {
-  display: block;
-  overflow: hidden;
-  color: var(--text-faint);
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-:global(.article-compact-head h1) {
-  overflow: hidden;
-  margin: 2px 0 0;
-  color: var(--text-strong);
-  font-size: 20px;
-  font-weight: 900;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-:global(.article-compact-head__actions) {
-  display: flex;
-  flex: 0 0 auto;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-:global(.article-compact-head--writing) {
-  position: sticky;
-  top: 10px;
-  z-index: 60;
-}
-
-:global(.article-writing-toggle) {
-  border-color: color-mix(in srgb, var(--accent-gold) 36%, var(--index-line));
-}
-
-:global(.article-focus-shell) {
-  display: grid;
-  grid-template-columns: 148px minmax(0, 1fr) 300px;
-  gap: 16px;
-  width: min(1500px, calc(100% - 32px));
-  margin: 0 auto 42px;
-  align-items: start;
-}
-
-:global(.article-focus-shell--writing) {
-  grid-template-columns: minmax(0, 980px) 320px;
-  justify-content: center;
-  --article-reference-panel-top: clamp(152px, 18dvh, 188px);
-  --user-article-toolbar-top: var(--article-reference-panel-top);
-}
-
-:global(.article-focus-shell--writing .article-focus-rail) {
+.article-focus-rail.article-focus-rail--writing {
   display: none;
 }
 
-:global(.article-focus-shell--writing .article-writing-surface) {
+.article-writing-surface.article-writing-surface--writing {
   background: color-mix(in srgb, var(--panel) 96%, transparent);
 }
 
-:global(.article-focus-shell--writing .article-settings-workspace) {
+.article-settings-workspace.article-settings-workspace--writing {
   opacity: .72;
 }
 
-:global(.article-focus-shell--writing .article-focus-status) {
+.article-focus-status.article-focus-status--writing {
   position: fixed;
   --user-article-reference-panel-max-height: calc(100dvh - var(--article-reference-panel-top) - 16px);
   top: var(--article-reference-panel-top);
@@ -344,7 +253,7 @@ const cropScaleModel = computed({
   max-height: var(--user-article-reference-panel-max-height);
 }
 
-:global(.article-focus-shell--writing .article-status-card) {
+.article-status-card.article-status-card--writing {
   display: none;
 }
 
@@ -634,16 +543,12 @@ const cropScaleModel = computed({
 }
 
 @media (max-width: 1180px) {
-  :global(.article-focus-shell) {
-    grid-template-columns: 1fr;
-  }
-
   .article-focus-rail,
   .article-focus-status {
     position: static;
   }
 
-  :global(.article-focus-shell--writing .article-focus-status) {
+  .article-focus-status.article-focus-status--writing {
     position: fixed;
     --user-article-reference-panel-max-height: calc(100dvh - var(--article-reference-panel-top) - 16px);
     top: var(--article-reference-panel-top);
@@ -659,30 +564,6 @@ const cropScaleModel = computed({
 }
 
 @media (max-width: 720px) {
-  :global(.article-compact-head) {
-    align-items: stretch;
-    flex-direction: column;
-    width: min(100% - 20px, 1500px);
-    min-height: 0;
-  }
-
-  :global(.article-compact-head h1) {
-    font-size: 18px;
-  }
-
-  :global(.article-compact-head__actions) {
-    justify-content: stretch;
-  }
-
-  :global(.article-compact-head__actions .primary-button),
-  :global(.article-compact-head__actions .secondary-button) {
-    flex: 1 1 150px;
-  }
-
-  :global(.article-focus-shell) {
-    width: min(100% - 20px, 1500px);
-  }
-
   .article-writing-surface {
     padding: 16px;
   }

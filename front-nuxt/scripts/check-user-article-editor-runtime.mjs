@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { compileStyle, parse } from 'vue/compiler-sfc'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const candidates = [
@@ -107,55 +108,186 @@ if (!editorStyleSource.includes('background-size: 32px 32px, 32px 32px')) throw 
 if (editorStyleSource.includes('.editor-recipe-tree__relations') || editorStyleSource.includes('.editor-recipe-tree__relation-row')) throw new Error('editor recipe tree graph must not keep old relation-row styles')
 if (!editorStyleSource.includes('--recipe-overview-pan-x') || !editorStyleSource.includes('touch-action: none')) throw new Error('editor recipe tree graph must style invisible drag pan interaction')
 if (!/const editorRecipeTreeNodeStations =[\s\S]*sameItemChild[\s\S]*isSameEditorRecipeTreeItem/.test(editorComponentSource)) throw new Error('editor recipe tree station lookup must preserve stations from folded same-item recipe nodes')
+const ARTICLE_PAGE_SCOPE_ID = 'data-v-user-article-page-contract'
+const ARTICLE_LAYOUT_SCOPE_ID = 'data-v-user-article-layout-contract'
+const articleEditorPageStylePath = 'assets/css/domains/user-article-editor-page.css'
 const newArticlePageSource = readFileSync(join(root, 'pages/user/articles/new.vue'), 'utf8')
 const editArticlePageSource = readFileSync(join(root, 'pages/user/articles/[id].vue'), 'utf8')
 const articleEditorLayoutSource = readFileSync(join(root, 'components/user/UserArticleEditorLayout.vue'), 'utf8')
-  .replace(/:global\(([^)]+)\)/g, '$1')
-const extractStyleSource = source => source.match(/<style[^>]*>([\s\S]*?)<\/style>/)?.[1] || ''
-const articleEditorLayoutStyleSource = extractStyleSource(articleEditorLayoutSource)
-const articlePageStyleSources = {
-  new: articleEditorLayoutStyleSource,
-  edit: articleEditorLayoutStyleSource,
+const articleEditorPageStyleSource = existsSync(join(root, articleEditorPageStylePath))
+  ? readFileSync(join(root, articleEditorPageStylePath), 'utf8')
+  : ''
+
+const compileScopedCss = (source, filename, scopeId, scoped = true) => {
+  const result = compileStyle({ source, filename, id: scopeId, scoped })
+  if (result.errors.length > 0) {
+    throw new Error(`${filename}: CSS compilation failed: ${result.errors.map(String).join('; ')}`)
+  }
+  return result.code
 }
+
+const inspectArticleEditorLayoutStyle = (source) => {
+  const violations = []
+  const parsed = parse(source, { filename: 'UserArticleEditorLayout.vue' })
+  if (parsed.errors.length > 0) {
+    return {
+      compiled: '',
+      violations: [`layout SFC parse failed: ${parsed.errors.map(String).join('; ')}`],
+    }
+  }
+  const style = parsed.descriptor.styles.find(candidate => !candidate.src)
+  if (!style) {
+    return { compiled: '', violations: ['layout must contain an inline scoped style block'] }
+  }
+  if (!style.scoped) {
+    violations.push('layout style must remain scoped')
+  }
+  let compiled = ''
+  try {
+    compiled = compileScopedCss(style.content, 'UserArticleEditorLayout.vue', ARTICLE_LAYOUT_SCOPE_ID, style.scoped)
+  } catch (error) {
+    violations.push(error instanceof Error ? error.message : String(error))
+  }
+
+  if (style.content.includes(':global(')) {
+    violations.push('layout style must not restore full-global page selectors')
+  }
+  for (const pageOwnedSelector of ['.article-compact-head', '.article-writing-toggle', '.article-focus-shell']) {
+    if (style.content.includes(pageOwnedSelector)) {
+      violations.push(`layout style must not own page selector ${pageOwnedSelector}`)
+    }
+  }
+  for (const marker of [
+    'writingMode?: boolean',
+    ":class=\"{ 'article-focus-rail--writing': writingMode }\"",
+    ":class=\"{ 'article-writing-surface--writing': writingMode }\"",
+    ":class=\"{ 'article-settings-workspace--writing': writingMode }\"",
+    ":class=\"{ 'article-focus-status--writing': writingMode }\"",
+    ":class=\"{ 'article-status-card--writing': writingMode }\"",
+  ]) {
+    if (!source.includes(marker)) {
+      violations.push(`layout must expose local writing-state marker ${marker}`)
+    }
+  }
+  for (const selector of [
+    `.article-focus-rail--writing[${ARTICLE_LAYOUT_SCOPE_ID}]`,
+    `.article-writing-surface--writing[${ARTICLE_LAYOUT_SCOPE_ID}]`,
+    `.article-settings-workspace--writing[${ARTICLE_LAYOUT_SCOPE_ID}]`,
+    `.article-focus-status--writing[${ARTICLE_LAYOUT_SCOPE_ID}]`,
+    `.article-status-card--writing[${ARTICLE_LAYOUT_SCOPE_ID}]`,
+    `.article-editor-loading[${ARTICLE_LAYOUT_SCOPE_ID}-s]`,
+    `.article-hidden-file[${ARTICLE_LAYOUT_SCOPE_ID}-s]`,
+    `.article-status-card[${ARTICLE_LAYOUT_SCOPE_ID}] .primary-button`,
+    `.article-status-card[${ARTICLE_LAYOUT_SCOPE_ID}] .secondary-button`,
+  ]) {
+    if (!compiled.includes(selector)) {
+      violations.push(`compiled layout CSS must include scoped selector ${selector}`)
+    }
+  }
+
+  const writingStatusBlocks = extractCssBlocks(
+    compiled,
+    `.article-focus-status--writing[${ARTICLE_LAYOUT_SCOPE_ID}]`,
+  )
+  if (writingStatusBlocks.length < 2) {
+    violations.push('compiled layout CSS must position the local writing status for desktop and narrow screens')
+  }
+  for (const block of writingStatusBlocks) {
+    if (!/position:\s*fixed;/.test(block)) violations.push('local writing status must remain fixed')
+    if (!/top:\s*var\(--article-reference-panel-top\);/.test(block)) violations.push('local writing status must use the measured top variable')
+    if (!/--user-article-reference-panel-max-height:\s*calc\(100dvh - var\(--article-reference-panel-top\) - 16px\);/.test(block)) violations.push('local writing status must derive its max height from the measured top')
+    if (!/max-height:\s*var\(--user-article-reference-panel-max-height\);/.test(block)) violations.push('local writing status must apply the bounded max height')
+  }
+  return { compiled, violations }
+}
+
+const inspectArticleEditorPageStyle = (source) => {
+  const violations = []
+  if (!source) {
+    return { compiled: '', violations: [`${articleEditorPageStylePath}: missing page-owned editor CSS`] }
+  }
+  let compiled = ''
+  try {
+    compiled = compileScopedCss(source, articleEditorPageStylePath, ARTICLE_PAGE_SCOPE_ID)
+  } catch (error) {
+    violations.push(error instanceof Error ? error.message : String(error))
+  }
+  for (const selector of [
+    `.article-compact-head[${ARTICLE_PAGE_SCOPE_ID}]`,
+    `.article-compact-head--writing[${ARTICLE_PAGE_SCOPE_ID}]`,
+    `.article-writing-toggle[${ARTICLE_PAGE_SCOPE_ID}]`,
+    `.article-focus-shell[${ARTICLE_PAGE_SCOPE_ID}]`,
+    `.article-focus-shell--writing[${ARTICLE_PAGE_SCOPE_ID}]`,
+  ]) {
+    if (!compiled.includes(selector)) {
+      violations.push(`compiled page CSS must include scoped selector ${selector}`)
+    }
+  }
+  return { compiled, violations }
+}
+
+const layoutStyleInspection = inspectArticleEditorLayoutStyle(articleEditorLayoutSource)
+const pageStyleInspection = inspectArticleEditorPageStyle(articleEditorPageStyleSource)
+const articleEditorContractViolations = [
+  ...layoutStyleInspection.violations,
+  ...pageStyleInspection.violations,
+]
+const articlePageStyleMarker = '<style scoped src="../../../assets/css/domains/user-article-editor-page.css"></style>'
 
 for (const [pageName, pageSource] of [['new', newArticlePageSource], ['edit', editArticlePageSource]]) {
   const editorSource = pageSource + articleEditorLayoutSource
-  const writingStatusBlocks = extractCssBlocks(editorSource, '.article-focus-shell--writing .article-focus-status')
-  if (writingStatusBlocks.length < 2) throw new Error(`${pageName} article page must define reference panel positioning for desktop and narrow writing mode`)
-  if (!editorSource.includes('id="user-article-reference-panel-target"')) throw new Error(`${pageName} article page must expose an external reference panel target in the side status area`)
-  if (!editorSource.includes('reference-panel-target="#user-article-reference-panel-target"')) throw new Error(`${pageName} article page must pass the external reference panel target to the editor`)
-  if (!pageSource.includes('@reference-panel-open="writingModeEnabled = true"')) throw new Error(`${pageName} article page must enter writing mode when the reference picker opens`)
-  if (!/const compactHeadRef = ref<HTMLElement \| null>\(null\)/.test(pageSource)) throw new Error(`${pageName} article page must track the real writing toolbar element`)
-  if (!pageSource.includes('getBoundingClientRect().bottom')) throw new Error(`${pageName} article page must derive the reference panel offset from the toolbar bottom`)
-  if (!pageSource.includes('referencePanelShellStyle')) throw new Error(`${pageName} article page must pass the measured reference panel offset through a shell style variable`)
-  if (!pageSource.includes('new ResizeObserver(scheduleReferencePanelOffset)')) throw new Error(`${pageName} article page must resync the reference panel offset when the toolbar height changes`)
-  if (!pageSource.includes("window.addEventListener('resize', scheduleReferencePanelOffset")) throw new Error(`${pageName} article page must keep the reference panel offset in sync after viewport resizes`)
-  if (!pageSource.includes("window.addEventListener('scroll', scheduleReferencePanelOffset")) throw new Error(`${pageName} article page must keep the reference panel offset in sync while the sticky toolbar moves`)
-  if (!pageSource.includes("window.removeEventListener('resize', scheduleReferencePanelOffset")) throw new Error(`${pageName} article page must clean up the resize listener for the reference panel offset`)
-  if (!pageSource.includes("window.removeEventListener('scroll', scheduleReferencePanelOffset")) throw new Error(`${pageName} article page must clean up the scroll listener for the reference panel offset`)
-  if (!pageSource.includes('referencePanelResizeObserver?.disconnect()')) throw new Error(`${pageName} article page must clean up the reference panel toolbar ResizeObserver`)
-  if (!/<div\s+ref="compactHeadRef"\s+class="article-compact-head"/.test(pageSource)) throw new Error(`${pageName} article page must bind the toolbar element ref in the template`)
-  if (!/<form[\s\S]*class="article-focus-shell"[\s\S]*:style="referencePanelShellStyle"/.test(pageSource)) throw new Error(`${pageName} article page must apply the measured panel offset to the writing shell`)
-  if (!/<aside[\s\S]*class="article-focus-status"[\s\S]*id="user-article-reference-panel-target"[\s\S]*<section class="article-status-card"/.test(editorSource)) throw new Error(`${pageName} article page must place the reference panel target before the status card inside article-focus-status`)
-  if (/article-focus-shell--writing\s+\.article-focus-rail,\s*\.article-focus-shell--writing\s+\.article-focus-status/.test(editorSource)) throw new Error(`${pageName} article page must not hide the side reference panel area in writing mode`)
-  if (/article-focus-shell--writing\s+\.article-focus-status\s*\{[^}]*display:\s*none/.test(editorSource)) throw new Error(`${pageName} article page must keep the external reference panel visible in writing mode`)
-  if (!/\.article-focus-shell--writing\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*980px\)\s+320px/.test(editorSource)) throw new Error(`${pageName} article page writing mode must keep a side column for references`)
-  if (!/\.article-compact-head--writing\s*\{[\s\S]*z-index:\s*60;/.test(editorSource)) throw new Error(`${pageName} article page writing toolbar must stay above the reference panel`)
-  if (!/--article-reference-panel-top:\s*clamp\(152px,\s*18dvh,\s*188px\);/.test(editorSource)) throw new Error(`${pageName} article page reference panel must keep a desktop fallback before measurement`)
-  if (!/--user-article-toolbar-top:\s*var\(--article-reference-panel-top\);/.test(editorSource)) throw new Error(`${pageName} article page editor toolbar must use the same measured top as the reference panel`)
-  for (const block of writingStatusBlocks) {
-    if (!/position:\s*fixed;/.test(block)) throw new Error(`${pageName} article page writing reference panel must be fixed in each responsive mode`)
-    if (!/top:\s*var\(--article-reference-panel-top\);/.test(block)) throw new Error(`${pageName} article page writing reference panel must use the measured top variable`)
-    if (/top:\s*\d+px;/.test(block)) throw new Error(`${pageName} article page writing reference panel must not hard-code a fixed top`)
-    if (/--article-reference-panel-top:\s*\d+px;/.test(block)) throw new Error(`${pageName} article page writing reference panel must not hard-code the measured top variable`)
-    if (/--user-article-reference-panel-max-height:\s*calc\(100dvh - \d+px\);/.test(block)) throw new Error(`${pageName} article page writing reference panel max-height must derive from the measured top variable`)
-    if (!/--user-article-reference-panel-max-height:\s*calc\(100dvh - var\(--article-reference-panel-top\) - 16px\);/.test(block)) throw new Error(`${pageName} article page writing reference panel max-height must use the measured top variable`)
-    if (!/max-height:\s*var\(--user-article-reference-panel-max-height\);/.test(block)) throw new Error(`${pageName} article page writing reference panel must apply the bounded max-height`)
+  if (!pageSource.includes(articlePageStyleMarker)) articleEditorContractViolations.push(`${pageName} article page must load the scoped page-owned editor CSS`)
+  if (!pageSource.includes(':writing-mode="writingModeEnabled"')) articleEditorContractViolations.push(`${pageName} article page must pass writing mode into the shared layout`)
+  if (!editorSource.includes('id="user-article-reference-panel-target"')) articleEditorContractViolations.push(`${pageName} article page must expose an external reference panel target in the side status area`)
+  if (!editorSource.includes('reference-panel-target="#user-article-reference-panel-target"')) articleEditorContractViolations.push(`${pageName} article page must pass the external reference panel target to the editor`)
+  if (!pageSource.includes('@reference-panel-open="writingModeEnabled = true"')) articleEditorContractViolations.push(`${pageName} article page must enter writing mode when the reference picker opens`)
+  if (!/const compactHeadRef = ref<HTMLElement \| null>\(null\)/.test(pageSource)) articleEditorContractViolations.push(`${pageName} article page must track the real writing toolbar element`)
+  if (!pageSource.includes('getBoundingClientRect().bottom')) articleEditorContractViolations.push(`${pageName} article page must derive the reference panel offset from the toolbar bottom`)
+  if (!pageSource.includes('referencePanelShellStyle')) articleEditorContractViolations.push(`${pageName} article page must pass the measured reference panel offset through a shell style variable`)
+  if (!pageSource.includes('new ResizeObserver(scheduleReferencePanelOffset)')) articleEditorContractViolations.push(`${pageName} article page must resync the reference panel offset when the toolbar height changes`)
+  if (!pageSource.includes("window.addEventListener('resize', scheduleReferencePanelOffset")) articleEditorContractViolations.push(`${pageName} article page must keep the reference panel offset in sync after viewport resizes`)
+  if (!pageSource.includes("window.addEventListener('scroll', scheduleReferencePanelOffset")) articleEditorContractViolations.push(`${pageName} article page must keep the reference panel offset in sync while the sticky toolbar moves`)
+  if (!pageSource.includes("window.removeEventListener('resize', scheduleReferencePanelOffset")) articleEditorContractViolations.push(`${pageName} article page must clean up the resize listener for the reference panel offset`)
+  if (!pageSource.includes("window.removeEventListener('scroll', scheduleReferencePanelOffset")) articleEditorContractViolations.push(`${pageName} article page must clean up the scroll listener for the reference panel offset`)
+  if (!pageSource.includes('referencePanelResizeObserver?.disconnect()')) articleEditorContractViolations.push(`${pageName} article page must clean up the reference panel toolbar ResizeObserver`)
+  if (!/<div\s+ref="compactHeadRef"\s+class="article-compact-head"/.test(pageSource)) articleEditorContractViolations.push(`${pageName} article page must bind the toolbar element ref in the template`)
+  if (!/<form[\s\S]*class="article-focus-shell"[\s\S]*:style="referencePanelShellStyle"/.test(pageSource)) articleEditorContractViolations.push(`${pageName} article page must apply the measured panel offset to the writing shell`)
+  if (!/<aside[\s\S]*class="article-focus-status"[\s\S]*id="user-article-reference-panel-target"[\s\S]*<section[^>]*class="[^"]*article-status-card/.test(editorSource)) articleEditorContractViolations.push(`${pageName} article page must place the reference panel target before the status card inside article-focus-status`)
+}
+
+if (articleEditorContractViolations.length > 0) {
+  throw new Error(`User article editor compiled style contract failed:\n- ${articleEditorContractViolations.join('\n- ')}`)
+}
+
+const assertLayoutStyleMutationRejected = (label, mutate) => {
+  const mutatedSource = mutate(articleEditorLayoutSource)
+  if (mutatedSource === articleEditorLayoutSource) {
+    throw new Error(`User article editor mutation setup failed: ${label}`)
   }
-  if (!/\.article-focus-shell--writing\s+\.article-focus-status\s*\{[\s\S]*position:\s*fixed;[\s\S]*top:\s*var\(--article-reference-panel-top\);[\s\S]*--user-article-reference-panel-max-height:[\s\S]*width:\s*min\(320px,\s*calc\(100vw - 24px\)\);[\s\S]*max-height:\s*var\(--user-article-reference-panel-max-height\);/.test(editorSource)) throw new Error(`${pageName} article page writing mode must pin the reference panel inside the viewport bounds`)
-  if (!/\.article-focus-shell--writing\s+\.article-status-card\s*\{[\s\S]*display:\s*none;/.test(editorSource)) throw new Error(`${pageName} article page writing mode must hide publish or review status cards`)
-  if (/\.article-focus-shell--writing\s+\.article-focus-status\s*\{[^}]*--article-reference-panel-top:\s*150px;/.test(editorSource)) throw new Error(`${pageName} article page must not hard-code the narrow reference panel top on the fixed side panel`)
-  if (!/@media\s*\(max-width:\s*1180px\)\s*\{[\s\S]*\.article-focus-shell--writing\s+\.article-focus-status\s*\{[\s\S]*position:\s*fixed;[\s\S]*top:\s*var\(--article-reference-panel-top\);[\s\S]*width:\s*min\(320px,\s*calc\(100vw - 24px\)\);/.test(editorSource)) throw new Error(`${pageName} article page must keep the reference panel fixed and measured below the writing toolbar on narrow screens`)
+  if (inspectArticleEditorLayoutStyle(mutatedSource).violations.length === 0) {
+    throw new Error(`User article editor compiled style contract accepted mutation: ${label}`)
+  }
+}
+
+assertLayoutStyleMutationRejected(
+  'remove scoped layout style',
+  source => source.replace('<style scoped>', '<style>'),
+)
+assertLayoutStyleMutationRejected(
+  'remove local writing status modifier',
+  source => source.replace('.article-focus-status--writing {', '.article-focus-status {'),
+)
+assertLayoutStyleMutationRejected(
+  'restore full-global writing status selector',
+  source => source.replace(
+    '.article-focus-status--writing {',
+    ':global(.article-focus-shell--writing .article-focus-status) {',
+  ),
+)
+
+const articlePageStyleSources = {
+  new: `${pageStyleInspection.compiled}\n${layoutStyleInspection.compiled}`,
+  edit: `${pageStyleInspection.compiled}\n${layoutStyleInspection.compiled}`,
 }
 if (!/\.user-rich-editor__reference-popover\s*\{[\s\S]*max-height:\s*min\(var\(--user-article-reference-panel-max-height,\s*58dvh\),\s*460px\);/.test(editorComponentSource)) throw new Error('reference picker popover must inherit the page viewport height bound')
 if (!/\.user-rich-editor__reference-results\s*\{[\s\S]*max-height:\s*max\(150px,\s*min\(280px,\s*calc\(var\(--user-article-reference-panel-max-height,\s*58dvh\) - 170px\)\)\);/.test(editorComponentSource)) throw new Error('reference picker results must stay within the bounded popover height')
@@ -251,27 +383,54 @@ writeFileSync(htmlPath, `<!doctype html>
             </div>
           </div>
           <form class="article-focus-shell article-focus-shell--writing">
-            <section class="article-writing-surface">
+            <nav class="article-focus-rail article-focus-rail--writing" data-layout-owned>
+              <a href="#article-body">正文</a>
+            </nav>
+            <section class="article-writing-surface article-writing-surface--writing" data-layout-owned>
+              <section class="article-editor-loading" data-layout-slotted></section>
+              <input class="article-hidden-file" type="file" data-layout-slotted />
               <div class="user-rich-editor__toolbar"></div>
+              <div class="article-settings-workspace article-settings-workspace--writing" data-layout-owned></div>
               <div style="min-height: 900px"></div>
             </section>
-            <aside class="article-focus-status">
-              <div class="article-reference-side-target">
+            <aside class="article-focus-status article-focus-status--writing" data-layout-owned>
+              <div class="article-reference-side-target" data-layout-owned>
                 <div class="user-rich-editor__reference-menu">
                   <div class="user-rich-editor__reference-popover">
                     <div class="user-rich-editor__reference-results"><p>默认资料</p></div>
                   </div>
                 </div>
               </div>
+              <section class="article-status-card article-status-card--writing" data-layout-owned></section>
+              <section class="article-status-card" data-layout-owned>
+                <button id="status-scope-probe" class="primary-button" type="button" data-layout-slotted>保存草稿</button>
+              </section>
             </aside>
           </form>
         \`;
+        for (const element of root.querySelectorAll('*')) {
+          element.setAttribute('${ARTICLE_PAGE_SCOPE_ID}', '');
+        }
+        for (const element of root.querySelectorAll('[data-layout-owned]')) {
+          element.setAttribute('${ARTICLE_LAYOUT_SCOPE_ID}', '');
+          element.removeAttribute('data-layout-owned');
+        }
+        for (const element of root.querySelectorAll('[data-layout-slotted]')) {
+          element.setAttribute('${ARTICLE_LAYOUT_SCOPE_ID}-s', '');
+          element.removeAttribute('data-layout-slotted');
+        }
         document.body.append(root);
 
         const shell = root.querySelector('.article-focus-shell');
         const toolbar = root.querySelector('.article-compact-head');
         const editorToolbar = root.querySelector('.user-rich-editor__toolbar');
         const panel = root.querySelector('.article-focus-status');
+        const rail = root.querySelector('.article-focus-rail');
+        const settings = root.querySelector('.article-settings-workspace');
+        const writingStatusCard = root.querySelector('.article-status-card--writing');
+        const loading = root.querySelector('.article-editor-loading');
+        const hiddenInput = root.querySelector('.article-hidden-file');
+        const statusButton = root.querySelector('#status-scope-probe');
         const syncMeasuredTop = () => {
           shell.style.setProperty('--article-reference-panel-top', Math.max(96, Math.ceil(toolbar.getBoundingClientRect().bottom + 12)) + 'px');
         };
@@ -285,6 +444,12 @@ writeFileSync(htmlPath, `<!doctype html>
           assert(panelStyle.top === shell.style.getPropertyValue('--article-reference-panel-top'), pageName + ' reference panel CSS top must use the measured shell variable in ' + label);
           assert(editorToolbarStyle.top === shell.style.getPropertyValue('--article-reference-panel-top'), pageName + ' editor toolbar CSS top must use the measured shell variable in ' + label);
           assert(panelRect.top + 0.5 >= toolbarRect.bottom + 12, pageName + ' reference panel overlaps the writing toolbar in ' + label);
+          assert(window.getComputedStyle(rail).display === 'none', pageName + ' local writing rail modifier must hide the anchor rail in ' + label);
+          assert(window.getComputedStyle(settings).opacity === '0.72', pageName + ' local writing settings modifier must soften settings in ' + label);
+          assert(window.getComputedStyle(writingStatusCard).display === 'none', pageName + ' local writing status-card modifier must hide status actions in ' + label);
+          assert(window.getComputedStyle(loading).pointerEvents === 'none', pageName + ' slotted loading selector must retain loading semantics in ' + label);
+          assert(window.getComputedStyle(hiddenInput).display === 'none', pageName + ' slotted cover input selector must hide the file control in ' + label);
+          assert(window.getComputedStyle(statusButton).width !== 'auto', pageName + ' deep status-button selector must retain full-width actions in ' + label);
         };
 
         assertPanelClearsToolbar('initial viewport ' + window.innerWidth);
@@ -296,8 +461,13 @@ writeFileSync(htmlPath, `<!doctype html>
         styleElement.remove();
       };
 
-      for (const [pageName, styleSource] of Object.entries(articlePageStyles)) {
-        runArticleReferencePanelLayoutCheck(pageName, styleSource);
+      try {
+        for (const [pageName, styleSource] of Object.entries(articlePageStyles)) {
+          runArticleReferencePanelLayoutCheck(pageName, styleSource);
+        }
+      } catch (error) {
+        document.querySelector('#result').textContent = 'FAIL: ' + (error && error.message ? error.message : error);
+        throw error;
       }
 
       const surfaceRect = document.querySelector('.layout-check-root .user-rich-editor__surface').getBoundingClientRect();

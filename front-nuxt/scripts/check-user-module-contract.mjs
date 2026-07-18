@@ -328,6 +328,8 @@ assertNotIncludes(
 
 const userArticleEditorLayoutPath = 'components/user/UserArticleEditorLayout.vue'
 const userArticleEditorLayout = assertFile(userArticleEditorLayoutPath)
+const userArticleEditorPageStylePath = 'assets/css/domains/user-article-editor-page.css'
+const userArticleEditorPageStyle = assertFile(userArticleEditorPageStylePath)
 
 const pageContracts = [
   {
@@ -369,16 +371,6 @@ const pageContracts = [
     path: 'pages/user/articles/index.vue',
     required: ['definePageMeta({ requiresUserAuth: true })', 'authStore.fetchUserArticles', 'articlesLoading', 'user-empty-state', 'formatReviewStatus', 'articleActionLabel', 'reviewComment', '编辑', '查看状态', '管理', '查看公开页', '`/user/articles/${article.id}`', 'article-table-shell', 'article-table-panel', 'article-table-row', 'article-cover-thumb', 'resolvePreviewImageUrl', '封面', '文章', '状态', '内容量', '时间', '下一步', '操作', 'article-category-filter', 'selectedArticleCategory', 'articleEngagementStats', '浏览', '评论', '点赞', '收藏'],
     forbidden: ['近战装备路线补充', '克眼前准备清单', 'overflow-x: auto', 'min-width: 1380px', '不是后台管理'],
-  },
-  {
-    path: 'pages/user/articles/new.vue',
-    required: ['definePageMeta({ requiresUserAuth: true })', '@submit.prevent="submit"', 'authStore.createUserArticle', 'authStore.submitUserArticleForReview', 'contentHtml', 'UserArticleRichEditor', 'user-form-error', '保存并提交管理员审核'],
-    forbidden: ['保存占位', '正文编辑区占位', '输入 HTML', '<textarea v-model="form.contentHtml"'],
-  },
-  {
-    path: 'pages/user/articles/[id].vue',
-    required: ['definePageMeta({ requiresUserAuth: true })', 'authStore.fetchUserArticle', 'authStore.updateUserArticle', 'authStore.submitUserArticleForReview', 'authStore.withdrawUserArticle', 'authStore.offlineUserArticle', 'authStore.deleteUserArticle', 'window.confirm', 'contentHtml', 'UserArticleRichEditor', 'user-form-success', 'user-form-error', '保存草稿', '提交审核', '撤回投稿', '下架文章', '删除文章', 'canOfflineArticle', 'canDeleteArticle'],
-    forbidden: ['保存占位', '正文编辑区占位', '输入 HTML', '<textarea v-model="form.contentHtml"'],
   },
   {
     path: 'pages/articles/index.vue',
@@ -440,14 +432,11 @@ const pageContracts = [
 
 for (const contract of pageContracts) {
   const content = assertFile(contract.path)
-  const contractSource = contract.path === 'pages/user/articles/new.vue' || contract.path === 'pages/user/articles/[id].vue'
-    ? content + userArticleEditorLayout
-    : content
   for (const marker of contract.required) {
-    assertIncludes(contract.path, contractSource, marker, `page contract must include ${marker}`)
+    assertIncludes(contract.path, content, marker, `page contract must include ${marker}`)
   }
   for (const marker of contract.forbidden) {
-    assertNotIncludes(contract.path, contractSource, marker, `page must not remain preview-only with ${marker}`)
+    assertNotIncludes(contract.path, content, marker, `page must not remain preview-only with ${marker}`)
   }
 }
 
@@ -560,54 +549,167 @@ assertNotIncludes('pages/articles/[slug].vue', publicArticleDetail, 'firstArticl
 
 assertIncludes(userArticleEditorLayoutPath, userArticleEditorLayout, 'defineProps<', 'shared user article editor layout must declare typed props')
 assertIncludes(userArticleEditorLayoutPath, userArticleEditorLayout, 'defineEmits<', 'shared user article editor layout must declare typed emits')
+assertIncludes(userArticleEditorLayoutPath, userArticleEditorLayout, 'writingMode?: boolean', 'shared user article editor layout must type its local writing state')
 assertIncludes(userArticleEditorLayoutPath, userArticleEditorLayout, '<slot name="status"', 'shared user article editor layout must expose the create/edit status slot')
+assertNotIncludes(userArticleEditorLayoutPath, userArticleEditorLayout, ':global(', 'shared user article editor layout must keep component styles scoped')
+for (const selector of ['.article-compact-head', '.article-writing-toggle', '.article-focus-shell']) {
+  assertNotIncludes(userArticleEditorLayoutPath, userArticleEditorLayout, selector, `shared layout must not own page selector ${selector}`)
+  assertIncludes(userArticleEditorPageStylePath, userArticleEditorPageStyle, selector, `page editor CSS must own ${selector}`)
+}
 
-for (const contract of [
-  { path: 'pages/user/articles/new.vue', formId: 'new-user-article-form', submitHandler: 'submit' },
-  { path: 'pages/user/articles/[id].vue', formId: 'edit-user-article-form', submitHandler: 'saveDraft' },
-]) {
-  const content = assertFile(contract.path)
-  const editorSource = content + userArticleEditorLayout
-  const lineCount = content.trimEnd().split(/\r?\n/).length
+const commonUserArticleEditorPageOnlyMarkers = [
+  'definePageMeta({ requiresUserAuth: true })',
+  'useUserAuthStore',
+  'useUserArticleCoverCropper',
+  'useArticleDraftGuard',
+  'pendingCoverFile',
+  'uploadUserArticleImage',
+  'uploadUserArticleEmbeddedImages',
+  'resolvePreviewImageUrl',
+  'cropScale',
+  'confirmCoverCrop',
+  'clearPendingCoverSelection',
+  'restoreArticleDraft',
+  'discardArticleDraft',
+  'writingModeEnabled',
+  'referencePanelShellStyle',
+  'article-focus-shell--writing',
+  'article-writing-toggle',
+  'article-review-action',
+  '提交管理员审核',
+  'article-compact-head',
+  '<UserArticleEditorLayout',
+  ':writing-mode="writingModeEnabled"',
+  'ref="coverInputRef"',
+  '@reference-panel-open="writingModeEnabled = true"',
+  '@editor-error="reportEditorError"',
+  '<style scoped src="../../../assets/css/domains/user-article-editor-page.css"></style>',
+]
+
+const commonUserArticleEditorPresentationMarkers = [
+  'UserArticleRichEditor',
+  'user-form-error',
+  'article-focus-rail',
+  'article-writing-surface',
+  'article-focus-status',
+  'article-settings-workspace',
+  'article-settings-panel',
+  'article-status-card',
+  'article-draft-restore',
+  'user-cover-cropper',
+  '公开链接地址',
+  '选择封面',
+  'id="user-article-reference-panel-target"',
+  'reference-panel-target="#user-article-reference-panel-target"',
+  'id="article-body"',
+  'id="article-settings"',
+  'article-focus-rail--writing',
+  'article-writing-surface--writing',
+  'article-settings-workspace--writing',
+  'article-focus-status--writing',
+  'article-status-card--writing',
+  '.article-compact-head',
+  '.article-focus-shell',
+  '--article-reference-panel-top',
+]
+
+const commonUserArticleEditorForbiddenMarkers = [
+  '保存占位',
+  '正文编辑区占位',
+  '输入 HTML',
+  '<textarea v-model="form.contentHtml"',
+  '<details>',
+  '#08110c',
+  '#0f1912',
+  'authStore.uploadUserArticleImage(file)',
+  '裁剪/放大封面',
+  'page-head entity-head',
+]
+
+const userArticleEditorContracts = [
+  {
+    path: 'pages/user/articles/new.vue',
+    formId: 'new-user-article-form',
+    submitHandler: 'submit',
+    pageOnly: [
+      '@submit.prevent="submit"',
+      'authStore.createUserArticle',
+      'authStore.submitUserArticleForReview',
+      'createArticleDraft',
+      'submitForAdminReview',
+      "storageKey: 'terrapedia:article-draft:new'",
+      'contentHtml',
+      '保存并提交管理员审核',
+    ],
+    presentation: ['文章草稿', '设置公开列表素材，正文写完后再补也可以。', '保存为草稿'],
+  },
+  {
+    path: 'pages/user/articles/[id].vue',
+    formId: 'edit-user-article-form',
+    submitHandler: 'saveDraft',
+    pageOnly: [
+      '@submit.prevent="saveDraft"',
+      'authStore.fetchUserArticle',
+      'authStore.updateUserArticle',
+      'authStore.submitUserArticleForReview',
+      'authStore.withdrawUserArticle',
+      'authStore.offlineUserArticle',
+      'authStore.deleteUserArticle',
+      'window.confirm',
+      'persistCurrentDraft',
+      'saveDraft',
+      'submitReview',
+      'withdrawArticle',
+      'offlineArticle',
+      'deleteArticle',
+      'canSubmitReview',
+      'canOfflineArticle',
+      'canDeleteArticle',
+      'article-editor-loading',
+      'CommonTpSkeleton',
+      'contentHtml',
+      '保存草稿',
+      '提交审核',
+      '撤回投稿',
+      '下架文章',
+      '删除文章',
+    ],
+    presentation: ['user-form-success', '审核状态', '发布状态', '审核意见', '查看公开页'],
+  },
+]
+
+for (const contract of userArticleEditorContracts) {
+  const pageSource = assertFile(contract.path)
+  const presentationPath = `${contract.path} + ${userArticleEditorLayoutPath} + ${userArticleEditorPageStylePath}`
+  const presentationSource = `${pageSource}\n${userArticleEditorLayout}\n${userArticleEditorPageStyle}`
+  const lineCount = pageSource.trimEnd().split(/\r?\n/).length
   if (lineCount >= 400) {
     violations.push(`${contract.path}: user article editor page must stay below 400 lines (found ${lineCount})`)
   }
-  assertIncludes(contract.path, content, '<UserArticleEditorLayout', 'user article page must explicitly render the shared editor layout')
-  assertIncludes(contract.path, content, '<main class="tp-page-shell user-article-editor-page">', 'user article page must retain the shared page shell main region')
+
+  for (const marker of [...commonUserArticleEditorPageOnlyMarkers, ...contract.pageOnly]) {
+    assertIncludes(contract.path, pageSource, marker, `page-owned user article editor contract must include ${marker}`)
+  }
+  assertIncludes(contract.path, pageSource, '<main class="tp-page-shell user-article-editor-page">', 'user article page must retain the shared page shell main region')
   assertPattern(
     contract.path,
-    content,
+    pageSource,
     new RegExp(`<form id="${contract.formId}"[\\s\\S]*@submit\\.prevent="${contract.submitHandler}"`),
     'user article page must retain its page-owned form id and submit handler',
   )
-  assertIncludes(contract.path, content, 'writingModeEnabled', 'user article page must expose the selected immersive writing mode toggle')
-  assertIncludes(contract.path, content, 'article-focus-shell--writing', 'user article page must apply the immersive writing layout class')
-  assertIncludes(contract.path, content, 'article-writing-toggle', 'user article page must render a button to control writing mode')
-  assertNotIncludes(contract.path, editorSource, '#08110c', 'user article writing mode must not hard-code the dark design draft background')
-  assertNotIncludes(contract.path, editorSource, '#0f1912', 'user article writing mode must follow theme variables instead of fixed dark surface colors')
-  assertIncludes(contract.path, content, 'useUserArticleCoverCropper', 'user article page must use the shared cover cropper')
-  assertIncludes(contract.path, content, 'pendingCoverFile', 'user article page must defer cover uploads until save')
-  assertIncludes(contract.path, content, 'uploadUserArticleEmbeddedImages', 'user article page must upload embedded images during save')
-  assertIncludes(contract.path, content, 'resolvePreviewImageUrl', 'user article cover preview must resolve backend preview image paths')
-  assertIncludes(contract.path, editorSource, 'cropScale', 'user article page must support zooming selected cover before save')
-  assertIncludes(contract.path, editorSource, 'confirmCoverCrop', 'user article page must apply the cropped cover before save')
-  assertIncludes(contract.path, editorSource, 'user-cover-cropper', 'user article page must render the cover cropper controls')
-  assertNotIncludes(contract.path, editorSource, 'authStore.uploadUserArticleImage(file)', 'user article page must not upload selected cover immediately')
-  assertIncludes(contract.path, editorSource, 'article-focus-shell', 'user article editor must use the selected focus-writing layout shell')
-  assertIncludes(contract.path, editorSource, 'article-focus-rail', 'user article editor must expose a compact left anchor rail')
-  assertIncludes(contract.path, editorSource, 'article-writing-surface', 'user article editor must prioritize the central writing surface')
-  assertIncludes(contract.path, editorSource, 'article-focus-status', 'user article editor must keep publish checks in a right status column')
-  assertIncludes(contract.path, editorSource, 'article-settings-workspace', 'user article editor must move cover and slug controls into a secondary settings section')
-  assertIncludes(contract.path, editorSource, 'article-settings-panel', 'user article editor settings must use a visible optimized settings panel')
-  assertNotIncludes(contract.path, editorSource, '<details>', 'user article editor settings must not hide slug and cover controls in a default details block')
-  assertIncludes(contract.path, editorSource, '公开链接地址', 'user article editor must explain slug as the public link path')
-  assertIncludes(contract.path, editorSource, '选择封面', 'user article cover action must be labeled as choosing a cover')
-  assertNotIncludes(contract.path, editorSource, '裁剪/放大封面', 'user article cover action label must not lead with crop and zoom')
-  assertIncludes(contract.path, content, 'article-review-action', 'user article editor must expose the admin review action in the top action area')
-  assertIncludes(contract.path, content, '提交管理员审核', 'user article editor must label the review action as submitting to admin review')
-  assertPattern(contract.path, editorSource, /id="article-body"[\s\S]*id="article-settings"/, 'user article editor must place the writing body before secondary cover and slug settings')
-  assertIncludes(contract.path, content, 'article-compact-head', 'user article editor must replace the large page head with the selected compact toolbar')
-  assertNotIncludes(contract.path, content, 'page-head entity-head', 'user article editor must not keep the large page head block')
+
+  for (const marker of [...commonUserArticleEditorPresentationMarkers, ...contract.presentation]) {
+    assertIncludes(presentationPath, presentationSource, marker, `combined user article editor presentation must include ${marker}`)
+  }
+  assertPattern(
+    presentationPath,
+    presentationSource,
+    /id="article-body"[\s\S]*id="article-settings"/,
+    'combined user article editor presentation must place writing before settings',
+  )
+  for (const marker of commonUserArticleEditorForbiddenMarkers) {
+    assertNotIncludes(presentationPath, presentationSource, marker, `combined user article editor presentation must forbid ${marker}`)
+  }
 }
 
 const userArticleEditPage = assertFile('pages/user/articles/[id].vue')

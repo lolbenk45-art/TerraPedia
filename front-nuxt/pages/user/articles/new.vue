@@ -185,6 +185,7 @@ const submitForAdminReview = async () => {
           settings-description="设置公开列表素材，正文写完后再补也可以。"
           status-anchor-label="发布检查"
           status-heading="发布检查"
+          :writing-mode="writingModeEnabled"
           messages-position="after"
           :busy="authStore.submitting"
           :restorable-draft="Boolean(restorableDraft)"
@@ -235,3 +236,5 @@ const submitForAdminReview = async () => {
     <TerraFooter />
   </section>
 </template>
+
+<style scoped src="../../../assets/css/domains/user-article-editor-page.css"></style>

@@ -289,6 +289,7 @@ onMounted(() => {
           settings-description="设置公开列表素材。已提交审核后会锁定编辑。"
           status-anchor-label="审核状态"
           status-heading="审核状态"
+          :writing-mode="writingModeEnabled"
           :editable="canEditArticle"
           :busy="authStore.submitting"
           :loading="articleLoading"
@@ -390,3 +391,5 @@ onMounted(() => {
     <TerraFooter />
   </section>
 </template>
+
+<style scoped src="../../../assets/css/domains/user-article-editor-page.css"></style>
