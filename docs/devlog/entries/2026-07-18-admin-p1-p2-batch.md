@@ -46,7 +46,8 @@
 - Completed: C5 exact audio status/cookie/URL reuse, items whitelist/transforms, request identity/submission safety, failure-aware recipe loads, and executable production-handler/store coverage with final specification and quality approval.
 - Completed: D1 35-owner trimToNull consolidation, Unicode-blank preservation, firstNonBlank source preservation, and focused utility coverage with final specification and quality approval.
 - Completed: D2 eight-controller trusted-proxy resolver migration, direct-constructor test adaptation, exact IP propagation contracts, and routed-request identity coverage with final specification and quality approval.
-- Not completed: D3-D6 implementation, final gates, and closeout.
+- Completed: D3 category-management error status propagation with focused 404/400/500 MockMvc coverage and final specification and quality approval.
+- Not completed: D4-D6 implementation, final gates, and closeout.
 
 ## Residual Risks
 
@@ -94,6 +95,7 @@
 - `4ab211e7` — replaced eight naive controller IP parsers with trusted-proxy resolver injection; specification-approved, quality-blocked on seven test propagation assertions.
 - `7d6457fc` — asserted seven exact resolver-IP propagation paths; repair specification-blocked until resolver invocations use the actual routed request.
 - `c86ddcd1` — constrained seven resolver tests to unique routed request URI/header identity; final reviews approved.
+- `c13ce117` — surfaced category-management error HTTP statuses with focused 404/400/500 coverage; final reviews approved.
 
 ## Optional: Multi-Agent Coordination
 
@@ -101,7 +103,7 @@
 - Parallel work allowed: no implementation parallelism; tasks and review gates are serialized.
 - Agent ownership:
   - Fresh per-task implementer:
-    - Status: A2, B1, B2, C1, C2, C3, C4, C5, D1, and D2 closed; D3 is the next fresh implementation assignment.
+    - Status: A2, B1, B2, C1, C2, C3, C4, C5, D1, D2, and D3 closed; D4 is the next fresh implementation assignment.
     - Task scope: exactly one full task copied from the rebased plan.
     - Allowed files: only that task's explicit file list and directly required focused tests.
     - Forbidden files: `docs/devlog/**`, the plan, data/generated artifacts, unrelated modules, and files owned by later tasks.
@@ -154,6 +156,7 @@
 - D1 review: specification review verified the 37-path/35-owner scope, local-definition removal, imports, method references, focused utility test, and unchanged firstNonBlank counts, but found a semantic audit error: five originals rely on Unicode-aware blank detection before ASCII trim. It also found seven firstNonBlank bodies changed only by qualification, violating the explicit no-change boundary. Coordinator verified the five baseline bodies and accepted the minimal repair: a separate Unicode-blank utility variant for only those five owners plus static imports that restore the seven original firstNonBlank bodies. Fresh spec then quality re-review is required.
 - D1 final review: `d2a8782` added a Unicode-blank helper used by exactly 24 calls in the five original Unicode-aware owners and restored all seven firstNonBlank bodies byte-identically through static import. Fresh specification review found no issues. Final quality review confirmed both initial blockers resolved, all 35 local definitions removed, method-reference compatibility, focused 10/10, normal compilation, and main-reproduced broad baselines; it reported no Critical/Important/Minor findings and allowed D2 progression.
 - D2 review: specification review approved `4ab211e7` for the exact eight-controller/eight-test scope, resolver injection, removal of naive parsers, request propagation, and no policy changes. Quality review found one Important coverage gap: seven tests mock a fixed resolver IP but verify downstream calls with `anyString()`, so they do not prove trusted resolver output reaches the audit/service boundary. `7d6457fc` added exact fixed-IP and resolver-invocation assertions, with a seven-call wrong-IP mutation producing 7 failures across 38 tests before restoration. Fresh repair specification review found an Important remaining gap: all seven invocation checks use `resolve(any())`, which does not prove the actual routed request is supplied. `c86ddcd1` replaced them with non-null URI-plus-unique-header `argThat` matchers; a wrong UserFavorite identity header produced the expected resolver-matcher failure before restoration. Final fresh specification and quality reviews reported no Critical/Important/Minor findings and approved D3. Coordinator reran `mvn -Dtest='*Article*,*User*,*Auth*' test` (151/151) and `mvn -DskipTests compile` (BUILD SUCCESS) on the final range.
+- D3 review: specification review confirmed the exact six catch removals, the new bare-null `ResourceNotFoundException` path, global 404 mapping, and standalone MockMvc 404/400/500 coverage. Final quality review found no Critical/Important/Minor issue: specific handlers are not shadowed, the 500 body remains sanitized, and scope is limited to controller/handler/exception/test. Coordinator reran the focused MockMvc suite 3/3, compilation, and diff check successfully; D4 may proceed.
 - Re-review required: no for A2; yes for any later Critical or Important finding.
 - Resolved by: `/root/a2_implementer`; approved by `/root/a2_quality_review`.
 - Arbitration decision: pending only if reviews disagree.
@@ -280,3 +283,9 @@
 - Change: Closed the D2 review gate and advanced the serialized handoff to D3.
 - Reason: final request-identity tests now prove the exact routed request reaches the resolver as well as exact trusted IP propagation to each downstream service/audit boundary.
 - Evidence: commit `c86ddcd1`; intentional wrong-header RED at the resolver matcher, then final 38 focused/42 owning/151 broad GREEN, compilation success, final specification approval, final quality approval with no Critical/Important/Minor findings, and coordinator final rerun 151/151 plus compilation.
+
+### 2026-07-19 01:20
+
+- Change: Closed the D3 review gate and advanced the serialized handoff to D4.
+- Reason: the controller now lets category errors reach exact global 404/400/500 semantics instead of encoding failures in HTTP 200 envelopes.
+- Evidence: commit `c13ce117`; expected 404/400 RED from HTTP 200, final MockMvc 3/3 GREEN, compilation success, final specification approval, final quality approval with no Critical/Important/Minor findings, and coordinator rerun of focused tests/compile/diff check.

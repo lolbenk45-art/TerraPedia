@@ -410,11 +410,11 @@ trusting the leftmost X-Forwarded-For value."
 
 侦察确认 `/admin/categories` 前端零调用，无破坏面。
 
-- [ ] **Step 1: 错误路径改造（评审修正——分两类处理）**
+- [x] **Step 1: 错误路径改造（评审修正——分两类处理）**
   - 6 处 try/catch 包裹（L112-114/128-130/144-146/160-162/174-176/188-190）: 删 catch 让异常上抛给 GlobalExceptionHandler（业务校验失败继续抛 IllegalArgumentException→400，意外异常→500，不再一律 200）
   - **L47-49 是裸 `if (category == null) return ApiResponse.error(404, ...)` 没有 try/catch 可删**——新建轻量异常 `common/ResourceNotFoundException`（RuntimeException 子类）+ GlobalExceptionHandler 加 `@ResponseStatus(HttpStatus.NOT_FOUND)` 条目（照抄 AdminAccessDeniedException 风格），该分支改抛此异常
 
-- [ ] **Step 2: 验证 + 提交**
+- [x] **Step 2: 验证 + 提交**
 
 ```bash
 cd back && mvn -DskipTests compile

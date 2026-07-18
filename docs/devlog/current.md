@@ -1,6 +1,6 @@
 # Current Devlog
 
-Last updated: 2026-07-19 01:12 CST by Codex
+Last updated: 2026-07-19 01:20 CST by Codex
 
 Active branch: `fix/admin-p1-p2-batch`
 
@@ -39,7 +39,8 @@ Active branch: `fix/admin-p1-p2-batch`
   after Unicode-blank preservation and firstNonBlank body restoration. D2 is
   specification- and quality-approved after all eight controllers switched to
   trusted-proxy resolution and seven repaired tests prove routed-request identity
-  plus exact downstream IP propagation. Begin D3 next.
+  plus exact downstream IP propagation. D3 is specification- and quality-approved
+  after category errors surface true 404/400/500 responses. Begin D4 next.
 
 - V2 queue engine activated on this worktree
   (cutoverId `crawler-v2-20260717T034735Z`). buffs re-dispatched and resumed
@@ -103,6 +104,11 @@ Active branch: `fix/admin-p1-p2-batch`
   identity. Final specification and quality reviews report no findings; the
   coordinator reran 151 targeted backend tests and compilation successfully.
 
+- D3 commit `c13ce117` replaces the category-null envelope with an exact global
+  404 and lets six local catches surface through existing 400/500 handlers.
+  MockMvc 404/400/500 coverage, final specification review, final quality review,
+  and coordinator test/compile validation all pass.
+
 - Public category child navigation is closed at `4a744dc`: six parent routes
   expose 34 image-backed child categories with verified scope, count, and
   fail-closed behavior.
@@ -119,10 +125,10 @@ Active branch: `fix/admin-p1-p2-batch`
 ## Next Agent Should Start Here
 
 - For admin P1+P2 work, read
-  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then begin D3
-  with a fresh implementer. Relocate current CategoryManagementController error
-  paths and its handler contracts before editing; retain the serialized
-  implementation → specification review → quality review gates.
+  `entries/2026-07-18-admin-p1-p2-batch.md` and the rebased plan, then begin D4
+  with a fresh implementer. Relocate current admin article mapper/service/controller
+  reviewStatus flow and front-end comment-count callers before editing; retain the
+  serialized implementation → specification review → quality review gates.
 
 - Read `entries/2026-07-17-crawler-v2-per-env-activation-guard.md` before any
   crawler-monitor work. This environment routes V2; other worktrees still
@@ -132,7 +138,7 @@ Active branch: `fix/admin-p1-p2-batch`
 
 ## Current Risks
 
-- D3-D6 remain unimplemented, and their scout line numbers must be relocated on
+- D4-D6 remain unimplemented, and their scout line numbers must be relocated on
   the current branch. C4's focused CSS evaluator intentionally supports only the
   repository's current syntax subset and does not model future decorative
   background layering.
