@@ -35,7 +35,10 @@ export const fetchPublicArmorSetDetail = async (armorSetId: string | number): Pr
   if (!normalizedId) return missingPublicArmorSetDetail()
 
   try {
-    const response = await usePublicApiFetch<PublicArmorSetListItem | null>(`/public/armor-sets/${normalizedId}`)
+    const response = await usePublicApiFetch<PublicArmorSetListItem | null>(
+      `/public/armor-sets/${normalizedId}`,
+      { query: { include: 'piece-effects,recipes' } },
+    )
     if (response.success === false) return missingPublicArmorSetDetail()
 
     return normalizePublicArmorSetDetail(unwrapApiResponse(response))
@@ -51,4 +54,3 @@ export const usePublicArmorSetDetail = (armorSetId: MaybeRefOrGetter<string | nu
     default: missingPublicArmorSetDetail,
   },
 )
-

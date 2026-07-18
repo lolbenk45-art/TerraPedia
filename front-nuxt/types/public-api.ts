@@ -665,6 +665,8 @@ export type PublicArmorSetListItem = {
   relatedItems?: PublicArmorSetRelatedItem[] | null
   related_items?: PublicArmorSetRelatedItem[] | null
   effects?: EquipmentEffectAttribute[] | null
+  pieceEffects?: Record<string, PublicItemEquipmentEffect[] | null> | null
+  pieceRecipes?: Record<string, PublicItemRecipeTree | null> | null
 }
 
 export type PublicArmorSetRelatedItem = {

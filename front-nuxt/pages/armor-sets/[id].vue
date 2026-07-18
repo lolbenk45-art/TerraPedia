@@ -4,6 +4,7 @@ import ArmorRecipeTable from '~/components/detail/ArmorRecipeTable.vue'
 import DetailArmorSetSkeleton from '~/components/detail/DetailArmorSetSkeleton.vue'
 import { usePublicArmorSetDetail } from '~/composables/usePublicArmorSetDetail'
 import type { EquipmentEffectAttribute, PublicArmorSetListItem, PublicArmorSetRelatedItem, PublicItemRecipeTree } from '~/types/public-api'
+import { resolveArmorAggregateOrFallback } from '~/utils/armorSetAggregate.mjs'
 import { createArmorSetBuildGroups } from '~/utils/armorSetBuilds.mjs'
 import {
   armorBenefitLineIsAttributeSummary,
@@ -351,6 +352,23 @@ const armorSourceEffectGroups = computed(() => {
 
 const armorUniqueRelatedItems = computed(() => uniqueArmorItems(armorRelatedItems.value))
 
+const armorHasAggregatedPieceEffects = computed(() => Object.prototype.hasOwnProperty.call(
+  armorRaw.value ?? {},
+  'pieceEffects',
+))
+const armorPieceEffectSourceMode = computed(() => armorHasAggregatedPieceEffects.value ? 'aggregate' : 'legacy')
+
+const aggregateArmorPieceEquipmentEffects = (items: PublicArmorSetRelatedItem[]) => {
+  const aggregate = armorRaw.value?.pieceEffects ?? {}
+  const result: ArmorPieceEffectRecord = {}
+  for (const item of items) {
+    const itemId = armorItemEffectFetchKey(item)
+    if (!itemId) continue
+    result[armorUniqueItemKey(item)] = asEquipmentEffects(aggregate[itemId] ?? [])
+  }
+  return result
+}
+
 const armorPieceEffectRequestKeys = computed(() => dedupeEffectLines(
   armorUniqueRelatedItems.value
     .map(armorItemEffectFetchKey)
@@ -387,11 +405,16 @@ const fetchArmorPieceEquipmentEffects = async (items: PublicArmorSetRelatedItem[
 }
 
 const { data: armorPieceEquipmentEffectsByKey } = await useAsyncData(
-  () => `public-armor-set-piece-effects:${armorSetId.value || 'missing'}:${armorPieceEffectRequestKeys.value.join(',')}`,
-  () => fetchArmorPieceEquipmentEffects(armorUniqueRelatedItems.value),
+  () => `public-armor-set-piece-effects:${armorSetId.value || 'missing'}:${armorPieceEffectSourceMode.value}:${armorPieceEffectRequestKeys.value.join(',')}`,
+  () => resolveArmorAggregateOrFallback({
+    raw: armorRaw.value,
+    field: 'pieceEffects',
+    aggregate: () => aggregateArmorPieceEquipmentEffects(armorUniqueRelatedItems.value),
+    fallback: () => fetchArmorPieceEquipmentEffects(armorUniqueRelatedItems.value),
+  }),
   {
     server: false,
-    watch: [armorPieceEffectRequestKeys],
+    watch: [armorPieceEffectRequestKeys, armorPieceEffectSourceMode],
     default: (): ArmorPieceEffectRecord => ({}),
   },
 )
@@ -440,6 +463,22 @@ const armorBuildRecipeSummary = (item: PublicArmorSetRelatedItem, tree: PublicIt
   }
 }
 
+const armorHasAggregatedRecipes = computed(() => Object.prototype.hasOwnProperty.call(
+  armorRaw.value ?? {},
+  'pieceRecipes',
+))
+const armorRecipeSourceMode = computed(() => armorHasAggregatedRecipes.value ? 'aggregate' : 'legacy')
+
+const aggregateArmorSetRecipeSummaries = (items: PublicArmorSetRelatedItem[]) => {
+  const aggregate = armorRaw.value?.pieceRecipes ?? {}
+  return items.map((item) => {
+    const itemId = armorRecipeItemId(item)
+    if (!itemId) return null
+    const tree = aggregate[itemId]
+    return armorBuildRecipeSummary(item, tree)
+  }).filter((entry): entry is ArmorSetRecipeSummary => Boolean(entry))
+}
+
 const fetchArmorSetRecipeSummaries = async (items: PublicArmorSetRelatedItem[]) => {
   const entries = await Promise.all(items.map(async (item) => {
     const itemId = armorRecipeItemId(item)
@@ -457,11 +496,16 @@ const fetchArmorSetRecipeSummaries = async (items: PublicArmorSetRelatedItem[]) 
 }
 
 const { data: armorSetRecipeSummaries, pending: armorSetRecipePending } = await useAsyncData(
-  () => `public-armor-set-recipes:${armorSetId.value || 'missing'}:${armorRecipeFetchKey.value}`,
-  () => fetchArmorSetRecipeSummaries(armorUniqueRecipeItems.value),
+  () => `public-armor-set-recipes:${armorSetId.value || 'missing'}:${armorRecipeSourceMode.value}:${armorRecipeFetchKey.value}`,
+  () => resolveArmorAggregateOrFallback({
+    raw: armorRaw.value,
+    field: 'pieceRecipes',
+    aggregate: () => aggregateArmorSetRecipeSummaries(armorUniqueRecipeItems.value),
+    fallback: () => fetchArmorSetRecipeSummaries(armorUniqueRecipeItems.value),
+  }),
   {
     server: false,
-    watch: [armorRecipeFetchKey],
+    watch: [armorRecipeFetchKey, armorRecipeSourceMode],
     default: (): ArmorSetRecipeSummary[] => [],
   },
 )
